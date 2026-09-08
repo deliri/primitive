@@ -58,7 +58,7 @@ func TestClassificationOperationAndSecondaryContradictions(t *testing.T) {
 	for raw := range 256 {
 		operation := Operation(raw)
 		for disposition := StandardSymbolPure; disposition <= StandardSymbolUnresolved; disposition++ {
-			for effect := EffectUnknown; effect < effectLimit; effect++ {
+			for effect := range effectLimit {
 				value := Classification{Operation: operation, Disposition: disposition, Effect: effect}
 				want := raw < int(operationLimit) && ((disposition == StandardSymbolEffect && effect != EffectUnknown) || (disposition != StandardSymbolEffect && effect == EffectUnknown))
 				if want && operation != OperationUnavailable {

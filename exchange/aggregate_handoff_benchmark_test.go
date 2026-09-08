@@ -15,6 +15,7 @@ import (
 // with an in-memory transport. This measures bounded processing, not latency
 // across a real network. Each iteration owns a fresh body and context.
 func BenchmarkAggregateCompletedAttemptHandoff(b *testing.B) {
+	b.ReportAllocs()
 	cases := []struct {
 		name            string
 		fault           replayHandoffBodyFault

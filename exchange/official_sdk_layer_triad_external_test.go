@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -207,149 +209,201 @@ func TestOfficialSDKStreamingSuccessTransportLayerTriad(t *testing.T) {
 
 func TestOfficialSDKHTTPClientRefusesRedirectCancellationAndTransportFailure(t *testing.T) {
 	t.Parallel()
-
-	limit, limitErr := core.NewByteCount(128)
-	if limitErr != nil {
-		t.Fatalf("core.NewByteCount() error = %v, want nil", limitErr)
+	cases := []struct {
+		name                                  string
+		redirect, cancelled, closedConnection bool
+		wantCalls                             int64
+		wantStatus                            int
+		wantErr, wantNative                   error
+	}{
+		{name: "redirect cannot issue a second provider request", redirect: true, wantCalls: 1, wantStatus: http.StatusFound, wantErr: core.ErrExchangeRedirect},
+		{name: "pre-cancelled context cannot reach provider", cancelled: true, wantErr: core.ErrExchangeCancelled, wantNative: context.Canceled},
+		{name: "closed Go connection retains native transport refusal", closedConnection: true, wantErr: core.ErrExchangeTransport, wantNative: io.ErrClosedPipe},
+		{name: "empty successful provider response invents no content", wantCalls: 1, wantStatus: http.StatusOK},
 	}
-	boundary, boundaryErr := exchange.NewOfficialSDKResponseCeiling(exchange.OfficialSDKResponseCeilingRequest{
-		Method: exchange.MethodGet, Representation: exchange.OfficialSDKResponseRepresentationBinary,
-		MaximumBytes: limit,
-	})
-	if boundaryErr != nil {
-		t.Fatalf("exchange.NewOfficialSDKResponseCeiling() error = %v, want nil", boundaryErr)
-	}
-
-	t.Run("redirect is refused before a second provider request", func(t *testing.T) {
-		t.Parallel()
-
-		var calls atomic.Int64
-		server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-			calls.Add(1)
-			http.Redirect(writer, request, "/moved", http.StatusFound)
-		}))
-		t.Cleanup(server.Close)
-		client := officialSDKClient(t, boundary)
-		response, gotErr := client.Get(server.URL + "/start")
-		if !errors.Is(gotErr, core.ErrExchangeRedirect) || response == nil || response.StatusCode != http.StatusFound {
-			if response != nil {
-				if closeErr := response.Body.Close(); closeErr != nil {
-					t.Errorf("redirect response close error = %v, want nil", closeErr)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			boundary, err := exchange.NewOfficialSDKResponseCeiling(exchange.OfficialSDKResponseCeilingRequest{Method: exchange.MethodGet, Representation: exchange.OfficialSDKResponseRepresentationBinary, MaximumBytes: mustByteCount(t, 128)})
+			if err != nil {
+				t.Fatal(err)
+			}
+			var calls atomic.Int64
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				calls.Add(1)
+				if tc.redirect {
+					http.Redirect(w, r, "/moved", http.StatusFound)
+					return
+				}
+				w.WriteHeader(http.StatusOK)
+			}))
+			defer server.Close()
+			base := http.DefaultTransport.(*http.Transport).Clone()
+			base.Proxy = nil
+			defer base.CloseIdleConnections()
+			if tc.closedConnection {
+				base.DialContext = func(context.Context, string, string) (net.Conn, error) {
+					local, peer := net.Pipe()
+					err := errors.Join(local.Close(), peer.Close())
+					return local, err
 				}
 			}
-			t.Fatalf("redirect request = (%v, %v), want refused 302 response and %v", response, gotErr, core.ErrExchangeRedirect)
-		}
-		if closeErr := response.Body.Close(); closeErr != nil {
-			t.Fatalf("redirect response close error = %v, want nil", closeErr)
-		}
-		if got := calls.Load(); got != 1 {
-			t.Fatalf("provider calls = %d, want 1", got)
-		}
-	})
-
-	t.Run("pre-cancelled context reaches typed cancellation and no provider", func(t *testing.T) {
-		t.Parallel()
-
-		var calls atomic.Int64
-		server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-			calls.Add(1)
-			writer.WriteHeader(http.StatusNoContent)
-		}))
-		t.Cleanup(server.Close)
-		client := officialSDKClient(t, boundary)
-		ctx, cancel := context.WithCancel(context.Background())
-		cancel()
-		request, requestErr := http.NewRequestWithContext(ctx, http.MethodGet, server.URL, nil)
-		if requestErr != nil {
-			t.Fatalf("http.NewRequestWithContext() error = %v, want nil", requestErr)
-		}
-		response, gotErr := client.Do(request)
-		if response != nil {
-			_ = response.Body.Close()
-		}
-		if !errors.Is(gotErr, core.ErrExchangeCancelled) || !errors.Is(gotErr, context.Canceled) || response != nil {
-			t.Fatalf("cancelled request = (%v, %v), want nil, %v, and %v", response, gotErr, core.ErrExchangeCancelled, context.Canceled)
-		}
-		if got := calls.Load(); got != 0 {
-			t.Fatalf("provider calls = %d, want 0", got)
-		}
-	})
-
-	t.Run("closed real transport preserves typed and native failure", func(t *testing.T) {
-		t.Parallel()
-
-		server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
-			writer.WriteHeader(http.StatusNoContent)
-		}))
-		endpoint := server.URL
-		server.Close()
-		client := officialSDKClient(t, boundary)
-		response, gotErr := client.Get(endpoint)
-		if response != nil {
-			_ = response.Body.Close()
-		}
-		if !errors.Is(gotErr, core.ErrExchangeTransport) || response != nil {
-			t.Fatalf("closed-provider request = (%v, %v), want nil and %v", response, gotErr, core.ErrExchangeTransport)
-		}
-	})
-
-	t.Run("cancellation during a provider body read closes the response and returns typed cancellation", func(t *testing.T) {
-		t.Parallel()
-
-		started := make(chan struct{})
-		server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-			writer.Header().Set("Content-Length", "128")
-			writer.WriteHeader(http.StatusOK)
-			flusher, ok := writer.(http.Flusher)
-			if !ok {
-				t.Errorf("provider writer implements http.Flusher = false, want true")
+			transport, err := exchange.NewOfficialSDKResponseTransport(exchange.OfficialSDKResponseTransportRequest{Base: base, Boundary: boundary})
+			if err != nil {
+				t.Fatal(err)
+			}
+			client, err := exchange.NewOfficialSDKHTTPClient(transport)
+			if err != nil {
+				t.Fatal(err)
+			}
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+			if tc.cancelled {
+				cancel()
+			}
+			request, err := http.NewRequestWithContext(ctx, http.MethodGet, server.URL, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			response, gotErr := client.Do(request)
+			var body []byte
+			if response != nil {
+				var readErr error
+				body, readErr = io.ReadAll(response.Body)
+				closeErr := response.Body.Close()
+				if readErr != nil || closeErr != nil {
+					t.Fatalf("response custody=(%v,%v), want complete read and close", readErr, closeErr)
+				}
+			}
+			if !errors.Is(gotErr, tc.wantErr) || tc.wantNative != nil && !errors.Is(gotErr, tc.wantNative) || calls.Load() != tc.wantCalls {
+				t.Fatalf("SDK request=(%v,%d calls), want (%v,%v,%d)", gotErr, calls.Load(), tc.wantErr, tc.wantNative, tc.wantCalls)
+			}
+			if tc.wantStatus == 0 {
+				if response != nil {
+					t.Fatalf("failed transport produced response %+v", response)
+				}
 				return
 			}
-			flusher.Flush()
-			close(started)
-			<-request.Context().Done()
-		}))
-		t.Cleanup(server.Close)
-		client := officialSDKClient(t, boundary)
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-		request, requestErr := http.NewRequestWithContext(ctx, http.MethodGet, server.URL, nil)
-		if requestErr != nil {
-			t.Fatalf("http.NewRequestWithContext() error = %v, want nil", requestErr)
-		}
-		type requestResult struct {
-			response *http.Response
-			err      error
-		}
-		done := make(chan requestResult, 1)
-		go func() {
-			response, gotErr := client.Do(request)
-			done <- requestResult{response: response, err: gotErr}
-		}()
+			if response == nil || response.StatusCode != tc.wantStatus {
+				t.Fatalf("SDK response=%+v, want status %d", response, tc.wantStatus)
+			}
+			if !tc.redirect && len(body) != 0 {
+				t.Fatalf("empty provider produced %q", body)
+			}
+		})
+	}
+}
 
-		select {
-		case <-started:
-			cancel()
-		case <-exchangeFixtureBackstop(t, officialSDKTestTimeout):
-			cancel()
-			t.Fatal("provider body read started = false, want true before timeout")
-		}
-		select {
-		case got := <-done:
-			if got.response != nil {
-				if closeErr := got.response.Body.Close(); closeErr != nil {
-					t.Errorf("cancelled in-flight response close error = %v, want nil", closeErr)
+func TestOfficialSDKActiveReadOwnershipLayerTriad(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name                          string
+		cancelActive, cancelAfterDone bool
+		wantErr, wantNative           error
+		wantBytes                     int
+	}{
+		{name: "cancellation after response headers closes active body", cancelActive: true, wantErr: core.ErrExchangeCancelled, wantNative: context.Canceled},
+		{name: "completed provider body retains exact bytes", wantBytes: 128},
+		{name: "cancellation after completion cannot erase owned response", cancelAfterDone: true, wantBytes: 128},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			backstop := exchangeFixtureBackstop(t, officialSDKTestTimeout)
+			started := make(chan struct{})
+			release, stopHandler := context.WithCancel(t.Context())
+			defer stopHandler()
+			payload := strings.Repeat("p", 128)
+			var calls atomic.Int64
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if calls.Add(1) != 1 {
+					return
 				}
+				w.Header().Set(core.HTTPHeaderContentLength().String(), strconv.Itoa(len(payload)))
+				w.WriteHeader(http.StatusOK)
+				if err := http.NewResponseController(w).Flush(); err != nil {
+					return
+				}
+				close(started)
+				if tc.cancelActive {
+					select {
+					case <-r.Context().Done():
+					case <-release.Done():
+					}
+					return
+				}
+				_, _ = io.WriteString(w, payload)
+			}))
+			defer server.Close()
+			boundary, err := exchange.NewOfficialSDKResponseCeiling(exchange.OfficialSDKResponseCeilingRequest{Method: exchange.MethodGet, Representation: exchange.OfficialSDKResponseRepresentationBinary, MaximumBytes: mustByteCount(t, uint64(len(payload)))})
+			if err != nil {
+				t.Fatal(err)
 			}
-			if got.response != nil || !errors.Is(got.err, core.ErrExchangeCancelled) ||
-				!errors.Is(got.err, context.Canceled) {
-				t.Fatalf("in-flight cancelled SDK exchange = (%v, %v), want nil plus typed and native cancellation identities", got.response, got.err)
+			client := officialSDKClient(t, boundary)
+			ctx, cancel := context.WithCancel(t.Context())
+			request, err := http.NewRequestWithContext(ctx, http.MethodGet, server.URL, nil)
+			if err != nil {
+				cancel()
+				t.Fatal(err)
 			}
-		case <-exchangeFixtureBackstop(t, officialSDKTestTimeout):
-			cancel()
-			t.Fatal("cancelled provider body read returned = false, want true before timeout")
-		}
-	})
+			type requestResult struct {
+				response *http.Response
+				err      error
+			}
+			var result requestResult
+			done := make(chan struct{})
+			// Register cancellation and join before starting the worker. A closed done
+			// channel supports both the behavioral wait and the unconditional cleanup.
+			defer func() {
+				cancel()
+				stopHandler()
+				select {
+				case <-done:
+				case <-exchangeFixtureBackstop(t, officialSDKTestTimeout):
+					t.Errorf("SDK client worker did not join during cleanup; owned completion channel=%p", done)
+					return
+				}
+				if result.response != nil {
+					if err := result.response.Body.Close(); err != nil {
+						t.Errorf("SDK response cleanup close=%v", err)
+					}
+				}
+			}()
+			go func() { result.response, result.err = client.Do(request); close(done) }()
+			select {
+			case <-started:
+			case <-backstop:
+				t.Fatalf("provider headers did not reach active read; owned completion channel=%p", started)
+			}
+			if tc.cancelActive {
+				cancel()
+			}
+			select {
+			case <-done:
+			case <-backstop:
+				t.Fatalf("SDK operation did not finish; owned completion channel=%p", done)
+			}
+			if tc.cancelAfterDone {
+				cancel()
+			}
+			if !errors.Is(result.err, tc.wantErr) || tc.wantNative != nil && !errors.Is(result.err, tc.wantNative) || calls.Load() != 1 {
+				t.Fatalf("active SDK result=(%v,%d calls), want (%v,%v,1)", result.err, calls.Load(), tc.wantErr, tc.wantNative)
+			}
+			if tc.wantErr != nil {
+				if result.response != nil {
+					t.Fatalf("cancelled response=%v, want nil", result.response)
+				}
+				return
+			}
+			if result.response == nil || result.response.StatusCode != http.StatusOK {
+				t.Fatalf("completed response=%+v, want HTTP success", result.response)
+			}
+			body, err := io.ReadAll(result.response.Body)
+			if err != nil || len(body) != tc.wantBytes || string(body) != payload {
+				t.Fatalf("completed body=(%q,%v), want exact provider bytes", body, err)
+			}
+		})
+	}
 }
 
 func officialSDKClient(t *testing.T, boundary exchange.OfficialSDKResponseBoundary) *http.Client {

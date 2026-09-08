@@ -12,6 +12,7 @@ import (
 // listen effect. Rejected inputs must return a zero capability; an older
 // revision that admits a wildcard fails rather than reporting a useful speed.
 func BenchmarkListenAddressAdmission(b *testing.B) {
+	b.ReportAllocs()
 	cases := []struct {
 		name     string
 		input    string

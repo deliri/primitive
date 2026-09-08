@@ -1,0 +1,6 @@
+{
+  "rejected_record": "rename-native-table-control",
+  "reason": "Two rows expected OS-style replacement of an empty target directory. Go Root.Rename deliberately refuses an existing directory, following os.Rename rather than bare renameat. The native control caught the mistaken expected result before any production effect assertion. These are oracle errors, not production regressions.",
+  "source": "/usr/local/go/src/os/root_openat.go rootRename and /usr/local/go/src/os/file_unix.go rename",
+  "correction": "Pin the existing-directory refusal and replace the redundant populated-source/empty-target row with a real empty-directory move to an absent name. Retain the exact native error identity. Correct production documentation to describe Go replacement semantics."
+}

@@ -111,8 +111,8 @@ type DirectoryRequest struct {
 	Mode     fs.FileMode
 }
 
-// PermissionRequest changes one existing rooted entry to an exact permission
-// mode and proves the metadata update durable.
+// PermissionRequest changes one rooted entry through a native Go handle to the
+// requested permission mode, then requires Go to synchronize that handle.
 type PermissionRequest struct {
 	Location Location
 	Mode     fs.FileMode
@@ -154,7 +154,7 @@ func (r ReadRequest) Validate() error {
 	if err := r.Location.Validate(); err != nil {
 		return err
 	}
-	if err := r.MaximumBytes.Validate(); err != nil {
+	if _, err := r.MaximumBytes.Int64(); err != nil {
 		return contractError(err)
 	}
 	return nil
@@ -298,7 +298,7 @@ func (r WriteRequest) Validate() error {
 	if err := r.Install.Validate(); err != nil {
 		return err
 	}
-	if err := r.MaximumBytes.Validate(); err != nil {
+	if _, err := r.MaximumBytes.Int64(); err != nil {
 		return contractError(err)
 	}
 	return nil
@@ -326,7 +326,7 @@ func (r StageRequest) Validate() error {
 	if err := validatePermissionMode(r.Mode); err != nil {
 		return err
 	}
-	if err := r.MaximumBytes.Validate(); err != nil {
+	if _, err := r.MaximumBytes.Int64(); err != nil {
 		return contractError(err)
 	}
 	return nil
@@ -383,7 +383,8 @@ func (r ActivationRequest) CommitRequest(staged StagedFile) (CommitRequest, erro
 	if err := request.Validate(); err != nil {
 		return CommitRequest{}, err
 	}
-	if staged.Path() != r.Temporary.Path || staged.BytesWritten() != r.ExpectedBytes {
+	if staged.root != r.Temporary.Root || staged.Path() != r.Temporary.Path ||
+		staged.BytesWritten() != r.ExpectedBytes || staged.info.Mode().Perm() != r.Mode {
 		return CommitRequest{}, contractError(errors.New("filestore completed stage differs from activation plan"))
 	}
 	return request, nil

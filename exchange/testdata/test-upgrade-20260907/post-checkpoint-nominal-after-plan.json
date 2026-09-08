@@ -1,0 +1,237 @@
+[
+  {
+    "label": "post-checkpoint-nominal-after-key",
+    "argv": [
+      "go",
+      "test",
+      "-count=1",
+      "-run=^$",
+      "-bench=^BenchmarkParseIdempotencyKeyMaximum$",
+      "-benchtime=30s",
+      "-benchmem",
+      "-cpu=1",
+      "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-after-key.cpu.pprof",
+      "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-after-key.mem.pprof",
+      "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-after-key.test",
+      "./exchange"
+    ]
+  },
+  {
+    "label": "post-checkpoint-nominal-after-basic-accepted",
+    "argv": [
+      "go",
+      "test",
+      "-count=1",
+      "-run=^$",
+      "-bench=^BenchmarkReceiveBasicAuthorizationCustody$/^maximum_credentials$",
+      "-benchtime=30s",
+      "-benchmem",
+      "-cpu=1",
+      "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-after-basic-accepted.cpu.pprof",
+      "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-after-basic-accepted.mem.pprof",
+      "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-after-basic-accepted.test",
+      "./exchange"
+    ]
+  },
+  {
+    "label": "post-checkpoint-nominal-after-basic-partial-refusal",
+    "argv": [
+      "go",
+      "test",
+      "-count=1",
+      "-run=^$",
+      "-bench=^BenchmarkReceiveBasicAuthorizationCustody$/^partial_base64_refusal$",
+      "-benchtime=30s",
+      "-benchmem",
+      "-cpu=1",
+      "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-after-basic-partial-refusal.cpu.pprof",
+      "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-after-basic-partial-refusal.mem.pprof",
+      "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-after-basic-partial-refusal.test",
+      "./exchange"
+    ]
+  },
+  {
+    "label": "post-checkpoint-nominal-before-key-cpu-analysis",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-before-key.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-before-key.cpu.pprof"
+    ]
+  },
+  {
+    "label": "post-checkpoint-nominal-before-key-mem-analysis",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-before-key.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-before-key.mem.pprof"
+    ]
+  },
+  {
+    "label": "post-checkpoint-nominal-before-basic-accepted-cpu-analysis",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-before-basic-accepted.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-before-basic-accepted.cpu.pprof"
+    ]
+  },
+  {
+    "label": "post-checkpoint-nominal-before-basic-accepted-mem-analysis",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-before-basic-accepted.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-before-basic-accepted.mem.pprof"
+    ]
+  },
+  {
+    "label": "post-checkpoint-nominal-before-basic-partial-refusal-cpu-analysis",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-before-basic-partial-refusal.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-before-basic-partial-refusal.cpu.pprof"
+    ]
+  },
+  {
+    "label": "post-checkpoint-nominal-before-basic-partial-refusal-mem-analysis",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-before-basic-partial-refusal.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-before-basic-partial-refusal.mem.pprof"
+    ]
+  },
+  {
+    "label": "post-checkpoint-nominal-after-key-cpu-analysis",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-after-key.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-after-key.cpu.pprof"
+    ]
+  },
+  {
+    "label": "post-checkpoint-nominal-after-key-mem-analysis",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-after-key.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-after-key.mem.pprof"
+    ]
+  },
+  {
+    "label": "post-checkpoint-nominal-after-basic-accepted-cpu-analysis",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-after-basic-accepted.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-after-basic-accepted.cpu.pprof"
+    ]
+  },
+  {
+    "label": "post-checkpoint-nominal-after-basic-accepted-mem-analysis",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-after-basic-accepted.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-after-basic-accepted.mem.pprof"
+    ]
+  },
+  {
+    "label": "post-checkpoint-nominal-after-basic-partial-refusal-cpu-analysis",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-after-basic-partial-refusal.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-after-basic-partial-refusal.cpu.pprof"
+    ]
+  },
+  {
+    "label": "post-checkpoint-nominal-after-basic-partial-refusal-mem-analysis",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-after-basic-partial-refusal.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-after-basic-partial-refusal.mem.pprof"
+    ]
+  },
+  {
+    "label": "post-checkpoint-sustained-FuzzMethodJSONSemanticClosure",
+    "argv": [
+      "go",
+      "test",
+      "-count=1",
+      "-run=^$",
+      "-fuzz=^FuzzMethodJSONSemanticClosure$",
+      "-fuzztime=30s",
+      "-parallel=2",
+      "./exchange"
+    ]
+  },
+  {
+    "label": "post-checkpoint-sustained-FuzzParseBasicAuthorizationIdentitySemanticClosure",
+    "argv": [
+      "go",
+      "test",
+      "-count=1",
+      "-run=^$",
+      "-fuzz=^FuzzParseBasicAuthorizationIdentitySemanticClosure$",
+      "-fuzztime=30s",
+      "-parallel=2",
+      "./exchange"
+    ]
+  },
+  {
+    "label": "post-checkpoint-sustained-FuzzParseIdempotencyKeySemanticClosure",
+    "argv": [
+      "go",
+      "test",
+      "-count=1",
+      "-run=^$",
+      "-fuzz=^FuzzParseIdempotencyKeySemanticClosure$",
+      "-fuzztime=30s",
+      "-parallel=2",
+      "./exchange"
+    ]
+  },
+  {
+    "label": "post-checkpoint-sustained-FuzzParseSocketRoutePathSemanticClosure",
+    "argv": [
+      "go",
+      "test",
+      "-count=1",
+      "-run=^$",
+      "-fuzz=^FuzzParseSocketRoutePathSemanticClosure$",
+      "-fuzztime=30s",
+      "-parallel=2",
+      "./exchange"
+    ]
+  }
+]

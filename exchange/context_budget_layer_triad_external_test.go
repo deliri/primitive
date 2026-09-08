@@ -107,7 +107,7 @@ func TestContextBudgetLayerTriad(t *testing.T) {
 					t.Fatalf("server write error = %v, want nil", err)
 				}
 			case <-exchangeFixtureBackstop(t, 10*time.Second):
-				t.Fatal("server write completion absent, want completed handler")
+				t.Fatalf("server write completion absent, want completed handler; owned completion channel=%p", handled)
 			}
 		})
 	}

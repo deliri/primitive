@@ -53,335 +53,151 @@ func (s *stageIdentitySwapSource) Read(buffer []byte) (int, error) {
 	return 0, io.EOF
 }
 
-// TestReplaceActivationLayerTriad proves the direct replace-activation seam:
-// a synchronized receipt is renamed onto its target, so the target becomes the
-// staged file itself rather than a copy of it.
+// The receipt handoff is distinct from the native Rename namespace matrix:
+// activation must publish the synchronized inode, preserve displaced handles,
+// and refuse reuse of a consumed receipt. Empty content is still a real file.
 func TestReplaceActivationLayerTriad(t *testing.T) {
 	t.Parallel()
-
-	t.Run("positive replacement renames the staged file onto an occupied target without truncating the displaced file", func(t *testing.T) {
-		t.Parallel()
-
-		rootDirectory := t.TempDir()
-		root := requireTestRoot(t, rootDirectory)
-		targetPath := filepath.Join(rootDirectory, "target")
-		if err := os.WriteFile(targetPath, []byte("original"), 0o600); err != nil {
-			t.Fatal(err)
-		}
-		displaced, err := os.Open(targetPath)
-		if err != nil {
-			t.Fatal(err)
-		}
-		t.Cleanup(func() {
-			if closeErr := displaced.Close(); closeErr != nil {
-				t.Errorf("displaced handle Close() error = %v, want nil", closeErr)
-			}
-		})
-		staged := mustStage(t, root, ".stage", "replacement")
-		stagedInfo, err := os.Stat(filepath.Join(rootDirectory, ".stage"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		gotErr := filestore.Commit(t.Context(), filestore.CommitRequest{
-			Staged:  staged,
-			Target:  mustRelativePath(t, "target"),
-			Install: filestore.InstallReplace,
-		})
-		if gotErr != nil {
-			t.Fatalf("Commit(replace) error = %v, want nil", gotErr)
-		}
-		activatedInfo, err := os.Stat(targetPath)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if !os.SameFile(stagedInfo, activatedInfo) {
-			t.Fatalf("activated target identity = %v, want the staged file identity %v", activatedInfo.Name(), stagedInfo.Name())
-		}
-		got, err := os.ReadFile(targetPath)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if string(got) != "replacement" {
-			t.Fatalf("activated target bytes = %q, want %q", got, "replacement")
-		}
-		gotDisplaced, err := io.ReadAll(displaced)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if string(gotDisplaced) != "original" {
-			t.Fatalf("displaced open file bytes = %q, want %q", gotDisplaced, "original")
-		}
-		requireDirectoryEntryNames(t, rootDirectory, []string{"target"})
-	})
-	t.Run("negative directory target refuses replacement and preserves both the directory tree and the stage", func(t *testing.T) {
-		t.Parallel()
-
-		rootDirectory := t.TempDir()
-		root := requireTestRoot(t, rootDirectory)
-		if err := os.Mkdir(filepath.Join(rootDirectory, "target"), 0o700); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(filepath.Join(rootDirectory, "target", "child"), []byte("keep"), 0o600); err != nil {
-			t.Fatal(err)
-		}
-		staged := mustStage(t, root, ".stage", "replacement")
-		gotErr := filestore.Commit(t.Context(), filestore.CommitRequest{
-			Staged:  staged,
-			Target:  mustRelativePath(t, "target"),
-			Install: filestore.InstallReplace,
-		})
-		var linkErr *os.LinkError
-		if !errors.Is(gotErr, core.ErrFilestoreActivation) || !errors.As(gotErr, &linkErr) {
-			t.Fatalf("Commit(replace directory) error = %v, want %v and *os.LinkError", gotErr, core.ErrFilestoreActivation)
-		}
-		gotChild, err := os.ReadFile(filepath.Join(rootDirectory, "target", "child"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		gotStage, err := os.ReadFile(filepath.Join(rootDirectory, ".stage"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if string(gotChild) != "keep" || string(gotStage) != "replacement" {
-			t.Fatalf("refused replacement bytes = child:%q stage:%q, want %q/%q", gotChild, gotStage, "keep", "replacement")
-		}
-		requireDirectoryEntryNames(t, rootDirectory, []string{".stage", "target"})
-	})
-	t.Run("neutral absent target publishes once and a repeated commit of the consumed receipt fabricates no second effect", func(t *testing.T) {
-		t.Parallel()
-
-		rootDirectory := t.TempDir()
-		root := requireTestRoot(t, rootDirectory)
-		staged := mustStage(t, root, ".stage", "replacement")
-		request := filestore.CommitRequest{
-			Staged:  staged,
-			Target:  mustRelativePath(t, "target"),
-			Install: filestore.InstallReplace,
-		}
-		if gotErr := filestore.Commit(t.Context(), request); gotErr != nil {
-			t.Fatalf("Commit(replace absent target) error = %v, want nil", gotErr)
-		}
-		requireDirectoryEntryNames(t, rootDirectory, []string{"target"})
-		for attempt := range 3 {
-			gotErr := filestore.Commit(t.Context(), request)
-			if !errors.Is(gotErr, core.ErrFilestoreActivation) ||
-				!errors.Is(gotErr, fs.ErrNotExist) {
-				t.Fatalf("repeated Commit() attempt %d error = %v, want %v and %v", attempt, gotErr, core.ErrFilestoreActivation, fs.ErrNotExist)
-			}
-		}
-		got, err := os.ReadFile(filepath.Join(rootDirectory, "target"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if string(got) != "replacement" {
-			t.Fatalf("target bytes after repeated commits = %q, want %q", got, "replacement")
-		}
-		requireDirectoryEntryNames(t, rootDirectory, []string{"target"})
-	})
-}
-
-// TestRecoveryHandoffLayerTriad proves the ownership seam on the CommitRequest
-// that Write returns. The handoff exists so an interrupted activation stays the
-// caller's decision instead of Primitive guessing.
-//
-// The positive case obtains the nonzero handoff from Write itself, restores the
-// exact staged inode through a real hard-link identity, and completes the
-// operation through Recover. The negative case leaves the foreign inode in
-// place and proves that neither recovery nor discard consumes it.
-func TestRecoveryHandoffLayerTriad(t *testing.T) {
-	t.Parallel()
-
-	t.Run("positive handoff returned by write finishes after the caller restores the exact staged inode", func(t *testing.T) {
-		t.Parallel()
-
-		rootDirectory := t.TempDir()
-		root := requireTestRoot(t, rootDirectory)
-		payload := []byte("candidate-payload")
-		source := &stageIdentitySwapSource{
-			remaining: payload,
-			foreign:   []byte("foreign-owner"),
-			directory: rootDirectory,
-			name:      ".stage",
-			preserve:  ".preserved-stage",
-		}
-		gotRecovery, gotErr := filestore.Write(t.Context(), filestore.WriteRequest{
-			Source:       source,
-			Location:     filestore.Location{Root: root, Path: mustRelativePath(t, "target")},
-			Temporary:    mustRelativePath(t, ".stage"),
-			Mode:         0o600,
-			Install:      filestore.InstallCreate,
-			MaximumBytes: mustByteCount(t, uint64(len(payload)+1)),
-		})
-		if !source.swapped || source.swapErr != nil {
-			t.Fatalf("stage identity swap = swapped:%t error:%v, want true/nil", source.swapped, source.swapErr)
-		}
-		if !errors.Is(gotErr, core.ErrFilestoreActivationIndeterminate) {
-			t.Fatalf("Write(swapped stage identity) error = %v, want %v", gotErr, core.ErrFilestoreActivationIndeterminate)
-		}
-		if err := gotRecovery.Validate(); err != nil {
-			t.Fatalf("Write() handoff Validate() error = %v, want nil", err)
-		}
-		if err := os.Remove(filepath.Join(rootDirectory, ".stage")); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.Link(
-			filepath.Join(rootDirectory, ".preserved-stage"),
-			filepath.Join(rootDirectory, ".stage"),
-		); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.Remove(filepath.Join(rootDirectory, ".preserved-stage")); err != nil {
-			t.Fatal(err)
-		}
-		for attempt := range 3 {
-			if recoverErr := filestore.Recover(t.Context(), gotRecovery); recoverErr != nil {
-				t.Fatalf("Recover(Write handoff) attempt %d error = %v, want nil", attempt, recoverErr)
-			}
-			got, err := os.ReadFile(filepath.Join(rootDirectory, "target"))
-			if err != nil {
-				t.Fatal(err)
-			}
-			if !bytes.Equal(got, payload) {
-				t.Fatalf("target bytes after attempt %d = %q, want %q", attempt, got, payload)
-			}
-			requireDirectoryEntryNames(t, rootDirectory, []string{"target"})
-		}
-	})
-	t.Run("negative ambiguous identity hands back an exact request that refuses to consume the stranger", func(t *testing.T) {
-		t.Parallel()
-
-		rootDirectory := t.TempDir()
-		root := requireTestRoot(t, rootDirectory)
-		payload := []byte("candidate-payload")
-		source := &stageIdentitySwapSource{
-			remaining: payload,
-			foreign:   []byte("foreign-owner"),
-			directory: rootDirectory,
-			name:      ".stage",
-		}
-		gotRecovery, gotErr := filestore.Write(t.Context(), filestore.WriteRequest{
-			Source:       source,
-			Location:     filestore.Location{Root: root, Path: mustRelativePath(t, "target")},
-			Temporary:    mustRelativePath(t, ".stage"),
-			Mode:         0o600,
-			Install:      filestore.InstallCreate,
-			MaximumBytes: mustByteCount(t, uint64(len(payload)+1)),
-		})
-		if !source.swapped || source.swapErr != nil {
-			t.Fatalf("stage identity swap = swapped:%t error:%v, want true/nil", source.swapped, source.swapErr)
-		}
-		if !errors.Is(gotErr, core.ErrFilestoreActivationIndeterminate) {
-			t.Fatalf("Write(swapped stage identity) error = %v, want %v", gotErr, core.ErrFilestoreActivationIndeterminate)
-		}
-		if err := gotRecovery.Validate(); err != nil {
-			t.Fatalf("recovery request Validate() error = %v, want nil after indeterminate activation", err)
-		}
-		if gotRecovery.Target != mustRelativePath(t, "target") ||
-			gotRecovery.Install != filestore.InstallCreate ||
-			gotRecovery.Staged.Path() != mustRelativePath(t, ".stage") ||
-			gotRecovery.Staged.BytesWritten().Uint64() != uint64(len(payload)) {
-			t.Fatalf(
-				"recovery request = target:%q install:%d stage:%q bytes:%d, want %q/%d/%q/%d",
-				gotRecovery.Target.String(), gotRecovery.Install,
-				gotRecovery.Staged.Path().String(), gotRecovery.Staged.BytesWritten().Uint64(),
-				"target", filestore.InstallCreate, ".stage", len(payload),
-			)
-		}
-		if recoverErr := filestore.Recover(t.Context(), gotRecovery); !errors.Is(recoverErr, core.ErrFilestoreActivationIndeterminate) {
-			t.Fatalf("Recover(handoff over foreign stage) error = %v, want %v", recoverErr, core.ErrFilestoreActivationIndeterminate)
-		}
-		discardErr := filestore.Discard(t.Context(), gotRecovery.Staged)
-		if !errors.Is(discardErr, core.ErrFilestoreCleanup) ||
-			!errors.Is(discardErr, core.ErrFilestoreConflict) {
-			t.Fatalf("Discard(handoff over foreign stage) error = %v, want %v and %v", discardErr, core.ErrFilestoreCleanup, core.ErrFilestoreConflict)
-		}
-		got, err := os.ReadFile(filepath.Join(rootDirectory, ".stage"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if string(got) != "foreign-owner" {
-			t.Fatalf("foreign stage bytes = %q, want %q", got, "foreign-owner")
-		}
-		requireDirectoryEntryNames(t, rootDirectory, []string{".stage"})
-	})
-	t.Run("neutral resolved outcomes issue no handoff and the zero request cannot fake a recovery", func(t *testing.T) {
-		t.Parallel()
-
-		cases := []struct {
-			wantErr    error
-			wantNative error
-			name       string
-			initial    string
-			source     string
-			wantTarget string
-			maximum    uint64
-		}{
-			{
-				name:       "completed create leaves the caller nothing to finish",
-				source:     "published",
-				wantTarget: "published",
-			},
-			{
-				name:       "definite create conflict is cleaned by Primitive before returning",
-				initial:    "winner",
-				source:     "candidate",
-				wantErr:    core.ErrFilestoreConflict,
-				wantNative: os.ErrExist,
-				wantTarget: "winner",
-			},
-			{
-				name:    "definite size rejection publishes nothing and retains no temporary",
-				source:  "oversized-payload",
-				maximum: 4,
-				wantErr: core.ErrFilestoreSize,
-			},
-		}
-		for _, tc := range cases {
-			t.Run(tc.name, func(t *testing.T) {
-				t.Parallel()
-
-				rootDirectory := t.TempDir()
-				root := requireTestRoot(t, rootDirectory)
-				if tc.initial != "" {
-					if err := os.WriteFile(filepath.Join(rootDirectory, "target"), []byte(tc.initial), 0o600); err != nil {
+	type targetKind uint8
+	const (
+		targetAbsent targetKind = iota
+		targetRegular
+		targetEmptyDirectory
+		targetNonemptyDirectory
+	)
+	for _, tc := range []struct {
+		name    string
+		target  targetKind
+		payload []byte
+		wantErr error
+	}{
+		{name: "absent target receives the exact synchronized inode", payload: []byte{0, 255, 7}},
+		{name: "occupied target is displaced without truncating its open handle", target: targetRegular, payload: []byte{0, 255, 7}},
+		{name: "empty stage replaces occupied target without becoming absence", target: targetRegular},
+		{name: "empty directory refuses without consuming the stage", target: targetEmptyDirectory, payload: []byte{0, 255, 7}, wantErr: core.ErrFilestoreActivation},
+		{name: "nonempty directory retains child and stage custody", target: targetNonemptyDirectory, payload: []byte{0, 255, 7}, wantErr: core.ErrFilestoreActivation},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			directory := t.TempDir()
+			root := requireTestRoot(t, directory)
+			original := []byte{255, 0, 19, 3}
+			var displaced *os.File
+			switch tc.target {
+			case targetAbsent:
+			case targetRegular:
+				if err := root.WriteFile("target", original, 0o600); err != nil {
+					t.Fatal(err)
+				}
+				var err error
+				displaced, err = root.Open("target")
+				if err != nil {
+					t.Fatal(err)
+				}
+				t.Cleanup(func() {
+					if err := displaced.Close(); err != nil {
+						t.Error(err)
+					}
+				})
+			case targetEmptyDirectory, targetNonemptyDirectory:
+				if err := root.Mkdir("target", 0o700); err != nil {
+					t.Fatal(err)
+				}
+				if tc.target == targetNonemptyDirectory {
+					if err := root.WriteFile("target/child", original, 0o600); err != nil {
 						t.Fatal(err)
 					}
 				}
-				maximum := tc.maximum
-				if maximum == 0 {
-					maximum = uint64(max(len(tc.source), 1))
+			default:
+				t.Fatalf("fixture = %d, want a declared target shape", tc.target)
+			}
+			targetBefore, targetBeforeErr := root.Lstat("target")
+			staged, err := filestore.Stage(t.Context(), filestore.StageRequest{Source: bytes.NewReader(tc.payload), Temporary: filestore.Location{Root: root, Path: mustRelativePath(t, "stage")}, Mode: 0o600, MaximumBytes: mustByteCount(t, uint64(max(len(tc.payload), 1)))})
+			if err != nil {
+				t.Fatal(err)
+			}
+			stageBefore, err := root.Lstat("stage")
+			if err != nil {
+				t.Fatal(err)
+			}
+			before, err := removalFixtureSnapshot(directory)
+			if err != nil {
+				t.Fatal(err)
+			}
+			request := filestore.CommitRequest{Staged: staged, Target: mustRelativePath(t, "target"), Install: filestore.InstallReplace}
+			gotErr := filestore.Commit(t.Context(), request)
+			if !errors.Is(gotErr, tc.wantErr) {
+				t.Fatalf("Commit = %v, want %v", gotErr, tc.wantErr)
+			}
+			for _, class := range []error{core.ErrFilestoreSource, core.ErrFilestoreDestination, core.ErrFilestoreConflict, core.ErrFilestoreCleanup, core.ErrFilestoreSize, core.ErrFilestoreActivationIndeterminate} {
+				if errors.Is(gotErr, class) {
+					t.Fatalf("Commit = %v, want no %v", gotErr, class)
 				}
-				gotRecovery, gotErr := filestore.Write(t.Context(), filestore.WriteRequest{
-					Source:       bytes.NewReader([]byte(tc.source)),
-					Location:     filestore.Location{Root: root, Path: mustRelativePath(t, "target")},
-					Temporary:    mustRelativePath(t, ".stage"),
-					Mode:         0o600,
-					Install:      filestore.InstallCreate,
-					MaximumBytes: mustByteCount(t, maximum),
-				})
-				if tc.wantErr != nil {
-					if !errors.Is(gotErr, tc.wantErr) {
-						t.Fatalf("Write() error = %v, want %v", gotErr, tc.wantErr)
+			}
+			if tc.wantErr != nil {
+				if _, ok := errors.AsType[*os.LinkError](gotErr); !ok {
+					t.Fatalf("refusal = %v, want Go LinkError", gotErr)
+				}
+				// Go owns platform errno spelling; the same native operation on these
+				// refused entries supplies the exact cause and is itself non-mutating.
+				nativeErr := root.Rename("stage", "target")
+				var oracle *os.LinkError
+				if !errors.As(nativeErr, &oracle) || !errors.Is(gotErr, oracle.Err) {
+					t.Fatalf("refusal = %v, want native %v", gotErr, nativeErr)
+				}
+				after, err := removalFixtureSnapshot(directory)
+				if err != nil || len(after) != len(before) {
+					t.Fatalf("namespace = (%v,%v), want %v", after, err, before)
+				}
+				for i, entry := range before {
+					if after[i].name != entry.name || after[i].mode != entry.mode || after[i].target != entry.target || !bytes.Equal(after[i].data, entry.data) {
+						t.Fatalf("entry %d = %+v, want %+v", i, after[i], entry)
 					}
-					if tc.wantNative != nil && !errors.Is(gotErr, tc.wantNative) {
-						t.Fatalf("Write() error = %v, want native %v", gotErr, tc.wantNative)
-					}
-				} else if gotErr != nil {
-					t.Fatalf("Write() error = %v, want nil", gotErr)
 				}
-				if !errors.Is(gotRecovery.Validate(), core.ErrFilestoreContract) {
-					t.Fatalf("recovery request Validate() = %v, want %v for a resolved outcome", gotRecovery.Validate(), core.ErrFilestoreContract)
+				stageAfter, err := root.Lstat("stage")
+				if err != nil {
+					t.Fatal(err)
 				}
-				if recoverErr := filestore.Recover(t.Context(), gotRecovery); !errors.Is(recoverErr, core.ErrFilestoreContract) {
-					t.Fatalf("Recover(zero handoff) error = %v, want %v", recoverErr, core.ErrFilestoreContract)
+				targetAfter, err := root.Lstat("target")
+				if err != nil {
+					t.Fatal(err)
 				}
-				requireOptionalFile(t, filepath.Join(rootDirectory, "target"), tc.wantTarget)
-				if tc.wantTarget == "" {
-					requireDirectoryEntryNames(t, rootDirectory, nil)
-					return
+				if targetBeforeErr != nil || !os.SameFile(stageBefore, stageAfter) || !os.SameFile(targetBefore, targetAfter) || !stageBefore.ModTime().Equal(stageAfter.ModTime()) || !targetBefore.ModTime().Equal(targetAfter.ModTime()) {
+					t.Fatalf("refused stage/target = (%v,%v), want original (%v,%v)", stageAfter, targetAfter, stageBefore, targetBefore)
 				}
-				requireDirectoryEntryNames(t, rootDirectory, []string{"target"})
-			})
-		}
-	})
+				return
+			}
+			targetAfter, err := root.Lstat("target")
+			if err != nil {
+				t.Fatal(err)
+			}
+			got, err := root.ReadFile("target")
+			if err != nil || !bytes.Equal(got, tc.payload) || !os.SameFile(stageBefore, targetAfter) || targetAfter.Mode() != stageBefore.Mode() || !targetAfter.ModTime().Equal(stageBefore.ModTime()) {
+				t.Fatalf("target = (%v,%v,%v), want staged inode, metadata and %v", targetAfter, got, err, tc.payload)
+			}
+			if displaced != nil {
+				gotOld, err := io.ReadAll(displaced)
+				heldInfo, statErr := displaced.Stat()
+				if err != nil || statErr != nil || !bytes.Equal(gotOld, original) || !os.SameFile(heldInfo, targetBefore) || os.SameFile(heldInfo, targetAfter) {
+					t.Fatalf("displaced handle = (%v,%v,%v), want original bytes and separate inode", gotOld, err, statErr)
+				}
+			}
+			repeated := filestore.Commit(t.Context(), request)
+			if !errors.Is(repeated, core.ErrFilestoreActivation) || !errors.Is(repeated, fs.ErrNotExist) || errors.Is(repeated, core.ErrFilestoreActivationIndeterminate) {
+				t.Fatalf("consumed receipt = %v, want definite missing-stage refusal", repeated)
+			}
+			finalInfo, err := root.Lstat("target")
+			if err != nil {
+				t.Fatal(err)
+			}
+			finalBytes, err := root.ReadFile("target")
+			if err != nil || !os.SameFile(targetAfter, finalInfo) || !targetAfter.ModTime().Equal(finalInfo.ModTime()) || !bytes.Equal(finalBytes, tc.payload) {
+				t.Fatalf("repeated activation changed target: (%v,%v,%v)", finalInfo, finalBytes, err)
+			}
+			entries, err := os.ReadDir(directory)
+			if err != nil || len(entries) != 1 || entries[0].Name() != "target" {
+				t.Fatalf("namespace = (%v,%v), want only target", entries, err)
+			}
+		})
+	}
 }

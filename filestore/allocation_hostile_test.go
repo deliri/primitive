@@ -54,9 +54,9 @@ func TestAllocationSeparatesReportedFactsFromFabrication(t *testing.T) {
 		},
 		{
 			name:         "a reported single block holds its exact bytes",
-			allocation:   Allocation{bytes: requireByteLength(t, 512), reported: true},
+			allocation:   Allocation{bytes: requireByteLength(t, core.POSIXAllocationBlockBytes), reported: true},
 			wantReported: true,
-			wantBytes:    512,
+			wantBytes:    core.POSIXAllocationBlockBytes,
 		},
 		{
 			name:         "a reported ceiling allocation holds its exact bytes",

@@ -1,0 +1,5 @@
+{
+  "survived": "mutation-ensure-directory-cancellation-ignored",
+  "reason": "The selected canceled request targeted a missing name, so the later chain cancellation check still rejected it. This did not prove the existing-directory fast path retained its ingress check.",
+  "repair": "Added named canceled-existing-directory mode preservation row and corresponding fuzz seed. Rerun all thirteen mutations under new labels because test sources changed. Initial four kills and the surviving fifth record remain historical evidence, not final-snapshot results."
+}

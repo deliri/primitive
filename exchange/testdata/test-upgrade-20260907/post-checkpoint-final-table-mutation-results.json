@@ -1,0 +1,54 @@
+[
+  {
+    "mutation": "aggregate-invent-attempt",
+    "record": "post-checkpoint-final-table-mutation-aggregate-invent-attempt.json",
+    "exit_status": 1,
+    "table_failures": [
+      "TestObservedAggregateResponseLayerTriad/binary_observation_cannot_normalize_or_truncate_bytes",
+      "TestObservedAggregateResponseLayerTriad/one_observed_byte_cannot_round_down_to_absent",
+      "TestObservedAggregateResponseLayerTriad/captured_field_retains_its_exact_nominal_value",
+      "TestObservedAggregateResponseLayerTriad/empty_completed_attempt_retains_status_without_inventing_bytes",
+      "TestObservedAggregateResponseLayerTriad/absent_attempts_cannot_publish_existing_status",
+      "TestObservedAggregateResponseLayerTriad/maximum_attempt_counter_cannot_wrap"
+    ],
+    "killed_in_table": true
+  },
+  {
+    "mutation": "aggregate-drop-byte",
+    "record": "post-checkpoint-final-table-mutation-aggregate-drop-byte.json",
+    "exit_status": 1,
+    "table_failures": [
+      "TestObservedAggregateResponseLayerTriad/binary_observation_cannot_normalize_or_truncate_bytes",
+      "TestObservedAggregateResponseLayerTriad/one_observed_byte_cannot_round_down_to_absent"
+    ],
+    "killed_in_table": true
+  },
+  {
+    "mutation": "zero-request-ignore-body",
+    "record": "post-checkpoint-final-table-mutation-zero-request-ignore-body.json",
+    "exit_status": 1,
+    "table_failures": [
+      "TestZeroExtentBoundariesDoNotConfuseAStallWithEOF/request_body_absence/above_empty-read_ceiling_cannot_spend_another_read",
+      "TestZeroExtentBoundariesDoNotConfuseAStallWithEOF/request_body_absence/exact_empty-read_ceiling_refuses_no_progress",
+      "TestZeroExtentBoundariesDoNotConfuseAStallWithEOF/request_body_absence/transient_stall_cannot_impersonate_EOF",
+      "TestZeroExtentBoundariesDoNotConfuseAStallWithEOF/request_body_absence/immediate_byte_contradicts_absence",
+      "TestZeroExtentBoundariesDoNotConfuseAStallWithEOF/request_body_absence/last_tolerated_stall_still_discovers_overflow",
+      "TestZeroExtentBoundariesDoNotConfuseAStallWithEOF/request_body_absence"
+    ],
+    "killed_in_table": true
+  },
+  {
+    "mutation": "zero-response-ignore-body",
+    "record": "post-checkpoint-final-table-mutation-zero-response-ignore-body.json",
+    "exit_status": 1,
+    "table_failures": [
+      "TestZeroExtentBoundariesDoNotConfuseAStallWithEOF/response_zero_extent/immediate_byte_contradicts_absence",
+      "TestZeroExtentBoundariesDoNotConfuseAStallWithEOF/response_zero_extent/exact_empty-read_ceiling_refuses_no_progress",
+      "TestZeroExtentBoundariesDoNotConfuseAStallWithEOF/response_zero_extent/above_empty-read_ceiling_cannot_spend_another_read",
+      "TestZeroExtentBoundariesDoNotConfuseAStallWithEOF/response_zero_extent/transient_stall_cannot_impersonate_EOF",
+      "TestZeroExtentBoundariesDoNotConfuseAStallWithEOF/response_zero_extent/last_tolerated_stall_still_discovers_overflow",
+      "TestZeroExtentBoundariesDoNotConfuseAStallWithEOF/response_zero_extent"
+    ],
+    "killed_in_table": true
+  }
+]

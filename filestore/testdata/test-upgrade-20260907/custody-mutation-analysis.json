@@ -1,0 +1,58 @@
+[
+  {
+    "label": "mutation-custody-sync-omission-embedded",
+    "file": "/Users/d/code/primitive/filestore/custody.go",
+    "before": "syncErr := file.Sync()",
+    "after": "var syncErr error",
+    "test": "^TestOwnedFileSyncAndCloseLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 6,
+      "fail": 3,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-custody-close-omission-embedded",
+    "file": "/Users/d/code/primitive/filestore/custody.go",
+    "before": "closeErr := file.Close()\n\tif err := errors.Join(syncErr, closeErr);",
+    "after": "var closeErr error\n\tif err := errors.Join(syncErr, closeErr);",
+    "test": "^TestOwnedFileSyncAndCloseLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 2,
+      "fail": 7,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-custody-confirm-bypass-embedded",
+    "file": "/Users/d/code/primitive/filestore/custody.go",
+    "before": "func ConfirmDurable(ctx context.Context, request DurabilityRequest) error {\n\tif err := contextstate.Validate(ctx); err != nil {\n\t\treturn err\n\t}\n\tif err := request.Validate(); err != nil {\n\t\treturn err\n\t}\n\troot, name := request.Location.Root, request.Location.Path\n\tfile, err := openCustodyFile(root, name.String())\n\tif err != nil {\n\t\treturn err\n\t}\n\tif err := syncCloseCustodyFile(file); err != nil {\n\t\treturn err\n\t}\n\tif err := syncParent(root, name); err != nil {\n\t\treturn activationError(err)\n\t}\n\treturn nil\n}\n\n",
+    "after": "func ConfirmDurable(ctx context.Context, request DurabilityRequest) error {\n\tif err := contextstate.Validate(ctx); err != nil {\n\t\treturn err\n\t}\n\tif err := request.Validate(); err != nil {\n\t\treturn err\n\t}\n\troot, name := request.Location.Root, request.Location.Path\n\tfile, err := openCustodyFile(root, name.String())\n\tif err != nil {\n\t\treturn err\n\t}\n\tif err := file.Close(); err != nil {\n\t\treturn err\n\t}\n\tif err := syncParent(root, name); err != nil {\n\t\treturn activationError(err)\n\t}\n\treturn nil\n}\n\n",
+    "test": "^TestCustodyEffectsUseOwnedFileSynchronization$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 1,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-custody-symlink-follow-embedded",
+    "file": "/Users/d/code/primitive/filestore/custody.go",
+    "before": "entry, err := root.Lstat(name)",
+    "after": "entry, err := root.Stat(name)",
+    "test": "^FuzzCustodyNamespaceAndTimestampSemanticClosure$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 4,
+      "fail": 3,
+      "skip": 0
+    }
+  }
+]

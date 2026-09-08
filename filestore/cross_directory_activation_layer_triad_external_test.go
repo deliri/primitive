@@ -1,171 +1,129 @@
 package filestore_test
 
 import (
+	"bytes"
 	"errors"
+	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/filestore"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/filestore"
 )
 
-// TestCrossDirectoryActivationLayerTriad proves target-late publication within
-// one real rooted capability. The staged receipt and target may occupy
-// different existing directories; the OS still owns link/rename arbitration.
 func TestCrossDirectoryActivationLayerTriad(t *testing.T) {
 	t.Parallel()
-
-	t.Run("positive create and replace publish the staged inode across directories", func(t *testing.T) {
-		t.Parallel()
-
-		cases := []struct {
-			initial string
-			name    string
-			install filestore.InstallMode
-		}{
-			{name: "create links an absent digest target", install: filestore.InstallCreate},
-			{name: "replace renames over an occupied digest target", install: filestore.InstallReplace, initial: "old"},
-		}
-		for _, tc := range cases {
-			t.Run(tc.name, func(t *testing.T) {
-				t.Parallel()
-
-				rootDirectory := t.TempDir()
-				root := requireTestRoot(t, rootDirectory)
-				if err := os.Mkdir(filepath.Join(rootDirectory, "staging"), 0o700); err != nil {
+	for _, tc := range []struct {
+		name                      string
+		install                   filestore.InstallMode
+		landed, missing, occupied bool
+		wantErr                   error
+	}{
+		{name: "create publishes staged inode into a different parent", install: filestore.InstallCreate},
+		{name: "replace consumes occupied target in a different parent", install: filestore.InstallReplace, occupied: true},
+		{name: "create cannot invent target parent", install: filestore.InstallCreate, missing: true, wantErr: core.ErrFilestoreActivation},
+		{name: "replace cannot invent target parent", install: filestore.InstallReplace, missing: true, wantErr: core.ErrFilestoreActivation},
+		{name: "recovery settles already linked cross-parent target", install: filestore.InstallCreate, landed: true},
+		{name: "recovery recognizes already renamed cross-parent target", install: filestore.InstallReplace, landed: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			directory := t.TempDir()
+			root := requireTestRoot(t, directory)
+			if err := root.Mkdir("staging", 0o700); err != nil {
+				t.Fatal(err)
+			}
+			if !tc.missing {
+				if err := root.Mkdir("objects", 0o700); err != nil {
 					t.Fatal(err)
 				}
-				if err := os.Mkdir(filepath.Join(rootDirectory, "objects"), 0o700); err != nil {
+			}
+			stageName := filepath.Join("staging", "stage")
+			targetName := filepath.Join("objects", "target")
+			if tc.occupied {
+				if err := root.WriteFile(targetName, []byte{255, 0, 1}, 0o600); err != nil {
 					t.Fatal(err)
 				}
-				targetPath := filepath.Join(rootDirectory, "objects", "digest")
-				if tc.initial != "" {
-					if err := os.WriteFile(targetPath, []byte(tc.initial), 0o600); err != nil {
-						t.Fatal(err)
-					}
-				}
-				staged := mustStage(t, root, filepath.Join("staging", ".stage"), "candidate")
-				stagedInfo, err := os.Stat(filepath.Join(rootDirectory, "staging", ".stage"))
+			}
+			staged := mustStage(t, root, stageName, "candidate")
+			original, err := root.Lstat(stageName)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var displaced *os.File
+			if tc.occupied {
+				displaced, err = root.Open(targetName)
 				if err != nil {
 					t.Fatal(err)
 				}
-				gotErr := filestore.Commit(t.Context(), filestore.CommitRequest{
-					Staged:  staged,
-					Target:  mustRelativePath(t, filepath.Join("objects", "digest")),
-					Install: tc.install,
+				t.Cleanup(func() {
+					if err := displaced.Close(); err != nil {
+						t.Error(err)
+					}
 				})
-				if gotErr != nil {
-					t.Fatalf("Commit(cross-directory) error = %v, want nil", gotErr)
+			}
+			if tc.landed {
+				if tc.install == filestore.InstallCreate {
+					err = root.Link(stageName, targetName)
+				} else {
+					err = root.Rename(stageName, targetName)
 				}
-				targetInfo, err := os.Stat(targetPath)
 				if err != nil {
 					t.Fatal(err)
 				}
-				if !os.SameFile(stagedInfo, targetInfo) {
-					t.Fatalf("target identity = %v, want staged identity %v", targetInfo.Name(), stagedInfo.Name())
+			}
+			request := filestore.CommitRequest{Staged: staged, Target: mustRelativePath(t, targetName), Install: tc.install}
+			var gotErr error
+			if tc.landed {
+				gotErr = filestore.Recover(t.Context(), request)
+			} else {
+				gotErr = filestore.Commit(t.Context(), request)
+			}
+			if !errors.Is(gotErr, tc.wantErr) || errors.Is(gotErr, core.ErrFilestoreActivationIndeterminate) || tc.missing && !errors.Is(gotErr, fs.ErrNotExist) {
+				t.Fatalf("activation = %v, want %v and determinate native result", gotErr, tc.wantErr)
+			}
+			for attempt := range 2 {
+				retained := targetName
+				if tc.missing {
+					retained = stageName
 				}
-				requireOptionalFile(t, targetPath, "candidate")
-				requireDirectoryEntryNames(t, filepath.Join(rootDirectory, "staging"), nil)
-				requireDirectoryEntryNames(t, filepath.Join(rootDirectory, "objects"), []string{"digest"})
-			})
-		}
-	})
-
-	t.Run("negative absent target parent preserves the staged owner for both install modes", func(t *testing.T) {
-		t.Parallel()
-
-		cases := []struct {
-			name    string
-			install filestore.InstallMode
-		}{
-			{name: "create cannot invent the target directory", install: filestore.InstallCreate},
-			{name: "replace cannot invent the target directory", install: filestore.InstallReplace},
-		}
-		for _, tc := range cases {
-			t.Run(tc.name, func(t *testing.T) {
-				t.Parallel()
-
-				rootDirectory := t.TempDir()
-				root := requireTestRoot(t, rootDirectory)
-				if err := os.Mkdir(filepath.Join(rootDirectory, "staging"), 0o700); err != nil {
-					t.Fatal(err)
+				info, err := root.Lstat(retained)
+				data, readErr := root.ReadFile(retained)
+				if err != nil || readErr != nil || !os.SameFile(original, info) || info.Mode() != original.Mode() || info.Size() != original.Size() || !info.ModTime().Equal(original.ModTime()) || !bytes.Equal(data, []byte("candidate")) {
+					t.Fatalf("retained entry = (%v,%v,%v,%v), want exact staged inode/bytes/metadata", info, data, err, readErr)
 				}
-				staged := mustStage(t, root, filepath.Join("staging", ".stage"), "candidate")
-				gotErr := filestore.Commit(t.Context(), filestore.CommitRequest{
-					Staged:  staged,
-					Target:  mustRelativePath(t, filepath.Join("missing", "digest")),
-					Install: tc.install,
-				})
-				if !errors.Is(gotErr, core.ErrFilestoreActivation) ||
-					!errors.Is(gotErr, fs.ErrNotExist) {
-					t.Fatalf("Commit(absent target parent) error = %v, want %v and %v", gotErr, core.ErrFilestoreActivation, fs.ErrNotExist)
+				stageEntries, err := os.ReadDir(filepath.Join(directory, "staging"))
+				wantStages := 0
+				if tc.missing {
+					wantStages = 1
 				}
-				requireOptionalFile(t, filepath.Join(rootDirectory, "staging", ".stage"), "candidate")
-				if _, err := os.Stat(filepath.Join(rootDirectory, "missing")); !errors.Is(err, fs.ErrNotExist) {
-					t.Fatalf("Stat(missing target parent) error = %v, want %v", err, fs.ErrNotExist)
+				if err != nil || len(stageEntries) != wantStages {
+					t.Fatalf("stage namespace = (%v,%v), want %d", stageEntries, err, wantStages)
 				}
-			})
-		}
-	})
-
-	t.Run("neutral recovery recognizes already-landed cross-directory effects idempotently", func(t *testing.T) {
-		t.Parallel()
-
-		cases := []struct {
-			land    func(*testing.T, *os.Root)
-			name    string
-			install filestore.InstallMode
-		}{
-			{
-				name:    "create observes its link before staged-name cleanup",
-				install: filestore.InstallCreate,
-				land: func(t *testing.T, root *os.Root) {
-					t.Helper()
-					if err := root.Link(filepath.Join("staging", ".stage"), filepath.Join("objects", "digest")); err != nil {
-						t.Fatal(err)
+				if tc.missing {
+					if _, err := root.Lstat("objects"); !errors.Is(err, fs.ErrNotExist) {
+						t.Fatalf("absent parent = %v, want native absence", err)
 					}
-				},
-			},
-			{
-				name:    "replace observes its rename after staged-name consumption",
-				install: filestore.InstallReplace,
-				land: func(t *testing.T, root *os.Root) {
-					t.Helper()
-					if err := root.Rename(filepath.Join("staging", ".stage"), filepath.Join("objects", "digest")); err != nil {
-						t.Fatal(err)
+				} else {
+					entries, err := os.ReadDir(filepath.Join(directory, "objects"))
+					if err != nil || len(entries) != 1 || entries[0].Name() != "target" {
+						t.Fatalf("target namespace = (%v,%v), want target only", entries, err)
 					}
-				},
-			},
-		}
-		for _, tc := range cases {
-			t.Run(tc.name, func(t *testing.T) {
-				t.Parallel()
-
-				rootDirectory := t.TempDir()
-				root := requireTestRoot(t, rootDirectory)
-				if err := os.Mkdir(filepath.Join(rootDirectory, "staging"), 0o700); err != nil {
-					t.Fatal(err)
 				}
-				if err := os.Mkdir(filepath.Join(rootDirectory, "objects"), 0o700); err != nil {
-					t.Fatal(err)
-				}
-				staged := mustStage(t, root, filepath.Join("staging", ".stage"), "candidate")
-				tc.land(t, root)
-				request := filestore.CommitRequest{
-					Staged:  staged,
-					Target:  mustRelativePath(t, filepath.Join("objects", "digest")),
-					Install: tc.install,
-				}
-				for attempt := range 3 {
-					if gotErr := filestore.Recover(t.Context(), request); gotErr != nil {
-						t.Fatalf("Recover(cross-directory) attempt %d error = %v, want nil", attempt, gotErr)
+				if attempt == 0 {
+					err := filestore.Recover(t.Context(), request)
+					if !errors.Is(err, tc.wantErr) || tc.missing && !errors.Is(err, fs.ErrNotExist) {
+						t.Fatalf("repeat recovery = %v, want %v", err, tc.wantErr)
 					}
-					requireOptionalFile(t, filepath.Join(rootDirectory, "objects", "digest"), "candidate")
-					requireDirectoryEntryNames(t, filepath.Join(rootDirectory, "staging"), nil)
 				}
-			})
-		}
-	})
+			}
+			if displaced != nil {
+				var got [3]byte
+				n, err := displaced.ReadAt(got[:], 0)
+				if err != nil || n != len(got) || got != ([3]byte{255, 0, 1}) {
+					t.Fatalf("displaced handle = (%v,%d,%v), want old bytes", got, n, err)
+				}
+			}
+		})
+	}
 }

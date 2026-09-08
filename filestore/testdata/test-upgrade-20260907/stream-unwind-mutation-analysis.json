@@ -1,0 +1,72 @@
+[
+  {
+    "label": "mutation-stream-unwind-stage-unwind-cleanup-skipped",
+    "file": "/Users/d/code/primitive/filestore/stage.go",
+    "before": "copyReturned := false",
+    "after": "copyReturned := true",
+    "test": "^(TestStageCallerUnwindCustodyLayerTriad|FuzzStreamUnwindSemanticCustody)$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 10,
+      "fail": 9,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-stream-unwind-stage-owned-handle-not-closed",
+    "file": "/Users/d/code/primitive/filestore/stage.go",
+    "before": "closeErr := request.file.Close()",
+    "after": "var closeErr error",
+    "test": "^TestStageCallerUnwindCustodyLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 2,
+      "fail": 6,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-stream-unwind-stage-foreign-inode-removed",
+    "file": "/Users/d/code/primitive/filestore/stage.go",
+    "before": "location: request.Temporary, file: file, expected: createdInfo,\n",
+    "after": "location: request.Temporary, file: file, expected: nil,\n",
+    "test": "^TestStageCallerUnwindCustodyLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 6,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-stream-unwind-read-owned-handle-not-closed",
+    "file": "/Users/d/code/primitive/filestore/directory_read.go",
+    "before": "defer func() { err = closeReadFile(file, err) }()",
+    "after": "defer func() { _ = err }()",
+    "test": "^TestReadCallerUnwindCustodyLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 0,
+      "fail": 6,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-stream-unwind-read-native-error-hidden",
+    "file": "/Users/d/code/primitive/filestore/directory_read.go",
+    "before": "defer func() { err = closeReadFile(file, err) }()",
+    "after": "defer func() { err = closeReadFile(file, nil) }()",
+    "test": "^TestReadCallerUnwindCustodyLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 4,
+      "fail": 2,
+      "skip": 0
+    }
+  }
+]

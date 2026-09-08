@@ -1,0 +1,15 @@
+{
+  "scope": "Workspace files observed after successful gates; command records identify the workspace path used during execution.",
+  "files": [
+    {
+      "path": "/Users/d/code/go.work",
+      "bytes": 88,
+      "sha256": "67703d61d1444543935c78715a4c1fc678fe745012e85c914bc92fb0d5adea94"
+    },
+    {
+      "path": "/Users/d/code/go.work.sum",
+      "bytes": 47258,
+      "sha256": "2722d1c6a05edbdd3b752a8b7da9323d0980db37b36959292cdbd69d13faad07"
+    }
+  ]
+}

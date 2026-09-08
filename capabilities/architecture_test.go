@@ -44,8 +44,8 @@ func TestCapabilityProductionInventories(t *testing.T) {
 	t.Parallel()
 	inventory := reflect.ValueOf(capabilitiesDataFlowInventory{})
 	var wantStructs []string
-	for field := range inventory.NumField() {
-		role := inventory.Field(field).Interface().(interface{ contractType() reflect.Type })
+	for _, field := range inventory.Fields() {
+		role := field.Interface().(interface{ contractType() reflect.Type })
 		wantStructs = append(wantStructs, role.contractType().Name())
 	}
 	public := capabilityPublicDoors{
@@ -67,8 +67,8 @@ func TestCapabilityProductionInventories(t *testing.T) {
 		wantFunctions = append(wantFunctions, field.Name)
 	}
 	decoders := reflect.ValueOf(jsonDoors)
-	for field := range decoders.NumField() {
-		door := decoders.Field(field).FieldByName("Door")
+	for _, field := range decoders.Fields() {
+		door := field.FieldByName("Door")
 		function := runtime.FuncForPC(door.Pointer()).Name()
 		receiver := door.Type().In(0).Elem().Name()
 		wantDecoders = append(wantDecoders, receiver+function[strings.LastIndex(function, "."):])
@@ -179,7 +179,7 @@ func TestCapabilityInventoryDiscoversUnlistedEntry(t *testing.T) {
 				t.Fatal(err)
 			}
 			got := scanCapabilitySource(t, root)
-			if !reflect.DeepEqual(got, tc.want) {
+			if !slices.Equal(got.structs, tc.want.structs) || !slices.Equal(got.functions, tc.want.functions) || !slices.Equal(got.decoders, tc.want.decoders) || !slices.Equal(got.aliases, tc.want.aliases) {
 				t.Fatalf("discovered %+v, want %+v", got, tc.want)
 			}
 		})

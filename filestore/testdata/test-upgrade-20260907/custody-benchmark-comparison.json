@@ -1,0 +1,174 @@
+[
+  {
+    "workload": "BenchmarkExistingFileCustody/ConfirmDurable",
+    "before": {
+      "label": "before-custody-ConfirmDurable",
+      "iterations": 1180324,
+      "ns_per_op": 29954.0,
+      "bytes_per_op": 704,
+      "allocations_per_op": 11,
+      "exit_status": 0,
+      "source_drift": [],
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-custody-ConfirmDurable.stdout.txt",
+          "bytes": 268,
+          "sha256": "4b6c42bc6bc00bc05f16ffeae770ebe875edd902d0ec22e5f430459eea83341f"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-custody-ConfirmDurable.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-custody-ConfirmDurable.git-status.txt",
+          "bytes": 3617,
+          "sha256": "02781152a3af04e3a3a29360bd91a872a5d600340f172dd3017b3067f07ed680"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-custody-ConfirmDurable.cpu.pprof",
+          "bytes": 3391,
+          "sha256": "ed71aa9930e6c3c05f4a858d02353ea5b1380623a98c5b393edb85b2926ae3bd"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-custody-ConfirmDurable.mem.pprof",
+          "bytes": 3159,
+          "sha256": "59c860c9c52ed8d23d05a602c406bdc259e7c4c3b90879d16f417ddc5ae23313"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-custody-ConfirmDurable.test",
+          "bytes": 9910418,
+          "sha256": "d73e65e24d81d434fddc166af58e71edcbd81c8aaacee6627401bde80ca1e33e"
+        }
+      ]
+    },
+    "after": {
+      "label": "after-custody-ConfirmDurable",
+      "iterations": 1000000,
+      "ns_per_op": 32252.0,
+      "bytes_per_op": 944,
+      "allocations_per_op": 14,
+      "exit_status": 0,
+      "source_drift": [],
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-custody-ConfirmDurable.stdout.txt",
+          "bytes": 268,
+          "sha256": "c7713707e9a96b9d9e4bd7278c06cd021a78cb8f45db8144a01c1592d4cca3c2"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-custody-ConfirmDurable.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-custody-ConfirmDurable.git-status.txt",
+          "bytes": 3860,
+          "sha256": "d3c63da36783886b8d9b52fb445372c7ac956825a147c4c1c8e57f3fb02dec26"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-custody-ConfirmDurable.cpu.pprof",
+          "bytes": 4443,
+          "sha256": "609e2631307f6a7d26fa2f49df3c097ca49d779efffb563e1110217afcc9a18b"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-custody-ConfirmDurable.mem.pprof",
+          "bytes": 3309,
+          "sha256": "95a21d8641a19d675b78e9c040a840417255c5afff25581eb44b1bbb99d033d3"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-custody-ConfirmDurable.test",
+          "bytes": 10036290,
+          "sha256": "ac4b726ed770dc907bbc0f963c3ddf09995bf5ccdbf8221d019a30f7ca42caaa"
+        }
+      ]
+    },
+    "time_delta_percent": 7.671763370501439
+  },
+  {
+    "workload": "BenchmarkExistingFileCustody/Touch",
+    "before": {
+      "label": "before-custody-Touch",
+      "iterations": 6968,
+      "ns_per_op": 4860883.0,
+      "bytes_per_op": 898,
+      "allocations_per_op": 16,
+      "exit_status": 0,
+      "source_drift": [],
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-custody-Touch.stdout.txt",
+          "bytes": 259,
+          "sha256": "3acf4a7f9a8e3544396c8688eba789a524141c1ffbd2c382dda20e1ddd82ed73"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-custody-Touch.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-custody-Touch.git-status.txt",
+          "bytes": 3617,
+          "sha256": "02781152a3af04e3a3a29360bd91a872a5d600340f172dd3017b3067f07ed680"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-custody-Touch.cpu.pprof",
+          "bytes": 3959,
+          "sha256": "b2f2c14f2c8f2e997842a2b88cf77b7ff1c4b220c4883293607939ba31fb763a"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-custody-Touch.mem.pprof",
+          "bytes": 2713,
+          "sha256": "0877ee605c8fb78e93bbb727c53aee2c2e30726a3400b59c3f88ca942821ccf1"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-custody-Touch.test",
+          "bytes": 9910418,
+          "sha256": "d73e65e24d81d434fddc166af58e71edcbd81c8aaacee6627401bde80ca1e33e"
+        }
+      ]
+    },
+    "after": {
+      "label": "after-custody-Touch",
+      "iterations": 7236,
+      "ns_per_op": 4868367.0,
+      "bytes_per_op": 1138,
+      "allocations_per_op": 19,
+      "exit_status": 0,
+      "source_drift": [],
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-custody-Touch.stdout.txt",
+          "bytes": 259,
+          "sha256": "07d21cdcfb87e2770a000939f7d80f39a06824c27f15dc37469573f8b8dac5e3"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-custody-Touch.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-custody-Touch.git-status.txt",
+          "bytes": 3860,
+          "sha256": "d3c63da36783886b8d9b52fb445372c7ac956825a147c4c1c8e57f3fb02dec26"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-custody-Touch.cpu.pprof",
+          "bytes": 3503,
+          "sha256": "d46ad580585d400ec8e9387e1ef6561c0b362f3b0f0f2b100d2f1ac57666854c"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-custody-Touch.mem.pprof",
+          "bytes": 2790,
+          "sha256": "6fb8216b9d7e6a3491fcf6c733ed0f0a73c10a6184db53e46eff94c0b9810661"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-custody-Touch.test",
+          "bytes": 10036290,
+          "sha256": "ac4b726ed770dc907bbc0f963c3ddf09995bf5ccdbf8221d019a30f7ca42caaa"
+        }
+      ]
+    },
+    "time_delta_percent": 0.15396379628969115
+  }
+]

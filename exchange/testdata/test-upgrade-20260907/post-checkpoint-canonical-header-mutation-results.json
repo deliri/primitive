@@ -1,0 +1,34 @@
+[
+  {
+    "mutation": "refuse-all",
+    "record": "post-checkpoint-canonical-header-mutation-refuse-all.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzHeaderValueMatchesNetHTTPAndExchangeBounds/seed#0",
+      "FuzzHeaderValueMatchesNetHTTPAndExchangeBounds/seed#1",
+      "FuzzHeaderValueMatchesNetHTTPAndExchangeBounds/seed#2",
+      "FuzzHeaderValueMatchesNetHTTPAndExchangeBounds/seed#3",
+      "FuzzHeaderValueMatchesNetHTTPAndExchangeBounds/seed#4",
+      "FuzzHeaderValueMatchesNetHTTPAndExchangeBounds/seed#5"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "wrong-valid",
+    "record": "post-checkpoint-canonical-header-mutation-wrong-valid.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzHeaderValueMatchesNetHTTPAndExchangeBounds/seed#0",
+      "FuzzHeaderValueMatchesNetHTTPAndExchangeBounds/seed#1",
+      "FuzzHeaderValueMatchesNetHTTPAndExchangeBounds/seed#2",
+      "FuzzHeaderValueMatchesNetHTTPAndExchangeBounds/seed#3",
+      "FuzzHeaderValueMatchesNetHTTPAndExchangeBounds/seed#4",
+      "FuzzHeaderValueMatchesNetHTTPAndExchangeBounds/seed#5",
+      "FuzzHeaderValueMatchesNetHTTPAndExchangeBounds/seed#6",
+      "FuzzHeaderValueMatchesNetHTTPAndExchangeBounds/seed#7",
+      "FuzzHeaderValueMatchesNetHTTPAndExchangeBounds/seed#8",
+      "FuzzHeaderValueMatchesNetHTTPAndExchangeBounds/seed#9"
+    ],
+    "killed_inside_callback": true
+  }
+]

@@ -1,0 +1,171 @@
+[
+  {
+    "label": "mutation-rename-namespace-effect-omitted",
+    "before": "if err := root.Rename(request.Location.Path.String(), request.Target.String()); err != nil {\n\t\treturn activationError(err)\n\t}",
+    "after": "if err := error(nil); err != nil {\n\t\treturn activationError(err)\n\t}",
+    "test": "^TestRenameNativeNamespaceLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 10,
+      "fail": 30,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-rename-source-links-instead-of-moves",
+    "before": "root.Rename(request.Location.Path.String(), request.Target.String())",
+    "after": "root.Link(request.Location.Path.String(), request.Target.String())",
+    "test": "^FuzzRenameNativeNamespaceCustody$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 9,
+      "fail": 19,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-rename-hard-link-noop-source-deleted",
+    "before": "if err := root.Rename(request.Location.Path.String(), request.Target.String()); err != nil {\n\t\treturn activationError(err)\n\t}",
+    "after": "if err := root.Rename(request.Location.Path.String(), request.Target.String()); err != nil {\n\t\treturn activationError(err)\n\t}\n\t_ = root.Remove(request.Location.Path.String())",
+    "test": "^TestRenameNativeNamespaceLayerTriad$/^same_inode_hard-link_",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 0,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-rename-cancellation-ignored",
+    "before": "if err := contextstate.Validate(ctx); err != nil {\n\t\treturn err\n\t}",
+    "after": "if err := contextstate.Validate(ctx); err != nil {\n\t\t_ = err\n\t}",
+    "test": "^TestRenameNativeNamespaceLayerTriad$/^cancellation_",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 0,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-rename-request-validation-ignored",
+    "before": "if err := request.Validate(); err != nil {\n\t\treturn err\n\t}",
+    "after": "if err := request.Validate(); err != nil {\n\t\t_ = err\n\t}",
+    "test": "^TestRenameNativeNamespaceLayerTriad$/^identical_typed_",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 0,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-rename-pre-effect-refusal-mislabeled-indeterminate",
+    "before": "if err := root.Rename(request.Location.Path.String(), request.Target.String()); err != nil {\n\t\treturn activationError(err)\n\t}",
+    "after": "if err := root.Rename(request.Location.Path.String(), request.Target.String()); err != nil {\n\t\treturn indeterminateActivationError(err)\n\t}",
+    "test": "^TestRenameNativePermissionAndDurabilityLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 2,
+      "fail": 7,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-rename-target-parent-sync-omitted",
+    "before": "if err := syncParent(root, request.Target); err != nil {\n\t\treturn indeterminateActivationError(err)\n\t}",
+    "after": "if err := error(nil); err != nil {\n\t\treturn indeterminateActivationError(err)\n\t}",
+    "test": "^TestRenameNativePermissionAndDurabilityLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 7,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-rename-target-parent-refusal-erased",
+    "before": "if err := syncParent(root, request.Target); err != nil {\n\t\treturn indeterminateActivationError(err)\n\t}",
+    "after": "if err := syncParent(root, request.Target); err != nil {\n\t\treturn nil\n\t}",
+    "test": "^TestRenameNativePermissionAndDurabilityLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 7,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-rename-post-effect-refusal-downgraded",
+    "before": "if err := syncParent(root, request.Target); err != nil {\n\t\treturn indeterminateActivationError(err)\n\t}",
+    "after": "if err := syncParent(root, request.Target); err != nil {\n\t\treturn activationError(err)\n\t}",
+    "test": "^TestRenameNativePermissionAndDurabilityLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 7,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-rename-post-effect-namespace-rolled-back",
+    "before": "if err := syncParent(root, request.Target); err != nil {\n\t\treturn indeterminateActivationError(err)\n\t}",
+    "after": "if err := syncParent(root, request.Target); err != nil {\n\t\t_ = root.Rename(request.Target.String(), request.Location.Path.String())\n\t\treturn indeterminateActivationError(err)\n\t}",
+    "test": "^TestRenameNativePermissionAndDurabilityLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 7,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-rename-old-parent-sync-omitted",
+    "before": "if err := syncParent(root, request.Location.Path); err != nil {",
+    "after": "if err := error(nil); err != nil {",
+    "test": "^TestRenameRetainsBothChangedParentSynchronizationArguments$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 0,
+      "fail": 1,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-rename-old-parent-synced-twice",
+    "before": "syncParent(root, request.Target)",
+    "after": "syncParent(root, request.Location.Path)",
+    "test": "^TestRenameRetainsBothChangedParentSynchronizationArguments$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 0,
+      "fail": 1,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-rename-new-parent-synced-twice",
+    "before": "syncParent(root, request.Location.Path)",
+    "after": "syncParent(root, request.Target)",
+    "test": "^TestRenameRetainsBothChangedParentSynchronizationArguments$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 0,
+      "fail": 1,
+      "skip": 0
+    }
+  }
+]

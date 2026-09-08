@@ -61,7 +61,7 @@ func (f standardResponseFixture) exchangeWrite(t *testing.T, w http.ResponseWrit
 	case standardResponseRedirect:
 		return Redirect(call, ServerRedirectResponse{Location: f.text, Status: status})
 	default:
-		t.Fatal("undeclared standard response operation")
+		t.Fatalf("standard response operation=%v, want a declared operation", f.operation)
 		return core.ErrExchangeContract
 	}
 }
@@ -79,6 +79,10 @@ func TestStandardResponseGoParityLayerTriad(t *testing.T) {
 		{name: "positive redirect retains escaped slash", operation: standardResponseRedirect, status: http.StatusTemporaryRedirect, text: "/a%2Fb?q=a%2Fb", method: http.MethodGet},
 		{name: "positive redirect external authority", operation: standardResponseRedirect, status: http.StatusPermanentRedirect, text: "https://other.example.test/path", method: http.MethodGet},
 		{name: "boundary redirect maximum location", operation: standardResponseRedirect, status: http.StatusMovedPermanently, text: "/" + strings.Repeat("x", serverRedirectMaximumBytes-1), method: http.MethodGet},
+		{name: "GET not-modified retains native forbidden-body write refusal", operation: standardResponseRedirect, status: http.StatusNotModified, text: "/target", method: http.MethodGet, wantErr: http.ErrBodyNotAllowed},
+		{name: "status above not-modified allows the Go body", operation: standardResponseRedirect, status: http.StatusUseProxy, text: "/target", method: http.MethodGet},
+		{name: "HEAD not-modified creates no forbidden body write", operation: standardResponseRedirect, status: http.StatusNotModified, text: "/target", method: http.MethodHead},
+		{name: "POST not-modified creates no forbidden body write", operation: standardResponseRedirect, status: http.StatusNotModified, text: "/target", method: http.MethodPost},
 		{name: "neutral head redirect writes no body", operation: standardResponseRedirect, status: http.StatusFound, text: "/target", method: http.MethodHead},
 		{name: "neutral post redirect writes no body", operation: standardResponseRedirect, status: http.StatusSeeOther, text: "/target", method: http.MethodPost},
 	}
@@ -91,7 +95,7 @@ func TestStandardResponseGoParityLayerTriad(t *testing.T) {
 				recorder.Header().Set(core.HTTPHeaderContentLength().String(), "999")
 			}
 			fixture.goWrite(want, request)
-			if gotErr := fixture.exchangeWrite(t, got, request); !errors.Is(gotErr, fixture.wantErr) {
+			if gotErr := fixture.exchangeWrite(t, got, request); !errors.Is(gotErr, fixture.wantErr) || errors.Is(gotErr, core.ErrExchangeWrite) != (fixture.wantErr != nil) || errors.Is(gotErr, core.ErrExchangeResponse) != (fixture.wantErr != nil) {
 				t.Fatalf("standard response error = %v, want %v", gotErr, fixture.wantErr)
 			}
 			if got.Code != want.Code || !bytes.Equal(got.Body.Bytes(), want.Body.Bytes()) {

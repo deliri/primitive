@@ -11,7 +11,7 @@ import (
 )
 
 func FuzzTrustedKeysExternalAdmission(f *testing.F) {
-	var seed []byte
+	seed := make([]byte, 0, (TrustedKeyMaximumCount+1)*ed25519.PublicKeySize)
 	for index := range TrustedKeyMaximumCount + 1 {
 		key := internalPublicKeyFixture(f, string(rune('a'+index)))
 		raw, err := key.Bytes()

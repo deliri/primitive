@@ -60,7 +60,18 @@ func TestAWSIdentityProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing
 	if err != nil {
 		t.Fatalf("production scan error = %v, want nil", err)
 	}
-	want := awsFieldNames(reflect.TypeFor[awsStructInventory]())
+	inventory := awsStructInventory{
+		acquisitionCall:         awsInternalRole[acquisitionCall]{},
+		amazonResponse:          awsInternalRole[amazonResponse]{},
+		amazonResult:            awsInternalRole[amazonResult]{},
+		amazonUnexpectedElement: awsInternalRole[amazonUnexpectedElement]{},
+		amazonTokenElement:      awsInternalRole[amazonTokenElement]{},
+		amazonExpirationElement: awsInternalRole[amazonExpirationElement]{},
+		amazonResponseMetadata:  awsInternalRole[amazonResponseMetadata]{},
+		amazonRequestIDElement:  awsInternalRole[amazonRequestIDElement]{},
+		requestError:            awsFailureRole[requestError]{},
+	}
+	want := awsFieldNames(reflect.TypeOf(inventory))
 	if !slices.Equal(got.structs, want) {
 		t.Fatalf("production structs = %q, want exactly classified %q", got.structs, want)
 	}

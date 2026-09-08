@@ -1,0 +1,70 @@
+[
+  {
+    "mutation": "refuse-all",
+    "record": "post-checkpoint-buffer-custody-mutation-refuse-all.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzResponseBufferSemanticExtent/seed#0",
+      "FuzzResponseBufferSemanticExtent/seed#1",
+      "FuzzResponseBufferSemanticExtent/seed#2",
+      "FuzzResponseBufferSemanticExtent/seed#3",
+      "FuzzResponseBufferSemanticExtent/seed#4"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "wrong-valid-status",
+    "record": "post-checkpoint-buffer-custody-mutation-wrong-valid-status.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzResponseBufferSemanticExtent/seed#2",
+      "FuzzResponseBufferSemanticExtent/seed#3",
+      "FuzzResponseBufferSemanticExtent/seed#4"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "lose-callback-refusal",
+    "record": "post-checkpoint-buffer-custody-mutation-lose-callback-refusal.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzResponseBufferSemanticExtent/seed#0",
+      "FuzzResponseBufferSemanticExtent/seed#1",
+      "FuzzResponseBufferSemanticExtent/seed#2",
+      "FuzzResponseBufferSemanticExtent/seed#3",
+      "FuzzResponseBufferSemanticExtent/seed#4"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "omit-extent-check",
+    "record": "post-checkpoint-buffer-custody-mutation-omit-extent-check.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzResponseBufferSemanticExtent/seed#2",
+      "FuzzResponseBufferSemanticExtent/seed#3",
+      "FuzzResponseBufferSemanticExtent/seed#4"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "release-head-body",
+    "record": "post-checkpoint-buffer-custody-mutation-release-head-body.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzResponseBufferSemanticExtent/seed#2",
+      "FuzzResponseBufferSemanticExtent/seed#3"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "invent-delivered-bytes",
+    "record": "post-checkpoint-buffer-custody-mutation-invent-delivered-bytes.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzResponseBufferSemanticExtent/seed#2",
+      "FuzzResponseBufferSemanticExtent/seed#3"
+    ],
+    "killed_inside_callback": true
+  }
+]

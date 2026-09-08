@@ -1,0 +1,5 @@
+{
+  "Replace": {
+    "/Users/d/code/primitive/exchange/client.go": "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/source-blobs/669759ad5e5819f15b7fa46bcd2858aee113cd27ee464a9615dd20b6bab448d6"
+  }
+}

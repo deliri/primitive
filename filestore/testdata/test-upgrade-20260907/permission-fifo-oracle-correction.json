@@ -1,0 +1,11 @@
+{
+  "invalidated_mutation": "mutation-permission-fifo-admitted-to-chmod",
+  "failed_control": "permission-nonfile-refusal-control",
+  "native_observation": "Go os.File.Sync on the named FIFO returns nil on this Darwin host. The assumption that all FIFOs refuse synchronization was false; anonymous pipe behavior does not establish named FIFO behavior.",
+  "production_correction": "Removed the proposed file-kind gate and redundant Stat. Go decides whether an acquired entry synchronizes. On native Sync failure after Chmod, return indeterminate activation with its cause.",
+  "test_correction": "Probe Sync through an independently opened read-only nonblocking Go handle; expect the actual host result and preserve mode effects, inode and caller handle.",
+  "interrupted_run": {
+    "label": "checkpoint-permission-package",
+    "action": "Sent SIGTERM to the owned Go test binary PID 66296 after identifying its known-bad FIFO control. Partial events and missing coverage are not completion evidence."
+  }
+}

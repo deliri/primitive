@@ -18,26 +18,43 @@ import (
 func TestClientAddressAuthorityExhaustsCompleteByteDomain(t *testing.T) {
 	t.Parallel()
 
+	cases := make([]struct {
+		name      string
+		authority exchange.ClientAddressAuthority
+		wantValid bool
+	}, 0, math.MaxUint8+1)
 	for value := range math.MaxUint8 + 1 {
 		authority := exchange.ClientAddressAuthority(value)
-		wantValid := authority == exchange.ClientAddressAuthorityPeer ||
-			authority == exchange.ClientAddressAuthorityTrustedProxy ||
-			authority == exchange.ClientAddressAuthorityGoogleCloud
-		if got := authority.IsValid(); got != wantValid {
-			t.Fatalf("ClientAddressAuthority(%d).IsValid() = %t, want %t", value, got, wantValid)
+		wantValid := authority == exchange.ClientAddressAuthorityPeer || authority == exchange.ClientAddressAuthorityTrustedProxy || authority == exchange.ClientAddressAuthorityGoogleCloud
+		name := "unknown authority cannot acquire trust " + strconv.Itoa(value)
+		if wantValid {
+			name = "admitted authority retains its domain " + strconv.Itoa(value)
 		}
-		gotErr := authority.Validate()
-		if !wantValid {
-			if !errors.Is(gotErr, core.ErrExchangeContract) || authority.String() != "" {
-				t.Fatalf("ClientAddressAuthority(%d) = (%q, %v), want empty and %v", value, authority.String(), gotErr, core.ErrExchangeContract)
+		cases = append(cases, struct {
+			name      string
+			authority exchange.ClientAddressAuthority
+			wantValid bool
+		}{name, authority, wantValid})
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := tc.authority.IsValid(); got != tc.wantValid {
+				t.Fatalf("authority validity = %t, want %t", got, tc.wantValid)
 			}
-			continue
-		}
-		if gotErr != nil || authority.String() == "" {
-			t.Fatalf("ClientAddressAuthority(%d) = (%q, %v), want nonempty and nil", value, authority.String(), gotErr)
-		}
-		var offWire core.OffWireEnum = authority
-		offWire.OffWireEnum()
+			gotErr := tc.authority.Validate()
+			if !tc.wantValid {
+				if !errors.Is(gotErr, core.ErrExchangeContract) || tc.authority.String() != "" {
+					t.Fatalf("refused authority = (%q,%v), want empty and contract refusal", tc.authority.String(), gotErr)
+				}
+				return
+			}
+			if gotErr != nil || tc.authority.String() == "" {
+				t.Fatalf("admitted authority = (%q,%v), want nonempty and nil", tc.authority.String(), gotErr)
+			}
+			var offWire core.OffWireEnum = tc.authority
+			offWire.OffWireEnum()
+		})
 	}
 }
 

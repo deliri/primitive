@@ -1,0 +1,126 @@
+{
+  "scope": "Direct table and semantic seed controls; Go events include parent tests and are not earned boundary counts. These are intermediate source-bound runs, not final acceptance.",
+  "records": [
+    {
+      "label": "closeout-context-effects-control",
+      "sha256": "cbc602ae46ee5e4ee04d9ed2a36d7f8a4c7070bd41b612a72ef35533626d23fd",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 21,
+        "fail": 0,
+        "skip": 0
+      },
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "closeout-discriminator-and-inventory-control",
+      "sha256": "dc2973f8280724b165b17c7c5b545fd28fe8090bbb9a93903510ef3f2a347dbd",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 589,
+        "fail": 0,
+        "skip": 0
+      },
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "closeout-stream-extent-direct-table-control",
+      "sha256": "818f3391b3dc20c290d4b0226f86cda6d3e2bb7886ebb6d8c7f6f9d951202f03",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 19,
+        "fail": 0,
+        "skip": 0
+      },
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "closeout-activation-direct-table-control",
+      "sha256": "346991a21eb82a74ac4eeb33ab96b9d7d0131802084395c823ef38e695a5ce56",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 27,
+        "fail": 0,
+        "skip": 0
+      },
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "closeout-custody-direct-table-control",
+      "sha256": "773f36fcb18139ec27afd6ee9c4d625e46a17c03a3bc2e2c4d359b60aaa97bf2",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 57,
+        "fail": 0,
+        "skip": 0
+      },
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "closeout-writer-direct-table-control",
+      "sha256": "06ca1df3a07b00eab4903397eb6f0add042f8f74dcd7308ca87dafd2f13b0caf",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 22,
+        "fail": 2,
+        "skip": 0
+      },
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "closeout-writer-direct-table-shared-parent-control",
+      "sha256": "965e75502d5b374001917e6194d3aeade67859ddcd053d2e119b329db19362ad",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 24,
+        "fail": 0,
+        "skip": 0
+      },
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "closeout-walk-direct-oracle-control",
+      "sha256": "ffd01231a36df7d06ca5e43464292a93843f479092502b3f0423c955dd7058f0",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 50,
+        "fail": 7,
+        "skip": 0
+      },
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "red-walk-native-cancellation-delivery",
+      "sha256": "64087e6cacf16528edaf94886e459edf4650271a186cb0a0ae0bea542b928335",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 48,
+        "fail": 2,
+        "skip": 0
+      },
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "red-walk-cancellation-before-delivery-and-descent",
+      "sha256": "2a2e71d2462ef339ef197f6dcd0b77d58db10d9098492e1cb4f3284e79a4a028",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 35,
+        "fail": 6,
+        "skip": 0
+      },
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "green-walk-cancellation-and-three-platform-scope",
+      "sha256": "85eeca5a1ef834ecff3f1cdf0857b8d2716f8ae95d05beeefb952959d6f629e2",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 191,
+        "fail": 0,
+        "skip": 0
+      },
+      "sources_changed_during_run": []
+    }
+  ]
+}

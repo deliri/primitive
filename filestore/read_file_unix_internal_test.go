@@ -5,6 +5,7 @@ package filestore
 import (
 	"context"
 	"errors"
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -12,12 +13,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
+	"reflect"
+	"syscall"
 	"testing"
 	"time"
 
 	"github.com/deliri/primitive/v2026/core"
-	"golang.org/x/sys/unix"
+	"github.com/deliri/primitive/v2026/temporal"
 )
 
 // nonblockingOpenBackstop bounds only a wedged open. A correct acquisition
@@ -27,10 +29,16 @@ const nonblockingOpenBackstop = 30 * time.Second
 
 const namedPipeOpenProbeRootEnvironment = "PRIMITIVE_FILESTORE_NAMED_PIPE_OPEN_PROBE_ROOT"
 
-const (
-	prepareRegularReadFileName  = "prepareRegularReadFile"
-	fileDescriptorMethodName    = "Fd"
-	syscallConnectionMethodName = "SyscallConn"
+type regularReadPreparationOwner struct {
+	prepareRegularReadFile func(*os.File) error
+}
+
+type fileDescriptorAccessor interface{ Fd() uintptr }
+
+var (
+	_ regularReadPreparationOwner = regularReadPreparationOwner{prepareRegularReadFile: prepareRegularReadFile}
+	_ fileDescriptorAccessor      = (*os.File)(nil)
+	_ syscall.Conn                = (*os.File)(nil)
 )
 
 // TestOpenReadFileAcquiresNamedPipeWithoutBlocking proves the mechanism the
@@ -45,10 +53,17 @@ func TestOpenReadFileAcquiresNamedPipeWithoutBlocking(t *testing.T) {
 	t.Parallel()
 
 	rootDirectory := t.TempDir()
-	if err := unix.Mkfifo(filepath.Join(rootDirectory, "source"), 0o600); err != nil {
+	if err := syscall.Mkfifo(filepath.Join(rootDirectory, "source"), 0o600); err != nil {
 		t.Fatalf("Mkfifo(source) error = %v, want nil", err)
 	}
-	ctx, cancel := context.WithTimeout(t.Context(), nonblockingOpenBackstop)
+	duration, err := temporal.NewDuration(nonblockingOpenBackstop)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel, err := temporal.WithTimeout(temporal.TimeoutRequest{Parent: t.Context(), Duration: duration})
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer cancel()
 	command := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestOpenReadFileAcquiresNamedPipeWithoutBlocking$")
 	command.Env = append(os.Environ(), namedPipeOpenProbeRootEnvironment+"="+rootDirectory)
@@ -84,8 +99,8 @@ func TestOpenReadFileRequestsNonblockingAcquisition(t *testing.T) {
 	}
 	defer closeInternalTestFile(t, file)
 
-	if flags := descriptorStatusFlags(t, file); flags&unix.O_NONBLOCK == 0 {
-		t.Fatalf("openReadFile(regular) status flags = %#x, want O_NONBLOCK (%#x) set", flags, unix.O_NONBLOCK)
+	if flags := descriptorStatusFlags(t, file); flags&syscall.O_NONBLOCK == 0 {
+		t.Fatalf("openReadFile(regular) status flags = %#x, want O_NONBLOCK (%#x) set", flags, syscall.O_NONBLOCK)
 	}
 }
 
@@ -96,14 +111,14 @@ func TestOpenRegularReadFileRestoresBlockingMode(t *testing.T) {
 	t.Parallel()
 
 	root, path := internalTestRegularFile(t, t.TempDir(), "source", "payload")
-	file, err := openRegularReadFile(root, path)
+	file, _, err := openRegularReadFile(root, path)
 	if err != nil {
 		t.Fatalf("openRegularReadFile(regular) error = %v, want nil", err)
 	}
 	defer closeInternalTestFile(t, file)
 
-	if flags := descriptorStatusFlags(t, file); flags&unix.O_NONBLOCK != 0 {
-		t.Fatalf("openRegularReadFile(regular) status flags = %#x, want O_NONBLOCK (%#x) cleared", flags, unix.O_NONBLOCK)
+	if flags := descriptorStatusFlags(t, file); flags&syscall.O_NONBLOCK != 0 {
+		t.Fatalf("openRegularReadFile(regular) status flags = %#x, want O_NONBLOCK (%#x) cleared", flags, syscall.O_NONBLOCK)
 	}
 }
 
@@ -148,8 +163,8 @@ func TestMutableRegularHandlesRestoreBlockingModeBeforeOwnershipTransfer(t *test
 				t.Fatalf("open mutable regular handle error = %v, want nil", err)
 			}
 			defer closeInternalTestFile(t, file)
-			if flags := descriptorStatusFlags(t, file); flags&unix.O_NONBLOCK != 0 {
-				t.Fatalf("mutable regular handle status flags = %#x, want O_NONBLOCK (%#x) cleared", flags, unix.O_NONBLOCK)
+			if flags := descriptorStatusFlags(t, file); flags&syscall.O_NONBLOCK != 0 {
+				t.Fatalf("mutable regular handle status flags = %#x, want O_NONBLOCK (%#x) cleared", flags, syscall.O_NONBLOCK)
 			}
 		})
 	}
@@ -162,23 +177,22 @@ func TestMutableRegularHandlesRestoreBlockingModeBeforeOwnershipTransfer(t *test
 func TestPrepareRegularReadFileKeepsDescriptorInsideSyscallConn(t *testing.T) {
 	t.Parallel()
 
-	_, testFilename, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatal("runtime.Caller(0) ok = false, want true")
-	}
-	productionFilename := filepath.Join(filepath.Dir(testFilename), "read_file_unix.go")
-	file, err := parser.ParseFile(token.NewFileSet(), productionFilename, nil, 0)
+	source, err := filestoreGoSources.ReadFile("read_file_unix.go")
 	if err != nil {
-		t.Fatalf("ParseFile(%s) error = %v, want nil", productionFilename, err)
+		t.Fatal(err)
+	}
+	file, err := parser.ParseFile(token.NewFileSet(), "read_file_unix.go", source, parser.SkipObjectResolution)
+	if err != nil {
+		t.Fatalf("ParseFile(read_file_unix.go) error = %v, want nil", err)
 	}
 	methods := prepareRegularReadFileMethodInventory(t, file)
 	if methods.syscallConnectionCalls != 1 || methods.fileDescriptorCalls != 0 {
 		t.Fatalf(
 			"%s method calls = %+v, want one %s and zero %s calls",
-			prepareRegularReadFileName,
+			reflect.TypeFor[regularReadPreparationOwner]().Field(0).Name,
 			methods,
-			syscallConnectionMethodName,
-			fileDescriptorMethodName,
+			reflect.TypeFor[syscall.Conn]().Method(0).Name,
+			reflect.TypeFor[fileDescriptorAccessor]().Method(0).Name,
 		)
 	}
 }
@@ -190,6 +204,9 @@ type prepareReadFileMethodInventory struct {
 
 func prepareRegularReadFileMethodInventory(t *testing.T, file *ast.File) prepareReadFileMethodInventory {
 	t.Helper()
+	prepareRegularReadFileName := reflect.TypeFor[regularReadPreparationOwner]().Field(0).Name
+	syscallConnectionMethodName := reflect.TypeFor[syscall.Conn]().Method(0).Name
+	fileDescriptorMethodName := reflect.TypeFor[fileDescriptorAccessor]().Method(0).Name
 
 	for _, declaration := range file.Decls {
 		function, ok := declaration.(*ast.FuncDecl)
@@ -198,7 +215,11 @@ func prepareRegularReadFileMethodInventory(t *testing.T, file *ast.File) prepare
 		}
 		var inventory prepareReadFileMethodInventory
 		ast.Inspect(function.Body, func(node ast.Node) bool {
-			selector, ok := node.(*ast.SelectorExpr)
+			call, ok := node.(*ast.CallExpr)
+			if !ok {
+				return true
+			}
+			selector, ok := call.Fun.(*ast.SelectorExpr)
 			if !ok {
 				return true
 			}
@@ -216,6 +237,38 @@ func prepareRegularReadFileMethodInventory(t *testing.T, file *ast.File) prepare
 	return prepareReadFileMethodInventory{}
 }
 
+func TestRegularReadDescriptorSourceMatcherRejectsDisguisedCalls(t *testing.T) {
+	t.Parallel()
+	owner := reflect.TypeFor[regularReadPreparationOwner]().Field(0).Name
+	connection := reflect.TypeFor[syscall.Conn]().Method(0).Name
+	descriptor := reflect.TypeFor[fileDescriptorAccessor]().Method(0).Name
+	for _, tc := range []struct {
+		name  string
+		body  string
+		other string
+		want  prepareReadFileMethodInventory
+	}{
+		{name: "absent calls cannot claim descriptor lifetime protection"},
+		{name: "real connection acquisition is counted", body: "file." + connection + "()", want: prepareReadFileMethodInventory{syscallConnectionCalls: 1}},
+		{name: "borrowed method value cannot impersonate a call", body: "_ = file." + connection},
+		{name: "direct descriptor access remains visible", body: "file." + descriptor + "()", want: prepareReadFileMethodInventory{fileDescriptorCalls: 1}},
+		{name: "safe call cannot hide an additional direct descriptor call", body: "file." + connection + "(); file." + descriptor + "()", want: prepareReadFileMethodInventory{syscallConnectionCalls: 1, fileDescriptorCalls: 1}},
+		{name: "unrelated function cannot satisfy the owner", other: "func other() { file." + connection + "() }"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			source := fmt.Sprintf("package filestore\nfunc %s() { %s }\n%s", owner, tc.body, tc.other)
+			file, err := parser.ParseFile(token.NewFileSet(), "fixture.go", source, parser.SkipObjectResolution)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := prepareRegularReadFileMethodInventory(t, file); got != tc.want {
+				t.Fatalf("method inventory = %+v, want %+v", got, tc.want)
+			}
+		})
+	}
+}
+
 // TestOpenRegularReadFileRefusesNamedPipeOnTheAcquiredHandle proves the refusal
 // is decided by fstat on the descriptor this process holds, not by a path
 // lookup another process can invalidate between the check and the open.
@@ -223,11 +276,11 @@ func TestOpenRegularReadFileRefusesNamedPipeOnTheAcquiredHandle(t *testing.T) {
 	t.Parallel()
 
 	rootDirectory := t.TempDir()
-	if err := unix.Mkfifo(filepath.Join(rootDirectory, "source"), 0o600); err != nil {
+	if err := syscall.Mkfifo(filepath.Join(rootDirectory, "source"), 0o600); err != nil {
 		t.Fatalf("Mkfifo(source) error = %v, want nil", err)
 	}
 	root := openInternalTestRoot(t, rootDirectory)
-	file, err := openRegularReadFile(root, "source")
+	file, _, err := openRegularReadFile(root, "source")
 	if file != nil {
 		closeInternalTestFile(t, file)
 		t.Fatalf("openRegularReadFile(named pipe) file = %v, want nil", file)
@@ -252,7 +305,11 @@ func descriptorStatusFlags(t *testing.T, file *os.File) int {
 	var flags int
 	var flagsErr error
 	if err := connection.Control(func(descriptor uintptr) {
-		flags, flagsErr = unix.FcntlInt(descriptor, unix.F_GETFL, 0)
+		value, _, errno := syscall.Syscall(syscall.SYS_FCNTL, descriptor, syscall.F_GETFL, 0)
+		flags = int(value)
+		if errno != 0 {
+			flagsErr = errno
+		}
 	}); err != nil {
 		t.Fatalf("Control() error = %v, want nil", err)
 	}

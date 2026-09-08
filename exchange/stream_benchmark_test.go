@@ -1,7 +1,6 @@
 package exchange_test
 
 import (
-	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
+	"github.com/deliri/primitive/v2026/temporal"
 )
 
 type uploadBenchmarkObservation struct {
@@ -80,6 +80,10 @@ func BenchmarkUpload10MiBFileOverLoopback(b *testing.B) {
 	client := mustExchangeClient(b, server.Client())
 	target := mustEndpoint(b, server.URL)
 	policy := singleAttemptStreamPolicy(b)
+	backstopDuration, err := temporal.NewDuration(testDeadlockBackstop)
+	if err != nil {
+		b.Fatal(err)
+	}
 	b.ReportAllocs()
 	b.SetBytes(testLargeTransferBytes)
 	b.ResetTimer()
@@ -92,7 +96,7 @@ func BenchmarkUpload10MiBFileOverLoopback(b *testing.B) {
 		b.StartTimer()
 		got, gotErr := exchange.Upload(
 			exchange.UploadCall{
-				Context: context.Background(),
+				Context: b.Context(),
 				Client:  client,
 				Request: exchange.UploadRequest{
 					Target: target,
@@ -109,7 +113,21 @@ func BenchmarkUpload10MiBFileOverLoopback(b *testing.B) {
 			},
 		)
 		b.StopTimer()
-		serverGot := <-observed
+		if gotErr != nil {
+			b.Fatalf("client transfer failed before handler observation: %v", gotErr)
+		}
+		backstop, cancel, err := temporal.WithTimeout(temporal.TimeoutRequest{Parent: b.Context(), Duration: backstopDuration})
+		if err != nil {
+			b.Fatal(err)
+		}
+		var serverGot uploadBenchmarkObservation
+		select {
+		case serverGot = <-observed:
+			cancel()
+		case <-backstop.Done():
+			cancel()
+			b.Fatalf("handler observation backstop error=%v, want a completed observation", backstop.Err())
+		}
 		if gotErr != nil ||
 			serverGot.receiveErr != nil ||
 			serverGot.writeErr != nil {
@@ -178,6 +196,10 @@ func BenchmarkDownload10MiBFileOverLoopback(b *testing.B) {
 	target := mustEndpoint(b, server.URL)
 	policy := singleAttemptStreamPolicy(b)
 	responseLimit := mustByteCount(b, testLargeTransferBytes)
+	backstopDuration, err := temporal.NewDuration(testDeadlockBackstop)
+	if err != nil {
+		b.Fatal(err)
+	}
 	b.ReportAllocs()
 	b.SetBytes(testLargeTransferBytes)
 	b.ResetTimer()
@@ -187,7 +209,7 @@ func BenchmarkDownload10MiBFileOverLoopback(b *testing.B) {
 		b.StartTimer()
 		got, gotErr := exchange.Download(
 			exchange.DownloadCall{
-				Context: context.Background(),
+				Context: b.Context(),
 				Client:  client,
 				Request: exchange.DownloadRequest{
 					Target:      target,
@@ -204,7 +226,21 @@ func BenchmarkDownload10MiBFileOverLoopback(b *testing.B) {
 			},
 		)
 		b.StopTimer()
-		serverGot := <-observed
+		if gotErr != nil {
+			b.Fatalf("client transfer failed before handler observation: %v", gotErr)
+		}
+		backstop, cancel, err := temporal.WithTimeout(temporal.TimeoutRequest{Parent: b.Context(), Duration: backstopDuration})
+		if err != nil {
+			b.Fatal(err)
+		}
+		var serverGot downloadBenchmarkObservation
+		select {
+		case serverGot = <-observed:
+			cancel()
+		case <-backstop.Done():
+			cancel()
+			b.Fatalf("handler observation backstop error=%v, want a completed observation", backstop.Err())
+		}
 		if gotErr != nil || serverGot.writeErr != nil {
 			b.Fatalf(
 				"download/client write errors = (%v, %v), want (nil, nil)",

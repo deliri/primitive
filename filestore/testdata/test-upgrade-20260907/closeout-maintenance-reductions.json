@@ -1,0 +1,47 @@
+{
+  "scope": "Remove overlapping examples and assertion-hiding helpers while retaining stronger direct tables and semantic fuzzing. No production abstraction added.",
+  "changes": [
+    {
+      "removed": "TestFilestorePublicSurfaceIsExactRatchet handwritten public-name inventory",
+      "replacement": "TestFilestorePublicIngressHasCompilerBoundSemanticProof plus existing compiler-bound struct inventory and exhaustive enum proofs",
+      "reason": "Duplicated literal API names created maintenance coupling; actual function/type bindings now own discovery."
+    },
+    {
+      "removed": "contextEffectFixture and ten operation-specific closure builders",
+      "replacement": "TestOperationsRejectTerminalAndNilContextsBeforeFilesystemEffects direct operation table",
+      "reason": "Receipt, namespace, cursor and outgoing-handle comparisons now remain in each row executor."
+    },
+    {
+      "removed": "mixed internal discriminator loops and off-wire assertion helper",
+      "replacement": "two exhaustive typed domain tables and directory mode-ownership table"
+    },
+    {
+      "removed": "stream extent assertions hidden in operation closures",
+      "replacement": "direct typed operation switch with exact zero or valid receipt comparisons"
+    },
+    {
+      "removed": "TestRecoveryHandoffLayerTriad duplicated ad hoc examples",
+      "replacement": "FuzzWriteRecoveryHandoffSemanticCustody, strengthened resolved-write table, and roundtrip fuzz"
+    },
+    {
+      "removed": "TestReplaceActivationLayerTriad three ad hoc subtests",
+      "replacement": "direct five-row inode/handle/empty-content/directory-refusal/consumed-receipt table"
+    },
+    {
+      "removed": "custody validator closure hierarchy, timestamp assertion helper, wrong-kind duplicate examples",
+      "replacement": "direct custody admission and full signed-native-time tables; existing namespace custody table"
+    },
+    {
+      "removed": "weak standalone Write overflow/closed-source examples and duplicate Read byte-count table",
+      "replacement": "23-row resolved Write table and TestReadNativeBoundaryLayerTriad"
+    },
+    {
+      "removed": "Walk replacement assertion helpers and native/lexical duplicate example executors",
+      "replacement": "one direct hostile table crossed with both actual orders; semantic fuzz comparisons remain in callback"
+    },
+    {
+      "removed": "Walk invalid-directive, canceled-context and three-entry lexical examples",
+      "replacement": "both-order refusal table and exact-ceiling table/fuzz"
+    }
+  ]
+}

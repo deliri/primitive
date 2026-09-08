@@ -1,0 +1,229 @@
+{
+  "scope": "One matched 30s CPU1 pair per fixed 128-byte workload, each with CPU/memory profiles and binary. No claimed timing trend from these single samples; allocation counts unchanged. Source snapshots retained. The Read before run includes the behavior-preserving extraction of readOwnedRegularFile but precedes its deferred close.",
+  "measurements": [
+    {
+      "before": {
+        "label": "before-stage-unwind-lifecycle",
+        "record_sha256": "e7841630595355fe77949f9a67cd5a0ab501792f5778fd983dca3c09e840f232",
+        "benchmark": "BenchmarkStageReadDiscardExactBytes",
+        "iterations": 3128,
+        "ns_per_op": 11459325.0,
+        "bytes_per_op": 2301,
+        "allocations_per_op": 36,
+        "argv": [
+          "go",
+          "test",
+          "-run=^$",
+          "-bench=^BenchmarkStageReadDiscardExactBytes$",
+          "-count=1",
+          "-benchtime=30s",
+          "-cpu=1",
+          "-benchmem",
+          "-cpuprofile=filestore/testdata/test-upgrade-20260907/before-stage-unwind-lifecycle.cpu.pprof",
+          "-memprofile=filestore/testdata/test-upgrade-20260907/before-stage-unwind-lifecycle.mem.pprof",
+          "-o=filestore/testdata/test-upgrade-20260907/before-stage-unwind-lifecycle.test",
+          "./filestore"
+        ],
+        "artifacts": [
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/before-stage-unwind-lifecycle.stdout.txt",
+            "bytes": 265,
+            "sha256": "7eb83eeaad281863fa0003dd7d7730559967149e6b0dcbc0dc4bf00fa626c67e"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/before-stage-unwind-lifecycle.stderr.txt",
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/before-stage-unwind-lifecycle.git-status.txt",
+            "bytes": 5009,
+            "sha256": "6c2f419fe37eb07cbd0a74d1ff526c93c1dec5ed88c66ac4ca496ce3837562d8"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/before-stage-unwind-lifecycle.cpu.pprof",
+            "bytes": 4834,
+            "sha256": "e21d86c7b38bddb6618f16ed588d83b4965eb96ad39bb884c1e1a03997dec37a"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/before-stage-unwind-lifecycle.mem.pprof",
+            "bytes": 2529,
+            "sha256": "e90b0c2be670c194cde9582f194eaae03d7a165e8b2ea4b3a276a4d6bca0581b"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/before-stage-unwind-lifecycle.test",
+            "bytes": 11234210,
+            "sha256": "af6be8350c567670878269b68c1f51b985d45fd1900db1f749f13664684b6bc6"
+          }
+        ]
+      },
+      "after": {
+        "label": "after-stage-unwind-lifecycle",
+        "record_sha256": "07073c9cbee88399b027716511e5bb4e7ce93c8b0f823b0f93f539a16213138f",
+        "benchmark": "BenchmarkStageReadDiscardExactBytes",
+        "iterations": 3080,
+        "ns_per_op": 11157228.0,
+        "bytes_per_op": 2301,
+        "allocations_per_op": 36,
+        "argv": [
+          "go",
+          "test",
+          "-count=1",
+          "-run=^$",
+          "-bench=^BenchmarkStageReadDiscardExactBytes$",
+          "-benchtime=30s",
+          "-cpu=1",
+          "-benchmem",
+          "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-stage-unwind-lifecycle.cpu.pprof",
+          "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-stage-unwind-lifecycle.mem.pprof",
+          "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-stage-unwind-lifecycle.test",
+          "./filestore"
+        ],
+        "artifacts": [
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/after-stage-unwind-lifecycle.stdout.txt",
+            "bytes": 265,
+            "sha256": "efc0676749575518aa9b8e290e61df0c17becc4c3e4980cd65251c4b0faf07a7"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/after-stage-unwind-lifecycle.stderr.txt",
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/after-stage-unwind-lifecycle.git-status.txt",
+            "bytes": 5143,
+            "sha256": "85c946edab653b0b8bb3e324b350bd2c06097b43f5497748ff2f7a00b737ebec"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/after-stage-unwind-lifecycle.cpu.pprof",
+            "bytes": 4468,
+            "sha256": "9209cb4a1e371d9c48ed77eb773a75f4c0f9419de0a6e3bef2a67a818d5154b6"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/after-stage-unwind-lifecycle.mem.pprof",
+            "bytes": 2751,
+            "sha256": "bfff94fc0f6dba6d4874b6fad3ca74cc3765618f7b8ea92d3a87e28d39ef8c81"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/after-stage-unwind-lifecycle.test",
+            "bytes": 11322066,
+            "sha256": "556c6982f7b4d021025d6afe90f14da21bbdbf00708b8b786cd9bfe03d15c86e"
+          }
+        ]
+      }
+    },
+    {
+      "before": {
+        "label": "before-read-unwind",
+        "record_sha256": "1451a0faa7bb9ec9a9ac01420d7e3330b599fc70e1f2c20385b46336fd35499c",
+        "benchmark": "BenchmarkReadExistingExactBytes",
+        "iterations": 2259220,
+        "ns_per_op": 15880.0,
+        "bytes_per_op": 688,
+        "allocations_per_op": 11,
+        "argv": [
+          "go",
+          "test",
+          "-run=^$",
+          "-bench=^BenchmarkReadExistingExactBytes$",
+          "-count=1",
+          "-benchtime=30s",
+          "-cpu=1",
+          "-benchmem",
+          "-cpuprofile=filestore/testdata/test-upgrade-20260907/before-read-unwind.cpu.pprof",
+          "-memprofile=filestore/testdata/test-upgrade-20260907/before-read-unwind.mem.pprof",
+          "-o=filestore/testdata/test-upgrade-20260907/before-read-unwind.test",
+          "./filestore"
+        ],
+        "artifacts": [
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/before-read-unwind.stdout.txt",
+            "bytes": 261,
+            "sha256": "0795738adc41edd4321a93c6173f8f63742407079474a4fbe5716300f651ee7f"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/before-read-unwind.stderr.txt",
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/before-read-unwind.git-status.txt",
+            "bytes": 5094,
+            "sha256": "faa5558a49ce75b8b5df644134eeb6342024a389c7def7491ffb4641349f220e"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/before-read-unwind.cpu.pprof",
+            "bytes": 3675,
+            "sha256": "4067b42e892c2df0cf4e1bed6fb5629485c6bfe433506efe50afaa6374ca691a"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/before-read-unwind.mem.pprof",
+            "bytes": 2725,
+            "sha256": "bd07db08ff446edbf2df90c1a32908351cdf0b4799d59b4ca17aa8fc1cf950b4"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/before-read-unwind.test",
+            "bytes": 11304898,
+            "sha256": "a09ef56756bb2355cf3bdd68f082b74670ce58ab2f4dd5e911c11a4432f16c86"
+          }
+        ]
+      },
+      "after": {
+        "label": "after-read-unwind",
+        "record_sha256": "a1f73fe06c72f84b786d6862f15b1a461fa9b8fcbf5d4a5dcb6699eaafa3bf4f",
+        "benchmark": "BenchmarkReadExistingExactBytes",
+        "iterations": 2234250,
+        "ns_per_op": 16120.0,
+        "bytes_per_op": 688,
+        "allocations_per_op": 11,
+        "argv": [
+          "go",
+          "test",
+          "-count=1",
+          "-run=^$",
+          "-bench=^BenchmarkReadExistingExactBytes$",
+          "-benchtime=30s",
+          "-cpu=1",
+          "-benchmem",
+          "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-read-unwind.cpu.pprof",
+          "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-read-unwind.mem.pprof",
+          "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-read-unwind.test",
+          "./filestore"
+        ],
+        "artifacts": [
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/after-read-unwind.stdout.txt",
+            "bytes": 261,
+            "sha256": "877da57be8d2dc16a73db12e477b43b58a5ac4cd93aab79e724abf875e06fa7f"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/after-read-unwind.stderr.txt",
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/after-read-unwind.git-status.txt",
+            "bytes": 5143,
+            "sha256": "85c946edab653b0b8bb3e324b350bd2c06097b43f5497748ff2f7a00b737ebec"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/after-read-unwind.cpu.pprof",
+            "bytes": 3674,
+            "sha256": "bc831dbea27cb0a762c751d187fa659f26e80e0b677721cf8969cf3bf2e133d8"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/after-read-unwind.mem.pprof",
+            "bytes": 3322,
+            "sha256": "e9958fa98f8d581dbf39b7f0a8b80bd106e116609532225d88dccb127841621b"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/after-read-unwind.test",
+            "bytes": 11322066,
+            "sha256": "556c6982f7b4d021025d6afe90f14da21bbdbf00708b8b786cd9bfe03d15c86e"
+          }
+        ]
+      }
+    }
+  ]
+}

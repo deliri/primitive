@@ -13,6 +13,7 @@ import (
 // the actual Go/OS bind and close, including zero-port allocation on loopback;
 // it never connects clients and therefore creates no client TIME_WAIT workload.
 func BenchmarkServerRuntimeBoundary(b *testing.B) {
+	b.ReportAllocs()
 	cases := []struct {
 		name   string
 		listen bool

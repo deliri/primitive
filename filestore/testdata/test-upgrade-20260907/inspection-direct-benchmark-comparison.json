@@ -1,0 +1,223 @@
+{
+  "scope": "Direct Go Lstat simplification only; all before samples already include full schema validation and Go-owned directory implementation. Each sample requests 30s CPU1, same fixed real-file workload, retained CPU/memory profiles and binary. Separate process snapshots retained. Native Darwin runtime only; Linux/Windows are compilation checks.",
+  "before": [
+    {
+      "label": "after-inspection-BenchmarkInspectRegularFileObservation",
+      "record_sha256": "723c5048b0f9ef83adcde6511ffca005d5028fe45b4cc278cf7fd60bef321be1",
+      "samples": [
+        {
+          "benchmark": "BenchmarkInspectRegularFileObservation",
+          "iterations": 883500,
+          "ns_per_op": 41413.0,
+          "validations_per_op": 1,
+          "bytes_per_op": 856,
+          "allocations_per_op": 12
+        }
+      ],
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkInspectRegularFileObservation$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-inspection-BenchmarkInspectRegularFileObservation.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-inspection-BenchmarkInspectRegularFileObservation.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-inspection-BenchmarkInspectRegularFileObservation.test",
+        "./filestore"
+      ],
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-inspection-BenchmarkInspectRegularFileObservation.stdout.txt",
+          "bytes": 255,
+          "sha256": "a390780176db98aae2cac125cac8f053a9a5bfae539fd4661ad3cdf75a253fb8"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-inspection-BenchmarkInspectRegularFileObservation.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-inspection-BenchmarkInspectRegularFileObservation.git-status.txt",
+          "bytes": 4754,
+          "sha256": "598360974360689b0440bc66ef8587d23d9ac46a77bf407231dbcef557ab73b3"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-inspection-BenchmarkInspectRegularFileObservation.cpu.pprof",
+          "bytes": 2923,
+          "sha256": "20e18caa1a93bbae9942535c1f3c2393e7ec5ea111cce6ef10e3624a38c72ea1"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-inspection-BenchmarkInspectRegularFileObservation.mem.pprof",
+          "bytes": 4081,
+          "sha256": "0e045b15778ef555250036828bfedbadbf52d9ca6789e79b2a489e87cea4d4a0"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-inspection-BenchmarkInspectRegularFileObservation.test",
+          "bytes": 11235282,
+          "sha256": "ab13d66d721c8019d9a7141786061a34987b18bb007c9d6d1070dc71ba260398"
+        }
+      ]
+    },
+    {
+      "label": "inspection-before-direct-lstat-distribution",
+      "record_sha256": "bbfed1b795dc1a41b0f8e63eaa4e058f4108e213de55a5204d734bb3f1bc3641",
+      "samples": [
+        {
+          "benchmark": "BenchmarkInspectRegularFileObservation",
+          "iterations": 856512,
+          "ns_per_op": 40537.0,
+          "validations_per_op": 1,
+          "bytes_per_op": 856,
+          "allocations_per_op": 12
+        },
+        {
+          "benchmark": "BenchmarkInspectRegularFileObservation",
+          "iterations": 892881,
+          "ns_per_op": 40301.0,
+          "validations_per_op": 1,
+          "bytes_per_op": 856,
+          "allocations_per_op": 12
+        }
+      ],
+      "argv": [
+        "go",
+        "test",
+        "-count=2",
+        "-run=^$",
+        "-bench=^BenchmarkInspectRegularFileObservation$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=filestore/testdata/test-upgrade-20260907/inspection-before-direct-lstat-distribution.cpu.pprof",
+        "-memprofile=filestore/testdata/test-upgrade-20260907/inspection-before-direct-lstat-distribution.mem.pprof",
+        "-o=filestore/testdata/test-upgrade-20260907/inspection-before-direct-lstat-distribution.test",
+        "./filestore"
+      ],
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/inspection-before-direct-lstat-distribution.stdout.txt",
+          "bytes": 354,
+          "sha256": "822370a0304d56ed3f7df5d10130d4e98134a3f9fb23cdec17d62c6022d6c4a8"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/inspection-before-direct-lstat-distribution.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/inspection-before-direct-lstat-distribution.git-status.txt",
+          "bytes": 4754,
+          "sha256": "598360974360689b0440bc66ef8587d23d9ac46a77bf407231dbcef557ab73b3"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/inspection-before-direct-lstat-distribution.cpu.pprof",
+          "bytes": 4722,
+          "sha256": "010cd6b9921720bd6ae5212a8083ead342e9eed37aed01cfc1094b73aadb3505"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/inspection-before-direct-lstat-distribution.mem.pprof",
+          "bytes": 3887,
+          "sha256": "e2fc140e3f8e9b5d1b22c5d1bc2d57954b54c3b11e51d939997d5228f675b294"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/inspection-before-direct-lstat-distribution.test",
+          "bytes": 11235282,
+          "sha256": "ab13d66d721c8019d9a7141786061a34987b18bb007c9d6d1070dc71ba260398"
+        }
+      ]
+    }
+  ],
+  "after": [
+    {
+      "label": "inspection-after-direct-lstat-distribution",
+      "record_sha256": "9bc7bdb135b61d06301ce9e5cb38a80899a28a929564702d690d053f59d4c16f",
+      "samples": [
+        {
+          "benchmark": "BenchmarkInspectRegularFileObservation",
+          "iterations": 16420275,
+          "ns_per_op": 2200.0,
+          "validations_per_op": 1,
+          "bytes_per_op": 320,
+          "allocations_per_op": 2
+        },
+        {
+          "benchmark": "BenchmarkInspectRegularFileObservation",
+          "iterations": 16334950,
+          "ns_per_op": 2197.0,
+          "validations_per_op": 1,
+          "bytes_per_op": 320,
+          "allocations_per_op": 2
+        },
+        {
+          "benchmark": "BenchmarkInspectRegularFileObservation",
+          "iterations": 16435454,
+          "ns_per_op": 2196.0,
+          "validations_per_op": 1,
+          "bytes_per_op": 320,
+          "allocations_per_op": 2
+        }
+      ],
+      "argv": [
+        "go",
+        "test",
+        "-count=3",
+        "-run=^$",
+        "-bench=^BenchmarkInspectRegularFileObservation$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/inspection-after-direct-lstat-distribution.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/inspection-after-direct-lstat-distribution.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/inspection-after-direct-lstat-distribution.test",
+        "./filestore"
+      ],
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/inspection-after-direct-lstat-distribution.stdout.txt",
+          "bytes": 454,
+          "sha256": "51d953f6cf3ceb1e6e33a58bcdaf00089cd4eaa3215dfe65dc15af778aba015c"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/inspection-after-direct-lstat-distribution.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/inspection-after-direct-lstat-distribution.git-status.txt",
+          "bytes": 4962,
+          "sha256": "fa5f9fc7360dceafce925c7f86126aa6f7e37e9a91881a9e14dd6ddedce56a19"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/inspection-after-direct-lstat-distribution.cpu.pprof",
+          "bytes": 2994,
+          "sha256": "3220ae94718b9ebbf83fd6816da0b01bb45aaa6baefef0cae0ccf41c0a771b2e"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/inspection-after-direct-lstat-distribution.mem.pprof",
+          "bytes": 2385,
+          "sha256": "7a41e257b88d8f45e17efb3b2eeb6c49f24b4be6f9fca2b2bf9e77237ea79199"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/inspection-after-direct-lstat-distribution.test",
+          "bytes": 11233986,
+          "sha256": "0eebce991111e8f59c5326e0c447b3f9372aa611ba79c7ecf1867f5272ff82cf"
+        }
+      ]
+    }
+  ],
+  "before_median_ns": 40537.0,
+  "after_median_ns": 2197.0,
+  "before_range_ns": [
+    40301.0,
+    41413.0
+  ],
+  "after_range_ns": [
+    2196.0,
+    2200.0
+  ],
+  "median_speed_ratio": 18.45106964041875,
+  "interpretation": "Removed redundant parent root acquisition and existing-path parent Stat. CPU now almost entirely Go os.Lstat native syscall; allocations are Go FileInfo and path conversion. Full schema validation remains."
+}

@@ -70,7 +70,7 @@ func FuzzBearerAuthorizationTokenSemanticClosure(f *testing.F) {
 			t.Fatalf("token header admission = %v, want %v", gotErr, wantErr)
 		}
 		if !bytes.Equal(owned, token) {
-			t.Fatal("token operation mutated caller custody")
+			t.Fatalf("token bytes preserved=%t, want true", bytes.Equal(owned, token))
 		}
 		if !wantToken {
 			if header.Name != (core.HTTPHeaderName{}) || header.Values != nil {
@@ -143,7 +143,7 @@ func FuzzReceiveBearerAuthorizationSemanticClosure(f *testing.F) {
 			t.Fatalf("receive admission = %v, want %v", gotErr, wantErr)
 		}
 		if recorder.Code != 0 || recorder.Body.Len() != 0 || len(recorder.Header()) != 0 || recorder.Flushed {
-			t.Fatal("credential parsing emitted an HTTP response")
+			t.Fatalf("response code/body/header/flush=%d/%d/%d/%t, want 0/0/0/false", recorder.Code, recorder.Body.Len(), len(recorder.Header()), recorder.Flushed)
 		}
 		if !wantAdmitted {
 			if got.Token != nil || !errors.Is(gotErr, core.ErrExchangeContract) {

@@ -1,0 +1,38 @@
+{
+  "scope": "Test fixture/oracle failures remain retained. None is counted as a production regression or semantic mutant kill.",
+  "corrections": [
+    {
+      "records": [
+        "closeout-roundtrip-fuzz-seeds",
+        "closeout-roundtrip-fuzz-seeds-typed-projections",
+        "closeout-roundtrip-fuzz-seeds-core-identity"
+      ],
+      "kind": "two fixture build failures",
+      "reason": "The test initially guessed two-return StagedFile accessors and a nonexistent core error name. Correct calls use the actual compiler-owned projections and ErrFilestoreActivationIndeterminate."
+    },
+    {
+      "records": [
+        "closeout-read-boundary-control",
+        "closeout-read-boundary-control-distinct-fixture-type"
+      ],
+      "kind": "fixture build failure",
+      "reason": "A test enum arm and sink type initially shared one Go identifier; the fixture sink type now has its own identifier."
+    },
+    {
+      "records": [
+        "closeout-writer-direct-table-control",
+        "closeout-writer-direct-table-shared-parent-control"
+      ],
+      "kind": "fixture contract mismatch",
+      "reason": "The initial missing-parent case placed the target and temporary in different parents, correctly receiving Contract. Both now share the same missing parent; the row proves native activation refusal before consuming source bytes."
+    },
+    {
+      "records": [
+        "closeout-walk-direct-oracle-control",
+        "red-walk-native-cancellation-delivery"
+      ],
+      "kind": "over-specific incorrect native oracle",
+      "reason": "A regular entry replacing a directory is refused by the Unix O_DIRECTORY acquisition with native ENOTDIR, not fs.ErrInvalid. Independent Go acquisition now supplies the platform-owned cause. This correction exposed the separate real cancellation defect without conflating it with the fixture error."
+    }
+  ]
+}

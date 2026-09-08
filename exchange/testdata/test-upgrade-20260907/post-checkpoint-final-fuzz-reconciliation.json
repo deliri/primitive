@@ -1,0 +1,145 @@
+{
+  "scope": "Latest retained successful 30-second sustained receipt for every current Exchange fuzz target. Receipts retain their own source snapshots: earlier unchanged targets are historical runs, not relabeled final-source runs. Final package checkpoint 28 executes the complete current seed corpus.",
+  "targets": [
+    {
+      "target": "FuzzBasicAuthorizationIdentityJSONSemanticClosure",
+      "receipt": "post-checkpoint-final-missing-fuzz-01.json"
+    },
+    {
+      "target": "FuzzBearerAuthorizationTokenSemanticClosure",
+      "receipt": "fuzz-runtime-auth-bearer-token.json"
+    },
+    {
+      "target": "FuzzBoundedClientsPreserveCompletedProducerCause",
+      "receipt": "fuzz-aggregate-completed-producer-cause.json"
+    },
+    {
+      "target": "FuzzCapturedHeadersPreserveExactSelection",
+      "receipt": "fuzz-september-capture-headers.json"
+    },
+    {
+      "target": "FuzzClientAddressResolutionSemanticClosure",
+      "receipt": "four-gap-final-fuzz-client-address.json"
+    },
+    {
+      "target": "FuzzErrorNotFoundRedirectAndSetCookieGoParity",
+      "receipt": "post-checkpoint-final-standard-fuzz-corrected.json"
+    },
+    {
+      "target": "FuzzHeaderValueMatchesNetHTTPAndExchangeBounds",
+      "receipt": "post-checkpoint-final-fuzz-01.json"
+    },
+    {
+      "target": "FuzzMethodJSONSemanticClosure",
+      "receipt": "post-checkpoint-final-fuzz-03.json"
+    },
+    {
+      "target": "FuzzNewBasicAuthorizationHeaderCustody",
+      "receipt": "post-checkpoint-sustained-FuzzNewBasicAuthorizationHeaderCustody.json"
+    },
+    {
+      "target": "FuzzOfficialSDKBoundaryCeilingAndStreamingConfiguration",
+      "receipt": "post-checkpoint-final-fuzz-05.json"
+    },
+    {
+      "target": "FuzzOfficialSDKQueryCustodySemanticBoundary",
+      "receipt": "post-checkpoint-final-missing-fuzz-06.json"
+    },
+    {
+      "target": "FuzzOfficialSDKResponseRepresentationJSONSemanticClosure",
+      "receipt": "post-checkpoint-final-missing-fuzz-05.json"
+    },
+    {
+      "target": "FuzzOfficialSDKResponseTransportSemanticBoundary",
+      "receipt": "post-checkpoint-final-missing-fuzz-03.json"
+    },
+    {
+      "target": "FuzzOfficialSDKStreamingSuccessResponseSemanticBoundary",
+      "receipt": "post-checkpoint-sdk-streaming-resource-corrected-sustained.json"
+    },
+    {
+      "target": "FuzzParseBasicAuthorizationIdentitySemanticClosure",
+      "receipt": "post-checkpoint-sustained-FuzzParseBasicAuthorizationIdentitySemanticClosure.json"
+    },
+    {
+      "target": "FuzzParseDeclaredBodyLength",
+      "receipt": "post-checkpoint-final-missing-fuzz-02.json"
+    },
+    {
+      "target": "FuzzParseIdempotencyKeySemanticClosure",
+      "receipt": "post-checkpoint-sustained-FuzzParseIdempotencyKeySemanticClosure.json"
+    },
+    {
+      "target": "FuzzParseListenAddressSemanticClosure",
+      "receipt": "fuzz-runtime-auth-listen-current-port-policy.json"
+    },
+    {
+      "target": "FuzzParseSocketRoutePathSemanticClosure",
+      "receipt": "post-checkpoint-sustained-FuzzParseSocketRoutePathSemanticClosure.json"
+    },
+    {
+      "target": "FuzzReceiveBasicAuthorizationSemanticClosure",
+      "receipt": "post-checkpoint-final-fuzz-04.json"
+    },
+    {
+      "target": "FuzzReceiveBearerAuthorizationSemanticClosure",
+      "receipt": "fuzz-runtime-auth-bearer-receive.json"
+    },
+    {
+      "target": "FuzzReceiveBoundedAndNoBodyCustody",
+      "receipt": "post-checkpoint-optimized-sustained-FuzzReceiveBoundedAndNoBodyCustody.json"
+    },
+    {
+      "target": "FuzzReceiveBoundedDeclaredExtentCustody",
+      "receipt": "post-checkpoint-declared-prefix-sustained-fuzz.json"
+    },
+    {
+      "target": "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody",
+      "receipt": "post-checkpoint-optimized-sustained-FuzzReceiveJSONProjectedJSONAndSocketJSONCustody.json"
+    },
+    {
+      "target": "FuzzReceiveStreamCustodySemanticClosure",
+      "receipt": "fuzz-copy-stdlib-receive-stream-custody.json"
+    },
+    {
+      "target": "FuzzReplayStreamPreservesDownloadAndRoundTripObservation",
+      "receipt": "post-checkpoint-sustained-FuzzReplayStreamPreservesDownloadAndRoundTripObservation.json"
+    },
+    {
+      "target": "FuzzResponseBufferSemanticExtent",
+      "receipt": "post-checkpoint-final-fuzz-02.json"
+    },
+    {
+      "target": "FuzzSendJSONReplayNoBodyAndSocketResponses",
+      "receipt": "post-checkpoint-sustained-FuzzSendJSONReplayNoBodyAndSocketResponses.json"
+    },
+    {
+      "target": "FuzzServerRuntimeConfigurationAdmission",
+      "receipt": "fuzz-runtime-auth-runtime-configuration.json"
+    },
+    {
+      "target": "FuzzSessionClientGoCookieCustody",
+      "receipt": "post-checkpoint-session-cookie-corrected-sustained.json"
+    },
+    {
+      "target": "FuzzSocketHeaderQueryAndPathObservations",
+      "receipt": "post-checkpoint-sustained-FuzzSocketHeaderQueryAndPathObservations.json"
+    },
+    {
+      "target": "FuzzSocketVerifiedClientCertificateIdentity",
+      "receipt": "post-checkpoint-sustained-FuzzSocketVerifiedClientCertificateIdentity.json"
+    },
+    {
+      "target": "FuzzTrustedProxyPrefixesSemanticClosure",
+      "receipt": "four-gap-final-fuzz-trusted-prefix.json"
+    },
+    {
+      "target": "FuzzUploadResponseDeclarationCustody",
+      "receipt": "four-gap-final-fuzz-upload-declaration.json"
+    },
+    {
+      "target": "FuzzWriteJSONNoBodyBoundedStreamAndSocketCustody",
+      "receipt": "post-checkpoint-sustained-FuzzWriteJSONNoBodyBoundedStreamAndSocketCustody.json"
+    }
+  ]
+}

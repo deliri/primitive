@@ -1,0 +1,6 @@
+{
+  "failed_record": "pipe-native-fuzz-seed-control.json",
+  "classification": "test oracle error, not production regression",
+  "observation": "A zero-byte Go File.Write on Darwin retains native broken-pipe refusal when the read end is closed; an empty slice does not guarantee bypassing the syscall.",
+  "correction": "The independent Go pipe control now receives the actual fragment, including zero length. Direct table and fuzz assertions compare the strongest native cause; platforms permitting the zero-byte operation may return nil. A named zero-byte closed-reader row preserves the boundary."
+}

@@ -1,0 +1,5 @@
+{
+  "rejected": "mutation-parent-identity-parent-opens-child-instead",
+  "reason": "Changing the acquisition directly to path.String left the already-computed parent variable unused. This was a build failure, not a semantic kill.",
+  "correction": "The corrected mutant forms the same wrong child acquisition from the existing parent, Go path separator and basename, preserving compilation while changing the acquisition target. No test or production source change."
+}

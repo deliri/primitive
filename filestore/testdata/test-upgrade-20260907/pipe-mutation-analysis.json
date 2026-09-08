@@ -1,0 +1,198 @@
+[
+  {
+    "label": "mutation-pipe-context-admission-ignored",
+    "owner": "func OpenPipe(",
+    "before": "if err := contextstate.Validate(ctx); err != nil {\n\t\treturn Pipe{}, err",
+    "after": "if err := contextstate.Validate(ctx); err != nil {\n\t\t_ = err",
+    "test": "^TestPipeCustodyLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 8,
+      "fail": 5,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-pipe-missing-context-mislabeled-source",
+    "owner": "func OpenPipe(",
+    "before": "return Pipe{}, err",
+    "after": "return Pipe{}, sourceError(err)",
+    "test": "^TestPipeCustodyLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 8,
+      "fail": 5,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-pipe-native-resource-error-mislabeled-contract",
+    "owner": "func OpenPipe(",
+    "before": "return Pipe{}, sourceError(err)",
+    "after": "return Pipe{}, core.ErrFilestoreContract",
+    "test": "^TestPipeNativeDescriptorCapacityLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 0,
+      "fail": 1,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-pipe-native-resource-refusal-becomes-empty-success",
+    "owner": "func OpenPipe(",
+    "before": "return Pipe{}, sourceError(err)",
+    "after": "return Pipe{}, nil",
+    "test": "^TestPipeNativeDescriptorCapacityLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 0,
+      "fail": 1,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-pipe-endpoint-directions-swapped",
+    "owner": "func OpenPipe(",
+    "before": "return Pipe{Reader: reader, Writer: writer}, nil",
+    "after": "return Pipe{Reader: writer, Writer: reader}, nil",
+    "test": "^TestPipeCustodyLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 4,
+      "fail": 9,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-pipe-writer-aliases-reader",
+    "owner": "func OpenPipe(",
+    "before": "return Pipe{Reader: reader, Writer: writer}, nil",
+    "after": "_ = writer.Close(); return Pipe{Reader: reader, Writer: reader}, nil",
+    "test": "^TestPipeCustodyLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 4,
+      "fail": 9,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-pipe-reader-transferred-closed",
+    "owner": "func OpenPipe(",
+    "before": "return Pipe{Reader: reader, Writer: writer}, nil",
+    "after": "_ = reader.Close(); return Pipe{Reader: reader, Writer: writer}, nil",
+    "test": "^TestPipeCustodyLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 4,
+      "fail": 9,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-pipe-writer-transferred-closed",
+    "owner": "func OpenPipe(",
+    "before": "return Pipe{Reader: reader, Writer: writer}, nil",
+    "after": "_ = writer.Close(); return Pipe{Reader: reader, Writer: writer}, nil",
+    "test": "^TestPipeCustodyLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 4,
+      "fail": 9,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-pipe-missing-reader-admitted",
+    "owner": "func (p Pipe) Validate(",
+    "before": "p.Reader == nil || ",
+    "after": "",
+    "test": "^TestPipeEndpointAdmissionExhaustsPresenceAndAliasing$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 8,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-pipe-missing-writer-admitted",
+    "owner": "func (p Pipe) Validate(",
+    "before": "p.Writer == nil || ",
+    "after": "",
+    "test": "^TestPipeEndpointAdmissionExhaustsPresenceAndAliasing$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 8,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-pipe-aliased-endpoints-admitted",
+    "owner": "func (p Pipe) Validate(",
+    "before": " || p.Reader == p.Writer",
+    "after": "",
+    "test": "^TestPipeEndpointAdmissionExhaustsPresenceAndAliasing$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 8,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-pipe-closed-reader-invented-refusal",
+    "owner": "func (p Pipe) Validate(",
+    "before": "return nil",
+    "after": "if _, err := p.Reader.Stat(); err != nil { return core.ErrFilestoreContract }; return nil",
+    "test": "^TestPipeEndpointAdmissionExhaustsPresenceAndAliasing$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 7,
+      "fail": 3,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-pipe-validation-closes-writer",
+    "owner": "func (p Pipe) Validate(",
+    "before": "return nil",
+    "after": "_ = p.Writer.Close(); return nil",
+    "test": "^TestPipeEndpointAdmissionExhaustsPresenceAndAliasing$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 6,
+      "fail": 4,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-pipe-validation-consumes-buffered-byte",
+    "owner": "func (p Pipe) Validate(",
+    "before": "return nil",
+    "after": "var data [1]byte; _, _ = p.Reader.Read(data[:]); return nil",
+    "test": "^TestPipeEndpointAdmissionExhaustsPresenceAndAliasing$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 7,
+      "fail": 3,
+      "skip": 0
+    }
+  }
+]

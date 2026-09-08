@@ -163,8 +163,18 @@ func TestServerWriteAdmissionLayerTriad(t *testing.T) {
 			if tc.wantErr != nil && (len(writer.header) != 0 || source.Len() != len("abc")) {
 				t.Fatalf("refused headers/source remaining = (%v, %d), want absent headers and untouched source", writer.header, source.Len())
 			}
-			if tc.lane == writeAdmissionCookie && writer.header.Get("Set-Cookie") != tc.wantCookie {
-				t.Fatalf("cookie = %q, want %q", writer.header.Get("Set-Cookie"), tc.wantCookie)
+			if tc.lane == writeAdmissionCookie {
+				cookies := (&http.Response{Header: writer.header}).Cookies()
+				wantCookies := 0
+				if tc.wantCookie != "" {
+					wantCookies = 1
+				}
+				if len(cookies) != wantCookies {
+					t.Fatalf("cookie count = %d, want %d", len(cookies), wantCookies)
+				}
+				if wantCookies == 1 && cookies[0].String() != tc.wantCookie {
+					t.Fatalf("Go cookie projection = %q, want %q", cookies[0].String(), tc.wantCookie)
+				}
 			}
 		})
 	}

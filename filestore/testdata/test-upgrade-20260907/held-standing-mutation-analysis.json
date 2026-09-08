@@ -1,0 +1,198 @@
+[
+  {
+    "label": "mutation-held-standing-final-link-followed",
+    "owner": "func standingAt(",
+    "before": "os.Lstat(path.String())",
+    "after": "os.Stat(path.String())",
+    "test": "^TestHeldStandingNativeIdentityLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 19,
+      "fail": 4,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-held-standing-identity-always-same",
+    "owner": "func standingAt(",
+    "before": "if os.SameFile(heldInfo, pathInfo) {",
+    "after": "if os.SameFile(heldInfo, pathInfo) || true {",
+    "test": "^TestHeldStandingNativeIdentityLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 15,
+      "fail": 8,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-held-standing-size-substitutes-inode",
+    "owner": "func standingAt(",
+    "before": "if os.SameFile(heldInfo, pathInfo) {",
+    "after": "if heldInfo.Size() == pathInfo.Size() {",
+    "test": "^TestHeldStandingNativeIdentityLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 19,
+      "fail": 4,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-held-standing-non-directory-ancestor-becomes-error",
+    "owner": "func standingAt(",
+    "before": " || errnoSaysNotADirectory(err)",
+    "after": "",
+    "test": "^TestHeldStandingNativeIdentityLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 21,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-held-standing-source-refusal-becomes-absence",
+    "owner": "func standingAt(",
+    "before": "return HeldStandingUnknown, sourceError(err)",
+    "after": "return HeldStandingAbsent, nil",
+    "test": "^TestHeldStandingNativeIdentityLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 21,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-held-standing-source-mislabeled-contract",
+    "owner": "func standingAt(",
+    "before": "return HeldStandingUnknown, sourceError(err)",
+    "after": "return HeldStandingUnknown, contractError(err)",
+    "test": "^TestHeldStandingNativeIdentityLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 21,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-held-standing-closed-handle-mislabeled-source",
+    "owner": "func heldEntryInfo(",
+    "before": "return nil, contractError(err)",
+    "after": "return nil, sourceError(err)",
+    "test": "^TestHeldStandingNativeIdentityLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 21,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-held-standing-held-kind-policy-invented",
+    "owner": "func heldEntryInfo(",
+    "before": "return info, nil",
+    "after": "if !info.Mode().IsRegular() { return nil, sourceError(fs.ErrInvalid) }; return info, nil",
+    "test": "^TestHeldStandingNativeIdentityLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 20,
+      "fail": 3,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-held-standing-observation-consumes-held-byte",
+    "owner": "func heldEntryInfo(",
+    "before": "info, err := held.Stat()",
+    "after": "var data [1]byte; _, _ = held.Read(data[:]); info, err := held.Stat()",
+    "test": "^TestHeldStandingNativeIdentityLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 6,
+      "fail": 17,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-held-standing-cancellation-ignored",
+    "owner": "func ObserveHeldStanding(",
+    "before": "if err := contextstate.Validate(ctx); err != nil {\n\t\treturn HeldStandingUnknown, err",
+    "after": "if err := contextstate.Validate(ctx); err != nil {\n\t\t_ = err",
+    "test": "^TestHeldStandingNativeIdentityLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 20,
+      "fail": 3,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-held-standing-zero-path-mislabeled-source",
+    "owner": "func ObserveHeldStanding(",
+    "before": "if err := path.Validate(); err != nil {\n\t\treturn HeldStandingUnknown, contractError(err)",
+    "after": "if err := path.Validate(); err != nil {\n\t\treturn HeldStandingUnknown, sourceError(err)",
+    "test": "^TestHeldStandingNativeIdentityLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 21,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-held-standing-closed-error-claims-absence",
+    "owner": "func ObserveHeldStanding(",
+    "before": "heldInfo, err := heldEntryInfo(held)\n\tif err != nil {\n\t\treturn HeldStandingUnknown, err",
+    "after": "heldInfo, err := heldEntryInfo(held)\n\tif err != nil {\n\t\treturn HeldStandingAbsent, err",
+    "test": "^TestHeldStandingNativeIdentityLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 21,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-held-standing-copy-pre-read-context-ignored",
+    "owner": "func (r *streamReader) Read(",
+    "before": "r.cause = err\n\t\treturn 0, err",
+    "after": "_ = err",
+    "test": "^TestBoundedCopyContextHandoffLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 3,
+      "fail": 5,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-held-standing-copy-context-mislabeled-source",
+    "owner": "func (r *streamReader) Read(",
+    "before": "return 0, err",
+    "after": "return 0, sourceError(err)",
+    "test": "^TestBoundedCopyContextHandoffLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 3,
+      "fail": 5,
+      "skip": 0
+    }
+  }
+]

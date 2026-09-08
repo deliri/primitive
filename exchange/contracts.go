@@ -226,21 +226,24 @@ func observedIdempotencyKey(body IdempotencyBound) (key IdempotencyKey, err erro
 
 // ParseIdempotencyKey validates and owns one key.
 func ParseIdempotencyKey(value string) (IdempotencyKey, error) {
-	if len(value) == 0 || len(value) > IdempotencyKeyMaximumBytes {
-		return IdempotencyKey{}, core.ErrExchangeContract
+	key := IdempotencyKey{value: value}
+	if err := key.Validate(); err != nil {
+		return IdempotencyKey{}, err
 	}
-	for index := range len(value) {
-		if value[index] < 0x21 || value[index] > 0x7e {
-			return IdempotencyKey{}, core.ErrExchangeContract
-		}
-	}
-	return IdempotencyKey{value: value}, nil
+	return key, nil
 }
 
-// Validate rejects the unset key.
+// Validate owns the key's nonempty, bounded printable-ASCII wire contract.
 func (k IdempotencyKey) Validate() error {
-	_, err := ParseIdempotencyKey(k.value)
-	return err
+	if len(k.value) == 0 || len(k.value) > IdempotencyKeyMaximumBytes {
+		return core.ErrExchangeContract
+	}
+	for index := range len(k.value) {
+		if k.value[index] < 0x21 || k.value[index] > 0x7e {
+			return core.ErrExchangeContract
+		}
+	}
+	return nil
 }
 
 // IsZero reports whether no key is present.

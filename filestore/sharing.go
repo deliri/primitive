@@ -8,7 +8,7 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
-// Sharing reports whether another process holds one path against opening.
+// Sharing reports whether a native zero-share read open encounters contention.
 type Sharing uint8
 
 const (
@@ -16,7 +16,7 @@ const (
 	SharingUnknown Sharing = iota
 	// SharingAvailable reports the path opened without a sharing conflict.
 	SharingAvailable
-	// SharingHeld reports another process holds the path against opening.
+	// SharingHeld reports a native sharing or lock violation during the probe.
 	SharingHeld
 	sharingLimit
 )
@@ -54,18 +54,11 @@ func (s Sharing) String() string {
 	return core.UnknownEnumDiagnostic
 }
 
-// ObserveSharing asks whether another process currently holds one path
-// against opening, on the one platform whose open semantics can answer.
-//
-// Windows opens carry share modes, so a probing open either succeeds or is
-// refused with a sharing violation, and a product deciding whether a stale
-// lock file may be reclaimed needs exactly that fact there. POSIX hosts
-// refuse: opens do not contend, so the question has no kernel answer and the
-// supported spelling is composing lsof through Process, which this door will
-// not hide behind a lookalike. The probe is an observation of one moment,
-// never a reservation: nothing stops the answer changing the instant it is
-// returned, and ownership decisions stay with the advisory lock that guards
-// the record.
+// ObserveSharing probes a Windows path with a zero-share read open and closes
+// the acquired handle before returning. Conflicting handles may belong to any
+// process, including this one. Other native failures retain their cause.
+// Hosts without Windows share modes refuse with ErrFilestoreContract.
+// The result is one observation; it reserves no subsequent access.
 func ObserveSharing(ctx context.Context, path core.AbsolutePath) (Sharing, error) {
 	if err := contextstate.Validate(ctx); err != nil {
 		return SharingUnknown, err

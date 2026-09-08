@@ -1,0 +1,115 @@
+{
+  "scope": "Initial fixed workloads: exact opaque ReadSymbolicLink target and Canonicalize through ancestor plus final symlink. Each uses a fixed 128-byte referent, construction outside timing, exact nominal observations per operation, native final preservation checks. Separate 30s CPU1 CPU/memory profiles and measured binaries. Production executable behavior unchanged; no optimization comparison.",
+  "results": [
+    {
+      "label": "checkpoint-symbolic-observation-ReadLink",
+      "record_sha256": "9429a5249a3d05af803a8001963e53d698c9a8b2091dc4d738a90009171c5503",
+      "benchmark": "BenchmarkReadSymbolicLinkExactOpaqueTarget",
+      "iterations": 27423228,
+      "ns_per_op": 1453.0,
+      "bytes_per_op": 160,
+      "allocations_per_op": 4,
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkReadSymbolicLinkExactOpaqueTarget$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-ReadLink.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-ReadLink.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-ReadLink.test",
+        "./filestore"
+      ],
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-ReadLink.stdout.txt",
+          "bytes": 259,
+          "sha256": "63fd825bd78d9ff5042084d0759564c4fe0e3c8a5f26876a7232f86711c482e3"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-ReadLink.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-ReadLink.git-status.txt",
+          "bytes": 8146,
+          "sha256": "9b29854796282b069de86e66211980e61469f1a0a47758cd4f8ebc61c5ea5c38"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-ReadLink.cpu.pprof",
+          "bytes": 3791,
+          "sha256": "83f4e5512d9ace7e642da1a5e428e5c04cb99fd8ee393e6a4ada288924bc12f2"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-ReadLink.mem.pprof",
+          "bytes": 2214,
+          "sha256": "99af18ce6b2e81d05bb70a874721f589642fe0151405018769591b8a54d3eb24"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-ReadLink.test",
+          "bytes": 12219490,
+          "sha256": "979698921e3fcf44d76e95ee45707597efcf6b880b84402f70e00f8479ce3de0"
+        }
+      ]
+    },
+    {
+      "label": "checkpoint-symbolic-observation-Canonicalize",
+      "record_sha256": "39ddaf89ab80be1fa095701e38e6e6f38cbf815cf73019dcbe5b01f5e5387ef6",
+      "benchmark": "BenchmarkCanonicalizeAncestorAndFinalLink",
+      "iterations": 1000000,
+      "ns_per_op": 33769.0,
+      "bytes_per_op": 6256,
+      "allocations_per_op": 61,
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkCanonicalizeAncestorAndFinalLink$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-Canonicalize.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-Canonicalize.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-Canonicalize.test",
+        "./filestore"
+      ],
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-Canonicalize.stdout.txt",
+          "bytes": 258,
+          "sha256": "c30a73e3744e91f9f19525d55fc38c3386c8f75f91cc0c0d9c3cec69c03098f0"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-Canonicalize.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-Canonicalize.git-status.txt",
+          "bytes": 8146,
+          "sha256": "9b29854796282b069de86e66211980e61469f1a0a47758cd4f8ebc61c5ea5c38"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-Canonicalize.cpu.pprof",
+          "bytes": 4924,
+          "sha256": "eace58502265e31e4c4d4be13cc03f190addebe592c61a0f4c3879a2c4e6bf33"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-Canonicalize.mem.pprof",
+          "bytes": 3224,
+          "sha256": "1846e04c9c4f9ba482a8a3b23b2ebc17b5da0126c6bbc0642d21b6be25a13c24"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-Canonicalize.test",
+          "bytes": 12219490,
+          "sha256": "979698921e3fcf44d76e95ee45707597efcf6b880b84402f70e00f8479ce3de0"
+        }
+      ]
+    }
+  ]
+}

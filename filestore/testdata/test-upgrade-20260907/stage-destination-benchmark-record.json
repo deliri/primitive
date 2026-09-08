@@ -1,0 +1,56 @@
+{
+  "label": "checkpoint-stage-destination-lifecycle",
+  "record_sha256": "6a4cd4d5ac665d9824e89ae994c48f5bebe823d19836dd75c2b7186d58eafb0c",
+  "benchmark": "BenchmarkStageDestinationCommitRemoveExactBytes",
+  "iterations": 1569,
+  "ns_per_op": 22440214.0,
+  "bytes_per_op": 3179,
+  "allocations_per_op": 51,
+  "argv": [
+    "go",
+    "test",
+    "-count=1",
+    "-run=^$",
+    "-bench=^BenchmarkStageDestinationCommitRemoveExactBytes$",
+    "-benchtime=30s",
+    "-cpu=1",
+    "-benchmem",
+    "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-stage-destination-lifecycle.cpu.pprof",
+    "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-stage-destination-lifecycle.mem.pprof",
+    "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-stage-destination-lifecycle.test",
+    "./filestore"
+  ],
+  "artifacts": [
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/checkpoint-stage-destination-lifecycle.stdout.txt",
+      "bytes": 277,
+      "sha256": "3292f5f3e2fe4018f7ee2930d71c749f385f5a33137e2e042cd3369eb9eea934"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/checkpoint-stage-destination-lifecycle.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/checkpoint-stage-destination-lifecycle.git-status.txt",
+      "bytes": 6347,
+      "sha256": "521fcdd85552c13d08e907155508acd4f7799a16d3fc70d98afed319496afc53"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/checkpoint-stage-destination-lifecycle.cpu.pprof",
+      "bytes": 4586,
+      "sha256": "6605aa41dcb0be854a191302a76cec584e066c8897d9497159cdf01c1c3748ba"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/checkpoint-stage-destination-lifecycle.mem.pprof",
+      "bytes": 2694,
+      "sha256": "e6fc7ea404e833011428e4477a40ca07c8aca16b211df5dbd3b8300f3126d9a6"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/checkpoint-stage-destination-lifecycle.test",
+      "bytes": 11598034,
+      "sha256": "b88ebfec1bc1499812fcff977c64a4cb5920d6af571c99f7a6d64af18766611e"
+    }
+  ],
+  "scope": "New fixed 128-byte direct-writer/create-activation/read-verification/durable-removal lifecycle. No production edits in this slice, so this is an initial measurement, not a before/after optimization claim. Timed native filesystem work is declared. 30s CPU1, CPU/memory and exact binary retained. Operation count is low enough that profile startup appears in allocation sampling."
+}

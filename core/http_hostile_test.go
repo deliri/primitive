@@ -302,38 +302,47 @@ func TestHTTPFieldValueHostileBoundaryTable(t *testing.T) {
 
 func TestCoreHTTPHeaderConstantsAreValidated(t *testing.T) {
 	t.Parallel()
-
-	headers := [...]HTTPHeaderName{
-		HTTPHeaderContentType(),
-		HTTPHeaderAccept(),
-		HTTPHeaderContentLength(),
-		HTTPHeaderContentEncoding(),
-		HTTPHeaderAcceptEncoding(),
-		HTTPHeaderIdempotencyKey(),
-		HTTPHeaderHost(),
-		HTTPHeaderTransferEncoding(),
-		HTTPHeaderConnection(),
+	cases := []struct {
+		name      string
+		construct func() HTTPHeaderName
+		want      string
+	}{
+		{name: "ContentType cannot project another valid field", construct: HTTPHeaderContentType, want: httpHeaderContentTypeText},
+		{name: "Accept cannot project another valid field", construct: HTTPHeaderAccept, want: httpHeaderAcceptText},
+		{name: "ContentLength cannot project another valid field", construct: HTTPHeaderContentLength, want: httpHeaderContentLengthText},
+		{name: "ContentEncoding cannot project another valid field", construct: HTTPHeaderContentEncoding, want: httpHeaderContentEncodingText},
+		{name: "AcceptEncoding cannot project another valid field", construct: HTTPHeaderAcceptEncoding, want: httpHeaderAcceptEncodingText},
+		{name: "IdempotencyKey cannot project another valid field", construct: HTTPHeaderIdempotencyKey, want: httpHeaderIdempotencyKeyText},
+		{name: "Host cannot project another valid field", construct: HTTPHeaderHost, want: httpHeaderHostText},
+		{name: "TransferEncoding cannot project another valid field", construct: HTTPHeaderTransferEncoding, want: httpHeaderTransferEncodingText},
+		{name: "Connection cannot project another valid field", construct: HTTPHeaderConnection, want: httpHeaderConnectionText},
+		{name: "Trailer cannot project another valid field", construct: HTTPHeaderTrailer, want: httpHeaderTrailerText},
+		{name: "Expect cannot project another valid field", construct: HTTPHeaderExpect, want: httpHeaderExpectText},
 	}
-	seen := make(map[string]int, len(headers))
-	for index, header := range headers {
-		if gotErr := header.Validate(); gotErr != nil {
-			t.Fatalf("HTTP header constant index %d Validate() error = %v, want nil", index, gotErr)
+	seen := make(map[HTTPHeaderName]string, len(cases))
+	for _, tc := range cases {
+		header := tc.construct()
+		if prior, duplicate := seen[header]; duplicate {
+			t.Fatalf("%s duplicates %s: every named field must have distinct ownership", tc.name, prior)
 		}
-		parsed, gotParseErr := ParseHTTPHeaderName(header.String())
-		if gotParseErr != nil || parsed != header {
-			t.Fatalf("HTTP header constant index %d parser round trip = (%v, %v), want (%v, nil)", index, parsed, gotParseErr, header)
-		}
-		if prior, duplicate := seen[header.String()]; duplicate {
-			t.Fatalf("HTTP header constant index %d repeats %q from index %d, want one accessor per field name", index, header.String(), prior)
-		}
-		seen[header.String()] = index
+		seen[header] = tc.name
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := tc.construct()
+			if err := got.Validate(); err != nil || got.String() != tc.want {
+				t.Fatalf("named field=(%q,%v),want exact canonical %q", got.String(), err, tc.want)
+			}
+			parsed, err := ParseHTTPHeaderName(got.String())
+			if err != nil || parsed != got {
+				t.Fatalf("named field round trip=(%v,%v),want exact %v", parsed, err, got)
+			}
+			if tc.want == httpHeaderTrailerText && got.String()+":" != http.TrailerPrefix {
+				t.Fatalf("trailer declaration=%q,want Go trailer field prefix %q", got.String(), http.TrailerPrefix)
+			}
+		})
 	}
-	if gotDeclared := countHTTPHeaderNameAccessors(t); gotDeclared != len(headers) {
-		t.Fatalf(
-			"declared HTTPHeaderName accessors = %d, want the %d this table validates",
-			gotDeclared,
-			len(headers),
-		)
+	if declared := countHTTPHeaderNameAccessors(t); declared != len(cases) {
+		t.Fatalf("declared header accessors=%d,want %d compiler-bound rows", declared, len(cases))
 	}
 }
 

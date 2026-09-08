@@ -1,0 +1,640 @@
+{
+  "serial": true,
+  "per_leaf_duration": "30s",
+  "cpu": {
+    "serial": 1,
+    "explicit_parallel": 8
+  },
+  "runs": [
+    {
+      "label": "post-checkpoint-complete-benchmark-01",
+      "benchmark": "BenchmarkServerJSONBoundary/128B",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkServerJSONBoundary$/^128B$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-01.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-01.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-01.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "post-checkpoint-complete-benchmark-02",
+      "benchmark": "BenchmarkServerJSONBoundary/1KiB",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkServerJSONBoundary$/^1KiB$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-02.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-02.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-02.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "post-checkpoint-complete-benchmark-03",
+      "benchmark": "BenchmarkServerJSONBoundary/8KiB",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkServerJSONBoundary$/^8KiB$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-03.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-03.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-03.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "post-checkpoint-complete-benchmark-04",
+      "benchmark": "BenchmarkServerJSONBoundaryByLimit/limit1KiB",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkServerJSONBoundaryByLimit$/^limit1KiB$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-04.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-04.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-04.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "post-checkpoint-complete-benchmark-05",
+      "benchmark": "BenchmarkServerJSONBoundaryByLimit/limit64KiB",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkServerJSONBoundaryByLimit$/^limit64KiB$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-05.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-05.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-05.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "post-checkpoint-complete-benchmark-06",
+      "benchmark": "BenchmarkServerJSONBoundaryByLimit/limit1MiB",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkServerJSONBoundaryByLimit$/^limit1MiB$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-06.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-06.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-06.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "post-checkpoint-complete-benchmark-07",
+      "benchmark": "BenchmarkBoundedReceiveByDeclaredExtent/declared_extent",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkBoundedReceiveByDeclaredExtent$/^declared_extent$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-07.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-07.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-07.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "post-checkpoint-complete-benchmark-08",
+      "benchmark": "BenchmarkBoundedReceiveByDeclaredExtent/undeclared_extent",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkBoundedReceiveByDeclaredExtent$/^undeclared_extent$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-08.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-08.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-08.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "post-checkpoint-complete-benchmark-09",
+      "benchmark": "BenchmarkUpload10MiBFileOverLoopback",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkUpload10MiBFileOverLoopback$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-09.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-09.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-09.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "post-checkpoint-complete-benchmark-10",
+      "benchmark": "BenchmarkDownload10MiBFileOverLoopback",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkDownload10MiBFileOverLoopback$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-10.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-10.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-10.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "post-checkpoint-complete-benchmark-11",
+      "benchmark": "BenchmarkResolveClientAddress/direct_peer_ignores_header",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkResolveClientAddress$/^direct_peer_ignores_header$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-11.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-11.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-11.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "post-checkpoint-complete-benchmark-12",
+      "benchmark": "BenchmarkResolveClientAddress/trusted_proxy_chain",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkResolveClientAddress$/^trusted_proxy_chain$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-12.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-12.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-12.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "post-checkpoint-complete-benchmark-13",
+      "benchmark": "BenchmarkResolveClientAddress/untrusted_peer_ignores_chain",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkResolveClientAddress$/^untrusted_peer_ignores_chain$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-13.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-13.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-13.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "post-checkpoint-complete-benchmark-14",
+      "benchmark": "BenchmarkResolveClientAddress/google_cloud_final_pair",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkResolveClientAddress$/^google_cloud_final_pair$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-14.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-14.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-14.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "post-checkpoint-complete-benchmark-15",
+      "benchmark": "BenchmarkAggregateCompletedAttemptHandoff/binary_complete",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkAggregateCompletedAttemptHandoff$/^binary_complete$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-15.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-15.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-15.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "post-checkpoint-complete-benchmark-16",
+      "benchmark": "BenchmarkAggregateCompletedAttemptHandoff/cancel_after_native_close",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkAggregateCompletedAttemptHandoff$/^cancel_after_native_close$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-16.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-16.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-16.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "post-checkpoint-complete-benchmark-17",
+      "benchmark": "BenchmarkAggregateHeaderValueAdmission/at_limit",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkAggregateHeaderValueAdmission$/^at_limit$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-17.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-17.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-17.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "post-checkpoint-complete-benchmark-18",
+      "benchmark": "BenchmarkAggregateHeaderValueAdmission/above_limit",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkAggregateHeaderValueAdmission$/^above_limit$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-18.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-18.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-18.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "post-checkpoint-complete-benchmark-19",
+      "benchmark": "BenchmarkAggregateHeaderValueAdmission/excess_4096",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkAggregateHeaderValueAdmission$/^excess_4096$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-19.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-19.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-19.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "post-checkpoint-complete-benchmark-20",
+      "benchmark": "BenchmarkReplayStreamDownloadHandoff/binary_success",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkReplayStreamDownloadHandoff$/^binary_success$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-20.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-20.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-20.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "post-checkpoint-complete-benchmark-21",
+      "benchmark": "BenchmarkReplayStreamDownloadHandoff/cancelled_native_read_failure",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkReplayStreamDownloadHandoff$/^cancelled_native_read_failure$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-21.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-21.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-21.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "post-checkpoint-complete-benchmark-22",
+      "benchmark": "BenchmarkServerRuntimeBoundary/dormant_construction",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkServerRuntimeBoundary$/^dormant_construction$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-22.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-22.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-22.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "post-checkpoint-complete-benchmark-23",
+      "benchmark": "BenchmarkServerRuntimeBoundary/os_allocated_listener_acquire_close",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkServerRuntimeBoundary$/^os_allocated_listener_acquire_close$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-23.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-23.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-23.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "post-checkpoint-complete-benchmark-24",
+      "benchmark": "BenchmarkListenAddressAdmission/concrete_ipv4",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkListenAddressAdmission$/^concrete_ipv4$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-24.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-24.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-24.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "post-checkpoint-complete-benchmark-25",
+      "benchmark": "BenchmarkListenAddressAdmission/concrete_mapped_ipv4",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkListenAddressAdmission$/^concrete_mapped_ipv4$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-25.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-25.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-25.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "post-checkpoint-complete-benchmark-26",
+      "benchmark": "BenchmarkListenAddressAdmission/mapped_wildcard",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkListenAddressAdmission$/^mapped_wildcard$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-26.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-26.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-26.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "post-checkpoint-complete-benchmark-27",
+      "benchmark": "BenchmarkListenAddressAdmission/zoned_wildcard",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkListenAddressAdmission$/^zoned_wildcard$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-27.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-27.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-27.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "post-checkpoint-complete-benchmark-28",
+      "benchmark": "BenchmarkListenAddressAdmission/zoned_mapped_wildcard",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkListenAddressAdmission$/^zoned_mapped_wildcard$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-28.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-28.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-28.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "post-checkpoint-complete-benchmark-29",
+      "benchmark": "BenchmarkParseIdempotencyKeyMaximum",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkParseIdempotencyKeyMaximum$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-29.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-29.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-29.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "post-checkpoint-complete-benchmark-30",
+      "benchmark": "BenchmarkReceiveBasicAuthorizationCustody/maximum_credentials",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkReceiveBasicAuthorizationCustody$/^maximum_credentials$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-30.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-30.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-30.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "post-checkpoint-complete-benchmark-31",
+      "benchmark": "BenchmarkReceiveBasicAuthorizationCustody/partial_base64_refusal",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkReceiveBasicAuthorizationCustody$/^partial_base64_refusal$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-31.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-31.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-31.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "post-checkpoint-complete-benchmark-32",
+      "benchmark": "BenchmarkSocketVerifiedClientCertificateDigest",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkSocketVerifiedClientCertificateDigest$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-32.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-32.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-32.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "post-checkpoint-complete-benchmark-33",
+      "benchmark": "BenchmarkRequestConstructionControl",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkRequestConstructionControl$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-33.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-33.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-33.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "post-checkpoint-complete-benchmark-34",
+      "benchmark": "BenchmarkServerJSONBoundaryParallel",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkServerJSONBoundaryParallel$",
+        "-benchtime=30s",
+        "-cpu=8",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-34.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-34.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-34.test",
+        "./exchange"
+      ]
+    },
+    {
+      "label": "post-checkpoint-complete-benchmark-35",
+      "benchmark": "BenchmarkJSONRoundTripOverLoopbackParallel",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkJSONRoundTripOverLoopbackParallel$",
+        "-benchtime=30s",
+        "-cpu=8",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-35.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-35.mem.pprof",
+        "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-35.test",
+        "./exchange"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1068 @@
+{
+  "authorization": "User explicitly authorized deleting the retained binaries after review. CPU/memory profiles, reports and original artifact descriptors are retained. Historical pre-cleanup audits remain point-in-time records.",
+  "status": "deleted",
+  "file_count": 212,
+  "file_bytes": 3171587932,
+  "files": [
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/aggregate-handoff-after-binary_complete.test",
+      "bytes": 16582722,
+      "sha256": "c4d8518e4aeda53199e643b40e42e620eecf0301e4f9f6b4203dc0b6b59d2e71"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/aggregate-handoff-after-cancel_after_native_close.test",
+      "bytes": 16582722,
+      "sha256": "c4d8518e4aeda53199e643b40e42e620eecf0301e4f9f6b4203dc0b6b59d2e71"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/aggregate-handoff-before-binary_complete.test",
+      "bytes": 16565138,
+      "sha256": "64dbec7eacf1824937f40246d533455f37c274cb48f868639aedb508e2000dfc"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/aggregate-handoff-before-cancel_after_native_close.test",
+      "bytes": 16565138,
+      "sha256": "64dbec7eacf1824937f40246d533455f37c274cb48f868639aedb508e2000dfc"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-1-before.test",
+      "bytes": 16617794,
+      "sha256": "5ad5b98d33a649c5284f5b782b852209795c21a4ddedef65f53caa385c019f34"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-2-after.test",
+      "bytes": 16617794,
+      "sha256": "cf4d31519af736e04f6b9e74fe434eadfb1e60e21291bb22fa60380b655fb73e"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-3-after.test",
+      "bytes": 16617794,
+      "sha256": "cf4d31519af736e04f6b9e74fe434eadfb1e60e21291bb22fa60380b655fb73e"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/aggregate-timing-abba-4-before.test",
+      "bytes": 16617794,
+      "sha256": "5ad5b98d33a649c5284f5b782b852209795c21a4ddedef65f53caa385c019f34"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/baseline-bounded-declared.test",
+      "bytes": 15634754,
+      "sha256": "21d4bcbdd421381539a1b41fc11e5caaf4469cdbd9147be371328eaa8069a4a6"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/baseline-bounded-undeclared.test",
+      "bytes": 15634754,
+      "sha256": "21d4bcbdd421381539a1b41fc11e5caaf4469cdbd9147be371328eaa8069a4a6"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/baseline-download-10MiB.test",
+      "bytes": 15634754,
+      "sha256": "21d4bcbdd421381539a1b41fc11e5caaf4469cdbd9147be371328eaa8069a4a6"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/baseline-json-1024.test",
+      "bytes": 15634754,
+      "sha256": "21d4bcbdd421381539a1b41fc11e5caaf4469cdbd9147be371328eaa8069a4a6"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/baseline-json-128.test",
+      "bytes": 15634754,
+      "sha256": "21d4bcbdd421381539a1b41fc11e5caaf4469cdbd9147be371328eaa8069a4a6"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/baseline-json-8192.test",
+      "bytes": 15634754,
+      "sha256": "21d4bcbdd421381539a1b41fc11e5caaf4469cdbd9147be371328eaa8069a4a6"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/baseline-json-limit1024.test",
+      "bytes": 15634754,
+      "sha256": "21d4bcbdd421381539a1b41fc11e5caaf4469cdbd9147be371328eaa8069a4a6"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/baseline-json-limit1048576.test",
+      "bytes": 15634754,
+      "sha256": "21d4bcbdd421381539a1b41fc11e5caaf4469cdbd9147be371328eaa8069a4a6"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/baseline-json-limit65536.test",
+      "bytes": 15634754,
+      "sha256": "21d4bcbdd421381539a1b41fc11e5caaf4469cdbd9147be371328eaa8069a4a6"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/baseline-json-loopback-parallel.test",
+      "bytes": 15634754,
+      "sha256": "21d4bcbdd421381539a1b41fc11e5caaf4469cdbd9147be371328eaa8069a4a6"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/baseline-json-parallel.test",
+      "bytes": 15634754,
+      "sha256": "21d4bcbdd421381539a1b41fc11e5caaf4469cdbd9147be371328eaa8069a4a6"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/baseline-request-control.test",
+      "bytes": 15634754,
+      "sha256": "21d4bcbdd421381539a1b41fc11e5caaf4469cdbd9147be371328eaa8069a4a6"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/baseline-upload-10MiB.test",
+      "bytes": 15634754,
+      "sha256": "21d4bcbdd421381539a1b41fc11e5caaf4469cdbd9147be371328eaa8069a4a6"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/four-gap-final-benchmark-aggregate-binary.test",
+      "bytes": 16721378,
+      "sha256": "b324589e8b8b1e61645abf0ae9c19451393273ede28cf321f4cf8b196e1ffbb4"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/four-gap-final-benchmark-aggregate-cancel.test",
+      "bytes": 16721378,
+      "sha256": "b324589e8b8b1e61645abf0ae9c19451393273ede28cf321f4cf8b196e1ffbb4"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/four-gap-final-benchmark-upload-loopback.test",
+      "bytes": 16721378,
+      "sha256": "b324589e8b8b1e61645abf0ae9c19451393273ede28cf321f4cf8b196e1ffbb4"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/header-capture-after-above_limit.test",
+      "bytes": 16581250,
+      "sha256": "c0e83be6280aa5802bcb4364e949ccaad6f5d7b505b5d692a5b41ab59595b063"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/header-capture-after-at_limit.test",
+      "bytes": 16581250,
+      "sha256": "c0e83be6280aa5802bcb4364e949ccaad6f5d7b505b5d692a5b41ab59595b063"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/header-capture-after-excess_4096.test",
+      "bytes": 16581250,
+      "sha256": "c0e83be6280aa5802bcb4364e949ccaad6f5d7b505b5d692a5b41ab59595b063"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/header-capture-before-above_limit.test",
+      "bytes": 16614978,
+      "sha256": "cfa3f9e20112d54413b937fb222e9d2f293c741a02691dd947035fead57366fb"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/header-capture-before-at_limit.test",
+      "bytes": 16614978,
+      "sha256": "cfa3f9e20112d54413b937fb222e9d2f293c741a02691dd947035fead57366fb"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/header-capture-before-excess_4096.test",
+      "bytes": 16614978,
+      "sha256": "cfa3f9e20112d54413b937fb222e9d2f293c741a02691dd947035fead57366fb"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/header-capture-control-recheck-after.test",
+      "bytes": 16581250,
+      "sha256": "c0e83be6280aa5802bcb4364e949ccaad6f5d7b505b5d692a5b41ab59595b063"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/header-capture-control-recheck-before.test",
+      "bytes": 16581250,
+      "sha256": "1bce6b778c1ee7374e693950cc47da212280ee5670ac398c715790be372942d8"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/listen-address-after-concrete_ipv4.test",
+      "bytes": 16389154,
+      "sha256": "ff64d180e83d736fd51b7e7bc6e0757bc57aab3ed981e350f797717de0dff722"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/listen-address-after-concrete_mapped_ipv4.test",
+      "bytes": 16389154,
+      "sha256": "ff64d180e83d736fd51b7e7bc6e0757bc57aab3ed981e350f797717de0dff722"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/listen-address-after-mapped_wildcard.test",
+      "bytes": 16389154,
+      "sha256": "ff64d180e83d736fd51b7e7bc6e0757bc57aab3ed981e350f797717de0dff722"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/listen-address-after-zoned_mapped_wildcard.test",
+      "bytes": 16389154,
+      "sha256": "ff64d180e83d736fd51b7e7bc6e0757bc57aab3ed981e350f797717de0dff722"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/listen-address-after-zoned_wildcard.test",
+      "bytes": 16389154,
+      "sha256": "ff64d180e83d736fd51b7e7bc6e0757bc57aab3ed981e350f797717de0dff722"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/listen-address-before-concrete_ipv4.test",
+      "bytes": 16389154,
+      "sha256": "1df368ebb745b83f8229693b1ec1f95f4b23f96573bc3d4cdc6750b5860f136c"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/listen-address-before-concrete_mapped_ipv4.test",
+      "bytes": 16389154,
+      "sha256": "1df368ebb745b83f8229693b1ec1f95f4b23f96573bc3d4cdc6750b5860f136c"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/listen-address-before-mapped_wildcard.test",
+      "bytes": 16389154,
+      "sha256": "1df368ebb745b83f8229693b1ec1f95f4b23f96573bc3d4cdc6750b5860f136c"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/listen-address-before-zoned_mapped_wildcard.test",
+      "bytes": 16389154,
+      "sha256": "1df368ebb745b83f8229693b1ec1f95f4b23f96573bc3d4cdc6750b5860f136c"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/listen-address-before-zoned_wildcard.test",
+      "bytes": 16389154,
+      "sha256": "1df368ebb745b83f8229693b1ec1f95f4b23f96573bc3d4cdc6750b5860f136c"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-auth-optimized-accepted.test",
+      "bytes": 16828258,
+      "sha256": "e252f8b86d70881434b7ca87df4d40c9d8c4e5c1102aa20de394af290952670f"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-auth-optimized-partial-refusal.test",
+      "bytes": 16828258,
+      "sha256": "e252f8b86d70881434b7ca87df4d40c9d8c4e5c1102aa20de394af290952670f"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-buffer-release-before-128B.test",
+      "bytes": 19082402,
+      "sha256": "105d16c4265eb2dec803fe9b0e737aea609f406eb0e71f2954aa9bbfb6b0644f"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-01.test",
+      "bytes": 19064082,
+      "sha256": "b41ca1e9144d045b017c42f97aea6eeb99a4b51d14e6a4fe943a05836a432aea"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-02.test",
+      "bytes": 19064082,
+      "sha256": "b41ca1e9144d045b017c42f97aea6eeb99a4b51d14e6a4fe943a05836a432aea"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-03.test",
+      "bytes": 19064082,
+      "sha256": "b41ca1e9144d045b017c42f97aea6eeb99a4b51d14e6a4fe943a05836a432aea"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-04.test",
+      "bytes": 19064082,
+      "sha256": "b41ca1e9144d045b017c42f97aea6eeb99a4b51d14e6a4fe943a05836a432aea"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-complete-benchmark-05.test",
+      "bytes": 19064082,
+      "sha256": "b41ca1e9144d045b017c42f97aea6eeb99a4b51d14e6a4fe943a05836a432aea"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-declared-prefix-abba-candidate.test",
+      "bytes": 18955234,
+      "sha256": "12ae57dc14a7a082570ab82834144d2b001481a80c0ae896d7c796ee85f79345"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-declared-prefix-abba-reference.test",
+      "bytes": 18955154,
+      "sha256": "809ef3672f87af19c0de9465b2e033ef631b7776b6d5775fc5f1f74fc853b487"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-declared-prefix-after-128B.test",
+      "bytes": 18955234,
+      "sha256": "12ae57dc14a7a082570ab82834144d2b001481a80c0ae896d7c796ee85f79345"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-declared-prefix-after-1KiB.test",
+      "bytes": 18955234,
+      "sha256": "12ae57dc14a7a082570ab82834144d2b001481a80c0ae896d7c796ee85f79345"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-declared-prefix-after-8KiB.test",
+      "bytes": 18955234,
+      "sha256": "12ae57dc14a7a082570ab82834144d2b001481a80c0ae896d7c796ee85f79345"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-declared-prefix-before-128B.test",
+      "bytes": 18937394,
+      "sha256": "fad742d8b3c0d01d8613c4c46176d8a50487505c2083ff9ac89998beb3cac223"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-declared-prefix-before-1KiB.test",
+      "bytes": 18937394,
+      "sha256": "fad742d8b3c0d01d8613c4c46176d8a50487505c2083ff9ac89998beb3cac223"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-declared-prefix-before-8KiB.test",
+      "bytes": 18937394,
+      "sha256": "fad742d8b3c0d01d8613c4c46176d8a50487505c2083ff9ac89998beb3cac223"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-01.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-02.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-03.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-04.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-05.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-06.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-07.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-08.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-09.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-10.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-11.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-12.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-13.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-14.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-15.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-16.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-17.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-18.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-19.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-20.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-21.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-22.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-23.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-24.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-25.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-26.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-27.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-28.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-29.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-30.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-31.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-32.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-33.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-34.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-35.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-36.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-37.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-38-reuse-corrected.test",
+      "bytes": 19116674,
+      "sha256": "0feb2459b1347311ab783f9fc984c64216bf1c5b9e3ea06339144def3506ed31"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-final-benchmark-38.test",
+      "bytes": 19116434,
+      "sha256": "25c3de46d24f5da78d09645129fa464d2f4c013f83fdbc61cd5fef195e0c25c0"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-after-basic-accepted.test",
+      "bytes": 16740642,
+      "sha256": "4390d9d677d585cfb9124feef9d86fe22b690066c15b4cdddab442103bbff593"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-after-basic-partial-refusal.test",
+      "bytes": 16740642,
+      "sha256": "4390d9d677d585cfb9124feef9d86fe22b690066c15b4cdddab442103bbff593"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-after-key.test",
+      "bytes": 16740642,
+      "sha256": "4390d9d677d585cfb9124feef9d86fe22b690066c15b4cdddab442103bbff593"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-before-basic-accepted.test",
+      "bytes": 16739442,
+      "sha256": "4a7c3c25c5faed2f675ea50a4a709e11750e3b35c0172da23b3530c437eff248"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-before-basic-partial-refusal.test",
+      "bytes": 16739442,
+      "sha256": "4a7c3c25c5faed2f675ea50a4a709e11750e3b35c0172da23b3530c437eff248"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-before-key.test",
+      "bytes": 16739442,
+      "sha256": "4a7c3c25c5faed2f675ea50a4a709e11750e3b35c0172da23b3530c437eff248"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/post-checkpoint-socket-certificate-benchmark.test",
+      "bytes": 16986514,
+      "sha256": "98e0115385455f2684ca02684f9ed2345631239b6427cc3d3d263c6e04339c14"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/replay-handoff-after-binary_success.test",
+      "bytes": 16355554,
+      "sha256": "d2dabd80db23612692884fcf5591084c31cc5e6d1277ac04e7d2f996d0bb689e"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/replay-handoff-after-cancelled_native_read_failure.test",
+      "bytes": 16355554,
+      "sha256": "d2dabd80db23612692884fcf5591084c31cc5e6d1277ac04e7d2f996d0bb689e"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/replay-handoff-before-binary_success.test",
+      "bytes": 16355554,
+      "sha256": "6a0cf42fabe202cf79358d57d4e1c17f7e48766425b06207997e01d013de0641"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/replay-handoff-before-cancelled_native_read_failure.test",
+      "bytes": 16355554,
+      "sha256": "6a0cf42fabe202cf79358d57d4e1c17f7e48766425b06207997e01d013de0641"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/server-runtime-after-dormant_construction.test",
+      "bytes": 16530882,
+      "sha256": "c35c5cddd9661c6404fe2ad8ad0c793139e691fc9ccaec08391b8fa81ce900d8"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/server-runtime-after-os_allocated_listener_acquire_close.test",
+      "bytes": 16530882,
+      "sha256": "c35c5cddd9661c6404fe2ad8ad0c793139e691fc9ccaec08391b8fa81ce900d8"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/server-runtime-before-dormant_construction.test",
+      "bytes": 16441042,
+      "sha256": "d2a24ce02c7ec02aafdd9fd8908a47f0816caf4230287775a768dba2ee7a6e47"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/server-runtime-before-os_allocated_listener_acquire_close.test",
+      "bytes": 16441042,
+      "sha256": "d2a24ce02c7ec02aafdd9fd8908a47f0816caf4230287775a768dba2ee7a6e47"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/server-runtime-typed-go-listener.test",
+      "bytes": 16530914,
+      "sha256": "f58832e599c30d012d32f3701a0aa2a6ea4afdd6d42ee6ceab0818b4f94239a4"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/timing-repair-reference-1.test",
+      "bytes": 16304338,
+      "sha256": "cb6f4a82d5a66e34e200fb69d2d9abf0df3d571526f83e4959722dc6e1cb95cb"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/timing-repair-reference-2.test",
+      "bytes": 16304338,
+      "sha256": "cb6f4a82d5a66e34e200fb69d2d9abf0df3d571526f83e4959722dc6e1cb95cb"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/timing-repair-repaired-1.test",
+      "bytes": 16304306,
+      "sha256": "4a068005cab7dc2cd9e24a42f2550d16a53b27612a80a21dd2e9b1756028da6c"
+    },
+    {
+      "path": "exchange/testdata/test-upgrade-20260907/timing-repair-repaired-2.test",
+      "bytes": 16304306,
+      "sha256": "4a068005cab7dc2cd9e24a42f2550d16a53b27612a80a21dd2e9b1756028da6c"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/after-custody-ConfirmDurable.test",
+      "bytes": 10036290,
+      "sha256": "ac4b726ed770dc907bbc0f963c3ddf09995bf5ccdbf8221d019a30f7ca42caaa"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/after-custody-Touch.test",
+      "bytes": 10036290,
+      "sha256": "ac4b726ed770dc907bbc0f963c3ddf09995bf5ccdbf8221d019a30f7ca42caaa"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/after-directory-BenchmarkHeldDirectoryAcquisition.test",
+      "bytes": 11129938,
+      "sha256": "bf89ae33dd98f0f22925fc4b54cd70866fbe5e2d0755baebf8a1a3d62c5748d0"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/after-directory-BenchmarkRootDirectoryAcquisition.test",
+      "bytes": 11129938,
+      "sha256": "bf89ae33dd98f0f22925fc4b54cd70866fbe5e2d0755baebf8a1a3d62c5748d0"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Create.test",
+      "bytes": 11848930,
+      "sha256": "54cc3a423e30c0ba31fbb80fbf12087bd83ce6737bac519ae58e08cac753733b"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth1.test",
+      "bytes": 11848930,
+      "sha256": "54cc3a423e30c0ba31fbb80fbf12087bd83ce6737bac519ae58e08cac753733b"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth16.test",
+      "bytes": 11848930,
+      "sha256": "54cc3a423e30c0ba31fbb80fbf12087bd83ce6737bac519ae58e08cac753733b"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/after-inspection-BenchmarkInspectRegularFileObservation.test",
+      "bytes": 11235282,
+      "sha256": "ab13d66d721c8019d9a7141786061a34987b18bb007c9d6d1070dc71ba260398"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/after-inspection-BenchmarkInspectionValidationBatch.test",
+      "bytes": 11235282,
+      "sha256": "ab13d66d721c8019d9a7141786061a34987b18bb007c9d6d1070dc71ba260398"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/after-permission-corrected-file-sync.test",
+      "bytes": 11457602,
+      "sha256": "977aa95be8d1bb17083196fd23709ff6347b9fe0baa51dc299783ddb134bab3c"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/after-read-unwind.test",
+      "bytes": 11322066,
+      "sha256": "556c6982f7b4d021025d6afe90f14da21bbdbf00708b8b786cd9bfe03d15c86e"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/after-remove-tree-absence-lifecycle.test",
+      "bytes": 11372514,
+      "sha256": "56be6dd24c276f2a686111479cff2b3e5c3cd8a6b6b98c2ee13a03453485cfbb"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/after-sharing-PlatformObservation.test",
+      "bytes": 12507618,
+      "sha256": "6850d82f4fa7d3809d811825892d40bd76e99343177db3d584568cd8dbef2365"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/after-stage-unwind-lifecycle.test",
+      "bytes": 11322066,
+      "sha256": "556c6982f7b4d021025d6afe90f14da21bbdbf00708b8b786cd9bfe03d15c86e"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-128B.test",
+      "bytes": 9893522,
+      "sha256": "062a7d2880d38f38b0cc00786fcc8af56dd532528e1d63d26e395da0a2452910"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-1MiB.test",
+      "bytes": 9893522,
+      "sha256": "062a7d2880d38f38b0cc00786fcc8af56dd532528e1d63d26e395da0a2452910"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-32KiB.test",
+      "bytes": 9893522,
+      "sha256": "062a7d2880d38f38b0cc00786fcc8af56dd532528e1d63d26e395da0a2452910"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/after-walk-InternalLexicalSparse.test",
+      "bytes": 12507618,
+      "sha256": "6850d82f4fa7d3809d811825892d40bd76e99343177db3d584568cd8dbef2365"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/after-walk-LexicalSparse.test",
+      "bytes": 12507618,
+      "sha256": "6850d82f4fa7d3809d811825892d40bd76e99343177db3d584568cd8dbef2365"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/after-walk-NativeSparse.test",
+      "bytes": 12507618,
+      "sha256": "6850d82f4fa7d3809d811825892d40bd76e99343177db3d584568cd8dbef2365"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/after-walk-cancellation-LexicalSparse.test",
+      "bytes": 12465042,
+      "sha256": "3c6043e6c9fba1f988e6961db94e82f743d551ce745f3b66101b2625c4e67a8e"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/after-walk-cancellation-NativeSparse.test",
+      "bytes": 12465042,
+      "sha256": "3c6043e6c9fba1f988e6961db94e82f743d551ce745f3b66101b2625c4e67a8e"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/baseline-BenchmarkLexicalSparseDirectory.test",
+      "bytes": 8682194,
+      "sha256": "39c58b833ba2f401bfb448e5ad111f0126b98150b0e75b00279f7876fa86668b"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/baseline-BenchmarkWalkLexicalSparseDirectory.test",
+      "bytes": 8682194,
+      "sha256": "39c58b833ba2f401bfb448e5ad111f0126b98150b0e75b00279f7876fa86668b"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/baseline-BenchmarkWalkNativeSparseDirectory.test",
+      "bytes": 8682194,
+      "sha256": "39c58b833ba2f401bfb448e5ad111f0126b98150b0e75b00279f7876fa86668b"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/before-custody-ConfirmDurable.test",
+      "bytes": 9910418,
+      "sha256": "d73e65e24d81d434fddc166af58e71edcbd81c8aaacee6627401bde80ca1e33e"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/before-custody-Touch.test",
+      "bytes": 9910418,
+      "sha256": "d73e65e24d81d434fddc166af58e71edcbd81c8aaacee6627401bde80ca1e33e"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/before-directory-BenchmarkHeldDirectoryAcquisition.test",
+      "bytes": 10036514,
+      "sha256": "525b20efc8b5a633a68874d5b1ceb73f8f8ff6e36cd34960a60b5d3209b4e961"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/before-directory-BenchmarkRootDirectoryAcquisition.test",
+      "bytes": 10036514,
+      "sha256": "525b20efc8b5a633a68874d5b1ceb73f8f8ff6e36cd34960a60b5d3209b4e961"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Create.test",
+      "bytes": 11712594,
+      "sha256": "115381ada0e6fd6cb0ecfdc94300eb0f31fd5ec334a453b5107bcac253e1a856"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth1.test",
+      "bytes": 11712594,
+      "sha256": "115381ada0e6fd6cb0ecfdc94300eb0f31fd5ec334a453b5107bcac253e1a856"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth16.test",
+      "bytes": 11712594,
+      "sha256": "115381ada0e6fd6cb0ecfdc94300eb0f31fd5ec334a453b5107bcac253e1a856"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/before-inspection-BenchmarkInspectRegularFileObservation.test",
+      "bytes": 11130178,
+      "sha256": "b18637d759e181ff3384e97d1fd16f8053f8ac9042c71c4a387f96e41b7548ba"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/before-inspection-BenchmarkInspectionValidation.test",
+      "bytes": 11130178,
+      "sha256": "b18637d759e181ff3384e97d1fd16f8053f8ac9042c71c4a387f96e41b7548ba"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/before-inspection-BenchmarkInspectionValidationBatch.test",
+      "bytes": 11130226,
+      "sha256": "4d1f1f8a9dea29a08d9a21826e463a647feba6ce6d12c3ceb5fa14f8cbb8c488"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/before-permission-file-sync.test",
+      "bytes": 11372754,
+      "sha256": "b0eef442d3e99f9f7134c9992ac0da82b495410d99988c5147c3e651a932ca74"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/before-read-unwind.test",
+      "bytes": 11304898,
+      "sha256": "a09ef56756bb2355cf3bdd68f082b74670ce58ab2f4dd5e911c11a4432f16c86"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/before-remove-tree-absence-lifecycle.test",
+      "bytes": 11320930,
+      "sha256": "473d8df82e69ddd6d0cad81dda87f3c7fedf55178a7a45a8dc04086474f7ef40"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/before-stage-unwind-lifecycle.test",
+      "bytes": 11234210,
+      "sha256": "af6be8350c567670878269b68c1f51b985d45fd1900db1f749f13664684b6bc6"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-128B.test",
+      "bytes": 8750962,
+      "sha256": "cbaf460d888dafe4aaa26d3e29bec5781486890f22b9e3eb2a93e96267c2de05"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-1MiB.test",
+      "bytes": 8750962,
+      "sha256": "cbaf460d888dafe4aaa26d3e29bec5781486890f22b9e3eb2a93e96267c2de05"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-32KiB.test",
+      "bytes": 8750962,
+      "sha256": "cbaf460d888dafe4aaa26d3e29bec5781486890f22b9e3eb2a93e96267c2de05"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/before-walk-cancellation-LexicalSparse.test",
+      "bytes": 12448402,
+      "sha256": "f05dfe6f9c3e812329e25ba96dd0b6eca0e6c67ddcc61cd16e07c55250f48e00"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/before-walk-cancellation-NativeSparse.test",
+      "bytes": 12448402,
+      "sha256": "f05dfe6f9c3e812329e25ba96dd0b6eca0e6c67ddcc61cd16e07c55250f48e00"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/checkpoint-held-standing-IdentityTriad.test",
+      "bytes": 12407970,
+      "sha256": "c747dc63108d9c6596758d4e263105d7b3487a792c153ef0760f1133376ecaf5"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-AppendExisting.test",
+      "bytes": 11729234,
+      "sha256": "f0972948124f9f222259d36b40c95e48a3bf52322137289785ce8a46cb926b08"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Lock.test",
+      "bytes": 11729234,
+      "sha256": "f0972948124f9f222259d36b40c95e48a3bf52322137289785ce8a46cb926b08"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Read.test",
+      "bytes": 11729234,
+      "sha256": "f0972948124f9f222259d36b40c95e48a3bf52322137289785ce8a46cb926b08"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Rotate.test",
+      "bytes": 11729234,
+      "sha256": "f0972948124f9f222259d36b40c95e48a3bf52322137289785ce8a46cb926b08"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Update.test",
+      "bytes": 11729234,
+      "sha256": "f0972948124f9f222259d36b40c95e48a3bf52322137289785ce8a46cb926b08"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-IdentityPair.test",
+      "bytes": 12098866,
+      "sha256": "1eca8527b3d1ad68edb84a1426344ebf1cd61929009e26e154c4328416c97bb9"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-OpenParent.test",
+      "bytes": 12098866,
+      "sha256": "1eca8527b3d1ad68edb84a1426344ebf1cd61929009e26e154c4328416c97bb9"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/checkpoint-pipe-Acquisition.test",
+      "bytes": 12324610,
+      "sha256": "3834c171c2c1cd7c67e52565d85cbed47fcf63cef6b5d305549bd0da9e14b527"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/checkpoint-pipe-HeldTransfer.test",
+      "bytes": 12324610,
+      "sha256": "3834c171c2c1cd7c67e52565d85cbed47fcf63cef6b5d305549bd0da9e14b527"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/checkpoint-rename-CrossParent.test",
+      "bytes": 11948482,
+      "sha256": "c4e3291cdcf4aba0ed9895f94a9dd5b4a2ba9c1ae494924150106f0142ba77e2"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/checkpoint-rename-SameParent.test",
+      "bytes": 11948482,
+      "sha256": "c4e3291cdcf4aba0ed9895f94a9dd5b4a2ba9c1ae494924150106f0142ba77e2"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/checkpoint-sharing-PlatformObservation.test",
+      "bytes": 12474482,
+      "sha256": "20cae6cd7d626317d4faca5890098c291f3d93ba12d891d67195d2a19141a2ef"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/checkpoint-stage-destination-lifecycle.test",
+      "bytes": 11598034,
+      "sha256": "b88ebfec1bc1499812fcff977c64a4cb5920d6af571c99f7a6d64af18766611e"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-Canonicalize.test",
+      "bytes": 12219490,
+      "sha256": "979698921e3fcf44d76e95ee45707597efcf6b880b84402f70e00f8479ce3de0"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-ReadLink.test",
+      "bytes": 12219490,
+      "sha256": "979698921e3fcf44d76e95ee45707597efcf6b880b84402f70e00f8479ce3de0"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/closeout-platform-fuzz-windows.test.exe",
+      "bytes": 13050880,
+      "sha256": "487e3dab7dd20d4ac379dc854459aa62a969253813bbf1afa170f07b1a2f61d3"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/closeout-three-platform-linux.test",
+      "bytes": 13064416,
+      "sha256": "774994583419f0e14beb26e2b46f2c13f6d7c59a72faa6a5927bf88447b0be5c"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/ensure-directory-linux-amd64-build.test",
+      "bytes": 12515718,
+      "sha256": "417ca28b4e83c013c596d8c21d6f565b4184932f02173a1c303293a217771588"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/ensure-directory-windows-amd64-build.exe",
+      "bytes": 12547584,
+      "sha256": "39e90d3708df3659bf25012d707c2914594bd0116521d1cdae66e18d9edf3070"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/final-doctrine-linux.test",
+      "bytes": 13072905,
+      "sha256": "5fa6535aec1f40e47dcbd03a6b77adebdb5f42edb7ec5286ca31fe476ac9ce02"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/final-doctrine-windows.test.exe",
+      "bytes": 13054464,
+      "sha256": "5cb18b787a395096e555fe49f762195accf7a4d1303cde17d138dc033b126390"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/final-filestore-linux.test",
+      "bytes": 13069969,
+      "sha256": "259ef8c59a8d7da0a5992efff12d8bd34d3cd85eeaeefe9e6152e0b5b64b3cab"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/final-filestore-windows.test.exe",
+      "bytes": 13052416,
+      "sha256": "61d137a3f173af63457932a4d2f6cb953eac905efbe8ac2a2124c0ac9d6c1ccc"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/final-profile-held-standing.test",
+      "bytes": 12390562,
+      "sha256": "f7a9f36abc3bb744b32dedc503aa0750f286df771c9bc5063551d7568b291779"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/final-profile-pipe-acquire.test",
+      "bytes": 12390562,
+      "sha256": "f7a9f36abc3bb744b32dedc503aa0750f286df771c9bc5063551d7568b291779"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/final-profile-pipe-held.test",
+      "bytes": 12390562,
+      "sha256": "f7a9f36abc3bb744b32dedc503aa0750f286df771c9bc5063551d7568b291779"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/final-profile-stage-destination.test",
+      "bytes": 12390562,
+      "sha256": "f7a9f36abc3bb744b32dedc503aa0750f286df771c9bc5063551d7568b291779"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/final-profile-stage-lifecycle.test",
+      "bytes": 12390562,
+      "sha256": "f7a9f36abc3bb744b32dedc503aa0750f286df771c9bc5063551d7568b291779"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/held-standing-linux-amd64-build.test",
+      "bytes": 13131343,
+      "sha256": "d37e07ec0f519e22872ce44acfe0d58e6717474e976707ef81dcac40dcd2b0ae"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/held-standing-windows-amd64-build.exe",
+      "bytes": 13037056,
+      "sha256": "19a715aab5ee8b67b36ca6109bc43d2b62ab8bb9eafe555321c54b0acda459f5"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/inspection-after-direct-lstat-distribution.test",
+      "bytes": 11233986,
+      "sha256": "0eebce991111e8f59c5326e0c447b3f9372aa611ba79c7ecf1867f5272ff82cf"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/inspection-before-direct-lstat-distribution.test",
+      "bytes": 11235282,
+      "sha256": "ab13d66d721c8019d9a7141786061a34987b18bb007c9d6d1070dc71ba260398"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/inspection-direct-linux-amd64-build.test",
+      "bytes": 11811489,
+      "sha256": "529994adc2d8a1c9a75c13fdc747dccc692dea2830cdedfa6b3ea45855a5eb9e"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/inspection-direct-windows-amd64-build.exe",
+      "bytes": 11993088,
+      "sha256": "ba469289ab52b2a7953fe2c7eed710fd556a6177bd94266c33aa6ae44a2e3c9f"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/native-handle-linux-amd64-build.test",
+      "bytes": 12371895,
+      "sha256": "7dd644b56d59d633cc10f0b77112bf59ebc87acf56a15613ec40470cbc62242a"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/native-handle-windows-amd64-build.exe",
+      "bytes": 12497408,
+      "sha256": "49718098f3714f151484284c9c76adcf45ef599ed85d66814bea7542e03ad124"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/parent-identity-linux-amd64-build.test",
+      "bytes": 12772188,
+      "sha256": "afd7271d6cde061a8bbf5b936ebac25254d6f897a22e8bb32b3fdf8392b87040"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/parent-identity-windows-amd64-build.exe",
+      "bytes": 12750848,
+      "sha256": "c0a72b8e931a9af1dbc30a80196e6619fdcc3f14f3e9457d84de43db8407523d"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/permission-corrected-linux-amd64-build.test",
+      "bytes": 12060225,
+      "sha256": "9e04525cad95d4e4a7c1cc041ad41f3b2ec77fa4197e513ff6c254b8f7ef55d3"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/permission-corrected-windows-amd64-build.exe",
+      "bytes": 12210176,
+      "sha256": "44952488bb78527c7075c0b45aff8aad181c3e2e9235dafb82134e01c5cfd34b"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/pipe-linux-amd64-build.test",
+      "bytes": 13041811,
+      "sha256": "4f5fd7bb76a25405bfd1475fba3f4d513570488050fd97e12c833cd7b5e1a515"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/pipe-windows-amd64-build.exe",
+      "bytes": 12966912,
+      "sha256": "cea1c98b9862398641bf1a96df4103c9a94b714a794ebe23b2035ab19312ee67"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/platform-linux-amd64.test",
+      "bytes": 11630990,
+      "sha256": "88f87b03f741ee1fa9ad8e6f574c262e1b446888029f6465e99f817ce77d15e6"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/platform-windows-amd64.test.exe",
+      "bytes": 11894784,
+      "sha256": "d0a4b2bc135de06036ff2ee400f34b252f0b29f58557cda85c0466564f04a240"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/rename-linux-amd64-build.test",
+      "bytes": 12624745,
+      "sha256": "4f9ea5b57d7b8c3385205626702ce01b0626273ae72d3df6c4e87e4a95cca9cc"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/rename-windows-amd64-build.exe",
+      "bytes": 12633600,
+      "sha256": "73edcf6f038381fabbe817b24970e7d06db2cd30a767d30c7398cd08acca1cb5"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/sharing-closeout-linux-build.test",
+      "bytes": 13201125,
+      "sha256": "1f2ec3dae81ed560270a917ec98bb247a2e46d8ce32b49417c1509d4f9ad380a"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/sharing-closeout-windows-build.exe",
+      "bytes": 13116416,
+      "sha256": "b3fc26cd18ac10e320d670a6b45410499edaf9dbaf8f3881ca4fc22c68e9c69e"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/symbolic-observation-linux-amd64-build.test",
+      "bytes": 12929129,
+      "sha256": "71f50d95092436fe42d2dd5285f9de105e1d81c37ae5da2c5045cbc57934ff4a"
+    },
+    {
+      "path": "filestore/testdata/test-upgrade-20260907/symbolic-observation-windows-amd64-build.exe",
+      "bytes": 12880896,
+      "sha256": "f5985239abebb4ea98547a8b087d6921674e69191a553621f68e08acffb46e64"
+    }
+  ]
+}

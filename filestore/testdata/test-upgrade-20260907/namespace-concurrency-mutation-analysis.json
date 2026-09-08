@@ -1,0 +1,44 @@
+[
+  {
+    "label": "mutation-namespace-concurrency-create-overwrites-existing",
+    "file": "/Users/d/code/primitive/filestore/stage.go",
+    "before": "err := request.Staged.root.Link(",
+    "after": "err := request.Staged.root.Rename(",
+    "test": "^TestNamespaceConcurrencyLayerTriad$/^an_existing_empty_target",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 0,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-namespace-concurrency-empty-write-invents-success",
+    "file": "/Users/d/code/primitive/filestore/stage.go",
+    "before": "func Write(\n\tctx context.Context,\n\trequest WriteRequest,\n) (CommitRequest, error) {",
+    "after": "func Write(\n\tctx context.Context,\n\trequest WriteRequest,\n) (CommitRequest, error) {\n if request.MaximumBytes == func() core.ByteCount { v, _ := core.NewByteCount(1); return v }() { return CommitRequest{}, nil }",
+    "test": "^TestNamespaceConcurrencyLayerTriad$/^empty_sources",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 0,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-namespace-concurrency-successful-write-invents-recovery",
+    "file": "/Users/d/code/primitive/filestore/stage.go",
+    "before": "err = Commit(ctx, commit)\n\tif err == nil {\n\t\treturn CommitRequest{}, nil",
+    "after": "err = Commit(ctx, commit)\n\tif err == nil {\n\t\treturn commit, nil",
+    "test": "^TestNamespaceConcurrencyLayerTriad$/^sixty_four",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 0,
+      "fail": 2,
+      "skip": 0
+    }
+  }
+]

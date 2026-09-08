@@ -48,8 +48,10 @@ func (r ResponseBufferRequest) Validate() error {
 }
 
 // ResponseBufferResult reports the write that actually crossed the destination.
-// Committed means headers were released, including when the body write failed.
-// The zero value means nothing was released; it never claims delivery.
+// Committed means the destination acknowledged WriteHeader by returning, even
+// when a later body write failed. Bytes counts acknowledged Write results.
+// A panic cannot acknowledge its in-flight effect: a zero receipt is absent
+// evidence, not proof that a misbehaving destination performed no effect.
 type ResponseBufferResult struct {
 	Status    core.HTTPStatusCode
 	Bytes     core.ByteLength
@@ -177,7 +179,7 @@ func validateBufferedHeaders(headers http.Header) error {
 }
 
 func validateBufferedHeader(name string, values []string) error {
-	if strings.HasPrefix(name, http.TrailerPrefix) || strings.EqualFold(name, "Trailer") {
+	if strings.HasPrefix(name, http.TrailerPrefix) || strings.EqualFold(name, core.HTTPHeaderTrailer().String()) {
 		return core.ErrExchangeResponse
 	}
 	canonical, err := core.ParseHTTPHeaderName(name)
@@ -196,7 +198,7 @@ func validateBufferedHeader(name string, values []string) error {
 }
 
 func (b *responseBuffer) validateExtent(method string) error {
-	values := b.sealed.Values("Content-Length")
+	values := b.sealed.Values(core.HTTPHeaderContentLength().String())
 	if len(values) == 0 {
 		return nil
 	}
@@ -218,12 +220,14 @@ func (b *responseBuffer) validateExtent(method string) error {
 	return nil
 }
 
-func (b *responseBuffer) release(ctx context.Context, destination http.ResponseWriter, method string) (ResponseBufferResult, error) {
+// witness:waiver doctrine/error/named_returns -- Deferred panic containment must set the returned error while preserving the status and byte acknowledgments already recorded before the Go writer panics.
+func (b *responseBuffer) release(ctx context.Context, destination http.ResponseWriter, method string) (result ResponseBufferResult, err error) {
+	defer containResponseWriterPanic(&err)
 	if err := contextstate.Validate(ctx); err != nil {
 		return ResponseBufferResult{}, err
 	}
 	var status core.HTTPStatusCode
-	err := status.AdmitInt(b.status)
+	err = status.AdmitInt(b.status)
 	if err != nil {
 		return ResponseBufferResult{}, responseError(err)
 	}
@@ -233,7 +237,7 @@ func (b *responseBuffer) release(ctx context.Context, destination http.ResponseW
 	}
 	maps.Copy(header, b.sealed)
 	destination.WriteHeader(b.status)
-	result := ResponseBufferResult{Status: status, Committed: true}
+	result = ResponseBufferResult{Status: status, Committed: true}
 	if len(b.body) == 0 {
 		return result, result.Validate()
 	}

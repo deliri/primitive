@@ -1,0 +1,115 @@
+{
+  "scope": "Initial measurements of two fixed 128-byte fixtures: parent acquisition plus independent inode observations, identity validation and close; and an owned/foreign directory identity pair. Separate 30s CPU1 runs with CPU/memory profiles and measured binaries. No executable production changes or optimization claim.",
+  "results": [
+    {
+      "label": "checkpoint-parent-identity-OpenParent",
+      "record_sha256": "b631d37b9829ad3412caac0638a3adda43547b28d6ccbda554e4ade6f266b15a",
+      "benchmark": "BenchmarkOpenParentNativeIdentityCustody",
+      "iterations": 802254,
+      "ns_per_op": 45495.0,
+      "bytes_per_op": 1304,
+      "allocations_per_op": 18,
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkOpenParentNativeIdentityCustody$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-OpenParent.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-OpenParent.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-OpenParent.test",
+        "./filestore"
+      ],
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-OpenParent.stdout.txt",
+          "bytes": 257,
+          "sha256": "c1c5c6f219eef1f125068849a19f2a8a79ad73088e02a0eaea54da172d04e069"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-OpenParent.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-OpenParent.git-status.txt",
+          "bytes": 7620,
+          "sha256": "233fb120c33bed54ab7af33f55b3a2a8a04968f931c9ae12fb52f79f9392ca1d"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-OpenParent.cpu.pprof",
+          "bytes": 4144,
+          "sha256": "f9e8024276729a3e3a14a6f8d9d94f413179546b59ffeff941006f6f528cd2bf"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-OpenParent.mem.pprof",
+          "bytes": 4124,
+          "sha256": "265bb69587e8d459a73be84dd25f224abc23faa7e625bb212d4e8cc3b443fa5d"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-OpenParent.test",
+          "bytes": 12098866,
+          "sha256": "1eca8527b3d1ad68edb84a1426344ebf1cd61929009e26e154c4328416c97bb9"
+        }
+      ]
+    },
+    {
+      "label": "checkpoint-parent-identity-IdentityPair",
+      "record_sha256": "8de968517a27ead2932893cef7281d2ef116727272ba1948803d1d3607a79881",
+      "benchmark": "BenchmarkRootIdentityOwnedAndForeignDirectories",
+      "iterations": 4847347,
+      "ns_per_op": 7236.0,
+      "bytes_per_op": 1196,
+      "allocations_per_op": 13,
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkRootIdentityOwnedAndForeignDirectories$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-IdentityPair.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-IdentityPair.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-IdentityPair.test",
+        "./filestore"
+      ],
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-IdentityPair.stdout.txt",
+          "bytes": 264,
+          "sha256": "faabe850c1bd94dc4b7064a897bc9095ddf1656a553a1679b528b17b70524b42"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-IdentityPair.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-IdentityPair.git-status.txt",
+          "bytes": 7620,
+          "sha256": "233fb120c33bed54ab7af33f55b3a2a8a04968f931c9ae12fb52f79f9392ca1d"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-IdentityPair.cpu.pprof",
+          "bytes": 3359,
+          "sha256": "62ba42de51da30cdf1a05ab9057c5d8b754f0cd02f7859c17f8a9fdfd1fbfb96"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-IdentityPair.mem.pprof",
+          "bytes": 2935,
+          "sha256": "6a1ccc19144369bd8e1a646ddaef50e7ddf38c078c1de8840657594f2b950c49"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-IdentityPair.test",
+          "bytes": 12098866,
+          "sha256": "1eca8527b3d1ad68edb84a1426344ebf1cd61929009e26e154c4328416c97bb9"
+        }
+      ]
+    }
+  ]
+}

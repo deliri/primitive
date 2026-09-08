@@ -1,0 +1,5 @@
+{
+  "Replace": {
+    "/Users/d/code/primitive/filestore/stream.go": "/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/mutation-stream-write-prefix-loss.go"
+  }
+}

@@ -1,0 +1,119 @@
+[
+  {
+    "label": "post-checkpoint-auth-optimized-accepted",
+    "argv": [
+      "go",
+      "test",
+      "-count=1",
+      "-run=^$",
+      "-bench=^BenchmarkReceiveBasicAuthorizationCustody$/^maximum_credentials$",
+      "-benchtime=30s",
+      "-benchmem",
+      "-cpu=1",
+      "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-auth-optimized-accepted.cpu.pprof",
+      "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-auth-optimized-accepted.mem.pprof",
+      "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-auth-optimized-accepted.test",
+      "./exchange"
+    ]
+  },
+  {
+    "label": "post-checkpoint-auth-optimized-partial-refusal",
+    "argv": [
+      "go",
+      "test",
+      "-count=1",
+      "-run=^$",
+      "-bench=^BenchmarkReceiveBasicAuthorizationCustody$/^partial_base64_refusal$",
+      "-benchtime=30s",
+      "-benchmem",
+      "-cpu=1",
+      "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-auth-optimized-partial-refusal.cpu.pprof",
+      "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-auth-optimized-partial-refusal.mem.pprof",
+      "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-auth-optimized-partial-refusal.test",
+      "./exchange"
+    ]
+  },
+  {
+    "label": "post-checkpoint-auth-optimized-accepted-cpu-analysis",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-auth-optimized-accepted.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-auth-optimized-accepted.cpu.pprof"
+    ]
+  },
+  {
+    "label": "post-checkpoint-auth-optimized-accepted-mem-analysis",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-auth-optimized-accepted.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-auth-optimized-accepted.mem.pprof"
+    ]
+  },
+  {
+    "label": "post-checkpoint-auth-optimized-partial-refusal-cpu-analysis",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-auth-optimized-partial-refusal.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-auth-optimized-partial-refusal.cpu.pprof"
+    ]
+  },
+  {
+    "label": "post-checkpoint-auth-optimized-partial-refusal-mem-analysis",
+    "argv": [
+      "go",
+      "tool",
+      "pprof",
+      "-top",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-auth-optimized-partial-refusal.test",
+      "/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-auth-optimized-partial-refusal.mem.pprof"
+    ]
+  },
+  {
+    "label": "post-checkpoint-optimized-sustained-FuzzReceiveBasicAuthorizationSemanticClosure",
+    "argv": [
+      "go",
+      "test",
+      "-count=1",
+      "-run=^$",
+      "-fuzz=^FuzzReceiveBasicAuthorizationSemanticClosure$",
+      "-fuzztime=30s",
+      "-parallel=2",
+      "./exchange"
+    ]
+  },
+  {
+    "label": "post-checkpoint-optimized-sustained-FuzzReceiveJSONProjectedJSONAndSocketJSONCustody",
+    "argv": [
+      "go",
+      "test",
+      "-count=1",
+      "-run=^$",
+      "-fuzz=^FuzzReceiveJSONProjectedJSONAndSocketJSONCustody$",
+      "-fuzztime=30s",
+      "-parallel=2",
+      "./exchange"
+    ]
+  },
+  {
+    "label": "post-checkpoint-optimized-sustained-FuzzReceiveBoundedAndNoBodyCustody",
+    "argv": [
+      "go",
+      "test",
+      "-count=1",
+      "-run=^$",
+      "-fuzz=^FuzzReceiveBoundedAndNoBodyCustody$",
+      "-fuzztime=30s",
+      "-parallel=2",
+      "./exchange"
+    ]
+  }
+]

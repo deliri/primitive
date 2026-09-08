@@ -70,7 +70,7 @@ func TestServerRuntimePolicyProjectionBoundaryTable(t *testing.T) {
 					}
 					if tc.wantErr != nil {
 						if got != nil {
-							t.Fatal("refused timeout produced a capability")
+							t.Fatalf("refused timeout capability=%v, want nil", got)
 						}
 						return
 					}

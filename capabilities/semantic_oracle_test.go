@@ -105,7 +105,7 @@ func FuzzSymbolNameGoIdentifier(f *testing.F) {
 
 func FuzzClassificationTypedProjection(f *testing.F) {
 	for _, disposition := range dispositionDomain() {
-		for effect := EffectUnknown; effect < effectLimit; effect++ {
+		for effect := range effectLimit {
 			f.Add(uint8(disposition), uint8(effect), uint8(OperationUnavailable), []byte{})
 		}
 	}
@@ -181,7 +181,7 @@ func FuzzResolveRequirementExactOwnership(f *testing.F) {
 		f.Add(uint8(ScopeProduction), uint8(RequirementTargetPackage), uint8(contract.Identity), uint8(EffectUnknown))
 		f.Add(uint8(ScopeTest), uint8(RequirementTargetPackage), uint8(contract.Identity), uint8(EffectUnknown))
 	}
-	for effect := EffectUnknown; effect < effectLimit; effect++ {
+	for effect := range effectLimit {
 		f.Add(uint8(ScopeProduction), uint8(RequirementTargetEffect), uint8(core.PackageUnknown), uint8(effect))
 	}
 	f.Add(uint8(255), uint8(255), uint8(255), uint8(255))

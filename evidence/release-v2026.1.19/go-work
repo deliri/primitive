@@ -1,0 +1,10 @@
+go 1.27.1
+
+use (
+	./blink-kernel
+	./bug
+	./forge
+	./peachfuzz
+	./primitive
+	./witness
+)

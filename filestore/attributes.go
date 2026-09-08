@@ -120,10 +120,8 @@ func (o Ownership) GID() (uint32, error) {
 // product wanting the fact performs its own platform type assertion; this is
 // the fact, typed, with the assertion made once.
 //
-// Not every filesystem measures allocation. An unreported Allocation is a
-// real observation, distinct from zero blocks: "this host does not say" lets
-// a caller treat its reservation as satisfied vacuously, while zero reported
-// bytes says the file is a hole.
+// Not every filesystem reports allocation. Unreported and reported-zero are
+// distinct observations. Callers decide what either fact permits.
 type Allocation struct {
 	bytes    core.ByteLength
 	reported bool
@@ -200,14 +198,9 @@ func observedPermissions(info fs.FileInfo) Permissions {
 	return Permissions{value: info.Mode().Perm(), set: true}
 }
 
-// Allocation returns the storage backing the observed regular file.
-//
-// Only a regular file has an allocation worth asking about; every other kind
-// is refused the way SizeBytes refuses it. Unlike Ownership, an unreported
-// answer is returned rather than refused: a host that does not measure
-// allocation has still answered the caller's real question, because a
-// reservation check against "this filesystem does not say" is vacuously
-// satisfied, while fabricating zero would name every file a hole.
+// Allocation returns the storage observation captured for a regular file.
+// Other entry kinds are refused. A host that does not report allocation yields
+// an unreported Allocation, whose Bytes method refuses a fabricated count.
 func (i Inspection) Allocation() (Allocation, error) {
 	kind, err := i.Kind()
 	if err != nil {

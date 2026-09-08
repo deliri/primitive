@@ -134,7 +134,7 @@ func FuzzAWSAcquireProviderEnvelopeMutations(f *testing.F) {
 		}
 		data := awsProviderBytes(t, document)
 		if tc.change != nil && bytes.Equal(original, data) {
-			t.Fatal("envelope mutation unchanged, want edited source fact")
+			t.Fatalf("envelope mutation=%x, want different from %x", data, original)
 		}
 		wantErr := tc.wantErr
 		if cut != 0 {
@@ -189,7 +189,7 @@ func FuzzAWSProviderResponseSemanticClosure(f *testing.F) {
 				t.Fatalf("raw provider refusal = (%v,%v), want zero typed refusal", got, gotErr)
 			}
 			if bytes.Equal(data, canonical) {
-				t.Fatal("canonical provider seed rejected, want exact token")
+				t.Fatalf("canonical provider refusal=%v, want nil", gotErr)
 			}
 			return
 		}
@@ -225,7 +225,7 @@ func FuzzAWSProviderResponseSemanticClosure(f *testing.F) {
 				depth--
 			case xml.CharData:
 				if depth == 0 && len(bytes.Trim(typed, " \t\r\n")) != 0 {
-					t.Fatal("accepted text outside XML root, want only XML padding")
+					t.Fatalf("outside-root text=%q, want only XML padding", typed)
 				}
 				if tokenDepth != 0 {
 					value.Write(typed)

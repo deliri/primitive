@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/deliri/primitive/v2026/core"
 )
@@ -17,57 +18,87 @@ func (f opaqueRoundTripper) RoundTrip(request *http.Request) (*http.Response, er
 
 func TestClientWithoutProxyLayerTriad(t *testing.T) {
 	t.Parallel()
-
-	t.Run("positive standard transport is cloned with proxy routing removed", func(t *testing.T) {
-		t.Parallel()
-
-		transport := http.DefaultTransport.(*http.Transport).Clone()
-		transport.Proxy = func(*http.Request) (*url.URL, error) {
-			return nil, core.ErrExchangeTransport
-		}
-		original := &http.Client{Transport: transport}
-		client, clientErr := NewClient(original)
-		if clientErr != nil {
-			t.Fatalf("NewClient() error = %v, want nil", clientErr)
-		}
-		direct, gotErr := client.WithoutProxy()
-		if gotErr != nil {
-			t.Fatalf("Client.WithoutProxy() error = %v, want nil", gotErr)
-		}
-		gotTransport, ok := direct.http.Transport.(*http.Transport)
-		if !ok || gotTransport == transport || gotTransport.Proxy != nil {
-			t.Fatalf("Client.WithoutProxy() transport = (%T, cloned %t, proxy nil %t), want (*http.Transport, true, true)", direct.http.Transport, gotTransport != transport, gotTransport != nil && gotTransport.Proxy == nil)
-		}
-		if original.Transport != transport || transport.Proxy == nil {
-			t.Fatalf("caller transport after derivation = (same %t, proxy present %t), want true, true", original.Transport == transport, transport.Proxy != nil)
-		}
-	})
-
-	t.Run("negative opaque transport is refused because proxy bypass cannot be proved", func(t *testing.T) {
-		t.Parallel()
-
-		client, clientErr := NewClient(&http.Client{Transport: opaqueRoundTripper(func(*http.Request) (*http.Response, error) {
-			return nil, core.ErrExchangeTransport
-		})})
-		if clientErr != nil {
-			t.Fatalf("NewClient(opaque transport) error = %v, want nil", clientErr)
-		}
-		got, gotErr := client.WithoutProxy()
-		if got != (Client{}) || !errors.Is(gotErr, core.ErrExchangeContract) {
-			t.Fatalf("Client.WithoutProxy(opaque) = (%v, %v), want zero and %v", got, gotErr, core.ErrExchangeContract)
-		}
-	})
-
-	t.Run("neutral standard client derives direct custody without changing its validity", func(t *testing.T) {
-		t.Parallel()
-
-		client, clientErr := NewStandardClient()
-		if clientErr != nil {
-			t.Fatalf("NewStandardClient() error = %v, want nil", clientErr)
-		}
-		direct, gotErr := client.WithoutProxy()
-		if gotErr != nil || direct.Validate() != nil || client.Validate() != nil {
-			t.Fatalf("standard Client.WithoutProxy() = (direct %v, error %v, source validation %v), want both valid and nil", direct.Validate(), gotErr, client.Validate())
-		}
-	})
+	cases := []struct {
+		name                                                 string
+		zero, opaque, nilTransport, typedNil, proxy, timeout bool
+		wantErr                                              error
+	}{
+		{name: "proxy removal clones caller transport", proxy: true},
+		{name: "already direct transport still receives separate custody"},
+		{name: "implicit Go default is cloned without changing global transport", nilTransport: true},
+		{name: "zero client cannot derive an executable capability", zero: true, wantErr: core.ErrExchangeContract},
+		{name: "opaque round tripper cannot claim proven direct dialing", opaque: true, wantErr: core.ErrExchangeContract},
+		{name: "typed nil transport cannot panic inside Go Clone", typedNil: true, wantErr: core.ErrExchangeContract},
+		{name: "mutated client timeout must be revalidated at derivation", timeout: true, wantErr: core.ErrExchangeContract},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			base := http.DefaultTransport.(*http.Transport).Clone()
+			defer base.CloseIdleConnections()
+			base.MaxIdleConnsPerHost = 7
+			base.DisableCompression = true
+			if tc.proxy {
+				base.Proxy = func(*http.Request) (*url.URL, error) { return nil, core.ErrExchangeTransport }
+			} else {
+				base.Proxy = nil
+			}
+			original := &http.Client{Transport: base}
+			if tc.opaque {
+				original.Transport = opaqueRoundTripper(func(*http.Request) (*http.Response, error) { return nil, core.ErrExchangeTransport })
+			}
+			if tc.typedNil {
+				original.Transport = (*http.Transport)(nil)
+			}
+			if tc.nilTransport {
+				original.Transport = nil
+			}
+			client, err := NewClient(original)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if tc.zero {
+				client = Client{}
+			}
+			if tc.timeout {
+				original.Timeout = time.Nanosecond
+			}
+			got, gotErr := client.WithoutProxy()
+			if !errors.Is(gotErr, tc.wantErr) {
+				t.Fatalf("direct derivation error=%v,want %v", gotErr, tc.wantErr)
+			}
+			if tc.wantErr != nil {
+				if got != (Client{}) {
+					t.Fatalf("refused derivation leaked capability %+v", got)
+				}
+				return
+			}
+			transport, ok := got.http.Transport.(*http.Transport)
+			if !ok || transport == nil {
+				t.Fatalf("derived transport=%T,want Go transport", got.http.Transport)
+			}
+			defer transport.CloseIdleConnections()
+			selected := base
+			if tc.nilTransport {
+				selected = http.DefaultTransport.(*http.Transport)
+			}
+			if got.http == original || transport == selected || transport.Proxy != nil || got.Validate() != nil || client.Validate() != nil {
+				t.Fatalf("direct custody=(same client %t,same transport %t,proxy %t),want separate valid direct capability", got.http == original, transport == selected, transport.Proxy != nil)
+			}
+			if transport.MaxIdleConnsPerHost != selected.MaxIdleConnsPerHost || transport.DisableCompression != selected.DisableCompression || got.http.Jar != original.Jar {
+				t.Fatalf("idle/compression/jar preserved=%t/%t/%t, want true/true/true", transport.MaxIdleConnsPerHost == selected.MaxIdleConnsPerHost, transport.DisableCompression == selected.DisableCompression, got.http.Jar == original.Jar)
+			}
+			transport.MaxIdleConnsPerHost++
+			if selected.MaxIdleConnsPerHost == transport.MaxIdleConnsPerHost {
+				t.Fatalf("source/derived idle limits=%d/%d, want distinct", selected.MaxIdleConnsPerHost, transport.MaxIdleConnsPerHost)
+			}
+			if tc.nilTransport {
+				if original.Transport != nil || selected.Proxy == nil {
+					t.Fatalf("original transport/default proxy=%T/%t, want nil/true", original.Transport, selected.Proxy != nil)
+				}
+			} else if original.Transport != base || (base.Proxy != nil) != tc.proxy {
+				t.Fatalf("original transport/base match and proxy present=%t/%t, want true/%t", original.Transport == base, base.Proxy != nil, tc.proxy)
+			}
+		})
+	}
 }

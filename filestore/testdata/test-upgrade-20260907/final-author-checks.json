@@ -1,0 +1,236 @@
+{
+  "scope": "Local author checks for Filestore and prepared Compass release coordinates; no independent acceptance or repository-wide gate claimed.",
+  "checks": [
+    {
+      "label": "final-filestore-doctrine-package",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-coverprofile=filestore/testdata/test-upgrade-20260907/final-filestore-doctrine.cover",
+        "-timeout=15m",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "test_events": {
+        "pass": 5515,
+        "fail": 0,
+        "skip": 0
+      },
+      "elapsed_seconds": 95.47259291697992,
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "final-filestore-race",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-race",
+        "-count=1",
+        "-shuffle=on",
+        "-parallel=4",
+        "-timeout=20m",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "test_events": {
+        "pass": 5515,
+        "fail": 0,
+        "skip": 0
+      },
+      "elapsed_seconds": 103.12058170800447,
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "final-doctrine-linux-compile",
+      "argv": [
+        "env",
+        "GOOS=linux",
+        "GOARCH=amd64",
+        "CGO_ENABLED=0",
+        "go",
+        "test",
+        "-c",
+        "-o=filestore/testdata/test-upgrade-20260907/final-doctrine-linux.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "elapsed_seconds": 2.248716791975312,
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "final-doctrine-windows-compile",
+      "argv": [
+        "env",
+        "GOOS=windows",
+        "GOARCH=amd64",
+        "CGO_ENABLED=0",
+        "go",
+        "test",
+        "-c",
+        "-o=filestore/testdata/test-upgrade-20260907/final-doctrine-windows.test.exe",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "elapsed_seconds": 2.059856875013793,
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "final-doctrine-vet",
+      "argv": [
+        "go",
+        "vet",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "elapsed_seconds": 0.5191433329891879,
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "final-filestore-doctrine-staticcheck",
+      "argv": [
+        "staticcheck",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "elapsed_seconds": 6.080018165986985,
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "closeout-filestore-doctrine-corrected",
+      "argv": [
+        "witness-lint",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "elapsed_seconds": 0.09591854098835029,
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "closeout-filestore-errcheck",
+      "argv": [
+        "errcheck",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "elapsed_seconds": 0.43485750001855195,
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "closeout-filestore-complexity",
+      "argv": [
+        "gocyclo",
+        "-over",
+        "10",
+        "filestore/append_remove.go",
+        "filestore/attributes.go",
+        "filestore/attributes_unix.go",
+        "filestore/attributes_windows.go",
+        "filestore/canonicalize.go",
+        "filestore/compiler_strings.go",
+        "filestore/contracts.go",
+        "filestore/custody.go",
+        "filestore/directory_read.go",
+        "filestore/doc.go",
+        "filestore/errors.go",
+        "filestore/held_directory.go",
+        "filestore/held_directory_unix.go",
+        "filestore/held_directory_windows.go",
+        "filestore/held_standing.go",
+        "filestore/inspect.go",
+        "filestore/open_read.go",
+        "filestore/open_root_darwin.go",
+        "filestore/open_root_linux.go",
+        "filestore/open_root_unix.go",
+        "filestore/open_root_windows.go",
+        "filestore/permissions.go",
+        "filestore/pipe.go",
+        "filestore/read_file_unix.go",
+        "filestore/read_file_windows.go",
+        "filestore/read_link.go",
+        "filestore/rename.go",
+        "filestore/sharing.go",
+        "filestore/sharing_unix.go",
+        "filestore/sharing_windows.go",
+        "filestore/stage.go",
+        "filestore/stage_destination.go",
+        "filestore/stream.go",
+        "filestore/validation_witnesses.go",
+        "filestore/walk.go"
+      ],
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "elapsed_seconds": 0.01994083297904581,
+      "sources_changed_during_run": []
+    },
+    {
+      "label": "final-release-coordinate-tests",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "./compass",
+        "./version"
+      ],
+      "exit_status": 0,
+      "test_events": {
+        "pass": 72,
+        "fail": 0,
+        "skip": 0
+      },
+      "elapsed_seconds": 1.2138699580100365,
+      "sources_changed_during_run": []
+    }
+  ],
+  "mutation_analysis": "final-mutation-analysis.json",
+  "runtime": "darwin/arm64",
+  "compile_only": [
+    "linux/amd64",
+    "windows/amd64"
+  ],
+  "release_source_supplement": "release-preparation-source-supplement.json",
+  "race_shuffle_seed": 1788825310639977000,
+  "source_note": "Complexity and errcheck preceded diagnostic-only and context-parameter-order cleanup; no production executable change followed these checks. Final package, race, vet, staticcheck and platform binaries include the final Go source.",
+  "waivers": [
+    "Go io.EOF identity is intentionally exact at two production termination checks, matching Go src/io/io.go and preserving joined failures.",
+    "Unix root acquisition explicitly closes the native file and handles Close failure before transferring the derived Root; a defer would alter that error/ownership decision.",
+    "Two earlier test/errors notes retain the untyped filepath.EvalSymlinks link-count limitation."
+  ]
+}

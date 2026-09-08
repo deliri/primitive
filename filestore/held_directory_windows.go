@@ -7,8 +7,6 @@ import (
 	"io/fs"
 	"os"
 	"syscall"
-
-	"golang.org/x/sys/windows"
 )
 
 func openHeldDirectory(path string) (*os.File, FilesystemIdentity, error) {
@@ -46,7 +44,7 @@ func openHeldDirectory(path string) (*os.File, FilesystemIdentity, error) {
 
 func validateWindowsHeldDirectory(
 	after fs.FileInfo,
-	information windows.ByHandleFileInformation,
+	information syscall.ByHandleFileInformation,
 	observationErr error,
 ) error {
 	if observationErr != nil {
@@ -55,7 +53,7 @@ func validateWindowsHeldDirectory(
 	if after == nil || !after.IsDir() {
 		return fs.ErrInvalid
 	}
-	if information.FileAttributes&windows.FILE_ATTRIBUTE_REPARSE_POINT != 0 {
+	if information.FileAttributes&syscall.FILE_ATTRIBUTE_REPARSE_POINT != 0 {
 		return fs.ErrInvalid
 	}
 	return nil
@@ -68,13 +66,20 @@ func validateWindowsSameDirectory(before, after fs.FileInfo) error {
 	return nil
 }
 
-func windowsDirectoryInformation(file *os.File) (windows.ByHandleFileInformation, error) {
-	var information windows.ByHandleFileInformation
-	err := windows.GetFileInformationByHandle(windows.Handle(file.Fd()), &information)
-	return information, err
+func windowsDirectoryInformation(file *os.File) (syscall.ByHandleFileInformation, error) {
+	var information syscall.ByHandleFileInformation
+	connection, err := file.SyscallConn()
+	if err != nil {
+		return information, err
+	}
+	var queryErr error
+	controlErr := connection.Control(func(descriptor uintptr) {
+		queryErr = syscall.GetFileInformationByHandle(syscall.Handle(descriptor), &information)
+	})
+	return information, errors.Join(controlErr, queryErr)
 }
 
 func windowsReparsePoint(info fs.FileInfo) bool {
 	data, ok := info.Sys().(*syscall.Win32FileAttributeData)
-	return !ok || data.FileAttributes&windows.FILE_ATTRIBUTE_REPARSE_POINT != 0
+	return !ok || data.FileAttributes&syscall.FILE_ATTRIBUTE_REPARSE_POINT != 0
 }

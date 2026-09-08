@@ -24,12 +24,15 @@ func BenchmarkResolveEffect(b *testing.B) {
 }
 
 func BenchmarkResolveStandardFunction(b *testing.B) {
+	b.ReportAllocs()
 	benchmarkStandardSymbol(b, catalogNetHttp, "", symbolServeFile, Classification{Disposition: StandardSymbolEffect, Effect: EffectTransport, Secondary: []Effect{EffectFilesystem}})
 }
 func BenchmarkResolveStandardMethod(b *testing.B) {
+	b.ReportAllocs()
 	benchmarkStandardSymbol(b, catalogOsExec, "Cmd", "Run", Classification{Disposition: StandardSymbolEffect, Effect: EffectProcess, Operation: OperationRunProcess})
 }
 func BenchmarkResolveStandardUnresolved(b *testing.B) {
+	b.ReportAllocs()
 	benchmarkStandardSymbol(b, catalogNetHttp, "", "FutureEffect", Classification{Disposition: StandardSymbolUnresolved})
 }
 func benchmarkStandardSymbol(b *testing.B, path, receiver, selector string, want Classification) {

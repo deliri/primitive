@@ -1,15 +1,22 @@
 package filestore
 
 import (
+	"embed"
 	"go/ast"
+	"go/build"
 	"go/parser"
 	"go/token"
-	"os"
+	"io"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/deliri/primitive/v2026/contextstate"
+	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/temporal"
 )
 
 type (
@@ -25,8 +32,6 @@ type architectureScan struct {
 	violations       []string
 	primitiveImports []string
 }
-
-const heldDirectoryCloseMethodName = "HeldDirectory.Close"
 
 // filestoreContractInventory classifies every production struct by its real
 // role. The generic arguments make every inventory entry compiler-visible.
@@ -67,6 +72,8 @@ type filestoreContractInventory struct {
 	StageDestination       capabilityWrapper[StageDestination]
 	directoryEntryEnsure   internalFlow[directoryEntryEnsure]
 	boundedCopyRequest     internalFlow[boundedCopyRequest]
+	streamReader           internalFlow[streamReader]
+	streamWriter           internalFlow[streamWriter]
 	stageSynchronization   internalFlow[stageSynchronization]
 	createdFileAbandonment internalFlow[createdFileAbandonment]
 	createdPathCleanup     internalFlow[createdPathCleanup]
@@ -80,6 +87,8 @@ var (
 	_ = filestoreContractInventory{}
 	_ = filestoreContractInventory{}.directoryEntryEnsure
 	_ = filestoreContractInventory{}.boundedCopyRequest
+	_ = filestoreContractInventory{}.streamReader
+	_ = filestoreContractInventory{}.streamWriter
 	_ = filestoreContractInventory{}.stageSynchronization
 	_ = filestoreContractInventory{}.createdFileAbandonment
 	_ = filestoreContractInventory{}.createdPathCleanup
@@ -89,298 +98,36 @@ var (
 	_ = filestoreContractInventory{}.rootedOpenRequest
 )
 
-func TestFilestorePublicSurfaceIsExactRatchet(t *testing.T) {
+// Every platform source is checked, not just files selected on the host. The
+// approved Primitive identities come from compiled types, and Go determines
+// whether every remaining import belongs to its standard library.
+func TestFilestoreImportsOnlyGoAndOwnedPrimitiveContracts(t *testing.T) {
 	t.Parallel()
-
-	productions := parseProductionFiles(t)
-	gotTypes := make([]string, 0)
-	gotFunctions := make([]string, 0)
-	gotConstants := make([]string, 0)
-	gotMethods := make([]string, 0)
-	for _, production := range productions {
-		for _, declaration := range production.file.Decls {
-			switch value := declaration.(type) {
-			case *ast.GenDecl:
-				for _, specification := range value.Specs {
-					switch typed := specification.(type) {
-					case *ast.TypeSpec:
-						if ast.IsExported(typed.Name.Name) {
-							gotTypes = append(gotTypes, typed.Name.Name)
-						}
-					case *ast.ValueSpec:
-						if value.Tok != token.CONST {
-							continue
-						}
-						for _, name := range typed.Names {
-							if ast.IsExported(name.Name) {
-								gotConstants = append(gotConstants, name.Name)
-							}
-						}
-					}
-				}
-			case *ast.FuncDecl:
-				if !ast.IsExported(value.Name.Name) {
-					continue
-				}
-				if value.Recv == nil {
-					gotFunctions = append(gotFunctions, value.Name.Name)
-					continue
-				}
-				receiver := receiverName(value.Recv.List[0].Type)
-				if !ast.IsExported(receiver) {
-					continue
-				}
-				gotMethods = append(gotMethods, receiver+"."+value.Name.Name)
-			}
-		}
+	approved := []string{
+		reflect.TypeFor[core.Validatable]().PkgPath(),
+		reflect.TypeFor[contextstate.State]().PkgPath(),
+		reflect.TypeFor[temporal.Instant]().PkgPath(),
 	}
-	requireExactNames(t, "exported types", gotTypes, []string{
-		"AppendMode",
-		"AppendRequest",
-		"ActivationRequest",
-		"CommitRequest",
-		"DirectoryRequest",
-		"DirectoryEntryMaximum",
-		"DurabilityRequest",
-		"FilesystemIdentity",
-		"HeldDirectory",
-		"HeldStanding",
-		"Ownership",
-		"Allocation",
-		"Permissions",
-		"PermissionRequest",
-		"LockFileRequest",
-		"TouchRequest",
-		"UpdateHandleRequest",
-		"InstallMode",
-		"Inspection",
-		"Location",
-		"PathKind",
-		"Pipe",
-		"ReadHandleRequest",
-		"ReadRequest",
-		"RenameRequest",
-		"RemovalRequest",
-		"RotationRequest",
-		"Sharing",
-		"StageRequest",
-		"StageDestination",
-		"StageDestinationRequest",
-		"StagedFile",
-		"SymbolicLinkTarget",
-		"TreeRemovalRequest",
-		"WalkDirective",
-		"WalkEntry",
-		"WalkOrder",
-		"WalkRequest",
-		"WriteRequest",
-	})
-	requireExactNames(t, "exported functions", gotFunctions, []string{
-		"Canonicalize",
-		"AbandonStageDestination",
-		"FinishStageDestination",
-		"Commit",
-		"ConfirmDurable",
-		"Discard",
-		"EnsureDirectory",
-		"Inspect",
-		"NewDirectoryEntryMaximum",
-		"ObserveHeldStanding",
-		"ObserveSharing",
-		"OpenAppend",
-		"OpenDirectory",
-		"OpenLockFile",
-		"OpenParent",
-		"OpenPipe",
-		"OpenRead",
-		"OpenRoot",
-		"OpenStagedRead",
-		"OpenStageDestination",
-		"OpenUpdate",
-		"Read",
-		"ReadSymbolicLink",
-		"Recover",
-		"Remove",
-		"RemoveTree",
-		"Rename",
-		"RotateAppend",
-		"Stage",
-		"SetPermissions",
-		"Touch",
-		"ValidateRootIdentity",
-		"Walk",
-		"Write",
-	})
-	requireExactNames(t, "exported constants", gotConstants, []string{
-		"AppendCreate",
-		"AppendCreateOrOpen",
-		"AppendExisting",
-		"AppendUnknown",
-		"DirectoryEntryMaximumLimit",
-		"HeldStandingAbsent",
-		"HeldStandingReplaced",
-		"HeldStandingSame",
-		"HeldStandingUnknown",
-		"InstallCreate",
-		"InstallReplace",
-		"InstallUnknown",
-		"PathKindAbsent",
-		"PathKindDirectory",
-		"PathKindOther",
-		"PathKindRegularFile",
-		"PathKindSymbolicLink",
-		"PathKindUnknown",
-		"PathKindUnreachable",
-		"SharingAvailable",
-		"SharingHeld",
-		"SharingUnknown",
-		"SymbolicLinkTargetMaximumBytes",
-		"WalkContinue",
-		"WalkDirectiveUnknown",
-		"WalkOrderLexical",
-		"WalkOrderNative",
-		"WalkOrderUnknown",
-		"WalkSkipDirectory",
-	})
-	requireExactNames(t, "exported methods", gotMethods, []string{
-		"Allocation.Bytes",
-		"Allocation.Reported",
-		"Allocation.Validate",
-		"AppendMode.IsValid",
-		"AppendMode.OffWireEnum",
-		"AppendMode.String",
-		"AppendMode.Validate",
-		"ActivationRequest.CommitRequest",
-		"ActivationRequest.StageDestination",
-		"ActivationRequest.Validate",
-		"AppendRequest.Validate",
-		"CommitRequest.Validate",
-		"DirectoryRequest.Validate",
-		"DirectoryEntryMaximum.Validate",
-		"DurabilityRequest.Validate",
-		"HeldStanding.IsValid",
-		"HeldStanding.OffWireEnum",
-		"HeldStanding.String",
-		"HeldStanding.Validate",
-		heldDirectoryCloseMethodName,
-		"HeldDirectory.File",
-		"HeldDirectory.Filesystem",
-		"HeldDirectory.Validate",
-		"FilesystemIdentity.Uint64",
-		"FilesystemIdentity.Validate",
-		"LockFileRequest.Validate",
-		"TouchRequest.Validate",
-		"UpdateHandleRequest.Validate",
-		"Inspection.Allocation",
-		"Inspection.Kind",
-		"Inspection.Ownership",
-		"Inspection.Permissions",
-		"Ownership.GID",
-		"Ownership.IsSet",
-		"Ownership.UID",
-		"Ownership.Validate",
-		"PermissionRequest.Validate",
-		"Pipe.Validate",
-		"Permissions.Bits",
-		"Permissions.FileMode",
-		"Permissions.IsSet",
-		"Permissions.String",
-		"Permissions.Validate",
-		"Inspection.ModifiedAt",
-		"Inspection.SizeBytes",
-		"Inspection.Validate",
-		"InstallMode.IsValid",
-		"InstallMode.OffWireEnum",
-		"InstallMode.String",
-		"InstallMode.Validate",
-		"Location.Validate",
-		"PathKind.IsValid",
-		"PathKind.OffWireEnum",
-		"PathKind.String",
-		"PathKind.Validate",
-		"ReadHandleRequest.Validate",
-		"ReadRequest.Validate",
-		"RemovalRequest.Validate",
-		"RenameRequest.Validate",
-		"RotationRequest.Validate",
-		"Sharing.IsValid",
-		"Sharing.OffWireEnum",
-		"Sharing.String",
-		"Sharing.Validate",
-		"SymbolicLinkTarget.String",
-		"SymbolicLinkTarget.Validate",
-		"StageRequest.Validate",
-		"StageDestination.File",
-		"StageDestination.Validate",
-		"StageDestinationRequest.Validate",
-		"StagedFile.BytesWritten",
-		"StagedFile.Path",
-		"StagedFile.Validate",
-		"TreeRemovalRequest.Validate",
-		"WalkDirective.IsValid",
-		"WalkDirective.OffWireEnum",
-		"WalkDirective.String",
-		"WalkDirective.Validate",
-		"WalkEntry.Validate",
-		"WalkOrder.IsValid",
-		"WalkOrder.OffWireEnum",
-		"WalkOrder.String",
-		"WalkOrder.Validate",
-		"WalkRequest.Validate",
-		"WriteRequest.Validate",
-	})
-}
-
-// TestOnlyNamedPlatformLeavesNamePlatformStatusStructures proves the scoped
-// imports stay confined to the exact leaves that interpret FileInfo.Sys.
-func TestOnlyNamedPlatformLeavesNamePlatformStatusStructures(t *testing.T) {
-	t.Parallel()
-
-	naming := make([]string, 0)
 	for _, production := range parseProductionFiles(t) {
 		for _, specification := range production.file.Imports {
 			path, err := strconv.Unquote(specification.Path.Value)
 			if err != nil {
-				t.Fatalf("Unquote(%s) error = %v, want nil", specification.Path.Value, err)
+				t.Fatal(err)
 			}
-			if path == "syscall" && !slices.Contains(naming, production.name) {
-				naming = append(naming, production.name)
-			}
+			t.Run(production.name+"/"+path, func(t *testing.T) {
+				t.Parallel()
+				if slices.Contains(approved, path) {
+					return
+				}
+				got, err := build.Default.Import(path, "", build.FindOnly)
+				if err != nil {
+					t.Fatalf("production import %s lookup = %v, want Go standard library", path, err)
+				}
+				if !got.Goroot {
+					t.Fatalf("production import %s is outside GOROOT, want Go standard library or an approved Primitive contract", path)
+				}
+			})
 		}
-	}
-	requireExactNames(t, "production files naming syscall", naming, platformStatusLeafFileNames())
-}
-
-// TestNoProductionFileInvokesASyscall is the rule the scoped import rests on,
-// and it is stricter than the ban it replaced. Importing syscall to read a
-// structure this package was handed is not the hazard; calling into the kernel
-// is, because every such call is either an unrooted path access or a second
-// observation of an entry that may no longer be the one already described.
-// This holds for the owner-identity leaf too, so the exemption buys a type
-// assertion and nothing else.
-func TestNoProductionFileInvokesASyscall(t *testing.T) {
-	t.Parallel()
-
-	for _, production := range parseProductionFiles(t) {
-		ast.Inspect(production.file, func(node ast.Node) bool {
-			call, ok := node.(*ast.CallExpr)
-			if !ok {
-				return true
-			}
-			selector, ok := call.Fun.(*ast.SelectorExpr)
-			if !ok {
-				return true
-			}
-			qualifier, ok := selector.X.(*ast.Ident)
-			if ok && qualifier.Name == "syscall" {
-				t.Errorf(
-					"production call syscall.%s in %s, want a value this package was already handed",
-					selector.Sel.Name,
-					production.name,
-				)
-			}
-			return true
-		})
 	}
 }
 
@@ -401,17 +148,25 @@ func TestFilestoreDataFlowStructInventoryRatchet(t *testing.T) {
 		})
 	}
 	want := classifiedFilestoreStructNames(t)
-	requireExactNames(t, "production struct inventory", got, want)
+	slices.Sort(got)
+	slices.Sort(want)
+	if !slices.Equal(got, want) {
+		t.Fatalf("production struct inventory = %v, want %v", got, want)
+	}
 }
 
 func classifiedFilestoreStructNames(t *testing.T) []string {
 	t.Helper()
 
 	fileSet := token.NewFileSet()
+	source, err := filestoreGoSources.ReadFile("architecture_test.go")
+	if err != nil {
+		t.Fatal(err)
+	}
 	file, err := parser.ParseFile(
 		fileSet,
 		"architecture_test.go",
-		nil,
+		source,
 		parser.SkipObjectResolution,
 	)
 	if err != nil {
@@ -451,11 +206,16 @@ func TestFilestoreProductionUsesGoAndOSPrimitivesWithoutCoordinationMachineryRat
 	if len(got.violations) != 0 {
 		t.Fatalf("production architecture violations = %v, want none", got.violations)
 	}
-	requireExactNames(t, "Primitive production imports", got.primitiveImports, []string{
+	want := []string{
 		"github.com/deliri/primitive/v2026/contextstate",
 		"github.com/deliri/primitive/v2026/core",
 		"github.com/deliri/primitive/v2026/temporal",
-	})
+	}
+	slices.Sort(got.primitiveImports)
+	slices.Sort(want)
+	if !slices.Equal(got.primitiveImports, want) {
+		t.Fatalf("Primitive production imports = %v, want %v", got.primitiveImports, want)
+	}
 }
 
 func TestFilestoreProductionArchitectureMatcherDetectsForbiddenSyntheticShapes(t *testing.T) {
@@ -497,7 +257,7 @@ func violate() {
 	if err != nil {
 		t.Fatalf("scanProductionArchitecture(synthetic) error = %v, want nil", err)
 	}
-	requireExactNames(t, "synthetic architecture violations", got.violations, []string{
+	want := []string{
 		"RemoveAll: forbidden world-building function",
 		"SyncDirectory: forbidden world-building function",
 		"import encoding/json/v2",
@@ -509,14 +269,12 @@ func violate() {
 		"violate: call os.ReadFile",
 		"violate: call filepath.Walk",
 		"violate: goroutine",
-	})
-}
-
-// platformStatusLeafFiles are the exact leaves permitted to interpret the
-// platform structures already returned through fs.FileInfo.Sys. Neither may
-// invoke syscall; TestNoProductionFileInvokesASyscall preserves that rule.
-func platformStatusLeafFileNames() []string {
-	return []string{"attributes_unix.go", "held_directory_windows.go"}
+	}
+	slices.Sort(got.violations)
+	slices.Sort(want)
+	if !slices.Equal(got.violations, want) {
+		t.Fatalf("synthetic architecture violations = %v, want %v", got.violations, want)
+	}
 }
 
 func scanProductionArchitecture(files []productionFile) (architectureScan, error) {
@@ -541,11 +299,6 @@ func scanProductionArchitecture(files []productionFile) (architectureScan, error
 	for _, production := range files {
 		file := production.file
 		importNames := make(map[string]string)
-		if !slices.Contains(platformStatusLeafFileNames(), production.name) {
-			forbiddenImports["syscall"] = struct{}{}
-		} else {
-			delete(forbiddenImports, "syscall")
-		}
 		for _, specification := range file.Imports {
 			path, err := strconv.Unquote(specification.Path.Value)
 			if err != nil {
@@ -603,7 +356,7 @@ func scanProductionArchitecture(files []productionFile) (architectureScan, error
 					switch value.Name.Name {
 					case "Close", "Read", "ReadAt", "Seek", "Stat", "Sync", "Write", "WriteAt":
 						method := receiverName(value.Recv.List[0].Type) + "." + value.Name.Name
-						if method == heldDirectoryCloseMethodName {
+						if ownsGoInterfaceMethod(receiverName(value.Recv.List[0].Type), value.Name.Name) {
 							return true
 						}
 						violations = append(
@@ -625,6 +378,20 @@ func scanProductionArchitecture(files []productionFile) (architectureScan, error
 		primitiveImports: gotPrimitiveImports,
 	}, nil
 }
+
+// Each exception names a concrete compiler-visible receiver and a single-method
+// Go interface. Adding a file-lookalike method does not expand this admission.
+func ownsGoInterfaceMethod(receiver, method string) bool {
+	return receiver == reflect.TypeFor[HeldDirectory]().Name() && method == reflect.TypeFor[io.Closer]().Method(0).Name ||
+		receiver == reflect.TypeFor[streamReader]().Name() && method == reflect.TypeFor[io.Reader]().Method(0).Name ||
+		receiver == reflect.TypeFor[streamWriter]().Name() && method == reflect.TypeFor[io.Writer]().Method(0).Name
+}
+
+var (
+	_ io.Closer = (*HeldDirectory)(nil)
+	_ io.Reader = (*streamReader)(nil)
+	_ io.Writer = streamWriter{}
+)
 
 func declarationName(declaration ast.Decl) string {
 	switch value := declaration.(type) {
@@ -663,7 +430,7 @@ type productionFile struct {
 func parseProductionFiles(t *testing.T) []productionFile {
 	t.Helper()
 
-	entries, err := os.ReadDir(".")
+	entries, err := filestoreGoSources.ReadDir(".")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -674,7 +441,11 @@ func parseProductionFiles(t *testing.T) []productionFile {
 			strings.HasSuffix(entry.Name(), "_test.go") {
 			continue
 		}
-		file, parseErr := parser.ParseFile(fileSet, entry.Name(), nil, parser.SkipObjectResolution)
+		source, readErr := filestoreGoSources.ReadFile(entry.Name())
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		file, parseErr := parser.ParseFile(fileSet, entry.Name(), source, parser.SkipObjectResolution)
 		if parseErr != nil {
 			t.Fatalf("ParseFile(%s) error = %v, want nil", entry.Name(), parseErr)
 		}
@@ -696,12 +467,8 @@ func receiverName(expression ast.Expr) string {
 	}
 }
 
-func requireExactNames(t *testing.T, label string, got, want []string) {
-	t.Helper()
-
-	slices.Sort(got)
-	slices.Sort(want)
-	if !slices.Equal(got, want) {
-		t.Fatalf("%s = %v, want %v", label, got, want)
-	}
-}
+// Compile the source inventory into this test build so Go overlays cannot make
+// architecture checks inspect the unmodified working tree instead of the binary.
+//
+//go:embed *.go
+var filestoreGoSources embed.FS

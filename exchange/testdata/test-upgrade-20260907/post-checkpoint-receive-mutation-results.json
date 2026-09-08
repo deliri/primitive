@@ -1,0 +1,321 @@
+[
+  {
+    "mutation": "ReceiveJSON-refuse-all",
+    "record": "post-checkpoint-receive-mutation-ReceiveJSON-refuse-all.json",
+    "exit_status": 1,
+    "failed_cases": [
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#0",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#1",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#2",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#3",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#4",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#5",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#6",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#7",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#8",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#9",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#10",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#11",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#12",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#13",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#14"
+    ],
+    "behaviorally_killed": true
+  },
+  {
+    "mutation": "ReceiveJSON-wrong-value",
+    "record": "post-checkpoint-receive-mutation-ReceiveJSON-wrong-value.json",
+    "exit_status": 1,
+    "failed_cases": [
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#0",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#1",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#2",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#3",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#4",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#5",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#6",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#7",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#8",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#9",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#10",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#11",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#12",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#13",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#14"
+    ],
+    "behaviorally_killed": true
+  },
+  {
+    "mutation": "ReceiveReplayBoundJSON-refuse-all",
+    "record": "post-checkpoint-receive-mutation-ReceiveReplayBoundJSON-refuse-all.json",
+    "exit_status": 1,
+    "failed_cases": [
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#0",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#1",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#2",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#3",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#4",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#5",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#6",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#7",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#8",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#9",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#10",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#11",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#12",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#13",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#14"
+    ],
+    "behaviorally_killed": true
+  },
+  {
+    "mutation": "ReceiveReplayBoundJSON-wrong-value",
+    "record": "post-checkpoint-receive-mutation-ReceiveReplayBoundJSON-wrong-value.json",
+    "exit_status": 1,
+    "failed_cases": [
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#0",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#1",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#2",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#3",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#4",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#5",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#6",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#7",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#8",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#9",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#10",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#11",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#12",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#13",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#14"
+    ],
+    "behaviorally_killed": true
+  },
+  {
+    "mutation": "ReceiveProjectedJSON-refuse-all",
+    "record": "post-checkpoint-receive-mutation-ReceiveProjectedJSON-refuse-all.json",
+    "exit_status": 1,
+    "failed_cases": [
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#0",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#1",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#2",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#3",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#4",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#5",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#6",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#7",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#8",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#9",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#10",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#11",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#12",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#13",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#14"
+    ],
+    "behaviorally_killed": true
+  },
+  {
+    "mutation": "ReceiveProjectedJSON-wrong-value",
+    "record": "post-checkpoint-receive-mutation-ReceiveProjectedJSON-wrong-value.json",
+    "exit_status": 1,
+    "failed_cases": [
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#0",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#1",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#2",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#3",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#4",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#5",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#6",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#7",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#8",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#9",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#10",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#11",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#12",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#13",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#14"
+    ],
+    "behaviorally_killed": true
+  },
+  {
+    "mutation": "ReceiveSocketJSON-refuse-all",
+    "record": "post-checkpoint-receive-mutation-ReceiveSocketJSON-refuse-all.json",
+    "exit_status": 1,
+    "failed_cases": [
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#0",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#1",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#2",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#4",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#5",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#6",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#7",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#8",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#9",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#10",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#11",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#12",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#13",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#14"
+    ],
+    "behaviorally_killed": true
+  },
+  {
+    "mutation": "ReceiveSocketJSON-wrong-value",
+    "record": "post-checkpoint-receive-mutation-ReceiveSocketJSON-wrong-value.json",
+    "exit_status": 1,
+    "failed_cases": [
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#0",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#1",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#2",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#4",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#5",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#6",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#7",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#8",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#9",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#10",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#11",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#12",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#13",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#14"
+    ],
+    "behaviorally_killed": true
+  },
+  {
+    "mutation": "ReceiveReplayBoundSocketJSON-refuse-all",
+    "record": "post-checkpoint-receive-mutation-ReceiveReplayBoundSocketJSON-refuse-all.json",
+    "exit_status": 1,
+    "failed_cases": [
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#0",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#1",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#2",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#4",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#5",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#6",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#7",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#8",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#9",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#10",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#11",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#12",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#13",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#14"
+    ],
+    "behaviorally_killed": true
+  },
+  {
+    "mutation": "ReceiveReplayBoundSocketJSON-wrong-value",
+    "record": "post-checkpoint-receive-mutation-ReceiveReplayBoundSocketJSON-wrong-value.json",
+    "exit_status": 1,
+    "failed_cases": [
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#0",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#1",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#2",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#4",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#5",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#6",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#7",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#8",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#9",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#10",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#11",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#12",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#13",
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#14"
+    ],
+    "behaviorally_killed": true
+  },
+  {
+    "mutation": "ReceiveNoBody-refuse-all",
+    "record": "post-checkpoint-receive-mutation-ReceiveNoBody-refuse-all.json",
+    "exit_status": 1,
+    "failed_cases": [
+      "FuzzReceiveBoundedAndNoBodyCustody/seed#0",
+      "FuzzReceiveBoundedAndNoBodyCustody/seed#1",
+      "FuzzReceiveBoundedAndNoBodyCustody/seed#2",
+      "FuzzReceiveBoundedAndNoBodyCustody/seed#3",
+      "FuzzReceiveBoundedAndNoBodyCustody/seed#4",
+      "FuzzReceiveBoundedAndNoBodyCustody/seed#5",
+      "FuzzReceiveBoundedAndNoBodyCustody/seed#6",
+      "FuzzReceiveBoundedAndNoBodyCustody/seed#7",
+      "FuzzReceiveBoundedAndNoBodyCustody/seed#8"
+    ],
+    "behaviorally_killed": true
+  },
+  {
+    "mutation": "ReceiveBounded-refuse-all",
+    "record": "post-checkpoint-receive-mutation-ReceiveBounded-refuse-all.json",
+    "exit_status": 1,
+    "failed_cases": [
+      "FuzzReceiveBoundedAndNoBodyCustody/seed#0",
+      "FuzzReceiveBoundedAndNoBodyCustody/seed#1",
+      "FuzzReceiveBoundedAndNoBodyCustody/seed#2",
+      "FuzzReceiveBoundedAndNoBodyCustody/seed#3",
+      "FuzzReceiveBoundedAndNoBodyCustody/seed#4",
+      "FuzzReceiveBoundedAndNoBodyCustody/seed#5",
+      "FuzzReceiveBoundedAndNoBodyCustody/seed#6",
+      "FuzzReceiveBoundedAndNoBodyCustody/seed#7",
+      "FuzzReceiveBoundedAndNoBodyCustody/seed#8"
+    ],
+    "behaviorally_killed": true
+  },
+  {
+    "mutation": "auth-aliases-cleared-scratch",
+    "record": "post-checkpoint-receive-mutation-auth-aliases-cleared-scratch.json",
+    "exit_status": 1,
+    "failed_cases": [
+      "FuzzReceiveBasicAuthorizationSemanticClosure/seed#0",
+      "FuzzReceiveBasicAuthorizationSemanticClosure/seed#6",
+      "FuzzReceiveBasicAuthorizationSemanticClosure/seed#7",
+      "FuzzReceiveBasicAuthorizationSemanticClosure/seed#8"
+    ],
+    "behaviorally_killed": true
+  },
+  {
+    "mutation": "auth-skips-owning-validation",
+    "record": "post-checkpoint-receive-mutation-auth-skips-owning-validation.json",
+    "exit_status": 1,
+    "failed_cases": [
+      "FuzzReceiveBasicAuthorizationSemanticClosure/seed#9",
+      "FuzzReceiveBasicAuthorizationSemanticClosure/seed#10",
+      "FuzzReceiveBasicAuthorizationSemanticClosure/seed#11",
+      "FuzzReceiveBasicAuthorizationSemanticClosure/seed#12",
+      "FuzzReceiveBasicAuthorizationSemanticClosure/seed#13",
+      "FuzzReceiveBasicAuthorizationSemanticClosure/seed#14",
+      "FuzzReceiveBasicAuthorizationSemanticClosure/seed#15"
+    ],
+    "behaviorally_killed": true
+  },
+  {
+    "mutation": "project-skips-final-validation",
+    "record": "post-checkpoint-receive-mutation-project-skips-final-validation.json",
+    "exit_status": 0,
+    "failed_cases": [],
+    "behaviorally_killed": false
+  },
+  {
+    "mutation": "aggregate-discards-close-failure",
+    "record": "post-checkpoint-receive-mutation-aggregate-discards-close-failure.json",
+    "exit_status": 1,
+    "failed_cases": [
+      "FuzzReceiveBoundedAndNoBodyCustody/seed#0",
+      "FuzzReceiveBoundedAndNoBodyCustody/seed#1",
+      "FuzzReceiveBoundedAndNoBodyCustody/seed#2",
+      "FuzzReceiveBoundedAndNoBodyCustody/seed#3",
+      "FuzzReceiveBoundedAndNoBodyCustody/seed#5",
+      "FuzzReceiveBoundedAndNoBodyCustody/seed#6",
+      "FuzzReceiveBoundedAndNoBodyCustody/seed#7",
+      "FuzzReceiveBoundedAndNoBodyCustody/seed#8"
+    ],
+    "behaviorally_killed": true
+  },
+  {
+    "mutation": "bound-receive-ignores-foreign-key",
+    "record": "post-checkpoint-receive-mutation-bound-receive-ignores-foreign-key.json",
+    "exit_status": 1,
+    "failed_cases": [
+      "FuzzReceiveJSONProjectedJSONAndSocketJSONCustody/seed#4"
+    ],
+    "behaviorally_killed": true
+  }
+]

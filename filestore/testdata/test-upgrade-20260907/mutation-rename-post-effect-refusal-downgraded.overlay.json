@@ -1,0 +1,5 @@
+{
+  "Replace": {
+    "/Users/d/code/primitive/filestore/rename.go": "/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/mutation-rename-post-effect-refusal-downgraded.go"
+  }
+}

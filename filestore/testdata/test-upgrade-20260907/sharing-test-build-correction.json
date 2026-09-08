@@ -1,0 +1,6 @@
+{
+  "first": "sharing-admission-control.json",
+  "corrected": "sharing-admission-control-typed-request.json",
+  "classification": "test fixture build failure, not a production regression or mutant kill",
+  "correction": "Canonical seed OpenRead call must receive the actual compiler-owned ReadHandleRequest, not its nested Location."
+}

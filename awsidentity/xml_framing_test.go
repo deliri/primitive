@@ -85,7 +85,7 @@ func TestAWSAcquireReorderedEnvelopePreservesExactToken(t *testing.T) {
 	}
 	data := buffer.Bytes()
 	if bytes.Equal(data, awsProviderBytes(t, document)) {
-		t.Fatal("reordered document unchanged, want metadata before result")
+		t.Fatalf("reordered document=%x, want metadata before result", data)
 	}
 	body := &awsObservedBody{reader: bytes.NewReader(data)}
 	transport := &awsResponseTransport{body: body, status: http.StatusOK, length: int64(len(data))}

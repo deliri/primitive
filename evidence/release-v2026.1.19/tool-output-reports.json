@@ -1,0 +1,317 @@
+{
+  "scope": "Exact small tool outputs encoded in JSON, preserving diff indentation and diagnostic whitespace. Original raw files and larger outputs remain at their execution-record paths.",
+  "outputs": [
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/constants-final.stdout.txt",
+      "bytes": 1480,
+      "sha256": "25f9ba336e5b0575a1fdf4131c9b8d0347d93a52505b1f814682a7eb37a1d529",
+      "text": "goconst: 2026/09/07 20:25:06 Found 663 Go files to process in batches of 50\ngoconst: 2026/09/07 20:25:06 Warning: 11 batches exceed the configured batch size. Largest batch contains 75 files\ngoconst: 2026/09/07 20:25:06 Processing batch 1/12 (52 files)\ngoconst: 2026/09/07 20:25:06 Processing batch 2/12 (61 files)\ngoconst: 2026/09/07 20:25:06 Processing batch 3/12 (50 files)\ngoconst: 2026/09/07 20:25:06 Processing batch 4/12 (50 files)\ngoconst: 2026/09/07 20:25:06 Processing batch 5/12 (75 files)\ngoconst: 2026/09/07 20:25:06 Processing batch 6/12 (58 files)\ngoconst: 2026/09/07 20:25:06 Processing batch 7/12 (62 files)\ngoconst: 2026/09/07 20:25:06 Processing batch 8/12 (51 files)\ngoconst: 2026/09/07 20:25:06 Processing batch 9/12 (65 files)\ngoconst: 2026/09/07 20:25:06 Processing batch 10/12 (53 files)\ngoconst: 2026/09/07 20:25:07 Processing batch 11/12 (61 files)\ngoconst: 2026/09/07 20:25:07 Processing batch 12/12 (25 files)\nsourceclaim/json.go:36:41:2 other occurrence(s) of \"benchmark\" found in: runnercontrol/go_profile.go:49:71 sourceobservation/enum.go:98:87\ncore/source_identity.go:239:47:2 other occurrence(s) of \"file\" found in: github/operations.go:263:32 filestore/stream.go:28:28\ncapabilities/operation.go:34:21:2 other occurrence(s) of \"unavailable\" found in: hostfacts/workload.go:24:35 sourceproof/proof.go:36:72\nsourceclaim/json.go:36:25:2 other occurrence(s) of \"test\" found in: runnercontrol/external_profile.go:174:3 sourceobservation/enum.go:98:79\n"
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/deadcode-final.stdout.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/deadcode-initial.stdout.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/errcheck-final.stdout.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/errcheck-initial.stdout.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/go-fix-apply.stdout.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/go-fix-final.stdout.txt",
+      "bytes": 394,
+      "sha256": "8bcc14135501afdaa3f8373935e3c556dcf8dc07fb9f75aac54484568304f1e1",
+      "text": "--- /Users/d/code/primitive/exchange/architecture_test.go (old)\n+++ /Users/d/code/primitive/exchange/architecture_test.go (new)\n@@ -477,7 +477,6 @@\n \t}\n \tnames := make([]string, 0, inventory.NumField())\n \tfor field := range inventory.Fields() {\n-\t\tfield := field\n \t\tbinding, ok := reflect.Zero(field.Type).Interface().(inventoryTypeBinding)\n \t\tif !ok {\n \t\t\treturn nil, core.ErrExchangeContract\n"
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/go-fix-initial.stdout.txt",
+      "bytes": 17587,
+      "sha256": "db34ca5b98f23bd6d2de14f6c8a2736540b0a84bc4dd3ac6c9931224c2b72a85",
+      "text": "--- /Users/d/code/primitive/attest/ingress_fuzz_external_test.go (old)\n+++ /Users/d/code/primitive/attest/ingress_fuzz_external_test.go (new)\n@@ -52,7 +52,7 @@\n \tkey := deterministicPrivateKey(f, \"fuzz-stream\")\n \ttrust := mustTrustedKeys(f, mustPublicKey(f, key))\n \tf.Fuzz(func(t *testing.T, data []byte, chunk uint16) {\n-\t\tbody := chunkedLiteralBody{literalBody: literalBody{value: data, domain: testDomainPrimary}, chunkSize: int(chunk) + 1}\n+\t\tbody := chunkedLiteralBody{value: data, domain: testDomainPrimary, chunkSize: int(chunk) + 1}\n \t\tgot, gotErr := attest.Sign(attest.SignRequest[testDomain]{Body: body, Signer: key})\n \t\tif len(data) == 0 || len(data) > attest.CanonicalBodyMaximumBytes {\n \t\t\tif !errors.Is(gotErr, core.ErrAttestContract) || got != (attest.Envelope[testDomain]{}) {\n--- /Users/d/code/primitive/awsidentity/request_ingress_test.go (old)\n+++ /Users/d/code/primitive/awsidentity/request_ingress_test.go (new)\n@@ -63,8 +63,7 @@\n \t\t\t\t}\n \t\t\t}\n \t\t\tif input.Audience == original.Audience && input.Policy == original.Policy {\n-\t\t\t\tvar failure requestError\n-\t\t\t\tif !errors.As(err, &failure) {\n+\t\t\t\tif _, ok := errors.AsType[requestError](err); !ok {\n \t\t\t\t\tt.Fatalf(\"request URL refusal = %v, want requestError\", err)\n \t\t\t\t}\n \t\t\t\tfor _, format := range []string{\"%v\", \"%+v\", \"%#v\", \"%q\"} {\n--- /Users/d/code/primitive/capabilities/architecture_test.go (old)\n+++ /Users/d/code/primitive/capabilities/architecture_test.go (new)\n@@ -44,8 +44,8 @@\n \tt.Parallel()\n \tinventory := reflect.ValueOf(capabilitiesDataFlowInventory{})\n \tvar wantStructs []string\n-\tfor field := range inventory.NumField() {\n-\t\trole := inventory.Field(field).Interface().(interface{ contractType() reflect.Type })\n+\tfor _, field := range inventory.Fields() {\n+\t\trole := field.Interface().(interface{ contractType() reflect.Type })\n \t\twantStructs = append(wantStructs, role.contractType().Name())\n \t}\n \tpublic := capabilityPublicDoors{\n@@ -67,8 +67,8 @@\n \t\twantFunctions = append(wantFunctions, field.Name)\n \t}\n \tdecoders := reflect.ValueOf(jsonDoors)\n-\tfor field := range decoders.NumField() {\n-\t\tdoor := decoders.Field(field).FieldByName(\"Door\")\n+\tfor _, field := range decoders.Fields() {\n+\t\tdoor := field.FieldByName(\"Door\")\n \t\tfunction := runtime.FuncForPC(door.Pointer()).Name()\n \t\treceiver := door.Type().In(0).Elem().Name()\n \t\twantDecoders = append(wantDecoders, receiver+function[strings.LastIndex(function, \".\"):])\n--- /Users/d/code/primitive/capabilities/classification_boundary_test.go (old)\n+++ /Users/d/code/primitive/capabilities/classification_boundary_test.go (new)\n@@ -58,7 +58,7 @@\n \tfor raw := range 256 {\n \t\toperation := Operation(raw)\n \t\tfor disposition := StandardSymbolPure; disposition <= StandardSymbolUnresolved; disposition++ {\n-\t\t\tfor effect := EffectUnknown; effect < effectLimit; effect++ {\n+\t\t\tfor effect := range effectLimit {\n \t\t\t\tvalue := Classification{Operation: operation, Disposition: disposition, Effect: effect}\n \t\t\t\twant := raw < int(operationLimit) && ((disposition == StandardSymbolEffect && effect != EffectUnknown) || (disposition != StandardSymbolEffect && effect == EffectUnknown))\n \t\t\t\tif want && operation != OperationUnavailable {\n--- /Users/d/code/primitive/capabilities/contract_ingress_test.go (old)\n+++ /Users/d/code/primitive/capabilities/contract_ingress_test.go (new)\n@@ -19,7 +19,7 @@\n \t\tvalidate func() error\n \t}{\n \t\t{\"symbol ingress\", invalid.Validate},\n-\t\t{\"fact ingress\", (StandardSymbolFact{Symbol: invalid, Classification: Classification{Disposition: StandardSymbolUnresolved}}).Validate},\n+\t\t{\"fact ingress\", (StandardSymbolFact{Symbol: invalid, Disposition: StandardSymbolUnresolved}).Validate},\n \t\t{\"operation function ingress\", (OperationContract{Function: invalid, Result: valid.Selector, ResultPackage: core.PackageCore}).Validate},\n \t}\n \t// The shared nominal import-path sentinel remains visible across the package wall.\n--- /Users/d/code/primitive/capabilities/ownership_boundary_test.go (old)\n+++ /Users/d/code/primitive/capabilities/ownership_boundary_test.go (new)\n@@ -73,7 +73,7 @@\n \t\t\t\tsymbol.Receiver = &receiver\n \t\t\t}\n \t\t\tfor _, retained := range operationDomain() {\n-\t\t\t\tfact := StandardSymbolFact{Symbol: symbol, Classification: Classification{Disposition: StandardSymbolEffect, Effect: tc.owner, Operation: retained}}\n+\t\t\t\tfact := StandardSymbolFact{Symbol: symbol, Disposition: StandardSymbolEffect, Effect: tc.owner, Operation: retained}\n \t\t\t\tgot, err := fact.Replacement()\n \t\t\t\tif retained == OperationUnavailable || retained == tc.want {\n \t\t\t\t\tif err != nil || got != tc.want {\n@@ -86,7 +86,7 @@\n \t\t\t\t}\n \t\t\t}\n \t\t\tfor effect := EffectFilesystem; effect < effectLimit; effect++ {\n-\t\t\t\tfact := StandardSymbolFact{Symbol: symbol, Classification: Classification{Disposition: StandardSymbolEffect, Effect: effect}}\n+\t\t\t\tfact := StandardSymbolFact{Symbol: symbol, Disposition: StandardSymbolEffect, Effect: effect}\n \t\t\t\tgot, err := fact.Replacement()\n \t\t\t\tif effect == tc.owner {\n \t\t\t\t\tif err != nil || got != tc.want {\n--- /Users/d/code/primitive/capabilities/semantic_oracle_test.go (old)\n+++ /Users/d/code/primitive/capabilities/semantic_oracle_test.go (new)\n@@ -105,7 +105,7 @@\n \n func FuzzClassificationTypedProjection(f *testing.F) {\n \tfor _, disposition := range dispositionDomain() {\n-\t\tfor effect := EffectUnknown; effect < effectLimit; effect++ {\n+\t\tfor effect := range effectLimit {\n \t\t\tf.Add(uint8(disposition), uint8(effect), uint8(OperationUnavailable), []byte{})\n \t\t}\n \t}\n@@ -181,7 +181,7 @@\n \t\tf.Add(uint8(ScopeProduction), uint8(RequirementTargetPackage), uint8(contract.Identity), uint8(EffectUnknown))\n \t\tf.Add(uint8(ScopeTest), uint8(RequirementTargetPackage), uint8(contract.Identity), uint8(EffectUnknown))\n \t}\n-\tfor effect := EffectUnknown; effect < effectLimit; effect++ {\n+\tfor effect := range effectLimit {\n \t\tf.Add(uint8(ScopeProduction), uint8(RequirementTargetEffect), uint8(core.PackageUnknown), uint8(effect))\n \t}\n \tf.Add(uint8(255), uint8(255), uint8(255), uint8(255))\n--- /Users/d/code/primitive/filestore/activation_handoff_layer_triad_external_test.go (old)\n+++ /Users/d/code/primitive/filestore/activation_handoff_layer_triad_external_test.go (new)\n@@ -135,8 +135,7 @@\n \t\t\t\t}\n \t\t\t}\n \t\t\tif tc.wantErr != nil {\n-\t\t\t\tvar native *os.LinkError\n-\t\t\t\tif !errors.As(gotErr, &native) {\n+\t\t\t\tif _, ok := errors.AsType[*os.LinkError](gotErr); !ok {\n \t\t\t\t\tt.Fatalf(\"refusal = %v, want Go LinkError\", gotErr)\n \t\t\t\t}\n \t\t\t\t// Go owns platform errno spelling; the same native operation on these\n--- /Users/d/code/primitive/filestore/activation_request_hostile_external_test.go (old)\n+++ /Users/d/code/primitive/filestore/activation_request_hostile_external_test.go (new)\n@@ -120,7 +120,7 @@\n \t\t\t\twantErr error\n \t\t\t\tclass   activationAgreementClass\n \t\t\t}, 0, int(activationAgreementDomain))\n-\t\t\tfor bits := activationAgreementChange(0); bits < activationAgreementDomain; bits++ {\n+\t\t\tfor bits := range activationAgreementDomain {\n \t\t\t\tname := \"exact agreement alone authorizes activation\"\n \t\t\t\tvar labels []string\n \t\t\t\tfor _, change := range changes {\n--- /Users/d/code/primitive/filestore/append_intent_test.go (old)\n+++ /Users/d/code/primitive/filestore/append_intent_test.go (new)\n@@ -126,8 +126,7 @@\n \t\t\t\t\tt.Fatalf(\"native fixture error = %v, want a native refusal\", nativeErr)\n \t\t\t\t}\n \t\t\t\twantNative = nativeErr\n-\t\t\t\tvar pathErr *fs.PathError\n-\t\t\t\tif errors.As(nativeErr, &pathErr) {\n+\t\t\t\tif pathErr, ok := errors.AsType[*fs.PathError](nativeErr); ok {\n \t\t\t\t\twantNative = pathErr.Err\n \t\t\t\t}\n \t\t\t}\n--- /Users/d/code/primitive/filestore/ensure_directory_semantic_fuzz_external_test.go (old)\n+++ /Users/d/code/primitive/filestore/ensure_directory_semantic_fuzz_external_test.go (new)\n@@ -60,7 +60,7 @@\n \t\tf.Fatal(err)\n \t}\n \tf.Add(uint8(0), uint8(0), uint8(ensureDirectoryLeafMissing), uint16(observed.Mode().Perm()), emitted, false)\n-\tfor leaf := ensureDirectoryLeafMissing; leaf < ensureDirectoryLeafLimit; leaf++ {\n+\tfor leaf := range ensureDirectoryLeafLimit {\n \t\tf.Add(uint8(2), uint8(1), uint8(leaf), uint16(seed.Mode), []byte{0, 255}, false)\n \t}\n \tf.Add(uint8(0), uint8(0), uint8(ensureDirectoryLeafMissing), uint16(seed.Mode), []byte{}, false)\n--- /Users/d/code/primitive/filestore/handle_semantic_fuzz_external_test.go (old)\n+++ /Users/d/code/primitive/filestore/handle_semantic_fuzz_external_test.go (new)\n@@ -206,8 +206,7 @@\n \t\t}\n \t\tif openErrors[1] != nil {\n \t\t\twantNative := openErrors[1]\n-\t\t\tvar pathErr *fs.PathError\n-\t\t\tif errors.As(wantNative, &pathErr) {\n+\t\t\tif pathErr, ok := errors.AsType[*fs.PathError](wantNative); ok {\n \t\t\t\twantNative = pathErr.Err\n \t\t\t}\n \t\t\tvar wantBoundary error = core.ErrFilestoreActivation\n--- /Users/d/code/primitive/filestore/held_directory_layer_triad_external_test.go (old)\n+++ /Users/d/code/primitive/filestore/held_directory_layer_triad_external_test.go (new)\n@@ -89,8 +89,7 @@\n \t\t\t\t\tt.Fatalf(\"directory/error = (%v,%v), want nil and (%v,%v)\", directory, gotErr, tc.wantErr, tc.wantNativeErr)\n \t\t\t\t}\n \t\t\t\tif errors.Is(tc.wantErr, core.ErrFilestoreSource) {\n-\t\t\t\t\tvar native *fs.PathError\n-\t\t\t\t\tif !errors.As(gotErr, &native) {\n+\t\t\t\t\tif _, ok := errors.AsType[*fs.PathError](gotErr); !ok {\n \t\t\t\t\t\tt.Fatalf(\"source refusal = %v, want native PathError\", gotErr)\n \t\t\t\t\t}\n \t\t\t\t}\n--- /Users/d/code/primitive/filestore/held_standing_semantic_fuzz_external_test.go (old)\n+++ /Users/d/code/primitive/filestore/held_standing_semantic_fuzz_external_test.go (new)\n@@ -56,7 +56,7 @@\n \tif err := errors.Join(held.Close(), root.Close()); err != nil {\n \t\tf.Fatal(err)\n \t}\n-\tfor mutation := heldNativeUnchanged; mutation < heldNativeMutationLimit; mutation++ {\n+\tfor mutation := range heldNativeMutationLimit {\n \t\tf.Add(emitted, uint8(mutation))\n \t}\n \tf.Add([]byte{}, uint8(heldNativeUnchanged))\n--- /Users/d/code/primitive/filestore/lock_file_native_external_test.go (old)\n+++ /Users/d/code/primitive/filestore/lock_file_native_external_test.go (new)\n@@ -139,8 +139,7 @@\n \t\t\t\t\tt.Fatalf(\"native fixture error = %v, want a native refusal\", nativeErr)\n \t\t\t\t}\n \t\t\t\twantNative = nativeErr\n-\t\t\t\tvar nativePath *fs.PathError\n-\t\t\t\tif errors.As(nativeErr, &nativePath) {\n+\t\t\t\tif nativePath, ok := errors.AsType[*fs.PathError](nativeErr); ok {\n \t\t\t\t\twantNative = nativePath.Err\n \t\t\t\t}\n \t\t\t}\n--- /Users/d/code/primitive/filestore/open_update_layer_triad_external_test.go (old)\n+++ /Users/d/code/primitive/filestore/open_update_layer_triad_external_test.go (new)\n@@ -186,8 +186,7 @@\n \t\t\t\t\t\tif nativeErr != nil {\n \t\t\t\t\t\t\twantErr = operation.wantBoundary\n \t\t\t\t\t\t\twantNative = nativeErr\n-\t\t\t\t\t\t\tvar nativePath *fs.PathError\n-\t\t\t\t\t\t\tif errors.As(nativeErr, &nativePath) {\n+\t\t\t\t\t\t\tif nativePath, ok := errors.AsType[*fs.PathError](nativeErr); ok {\n \t\t\t\t\t\t\t\twantNative = nativePath.Err\n \t\t\t\t\t\t\t}\n \t\t\t\t\t\t}\n--- /Users/d/code/primitive/filestore/parent_identity_semantic_fuzz_external_test.go (old)\n+++ /Users/d/code/primitive/filestore/parent_identity_semantic_fuzz_external_test.go (new)\n@@ -42,7 +42,7 @@\n \tif err := seed.Root.Close(); err != nil {\n \t\tf.Fatal(err)\n \t}\n-\tfor parent := nativeParentReal; parent < nativeParentFixtureLimit; parent++ {\n+\tfor parent := range nativeParentFixtureLimit {\n \t\tf.Add(uint8(parent), uint8(rootIdentityOriginal), base, []byte{0, 255}, false)\n \t}\n \tfor identity := rootIdentityAlias; identity <= rootIdentityLoop; identity++ {\n--- /Users/d/code/primitive/filestore/rename_semantic_fuzz_external_test.go (old)\n+++ /Users/d/code/primitive/filestore/rename_semantic_fuzz_external_test.go (new)\n@@ -64,7 +64,7 @@\n \t\tf.Fatalf(\"renamed seed = (%v,%v), want exact emitted bytes\", renamed, err)\n \t}\n \tf.Add(uint8(renameEntryRegular), uint8(renameEntryMissing), uint8(renameNativeSameParent), renamed, []byte{}, false, false, false)\n-\tfor shape := renameEntryMissing; shape < renameEntryHardLink; shape++ {\n+\tfor shape := range renameEntryHardLink {\n \t\tf.Add(uint8(shape), uint8(renameEntryMissing), uint8(renameNativeSameParent), []byte{0, 255}, []byte{1, 254}, false, false, false)\n \t}\n \tfor shape := renameEntryRegular; shape < renameEntryShapeLimit; shape++ {\n--- /Users/d/code/primitive/filestore/sharing_semantic_fuzz_external_test.go (old)\n+++ /Users/d/code/primitive/filestore/sharing_semantic_fuzz_external_test.go (new)\n@@ -49,7 +49,7 @@\n \tif n != len(input) || readErr != nil || closeErr != nil || rootErr != nil || !bytes.Equal(emitted, input) {\n \t\tf.Fatalf(\"seed = (%v,%d,%v,%v,%v), want emitted %v\", emitted, n, readErr, closeErr, rootErr, input)\n \t}\n-\tfor kind := sharingIngressActive; kind < sharingIngressLimit; kind++ {\n+\tfor kind := range sharingIngressLimit {\n \t\tf.Add(emitted, uint8(kind), false, false)\n \t}\n \tf.Add(emitted, uint8(sharingIngressActive), true, false)\n--- /Users/d/code/primitive/filestore/symbolic_link_semantic_fuzz_external_test.go (old)\n+++ /Users/d/code/primitive/filestore/symbolic_link_semantic_fuzz_external_test.go (new)\n@@ -91,8 +91,7 @@\n \t\tswitch kind {\n \t\tcase symbolicNativeLink:\n \t\t\tif err := os.Symlink(rawTarget, subject); err != nil {\n-\t\t\t\tvar native *os.LinkError\n-\t\t\t\tif !errors.As(err, &native) {\n+\t\t\t\tif _, ok := errors.AsType[*os.LinkError](err); !ok {\n \t\t\t\t\tt.Fatalf(\"native fixture refusal = %v, want LinkError\", err)\n \t\t\t\t}\n \t\t\t\tif info, err := os.Lstat(subject); !errors.Is(err, os.ErrNotExist) {\n--- /Users/d/code/primitive/filestore/walk_external_test.go (old)\n+++ /Users/d/code/primitive/filestore/walk_external_test.go (new)\n@@ -188,8 +188,7 @@\n \t\t}\n \t\tif mutation == walkReplacementRegular && wantNative != nil {\n \t\t\tnativeErr := nativeWalkDirectoryReopen(fixture.root, fixture.branch.String())\n-\t\t\tvar native *os.PathError\n-\t\t\tif errors.As(nativeErr, &native) {\n+\t\t\tif native, ok := errors.AsType[*os.PathError](nativeErr); ok {\n \t\t\t\twantNative = native.Err\n \t\t\t} else {\n \t\t\t\twantNative = nativeErr\n--- /Users/d/code/primitive/filestore/walk_lexical_external_test.go (old)\n+++ /Users/d/code/primitive/filestore/walk_lexical_external_test.go (new)\n@@ -83,8 +83,7 @@\n \t\t\t\t}\n \t\t\t\tif tc.mutation == walkReplacementRegular && wantNative != nil {\n \t\t\t\t\tnativeErr := nativeWalkDirectoryReopen(fixture.root, fixture.branch.String())\n-\t\t\t\t\tvar native *os.PathError\n-\t\t\t\t\tif errors.As(nativeErr, &native) {\n+\t\t\t\t\tif native, ok := errors.AsType[*os.PathError](nativeErr); ok {\n \t\t\t\t\t\twantNative = native.Err\n \t\t\t\t\t} else {\n \t\t\t\t\t\twantNative = nativeErr\n--- /Users/d/code/primitive/exchange/architecture_test.go (old)\n+++ /Users/d/code/primitive/exchange/architecture_test.go (new)\n@@ -472,8 +472,8 @@\n \t\treturn nil, core.ErrExchangeContract\n \t}\n \tnames := make([]string, 0, inventory.NumField())\n-\tfor index := range inventory.NumField() {\n-\t\tfield := inventory.Field(index)\n+\tfor field := range inventory.Fields() {\n+\t\tfield := field\n \t\tbinding, ok := reflect.Zero(field.Type).Interface().(inventoryTypeBinding)\n \t\tif !ok {\n \t\t\treturn nil, core.ErrExchangeContract\n--- /Users/d/code/primitive/exchange/handoff_matrix_internal_test.go (old)\n+++ /Users/d/code/primitive/exchange/handoff_matrix_internal_test.go (new)\n@@ -232,7 +232,7 @@\n \t\t{handoffBodyLimit, core.ErrExchangeBodyLimit}, {handoffResponse, core.ErrExchangeResponse},\n \t\t{handoffTransport, core.ErrExchangeTransport},\n \t}\n-\tfor bits := handoffCauseBits(0); bits < handoffCauseDomain; bits++ {\n+\tfor bits := range handoffCauseDomain {\n \t\trow := struct {\n \t\t\tbits      handoffCauseBits\n \t\t\tprimary   handoffPrimary\n--- /Users/d/code/primitive/exchange/response_buffer_panic_internal_test.go (old)\n+++ /Users/d/code/primitive/exchange/response_buffer_panic_internal_test.go (new)\n@@ -77,7 +77,7 @@\n \tfor _, tc := range cases {\n \t\tt.Run(tc.name, func(t *testing.T) {\n \t\t\tt.Parallel()\n-\t\t\tdestination := &bufferPanicDestination{admissionResponseWriter: admissionResponseWriter{header: make(http.Header)}, phase: tc.phase}\n+\t\t\tdestination := &bufferPanicDestination{header: make(http.Header), phase: tc.phase}\n \t\t\tcall, err := NewSocketServerCall(destination, httptest.NewRequest(http.MethodGet, \"/\", nil))\n \t\t\tif err != nil {\n \t\t\t\tt.Fatal(err)\n--- /Users/d/code/primitive/exchange/response_buffer_release_internal_test.go (old)\n+++ /Users/d/code/primitive/exchange/response_buffer_release_internal_test.go (new)\n@@ -88,7 +88,7 @@\n \tfor _, tc := range cases {\n \t\tt.Run(tc.name, func(t *testing.T) {\n \t\t\tt.Parallel()\n-\t\t\tdestination := &bufferReleaseDestination{admissionResponseWriter: admissionResponseWriter{header: make(http.Header)}, fault: tc.fault}\n+\t\t\tdestination := &bufferReleaseDestination{header: make(http.Header), fault: tc.fault}\n \t\t\tlengthName := core.HTTPHeaderContentLength().String()\n \t\t\tif tc.beforeLength != nil {\n \t\t\t\tdestination.header[lengthName] = slices.Clone(tc.beforeLength)\n--- /Users/d/code/primitive/exchange/server_standard_fuzz_internal_test.go (old)\n+++ /Users/d/code/primitive/exchange/server_standard_fuzz_internal_test.go (new)\n@@ -44,7 +44,7 @@\n \t\tf.Fatal(err)\n \t}\n \tfor _, status := range []int{http.StatusFound, http.StatusNotModified, http.StatusBadRequest, http.StatusInternalServerError, http.StatusOK, 0} {\n-\t\tfor method := uint8(0); method < 3; method++ {\n+\t\tfor method := range uint8(3) {\n \t\t\tf.Add(seed.Location, cookie.Name, cookie.Value, uint16(status), method, false)\n \t\t}\n \t}\n--- /Users/d/code/primitive/exchange/session_cookie_fuzz_internal_test.go (old)\n+++ /Users/d/code/primitive/exchange/session_cookie_fuzz_internal_test.go (new)\n@@ -52,7 +52,7 @@\n \tif field == \"\" || canonical == \"\" {\n \t\tf.Fatal(\"cookie seed emitted no field\")\n \t}\n-\tfor host := uint8(0); host < 5; host++ {\n+\tfor host := range uint8(5) {\n \t\tf.Add(canonical, \"\", host, sessionCookiePath, false)\n \t}\n \tfor _, path := range []string{sessionCookiePath, sessionCookiePath + \"/child\", sessionCookiePath + \"-foreign\", \"/\"} {\n"
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/go-fix-transitive-apply.stdout.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/go-fix-verified.stdout.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/goconst-current-source.stdout.txt",
+      "bytes": 4416,
+      "sha256": "26418efb504479e54fd3e0953e4fd7b87679e38227c8d52d8b1c8fdeeb80b462",
+      "text": "receipt/contracts.go:95:3:2 other occurrence(s) of \"submission\" found in: core/architecture_catalog.go:447:3 _hammer/claims/package_claims_s_z.go:60:10\ncore/architecture_catalog.go:447:3:2 other occurrence(s) of \"submission\" found in: receipt/contracts.go:95:3 _hammer/claims/package_claims_s_z.go:60:10\n_hammer/claims/package_claims_s_z.go:60:10:2 other occurrence(s) of \"submission\" found in: receipt/contracts.go:95:3 core/architecture_catalog.go:447:3\ncore/architecture_catalog.go:490:3:2 other occurrence(s) of \"proofledger\" found in: _hammer/claims/package_claims_h_r.go:123:10 _hammer/claims/claims.go:58:20\n_hammer/claims/package_claims_h_r.go:123:10:2 other occurrence(s) of \"proofledger\" found in: core/architecture_catalog.go:490:3 _hammer/claims/claims.go:58:20\n_hammer/claims/claims.go:58:20:2 other occurrence(s) of \"proofledger\" found in: core/architecture_catalog.go:490:3 _hammer/claims/package_claims_h_r.go:123:10\ncore/architecture_catalog.go:431:3:2 other occurrence(s) of \"core\" found in: _hammer/claims/claims.go:51:20 _hammer/claims/package_claims_a_g.go:87:10\n_hammer/claims/claims.go:51:20:2 other occurrence(s) of \"core\" found in: core/architecture_catalog.go:431:3 _hammer/claims/package_claims_a_g.go:87:10\n_hammer/claims/package_claims_a_g.go:87:10:2 other occurrence(s) of \"core\" found in: core/architecture_catalog.go:431:3 _hammer/claims/claims.go:51:20\ncapabilities/operation.go:34:21:2 other occurrence(s) of \"unavailable\" found in: hostfacts/workload.go:24:35 sourceproof/proof.go:36:72\nhostfacts/workload.go:24:35:2 other occurrence(s) of \"unavailable\" found in: capabilities/operation.go:34:21 sourceproof/proof.go:36:72\nsourceproof/proof.go:36:72:2 other occurrence(s) of \"unavailable\" found in: capabilities/operation.go:34:21 hostfacts/workload.go:24:35\ncore/architecture_catalog.go:438:3:2 other occurrence(s) of \"filestore\" found in: _hammer/claims/claims.go:44:20 _hammer/claims/package_claims_a_g.go:150:10\n_hammer/claims/claims.go:44:20:2 other occurrence(s) of \"filestore\" found in: core/architecture_catalog.go:438:3 _hammer/claims/package_claims_a_g.go:150:10\n_hammer/claims/package_claims_a_g.go:150:10:2 other occurrence(s) of \"filestore\" found in: core/architecture_catalog.go:438:3 _hammer/claims/claims.go:44:20\nsourceclaim/json.go:36:41:2 other occurrence(s) of \"benchmark\" found in: runnercontrol/go_profile.go:49:71 sourceobservation/enum.go:98:87\nrunnercontrol/go_profile.go:49:71:2 other occurrence(s) of \"benchmark\" found in: sourceclaim/json.go:36:41 sourceobservation/enum.go:98:87\nsourceobservation/enum.go:98:87:2 other occurrence(s) of \"benchmark\" found in: sourceclaim/json.go:36:41 runnercontrol/go_profile.go:49:71\n_hammer/claims/claims.go:37:20:2 other occurrence(s) of \"exchange\" found in: core/architecture_catalog.go:441:3 _hammer/claims/package_claims_a_g.go:132:10\ncore/architecture_catalog.go:441:3:2 other occurrence(s) of \"exchange\" found in: _hammer/claims/claims.go:37:20 _hammer/claims/package_claims_a_g.go:132:10\n_hammer/claims/package_claims_a_g.go:132:10:2 other occurrence(s) of \"exchange\" found in: _hammer/claims/claims.go:37:20 core/architecture_catalog.go:441:3\ncore/architecture_catalog.go:450:3:2 other occurrence(s) of \"process\" found in: _hammer/claims/package_claims_h_r.go:114:10 _hammer/claims/claims.go:65:20\n_hammer/claims/package_claims_h_r.go:114:10:2 other occurrence(s) of \"process\" found in: core/architecture_catalog.go:450:3 _hammer/claims/claims.go:65:20\n_hammer/claims/claims.go:65:20:2 other occurrence(s) of \"process\" found in: core/architecture_catalog.go:450:3 _hammer/claims/package_claims_h_r.go:114:10\nsourceclaim/json.go:36:25:2 other occurrence(s) of \"test\" found in: runnercontrol/external_profile.go:174:3 sourceobservation/enum.go:98:79\nrunnercontrol/external_profile.go:174:3:2 other occurrence(s) of \"test\" found in: sourceclaim/json.go:36:25 sourceobservation/enum.go:98:79\nsourceobservation/enum.go:98:79:2 other occurrence(s) of \"test\" found in: sourceclaim/json.go:36:25 runnercontrol/external_profile.go:174:3\ncore/source_identity.go:239:47:2 other occurrence(s) of \"file\" found in: filestore/stream.go:28:28 github/operations.go:263:32\nfilestore/stream.go:28:28:2 other occurrence(s) of \"file\" found in: core/source_identity.go:239:47 github/operations.go:263:32\ngithub/operations.go:263:32:2 other occurrence(s) of \"file\" found in: core/source_identity.go:239:47 filestore/stream.go:28:28\n"
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/goconst-module-source.stdout.txt",
+      "bytes": 1626,
+      "sha256": "bc91c7e416ed63e94457fcdc4f6d2c8a8d3f43f209609b971a770f946c1ba2dc",
+      "text": "runnercontrol/external_profile.go:174:3:2 other occurrence(s) of \"test\" found in: sourceclaim/json.go:36:25 sourceobservation/enum.go:98:79\nsourceclaim/json.go:36:25:2 other occurrence(s) of \"test\" found in: runnercontrol/external_profile.go:174:3 sourceobservation/enum.go:98:79\nsourceobservation/enum.go:98:79:2 other occurrence(s) of \"test\" found in: runnercontrol/external_profile.go:174:3 sourceclaim/json.go:36:25\nrunnercontrol/go_profile.go:49:71:2 other occurrence(s) of \"benchmark\" found in: sourceclaim/json.go:36:41 sourceobservation/enum.go:98:87\nsourceclaim/json.go:36:41:2 other occurrence(s) of \"benchmark\" found in: runnercontrol/go_profile.go:49:71 sourceobservation/enum.go:98:87\nsourceobservation/enum.go:98:87:2 other occurrence(s) of \"benchmark\" found in: runnercontrol/go_profile.go:49:71 sourceclaim/json.go:36:41\ncore/source_identity.go:239:47:2 other occurrence(s) of \"file\" found in: filestore/stream.go:28:28 github/operations.go:263:32\nfilestore/stream.go:28:28:2 other occurrence(s) of \"file\" found in: core/source_identity.go:239:47 github/operations.go:263:32\ngithub/operations.go:263:32:2 other occurrence(s) of \"file\" found in: core/source_identity.go:239:47 filestore/stream.go:28:28\nhostfacts/workload.go:24:35:2 other occurrence(s) of \"unavailable\" found in: sourceproof/proof.go:36:72 capabilities/operation.go:34:21\nsourceproof/proof.go:36:72:2 other occurrence(s) of \"unavailable\" found in: hostfacts/workload.go:24:35 capabilities/operation.go:34:21\ncapabilities/operation.go:34:21:2 other occurrence(s) of \"unavailable\" found in: hostfacts/workload.go:24:35 sourceproof/proof.go:36:72\n"
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/nilaway-final.stdout.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/nilaway-initial.stdout.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/nilaway-verified.stdout.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/staticcheck-final.stdout.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/staticcheck-initial.stdout.txt",
+      "bytes": 2088,
+      "sha256": "7c71912ea21341ff2d8bd9b800f60108446ec4a22862e1c72aec59290ad76614",
+      "text": "awsidentity/architecture_test.go:20:6: type awsInternalRole is unused (U1000)\nawsidentity/architecture_test.go:22:6: type awsFailureRole is unused (U1000)\nawsidentity/architecture_test.go:30:2: field acquisitionCall is unused (U1000)\nawsidentity/architecture_test.go:31:2: field amazonResponse is unused (U1000)\nawsidentity/architecture_test.go:32:2: field amazonResult is unused (U1000)\nawsidentity/architecture_test.go:33:2: field amazonUnexpectedElement is unused (U1000)\nawsidentity/architecture_test.go:34:2: field amazonTokenElement is unused (U1000)\nawsidentity/architecture_test.go:35:2: field amazonExpirationElement is unused (U1000)\nawsidentity/architecture_test.go:36:2: field amazonResponseMetadata is unused (U1000)\nawsidentity/architecture_test.go:37:2: field amazonRequestIDElement is unused (U1000)\nawsidentity/architecture_test.go:41:2: field requestError is unused (U1000)\nexchange/architecture_test.go:149:2: field observedStandardResponseWriter is unused (U1000)\nexchange/architecture_test.go:223:2: field observedStreamWriter is unused (U1000)\nexchange/header_value_fuzz_test.go:139:34: error strings should not be capitalized (ST1005)\nexchange/official_sdk_configuration_fuzz_internal_test.go:67:123: should use !strings.ContainsAny(prefix, \"?#\") instead (S1003)\nexchange/official_sdk_configuration_fuzz_internal_test.go:67:231: should use !strings.ContainsAny(suffix, \"?#\") instead (S1003)\nexchange/stream_replay_fuzz_external_test.go:124:31: should convert response (type github.com/deliri/primitive/v2026/exchange.StreamRoundTripResponse) to github.com/deliri/primitive/v2026/exchange.StreamResponse instead of using struct literal (S1016)\nexchange/upload_declaration_external_test.go:71:11: should convert response (type github.com/deliri/primitive/v2026/exchange.StreamRoundTripResponse) to github.com/deliri/primitive/v2026/exchange.StreamResponse instead of using struct literal (S1016)\nexchange/upload_declaration_fuzz_internal_test.go:100:11: should convert response (type StreamRoundTripResponse) to StreamResponse instead of using struct literal (S1016)\n"
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/staticcheck-verified.stdout.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/vet-corrections.stdout.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/vet-diagnostic-corrections.stdout.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/vet-final.stdout.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/vet-initial.stdout.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/vet-verified.stdout.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/witness-lint-current-source.stdout.txt",
+      "bytes": 56,
+      "sha256": "0e08fbd33a1c120b2e21209565afa534b358262dbc21e7857fb4588cd407df50",
+      "text": "witness-lint: waivers=7\nwitness-lint: waived_findings=6\n"
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/witness-lint-final.stdout.txt",
+      "bytes": 56,
+      "sha256": "0e08fbd33a1c120b2e21209565afa534b358262dbc21e7857fb4588cd407df50",
+      "text": "witness-lint: waivers=7\nwitness-lint: waived_findings=6\n"
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/constants-final.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/deadcode-final.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/deadcode-initial.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/errcheck-final.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/errcheck-initial.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/go-fix-apply.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/go-fix-final.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/go-fix-initial.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/go-fix-transitive-apply.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/go-fix-verified.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/goconst-current-source.stderr.txt",
+      "bytes": 938,
+      "sha256": "83a842e13ef499f3769f2a329318952f0dedd958f2f7b04a8c0390e6d5a06539",
+      "text": "goconst: 2026/09/07 20:15:48 Found 668 Go files to process in batches of 50\ngoconst: 2026/09/07 20:15:48 Warning: 11 batches exceed the configured batch size. Largest batch contains 77 files\ngoconst: 2026/09/07 20:15:48 Processing batch 1/12 (59 files)\ngoconst: 2026/09/07 20:15:48 Processing batch 2/12 (58 files)\ngoconst: 2026/09/07 20:15:48 Processing batch 3/12 (60 files)\ngoconst: 2026/09/07 20:15:48 Processing batch 4/12 (53 files)\ngoconst: 2026/09/07 20:15:48 Processing batch 5/12 (55 files)\ngoconst: 2026/09/07 20:15:48 Processing batch 6/12 (52 files)\ngoconst: 2026/09/07 20:15:48 Processing batch 7/12 (52 files)\ngoconst: 2026/09/07 20:15:48 Processing batch 8/12 (51 files)\ngoconst: 2026/09/07 20:15:48 Processing batch 9/12 (61 files)\ngoconst: 2026/09/07 20:15:48 Processing batch 10/12 (77 files)\ngoconst: 2026/09/07 20:15:48 Processing batch 11/12 (60 files)\ngoconst: 2026/09/07 20:15:48 Processing batch 12/12 (30 files)\n"
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/goconst-initial.stderr.txt",
+      "bytes": 3461,
+      "sha256": "3f8349426afbad7a0e57e18fd9b560134f8a70bf8cb883eba6ba15b1bddaa823",
+      "text": "goconst: 2026/09/07 20:14:02 Found 3080 Go files to process in batches of 50\ngoconst: 2026/09/07 20:14:02 Warning: 51 batches exceed the configured batch size. Largest batch contains 223 files\ngoconst: 2026/09/07 20:14:02 Processing batch 1/52 (56 files)\ngoconst: 2026/09/07 20:14:02 Processing batch 2/52 (51 files)\ngoconst: 2026/09/07 20:14:02 Processing batch 3/52 (60 files)\ngoconst: 2026/09/07 20:14:02 Processing batch 4/52 (70 files)\ngoconst: 2026/09/07 20:14:02 Processing batch 5/52 (55 files)\ngoconst: 2026/09/07 20:14:03 Processing batch 6/52 (51 files)\ngoconst: 2026/09/07 20:14:03 Processing batch 7/52 (59 files)\ngoconst: 2026/09/07 20:14:03 Processing batch 8/52 (54 files)\ngoconst: 2026/09/07 20:14:03 Processing batch 9/52 (52 files)\ngoconst: 2026/09/07 20:14:03 Processing batch 10/52 (51 files)\ngoconst: 2026/09/07 20:14:03 Processing batch 11/52 (55 files)\ngoconst: 2026/09/07 20:14:03 Processing batch 12/52 (56 files)\ngoconst: 2026/09/07 20:14:03 Processing batch 13/52 (54 files)\ngoconst: 2026/09/07 20:14:03 Processing batch 14/52 (80 files)\ngoconst: 2026/09/07 20:14:04 Processing batch 15/52 (50 files)\ngoconst: 2026/09/07 20:14:04 Processing batch 16/52 (60 files)\ngoconst: 2026/09/07 20:14:04 Processing batch 17/52 (57 files)\ngoconst: 2026/09/07 20:14:04 Processing batch 18/52 (52 files)\ngoconst: 2026/09/07 20:14:04 Processing batch 19/52 (50 files)\ngoconst: 2026/09/07 20:14:05 Processing batch 20/52 (55 files)\ngoconst: 2026/09/07 20:14:05 Processing batch 21/52 (50 files)\ngoconst: 2026/09/07 20:14:05 Processing batch 22/52 (53 files)\ngoconst: 2026/09/07 20:14:05 Processing batch 23/52 (53 files)\ngoconst: 2026/09/07 20:14:05 Processing batch 24/52 (55 files)\ngoconst: 2026/09/07 20:14:05 Processing batch 25/52 (59 files)\ngoconst: 2026/09/07 20:14:05 Processing batch 26/52 (51 files)\ngoconst: 2026/09/07 20:14:06 Processing batch 27/52 (56 files)\ngoconst: 2026/09/07 20:14:06 Processing batch 28/52 (223 files)\ngoconst: 2026/09/07 20:14:06 Processing batch 29/52 (51 files)\ngoconst: 2026/09/07 20:14:06 Processing batch 30/52 (54 files)\ngoconst: 2026/09/07 20:14:06 Processing batch 31/52 (71 files)\ngoconst: 2026/09/07 20:14:06 Processing batch 32/52 (50 files)\ngoconst: 2026/09/07 20:14:06 Processing batch 33/52 (56 files)\ngoconst: 2026/09/07 20:14:07 Processing batch 34/52 (52 files)\ngoconst: 2026/09/07 20:14:07 Processing batch 35/52 (53 files)\ngoconst: 2026/09/07 20:14:07 Processing batch 36/52 (58 files)\ngoconst: 2026/09/07 20:14:07 Processing batch 37/52 (52 files)\ngoconst: 2026/09/07 20:14:07 Processing batch 38/52 (57 files)\ngoconst: 2026/09/07 20:14:07 Processing batch 39/52 (56 files)\ngoconst: 2026/09/07 20:14:07 Processing batch 40/52 (54 files)\ngoconst: 2026/09/07 20:14:07 Processing batch 41/52 (57 files)\ngoconst: 2026/09/07 20:14:07 Processing batch 42/52 (55 files)\ngoconst: 2026/09/07 20:14:07 Processing batch 43/52 (64 files)\ngoconst: 2026/09/07 20:14:07 Processing batch 44/52 (53 files)\ngoconst: 2026/09/07 20:14:07 Processing batch 45/52 (56 files)\ngoconst: 2026/09/07 20:14:07 Processing batch 46/52 (60 files)\ngoconst: 2026/09/07 20:14:07 Processing batch 47/52 (61 files)\ngoconst: 2026/09/07 20:14:08 Processing batch 48/52 (54 files)\ngoconst: 2026/09/07 20:14:08 Processing batch 49/52 (60 files)\ngoconst: 2026/09/07 20:14:08 Processing batch 50/52 (60 files)\ngoconst: 2026/09/07 20:14:08 Processing batch 51/52 (61 files)\ngoconst: 2026/09/07 20:14:08 Processing batch 52/52 (47 files)\n"
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/goconst-module-source.stderr.txt",
+      "bytes": 938,
+      "sha256": "30d0b29e8e2558d7c60761c7c45a02930a99e143d729c0dee7dffa15a132f81a",
+      "text": "goconst: 2026/09/07 20:21:34 Found 663 Go files to process in batches of 50\ngoconst: 2026/09/07 20:21:34 Warning: 11 batches exceed the configured batch size. Largest batch contains 75 files\ngoconst: 2026/09/07 20:21:34 Processing batch 1/12 (64 files)\ngoconst: 2026/09/07 20:21:34 Processing batch 2/12 (62 files)\ngoconst: 2026/09/07 20:21:34 Processing batch 3/12 (54 files)\ngoconst: 2026/09/07 20:21:35 Processing batch 4/12 (55 files)\ngoconst: 2026/09/07 20:21:35 Processing batch 5/12 (51 files)\ngoconst: 2026/09/07 20:21:35 Processing batch 6/12 (51 files)\ngoconst: 2026/09/07 20:21:35 Processing batch 7/12 (75 files)\ngoconst: 2026/09/07 20:21:35 Processing batch 8/12 (52 files)\ngoconst: 2026/09/07 20:21:35 Processing batch 9/12 (58 files)\ngoconst: 2026/09/07 20:21:35 Processing batch 10/12 (52 files)\ngoconst: 2026/09/07 20:21:35 Processing batch 11/12 (59 files)\ngoconst: 2026/09/07 20:21:35 Processing batch 12/12 (30 files)\n"
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/nilaway-final.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/nilaway-initial.stderr.txt",
+      "bytes": 2285,
+      "sha256": "5cf8292f238aa0488216bb71fc2a55a155c886831dd3d6ebcf2c1f5cbc4c7d74",
+      "text": "/Users/d/code/primitive/attest/trusted_fuzz_test.go:26:8: Potential nil panic detected. Observed nil flow from source to dereference point: \n\t- attest/trusted_fuzz_test.go:26:8: unassigned variable `seed` sliced into\n\n(Same nil source could also cause potential nil panic(s) at 2 other place(s): \"attest/trusted_fuzz_test.go:27:27\", and \"attest/trusted_fuzz_test.go:27:58\".)\n\n/Users/d/code/primitive/lineio/scanner.go:108:28: Potential nil panic detected. Observed nil flow from source to dereference point: \n\t- lineio/benchmark_external_test.go:45:7: result 0 of `New()` lacking guarding; used as receiver to call `Scan()` via the assignment(s):\n\t\t- `lineio.New(...)` to `scanner` at lineio/benchmark_external_test.go:37:3\n\t- lineio/scanner.go:108:28: read by method receiver `s` accessed field `scanner`\n\n/Users/d/code/primitive/lineio/scanner.go:118:9: Potential nil panic detected. Observed nil flow from source to dereference point: \n\t- lineio/benchmark_external_test.go:46:11: result 0 of `New()` lacking guarding; used as receiver to call `Bytes()` via the assignment(s):\n\t\t- `lineio.New(...)` to `scanner` at lineio/benchmark_external_test.go:37:3\n\t- lineio/scanner.go:118:9: read by method receiver `s` accessed field `scanner`\n\n/Users/d/code/primitive/lineio/scanner.go:127:9: Potential nil panic detected. Observed nil flow from source to dereference point: \n\t- lineio/benchmark_external_test.go:51:17: result 0 of `New()` lacking guarding; used as receiver to call `Err()` via the assignment(s):\n\t\t- `lineio.New(...)` to `scanner` at lineio/benchmark_external_test.go:37:3\n\t- lineio/scanner.go:127:9: read by method receiver `s` accessed field `err`\n\n/Users/d/code/primitive/timeproof/refusal_test.go:512:3: Potential nil panic detected. Observed nil flow from source to dereference point: \n\t- timeproof/refusal_test.go:512:3: unassigned variable `status` called `OffWireEnum()` via the assignment(s):\n\t\t- `status` to `offWire` at timeproof/refusal_test.go:511:7\n\n/Users/d/code/primitive/timeproof/refusal_test.go:605:3: Potential nil panic detected. Observed nil flow from source to dereference point: \n\t- timeproof/refusal_test.go:605:3: unassigned variable `code` called `OffWireEnum()` via the assignment(s):\n\t\t- `code` to `offWire` at timeproof/refusal_test.go:604:7\n\n"
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/nilaway-verified.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/staticcheck-final.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/staticcheck-initial.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/staticcheck-verified.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/test-exchange-filestore.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/vet-corrections.stderr.txt",
+      "bytes": 184,
+      "sha256": "bda013a9fbc456d9f2e12c76c193093b32a1f017bd6c66d817d7957832accaa9",
+      "text": "# github.com/deliri/primitive/v2026/exchange_test\n# [github.com/deliri/primitive/v2026/exchange_test]\nvet: exchange/server_runtime_layer_triad_external_test.go:268:96: undefined: done\n"
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/vet-diagnostic-corrections.stderr.txt",
+      "bytes": 185,
+      "sha256": "676ec3ea27b1aa267703bcaf1485ad64e0a289df27098dcb7c12cec8639a7540",
+      "text": "# github.com/deliri/primitive/v2026/exchange_test\n# [github.com/deliri/primitive/v2026/exchange_test]\nvet: exchange/server_runtime_layer_triad_external_test.go:182:92: undefined: wrote\n"
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/vet-final.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/vet-initial.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/vet-verified.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/witness-lint-current-source.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    },
+    {
+      "local_artifact": ".artifacts/release-v2026.1.19/witness-lint-final.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "text": ""
+    }
+  ]
+}

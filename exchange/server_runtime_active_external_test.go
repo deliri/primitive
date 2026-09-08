@@ -11,6 +11,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
+	"github.com/deliri/primitive/v2026/temporal"
 )
 
 // Request entry is synchronized before shutdown: these rows cannot pass by
@@ -18,16 +19,19 @@ import (
 func TestServerRuntimeActiveConnectionOwnershipTable(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name             string
-		cancelGraceful   bool
-		wantShutdown     error
-		wantRequestCause error
-		wantClientCause  error
-		wantRequests     int64
-		wantMetadata     exchange.ResponseMetadata
+		name               string
+		cancelGraceful     bool
+		completeActive     bool
+		wantClientBoundary error
+		wantShutdown       error
+		wantRequestCause   error
+		wantClientCause    error
+		wantRequests       int64
+		wantMetadata       exchange.ResponseMetadata
 	}{
-		{name: "force close cancels the active Go request", wantRequestCause: context.Canceled, wantClientCause: io.EOF, wantRequests: 1},
-		{name: "canceled graceful drain preserves active request until force close", cancelGraceful: true, wantShutdown: context.Canceled, wantRequestCause: context.Canceled, wantClientCause: io.EOF, wantRequests: 1},
+		{name: "force close cancels the active Go request", wantRequestCause: context.Canceled, wantClientCause: io.EOF, wantClientBoundary: core.ErrExchangeTransport, wantRequests: 1},
+		{name: "canceled graceful drain preserves active request until force close", cancelGraceful: true, wantShutdown: context.Canceled, wantRequestCause: context.Canceled, wantClientCause: io.EOF, wantClientBoundary: core.ErrExchangeTransport, wantRequests: 1},
+		{name: "graceful completion retains empty successful response without force close", completeActive: true, wantRequests: 1, wantMetadata: exchange.ResponseMetadata{Status: core.HTTPStatusOK(), Attempts: 1}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -63,8 +67,8 @@ func TestServerRuntimeActiveConnectionOwnershipTable(t *testing.T) {
 				}
 				select {
 				case <-serveDone:
-				case <-backstop:
-					t.Error("serving goroutine did not join")
+				case <-exchangeFixtureBackstop(t, testDeadlockBackstop):
+					t.Errorf("serving goroutine did not join; owned completion channel=%p", serveDone)
 				}
 			})
 			go func() { serveErr = runtime.Serve(); close(serveDone) }()
@@ -74,7 +78,7 @@ func TestServerRuntimeActiveConnectionOwnershipTable(t *testing.T) {
 					t.Fatal(err)
 				}
 			case <-backstop:
-				t.Fatal("listener acquisition did not finish")
+				t.Fatalf("listener acquisition did not finish; readiness channel=%p", runtime.Ready())
 			}
 			address, err := runtime.Address()
 			if err != nil {
@@ -100,8 +104,8 @@ func TestServerRuntimeActiveConnectionOwnershipTable(t *testing.T) {
 				cancel()
 				select {
 				case <-clientDone:
-				case <-backstop:
-					t.Error("client goroutine did not join")
+				case <-exchangeFixtureBackstop(t, testDeadlockBackstop):
+					t.Errorf("client goroutine did not join; owned completion channel=%p", clientDone)
 				}
 			})
 			go func() { response, clientErr = exchange.SendNoBodyBounded(call); close(clientDone) }()
@@ -111,7 +115,7 @@ func TestServerRuntimeActiveConnectionOwnershipTable(t *testing.T) {
 			case <-clientDone:
 				t.Fatalf("client returned before request entry: %v", clientErr)
 			case <-backstop:
-				t.Fatal("request never reached Go handler")
+				t.Fatalf("request never reached Go handler; owned completion channel=%p", entered)
 			}
 			t.Cleanup(func() {
 				release()
@@ -120,8 +124,8 @@ func TestServerRuntimeActiveConnectionOwnershipTable(t *testing.T) {
 				}
 				select {
 				case <-handlerDone:
-				case <-backstop:
-					t.Error("handler goroutine did not join")
+				case <-exchangeFixtureBackstop(t, testDeadlockBackstop):
+					t.Errorf("handler goroutine did not join; owned completion channel=%p", handlerDone)
 				}
 			})
 			if tc.cancelGraceful {
@@ -136,17 +140,32 @@ func TestServerRuntimeActiveConnectionOwnershipTable(t *testing.T) {
 				}
 				select {
 				case <-handlerDone:
-					t.Fatal("graceful shutdown killed active handler")
+					t.Fatalf("graceful shutdown killed active handler; owned completion channel=%p", handlerDone)
 				default:
 				}
 			}
-			if err := runtime.Close(); err != nil {
+			if tc.completeActive {
+				release()
+				duration, err := temporal.NewDuration(testDeadlockBackstop)
+				if err != nil {
+					t.Fatal(err)
+				}
+				drain, stop, err := temporal.WithTimeout(temporal.TimeoutRequest{Parent: t.Context(), Duration: duration})
+				if err != nil {
+					t.Fatal(err)
+				}
+				err = runtime.Shutdown(drain)
+				stop()
+				if err != nil {
+					t.Fatalf("graceful shutdown=%v,want completed drain", err)
+				}
+			} else if err := runtime.Close(); err != nil {
 				t.Fatalf("force close = %v, want nil", err)
 			}
 			select {
 			case <-handlerDone:
 			case <-backstop:
-				t.Fatal("force close did not cancel active handler")
+				t.Fatalf("force close did not cancel active handler; owned completion channel=%p", handlerDone)
 			}
 			if !errors.Is(handlerCause, tc.wantRequestCause) {
 				t.Fatalf("handler cause = %v, want %v", handlerCause, tc.wantRequestCause)
@@ -154,10 +173,10 @@ func TestServerRuntimeActiveConnectionOwnershipTable(t *testing.T) {
 			select {
 			case <-clientDone:
 			case <-backstop:
-				t.Fatal("force close did not release client")
+				t.Fatalf("force close did not release client; owned completion channel=%p", clientDone)
 			}
-			if !errors.Is(clientErr, core.ErrExchangeTransport) || !errors.Is(clientErr, tc.wantClientCause) || response.Metadata.Status != tc.wantMetadata.Status || response.Body != nil || response.Metadata.Bytes != tc.wantMetadata.Bytes || response.Metadata.Attempts != tc.wantMetadata.Attempts || len(response.Metadata.Headers.Values) != 0 {
-				t.Fatalf("closed connection observation = (%+v,%v), want transport failure without response evidence", response, clientErr)
+			if !errors.Is(clientErr, tc.wantClientBoundary) || !errors.Is(clientErr, tc.wantClientCause) || response.Metadata.Status != tc.wantMetadata.Status || response.Body != nil || response.Metadata.Bytes != tc.wantMetadata.Bytes || response.Metadata.Attempts != tc.wantMetadata.Attempts || len(response.Metadata.Headers.Values) != 0 {
+				t.Fatalf("closed connection observation = (%+v,%v), want exact required transport cause and response evidence", response, clientErr)
 			}
 			if got := requests.Load(); got != tc.wantRequests {
 				t.Fatalf("handler executions = %d, want %d", got, tc.wantRequests)
@@ -165,7 +184,7 @@ func TestServerRuntimeActiveConnectionOwnershipTable(t *testing.T) {
 			select {
 			case <-serveDone:
 			case <-backstop:
-				t.Fatal("force close did not end Serve")
+				t.Fatalf("force close did not end Serve; owned completion channel=%p", serveDone)
 			}
 			if serveErr != nil {
 				t.Fatalf("Serve after owned close = %v, want nil", serveErr)

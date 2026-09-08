@@ -1,0 +1,71 @@
+[
+  {
+    "mutation": "refuse-all",
+    "record": "post-checkpoint-declared-prefix-mutation-refuse-all.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzReceiveBoundedDeclaredExtentCustody/seed#5",
+      "FuzzReceiveBoundedDeclaredExtentCustody/seed#6",
+      "FuzzReceiveBoundedDeclaredExtentCustody/seed#7",
+      "FuzzReceiveBoundedDeclaredExtentCustody/seed#9",
+      "FuzzReceiveBoundedDeclaredExtentCustody/seed#10",
+      "FuzzReceiveBoundedDeclaredExtentCustody/seed#11",
+      "FuzzReceiveBoundedDeclaredExtentCustody/seed#13",
+      "FuzzReceiveBoundedDeclaredExtentCustody/seed#14",
+      "FuzzReceiveBoundedDeclaredExtentCustody/seed#15",
+      "FuzzReceiveBoundedDeclaredExtentCustody/seed#18",
+      "FuzzReceiveBoundedDeclaredExtentCustody/seed#19",
+      "FuzzReceiveBoundedDeclaredExtentCustody/seed#23",
+      "FuzzReceiveBoundedDeclaredExtentCustody/seed#24",
+      "FuzzReceiveBoundedDeclaredExtentCustody/seed#25",
+      "FuzzReceiveBoundedDeclaredExtentCustody/seed#26",
+      "FuzzReceiveBoundedDeclaredExtentCustody/seed#27"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "truncate-understatement",
+    "record": "post-checkpoint-declared-prefix-mutation-truncate-understatement.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzReceiveBoundedDeclaredExtentCustody/seed#25"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "lose-native-prefix-error",
+    "record": "post-checkpoint-declared-prefix-mutation-lose-native-prefix-error.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzReceiveBoundedDeclaredExtentCustody/seed#24",
+      "FuzzReceiveBoundedDeclaredExtentCustody/seed#27"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "drop-last-prefix-byte",
+    "record": "post-checkpoint-declared-prefix-mutation-drop-last-prefix-byte.json",
+    "exit_status": 0,
+    "callback_failures": [],
+    "killed_inside_callback": false
+  },
+  {
+    "mutation": "lose-native-continuation-error",
+    "record": "post-checkpoint-declared-prefix-mutation-lose-native-continuation-error.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzReceiveBoundedDeclaredExtentCustody/seed#25"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "replay-prefix",
+    "record": "post-checkpoint-declared-prefix-mutation-replay-prefix.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzReceiveBoundedDeclaredExtentCustody/seed#15",
+      "FuzzReceiveBoundedDeclaredExtentCustody/seed#25"
+    ],
+    "killed_inside_callback": true
+  }
+]

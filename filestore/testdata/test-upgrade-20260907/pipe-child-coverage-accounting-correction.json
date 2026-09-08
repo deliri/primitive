@@ -1,0 +1,19 @@
+{
+  "original": "checkpoint-pipe-package.json",
+  "corrected": "checkpoint-pipe-package-child-output-corrected.json",
+  "classification": "test diagnostic interfered with cmd/go summary extraction, not production or coverage-artifact corruption",
+  "go_source": "/usr/local/go/src/cmd/go/internal/test/test.go:coveragePercentage",
+  "cause": "cmd/go selects the first coverage line in combined test output. Raw child transcript claimed only its 0.6% scope before parent 88.7%.",
+  "original_artifact": {
+    "covered_statements": 1238,
+    "total_statements": 1396
+  },
+  "corrected_artifact": {
+    "covered_statements": 1236,
+    "total_statements": 1396
+  },
+  "correction": "Preserve complete child transcript with standard base64 encoding; parent command summary now agrees with parent coverage artifact.",
+  "child_transcript": "=== RUN   TestPipeNativeDescriptorCapacityLayerTriad\n=== RUN   TestPipeNativeDescriptorCapacityLayerTriad/zero_free_descriptors_refuse_without_partial_custody\n=== RUN   TestPipeNativeDescriptorCapacityLayerTriad/one_free_descriptor_cannot_leak_half_a_pipe\n=== RUN   TestPipeNativeDescriptorCapacityLayerTriad/two_free_descriptors_transfer_exact_native_capacity\n--- PASS: TestPipeNativeDescriptorCapacityLayerTriad (0.03s)\n    --- PASS: TestPipeNativeDescriptorCapacityLayerTriad/zero_free_descriptors_refuse_without_partial_custody (0.01s)\n    --- PASS: TestPipeNativeDescriptorCapacityLayerTriad/one_free_descriptor_cannot_leak_half_a_pipe (0.00s)\n    --- PASS: TestPipeNativeDescriptorCapacityLayerTriad/two_free_descriptors_transfer_exact_native_capacity (0.01s)\nPASS\ncoverage: 0.6% of statements\n",
+  "report_reader_correction": "The first report assembly tried decoding each Go JSON output event separately and failed on a split base64 line. Reassembling output events for the owning test before decoding preserves all 1068 encoded bytes.",
+  "coverage_variation": "Two statements at stream.go:76-78 (context refusal before read) executed in the earlier run but not the corrected run. Add deterministic context-handoff pressure during the remaining sweep rather than relying on scheduler coverage."
+}

@@ -1,0 +1,119 @@
+{
+  "scope": "Additional Compass/version/Gomodule sources and embedded release document for final-release-coordinate-tests; common Core and module inputs are in that execution record.",
+  "sources": [
+    {
+      "path": "compass/config.json",
+      "bytes": 217,
+      "sha256": "61f9750d67def014b1d14cb5fda19e0e2cb1aa3e47c598bcbbf213a85b81a018",
+      "snapshot": "filestore/testdata/test-upgrade-20260907/source-blobs/61f9750d67def014b1d14cb5fda19e0e2cb1aa3e47c598bcbbf213a85b81a018"
+    },
+    {
+      "path": "compass/architecture_test.go",
+      "bytes": 2388,
+      "sha256": "351c8a8f7892bc8927af1bd940ea0416a7d8af488b2c5435af93c4c65d131acb",
+      "snapshot": "filestore/testdata/test-upgrade-20260907/source-blobs/351c8a8f7892bc8927af1bd940ea0416a7d8af488b2c5435af93c4c65d131acb"
+    },
+    {
+      "path": "compass/benchmark_external_test.go",
+      "bytes": 510,
+      "sha256": "ddce7bdf7a007a5635633bedbbdbfc9756d7f0891fa46745e4739cb964a41224",
+      "snapshot": "filestore/testdata/test-upgrade-20260907/source-blobs/ddce7bdf7a007a5635633bedbbdbfc9756d7f0891fa46745e4739cb964a41224"
+    },
+    {
+      "path": "compass/compass_hostile_test.go",
+      "bytes": 12559,
+      "sha256": "58f9fabb5310b276404ac4e2fe5f9a462b09267bb73ac63cfbb8da4a7076f3ea",
+      "snapshot": "filestore/testdata/test-upgrade-20260907/source-blobs/58f9fabb5310b276404ac4e2fe5f9a462b09267bb73ac63cfbb8da4a7076f3ea"
+    },
+    {
+      "path": "compass/current.go",
+      "bytes": 960,
+      "sha256": "d53fe7e21ce5d32541fa12b3d3132dd0994a7e4f6214d2af5e2d0ddc79d1536d",
+      "snapshot": "filestore/testdata/test-upgrade-20260907/source-blobs/d53fe7e21ce5d32541fa12b3d3132dd0994a7e4f6214d2af5e2d0ddc79d1536d"
+    },
+    {
+      "path": "compass/decode.go",
+      "bytes": 921,
+      "sha256": "4c0ac6958acbc95f5c70efc93245d0f122c448711f379d23216a32ec5c2fe800",
+      "snapshot": "filestore/testdata/test-upgrade-20260907/source-blobs/4c0ac6958acbc95f5c70efc93245d0f122c448711f379d23216a32ec5c2fe800"
+    },
+    {
+      "path": "compass/doc.go",
+      "bytes": 396,
+      "sha256": "9cae413cb17b43b59c9c09322ecd5eddccab6a7aadb664d51660e8cbe6de83d3",
+      "snapshot": "filestore/testdata/test-upgrade-20260907/source-blobs/9cae413cb17b43b59c9c09322ecd5eddccab6a7aadb664d51660e8cbe6de83d3"
+    },
+    {
+      "path": "compass/project.go",
+      "bytes": 3530,
+      "sha256": "97817f57fe20aa177a7bd1f5cabf59d417d23c6cb356ff140005f4358dc8dafa",
+      "snapshot": "filestore/testdata/test-upgrade-20260907/source-blobs/97817f57fe20aa177a7bd1f5cabf59d417d23c6cb356ff140005f4358dc8dafa"
+    },
+    {
+      "path": "version/architecture_test.go",
+      "bytes": 2184,
+      "sha256": "bb9d99a002909000c4923d27497f65c98b13479088e21b39c00b3f79e16a8d95",
+      "snapshot": "filestore/testdata/test-upgrade-20260907/source-blobs/bb9d99a002909000c4923d27497f65c98b13479088e21b39c00b3f79e16a8d95"
+    },
+    {
+      "path": "version/benchmark_external_test.go",
+      "bytes": 1361,
+      "sha256": "a800b80d1c8cc87ee7ba14cf851783ad1e771e45c25c9d1ca50ea868ef3262e5",
+      "snapshot": "filestore/testdata/test-upgrade-20260907/source-blobs/a800b80d1c8cc87ee7ba14cf851783ad1e771e45c25c9d1ca50ea868ef3262e5"
+    },
+    {
+      "path": "version/doc.go",
+      "bytes": 344,
+      "sha256": "b02867f67813d3947764887f998b0862ae235f5ec387709afaf93284d758be6c",
+      "snapshot": "filestore/testdata/test-upgrade-20260907/source-blobs/b02867f67813d3947764887f998b0862ae235f5ec387709afaf93284d758be6c"
+    },
+    {
+      "path": "version/release.go",
+      "bytes": 1829,
+      "sha256": "fcd4de4c5e519dc7aa82d4980fa96a5697c39b2bcd7a43f8ba65fc074fe994b2",
+      "snapshot": "filestore/testdata/test-upgrade-20260907/source-blobs/fcd4de4c5e519dc7aa82d4980fa96a5697c39b2bcd7a43f8ba65fc074fe994b2"
+    },
+    {
+      "path": "version/tag.go",
+      "bytes": 2493,
+      "sha256": "6d854023ffe818cc9cd71068edba871a43bdec3af2c7983ae7e7aee6fa671ae5",
+      "snapshot": "filestore/testdata/test-upgrade-20260907/source-blobs/6d854023ffe818cc9cd71068edba871a43bdec3af2c7983ae7e7aee6fa671ae5"
+    },
+    {
+      "path": "version/version_hostile_test.go",
+      "bytes": 6788,
+      "sha256": "2f50000dd72efde2032c7db3cd385c7450fdc83bbc3f364f8c1279bb1533ac0c",
+      "snapshot": "filestore/testdata/test-upgrade-20260907/source-blobs/2f50000dd72efde2032c7db3cd385c7450fdc83bbc3f364f8c1279bb1533ac0c"
+    },
+    {
+      "path": "gomodule/benchmark_external_test.go",
+      "bytes": 1000,
+      "sha256": "07d415f0a0aa11cd13dadb174f890fd8f782251f90fb7fe126bf0cda1d3b01d4",
+      "snapshot": "filestore/testdata/test-upgrade-20260907/source-blobs/07d415f0a0aa11cd13dadb174f890fd8f782251f90fb7fe126bf0cda1d3b01d4"
+    },
+    {
+      "path": "gomodule/doc.go",
+      "bytes": 222,
+      "sha256": "cd23da9ef20d8c58c6f06075e0949e8a4e0e7fc3c9c224fabc940f8b842ef9bc",
+      "snapshot": "filestore/testdata/test-upgrade-20260907/source-blobs/cd23da9ef20d8c58c6f06075e0949e8a4e0e7fc3c9c224fabc940f8b842ef9bc"
+    },
+    {
+      "path": "gomodule/import_path.go",
+      "bytes": 2052,
+      "sha256": "8c99daa810a7ddb60d8fafac320c51154c152d92e6de902d31ceeb60810e0e97",
+      "snapshot": "filestore/testdata/test-upgrade-20260907/source-blobs/8c99daa810a7ddb60d8fafac320c51154c152d92e6de902d31ceeb60810e0e97"
+    },
+    {
+      "path": "gomodule/path.go",
+      "bytes": 2059,
+      "sha256": "4ed145c154f0ed93718f4a44d731c30e60100ae2d65bf7ab1f2725859f53138a",
+      "snapshot": "filestore/testdata/test-upgrade-20260907/source-blobs/4ed145c154f0ed93718f4a44d731c30e60100ae2d65bf7ab1f2725859f53138a"
+    },
+    {
+      "path": "gomodule/path_hostile_test.go",
+      "bytes": 18189,
+      "sha256": "e66f2c31503ffe437ca370fba27867d36b59c76cba5cfa27d5290304f2230fda",
+      "snapshot": "filestore/testdata/test-upgrade-20260907/source-blobs/e66f2c31503ffe437ca370fba27867d36b59c76cba5cfa27d5290304f2230fda"
+    }
+  ]
+}

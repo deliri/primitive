@@ -94,7 +94,7 @@ func FuzzServerRuntimeConfigurationAdmission(f *testing.F) {
 		}
 		if !wantAdmitted {
 			if got != nil {
-				t.Fatal("refused configuration returned a server capability")
+				t.Fatalf("refused server=%v, want nil", got)
 			}
 			return
 		}
@@ -145,7 +145,7 @@ func TestServerCapabilityZeroAdmissionTable(t *testing.T) {
 				}
 			}
 			if tc.runtime.Ready() != nil {
-				t.Fatal("zero runtime created a readiness channel")
+				t.Fatalf("zero-runtime readiness=%v, want nil", tc.runtime.Ready())
 			}
 		})
 	}

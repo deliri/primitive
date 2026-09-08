@@ -1,0 +1,6 @@
+{
+  "failed_record": "mutation-native-handle-update-regularity-omitted.json",
+  "classification": "Invalid mutation build: replacing the sole use of info with false leaves a Go variable unused. No behavioral kill claimed.",
+  "correction": "Keep the info.Mode call in the condition and conjoin false, then run a new corrected label. Apply the same compile-preserving form to the not-yet-run lock regularity mutation.",
+  "resume": "Reuse only four completed valid kills after checking every source digest, exact argv and saved overlay replacement digest."
+}

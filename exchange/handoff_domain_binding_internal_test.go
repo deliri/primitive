@@ -35,7 +35,7 @@ func TestHandoffErrorDomainBindsClassifierInputs(t *testing.T) {
 			t.Parallel()
 			identities := handoffFunctionCoreSelectors(t, tc.function)
 			if len(identities) == 0 {
-				t.Fatal("classifier exposes no core identities, want a non-vacuous domain binding")
+				t.Fatalf("classifier core identities=%q, want a nonempty domain", identities)
 			}
 			for _, identity := range identities {
 				if !slices.Contains(model, identity) {
@@ -53,7 +53,7 @@ func handoffFunctionCoreSelectors(t *testing.T, function any) []string {
 	t.Helper()
 	compiled := runtime.FuncForPC(reflect.ValueOf(function).Pointer())
 	if compiled == nil {
-		t.Fatal("compiler function binding is absent")
+		t.Fatalf("compiled function=%v, want a bound function", compiled)
 	}
 	file, _ := compiled.FileLine(compiled.Entry())
 	name := compiled.Name()
@@ -102,7 +102,7 @@ func handoffFunctionCoreSelectors(t *testing.T, function any) []string {
 		}
 	}
 	if coreName == "" {
-		t.Fatal("bound source lacks the actual core import")
+		t.Fatalf("core import binding=%q, want a resolved import", coreName)
 	}
 	var result []string
 	found := false

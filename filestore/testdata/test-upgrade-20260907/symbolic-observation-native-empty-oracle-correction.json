@@ -1,0 +1,6 @@
+{
+  "failed_record": "symbolic-observation-fuzz-seed-control.json",
+  "classification": "test oracle error, not production regression",
+  "observation": "Darwin materializes an empty symbolic-link target. Root.Readlink succeeds with empty text; Filestore correctly rejects it with ErrFilestoreContract and a zero SymbolicLinkTarget.",
+  "correction": "The semantic callback separately proves native execution and nominal byte admission, excludes Source on contract refusal, and retains the zero-result check. A named native admission table checks empty, embedded-NUL and one-byte targets with platform native creation controls."
+}

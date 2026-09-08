@@ -123,8 +123,8 @@ func TestServerRuntimeLayerTriad(t *testing.T) {
 				}
 				select {
 				case <-done:
-				case <-backstop:
-					t.Error("owned serving goroutine did not exit after close")
+				case <-exchangeFixtureBackstop(t, testDeadlockBackstop):
+					t.Errorf("owned serving goroutine did not exit after close; owned completion channel=%p", done)
 				}
 			})
 			go func() {
@@ -141,7 +141,7 @@ func TestServerRuntimeLayerTriad(t *testing.T) {
 					t.Fatalf("acquisition result = %v, want nil", readyErr)
 				}
 			case <-backstop:
-				t.Fatal("listener acquisition did not finish")
+				t.Fatalf("listener acquisition did not finish; readiness channel=%p", runtime.Ready())
 			}
 			observed, err := runtime.Address()
 			if err != nil {
@@ -179,7 +179,7 @@ func TestServerRuntimeLayerTriad(t *testing.T) {
 					t.Fatalf("server write = %v, want nil", err)
 				}
 			case <-backstop:
-				t.Fatal("server handler did not publish its completed write")
+				t.Fatalf("server handler did not publish its completed write; observation channel=%p", handled)
 			}
 			if tc.forceClose {
 				err = runtime.Close()
@@ -192,7 +192,7 @@ func TestServerRuntimeLayerTriad(t *testing.T) {
 			select {
 			case <-done:
 			case <-backstop:
-				t.Fatal("server stop did not end its serving goroutine")
+				t.Fatalf("server stop did not end its serving goroutine; owned completion channel=%p", done)
 			}
 			if serveErr != nil || requests.Load() != tc.wantRequests {
 				t.Fatalf("serve result/requests = (%v,%d), want (nil,%d)", serveErr, requests.Load(), tc.wantRequests)
@@ -265,7 +265,7 @@ func TestServerRuntimeInvalidTransferPreservesRetryAndAbsence(t *testing.T) {
 						t.Fatalf("refused acquisition = %v, want contract refusal", readyErr)
 					}
 				default:
-					t.Fatal("completed refusal omitted its acquisition result")
+					t.Fatalf("completed refusal omitted its acquisition result; readiness channel=%p", runtime.Ready())
 				}
 				select {
 				case extra := <-runtime.Ready():
@@ -357,7 +357,7 @@ func TestServerRuntimeOccupiedAddressRecoversByOwnedTransfer(t *testing.T) {
 						t.Fatalf("occupied readiness = %v, want typed bind refusal", readyErr)
 					}
 				default:
-					t.Fatal("completed bind refusal omitted readiness")
+					t.Fatalf("completed bind refusal omitted readiness; readiness channel=%p", runtime.Ready())
 				}
 				if got, err := runtime.Address(); got != (exchange.ListenAddress{}) || !errors.Is(err, core.ErrExchangeContract) {
 					t.Fatalf("failed bind address = (%v,%v), want absent", got, err)
@@ -379,8 +379,8 @@ func TestServerRuntimeOccupiedAddressRecoversByOwnedTransfer(t *testing.T) {
 				}
 				select {
 				case <-done:
-				case <-backstop:
-					t.Error("recovered serving goroutine did not exit")
+				case <-exchangeFixtureBackstop(t, testDeadlockBackstop):
+					t.Errorf("recovered serving goroutine did not exit; owned completion channel=%p", done)
 				}
 			})
 			go func() { serveErr = runtime.ServeListener(listener); close(done) }()
@@ -390,7 +390,7 @@ func TestServerRuntimeOccupiedAddressRecoversByOwnedTransfer(t *testing.T) {
 					t.Fatalf("recovered transfer = %v, want nil", readyErr)
 				}
 			case <-backstop:
-				t.Fatal("recovered transfer omitted readiness")
+				t.Fatalf("recovered transfer omitted readiness; readiness channel=%p", runtime.Ready())
 			}
 			if got, err := runtime.Address(); err != nil || got != address {
 				t.Fatalf("recovered address = (%v,%v), want exact acquired %v", got, err, address)
@@ -401,7 +401,7 @@ func TestServerRuntimeOccupiedAddressRecoversByOwnedTransfer(t *testing.T) {
 			select {
 			case <-done:
 			case <-backstop:
-				t.Fatal("recovered serving goroutine did not exit")
+				t.Fatalf("recovered serving goroutine did not exit; owned completion channel=%p", done)
 			}
 			if serveErr != nil {
 				t.Fatalf("recovered serve = %v, want nil", serveErr)

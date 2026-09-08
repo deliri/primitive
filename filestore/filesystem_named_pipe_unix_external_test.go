@@ -34,8 +34,8 @@ const (
 // sibling of the Read case below, and it exists because Inspect reintroduced
 // the hazard Read already defends against.
 //
-// Inspect opens the parent with os.OpenRoot in order to Lstat the final
-// component. An ordinary open of a named pipe blocks until a writer arrives,
+// Inspect delegates to Go Lstat; its older parent-open implementation could
+// block on a named pipe until a writer arrived,
 // and no cancellation reaches a goroutine parked in that syscall, so a FIFO
 // anywhere in a configured path used to stop the caller permanently. A
 // non-directory parent is exactly the case Inspect documents as an
@@ -55,7 +55,7 @@ func TestInspectReportsUnreachableThroughANamedPipeParentWithoutBlocking(t *test
 	if err := syscall.Mkfifo(filepath.Join(rootDirectory, "parent"), 0o600); err != nil {
 		t.Fatalf("Mkfifo(parent) error = %v, want nil", err)
 	}
-	ctx, cancel := context.WithTimeout(t.Context(), namedPipeReadBackstop)
+	ctx, cancel := newFilesystemBackstop(t.Context(), t, namedPipeReadBackstop)
 	defer cancel()
 	command := exec.CommandContext(
 		ctx,
@@ -107,7 +107,7 @@ func TestReadRejectsNamedPipeBeforeBlockingOpen(t *testing.T) {
 	if err := syscall.Mkfifo(filepath.Join(rootDirectory, "source"), 0o600); err != nil {
 		t.Fatalf("Mkfifo(source) error = %v, want nil", err)
 	}
-	ctx, cancel := context.WithTimeout(t.Context(), namedPipeReadBackstop)
+	ctx, cancel := newFilesystemBackstop(t.Context(), t, namedPipeReadBackstop)
 	defer cancel()
 	command := exec.CommandContext(
 		ctx,

@@ -1,0 +1,21 @@
+[
+  {
+    "mutation": "escape-destination-panic",
+    "record": "post-checkpoint-buffer-panic-mutation-escape-destination-panic.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzResponseBufferSemanticExtent/seed#2"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "invent-panic-acknowledgment",
+    "record": "post-checkpoint-buffer-panic-mutation-invent-panic-acknowledgment.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzResponseBufferSemanticExtent/seed#2",
+      "FuzzResponseBufferSemanticExtent/seed#3"
+    ],
+    "killed_inside_callback": true
+  }
+]

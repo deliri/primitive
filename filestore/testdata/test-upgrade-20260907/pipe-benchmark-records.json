@@ -1,0 +1,117 @@
+{
+  "scope": "Initial workloads: acquisition plus exact 128-byte binary transfer/EOF/close, and reused Go endpoints with exact 512-byte transfer. Independent byte comparisons timed, setup untimed. Separate 30s CPU1 CPU/memory profiles and measured binaries. Production unchanged; benchmark/fuzz snapshots precede a diagnostic-only subprocess transcript encoding change.",
+  "results": [
+    {
+      "label": "checkpoint-pipe-Acquisition",
+      "record_sha256": "45e0f90ecd2214c1b55dbccb6664fb7dd8868016db8c288a10697d609287a42e",
+      "benchmark": "BenchmarkPipeAcquireBinaryEOFAndClose",
+      "iterations": 4544209,
+      "ns_per_op": 8243.0,
+      "MB_per_second": null,
+      "bytes_per_op": 208,
+      "allocations_per_op": 4,
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkPipeAcquireBinaryEOFAndClose$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-pipe-Acquisition.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-pipe-Acquisition.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-pipe-Acquisition.test",
+        "./filestore"
+      ],
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-pipe-Acquisition.stdout.txt",
+          "bytes": 254,
+          "sha256": "045f85009976a3fea33f05115770f923599a1039952aa6c24259a9539e6a7fe7"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-pipe-Acquisition.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-pipe-Acquisition.git-status.txt",
+          "bytes": 8379,
+          "sha256": "30880ef1a38b63bb4b3f7e00a126abd5f7c42d961ef214535942bba7bfcb2dd5"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-pipe-Acquisition.cpu.pprof",
+          "bytes": 5366,
+          "sha256": "9467744e82b086ee0bf9a9bbb1f28f97702cc00ae46428cfdccf4c5a55af5f0a"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-pipe-Acquisition.mem.pprof",
+          "bytes": 2488,
+          "sha256": "aef76de0b4a896ffebc83b77da6f67c1e56a42cc4d36779f868746428915182c"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-pipe-Acquisition.test",
+          "bytes": 12324610,
+          "sha256": "3834c171c2c1cd7c67e52565d85cbed47fcf63cef6b5d305549bd0da9e14b527"
+        }
+      ]
+    },
+    {
+      "label": "checkpoint-pipe-HeldTransfer",
+      "record_sha256": "f66ad39cc336495fc7f73b573441a2d559f095173e4ea721e0cae63b078aec45",
+      "benchmark": "BenchmarkPipeHeldBinaryTransfer",
+      "iterations": 28856362,
+      "ns_per_op": 1281.0,
+      "MB_per_second": 399.84,
+      "bytes_per_op": 0,
+      "allocations_per_op": 0,
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkPipeHeldBinaryTransfer$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-pipe-HeldTransfer.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-pipe-HeldTransfer.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-pipe-HeldTransfer.test",
+        "./filestore"
+      ],
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-pipe-HeldTransfer.stdout.txt",
+          "bytes": 261,
+          "sha256": "d54bf6e8df3d35ce629fbc781eaa309209249e8a78da23fa4a46ff9278c6c0f0"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-pipe-HeldTransfer.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-pipe-HeldTransfer.git-status.txt",
+          "bytes": 8379,
+          "sha256": "30880ef1a38b63bb4b3f7e00a126abd5f7c42d961ef214535942bba7bfcb2dd5"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-pipe-HeldTransfer.cpu.pprof",
+          "bytes": 1883,
+          "sha256": "0f3eeb307d15908ae69897f8ad70c49a63e9adbde2a75bc222a2771e1ffd898c"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-pipe-HeldTransfer.mem.pprof",
+          "bytes": 1607,
+          "sha256": "b67437550c44d9809a79e698f17b9496af5b91321f08f49d07bf072a3cdbd1df"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-pipe-HeldTransfer.test",
+          "bytes": 12324610,
+          "sha256": "3834c171c2c1cd7c67e52565d85cbed47fcf63cef6b5d305549bd0da9e14b527"
+        }
+      ]
+    }
+  ]
+}

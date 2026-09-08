@@ -55,6 +55,9 @@ func (d HeldDirectory) Validate() error {
 
 // File returns the borrowed standard-library handle. HeldDirectory retains
 // ownership; callers close the HeldDirectory rather than the borrowed file.
+// The handle keeps Go's ordinary method semantics. On Unix, Readdir obtains
+// child metadata through the held descriptor; ReadDir's lazy DirEntry.Info
+// may instead resolve a child through the directory's original pathname.
 func (d HeldDirectory) File() (*os.File, error) {
 	if err := d.Validate(); err != nil {
 		return nil, err

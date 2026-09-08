@@ -10,9 +10,8 @@ import (
 	"github.com/deliri/primitive/v2026/exchange"
 )
 
-// benchmarkDeclaredBodyBytes is the extent a webhook-class ingress admits. It is
-// the size at which a doubling buffer costs the most: every intermediate power of
-// two is allocated and copied on the way to the real length.
+// benchmarkDeclaredBodyBytes exercises growth well above the bounded initial
+// reservation. The same caller-owned bytes are supplied to both receipt paths.
 const benchmarkDeclaredBodyBytes = 512 * 1024
 
 // undeclaredContentLength is the extent net/http reports for a message that
@@ -23,11 +22,10 @@ const undeclaredContentLength = -1
 // receive of the same body twice: once with the extent the request declares, and
 // once with no declared extent.
 //
-// The declared case reserves the extent once, so its allocation should track the
-// body itself. The undeclared case is the control: it still has to grow, so the
-// pair measures what the declaration buys rather than a cost that vanished
-// everywhere. Request construction is inside the timed region for both cases, so
-// the difference between them is the buffering and nothing else.
+// Both cases include request construction and complete bounded receipt. Initial
+// reservation is capped below this 512 KiB payload: neither case reserves the
+// full declaration. This is a large-body control, not a claimed allocation win
+// for declared length. The reported allocations include fixture construction.
 func BenchmarkBoundedReceiveByDeclaredExtent(b *testing.B) {
 	b.ReportAllocs()
 

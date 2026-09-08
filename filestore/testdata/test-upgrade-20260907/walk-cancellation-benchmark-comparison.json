@@ -1,0 +1,110 @@
+{
+  "scope": "Same sparse-directory benchmark and 30s CPU1 configuration before and after two cancellation checks; single pairs are observations, not distributions or isolated timing-overhead estimates.",
+  "comparisons": [
+    {
+      "order": "LexicalSparse",
+      "before": {
+        "benchmark": "BenchmarkWalkLexicalSparseDirectory",
+        "iterations": 1499233,
+        "ns_per_op": 24153.0,
+        "bytes_per_op": 4264.0,
+        "allocations_per_op": 21.0
+      },
+      "after": {
+        "benchmark": "BenchmarkWalkLexicalSparseDirectory",
+        "iterations": 1467844,
+        "ns_per_op": 24493.0,
+        "bytes_per_op": 4264.0,
+        "allocations_per_op": 21.0
+      },
+      "ns_change_percent": 1.4076926261747946,
+      "records": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-walk-cancellation-LexicalSparse.json",
+          "bytes": 77263,
+          "sha256": "b2d6b36d27f4c9d45088956efcde289f219693097e8abd09876d2f294998f207"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-cancellation-LexicalSparse.json",
+          "bytes": 77285,
+          "sha256": "6b68689d1851a99decddaf2ced966699c186f245e76e329c30bbd3ab7882dd8f"
+        }
+      ],
+      "profiles": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-walk-cancellation-LexicalSparse-cpu-analysis.json",
+          "bytes": 76416,
+          "sha256": "47e473a2d90cb429f34bb344815186119a2fa540d601765aae5c6179d3b80ec3"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-walk-cancellation-LexicalSparse-mem-analysis.json",
+          "bytes": 76425,
+          "sha256": "f73fc5553fa4b568c7c931305fa02730968237be51e8cc7063eef1c2a56e7430"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-cancellation-LexicalSparse-cpu-analysis.json",
+          "bytes": 76444,
+          "sha256": "c0fb863c6f287f1e45b2f8d0661ef8f0d241c98467847a8b93eb94dcf091faee"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-cancellation-LexicalSparse-mem-analysis.json",
+          "bytes": 76451,
+          "sha256": "a5a12533ed07218cbf6e1fcf07d9383dd0a624118925c9c171e27259e2ef26e8"
+        }
+      ]
+    },
+    {
+      "order": "NativeSparse",
+      "before": {
+        "benchmark": "BenchmarkWalkNativeSparseDirectory",
+        "iterations": 1575441,
+        "ns_per_op": 22700.0,
+        "bytes_per_op": 3112.0,
+        "allocations_per_op": 20.0
+      },
+      "after": {
+        "benchmark": "BenchmarkWalkNativeSparseDirectory",
+        "iterations": 1517971,
+        "ns_per_op": 23665.0,
+        "bytes_per_op": 3112.0,
+        "allocations_per_op": 20.0
+      },
+      "ns_change_percent": 4.251101321585904,
+      "records": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-walk-cancellation-NativeSparse.json",
+          "bytes": 77252,
+          "sha256": "f96a8b649a6d900340b4ed77dd17aec8123dea54a7adfb049d686e6086b62de1"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-cancellation-NativeSparse.json",
+          "bytes": 77275,
+          "sha256": "5b9af7f31fcc008efe6dd71cb06e2a9bfad14c29d4677ecb849f27366060569a"
+        }
+      ],
+      "profiles": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-walk-cancellation-NativeSparse-cpu-analysis.json",
+          "bytes": 76410,
+          "sha256": "fd50479689713808edaa6186e75d35aa72ee787bad575a90ac4f346c87b1f4df"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-walk-cancellation-NativeSparse-mem-analysis.json",
+          "bytes": 76419,
+          "sha256": "dfe0e00bea8502a768a6d2b62a1d90ade5741196f7fa3b5154d4e29bf6e59ed9"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-cancellation-NativeSparse-cpu-analysis.json",
+          "bytes": 76438,
+          "sha256": "97e5b6d22e0af0d5225ae043123ad54b477b5f8cf983cdbc38712dea52324f7b"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-cancellation-NativeSparse-mem-analysis.json",
+          "bytes": 76446,
+          "sha256": "70e388f0fececa220556908b34025873fd7e2208a8f8bc66736ad46d6672163d"
+        }
+      ]
+    }
+  ],
+  "interpretation": "Allocations unchanged. Native syscall/runtime work accounts for about 99% of CPU samples. Lexical time rose 1.41% and native time 4.25% in these pairs; these measurements do not demonstrate a speedup. Earlier whole-sweep baseline and intermediate attempts remain in the complete catalogue."
+}

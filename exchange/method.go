@@ -2,6 +2,7 @@ package exchange
 
 import (
 	"errors"
+	"net/http"
 
 	"github.com/deliri/primitive/v2026/core"
 )
@@ -24,13 +25,13 @@ const (
 func methodFacts() [methodLimit]string {
 	return [...]string{
 		MethodUnknown: "",
-		MethodGet:     "GET",
-		MethodHead:    "HEAD",
-		MethodPost:    "POST",
-		MethodPut:     "PUT",
-		MethodPatch:   "PATCH",
-		MethodDelete:  "DELETE",
-		MethodOptions: "OPTIONS",
+		MethodGet:     http.MethodGet,
+		MethodHead:    http.MethodHead,
+		MethodPost:    http.MethodPost,
+		MethodPut:     http.MethodPut,
+		MethodPatch:   http.MethodPatch,
+		MethodDelete:  http.MethodDelete,
+		MethodOptions: http.MethodOptions,
 	}
 }
 

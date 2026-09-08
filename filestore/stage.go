@@ -54,7 +54,9 @@ func (s StagedFile) Validate() error {
 }
 
 // Stage streams one bounded source into an exclusively created, synchronized
-// real file.
+// real file. Caller panics propagate through Go. During unwinding, Filestore
+// closes its handle and attempts to remove only its own temporary inode;
+// cleanup errors cannot replace the caller's panic or produce a receipt.
 func Stage(ctx context.Context, request StageRequest) (StagedFile, error) {
 	if err := contextstate.Validate(ctx); err != nil {
 		return StagedFile{}, err
@@ -94,10 +96,21 @@ func finishStage(
 			location: request.Temporary, file: file, expected: createdInfo, primary: activationError(err),
 		})
 	}
+	copyReturned := false
+	defer func() {
+		if !copyReturned {
+			// No normal return exists on panic or Goexit. Preserve Go's unwind
+			// while releasing custody; never remove a replacement inode.
+			_ = abandonCreatedFile(createdFileAbandonment{
+				location: request.Temporary, file: file, expected: createdInfo,
+			})
+		}
+	}()
 	written, err := copyBounded(boundedCopyRequest{
 		ctx: ctx, destination: file, source: request.Source,
 		maximum: request.MaximumBytes, kind: streamDestinationFile,
 	})
+	copyReturned = true
 	if err != nil {
 		return StagedFile{}, abandonCreatedFile(createdFileAbandonment{
 			location: request.Temporary, file: file, expected: createdInfo, primary: err,
@@ -254,6 +267,11 @@ func commitReplace(request CommitRequest) error {
 	if err := syncParent(request.Staged.root, request.Target); err != nil {
 		return indeterminateActivationError(err)
 	}
+	// Go's rename is a successful no-op when both names already identify one
+	// inode. Settle a retained owned stage, preserving any foreign replacement.
+	if err := removeExpectedPath(request.Staged.root, request.Staged.path, request.Staged.info); err != nil {
+		return err
+	}
 	if differentParentDirectories(request.Staged.path, request.Target) {
 		if err := syncParent(request.Staged.root, request.Staged.path); err != nil {
 			return indeterminateActivationError(err)
@@ -271,19 +289,19 @@ func Recover(ctx context.Context, request CommitRequest) error {
 	if err := request.Validate(); err != nil {
 		return err
 	}
-	stageInfo, err := statIfExists(request.Staged.root, request.Staged.path)
+	stageInfo, err := lstatIfExists(request.Staged.root, request.Staged.path)
 	if err != nil {
 		return activationError(err)
 	}
-	targetInfo, err := statIfExists(request.Staged.root, request.Target)
+	targetInfo, err := lstatIfExists(request.Staged.root, request.Target)
 	if err != nil {
 		return activationError(err)
 	}
 	if stageInfo == nil {
 		return recoverMissingStage(request, targetInfo)
 	}
-	if !os.SameFile(request.Staged.info, stageInfo) {
-		return indeterminateActivationError(errors.New(temporaryIdentityDiagnostic))
+	if err := validateStagedObservation(request.Staged, stageInfo); err != nil {
+		return err
 	}
 	return recoverPresentStage(request, targetInfo)
 }
@@ -292,8 +310,8 @@ func recoverMissingStage(request CommitRequest, targetInfo fs.FileInfo) error {
 	if targetInfo == nil {
 		return activationError(fs.ErrNotExist)
 	}
-	if !os.SameFile(request.Staged.info, targetInfo) {
-		return indeterminateActivationError(errors.New("filestore target identifies a different file"))
+	if err := validateStagedObservation(request.Staged, targetInfo); err != nil {
+		return err
 	}
 	if err := syncParent(request.Staged.root, request.Target); err != nil {
 		return indeterminateActivationError(err)
@@ -319,6 +337,9 @@ func recoverPresentStage(request CommitRequest, targetInfo fs.FileInfo) error {
 	if !os.SameFile(request.Staged.info, targetInfo) {
 		return conflictError(os.ErrExist)
 	}
+	if err := validateStagedObservation(request.Staged, targetInfo); err != nil {
+		return err
+	}
 	if err := syncParent(request.Staged.root, request.Target); err != nil {
 		return indeterminateActivationError(err)
 	}
@@ -343,7 +364,7 @@ func Discard(ctx context.Context, staged StagedFile) error {
 	if err := staged.Validate(); err != nil {
 		return err
 	}
-	info, err := statIfExists(staged.root, staged.path)
+	info, err := lstatIfExists(staged.root, staged.path)
 	if err != nil {
 		return cleanupError(err)
 	}
@@ -363,19 +384,23 @@ func Discard(ctx context.Context, staged StagedFile) error {
 }
 
 func validateCurrentStage(staged StagedFile) error {
-	info, err := staged.root.Stat(staged.path.String())
+	info, err := staged.root.Lstat(staged.path.String())
 	if err != nil {
 		return activationError(err)
 	}
-	if !os.SameFile(staged.info, info) {
-		return indeterminateActivationError(errors.New(temporaryIdentityDiagnostic))
+	return validateStagedObservation(staged, info)
+}
+
+func validateStagedObservation(staged StagedFile, observed fs.FileInfo) error {
+	if observed == nil || !os.SameFile(staged.info, observed) {
+		return indeterminateActivationError(errors.New("filestore staged receipt identity changed"))
 	}
-	if !info.Mode().IsRegular() || info.Mode().Perm() != staged.info.Mode().Perm() {
-		return activationError(errors.New("filestore staged file permissions or type changed"))
+	if !observed.Mode().IsRegular() || observed.Mode().Perm() != staged.info.Mode().Perm() {
+		return activationError(errors.New("filestore staged receipt permissions or type changed"))
 	}
-	observedBytes, err := core.CheckedUint64FromInt64(info.Size())
+	observedBytes, err := core.CheckedUint64FromInt64(observed.Size())
 	if err != nil || observedBytes != staged.bytes.Uint64() {
-		return sizeError(errors.Join(errors.New("filestore staged file extent changed"), err))
+		return sizeError(errors.Join(errors.New("filestore staged receipt extent changed"), err))
 	}
 	return nil
 }
@@ -388,8 +413,10 @@ func removeStageName(staged StagedFile) error {
 	return nil
 }
 
-func statIfExists(root *os.Root, path core.RelativePath) (fs.FileInfo, error) {
-	info, err := root.Stat(path.String())
+// Namespace effects act on the entry itself. Following a symbolic link here
+// would lend it a different inode's receipt or turn a dangling entry into absence.
+func lstatIfExists(root *os.Root, path core.RelativePath) (fs.FileInfo, error) {
+	info, err := root.Lstat(path.String())
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil, nil
 	}
@@ -431,7 +458,7 @@ func cleanupCreatedPath(request createdPathCleanup) error {
 }
 
 func removeExpectedPath(root *os.Root, path core.RelativePath, expected fs.FileInfo) error {
-	current, err := statIfExists(root, path)
+	current, err := lstatIfExists(root, path)
 	if err != nil {
 		return cleanupError(err)
 	}

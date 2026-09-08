@@ -1,0 +1,287 @@
+[
+  {
+    "label": "mutation-native-handle-read-access-widened",
+    "file": "/Users/d/code/primitive/filestore/read_file_unix.go",
+    "owner": "openReadFile",
+    "before": "flag: os.O_RDONLY",
+    "after": "flag: os.O_RDWR",
+    "test": "^TestReadAndUpdateNativeHandleLayerTriad$/^read$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 10,
+      "fail": 8,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-native-handle-read-regularity-omitted",
+    "file": "/Users/d/code/primitive/filestore/directory_read.go",
+    "owner": "openRegularReadFile",
+    "before": "if !info.Mode().IsRegular() {",
+    "after": "if false {",
+    "test": "^TestPublicHandleOpenersRefuseNamedFIFOWithoutConsumingPeer$/^read_",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 0,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-native-handle-update-acquisition-truncates",
+    "file": "/Users/d/code/primitive/filestore/open_read.go",
+    "owner": "OpenUpdate",
+    "before": "flag: os.O_RDWR,",
+    "after": "flag: os.O_RDWR | os.O_TRUNC,",
+    "test": "^TestReadAndUpdateNativeHandleLayerTriad$/^update$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 12,
+      "fail": 6,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-native-handle-update-access-readonly",
+    "file": "/Users/d/code/primitive/filestore/open_read.go",
+    "owner": "OpenUpdate",
+    "before": "flag: os.O_RDWR,",
+    "after": "flag: os.O_RDONLY,",
+    "test": "^TestReadAndUpdateNativeHandleLayerTriad$/^update$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 11,
+      "fail": 7,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-native-handle-update-regularity-omitted-corrected",
+    "file": "/Users/d/code/primitive/filestore/open_read.go",
+    "owner": "OpenUpdate",
+    "before": "if !info.Mode().IsRegular() {",
+    "after": "if !info.Mode().IsRegular() && false {",
+    "test": "^TestPublicHandleOpenersRefuseNamedFIFOWithoutConsumingPeer$/^update_",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 0,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-native-handle-append-existing-loses-append-flag",
+    "file": "/Users/d/code/primitive/filestore/append_remove.go",
+    "owner": "openExistingAppend",
+    "before": "flag: os.O_WRONLY | os.O_APPEND,",
+    "after": "flag: os.O_WRONLY,",
+    "test": "^TestAppendIntentLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 18,
+      "fail": 5,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-native-handle-append-create-loses-exclusivity",
+    "file": "/Users/d/code/primitive/filestore/append_remove.go",
+    "owner": "createAppend",
+    "before": "os.O_WRONLY | os.O_APPEND | os.O_CREATE | os.O_EXCL",
+    "after": "os.O_WRONLY | os.O_APPEND | os.O_CREATE",
+    "test": "^TestAppendIntentLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 12,
+      "fail": 11,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-native-handle-append-fallback-creates-dangling-referent",
+    "file": "/Users/d/code/primitive/filestore/append_remove.go",
+    "owner": "createOrOpenAppend",
+    "before": "return openExistingAppend(request)",
+    "after": "return request.Location.Root.OpenFile(request.Location.Path.String(), os.O_WRONLY|os.O_APPEND|os.O_CREATE, request.Mode)",
+    "test": "^TestAppendIntentLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 19,
+      "fail": 4,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-native-handle-append-existing-changes-permissions",
+    "file": "/Users/d/code/primitive/filestore/append_remove.go",
+    "owner": "openExistingAppend",
+    "before": "if err := validateAppendFile(file); err != nil {",
+    "after": "_ = file.Chmod(request.Mode)\n\tif err := validateAppendFile(file); err != nil {",
+    "test": "^TestAppendIntentLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 15,
+      "fail": 8,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-native-handle-append-refusal-leaks-native-handle",
+    "file": "/Users/d/code/primitive/filestore/append_remove.go",
+    "owner": "validateAppendFile",
+    "before": "return closeActivationFile(file, activationError(fs.ErrInvalid))",
+    "after": "return activationError(fs.ErrInvalid)",
+    "test": "^TestAppendAndLockRegularityGatesSettleOnlyRefusedHandles$/^append$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 5,
+      "fail": 5,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-native-handle-lock-acquisition-truncates",
+    "file": "/Users/d/code/primitive/filestore/custody.go",
+    "owner": "OpenLockFile",
+    "before": "flag: os.O_CREATE | os.O_RDWR,",
+    "after": "flag: os.O_CREATE | os.O_RDWR | os.O_TRUNC,",
+    "test": "^FuzzReadUpdateAppendLockNativeHandleCustody$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 13,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-native-handle-lock-mode-omitted",
+    "file": "/Users/d/code/primitive/filestore/custody.go",
+    "owner": "OpenLockFile",
+    "before": "if err := file.Chmod(request.Mode); err != nil {",
+    "after": "if err := error(nil); err != nil {",
+    "test": "^TestLockFileNativeCapabilityLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 13,
+      "fail": 6,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-native-handle-lock-access-readonly",
+    "file": "/Users/d/code/primitive/filestore/custody.go",
+    "owner": "OpenLockFile",
+    "before": "flag: os.O_CREATE | os.O_RDWR,",
+    "after": "flag: os.O_CREATE | os.O_RDONLY,",
+    "test": "^FuzzReadUpdateAppendLockNativeHandleCustody$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 12,
+      "fail": 3,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-native-handle-lock-regularity-omitted",
+    "file": "/Users/d/code/primitive/filestore/custody.go",
+    "owner": "validateLockFile",
+    "before": "if !info.Mode().IsRegular() {",
+    "after": "if !info.Mode().IsRegular() && false {",
+    "test": "^TestPublicHandleOpenersRefuseNamedFIFOWithoutConsumingPeer$/^lock_",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 0,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-native-handle-lock-refusal-leaks-native-handle",
+    "file": "/Users/d/code/primitive/filestore/custody.go",
+    "owner": "validateLockFile",
+    "before": "return closeCustodyFile(file, destinationError(fs.ErrInvalid))",
+    "after": "return destinationError(fs.ErrInvalid)",
+    "test": "^TestAppendAndLockRegularityGatesSettleOnlyRefusedHandles$/^lock$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 5,
+      "fail": 5,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-native-handle-rotation-consumes-before-validation",
+    "file": "/Users/d/code/primitive/filestore/append_remove.go",
+    "owner": "RotateAppend",
+    "before": "if err := contextstate.Validate(ctx); err != nil {",
+    "after": "_ = request.Outgoing.Close()\n\tif err := contextstate.Validate(ctx); err != nil {",
+    "test": "^TestRotateAppendValidationOwnershipLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 3,
+      "fail": 19,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-native-handle-rotation-validation-ignored",
+    "file": "/Users/d/code/primitive/filestore/append_remove.go",
+    "owner": "RotateAppend",
+    "before": "if err := request.Validate(); err != nil {\n\t\treturn nil, err\n\t}",
+    "after": "if err := request.Validate(); err != nil {\n\t\t_ = err\n\t}",
+    "test": "^FuzzAppendRotationNativeOwnership$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 9,
+      "fail": 3,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-native-handle-rotation-outgoing-sync-omitted",
+    "file": "/Users/d/code/primitive/filestore/append_remove.go",
+    "owner": "synchronizeAndCloseOutgoing",
+    "before": "syncErr := file.Sync()",
+    "after": "syncErr := error(nil)",
+    "test": "^TestRotateAppendValidationOwnershipLayerTriad$/^native_pipe_",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 0,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-native-handle-rotation-outgoing-close-omitted",
+    "file": "/Users/d/code/primitive/filestore/append_remove.go",
+    "owner": "synchronizeAndCloseOutgoing",
+    "before": "closeErr := file.Close()",
+    "after": "closeErr := error(nil)",
+    "test": "^FuzzAppendRotationNativeOwnership$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 5,
+      "fail": 7,
+      "skip": 0
+    }
+  }
+]

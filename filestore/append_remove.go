@@ -52,7 +52,7 @@ func openExistingAppend(request AppendRequest) (*os.File, error) {
 		return nil, err
 	}
 	if err := prepareRegularReadFile(file); err != nil {
-		return nil, closeAppendFile(file, activationError(err))
+		return nil, closeActivationFile(file, activationError(err))
 	}
 	return file, nil
 }
@@ -118,10 +118,10 @@ func prepareCreatedAppend(request AppendRequest, file *os.File) error {
 func validateAppendFile(file *os.File) error {
 	info, err := file.Stat()
 	if err != nil {
-		return closeAppendFile(file, activationError(err))
+		return closeActivationFile(file, activationError(err))
 	}
 	if !info.Mode().IsRegular() {
-		return closeAppendFile(file, activationError(fs.ErrInvalid))
+		return closeActivationFile(file, activationError(fs.ErrInvalid))
 	}
 	return nil
 }
@@ -135,7 +135,7 @@ func synchronizeAndCloseOutgoing(file *os.File) error {
 	return activationError(errors.Join(syncErr, closeErr))
 }
 
-func closeAppendFile(file *os.File, primary error) error {
+func closeActivationFile(file *os.File, primary error) error {
 	closeErr := file.Close()
 	if closeErr != nil {
 		closeErr = activationError(closeErr)
@@ -165,8 +165,9 @@ func Remove(ctx context.Context, request RemovalRequest) error {
 }
 
 // RemoveTree durably removes one rooted tree without following a symlink at
-// the named entry. The operating system owns traversal and bounded buffering;
+// the named entry. Go owns traversal and bounded buffering;
 // Primitive owns validation, rooted capability confinement, and durability.
+// An already-absent path, including one below a missing parent, is a no-op.
 func RemoveTree(ctx context.Context, request TreeRemovalRequest) error {
 	if err := contextstate.Validate(ctx); err != nil {
 		return err
@@ -174,7 +175,17 @@ func RemoveTree(ctx context.Context, request TreeRemovalRequest) error {
 	if err := request.Validate(); err != nil {
 		return err
 	}
-	err := request.Location.Root.RemoveAll(request.Location.Path.String())
+	// RemoveAll reports nil for both deletion and prior absence. Observe the
+	// entry first so an absent parent needs no invented synchronization. Lstat
+	// keeps a dangling final link occupied and removable.
+	_, err := request.Location.Root.Lstat(request.Location.Path.String())
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return cleanupError(err)
+	}
+	err = request.Location.Root.RemoveAll(request.Location.Path.String())
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil
 	}

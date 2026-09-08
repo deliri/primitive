@@ -243,7 +243,7 @@ func TestOpenRootRefusesWhatCannotBeARoot(t *testing.T) {
 			context: func(t *testing.T) context.Context {
 				// A zero timeout is already expired when it is created, so the
 				// case proves the deadline branch without reading the clock.
-				ctx, cancel := context.WithTimeout(t.Context(), 0)
+				ctx, cancel := newFilesystemBackstop(t.Context(), t, 0)
 				t.Cleanup(cancel)
 				return ctx
 			},

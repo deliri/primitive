@@ -1,0 +1,225 @@
+[
+  {
+    "label": "mutation-stage-destination-copied-handle-admitted",
+    "file": "/Users/d/code/primitive/filestore/stage_destination.go",
+    "before": "d.self != d || ",
+    "after": "",
+    "test": "^TestStageDestinationLinearOwnershipRefusesCopiesAndReuse$",
+    "overlay_replacements": {
+      "/Users/d/code/primitive/filestore/stage_destination.go": "/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/mutation-stage-destination-copied-handle-admitted.go"
+    },
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 5,
+      "fail": 4,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-stage-destination-oversized-receipt-contract-disabled",
+    "file": "/Users/d/code/primitive/filestore/stage_destination.go",
+    "before": "completedBytes != d.request.ExpectedBytes.Uint64()",
+    "after": "completedBytes < d.request.ExpectedBytes.Uint64()",
+    "test": "^FuzzStageDestinationNativeWriterCustody$",
+    "overlay_replacements": {
+      "/Users/d/code/primitive/filestore/stage_destination.go": "/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/mutation-stage-destination-oversized-receipt-contract-disabled.go",
+      "/Users/d/code/primitive/filestore/stage.go": "/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/mutation-stage-destination-oversized-receipt-contract-disabled-shared.go"
+    },
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 8,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-stage-destination-undersized-receipt-contract-disabled",
+    "file": "/Users/d/code/primitive/filestore/stage_destination.go",
+    "before": "completedBytes != d.request.ExpectedBytes.Uint64()",
+    "after": "completedBytes > d.request.ExpectedBytes.Uint64()",
+    "test": "^FuzzStageDestinationNativeWriterCustody$",
+    "overlay_replacements": {
+      "/Users/d/code/primitive/filestore/stage_destination.go": "/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/mutation-stage-destination-undersized-receipt-contract-disabled.go",
+      "/Users/d/code/primitive/filestore/stage.go": "/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/mutation-stage-destination-undersized-receipt-contract-disabled-shared.go"
+    },
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 8,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-stage-destination-producer-mode-drift-retained",
+    "file": "/Users/d/code/primitive/filestore/stage_destination.go",
+    "before": "if err := destination.file.Chmod(destination.request.Mode); err != nil {",
+    "after": "if err := error(nil); err != nil {",
+    "test": "^TestStageDestinationHostileExtentAndFinalizationMatrix$",
+    "overlay_replacements": {
+      "/Users/d/code/primitive/filestore/stage_destination.go": "/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/mutation-stage-destination-producer-mode-drift-retained.go"
+    },
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 11,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-stage-destination-file-sync-omitted",
+    "file": "/Users/d/code/primitive/filestore/stage_destination.go",
+    "before": "if err := destination.file.Sync(); err != nil {",
+    "after": "if err := error(nil); err != nil {",
+    "test": "^TestStageDestinationRetainsFileAndParentSynchronization$",
+    "overlay_replacements": {
+      "/Users/d/code/primitive/filestore/stage_destination.go": "/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/mutation-stage-destination-file-sync-omitted.go"
+    },
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 1,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-stage-destination-parent-sync-omitted",
+    "file": "/Users/d/code/primitive/filestore/stage_destination.go",
+    "before": "if err := syncParent(destination.request.Temporary.Root, destination.request.Temporary.Path); err != nil {",
+    "after": "if err := error(nil); err != nil {",
+    "test": "^TestStageDestinationRetainsFileAndParentSynchronization$",
+    "overlay_replacements": {
+      "/Users/d/code/primitive/filestore/stage_destination.go": "/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/mutation-stage-destination-parent-sync-omitted.go"
+    },
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 1,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-stage-destination-producer-close-omitted",
+    "file": "/Users/d/code/primitive/filestore/stage_destination.go",
+    "before": "if err := destination.file.Close(); err != nil {",
+    "after": "if err := error(nil); err != nil {",
+    "test": "^TestStageDestinationDurableWriterLayerTriad$",
+    "overlay_replacements": {
+      "/Users/d/code/primitive/filestore/stage_destination.go": "/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/mutation-stage-destination-producer-close-omitted.go"
+    },
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 7,
+      "fail": 8,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-stage-destination-settled-handle-retained",
+    "file": "/Users/d/code/primitive/filestore/stage_destination.go",
+    "before": "destination.release()\n\treturn staged, nil",
+    "after": "return staged, nil",
+    "test": "^TestStageDestinationLinearOwnershipRefusesCopiesAndReuse$",
+    "overlay_replacements": {
+      "/Users/d/code/primitive/filestore/stage_destination.go": "/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/mutation-stage-destination-settled-handle-retained.go"
+    },
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 6,
+      "fail": 3,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-stage-destination-symbolic-name-follows-owned-inode",
+    "file": "/Users/d/code/primitive/filestore/stage.go",
+    "before": "info, err := staged.root.Lstat(staged.path.String())",
+    "after": "info, err := staged.root.Stat(staged.path.String())",
+    "test": "^TestStageDestinationDurableWriterLayerTriad$",
+    "overlay_replacements": {
+      "/Users/d/code/primitive/filestore/stage.go": "/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/mutation-stage-destination-symbolic-name-follows-owned-inode.go"
+    },
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 13,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-stage-destination-foreign-custody-removed",
+    "file": "/Users/d/code/primitive/filestore/stage.go",
+    "before": "if expected != nil && !os.SameFile(expected, current) {",
+    "after": "if expected != nil && false {",
+    "test": "^TestStageDestinationDurableWriterLayerTriad$",
+    "overlay_replacements": {
+      "/Users/d/code/primitive/filestore/stage.go": "/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/mutation-stage-destination-foreign-custody-removed.go"
+    },
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 8,
+      "fail": 7,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-stage-destination-indeterminate-write-handoff-erased",
+    "file": "/Users/d/code/primitive/filestore/stage.go",
+    "before": "return request, commitErr",
+    "after": "return CommitRequest{}, commitErr",
+    "test": "^FuzzWriteRecoveryHandoffSemanticCustody$",
+    "overlay_replacements": {
+      "/Users/d/code/primitive/filestore/stage.go": "/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/mutation-stage-destination-indeterminate-write-handoff-erased.go"
+    },
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 0,
+      "fail": 8,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-stage-destination-completed-recovery-loses-idempotence",
+    "file": "/Users/d/code/primitive/filestore/stage.go",
+    "before": "if stageInfo == nil {\n\t\treturn recoverMissingStage(request, targetInfo)\n\t}",
+    "after": "if stageInfo == nil {\n\t\treturn activationError(fs.ErrNotExist)\n\t}",
+    "test": "^FuzzWriteRecoveryHandoffSemanticCustody$",
+    "overlay_replacements": {
+      "/Users/d/code/primitive/filestore/stage.go": "/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/mutation-stage-destination-completed-recovery-loses-idempotence.go"
+    },
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 3,
+      "fail": 5,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-stage-destination-create-recovery-overwrites-occupied-target",
+    "file": "/Users/d/code/primitive/filestore/stage.go",
+    "before": "if !os.SameFile(request.Staged.info, targetInfo) {\n\t\treturn conflictError(os.ErrExist)\n\t}",
+    "after": "if !os.SameFile(request.Staged.info, targetInfo) {\n\t\treturn commitReplace(request)\n\t}",
+    "test": "^FuzzWriteRecoveryHandoffSemanticCustody$",
+    "overlay_replacements": {
+      "/Users/d/code/primitive/filestore/stage.go": "/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/mutation-stage-destination-create-recovery-overwrites-occupied-target.go"
+    },
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 6,
+      "fail": 2,
+      "skip": 0
+    }
+  }
+]

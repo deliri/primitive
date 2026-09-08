@@ -1,0 +1,133 @@
+[
+  {
+    "mutation": "SendJSON-refuse-all",
+    "record": "post-checkpoint-mutation-json-SendJSON-refuse-all.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#0",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#1",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#2",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#3",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#4",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#5",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#6",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#9",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#10",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#11",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#12",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#13",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#14",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#15"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "SendReplayBoundJSON-refuse-all",
+    "record": "post-checkpoint-mutation-json-SendReplayBoundJSON-refuse-all.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#0",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#1",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#2",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#3",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#4",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#5",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#6",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#9",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#10",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#11",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#12",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#13",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#14",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#15"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "SendNoBodyJSON-refuse-all",
+    "record": "post-checkpoint-mutation-json-SendNoBodyJSON-refuse-all.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#0",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#1",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#2",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#3",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#4",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#5",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#6",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#7",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#8",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#9",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#10",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#11",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#12",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#13",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#14",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#15"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "SendSocketJSON-refuse-all",
+    "record": "post-checkpoint-mutation-json-SendSocketJSON-refuse-all.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#0",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#1",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#2",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#3",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#4",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#5",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#6",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#9",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#10",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#11",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#12",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#13",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#14",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#15"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "SendReplayBoundSocketJSON-refuse-all",
+    "record": "post-checkpoint-mutation-json-SendReplayBoundSocketJSON-refuse-all.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#0",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#1",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#2",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#3",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#4",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#5",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#6",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#9",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#10",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#11",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#12",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#13",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#14",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#15"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "decoded-response-foreign-value",
+    "record": "post-checkpoint-mutation-json-decoded-response-foreign-value.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#1",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#2",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#6",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#7",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#8",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#9",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#10",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#11",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#12",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#13",
+      "FuzzSendJSONReplayNoBodyAndSocketResponses/seed#15"
+    ],
+    "killed_inside_callback": true
+  }
+]

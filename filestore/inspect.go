@@ -11,12 +11,8 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
-// PathKind is the closed set of things one configured path can turn out to be.
-//
-// Closed rather than a boolean pair because "usable" is the caller's decision
-// and it differs per path: a product may create a missing output directory but
-// must never create a missing repository. A caller that only learned "not a
-// directory" would have to guess which mistake the operator made.
+// PathKind is the closed vocabulary of native path observations. It records
+// mechanical entry kinds without deciding whether a caller can use them.
 type PathKind uint8
 
 const (
@@ -89,8 +85,43 @@ type Inspection struct {
 	kind        PathKind
 }
 
-// Validate rejects an observation that names no kind.
-func (i Inspection) Validate() error { return i.kind.Validate() }
+// Validate checks that the observed kind and retained facts agree. Absence
+// carries no metadata; an existing entry carries a timestamp and permissions.
+// Only a regular file carries a byte extent and allocation observation.
+func (i Inspection) Validate() error {
+	if err := i.kind.Validate(); err != nil {
+		return err
+	}
+	if i.kind == PathKindAbsent || i.kind == PathKindUnreachable {
+		if i != (Inspection{kind: i.kind}) {
+			return contractError(errors.New("absent path carries entry metadata"))
+		}
+		return nil
+	}
+	return validateInspectionFacts(i)
+}
+
+func validateInspectionFacts(i Inspection) error {
+	if err := i.modified.Validate(); err != nil {
+		return contractError(err)
+	}
+	if err := i.permissions.Validate(); err != nil {
+		return err
+	}
+	if !i.ownership.set && i.ownership != (Ownership{}) {
+		return contractError(errors.New("unreported ownership carries identifiers"))
+	}
+	if i.kind != PathKindRegularFile {
+		if i.size != (core.ByteLength{}) || i.allocation != (Allocation{}) {
+			return contractError(errors.New("non-regular entry carries regular-file storage facts"))
+		}
+		return nil
+	}
+	if err := i.size.Validate(); err != nil {
+		return contractError(err)
+	}
+	return i.allocation.Validate()
+}
 
 // Kind returns the observed kind.
 func (i Inspection) Kind() (PathKind, error) {
@@ -117,16 +148,8 @@ func (i Inspection) SizeBytes() (core.ByteLength, error) {
 	return i.size, nil
 }
 
-// ModifiedAt returns when the observed entry last changed.
-//
-// The observation already holds this fact, and a caller that had to ask again
-// would be asking about a different moment. Staleness decisions — reaping an
-// abandoned lock, expiring cached custody — are the reason products otherwise
-// keep a raw stat call after adopting Inspect.
-//
-// Only an entry that exists has a modification time. An absent or unreachable
-// path has nothing to report and is refused rather than answered with a zero
-// instant that reads as 1970.
+// ModifiedAt returns the timestamp captured with this existing entry. It
+// refuses absent and unreachable paths rather than fabricating an epoch.
 func (i Inspection) ModifiedAt() (temporal.Instant, error) {
 	kind, err := i.Kind()
 	if err != nil {
@@ -141,24 +164,14 @@ func (i Inspection) ModifiedAt() (temporal.Instant, error) {
 	return i.modified, nil
 }
 
-// Inspect reports what occupies one absolute path without creating, opening,
-// or modifying anything.
+// Inspect observes one absolute path through Go Lstat. It
+// reports the final symbolic link itself, and classifies a missing or
+// non-directory parent as unreachable. Permission refusals preserve the native
+// cause rather than claiming absence. It creates or modifies no entries.
 //
-// It exists because products otherwise reach past Filestore to the standard
-// library for this one question, which is the only reason a product would hold
-// a raw stat call at all. Admission decisions about configured paths are made
-// before any effect, and they are made in every product, so the observation
-// belongs here beside the effects it gates.
-//
-// The final component is not followed. A symbolic link is reported as a link,
-// because a confined root refuses to traverse one that leaves the root and a
-// caller told about the target would be told about a path it cannot use.
-//
-// A missing or non-directory parent is an observation, not a failure: nothing
-// exists there and nothing can be created there, which is exactly what a
-// caller needs to know. A permission refusal is a failure, because the path
-// may well be usable by someone and the caller must not record an absence it
-// was never allowed to observe.
+// A missing leaf requires a separate parent Stat to distinguish reachable
+// absence from an unreachable path. Callers coordinate namespace changes when
+// they require a stable view across those observations.
 func Inspect(ctx context.Context, path core.AbsolutePath) (Inspection, error) {
 	if err := contextstate.Validate(ctx); err != nil {
 		return Inspection{}, err
@@ -166,11 +179,18 @@ func Inspect(ctx context.Context, path core.AbsolutePath) (Inspection, error) {
 	if err := path.Validate(); err != nil {
 		return Inspection{}, contractError(err)
 	}
-	parent, err := path.Parent()
-	if err != nil {
-		return Inspection{}, contractError(err)
+	info, err := os.Lstat(path.String())
+	if errors.Is(err, fs.ErrNotExist) || errnoSaysNotADirectory(err) {
+		return inspectMissingPath(path)
 	}
-	base, err := path.Base()
+	if err != nil {
+		return Inspection{}, sourceError(err)
+	}
+	return inspectionForEntry(info)
+}
+
+func inspectMissingPath(path core.AbsolutePath) (Inspection, error) {
+	parent, err := path.Parent()
 	if err != nil {
 		return Inspection{}, contractError(err)
 	}
@@ -181,38 +201,13 @@ func Inspect(ctx context.Context, path core.AbsolutePath) (Inspection, error) {
 	if !holdsEntries {
 		return newInspection(PathKindUnreachable)
 	}
-	root, err := openRootDirectory(parent.String())
-	if err != nil {
-		return Inspection{}, sourceError(err)
-	}
-	info, statErr := root.Lstat(base.String())
-	closeErr := root.Close()
-	if closeErr != nil {
-		return Inspection{}, sourceError(closeErr)
-	}
-	return inspectionForEntry(info, statErr)
+	return newInspection(PathKindAbsent)
 }
 
-// parentHoldsEntries reports whether the parent is a directory that could hold
-// the named entry, established without opening it.
-//
-// Opening is what makes a hostile parent dangerous. os.OpenRoot performs an
-// ordinary open, and opening a named pipe blocks until a writer arrives, so a
-// FIFO anywhere in a path used to park the caller forever with the context
-// never consulted. Nothing in the rooted-open API accepts a directories-only
-// flag, so the kind is settled first by a call that opens nothing.
-//
-// A missing parent and a parent that is not a directory are the same fact to a
-// caller: nothing is there and nothing can be put there. Permission trouble is
-// not that fact and stays an error, so an observation is never recorded that
-// the caller was not allowed to make.
-//
-// Stat, not Lstat: intermediate components are conventionally followed, and it
-// is only the final component that Inspect leaves unfollowed. Between this
-// answer and the open below the parent could in principle be replaced by a
-// pipe, which is a far narrower window than the unconditional block it
-// replaces, and closing it entirely needs a rooted open the standard library
-// does not expose.
+// parentHoldsEntries classifies the parent with Go Stat. Intermediate links
+// follow Go path semantics. Missing and non-directory parents cannot hold the
+// requested entry; other native failures remain errors. Neither observation
+// opens the named entry, so a FIFO cannot turn inspection into a blocking read.
 func parentHoldsEntries(parent core.AbsolutePath) (bool, error) {
 	info, err := os.Stat(parent.String())
 	if errors.Is(err, fs.ErrNotExist) || errnoSaysNotADirectory(err) {
@@ -224,13 +219,7 @@ func parentHoldsEntries(parent core.AbsolutePath) (bool, error) {
 	return info.IsDir(), nil
 }
 
-func inspectionForEntry(info fs.FileInfo, err error) (Inspection, error) {
-	if errors.Is(err, fs.ErrNotExist) {
-		return newInspection(PathKindAbsent)
-	}
-	if err != nil {
-		return Inspection{}, sourceError(err)
-	}
+func inspectionForEntry(info fs.FileInfo) (Inspection, error) {
 	// Lstat's contract makes info non-nil exactly when err is nil; this guard
 	// makes that contract compiler-visible and fails closed if a filesystem
 	// ever breaks it, instead of dereferencing nil three readers later.
@@ -257,7 +246,10 @@ func inspectionForEntry(info fs.FileInfo, err error) (Inspection, error) {
 		permissions: observedPermissions(info),
 		ownership:   observedOwnership(info),
 	}
-	return inspection, inspection.Validate()
+	if err := inspection.Validate(); err != nil {
+		return Inspection{}, err
+	}
+	return inspection, nil
 }
 
 // observedSize keeps a nonsensical size out of the observation entirely. Only
@@ -293,7 +285,10 @@ func kindForMode(mode fs.FileMode) PathKind {
 
 func newInspection(kind PathKind) (Inspection, error) {
 	inspection := Inspection{kind: kind}
-	return inspection, inspection.Validate()
+	if err := inspection.Validate(); err != nil {
+		return Inspection{}, err
+	}
+	return inspection, nil
 }
 
 var (

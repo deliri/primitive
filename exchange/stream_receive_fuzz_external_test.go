@@ -37,7 +37,7 @@ func (r *streamFuzzReader) Read(p []byte) (int, error) {
 	if r.fault == streamFuzzCancelOnRead {
 		r.cancel()
 	}
-	if err == io.EOF && r.fault == streamFuzzReadFailure {
+	if errors.Is(err, io.EOF) && r.fault == streamFuzzReadFailure {
 		return n, io.ErrUnexpectedEOF
 	}
 	return n, err

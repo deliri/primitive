@@ -1,0 +1,27 @@
+[
+  {
+    "attempt": "closeout-three-platform-windows-compile",
+    "classification": "test build failure",
+    "reason": "Inventory referenced two Unix-only fuzz symbols; Inspect fuzz became portable and Windows gained its own native EnsureDirectory fuzz oracle."
+  },
+  {
+    "attempt": "closeout-stage-and-closed-root-direct-control",
+    "classification": "test build failure",
+    "reason": "RemoveTree requires TreeRemovalRequest, not RemovalRequest; corrected the actual call site."
+  },
+  {
+    "attempt": "closeout-stage-and-closed-root-typed-control",
+    "classification": "test oracle error",
+    "reason": "Exact class comparison omitted Core error parents. Filestore execution errors inherit ErrFilestoreContract; the corrected executor uses errors.Is(wantErr,class)."
+  },
+  {
+    "attempt": "closeout-last-legacy-tables-control",
+    "classification": "test build failure",
+    "reason": "Removing the Walk singleton left an unused fmt import; removed it."
+  },
+  {
+    "attempt": "closeout-filestore-witness-lint",
+    "classification": "doctrine findings",
+    "reason": "Corrected failure diagnostics, error identity checks, context argument order and entry-point ReportAllocs declarations. Retained three precise production waivers without changing Go execution semantics."
+  }
+]

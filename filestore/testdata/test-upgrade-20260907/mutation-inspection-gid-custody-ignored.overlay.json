@@ -1,0 +1,5 @@
+{
+  "Replace": {
+    "/Users/d/code/primitive/filestore/inspect.go": "/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/mutation-inspection-gid-custody-ignored.go"
+  }
+}

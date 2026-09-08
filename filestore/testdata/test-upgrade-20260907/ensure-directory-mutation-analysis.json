@@ -1,0 +1,184 @@
+[
+  {
+    "label": "mutation-ensure-directory-final-existing-ack-without-effect",
+    "owner": "EnsureDirectory",
+    "before": "if err := synchronizeOpenedDirectoryMode(directory, request.Location.Path, request.Mode); err != nil {",
+    "after": "if err := directory.Close(); err != nil {",
+    "test": "^TestEnsureDirectoryNativeNamespaceLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 26,
+      "fail": 3,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-ensure-directory-final-missing-ack-without-creation",
+    "owner": "EnsureDirectory",
+    "before": "return ensureDirectoryChain(ctx, request)",
+    "after": "return nil",
+    "test": "^FuzzEnsureDirectoryNativeNamespaceCustody$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 8,
+      "fail": 5,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-ensure-directory-final-native-refusal-erased",
+    "owner": "EnsureDirectory",
+    "before": "if !errors.Is(err, fs.ErrNotExist) {\n\t\treturn activationError(err)\n\t}",
+    "after": "if !errors.Is(err, fs.ErrNotExist) {\n\t\treturn nil\n\t}",
+    "test": "^TestEnsureDirectoryNativeNamespaceLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 21,
+      "fail": 8,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-ensure-directory-final-request-validation-ignored",
+    "owner": "EnsureDirectory",
+    "before": "if err := request.Validate(); err != nil {\n\t\treturn err\n\t}",
+    "after": "if err := request.Validate(); err != nil {\n\t\t_ = err\n\t}",
+    "test": "^TestEnsureDirectoryNativeNamespaceLayerTriad$/^zero_permission_",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 0,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-ensure-directory-final-cancellation-ignored",
+    "owner": "EnsureDirectory",
+    "before": "if err := contextstate.Validate(ctx); err != nil {\n\t\treturn err\n\t}",
+    "after": "if err := contextstate.Validate(ctx); err != nil {\n\t\t_ = err\n\t}",
+    "test": "^TestEnsureDirectoryNativeNamespaceLayerTriad$/^cancellation_",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 1,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-ensure-directory-final-owned-chmod-omitted",
+    "owner": "synchronizeOpenedDirectoryMode",
+    "before": "chmodErr = directory.Chmod(mode)",
+    "after": "chmodErr = nil",
+    "test": "^TestEnsureDirectoryNativeNamespaceLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 25,
+      "fail": 4,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-ensure-directory-final-owned-mode-widened",
+    "owner": "synchronizeOpenedDirectoryMode",
+    "before": "directory.Chmod(mode)",
+    "after": "directory.Chmod(mode | 0o007)",
+    "test": "^TestOpenedDirectoryModeNativeCustodyLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 4,
+      "fail": 5,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-ensure-directory-final-owned-close-omitted",
+    "owner": "synchronizeOpenedDirectoryMode",
+    "before": "closeErr := directory.Close()",
+    "after": "closeErr := error(nil)",
+    "test": "^TestOpenedDirectoryModeNativeCustodyLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 2,
+      "fail": 7,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-ensure-directory-final-owned-sync-omitted",
+    "owner": "synchronizeOpenedDirectoryMode",
+    "before": "syncErr = directory.Sync()",
+    "after": "syncErr = nil",
+    "test": "^TestEnsureDirectoryRetainsOwnedSynchronization$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 3,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-ensure-directory-final-parent-sync-omitted",
+    "owner": "ensureDirectoryEntry",
+    "before": "if err := syncParent(request.root, request.path); err != nil {",
+    "after": "if err := error(nil); err != nil {",
+    "test": "^TestEnsureDirectoryRetainsOwnedSynchronization$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 3,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-ensure-directory-final-existing-ancestor-mode-replaced",
+    "owner": "ensureDirectoryEntry",
+    "before": "return validateExistingDirectory(request.root, request.path)",
+    "after": "return synchronizeDirectoryMode(request.root, request.path, request.mode)",
+    "test": "^TestEnsureDirectoryNativeNamespaceLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 24,
+      "fail": 5,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-ensure-directory-final-created-mode-removed",
+    "owner": "ensureDirectoryEntry",
+    "before": "request.root.Mkdir(request.path.String(), request.mode)",
+    "after": "request.root.Mkdir(request.path.String(), 0)",
+    "test": "^TestEnsureDirectoryNativeNamespaceLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 20,
+      "fail": 9,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-ensure-directory-final-regular-file-admitted-as-directory",
+    "owner": "synchronizeOpenedDirectoryMode",
+    "before": "if statErr == nil && !info.IsDir() {",
+    "after": "if statErr == nil && !info.IsDir() && false {",
+    "test": "^TestOpenedDirectoryModeNativeCustodyLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 6,
+      "fail": 3,
+      "skip": 0
+    }
+  }
+]

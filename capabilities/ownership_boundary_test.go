@@ -73,7 +73,7 @@ func TestReplacementRejectsContradictoryEffect(t *testing.T) {
 				symbol.Receiver = &receiver
 			}
 			for _, retained := range operationDomain() {
-				fact := StandardSymbolFact{Symbol: symbol, Classification: Classification{Disposition: StandardSymbolEffect, Effect: tc.owner, Operation: retained}}
+				fact := StandardSymbolFact{Symbol: symbol, Disposition: StandardSymbolEffect, Effect: tc.owner, Operation: retained}
 				got, err := fact.Replacement()
 				if retained == OperationUnavailable || retained == tc.want {
 					if err != nil || got != tc.want {
@@ -86,7 +86,7 @@ func TestReplacementRejectsContradictoryEffect(t *testing.T) {
 				}
 			}
 			for effect := EffectFilesystem; effect < effectLimit; effect++ {
-				fact := StandardSymbolFact{Symbol: symbol, Classification: Classification{Disposition: StandardSymbolEffect, Effect: effect}}
+				fact := StandardSymbolFact{Symbol: symbol, Disposition: StandardSymbolEffect, Effect: effect}
 				got, err := fact.Replacement()
 				if effect == tc.owner {
 					if err != nil || got != tc.want {

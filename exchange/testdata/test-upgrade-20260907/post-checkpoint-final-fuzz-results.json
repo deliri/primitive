@@ -1,0 +1,119 @@
+[
+  {
+    "label": "post-checkpoint-final-fuzz-01",
+    "target": "FuzzHeaderValueMatchesNetHTTPAndExchangeBounds",
+    "exit_status": 0,
+    "progress": [
+      "fuzz: elapsed: 0s, gathering baseline coverage: 0/21 completed",
+      "fuzz: elapsed: 0s, gathering baseline coverage: 21/21 completed, now fuzzing with 2 workers",
+      "fuzz: elapsed: 3s, execs: 37288 (12421/sec), new interesting: 3 (total: 24)",
+      "fuzz: elapsed: 6s, execs: 78484 (13736/sec), new interesting: 3 (total: 24)",
+      "fuzz: elapsed: 9s, execs: 119109 (13537/sec), new interesting: 3 (total: 24)",
+      "fuzz: elapsed: 12s, execs: 159159 (13358/sec), new interesting: 3 (total: 24)",
+      "fuzz: elapsed: 15s, execs: 199623 (13480/sec), new interesting: 3 (total: 24)",
+      "fuzz: elapsed: 18s, execs: 241122 (13833/sec), new interesting: 3 (total: 24)",
+      "fuzz: elapsed: 21s, execs: 281374 (13417/sec), new interesting: 3 (total: 24)",
+      "fuzz: elapsed: 24s, execs: 310422 (9683/sec), new interesting: 3 (total: 24)",
+      "fuzz: elapsed: 27s, execs: 332697 (7425/sec), new interesting: 3 (total: 24)",
+      "fuzz: elapsed: 30s, execs: 368740 (12016/sec), new interesting: 3 (total: 24)",
+      "fuzz: elapsed: 30s, execs: 368740 (0/sec), new interesting: 3 (total: 24)"
+    ],
+    "sources_changed_during_run": []
+  },
+  {
+    "label": "post-checkpoint-final-fuzz-02",
+    "target": "FuzzResponseBufferSemanticExtent",
+    "exit_status": 0,
+    "progress": [
+      "fuzz: elapsed: 0s, gathering baseline coverage: 0/9 completed",
+      "fuzz: elapsed: 0s, gathering baseline coverage: 9/9 completed, now fuzzing with 2 workers",
+      "fuzz: elapsed: 3s, execs: 32298 (10759/sec), new interesting: 0 (total: 9)",
+      "fuzz: elapsed: 6s, execs: 65773 (11164/sec), new interesting: 0 (total: 9)",
+      "fuzz: elapsed: 9s, execs: 99134 (11116/sec), new interesting: 0 (total: 9)",
+      "fuzz: elapsed: 12s, execs: 132884 (11249/sec), new interesting: 0 (total: 9)",
+      "fuzz: elapsed: 15s, execs: 166442 (11193/sec), new interesting: 0 (total: 9)",
+      "fuzz: elapsed: 18s, execs: 199359 (10966/sec), new interesting: 0 (total: 9)",
+      "fuzz: elapsed: 21s, execs: 233718 (11453/sec), new interesting: 0 (total: 9)",
+      "fuzz: elapsed: 24s, execs: 266564 (10949/sec), new interesting: 0 (total: 9)",
+      "fuzz: elapsed: 27s, execs: 300205 (11219/sec), new interesting: 0 (total: 9)",
+      "fuzz: elapsed: 30s, execs: 333093 (10958/sec), new interesting: 0 (total: 9)",
+      "fuzz: elapsed: 30s, execs: 333093 (0/sec), new interesting: 0 (total: 9)"
+    ],
+    "sources_changed_during_run": []
+  },
+  {
+    "label": "post-checkpoint-final-fuzz-03",
+    "target": "FuzzMethodJSONSemanticClosure",
+    "exit_status": 0,
+    "progress": [
+      "fuzz: elapsed: 0s, gathering baseline coverage: 0/21 completed",
+      "fuzz: elapsed: 0s, gathering baseline coverage: 21/21 completed, now fuzzing with 2 workers",
+      "fuzz: elapsed: 3s, execs: 7214 (2404/sec), new interesting: 42 (total: 63)",
+      "fuzz: elapsed: 6s, execs: 26010 (6263/sec), new interesting: 80 (total: 101)",
+      "fuzz: elapsed: 9s, execs: 58147 (10710/sec), new interesting: 123 (total: 144)",
+      "fuzz: elapsed: 12s, execs: 93364 (11740/sec), new interesting: 137 (total: 158)",
+      "fuzz: elapsed: 15s, execs: 131871 (12835/sec), new interesting: 170 (total: 191)",
+      "fuzz: elapsed: 18s, execs: 166183 (11443/sec), new interesting: 203 (total: 224)",
+      "fuzz: elapsed: 21s, execs: 201367 (11722/sec), new interesting: 207 (total: 228)",
+      "fuzz: elapsed: 24s, execs: 240789 (13147/sec), new interesting: 214 (total: 235)",
+      "fuzz: elapsed: 27s, execs: 280109 (13100/sec), new interesting: 228 (total: 249)",
+      "fuzz: elapsed: 30s, execs: 318095 (12670/sec), new interesting: 254 (total: 275)",
+      "fuzz: elapsed: 30s, execs: 318095 (0/sec), new interesting: 254 (total: 275)"
+    ],
+    "sources_changed_during_run": []
+  },
+  {
+    "label": "post-checkpoint-final-fuzz-04",
+    "target": "FuzzReceiveBasicAuthorizationSemanticClosure",
+    "exit_status": 0,
+    "progress": [
+      "fuzz: elapsed: 0s, gathering baseline coverage: 0/76 completed",
+      "fuzz: elapsed: 0s, gathering baseline coverage: 76/76 completed, now fuzzing with 2 workers",
+      "fuzz: elapsed: 3s, execs: 35900 (11959/sec), new interesting: 12 (total: 88)",
+      "fuzz: elapsed: 6s, execs: 69639 (11246/sec), new interesting: 29 (total: 105)",
+      "fuzz: elapsed: 9s, execs: 106115 (12159/sec), new interesting: 38 (total: 114)",
+      "fuzz: elapsed: 12s, execs: 143601 (12503/sec), new interesting: 45 (total: 121)",
+      "fuzz: elapsed: 15s, execs: 183171 (13182/sec), new interesting: 48 (total: 124)",
+      "fuzz: elapsed: 18s, execs: 222709 (13179/sec), new interesting: 52 (total: 128)",
+      "fuzz: elapsed: 21s, execs: 264397 (13898/sec), new interesting: 54 (total: 130)",
+      "fuzz: elapsed: 24s, execs: 302546 (12718/sec), new interesting: 59 (total: 135)",
+      "fuzz: elapsed: 27s, execs: 344837 (14093/sec), new interesting: 60 (total: 136)",
+      "fuzz: elapsed: 30s, execs: 386129 (13768/sec), new interesting: 61 (total: 137)",
+      "fuzz: elapsed: 30s, execs: 386129 (0/sec), new interesting: 61 (total: 137)"
+    ],
+    "sources_changed_during_run": []
+  },
+  {
+    "label": "post-checkpoint-final-fuzz-05",
+    "target": "FuzzOfficialSDKBoundaryCeilingAndStreamingConfiguration",
+    "exit_status": 0,
+    "progress": [
+      "fuzz: elapsed: 0s, gathering baseline coverage: 0/39 completed",
+      "fuzz: elapsed: 0s, gathering baseline coverage: 39/39 completed, now fuzzing with 2 workers",
+      "fuzz: elapsed: 3s, execs: 32156 (10711/sec), new interesting: 38 (total: 77)",
+      "fuzz: elapsed: 6s, execs: 73204 (13683/sec), new interesting: 46 (total: 85)",
+      "fuzz: elapsed: 9s, execs: 115357 (14051/sec), new interesting: 49 (total: 88)",
+      "fuzz: elapsed: 12s, execs: 158178 (14274/sec), new interesting: 51 (total: 90)",
+      "fuzz: elapsed: 15s, execs: 201359 (14394/sec), new interesting: 52 (total: 91)",
+      "fuzz: elapsed: 18s, execs: 243670 (14104/sec), new interesting: 53 (total: 92)",
+      "fuzz: elapsed: 21s, execs: 286569 (14300/sec), new interesting: 53 (total: 92)",
+      "fuzz: elapsed: 24s, execs: 330219 (14554/sec), new interesting: 53 (total: 92)",
+      "fuzz: elapsed: 27s, execs: 371803 (13857/sec), new interesting: 54 (total: 93)",
+      "fuzz: elapsed: 30s, execs: 414991 (14397/sec), new interesting: 54 (total: 93)",
+      "fuzz: elapsed: 30s, execs: 414991 (0/sec), new interesting: 54 (total: 93)"
+    ],
+    "sources_changed_during_run": []
+  },
+  {
+    "label": "post-checkpoint-final-fuzz-06",
+    "target": "FuzzErrorNotFoundRedirectAndSetCookieGoParity",
+    "exit_status": 1,
+    "progress": [
+      "fuzz: elapsed: 0s, gathering baseline coverage: 0/50 completed",
+      "fuzz: elapsed: 0s, gathering baseline coverage: 50/50 completed, now fuzzing with 2 workers",
+      "fuzz: minimizing 89-byte failing input file",
+      "fuzz: elapsed: 3s, minimizing"
+    ],
+    "sources_changed_during_run": []
+  }
+]

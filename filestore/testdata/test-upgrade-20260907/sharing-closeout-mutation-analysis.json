@@ -1,0 +1,86 @@
+[
+  {
+    "label": "mutation-sharing-closeout-ignore-context",
+    "before": "return SharingUnknown, err",
+    "after": "_ = err",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 3,
+      "fail": 5,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-sharing-closeout-zero-path-source",
+    "before": "return SharingUnknown, contractError(err)",
+    "after": "return SharingUnknown, sourceError(err)",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 6,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-sharing-closeout-refusal-publishes-available",
+    "before": "return SharingUnknown, err",
+    "after": "return SharingAvailable, err",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 3,
+      "fail": 5,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-sharing-closeout-unsupported-publishes-available",
+    "before": "return SharingUnknown, errors.Join(",
+    "after": "return SharingAvailable, errors.Join(",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 0,
+      "fail": 1,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-sharing-closeout-unsupported-mislabeled-source",
+    "before": "core.ErrFilestoreContract,",
+    "after": "core.ErrFilestoreSource,",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 5,
+      "fail": 3,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-sharing-closeout-enum-Sharing-future-admitted",
+    "before": "return s > SharingUnknown && s < sharingLimit && diagnostics[s] != \"\"",
+    "after": "return s > SharingUnknown && s < sharingLimit && diagnostics[s] != \"\" || s == 255",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 255,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-sharing-closeout-enum-HeldStanding-future-admitted",
+    "before": "return s > HeldStandingUnknown && s < heldStandingLimit && diagnostics[s] != \"\"",
+    "after": "return s > HeldStandingUnknown && s < heldStandingLimit && diagnostics[s] != \"\" || s == 255",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 255,
+      "fail": 2,
+      "skip": 0
+    }
+  }
+]

@@ -1,4 +1,4 @@
-//go:build aix || android || darwin || dragonfly || freebsd || illumos || ios || linux || netbsd || openbsd || solaris
+//go:build darwin || linux
 
 package filestore
 
@@ -59,6 +59,9 @@ func errnoSaysNotADirectory(err error) bool {
 // the reserve question this door exists to decide, and garbage must not flow
 // toward acceptance.
 func observedAllocation(info fs.FileInfo) (Allocation, error) {
+	if !info.Mode().IsRegular() {
+		return Allocation{}, nil
+	}
 	status, ok := info.Sys().(*syscall.Stat_t)
 	if !ok {
 		return Allocation{}, nil
@@ -66,10 +69,10 @@ func observedAllocation(info fs.FileInfo) (Allocation, error) {
 	if status.Blocks < 0 {
 		return Allocation{}, sourceError(errors.New("filesystem reported a negative allocated block count"))
 	}
-	if uint64(status.Blocks) > math.MaxUint64/512 {
+	if uint64(status.Blocks) > math.MaxUint64/core.POSIXAllocationBlockBytes {
 		return Allocation{}, sourceError(errors.New("filesystem reported an unrepresentable allocated block count"))
 	}
-	bytes, err := core.NewByteLength(uint64(status.Blocks) * 512)
+	bytes, err := core.NewByteLength(uint64(status.Blocks) * core.POSIXAllocationBlockBytes)
 	if err != nil {
 		return Allocation{}, contractError(err)
 	}

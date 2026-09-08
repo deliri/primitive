@@ -85,56 +85,62 @@ func TestDownloadTransferRefusesAnUnendingEmptyReader(t *testing.T) {
 	}
 }
 
+// Both zero-extent probes must distinguish actual EOF from bounded stalls.
+// The shared row domain is finite: EOF, a byte, and the empty-read threshold.
 func TestZeroExtentBoundariesDoNotConfuseAStallWithEOF(t *testing.T) {
 	t.Parallel()
-
-	t.Run("bodyless request still discovers a body after one stall", func(t *testing.T) {
-		t.Parallel()
-
-		request := &http.Request{Body: io.NopCloser(&delayedProbeReader{emptyReads: 1})}
-		gotErr := refuseRequestBody(request)
-		if !errors.Is(gotErr, core.ErrExchangeRequest) ||
-			!errors.Is(gotErr, core.ErrExchangeContract) {
-			t.Fatalf("refuseRequestBody(stalled body) error = %v, want %v and %v",
-				gotErr, core.ErrExchangeRequest, core.ErrExchangeContract)
-		}
-	})
-
-	t.Run("bodyless request refuses an unending stall", func(t *testing.T) {
-		t.Parallel()
-
-		request := &http.Request{Body: io.NopCloser(emptyForeverReader{})}
-		gotErr := refuseRequestBody(request)
-		if !errors.Is(gotErr, core.ErrExchangeRequest) ||
-			!errors.Is(gotErr, io.ErrNoProgress) {
-			t.Fatalf("refuseRequestBody(empty reader) error = %v, want %v and %v",
-				gotErr, core.ErrExchangeRequest, io.ErrNoProgress)
-		}
-	})
-
-	t.Run("zero response extent still discovers a byte after one stall", func(t *testing.T) {
-		t.Parallel()
-
-		gotErr := probeEmptyResponseSource(
-			context.Background(), &delayedProbeReader{emptyReads: 1},
-		)
-		if !errors.Is(gotErr, core.ErrExchangeResponse) ||
-			!errors.Is(gotErr, core.ErrExchangeBodyLimit) {
-			t.Fatalf("probeEmptyResponseSource(stalled source) error = %v, want %v and %v",
-				gotErr, core.ErrExchangeResponse, core.ErrExchangeBodyLimit)
-		}
-	})
-
-	t.Run("zero response extent refuses an unending stall", func(t *testing.T) {
-		t.Parallel()
-
-		gotErr := probeEmptyResponseSource(context.Background(), emptyForeverReader{})
-		if !errors.Is(gotErr, core.ErrExchangeResponse) ||
-			!errors.Is(gotErr, io.ErrNoProgress) {
-			t.Fatalf("probeEmptyResponseSource(empty reader) error = %v, want %v and %v",
-				gotErr, core.ErrExchangeResponse, io.ErrNoProgress)
-		}
-	})
+	doors := []struct {
+		name     string
+		probe    func(context.Context, io.Reader) error
+		boundary error
+		overflow error
+	}{
+		{name: "request body absence", boundary: core.ErrExchangeRequest, overflow: core.ErrExchangeContract, probe: func(ctx context.Context, r io.Reader) error {
+			return refuseRequestBody((&http.Request{Body: io.NopCloser(r)}).WithContext(ctx))
+		}},
+		{name: "response zero extent", boundary: core.ErrExchangeResponse, overflow: core.ErrExchangeBodyLimit, probe: probeEmptyResponseSource},
+	}
+	cases := []struct {
+		name         string
+		emptyReads   int
+		eof          bool
+		wantOverflow bool
+		wantNative   error
+	}{
+		{name: "actual EOF creates no body evidence", eof: true},
+		{name: "immediate byte contradicts absence", wantOverflow: true},
+		{name: "transient stall cannot impersonate EOF", emptyReads: 1, wantOverflow: true},
+		{name: "last tolerated stall still discovers overflow", emptyReads: core.ReaderConsecutiveEmptyReadMaximum - 1, wantOverflow: true},
+		{name: "exact empty-read ceiling refuses no progress", emptyReads: core.ReaderConsecutiveEmptyReadMaximum, wantNative: io.ErrNoProgress},
+		{name: "above empty-read ceiling cannot spend another read", emptyReads: core.ReaderConsecutiveEmptyReadMaximum + 1, wantNative: io.ErrNoProgress},
+	}
+	for _, door := range doors {
+		t.Run(door.name, func(t *testing.T) {
+			t.Parallel()
+			for _, tc := range cases {
+				t.Run(tc.name, func(t *testing.T) {
+					t.Parallel()
+					stalled := &delayedProbeReader{emptyReads: tc.emptyReads}
+					var source io.Reader = stalled
+					if tc.eof {
+						source = bytes.NewReader(nil)
+					}
+					gotErr := door.probe(t.Context(), source)
+					wantErr := tc.wantNative
+					if tc.wantOverflow {
+						wantErr = door.overflow
+					}
+					if !errors.Is(gotErr, wantErr) || errors.Is(gotErr, door.boundary) != !tc.eof || errors.Is(gotErr, io.ErrNoProgress) != (tc.wantNative == io.ErrNoProgress) {
+						t.Fatalf("zero extent error = %v, want %v with exact boundary and no-progress identities", gotErr, wantErr)
+					}
+					wantStalls := min(tc.emptyReads, core.ReaderConsecutiveEmptyReadMaximum)
+					if stalled.reads != wantStalls {
+						t.Fatalf("empty reads = %d, want %d", stalled.reads, wantStalls)
+					}
+				})
+			}
+		})
+	}
 }
 
 // retainingWriter is a plain io.Writer. It deliberately implements neither

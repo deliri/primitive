@@ -1,0 +1,29 @@
+{
+  "scope": "Final refresh of two changed portable semantic fuzz targets. Baseline corpus includes local Go fuzz cache; counts are not published f.Add seeds. Earlier campaigns remain in execution records.",
+  "campaigns": [
+    {
+      "target": "FuzzWalkReplacementStandingSemanticClosure",
+      "executions": 20307,
+      "interesting_inputs_including_cache": 31,
+      "requested_duration": "30s",
+      "parallel": 1,
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/final-fuzz-FuzzWalkReplacementStandingSemanticClosure.json",
+        "bytes": 76357,
+        "sha256": "9c0a24b456d4c2a4b629da6bca9535747e7e0511e1fd0f9ce50bb00dbe83f8ac"
+      }
+    },
+    {
+      "target": "FuzzInspectionNativeFactsSemanticClosure",
+      "executions": 54604,
+      "interesting_inputs_including_cache": 14,
+      "requested_duration": "30s",
+      "parallel": 1,
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/final-fuzz-FuzzInspectionNativeFactsSemanticClosure.json",
+        "bytes": 76348,
+        "sha256": "38afc7890e5df9eef9563fc8496cb2e6bf9984e209167a5caaf06bfc28e35798"
+      }
+    }
+  ]
+}

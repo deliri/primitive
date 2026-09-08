@@ -240,6 +240,7 @@ const (
 	httpHeaderHostText             = "Host"
 	httpHeaderTransferEncodingText = "Transfer-Encoding"
 	httpHeaderConnectionText       = "Connection"
+	httpHeaderTrailerText          = "Trailer"
 )
 
 // HTTPHeaderContentType returns the validated Content-Type field name.
@@ -283,6 +284,11 @@ func HTTPHeaderTransferEncoding() HTTPHeaderName {
 // HTTPHeaderConnection returns the validated Connection hop-by-hop field name.
 func HTTPHeaderConnection() HTTPHeaderName {
 	return HTTPHeaderName{value: httpHeaderConnectionText}
+}
+
+// HTTPHeaderTrailer returns the validated declaration of HTTP trailer fields.
+func HTTPHeaderTrailer() HTTPHeaderName {
+	return HTTPHeaderName{value: httpHeaderTrailerText}
 }
 
 // HTTPMediaType is one canonical standard-library-parsed media type, including

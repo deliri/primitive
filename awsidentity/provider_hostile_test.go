@@ -237,7 +237,7 @@ func TestAWSAcquireProviderEnvelopeBoundaries(t *testing.T) {
 			}
 			data := awsProviderBytes(t, document)
 			if tc.change != nil && bytes.Equal(data, original) {
-				t.Fatal("provider mutation bytes unchanged, want load-bearing edit")
+				t.Fatalf("provider mutation=%x, want bytes different from %x", data, original)
 			}
 			body := &awsObservedBody{reader: bytes.NewReader(data)}
 			transport := &awsResponseTransport{body: body, status: http.StatusOK, length: int64(len(data))}

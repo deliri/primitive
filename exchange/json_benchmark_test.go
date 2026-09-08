@@ -2,10 +2,12 @@ package exchange_test
 
 import (
 	"bytes"
-	"context"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"runtime"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -348,7 +350,9 @@ func BenchmarkServerJSONBoundaryParallel(b *testing.B) {
 
 // BenchmarkJSONRoundTripOverLoopbackParallel measures one complete typed JSON
 // API turn over a real TCP listener through Exchange's client and server entry
-// points. Its explicit parallel shape measures instance throughput under load.
+// points. One persistent Go transport connection per worker bounds acquisition;
+// the benchmark measures concurrent request throughput, including first opens.
+// The accepted-connection count proves that reuse did not silently become churn.
 func BenchmarkJSONRoundTripOverLoopbackParallel(b *testing.B) {
 	route := benchmarkJSONRoute()
 	readPolicy := exchange.ServerPolicy{
@@ -363,7 +367,9 @@ func BenchmarkJSONRoundTripOverLoopbackParallel(b *testing.B) {
 		testJSONTypicalDocumentBytes,
 	)
 
-	server := httptest.NewServer(http.HandlerFunc(func(
+	workers := runtime.GOMAXPROCS(0)
+	var accepted atomic.Uint64
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(
 		writer http.ResponseWriter,
 		request *http.Request,
 	) {
@@ -393,9 +399,23 @@ func BenchmarkJSONRoundTripOverLoopbackParallel(b *testing.B) {
 			b.Errorf("WriteJSON() error = %v, want nil", writeErr)
 		}
 	}))
+	server.Config.ConnState = func(_ net.Conn, state http.ConnState) {
+		if state == http.StateNew {
+			accepted.Add(1)
+		}
+	}
+	server.Start()
 	defer server.Close()
-
-	client := mustExchangeClient(b, server.Client())
+	transport, okTransport := server.Client().Transport.(*http.Transport)
+	if !okTransport {
+		b.Fatalf("server transport=%T, want *http.Transport", server.Client().Transport)
+	}
+	owned := transport.Clone()
+	owned.MaxConnsPerHost = workers
+	owned.MaxIdleConnsPerHost = workers
+	owned.MaxIdleConns = workers
+	defer owned.CloseIdleConnections()
+	client := mustExchangeClient(b, &http.Client{Transport: owned})
 	target := mustEndpoint(b, server.URL)
 	policy := exchange.JSONPolicy{
 		Operation:         singleAttemptOperationPolicy(b),
@@ -411,7 +431,7 @@ func BenchmarkJSONRoundTripOverLoopbackParallel(b *testing.B) {
 		},
 		ExpectedStatus: ok,
 	}
-	ctx := context.Background()
+	ctx := b.Context()
 	b.ReportAllocs()
 	b.SetBytes(int64(2 * len(encoded)))
 	b.ResetTimer()
@@ -441,4 +461,10 @@ func BenchmarkJSONRoundTripOverLoopbackParallel(b *testing.B) {
 			}
 		}
 	})
+	b.StopTimer()
+	connections := accepted.Load()
+	if connections == 0 || connections > uint64(min(workers, b.N)) {
+		b.Fatalf("accepted connections = %d, want one through %d with Go reuse", connections, min(workers, b.N))
+	}
+	b.ReportMetric(float64(connections)/float64(b.N), "connections/op")
 }

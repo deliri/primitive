@@ -1,6 +1,7 @@
 package exchange
 
 import (
+	"bytes"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -27,9 +28,9 @@ func ParseBasicAuthorizationIdentity(value string) (BasicAuthorizationIdentity, 
 }
 
 func (i BasicAuthorizationIdentity) Validate() error {
-	value := []byte(i)
+	value := string(i)
 	if len(value) == 0 || len(value) > BasicAuthorizationIdentityMaximumBytes ||
-		!utf8.Valid(value) || invalidBasicIdentity(value) {
+		!utf8.ValidString(value) || strings.ContainsRune(value, ':') || strings.IndexFunc(value, unicode.IsControl) >= 0 {
 		return core.ErrExchangeContract
 	}
 	return nil
@@ -88,7 +89,7 @@ func (r BasicAuthorizationRequest) Validate() error {
 	if len(r.Secret) == 0 || len(r.Secret) > BasicAuthorizationSecretMaximumBytes || !utf8.Valid(r.Secret) {
 		return core.ErrExchangeContract
 	}
-	if invalidBasicSecret(r.Secret) {
+	if bytes.IndexFunc(r.Secret, unicode.IsControl) >= 0 {
 		return core.ErrExchangeContract
 	}
 	return nil
@@ -153,71 +154,40 @@ func ReceiveBasicAuthorization(call SocketServerCall) (BasicAuthorizationRequest
 	if err != nil {
 		return zero, requestError(err)
 	}
-	identityText, secretText, ok := parseBasicAuthorizationValue(headerValue)
+	received, ok := parseBasicAuthorizationValue(headerValue)
 	if !ok {
 		return zero, requestError(core.ErrExchangeContract)
 	}
-	identity, err := ParseBasicAuthorizationIdentity(identityText)
-	if err != nil {
-		return zero, requestError(err)
-	}
-	secret := []byte(secretText)
-	received := BasicAuthorizationRequest{Identity: identity, Secret: secret}
 	if err := received.Validate(); err != nil {
-		clear(secret)
+		clear(received.Secret)
 		return zero, requestError(err)
 	}
 	return received, nil
 }
 
-func parseBasicAuthorizationValue(value string) (string, string, bool) {
+func parseBasicAuthorizationValue(value string) (BasicAuthorizationRequest, bool) {
 	if len(value) <= len(basicAuthorizationScheme) || !strings.EqualFold(value[:len(basicAuthorizationScheme)], basicAuthorizationScheme) {
-		return "", "", false
+		return BasicAuthorizationRequest{}, false
 	}
 	encoded := value[len(basicAuthorizationScheme):]
 	if len(encoded) == 0 || len(encoded) > basicAuthorizationBase64MaximumBytes {
-		return "", "", false
+		return BasicAuthorizationRequest{}, false
 	}
 	var decodedStorage [basicAuthorizationDecodedMaximumBytes]byte
+	defer clear(decodedStorage[:])
 	decoded := decodedStorage[:]
 	count, err := base64.StdEncoding.Decode(decoded, []byte(encoded))
 	if err != nil {
-		return "", "", false
+		return BasicAuthorizationRequest{}, false
 	}
 	decoded = decoded[:count]
-	delimiter := -1
-	for index, character := range decoded {
-		if character == ':' {
-			delimiter = index
-			break
-		}
+	identity, secret, found := bytes.Cut(decoded, []byte{':'})
+	if !found {
+		return BasicAuthorizationRequest{}, false
 	}
-	if delimiter < 0 {
-		clear(decodedStorage[:])
-		return "", "", false
-	}
-	identity := string(decoded[:delimiter])
-	secret := string(decoded[delimiter+1:])
-	clear(decodedStorage[:])
-	return identity, secret, true
-}
-
-func invalidBasicIdentity(value []byte) bool {
-	for _, character := range string(value) {
-		if character == ':' || unicode.IsControl(character) {
-			return true
-		}
-	}
-	return false
-}
-
-func invalidBasicSecret(value []byte) bool {
-	for _, character := range string(value) {
-		if unicode.IsControl(character) {
-			return true
-		}
-	}
-	return false
+	return BasicAuthorizationRequest{
+		Identity: BasicAuthorizationIdentity(identity), Secret: bytes.Clone(secret),
+	}, true
 }
 
 var (

@@ -255,7 +255,7 @@ func TestSendReplayBindingCallbackLayerTriad(t *testing.T) {
 			document.marshals = nil
 			wantWire, err := document.MarshalJSON()
 			if err != nil {
-				t.Fatalf("expected typed wire encoding error = %v, want nil", err)
+				t.Fatalf("wanted typed wire encoding error = %v, want nil", err)
 			}
 			if observedReadErr != nil || observedKey != tc.header || !bytes.Equal(observedWire, wantWire) {
 				t.Fatalf("transport read/key/wire = (%v, %q, %q), want (nil, %q, %q)", observedReadErr, observedKey, observedWire, tc.header, wantWire)

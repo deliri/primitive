@@ -1,0 +1,100 @@
+[
+  {
+    "label": "mutation-permission-corrected-file-sync-omitted",
+    "file": "/Users/d/code/primitive/filestore/permissions.go",
+    "before": "if err := syncCloseCustodyFile(file); err != nil {",
+    "after": "if err := closeActivationFile(file, nil); err != nil {",
+    "test": "^TestPermissionMetadataRetainsOwnedFileSynchronization$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 0,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-permission-corrected-requested-mode-replaced",
+    "file": "/Users/d/code/primitive/filestore/permissions.go",
+    "before": "file.Chmod(request.Mode)",
+    "after": "file.Chmod(0o600)",
+    "test": "^FuzzPermissionNativeMetadataSemanticClosure$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 1,
+      "fail": 6,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-permission-corrected-write-access-fallback-removed",
+    "file": "/Users/d/code/primitive/filestore/permissions.go",
+    "before": "flag: os.O_WRONLY",
+    "after": "flag: os.O_RDONLY",
+    "test": "^TestPermissionEffectLayerTriad$/^write-only_ingress",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 0,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-permission-corrected-sync-capability-refusal-bypassed",
+    "file": "/Users/d/code/primitive/filestore/permissions.go",
+    "before": "file, err := openPermissionFile(request.Location)\n\tif err != nil {\n\t\treturn activationError(err)",
+    "after": "file, err := openPermissionFile(request.Location)\n\tif err != nil {\n\t\treturn request.Location.Root.Chmod(request.Location.Path.String(), request.Mode)",
+    "test": "^TestPermissionSyncCapabilityRefusalPreservesMetadata$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 0,
+      "fail": 4,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-permission-corrected-acquisition-truncates-bytes",
+    "file": "/Users/d/code/primitive/filestore/permissions.go",
+    "before": "openReadFile(location.Root, location.Path.String())",
+    "after": "openMutableFile(rootedOpenRequest{root: location.Root, path: location.Path.String(), flag: os.O_RDWR | os.O_TRUNC})",
+    "test": "^FuzzPermissionNativeMetadataSemanticClosure$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 1,
+      "fail": 6,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-permission-corrected-cancellation-ignored",
+    "file": "/Users/d/code/primitive/filestore/permissions.go",
+    "before": "if err := contextstate.Validate(ctx); err != nil {\n\t\treturn err",
+    "after": "if err := contextstate.Validate(ctx); err != nil {\n\t\t_ = err",
+    "test": "^FuzzPermissionNativeMetadataSemanticClosure$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 5,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-permission-corrected-native-fifo-rejected",
+    "file": "/Users/d/code/primitive/filestore/permissions.go",
+    "before": "if err := prepareRegularReadFile(file); err != nil {",
+    "after": "if info, err := file.Stat(); err == nil && info.Mode()&fs.ModeNamedPipe != 0 { return closeActivationFile(file, activationError(fs.ErrInvalid)) }; if err := prepareRegularReadFile(file); err != nil {",
+    "test": "^TestPermissionNamedPipeUsesNativeSynchronization$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 0,
+      "fail": 2,
+      "skip": 0
+    }
+  }
+]

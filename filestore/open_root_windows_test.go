@@ -12,38 +12,54 @@ import (
 
 func TestWindowsOpenRootDirectoryAcceptsOnlyTheInspectedDirectory(t *testing.T) {
 	t.Parallel()
-
-	t.Run("opened root retains the inspected directory identity", func(t *testing.T) {
-		t.Parallel()
-
-		path := t.TempDir()
-		before, beforeErr := os.Lstat(path)
-		root, gotErr := openRootDirectory(path)
-		if gotErr != nil {
-			t.Fatalf("openRootDirectory(directory) error = %v, want nil", gotErr)
-		}
-		t.Cleanup(func() {
-			if closeErr := root.Close(); closeErr != nil {
-				t.Errorf("os.Root.Close() error = %v, want nil", closeErr)
+	for _, tc := range []struct {
+		name               string
+		directory, missing bool
+		wantErr            error
+	}{
+		{name: "acquired root retains inspected directory inode", directory: true},
+		{name: "regular file is refused without mutation", wantErr: fs.ErrInvalid},
+		{name: "missing name cannot fabricate a root", missing: true, wantErr: fs.ErrNotExist},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			directory := t.TempDir()
+			name := filepath.Join(directory, "entry")
+			if tc.directory {
+				if err := os.Mkdir(name, 0o700); err != nil {
+					t.Fatal(err)
+				}
+			} else if !tc.missing {
+				if err := os.WriteFile(name, []byte{0, 255, 1}, 0o600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			before, beforeErr := os.Lstat(name)
+			root, gotErr := openRootDirectory(name)
+			if root != nil {
+				t.Cleanup(func() {
+					if err := root.Close(); err != nil {
+						t.Error(err)
+					}
+				})
+			}
+			if !errors.Is(gotErr, tc.wantErr) || (root != nil) != tc.directory {
+				t.Fatalf("openRootDirectory = (%v,%v), want directory=%t and %v", root, gotErr, tc.directory, tc.wantErr)
+			}
+			if tc.directory {
+				after, err := root.Stat(".")
+				if beforeErr != nil || err != nil || !os.SameFile(before, after) {
+					t.Fatalf("root inode = (%v,%v), want inspected inode", after, err)
+				}
+			}
+			after, err := os.Lstat(name)
+			if tc.missing {
+				if !errors.Is(err, fs.ErrNotExist) {
+					t.Fatalf("missing after = %v, want native absence", err)
+				}
+			} else if beforeErr != nil || err != nil || !os.SameFile(before, after) || before.Size() != after.Size() || before.Mode() != after.Mode() || !before.ModTime().Equal(after.ModTime()) {
+				t.Fatalf("entry after = (%v,%v), want retained native facts", after, err)
 			}
 		})
-		after, afterErr := root.Stat(".")
-		same := beforeErr == nil && afterErr == nil && os.SameFile(before, after)
-		if !same {
-			t.Fatalf("root identity = (before %v, after %v, same %t), want (nil, nil, true)", beforeErr, afterErr, same)
-		}
-	})
-
-	t.Run("regular file is refused before root acquisition", func(t *testing.T) {
-		t.Parallel()
-
-		path := filepath.Join(t.TempDir(), "regular")
-		if err := os.WriteFile(path, []byte("content"), 0o600); err != nil {
-			t.Fatalf("os.WriteFile(regular) error = %v, want nil", err)
-		}
-		root, gotErr := openRootDirectory(path)
-		if !errors.Is(gotErr, fs.ErrInvalid) || root != nil {
-			t.Fatalf("openRootDirectory(regular) = (%v, %v), want nil and %v", root, gotErr, fs.ErrInvalid)
-		}
-	})
+	}
 }

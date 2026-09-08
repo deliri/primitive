@@ -1,0 +1,113 @@
+{
+  "before": {
+    "label": "before-remove-tree-absence-lifecycle",
+    "record_sha256": "756b005003eef27ec7f5a5dddb22cd58c986558344128ba4309cc158edb10e5b",
+    "benchmark": "BenchmarkRemoveTreeEmptyDirectoryLifecycle",
+    "iterations": 6352,
+    "ns_per_op": 5669840.0,
+    "bytes_per_op": 1562,
+    "allocations_per_op": 16,
+    "argv": [
+      "go",
+      "test",
+      "-run=^$",
+      "-bench=^BenchmarkRemoveTreeEmptyDirectoryLifecycle$",
+      "-count=1",
+      "-benchtime=30s",
+      "-cpu=1",
+      "-benchmem",
+      "-cpuprofile=filestore/testdata/test-upgrade-20260907/before-remove-tree-absence-lifecycle.cpu.pprof",
+      "-memprofile=filestore/testdata/test-upgrade-20260907/before-remove-tree-absence-lifecycle.mem.pprof",
+      "-o=filestore/testdata/test-upgrade-20260907/before-remove-tree-absence-lifecycle.test",
+      "./filestore"
+    ],
+    "artifacts": [
+      {
+        "path": "filestore/testdata/test-upgrade-20260907/before-remove-tree-absence-lifecycle.stdout.txt",
+        "bytes": 259,
+        "sha256": "17b75cd6730b644d8cc1d158a04e658043c1f0db838f0906373a86f70b81017f"
+      },
+      {
+        "path": "filestore/testdata/test-upgrade-20260907/before-remove-tree-absence-lifecycle.stderr.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "filestore/testdata/test-upgrade-20260907/before-remove-tree-absence-lifecycle.git-status.txt",
+        "bytes": 5531,
+        "sha256": "5c1c748bd2cdd28da120a9c62b6e58280567de605de84c6977b891792e8ae184"
+      },
+      {
+        "path": "filestore/testdata/test-upgrade-20260907/before-remove-tree-absence-lifecycle.cpu.pprof",
+        "bytes": 4115,
+        "sha256": "ab69f7924f06493729df3181391c64625e2549d1ddcd7f26f769bac73d57d308"
+      },
+      {
+        "path": "filestore/testdata/test-upgrade-20260907/before-remove-tree-absence-lifecycle.mem.pprof",
+        "bytes": 2722,
+        "sha256": "261d0a5b65e5dbf799c28a41bcb13607eea93bc7ab6e319de72da5a9c2dfb89d"
+      },
+      {
+        "path": "filestore/testdata/test-upgrade-20260907/before-remove-tree-absence-lifecycle.test",
+        "bytes": 11320930,
+        "sha256": "473d8df82e69ddd6d0cad81dda87f3c7fedf55178a7a45a8dc04086474f7ef40"
+      }
+    ]
+  },
+  "after": {
+    "label": "after-remove-tree-absence-lifecycle",
+    "record_sha256": "4c1a40228f4616db9766a5217eb7edcad8417acefeba6f9eefba570186c33da5",
+    "benchmark": "BenchmarkRemoveTreeEmptyDirectoryLifecycle",
+    "iterations": 6757,
+    "ns_per_op": 5511045.0,
+    "bytes_per_op": 1794,
+    "allocations_per_op": 19,
+    "argv": [
+      "go",
+      "test",
+      "-count=1",
+      "-run=^$",
+      "-bench=^BenchmarkRemoveTreeEmptyDirectoryLifecycle$",
+      "-benchtime=30s",
+      "-cpu=1",
+      "-benchmem",
+      "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-remove-tree-absence-lifecycle.cpu.pprof",
+      "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-remove-tree-absence-lifecycle.mem.pprof",
+      "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-remove-tree-absence-lifecycle.test",
+      "./filestore"
+    ],
+    "artifacts": [
+      {
+        "path": "filestore/testdata/test-upgrade-20260907/after-remove-tree-absence-lifecycle.stdout.txt",
+        "bytes": 259,
+        "sha256": "c0a8121d42d885edd7f05baa24db1cb4f6b22343527156889e3a284ca21582a3"
+      },
+      {
+        "path": "filestore/testdata/test-upgrade-20260907/after-remove-tree-absence-lifecycle.stderr.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "filestore/testdata/test-upgrade-20260907/after-remove-tree-absence-lifecycle.git-status.txt",
+        "bytes": 5656,
+        "sha256": "8e4c7ab354fa476766bf748bb279e34a98c38a7870859d9acfde60452b0090ed"
+      },
+      {
+        "path": "filestore/testdata/test-upgrade-20260907/after-remove-tree-absence-lifecycle.cpu.pprof",
+        "bytes": 4607,
+        "sha256": "d6593e0ce0c1efc7e6dc2af2a67d5285c964fbfd0bbc01bc39b4201e09b0c0e5"
+      },
+      {
+        "path": "filestore/testdata/test-upgrade-20260907/after-remove-tree-absence-lifecycle.mem.pprof",
+        "bytes": 3353,
+        "sha256": "4bf3fbe4ba99be5b7f727461e35067d6bf954c6cf81e92e022cb026966f08e8e"
+      },
+      {
+        "path": "filestore/testdata/test-upgrade-20260907/after-remove-tree-absence-lifecycle.test",
+        "bytes": 11372514,
+        "sha256": "56be6dd24c276f2a686111479cff2b3e5c3cd8a6b6b98c2ee13a03453485cfbb"
+      }
+    ]
+  },
+  "scope": "One matched 30s CPU1 lifecycle pair. Added no-follow observation costs 232 bytes and 3 allocations for existing directory. No trend inferred from lower timing in one pair. Go owns recursive deletion. CPU/memory/binaries retained. Low operation count means allocation profiles also sample substantial profiling startup."
+}

@@ -9,7 +9,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"net/http/httptest"
 	"strconv"
 	"sync/atomic"
 	"testing"
@@ -302,13 +301,29 @@ func FuzzOfficialSDKStreamingSuccessResponseSemanticBoundary(f *testing.F) {
 		statuses := [...]int{http.StatusOK, http.StatusInternalServerError}
 		statusClass := int(statusInput) % len(statuses)
 		status := statuses[statusClass]
-		server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
-			writer.WriteHeader(status)
-			_, _ = writer.Write(body)
-		}))
-		t.Cleanup(server.Close)
-		client := officialSDKClient(t, boundary)
-		response, gotErr := client.Get(server.URL + "/object?" + queries[queryClass])
+		// This oracle concerns the SDK adapter's query/body contract. Real TCP
+		// framing has separate integration and truncation proofs; opening a socket
+		// per fuzz input would exhaust the host's ephemeral-port domain.
+		source := &bindingObservedBody{reader: bytes.NewReader(body)}
+		calls := 0
+		transport, err := exchange.NewOfficialSDKResponseTransport(exchange.OfficialSDKResponseTransportRequest{
+			Boundary: boundary,
+			Base: bindingTransport(func(request *http.Request) (*http.Response, error) {
+				calls++
+				return &http.Response{StatusCode: status, ContentLength: -1, Header: make(http.Header), Body: source, Request: request}, nil
+			}),
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		client, err := exchange.NewOfficialSDKHTTPClient(transport)
+		if err != nil {
+			t.Fatal(err)
+		}
+		response, gotErr := client.Get("http://streaming-oracle.invalid/object?" + queries[queryClass])
+		if calls != 1 {
+			t.Fatalf("SDK provider effects = %d, want exactly one", calls)
+		}
 
 		wantStreaming := queryClass == 0 && statusClass == 0
 		wantBodyLimit := !wantStreaming && len(body) > 64
@@ -324,6 +339,13 @@ func FuzzOfficialSDKStreamingSuccessResponseSemanticBoundary(f *testing.F) {
 			if response != nil || !errors.Is(gotErr, core.ErrExchangeResponse) || !errors.Is(gotErr, wantCause) {
 				t.Fatalf("conditional aggregate response = (%v, %v), want nil, %v, and %v", response, gotErr, core.ErrExchangeResponse, wantCause)
 			}
+			wantRead := len(body)
+			if wantBodyLimit {
+				wantRead = 65
+			}
+			if source.closes != 1 || source.reads != wantRead {
+				t.Fatalf("SDK refusal source read/close = %d/%d, want %d/1", source.reads, source.closes, wantRead)
+			}
 			return
 		}
 		if gotErr != nil || response == nil || response.StatusCode != status {
@@ -333,6 +355,9 @@ func FuzzOfficialSDKStreamingSuccessResponseSemanticBoundary(f *testing.F) {
 		closeErr := response.Body.Close()
 		if readErr != nil || closeErr != nil || !bytes.Equal(gotBody, body) {
 			t.Fatalf("conditional streaming body = (%d bytes, %v, %v), want exact %d bytes and nil/nil", len(gotBody), readErr, closeErr, len(body))
+		}
+		if source.closes != 1 || source.reads != len(body) {
+			t.Fatalf("SDK admitted source read/close = %d/%d, want %d/1", source.reads, source.closes, len(body))
 		}
 	})
 }

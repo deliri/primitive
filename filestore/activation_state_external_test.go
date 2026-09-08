@@ -1,7 +1,9 @@
 package filestore_test
 
 import (
+	"bytes"
 	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
@@ -104,7 +106,7 @@ func TestCommitExhaustsOwnedAndHostileNamespaceStates(t *testing.T) {
 			rootDirectory := t.TempDir()
 			root := requireTestRoot(t, rootDirectory)
 			staged := mustStage(t, root, ".stage", "candidate")
-			prepareActivationNamespace(t, root, rootDirectory, staged, tc.stage, tc.target)
+			ownedInfo := prepareActivationNamespace(t, root, rootDirectory, staged, tc.stage, tc.target)
 			gotErr := filestore.Commit(t.Context(), filestore.CommitRequest{
 				Staged: staged, Target: mustRelativePath(t, "target"), Install: tc.install,
 			})
@@ -115,13 +117,50 @@ func TestCommitExhaustsOwnedAndHostileNamespaceStates(t *testing.T) {
 			} else if gotErr != nil {
 				t.Fatalf("Commit() error = %v, want nil", gotErr)
 			}
-			requireActivationNamespace(
-				t,
-				rootDirectory,
-				tc.wantStage,
-				tc.wantTarget,
-				tc.wantTargetDirectory,
-			)
+
+			wantCount := 0
+			for _, want := range []struct {
+				path      string
+				data      string
+				directory bool
+			}{
+				{path: ".stage", data: tc.wantStage},
+				{path: "target", data: tc.wantTarget, directory: tc.wantTargetDirectory},
+			} {
+				info, err := root.Lstat(want.path)
+				if want.data == "" && !want.directory {
+					if !errors.Is(err, os.ErrNotExist) {
+						t.Fatalf("absent %s = (%v,%v), want native absence", want.path, info, err)
+					}
+					continue
+				}
+				wantCount++
+				if err != nil {
+					t.Fatal(err)
+				}
+				if info.IsDir() != want.directory {
+					t.Fatalf("%s kind = %v, want directory=%t", want.path, info.Mode(), want.directory)
+				}
+				if want.directory {
+					children, err := root.ReadFile(filepath.Join(want.path, "child"))
+					if err != nil || !bytes.Equal(children, []byte{0, 255, 1}) {
+						t.Fatalf("directory child = (%v,%v), want preserved bytes", children, err)
+					}
+					continue
+				}
+				data, err := root.ReadFile(want.path)
+				if err != nil || !bytes.Equal(data, []byte(want.data)) || info.Size() != int64(len(want.data)) {
+					t.Fatalf("%s bytes = (%v,%v), want %q", want.path, data, err, want.data)
+				}
+				if want.data == "candidate" && !os.SameFile(ownedInfo, info) {
+					t.Fatalf("%s inode = %v, want original staged inode", want.path, info)
+				}
+			}
+			entries, err := os.ReadDir(rootDirectory)
+			if err != nil || len(entries) != wantCount {
+				t.Fatalf("activation namespace = (%v,%v), want exactly %d entries", entries, err, wantCount)
+			}
+
 		})
 	}
 }
@@ -228,7 +267,7 @@ func TestRecoverExhaustsReachableAndHostileNamespaceStates(t *testing.T) {
 			rootDirectory := t.TempDir()
 			root := requireTestRoot(t, rootDirectory)
 			staged := mustStage(t, root, ".stage", "candidate")
-			prepareActivationNamespace(t, root, rootDirectory, staged, tc.stage, tc.target)
+			ownedInfo := prepareActivationNamespace(t, root, rootDirectory, staged, tc.stage, tc.target)
 			gotErr := filestore.Recover(t.Context(), filestore.CommitRequest{
 				Staged: staged, Target: mustRelativePath(t, "target"), Install: tc.install,
 			})
@@ -239,7 +278,50 @@ func TestRecoverExhaustsReachableAndHostileNamespaceStates(t *testing.T) {
 			} else if gotErr != nil {
 				t.Fatalf("Recover() error = %v, want nil", gotErr)
 			}
-			requireActivationNamespace(t, rootDirectory, tc.wantStage, tc.wantTarget, false)
+
+			wantCount := 0
+			for _, want := range []struct {
+				path      string
+				data      string
+				directory bool
+			}{
+				{path: ".stage", data: tc.wantStage},
+				{path: "target", data: tc.wantTarget, directory: false},
+			} {
+				info, err := root.Lstat(want.path)
+				if want.data == "" && !want.directory {
+					if !errors.Is(err, os.ErrNotExist) {
+						t.Fatalf("absent %s = (%v,%v), want native absence", want.path, info, err)
+					}
+					continue
+				}
+				wantCount++
+				if err != nil {
+					t.Fatal(err)
+				}
+				if info.IsDir() != want.directory {
+					t.Fatalf("%s kind = %v, want directory=%t", want.path, info.Mode(), want.directory)
+				}
+				if want.directory {
+					children, err := root.ReadFile(filepath.Join(want.path, "child"))
+					if err != nil || !bytes.Equal(children, []byte{0, 255, 1}) {
+						t.Fatalf("directory child = (%v,%v), want preserved bytes", children, err)
+					}
+					continue
+				}
+				data, err := root.ReadFile(want.path)
+				if err != nil || !bytes.Equal(data, []byte(want.data)) || info.Size() != int64(len(want.data)) {
+					t.Fatalf("%s bytes = (%v,%v), want %q", want.path, data, err, want.data)
+				}
+				if want.data == "candidate" && !os.SameFile(ownedInfo, info) {
+					t.Fatalf("%s inode = %v, want original staged inode", want.path, info)
+				}
+			}
+			entries, err := os.ReadDir(rootDirectory)
+			if err != nil || len(entries) != wantCount {
+				t.Fatalf("activation namespace = (%v,%v), want exactly %d entries", entries, err, wantCount)
+			}
+
 		})
 	}
 }
@@ -251,8 +333,23 @@ func prepareActivationNamespace(
 	staged filestore.StagedFile,
 	stageState stageNamespaceState,
 	targetState targetNamespaceState,
-) {
+) fs.FileInfo {
 	t.Helper()
+	// Keep the original inode alive while substituting its name. Otherwise the
+	// filesystem may reuse a deleted inode for the foreign fixture.
+	held, err := root.Open(staged.Path().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := held.Close(); err != nil {
+			t.Error(err)
+		}
+	})
+	original, err := held.Stat()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if targetState == targetNamespaceSameFile {
 		if err := root.Link(staged.Path().String(), "target"); err != nil {
@@ -285,48 +382,11 @@ func prepareActivationNamespace(
 		if err := os.Mkdir(filepath.Join(rootDirectory, "target"), 0o700); err != nil {
 			t.Fatal(err)
 		}
+		if err := root.WriteFile(filepath.Join("target", "child"), []byte{0, 255, 1}, 0o600); err != nil {
+			t.Fatal(err)
+		}
 	default:
 		t.Fatalf("target namespace state = %d, want admitted state", targetState)
 	}
-}
-
-func requireActivationNamespace(
-	t *testing.T,
-	rootDirectory string,
-	wantStage string,
-	wantTarget string,
-	wantTargetDirectory bool,
-) {
-	t.Helper()
-
-	requireOptionalFile(t, filepath.Join(rootDirectory, ".stage"), wantStage)
-	if wantTargetDirectory {
-		info, err := os.Stat(filepath.Join(rootDirectory, "target"))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if !info.IsDir() {
-			t.Fatalf("target mode = %v, want directory", info.Mode())
-		}
-		return
-	}
-	requireOptionalFile(t, filepath.Join(rootDirectory, "target"), wantTarget)
-}
-
-func requireOptionalFile(t *testing.T, path, want string) {
-	t.Helper()
-
-	got, err := os.ReadFile(path)
-	if want == "" {
-		if !errors.Is(err, os.ErrNotExist) {
-			t.Fatalf("ReadFile(%s) error = %v, want %v", filepath.Base(path), err, os.ErrNotExist)
-		}
-		return
-	}
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(got) != want {
-		t.Fatalf("ReadFile(%s) bytes = %q, want %q", filepath.Base(path), got, want)
-	}
+	return original
 }

@@ -1,0 +1,170 @@
+[
+  {
+    "label": "mutation-activation-root",
+    "file": "contracts.go",
+    "before": "staged.root != r.Temporary.Root || ",
+    "after": "",
+    "test": "^TestActivationStageAgreementLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 62,
+      "fail": 5,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-activation-mode",
+    "file": "contracts.go",
+    "before": " || staged.info.Mode().Perm() != r.Mode",
+    "after": "",
+    "test": "^TestActivationStageAgreementLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 62,
+      "fail": 5,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-stage-link-follow",
+    "file": "stage.go",
+    "before": "staged.root.Lstat(staged.path.String())",
+    "after": "staged.root.Stat(staged.path.String())",
+    "test": "^TestStagedNamespaceEntryLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 36,
+      "fail": 7,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-recovery-link-follow",
+    "file": "stage.go",
+    "before": "root.Lstat(path.String())",
+    "after": "root.Stat(path.String())",
+    "test": "^TestStagedNamespaceEntryLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 36,
+      "fail": 7,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-receipt-mode",
+    "file": "stage.go",
+    "before": " || observed.Mode().Perm() != staged.info.Mode().Perm()",
+    "after": "",
+    "test": "^TestRecoveryRevalidatesObservedReceiptLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 24,
+      "fail": 13,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-receipt-extent",
+    "file": "stage.go",
+    "before": "observedBytes != staged.bytes.Uint64()",
+    "after": "observedBytes < 0",
+    "test": "^TestRecoveryRevalidatesObservedReceiptLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 18,
+      "fail": 19,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-rename-stage-settlement",
+    "file": "stage.go",
+    "before": "if err := removeExpectedPath(request.Staged.root, request.Staged.path, request.Staged.info); err != nil {\n\t\treturn err\n\t}",
+    "after": "",
+    "test": "^TestSameInodeActivationDoesNotLeaveAnUnconsumedReceiptLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 2,
+      "fail": 3,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-stream-eof-erasure",
+    "file": "stream.go",
+    "before": "if err == io.EOF {\n\t\tr.eof = true",
+    "after": "if errors.Is(err, io.EOF) {\n\t\tr.eof = true",
+    "test": "^FuzzBoundedCopySourceSemanticCustody$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 4,
+      "fail": 3,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-stream-overflow-acceptance",
+    "file": "stream.go",
+    "before": "err = probeBoundedSourceEnd(&source)",
+    "after": "err = nil",
+    "test": "^FuzzFragmentedWriteActivationSemanticCustody$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 4,
+      "fail": 3,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-stream-progress-one-late",
+    "file": "stream.go",
+    "before": "r.emptyReads >= core.ReaderConsecutiveEmptyReadMaximum",
+    "after": "r.emptyReads > core.ReaderConsecutiveEmptyReadMaximum",
+    "test": "^TestBoundedCopySourceObservationLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 29,
+      "fail": 4,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-stream-negative-cause-erasure",
+    "file": "stream.go",
+    "before": "errors.New(\"filestore source returned an invalid byte count\"), err",
+    "after": "errors.New(\"filestore source returned an invalid byte count\"), nil",
+    "test": "^TestBoundedCopySourceObservationLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 30,
+      "fail": 3,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-stream-write-prefix-loss",
+    "file": "stream.go",
+    "before": "return count, classifyDestinationError(w.kind, err)",
+    "after": "return 0, classifyDestinationError(w.kind, err)",
+    "test": "^TestBoundedCopyGoWriterAccountingLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 8,
+      "fail": 4,
+      "skip": 0
+    }
+  }
+]

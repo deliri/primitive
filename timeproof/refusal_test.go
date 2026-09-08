@@ -508,8 +508,7 @@ func TestRefusalStatusClosedEnumMapping(t *testing.T) {
 				status.IsValid(),
 			)
 		}
-		var offWire core.OffWireEnum = status
-		offWire.OffWireEnum()
+		var _ core.OffWireEnum = status
 		if status.String() == "" {
 			t.Fatalf("RefusalStatus(%d).String() = %q, want a canonical token", status, "")
 		}
@@ -601,8 +600,7 @@ func TestRefusalCodeClosedEnumMapping(t *testing.T) {
 				code.IsValid(),
 			)
 		}
-		var offWire core.OffWireEnum = code
-		offWire.OffWireEnum()
+		var _ core.OffWireEnum = code
 		if code.String() == "" {
 			t.Fatalf("RefusalCode(%d).String() = %q, want a canonical token", code, "")
 		}

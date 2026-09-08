@@ -68,7 +68,7 @@ func TestUploadEarlyResponseDeclarationLayerTriad(t *testing.T) {
 			if tc.roundTrip {
 				var destination bytes.Buffer
 				response, callErr := exchange.RoundTripStream(exchange.StreamRoundTripCall{Context: t.Context(), Client: client, Policy: singleAttemptStreamPolicy(t), Request: exchange.StreamRoundTripRequest{Target: request.Target, Source: source, Destination: &destination, RequestContentLength: request.ContentLength, RequestContentType: request.ContentType, ExpectedStatus: request.ExpectedStatus, Semantics: request.Semantics, Headers: request.Headers, ResponseBodyLimit: mustByteCount(t, 2)}})
-				got = exchange.StreamResponse{Metadata: response.Metadata, DeclaredRequestBytes: response.DeclaredRequestBytes}
+				got = exchange.StreamResponse(response)
 				err = callErr
 				if destination.Len() != 0 {
 					t.Fatalf("early response destination = %x, want empty", destination.Bytes())
@@ -100,7 +100,7 @@ func TestUploadEarlyResponseDeclarationLayerTriad(t *testing.T) {
 					t.Fatalf("server response = %v, want nil", err)
 				}
 			case <-exchangeFixtureBackstop(t, timeout):
-				t.Fatal("Go server did not complete its response")
+				t.Fatalf("Go server did not complete its response; owned completion channel=%p", handled)
 			}
 		})
 	}

@@ -15,9 +15,11 @@ import (
 
 const walkDirectoryBatchEntries = 64
 
-// Walk streams descendants in operating-system directory order. It retains
-// at most one fixed entry batch per open directory and never follows symbolic
-// links. The starting directory itself is not delivered to Visit.
+// Walk visits descendants in the requested native or lexical order. Native
+// order retains one fixed entry batch per open directory; lexical order retains
+// at most the declared entry ceiling plus one per open directory before sorting.
+// Memory and held handles also depend on traversal depth. Symbolic-link entries
+// are not descended into. The starting directory is not delivered to Visit.
 func Walk(ctx context.Context, request WalkRequest) error {
 	if err := contextstate.Validate(ctx); err != nil {
 		return err
@@ -40,6 +42,9 @@ type walkDirectoryInput struct {
 }
 
 func walkDirectory(input walkDirectoryInput) error {
+	if err := contextstate.Validate(input.ctx); err != nil {
+		return err
+	}
 	directory, err := openDirectory(input.request.Location.Root, input.directoryPath.String())
 	if err != nil {
 		return sourceError(err)
@@ -100,6 +105,9 @@ func readStreamingDirectoryBatch(input readDirectoryInput, emptyReads *int) (boo
 	}
 	*emptyReads = 0
 	for _, entry := range entries {
+		if err := contextstate.Validate(input.ctx); err != nil {
+			return false, err
+		}
 		if visitErr := visitWalkEntry(visitWalkEntryInput{
 			ctx: input.ctx, request: input.request,
 			directoryPath: input.directoryPath, entry: entry,

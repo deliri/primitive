@@ -1,0 +1,77 @@
+[
+  {
+    "label": "post-checkpoint-final-missing-fuzz-01",
+    "target": "FuzzBasicAuthorizationIdentityJSONSemanticClosure",
+    "exit_status": 0,
+    "progress": [
+      "fuzz: elapsed: 0s, gathering baseline coverage: 0/291 completed",
+      "fuzz: elapsed: 1s, gathering baseline coverage: 291/291 completed, now fuzzing with 2 workers",
+      "fuzz: elapsed: 3s, execs: 31743 (10575/sec), new interesting: 7 (total: 298)",
+      "fuzz: elapsed: 6s, execs: 73387 (13887/sec), new interesting: 18 (total: 309)",
+      "fuzz: elapsed: 9s, execs: 112793 (13137/sec), new interesting: 28 (total: 319)",
+      "fuzz: elapsed: 12s, execs: 155195 (14126/sec), new interesting: 33 (total: 324)",
+      "fuzz: elapsed: 15s, execs: 194748 (13184/sec), new interesting: 51 (total: 342)",
+      "fuzz: elapsed: 18s, execs: 233722 (12997/sec), new interesting: 76 (total: 367)",
+      "fuzz: elapsed: 21s, execs: 276175 (14145/sec), new interesting: 79 (total: 370)",
+      "fuzz: elapsed: 24s, execs: 318361 (14062/sec), new interesting: 81 (total: 372)",
+      "fuzz: elapsed: 27s, execs: 361691 (14443/sec), new interesting: 83 (total: 374)",
+      "fuzz: elapsed: 30s, execs: 403862 (14058/sec), new interesting: 87 (total: 378)",
+      "fuzz: elapsed: 30s, execs: 403862 (0/sec), new interesting: 87 (total: 378)"
+    ],
+    "sources_changed_during_run": []
+  },
+  {
+    "label": "post-checkpoint-final-missing-fuzz-02",
+    "target": "FuzzParseDeclaredBodyLength",
+    "exit_status": 0,
+    "progress": [
+      "fuzz: elapsed: 0s, gathering baseline coverage: 0/8 completed",
+      "fuzz: elapsed: 0s, gathering baseline coverage: 8/8 completed, now fuzzing with 2 workers",
+      "fuzz: elapsed: 3s, execs: 42711 (14214/sec), new interesting: 0 (total: 8)",
+      "fuzz: elapsed: 6s, execs: 87478 (14940/sec), new interesting: 0 (total: 8)",
+      "fuzz: elapsed: 9s, execs: 131370 (14626/sec), new interesting: 0 (total: 8)",
+      "fuzz: elapsed: 12s, execs: 175171 (14601/sec), new interesting: 0 (total: 8)",
+      "fuzz: elapsed: 15s, execs: 219081 (14645/sec), new interesting: 0 (total: 8)",
+      "fuzz: elapsed: 18s, execs: 264549 (15148/sec), new interesting: 0 (total: 8)",
+      "fuzz: elapsed: 21s, execs: 308527 (14666/sec), new interesting: 0 (total: 8)",
+      "fuzz: elapsed: 24s, execs: 352397 (14616/sec), new interesting: 0 (total: 8)",
+      "fuzz: elapsed: 27s, execs: 396228 (14610/sec), new interesting: 0 (total: 8)",
+      "fuzz: elapsed: 30s, execs: 441726 (15167/sec), new interesting: 0 (total: 8)",
+      "fuzz: elapsed: 30s, execs: 441726 (0/sec), new interesting: 0 (total: 8)"
+    ],
+    "sources_changed_during_run": []
+  },
+  {
+    "label": "post-checkpoint-final-missing-fuzz-03",
+    "target": "FuzzOfficialSDKResponseTransportSemanticBoundary",
+    "exit_status": 0,
+    "progress": [
+      "fuzz: elapsed: 0s, gathering baseline coverage: 0/155 completed",
+      "fuzz: elapsed: 0s, gathering baseline coverage: 155/155 completed, now fuzzing with 2 workers",
+      "fuzz: elapsed: 3s, execs: 8197 (2732/sec), new interesting: 8 (total: 163)",
+      "fuzz: elapsed: 6s, execs: 17764 (3189/sec), new interesting: 15 (total: 170)",
+      "fuzz: elapsed: 9s, execs: 27061 (3098/sec), new interesting: 22 (total: 177)",
+      "fuzz: elapsed: 12s, execs: 36303 (3080/sec), new interesting: 33 (total: 188)",
+      "fuzz: elapsed: 15s, execs: 44190 (2630/sec), new interesting: 40 (total: 195)",
+      "fuzz: elapsed: 18s, execs: 54472 (3425/sec), new interesting: 43 (total: 198)",
+      "fuzz: elapsed: 21s, execs: 64697 (3410/sec), new interesting: 49 (total: 204)",
+      "fuzz: elapsed: 24s, execs: 77617 (4307/sec), new interesting: 53 (total: 208)",
+      "fuzz: elapsed: 27s, execs: 85656 (2679/sec), new interesting: 61 (total: 216)",
+      "fuzz: elapsed: 30s, execs: 96746 (3697/sec), new interesting: 63 (total: 218)",
+      "fuzz: elapsed: 30s, execs: 96746 (0/sec), new interesting: 63 (total: 218)"
+    ],
+    "sources_changed_during_run": []
+  },
+  {
+    "label": "post-checkpoint-final-missing-fuzz-04",
+    "target": "FuzzOfficialSDKStreamingSuccessResponseSemanticBoundary",
+    "exit_status": 1,
+    "progress": [
+      "fuzz: elapsed: 0s, gathering baseline coverage: 0/62 completed",
+      "fuzz: elapsed: 0s, gathering baseline coverage: 62/62 completed, now fuzzing with 2 workers",
+      "fuzz: elapsed: 3s, execs: 6075 (2024/sec), new interesting: 25 (total: 87)",
+      "fuzz: elapsed: 5s, execs: 11281 (2424/sec), new interesting: 40 (total: 102)"
+    ],
+    "sources_changed_during_run": []
+  }
+]

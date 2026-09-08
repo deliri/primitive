@@ -65,7 +65,7 @@ func TestReceiveBearerAuthorizationHeaderBoundaryTable(t *testing.T) {
 					t.Fatalf("receive error = %v, want %v", gotErr, tc.wantErr)
 				}
 				if recorder.Code != 0 || recorder.Body.Len() != 0 || len(recorder.Header()) != 0 || body.reads != 0 || body.closes != 0 {
-					t.Fatal("header parsing touched body custody or emitted a response")
+					t.Fatalf("response code/body/headers and request reads/closes=%d/%d/%d/%d/%d, want all zero", recorder.Code, recorder.Body.Len(), len(recorder.Header()), body.reads, body.closes)
 				}
 				if tc.wantErr != nil {
 					if got.Token != nil || !errors.Is(gotErr, core.ErrExchangeContract) {
@@ -78,7 +78,7 @@ func TestReceiveBearerAuthorizationHeaderBoundaryTable(t *testing.T) {
 				}
 				clear(got.Token)
 				if request.Header.Get(name) != fields[0] {
-					t.Fatal("clearing receiver mutated borrowed request field")
+					t.Fatalf("borrowed field preserved=%t, want true", request.Header.Get(name) == fields[0])
 				}
 			}
 		})
@@ -129,7 +129,7 @@ func TestBearerAuthorizationMatchesLayerTriad(t *testing.T) {
 				t.Fatalf("credential match = (%t, %v), want (%t, %v)", got, gotErr, tc.wantMatch, tc.wantErr)
 			}
 			if string(left.Token) != tc.left || string(right.Token) != tc.right {
-				t.Fatal("comparison mutated caller-owned credentials")
+				t.Fatalf("left/right preserved=%t/%t, want true/true", string(left.Token) == tc.left, string(right.Token) == tc.right)
 			}
 		})
 	}
@@ -193,7 +193,7 @@ func TestBearerAuthorizationHeaderCustodyTable(t *testing.T) {
 				t.Fatalf("header construction = %v, want %v", gotErr, tc.wantErr)
 			}
 			if !bytes.Equal(token, tc.token) {
-				t.Fatal("header construction mutated caller token")
+				t.Fatalf("caller token preserved=%t, want true", bytes.Equal(token, tc.token))
 			}
 			for _, format := range []string{"%v", "%+v", "%#v", "%s", "%q", "%x", "%020s", "%.1s"} {
 				if text := fmt.Sprintf(format, authorization); text != core.RedactedValueText {

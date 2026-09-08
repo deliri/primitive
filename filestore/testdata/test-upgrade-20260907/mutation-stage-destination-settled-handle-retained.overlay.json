@@ -1,0 +1,5 @@
+{
+  "Replace": {
+    "/Users/d/code/primitive/filestore/stage_destination.go": "/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/mutation-stage-destination-settled-handle-retained.go"
+  }
+}

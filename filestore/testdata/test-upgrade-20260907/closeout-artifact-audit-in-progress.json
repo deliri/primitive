@@ -1,0 +1,8718 @@
+{
+  "scope": "All retained Filestore execution records present at this scan; source snapshots, command output, requested artifacts, overlays, promoted corpus snapshots. Historical live source paths are not expected to match later edits.",
+  "record_count": 621,
+  "descriptor_count": 125189,
+  "distinct_files_verified": 3030,
+  "bytes_hashed": 1140870978,
+  "flags": [],
+  "unavailable_requested_artifacts": [
+    {
+      "record": "closeout-three-platform-windows-compile.json",
+      "exit_status": 1,
+      "paths": [
+        "/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/closeout-three-platform-windows.test.exe"
+      ]
+    }
+  ],
+  "source_drift_attempts": [],
+  "exit_status_counts": {
+    "0": 359,
+    "1": 262
+  },
+  "records": [
+    {
+      "record": "after-custody-ConfirmDurable-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-custody-ConfirmDurable-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-custody-ConfirmDurable.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-custody-Touch-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-custody-Touch-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-custody-Touch.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-directory-BenchmarkHeldDirectoryAcquisition-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-directory-BenchmarkHeldDirectoryAcquisition-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-directory-BenchmarkHeldDirectoryAcquisition.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-directory-BenchmarkRootDirectoryAcquisition-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-directory-BenchmarkRootDirectoryAcquisition-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-directory-BenchmarkRootDirectoryAcquisition.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-ensure-directory-Create-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-ensure-directory-Create-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-ensure-directory-Create.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-ensure-directory-Depth1-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-ensure-directory-Depth1-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-ensure-directory-Depth1.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-ensure-directory-Depth16-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-ensure-directory-Depth16-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-ensure-directory-Depth16.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-inspection-BenchmarkInspectRegularFileObservation-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-inspection-BenchmarkInspectRegularFileObservation-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-inspection-BenchmarkInspectRegularFileObservation.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-inspection-BenchmarkInspectionValidationBatch-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-inspection-BenchmarkInspectionValidationBatch-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-inspection-BenchmarkInspectionValidationBatch.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-permission-corrected-file-sync-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-permission-corrected-file-sync-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-permission-corrected-file-sync.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-read-unwind-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-read-unwind-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-read-unwind.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-remove-tree-absence-lifecycle-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-remove-tree-absence-lifecycle-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-remove-tree-absence-lifecycle.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-sharing-PlatformObservation-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-sharing-PlatformObservation-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-sharing-PlatformObservation.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-stage-unwind-lifecycle-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-stage-unwind-lifecycle-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-stage-unwind-lifecycle.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-stream-copy-128B-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-stream-copy-128B-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-stream-copy-128B.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-stream-copy-1MiB-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-stream-copy-1MiB-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-stream-copy-1MiB.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-stream-copy-32KiB-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-stream-copy-32KiB-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-stream-copy-32KiB.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-walk-InternalLexicalSparse-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-walk-InternalLexicalSparse-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-walk-InternalLexicalSparse.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-walk-LexicalSparse-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-walk-LexicalSparse-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-walk-LexicalSparse.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-walk-NativeSparse-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-walk-NativeSparse-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-walk-NativeSparse.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-walk-cancellation-LexicalSparse-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-walk-cancellation-LexicalSparse-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-walk-cancellation-LexicalSparse.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-walk-cancellation-NativeSparse-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-walk-cancellation-NativeSparse-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "after-walk-cancellation-NativeSparse.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "append-lock-regularity-native-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 19,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "append-rotation-native-table-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 45,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "baseline-BenchmarkLexicalSparseDirectory-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "baseline-BenchmarkLexicalSparseDirectory-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "baseline-BenchmarkLexicalSparseDirectory.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "baseline-BenchmarkWalkLexicalSparseDirectory-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "baseline-BenchmarkWalkLexicalSparseDirectory-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "baseline-BenchmarkWalkLexicalSparseDirectory.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "baseline-BenchmarkWalkNativeSparseDirectory-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "baseline-BenchmarkWalkNativeSparseDirectory-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "baseline-BenchmarkWalkNativeSparseDirectory.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "baseline-package.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 808,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-custody-ConfirmDurable-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-custody-ConfirmDurable-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-custody-ConfirmDurable.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-custody-Touch-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-custody-Touch-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-custody-Touch.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-directory-BenchmarkHeldDirectoryAcquisition-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-directory-BenchmarkHeldDirectoryAcquisition-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-directory-BenchmarkHeldDirectoryAcquisition.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-directory-BenchmarkRootDirectoryAcquisition-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-directory-BenchmarkRootDirectoryAcquisition-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-directory-BenchmarkRootDirectoryAcquisition.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-ensure-directory-Create-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-ensure-directory-Create-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-ensure-directory-Create.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-ensure-directory-Depth1-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-ensure-directory-Depth1-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-ensure-directory-Depth1.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-ensure-directory-Depth16-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-ensure-directory-Depth16-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-ensure-directory-Depth16.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-inspection-BenchmarkInspectRegularFileObservation-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-inspection-BenchmarkInspectRegularFileObservation-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-inspection-BenchmarkInspectRegularFileObservation.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-inspection-BenchmarkInspectionValidation-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-inspection-BenchmarkInspectionValidation-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-inspection-BenchmarkInspectionValidation.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-inspection-BenchmarkInspectionValidationBatch-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-inspection-BenchmarkInspectionValidationBatch-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-inspection-BenchmarkInspectionValidationBatch.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-permission-file-sync-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-permission-file-sync-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-permission-file-sync.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-read-unwind-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-read-unwind-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-read-unwind.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-remove-tree-absence-lifecycle-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-remove-tree-absence-lifecycle-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-remove-tree-absence-lifecycle.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-stage-unwind-lifecycle-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-stage-unwind-lifecycle-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-stage-unwind-lifecycle.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-stream-copy-128B-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-stream-copy-128B-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-stream-copy-128B.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-stream-copy-1MiB-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-stream-copy-1MiB-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-stream-copy-1MiB.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-stream-copy-32KiB-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-stream-copy-32KiB-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-stream-copy-32KiB.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-walk-cancellation-LexicalSparse-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-walk-cancellation-LexicalSparse-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-walk-cancellation-LexicalSparse.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-walk-cancellation-NativeSparse-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-walk-cancellation-NativeSparse-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "before-walk-cancellation-NativeSparse.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-activation-custody-slice.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 307,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-custody-package.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 1087,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-directory-platform-package.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 1251,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-ensure-directory-package.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 1612,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-held-standing-IdentityTriad-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-held-standing-IdentityTriad-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-held-standing-IdentityTriad.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-held-standing-package.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 1884,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-inspection-direct-package.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 1306,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-inspection-package.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 1293,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-native-handle-AppendExisting-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-native-handle-AppendExisting-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-native-handle-AppendExisting.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-native-handle-Lock-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-native-handle-Lock-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-native-handle-Lock.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-native-handle-Read-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-native-handle-Read-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-native-handle-Read.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-native-handle-Rotate-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-native-handle-Rotate-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-native-handle-Rotate.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-native-handle-Update-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-native-handle-Update-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-native-handle-Update.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-native-handle-package.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 1531,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-parent-identity-IdentityPair-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-parent-identity-IdentityPair-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-parent-identity-IdentityPair.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-parent-identity-OpenParent-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-parent-identity-OpenParent-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-parent-identity-OpenParent.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-parent-identity-package.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 1727,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-permission-corrected-package.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 1390,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-permission-package.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 1275,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-pipe-Acquisition-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-pipe-Acquisition-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-pipe-Acquisition.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-pipe-HeldTransfer-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-pipe-HeldTransfer-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-pipe-HeldTransfer.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-pipe-package-child-output-corrected.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 1831,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-pipe-package.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 1831,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-removal-package.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 1362,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-rename-CrossParent-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-rename-CrossParent-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-rename-CrossParent.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-rename-SameParent-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-rename-SameParent-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-rename-SameParent.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-rename-package.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 1677,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-sharing-PlatformObservation-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-sharing-PlatformObservation-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-sharing-PlatformObservation.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-stage-destination-lifecycle-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-stage-destination-lifecycle-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-stage-destination-lifecycle.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-stage-destination-package.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 1433,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-stream-package-corrected.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 1033,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-stream-package.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-stream-unwind-package.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 1331,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-symbolic-observation-Canonicalize-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-symbolic-observation-Canonicalize-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-symbolic-observation-Canonicalize.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-symbolic-observation-ReadLink-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-symbolic-observation-ReadLink-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-symbolic-observation-ReadLink.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "checkpoint-symbolic-observation-package.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 1805,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-activation-and-native-tables-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 46,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-activation-direct-table-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 27,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-canonical-seed-controls.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 304,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-context-effects-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 21,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-custody-direct-table-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 57,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-discriminator-and-inventory-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 589,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-exhaustive-enum-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 1799,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-filestore-complexity.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-filestore-doctrine-corrected.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-filestore-errcheck.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-filestore-format.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-filestore-staticcheck.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-filestore-vet.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-filestore-witness-lint.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-ingress-matchers-and-identity.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 87,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-ingress-temporal-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 261,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-last-legacy-import-clean-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 705,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-last-legacy-tables-control.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-observation-and-permission-domains-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 1193,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-platform-fuzz-bindings-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 82,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-platform-fuzz-windows-compile.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-read-boundary-control-distinct-fixture-type.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 24,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-read-boundary-control.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-retired-triad-controls.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 152,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-roundtrip-fuzz-seeds-core-identity.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 12,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-roundtrip-fuzz-seeds-typed-projections.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-roundtrip-fuzz-seeds.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-stage-and-closed-root-direct-control.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-stage-and-closed-root-error-hierarchy-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 19,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-stage-and-closed-root-typed-control.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 7,
+        "fail": 12,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-stream-extent-direct-table-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 19,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-sustained-FuzzLexicalWalkCardinalitySemanticClosure.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-sustained-FuzzStageCommitRoundTrip.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-sustained-FuzzWriteReadRoundTrip.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-three-platform-linux-compile.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-three-platform-windows-compile.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-walk-ceiling-and-sharing-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 26,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-walk-direct-oracle-control.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 50,
+        "fail": 7,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-writer-direct-table-control.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 22,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "closeout-writer-direct-table-shared-parent-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 24,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "custody-embedded-source-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 12,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "custody-final-slice-and-seeds.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 268,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "custody-sustained-bounded-minimization-corrected.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "custody-sustained-bounded-minimization.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "custody-sustained-semantic-fuzz.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "directory-fuzz-accounting-diagnostic.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "directory-namespace-fuzz-native-oracle.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 7,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "directory-namespace-fuzz-seeds.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 5,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "directory-sustained-bounded-minimization.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "directory-sustained-semantic-fuzz.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "ensure-directory-benchmark-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 4,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "ensure-directory-canceled-existing-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 42,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "ensure-directory-fast-existing-green.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 37,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "ensure-directory-final-focused-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 98,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "ensure-directory-linux-amd64-build.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "ensure-directory-native-baseline-control.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 24,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "ensure-directory-native-corrected-baseline-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 27,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "ensure-directory-ownership-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 33,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "ensure-directory-permission-domain-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 25,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "ensure-directory-semantic-seed-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 12,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "ensure-directory-sustained-FuzzEnsureDirectoryNativeNamespaceCustody.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "ensure-directory-umask-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 2,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "ensure-directory-windows-amd64-build.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "final-filestore-doctrine-staticcheck.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "final-filestore-linux-compile.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "final-filestore-package.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 5515,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "final-filestore-windows-compile.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "final-mutation-activation-ignores-stage-identity.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 17,
+        "fail": 10,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "final-mutation-filesystem-narrows-coordinate.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 5,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "final-mutation-inventory-missing-public-door.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 57,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "final-mutation-native-walk-drops-second-batch.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 3,
+        "fail": 7,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "final-mutation-ownership-transposes-uid.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 5,
+        "fail": 6,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "final-mutation-permissions-mask-bits.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 29,
+        "fail": 509,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "final-mutation-read-drop-writer-native.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 20,
+        "fail": 4,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "final-mutation-read-stage-ignores-cancellation.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 4,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "final-mutation-read-zero-count.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 16,
+        "fail": 8,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "final-mutation-stage-loses-exclusive-create.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 11,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "final-mutation-stage-loses-receipt-path.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 10,
+        "fail": 4,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "final-mutation-temporal-direct-clock.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 176,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "final-mutation-walk-descent-cancel.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 28,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "final-mutation-walk-entry-cancel.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 29,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "final-mutation-write-retains-resolved-recovery.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 17,
+        "fail": 7,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "green-activation-stage-agreement.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 67,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "green-custody-sync-and-namespace.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 261,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "green-descriptor-custody-local.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 16,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "green-directory-ownership-triads.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 27,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "green-inspection-direct-go-boundaries.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 305,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "green-inspection-schema-and-fuzz-seeds.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 58,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "green-inspection-schema-native-slice.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 109,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "green-platform-standard-library-slice.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 227,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "green-recovery-receipt-observation.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 152,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "green-stage-namespace-entry.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 43,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "green-stream-go-contract.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 108,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "green-walk-cancellation-and-three-platform-scope.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 191,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "held-standing-linux-amd64-build.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "held-standing-native-fuzz-seed-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 26,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "held-standing-native-table-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 23,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "held-standing-permission-and-context-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 40,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "held-standing-sustained-FuzzHeldStandingNativeIdentityAndCustody.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "held-standing-windows-amd64-build.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "inspection-after-direct-lstat-distribution-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "inspection-after-direct-lstat-distribution-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "inspection-after-direct-lstat-distribution.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "inspection-before-direct-lstat-distribution-cpu-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "inspection-before-direct-lstat-distribution-mem-analysis.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "inspection-before-direct-lstat-distribution.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "inspection-direct-linux-amd64-build.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "inspection-direct-native-and-schema-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 102,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "inspection-direct-sustained-fuzz.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "inspection-direct-windows-amd64-build.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "inspection-sustained-semantic-fuzz.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "lock-file-native-and-filelock-handoff-control-corrected.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 25,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "lock-file-native-and-filelock-handoff-control.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutable-fifo-native-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 5,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-activation-mode.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 62,
+        "fail": 5,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-activation-root.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 62,
+        "fail": 5,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-closeout-ceiling-constructor-narrows.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 9,
+        "fail": 4,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-closeout-ceiling-max-exclusive.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 11,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-closeout-ceiling-upper-limit-ignored.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 10,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-closeout-lexical-partial-prefix.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 10,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-closeout-lexical-truncated-ceiling.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 11,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-closeout-lexical-unsorted.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 9,
+        "fail": 4,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-custody-close-omission-embedded.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 2,
+        "fail": 7,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-custody-close-omission.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 2,
+        "fail": 7,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-custody-confirm-bypass-embedded.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 1,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-custody-confirm-bypass.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 3,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-custody-symlink-follow-embedded.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 4,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-custody-sync-omission-embedded.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 6,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-custody-sync-omission.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 6,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-directory-descriptor-reopens-path.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 7,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-directory-held-directory-follows-link.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 5,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-directory-held-directory-hides-close-error.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 7,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-directory-platform-external-syscalls.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 136,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-ensure-directory-cancellation-ignored.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 2,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-ensure-directory-existing-ack-without-effect.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 25,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-ensure-directory-final-cancellation-ignored.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 1,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-ensure-directory-final-created-mode-removed.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 20,
+        "fail": 9,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-ensure-directory-final-existing-ack-without-effect.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 26,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-ensure-directory-final-existing-ancestor-mode-replaced.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 24,
+        "fail": 5,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-ensure-directory-final-missing-ack-without-creation.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 8,
+        "fail": 5,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-ensure-directory-final-native-refusal-erased.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 21,
+        "fail": 8,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-ensure-directory-final-owned-chmod-omitted.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 25,
+        "fail": 4,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-ensure-directory-final-owned-close-omitted.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 2,
+        "fail": 7,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-ensure-directory-final-owned-mode-widened.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 4,
+        "fail": 5,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-ensure-directory-final-owned-sync-omitted.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 3,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-ensure-directory-final-parent-sync-omitted.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 3,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-ensure-directory-final-regular-file-admitted-as-directory.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 6,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-ensure-directory-final-request-validation-ignored.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-ensure-directory-missing-ack-without-creation.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 7,
+        "fail": 5,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-ensure-directory-native-refusal-erased.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 20,
+        "fail": 8,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-ensure-directory-request-validation-ignored.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-held-standing-cancellation-ignored.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 20,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-held-standing-closed-error-claims-absence.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 21,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-held-standing-closed-handle-mislabeled-source.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 21,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-held-standing-copy-context-mislabeled-source.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 3,
+        "fail": 5,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-held-standing-copy-pre-read-context-ignored.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 3,
+        "fail": 5,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-held-standing-final-link-followed.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 19,
+        "fail": 4,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-held-standing-held-kind-policy-invented.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 20,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-held-standing-identity-always-same.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 15,
+        "fail": 8,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-held-standing-non-directory-ancestor-becomes-error.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 21,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-held-standing-observation-consumes-held-byte.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 6,
+        "fail": 17,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-held-standing-size-substitutes-inode.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 19,
+        "fail": 4,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-held-standing-source-mislabeled-contract.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 21,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-held-standing-source-refusal-becomes-absence.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 21,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-held-standing-zero-path-mislabeled-source.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 21,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-inspection-absent-facts-ignored.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 18,
+        "fail": 6,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-inspection-allocation-scale.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 7,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-inspection-constructor-leaks-refused-fact.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 3,
+        "fail": 6,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-inspection-direct-componentless-root-rejected.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 11,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-inspection-direct-final-link-follow.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 7,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-inspection-direct-missing-parent-misclassified.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 6,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-inspection-direct-parent-listing-permission.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 12,
+        "fail": 5,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-inspection-direct-signed-extent-narrowed.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 1,
+        "fail": 6,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-inspection-direct-unsigned-extent-narrowed.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 4,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-inspection-getter-bypasses-schema.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 10,
+        "fail": 14,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-inspection-gid-custody-ignored.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 22,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-inspection-kind-only-validator.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 10,
+        "fail": 14,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-inspection-native-link-following.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 7,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-inspection-uid-custody-ignored.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 22,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-inspection-unreachable-becomes-absent.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 6,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-namespace-concurrency-create-overwrites-existing.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-namespace-concurrency-empty-write-invents-success.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-namespace-concurrency-successful-write-invents-recovery.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-native-handle-append-create-loses-exclusivity.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 12,
+        "fail": 11,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-native-handle-append-existing-changes-permissions.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 15,
+        "fail": 8,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-native-handle-append-existing-loses-append-flag.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 18,
+        "fail": 5,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-native-handle-append-fallback-creates-dangling-referent.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 19,
+        "fail": 4,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-native-handle-append-refusal-leaks-native-handle.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 5,
+        "fail": 5,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-native-handle-lock-access-readonly.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 12,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-native-handle-lock-acquisition-truncates.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 13,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-native-handle-lock-mode-omitted.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 13,
+        "fail": 6,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-native-handle-lock-refusal-leaks-native-handle.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 5,
+        "fail": 5,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-native-handle-lock-regularity-omitted.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-native-handle-read-access-widened.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 10,
+        "fail": 8,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-native-handle-read-regularity-omitted.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-native-handle-rotation-consumes-before-validation.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 3,
+        "fail": 19,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-native-handle-rotation-outgoing-close-omitted.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 5,
+        "fail": 7,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-native-handle-rotation-outgoing-sync-omitted.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-native-handle-rotation-validation-ignored.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 9,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-native-handle-update-access-readonly.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 11,
+        "fail": 7,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-native-handle-update-acquisition-truncates.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 12,
+        "fail": 6,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-native-handle-update-regularity-omitted-corrected.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-native-handle-update-regularity-omitted.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-parent-identity-identity-comparison-omitted.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 11,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-parent-identity-identity-contract-mislabeled-source.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-parent-identity-identity-diagnostic-name-required.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 9,
+        "fail": 5,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-parent-identity-identity-held-root-observation-bypassed.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 10,
+        "fail": 4,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-parent-identity-identity-lstat-substitutes-stat.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 10,
+        "fail": 4,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-parent-identity-identity-size-substitutes-inode.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 12,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-parent-identity-parent-cancellation-ignored.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-parent-identity-parent-contract-mislabeled-source.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-parent-identity-parent-demands-present-child.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 13,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-parent-identity-parent-leaks-partial-location.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 19,
+        "fail": 4,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-parent-identity-parent-opens-child-instead-corrected.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 7,
+        "fail": 8,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-parent-identity-parent-opens-child-instead.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-parent-identity-parent-returns-parent-basename.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 7,
+        "fail": 8,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-parent-identity-parent-transfers-closed-root.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 7,
+        "fail": 8,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-permission-acquisition-truncates-bytes.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 1,
+        "fail": 6,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-permission-cancellation-ignored.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 5,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-permission-corrected-acquisition-truncates-bytes.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 1,
+        "fail": 6,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-permission-corrected-cancellation-ignored.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 5,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-permission-corrected-file-sync-omitted.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-permission-corrected-native-fifo-rejected.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-permission-corrected-requested-mode-replaced.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 1,
+        "fail": 6,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-permission-corrected-sync-capability-refusal-bypassed.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 4,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-permission-corrected-write-access-fallback-removed.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-permission-fifo-admitted-to-chmod.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-permission-file-sync-omitted.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-permission-requested-mode-replaced.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 1,
+        "fail": 6,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-permission-sync-capability-refusal-bypassed.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 4,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-permission-write-access-fallback-removed.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-pipe-aliased-endpoints-admitted.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 8,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-pipe-closed-reader-invented-refusal.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 7,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-pipe-context-admission-ignored.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 8,
+        "fail": 5,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-pipe-endpoint-directions-swapped.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 4,
+        "fail": 9,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-pipe-missing-context-mislabeled-source.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 8,
+        "fail": 5,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-pipe-missing-reader-admitted.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 8,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-pipe-missing-writer-admitted.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 8,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-pipe-native-resource-error-mislabeled-contract.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-pipe-native-resource-refusal-becomes-empty-success.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-pipe-reader-transferred-closed.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 4,
+        "fail": 9,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-pipe-validation-closes-writer.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 6,
+        "fail": 4,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-pipe-validation-consumes-buffered-byte.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 7,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-pipe-writer-aliases-reader.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 4,
+        "fail": 9,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-pipe-writer-transferred-closed.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 4,
+        "fail": 9,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-receipt-extent.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 18,
+        "fail": 19,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-receipt-mode.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 24,
+        "fail": 13,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-recovery-link-follow.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 36,
+        "fail": 7,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-removal-absence-observation-removed.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 9,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-removal-closed-root-hidden.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 9,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-removal-dangling-link-treated-as-absent.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 8,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-removal-parent-sync-skipped.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 1,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-removal-recursive-effect-replaced-by-leaf.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 11,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-removal-removal-effect-skipped.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 8,
+        "fail": 5,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-rename-cancellation-ignored.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-rename-hard-link-noop-source-deleted.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-rename-namespace-effect-omitted.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 10,
+        "fail": 30,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-rename-new-parent-synced-twice.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-rename-old-parent-sync-omitted.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-rename-old-parent-synced-twice.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-rename-post-effect-namespace-rolled-back.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 7,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-rename-post-effect-refusal-downgraded.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 7,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-rename-pre-effect-refusal-mislabeled-indeterminate.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 2,
+        "fail": 7,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-rename-request-validation-ignored.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-rename-source-links-instead-of-moves.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 9,
+        "fail": 19,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-rename-stage-settlement.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 2,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-rename-target-parent-refusal-erased.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 7,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-rename-target-parent-sync-omitted.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 7,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-sharing-closeout-enum-HeldStanding-future-admitted.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 255,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-sharing-closeout-enum-Sharing-future-admitted.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 255,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-sharing-closeout-ignore-context.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 3,
+        "fail": 5,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-sharing-closeout-refusal-publishes-available.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 3,
+        "fail": 5,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-sharing-closeout-unsupported-mislabeled-source.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 5,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-sharing-closeout-unsupported-publishes-available.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-sharing-closeout-zero-path-source.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 6,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-stage-destination-completed-recovery-loses-idempotence.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 3,
+        "fail": 5,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-stage-destination-copied-handle-admitted.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 5,
+        "fail": 4,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-stage-destination-create-recovery-overwrites-occupied-target.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 6,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-stage-destination-file-sync-omitted.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 1,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-stage-destination-foreign-custody-removed.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 8,
+        "fail": 7,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-stage-destination-indeterminate-write-handoff-erased.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 8,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-stage-destination-oversized-final-extent-admitted.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 10,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-stage-destination-oversized-receipt-contract-disabled.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 8,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-stage-destination-parent-sync-omitted.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 1,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-stage-destination-producer-close-omitted.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 7,
+        "fail": 8,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-stage-destination-producer-mode-drift-retained.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 11,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-stage-destination-settled-handle-retained.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 6,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-stage-destination-symbolic-name-follows-owned-inode.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 13,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-stage-destination-undersized-receipt-contract-disabled.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 8,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-stage-link-follow.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 36,
+        "fail": 7,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-stream-eof-erasure.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 4,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-stream-negative-cause-erasure.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 30,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-stream-overflow-acceptance.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 4,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-stream-progress-one-late.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 29,
+        "fail": 4,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-stream-unwind-read-native-error-hidden.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 4,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-stream-unwind-read-owned-handle-not-closed.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 6,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-stream-unwind-stage-foreign-inode-removed.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 6,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-stream-unwind-stage-owned-handle-not-closed.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 2,
+        "fail": 6,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-stream-unwind-stage-unwind-cleanup-skipped.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 10,
+        "fail": 9,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-stream-write-prefix-loss.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 8,
+        "fail": 4,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-symbolic-observation-canonical-cancellation-ignored.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 14,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-symbolic-observation-canonical-contract-mislabeled-source.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 15,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-symbolic-observation-canonical-discards-resolved-answer.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 8,
+        "fail": 9,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-symbolic-observation-canonical-leaks-request-on-source-refusal.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 11,
+        "fail": 6,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-symbolic-observation-canonical-lexical-instead-of-native.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 3,
+        "fail": 14,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-symbolic-observation-canonical-source-mislabeled-contract.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 11,
+        "fail": 6,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-symbolic-observation-link-cancellation-ignored.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 22,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-symbolic-observation-link-contract-mislabeled-source.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 22,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-symbolic-observation-link-escapes-root.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 17,
+        "fail": 8,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-symbolic-observation-link-follows-final-before-reading.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 12,
+        "fail": 13,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-symbolic-observation-link-native-empty-target-admitted.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 2,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-symbolic-observation-link-source-mislabeled-contract.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 15,
+        "fail": 10,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-symbolic-observation-link-truncates-target.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 13,
+        "fail": 12,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-symbolic-observation-target-ceiling-exclusive.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 7,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-symbolic-observation-target-ceiling-omitted.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 6,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-symbolic-observation-target-empty-admitted.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 7,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-symbolic-observation-target-invalid-projection-leaks.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 5,
+        "fail": 4,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "mutation-symbolic-observation-target-nul-admitted.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 7,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "namespace-concurrency-and-temporal-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 20,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "native-handle-final-tables-and-fuzz-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 151,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "native-handle-linux-amd64-build.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "native-handle-semantic-seed-control-corrected.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 15,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "native-handle-semantic-seed-control.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "native-handle-sustained-FuzzAppendRotationNativeOwnership.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "native-handle-sustained-FuzzReadUpdateAppendLockNativeHandleCustody.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "native-handle-windows-amd64-build.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "open-parent-earned-row-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 29,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "open-parent-native-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 21,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "open-parent-owner-permission-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 9,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "parent-identity-final-focused-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 61,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "parent-identity-linux-amd64-build.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "parent-identity-semantic-seed-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 23,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "parent-identity-sustained-FuzzOpenParentAndRootIdentityNativeCustody.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "parent-identity-windows-amd64-build.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "permission-corrected-linux-amd64-build.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "permission-corrected-sustained-semantic-fuzz.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "permission-corrected-windows-amd64-build.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "permission-native-before-control-corrected.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 14,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "permission-native-before-control.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 12,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "permission-native-capability-and-fuzz-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 27,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "permission-native-go-corrected-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 29,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "permission-nonfile-refusal-control.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "permission-owned-sync-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 29,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "pipe-custody-native-table-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 22,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "pipe-linux-amd64-build.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "pipe-native-descriptor-capacity-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "pipe-native-fuzz-seed-control.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 14,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "pipe-sustained-FuzzPipeNativeCustodyAndBytes.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "pipe-windows-amd64-build.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "pipe-zero-write-native-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 39,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "platform-linux-amd64-build.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "platform-windows-amd64-build.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "read-update-native-table-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 35,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "recovery-handoff-semantic-seed-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 8,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "red-activation-stage-agreement.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 58,
+        "fail": 9,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "red-confirm-file-sync-native-oracle.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 10,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "red-confirm-file-sync.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 7,
+        "fail": 5,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "red-custody-namespace.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 12,
+        "fail": 9,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "red-inspection-direct-go-boundaries.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 29,
+        "fail": 7,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "red-inspection-kind-only-zero-result.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 3,
+        "fail": 6,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "red-inspection-schema-closure.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 10,
+        "fail": 14,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "red-permission-file-synchronization.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "red-platform-standard-library-imports.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 131,
+        "fail": 6,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "red-read-unwind-custody.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 3,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "red-recovery-receipt-observation.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 5,
+        "fail": 32,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "red-remove-tree-native-absence-corrected.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 9,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "red-remove-tree-native-absence.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "red-same-inode-activation.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 2,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "red-stage-namespace-entry.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 30,
+        "fail": 13,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "red-stage-unwind-custody.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 3,
+        "fail": 5,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "red-stream-go-contract.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 43,
+        "fail": 29,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "red-stream-signed-domain-corrected.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 12,
+        "fail": 7,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "red-stream-signed-domain.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "red-walk-cancellation-before-delivery-and-descent.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 35,
+        "fail": 6,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "red-walk-native-cancellation-delivery.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 48,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "removal-namespace-and-sync-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 33,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "removal-native-absence-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 24,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "removal-sustained-semantic-fuzz.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "rename-final-focused-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 95,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "rename-linux-amd64-build.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "rename-native-corrected-table-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 38,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "rename-native-durability-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 9,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "rename-native-parent-alias-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 68,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "rename-native-table-control.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 35,
+        "fail": 3,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "rename-semantic-seed-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 27,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "rename-sustained-FuzzRenameNativeNamespaceCustody.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "rename-synchronization-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 10,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "rename-windows-amd64-build.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "root-identity-native-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 14,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "rotation-semantic-seed-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 12,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "sharing-admission-control-typed-request.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 20,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "sharing-admission-control.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "sharing-closeout-linux-build.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "sharing-closeout-windows-build.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "sharing-sustained-FuzzSharingNativeObservationAndCustody.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "stage-destination-final-tables-and-fuzz-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 89,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "stage-destination-ingress-and-extent-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 28,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "stage-destination-linear-table-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 9,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "stage-destination-namespace-table-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 15,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "stage-destination-semantic-seed-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 10,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "stage-destination-sustained-FuzzStageDestinationNativeWriterCustody.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "stage-destination-sustained-FuzzWriteRecoveryHandoffSemanticCustody.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "stage-unwind-custody-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 8,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "stream-context-handoff-deterministic-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 8,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "stream-semantic-fuzz-seeds-corrected.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 14,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "stream-semantic-fuzz-seeds.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 10,
+        "fail": 4,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "stream-sustained-FuzzBoundedCopySourceSemanticCustody.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "stream-sustained-FuzzFragmentedWriteActivationSemanticCustody.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "stream-unwind-focused-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 25,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "stream-unwind-sustained-fuzz.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "symbolic-observation-fuzz-seed-control.json",
+      "exit_status": 1,
+      "test_events": {
+        "pass": 42,
+        "fail": 2,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      }
+    },
+    {
+      "record": "symbolic-observation-linux-amd64-build.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "symbolic-observation-native-admission-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 78,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "symbolic-observation-search-permission-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 9,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "symbolic-observation-sustained-FuzzSymbolicLinkObservationAndResolution.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "symbolic-observation-sustained-FuzzSymbolicLinkTargetOpaqueNominalClosure.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "symbolic-observation-table-control.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 47,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      }
+    },
+    {
+      "record": "symbolic-observation-windows-amd64-build.json",
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "package_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      }
+    }
+  ]
+}

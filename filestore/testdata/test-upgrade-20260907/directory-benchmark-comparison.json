@@ -1,0 +1,174 @@
+[
+  {
+    "workload": "BenchmarkRootDirectoryAcquisition",
+    "before": {
+      "label": "before-directory-BenchmarkRootDirectoryAcquisition",
+      "iterations": 963368,
+      "ns_per_op": 36918.0,
+      "bytes_per_op": 424,
+      "allocations_per_op": 8,
+      "exit_status": 0,
+      "source_drift": [],
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-directory-BenchmarkRootDirectoryAcquisition.stdout.txt",
+          "bytes": 250,
+          "sha256": "66656dd618a19b89a352c7a3ac2724388d8f99be9dfc0123988ac2902a5635f9"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-directory-BenchmarkRootDirectoryAcquisition.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-directory-BenchmarkRootDirectoryAcquisition.git-status.txt",
+          "bytes": 3922,
+          "sha256": "6d623fb08fe7d581eaa88ba4a62c7ebedc7839b90250a96162ad3b44e67bf214"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-directory-BenchmarkRootDirectoryAcquisition.cpu.pprof",
+          "bytes": 2534,
+          "sha256": "8eeca8f29fc6327ac9ce1e5c4591625d4263a4c24e6ee87e7008385f9fc4462e"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-directory-BenchmarkRootDirectoryAcquisition.mem.pprof",
+          "bytes": 3375,
+          "sha256": "4aa02ffdd2a727c77f7b7021d56de5438f666f54850216ecf82aa43d2be3e097"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-directory-BenchmarkRootDirectoryAcquisition.test",
+          "bytes": 10036514,
+          "sha256": "525b20efc8b5a633a68874d5b1ceb73f8f8ff6e36cd34960a60b5d3209b4e961"
+        }
+      ]
+    },
+    "after": {
+      "label": "after-directory-BenchmarkRootDirectoryAcquisition",
+      "iterations": 920389,
+      "ns_per_op": 38610.0,
+      "bytes_per_op": 528,
+      "allocations_per_op": 10,
+      "exit_status": 0,
+      "source_drift": [],
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-directory-BenchmarkRootDirectoryAcquisition.stdout.txt",
+          "bytes": 250,
+          "sha256": "99f05558f95ced7a24145890fdab386d333eab9b9bf4b2c9babb7dfaa79defe1"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-directory-BenchmarkRootDirectoryAcquisition.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-directory-BenchmarkRootDirectoryAcquisition.git-status.txt",
+          "bytes": 4387,
+          "sha256": "c891f9e2c8023a3005f0dfa163a91e79b4307507edbb14c37134fd2ed2b76ed0"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-directory-BenchmarkRootDirectoryAcquisition.cpu.pprof",
+          "bytes": 3198,
+          "sha256": "86dd2463887412da34be52fba83c6e7e5bcb11d173966fb1913141fd206c5733"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-directory-BenchmarkRootDirectoryAcquisition.mem.pprof",
+          "bytes": 3713,
+          "sha256": "6f44b3e74ad8860f9b221a2aae16b790f98216545cbdb5a14a1d5ccfb49cccaa"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-directory-BenchmarkRootDirectoryAcquisition.test",
+          "bytes": 11129938,
+          "sha256": "bf89ae33dd98f0f22925fc4b54cd70866fbe5e2d0755baebf8a1a3d62c5748d0"
+        }
+      ]
+    },
+    "time_delta_percent": 4.583130180399797
+  },
+  {
+    "workload": "BenchmarkHeldDirectoryAcquisition",
+    "before": {
+      "label": "before-directory-BenchmarkHeldDirectoryAcquisition",
+      "iterations": 2424543,
+      "ns_per_op": 14889.0,
+      "bytes_per_op": 432,
+      "allocations_per_op": 5,
+      "exit_status": 0,
+      "source_drift": [],
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-directory-BenchmarkHeldDirectoryAcquisition.stdout.txt",
+          "bytes": 250,
+          "sha256": "7d582e1f0d636644da1767584e0c068878c84e451012ab20aa298fd1844ceb55"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-directory-BenchmarkHeldDirectoryAcquisition.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-directory-BenchmarkHeldDirectoryAcquisition.git-status.txt",
+          "bytes": 3922,
+          "sha256": "6d623fb08fe7d581eaa88ba4a62c7ebedc7839b90250a96162ad3b44e67bf214"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-directory-BenchmarkHeldDirectoryAcquisition.cpu.pprof",
+          "bytes": 3385,
+          "sha256": "d962da53703a28909321a30f0217449affb12bd96e69d913f3bea55bd0edf6f3"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-directory-BenchmarkHeldDirectoryAcquisition.mem.pprof",
+          "bytes": 2170,
+          "sha256": "94d1b43d3b3d6b595348dfb72f84c8dfedbcaf4a3fdffe550e70b838eb3845d4"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-directory-BenchmarkHeldDirectoryAcquisition.test",
+          "bytes": 10036514,
+          "sha256": "525b20efc8b5a633a68874d5b1ceb73f8f8ff6e36cd34960a60b5d3209b4e961"
+        }
+      ]
+    },
+    "after": {
+      "label": "after-directory-BenchmarkHeldDirectoryAcquisition",
+      "iterations": 2423853,
+      "ns_per_op": 14748.0,
+      "bytes_per_op": 656,
+      "allocations_per_op": 6,
+      "exit_status": 0,
+      "source_drift": [],
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-directory-BenchmarkHeldDirectoryAcquisition.stdout.txt",
+          "bytes": 250,
+          "sha256": "c8d8513117089605edadbf787b30f1366ce6314c86f30da22dc974f8517b4bf9"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-directory-BenchmarkHeldDirectoryAcquisition.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-directory-BenchmarkHeldDirectoryAcquisition.git-status.txt",
+          "bytes": 4387,
+          "sha256": "c891f9e2c8023a3005f0dfa163a91e79b4307507edbb14c37134fd2ed2b76ed0"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-directory-BenchmarkHeldDirectoryAcquisition.cpu.pprof",
+          "bytes": 3005,
+          "sha256": "01c67c6ec959ea2a90abdc783dc16ebb7826ec4a9b457c93149caf7b3d3f306a"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-directory-BenchmarkHeldDirectoryAcquisition.mem.pprof",
+          "bytes": 2735,
+          "sha256": "7f89a5b2d36ee9048fd802869a39a33a90bd843ed0c186b7a5c0370f51874abd"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-directory-BenchmarkHeldDirectoryAcquisition.test",
+          "bytes": 11129938,
+          "sha256": "bf89ae33dd98f0f22925fc4b54cd70866fbe5e2d0755baebf8a1a3d62c5748d0"
+        }
+      ]
+    },
+    "time_delta_percent": -0.9470078581503172
+  }
+]

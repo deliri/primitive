@@ -1,0 +1,92 @@
+[
+  {
+    "label": "mutation-removal-absence-observation-removed",
+    "file": "/Users/d/code/primitive/filestore/append_remove.go",
+    "before": "_, err := request.Location.Root.Lstat(request.Location.Path.String())\n\tif errors.Is(err, fs.ErrNotExist) {\n\t\treturn nil\n\t}\n\tif err != nil {\n\t\treturn cleanupError(err)\n\t}",
+    "after": "var err error",
+    "test": "^TestRemoveTreeNamespaceLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 9,
+      "fail": 2,
+      "skip": 0
+    },
+    "reused_unchanged_source_receipt": true
+  },
+  {
+    "label": "mutation-removal-dangling-link-treated-as-absent",
+    "file": "/Users/d/code/primitive/filestore/append_remove.go",
+    "before": "request.Location.Root.Lstat(request.Location.Path.String())",
+    "after": "request.Location.Root.Stat(request.Location.Path.String())",
+    "test": "^TestRemoveTreeNamespaceLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 8,
+      "fail": 3,
+      "skip": 0
+    },
+    "reused_unchanged_source_receipt": true
+  },
+  {
+    "label": "mutation-removal-recursive-effect-replaced-by-leaf",
+    "file": "/Users/d/code/primitive/filestore/append_remove.go",
+    "before": "err = request.Location.Root.RemoveAll(request.Location.Path.String())",
+    "after": "err = request.Location.Root.Remove(request.Location.Path.String())",
+    "test": "^FuzzRemovalNativeNamespaceSemanticClosure$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 11,
+      "fail": 2,
+      "skip": 0
+    },
+    "reused_unchanged_source_receipt": true
+  },
+  {
+    "label": "mutation-removal-removal-effect-skipped",
+    "file": "/Users/d/code/primitive/filestore/append_remove.go",
+    "before": "err = request.Location.Root.RemoveAll(request.Location.Path.String())",
+    "after": "err = nil",
+    "test": "^FuzzRemovalNativeNamespaceSemanticClosure$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 8,
+      "fail": 5,
+      "skip": 0
+    },
+    "reused_unchanged_source_receipt": true
+  },
+  {
+    "label": "mutation-removal-closed-root-hidden",
+    "file": "/Users/d/code/primitive/filestore/append_remove.go",
+    "before": "_, err := request.Location.Root.Lstat(request.Location.Path.String())\n\tif errors.Is(err, fs.ErrNotExist) {\n\t\treturn nil\n\t}\n\tif err != nil {\n\t\treturn cleanupError(err)\n\t}",
+    "after": "_, err := request.Location.Root.Lstat(request.Location.Path.String())\n\tif errors.Is(err, fs.ErrNotExist) {\n\t\treturn nil\n\t}\n\tif err != nil {\n\t\treturn nil\n\t}",
+    "test": "^TestRemoveTreeNamespaceLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 9,
+      "fail": 2,
+      "skip": 0
+    },
+    "reused_unchanged_source_receipt": true
+  },
+  {
+    "label": "mutation-removal-parent-sync-skipped",
+    "file": "/Users/d/code/primitive/filestore/append_remove.go",
+    "before": "if err := syncParent(request.Location.Root, request.Location.Path); err != nil {",
+    "after": "if err := error(nil); err != nil {",
+    "selection": "last occurrence in RemoveTree",
+    "test": "^TestRemovalRetainsParentSynchronization$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 1,
+      "fail": 2,
+      "skip": 0
+    }
+  }
+]

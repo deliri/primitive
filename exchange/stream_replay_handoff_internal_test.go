@@ -31,7 +31,7 @@ type replayHandoffBody struct {
 func (b *replayHandoffBody) Read(p []byte) (int, error) {
 	n, err := b.reader.Read(p)
 	b.readBytes += n
-	if err == io.EOF && b.fault == replayHandoffReadFailure {
+	if errors.Is(err, io.EOF) && b.fault == replayHandoffReadFailure {
 		return n, io.ErrUnexpectedEOF
 	}
 	return n, err
@@ -158,7 +158,7 @@ func TestReplayStreamDownloadHandoffLayerTriad(t *testing.T) {
 						t.Fatalf("producer status error present = %t, want %t; cause %v", gotProducerStatusError, tc.wantStatusError, producedErr)
 					}
 					if gotProducerStatusError && (producerStatus.Status() != wantStatus || producerStatus.Expected() != core.HTTPStatusOK()) {
-						t.Fatalf("producer status error = %v, want observed %v and expected OK", producerStatus, wantStatus)
+						t.Fatalf("producer status error = %v, want observed %v and required OK", producerStatus, wantStatus)
 					}
 					if tc.cancelAtHandoff {
 						cancel()
@@ -186,7 +186,7 @@ func TestReplayStreamDownloadHandoffLayerTriad(t *testing.T) {
 				t.Fatalf("final status error present = %t, want %t; error %v", gotStatusError, tc.wantStatusError, gotErr)
 			}
 			if gotStatusError && (statusError.Status() != wantStatus || statusError.Expected() != core.HTTPStatusOK()) {
-				t.Fatalf("final status error = %v, want observed %v and expected OK", statusError, wantStatus)
+				t.Fatalf("final status error = %v, want observed %v and required OK", statusError, wantStatus)
 			}
 			exhausted, gotExhausted := errors.AsType[RetryExhaustedError](gotErr)
 			if gotExhausted != tc.wantExhausted || errors.Is(gotErr, core.ErrExchangeRetryExhausted) != tc.wantExhausted {

@@ -1,36 +1,28 @@
-//go:build aix || android || darwin || dragonfly || freebsd || illumos || ios || linux || netbsd || openbsd || solaris
+//go:build darwin || linux
 
 package filestore
 
 import (
 	"errors"
+	"io/fs"
 	"os"
-
-	"golang.org/x/sys/unix"
+	"syscall"
 )
 
 func openHeldDirectory(path string) (*os.File, FilesystemIdentity, error) {
-	descriptor, err := unix.Open(
-		path,
-		unix.O_RDONLY|unix.O_CLOEXEC|unix.O_NONBLOCK|unix.O_DIRECTORY|unix.O_NOFOLLOW,
-		0,
-	)
+	file, err := os.OpenFile(path, os.O_RDONLY|syscall.O_NONBLOCK|syscall.O_DIRECTORY|syscall.O_NOFOLLOW, 0)
 	if err != nil {
 		return nil, FilesystemIdentity{}, err
 	}
-	var information unix.Stat_t
-	if err := unix.Fstat(descriptor, &information); err != nil {
-		return nil, FilesystemIdentity{}, errors.Join(err, unix.Close(descriptor))
+	information, err := file.Stat()
+	if err != nil {
+		return nil, FilesystemIdentity{}, errors.Join(err, file.Close())
 	}
-	if information.Mode&unix.S_IFMT != unix.S_IFDIR {
-		return nil, FilesystemIdentity{}, errors.Join(errors.New("filestore held path is not a directory"), unix.Close(descriptor))
+	status, ok := information.Sys().(*syscall.Stat_t)
+	if !ok || !information.IsDir() {
+		return nil, FilesystemIdentity{}, errors.Join(fs.ErrInvalid, file.Close())
 	}
-	file := os.NewFile(uintptr(descriptor), path)
-	if file == nil {
-		return nil, FilesystemIdentity{}, errors.Join(errors.New("filestore could not own directory descriptor"), unix.Close(descriptor))
-	}
-	// The device coordinate is an opaque kernel bit pattern. Some supported
-	// systems expose dev_t through a signed Go field, so a negative numeric
-	// interpretation is not an invalid identity.
-	return file, newFilesystemIdentity(uint64(information.Dev)), nil // #nosec G115 -- opaque dev_t bit pattern.
+	// dev_t is an opaque kernel bit pattern, including on hosts that expose
+	// it as a signed field. Go owns both the handle and this stat observation.
+	return file, newFilesystemIdentity(uint64(status.Dev)), nil // #nosec G115 -- opaque dev_t bit pattern.
 }

@@ -1,0 +1,115 @@
+{
+  "before": {
+    "label": "before-permission-file-sync",
+    "record_sha256": "5b12d66594f4da76c3813e03d79801bf114c12bd8969a7ff84c89509c859e811",
+    "benchmark": "BenchmarkPermissionTwoObservedChanges",
+    "iterations": 3261,
+    "ns_per_op": 9390134.0,
+    "changes_per_op": 2.0,
+    "bytes_per_op": 1269,
+    "allocations_per_op": 24,
+    "argv": [
+      "go",
+      "test",
+      "-run=^$",
+      "-bench=^BenchmarkPermissionTwoObservedChanges$",
+      "-count=1",
+      "-benchtime=30s",
+      "-cpu=1",
+      "-benchmem",
+      "-cpuprofile=filestore/testdata/test-upgrade-20260907/before-permission-file-sync.cpu.pprof",
+      "-memprofile=filestore/testdata/test-upgrade-20260907/before-permission-file-sync.mem.pprof",
+      "-o=filestore/testdata/test-upgrade-20260907/before-permission-file-sync.test",
+      "./filestore"
+    ],
+    "artifacts": [
+      {
+        "path": "filestore/testdata/test-upgrade-20260907/before-permission-file-sync.stdout.txt",
+        "bytes": 280,
+        "sha256": "e80137ba92e8b8ca2cc9a2af614bcdcbd43c4ec5d95424f5ed90d2661ebfd9c0"
+      },
+      {
+        "path": "filestore/testdata/test-upgrade-20260907/before-permission-file-sync.stderr.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "filestore/testdata/test-upgrade-20260907/before-permission-file-sync.git-status.txt",
+        "bytes": 5707,
+        "sha256": "99567d84239e71488fa12ab1bdb96ab2c9eaecbe329756fe7d93f0fa0b396bda"
+      },
+      {
+        "path": "filestore/testdata/test-upgrade-20260907/before-permission-file-sync.cpu.pprof",
+        "bytes": 3115,
+        "sha256": "0f325f6ba5f790bd82f3f6575a218585dcff1282e9e705a2f16d997e04c6361a"
+      },
+      {
+        "path": "filestore/testdata/test-upgrade-20260907/before-permission-file-sync.mem.pprof",
+        "bytes": 2892,
+        "sha256": "6be24e21d528c251a06c81539ad686e7120d582404d97652ebfdda124c00d44c"
+      },
+      {
+        "path": "filestore/testdata/test-upgrade-20260907/before-permission-file-sync.test",
+        "bytes": 11372754,
+        "sha256": "b0eef442d3e99f9f7134c9992ac0da82b495410d99988c5147c3e651a932ca74"
+      }
+    ]
+  },
+  "after": {
+    "label": "after-permission-corrected-file-sync",
+    "record_sha256": "6d38ebf79db92fb640e56719abcffe26f9ca56aaf1cfc3652800d1911904e884",
+    "benchmark": "BenchmarkPermissionTwoObservedChanges",
+    "iterations": 3788,
+    "ns_per_op": 9447149.0,
+    "changes_per_op": 2.0,
+    "bytes_per_op": 948,
+    "allocations_per_op": 16,
+    "argv": [
+      "go",
+      "test",
+      "-count=1",
+      "-run=^$",
+      "-bench=^BenchmarkPermissionTwoObservedChanges$",
+      "-benchtime=30s",
+      "-cpu=1",
+      "-benchmem",
+      "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-permission-corrected-file-sync.cpu.pprof",
+      "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-permission-corrected-file-sync.mem.pprof",
+      "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-permission-corrected-file-sync.test",
+      "./filestore"
+    ],
+    "artifacts": [
+      {
+        "path": "filestore/testdata/test-upgrade-20260907/after-permission-corrected-file-sync.stdout.txt",
+        "bytes": 280,
+        "sha256": "70748d282f12d0af26bb65bc3db90bde4c87372ed5c2cc6aa63ec4fdb6276a59"
+      },
+      {
+        "path": "filestore/testdata/test-upgrade-20260907/after-permission-corrected-file-sync.stderr.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "filestore/testdata/test-upgrade-20260907/after-permission-corrected-file-sync.git-status.txt",
+        "bytes": 5997,
+        "sha256": "cf13597d33ef109a8be30646219704be828cd7d6be816fe59335a6042a3af898"
+      },
+      {
+        "path": "filestore/testdata/test-upgrade-20260907/after-permission-corrected-file-sync.cpu.pprof",
+        "bytes": 3063,
+        "sha256": "4ad1588a6244eacc2799dd19426a972708974e7cc0acba8be6fbe9acc25db61e"
+      },
+      {
+        "path": "filestore/testdata/test-upgrade-20260907/after-permission-corrected-file-sync.mem.pprof",
+        "bytes": 2110,
+        "sha256": "0969238ed5fc15d7fd122aa94ee416da7ed1fe621f341db7361dc82e49968450"
+      },
+      {
+        "path": "filestore/testdata/test-upgrade-20260907/after-permission-corrected-file-sync.test",
+        "bytes": 11457602,
+        "sha256": "977aa95be8d1bb17083196fd23709ff6347b9fe0baa51dc299783ddb134bab3c"
+      }
+    ]
+  },
+  "scope": "One matched 30s CPU1 pair of two real mode changes on one fixed file, each independently observed. Corrected owned-file synchronization removes parent-root work: 321 fewer bytes and eight fewer allocations per pair. Timing +0.61% in one pair is not a trend. CPU remains native filesystem execution. Allocation profiles include substantial profiling startup at this operation count."
+}

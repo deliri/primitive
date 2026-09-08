@@ -96,6 +96,36 @@ func FuzzReceiveBasicAuthorizationSemanticClosure(f *testing.F) {
 	if err != nil {
 		f.Fatalf("StandardHeaderAuthorization.Name() error = %v, want nil", err)
 	}
+	for _, size := range []int{1, exchange.BasicAuthorizationSecretMaximumBytes - 1, exchange.BasicAuthorizationSecretMaximumBytes} {
+		credentials := exchange.BasicAuthorizationRequest{
+			Identity: exchange.BasicAuthorizationIdentity(strings.Repeat("i", exchange.BasicAuthorizationIdentityMaximumBytes)),
+			Secret:   bytes.Repeat([]byte{'s'}, size),
+		}
+		header, err := exchange.NewBasicAuthorizationHeader(credentials)
+		if err != nil {
+			f.Fatal(err)
+		}
+		value, err := header.Values[0].Value()
+		if err != nil {
+			f.Fatal(err)
+		}
+		f.Add(value)
+	}
+	// Go can encode credentials that Primitive's nominal contract refuses.
+	// These are malformed Primitive seeds, emitted without copying Basic wire
+	// tokens or hand-encoding Base64 in the test.
+	for _, credential := range []struct{ identity, secret string }{
+		{"", "secret"}, {"identity", ""}, {"identity\u0085", "secret"},
+		{"identity", "secret\u0085"}, {"\xff", "secret"}, {"identity", "\xff"},
+		{"identity", strings.Repeat("s", exchange.BasicAuthorizationSecretMaximumBytes+1)},
+	} {
+		request, err := http.NewRequest(http.MethodGet, "https://example.invalid", nil)
+		if err != nil {
+			f.Fatal(err)
+		}
+		request.SetBasicAuth(credential.identity, credential.secret)
+		f.Add(request.Header.Get(headerName.String()))
+	}
 	f.Fuzz(func(t *testing.T, value string) {
 		if len(value) > exchange.BasicAuthorizationHeaderMaximumBytes+1 {
 			return
@@ -143,6 +173,14 @@ func FuzzReceiveBasicAuthorizationSemanticClosure(f *testing.F) {
 		if err != nil || roundTrip.Identity != got.Identity || !bytes.Equal(roundTrip.Secret, got.Secret) {
 			t.Fatalf("Basic authorization canonical round trip = (%v, %v), want (%v, nil)", roundTrip, err, got)
 		}
+		// A received secret belongs to this call. Changing it must not alter
+		// the retained wire field or another receive's independently owned bytes.
+		got.Secret[0] ^= 0xff
+		if string(roundTrip.Secret) != wantSecret || request.Header.Get(headerName.String()) != value || got.Identity.String() != wantIdentity {
+			t.Fatalf("secret/header/identity preserved=%t/%t/%t, want true/true/true", string(roundTrip.Secret) == wantSecret, request.Header.Get(headerName.String()) == value, got.Identity.String() == wantIdentity)
+		}
+		clear(got.Secret)
+		clear(roundTrip.Secret)
 	})
 }
 

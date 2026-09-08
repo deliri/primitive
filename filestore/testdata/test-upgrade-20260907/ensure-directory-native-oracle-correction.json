@@ -1,0 +1,5 @@
+{
+  "rejected_record": "ensure-directory-native-baseline-control",
+  "cause": "Two native error assertions incorrectly compared Go Root.OpenRoot regular-file rejection, which is a fresh errors.New value in os.newRoot, to the O_DIRECTORY syscall errno returned by Filestore. This is an oracle mismatch, not a production bug. No string comparison is introduced.",
+  "correction": "Unix native table uses independent Go Root.OpenFile with native O_DIRECTORY/NONBLOCK for exact acquisition errors. Namespace and mode oracle remains independent. Table is built for Darwin/Linux; other-platform coverage stays separately attributed."
+}

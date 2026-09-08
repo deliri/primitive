@@ -1,0 +1,59 @@
+[
+  {
+    "mutation": "new-unclassified-door",
+    "record": "post-checkpoint-inventory-mutation-new-unclassified-door.json",
+    "exit_status": 0,
+    "inventory_failures": [],
+    "guard_rejected": false
+  },
+  {
+    "mutation": "missing-door-binding",
+    "record": "post-checkpoint-inventory-mutation-missing-door-binding.json",
+    "exit_status": 1,
+    "inventory_failures": [
+      "TestPublicIngressHasCompilerBoundSemanticFuzz/ParseIdempotencyKey",
+      "TestPublicIngressHasCompilerBoundSemanticFuzz"
+    ],
+    "guard_rejected": true
+  },
+  {
+    "mutation": "duplicate-door-binding",
+    "record": "post-checkpoint-inventory-mutation-duplicate-door-binding.json",
+    "exit_status": 1,
+    "inventory_failures": [
+      "TestPublicIngressHasCompilerBoundSemanticFuzz/ParseIdempotencyKey",
+      "TestPublicIngressHasCompilerBoundSemanticFuzz"
+    ],
+    "guard_rejected": true
+  },
+  {
+    "mutation": "nil-semantic-target",
+    "record": "post-checkpoint-inventory-mutation-nil-semantic-target.json",
+    "exit_status": 1,
+    "inventory_failures": [
+      "TestPublicIngressHasCompilerBoundSemanticFuzz/ParseIdempotencyKey",
+      "TestPublicIngressHasCompilerBoundSemanticFuzz"
+    ],
+    "guard_rejected": true
+  },
+  {
+    "mutation": "foreign-door-binding",
+    "record": "post-checkpoint-inventory-mutation-foreign-door-binding.json",
+    "exit_status": 1,
+    "inventory_failures": [
+      "TestPublicIngressHasCompilerBoundSemanticFuzz/NewClient",
+      "TestPublicIngressHasCompilerBoundSemanticFuzz"
+    ],
+    "guard_rejected": true
+  },
+  {
+    "mutation": "nil-capability-proof",
+    "record": "post-checkpoint-inventory-mutation-nil-capability-proof.json",
+    "exit_status": 1,
+    "inventory_failures": [
+      "TestPublicIngressHasCompilerBoundSemanticFuzz/SocketServerCall.WithContext",
+      "TestPublicIngressHasCompilerBoundSemanticFuzz"
+    ],
+    "guard_rejected": true
+  }
+]

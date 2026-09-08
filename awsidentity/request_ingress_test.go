@@ -48,7 +48,7 @@ func TestAWSRequestInputRefusesInvalidOwnedFields(t *testing.T) {
 			original := input
 			tc.change(&input)
 			if input == original {
-				t.Fatal("request ingress mutation unchanged, want edited field")
+				t.Fatalf("request mutation=%+v, want different from %+v", input, original)
 			}
 			got, err := NewRequest(input)
 			if got != (Request{}) || !errors.Is(err, core.ErrAWSIdentityContract) || !errors.Is(input.Validate(), core.ErrAWSIdentityContract) {
@@ -63,8 +63,7 @@ func TestAWSRequestInputRefusesInvalidOwnedFields(t *testing.T) {
 				}
 			}
 			if input.Audience == original.Audience && input.Policy == original.Policy {
-				var failure requestError
-				if !errors.As(err, &failure) {
+				if _, ok := errors.AsType[requestError](err); !ok {
 					t.Fatalf("request URL refusal = %v, want requestError", err)
 				}
 				for _, format := range []string{"%v", "%+v", "%#v", "%q"} {

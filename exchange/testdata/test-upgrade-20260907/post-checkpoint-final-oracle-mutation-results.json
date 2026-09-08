@@ -1,0 +1,22 @@
+[
+  {
+    "mutation": "standard-hide-write-error",
+    "record": "post-checkpoint-final-oracle-mutation-standard-hide-write-error.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#3",
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/4b2fbabb3aa5820c"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "sdk-suppress-stream",
+    "record": "post-checkpoint-final-oracle-mutation-sdk-suppress-stream.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzOfficialSDKStreamingSuccessResponseSemanticBoundary/seed#0",
+      "FuzzOfficialSDKStreamingSuccessResponseSemanticBoundary/seed#1"
+    ],
+    "killed_inside_callback": true
+  }
+]

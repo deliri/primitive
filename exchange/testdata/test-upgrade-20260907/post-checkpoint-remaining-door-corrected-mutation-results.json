@@ -1,0 +1,74 @@
+[
+  {
+    "mutation": "NotFound-foreign-effect-corrected-status",
+    "record": "post-checkpoint-mutation-remaining-NotFound-foreign-effect-corrected-status.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#0",
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#1",
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#2",
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#3",
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#4",
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#5",
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#6",
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#7",
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#8",
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#9",
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#10",
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#11",
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#12",
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#13",
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#14",
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#16",
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#17",
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#18",
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#19",
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#20",
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#21",
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#22",
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#23",
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#24",
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#25",
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#26",
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#27",
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#28",
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#29",
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#30",
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#31",
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#32",
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#33",
+      "FuzzErrorNotFoundRedirectAndSetCookieGoParity/seed#34"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "WriteJSON-foreign-effect-corrected-status",
+    "record": "post-checkpoint-mutation-remaining-WriteJSON-foreign-effect-corrected-status.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzWriteJSONNoBodyBoundedStreamAndSocketCustody/seed#2",
+      "FuzzWriteJSONNoBodyBoundedStreamAndSocketCustody/seed#3",
+      "FuzzWriteJSONNoBodyBoundedStreamAndSocketCustody/seed#4",
+      "FuzzWriteJSONNoBodyBoundedStreamAndSocketCustody/seed#5",
+      "FuzzWriteJSONNoBodyBoundedStreamAndSocketCustody/seed#6",
+      "FuzzWriteJSONNoBodyBoundedStreamAndSocketCustody/seed#7",
+      "FuzzWriteJSONNoBodyBoundedStreamAndSocketCustody/seed#8",
+      "FuzzWriteJSONNoBodyBoundedStreamAndSocketCustody/seed#9",
+      "FuzzWriteJSONNoBodyBoundedStreamAndSocketCustody/seed#10"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "WriteSocketJSON-foreign-effect-corrected-status",
+    "record": "post-checkpoint-mutation-remaining-WriteSocketJSON-foreign-effect-corrected-status.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzWriteJSONNoBodyBoundedStreamAndSocketCustody/seed#2",
+      "FuzzWriteJSONNoBodyBoundedStreamAndSocketCustody/seed#3",
+      "FuzzWriteJSONNoBodyBoundedStreamAndSocketCustody/seed#8",
+      "FuzzWriteJSONNoBodyBoundedStreamAndSocketCustody/seed#9",
+      "FuzzWriteJSONNoBodyBoundedStreamAndSocketCustody/seed#10"
+    ],
+    "killed_inside_callback": true
+  }
+]

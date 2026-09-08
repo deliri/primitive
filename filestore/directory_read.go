@@ -52,7 +52,9 @@ func (p directoryPosition) String() string {
 func (directoryPosition) OffWireEnum() {}
 
 // EnsureDirectory creates one real directory chain and durably synchronizes
-// each namespace addition.
+// each namespace addition. Existing ancestors retain their permissions; the
+// final directory receives the requested mode. A native failure may leave the
+// exact prefix already created. This operation does not roll that prefix back.
 func EnsureDirectory(ctx context.Context, request DirectoryRequest) error {
 	if err := contextstate.Validate(ctx); err != nil {
 		return err
@@ -60,6 +62,22 @@ func EnsureDirectory(ctx context.Context, request DirectoryRequest) error {
 	if err := request.Validate(); err != nil {
 		return err
 	}
+	directory, err := openDirectory(request.Location.Root, request.Location.Path.String())
+	if err == nil {
+		if err := synchronizeOpenedDirectoryMode(directory, request.Location.Path, request.Mode); err != nil {
+			return activationError(err)
+		}
+		return nil
+	}
+	if !errors.Is(err, fs.ErrNotExist) {
+		return activationError(err)
+	}
+	return ensureDirectoryChain(ctx, request)
+}
+
+// Only a missing acquisition enters creation. A later chmod/sync/close error
+// must not retry an effect or mistake a partially settled directory for absence.
+func ensureDirectoryChain(ctx context.Context, request DirectoryRequest) error {
 	components := strings.Split(
 		request.Location.Path.String(),
 		string(filepath.Separator),
@@ -134,6 +152,11 @@ func synchronizeDirectoryMode(
 	if err != nil {
 		return err
 	}
+	return synchronizeOpenedDirectoryMode(directory, path, mode)
+}
+
+// The same acquired Go handle owns observation, mode, synchronization and close.
+func synchronizeOpenedDirectoryMode(directory *os.File, path core.RelativePath, mode fs.FileMode) error {
 	info, statErr := directory.Stat()
 	if statErr == nil && !info.IsDir() {
 		statErr = &os.PathError{
@@ -175,6 +198,8 @@ func validateExistingDirectory(root *os.Root, path core.RelativePath) error {
 }
 
 // Read streams one regular file through the caller's standard io.Writer.
+// The owned file is closed on return or Go unwinding. Caller panics propagate;
+// a destination effect that panics has no returned byte acknowledgment.
 func Read(ctx context.Context, request ReadRequest) (core.ByteLength, error) {
 	if err := contextstate.Validate(ctx); err != nil {
 		return core.ByteLength{}, err
@@ -182,49 +207,45 @@ func Read(ctx context.Context, request ReadRequest) (core.ByteLength, error) {
 	if err := request.Validate(); err != nil {
 		return core.ByteLength{}, err
 	}
-	file, err := openRegularReadFile(
+	file, info, err := openRegularReadFile(
 		request.Location.Root,
 		request.Location.Path.String(),
 	)
 	if err != nil {
 		return core.ByteLength{}, err
 	}
-	info, err := file.Stat()
-	if err != nil {
-		return core.ByteLength{}, closeReadFile(file, sourceError(err))
-	}
+	return readOwnedRegularFile(ctx, request, file, info)
+}
+
+func readOwnedRegularFile(ctx context.Context, request ReadRequest, file *os.File, info fs.FileInfo) (count core.ByteLength, err error) {
+	defer func() { err = closeReadFile(file, err) }()
 	extent, err := core.CheckedUint64FromInt64(info.Size())
 	if err != nil {
-		return core.ByteLength{}, closeReadFile(file, sourceError(err))
+		return core.ByteLength{}, sourceError(err)
 	}
-	count, copyErr := copyBounded(boundedCopyRequest{
+	return copyBounded(boundedCopyRequest{
 		ctx: ctx, destination: request.Destination, source: file,
 		maximum: request.MaximumBytes, kind: streamDestinationCaller,
 		knownExtent: extent, extentKnown: true,
 	})
-	closeErr := file.Close()
-	if closeErr != nil {
-		closeErr = sourceError(closeErr)
-	}
-	return count, errors.Join(copyErr, closeErr)
 }
 
-func openRegularReadFile(root *os.Root, path string) (*os.File, error) {
+func openRegularReadFile(root *os.Root, path string) (*os.File, fs.FileInfo, error) {
 	file, err := openReadFile(root, path)
 	if err != nil {
-		return nil, sourceError(err)
+		return nil, nil, sourceError(err)
 	}
 	info, err := file.Stat()
 	if err != nil {
-		return nil, closeReadFile(file, sourceError(err))
+		return nil, nil, closeReadFile(file, sourceError(err))
 	}
 	if !info.Mode().IsRegular() {
-		return nil, closeReadFile(file, sourceError(fs.ErrInvalid))
+		return nil, nil, closeReadFile(file, sourceError(fs.ErrInvalid))
 	}
 	if err := prepareRegularReadFile(file); err != nil {
-		return nil, closeReadFile(file, sourceError(err))
+		return nil, nil, closeReadFile(file, sourceError(err))
 	}
-	return file, nil
+	return file, info, nil
 }
 
 func closeReadFile(file *os.File, primary error) error {

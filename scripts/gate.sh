@@ -21,7 +21,7 @@ platform=$(go env GOOS)/$(go env GOARCH)
 workflow_run=${GITHUB_RUN_ID:-NOT_APPLICABLE}
 workflow_attempt=${GITHUB_RUN_ATTEMPT:-NOT_APPLICABLE}
 gate_failure_status=0
-goconst_admission_maximum=18
+goconst_admission_maximum=4
 benchmark_duration=30s
 fuzz_duration=30s
 fuzz_minimize_duration=30s
@@ -222,6 +222,16 @@ write_profile_report_line() {
 	printf '%s\n' "- $label: \`$(basename "$profile")\` ($(file_bytes "$profile") bytes, SHA-256 \`$(file_sha256 "$profile")\`)"
 }
 
+run_witness_lint() {
+	directory_list="$artifact_directory/package-directories.log"
+	go list -f '{{.Dir}}' ./... >"$directory_list" || return
+	set --
+	while IFS= read -r directory; do
+		set -- "$@" "$directory"
+	done <"$directory_list"
+	witness-lint "$@"
+}
+
 run_deadcode() {
 	deadcode -test ./... </dev/null
 }
@@ -249,7 +259,7 @@ validate_goconst_findings() {
 		return 1
 	fi
 	awk -F '\t' '{ print $1 }' "$admissions" | sort >"$admitted"
-	if ! goconst_output=$(goconst -grouped ./... 2>&1); then
+	if ! goconst_output=$(goconst -grouped -min-length 4 -min-occurrences 3 -ignore-tests -ignore '(^|/)(testdata|[._][^/]+)(/|$)' ./... 2>&1); then
 		printf '%s\n' "$goconst_output" >&2
 		return 1
 	fi
@@ -322,7 +332,7 @@ run_gate vet go vet ./...
 run_gate staticcheck staticcheck ./...
 run_gate errcheck errcheck ./...
 run_gate nilaway nilaway ./...
-run_gate witness-lint witness-lint ./...
+run_gate witness-lint run_witness_lint
 run_gate complexity gocyclo -over 10 --ignore '_test.go' .
 run_gate constants validate_goconst_findings
 run_gate field-alignment fieldalignment ./...

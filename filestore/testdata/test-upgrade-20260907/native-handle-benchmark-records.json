@@ -1,0 +1,280 @@
+{
+  "scope": "Five new fixed native handle workloads, unchanged production. Initial measurements, not optimization comparisons. Each leaf is a separate 30s CPU1 run with CPU/memory profiles and retained binary. Acquisition includes native Stat identity/mode/extent/time proof and caller Close, not payload throughput. Rotation includes outgoing sync/close, incoming observation/close and durable removal.",
+  "results": [
+    {
+      "label": "checkpoint-native-handle-Read",
+      "record_sha256": "6842c47771dcd3e5449f077c35d94ba238e60d59d36d5eb2d9f7e7746f11d821",
+      "benchmark": "BenchmarkNativeHandleAcquisition/Read",
+      "iterations": 2309660,
+      "ns_per_op": 15430.0,
+      "bytes_per_op": 653,
+      "allocations_per_op": 7,
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkNativeHandleAcquisition$/^Read$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Read.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Read.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Read.test",
+        "./filestore"
+      ],
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Read.stdout.txt",
+          "bytes": 262,
+          "sha256": "0876f0eb261379160c61bd48210a1cb35742a064efaf03088519db835b566eee"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Read.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Read.git-status.txt",
+          "bytes": 6750,
+          "sha256": "70bca195d43cf523a403d5e7484e84fdf3d1cb4160e4180ae560c80a51ca6ce9"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Read.cpu.pprof",
+          "bytes": 5159,
+          "sha256": "615a3212d4f38f50c9fd1d3fbf403cd1a09d36f3a60b9d763dc71c12764c44b4"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Read.mem.pprof",
+          "bytes": 3066,
+          "sha256": "d868c6565a5784671ad71f59cb9523666a36d338e7f4825c4dbe95cadf4709dd"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Read.test",
+          "bytes": 11729234,
+          "sha256": "f0972948124f9f222259d36b40c95e48a3bf52322137289785ce8a46cb926b08"
+        }
+      ]
+    },
+    {
+      "label": "checkpoint-native-handle-Update",
+      "record_sha256": "8b6bd5f4d0eb9d66a50b59fdd14b45b1967ff4385d2a56c137c8b0a37990493d",
+      "benchmark": "BenchmarkNativeHandleAcquisition/Update",
+      "iterations": 1568796,
+      "ns_per_op": 23053.0,
+      "bytes_per_op": 653,
+      "allocations_per_op": 7,
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkNativeHandleAcquisition$/^Update$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Update.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Update.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Update.test",
+        "./filestore"
+      ],
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Update.stdout.txt",
+          "bytes": 264,
+          "sha256": "05049b3e3af08a97be5fd150d011378526de114a183a1b29c9df9ba90c988e4b"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Update.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Update.git-status.txt",
+          "bytes": 6750,
+          "sha256": "70bca195d43cf523a403d5e7484e84fdf3d1cb4160e4180ae560c80a51ca6ce9"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Update.cpu.pprof",
+          "bytes": 2463,
+          "sha256": "efd75fac90a9821f2cfcff9690d06ccbed998b1c51ca33b1541ebad236d94dc9"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Update.mem.pprof",
+          "bytes": 2364,
+          "sha256": "2507f89ddde1691633db344c7e5c171e8bb997f3784667cae8e17fe4dc69dd48"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Update.test",
+          "bytes": 11729234,
+          "sha256": "f0972948124f9f222259d36b40c95e48a3bf52322137289785ce8a46cb926b08"
+        }
+      ]
+    },
+    {
+      "label": "checkpoint-native-handle-AppendExisting",
+      "record_sha256": "75294d9cf5022ab2d67ebd5d3a44c94f6f165444c3ae09ff695cd516d7f5f8d9",
+      "benchmark": "BenchmarkNativeHandleAcquisition/AppendExisting",
+      "iterations": 2224698,
+      "ns_per_op": 16169.0,
+      "bytes_per_op": 669,
+      "allocations_per_op": 7,
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkNativeHandleAcquisition$/^AppendExisting$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-AppendExisting.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-AppendExisting.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-AppendExisting.test",
+        "./filestore"
+      ],
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-AppendExisting.stdout.txt",
+          "bytes": 272,
+          "sha256": "053b6d5669706ce4944ebf6727d166c3cb204747c98569478535db908845e916"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-AppendExisting.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-AppendExisting.git-status.txt",
+          "bytes": 6750,
+          "sha256": "70bca195d43cf523a403d5e7484e84fdf3d1cb4160e4180ae560c80a51ca6ce9"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-AppendExisting.cpu.pprof",
+          "bytes": 3135,
+          "sha256": "fc1feaa78a804a35f37cba98897400ab7568d9d8e04de2cd20c8ad0b0b5390c1"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-AppendExisting.mem.pprof",
+          "bytes": 2992,
+          "sha256": "974ce323ffcf205be308fd8f05175c75c2254d44e98073e0115bbd23bf31319b"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-AppendExisting.test",
+          "bytes": 11729234,
+          "sha256": "f0972948124f9f222259d36b40c95e48a3bf52322137289785ce8a46cb926b08"
+        }
+      ]
+    },
+    {
+      "label": "checkpoint-native-handle-Lock",
+      "record_sha256": "93122b1695fdbf6efbc789b7ee7c8a424c3191266a43f5b2ed8cd1ab6fb1994d",
+      "benchmark": "BenchmarkNativeHandleAcquisition/Lock",
+      "iterations": 985869,
+      "ns_per_op": 35683.0,
+      "bytes_per_op": 653,
+      "allocations_per_op": 7,
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkNativeHandleAcquisition$/^Lock$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Lock.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Lock.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Lock.test",
+        "./filestore"
+      ],
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Lock.stdout.txt",
+          "bytes": 262,
+          "sha256": "0d06ec7a42e999ba65d3c07f733cb92c50cf1f89611f92a8d167ed44d97ef03f"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Lock.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Lock.git-status.txt",
+          "bytes": 6750,
+          "sha256": "70bca195d43cf523a403d5e7484e84fdf3d1cb4160e4180ae560c80a51ca6ce9"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Lock.cpu.pprof",
+          "bytes": 3256,
+          "sha256": "76e79e5bd4ad58861731072ee576ed810121c0190c1e2363f798d1d46d4b7a29"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Lock.mem.pprof",
+          "bytes": 2801,
+          "sha256": "09a280b36777ca57f25b4849696b0ba1dd76ed5bd9efbef3d390f3cf63248244"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Lock.test",
+          "bytes": 11729234,
+          "sha256": "f0972948124f9f222259d36b40c95e48a3bf52322137289785ce8a46cb926b08"
+        }
+      ]
+    },
+    {
+      "label": "checkpoint-native-handle-Rotate",
+      "record_sha256": "c72241572927ce91d3ecb1a4f4dab8d8c899e09ae96af51b4385b3df5a952bc8",
+      "benchmark": "BenchmarkRotateAppendOwnedHandleLifecycle",
+      "iterations": 3607,
+      "ns_per_op": 10447563.0,
+      "bytes_per_op": 1852,
+      "allocations_per_op": 27,
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkRotateAppendOwnedHandleLifecycle$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Rotate.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Rotate.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Rotate.test",
+        "./filestore"
+      ],
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Rotate.stdout.txt",
+          "bytes": 258,
+          "sha256": "58f5068d627659f3143532a7ad31766a1a17890984bcc494107520a08be75217"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Rotate.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Rotate.git-status.txt",
+          "bytes": 6750,
+          "sha256": "70bca195d43cf523a403d5e7484e84fdf3d1cb4160e4180ae560c80a51ca6ce9"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Rotate.cpu.pprof",
+          "bytes": 5021,
+          "sha256": "48a892251a324794fceb9a0e57522dcc3e1b33b21834764bb343b67c36fa3e74"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Rotate.mem.pprof",
+          "bytes": 2422,
+          "sha256": "7a849aadd430f34370572b0620c6ef186400a2cbe3f0105dcabfd769d833055f"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Rotate.test",
+          "bytes": 11729234,
+          "sha256": "f0972948124f9f222259d36b40c95e48a3bf52322137289785ce8a46cb926b08"
+        }
+      ]
+    }
+  ]
+}

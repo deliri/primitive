@@ -1,0 +1,184 @@
+[
+  {
+    "label": "mutation-parent-identity-parent-opens-child-instead-corrected",
+    "owner": "OpenParent",
+    "before": "openRootDirectory(parent.String())",
+    "after": "openRootDirectory(parent.String() + string(os.PathSeparator) + base.String())",
+    "test": "^TestOpenParentNativeCapabilityLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 7,
+      "fail": 8,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-parent-identity-parent-returns-parent-basename",
+    "owner": "OpenParent",
+    "before": "base, err := path.Base()",
+    "after": "base, err := parent.Base()",
+    "test": "^TestOpenParentNativeCapabilityLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 7,
+      "fail": 8,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-parent-identity-parent-demands-present-child",
+    "owner": "OpenParent",
+    "before": "return Location{Root: root, Path: target}, nil",
+    "after": "if _, err := root.Stat(target.String()); err != nil {\n\t\t_ = root.Close()\n\t\treturn Location{}, sourceError(err)\n\t}\n\treturn Location{Root: root, Path: target}, nil",
+    "test": "^TestOpenParentNativeCapabilityLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 13,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-parent-identity-parent-transfers-closed-root",
+    "owner": "OpenParent",
+    "before": "return Location{Root: root, Path: target}, nil",
+    "after": "_ = root.Close()\n\treturn Location{Root: root, Path: target}, nil",
+    "test": "^TestOpenParentNativeCapabilityLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 7,
+      "fail": 8,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-parent-identity-parent-leaks-partial-location",
+    "owner": "OpenParent",
+    "before": "return Location{}, sourceError(err)",
+    "after": "return Location{Path: target}, sourceError(err)",
+    "test": "^FuzzOpenParentAndRootIdentityNativeCustody$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 19,
+      "fail": 4,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-parent-identity-parent-cancellation-ignored",
+    "owner": "OpenParent",
+    "before": "if err := contextstate.Validate(ctx); err != nil {\n\t\treturn Location{}, err\n\t}",
+    "after": "if err := contextstate.Validate(ctx); err != nil {\n\t\t_ = err\n\t}",
+    "test": "^TestOpenParentNativeCapabilityLayerTriad$/^cancellation_",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 0,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-parent-identity-parent-contract-mislabeled-source",
+    "owner": "OpenParent",
+    "before": "if err := path.Validate(); err != nil {\n\t\treturn Location{}, contractError(err)\n\t}",
+    "after": "if err := path.Validate(); err != nil {\n\t\treturn Location{}, sourceError(err)\n\t}",
+    "test": "^TestOpenParentNativeCapabilityLayerTriad$/^zero_absolute_",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 0,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-parent-identity-identity-comparison-omitted",
+    "owner": "ValidateRootIdentity",
+    "before": "if !os.SameFile(rootInfo, directoryInfo) {",
+    "after": "if !os.SameFile(rootInfo, directoryInfo) && false {",
+    "test": "^TestRootIdentityNativeCustodyLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 11,
+      "fail": 3,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-parent-identity-identity-size-substitutes-inode",
+    "owner": "ValidateRootIdentity",
+    "before": "if !os.SameFile(rootInfo, directoryInfo) {",
+    "after": "if rootInfo.Size() != directoryInfo.Size() {",
+    "test": "^TestRootIdentityNativeCustodyLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 12,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-parent-identity-identity-diagnostic-name-required",
+    "owner": "ValidateRootIdentity",
+    "before": "if !os.SameFile(rootInfo, directoryInfo) {",
+    "after": "if !os.SameFile(rootInfo, directoryInfo) || root.Name() != directory.String() {",
+    "test": "^TestRootIdentityNativeCustodyLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 9,
+      "fail": 5,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-parent-identity-identity-lstat-substitutes-stat",
+    "owner": "ValidateRootIdentity",
+    "before": "os.Stat(directory.String())",
+    "after": "os.Lstat(directory.String())",
+    "test": "^TestRootIdentityNativeCustodyLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 10,
+      "fail": 4,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-parent-identity-identity-held-root-observation-bypassed",
+    "owner": "ValidateRootIdentity",
+    "before": "rootInfo, err := root.Stat(\".\")",
+    "after": "rootInfo, err := os.Stat(directory.String())",
+    "test": "^TestRootIdentityNativeCustodyLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 10,
+      "fail": 4,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-parent-identity-identity-contract-mislabeled-source",
+    "owner": "ValidateRootIdentity",
+    "before": "if err := directory.Validate(); err != nil {\n\t\treturn contractError(err)\n\t}",
+    "after": "if err := directory.Validate(); err != nil {\n\t\treturn sourceError(err)\n\t}",
+    "test": "^TestRootIdentityNativeCustodyLayerTriad$/^zero_absolute_",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 0,
+      "fail": 2,
+      "skip": 0
+    }
+  }
+]

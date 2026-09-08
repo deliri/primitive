@@ -1,0 +1,204 @@
+[
+  {
+    "mutation": "basic-constructor-refuse-all",
+    "record": "post-checkpoint-mutation-basic-constructor-refuse-all.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzNewBasicAuthorizationHeaderCustody/seed#0",
+      "FuzzNewBasicAuthorizationHeaderCustody/seed#1",
+      "FuzzNewBasicAuthorizationHeaderCustody/seed#2"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "basic-constructor-foreign-identity",
+    "record": "post-checkpoint-mutation-basic-constructor-foreign-identity.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzNewBasicAuthorizationHeaderCustody/seed#0",
+      "FuzzNewBasicAuthorizationHeaderCustody/seed#1",
+      "FuzzNewBasicAuthorizationHeaderCustody/seed#2",
+      "FuzzNewBasicAuthorizationHeaderCustody/seed#3",
+      "FuzzNewBasicAuthorizationHeaderCustody/seed#5",
+      "FuzzNewBasicAuthorizationHeaderCustody/seed#7",
+      "FuzzNewBasicAuthorizationHeaderCustody/seed#9"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "socket-header-refuse-all",
+    "record": "post-checkpoint-mutation-socket-header-refuse-all.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzSocketHeaderQueryAndPathObservations/seed#1",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#4",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#8",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#9",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#10",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#11",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#12",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#13",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#14"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "socket-header-foreign-value",
+    "record": "post-checkpoint-mutation-socket-header-foreign-value.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzSocketHeaderQueryAndPathObservations/seed#0",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#1",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#2",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#3",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#4",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#5",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#6",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#7",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#8",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#9",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#10",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#11",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#12",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#13",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#14"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "socket-query-refuse-all",
+    "record": "post-checkpoint-mutation-socket-query-refuse-all.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzSocketHeaderQueryAndPathObservations/seed#0",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#1",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#2",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#3",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#4",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#5",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#6",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#7",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#8",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#9",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#12",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#13",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#14"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "socket-query-erased",
+    "record": "post-checkpoint-mutation-socket-query-erased.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzSocketHeaderQueryAndPathObservations/seed#8",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#9",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#10",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#11"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "socket-path-match-refuse-all",
+    "record": "post-checkpoint-mutation-socket-path-match-refuse-all.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzSocketHeaderQueryAndPathObservations/seed#0",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#1",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#2",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#3",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#4",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#5",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#6",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#7",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#8",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#9",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#10",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#11",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#12",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#13",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#14"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "socket-path-match-always",
+    "record": "post-checkpoint-mutation-socket-path-match-always.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzSocketHeaderQueryAndPathObservations/seed#11",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#13",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#14"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "socket-route-check-refuse-all",
+    "record": "post-checkpoint-mutation-socket-route-check-refuse-all.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzSocketHeaderQueryAndPathObservations/seed#0",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#1",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#2",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#3",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#4",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#5",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#6",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#7"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "socket-route-check-admit-all",
+    "record": "post-checkpoint-mutation-socket-route-check-admit-all.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzSocketHeaderQueryAndPathObservations/seed#8",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#9",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#10",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#11",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#12",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#13",
+      "FuzzSocketHeaderQueryAndPathObservations/seed#14"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "socket-certificate-refuse-all",
+    "record": "post-checkpoint-mutation-socket-certificate-refuse-all.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzSocketVerifiedClientCertificateIdentity/seed#0",
+      "FuzzSocketVerifiedClientCertificateIdentity/seed#3"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "socket-certificate-foreign-digest",
+    "record": "post-checkpoint-mutation-socket-certificate-foreign-digest.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzSocketVerifiedClientCertificateIdentity/seed#0",
+      "FuzzSocketVerifiedClientCertificateIdentity/seed#1",
+      "FuzzSocketVerifiedClientCertificateIdentity/seed#2",
+      "FuzzSocketVerifiedClientCertificateIdentity/seed#3",
+      "FuzzSocketVerifiedClientCertificateIdentity/seed#4",
+      "FuzzSocketVerifiedClientCertificateIdentity/seed#5",
+      "FuzzSocketVerifiedClientCertificateIdentity/seed#6",
+      "FuzzSocketVerifiedClientCertificateIdentity/seed#7"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "socket-certificate-presented-peer",
+    "record": "post-checkpoint-mutation-socket-certificate-presented-peer.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzSocketVerifiedClientCertificateIdentity/seed#1",
+      "FuzzSocketVerifiedClientCertificateIdentity/seed#2",
+      "FuzzSocketVerifiedClientCertificateIdentity/seed#6",
+      "FuzzSocketVerifiedClientCertificateIdentity/seed#7"
+    ],
+    "killed_inside_callback": true
+  }
+]

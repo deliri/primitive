@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"testing/iotest"
@@ -23,7 +24,6 @@ func TestStreamingAcceptsAndRejectsStandardLibraryReaderBehaviors(t *testing.T) 
 		wantNative error
 		reader     func([]byte) io.Reader
 		name       string
-		headroom   bool
 	}{
 		{
 			name:   "bytes reader may return a full bounded chunk",
@@ -34,14 +34,12 @@ func TestStreamingAcceptsAndRejectsStandardLibraryReaderBehaviors(t *testing.T) 
 			reader: func(data []byte) io.Reader { return strings.NewReader(string(data)) },
 		},
 		{
-			name:     "one-byte reader forces maximum read fragmentation",
-			reader:   func(data []byte) io.Reader { return iotest.OneByteReader(bytes.NewReader(data)) },
-			headroom: true,
+			name:   "one-byte reader forces maximum read fragmentation",
+			reader: func(data []byte) io.Reader { return iotest.OneByteReader(bytes.NewReader(data)) },
 		},
 		{
-			name:     "half reader forces repeated partial chunks",
-			reader:   func(data []byte) io.Reader { return iotest.HalfReader(bytes.NewReader(data)) },
-			headroom: true,
+			name:   "half reader forces repeated partial chunks",
+			reader: func(data []byte) io.Reader { return iotest.HalfReader(bytes.NewReader(data)) },
 		},
 		{
 			name:   "data-error reader returns final bytes with eof",
@@ -60,8 +58,7 @@ func TestStreamingAcceptsAndRejectsStandardLibraryReaderBehaviors(t *testing.T) 
 			},
 		},
 		{
-			name:     "multi-reader crosses empty and nonempty source boundaries",
-			headroom: true,
+			name: "multi-reader crosses empty and nonempty source boundaries",
 			reader: func(data []byte) io.Reader {
 				middle := len(data) / 2
 				return io.MultiReader(
@@ -149,9 +146,6 @@ func TestStreamingAcceptsAndRejectsStandardLibraryReaderBehaviors(t *testing.T) 
 				rootDirectory := t.TempDir()
 				root := requireTestRoot(t, rootDirectory)
 				maximum := uint64(len(payload))
-				if tc.headroom {
-					maximum++
-				}
 				gotPath, gotErr := operation.run(
 					t,
 					root,
@@ -163,7 +157,13 @@ func TestStreamingAcceptsAndRejectsStandardLibraryReaderBehaviors(t *testing.T) 
 						!errors.Is(gotErr, tc.wantNative) {
 						t.Fatalf("%s error = %v, want %v and %v", operation.name, gotErr, tc.wantErr, tc.wantNative)
 					}
-					requireDirectoryEntryNames(t, rootDirectory, nil)
+					{
+						got, err := directoryEntryNames(rootDirectory)
+						want := []string(nil)
+						if err != nil || !slices.Equal(got, want) {
+							t.Fatalf("directory entries = (%v,%v), want %v", got, err, want)
+						}
+					}
 					return
 				}
 				if gotErr != nil {

@@ -1,0 +1,74 @@
+[
+  {
+    "label": "mutation-closeout-lexical-unsorted",
+    "before": "return strings.Compare(left.Name(), right.Name())",
+    "after": "return strings.Compare(right.Name(), left.Name())",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 9,
+      "fail": 4,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-closeout-lexical-partial-prefix",
+    "before": "if len(entries) > maximum {",
+    "after": "if len(entries) > maximum && false {",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 10,
+      "fail": 3,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-closeout-lexical-truncated-ceiling",
+    "before": "maximum := int(input.request.DirectoryEntryMaximum.value)",
+    "after": "maximum := int(uint16(input.request.DirectoryEntryMaximum.value))",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 11,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-closeout-ceiling-upper-limit-ignored",
+    "before": "m.value == 0 || m.value > DirectoryEntryMaximumLimit",
+    "after": "m.value == 0",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 10,
+      "fail": 3,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-closeout-ceiling-max-exclusive",
+    "before": "m.value > DirectoryEntryMaximumLimit",
+    "after": "m.value >= DirectoryEntryMaximumLimit",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 11,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-closeout-ceiling-constructor-narrows",
+    "before": "maximum := DirectoryEntryMaximum{value: value}",
+    "after": "maximum := DirectoryEntryMaximum{value: uint32(uint16(value))}",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 9,
+      "fail": 4,
+      "skip": 0
+    }
+  }
+]

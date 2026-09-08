@@ -49,7 +49,7 @@ func TestHTTPProducerClassifierStatusDomainLayerTriad(t *testing.T) {
 		}
 	}
 	if len(statuses) == 0 {
-		t.Fatal("core status domain is empty, want an admitted HTTP domain")
+		t.Fatalf("core status domain=%v, want nonempty", statuses)
 	}
 	for _, mode := range modes {
 		t.Run(mode.name, func(t *testing.T) {
@@ -147,7 +147,7 @@ func TestHTTPProducerClassifierStatusDomainLayerTriad(t *testing.T) {
 								statusErr, hasStatus := errors.AsType[StatusError](producerErr)
 								if hasStatus != (status != expected) || hasStatus && (statusErr.Status() != row.status || statusErr.Expected() != row.expected) || (producerErr == nil) != (status == expected) {
 									cancel()
-									t.Fatalf("stream producer error = %v, want exact observed/expected status binding", producerErr)
+									t.Fatalf("stream producer error = %v, want exact observed/required status binding", producerErr)
 								}
 								retained := produced
 								if mode.cancel {
@@ -232,7 +232,7 @@ func TestHTTPProducerClassifierRefusalLatticeLayerTriad(t *testing.T) {
 		{handoffBodyLimit, core.ErrExchangeBodyLimit}, {handoffResponse, core.ErrExchangeResponse},
 		{handoffTransport, core.ErrExchangeTransport},
 	}
-	for bits := handoffCauseBits(0); bits < handoffCauseDomain; bits++ {
+	for bits := range handoffCauseDomain {
 		row := struct {
 			bits      handoffCauseBits
 			primary   handoffPrimary

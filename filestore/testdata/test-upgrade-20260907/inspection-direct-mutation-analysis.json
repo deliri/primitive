@@ -1,0 +1,86 @@
+[
+  {
+    "label": "mutation-inspection-direct-final-link-follow",
+    "file": "/Users/d/code/primitive/filestore/inspect.go",
+    "before": "info, err := os.Lstat(path.String())",
+    "after": "info, err := os.Stat(path.String())",
+    "test": "^FuzzInspectionNativeFactsSemanticClosure$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 7,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-inspection-direct-missing-parent-misclassified",
+    "file": "/Users/d/code/primitive/filestore/inspect.go",
+    "before": "return newInspection(PathKindUnreachable)",
+    "after": "return newInspection(PathKindAbsent)",
+    "test": "^FuzzInspectionNativeFactsSemanticClosure$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 6,
+      "fail": 3,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-inspection-direct-componentless-root-rejected",
+    "file": "/Users/d/code/primitive/filestore/inspect.go",
+    "before": "info, err := os.Lstat(path.String())",
+    "after": "if _, err := path.Base(); err != nil { return Inspection{}, contractError(err) }; info, err := os.Lstat(path.String())",
+    "test": "^TestInspectNativeObservationLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 11,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-inspection-direct-parent-listing-permission",
+    "file": "/Users/d/code/primitive/filestore/inspect.go",
+    "before": "info, err := os.Lstat(path.String())",
+    "after": "parent, _ := path.Parent(); handle, openErr := os.Open(parent.String()); if openErr != nil { return Inspection{}, sourceError(openErr) }; if closeErr := handle.Close(); closeErr != nil { return Inspection{}, sourceError(closeErr) }; info, err := os.Lstat(path.String())",
+    "test": "^TestInspectGoSearchPermissionLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 12,
+      "fail": 5,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-inspection-direct-signed-extent-narrowed",
+    "file": "/Users/d/code/primitive/filestore/inspect.go",
+    "before": "core.NewByteLength(uint64(size))",
+    "after": "core.NewByteLength(uint64(int32(size)))",
+    "test": "^TestInspectNativeExtentCrossesEvery32BitConversionBoundary$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 1,
+      "fail": 6,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-inspection-direct-unsigned-extent-narrowed",
+    "file": "/Users/d/code/primitive/filestore/inspect.go",
+    "before": "core.NewByteLength(uint64(size))",
+    "after": "core.NewByteLength(uint64(uint32(size)))",
+    "test": "^TestInspectNativeExtentCrossesEvery32BitConversionBoundary$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 4,
+      "fail": 3,
+      "skip": 0
+    }
+  }
+]

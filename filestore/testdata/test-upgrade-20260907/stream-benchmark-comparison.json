@@ -1,0 +1,263 @@
+[
+  {
+    "workload": "BenchmarkBoundedCopyExactBytes/128B",
+    "before": {
+      "label": "before-stream-copy-128B",
+      "iterations": 17116009,
+      "ns_per_op": 2094.0,
+      "bytes_per_op": 32768,
+      "allocations_per_op": 1,
+      "exit_status": 0,
+      "source_drift": [],
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-128B.stdout.txt",
+          "bytes": 273,
+          "sha256": "754d36a1293ee4e1c661f9488ea11cf7e01bdcc13707bd0d8f93ef10689031d9"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-128B.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-128B.git-status.txt",
+          "bytes": 3215,
+          "sha256": "a99c5571dda18847fd4673ba618f2ba81c6bab0d0eb438a85e3418cf6e49b067"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-128B.cpu.pprof",
+          "bytes": 18134,
+          "sha256": "432fcb2ea67b75307889746840de72e251231820ccfad94eae9adfadeeaab6cc"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-128B.mem.pprof",
+          "bytes": 1631,
+          "sha256": "5cc11ce458afc3bf07336e1c696143a660b6ffbe513124a66ad58ad03775f7c3"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-128B.test",
+          "bytes": 8750962,
+          "sha256": "cbaf460d888dafe4aaa26d3e29bec5781486890f22b9e3eb2a93e96267c2de05"
+        }
+      ]
+    },
+    "after": {
+      "label": "after-stream-copy-128B",
+      "iterations": 207414944,
+      "ns_per_op": 174.1,
+      "bytes_per_op": 241,
+      "allocations_per_op": 5,
+      "exit_status": 0,
+      "source_drift": [],
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-128B.stdout.txt",
+          "bytes": 276,
+          "sha256": "4573a1fdc2953694a88c98deda14421429ea94f57436dd14f28671989aba98de"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-128B.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-128B.git-status.txt",
+          "bytes": 3569,
+          "sha256": "d339a46a30cf17517e622851d19304b32543028af8f35fb3502251dd70822965"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-128B.cpu.pprof",
+          "bytes": 15306,
+          "sha256": "da283b744fd985432fdf19ea7e4fedba2192e50b7227b3ebf55c961ae98336bb"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-128B.mem.pprof",
+          "bytes": 2354,
+          "sha256": "0fec6de73213ac35228b33bf4d504e749025f9bf8e34a47108464e0b0bdf9846"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-128B.test",
+          "bytes": 9893522,
+          "sha256": "062a7d2880d38f38b0cc00786fcc8af56dd532528e1d63d26e395da0a2452910"
+        }
+      ]
+    },
+    "time_delta_percent": -91.6857688634193,
+    "bytes_delta_percent": -99.2645263671875
+  },
+  {
+    "workload": "BenchmarkBoundedCopyExactBytes/32KiB",
+    "before": {
+      "label": "before-stream-copy-32KiB",
+      "iterations": 7385967,
+      "ns_per_op": 5053.0,
+      "bytes_per_op": 32768,
+      "allocations_per_op": 1,
+      "exit_status": 0,
+      "source_drift": [],
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-32KiB.stdout.txt",
+          "bytes": 274,
+          "sha256": "1732f8d02128c6827032eaeaa130cd97303d459092259535d9013785cbe9e9ae"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-32KiB.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-32KiB.git-status.txt",
+          "bytes": 3215,
+          "sha256": "a99c5571dda18847fd4673ba618f2ba81c6bab0d0eb438a85e3418cf6e49b067"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-32KiB.cpu.pprof",
+          "bytes": 7220,
+          "sha256": "6cd61cb43384e5c19d29da6ff6d959597cfe07e65b98c4ae02e111cc663464e2"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-32KiB.mem.pprof",
+          "bytes": 1811,
+          "sha256": "3a4d117b571abbde03995f8b9d6a5686b3c109ac0adc52c051dd75eb50bba3a5"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-32KiB.test",
+          "bytes": 8750962,
+          "sha256": "cbaf460d888dafe4aaa26d3e29bec5781486890f22b9e3eb2a93e96267c2de05"
+        }
+      ]
+    },
+    "after": {
+      "label": "after-stream-copy-32KiB",
+      "iterations": 7184575,
+      "ns_per_op": 5127.0,
+      "bytes_per_op": 32881,
+      "allocations_per_op": 5,
+      "exit_status": 0,
+      "source_drift": [],
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-32KiB.stdout.txt",
+          "bytes": 274,
+          "sha256": "3e739001b1a59f96aa67ff3182a04f1f4753debc6304adf51df5d674b1a2b279"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-32KiB.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-32KiB.git-status.txt",
+          "bytes": 3569,
+          "sha256": "d339a46a30cf17517e622851d19304b32543028af8f35fb3502251dd70822965"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-32KiB.cpu.pprof",
+          "bytes": 8783,
+          "sha256": "9e050b29eb7629e2325d511ac32896d19f66a157e0785d7169f12987418e06b4"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-32KiB.mem.pprof",
+          "bytes": 2229,
+          "sha256": "609f40a58f4fa61dac3f495071e848f7a0305e8b8a59bc0d04c910fa48823e98"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-32KiB.test",
+          "bytes": 9893522,
+          "sha256": "062a7d2880d38f38b0cc00786fcc8af56dd532528e1d63d26e395da0a2452910"
+        }
+      ]
+    },
+    "time_delta_percent": 1.464476548584992,
+    "bytes_delta_percent": 0.3448486328125
+  },
+  {
+    "workload": "BenchmarkBoundedCopyExactBytes/1MiB",
+    "before": {
+      "label": "before-stream-copy-1MiB",
+      "iterations": 591916,
+      "ns_per_op": 61490.0,
+      "bytes_per_op": 32768,
+      "allocations_per_op": 1,
+      "exit_status": 0,
+      "source_drift": [],
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-1MiB.stdout.txt",
+          "bytes": 274,
+          "sha256": "9655901911e54cc3c614e7318c98828a5edb50f4eaca61bfb8506efcbe9be664"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-1MiB.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-1MiB.git-status.txt",
+          "bytes": 3215,
+          "sha256": "a99c5571dda18847fd4673ba618f2ba81c6bab0d0eb438a85e3418cf6e49b067"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-1MiB.cpu.pprof",
+          "bytes": 10963,
+          "sha256": "3832399d9a72f92be03785fda11047494096ae589b638c7ab1928ff353bc47d3"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-1MiB.mem.pprof",
+          "bytes": 2339,
+          "sha256": "3baca05c115c16cdb70cfa4f1e3af54d57586a9069767a002d91c6b89981b2fe"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-1MiB.test",
+          "bytes": 8750962,
+          "sha256": "cbaf460d888dafe4aaa26d3e29bec5781486890f22b9e3eb2a93e96267c2de05"
+        }
+      ]
+    },
+    "after": {
+      "label": "after-stream-copy-1MiB",
+      "iterations": 562507,
+      "ns_per_op": 61965.0,
+      "bytes_per_op": 32881,
+      "allocations_per_op": 5,
+      "exit_status": 0,
+      "source_drift": [],
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-1MiB.stdout.txt",
+          "bytes": 274,
+          "sha256": "7c23f5111cc554166c7d21a111e17d83a511af2455b1d78782ad677a3bd07c31"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-1MiB.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-1MiB.git-status.txt",
+          "bytes": 3569,
+          "sha256": "d339a46a30cf17517e622851d19304b32543028af8f35fb3502251dd70822965"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-1MiB.cpu.pprof",
+          "bytes": 11896,
+          "sha256": "63324fe9320443c99263f1df7347e6cda0a3bda24d4ccd6936f74b57322043ec"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-1MiB.mem.pprof",
+          "bytes": 2230,
+          "sha256": "6ca838d58623bffc4f8acf85c75dae9b10d21551eaa757e135a4c0cdfe8edf83"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-1MiB.test",
+          "bytes": 9893522,
+          "sha256": "062a7d2880d38f38b0cc00786fcc8af56dd532528e1d63d26e395da0a2452910"
+        }
+      ]
+    },
+    "time_delta_percent": 0.7724833306228751,
+    "bytes_delta_percent": 0.3448486328125
+  }
+]

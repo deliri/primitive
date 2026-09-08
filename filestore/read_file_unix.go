@@ -1,11 +1,10 @@
-//go:build aix || android || darwin || dragonfly || freebsd || illumos || ios || linux || netbsd || openbsd || solaris
+//go:build darwin || linux
 
 package filestore
 
 import (
 	"os"
-
-	"golang.org/x/sys/unix"
+	"syscall"
 )
 
 // openReadFile acquires the source descriptor without ever entering a blocking
@@ -18,7 +17,7 @@ func openReadFile(root *os.Root, path string) (*os.File, error) {
 }
 
 func openDirectory(root *os.Root, path string) (*os.File, error) {
-	return root.OpenFile(path, os.O_RDONLY|unix.O_NONBLOCK|unix.O_DIRECTORY, 0)
+	return root.OpenFile(path, os.O_RDONLY|syscall.O_NONBLOCK|syscall.O_DIRECTORY, 0)
 }
 
 func openMutableFile(request rootedOpenRequest) (*os.File, error) {
@@ -26,7 +25,7 @@ func openMutableFile(request rootedOpenRequest) (*os.File, error) {
 }
 
 func openNonblockingFile(request rootedOpenRequest) (*os.File, error) {
-	return request.root.OpenFile(request.path, request.flag|unix.O_NONBLOCK, request.mode)
+	return request.root.OpenFile(request.path, request.flag|syscall.O_NONBLOCK, request.mode)
 }
 
 // prepareRegularReadFile restores blocking semantics once the acquired handle
@@ -39,7 +38,7 @@ func prepareRegularReadFile(file *os.File) error {
 	}
 	var blockingErr error
 	if err := connection.Control(func(descriptor uintptr) {
-		blockingErr = unix.SetNonblock(int(descriptor), false)
+		blockingErr = syscall.SetNonblock(int(descriptor), false)
 	}); err != nil {
 		return err
 	}

@@ -8,6 +8,7 @@ import (
 	"maps"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -121,11 +122,11 @@ func TestResponseBufferHeaderAndCancellationLayerTriad(t *testing.T) {
 		cancel  bool
 		wantErr error
 	}{
-		{"canonical declared length matches", http.Header{"Content-Length": []string{"4"}}, false, nil},
-		{"false declared length refuses", http.Header{"Content-Length": []string{"5"}}, false, core.ErrExchangeResponse},
-		{"duplicate declared length refuses", http.Header{"Content-Length": []string{"4", "4"}}, false, core.ErrExchangeResponse},
+		{"canonical declared length matches", http.Header{core.HTTPHeaderContentLength().String(): []string{"4"}}, false, nil},
+		{"false declared length refuses", http.Header{core.HTTPHeaderContentLength().String(): []string{"5"}}, false, core.ErrExchangeResponse},
+		{"duplicate declared length refuses", http.Header{core.HTTPHeaderContentLength().String(): []string{"4", "4"}}, false, core.ErrExchangeResponse},
 		{"noncanonical name cannot bypass framing", http.Header{"content-length": []string{"5"}}, false, core.ErrExchangeResponse},
-		{"trailer protocol requires streaming path", http.Header{"Trailer": []string{"Digest"}}, false, core.ErrExchangeResponse},
+		{"trailer protocol requires streaming path", http.Header{core.HTTPHeaderTrailer().String(): []string{"Digest"}}, false, core.ErrExchangeResponse},
 		{"header injection refuses", http.Header{"X-Test": []string{"a\r\nb"}}, false, core.ErrExchangeResponse},
 		{"cancellation before release withholds bytes", nil, true, context.Canceled},
 	}
@@ -159,28 +160,112 @@ func TestResponseBufferHeaderAndCancellationLayerTriad(t *testing.T) {
 }
 
 func FuzzResponseBufferSemanticExtent(f *testing.F) {
-	f.Add([]byte("body"), uint16(4))
-	f.Add([]byte{}, uint16(1))
-	f.Add([]byte("overflow"), uint16(1))
+	seed := ServerBoundedResponse{Body: []byte{0, 'a', 0xff}, ContentType: core.HTTPMediaTypeOctetStream(), Status: core.HTTPStatusOK()}
+	if err := seed.Validate(); err != nil {
+		f.Fatal(err)
+	}
+	recorder := httptest.NewRecorder()
+	if err := WriteBounded(BoundedWriteCall{Call: SocketServerCall{writer: recorder, request: httptest.NewRequest(http.MethodGet, "/", nil)}, Response: seed}); err != nil {
+		f.Fatal(err)
+	}
+	for _, limit := range []uint16{0, uint16(len(seed.Body) - 2), uint16(len(seed.Body) - 1), uint16(len(seed.Body))} {
+		f.Add(recorder.Body.Bytes(), limit)
+	}
+	f.Add([]byte{}, uint16(0))
 	f.Fuzz(func(t *testing.T, data []byte, rawLimit uint16) {
-		limit, err := core.NewByteCount(uint64(rawLimit) + 1)
+		if len(data) > 65536 {
+			return
+		}
+		maximum, err := core.NewByteCount(uint64(rawLimit) + 1)
 		if err != nil {
 			t.Fatal(err)
 		}
-		destination := httptest.NewRecorder()
-		result, err := BufferResponse(context.Background(), ResponseBufferRequest{Call: SocketServerCall{writer: destination, request: httptest.NewRequest(http.MethodGet, "/", nil)}, BodyMaximum: limit, Serve: func(call SocketServerCall) error {
-			w := call.writer
-			_, err := w.Write(data)
-			return err
-		}})
-		if len(data) > int(rawLimit)+1 {
-			if !errors.Is(err, core.ErrExchangeBodyLimit) || result != (ResponseBufferResult{}) || destination.Body.Len() != 0 {
-				t.Fatalf("oversized = (%+v,%v,%d), want typed refusal without release", result, err, destination.Body.Len())
-			}
-			return
+		cases := []struct {
+			name                                                              string
+			head, cancelled, callbackFailure, falseLength, destinationFailure bool
+			panicWrite, panicAfterWrite                                       bool
+		}{
+			{name: "exact release after completed callback"},
+			{name: "HEAD retains representation framing but releases no body", head: true},
+			{name: "callback refusal withholds buffered bytes", callbackFailure: true},
+			{name: "cancellation before release withholds buffered bytes", cancelled: true},
+			{name: "false representation extent withholds buffered bytes", falseLength: true},
+			{name: "partial destination failure retains actual committed count", destinationFailure: true},
+			{name: "destination panic before effect retains only completed status", panicWrite: true},
+			{name: "destination panic after effect cannot invent acknowledgment", panicAfterWrite: true},
 		}
-		if err != nil || !result.Committed || !bytes.Equal(destination.Body.Bytes(), data) {
-			t.Fatalf("bounded response = (%+v,%v,%q), want exact %q", result, err, destination.Body.Bytes(), data)
+		for _, tc := range cases {
+			destination := &materialFuzzWriter{header: make(http.Header), fail: tc.destinationFailure, acknowledge: len(data) / 2, panicWrite: tc.panicWrite, panicAfterWrite: tc.panicAfterWrite}
+			ctx, cancel := context.WithCancel(t.Context())
+			method := http.MethodGet
+			if tc.head {
+				method = http.MethodHead
+			}
+			calls := 0
+			result, gotErr := BufferResponse(ctx, ResponseBufferRequest{Call: SocketServerCall{writer: destination, request: httptest.NewRequestWithContext(ctx, method, "/", nil)}, BodyMaximum: maximum, Serve: func(call SocketServerCall) error {
+				calls++
+				length := len(data)
+				if tc.falseLength {
+					length++
+				}
+				call.writer.Header().Set(core.HTTPHeaderContentLength().String(), strconv.Itoa(length))
+				call.writer.Header().Set(core.HTTPHeaderContentType().String(), core.HTTPMediaTypeOctetStream().String())
+				call.writer.WriteHeader(http.StatusCreated)
+				// Ignore the local write result: the buffer must retain mechanical refusal.
+				_, _ = call.writer.Write(data)
+				if tc.cancelled {
+					cancel()
+				}
+				if tc.callbackFailure {
+					return io.ErrUnexpectedEOF
+				}
+				return nil
+			}})
+			cancel()
+			overflow := len(data) > int(rawLimit)+1
+			withheld := overflow || tc.cancelled || tc.callbackFailure || tc.falseLength
+			if calls != 1 || result.Validate() != nil {
+				t.Fatalf("%s callback/result=(%d,%+v),want one callback and valid receipt", tc.name, calls, result)
+			}
+			if errors.Is(gotErr, core.ErrExchangeBodyLimit) != overflow || errors.Is(gotErr, context.Canceled) != tc.cancelled || errors.Is(gotErr, io.ErrUnexpectedEOF) != tc.callbackFailure {
+				t.Fatalf("%s causes=%v,want overflow/cancel/callback=%t/%t/%t", tc.name, gotErr, overflow, tc.cancelled, tc.callbackFailure)
+			}
+			if withheld {
+				if gotErr == nil || result != (ResponseBufferResult{}) || destination.commits != 0 || destination.writes != 0 || destination.body.Len() != 0 || len(destination.header) != 0 {
+					t.Fatalf("%s withheld result=(%+v,%v),destination=%+v", tc.name, result, gotErr, destination)
+				}
+				continue
+			}
+			wantBody := data
+			if tc.head {
+				wantBody = nil
+			}
+			wantWrites := 0
+			if len(wantBody) > 0 {
+				wantWrites = 1
+			}
+			panickedWrite := (tc.panicWrite || tc.panicAfterWrite) && wantWrites == 1
+			if tc.panicWrite {
+				wantBody = nil
+			}
+			failedWrite := tc.destinationFailure && wantWrites == 1
+			if failedWrite {
+				wantBody = wantBody[:len(wantBody)/2]
+			}
+			if errors.Is(gotErr, io.ErrClosedPipe) != failedWrite || errors.Is(gotErr, io.ErrShortWrite) != failedWrite || errors.Is(gotErr, core.ErrExchangeWrite) != (failedWrite || panickedWrite) || panickedWrite && !errors.Is(gotErr, core.ErrExchangeContract) || !failedWrite && !panickedWrite && gotErr != nil {
+				t.Fatalf("%s destination causes=%v,want write failure=%t", tc.name, gotErr, failedWrite)
+			}
+			wantAcknowledged := len(wantBody)
+			if panickedWrite {
+				wantAcknowledged = 0
+			}
+			status, statusErr := result.Status.Int()
+			if !result.Committed || statusErr != nil || status != http.StatusCreated || result.Bytes.Uint64() != uint64(wantAcknowledged) || destination.status != http.StatusCreated || destination.commits != 1 || destination.writes != wantWrites || !bytes.Equal(destination.body.Bytes(), wantBody) {
+				t.Fatalf("%s receipt=(%+v,%v),destination=%+v,want exact committed bytes %q", tc.name, result, gotErr, destination, wantBody)
+			}
+			if len(destination.header) != 2 || destination.header.Get(core.HTTPHeaderContentLength().String()) != strconv.Itoa(len(data)) || destination.header.Get(core.HTTPHeaderContentType().String()) != core.HTTPMediaTypeOctetStream().String() {
+				t.Fatalf("%s framing=%v,want exact representation extent and MIME", tc.name, destination.header)
+			}
 		}
 	})
 }
@@ -214,7 +299,7 @@ func TestResponseBufferRepresentationLengthLayerTriad(t *testing.T) {
 			}
 			destination := httptest.NewRecorder()
 			result, err := BufferResponse(t.Context(), ResponseBufferRequest{Call: SocketServerCall{writer: destination, request: httptest.NewRequest(tc.method, "/", nil)}, BodyMaximum: limit, Serve: func(call SocketServerCall) error {
-				call.writer.Header().Set("Content-Length", tc.length)
+				call.writer.Header().Set(core.HTTPHeaderContentLength().String(), tc.length)
 				call.writer.WriteHeader(tc.status)
 				if tc.body == "" {
 					return nil
@@ -235,7 +320,7 @@ func TestResponseBufferRepresentationLengthLayerTriad(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if !result.Committed || result.Bytes != wantBytes || destination.Code != tc.status || destination.Body.String() != tc.wantBody || destination.Header().Get("Content-Length") != tc.length {
+			if !result.Committed || result.Bytes != wantBytes || destination.Code != tc.status || destination.Body.String() != tc.wantBody || destination.Header().Get(core.HTTPHeaderContentLength().String()) != tc.length {
 				t.Fatalf("released representation = (%+v,%d,%q,%v), want status %d body %q length %s", result, destination.Code, destination.Body.String(), destination.Header(), tc.status, tc.wantBody, tc.length)
 			}
 		})

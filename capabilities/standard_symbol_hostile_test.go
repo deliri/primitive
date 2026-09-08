@@ -3,7 +3,6 @@ package capabilities
 import (
 	"errors"
 	"github.com/deliri/primitive/v2026/core"
-	"reflect"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/gomodule"
@@ -154,7 +153,7 @@ func TestStandardSymbolReceiverOwnershipLayerTriad(t *testing.T) {
 			}
 			request := StandardSymbol{ImportPath: imported, Selector: selector, Receiver: &receiver}
 			got, err := ResolveStandardSymbol(request)
-			if err != nil || !got.Classification.Equal(tc.want) || !reflect.DeepEqual(got.Symbol, request) {
+			if err != nil || !got.Classification.Equal(tc.want) || got.Symbol.ImportPath != request.ImportPath || got.Symbol.Selector != request.Selector || got.Symbol.Receiver == nil || *got.Symbol.Receiver != *request.Receiver {
 				t.Fatalf("ResolveStandardSymbol(%+v) = (%+v,%v), want complete classification %+v", request, got, err, tc.want)
 			}
 			if err := got.Validate(); err != nil {

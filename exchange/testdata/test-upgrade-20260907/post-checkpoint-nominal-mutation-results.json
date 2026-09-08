@@ -1,0 +1,121 @@
+[
+  {
+    "mutation": "method-refuse-all",
+    "record": "post-checkpoint-mutation-method-refuse-all.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzMethodJSONSemanticClosure/seed#0",
+      "FuzzMethodJSONSemanticClosure/seed#1",
+      "FuzzMethodJSONSemanticClosure/seed#2",
+      "FuzzMethodJSONSemanticClosure/seed#3",
+      "FuzzMethodJSONSemanticClosure/seed#4",
+      "FuzzMethodJSONSemanticClosure/seed#5",
+      "FuzzMethodJSONSemanticClosure/seed#6"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "method-wrong-valid",
+    "record": "post-checkpoint-mutation-method-wrong-valid.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzMethodJSONSemanticClosure/seed#0",
+      "FuzzMethodJSONSemanticClosure/seed#1",
+      "FuzzMethodJSONSemanticClosure/seed#2",
+      "FuzzMethodJSONSemanticClosure/seed#4",
+      "FuzzMethodJSONSemanticClosure/seed#5",
+      "FuzzMethodJSONSemanticClosure/seed#6",
+      "FuzzMethodJSONSemanticClosure/seed#7",
+      "FuzzMethodJSONSemanticClosure/seed#8",
+      "FuzzMethodJSONSemanticClosure/seed#9",
+      "FuzzMethodJSONSemanticClosure/seed#10",
+      "FuzzMethodJSONSemanticClosure/seed#11",
+      "FuzzMethodJSONSemanticClosure/seed#12",
+      "FuzzMethodJSONSemanticClosure/seed#13"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "identity-refuse-all",
+    "record": "post-checkpoint-mutation-identity-refuse-all.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzParseBasicAuthorizationIdentitySemanticClosure/seed#0",
+      "FuzzParseBasicAuthorizationIdentitySemanticClosure/seed#2"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "identity-wrong-valid",
+    "record": "post-checkpoint-mutation-identity-wrong-valid.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzParseBasicAuthorizationIdentitySemanticClosure/seed#0",
+      "FuzzParseBasicAuthorizationIdentitySemanticClosure/seed#1",
+      "FuzzParseBasicAuthorizationIdentitySemanticClosure/seed#2",
+      "FuzzParseBasicAuthorizationIdentitySemanticClosure/seed#3",
+      "FuzzParseBasicAuthorizationIdentitySemanticClosure/seed#4",
+      "FuzzParseBasicAuthorizationIdentitySemanticClosure/seed#5",
+      "FuzzParseBasicAuthorizationIdentitySemanticClosure/seed#6",
+      "FuzzParseBasicAuthorizationIdentitySemanticClosure/seed#7"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "key-refuse-all",
+    "record": "post-checkpoint-mutation-key-refuse-all.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzParseIdempotencyKeySemanticClosure/seed#0",
+      "FuzzParseIdempotencyKeySemanticClosure/seed#1",
+      "FuzzParseIdempotencyKeySemanticClosure/seed#2"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "key-wrong-valid",
+    "record": "post-checkpoint-mutation-key-wrong-valid.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzParseIdempotencyKeySemanticClosure/seed#0",
+      "FuzzParseIdempotencyKeySemanticClosure/seed#1",
+      "FuzzParseIdempotencyKeySemanticClosure/seed#2",
+      "FuzzParseIdempotencyKeySemanticClosure/seed#3",
+      "FuzzParseIdempotencyKeySemanticClosure/seed#4",
+      "FuzzParseIdempotencyKeySemanticClosure/seed#5",
+      "FuzzParseIdempotencyKeySemanticClosure/seed#6",
+      "FuzzParseIdempotencyKeySemanticClosure/seed#7"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "route-refuse-all",
+    "record": "post-checkpoint-mutation-route-refuse-all.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzParseSocketRoutePathSemanticClosure/seed#0",
+      "FuzzParseSocketRoutePathSemanticClosure/seed#1",
+      "FuzzParseSocketRoutePathSemanticClosure/seed#2"
+    ],
+    "killed_inside_callback": true
+  },
+  {
+    "mutation": "route-wrong-valid",
+    "record": "post-checkpoint-mutation-route-wrong-valid.json",
+    "exit_status": 1,
+    "callback_failures": [
+      "FuzzParseSocketRoutePathSemanticClosure/seed#0",
+      "FuzzParseSocketRoutePathSemanticClosure/seed#1",
+      "FuzzParseSocketRoutePathSemanticClosure/seed#2",
+      "FuzzParseSocketRoutePathSemanticClosure/seed#3",
+      "FuzzParseSocketRoutePathSemanticClosure/seed#4",
+      "FuzzParseSocketRoutePathSemanticClosure/seed#5",
+      "FuzzParseSocketRoutePathSemanticClosure/seed#6",
+      "FuzzParseSocketRoutePathSemanticClosure/seed#7",
+      "FuzzParseSocketRoutePathSemanticClosure/seed#8",
+      "FuzzParseSocketRoutePathSemanticClosure/seed#9",
+      "FuzzParseSocketRoutePathSemanticClosure/seed#10"
+    ],
+    "killed_inside_callback": true
+  }
+]

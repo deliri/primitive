@@ -11,10 +11,12 @@ import (
 )
 
 func BenchmarkWalkLexicalSparseDirectory(b *testing.B) {
+	b.ReportAllocs()
 	benchmarkWalkSparseDirectory(b, filestore.WalkOrderLexical)
 }
 
 func BenchmarkWalkNativeSparseDirectory(b *testing.B) {
+	b.ReportAllocs()
 	benchmarkWalkSparseDirectory(b, filestore.WalkOrderNative)
 }
 

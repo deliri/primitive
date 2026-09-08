@@ -99,7 +99,7 @@ func TestSessionClientAdmissionLayerTriad(t *testing.T) {
 				t.Fatalf("second client = (%v, %v), want valid independent client", second, err)
 			}
 			if second.http == got.http || second.http.Jar == firstJar {
-				t.Fatal("constructor shared client or cookie state across sessions")
+				t.Fatalf("client/jar shared=%t/%t, want false/false", second.http == got.http, second.http.Jar == firstJar)
 			}
 		})
 	}
@@ -276,7 +276,7 @@ func TestSessionHTTPCookieCustodyLayerTriad(t *testing.T) {
 						}
 					}
 				default:
-					t.Fatal("completed HTTP response has no request observation")
+					t.Fatalf("completed HTTP response has no request observation; owned completion channel=%p", observations)
 				}
 			}
 			select {

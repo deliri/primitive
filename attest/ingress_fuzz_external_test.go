@@ -52,7 +52,7 @@ func FuzzSignCanonicalBodyStreaming(f *testing.F) {
 	key := deterministicPrivateKey(f, "fuzz-stream")
 	trust := mustTrustedKeys(f, mustPublicKey(f, key))
 	f.Fuzz(func(t *testing.T, data []byte, chunk uint16) {
-		body := chunkedLiteralBody{literalBody: literalBody{value: data, domain: testDomainPrimary}, chunkSize: int(chunk) + 1}
+		body := chunkedLiteralBody{value: data, domain: testDomainPrimary, chunkSize: int(chunk) + 1}
 		got, gotErr := attest.Sign(attest.SignRequest[testDomain]{Body: body, Signer: key})
 		if len(data) == 0 || len(data) > attest.CanonicalBodyMaximumBytes {
 			if !errors.Is(gotErr, core.ErrAttestContract) || got != (attest.Envelope[testDomain]{}) {

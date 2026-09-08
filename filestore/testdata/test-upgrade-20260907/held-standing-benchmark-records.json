@@ -1,0 +1,60 @@
+{
+  "scope": "Initial three-observation workload: same inode, distinct inode with identical 128 bytes, and absent path. Setup and final content/custody checks untimed. 30 seconds, CPU1, native Darwin arm64. No speedup claim.",
+  "results": [
+    {
+      "label": "checkpoint-held-standing-IdentityTriad",
+      "record_sha256": "65338c8b044bd4e879cc1b6e6da10a2c02cae56b09d6b5ee4e2a67c7513949c7",
+      "benchmark": "BenchmarkHeldStandingNativeIdentityTriad",
+      "iterations": 4284738,
+      "ns_per_op": 8495.0,
+      "bytes_per_op": 1632,
+      "allocations_per_op": 10,
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkHeldStandingNativeIdentityTriad$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-held-standing-IdentityTriad.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-held-standing-IdentityTriad.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-held-standing-IdentityTriad.test",
+        "./filestore"
+      ],
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-held-standing-IdentityTriad.stdout.txt",
+          "bytes": 257,
+          "sha256": "887ec00a6a544fb8e67076b5a436d7c590187d871bb7e5413cc841aee160e686"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-held-standing-IdentityTriad.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-held-standing-IdentityTriad.git-status.txt",
+          "bytes": 8788,
+          "sha256": "5fdae4ee71478012ebd29a2affb55ed99c05da8be3b4c17539084549be37b2b0"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-held-standing-IdentityTriad.cpu.pprof",
+          "bytes": 4352,
+          "sha256": "7dc8926e1a9d72c4a7307cbcd89bffc232cf671a7614c7f4df77a7efc37183ba"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-held-standing-IdentityTriad.mem.pprof",
+          "bytes": 2271,
+          "sha256": "6f8e88111c9f51e9b6459314974c1e6978faaa428b4b569d756e0a3d45862b32"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-held-standing-IdentityTriad.test",
+          "bytes": 12407970,
+          "sha256": "c747dc63108d9c6596758d4e263105d7b3487a792c153ef0760f1133376ecaf5"
+        }
+      ]
+    }
+  ]
+}

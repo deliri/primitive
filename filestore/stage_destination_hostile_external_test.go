@@ -22,10 +22,12 @@ const (
 	stageDestinationMutationChmod
 	stageDestinationMutationClose
 	stageDestinationMutationCancelFinish
+	stageDestinationMutationNilContext
 )
 
 type stageDestinationCase struct {
 	wantErr     error
+	wantNative  error
 	name        string
 	chunks      [][]byte
 	wantExtent  uint64
@@ -47,49 +49,58 @@ const (
 	stageDestinationIngressExistingFile
 	stageDestinationIngressExistingDirectory
 	stageDestinationIngressAbsentParent
+	stageDestinationIngressDanglingLink
+	stageDestinationIngressOutsideLink
+	stageDestinationIngressClosedRoot
 )
-
-type stageDestinationIngressCase struct {
-	wantErr  error
-	name     string
-	mutation stageDestinationIngressMutation
-}
 
 func TestOpenStageDestinationHostileIngressMatrix(t *testing.T) {
 	t.Parallel()
-
-	cases := []stageDestinationIngressCase{
-		{name: "nil context", mutation: stageDestinationIngressNilContext, wantErr: core.ErrNilContext},
-		{name: "canceled context", mutation: stageDestinationIngressCanceledContext, wantErr: context.Canceled},
-		{name: "zero request", mutation: stageDestinationIngressZeroRequest, wantErr: core.ErrFilestoreContract},
-		{name: "nil root", mutation: stageDestinationIngressNilRoot, wantErr: core.ErrFilestoreContract},
-		{name: "zero relative path", mutation: stageDestinationIngressZeroPath, wantErr: core.ErrFilestoreContract},
-		{name: "root entry path", mutation: stageDestinationIngressRootPath, wantErr: core.ErrFilestoreContract},
-		{name: "zero permission mode", mutation: stageDestinationIngressZeroMode, wantErr: core.ErrFilestoreContract},
-		{name: "filesystem type bits in permission mode", mutation: stageDestinationIngressTypeMode, wantErr: core.ErrFilestoreContract},
-		{name: "existing regular file", mutation: stageDestinationIngressExistingFile, wantErr: core.ErrFilestoreConflict},
-		{name: "existing directory", mutation: stageDestinationIngressExistingDirectory, wantErr: core.ErrFilestoreConflict},
-		{name: "absent parent directory", mutation: stageDestinationIngressAbsentParent, wantErr: core.ErrFilestoreActivation},
-	}
-
-	for _, tc := range cases {
+	for _, tc := range []struct {
+		name                string
+		mutation            stageDestinationIngressMutation
+		wantErr, wantNative error
+	}{
+		{name: "nil context cannot create custody", mutation: stageDestinationIngressNilContext, wantErr: core.ErrNilContext},
+		{name: "canceled context cannot create custody", mutation: stageDestinationIngressCanceledContext, wantErr: context.Canceled},
+		{name: "zero request cannot invent root or path", mutation: stageDestinationIngressZeroRequest, wantErr: core.ErrFilestoreContract},
+		{name: "missing root cannot escape into process cwd", mutation: stageDestinationIngressNilRoot, wantErr: core.ErrFilestoreContract},
+		{name: "zero path cannot become a default temporary", mutation: stageDestinationIngressZeroPath, wantErr: core.ErrFilestoreContract},
+		{name: "root name cannot become a mutable file", mutation: stageDestinationIngressRootPath, wantErr: core.ErrFilestoreContract},
+		{name: "zero permissions cannot silently choose a default", mutation: stageDestinationIngressZeroMode, wantErr: core.ErrFilestoreContract},
+		{name: "file type bits cannot be permission intent", mutation: stageDestinationIngressTypeMode, wantErr: core.ErrFilestoreContract},
+		{name: "existing binary file cannot be truncated", mutation: stageDestinationIngressExistingFile, wantErr: core.ErrFilestoreConflict, wantNative: fs.ErrExist},
+		{name: "existing directory cannot lose its child", mutation: stageDestinationIngressExistingDirectory, wantErr: core.ErrFilestoreConflict, wantNative: fs.ErrExist},
+		{name: "missing parent cannot be synthesized", mutation: stageDestinationIngressAbsentParent, wantErr: core.ErrFilestoreActivation, wantNative: fs.ErrNotExist},
+		{name: "dangling symlink remains an occupied name", mutation: stageDestinationIngressDanglingLink, wantErr: core.ErrFilestoreConflict, wantNative: fs.ErrExist},
+		{name: "outside symlink cannot create or truncate referent", mutation: stageDestinationIngressOutsideLink, wantErr: core.ErrFilestoreConflict, wantNative: fs.ErrExist},
+		{name: "closed rooted capability retains native refusal", mutation: stageDestinationIngressClosedRoot, wantErr: core.ErrFilestoreActivation, wantNative: fs.ErrClosed},
+	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-
 			directory := t.TempDir()
 			root := requireTestRoot(t, directory)
 			ctx := context.Context(t.Context())
-			request := filestore.StageDestinationRequest{
-				Temporary: filestore.Location{Root: root, Path: mustRelativePath(t, ".ingress")},
-				Mode:      0o600, ExpectedBytes: stageDestinationLength(t, 0),
+			request := filestore.StageDestinationRequest{Temporary: filestore.Location{Root: root, Path: mustRelativePath(t, "stage")}, Mode: 0o600, ExpectedBytes: stageDestinationLength(t, 0)}
+			payload := []byte{0, 255, 7}
+			if err := os.WriteFile(filepath.Join(directory, "neighbor"), payload, 0o600); err != nil {
+				t.Fatal(err)
 			}
-			preexisting := false
+			outside := t.TempDir()
+			outsidePath := filepath.Join(outside, "outside")
+			if err := os.WriteFile(outsidePath, payload, 0o600); err != nil {
+				t.Fatal(err)
+			}
+			outsideInfo, err := os.Lstat(outsidePath)
+			if err != nil {
+				t.Fatal(err)
+			}
 			switch tc.mutation {
 			case stageDestinationIngressNilContext:
 				ctx = nil
 			case stageDestinationIngressCanceledContext:
 				var cancel context.CancelFunc
-				ctx, cancel = context.WithCancel(t.Context())
+				ctx, cancel = context.WithCancel(ctx)
 				cancel()
 			case stageDestinationIngressZeroRequest:
 				request = filestore.StageDestinationRequest{}
@@ -104,33 +115,79 @@ func TestOpenStageDestinationHostileIngressMatrix(t *testing.T) {
 			case stageDestinationIngressTypeMode:
 				request.Mode = fs.ModeDir | 0o600
 			case stageDestinationIngressExistingFile:
-				preexisting = true
-				if err := os.WriteFile(filepath.Join(directory, ".ingress"), []byte{1}, 0o600); err != nil {
-					t.Fatalf("WriteFile(preexisting file) error = %v, want nil", err)
+				if err := os.WriteFile(filepath.Join(directory, "stage"), payload, 0o640); err != nil {
+					t.Fatal(err)
 				}
 			case stageDestinationIngressExistingDirectory:
-				preexisting = true
-				if err := os.Mkdir(filepath.Join(directory, ".ingress"), 0o700); err != nil {
-					t.Fatalf("Mkdir(preexisting directory) error = %v, want nil", err)
+				if err := root.Mkdir("stage", 0o700); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(filepath.Join(directory, "stage", "child"), payload, 0o600); err != nil {
+					t.Fatal(err)
 				}
 			case stageDestinationIngressAbsentParent:
-				request.Temporary.Path = mustRelativePath(t, "absent/.ingress")
+				request.Temporary.Path = mustRelativePath(t, "missing/stage")
+			case stageDestinationIngressDanglingLink:
+				if err := root.Symlink("absent", "stage"); err != nil {
+					t.Fatal(err)
+				}
+			case stageDestinationIngressOutsideLink:
+				if err := root.Symlink(outsidePath, "stage"); err != nil {
+					t.Fatal(err)
+				}
+			case stageDestinationIngressClosedRoot:
+				if err := root.Close(); err != nil {
+					t.Fatal(err)
+				}
 			default:
-				t.Fatalf("stage destination ingress mutation = %d, want a published test mutation", tc.mutation)
+				t.Fatalf("ingress mutation = %d, want declared case", tc.mutation)
 			}
-
-			destination, gotErr := filestore.OpenStageDestination(ctx, request)
-			if !errors.Is(gotErr, tc.wantErr) {
-				t.Fatalf("OpenStageDestination() error = %v, want errors.Is %v", gotErr, tc.wantErr)
+			want, err := removalFixtureSnapshot(directory)
+			if err != nil {
+				t.Fatal(err)
 			}
-			if destination != nil {
-				t.Fatalf("OpenStageDestination() destination = non-nil, want nil")
+			original, originalErr := os.Lstat(filepath.Join(directory, "stage"))
+			if originalErr != nil && !errors.Is(originalErr, fs.ErrNotExist) {
+				t.Fatal(originalErr)
 			}
-			if preexisting {
-				return
+			got, gotErr := filestore.OpenStageDestination(ctx, request)
+			if got != nil {
+				t.Cleanup(func() { _ = filestore.AbandonStageDestination(got) })
 			}
-			if _, statErr := os.Stat(filepath.Join(directory, ".ingress")); !errors.Is(statErr, fs.ErrNotExist) {
-				t.Fatalf("Stat(rejected destination) error = %v, want errors.Is %v", statErr, fs.ErrNotExist)
+			if got != nil || !errors.Is(gotErr, tc.wantErr) || tc.wantNative != nil && !errors.Is(gotErr, tc.wantNative) {
+				t.Fatalf("OpenStageDestination = (%v,%v), want nil and %v with native %v", got, gotErr, tc.wantErr, tc.wantNative)
+			}
+			gotNamespace, err := removalFixtureSnapshot(directory)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(gotNamespace) != len(want) {
+				t.Fatalf("namespace = %+v, want unchanged %+v", gotNamespace, want)
+			}
+			for i, got := range gotNamespace {
+				if got.name != want[i].name || got.mode != want[i].mode || got.target != want[i].target || !bytes.Equal(got.data, want[i].data) {
+					t.Fatalf("entry %d = %+v, want %+v", i, got, want[i])
+				}
+			}
+			if original != nil {
+				retained, err := os.Lstat(filepath.Join(directory, "stage"))
+				if err != nil {
+					t.Fatal(err)
+				}
+				if !os.SameFile(original, retained) || !original.ModTime().Equal(retained.ModTime()) {
+					t.Fatalf("occupied inode = %v, want unchanged %v", retained, original)
+				}
+			}
+			gotOutside, err := os.ReadFile(outsidePath)
+			if err != nil || !bytes.Equal(gotOutside, payload) {
+				t.Fatalf("outside bytes = (%v,%v), want %v", gotOutside, err, payload)
+			}
+			retained, err := os.Lstat(outsidePath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !os.SameFile(retained, outsideInfo) || retained.Mode() != outsideInfo.Mode() || !retained.ModTime().Equal(outsideInfo.ModTime()) {
+				t.Fatalf("outside metadata = %v, want unchanged %v", retained, outsideInfo)
 			}
 		})
 	}
@@ -139,32 +196,19 @@ func TestOpenStageDestinationHostileIngressMatrix(t *testing.T) {
 func TestStageDestinationHostileExtentAndFinalizationMatrix(t *testing.T) {
 	t.Parallel()
 
-	blockMinusOne := bytes.Repeat([]byte{0x41}, (32<<10)-1)
-	block := bytes.Repeat([]byte{0x42}, 32<<10)
-	blockPlusOne := bytes.Repeat([]byte{0x43}, (32<<10)+1)
 	cases := []stageDestinationCase{
 		{name: "neutral zero byte stream matches zero declaration"},
 		{name: "one byte exactly at positive floor", chunks: [][]byte{{1}}, wantExtent: 1, wantWritten: 1},
-		{name: "two bytes in one write", chunks: [][]byte{{1, 2}}, wantExtent: 2, wantWritten: 2},
-		{name: "two bytes fragmented at every boundary", chunks: [][]byte{{1}, {2}}, wantExtent: 2, wantWritten: 2},
-		{name: "empty writes surround exact bytes", chunks: [][]byte{nil, {1}, nil, {2}, nil}, wantExtent: 2, wantWritten: 2},
-		{name: "stream buffer minus one exact", chunks: [][]byte{blockMinusOne}, wantExtent: uint64(len(blockMinusOne)), wantWritten: uint64(len(blockMinusOne))},
-		{name: "stream buffer exact in two halves", chunks: [][]byte{block[:16<<10], block[16<<10:]}, wantExtent: uint64(len(block)), wantWritten: uint64(len(block))},
-		{name: "stream buffer plus one exact", chunks: [][]byte{blockPlusOne}, wantExtent: uint64(len(blockPlusOne)), wantWritten: uint64(len(blockPlusOne))},
-		{name: "sixty four kibibytes minus one fragmented", chunks: [][]byte{blockMinusOne, block}, wantExtent: (64 << 10) - 1, wantWritten: (64 << 10) - 1},
-		{name: "three bytes across three writes", chunks: [][]byte{{1}, {2}, {3}}, wantExtent: 3, wantWritten: 3},
+		{name: "empty writes cannot erase fragmented binary bytes", chunks: [][]byte{nil, {0}, nil, {255}, nil}, wantExtent: 2, wantWritten: 2},
 		{name: "declared zero receives one byte", chunks: [][]byte{{1}}, wantWritten: 1, wantErr: core.ErrFilestoreSize},
 		{name: "declared one receives zero bytes", wantExtent: 1, wantErr: core.ErrFilestoreSize},
 		{name: "declared one receives two bytes", chunks: [][]byte{{1, 2}}, wantExtent: 1, wantWritten: 2, wantErr: core.ErrFilestoreSize},
-		{name: "declared two receives one byte", chunks: [][]byte{{1}}, wantExtent: 2, wantWritten: 1, wantErr: core.ErrFilestoreSize},
-		{name: "declared two receives three fragmented bytes", chunks: [][]byte{{1}, {2, 3}}, wantExtent: 2, wantWritten: 3, wantErr: core.ErrFilestoreSize},
-		{name: "stream buffer declaration receives one fewer", chunks: [][]byte{blockMinusOne}, wantExtent: uint64(len(block)), wantWritten: uint64(len(blockMinusOne)), wantErr: core.ErrFilestoreSize},
-		{name: "stream buffer declaration receives one extra", chunks: [][]byte{blockPlusOne}, wantExtent: uint64(len(block)), wantWritten: uint64(len(blockPlusOne)), wantErr: core.ErrFilestoreSize},
 		{name: "correct bytes truncated before finish", chunks: [][]byte{{1, 2}}, wantExtent: 2, mutation: stageDestinationMutationTruncate, wantWritten: 2, wantErr: core.ErrFilestoreSize},
 		{name: "correct bytes appended before finish", chunks: [][]byte{{1, 2}}, wantExtent: 2, mutation: stageDestinationMutationAppend, wantWritten: 2, wantErr: core.ErrFilestoreSize},
 		{name: "producer permission drift is restored before custody", chunks: [][]byte{{1, 2}}, wantExtent: 2, mutation: stageDestinationMutationChmod, wantWritten: 2},
-		{name: "producer closes destination before finish", chunks: [][]byte{{1}}, wantExtent: 1, mutation: stageDestinationMutationClose, wantWritten: 1, wantErr: core.ErrFilestoreActivation},
+		{name: "producer closes destination before finish", chunks: [][]byte{{1}}, wantExtent: 1, mutation: stageDestinationMutationClose, wantWritten: 1, wantErr: core.ErrFilestoreActivation, wantNative: fs.ErrClosed},
 		{name: "finish context canceled after exact bytes", chunks: [][]byte{{1}}, wantExtent: 1, mutation: stageDestinationMutationCancelFinish, wantWritten: 1, wantErr: context.Canceled},
+		{name: "nil finish context cannot leak acquired custody", chunks: [][]byte{{0, 255}}, wantExtent: 2, mutation: stageDestinationMutationNilContext, wantWritten: 2, wantErr: core.ErrNilContext},
 	}
 
 	for _, tc := range cases {
@@ -214,6 +258,8 @@ func TestStageDestinationHostileExtentAndFinalizationMatrix(t *testing.T) {
 				if err := file.Close(); err != nil {
 					t.Fatalf("os.File.Close() error = %v, want nil", err)
 				}
+			case stageDestinationMutationNilContext:
+				finishContext = nil
 			case stageDestinationMutationCancelFinish:
 				var cancel context.CancelFunc
 				finishContext, cancel = context.WithCancel(t.Context())
@@ -222,12 +268,19 @@ func TestStageDestinationHostileExtentAndFinalizationMatrix(t *testing.T) {
 				t.Fatalf("stage destination mutation = %d, want a published test mutation", tc.mutation)
 			}
 			staged, gotErr := filestore.FinishStageDestination(finishContext, destination)
-			if !errors.Is(gotErr, tc.wantErr) {
+			if !errors.Is(gotErr, tc.wantErr) || tc.wantNative != nil && !errors.Is(gotErr, tc.wantNative) {
 				t.Fatalf("FinishStageDestination() error = %v, want errors.Is %v", gotErr, tc.wantErr)
 			}
+			if _, err := file.Stat(); !errors.Is(err, fs.ErrClosed) {
+				t.Fatalf("settled file = %v, want closed", err)
+			}
+			gotFile, fileErr := destination.File()
+			if gotFile != nil || !errors.Is(fileErr, core.ErrFilestoreContract) {
+				t.Fatalf("settled handle = (%v,%v), want no capability", gotFile, fileErr)
+			}
 			if tc.wantErr != nil {
-				if gotErr := staged.Validate(); !errors.Is(gotErr, core.ErrFilestoreContract) {
-					t.Fatalf("refused StagedFile.Validate() error = %v, want errors.Is %v", gotErr, core.ErrFilestoreContract)
+				if staged != (filestore.StagedFile{}) {
+					t.Fatalf("refused receipt = %+v, want zero", staged)
 				}
 				if _, statErr := os.Stat(filepath.Join(directory, ".matrix")); !errors.Is(statErr, fs.ErrNotExist) {
 					t.Fatalf("Stat(refused destination) error = %v, want errors.Is %v", statErr, fs.ErrNotExist)
@@ -256,171 +309,315 @@ func TestStageDestinationHostileExtentAndFinalizationMatrix(t *testing.T) {
 	}
 }
 
+type stageOwnershipFixture uint8
+
+const (
+	stageOwnershipNil stageOwnershipFixture = iota
+	stageOwnershipZero
+	stageOwnershipCopiedLive
+	stageOwnershipCopiedFinished
+	stageOwnershipFinished
+	stageOwnershipAbandoned
+)
+
 func TestStageDestinationLinearOwnershipRefusesCopiesAndReuse(t *testing.T) {
 	t.Parallel()
-
-	t.Run("copied handle cannot disclose finish or abandon original file", func(t *testing.T) {
-		t.Parallel()
-
-		directory := t.TempDir()
-		root := requireTestRoot(t, directory)
-		destination, err := filestore.OpenStageDestination(t.Context(), filestore.StageDestinationRequest{
-			Temporary: filestore.Location{Root: root, Path: mustRelativePath(t, ".copy")},
-			Mode:      0o600, ExpectedBytes: stageDestinationLength(t, 0),
+	for _, tc := range []struct {
+		name                        string
+		fixture                     stageOwnershipFixture
+		cancel                      bool
+		wantErr                     error
+		wantOriginalLive, wantStage bool
+	}{
+		{name: "nil handle cannot mint a file or receipt", fixture: stageOwnershipNil, wantErr: core.ErrFilestoreContract},
+		{name: "zero handle cannot settle unrelated namespace", fixture: stageOwnershipZero, wantErr: core.ErrFilestoreContract},
+		{name: "copy cannot acquire or settle original live custody", fixture: stageOwnershipCopiedLive, wantErr: core.ErrFilestoreContract, wantOriginalLive: true, wantStage: true},
+		{name: "canceled finish on a copy cannot close the original", fixture: stageOwnershipCopiedLive, cancel: true, wantErr: core.ErrFilestoreContract, wantOriginalLive: true, wantStage: true},
+		{name: "copy retained before finish cannot reclaim transferred custody", fixture: stageOwnershipCopiedFinished, wantErr: core.ErrFilestoreContract, wantStage: true},
+		{name: "finished handle cannot reclaim its durable receipt", fixture: stageOwnershipFinished, wantErr: core.ErrFilestoreContract, wantStage: true},
+		{name: "canceled repeated finish cannot discard transferred custody", fixture: stageOwnershipFinished, cancel: true, wantErr: core.ErrFilestoreContract, wantStage: true},
+		{name: "abandoned handle cannot invent a removed entry", fixture: stageOwnershipAbandoned, wantErr: core.ErrFilestoreContract},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			directory := t.TempDir()
+			root := requireTestRoot(t, directory)
+			payload := []byte{0, 255, 7}
+			neighbor := []byte{255, 0, 3}
+			if err := os.WriteFile(filepath.Join(directory, "neighbor"), neighbor, 0o600); err != nil {
+				t.Fatal(err)
+			}
+			var input, original *filestore.StageDestination
+			var file *os.File
+			var before fs.FileInfo
+			var receipt filestore.StagedFile
+			switch tc.fixture {
+			case stageOwnershipNil:
+			case stageOwnershipZero:
+				input = &filestore.StageDestination{}
+			default:
+				var err error
+				original, err = filestore.OpenStageDestination(t.Context(), filestore.StageDestinationRequest{Temporary: filestore.Location{Root: root, Path: mustRelativePath(t, "stage")}, Mode: 0o600, ExpectedBytes: stageDestinationLength(t, uint64(len(payload)))})
+				if err != nil {
+					t.Fatal(err)
+				}
+				file, err = original.File()
+				if err != nil {
+					t.Fatal(err)
+				}
+				t.Cleanup(func() { _ = file.Close() })
+				if n, err := file.Write(payload); err != nil || n != len(payload) {
+					t.Fatalf("fixture write = (%d,%v), want %d", n, err, len(payload))
+				}
+				before, err = file.Stat()
+				if err != nil {
+					t.Fatal(err)
+				}
+				copied := *original
+				input = original
+				if tc.fixture == stageOwnershipCopiedLive || tc.fixture == stageOwnershipCopiedFinished {
+					input = &copied
+				}
+				if tc.fixture == stageOwnershipFinished || tc.fixture == stageOwnershipCopiedFinished {
+					receipt, err = filestore.FinishStageDestination(t.Context(), original)
+					if err != nil {
+						t.Fatal(err)
+					}
+				}
+				if tc.fixture == stageOwnershipAbandoned {
+					if err := filestore.AbandonStageDestination(original); err != nil {
+						t.Fatal(err)
+					}
+				}
+			}
+			ctx := t.Context()
+			if tc.cancel {
+				var cancel context.CancelFunc
+				ctx, cancel = context.WithCancel(ctx)
+				cancel()
+			}
+			validation := input.Validate()
+			gotFile, fileErr := input.File()
+			gotReceipt, finishErr := filestore.FinishStageDestination(ctx, input)
+			abandonErr := filestore.AbandonStageDestination(input)
+			if !errors.Is(validation, tc.wantErr) || !errors.Is(fileErr, tc.wantErr) || !errors.Is(finishErr, tc.wantErr) || !errors.Is(abandonErr, tc.wantErr) || gotFile != nil || gotReceipt != (filestore.StagedFile{}) {
+				t.Fatalf("invalid custody = (%v,%v,%v,%v,%v,%+v), want four typed refusals and zero capabilities", validation, fileErr, finishErr, abandonErr, gotFile, gotReceipt)
+			}
+			if errors.Is(finishErr, context.Canceled) != tc.cancel {
+				t.Fatalf("finish cancellation = %v, want cancellation retained %t", finishErr, tc.cancel)
+			}
+			if file != nil {
+				info, err := file.Stat()
+				if tc.wantOriginalLive {
+					gotOriginal, gotErr := original.File()
+					if err != nil || gotErr != nil || gotOriginal != file || !os.SameFile(info, before) || info.Size() != int64(len(payload)) {
+						t.Fatalf("original custody = (%v,%v,%v,%v), want live exact handle", info, err, gotOriginal, gotErr)
+					}
+				} else if !errors.Is(err, fs.ErrClosed) {
+					t.Fatalf("settled original = %v, want native closed", err)
+				}
+			}
+			wantNames := 1
+			if tc.wantStage {
+				wantNames++
+				info, err := root.Lstat("stage")
+				if err != nil {
+					t.Fatal(err)
+				}
+				gotBytes, err := os.ReadFile(filepath.Join(directory, "stage"))
+				if err != nil || !bytes.Equal(gotBytes, payload) || !os.SameFile(info, before) || info.Mode() != before.Mode() || !info.ModTime().Equal(before.ModTime()) {
+					t.Fatalf("retained stage = (%v,%v,%v), want exact original bytes and metadata", info, gotBytes, err)
+				}
+			} else if _, err := root.Lstat("stage"); !errors.Is(err, fs.ErrNotExist) {
+				t.Fatalf("absent stage = %v, want native not exist", err)
+			}
+			gotNeighbor, err := os.ReadFile(filepath.Join(directory, "neighbor"))
+			if err != nil || !bytes.Equal(gotNeighbor, neighbor) {
+				t.Fatalf("neighbor = (%v,%v), want %v", gotNeighbor, err, neighbor)
+			}
+			entries, err := os.ReadDir(directory)
+			if err != nil || len(entries) != wantNames {
+				t.Fatalf("namespace = (%v,%v), want %d entries", entries, err, wantNames)
+			}
+			if tc.wantOriginalLive {
+				if err := filestore.AbandonStageDestination(original); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if receipt != (filestore.StagedFile{}) {
+				if err := filestore.Discard(t.Context(), receipt); err != nil {
+					t.Fatal(err)
+				}
+			}
 		})
-		if err != nil {
-			t.Fatalf("OpenStageDestination() error = %v, want nil", err)
-		}
-		copied := *destination
-		if _, gotErr := copied.File(); !errors.Is(gotErr, core.ErrFilestoreContract) {
-			t.Fatalf("copied StageDestination.File() error = %v, want errors.Is %v", gotErr, core.ErrFilestoreContract)
-		}
-		if _, gotErr := filestore.FinishStageDestination(t.Context(), &copied); !errors.Is(gotErr, core.ErrFilestoreContract) {
-			t.Fatalf("FinishStageDestination(copied) error = %v, want errors.Is %v", gotErr, core.ErrFilestoreContract)
-		}
-		if gotErr := filestore.AbandonStageDestination(&copied); !errors.Is(gotErr, core.ErrFilestoreContract) {
-			t.Fatalf("AbandonStageDestination(copied) error = %v, want errors.Is %v", gotErr, core.ErrFilestoreContract)
-		}
-		if gotErr := filestore.AbandonStageDestination(destination); gotErr != nil {
-			t.Fatalf("AbandonStageDestination(original) error = %v, want nil", gotErr)
-		}
-	})
-
-	t.Run("finished handle cannot disclose finish or abandon transferred custody", func(t *testing.T) {
-		t.Parallel()
-
-		directory := t.TempDir()
-		root := requireTestRoot(t, directory)
-		destination, err := filestore.OpenStageDestination(t.Context(), filestore.StageDestinationRequest{
-			Temporary: filestore.Location{Root: root, Path: mustRelativePath(t, ".finished")},
-			Mode:      0o600, ExpectedBytes: stageDestinationLength(t, 0),
-		})
-		if err != nil {
-			t.Fatalf("OpenStageDestination() error = %v, want nil", err)
-		}
-		staged, err := filestore.FinishStageDestination(t.Context(), destination)
-		if err != nil {
-			t.Fatalf("FinishStageDestination() error = %v, want nil", err)
-		}
-		if _, gotErr := destination.File(); !errors.Is(gotErr, core.ErrFilestoreContract) {
-			t.Fatalf("finished StageDestination.File() error = %v, want errors.Is %v", gotErr, core.ErrFilestoreContract)
-		}
-		if _, gotErr := filestore.FinishStageDestination(t.Context(), destination); !errors.Is(gotErr, core.ErrFilestoreContract) {
-			t.Fatalf("FinishStageDestination(second) error = %v, want errors.Is %v", gotErr, core.ErrFilestoreContract)
-		}
-		if gotErr := filestore.AbandonStageDestination(destination); !errors.Is(gotErr, core.ErrFilestoreContract) {
-			t.Fatalf("AbandonStageDestination(after finish) error = %v, want errors.Is %v", gotErr, core.ErrFilestoreContract)
-		}
-		if err := filestore.Discard(t.Context(), staged); err != nil {
-			t.Fatalf("Discard() error = %v, want nil", err)
-		}
-	})
-
-	t.Run("abandoned handle cannot disclose finish or abandon removed custody", func(t *testing.T) {
-		t.Parallel()
-
-		directory := t.TempDir()
-		root := requireTestRoot(t, directory)
-		destination, err := filestore.OpenStageDestination(t.Context(), filestore.StageDestinationRequest{
-			Temporary: filestore.Location{Root: root, Path: mustRelativePath(t, ".abandoned")},
-			Mode:      0o600, ExpectedBytes: stageDestinationLength(t, 0),
-		})
-		if err != nil {
-			t.Fatalf("OpenStageDestination() error = %v, want nil", err)
-		}
-		if err := filestore.AbandonStageDestination(destination); err != nil {
-			t.Fatalf("AbandonStageDestination() error = %v, want nil", err)
-		}
-		if _, gotErr := destination.File(); !errors.Is(gotErr, core.ErrFilestoreContract) {
-			t.Fatalf("abandoned StageDestination.File() error = %v, want errors.Is %v", gotErr, core.ErrFilestoreContract)
-		}
-		if _, gotErr := filestore.FinishStageDestination(t.Context(), destination); !errors.Is(gotErr, core.ErrFilestoreContract) {
-			t.Fatalf("FinishStageDestination(after abandon) error = %v, want errors.Is %v", gotErr, core.ErrFilestoreContract)
-		}
-		if gotErr := filestore.AbandonStageDestination(destination); !errors.Is(gotErr, core.ErrFilestoreContract) {
-			t.Fatalf("AbandonStageDestination(second) error = %v, want errors.Is %v", gotErr, core.ErrFilestoreContract)
-		}
-	})
+	}
 }
+
+type settledStageMutation uint8
+
+const (
+	settledStageUnchanged settledStageMutation = iota
+	settledStageTruncated
+	settledStageAppended
+	settledStagePermission
+	settledStageForeign
+	settledStageSymlink
+	settledStageMissing
+)
 
 func TestStageDestinationCommitRefusesPostFinishMutation(t *testing.T) {
 	t.Parallel()
-
-	t.Run("extent mutation after finish", func(t *testing.T) {
-		t.Parallel()
-
-		directory := t.TempDir()
-		root := requireTestRoot(t, directory)
-		staged := finishOneByteStageDestination(t, root, ".extent")
-		file, err := root.OpenFile(".extent", os.O_WRONLY|os.O_APPEND, 0)
-		if err != nil {
-			t.Fatalf("os.Root.OpenFile(extent mutation) error = %v, want nil", err)
-		}
-		if _, err := file.Write([]byte{2}); err != nil {
-			t.Fatalf("os.File.Write(extent mutation) error = %v, want nil", err)
-		}
-		if err := file.Close(); err != nil {
-			t.Fatalf("os.File.Close(extent mutation) error = %v, want nil", err)
-		}
-		gotErr := filestore.Commit(t.Context(), filestore.CommitRequest{
-			Staged: staged, Target: mustRelativePath(t, "extent"), Install: filestore.InstallCreate,
+	for _, tc := range []struct {
+		name                string
+		mutation            settledStageMutation
+		wantErr, wantNative error
+		wantForeign         bool
+	}{
+		{name: "exact finished receipt activates original inode"},
+		{name: "one byte below finished extent cannot activate", mutation: settledStageTruncated, wantErr: core.ErrFilestoreSize},
+		{name: "one byte above finished extent cannot activate", mutation: settledStageAppended, wantErr: core.ErrFilestoreSize},
+		{name: "changed permissions cannot borrow original agreement", mutation: settledStagePermission, wantErr: core.ErrFilestoreActivation},
+		{name: "same-byte foreign inode cannot borrow finished receipt", mutation: settledStageForeign, wantErr: core.ErrFilestoreActivationIndeterminate, wantForeign: true},
+		{name: "symlink to original cannot borrow finished receipt", mutation: settledStageSymlink, wantErr: core.ErrFilestoreActivationIndeterminate, wantForeign: true},
+		{name: "missing finished entry cannot fabricate activation", mutation: settledStageMissing, wantErr: core.ErrFilestoreActivation, wantNative: fs.ErrNotExist},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			directory := t.TempDir()
+			root := requireTestRoot(t, directory)
+			payload := []byte{0, 255}
+			neighbor := []byte{31, 0, 255}
+			if err := os.WriteFile(filepath.Join(directory, "neighbor"), neighbor, 0o600); err != nil {
+				t.Fatal(err)
+			}
+			plan := filestore.ActivationRequest{Temporary: filestore.Location{Root: root, Path: mustRelativePath(t, "stage")}, Target: mustRelativePath(t, "target"), ExpectedBytes: stageDestinationLength(t, uint64(len(payload))), Mode: 0o600, Install: filestore.InstallCreate}
+			destination, err := filestore.OpenStageDestination(t.Context(), plan.StageDestination())
+			if err != nil {
+				t.Fatal(err)
+			}
+			file, err := destination.File()
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { _ = file.Close() })
+			if n, err := file.Write(payload); err != nil || n != len(payload) {
+				t.Fatalf("native write = (%d,%v), want %d", n, err, len(payload))
+			}
+			original, err := file.Stat()
+			if err != nil {
+				t.Fatal(err)
+			}
+			staged, err := filestore.FinishStageDestination(t.Context(), destination)
+			if err != nil || staged.Validate() != nil || staged.BytesWritten() != plan.ExpectedBytes {
+				t.Fatalf("producer = (%+v,%v), want exact validated receipt", staged, err)
+			}
+			request, err := plan.CommitRequest(staged)
+			if err != nil {
+				t.Fatal(err)
+			}
+			switch tc.mutation {
+			case settledStageUnchanged:
+			case settledStageTruncated, settledStageAppended:
+				changed, err := root.OpenFile("stage", os.O_WRONLY, 0)
+				if err != nil {
+					t.Fatal(err)
+				}
+				size := int64(len(payload) - 1)
+				if tc.mutation == settledStageAppended {
+					size = int64(len(payload) + 1)
+				}
+				changeErr := changed.Truncate(size)
+				closeErr := changed.Close()
+				if changeErr != nil || closeErr != nil {
+					t.Fatalf("native extent mutation = (%v,%v), want nil", changeErr, closeErr)
+				}
+			case settledStagePermission:
+				if err := root.Chmod("stage", 0o640); err != nil {
+					t.Fatal(err)
+				}
+			case settledStageForeign, settledStageSymlink, settledStageMissing:
+				if err := root.Rename("stage", "archive"); err != nil {
+					t.Fatal(err)
+				}
+				if tc.mutation == settledStageForeign {
+					if err := os.WriteFile(filepath.Join(directory, "stage"), payload, 0o600); err != nil {
+						t.Fatal(err)
+					}
+				}
+				if tc.mutation == settledStageSymlink {
+					if err := root.Symlink("archive", "stage"); err != nil {
+						t.Fatal(err)
+					}
+				}
+			default:
+				t.Fatalf("mutation = %d, want declared case", tc.mutation)
+			}
+			want, err := removalFixtureSnapshot(directory)
+			if err != nil {
+				t.Fatal(err)
+			}
+			current, currentErr := root.Lstat("stage")
+			if tc.mutation == settledStageMissing {
+				if !errors.Is(currentErr, fs.ErrNotExist) {
+					t.Fatalf("missing mutation = %v, want native absence", currentErr)
+				}
+			} else {
+				if currentErr != nil {
+					t.Fatal(currentErr)
+				}
+				changed := !os.SameFile(original, current) || current.Mode() != original.Mode() || current.Size() != original.Size()
+				if changed != (tc.mutation != settledStageUnchanged) {
+					t.Fatalf("fixture changed agreement = %t, want %t", changed, tc.mutation != settledStageUnchanged)
+				}
+			}
+			gotErr := filestore.Commit(t.Context(), request)
+			if !errors.Is(gotErr, tc.wantErr) || tc.wantNative != nil && !errors.Is(gotErr, tc.wantNative) {
+				t.Fatalf("Commit = %v, want %v with native %v", gotErr, tc.wantErr, tc.wantNative)
+			}
+			if tc.wantErr == nil {
+				for i := range want {
+					if want[i].name == "stage" {
+						want[i].name = "target"
+					}
+				}
+				installed, err := root.Lstat("target")
+				if err != nil {
+					t.Fatal(err)
+				}
+				if !os.SameFile(original, installed) || !original.ModTime().Equal(installed.ModTime()) {
+					t.Fatalf("activated inode = %v, want original %v", installed, original)
+				}
+			} else if current != nil {
+				retained, err := root.Lstat("stage")
+				if err != nil {
+					t.Fatal(err)
+				}
+				if !os.SameFile(current, retained) || !current.ModTime().Equal(retained.ModTime()) {
+					t.Fatalf("refused entry = %v, want unchanged %v", retained, current)
+				}
+			}
+			gotNamespace, err := removalFixtureSnapshot(directory)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(gotNamespace) != len(want) {
+				t.Fatalf("namespace = %+v, want %+v", gotNamespace, want)
+			}
+			for i, got := range gotNamespace {
+				if got.name != want[i].name || got.mode != want[i].mode || got.target != want[i].target || !bytes.Equal(got.data, want[i].data) {
+					t.Fatalf("entry %d = %+v, want %+v", i, got, want[i])
+				}
+			}
+			if tc.wantErr != nil {
+				discardErr := filestore.Discard(t.Context(), staged)
+				if tc.wantForeign {
+					if !errors.Is(discardErr, core.ErrFilestoreCleanup) || !errors.Is(discardErr, core.ErrFilestoreConflict) {
+						t.Fatalf("foreign discard = %v, want cleanup/conflict", discardErr)
+					}
+				} else if discardErr != nil {
+					t.Fatalf("owned discard = %v, want nil", discardErr)
+				}
+			}
 		})
-		if !errors.Is(gotErr, core.ErrFilestoreSize) {
-			t.Fatalf("Commit(extent mutation) error = %v, want errors.Is %v", gotErr, core.ErrFilestoreSize)
-		}
-		if err := filestore.Discard(t.Context(), staged); err != nil {
-			t.Fatalf("Discard(extent mutation) error = %v, want nil", err)
-		}
-	})
-
-	t.Run("permission mutation after finish", func(t *testing.T) {
-		t.Parallel()
-
-		directory := t.TempDir()
-		root := requireTestRoot(t, directory)
-		staged := finishOneByteStageDestination(t, root, ".mode")
-		file, err := root.OpenFile(".mode", os.O_WRONLY, 0)
-		if err != nil {
-			t.Fatalf("os.Root.OpenFile(permission mutation) error = %v, want nil", err)
-		}
-		if err := file.Chmod(0o666); err != nil {
-			t.Fatalf("os.File.Chmod(permission mutation) error = %v, want nil", err)
-		}
-		if err := file.Close(); err != nil {
-			t.Fatalf("os.File.Close(permission mutation) error = %v, want nil", err)
-		}
-		gotErr := filestore.Commit(t.Context(), filestore.CommitRequest{
-			Staged: staged, Target: mustRelativePath(t, "mode"), Install: filestore.InstallCreate,
-		})
-		if !errors.Is(gotErr, core.ErrFilestoreActivation) {
-			t.Fatalf("Commit(permission mutation) error = %v, want errors.Is %v", gotErr, core.ErrFilestoreActivation)
-		}
-		if err := filestore.Discard(t.Context(), staged); err != nil {
-			t.Fatalf("Discard(permission mutation) error = %v, want nil", err)
-		}
-	})
-}
-
-func finishOneByteStageDestination(t *testing.T, root *os.Root, name string) filestore.StagedFile {
-	t.Helper()
-
-	destination, err := filestore.OpenStageDestination(t.Context(), filestore.StageDestinationRequest{
-		Temporary: filestore.Location{Root: root, Path: mustRelativePath(t, name)},
-		Mode:      0o600, ExpectedBytes: stageDestinationLength(t, 1),
-	})
-	if err != nil {
-		t.Fatalf("OpenStageDestination() error = %v, want nil", err)
 	}
-	file, err := destination.File()
-	if err != nil {
-		t.Fatalf("StageDestination.File() error = %v, want nil", err)
-	}
-	if gotWritten, gotErr := file.Write([]byte{1}); gotWritten != 1 || gotErr != nil {
-		t.Fatalf("os.File.Write() = (%d, %v), want (1, nil)", gotWritten, gotErr)
-	}
-	staged, err := filestore.FinishStageDestination(t.Context(), destination)
-	if err != nil {
-		t.Fatalf("FinishStageDestination() error = %v, want nil", err)
-	}
-	return staged
 }

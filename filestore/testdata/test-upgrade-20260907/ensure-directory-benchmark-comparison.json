@@ -1,0 +1,344 @@
+{
+  "scope": "Two real mode transitions on the same existing directory at depths 1 and 16; fixed two-entry creation plus native removal lifecycle. Each measured leaf runs separately for 30s CPU1 with CPU/memory profiles and retained binary. Same benchmark source, machine, Go and work. One pair per workload; report absolute values and allocation changes without claiming a timing trend.",
+  "results": [
+    {
+      "workload": "Depth1",
+      "before": {
+        "label": "before-ensure-directory-Depth1",
+        "record_sha256": "ea9089a3449e929da7cd3d61af18750c219e258db65d179b4a61d993d48b81e9",
+        "benchmark": "BenchmarkEnsureExistingDirectoryModeTransitions/Depth1",
+        "iterations": 3748,
+        "ns_per_op": 9398298.0,
+        "bytes_per_op": 1780,
+        "allocations_per_op": 24,
+        "argv": [
+          "go",
+          "test",
+          "-count=1",
+          "-run=^$",
+          "-bench=^BenchmarkEnsureExistingDirectoryModeTransitions$/^Depth1$",
+          "-benchtime=30s",
+          "-cpu=1",
+          "-benchmem",
+          "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth1.cpu.pprof",
+          "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth1.mem.pprof",
+          "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth1.test",
+          "./filestore"
+        ],
+        "artifacts": [
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth1.stdout.txt",
+            "bytes": 279,
+            "sha256": "dc607ef02d0a300106f45108034a5cf2ce123a68c6ebbe53aebd36a30955c8ce"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth1.stderr.txt",
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth1.git-status.txt",
+            "bytes": 6854,
+            "sha256": "3c1238f14dfa05deb7da506efd573a4ec4e64581188bf838adfe108ff9ce7e75"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth1.cpu.pprof",
+            "bytes": 3141,
+            "sha256": "3221b5b92de0f7f81f096212896514559d48962ed3c08cf6c357523b39c5c682"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth1.mem.pprof",
+            "bytes": 2311,
+            "sha256": "588805864a8a0525bb1147cb497ef378d93544b3d14f7e41afc635a045eca5a5"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth1.test",
+            "bytes": 11712594,
+            "sha256": "115381ada0e6fd6cb0ecfdc94300eb0f31fd5ec334a453b5107bcac253e1a856"
+          }
+        ]
+      },
+      "after": {
+        "label": "after-ensure-directory-Depth1",
+        "record_sha256": "532b9a8ca619afa9d6411f4e21858c0dc9596b88edd48998932c1e2355c1fac1",
+        "benchmark": "BenchmarkEnsureExistingDirectoryModeTransitions/Depth1",
+        "iterations": 3837,
+        "ns_per_op": 9592481.0,
+        "bytes_per_op": 1604,
+        "allocations_per_op": 16,
+        "argv": [
+          "go",
+          "test",
+          "-count=1",
+          "-run=^$",
+          "-bench=^BenchmarkEnsureExistingDirectoryModeTransitions$/^Depth1$",
+          "-benchtime=30s",
+          "-cpu=1",
+          "-benchmem",
+          "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth1.cpu.pprof",
+          "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth1.mem.pprof",
+          "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth1.test",
+          "./filestore"
+        ],
+        "artifacts": [
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth1.stdout.txt",
+            "bytes": 279,
+            "sha256": "b6db261d9e196278a783a5b35edac8976d29209554593e159f248baeabdbd79f"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth1.stderr.txt",
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth1.git-status.txt",
+            "bytes": 7085,
+            "sha256": "0e6a58e632599f0c2473d598b7fd67b123f0195b828bfad93f86a18a6d33ed71"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth1.cpu.pprof",
+            "bytes": 2857,
+            "sha256": "83d0de57f9edb15e2c6e2a57c5c60c9b6328900fb06a04e2d07fdc24ff5efea9"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth1.mem.pprof",
+            "bytes": 2663,
+            "sha256": "40f712c1a316eea60fac4d70598a08ba0bb747b1ca1597526ac0391353e38c07"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth1.test",
+            "bytes": 11848930,
+            "sha256": "54cc3a423e30c0ba31fbb80fbf12087bd83ce6737bac519ae58e08cac753733b"
+          }
+        ]
+      }
+    },
+    {
+      "workload": "Depth16",
+      "before": {
+        "label": "before-ensure-directory-Depth16",
+        "record_sha256": "41b0f3feff6645271b626649e647db75fd91003a58536935c1d8f9b1d96d4b44",
+        "benchmark": "BenchmarkEnsureExistingDirectoryModeTransitions/Depth16",
+        "iterations": 2220,
+        "ns_per_op": 16099612.0,
+        "bytes_per_op": 51575,
+        "allocations_per_op": 1000,
+        "argv": [
+          "go",
+          "test",
+          "-count=1",
+          "-run=^$",
+          "-bench=^BenchmarkEnsureExistingDirectoryModeTransitions$/^Depth16$",
+          "-benchtime=30s",
+          "-cpu=1",
+          "-benchmem",
+          "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth16.cpu.pprof",
+          "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth16.mem.pprof",
+          "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth16.test",
+          "./filestore"
+        ],
+        "artifacts": [
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth16.stdout.txt",
+            "bytes": 280,
+            "sha256": "79ea453de8751e0662eae01296516687edb8d5ed6fb2c52a83ba66fb45933b0b"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth16.stderr.txt",
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth16.git-status.txt",
+            "bytes": 6854,
+            "sha256": "3c1238f14dfa05deb7da506efd573a4ec4e64581188bf838adfe108ff9ce7e75"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth16.cpu.pprof",
+            "bytes": 3510,
+            "sha256": "2b6f789830440db08110acee165d3c420ba0bb5556be4c2ec97b995afc7225a6"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth16.mem.pprof",
+            "bytes": 3760,
+            "sha256": "cca9356d083821fc689f57e395f7a68f26eb6b50b766feb0e284fdd432f2432e"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth16.test",
+            "bytes": 11712594,
+            "sha256": "115381ada0e6fd6cb0ecfdc94300eb0f31fd5ec334a453b5107bcac253e1a856"
+          }
+        ]
+      },
+      "after": {
+        "label": "after-ensure-directory-Depth16",
+        "record_sha256": "eb6425ec3397492f40bf310303a5c1c7d470aa800769461a9bb63ddc344cf274",
+        "benchmark": "BenchmarkEnsureExistingDirectoryModeTransitions/Depth16",
+        "iterations": 3094,
+        "ns_per_op": 11762199.0,
+        "bytes_per_op": 3669,
+        "allocations_per_op": 54,
+        "argv": [
+          "go",
+          "test",
+          "-count=1",
+          "-run=^$",
+          "-bench=^BenchmarkEnsureExistingDirectoryModeTransitions$/^Depth16$",
+          "-benchtime=30s",
+          "-cpu=1",
+          "-benchmem",
+          "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth16.cpu.pprof",
+          "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth16.mem.pprof",
+          "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth16.test",
+          "./filestore"
+        ],
+        "artifacts": [
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth16.stdout.txt",
+            "bytes": 280,
+            "sha256": "de5354c812e5712dd129bb13ed58eaaba4c04fa4404b151f59e50f884271ac9c"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth16.stderr.txt",
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth16.git-status.txt",
+            "bytes": 7085,
+            "sha256": "0e6a58e632599f0c2473d598b7fd67b123f0195b828bfad93f86a18a6d33ed71"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth16.cpu.pprof",
+            "bytes": 4049,
+            "sha256": "3f145f458145139e5986b8d309b6f8a4b8d53ba2655fa7aec6f1838e7a6b2d01"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth16.mem.pprof",
+            "bytes": 2512,
+            "sha256": "6c07317d869eeec8380523f8c7989351251f912e8d53e6fbb2008bd18c9ddaaa"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth16.test",
+            "bytes": 11848930,
+            "sha256": "54cc3a423e30c0ba31fbb80fbf12087bd83ce6737bac519ae58e08cac753733b"
+          }
+        ]
+      }
+    },
+    {
+      "workload": "Create",
+      "before": {
+        "label": "before-ensure-directory-Create",
+        "record_sha256": "6d7c6bf734e1e8792c2a1f333dfb74c880ae88a78252c56fa1fee29dcbff6503",
+        "benchmark": "BenchmarkEnsureNewDirectoryNativeRemovalLifecycle",
+        "iterations": 3084,
+        "ns_per_op": 11492946.0,
+        "bytes_per_op": 6134,
+        "allocations_per_op": 65,
+        "argv": [
+          "go",
+          "test",
+          "-count=1",
+          "-run=^$",
+          "-bench=^BenchmarkEnsureNewDirectoryNativeRemovalLifecycle$",
+          "-benchtime=30s",
+          "-cpu=1",
+          "-benchmem",
+          "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-ensure-directory-Create.cpu.pprof",
+          "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-ensure-directory-Create.mem.pprof",
+          "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-ensure-directory-Create.test",
+          "./filestore"
+        ],
+        "artifacts": [
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Create.stdout.txt",
+            "bytes": 266,
+            "sha256": "972dad5b54fdac34002997ccb85116dd12a31edc0991fa68fbdc71112ff6182f"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Create.stderr.txt",
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Create.git-status.txt",
+            "bytes": 6854,
+            "sha256": "3c1238f14dfa05deb7da506efd573a4ec4e64581188bf838adfe108ff9ce7e75"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Create.cpu.pprof",
+            "bytes": 5035,
+            "sha256": "29c4293eb9031e5134927302bfd64ea25364ac99754c5507ad436b240c33fe83"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Create.mem.pprof",
+            "bytes": 3593,
+            "sha256": "9ab1d81778f48ada20a847504b53b0747db272f623cdeb13e18990b7d1804739"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Create.test",
+            "bytes": 11712594,
+            "sha256": "115381ada0e6fd6cb0ecfdc94300eb0f31fd5ec334a453b5107bcac253e1a856"
+          }
+        ]
+      },
+      "after": {
+        "label": "after-ensure-directory-Create",
+        "record_sha256": "2061bc780616be89d11aa2b63d808ca8981122dc98263c9dd6a9960dd5b409ef",
+        "benchmark": "BenchmarkEnsureNewDirectoryNativeRemovalLifecycle",
+        "iterations": 2768,
+        "ns_per_op": 12272313.0,
+        "bytes_per_op": 6262,
+        "allocations_per_op": 69,
+        "argv": [
+          "go",
+          "test",
+          "-count=1",
+          "-run=^$",
+          "-bench=^BenchmarkEnsureNewDirectoryNativeRemovalLifecycle$",
+          "-benchtime=30s",
+          "-cpu=1",
+          "-benchmem",
+          "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-ensure-directory-Create.cpu.pprof",
+          "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-ensure-directory-Create.mem.pprof",
+          "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-ensure-directory-Create.test",
+          "./filestore"
+        ],
+        "artifacts": [
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Create.stdout.txt",
+            "bytes": 266,
+            "sha256": "0db7562357ced15a8cb8e40b57679b4a3855b1830686878d330db5d7e5b1cb35"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Create.stderr.txt",
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Create.git-status.txt",
+            "bytes": 7085,
+            "sha256": "0e6a58e632599f0c2473d598b7fd67b123f0195b828bfad93f86a18a6d33ed71"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Create.cpu.pprof",
+            "bytes": 5353,
+            "sha256": "331bee2d9bd542ed22d4706bba574efc86c89b423c4a9e9d5a17f75e6acbdf46"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Create.mem.pprof",
+            "bytes": 3513,
+            "sha256": "bf96a966841c8681a9b553ec24458f9801e5ee113264995e164ef6ed0ad61e41"
+          },
+          {
+            "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Create.test",
+            "bytes": 11848930,
+            "sha256": "54cc3a423e30c0ba31fbb80fbf12087bd83ce6737bac519ae58e08cac753733b"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -18,20 +18,21 @@ import (
 // Exchange's compiler-owned extent ceiling, preserve the exact typed value,
 // and remain valid when placed inside the owning Header structure.
 func FuzzHeaderValueMatchesNetHTTPAndExchangeBounds(f *testing.F) {
-	f.Add([]byte{})
-	f.Add([]byte("ordinary"))
-	f.Add([]byte(" padded\tvalue "))
+	for _, nominal := range exchange.HeaderValueCanonicalSeedsForTest() {
+		if err := nominal.Validate(); err != nil {
+			f.Fatal(err)
+		}
+		wire, err := nominal.Value()
+		if err != nil {
+			f.Fatal(err)
+		}
+		f.Add([]byte(wire))
+	}
 	f.Add([]byte{0})
 	f.Add([]byte{'a', '\r', '\n', 'b'})
 	f.Add([]byte{0x7f})
-	f.Add([]byte{0x80, 0xff})
-	f.Add(bytes.Repeat([]byte{'a'}, exchange.HeaderValueMaximumBytes))
 	f.Add(bytes.Repeat([]byte{'a'}, exchange.HeaderValueMaximumBytes+1))
-
-	name, err := core.ParseHTTPHeaderName("X-Primitive-Fuzz")
-	if err != nil {
-		f.Fatalf("core.ParseHTTPHeaderName(seed) error = %v, want nil", err)
-	}
+	name := core.HTTPHeaderAccept()
 
 	f.Fuzz(func(t *testing.T, data []byte) {
 		if len(data) > exchange.HeaderValueMaximumBytes+1 {
@@ -135,7 +136,7 @@ func TestHeaderValueRedactsEveryFormattingPath(t *testing.T) {
 // This reaches the installed standard library's real grammar without opening a
 // socket or importing x/net's separately versioned implementation. The fixture
 // returns a unique sentinel only when Go actually crosses that validation wall.
-var errGoHeaderGrammarAccepted = errors.New("Go header grammar admitted request")
+var errGoHeaderGrammarAccepted = errors.New("go header grammar admitted request")
 
 func goHeaderGrammarAccepts(t testing.TB, value string) bool {
 	t.Helper()

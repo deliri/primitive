@@ -15,6 +15,7 @@ import (
 // Both revisions run this identical harness. Every iteration checks refusal,
 // status, counts, and custody; the final admitted values are checked exactly.
 func BenchmarkAggregateHeaderValueAdmission(b *testing.B) {
+	b.ReportAllocs()
 	cases := []struct {
 		name       string
 		values     int
@@ -50,7 +51,7 @@ func BenchmarkAggregateHeaderValueAdmission(b *testing.B) {
 					b.Fatalf("ingress error/status/fields/body/retry/reads/closes = (%v, %v, %d, %d, %q, %d, %d), want (%v, %v, %d, 0, empty, %d, 1)", err, got.status, len(got.headers.Values), len(got.body), got.retryAfter, body.reads, body.closes, tc.wantErr, tc.wantStatus, tc.wantFields, tc.wantReads)
 				}
 				if tc.wantErr != nil && (got.headers.Values != nil || got.body != nil) {
-					b.Fatal("refused ingress retained typed headers or body")
+					b.Fatalf("refused headers/body=%+v/%x, want nil/nil", got.headers.Values, got.body)
 				}
 			}
 			for _, field := range got.headers.Values {

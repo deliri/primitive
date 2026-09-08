@@ -32,7 +32,7 @@ func TestAWSRequestEveryQueryFieldMultiplicity(t *testing.T) {
 				}
 				changed := mutateAWSURL(t, raw, tc.mutation, field, "")
 				if changed == raw {
-					t.Fatal("query mutation unchanged, want edited field")
+					t.Fatalf("query mutation=%q, want different from %q", changed, raw)
 				}
 				input := RequestInput{SignedURL: changed, Audience: audience, Policy: mustAWSPolicy(t)}
 				wantErr := tc.wantErr
@@ -101,7 +101,7 @@ func TestAWSRequestCredentialAndCanonicalQueryBindings(t *testing.T) {
 			raw := awsSignedURL(audience, awsTestHost, awsTestRegion)
 			changed := mutateAWSURL(t, raw, awsURLSet, tc.field, tc.value)
 			if changed == raw {
-				t.Fatal("binding mutation unchanged, want edited query")
+				t.Fatalf("binding mutation=%q, want different from %q", changed, raw)
 			}
 			input := RequestInput{SignedURL: changed, Audience: audience, Policy: mustAWSPolicy(t)}
 			got, err := NewRequest(input)

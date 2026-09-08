@@ -1,0 +1,254 @@
+[
+  {
+    "label": "mutation-symbolic-observation-link-truncates-target",
+    "owner": "func ReadSymbolicLink(",
+    "before": "target := SymbolicLinkTarget{value: value}",
+    "after": "target := SymbolicLinkTarget{value: value[:len(value)/2]}",
+    "test": "^TestReadSymbolicLink",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 13,
+      "fail": 12,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-symbolic-observation-link-follows-final-before-reading",
+    "owner": "func ReadSymbolicLink(",
+    "before": "value, err := location.Root.Readlink(location.Path.String())",
+    "after": "if _, err := location.Root.Stat(location.Path.String()); err != nil { return SymbolicLinkTarget{}, sourceError(err) }; value, err := location.Root.Readlink(location.Path.String())",
+    "test": "^TestReadSymbolicLink",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 12,
+      "fail": 13,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-symbolic-observation-link-escapes-root",
+    "owner": "func ReadSymbolicLink(",
+    "before": "location.Root.Readlink(location.Path.String())",
+    "after": "os.Readlink(filepath.Join(location.Root.Name(), location.Path.String()))",
+    "test": "^TestReadSymbolicLink",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 17,
+      "fail": 8,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-symbolic-observation-link-source-mislabeled-contract",
+    "owner": "func ReadSymbolicLink(",
+    "before": "return SymbolicLinkTarget{}, sourceError(err)",
+    "after": "return SymbolicLinkTarget{}, contractError(err)",
+    "test": "^TestReadSymbolicLink",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 15,
+      "fail": 10,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-symbolic-observation-link-contract-mislabeled-source",
+    "owner": "func ReadSymbolicLink(",
+    "before": "if err := location.Validate(); err != nil {\n\t\treturn SymbolicLinkTarget{}, err",
+    "after": "if err := location.Validate(); err != nil {\n\t\treturn SymbolicLinkTarget{}, sourceError(err)",
+    "test": "^TestReadSymbolicLink",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 22,
+      "fail": 3,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-symbolic-observation-link-cancellation-ignored",
+    "owner": "func ReadSymbolicLink(",
+    "before": "if err := contextstate.Validate(ctx); err != nil {\n\t\treturn SymbolicLinkTarget{}, err",
+    "after": "if err := contextstate.Validate(ctx); err != nil {\n\t\t_ = err",
+    "test": "^TestReadSymbolicLink",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 22,
+      "fail": 3,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-symbolic-observation-link-native-empty-target-admitted",
+    "owner": "func ReadSymbolicLink(",
+    "before": "if err := target.Validate(); err != nil {",
+    "after": "if err := target.Validate(); err != nil && false {",
+    "test": "^TestReadSymbolicLinkNativeTargetAdmissionLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 2,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-symbolic-observation-canonical-lexical-instead-of-native",
+    "owner": "func Canonicalize(",
+    "before": "filepath.EvalSymlinks(path.String())",
+    "after": "filepath.Abs(path.String())",
+    "test": "^TestCanonicalizeGoResolutionLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 3,
+      "fail": 14,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-symbolic-observation-canonical-discards-resolved-answer",
+    "owner": "func Canonicalize(",
+    "before": "return canonical, nil",
+    "after": "_ = canonical; return path, nil",
+    "test": "^TestCanonicalizeGoResolutionLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 8,
+      "fail": 9,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-symbolic-observation-canonical-source-mislabeled-contract",
+    "owner": "func Canonicalize(",
+    "before": "return core.AbsolutePath{}, sourceError(err)",
+    "after": "return core.AbsolutePath{}, contractError(err)",
+    "test": "^TestCanonicalizeGoResolutionLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 11,
+      "fail": 6,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-symbolic-observation-canonical-contract-mislabeled-source",
+    "owner": "func Canonicalize(",
+    "before": "if err := path.Validate(); err != nil {\n\t\treturn core.AbsolutePath{}, contractError(err)",
+    "after": "if err := path.Validate(); err != nil {\n\t\treturn core.AbsolutePath{}, sourceError(err)",
+    "test": "^TestCanonicalizeGoResolutionLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 15,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-symbolic-observation-canonical-cancellation-ignored",
+    "owner": "func Canonicalize(",
+    "before": "if err := contextstate.Validate(ctx); err != nil {\n\t\treturn core.AbsolutePath{}, err",
+    "after": "if err := contextstate.Validate(ctx); err != nil {\n\t\t_ = err",
+    "test": "^TestCanonicalizeGoResolutionLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 14,
+      "fail": 3,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-symbolic-observation-canonical-leaks-request-on-source-refusal",
+    "owner": "func Canonicalize(",
+    "before": "return core.AbsolutePath{}, sourceError(err)",
+    "after": "return path, sourceError(err)",
+    "test": "^TestCanonicalizeGoResolutionLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 11,
+      "fail": 6,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-symbolic-observation-target-empty-admitted",
+    "owner": "func (t SymbolicLinkTarget) Validate(",
+    "before": "len(t.value) == 0 || ",
+    "after": "",
+    "test": "^TestSymbolicLinkTargetOpaqueByteBoundaryLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 7,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-symbolic-observation-target-ceiling-exclusive",
+    "owner": "func (t SymbolicLinkTarget) Validate(",
+    "before": "len(t.value) > SymbolicLinkTargetMaximumBytes",
+    "after": "len(t.value) >= SymbolicLinkTargetMaximumBytes",
+    "test": "^TestSymbolicLinkTargetOpaqueByteBoundaryLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 7,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-symbolic-observation-target-ceiling-omitted",
+    "owner": "func (t SymbolicLinkTarget) Validate(",
+    "before": "len(t.value) > SymbolicLinkTargetMaximumBytes || ",
+    "after": "",
+    "test": "^TestSymbolicLinkTargetOpaqueByteBoundaryLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 6,
+      "fail": 3,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-symbolic-observation-target-nul-admitted",
+    "owner": "func (t SymbolicLinkTarget) Validate(",
+    "before": "strings.IndexByte(t.value, 0) >= 0",
+    "after": "strings.IndexByte(t.value, 0) < -1",
+    "test": "^TestSymbolicLinkTargetOpaqueByteBoundaryLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 7,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-symbolic-observation-target-invalid-projection-leaks",
+    "owner": "func (t SymbolicLinkTarget) String(",
+    "before": "return \"\"",
+    "after": "return t.value",
+    "test": "^TestSymbolicLinkTargetOpaqueByteBoundaryLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 5,
+      "fail": 4,
+      "skip": 0
+    }
+  }
+]

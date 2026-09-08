@@ -1,0 +1,689 @@
+{
+  "scope": "All current Exchange benchmark leaves, individually profiled, 30-second b.Loop workloads; CPU=1 except explicit parallel leaves CPU=8. Raw profiles remain local. Measurements are absolute candidate samples, not package-wide speedup claims.",
+  "runs": [
+    {
+      "benchmark": "BenchmarkResponseBufferRelease/128B",
+      "record": "post-checkpoint-final-benchmark-01.json",
+      "measurement": "BenchmarkResponseBufferRelease/128B         \t85054572\t       428.4 ns/op\t 298.81 MB/s\t     672 B/op\t       6 allocs/op",
+      "elapsed_seconds": 37.50670391600579,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-01-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-01.test\nType: cpu\nTime: 2026-09-07 10:55:20 EDT\nDuration: 36.57s, Total samples = 34.14s (93.35%)\nShowing nodes accounting for 30.74s, 90.04% of 34.14s total\nDropped 171 nodes (cum <= 0.17s)\nShowing top 12 nodes out of 68\n      flat  flat%   sum%        cum   cum%\n    28.75s 84.21% 84.21%     28.75s 84.21%  runtime.kevent\n     0.39s  1.14% 85.35%      0.39s  1.14%  runtime.madvise\n     0.27s  0.79% 86.15%      0.27s  0.79%  net/textproto.validHeaderFieldByte (inline)\n     0.23s  0.67% 86.82%      0.39s  1.14%  runtime.scanObject\n     0.21s  0.62% 87.43%      0.28s  0.82%  runtime.tryDeferToSpanScan\n     0.17s   0.5% 87.93%      0.22s  0.64%  internal/runtime/maps.(*Iter).Next\n     0.16s  0.47% 88.40%      0.62s  1.82%  runtime.mallocgcSmallScanNoHeaderSC5\n     0.13s  0.38% 88.78%      0.43s  1.26%  runtime.mallocgcSmallScanNoHeader\n     0.12s  0.35% 89.13%      0.47s  1.38%  runtime.mallocgcSmallScanSlowPath\n     0.11s  0.32% 89.46%      0.89s  2.61%  net/http.Header.Clone (inline)\n     0.10s  0.29% 89.75%      1.37s  4.01%  github.com/deliri/primitive/v2026/exchange.(*responseBuffer).release\n     0.10s  0.29% 90.04%      0.32s  0.94%  runtime.wbBufFlush1\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-01-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-01.test\nType: alloc_space\nTime: 2026-09-07 10:55:57 EDT\nShowing nodes accounting for 52.91GB, 100% of 52.91GB total\nDropped 26 nodes (cum <= 0.26GB)\nShowing top 12 nodes out of 16\n      flat  flat%   sum%        cum   cum%\n   25.11GB 47.46% 47.46%    25.11GB 47.46%  net/http.(*Request).WithContext (inline)\n   10.11GB 19.10% 66.56%    10.11GB 19.10%  github.com/deliri/primitive/v2026/exchange.(*responseBuffer).reserve (inline)\n   10.06GB 19.02% 85.58%    52.91GB   100%  github.com/deliri/primitive/v2026/exchange.BufferResponse\n    7.62GB 14.41%   100%     7.62GB 14.41%  net/http.Header.Clone (inline)\n         0     0%   100%    10.11GB 19.10%  github.com/deliri/primitive/v2026/exchange.(*responseBuffer).Write\n         0     0%   100%     3.81GB  7.19%  github.com/deliri/primitive/v2026/exchange.(*responseBuffer).WriteHeader\n         0     0%   100%     3.82GB  7.22%  github.com/deliri/primitive/v2026/exchange.(*responseBuffer).prepareRelease\n         0     0%   100%     3.82GB  7.22%  github.com/deliri/primitive/v2026/exchange.(*responseBuffer).release\n         0     0%   100%    39.02GB 73.76%  github.com/deliri/primitive/v2026/exchange.(*responseBuffer).serve\n         0     0%   100%    39.02GB 73.76%  github.com/deliri/primitive/v2026/exchange.(*responseBuffer).serve.func1\n         0     0%   100%    52.91GB   100%  github.com/deliri/primitive/v2026/exchange.BenchmarkResponseBufferRelease.func1\n         0     0%   100%    13.91GB 26.30%  github.com/deliri/primitive/v2026/exchange.BenchmarkResponseBufferRelease.func1.1\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkResponseBufferRelease/4KiB",
+      "record": "post-checkpoint-final-benchmark-02.json",
+      "measurement": "BenchmarkResponseBufferRelease/4KiB         \t30666879\t      1183 ns/op\t3460.94 MB/s\t    4640 B/op\t       6 allocs/op",
+      "elapsed_seconds": 37.34313970798394,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-02-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-02.test\nType: cpu\nTime: 2026-09-07 10:55:58 EDT\nDuration: 36.43s, Total samples = 33.70s (92.51%)\nShowing nodes accounting for 31.38s, 93.12% of 33.70s total\nDropped 177 nodes (cum <= 0.17s)\nShowing top 12 nodes out of 56\n      flat  flat%   sum%        cum   cum%\n    29.45s 87.39% 87.39%     29.45s 87.39%  runtime.kevent\n     0.50s  1.48% 88.87%      0.50s  1.48%  runtime.memmove\n     0.32s  0.95% 89.82%      0.34s  1.01%  runtime.typePointers.next\n     0.27s   0.8% 90.62%      0.65s  1.93%  runtime.scanObject\n     0.25s  0.74% 91.36%      0.25s  0.74%  runtime.memequal\n     0.12s  0.36% 91.72%      0.77s  2.28%  runtime.mallocgcSmallNoscan\n     0.12s  0.36% 92.08%      0.29s  0.86%  runtime.mallocgcSmallScanNoHeaderSC5\n     0.12s  0.36% 92.43%      0.19s  0.56%  runtime.tryDeferToSpanScan\n     0.07s  0.21% 92.64%      0.39s  1.16%  net/http.Header.Clone\n     0.06s  0.18% 92.82%      2.19s  6.50%  runtime.mallocgc\n     0.05s  0.15% 92.97%      0.21s  0.62%  runtime.(*sweepLocked).sweep\n     0.05s  0.15% 93.12%      0.23s  0.68%  runtime.wbBufFlush1\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-02-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-02.test\nType: alloc_space\nTime: 2026-09-07 10:56:34 EDT\nShowing nodes accounting for 132.27GB, 100% of 132.28GB total\nDropped 33 nodes (cum <= 0.66GB)\nShowing top 12 nodes out of 16\n      flat  flat%   sum%        cum   cum%\n  116.75GB 88.26% 88.26%   116.75GB 88.26%  github.com/deliri/primitive/v2026/exchange.(*responseBuffer).reserve (inline)\n    9.11GB  6.89% 95.15%     9.11GB  6.89%  net/http.(*Request).WithContext (inline)\n    3.71GB  2.80% 97.95%   132.27GB   100%  github.com/deliri/primitive/v2026/exchange.BufferResponse\n    2.70GB  2.04%   100%     2.70GB  2.04%  net/http.Header.Clone (inline)\n         0     0%   100%   116.75GB 88.26%  github.com/deliri/primitive/v2026/exchange.(*responseBuffer).Write\n         0     0%   100%     1.37GB  1.04%  github.com/deliri/primitive/v2026/exchange.(*responseBuffer).WriteHeader\n         0     0%   100%     1.33GB  1.01%  github.com/deliri/primitive/v2026/exchange.(*responseBuffer).prepareRelease\n         0     0%   100%     1.33GB  1.01%  github.com/deliri/primitive/v2026/exchange.(*responseBuffer).release\n         0     0%   100%   127.23GB 96.18%  github.com/deliri/primitive/v2026/exchange.(*responseBuffer).serve\n         0     0%   100%   127.23GB 96.18%  github.com/deliri/primitive/v2026/exchange.(*responseBuffer).serve.func1\n         0     0%   100%   132.27GB   100%  github.com/deliri/primitive/v2026/exchange.BenchmarkResponseBufferRelease.func1\n         0     0%   100%   118.12GB 89.29%  github.com/deliri/primitive/v2026/exchange.BenchmarkResponseBufferRelease.func1.1\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkResponseBufferRelease/64KiB",
+      "record": "post-checkpoint-final-benchmark-03.json",
+      "measurement": "BenchmarkResponseBufferRelease/64KiB         \t 3377016\t     10812 ns/op\t6061.35 MB/s\t   66080 B/op\t       6 allocs/op",
+      "elapsed_seconds": 38.14147287499509,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-03-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-03.test\nType: cpu\nTime: 2026-09-07 10:56:36 EDT\nDuration: 36.65s, Total samples = 33.37s (91.06%)\nShowing nodes accounting for 32.13s, 96.28% of 33.37s total\nDropped 172 nodes (cum <= 0.17s)\nShowing top 12 nodes out of 47\n      flat  flat%   sum%        cum   cum%\n    27.52s 82.47% 82.47%     27.52s 82.47%  runtime.kevent\n     2.42s  7.25% 89.72%      2.42s  7.25%  runtime.madvise\n     0.87s  2.61% 92.33%      0.87s  2.61%  runtime.memmove\n     0.44s  1.32% 93.65%      0.81s  2.43%  runtime.scanObject\n     0.40s  1.20% 94.85%      0.40s  1.20%  runtime.memequal\n     0.24s  0.72% 95.56%      0.27s  0.81%  runtime.typePointers.next\n     0.17s  0.51% 96.07%      0.23s  0.69%  runtime.scanblock\n     0.02s  0.06% 96.13%      0.63s  1.89%  github.com/deliri/primitive/v2026/exchange.(*responseBuffer).release\n     0.02s  0.06% 96.19%      3.28s  9.83%  github.com/deliri/primitive/v2026/exchange.BenchmarkResponseBufferRelease.func1\n     0.01s  0.03% 96.22%      2.21s  6.62%  github.com/deliri/primitive/v2026/exchange.(*responseBuffer).serve.func1\n     0.01s  0.03% 96.25%      1.71s  5.12%  runtime.makeslice\n     0.01s  0.03% 96.28%      0.46s  1.38%  runtime.mallocgcLarge\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-03-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-03.test\nType: alloc_space\nTime: 2026-09-07 10:57:13 EDT\nShowing nodes accounting for 205.95GB, 99.37% of 207.26GB total\nDropped 45 nodes (cum <= 1.04GB)\n      flat  flat%   sum%        cum   cum%\n  205.57GB 99.18% 99.18%   205.57GB 99.18%  github.com/deliri/primitive/v2026/exchange.(*responseBuffer).reserve (inline)\n    0.39GB  0.19% 99.37%   207.25GB   100%  github.com/deliri/primitive/v2026/exchange.BufferResponse\n         0     0% 99.37%   205.57GB 99.18%  github.com/deliri/primitive/v2026/exchange.(*responseBuffer).Write\n         0     0% 99.37%   206.70GB 99.73%  github.com/deliri/primitive/v2026/exchange.(*responseBuffer).serve\n         0     0% 99.37%   206.70GB 99.73%  github.com/deliri/primitive/v2026/exchange.(*responseBuffer).serve.func1\n         0     0% 99.37%   207.25GB   100%  github.com/deliri/primitive/v2026/exchange.BenchmarkResponseBufferRelease.func1\n         0     0% 99.37%   205.70GB 99.25%  github.com/deliri/primitive/v2026/exchange.BenchmarkResponseBufferRelease.func1.1\n         0     0% 99.37%   206.70GB 99.73%  github.com/deliri/primitive/v2026/exchange.executeResponseWriterOperation (inline)\n         0     0% 99.37%   206.70GB 99.73%  github.com/deliri/primitive/v2026/exchange.executeResponseWriterOperation.func1\n         0     0% 99.37%   207.25GB   100%  testing.(*B).run1.func1\n         0     0% 99.37%   207.25GB   100%  testing.(*B).runN\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkServerJSONBoundary/128B",
+      "record": "post-checkpoint-final-benchmark-04.json",
+      "measurement": "BenchmarkServerJSONBoundary/128B         \t 4239070\t      8476 ns/op\t  30.20 MB/s\t   12866 B/op\t      96 allocs/op",
+      "elapsed_seconds": 37.639319957990665,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-04-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-04.test\nType: cpu\nTime: 2026-09-07 10:57:15 EDT\nDuration: 36.11s, Total samples = 33.53s (92.85%)\nShowing nodes accounting for 29.15s, 86.94% of 33.53s total\nDropped 377 nodes (cum <= 0.17s)\nShowing top 12 nodes out of 105\n      flat  flat%   sum%        cum   cum%\n    27.39s 81.69% 81.69%     27.39s 81.69%  runtime.kevent\n     0.53s  1.58% 83.27%      0.53s  1.58%  runtime.madvise\n     0.33s  0.98% 84.25%      0.33s  0.98%  encoding/json/internal/jsonwire.ConsumeSimpleString (inline)\n     0.21s  0.63% 84.88%      0.35s  1.04%  runtime.scanObject\n     0.17s  0.51% 85.39%      0.20s   0.6%  runtime.tryDeferToSpanScan\n     0.12s  0.36% 85.74%      0.37s  1.10%  runtime.mallocgcSmallScanSlowPath\n     0.10s   0.3% 86.04%      0.30s  0.89%  runtime.mallocgcSmallScanNoHeaderSC5\n     0.09s  0.27% 86.31%      1.46s  4.35%  runtime.mallocgc\n     0.06s  0.18% 86.49%      0.36s  1.07%  runtime.mallocgcSmallNoscan\n     0.05s  0.15% 86.64%      0.49s  1.46%  encoding/json/jsontext.(*decoderState).ReadToken\n     0.05s  0.15% 86.79%      0.20s   0.6%  runtime.mallocgcSmallScanNoHeader\n     0.05s  0.15% 86.94%      0.19s  0.57%  runtime.mallocgcSmallScanNoHeaderSC2\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-04-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-04.test\nType: alloc_space\nTime: 2026-09-07 10:57:51 EDT\nShowing nodes accounting for 46858.75MB, 90.02% of 52056.55MB total\nDropped 63 nodes (cum <= 260.28MB)\nShowing top 12 nodes out of 73\n      flat  flat%   sum%        cum   cum%\n16946.54MB 32.55% 32.55% 16946.54MB 32.55%  bufio.NewReaderSize\n16610.72MB 31.91% 64.46% 16610.72MB 31.91%  github.com/deliri/primitive/v2026/core.readStrictJSONDocument\n 2568.28MB  4.93% 69.40%  2568.28MB  4.93%  encoding/json/jsontext.NewDecoder\n 1598.98MB  3.07% 72.47%  1598.98MB  3.07%  net/textproto.MIMEHeader.Set\n 1577.57MB  3.03% 75.50%  1577.57MB  3.03%  mime.ParseMediaType\n 1565.66MB  3.01% 78.51%  1621.66MB  3.12%  encoding/json/jsontext.(*decoderState).fetch\n 1323.90MB  2.54% 81.05%  1323.90MB  2.54%  net/http.(*Request).WithContext\n 1279.39MB  2.46% 83.51%  2110.98MB  4.06%  net/http.readRequestLimit\n 1038.63MB  2.00% 85.50%  1038.63MB  2.00%  bytes.Clone\n  998.53MB  1.92% 87.42%   998.53MB  1.92%  slices.AppendSeq[go.shape.[]go.shape.string,go.shape.string] (inline)\n  769.54MB  1.48% 88.90%   769.54MB  1.48%  bytes.NewReader\n  581.01MB  1.12% 90.02%  1579.54MB  3.03%  slices.Collect[go.shape.string]\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkServerJSONBoundary/1KiB",
+      "record": "post-checkpoint-final-benchmark-05.json",
+      "measurement": "BenchmarkServerJSONBoundary/1KiB         \t 2320178\t     15504 ns/op\t 132.09 MB/s\t   22196 B/op\t     104 allocs/op",
+      "elapsed_seconds": 36.96178054099437,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-05-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-05.test\nType: cpu\nTime: 2026-09-07 10:57:52 EDT\nDuration: 36.08s, Total samples = 33.29s (92.28%)\nShowing nodes accounting for 30.24s, 90.84% of 33.29s total\nDropped 351 nodes (cum <= 0.17s)\nShowing top 12 nodes out of 87\n      flat  flat%   sum%        cum   cum%\n    27.46s 82.49% 82.49%     27.46s 82.49%  runtime.kevent\n     0.96s  2.88% 85.37%      0.96s  2.88%  encoding/json/internal/jsonwire.ConsumeSimpleString (inline)\n     0.51s  1.53% 86.90%      0.51s  1.53%  encoding/json/internal/jsonwire.ConsumeStringResumable.func1 (inline)\n     0.51s  1.53% 88.43%      0.51s  1.53%  runtime.madvise\n     0.41s  1.23% 89.67%      0.41s  1.23%  encoding/json/internal/jsonwire.AppendQuote\n     0.17s  0.51% 90.18%      0.49s  1.47%  runtime.mallocgcSmallNoscan\n     0.06s  0.18% 90.36%      0.57s  1.71%  encoding/json/internal/jsonwire.ConsumeStringResumable\n     0.05s  0.15% 90.51%     28.71s 86.24%  runtime.systemstack\n     0.03s  0.09% 90.60%      0.34s  1.02%  encoding/json/jsontext.(*decoderState).fetch\n     0.03s  0.09% 90.69%      0.59s  1.77%  encoding/json/v2.makeStringArshaler.func2\n     0.03s  0.09% 90.78%      1.33s  4.00%  github.com/deliri/primitive/v2026/core.scanStrictJSONTokens\n     0.02s  0.06% 90.84%      1.11s  3.33%  encoding/json/jsontext.(*decoderState).ReadToken\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-05-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-05.test\nType: alloc_space\nTime: 2026-09-07 10:58:28 EDT\nShowing nodes accounting for 45614.60MB, 92.90% of 49100.61MB total\nDropped 68 nodes (cum <= 245.50MB)\nShowing top 12 nodes out of 75\n      flat  flat%   sum%        cum   cum%\n    9205MB 18.75% 18.75%     9205MB 18.75%  bufio.NewReaderSize\n 9005.59MB 18.34% 37.09%  9005.59MB 18.34%  github.com/deliri/primitive/v2026/core.readStrictJSONDocument\n 8905.47MB 18.14% 55.23%  8940.47MB 18.21%  encoding/json/jsontext.(*decoderState).fetch\n 4529.92MB  9.23% 64.45%  4529.92MB  9.23%  bytes.Clone\n 4446.34MB  9.06% 73.51%  4446.34MB  9.06%  encoding/json/v2.makeString\n 2575.33MB  5.25% 78.75%  4907.10MB  9.99%  io.copyBuffer\n 2331.78MB  4.75% 83.50%  2331.78MB  4.75%  github.com/deliri/primitive/v2026/exchange.growBoundedBodyStorage (inline)\n 1422.93MB  2.90% 86.40%  1422.93MB  2.90%  encoding/json/jsontext.NewDecoder\n  893.76MB  1.82% 88.22%   893.76MB  1.82%  net/textproto.MIMEHeader.Set\n  886.04MB  1.80% 90.02%   886.04MB  1.80%  mime.ParseMediaType\n  707.72MB  1.44% 91.47%  1156.76MB  2.36%  net/http.readRequestLimit\n  704.72MB  1.44% 92.90%   704.72MB  1.44%  net/http.(*Request).WithContext\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkServerJSONBoundary/8KiB",
+      "record": "post-checkpoint-final-benchmark-06.json",
+      "measurement": "BenchmarkServerJSONBoundary/8KiB         \t  485974\t     75009 ns/op\t 218.43 MB/s\t  148316 B/op\t     113 allocs/op",
+      "elapsed_seconds": 37.46369583302294,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-06-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-06.test\nType: cpu\nTime: 2026-09-07 10:58:29 EDT\nDuration: 36.57s, Total samples = 33.89s (92.67%)\nShowing nodes accounting for 32.49s, 95.87% of 33.89s total\nDropped 213 nodes (cum <= 0.17s)\nShowing top 12 nodes out of 73\n      flat  flat%   sum%        cum   cum%\n    29.27s 86.37% 86.37%     29.27s 86.37%  runtime.kevent\n     1.28s  3.78% 90.14%      1.33s  3.92%  encoding/json/internal/jsonwire.ConsumeSimpleString (inline)\n     0.65s  1.92% 92.06%      0.65s  1.92%  encoding/json/internal/jsonwire.ConsumeStringResumable.func1 (inline)\n     0.60s  1.77% 93.83%      0.63s  1.86%  encoding/json/internal/jsonwire.AppendQuote\n     0.37s  1.09% 94.92%      0.37s  1.09%  runtime.madvise\n     0.11s  0.32% 95.25%      0.76s  2.24%  encoding/json/internal/jsonwire.ConsumeStringResumable\n     0.10s   0.3% 95.54%      0.26s  0.77%  runtime.scanObject\n     0.06s  0.18% 95.72%      0.27s   0.8%  runtime.mallocgcSmallNoscan\n     0.02s 0.059% 95.78%      0.79s  2.33%  encoding/json/v2.unmarshalDecode\n     0.01s  0.03% 95.81%      0.38s  1.12%  encoding/json/jsontext.(*decoderState).fetch\n     0.01s  0.03% 95.84%      0.76s  2.24%  encoding/json/v2.makeStringArshaler.func2\n     0.01s  0.03% 95.87%      1.41s  4.16%  github.com/deliri/primitive/v2026/exchange.executeReceivedBodyOperation[go.shape.struct { Body go.shape.*uint8; IdempotencyKey github.com/deliri/primitive/v2026/exchange.IdempotencyKey }]\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-06-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-06.test\nType: alloc_space\nTime: 2026-09-07 10:59:06 EDT\nShowing nodes accounting for 65.46GB, 97.59% of 67.08GB total\nDropped 93 nodes (cum <= 0.34GB)\nShowing top 12 nodes out of 50\n      flat  flat%   sum%        cum   cum%\n   14.80GB 22.06% 22.06%    18.50GB 27.57%  io.copyBuffer\n   14.71GB 21.94% 43.99%    14.72GB 21.95%  encoding/json/jsontext.(*decoderState).fetch\n   13.53GB 20.17% 64.16%    13.53GB 20.17%  github.com/deliri/primitive/v2026/core.growStrictJSONReadBuffer (inline)\n    7.52GB 11.21% 75.36%     7.52GB 11.21%  encoding/json/v2.makeString\n    7.40GB 11.03% 86.39%     7.40GB 11.03%  bytes.Clone (inline)\n    3.70GB  5.51% 91.90%     3.70GB  5.51%  github.com/deliri/primitive/v2026/exchange.growBoundedBodyStorage (inline)\n    1.92GB  2.87% 94.77%     1.92GB  2.87%  bufio.NewReaderSize\n    1.80GB  2.68% 97.45%    15.33GB 22.85%  github.com/deliri/primitive/v2026/core.readStrictJSONDocument\n    0.03GB 0.041% 97.50%    18.79GB 28.01%  github.com/deliri/primitive/v2026/core.EncodeValidatedJSON[go.shape.struct { Message string \"json:\\\"message\\\"\" }]\n    0.03GB 0.039% 97.53%    18.53GB 27.62%  github.com/deliri/primitive/v2026/exchange.copyDownload\n    0.02GB 0.028% 97.56%    18.55GB 27.65%  github.com/deliri/primitive/v2026/exchange.readBoundedBody\n    0.02GB 0.023% 97.59%     7.43GB 11.07%  github.com/deliri/primitive/v2026/exchange_test.transportDocument.MarshalJSON\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkServerJSONBoundaryByLimit/limit1KiB",
+      "record": "post-checkpoint-final-benchmark-07.json",
+      "measurement": "BenchmarkServerJSONBoundaryByLimit/limit1KiB         \t 4404194\t      8155 ns/op\t    9921 B/op\t      96 allocs/op",
+      "elapsed_seconds": 36.976661207998404,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-07-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-07.test\nType: cpu\nTime: 2026-09-07 10:59:07 EDT\nDuration: 36.08s, Total samples = 33.25s (92.17%)\nShowing nodes accounting for 28.20s, 84.81% of 33.25s total\nDropped 392 nodes (cum <= 0.17s)\nShowing top 12 nodes out of 110\n      flat  flat%   sum%        cum   cum%\n    26.20s 78.80% 78.80%     26.20s 78.80%  runtime.kevent\n     0.59s  1.77% 80.57%      0.59s  1.77%  runtime.madvise\n     0.38s  1.14% 81.71%      0.38s  1.14%  encoding/json/internal/jsonwire.ConsumeSimpleString (inline)\n     0.18s  0.54% 82.26%      0.18s  0.54%  mime.isTokenChar\n     0.14s  0.42% 82.68%      0.26s  0.78%  runtime.scanObject\n     0.13s  0.39% 83.07%      0.31s  0.93%  runtime.mallocgcSmallNoscan\n     0.13s  0.39% 83.46%      0.22s  0.66%  runtime.mallocgcSmallScanNoHeaderSC2\n     0.12s  0.36% 83.82%      0.33s  0.99%  runtime.growslice\n     0.11s  0.33% 84.15%      0.29s  0.87%  runtime.mallocgcSmallScanNoHeader\n     0.09s  0.27% 84.42%      0.24s  0.72%  runtime.mallocgcSmallScanSlowPath\n     0.07s  0.21% 84.63%      0.74s  2.23%  encoding/json/jsontext.(*decoderState).ReadToken\n     0.06s  0.18% 84.81%      1.63s  4.90%  runtime.mallocgc\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-07-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-07.test\nType: alloc_space\nTime: 2026-09-07 10:59:43 EDT\nShowing nodes accounting for 36167.83MB, 86.95% of 41597.30MB total\nDropped 60 nodes (cum <= 207.99MB)\nShowing top 12 nodes out of 73\n      flat  flat%   sum%        cum   cum%\n17685.94MB 42.52% 42.52% 17685.94MB 42.52%  bufio.NewReaderSize\n 4801.77MB 11.54% 54.06%  4801.77MB 11.54%  github.com/deliri/primitive/v2026/core.readStrictJSONDocument\n 2642.81MB  6.35% 60.41%  2642.81MB  6.35%  encoding/json/jsontext.NewDecoder\n 1666.50MB  4.01% 64.42%  1666.50MB  4.01%  net/textproto.MIMEHeader.Set\n 1659.67MB  3.99% 68.41%  1726.17MB  4.15%  encoding/json/jsontext.(*decoderState).fetch\n 1584.07MB  3.81% 72.22%  1584.07MB  3.81%  mime.ParseMediaType\n 1339.41MB  3.22% 75.44%  2210.50MB  5.31%  net/http.readRequestLimit\n 1260.88MB  3.03% 78.47%  1260.88MB  3.03%  net/http.(*Request).WithContext\n 1094.13MB  2.63% 81.10%  1094.13MB  2.63%  bytes.Clone\n  991.03MB  2.38% 83.48%   991.03MB  2.38%  slices.AppendSeq[go.shape.[]go.shape.string,go.shape.string]\n  825.54MB  1.98% 85.47%   825.54MB  1.98%  bytes.NewReader\n  616.08MB  1.48% 86.95%  1129.15MB  2.71%  io.copyBuffer\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkServerJSONBoundaryByLimit/limit64KiB",
+      "record": "post-checkpoint-final-benchmark-08.json",
+      "measurement": "BenchmarkServerJSONBoundaryByLimit/limit64KiB         \t 4242792\t      8496 ns/op\t   12866 B/op\t      96 allocs/op",
+      "elapsed_seconds": 37.11140058300225,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-08-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-08.test\nType: cpu\nTime: 2026-09-07 10:59:44 EDT\nDuration: 36.21s, Total samples = 33.45s (92.37%)\nShowing nodes accounting for 28.80s, 86.10% of 33.45s total\nDropped 382 nodes (cum <= 0.17s)\nShowing top 12 nodes out of 105\n      flat  flat%   sum%        cum   cum%\n    27.03s 80.81% 80.81%     27.03s 80.81%  runtime.kevent\n     0.33s  0.99% 81.79%      0.33s  0.99%  encoding/json/internal/jsonwire.ConsumeSimpleString\n     0.31s  0.93% 82.72%      0.31s  0.93%  runtime.madvise\n     0.24s  0.72% 83.44%      0.24s  0.72%  mime.isTokenChar\n     0.18s  0.54% 83.98%      0.33s  0.99%  runtime.scanObject\n     0.15s  0.45% 84.42%      0.22s  0.66%  runtime.tryDeferToSpanScan\n     0.14s  0.42% 84.84%      0.50s  1.49%  runtime.mallocgcSmallNoscan\n     0.12s  0.36% 85.20%      0.29s  0.87%  runtime.mallocgcSmallScanSlowPath\n     0.08s  0.24% 85.44%      1.91s  5.71%  runtime.mallocgc\n     0.08s  0.24% 85.68%     28.55s 85.35%  runtime.systemstack\n     0.07s  0.21% 85.89%      0.68s  2.03%  encoding/json/jsontext.(*decoderState).ReadToken\n     0.07s  0.21% 86.10%      0.20s   0.6%  runtime.mallocgcSmallScanNoHeaderSC5\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-08-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-08.test\nType: alloc_space\nTime: 2026-09-07 11:00:20 EDT\nShowing nodes accounting for 46816.26MB, 90.07% of 51979.66MB total\nDropped 64 nodes (cum <= 259.90MB)\nShowing top 12 nodes out of 71\n      flat  flat%   sum%        cum   cum%\n16904.87MB 32.52% 32.52% 16904.87MB 32.52%  bufio.NewReaderSize\n16523.88MB 31.79% 64.31% 16523.88MB 31.79%  github.com/deliri/primitive/v2026/core.readStrictJSONDocument\n 2617.80MB  5.04% 69.35%  2617.80MB  5.04%  encoding/json/jsontext.NewDecoder\n    1668MB  3.21% 72.56%     1668MB  3.21%  net/textproto.MIMEHeader.Set\n 1613.16MB  3.10% 75.66%  1682.16MB  3.24%  encoding/json/jsontext.(*decoderState).fetch\n 1580.57MB  3.04% 78.70%  1580.57MB  3.04%  mime.ParseMediaType\n 1298.90MB  2.50% 81.20%  2144.49MB  4.13%  net/http.readRequestLimit\n 1274.39MB  2.45% 83.65%  1274.39MB  2.45%  net/http.(*Request).WithContext\n 1013.12MB  1.95% 85.60%  1013.12MB  1.95%  bytes.Clone\n  953.53MB  1.83% 87.43%   953.53MB  1.83%  slices.AppendSeq[go.shape.[]go.shape.string,go.shape.string] (inline)\n  785.04MB  1.51% 88.94%   785.04MB  1.51%  bytes.NewReader\n  583.01MB  1.12% 90.07%  1536.54MB  2.96%  slices.Collect[go.shape.string]\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkServerJSONBoundaryByLimit/limit1MiB",
+      "record": "post-checkpoint-final-benchmark-09.json",
+      "measurement": "BenchmarkServerJSONBoundaryByLimit/limit1MiB         \t 4238485\t      8476 ns/op\t   12866 B/op\t      96 allocs/op",
+      "elapsed_seconds": 37.03064595902106,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-09-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-09.test\nType: cpu\nTime: 2026-09-07 11:00:21 EDT\nDuration: 36.05s, Total samples = 33.49s (92.89%)\nShowing nodes accounting for 29.05s, 86.74% of 33.49s total\nDropped 350 nodes (cum <= 0.17s)\nShowing top 12 nodes out of 106\n      flat  flat%   sum%        cum   cum%\n    27.41s 81.85% 81.85%     27.41s 81.85%  runtime.kevent\n     0.31s  0.93% 82.77%      0.31s  0.93%  encoding/json/internal/jsonwire.ConsumeSimpleString\n     0.31s  0.93% 83.70%      0.31s  0.93%  runtime.madvise\n     0.22s  0.66% 84.35%      0.35s  1.05%  runtime.scanObject\n     0.20s   0.6% 84.95%      0.20s   0.6%  mime.isTokenChar\n     0.12s  0.36% 85.31%      0.39s  1.16%  runtime.mallocgcSmallNoscan\n     0.12s  0.36% 85.67%      0.20s   0.6%  runtime.mallocgcSmallScanNoHeaderSC2\n     0.08s  0.24% 85.91%      0.44s  1.31%  runtime.growslice\n     0.08s  0.24% 86.15%      0.28s  0.84%  runtime.mallocgcSmallScanSlowPath\n     0.08s  0.24% 86.38%      0.17s  0.51%  runtime.mallocgcTinySC2\n     0.06s  0.18% 86.56%      0.26s  0.78%  encoding/json/jsontext.(*decoderState).fetch\n     0.06s  0.18% 86.74%      1.70s  5.08%  runtime.mallocgc\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-09-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-09.test\nType: alloc_space\nTime: 2026-09-07 11:00:57 EDT\nShowing nodes accounting for 46499.82MB, 89.84% of 51756.64MB total\nDropped 70 nodes (cum <= 258.78MB)\nShowing top 12 nodes out of 71\n      flat  flat%   sum%        cum   cum%\n16732.70MB 32.33% 32.33% 16732.70MB 32.33%  bufio.NewReaderSize\n16440.05MB 31.76% 64.09% 16440.05MB 31.76%  github.com/deliri/primitive/v2026/core.readStrictJSONDocument\n 2594.29MB  5.01% 69.11%  2594.29MB  5.01%  encoding/json/jsontext.NewDecoder\n 1645.49MB  3.18% 72.29%  1645.49MB  3.18%  net/textproto.MIMEHeader.Set\n 1588.16MB  3.07% 75.35%  1663.66MB  3.21%  encoding/json/jsontext.(*decoderState).fetch\n 1566.07MB  3.03% 78.38%  1566.07MB  3.03%  mime.ParseMediaType\n 1304.90MB  2.52% 80.90%  1304.90MB  2.52%  net/http.(*Request).WithContext\n 1242.38MB  2.40% 83.30%  2050.47MB  3.96%  net/http.readRequestLimit\n 1055.13MB  2.04% 85.34%  1055.13MB  2.04%  bytes.Clone\n  947.53MB  1.83% 87.17%   947.53MB  1.83%  slices.AppendSeq[go.shape.[]go.shape.string,go.shape.string]\n  802.54MB  1.55% 88.72%   802.54MB  1.55%  bytes.NewReader\n  580.58MB  1.12% 89.84%  1108.64MB  2.14%  io.copyBuffer\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkBoundedReceiveByDeclaredExtent/declared_extent",
+      "record": "post-checkpoint-final-benchmark-10.json",
+      "measurement": "BenchmarkBoundedReceiveByDeclaredExtent/declared_extent         \t  329839\t    108078 ns/op\t4851.00 MB/s\t 1055079 B/op\t      48 allocs/op",
+      "elapsed_seconds": 36.67021099998965,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-10-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-10.test\nType: cpu\nTime: 2026-09-07 11:00:58 EDT\nDuration: 35.75s, Total samples = 31.94s (89.35%)\nShowing nodes accounting for 30.31s, 94.90% of 31.94s total\nDropped 230 nodes (cum <= 0.16s)\nShowing top 12 nodes out of 56\n      flat  flat%   sum%        cum   cum%\n    23.35s 73.11% 73.11%     23.35s 73.11%  runtime.kevent\n     3.93s 12.30% 85.41%      3.93s 12.30%  runtime.madvise\n     2.04s  6.39% 91.80%      2.04s  6.39%  runtime.memmove\n     0.56s  1.75% 93.55%      0.56s  1.75%  runtime.memclrNoHeapPointers\n     0.24s  0.75% 94.30%      0.36s  1.13%  runtime.scanObject\n     0.09s  0.28% 94.58%      0.17s  0.53%  runtime.pcvalue\n     0.02s 0.063% 94.65%      4.03s 12.62%  io.copyBuffer\n     0.02s 0.063% 94.71%      3.36s 10.52%  runtime.(*mheap).allocSpan\n     0.02s 0.063% 94.77%      0.85s  2.66%  runtime.gcDrainN\n     0.02s 0.063% 94.83%      0.17s  0.53%  runtime.tracebackPCs\n     0.01s 0.031% 94.87%      3.29s 10.30%  github.com/deliri/primitive/v2026/exchange.(*boundedBodyDestination).Write\n     0.01s 0.031% 94.90%      0.64s  2.00%  github.com/deliri/primitive/v2026/exchange.(*progressReader).Read\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-10-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-10.test\nType: alloc_space\nTime: 2026-09-07 11:01:34 EDT\nShowing nodes accounting for 322.47GB, 99.41% of 324.40GB total\nDropped 71 nodes (cum <= 1.62GB)\nShowing top 12 nodes out of 17\n      flat  flat%   sum%        cum   cum%\n  312.24GB 96.25% 96.25%   312.24GB 96.25%  github.com/deliri/primitive/v2026/exchange.growBoundedBodyStorage (inline)\n   10.19GB  3.14% 99.39%   322.43GB 99.39%  io.copyBuffer\n    0.02GB 0.0074% 99.40%   322.48GB 99.41%  github.com/deliri/primitive/v2026/exchange.copyDownload\n    0.02GB 0.005% 99.41%   322.50GB 99.41%  github.com/deliri/primitive/v2026/exchange.readBoundedBody\n         0     0% 99.41%   312.24GB 96.25%  github.com/deliri/primitive/v2026/exchange.(*boundedBodyDestination).Write\n         0     0% 99.41%   322.67GB 99.47%  github.com/deliri/primitive/v2026/exchange.ReceiveBounded\n         0     0% 99.41%   322.67GB 99.47%  github.com/deliri/primitive/v2026/exchange.ReceiveBounded.func1\n         0     0% 99.41%   322.48GB 99.41%  github.com/deliri/primitive/v2026/exchange.copyBoundedBody\n         0     0% 99.41%   322.67GB 99.47%  github.com/deliri/primitive/v2026/exchange.executeReceivedBodyOperation[go.shape.struct { IdempotencyKey github.com/deliri/primitive/v2026/exchange.IdempotencyKey; Body []uint8 }]\n         0     0% 99.41%   322.67GB 99.47%  github.com/deliri/primitive/v2026/exchange.executeRequestBodyOperation[go.shape.struct { IdempotencyKey github.com/deliri/primitive/v2026/exchange.IdempotencyKey; Body []uint8 }]\n         0     0% 99.41%   322.67GB 99.47%  github.com/deliri/primitive/v2026/exchange.executeRequestBodyOperation[go.shape.struct { IdempotencyKey github.com/deliri/primitive/v2026/exchange.IdempotencyKey; Body []uint8 }].func1\n         0     0% 99.41%   312.24GB 96.25%  github.com/deliri/primitive/v2026/exchange.observedStreamWriter.Write\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkBoundedReceiveByDeclaredExtent/undeclared_extent",
+      "record": "post-checkpoint-final-benchmark-11.json",
+      "measurement": "BenchmarkBoundedReceiveByDeclaredExtent/undeclared_extent         \t  321376\t    108672 ns/op\t4824.50 MB/s\t 1055080 B/op\t      48 allocs/op",
+      "elapsed_seconds": 35.98718491598265,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-11-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-11.test\nType: cpu\nTime: 2026-09-07 11:01:35 EDT\nDuration: 35.08s, Total samples = 31.23s (89.04%)\nShowing nodes accounting for 29.87s, 95.65% of 31.23s total\nDropped 186 nodes (cum <= 0.16s)\nShowing top 12 nodes out of 52\n      flat  flat%   sum%        cum   cum%\n    23.40s 74.93% 74.93%     23.40s 74.93%  runtime.kevent\n     3.79s 12.14% 87.06%      3.79s 12.14%  runtime.madvise\n     1.89s  6.05% 93.12%      1.89s  6.05%  runtime.memmove\n     0.35s  1.12% 94.24%      0.35s  1.12%  runtime.memclrNoHeapPointers\n     0.21s  0.67% 94.91%      0.37s  1.18%  runtime.scanObject\n     0.15s  0.48% 95.39%      0.23s  0.74%  runtime.scanblock\n     0.02s 0.064% 95.45%      0.80s  2.56%  runtime.gcAssistAlloc\n     0.02s 0.064% 95.52%      0.16s  0.51%  runtime.newstack\n     0.01s 0.032% 95.55%      0.56s  1.79%  bytes.(*Reader).Read\n     0.01s 0.032% 95.58%      3.54s 11.34%  github.com/deliri/primitive/v2026/exchange.copyDownload\n     0.01s 0.032% 95.61%      3.22s 10.31%  runtime.(*mheap).allocSpan\n     0.01s 0.032% 95.65%      0.77s  2.47%  runtime.gcDrainN\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-11-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-11.test\nType: alloc_space\nTime: 2026-09-07 11:02:10 EDT\nShowing nodes accounting for 314.07GB, 99.40% of 315.98GB total\nDropped 64 nodes (cum <= 1.58GB)\nShowing top 12 nodes out of 17\n      flat  flat%   sum%        cum   cum%\n  304.14GB 96.25% 96.25%   304.14GB 96.25%  github.com/deliri/primitive/v2026/exchange.growBoundedBodyStorage (inline)\n    9.89GB  3.13% 99.38%   314.03GB 99.38%  io.copyBuffer\n    0.03GB 0.0085% 99.39%   314.08GB 99.40%  github.com/deliri/primitive/v2026/exchange.copyDownload\n    0.02GB 0.0049% 99.40%   314.09GB 99.40%  github.com/deliri/primitive/v2026/exchange.readBoundedBody\n         0     0% 99.40%   304.14GB 96.25%  github.com/deliri/primitive/v2026/exchange.(*boundedBodyDestination).Write\n         0     0% 99.40%   314.25GB 99.45%  github.com/deliri/primitive/v2026/exchange.ReceiveBounded\n         0     0% 99.40%   314.25GB 99.45%  github.com/deliri/primitive/v2026/exchange.ReceiveBounded.func1\n         0     0% 99.40%   314.08GB 99.40%  github.com/deliri/primitive/v2026/exchange.copyBoundedBody\n         0     0% 99.40%   314.25GB 99.45%  github.com/deliri/primitive/v2026/exchange.executeReceivedBodyOperation[go.shape.struct { IdempotencyKey github.com/deliri/primitive/v2026/exchange.IdempotencyKey; Body []uint8 }]\n         0     0% 99.40%   314.25GB 99.45%  github.com/deliri/primitive/v2026/exchange.executeRequestBodyOperation[go.shape.struct { IdempotencyKey github.com/deliri/primitive/v2026/exchange.IdempotencyKey; Body []uint8 }]\n         0     0% 99.40%   314.25GB 99.45%  github.com/deliri/primitive/v2026/exchange.executeRequestBodyOperation[go.shape.struct { IdempotencyKey github.com/deliri/primitive/v2026/exchange.IdempotencyKey; Body []uint8 }].func1\n         0     0% 99.40%   304.14GB 96.25%  github.com/deliri/primitive/v2026/exchange.observedStreamWriter.Write\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkUpload10MiBFileOverLoopback",
+      "record": "post-checkpoint-final-benchmark-12.json",
+      "measurement": "BenchmarkUpload10MiBFileOverLoopback \t   10000\t   3267403 ns/op\t3209.20 MB/s\t   42263 B/op\t     132 allocs/op",
+      "elapsed_seconds": 34.466532624996034,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-12-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-12.test\nType: cpu\nTime: 2026-09-07 11:02:11 EDT\nDuration: 33.57s, Total samples = 25.95s (77.30%)\nShowing nodes accounting for 25.86s, 99.65% of 25.95s total\nDropped 77 nodes (cum <= 0.13s)\nShowing top 12 nodes out of 72\n      flat  flat%   sum%        cum   cum%\n    25.49s 98.23% 98.23%     25.49s 98.23%  syscall.rawsyscalln\n     0.36s  1.39% 99.61%      0.36s  1.39%  runtime.kevent\n     0.01s 0.039% 99.65%     10.71s 41.27%  syscall.write\n         0     0% 99.65%      0.17s  0.66%  bufio.(*Reader).Peek\n         0     0% 99.65%      7.84s 30.21%  bufio.(*Reader).Read\n         0     0% 99.65%      0.17s  0.66%  bufio.(*Reader).fill\n         0     0% 99.65%      0.41s  1.58%  bufio.(*Writer).Flush\n         0     0% 99.65%     16.85s 64.93%  bufio.(*Writer).ReadFrom\n         0     0% 99.65%      7.84s 30.21%  github.com/deliri/primitive/v2026/exchange.(*progressReader).Read\n         0     0% 99.65%      7.84s 30.21%  github.com/deliri/primitive/v2026/exchange.ReceiveStream\n         0     0% 99.65%      7.84s 30.21%  github.com/deliri/primitive/v2026/exchange.ReceiveStream.func1\n         0     0% 99.65%      0.17s  0.66%  github.com/deliri/primitive/v2026/exchange.Upload\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-12-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-12.test\nType: alloc_space\nTime: 2026-09-07 11:02:45 EDT\nShowing nodes accounting for 365.30MB, 90.58% of 403.30MB total\nDropped 56 nodes (cum <= 2.02MB)\nShowing top 12 nodes out of 77\n      flat  flat%   sum%        cum   cum%\n  303.28MB 75.20% 75.20%   303.78MB 75.32%  io.copyBuffer\n   10.50MB  2.60% 77.80%    10.50MB  2.60%  net/http.Header.Clone\n       9MB  2.23% 80.04%        9MB  2.23%  net/textproto.readMIMEHeader\n       7MB  1.74% 81.77%       11MB  2.73%  context.(*cancelCtx).propagateCancel\n       6MB  1.49% 83.26%        6MB  1.49%  net/url.parse\n       6MB  1.49% 84.75%        6MB  1.49%  context.(*cancelCtx).Done\n       5MB  1.24% 85.99%        5MB  1.24%  net/http.setupRewindBody\n       4MB  0.99% 86.98%        4MB  0.99%  net/textproto.MIMEHeader.Set\n       4MB  0.99% 87.97%        6MB  1.49%  net/http.NewRequestWithContext\n       4MB  0.99% 88.96%        4MB  0.99%  time.newTimer\n    3.50MB  0.87% 89.83%     3.50MB  0.87%  net/http.(*persistConn).roundTrip\n       3MB  0.74% 90.58%        4MB  0.99%  net/http.(*Transport).getConn\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkDownload10MiBFileOverLoopback",
+      "record": "post-checkpoint-final-benchmark-13.json",
+      "measurement": "BenchmarkDownload10MiBFileOverLoopback \t   10000\t   3200676 ns/op\t3276.11 MB/s\t   42220 B/op\t     143 allocs/op",
+      "elapsed_seconds": 33.853784332983196,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-13-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-13.test\nType: cpu\nTime: 2026-09-07 11:02:46 EDT\nDuration: 32.91s, Total samples = 25.34s (77.00%)\nShowing nodes accounting for 25.30s, 99.84% of 25.34s total\nDropped 36 nodes (cum <= 0.13s)\nShowing top 12 nodes out of 70\n      flat  flat%   sum%        cum   cum%\n    24.93s 98.38% 98.38%     24.93s 98.38%  syscall.rawsyscalln\n     0.36s  1.42% 99.80%      0.36s  1.42%  runtime.kevent\n     0.01s 0.039% 99.84%      8.98s 35.44%  syscall.write\n         0     0% 99.84%      0.17s  0.67%  bufio.(*Reader).Peek\n         0     0% 99.84%      8.94s 35.28%  bufio.(*Reader).Read\n         0     0% 99.84%      0.17s  0.67%  bufio.(*Reader).fill\n         0     0% 99.84%      0.45s  1.78%  bufio.(*Writer).Flush\n         0     0% 99.84%     15.79s 62.31%  github.com/deliri/primitive/v2026/exchange.(*progressReader).Read\n         0     0% 99.84%      8.95s 35.32%  github.com/deliri/primitive/v2026/exchange.Download\n         0     0% 99.84%     15.43s 60.89%  github.com/deliri/primitive/v2026/exchange.WriteStream\n         0     0% 99.84%     24.37s 96.17%  github.com/deliri/primitive/v2026/exchange.copyDownload\n         0     0% 99.84%     15.43s 60.89%  github.com/deliri/primitive/v2026/exchange.executeResponseWriterOperation (inline)\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-13-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-13.test\nType: alloc_space\nTime: 2026-09-07 11:03:19 EDT\nShowing nodes accounting for 403.98MB, 91.02% of 443.81MB total\nDropped 72 nodes (cum <= 2.22MB)\nShowing top 12 nodes out of 74\n      flat  flat%   sum%        cum   cum%\n  341.97MB 77.05% 77.05%   342.47MB 77.16%  io.copyBuffer\n      12MB  2.70% 79.76%       12MB  2.70%  net/textproto.readMIMEHeader\n      10MB  2.25% 82.01%       10MB  2.25%  net/http.Header.Clone (inline)\n    7.50MB  1.69% 83.70%     7.50MB  1.69%  net/http.(*persistConn).roundTrip\n    6.50MB  1.47% 85.17%     6.50MB  1.47%  net/textproto.MIMEHeader.Set (inline)\n       5MB  1.13% 86.29%        5MB  1.13%  net/url.parse\n    4.50MB  1.01% 87.31%     4.50MB  1.01%  context.(*cancelCtx).Done\n    3.50MB  0.79% 88.10%        5MB  1.13%  context.(*cancelCtx).propagateCancel\n    3.50MB  0.79% 88.88%        8MB  1.80%  context.WithDeadlineCause\n    3.50MB  0.79% 89.67%       13MB  2.93%  net/http.(*persistConn).readLoop\n       3MB  0.68% 90.35%    60.01MB 13.52%  github.com/deliri/primitive/v2026/exchange_test.BenchmarkDownload10MiBFileOverLoopback\n       3MB  0.68% 91.02%        3MB  0.68%  github.com/deliri/primitive/v2026/exchange.clientForPolicy (inline)\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkResolveClientAddress/direct_peer_ignores_header",
+      "record": "post-checkpoint-final-benchmark-14.json",
+      "measurement": "BenchmarkResolveClientAddress/direct_peer_ignores_header         \t195914950\t       183.1 ns/op\t       0 B/op\t       0 allocs/op",
+      "elapsed_seconds": 37.03063754100003,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-14-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-14.test\nType: cpu\nTime: 2026-09-07 11:03:21 EDT\nDuration: 36.05s, Total samples = 30.80s (85.44%)\nShowing nodes accounting for 29.20s, 94.81% of 30.80s total\nDropped 42 nodes (cum <= 0.15s)\nShowing top 12 nodes out of 25\n      flat  flat%   sum%        cum   cum%\n     8.15s 26.46% 26.46%     14.67s 47.63%  github.com/deliri/primitive/v2026/exchange.ClientAddressRequest.Validate\n     6.41s 20.81% 47.27%     25.83s 83.86%  github.com/deliri/primitive/v2026/exchange.ResolveClientAddress\n     5.94s 19.29% 66.56%      5.94s 19.29%  github.com/deliri/primitive/v2026/exchange.TrustedProxyPrefixes.Validate\n     4.53s 14.71% 81.27%     30.36s 98.57%  github.com/deliri/primitive/v2026/exchange_test.BenchmarkResolveClientAddress.func1\n     1.68s  5.45% 86.72%      1.68s  5.45%  net/netip.parseIPv4Fields\n     0.81s  2.63% 89.35%      0.81s  2.63%  internal/strconv.ParseUint\n     0.54s  1.75% 91.10%      2.41s  7.82%  net/netip.ParseAddr\n     0.27s  0.88% 91.98%      0.38s  1.23%  github.com/deliri/primitive/v2026/exchange.responseWriterIsNil\n     0.26s  0.84% 92.82%      0.26s  0.84%  net/netip.Addr.Is6 (inline)\n     0.22s  0.71% 93.54%      0.22s  0.71%  internal/bytealg.LastIndexByteString (inline)\n     0.20s  0.65% 94.19%      0.42s  1.36%  net/netip.splitAddrPort\n     0.19s  0.62% 94.81%      4.12s 13.38%  net/netip.ParseAddrPort\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-14-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-14.test\nType: alloc_space\nTime: 2026-09-07 11:03:57 EDT\nShowing nodes accounting for 3925.19kB, 100% of 3925.19kB total\nShowing top 12 nodes out of 33\n      flat  flat%   sum%        cum   cum%\n 1184.27kB 30.17% 30.17%  1184.27kB 30.17%  runtime/pprof.StartCPUProfile\n 1025.05kB 26.11% 56.29%  1025.05kB 26.11%  runtime.mallocgc\n  688.56kB 17.54% 73.83%   688.56kB 17.54%  compress/flate.(*fastGen).addBlock\n  515.19kB 13.13% 86.95%   515.19kB 13.13%  unicode.map.init.2\n  512.12kB 13.05%   100%   512.12kB 13.05%  runtime/pprof.allFrames\n         0     0%   100%   688.56kB 17.54%  compress/flate.(*Writer).Close (inline)\n         0     0%   100%   688.56kB 17.54%  compress/flate.(*compressor).close\n         0     0%   100%   688.56kB 17.54%  compress/flate.(*compressor).deflateFast\n         0     0%   100%   688.56kB 17.54%  compress/flate.(*fastEncL1).encode\n         0     0%   100%   688.56kB 17.54%  compress/gzip.(*Writer).Close\n         0     0%   100%  1184.27kB 30.17%  main.main\n         0     0%   100%   512.05kB 13.05%  runtime.(*scavengerState).init\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkResolveClientAddress/trusted_proxy_chain",
+      "record": "post-checkpoint-final-benchmark-15.json",
+      "measurement": "BenchmarkResolveClientAddress/trusted_proxy_chain         \t78037275\t       464.2 ns/op\t      32 B/op\t       2 allocs/op",
+      "elapsed_seconds": 37.34267354098847,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-15-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-15.test\nType: cpu\nTime: 2026-09-07 11:03:58 EDT\nDuration: 36.41s, Total samples = 30750ms (84.45%)\nShowing nodes accounting for 25540ms, 83.06% of 30750ms total\nDropped 154 nodes (cum <= 153.75ms)\nShowing top 12 nodes out of 54\n      flat  flat%   sum%        cum   cum%\n    5120ms 16.65% 16.65%    11160ms 36.29%  github.com/deliri/primitive/v2026/exchange.resolveTrustedProxyAddress\n    3460ms 11.25% 27.90%    22380ms 72.78%  github.com/deliri/primitive/v2026/exchange.ResolveClientAddress\n    3300ms 10.73% 38.63%     3710ms 12.07%  github.com/deliri/primitive/v2026/exchange.TrustedProxyPrefixes.Validate\n    2770ms  9.01% 47.64%     2770ms  9.01%  runtime.madvise\n    2700ms  8.78% 56.42%     2700ms  8.78%  runtime.kevent\n    2350ms  7.64% 64.07%     6260ms 20.36%  github.com/deliri/primitive/v2026/exchange.ClientAddressRequest.Validate\n    1870ms  6.08% 70.15%    24250ms 78.86%  github.com/deliri/primitive/v2026/exchange_test.BenchmarkResolveClientAddress.func1\n    1700ms  5.53% 75.67%     1700ms  5.53%  net/netip.parseIPv4Fields\n     790ms  2.57% 78.24%      790ms  2.57%  internal/bytealg.LastIndexByteString (inline)\n     620ms  2.02% 80.26%     1190ms  3.87%  runtime.mallocgcSmallScanNoHeaderSC2\n     450ms  1.46% 81.72%      450ms  1.46%  net/textproto.validHeaderFieldByte (inline)\n     410ms  1.33% 83.06%     2350ms  7.64%  net/netip.ParseAddr\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-15-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-15.test\nType: alloc_space\nTime: 2026-09-07 11:04:34 EDT\nShowing nodes accounting for 2.33GB, 99.81% of 2.33GB total\nDropped 35 nodes (cum <= 0.01GB)\n      flat  flat%   sum%        cum   cum%\n    2.33GB 99.81% 99.81%     2.33GB 99.81%  errors.New (inline)\n         0     0% 99.81%     2.33GB 99.81%  github.com/deliri/primitive/v2026/exchange.ResolveClientAddress\n         0     0% 99.81%     2.33GB 99.81%  github.com/deliri/primitive/v2026/exchange.parseClientAddress\n         0     0% 99.81%     2.33GB 99.81%  github.com/deliri/primitive/v2026/exchange.resolveTrustedProxyAddress\n         0     0% 99.81%     2.33GB 99.81%  github.com/deliri/primitive/v2026/exchange_test.BenchmarkResolveClientAddress.func1\n         0     0% 99.81%     2.33GB 99.81%  net/netip.ParseAddrPort\n         0     0% 99.81%     2.33GB 99.81%  net/netip.splitAddrPort\n         0     0% 99.81%     2.33GB 99.81%  testing.(*B).run1.func1\n         0     0% 99.81%     2.33GB 99.81%  testing.(*B).runN\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkResolveClientAddress/untrusted_peer_ignores_chain",
+      "record": "post-checkpoint-final-benchmark-16.json",
+      "measurement": "BenchmarkResolveClientAddress/untrusted_peer_ignores_chain         \t121704070\t       295.7 ns/op\t       0 B/op\t       0 allocs/op",
+      "elapsed_seconds": 37.0286613330245,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-16-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-16.test\nType: cpu\nTime: 2026-09-07 11:04:35 EDT\nDuration: 36.13s, Total samples = 30.95s (85.66%)\nShowing nodes accounting for 28.85s, 93.21% of 30.95s total\nDropped 54 nodes (cum <= 0.15s)\nShowing top 12 nodes out of 31\n      flat  flat%   sum%        cum   cum%\n     6.51s 21.03% 21.03%     25.94s 83.81%  github.com/deliri/primitive/v2026/exchange.ResolveClientAddress\n     6.39s 20.65% 41.68%      7.18s 23.20%  github.com/deliri/primitive/v2026/exchange.TrustedProxyPrefixes.Validate\n     4.38s 14.15% 55.83%     30.32s 97.96%  github.com/deliri/primitive/v2026/exchange_test.BenchmarkResolveClientAddress.func1\n     4.28s 13.83% 69.66%     11.78s 38.06%  github.com/deliri/primitive/v2026/exchange.ClientAddressRequest.Validate\n     4.10s 13.25% 82.91%      4.57s 14.77%  github.com/deliri/primitive/v2026/exchange.resolveTrustedProxyAddress\n     1.53s  4.94% 87.85%      1.53s  4.94%  net/netip.parseIPv4Fields\n     0.51s  1.65% 89.50%      0.51s  1.65%  internal/strconv.ParseUint\n     0.34s  1.10% 90.60%      0.79s  2.55%  github.com/deliri/primitive/v2026/exchange.TrustedProxyPrefixes.validatePrefix\n     0.24s  0.78% 91.37%      1.87s  6.04%  net/netip.ParseAddr\n     0.20s  0.65% 92.02%      0.25s  0.81%  net/netip.Addr.Prefix\n     0.19s  0.61% 92.63%      0.46s  1.49%  github.com/deliri/primitive/v2026/exchange.TrustedProxyPrefixes.containsAddress (inline)\n     0.18s  0.58% 93.21%      0.18s  0.58%  net/netip.Addr.Is6 (inline)\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-16-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-16.test\nType: alloc_space\nTime: 2026-09-07 11:05:11 EDT\nShowing nodes accounting for 2275.94kB, 100% of 2275.94kB total\nShowing top 12 nodes out of 17\n      flat  flat%   sum%        cum   cum%\n 1762.94kB 77.46% 77.46%  1762.94kB 77.46%  runtime/pprof.StartCPUProfile\n     513kB 22.54%   100%      513kB 22.54%  runtime.mallocgc\n         0     0%   100%  1762.94kB 77.46%  main.main\n         0     0%   100%      513kB 22.54%  runtime.allocm\n         0     0%   100%  1762.94kB 77.46%  runtime.main\n         0     0%   100%      513kB 22.54%  runtime.mstart\n         0     0%   100%      513kB 22.54%  runtime.mstart0\n         0     0%   100%      513kB 22.54%  runtime.mstart1\n         0     0%   100%      513kB 22.54%  runtime.newm\n         0     0%   100%      513kB 22.54%  runtime.newobject\n         0     0%   100%      513kB 22.54%  runtime.resetspinning\n         0     0%   100%      513kB 22.54%  runtime.schedule\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkResolveClientAddress/google_cloud_final_pair",
+      "record": "post-checkpoint-final-benchmark-17.json",
+      "measurement": "BenchmarkResolveClientAddress/google_cloud_final_pair         \t122861793\t       292.9 ns/op\t      32 B/op\t       2 allocs/op",
+      "elapsed_seconds": 37.01050358300563,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-17-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-17.test\nType: cpu\nTime: 2026-09-07 11:05:12 EDT\nDuration: 36.10s, Total samples = 31410ms (87.00%)\nShowing nodes accounting for 26250ms, 83.57% of 31410ms total\nDropped 149 nodes (cum <= 157.05ms)\nShowing top 12 nodes out of 56\n      flat  flat%   sum%        cum   cum%\n    6460ms 20.57% 20.57%     6460ms 20.57%  runtime.kevent\n    2990ms  9.52% 30.09%     5760ms 18.34%  github.com/deliri/primitive/v2026/exchange.ClientAddressRequest.Validate\n    2980ms  9.49% 39.57%    19420ms 61.83%  github.com/deliri/primitive/v2026/exchange.ResolveClientAddress\n    2570ms  8.18% 47.76%     2570ms  8.18%  net/netip.parseIPv4Fields\n    2520ms  8.02% 55.78%     2520ms  8.02%  runtime.madvise\n    2480ms  7.90% 63.67%     2480ms  7.90%  github.com/deliri/primitive/v2026/exchange.TrustedProxyPrefixes.Validate\n    2060ms  6.56% 70.23%    21510ms 68.48%  github.com/deliri/primitive/v2026/exchange_test.BenchmarkResolveClientAddress.func1\n    1250ms  3.98% 74.21%     1250ms  3.98%  internal/bytealg.LastIndexByteString (inline)\n     920ms  2.93% 77.14%      920ms  2.93%  net/textproto.validHeaderFieldByte (inline)\n     850ms  2.71% 79.85%     1700ms  5.41%  runtime.mallocgcSmallScanNoHeaderSC2\n     600ms  1.91% 81.76%     1520ms  4.84%  net/textproto.CanonicalMIMEHeaderKey\n     570ms  1.81% 83.57%      570ms  1.81%  strings.TrimSpace\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-17-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-17.test\nType: alloc_space\nTime: 2026-09-07 11:05:49 EDT\nShowing nodes accounting for 3.67GB, 99.88% of 3.68GB total\nDropped 38 nodes (cum <= 0.02GB)\n      flat  flat%   sum%        cum   cum%\n    3.67GB 99.88% 99.88%     3.67GB 99.88%  errors.New (inline)\n         0     0% 99.88%     3.67GB 99.88%  github.com/deliri/primitive/v2026/exchange.ResolveClientAddress\n         0     0% 99.88%     3.67GB 99.88%  github.com/deliri/primitive/v2026/exchange.parseClientAddress\n         0     0% 99.88%     3.67GB 99.88%  github.com/deliri/primitive/v2026/exchange.resolveGoogleCloudAddress\n         0     0% 99.88%     3.67GB 99.88%  github.com/deliri/primitive/v2026/exchange_test.BenchmarkResolveClientAddress.func1\n         0     0% 99.88%     3.67GB 99.88%  net/netip.ParseAddrPort\n         0     0% 99.88%     3.67GB 99.88%  net/netip.splitAddrPort\n         0     0% 99.88%     3.67GB 99.88%  testing.(*B).run1.func1\n         0     0% 99.88%     3.67GB 99.88%  testing.(*B).runN\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkAggregateCompletedAttemptHandoff/binary_complete",
+      "record": "post-checkpoint-final-benchmark-18.json",
+      "measurement": "BenchmarkAggregateCompletedAttemptHandoff/binary_complete         \t15625472\t      2295 ns/op\t    2678 B/op\t      32 allocs/op",
+      "elapsed_seconds": 36.98151783400681,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-18-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-18.test\nType: cpu\nTime: 2026-09-07 11:05:50 EDT\nDuration: 36.03s, Total samples = 33.19s (92.11%)\nShowing nodes accounting for 27.75s, 83.61% of 33.19s total\nDropped 323 nodes (cum <= 0.17s)\nShowing top 12 nodes out of 104\n      flat  flat%   sum%        cum   cum%\n    25.30s 76.23% 76.23%     25.30s 76.23%  runtime.kevent\n     0.48s  1.45% 77.67%      0.48s  1.45%  runtime.madvise\n     0.31s  0.93% 78.61%      1.01s  3.04%  runtime.mallocgcSmallScanNoHeader\n     0.27s  0.81% 79.42%      0.27s  0.81%  runtime.memclrNoHeapPointers\n     0.23s  0.69% 80.11%      0.23s  0.69%  net/url.unescape\n     0.22s  0.66% 80.78%      0.26s  0.78%  runtime.tryDeferToSpanScan\n     0.19s  0.57% 81.35%      0.19s  0.57%  runtime.nanotime1\n     0.17s  0.51% 81.86%      0.18s  0.54%  internal/bytealg.LastIndexByteString\n     0.17s  0.51% 82.37%      0.56s  1.69%  runtime.mallocgcSmallScanNoHeaderSC5\n     0.17s  0.51% 82.89%      0.45s  1.36%  runtime.mallocgcSmallScanSlowPath\n     0.16s  0.48% 83.37%      0.23s  0.69%  internal/runtime/maps.(*Iter).Next\n     0.08s  0.24% 83.61%      0.30s   0.9%  gcWriteBarrier\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-18-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-18.test\nType: alloc_space\nTime: 2026-09-07 11:06:26 EDT\nShowing nodes accounting for 34.91GB, 90.01% of 38.79GB total\nDropped 42 nodes (cum <= 0.19GB)\nShowing top 12 nodes out of 46\n      flat  flat%   sum%        cum   cum%\n    5.91GB 15.25% 15.25%     5.91GB 15.25%  net/http.Header.Clone\n    5.34GB 13.77% 29.01%     7.43GB 19.15%  net/http.NewRequestWithContext\n    5.33GB 13.75% 42.77%     5.33GB 13.75%  net/textproto.MIMEHeader.Set\n    3.88GB  9.99% 52.76%     5.53GB 14.24%  context.(*cancelCtx).propagateCancel\n    2.52GB  6.51% 59.27%     3.21GB  8.29%  github.com/deliri/primitive/v2026/exchange.BenchmarkAggregateCompletedAttemptHandoff.func1.1\n    2.31GB  5.95% 65.22%     9.46GB 24.38%  context.WithDeadlineCause\n    2.11GB  5.44% 70.67%     2.11GB  5.44%  net/url.(*URL).Clone\n    2.09GB  5.38% 76.05%     2.09GB  5.38%  net/url.parse\n    1.65GB  4.25% 80.30%     1.65GB  4.25%  context.(*cancelCtx).Done\n    1.62GB  4.18% 84.48%     1.62GB  4.18%  time.newTimer\n    1.10GB  2.84% 87.32%     1.10GB  2.84%  context.withCancel\n    1.04GB  2.69% 90.01%     2.04GB  5.27%  github.com/deliri/primitive/v2026/exchange.copyDownload\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkAggregateCompletedAttemptHandoff/cancel_after_native_close",
+      "record": "post-checkpoint-final-benchmark-19.json",
+      "measurement": "BenchmarkAggregateCompletedAttemptHandoff/cancel_after_native_close         \t13946605\t      2607 ns/op\t    2886 B/op\t      40 allocs/op",
+      "elapsed_seconds": 37.399835333024384,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-19-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-19.test\nType: cpu\nTime: 2026-09-07 11:06:27 EDT\nDuration: 36.50s, Total samples = 33.87s (92.80%)\nShowing nodes accounting for 29.32s, 86.57% of 33.87s total\nDropped 298 nodes (cum <= 0.17s)\nShowing top 12 nodes out of 94\n      flat  flat%   sum%        cum   cum%\n    27.16s 80.19% 80.19%     27.16s 80.19%  runtime.kevent\n     0.52s  1.54% 81.72%      0.52s  1.54%  runtime.madvise\n     0.38s  1.12% 82.85%      0.83s  2.45%  runtime.mallocgcSmallScanNoHeader\n     0.23s  0.68% 83.53%      0.24s  0.71%  errors.is\n     0.22s  0.65% 84.17%      0.47s  1.39%  runtime.mallocgcSmallScanSlowPath\n     0.22s  0.65% 84.82%      0.25s  0.74%  runtime.tryDeferToSpanScan\n     0.15s  0.44% 85.27%      0.33s  0.97%  runtime.mallocgcSmallScanNoHeaderSC5\n     0.14s  0.41% 85.68%      0.27s   0.8%  runtime.scanObject\n     0.09s  0.27% 85.95%      1.77s  5.23%  runtime.mallocgc\n     0.09s  0.27% 86.21%      0.20s  0.59%  runtime.mallocgcSmallScanNoHeaderSC2\n     0.06s  0.18% 86.39%      0.20s  0.59%  runtime.mallocgcSmallScanNoHeaderSC4\n     0.06s  0.18% 86.57%      0.27s   0.8%  runtime.wbBufFlush1\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-19-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-19.test\nType: alloc_space\nTime: 2026-09-07 11:07:03 EDT\nShowing nodes accounting for 33.20GB, 88.23% of 37.63GB total\nDropped 42 nodes (cum <= 0.19GB)\nShowing top 12 nodes out of 53\n      flat  flat%   sum%        cum   cum%\n    5.43GB 14.43% 14.43%     5.43GB 14.43%  net/http.Header.Clone\n    4.79GB 12.74% 27.16%     4.79GB 12.74%  net/textproto.MIMEHeader.Set\n    4.77GB 12.68% 39.84%     6.60GB 17.55%  net/http.NewRequestWithContext\n    3.37GB  8.94% 48.78%     4.81GB 12.78%  context.(*cancelCtx).propagateCancel\n    2.72GB  7.23% 56.01%     2.72GB  7.23%  errors.Join\n    2.33GB  6.18% 62.20%     2.92GB  7.76%  github.com/deliri/primitive/v2026/exchange.BenchmarkAggregateCompletedAttemptHandoff.func1.1\n    2.11GB  5.62% 67.81%     8.37GB 22.25%  context.WithDeadlineCause\n    1.89GB  5.02% 72.83%     1.89GB  5.02%  net/url.(*URL).Clone\n    1.83GB  4.87% 77.70%     1.83GB  4.87%  net/url.parse\n    1.45GB  3.85% 81.55%     1.45GB  3.85%  time.newTimer\n    1.45GB  3.84% 85.39%     1.45GB  3.84%  context.(*cancelCtx).Done\n    1.07GB  2.84% 88.23%     1.07GB  2.84%  context.withCancel\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkAggregateHeaderValueAdmission/at_limit",
+      "record": "post-checkpoint-final-benchmark-20.json",
+      "measurement": "BenchmarkAggregateHeaderValueAdmission/at_limit         \t 7649838\t      4720 ns/op\t    1721 B/op\t      71 allocs/op",
+      "elapsed_seconds": 37.124405750015285,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-20-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-20.test\nType: cpu\nTime: 2026-09-07 11:07:04 EDT\nDuration: 36.22s, Total samples = 31.28s (86.36%)\nShowing nodes accounting for 28.44s, 90.92% of 31.28s total\nDropped 193 nodes (cum <= 0.16s)\nShowing top 12 nodes out of 48\n      flat  flat%   sum%        cum   cum%\n    18.23s 58.28% 58.28%     18.23s 58.28%  runtime.kevent\n     5.33s 17.04% 75.32%      5.33s 17.04%  github.com/deliri/primitive/v2026/core.isHTTPFieldValueByte (inline)\n     1.59s  5.08% 80.40%      6.92s 22.12%  github.com/deliri/primitive/v2026/core.ValidateHTTPFieldValue\n     0.82s  2.62% 83.02%      1.80s  5.75%  runtime.mallocgcSmallScanNoHeaderSC2\n     0.55s  1.76% 84.78%      0.55s  1.76%  runtime.madvise\n     0.51s  1.63% 86.41%      7.43s 23.75%  github.com/deliri/primitive/v2026/exchange.HeaderValue.Validate\n     0.39s  1.25% 87.66%      5.55s 17.74%  github.com/deliri/primitive/v2026/exchange.Header.Validate\n     0.37s  1.18% 88.84%      0.76s  2.43%  runtime.mallocgcSmallScanSlowPath\n     0.24s  0.77% 89.61%      4.64s 14.83%  github.com/deliri/primitive/v2026/exchange.NewHeaderValue\n     0.15s  0.48% 90.09%      0.19s  0.61%  runtime.tryDeferToSpanScan\n     0.13s  0.42% 90.51%      5.06s 16.18%  github.com/deliri/primitive/v2026/exchange.headerValues\n     0.13s  0.42% 90.92%      0.35s  1.12%  runtime.bulkBarrierPreWrite\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-20-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-20.test\nType: alloc_space\nTime: 2026-09-07 11:07:41 EDT\nShowing nodes accounting for 12.29GB, 99.93% of 12.30GB total\nDropped 31 nodes (cum <= 0.06GB)\nShowing top 12 nodes out of 13\n      flat  flat%   sum%        cum   cum%\n    7.28GB 59.21% 59.21%     7.28GB 59.21%  github.com/deliri/primitive/v2026/exchange.NewHeaderValue\n    3.68GB 29.95% 89.16%    10.97GB 89.16%  github.com/deliri/primitive/v2026/exchange.headerValues\n    0.51GB  4.16% 93.31%     0.63GB  5.15%  github.com/deliri/primitive/v2026/exchange.copyDownload\n    0.36GB  2.97% 96.28%        1GB  8.11%  github.com/deliri/primitive/v2026/exchange.readBoundedBody\n    0.33GB  2.70% 98.98%    11.30GB 91.86%  github.com/deliri/primitive/v2026/exchange.captureHeaders\n    0.12GB  0.94% 99.93%     0.12GB  0.94%  github.com/deliri/primitive/v2026/exchange.streamCopyDestination (inline)\n         0     0% 99.93%    12.30GB   100%  github.com/deliri/primitive/v2026/exchange.BenchmarkAggregateHeaderValueAdmission.func1\n         0     0% 99.93%     0.63GB  5.15%  github.com/deliri/primitive/v2026/exchange.copyBoundedBody\n         0     0% 99.93%    12.30GB   100%  github.com/deliri/primitive/v2026/exchange.readAggregateHTTPResponse\n         0     0% 99.93%        1GB  8.11%  github.com/deliri/primitive/v2026/exchange.readAggregateResponseBody\n         0     0% 99.93%    11.30GB 91.86%  github.com/deliri/primitive/v2026/exchange.readAggregateResponseMetadata\n         0     0% 99.93%    12.30GB   100%  testing.(*B).run1.func1\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkAggregateHeaderValueAdmission/above_limit",
+      "record": "post-checkpoint-final-benchmark-21.json",
+      "measurement": "BenchmarkAggregateHeaderValueAdmission/above_limit         \t238839908\t       151.1 ns/op\t     144 B/op\t       5 allocs/op",
+      "elapsed_seconds": 37.08812545798719,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-21-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-21.test\nType: cpu\nTime: 2026-09-07 11:07:42 EDT\nDuration: 36.19s, Total samples = 33.33s (92.10%)\nShowing nodes accounting for 29.60s, 88.81% of 33.33s total\nDropped 139 nodes (cum <= 0.17s)\nShowing top 12 nodes out of 51\n      flat  flat%   sum%        cum   cum%\n    25.49s 76.48% 76.48%     25.49s 76.48%  runtime.kevent\n     0.62s  1.86% 78.34%      0.62s  1.86%  runtime.madvise\n     0.59s  1.77% 80.11%      1.71s  5.13%  runtime.mallocgcSmallScanSlowPath\n     0.56s  1.68% 81.79%      0.61s  1.83%  errors.is\n     0.40s  1.20% 82.99%         1s  3.00%  runtime.mallocgcSmallScanNoHeaderSC5\n     0.38s  1.14% 84.13%      1.26s  3.78%  runtime.mallocgcSmallScanNoHeaderSC3\n     0.31s  0.93% 85.06%      3.37s 10.11%  errors.Join (inline)\n     0.28s  0.84% 85.90%      0.30s   0.9%  internal/runtime/maps.(*Map).getWithoutKeySmallFastStr\n     0.25s  0.75% 86.65%      5.67s 17.01%  github.com/deliri/primitive/v2026/exchange.readAggregateResponseMetadata\n     0.25s  0.75% 87.40%      0.25s  0.75%  runtime.markBits.setMarked (inline)\n     0.24s  0.72% 88.12%      0.30s   0.9%  runtime.tryDeferToSpanScan\n     0.23s  0.69% 88.81%      5.92s 17.76%  github.com/deliri/primitive/v2026/exchange.readAggregateHTTPResponse\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-21-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-21.test\nType: alloc_space\nTime: 2026-09-07 11:08:18 EDT\nShowing nodes accounting for 32.02GB, 100% of 32.02GB total\nDropped 32 nodes (cum <= 0.16GB)\n      flat  flat%   sum%        cum   cum%\n   21.28GB 66.47% 66.47%    21.28GB 66.47%  errors.Join (inline)\n   10.73GB 33.52%   100%    10.73GB 33.52%  github.com/deliri/primitive/v2026/exchange.captureHeaders\n         0     0%   100%    32.02GB   100%  github.com/deliri/primitive/v2026/exchange.BenchmarkAggregateHeaderValueAdmission.func1\n         0     0%   100%    32.02GB   100%  github.com/deliri/primitive/v2026/exchange.readAggregateHTTPResponse\n         0     0%   100%    32.02GB   100%  github.com/deliri/primitive/v2026/exchange.readAggregateResponseMetadata\n         0     0%   100%    12.45GB 38.87%  github.com/deliri/primitive/v2026/exchange.responseError (inline)\n         0     0%   100%    32.02GB   100%  testing.(*B).run1.func1\n         0     0%   100%    32.02GB   100%  testing.(*B).runN\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkAggregateHeaderValueAdmission/excess_4096",
+      "record": "post-checkpoint-final-benchmark-22.json",
+      "measurement": "BenchmarkAggregateHeaderValueAdmission/excess_4096         \t236524135\t       152.4 ns/op\t     144 B/op\t       5 allocs/op",
+      "elapsed_seconds": 37.114835083979415,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-22-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-22.test\nType: cpu\nTime: 2026-09-07 11:08:19 EDT\nDuration: 36.21s, Total samples = 33.13s (91.50%)\nShowing nodes accounting for 28.71s, 86.66% of 33.13s total\nDropped 150 nodes (cum <= 0.17s)\nShowing top 12 nodes out of 53\n      flat  flat%   sum%        cum   cum%\n    23.33s 70.42% 70.42%     23.33s 70.42%  runtime.kevent\n     0.75s  2.26% 72.68%      2.31s  6.97%  runtime.mallocgcSmallScanSlowPath\n     0.70s  2.11% 74.80%      0.70s  2.11%  runtime.madvise\n     0.69s  2.08% 76.88%      0.72s  2.17%  errors.is\n     0.56s  1.69% 78.57%      1.76s  5.31%  runtime.mallocgcSmallScanNoHeaderSC3\n     0.48s  1.45% 80.02%      1.20s  3.62%  runtime.mallocgcSmallScanNoHeaderSC5\n     0.48s  1.45% 81.47%      0.54s  1.63%  runtime.tryDeferToSpanScan\n     0.38s  1.15% 82.61%      0.42s  1.27%  internal/runtime/maps.(*Map).getWithoutKeySmallFastStr\n     0.37s  1.12% 83.73%      0.84s  2.54%  runtime.mallocgcSmallScanNoHeaderSC2\n     0.33s     1% 84.73%      7.61s 22.97%  github.com/deliri/primitive/v2026/exchange.readAggregateHTTPResponse\n     0.33s     1% 85.72%      7.25s 21.88%  github.com/deliri/primitive/v2026/exchange.readAggregateResponseMetadata\n     0.31s  0.94% 86.66%      1.05s  3.17%  runtime.mallocgcSmallScanNoHeaderSC4\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-22-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-22.test\nType: alloc_space\nTime: 2026-09-07 11:08:55 EDT\nShowing nodes accounting for 31.75GB, 100% of 31.76GB total\nDropped 30 nodes (cum <= 0.16GB)\n      flat  flat%   sum%        cum   cum%\n   21.19GB 66.72% 66.72%    21.19GB 66.72%  errors.Join (inline)\n   10.57GB 33.27%   100%    10.57GB 33.27%  github.com/deliri/primitive/v2026/exchange.captureHeaders\n         0     0%   100%    31.75GB   100%  github.com/deliri/primitive/v2026/exchange.BenchmarkAggregateHeaderValueAdmission.func1\n         0     0%   100%    31.75GB   100%  github.com/deliri/primitive/v2026/exchange.readAggregateHTTPResponse\n         0     0%   100%    31.75GB   100%  github.com/deliri/primitive/v2026/exchange.readAggregateResponseMetadata\n         0     0%   100%    12.30GB 38.74%  github.com/deliri/primitive/v2026/exchange.responseError (inline)\n         0     0%   100%    31.75GB   100%  testing.(*B).run1.func1\n         0     0%   100%    31.75GB   100%  testing.(*B).runN\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkReplayStreamDownloadHandoff/binary_success",
+      "record": "post-checkpoint-final-benchmark-23.json",
+      "measurement": "BenchmarkReplayStreamDownloadHandoff/binary_success         \t 8893316\t      4064 ns/op\t   0.49 MB/s\t    4184 B/op\t      46 allocs/op",
+      "elapsed_seconds": 37.223106499994174,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-23-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-23.test\nType: cpu\nTime: 2026-09-07 11:08:56 EDT\nDuration: 36.32s, Total samples = 33.59s (92.49%)\nShowing nodes accounting for 28.65s, 85.29% of 33.59s total\nDropped 325 nodes (cum <= 0.17s)\nShowing top 12 nodes out of 99\n      flat  flat%   sum%        cum   cum%\n    26.67s 79.40% 79.40%     26.67s 79.40%  runtime.kevent\n     0.34s  1.01% 80.41%      0.34s  1.01%  runtime.madvise\n     0.28s  0.83% 81.24%      0.93s  2.77%  runtime.mallocgcSmallScanNoHeader\n     0.21s  0.63% 81.87%      0.23s  0.68%  runtime.nanotime1\n     0.18s  0.54% 82.41%      0.18s  0.54%  internal/bytealg.LastIndexByteString\n     0.18s  0.54% 82.94%      0.18s  0.54%  net/url.unescape\n     0.18s  0.54% 83.48%      0.18s  0.54%  runtime.memclrNoHeapPointers\n     0.16s  0.48% 83.95%      0.20s   0.6%  runtime.tryDeferToSpanScan\n     0.15s  0.45% 84.40%      0.22s  0.65%  runtime.scanObject\n     0.11s  0.33% 84.73%      0.35s  1.04%  runtime.mallocgcSmallScanSlowPath\n     0.10s   0.3% 85.03%      0.22s  0.65%  runtime.mallocgcSmallScanNoHeaderSC2\n     0.09s  0.27% 85.29%      1.60s  4.76%  runtime.mallocgc\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-23-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-23.test\nType: alloc_space\nTime: 2026-09-07 11:09:33 EDT\nShowing nodes accounting for 31.16GB, 90.03% of 34.62GB total\nDropped 18 nodes (cum <= 0.17GB)\nShowing top 12 nodes out of 47\n      flat  flat%   sum%        cum   cum%\n    6.43GB 18.59% 18.59%     9.27GB 26.79%  context.(*cancelCtx).propagateCancel\n    3.52GB 10.16% 28.75%     3.52GB 10.16%  net/http.Header.Clone\n    3.03GB  8.74% 37.49%     3.03GB  8.74%  net/textproto.MIMEHeader.Set\n    3.02GB  8.73% 46.22%     4.19GB 12.11%  net/http.NewRequestWithContext\n    2.84GB  8.20% 54.42%     2.84GB  8.20%  context.(*cancelCtx).Done\n    2.60GB  7.51% 61.93%    14.55GB 42.03%  context.WithDeadlineCause\n    2.33GB  6.73% 68.66%     2.33GB  6.73%  net/url.parse\n    1.86GB  5.39% 74.05%     1.86GB  5.39%  time.newTimer\n    1.83GB  5.29% 79.33%     1.95GB  5.62%  github.com/deliri/primitive/v2026/exchange.clientForPolicy\n    1.36GB  3.93% 83.26%     4.47GB 12.91%  context.withCancel (inline)\n    1.17GB  3.39% 86.65%     1.17GB  3.39%  net/url.(*URL).Clone\n    1.17GB  3.38% 90.03%     1.17GB  3.38%  github.com/deliri/primitive/v2026/exchange.BenchmarkReplayStreamDownloadHandoff.func1.1\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkReplayStreamDownloadHandoff/cancelled_native_read_failure",
+      "record": "post-checkpoint-final-benchmark-24.json",
+      "measurement": "BenchmarkReplayStreamDownloadHandoff/cancelled_native_read_failure         \t 7547623\t      4776 ns/op\t   0.42 MB/s\t    4392 B/op\t      54 allocs/op",
+      "elapsed_seconds": 37.06472549997852,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-24-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-24.test\nType: cpu\nTime: 2026-09-07 11:09:34 EDT\nDuration: 36.17s, Total samples = 33.28s (92.00%)\nShowing nodes accounting for 27.84s, 83.65% of 33.28s total\nDropped 330 nodes (cum <= 0.17s)\nShowing top 12 nodes out of 106\n      flat  flat%   sum%        cum   cum%\n    25.23s 75.81% 75.81%     25.23s 75.81%  runtime.kevent\n     0.50s  1.50% 77.31%      0.50s  1.50%  runtime.madvise\n     0.37s  1.11% 78.43%      0.37s  1.11%  slices.Index[go.shape.[]github.com/deliri/primitive/v2026/core.ErrorIdentity,go.shape.uint16] (inline)\n     0.31s  0.93% 79.36%      0.86s  2.58%  errors.is\n     0.28s  0.84% 80.20%      0.32s  0.96%  runtime.tryDeferToSpanScan\n     0.25s  0.75% 80.95%      0.25s  0.75%  internal/bytealg.LastIndexByteString\n     0.25s  0.75% 81.70%      0.25s  0.75%  net/url.unescape\n     0.21s  0.63% 82.33%      0.90s  2.70%  runtime.mallocgcSmallScanNoHeader\n     0.14s  0.42% 82.75%      0.24s  0.72%  runtime.scanObject\n     0.11s  0.33% 83.08%      0.54s  1.62%  context.(*cancelCtx).cancel\n     0.10s   0.3% 83.38%      0.18s  0.54%  internal/runtime/maps.(*Iter).Next\n     0.09s  0.27% 83.65%      0.18s  0.54%  runtime.mallocgcSmallScanNoHeaderSC2\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-24-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-24.test\nType: alloc_space\nTime: 2026-09-07 11:10:10 EDT\nShowing nodes accounting for 26.95GB, 87.06% of 30.96GB total\nDropped 43 nodes (cum <= 0.15GB)\nShowing top 12 nodes out of 53\n      flat  flat%   sum%        cum   cum%\n    5.41GB 17.48% 17.48%     7.78GB 25.13%  context.(*cancelCtx).propagateCancel\n    2.91GB  9.41% 26.89%     2.91GB  9.41%  net/http.Header.Clone\n    2.66GB  8.59% 35.48%     3.67GB 11.87%  net/http.NewRequestWithContext\n    2.60GB  8.40% 43.88%     2.60GB  8.40%  net/textproto.MIMEHeader.Set\n    2.37GB  7.65% 51.53%     2.37GB  7.65%  context.(*cancelCtx).Done\n    2.25GB  7.28% 58.81%    12.26GB 39.59%  context.WithDeadlineCause\n    2.03GB  6.55% 65.36%     2.03GB  6.55%  net/url.parse\n    1.55GB  5.01% 70.37%     1.66GB  5.36%  github.com/deliri/primitive/v2026/exchange.clientForPolicy\n    1.54GB  4.98% 75.34%     1.54GB  4.98%  time.newTimer\n    1.46GB  4.72% 80.07%     1.46GB  4.72%  errors.Join\n    1.13GB  3.65% 83.71%     3.69GB 11.91%  context.withCancel (inline)\n    1.04GB  3.34% 87.06%     1.04GB  3.34%  github.com/deliri/primitive/v2026/exchange.BenchmarkReplayStreamDownloadHandoff.func1.1\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkServerRuntimeBoundary/dormant_construction",
+      "record": "post-checkpoint-final-benchmark-25.json",
+      "measurement": "BenchmarkServerRuntimeBoundary/dormant_construction         \t152692352\t       236.4 ns/op\t     560 B/op\t       4 allocs/op",
+      "elapsed_seconds": 37.17629762500292,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-25-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-25.test\nType: cpu\nTime: 2026-09-07 11:10:11 EDT\nDuration: 36.29s, Total samples = 33.74s (92.98%)\nShowing nodes accounting for 31.68s, 93.89% of 33.74s total\nDropped 149 nodes (cum <= 0.17s)\nShowing top 12 nodes out of 33\n      flat  flat%   sum%        cum   cum%\n    30.04s 89.03% 89.03%     30.04s 89.03%  runtime.kevent\n     0.40s  1.19% 90.22%      1.29s  3.82%  runtime.mallocgcSmallScanNoHeader\n     0.21s  0.62% 90.84%      0.21s  0.62%  errors.Join (inline)\n     0.21s  0.62% 91.46%      0.21s  0.62%  runtime.madvise\n     0.21s  0.62% 92.09%      0.36s  1.07%  runtime.scanObject\n     0.16s  0.47% 92.56%      0.39s  1.16%  github.com/deliri/primitive/v2026/exchange.ServerRuntimePolicy.Validate\n     0.11s  0.33% 92.89%      0.70s  2.07%  github.com/deliri/primitive/v2026/exchange.ServerRuntimeConfiguration.Validate\n     0.10s   0.3% 93.18%      1.19s  3.53%  github.com/deliri/primitive/v2026/exchange.newHTTPServer\n     0.09s  0.27% 93.45%      2.03s  6.02%  runtime.mallocgc\n     0.07s  0.21% 93.66%      1.99s  5.90%  runtime.newobject\n     0.05s  0.15% 93.81%      2.95s  8.74%  github.com/deliri/primitive/v2026/exchange.NewServerRuntime\n     0.03s 0.089% 93.89%      3.27s  9.69%  github.com/deliri/primitive/v2026/exchange.BenchmarkServerRuntimeBoundary.func1\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-25-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-25.test\nType: alloc_space\nTime: 2026-09-07 11:10:47 EDT\nShowing nodes accounting for 79.75GB, 100% of 79.75GB total\nDropped 34 nodes (cum <= 0.40GB)\n      flat  flat%   sum%        cum   cum%\n   45.45GB 56.98% 56.98%    45.45GB 56.98%  github.com/deliri/primitive/v2026/exchange.newHTTPServer\n   34.30GB 43.01%   100%    79.75GB   100%  github.com/deliri/primitive/v2026/exchange.NewServerRuntime\n         0     0%   100%    79.75GB   100%  github.com/deliri/primitive/v2026/exchange.BenchmarkServerRuntimeBoundary.func1\n         0     0%   100%    79.75GB   100%  testing.(*B).run1.func1\n         0     0%   100%    79.75GB   100%  testing.(*B).runN\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkServerRuntimeBoundary/os_allocated_listener_acquire_close",
+      "record": "post-checkpoint-final-benchmark-26.json",
+      "measurement": "BenchmarkServerRuntimeBoundary/os_allocated_listener_acquire_close         \t 3231613\t     11100 ns/op\t     544 B/op\t      16 allocs/op",
+      "elapsed_seconds": 36.90184470900567,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-26-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-26.test\nType: cpu\nTime: 2026-09-07 11:10:48 EDT\nDuration: 36.01s, Total samples = 26.92s (74.75%)\nShowing nodes accounting for 26.90s, 99.93% of 26.92s total\nDropped 29 nodes (cum <= 0.13s)\nShowing top 12 nodes out of 39\n      flat  flat%   sum%        cum   cum%\n    23.90s 88.78% 88.78%     23.90s 88.78%  syscall.rawsyscalln\n        3s 11.14% 99.93%         3s 11.14%  runtime.kevent\n         0     0% 99.93%     10.08s 37.44%  github.com/deliri/primitive/v2026/exchange.(*ServerListener).Close\n         0     0% 99.93%     26.85s 99.74%  github.com/deliri/primitive/v2026/exchange.BenchmarkServerRuntimeBoundary.func1\n         0     0% 99.93%     16.76s 62.26%  github.com/deliri/primitive/v2026/exchange.Listen\n         0     0% 99.93%     10.08s 37.44%  internal/poll.(*FD).Close\n         0     0% 99.93%      2.94s 10.92%  internal/poll.(*FD).Init\n         0     0% 99.93%     10.08s 37.44%  internal/poll.(*FD).decref\n         0     0% 99.93%     10.08s 37.44%  internal/poll.(*FD).destroy\n         0     0% 99.93%     10.08s 37.44%  internal/poll.(*SysFile).destroy (inline)\n         0     0% 99.93%      2.94s 10.92%  internal/poll.(*pollDesc).init\n         0     0% 99.93%      2.94s 10.92%  internal/poll.runtime_pollOpen\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-26-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-26.test\nType: alloc_space\nTime: 2026-09-07 11:11:24 EDT\nShowing nodes accounting for 1704.11MB, 99.80% of 1707.51MB total\nDropped 27 nodes (cum <= 8.54MB)\nShowing top 12 nodes out of 23\n      flat  flat%   sum%        cum   cum%\n  409.05MB 23.96% 23.96%   409.05MB 23.96%  net.newFD (inline)\n  305.03MB 17.86% 41.82%  1603.61MB 93.92%  github.com/deliri/primitive/v2026/exchange.Listen\n  200.51MB 11.74% 53.56%   958.57MB 56.14%  net.(*sysListener).listenTCPProto\n  149.50MB  8.76% 62.32%   149.50MB  8.76%  net.JoinHostPort (inline)\n  142.01MB  8.32% 70.64%   142.01MB  8.32%  net.sockaddrToTCP\n  135.01MB  7.91% 78.54%   188.51MB 11.04%  net.TCPAddrFromAddrPort\n     107MB  6.27% 84.81%      107MB  6.27%  syscall.anyToSockaddr\n  102.50MB  6.00% 90.81%   102.50MB  6.00%  net.IP.String\n     100MB  5.86% 96.67%      100MB  5.86%  net.ipToSockaddr\n   53.50MB  3.13% 99.80%    53.50MB  3.13%  net/netip.Addr.AsSlice (inline)\n         0     0% 99.80%  1704.11MB 99.80%  github.com/deliri/primitive/v2026/exchange.BenchmarkServerRuntimeBoundary.func1\n         0     0% 99.80%      252MB 14.76%  net.(*TCPAddr).String\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkListenAddressAdmission/concrete_ipv4",
+      "record": "post-checkpoint-final-benchmark-27.json",
+      "measurement": "BenchmarkListenAddressAdmission/concrete_ipv4         \t456466648\t        79.00 ns/op\t      16 B/op\t       1 allocs/op",
+      "elapsed_seconds": 37.13078579198918,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-27-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-27.test\nType: cpu\nTime: 2026-09-07 11:11:25 EDT\nDuration: 36.19s, Total samples = 31480ms (86.98%)\nShowing nodes accounting for 25000ms, 79.42% of 31480ms total\nDropped 126 nodes (cum <= 157.40ms)\nShowing top 12 nodes out of 55\n      flat  flat%   sum%        cum   cum%\n   15080ms 47.90% 47.90%    15080ms 47.90%  runtime.kevent\n    1890ms  6.00% 53.91%     1890ms  6.00%  net/netip.parseIPv4Fields\n    1730ms  5.50% 59.40%     1730ms  5.50%  runtime.madvise\n    1300ms  4.13% 63.53%     1300ms  4.13%  internal/strconv.ParseUint\n     820ms  2.60% 66.14%      820ms  2.60%  internal/strconv.formatBase10\n     790ms  2.51% 68.65%      790ms  2.51%  net/netip.appendDecimal (inline)\n     650ms  2.06% 70.71%     2870ms  9.12%  net/netip.ParseAddr\n     620ms  1.97% 72.68%      620ms  1.97%  net/netip.Addr.Is6 (inline)\n     600ms  1.91% 74.59%     1510ms  4.80%  runtime.mallocgcTinySC2\n     550ms  1.75% 76.33%     1360ms  4.32%  net/netip.Addr.appendTo4\n     500ms  1.59% 77.92%     1520ms  4.83%  github.com/deliri/primitive/v2026/exchange.ListenAddress.Validate\n     470ms  1.49% 79.42%     1500ms  4.76%  internal/strconv.AppendUint\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-27-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-27.test\nType: alloc_space\nTime: 2026-09-07 11:12:02 EDT\nShowing nodes accounting for 6.84GB, 99.94% of 6.84GB total\nDropped 40 nodes (cum <= 0.03GB)\n      flat  flat%   sum%        cum   cum%\n    6.84GB 99.94% 99.94%     6.84GB 99.94%  net/netip.AddrPort.String\n         0     0% 99.94%     6.84GB 99.94%  github.com/deliri/primitive/v2026/exchange.BenchmarkListenAddressAdmission.func1\n         0     0% 99.94%     6.84GB 99.94%  github.com/deliri/primitive/v2026/exchange.ListenAddress.String\n         0     0% 99.94%     6.84GB 99.94%  testing.(*B).run1.func1\n         0     0% 99.94%     6.84GB 99.94%  testing.(*B).runN\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkListenAddressAdmission/concrete_mapped_ipv4",
+      "record": "post-checkpoint-final-benchmark-28.json",
+      "measurement": "BenchmarkListenAddressAdmission/concrete_mapped_ipv4         \t355580390\t       101.3 ns/op\t      24 B/op\t       1 allocs/op",
+      "elapsed_seconds": 37.045410457998514,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-28-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-28.test\nType: cpu\nTime: 2026-09-07 11:12:03 EDT\nDuration: 36.13s, Total samples = 30.98s (85.75%)\nShowing nodes accounting for 24.94s, 80.50% of 30.98s total\nDropped 146 nodes (cum <= 0.15s)\nShowing top 12 nodes out of 65\n      flat  flat%   sum%        cum   cum%\n    16.73s 54.00% 54.00%     16.73s 54.00%  runtime.kevent\n     2.52s  8.13% 62.14%      4.78s 15.43%  net/netip.parseIPv6\n     1.45s  4.68% 66.82%      1.45s  4.68%  net/netip.parseIPv4Fields\n     0.92s  2.97% 69.79%      0.92s  2.97%  runtime.madvise\n     0.69s  2.23% 72.01%      0.69s  2.23%  internal/strconv.ParseUint\n     0.51s  1.65% 73.66%      0.51s  1.65%  internal/strconv.formatBase10\n     0.48s  1.55% 75.21%      0.48s  1.55%  internal/bytealg.IndexByteString\n     0.43s  1.39% 76.60%      0.43s  1.39%  net/netip.Addr.Is6 (inline)\n     0.33s  1.07% 77.66%      3.89s 12.56%  net/netip.AddrPort.String\n     0.30s  0.97% 78.63%      0.53s  1.71%  net/netip.Addr.WithZone\n     0.30s  0.97% 79.60%      1.50s  4.84%  runtime.mallocgcSmallNoScanSC3\n     0.28s   0.9% 80.50%      0.97s  3.13%  internal/strconv.AppendUint\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-28-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-28.test\nType: alloc_space\nTime: 2026-09-07 11:12:39 EDT\nShowing nodes accounting for 7.90GB, 99.94% of 7.90GB total\nDropped 44 nodes (cum <= 0.04GB)\n      flat  flat%   sum%        cum   cum%\n    7.90GB 99.94% 99.94%     7.90GB 99.94%  net/netip.AddrPort.String\n         0     0% 99.94%     7.90GB 99.94%  github.com/deliri/primitive/v2026/exchange.BenchmarkListenAddressAdmission.func1\n         0     0% 99.94%     7.90GB 99.94%  github.com/deliri/primitive/v2026/exchange.ListenAddress.String\n         0     0% 99.94%     7.90GB 99.94%  testing.(*B).run1.func1\n         0     0% 99.94%     7.90GB 99.94%  testing.(*B).runN\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkListenAddressAdmission/mapped_wildcard",
+      "record": "post-checkpoint-final-benchmark-29.json",
+      "measurement": "BenchmarkListenAddressAdmission/mapped_wildcard         \t533316394\t        67.78 ns/op\t       0 B/op\t       0 allocs/op",
+      "elapsed_seconds": 37.225240582978586,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-29-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-29.test\nType: cpu\nTime: 2026-09-07 11:12:40 EDT\nDuration: 36.33s, Total samples = 30650ms (84.37%)\nShowing nodes accounting for 24530ms, 80.03% of 30650ms total\nDropped 53 nodes (cum <= 153.25ms)\nShowing top 12 nodes out of 39\n      flat  flat%   sum%        cum   cum%\n    8350ms 27.24% 27.24%    14890ms 48.58%  net/netip.parseIPv6\n    4430ms 14.45% 41.70%     4450ms 14.52%  net/netip.parseIPv4Fields\n    2780ms  9.07% 50.77%     2780ms  9.07%  internal/strconv.ParseUint\n    1700ms  5.55% 56.31%    30040ms 98.01%  github.com/deliri/primitive/v2026/exchange.BenchmarkListenAddressAdmission.func1\n    1190ms  3.88% 60.20%     1190ms  3.88%  internal/bytealg.IndexByteString\n    1020ms  3.33% 63.52%     2700ms  8.81%  github.com/deliri/primitive/v2026/exchange.ListenAddress.Validate\n     970ms  3.16% 66.69%     3640ms 11.88%  errors.Is\n     950ms  3.10% 69.79%    20900ms 68.19%  net/netip.ParseAddrPort\n     870ms  2.84% 72.63%     2280ms  7.44%  errors.is\n     800ms  2.61% 75.24%     1410ms  4.60%  runtime.ifaceeq\n     770ms  2.51% 77.75%      770ms  2.51%  net/netip.Addr.Is6 (inline)\n     700ms  2.28% 80.03%    15590ms 50.86%  net/netip.ParseAddr\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-29-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-29.test\nType: alloc_space\nTime: 2026-09-07 11:13:16 EDT\nShowing nodes accounting for 1697.27kB, 100% of 1697.27kB total\nShowing top 12 nodes out of 17\n      flat  flat%   sum%        cum   cum%\n 1184.27kB 69.78% 69.78%  1184.27kB 69.78%  runtime/pprof.StartCPUProfile\n     513kB 30.22%   100%      513kB 30.22%  runtime.mallocgc\n         0     0%   100%  1184.27kB 69.78%  main.main\n         0     0%   100%      513kB 30.22%  runtime.allocm\n         0     0%   100%  1184.27kB 69.78%  runtime.main\n         0     0%   100%      513kB 30.22%  runtime.mstart\n         0     0%   100%      513kB 30.22%  runtime.mstart0\n         0     0%   100%      513kB 30.22%  runtime.mstart1\n         0     0%   100%      513kB 30.22%  runtime.newm\n         0     0%   100%      513kB 30.22%  runtime.newobject\n         0     0%   100%      513kB 30.22%  runtime.resetspinning\n         0     0%   100%      513kB 30.22%  runtime.schedule\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkListenAddressAdmission/zoned_wildcard",
+      "record": "post-checkpoint-final-benchmark-30.json",
+      "measurement": "BenchmarkListenAddressAdmission/zoned_wildcard         \t474849439\t        76.02 ns/op\t       0 B/op\t       0 allocs/op",
+      "elapsed_seconds": 37.12591250002151,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-30-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-30.test\nType: cpu\nTime: 2026-09-07 11:13:17 EDT\nDuration: 36.24s, Total samples = 30900ms (85.28%)\nShowing nodes accounting for 15420ms, 49.90% of 30900ms total\nDropped 59 nodes (cum <= 154.50ms)\nShowing top 12 nodes out of 55\n      flat  flat%   sum%        cum   cum%\n    2710ms  8.77%  8.77%    10260ms 33.20%  unique.(*canonMap[go.shape.struct { net/netip.isV6 bool; net/netip.zoneV6 string }]).Load\n    2220ms  7.18% 15.95%     2220ms  7.18%  internal/strconv.ParseUint\n    1330ms  4.30% 20.26%     2230ms  7.22%  internal/runtime/maps.MemHash\n    1260ms  4.08% 24.34%     3080ms  9.97%  github.com/deliri/primitive/v2026/exchange.ListenAddress.Validate\n    1200ms  3.88% 28.22%     4020ms 13.01%  errors.Is\n    1080ms  3.50% 31.72%     2530ms  8.19%  errors.is\n    1020ms  3.30% 35.02%    30240ms 97.86%  github.com/deliri/primitive/v2026/exchange.BenchmarkListenAddressAdmission.func1\n     970ms  3.14% 38.16%     1450ms  4.69%  runtime.ifaceeq\n     960ms  3.11% 41.26%      960ms  3.11%  internal/bytealg.IndexByteString\n     940ms  3.04% 44.30%      940ms  3.04%  net/netip.Addr.Is6 (inline)\n     900ms  2.91% 47.22%      900ms  2.91%  internal/runtime/maps.memHashAES\n     830ms  2.69% 49.90%     2220ms  7.18%  internal/sync.(*HashTrieMap[go.shape.*internal/abi.Type,go.shape.interface {}]).Load\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-30-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-30.test\nType: alloc_space\nTime: 2026-09-07 11:13:54 EDT\nShowing nodes accounting for 3287.06kB, 100% of 3287.06kB total\nShowing top 12 nodes out of 29\n      flat  flat%   sum%        cum   cum%\n 1025.05kB 31.18% 31.18%  1025.05kB 31.18%  runtime.mallocgc\n  655.29kB 19.94% 51.12%   655.29kB 19.94%  compress/flate.NewWriter (inline)\n  578.66kB 17.60% 68.72%   578.66kB 17.60%  runtime/pprof.StartCPUProfile\n  516.01kB 15.70% 84.42%   516.01kB 15.70%  runtime/pprof.(*profMap).lookup\n  512.05kB 15.58%   100%   512.05kB 15.58%  runtime/pprof.allFrames\n         0     0%   100%   655.29kB 19.94%  compress/gzip.(*Writer).Write\n         0     0%   100%   578.66kB 17.60%  main.main\n         0     0%   100%   512.05kB 15.58%  runtime.(*scavengerState).init\n         0     0%   100%      513kB 15.61%  runtime.allocm\n         0     0%   100%   512.05kB 15.58%  runtime.bgscavenge\n         0     0%   100%   578.66kB 17.60%  runtime.main\n         0     0%   100%      513kB 15.61%  runtime.mstart\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkListenAddressAdmission/zoned_mapped_wildcard",
+      "record": "post-checkpoint-final-benchmark-31.json",
+      "measurement": "BenchmarkListenAddressAdmission/zoned_mapped_wildcard         \t353062930\t       102.1 ns/op\t       0 B/op\t       0 allocs/op",
+      "elapsed_seconds": 37.12995191698428,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-31-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-31.test\nType: cpu\nTime: 2026-09-07 11:13:55 EDT\nDuration: 36.18s, Total samples = 31260ms (86.41%)\nShowing nodes accounting for 18730ms, 59.92% of 31260ms total\nDropped 49 nodes (cum <= 156.30ms)\nShowing top 12 nodes out of 55\n      flat  flat%   sum%        cum   cum%\n    5220ms 16.70% 16.70%    19690ms 62.99%  net/netip.parseIPv6\n    2640ms  8.45% 25.14%     2650ms  8.48%  net/netip.parseIPv4Fields\n    1880ms  6.01% 31.16%     1880ms  6.01%  internal/strconv.ParseUint\n    1850ms  5.92% 37.08%     7500ms 23.99%  unique.(*canonMap[go.shape.struct { net/netip.isV6 bool; net/netip.zoneV6 string }]).Load\n    1230ms  3.93% 41.01%     1940ms  6.21%  internal/runtime/maps.MemHash\n    1120ms  3.58% 44.59%     3170ms 10.14%  errors.Is\n     860ms  2.75% 47.34%     2040ms  6.53%  internal/sync.(*HashTrieMap[go.shape.*internal/abi.Type,go.shape.interface {}]).Load\n     830ms  2.66% 50.00%     1900ms  6.08%  errors.is\n     830ms  2.66% 52.66%    24020ms 76.84%  net/netip.ParseAddrPort\n     800ms  2.56% 55.21%      800ms  2.56%  internal/bytealg.IndexByteString\n     760ms  2.43% 57.65%     1070ms  3.42%  runtime.ifaceeq\n     710ms  2.27% 59.92%      710ms  2.27%  internal/runtime/maps.memHashAES\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-31-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-31.test\nType: alloc_space\nTime: 2026-09-07 11:14:31 EDT\nShowing nodes accounting for 4950.69kB, 100% of 4950.69kB total\nShowing top 12 nodes out of 32\n      flat  flat%   sum%        cum   cum%\n 1184.27kB 23.92% 23.92%  1184.27kB 23.92%  runtime/pprof.StartCPUProfile\n 1025.05kB 20.71% 44.63%  1025.05kB 20.71%  runtime.mallocgc\n 1024.05kB 20.69% 65.31%  1024.05kB 20.69%  runtime/pprof.(*profileBuilder).emitLocation\n  688.56kB 13.91% 79.22%   688.56kB 13.91%  compress/flate.(*fastGen).addBlock\n  516.64kB 10.44% 89.66%   516.64kB 10.44%  runtime/pprof.(*profMap).lookup\n  512.12kB 10.34%   100%   512.12kB 10.34%  runtime/pprof.allFrames\n         0     0%   100%   688.56kB 13.91%  compress/flate.(*Writer).Close (inline)\n         0     0%   100%   688.56kB 13.91%  compress/flate.(*compressor).close\n         0     0%   100%   688.56kB 13.91%  compress/flate.(*compressor).deflateFast\n         0     0%   100%   688.56kB 13.91%  compress/flate.(*fastEncL1).encode\n         0     0%   100%   688.56kB 13.91%  compress/gzip.(*Writer).Close\n         0     0%   100%  1184.27kB 23.92%  main.main\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkParseIdempotencyKeyMaximum",
+      "record": "post-checkpoint-final-benchmark-32.json",
+      "measurement": "BenchmarkParseIdempotencyKeyMaximum \t266944306\t       134.9 ns/op\t       0 B/op\t       0 allocs/op",
+      "elapsed_seconds": 37.05235954202362,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-32-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-32.test\nType: cpu\nTime: 2026-09-07 11:14:32 EDT\nDuration: 36.14s, Total samples = 31220ms (86.39%)\nShowing nodes accounting for 31100ms, 99.62% of 31220ms total\nDropped 2 nodes (cum <= 156.10ms)\n      flat  flat%   sum%        cum   cum%\n   28980ms 92.83% 92.83%    29940ms 95.90%  github.com/deliri/primitive/v2026/exchange.IdempotencyKey.Validate (inline)\n    1020ms  3.27% 96.09%     1020ms  3.27%  runtime.asyncPreempt\n     600ms  1.92% 98.01%    30590ms 97.98%  github.com/deliri/primitive/v2026/exchange.ParseIdempotencyKey (inline)\n     500ms  1.60% 99.62%    31220ms   100%  github.com/deliri/primitive/v2026/exchange.BenchmarkParseIdempotencyKeyMaximum\n         0     0% 99.62%    31220ms   100%  testing.(*B).run1.func1\n         0     0% 99.62%    31220ms   100%  testing.(*B).runN\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-32-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-32.test\nType: alloc_space\nTime: 2026-09-07 11:15:08 EDT\nShowing nodes accounting for 4066.20kB, 100% of 4066.20kB total\nShowing top 12 nodes out of 29\n      flat  flat%   sum%        cum   cum%\n 1184.27kB 29.12% 29.12%  1184.27kB 29.12%  runtime/pprof.StartCPUProfile\n    1026kB 25.23% 54.36%     1026kB 25.23%  runtime.mallocgc\n  688.56kB 16.93% 71.29%   688.56kB 16.93%  compress/flate.(*fastGen).addBlock\n  655.29kB 16.12% 87.41%   655.29kB 16.12%  compress/flate.NewWriter (inline)\n  512.08kB 12.59%   100%   512.08kB 12.59%  compress/gzip.NewWriterLevel\n         0     0%   100%   688.56kB 16.93%  compress/flate.(*Writer).Close (inline)\n         0     0%   100%   688.56kB 16.93%  compress/flate.(*compressor).close\n         0     0%   100%   688.56kB 16.93%  compress/flate.(*compressor).deflateFast\n         0     0%   100%   688.56kB 16.93%  compress/flate.(*fastEncL1).encode\n         0     0%   100%   688.56kB 16.93%  compress/gzip.(*Writer).Close\n         0     0%   100%   655.29kB 16.12%  compress/gzip.(*Writer).Write\n         0     0%   100%  1184.27kB 29.12%  main.main\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkReceiveBasicAuthorizationCustody/maximum_credentials",
+      "record": "post-checkpoint-final-benchmark-33.json",
+      "measurement": "BenchmarkReceiveBasicAuthorizationCustody/maximum_credentials         \t 5954239\t      6051 ns/op\t    1296 B/op\t       3 allocs/op",
+      "elapsed_seconds": 37.11220412500552,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-33-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-33.test\nType: cpu\nTime: 2026-09-07 11:15:09 EDT\nDuration: 36.19s, Total samples = 32.59s (90.04%)\nShowing nodes accounting for 31.04s, 95.24% of 32.59s total\nDropped 158 nodes (cum <= 0.16s)\nShowing top 12 nodes out of 43\n      flat  flat%   sum%        cum   cum%\n    16.03s 49.19% 49.19%     16.03s 49.19%  runtime.kevent\n     5.12s 15.71% 64.90%      5.13s 15.74%  github.com/deliri/primitive/v2026/core.isHTTPFieldValueByte (inline)\n     3.95s 12.12% 77.02%      5.71s 17.52%  bytes.indexFunc\n     1.33s  4.08% 81.10%      1.33s  4.08%  runtime.madvise\n     1.11s  3.41% 84.50%      1.67s  5.12%  encoding/base64.(*Encoding).Decode\n     1.08s  3.31% 87.82%      1.09s  3.34%  unicode.IsControl\n     0.67s  2.06% 89.87%      0.67s  2.06%  unicode/utf8.DecodeRune (inline)\n     0.55s  1.69% 91.56%      5.68s 17.43%  github.com/deliri/primitive/v2026/core.ValidateHTTPFieldValue\n     0.54s  1.66% 93.22%      0.55s  1.69%  strings.indexFunc\n     0.52s  1.60% 94.81%      0.52s  1.60%  encoding/base64.assemble64 (inline)\n     0.10s  0.31% 95.12%      2.35s  7.21%  github.com/deliri/primitive/v2026/exchange.parseBasicAuthorizationValue\n     0.04s  0.12% 95.24%      0.20s  0.61%  runtime.mallocgcSmallNoscan\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-33-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-33.test\nType: alloc_space\nTime: 2026-09-07 11:15:46 EDT\nShowing nodes accounting for 7403.58MB, 99.93% of 7408.42MB total\nDropped 31 nodes (cum <= 37.04MB)\n      flat  flat%   sum%        cum   cum%\n 5865.72MB 79.18% 79.18%  5865.72MB 79.18%  bytes.Clone (inline)\n 1450.85MB 19.58% 98.76%  7316.58MB 98.76%  github.com/deliri/primitive/v2026/exchange.parseBasicAuthorizationValue\n      87MB  1.17% 99.93%       87MB  1.17%  github.com/deliri/primitive/v2026/exchange.NewHeaderValue\n         0     0% 99.93%  7403.58MB 99.93%  github.com/deliri/primitive/v2026/exchange.BenchmarkReceiveBasicAuthorizationCustody.func1\n         0     0% 99.93%  7403.58MB 99.93%  github.com/deliri/primitive/v2026/exchange.ReceiveBasicAuthorization\n         0     0% 99.93%       87MB  1.17%  github.com/deliri/primitive/v2026/exchange.SocketServerCall.UniqueHeader\n         0     0% 99.93%  7403.58MB 99.93%  testing.(*B).run1.func1\n         0     0% 99.93%  7403.58MB 99.93%  testing.(*B).runN\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkReceiveBasicAuthorizationCustody/partial_base64_refusal",
+      "record": "post-checkpoint-final-benchmark-34.json",
+      "measurement": "BenchmarkReceiveBasicAuthorizationCustody/partial_base64_refusal         \t11110950\t      3231 ns/op\t      80 B/op\t       4 allocs/op",
+      "elapsed_seconds": 37.017422374978196,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-34-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-34.test\nType: cpu\nTime: 2026-09-07 11:15:47 EDT\nDuration: 36.08s, Total samples = 31.10s (86.19%)\nShowing nodes accounting for 29.11s, 93.60% of 31.10s total\nDropped 140 nodes (cum <= 0.16s)\nShowing top 12 nodes out of 54\n      flat  flat%   sum%        cum   cum%\n    15.10s 48.55% 48.55%     15.11s 48.59%  github.com/deliri/primitive/v2026/core.isHTTPFieldValueByte (inline)\n     5.65s 18.17% 66.72%     20.76s 66.75%  github.com/deliri/primitive/v2026/core.ValidateHTTPFieldValue\n     3.81s 12.25% 78.97%      6.20s 19.94%  encoding/base64.(*Encoding).Decode\n     2.23s  7.17% 86.14%      2.23s  7.17%  encoding/base64.assemble64 (inline)\n     0.52s  1.67% 87.81%      0.52s  1.67%  runtime.kevent\n     0.45s  1.45% 89.26%      0.45s  1.45%  runtime.madvise\n     0.41s  1.32% 90.58%      0.41s  1.32%  slices.Index[go.shape.[]github.com/deliri/primitive/v2026/core.ErrorIdentity,go.shape.uint16] (inline)\n     0.31s     1% 91.58%      0.31s     1%  net/textproto.validHeaderFieldByte (inline)\n     0.20s  0.64% 92.22%      0.71s  2.28%  errors.is\n     0.17s  0.55% 92.77%     28.45s 91.48%  github.com/deliri/primitive/v2026/exchange.ReceiveBasicAuthorization\n     0.14s  0.45% 93.22%      6.46s 20.77%  github.com/deliri/primitive/v2026/exchange.parseBasicAuthorizationValue\n     0.12s  0.39% 93.60%      0.43s  1.38%  net/textproto.CanonicalMIMEHeaderKey\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-34-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-34.test\nType: alloc_space\nTime: 2026-09-07 11:16:23 EDT\nShowing nodes accounting for 866.52MB, 99.81% of 868.18MB total\nDropped 17 nodes (cum <= 4.34MB)\n      flat  flat%   sum%        cum   cum%\n  619.02MB 71.30% 71.30%   619.02MB 71.30%  errors.Join (inline)\n     166MB 19.12% 90.42%      166MB 19.12%  github.com/deliri/primitive/v2026/exchange.NewHeaderValue\n   81.50MB  9.39% 99.81%    81.50MB  9.39%  encoding/base64.(*Encoding).decodeQuantum\n         0     0% 99.81%    81.50MB  9.39%  encoding/base64.(*Encoding).Decode\n         0     0% 99.81%   866.52MB 99.81%  github.com/deliri/primitive/v2026/exchange.BenchmarkReceiveBasicAuthorizationCustody.func1\n         0     0% 99.81%   866.52MB 99.81%  github.com/deliri/primitive/v2026/exchange.ReceiveBasicAuthorization\n         0     0% 99.81%      166MB 19.12%  github.com/deliri/primitive/v2026/exchange.SocketServerCall.UniqueHeader\n         0     0% 99.81%    81.50MB  9.39%  github.com/deliri/primitive/v2026/exchange.parseBasicAuthorizationValue\n         0     0% 99.81%   619.02MB 71.30%  github.com/deliri/primitive/v2026/exchange.requestError (inline)\n         0     0% 99.81%   866.52MB 99.81%  testing.(*B).run1.func1\n         0     0% 99.81%   866.52MB 99.81%  testing.(*B).runN\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkSocketVerifiedClientCertificateDigest",
+      "record": "post-checkpoint-final-benchmark-35.json",
+      "measurement": "BenchmarkSocketVerifiedClientCertificateDigest \t172406488\t       208.7 ns/op\t1495.24 MB/s\t       0 B/op\t       0 allocs/op",
+      "elapsed_seconds": 37.021031000011135,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-35-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-35.test\nType: cpu\nTime: 2026-09-07 11:16:24 EDT\nDuration: 36.08s, Total samples = 31.35s (86.89%)\nShowing nodes accounting for 30s, 95.69% of 31.35s total\nDropped 29 nodes (cum <= 0.16s)\nShowing top 12 nodes out of 27\n      flat  flat%   sum%        cum   cum%\n    19.29s 61.53% 61.53%     19.29s 61.53%  crypto/internal/fips140/sha256.blockSHA2\n     2.81s  8.96% 70.49%     30.87s 98.47%  github.com/deliri/primitive/v2026/exchange_test.BenchmarkSocketVerifiedClientCertificateDigest\n     2.09s  6.67% 77.16%     11.41s 36.40%  crypto/internal/fips140/sha256.(*Digest).Sum\n     2.03s  6.48% 83.64%      9.20s 29.35%  crypto/internal/fips140/sha256.(*Digest).checkSum\n     1.25s  3.99% 87.62%     21.19s 67.59%  crypto/internal/fips140/sha256.(*Digest).Write\n     0.66s  2.11% 89.73%     27.65s 88.20%  github.com/deliri/primitive/v2026/exchange.SocketServerCall.VerifiedClientCertificateDigest\n     0.41s  1.31% 91.04%     19.70s 62.84%  crypto/internal/fips140/sha256.block\n     0.37s  1.18% 92.22%      0.37s  1.18%  runtime.memequal\n     0.35s  1.12% 93.33%     26.68s 85.10%  github.com/deliri/primitive/v2026/core.SHA256Of (inline)\n     0.31s  0.99% 94.32%     26.15s 83.41%  crypto/sha256.Sum256\n     0.24s  0.77% 95.09%      0.24s  0.77%  runtime.memmove\n     0.19s  0.61% 95.69%      0.27s  0.86%  github.com/deliri/primitive/v2026/exchange.responseWriterIsNil\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-35-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-35.test\nType: alloc_space\nTime: 2026-09-07 11:17:00 EDT\nShowing nodes accounting for 3553.24kB, 100% of 3553.24kB total\nShowing top 12 nodes out of 31\n      flat  flat%   sum%        cum   cum%\n 1184.27kB 33.33% 33.33%  1184.27kB 33.33%  runtime/pprof.StartCPUProfile\n  688.56kB 19.38% 52.71%   688.56kB 19.38%  compress/flate.(*fastGen).addBlock\n  655.29kB 18.44% 71.15%   655.29kB 18.44%  compress/flate.NewWriter (inline)\n     513kB 14.44% 85.59%      513kB 14.44%  runtime.mallocgc\n  512.12kB 14.41%   100%   512.12kB 14.41%  runtime/pprof.allFrames\n         0     0%   100%   688.56kB 19.38%  compress/flate.(*Writer).Close (inline)\n         0     0%   100%   688.56kB 19.38%  compress/flate.(*compressor).close\n         0     0%   100%   688.56kB 19.38%  compress/flate.(*compressor).deflateFast\n         0     0%   100%   688.56kB 19.38%  compress/flate.(*fastEncL1).encode\n         0     0%   100%   688.56kB 19.38%  compress/gzip.(*Writer).Close\n         0     0%   100%   655.29kB 18.44%  compress/gzip.(*Writer).Write\n         0     0%   100%  1184.27kB 33.33%  main.main\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkRequestConstructionControl",
+      "record": "post-checkpoint-final-benchmark-36.json",
+      "measurement": "BenchmarkRequestConstructionControl \t18703876\t      1932 ns/op\t    5656 B/op\t      18 allocs/op",
+      "elapsed_seconds": 37.230739832972176,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-36-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-36.test\nType: cpu\nTime: 2026-09-07 11:17:01 EDT\nDuration: 36.24s, Total samples = 33.71s (93.01%)\nShowing nodes accounting for 29.61s, 87.84% of 33.71s total\nDropped 246 nodes (cum <= 0.17s)\nShowing top 12 nodes out of 70\n      flat  flat%   sum%        cum   cum%\n    27.41s 81.31% 81.31%     27.41s 81.31%  runtime.kevent\n     0.63s  1.87% 83.18%      0.93s  2.76%  runtime.scanObject\n     0.25s  0.74% 83.92%      0.71s  2.11%  runtime.mallocgcSmallNoscan\n     0.23s  0.68% 84.60%      0.27s   0.8%  runtime.pcvalue\n     0.20s  0.59% 85.20%      0.25s  0.74%  runtime.tryDeferToSpanScan\n     0.20s  0.59% 85.79%      0.22s  0.65%  runtime.typePointers.next\n     0.17s   0.5% 86.29%      0.22s  0.65%  runtime.findfunc\n     0.17s   0.5% 86.80%      0.61s  1.81%  runtime.mallocgcSmallScanNoHeader\n     0.10s   0.3% 87.10%     30.36s 90.06%  runtime.systemstack\n     0.10s   0.3% 87.39%      0.63s  1.87%  runtime.tracebackPCs\n     0.08s  0.24% 87.63%      0.20s  0.59%  runtime.(*unwinder).resolveInternal\n     0.07s  0.21% 87.84%      0.27s   0.8%  runtime.wbBufFlush1\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-36-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-36.test\nType: alloc_space\nTime: 2026-09-07 11:17:38 EDT\nShowing nodes accounting for 97.63GB, 99.14% of 98.47GB total\nDropped 38 nodes (cum <= 0.49GB)\nShowing top 12 nodes out of 26\n      flat  flat%   sum%        cum   cum%\n   73.19GB 74.32% 74.32%    73.19GB 74.32%  bufio.NewReaderSize (inline)\n    6.32GB  6.42% 80.74%     6.32GB  6.42%  net/textproto.MIMEHeader.Set\n    5.58GB  5.67% 86.40%     9.21GB  9.35%  net/http.readRequestLimit\n    5.47GB  5.55% 91.96%     5.47GB  5.55%  net/http.(*Request).WithContext (inline)\n    2.49GB  2.53% 94.49%     2.49GB  2.53%  net/url.parse\n    0.85GB  0.86% 95.35%     0.85GB  0.86%  mime.ParseMediaType\n    0.84GB  0.85% 96.20%     0.84GB  0.85%  bytes.NewReader\n    0.83GB  0.84% 97.04%     0.83GB  0.84%  net/textproto.readMIMEHeader\n    0.71GB  0.72% 97.76%     0.71GB  0.72%  slices.AppendSeq[go.shape.[]go.shape.string,go.shape.string] (inline)\n    0.55GB  0.56% 98.32%     0.55GB  0.56%  strings.NewReader (inline)\n    0.41GB  0.41% 98.73%     1.12GB  1.13%  slices.Collect[go.shape.string]\n    0.40GB  0.41% 99.14%    89.07GB 90.45%  net/http/httptest.NewRequestWithContext\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkServerJSONBoundaryParallel",
+      "record": "post-checkpoint-final-benchmark-37.json",
+      "measurement": "BenchmarkServerJSONBoundaryParallel-8   \t 4287241\t      8073 ns/op\t 253.68 MB/s\t   22290 B/op\t     104 allocs/op",
+      "elapsed_seconds": 44.18104629201116,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-37-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-37.test\nType: cpu\nTime: 2026-09-07 11:17:39 EDT\nDuration: 43.26s, Total samples = 185.08s (427.82%)\nShowing nodes accounting for 157.04s, 84.85% of 185.08s total\nDropped 584 nodes (cum <= 0.93s)\nShowing top 12 nodes out of 183\n      flat  flat%   sum%        cum   cum%\n    72.66s 39.26% 39.26%     72.66s 39.26%  runtime.usleep\n    28.17s 15.22% 54.48%     28.17s 15.22%  runtime.pthread_cond_wait\n    25.49s 13.77% 68.25%     25.49s 13.77%  runtime.madvise\n    10.24s  5.53% 73.78%     10.25s  5.54%  runtime.pthread_kill\n    10.17s  5.49% 79.28%     10.17s  5.49%  runtime.pthread_cond_signal\n     2.70s  1.46% 80.74%      2.94s  1.59%  encoding/json/internal/jsonwire.ConsumeSimpleString\n     1.57s  0.85% 81.59%      1.57s  0.85%  runtime.procyieldAsm\n     1.52s  0.82% 82.41%      1.52s  0.82%  runtime.pthread_cond_timedwait_relative_np\n     1.24s  0.67% 83.08%      1.24s  0.67%  runtime.asyncPreempt\n     1.16s  0.63% 83.70%      1.44s  0.78%  encoding/json/internal/jsonwire.AppendQuote\n     1.06s  0.57% 84.28%      1.06s  0.57%  internal/runtime/atomic.(*Uint64).Add\n     1.06s  0.57% 84.85%      1.06s  0.57%  runtime.kevent\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-37-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-37.test\nType: alloc_space\nTime: 2026-09-07 11:18:22 EDT\nShowing nodes accounting for 101.88GB, 92.39% of 110.27GB total\nDropped 86 nodes (cum <= 0.55GB)\nShowing top 12 nodes out of 75\n      flat  flat%   sum%        cum   cum%\n   20.63GB 18.71% 18.71%    20.63GB 18.71%  bufio.NewReaderSize\n   20.30GB 18.41% 37.12%    20.30GB 18.41%  github.com/deliri/primitive/v2026/core.readStrictJSONDocument\n   19.65GB 17.82% 54.94%    19.73GB 17.89%  encoding/json/jsontext.(*decoderState).fetch\n   10.25GB  9.30% 64.24%    10.25GB  9.30%  encoding/json/v2.makeString\n   10.12GB  9.18% 73.41%    10.12GB  9.18%  bytes.Clone\n    5.68GB  5.15% 78.57%    10.71GB  9.71%  io.copyBuffer\n    5.02GB  4.55% 83.12%     5.02GB  4.55%  github.com/deliri/primitive/v2026/exchange.growBoundedBodyStorage (inline)\n    3.15GB  2.85% 85.98%     3.15GB  2.85%  encoding/json/jsontext.NewDecoder\n    1.99GB  1.81% 87.78%     1.99GB  1.81%  net/textproto.MIMEHeader.Set\n    1.95GB  1.76% 89.55%     1.95GB  1.76%  mime.ParseMediaType\n    1.58GB  1.44% 90.98%     2.64GB  2.39%  net/http.readRequestLimit\n    1.55GB  1.41% 92.39%     1.55GB  1.41%  net/http.(*Request).WithContext\n"
+        }
+      ]
+    },
+    {
+      "benchmark": "BenchmarkJSONRoundTripOverLoopbackParallel",
+      "record": "post-checkpoint-final-benchmark-38-reuse-corrected.json",
+      "measurement": "BenchmarkJSONRoundTripOverLoopbackParallel-8   \t  983316\t     32308 ns/op\t  63.39 MB/s\t         0.0000081 connections/op\t   42247 B/op\t     272 allocs/op",
+      "elapsed_seconds": 33.72391100000823,
+      "profiles": [
+        {
+          "kind": "cpu",
+          "record": "post-checkpoint-final-benchmark-38-reuse-corrected-cpu-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-38-reuse-corrected.test\nType: cpu\nTime: 2026-09-07 11:20:49 EDT\nDuration: 32.34s, Total samples = 156.28s (483.31%)\nShowing nodes accounting for 131.87s, 84.38% of 156.28s total\nDropped 947 nodes (cum <= 0.78s)\nShowing top 12 nodes out of 187\n      flat  flat%   sum%        cum   cum%\n    76.07s 48.68% 48.68%     76.09s 48.69%  syscall.rawsyscalln\n    18.66s 11.94% 60.62%     18.67s 11.95%  runtime.usleep\n    11.11s  7.11% 67.72%     11.11s  7.11%  runtime.kevent\n     7.14s  4.57% 72.29%      7.14s  4.57%  runtime.pthread_cond_wait\n     5.01s  3.21% 75.50%      5.01s  3.21%  runtime.pthread_cond_signal\n     4.72s  3.02% 78.52%      4.72s  3.02%  runtime.pthread_kill\n     4.11s  2.63% 81.15%      4.11s  2.63%  runtime.madvise\n     1.98s  1.27% 82.42%      2.04s  1.31%  encoding/json/internal/jsonwire.ConsumeSimpleString\n     0.83s  0.53% 82.95%      1.17s  0.75%  runtime.tryDeferToSpanScan\n     0.82s  0.52% 83.47%      0.88s  0.56%  encoding/json/internal/jsonwire.AppendQuote\n     0.81s  0.52% 83.99%      0.81s  0.52%  runtime.pthread_cond_timedwait_relative_np\n     0.61s  0.39% 84.38%      0.81s  0.52%  runtime.typePointers.next\n"
+        },
+        {
+          "kind": "mem",
+          "record": "post-checkpoint-final-benchmark-38-reuse-corrected-mem-analysis.json",
+          "top": "File: post-checkpoint-final-benchmark-38-reuse-corrected.test\nType: alloc_space\nTime: 2026-09-07 11:21:22 EDT\nShowing nodes accounting for 31980.82MB, 80.23% of 39863.03MB total\nDropped 157 nodes (cum <= 199.32MB)\nShowing top 12 nodes out of 120\n      flat  flat%   sum%        cum   cum%\n 7777.80MB 19.51% 19.51%  7777.80MB 19.51%  github.com/deliri/primitive/v2026/core.readStrictJSONDocument\n 7544.57MB 18.93% 38.44%  7573.57MB 19.00%  encoding/json/jsontext.(*decoderState).fetch\n 3886.29MB  9.75% 48.19%  3886.29MB  9.75%  encoding/json/v2.makeString\n 3821.73MB  9.59% 57.77%  3821.73MB  9.59%  bytes.Clone\n 2177.39MB  5.46% 63.24%  4103.26MB 10.29%  io.copyBuffer\n 1911.87MB  4.80% 68.03%  1911.87MB  4.80%  github.com/deliri/primitive/v2026/exchange.growBoundedBodyStorage (inline)\n 1216.37MB  3.05% 71.08%  1216.37MB  3.05%  encoding/json/jsontext.NewDecoder\n  981.23MB  2.46% 73.54%   981.23MB  2.46%  net/textproto.readMIMEHeader\n  828.23MB  2.08% 75.62%   828.23MB  2.08%  net/http.Header.Clone\n  750.73MB  1.88% 77.51%   750.73MB  1.88%  net/textproto.MIMEHeader.Set\n  599.03MB  1.50% 79.01%   599.03MB  1.50%  mime.ParseMediaType\n  485.58MB  1.22% 80.23%   696.61MB  1.75%  context.(*cancelCtx).propagateCancel\n"
+        }
+      ]
+    }
+  ]
+}

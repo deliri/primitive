@@ -55,10 +55,12 @@ func BenchmarkDecodeCanonicalHexSHA256(b *testing.B) {
 }
 
 func BenchmarkDigestWriter1KiB(b *testing.B) {
+	b.ReportAllocs()
 	benchmarkDigestWriter(b, 1<<10)
 }
 
 func BenchmarkDigestWriter1MiB(b *testing.B) {
+	b.ReportAllocs()
 	benchmarkDigestWriter(b, 1<<20)
 }
 
@@ -85,6 +87,6 @@ func benchmarkDigestWriter(b *testing.B, size int) {
 		last = digest
 	}
 	if last == (core.SHA256Digest{}) {
-		b.Fatal("DigestWriter.Seal() digest is zero, want the hashed payload")
+		b.Fatalf("sealed digest=%v, want the hashed payload", last)
 	}
 }

@@ -67,7 +67,7 @@ func TestServerListenerConfigurationAgreementTable(t *testing.T) {
 				t.Fatalf("configured address fixture = %v, want nil", err)
 			}
 			if tc.wantErr != nil && !tc.closeBefore && configured == address {
-				t.Fatal("address mutation did not change the socket agreement")
+				t.Fatalf("configured address=%v, want different from %v", configured, address)
 			}
 			runtime, err := NewServerRuntime(ServerRuntimeConfiguration{Address: configured, Policy: runtimeAgreementPolicy(t)}, http.NotFoundHandler())
 			if err != nil {
@@ -84,8 +84,8 @@ func TestServerListenerConfigurationAgreementTable(t *testing.T) {
 				}
 				select {
 				case <-done:
-				case <-backstop.Done():
-					t.Error("serving goroutine did not exit after its owner closed Go's server")
+				case <-runtimeAgreementContext(t).Done():
+					t.Errorf("serving goroutine did not exit after its owner closed Go's server; owned completion channel=%p", done)
 				}
 			})
 			go func() { serveErr = runtime.ServeListener(listener); close(done) }()
@@ -95,7 +95,7 @@ func TestServerListenerConfigurationAgreementTable(t *testing.T) {
 					t.Fatalf("listener admission = %v, want %v", readyErr, tc.wantErr)
 				}
 			case <-backstop.Done():
-				t.Fatal("listener admission did not publish its result")
+				t.Fatalf("listener admission did not publish its result; readiness channel=%p", runtime.Ready())
 			}
 			if listener.claimed.Load() != tc.wantClaimed {
 				t.Fatalf("listener custody claimed = %t, want %t", listener.claimed.Load(), tc.wantClaimed)
@@ -106,7 +106,7 @@ func TestServerListenerConfigurationAgreementTable(t *testing.T) {
 			select {
 			case <-done:
 			case <-backstop.Done():
-				t.Fatal("serving goroutine did not exit")
+				t.Fatalf("serving goroutine did not exit; owned completion channel=%p", done)
 			}
 			if !errors.Is(serveErr, tc.wantErr) {
 				t.Fatalf("serve result = %v, want %v", serveErr, tc.wantErr)

@@ -16,6 +16,7 @@ import (
 // Go RoundTripper. It includes context ownership and error/byte accounting,
 // but measures no DNS, socket, or real-network latency.
 func BenchmarkReplayStreamDownloadHandoff(b *testing.B) {
+	b.ReportAllocs()
 	cases := []struct {
 		name            string
 		fault           replayHandoffBodyFault

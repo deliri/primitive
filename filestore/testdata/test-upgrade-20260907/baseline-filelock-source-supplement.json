@@ -1,0 +1,36 @@
+{
+  "scope": "Filelock is used by the custody tests. It was not in the initial package-local snapshot scope; all its files remain unmodified at the recorded baseline revision. This explicit supplement preserves those exact bytes.",
+  "revision": "40d7c8e897ea2e51a11865c4dd66c38fabcbf9b7",
+  "sources": [
+    {
+      "path": "filelock/contracts.go",
+      "snapshot": "filestore/testdata/test-upgrade-20260907/source-blobs/b5417f0431388631ce074adc23f20b7eba52daa9f57431f5364525d974a89812",
+      "bytes": 4764,
+      "sha256": "b5417f0431388631ce074adc23f20b7eba52daa9f57431f5364525d974a89812"
+    },
+    {
+      "path": "filelock/doc.go",
+      "snapshot": "filestore/testdata/test-upgrade-20260907/source-blobs/b55042c6e6401a4b721295b9829060f272436153ce916cccad22038b7664b9d1",
+      "bytes": 1272,
+      "sha256": "b55042c6e6401a4b721295b9829060f272436153ce916cccad22038b7664b9d1"
+    },
+    {
+      "path": "filelock/lock.go",
+      "snapshot": "filestore/testdata/test-upgrade-20260907/source-blobs/11286b6192b71c41ddca316934542f8766e9a08fc55eaa0563923da8bb95c79c",
+      "bytes": 2004,
+      "sha256": "11286b6192b71c41ddca316934542f8766e9a08fc55eaa0563923da8bb95c79c"
+    },
+    {
+      "path": "filelock/lock_unix.go",
+      "snapshot": "filestore/testdata/test-upgrade-20260907/source-blobs/3c24fd9bc70c74737843952d19e35785a1816d41d121794e29a0629eb4a87e6b",
+      "bytes": 1787,
+      "sha256": "3c24fd9bc70c74737843952d19e35785a1816d41d121794e29a0629eb4a87e6b"
+    },
+    {
+      "path": "filelock/lock_windows.go",
+      "snapshot": "filestore/testdata/test-upgrade-20260907/source-blobs/721f053f8d2b06b0b2574fca764dad2356b35ad7fd140ce2fcf7ecd935e66576",
+      "bytes": 1742,
+      "sha256": "721f053f8d2b06b0b2574fca764dad2356b35ad7fd140ce2fcf7ecd935e66576"
+    }
+  ]
+}

@@ -97,7 +97,7 @@ func FuzzUploadResponseDeclarationCustody(f *testing.F) {
 			var destination bytes.Buffer
 			if roundTrip {
 				response, callErr := RoundTripStream(StreamRoundTripCall{Context: t.Context(), Client: client, Policy: policy, Request: StreamRoundTripRequest{Target: target, Source: source, Destination: &destination, RequestContentLength: length, RequestContentType: request.ContentType, ExpectedStatus: request.ExpectedStatus, Semantics: request.Semantics, ResponseBodyLimit: limit}})
-				got = StreamResponse{Metadata: response.Metadata, DeclaredRequestBytes: response.DeclaredRequestBytes}
+				got = StreamResponse(response)
 				err = callErr
 			} else {
 				got, err = Upload(UploadCall{Context: t.Context(), Client: client, Policy: policy, Request: request})

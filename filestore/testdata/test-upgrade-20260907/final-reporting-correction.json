@@ -1,0 +1,4 @@
+{
+  "classification": "report generation error, not a production or test failure",
+  "reason": "First catalogue generation encountered a metadata JSON object with argv but no exit_status. The corrected selector requires all execution-record fields. The report generator then completed. Original Walk comparison was retained; benchmark table numeric formatting was subsequently expanded from the catalogue without rounding."
+}

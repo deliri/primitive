@@ -1,4 +1,4 @@
-//go:build unix
+//go:build darwin || linux
 
 package filestore
 
@@ -45,11 +45,11 @@ func TestObservedAllocationProjectsAndRefusesAtEveryBlockBoundary(t *testing.T) 
 	}{
 		{
 			name: "one block is exactly five hundred twelve bytes",
-			sys:  &syscall.Stat_t{Blocks: 1}, wantReported: true, wantBytes: 512,
+			sys:  &syscall.Stat_t{Blocks: 1}, wantReported: true, wantBytes: core.POSIXAllocationBlockBytes,
 		},
 		{
 			name: "two blocks are exactly one thousand twenty four bytes",
-			sys:  &syscall.Stat_t{Blocks: 2}, wantReported: true, wantBytes: 1024,
+			sys:  &syscall.Stat_t{Blocks: 2}, wantReported: true, wantBytes: 2 * core.POSIXAllocationBlockBytes,
 		},
 		{
 			name: "zero blocks are a reported hole, not an unreported answer",
@@ -57,17 +57,17 @@ func TestObservedAllocationProjectsAndRefusesAtEveryBlockBoundary(t *testing.T) 
 		},
 		{
 			name: "the largest byte-length-expressible count projects exactly",
-			sys:  &syscall.Stat_t{Blocks: math.MaxInt64 / 512}, wantReported: true,
-			wantBytes: uint64(math.MaxInt64/512) * 512,
+			sys:  &syscall.Stat_t{Blocks: int64(math.MaxInt64 / core.POSIXAllocationBlockBytes)}, wantReported: true,
+			wantBytes: (math.MaxInt64 / core.POSIXAllocationBlockBytes) * core.POSIXAllocationBlockBytes,
 		},
 		{
 			name:    "one block above the byte-length domain refuses",
-			sys:     &syscall.Stat_t{Blocks: math.MaxInt64/512 + 1},
+			sys:     &syscall.Stat_t{Blocks: int64(math.MaxInt64/core.POSIXAllocationBlockBytes) + 1},
 			wantErr: core.ErrFilestoreContract,
 		},
 		{
 			name:    "a count that would wrap the multiplication refuses as garbage",
-			sys:     &syscall.Stat_t{Blocks: int64(math.MaxUint64/512) + 1},
+			sys:     &syscall.Stat_t{Blocks: int64(math.MaxUint64/core.POSIXAllocationBlockBytes) + 1},
 			wantErr: core.ErrFilestoreSource,
 		},
 		{

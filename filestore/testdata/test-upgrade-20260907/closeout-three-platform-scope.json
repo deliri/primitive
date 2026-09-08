@@ -1,0 +1,16 @@
+{
+  "reason": "User explicitly limited support to macOS, Linux and Windows; no other-platform work is authorized.",
+  "production": "Removed open_root_other.go and held_directory_other.go fallback implementations. Narrowed Unix tags to darwin/linux, split descriptor paths into Darwin/Linux leaves, and named Windows leaves explicitly.",
+  "validation": {
+    "label": "green-walk-cancellation-and-three-platform-scope",
+    "sha256": "85eeca5a1ef834ecff3f1cdf0857b8d2716f8ae95d05beeefb952959d6f629e2",
+    "exit_status": 0,
+    "test_events": {
+      "pass": 191,
+      "fail": 0,
+      "skip": 0
+    },
+    "sources_changed_during_run": []
+  },
+  "limitations": "This control executes on Darwin only. Fresh Linux/Windows compilation remains pending; no Windows or Linux runtime claim is made. Historical evidence retains its original file names and source blobs."
+}

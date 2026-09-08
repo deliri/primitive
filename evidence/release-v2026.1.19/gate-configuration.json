@@ -1,0 +1,32 @@
+[
+  {
+    "path": "scripts/gate.sh",
+    "bytes": 11043,
+    "sha256": "88cc7e3742288a05ec018c835280feae7459ce8e8dd9d7718948466d63d55e56"
+  },
+  {
+    "path": "scripts/goconst_admissions.tsv",
+    "bytes": 649,
+    "sha256": "363aaeadfa049037aab61a5a955b0fbbeefd85f4a4a30dce0aed8cb5d106e015"
+  },
+  {
+    "path": "_docs/testing_protocol.md",
+    "bytes": 84440,
+    "sha256": "dd83cd7f62c172092546dab6b7c7d5c59753b5e8ae784631a94cff4d6d48126c"
+  },
+  {
+    "path": "compass/config.json",
+    "bytes": 217,
+    "sha256": "61f9750d67def014b1d14cb5fda19e0e2cb1aa3e47c598bcbbf213a85b81a018"
+  },
+  {
+    "path": "go.mod",
+    "bytes": 3127,
+    "sha256": "fb645c6e4ee8e917c39f9c1732638142362452d43617ec22a1901fc9ca04c1d4"
+  },
+  {
+    "path": "go.sum",
+    "bytes": 15894,
+    "sha256": "607fa748df5c86058fd0c13a1b63c2fbaa7cea5c2229dabef79614715e3c27a0"
+  }
+]

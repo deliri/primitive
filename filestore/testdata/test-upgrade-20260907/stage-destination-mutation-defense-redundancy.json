@@ -1,0 +1,6 @@
+{
+  "surviving_record": "mutation-stage-destination-oversized-final-extent-admitted.json",
+  "record_sha256": "ba5ca58004c9250beec86e433dab0f9c1a175f2c8e54bbac0d0c585b778c862a",
+  "classification": "Valid control and valid surviving single-site mutation. The later validateCurrentStage/validateStagedObservation checks the same declared extent and still rejects the changed program. Not reported as a kill or deleted.",
+  "next_proof": "Apply the same directional mutation to both physical-extent checks, then require the public semantic fuzz oracle to reject wrong admission. No production change to manufacture a kill."
+}

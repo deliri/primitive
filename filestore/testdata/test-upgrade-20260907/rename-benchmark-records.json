@@ -1,0 +1,115 @@
+{
+  "scope": "Two new fixed 128-byte binary-inode round-trip workloads: same parent and different parents. Each operation performs two renames with native byte/inode/mode/time and disappearance observations. Each leaf is 30s CPU1 with CPU/memory profiles and retained binary. Production executable behavior is unchanged in this slice. Initial measurements, not a before/after optimization claim.",
+  "results": [
+    {
+      "label": "checkpoint-rename-SameParent",
+      "record_sha256": "6353246ced8791adc014c3abef391ed3e77a5abe661bca524ad8ed759f9f018f",
+      "benchmark": "BenchmarkRenameBinaryInodeRoundTrip/SameParent",
+      "iterations": 3374,
+      "ns_per_op": 10292539.0,
+      "bytes_per_op": 4197,
+      "allocations_per_op": 48,
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkRenameBinaryInodeRoundTrip$/^SameParent$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-rename-SameParent.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-rename-SameParent.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-rename-SameParent.test",
+        "./filestore"
+      ],
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-rename-SameParent.stdout.txt",
+          "bytes": 271,
+          "sha256": "27abe3d6a3c9360cbe012d8ee346c8020f1ba9d3eacb66febe3ab36c6137ab7a"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-rename-SameParent.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-rename-SameParent.git-status.txt",
+          "bytes": 7387,
+          "sha256": "8e32b1ba92cd3cbfaac8806b451f6f12c0777ff8ee644b54d6b687f528cffac0"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-rename-SameParent.cpu.pprof",
+          "bytes": 3978,
+          "sha256": "82f0b2c4a5711d0a8d804545ac4c464c88b09e1db6774d688efe5a86d6472d36"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-rename-SameParent.mem.pprof",
+          "bytes": 3692,
+          "sha256": "fb3cb5ee767dc9077c825115676163a7b3aba9196874b44bbf97d0a2ab1aa5b6"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-rename-SameParent.test",
+          "bytes": 11948482,
+          "sha256": "c4e3291cdcf4aba0ed9895f94a9dd5b4a2ba9c1ae494924150106f0142ba77e2"
+        }
+      ]
+    },
+    {
+      "label": "checkpoint-rename-CrossParent",
+      "record_sha256": "1cc8d3ecdf836107d44f4ad8096af94e08f5de356b3508a7240c319f5bc33b6e",
+      "benchmark": "BenchmarkRenameBinaryInodeRoundTrip/CrossParent",
+      "iterations": 1738,
+      "ns_per_op": 20956819.0,
+      "bytes_per_op": 4858,
+      "allocations_per_op": 66,
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkRenameBinaryInodeRoundTrip$/^CrossParent$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-rename-CrossParent.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-rename-CrossParent.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-rename-CrossParent.test",
+        "./filestore"
+      ],
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-rename-CrossParent.stdout.txt",
+          "bytes": 272,
+          "sha256": "519442b807f061bfe8e62eedeb4ea1ceb9884a0d6d87079553059f73c14be687"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-rename-CrossParent.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-rename-CrossParent.git-status.txt",
+          "bytes": 7387,
+          "sha256": "8e32b1ba92cd3cbfaac8806b451f6f12c0777ff8ee644b54d6b687f528cffac0"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-rename-CrossParent.cpu.pprof",
+          "bytes": 4691,
+          "sha256": "67cb2afc27a595903ecbcdb912af0b3829dc69e22221fe32a101c572a4afd10a"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-rename-CrossParent.mem.pprof",
+          "bytes": 3411,
+          "sha256": "712acfd61e97b57ae3c72df80bc4ae4dd31194f889d207313d5f48d13ae24fb4"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-rename-CrossParent.test",
+          "bytes": 11948482,
+          "sha256": "c4e3291cdcf4aba0ed9895f94a9dd5b4a2ba9c1ae494924150106f0142ba77e2"
+        }
+      ]
+    }
+  ]
+}

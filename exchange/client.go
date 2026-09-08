@@ -893,17 +893,38 @@ func readBoundedBody(read boundedBodyRead) (data []byte, err error) {
 		reservation: reserved,
 		limit:       limit,
 	}
-	_, err = copyDownload(
-		downloadCopyRequest{
-			context: read.context, source: read.source,
-			destination: destination,
-			limit:       read.limit,
-		},
-	)
+	err = copyBoundedBody(read, destination)
 	if err != nil {
 		return nil, err
 	}
 	return destination.storage, nil
+}
+
+// copyBoundedBody lets Go size its initial copy to a small positive declaration
+// plus one byte. EOF below that bound proves completion; reaching it only proves
+// the declaration may be understated, so the remaining authorized extent still
+// crosses Go's normal bounded copy path. The declaration never widens the limit.
+func copyBoundedBody(read boundedBodyRead, destination *boundedBodyDestination) error {
+	declared := read.declared.length.Uint64()
+	if !read.declared.present || declared == 0 || declared > boundedBodyInitialReservationMaximumBytes || declared+1 >= uint64(destination.limit) {
+		_, err := copyDownload(downloadCopyRequest{context: read.context, source: read.source, destination: destination, limit: read.limit})
+		return err
+	}
+	first := int64(declared + 1)
+	source := &progressReader{context: read.context, source: read.source}
+	count, err := io.Copy(destination, io.LimitReader(source, first))
+	if err != nil {
+		return err
+	}
+	if count < first {
+		return contextAfterTransfer(read.context)
+	}
+	remaining, err := core.NewByteCount(uint64(destination.limit - len(destination.storage)))
+	if err != nil {
+		return err
+	}
+	_, err = copyDownload(downloadCopyRequest{context: read.context, source: read.source, destination: destination, limit: remaining})
+	return err
 }
 
 func captureHeaders(

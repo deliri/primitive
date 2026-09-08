@@ -19,7 +19,7 @@ func TestSymbolContractsPreserveCrossPackageErrorIdentity(t *testing.T) {
 		validate func() error
 	}{
 		{"symbol ingress", invalid.Validate},
-		{"fact ingress", (StandardSymbolFact{Symbol: invalid, Classification: Classification{Disposition: StandardSymbolUnresolved}}).Validate},
+		{"fact ingress", (StandardSymbolFact{Symbol: invalid, Disposition: StandardSymbolUnresolved}).Validate},
 		{"operation function ingress", (OperationContract{Function: invalid, Result: valid.Selector, ResultPackage: core.PackageCore}).Validate},
 	}
 	// The shared nominal import-path sentinel remains visible across the package wall.
@@ -83,7 +83,7 @@ func TestOperationContractBoundaryMutations(t *testing.T) {
 					value := original
 					tc.mutate(&value)
 					if tc.wantErr != nil && value == original {
-						t.Fatal("mutation did not change input")
+						t.Fatalf("mutation=%+v, want different from %+v", value, original)
 					}
 					if err := value.Validate(); !errors.Is(err, tc.wantErr) {
 						t.Fatalf("contract %+v = %v, want %v", value, err, tc.wantErr)

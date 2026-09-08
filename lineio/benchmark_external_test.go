@@ -2,7 +2,6 @@ package lineio_test
 
 import (
 	"bytes"
-	"errors"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -10,10 +9,12 @@ import (
 )
 
 func BenchmarkScanStreaming64Lines(b *testing.B) {
+	b.ReportAllocs()
 	benchmarkScanStreaming(b, 64, 64)
 }
 
 func BenchmarkScanStreaming4096Lines(b *testing.B) {
+	b.ReportAllocs()
 	benchmarkScanStreaming(b, 4096, 64)
 }
 
@@ -29,7 +30,6 @@ func benchmarkScanStreaming(b *testing.B, lines, initial int) {
 	if err != nil {
 		b.Fatalf("core.NewByteCount(MaximumLineBytes) error = %v, want nil", err)
 	}
-	var wantErr error
 	b.ReportAllocs()
 	b.SetBytes(int64(len(payload)))
 	var got int
@@ -38,18 +38,18 @@ func benchmarkScanStreaming(b *testing.B, lines, initial int) {
 			Source: bytes.NewReader(payload),
 			Buffer: lineio.BufferPolicy{InitialBytes: initialBytes, MaximumLineBytes: maximumBytes},
 		})
-		if !errors.Is(err, wantErr) {
-			b.Fatalf("lineio.New() error = %v, want %v", err, wantErr)
+		if err != nil {
+			b.Fatalf("lineio.New() error = %v, want nil", err)
 		}
 		got = 0
 		for scanner.Scan() {
 			if len(scanner.Bytes()) == 0 {
-				b.Fatal("Scanner.Bytes() is empty, want the fixture line")
+				b.Fatalf("Scanner.Bytes()=%q, want the fixture line", scanner.Bytes())
 			}
 			got++
 		}
-		if !errors.Is(scanner.Err(), wantErr) {
-			b.Fatalf("Scanner.Err() = %v, want %v", scanner.Err(), wantErr)
+		if err := scanner.Err(); err != nil {
+			b.Fatalf("Scanner.Err() = %v, want nil", err)
 		}
 		if got != lines {
 			b.Fatalf("Scanner lines = %d, want %d", got, lines)

@@ -46,7 +46,7 @@ func TestClassificationHostileJSONDocuments(t *testing.T) {
 	s := member(secondary, "["+quote(EffectFilesystem.String())+"]")
 	baseMembers := []string{d, e, o, s}
 	if got, ok := classificationJSONOracle(object(baseMembers...)); !ok || !got.Equal(source) {
-		t.Fatal("derived field fixture does not represent source")
+		t.Fatalf("derived fixture=(%+v,%t), want (%+v,true)", got, ok, source)
 	}
 	cases := []struct {
 		name    string

@@ -1,0 +1,4448 @@
+{
+  "scope": "Every recorded benchmark attempt; source/configuration/profile bindings remain in each immutable execution record. No best-sample selection.",
+  "attempts": [
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/after-custody-ConfirmDurable.json",
+        "bytes": 53876,
+        "sha256": "ecf9dd6367915c05c71d02ecb663742a1a73c0ed8b8b6f2687bfa79840a6a958"
+      },
+      "label": "after-custody-ConfirmDurable",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkExistingFileCustody$/^ConfirmDurable$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-custody-ConfirmDurable.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-custody-ConfirmDurable.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-custody-ConfirmDurable.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkExistingFileCustody/ConfirmDurable",
+          "iterations": 1000000,
+          "ns_per_op": 32252.0,
+          "bytes_per_op": 944.0,
+          "allocations_per_op": 14.0
+        }
+      ],
+      "elapsed_seconds": 33.24705925001763,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-custody-ConfirmDurable.stdout.txt",
+          "bytes": 268,
+          "sha256": "c7713707e9a96b9d9e4bd7278c06cd021a78cb8f45db8144a01c1592d4cca3c2"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-custody-ConfirmDurable.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-custody-ConfirmDurable.git-status.txt",
+          "bytes": 3860,
+          "sha256": "d3c63da36783886b8d9b52fb445372c7ac956825a147c4c1c8e57f3fb02dec26"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-custody-ConfirmDurable.cpu.pprof",
+          "bytes": 4443,
+          "sha256": "609e2631307f6a7d26fa2f49df3c097ca49d779efffb563e1110217afcc9a18b"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-custody-ConfirmDurable.mem.pprof",
+          "bytes": 3309,
+          "sha256": "95a21d8641a19d675b78e9c040a840417255c5afff25581eb44b1bbb99d033d3"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-custody-ConfirmDurable.test",
+          "bytes": 10036290,
+          "sha256": "ac4b726ed770dc907bbc0f963c3ddf09995bf5ccdbf8221d019a30f7ca42caaa"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/after-custody-Touch.json",
+        "bytes": 53777,
+        "sha256": "d7bf2892c0bddef40db461da96f49c444d53735de66bce2ee8032fec1bc922d0"
+      },
+      "label": "after-custody-Touch",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkExistingFileCustody$/^Touch$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-custody-Touch.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-custody-Touch.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-custody-Touch.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkExistingFileCustody/Touch",
+          "iterations": 7236,
+          "ns_per_op": 4868367.0,
+          "bytes_per_op": 1138.0,
+          "allocations_per_op": 19.0
+        }
+      ],
+      "elapsed_seconds": 35.92517845900147,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-custody-Touch.stdout.txt",
+          "bytes": 259,
+          "sha256": "07d21cdcfb87e2770a000939f7d80f39a06824c27f15dc37469573f8b8dac5e3"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-custody-Touch.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-custody-Touch.git-status.txt",
+          "bytes": 3860,
+          "sha256": "d3c63da36783886b8d9b52fb445372c7ac956825a147c4c1c8e57f3fb02dec26"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-custody-Touch.cpu.pprof",
+          "bytes": 3503,
+          "sha256": "d46ad580585d400ec8e9387e1ef6561c0b362f3b0f0f2b100d2f1ac57666854c"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-custody-Touch.mem.pprof",
+          "bytes": 2790,
+          "sha256": "6fb8216b9d7e6a3491fcf6c733ed0f0a73c10a6184db53e46eff94c0b9810661"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-custody-Touch.test",
+          "bytes": 10036290,
+          "sha256": "ac4b726ed770dc907bbc0f963c3ddf09995bf5ccdbf8221d019a30f7ca42caaa"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/after-directory-BenchmarkHeldDirectoryAcquisition.json",
+        "bytes": 55362,
+        "sha256": "08d5c032cc45d345cf6613226784493e6a8ee185ac2a9f4ba83dd3948ea873c2"
+      },
+      "label": "after-directory-BenchmarkHeldDirectoryAcquisition",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkHeldDirectoryAcquisition$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-directory-BenchmarkHeldDirectoryAcquisition.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-directory-BenchmarkHeldDirectoryAcquisition.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-directory-BenchmarkHeldDirectoryAcquisition.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkHeldDirectoryAcquisition",
+          "iterations": 2423853,
+          "ns_per_op": 14748.0,
+          "bytes_per_op": 656.0,
+          "allocations_per_op": 6.0
+        }
+      ],
+      "elapsed_seconds": 36.97235045902198,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-directory-BenchmarkHeldDirectoryAcquisition.stdout.txt",
+          "bytes": 250,
+          "sha256": "c8d8513117089605edadbf787b30f1366ce6314c86f30da22dc974f8517b4bf9"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-directory-BenchmarkHeldDirectoryAcquisition.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-directory-BenchmarkHeldDirectoryAcquisition.git-status.txt",
+          "bytes": 4387,
+          "sha256": "c891f9e2c8023a3005f0dfa163a91e79b4307507edbb14c37134fd2ed2b76ed0"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-directory-BenchmarkHeldDirectoryAcquisition.cpu.pprof",
+          "bytes": 3005,
+          "sha256": "01c67c6ec959ea2a90abdc783dc16ebb7826ec4a9b457c93149caf7b3d3f306a"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-directory-BenchmarkHeldDirectoryAcquisition.mem.pprof",
+          "bytes": 2735,
+          "sha256": "7f89a5b2d36ee9048fd802869a39a33a90bd843ed0c186b7a5c0370f51874abd"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-directory-BenchmarkHeldDirectoryAcquisition.test",
+          "bytes": 11129938,
+          "sha256": "bf89ae33dd98f0f22925fc4b54cd70866fbe5e2d0755baebf8a1a3d62c5748d0"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/after-directory-BenchmarkRootDirectoryAcquisition.json",
+        "bytes": 55361,
+        "sha256": "14a5969ba9a356a87e68f0d231a8116898af18251d5c8fcd79a7965ed95924e7"
+      },
+      "label": "after-directory-BenchmarkRootDirectoryAcquisition",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkRootDirectoryAcquisition$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-directory-BenchmarkRootDirectoryAcquisition.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-directory-BenchmarkRootDirectoryAcquisition.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-directory-BenchmarkRootDirectoryAcquisition.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkRootDirectoryAcquisition",
+          "iterations": 920389,
+          "ns_per_op": 38610.0,
+          "bytes_per_op": 528.0,
+          "allocations_per_op": 10.0
+        }
+      ],
+      "elapsed_seconds": 37.0606673329894,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-directory-BenchmarkRootDirectoryAcquisition.stdout.txt",
+          "bytes": 250,
+          "sha256": "99f05558f95ced7a24145890fdab386d333eab9b9bf4b2c9babb7dfaa79defe1"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-directory-BenchmarkRootDirectoryAcquisition.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-directory-BenchmarkRootDirectoryAcquisition.git-status.txt",
+          "bytes": 4387,
+          "sha256": "c891f9e2c8023a3005f0dfa163a91e79b4307507edbb14c37134fd2ed2b76ed0"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-directory-BenchmarkRootDirectoryAcquisition.cpu.pprof",
+          "bytes": 3198,
+          "sha256": "86dd2463887412da34be52fba83c6e7e5bcb11d173966fb1913141fd206c5733"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-directory-BenchmarkRootDirectoryAcquisition.mem.pprof",
+          "bytes": 3713,
+          "sha256": "6f44b3e74ad8860f9b221a2aae16b790f98216545cbdb5a14a1d5ccfb49cccaa"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-directory-BenchmarkRootDirectoryAcquisition.test",
+          "bytes": 11129938,
+          "sha256": "bf89ae33dd98f0f22925fc4b54cd70866fbe5e2d0755baebf8a1a3d62c5748d0"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Create.json",
+        "bytes": 66173,
+        "sha256": "2061bc780616be89d11aa2b63d808ca8981122dc98263c9dd6a9960dd5b409ef"
+      },
+      "label": "after-ensure-directory-Create",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkEnsureNewDirectoryNativeRemovalLifecycle$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-ensure-directory-Create.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-ensure-directory-Create.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-ensure-directory-Create.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkEnsureNewDirectoryNativeRemovalLifecycle",
+          "iterations": 2768,
+          "ns_per_op": 12272313.0,
+          "bytes_per_op": 6262.0,
+          "allocations_per_op": 69.0
+        }
+      ],
+      "elapsed_seconds": 34.86036716599483,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Create.stdout.txt",
+          "bytes": 266,
+          "sha256": "0db7562357ced15a8cb8e40b57679b4a3855b1830686878d330db5d7e5b1cb35"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Create.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Create.git-status.txt",
+          "bytes": 7085,
+          "sha256": "0e6a58e632599f0c2473d598b7fd67b123f0195b828bfad93f86a18a6d33ed71"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Create.cpu.pprof",
+          "bytes": 5353,
+          "sha256": "331bee2d9bd542ed22d4706bba574efc86c89b423c4a9e9d5a17f75e6acbdf46"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Create.mem.pprof",
+          "bytes": 3513,
+          "sha256": "bf96a966841c8681a9b553ec24458f9801e5ee113264995e164ef6ed0ad61e41"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Create.test",
+          "bytes": 11848930,
+          "sha256": "54cc3a423e30c0ba31fbb80fbf12087bd83ce6737bac519ae58e08cac753733b"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth1.json",
+        "bytes": 66181,
+        "sha256": "532b9a8ca619afa9d6411f4e21858c0dc9596b88edd48998932c1e2355c1fac1"
+      },
+      "label": "after-ensure-directory-Depth1",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkEnsureExistingDirectoryModeTransitions$/^Depth1$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth1.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth1.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth1.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkEnsureExistingDirectoryModeTransitions/Depth1",
+          "iterations": 3837,
+          "ns_per_op": 9592481.0,
+          "bytes_per_op": 1604.0,
+          "allocations_per_op": 16.0
+        }
+      ],
+      "elapsed_seconds": 37.724513833003584,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth1.stdout.txt",
+          "bytes": 279,
+          "sha256": "b6db261d9e196278a783a5b35edac8976d29209554593e159f248baeabdbd79f"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth1.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth1.git-status.txt",
+          "bytes": 7085,
+          "sha256": "0e6a58e632599f0c2473d598b7fd67b123f0195b828bfad93f86a18a6d33ed71"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth1.cpu.pprof",
+          "bytes": 2857,
+          "sha256": "83d0de57f9edb15e2c6e2a57c5c60c9b6328900fb06a04e2d07fdc24ff5efea9"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth1.mem.pprof",
+          "bytes": 2663,
+          "sha256": "40f712c1a316eea60fac4d70598a08ba0bb747b1ca1597526ac0391353e38c07"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth1.test",
+          "bytes": 11848930,
+          "sha256": "54cc3a423e30c0ba31fbb80fbf12087bd83ce6737bac519ae58e08cac753733b"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth16.json",
+        "bytes": 66192,
+        "sha256": "eb6425ec3397492f40bf310303a5c1c7d470aa800769461a9bb63ddc344cf274"
+      },
+      "label": "after-ensure-directory-Depth16",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkEnsureExistingDirectoryModeTransitions$/^Depth16$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth16.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth16.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth16.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkEnsureExistingDirectoryModeTransitions/Depth16",
+          "iterations": 3094,
+          "ns_per_op": 11762199.0,
+          "bytes_per_op": 3669.0,
+          "allocations_per_op": 54.0
+        }
+      ],
+      "elapsed_seconds": 37.239270332996966,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth16.stdout.txt",
+          "bytes": 280,
+          "sha256": "de5354c812e5712dd129bb13ed58eaaba4c04fa4404b151f59e50f884271ac9c"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth16.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth16.git-status.txt",
+          "bytes": 7085,
+          "sha256": "0e6a58e632599f0c2473d598b7fd67b123f0195b828bfad93f86a18a6d33ed71"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth16.cpu.pprof",
+          "bytes": 4049,
+          "sha256": "3f145f458145139e5986b8d309b6f8a4b8d53ba2655fa7aec6f1838e7a6b2d01"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth16.mem.pprof",
+          "bytes": 2512,
+          "sha256": "6c07317d869eeec8380523f8c7989351251f912e8d53e6fbb2008bd18c9ddaaa"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-ensure-directory-Depth16.test",
+          "bytes": 11848930,
+          "sha256": "54cc3a423e30c0ba31fbb80fbf12087bd83ce6737bac519ae58e08cac753733b"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/after-inspection-BenchmarkInspectRegularFileObservation.json",
+        "bytes": 56708,
+        "sha256": "723c5048b0f9ef83adcde6511ffca005d5028fe45b4cc278cf7fd60bef321be1"
+      },
+      "label": "after-inspection-BenchmarkInspectRegularFileObservation",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkInspectRegularFileObservation$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-inspection-BenchmarkInspectRegularFileObservation.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-inspection-BenchmarkInspectRegularFileObservation.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-inspection-BenchmarkInspectRegularFileObservation.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkInspectRegularFileObservation",
+          "iterations": 883500,
+          "ns_per_op": 41413.0,
+          "bytes_per_op": 856.0,
+          "allocations_per_op": 12.0
+        }
+      ],
+      "elapsed_seconds": 38.12750200001756,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-inspection-BenchmarkInspectRegularFileObservation.stdout.txt",
+          "bytes": 255,
+          "sha256": "a390780176db98aae2cac125cac8f053a9a5bfae539fd4661ad3cdf75a253fb8"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-inspection-BenchmarkInspectRegularFileObservation.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-inspection-BenchmarkInspectRegularFileObservation.git-status.txt",
+          "bytes": 4754,
+          "sha256": "598360974360689b0440bc66ef8587d23d9ac46a77bf407231dbcef557ab73b3"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-inspection-BenchmarkInspectRegularFileObservation.cpu.pprof",
+          "bytes": 2923,
+          "sha256": "20e18caa1a93bbae9942535c1f3c2393e7ec5ea111cce6ef10e3624a38c72ea1"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-inspection-BenchmarkInspectRegularFileObservation.mem.pprof",
+          "bytes": 4081,
+          "sha256": "0e045b15778ef555250036828bfedbadbf52d9ca6789e79b2a489e87cea4d4a0"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-inspection-BenchmarkInspectRegularFileObservation.test",
+          "bytes": 11235282,
+          "sha256": "ab13d66d721c8019d9a7141786061a34987b18bb007c9d6d1070dc71ba260398"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/after-inspection-BenchmarkInspectionValidationBatch.json",
+        "bytes": 56664,
+        "sha256": "1fe4a0d6424cf415f3ccc46cc024a2b1af4813fd1c74267a7878f632c949e93b"
+      },
+      "label": "after-inspection-BenchmarkInspectionValidationBatch",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkInspectionValidationBatch$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-inspection-BenchmarkInspectionValidationBatch.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-inspection-BenchmarkInspectionValidationBatch.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-inspection-BenchmarkInspectionValidationBatch.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkInspectionValidationBatch",
+          "iterations": 54673232,
+          "ns_per_op": 660.3,
+          "bytes_per_op": 0.0,
+          "allocations_per_op": 0.0
+        }
+      ],
+      "elapsed_seconds": 36.95143020901014,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-inspection-BenchmarkInspectionValidationBatch.stdout.txt",
+          "bytes": 282,
+          "sha256": "1060e26d5f7de7ed7cf5ca5bd734f0b316231a4c4c5172e5a50840fa7cdbb86d"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-inspection-BenchmarkInspectionValidationBatch.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-inspection-BenchmarkInspectionValidationBatch.git-status.txt",
+          "bytes": 4754,
+          "sha256": "598360974360689b0440bc66ef8587d23d9ac46a77bf407231dbcef557ab73b3"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-inspection-BenchmarkInspectionValidationBatch.cpu.pprof",
+          "bytes": 5173,
+          "sha256": "5c33bb24c437fc9a37ac42a70a3faf12686931906536279fc4a7dec596e2b27f"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-inspection-BenchmarkInspectionValidationBatch.mem.pprof",
+          "bytes": 1371,
+          "sha256": "3b6c354f8a1d85e88f0b500feffb72daac747de677bc3fc9a4d7c45d288d669a"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-inspection-BenchmarkInspectionValidationBatch.test",
+          "bytes": 11235282,
+          "sha256": "ab13d66d721c8019d9a7141786061a34987b18bb007c9d6d1070dc71ba260398"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/after-permission-corrected-file-sync.json",
+        "bytes": 61664,
+        "sha256": "6d38ebf79db92fb640e56719abcffe26f9ca56aaf1cfc3652800d1911904e884"
+      },
+      "label": "after-permission-corrected-file-sync",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkPermissionTwoObservedChanges$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-permission-corrected-file-sync.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-permission-corrected-file-sync.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-permission-corrected-file-sync.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkPermissionTwoObservedChanges",
+          "iterations": 3788,
+          "ns_per_op": 9447149.0,
+          "bytes_per_op": 948.0,
+          "allocations_per_op": 16.0
+        }
+      ],
+      "elapsed_seconds": 36.6818628750043,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-permission-corrected-file-sync.stdout.txt",
+          "bytes": 280,
+          "sha256": "70748d282f12d0af26bb65bc3db90bde4c87372ed5c2cc6aa63ec4fdb6276a59"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-permission-corrected-file-sync.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-permission-corrected-file-sync.git-status.txt",
+          "bytes": 5997,
+          "sha256": "cf13597d33ef109a8be30646219704be828cd7d6be816fe59335a6042a3af898"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-permission-corrected-file-sync.cpu.pprof",
+          "bytes": 3063,
+          "sha256": "4ad1588a6244eacc2799dd19426a972708974e7cc0acba8be6fbe9acc25db61e"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-permission-corrected-file-sync.mem.pprof",
+          "bytes": 2110,
+          "sha256": "0969238ed5fc15d7fd122aa94ee416da7ed1fe621f341db7361dc82e49968450"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-permission-corrected-file-sync.test",
+          "bytes": 11457602,
+          "sha256": "977aa95be8d1bb17083196fd23709ff6347b9fe0baa51dc299783ddb134bab3c"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/after-read-unwind.json",
+        "bytes": 58570,
+        "sha256": "a1f73fe06c72f84b786d6862f15b1a461fa9b8fcbf5d4a5dcb6699eaafa3bf4f"
+      },
+      "label": "after-read-unwind",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkReadExistingExactBytes$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-read-unwind.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-read-unwind.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-read-unwind.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkReadExistingExactBytes",
+          "iterations": 2234250,
+          "ns_per_op": 16120.0,
+          "bytes_per_op": 688.0,
+          "allocations_per_op": 11.0
+        }
+      ],
+      "elapsed_seconds": 36.821279457974015,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-read-unwind.stdout.txt",
+          "bytes": 261,
+          "sha256": "877da57be8d2dc16a73db12e477b43b58a5ac4cd93aab79e724abf875e06fa7f"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-read-unwind.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-read-unwind.git-status.txt",
+          "bytes": 5143,
+          "sha256": "85c946edab653b0b8bb3e324b350bd2c06097b43f5497748ff2f7a00b737ebec"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-read-unwind.cpu.pprof",
+          "bytes": 3674,
+          "sha256": "bc831dbea27cb0a762c751d187fa659f26e80e0b677721cf8969cf3bf2e133d8"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-read-unwind.mem.pprof",
+          "bytes": 3322,
+          "sha256": "e9958fa98f8d581dbf39b7f0a8b80bd106e116609532225d88dccb127841621b"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-read-unwind.test",
+          "bytes": 11322066,
+          "sha256": "556c6982f7b4d021025d6afe90f14da21bbdbf00708b8b786cd9bfe03d15c86e"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/after-remove-tree-absence-lifecycle.json",
+        "bytes": 60371,
+        "sha256": "4c1a40228f4616db9766a5217eb7edcad8417acefeba6f9eefba570186c33da5"
+      },
+      "label": "after-remove-tree-absence-lifecycle",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkRemoveTreeEmptyDirectoryLifecycle$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-remove-tree-absence-lifecycle.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-remove-tree-absence-lifecycle.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-remove-tree-absence-lifecycle.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkRemoveTreeEmptyDirectoryLifecycle",
+          "iterations": 6757,
+          "ns_per_op": 5511045.0,
+          "bytes_per_op": 1794.0,
+          "allocations_per_op": 19.0
+        }
+      ],
+      "elapsed_seconds": 38.194636125001125,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-remove-tree-absence-lifecycle.stdout.txt",
+          "bytes": 259,
+          "sha256": "c0a8121d42d885edd7f05baa24db1cb4f6b22343527156889e3a284ca21582a3"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-remove-tree-absence-lifecycle.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-remove-tree-absence-lifecycle.git-status.txt",
+          "bytes": 5656,
+          "sha256": "8e4c7ab354fa476766bf748bb279e34a98c38a7870859d9acfde60452b0090ed"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-remove-tree-absence-lifecycle.cpu.pprof",
+          "bytes": 4607,
+          "sha256": "d6593e0ce0c1efc7e6dc2af2a67d5285c964fbfd0bbc01bc39b4201e09b0c0e5"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-remove-tree-absence-lifecycle.mem.pprof",
+          "bytes": 3353,
+          "sha256": "4bf3fbe4ba99be5b7f727461e35067d6bf954c6cf81e92e022cb026966f08e8e"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-remove-tree-absence-lifecycle.test",
+          "bytes": 11372514,
+          "sha256": "56be6dd24c276f2a686111479cff2b3e5c3cd8a6b6b98c2ee13a03453485cfbb"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/after-sharing-PlatformObservation.json",
+        "bytes": 75937,
+        "sha256": "c18204a10cc0a71c90f0bb709b82be456faf2692567c037e5473fd0133fa6ad3"
+      },
+      "label": "after-sharing-PlatformObservation",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkSharingPlatformObservation$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-sharing-PlatformObservation.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-sharing-PlatformObservation.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-sharing-PlatformObservation.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkSharingPlatformObservation",
+          "iterations": 844282507,
+          "ns_per_op": 42.48,
+          "bytes_per_op": 0.0,
+          "allocations_per_op": 0.0
+        }
+      ],
+      "elapsed_seconds": 37.19871237498592,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-sharing-PlatformObservation.stdout.txt",
+          "bytes": 256,
+          "sha256": "471bd4d9deee71123dbc131a16c53a80e8e4089190021f549302a17627f314ac"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-sharing-PlatformObservation.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-sharing-PlatformObservation.git-status.txt",
+          "bytes": 9345,
+          "sha256": "7971b630a9034f37af80edc4386271314f18a82820558e482f61e5f11a1d4cad"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-sharing-PlatformObservation.cpu.pprof",
+          "bytes": 7710,
+          "sha256": "6880c6d2a3b809813cd8a36e3fc0554283a8f3c6bce4de97cc506067d68ca5a3"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-sharing-PlatformObservation.mem.pprof",
+          "bytes": 1768,
+          "sha256": "db3b8505b844f2a37694deac8da5807953c05878a8e62d0e493df06451ae68df"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-sharing-PlatformObservation.test",
+          "bytes": 12507618,
+          "sha256": "6850d82f4fa7d3809d811825892d40bd76e99343177db3d584568cd8dbef2365"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/after-stage-unwind-lifecycle.json",
+        "bytes": 58683,
+        "sha256": "07073c9cbee88399b027716511e5bb4e7ce93c8b0f823b0f93f539a16213138f"
+      },
+      "label": "after-stage-unwind-lifecycle",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkStageReadDiscardExactBytes$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-stage-unwind-lifecycle.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-stage-unwind-lifecycle.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-stage-unwind-lifecycle.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkStageReadDiscardExactBytes",
+          "iterations": 3080,
+          "ns_per_op": 11157228.0,
+          "bytes_per_op": 2301.0,
+          "allocations_per_op": 36.0
+        }
+      ],
+      "elapsed_seconds": 35.28411341700121,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stage-unwind-lifecycle.stdout.txt",
+          "bytes": 265,
+          "sha256": "efc0676749575518aa9b8e290e61df0c17becc4c3e4980cd65251c4b0faf07a7"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stage-unwind-lifecycle.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stage-unwind-lifecycle.git-status.txt",
+          "bytes": 5143,
+          "sha256": "85c946edab653b0b8bb3e324b350bd2c06097b43f5497748ff2f7a00b737ebec"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stage-unwind-lifecycle.cpu.pprof",
+          "bytes": 4468,
+          "sha256": "9209cb4a1e371d9c48ed77eb773a75f4c0f9419de0a6e3bef2a67a818d5154b6"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stage-unwind-lifecycle.mem.pprof",
+          "bytes": 2751,
+          "sha256": "bfff94fc0f6dba6d4874b6fad3ca74cc3765618f7b8ea92d3a87e28d39ef8c81"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stage-unwind-lifecycle.test",
+          "bytes": 11322066,
+          "sha256": "556c6982f7b4d021025d6afe90f14da21bbdbf00708b8b786cd9bfe03d15c86e"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-128B.json",
+        "bytes": 52534,
+        "sha256": "de95daf59969c3ee036557393624f04c3ac31bcd04aed43de79bdd461175f945"
+      },
+      "label": "after-stream-copy-128B",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkBoundedCopyExactBytes$/^128B$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-stream-copy-128B.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-stream-copy-128B.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-stream-copy-128B.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkBoundedCopyExactBytes/128B",
+          "iterations": 207414944,
+          "ns_per_op": 174.1,
+          "bytes_per_op": 241.0,
+          "allocations_per_op": 5.0
+        }
+      ],
+      "elapsed_seconds": 36.938442958984524,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-128B.stdout.txt",
+          "bytes": 276,
+          "sha256": "4573a1fdc2953694a88c98deda14421429ea94f57436dd14f28671989aba98de"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-128B.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-128B.git-status.txt",
+          "bytes": 3569,
+          "sha256": "d339a46a30cf17517e622851d19304b32543028af8f35fb3502251dd70822965"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-128B.cpu.pprof",
+          "bytes": 15306,
+          "sha256": "da283b744fd985432fdf19ea7e4fedba2192e50b7227b3ebf55c961ae98336bb"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-128B.mem.pprof",
+          "bytes": 2354,
+          "sha256": "0fec6de73213ac35228b33bf4d504e749025f9bf8e34a47108464e0b0bdf9846"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-128B.test",
+          "bytes": 9893522,
+          "sha256": "062a7d2880d38f38b0cc00786fcc8af56dd532528e1d63d26e395da0a2452910"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-1MiB.json",
+        "bytes": 52534,
+        "sha256": "6c368008b47523670b10da51612d57a1a37186770933c861a8740ba2cc1661a2"
+      },
+      "label": "after-stream-copy-1MiB",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkBoundedCopyExactBytes$/^1MiB$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-stream-copy-1MiB.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-stream-copy-1MiB.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-stream-copy-1MiB.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkBoundedCopyExactBytes/1MiB",
+          "iterations": 562507,
+          "ns_per_op": 61965.0,
+          "bytes_per_op": 32881.0,
+          "allocations_per_op": 5.0
+        }
+      ],
+      "elapsed_seconds": 35.708691125008045,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-1MiB.stdout.txt",
+          "bytes": 274,
+          "sha256": "7c23f5111cc554166c7d21a111e17d83a511af2455b1d78782ad677a3bd07c31"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-1MiB.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-1MiB.git-status.txt",
+          "bytes": 3569,
+          "sha256": "d339a46a30cf17517e622851d19304b32543028af8f35fb3502251dd70822965"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-1MiB.cpu.pprof",
+          "bytes": 11896,
+          "sha256": "63324fe9320443c99263f1df7347e6cda0a3bda24d4ccd6936f74b57322043ec"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-1MiB.mem.pprof",
+          "bytes": 2230,
+          "sha256": "6ca838d58623bffc4f8acf85c75dae9b10d21551eaa757e135a4c0cdfe8edf83"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-1MiB.test",
+          "bytes": 9893522,
+          "sha256": "062a7d2880d38f38b0cc00786fcc8af56dd532528e1d63d26e395da0a2452910"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-32KiB.json",
+        "bytes": 52543,
+        "sha256": "6096ad5a13c62b7bc45a8f778f63c48a17ca34ac27bcb1208cf17be071e5f543"
+      },
+      "label": "after-stream-copy-32KiB",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkBoundedCopyExactBytes$/^32KiB$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-stream-copy-32KiB.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-stream-copy-32KiB.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-stream-copy-32KiB.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkBoundedCopyExactBytes/32KiB",
+          "iterations": 7184575,
+          "ns_per_op": 5127.0,
+          "bytes_per_op": 32881.0,
+          "allocations_per_op": 5.0
+        }
+      ],
+      "elapsed_seconds": 37.67601141697378,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-32KiB.stdout.txt",
+          "bytes": 274,
+          "sha256": "3e739001b1a59f96aa67ff3182a04f1f4753debc6304adf51df5d674b1a2b279"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-32KiB.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-32KiB.git-status.txt",
+          "bytes": 3569,
+          "sha256": "d339a46a30cf17517e622851d19304b32543028af8f35fb3502251dd70822965"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-32KiB.cpu.pprof",
+          "bytes": 8783,
+          "sha256": "9e050b29eb7629e2325d511ac32896d19f66a157e0785d7169f12987418e06b4"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-32KiB.mem.pprof",
+          "bytes": 2229,
+          "sha256": "609f40a58f4fa61dac3f495071e848f7a0305e8b8a59bc0d04c910fa48823e98"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-stream-copy-32KiB.test",
+          "bytes": 9893522,
+          "sha256": "062a7d2880d38f38b0cc00786fcc8af56dd532528e1d63d26e395da0a2452910"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/after-walk-InternalLexicalSparse.json",
+        "bytes": 75924,
+        "sha256": "73f1fee8275844f40275453da1e72837089d95607ee4742412e7228ebecb64d7"
+      },
+      "label": "after-walk-InternalLexicalSparse",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkLexicalSparseDirectory$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-walk-InternalLexicalSparse.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-walk-InternalLexicalSparse.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-walk-InternalLexicalSparse.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkLexicalSparseDirectory",
+          "iterations": 1000000,
+          "ns_per_op": 32999.0,
+          "bytes_per_op": 3768.0,
+          "allocations_per_op": 12.0
+        }
+      ],
+      "elapsed_seconds": 34.594554375013104,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-InternalLexicalSparse.stdout.txt",
+          "bytes": 248,
+          "sha256": "f69cc4143139bb4e1951779429d33252a76959c793c4b4dcac1b6eeed1cfb923"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-InternalLexicalSparse.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-InternalLexicalSparse.git-status.txt",
+          "bytes": 9345,
+          "sha256": "7971b630a9034f37af80edc4386271314f18a82820558e482f61e5f11a1d4cad"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-InternalLexicalSparse.cpu.pprof",
+          "bytes": 5703,
+          "sha256": "08355ecec02ec2525dac2f1cf3a507bfb3dc169ad0301eb274354e0f2f687e4b"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-InternalLexicalSparse.mem.pprof",
+          "bytes": 3062,
+          "sha256": "15efa483eca639e47e2780251610c7f62a4189572e84076bd16dc9be05bba759"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-InternalLexicalSparse.test",
+          "bytes": 12507618,
+          "sha256": "6850d82f4fa7d3809d811825892d40bd76e99343177db3d584568cd8dbef2365"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/after-walk-LexicalSparse.json",
+        "bytes": 75848,
+        "sha256": "127bb6b1426ad3388a47c2f2d258a7620e8576b0acfe9855405c6afc859cd842"
+      },
+      "label": "after-walk-LexicalSparse",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkWalkLexicalSparseDirectory$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-walk-LexicalSparse.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-walk-LexicalSparse.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-walk-LexicalSparse.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkWalkLexicalSparseDirectory",
+          "iterations": 1288180,
+          "ns_per_op": 29058.0,
+          "bytes_per_op": 4264.0,
+          "allocations_per_op": 21.0
+        }
+      ],
+      "elapsed_seconds": 38.817184249986894,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-LexicalSparse.stdout.txt",
+          "bytes": 252,
+          "sha256": "cb816c80d2aa5b00b896b853ac5e105e13bddaa55c40de385546eb153c2fd91a"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-LexicalSparse.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-LexicalSparse.git-status.txt",
+          "bytes": 9345,
+          "sha256": "7971b630a9034f37af80edc4386271314f18a82820558e482f61e5f11a1d4cad"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-LexicalSparse.cpu.pprof",
+          "bytes": 6487,
+          "sha256": "a0187728a54da8f8bc69365b0b6650aa0ef39dd3a8415df63e92574f6b9ae44b"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-LexicalSparse.mem.pprof",
+          "bytes": 4402,
+          "sha256": "8f345396b6519ff03d106e4af2928d66308ea8f7af357fe65ed060644b28f888"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-LexicalSparse.test",
+          "bytes": 12507618,
+          "sha256": "6850d82f4fa7d3809d811825892d40bd76e99343177db3d584568cd8dbef2365"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/after-walk-NativeSparse.json",
+        "bytes": 75837,
+        "sha256": "2a0c2c38d9e54b68b6f5c51c180cfb1aec1b25a6a2a4275797b3bcdf1f83ece7"
+      },
+      "label": "after-walk-NativeSparse",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkWalkNativeSparseDirectory$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-walk-NativeSparse.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-walk-NativeSparse.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-walk-NativeSparse.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkWalkNativeSparseDirectory",
+          "iterations": 1322128,
+          "ns_per_op": 27034.0,
+          "bytes_per_op": 3112.0,
+          "allocations_per_op": 20.0
+        }
+      ],
+      "elapsed_seconds": 36.777593416016316,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-NativeSparse.stdout.txt",
+          "bytes": 251,
+          "sha256": "e9807cc90b6ad7d9becbfb8b0f62b4dd2fb0da36a2535946c4ed4af0c3f65c51"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-NativeSparse.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-NativeSparse.git-status.txt",
+          "bytes": 9345,
+          "sha256": "7971b630a9034f37af80edc4386271314f18a82820558e482f61e5f11a1d4cad"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-NativeSparse.cpu.pprof",
+          "bytes": 5192,
+          "sha256": "c3c395aa5c14da8b36aa7f7a81a8331454e07e390de4235627046f3bfa7b95ed"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-NativeSparse.mem.pprof",
+          "bytes": 4299,
+          "sha256": "5525c3f8024dcb2011b58e8b6b27fac456ebf49fdab5fd8128dda02ffd7392d0"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-NativeSparse.test",
+          "bytes": 12507618,
+          "sha256": "6850d82f4fa7d3809d811825892d40bd76e99343177db3d584568cd8dbef2365"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/after-walk-cancellation-LexicalSparse.json",
+        "bytes": 77285,
+        "sha256": "6b68689d1851a99decddaf2ced966699c186f245e76e329c30bbd3ab7882dd8f"
+      },
+      "label": "after-walk-cancellation-LexicalSparse",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkWalkLexicalSparseDirectory$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-walk-cancellation-LexicalSparse.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-walk-cancellation-LexicalSparse.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-walk-cancellation-LexicalSparse.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkWalkLexicalSparseDirectory",
+          "iterations": 1467844,
+          "ns_per_op": 24493.0,
+          "bytes_per_op": 4264.0,
+          "allocations_per_op": 21.0
+        }
+      ],
+      "elapsed_seconds": 36.9548445000255,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-cancellation-LexicalSparse.stdout.txt",
+          "bytes": 252,
+          "sha256": "b6f493223ec7650a087e7ed1dee0688ed7d2d0c61aed45f3e421b5f265e6d349"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-cancellation-LexicalSparse.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-cancellation-LexicalSparse.git-status.txt",
+          "bytes": 10569,
+          "sha256": "8d733ca343043eac11a88a5d669200040a0016c6ac2a12d6593d625a8ab2d928"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-cancellation-LexicalSparse.cpu.pprof",
+          "bytes": 4810,
+          "sha256": "4304e2adb1f2f3369feb20dd7a55d077d7ea10d3c3d939aecd524a655ca7ea1a"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-cancellation-LexicalSparse.mem.pprof",
+          "bytes": 3874,
+          "sha256": "2915bb452bf40135979df13d088a77808d53c68604a907890a9113c816208e9c"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-cancellation-LexicalSparse.test",
+          "bytes": 12465042,
+          "sha256": "3c6043e6c9fba1f988e6961db94e82f743d551ce745f3b66101b2625c4e67a8e"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/after-walk-cancellation-NativeSparse.json",
+        "bytes": 77275,
+        "sha256": "5b9af7f31fcc008efe6dd71cb06e2a9bfad14c29d4677ecb849f27366060569a"
+      },
+      "label": "after-walk-cancellation-NativeSparse",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkWalkNativeSparseDirectory$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-walk-cancellation-NativeSparse.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-walk-cancellation-NativeSparse.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/after-walk-cancellation-NativeSparse.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkWalkNativeSparseDirectory",
+          "iterations": 1517971,
+          "ns_per_op": 23665.0,
+          "bytes_per_op": 3112.0,
+          "allocations_per_op": 20.0
+        }
+      ],
+      "elapsed_seconds": 36.92132395799854,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-cancellation-NativeSparse.stdout.txt",
+          "bytes": 251,
+          "sha256": "d460efa6f3ab1e1f310c185705f6dd18259bd4e0ba74ac7c7aa58a2f4e4f18df"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-cancellation-NativeSparse.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-cancellation-NativeSparse.git-status.txt",
+          "bytes": 10569,
+          "sha256": "8d733ca343043eac11a88a5d669200040a0016c6ac2a12d6593d625a8ab2d928"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-cancellation-NativeSparse.cpu.pprof",
+          "bytes": 5582,
+          "sha256": "de416f0de0b9ef72e90a1213a50be3644ac09333b9bcd11a48f58a85bb4fbf66"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-cancellation-NativeSparse.mem.pprof",
+          "bytes": 3862,
+          "sha256": "026cb8f78675e4ddf8ba8c4b34f94a8e5a92baa32d3ee074f0e836c496b06923"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/after-walk-cancellation-NativeSparse.test",
+          "bytes": 12465042,
+          "sha256": "3c6043e6c9fba1f988e6961db94e82f743d551ce745f3b66101b2625c4e67a8e"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/baseline-BenchmarkLexicalSparseDirectory.json",
+        "bytes": 48338,
+        "sha256": "519cd3d1217620632f29fc174d2e1584220e1e0306f6ffe0e3a4faa6706cf7d9"
+      },
+      "label": "baseline-BenchmarkLexicalSparseDirectory",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkLexicalSparseDirectory$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/baseline-BenchmarkLexicalSparseDirectory.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/baseline-BenchmarkLexicalSparseDirectory.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/baseline-BenchmarkLexicalSparseDirectory.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkLexicalSparseDirectory",
+          "iterations": 1749218,
+          "ns_per_op": 20636.0,
+          "bytes_per_op": 3768.0,
+          "allocations_per_op": 12.0
+        }
+      ],
+      "elapsed_seconds": 36.92466487499769,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/baseline-BenchmarkLexicalSparseDirectory.stdout.txt",
+          "bytes": 248,
+          "sha256": "46b9f768f818c82c8aa119e70248a39761b808fa2062dd416b52fd8bdacb1aea"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/baseline-BenchmarkLexicalSparseDirectory.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/baseline-BenchmarkLexicalSparseDirectory.git-status.txt",
+          "bytes": 2901,
+          "sha256": "125afc68da4d123d3a02700bac51b2e82aa68c7c767ab51789530980b489f15a"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/baseline-BenchmarkLexicalSparseDirectory.cpu.pprof",
+          "bytes": 3822,
+          "sha256": "a0625c5dcb5e31b30d46653021e438ea705ce8bca30f71dc918c046f672e5255"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/baseline-BenchmarkLexicalSparseDirectory.mem.pprof",
+          "bytes": 2636,
+          "sha256": "0da9f3855256caaff325329dd07796f0a7b778debb3829b4633802766aa97627"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/baseline-BenchmarkLexicalSparseDirectory.test",
+          "bytes": 8682194,
+          "sha256": "39c58b833ba2f401bfb448e5ad111f0126b98150b0e75b00279f7876fa86668b"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/baseline-BenchmarkWalkLexicalSparseDirectory.json",
+        "bytes": 48383,
+        "sha256": "b6476b26d2056be55793deb56401e65a414079f9b38136e5a9d66d221cdd3ce4"
+      },
+      "label": "baseline-BenchmarkWalkLexicalSparseDirectory",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkWalkLexicalSparseDirectory$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/baseline-BenchmarkWalkLexicalSparseDirectory.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/baseline-BenchmarkWalkLexicalSparseDirectory.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/baseline-BenchmarkWalkLexicalSparseDirectory.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkWalkLexicalSparseDirectory",
+          "iterations": 1633057,
+          "ns_per_op": 21994.0,
+          "bytes_per_op": 4264.0,
+          "allocations_per_op": 21.0
+        }
+      ],
+      "elapsed_seconds": 37.266109499993036,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/baseline-BenchmarkWalkLexicalSparseDirectory.stdout.txt",
+          "bytes": 252,
+          "sha256": "c2e8d6ec03ed9957d69fd57b32dfcbe62dff93b27c9287cc8b7f490c8ab4f5ae"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/baseline-BenchmarkWalkLexicalSparseDirectory.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/baseline-BenchmarkWalkLexicalSparseDirectory.git-status.txt",
+          "bytes": 2901,
+          "sha256": "125afc68da4d123d3a02700bac51b2e82aa68c7c767ab51789530980b489f15a"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/baseline-BenchmarkWalkLexicalSparseDirectory.cpu.pprof",
+          "bytes": 4193,
+          "sha256": "116765c28e58917230b6602ee876c71caaa7ecfbc0db1550d928f1f9c0cbfa84"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/baseline-BenchmarkWalkLexicalSparseDirectory.mem.pprof",
+          "bytes": 3587,
+          "sha256": "2500c02856d4e9167f88c86a17cf019914960f63f0fdebd16daeaf636b2b0db7"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/baseline-BenchmarkWalkLexicalSparseDirectory.test",
+          "bytes": 8682194,
+          "sha256": "39c58b833ba2f401bfb448e5ad111f0126b98150b0e75b00279f7876fa86668b"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/baseline-BenchmarkWalkNativeSparseDirectory.json",
+        "bytes": 48371,
+        "sha256": "f4ad2d61d00a5ca4178b3ca92fc7f36e44d8bfb20b2c0b5d0fec9e50ff22b2a9"
+      },
+      "label": "baseline-BenchmarkWalkNativeSparseDirectory",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkWalkNativeSparseDirectory$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/baseline-BenchmarkWalkNativeSparseDirectory.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/baseline-BenchmarkWalkNativeSparseDirectory.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/baseline-BenchmarkWalkNativeSparseDirectory.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkWalkNativeSparseDirectory",
+          "iterations": 1687340,
+          "ns_per_op": 21545.0,
+          "bytes_per_op": 3112.0,
+          "allocations_per_op": 20.0
+        }
+      ],
+      "elapsed_seconds": 37.08800412499113,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/baseline-BenchmarkWalkNativeSparseDirectory.stdout.txt",
+          "bytes": 251,
+          "sha256": "946161088802b06a859fc1988f2ab8f13d9673a43ddca14e9e708fa4a27daee0"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/baseline-BenchmarkWalkNativeSparseDirectory.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/baseline-BenchmarkWalkNativeSparseDirectory.git-status.txt",
+          "bytes": 2901,
+          "sha256": "125afc68da4d123d3a02700bac51b2e82aa68c7c767ab51789530980b489f15a"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/baseline-BenchmarkWalkNativeSparseDirectory.cpu.pprof",
+          "bytes": 3791,
+          "sha256": "162ac95a6bf0478f57472a463eabf2f3cab38518b3a4ac97da8596f430e4f3c3"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/baseline-BenchmarkWalkNativeSparseDirectory.mem.pprof",
+          "bytes": 4204,
+          "sha256": "25775c48695f642742aa4080e1571c7ad05eba50f43e2787758f1efdd3c6f74b"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/baseline-BenchmarkWalkNativeSparseDirectory.test",
+          "bytes": 8682194,
+          "sha256": "39c58b833ba2f401bfb448e5ad111f0126b98150b0e75b00279f7876fa86668b"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/before-custody-ConfirmDurable.json",
+        "bytes": 52930,
+        "sha256": "64d3148ad5d78de48b46b93ad2f92b86eaac066f5a420f3731f11d1d0046d924"
+      },
+      "label": "before-custody-ConfirmDurable",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkExistingFileCustody$/^ConfirmDurable$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-custody-ConfirmDurable.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-custody-ConfirmDurable.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-custody-ConfirmDurable.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkExistingFileCustody/ConfirmDurable",
+          "iterations": 1180324,
+          "ns_per_op": 29954.0,
+          "bytes_per_op": 704.0,
+          "allocations_per_op": 11.0
+        }
+      ],
+      "elapsed_seconds": 37.055787334014894,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-custody-ConfirmDurable.stdout.txt",
+          "bytes": 268,
+          "sha256": "4b6c42bc6bc00bc05f16ffeae770ebe875edd902d0ec22e5f430459eea83341f"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-custody-ConfirmDurable.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-custody-ConfirmDurable.git-status.txt",
+          "bytes": 3617,
+          "sha256": "02781152a3af04e3a3a29360bd91a872a5d600340f172dd3017b3067f07ed680"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-custody-ConfirmDurable.cpu.pprof",
+          "bytes": 3391,
+          "sha256": "ed71aa9930e6c3c05f4a858d02353ea5b1380623a98c5b393edb85b2926ae3bd"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-custody-ConfirmDurable.mem.pprof",
+          "bytes": 3159,
+          "sha256": "59c860c9c52ed8d23d05a602c406bdc259e7c4c3b90879d16f417ddc5ae23313"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-custody-ConfirmDurable.test",
+          "bytes": 9910418,
+          "sha256": "d73e65e24d81d434fddc166af58e71edcbd81c8aaacee6627401bde80ca1e33e"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/before-custody-Touch.json",
+        "bytes": 52830,
+        "sha256": "fcd673676531b04d733ca3a98033babf95413e2c25ab238c00913eb0120d70e6"
+      },
+      "label": "before-custody-Touch",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkExistingFileCustody$/^Touch$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-custody-Touch.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-custody-Touch.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-custody-Touch.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkExistingFileCustody/Touch",
+          "iterations": 6968,
+          "ns_per_op": 4860883.0,
+          "bytes_per_op": 898.0,
+          "allocations_per_op": 16.0
+        }
+      ],
+      "elapsed_seconds": 34.67864887500764,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-custody-Touch.stdout.txt",
+          "bytes": 259,
+          "sha256": "3acf4a7f9a8e3544396c8688eba789a524141c1ffbd2c382dda20e1ddd82ed73"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-custody-Touch.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-custody-Touch.git-status.txt",
+          "bytes": 3617,
+          "sha256": "02781152a3af04e3a3a29360bd91a872a5d600340f172dd3017b3067f07ed680"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-custody-Touch.cpu.pprof",
+          "bytes": 3959,
+          "sha256": "b2f2c14f2c8f2e997842a2b88cf77b7ff1c4b220c4883293607939ba31fb763a"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-custody-Touch.mem.pprof",
+          "bytes": 2713,
+          "sha256": "0877ee605c8fb78e93bbb727c53aee2c2e30726a3400b59c3f88ca942821ccf1"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-custody-Touch.test",
+          "bytes": 9910418,
+          "sha256": "d73e65e24d81d434fddc166af58e71edcbd81c8aaacee6627401bde80ca1e33e"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/before-directory-BenchmarkHeldDirectoryAcquisition.json",
+        "bytes": 54418,
+        "sha256": "7ba7457145daca85b51d5810446ab9d43cd7ba71d9e590c97337dfea635c88f1"
+      },
+      "label": "before-directory-BenchmarkHeldDirectoryAcquisition",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkHeldDirectoryAcquisition$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-directory-BenchmarkHeldDirectoryAcquisition.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-directory-BenchmarkHeldDirectoryAcquisition.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-directory-BenchmarkHeldDirectoryAcquisition.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkHeldDirectoryAcquisition",
+          "iterations": 2424543,
+          "ns_per_op": 14889.0,
+          "bytes_per_op": 432.0,
+          "allocations_per_op": 5.0
+        }
+      ],
+      "elapsed_seconds": 36.867600209021475,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-directory-BenchmarkHeldDirectoryAcquisition.stdout.txt",
+          "bytes": 250,
+          "sha256": "7d582e1f0d636644da1767584e0c068878c84e451012ab20aa298fd1844ceb55"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-directory-BenchmarkHeldDirectoryAcquisition.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-directory-BenchmarkHeldDirectoryAcquisition.git-status.txt",
+          "bytes": 3922,
+          "sha256": "6d623fb08fe7d581eaa88ba4a62c7ebedc7839b90250a96162ad3b44e67bf214"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-directory-BenchmarkHeldDirectoryAcquisition.cpu.pprof",
+          "bytes": 3385,
+          "sha256": "d962da53703a28909321a30f0217449affb12bd96e69d913f3bea55bd0edf6f3"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-directory-BenchmarkHeldDirectoryAcquisition.mem.pprof",
+          "bytes": 2170,
+          "sha256": "94d1b43d3b3d6b595348dfb72f84c8dfedbcaf4a3fdffe550e70b838eb3845d4"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-directory-BenchmarkHeldDirectoryAcquisition.test",
+          "bytes": 10036514,
+          "sha256": "525b20efc8b5a633a68874d5b1ceb73f8f8ff6e36cd34960a60b5d3209b4e961"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/before-directory-BenchmarkRootDirectoryAcquisition.json",
+        "bytes": 54417,
+        "sha256": "5b34979fc626ccefd1022d55c7759aa56d08e04c4765d2ee96f52127ccc94546"
+      },
+      "label": "before-directory-BenchmarkRootDirectoryAcquisition",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkRootDirectoryAcquisition$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-directory-BenchmarkRootDirectoryAcquisition.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-directory-BenchmarkRootDirectoryAcquisition.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-directory-BenchmarkRootDirectoryAcquisition.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkRootDirectoryAcquisition",
+          "iterations": 963368,
+          "ns_per_op": 36918.0,
+          "bytes_per_op": 424.0,
+          "allocations_per_op": 8.0
+        }
+      ],
+      "elapsed_seconds": 37.38590937500703,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-directory-BenchmarkRootDirectoryAcquisition.stdout.txt",
+          "bytes": 250,
+          "sha256": "66656dd618a19b89a352c7a3ac2724388d8f99be9dfc0123988ac2902a5635f9"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-directory-BenchmarkRootDirectoryAcquisition.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-directory-BenchmarkRootDirectoryAcquisition.git-status.txt",
+          "bytes": 3922,
+          "sha256": "6d623fb08fe7d581eaa88ba4a62c7ebedc7839b90250a96162ad3b44e67bf214"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-directory-BenchmarkRootDirectoryAcquisition.cpu.pprof",
+          "bytes": 2534,
+          "sha256": "8eeca8f29fc6327ac9ce1e5c4591625d4263a4c24e6ee87e7008385f9fc4462e"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-directory-BenchmarkRootDirectoryAcquisition.mem.pprof",
+          "bytes": 3375,
+          "sha256": "4aa02ffdd2a727c77f7b7021d56de5438f666f54850216ecf82aa43d2be3e097"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-directory-BenchmarkRootDirectoryAcquisition.test",
+          "bytes": 10036514,
+          "sha256": "525b20efc8b5a633a68874d5b1ceb73f8f8ff6e36cd34960a60b5d3209b4e961"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Create.json",
+        "bytes": 64867,
+        "sha256": "6d7c6bf734e1e8792c2a1f333dfb74c880ae88a78252c56fa1fee29dcbff6503"
+      },
+      "label": "before-ensure-directory-Create",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkEnsureNewDirectoryNativeRemovalLifecycle$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-ensure-directory-Create.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-ensure-directory-Create.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-ensure-directory-Create.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkEnsureNewDirectoryNativeRemovalLifecycle",
+          "iterations": 3084,
+          "ns_per_op": 11492946.0,
+          "bytes_per_op": 6134.0,
+          "allocations_per_op": 65.0
+        }
+      ],
+      "elapsed_seconds": 36.18533879099414,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Create.stdout.txt",
+          "bytes": 266,
+          "sha256": "972dad5b54fdac34002997ccb85116dd12a31edc0991fa68fbdc71112ff6182f"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Create.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Create.git-status.txt",
+          "bytes": 6854,
+          "sha256": "3c1238f14dfa05deb7da506efd573a4ec4e64581188bf838adfe108ff9ce7e75"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Create.cpu.pprof",
+          "bytes": 5035,
+          "sha256": "29c4293eb9031e5134927302bfd64ea25364ac99754c5507ad436b240c33fe83"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Create.mem.pprof",
+          "bytes": 3593,
+          "sha256": "9ab1d81778f48ada20a847504b53b0747db272f623cdeb13e18990b7d1804739"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Create.test",
+          "bytes": 11712594,
+          "sha256": "115381ada0e6fd6cb0ecfdc94300eb0f31fd5ec334a453b5107bcac253e1a856"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth1.json",
+        "bytes": 64874,
+        "sha256": "ea9089a3449e929da7cd3d61af18750c219e258db65d179b4a61d993d48b81e9"
+      },
+      "label": "before-ensure-directory-Depth1",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkEnsureExistingDirectoryModeTransitions$/^Depth1$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth1.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth1.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth1.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkEnsureExistingDirectoryModeTransitions/Depth1",
+          "iterations": 3748,
+          "ns_per_op": 9398298.0,
+          "bytes_per_op": 1780.0,
+          "allocations_per_op": 24.0
+        }
+      ],
+      "elapsed_seconds": 36.00698241699138,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth1.stdout.txt",
+          "bytes": 279,
+          "sha256": "dc607ef02d0a300106f45108034a5cf2ce123a68c6ebbe53aebd36a30955c8ce"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth1.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth1.git-status.txt",
+          "bytes": 6854,
+          "sha256": "3c1238f14dfa05deb7da506efd573a4ec4e64581188bf838adfe108ff9ce7e75"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth1.cpu.pprof",
+          "bytes": 3141,
+          "sha256": "3221b5b92de0f7f81f096212896514559d48962ed3c08cf6c357523b39c5c682"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth1.mem.pprof",
+          "bytes": 2311,
+          "sha256": "588805864a8a0525bb1147cb497ef378d93544b3d14f7e41afc635a045eca5a5"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth1.test",
+          "bytes": 11712594,
+          "sha256": "115381ada0e6fd6cb0ecfdc94300eb0f31fd5ec334a453b5107bcac253e1a856"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth16.json",
+        "bytes": 64885,
+        "sha256": "41b0f3feff6645271b626649e647db75fd91003a58536935c1d8f9b1d96d4b44"
+      },
+      "label": "before-ensure-directory-Depth16",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkEnsureExistingDirectoryModeTransitions$/^Depth16$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth16.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth16.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth16.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkEnsureExistingDirectoryModeTransitions/Depth16",
+          "iterations": 2220,
+          "ns_per_op": 16099612.0,
+          "bytes_per_op": 51575.0,
+          "allocations_per_op": 1000.0
+        }
+      ],
+      "elapsed_seconds": 36.56176437501563,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth16.stdout.txt",
+          "bytes": 280,
+          "sha256": "79ea453de8751e0662eae01296516687edb8d5ed6fb2c52a83ba66fb45933b0b"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth16.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth16.git-status.txt",
+          "bytes": 6854,
+          "sha256": "3c1238f14dfa05deb7da506efd573a4ec4e64581188bf838adfe108ff9ce7e75"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth16.cpu.pprof",
+          "bytes": 3510,
+          "sha256": "2b6f789830440db08110acee165d3c420ba0bb5556be4c2ec97b995afc7225a6"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth16.mem.pprof",
+          "bytes": 3760,
+          "sha256": "cca9356d083821fc689f57e395f7a68f26eb6b50b766feb0e284fdd432f2432e"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-ensure-directory-Depth16.test",
+          "bytes": 11712594,
+          "sha256": "115381ada0e6fd6cb0ecfdc94300eb0f31fd5ec334a453b5107bcac253e1a856"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/before-inspection-BenchmarkInspectRegularFileObservation.json",
+        "bytes": 55759,
+        "sha256": "37f5b2cbb06ab078b8eda27374d579c90afdc67687e9b12edbe51bda1eeebe13"
+      },
+      "label": "before-inspection-BenchmarkInspectRegularFileObservation",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkInspectRegularFileObservation$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-inspection-BenchmarkInspectRegularFileObservation.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-inspection-BenchmarkInspectRegularFileObservation.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-inspection-BenchmarkInspectRegularFileObservation.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkInspectRegularFileObservation",
+          "iterations": 880502,
+          "ns_per_op": 40642.0,
+          "bytes_per_op": 856.0,
+          "allocations_per_op": 12.0
+        }
+      ],
+      "elapsed_seconds": 37.83076879099826,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-inspection-BenchmarkInspectRegularFileObservation.stdout.txt",
+          "bytes": 255,
+          "sha256": "774e53602459c68752d02344ba818b1a6abd44a9d365a3974258b7a23a662032"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-inspection-BenchmarkInspectRegularFileObservation.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-inspection-BenchmarkInspectRegularFileObservation.git-status.txt",
+          "bytes": 4438,
+          "sha256": "4b93ab6ca7d6ead24ae033339ebb1730e674388d7f878991eaeb0f55a6103dd6"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-inspection-BenchmarkInspectRegularFileObservation.cpu.pprof",
+          "bytes": 2754,
+          "sha256": "a665971a3f7de6babc6bf42ea473be6bec8a300de9fc243baa0c9e7b59b4a4e2"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-inspection-BenchmarkInspectRegularFileObservation.mem.pprof",
+          "bytes": 3645,
+          "sha256": "691f55a5a190fb123082a7cd107d86ecee0072679cdeb2e18d5ad3431225234c"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-inspection-BenchmarkInspectRegularFileObservation.test",
+          "bytes": 11130178,
+          "sha256": "b18637d759e181ff3384e97d1fd16f8053f8ac9042c71c4a387f96e41b7548ba"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/before-inspection-BenchmarkInspectionValidation.json",
+        "bytes": 55661,
+        "sha256": "b653d686e06c6d9789b2d2f50daf989dd78c784886b405702f9f815566c1a302"
+      },
+      "label": "before-inspection-BenchmarkInspectionValidation",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkInspectionValidation$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-inspection-BenchmarkInspectionValidation.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-inspection-BenchmarkInspectionValidation.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-inspection-BenchmarkInspectionValidation.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkInspectionValidation",
+          "iterations": 1000000000,
+          "ns_per_op": 2.616,
+          "bytes_per_op": 0.0,
+          "allocations_per_op": 0.0
+        }
+      ],
+      "elapsed_seconds": 3.4797894999792334,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-inspection-BenchmarkInspectionValidation.stdout.txt",
+          "bytes": 251,
+          "sha256": "b6e9a41b7990d9f0632b6c33300011d5fc72ba349e8f832006cb410f105b6255"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-inspection-BenchmarkInspectionValidation.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-inspection-BenchmarkInspectionValidation.git-status.txt",
+          "bytes": 4438,
+          "sha256": "4b93ab6ca7d6ead24ae033339ebb1730e674388d7f878991eaeb0f55a6103dd6"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-inspection-BenchmarkInspectionValidation.cpu.pprof",
+          "bytes": 1681,
+          "sha256": "7e0369b135ceaeb698badde36a63a1758f05b32ada04ea2daccff5b4c5585713"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-inspection-BenchmarkInspectionValidation.mem.pprof",
+          "bytes": 1387,
+          "sha256": "4183d734251557c2fa9ea5ed023abdf9280d63a7dfa900d287e9bb8637aaba59"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-inspection-BenchmarkInspectionValidation.test",
+          "bytes": 11130178,
+          "sha256": "b18637d759e181ff3384e97d1fd16f8053f8ac9042c71c4a387f96e41b7548ba"
+        }
+      ],
+      "role": "exploratory: Go iteration cap ended before the requested 30-second duration; replaced by the 64-validation batch workload"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/before-inspection-BenchmarkInspectionValidationBatch.json",
+        "bytes": 55715,
+        "sha256": "b2b39223225b65d57273c453e463e6e5978259a8396dfb0a36c85ac5db328386"
+      },
+      "label": "before-inspection-BenchmarkInspectionValidationBatch",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkInspectionValidationBatch$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-inspection-BenchmarkInspectionValidationBatch.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-inspection-BenchmarkInspectionValidationBatch.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-inspection-BenchmarkInspectionValidationBatch.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkInspectionValidationBatch",
+          "iterations": 189739220,
+          "ns_per_op": 189.7,
+          "bytes_per_op": 0.0,
+          "allocations_per_op": 0.0
+        }
+      ],
+      "elapsed_seconds": 37.57738704199437,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-inspection-BenchmarkInspectionValidationBatch.stdout.txt",
+          "bytes": 283,
+          "sha256": "d7cc56323b00fc5b20b4c96f208756618bce8e7f67248278fc137aa90de232b4"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-inspection-BenchmarkInspectionValidationBatch.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-inspection-BenchmarkInspectionValidationBatch.git-status.txt",
+          "bytes": 4438,
+          "sha256": "4b93ab6ca7d6ead24ae033339ebb1730e674388d7f878991eaeb0f55a6103dd6"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-inspection-BenchmarkInspectionValidationBatch.cpu.pprof",
+          "bytes": 3103,
+          "sha256": "cc2369255bc5442ca78a0a8bd4476d855a91de6af0109d741dee43880619c766"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-inspection-BenchmarkInspectionValidationBatch.mem.pprof",
+          "bytes": 1702,
+          "sha256": "6b21bc30cbf3cf74537e0288059cdc72b8a2fdf9a07680f8eccce43d98700b64"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-inspection-BenchmarkInspectionValidationBatch.test",
+          "bytes": 11130226,
+          "sha256": "4d1f1f8a9dea29a08d9a21826e463a647feba6ce6d12c3ceb5fa14f8cbb8c488"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/before-permission-file-sync.json",
+        "bytes": 60534,
+        "sha256": "5b12d66594f4da76c3813e03d79801bf114c12bd8969a7ff84c89509c859e811"
+      },
+      "label": "before-permission-file-sync",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkPermissionTwoObservedChanges$",
+        "-count=1",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=filestore/testdata/test-upgrade-20260907/before-permission-file-sync.cpu.pprof",
+        "-memprofile=filestore/testdata/test-upgrade-20260907/before-permission-file-sync.mem.pprof",
+        "-o=filestore/testdata/test-upgrade-20260907/before-permission-file-sync.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkPermissionTwoObservedChanges",
+          "iterations": 3261,
+          "ns_per_op": 9390134.0,
+          "bytes_per_op": 1269.0,
+          "allocations_per_op": 24.0
+        }
+      ],
+      "elapsed_seconds": 32.7719068749866,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-permission-file-sync.stdout.txt",
+          "bytes": 280,
+          "sha256": "e80137ba92e8b8ca2cc9a2af614bcdcbd43c4ec5d95424f5ed90d2661ebfd9c0"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-permission-file-sync.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-permission-file-sync.git-status.txt",
+          "bytes": 5707,
+          "sha256": "99567d84239e71488fa12ab1bdb96ab2c9eaecbe329756fe7d93f0fa0b396bda"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-permission-file-sync.cpu.pprof",
+          "bytes": 3115,
+          "sha256": "0f325f6ba5f790bd82f3f6575a218585dcff1282e9e705a2f16d997e04c6361a"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-permission-file-sync.mem.pprof",
+          "bytes": 2892,
+          "sha256": "6be24e21d528c251a06c81539ad686e7120d582404d97652ebfdda124c00d44c"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-permission-file-sync.test",
+          "bytes": 11372754,
+          "sha256": "b0eef442d3e99f9f7134c9992ac0da82b495410d99988c5147c3e651a932ca74"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/before-read-unwind.json",
+        "bytes": 58187,
+        "sha256": "1451a0faa7bb9ec9a9ac01420d7e3330b599fc70e1f2c20385b46336fd35499c"
+      },
+      "label": "before-read-unwind",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkReadExistingExactBytes$",
+        "-count=1",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=filestore/testdata/test-upgrade-20260907/before-read-unwind.cpu.pprof",
+        "-memprofile=filestore/testdata/test-upgrade-20260907/before-read-unwind.mem.pprof",
+        "-o=filestore/testdata/test-upgrade-20260907/before-read-unwind.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkReadExistingExactBytes",
+          "iterations": 2259220,
+          "ns_per_op": 15880.0,
+          "bytes_per_op": 688.0,
+          "allocations_per_op": 11.0
+        }
+      ],
+      "elapsed_seconds": 37.38980075001018,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-read-unwind.stdout.txt",
+          "bytes": 261,
+          "sha256": "0795738adc41edd4321a93c6173f8f63742407079474a4fbe5716300f651ee7f"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-read-unwind.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-read-unwind.git-status.txt",
+          "bytes": 5094,
+          "sha256": "faa5558a49ce75b8b5df644134eeb6342024a389c7def7491ffb4641349f220e"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-read-unwind.cpu.pprof",
+          "bytes": 3675,
+          "sha256": "4067b42e892c2df0cf4e1bed6fb5629485c6bfe433506efe50afaa6374ca691a"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-read-unwind.mem.pprof",
+          "bytes": 2725,
+          "sha256": "bd07db08ff446edbf2df90c1a32908351cdf0b4799d59b4ca17aa8fc1cf950b4"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-read-unwind.test",
+          "bytes": 11304898,
+          "sha256": "a09ef56756bb2355cf3bdd68f082b74670ce58ab2f4dd5e911c11a4432f16c86"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/before-remove-tree-absence-lifecycle.json",
+        "bytes": 59672,
+        "sha256": "756b005003eef27ec7f5a5dddb22cd58c986558344128ba4309cc158edb10e5b"
+      },
+      "label": "before-remove-tree-absence-lifecycle",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkRemoveTreeEmptyDirectoryLifecycle$",
+        "-count=1",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=filestore/testdata/test-upgrade-20260907/before-remove-tree-absence-lifecycle.cpu.pprof",
+        "-memprofile=filestore/testdata/test-upgrade-20260907/before-remove-tree-absence-lifecycle.mem.pprof",
+        "-o=filestore/testdata/test-upgrade-20260907/before-remove-tree-absence-lifecycle.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkRemoveTreeEmptyDirectoryLifecycle",
+          "iterations": 6352,
+          "ns_per_op": 5669840.0,
+          "bytes_per_op": 1562.0,
+          "allocations_per_op": 16.0
+        }
+      ],
+      "elapsed_seconds": 37.549103666009614,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-remove-tree-absence-lifecycle.stdout.txt",
+          "bytes": 259,
+          "sha256": "17b75cd6730b644d8cc1d158a04e658043c1f0db838f0906373a86f70b81017f"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-remove-tree-absence-lifecycle.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-remove-tree-absence-lifecycle.git-status.txt",
+          "bytes": 5531,
+          "sha256": "5c1c748bd2cdd28da120a9c62b6e58280567de605de84c6977b891792e8ae184"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-remove-tree-absence-lifecycle.cpu.pprof",
+          "bytes": 4115,
+          "sha256": "ab69f7924f06493729df3181391c64625e2549d1ddcd7f26f769bac73d57d308"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-remove-tree-absence-lifecycle.mem.pprof",
+          "bytes": 2722,
+          "sha256": "261d0a5b65e5dbf799c28a41bcb13607eea93bc7ab6e319de72da5a9c2dfb89d"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-remove-tree-absence-lifecycle.test",
+          "bytes": 11320930,
+          "sha256": "473d8df82e69ddd6d0cad81dda87f3c7fedf55178a7a45a8dc04086474f7ef40"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/before-stage-unwind-lifecycle.json",
+        "bytes": 57674,
+        "sha256": "e7841630595355fe77949f9a67cd5a0ab501792f5778fd983dca3c09e840f232"
+      },
+      "label": "before-stage-unwind-lifecycle",
+      "argv": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkStageReadDiscardExactBytes$",
+        "-count=1",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=filestore/testdata/test-upgrade-20260907/before-stage-unwind-lifecycle.cpu.pprof",
+        "-memprofile=filestore/testdata/test-upgrade-20260907/before-stage-unwind-lifecycle.mem.pprof",
+        "-o=filestore/testdata/test-upgrade-20260907/before-stage-unwind-lifecycle.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkStageReadDiscardExactBytes",
+          "iterations": 3128,
+          "ns_per_op": 11459325.0,
+          "bytes_per_op": 2301.0,
+          "allocations_per_op": 36.0
+        }
+      ],
+      "elapsed_seconds": 37.92668820801191,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stage-unwind-lifecycle.stdout.txt",
+          "bytes": 265,
+          "sha256": "7eb83eeaad281863fa0003dd7d7730559967149e6b0dcbc0dc4bf00fa626c67e"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stage-unwind-lifecycle.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stage-unwind-lifecycle.git-status.txt",
+          "bytes": 5009,
+          "sha256": "6c2f419fe37eb07cbd0a74d1ff526c93c1dec5ed88c66ac4ca496ce3837562d8"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stage-unwind-lifecycle.cpu.pprof",
+          "bytes": 4834,
+          "sha256": "e21d86c7b38bddb6618f16ed588d83b4965eb96ad39bb884c1e1a03997dec37a"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stage-unwind-lifecycle.mem.pprof",
+          "bytes": 2529,
+          "sha256": "e90b0c2be670c194cde9582f194eaae03d7a165e8b2ea4b3a276a4d6bca0581b"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stage-unwind-lifecycle.test",
+          "bytes": 11234210,
+          "sha256": "af6be8350c567670878269b68c1f51b985d45fd1900db1f749f13664684b6bc6"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-128B.json",
+        "bytes": 50944,
+        "sha256": "7e7b5610b72e24eb198ad2103f33686e6ff242e2d1932d8225cd63ecfaacdd35"
+      },
+      "label": "before-stream-copy-128B",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkBoundedCopyExactBytes$/^128B$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-stream-copy-128B.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-stream-copy-128B.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-stream-copy-128B.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkBoundedCopyExactBytes/128B",
+          "iterations": 17116009,
+          "ns_per_op": 2094.0,
+          "bytes_per_op": 32768.0,
+          "allocations_per_op": 1.0
+        }
+      ],
+      "elapsed_seconds": 36.69827766699018,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-128B.stdout.txt",
+          "bytes": 273,
+          "sha256": "754d36a1293ee4e1c661f9488ea11cf7e01bdcc13707bd0d8f93ef10689031d9"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-128B.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-128B.git-status.txt",
+          "bytes": 3215,
+          "sha256": "a99c5571dda18847fd4673ba618f2ba81c6bab0d0eb438a85e3418cf6e49b067"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-128B.cpu.pprof",
+          "bytes": 18134,
+          "sha256": "432fcb2ea67b75307889746840de72e251231820ccfad94eae9adfadeeaab6cc"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-128B.mem.pprof",
+          "bytes": 1631,
+          "sha256": "5cc11ce458afc3bf07336e1c696143a660b6ffbe513124a66ad58ad03775f7c3"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-128B.test",
+          "bytes": 8750962,
+          "sha256": "cbaf460d888dafe4aaa26d3e29bec5781486890f22b9e3eb2a93e96267c2de05"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-1MiB.json",
+        "bytes": 50944,
+        "sha256": "1dfd72416e407f929191c38e4d1f5dcf44219c0f7c2041915c0ee91058461caf"
+      },
+      "label": "before-stream-copy-1MiB",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkBoundedCopyExactBytes$/^1MiB$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-stream-copy-1MiB.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-stream-copy-1MiB.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-stream-copy-1MiB.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkBoundedCopyExactBytes/1MiB",
+          "iterations": 591916,
+          "ns_per_op": 61490.0,
+          "bytes_per_op": 32768.0,
+          "allocations_per_op": 1.0
+        }
+      ],
+      "elapsed_seconds": 37.10730958299246,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-1MiB.stdout.txt",
+          "bytes": 274,
+          "sha256": "9655901911e54cc3c614e7318c98828a5edb50f4eaca61bfb8506efcbe9be664"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-1MiB.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-1MiB.git-status.txt",
+          "bytes": 3215,
+          "sha256": "a99c5571dda18847fd4673ba618f2ba81c6bab0d0eb438a85e3418cf6e49b067"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-1MiB.cpu.pprof",
+          "bytes": 10963,
+          "sha256": "3832399d9a72f92be03785fda11047494096ae589b638c7ab1928ff353bc47d3"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-1MiB.mem.pprof",
+          "bytes": 2339,
+          "sha256": "3baca05c115c16cdb70cfa4f1e3af54d57586a9069767a002d91c6b89981b2fe"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-1MiB.test",
+          "bytes": 8750962,
+          "sha256": "cbaf460d888dafe4aaa26d3e29bec5781486890f22b9e3eb2a93e96267c2de05"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-32KiB.json",
+        "bytes": 50954,
+        "sha256": "a99b2712b20e7089e015f67d6de937d91f2d15f77b815a285cea3fbf32245d0e"
+      },
+      "label": "before-stream-copy-32KiB",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkBoundedCopyExactBytes$/^32KiB$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-stream-copy-32KiB.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-stream-copy-32KiB.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-stream-copy-32KiB.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkBoundedCopyExactBytes/32KiB",
+          "iterations": 7385967,
+          "ns_per_op": 5053.0,
+          "bytes_per_op": 32768.0,
+          "allocations_per_op": 1.0
+        }
+      ],
+      "elapsed_seconds": 38.15648470798624,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-32KiB.stdout.txt",
+          "bytes": 274,
+          "sha256": "1732f8d02128c6827032eaeaa130cd97303d459092259535d9013785cbe9e9ae"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-32KiB.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-32KiB.git-status.txt",
+          "bytes": 3215,
+          "sha256": "a99c5571dda18847fd4673ba618f2ba81c6bab0d0eb438a85e3418cf6e49b067"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-32KiB.cpu.pprof",
+          "bytes": 7220,
+          "sha256": "6cd61cb43384e5c19d29da6ff6d959597cfe07e65b98c4ae02e111cc663464e2"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-32KiB.mem.pprof",
+          "bytes": 1811,
+          "sha256": "3a4d117b571abbde03995f8b9d6a5686b3c109ac0adc52c051dd75eb50bba3a5"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-stream-copy-32KiB.test",
+          "bytes": 8750962,
+          "sha256": "cbaf460d888dafe4aaa26d3e29bec5781486890f22b9e3eb2a93e96267c2de05"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/before-walk-cancellation-LexicalSparse.json",
+        "bytes": 77263,
+        "sha256": "b2d6b36d27f4c9d45088956efcde289f219693097e8abd09876d2f294998f207"
+      },
+      "label": "before-walk-cancellation-LexicalSparse",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkWalkLexicalSparseDirectory$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-walk-cancellation-LexicalSparse.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-walk-cancellation-LexicalSparse.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-walk-cancellation-LexicalSparse.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkWalkLexicalSparseDirectory",
+          "iterations": 1499233,
+          "ns_per_op": 24153.0,
+          "bytes_per_op": 4264.0,
+          "allocations_per_op": 21.0
+        }
+      ],
+      "elapsed_seconds": 37.53749370799051,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-walk-cancellation-LexicalSparse.stdout.txt",
+          "bytes": 252,
+          "sha256": "fb3d319b870ad8b8b35b3a9a0d37cbc93a0610ac573477778368a74fc9f80cc4"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-walk-cancellation-LexicalSparse.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-walk-cancellation-LexicalSparse.git-status.txt",
+          "bytes": 9948,
+          "sha256": "060fd00845123dbd34ce3588aaeaf3e6e507ad3385d1c39b2db89ffbddb609a6"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-walk-cancellation-LexicalSparse.cpu.pprof",
+          "bytes": 5769,
+          "sha256": "1189ecab6837e01c3d203946c7cb7bd8a1c733ab3718a42bcb6ac50be831a077"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-walk-cancellation-LexicalSparse.mem.pprof",
+          "bytes": 4300,
+          "sha256": "a161fa15459a0bdfbe88b867b602edea012729f8fbc1d195e9a65efeed4cdd33"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-walk-cancellation-LexicalSparse.test",
+          "bytes": 12448402,
+          "sha256": "f05dfe6f9c3e812329e25ba96dd0b6eca0e6c67ddcc61cd16e07c55250f48e00"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/before-walk-cancellation-NativeSparse.json",
+        "bytes": 77252,
+        "sha256": "f96a8b649a6d900340b4ed77dd17aec8123dea54a7adfb049d686e6086b62de1"
+      },
+      "label": "before-walk-cancellation-NativeSparse",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkWalkNativeSparseDirectory$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-walk-cancellation-NativeSparse.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-walk-cancellation-NativeSparse.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/before-walk-cancellation-NativeSparse.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkWalkNativeSparseDirectory",
+          "iterations": 1575441,
+          "ns_per_op": 22700.0,
+          "bytes_per_op": 3112.0,
+          "allocations_per_op": 20.0
+        }
+      ],
+      "elapsed_seconds": 36.73380966600962,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-walk-cancellation-NativeSparse.stdout.txt",
+          "bytes": 251,
+          "sha256": "e835388344dea8a163cfc1861ebb68aadcf1e1993fc5a50547f6859043a579cd"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-walk-cancellation-NativeSparse.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-walk-cancellation-NativeSparse.git-status.txt",
+          "bytes": 9948,
+          "sha256": "060fd00845123dbd34ce3588aaeaf3e6e507ad3385d1c39b2db89ffbddb609a6"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-walk-cancellation-NativeSparse.cpu.pprof",
+          "bytes": 5200,
+          "sha256": "c689a3cedf6a112ac76338338d56e822e879b22c2c8642a3088979fb8a2fc32e"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-walk-cancellation-NativeSparse.mem.pprof",
+          "bytes": 3852,
+          "sha256": "0b929c413b33c945fdf6ecea6818c9dae9085df00b69258cd28ebb1abad94054"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/before-walk-cancellation-NativeSparse.test",
+          "bytes": 12448402,
+          "sha256": "f05dfe6f9c3e812329e25ba96dd0b6eca0e6c67ddcc61cd16e07c55250f48e00"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/checkpoint-held-standing-IdentityTriad.json",
+        "bytes": 74404,
+        "sha256": "65338c8b044bd4e879cc1b6e6da10a2c02cae56b09d6b5ee4e2a67c7513949c7"
+      },
+      "label": "checkpoint-held-standing-IdentityTriad",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkHeldStandingNativeIdentityTriad$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-held-standing-IdentityTriad.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-held-standing-IdentityTriad.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-held-standing-IdentityTriad.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkHeldStandingNativeIdentityTriad",
+          "iterations": 4284738,
+          "ns_per_op": 8495.0,
+          "bytes_per_op": 1632.0,
+          "allocations_per_op": 10.0
+        }
+      ],
+      "elapsed_seconds": 39.104362332989695,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-held-standing-IdentityTriad.stdout.txt",
+          "bytes": 257,
+          "sha256": "887ec00a6a544fb8e67076b5a436d7c590187d871bb7e5413cc841aee160e686"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-held-standing-IdentityTriad.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-held-standing-IdentityTriad.git-status.txt",
+          "bytes": 8788,
+          "sha256": "5fdae4ee71478012ebd29a2affb55ed99c05da8be3b4c17539084549be37b2b0"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-held-standing-IdentityTriad.cpu.pprof",
+          "bytes": 4352,
+          "sha256": "7dc8926e1a9d72c4a7307cbcd89bffc232cf671a7614c7f4df77a7efc37183ba"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-held-standing-IdentityTriad.mem.pprof",
+          "bytes": 2271,
+          "sha256": "6f8e88111c9f51e9b6459314974c1e6978faaa428b4b569d756e0a3d45862b32"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-held-standing-IdentityTriad.test",
+          "bytes": 12407970,
+          "sha256": "c747dc63108d9c6596758d4e263105d7b3487a792c153ef0760f1133376ecaf5"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-AppendExisting.json",
+        "bytes": 64630,
+        "sha256": "75294d9cf5022ab2d67ebd5d3a44c94f6f165444c3ae09ff695cd516d7f5f8d9"
+      },
+      "label": "checkpoint-native-handle-AppendExisting",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkNativeHandleAcquisition$/^AppendExisting$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-AppendExisting.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-AppendExisting.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-AppendExisting.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkNativeHandleAcquisition/AppendExisting",
+          "iterations": 2224698,
+          "ns_per_op": 16169.0,
+          "bytes_per_op": 669.0,
+          "allocations_per_op": 7.0
+        }
+      ],
+      "elapsed_seconds": 36.786626166984206,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-AppendExisting.stdout.txt",
+          "bytes": 272,
+          "sha256": "053b6d5669706ce4944ebf6727d166c3cb204747c98569478535db908845e916"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-AppendExisting.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-AppendExisting.git-status.txt",
+          "bytes": 6750,
+          "sha256": "70bca195d43cf523a403d5e7484e84fdf3d1cb4160e4180ae560c80a51ca6ce9"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-AppendExisting.cpu.pprof",
+          "bytes": 3135,
+          "sha256": "fc1feaa78a804a35f37cba98897400ab7568d9d8e04de2cd20c8ad0b0b5390c1"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-AppendExisting.mem.pprof",
+          "bytes": 2992,
+          "sha256": "974ce323ffcf205be308fd8f05175c75c2254d44e98073e0115bbd23bf31319b"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-AppendExisting.test",
+          "bytes": 11729234,
+          "sha256": "f0972948124f9f222259d36b40c95e48a3bf52322137289785ce8a46cb926b08"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Lock.json",
+        "bytes": 64519,
+        "sha256": "93122b1695fdbf6efbc789b7ee7c8a424c3191266a43f5b2ed8cd1ab6fb1994d"
+      },
+      "label": "checkpoint-native-handle-Lock",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkNativeHandleAcquisition$/^Lock$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Lock.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Lock.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Lock.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkNativeHandleAcquisition/Lock",
+          "iterations": 985869,
+          "ns_per_op": 35683.0,
+          "bytes_per_op": 653.0,
+          "allocations_per_op": 7.0
+        }
+      ],
+      "elapsed_seconds": 36.44839924998814,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Lock.stdout.txt",
+          "bytes": 262,
+          "sha256": "0d06ec7a42e999ba65d3c07f733cb92c50cf1f89611f92a8d167ed44d97ef03f"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Lock.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Lock.git-status.txt",
+          "bytes": 6750,
+          "sha256": "70bca195d43cf523a403d5e7484e84fdf3d1cb4160e4180ae560c80a51ca6ce9"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Lock.cpu.pprof",
+          "bytes": 3256,
+          "sha256": "76e79e5bd4ad58861731072ee576ed810121c0190c1e2363f798d1d46d4b7a29"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Lock.mem.pprof",
+          "bytes": 2801,
+          "sha256": "09a280b36777ca57f25b4849696b0ba1dd76ed5bd9efbef3d390f3cf63248244"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Lock.test",
+          "bytes": 11729234,
+          "sha256": "f0972948124f9f222259d36b40c95e48a3bf52322137289785ce8a46cb926b08"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Read.json",
+        "bytes": 64519,
+        "sha256": "6842c47771dcd3e5449f077c35d94ba238e60d59d36d5eb2d9f7e7746f11d821"
+      },
+      "label": "checkpoint-native-handle-Read",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkNativeHandleAcquisition$/^Read$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Read.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Read.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Read.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkNativeHandleAcquisition/Read",
+          "iterations": 2309660,
+          "ns_per_op": 15430.0,
+          "bytes_per_op": 653.0,
+          "allocations_per_op": 7.0
+        }
+      ],
+      "elapsed_seconds": 36.62199829201563,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Read.stdout.txt",
+          "bytes": 262,
+          "sha256": "0876f0eb261379160c61bd48210a1cb35742a064efaf03088519db835b566eee"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Read.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Read.git-status.txt",
+          "bytes": 6750,
+          "sha256": "70bca195d43cf523a403d5e7484e84fdf3d1cb4160e4180ae560c80a51ca6ce9"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Read.cpu.pprof",
+          "bytes": 5159,
+          "sha256": "615a3212d4f38f50c9fd1d3fbf403cd1a09d36f3a60b9d763dc71c12764c44b4"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Read.mem.pprof",
+          "bytes": 3066,
+          "sha256": "d868c6565a5784671ad71f59cb9523666a36d338e7f4825c4dbe95cadf4709dd"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Read.test",
+          "bytes": 11729234,
+          "sha256": "f0972948124f9f222259d36b40c95e48a3bf52322137289785ce8a46cb926b08"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Rotate.json",
+        "bytes": 64541,
+        "sha256": "c72241572927ce91d3ecb1a4f4dab8d8c899e09ae96af51b4385b3df5a952bc8"
+      },
+      "label": "checkpoint-native-handle-Rotate",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkRotateAppendOwnedHandleLifecycle$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Rotate.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Rotate.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Rotate.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkRotateAppendOwnedHandleLifecycle",
+          "iterations": 3607,
+          "ns_per_op": 10447563.0,
+          "bytes_per_op": 1852.0,
+          "allocations_per_op": 27.0
+        }
+      ],
+      "elapsed_seconds": 38.47105070800171,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Rotate.stdout.txt",
+          "bytes": 258,
+          "sha256": "58f5068d627659f3143532a7ad31766a1a17890984bcc494107520a08be75217"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Rotate.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Rotate.git-status.txt",
+          "bytes": 6750,
+          "sha256": "70bca195d43cf523a403d5e7484e84fdf3d1cb4160e4180ae560c80a51ca6ce9"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Rotate.cpu.pprof",
+          "bytes": 5021,
+          "sha256": "48a892251a324794fceb9a0e57522dcc3e1b33b21834764bb343b67c36fa3e74"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Rotate.mem.pprof",
+          "bytes": 2422,
+          "sha256": "7a849aadd430f34370572b0620c6ef186400a2cbe3f0105dcabfd769d833055f"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Rotate.test",
+          "bytes": 11729234,
+          "sha256": "f0972948124f9f222259d36b40c95e48a3bf52322137289785ce8a46cb926b08"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Update.json",
+        "bytes": 64542,
+        "sha256": "8b6bd5f4d0eb9d66a50b59fdd14b45b1967ff4385d2a56c137c8b0a37990493d"
+      },
+      "label": "checkpoint-native-handle-Update",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkNativeHandleAcquisition$/^Update$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Update.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Update.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Update.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkNativeHandleAcquisition/Update",
+          "iterations": 1568796,
+          "ns_per_op": 23053.0,
+          "bytes_per_op": 653.0,
+          "allocations_per_op": 7.0
+        }
+      ],
+      "elapsed_seconds": 37.044766792008886,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Update.stdout.txt",
+          "bytes": 264,
+          "sha256": "05049b3e3af08a97be5fd150d011378526de114a183a1b29c9df9ba90c988e4b"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Update.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Update.git-status.txt",
+          "bytes": 6750,
+          "sha256": "70bca195d43cf523a403d5e7484e84fdf3d1cb4160e4180ae560c80a51ca6ce9"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Update.cpu.pprof",
+          "bytes": 2463,
+          "sha256": "efd75fac90a9821f2cfcff9690d06ccbed998b1c51ca33b1541ebad236d94dc9"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Update.mem.pprof",
+          "bytes": 2364,
+          "sha256": "2507f89ddde1691633db344c7e5c171e8bb997f3784667cae8e17fe4dc69dd48"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-native-handle-Update.test",
+          "bytes": 11729234,
+          "sha256": "f0972948124f9f222259d36b40c95e48a3bf52322137289785ce8a46cb926b08"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-IdentityPair.json",
+        "bytes": 68865,
+        "sha256": "8de968517a27ead2932893cef7281d2ef116727272ba1948803d1d3607a79881"
+      },
+      "label": "checkpoint-parent-identity-IdentityPair",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkRootIdentityOwnedAndForeignDirectories$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-IdentityPair.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-IdentityPair.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-IdentityPair.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkRootIdentityOwnedAndForeignDirectories",
+          "iterations": 4847347,
+          "ns_per_op": 7236.0,
+          "bytes_per_op": 1196.0,
+          "allocations_per_op": 13.0
+        }
+      ],
+      "elapsed_seconds": 36.57558970799437,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-IdentityPair.stdout.txt",
+          "bytes": 264,
+          "sha256": "faabe850c1bd94dc4b7064a897bc9095ddf1656a553a1679b528b17b70524b42"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-IdentityPair.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-IdentityPair.git-status.txt",
+          "bytes": 7620,
+          "sha256": "233fb120c33bed54ab7af33f55b3a2a8a04968f931c9ae12fb52f79f9392ca1d"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-IdentityPair.cpu.pprof",
+          "bytes": 3359,
+          "sha256": "62ba42de51da30cdf1a05ab9057c5d8b754f0cd02f7859c17f8a9fdfd1fbfb96"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-IdentityPair.mem.pprof",
+          "bytes": 2935,
+          "sha256": "6a1ccc19144369bd8e1a646ddaef50e7ddf38c078c1de8840657594f2b950c49"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-IdentityPair.test",
+          "bytes": 12098866,
+          "sha256": "1eca8527b3d1ad68edb84a1426344ebf1cd61929009e26e154c4328416c97bb9"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-OpenParent.json",
+        "bytes": 68838,
+        "sha256": "b631d37b9829ad3412caac0638a3adda43547b28d6ccbda554e4ade6f266b15a"
+      },
+      "label": "checkpoint-parent-identity-OpenParent",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkOpenParentNativeIdentityCustody$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-OpenParent.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-OpenParent.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-OpenParent.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkOpenParentNativeIdentityCustody",
+          "iterations": 802254,
+          "ns_per_op": 45495.0,
+          "bytes_per_op": 1304.0,
+          "allocations_per_op": 18.0
+        }
+      ],
+      "elapsed_seconds": 37.54456599999685,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-OpenParent.stdout.txt",
+          "bytes": 257,
+          "sha256": "c1c5c6f219eef1f125068849a19f2a8a79ad73088e02a0eaea54da172d04e069"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-OpenParent.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-OpenParent.git-status.txt",
+          "bytes": 7620,
+          "sha256": "233fb120c33bed54ab7af33f55b3a2a8a04968f931c9ae12fb52f79f9392ca1d"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-OpenParent.cpu.pprof",
+          "bytes": 4144,
+          "sha256": "f9e8024276729a3e3a14a6f8d9d94f413179546b59ffeff941006f6f528cd2bf"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-OpenParent.mem.pprof",
+          "bytes": 4124,
+          "sha256": "265bb69587e8d459a73be84dd25f224abc23faa7e625bb212d4e8cc3b443fa5d"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-parent-identity-OpenParent.test",
+          "bytes": 12098866,
+          "sha256": "1eca8527b3d1ad68edb84a1426344ebf1cd61929009e26e154c4328416c97bb9"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/checkpoint-pipe-Acquisition.json",
+        "bytes": 72329,
+        "sha256": "45e0f90ecd2214c1b55dbccb6664fb7dd8868016db8c288a10697d609287a42e"
+      },
+      "label": "checkpoint-pipe-Acquisition",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkPipeAcquireBinaryEOFAndClose$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-pipe-Acquisition.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-pipe-Acquisition.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-pipe-Acquisition.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkPipeAcquireBinaryEOFAndClose",
+          "iterations": 4544209,
+          "ns_per_op": 8243.0,
+          "bytes_per_op": 208.0,
+          "allocations_per_op": 4.0
+        }
+      ],
+      "elapsed_seconds": 39.49332645899267,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-pipe-Acquisition.stdout.txt",
+          "bytes": 254,
+          "sha256": "045f85009976a3fea33f05115770f923599a1039952aa6c24259a9539e6a7fe7"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-pipe-Acquisition.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-pipe-Acquisition.git-status.txt",
+          "bytes": 8379,
+          "sha256": "30880ef1a38b63bb4b3f7e00a126abd5f7c42d961ef214535942bba7bfcb2dd5"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-pipe-Acquisition.cpu.pprof",
+          "bytes": 5366,
+          "sha256": "9467744e82b086ee0bf9a9bbb1f28f97702cc00ae46428cfdccf4c5a55af5f0a"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-pipe-Acquisition.mem.pprof",
+          "bytes": 2488,
+          "sha256": "aef76de0b4a896ffebc83b77da6f67c1e56a42cc4d36779f868746428915182c"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-pipe-Acquisition.test",
+          "bytes": 12324610,
+          "sha256": "3834c171c2c1cd7c67e52565d85cbed47fcf63cef6b5d305549bd0da9e14b527"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/checkpoint-pipe-HeldTransfer.json",
+        "bytes": 72334,
+        "sha256": "f66ad39cc336495fc7f73b573441a2d559f095173e4ea721e0cae63b078aec45"
+      },
+      "label": "checkpoint-pipe-HeldTransfer",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkPipeHeldBinaryTransfer$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-pipe-HeldTransfer.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-pipe-HeldTransfer.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-pipe-HeldTransfer.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkPipeHeldBinaryTransfer",
+          "iterations": 28856362,
+          "ns_per_op": 1281.0,
+          "bytes_per_op": 0.0,
+          "allocations_per_op": 0.0
+        }
+      ],
+      "elapsed_seconds": 38.583704916003626,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-pipe-HeldTransfer.stdout.txt",
+          "bytes": 261,
+          "sha256": "d54bf6e8df3d35ce629fbc781eaa309209249e8a78da23fa4a46ff9278c6c0f0"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-pipe-HeldTransfer.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-pipe-HeldTransfer.git-status.txt",
+          "bytes": 8379,
+          "sha256": "30880ef1a38b63bb4b3f7e00a126abd5f7c42d961ef214535942bba7bfcb2dd5"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-pipe-HeldTransfer.cpu.pprof",
+          "bytes": 1883,
+          "sha256": "0f3eeb307d15908ae69897f8ad70c49a63e9adbde2a75bc222a2771e1ffd898c"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-pipe-HeldTransfer.mem.pprof",
+          "bytes": 1607,
+          "sha256": "b67437550c44d9809a79e698f17b9496af5b91321f08f49d07bf072a3cdbd1df"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-pipe-HeldTransfer.test",
+          "bytes": 12324610,
+          "sha256": "3834c171c2c1cd7c67e52565d85cbed47fcf63cef6b5d305549bd0da9e14b527"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/checkpoint-rename-CrossParent.json",
+        "bytes": 67448,
+        "sha256": "1cc8d3ecdf836107d44f4ad8096af94e08f5de356b3508a7240c319f5bc33b6e"
+      },
+      "label": "checkpoint-rename-CrossParent",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkRenameBinaryInodeRoundTrip$/^CrossParent$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-rename-CrossParent.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-rename-CrossParent.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-rename-CrossParent.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkRenameBinaryInodeRoundTrip/CrossParent",
+          "iterations": 1738,
+          "ns_per_op": 20956819.0,
+          "bytes_per_op": 4858.0,
+          "allocations_per_op": 66.0
+        }
+      ],
+      "elapsed_seconds": 37.28079770799377,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-rename-CrossParent.stdout.txt",
+          "bytes": 272,
+          "sha256": "519442b807f061bfe8e62eedeb4ea1ceb9884a0d6d87079553059f73c14be687"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-rename-CrossParent.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-rename-CrossParent.git-status.txt",
+          "bytes": 7387,
+          "sha256": "8e32b1ba92cd3cbfaac8806b451f6f12c0777ff8ee644b54d6b687f528cffac0"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-rename-CrossParent.cpu.pprof",
+          "bytes": 4691,
+          "sha256": "67cb2afc27a595903ecbcdb912af0b3829dc69e22221fe32a101c572a4afd10a"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-rename-CrossParent.mem.pprof",
+          "bytes": 3411,
+          "sha256": "712acfd61e97b57ae3c72df80bc4ae4dd31194f889d207313d5f48d13ae24fb4"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-rename-CrossParent.test",
+          "bytes": 11948482,
+          "sha256": "c4e3291cdcf4aba0ed9895f94a9dd5b4a2ba9c1ae494924150106f0142ba77e2"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/checkpoint-rename-SameParent.json",
+        "bytes": 67438,
+        "sha256": "6353246ced8791adc014c3abef391ed3e77a5abe661bca524ad8ed759f9f018f"
+      },
+      "label": "checkpoint-rename-SameParent",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkRenameBinaryInodeRoundTrip$/^SameParent$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-rename-SameParent.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-rename-SameParent.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-rename-SameParent.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkRenameBinaryInodeRoundTrip/SameParent",
+          "iterations": 3374,
+          "ns_per_op": 10292539.0,
+          "bytes_per_op": 4197.0,
+          "allocations_per_op": 48.0
+        }
+      ],
+      "elapsed_seconds": 35.617311667010654,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-rename-SameParent.stdout.txt",
+          "bytes": 271,
+          "sha256": "27abe3d6a3c9360cbe012d8ee346c8020f1ba9d3eacb66febe3ab36c6137ab7a"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-rename-SameParent.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-rename-SameParent.git-status.txt",
+          "bytes": 7387,
+          "sha256": "8e32b1ba92cd3cbfaac8806b451f6f12c0777ff8ee644b54d6b687f528cffac0"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-rename-SameParent.cpu.pprof",
+          "bytes": 3978,
+          "sha256": "82f0b2c4a5711d0a8d804545ac4c464c88b09e1db6774d688efe5a86d6472d36"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-rename-SameParent.mem.pprof",
+          "bytes": 3692,
+          "sha256": "fb3cb5ee767dc9077c825115676163a7b3aba9196874b44bbf97d0a2ab1aa5b6"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-rename-SameParent.test",
+          "bytes": 11948482,
+          "sha256": "c4e3291cdcf4aba0ed9895f94a9dd5b4a2ba9c1ae494924150106f0142ba77e2"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/checkpoint-sharing-PlatformObservation.json",
+        "bytes": 75672,
+        "sha256": "6fcca35b3cc61b8025f84c55607fd6355977792518d190223769162a93870db9"
+      },
+      "label": "checkpoint-sharing-PlatformObservation",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkSharingPlatformObservation$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-sharing-PlatformObservation.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-sharing-PlatformObservation.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-sharing-PlatformObservation.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkSharingPlatformObservation",
+          "iterations": 292531527,
+          "ns_per_op": 123.5,
+          "bytes_per_op": 72.0,
+          "allocations_per_op": 3.0
+        }
+      ],
+      "elapsed_seconds": 37.04078820900759,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-sharing-PlatformObservation.stdout.txt",
+          "bytes": 255,
+          "sha256": "200608d906cf01d007bbb96acc2ca6d130d7b589f797cdb23bcc279ac878322f"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-sharing-PlatformObservation.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-sharing-PlatformObservation.git-status.txt",
+          "bytes": 9223,
+          "sha256": "80325a30fc15446a462c42d553961c4716388b10ce47b8cc9d90a20d4fecbce0"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-sharing-PlatformObservation.cpu.pprof",
+          "bytes": 20676,
+          "sha256": "309ce806dce286ecc045bc2d898b90dd79208ec791a0f06e80daf9cb8f1a7148"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-sharing-PlatformObservation.mem.pprof",
+          "bytes": 2462,
+          "sha256": "f363ffff91728f22a492f831f3084de56abb3d7599a56c2e8eae8a315143fe02"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-sharing-PlatformObservation.test",
+          "bytes": 12474482,
+          "sha256": "20cae6cd7d626317d4faca5890098c291f3d93ba12d891d67195d2a19141a2ef"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/checkpoint-stage-destination-lifecycle.json",
+        "bytes": 63014,
+        "sha256": "6a4cd4d5ac665d9824e89ae994c48f5bebe823d19836dd75c2b7186d58eafb0c"
+      },
+      "label": "checkpoint-stage-destination-lifecycle",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkStageDestinationCommitRemoveExactBytes$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-stage-destination-lifecycle.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-stage-destination-lifecycle.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-stage-destination-lifecycle.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkStageDestinationCommitRemoveExactBytes",
+          "iterations": 1569,
+          "ns_per_op": 22440214.0,
+          "bytes_per_op": 3179.0,
+          "allocations_per_op": 51.0
+        }
+      ],
+      "elapsed_seconds": 36.069818957999814,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-stage-destination-lifecycle.stdout.txt",
+          "bytes": 277,
+          "sha256": "3292f5f3e2fe4018f7ee2930d71c749f385f5a33137e2e042cd3369eb9eea934"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-stage-destination-lifecycle.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-stage-destination-lifecycle.git-status.txt",
+          "bytes": 6347,
+          "sha256": "521fcdd85552c13d08e907155508acd4f7799a16d3fc70d98afed319496afc53"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-stage-destination-lifecycle.cpu.pprof",
+          "bytes": 4586,
+          "sha256": "6605aa41dcb0be854a191302a76cec584e066c8897d9497159cdf01c1c3748ba"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-stage-destination-lifecycle.mem.pprof",
+          "bytes": 2694,
+          "sha256": "e6fc7ea404e833011428e4477a40ca07c8aca16b211df5dbd3b8300f3126d9a6"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-stage-destination-lifecycle.test",
+          "bytes": 11598034,
+          "sha256": "b88ebfec1bc1499812fcff977c64a4cb5920d6af571c99f7a6d64af18766611e"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-Canonicalize.json",
+        "bytes": 71221,
+        "sha256": "39ddaf89ab80be1fa095701e38e6e6f38cbf815cf73019dcbe5b01f5e5387ef6"
+      },
+      "label": "checkpoint-symbolic-observation-Canonicalize",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkCanonicalizeAncestorAndFinalLink$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-Canonicalize.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-Canonicalize.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-Canonicalize.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkCanonicalizeAncestorAndFinalLink",
+          "iterations": 1000000,
+          "ns_per_op": 33769.0,
+          "bytes_per_op": 6256.0,
+          "allocations_per_op": 61.0
+        }
+      ],
+      "elapsed_seconds": 35.84624070901191,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-Canonicalize.stdout.txt",
+          "bytes": 258,
+          "sha256": "c30a73e3744e91f9f19525d55fc38c3386c8f75f91cc0c0d9c3cec69c03098f0"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-Canonicalize.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-Canonicalize.git-status.txt",
+          "bytes": 8146,
+          "sha256": "9b29854796282b069de86e66211980e61469f1a0a47758cd4f8ebc61c5ea5c38"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-Canonicalize.cpu.pprof",
+          "bytes": 4924,
+          "sha256": "eace58502265e31e4c4d4be13cc03f190addebe592c61a0f4c3879a2c4e6bf33"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-Canonicalize.mem.pprof",
+          "bytes": 3224,
+          "sha256": "1846e04c9c4f9ba482a8a3b23b2ebc17b5da0126c6bbc0642d21b6be25a13c24"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-Canonicalize.test",
+          "bytes": 12219490,
+          "sha256": "979698921e3fcf44d76e95ee45707597efcf6b880b84402f70e00f8479ce3de0"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-ReadLink.json",
+        "bytes": 71182,
+        "sha256": "9429a5249a3d05af803a8001963e53d698c9a8b2091dc4d738a90009171c5503"
+      },
+      "label": "checkpoint-symbolic-observation-ReadLink",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkReadSymbolicLinkExactOpaqueTarget$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-ReadLink.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-ReadLink.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-ReadLink.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkReadSymbolicLinkExactOpaqueTarget",
+          "iterations": 27423228,
+          "ns_per_op": 1453.0,
+          "bytes_per_op": 160.0,
+          "allocations_per_op": 4.0
+        }
+      ],
+      "elapsed_seconds": 41.24618487499538,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-ReadLink.stdout.txt",
+          "bytes": 259,
+          "sha256": "63fd825bd78d9ff5042084d0759564c4fe0e3c8a5f26876a7232f86711c482e3"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-ReadLink.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-ReadLink.git-status.txt",
+          "bytes": 8146,
+          "sha256": "9b29854796282b069de86e66211980e61469f1a0a47758cd4f8ebc61c5ea5c38"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-ReadLink.cpu.pprof",
+          "bytes": 3791,
+          "sha256": "83f4e5512d9ace7e642da1a5e428e5c04cb99fd8ee393e6a4ada288924bc12f2"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-ReadLink.mem.pprof",
+          "bytes": 2214,
+          "sha256": "99af18ce6b2e81d05bb70a874721f589642fe0151405018769591b8a54d3eb24"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/checkpoint-symbolic-observation-ReadLink.test",
+          "bytes": 12219490,
+          "sha256": "979698921e3fcf44d76e95ee45707597efcf6b880b84402f70e00f8479ce3de0"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/final-profile-held-standing.json",
+        "bytes": 77226,
+        "sha256": "1c93c151eb9f9f6aa345a7147e4eb13cae5f048465b94489615efee60a9bfad3"
+      },
+      "label": "final-profile-held-standing",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkHeldStandingNativeIdentityTriad$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/final-profile-held-standing.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/final-profile-held-standing.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/final-profile-held-standing.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkHeldStandingNativeIdentityTriad",
+          "iterations": 4267636,
+          "ns_per_op": 8314.0,
+          "bytes_per_op": 1632.0,
+          "allocations_per_op": 10.0
+        }
+      ],
+      "elapsed_seconds": 36.71116175001953,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/final-profile-held-standing.stdout.txt",
+          "bytes": 257,
+          "sha256": "13a59ba191ebef4f405114637b2844b9c2c497d7d37b83d1b5e54f704b0a5d5d"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/final-profile-held-standing.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/final-profile-held-standing.git-status.txt",
+          "bytes": 11224,
+          "sha256": "013106699a3e346d3dd220d2ae67b14f9fd239f22e589209ff0ed046b7a26c4c"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/final-profile-held-standing.cpu.pprof",
+          "bytes": 3717,
+          "sha256": "f856cf861ad58f2653ade70c6c348576e64836ba467ef536eabe7410b7309d91"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/final-profile-held-standing.mem.pprof",
+          "bytes": 2499,
+          "sha256": "30b7ae6b4ac52f71b93ed032e3ddcb810c41ad2badf6526dc0078d9c49e5f032"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/final-profile-held-standing.test",
+          "bytes": 12390562,
+          "sha256": "f7a9f36abc3bb744b32dedc503aa0750f286df771c9bc5063551d7568b291779"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/final-profile-pipe-acquire.json",
+        "bytes": 77213,
+        "sha256": "22ce2ce73692bb4f288c6e4d12470d4d58cc71a50e3a92e396c2992484c7301e"
+      },
+      "label": "final-profile-pipe-acquire",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkPipeAcquireBinaryEOFAndClose$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/final-profile-pipe-acquire.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/final-profile-pipe-acquire.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/final-profile-pipe-acquire.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkPipeAcquireBinaryEOFAndClose",
+          "iterations": 5927240,
+          "ns_per_op": 6026.0,
+          "bytes_per_op": 208.0,
+          "allocations_per_op": 4.0
+        }
+      ],
+      "elapsed_seconds": 36.57989691698458,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/final-profile-pipe-acquire.stdout.txt",
+          "bytes": 254,
+          "sha256": "b1de3059ba966c3683f15e1390868398057dfa3ca279d06c22d02b39c9d918db"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/final-profile-pipe-acquire.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/final-profile-pipe-acquire.git-status.txt",
+          "bytes": 11224,
+          "sha256": "013106699a3e346d3dd220d2ae67b14f9fd239f22e589209ff0ed046b7a26c4c"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/final-profile-pipe-acquire.cpu.pprof",
+          "bytes": 3115,
+          "sha256": "4096fd5d2c69029e82903d7b0ed23705e2eea8e35ecd07ea5d1c832963aaba96"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/final-profile-pipe-acquire.mem.pprof",
+          "bytes": 1742,
+          "sha256": "a3b66de93f095f7e3ce4ef9f3836cca3d72b408b8942c56330d4f1297e5f5f83"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/final-profile-pipe-acquire.test",
+          "bytes": 12390562,
+          "sha256": "f7a9f36abc3bb744b32dedc503aa0750f286df771c9bc5063551d7568b291779"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/final-profile-pipe-held.json",
+        "bytes": 77177,
+        "sha256": "36d614c3917a2b2ae1e372e88baa9e5e472cdc8ce38f45e092de2384214eac52"
+      },
+      "label": "final-profile-pipe-held",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkPipeHeldBinaryTransfer$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/final-profile-pipe-held.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/final-profile-pipe-held.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/final-profile-pipe-held.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkPipeHeldBinaryTransfer",
+          "iterations": 38529495,
+          "ns_per_op": 947.7,
+          "bytes_per_op": 0.0,
+          "allocations_per_op": 0.0
+        }
+      ],
+      "elapsed_seconds": 37.39870966700255,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/final-profile-pipe-held.stdout.txt",
+          "bytes": 263,
+          "sha256": "935e293f70d15ad66ae2149b0745dae6dc6eef6f59c08e4a024443b3a1a85e83"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/final-profile-pipe-held.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/final-profile-pipe-held.git-status.txt",
+          "bytes": 11224,
+          "sha256": "013106699a3e346d3dd220d2ae67b14f9fd239f22e589209ff0ed046b7a26c4c"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/final-profile-pipe-held.cpu.pprof",
+          "bytes": 1494,
+          "sha256": "034b6c4bde4b49fe29ebf19bba1abd21b7e0016b0209a88185b4d2f2a55a5b0e"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/final-profile-pipe-held.mem.pprof",
+          "bytes": 1326,
+          "sha256": "9f50339dda83e240131c8ada6b49d48db92d85f2a97d16d12ef4492206cadce5"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/final-profile-pipe-held.test",
+          "bytes": 12390562,
+          "sha256": "f7a9f36abc3bb744b32dedc503aa0750f286df771c9bc5063551d7568b291779"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/final-profile-stage-destination.json",
+        "bytes": 77273,
+        "sha256": "e474dfdf9ddcf77e4aa8c9ddc51f12a7d014264dbf86ff008959419b45359460"
+      },
+      "label": "final-profile-stage-destination",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkStageDestinationCommitRemoveExactBytes$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/final-profile-stage-destination.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/final-profile-stage-destination.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/final-profile-stage-destination.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkStageDestinationCommitRemoveExactBytes",
+          "iterations": 1692,
+          "ns_per_op": 23023123.0,
+          "bytes_per_op": 3179.0,
+          "allocations_per_op": 51.0
+        }
+      ],
+      "elapsed_seconds": 39.78495254201698,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/final-profile-stage-destination.stdout.txt",
+          "bytes": 277,
+          "sha256": "ae4966a23cfd5825172dc47a0c668bf8e35730f921411f7b6da7f384032f7ede"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/final-profile-stage-destination.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/final-profile-stage-destination.git-status.txt",
+          "bytes": 11224,
+          "sha256": "013106699a3e346d3dd220d2ae67b14f9fd239f22e589209ff0ed046b7a26c4c"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/final-profile-stage-destination.cpu.pprof",
+          "bytes": 4218,
+          "sha256": "e8842289c8f7f7afa2cc13e8948937d0daa7ba1b8c39d5a85a087faf81688293"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/final-profile-stage-destination.mem.pprof",
+          "bytes": 3081,
+          "sha256": "7185cdf7be30b0d70559a78627add98bec44f211017fa47ac48b66a0c008a0b4"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/final-profile-stage-destination.test",
+          "bytes": 12390562,
+          "sha256": "f7a9f36abc3bb744b32dedc503aa0750f286df771c9bc5063551d7568b291779"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/final-profile-stage-lifecycle.json",
+        "bytes": 77241,
+        "sha256": "a6130b4eea1eb74971a024969d0f2e99b3f1f2f2937f4fad6646a370781e0a8a"
+      },
+      "label": "final-profile-stage-lifecycle",
+      "argv": [
+        "go",
+        "test",
+        "-count=1",
+        "-run=^$",
+        "-bench=^BenchmarkStageReadDiscardExactBytes$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/final-profile-stage-lifecycle.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/final-profile-stage-lifecycle.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/final-profile-stage-lifecycle.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkStageReadDiscardExactBytes",
+          "iterations": 3080,
+          "ns_per_op": 12074418.0,
+          "bytes_per_op": 2301.0,
+          "allocations_per_op": 36.0
+        }
+      ],
+      "elapsed_seconds": 37.98001129197655,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/final-profile-stage-lifecycle.stdout.txt",
+          "bytes": 265,
+          "sha256": "c639dd6ddd57c5105d8a60aadb0206879c142966775e60e4f1822823abeb2073"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/final-profile-stage-lifecycle.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/final-profile-stage-lifecycle.git-status.txt",
+          "bytes": 11224,
+          "sha256": "013106699a3e346d3dd220d2ae67b14f9fd239f22e589209ff0ed046b7a26c4c"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/final-profile-stage-lifecycle.cpu.pprof",
+          "bytes": 5088,
+          "sha256": "5f433c9282adee9f338a93b8986df66a8c88c3be1e57e4c606afc9357437ecda"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/final-profile-stage-lifecycle.mem.pprof",
+          "bytes": 3487,
+          "sha256": "ec307f07943115e7ef27b67bfd74e4f00bac75b3f415d3f9a54c9d1f950c72bb"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/final-profile-stage-lifecycle.test",
+          "bytes": 12390562,
+          "sha256": "f7a9f36abc3bb744b32dedc503aa0750f286df771c9bc5063551d7568b291779"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/inspection-after-direct-lstat-distribution.json",
+        "bytes": 57564,
+        "sha256": "9bc7bdb135b61d06301ce9e5cb38a80899a28a929564702d690d053f59d4c16f"
+      },
+      "label": "inspection-after-direct-lstat-distribution",
+      "argv": [
+        "go",
+        "test",
+        "-count=3",
+        "-run=^$",
+        "-bench=^BenchmarkInspectRegularFileObservation$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/inspection-after-direct-lstat-distribution.cpu.pprof",
+        "-memprofile=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/inspection-after-direct-lstat-distribution.mem.pprof",
+        "-o=/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/inspection-after-direct-lstat-distribution.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkInspectRegularFileObservation",
+          "iterations": 16420275,
+          "ns_per_op": 2200.0,
+          "bytes_per_op": 320.0,
+          "allocations_per_op": 2.0
+        },
+        {
+          "benchmark": "BenchmarkInspectRegularFileObservation",
+          "iterations": 16334950,
+          "ns_per_op": 2197.0,
+          "bytes_per_op": 320.0,
+          "allocations_per_op": 2.0
+        },
+        {
+          "benchmark": "BenchmarkInspectRegularFileObservation",
+          "iterations": 16435454,
+          "ns_per_op": 2196.0,
+          "bytes_per_op": 320.0,
+          "allocations_per_op": 2.0
+        }
+      ],
+      "elapsed_seconds": 108.96859145798953,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/inspection-after-direct-lstat-distribution.stdout.txt",
+          "bytes": 454,
+          "sha256": "51d953f6cf3ceb1e6e33a58bcdaf00089cd4eaa3215dfe65dc15af778aba015c"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/inspection-after-direct-lstat-distribution.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/inspection-after-direct-lstat-distribution.git-status.txt",
+          "bytes": 4962,
+          "sha256": "fa5f9fc7360dceafce925c7f86126aa6f7e37e9a91881a9e14dd6ddedce56a19"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/inspection-after-direct-lstat-distribution.cpu.pprof",
+          "bytes": 2994,
+          "sha256": "3220ae94718b9ebbf83fd6816da0b01bb45aaa6baefef0cae0ccf41c0a771b2e"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/inspection-after-direct-lstat-distribution.mem.pprof",
+          "bytes": 2385,
+          "sha256": "7a41e257b88d8f45e17efb3b2eeb6c49f24b4be6f9fca2b2bf9e77237ea79199"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/inspection-after-direct-lstat-distribution.test",
+          "bytes": 11233986,
+          "sha256": "0eebce991111e8f59c5326e0c447b3f9372aa611ba79c7ecf1867f5272ff82cf"
+        }
+      ],
+      "role": "recorded measurement"
+    },
+    {
+      "record": {
+        "path": "filestore/testdata/test-upgrade-20260907/inspection-before-direct-lstat-distribution.json",
+        "bytes": 56518,
+        "sha256": "bbfed1b795dc1a41b0f8e63eaa4e058f4108e213de55a5204d734bb3f1bc3641"
+      },
+      "label": "inspection-before-direct-lstat-distribution",
+      "argv": [
+        "go",
+        "test",
+        "-count=2",
+        "-run=^$",
+        "-bench=^BenchmarkInspectRegularFileObservation$",
+        "-benchtime=30s",
+        "-cpu=1",
+        "-benchmem",
+        "-cpuprofile=filestore/testdata/test-upgrade-20260907/inspection-before-direct-lstat-distribution.cpu.pprof",
+        "-memprofile=filestore/testdata/test-upgrade-20260907/inspection-before-direct-lstat-distribution.mem.pprof",
+        "-o=filestore/testdata/test-upgrade-20260907/inspection-before-direct-lstat-distribution.test",
+        "./filestore"
+      ],
+      "exit_status": 0,
+      "samples": [
+        {
+          "benchmark": "BenchmarkInspectRegularFileObservation",
+          "iterations": 856512,
+          "ns_per_op": 40537.0,
+          "bytes_per_op": 856.0,
+          "allocations_per_op": 12.0
+        },
+        {
+          "benchmark": "BenchmarkInspectRegularFileObservation",
+          "iterations": 892881,
+          "ns_per_op": 40301.0,
+          "bytes_per_op": 856.0,
+          "allocations_per_op": 12.0
+        }
+      ],
+      "elapsed_seconds": 71.91924383299192,
+      "artifacts": [
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/inspection-before-direct-lstat-distribution.stdout.txt",
+          "bytes": 354,
+          "sha256": "822370a0304d56ed3f7df5d10130d4e98134a3f9fb23cdec17d62c6022d6c4a8"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/inspection-before-direct-lstat-distribution.stderr.txt",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/inspection-before-direct-lstat-distribution.git-status.txt",
+          "bytes": 4754,
+          "sha256": "598360974360689b0440bc66ef8587d23d9ac46a77bf407231dbcef557ab73b3"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/inspection-before-direct-lstat-distribution.cpu.pprof",
+          "bytes": 4722,
+          "sha256": "010cd6b9921720bd6ae5212a8083ead342e9eed37aed01cfc1094b73aadb3505"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/inspection-before-direct-lstat-distribution.mem.pprof",
+          "bytes": 3887,
+          "sha256": "e2fc140e3f8e9b5d1b22c5d1bc2d57954b54c3b11e51d939997d5228f675b294"
+        },
+        {
+          "path": "filestore/testdata/test-upgrade-20260907/inspection-before-direct-lstat-distribution.test",
+          "bytes": 11235282,
+          "sha256": "ab13d66d721c8019d9a7141786061a34987b18bb007c9d6d1070dc71ba260398"
+        }
+      ],
+      "role": "recorded measurement"
+    }
+  ]
+}

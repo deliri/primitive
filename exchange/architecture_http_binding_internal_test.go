@@ -72,7 +72,7 @@ func TestRawHTTPArchitectureBindingTable(t *testing.T) {
 				}
 			}
 			if signature == nil {
-				t.Fatal("fixture omitted its public function")
+				t.Fatalf("fixture signature=%v, want a public function", signature)
 			}
 			sources := []exchangeArchitectureSource{{name: "fixture.go", syntax: file}}
 			if tc.extraSource != "" {

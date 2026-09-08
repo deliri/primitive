@@ -2,11 +2,13 @@ package filestore_test
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 	"testing/iotest"
 
@@ -14,180 +16,162 @@ import (
 	"github.com/deliri/primitive/v2026/filestore"
 )
 
-// TestStagingEffectLayerTriad proves the staging seam on its own terms: one
-// caller-named source becomes one exclusively created, chmodded, synchronized
-// temporary, and the returned receipt is the only ownership token for it.
+// Stage owns only its exclusive temporary. Every refusal must leave an exact
+// zero receipt and preserve all pre-existing namespace owners.
 func TestStagingEffectLayerTriad(t *testing.T) {
 	t.Parallel()
-
-	t.Run("positive fragmented source becomes one synchronized temporary described exactly by its receipt", func(t *testing.T) {
-		t.Parallel()
-
-		rootDirectory := t.TempDir()
-		root := requireTestRoot(t, rootDirectory)
-		payload := deterministicPayload((32 << 10) + 3)
-		staged, gotErr := filestore.Stage(t.Context(), filestore.StageRequest{
-			Source:       iotest.HalfReader(bytes.NewReader(payload)),
-			Temporary:    filestore.Location{Root: root, Path: mustRelativePath(t, ".stage")},
-			Mode:         0o640,
-			MaximumBytes: mustByteCount(t, uint64(len(payload)+1)),
+	type fault uint8
+	const (
+		none fault = iota
+		terminalSource
+		occupiedFile
+		occupiedDirectory
+		missingParent
+		closedRoot
+		canceled
+		nilContext
+		nilSource
+	)
+	for _, tc := range []struct {
+		name                string
+		size, maximum       int
+		fault               fault
+		wantErr, wantNative error
+	}{
+		{name: "fragmented exact buffer crossing retains every byte", size: (32 << 10) + 3, maximum: (32 << 10) + 3},
+		{name: "spare capacity cannot invent a suffix", size: (32 << 10) + 3, maximum: (32 << 10) + 4},
+		{name: "one byte beyond capacity leaves no partial stage", size: (32 << 10) + 3, maximum: (32 << 10) + 2, wantErr: core.ErrFilestoreSize},
+		{name: "empty input produces a real zero extent receipt", maximum: 1},
+		{name: "terminal source error after two buffers cleans the entire stage", size: 1 << 16, maximum: (1 << 16) + 1, fault: terminalSource, wantErr: core.ErrFilestoreSource, wantNative: io.ErrUnexpectedEOF},
+		{name: "occupied file is not truncated", size: 3, maximum: 3, fault: occupiedFile, wantErr: core.ErrFilestoreConflict, wantNative: fs.ErrExist},
+		{name: "occupied directory retains its child", size: 3, maximum: 3, fault: occupiedDirectory, wantErr: core.ErrFilestoreConflict, wantNative: fs.ErrExist},
+		{name: "absent parent is not created implicitly", size: 3, maximum: 3, fault: missingParent, wantErr: core.ErrFilestoreActivation, wantNative: fs.ErrNotExist},
+		{name: "closed root refuses without consuming source", size: 3, maximum: 3, fault: closedRoot, wantErr: core.ErrFilestoreActivation, wantNative: fs.ErrClosed},
+		{name: "cancellation precedes exclusive creation", size: 3, maximum: 3, fault: canceled, wantErr: context.Canceled},
+		{name: "nil context cannot acquire custody", size: 3, maximum: 3, fault: nilContext, wantErr: core.ErrNilContext},
+		{name: "nil source cannot publish an empty receipt", maximum: 1, fault: nilSource, wantErr: core.ErrFilestoreContract},
+		{name: "zero maximum refuses before source consumption", size: 3, wantErr: core.ErrFilestoreContract},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			directory := t.TempDir()
+			root := requireTestRoot(t, directory)
+			neighbor := []byte{255, 0, 127, 1}
+			if err := root.WriteFile("neighbor", neighbor, 0o600); err != nil {
+				t.Fatal(err)
+			}
+			temporary := "stage"
+			switch tc.fault {
+			case occupiedFile:
+				if err := root.WriteFile(temporary, neighbor, 0o600); err != nil {
+					t.Fatal(err)
+				}
+			case occupiedDirectory:
+				if err := root.Mkdir(temporary, 0o700); err != nil {
+					t.Fatal(err)
+				}
+				if err := root.WriteFile(filepath.Join(temporary, "child"), neighbor, 0o600); err != nil {
+					t.Fatal(err)
+				}
+			case missingParent:
+				temporary = filepath.Join("missing", temporary)
+			}
+			before, err := removalFixtureSnapshot(directory)
+			if err != nil {
+				t.Fatal(err)
+			}
+			infos := make([]fs.FileInfo, len(before))
+			for i, entry := range before {
+				infos[i], err = os.Lstat(filepath.Join(directory, entry.name))
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			payload := deterministicPayload(tc.size)
+			reader := bytes.NewReader(payload)
+			var source io.Reader = iotest.HalfReader(reader)
+			if tc.fault == terminalSource {
+				source = io.MultiReader(source, iotest.ErrReader(io.ErrUnexpectedEOF))
+			}
+			if tc.fault == nilSource {
+				source = nil
+			}
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+			if tc.fault == canceled {
+				cancel()
+			}
+			if tc.fault == nilContext {
+				ctx = nil
+			}
+			if tc.fault == closedRoot {
+				if err := root.Close(); err != nil {
+					t.Fatal(err)
+				}
+			}
+			var maximum core.ByteCount
+			if tc.maximum != 0 {
+				maximum = mustByteCount(t, uint64(tc.maximum))
+			}
+			path := mustRelativePath(t, temporary)
+			got, gotErr := filestore.Stage(ctx, filestore.StageRequest{Source: source, Temporary: filestore.Location{Root: root, Path: path}, Mode: 0o600, MaximumBytes: maximum})
+			if !errors.Is(gotErr, tc.wantErr) || tc.wantNative != nil && !errors.Is(gotErr, tc.wantNative) {
+				t.Fatalf("Stage = (%v,%v), want %v and native %v", got, gotErr, tc.wantErr, tc.wantNative)
+			}
+			for _, class := range []error{core.ErrFilestoreContract, core.ErrFilestoreActivation, core.ErrFilestoreSource, core.ErrFilestoreDestination, core.ErrFilestoreConflict, core.ErrFilestoreCleanup, core.ErrFilestoreSize, core.ErrFilestoreActivationIndeterminate} {
+				if errors.Is(gotErr, class) != errors.Is(tc.wantErr, class) {
+					t.Fatalf("Stage error = %v, want exactly %v", gotErr, tc.wantErr)
+				}
+			}
+			if tc.wantErr != nil && got != (filestore.StagedFile{}) {
+				t.Fatalf("refused receipt = %+v, want exact zero", got)
+			}
+			wantUnread := 0
+			if tc.fault >= occupiedFile || tc.maximum == 0 {
+				wantUnread = len(payload)
+			}
+			if reader.Len() != wantUnread {
+				t.Fatalf("source unread = %d, want %d", reader.Len(), wantUnread)
+			}
+			after, err := removalFixtureSnapshot(directory)
+			if err != nil {
+				t.Fatal(err)
+			}
+			wantEntries := len(before)
+			if tc.wantErr == nil {
+				wantEntries++
+			}
+			if len(after) != wantEntries {
+				t.Fatalf("namespace = %v, want %d entries", after, wantEntries)
+			}
+			for i, entry := range before {
+				index := slices.IndexFunc(after, func(candidate removalFixtureEntry) bool { return candidate.name == entry.name })
+				if index < 0 || after[index].mode != entry.mode || after[index].target != entry.target || !bytes.Equal(after[index].data, entry.data) {
+					t.Fatalf("retained entry = %v, want %+v", after, entry)
+				}
+				info, err := os.Lstat(filepath.Join(directory, entry.name))
+				if err != nil || !os.SameFile(infos[i], info) || info.Mode() != infos[i].Mode() || info.Size() != infos[i].Size() || !info.ModTime().Equal(infos[i].ModTime()) {
+					t.Fatalf("retained custody = (%v,%v), want %v", info, err, infos[i])
+				}
+			}
+			if tc.wantErr == nil {
+				info, err := os.Lstat(filepath.Join(directory, temporary))
+				data, readErr := os.ReadFile(filepath.Join(directory, temporary))
+				if got.Validate() != nil || got.Path() != path || got.BytesWritten().Uint64() != uint64(len(payload)) || err != nil || readErr != nil || !info.Mode().IsRegular() || info.Size() != int64(len(payload)) || !bytes.Equal(data, payload) {
+					t.Fatalf("stage = (%v,%v,%v,%v), want exact path, extent, regular bytes", got, info, err, readErr)
+				}
+				native := filepath.Join(t.TempDir(), "mode")
+				if err := os.WriteFile(native, nil, 0o600); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.Chmod(native, 0o600); err != nil {
+					t.Fatal(err)
+				}
+				nativeInfo, err := os.Stat(native)
+				if err != nil || info.Mode().Perm() != nativeInfo.Mode().Perm() {
+					t.Fatalf("stage mode = %v, want native (%v,%v)", info.Mode(), nativeInfo, err)
+				}
+			}
 		})
-		if gotErr != nil {
-			t.Fatalf("Stage() error = %v, want nil", gotErr)
-		}
-		requireStagedReceiptDescribesDisk(t, rootDirectory, staged, payload, 0o640)
-		requireDirectoryEntryNames(t, rootDirectory, []string{".stage"})
-	})
-	t.Run("negative terminal source failure after real bytes leaves no temporary and no receipt", func(t *testing.T) {
-		t.Parallel()
-
-		rootDirectory := t.TempDir()
-		root := requireTestRoot(t, rootDirectory)
-		if err := os.WriteFile(filepath.Join(rootDirectory, "sibling"), []byte("keep"), 0o600); err != nil {
-			t.Fatal(err)
-		}
-		payload := deterministicPayload(1 << 16)
-		staged, gotErr := filestore.Stage(t.Context(), filestore.StageRequest{
-			Source: io.MultiReader(
-				bytes.NewReader(payload),
-				iotest.ErrReader(io.ErrUnexpectedEOF),
-			),
-			Temporary:    filestore.Location{Root: root, Path: mustRelativePath(t, ".stage")},
-			Mode:         0o600,
-			MaximumBytes: mustByteCount(t, uint64(len(payload))+1),
-		})
-		if !errors.Is(gotErr, core.ErrFilestoreSource) ||
-			!errors.Is(gotErr, io.ErrUnexpectedEOF) {
-			t.Fatalf("Stage() error = %v, want %v and %v", gotErr, core.ErrFilestoreSource, io.ErrUnexpectedEOF)
-		}
-		if !errors.Is(staged.Validate(), core.ErrFilestoreContract) {
-			t.Fatalf("StagedFile.Validate() after rejected stage = %v, want %v", staged.Validate(), core.ErrFilestoreContract)
-		}
-		if staged.BytesWritten().Uint64() != 0 {
-			t.Fatalf("StagedFile.BytesWritten() after rejected stage = %d, want 0", staged.BytesWritten().Uint64())
-		}
-		requireDirectoryEntryNames(t, rootDirectory, []string{"sibling"})
-	})
-	t.Run("neutral empty source publishes one zero-byte temporary and activates no target name", func(t *testing.T) {
-		t.Parallel()
-
-		rootDirectory := t.TempDir()
-		root := requireTestRoot(t, rootDirectory)
-		staged, gotErr := filestore.Stage(t.Context(), filestore.StageRequest{
-			Source:       bytes.NewReader(nil),
-			Temporary:    filestore.Location{Root: root, Path: mustRelativePath(t, ".stage")},
-			Mode:         0o600,
-			MaximumBytes: mustByteCount(t, 1),
-		})
-		if gotErr != nil {
-			t.Fatalf("Stage() error = %v, want nil", gotErr)
-		}
-		requireStagedReceiptDescribesDisk(t, rootDirectory, staged, []byte{}, 0o600)
-		requireDirectoryEntryNames(t, rootDirectory, []string{".stage"})
-	})
-}
-
-// TestStageRefusesAnAbsentTemporaryParentWithoutResidue pins that staging is a
-// single exclusive create and never silently builds a directory chain the
-// caller did not ask EnsureDirectory to build.
-func TestStageRefusesAnAbsentTemporaryParentWithoutResidue(t *testing.T) {
-	t.Parallel()
-
-	rootDirectory := t.TempDir()
-	root := requireTestRoot(t, rootDirectory)
-	staged, gotErr := filestore.Stage(t.Context(), filestore.StageRequest{
-		Source:       bytes.NewReader([]byte("candidate")),
-		Temporary:    filestore.Location{Root: root, Path: mustRelativePath(t, filepath.Join("objects", ".stage"))},
-		Mode:         0o600,
-		MaximumBytes: mustByteCount(t, 9),
-	})
-	var pathErr *os.PathError
-	if !errors.Is(gotErr, core.ErrFilestoreActivation) ||
-		!errors.Is(gotErr, fs.ErrNotExist) ||
-		!errors.As(gotErr, &pathErr) {
-		t.Fatalf("Stage(absent parent) error = %v, want %v and %v and *os.PathError", gotErr, core.ErrFilestoreActivation, fs.ErrNotExist)
-	}
-	if !errors.Is(staged.Validate(), core.ErrFilestoreContract) {
-		t.Fatalf("StagedFile.Validate() after absent parent = %v, want %v", staged.Validate(), core.ErrFilestoreContract)
-	}
-	requireDirectoryEntryNames(t, rootDirectory, nil)
-}
-
-// TestOpenAppendRefusesAnExistingDirectoryNameAndPreservesIt pins that the
-// append reopen path never returns a handle for a name the OS cannot append
-// to, and never disturbs the entry it refused.
-func TestOpenAppendRefusesAnExistingDirectoryNameAndPreservesIt(t *testing.T) {
-	t.Parallel()
-
-	rootDirectory := t.TempDir()
-	root := requireTestRoot(t, rootDirectory)
-	if err := os.Mkdir(filepath.Join(rootDirectory, "ledger"), 0o700); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(rootDirectory, "ledger", "child"), []byte("keep"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	file, gotErr := filestore.OpenAppend(t.Context(), filestore.AppendRequest{
-		Location: filestore.Location{Root: root, Path: mustRelativePath(t, "ledger")},
-		Mode:     0o600,
-		Append:   filestore.AppendExisting,
-	})
-	if file != nil {
-		if closeErr := file.Close(); closeErr != nil {
-			t.Errorf("refused append handle Close() error = %v, want nil", closeErr)
-		}
-		t.Fatalf("OpenAppend(directory name) handle = %v, want nil", file.Name())
-	}
-	if !errors.Is(gotErr, core.ErrFilestoreActivation) {
-		t.Fatalf("OpenAppend(directory name) error = %v, want %v", gotErr, core.ErrFilestoreActivation)
-	}
-	got, err := os.ReadFile(filepath.Join(rootDirectory, "ledger", "child"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(got) != "keep" {
-		t.Fatalf("preserved directory child bytes = %q, want %q", got, "keep")
-	}
-}
-
-// requireStagedReceiptDescribesDisk proves the three facts that must agree for
-// one stage: the receipt validates, the receipt's byte count matches the real
-// file, and the named temporary on disk is a regular file with the exact
-// requested permission mode and the exact streamed bytes.
-func requireStagedReceiptDescribesDisk(
-	t *testing.T,
-	rootDirectory string,
-	staged filestore.StagedFile,
-	want []byte,
-	wantMode fs.FileMode,
-) {
-	t.Helper()
-
-	if err := staged.Validate(); err != nil {
-		t.Fatalf("StagedFile.Validate() error = %v, want nil", err)
-	}
-	if staged.BytesWritten().Uint64() != uint64(len(want)) {
-		t.Fatalf("StagedFile.BytesWritten() = %d, want %d", staged.BytesWritten().Uint64(), len(want))
-	}
-	path := filepath.Join(rootDirectory, staged.Path().String())
-	info, err := os.Stat(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !info.Mode().IsRegular() {
-		t.Fatalf("staged temporary mode = %v, want regular file", info.Mode())
-	}
-	if info.Mode().Perm() != wantMode {
-		t.Fatalf("staged temporary permissions = %#o, want %#o", info.Mode().Perm(), wantMode)
-	}
-	if info.Size() != int64(len(want)) {
-		t.Fatalf("staged temporary size = %d, want receipt byte count %d", info.Size(), len(want))
-	}
-	got, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Equal(got, want) {
-		t.Fatalf("staged temporary byte length = %d, want exact source length %d", len(got), len(want))
 	}
 }

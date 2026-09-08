@@ -3,251 +3,163 @@ package exchange_test
 import (
 	"bytes"
 	"context"
+	json "encoding/json/v2"
 	"errors"
-	"io/fs"
+	"io"
 	"net/http"
-	"path/filepath"
-	"sync/atomic"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
 )
 
+type projectionDisposition uint8
+
+const (
+	projectionComplete projectionDisposition = iota
+	projectionMissing
+	projectionUnchanged
+	projectionRefused
+	projectionPanicked
+)
+
 func TestProjectedJSONReceiveLayerTriad(t *testing.T) {
 	t.Parallel()
-
-	t.Run("positive request state completes the private decoded structure before validation", func(t *testing.T) {
-		t.Parallel()
-
-		request := projectedJSONRequest(
-			t,
-			[]byte(`{"message":"candidate"}`),
-		)
-		got, gotErr := exchange.ReceiveProjectedJSON[
-			projectedTransportDocument,
-			*projectedTransportDocument,
-		](exchange.ProjectedJSONReceiveCall[
-			projectedTransportDocument,
-			*projectedTransportDocument,
-		]{
-			Call: socketServerCall(t, request),
-			Project: func(
-				_ context.Context,
-				gotCall exchange.SocketServerCall,
-				body *projectedTransportDocument,
-			) error {
-				if err := gotCall.Validate(); err != nil {
-					return core.ErrExchangeContract
+	document := transportDocument{Message: "candidate"}
+	wire, err := document.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	unknownWire := []byte(`{"message":"candidate","unknown":true}`)
+	duplicateWire := []byte(`{"message":"a","message":"b"}`)
+	nonwireMember := []byte(`{"message":"a","Method":"POST"}`)
+	wrongType := []byte(`{"message":1}`)
+	truncatedWire := []byte(`{"message":`)
+	cases := []struct {
+		name        string
+		wire        []byte
+		limit       uint64
+		method      string
+		disposition projectionDisposition
+		closeErr    error
+		wantErr     error
+		wantCause   error
+		wantRead    int
+		wantProject int
+		wantMessage string
+	}{
+		{name: "one below extent ceiling withholds wire before projection", wire: wire, limit: uint64(len(wire) - 1), wantErr: core.ErrExchangeBodyLimit, wantRead: len(wire)},
+		{name: "exact extent completes nonwire method and preserves source message", wire: wire, limit: uint64(len(wire)), wantRead: len(wire), wantProject: 1, wantMessage: document.Message},
+		{name: "one above extent cannot append or alter source message", wire: wire, limit: uint64(len(wire) + 1), wantRead: len(wire), wantProject: 1, wantMessage: document.Message},
+		{name: "missing projector closes unread body", wire: wire, limit: uint64(len(wire)), disposition: projectionMissing, wantErr: core.ErrExchangeContract},
+		{name: "wrong method closes before decode or projection", wire: wire, limit: uint64(len(wire)), method: http.MethodPut, wantErr: core.ErrExchangeContract},
+		{name: "no-op projector cannot publish an invalid nonwire method", wire: wire, limit: uint64(len(wire)), disposition: projectionUnchanged, wantRead: len(wire), wantProject: 1, wantErr: core.ErrExchangeContract},
+		{name: "callback refusal withholds a partly completed value", wire: wire, limit: uint64(len(wire)), disposition: projectionRefused, wantRead: len(wire), wantProject: 1, wantErr: core.ErrExchangeRequest, wantCause: io.ErrUnexpectedEOF},
+		{name: "callback panic withholds a partly completed value", wire: wire, limit: uint64(len(wire)), disposition: projectionPanicked, wantRead: len(wire), wantProject: 1, wantErr: core.ErrExchangeContract},
+		{name: "close failure withholds a fully validated projected value", wire: wire, limit: uint64(len(wire)), closeErr: io.ErrClosedPipe, wantRead: len(wire), wantProject: 1, wantErr: core.ErrExchangeRequest, wantCause: io.ErrClosedPipe},
+		{name: "callback refusal cannot erase a simultaneous close failure", wire: wire, limit: uint64(len(wire)), disposition: projectionRefused, closeErr: io.ErrClosedPipe, wantRead: len(wire), wantProject: 1, wantErr: core.ErrExchangeRequest, wantCause: io.ErrUnexpectedEOF},
+		{name: "unknown field never reaches projector", wire: unknownWire, limit: 128, wantRead: len(unknownWire), wantErr: core.ErrJSONContract},
+		{name: "duplicate field cannot select an arbitrary source value", wire: duplicateWire, limit: 128, wantRead: len(duplicateWire), wantErr: core.ErrJSONContract},
+		{name: "nonwire method cannot be supplied by JSON", wire: nonwireMember, limit: 128, wantRead: len(nonwireMember), wantErr: core.ErrJSONContract},
+		{name: "wrong member type never reaches projector", wire: wrongType, limit: 128, wantRead: len(wrongType), wantErr: core.ErrJSONContract},
+		{name: "truncated document cannot partially reach projector", wire: truncatedWire, limit: 128, wantRead: len(truncatedWire), wantErr: core.ErrJSONContract},
+		{name: "absent document cannot manufacture projected value", limit: 1, wantErr: core.ErrJSONContract},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			body := &bindingObservedBody{reader: bytes.NewReader(tc.wire), err: tc.closeErr}
+			method := tc.method
+			if method == "" {
+				method = http.MethodPost
+			}
+			request := httptest.NewRequestWithContext(t.Context(), method, "/", body)
+			request.Header.Set(core.HTTPHeaderContentType().String(), core.HTTPMediaTypeJSON().String())
+			writer := httptest.NewRecorder()
+			call := socketServerCallFrom(t, writer, request)
+			var projects int
+			var projected projectedTransportDocument
+			projector := func(ctx context.Context, gotCall exchange.SocketServerCall, got *projectedTransportDocument) error {
+				projects++
+				projected = *got
+				if ctx != request.Context() || gotCall != call {
+					return core.ErrPrimitiveContract
 				}
-				body.Method = exchange.MethodPost
+				if tc.disposition == projectionUnchanged {
+					return nil
+				}
+				got.Method = exchange.MethodPost
+				if tc.disposition == projectionRefused {
+					return io.ErrUnexpectedEOF
+				}
+				if tc.disposition == projectionPanicked {
+					panic(io.ErrUnexpectedEOF)
+				}
 				return nil
-			},
-			Policy: exchange.ServerPolicy{
-				RequestBodyLimit: mustByteCount(t, 4*1024),
-			},
-			Route: exchange.RouteSemantics{
-				Method: exchange.MethodPost,
-				Replay: exchange.ReplaySingleAttempt,
-			},
+			}
+			if tc.disposition == projectionMissing {
+				projector = nil
+			}
+			got, gotErr := exchange.ReceiveProjectedJSON[projectedTransportDocument, *projectedTransportDocument](exchange.ProjectedJSONReceiveCall[projectedTransportDocument, *projectedTransportDocument]{Call: call, Project: projector, Policy: exchange.ServerPolicy{RequestBodyLimit: mustByteCount(t, tc.limit)}, Route: exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt}})
+			if !errors.Is(gotErr, tc.wantErr) || tc.wantCause != nil && !errors.Is(gotErr, tc.wantCause) || tc.closeErr != nil && !errors.Is(gotErr, tc.closeErr) {
+				t.Fatalf("receive error = %v, want (%v,%v,%v)", gotErr, tc.wantErr, tc.wantCause, tc.closeErr)
+			}
+			if body.reads != tc.wantRead || body.closes != 1 || projects != tc.wantProject {
+				t.Fatalf("read/close/project = (%d,%d,%d), want (%d,1,%d)", body.reads, body.closes, projects, tc.wantRead, tc.wantProject)
+			}
+			if projects != 0 && (projected.Message != document.Message || projected.Method != exchange.MethodUnknown) {
+				t.Fatalf("pre-projection facts = %+v, want original message and absent method", projected)
+			}
+			if tc.wantErr != nil {
+				if got.Body != nil || !got.IdempotencyKey.IsZero() || !errors.Is(gotErr, core.ErrExchangeRequest) {
+					t.Fatalf("refusal = (%+v,%v), want no published value and typed request error", got, gotErr)
+				}
+			} else if got.Body == nil || got.Body.Message != tc.wantMessage || got.Body.Method != exchange.MethodPost || !got.IdempotencyKey.IsZero() {
+				t.Fatalf("projected value = %+v, want exact message %q and method", got, tc.wantMessage)
+			}
+			if writer.Body.Len() != 0 || len(writer.Header()) != 0 || writer.Flushed {
+				t.Fatalf("response body/headers/flush=%d/%d/%t, want 0/0/false", writer.Body.Len(), len(writer.Header()), writer.Flushed)
+			}
 		})
-		if gotErr != nil {
-			t.Fatalf("ReceiveProjectedJSON() error = %v, want nil", gotErr)
-		}
-		if got.Body == nil ||
-			got.Body.Message != "candidate" ||
-			got.Body.Method != exchange.MethodPost {
-			t.Fatalf(
-				"ReceiveProjectedJSON() body = %+v, want candidate with %v",
-				got.Body,
-				exchange.MethodPost,
-			)
-		}
-	})
-
-	t.Run("negative projector failure returns no partially completed body", func(t *testing.T) {
-		t.Parallel()
-
-		request := projectedJSONRequest(
-			t,
-			[]byte(`{"message":"candidate"}`),
-		)
-		got, gotErr := exchange.ReceiveProjectedJSON[
-			projectedTransportDocument,
-			*projectedTransportDocument,
-		](exchange.ProjectedJSONReceiveCall[
-			projectedTransportDocument,
-			*projectedTransportDocument,
-		]{
-			Call: socketServerCall(t, request),
-			Project: func(
-				context.Context,
-				exchange.SocketServerCall,
-				*projectedTransportDocument,
-			) error {
-				return core.ErrPrimitiveContract
-			},
-			Policy: exchange.ServerPolicy{
-				RequestBodyLimit: mustByteCount(t, 4*1024),
-			},
-			Route: exchange.RouteSemantics{
-				Method: exchange.MethodPost,
-				Replay: exchange.ReplaySingleAttempt,
-			},
-		})
-		if !errors.Is(gotErr, core.ErrExchangeRequest) ||
-			!errors.Is(gotErr, core.ErrPrimitiveContract) {
-			t.Fatalf(
-				"ReceiveProjectedJSON(projector failure) error = %v, want %v and %v",
-				gotErr,
-				core.ErrExchangeRequest,
-				core.ErrPrimitiveContract,
-			)
-		}
-		if got.Body != nil || !got.IdempotencyKey.IsZero() {
-			t.Fatalf(
-				"ReceiveProjectedJSON(projector failure) = %+v, want zero",
-				got,
-			)
-		}
-	})
-
-	t.Run("negative call validation still closes the real request body", func(t *testing.T) {
-		t.Parallel()
-
-		bodyPath := filepath.Join(t.TempDir(), "request.json")
-		if gotErr := writeExchangeFixtureFile(t, bodyPath, []byte(`{"message":"candidate"}`)); gotErr != nil {
-			t.Fatalf("Filestore fixture write(%q) setup error = %v, want nil", bodyPath, gotErr)
-		}
-		body, gotErr := openExchangeFixtureFile(t, bodyPath)
-		if gotErr != nil {
-			t.Fatalf("Filestore fixture open(%q) setup error = %v, want nil", bodyPath, gotErr)
-		}
-		target := mustEndpoint(t, "http://example.test/exchange")
-		request, gotErr := http.NewRequestWithContext(
-			context.Background(),
-			exchange.MethodPost.String(),
-			target.String(),
-			body,
-		)
-		if gotErr != nil {
-			t.Fatalf("http.NewRequestWithContext() setup error = %v, want nil", gotErr)
-		}
-		request.Header.Set(
-			core.HTTPHeaderContentType().String(),
-			mustHTTPMediaType(t, "application/json").String(),
-		)
-
-		got, gotErr := exchange.ReceiveProjectedJSON[
-			projectedTransportDocument,
-			*projectedTransportDocument,
-		](exchange.ProjectedJSONReceiveCall[
-			projectedTransportDocument,
-			*projectedTransportDocument,
-		]{
-			Call: socketServerCall(t, request),
-			Policy: exchange.ServerPolicy{
-				RequestBodyLimit: mustByteCount(t, 4*1024),
-			},
-			Route: exchange.RouteSemantics{
-				Method: exchange.MethodPost,
-				Replay: exchange.ReplaySingleAttempt,
-			},
-		})
-		if !errors.Is(gotErr, core.ErrExchangeRequest) {
-			t.Fatalf(
-				"ReceiveProjectedJSON(nil projector) error = %v, want %v",
-				gotErr,
-				core.ErrExchangeRequest,
-			)
-		}
-		if got.Body != nil || !got.IdempotencyKey.IsZero() {
-			t.Fatalf("ReceiveProjectedJSON(nil projector) = %+v, want zero", got)
-		}
-		if _, gotStatErr := body.Stat(); !errors.Is(gotStatErr, fs.ErrClosed) {
-			t.Fatalf(
-				"request body Stat() error after rejected call = %v, want %v",
-				gotStatErr,
-				fs.ErrClosed,
-			)
-		}
-	})
-
-	t.Run("neutral rejected wire document never reaches projection", func(t *testing.T) {
-		t.Parallel()
-
-		var projectCalls atomic.Uint64
-		request := projectedJSONRequest(
-			t,
-			[]byte(`{"message":"candidate","unknown":true}`),
-		)
-		got, gotErr := exchange.ReceiveProjectedJSON[
-			projectedTransportDocument,
-			*projectedTransportDocument,
-		](exchange.ProjectedJSONReceiveCall[
-			projectedTransportDocument,
-			*projectedTransportDocument,
-		]{
-			Call: socketServerCall(t, request),
-			Project: func(
-				context.Context,
-				exchange.SocketServerCall,
-				*projectedTransportDocument,
-			) error {
-				projectCalls.Add(1)
-				return nil
-			},
-			Policy: exchange.ServerPolicy{
-				RequestBodyLimit: mustByteCount(t, 4*1024),
-			},
-			Route: exchange.RouteSemantics{
-				Method: exchange.MethodPost,
-				Replay: exchange.ReplaySingleAttempt,
-			},
-		})
-		if !errors.Is(gotErr, core.ErrExchangeRequest) ||
-			!errors.Is(gotErr, core.ErrJSONContract) {
-			t.Fatalf(
-				"ReceiveProjectedJSON(rejected wire document) error = %v, want %v and %v",
-				gotErr,
-				core.ErrExchangeRequest,
-				core.ErrJSONContract,
-			)
-		}
-		if projectCalls.Load() != 0 {
-			t.Fatalf(
-				"projector calls after rejected wire document = %d, want 0",
-				projectCalls.Load(),
-			)
-		}
-		if got.Body != nil || !got.IdempotencyKey.IsZero() {
-			t.Fatalf(
-				"ReceiveProjectedJSON(rejected wire document) = %+v, want zero",
-				got,
-			)
-		}
-	})
+	}
 }
 
-func projectedJSONRequest(
-	t *testing.T,
-	body []byte,
-) *http.Request {
-	t.Helper()
-
-	target := mustEndpoint(t, "http://example.test/exchange")
-	request, gotErr := http.NewRequestWithContext(
-		context.Background(),
-		exchange.MethodPost.String(),
-		target.String(),
-		bytes.NewReader(body),
-	)
-	if gotErr != nil {
-		t.Fatalf("http.NewRequestWithContext() setup error = %v, want nil", gotErr)
+// The singleton NoBody document supplies a real neutral projection domain:
+// an admitted empty struct remains empty and emits no HTTP response. It does
+// not manufacture a message to make the ordinary document validator pass.
+func TestProjectedJSONEmptyDocumentLayerTriad(t *testing.T) {
+	t.Parallel()
+	wire, err := json.Marshal(exchange.NoBody{})
+	if err != nil {
+		t.Fatal(err)
 	}
-	request.Header.Set(
-		core.HTTPHeaderContentType().String(),
-		mustHTTPMediaType(t, "application/json").String(),
-	)
-	return request
+	cases := []struct {
+		name         string
+		inputs       [][]byte
+		wantErr      error
+		wantProjects int
+	}{
+		{name: "neutral empty object and null preserve the same empty typed state", inputs: [][]byte{wire, []byte("null")}, wantProjects: 1},
+		{name: "unknown content cannot disappear into the empty struct", inputs: [][]byte{[]byte(`{"unexpected":1}`)}, wantErr: core.ErrJSONContract},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			for _, input := range tc.inputs {
+				body := &bindingObservedBody{reader: bytes.NewReader(input)}
+				request := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/", body)
+				request.Header.Set(core.HTTPHeaderContentType().String(), core.HTTPMediaTypeJSON().String())
+				writer := httptest.NewRecorder()
+				var projects int
+				got, gotErr := exchange.ReceiveProjectedJSON[exchange.NoBody, *exchange.NoBody](exchange.ProjectedJSONReceiveCall[exchange.NoBody, *exchange.NoBody]{Call: socketServerCallFrom(t, writer, request), Policy: exchange.ServerPolicy{RequestBodyLimit: mustByteCount(t, 128)}, Route: exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt}, Project: func(_ context.Context, _ exchange.SocketServerCall, _ *exchange.NoBody) error { projects++; return nil }})
+				if !errors.Is(gotErr, tc.wantErr) || (got.Body != nil) != (tc.wantErr == nil) || !got.IdempotencyKey.IsZero() || projects != tc.wantProjects || body.closes != 1 || body.reads != len(input) {
+					t.Fatalf("empty projection = (%+v,%v,%d projects,%d closes,%d bytes), want exact empty state and (%v,%d,1,%d)", got, gotErr, projects, body.closes, body.reads, tc.wantErr, tc.wantProjects, len(input))
+				}
+				if writer.Body.Len() != 0 || len(writer.Header()) != 0 || writer.Flushed {
+					t.Fatalf("response body/headers/flush=%d/%d/%t, want 0/0/false", writer.Body.Len(), len(writer.Header()), writer.Flushed)
+				}
+			}
+		})
+	}
 }

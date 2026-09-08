@@ -1,0 +1,11 @@
+{
+  "prior": "pipe-child-coverage-accounting-correction.json",
+  "tests": "TestBoundedCopyContextHandoffLayerTriad",
+  "mutations": [
+    "mutation-held-standing-copy-pre-read-context-ignored.json",
+    "mutation-held-standing-copy-context-mislabeled-source.json"
+  ],
+  "checkpoint": "checkpoint-held-standing-package.json",
+  "proof": "Seven direct bounded-copy rows pin no source read on pre-canceled or nil context, cancellation during read, after write, and before the overflow probe. Exact destination prefix, byte receipt, read/write calls and unconsumed source are checked without scheduling or sleeps.",
+  "classification": "Deterministic coverage ratchet over unchanged production; does not claim a production timing bug."
+}

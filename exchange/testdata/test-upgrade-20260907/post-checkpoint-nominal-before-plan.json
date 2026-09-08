@@ -1,0 +1,53 @@
+[
+  {
+    "label": "post-checkpoint-nominal-before-key",
+    "argv": [
+      "go",
+      "test",
+      "-count=1",
+      "-run=^$",
+      "-bench=^BenchmarkParseIdempotencyKeyMaximum$",
+      "-benchtime=30s",
+      "-benchmem",
+      "-cpu=1",
+      "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-before-key.cpu.pprof",
+      "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-before-key.mem.pprof",
+      "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-before-key.test",
+      "./exchange"
+    ]
+  },
+  {
+    "label": "post-checkpoint-nominal-before-basic-accepted",
+    "argv": [
+      "go",
+      "test",
+      "-count=1",
+      "-run=^$",
+      "-bench=^BenchmarkReceiveBasicAuthorizationCustody$/^maximum_credentials$",
+      "-benchtime=30s",
+      "-benchmem",
+      "-cpu=1",
+      "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-before-basic-accepted.cpu.pprof",
+      "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-before-basic-accepted.mem.pprof",
+      "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-before-basic-accepted.test",
+      "./exchange"
+    ]
+  },
+  {
+    "label": "post-checkpoint-nominal-before-basic-partial-refusal",
+    "argv": [
+      "go",
+      "test",
+      "-count=1",
+      "-run=^$",
+      "-bench=^BenchmarkReceiveBasicAuthorizationCustody$/^partial_base64_refusal$",
+      "-benchtime=30s",
+      "-benchmem",
+      "-cpu=1",
+      "-cpuprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-before-basic-partial-refusal.cpu.pprof",
+      "-memprofile=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-before-basic-partial-refusal.mem.pprof",
+      "-o=/Users/d/code/primitive/exchange/testdata/test-upgrade-20260907/post-checkpoint-nominal-before-basic-partial-refusal.test",
+      "./exchange"
+    ]
+  }
+]

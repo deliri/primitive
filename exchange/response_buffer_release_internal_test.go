@@ -88,7 +88,7 @@ func TestResponseBufferReleaseLayerTriad(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			destination := &bufferReleaseDestination{admissionResponseWriter: admissionResponseWriter{header: make(http.Header)}, fault: tc.fault}
+			destination := &bufferReleaseDestination{header: make(http.Header), fault: tc.fault}
 			lengthName := core.HTTPHeaderContentLength().String()
 			if tc.beforeLength != nil {
 				destination.header[lengthName] = slices.Clone(tc.beforeLength)

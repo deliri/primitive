@@ -14,7 +14,7 @@ func BenchmarkParseULID(b *testing.B) {
 	}
 	text := value.String()
 	if text == "" {
-		b.Fatal("ULID.String() is empty, want canonical spelling")
+		b.Fatalf("ULID.String()=%q, want canonical spelling", text)
 	}
 	var wantErr error
 	b.ReportAllocs()
@@ -38,7 +38,7 @@ func BenchmarkParseUUIDv7(b *testing.B) {
 	}
 	text := value.String()
 	if text == "" {
-		b.Fatal("UUIDv7.String() is empty, want canonical spelling")
+		b.Fatalf("UUIDv7.String()=%q, want canonical spelling", text)
 	}
 	var wantErr error
 	b.ReportAllocs()

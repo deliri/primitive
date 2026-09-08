@@ -1,0 +1,13 @@
+{
+  "artifact": "filestore/testdata/test-upgrade-20260907/directory-fuzz-worker-native-sample.txt",
+  "sha256": "336b58ab093216189dfcd44fdc3f76398d2004113ca6c77443418dae74f8b056",
+  "bytes": 26832,
+  "command": [
+    "sample",
+    "37006",
+    "2",
+    "-file",
+    "filestore/testdata/test-upgrade-20260907/directory-fuzz-worker-native-sample.txt"
+  ],
+  "scope": "Diagnostic native sample during tail of debug fuzz run; only 447 samples before worker exited, no retained fuzz binary or Go symbol attribution; not benchmark evidence."
+}

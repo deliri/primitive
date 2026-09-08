@@ -1,0 +1,128 @@
+[
+  {
+    "label": "mutation-inspection-kind-only-validator",
+    "file": "/Users/d/code/primitive/filestore/inspect.go",
+    "before": "func (i Inspection) Validate() error {\n\tif err := i.kind.Validate(); err != nil {\n\t\treturn err\n\t}\n\tif i.kind == PathKindAbsent || i.kind == PathKindUnreachable {\n\t\tif i != (Inspection{kind: i.kind}) {\n\t\t\treturn contractError(errors.New(\"absent path carries entry metadata\"))\n\t\t}\n\t\treturn nil\n\t}\n\treturn validateInspectionFacts(i)\n}\n",
+    "after": "func (i Inspection) Validate() error { return i.kind.Validate() }\n",
+    "test": "^TestInspectionSchemaLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 10,
+      "fail": 14,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-inspection-absent-facts-ignored",
+    "file": "/Users/d/code/primitive/filestore/inspect.go",
+    "before": "if i != (Inspection{kind: i.kind}) {",
+    "after": "if false {",
+    "test": "^TestInspectionSchemaLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 18,
+      "fail": 6,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-inspection-uid-custody-ignored",
+    "file": "/Users/d/code/primitive/filestore/inspect.go",
+    "before": "i.ownership != (Ownership{})",
+    "after": "i.ownership != (Ownership{uid:i.ownership.uid})",
+    "test": "^TestInspectionSchemaLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 22,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-inspection-gid-custody-ignored",
+    "file": "/Users/d/code/primitive/filestore/inspect.go",
+    "before": "i.ownership != (Ownership{})",
+    "after": "i.ownership != (Ownership{gid:i.ownership.gid})",
+    "test": "^TestInspectionSchemaLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 22,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-inspection-getter-bypasses-schema",
+    "file": "/Users/d/code/primitive/filestore/inspect.go",
+    "before": "func (i Inspection) Kind() (PathKind, error) {\n\tif err := i.Validate(); err != nil {\n\t\treturn PathKindUnknown, err\n\t}\n\treturn i.kind, nil\n}\n\n",
+    "after": "func (i Inspection) Kind() (PathKind, error) {\n\tif err := i.kind.Validate(); err != nil {\n\t\treturn PathKindUnknown, err\n\t}\n\treturn i.kind, nil\n}\n\n",
+    "test": "^TestInspectionSchemaLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 10,
+      "fail": 14,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-inspection-constructor-leaks-refused-fact",
+    "file": "/Users/d/code/primitive/filestore/inspect.go",
+    "before": "func newInspection(kind PathKind) (Inspection, error) {\n\tinspection := Inspection{kind: kind}\n\tif err := inspection.Validate(); err != nil {\n\t\treturn Inspection{}, err\n\t}\n\treturn inspection, nil\n}\n",
+    "after": "func newInspection(kind PathKind) (Inspection, error) {\n\tinspection := Inspection{kind: kind}\n\tif err := inspection.Validate(); err != nil {\n\t\treturn inspection, err\n\t}\n\treturn inspection, nil\n}\n",
+    "test": "^TestKindOnlyInspectionConstructionLayerTriad$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 3,
+      "fail": 6,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-inspection-native-link-following",
+    "file": "/Users/d/code/primitive/filestore/inspect.go",
+    "before": "info, statErr := root.Lstat(base.String())",
+    "after": "info, statErr := root.Stat(base.String())",
+    "test": "^FuzzInspectionNativeFactsSemanticClosure$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 7,
+      "fail": 2,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-inspection-unreachable-becomes-absent",
+    "file": "/Users/d/code/primitive/filestore/inspect.go",
+    "before": "return newInspection(PathKindUnreachable)",
+    "after": "return newInspection(PathKindAbsent)",
+    "test": "^FuzzInspectionNativeFactsSemanticClosure$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 6,
+      "fail": 3,
+      "skip": 0
+    }
+  },
+  {
+    "label": "mutation-inspection-allocation-scale",
+    "file": "/Users/d/code/primitive/filestore/attributes_unix.go",
+    "before": "uint64(status.Blocks) * core.POSIXAllocationBlockBytes",
+    "after": "uint64(status.Blocks) * (core.POSIXAllocationBlockBytes + 1)",
+    "test": "^FuzzInspectionNativeFactsSemanticClosure$",
+    "killed": true,
+    "build_failure": false,
+    "test_events": {
+      "pass": 7,
+      "fail": 2,
+      "skip": 0
+    }
+  }
+]

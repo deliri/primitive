@@ -1,0 +1,60 @@
+[
+  {
+    "file": "layer_triad_external_test.go",
+    "tests": [
+      "TestDirectoryEffectLayerTriad",
+      "TestBoundedReadLayerTriad",
+      "TestTargetLateWriterLayerTriad",
+      "TestRecoveryLayerTriad",
+      "TestDiscardLayerTriad",
+      "TestRemovalLayerTriad"
+    ],
+    "replacement": "Replaced by ReadNativeBoundary, EnsureDirectoryNative, StagedNamespaceEntry, RecoveryRevalidatesObservedReceipt, and RemovalNativeNamespace proofs."
+  },
+  {
+    "file": "seam_layer_triad_external_test.go",
+    "tests": [
+      "TestTypedIngressLayerTriad",
+      "TestContextIngressLayerTriad",
+      "TestRootedConfinementLayerTriad",
+      "TestDestinationStreamLayerTriad",
+      "TestReceiptIdentityLayerTriad"
+    ],
+    "replacement": "ReadNativeBoundary replaces source/destination/confinement triads; StagedNamespaceEntry and the request/cancellation matrices pin admission and receipt ownership."
+  },
+  {
+    "file": "append_remove_external_test.go",
+    "tests": [
+      "TestRemoveSynchronizesOneNamedEntryWithoutRecursivePolicy"
+    ],
+    "replacement": "RemovalNativeNamespaceSemanticClosure and removal durability architecture guards cover exact one-entry removal and sibling preservation."
+  },
+  {
+    "file": "filesystem_hostile_external_test.go",
+    "tests": [
+      "TestEnsureDirectoryPreservesNativeFileObstacle"
+    ],
+    "replacement": "EnsureDirectoryNativeNamespace, ReadNativeBoundary or RemovalNativeNamespace semantic proof, with exact effects and native error identities."
+  },
+  {
+    "file": "filesystem_hostile_external_test.go",
+    "tests": [
+      "TestReadHostileSourceAndDestinationMatrix"
+    ],
+    "replacement": "EnsureDirectoryNativeNamespace, ReadNativeBoundary or RemovalNativeNamespace semantic proof, with exact effects and native error identities."
+  },
+  {
+    "file": "filesystem_hostile_external_test.go",
+    "tests": [
+      "TestRemoveRefusesRecursivePolicyAndPreservesNonemptyTree"
+    ],
+    "replacement": "EnsureDirectoryNativeNamespace, ReadNativeBoundary or RemovalNativeNamespace semantic proof, with exact effects and native error identities."
+  },
+  {
+    "file": "filesystem_hostile_external_test.go",
+    "tests": [
+      "TestReadUsesSafeInRootSymlinkResolutionOwnedByOSRoot"
+    ],
+    "replacement": "EnsureDirectoryNativeNamespace, ReadNativeBoundary or RemovalNativeNamespace semantic proof, with exact effects and native error identities."
+  }
+]

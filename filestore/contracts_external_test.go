@@ -2,12 +2,11 @@ package filestore_test
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"io/fs"
-	"math"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 	"testing"
 
@@ -15,77 +14,46 @@ import (
 	"github.com/deliri/primitive/v2026/filestore"
 )
 
-func TestInstallModeExhaustsUnderlyingDomain(t *testing.T) {
-	t.Parallel()
-
-	admitted := []filestore.InstallMode{
-		filestore.InstallCreate,
-		filestore.InstallReplace,
-	}
-	for raw := range uint16(math.MaxUint8) + 1 {
-		got := filestore.InstallMode(raw)
-		gotErr := got.Validate()
-		if slices.Contains(admitted, got) {
-			if gotErr != nil {
-				t.Fatalf("InstallMode(%d).Validate() error = %v, want nil", raw, gotErr)
-			}
-			continue
-		}
-		if !errors.Is(gotErr, core.ErrFilestoreContract) {
-			t.Fatalf("InstallMode(%d).Validate() error = %v, want %v", raw, gotErr, core.ErrFilestoreContract)
-		}
-	}
-}
-
 func TestPermissionModeHostileBoundaryMatrix(t *testing.T) {
 	t.Parallel()
-
-	rootDirectory := t.TempDir()
-	root, err := os.OpenRoot(rootDirectory)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		if closeErr := root.Close(); closeErr != nil {
-			t.Errorf("os.Root.Close() error = %v, want nil", closeErr)
-		}
-	})
-	location := filestore.Location{Root: root, Path: mustRelativePath(t, "target")}
-	for raw := range uint32(fs.ModePerm) + 1 {
-		mode := fs.FileMode(raw)
-		gotErr := (filestore.DirectoryRequest{Location: location, Mode: mode}).Validate()
+	cases := []struct {
+		name    string
+		mode    fs.FileMode
+		wantErr error
+	}{}
+	for mode := fs.FileMode(0); mode <= fs.ModePerm; mode++ {
+		var wantErr error
 		if mode == 0 {
-			if !errors.Is(gotErr, core.ErrFilestoreContract) {
-				t.Fatalf("DirectoryRequest mode %#o error = %v, want %v", mode, gotErr, core.ErrFilestoreContract)
-			}
-			continue
+			wantErr = core.ErrFilestoreContract
 		}
-		if gotErr != nil {
-			t.Fatalf("DirectoryRequest permission mode %#o error = %v, want nil", mode, gotErr)
-		}
+		cases = append(cases, struct {
+			name    string
+			mode    fs.FileMode
+			wantErr error
+		}{fmt.Sprintf("permission field %#o retains exact admission", mode), mode, wantErr})
 	}
-	nonPermissionBits := []fs.FileMode{
-		fs.ModeDir,
-		fs.ModeAppend,
-		fs.ModeExclusive,
-		fs.ModeTemporary,
-		fs.ModeSymlink,
-		fs.ModeDevice,
-		fs.ModeNamedPipe,
-		fs.ModeSocket,
-		fs.ModeSetuid,
-		fs.ModeSetgid,
-		fs.ModeCharDevice,
-		fs.ModeSticky,
-		fs.ModeIrregular,
+	for bit := fs.ModePerm + 1; bit != 0; bit <<= 1 {
+		cases = append(cases, struct {
+			name    string
+			mode    fs.FileMode
+			wantErr error
+		}{fmt.Sprintf("high mode bit %#x cannot hide behind valid permissions", bit), bit | fs.ModePerm, core.ErrFilestoreContract})
 	}
-	for _, bit := range nonPermissionBits {
-		for _, mode := range []fs.FileMode{bit, bit | 0o600, bit | fs.ModePerm} {
-			gotErr := (filestore.DirectoryRequest{Location: location, Mode: mode}).Validate()
-			if !errors.Is(gotErr, core.ErrFilestoreContract) {
-				t.Fatalf("DirectoryRequest non-permission mode %#o error = %v, want %v", mode, gotErr, core.ErrFilestoreContract)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			directory := t.TempDir()
+			root := requireTestRoot(t, directory)
+			request := filestore.DirectoryRequest{Location: filestore.Location{Root: root, Path: mustRelativePath(t, "entry")}, Mode: tc.mode}
+			gotErr := request.Validate()
+			if !errors.Is(gotErr, tc.wantErr) || errors.Is(gotErr, core.ErrFilestoreActivation) || errors.Is(gotErr, core.ErrFilestoreSource) {
+				t.Fatalf("mode %#o validation = %v, want pure %v", tc.mode, gotErr, tc.wantErr)
 			}
-		}
+			entries, err := os.ReadDir(directory)
+			if err != nil || len(entries) != 0 {
+				t.Fatalf("validation effects = (%v,%v), want no entries", entries, err)
+			}
+		})
 	}
 }
 

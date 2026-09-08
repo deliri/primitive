@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"syscall"
 	"testing"
 
@@ -121,7 +122,13 @@ func TestStageNoProgressThresholdBoundaryMatrix(t *testing.T) {
 					!errors.Is(gotErr, tc.wantErr) {
 					t.Fatalf("Stage() error = %v, want %v and %v", gotErr, core.ErrFilestoreSource, tc.wantErr)
 				}
-				requireDirectoryEntryNames(t, rootDirectory, nil)
+				{
+					got, err := directoryEntryNames(rootDirectory)
+					want := []string(nil)
+					if err != nil || !slices.Equal(got, want) {
+						t.Fatalf("directory entries = (%v,%v), want %v", got, err, want)
+					}
+				}
 				return
 			}
 			if gotErr != nil {
@@ -130,7 +137,13 @@ func TestStageNoProgressThresholdBoundaryMatrix(t *testing.T) {
 			if staged.BytesWritten().Uint64() != 0 {
 				t.Fatalf("StagedFile.BytesWritten() = %d, want 0", staged.BytesWritten().Uint64())
 			}
-			requireDirectoryEntryNames(t, rootDirectory, []string{".stage"})
+			{
+				got, err := directoryEntryNames(rootDirectory)
+				want := []string{".stage"}
+				if err != nil || !slices.Equal(got, want) {
+					t.Fatalf("directory entries = (%v,%v), want %v", got, err, want)
+				}
+			}
 		})
 	}
 }
@@ -166,7 +179,13 @@ func TestStageRejectsImpossibleReaderCountsWithoutResidue(t *testing.T) {
 			if !errors.Is(gotErr, core.ErrFilestoreSource) {
 				t.Fatalf("Stage() error = %v, want %v", gotErr, core.ErrFilestoreSource)
 			}
-			requireDirectoryEntryNames(t, rootDirectory, nil)
+			{
+				got, err := directoryEntryNames(rootDirectory)
+				want := []string(nil)
+				if err != nil || !slices.Equal(got, want) {
+					t.Fatalf("directory entries = (%v,%v), want %v", got, err, want)
+				}
+			}
 		})
 	}
 }

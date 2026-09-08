@@ -10,15 +10,8 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
-// HeldStanding is the closed set of answers to one custody question: does a
-// path still name the exact filesystem entry a held handle is open to?
-//
-// Closed rather than a boolean because the caller's next act differs per
-// answer: a lock holder removes the name it still owns, refuses to touch a
-// name that now belongs to someone else, and has nothing to do when the name
-// is gone. A caller told only "not yours" would have to look again to tell
-// the last two apart, and that second look is the race this door exists to
-// narrow.
+// HeldStanding reports the native identity relation between a held Go handle
+// and a path's final entry.
 type HeldStanding uint8
 
 const (
@@ -68,36 +61,13 @@ func (s HeldStanding) String() string {
 	return core.UnknownEnumDiagnostic
 }
 
-// ObserveHeldStanding reports whether one absolute path still names the exact
-// filesystem entry a held handle is open to.
+// ObserveHeldStanding compares a held handle with os.Lstat(path), using Go's
+// os.SameFile identity. Hard links share identity. The final symlink is observed
+// as itself; ancestor links follow the native filesystem lookup rules.
 //
-// It exists for the moment custody must be released or trusted: a lock holder
-// about to remove its lock file must not remove a name another process has
-// already claimed, and a recovery path that reopened a record must know the
-// name it opened is the entry it probed. Both questions are one identity
-// comparison the standard library answers through os.SameFile, so every
-// product that asks reaches past this package with a raw stat pair on a bare
-// string path; this door is that comparison made once, against the kind of
-// handle this package itself hands out.
-//
-// Identity is the filesystem's own: device and inode where hosts have them,
-// volume and file index on Windows, read from values the standard library
-// already returned. A hard link to the held entry is therefore the held
-// entry, because the answer is about identity, not spelling. The final
-// component is not followed: a symbolic link planted at the name is reported
-// as a replacement, never followed to the entry it points at, for the same
-// reason Inspect refuses to describe a target the caller cannot use.
-//
-// Absence is an observation, not a failure. A missing entry, a missing
-// parent, and a parent that is not a directory all report HeldStandingAbsent,
-// because each means nothing occupies the path. A permission refusal stays an
-// error, so an observation is never recorded that the caller was not allowed
-// to make.
-//
-// The answer is one moment. Nothing stops the name changing the instant it is
-// returned; the door narrows the window a raw stat pair leaves open, and the
-// residue belongs to the advisory lock that guards the record, exactly as it
-// does for ObserveSharing's probe.
+// Missing entries and non-directory ancestors report Absent. Native observation
+// failures retain their cause; an already-closed handle is a contract refusal.
+// This is one observation, not a reservation against subsequent name changes.
 func ObserveHeldStanding(ctx context.Context, held *os.File, path core.AbsolutePath) (HeldStanding, error) {
 	if err := contextstate.Validate(ctx); err != nil {
 		return HeldStandingUnknown, err

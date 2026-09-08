@@ -1,0 +1,14 @@
+{
+  "stage_layer_triad_external_test.go": "13 direct Stage rows replace three ad hoc examples, absent-parent singleton and assertion helper; namespace conflicts moved from filesystem_hostile_external_test.go. Existing Append directory refusal remains in TestAppendIntentLayerTriad.",
+  "filesystem_hostile_external_test.go": "Write duplicates retire into TestDurableWriterLayerTriadCreateReplaceAndNeutralEffects. Four direct closed-root rows preserve append/create/existing/remove/tree refusal and exact namespace facts.",
+  "activation_state_external_test.go": "Commit/Recover matrices retain all existing transitions, inline namespace observations, pin original inode lifetime, and retain a real child in refused target directories.",
+  "cross_directory_activation_layer_triad_external_test.go": "One six-row table replaces grouped examples and closure fixtures, checks original inode/mode/time/bytes, displaced handle, and repeat recovery.",
+  "open_staged_read_layer_triad_external_test.go": "Six direct admission/returned-handle rows. Foreign namespace and extent/mode refusal remain in TestStagedNamespaceEntryLayerTriad and TestRecoveryRevalidatesObservedReceiptLayerTriad.",
+  "allocation_native_unix_test.go": "Six native rows replace allocation guesses and the inspectEntry assertion helper; exact Go blocks are the oracle for dense, sparse, empty and non-regular entries.",
+  "parent_sync_layer_triad_test.go": "Four direct native rows replace three ad hoc examples and add missing-parent/no-effect proof.",
+  "open_root_windows_test.go": "Three direct directory/file/missing rows replace grouped examples, retaining exact inode and metadata proof.",
+  "walk_external_test.go": "The 129-file singleton retires into TestNativeWalkBatchAndSkipLayerTriad, using the owning batch-size constant and exact delivered path sets.",
+  "assertion helpers": "requireDirectoryEntryNames becomes data-only directoryEntryNames; each call site compares got/want. requireActivationNamespace, requireOptionalFile, requireStagedReceiptDescribesDisk and requireExactNames are removed.",
+  "attributes_external_test.go": "Weak permission samples and platform-dependent user lookup retire into TestPermissionsCompleteFieldAndRefusalLayerTriad, TestOwnershipUnsignedCoordinatesLayerTriad, native Inspect tables and semantic fuzz.",
+  "stage_external_test.go": "Duplicate stage/commit/recover/discard examples retire into the namespace, recovery observation, resolved Write, round-trip and direct Stage tables/fuzz targets."
+}

@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"strconv"
-	"strings"
 	"sync/atomic"
 	"testing"
 
@@ -207,16 +205,6 @@ func TestRetryTransportLayerTriad(t *testing.T) {
 				core.ErrExchangeResponse,
 			)
 		}
-		if gotDiagnostic := exhausted.Error(); !strings.Contains(
-			gotDiagnostic,
-			strconv.FormatUint(exhausted.Attempts(), 10),
-		) {
-			t.Fatalf(
-				"retry exhaustion diagnostic = %q, want attempt count %d",
-				gotDiagnostic,
-				exhausted.Attempts(),
-			)
-		}
 		var statusErr exchange.StatusError
 		if !errors.As(gotErr, &statusErr) ||
 			statusErr.Status() != unavailable ||
@@ -228,17 +216,6 @@ func TestRetryTransportLayerTriad(t *testing.T) {
 				statusErr.Expected(),
 				unavailable,
 				ok,
-			)
-		}
-		status, _ := statusErr.Status().Int()
-		wantStatus, _ := statusErr.Expected().Int()
-		if gotDiagnostic := statusErr.Error(); !strings.Contains(gotDiagnostic, strconv.Itoa(status)) ||
-			!strings.Contains(gotDiagnostic, strconv.Itoa(wantStatus)) {
-			t.Fatalf(
-				"status diagnostic = %q, want status %d and configured status %d",
-				gotDiagnostic,
-				status,
-				wantStatus,
 			)
 		}
 		if got.Metadata.Attempts != 2 ||

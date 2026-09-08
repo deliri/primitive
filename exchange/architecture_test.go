@@ -75,66 +75,64 @@ func (d inventoryDocument) MarshalJSON() ([]byte, error) {
 // covering it and would otherwise pass unnoticed.
 func TestInventoryDocumentDrivesTheRealJSONWritePath(t *testing.T) {
 	t.Parallel()
-
-	limit, err := core.NewByteCount(1 << 10)
-	if err != nil {
-		t.Fatalf("core.NewByteCount() error = %v, want nil", err)
+	cases := []struct {
+		name       string
+		document   inventoryDocument
+		underLimit bool
+		wantErr    error
+	}{
+		{name: "valid nominal document crosses exact encoded ceiling", document: inventoryDocument{Name: "inventory"}},
+		{name: "empty owner value cannot release framing", wantErr: core.ErrExchangeContract},
+		{name: "escaped content retains Go JSON representation", document: inventoryDocument{Name: "quote\"\\\n"}},
+		{name: "encoded size one above budget cannot release partial JSON", document: inventoryDocument{Name: "inventory"}, underLimit: true, wantErr: core.ErrJSONContract},
 	}
-	status := core.HTTPStatusOK()
-	policy := JSONWritePolicy{ResponseBodyLimit: limit}
-
-	t.Run("valid document is encoded and framed", func(t *testing.T) {
-		t.Parallel()
-
-		recorder := httptest.NewRecorder()
-		serverCall := SocketServerCall{writer: recorder, request: httptest.NewRequest(http.MethodGet, "/", nil)}
-		writeErr := WriteJSON(JSONWriteCall[inventoryDocument]{
-			Call: serverCall,
-			Response: ServerJSONResponse[inventoryDocument]{
-				Body:   inventoryDocument{Name: "inventory"},
-				Status: status,
-			},
-			Policy: policy,
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			// Independent plain Go struct has no production Validate/MarshalJSON method.
+			expected, err := json.Marshal(struct {
+				Name string `json:"name"`
+			}{Name: tc.document.Name})
+			if err != nil {
+				t.Fatal(err)
+			}
+			extent := len(expected)
+			if tc.underLimit {
+				extent--
+			}
+			maximum, err := core.NewByteCount(uint64(extent))
+			if err != nil {
+				t.Fatal(err)
+			}
+			recorder := httptest.NewRecorder()
+			socket, err := NewSocketServerCall(recorder, httptest.NewRequest(http.MethodGet, "/", nil))
+			if err != nil {
+				t.Fatal(err)
+			}
+			call := JSONWriteCall[inventoryDocument]{Call: socket, Response: ServerJSONResponse[inventoryDocument]{Body: tc.document, Status: core.HTTPStatusOK()}, Policy: JSONWritePolicy{ResponseBodyLimit: maximum}}
+			validation := call.Validate()
+			if tc.document.Name == "" {
+				if !errors.Is(validation, core.ErrExchangeContract) {
+					t.Fatalf("empty document validation=%v,want contract refusal", validation)
+				}
+			} else if validation != nil {
+				t.Fatal(validation)
+			}
+			gotErr := WriteJSON(call)
+			if !errors.Is(gotErr, tc.wantErr) {
+				t.Fatalf("inventory document error=%v,want %v", gotErr, tc.wantErr)
+			}
+			if tc.wantErr != nil {
+				if recorder.Body.Len() != 0 || len(recorder.Header()) != 0 || recorder.Flushed {
+					t.Fatalf("refused document emitted %q,%v", recorder.Body.Bytes(), recorder.Header())
+				}
+				return
+			}
+			if !bytes.Equal(recorder.Body.Bytes(), expected) || recorder.Code != http.StatusOK || recorder.Header().Get(core.HTTPHeaderContentLength().String()) != strconv.Itoa(len(expected)) || recorder.Header().Get(core.HTTPHeaderContentType().String()) != core.HTTPMediaTypeJSON().String() {
+				t.Fatalf("inventory response=(%d,%q,%v),want exact Go encoding and framing %q", recorder.Code, recorder.Body.Bytes(), recorder.Header(), expected)
+			}
 		})
-		if writeErr != nil {
-			t.Fatalf("WriteJSON() error = %v, want nil", writeErr)
-		}
-		wantBody := `{"name":"inventory"}`
-		if got := recorder.Body.String(); got != wantBody {
-			t.Fatalf("WriteJSON() body = %q, want %q", got, wantBody)
-		}
-		if got := recorder.Code; got != 200 {
-			t.Fatalf("WriteJSON() status = %d, want 200", got)
-		}
-		if got := recorder.Header().Get("Content-Length"); got != strconv.Itoa(len(wantBody)) {
-			t.Fatalf("WriteJSON() Content-Length = %q, want %d", got, len(wantBody))
-		}
-	})
-
-	t.Run("invalid document writes no response", func(t *testing.T) {
-		t.Parallel()
-
-		recorder := httptest.NewRecorder()
-		serverCall := SocketServerCall{writer: recorder, request: httptest.NewRequest(http.MethodGet, "/", nil)}
-		call := JSONWriteCall[inventoryDocument]{
-			Call: serverCall,
-			Response: ServerJSONResponse[inventoryDocument]{
-				Body:   inventoryDocument{},
-				Status: status,
-			},
-			Policy: policy,
-		}
-		if gotErr := call.Validate(); !errors.Is(gotErr, core.ErrExchangeContract) {
-			t.Fatalf("JSONWriteCall.Validate() error = %v, want %v", gotErr, core.ErrExchangeContract)
-		}
-		writeErr := WriteJSON(call)
-		if !errors.Is(writeErr, core.ErrExchangeContract) {
-			t.Fatalf("WriteJSON(invalid document) error = %v, want %v", writeErr, core.ErrExchangeContract)
-		}
-		if got := recorder.Body.Len(); got != 0 {
-			t.Fatalf("WriteJSON(invalid document) wrote %d body bytes, want 0", got)
-		}
-	})
+	}
 }
 
 // exchangeContractInventory classifies every production struct by its real
@@ -293,7 +291,7 @@ func TestSocketServerHasOnePublicAdmissionAndWriteDoor(t *testing.T) {
 		}
 	}
 	if file == nil {
-		t.Fatal("socket.go source is absent")
+		t.Fatalf("socket syntax=%v, want parsed socket.go", file)
 	}
 	got := make([]string, 0, 3)
 	for _, declaration := range file.Decls {
@@ -313,49 +311,128 @@ func TestSocketServerHasOnePublicAdmissionAndWriteDoor(t *testing.T) {
 	}
 }
 
-func TestSocketServerCallIsOnlyPublicRawHTTPAdmission(t *testing.T) {
+func TestRawHTTPAdmissionIsSealedSocketOrGoSDKTransport(t *testing.T) {
 	t.Parallel()
+	sources := exchangeArchitectureSources(t, token.NewFileSet())
+	got := publicRawHTTPExposures(sources)
+	// One Go request/writer admission seals their custody in SocketServerCall.
+	// The SDK adapter must implement Go's http.RoundTripper signature; its
+	// typed constructor is its admission boundary. Both exceptions are compiler
+	// bound, and this fixed two-entry list cannot grow without changing the test.
+	// Public mutable variables are forbidden too: they could replace a checked
+	// function with an unclassified function-valued ingress after initialization.
+	want := []string{IngressSymbolForTest(NewSocketServerCall), IngressSymbolForTest(officialSDKResponseTransport.RoundTrip)}
+	slices.Sort(want)
+	if !slices.Equal(got, want) {
+		t.Fatalf("public raw HTTP or mutable-global exposure=%q,want sealed socket and required Go transport contract %q", got, want)
+	}
+}
 
-	gotFunctions := make([]string, 0, 1)
-	gotFields := make([]string, 0)
-	fileSet := token.NewFileSet()
-	sources := exchangeArchitectureSources(t, fileSet)
+func publicRawHTTPExposures(sources []exchangeArchitectureSource) []string {
+	var exposed []string
 	bindings := rawHTTPBindings(sources)
+	sealed := reflect.TypeFor[SocketServerCall]().Name()
 	for _, source := range sources {
 		file := source.syntax
 		for _, declaration := range file.Decls {
 			switch typed := declaration.(type) {
 			case *ast.FuncDecl:
-				if typed.Recv == nil && typed.Name.IsExported() && rawHTTPType(file, typed.Type, bindings, rawHTTPTypeScope{}) {
-					gotFunctions = append(gotFunctions, typed.Name.Name)
+				if typed.Name.IsExported() && rawHTTPType(file, typed.Type, bindings, rawHTTPTypeScope{}) {
+					name := typed.Name.Name
+					if typed.Recv != nil {
+						receiver := typed.Recv.List[0].Type
+						if pointer, ok := receiver.(*ast.StarExpr); ok {
+							receiver = pointer.X
+						}
+						if nominal, ok := receiver.(*ast.Ident); ok {
+							name = nominal.Name + "." + name
+						} else {
+							name = "unresolved receiver." + name
+						}
+					}
+					exposed = append(exposed, name)
 				}
 			case *ast.GenDecl:
 				for _, specification := range typed.Specs {
-					typeSpecification, ok := specification.(*ast.TypeSpec)
-					if !ok || !typeSpecification.Name.IsExported() {
-						continue
-					}
-					structure, ok := typeSpecification.Type.(*ast.StructType)
-					if !ok {
-						continue
-					}
-					if typeSpecification.Name.Name == "SocketServerCall" {
-						continue
-					}
-					for _, field := range structure.Fields.List {
-						if rawHTTPType(file, field.Type, bindings, (rawHTTPTypeScope{}).withTypeParameters(typeSpecification.TypeParams)) {
-							gotFields = append(gotFields, typeSpecification.Name.Name)
+					switch spec := specification.(type) {
+					case *ast.TypeSpec:
+						if !spec.Name.IsExported() {
+							continue
+						}
+						scope := (rawHTTPTypeScope{}).withTypeParameters(spec.TypeParams)
+						if spec.Name.Name == sealed {
+							structure, ok := spec.Type.(*ast.StructType)
+							if !ok {
+								exposed = append(exposed, spec.Name.Name)
+								continue
+							}
+							for _, field := range structure.Fields.List {
+								public := len(field.Names) == 0
+								for _, name := range field.Names {
+									public = public || name.IsExported()
+								}
+								if public && rawHTTPType(file, field.Type, bindings, scope) {
+									exposed = append(exposed, spec.Name.Name)
+								}
+							}
+							continue
+						}
+						if rawHTTPType(file, spec.Type, bindings, scope) {
+							exposed = append(exposed, spec.Name.Name)
+						}
+					case *ast.ValueSpec:
+						if typed.Tok != token.VAR {
+							continue
+						}
+						for _, name := range spec.Names {
+							if name.IsExported() {
+								exposed = append(exposed, name.Name)
+							}
 						}
 					}
 				}
 			}
 		}
 	}
-	sort.Strings(gotFunctions)
-	sort.Strings(gotFields)
-	wantFunctions := []string{"NewSocketServerCall"}
-	if !slices.Equal(gotFunctions, wantFunctions) || len(gotFields) != 0 {
-		t.Fatalf("public raw HTTP functions/struct fields = (%q, %q), want (%q, none)", gotFunctions, gotFields, wantFunctions)
+	slices.Sort(exposed)
+	return exposed
+}
+
+func TestPublicRawHTTPScanCannotLoseDeclarationShapes(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name, source string
+		want         []string
+	}{
+		{name: "public function admits raw request", source: `import "net/http";func Door(*http.Request){}`, want: []string{"Door"}},
+		{name: "public method cannot hide raw request", source: `import "net/http";type T struct{};func (T) Door(*http.Request){}`, want: []string{"T.Door"}},
+		{name: "method of private receiver cannot hide raw request", source: `import "net/http";type private struct{};func (private) Door(*http.Request){}`, want: []string{"private.Door"}},
+		{name: "exported alias cannot export raw custody", source: `import "net/http";type Door = *http.Request`, want: []string{"Door"}},
+		{name: "defined request cannot evade alias scan", source: `import "net/http";type Door http.Request`, want: []string{"Door"}},
+		{name: "exported interface admits raw writer", source: `import "net/http";type Door interface{Write(http.ResponseWriter)}`, want: []string{"Door"}},
+		{name: "declared function variable cannot add unclassified ingress", source: `import "net/http";var Door func(*http.Request)`, want: []string{"Door"}},
+		{name: "inferred function variable cannot add unclassified ingress", source: `import "net/http";var Door = http.NewRequest`, want: []string{"Door"}},
+		{name: "closure initializer cannot hide function ingress", source: `import "net/http";var Door = func(*http.Request){}`, want: []string{"Door"}},
+		{name: "mutable global lacks stable compiler-owned admission", source: `var Door = 1`, want: []string{"Door"}},
+		{name: "sealed socket cannot grow exported raw field", source: `import "net/http";type SocketServerCall struct{request *http.Request;Writer http.ResponseWriter}`, want: []string{"SocketServerCall"}},
+		{name: "sealed socket cannot grow embedded raw capability", source: `import "net/http";type SocketServerCall struct{*http.Request}`, want: []string{"SocketServerCall"}},
+		{name: "sealed socket retains private Go handles", source: `import "net/http";type SocketServerCall struct{request *http.Request;writer http.ResponseWriter}`},
+		{name: "private raw adapter remains implementation", source: `import "net/http";func private(*http.Request){}`},
+		{name: "typed constant does not introduce mutable ingress", source: `const Door = 1`},
+		{name: "local fixture name cannot impersonate Go request", source: `type Request struct{};func Door(*Request){}`},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			file, err := parser.ParseFile(token.NewFileSet(), "fixture.go", "package exchange;"+tc.source, parser.SkipObjectResolution)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := publicRawHTTPExposures([]exchangeArchitectureSource{{name: "fixture.go", syntax: file}})
+			if !slices.Equal(got, tc.want) {
+				t.Fatalf("raw/public exposure=%q,want %q", got, tc.want)
+			}
+		})
 	}
 }
 
@@ -383,7 +460,11 @@ func productionStructNames(t *testing.T) []string {
 
 func classifiedStructNames(t *testing.T) []string {
 	t.Helper()
-	got, err := boundInventoryStructNames(reflect.TypeFor[exchangeContractInventory]())
+	inventory := exchangeContractInventory{
+		observedStandardResponseWriter: capabilityWrapper[observedStandardResponseWriter]{},
+		observedStreamWriter:           capabilityWrapper[observedStreamWriter]{},
+	}
+	got, err := boundInventoryStructNames(reflect.TypeOf(inventory))
 	if err != nil {
 		t.Fatalf("bound inventory error = %v, want nil", err)
 	}
@@ -395,8 +476,7 @@ func boundInventoryStructNames(inventory reflect.Type) ([]string, error) {
 		return nil, core.ErrExchangeContract
 	}
 	names := make([]string, 0, inventory.NumField())
-	for index := range inventory.NumField() {
-		field := inventory.Field(index)
+	for field := range inventory.Fields() {
 		binding, ok := reflect.Zero(field.Type).Interface().(inventoryTypeBinding)
 		if !ok {
 			return nil, core.ErrExchangeContract

@@ -1,0 +1,5 @@
+{
+  "Replace": {
+    "/Users/d/code/primitive/filestore/held_standing.go": "/Users/d/code/primitive/filestore/testdata/test-upgrade-20260907/mutation-held-standing-held-kind-policy-invented.go"
+  }
+}

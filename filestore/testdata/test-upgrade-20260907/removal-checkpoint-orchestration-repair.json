@@ -1,0 +1,4 @@
+{
+  "failure": "The runner incorrectly asserted exactly two syncParent source statements; prepareCreatedAppend adds a third. No production or test failure occurred at this assertion. The first five successful mutation records remain unchanged.",
+  "repair": "The recursive-owner mutation selects the last occurrence, as before, after correcting the source-count assertion to three. Resume verifies the unchanged production SHA and exact saved overlay before reusing each completed proof."
+}

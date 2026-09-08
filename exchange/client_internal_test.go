@@ -7,6 +7,7 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"slices"
 	"testing"
 	"time"
 
@@ -390,73 +391,68 @@ func TestRetryAfterParserHostileBoundaryTable(t *testing.T) {
 	}
 }
 
+// This projection has no policy choices: status, attempt count and captured
+// fields are independent admission axes; body extent is exact byte conservation.
 func TestObservedAggregateResponseLayerTriad(t *testing.T) {
 	t.Parallel()
-
-	status := core.HTTPStatusOK()
-
-	t.Run("positive valid observation returns complete metadata and bytes", func(t *testing.T) {
-		t.Parallel()
-
-		got, gotErr := observedAggregateResponse(
-			attemptResponse{status: status, body: []byte("ok")},
-			2,
-		)
-		if gotErr != nil {
-			t.Fatalf("observedAggregateResponse() error = %v, want nil", gotErr)
-		}
-		if got.metadata.Status != status ||
-			got.metadata.Attempts != 2 ||
-			got.metadata.Bytes.Uint64() != 2 ||
-			string(got.body) != "ok" {
-			t.Fatalf(
-				"observed response = (%v, %d, %d, %q), want (%v, 2, 2, %q)",
-				got.metadata.Status,
-				got.metadata.Attempts,
-				got.metadata.Bytes.Uint64(),
-				got.body,
-				status,
-				"ok",
-			)
-		}
-	})
-
-	t.Run("negative invalid status returns no observation and a response error", func(t *testing.T) {
-		t.Parallel()
-
-		got, gotErr := observedAggregateResponse(attemptResponse{}, 1)
-		if len(got.body) != 0 ||
-			got.metadata.Status != (core.HTTPStatusCode{}) ||
-			got.metadata.Attempts != 0 ||
-			len(got.metadata.Headers.Values) != 0 ||
-			!errors.Is(gotErr, core.ErrExchangeResponse) {
-			t.Fatalf(
-				"invalid-status observation = (%v, %v), want (zero, %v)",
-				got,
-				gotErr,
-				core.ErrExchangeResponse,
-			)
-		}
-	})
-
-	t.Run("neutral zero attempts cannot become a false successful observation", func(t *testing.T) {
-		t.Parallel()
-
-		got, gotErr := observedAggregateResponse(
-			attemptResponse{status: status},
-			0,
-		)
-		if len(got.body) != 0 ||
-			got.metadata.Status != (core.HTTPStatusCode{}) ||
-			got.metadata.Attempts != 0 ||
-			len(got.metadata.Headers.Values) != 0 ||
-			!errors.Is(gotErr, core.ErrExchangeResponse) {
-			t.Fatalf(
-				"zero-attempt observation = (%v, %v), want (zero, %v)",
-				got,
-				gotErr,
-				core.ErrExchangeResponse,
-			)
-		}
-	})
+	value, err := NewHeaderValue("opaque")
+	if err != nil {
+		t.Fatal(err)
+	}
+	header := Header{Name: core.HTTPHeaderAccept(), Values: []HeaderValue{value}}
+	cases := []struct {
+		name     string
+		status   core.HTTPStatusCode
+		attempts uint64
+		body     []byte
+		headers  CapturedHeaders
+		wantErr  error
+	}{
+		{name: "binary observation cannot normalize or truncate bytes", status: core.HTTPStatusOK(), attempts: 2, body: []byte{0, 0xff}},
+		{name: "empty completed attempt retains status without inventing bytes", status: core.HTTPStatusOK(), attempts: 1},
+		{name: "one observed byte cannot round down to absent", status: core.HTTPStatusOK(), attempts: 1, body: []byte{0xff}},
+		{name: "maximum attempt counter cannot wrap", status: core.HTTPStatusOK(), attempts: math.MaxUint64},
+		{name: "captured field retains its exact nominal value", status: core.HTTPStatusOK(), attempts: 1, headers: CapturedHeaders{Values: []Header{header}}},
+		{name: "absent status cannot publish existing bytes", attempts: 1, body: []byte{0xff}, wantErr: core.ErrExchangeResponse},
+		{name: "absent attempts cannot publish existing status", status: core.HTTPStatusOK(), wantErr: core.ErrExchangeResponse},
+		{name: "invalid captured field cannot publish a completed attempt", status: core.HTTPStatusOK(), attempts: 1, headers: CapturedHeaders{Values: []Header{{}}}, wantErr: core.ErrExchangeResponse},
+		{name: "duplicated captured field cannot count as two observations", status: core.HTTPStatusOK(), attempts: 1, headers: CapturedHeaders{Values: []Header{header, header}}, wantErr: core.ErrExchangeResponse},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			headers := CapturedHeaders{Values: slices.Clone(tc.headers.Values)}
+			for i := range headers.Values {
+				headers.Values[i].Values = slices.Clone(headers.Values[i].Values)
+			}
+			response := attemptResponse{status: tc.status, body: bytes.Clone(tc.body), headers: headers}
+			got, gotErr := observedAggregateResponse(response, tc.attempts)
+			if !errors.Is(gotErr, tc.wantErr) || (tc.wantErr != nil && !errors.Is(gotErr, core.ErrExchangeContract)) {
+				t.Fatalf("observation error = %v, want %v with owning contract identity", gotErr, tc.wantErr)
+			}
+			if tc.wantErr != nil {
+				if got.body != nil || got.metadata.Status != (core.HTTPStatusCode{}) || got.metadata.Attempts != 0 || got.metadata.Bytes != (core.ByteLength{}) || got.metadata.Headers.Values != nil {
+					t.Fatalf("refused observation = %+v, want exact zero", got)
+				}
+			} else {
+				if got.metadata.Status != tc.status || got.metadata.Attempts != tc.attempts || got.metadata.Bytes.Uint64() != uint64(len(tc.body)) || !bytes.Equal(got.body, tc.body) || !((got.metadata.Headers.Values == nil) == (tc.headers.Values == nil) && slices.EqualFunc(got.metadata.Headers.Values, tc.headers.Values, func(got, want Header) bool {
+					return got.Name == want.Name && (got.Values == nil) == (want.Values == nil) && slices.EqualFunc(got.Values, want.Values, func(got, want HeaderValue) bool {
+						return (got.value == nil && want.value == nil) || (got.value != nil && want.value != nil && *got.value == *want.value)
+					})
+				})) {
+					t.Fatalf("observation = %+v, want exact status, attempts, byte extent and captured fields", got)
+				}
+				if err := got.metadata.Validate(); err != nil {
+					t.Fatalf("observation validation = %v, want nil", err)
+				}
+			}
+			if response.status != tc.status || !bytes.Equal(response.body, tc.body) || !((response.headers.Values == nil) == (tc.headers.Values == nil) && slices.EqualFunc(response.headers.Values, tc.headers.Values, func(got, want Header) bool {
+				return got.Name == want.Name && (got.Values == nil) == (want.Values == nil) && slices.EqualFunc(got.Values, want.Values, func(got, want HeaderValue) bool {
+					return (got.value == nil && want.value == nil) || (got.value != nil && want.value != nil && *got.value == *want.value)
+				})
+			})) {
+				t.Fatalf("source status/body/headers=%v/%x/%+v, want %v/%x/%+v", response.status, response.body, response.headers, tc.status, tc.body, tc.headers)
+			}
+		})
+	}
 }
