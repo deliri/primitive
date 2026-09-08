@@ -1,22 +1,22 @@
 # Primitive upgrade priority — 2026-09-07
 
-Approved release: **Temporal and Hostfacts, v2026.1.20** (September 8, 2026).
-Exchange and Filestore were published in v2026.1.19. The requested analyzer and
-test gates passed; the user reviewed and approved this batch for bump, commit
-and push. See [Temporal's review](../temporal/upgrade_review.md),
-[Hostfacts' review](../hostfacts/upgrade_review.md), the
-[bug-report follow-up](../hostfacts/review_followup.md) and
-[release notes](release_v2026.1.20.md).
+Latest published release: **v2026.1.21**, September 8, 2026, commit
+`dd84609a07dcfd6c516f09c0c4e4ec43429a4847`. The user approved the
+GoToolchain/Filestore/Core integration and the pending Process/Core/Contextstate
+checkpoint; main and the version tag were pushed. See
+[release notes](release_v2026.1.21.md). Exchange/Filestore were published in
+v2026.1.19 and Temporal/Hostfacts in v2026.1.20.
 
-Next review batch: **Process → Core → Contextstate**, handled one package at a
-time. Start Process with a complete protocol read and profiled baseline before
-production edits. New work requires user review before its next commit.
+Reviewed checkpoint: **Contextstate**. The resumed slice closes its test and benchmark
+review and makes a profile-informed recovery optimization. See
+[Contextstate's review](../contextstate/upgrade_review.md). The user approved continuing after review. **Controlwire is now the active package.**
 
-The initial execution-value priority is Exchange → Filestore → Temporal →
-Hostfacts → Process. The user split publication into reviewable batches: the
-Exchange/Filestore release is complete, and Temporal/Hostfacts are the approved
-v2026.1.20 release. Core and Contextstate remain first after Process. Necessary
-shared-owner gate fixes are proved at their owning boundary when encountered.
+The initial execution-value priority was Exchange → Filestore → Temporal →
+Hostfacts → Process. Process and Core improvements are now checkpointed in
+v2026.1.21; their earlier package reports retain the historical pre-release
+wording. The new compiler integration can receive further upgrades in a later
+release, as the user requested. Necessary shared-owner fixes are still proved at
+their owning boundary when encountered.
 
 Exchange covers Blink HTTP ingress/egress and the three tools' control-plane and
 commercial clients. Filestore covers rooted reads/writes/walks and durable output
@@ -126,7 +126,7 @@ the user explicitly approved the scoped Temporal/Hostfacts release. AWS identity
 local evidence, with the promised manual compliance re-review still pending.
 Chit's original baseline is retained; its upgrade is paused for this priority.
 
-`core`, `contextstate`, `controlwire`, `keygen`, `release`, `objectstore`, `chit`, `attest`, `controlplane`, `gcsobjects`, `shutdown`, `currency`, `id`, `distribution`, `lineio`, `fuzzfinder`, `runprotocol`, `lease`, `retrieval`, `manual`, `receipt`, `payment`, `submission`, `compass`, `googleidentity`, `filelock`, `submissionauth`, `proofledger`, `runnercontrol`, `secretstore`, `version`, `chitauth`, `distributionauth`, `paymentauth`, `retrievalauth`, `upgrade`, `deploy`, `wiring`, `github`, `gomodule`, `timeproof`, `awsidentity`, `capabilities`, `controlplanetest`, `gitrepo`, `gotoolchain`, `machineprobe`, `paypal`, `plunk`, `runworkspace`, `sourceclaim`, `sourceobservation`, `sourceproof`, `stripe`, `testserial`, `twilio`.
+`controlwire`, `keygen`, `release`, `objectstore`, `chit`, `attest`, `controlplane`, `gcsobjects`, `shutdown`, `currency`, `id`, `distribution`, `lineio`, `fuzzfinder`, `runprotocol`, `lease`, `retrieval`, `manual`, `receipt`, `payment`, `submission`, `compass`, `googleidentity`, `filelock`, `submissionauth`, `proofledger`, `runnercontrol`, `secretstore`, `version`, `chitauth`, `distributionauth`, `paymentauth`, `retrievalauth`, `upgrade`, `deploy`, `wiring`, `github`, `gomodule`, `timeproof`, `awsidentity`, `capabilities`, `controlplanetest`, `gitrepo`, `gotoolchain`, `machineprobe`, `paypal`, `plunk`, `runworkspace`, `sourceclaim`, `sourceobservation`, `sourceproof`, `stripe`, `testserial`, `twilio`.
 
 ## Release checkpoint
 
@@ -138,9 +138,9 @@ editing. Benchmark comparisons use declared, checked workloads and retain both
 CPU and memory profiles, binaries, commands and source bindings. Remaining known
 surfaces keep the package open. Follow the entire local testing protocol.
 
-The user approved Temporal and Hostfacts on September 8, 2026 and authorized
-v2026.1.20 publication. Process follows, then Core and Contextstate in order.
-The new batch retains the same package-by-package review standards.
+The user approved and published v2026.1.21 on September 8, 2026. Contextstate
+is reviewed; Controlwire is the current slice. Each new slice retains the
+same package-by-package review standards and requires review before commit.
 
 Then update Blink Kernel, Peachfuzz, Bug and Witness to that published version,
 regenerate complete vendor trees where applicable, update actual call sites for
@@ -151,6 +151,6 @@ actual versions before migration. Their shared
 workspace points at local Primitive, so an ordinary workspace build alone cannot
 prove published-version adoption. Preserve unrelated dirty consumer work.
 
-Consumer migration and publication of the current review batch remain pending.
+Consumer migration and publication of the next release remain pending.
 This report preserves historical usage evidence without treating it as proof of
 current published-version adoption.

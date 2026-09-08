@@ -26,6 +26,9 @@ func BenchmarkValidateContext(b *testing.B) {
 				b.Fatal(err)
 			}
 			defer cancel()
+			if got := ctx.Err(); got != tc.terminal {
+				b.Fatalf("fixture Err=%v; want exact %v before timing", got, tc.terminal)
+			}
 			var got error
 			b.ReportAllocs()
 			for b.Loop() {
@@ -56,6 +59,9 @@ func BenchmarkObserveContext(b *testing.B) {
 				b.Fatal(err)
 			}
 			defer cancel()
+			if got := ctx.Err(); got != tc.terminal {
+				b.Fatalf("fixture Err=%v; want exact %v before timing", got, tc.terminal)
+			}
 			var got contextstate.State
 			b.ReportAllocs()
 			for b.Loop() {
@@ -85,6 +91,9 @@ func BenchmarkObserveAfterDoneContext(b *testing.B) {
 				b.Fatal(err)
 			}
 			defer cancel()
+			if got := ctx.Err(); got != tc.terminal {
+				b.Fatalf("fixture Err=%v; want exact %v before timing", got, tc.terminal)
+			}
 			<-ctx.Done()
 			var got contextstate.State
 			b.ReportAllocs()

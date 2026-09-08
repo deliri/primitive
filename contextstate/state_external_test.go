@@ -100,8 +100,9 @@ func TestStateStringIsClosedOverTheAdmittedDomain(t *testing.T) {
 }
 
 type wireInterfaceProbe struct {
-	implements func(any) bool
-	name       string
+	implements      func(any) bool
+	name            string
+	wantImplemented bool
 }
 
 // TestStateImplementsNoWireFormat proves the no-wire decision by asserting the
@@ -119,6 +120,14 @@ func TestStateImplementsNoWireFormat(t *testing.T) {
 			_, ok := value.(json.Unmarshaler)
 			return ok
 		}},
+		{name: "json.MarshalerTo", implements: func(value any) bool {
+			_, ok := value.(json.MarshalerTo)
+			return ok
+		}},
+		{name: "json.UnmarshalerFrom", implements: func(value any) bool {
+			_, ok := value.(json.UnmarshalerFrom)
+			return ok
+		}},
 		{name: "encoding.TextMarshaler", implements: func(value any) bool {
 			_, ok := value.(encoding.TextMarshaler)
 			return ok
@@ -127,12 +136,20 @@ func TestStateImplementsNoWireFormat(t *testing.T) {
 			_, ok := value.(encoding.TextUnmarshaler)
 			return ok
 		}},
+		{name: "encoding.TextAppender", implements: func(value any) bool {
+			_, ok := value.(encoding.TextAppender)
+			return ok
+		}},
 		{name: "encoding.BinaryMarshaler", implements: func(value any) bool {
 			_, ok := value.(encoding.BinaryMarshaler)
 			return ok
 		}},
 		{name: "encoding.BinaryUnmarshaler", implements: func(value any) bool {
 			_, ok := value.(encoding.BinaryUnmarshaler)
+			return ok
+		}},
+		{name: "encoding.BinaryAppender", implements: func(value any) bool {
+			_, ok := value.(encoding.BinaryAppender)
 			return ok
 		}},
 	}
@@ -148,8 +165,8 @@ func TestStateImplementsNoWireFormat(t *testing.T) {
 		for _, probe := range probes {
 			t.Run(receiver.name+"/"+probe.name, func(t *testing.T) {
 				t.Parallel()
-				if probe.implements(receiver.value) {
-					t.Errorf("State %s receiver implements %s; want no wire format", receiver.name, probe.name)
+				if got := probe.implements(receiver.value); got != probe.wantImplemented {
+					t.Errorf("State %s receiver implements %s = %t; want %t", receiver.name, probe.name, got, probe.wantImplemented)
 				}
 			})
 		}

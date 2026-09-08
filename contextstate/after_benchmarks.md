@@ -1,3 +1,7 @@
+The September 8 upgrade skips recovery on normal Context.Err returns, strengthens the tests, and checks each benchmark fixture before timing. See [the review](upgrade_review.md) for all eight paired measurements and the full earlier attempt history, with [source-bound evidence](upgrade_evidence.json).
+
+The following figures and “no production change” statement describe the earlier filestore-specific pass only. They are preserved as historical notes, not current profiled results.
+
 # contextstate after
 
 No production change this pass. Cost tracks admitted work, not a compiler ceiling.

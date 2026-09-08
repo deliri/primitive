@@ -78,9 +78,11 @@ func readContextError(ctx context.Context) (
 ) {
 	err = core.ErrContextObservation
 	defer func() {
-		if recover() != nil {
+		// A normal return clears err. Only an interrupted Err call needs
+		// recovery; keeping the refusal also contains legacy panic(nil).
+		if err != nil {
+			_ = recover()
 			terminal = nil
-			err = core.ErrContextObservation
 		}
 	}()
 	return ctx.Err(), nil

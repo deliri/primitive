@@ -20,6 +20,8 @@ var (
 	_ func(context.Context) (State, error) = Observe
 	_ func(context.Context) (State, error) = ObserveAfterDone
 	_ func(context.Context) error          = Validate
+	_ func(State) bool                     = State.IsValid
+	_ func(State) string                   = State.String
 )
 
 type publicSymbolKind uint8
@@ -140,6 +142,40 @@ func TestContextstateProductionObservationSurfaceRemainsErrOnly(t *testing.T) {
 	}
 }
 
+// Exercise the same matcher as the production scan. Parentheses and nested
+// expressions must not hide a forbidden observation; declarations and text
+// that merely contain the name must not manufacture a call.
+func TestObservationSourceGuardRecognizesCallableASTShapes(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name   string
+		source string
+		want   bool
+	}{
+		{name: "direct forbidden call", source: "package p; func f() { Done() }", want: true},
+		{name: "qualified forbidden call", source: "package p; func f() { ctx.Done() }", want: true},
+		{name: "parenthesized selector remains a call", source: "package p; func f() { (ctx.Done)() }", want: true},
+		{name: "parenthesized identifier remains a call", source: "package p; func f() { (Done)() }", want: true},
+		{name: "nested function cannot hide a call", source: "package p; func f() { func() { ctx.Done() }() }", want: true},
+		{name: "allowed Err observation stays admitted", source: "package p; func f() { ctx.Err() }"},
+		{name: "method declaration is not an invocation", source: "package p; type c struct{}; func (c) Done() {}"},
+		{name: "selector value is not an invocation", source: "package p; func f() { _ = ctx.Done }"},
+		{name: "diagnostic text cannot invent a call", source: "package p; const label = \"ctx.Done()\""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			file, err := parser.ParseFile(token.NewFileSet(), "observation.go", tc.source, parser.SkipObjectResolution)
+			if err != nil {
+				t.Fatalf("fixture parse = %v, want valid Go syntax", err)
+			}
+			if got := syntaxCallsName(file, "Done"); got != tc.want {
+				t.Fatalf("forbidden invocation found = %t, want %t", got, tc.want)
+			}
+		})
+	}
+}
+
 func contextstateProductionSyntax(t *testing.T) []productionSyntax {
 	t.Helper()
 
@@ -179,7 +215,7 @@ func syntaxCallsName(file *ast.File, name string) bool {
 		if !ok {
 			return true
 		}
-		switch function := call.Fun.(type) {
+		switch function := ast.Unparen(call.Fun).(type) {
 		case *ast.SelectorExpr:
 			found = function.Sel.Name == name
 		case *ast.Ident:
