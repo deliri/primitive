@@ -143,7 +143,7 @@ func PublishedProtocolSupport() (ProtocolSupport, error) {
 }
 
 func (s ProtocolSupport) Validate() error {
-	if s.count == 0 || s.count > len(s.capabilities) {
+	if s.count <= 0 || s.count > len(s.capabilities) {
 		return protocolSupportError()
 	}
 	for index := range s.count {

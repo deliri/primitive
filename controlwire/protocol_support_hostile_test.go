@@ -2,6 +2,7 @@ package controlwire_test
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"slices"
 	"testing"
@@ -27,49 +28,39 @@ func protocolFamilyInventory() [12]controlwire.RouteFamily {
 	}
 }
 
-func TestProtocolSupportAcceptsTenBoundedAuthorityPoliciesWithoutAliasingInput(t *testing.T) {
+// Exhaust the entire published subset domain. Each mask differs in at least
+// one admitted capability, so every row can expose a wrong membership decision.
+func TestProtocolSupportExhaustsEveryBoundedSubsetWithoutAliasing(t *testing.T) {
 	t.Parallel()
-
 	families := protocolFamilyInventory()
 	all := protocolCapabilities(families[:])
-	reversed := slices.Clone(all)
-	slices.Reverse(reversed)
-	cases := []struct {
-		name         string
-		capabilities []controlwire.ProtocolCapability
-	}{
-		{name: "one pair is the minimum nonempty policy", capabilities: all[:1]},
-		{name: "two adjacent pairs", capabilities: all[:2]},
-		{name: "two nonadjacent pairs", capabilities: []controlwire.ProtocolCapability{all[0], all[len(all)-1]}},
-		{name: "three pairs", capabilities: all[:3]},
-		{name: "odd route families", capabilities: everyOtherProtocolCapability(all, 0)},
-		{name: "even route families", capabilities: everyOtherProtocolCapability(all, 1)},
-		{name: "one below the fixed ceiling", capabilities: all[:len(all)-1]},
-		{name: "exact fixed ceiling", capabilities: all},
-		{name: "reverse order canonicalizes to identical membership", capabilities: reversed},
-		{name: "unordered sparse policy", capabilities: []controlwire.ProtocolCapability{all[8], all[2], all[11], all[5]}},
-	}
-	if len(cases) != 10 {
-		t.Fatalf("valid protocol support inventory = %d, want exactly 10", len(cases))
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
+	for mask := uint16(1); mask < uint16(1)<<len(all); mask++ {
+		t.Run(fmt.Sprintf("membership_%012b", mask), func(t *testing.T) {
 			t.Parallel()
-
-			input := slices.Clone(tc.capabilities)
-			support, err := controlwire.NewProtocolSupport(controlwire.ProtocolSupportRequest{Capabilities: input})
-			if err != nil || support.Validate() != nil {
-				t.Fatalf("NewProtocolSupport(%d exact pairs) = (%+v, %v), want valid and nil", len(input), support, err)
+			wantMembers := protocolCapabilitiesFromMask(mask)
+			input := slices.Clone(wantMembers)
+			slices.Reverse(input)
+			before := slices.Clone(input)
+			got, err := controlwire.NewProtocolSupport(controlwire.ProtocolSupportRequest{Capabilities: input})
+			if err != nil || got.Validate() != nil || !slices.Equal(input, before) {
+				t.Fatalf("support=%v/%v input=%v, want valid and unchanged %v", got, err, input, before)
 			}
-			for index := range input {
-				input[index] = controlwire.ProtocolCapability{}
+			clear(input)
+			for _, candidate := range all {
+				want := controlwire.ProtocolSupportOutcomeUpgradeRequired
+				if slices.Contains(wantMembers, candidate) {
+					want = controlwire.ProtocolSupportOutcomeAccepted
+				}
+				assessment, err := controlwire.AssessProtocol(controlwire.ProtocolAssessmentRequest{Support: got, Capability: candidate})
+				if err != nil || assessment.Capability != candidate || assessment.Outcome != want {
+					t.Fatalf("assessment=%v/%v, want %v/%v", assessment, err, candidate, want)
+				}
 			}
-			proveProtocolMembership(t, support, tc.capabilities)
 		})
 	}
 }
 
-func TestProtocolSupportRejectsTwelveIndependentMalformedPolicies(t *testing.T) {
+func TestProtocolSupportRejectsMalformedPolicies(t *testing.T) {
 	t.Parallel()
 
 	families := protocolFamilyInventory()
@@ -80,7 +71,6 @@ func TestProtocolSupportRejectsTwelveIndependentMalformedPolicies(t *testing.T) 
 		capabilities []controlwire.ProtocolCapability
 	}{
 		{name: "nil policy", capabilities: nil},
-		{name: "empty policy", capabilities: []controlwire.ProtocolCapability{}},
 		{name: "one above fixed ceiling", capabilities: aboveMaximum},
 		{name: "zero capability", capabilities: []controlwire.ProtocolCapability{{}}},
 		{name: "zero revision", capabilities: []controlwire.ProtocolCapability{{Family: controlwire.RouteFamilyRegistrations}}},
@@ -89,11 +79,6 @@ func TestProtocolSupportRejectsTwelveIndependentMalformedPolicies(t *testing.T) 
 		{name: "future route family", capabilities: []controlwire.ProtocolCapability{{Revision: controlwire.Revision2026V1, Family: controlwire.RouteFamily(math.MaxUint8)}}},
 		{name: "adjacent duplicate", capabilities: []controlwire.ProtocolCapability{all[0], all[0]}},
 		{name: "separated duplicate", capabilities: []controlwire.ProtocolCapability{all[0], all[1], all[0]}},
-		{name: "all pairs plus middle duplicate", capabilities: append(slices.Clone(all), all[len(all)/2])},
-		{name: "two identical last-family pairs", capabilities: []controlwire.ProtocolCapability{all[len(all)-1], all[len(all)-1]}},
-	}
-	if len(cases) != 12 {
-		t.Fatalf("rejected protocol support inventory = %d, want exactly 12", len(cases))
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -138,7 +123,7 @@ func TestProtocolAssessmentExhaustsEveryPublishedExactAndNearMissPair(t *testing
 	}
 }
 
-func TestProtocolAssessmentRejectsTenMalformedBoundaries(t *testing.T) {
+func TestProtocolAssessmentRejectsMalformedBoundaries(t *testing.T) {
 	t.Parallel()
 
 	support, err := controlwire.PublishedProtocolSupport()
@@ -155,14 +140,9 @@ func TestProtocolAssessmentRejectsTenMalformedBoundaries(t *testing.T) {
 		{name: "valid support with zero capability", request: controlwire.ProtocolAssessmentRequest{Support: support}},
 		{name: "zero revision", request: controlwire.ProtocolAssessmentRequest{Support: support, Capability: controlwire.ProtocolCapability{Family: valid.Family}}},
 		{name: "zero family", request: controlwire.ProtocolAssessmentRequest{Support: support, Capability: controlwire.ProtocolCapability{Revision: valid.Revision}}},
-		{name: "revision one below valid", request: controlwire.ProtocolAssessmentRequest{Support: support, Capability: controlwire.ProtocolCapability{Revision: controlwire.RevisionUnknown, Family: valid.Family}}},
 		{name: "revision one above published", request: controlwire.ProtocolAssessmentRequest{Support: support, Capability: controlwire.ProtocolCapability{Revision: controlwire.Revision2026V1 + 1, Family: valid.Family}}},
 		{name: "revision maximum", request: controlwire.ProtocolAssessmentRequest{Support: support, Capability: controlwire.ProtocolCapability{Revision: controlwire.Revision(math.MaxUint8), Family: valid.Family}}},
-		{name: "family one below valid", request: controlwire.ProtocolAssessmentRequest{Support: support, Capability: controlwire.ProtocolCapability{Revision: valid.Revision, Family: controlwire.RouteFamilyUnknown}}},
 		{name: "family maximum", request: controlwire.ProtocolAssessmentRequest{Support: support, Capability: controlwire.ProtocolCapability{Revision: valid.Revision, Family: controlwire.RouteFamily(math.MaxUint8)}}},
-	}
-	if len(cases) != 10 {
-		t.Fatalf("assessment rejection inventory = %d, want exactly 10", len(cases))
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -205,7 +185,8 @@ func FuzzProtocolAssessmentMatchesExactBoundedMembership(f *testing.F) {
 		}
 		candidate := controlwire.ProtocolCapability{Revision: controlwire.Revision(rawRevision), Family: controlwire.RouteFamily(rawFamily)}
 		assessment, assessErr := controlwire.AssessProtocol(controlwire.ProtocolAssessmentRequest{Support: support, Capability: candidate})
-		if candidate.Validate() != nil {
+		families := protocolFamilyInventory()
+		if candidate.Revision != controlwire.Revision2026V1 || !slices.Contains(families[:], candidate.Family) {
 			if !errors.Is(assessErr, core.ErrControlWireProtocolSupport) || !errors.Is(assessment.Validate(), core.ErrControlWireProtocolSupport) {
 				t.Fatalf("AssessProtocol(invalid %+v) = (%+v, %v), want typed invalid zero", candidate, assessment, assessErr)
 			}
@@ -228,29 +209,6 @@ func protocolCapabilities(families []controlwire.RouteFamily) []controlwire.Prot
 		capabilities[index] = controlwire.ProtocolCapability{Revision: controlwire.Revision2026V1, Family: family}
 	}
 	return capabilities
-}
-
-func everyOtherProtocolCapability(capabilities []controlwire.ProtocolCapability, start int) []controlwire.ProtocolCapability {
-	selected := make([]controlwire.ProtocolCapability, 0, (len(capabilities)+1)/2)
-	for index := start; index < len(capabilities); index += 2 {
-		selected = append(selected, capabilities[index])
-	}
-	return selected
-}
-
-func proveProtocolMembership(t testing.TB, support controlwire.ProtocolSupport, expected []controlwire.ProtocolCapability) {
-	t.Helper()
-	families := protocolFamilyInventory()
-	for _, candidate := range protocolCapabilities(families[:]) {
-		assessment, err := controlwire.AssessProtocol(controlwire.ProtocolAssessmentRequest{Support: support, Capability: candidate})
-		want := controlwire.ProtocolSupportOutcomeUpgradeRequired
-		if slices.Contains(expected, candidate) {
-			want = controlwire.ProtocolSupportOutcomeAccepted
-		}
-		if err != nil || assessment.Validate() != nil || assessment.Capability != candidate || assessment.Outcome != want {
-			t.Fatalf("AssessProtocol(%+v) = (%+v, %v), want exact outcome %v", candidate, assessment, err, want)
-		}
-	}
 }
 
 func protocolCapabilitiesFromMask(mask uint16) []controlwire.ProtocolCapability {

@@ -206,7 +206,10 @@ func ReceiveRoutedJSON[
 	result := RoutedJSONReceive[BodyPtr]{
 		Received: received, Assessment: assessment, Replay: replay,
 	}
-	return result, result.Validate()
+	if err := result.Validate(); err != nil {
+		return zero, err
+	}
+	return result, nil
 }
 
 // WriteControlJSON emits one strictly bounded successful response.
@@ -289,6 +292,9 @@ func clientExchange[Body RoutedJSONRequest](
 	call ClientJSONCall[Body],
 ) (exchange.JSONRequest[Body], exchange.JSONPolicy, error) {
 	var zero exchange.JSONRequest[Body]
+	if any(call.Body) == nil {
+		return zero, exchange.JSONPolicy{}, contractError()
+	}
 	if err := call.Body.Validate(); err != nil {
 		return zero, exchange.JSONPolicy{}, err
 	}
@@ -310,7 +316,7 @@ func clientExchange[Body RoutedJSONRequest](
 	if err != nil {
 		return zero, exchange.JSONPolicy{}, err
 	}
-	policy, err := ControlExchangePolicy()
+	policy, err := controlClientPolicy(call.Body)
 	if err != nil {
 		return zero, exchange.JSONPolicy{}, err
 	}
@@ -322,6 +328,22 @@ func clientExchange[Body RoutedJSONRequest](
 		return zero, exchange.JSONPolicy{}, err
 	}
 	return request, policy, nil
+}
+
+func controlClientPolicy(body RoutedJSONRequest) (exchange.JSONPolicy, error) {
+	maximum, err := body.ControlRequestBodyLimit()
+	if err != nil {
+		return exchange.JSONPolicy{}, contractError(err)
+	}
+	if _, err := controlServerPolicy(maximum); err != nil {
+		return exchange.JSONPolicy{}, err
+	}
+	policy, err := ControlExchangePolicy()
+	if err != nil {
+		return exchange.JSONPolicy{}, err
+	}
+	policy.RequestBodyLimit = maximum
+	return policy, nil
 }
 
 func controlTarget(

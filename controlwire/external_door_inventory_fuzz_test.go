@@ -2,12 +2,13 @@ package controlwire
 
 import (
 	"bytes"
-	json "encoding/json/v2"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json/jsontext"
 	"errors"
 	"go/ast"
-	"go/parser"
 	"go/token"
-	"os"
+	"math"
 	"slices"
 	"strings"
 	"testing"
@@ -84,59 +85,64 @@ func FuzzControlwireExternalJSONDoorInventory(f *testing.F) {
 	defer func() { _ = fixtures.token.Destroy() }()
 	for _, seed := range controlwireJSONSeedsForFuzz(f, fixtures) {
 		f.Add(uint8(seed.door), seed.document)
+		f.Add(uint8(seed.door), append([]byte{' '}, seed.document...))
 	}
-	for _, hostile := range [][]byte{
-		nil, {}, []byte(`null`), []byte(`{}`), []byte(`[]`), []byte(`""`),
-		[]byte(`0`), []byte(`true`), []byte(`{`),
-		bytes.Repeat([]byte(`[`), core.JSONNestingDepthMaximum+1),
-	} {
+	wide := fixtures.policyCursor
+	wide.Activation = PolicyActivation(math.MaxUint64)
+	wideSeed := controlwireJSONSeedForFuzz(f, controlwireJSONDoorPolicyCursor, wide)
+	f.Add(uint8(wideSeed.door), wideSeed.document)
+
+	for _, hostile := range [][]byte{nil, []byte(`null`), []byte(`{}`), []byte(`[]`), []byte(`""`), []byte(`0`), []byte(`true`), []byte(`{`)} {
 		f.Add(uint8(controlwireJSONDoorPolicyCursor), hostile)
 	}
-
 	f.Fuzz(func(t *testing.T, rawDoor uint8, data []byte) {
-		switch controlwireJSONDoor(rawDoor) {
-		case controlwireJSONDoorRequestNonce:
-			fuzzControlwireJSONValue(t, controlwireJSONRequest[RequestNonce]{
-				data: data, seed: fixtures.requestNonce, want: core.ErrControlWireNonce,
-			})
-		case controlwireJSONDoorAuthorityNonce:
-			fuzzControlwireJSONValue(t, controlwireJSONRequest[AuthorityNonce]{
-				data: data, seed: fixtures.authorityNonce, want: core.ErrControlWireNonce,
-			})
-		case controlwireJSONDoorRevision:
-			fuzzControlwireJSONValue(t, controlwireJSONRequest[Revision]{
-				data: data, seed: fixtures.revision, want: core.ErrControlWireRevision,
-			})
-		case controlwireJSONDoorPolicyRevisionID:
-			fuzzControlwireJSONValue(t, controlwireJSONRequest[PolicyRevisionID]{
-				data: data, seed: fixtures.policyID, want: core.ErrControlWirePolicyCursor,
-			})
-		case controlwireJSONDoorPolicyCursor:
-			fuzzControlwireJSONValue(t, controlwireJSONRequest[PolicyCursor]{
-				data: data, seed: fixtures.policyCursor, want: core.ErrControlWirePolicyCursor,
-			})
-		case controlwireJSONDoorRegistrationToken:
-			fuzzRegistrationTokenJSON(t, data, fixtures.token)
-		case controlwireJSONDoorRegistrationTokenVerifier:
-			fuzzControlwireJSONValue(t, controlwireJSONRequest[RegistrationTokenVerifier]{
-				data: data, seed: fixtures.verifier, want: core.ErrControlWireToken,
-			})
-		case controlwireJSONDoorRouteFamily:
-			fuzzControlwireJSONValue(t, controlwireJSONRequest[RouteFamily]{
-				data: data, seed: fixtures.routeFamily, want: core.ErrControlWireRoute,
-			})
-		case controlwireJSONDoorRequestCommitment:
-			fuzzControlwireJSONValue(t, controlwireJSONRequest[RequestCommitment]{
-				data: data, seed: fixtures.commitment, want: core.ErrControlWireContract,
-			})
-		case controlwireJSONDoorReplayIdentity:
-			fuzzControlwireJSONValue(t, controlwireJSONRequest[ReplayIdentity]{
-				data: data, seed: fixtures.replayIdentity, want: core.ErrControlWireContract,
-			})
-		case controlwireJSONDoorUnknown, controlwireJSONDoorLimit:
+		door := controlwireJSONDoor(rawDoor)
+		if door <= controlwireJSONDoorUnknown || door >= controlwireJSONDoorLimit {
+			door = controlwireJSONDoor(rawDoor%uint8(controlwireJSONDoorLimit-1)) + 1
+		}
+		got, wantIdentity := fixtures.jsonReceiver(door)
+		before, err := got.MarshalJSON()
+		if err != nil {
+			t.Fatalf("seed encoding error=%v, want nil", err)
+		}
+		wantAccept := controlwireJSONReferenceAccepts(door, data)
+		gotErr := got.UnmarshalJSON(data)
+		if (gotErr == nil) != wantAccept {
+			t.Fatalf("door=%v decode error=%v, want acceptance=%v", door, gotErr, wantAccept)
+		}
+		if gotErr != nil {
+			after, err := got.MarshalJSON()
+			if !errors.Is(gotErr, wantIdentity) || !errors.Is(gotErr, core.ErrJSONContract) || err != nil || !bytes.Equal(after, before) {
+				t.Fatalf("refusal=%v receiver=%q/%v, want %v and preserved %q", gotErr, after, err, wantIdentity, before)
+			}
 			return
-		default:
-			return
+		}
+		if token, ok := got.(*RegistrationToken); ok {
+			defer func() { _ = token.Destroy() }()
+		}
+		canonical, err := got.MarshalJSON()
+		if err != nil || got.Validate() != nil {
+			t.Fatalf("accepted value encoding=%v validation=%v, want nil", err, got.Validate())
+		}
+		// Preserve exact integers: RFC 8785's default float64 canonicalization
+		// would erase differences above 2^53 in PolicyActivation.
+		wantFacts := jsontext.Value(bytes.Clone(data))
+		gotFacts := jsontext.Value(bytes.Clone(canonical))
+		wantErr := wantFacts.Canonicalize(jsontext.CanonicalizeRawInts(false))
+		factErr := gotFacts.Canonicalize(jsontext.CanonicalizeRawInts(false))
+		if wantErr != nil || factErr != nil || !bytes.Equal(gotFacts, wantFacts) {
+			t.Fatalf("accepted JSON facts=%q/%v, want %q/%v", gotFacts, factErr, wantFacts, wantErr)
+		}
+		round, _ := fixtures.jsonReceiver(door)
+		if err := round.UnmarshalJSON(canonical); err != nil {
+			t.Fatalf("canonical decode error=%v, want nil", err)
+		}
+		if token, ok := round.(*RegistrationToken); ok {
+			defer func() { _ = token.Destroy() }()
+		}
+		second, err := round.MarshalJSON()
+		if err != nil || !bytes.Equal(second, canonical) {
+			t.Fatalf("fixed point=%q/%v, want %q/nil", second, err, canonical)
 		}
 	})
 }
@@ -176,42 +182,82 @@ func FuzzControlwireExternalTextDoorInventory(f *testing.F) {
 	}
 	f.Fuzz(func(t *testing.T, rawDoor uint8, value string) {
 		var outcome controlwireTextOutcome
-		switch controlwireTextDoor(rawDoor) {
+		door := controlwireTextDoor(rawDoor)
+		if door <= controlwireTextDoorUnknown || door >= controlwireTextDoorLimit {
+			door = controlwireTextDoor(rawDoor%uint8(controlwireTextDoorLimit-1)) + 1
+		}
+		wantAccept := controlwireTextReferenceAccepts(door, value)
+		switch door {
 		case controlwireTextDoorRequestNonce:
 			got, err := ParseRequestNonce(value)
-			outcome = controlwireTextOutcome{input: value, projection: got.String(), err: err, want: core.ErrControlWireNonce, validate: got.Validate}
+			outcome = controlwireTextOutcome{projection: got.String(), err: err, want: core.ErrControlWireNonce, validate: got.Validate}
 		case controlwireTextDoorAuthorityNonce:
 			got, err := ParseAuthorityNonce(value)
-			outcome = controlwireTextOutcome{input: value, projection: got.String(), err: err, want: core.ErrControlWireNonce, validate: got.Validate}
+			outcome = controlwireTextOutcome{projection: got.String(), err: err, want: core.ErrControlWireNonce, validate: got.Validate}
 		case controlwireTextDoorRevision:
 			got, err := ParseRevision(value)
-			outcome = controlwireTextOutcome{input: value, projection: got.String(), err: err, want: core.ErrControlWireRevision, validate: got.Validate}
+			outcome = controlwireTextOutcome{projection: got.String(), err: err, want: core.ErrControlWireRevision, validate: got.Validate}
 		case controlwireTextDoorPolicyRevisionID:
 			got, err := ParsePolicyRevisionID(value)
 			outcome = controlwireTextOutcome{
-				input: value, projection: got.String(), err: err,
+				projection: got.String(), err: err,
 				want: core.ErrControlWirePolicyCursor, validate: got.Validate,
 				refusalProjection: (PolicyRevisionID{}).String(),
 			}
 		case controlwireTextDoorRegistrationToken:
-			fuzzRegistrationTokenText(t, []byte(value))
+			got, err := ParseRegistrationToken([]byte(value))
+			if (err == nil) != wantAccept {
+				t.Fatalf("token error=%v, want acceptance=%v", err, wantAccept)
+			}
+			if err != nil {
+				if !errors.Is(err, core.ErrControlWireToken) || got.Validate() == nil {
+					t.Fatalf("token refusal=%v/%v, want typed invalid zero", got, err)
+				}
+				return
+			}
+			defer func() { _ = got.Destroy() }()
+			raw, err := hex.DecodeString(value)
+			if err != nil {
+				t.Fatalf("reference hex error=%v, want nil", err)
+			}
+			wantDigest := sha256.Sum256(raw)
+			verifier, err := got.Verifier()
+			if err != nil || verifier.String() != hex.EncodeToString(wantDigest[:]) {
+				t.Fatalf("token verifier=%v/%v, want SHA256 %x", verifier, err, wantDigest)
+			}
+			encoded, err := got.MarshalJSON()
+			text, decodeErr := core.DecodeJSONStringToken(encoded)
+			if err != nil || decodeErr != nil || text != value {
+				t.Fatalf("token projection=%q/%v/%v, want %q/nil", text, err, decodeErr, value)
+			}
 			return
 		case controlwireTextDoorRegistrationTokenVerifier:
 			got, err := ParseRegistrationTokenVerifier(value)
-			outcome = controlwireTextOutcome{input: value, projection: got.String(), err: err, want: core.ErrControlWireToken, validate: got.Validate}
+			outcome = controlwireTextOutcome{projection: got.String(), err: err, want: core.ErrControlWireToken, validate: got.Validate}
 		case controlwireTextDoorRouteFamily:
 			got, err := ParseRouteFamily(value)
 			projection := ""
 			if got.IsValid() {
 				projection = routeFamilyTokens()[got]
 			}
-			outcome = controlwireTextOutcome{input: value, projection: projection, err: err, want: core.ErrControlWireRoute, validate: got.Validate}
+			outcome = controlwireTextOutcome{projection: projection, err: err, want: core.ErrControlWireRoute, validate: got.Validate}
 		case controlwireTextDoorUnknown, controlwireTextDoorLimit:
 			return
 		default:
 			return
 		}
-		fuzzControlwireTextOutcome(t, outcome)
+		if (outcome.err == nil) != wantAccept {
+			t.Fatalf("text error=%v, want acceptance=%v", outcome.err, wantAccept)
+		}
+		if outcome.err != nil {
+			if !errors.Is(outcome.err, outcome.want) || outcome.projection != outcome.refusalProjection {
+				t.Fatalf("text refusal=%q/%v, want %q/%v", outcome.projection, outcome.err, outcome.refusalProjection, outcome.want)
+			}
+			return
+		}
+		if outcome.validate() != nil || outcome.projection != value {
+			t.Fatalf("text facts=%q/%v, want %q/nil", outcome.projection, outcome.validate(), value)
+		}
 	})
 }
 
@@ -220,131 +266,12 @@ type controlwireJSONValue interface {
 	MarshalJSON() ([]byte, error)
 }
 
-type controlwireJSONRequest[T controlwireJSONValue] struct {
-	seed T
-	want error
-	data []byte
-}
-
-func fuzzControlwireJSONValue[T controlwireJSONValue](t *testing.T, request controlwireJSONRequest[T]) {
-	t.Helper()
-	before, err := request.seed.MarshalJSON()
-	if err != nil {
-		t.Fatalf("controlwire seed MarshalJSON() error = %v, want nil", err)
-	}
-	candidate := request.seed
-	decoder := any(&candidate).(json.Unmarshaler)
-	decodeErr := decoder.UnmarshalJSON(request.data)
-	if decodeErr != nil {
-		if !errors.Is(decodeErr, request.want) || !errors.Is(decodeErr, core.ErrJSONContract) {
-			t.Fatalf("controlwire JSON error = %v, want %v and %v", decodeErr, request.want, core.ErrJSONContract)
-		}
-		after, marshalErr := candidate.MarshalJSON()
-		if marshalErr != nil || !bytes.Equal(after, before) {
-			t.Fatalf("rejected controlwire JSON changed receiver: marshal error %v", marshalErr)
-		}
-		return
-	}
-	if err := candidate.Validate(); err != nil {
-		t.Fatalf("accepted controlwire JSON Validate() error = %v, want nil", err)
-	}
-	canonical, err := candidate.MarshalJSON()
-	if err != nil || len(canonical) > core.JSONDocumentMaximumBytes {
-		t.Fatalf("controlwire canonical JSON = (%d bytes, %v), want bounded and nil", len(canonical), err)
-	}
-	var roundTrip T
-	if err := any(&roundTrip).(json.Unmarshaler).UnmarshalJSON(canonical); err != nil {
-		t.Fatalf("controlwire canonical JSON decode error = %v, want nil", err)
-	}
-	second, err := roundTrip.MarshalJSON()
-	if err != nil || !bytes.Equal(second, canonical) {
-		t.Fatalf("controlwire JSON lacks canonical fixed point: %v", err)
-	}
-}
-
-func fuzzRegistrationTokenJSON(t *testing.T, data []byte, seed RegistrationToken) {
-	t.Helper()
-	beforeVerifier, err := seed.Verifier()
-	if err != nil {
-		t.Fatalf("RegistrationToken.Verifier(seed) error = %v, want nil", err)
-	}
-	candidate := seed
-	decodeErr := candidate.UnmarshalJSON(data)
-	if decodeErr != nil {
-		if !errors.Is(decodeErr, core.ErrControlWireToken) || !errors.Is(decodeErr, core.ErrJSONContract) {
-			t.Fatalf("RegistrationToken.UnmarshalJSON() error = %v, want typed JSON/token refusal", decodeErr)
-		}
-		afterVerifier, verifierErr := candidate.Verifier()
-		if verifierErr != nil || !afterVerifier.Equal(beforeVerifier) {
-			t.Fatalf("rejected RegistrationToken JSON changed its receiver")
-		}
-		return
-	}
-	defer func() { _ = candidate.Destroy() }()
-	if err := candidate.Validate(); err != nil {
-		t.Fatalf("accepted RegistrationToken.Validate() error = %v, want nil", err)
-	}
-	canonical, err := candidate.MarshalJSON()
-	if err != nil || !bytes.Equal(canonical, data) {
-		t.Fatalf("accepted RegistrationToken JSON is not canonical: %v", err)
-	}
-	var roundTrip RegistrationToken
-	if err := roundTrip.UnmarshalJSON(canonical); err != nil {
-		t.Fatalf("RegistrationToken canonical decode error = %v, want nil", err)
-	}
-	defer func() { _ = roundTrip.Destroy() }()
-	verifier, err := candidate.Verifier()
-	roundVerifier, roundErr := roundTrip.Verifier()
-	if err != nil || roundErr != nil || !roundVerifier.Equal(verifier) {
-		t.Fatalf("RegistrationToken canonical round trip changed verifier")
-	}
-}
-
-func fuzzRegistrationTokenText(t *testing.T, data []byte) {
-	t.Helper()
-	token, err := ParseRegistrationToken(data)
-	if err != nil {
-		if !errors.Is(err, core.ErrControlWireToken) || token.Validate() == nil {
-			t.Fatalf("ParseRegistrationToken() = (%v, %v), want zero typed refusal", token, err)
-		}
-		return
-	}
-	defer func() { _ = token.Destroy() }()
-	verifier, err := token.Verifier()
-	if err != nil || verifier.Validate() != nil || verifier.String() == string(data) {
-		t.Fatalf("accepted RegistrationToken verifier = (%v, %v), want valid one-way projection", verifier, err)
-	}
-	encoded, err := token.MarshalJSON()
-	if err != nil {
-		t.Fatalf("RegistrationToken.MarshalJSON() error = %v, want nil", err)
-	}
-	decoded, err := core.DecodeJSONStringToken(encoded)
-	if err != nil || decoded != string(data) {
-		t.Fatalf("RegistrationToken canonical projection = (%q, %v), want exact input", decoded, err)
-	}
-}
-
 type controlwireTextOutcome struct {
 	err               error
 	want              error
 	validate          func() error
-	input             string
 	projection        string
 	refusalProjection string
-}
-
-func fuzzControlwireTextOutcome(t *testing.T, outcome controlwireTextOutcome) {
-	t.Helper()
-	if outcome.err != nil {
-		if !errors.Is(outcome.err, outcome.want) || outcome.projection != outcome.refusalProjection {
-			t.Fatalf("controlwire text refusal = (%q, %v), want %q and %v",
-				outcome.projection, outcome.err, outcome.refusalProjection, outcome.want)
-		}
-		return
-	}
-	if outcome.validate() != nil || outcome.projection != outcome.input {
-		t.Fatalf("controlwire text acceptance = (%q, %v), want exact %q", outcome.projection, outcome.validate(), outcome.input)
-	}
 }
 
 func controlwireFixturesForFuzz(t testing.TB) controlwireFuzzFixtures {
@@ -454,7 +381,7 @@ func TestControlwireExternalIngressFuzzInventoryMatchesProduction(t *testing.T) 
 }
 
 func controlwireExportedJSONReceiverNames() ([]string, error) {
-	files, err := os.ReadDir(".")
+	files, err := controlwireGoSources.ReadDir(".")
 	if err != nil {
 		return nil, err
 	}
@@ -464,7 +391,7 @@ func controlwireExportedJSONReceiverNames() ([]string, error) {
 		if file.IsDir() || !strings.HasSuffix(file.Name(), ".go") || strings.HasSuffix(file.Name(), "_test.go") {
 			continue
 		}
-		parsed, parseErr := parser.ParseFile(fileSet, file.Name(), nil, parser.SkipObjectResolution)
+		parsed, parseErr := controlwireParseSource(fileSet, file.Name())
 		if parseErr != nil {
 			return nil, parseErr
 		}

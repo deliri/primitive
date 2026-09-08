@@ -117,7 +117,7 @@ func (n RequestNonce) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON accepts only canonical lowercase hexadecimal and leaves n
 // unchanged on every rejection.
 func (n *RequestNonce) UnmarshalJSON(data []byte) error {
-	if n == nil {
+	if n == nil || len(data) > core.JSONDocumentMaximumBytes {
 		return jsonError(nonceError())
 	}
 	token, err := core.DecodeJSONStringToken(data)

@@ -3,6 +3,7 @@ package controlwire
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"slices"
 	"strings"
 	"testing"
@@ -11,45 +12,58 @@ import (
 	"github.com/deliri/primitive/v2026/exchange"
 )
 
-// TestRouteFamilyClosesItsEntireByteDomain walks every backing value: every
-// published families must validate, agree with IsValid, and carry unique
-// nonempty path suffixes, while all two hundred fifty four others refuse and
-// render no suffix a request could be built from.
+// Exhaustive typed membership prevents a swapped or widened enum admission
+// from passing merely because the total number of accepted bytes stayed equal.
 func TestRouteFamilyClosesItsEntireByteDomain(t *testing.T) {
 	t.Parallel()
-
-	seen := map[string]RouteFamily{}
-	admitted := 0
-	for value := range 256 {
-		family := RouteFamily(value)
-		if err := family.Validate(); err != nil {
-			if family.IsValid() {
-				t.Fatalf("RouteFamily(%d).IsValid() = true beside a Validate refusal", value)
+	published := []RouteFamily{RouteFamilyRegistrations, RouteFamilyCheckIns, RouteFamilySubmissions, RouteFamilySubmissionCompletions, RouteFamilyChits, RouteFamilyRetrievals, RouteFamilyPayments, RouteFamilyReleaseMaterials, RouteFamilyReleasePublications, RouteFamilyReleasePublicationCompletions, RouteFamilyUpdateChecks, RouteFamilyUpgrades}
+	for raw := range 256 {
+		t.Run(fmt.Sprintf("backing_byte_%d", raw), func(t *testing.T) {
+			t.Parallel()
+			got := RouteFamily(raw)
+			wantValid := slices.Contains(published, got)
+			err := got.Validate()
+			if (err == nil) != wantValid || got.IsValid() != wantValid {
+				t.Fatalf("family=%v validation=%v valid=%v, want valid=%v", raw, err, got.IsValid(), wantValid)
 			}
-			if got := family.String(); got != "" {
-				t.Fatalf("RouteFamily(%d).String() = %q, want empty text for a refused family", value, got)
+			if !wantValid {
+				if !errors.Is(err, core.ErrControlWireRoute) || got.String() != "" {
+					t.Fatalf("family refusal=%v/%q, want route identity and empty", err, got.String())
+				}
+				return
 			}
-			continue
-		}
-		admitted++
-		if !family.IsValid() {
-			t.Fatalf("RouteFamily(%d).IsValid() = false beside a nil Validate", value)
-		}
-		suffix := family.String()
-		if suffix == "" {
-			t.Fatalf("RouteFamily(%d).String() is empty, want the exact path suffix", value)
-		}
-		if prior, duplicate := seen[suffix]; duplicate {
-			t.Fatalf("RouteFamily(%d) and RouteFamily(%d) share the suffix %q", value, prior, suffix)
-		}
-		seen[suffix] = family
-	}
-	if admitted != 12 {
-		t.Fatalf("admitted route families = %d, want all twelve compiler-owned control families", admitted)
+			if got.String() != routeSuffixes()[got] {
+				t.Fatalf("suffix=%q, want %q", got.String(), routeSuffixes()[got])
+			}
+		})
 	}
 }
 
-func TestRouteFamilyWireContractAcceptsEveryPublishedTokenAndRejectsTwentyHostileDocuments(t *testing.T) {
+func TestProtocolSupportOutcomeExhaustsBackingByte(t *testing.T) {
+	t.Parallel()
+	for raw := range 256 {
+		t.Run(fmt.Sprintf("outcome_byte_%d", raw), func(t *testing.T) {
+			t.Parallel()
+			got := ProtocolSupportOutcome(raw)
+			want := ""
+			switch got {
+			case ProtocolSupportOutcomeAccepted:
+				want = protocolSupportOutcomeAcceptedDiagnostic
+			case ProtocolSupportOutcomeUpgradeRequired:
+				want = protocolSupportOutcomeUpgradeRequiredDiagnostic
+			}
+			err := got.Validate()
+			if (err == nil) != (want != "") || got.IsValid() != (want != "") || got.String() != want {
+				t.Fatalf("outcome=%q/%v valid=%v, want %q valid=%v", got.String(), err, got.IsValid(), want, want != "")
+			}
+			if want == "" && !errors.Is(err, core.ErrControlWireProtocolSupport) {
+				t.Fatalf("outcome refusal=%v, want %v", err, core.ErrControlWireProtocolSupport)
+			}
+		})
+	}
+}
+
+func TestRouteFamilyWireContractAcceptsEveryPublishedTokenAndRejectsHostileDocuments(t *testing.T) {
 	t.Parallel()
 
 	families := []RouteFamily{
@@ -58,29 +72,30 @@ func TestRouteFamilyWireContractAcceptsEveryPublishedTokenAndRejectsTwentyHostil
 		RouteFamilyPayments, RouteFamilyReleaseMaterials, RouteFamilyReleasePublications,
 		RouteFamilyReleasePublicationCompletions, RouteFamilyUpdateChecks, RouteFamilyUpgrades,
 	}
-	seen := make([]string, 0, len(families))
 	for _, family := range families {
-		encoded, err := family.MarshalJSON()
-		if err != nil {
-			t.Fatalf("RouteFamily(%v).MarshalJSON() error = %v, want nil", family, err)
-		}
-		token, err := core.DecodeJSONStringToken(encoded)
-		if err != nil || token == "" || strings.HasPrefix(token, routeSeparator) || slices.Contains(seen, token) {
-			t.Fatalf("published route token = (%q, %v), want unique non-path token", token, err)
-		}
-		seen = append(seen, token)
-		parsed, err := ParseRouteFamily(token)
-		if err != nil || parsed != family {
-			t.Fatalf("ParseRouteFamily(MarshalJSON(%v)) = (%v, %v), want exact family and nil", family, parsed, err)
-		}
-		var roundTrip RouteFamily
-		if err := roundTrip.UnmarshalJSON(encoded); err != nil || roundTrip != family {
-			t.Fatalf("RouteFamily.UnmarshalJSON(MarshalJSON(%v)) = (%v, %v), want exact family and nil", family, roundTrip, err)
-		}
-		second, err := roundTrip.MarshalJSON()
-		if err != nil || !bytes.Equal(second, encoded) {
-			t.Fatalf("route family canonical fixed point = (%s, %v), want %s", second, err, encoded)
-		}
+		t.Run(fmt.Sprintf("published_family_%d", family), func(t *testing.T) {
+			t.Parallel()
+			encoded, err := family.MarshalJSON()
+			if err != nil {
+				t.Fatalf("RouteFamily(%v).MarshalJSON() error = %v, want nil", family, err)
+			}
+			token, err := core.DecodeJSONStringToken(encoded)
+			if err != nil || token == "" || strings.HasPrefix(token, routeSeparator) {
+				t.Fatalf("published route token = (%q, %v), want unique non-path token", token, err)
+			}
+			parsed, err := ParseRouteFamily(token)
+			if err != nil || parsed != family {
+				t.Fatalf("ParseRouteFamily(MarshalJSON(%v)) = (%v, %v), want exact family and nil", family, parsed, err)
+			}
+			var roundTrip RouteFamily
+			if err := roundTrip.UnmarshalJSON(encoded); err != nil || roundTrip != family {
+				t.Fatalf("RouteFamily.UnmarshalJSON(MarshalJSON(%v)) = (%v, %v), want exact family and nil", family, roundTrip, err)
+			}
+			second, err := roundTrip.MarshalJSON()
+			if err != nil || !bytes.Equal(second, encoded) {
+				t.Fatalf("route family canonical fixed point = (%s, %v), want %s", second, err, encoded)
+			}
+		})
 	}
 	base := RouteFamilyRegistrations
 	baseJSON, err := base.MarshalJSON()
@@ -98,25 +113,38 @@ func TestRouteFamilyWireContractAcceptsEveryPublishedTokenAndRejectsTwentyHostil
 		}
 		return encoded
 	}
-	hostile := [][]byte{
-		nil, {}, []byte{' '}, []byte("null"), []byte("{}"), []byte("[]"),
-		[]byte("true"), []byte("0"), []byte{'{'}, []byte{0xff},
-		stringDocument(""), stringDocument("unknown"), stringDocument(base.String()),
-		stringDocument(strings.ToUpper(baseToken)), stringDocument(" " + baseToken),
-		stringDocument(baseToken + " "), stringDocument(routeSeparator + baseToken),
-		stringDocument(baseToken + routeSeparator), append(bytes.Clone(baseJSON), '0'),
-		append(bytes.Clone(baseJSON), baseJSON...),
+	hostile := []struct {
+		name     string
+		document []byte
+	}{
+		{name: "neutral absent input", document: nil},
+		{name: "whitespace cannot name a route", document: []byte{' '}},
+		{name: "null cannot name a route", document: []byte("null")},
+		{name: "object cannot name a scalar route", document: []byte("{}")},
+		{name: "array cannot name a scalar route", document: []byte("[]")},
+		{name: "boolean cannot select a route", document: []byte("true")},
+		{name: "number cannot select a route", document: []byte("0")},
+		{name: "truncated document", document: []byte{'{'}},
+		{name: "invalid UTF8", document: []byte{0xff}},
+		{name: "empty token", document: stringDocument("")},
+		{name: "unpublished token", document: stringDocument("unknown")},
+		{name: "path suffix is not a wire token", document: stringDocument(base.String())},
+		{name: "case-folded token", document: stringDocument(strings.ToUpper(baseToken))},
+		{name: "leading token whitespace", document: stringDocument(" " + baseToken)},
+		{name: "trailing token whitespace", document: stringDocument(baseToken + " ")},
+		{name: "trailing route separator", document: stringDocument(baseToken + routeSeparator)},
+		{name: "trailing scalar document", document: append(bytes.Clone(baseJSON), '0')},
+		{name: "second complete document", document: append(bytes.Clone(baseJSON), baseJSON...)},
 	}
-	if len(hostile) != 20 {
-		t.Fatalf("route family hostile inventory = %d, want exactly 20", len(hostile))
-	}
-	for index, document := range hostile {
-		candidate := RouteFamilyPayments
-		err := candidate.UnmarshalJSON(document)
-		if !errors.Is(err, core.ErrControlWireRoute) || !errors.Is(err, core.ErrControlWireContract) ||
-			!errors.Is(err, core.ErrJSONContract) || candidate != RouteFamilyPayments {
-			t.Fatalf("RouteFamily.UnmarshalJSON(hostile %d) = (%v, %v), want preserved receiver and %v/%v/%v", index, candidate, err, core.ErrControlWireRoute, core.ErrControlWireContract, core.ErrJSONContract)
-		}
+	for _, tc := range hostile {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := RouteFamilyPayments
+			err := got.UnmarshalJSON(tc.document)
+			if !errors.Is(err, core.ErrControlWireRoute) || !errors.Is(err, core.ErrJSONContract) || got != RouteFamilyPayments {
+				t.Fatalf("route=%v/%v, want preserved %v and route/JSON refusal", got, err, RouteFamilyPayments)
+			}
+		})
 	}
 }
 
@@ -138,9 +166,9 @@ func TestRouteContractProjectsExactlyItsTwoFacts(t *testing.T) {
 		RouteFamilyUpdateChecks, RouteFamilyUpgrades,
 	}
 	for _, offering := range []core.Offering{
-		controlwireOfferingFixture(t, 7),
-		controlwireOfferingFixture(t, 127),
-		controlwireOfferingFixture(t, 255),
+		{Token: "a"},
+		{Token: strings.Repeat("a", core.OfferingCanonicalJSONMaximumBytes-len(`""`))},
+		{Token: "a-9"},
 	} {
 		for _, family := range families {
 			contract, err := NewRouteContract(offering, family)

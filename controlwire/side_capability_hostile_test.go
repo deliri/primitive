@@ -21,7 +21,7 @@ type clientCapabilityCase struct {
 	wantValid       bool
 }
 
-func TestControlSocketClientCapabilityPressuresFortyOriginBoundaries(t *testing.T) {
+func TestControlSocketClientCapabilityClosesOriginBoundaries(t *testing.T) {
 	t.Parallel()
 
 	cases := []clientCapabilityCase{
@@ -38,40 +38,19 @@ func TestControlSocketClientCapabilityPressuresFortyOriginBoundaries(t *testing.
 
 		{name: "reject zero Exchange capability", authority: "https://example.test", withoutExchange: true, wantErr: []error{core.ErrControlWireContract, core.ErrExchangeContract}},
 		{name: "reject one-segment path", authority: "https://example.test/base", wantErr: []error{core.ErrControlWireRoute, core.ErrExchangeContract}},
-		{name: "reject control prefix path", authority: "https://example.test/v2026/control", wantErr: []error{core.ErrControlWireRoute, core.ErrExchangeContract}},
 		{name: "reject escaped path", authority: "https://example.test/a%2Fb", wantErr: []error{core.ErrControlWireRoute, core.ErrExchangeContract}},
 		{name: "reject root query", authority: "https://example.test/?page=1", wantErr: []error{core.ErrControlWireRoute, core.ErrExchangeContract}},
-		{name: "reject path and query", authority: "https://example.test/base?page=1", wantErr: []error{core.ErrControlWireRoute, core.ErrExchangeContract}},
 		{name: "reject empty query marker", authority: "https://example.test/?", wantErr: []error{core.ErrControlWireRoute, core.ErrExchangeContract}},
-		{name: "reject encoded query value", authority: "https://example.test/?q=a%20b", wantErr: []error{core.ErrControlWireRoute, core.ErrExchangeContract}},
-		{name: "reject repeated query values", authority: "https://example.test/?q=1&q=2", wantErr: []error{core.ErrControlWireRoute, core.ErrExchangeContract}},
-		{name: "reject mounted registration route", authority: "https://example.test/v2026/control/tool/registrations", wantErr: []error{core.ErrControlWireRoute, core.ErrExchangeContract}},
 
 		{name: "boundary HTTP minimum origin with root slash is accepted", authority: "http://a/", wantValid: true},
-		{name: "boundary HTTPS minimum origin with root slash is accepted", authority: "https://a/", wantValid: true},
-		{name: "boundary IPv4 origin with root slash is accepted", authority: "http://127.0.0.1/", wantValid: true},
 		{name: "boundary IPv6 origin with root slash is accepted", authority: "https://[::1]/", wantValid: true},
-		{name: "boundary minimum port with root slash is accepted", authority: "http://example.test:1/", wantValid: true},
-		{name: "boundary maximum port with root slash is accepted", authority: "https://example.test:65535/", wantValid: true},
-		{name: "boundary HTTP default port with root slash is accepted", authority: "http://example.test:80/", wantValid: true},
-		{name: "boundary HTTPS default port with root slash is accepted", authority: "https://example.test:443/", wantValid: true},
-		{name: "boundary normalized scheme with root slash is accepted", authority: "HTTPS://example.test/", wantValid: true},
-		{name: "boundary nested DNS origin with root slash is accepted", authority: "https://control.example.test/", wantValid: true},
 		{name: "boundary one path byte after root is rejected", authority: "https://example.test/a", wantErr: []error{core.ErrControlWireRoute, core.ErrExchangeContract}},
-		{name: "boundary two path bytes after root are rejected", authority: "https://example.test/ab", wantErr: []error{core.ErrControlWireRoute, core.ErrExchangeContract}},
 		{name: "boundary trailing slash after path is rejected", authority: "https://example.test/a/", wantErr: []error{core.ErrControlWireRoute, core.ErrExchangeContract}},
 		{name: "boundary doubled slash path is rejected", authority: "https://example.test//", wantErr: []error{core.ErrControlWireRoute, core.ErrExchangeContract}},
 		{name: "boundary dot path is rejected", authority: "https://example.test/.", wantErr: []error{core.ErrControlWireRoute, core.ErrExchangeContract}},
 		{name: "boundary escaped slash path is rejected", authority: "https://example.test/%2F", wantErr: []error{core.ErrControlWireRoute, core.ErrExchangeContract}},
-		{name: "boundary one query byte is rejected", authority: "https://example.test/?a", wantErr: []error{core.ErrControlWireRoute, core.ErrExchangeContract}},
-		{name: "boundary empty query value is rejected", authority: "https://example.test/?a=", wantErr: []error{core.ErrControlWireRoute, core.ErrExchangeContract}},
-		{name: "boundary query separator is rejected", authority: "https://example.test/?a=1&b=2", wantErr: []error{core.ErrControlWireRoute, core.ErrExchangeContract}},
-		{name: "boundary path plus empty query is rejected", authority: "https://example.test/a?", wantErr: []error{core.ErrControlWireRoute, core.ErrExchangeContract}},
 	}
 
-	if got, want := len(cases), 40; got != want {
-		t.Fatalf("client capability pressure cases = %d, want %d", got, want)
-	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

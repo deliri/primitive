@@ -1,313 +1,226 @@
-package controlwire_test
+package controlwire
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	json "encoding/json/v2"
 	"errors"
 	"strings"
 	"testing"
 
-	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
 )
 
-// FuzzRevisionUnmarshalJSON pressures the revision decoder, the boundary where
-// a peer's bytes first become a typed contract.
-//
-// The oracle is not "did not panic". Every accepted document must validate,
-// re-encode to the canonical token, and decode again to the same value; every
-// rejected document must carry the stable revision identity and leave the
-// receiver untouched.
 func FuzzRevisionUnmarshalJSON(f *testing.F) {
-	for _, seed := range []string{
-		`"2026.1"`, `"2026.2"`, `"v1"`, `""`, `null`, `2026`, `true`,
-		`["2026.1"]`, `{"revision":"2026.1"}`, `"2026.1"`, `"\ud800"`,
-	} {
-		f.Add([]byte(seed))
+	canonical, err := Revision2026V1.MarshalJSON()
+	if err != nil {
+		f.Fatalf("revision seed error=%v, want nil", err)
 	}
-
+	f.Add(canonical)
+	f.Add(append([]byte{' '}, canonical...))
+	for _, bad := range []string{`null`, `[]`, `{}`, `""`, `0`, `true`, `"\ud800"`} {
+		f.Add([]byte(bad))
+	}
 	f.Fuzz(func(t *testing.T, data []byte) {
-		// The typed identity is asserted against the production decoder itself.
-		// Routing the assertion through json.Unmarshal would let the standard
-		// library's syntax scanner answer first for a malformed document, and a
-		// stdlib syntax error is not proof that this package refused the value.
-		direct := controlwire.Revision2026V1
-		if err := direct.UnmarshalJSON(data); err != nil {
-			if !errors.Is(err, core.ErrControlWireRevision) {
-				t.Fatalf("UnmarshalJSON(%q) error = %v, want %v", data, err, core.ErrControlWireRevision)
-			}
-			if direct != controlwire.Revision2026V1 {
-				t.Fatalf("rejected document mutated receiver to %v, want %v", direct, controlwire.Revision2026V1)
-			}
+		got := Revision2026V1
+		wantAccept := controlwireJSONReferenceAccepts(controlwireJSONDoorRevision, data)
+		err := got.UnmarshalJSON(data)
+		if (err == nil) != wantAccept || got != Revision2026V1 {
+			t.Fatalf("revision=%v/%v, want preserved %v and acceptance=%v", got, err, Revision2026V1, wantAccept)
 		}
-
-		got := controlwire.Revision2026V1
-		err := json.Unmarshal(data, &got)
-		if err != nil {
-			if got != controlwire.Revision2026V1 {
-				t.Fatalf("rejected document mutated receiver to %v, want %v", got, controlwire.Revision2026V1)
-			}
-			return
-		}
-		if err := got.Validate(); err != nil {
-			t.Fatalf("accepted revision failed Validate(): %v", err)
-		}
-		encoded, err := json.Marshal(got)
-		if err != nil {
-			t.Fatalf("json.Marshal(accepted revision) error = %v, want nil", err)
-		}
-		var round controlwire.Revision
-		if err := json.Unmarshal(encoded, &round); err != nil {
-			t.Fatalf("json.Unmarshal(%s) error = %v, want nil", encoded, err)
-		}
-		if round != got {
-			t.Fatalf("round trip = %v, want %v", round, got)
+		if err != nil && (!errors.Is(err, core.ErrControlWireRevision) || !errors.Is(err, core.ErrJSONContract)) {
+			t.Fatalf("revision refusal=%v, want revision/JSON identities", err)
 		}
 	})
 }
 
-// FuzzParseRequestNonce pressures the nonce parser. The oracle proves an
-// accepted nonce is nonzero, renders exactly the text it was parsed from, and
-// survives a JSON round trip unchanged.
 func FuzzParseRequestNonce(f *testing.F) {
-	for _, seed := range []string{
-		nonceHexWithLetters, nonceHexAllDigits, nonceHexAllZero, nonceHexAllF,
-		"", "0x00", nonceHexWithLetters[:63], nonceHexWithLetters + "0",
-	} {
+	fixtures := controlwireFixturesForFuzz(f)
+	defer func() { _ = fixtures.token.Destroy() }()
+	canonical := fixtures.requestNonce.String()
+	for _, seed := range []string{canonical, strings.ToUpper(canonical), canonical[:len(canonical)-1], canonical + "0", "", strings.Repeat("0", 2*core.SHA256DigestBytes)} {
 		f.Add(seed)
 	}
-
-	f.Fuzz(func(t *testing.T, token string) {
-		got, err := controlwire.ParseRequestNonce(token)
+	f.Fuzz(func(t *testing.T, text string) {
+		wantAccept := canonicalDigestReference(text, true)
+		got, err := ParseRequestNonce(text)
+		if (err == nil) != wantAccept {
+			t.Fatalf("nonce error=%v, want acceptance=%v", err, wantAccept)
+		}
 		if err != nil {
-			if !errors.Is(err, core.ErrControlWireNonce) {
-				t.Fatalf("ParseRequestNonce(%q) error = %v, want %v", token, err, core.ErrControlWireNonce)
-			}
-			if got.String() != "" {
-				t.Fatalf("rejected nonce rendered %q, want empty", got.String())
+			if !errors.Is(err, core.ErrControlWireNonce) || got != (RequestNonce{}) {
+				t.Fatalf("nonce=%v/%v, want zero and nonce identity", got, err)
 			}
 			return
 		}
-		if err := got.Validate(); err != nil {
-			t.Fatalf("accepted nonce failed Validate(): %v", err)
+		if got.String() != text || got.Validate() != nil {
+			t.Fatalf("nonce=%q/%v, want %q/nil", got.String(), got.Validate(), text)
 		}
-		if got.String() != token {
-			t.Fatalf("ParseRequestNonce(%q).String() = %q, want the exact input", token, got.String())
-		}
-		encoded, err := json.Marshal(got)
-		if err != nil {
-			t.Fatalf("json.Marshal() error = %v, want nil", err)
-		}
-		var round controlwire.RequestNonce
-		if err := json.Unmarshal(encoded, &round); err != nil {
-			t.Fatalf("json.Unmarshal(%s) error = %v, want nil", encoded, err)
-		}
-		if round.String() != got.String() {
-			t.Fatalf("round trip = %q, want %q", round.String(), got.String())
+		wire, err := got.MarshalJSON()
+		var round RequestNonce
+		roundErr := round.UnmarshalJSON(wire)
+		if err != nil || roundErr != nil || round != got {
+			t.Fatalf("nonce round trip=%v/%v/%v, want %v/nil", round, err, roundErr, got)
 		}
 	})
 }
 
-// FuzzParseRegistrationToken pressures the secret parser. The oracle proves an
-// accepted token derives a stable verifier, never discloses itself through
-// formatting, and re-encodes to the exact text it was parsed from.
 func FuzzParseRegistrationToken(f *testing.F) {
-	for _, seed := range []string{
-		tokenHexWithLetters, tokenHexAllDigits, tokenHexAllZero,
-		"", "0x00", tokenHexWithLetters[:63], tokenHexWithLetters + "0",
-	} {
+	fixtures := controlwireFixturesForFuzz(f)
+	defer func() { _ = fixtures.token.Destroy() }()
+	canonical, err := fixtures.tokenText()
+	if err != nil {
+		f.Fatalf("token seed error=%v, want nil", err)
+	}
+	for _, seed := range []string{canonical, strings.ToUpper(canonical), canonical[:len(canonical)-1], canonical + "0", "", strings.Repeat("0", 2*RegistrationTokenBytes)} {
 		f.Add([]byte(seed))
 	}
-
 	f.Fuzz(func(t *testing.T, data []byte) {
-		got, err := controlwire.ParseRegistrationToken(data)
-		if err != nil {
-			if !errors.Is(err, core.ErrControlWireToken) {
-				t.Fatalf("ParseRegistrationToken(%q) error = %v, want %v", data, err, core.ErrControlWireToken)
-			}
-			if validateErr := got.Validate(); validateErr == nil {
-				t.Fatalf("rejected token %q Validate() = nil, want a refusal", got)
+		if len(data) != 2*RegistrationTokenBytes {
+			got, err := ParseRegistrationToken(data)
+			if !errors.Is(err, core.ErrControlWireToken) || got.Validate() == nil {
+				t.Fatalf("wrong-width token=%v/%v, want typed invalid zero", got, err)
 			}
 			return
 		}
-		if err := got.Validate(); err != nil {
-			t.Fatalf("accepted token failed Validate(): %v", err)
+		wantAccept := canonicalDigestReference(string(data), true)
+		before := bytes.Clone(data)
+		owned := bytes.Clone(data)
+		got, err := ParseRegistrationToken(owned)
+		if (err == nil) != wantAccept || !bytes.Equal(data, before) {
+			t.Fatalf("token parse error=%v input preserved=%v, want acceptance=%v and preserved", err, bytes.Equal(data, before), wantAccept)
 		}
+		if err != nil {
+			if !errors.Is(err, core.ErrControlWireToken) || got.Validate() == nil {
+				t.Fatalf("token=%v/%v, want invalid and token identity", got, err)
+			}
+			return
+		}
+		defer func() { _ = got.Destroy() }()
+		raw, err := hex.DecodeString(string(data))
+		if err != nil {
+			t.Fatalf("reference hex error=%v, want nil", err)
+		}
+		want := sha256.Sum256(raw)
+		clear(owned) // Caller storage must not alias the owned secret.
 		verifier, err := got.Verifier()
-		if err != nil {
-			t.Fatalf("Verifier() error = %v, want nil", err)
+		if err != nil || verifier.String() != hex.EncodeToString(want[:]) {
+			t.Fatalf("verifier=%v/%v, want SHA256 %x", verifier, err, want)
 		}
-		if verifier.String() == string(data) {
-			t.Fatalf("verifier rendering = %q, want it to differ from the token", verifier)
+		wire, err := got.MarshalJSON()
+		var round RegistrationToken
+		roundErr := round.UnmarshalJSON(wire)
+		if err != nil || roundErr != nil {
+			t.Fatalf("token round trip error=%v/%v, want nil", err, roundErr)
 		}
-		encoded, err := json.Marshal(got)
-		if err != nil {
-			t.Fatalf("json.Marshal() error = %v, want nil", err)
-		}
-		if want := `"` + string(data) + `"`; string(encoded) != want {
-			t.Fatalf("json.Marshal() = %s, want %s", encoded, want)
-		}
-		var round controlwire.RegistrationToken
-		if err := json.Unmarshal(encoded, &round); err != nil {
-			t.Fatalf("json.Unmarshal(%s) error = %v, want nil", encoded, err)
-		}
+		defer func() { _ = round.Destroy() }()
 		roundVerifier, err := round.Verifier()
-		if err != nil {
-			t.Fatalf("round trip Verifier() error = %v, want nil", err)
-		}
-		if !roundVerifier.Equal(verifier) {
-			t.Fatalf("round trip verifier = %q, want %q", roundVerifier.String(), verifier.String())
+		if err != nil || roundVerifier != verifier {
+			t.Fatalf("round verifier=%v/%v, want %v/nil", roundVerifier, err, verifier)
 		}
 	})
 }
 
-// FuzzParseRegistrationTokenVerifier pressures the persisted-value ingress. A
-// verifier arrives from a store rather than from a peer, so the hostile input
-// here is a corrupted, truncated, or re-cased record rather than a crafted
-// request. The oracle proves an accepted verifier is never the impossible
-// all-zero digest, renders exactly the text it was parsed from, and recognises
-// itself and nothing else.
 func FuzzParseRegistrationTokenVerifier(f *testing.F) {
-	derived, err := controlwire.ParseRegistrationToken([]byte(tokenHexWithLetters))
-	if err != nil {
-		f.Fatalf("ParseRegistrationToken() error = %v, want nil", err)
-	}
-	verifier, err := derived.Verifier()
-	if err != nil {
-		f.Fatalf("Verifier() error = %v, want nil", err)
-	}
-	for _, seed := range []string{
-		verifier.String(), verifierHexAllZero, strings.Repeat("f", 64),
-		"", "0x00", verifier.String()[:63], verifier.String() + "0",
-		strings.ToUpper(verifier.String()),
-	} {
+	fixtures := controlwireFixturesForFuzz(f)
+	defer func() { _ = fixtures.token.Destroy() }()
+	canonical := fixtures.verifier.String()
+	for _, seed := range []string{canonical, strings.ToUpper(canonical), canonical[:len(canonical)-1], canonical + "0", "", strings.Repeat("0", 2*core.SHA256DigestBytes)} {
 		f.Add(seed)
 	}
-
 	f.Fuzz(func(t *testing.T, text string) {
-		got, err := controlwire.ParseRegistrationTokenVerifier(text)
+		wantAccept := canonicalDigestReference(text, true)
+		got, err := ParseRegistrationTokenVerifier(text)
+		if (err == nil) != wantAccept {
+			t.Fatalf("verifier error=%v, want acceptance=%v", err, wantAccept)
+		}
 		if err != nil {
-			if !errors.Is(err, core.ErrControlWireToken) {
-				t.Fatalf("ParseRegistrationTokenVerifier(%q) error = %v, want %v", text, err, core.ErrControlWireToken)
-			}
-			if got.String() != "" {
-				t.Fatalf("rejected verifier rendered %q, want empty", got.String())
+			if !errors.Is(err, core.ErrControlWireToken) || got != (RegistrationTokenVerifier{}) {
+				t.Fatalf("verifier=%v/%v, want zero and token identity", got, err)
 			}
 			return
 		}
-		if err := got.Validate(); err != nil {
-			t.Fatalf("accepted verifier failed Validate(): %v", err)
+		if got.String() != text || !got.Equal(got) || got.Equal(RegistrationTokenVerifier{}) {
+			t.Fatalf("verifier=%q reflexive=%v, want %q, reflexive and unequal to zero", got.String(), got.Equal(got), text)
 		}
-		if text == verifierHexAllZero {
-			t.Fatalf("accepted verifier = %q, want anything but the all-zero digest no token derives", text)
-		}
-		if got.String() != text {
-			t.Fatalf("ParseRegistrationTokenVerifier(%q).String() = %q, want the exact input", text, got.String())
-		}
-		if !got.Equal(got) {
-			t.Fatalf("accepted verifier %q does not recognise itself", text)
-		}
-		encoded, err := json.Marshal(got)
-		if err != nil {
-			t.Fatalf("json.Marshal() error = %v, want nil", err)
-		}
-		var round controlwire.RegistrationTokenVerifier
-		if err := json.Unmarshal(encoded, &round); err != nil {
-			t.Fatalf("json.Unmarshal(%s) error = %v, want nil", encoded, err)
-		}
-		if !round.Equal(got) {
-			t.Fatalf("round trip verifier = %q, want %q", round.String(), got.String())
+		wire, err := got.MarshalJSON()
+		var round RegistrationTokenVerifier
+		roundErr := round.UnmarshalJSON(wire)
+		if err != nil || roundErr != nil || round != got {
+			t.Fatalf("verifier round trip=%v/%v/%v, want %v/nil", round, err, roundErr, got)
 		}
 	})
 }
 
-// FuzzParsePolicyRevisionID checks the codec against a real oracle rather than
-// against itself: any text the parser accepts must render back to that exact
-// text, and the resulting bytes must render to the same text again.
-//
-// That is the property the wire depends on, because an installation echoes the
-// identifier it was given on every later exchange. A parser that quietly
-// normalised an alias would pass a weaker "it decoded without error" check and
-// fail here on the first non-canonical input the fuzzer finds.
 func FuzzParsePolicyRevisionID(f *testing.F) {
-	for _, seed := range []string{
-		policyRevisionRealWorld, policyRevisionAllZero, policyRevisionMinimum,
-		policyRevisionMaximum, policyRevisionFirstOverflow, "",
-		strings.ToLower(policyRevisionRealWorld), policyRevisionRealWorld[:25],
-		policyRevisionRealWorld + "0", "0IARZ3NDEKTSV4RRFFQ69G5FAV",
-		strings.Repeat(" ", 26), "0123456789ABCDEFGHJKMNPQRS",
-	} {
-		f.Add(seed)
+	// Constructor is the compiler-visible byte array; big.Int is the independent
+	// reference for the 128-bit integer, including the two unused leading bits.
+	for _, value := range []PolicyRevisionID{{15: 1}, {0: 0x80}, {0: 0xff, 15: 0xff}} {
+		f.Add(value.String())
 	}
-
+	for _, bad := range []string{"", (PolicyRevisionID{}).String(), strings.Repeat("Z", PolicyRevisionTextLength), strings.Repeat("I", PolicyRevisionTextLength)} {
+		f.Add(bad)
+	}
 	f.Fuzz(func(t *testing.T, text string) {
-		got, err := controlwire.ParsePolicyRevisionID(text)
+		want, wantAccept := policyIDReference(text)
+		got, err := ParsePolicyRevisionID(text)
+		if (err == nil) != wantAccept || got != want {
+			t.Fatalf("policy ID=%x/%v, want %x acceptance=%v", got, err, want, wantAccept)
+		}
 		if err != nil {
 			if !errors.Is(err, core.ErrControlWirePolicyCursor) {
-				t.Fatalf("ParsePolicyRevisionID(%q) error = %v, want %v",
-					text, err, core.ErrControlWirePolicyCursor)
-			}
-			if got != (controlwire.PolicyRevisionID{}) {
-				t.Fatalf("rejected identifier = %v, want the zero value", got)
+				t.Fatalf("policy refusal=%v, want %v", err, core.ErrControlWirePolicyCursor)
 			}
 			return
 		}
-		if err := got.Validate(); err != nil {
-			t.Fatalf("accepted identifier failed Validate(): %v", err)
-		}
-		if text == policyRevisionAllZero {
-			t.Fatalf("accepted identifier = %q, want anything but the reserved absent identity", text)
-		}
-		if rendered := got.String(); rendered != text {
-			t.Fatalf("ParsePolicyRevisionID(%q).String() = %q, want the exact input", text, rendered)
-		}
-		// Re-parsing the rendering must land on the same bytes, so the codec
-		// cannot be a one-way normaliser that happens to be stable on its own
-		// output only for the values a seed corpus contains.
-		again, err := controlwire.ParsePolicyRevisionID(got.String())
-		if err != nil || again != got {
-			t.Fatalf("re-parsing %q = (%v, %v), want (%v, nil)", got.String(), again, err, got)
+		if got.String() != text {
+			t.Fatalf("policy rendering=%q, want %q", got.String(), text)
 		}
 	})
 }
 
-// FuzzPolicyCursorUnmarshalJSON drives the whole cursor at the JSON boundary.
-// The oracle is that an accepted document must re-encode to the bytes that
-// arrived, because the cursor is echoed verbatim on every later exchange.
 func FuzzPolicyCursorUnmarshalJSON(f *testing.F) {
-	valid := `{"revision":"` + policyRevisionRealWorld + `","activation":1}`
-	for _, seed := range []string{
-		valid, `{}`, `null`, `[]`, ``,
-		`{"revision":"` + policyRevisionAllZero + `","activation":1}`,
-		`{"revision":"` + policyRevisionRealWorld + `","activation":0}`,
-		`{"revision":"` + policyRevisionRealWorld + `","activation":"1"}`,
-		`{"revision":"` + policyRevisionRealWorld + `","activation":1,"mode":"open"}`,
-		`{"activation":1}`,
-	} {
-		f.Add(seed)
+	fixtures := controlwireFixturesForFuzz(f)
+	defer func() { _ = fixtures.token.Destroy() }()
+	canonical, err := fixtures.policyCursor.MarshalJSON()
+	if err != nil {
+		f.Fatalf("cursor seed error=%v, want nil", err)
 	}
-
+	f.Add(string(canonical))
+	f.Add(" " + string(canonical))
+	for _, bad := range []string{"", `null`, `{}`, `[]`} {
+		f.Add(bad)
+	}
 	f.Fuzz(func(t *testing.T, document string) {
-		existing := controlwire.PolicyCursor{}
-		got := existing
-		if err := got.UnmarshalJSON([]byte(document)); err != nil {
-			if !errors.Is(err, core.ErrControlWirePolicyCursor) &&
-				!errors.Is(err, core.ErrJSONContract) {
-				t.Fatalf("UnmarshalJSON(%q) error = %v, want a typed rejection", document, err)
-			}
-			if got != existing {
-				t.Fatalf("rejected document %q mutated the receiver to %v", document, got)
+		data := []byte(document)
+		wantAccept := controlwireJSONReferenceAccepts(controlwireJSONDoorPolicyCursor, data)
+		got := fixtures.policyCursor
+		err := got.UnmarshalJSON(data)
+		if (err == nil) != wantAccept {
+			t.Fatalf("cursor error=%v, want acceptance=%v", err, wantAccept)
+		}
+		if err != nil {
+			if !errors.Is(err, core.ErrControlWirePolicyCursor) || !errors.Is(err, core.ErrJSONContract) || got != fixtures.policyCursor {
+				t.Fatalf("cursor=%v/%v, want preserved %v and typed refusal", got, err, fixtures.policyCursor)
 			}
 			return
 		}
-		if err := got.Validate(); err != nil {
-			t.Fatalf("accepted cursor failed Validate(): %v", err)
+		var reference cursorReference
+		if err := json.Unmarshal(data, &reference); err != nil {
+			t.Fatalf("reference decode error=%v, want nil", err)
 		}
-		encoded, err := json.Marshal(got)
-		if err != nil {
-			t.Fatalf("json.Marshal() error = %v, want nil", err)
+		revision, ok := policyIDReference(reference.Revision)
+		want := PolicyCursor{Revision: revision, Activation: PolicyActivation(reference.Activation)}
+		if !ok || got != want {
+			t.Fatalf("cursor=%v, want exact facts %v", got, want)
 		}
-		if string(encoded) != document {
-			t.Fatalf("re-encoded = %s, want the accepted bytes %s", encoded, document)
+		wire, err := got.MarshalJSON()
+		var round PolicyCursor
+		roundErr := round.UnmarshalJSON(wire)
+		second, secondErr := round.MarshalJSON()
+		if err != nil || roundErr != nil || secondErr != nil || round != got || !bytes.Equal(second, wire) {
+			t.Fatalf("cursor round trip=%v/%v/%v/%v, want %v and canonical fixed point", round, err, roundErr, secondErr, got)
 		}
 	})
 }

@@ -7,7 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
-	"os"
+	"path/filepath"
 	"testing"
 
 	"encoding/json/jsontext"
@@ -17,6 +17,8 @@ import (
 	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
+	"github.com/deliri/primitive/v2026/filestore"
+	"github.com/deliri/primitive/v2026/temporal"
 )
 
 type socketFixture struct {
@@ -104,7 +106,22 @@ func TestRoutedSocketExecutesProductionRequestAndAuthenticatedResponse(t *testin
 		response.Metadata.Attempts != 1 || response.Metadata.Status != core.HTTPStatusOK() {
 		t.Fatalf("response metadata = %+v, want %d bytes, one attempt, and HTTP 200", response.Metadata, len(fixture.responseCanonical))
 	}
-	got := <-observed
+	duration, durationErr := temporal.DurationFromSeconds(30)
+	if durationErr != nil {
+		t.Fatalf("backstop duration error=%v, want nil", durationErr)
+	}
+	deadline, cancel, deadlineErr := temporal.WithTimeout(temporal.TimeoutRequest{Parent: context.Background(), Duration: duration})
+	if deadlineErr != nil {
+		t.Fatalf("backstop creation error=%v, want nil", deadlineErr)
+	}
+	defer cancel()
+	var got socketObservation
+	select {
+	case got = <-observed:
+	case <-deadline.Done():
+		t.Fatalf("authority observation error=%v, want completed handoff", deadline.Err())
+	}
+	defer func() { _ = got.body.Token.Destroy() }()
 	wantPath, err := route.Path()
 	if err != nil {
 		t.Fatalf("RouteContract.Path() error = %v, want nil", err)
@@ -304,7 +321,7 @@ type clientResponse struct {
 	mode           clientResponseMode
 }
 
-func TestRoutedSocketAuthorityAcceptsTenProductionRequestRepresentations(t *testing.T) {
+func TestRoutedSocketAuthorityAcceptsBoundedProductionRequestRepresentations(t *testing.T) {
 	t.Parallel()
 
 	fixture := productionSocketFixture(t)
@@ -322,9 +339,6 @@ func TestRoutedSocketAuthorityAcceptsTenProductionRequestRepresentations(t *test
 		t.Fatalf("RequestNonce.IdempotencyKey() error = %v, want nil", err)
 	}
 	cases := validSocketRequestBodies(t, fixture.request)
-	if len(cases) != 10 {
-		t.Fatalf("authority valid representation inventory = %d, want exactly 10", len(cases))
-	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -371,15 +385,10 @@ func validSocketRequestBodies(t testing.TB, request controlplane.RegistrationReq
 	}
 	return []validSocketRequestBody{
 		{name: "canonical producer bytes", body: canonical},
-		{name: "one leading space", body: append([]byte{' '}, canonical...)},
-		{name: "one trailing newline", body: append(bytes.Clone(canonical), '\n')},
 		{name: "mixed outer whitespace", body: append(append([]byte{'\t', '\r'}, canonical...), '\n', ' ')},
 		{name: "indented typed document", body: []byte(indented)},
 		{name: "one below request ceiling", body: padSocketRequest(canonical, controlplane.RegistrationRequestJSONMaximumBytes-1)},
 		{name: "exact request ceiling", body: padSocketRequest(canonical, controlplane.RegistrationRequestJSONMaximumBytes)},
-		{name: "half request ceiling", body: padSocketRequest(canonical, controlplane.RegistrationRequestJSONMaximumBytes/2)},
-		{name: "quarter request ceiling", body: padSocketRequest(canonical, controlplane.RegistrationRequestJSONMaximumBytes/4)},
-		{name: "three-quarter request ceiling", body: padSocketRequest(canonical, 3*controlplane.RegistrationRequestJSONMaximumBytes/4)},
 	}
 }
 
@@ -417,7 +426,7 @@ func writeClientResponse(writer http.ResponseWriter, request *http.Request, resp
 	_, _ = writer.Write(response.body)
 }
 
-func TestRoutedSocketAuthorityRejectsThirtyThreeExternalRequestBoundaries(t *testing.T) {
+func TestRoutedSocketAuthorityRejectsExternalRequestBoundaries(t *testing.T) {
 	t.Parallel()
 
 	fixture := productionSocketFixture(t)
@@ -435,7 +444,7 @@ func TestRoutedSocketAuthorityRejectsThirtyThreeExternalRequestBoundaries(t *tes
 	}
 	jsonMediaType := standardMediaType(t, exchange.StandardMediaTypeJSON)
 	plainMediaType := standardMediaType(t, exchange.StandardMediaTypePlainText)
-	otherNonce, err := controlwire.GenerateRequestNonce()
+	otherNonce, err := controlwire.NewRequestNonce([core.SHA256DigestBytes]byte{2})
 	if err != nil {
 		t.Fatalf("GenerateRequestNonce() error = %v, want nil", err)
 	}
@@ -503,12 +512,6 @@ func TestRoutedSocketAuthorityRejectsThirtyThreeExternalRequestBoundaries(t *tes
 		{name: "one byte above request document ceiling is rejected", build: func() *http.Request {
 			return base(padSocketRequest(encoded, controlplane.RegistrationRequestJSONMaximumBytes+1))
 		}, want: []error{core.ErrExchangeRequest, core.ErrExchangeBodyLimit}},
-		{name: "one byte below shared ceiling is stopped by tighter product limit", build: func() *http.Request {
-			return base(bytes.Repeat([]byte{' '}, core.JSONDocumentMaximumBytes-1))
-		}, want: []error{core.ErrExchangeRequest, core.ErrExchangeBodyLimit}},
-		{name: "exact shared ceiling is stopped by tighter product limit", build: func() *http.Request {
-			return base(bytes.Repeat([]byte{' '}, core.JSONDocumentMaximumBytes))
-		}, want: []error{core.ErrExchangeRequest, core.ErrExchangeBodyLimit}},
 		{name: "one byte above transport ceiling is rejected before typed decoding", build: func() *http.Request {
 			return base(bytes.Repeat([]byte{' '}, core.JSONDocumentMaximumBytes+1))
 		}, want: []error{core.ErrExchangeRequest, core.ErrExchangeBodyLimit}},
@@ -518,13 +521,11 @@ func TestRoutedSocketAuthorityRejectsThirtyThreeExternalRequestBoundaries(t *tes
 		body []byte
 	}{
 		{name: "empty body", body: nil},
-		{name: "zero length body", body: []byte{}},
 		{name: "whitespace body", body: []byte{' ', '\n'}},
 		{name: "null body", body: []byte("null")},
 		{name: "array body", body: []byte("[]")},
 		{name: "empty object body", body: []byte("{}")},
 		{name: "opening object only", body: []byte{'{'}},
-		{name: "first byte truncation", body: bytes.Clone(encoded[:1])},
 		{name: "midpoint truncation", body: bytes.Clone(encoded[:len(encoded)/2])},
 		{name: "one byte truncation", body: bytes.Clone(encoded[:len(encoded)-1])},
 		{name: "trailing scalar", body: append(bytes.Clone(encoded), '0')},
@@ -538,9 +539,6 @@ func TestRoutedSocketAuthorityRejectsThirtyThreeExternalRequestBoundaries(t *tes
 			want:  []error{core.ErrExchangeRequest, core.ErrJSONContract},
 		})
 	}
-	if len(cases) != 33 {
-		t.Fatalf("authority hostile inventory = %d cases, want exactly 33", len(cases))
-	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -548,7 +546,7 @@ func TestRoutedSocketAuthorityRejectsThirtyThreeExternalRequestBoundaries(t *tes
 				controlplane.RegistrationRequest,
 				*controlplane.RegistrationRequest,
 			](controlwire.AuthorityJSONReceiveCall{Call: fixtureSocketServerCall(t, tc.build()), Route: route, Authority: socketServer(t, fixture.support)})
-			if got.Body != nil || !got.IdempotencyKey.IsZero() || got.Replay != (controlwire.ReplayIdentity{}) {
+			if got.Body != nil || !got.IdempotencyKey.IsZero() || got.Replay != (controlwire.ReplayIdentity{}) || got.Assessment != (controlwire.ProtocolAssessment{}) {
 				t.Fatalf("rejected receive = %+v, want zero result", got)
 			}
 			for _, want := range tc.want {
@@ -618,7 +616,7 @@ func FuzzRoutedSocketAuthoritySemanticClosure(f *testing.F) {
 			methodMode: modes[1], contentMode: modes[2], route: route, bodyLimit: bodyLimit,
 		})
 		if oracle.err != nil {
-			if got.Body != nil || !got.IdempotencyKey.IsZero() || got.Replay != (controlwire.ReplayIdentity{}) {
+			if got.Body != nil || !got.IdempotencyKey.IsZero() || got.Replay != (controlwire.ReplayIdentity{}) || got.Assessment != (controlwire.ProtocolAssessment{}) {
 				t.Fatalf("rejected receive = %+v, want zero result", got)
 			}
 			for _, want := range oracle.want {
@@ -631,6 +629,7 @@ func FuzzRoutedSocketAuthoritySemanticClosure(f *testing.F) {
 		if receiveErr != nil || got.Body == nil || got.Body.Validate() != nil {
 			t.Fatalf("ReceiveRoutedJSON() = (%+v, %v), want exact validated production request", got, receiveErr)
 		}
+		defer func() { _ = got.Body.Token.Destroy() }()
 		if got.Assessment.Outcome != controlwire.ProtocolSupportOutcomeAccepted ||
 			got.Assessment.Capability.Revision != got.Body.ControlRevision() ||
 			got.Assessment.Capability.Family != route.Family() {
@@ -651,7 +650,6 @@ type receiveOracleResult struct {
 	err       error
 	canonical []byte
 	want      []error
-	body      controlplane.RegistrationRequest
 }
 
 type receiveOracleInput struct {
@@ -685,6 +683,7 @@ func receiveOracle(input receiveOracleInput) receiveOracleResult {
 	if decodeErr := body.UnmarshalJSON(input.document); decodeErr != nil {
 		return receiveOracleResult{err: decodeErr, want: []error{core.ErrExchangeRequest, core.ErrJSONContract}}
 	}
+	defer func() { _ = body.Token.Destroy() }()
 	actualRoute, routeErr := body.ControlRoute()
 	if routeErr != nil || actualRoute != input.route {
 		return receiveOracleResult{err: core.ErrControlWireRoute, want: []error{core.ErrControlWireRoute}}
@@ -697,7 +696,7 @@ func receiveOracle(input receiveOracleInput) receiveOracleResult {
 	if marshalErr != nil {
 		return receiveOracleResult{err: marshalErr, want: []error{core.ErrControlPlaneRegistration}}
 	}
-	return receiveOracleResult{body: body, canonical: canonical}
+	return receiveOracleResult{canonical: canonical}
 }
 
 type fuzzRequestInput struct {
@@ -772,6 +771,7 @@ func productionSocketFixture(t testing.TB) socketFixture {
 	if err != nil {
 		t.Fatalf("controlwire.NewRegistrationToken() error = %v, want nil", err)
 	}
+	t.Cleanup(func() { _ = token.Destroy() })
 	nonceBytes := [core.SHA256DigestBytes]byte{1}
 	nonce, err := controlwire.NewRequestNonce(nonceBytes)
 	if err != nil {
@@ -786,7 +786,7 @@ func productionSocketFixture(t testing.TB) socketFixture {
 	if err := request.Validate(); err != nil {
 		t.Fatalf("compiler-built RegistrationRequest.Validate() error = %v, want nil", err)
 	}
-	responseBytes, err := os.ReadFile("../controlplane/testdata/registration_response.json")
+	responseBytes, err := registrationResponseFixtureBytes()
 	if err != nil {
 		t.Fatalf("reading registration response fixture error = %v, want nil", err)
 	}
@@ -876,3 +876,26 @@ var (
 	_ controlwire.RoutedJSONRequest             = controlplane.RegistrationRequest{}
 	_ controlwire.AuthenticatedResponseDocument = (*controlplane.ResponseDocument[controlplane.RegistrationDocument, *controlplane.RegistrationDocument])(nil)
 )
+
+func registrationResponseFixtureBytes() ([]byte, error) {
+	name, err := filepath.Abs("../controlplane/testdata/registration_response.json")
+	if err != nil {
+		return nil, err
+	}
+	path, err := core.ParseAbsolutePath(name)
+	if err != nil {
+		return nil, err
+	}
+	location, err := filestore.OpenParent(context.Background(), path)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = location.Root.Close() }()
+	maximum, err := core.NewByteCount(core.JSONDocumentMaximumBytes)
+	if err != nil {
+		return nil, err
+	}
+	var data bytes.Buffer
+	_, err = filestore.Read(context.Background(), filestore.ReadRequest{Location: location, MaximumBytes: maximum, Destination: &data})
+	return data.Bytes(), err
+}

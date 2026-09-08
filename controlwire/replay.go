@@ -1,6 +1,7 @@
 package controlwire
 
 import (
+	"encoding/json/jsontext"
 	json "encoding/json/v2"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -45,7 +46,7 @@ func (c RequestCommitment) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON admits one canonical persisted commitment without mutating the
 // receiver on rejection.
 func (c *RequestCommitment) UnmarshalJSON(data []byte) error {
-	if c == nil {
+	if c == nil || len(data) > core.JSONDocumentMaximumBytes {
 		return jsonError(contractError())
 	}
 	var digest core.SHA256Digest
@@ -93,7 +94,7 @@ func CommitReplayIdentity(request RoutedJSONRequest) (ReplayIdentity, error) {
 	if err != nil {
 		return ReplayIdentity{}, contractError(err)
 	}
-	canonical, err := request.MarshalJSON()
+	canonical, err := replayRequestDocument(request)
 	if err != nil {
 		return ReplayIdentity{}, contractError(err)
 	}
@@ -112,6 +113,35 @@ func CommitReplayIdentity(request RoutedJSONRequest) (ReplayIdentity, error) {
 		return ReplayIdentity{}, err
 	}
 	return identity, nil
+}
+
+// replayRequestDocument enforces the emitting owner's byte budget before
+// admitting one struct document. Go owns JSON syntax; the request owns fields.
+func replayRequestDocument(request RoutedJSONRequest) ([]byte, error) {
+	maximum, err := request.ControlRequestBodyLimit()
+	if err != nil {
+		return nil, err
+	}
+	if _, err := controlServerPolicy(maximum); err != nil {
+		return nil, err
+	}
+	limit, err := maximum.Uint64()
+	if err != nil {
+		return nil, err
+	}
+	document, err := request.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	if uint64(len(document)) > limit {
+		return nil, contractError()
+	}
+	// doctrine:local-allowed=external-wire
+	value := jsontext.Value(document)
+	if value.Kind() != jsontext.KindBeginObject || !value.IsValid() {
+		return nil, contractError()
+	}
+	return document, nil
 }
 
 func commitCanonicalRequest(canonical []byte) (RequestCommitment, error) {

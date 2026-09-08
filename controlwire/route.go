@@ -155,7 +155,7 @@ func (f RouteFamily) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON accepts one exact family token and preserves the receiver on
 // every rejection.
 func (f *RouteFamily) UnmarshalJSON(data []byte) error {
-	if f == nil {
+	if f == nil || len(data) > core.JSONDocumentMaximumBytes {
 		return jsonError(routeError())
 	}
 	token, err := core.DecodeJSONStringToken(data)
@@ -233,7 +233,10 @@ func (c RouteContract) ProtocolCapability(revision Revision) (ProtocolCapability
 		return ProtocolCapability{}, err
 	}
 	capability := ProtocolCapability{Revision: revision, Family: c.family}
-	return capability, capability.Validate()
+	if err := capability.Validate(); err != nil {
+		return ProtocolCapability{}, err
+	}
+	return capability, nil
 }
 
 var (

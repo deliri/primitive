@@ -179,7 +179,7 @@ func (id PolicyRevisionID) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON accepts only a canonical identifier and leaves the receiver
 // unchanged on every rejection.
 func (id *PolicyRevisionID) UnmarshalJSON(data []byte) error {
-	if id == nil {
+	if id == nil || len(data) > core.JSONDocumentMaximumBytes {
 		return jsonError(policyCursorError())
 	}
 	token, err := core.DecodeJSONStringToken(data)

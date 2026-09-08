@@ -1,15 +1,17 @@
 # Primitive upgrade priority — 2026-09-07
 
-Latest published release: **v2026.1.21**, September 8, 2026, commit
-`dd84609a07dcfd6c516f09c0c4e4ec43429a4847`. The user approved the
-GoToolchain/Filestore/Core integration and the pending Process/Core/Contextstate
-checkpoint; main and the version tag were pushed. See
-[release notes](release_v2026.1.21.md). Exchange/Filestore were published in
+Current approved release checkpoint: **v2026.1.22**, September 8, 2026.
+The user reviewed and approved Contextstate and Controlwire, including the
+version bump, commit and push. See [release notes](release_v2026.1.22.md).
+The preceding GoToolchain/Filestore/Core integration was published in v2026.1.21.
+Exchange/Filestore were published in
 v2026.1.19 and Temporal/Hostfacts in v2026.1.20.
 
 Reviewed checkpoint: **Contextstate**. The resumed slice closes its test and benchmark
 review and makes a profile-informed recovery optimization. See
-[Contextstate's review](../contextstate/upgrade_review.md). The user approved continuing after review. **Controlwire is now the active package.**
+[Contextstate's review](../contextstate/upgrade_review.md). **Controlwire is reviewed and approved.** Its production, table tests, fuzz
+oracles and profiled benchmarks are covered in [the review](../controlwire/upgrade_review.md).
+**Keygen is next.**
 
 The initial execution-value priority was Exchange → Filestore → Temporal →
 Hostfacts → Process. Process and Core improvements are now checkpointed in
@@ -126,7 +128,7 @@ the user explicitly approved the scoped Temporal/Hostfacts release. AWS identity
 local evidence, with the promised manual compliance re-review still pending.
 Chit's original baseline is retained; its upgrade is paused for this priority.
 
-`controlwire`, `keygen`, `release`, `objectstore`, `chit`, `attest`, `controlplane`, `gcsobjects`, `shutdown`, `currency`, `id`, `distribution`, `lineio`, `fuzzfinder`, `runprotocol`, `lease`, `retrieval`, `manual`, `receipt`, `payment`, `submission`, `compass`, `googleidentity`, `filelock`, `submissionauth`, `proofledger`, `runnercontrol`, `secretstore`, `version`, `chitauth`, `distributionauth`, `paymentauth`, `retrievalauth`, `upgrade`, `deploy`, `wiring`, `github`, `gomodule`, `timeproof`, `awsidentity`, `capabilities`, `controlplanetest`, `gitrepo`, `gotoolchain`, `machineprobe`, `paypal`, `plunk`, `runworkspace`, `sourceclaim`, `sourceobservation`, `sourceproof`, `stripe`, `testserial`, `twilio`.
+`keygen`, `release`, `objectstore`, `chit`, `attest`, `controlplane`, `gcsobjects`, `shutdown`, `currency`, `id`, `distribution`, `lineio`, `fuzzfinder`, `runprotocol`, `lease`, `retrieval`, `manual`, `receipt`, `payment`, `submission`, `compass`, `googleidentity`, `filelock`, `submissionauth`, `proofledger`, `runnercontrol`, `secretstore`, `version`, `chitauth`, `distributionauth`, `paymentauth`, `retrievalauth`, `upgrade`, `deploy`, `wiring`, `github`, `gomodule`, `timeproof`, `awsidentity`, `capabilities`, `controlplanetest`, `gitrepo`, `gotoolchain`, `machineprobe`, `paypal`, `plunk`, `runworkspace`, `sourceclaim`, `sourceobservation`, `sourceproof`, `stripe`, `testserial`, `twilio`.
 
 ## Release checkpoint
 
@@ -138,8 +140,8 @@ editing. Benchmark comparisons use declared, checked workloads and retain both
 CPU and memory profiles, binaries, commands and source bindings. Remaining known
 surfaces keep the package open. Follow the entire local testing protocol.
 
-The user approved and published v2026.1.21 on September 8, 2026. Contextstate
-is reviewed; Controlwire is the current slice. Each new slice retains the
+The user approved v2026.1.22 on September 8, 2026. Contextstate and Controlwire
+are reviewed; Keygen is the next slice. Each new slice retains the
 same package-by-package review standards and requires review before commit.
 
 Then update Blink Kernel, Peachfuzz, Bug and Witness to that published version,
@@ -151,6 +153,6 @@ actual versions before migration. Their shared
 workspace points at local Primitive, so an ordinary workspace build alone cannot
 prove published-version adoption. Preserve unrelated dirty consumer work.
 
-Consumer migration and publication of the next release remain pending.
+Consumer migration remains pending.
 This report preserves historical usage evidence without treating it as proof of
 current published-version adoption.

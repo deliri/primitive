@@ -1,14 +1,17 @@
 package controlwire
 
 import (
+	"embed"
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"os"
 	"slices"
 	"strings"
 	"testing"
 )
+
+//go:embed *.go
+var controlwireGoSources embed.FS
 
 type (
 	// controlwireProtocolFact marks a value that crosses the control wire and
@@ -56,6 +59,7 @@ type controlwireContractInventory struct {
 	ReplayIdentity            controlwireProtocolFact[ReplayIdentity]
 	ReplayCheck               controlwireExecutionContract[ReplayCheck]
 	replayIdentityWire        controlwireInternalFlow[replayIdentityWire]
+	policyCursorWire          controlwireInternalFlow[policyCursorWire]
 	ClientConfiguration       controlwireExecutionContract[ClientConfiguration]
 	Client                    controlwireClientCapability[Client]
 	AuthorityConfiguration    controlwireExecutionContract[AuthorityConfiguration]
@@ -74,6 +78,7 @@ func TestControlWireProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing
 	_ = controlwireContractInventory{}.RegistrationToken
 	_ = controlwireContractInventory{}.RegistrationTokenVerifier
 	_ = controlwireContractInventory{}.replayIdentityWire
+	_ = controlwireContractInventory{}.policyCursorWire
 
 	gotProduction, err := controlwireProductionStructNames()
 	if err != nil {
@@ -81,12 +86,12 @@ func TestControlWireProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing
 	}
 	wantClassified := controlwireClassifiedStructNames(t)
 	for _, got := range gotProduction {
-		if !controlwireContains(wantClassified, got) {
+		if !slices.Contains(wantClassified, got) {
 			t.Errorf("production struct %q has no compiler-visible data-flow role", got)
 		}
 	}
 	for _, want := range wantClassified {
-		if !controlwireContains(gotProduction, want) {
+		if !slices.Contains(gotProduction, want) {
 			t.Errorf("classified struct %q does not exist in production", want)
 		}
 	}
@@ -96,38 +101,92 @@ func TestControlWireProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing
 // adding a struct without classifying it fails this test rather than passing on
 // a stale hand-maintained list.
 func controlwireProductionStructNames() ([]controlwireProductionStructName, error) {
-	entries, err := os.ReadDir(".")
+	entries, err := controlwireGoSources.ReadDir(".")
 	if err != nil {
 		return nil, err
 	}
 	files := token.NewFileSet()
-	var names []controlwireProductionStructName
+	var declarations []*ast.File
 	for _, entry := range entries {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".go") ||
 			strings.HasSuffix(entry.Name(), "_test.go") {
 			continue
 		}
-		file, parseErr := parser.ParseFile(files, entry.Name(), nil, parser.SkipObjectResolution)
+		file, parseErr := controlwireParseSource(files, entry.Name())
 		if parseErr != nil {
 			return nil, parseErr
 		}
-		for _, declaration := range file.Decls {
-			generic, ok := declaration.(*ast.GenDecl)
-			if !ok || generic.Tok != token.TYPE {
+		declarations = append(declarations, file)
+	}
+	return controlwireStructNames(declarations), nil
+}
+
+func controlwireParseSource(files *token.FileSet, name string) (*ast.File, error) {
+	data, err := controlwireGoSources.ReadFile(name)
+	if err != nil {
+		return nil, err
+	}
+	return parser.ParseFile(files, name, data, parser.SkipObjectResolution)
+}
+
+// Follow local named types as well as direct struct syntax. A private wire
+// projection must not escape classification by declaring `type wire Public`.
+func controlwireStructNames(files []*ast.File) []controlwireProductionStructName {
+	types := map[string]ast.Expr{}
+	for _, file := range files {
+		for _, decl := range file.Decls {
+			gen, ok := decl.(*ast.GenDecl)
+			if !ok || gen.Tok != token.TYPE {
 				continue
 			}
-			for _, raw := range generic.Specs {
-				spec, ok := raw.(*ast.TypeSpec)
-				if !ok {
-					continue
-				}
-				if _, ok := spec.Type.(*ast.StructType); ok {
-					names = append(names, controlwireProductionStructName(spec.Name.Name))
+			for _, raw := range gen.Specs {
+				if spec, ok := raw.(*ast.TypeSpec); ok {
+					types[spec.Name.Name] = spec.Type
 				}
 			}
 		}
 	}
-	return names, nil
+	var names []controlwireProductionStructName
+	for name, expression := range types {
+		if controlwireStructExpression(expression, types) {
+			names = append(names, controlwireProductionStructName(name))
+		}
+	}
+	slices.Sort(names)
+	return names
+}
+
+func controlwireStructExpression(expression ast.Expr, types map[string]ast.Expr) bool {
+	seen := map[string]bool{}
+	for expression != nil {
+		switch node := expression.(type) {
+		case *ast.StructType:
+			return node != nil
+		case *ast.Ident:
+			if node == nil || seen[node.Name] {
+				return false
+			}
+			seen[node.Name] = true
+			next, ok := types[node.Name]
+			if !ok {
+				return false
+			}
+			expression = next
+		case *ast.IndexExpr:
+			if node == nil {
+				return false
+			}
+			expression = node.X
+		case *ast.IndexListExpr:
+			if node == nil {
+				return false
+			}
+			expression = node.X
+		default:
+			return false
+		}
+	}
+	return false
 }
 
 // controlwireClassifiedStructNames reads the inventory's own field names
@@ -136,7 +195,7 @@ func controlwireProductionStructNames() ([]controlwireProductionStructName, erro
 func controlwireClassifiedStructNames(t *testing.T) []controlwireProductionStructName {
 	t.Helper()
 
-	file, err := parser.ParseFile(token.NewFileSet(), "contract_inventory_test.go", nil, parser.SkipObjectResolution)
+	file, err := controlwireParseSource(token.NewFileSet(), "contract_inventory_test.go")
 	if err != nil {
 		t.Fatalf("parser.ParseFile() error = %v, want nil", err)
 	}
@@ -168,6 +227,29 @@ func controlwireClassifiedStructNames(t *testing.T) []controlwireProductionStruc
 	return names
 }
 
-func controlwireContains(names []controlwireProductionStructName, want controlwireProductionStructName) bool {
-	return slices.Contains(names, want)
+func TestStructInventoryRecognizesNamedProjections(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name, source string
+		want         []controlwireProductionStructName
+	}{
+		{name: "direct struct", source: "type A struct{}", want: []controlwireProductionStructName{"A"}},
+		{name: "named wire projection", source: "type A struct{};type B A", want: []controlwireProductionStructName{"A", "B"}},
+		{name: "alias chain", source: "type A struct{};type B=A;type C B", want: []controlwireProductionStructName{"A", "B", "C"}},
+		{name: "generic projection", source: "type A[T any] struct{X T};type B A[int]", want: []controlwireProductionStructName{"A", "B"}},
+		{name: "scalar and pointer are not structs", source: "type A uint8;type B A;type C *A"},
+		{name: "malformed type cycle terminates", source: "type A B;type B A"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			file, err := parser.ParseFile(token.NewFileSet(), "synthetic.go", "package fixture;"+tc.source, parser.SkipObjectResolution)
+			if err != nil {
+				t.Fatalf("fixture parse error=%v, want nil", err)
+			}
+			got := controlwireStructNames([]*ast.File{file})
+			if !slices.Equal(got, tc.want) {
+				t.Fatalf("struct inventory=%v, want %v", got, tc.want)
+			}
+		})
+	}
 }

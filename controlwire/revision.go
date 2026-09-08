@@ -75,7 +75,7 @@ func (r Revision) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON accepts only a published revision token and leaves r unchanged
 // on every rejection.
 func (r *Revision) UnmarshalJSON(data []byte) error {
-	if r == nil {
+	if r == nil || len(data) > core.JSONDocumentMaximumBytes {
 		return jsonError(revisionError())
 	}
 	token, err := core.DecodeJSONStringToken(data)

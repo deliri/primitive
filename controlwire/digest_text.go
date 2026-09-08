@@ -18,9 +18,9 @@ import (
 // exactly how two owners come to disagree about the same bytes. The returned
 // error carries Core's identity only; the calling scalar joins its own.
 func parseCanonicalDigestText(value string) (core.SHA256Digest, error) {
-	var digest core.SHA256Digest
-	if err := digest.UnmarshalText([]byte(value)); err != nil {
+	var raw [core.SHA256DigestBytes]byte
+	if err := core.DecodeCanonicalHex(raw[:], value); err != nil {
 		return core.SHA256Digest{}, err
 	}
-	return digest, nil
+	return core.NewSHA256Digest(raw), nil
 }

@@ -83,7 +83,7 @@ func (n AuthorityNonce) MarshalJSON() ([]byte, error) {
 }
 
 func (n *AuthorityNonce) UnmarshalJSON(data []byte) error {
-	if n == nil {
+	if n == nil || len(data) > core.JSONDocumentMaximumBytes {
 		return jsonError(nonceError())
 	}
 	token, err := core.DecodeJSONStringToken(data)

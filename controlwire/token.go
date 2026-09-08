@@ -130,7 +130,7 @@ func (t RegistrationToken) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON accepts only canonical lowercase hexadecimal and leaves t
 // unchanged on every rejection.
 func (t *RegistrationToken) UnmarshalJSON(data []byte) error {
-	if t == nil {
+	if t == nil || len(data) > core.JSONDocumentMaximumBytes {
 		return jsonError(tokenError())
 	}
 	token, err := core.DecodeJSONStringToken(data)
@@ -170,11 +170,8 @@ type RegistrationTokenVerifier struct {
 
 // Validate rejects an unset verifier and the all-zero digest.
 //
-// SHA-256 has no known preimage for the all-zero digest, so that value cannot
-// be the verifier of any token. It is what a blank, truncated, or
-// default-initialised persisted record decodes to, and admitting it would let
-// two such records recognise each other as the same enrolment. RequestNonce
-// refuses its own impossible value for the same reason.
+// The zero digest is reserved for absent or invalid persisted material.
+// This is an admission rule, not a claim about SHA-256 preimages.
 func (v RegistrationTokenVerifier) Validate() error {
 	if err := v.value.Validate(); err != nil {
 		return tokenError(err)
@@ -235,7 +232,7 @@ func (v RegistrationTokenVerifier) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON accepts only canonical lowercase hexadecimal and leaves v
 // unchanged on every rejection.
 func (v *RegistrationTokenVerifier) UnmarshalJSON(data []byte) error {
-	if v == nil {
+	if v == nil || len(data) > core.JSONDocumentMaximumBytes {
 		return jsonError(tokenError())
 	}
 	var digest core.SHA256Digest

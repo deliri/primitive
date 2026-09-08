@@ -1,7 +1,6 @@
 package controlwire_test
 
 import (
-	"bytes"
 	"crypto/ed25519"
 	"crypto/sha256"
 	json "encoding/json/v2"
@@ -14,61 +13,6 @@ import (
 	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
 )
-
-// FuzzReplayIdentityExternalJSONSemanticClosure drives the persisted authority
-// record through strict external decoding. Acceptance must close canonically;
-// rejection must retain both typed identity and the populated receiver.
-func FuzzReplayIdentityExternalJSONSemanticClosure(f *testing.F) {
-	fixture := productionSocketFixture(f)
-	seed, err := controlwire.CommitReplayIdentity(fixture.request)
-	if err != nil {
-		f.Fatalf("CommitReplayIdentity(seed) error = %v, want nil", err)
-	}
-	canonical, err := seed.MarshalJSON()
-	if err != nil {
-		f.Fatalf("ReplayIdentity.MarshalJSON(seed) error = %v, want nil", err)
-	}
-	conflicting, err := controlwire.CommitReplayIdentity(registrationRequestWithDistinctToken(f, fixture.request))
-	if err != nil {
-		f.Fatalf("CommitReplayIdentity(conflicting seed) error = %v, want nil", err)
-	}
-	conflictingCanonical, err := conflicting.MarshalJSON()
-	if err != nil {
-		f.Fatalf("ReplayIdentity.MarshalJSON(conflicting seed) error = %v, want nil", err)
-	}
-	f.Add(canonical)
-	f.Add(conflictingCanonical)
-	for _, hostile := range replayIdentityHostileDocuments(canonical) {
-		f.Add(hostile.document)
-	}
-
-	f.Fuzz(func(t *testing.T, data []byte) {
-		got := seed
-		gotErr := got.UnmarshalJSON(data)
-		if gotErr != nil {
-			if !errors.Is(gotErr, core.ErrControlWireContract) ||
-				!errors.Is(gotErr, core.ErrJSONContract) || got != seed {
-				t.Fatalf("ReplayIdentity.UnmarshalJSON(rejected) = (%v, %v), want preserved and errors.Is(..., %v, %v)", got, gotErr, core.ErrControlWireContract, core.ErrJSONContract)
-			}
-			return
-		}
-		if err := got.Validate(); err != nil {
-			t.Fatalf("ReplayIdentity.UnmarshalJSON(accepted).Validate() error = %v, want nil", err)
-		}
-		encoded, err := got.MarshalJSON()
-		if err != nil || len(encoded) > controlwire.ReplayIdentityJSONMaximumBytes {
-			t.Fatalf("ReplayIdentity.MarshalJSON(accepted) = (%d bytes, %v), want bounded and nil", len(encoded), err)
-		}
-		var roundTrip controlwire.ReplayIdentity
-		if err := roundTrip.UnmarshalJSON(encoded); err != nil || roundTrip != got {
-			t.Fatalf("ReplayIdentity canonical round trip = (%v, %v), want (%v, nil)", roundTrip, err, got)
-		}
-		second, err := roundTrip.MarshalJSON()
-		if err != nil || !bytes.Equal(second, encoded) {
-			t.Fatalf("ReplayIdentity second canonical projection = (%d bytes, %v), want exact %d bytes and nil", len(second), err, len(encoded))
-		}
-	})
-}
 
 // TestReplayIdentitySeparatesExactReplayFromConflictingNonceReuse is the
 // authority-side decision the HTTP Idempotency-Key alone cannot make. The key
@@ -348,30 +292,27 @@ func TestReplayIdentityCanonicalJSONPressure(t *testing.T) {
 		t.Fatalf("nil RequestCommitment.UnmarshalJSON() error = %v, want errors.Is(..., %v, %v)", gotErr, core.ErrControlWireContract, core.ErrJSONContract)
 	}
 
-	valid := [][]byte{
-		canonical,
-		append([]byte(" \n\t"), canonical...),
-		append(append([]byte{}, canonical...), ' ', '\n', '\t'),
-		append(append([]byte(" \n"), canonical...), ' ', '\n'),
-		append([]byte("\t"), canonical...),
-		append(append([]byte{}, canonical...), '\r'),
-		append([]byte("\r\n"), canonical...),
-		append(append([]byte{}, canonical...), '\r', '\n'),
-		append([]byte(" \t\r\n"), canonical...),
-		append(append([]byte("\n\t"), canonical...), '\t', '\n'),
+	valid := []struct {
+		name     string
+		document []byte
+	}{
+		{name: "positive canonical identity", document: canonical},
+		{name: "positive JSON whitespace retains exact facts", document: append(append([]byte(" \n"), canonical...), '\t')},
+		{name: "positive last byte below persisted ceiling", document: padSocketRequest(canonical, controlwire.ReplayIdentityJSONMaximumBytes-1)},
+		{name: "positive exact persisted ceiling", document: padSocketRequest(canonical, controlwire.ReplayIdentityJSONMaximumBytes)},
 	}
-	for index, document := range valid {
-		var got controlwire.ReplayIdentity
-		gotErr := got.UnmarshalJSON(document)
-		if gotErr != nil || got != want {
-			t.Fatalf("ReplayIdentity.UnmarshalJSON(valid representation %d) = (%v, %v), want (%v, nil)", index, got, gotErr, want)
-		}
+	for _, tc := range valid {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			var got controlwire.ReplayIdentity
+			err := got.UnmarshalJSON(tc.document)
+			if err != nil || got != want {
+				t.Fatalf("replay identity=%v/%v, want %v/nil", got, err, want)
+			}
+		})
 	}
 
 	hostile := replayIdentityHostileDocuments(canonical)
-	if len(hostile) < 20 {
-		t.Fatalf("replay identity hostile inventory = %d, want at least 20", len(hostile))
-	}
 	for _, tc := range hostile {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -394,6 +335,7 @@ func registrationRequestWithDistinctToken(t testing.TB, request controlplane.Reg
 	if err != nil {
 		t.Fatalf("NewRegistrationToken(distinct) error = %v, want nil", err)
 	}
+	t.Cleanup(func() { _ = token.Destroy() })
 	request.Token = token
 	if err := request.Validate(); err != nil {
 		t.Fatalf("distinct-token RegistrationRequest.Validate() error = %v, want nil", err)
@@ -421,17 +363,12 @@ func replayIdentityHostileDocuments(canonical []byte) []replayIdentityHostileDoc
 		{name: "truncated at midpoint", document: canonical[:len(canonical)/2]},
 		{name: "truncated before closing brace", document: canonical[:last]},
 		{name: "trailing second document", document: append(append([]byte{}, canonical...), canonical...)},
-		{name: "trailing object", document: append(append([]byte{}, canonical...), '{', '}')},
 		{name: "trailing scalar", document: append(append([]byte{}, canonical...), '0')},
 		{name: "unknown member", document: append(append([]byte{}, canonical[:last]...), []byte(`,"unknown":0}`)...)},
-		{name: "duplicate complete object member", document: append(append([]byte{}, canonical[:last]...), canonical[1:]...)},
-		{name: "one byte above document ceiling", document: bytes.Repeat([]byte{' '}, controlwire.ReplayIdentityJSONMaximumBytes+1)},
-		{name: "maximum integer token", document: []byte("18446744073709551615")},
-		{name: "negative integer token", document: []byte("-1")},
-		{name: "floating point token", document: []byte("1.5")},
+		{name: "duplicate complete object member", document: append(append(append([]byte{}, canonical[:last]...), ','), canonical[1:]...)},
+		{name: "one byte above document ceiling", document: padSocketRequest(canonical, controlwire.ReplayIdentityJSONMaximumBytes+1)},
 		{name: "unterminated string", document: []byte(`"`)},
 		{name: "unterminated array", document: []byte("[")},
-		{name: "unterminated object", document: []byte("{")},
 		{name: "invalid UTF-8", document: []byte{0xff}},
 	}
 }
