@@ -429,46 +429,6 @@ func TestCheckedNumericConversionsPinBothSidesOfEveryBoundary(t *testing.T) {
 		})
 	}
 
-	int32Cases := []struct {
-		wantErr error
-		name    string
-		value   int
-		want    int32
-	}{
-		{name: "int32 minimum converts", value: math.MinInt32, want: math.MinInt32},
-		{name: "int32 minimum plus one converts", value: math.MinInt32 + 1, want: math.MinInt32 + 1},
-		{name: "negative one converts", value: -1, want: -1},
-		{name: "zero converts", value: 0},
-		{name: "one converts", value: 1, want: 1},
-		{name: "int32 upper edge minus one converts", value: math.MaxInt32 - 1, want: math.MaxInt32 - 1},
-		{name: "int32 upper edge converts", value: math.MaxInt32, want: math.MaxInt32},
-	}
-	if strconv.IntSize == 64 {
-		int32Cases = append(int32Cases,
-			struct {
-				wantErr error
-				name    string
-				value   int
-				want    int32
-			}{name: "one below int32 minimum overflows", value: math.MinInt32 - 1, wantErr: ErrNumericOverflow},
-			struct {
-				wantErr error
-				name    string
-				value   int
-				want    int32
-			}{name: "one above int32 upper edge overflows", value: math.MaxInt32 + 1, wantErr: ErrNumericOverflow},
-		)
-	}
-	for _, tc := range int32Cases {
-		t.Run("CheckedInt32FromInt "+tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			got, gotErr := CheckedInt32FromInt(tc.value)
-			if !errors.Is(gotErr, tc.wantErr) || got != tc.want {
-				t.Fatalf("CheckedInt32FromInt(%d) = (%d, %v), want (%d, %v)", tc.value, got, gotErr, tc.want, tc.wantErr)
-			}
-		})
-	}
 }
 
 func mustByteLength(t *testing.T, value uint64) ByteLength {

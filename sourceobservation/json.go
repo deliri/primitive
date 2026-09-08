@@ -21,7 +21,7 @@ func (r *FileReference) UnmarshalJSON(data []byte) error {
 	if r == nil {
 		return errors.Join(core.ErrJSONContract, contractError(errors.New("source file reference receiver is nil")))
 	}
-	wire, err := core.DecodeStrictJSONStructure[fileReferenceWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[fileReferenceWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrJSONContract, core.ErrSourceObservationContract, err)
 	}
@@ -41,7 +41,7 @@ func (r *PackageReference) UnmarshalJSON(data []byte) error {
 	if r == nil {
 		return errors.Join(core.ErrJSONContract, contractError(errors.New("source package reference receiver is nil")))
 	}
-	wire, err := core.DecodeStrictJSONStructure[packageReferenceWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[packageReferenceWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrJSONContract, core.ErrSourceObservationContract, err)
 	}
@@ -61,7 +61,7 @@ func (f *File) UnmarshalJSON(data []byte) error {
 	if f == nil {
 		return errors.Join(core.ErrJSONContract, contractError(errors.New("source file observation receiver is nil")))
 	}
-	wire, err := core.DecodeStrictJSONStructure[fileWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[fileWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrJSONContract, core.ErrSourceObservationContract, err)
 	}
@@ -81,7 +81,7 @@ func (p *Package) UnmarshalJSON(data []byte) error {
 	if p == nil {
 		return errors.Join(core.ErrJSONContract, contractError(errors.New("source package observation receiver is nil")))
 	}
-	wire, err := core.DecodeStrictJSONStructure[packageWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[packageWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrJSONContract, core.ErrSourceObservationContract, err)
 	}
@@ -101,7 +101,7 @@ func (p *Project) UnmarshalJSON(data []byte) error {
 	if p == nil {
 		return errors.Join(core.ErrJSONContract, contractError(errors.New("source project observation receiver is nil")))
 	}
-	wire, err := core.DecodeStrictJSONStructure[projectWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[projectWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrJSONContract, core.ErrSourceObservationContract, err)
 	}
@@ -124,7 +124,7 @@ func (m *FileMembership) UnmarshalJSON(data []byte) error {
 	if m == nil {
 		return errors.Join(core.ErrJSONContract, contractError(errors.New("source file membership receiver is nil")))
 	}
-	wire, err := core.DecodeStrictJSONStructure[fileMembershipWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[fileMembershipWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrJSONContract, core.ErrSourceObservationContract, err)
 	}
@@ -147,7 +147,7 @@ func (m *PackageMembership) UnmarshalJSON(data []byte) error {
 	if m == nil {
 		return errors.Join(core.ErrJSONContract, contractError(errors.New("source package membership receiver is nil")))
 	}
-	wire, err := core.DecodeStrictJSONStructure[packageMembershipWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[packageMembershipWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrJSONContract, core.ErrSourceObservationContract, err)
 	}
@@ -170,7 +170,7 @@ func (s *Summary) UnmarshalJSON(data []byte) error {
 	if s == nil {
 		return errors.Join(core.ErrJSONContract, contractError(errors.New("source observation summary receiver is nil")))
 	}
-	wire, err := core.DecodeStrictJSONStructure[summaryWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[summaryWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrJSONContract, core.ErrSourceObservationContract, err)
 	}

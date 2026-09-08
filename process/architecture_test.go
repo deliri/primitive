@@ -56,11 +56,10 @@ func productionImportAllowlist() []string {
 		"context",
 		"encoding/json/v2",
 		"errors",
+		"fmt",
 		"github.com/deliri/primitive/v2026/contextstate",
 		"github.com/deliri/primitive/v2026/core",
 		"github.com/deliri/primitive/v2026/temporal",
-		"golang.org/x/sys/unix",
-		"golang.org/x/sys/windows",
 		"io",
 		"math",
 		"os",
@@ -386,7 +385,16 @@ func TestProductionStructureForbidsWorldModelsAndWholeOutputPaths(t *testing.T) 
 			return true
 		})
 		for _, structure := range productionStructTypes(t, file) {
-			rejectRetainedByteSlices(t, structure.name, structure.definition)
+			for _, field := range structure.definition.Fields.List {
+				array, ok := field.Type.(*ast.ArrayType)
+				if !ok || array.Len != nil {
+					continue
+				}
+				element, ok := array.Elt.(*ast.Ident)
+				if ok && element.Name == "byte" {
+					t.Errorf("production struct %s retains []byte, want streaming fixed-size state", structure.name)
+				}
+			}
 		}
 	}
 }
@@ -487,28 +495,6 @@ func countParameters(fields *ast.FieldList) int {
 		count += len(field.Names)
 	}
 	return count
-}
-
-func rejectRetainedByteSlices(
-	t *testing.T,
-	structureName string,
-	structure *ast.StructType,
-) {
-	t.Helper()
-
-	for _, field := range structure.Fields.List {
-		array, ok := field.Type.(*ast.ArrayType)
-		if !ok || array.Len != nil {
-			continue
-		}
-		element, ok := array.Elt.(*ast.Ident)
-		if ok && element.Name == "byte" {
-			t.Errorf(
-				"production struct %s retains []byte, want streaming fixed-size state",
-				structureName,
-			)
-		}
-	}
 }
 
 func productionFunctionNames(t *testing.T) []string {

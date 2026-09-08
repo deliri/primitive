@@ -39,6 +39,7 @@ type filestoreContractInventory struct {
 	Pipe                    capabilityWrapper[Pipe]
 	Location                capabilityWrapper[Location]
 	DirectoryRequest        validatedRequest[DirectoryRequest]
+	ScratchRequest          validatedRequest[ScratchRequest]
 	ReadRequest             validatedRequest[ReadRequest]
 	ReadHandleRequest       validatedRequest[ReadHandleRequest]
 	UpdateHandleRequest     validatedRequest[UpdateHandleRequest]

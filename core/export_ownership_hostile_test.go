@@ -14,10 +14,9 @@ import (
 )
 
 const (
-	coreExportInventoryMaximum      = 512
 	coreExportDependencyMaximum     = 32
-	coreSpecialExportAdmissionCount = 75
-	coreProviderExportContractCount = 61
+	coreSpecialExportAdmissionCount = 82
+	coreProviderExportContractCount = 60
 )
 
 type coreExportName string
@@ -35,9 +34,8 @@ type coreExportConsumerContract struct {
 }
 
 type coreExportInventory struct {
-	values                [coreExportInventoryMaximum]coreExportConsumerContract
+	values                []coreExportConsumerContract
 	packageErrorDecisions [PrimitivePackageCount + 1]bool
-	count                 uint16
 }
 
 type coreSpecialExportAdmission struct {
@@ -105,6 +103,10 @@ func coherentDomainContractAdmission(name coreExportName, witness any) coreSpeci
 // identifier reference so declaration drift breaks the build.
 func coreSpecialExportAdmissions() [coreSpecialExportAdmissionCount]coreSpecialExportAdmission {
 	return [...]coreSpecialExportAdmission{
+		// The foreign namespace is a shared compiler agreement, including for
+		// callers outside Primitive. Inventing a second internal consumer would
+		// couple an unrelated package merely to satisfy a repository census.
+		coherentDomainContractAdmission("GoCgoImportPath", GoCgoImportPath),
 		architectureCatalogAdmission("ArchitectureCatalog", ArchitectureCatalog{}),
 		architectureCatalogAdmission("PackageContract", PackageContract{}),
 		architectureCatalogAdmission("PackageIdentity", PackageIdentity(0)),
@@ -160,6 +162,11 @@ func coreSpecialExportAdmissions() [coreSpecialExportAdmissionCount]coreSpecialE
 		coherentDomainContractAdmission("POSIXAllocationBlockBytes", POSIXAllocationBlockBytes),
 		coherentDomainContractAdmission("WindowsFileLockViolation", WindowsFileLockViolation),
 		coherentDomainContractAdmission("WindowsFileSharingViolation", WindowsFileSharingViolation),
+		coherentDomainContractAdmission("ProcessExitCodeSignaled", ProcessExitCodeSignaled),
+		coherentDomainContractAdmission("ProcessExitCodeSuccess", ProcessExitCodeSuccess),
+		coherentDomainContractAdmission("ProcessExitCodeMaximum", ProcessExitCodeMaximum),
+		coherentDomainContractAdmission("WindowsProcessInvalidParameter", WindowsProcessInvalidParameter),
+		coherentDomainContractAdmission("ProcessPOSIXIdentityMaximum", ProcessPOSIXIdentityMaximum),
 		testIsolationContractAdmission("TestIsolationCorePackagePath", TestIsolationCorePackagePath),
 		testIsolationContractAdmission("TestIsolationDeclarationPackagePath", TestIsolationDeclarationPackagePath),
 		testIsolationContractAdmission("TestIsolationDeclarationFunctionName", TestIsolationDeclarationFunctionName),
@@ -176,6 +183,7 @@ func coreSpecialExportAdmissions() [coreSpecialExportAdmissionCount]coreSpecialE
 		testIsolationContractAdmission("TestIsolationHazardGlobalRegistry", TestIsolationHazardGlobalRegistry),
 		testIsolationContractAdmission("TestIsolationHazardRuntimeAllocation", TestIsolationHazardRuntimeAllocation),
 		testIsolationContractAdmission("TestIsolationHazardSiblingOrder", TestIsolationHazardSiblingOrder),
+		testIsolationContractAdmission("TestIsolationHazardProcessArguments", TestIsolationHazardProcessArguments),
 		testIsolationContractAdmission("TestIsolationScope", TestIsolationScope(0)),
 		testIsolationContractAdmission("TestIsolationScopeUnknown", TestIsolationScopeUnknown),
 		testIsolationContractAdmission("TestIsolationScopeSiblingTable", TestIsolationScopeSiblingTable),
@@ -191,7 +199,6 @@ func coreSpecialExportAdmissions() [coreSpecialExportAdmissionCount]coreSpecialE
 // wire spellings must never create cross-provider coupling.
 func coreProviderExportContracts() [coreProviderExportContractCount]coreProviderExportContract {
 	return [...]coreProviderExportContract{
-		{name: "SourcePathMaximumBytes", witness: SourcePathMaximumBytes, consumer: PackageGitRepo},
 		{name: "StripeAPIHost", witness: StripeAPIHost, consumer: PackageStripe},
 		{name: "StripeAPIVersion", witness: StripeAPIVersion, consumer: PackageStripe},
 		{name: "StripeVersionHeaderName", witness: StripeVersionHeaderName, consumer: PackageStripe},
@@ -609,7 +616,7 @@ func addCoreExportTypeExpression(
 }
 
 func connectDirectConsumerTypeDependencies(exports *coreExportInventory) {
-	for index := range int(exports.count) {
+	for index := range exports.values {
 		source := &exports.values[index]
 		for _, dependencyName := range source.Dependencies() {
 			dependency, ok := exports.Lookup(dependencyName)
@@ -634,7 +641,7 @@ func connectDirectConsumerTypeDependencies(exports *coreExportInventory) {
 // Untyped constants and arbitrary declaration dependencies receive no such
 // projection.
 func connectTypedDomainMemberConsumers(exports *coreExportInventory) {
-	for index := range int(exports.count) {
+	for index := range exports.values {
 		member := &exports.values[index]
 		if !member.typedDomainMember || len(member.Dependencies()) != 1 {
 			continue
@@ -820,11 +827,7 @@ func (i *coreExportInventory) Add(contract coreExportConsumerContract) error {
 	if i.Contains(contract.name) {
 		return architectureContractError("Core export is declared more than once: " + string(contract.name))
 	}
-	if int(i.count) >= len(i.values) {
-		return architectureContractError("Core export inventory capacity exceeded")
-	}
-	i.values[i.count] = contract
-	i.count++
+	i.values = append(i.values, contract)
 	return nil
 }
 
@@ -834,7 +837,7 @@ func (i coreExportInventory) Contains(name coreExportName) bool {
 }
 
 func (i *coreExportInventory) Lookup(name coreExportName) (*coreExportConsumerContract, bool) {
-	for index := range int(i.count) {
+	for index := range i.values {
 		if i.values[index].name == name {
 			return &i.values[index], true
 		}
@@ -843,7 +846,7 @@ func (i *coreExportInventory) Lookup(name coreExportName) (*coreExportConsumerCo
 }
 
 func (i *coreExportInventory) Values() []coreExportConsumerContract {
-	return i.values[:i.count]
+	return i.values
 }
 
 func (c *coreExportConsumerContract) AddDependency(dependency coreExportName) error {

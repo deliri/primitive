@@ -8,10 +8,7 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
-const (
-	ExecutionPlanSchemaVersion    uint16 = 1
-	ExecutionPlanJSONMaximumBytes        = 1 << 20
-)
+const ExecutionPlanSchemaVersion uint16 = 1
 
 // Plan is the stream-free, exact execution capability carried across a
 // trusted control boundary. The authority compiles it from closed policy;
@@ -42,6 +39,10 @@ func (p Plan) Validate() error {
 	}
 	if p.Environment.Mode != EnvironmentModeExact {
 		return contractError("execution plan environment is not exact")
+	}
+	maximum := uint64(core.DefaultStrictJSONLimits().ArrayItemMaximum)
+	if uint64(len(p.Arguments)) > maximum || uint64(len(p.Environment.Variables)) > maximum {
+		return contractError("execution plan array exceeds JSON limit")
 	}
 	if err := validateOutputLimit(p.OutputLimit); err != nil {
 		return err
@@ -105,7 +106,7 @@ func (p Plan) MarshalJSON() ([]byte, error) {
 		WaitDelay: p.WaitDelay, Isolation: p.Containment.Isolation.String(),
 		CancelSignal: p.Containment.CancelSignal.String(),
 	})
-	if err != nil || len(encoded) > ExecutionPlanJSONMaximumBytes {
+	if err != nil || len(encoded) > core.JSONDocumentMaximumBytes {
 		return nil, errors.Join(core.ErrJSONContract, core.ErrProcessContract, err)
 	}
 	return encoded, nil
@@ -131,7 +132,10 @@ func (p *Plan) UnmarshalJSON(data []byte) error {
 		Environment: environment, OutputLimit: wire.OutputLimit,
 		WaitDelay: wire.WaitDelay, Containment: containment,
 	}
-	if err := candidate.Validate(); err != nil {
+	// Omitted vectors and noncanonical spellings can make the published
+	// representation larger than the admitted input. Use the same Go-backed
+	// encoder as publication before committing the receiver.
+	if _, err := candidate.MarshalJSON(); err != nil {
 		return errors.Join(core.ErrJSONContract, err)
 	}
 	*p = candidate

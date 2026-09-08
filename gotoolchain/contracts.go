@@ -14,10 +14,10 @@ import (
 )
 
 const (
-	// OutputMaximumBytes bounds each stdout and stderr projection from cmd/go.
-	OutputMaximumBytes = 4 << 20
-	// PackageMaximumCount bounds one materialized go-list observation.
-	PackageMaximumCount          = 4096
+	// DefaultOutputBytes is the default caller budget for cmd/go output.
+	DefaultOutputBytes = 4 << 20
+	// DefaultPackageMaximum is the default caller budget for package metadata.
+	DefaultPackageMaximum        = 4096
 	toolchainVersionMaximumBytes = 64
 )
 
@@ -62,12 +62,12 @@ var _ core.OffWireEnum = WorkspaceModeUnknown
 type Limits struct {
 	OutputBytes    core.ByteCount
 	WaitDelay      temporal.Duration
-	PackageMaximum uint32
+	PackageMaximum uint64
 }
 
 // DefaultLimits returns Primitive's compiler-owned cmd/go execution budget.
 func DefaultLimits() (Limits, error) {
-	output, err := core.NewByteCount(OutputMaximumBytes)
+	output, err := core.NewByteCount(DefaultOutputBytes)
 	if err != nil {
 		return Limits{}, err
 	}
@@ -75,7 +75,7 @@ func DefaultLimits() (Limits, error) {
 	if err != nil {
 		return Limits{}, err
 	}
-	limits := Limits{OutputBytes: output, WaitDelay: wait, PackageMaximum: PackageMaximumCount}
+	limits := Limits{OutputBytes: output, WaitDelay: wait, PackageMaximum: DefaultPackageMaximum}
 	return limits, limits.Validate()
 }
 
@@ -83,9 +83,9 @@ func (l Limits) Validate() error {
 	if err := errors.Join(l.OutputBytes.Validate(), l.WaitDelay.Validate()); err != nil {
 		return errors.Join(core.ErrGoToolchainContract, err)
 	}
-	bytes, err := l.OutputBytes.Uint64()
-	if err != nil || bytes == 0 || bytes > OutputMaximumBytes || l.PackageMaximum == 0 || l.PackageMaximum > PackageMaximumCount {
-		return contractError("toolchain limits exceed the admitted budget")
+	bytes, err := l.OutputBytes.Int64()
+	if err != nil || bytes == 0 || l.PackageMaximum == 0 {
+		return contractError("toolchain limits are absent or not representable")
 	}
 	return nil
 }
@@ -222,7 +222,7 @@ func (p Package) Validate() error {
 type PackageCatalog struct{ Packages []Package }
 
 func (c PackageCatalog) Validate() error {
-	if len(c.Packages) == 0 || len(c.Packages) > PackageMaximumCount {
+	if len(c.Packages) == 0 {
 		return contractError("package catalog count is outside the admitted domain")
 	}
 	previous := ""
@@ -260,8 +260,8 @@ func (r ListRequest) Validate() error {
 	if err := r.WorkingDirectory.Validate(); err != nil {
 		return errors.Join(core.ErrGoToolchainContract, err)
 	}
-	if r.Pattern == "" || len(r.Pattern) > gomodule.ImportPathMaximumBytes || strings.HasPrefix(r.Pattern, "-") || strings.ContainsAny(r.Pattern, "\x00\r\n\t ") {
-		return contractError("package pattern is absent, oversized, or ambiguous")
+	if r.Pattern == "" || strings.HasPrefix(r.Pattern, "-") || strings.ContainsAny(r.Pattern, "\x00\r\n\t ") {
+		return contractError("package pattern is absent or ambiguous")
 	}
 	return nil
 }
@@ -301,48 +301,98 @@ type PackageAnalysis struct {
 	WorkingDirectory core.AbsolutePath
 	Package          gomodule.ImportPath
 	Units            []*packages.Package
-	IncludeTests     bool
+	// Metadata contains only the requested units selected by cmd/go. It is
+	// available after a checker failure so callers can retain import selection
+	// without launching another compiler command. It is never type evidence.
+	Metadata     []*packages.Package
+	IncludeTests bool
+	Incomplete   bool
 }
 
-// Validate rejects incomplete, ill-typed, or unrelated compilation units.
+// Validate rejects unrelated units and any partial compilation presented as complete.
+// Ill-typed units retain available compiler facts only with explicit diagnostics
+// and an incomplete parent analysis; callers must preserve that distinction.
 func (a PackageAnalysis) Validate() error {
+	if err := a.ValidateMetadata(); err != nil {
+		return errors.Join(core.ErrGoToolchainContract, err)
+	}
+	if !a.Incomplete && len(a.Units) != len(a.Metadata) {
+		return contractError("package analysis unit count is inconsistent with its request")
+	}
+	for _, metadata := range a.Metadata {
+		if !a.Incomplete && len(metadata.Errors) != 0 {
+			return contractError("package analysis hides compiler metadata errors")
+		}
+	}
+	return a.validateUnits()
+}
+
+// ValidateMetadata admits compiler-selected membership, including units with
+// diagnostics. It does not claim that those units parsed or type checked.
+func (a PackageAnalysis) ValidateMetadata() error {
 	if err := errors.Join(a.WorkingDirectory.Validate(), a.Package.Validate()); err != nil {
 		return errors.Join(core.ErrGoToolchainContract, err)
 	}
-	if len(a.Units) == 0 || (!a.IncludeTests && len(a.Units) != 1) {
-		return contractError("package analysis unit count is inconsistent with its request")
+	if len(a.Metadata) == 0 || !a.IncludeTests && len(a.Metadata) != 1 {
+		return contractError("package analysis has no selected metadata")
 	}
-	return validateAnalysisUnits(a.Units, a.Package, a.IncludeTests)
+	return validateSelectedMetadata(a.Metadata, a.Package, a.IncludeTests)
 }
 
-func validateAnalysisUnits(units []*packages.Package, requested gomodule.ImportPath, includeTests bool) error {
-	foundPackage := false
+func validateSelectedMetadata(metadata []*packages.Package, requested gomodule.ImportPath, includeTests bool) error {
 	previous := ""
-	for _, unit := range units {
-		if err := validateAnalysisUnit(unit); err != nil {
-			return err
-		}
-		if !analysisMetadataMatches(unit, requested.String(), includeTests) || unit.ID <= previous {
-			return contractError("package analysis units are foreign, duplicated, or unordered")
+	foundPackage := false
+	for _, unit := range metadata {
+		if unit == nil || !analysisMetadataMatches(unit, requested.String(), includeTests) || unit.ID <= previous {
+			return contractError("package analysis metadata is foreign, duplicated, or unordered")
 		}
 		previous = unit.ID
 		foundPackage = foundPackage || unit.PkgPath == requested.String()
 	}
 	if !foundPackage {
+		return contractError("package analysis metadata has no requested package")
+	}
+	return nil
+}
+
+func (a PackageAnalysis) validateUnits() error {
+	foundPackage := false
+	previous := ""
+	for _, unit := range a.Units {
+		if err := validateAnalysisUnit(unit, a.Incomplete); err != nil {
+			return err
+		}
+		if !analysisMetadataMatches(unit, a.Package.String(), a.IncludeTests) || unit.ID <= previous {
+			return contractError("package analysis units are foreign, duplicated, or unordered")
+		}
+		previous = unit.ID
+		foundPackage = foundPackage || unit.PkgPath == a.Package.String()
+	}
+	if !foundPackage && !a.Incomplete {
 		return contractError("package analysis does not contain its requested package")
 	}
 	return nil
 }
 
-func validateAnalysisUnit(unit *packages.Package) error {
+func validateAnalysisUnit(unit *packages.Package, incomplete bool) error {
 	if unit == nil || unit.Types == nil || unit.TypesInfo == nil || unit.Fset == nil {
 		return contractError("package analysis contains an incomplete compilation unit")
 	}
-	if unit.IllTyped || len(unit.Errors) != 0 {
-		return contractError("package analysis contains compiler errors")
+	if err := validateAnalysisUnitErrors(unit, incomplete); err != nil {
+		return err
 	}
 	if len(unit.Syntax) != len(unit.CompiledGoFiles) {
 		return contractError("package analysis syntax and file membership disagree")
+	}
+	return nil
+}
+
+func validateAnalysisUnitErrors(unit *packages.Package, incomplete bool) error {
+	if unit.IllTyped != (len(unit.Errors) != 0) || unit.IllTyped && !incomplete {
+		return contractError("package analysis compiler errors lack explicit partial ownership")
+	}
+	if !unit.IllTyped && len(unit.TypeErrors) != 0 {
+		return contractError("package analysis hides type checker errors")
 	}
 	return nil
 }

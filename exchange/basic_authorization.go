@@ -49,6 +49,9 @@ func (i *BasicAuthorizationIdentity) UnmarshalJSON(data []byte) error {
 	if i == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrExchangeContract)
 	}
+	if len(data) > core.JSONDocumentMaximumBytes {
+		return errors.Join(core.ErrJSONContract, core.ErrExchangeContract)
+	}
 	value, err := core.DecodeJSONStringToken(data)
 	if err != nil {
 		return errors.Join(core.ErrExchangeContract, err)

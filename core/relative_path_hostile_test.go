@@ -16,7 +16,7 @@ func TestParseRelativePathHostileBoundaryMatrix(t *testing.T) {
 	component255 := strings.Repeat("a", filesystemPathComponentMaximumBytes)
 	component256 := strings.Repeat("a", filesystemPathComponentMaximumBytes+1)
 	components255 := strings.Repeat("a"+separator, FilesystemPathMaximumComponents-1) + "a"
-	components256 := strings.Repeat("a"+separator, FilesystemPathMaximumComponents)
+	components256 := strings.Repeat("a"+separator, FilesystemPathMaximumComponents) + "a"
 	runes4095 := relativePathWithRunes(t, filesystemPathMaximumRunes-1)
 	runes4096 := relativePathWithRunes(t, filesystemPathMaximumRunes)
 	runes4097 := relativePathWithRunes(t, filesystemPathMaximumRunes+1)
@@ -63,11 +63,11 @@ func TestParseRelativePathHostileBoundaryMatrix(t *testing.T) {
 		{name: "b05 unicode bytes at component ceiling", value: strings.Repeat("é", 127) + "a", wantValid: true},
 		{name: "b06 unicode bytes one above component ceiling", value: strings.Repeat("é", 128)},
 		{name: "b07 component count one below ceiling", value: strings.Repeat("a"+separator, FilesystemPathMaximumComponents-2) + "a", wantValid: true},
-		{name: "b08 component count exact ceiling", value: components255, wantValid: true},
-		{name: "b09 component count one above ceiling", value: components256},
-		{name: "b10 rune count one below ceiling", value: runes4095, wantValid: true},
-		{name: "b11 rune count exact ceiling", value: runes4096, wantValid: true},
-		{name: "b12 rune count one above ceiling", value: runes4097},
+		{name: "b08 final component at byte ceiling after maximum ancestors", value: strings.Repeat("a"+separator, FilesystemPathMaximumComponents-1) + component255, wantValid: true},
+		{name: "b09 final component crosses byte ceiling after maximum ancestors", value: strings.Repeat("a"+separator, FilesystemPathMaximumComponents-1) + component256},
+		{name: "b10 multibyte rune count one below ceiling", value: relativeUnicodePathWithRunes(filesystemPathMaximumRunes - 1), wantValid: true},
+		{name: "b11 multibyte rune count exact ceiling", value: relativeUnicodePathWithRunes(filesystemPathMaximumRunes), wantValid: true},
+		{name: "b12 multibyte rune count one above ceiling", value: relativeUnicodePathWithRunes(filesystemPathMaximumRunes + 1)},
 		{name: "b13 leading current directory is noncanonical", value: "." + separator + "a"},
 		{name: "b14 two leading current directories are noncanonical", value: "." + separator + "." + separator + "a"},
 		{name: "b15 cleaned parent pair is rejected rather than rewritten", value: "a" + separator + "b" + separator + ".."},
@@ -75,7 +75,7 @@ func TestParseRelativePathHostileBoundaryMatrix(t *testing.T) {
 		{name: "b17 root-looking sibling prefix remains relative", value: "tmp-root-sibling", wantValid: true},
 		{name: "b18 newline is a native filename byte", value: "line\nbreak", wantValid: true},
 		{name: "b19 tab is a native filename byte", value: "tab\tname", wantValid: true},
-		{name: "b20 zero value is represented only by failed parse", value: ""},
+		{name: "b20 incomplete UTF8 at component byte ceiling", value: strings.Repeat("a", filesystemPathComponentMaximumBytes-1) + "\xc3"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -125,7 +125,17 @@ func FuzzParseRelativePathSemanticClosure(f *testing.F) {
 		f.Add(seed)
 	}
 	f.Fuzz(func(t *testing.T, value string) {
+		components := strings.FieldsFunc(value, func(r rune) bool { return r == '/' || filepath.Separator == '\\' && r == '\\' })
+		wantValid := value != "" && utf8.ValidString(value) && !strings.ContainsRune(value, 0) &&
+			utf8.RuneCountInString(value) <= filesystemPathMaximumRunes && filepath.IsLocal(value) &&
+			filepath.Clean(value) == value && len(components) <= FilesystemPathMaximumComponents
+		for _, component := range components {
+			wantValid = wantValid && len(component) <= filesystemPathComponentMaximumBytes
+		}
 		got, gotErr := ParseRelativePath(value)
+		if (gotErr == nil) != wantValid {
+			t.Fatalf("ParseRelativePath(%q)=%v, %v; want admission=%v from Go lexical rules and typed bounds", value, got, gotErr, wantValid)
+		}
 		if gotErr != nil {
 			if !errors.Is(gotErr, ErrPrimitiveContract) {
 				t.Fatalf("ParseRelativePath(%q) error = %v, want %v", value, gotErr, ErrPrimitiveContract)
@@ -165,4 +175,17 @@ func relativePathWithRunes(t *testing.T, runes int) string {
 		componentRunes -= size
 	}
 	return filepath.Join(components...)
+}
+
+// relativeUnicodePathWithRunes creates a bounded fixture with independent rune
+// and component-byte extents. Separators consume one rune each.
+func relativeUnicodePathWithRunes(count int) string {
+	const width = filesystemPathComponentMaximumBytes / 3
+	parts := make([]string, 0, count/width+1)
+	for count > width {
+		parts = append(parts, strings.Repeat("界", width))
+		count -= width + 1
+	}
+	parts = append(parts, strings.Repeat("界", count))
+	return strings.Join(parts, string(filepath.Separator))
 }

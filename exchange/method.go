@@ -79,6 +79,9 @@ func (m *Method) UnmarshalJSON(data []byte) error {
 	if m == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrExchangeContract, errors.New("nil http method receiver"))
 	}
+	if len(data) > core.JSONDocumentMaximumBytes {
+		return errors.Join(core.ErrJSONContract, core.ErrExchangeContract)
+	}
 	value, err := core.DecodeJSONStringToken(data)
 	if err != nil {
 		return errors.Join(core.ErrExchangeContract, err)

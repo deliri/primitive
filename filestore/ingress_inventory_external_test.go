@@ -72,6 +72,8 @@ func filestoreIngressProofs() []filestoreIngressProof {
 		{door: reflect.ValueOf(filestore.ValidateRootIdentity), fuzz: FuzzOpenParentAndRootIdentityNativeCustody},
 		{door: reflect.ValueOf(filestore.OpenPipe), fuzz: FuzzPipeNativeCustodyAndBytes},
 		{door: reflect.ValueOf(filestore.EnsureDirectory), fuzz: FuzzEnsureDirectoryNativeNamespaceCustody},
+		{door: reflect.ValueOf(filestore.EnsureScratchDirectory), fuzz: FuzzScratchCreationModesSemanticClosure},
+		{door: reflect.ValueOf(filestore.OpenScratch), fuzz: FuzzScratchCreationModesSemanticClosure},
 		{door: reflect.ValueOf(filestore.Touch), fuzz: FuzzCustodyNamespaceAndTimestampSemanticClosure},
 		{door: reflect.ValueOf(filestore.ConfirmDurable), fuzz: FuzzCustodyNamespaceAndTimestampSemanticClosure},
 		{door: reflect.ValueOf(filestore.Inspect), fuzz: FuzzInspectionNativeFactsSemanticClosure},

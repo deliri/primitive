@@ -24,7 +24,7 @@ func absolutePathForTest(t *testing.T, value string) core.AbsolutePath {
 func TestRelativeToRefusesEveryPathThatEscapesItsBase(t *testing.T) {
 	t.Parallel()
 
-	root := string(filepath.Separator)
+	root := filepath.VolumeName(t.TempDir()) + string(filepath.Separator)
 	cases := []struct {
 		wantErr error
 		name    string
@@ -45,6 +45,7 @@ func TestRelativeToRefusesEveryPathThatEscapesItsBase(t *testing.T) {
 	}
 
 	for _, tc := range cases {
+		tc.path, tc.base, tc.want = filepath.FromSlash(tc.path), filepath.FromSlash(tc.base), filepath.FromSlash(tc.want)
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -75,7 +76,7 @@ func TestRelativeToRefusesEveryPathThatEscapesItsBase(t *testing.T) {
 func TestRelativeToRoundTripsThroughJoinRelative(t *testing.T) {
 	t.Parallel()
 
-	root := string(filepath.Separator)
+	root := filepath.VolumeName(t.TempDir()) + string(filepath.Separator)
 	for _, suffix := range []string{"a", "a/b", "a/b/c", "a/b/c/d/e"} {
 		base := absolutePathForTest(t, root+"base")
 		path := absolutePathForTest(t, filepath.Join(root+"base", suffix))
@@ -99,7 +100,7 @@ func TestRelativeToRoundTripsThroughJoinRelative(t *testing.T) {
 func TestRelativeToRefusesAnUnvalidatedPath(t *testing.T) {
 	t.Parallel()
 
-	real := absolutePathForTest(t, string(filepath.Separator)+"a")
+	real := absolutePathForTest(t, filepath.Join(t.TempDir(), "a"))
 	if got, err := (core.AbsolutePath{}).RelativeTo(real); !errors.Is(err, core.ErrPrimitiveContract) || got != (core.RelativePath{}) {
 		t.Fatalf("RelativeTo() on a zero path = (%v, %v), want zero and errors.Is %v", got, err, core.ErrPrimitiveContract)
 	}

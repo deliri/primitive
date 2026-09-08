@@ -195,7 +195,10 @@ func compileExperimentMeasurements(request ExperimentObservationRequest) (runpro
 		return runprotocol.ExperimentMeasurements{}, errors.Join(core.ErrPrimitiveContract, err)
 	}
 	measurements.DurationNs = durationNanoseconds
-	measurements.PeakMemoryBytes = request.Process.PeakMemoryBytes.Uint64()
+	measurements.PeakMemoryBytes = 0
+	if request.Process.PeakMemoryBytes != nil {
+		measurements.PeakMemoryBytes = request.Process.PeakMemoryBytes.Uint64()
+	}
 	return measurements, nil
 }
 

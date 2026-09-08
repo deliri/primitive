@@ -2,42 +2,74 @@ package process_test
 
 import (
 	"bytes"
+	"encoding/gob"
 	"errors"
+	"io"
+	"os"
 	"os/exec"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/process"
+	"github.com/deliri/primitive/v2026/testserial"
 )
 
-const processFuzzVectorSeparator = byte(0xff)
-
-func FuzzParseArgumentsExternalIngress(f *testing.F) {
-	for _, seed := range [][]byte{
-		nil,
-		{},
-		[]byte("one"),
-		joinProcessFuzzVector("", "two words", "--flag=value"),
-		joinProcessFuzzVector("before", "bad\x00argument", "after"),
-		bytes.Repeat([]byte{processFuzzVectorSeparator}, int(process.ArgumentCountMaximum)+1),
-		bytes.Repeat([]byte{'a'}, int(process.ArgumentProjectionMaximumBytes)+1),
-	} {
-		f.Add(seed)
+// Go's gob encoding preserves every byte and vector boundary in canonical
+// corpus fixtures. Arbitrary non-gob mutations reach the constructor as one
+// raw element instead of being skipped by a fixture parser.
+func FuzzParseArgumentsAndAmbientExternalIngress(f *testing.F) {
+	seeds := [][]string{
+		nil, {""}, {"one"}, {"", "two words", "--flag=value"},
+		{"before", "bad\x00argument", "after"}, {"before\xffafter"},
+		make([]string, int(process.ArgumentCountMaximum)+1),
+		{strings.Repeat("a", int(process.ArgumentProjectionMaximumBytes)+1)},
+	}
+	for _, values := range seeds {
+		if argumentsAdmittedByContract(values) {
+			admitted, err := process.ParseArguments(values)
+			if err != nil {
+				f.Fatal(err)
+			}
+			values = make([]string, len(admitted))
+			for i, argument := range admitted {
+				if err := argument.Validate(); err != nil {
+					f.Fatal(err)
+				}
+				value, err := argument.Value()
+				if err != nil {
+					f.Fatal(err)
+				}
+				values[i] = value
+			}
+		}
+		encoded, err := joinProcessFuzzVector(values...)
+		if err != nil {
+			f.Fatal(err)
+		}
+		f.Add(encoded)
 	}
 
 	f.Fuzz(func(t *testing.T, data []byte) {
+		testserial.Declare(t, core.TestIsolationDeclaration{Hazard: core.TestIsolationHazardProcessArguments, Scope: core.TestIsolationScopePackageProcess})
 		values := processFuzzVector(data)
+		previous := os.Args
+		t.Cleanup(func() { os.Args = previous })
+		// Fuzz workers are separate processes and callbacks do not run in
+		// parallel. Restore the command-owned argv after each individual input.
+		os.Args = append([]string{"owned-fuzz-command"}, values...)
 		wantAccepted := argumentsAdmittedByContract(values)
 		got, err := process.ParseArguments(values)
+		ambient, ambientErr := process.AmbientArguments()
 		if !wantAccepted {
-			if !errors.Is(err, core.ErrProcessContract) || got != nil {
+			if !errors.Is(err, core.ErrProcessContract) || got != nil || !errors.Is(ambientErr, core.ErrProcessContract) || ambient != nil {
 				t.Fatalf("ParseArguments(%q) = (%v, %v), want nil and %v", values, got, err, core.ErrProcessContract)
 			}
 			return
 		}
-		if err != nil || len(got) != len(values) {
+		if err != nil || ambientErr != nil || !slices.Equal(got, ambient) || len(got) != len(values) {
 			t.Fatalf("ParseArguments(%q) = (length %d, %v), want (%d, nil)", values, len(got), err, len(values))
 		}
 		for index, argument := range got {
@@ -56,7 +88,9 @@ func FuzzParseExactEnvironmentExternalIngress(f *testing.F) {
 		wantAccepted := exactEnvironmentAdmittedByContract(values)
 		got, err := process.ParseExactEnvironment(values)
 		if !wantAccepted {
-			requireZeroEnvironmentRefusal(t, got, err)
+			if !errors.Is(err, core.ErrProcessContract) || got.Mode != process.EnvironmentModeUnknown || got.Variables != nil {
+				t.Fatalf("environment refusal = (mode %v, variables %v, error %v), want exact zero and %v", got.Mode, got.Variables, err, core.ErrProcessContract)
+			}
 			return
 		}
 		projected, projectionErr := got.Strings()
@@ -68,7 +102,11 @@ func FuzzParseExactEnvironmentExternalIngress(f *testing.F) {
 
 func FuzzParseEffectiveEnvironmentExternalIngress(f *testing.F) {
 	addProcessEnvironmentSeeds(f)
-	f.Add(joinProcessFuzzVector("A=old", "B=kept", "A=new", "C=", "B=last"))
+	lastWins, err := joinProcessFuzzVector("A=old", "B=kept", "A=new", "C=", "B=last")
+	if err != nil {
+		f.Fatal(err)
+	}
+	f.Add(lastWins)
 	f.Fuzz(func(t *testing.T, data []byte) {
 		values := processFuzzVector(data)
 		validInput := environmentProjectionsIndividuallyAdmitted(values)
@@ -76,7 +114,9 @@ func FuzzParseEffectiveEnvironmentExternalIngress(f *testing.F) {
 		wantAccepted := validInput && exactEnvironmentAdmittedByContract(want)
 		got, err := process.ParseEffectiveEnvironment(values)
 		if !wantAccepted {
-			requireZeroEnvironmentRefusal(t, got, err)
+			if !errors.Is(err, core.ErrProcessContract) || got.Mode != process.EnvironmentModeUnknown || got.Variables != nil {
+				t.Fatalf("environment refusal = (mode %v, variables %v, error %v), want exact zero and %v", got.Mode, got.Variables, err, core.ErrProcessContract)
+			}
 			return
 		}
 		projected, projectionErr := got.Strings()
@@ -88,40 +128,45 @@ func FuzzParseEffectiveEnvironmentExternalIngress(f *testing.F) {
 
 func addProcessEnvironmentSeeds(f *testing.F) {
 	f.Helper()
-	for _, seed := range [][]byte{
-		nil,
-		{},
-		joinProcessFuzzVector("A="),
-		joinProcessFuzzVector("A=one", "B=two=three"),
-		joinProcessFuzzVector("A=old", "A=new"),
-		joinProcessFuzzVector("missing-separator"),
-		joinProcessFuzzVector("=missing-name"),
-		joinProcessFuzzVector("A=bad\x00value"),
-		joinProcessFuzzVector(strings.Repeat("n", int(process.EnvironmentNameMaximumBytes)+1) + "="),
-		joinProcessFuzzVector("A=" + strings.Repeat("v", int(process.EnvironmentProjectionMaximumBytes)+1)),
-	} {
-		f.Add(seed)
+	for _, seed := range exactEnvironmentAdmissionCases() {
+		values := seed.values
+		if seed.wantErr == nil {
+			admitted, err := process.ParseExactEnvironment(values)
+			if err != nil {
+				f.Fatal(err)
+			}
+			if err := admitted.Validate(); err != nil {
+				f.Fatal(err)
+			}
+			values, err = admitted.Strings()
+			if err != nil {
+				f.Fatal(err)
+			}
+		}
+		encoded, err := joinProcessFuzzVector(values...)
+		if err != nil {
+			f.Fatal(err)
+		}
+		f.Add(encoded)
 	}
 }
 
-func joinProcessFuzzVector(values ...string) []byte {
-	parts := make([][]byte, len(values))
-	for index, value := range values {
-		parts[index] = []byte(value)
-	}
-	return bytes.Join(parts, []byte{processFuzzVectorSeparator})
+func joinProcessFuzzVector(values ...string) ([]byte, error) {
+	var encoded bytes.Buffer
+	err := gob.NewEncoder(&encoded).Encode(values)
+	return encoded.Bytes(), err
 }
 
 func processFuzzVector(data []byte) []string {
-	if data == nil {
-		return nil
+	var values []string
+	decoder := gob.NewDecoder(bytes.NewReader(data))
+	if err := decoder.Decode(&values); err == nil {
+		var trailing []string
+		if errors.Is(decoder.Decode(&trailing), io.EOF) {
+			return values
+		}
 	}
-	parts := bytes.Split(data, []byte{processFuzzVectorSeparator})
-	values := make([]string, len(parts))
-	for index, part := range parts {
-		values[index] = string(part)
-	}
-	return values
+	return []string{string(data)}
 }
 
 func argumentsAdmittedByContract(values []string) bool {
@@ -162,11 +207,21 @@ func exactEnvironmentAdmittedByContract(values []string) bool {
 	if !environmentProjectionsIndividuallyAdmitted(values) {
 		return false
 	}
-	command := exec.Cmd{Env: values}
-	if values == nil {
-		command.Env = []string{}
+	// Count identity directly, independently of production's comparison with
+	// Cmd.Environ. Go dedupEnvCase uses strings.ToLower on Windows; critical
+	// variables that Go appends are not duplicates of the caller's input.
+	seen := make(map[string]struct{}, len(values))
+	for _, value := range values {
+		name, _, _ := strings.Cut(value, "=")
+		if runtime.GOOS == "windows" {
+			name = strings.ToLower(name)
+		}
+		if _, duplicate := seen[name]; duplicate {
+			return false
+		}
+		seen[name] = struct{}{}
 	}
-	return len(command.Environ()) == len(values)
+	return true
 }
 
 func effectiveEnvironmentProjection(values []string) []string {
@@ -175,11 +230,4 @@ func effectiveEnvironmentProjection(values []string) []string {
 		command.Env = []string{}
 	}
 	return command.Environ()
-}
-
-func requireZeroEnvironmentRefusal(t *testing.T, got process.Environment, err error) {
-	t.Helper()
-	if !errors.Is(err, core.ErrProcessContract) || got.Mode != process.EnvironmentModeUnknown || got.Variables != nil {
-		t.Fatalf("environment refusal = (mode %v, variables %v, error %v), want exact zero and %v", got.Mode, got.Variables, err, core.ErrProcessContract)
-	}
 }

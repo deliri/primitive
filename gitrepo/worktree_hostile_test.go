@@ -104,7 +104,7 @@ func TestWorktreeEntryWriterPressuresExternalGitPathStream(t *testing.T) {
 	t.Parallel()
 
 	consumerRefusal := errors.New("consumer refused provisional entry")
-	longest := strings.Repeat("a", core.SourcePathMaximumBytes)
+	longest := strings.Repeat("a", 1024)
 	tests := []struct {
 		consumer  WorktreeConsumer
 		wantErr   error
@@ -137,7 +137,7 @@ func TestWorktreeEntryWriterPressuresExternalGitPathStream(t *testing.T) {
 		{name: "one-byte path crosses the lower length boundary", chunks: []string{"a\x00"}, want: []string{"a"}, wantBytes: 2},
 		{name: "one below source ceiling is admitted", chunks: []string{longest[:len(longest)-1] + "\x00"}, want: []string{longest[:len(longest)-1]}, wantBytes: uint64(len(longest))},
 		{name: "exact source ceiling is admitted", chunks: []string{longest + "\x00"}, want: []string{longest}, wantBytes: uint64(len(longest) + 1)},
-		{name: "one above source ceiling is refused before allocation grows", chunks: []string{longest + "b\x00"}, wantErr: core.ErrGitRepositoryOutput},
+		{name: "beyond former path ceiling is retained", chunks: []string{longest + "b\x00"}, want: []string{longest + "b"}, wantBytes: uint64(len(longest) + 2)},
 		{name: "zero records preserve neutral accounting", chunks: nil, want: []string{}, wantBytes: 0},
 		{name: "two records account for both delimiters", chunks: []string{"a\x00b\x00"}, want: []string{"a", "b"}, wantBytes: 4},
 		{name: "three records split at record boundaries remain ordered", chunks: []string{"a\x00", "b\x00", "c\x00"}, want: []string{"a", "b", "c"}, wantBytes: 6},

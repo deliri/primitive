@@ -31,6 +31,7 @@ func TestCoreOffWireEnumsExhaustClosedDomains(t *testing.T) {
 				TestIsolationHazardGlobalRegistry,
 				TestIsolationHazardRuntimeAllocation,
 				TestIsolationHazardSiblingOrder,
+				TestIsolationHazardProcessArguments,
 			}, ErrTestIsolationContract)
 		}},
 		{name: "test isolation scopes reject every unadmitted uint8 value", run: func(t *testing.T) {

@@ -7,9 +7,6 @@ import (
 	"golang.org/x/mod/module"
 )
 
-// PathMaximumBytes is the compiler-owned upper bound for one module identity.
-const PathMaximumBytes = 1024
-
 // Path is one validated canonical Go module identity.
 type Path struct {
 	value string
@@ -24,13 +21,10 @@ func ParsePath(value string) (Path, error) {
 	return path, nil
 }
 
-// Validate rejects absent, oversized, or noncanonical Go module paths.
+// Validate rejects absent or noncanonical Go module paths.
 func (p Path) Validate() error {
 	if p.value == "" {
 		return contractError("module path is absent")
-	}
-	if len(p.value) > PathMaximumBytes {
-		return contractError("module path exceeds its byte bound")
 	}
 	if err := module.CheckPath(p.value); err != nil {
 		return errors.Join(core.ErrGoModuleContract, err)

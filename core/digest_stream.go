@@ -5,6 +5,7 @@ import (
 	"errors"
 	"hash"
 	"io"
+	"math"
 )
 
 const (
@@ -23,12 +24,14 @@ const (
 // its own idea of when the digest becomes final. Core owns the mechanic so the
 // digest and the count are always two facts about exactly the same bytes.
 //
-// Bounds are deliberately absent. A maximum belongs to whoever knows what is
+// Caller policy bounds are deliberately absent. A maximum belongs to whoever knows what is
 // being hashed; one baked in here would be wrong for one caller and silently
 // generous for another. A caller that needs a ceiling enforces it above and
 // keeps the reason with it. A caller that needs the same stream elsewhere
 // composes io.MultiWriter, which is why this is an ordinary io.Writer and not
 // a private accumulator with a bespoke feed method.
+// The mechanical ByteLength ceiling still applies: no write may consume bytes
+// whose exact count cannot be represented in Go's signed size domain.
 type DigestWriter struct {
 	digest hash.Hash
 	err    error
@@ -56,12 +59,9 @@ func NewDigestWriter() *DigestWriter {
 
 // Write accumulates data into the running digest.
 //
-// The hash is not asked whether it succeeded, because hash.Hash documents that
-// Write never returns an error and always consumes every byte, and this writer
-// always holds the sha256 implementation it constructed. Checking anyway would
-// add a branch no test could ever fail, and an unfailable branch is a claim
-// nobody is keeping. The one refusal that is real — writing to a sealed writer
-// — is latched, so a caller cannot resume a stream whose answer was taken.
+// Go's sha256 hash consumes every byte without an error. Primitive checks the
+// receiver, sealing, and signed byte-count ceiling before handing bytes to Go.
+// A sealed-stream or extent refusal is latched until Reset.
 func (w *DigestWriter) Write(data []byte) (int, error) {
 	if w == nil {
 		return 0, digestWriterError(digestWriterNilReceiverDiagnostic)
@@ -74,6 +74,10 @@ func (w *DigestWriter) Write(data []byte) (int, error) {
 	}
 	if w.sealed {
 		w.err = digestWriterError(digestWriterSealedDiagnostic)
+		return 0, w.err
+	}
+	if w.count > math.MaxInt64 || uint64(len(data)) > math.MaxInt64-w.count {
+		w.err = numericOverflow("digest byte count exceeds Go's signed size domain")
 		return 0, w.err
 	}
 	written, _ := w.digest.Write(data)

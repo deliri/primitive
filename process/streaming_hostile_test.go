@@ -5,145 +5,196 @@ import (
 	"context"
 	"errors"
 	"io"
-	"sync"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
 )
 
-// TestCommandStreamsRetainTwoIndependentLimitFailures is the direct helper
-// ratchet for concurrent output faults. A real child is stopped after the
-// first observed stream failure, so only this owned seam can deterministically
-// prove that two failures already delivered to the writers remain distinct.
-func TestCommandStreamsRetainTwoIndependentLimitFailures(t *testing.T) {
+// A real child is stopped after the first output failure. This owned writer
+// seam deterministically checks failures already delivered to both writers.
+func TestCommandStreamsRetainIndependentLimitFailuresLayerTriad(t *testing.T) {
 	t.Parallel()
-
-	limit, err := core.NewByteCount(8)
-	if err != nil {
-		t.Fatalf("core.NewByteCount() error = %v, want nil", err)
+	cases := []struct {
+		name           string
+		stdout, stderr int
+	}{
+		{name: "neutral/empty streams fabricate no failure"},
+		{name: "positive/both streams admit their complete bounds", stdout: 8, stderr: 8},
+		{name: "negative/stdout overflow preserves stderr success", stdout: 9, stderr: 8},
+		{name: "negative/stderr overflow preserves stdout success", stdout: 8, stderr: 9},
+		{name: "negative/two overflows retain two independent causes", stdout: 9, stderr: 9},
 	}
-	ctx, cancel := context.WithCancelCause(context.Background())
-	failures := &streamFailures{cancel: cancel}
-	streams := newCommandStreams(Request{
-		Streams:     Streams{Stdin: bytes.NewReader(nil), Stdout: io.Discard, Stderr: io.Discard},
-		OutputLimit: limit,
-	}, failures)
-	if count, gotErr := streams.stdout.Write(make([]byte, 9)); count != 8 || !errors.Is(gotErr, core.ErrProcessOutputLimit) {
-		t.Fatalf("stdout bounded write = (%d, %v), want 8 and %v", count, gotErr, core.ErrProcessOutputLimit)
-	}
-	if count, gotErr := streams.stderr.Write(make([]byte, 9)); count != 8 || !errors.Is(gotErr, core.ErrProcessOutputLimit) {
-		t.Fatalf("stderr bounded write = (%d, %v), want 8 and %v", count, gotErr, core.ErrProcessOutputLimit)
-	}
-	gotErr := failures.joined()
-	if failures.values[StreamStdout] == nil || failures.values[StreamStderr] == nil || !errors.Is(gotErr, core.ErrProcessOutputLimit) {
-		t.Fatalf("joined stream failures = stdout:%v stderr:%v joined:%v, want two retained output-limit failures", failures.values[StreamStdout], failures.values[StreamStderr], gotErr)
-	}
-	if !errors.Is(context.Cause(ctx), core.ErrProcessOutputLimit) {
-		t.Fatalf("stream cancellation cause = %v, want %v", context.Cause(ctx), core.ErrProcessOutputLimit)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			limit, err := core.NewByteCount(8)
+			if err != nil {
+				t.Fatal(err)
+			}
+			ctx, cancel := context.WithCancelCause(t.Context())
+			defer cancel(nil)
+			failures := &streamFailures{cancel: cancel}
+			var stdout, stderr bytes.Buffer
+			streams := newCommandStreams(Request{Streams: Streams{Stdin: bytes.NewReader(nil), Stdout: &stdout, Stderr: &stderr}, OutputLimit: limit}, failures)
+			outputs := []struct {
+				stream      Stream
+				writer      *boundedWriter
+				destination *bytes.Buffer
+				size        int
+			}{
+				{StreamStdout, streams.stdout, &stdout, tc.stdout},
+				{StreamStderr, streams.stderr, &stderr, tc.stderr},
+			}
+			for _, output := range outputs {
+				payload := bytes.Repeat([]byte{byte(output.stream)}, output.size)
+				count, err := output.writer.Write(payload)
+				want := min(output.size, 8)
+				if count != want || output.writer.count != uint64(want) || !bytes.Equal(output.destination.Bytes(), payload[:want]) {
+					t.Fatalf("%v write=%d counter=%d payload=%q; want exact %d-byte prefix", output.stream, count, output.writer.count, output.destination.Bytes(), want)
+				}
+				if output.size <= 8 {
+					if err != nil || failures.values[output.stream] != nil {
+						t.Fatalf("in-bound %v fabricated failure: %v/%v", output.stream, err, failures.values[output.stream])
+					}
+				} else {
+					var exceeded OutputLimitExceeded
+					if !errors.Is(err, core.ErrProcessOutputLimit) || !errors.As(err, &exceeded) || exceeded.Stream() != output.stream || exceeded.Limit() != limit || !errors.Is(failures.values[output.stream], err) || !errors.Is(failures.joined(), err) {
+						t.Fatalf("%v overflow lost typed detail or joined cause: %v / %v", output.stream, err, failures.joined())
+					}
+				}
+			}
+			overflow := tc.stdout > 8 || tc.stderr > 8
+			if overflow {
+				if !errors.Is(context.Cause(ctx), core.ErrProcessOutputLimit) {
+					t.Fatalf("overflow cancellation=%v", context.Cause(ctx))
+				}
+			} else if context.Cause(ctx) != nil || failures.joined() != nil {
+				t.Fatalf("successful writes fabricated cancellation=%v or failure=%v", context.Cause(ctx), failures.joined())
+			}
+		})
 	}
 }
 
-type zeroWriteRejectingDestination struct {
-	emptyWriteError error
-	writes          int
-}
+type emptyWriteRejectingDestination struct{ calls int }
 
-type invalidCountAndErrorDestination struct {
-	cause error
-}
-
-type emptyForeverReader struct{}
-
-func (emptyForeverReader) Read([]byte) (int, error) { return 0, nil }
-
-func (w invalidCountAndErrorDestination) Write(buffer []byte) (int, error) {
-	return len(buffer) + 1, w.cause
-}
-
-func (w *zeroWriteRejectingDestination) Write(buffer []byte) (int, error) {
-	if len(buffer) == 0 {
-		return 0, w.emptyWriteError
+func (w *emptyWriteRejectingDestination) Write(payload []byte) (int, error) {
+	w.calls++
+	if len(payload) == 0 {
+		return 0, io.ErrClosedPipe
 	}
-	w.writes++
-	return len(buffer), nil
+	return len(payload), nil
 }
 
-// TestBoundedWriterDoesNotForwardAnEmptyPrefix proves an exactly full output
-// bound cannot be converted into a destination failure by a later write. The
-// destination owns empty-write behavior; Process must not call it when no byte
-// remains admissible.
-func TestBoundedWriterDoesNotForwardAnEmptyPrefix(t *testing.T) {
+func TestBoundedWriterEmptyPrefixLayerTriad(t *testing.T) {
 	t.Parallel()
-
-	emptyWriteError := errors.New("destination rejects an empty write")
-	destination := &zeroWriteRejectingDestination{emptyWriteError: emptyWriteError}
-	ctx, cancel := context.WithCancelCause(context.Background())
-	limit, err := core.NewByteCount(3)
-	if err != nil {
-		t.Fatalf("core.NewByteCount() error = %v, want nil", err)
+	cases := []struct {
+		name                  string
+		first, second         []byte
+		wantSecond, wantCalls int
+		wantErr               error
+	}{
+		{name: "neutral/empty first and second writes never touch caller"},
+		{name: "positive/remaining byte reaches caller", first: []byte("ab"), second: []byte("c"), wantSecond: 1, wantCalls: 2},
+		{name: "neutral/empty write at exact capacity remains empty", first: []byte("abc"), wantCalls: 1},
+		{name: "negative/overflow at capacity cannot call empty destination", first: []byte("abc"), second: []byte("d"), wantCalls: 1, wantErr: core.ErrProcessOutputLimit},
+		{name: "negative/partial prefix forwards only remaining capacity", first: []byte("ab"), second: []byte("cd"), wantSecond: 1, wantCalls: 2, wantErr: core.ErrProcessOutputLimit},
 	}
-	failures := &streamFailures{cancel: cancel}
-	writer := &boundedWriter{
-		destination: destination,
-		failures:    failures,
-		writeMu:     &sync.Mutex{},
-		limit:       limit,
-		stream:      StreamStdout,
-	}
-
-	if count, writeErr := writer.Write([]byte("abc")); count != 3 || writeErr != nil {
-		t.Fatalf("first bounded write = (%d, %v), want (3, nil)", count, writeErr)
-	}
-	count, writeErr := writer.Write([]byte("d"))
-	if count != 0 || !errors.Is(writeErr, core.ErrProcessOutputLimit) {
-		t.Fatalf("overflowing bounded write = (%d, %v), want zero and %v", count, writeErr, core.ErrProcessOutputLimit)
-	}
-	if errors.Is(writeErr, emptyWriteError) || errors.Is(context.Cause(ctx), emptyWriteError) {
-		t.Fatalf("overflowing bounded write reached the empty destination path: write %v, cause %v", writeErr, context.Cause(ctx))
-	}
-	if destination.writes != 1 {
-		t.Fatalf("destination nonempty writes = %d, want 1", destination.writes)
-	}
-}
-
-// TestForwardFullWritePreservesInvalidCountAndNativeFailure proves a hostile
-// destination cannot make Process discard its native cause by returning an
-// impossible count at the same time. Both facts are necessary to diagnose the
-// caller boundary.
-func TestForwardFullWritePreservesInvalidCountAndNativeFailure(t *testing.T) {
-	t.Parallel()
-
-	native := errors.New("destination failed while reporting an invalid count")
-	retained := uint64(0)
-	count, err := forwardFullWrite(
-		invalidCountAndErrorDestination{cause: native},
-		&retained,
-		[]byte("payload"),
-	)
-	if count != 0 || retained != 0 ||
-		!errors.Is(err, io.ErrShortWrite) || !errors.Is(err, native) {
-		t.Fatalf("forwardFullWrite() = (%d, retained %d, %v), want zero, zero, %v, and native cause", count, retained, err, io.ErrShortWrite)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			limit, err := core.NewByteCount(3)
+			if err != nil {
+				t.Fatal(err)
+			}
+			ctx, cancel := context.WithCancelCause(t.Context())
+			defer cancel(nil)
+			destination := &emptyWriteRejectingDestination{}
+			failures := &streamFailures{cancel: cancel}
+			streams := newCommandStreams(Request{Streams: Streams{Stdin: bytes.NewReader(nil), Stdout: destination, Stderr: io.Discard}, OutputLimit: limit}, failures)
+			count, err := streams.stdout.Write(tc.first)
+			if count != len(tc.first) || err != nil {
+				t.Fatalf("initial write=%d, %v; want %d, nil", count, err, len(tc.first))
+			}
+			count, err = streams.stdout.Write(tc.second)
+			if count != tc.wantSecond || !errors.Is(err, tc.wantErr) || destination.calls != tc.wantCalls || streams.stdout.count != uint64(len(tc.first)+tc.wantSecond) || errors.Is(err, io.ErrClosedPipe) || errors.Is(context.Cause(ctx), io.ErrClosedPipe) {
+				t.Fatalf("later write=%d, %v; calls=%d counter=%d; want %d, %v calls=%d exact counter", count, err, destination.calls, streams.stdout.count, tc.wantSecond, tc.wantErr, tc.wantCalls)
+			}
+		})
 	}
 }
 
-func TestObservedReaderRefusesUnendingEmptyStdin(t *testing.T) {
-	t.Parallel()
+// The schedule controls consecutive empty reads; a single actual byte must
+// reset that budget, and EOF must never count as no progress.
+type progressScheduleReader struct {
+	empty    int
+	data     bool
+	terminal error
+}
 
-	ctx, cancel := context.WithCancelCause(context.Background())
-	failures := &streamFailures{cancel: cancel}
-	reader := &observedReader{
-		source: emptyForeverReader{}, failures: failures,
+func (r *progressScheduleReader) Read(payload []byte) (int, error) {
+	if r.empty > 0 {
+		r.empty--
+		return 0, nil
 	}
-	var gotErr error
-	for range core.ReaderConsecutiveEmptyReadMaximum {
-		_, gotErr = reader.Read(make([]byte, 1))
+	if r.data {
+		r.data = false
+		payload[0] = 'x'
+		return 1, nil
 	}
-	if !errors.Is(gotErr, io.ErrNoProgress) {
-		t.Fatalf("observedReader.Read(empty stdin) error = %v, want %v",
-			gotErr, io.ErrNoProgress)
+	return 0, r.terminal
+}
+func TestObservedReaderNoProgressLayerTriad(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name      string
+		empty     int
+		data      bool
+		terminal  error
+		calls     int
+		wantCount uint64
+		wantErr   error
+	}{
+		{name: "neutral/immediate EOF is not a failure", terminal: io.EOF, calls: 1, wantErr: io.EOF},
+		{name: "boundary/EOF below empty-read limit remains EOF", empty: core.ReaderConsecutiveEmptyReadMaximum - 1, terminal: io.EOF, calls: core.ReaderConsecutiveEmptyReadMaximum, wantErr: io.EOF},
+		{name: "positive/byte at last admissible read resets budget", empty: core.ReaderConsecutiveEmptyReadMaximum - 1, data: true, calls: 2*core.ReaderConsecutiveEmptyReadMaximum - 1, wantCount: 1},
+		{name: "negative/exact empty-read limit cancels", empty: core.ReaderConsecutiveEmptyReadMaximum, calls: core.ReaderConsecutiveEmptyReadMaximum, wantErr: io.ErrNoProgress},
+		{name: "negative/read failure remains original cause", terminal: io.ErrClosedPipe, calls: 1, wantErr: io.ErrClosedPipe},
 	}
-	if !errors.Is(context.Cause(ctx), io.ErrNoProgress) {
-		t.Fatalf("process cancellation cause = %v, want %v",
-			context.Cause(ctx), io.ErrNoProgress)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			ctx, cancel := context.WithCancelCause(t.Context())
+			defer cancel(nil)
+			source := &progressScheduleReader{empty: tc.empty, data: tc.data, terminal: tc.terminal}
+			failures := &streamFailures{cancel: cancel}
+			reader := &observedReader{source: source, failures: failures}
+			var err error
+			var payload [1]byte
+			observed := uint64(0)
+			for i := range tc.calls {
+				var count int
+				count, err = reader.Read(payload[:])
+				if count < 0 || count > 1 {
+					t.Fatalf("impossible observed count=%d", count)
+				}
+				observed += uint64(count)
+				if count == 1 && payload[0] != 'x' {
+					t.Fatalf("read changed source byte=%x", payload[0])
+				}
+				if i < tc.calls-1 && err != nil {
+					t.Fatalf("premature read %d error=%v", i, err)
+				}
+			}
+			if !errors.Is(err, tc.wantErr) || reader.count != tc.wantCount || observed != tc.wantCount {
+				t.Fatalf("read=%v observed=%d counter=%d; want %v and %d", err, observed, reader.count, tc.wantErr, tc.wantCount)
+			}
+			if tc.wantErr == nil || errors.Is(tc.wantErr, io.EOF) {
+				if context.Cause(ctx) != nil || failures.joined() != nil {
+					t.Fatalf("admitted progress fabricated failure=%v/%v", context.Cause(ctx), failures.joined())
+				}
+			} else if !errors.Is(context.Cause(ctx), tc.wantErr) || !errors.Is(failures.joined(), tc.wantErr) {
+				t.Fatalf("read failure lost cancellation/join identity=%v/%v", context.Cause(ctx), failures.joined())
+			}
+		})
 	}
 }

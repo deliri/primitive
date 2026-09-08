@@ -1,7 +1,11 @@
 package core_test
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
+	"path/filepath"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -25,7 +29,7 @@ func BenchmarkParsePathComponent(b *testing.B) {
 }
 
 func BenchmarkParseRelativePath(b *testing.B) {
-	const value = "stable/child"
+	value := filepath.Join("stable", "child")
 	var wantErr error
 	b.ReportAllocs()
 	var last core.RelativePath
@@ -44,6 +48,10 @@ func BenchmarkParseRelativePath(b *testing.B) {
 func BenchmarkDecodeCanonicalHexSHA256(b *testing.B) {
 	const value = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 	destination := make([]byte, core.SHA256DigestBytes)
+	want, err := hex.DecodeString(value)
+	if err != nil {
+		b.Fatal(err)
+	}
 	var wantErr error
 	b.ReportAllocs()
 	for b.Loop() {
@@ -52,41 +60,42 @@ func BenchmarkDecodeCanonicalHexSHA256(b *testing.B) {
 			b.Fatalf("core.DecodeCanonicalHex() error = %v, want %v", err, wantErr)
 		}
 	}
-}
-
-func BenchmarkDigestWriter1KiB(b *testing.B) {
-	b.ReportAllocs()
-	benchmarkDigestWriter(b, 1<<10)
-}
-
-func BenchmarkDigestWriter1MiB(b *testing.B) {
-	b.ReportAllocs()
-	benchmarkDigestWriter(b, 1<<20)
-}
-
-func benchmarkDigestWriter(b *testing.B, size int) {
-	b.Helper()
-	payload := make([]byte, size)
-	for index := range payload {
-		payload[index] = 0xa5
+	if !bytes.Equal(destination, want) {
+		b.Fatalf("decoded=%x; want %x", destination, want)
 	}
-	var wantErr error
+}
+
+func BenchmarkDigestWriter(b *testing.B) {
 	b.ReportAllocs()
-	b.SetBytes(int64(size))
-	var last core.SHA256Digest
-	for b.Loop() {
-		writer := core.NewDigestWriter()
-		n, err := writer.Write(payload)
-		if !errors.Is(err, wantErr) || n != size {
-			b.Fatalf("DigestWriter.Write() = (%d, %v), want %d and %v", n, err, size, wantErr)
-		}
-		digest, _, err := writer.Seal()
-		if !errors.Is(err, wantErr) {
-			b.Fatalf("DigestWriter.Seal() error = %v, want %v", err, wantErr)
-		}
-		last = digest
+	cases := []struct {
+		name string
+		size int
+	}{
+		{name: "1KiB", size: 1 << 10},
+		{name: "1MiB", size: 1 << 20},
 	}
-	if last == (core.SHA256Digest{}) {
-		b.Fatalf("sealed digest=%v, want the hashed payload", last)
+	for _, tc := range cases {
+		b.Run(tc.name, func(b *testing.B) {
+			payload := bytes.Repeat([]byte{0xa5}, tc.size)
+			want := core.NewSHA256Digest(sha256.Sum256(payload))
+			b.ReportAllocs()
+			b.SetBytes(int64(tc.size))
+			var got core.SHA256Digest
+			var count core.ByteLength
+			for b.Loop() {
+				writer := core.NewDigestWriter()
+				n, err := writer.Write(payload)
+				if err != nil || n != tc.size {
+					b.Fatalf("write=%d, %v; want %d, nil", n, err, tc.size)
+				}
+				got, count, err = writer.Seal()
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+			if got != want || count.Uint64() != uint64(tc.size) {
+				b.Fatalf("sealed=%v, %v; want %v, %d", got, count, want, tc.size)
+			}
+		})
 	}
 }

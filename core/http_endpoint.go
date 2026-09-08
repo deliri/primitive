@@ -9,7 +9,10 @@ import (
 
 const (
 	// httpEndpointMaximumBytes bounds one absolute HTTP target.
-	httpEndpointMaximumBytes       = 16 * 1024
+	httpEndpointMaximumBytes = 16 * 1024
+	// A percent-encoded byte has the fixed URI spelling %HH. This is a
+	// conservative extent bound; net/url still owns all actual escaping.
+	httpPercentEncodedByteWidth    = len("%HH")
 	httpSchemeText                 = "http"
 	httpDefaultPortText            = "80"
 	httpsDefaultPortText           = "443"
@@ -55,6 +58,13 @@ func ParseHTTPEndpoint(value string) (HTTPEndpoint, error) {
 	}
 	if err := validateHTTPURL(parsed); err != nil {
 		return HTTPEndpoint{}, err
+	}
+	// The admitted hierarchical HTTP form already has its scheme and authority
+	// delimiters. Go can only preserve bytes or percent-encode them as %HH;
+	// it has no user-info, opaque body or fragment to introduce here. Short
+	// input therefore cannot overflow, without constructing another string.
+	if len(value) > httpEndpointMaximumBytes/httpPercentEncodedByteWidth && len(parsed.String()) > httpEndpointMaximumBytes {
+		return HTTPEndpoint{}, httpContractError("HTTP endpoint canonical projection exceeds the byte limit")
 	}
 	return HTTPEndpoint{value: *parsed, set: true}, nil
 }

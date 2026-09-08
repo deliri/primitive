@@ -329,13 +329,14 @@ func (p AbsolutePath) JoinRelative(relative RelativePath) (AbsolutePath, error) 
 // is cleaned and admitted as itself, everything else is cleaned and admitted
 // against the base, with climbs clamped at the filesystem root by the same
 // rule the kernel uses. Empty text is refused rather than silently meaning
-// the base itself.
+// the base itself. Raw text must satisfy UTF-8, NUL and rune bounds before
+// cleaning; parent segments cannot erase invalid ingress.
 func (p AbsolutePath) ResolveText(value string) (AbsolutePath, error) {
 	if err := p.Validate(); err != nil {
 		return AbsolutePath{}, err
 	}
-	if value == "" {
-		return AbsolutePath{}, filesystemPathError("path text is empty")
+	if err := validateFilesystemPathText(value); err != nil {
+		return AbsolutePath{}, err
 	}
 	if filepath.IsAbs(value) {
 		return ParseAbsolutePath(filepath.Clean(value))

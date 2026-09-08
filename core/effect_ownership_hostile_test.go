@@ -31,6 +31,7 @@ const (
 	realWorldSubstrateGoogleSecretManager
 	realWorldSubstrateNetwork
 	realWorldSubstrateContextDeadline
+	realWorldSubstrateSyscall
 	realWorldSubstrateLimit
 )
 
@@ -52,6 +53,7 @@ const (
 	realWorldGoogleSecretManagerPath   = "cloud.google.com/go/secretmanager/apiv1"
 	realWorldNetworkPath               = "net"
 	realWorldContextDeadlinePath       = "context"
+	realWorldSyscallPath               = "syscall"
 )
 
 type realWorldImportContract struct {
@@ -157,6 +159,26 @@ func execute(ctx context.Context) { _, _ = http.NewRequestWithContext(ctx, "GET"
 `)},
 			wantImports: []realWorldImportUse{{owner: PackageRelease, substrate: realWorldSubstrateHTTP}},
 			wantCalls:   []realWorldCallUse{{owner: PackageRelease, substrate: realWorldSubstrateHTTP, selector: "NewRequestWithContext", count: 1}},
+			wantErr:     ErrPrimitiveContract,
+		},
+
+		{
+			name: "positive Process owns Go native liveness wait",
+			source: realWorldSource{owner: PackageProcess, name: "alive.go", source: []byte(`package process
+import "syscall"
+func observe(h syscall.Handle) { _, _ = syscall.WaitForSingleObject(h, 0) }
+`)},
+			wantImports: []realWorldImportUse{{owner: PackageProcess, substrate: realWorldSubstrateSyscall}},
+			wantCalls:   []realWorldCallUse{{owner: PackageProcess, substrate: realWorldSubstrateSyscall, selector: "WaitForSingleObject", count: 1}},
+		},
+		{
+			name: "negative Release cannot reach Process native wait",
+			source: realWorldSource{owner: PackageRelease, name: "alive.go", source: []byte(`package release
+import "syscall"
+func observe(h syscall.Handle) { _, _ = syscall.WaitForSingleObject(h, 0) }
+`)},
+			wantImports: []realWorldImportUse{{owner: PackageRelease, substrate: realWorldSubstrateSyscall}},
+			wantCalls:   []realWorldCallUse{{owner: PackageRelease, substrate: realWorldSubstrateSyscall, selector: "WaitForSingleObject", count: 1}},
 			wantErr:     ErrPrimitiveContract,
 		},
 		{
@@ -394,6 +416,8 @@ func parseRealWorldSubstrate(path string) realWorldSubstrate {
 		return realWorldSubstrateGoogleSecretManager
 	case realWorldNetworkPath:
 		return realWorldSubstrateNetwork
+	case realWorldSyscallPath:
+		return realWorldSubstrateSyscall
 	case realWorldContextDeadlinePath:
 		return realWorldSubstrateContextDeadline
 	default:
@@ -411,12 +435,13 @@ func declaredRealWorldImports() (realWorldImportInventory, error) {
 		realWorldImportOwners(realWorldSubstrateHTTP, PackageExchange),
 		realWorldImportOwners(realWorldSubstrateClock, PackageGoogleIdentity, PackageTemporal, PackageTimeProof),
 		realWorldImportOwners(realWorldSubstrateEntropy, PackageKeygen),
-		realWorldImportOwners(realWorldSubstrateUnix, PackageFileLock, PackageHostFacts, PackageProcess),
-		realWorldImportOwners(realWorldSubstrateWindows, PackageFileLock, PackageHostFacts, PackageProcess),
+		realWorldImportOwners(realWorldSubstrateUnix, PackageFileLock, PackageHostFacts),
+		realWorldImportOwners(realWorldSubstrateWindows, PackageFileLock, PackageHostFacts),
 		realWorldImportOwners(realWorldSubstrateGoogleCloudStorage, PackageGCSObjects),
 		realWorldImportOwners(realWorldSubstrateGoogleIAMCredentials, PackageGCSObjects),
 		realWorldImportOwners(realWorldSubstrateGoogleSecretManager, PackageSecretStore),
 		realWorldImportOwners(realWorldSubstrateNetwork, PackageExchange, PackageGCSObjects),
+		realWorldImportOwners(realWorldSubstrateSyscall, PackageCore, PackageFilestore, PackageProcess, PackageShutdown),
 	}
 	var inventory realWorldImportInventory
 	for _, contract := range contracts {
@@ -454,7 +479,6 @@ func declaredRealWorldCalls() (realWorldCallInventory, error) {
 		{owner: PackageHostFacts, substrate: realWorldSubstrateOperatingSystem, selector: "UserCacheDir", count: 1},
 		{owner: PackageHostFacts, substrate: realWorldSubstrateOperatingSystem, selector: "UserConfigDir", count: 1},
 		{owner: PackageHostFacts, substrate: realWorldSubstrateOperatingSystem, selector: "UserHomeDir", count: 1},
-		{owner: PackageGoToolchain, substrate: realWorldSubstrateOperatingSystem, selector: "OpenInRoot", count: 1},
 		{owner: PackageProcess, substrate: realWorldSubstrateOperatingSystem, selector: "Getpid", count: 1},
 		{owner: PackageProcess, substrate: realWorldSubstrateProcessExecution, selector: "CommandContext", count: 1},
 		{owner: PackageProcess, substrate: realWorldSubstrateProcessExecution, selector: "LookPath", count: 2},
@@ -484,7 +508,13 @@ func declaredRealWorldCalls() (realWorldCallInventory, error) {
 		{owner: PackageHostFacts, substrate: realWorldSubstrateUnix, selector: "Minor", count: 1},
 		{owner: PackageHostFacts, substrate: realWorldSubstrateUnix, selector: "SysctlUint64", count: 1},
 		{owner: PackageHostFacts, substrate: realWorldSubstrateUnix, selector: "Sysinfo", count: 1},
-		{owner: PackageProcess, substrate: realWorldSubstrateUnix, selector: "Kill", count: 3},
+		{owner: PackageFilestore, substrate: realWorldSubstrateSyscall, selector: "GetFileInformationByHandle", count: 1},
+		{owner: PackageFilestore, substrate: realWorldSubstrateSyscall, selector: "Handle", count: 1},
+		{owner: PackageFilestore, substrate: realWorldSubstrateSyscall, selector: "SetNonblock", count: 1},
+		{owner: PackageFilestore, substrate: realWorldSubstrateSyscall, selector: "UTF16PtrFromString", count: 1},
+		{owner: PackageFilestore, substrate: realWorldSubstrateSyscall, selector: "CreateFile", count: 1},
+		{owner: PackageFilestore, substrate: realWorldSubstrateSyscall, selector: "CloseHandle", count: 1},
+		{owner: PackageProcess, substrate: realWorldSubstrateSyscall, selector: "Kill", count: 3},
 		{owner: PackageFileLock, substrate: realWorldSubstrateWindows, selector: "Handle", count: 2},
 		{owner: PackageFileLock, substrate: realWorldSubstrateWindows, selector: "LockFileEx", count: 1},
 		{owner: PackageFileLock, substrate: realWorldSubstrateWindows, selector: "UnlockFileEx", count: 1},
@@ -493,13 +523,13 @@ func declaredRealWorldCalls() (realWorldCallInventory, error) {
 		{owner: PackageHostFacts, substrate: realWorldSubstrateWindows, selector: "GetFinalPathNameByHandle", count: 2},
 		{owner: PackageHostFacts, substrate: realWorldSubstrateWindows, selector: "Handle", count: 3},
 		{owner: PackageHostFacts, substrate: realWorldSubstrateWindows, selector: "UTF16PtrFromString", count: 1},
-		{owner: PackageProcess, substrate: realWorldSubstrateWindows, selector: "CloseHandle", count: 2},
-		{owner: PackageProcess, substrate: realWorldSubstrateWindows, selector: "CreateToolhelp32Snapshot", count: 1},
-		{owner: PackageProcess, substrate: realWorldSubstrateWindows, selector: "GetExitCodeProcess", count: 1},
-		{owner: PackageProcess, substrate: realWorldSubstrateWindows, selector: "OpenProcess", count: 1},
-		{owner: PackageProcess, substrate: realWorldSubstrateWindows, selector: "Process32First", count: 1},
-		{owner: PackageProcess, substrate: realWorldSubstrateWindows, selector: "Process32Next", count: 1},
-		{owner: PackageProcess, substrate: realWorldSubstrateWindows, selector: "UTF16ToString", count: 1},
+		{owner: PackageProcess, substrate: realWorldSubstrateSyscall, selector: "CloseHandle", count: 2},
+		{owner: PackageProcess, substrate: realWorldSubstrateSyscall, selector: "CreateToolhelp32Snapshot", count: 1},
+		{owner: PackageProcess, substrate: realWorldSubstrateSyscall, selector: "WaitForSingleObject", count: 1},
+		{owner: PackageProcess, substrate: realWorldSubstrateSyscall, selector: "OpenProcess", count: 1},
+		{owner: PackageProcess, substrate: realWorldSubstrateSyscall, selector: "Process32First", count: 1},
+		{owner: PackageProcess, substrate: realWorldSubstrateSyscall, selector: "Process32Next", count: 1},
+		{owner: PackageProcess, substrate: realWorldSubstrateSyscall, selector: "UTF16ToString", count: 1},
 		{owner: PackageGCSObjects, substrate: realWorldSubstrateGoogleCloudStorage, selector: "NewClient", count: 1},
 		{owner: PackageGCSObjects, substrate: realWorldSubstrateGoogleCloudStorage, selector: "SignedURL", count: 2},
 		{owner: PackageGCSObjects, substrate: realWorldSubstrateGoogleCloudStorage, selector: "WithJSONReads", count: 1},

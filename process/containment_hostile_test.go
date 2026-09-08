@@ -7,7 +7,6 @@ import (
 	"io"
 	"math"
 	"testing"
-	"time"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/process"
@@ -233,7 +232,7 @@ func TestZeroContainmentCancellationActuallyKillsTheChild(t *testing.T) {
 	select {
 	case <-ready:
 		cancel()
-	case <-time.After(processTestBackstop):
+	case <-processTestDeadline(t, processTestBackstop):
 		t.Fatalf("child readiness wait reached %s, want readiness first", processTestBackstop)
 	}
 
@@ -243,7 +242,7 @@ func TestZeroContainmentCancellationActuallyKillsTheChild(t *testing.T) {
 			t.Fatalf("zero-containment cancelled Run error = %v, want %v and %v",
 				got.err, context.Canceled, core.ErrProcessWait)
 		}
-	case <-time.After(processTestBackstop):
+	case <-processTestDeadline(t, processTestBackstop):
 		t.Fatalf("zero-containment cancelled Run reached %s, want the defaulted kill to reap the child", processTestBackstop)
 	}
 }

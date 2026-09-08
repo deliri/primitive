@@ -15,26 +15,37 @@ import (
 // it is a caller defect to report, not a crash.
 func TestExecutionRefusesAHandleThatSkippedBegin(t *testing.T) {
 	t.Parallel()
-
-	for _, handle := range []*Execution{nil, new(Execution)} {
-		if err := handle.Deliver(CancelSignalKill); !errors.Is(err, core.ErrProcessContract) {
-			t.Fatalf("Deliver(unstarted %v) error = %v, want errors.Is %v", handle, err, core.ErrProcessContract)
-		}
-		if err := handle.Terminate(); !errors.Is(err, core.ErrProcessContract) {
-			t.Fatalf("Terminate(unstarted %v) error = %v, want errors.Is %v", handle, err, core.ErrProcessContract)
-		}
-		result, err := handle.Wait()
-		if !errors.Is(err, core.ErrProcessContract) {
-			t.Fatalf("Wait(unstarted %v) error = %v, want errors.Is %v", handle, err, core.ErrProcessContract)
-		}
-		if err := result.Validate(); !errors.Is(err, core.ErrProcessContract) {
-			t.Fatalf("Wait(unstarted %v) result validation error = %v, want errors.Is %v", handle, err, core.ErrProcessContract)
-		}
+	cases := []struct {
+		name   string
+		handle *Execution
+	}{
+		{name: "negative/nil handle cannot supervise a child"},
+		{name: "neutral/allocated zero handle is not a begun execution", handle: new(Execution)},
 	}
-
-	for _, handle := range []*Execution{nil, new(Execution)} {
-		if _, err := handle.Identity(); !errors.Is(err, core.ErrProcessContract) {
-			t.Fatalf("Identity(unstarted %v) error = %v, want errors.Is %v", handle, err, core.ErrProcessContract)
-		}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if err := tc.handle.Deliver(CancelSignalKill); !errors.Is(err, core.ErrProcessContract) {
+				t.Fatalf("Deliver=%v; want contract refusal", err)
+			}
+			if err := tc.handle.Terminate(); !errors.Is(err, core.ErrProcessContract) {
+				t.Fatalf("Terminate=%v; want contract refusal", err)
+			}
+			if err := tc.handle.Sweep(); !errors.Is(err, core.ErrProcessContract) {
+				t.Fatalf("Sweep=%v; want contract refusal", err)
+			}
+			identity, err := tc.handle.Identity()
+			if identity != 0 || !errors.Is(err, core.ErrProcessContract) {
+				t.Fatalf("Identity=%v, %v; want zero and contract refusal", identity, err)
+			}
+			result, err := tc.handle.Wait()
+			if result != (Result{}) || !errors.Is(err, core.ErrProcessContract) {
+				t.Fatalf("Wait=%+v, %v; want zero and contract refusal", result, err)
+			}
+			again, againErr := tc.handle.Wait()
+			if again != (Result{}) || !errors.Is(againErr, core.ErrProcessContract) {
+				t.Fatalf("repeated Wait=%+v, %v; refusal must not admit the zero handle", again, againErr)
+			}
+		})
 	}
 }

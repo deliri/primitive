@@ -68,8 +68,7 @@ func beginValidated(ctx context.Context, request Request) (*Execution, error) {
 		// must not orphan it: the cancel delivers the kill and the wait reaps
 		// the corpse, because no Execution will exist to do either later.
 		cancel(nil)
-		_ = prepared.command.Wait()
-		return nil, identityErr
+		return nil, errors.Join(identityErr, prepared.command.Wait())
 	}
 	return &Execution{
 		prepared:    prepared,
@@ -213,19 +212,20 @@ func newResult(
 		return Result{}, err
 	}
 	peakMemory, err := peakMemoryBytes(state)
-	if err != nil {
+	if err != nil && !errors.Is(err, core.ErrProcessUnsupported) {
 		return Result{}, err
 	}
 	signal, signalReported := observedTerminationSignal(state)
 	return Result{
-		exit:           exit,
-		cpu:            cpu,
-		stdinBytes:     stdinBytes,
-		stdoutBytes:    stdoutBytes,
-		stderrBytes:    stderrBytes,
-		peakMemory:     peakMemory,
-		signal:         signal,
-		signalReported: signalReported,
-		set:            true,
+		exit:               exit,
+		cpu:                cpu,
+		stdinBytes:         stdinBytes,
+		stdoutBytes:        stdoutBytes,
+		stderrBytes:        stderrBytes,
+		peakMemory:         peakMemory,
+		peakMemoryReported: err == nil,
+		signal:             signal,
+		signalReported:     signalReported,
+		set:                true,
 	}, nil
 }

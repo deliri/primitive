@@ -353,7 +353,7 @@ func observedFileReference(t testing.TB, file sourceobservation.File) sourceobse
 	return sourceobservation.FileReference{Path: file.Path, Package: file.Package, ObservationDigest: digest}
 }
 
-func observedDeclaration(t testing.TB, name string, kind sourceobservation.DeclarationKind, line uint32) sourceobservation.Declaration {
+func observedDeclaration(t testing.TB, name string, kind sourceobservation.DeclarationKind, line uint64) sourceobservation.Declaration {
 	t.Helper()
 
 	symbol, err := sourceobservation.NewSymbol(name)

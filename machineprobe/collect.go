@@ -226,11 +226,7 @@ func executionFact(input executionFactInput) (runprotocol.MachineProbeExecution,
 	if err != nil {
 		return runprotocol.MachineProbeExecution{}, errors.Join(core.ErrHostFactsObservation, err)
 	}
-	exitCodeObservation, err := core.CheckedInt32FromInt(exitCode)
-	if err != nil {
-		return runprotocol.MachineProbeExecution{}, errors.Join(core.ErrHostFactsObservation, err)
-	}
-	if exitCode != 0 {
+	if int64(exitCode) != core.ProcessExitCodeSuccess {
 		return runprotocol.MachineProbeExecution{}, newFailure(failureInput{kind: FailureExit, exitCode: exitCode, stderr: input.stderr, cause: core.ErrHostFactsObservation})
 	}
 	cpu, err := input.result.CPUTime()
@@ -239,7 +235,7 @@ func executionFact(input executionFactInput) (runprotocol.MachineProbeExecution,
 	}
 	fact := runprotocol.MachineProbeExecution{
 		Bash: input.request.Bash, Script: input.request.Script, ScriptDigest: input.scriptDigest, ScriptBytes: input.scriptBytes, OutputLimit: input.limit,
-		ExitCode: exitCodeObservation, CPUTime: cpu,
+		ExitCode: int32(core.ProcessExitCodeSuccess), CPUTime: cpu,
 		StdoutDigest: core.SHA256Of(input.stdout),
 		StderrDigest: core.SHA256Of(input.stderr),
 	}

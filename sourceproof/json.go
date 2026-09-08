@@ -61,7 +61,7 @@ func (r *Result) UnmarshalJSON(data []byte) error {
 	if r == nil {
 		return errors.Join(core.ErrJSONContract, contractError(errors.New("source proof receiver is nil")))
 	}
-	wire, err := core.DecodeStrictJSONStructure[resultWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[resultWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrJSONContract, core.ErrSourceProofContract, err)
 	}
@@ -87,7 +87,7 @@ func (s *Summary) UnmarshalJSON(data []byte) error {
 	if s == nil {
 		return errors.Join(core.ErrJSONContract, contractError(errors.New("source proof summary receiver is nil")))
 	}
-	wire, err := core.DecodeStrictJSONStructure[summaryWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[summaryWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrJSONContract, core.ErrSourceProofContract, err)
 	}

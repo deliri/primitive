@@ -147,8 +147,8 @@ func TestCapabilityProductionPathLayerTriad(t *testing.T) {
 			t.Fatalf("gomodule.ParseImportPath(analysisbroken) error = %v, want nil", pathErr)
 		}
 		got, gotErr := capability.AnalyzePackage(context.Background(), gotoolchain.AnalysisRequest{WorkingDirectory: directory, Package: packagePath})
-		if !errors.Is(gotErr, core.ErrGoToolchainOutput) || len(got.Units) != 0 {
-			t.Fatalf("Capability.AnalyzePackage(ill typed) = (%v units, %v), want zero and errors.Is(..., %v)", len(got.Units), gotErr, core.ErrGoToolchainOutput)
+		if !errors.Is(gotErr, core.ErrGoToolchainOutput) || !got.Incomplete || len(got.Units) != 1 || !got.Units[0].IllTyped {
+			t.Fatalf("Capability.AnalyzePackage(ill typed) = (%v units, incomplete=%t, %v), want explicit partial facts and %v", len(got.Units), got.Incomplete, gotErr, core.ErrGoToolchainOutput)
 		}
 	})
 

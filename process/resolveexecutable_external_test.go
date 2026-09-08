@@ -256,7 +256,11 @@ func TestResolveExecutableAdmitsOnlyWhatTheHostWouldRun(t *testing.T) {
 				if err := os.Chmod(parent, 0o000); err != nil {
 					t.Fatalf("Chmod() error = %v, want nil", err)
 				}
-				t.Cleanup(func() { _ = os.Chmod(parent, 0o700) })
+				t.Cleanup(func() {
+					if err := os.Chmod(parent, 0o700); err != nil {
+						t.Errorf("restore owned directory permissions: %v", err)
+					}
+				})
 				return path, ""
 			},
 		},

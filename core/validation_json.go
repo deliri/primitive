@@ -6,6 +6,7 @@ import (
 	json "encoding/json/v2"
 	"errors"
 	"io"
+	"math"
 	"slices"
 	"strings"
 	"unicode"
@@ -68,7 +69,7 @@ func ValidateReceiveOnlyJSONProjection[
 	if err != nil {
 		return jsonContractError("validated json projection cannot be reencoded", err)
 	}
-	if err := validateInitialJSONEncoding(canonical); err != nil {
+	if err := validateInitialJSONEncoding(canonical, limits); err != nil {
 		return err
 	}
 	if !bytes.Equal(encoded, canonical) {
@@ -128,7 +129,7 @@ const (
 // StrictJSONLimits supplies positive, caller-owned bounds for one JSON
 // operation. The limits bound the input and Core's structural scan; they cannot
 // bound work performed by T's UnmarshalJSON or Validate methods. Callers may
-// choose limits at or below the package maxima.
+// choose byte and array extents independently of the bounded defaults.
 type StrictJSONLimits struct {
 	// DocumentMaximumBytes bounds the complete encoded document.
 	DocumentMaximumBytes ByteCount
@@ -137,7 +138,7 @@ type StrictJSONLimits struct {
 	// ObjectFieldMaximum bounds fields in each object.
 	ObjectFieldMaximum uint16
 	// ArrayItemMaximum bounds items in each array.
-	ArrayItemMaximum uint32
+	ArrayItemMaximum uint64
 }
 
 // DefaultStrictJSONLimits returns the documented bounded JSON policy.
@@ -150,12 +151,23 @@ func DefaultStrictJSONLimits() StrictJSONLimits {
 	}
 }
 
-// Validate rejects zero or globally unsupported JSON limits.
+// ExtensibleJSONLimits retains strict schema validation without product-size
+// byte or array ceilings. The byte bound reserves the reader's EOF probe; the
+// array counter uses the full extent of its representation. Allocations grow
+// with the actual current document, never with these numerical extents.
+func ExtensibleJSONLimits() StrictJSONLimits {
+	limits := DefaultStrictJSONLimits()
+	limits.DocumentMaximumBytes = ByteCount{value: uint64(math.MaxInt - 1)}
+	limits.ArrayItemMaximum = math.MaxUint64
+	return limits
+}
+
+// Validate rejects zero, unrepresentable byte extents, or unsupported schema depth.
 func (l StrictJSONLimits) Validate() error {
 	if err := l.DocumentMaximumBytes.Validate(); err != nil {
 		return jsonContractError(jsonDocumentByteLimitInvalidErrorText, err)
 	}
-	if l.DocumentMaximumBytes.value > JSONDocumentMaximumBytes {
+	if l.DocumentMaximumBytes.value > uint64(math.MaxInt-1) {
 		return jsonContractError("json document byte limit exceeds the supported maximum", nil)
 	}
 	if l.NestingDepthMaximum == 0 || l.NestingDepthMaximum > JSONNestingDepthMaximum {
@@ -164,7 +176,7 @@ func (l StrictJSONLimits) Validate() error {
 	if l.ObjectFieldMaximum == 0 || l.ObjectFieldMaximum > JSONObjectFieldCountMaximum {
 		return jsonContractError("json object field limit is outside the supported range", nil)
 	}
-	if l.ArrayItemMaximum == 0 || l.ArrayItemMaximum > jsonArrayItemCountMaximum {
+	if l.ArrayItemMaximum == 0 {
 		return jsonContractError("json array item limit is outside the supported range", nil)
 	}
 	return nil
@@ -190,10 +202,13 @@ func EncodeValidatedJSON[T ValidatedJSONMarshaler](value T, limits StrictJSONLim
 	if err != nil {
 		return nil, jsonContractError("validated json encoding failed", err)
 	}
-	if err := validateInitialJSONEncoding(encoded); err != nil {
+	if err := validateInitialJSONEncoding(encoded, limits); err != nil {
 		return nil, err
 	}
 	if projection, ok := any(value).(ValidatedJSONProjection); ok {
+		if err := validateStrictJSONTypedInput(encoded, limits); err != nil {
+			return nil, err
+		}
 		if err := validateJSONProjection(projection, encoded, limits); err != nil {
 			return nil, jsonContractError("validated json projection violates the strict wire contract", err)
 		}
@@ -248,7 +263,10 @@ func validateJSONValue(value Validatable) (err error) {
 	return value.Validate()
 }
 
-func validateInitialJSONEncoding(encoded []byte) error {
+func validateInitialJSONEncoding(encoded []byte, limits StrictJSONLimits) error {
+	if uint64(len(encoded)) > limits.DocumentMaximumBytes.value {
+		return jsonContractError(jsonDocumentLimitExceededErrorText, nil)
+	}
 	// doctrine:local-allowed=external-wire
 	if !jsontext.Value(encoded).IsValid() {
 		return jsonContractError("validated json marshaler emitted invalid json", nil)
@@ -341,7 +359,7 @@ func readStrictJSONDocument(reader io.Reader, limits StrictJSONLimits) ([]byte, 
 	if err != nil {
 		return nil, jsonContractError(jsonDocumentByteLimitInvalidErrorText, err)
 	}
-	maximumInt := int(maximum) // #nosec G115 -- limits.Validate caps this value at JSONDocumentMaximumBytes.
+	maximumInt := int(maximum) // #nosec G115 -- limits.Validate reserves one native byte for the EOF probe.
 	buffer := make([]byte, min(maximumInt+1, strictJSONReaderInitialBufferBytes))
 	used := 0
 	emptyReads := 0
@@ -351,11 +369,11 @@ func readStrictJSONDocument(reader io.Reader, limits StrictJSONLimits) ([]byte, 
 		}
 		count, readErr := reader.Read(buffer[used:])
 		if !strictJSONReadCountValid(count, len(buffer)-used) {
-			return nil, jsonContractError(jsonReaderCountInvalidErrorText, nil)
+			return nil, jsonContractError(jsonReaderCountInvalidErrorText, readErr)
 		}
 		used += count
 		if used > maximumInt {
-			return nil, jsonContractError(jsonDocumentLimitExceededErrorText, nil)
+			return nil, jsonContractError(jsonDocumentLimitExceededErrorText, readErr)
 		}
 		if readErr != nil {
 			return finishStrictJSONRead(buffer[:used], readErr)
@@ -396,7 +414,7 @@ type multiUnwrapper interface {
 }
 
 func growStrictJSONReadBuffer(buffer []byte, maximum int) []byte {
-	next := min(len(buffer)*2, maximum)
+	next := len(buffer) + min(len(buffer), maximum-len(buffer))
 	return append(buffer, make([]byte, next-len(buffer))...)
 }
 
@@ -472,7 +490,7 @@ func (strictJSONContainerKind) OffWireEnum() {}
 
 type strictJSONContainer struct {
 	keys      []string
-	itemCount uint32
+	itemCount uint64
 	kind      strictJSONContainerKind
 	expectKey bool
 }

@@ -9,10 +9,6 @@ import (
 )
 
 const (
-	// SourcePathMaximumBytes is the exact encoded byte ceiling for one
-	// repository-relative source identity. Providers use this compiler-owned
-	// value while incrementally decoding path streams.
-	SourcePathMaximumBytes         = 1024
 	repositoryIdentityMaximumBytes = 512
 )
 
@@ -67,7 +63,7 @@ func (p SourcePath) Validate() error {
 }
 
 func validSourcePathText(value string) bool {
-	return len(value) != 0 && len(value) <= SourcePathMaximumBytes && utf8.ValidString(value) && strings.TrimSpace(value) == value
+	return len(value) != 0 && utf8.ValidString(value) && strings.TrimSpace(value) == value
 }
 
 func slashCanonicalSourcePath(value string) bool {

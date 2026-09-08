@@ -21,8 +21,8 @@ func (s BuildSelection) Validate() error {
 type Declaration struct {
 	Name     Symbol          `json:"name"`
 	Kind     DeclarationKind `json:"kind"`
-	Line     uint32          `json:"line"`
-	Column   uint32          `json:"column"`
+	Line     uint64          `json:"line"`
+	Column   uint64          `json:"column"`
 	Exported bool            `json:"exported"`
 }
 
@@ -42,8 +42,8 @@ func (i Import) Validate() error { return i.Path.Validate() }
 type Effect struct {
 	Name   EffectName `json:"name"`
 	Symbol Symbol     `json:"symbol"`
-	Line   uint32     `json:"line"`
-	Column uint32     `json:"column"`
+	Line   uint64     `json:"line"`
+	Column uint64     `json:"column"`
 }
 
 func (e Effect) Validate() error {
@@ -59,11 +59,14 @@ type Reference struct {
 	To     Symbol                       `json:"to"`
 	Import *ImportPath                  `json:"import,omitempty"`
 	Kind   ReferenceKind                `json:"kind"`
-	Line   uint32                       `json:"line"`
-	Column uint32                       `json:"column"`
+	Line   uint64                       `json:"line"`
+	Column uint64                       `json:"column"`
 }
 
 func (r Reference) Validate() error {
+	if r.Kind == ReferenceUniverse && r.Import != nil {
+		return conflictError(errors.New("predeclared reference has a package import"))
+	}
 	if err := r.validateCall(); err != nil {
 		return err
 	}

@@ -43,6 +43,9 @@ const (
 	SelectionUnknown SelectionState = iota
 	SelectionIncluded
 	SelectionExcluded
+	// SelectionUnavailable means the compiler could not determine membership.
+	// It is neither evidence of inclusion nor evidence of exclusion.
+	SelectionUnavailable
 	selectionStateLimit
 )
 
@@ -58,7 +61,7 @@ func (s SelectionState) IsValid() bool {
 }
 
 func selectionStateTokens() [selectionStateLimit]string {
-	return [...]string{"", "included", "excluded"}
+	return [...]string{"", "included", "excluded", "unavailable"}
 }
 
 func (s SelectionState) String() string {
@@ -114,6 +117,8 @@ const (
 	ReferenceDynamic
 	ReferenceCall
 	ReferenceDynamicCall
+	// ReferenceUniverse identifies a predeclared Go object with no package owner.
+	ReferenceUniverse
 	referenceKindLimit
 )
 
@@ -129,7 +134,7 @@ func (k ReferenceKind) IsValid() bool {
 }
 
 func referenceKindTokens() [referenceKindLimit]string {
-	return [...]string{"", "package", "external", "dynamic", "call", "dynamic-call"}
+	return [...]string{"", "package", "external", "dynamic", "call", "dynamic-call", "universe"}
 }
 
 func (k ReferenceKind) String() string {

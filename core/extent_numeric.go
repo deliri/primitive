@@ -156,14 +156,6 @@ func CheckedUint8FromInt(value int) (uint8, error) {
 	return uint8(value), nil
 }
 
-// CheckedInt32FromInt converts value or returns ErrNumericOverflow.
-func CheckedInt32FromInt(value int) (int32, error) {
-	if int64(value) < math.MinInt32 || int64(value) > math.MaxInt32 {
-		return 0, numericOverflow("int does not fit int32")
-	}
-	return int32(value), nil
-}
-
 // CheckedInt64FromUint64 converts value or returns ErrNumericOverflow.
 func CheckedInt64FromUint64(value uint64) (int64, error) {
 	if value > math.MaxInt64 {
@@ -181,9 +173,15 @@ func CheckedUint64FromInt64(value int64) (uint64, error) {
 	return uint64(value), nil
 }
 
+// canonicalUint64JSONMaximumBytes is the decimal width of math.MaxUint64.
+const canonicalUint64JSONMaximumBytes = 20
+
 func parseCanonicalUint64JSON(data []byte) (uint64, error) {
 	if len(data) == 0 {
 		return 0, errors.Join(ErrJSONContract, errors.New("empty unsigned integer"))
+	}
+	if len(data) > canonicalUint64JSONMaximumBytes {
+		return 0, errors.Join(ErrJSONContract, errors.New("unsigned integer exceeds its encoded width"))
 	}
 	value, err := strconv.ParseUint(string(data), 10, 64)
 	if err != nil {

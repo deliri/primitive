@@ -1,6 +1,9 @@
 package process
 
-import "testing"
+import (
+	"github.com/deliri/primitive/v2026/core"
+	"testing"
+)
 
 // TestSnapshotSightingAdmitsOnlyActionableRows pins exactly which snapshot rows
 // become sightings and which the walk drops, on every host rather than only
@@ -40,14 +43,52 @@ func TestSnapshotSightingAdmitsOnlyActionableRows(t *testing.T) {
 				t.Fatalf("snapshotSighting(%d, %q) ok = %t, want %t", tc.identity, tc.image, gotOK, tc.wantOK)
 			}
 			if !tc.wantOK {
+				if got != (ProcessSighting{}) {
+					t.Fatalf("dropped row exposed partial sighting: %+v", got)
+				}
 				return
 			}
 			if err := got.Validate(); err != nil {
 				t.Fatalf("admitted snapshotSighting(%d, %q).Validate() error = %v, want nil", tc.identity, tc.image, err)
 			}
-			if got.Image.String() != tc.image {
+			if got.Identity != ProcessIdentity(tc.identity) || got.Image.String() != tc.image {
 				t.Fatalf("snapshotSighting(%d, %q).Image = %q, want the recorded image", tc.identity, tc.image, got.Image.String())
 			}
 		})
 	}
+}
+
+// Toolhelp supplies this raw leaf on Windows. Fuzzing the leaf on every host
+// does not claim execution of the Windows snapshot API.
+func FuzzSnapshotSightingNativeIngress(f *testing.F) {
+	image, err := core.ParsePathComponent("fixture.exe")
+	if err != nil {
+		f.Fatal(err)
+	}
+	seed := ProcessSighting{Identity: 1, Image: image}
+	if err := seed.Validate(); err != nil {
+		f.Fatal(err)
+	}
+	f.Add(uint32(seed.Identity), seed.Image.String())
+	f.Add(uint32(0), image.String())
+	f.Add(^uint32(0), image.String())
+	f.Add(uint32(1), "bad\x00image")
+	f.Add(uint32(1), "../image")
+	f.Fuzz(func(t *testing.T, identity uint32, raw string) {
+		image, imageErr := core.ParsePathComponent(raw)
+		want := identity != 0 && imageErr == nil
+		got, accepted := snapshotSighting(ProcessIdentity(identity), raw)
+		if accepted != want {
+			t.Fatalf("snapshot admission=%t, want %t", accepted, want)
+		}
+		if !want {
+			if got != (ProcessSighting{}) {
+				t.Fatalf("refused snapshot exposed facts: %+v", got)
+			}
+			return
+		}
+		if got.Validate() != nil || got.Identity != ProcessIdentity(identity) || got.Image != image || got.Image.String() != raw {
+			t.Fatalf("snapshot changed native facts: %+v", got)
+		}
+	})
 }

@@ -16,7 +16,7 @@ import (
 func TestWithSuffixOnlyEverNamesASibling(t *testing.T) {
 	t.Parallel()
 
-	root := string(filepath.Separator)
+	root := filepath.VolumeName(t.TempDir()) + string(filepath.Separator)
 	base := absolutePathForTest(t, root+"work"+string(filepath.Separator)+"slot")
 
 	cases := []struct {

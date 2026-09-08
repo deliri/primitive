@@ -431,15 +431,22 @@ func (e Environment) Validate() error {
 	return nil
 }
 
-// environmentNamesCollapse delegates the platform's exact environment-name
-// identity and linear last-value-wins projection to os/exec. Primitive has
-// already validated every pair and rejects any cardinality collapse rather
-// than maintaining a second map or OS naming model.
+// environmentNamesCollapse delegates environment-name identity to os/exec.
+// Go removes duplicates before appending platform-critical variables. Every
+// admitted input pair must survive in its original position: comparing only
+// lengths would mistake additions for collisions, or let an addition conceal
+// a removed duplicate. Primitive keeps no second naming or deduplication model.
 func environmentNamesCollapse(variables []EnvironmentVariable) bool {
 	environment := Environment{Mode: EnvironmentModeExact, Variables: variables}
 	projected := environment.project()
 	command := exec.Cmd{Env: projected}
-	return len(command.Environ()) != len(projected)
+	effective := command.Environ()
+	for index, pair := range projected {
+		if index >= len(effective) || pair != effective[index] {
+			return true
+		}
+	}
+	return false
 }
 
 func (e Environment) project() []string {

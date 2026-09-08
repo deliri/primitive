@@ -6,8 +6,6 @@ import (
 	"errors"
 	"os/exec"
 	"syscall"
-
-	"golang.org/x/sys/unix"
 )
 
 // applyContainment projects the validated containment onto the one command
@@ -27,32 +25,34 @@ func applyContainment(command *exec.Cmd, containment Containment) error {
 
 // cancelSignalValue names the exact kernel signal each admitted cancel
 // signal delivers on a POSIX host.
-func cancelSignalValue(signal CancelSignal) (unix.Signal, error) {
+func cancelSignalValue(signal CancelSignal) (syscall.Signal, error) {
 	switch signal {
 	case CancelSignalKill:
-		return unix.SIGKILL, nil
+		return syscall.SIGKILL, nil
 	case CancelSignalQuit:
-		return unix.SIGQUIT, nil
+		return syscall.SIGQUIT, nil
 	case CancelSignalInterrupt:
-		return unix.SIGINT, nil
+		return syscall.SIGINT, nil
 	case CancelSignalTerminate:
-		return unix.SIGTERM, nil
+		return syscall.SIGTERM, nil
 	default:
 		return 0, contractError(cancelSignalOutsideDomainDiagnostic)
 	}
 }
 
 // sweepGroup delivers one final hard stop to the whole group the child led.
-// ESRCH proves the group is already gone and EPERM proves this process may no
-// longer address it; neither can be repaired by retrying, so both are
-// successful terminal outcomes rather than failures.
+// ESRCH proves the group is already gone. Every other failure, including
+// permission denial, remains a failed effect with its native identity.
 func sweepGroup(identity ProcessIdentity) error {
-	pid, err := identity.Int()
+	pid, err := unixProcessID(identity)
 	if err != nil {
 		return err
 	}
-	killErr := unix.Kill(-pid, unix.SIGKILL)
-	if killErr == nil || errors.Is(killErr, unix.ESRCH) || errors.Is(killErr, unix.EPERM) {
+	return groupSweepError(syscall.Kill(-pid, syscall.SIGKILL))
+}
+
+func groupSweepError(killErr error) error {
+	if killErr == nil || errors.Is(killErr, syscall.ESRCH) {
 		return nil
 	}
 	return killErr
@@ -74,11 +74,11 @@ func deliverSignal(delivery signalDelivery) error {
 	case IsolationDirect:
 		return delivery.process.Signal(value)
 	case IsolationGroup:
-		pid, pidErr := delivery.identity.Int()
+		pid, pidErr := unixProcessID(delivery.identity)
 		if pidErr != nil {
 			return pidErr
 		}
-		return unix.Kill(-pid, value)
+		return syscall.Kill(-pid, value)
 	default:
 		return contractError(isolationOutsideDomainDiagnostic)
 	}

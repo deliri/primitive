@@ -2,8 +2,10 @@ package core
 
 import (
 	"bytes"
+	json "encoding/json/v2"
 	"errors"
 	"io"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -111,6 +113,10 @@ func TestDecodeStrictJSONReaderHostileBoundaryTable(t *testing.T) {
 	t.Parallel()
 
 	canonical := strictJSONReaderCanonicalAbsolutePath(t)
+	var wantText string
+	if err := json.Unmarshal(canonical, &wantText); err != nil {
+		t.Fatal(err)
+	}
 	limits := strictJSONReaderLimits(t)
 	cases := []struct {
 		wantErr error
@@ -205,7 +211,7 @@ func TestDecodeStrictJSONReaderHostileBoundaryTable(t *testing.T) {
 			t.Parallel()
 			got, gotErr := DecodeStrictJSON[AbsolutePath](testCase.reader(), testCase.limits)
 			if testCase.wantErr == nil {
-				if gotErr != nil || got.Validate() != nil {
+				if gotErr != nil || got.Validate() != nil || got.String() != wantText {
 					t.Fatalf("DecodeStrictJSON() = (%v, %v), want valid path and nil", got, gotErr)
 				}
 				return
@@ -261,6 +267,13 @@ func FuzzDecodeStrictJSONReaderAbsolutePathPublicBoundary(f *testing.F) {
 			&strictJSONFragmentedReader{data: wire, fragment: fragment},
 			limits,
 		)
+		var text string
+		nativeErr := json.Unmarshal(wire, &text)
+		wantPath, pathErr := ParseAbsolutePath(text)
+		wantOK := nativeErr == nil && pathErr == nil && len(wire) <= fuzzjsonDocumentMaximumBytes
+		if (gotErr == nil) != wantOK || wantOK && got != wantPath {
+			t.Fatalf("strict path=%v, %v; want Go-decoded path %v, admission %t", got, gotErr, wantPath, wantOK)
+		}
 		if gotErr != nil {
 			if !errors.Is(gotErr, ErrJSONContract) || got != (AbsolutePath{}) {
 				t.Fatalf("DecodeStrictJSON(rejected) = (%v, %v), want zero and %v", got, gotErr, ErrJSONContract)
@@ -270,7 +283,17 @@ func FuzzDecodeStrictJSONReaderAbsolutePathPublicBoundary(f *testing.F) {
 		if gotValidateErr := got.Validate(); gotValidateErr != nil {
 			t.Fatalf("DecodeStrictJSON(accepted).Validate() error = %v, want nil", gotValidateErr)
 		}
+		direct, directErr := got.MarshalJSON()
+		if directErr != nil {
+			t.Fatal(directErr)
+		}
 		encoded, gotEncodeErr := EncodeValidatedJSON(got, limits)
+		if len(direct) > fuzzjsonDocumentMaximumBytes {
+			if encoded != nil || !errors.Is(gotEncodeErr, ErrJSONContract) {
+				t.Fatalf("expanded output=%d bytes, %v; want bounded refusal", len(encoded), gotEncodeErr)
+			}
+			return
+		}
 		if gotEncodeErr != nil {
 			t.Fatalf("EncodeValidatedJSON(accepted) error = %v, want nil", gotEncodeErr)
 		}
@@ -283,7 +306,7 @@ func FuzzDecodeStrictJSONReaderAbsolutePathPublicBoundary(f *testing.F) {
 
 func strictJSONReaderCanonicalAbsolutePath(tb testing.TB) []byte {
 	tb.Helper()
-	path, err := ParseAbsolutePath("/tmp/primitive-strict-json-reader")
+	path, err := ParseAbsolutePath(filepath.Join(filepath.VolumeName(tb.TempDir())+string(filepath.Separator), "primitive-strict-json-reader"))
 	if err != nil {
 		tb.Fatalf("ParseAbsolutePath() error = %v, want nil", err)
 	}

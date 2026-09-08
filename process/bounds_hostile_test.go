@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -35,6 +36,11 @@ func TestParseArgumentsClosesCountAndAggregateBoundaries(t *testing.T) {
 			if tc.wantErr != nil && got != nil {
 				t.Fatalf("ParseArguments(count %d) result length = %d, want nil on refusal", tc.count, len(got))
 			}
+			for _, argument := range got {
+				if value, err := argument.Value(); err != nil || value != "" {
+					t.Fatalf("empty argument projection=%q, %v", value, err)
+				}
+			}
 			if tc.wantErr == nil && len(got) != int(tc.count) {
 				t.Fatalf("ParseArguments(count %d) result length = %d, want %d", tc.count, len(got), tc.count)
 			}
@@ -62,6 +68,14 @@ func TestParseArgumentsClosesCountAndAggregateBoundaries(t *testing.T) {
 			if tc.wantErr != nil && got != nil {
 				t.Fatalf("ParseArguments(projected extent %d) result length = %d, want nil on refusal", tc.extent, len(got))
 			}
+			if tc.wantErr == nil {
+				if len(got) != 1 {
+					t.Fatalf("argument count=%d, want one", len(got))
+				}
+				if projection, err := got[0].Value(); err != nil || projection != value {
+					t.Fatalf("argument projection changed at extent %d: %v", tc.extent, err)
+				}
+			}
 		})
 	}
 }
@@ -82,7 +96,13 @@ func TestArgumentClosesIndividualExtentBoundary(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, gotErr := process.NewArgument(strings.Repeat("a", int(tc.extent)))
+			input := strings.Repeat("a", int(tc.extent))
+			got, gotErr := process.NewArgument(input)
+			if tc.wantErr == nil {
+				if projection, err := got.Value(); err != nil || projection != input {
+					t.Fatalf("Argument projection changed at extent %d: %v", tc.extent, err)
+				}
+			}
 			if !errors.Is(gotErr, tc.wantErr) {
 				t.Fatalf("NewArgument(extent %d) error = %v, want %v", tc.extent, gotErr, tc.wantErr)
 			}
@@ -109,7 +129,13 @@ func TestEnvironmentAtomsCloseIndividualExtentBoundaries(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, gotErr := process.NewEnvironmentName(strings.Repeat("N", int(tc.extent)))
+			input := strings.Repeat("N", int(tc.extent))
+			got, gotErr := process.NewEnvironmentName(input)
+			if tc.wantErr == nil {
+				if projection, err := got.Value(); err != nil || projection != input {
+					t.Fatalf("EnvironmentName projection changed at extent %d: %v", tc.extent, err)
+				}
+			}
 			if !errors.Is(gotErr, tc.wantErr) {
 				t.Fatalf("NewEnvironmentName(extent %d) error = %v, want %v", tc.extent, gotErr, tc.wantErr)
 			}
@@ -132,7 +158,13 @@ func TestEnvironmentAtomsCloseIndividualExtentBoundaries(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, gotErr := process.NewEnvironmentValue(strings.Repeat("v", int(tc.extent)))
+			input := strings.Repeat("v", int(tc.extent))
+			got, gotErr := process.NewEnvironmentValue(input)
+			if tc.wantErr == nil {
+				if projection, err := got.Value(); err != nil || projection != input {
+					t.Fatalf("EnvironmentValue projection changed at extent %d: %v", tc.extent, err)
+				}
+			}
 			if !errors.Is(gotErr, tc.wantErr) {
 				t.Fatalf("NewEnvironmentValue(extent %d) error = %v, want %v", tc.extent, gotErr, tc.wantErr)
 			}
@@ -174,7 +206,7 @@ func TestParseExactEnvironmentClosesCountAndAggregateBoundaries(t *testing.T) {
 				}
 				return
 			}
-			if projectErr != nil || len(projected) != int(tc.count) {
+			if projectErr != nil || got.Mode != process.EnvironmentModeExact || !slices.Equal(projected, values) {
 				t.Fatalf("ParseExactEnvironment(count %d) projected length/error = (%d, %v), want (%d, nil)", tc.count, len(projected), projectErr, tc.count)
 			}
 		})
@@ -201,64 +233,86 @@ func TestParseExactEnvironmentClosesCountAndAggregateBoundaries(t *testing.T) {
 			if tc.wantErr != nil && (got.Mode != process.EnvironmentModeUnknown || got.Variables != nil) {
 				t.Fatalf("ParseExactEnvironment(projected extent %d) result = %v, want zero on refusal", tc.extent, got)
 			}
+			if tc.wantErr == nil {
+				projected, err := got.Strings()
+				if err != nil || got.Mode != process.EnvironmentModeExact || !slices.Equal(projected, []string{"A=" + value}) {
+					t.Fatalf("environment projection changed at extent %d: %v", tc.extent, err)
+				}
+			}
 		})
 	}
 }
 
 func TestParseEffectiveEnvironmentRefusesOversizeBeforeOSProjection(t *testing.T) {
 	t.Parallel()
-
-	tooMany := make([]string, process.EnvironmentVariableCountMaximum+1)
-	for index := range tooMany {
-		tooMany[index] = "EFFECTIVE_" + strconv.Itoa(index) + "=value"
+	cases := []struct {
+		name   string
+		count  uint32
+		extent uint64
+	}{
+		{name: "negative/unique names exceed vector cap", count: process.EnvironmentVariableCountMaximum + 1},
+		{name: "negative/one pair exceeds aggregate cap", extent: process.EnvironmentProjectionMaximumBytes + 1},
 	}
-	got, gotErr := process.ParseEffectiveEnvironment(tooMany)
-	if !errors.Is(gotErr, core.ErrProcessContract) || got.Mode != process.EnvironmentModeUnknown || got.Variables != nil {
-		t.Fatalf("ParseEffectiveEnvironment(count %d) = (%v, %v), want zero and errors.Is(..., %v)", len(tooMany), got, gotErr, core.ErrProcessContract)
-	}
-
-	value := strings.Repeat("v", int(process.EnvironmentProjectionMaximumBytes)-2)
-	got, gotErr = process.ParseEffectiveEnvironment([]string{"A=" + value})
-	if !errors.Is(gotErr, core.ErrProcessContract) || got.Mode != process.EnvironmentModeUnknown || got.Variables != nil {
-		t.Fatalf("ParseEffectiveEnvironment(one-above projection) = (%v, %v), want zero and errors.Is(..., %v)", got, gotErr, core.ErrProcessContract)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			values := make([]string, tc.count)
+			for i := range values {
+				values[i] = environmentProjectionName(i) + "=value"
+			}
+			if tc.extent != 0 {
+				values = []string{"A=" + strings.Repeat("v", int(tc.extent)-3)}
+			}
+			got, err := process.ParseEffectiveEnvironment(values)
+			if !errors.Is(err, core.ErrProcessContract) || got.Mode != process.EnvironmentModeUnknown || got.Variables != nil {
+				t.Fatalf("oversize effective environment=%v, %v; want zero and contract refusal", got, err)
+			}
+		})
 	}
 }
 
 func TestRequestValidationCannotBypassProjectionBounds(t *testing.T) {
 	t.Parallel()
-
-	base := processRequest(t, "silent", process.Streams{
-		Stdin: bytes.NewReader(nil), Stdout: io.Discard, Stderr: io.Discard,
-	})
-	argument, err := process.NewArgument("")
-	if err != nil {
-		t.Fatalf("NewArgument(empty) error = %v, want nil", err)
+	cases := []struct {
+		name          string
+		argumentCount uint32
+		variableCount uint32
+		wantErr       error
+	}{
+		{name: "neutral/no argv or explicit environment variables"},
+		{name: "positive/exact argument count is usable", argumentCount: process.ArgumentCountMaximum},
+		{name: "negative/argument vector exceeds count", argumentCount: process.ArgumentCountMaximum + 1, wantErr: core.ErrProcessContract},
+		{name: "positive/unique environment at exact count", variableCount: process.EnvironmentVariableCountMaximum},
+		{name: "negative/unique environment exceeds count", variableCount: process.EnvironmentVariableCountMaximum + 1, wantErr: core.ErrProcessContract},
 	}
-	tooManyArguments := make([]process.Argument, process.ArgumentCountMaximum+1)
-	for index := range tooManyArguments {
-		tooManyArguments[index] = argument
-	}
-	base.Arguments = tooManyArguments
-	if gotErr := base.Validate(); !errors.Is(gotErr, core.ErrProcessContract) {
-		t.Fatalf("Request.Validate(argument count %d) error = %v, want errors.Is(..., %v)", len(base.Arguments), gotErr, core.ErrProcessContract)
-	}
-
-	name, err := process.NewEnvironmentName("A")
-	if err != nil {
-		t.Fatalf("NewEnvironmentName(A) error = %v, want nil", err)
-	}
-	value, err := process.NewEnvironmentValue("")
-	if err != nil {
-		t.Fatalf("NewEnvironmentValue(empty) error = %v, want nil", err)
-	}
-	tooManyVariables := make([]process.EnvironmentVariable, process.EnvironmentVariableCountMaximum+1)
-	for index := range tooManyVariables {
-		tooManyVariables[index] = process.EnvironmentVariable{Name: name, Value: value}
-	}
-	base.Arguments = nil
-	base.Environment = process.Environment{Mode: process.EnvironmentModeExact, Variables: tooManyVariables}
-	if gotErr := base.Validate(); !errors.Is(gotErr, core.ErrProcessContract) {
-		t.Fatalf("Request.Validate(environment count %d) error = %v, want errors.Is(..., %v)", len(tooManyVariables), gotErr, core.ErrProcessContract)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			request := processRequest(t, "silent", process.Streams{Stdin: bytes.NewReader(nil), Stdout: io.Discard, Stderr: io.Discard})
+			request.Arguments = make([]process.Argument, tc.argumentCount)
+			argument, err := process.NewArgument("")
+			if err != nil {
+				t.Fatal(err)
+			}
+			for i := range request.Arguments {
+				request.Arguments[i] = argument
+			}
+			request.Environment = process.Environment{Mode: process.EnvironmentModeExact, Variables: make([]process.EnvironmentVariable, tc.variableCount)}
+			value, err := process.NewEnvironmentValue("")
+			if err != nil {
+				t.Fatal(err)
+			}
+			for i := range request.Environment.Variables {
+				name, err := process.NewEnvironmentName(environmentProjectionName(i))
+				if err != nil {
+					t.Fatal(err)
+				}
+				request.Environment.Variables[i] = process.EnvironmentVariable{Name: name, Value: value}
+			}
+			if err := request.Validate(); !errors.Is(err, tc.wantErr) {
+				t.Fatalf("request admission=%v; want %v", err, tc.wantErr)
+			}
+		})
 	}
 }
 
@@ -271,8 +325,16 @@ func BenchmarkParseExactEnvironmentAtMaximumCount(b *testing.B) {
 	b.ResetTimer()
 	for b.Loop() {
 		got, err := process.ParseExactEnvironment(values)
-		if err != nil || len(got.Variables) != len(values) {
+		if err != nil || got.Mode != process.EnvironmentModeExact || len(got.Variables) != len(values) {
 			b.Fatalf("ParseExactEnvironment(maximum count) = (variables %d, %v), want (%d, nil)", len(got.Variables), err, len(values))
+		}
+		for i, variable := range got.Variables {
+			name, value, found := strings.Cut(values[i], "=")
+			gotName, nameErr := variable.Name.Value()
+			gotValue, valueErr := variable.Value.Value()
+			if !found || nameErr != nil || valueErr != nil || gotName != name || gotValue != value {
+				b.Fatalf("environment pair %d changed: name=%q value=%q errors=%v/%v", i, gotName, gotValue, nameErr, valueErr)
+			}
 		}
 	}
 }

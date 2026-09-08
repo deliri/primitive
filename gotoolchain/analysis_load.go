@@ -1,7 +1,7 @@
 package gotoolchain
 
 import (
-	"bytes"
+	"cmp"
 	"context"
 	jsontext "encoding/json/jsontext"
 	json "encoding/json/v2"
@@ -9,34 +9,34 @@ import (
 	"go/types"
 	"io"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/gomodule"
 	"golang.org/x/tools/go/packages"
 )
 
 // These are fields of cmd/go's documented PackagePublic JSON contract.
 // The stream is bounded by Limits.OutputBytes and Limits.PackageMaximum;
 // one package's dependency closure is the only aggregate admitted here.
-const analysisJSONFields = "-json=Dir,ImportPath,Name,ForTest,Export,Module,GoFiles,CompiledGoFiles,Imports,ImportMap,Error,Incomplete"
-
-// cmd/go retains this pseudo-import in Imports without creating a dependency
-// package for it. Compilation consumes cgo's transformed Go files instead.
-const goCgoImportPath = "C"
+const analysisJSONFields = "-json=Dir,ImportPath,Name,ForTest,Export,Module,GoFiles,CgoFiles,CompiledGoFiles,Imports,ImportMap,Error,DepsErrors,Incomplete"
 
 type analysisPackageWire struct {
-	Dir             string             `json:"Dir"`
-	ImportPath      string             `json:"ImportPath"`
-	Name            string             `json:"Name"`
-	ForTest         string             `json:"ForTest"`
-	Export          string             `json:"Export"`
-	Module          *packages.Module   `json:"Module"`
-	GoFiles         []string           `json:"GoFiles"`
-	CompiledGoFiles []string           `json:"CompiledGoFiles"`
-	Imports         []string           `json:"Imports"`
-	ImportMap       map[string]string  `json:"ImportMap"`
-	Error           *analysisErrorWire `json:"Error"`
-	Incomplete      bool               `json:"Incomplete"`
+	Dir             string              `json:"Dir"`
+	ImportPath      string              `json:"ImportPath"`
+	Name            string              `json:"Name"`
+	ForTest         string              `json:"ForTest"`
+	Export          string              `json:"Export"`
+	Module          *packages.Module    `json:"Module"`
+	GoFiles         []string            `json:"GoFiles"`
+	CgoFiles        []string            `json:"CgoFiles"`
+	CompiledGoFiles []string            `json:"CompiledGoFiles"`
+	Imports         []string            `json:"Imports"`
+	ImportMap       map[string]string   `json:"ImportMap"`
+	Error           *analysisErrorWire  `json:"Error"`
+	DepsErrors      []analysisErrorWire `json:"DepsErrors"`
+	Incomplete      bool                `json:"Incomplete"`
 }
 
 type analysisErrorWire struct {
@@ -47,8 +47,8 @@ type analysisErrorWire struct {
 func (analysisPackageWire) goToolchainInternalFlow() {}
 func (analysisErrorWire) goToolchainInternalFlow()   {}
 
-func (c Capability) loadAnalysisMetadata(ctx context.Context, request AnalysisRequest) ([]*packages.Package, error) {
-	observed, err := c.ObserveBuildContext(ctx, ObservationRequest{WorkingDirectory: request.WorkingDirectory})
+func (c Capability) loadAnalysisMetadata(ctx context.Context, directory core.AbsolutePath, requested []gomodule.ImportPath, includeTests bool) ([]*packages.Package, error) {
+	observed, err := c.ObserveBuildContext(ctx, ObservationRequest{WorkingDirectory: directory})
 	if err != nil {
 		return nil, err
 	}
@@ -56,43 +56,85 @@ func (c Capability) loadAnalysisMetadata(ctx context.Context, request AnalysisRe
 	if sizes == nil {
 		return nil, outputError("compiler target has no type sizes", nil)
 	}
-	arguments := []string{"list", "-e", goDependenciesArgument, "-export", "-compiled", goModuleReadOnly, analysisJSONFields}
-	if request.IncludeTests {
+	arguments := []string{"list", "-e", goDependenciesArgument, "-export", "-compiled", analysisJSONFields}
+	if includeTests {
 		arguments = append(arguments, "-test")
 	}
-	arguments = append(arguments, "--", request.Package.String())
-	encoded, _, err := c.execute(ctx, request.WorkingDirectory, arguments...)
-	if err != nil {
-		return nil, err
+	arguments = append(arguments, "--")
+	for _, pkg := range requested {
+		arguments = append(arguments, pkg.String())
 	}
-	return decodeAnalysisMetadata(encoded, c.configuration.Limits, sizes)
+	return c.streamAnalysisMetadata(ctx, directory, arguments, sizes)
 }
 
-func decodeAnalysisMetadata(data []byte, limits Limits, sizes types.Sizes) ([]*packages.Package, error) {
+func (c Capability) streamAnalysisMetadata(ctx context.Context, directory core.AbsolutePath, arguments []string, sizes types.Sizes) ([]*packages.Package, error) {
+	work, cancel := context.WithCancel(ctx)
+	defer cancel()
+	reader, writer := io.Pipe()
+	completed := make(chan error, 1)
+	go func() {
+		_, err := c.executeTo(work, directory, writer, arguments...)
+		completed <- errors.Join(err, writer.CloseWithError(err))
+	}()
+	units, decodeErr := decodeAnalysisMetadata(reader, c.configuration.Limits, sizes)
+	closeErr := reader.Close()
+	if decodeErr != nil {
+		cancel()
+	}
+	if err := errors.Join(decodeErr, closeErr, <-completed); err != nil {
+		return nil, err
+	}
+	return units, nil
+}
+
+func decodeAnalysisMetadata(input io.Reader, limits Limits, sizes types.Sizes) ([]*packages.Package, error) {
 	if err := limits.Validate(); err != nil {
 		return nil, err
 	}
-	maximum, err := limits.OutputBytes.Uint64()
-	if err != nil || uint64(len(data)) > maximum || sizes == nil {
+	maximum, err := limits.OutputBytes.Int64()
+	if err != nil || input == nil || sizes == nil {
 		return nil, outputError("analysis metadata exceeds its bound or has no target sizes", err)
 	}
-	decoder := jsontext.NewDecoder(bytes.NewReader(data))
-	wires := make([]analysisPackageWire, 0, min(len(data)/2, int(limits.PackageMaximum)))
+	bounded := &io.LimitedReader{R: input, N: maximum}
+	decoder := jsontext.NewDecoder(bounded)
+	// Encoded byte length does not predict package count. Reserving the
+	// maximum graph here wastes nearly a megabyte for ordinary small loads.
+	var wires []analysisPackageWire
 	for {
 		var wire analysisPackageWire
 		err = json.UnmarshalDecode(decoder, &wire)
-		if errors.Is(err, io.EOF) {
+		// witness:waiver doctrine/error/sentinel_compare -- Only unwrapped EOF is clean completion; joined EOF must retain the accompanying reader failure.
+		if err == io.EOF {
 			break
 		}
 		if err != nil {
 			return nil, outputError("analysis metadata JSON is invalid", err)
 		}
-		if uint32(len(wires)) >= limits.PackageMaximum {
+		if uint64(len(wires)) >= uint64(limits.PackageMaximum) {
 			return nil, outputError("analysis package count exceeds its bound", nil)
 		}
+		// witness:waiver doctrine/quality/append_in_loop -- The preceding package-count admission and LimitedReader enforce caller-owned bounds without allocating the maximum graph up front.
 		wires = append(wires, wire)
 	}
+	if err := analysisMetadataEOF(bounded); err != nil {
+		return nil, err
+	}
 	return linkAnalysisMetadata(wires, sizes)
+}
+
+// Probe beyond an exhausted caller budget without adding one to a potentially
+// maximal int64. Exact EOF is admitted; any extra byte or reader failure is not.
+func analysisMetadataEOF(input *io.LimitedReader) error {
+	if input.N != 0 {
+		return nil
+	}
+	var extra [1]byte
+	count, err := io.ReadFull(input.R, extra[:])
+	// witness:waiver doctrine/error/sentinel_compare -- The exact-budget probe must refuse joined EOF and reader failure, preserving the native cause.
+	if count == 0 && err == io.EOF {
+		return nil
+	}
+	return outputError("analysis metadata exceeds its byte bound", err)
 }
 
 func linkAnalysisMetadata(wires []analysisPackageWire, sizes types.Sizes) ([]*packages.Package, error) {
@@ -123,14 +165,9 @@ func analysisMetadataFromWire(wire analysisPackageWire, sizes types.Sizes) (*pac
 	}
 	path, _, _ := strings.Cut(wire.ImportPath, " [")
 	unit := &packages.Package{ID: wire.ImportPath, PkgPath: path, Name: wire.Name, Dir: wire.Dir, ForTest: wire.ForTest, ExportFile: wire.Export, Module: wire.Module, TypesSizes: sizes, Imports: make(map[string]*packages.Package)}
-	if wire.Error != nil {
-		unit.Errors = []packages.Error{{Pos: wire.Error.Pos, Msg: wire.Error.Err, Kind: packages.ListError}}
-	}
-	if wire.Incomplete && wire.Error == nil {
-		unit.Errors = []packages.Error{{Msg: "compiler dependency closure is incomplete", Kind: packages.ListError}}
-	}
+	unit.Errors = analysisMetadataErrors(wire)
 	var err error
-	unit.GoFiles, err = absoluteAnalysisFiles(wire.Dir, wire.GoFiles)
+	unit.GoFiles, err = absoluteAnalysisFiles(wire.Dir, append(wire.GoFiles, wire.CgoFiles...))
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +175,33 @@ func analysisMetadataFromWire(wire analysisPackageWire, sizes types.Sizes) (*pac
 	if err != nil {
 		return nil, err
 	}
+	if len(wire.CgoFiles) > 0 && len(wire.CompiledGoFiles) > len(wire.GoFiles) {
+		// Same cmd/go selection used by go/packages NeedCgo: retain its
+		// generated type declarations and type-check the original Go files.
+		support := unit.CompiledGoFiles[len(wire.GoFiles)]
+		unit.CompiledGoFiles = append([]string{support}, unit.GoFiles...)
+	}
 	return unit, nil
+}
+
+// Cmd/go's dependency failures can arrive in different traversal orders.
+// Canonicalize their typed records without dropping duplicates or changing
+// their positions/messages. The caller's wire observation remains untouched.
+func analysisMetadataErrors(wire analysisPackageWire) []packages.Error {
+	var diagnostics []packages.Error
+	if wire.Error != nil {
+		diagnostics = append(diagnostics, packages.Error{Pos: wire.Error.Pos, Msg: wire.Error.Err, Kind: packages.ListError})
+	}
+	for _, diagnostic := range wire.DepsErrors {
+		diagnostics = append(diagnostics, packages.Error{Pos: diagnostic.Pos, Msg: diagnostic.Err, Kind: packages.ListError})
+	}
+	if wire.Incomplete && len(diagnostics) == 0 {
+		diagnostics = []packages.Error{{Msg: "compiler dependency closure is incomplete", Kind: packages.ListError}}
+	}
+	slices.SortFunc(diagnostics, func(left, right packages.Error) int {
+		return cmp.Or(cmp.Compare(left.Pos, right.Pos), cmp.Compare(left.Msg, right.Msg))
+	})
+	return diagnostics
 }
 
 func absoluteAnalysisFiles(directory string, files []string) ([]string, error) {
@@ -160,7 +223,7 @@ func absoluteAnalysisFiles(directory string, files []string) ([]string, error) {
 
 func linkAnalysisImports(unit *packages.Package, wire analysisPackageWire, byID map[string]*packages.Package) error {
 	for _, identity := range wire.Imports {
-		if identity == goCgoImportPath {
+		if identity == core.GoCgoImportPath {
 			continue
 		}
 		target := byID[identity]

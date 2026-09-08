@@ -4,8 +4,7 @@ package process
 
 import (
 	"errors"
-
-	"golang.org/x/sys/unix"
+	"syscall"
 
 	"github.com/deliri/primitive/v2026/core"
 )
@@ -13,7 +12,7 @@ import (
 // observedLiveness asks the kernel with the null signal, the POSIX spelling
 // of "does this identity name a process" that delivers nothing.
 //
-// The x/sys escape is taken deliberately over os.FindProcess plus Signal(0),
+// The standard syscall name probe is used instead of os.FindProcess plus Signal(0),
 // which the standard library arguably reaches: since Go 1.23 FindProcess may
 // acquire a pidfd, turning it into a handle probe whose semantics differ by
 // kernel version, while this door's contract is a name probe over exactly the
@@ -25,15 +24,15 @@ import (
 // to let this caller signal the process, which it only does for a process
 // that exists. Every other errno is a failed observation.
 func observedLiveness(identity ProcessIdentity) (Liveness, error) {
-	pid, err := identity.Int()
+	pid, err := unixProcessID(identity)
 	if err != nil {
 		return LivenessUnknown, err
 	}
-	probeErr := unix.Kill(pid, 0)
-	if probeErr == nil || errors.Is(probeErr, unix.EPERM) {
+	probeErr := syscall.Kill(pid, 0)
+	if probeErr == nil || errors.Is(probeErr, syscall.EPERM) {
 		return LivenessAlive, nil
 	}
-	if errors.Is(probeErr, unix.ESRCH) {
+	if errors.Is(probeErr, syscall.ESRCH) {
 		return LivenessGone, nil
 	}
 	return LivenessUnknown, errors.Join(core.ErrProcessObservation, probeErr)

@@ -52,8 +52,14 @@ func TestAnalyzeTestOnlyPackageThroughTheRealCompiler(t *testing.T) {
 			}
 			got, err := capability.AnalyzePackage(t.Context(), gotoolchain.AnalysisRequest{WorkingDirectory: root, Package: pkg, IncludeTests: tc.includeTests})
 			if tc.wantErr != nil {
-				if !errors.Is(err, tc.wantErr) || len(got.Units) != 0 {
-					t.Fatalf("AnalyzePackage() = %d units/%v, want zero and %v", len(got.Units), err, tc.wantErr)
+				if !errors.Is(err, tc.wantErr) || !got.Incomplete || len(got.Units) != 2 {
+					t.Fatalf("AnalyzePackage() = %d units/%v, want complete production and partial test units with %v", len(got.Units), err, tc.wantErr)
+				}
+				if got.Units[0].IllTyped || !got.Units[1].IllTyped || len(got.Units[1].Errors) == 0 {
+					t.Fatalf("production/test IllTyped = %t/%t, test diagnostics = %d; want false/true and positive", got.Units[0].IllTyped, got.Units[1].IllTyped, len(got.Units[1].Errors))
+				}
+				if err := got.Validate(); err != nil {
+					t.Fatal(err)
 				}
 				return
 			}

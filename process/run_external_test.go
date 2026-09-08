@@ -3,12 +3,14 @@ package process_test
 import (
 	"bytes"
 	"context"
+	"encoding/gob"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -39,10 +41,6 @@ const processTestBlock = 5 * time.Minute
 // inherited output descriptor open after its parent exits.
 const processTestLingerLifetime = 3 * time.Second
 
-// argumentSeparator joins echoed argv values. It is not NUL, because NUL is the
-// one byte the Argument contract rejects, so it cannot appear inside a value.
-const argumentSeparator = "\x1e"
-
 func TestRunStreamingLayerTriad(t *testing.T) {
 	t.Parallel()
 
@@ -66,7 +64,11 @@ func TestRunStreamingLayerTriad(t *testing.T) {
 		if _, err := got.CPUTime(); err != nil {
 			t.Fatalf("Result.CPUTime() error = %v, want nil", err)
 		}
-		exit := resultExitCode(t, got)
+		gotFacts, factsErr := got.Observation()
+		if factsErr != nil {
+			t.Fatal(factsErr)
+		}
+		exit := gotFacts.ExitCode
 		if exit != 7 || stdout.String() != "alpha" ||
 			stderr.String() != "diagnostic" {
 			t.Fatalf(
@@ -78,9 +80,9 @@ func TestRunStreamingLayerTriad(t *testing.T) {
 				"diagnostic",
 			)
 		}
-		if resultByteLength(t, got.StdinBytes) != uint64(len("alpha")) ||
-			resultByteLength(t, got.StdoutBytes) != uint64(len("alpha")) ||
-			resultByteLength(t, got.StderrBytes) != uint64(len("diagnostic")) {
+		if gotFacts.StdinBytes.Uint64() != uint64(len("alpha")) ||
+			gotFacts.StdoutBytes.Uint64() != uint64(len("alpha")) ||
+			gotFacts.StderrBytes.Uint64() != uint64(len("diagnostic")) {
 			t.Fatalf("process.Run() byte counts do not match the three forwarded streams")
 		}
 	})
@@ -108,11 +110,15 @@ func TestRunStreamingLayerTriad(t *testing.T) {
 		if err := got.Validate(); err != nil {
 			t.Fatalf("bounded-failure Result.Validate() error = %v, want nil", err)
 		}
-		if stdout.Len() != 8 || resultByteLength(t, got.StdoutBytes) != 8 {
+		gotFacts, factsErr := got.Observation()
+		if factsErr != nil {
+			t.Fatal(factsErr)
+		}
+		if stdout.Len() != 8 || gotFacts.StdoutBytes.Uint64() != 8 {
 			t.Fatalf(
 				"bounded stdout = len:%d count:%d, want 8/8",
 				stdout.Len(),
-				resultByteLength(t, got.StdoutBytes),
+				gotFacts.StdoutBytes.Uint64(),
 			)
 		}
 		var exceeded process.OutputLimitExceeded
@@ -141,10 +147,14 @@ func TestRunStreamingLayerTriad(t *testing.T) {
 		if gotErr != nil {
 			t.Fatalf("process.Run(silent) error = %v, want nil", gotErr)
 		}
-		if resultExitCode(t, got) != 0 ||
-			resultByteLength(t, got.StdinBytes) != 0 ||
-			resultByteLength(t, got.StdoutBytes) != 0 ||
-			resultByteLength(t, got.StderrBytes) != 0 {
+		gotFacts, factsErr := got.Observation()
+		if factsErr != nil {
+			t.Fatal(factsErr)
+		}
+		if gotFacts.ExitCode != 0 ||
+			gotFacts.StdinBytes.Uint64() != 0 ||
+			gotFacts.StdoutBytes.Uint64() != 0 ||
+			gotFacts.StderrBytes.Uint64() != 0 {
 			t.Fatalf("process.Run(silent) returned nonzero exit or fabricated stream bytes")
 		}
 		exit, err := got.ExitCode()
@@ -173,6 +183,8 @@ func TestRunLowersArgvExactlyWithoutInterpretation(t *testing.T) {
 	}{
 		{name: "no arguments beyond the behavior selector", argv: nil},
 		{name: "single empty argument survives lowering", argv: []string{""}},
+		{name: "former separator is one argument not two", argv: []string{"before\x1eafter"}},
+		{name: "separator next to empty values preserves all boundaries", argv: []string{"", "\x1e", ""}},
 		{name: "repeated empty arguments keep their exact count", argv: []string{"", "", ""}},
 		{name: "internal spaces are one argument not three", argv: []string{"two more words"}},
 		{name: "leading and trailing spaces are preserved", argv: []string{"  padded  "}},
@@ -187,6 +199,7 @@ func TestRunLowersArgvExactlyWithoutInterpretation(t *testing.T) {
 		{name: "flag-shaped arguments are not consumed as flags", argv: []string{"-x", "--flag=value", "--"}},
 		{name: "multibyte text survives byte for byte", argv: []string{"日本語", "emoji", "ß"}},
 		{name: "invalid utf-8 bytes survive because argv is bytes", argv: []string{"\x80\xff\xfe"}},
+		{name: "unpaired surrogate bytes follow the native Go projection", argv: []string{"\xed\xa0\x80", "\xed\xb0\x80"}},
 		{name: "argument order is preserved exactly", argv: []string{"1", "2", "3", "4", "5"}},
 		{name: "four kibibyte argument survives", argv: []string{strings.Repeat("x", 1<<12)}},
 		{name: "many arguments preserve count and order", argv: manyArguments(64)},
@@ -205,19 +218,34 @@ func TestRunLowersArgvExactlyWithoutInterpretation(t *testing.T) {
 			if gotErr != nil {
 				t.Fatalf("process.Run(argv) error = %v, want nil", gotErr)
 			}
-			if exit := resultExitCode(t, got); exit != 0 {
+			gotFacts, factsErr := got.Observation()
+			if factsErr != nil {
+				t.Fatal(factsErr)
+			}
+			if exit := gotFacts.ExitCode; exit != 0 {
 				t.Fatalf("process.Run(argv) exit = %d, want 0", exit)
 			}
-			want := strings.Join(tc.argv, argumentSeparator)
-			if gotArgv := stdout.String(); gotArgv != want {
-				t.Fatalf(
-					"child argv = %q (%d values), want %q (%d values)",
-					gotArgv,
-					len(splitArgv(gotArgv)),
-					want,
-					len(tc.argv),
-				)
+			want := slices.Clone(tc.argv)
+			for i, value := range want {
+				projected, err := nativeArgumentProjection(value)
+				if err != nil {
+					t.Fatal(err)
+				}
+				want[i] = projected
 			}
+			var gotArgv []string
+			decoder := gob.NewDecoder(&stdout)
+			if err := decoder.Decode(&gotArgv); err != nil {
+				t.Fatal(err)
+			}
+			var trailing []string
+			if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
+				t.Fatalf("extra child projection: %v", err)
+			}
+			if !slices.Equal(gotArgv, want) {
+				t.Fatalf("child argv=%q, want %q", gotArgv, want)
+			}
+
 		})
 	}
 }
@@ -325,11 +353,15 @@ func TestRunLowersEnvironmentExactlyOrInherits(t *testing.T) {
 		}
 		request.WorkingDirectory = parsed
 		got, gotErr := process.Run(context.Background(), request)
-		if gotErr != nil || resultExitCode(t, got) != 0 ||
+		gotFacts, factsErr := got.Observation()
+		if factsErr != nil {
+			t.Fatal(factsErr)
+		}
+		if gotErr != nil || gotFacts.ExitCode != 0 ||
 			stdout.String() != resolved {
 			t.Fatalf(
 				"working-directory run = (exit:%d stdout:%q error:%v), want 0/%q/nil",
-				resultExitCode(t, got),
+				gotFacts.ExitCode,
 				stdout.String(),
 				gotErr,
 				resolved,
@@ -502,19 +534,23 @@ func TestRunOutputBoundPressure(t *testing.T) {
 			if err := got.Validate(); err != nil {
 				t.Fatalf("Result.Validate() error = %v, want nil", err)
 			}
+			gotFacts, factsErr := got.Observation()
+			if factsErr != nil {
+				t.Fatal(factsErr)
+			}
 			if counter.total() != tc.wantBytes ||
-				resultByteLength(t, got.StdoutBytes) != tc.wantBytes {
+				gotFacts.StdoutBytes.Uint64() != tc.wantBytes {
 				t.Fatalf(
 					"forwarded stdout = writer:%d result:%d, want %d",
 					counter.total(),
-					resultByteLength(t, got.StdoutBytes),
+					gotFacts.StdoutBytes.Uint64(),
 					tc.wantBytes,
 				)
 			}
-			if resultByteLength(t, got.StderrBytes) != 0 {
+			if gotFacts.StderrBytes.Uint64() != 0 {
 				t.Fatalf(
 					"stderr count = %d, want 0 because the child wrote only stdout",
-					resultByteLength(t, got.StderrBytes),
+					gotFacts.StderrBytes.Uint64(),
 				)
 			}
 		})
@@ -581,12 +617,16 @@ func TestRunBoundsStdoutAndStderrIndependently(t *testing.T) {
 			if err := got.Validate(); err != nil {
 				t.Fatalf("Result.Validate() error = %v, want nil", err)
 			}
-			if resultByteLength(t, got.StdoutBytes) != tc.wantStdout ||
-				resultByteLength(t, got.StderrBytes) != tc.wantStderr {
+			gotFacts, factsErr := got.Observation()
+			if factsErr != nil {
+				t.Fatal(factsErr)
+			}
+			if gotFacts.StdoutBytes.Uint64() != tc.wantStdout ||
+				gotFacts.StderrBytes.Uint64() != tc.wantStderr {
 				t.Fatalf(
 					"result counts = stdout:%d stderr:%d, want %d/%d",
-					resultByteLength(t, got.StdoutBytes),
-					resultByteLength(t, got.StderrBytes),
+					gotFacts.StdoutBytes.Uint64(),
+					gotFacts.StderrBytes.Uint64(),
 					tc.wantStdout,
 					tc.wantStderr,
 				)
@@ -632,12 +672,16 @@ func TestRunSerializesOneWriterSharedByBothOutputStreams(t *testing.T) {
 	if gotErr != nil {
 		t.Fatalf("process.Run(shared writer) error = %v, want nil", gotErr)
 	}
-	if resultByteLength(t, got.StdoutBytes) != perStream ||
-		resultByteLength(t, got.StderrBytes) != perStream {
+	gotFacts, factsErr := got.Observation()
+	if factsErr != nil {
+		t.Fatal(factsErr)
+	}
+	if gotFacts.StdoutBytes.Uint64() != perStream ||
+		gotFacts.StderrBytes.Uint64() != perStream {
 		t.Fatalf(
 			"shared-writer result = stdout:%d stderr:%d, want %d each",
-			resultByteLength(t, got.StdoutBytes),
-			resultByteLength(t, got.StderrBytes),
+			gotFacts.StdoutBytes.Uint64(),
+			gotFacts.StderrBytes.Uint64(),
 			perStream,
 		)
 	}
@@ -687,7 +731,11 @@ func TestRunStreamsLargeStdinWithExactAccounting(t *testing.T) {
 			if stdout.String() != want {
 				t.Fatalf("child observed stdin = %q bytes, want %q", stdout.String(), want)
 			}
-			if gotBytes := resultByteLength(t, got.StdinBytes); gotBytes != tc.bytes {
+			gotFacts, factsErr := got.Observation()
+			if factsErr != nil {
+				t.Fatal(factsErr)
+			}
+			if gotBytes := gotFacts.StdinBytes.Uint64(); gotBytes != tc.bytes {
 				t.Fatalf("Result.StdinBytes() = %d, want %d", gotBytes, tc.bytes)
 			}
 		})
@@ -797,12 +845,16 @@ func TestRunAccountsPartialReaderResults(t *testing.T) {
 		if gotErr != nil {
 			t.Fatalf("process.Run(bytes with EOF) error = %v, want nil", gotErr)
 		}
+		gotFacts, factsErr := got.Observation()
+		if factsErr != nil {
+			t.Fatal(factsErr)
+		}
 		if stdout.String() != "trailing" ||
-			resultByteLength(t, got.StdinBytes) != uint64(len("trailing")) {
+			gotFacts.StdinBytes.Uint64() != uint64(len("trailing")) {
 			t.Fatalf(
 				"bytes with EOF = stdout:%q count:%d, want %q/%d",
 				stdout.String(),
-				resultByteLength(t, got.StdinBytes),
+				gotFacts.StdinBytes.Uint64(),
 				"trailing",
 				len("trailing"),
 			)
@@ -826,7 +878,11 @@ func TestRunAccountsPartialReaderResults(t *testing.T) {
 				core.ErrProcessStream,
 			)
 		}
-		if gotBytes := resultByteLength(t, got.StdinBytes); gotBytes != uint64(len("partial")) {
+		gotFacts, factsErr := got.Observation()
+		if factsErr != nil {
+			t.Fatal(factsErr)
+		}
+		if gotBytes := gotFacts.StdinBytes.Uint64(); gotBytes != uint64(len("partial")) {
 			t.Fatalf(
 				"Result.StdinBytes() = %d, want %d delivered bytes counted honestly",
 				gotBytes,
@@ -860,7 +916,11 @@ func TestRunRejectsMalformedStreamImplementations(t *testing.T) {
 		if err := got.Validate(); err != nil {
 			t.Fatalf("invalid-writer Result.Validate() error = %v, want nil", err)
 		}
-		if gotBytes := resultByteLength(t, got.StdoutBytes); gotBytes != 0 {
+		gotFacts, factsErr := got.Observation()
+		if factsErr != nil {
+			t.Fatal(factsErr)
+		}
+		if gotBytes := gotFacts.StdoutBytes.Uint64(); gotBytes != 0 {
 			t.Fatalf("invalid writer stdout count = %d, want 0 trusted bytes", gotBytes)
 		}
 	})
@@ -883,7 +943,11 @@ func TestRunRejectsMalformedStreamImplementations(t *testing.T) {
 				io.ErrShortWrite,
 			)
 		}
-		if gotBytes := resultByteLength(t, got.StdoutBytes); gotBytes == 0 {
+		gotFacts, factsErr := got.Observation()
+		if factsErr != nil {
+			t.Fatal(factsErr)
+		}
+		if gotBytes := gotFacts.StdoutBytes.Uint64(); gotBytes == 0 {
 			t.Fatal("short writer stdout count = 0, want the bytes the writer did accept")
 		}
 	})
@@ -907,7 +971,11 @@ func TestRunRejectsMalformedStreamImplementations(t *testing.T) {
 		if err := got.Validate(); err != nil {
 			t.Fatalf("invalid-reader Result.Validate() error = %v, want nil", err)
 		}
-		if gotBytes := resultByteLength(t, got.StdinBytes); gotBytes != 0 {
+		gotFacts, factsErr := got.Observation()
+		if factsErr != nil {
+			t.Fatal(factsErr)
+		}
+		if gotBytes := gotFacts.StdinBytes.Uint64(); gotBytes != 0 {
 			t.Fatalf("invalid reader stdin count = %d, want 0 trusted bytes", gotBytes)
 		}
 	})
@@ -928,7 +996,11 @@ func TestRunRejectsMalformedStreamImplementations(t *testing.T) {
 				core.ErrProcessStream,
 			)
 		}
-		if gotBytes := resultByteLength(t, got.StdinBytes); gotBytes != 0 {
+		gotFacts, factsErr := got.Observation()
+		if factsErr != nil {
+			t.Fatal(factsErr)
+		}
+		if gotBytes := gotFacts.StdinBytes.Uint64(); gotBytes != 0 {
 			t.Fatalf("negative reader stdin count = %d, want 0 trusted bytes", gotBytes)
 		}
 	})
@@ -950,7 +1022,11 @@ func TestRunRejectsMalformedStreamImplementations(t *testing.T) {
 		if err := got.Validate(); err != nil {
 			t.Fatalf("panicking-writer Result.Validate() error = %v, want nil", err)
 		}
-		if gotBytes := resultByteLength(t, got.StdoutBytes); gotBytes != 0 {
+		gotFacts, factsErr := got.Observation()
+		if factsErr != nil {
+			t.Fatal(factsErr)
+		}
+		if gotBytes := gotFacts.StdoutBytes.Uint64(); gotBytes != 0 {
 			t.Fatalf("panicking writer stdout count = %d, want 0 trusted bytes", gotBytes)
 		}
 	})
@@ -972,7 +1048,11 @@ func TestRunRejectsMalformedStreamImplementations(t *testing.T) {
 		if err := got.Validate(); err != nil {
 			t.Fatalf("panicking-reader Result.Validate() error = %v, want nil", err)
 		}
-		if gotBytes := resultByteLength(t, got.StdinBytes); gotBytes != 0 {
+		gotFacts, factsErr := got.Observation()
+		if factsErr != nil {
+			t.Fatal(factsErr)
+		}
+		if gotBytes := gotFacts.StdinBytes.Uint64(); gotBytes != 0 {
 			t.Fatalf("panicking reader stdin count = %d, want 0 trusted bytes", gotBytes)
 		}
 	})
@@ -1022,7 +1102,7 @@ func TestRunCancellationReapsTheDirectChild(t *testing.T) {
 	select {
 	case <-ready:
 		cancel()
-	case <-time.After(processTestBackstop):
+	case <-processTestDeadline(t, processTestBackstop):
 		t.Fatalf(
 			"child readiness wait reached %s, want readiness before the deadlock backstop",
 			processTestBackstop,
@@ -1078,7 +1158,7 @@ func TestRunCancellationReapsTheDirectChild(t *testing.T) {
 		if err != nil || successful {
 			t.Fatalf("cancelled ExitCode.Success() = (%t, %v), want false/nil", successful, err)
 		}
-	case <-time.After(processTestBackstop):
+	case <-processTestDeadline(t, processTestBackstop):
 		t.Fatalf(
 			"process.Run(cancelled) wait reached %s, want direct-child reaping before the deadlock backstop",
 			processTestBackstop,
@@ -1116,7 +1196,11 @@ func TestRunWaitDelayBoundsALingeringDescendant(t *testing.T) {
 	if err := got.Validate(); err != nil {
 		t.Fatalf("wait-delay Result.Validate() error = %v, want nil", err)
 	}
-	if exit := resultExitCode(t, got); exit != 0 {
+	gotFacts, factsErr := got.Observation()
+	if factsErr != nil {
+		t.Fatal(factsErr)
+	}
+	if exit := gotFacts.ExitCode; exit != 0 {
 		t.Fatalf("wait-delay exit = %d, want 0 because the direct child exited normally", exit)
 	}
 }
@@ -1163,7 +1247,7 @@ func TestRunCancellationTerminatesDespiteALingeringDescendant(t *testing.T) {
 	select {
 	case <-ready:
 		cancel()
-	case <-time.After(processTestBackstop):
+	case <-processTestDeadline(t, processTestBackstop):
 		t.Fatalf(
 			"child readiness wait reached %s, want readiness before the deadlock backstop",
 			processTestBackstop,
@@ -1175,7 +1259,7 @@ func TestRunCancellationTerminatesDespiteALingeringDescendant(t *testing.T) {
 	select {
 	case outcome := <-done:
 		got, gotErr = outcome.result, outcome.err
-	case <-time.After(processTestBackstop):
+	case <-processTestDeadline(t, processTestBackstop):
 		t.Fatalf(
 			"process.Run() wait reached %s, want termination before the deadlock backstop",
 			processTestBackstop,
@@ -1347,47 +1431,99 @@ func runHelperBehavior(behavior string, arguments []string) {
 	switch {
 	case behavior == "silent":
 	case behavior == "argv":
-		_, _ = io.WriteString(os.Stdout, strings.Join(arguments, argumentSeparator))
+		if err := gob.NewEncoder(os.Stdout).Encode(arguments); err != nil {
+			os.Exit(95)
+		}
 	case behavior == "streams":
-		_, _ = io.Copy(os.Stdout, os.Stdin)
-		_, _ = io.WriteString(os.Stderr, "diagnostic")
+		if _, err := io.Copy(os.Stdout, os.Stdin); err != nil {
+			os.Exit(95)
+		}
+		if _, err := io.WriteString(os.Stderr, "diagnostic"); err != nil {
+			os.Exit(95)
+		}
 		os.Exit(7)
 	case behavior == "copy":
-		_, _ = io.Copy(os.Stdout, os.Stdin)
+		if _, err := io.Copy(os.Stdout, os.Stdin); err != nil {
+			os.Exit(95)
+		}
 	case behavior == "stdin-count":
-		count, _ := io.Copy(io.Discard, os.Stdin)
-		_, _ = io.WriteString(os.Stdout, strconv.FormatInt(count, 10))
+		count, err := io.Copy(io.Discard, os.Stdin)
+		if err != nil {
+			os.Exit(95)
+		}
+		if _, err := io.WriteString(os.Stdout, strconv.FormatInt(count, 10)); err != nil {
+			os.Exit(95)
+		}
 	case behavior == "wait":
-		_, _ = io.WriteString(os.Stdout, "ready")
-		<-time.After(processTestBlock)
+		if _, err := io.WriteString(os.Stdout, "ready"); err != nil {
+			os.Exit(95)
+		}
+		delay, err := temporal.NewDuration(processTestBlock)
+		if err != nil {
+			os.Exit(95)
+		}
+		if err := temporal.Wait(temporal.WaitRequest{Context: context.Background(), Duration: delay}); err != nil {
+			os.Exit(95)
+		}
 	case behavior == "linger":
 		helperSpawnLingeringDescendant()
 	case behavior == "linger-wait":
 		helperSpawnLingeringDescendant()
-		_, _ = io.WriteString(os.Stdout, "ready")
-		<-time.After(processTestBlock)
+		if _, err := io.WriteString(os.Stdout, "ready"); err != nil {
+			os.Exit(95)
+		}
+		delay, err := temporal.NewDuration(processTestBlock)
+		if err != nil {
+			os.Exit(95)
+		}
+		if err := temporal.Wait(temporal.WaitRequest{Context: context.Background(), Duration: delay}); err != nil {
+			os.Exit(95)
+		}
 	case behavior == "linger-wait-pid":
 		descendant := helperSpawnLingeringDescendant()
-		_, _ = io.WriteString(os.Stdout, "ready:"+strconv.Itoa(descendant.Process.Pid))
-		<-time.After(processTestBlock)
+		if _, err := io.WriteString(os.Stdout, "ready:"+strconv.Itoa(descendant.Process.Pid)); err != nil {
+			os.Exit(95)
+		}
+		delay, err := temporal.NewDuration(processTestBlock)
+		if err != nil {
+			os.Exit(95)
+		}
+		if err := temporal.Wait(temporal.WaitRequest{Context: context.Background(), Duration: delay}); err != nil {
+			os.Exit(95)
+		}
 	case behavior == "linger-block-pid":
 		descendant := helperSpawnBlockingDescendant()
-		_, _ = io.WriteString(os.Stdout, "ready:"+strconv.Itoa(descendant.Process.Pid))
+		if _, err := io.WriteString(os.Stdout, "ready:"+strconv.Itoa(descendant.Process.Pid)); err != nil {
+			os.Exit(95)
+		}
 	case behavior == "hold-descriptor":
-		<-time.After(processTestLingerLifetime)
+		delay, err := temporal.NewDuration(processTestLingerLifetime)
+		if err != nil {
+			os.Exit(95)
+		}
+		if err := temporal.Wait(temporal.WaitRequest{Context: context.Background(), Duration: delay}); err != nil {
+			os.Exit(95)
+		}
 	case behavior == "hold-descriptor-block":
-		<-time.After(processTestBlock)
+		delay, err := temporal.NewDuration(processTestBlock)
+		if err != nil {
+			os.Exit(95)
+		}
+		if err := temporal.Wait(temporal.WaitRequest{Context: context.Background(), Duration: delay}); err != nil {
+			os.Exit(95)
+		}
 	case behavior == "working-directory":
 		directory, err := os.Getwd()
 		if err != nil {
 			os.Exit(91)
 		}
-		_, _ = io.WriteString(os.Stdout, directory)
+		if _, err := io.WriteString(os.Stdout, directory); err != nil {
+			os.Exit(95)
+		}
 	case strings.HasPrefix(behavior, "environment:"):
-		_, _ = io.WriteString(
-			os.Stdout,
-			os.Getenv(strings.TrimPrefix(behavior, "environment:")),
-		)
+		if _, err := io.WriteString(os.Stdout, os.Getenv(strings.TrimPrefix(behavior, "environment:"))); err != nil {
+			os.Exit(95)
+		}
 	case strings.HasPrefix(behavior, "exit:"):
 		helperExit(strings.TrimPrefix(behavior, "exit:"))
 	case strings.HasPrefix(behavior, "output:"):
@@ -1566,33 +1702,6 @@ func milliseconds(tb testing.TB, value uint64) temporal.Duration {
 	return duration
 }
 
-func resultExitCode(tb testing.TB, result process.Result) int {
-	tb.Helper()
-
-	exit, err := result.ExitCode()
-	if err != nil {
-		tb.Fatalf("Result.ExitCode() error = %v, want nil", err)
-	}
-	value, err := exit.Int()
-	if err != nil {
-		tb.Fatalf("ExitCode.Int() error = %v, want nil", err)
-	}
-	return value
-}
-
-func resultByteLength(
-	tb testing.TB,
-	project func() (core.ByteLength, error),
-) uint64 {
-	tb.Helper()
-
-	length, err := project()
-	if err != nil {
-		tb.Fatalf("Result byte projection error = %v, want nil", err)
-	}
-	return length.Uint64()
-}
-
 type runOutcome struct {
 	err    error
 	result process.Result
@@ -1615,7 +1724,7 @@ func runWithinBackstop(
 	select {
 	case got := <-done:
 		return got.result, got.err
-	case <-time.After(processTestBackstop):
+	case <-processTestDeadline(tb, processTestBackstop):
 		tb.Fatalf(
 			"process.Run() wait reached %s, want termination before the deadlock backstop",
 			processTestBackstop,
@@ -1677,13 +1786,6 @@ func allNonNULBytes() string {
 		raw = append(raw, byte(value+1))
 	}
 	return string(raw)
-}
-
-func splitArgv(joined string) []string {
-	if joined == "" {
-		return nil
-	}
-	return strings.Split(joined, argumentSeparator)
 }
 
 type countingWriter struct {
@@ -1829,4 +1931,18 @@ func expiredContext() context.Context {
 	ctx, cancel := context.WithDeadline(context.Background(), time.Unix(0, 0))
 	cancel()
 	return ctx
+}
+
+func processTestDeadline(tb testing.TB, delay time.Duration) <-chan struct{} {
+	tb.Helper()
+	duration, err := temporal.NewDuration(delay)
+	if err != nil {
+		tb.Fatalf("construct deadlock backstop: %v", err)
+	}
+	ctx, cancel, err := temporal.WithTimeout(temporal.TimeoutRequest{Parent: tb.Context(), Duration: duration})
+	if err != nil {
+		tb.Fatalf("open deadlock backstop: %v", err)
+	}
+	tb.Cleanup(cancel)
+	return ctx.Done()
 }

@@ -62,6 +62,9 @@ func (s *Signature) UnmarshalJSON(data []byte) error {
 	if s == nil {
 		return envelopeJSONError(errors.New(signatureUnsetErrorText))
 	}
+	if len(data) > core.JSONDocumentMaximumBytes {
+		return envelopeJSONError(core.ErrJSONContract)
+	}
 	value, err := core.DecodeJSONStringToken(data)
 	if err != nil {
 		return envelopeJSONError(err)

@@ -11,60 +11,94 @@ import (
 	"github.com/deliri/primitive/v2026/process"
 )
 
+// The finite writer outcomes include every legal count/error combination and
+// both impossible count directions. Refused routes must never reach a writer.
 func TestStreamsWriteOutputLayerTriad(t *testing.T) {
 	t.Parallel()
-
-	payload := []byte("proof\n")
-	for _, stream := range []process.Stream{process.StreamStdout, process.StreamStderr} {
-		t.Run("positive exact write to "+stream.String(), func(t *testing.T) {
+	cases := []struct {
+		name       string
+		stream     process.Stream
+		payload    []byte
+		nilStream  process.Stream
+		count      int
+		cause      error
+		wantCount  uint64
+		wantErr    error
+		wantNative error
+		wantCalls  int
+	}{
+		{name: "positive/stdout preserves binary payload", stream: process.StreamStdout, payload: []byte{0, 255, 'x'}, count: 3, wantCount: 3, wantCalls: 1},
+		{name: "positive/stderr preserves binary payload", stream: process.StreamStderr, payload: []byte{0, 255, 'x'}, count: 3, wantCount: 3, wantCalls: 1},
+		{name: "neutral/nil stdout payload never calls destination", stream: process.StreamStdout},
+		{name: "neutral/empty stderr payload never calls destination", stream: process.StreamStderr, payload: []byte{}},
+		{name: "negative/stdin cannot be written", stream: process.StreamStdin, payload: []byte("x"), wantErr: core.ErrProcessContract},
+		{name: "negative/unknown stream cannot be routed", stream: process.StreamUnknown, payload: []byte("x"), wantErr: core.ErrProcessContract},
+		{name: "negative/off-domain stream cannot be routed", stream: process.Stream(255), payload: []byte("x"), wantErr: core.ErrProcessContract},
+		{name: "negative/empty input still validates routing", stream: process.StreamStdin, wantErr: core.ErrProcessContract},
+		{name: "negative/nil stdin refuses before output", stream: process.StreamStdout, nilStream: process.StreamStdin, payload: []byte("x"), wantErr: core.ErrProcessContract},
+		{name: "negative/nil selected stdout refuses", stream: process.StreamStdout, nilStream: process.StreamStdout, payload: []byte("x"), wantErr: core.ErrProcessContract},
+		{name: "negative/nil unselected stderr refuses", stream: process.StreamStdout, nilStream: process.StreamStderr, payload: []byte("x"), wantErr: core.ErrProcessContract},
+		{name: "negative/zero progress is a short write", stream: process.StreamStdout, payload: []byte("abc"), wantErr: core.ErrProcessStream, wantNative: io.ErrShortWrite, wantCalls: 1},
+		{name: "negative/partial nil error cannot claim completion", stream: process.StreamStdout, payload: []byte("abc"), count: 2, wantCount: 2, wantErr: core.ErrProcessStream, wantNative: io.ErrShortWrite, wantCalls: 1},
+		{name: "negative/partial native failure preserves count", stream: process.StreamStderr, payload: []byte("abc"), count: 2, cause: io.ErrClosedPipe, wantCount: 2, wantErr: core.ErrProcessStream, wantNative: io.ErrClosedPipe, wantCalls: 1},
+		{name: "negative/full count cannot erase native failure", stream: process.StreamStdout, payload: []byte("abc"), count: 3, cause: io.ErrClosedPipe, wantCount: 3, wantErr: core.ErrProcessStream, wantNative: io.ErrClosedPipe, wantCalls: 1},
+		{name: "negative/negative count cannot wrap byte counter", stream: process.StreamStdout, payload: []byte("abc"), count: -1, wantErr: core.ErrProcessStream, wantNative: io.ErrShortWrite, wantCalls: 1},
+		{name: "negative/excess count cannot invent retained bytes", stream: process.StreamStderr, payload: []byte("abc"), count: 4, wantErr: core.ErrProcessStream, wantNative: io.ErrShortWrite, wantCalls: 1},
+		{name: "negative/impossible count preserves independent cause", stream: process.StreamStdout, payload: []byte("abc"), count: -1, cause: io.ErrClosedPipe, wantErr: core.ErrProcessStream, wantNative: io.ErrShortWrite, wantCalls: 1},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			var stdout bytes.Buffer
-			var stderr bytes.Buffer
-			streams := process.Streams{Stdin: strings.NewReader(""), Stdout: &stdout, Stderr: &stderr}
-			length, err := streams.WriteOutput(stream, payload)
-			if err != nil || length.Uint64() != uint64(len(payload)) {
-				t.Fatalf("WriteOutput() = (%v, %v), want exact payload length", length, err)
+			stdout := &outputOutcomeWriter{count: tc.count, cause: tc.cause}
+			stderr := &outputOutcomeWriter{count: tc.count, cause: tc.cause}
+			streams := process.Streams{Stdin: bytes.NewReader(nil), Stdout: stdout, Stderr: stderr}
+			switch tc.nilStream {
+			case process.StreamStdin:
+				streams.Stdin = nil
+			case process.StreamStdout:
+				streams.Stdout = nil
+			case process.StreamStderr:
+				streams.Stderr = nil
 			}
-			if stream == process.StreamStdout && !bytes.Equal(stdout.Bytes(), payload) || stream == process.StreamStderr && !bytes.Equal(stderr.Bytes(), payload) {
-				t.Fatalf("WriteOutput(%s) = stdout %q/stderr %q, want payload %q only at the selected destination", stream, stdout.Bytes(), stderr.Bytes(), payload)
+			length, err := streams.WriteOutput(tc.stream, tc.payload)
+			if length.Uint64() != tc.wantCount || !errors.Is(err, tc.wantErr) || tc.wantNative != nil && !errors.Is(err, tc.wantNative) || tc.cause != nil && !errors.Is(err, tc.cause) {
+				t.Fatalf("write=%d, %v; want %d, %v with native %v and cause %v", length.Uint64(), err, tc.wantCount, tc.wantErr, tc.wantNative, tc.cause)
+			}
+			selected, other := stdout, stderr
+			if tc.stream == process.StreamStderr {
+				selected, other = stderr, stdout
+			}
+			if selected.calls != tc.wantCalls || other.calls != 0 || other.retained.Len() != 0 || !bytes.Equal(selected.retained.Bytes(), tc.payload[:tc.wantCount]) {
+				t.Fatalf("effects selected=%d/%q other=%d/%q; want calls=%d exact prefix=%q and no other output", selected.calls, selected.retained.Bytes(), other.calls, other.retained.Bytes(), tc.wantCalls, tc.payload[:tc.wantCount])
 			}
 		})
 	}
-
-	short := &shortWriter{}
-	streams := process.Streams{Stdin: strings.NewReader(""), Stdout: short, Stderr: io.Discard}
-	if length, err := streams.WriteOutput(process.StreamStdin, []byte("x")); !errors.Is(err, core.ErrProcessContract) || length.Uint64() != 0 || short.retained.Len() != 0 {
-		t.Fatalf("WriteOutput(stdin) = (length %d, retained %d, %v), want zero, zero, and %v", length.Uint64(), short.retained.Len(), err, core.ErrProcessContract)
-	}
-	if length, err := streams.WriteOutput(process.StreamStdout, []byte("proof")); !errors.Is(err, core.ErrProcessStream) || !errors.Is(err, io.ErrShortWrite) || length.Uint64() != 4 || short.retained.String() != "proo" {
-		t.Fatalf("WriteOutput(short) = (length %d, retained %q, %v), want 4, %q, stream and short-write identities", length.Uint64(), short.retained.String(), err, "proo")
-	}
-
-	untouched := &outputCallWriter{}
-	neutral := process.Streams{Stdin: strings.NewReader(""), Stdout: untouched, Stderr: io.Discard}
-	length, err := neutral.WriteOutput(process.StreamStdout, nil)
-	if err != nil || length.Uint64() != 0 || untouched.calls != 0 {
-		t.Fatalf("WriteOutput(empty) = (length %d, calls %d, %v), want zero, zero, nil", length.Uint64(), untouched.calls, err)
-	}
 }
 
-type shortWriter struct{ retained bytes.Buffer }
-
-func (w *shortWriter) Write(payload []byte) (int, error) {
-	count := len(payload) - 1
-	_, _ = w.retained.Write(payload[:count])
-	return count, nil
+type outputOutcomeWriter struct {
+	retained bytes.Buffer
+	count    int
+	cause    error
+	calls    int
 }
 
-type outputCallWriter struct{ calls uint64 }
-
-func (w *outputCallWriter) Write(payload []byte) (int, error) {
+func (w *outputOutcomeWriter) Write(payload []byte) (int, error) {
 	w.calls++
-	return len(payload), nil
+	if w.count >= 0 && w.count <= len(payload) {
+		_, _ = w.retained.Write(payload[:w.count])
+	}
+	return w.count, w.cause
 }
 
 func FuzzStreamsWriteOutputSemanticClosure(f *testing.F) {
-	f.Add(uint8(process.StreamStdout), []byte("proof\n"))
+	var canonical bytes.Buffer
+	seedStreams := process.Streams{Stdin: bytes.NewReader(nil), Stdout: &canonical, Stderr: io.Discard}
+	seed := []byte{0, 255, 'p', '\n'}
+	count, err := seedStreams.WriteOutput(process.StreamStdout, seed)
+	if err != nil || count.Uint64() != uint64(len(seed)) || !bytes.Equal(canonical.Bytes(), seed) {
+		f.Fatalf("production stream seed=%q, %v, %v", canonical.Bytes(), count, err)
+	}
+	f.Add(uint8(process.StreamStdout), canonical.Bytes())
 	f.Add(uint8(process.StreamStderr), []byte{})
 	f.Add(uint8(process.StreamStdin), []byte("refused"))
 	f.Add(uint8(255), []byte{0x00, 0xff})

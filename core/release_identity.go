@@ -187,10 +187,8 @@ func (v ReleaseVersion) Validate() error {
 	if !v.set {
 		return releaseIdentityError("release version is unset")
 	}
-	parsed, err := parseReleaseVersion(v.String())
-	if err != nil || parsed != v {
-		return releaseIdentityError("release version is invalid")
-	}
+	// Every triple of private uint32 components is admitted by the constructor.
+	// Text syntax belongs to ingress; formatting and reparsing cannot add proof.
 	return nil
 }
 

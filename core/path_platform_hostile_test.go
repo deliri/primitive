@@ -14,24 +14,18 @@ import (
 func TestAbsoluteFilesystemPathHostileBoundaryTable(t *testing.T) {
 	t.Parallel()
 
-	maximumRunePath := strings.Repeat(
-		string(filepath.Separator)+strings.Repeat("a", filesystemPathComponentMaximumBytes),
-		16,
-	)
+	root := filepath.VolumeName(t.TempDir()) + string(filepath.Separator)
+	maximumRunePath := root + relativePathWithRunes(t, filesystemPathMaximumRunes-utf8.RuneCountInString(root))
 	oneBelowMaximumRunePath := maximumRunePath[:len(maximumRunePath)-1]
-	overMaximumRunePath := strings.Repeat(
-		string(filepath.Separator)+strings.Repeat("a", filesystemPathComponentMaximumBytes),
-		15,
-	) + string(filepath.Separator) + strings.Repeat("a", filesystemPathComponentMaximumBytes-1) +
-		string(filepath.Separator) + "a"
-	maximumComponents := "/" + strings.Repeat("a/", FilesystemPathMaximumComponents-1) + "a"
-	overMaximumComponents := maximumComponents + "/a"
+	overMaximumRunePath := root + relativePathWithRunes(t, filesystemPathMaximumRunes+1-utf8.RuneCountInString(root))
+	maximumComponents := root + strings.Repeat("a"+string(filepath.Separator), FilesystemPathMaximumComponents-1) + "a"
+	overMaximumComponents := maximumComponents + string(filepath.Separator) + "a"
 	cases := []struct {
 		name        string
 		value       string
 		disposition boundaryDisposition
 	}{
-		{name: "root lexical path is accepted without false file or directory claim", value: string(filepath.Separator), disposition: boundaryAccept},
+		{name: "root lexical path is accepted without false file or directory claim", value: root, disposition: boundaryAccept},
 		{name: "minimum one-component absolute path", value: "/a", disposition: boundaryAccept},
 		{name: "ordinary two-component path", value: "/a/b", disposition: boundaryAccept},
 		{name: "hidden final component", value: "/a/.hidden", disposition: boundaryAccept},
@@ -44,7 +38,7 @@ func TestAbsoluteFilesystemPathHostileBoundaryTable(t *testing.T) {
 		{name: "raw ampersand inside component", value: "/a&b", disposition: boundaryAccept},
 		{name: "raw less-than inside component", value: "/a<b", disposition: boundaryAccept},
 		{name: "raw greater-than inside component", value: "/a>b", disposition: boundaryAccept},
-		{name: "one below component maximum", value: strings.TrimSuffix(maximumComponents, "/a"), disposition: boundaryAccept},
+		{name: "one below component maximum", value: strings.TrimSuffix(maximumComponents, string(filepath.Separator)+"a"), disposition: boundaryAccept},
 		{name: "exact component maximum", value: maximumComponents, disposition: boundaryAccept},
 		{name: "one rune below complete-path maximum", value: oneBelowMaximumRunePath, disposition: boundaryAccept},
 		{name: "exact complete-path rune maximum", value: maximumRunePath, disposition: boundaryAccept},
@@ -69,6 +63,9 @@ func TestAbsoluteFilesystemPathHostileBoundaryTable(t *testing.T) {
 		{name: "backslash is not native absolute separator", value: `\a\b`},
 	}
 	for _, tc := range cases {
+		if after, ok := strings.CutPrefix(tc.value, "/"); ok {
+			tc.value = root + filepath.FromSlash(after)
+		}
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -161,7 +158,14 @@ func TestAbsolutePathStrictJSONInteroperableEscaping(t *testing.T) {
 		{name: "escaped path separators", wire: `"\/a\/aAb"`, want: "/a/aAb"},
 		{name: "escaped basic Latin letter", wire: `"/a\u0041b"`, want: "/aAb"},
 	}
+	volume := filepath.VolumeName(t.TempDir())
 	for _, tc := range cases {
+		if filepath.Separator == '\\' {
+			tc.wire = strings.NewReplacer(`\/`, `\u005c`, `/`, `\\`).Replace(tc.wire)
+			quote := strings.IndexByte(tc.wire, '"')
+			tc.wire = tc.wire[:quote+1] + volume + tc.wire[quote+1:]
+			tc.want = volume + filepath.FromSlash(tc.want)
+		}
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -201,7 +205,13 @@ func TestAbsolutePathStrictJSONRejectsLossySurrogateRepair(t *testing.T) {
 		{name: "raw byte followed by low surrogate", wire: `"/ax\udfffb"`},
 		{name: "maximum high surrogate followed by minimum high surrogate", wire: `"/a\udbff\ud800b"`},
 	}
+	volume := filepath.VolumeName(t.TempDir())
 	for _, tc := range cases {
+		if filepath.Separator == '\\' {
+			tc.wire = strings.NewReplacer(`\/`, `\u005c`, `/`, `\\`).Replace(tc.wire)
+			quote := strings.IndexByte(tc.wire, '"')
+			tc.wire = tc.wire[:quote+1] + volume + tc.wire[quote+1:]
+		}
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -251,7 +261,7 @@ func TestAbsolutePathStrictJSONRejectsLossySurrogateRepair(t *testing.T) {
 func TestTypedAbsolutePathCompositionPreservesLexicalContract(t *testing.T) {
 	t.Parallel()
 
-	root, rootErr := ParseAbsolutePath(string(filepath.Separator))
+	root, rootErr := ParseAbsolutePath(filepath.VolumeName(t.TempDir()) + string(filepath.Separator))
 	if rootErr != nil {
 		t.Fatalf("ParseAbsolutePath(root) error = %v, want nil", rootErr)
 	}
@@ -271,7 +281,7 @@ func TestTypedAbsolutePathCompositionPreservesLexicalContract(t *testing.T) {
 	if joinChildErr != nil {
 		t.Fatalf("parent.Join(file.txt) error = %v, want nil", joinChildErr)
 	}
-	wantChild := filepath.Join(string(filepath.Separator), parentName.String(), fileName.String())
+	wantChild := filepath.Join(root.String(), parentName.String(), fileName.String())
 	if child.String() != wantChild {
 		t.Fatalf("joined absolute path = %q, want %q", child.String(), wantChild)
 	}
@@ -295,7 +305,7 @@ func TestTypedAbsolutePathCompositionPreservesLexicalContract(t *testing.T) {
 func TestTypedAbsolutePathCompositionRejectsEveryZeroOwnershipBoundary(t *testing.T) {
 	t.Parallel()
 
-	root, rootErr := ParseAbsolutePath(string(filepath.Separator))
+	root, rootErr := ParseAbsolutePath(filepath.VolumeName(t.TempDir()) + string(filepath.Separator))
 	if rootErr != nil {
 		t.Fatalf("ParseAbsolutePath(root) error = %v, want nil", rootErr)
 	}

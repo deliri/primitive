@@ -94,9 +94,8 @@ func (e *Execution) Terminate() error {
 // The group address is not the stored-number hazard the direct pid is. The
 // kernel keeps the leader's number bound to the group while any member still
 // runs, so a sweep reaches only the created group or learns that it is gone.
-// A group already gone, or one this process may no longer address, is a
-// successful sweep rather than a failure, because neither can be repaired by
-// retrying. The residual window is named rather than hidden: once the last
+// A group already gone is a successful no-op. A permission denial remains
+// an error: it proves neither delivery nor absence. Once the last
 // member exits, the number may be recycled into an unrelated new group, so a
 // supervisor sweeps on evidence of survivors, never as routine hygiene after
 // every reaped run.

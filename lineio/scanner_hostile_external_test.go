@@ -110,7 +110,8 @@ func TestScannerIngressLayerTriadHostileTable(t *testing.T) {
 		{name: "boundary initial equal to maximum accepts exact line", class: hostileCaseBoundary, request: scannerRequest(strings.Repeat("x", 8)+"\n", 8, 8), wantLines: []string{strings.Repeat("x", 8)}},
 		{name: "boundary line one above initial grows within maximum", class: hostileCaseBoundary, request: scannerRequest(strings.Repeat("x", hostileInitialBytes+1)+"\n", hostileInitialBytes, hostileMaximumLineBytes), wantLines: []string{strings.Repeat("x", hostileInitialBytes+1)}},
 		{name: "boundary one below supported policy maximum is admitted", class: hostileCaseBoundary, request: scannerRequestWithCounts("", mustByteCount(t, 1), maximumSupportedMinusOne)},
-		{name: "boundary exact supported policy maximum is admitted", class: hostileCaseBoundary, request: scannerRequestWithCounts("", maximumSupported, maximumSupported)},
+		{name: "boundary exact supported policy maximum is admitted", class: hostileCaseBoundary, request: scannerRequestWithCounts("", mustByteCount(t, hostileInitialBytes), maximumSupported)},
+		{name: "negative eager buffer cannot reserve the line extent", class: hostileCaseNegative, request: scannerRequestWithCounts("", maximumSupported, maximumSupported), wantNewErr: core.ErrLineIOContract},
 		{name: "boundary one above supported policy maximum is rejected", class: hostileCaseBoundary, request: scannerRequestWithCounts("", mustByteCount(t, 1), maximumSupportedPlusOne), wantNewErr: core.ErrLineIOContract},
 	}
 
@@ -148,7 +149,7 @@ func TestScannerIngressLayerTriadHostileTable(t *testing.T) {
 
 	wantCounts := [hostileCaseLimit]int{
 		hostileCasePositive: 10,
-		hostileCaseNegative: 10,
+		hostileCaseNegative: 11,
 		hostileCaseBoundary: 20,
 	}
 	if counts != wantCounts {

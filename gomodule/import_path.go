@@ -7,9 +7,6 @@ import (
 	"golang.org/x/mod/module"
 )
 
-// ImportPathMaximumBytes bounds one Go package import identity.
-const ImportPathMaximumBytes = 1024
-
 // ImportPath is one validated Go package import identity. Standard-library
 // paths are admitted even though they are not module paths.
 type ImportPath struct {
@@ -25,10 +22,10 @@ func ParseImportPath(value string) (ImportPath, error) {
 	return path, nil
 }
 
-// Validate rejects absent, oversized, or invalid Go import paths.
+// Validate rejects absent or invalid Go import paths.
 func (p ImportPath) Validate() error {
-	if p.value == "" || len(p.value) > ImportPathMaximumBytes {
-		return contractError("import path is absent or exceeds its byte bound")
+	if p.value == "" {
+		return contractError("import path is absent")
 	}
 	if err := module.CheckImportPath(p.value); err != nil {
 		return errors.Join(core.ErrGoModuleContract, err)

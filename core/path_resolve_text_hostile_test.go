@@ -17,8 +17,9 @@ func TestResolveTextIsExactlyLexicalAbsIngress(t *testing.T) {
 	t.Parallel()
 
 	separator := string(filepath.Separator)
+	root := filepath.VolumeName(t.TempDir()) + separator
 	join := func(parts ...string) string {
-		return separator + strings.Join(parts, separator)
+		return root + strings.Join(parts, separator)
 	}
 	base := absolutePathForTest(t, join("work", "dir"))
 	maximumComponent := strings.Repeat("a", 255)
@@ -33,7 +34,7 @@ func TestResolveTextIsExactlyLexicalAbsIngress(t *testing.T) {
 		{name: "absolute clean text is admitted as itself", text: join("etc", "peach.json"), want: join("etc", "peach.json")},
 		{name: "absolute noncanonical text is cleaned", text: join("etc") + separator + separator + "sub" + separator + "." + separator + "x", want: join("etc", "sub", "x")},
 		{name: "absolute parent references resolve lexically", text: join("etc", "..", "var", "x"), want: join("var", "x")},
-		{name: "the filesystem root resolves to itself", text: separator, want: separator},
+		{name: "the filesystem root resolves to itself", text: root, want: root},
 		{name: "an absolute climb above the root clamps at the root", text: join("..", "..", "x"), want: join("x")},
 		{name: "a bare name resolves below the base", text: "peach.json", want: join("work", "dir", "peach.json")},
 		{name: "a nested relative path resolves below the base", text: "a" + separator + "b" + separator + "c", want: join("work", "dir", "a", "b", "c")},
@@ -48,9 +49,9 @@ func TestResolveTextIsExactlyLexicalAbsIngress(t *testing.T) {
 		{name: "text carrying a NUL byte is refused", text: "bad\x00name", wantErr: core.ErrPrimitiveContract},
 		{name: "invalid UTF-8 text is refused", text: "\xff\xfe", wantErr: core.ErrPrimitiveContract},
 		{name: "an oversized component is refused", text: oversizedComponent, wantErr: core.ErrPrimitiveContract},
-		{name: "an absolute path with an oversized component is refused", text: separator + oversizedComponent, wantErr: core.ErrPrimitiveContract},
+		{name: "an absolute path with an oversized component is refused", text: root + oversizedComponent, wantErr: core.ErrPrimitiveContract},
 		{name: "an absolute path carrying a NUL byte is refused", text: join("x") + "\x00", wantErr: core.ErrPrimitiveContract},
-		{name: "invalid UTF-8 absolute text is refused", text: separator + "\xff", wantErr: core.ErrPrimitiveContract},
+		{name: "invalid UTF-8 absolute text is refused", text: root + "\xff", wantErr: core.ErrPrimitiveContract},
 		{name: "a component-count blowout is refused", text: strings.Repeat("a"+separator, core.FilesystemPathMaximumComponents+8) + "a", wantErr: core.ErrPrimitiveContract},
 		{name: "a rune-limit blowout is refused", text: separator + strings.Repeat("é", 4200), wantErr: core.ErrPrimitiveContract},
 	}

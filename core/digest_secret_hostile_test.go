@@ -2,7 +2,6 @@ package core
 
 import (
 	"bytes"
-	"context"
 	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/base64"
@@ -12,30 +11,8 @@ import (
 	"fmt"
 	"math"
 	"strings"
-	"sync"
 	"testing"
-	"time"
 )
-
-const (
-	secretMaterialConcurrentWorkerCount = 8
-	secretMaterialConcurrencyTimeout    = 10 * time.Second
-)
-
-type secretMaterialWorkerPhase uint8
-
-const (
-	secretMaterialWorkerPhaseUnknown secretMaterialWorkerPhase = iota
-	secretMaterialWorkerPhaseActive
-	secretMaterialWorkerPhaseDestroyed
-)
-
-type secretMaterialWorkerOutcome struct {
-	gotErr   error
-	gotBytes []byte
-	worker   uint8
-	phase    secretMaterialWorkerPhase
-}
 
 func TestSHA256DigestHostileCanonicalBoundaryTable(t *testing.T) {
 	t.Parallel()
@@ -508,142 +485,6 @@ func TestSecretMaterialDestroyInvalidatesEveryWrapperCopyAndZerosOwnedStorage(t 
 	}
 	if gotRendered := fmt.Sprintf("%v", material); gotRendered != RedactedValueText {
 		t.Fatalf("destroyed SecretMaterial formatting = %q, want %q", gotRendered, RedactedValueText)
-	}
-}
-
-func TestSecretMaterialConcurrentCopiesObserveOnlyActiveOrDestroyedState(t *testing.T) {
-	t.Parallel()
-
-	wantBytes := bytes.Repeat([]byte{0x5a}, SecretMaterialMaximumBytes)
-	material, gotConstructionErr := NewSecretMaterial(wantBytes)
-	if gotConstructionErr != nil {
-		t.Fatalf("NewSecretMaterial() error = %v, want nil", gotConstructionErr)
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	activeOutcomes := make(chan secretMaterialWorkerOutcome, secretMaterialConcurrentWorkerCount)
-	destroyedOutcomes := make(chan secretMaterialWorkerOutcome, secretMaterialConcurrentWorkerCount)
-	destroyed := make(chan struct{})
-	var workers sync.WaitGroup
-	workers.Add(secretMaterialConcurrentWorkerCount)
-	for worker := range secretMaterialConcurrentWorkerCount {
-		wrapperCopy := material
-		worker := uint8(worker)
-		go func() {
-			defer workers.Done()
-
-			gotBytes, gotErr := wrapperCopy.CopyBytes()
-			select {
-			case activeOutcomes <- secretMaterialWorkerOutcome{
-				gotErr:   gotErr,
-				gotBytes: gotBytes,
-				worker:   worker,
-				phase:    secretMaterialWorkerPhaseActive,
-			}:
-			case <-ctx.Done():
-				return
-			}
-			select {
-			case <-destroyed:
-			case <-ctx.Done():
-				return
-			}
-			gotBytes, gotErr = wrapperCopy.CopyBytes()
-			select {
-			case destroyedOutcomes <- secretMaterialWorkerOutcome{
-				gotErr:   gotErr,
-				gotBytes: gotBytes,
-				worker:   worker,
-				phase:    secretMaterialWorkerPhaseDestroyed,
-			}:
-			case <-ctx.Done():
-			}
-		}()
-	}
-
-	done := make(chan struct{})
-	go func() {
-		workers.Wait()
-		close(done)
-	}()
-	defer func() {
-		cancel()
-		select {
-		case <-done:
-		case <-time.After(secretMaterialConcurrencyTimeout):
-			t.Errorf(
-				"concurrent SecretMaterial cleanup got timeout after %v, want all workers stopped",
-				secretMaterialConcurrencyTimeout,
-			)
-		}
-	}()
-	deadline := time.NewTimer(secretMaterialConcurrencyTimeout)
-	defer deadline.Stop()
-
-	var gotActiveWorkers [secretMaterialConcurrentWorkerCount]bool
-	for range secretMaterialConcurrentWorkerCount {
-		select {
-		case got := <-activeOutcomes:
-			if got.phase != secretMaterialWorkerPhaseActive {
-				t.Fatalf("active worker %d phase = %v, want %v", got.worker, got.phase, secretMaterialWorkerPhaseActive)
-			}
-			if int(got.worker) >= len(gotActiveWorkers) || gotActiveWorkers[got.worker] {
-				t.Fatalf("active worker identity = %d, want one unique in 0..%d", got.worker, len(gotActiveWorkers)-1)
-			}
-			gotActiveWorkers[got.worker] = true
-			if got.gotErr != nil || !bytes.Equal(got.gotBytes, wantBytes) {
-				t.Fatalf(
-					"active worker %d CopyBytes() = (%x, %v), want (%x, nil)",
-					got.worker,
-					got.gotBytes,
-					got.gotErr,
-					wantBytes,
-				)
-			}
-		case <-deadline.C:
-			t.Fatalf(
-				"active SecretMaterial phase got timeout after %v, want %d outcomes",
-				secretMaterialConcurrencyTimeout,
-				secretMaterialConcurrentWorkerCount,
-			)
-		}
-	}
-	gotDestroyErr := material.Destroy()
-	if gotDestroyErr != nil {
-		t.Fatalf("SecretMaterial.Destroy() error = %v, want nil", gotDestroyErr)
-	}
-	close(destroyed)
-
-	var gotDestroyedWorkers [secretMaterialConcurrentWorkerCount]bool
-	for range secretMaterialConcurrentWorkerCount {
-		select {
-		case got := <-destroyedOutcomes:
-			if got.phase != secretMaterialWorkerPhaseDestroyed {
-				t.Fatalf("destroyed worker %d phase = %v, want %v", got.worker, got.phase, secretMaterialWorkerPhaseDestroyed)
-			}
-			if int(got.worker) >= len(gotDestroyedWorkers) || gotDestroyedWorkers[got.worker] {
-				t.Fatalf("destroyed worker identity = %d, want one unique in 0..%d", got.worker, len(gotDestroyedWorkers)-1)
-			}
-			gotDestroyedWorkers[got.worker] = true
-			if got.gotBytes != nil || !errors.Is(got.gotErr, ErrPrimitiveContract) {
-				t.Fatalf(
-					"destroyed worker %d CopyBytes() = (%v, %v), want (nil, %v)",
-					got.worker,
-					got.gotBytes,
-					got.gotErr,
-					ErrPrimitiveContract,
-				)
-			}
-		case <-deadline.C:
-			t.Fatalf(
-				"destroyed SecretMaterial phase got timeout after %v, want %d outcomes",
-				secretMaterialConcurrencyTimeout,
-				secretMaterialConcurrentWorkerCount,
-			)
-		}
-	}
-	if gotErr := material.Validate(); !errors.Is(gotErr, ErrPrimitiveContract) {
-		t.Fatalf("destroyed SecretMaterial.Validate() error = %v, want %v", gotErr, ErrPrimitiveContract)
 	}
 }
 

@@ -13,6 +13,7 @@ import (
 	"go/token"
 	"hash/crc32"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -181,74 +182,109 @@ func FuzzCoreExternalJSONDoorInventory(f *testing.F) {
 	}
 
 	f.Fuzz(func(t *testing.T, rawDoor uint8, data []byte) {
-		switch coreJSONDoor(rawDoor) {
+		door := coreJSONDoor(rawDoor)
+		if door <= coreJSONDoorUnknown || door >= coreJSONDoorLimit {
+			door = coreJSONDoor(rawDoor%uint8(coreJSONDoorLimit-1) + 1)
+		}
+		var candidate, roundTrip coreJSONReceiver
+		switch door {
 		case coreJSONDoorPlatform:
-			fuzzCoreJSONValue(t, data, fixtures.platform)
+			candidate, roundTrip = coreJSONReceivers(fixtures.platform)
 		case coreJSONDoorOperatingSystem:
-			fuzzCoreJSONValue(t, data, fixtures.operatingSystem)
+			candidate, roundTrip = coreJSONReceivers(fixtures.operatingSystem)
 		case coreJSONDoorCPUArchitecture:
-			fuzzCoreJSONValue(t, data, fixtures.architecture)
+			candidate, roundTrip = coreJSONReceivers(fixtures.architecture)
 		case coreJSONDoorOffering:
-			fuzzCoreJSONValue(t, data, fixtures.offering)
+			candidate, roundTrip = coreJSONReceivers(fixtures.offering)
 		case coreJSONDoorReleaseVersion:
-			fuzzCoreJSONValue(t, data, fixtures.version)
+			candidate, roundTrip = coreJSONReceivers(fixtures.version)
 		case coreJSONDoorBuildCommit:
-			fuzzCoreJSONValue(t, data, fixtures.commit)
+			candidate, roundTrip = coreJSONReceivers(fixtures.commit)
 		case coreJSONDoorBuildIdentity:
-			fuzzCoreJSONValue(t, data, fixtures.build)
+			candidate, roundTrip = coreJSONReceivers(fixtures.build)
 		case coreJSONDoorCatalogPageLimit:
-			fuzzCoreJSONValue(t, data, fixtures.pageLimit)
+			candidate, roundTrip = coreJSONReceivers(fixtures.pageLimit)
 		case coreJSONDoorCatalogSelectionKind:
-			fuzzCoreJSONValue(t, data, fixtures.selection)
+			candidate, roundTrip = coreJSONReceivers(fixtures.selection)
 		case coreJSONDoorCatalogPositionKind:
-			fuzzCoreJSONValue(t, data, fixtures.position)
+			candidate, roundTrip = coreJSONReceivers(fixtures.position)
 		case coreJSONDoorCatalogContinuationState:
-			fuzzCoreJSONValue(t, data, fixtures.continuation)
+			candidate, roundTrip = coreJSONReceivers(fixtures.continuation)
 		case coreJSONDoorErrorIdentity:
-			fuzzCoreJSONValue(t, data, fixtures.errorIdentity)
+			candidate, roundTrip = coreJSONReceivers(fixtures.errorIdentity)
 		case coreJSONDoorHTTPEndpoint:
-			fuzzCoreJSONValue(t, data, fixtures.endpoint)
+			candidate, roundTrip = coreJSONReceivers(fixtures.endpoint)
 		case coreJSONDoorPackageIdentity:
-			fuzzCoreJSONValue(t, data, fixtures.packageIdentity)
+			candidate, roundTrip = coreJSONReceivers(fixtures.packageIdentity)
 		case coreJSONDoorPackageKind:
-			fuzzCoreJSONValue(t, data, fixtures.packageKind)
+			candidate, roundTrip = coreJSONReceivers(fixtures.packageKind)
 		case coreJSONDoorPackageRole:
-			fuzzCoreJSONValue(t, data, fixtures.packageRole)
+			candidate, roundTrip = coreJSONReceivers(fixtures.packageRole)
 		case coreJSONDoorHTTPStatusCode:
-			fuzzCoreJSONValue(t, data, fixtures.status)
+			candidate, roundTrip = coreJSONReceivers(fixtures.status)
 		case coreJSONDoorHTTPHeaderName:
-			fuzzCoreJSONValue(t, data, fixtures.header)
+			candidate, roundTrip = coreJSONReceivers(fixtures.header)
 		case coreJSONDoorHTTPMediaType:
-			fuzzCoreJSONValue(t, data, fixtures.mediaType)
+			candidate, roundTrip = coreJSONReceivers(fixtures.mediaType)
 		case coreJSONDoorSHA256Digest:
-			fuzzCoreJSONValue(t, data, fixtures.sha256)
+			candidate, roundTrip = coreJSONReceivers(fixtures.sha256)
 		case coreJSONDoorCRC32C:
-			fuzzCoreJSONValue(t, data, fixtures.crc32c)
+			candidate, roundTrip = coreJSONReceivers(fixtures.crc32c)
 		case coreJSONDoorEd25519PublicKey:
-			fuzzCoreJSONValue(t, data, fixtures.publicKey)
+			candidate, roundTrip = coreJSONReceivers(fixtures.publicKey)
 		case coreJSONDoorByteCount:
-			fuzzCoreJSONValue(t, data, fixtures.byteCount)
+			candidate, roundTrip = coreJSONReceivers(fixtures.byteCount)
 		case coreJSONDoorByteLength:
-			fuzzCoreJSONValue(t, data, fixtures.byteLength)
+			candidate, roundTrip = coreJSONReceivers(fixtures.byteLength)
 		case coreJSONDoorPathComponent:
-			fuzzCoreJSONValue(t, data, fixtures.component)
+			candidate, roundTrip = coreJSONReceivers(fixtures.component)
 		case coreJSONDoorAbsolutePath:
-			fuzzCoreJSONValue(t, data, fixtures.absolutePath)
+			candidate, roundTrip = coreJSONReceivers(fixtures.absolutePath)
 		case coreJSONDoorSourcePath:
-			fuzzCoreJSONValue(t, data, fixtures.sourcePath)
+			candidate, roundTrip = coreJSONReceivers(fixtures.sourcePath)
 		case coreJSONDoorRepositoryIdentity:
-			fuzzCoreJSONValue(t, data, fixtures.repository)
+			candidate, roundTrip = coreJSONReceivers(fixtures.repository)
 		case coreJSONDoorSourceSnapshot:
-			fuzzCoreJSONValue(t, data, fixtures.snapshot)
+			candidate, roundTrip = coreJSONReceivers(fixtures.snapshot)
 		case coreJSONDoorSourceSubjectKind:
-			fuzzCoreJSONValue(t, data, fixtures.subjectKind)
+			candidate, roundTrip = coreJSONReceivers(fixtures.subjectKind)
 		case coreJSONDoorSourceSubject:
-			fuzzCoreJSONValue(t, data, fixtures.subject)
+			candidate, roundTrip = coreJSONReceivers(fixtures.subject)
 		case coreJSONDoorUnknown, coreJSONDoorLimit:
-			return
+			t.Fatalf("normalized JSON door=%d from selector=%d; want admitted domain", door, rawDoor)
 		default:
+			t.Fatalf("JSON door=%d has no compiler-bound receiver", door)
+		}
+		before, beforeErr := candidate.MarshalJSON()
+		if beforeErr != nil {
+			t.Fatal(beforeErr)
+		}
+		decodeErr := candidate.UnmarshalJSON(data)
+		if decodeErr != nil {
+			if bytes.Equal(data, before) {
+				t.Fatalf("producer's exact JSON was refused: %v", decodeErr)
+			}
+			after, marshalErr := candidate.MarshalJSON()
+			if !errors.Is(decodeErr, ErrJSONContract) || marshalErr != nil || !bytes.Equal(after, before) {
+				t.Fatalf("refused JSON error=%v, marshal=%v, receiver unchanged=%t; want typed refusal and unchanged receiver", decodeErr, marshalErr, bytes.Equal(after, before))
+			}
 			return
 		}
+		if err := candidate.Validate(); err != nil {
+			t.Fatalf("accepted JSON validation=%v; want nil", err)
+		}
+		canonical, err := candidate.MarshalJSON()
+		if err != nil || len(canonical) > JSONDocumentMaximumBytes {
+			t.Fatalf("canonical=%d bytes, %v; want bounded valid JSON", len(canonical), err)
+		}
+		if err := roundTrip.UnmarshalJSON(canonical); err != nil {
+			t.Fatalf("canonical decode=%v; want nil", err)
+		}
+		second, err := roundTrip.MarshalJSON()
+		if err != nil || !bytes.Equal(second, canonical) {
+			t.Fatalf("republication=%d bytes, %v; want exact canonical %d bytes", len(second), err, len(canonical))
+		}
+
 	})
 }
 
@@ -276,7 +312,8 @@ const (
 
 func FuzzCoreExternalTextDoorInventory(f *testing.F) {
 	fixtures := coreFixturesForFuzz(f)
-	for _, seed := range coreTextSeedsForFuzz(f, fixtures) {
+	seeds := coreTextSeedsForFuzz(f, fixtures)
+	for _, seed := range seeds {
 		f.Add(uint8(seed.door), seed.text)
 	}
 	for _, hostile := range []string{"", " ", "unknown", "\x00", "\xff"} {
@@ -285,41 +322,47 @@ func FuzzCoreExternalTextDoorInventory(f *testing.F) {
 	}
 
 	f.Fuzz(func(t *testing.T, rawDoor uint8, value string) {
-		switch coreTextDoor(rawDoor) {
+		door := coreTextDoor(rawDoor)
+		if door <= coreTextDoorUnknown || door >= coreTextDoorLimit {
+			door = coreTextDoor(rawDoor%uint8(coreTextDoorLimit-1) + 1)
+		}
+		var receivers coreTextReceivers
+		var outcome coreParseOutcome
+		switch door {
 		case coreTextDoorPlatform:
-			fuzzCoreTextUnmarshal(t, coreTextDecodeRequest[Platform]{
+			receivers = coreTextReceiversFor(coreTextDecodeRequest[Platform]{
 				text: []byte(value), seed: fixtures.platform,
 				projection: func(got Platform) (string, error) { return got.String(), nil },
 			})
 		case coreTextDoorOffering:
-			fuzzCoreTextUnmarshal(t, coreTextDecodeRequest[Offering]{
+			receivers = coreTextReceiversFor(coreTextDecodeRequest[Offering]{
 				text: []byte(value), seed: fixtures.offering,
 				projection: func(got Offering) (string, error) { return got.String(), nil },
 			})
 		case coreTextDoorReleaseVersion:
-			fuzzCoreTextUnmarshal(t, coreTextDecodeRequest[ReleaseVersion]{
+			receivers = coreTextReceiversFor(coreTextDecodeRequest[ReleaseVersion]{
 				text: []byte(value), seed: fixtures.version,
 				projection: func(got ReleaseVersion) (string, error) { return got.String(), nil },
 			})
 		case coreTextDoorSHA256Digest:
-			fuzzCoreTextUnmarshal(t, coreTextDecodeRequest[SHA256Digest]{
+			receivers = coreTextReceiversFor(coreTextDecodeRequest[SHA256Digest]{
 				text: []byte(value), seed: fixtures.sha256, projection: SHA256Digest.Hex,
 			})
 		case coreTextDoorCRC32C:
-			fuzzCoreTextUnmarshal(t, coreTextDecodeRequest[CRC32C]{
+			receivers = coreTextReceiversFor(coreTextDecodeRequest[CRC32C]{
 				text: []byte(value), seed: fixtures.crc32c, projection: CRC32C.Base64,
 			})
 		case coreTextDoorEd25519PublicKey:
-			fuzzCoreTextUnmarshal(t, coreTextDecodeRequest[Ed25519PublicKey]{
+			receivers = coreTextReceiversFor(coreTextDecodeRequest[Ed25519PublicKey]{
 				text: []byte(value), seed: fixtures.publicKey, projection: Ed25519PublicKey.Hex,
 			})
 		case coreTextDoorBuildCommit:
 			got, err := ParseBuildCommit(value)
-			fuzzCoreParseOutcome(t, coreParseOutcomeFor(coreParseRequest[BuildCommit]{
+			outcome = coreParseOutcomeFor(coreParseRequest[BuildCommit]{
 				input: value, value: got, err: err, requiresExact: true, parse: ParseBuildCommit,
-			}))
+			})
 		case coreTextDoorSourceSnapshot:
-			fuzzCoreTextUnmarshal(t, coreTextDecodeRequest[SourceSnapshot]{
+			receivers = coreTextReceiversFor(coreTextDecodeRequest[SourceSnapshot]{
 				text: []byte(value), seed: fixtures.snapshot,
 				projection: func(got SourceSnapshot) (string, error) {
 					if err := got.Validate(); err != nil {
@@ -330,44 +373,96 @@ func FuzzCoreExternalTextDoorInventory(f *testing.F) {
 			})
 		case coreTextDoorHTTPEndpoint:
 			got, err := ParseHTTPEndpoint(value)
-			fuzzCoreParseOutcome(t, coreParseOutcomeFor(coreParseRequest[HTTPEndpoint]{
+			outcome = coreParseOutcomeFor(coreParseRequest[HTTPEndpoint]{
 				input: value, value: got, err: err, parse: ParseHTTPEndpoint,
-			}))
+			})
 		case coreTextDoorPackageIdentity:
 			got, err := ParsePackageIdentity(value)
-			fuzzCoreParseOutcome(t, coreParseOutcomeFor(coreParseRequest[PackageIdentity]{
+			outcome = coreParseOutcomeFor(coreParseRequest[PackageIdentity]{
 				input: value, value: got, err: err, requiresExact: true, parse: ParsePackageIdentity,
-			}))
+			})
 		case coreTextDoorHTTPHeaderName:
 			got, err := ParseHTTPHeaderName(value)
-			fuzzCoreParseOutcome(t, coreParseOutcomeFor(coreParseRequest[HTTPHeaderName]{
+			outcome = coreParseOutcomeFor(coreParseRequest[HTTPHeaderName]{
 				input: value, value: got, err: err, parse: ParseHTTPHeaderName,
-			}))
+			})
 		case coreTextDoorHTTPMediaType:
 			got, err := ParseHTTPMediaType(value)
-			fuzzCoreParseOutcome(t, coreParseOutcomeFor(coreParseRequest[HTTPMediaType]{
+			outcome = coreParseOutcomeFor(coreParseRequest[HTTPMediaType]{
 				input: value, value: got, err: err, parse: ParseHTTPMediaType,
-			}))
+			})
 		case coreTextDoorPathComponent:
 			got, err := ParsePathComponent(value)
-			fuzzCoreParseOutcome(t, coreParseOutcomeFor(coreParseRequest[PathComponent]{
+			outcome = coreParseOutcomeFor(coreParseRequest[PathComponent]{
 				input: value, value: got, err: err, requiresExact: true, parse: ParsePathComponent,
-			}))
+			})
 		case coreTextDoorRelativePath:
 			got, err := ParseRelativePath(value)
-			fuzzCoreParseOutcome(t, coreParseOutcomeFor(coreParseRequest[RelativePath]{
+			outcome = coreParseOutcomeFor(coreParseRequest[RelativePath]{
 				input: value, value: got, err: err, requiresExact: true, parse: ParseRelativePath,
-			}))
+			})
 		case coreTextDoorAbsolutePath:
 			got, err := ParseAbsolutePath(value)
-			fuzzCoreParseOutcome(t, coreParseOutcomeFor(coreParseRequest[AbsolutePath]{
+			outcome = coreParseOutcomeFor(coreParseRequest[AbsolutePath]{
 				input: value, value: got, err: err, requiresExact: true, parse: ParseAbsolutePath,
-			}))
+			})
 		case coreTextDoorUnknown, coreTextDoorLimit:
-			return
+			t.Fatalf("normalized text door=%d from selector=%d; want admitted domain", door, rawDoor)
 		default:
+			t.Fatalf("text door=%d has no compiler-bound operation", door)
+		}
+		if receivers.candidate != nil {
+			before, err := receivers.candidate.MarshalJSON()
+			if err != nil {
+				t.Fatal(err)
+			}
+			seedText, err := receivers.projection()
+			if err != nil {
+				t.Fatal(err)
+			}
+			decodeErr := receivers.candidate.UnmarshalText([]byte(value))
+			if decodeErr != nil {
+				if value == seedText {
+					t.Fatalf("producer's exact text was refused: %v", decodeErr)
+				}
+				after, marshalErr := receivers.candidate.MarshalJSON()
+				if !errors.Is(decodeErr, ErrPrimitiveContract) || marshalErr != nil || !bytes.Equal(after, before) {
+					t.Fatalf("text refusal=%v, marshal=%v, receiver unchanged=%t; want typed refusal and no mutation", decodeErr, marshalErr, bytes.Equal(after, before))
+				}
+				return
+			}
+			canonical, err := receivers.projection()
+			if err != nil || canonical != value || receivers.candidate.Validate() != nil {
+				t.Fatalf("accepted text=%q, %v; want exact valid input %q", canonical, err, value)
+			}
+			if err := receivers.roundTrip.UnmarshalText([]byte(canonical)); err != nil {
+				t.Fatalf("text reparse=%v; want nil", err)
+			}
+			second, err := receivers.secondProjection()
+			if err != nil || second != canonical {
+				t.Fatalf("text republication=%q, %v; want %q", second, err, canonical)
+			}
 			return
 		}
+		if outcome.err != nil {
+			for _, seed := range seeds {
+				if seed.door == door && seed.text == value {
+					t.Fatalf("known producer text was refused: %v", outcome.err)
+				}
+			}
+			if !errors.Is(outcome.err, ErrPrimitiveContract) || outcome.projection != "" {
+				t.Fatalf("text parse=%q, %v; want zero and typed refusal", outcome.projection, outcome.err)
+			}
+			return
+		}
+		if err := outcome.validate(); err != nil || outcome.projection == "" || outcome.requiresExact && outcome.projection != value {
+			t.Fatalf("text projection=%q, %v; input=%q; want exact admitted projection", outcome.projection, err, value)
+		}
+		second, err := outcome.roundTrip(outcome.projection)
+		if err != nil || second != outcome.projection {
+			t.Fatalf("text reparse=%q, %v; want %q", second, err, outcome.projection)
+		}
+
 	})
 }
 
@@ -376,47 +471,18 @@ type coreJSONValue interface {
 	MarshalJSON() ([]byte, error)
 }
 
-func fuzzCoreJSONValue[T coreJSONValue](t *testing.T, data []byte, seed T) {
-	t.Helper()
-	before, err := seed.MarshalJSON()
-	if err != nil {
-		t.Fatalf("core seed MarshalJSON() error = %v, want nil", err)
-	}
+type coreJSONReceiver interface {
+	ValidatedJSONMarshaler
+	json.Unmarshaler
+}
+
+// This helper constructs fresh typed receivers; every verdict stays in Fuzz.
+func coreJSONReceivers[T ValidatedJSONMarshaler, P interface {
+	*T
+	coreJSONReceiver
+}](seed T) (P, P) {
 	candidate := seed
-	decoder, ok := any(&candidate).(json.Unmarshaler)
-	if !ok {
-		t.Fatalf("core JSON receiver %T lacks json.Unmarshaler", &candidate)
-	}
-	decodeErr := decoder.UnmarshalJSON(data)
-	if decodeErr != nil {
-		if !errors.Is(decodeErr, ErrJSONContract) {
-			t.Fatalf("core JSON door error = %v, want %v", decodeErr, ErrJSONContract)
-		}
-		after, marshalErr := candidate.MarshalJSON()
-		if marshalErr != nil || !bytes.Equal(after, before) {
-			t.Fatalf("rejected core JSON door changed its receiver: marshal error %v", marshalErr)
-		}
-		return
-	}
-	if err := candidate.Validate(); err != nil {
-		t.Fatalf("accepted core JSON validation error = %v, want nil", err)
-	}
-	canonical, err := candidate.MarshalJSON()
-	if err != nil || len(canonical) > JSONDocumentMaximumBytes {
-		t.Fatalf("core canonical JSON = (%d bytes, %v), want bounded and nil", len(canonical), err)
-	}
-	var roundTrip T
-	roundTripDecoder, ok := any(&roundTrip).(json.Unmarshaler)
-	if !ok {
-		t.Fatalf("core round-trip receiver %T lacks json.Unmarshaler", &roundTrip)
-	}
-	if err := roundTripDecoder.UnmarshalJSON(canonical); err != nil {
-		t.Fatalf("core canonical JSON decode error = %v, want nil", err)
-	}
-	second, err := roundTrip.MarshalJSON()
-	if err != nil || !bytes.Equal(second, canonical) {
-		t.Fatalf("core JSON door lacks a canonical fixed point: marshal error %v", err)
-	}
+	return P(&candidate), P(new(T))
 }
 
 type coreTextDecodeRequest[T coreJSONValue] struct {
@@ -425,44 +491,24 @@ type coreTextDecodeRequest[T coreJSONValue] struct {
 	text       []byte
 }
 
-func fuzzCoreTextUnmarshal[T coreJSONValue](t *testing.T, request coreTextDecodeRequest[T]) {
-	t.Helper()
-	before, err := request.seed.MarshalJSON()
-	if err != nil {
-		t.Fatalf("core text seed MarshalJSON() error = %v, want nil", err)
-	}
+type coreTextReceiver interface {
+	ValidatedJSONMarshaler
+	encoding.TextUnmarshaler
+}
+type coreTextReceivers struct {
+	candidate        coreTextReceiver
+	roundTrip        coreTextReceiver
+	projection       func() (string, error)
+	secondProjection func() (string, error)
+}
+
+func coreTextReceiversFor[T coreJSONValue, P interface {
+	*T
+	coreTextReceiver
+}](request coreTextDecodeRequest[T]) coreTextReceivers {
 	candidate := request.seed
-	decoder, ok := any(&candidate).(encoding.TextUnmarshaler)
-	if !ok {
-		t.Fatalf("core text receiver %T lacks encoding.TextUnmarshaler", &candidate)
-	}
-	decodeErr := decoder.UnmarshalText(request.text)
-	if decodeErr != nil {
-		if !errors.Is(decodeErr, ErrPrimitiveContract) {
-			t.Fatalf("core text door error = %v, want %v", decodeErr, ErrPrimitiveContract)
-		}
-		after, marshalErr := candidate.MarshalJSON()
-		if marshalErr != nil || !bytes.Equal(after, before) {
-			t.Fatalf("rejected core text door changed its receiver: marshal error %v", marshalErr)
-		}
-		return
-	}
-	if err := candidate.Validate(); err != nil {
-		t.Fatalf("accepted core text validation error = %v, want nil", err)
-	}
-	canonical, err := request.projection(candidate)
-	if err != nil || canonical != string(request.text) {
-		t.Fatalf("core accepted text = (%q, %v), want exact canonical input", canonical, err)
-	}
 	var roundTrip T
-	roundTripDecoder := any(&roundTrip).(encoding.TextUnmarshaler)
-	if err := roundTripDecoder.UnmarshalText([]byte(canonical)); err != nil {
-		t.Fatalf("core canonical text decode error = %v, want nil", err)
-	}
-	second, err := request.projection(roundTrip)
-	if err != nil || second != canonical {
-		t.Fatalf("core text door lacks a canonical fixed point: marshal error %v", err)
-	}
+	return coreTextReceivers{candidate: P(&candidate), roundTrip: P(&roundTrip), projection: func() (string, error) { return request.projection(candidate) }, secondProjection: func() (string, error) { return request.projection(roundTrip) }}
 }
 
 type coreParseOutcome struct {
@@ -496,26 +542,6 @@ func coreParseOutcomeFor[T interface {
 			got, parseErr := request.parse(value)
 			return got.String(), parseErr
 		},
-	}
-}
-
-func fuzzCoreParseOutcome(t *testing.T, outcome coreParseOutcome) {
-	t.Helper()
-	if outcome.err != nil {
-		if !errors.Is(outcome.err, ErrPrimitiveContract) || outcome.projection != "" {
-			t.Fatalf("core text parse refusal = (%q, %v), want empty and %v",
-				outcome.projection, outcome.err, ErrPrimitiveContract)
-		}
-		return
-	}
-	if outcome.validate() != nil || outcome.projection == "" ||
-		outcome.requiresExact && outcome.projection != outcome.input {
-		t.Fatalf("core text parse acceptance = (%q, %v), input %q",
-			outcome.projection, outcome.validate(), outcome.input)
-	}
-	second, err := outcome.roundTrip(outcome.projection)
-	if err != nil || second != outcome.projection {
-		t.Fatalf("core text parser lacks canonical fixed point: (%q, %v)", second, err)
 	}
 }
 
@@ -609,7 +635,7 @@ func coreFixturesForFuzz(t testing.TB) coreJSONFixtures {
 	if err != nil {
 		t.Fatalf("ParsePathComponent(seed) error = %v, want nil", err)
 	}
-	absolute, err := ParseAbsolutePath("/tmp/primitive-core-fuzz")
+	absolute, err := ParseAbsolutePath(filepath.Join(filepath.VolumeName(t.TempDir())+string(filepath.Separator), "primitive-core-fuzz"))
 	if err != nil {
 		t.Fatalf("ParseAbsolutePath(seed) error = %v, want nil", err)
 	}
@@ -705,6 +731,12 @@ func FuzzCoreDecodeJSONStringTokenSemanticClosure(f *testing.F) {
 	}
 	f.Fuzz(func(t *testing.T, data []byte) {
 		got, gotErr := DecodeJSONStringToken(data)
+		var want string
+		nativeErr := json.Unmarshal(data, &want)
+		wantOK := len(data) <= JSONDocumentMaximumBytes && nativeErr == nil && !bytes.Equal(bytes.TrimSpace(data), []byte(jsonNullLiteralText))
+		if (gotErr == nil) != wantOK || wantOK && got != want {
+			t.Fatalf("JSON string=%q, %v; want Go string %q, admission %t", got, gotErr, want, wantOK)
+		}
 		if len(data) > JSONDocumentMaximumBytes {
 			if !errors.Is(gotErr, ErrJSONContract) || got != "" {
 				t.Fatalf("oversized DecodeJSONStringToken() = (length %d, %v), want empty typed refusal", len(got), gotErr)
@@ -745,6 +777,11 @@ func FuzzCoreDecodeCanonicalHexSemanticClosure(f *testing.F) {
 		before := bytes.Repeat([]byte{0xa5}, len(raw))
 		destination := bytes.Clone(before)
 		gotErr := DecodeCanonicalHex(destination, value)
+		native, nativeErr := hex.DecodeString(value)
+		wantOK := nativeErr == nil && len(native) == len(destination) && hex.EncodeToString(native) == value
+		if (gotErr == nil) != wantOK || wantOK && !bytes.Equal(destination, native) {
+			t.Fatalf("hex=%x, %v; want exact Go bytes %x with canonical admission %t", destination, gotErr, native, wantOK)
+		}
 		if gotErr != nil {
 			if !errors.Is(gotErr, ErrPrimitiveContract) || !bytes.Equal(destination, before) {
 				t.Fatalf("DecodeCanonicalHex refusal = (%x, %v), want preserved typed refusal", destination, gotErr)
@@ -764,6 +801,10 @@ func FuzzCoreHTTPStatusAdmitIntSemanticClosure(f *testing.F) {
 	f.Fuzz(func(t *testing.T, value int) {
 		status := HTTPStatusOK()
 		err := status.AdmitInt(value)
+		wantOK := value >= httpStatusCodeMinimum && value <= httpStatusCodeMaximum
+		if (err == nil) != wantOK {
+			t.Fatalf("status admission=%v; want acceptance %t for %d", err, wantOK, value)
+		}
 		if err != nil {
 			if !errors.Is(err, ErrPrimitiveContract) || status != HTTPStatusOK() {
 				t.Fatalf("HTTPStatusCode.AdmitInt(%d) = (%v, %v), want preserved typed refusal", value, status, err)
@@ -799,6 +840,10 @@ func TestCoreExternalIngressFuzzInventoryMatchesProduction(t *testing.T) {
 	_ = FuzzCoreDecodeJSONStringTokenSemanticClosure
 	_ = FuzzCoreDecodeCanonicalHexSemanticClosure
 	_ = FuzzCoreHTTPStatusAdmitIntSemanticClosure
+	_ = FuzzDigestWriterStreamAndReset
+	_ = FuzzHTTPEndpointCanonicalProjection
+	_ = FuzzAbsolutePathResolveTextIngress
+	_ = FuzzIssueProjectionStructuralLimits
 }
 
 func coreExportedJSONReceiverNames() ([]string, error) {

@@ -4,6 +4,7 @@ import (
 	"encoding"
 	json "encoding/json/v2"
 	"errors"
+	"fmt"
 	"math"
 	"slices"
 	"testing"
@@ -22,78 +23,79 @@ func TestStateValidateExhaustsUnderlyingDomain(t *testing.T) {
 		contextstate.StateCancelled,
 		contextstate.StateDeadlineExceeded,
 	}
+	type stateCase struct {
+		name      string
+		state     contextstate.State
+		wantValid bool
+	}
+	cases := make([]stateCase, 0, int(math.MaxUint8)+1)
 	for raw := range uint16(math.MaxUint8) + 1 {
 		state := contextstate.State(raw)
-		gotErr := state.Validate()
-		wantValid := slices.Contains(admitted[:], state)
-		if gotValid := state.IsValid(); gotValid != wantValid {
-			t.Fatalf("State(%d).IsValid() = %t, want %t", state, gotValid, wantValid)
-		}
-		if wantValid {
-			if gotErr != nil {
-				t.Fatalf("State(%d).Validate() error = %v, want nil", state, gotErr)
+		cases = append(cases, stateCase{name: fmt.Sprintf("backing value %d", raw), state: state, wantValid: slices.Contains(admitted[:], state)})
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			gotErr := tc.state.Validate()
+			if got := tc.state.IsValid(); got != tc.wantValid {
+				t.Fatalf("State(%d).IsValid()=%t; want %t", tc.state, got, tc.wantValid)
 			}
-			continue
-		}
-		if !errors.Is(gotErr, core.ErrContextStateContract) {
-			t.Fatalf(
-				"State(%d).Validate() error = %v, want %v",
-				state,
-				gotErr,
-				core.ErrContextStateContract,
-			)
-		}
+			if tc.wantValid {
+				if gotErr != nil {
+					t.Fatalf("State(%d).Validate()=%v; want nil", tc.state, gotErr)
+				}
+			} else if !errors.Is(gotErr, core.ErrContextStateContract) {
+				t.Fatalf("State(%d).Validate()=%v; want %v", tc.state, gotErr, core.ErrContextStateContract)
+			}
+		})
 	}
 }
-
-// admittedStateDiagnosticCount is the number of admitted states that must own a
-// distinct diagnostic. Enrolling a new state must fail this test until that new
-// state is given its own projection.
-const admittedStateDiagnosticCount = 3
 
 // TestStateStringIsClosedOverTheAdmittedDomain sweeps the whole underlying
 // domain so a new enum member cannot silently inherit the unknown diagnostic
 // from String's default arm.
 func TestStateStringIsClosedOverTheAdmittedDomain(t *testing.T) {
 	t.Parallel()
-
-	unknown := contextstate.State(0).String()
-	if unknown == "" {
-		t.Fatalf("zero State.String() = %q, want non-empty", unknown)
+	type diagnosticCase struct {
+		name      string
+		state     contextstate.State
+		wantKnown bool
 	}
-	var admitted []string
+	cases := make([]diagnosticCase, 0, int(math.MaxUint8)+1)
 	for raw := range uint16(math.MaxUint8) + 1 {
 		state := contextstate.State(raw)
-		got := state.String()
-		if got == "" {
-			t.Fatalf("State(%d).String() is empty", raw)
-		}
-		if !state.IsValid() {
-			if got != unknown {
-				t.Fatalf(
-					"State(%d).String() = %q, want unknown diagnostic %q",
-					raw,
-					got,
-					unknown,
-				)
-			}
-			continue
-		}
-		if got == unknown {
-			t.Fatalf("admitted State(%d).String() = %q, want a distinct diagnostic", raw, got)
-		}
-		if slices.Contains(admitted, got) {
-			t.Fatalf("admitted State(%d).String() = %q duplicates an earlier state", raw, got)
-		}
-		admitted = append(admitted, got)
+		known := state == contextstate.StateNone || state == contextstate.StateCancelled || state == contextstate.StateDeadlineExceeded
+		cases = append(cases, diagnosticCase{name: fmt.Sprintf("backing value %d", raw), state: state, wantKnown: known})
 	}
-	if len(admitted) != admittedStateDiagnosticCount {
-		t.Fatalf(
-			"admitted diagnostics = %d (%q), want %d",
-			len(admitted),
-			admitted,
-			admittedStateDiagnosticCount,
-		)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := tc.state.String()
+			if tc.wantKnown {
+				if got == "" || got == core.UnknownEnumDiagnostic {
+					t.Fatalf("State(%d).String()=%q; want a known diagnostic", tc.state, got)
+				}
+			} else if got != core.UnknownEnumDiagnostic {
+				t.Fatalf("State(%d).String()=%q; want %q", tc.state, got, core.UnknownEnumDiagnostic)
+			}
+		})
+	}
+	pairs := []struct {
+		name        string
+		left, right contextstate.State
+	}{
+		{name: "active differs from cancellation", left: contextstate.StateNone, right: contextstate.StateCancelled},
+		{name: "active differs from expiry", left: contextstate.StateNone, right: contextstate.StateDeadlineExceeded},
+		{name: "cancellation differs from expiry", left: contextstate.StateCancelled, right: contextstate.StateDeadlineExceeded},
+	}
+	for _, tc := range pairs {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			left, right := tc.left.String(), tc.right.String()
+			if left == right {
+				t.Fatalf("states %d and %d share diagnostic %q; want distinct observations", tc.left, tc.right, left)
+			}
+		})
 	}
 }
 
@@ -144,13 +146,12 @@ func TestStateImplementsNoWireFormat(t *testing.T) {
 	}
 	for _, receiver := range receivers {
 		for _, probe := range probes {
-			if probe.implements(receiver.value) {
-				t.Errorf(
-					"State %s receiver implements %s, want no wire format",
-					receiver.name,
-					probe.name,
-				)
-			}
+			t.Run(receiver.name+"/"+probe.name, func(t *testing.T) {
+				t.Parallel()
+				if probe.implements(receiver.value) {
+					t.Errorf("State %s receiver implements %s; want no wire format", receiver.name, probe.name)
+				}
+			})
 		}
 	}
 }

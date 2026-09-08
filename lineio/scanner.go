@@ -4,14 +4,17 @@ import (
 	"bufio"
 	"errors"
 	"io"
+	"math"
 
 	"github.com/deliri/primitive/v2026/core"
 )
 
 const (
-	// MaximumLineBytes is Lineio's fixed per-line and initial-allocation
-	// ceiling.
-	MaximumLineBytes               uint64 = 16 << 20
+	// InitialBufferMaximumBytes bounds eager allocation, not input line extent.
+	InitialBufferMaximumBytes uint64 = 16 << 20
+	// MaximumLineBytes is the native scanner extent after reserving CRLF
+	// delimiter space. It is not a product-size policy.
+	MaximumLineBytes               uint64 = math.MaxInt - scanLinesMaximumDelimiterBytes
 	scanLinesMaximumDelimiterBytes        = 2
 )
 
@@ -37,7 +40,7 @@ func (p BufferPolicy) Validate() error {
 	if err != nil {
 		return errors.Join(core.ErrLineIOContract, err)
 	}
-	if initial > maximum {
+	if initial > maximum || initial > InitialBufferMaximumBytes {
 		return core.ErrLineIOContract
 	}
 	if maximum > MaximumLineBytes {
@@ -67,8 +70,7 @@ type Scanner struct {
 	err     error
 }
 
-// MaximumLineByteCount returns Lineio's fixed per-line and initial-allocation
-// ceiling. The ceiling is independent of the running Go target.
+// MaximumLineByteCount returns the native scanner extent with delimiter space.
 func MaximumLineByteCount() (core.ByteCount, error) {
 	return core.NewByteCount(MaximumLineBytes)
 }
@@ -139,8 +141,8 @@ func (p BufferPolicy) nativeBounds() (int, int, error) {
 	if err != nil {
 		return 0, 0, errors.Join(core.ErrLineIOContract, err)
 	}
-	initialBytes := int(initial)     // #nosec G115 -- BufferPolicy.Validate caps the value at Lineio's 16 MiB ceiling.
-	maximumLineBytes := int(maximum) // #nosec G115 -- BufferPolicy.Validate caps the value at Lineio's 16 MiB ceiling.
+	initialBytes := int(initial)     // #nosec G115 -- BufferPolicy.Validate reserves delimiter space within the native int extent.
+	maximumLineBytes := int(maximum) // #nosec G115 -- BufferPolicy.Validate reserves delimiter space within the native int extent.
 	return initialBytes, maximumLineBytes, nil
 }
 

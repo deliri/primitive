@@ -36,11 +36,11 @@ func TestAnalysisMetadataGraphLayerTriad(t *testing.T) {
 		wantName, wantForTest, wantExport string
 	}{
 		{name: "cgo pseudo-import has no ordinary dependency unit", mutate: func(w *analysisPackageWire) []analysisPackageWire {
-			w.Imports = []string{goCgoImportPath}
+			w.Imports = []string{core.GoCgoImportPath}
 			return nil
 		}},
 		{name: "cgo pseudo-import cannot hide a missing ordinary dependency", mutate: func(w *analysisPackageWire) []analysisPackageWire {
-			w.Imports = []string{goCgoImportPath, "missing"}
+			w.Imports = []string{core.GoCgoImportPath, "missing"}
 			return nil
 		}, wantErr: core.ErrGoToolchainOutput},
 		{name: "compiler package name is retained", mutate: func(w *analysisPackageWire) []analysisPackageWire { w.Name = "renamed"; return nil }, wantName: "renamed"},
@@ -123,7 +123,7 @@ func TestAnalysisMetadataGraphLayerTriad(t *testing.T) {
 				}
 				encoded = append(encoded, part...)
 			}
-			got, err := decodeAnalysisMetadata(encoded, limits, types.SizesFor("gc", "amd64"))
+			got, err := decodeAnalysisMetadata(bytes.NewReader(encoded), limits, types.SizesFor("gc", "amd64"))
 			if !errors.Is(err, tc.wantErr) {
 				t.Fatalf("metadata graph error = %v, want %v", err, tc.wantErr)
 			}
@@ -173,7 +173,7 @@ func TestAnalysisMetadataRepresentationBoundaries(t *testing.T) {
 	for _, tc := range []struct {
 		name           string
 		data           []byte
-		count, maximum uint32
+		count, maximum uint64
 		noSizes        bool
 		wantCount      int
 		wantErr        error
@@ -193,7 +193,7 @@ func TestAnalysisMetadataRepresentationBoundaries(t *testing.T) {
 		{name: "package cardinality one below bound", count: 1, maximum: 2, wantCount: 1},
 		{name: "package cardinality exactly at bound", count: 2, maximum: 2, wantCount: 2},
 		{name: "package cardinality one above bound emits no prefix", count: 3, maximum: 2, wantErr: core.ErrGoToolchainOutput},
-		{name: "package cardinality extreme cannot overflow the admission counter", count: PackageMaximumCount + 1, maximum: PackageMaximumCount, wantErr: core.ErrGoToolchainOutput},
+		{name: "package cardinality extreme cannot overflow the admission counter", count: DefaultPackageMaximum + 1, maximum: DefaultPackageMaximum, wantErr: core.ErrGoToolchainOutput},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -215,7 +215,7 @@ func TestAnalysisMetadataRepresentationBoundaries(t *testing.T) {
 			if tc.noSizes {
 				sizes = nil
 			}
-			got, err := decodeAnalysisMetadata(input, bound, sizes)
+			got, err := decodeAnalysisMetadata(bytes.NewReader(input), bound, sizes)
 			if !errors.Is(err, tc.wantErr) || len(got) != tc.wantCount {
 				t.Fatalf("metadata boundary = %d/%v, want %d/%v", len(got), err, tc.wantCount, tc.wantErr)
 			}
@@ -258,7 +258,7 @@ func compilerMetadataSeed(t testing.TB, directory string) ([]byte, Limits) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	data, _, err := capability.execute(t.Context(), root, "list", "-e", goDependenciesArgument, "-export", "-compiled", goModuleReadOnly, analysisJSONFields, ".")
+	data, _, err := capability.execute(t.Context(), root, "list", "-e", goDependenciesArgument, "-export", "-compiled", analysisJSONFields, ".")
 	if err != nil || len(data) == 0 {
 		t.Fatalf("compiler seed = %d bytes/%v, want nonempty real metadata", len(data), err)
 	}
@@ -301,7 +301,7 @@ func TestAnalysisMetadataLayerTriadRetainsBoundsAndIdentity(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			got, err := decodeAnalysisMetadata(input, bound, sizes)
+			got, err := decodeAnalysisMetadata(bytes.NewReader(input), bound, sizes)
 			if !errors.Is(err, tc.wantErr) || len(got) != tc.wantCount {
 				t.Fatalf("decode = %d units/%v, want %d/%v", len(got), err, tc.wantCount, tc.wantErr)
 			}
@@ -319,7 +319,7 @@ func FuzzAnalysisMetadataSemanticClosure(f *testing.F) {
 	f.Add(append(bytes.Clone(data), data...))
 	sizes := types.SizesFor("gc", "amd64")
 	f.Fuzz(func(t *testing.T, data []byte) {
-		got, err := decodeAnalysisMetadata(data, limits, sizes)
+		got, err := decodeAnalysisMetadata(bytes.NewReader(data), limits, sizes)
 		if err != nil {
 			if !errors.Is(err, core.ErrGoToolchainOutput) || got != nil {
 				t.Fatalf("metadata refusal = %d units/%v, want nil and typed output refusal", len(got), err)

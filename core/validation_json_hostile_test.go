@@ -2,6 +2,7 @@ package core
 
 import (
 	"bytes"
+	"crypto/sha256"
 	jsontext "encoding/json/jsontext"
 	json "encoding/json/v2"
 	"errors"
@@ -222,6 +223,13 @@ func FuzzDecodeStrictJSONAbsolutePathPublicBoundary(f *testing.F) {
 		}
 		limits.DocumentMaximumBytes = documentMaximum
 		got, gotErr := DecodeStrictJSON[AbsolutePath](bytes.NewReader(wire), limits)
+		var text string
+		nativeErr := json.Unmarshal(wire, &text)
+		wantPath, pathErr := ParseAbsolutePath(text)
+		wantOK := nativeErr == nil && pathErr == nil && len(wire) <= fuzzjsonDocumentMaximumBytes
+		if (gotErr == nil) != wantOK || wantOK && got != wantPath {
+			t.Fatalf("strict path=%v, %v; want Go-decoded path %v, admission %t", got, gotErr, wantPath, wantOK)
+		}
 		if gotErr != nil {
 			if !errors.Is(gotErr, ErrJSONContract) {
 				t.Fatalf("DecodeStrictJSON[AbsolutePath]() error = %v, want %v", gotErr, ErrJSONContract)
@@ -242,6 +250,12 @@ func FuzzDecodeStrictJSONAbsolutePathPublicBoundary(f *testing.F) {
 				)
 			}
 			encoded, gotEncodeErr := EncodeValidatedJSON(got, limits)
+			if len(directWire) > fuzzjsonDocumentMaximumBytes {
+				if encoded != nil || !errors.Is(gotEncodeErr, ErrJSONContract) {
+					t.Fatalf("expanded output=%d bytes, %v; want bounded refusal", len(encoded), gotEncodeErr)
+				}
+				return
+			}
 			if gotEncodeErr != nil || !bytes.Equal(encoded, directWire) {
 				t.Fatalf(
 					"EncodeValidatedJSON(accepted absolute path) = (%q, %v), want (%q, nil)",
@@ -326,6 +340,8 @@ func TestDecodeStrictJSONStructureRejectsNoncanonicalDeclaredFieldCase(t *testin
 
 type strictJSONBenchmarkDocument struct {
 	decoded bool
+	digest  [sha256.Size]byte
+	count   int
 }
 
 type unstableJSONRepresentation struct {
@@ -410,6 +426,8 @@ func (d strictJSONBenchmarkDocument) Validate() error {
 
 func (d *strictJSONBenchmarkDocument) UnmarshalJSON(data []byte) error {
 	d.decoded = len(data) != 0
+	d.digest = sha256.Sum256(data)
+	d.count = len(data)
 	return nil
 }
 
@@ -651,14 +669,13 @@ func TestDecodeJSONStringTokenBoundaryLayerTriad(t *testing.T) {
 		}
 	})
 
-	t.Run("negative every over ceiling document refuses before decoding", func(t *testing.T) {
+	t.Run("positive strings beyond default document budget retain every byte", func(t *testing.T) {
 		t.Parallel()
 
 		for _, extent := range []int{JSONDocumentMaximumBytes + 1, JSONDocumentMaximumBytes * 4} {
 			got, gotErr := DecodeJSONStringToken(boundedJSONStringDocument(extent))
-			if !errors.Is(gotErr, ErrJSONContract) || got != "" {
-				t.Fatalf("DecodeJSONStringToken(%d bytes) = (length %d, %v), want empty and %v",
-					extent, len(got), gotErr, ErrJSONContract)
+			if gotErr != nil || len(got) != extent-2 {
+				t.Fatalf("DecodeJSONStringToken(%d bytes) retained %d bytes: %v", extent, len(got), gotErr)
 			}
 		}
 	})
@@ -957,12 +974,12 @@ func TestStrictJSONLimitsHostileBoundaryTable(t *testing.T) {
 			ObjectFieldMaximum:   JSONObjectFieldCountMaximum,
 			ArrayItemMaximum:     jsonArrayItemCountMaximum,
 		}},
-		{name: "document one byte above maximum is rejected", limits: StrictJSONLimits{
+		{name: "document beyond default maximum is admitted", limits: StrictJSONLimits{
 			DocumentMaximumBytes: mustByteCountForTest(t, JSONDocumentMaximumBytes+1),
 			NestingDepthMaximum:  JSONNestingDepthMaximum,
 			ObjectFieldMaximum:   JSONObjectFieldCountMaximum,
 			ArrayItemMaximum:     jsonArrayItemCountMaximum,
-		}, wantErr: ErrJSONContract},
+		}},
 		{name: "nesting one below maximum is accepted", limits: strictJSONLimitsForTest(maximumDocument, JSONNestingDepthMaximum-1, 1, 1)},
 		{name: "nesting at maximum is accepted", limits: strictJSONLimitsForTest(maximumDocument, JSONNestingDepthMaximum, 1, 1)},
 		{name: "nesting one above maximum is rejected", limits: strictJSONLimitsForTest(maximumDocument, JSONNestingDepthMaximum+1, 1, 1), wantErr: ErrJSONContract},
@@ -971,7 +988,8 @@ func TestStrictJSONLimitsHostileBoundaryTable(t *testing.T) {
 		{name: "object fields one above maximum are rejected", limits: strictJSONLimitsForTest(maximumDocument, 1, JSONObjectFieldCountMaximum+1, 1), wantErr: ErrJSONContract},
 		{name: "array items one below maximum are accepted", limits: strictJSONLimitsForTest(maximumDocument, 1, 1, jsonArrayItemCountMaximum-1)},
 		{name: "array items at maximum are accepted", limits: strictJSONLimitsForTest(maximumDocument, 1, 1, jsonArrayItemCountMaximum)},
-		{name: "array items one above maximum are rejected", limits: strictJSONLimitsForTest(maximumDocument, 1, 1, jsonArrayItemCountMaximum+1), wantErr: ErrJSONContract},
+		{name: "array items beyond default maximum are admitted", limits: strictJSONLimitsForTest(maximumDocument, 1, 1, jsonArrayItemCountMaximum+1)},
+		{name: "native byte extent must reserve EOF probe", limits: strictJSONLimitsForTest(mustByteCountForTest(t, math.MaxInt), 1, 1, 1), wantErr: ErrJSONContract},
 		{name: "zero limits are rejected", limits: StrictJSONLimits{}, wantErr: ErrJSONContract},
 		{name: "zero document maximum is rejected", limits: strictJSONLimitsForTest(ByteCount{}, 1, 1, 1), wantErr: ErrJSONContract},
 		{name: "zero nesting depth is rejected", limits: strictJSONLimitsForTest(minimumDocument, 0, 1, 1), wantErr: ErrJSONContract},
@@ -979,7 +997,7 @@ func TestStrictJSONLimitsHostileBoundaryTable(t *testing.T) {
 		{name: "zero object field maximum is rejected", limits: strictJSONLimitsForTest(minimumDocument, 1, 0, 1), wantErr: ErrJSONContract},
 		{name: "maximum uint16 object fields are rejected", limits: strictJSONLimitsForTest(minimumDocument, 1, math.MaxUint16, 1), wantErr: ErrJSONContract},
 		{name: "zero array item maximum is rejected", limits: strictJSONLimitsForTest(minimumDocument, 1, 1, 0), wantErr: ErrJSONContract},
-		{name: "maximum uint32 array items are rejected", limits: strictJSONLimitsForTest(minimumDocument, 1, 1, math.MaxUint32), wantErr: ErrJSONContract},
+		{name: "full array counter extent is admitted", limits: strictJSONLimitsForTest(minimumDocument, 1, 1, math.MaxUint64)},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -1051,46 +1069,31 @@ func TestStrictJSONPublicDocumentLimitBoundary(t *testing.T) {
 func BenchmarkEncodeValidatedJSONAbsolutePath(b *testing.B) {
 	path := validatedJSONEncodeRatchetPath(b)
 	limits := DefaultStrictJSONLimits()
-	var gotWire []byte
-	var gotErr error
-	gotAllocations := testing.AllocsPerRun(
-		validatedJSONEncodeAllocationSamples,
-		func() {
-			gotWire, gotErr = EncodeValidatedJSON(path, limits)
-		},
-	)
-	if gotErr != nil {
-		b.Fatalf("EncodeValidatedJSON(allocation ratchet path) error = %v, want nil", gotErr)
+	var probe []byte
+	var probeErr error
+	allocations := testing.AllocsPerRun(validatedJSONEncodeAllocationSamples, func() { probe, probeErr = EncodeValidatedJSON(path, limits) })
+	if probeErr != nil || len(probe) == 0 || allocations > validatedJSONEncodeAllocationMaximum {
+		b.Fatalf("encoding probe=%d bytes, %v, %.0f allocations; want valid output within %d allocations", len(probe), probeErr, allocations, validatedJSONEncodeAllocationMaximum)
 	}
-	if !jsontext.Value(gotWire).IsValid() {
-		b.Fatalf("EncodeValidatedJSON(allocation ratchet path) wire = %q, want valid JSON", gotWire)
+	allocated, allocationErr := validatedJSONEncodeBytesPerRun(path, limits)
+	if allocationErr != nil || allocated > validatedJSONEncodeBytesMaximum {
+		b.Fatalf("encoding allocation=%d, %v; want at most %d bytes", allocated, allocationErr, validatedJSONEncodeBytesMaximum)
 	}
-	if gotAllocations > validatedJSONEncodeAllocationMaximum {
-		b.Fatalf(
-			"EncodeValidatedJSON() allocations = %.0f, want <= %d",
-			gotAllocations,
-			validatedJSONEncodeAllocationMaximum,
-		)
-	}
-	gotBytes, gotBytesErr := validatedJSONEncodeBytesPerRun(path, limits)
-	if gotBytesErr != nil {
-		b.Fatalf("validatedJSONEncodeBytesPerRun() error = %v, want nil", gotBytesErr)
-	}
-	if gotBytes > validatedJSONEncodeBytesMaximum {
-		b.Fatalf(
-			"EncodeValidatedJSON() allocated bytes/run = %d, want <= %d",
-			gotBytes,
-			validatedJSONEncodeBytesMaximum,
-		)
+	want, err := path.MarshalJSON()
+	if err != nil {
+		b.Fatal(err)
 	}
 	b.ReportAllocs()
-	b.ResetTimer()
+	var got []byte
 	for b.Loop() {
-		if _, err := EncodeValidatedJSON(path, limits); err != nil {
-			b.Fatalf("EncodeValidatedJSON() error = %v, want nil", err)
+		got, err = EncodeValidatedJSON(path, limits)
+		if err != nil {
+			b.Fatal(err)
 		}
 	}
-	b.ReportMetric(float64(gotBytes), "ratchet-B/op")
+	if !bytes.Equal(got, want) {
+		b.Fatalf("encoded=%q; want %q", got, want)
+	}
 }
 
 func BenchmarkRejectDuplicateJSONFieldsMaximum(b *testing.B) {
@@ -1174,104 +1177,58 @@ func BenchmarkDecodeStrictJSONAdvertisedMaximumComposition(b *testing.B) {
 	limits.DocumentMaximumBytes = documentMaximum
 	limits.ObjectFieldMaximum = JSONObjectFieldCountMaximum
 	limits.ArrayItemMaximum = jsonArrayItemCountMaximum
-	var got strictJSONBenchmarkDocument
-	var gotErr error
-	gotAllocations := testing.AllocsPerRun(1, func() {
-		got, gotErr = DecodeStrictJSON[strictJSONBenchmarkDocument](bytes.NewReader(document), limits)
+	var probe strictJSONBenchmarkDocument
+	var probeErr error
+	allocations := testing.AllocsPerRun(1, func() {
+		probe, probeErr = DecodeStrictJSON[strictJSONBenchmarkDocument](bytes.NewReader(document), limits)
 	})
-	if gotErr != nil || !got.decoded {
-		b.Fatalf(
-			"DecodeStrictJSON(allocation ratchet) = (%v, %v), want (decoded, nil)",
-			got,
-			gotErr,
-		)
+	if probeErr != nil || !probe.decoded || allocations > strictJSONDecodeAllocationMaximum {
+		b.Fatalf("decode probe=%+v, %v, %.0f allocations; want valid output within %d allocations", probe, probeErr, allocations, strictJSONDecodeAllocationMaximum)
 	}
-	if gotAllocations > strictJSONDecodeAllocationMaximum {
-		b.Fatalf(
-			"DecodeStrictJSON() allocations = %.0f, want <= %d",
-			gotAllocations,
-			strictJSONDecodeAllocationMaximum,
-		)
+	allocated, allocationErr := strictJSONDecodeBytesPerRun(document, limits)
+	if allocationErr != nil || allocated > strictJSONDecodeBytesMaximum {
+		b.Fatalf("decode allocation=%d, %v; want at most %d bytes", allocated, allocationErr, strictJSONDecodeBytesMaximum)
 	}
-	gotBytes, gotBytesErr := strictJSONDecodeBytesPerRun(document, limits)
-	if gotBytesErr != nil {
-		b.Fatalf("strictJSONDecodeBytesPerRun() error = %v, want nil", gotBytesErr)
-	}
-	if gotBytes > strictJSONDecodeBytesMaximum {
-		b.Fatalf(
-			"DecodeStrictJSON() allocated bytes/run = %d, want <= %d",
-			gotBytes,
-			strictJSONDecodeBytesMaximum,
-		)
-	}
+	wantDigest := sha256.Sum256(document)
 	b.SetBytes(int64(len(document)))
 	b.ReportAllocs()
-	b.ResetTimer()
+	var got strictJSONBenchmarkDocument
+	var err error
 	for b.Loop() {
-		got, err := DecodeStrictJSON[strictJSONBenchmarkDocument](bytes.NewReader(document), limits)
-		if err != nil || !got.decoded {
-			b.Fatalf(
-				"DecodeStrictJSON(advertised maximum composition) = (%v, %v), want (decoded, nil)",
-				got,
-				err,
-			)
+		got, err = DecodeStrictJSON[strictJSONBenchmarkDocument](bytes.NewReader(document), limits)
+		if err != nil {
+			b.Fatal(err)
 		}
 	}
-	b.ReportMetric(float64(gotBytes), "ratchet-B/op")
-}
-
-func strictJSONDecodeBytesPerRun(
-	document []byte,
-	limits StrictJSONLimits,
-) (uint64, error) {
-	runtime.GC()
-	var before runtime.MemStats
-	runtime.ReadMemStats(&before)
-	got, err := DecodeStrictJSON[strictJSONBenchmarkDocument](bytes.NewReader(document), limits)
-	if err != nil {
-		return 0, err
+	if !got.decoded || got.count != len(document) || got.digest != wantDigest {
+		b.Fatalf("decoded=%+v; want %d exact bytes with digest %x", got, len(document), wantDigest)
 	}
-	if !got.decoded {
-		return 0, ErrPrimitiveContract
-	}
-	var after runtime.MemStats
-	runtime.ReadMemStats(&after)
-	return after.TotalAlloc - before.TotalAlloc, nil
 }
 
 func BenchmarkJSONMarshalAbsolutePath(b *testing.B) {
 	path := validatedJSONEncodeRatchetPath(b)
+	want, err := path.MarshalJSON()
+	if err != nil {
+		b.Fatal(err)
+	}
 	b.ReportAllocs()
-	b.ResetTimer()
+	var got []byte
 	for b.Loop() {
-		if _, err := json.Marshal(path); err != nil {
-			b.Fatalf("json.Marshal() error = %v, want nil", err)
+		got, err = json.Marshal(path)
+		if err != nil {
+			b.Fatal(err)
 		}
 	}
-}
-
-func validatedJSONEncodeBytesPerRun(
-	path AbsolutePath,
-	limits StrictJSONLimits,
-) (uint64, error) {
-	runtime.GC()
-	var before runtime.MemStats
-	runtime.ReadMemStats(&before)
-	for range validatedJSONEncodeMemorySamples {
-		if _, err := EncodeValidatedJSON(path, limits); err != nil {
-			return 0, err
-		}
+	if !bytes.Equal(got, want) {
+		b.Fatalf("encoded=%q; want %q", got, want)
 	}
-	var after runtime.MemStats
-	runtime.ReadMemStats(&after)
-	return (after.TotalAlloc - before.TotalAlloc) / validatedJSONEncodeMemorySamples, nil
 }
 
 func strictJSONLimitsForTest(
 	documentMaximum ByteCount,
 	nestingMaximum uint16,
 	objectMaximum uint16,
-	arrayMaximum uint32,
+	arrayMaximum uint64,
 ) StrictJSONLimits {
 	return StrictJSONLimits{
 		DocumentMaximumBytes: documentMaximum,
@@ -1302,7 +1259,7 @@ func validatedJSONEncodeRatchetPath(tb testing.TB) AbsolutePath {
 			componentErr,
 		)
 	}
-	root, rootErr := ParseAbsolutePath(string(filepath.Separator))
+	root, rootErr := ParseAbsolutePath(filepath.VolumeName(tb.TempDir()) + string(filepath.Separator))
 	if rootErr != nil {
 		tb.Fatalf("ParseAbsolutePath(root) error = %v, want nil", rootErr)
 	}
@@ -1417,4 +1374,40 @@ func strictJSONNestedArrays(depth int) []byte {
 	document = append(document, '0')
 	document = append(document, bytes.Repeat([]byte{']'}, depth)...)
 	return document
+}
+
+func strictJSONDecodeBytesPerRun(
+	document []byte,
+	limits StrictJSONLimits,
+) (uint64, error) {
+	runtime.GC()
+	var before runtime.MemStats
+	runtime.ReadMemStats(&before)
+	got, err := DecodeStrictJSON[strictJSONBenchmarkDocument](bytes.NewReader(document), limits)
+	if err != nil {
+		return 0, err
+	}
+	if !got.decoded {
+		return 0, ErrPrimitiveContract
+	}
+	var after runtime.MemStats
+	runtime.ReadMemStats(&after)
+	return after.TotalAlloc - before.TotalAlloc, nil
+}
+
+func validatedJSONEncodeBytesPerRun(
+	path AbsolutePath,
+	limits StrictJSONLimits,
+) (uint64, error) {
+	runtime.GC()
+	var before runtime.MemStats
+	runtime.ReadMemStats(&before)
+	for range validatedJSONEncodeMemorySamples {
+		if _, err := EncodeValidatedJSON(path, limits); err != nil {
+			return 0, err
+		}
+	}
+	var after runtime.MemStats
+	runtime.ReadMemStats(&after)
+	return (after.TotalAlloc - before.TotalAlloc) / validatedJSONEncodeMemorySamples, nil
 }

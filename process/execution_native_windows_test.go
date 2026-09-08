@@ -12,7 +12,6 @@ import (
 	"errors"
 	"io"
 	"testing"
-	"time"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/process"
@@ -52,7 +51,7 @@ func TestWindowsRefusesContainmentItCannotDeliver(t *testing.T) {
 				Stdin: bytes.NewReader(nil), Stdout: io.Discard, Stderr: io.Discard,
 			})
 			request.Containment = tc.containment
-			if _, err := process.Run(t.Context(), request); !errors.Is(err, core.ErrProcessUnsupported) {
+			if result, err := process.Run(t.Context(), request); result != (process.Result{}) || !errors.Is(err, core.ErrProcessUnsupported) {
 				t.Fatalf("process.Run(%+v) error = %v, want errors.Is %v",
 					tc.containment, err, core.ErrProcessUnsupported)
 			}
@@ -60,62 +59,72 @@ func TestWindowsRefusesContainmentItCannotDeliver(t *testing.T) {
 	}
 }
 
-// TestWindowsKilledChildReportsAnExitAndNoSignal is the counterpart of the
-// unix supervision proof: Terminate stops the child through its held handle,
-// the wait seals an observation, and the platform honestly reports no
-// termination signal because Windows has none to report.
+// Both public kill doors must reap an owned child and retain Windows facts.
+// Completed-object liveness is tested separately with a retained native handle;
+// probing an unowned PID after Wait would race operating-system PID reuse.
 func TestWindowsKilledChildReportsAnExitAndNoSignal(t *testing.T) {
 	t.Parallel()
-
-	ready := make(chan struct{})
-	request := processRequest(t, "wait", process.Streams{
-		Stdin: bytes.NewReader(nil), Stdout: &readyWriter{ready: ready}, Stderr: io.Discard,
-	})
-	execution, err := process.Begin(t.Context(), request)
-	if err != nil {
-		t.Fatalf("process.Begin(wait) error = %v, want nil", err)
+	cases := []struct {
+		name string
+		stop func(*process.Execution) error
+	}{
+		{name: "terminate retains exit and refuses invented signal", stop: (*process.Execution).Terminate},
+		{name: "deliver kill retains exit and refuses invented signal", stop: func(e *process.Execution) error { return e.Deliver(process.CancelSignalKill) }},
 	}
-	identity, err := execution.Identity()
-	if err != nil {
-		t.Fatalf("Execution.Identity() error = %v, want nil", err)
-	}
-	select {
-	case <-ready:
-	case <-time.After(processTestBackstop):
-		t.Fatalf("child readiness wait reached %s, want readiness first", processTestBackstop)
-	}
-	if err := execution.Terminate(); err != nil {
-		t.Fatalf("Execution.Terminate() error = %v, want nil", err)
-	}
-	result, err := execution.Wait()
-	if err != nil {
-		t.Fatalf("Execution.Wait(terminated) error = %v, want nil", err)
-	}
-	exit, err := result.ExitCode()
-	if err != nil {
-		t.Fatalf("terminated ExitCode() error = %v, want nil", err)
-	}
-	if success, err := exit.Success(); err != nil || success {
-		t.Fatalf("terminated child success = (%t, %v), want (false, nil)", success, err)
-	}
-	if signaled, err := exit.Signaled(); err != nil || signaled {
-		t.Fatalf("terminated child Signaled() = (%t, %v), want (false, nil): windows reports no signal", signaled, err)
-	}
-	if _, err := result.TerminationSignal(); !errors.Is(err, core.ErrProcessContract) {
-		t.Fatalf("terminated child TerminationSignal() error = %v, want %v", err, core.ErrProcessContract)
-	}
-
-	for attempt := 1; ; attempt++ {
-		liveness, err := process.Alive(identity)
-		if err != nil {
-			t.Fatalf("process.Alive(reaped child) error = %v, want nil", err)
-		}
-		if liveness == process.LivenessGone {
-			break
-		}
-		if attempt == 50 {
-			t.Fatalf("process.Alive(reaped child) = %v after %d probes, want %v", liveness, attempt, process.LivenessGone)
-		}
-		<-time.After(processTestProbeInterval)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			ready := make(chan struct{})
+			var output bytes.Buffer
+			request := processRequest(t, "wait", process.Streams{
+				Stdin: bytes.NewReader(nil), Stdout: io.MultiWriter(&output, &readyWriter{ready: ready}), Stderr: io.Discard,
+			})
+			execution, err := process.Begin(t.Context(), request)
+			if err != nil {
+				t.Fatal(err)
+			}
+			waited := false
+			t.Cleanup(func() {
+				if !waited {
+					stopErr := execution.Terminate()
+					_, waitErr := execution.Wait()
+					if err := errors.Join(stopErr, waitErr); err != nil {
+						t.Error(err)
+					}
+				}
+			})
+			identity, err := execution.Identity()
+			if err != nil || identity == 0 {
+				t.Fatalf("started identity=%v, %v; want nonzero native identity", identity, err)
+			}
+			select {
+			case <-ready:
+			case <-processTestDeadline(t, processTestBackstop):
+				t.Fatalf("child readiness reached %s backstop", processTestBackstop)
+			}
+			if err := tc.stop(execution); err != nil {
+				t.Fatal(err)
+			}
+			result, err := execution.Wait()
+			waited = true
+			if err != nil {
+				t.Fatal(err)
+			}
+			facts, err := result.Observation()
+			if err != nil || facts.ExitCode <= core.ProcessExitCodeSuccess || facts.ExitCode > core.ProcessExitCodeMaximum || facts.TerminationSignal != nil || facts.PeakMemoryBytes != nil || facts.StdinBytes.Uint64() != 0 || facts.StdoutBytes.Uint64() != uint64(output.Len()) || facts.StderrBytes.Uint64() != 0 {
+				t.Fatalf("terminated facts=%+v, %v; want nonzero unsigned exit, exact streams, no signal or RSS", facts, err)
+			}
+			signal, err := result.TerminationSignal()
+			if signal != 0 || !errors.Is(err, core.ErrProcessContract) {
+				t.Fatalf("termination signal=%v, %v; want zero and contract refusal", signal, err)
+			}
+			again, err := execution.Wait()
+			if again != (process.Result{}) || !errors.Is(err, core.ErrProcessContract) {
+				t.Fatalf("second wait=%+v, %v; want zero and contract refusal", again, err)
+			}
+			if err := tc.stop(execution); !errors.Is(err, core.ErrProcessContract) {
+				t.Fatalf("post-reap stop=%v; want refusal before addressing recycled identity", err)
+			}
+		})
 	}
 }

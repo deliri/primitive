@@ -44,6 +44,8 @@ const (
 	TestIsolationHazardRuntimeAllocation
 	// TestIsolationHazardSiblingOrder identifies deliberately ordered sibling subtests.
 	TestIsolationHazardSiblingOrder
+	// TestIsolationHazardProcessArguments identifies os.Args mutation.
+	TestIsolationHazardProcessArguments
 	testIsolationHazardLimit
 )
 
@@ -57,6 +59,7 @@ func testIsolationHazardDiagnostics() [testIsolationHazardLimit]string {
 		TestIsolationHazardGlobalRegistry:          "global-registry",
 		TestIsolationHazardRuntimeAllocation:       "runtime-allocation",
 		TestIsolationHazardSiblingOrder:            "sibling-order",
+		TestIsolationHazardProcessArguments:        "process-arguments",
 	}
 }
 
@@ -105,6 +108,7 @@ func testIsolationHazardGoIdentifiers() [testIsolationHazardLimit]string {
 		TestIsolationHazardGlobalRegistry:          "TestIsolationHazardGlobalRegistry",
 		TestIsolationHazardRuntimeAllocation:       "TestIsolationHazardRuntimeAllocation",
 		TestIsolationHazardSiblingOrder:            "TestIsolationHazardSiblingOrder",
+		TestIsolationHazardProcessArguments:        "TestIsolationHazardProcessArguments",
 	}
 }
 

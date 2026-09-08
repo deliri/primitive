@@ -16,11 +16,11 @@ import (
 	"strconv"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/hostfacts"
 	"github.com/deliri/primitive/v2026/process"
+	"github.com/deliri/primitive/v2026/temporal"
 )
 
 func TestWorkingDirectoryFeedsARealRun(t *testing.T) {
@@ -63,7 +63,7 @@ func TestBeginExposesTheStartedChildIdentityAndReapsItOnWait(t *testing.T) {
 	}
 	select {
 	case <-ready:
-	case <-time.After(processTestBackstop):
+	case <-processTestDeadline(t, processTestBackstop):
 		t.Fatalf("child readiness wait reached %s, want readiness first", processTestBackstop)
 	}
 
@@ -209,7 +209,7 @@ func TestGroupCancellationReapsTheWholeTree(t *testing.T) {
 	select {
 	case <-ready:
 		cancel()
-	case <-time.After(processTestBackstop):
+	case <-processTestDeadline(t, processTestBackstop):
 		t.Fatalf("child readiness wait reached %s, want readiness first", processTestBackstop)
 	}
 
@@ -218,7 +218,7 @@ func TestGroupCancellationReapsTheWholeTree(t *testing.T) {
 		if !errors.Is(got.err, context.Canceled) || !errors.Is(got.err, core.ErrProcessWait) {
 			t.Fatalf("group-cancelled Run error = %v, want %v and %v", got.err, context.Canceled, core.ErrProcessWait)
 		}
-	case <-time.After(processTestBackstop):
+	case <-processTestDeadline(t, processTestBackstop):
 		t.Fatalf("group-cancelled Run reached %s, want a reaped tree; a leaked group would wedge here", processTestBackstop)
 	}
 
@@ -245,7 +245,13 @@ func TestGroupCancellationReapsTheWholeTree(t *testing.T) {
 			t.Fatalf("descendant %d still %v after %d probes, want %v: the group cancellation did not reach it",
 				descendant, liveness, attempt, process.LivenessGone)
 		}
-		<-time.After(processTestProbeInterval)
+		delay, err := temporal.NewDuration(processTestProbeInterval)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := temporal.Wait(temporal.WaitRequest{Context: t.Context(), Duration: delay}); err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 
@@ -268,7 +274,7 @@ func TestSupervisionRefusesADeliveryAfterTheChildIsReaped(t *testing.T) {
 	}
 	select {
 	case <-ready:
-	case <-time.After(processTestBackstop):
+	case <-processTestDeadline(t, processTestBackstop):
 		t.Fatalf("child readiness wait reached %s, want readiness first", processTestBackstop)
 	}
 	if err := execution.Terminate(); err != nil {
@@ -339,7 +345,13 @@ func TestSweepEndsAReapedGroupsSurvivors(t *testing.T) {
 			t.Fatalf("survivor %d still %v after %d probes, want %v: the sweep did not reach the group",
 				descendant, liveness, attempt, process.LivenessGone)
 		}
-		<-time.After(processTestProbeInterval)
+		delay, err := temporal.NewDuration(processTestProbeInterval)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := temporal.Wait(temporal.WaitRequest{Context: t.Context(), Duration: delay}); err != nil {
+			t.Fatal(err)
+		}
 	}
 }
 
@@ -364,7 +376,7 @@ func TestSweepStopsARunningGroupAndToleratesRepetition(t *testing.T) {
 	}
 	select {
 	case <-ready:
-	case <-time.After(processTestBackstop):
+	case <-processTestDeadline(t, processTestBackstop):
 		t.Fatalf("child readiness wait reached %s, want readiness first", processTestBackstop)
 	}
 	if err := execution.Sweep(); err != nil {

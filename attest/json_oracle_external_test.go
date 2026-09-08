@@ -74,7 +74,7 @@ func nestedJSONObjectAdmitted(decoder *jsontext.Decoder, limits core.StrictJSONL
 }
 
 func nestedJSONArrayAdmitted(decoder *jsontext.Decoder, limits core.StrictJSONLimits, depth uint16) bool {
-	for count := uint32(0); decoder.PeekKind() != jsontext.KindEndArray; count++ {
+	for count := uint64(0); decoder.PeekKind() != jsontext.KindEndArray; count++ {
 		if count >= limits.ArrayItemMaximum || !nestedJSONValueAdmitted(decoder, limits, depth) {
 			return false
 		}

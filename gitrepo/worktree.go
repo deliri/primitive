@@ -169,8 +169,7 @@ func requireSuccess(result process.Result) error {
 
 type worktreeEntryWriter struct {
 	consumer WorktreeConsumer
-	path     [core.SourcePathMaximumBytes]byte
-	length   uint16
+	path     []byte
 	entries  uint64
 	bytes    uint64
 	failure  error
@@ -194,14 +193,10 @@ func (w *worktreeEntryWriter) Write(data []byte) (int, error) {
 
 func (w *worktreeEntryWriter) consume(value byte) error {
 	if value != 0 {
-		if w.length >= core.SourcePathMaximumBytes {
-			return outputError(errors.New("git path exceeds the source identity ceiling"))
-		}
-		w.path[w.length] = value
-		w.length++
+		w.path = append(w.path, value)
 		return nil
 	}
-	path, err := core.ParseSourcePath(string(w.path[:w.length]))
+	path, err := core.ParseSourcePath(string(w.path))
 	if err != nil || path.String() == "." {
 		return outputError(errors.Join(errors.New("git emitted an invalid source path"), err))
 	}
@@ -215,13 +210,13 @@ func (w *worktreeEntryWriter) consume(value byte) error {
 	if w.entries == math.MaxUint64 {
 		return outputError(errors.New("git entry count overflow"))
 	}
-	consumed := uint64(w.length) + 1
+	consumed := uint64(len(w.path)) + 1
 	if w.bytes > math.MaxInt64-consumed {
 		return outputError(errors.New("git path stream byte count overflow"))
 	}
 	w.entries++
 	w.bytes += consumed
-	w.length = 0
+	w.path = w.path[:0]
 	return nil
 }
 
@@ -232,7 +227,7 @@ func (w *worktreeEntryWriter) finish() (WorktreeSummary, error) {
 	if w.failure != nil {
 		return WorktreeSummary{}, w.failure
 	}
-	if w.length != 0 {
+	if len(w.path) != 0 {
 		return WorktreeSummary{}, outputError(errors.New("git path stream is truncated"))
 	}
 	length, err := core.NewByteLength(w.bytes)

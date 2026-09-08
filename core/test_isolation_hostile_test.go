@@ -25,10 +25,23 @@ func TestIsolationHazardAndScopeExhaustClosedDomains(t *testing.T) {
 		{name: "global registry admitted", value: TestIsolationHazardGlobalRegistry},
 		{name: "runtime allocation admitted", value: TestIsolationHazardRuntimeAllocation},
 		{name: "sibling order admitted", value: TestIsolationHazardSiblingOrder},
+		{name: "process arguments admitted", value: TestIsolationHazardProcessArguments},
 		{name: "private hazard limit rejected", value: testIsolationHazardLimit, wantErr: ErrTestIsolationContract},
 		{name: "maximum hazard backing value rejected", value: TestIsolationHazard(math.MaxUint8), wantErr: ErrTestIsolationContract},
 	}
-	runIsolationValidationCases(t, hazardCases)
+	for _, tc := range hazardCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			gotErr := tc.value.Validate()
+			if !errors.Is(gotErr, tc.wantErr) {
+				t.Fatalf("Validate() error = %v, want %v", gotErr, tc.wantErr)
+			}
+			if tc.wantErr != nil && !errors.Is(gotErr, ErrPrimitiveContract) {
+				t.Fatalf("Validate() error = %v, want parent %v", gotErr, ErrPrimitiveContract)
+			}
+		})
+	}
 
 	scopeCases := []isolationValidationCase[TestIsolationScope]{
 		{name: "zero scope rejected", value: TestIsolationScopeUnknown, wantErr: ErrTestIsolationContract},
@@ -37,16 +50,7 @@ func TestIsolationHazardAndScopeExhaustClosedDomains(t *testing.T) {
 		{name: "private scope limit rejected", value: testIsolationScopeLimit, wantErr: ErrTestIsolationContract},
 		{name: "maximum scope backing value rejected", value: TestIsolationScope(math.MaxUint8), wantErr: ErrTestIsolationContract},
 	}
-	runIsolationValidationCases(t, scopeCases)
-}
-
-func runIsolationValidationCases[T interface{ Validate() error }](
-	t *testing.T,
-	cases []isolationValidationCase[T],
-) {
-	t.Helper()
-
-	for _, tc := range cases {
+	for _, tc := range scopeCases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -69,6 +73,9 @@ func TestIsolationDeclarationCombinationMatrix(t *testing.T) {
 		name        string
 		declaration TestIsolationDeclaration
 	}{
+		{name: "arguments require package process", declaration: TestIsolationDeclaration{Hazard: TestIsolationHazardProcessArguments, Scope: TestIsolationScopePackageProcess}},
+		{name: "arguments cannot claim sibling isolation", declaration: TestIsolationDeclaration{Hazard: TestIsolationHazardProcessArguments, Scope: TestIsolationScopeSiblingTable}, wantErr: ErrTestIsolationContract},
+		{name: "arguments cannot omit their scope", declaration: TestIsolationDeclaration{Hazard: TestIsolationHazardProcessArguments}, wantErr: ErrTestIsolationContract},
 		{
 			name: "process environment requires package process",
 			declaration: TestIsolationDeclaration{

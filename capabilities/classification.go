@@ -99,7 +99,7 @@ func (c *Classification) UnmarshalJSON(data []byte) error {
 		return contractError("classification exceeds byte ceiling")
 	}
 	limits := core.DefaultStrictJSONLimits()
-	limits.ArrayItemMaximum = uint32(IdentityCount)
+	limits.ArrayItemMaximum = uint64(IdentityCount)
 	wire, err := core.DecodeStrictJSONStructure[classificationWire](data, limits)
 	if err != nil {
 		return errors.Join(core.ErrCapabilitiesContract, err)

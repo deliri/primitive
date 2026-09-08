@@ -4,47 +4,54 @@ package process
 
 import (
 	"errors"
-
-	"golang.org/x/sys/windows"
+	"fmt"
+	"syscall"
 
 	"github.com/deliri/primitive/v2026/core"
 )
 
-// observedLiveness asks the kernel by opening the process for the least
-// query access and reading whether it still runs.
-//
-// An open refused for permissions is an alive answer: the kernel only
-// protects a process that exists. An invalid-parameter refusal is the gone
-// answer, because it is how OpenProcess names an identity no process
-// carries. Every other failure is a failed observation.
-func observedLiveness(identity ProcessIdentity) (Liveness, error) {
+// observedLiveness probes the process handle with Go's native wait API.
+// An exit code cannot prove liveness: a terminated child can have exit code
+// STILL_ACTIVE. A zero timeout observes the handle without blocking.
+func observedLiveness(identity ProcessIdentity) (liveness Liveness, resultErr error) {
 	pid, err := identity.Int()
 	if err != nil {
 		return LivenessUnknown, err
 	}
-	handle, openErr := windows.OpenProcess(
-		windows.PROCESS_QUERY_LIMITED_INFORMATION,
-		false,
-		uint32(pid), // #nosec G115 -- ProcessIdentity admits only positive pid-domain values.
-	)
+	handle, openErr := syscall.OpenProcess(syscall.SYNCHRONIZE, false, uint32(pid))
 	if openErr != nil {
-		if errors.Is(openErr, windows.ERROR_ACCESS_DENIED) {
-			return LivenessAlive, nil
-		}
-		if errors.Is(openErr, windows.ERROR_INVALID_PARAMETER) {
-			return LivenessGone, nil
-		}
-		return LivenessUnknown, errors.Join(core.ErrProcessObservation, openErr)
+		return livenessFromOpenError(openErr)
 	}
-	defer func() { _ = windows.CloseHandle(handle) }()
-	// STATUS_PENDING is the value the console API names STILL_ACTIVE: the
-	// exit code a process reports for as long as it has not exited.
-	var exitCode uint32
-	if err := windows.GetExitCodeProcess(handle, &exitCode); err != nil {
-		return LivenessUnknown, errors.Join(core.ErrProcessObservation, err)
-	}
-	if exitCode == uint32(windows.STATUS_PENDING) {
+	defer func() {
+		if err := syscall.CloseHandle(handle); err != nil {
+			liveness = LivenessUnknown
+			resultErr = errors.Join(core.ErrProcessObservation, resultErr, err)
+		}
+	}()
+	status, waitErr := syscall.WaitForSingleObject(handle, 0)
+	return livenessFromWait(status, waitErr)
+}
+
+func livenessFromOpenError(err error) (Liveness, error) {
+	if errors.Is(err, syscall.ERROR_ACCESS_DENIED) {
 		return LivenessAlive, nil
 	}
-	return LivenessGone, nil
+	if errors.Is(err, core.WindowsProcessInvalidParameter) {
+		return LivenessGone, nil
+	}
+	return LivenessUnknown, errors.Join(core.ErrProcessObservation, err)
+}
+
+func livenessFromWait(status uint32, err error) (Liveness, error) {
+	if err != nil {
+		return LivenessUnknown, errors.Join(core.ErrProcessObservation, err)
+	}
+	switch status {
+	case syscall.WAIT_OBJECT_0:
+		return LivenessGone, nil
+	case syscall.WAIT_TIMEOUT:
+		return LivenessAlive, nil
+	default:
+		return LivenessUnknown, fmt.Errorf("process wait returned status %d: %w", status, core.ErrProcessObservation)
+	}
 }

@@ -2,6 +2,7 @@ package core_test
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"strings"
 	"testing"
@@ -45,11 +46,21 @@ func TestDecodeCanonicalHexAdmitsOnlyTheOneCanonicalSpelling(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			destination := make([]byte, tc.destinationSize)
+			destination := bytes.Repeat([]byte{0xa5}, tc.destinationSize)
+			before := bytes.Clone(destination)
 			err := core.DecodeCanonicalHex(destination, tc.value)
 			if tc.wantErr != nil {
 				if !errors.Is(err, tc.wantErr) {
 					t.Fatalf("DecodeCanonicalHex(%q) error = %v, want errors.Is %v", tc.value, err, core.ErrPrimitiveContract)
+				}
+				if !bytes.Equal(destination, before) {
+					t.Fatalf("refused decode changed destination=%x; want %x", destination, before)
+				}
+				if invalid, ok := errors.AsType[hex.InvalidByteError](err); ok {
+					_, native := hex.DecodeString(tc.value)
+					if !errors.Is(native, invalid) {
+						t.Fatalf("native cause=%v; want Go decode cause %v", invalid, native)
+					}
 				}
 				return
 			}

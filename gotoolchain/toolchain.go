@@ -151,44 +151,49 @@ func (c Capability) AnalyzePackage(ctx context.Context, request AnalysisRequest)
 	if err := ctx.Err(); err != nil {
 		return PackageAnalysis{}, errors.Join(core.ErrGoToolchainExecution, err)
 	}
-	loaded, err := c.loadAnalysisMetadata(ctx, request)
+	loaded, err := c.loadAnalysisMetadata(ctx, request.WorkingDirectory, []gomodule.ImportPath{request.Package}, request.IncludeTests)
 	if err != nil {
 		return PackageAnalysis{}, err
 	}
 
-	return compilePackageAnalysis(ctx, loaded, request)
+	return compilePackageAnalysis(ctx, loaded, request, collectCanonicalExports(loaded))
 }
 
 func (c Capability) execute(ctx context.Context, directory core.AbsolutePath, values ...string) ([]byte, process.Result, error) {
+	var stdout bytes.Buffer
+	result, err := c.executeTo(ctx, directory, &stdout, values...)
+	return stdout.Bytes(), result, err
+}
+
+func (c Capability) executeTo(ctx context.Context, directory core.AbsolutePath, stdout io.Writer, values ...string) (process.Result, error) {
 	arguments, err := process.ParseArguments(values)
 	if err != nil {
-		return nil, process.Result{}, errors.Join(core.ErrGoToolchainContract, err)
+		return process.Result{}, errors.Join(core.ErrGoToolchainContract, err)
 	}
-	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	request := process.Request{
-		Streams: process.Streams{Stdin: bytes.NewReader(nil), Stdout: &stdout, Stderr: &stderr},
+		Streams: process.Streams{Stdin: bytes.NewReader(nil), Stdout: stdout, Stderr: &stderr},
 		Command: c.command, WorkingDirectory: directory, Arguments: arguments, Environment: c.environment,
 		OutputLimit: c.configuration.Limits.OutputBytes, WaitDelay: c.configuration.Limits.WaitDelay,
 		Containment: process.Containment{Isolation: process.IsolationGroup, CancelSignal: process.CancelSignalTerminate},
 	}
 	result, runErr := runToolchainGroup(ctx, request)
 	if runErr != nil {
-		return nil, result, errors.Join(core.ErrGoToolchainExecution, runErr)
+		return result, errors.Join(core.ErrGoToolchainExecution, runErr)
 	}
 	exit, err := result.ExitCode()
 	if err != nil {
-		return nil, result, errors.Join(core.ErrGoToolchainExecution, err)
+		return result, errors.Join(core.ErrGoToolchainExecution, err)
 	}
 	success, err := exit.Success()
 	if err != nil {
-		return nil, result, errors.Join(core.ErrGoToolchainExecution, err)
+		return result, errors.Join(core.ErrGoToolchainExecution, err)
 	}
 	if !success {
 		diagnostic := strings.TrimSpace(stderr.String())
-		return nil, result, executionError(diagnostic)
+		return result, executionError(diagnostic)
 	}
-	return bytes.Clone(stdout.Bytes()), result, nil
+	return result, nil
 }
 
 func runToolchainGroup(ctx context.Context, request process.Request) (process.Result, error) {
@@ -243,14 +248,14 @@ type moduleWire struct {
 	Path string `json:"Path"`
 }
 
-func decodePackageCatalog(data []byte, maximum uint32) (PackageCatalog, error) {
-	if maximum == 0 || maximum > PackageMaximumCount {
+func decodePackageCatalog(data []byte, maximum uint64) (PackageCatalog, error) {
+	if maximum == 0 {
 		return PackageCatalog{}, outputError("package stream count bound is invalid", nil)
 	}
-	limit := int(maximum)
+	limit := uint64(maximum)
 	decoder := jsontext.NewDecoder(bytes.NewReader(data))
 	packages := make([]Package, 0)
-	for len(packages) < limit {
+	for uint64(len(packages)) < limit {
 		var wire packageWire
 		err := json.UnmarshalDecode(decoder, &wire)
 		if errors.Is(err, io.EOF) {
@@ -265,7 +270,7 @@ func decodePackageCatalog(data []byte, maximum uint32) (PackageCatalog, error) {
 		}
 		packages = append(packages, observed)
 	}
-	if len(packages) == limit {
+	if uint64(len(packages)) == limit {
 		var extra packageWire
 		if err := json.UnmarshalDecode(decoder, &extra); !errors.Is(err, io.EOF) {
 			return PackageCatalog{}, outputError("package stream exceeds its count bound", err)

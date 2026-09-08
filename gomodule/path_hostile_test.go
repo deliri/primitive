@@ -9,6 +9,8 @@ import (
 	"github.com/deliri/primitive/v2026/gomodule"
 )
 
+const historicalPathFixtureBytes = 1024
+
 type modulePathCaseClass uint8
 
 const (
@@ -21,7 +23,7 @@ func TestParsePathHostileDomain(t *testing.T) {
 	t.Parallel()
 
 	prefix := "example.com/"
-	atMaximum := prefix + strings.Repeat("a", gomodule.PathMaximumBytes-len(prefix))
+	atMaximum := prefix + strings.Repeat("a", historicalPathFixtureBytes-len(prefix))
 	cases := []struct {
 		name    string
 		value   string
@@ -52,8 +54,8 @@ func TestParsePathHostileDomain(t *testing.T) {
 
 		{name: "boundary byte ceiling minus one accepted", value: atMaximum[:len(atMaximum)-1], class: modulePathCaseBoundary},
 		{name: "boundary exact byte ceiling accepted", value: atMaximum, class: modulePathCaseBoundary},
-		{name: "boundary byte ceiling plus one refused", value: atMaximum + "a", class: modulePathCaseBoundary, wantErr: true},
-		{name: "boundary byte ceiling extreme refused", value: atMaximum + strings.Repeat("a", gomodule.PathMaximumBytes), class: modulePathCaseBoundary, wantErr: true},
+		{name: "boundary byte ceiling plus one admitted", value: atMaximum + "a", class: modulePathCaseBoundary, wantErr: false},
+		{name: "boundary byte ceiling extreme admitted", value: atMaximum + strings.Repeat("a", historicalPathFixtureBytes), class: modulePathCaseBoundary, wantErr: false},
 		{name: "boundary version one refused", value: "example.com/project/v1", class: modulePathCaseBoundary, wantErr: true},
 		{name: "boundary version two accepted", value: "example.com/project/v2", class: modulePathCaseBoundary},
 		{name: "boundary version leading zero refused", value: "example.com/project/v02", class: modulePathCaseBoundary, wantErr: true},
@@ -156,7 +158,7 @@ func TestParseImportPathHostileDomain(t *testing.T) {
 	t.Parallel()
 
 	prefix := "example.com/"
-	atMaximum := prefix + strings.Repeat("a", gomodule.ImportPathMaximumBytes-len(prefix))
+	atMaximum := prefix + strings.Repeat("a", historicalPathFixtureBytes-len(prefix))
 	cases := []struct {
 		name    string
 		value   string
@@ -187,8 +189,8 @@ func TestParseImportPathHostileDomain(t *testing.T) {
 
 		{name: "boundary byte ceiling minus one accepted", value: atMaximum[:len(atMaximum)-1], class: modulePathCaseBoundary},
 		{name: "boundary exact byte ceiling accepted", value: atMaximum, class: modulePathCaseBoundary},
-		{name: "boundary byte ceiling plus one refused", value: atMaximum + "a", class: modulePathCaseBoundary, wantErr: true},
-		{name: "boundary extreme byte extent refused", value: atMaximum + strings.Repeat("a", gomodule.ImportPathMaximumBytes), class: modulePathCaseBoundary, wantErr: true},
+		{name: "boundary byte ceiling plus one admitted", value: atMaximum + "a", class: modulePathCaseBoundary, wantErr: false},
+		{name: "boundary extreme byte extent admitted", value: atMaximum + strings.Repeat("a", historicalPathFixtureBytes), class: modulePathCaseBoundary, wantErr: false},
 		{name: "boundary one-character import accepted", value: "x", class: modulePathCaseBoundary},
 		{name: "boundary leading dot import accepted", value: ".x", class: modulePathCaseBoundary},
 		{name: "boundary leading dash refused", value: "-x", class: modulePathCaseBoundary, wantErr: true},
@@ -307,7 +309,7 @@ func FuzzPathJSONSemanticClosure(f *testing.F) {
 			t.Fatalf("Path.UnmarshalJSON(accepted).Validate() error = %v, want nil", err)
 		}
 		encoded, err := got.MarshalJSON()
-		if err != nil || len(encoded) > gomodule.PathMaximumBytes+2 {
+		if err != nil {
 			t.Fatalf("Path.MarshalJSON(accepted) = (%d bytes, %v), want bounded and nil", len(encoded), err)
 		}
 		var roundTrip gomodule.Path
@@ -347,7 +349,7 @@ func FuzzImportPathJSONSemanticClosure(f *testing.F) {
 			t.Fatalf("ImportPath.UnmarshalJSON(accepted).Validate() error = %v, want nil", err)
 		}
 		encoded, err := got.MarshalJSON()
-		if err != nil || len(encoded) > gomodule.ImportPathMaximumBytes+2 {
+		if err != nil {
 			t.Fatalf("ImportPath.MarshalJSON(accepted) = (%d bytes, %v), want bounded and nil", len(encoded), err)
 		}
 		var roundTrip gomodule.ImportPath
