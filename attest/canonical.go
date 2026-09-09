@@ -51,7 +51,7 @@ func (w *canonicalDigestWriter) Write(data []byte) (int, error) {
 func (w *canonicalDigestWriter) close(callbackErr error) (core.ByteCount, core.SHA256Digest, error) {
 	w.closed = true
 	if w.err != nil {
-		return core.ByteCount{}, core.SHA256Digest{}, w.err
+		return core.ByteCount{}, core.SHA256Digest{}, errors.Join(w.err, callbackErr)
 	}
 	if callbackErr != nil {
 		return core.ByteCount{}, core.SHA256Digest{}, contractError(callbackErr)

@@ -140,7 +140,7 @@ func signatureCanonicalFixture(t testing.TB, fill byte) []byte {
 func TestAttestExternalJSONDoorInventoryMatchesProduction(t *testing.T) {
 	t.Parallel()
 
-	got, gotErr := scanAttestExternalJSONReceivers(".")
+	got, gotErr := scanAttestExternalJSONReceivers(attestContractSources)
 	if gotErr != nil {
 		t.Fatalf("scanAttestExternalJSONReceivers() error = %v, want nil", gotErr)
 	}

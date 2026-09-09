@@ -1,52 +1,34 @@
-# Primitive upgrade priority — 2026-09-08
+# Primitive upgrade priority — 2026-09-09
 
-Current approved release: **v2026.1.27**, September 9, 2026 UTC. See
-[release notes](release_v2026.1.27.md). Chit's reviewed production repairs,
-hostile tables, fuzzing, mutation checks, and before/after CPU/memory profiles
-are recorded in [the Chit review](chit_upgrade_20260909.md). Both review
-suggestions are resolved; the user approved the bump, commit, and push.
+Approved release: **v2026.1.28**. See [release notes](release_v2026.1.28.md)
+and [Attest evidence](attest_upgrade_20260909.md). Attest was first upgraded
+on September 6; this release publishes an explicitly approved follow-up. It
+must not be mistaken for a newly upgraded package.
 
-The previous publication was v2026.1.26, commit
-`8eedc412d3edf3b0490050407df1fe451ae34eef`. It repaired the reviewed Linux
-regressions and GCS stream completion following Objectstore v2026.1.25.
-That repair was not a complete GCSobjects package sweep.
+The next requested capability is **Tailnet**, per the user's explicit priority:
+Blink Kernel's `cmd/api/anvil_tailnet_boot.go` → Primitive → Tailscale v1.102.3.
+After that, **Controlplane** is the highest-ranked package without an individual
+completed upgrade in this sequence. Its older benchmark report explicitly says
+no production change and records a single enum parser benchmark; that narrow
+reservation audit is not a completed package upgrade.
 
-Next package in the saved usage ranking: **Attest**.
-Import counts below remain the saved usage snapshot; this pass did not rescan consumers.
+## Completed slices and separate follow-ups
 
-Earlier publications include Release v2026.1.24 and Keygen v2026.1.23,
-commit `afcab259661321720ed0fb9d8744412c71e307be`.
-The preceding GoToolchain/Filestore/Core integration was published in v2026.1.21.
-Exchange/Filestore were published in
-v2026.1.19 and Temporal/Hostfacts in v2026.1.20.
+Exclude these previously upgraded packages from the automatic remaining queue:
+Attest, AWSidentity, Capabilities, Exchange, Filestore, Temporal, Hostfacts,
+Process, Core, Contextstate, Controlwire, Keygen, Release, Objectstore, and Chit.
+Individual reports live with those packages or under `_docs`. The first three
+have September 6 upgrade reports. Exchange/Filestore were released in v2026.1.19;
+Temporal/Hostfacts in v2026.1.20; Process/Core were checkpointed in v2026.1.21;
+Contextstate/Controlwire in v2026.1.22; Keygen in v2026.1.23; Release in
+v2026.1.24; Objectstore in v2026.1.25; and Chit in v2026.1.27.
 
-Reviewed checkpoint: **Contextstate**. The resumed slice closes its test and benchmark
-review and makes a profile-informed recovery optimization. See
-[Contextstate's review](../contextstate/upgrade_review.md). **Controlwire is reviewed and approved.** Its production, table tests, fuzz
-oracles and profiled benchmarks are covered in [the review](../controlwire/upgrade_review.md).
-**Keygen is reviewed and approved**, with production changes, hostile tests,
-semantic fuzzing and ten profiled before/after pairs recorded in
-[the Keygen review](../keygen/upgrade_review.md). **Release is reviewed and approved**: hostile admission,
-repository binding, exact dependency unions, constant-time sealed access, seed
-custody, and bounded/cooperative executable observation are upgraded. Final scoped
-race/analyzer checks and Linux/Windows cross-compilation passed. Profiled
-comparisons retain exact sources, matching binaries and frozen executable inputs.
-The Grok follow-up also fixes symlink-to-tool path composition and checks standing
-before executable reads. See [the Release review](../release/upgrade_review.md).
-
-The initial execution-value priority was Exchange → Filestore → Temporal →
-Hostfacts → Process. Process and Core improvements are now checkpointed in
-v2026.1.21; their earlier package reports retain the historical pre-release
-wording. The new compiler integration can receive further upgrades in a later
-release, as the user requested. Necessary shared-owner fixes are still proved at
-their owning boundary when encountered.
-
-Exchange covers Blink HTTP ingress/egress and the three tools' control-plane and
-commercial clients. Filestore covers rooted reads/writes/walks and durable output
-in all four consumers. Temporal underpins values, budgets and cancellation.
-Hostfacts supplies ambient host facts and resource observations, including Blink's
-real cgroup memory-limit path. Process supplies compiler, probe, replay and runner
-execution. All five have production importers in all four projects.
+GoToolchain was integrated in v2026.1.21 and is reserved for an explicitly
+requested later quality pass. GCSobjects received a scoped streaming repair in
+v2026.1.26, not a complete package sweep; keep that follow-up separate. Historical
+review limitations remain historical evidence, not permission to silently rerun
+already completed packages. The September 7 usage snapshot below is unchanged;
+it measures import breadth and does not itself identify remaining work.
 
 ## Evidence and ranking method
 
@@ -139,17 +121,24 @@ pinned vendor version.
 | testserial | 0 | 0 | 0 | 0 | 0 | 0 |
 | twilio | 0 | 0 | 0 | 0 | 0 | 0 |
 
-## Queue after the first release batch
+## Remaining package queue
 
-Order by descending direct production import breadth, then consumer breadth,
-then package name. Recheck the scan at each release because usage may change.
-Previously upgraded packages still require closure of known review gaps; a prior
-commit is not a waiver. Attest's inventory binding gap remains recorded for its own follow-up;
-the user explicitly approved the scoped Temporal/Hostfacts release. AWS identity and Capabilities retain
-local evidence, with the promised manual compliance re-review still pending.
-Chit's original and new profiled baselines are retained; its current upgrade is ready for review.
+User-directed Tailnet work takes priority. Then use the saved ranking after
+subtracting completed slices:
 
-`chit` (review pending), `attest`, `controlplane`, `gcsobjects`, `shutdown`, `currency`, `id`, `distribution`, `lineio`, `fuzzfinder`, `runprotocol`, `lease`, `retrieval`, `manual`, `receipt`, `payment`, `submission`, `compass`, `googleidentity`, `filelock`, `submissionauth`, `proofledger`, `runnercontrol`, `secretstore`, `version`, `chitauth`, `distributionauth`, `paymentauth`, `retrievalauth`, `upgrade`, `deploy`, `wiring`, `github`, `gomodule`, `timeproof`, `awsidentity`, `capabilities`, `controlplanetest`, `gitrepo`, `gotoolchain`, `machineprobe`, `paypal`, `plunk`, `runworkspace`, `sourceclaim`, `sourceobservation`, `sourceproof`, `stripe`, `testserial`, `twilio`.
+`controlplane`, `shutdown`, `currency`, `id`, `distribution`, `lineio`,
+`fuzzfinder`, `runprotocol`, `lease`, `retrieval`, `manual`, `receipt`, `payment`,
+`submission`, `compass`, `googleidentity`, `filelock`, `submissionauth`,
+`proofledger`, `runnercontrol`, `secretstore`, `version`, `chitauth`,
+`distributionauth`, `paymentauth`, `retrievalauth`, `upgrade`, `deploy`, `wiring`,
+`github`, `gomodule`, `timeproof`, `controlplanetest`, `gitrepo`, `machineprobe`,
+`paypal`, `plunk`, `runworkspace`, `sourceclaim`, `sourceobservation`,
+`sourceproof`, `stripe`, `testserial`, `twilio`.
+
+Before starting each slice, reconcile its individual report and commit history.
+A generic before/after report from the bulk reservation audit is insufficient
+proof of a full package upgrade. Explicitly requested follow-ups are tracked
+separately from this queue, including the remaining GCSobjects sweep.
 
 ## Release checkpoint
 
@@ -161,8 +150,7 @@ editing. Benchmark comparisons use declared, checked workloads and retain both
 CPU and memory profiles, binaries, commands and source bindings. Remaining known
 surfaces keep the package open. Follow the entire local testing protocol.
 
-The user approved and published through v2026.1.26. Chit is the current review
-candidate; Attest is next in the saved remaining order. Each new slice retains
+The user approved the v2026.1.28 Attest follow-up. Each new slice retains
 the same package-by-package standards and requires review before commit.
 
 Then update Blink Kernel, Peachfuzz, Bug and Witness to that published version,

@@ -1,6 +1,7 @@
 package attest_test
 
 import (
+	"crypto/sha256"
 	"errors"
 	"testing"
 
@@ -42,9 +43,9 @@ func TestVerifyPublicProductionPathHostileMatrix(t *testing.T) {
 		{name: "binary body verifies with signer second", body: []byte{0, 1, 2, 0}, domain: testDomainPrimary, trustedIndex: 1},
 		{name: "utf8 bytes verify without interpretation", body: []byte("世界"), domain: testDomainPrimary, trustedIndex: 2},
 		{name: "alternate domain verifies", body: []byte("alternate"), domain: testDomainAlternate},
-		{name: "page body verifies", body: make([]byte, 4096), domain: testDomainPrimary, trustedIndex: 3},
-		{name: "prime extent verifies", body: make([]byte, 7919), domain: testDomainPrimary, trustedIndex: 4},
-		{name: "sixty four kibibytes verifies", body: make([]byte, 64<<10), domain: testDomainPrimary, trustedIndex: 5},
+		{name: "one below SHA256 block extent verifies", body: make([]byte, sha256.BlockSize-1), domain: testDomainPrimary, trustedIndex: 3},
+		{name: "exact SHA256 block extent verifies", body: make([]byte, sha256.BlockSize), domain: testDomainPrimary, trustedIndex: 4},
+		{name: "one above SHA256 block extent verifies", body: make([]byte, sha256.BlockSize+1), domain: testDomainPrimary, trustedIndex: 5},
 		{name: "maximum minus one verifies", body: make([]byte, attest.CanonicalBodyMaximumBytes-1), domain: testDomainPrimary},
 		{name: "exact maximum verifies", body: make([]byte, attest.CanonicalBodyMaximumBytes), domain: testDomainPrimary},
 		{name: "sixteenth trust position verifies", body: []byte("last trusted key"), domain: testDomainPrimary, trustedIndex: attest.TrustedKeyMaximumCount - 1},

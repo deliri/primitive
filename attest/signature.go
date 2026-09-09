@@ -72,11 +72,11 @@ func (s *Signature) UnmarshalJSON(data []byte) error {
 	if len(value) != hex.EncodedLen(ed25519.SignatureSize) {
 		return envelopeJSONError(errors.New(signatureLengthErrorText))
 	}
-	decoded := make([]byte, len(value)/2)
-	if err := core.DecodeCanonicalHex(decoded, value); err != nil {
+	var decoded [ed25519.SignatureSize]byte
+	if err := core.DecodeCanonicalHex(decoded[:], value); err != nil {
 		return envelopeJSONError(errors.New(signatureEncodingErrorText))
 	}
-	candidate, err := newSignature(decoded)
+	candidate, err := newSignature(decoded[:])
 	if err != nil {
 		return envelopeJSONError(err)
 	}

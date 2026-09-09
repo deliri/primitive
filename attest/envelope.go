@@ -57,16 +57,12 @@ func (e Envelope[D]) wire() (envelopeWire, error) {
 	if err != nil {
 		return envelopeWire{}, err
 	}
-	signer := e.Signer
-	bodyLength := e.BodyLength
-	bodySHA256 := e.BodySHA256
-	signature := e.Signature
 	return envelopeWire{
 		Domain:     &token,
-		Signer:     &signer,
-		BodyLength: &bodyLength,
-		BodySHA256: &bodySHA256,
-		Signature:  &signature,
+		Signer:     &e.Signer,
+		BodyLength: &e.BodyLength,
+		BodySHA256: &e.BodySHA256,
+		Signature:  &e.Signature,
 	}, nil
 }
 

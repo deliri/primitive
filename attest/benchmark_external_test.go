@@ -2,9 +2,11 @@ package attest_test
 
 import (
 	"bytes"
+	"crypto/ed25519"
 	"crypto/sha256"
 	"io"
 	"math"
+	"strconv"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/attest"
@@ -105,6 +107,11 @@ func benchmarkSignCanonicalBody(b *testing.B, size int) {
 	if err != nil || length != uint64(size) || got.BodySHA256 != core.NewSHA256Digest(wantDigest) {
 		b.Fatalf("signed facts = (%d, %v, %v), want %d bytes with independent digest", length, got.BodySHA256, err, size)
 	}
+	signature, signatureErr := got.Signature.Bytes()
+	wantSignature := ed25519.Sign(privateKey, independentAttestationFrame(b, got))
+	if signatureErr != nil || !bytes.Equal(signature[:], wantSignature) || got.Domain != testDomainPrimary || got.Signer != mustPublicKey(b, privateKey) {
+		b.Fatalf("signed frame = %x, %v; want independent Ed25519 signature %x and exact domain/signer", signature, signatureErr, wantSignature)
+	}
 	proof, err := attest.Verify(attest.VerifyRequest[testDomain]{Body: body, Envelope: got, TrustedKeys: mustTrustedKeys(b, mustPublicKey(b, privateKey))})
 	if err != nil {
 		b.Fatalf("Verify(benchmark result) error = %v, want nil", err)
@@ -117,18 +124,23 @@ func benchmarkSignCanonicalBody(b *testing.B, size int) {
 
 func BenchmarkVerifyCanonicalBody64KiB(b *testing.B) {
 	b.ReportAllocs()
-	benchmarkVerifyCanonicalBody(b, 64<<10)
+	benchmarkVerifyCanonicalBody(b, 64<<10, 1)
 }
 func BenchmarkVerifyCanonicalBodyMaximum(b *testing.B) {
 	b.ReportAllocs()
-	benchmarkVerifyCanonicalBody(b, attest.CanonicalBodyMaximumBytes)
+	benchmarkVerifyCanonicalBody(b, attest.CanonicalBodyMaximumBytes, 1)
 }
-func benchmarkVerifyCanonicalBody(b *testing.B, size int) {
+func benchmarkVerifyCanonicalBody(b *testing.B, size, trustCount int) {
 	b.Helper()
 	key := deterministicPrivateKey(b, "benchmark-verify")
 	body := &benchmarkCanonicalBody{size: size}
 	envelope := mustEnvelope(b, body, key)
-	request := attest.VerifyRequest[testDomain]{Body: body, Envelope: envelope, TrustedKeys: mustTrustedKeys(b, mustPublicKey(b, key))}
+	keys := make([]core.Ed25519PublicKey, trustCount)
+	for index := range trustCount - 1 {
+		keys[index] = mustPublicKey(b, deterministicPrivateKey(b, "benchmark-trust-"+strconv.Itoa(index)))
+	}
+	keys[trustCount-1] = mustPublicKey(b, key)
+	request := attest.VerifyRequest[testDomain]{Body: body, Envelope: envelope, TrustedKeys: mustTrustedKeys(b, keys...)}
 	if err := request.Validate(); err != nil {
 		b.Fatalf("VerifyRequest.Validate() error = %v, want nil", err)
 	}
@@ -181,4 +193,19 @@ func BenchmarkEnvelopeUnmarshalJSON(b *testing.B) {
 	if got != envelope {
 		b.Fatalf("decoded benchmark result = %+v, want %+v", got, envelope)
 	}
+}
+
+func BenchmarkSignCanonicalBodyMinimum(b *testing.B) {
+	b.ReportAllocs()
+	benchmarkSignCanonicalBody(b, 1)
+}
+
+func BenchmarkVerifyCanonicalBodyMinimum(b *testing.B) {
+	b.ReportAllocs()
+	benchmarkVerifyCanonicalBody(b, 1, 1)
+}
+
+func BenchmarkVerifyCanonicalBodyMaximumTrust(b *testing.B) {
+	b.ReportAllocs()
+	benchmarkVerifyCanonicalBody(b, 1, attest.TrustedKeyMaximumCount)
 }

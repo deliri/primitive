@@ -1,18 +1,22 @@
 package attest
 
 import (
+	"embed"
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"os"
-	"path/filepath"
+	"io/fs"
 	"slices"
 	"strconv"
 	"strings"
 	"testing"
+	"testing/fstest"
 
 	"github.com/deliri/primitive/v2026/core"
 )
+
+//go:embed *.go
+var attestContractSources embed.FS
 
 type (
 	protocolFact[T any]      struct{}
@@ -67,7 +71,7 @@ var (
 func TestAttestProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T) {
 	t.Parallel()
 
-	gotProduction, gotErr := productionStructNames(".")
+	gotProduction, gotErr := productionStructNames(attestContractSources)
 	if gotErr != nil {
 		t.Fatalf("productionStructNames() error = %v, want nil", gotErr)
 	}
@@ -90,7 +94,7 @@ func TestAttestProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T) {
 func TestAttestExactPublicSurfaceAndNoTypeAliases(t *testing.T) {
 	t.Parallel()
 
-	gotSurface, gotAliases, gotErr := productionPublicSurface(".")
+	gotSurface, gotAliases, gotErr := productionPublicSurface(attestContractSources)
 	if gotErr != nil {
 		t.Fatalf("productionPublicSurface() error = %v, want nil", gotErr)
 	}
@@ -150,7 +154,7 @@ func TestAttestExactPublicSurfaceAndNoTypeAliases(t *testing.T) {
 func TestAttestProductionImportsStayOnApprovedStandardLibraryAndCoreSubstrate(t *testing.T) {
 	t.Parallel()
 
-	gotImports, gotErr := productionImports(".")
+	gotImports, gotErr := productionImports(attestContractSources)
 	if gotErr != nil {
 		t.Fatalf("productionImports() error = %v, want nil", gotErr)
 	}
@@ -175,7 +179,7 @@ func TestAttestProductionImportsStayOnApprovedStandardLibraryAndCoreSubstrate(t 
 	if !slices.Equal(gotImports, wantImports) {
 		t.Fatalf("Attest production imports = %q, want %q", gotImports, wantImports)
 	}
-	gotAliases, gotAliasErr := productionImportAliases(".")
+	gotAliases, gotAliasErr := productionImportAliases(attestContractSources)
 	if gotAliasErr != nil {
 		t.Fatalf("productionImportAliases() error = %v, want nil", gotAliasErr)
 	}
@@ -187,7 +191,7 @@ func TestAttestProductionImportsStayOnApprovedStandardLibraryAndCoreSubstrate(t 
 func TestAttestRawCryptographicEffectsHaveOneCompilerVisibleOwner(t *testing.T) {
 	t.Parallel()
 
-	gotCalls, gotErr := productionSelectorCalls(".")
+	gotCalls, gotErr := productionSelectorCalls(attestContractSources)
 	if gotErr != nil {
 		t.Fatalf("productionSelectorCalls() error = %v, want nil", gotErr)
 	}
@@ -294,11 +298,7 @@ func (hidden) ExportedMethod() {}
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			root := t.TempDir()
-			path := filepath.Join(root, "synthetic.go")
-			if gotErr := os.WriteFile(path, []byte(tc.source), 0o600); gotErr != nil {
-				t.Fatalf("os.WriteFile(%q) error = %v, want nil", path, gotErr)
-			}
+			root := fstest.MapFS{"synthetic.go": &fstest.MapFile{Data: []byte(tc.source)}}
 			gotStructs, gotStructErr := productionStructNames(root)
 			if gotStructErr != nil {
 				t.Fatalf("productionStructNames() error = %v, want nil", gotStructErr)
@@ -345,20 +345,14 @@ func (hidden) ExportedMethod() {}
 	}
 }
 
-func productionStructNames(root string) (productionStructInventory, error) {
+func productionStructNames(root fs.FS) (productionStructInventory, error) {
 	files, err := productionGoFiles(root)
 	if err != nil {
 		return productionStructInventory{}, err
 	}
 	var names productionStructInventory
-	fileSet := token.NewFileSet()
 	for _, name := range files {
-		file, parseErr := parser.ParseFile(
-			fileSet,
-			filepath.Join(root, name),
-			nil,
-			parser.SkipObjectResolution,
-		)
+		file, parseErr := parseAttestSource(root, name, parser.SkipObjectResolution)
 		if parseErr != nil {
 			return productionStructInventory{}, parseErr
 		}
@@ -381,8 +375,7 @@ func productionStructNames(root string) (productionStructInventory, error) {
 }
 
 func classifiedStructNames() (productionStructInventory, error) {
-	fileSet := token.NewFileSet()
-	file, err := parser.ParseFile(fileSet, "architecture_test.go", nil, parser.SkipObjectResolution)
+	file, err := parseAttestSource(attestContractSources, "architecture_test.go", parser.SkipObjectResolution)
 	if err != nil {
 		return productionStructInventory{}, err
 	}
@@ -411,21 +404,15 @@ func classifiedStructNames() (productionStructInventory, error) {
 	return productionStructInventory{}, core.ErrAttestContract
 }
 
-func productionPublicSurface(root string) ([]string, []string, error) {
+func productionPublicSurface(root fs.FS) ([]string, []string, error) {
 	files, err := productionGoFiles(root)
 	if err != nil {
 		return nil, nil, err
 	}
 	var surface []string
 	var aliases []string
-	fileSet := token.NewFileSet()
 	for _, name := range files {
-		file, parseErr := parser.ParseFile(
-			fileSet,
-			filepath.Join(root, name),
-			nil,
-			parser.SkipObjectResolution,
-		)
+		file, parseErr := parseAttestSource(root, name, parser.SkipObjectResolution)
 		if parseErr != nil {
 			return nil, nil, parseErr
 		}
@@ -496,20 +483,14 @@ func receiverTypeName(expression ast.Expr) string {
 	}
 }
 
-func productionImports(root string) ([]string, error) {
+func productionImports(root fs.FS) ([]string, error) {
 	files, err := productionGoFiles(root)
 	if err != nil {
 		return nil, err
 	}
 	var imports []string
-	fileSet := token.NewFileSet()
 	for _, name := range files {
-		file, parseErr := parser.ParseFile(
-			fileSet,
-			filepath.Join(root, name),
-			nil,
-			parser.ImportsOnly,
-		)
+		file, parseErr := parseAttestSource(root, name, parser.ImportsOnly)
 		if parseErr != nil {
 			return nil, parseErr
 		}
@@ -527,20 +508,14 @@ func productionImports(root string) ([]string, error) {
 	return imports, nil
 }
 
-func productionImportAliases(root string) ([]string, error) {
+func productionImportAliases(root fs.FS) ([]string, error) {
 	files, err := productionGoFiles(root)
 	if err != nil {
 		return nil, err
 	}
 	var aliases []string
-	fileSet := token.NewFileSet()
 	for _, name := range files {
-		file, parseErr := parser.ParseFile(
-			fileSet,
-			filepath.Join(root, name),
-			nil,
-			parser.ImportsOnly,
-		)
+		file, parseErr := parseAttestSource(root, name, parser.ImportsOnly)
 		if parseErr != nil {
 			return nil, parseErr
 		}
@@ -559,20 +534,14 @@ func productionImportAliases(root string) ([]string, error) {
 	return aliases, nil
 }
 
-func productionSelectorCalls(root string) ([]string, error) {
+func productionSelectorCalls(root fs.FS) ([]string, error) {
 	files, err := productionGoFiles(root)
 	if err != nil {
 		return nil, err
 	}
 	var calls []string
-	fileSet := token.NewFileSet()
 	for _, name := range files {
-		file, parseErr := parser.ParseFile(
-			fileSet,
-			filepath.Join(root, name),
-			nil,
-			parser.SkipObjectResolution,
-		)
+		file, parseErr := parseAttestSource(root, name, parser.SkipObjectResolution)
 		if parseErr != nil {
 			return nil, parseErr
 		}
@@ -601,8 +570,8 @@ func productionSelectorCalls(root string) ([]string, error) {
 	return calls, nil
 }
 
-func productionGoFiles(root string) ([]string, error) {
-	entries, err := os.ReadDir(root)
+func productionGoFiles(root fs.FS) ([]string, error) {
+	entries, err := fs.ReadDir(root, ".")
 	if err != nil {
 		return nil, err
 	}
@@ -633,4 +602,12 @@ func (i productionStructInventory) Contains(name productionStructName) bool {
 
 func (i productionStructInventory) Values() []productionStructName {
 	return i.names[:i.count]
+}
+
+func parseAttestSource(source fs.FS, name string, mode parser.Mode) (*ast.File, error) {
+	data, err := fs.ReadFile(source, name)
+	if err != nil {
+		return nil, err
+	}
+	return parser.ParseFile(token.NewFileSet(), name, data, mode)
 }

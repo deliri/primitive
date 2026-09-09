@@ -1,0 +1,68 @@
+{
+  "release": "v2026.1.28",
+  "authorization": "User: ok bump comit push and onto other non repeat packages",
+  "base_commit": "b1fae1821e258675f3435657226314846e7234f4",
+  "reviewed_go_sources_unchanged_since_final_race": true,
+  "reports": [
+    {
+      "path": "_docs/attest_upgrade_20260909.md",
+      "bytes": 11619,
+      "sha256": "727ac1f67423bf0306d258bfffb40eb78a0b1225471896965527cae1a556269c"
+    },
+    {
+      "path": "_docs/attest_upgrade_20260909_evidence.json",
+      "bytes": 339138,
+      "sha256": "0d02001ec9a3cb56b4c1e36d9d0a072f39cec2cacf5c2513cc5b8e1883ac9492"
+    }
+  ],
+  "coordinate_check": {
+    "command": [
+      "go",
+      "test",
+      "-json",
+      "-count=1",
+      "./compass",
+      "./version"
+    ],
+    "record": {
+      "path": "/home/d/engineering-evidence/primitive/attest-upgrade-20260909/release-v2026-1-28-coordinates/result.json",
+      "bytes": 762840,
+      "sha256": "96bbaa1b0f607de65232f2e3233a72af99374bc1743e61a9cb09234f45b961e7"
+    },
+    "environment": {
+      "GOWORK": "off",
+      "GOMAXPROCS": "8"
+    },
+    "toolchain": "go version go1.27.1 linux/amd64",
+    "exit": 0,
+    "counts": {
+      "pass": 74,
+      "fail": 0,
+      "skip": 0
+    },
+    "artifacts": [
+      {
+        "path": "/home/d/engineering-evidence/primitive/attest-upgrade-20260909/release-v2026-1-28-coordinates/started.json",
+        "bytes": 761190,
+        "sha256": "9ddf55a9f65d3bd4de40e4ddff4dd5cbd73a2f9de84f5ca9b9025a43fb39c167"
+      },
+      {
+        "path": "/home/d/engineering-evidence/primitive/attest-upgrade-20260909/release-v2026-1-28-coordinates/source.patch",
+        "bytes": 25678,
+        "sha256": "7337d2c6fcfcac100dd1394378686bde69b6b1698715c46465e4da6998aa4861"
+      },
+      {
+        "path": "/home/d/engineering-evidence/primitive/attest-upgrade-20260909/release-v2026-1-28-coordinates/stdout",
+        "bytes": 139025,
+        "sha256": "188cba1e63676763d84157b3197629d98c0e4c76006a7cbcf45a1e30a93ec585"
+      },
+      {
+        "path": "/home/d/engineering-evidence/primitive/attest-upgrade-20260909/release-v2026-1-28-coordinates/stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ]
+  },
+  "validation_scope": "Final ordinary and race Attest tests pass. Three allocation test events excluded from race builds; initial incorrect race budgets retained as failure. Eleven fuzz campaigns pass. Earlier scoped analyzers and cross-compiles retain exact source bindings. No full-module gates or native Darwin/Windows execution. Fresh Compass/Version tests pass.",
+  "raw_evidence_policy": "Profiles, matching binaries, logs, and source snapshots remain outside Git on server."
+}

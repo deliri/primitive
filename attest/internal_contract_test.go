@@ -6,10 +6,8 @@ import (
 	"errors"
 	"go/ast"
 	"go/parser"
-	"go/token"
+	"io/fs"
 	"math"
-	"os"
-	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -17,26 +15,16 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
-func scanAttestExternalJSONReceivers(root string) ([]string, error) {
-	set := token.NewFileSet()
-	entries, err := os.ReadDir(root)
+func scanAttestExternalJSONReceivers(root fs.FS) ([]string, error) {
+	files, err := productionGoFiles(root)
 	if err != nil {
 		return nil, err
 	}
 	var receivers []string
-	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".go") ||
-			strings.HasSuffix(entry.Name(), "_test.go") {
-			continue
-		}
-		file, parseErr := parser.ParseFile(
-			set,
-			filepath.Join(root, entry.Name()),
-			nil,
-			parser.SkipObjectResolution,
-		)
-		if parseErr != nil {
-			return nil, parseErr
+	for _, name := range files {
+		file, err := parseAttestSource(root, name, parser.SkipObjectResolution)
+		if err != nil {
+			return nil, err
 		}
 		ast.Inspect(file, func(node ast.Node) bool {
 			declaration, ok := node.(*ast.FuncDecl)
