@@ -2,6 +2,8 @@ package currency
 
 import (
 	"errors"
+	"math"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -73,6 +75,71 @@ func TestDecimalRejectionReportsTheRuleThatActuallyFired(t *testing.T) {
 					gotReason,
 					tc.want,
 				)
+			}
+		})
+	}
+}
+
+func TestDecimalUnsignedOverflowPreservesStandardLibraryFailure(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name      string
+		raw       string
+		code      Code
+		wantRange bool
+	}{
+		{name: "unsigned ceiling plus one keeps Go range error", code: CodeJPY, raw: "18446744073709551616", wantRange: true},
+		{name: "negative unsigned overflow keeps Go range error", code: CodeJPY, raw: "-18446744073709551616", wantRange: true},
+		{name: "minor-unit padding overflows Go unsigned conversion", code: CodeCLF, raw: "1844674407370956", wantRange: true},
+		{name: "signed currency bound does not fabricate Go unsigned failure", code: CodeJPY, raw: "9223372036854775808"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := Parse(tc.code, tc.raw)
+			var native *strconv.NumError
+			if got != (Amount{}) || !errors.Is(err, core.ErrCurrencyOverflow) || !errors.Is(err, core.ErrNumericOverflow) || errors.Is(err, strconv.ErrRange) != tc.wantRange || errors.As(err, &native) != tc.wantRange {
+				t.Fatalf("decimal overflow = (%v,%v,native=%v), want zero/currency overflow/native range=%t", got, err, native, tc.wantRange)
+			}
+		})
+	}
+}
+
+// This tests the production converter directly because decimalDigits currently
+// excludes syntax failures. Grammar changes must not turn syntax into overflow.
+func TestDecimalMagnitudeClassifiesNativeFailure(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name   string
+		digits string
+		want   uint64
+		cause  error
+	}{
+		{name: "empty digits are syntax", digits: "", cause: strconv.ErrSyntax},
+		{name: "embedded nondigit is syntax", digits: "12x3", cause: strconv.ErrSyntax},
+		{name: "minus cannot enter magnitude", digits: "-1", cause: strconv.ErrSyntax},
+		{name: "unsigned maximum plus one is range", digits: "18446744073709551616", cause: strconv.ErrRange},
+		{name: "zero is retained", digits: "0"},
+		{name: "unsigned maximum stays available to signed bound", digits: "18446744073709551615", want: math.MaxUint64},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := parseDecimalMagnitude(tc.digits)
+			if got != tc.want || !errors.Is(err, tc.cause) {
+				t.Fatalf("magnitude = (%d, %v), want (%d, %v)", got, err, tc.want, tc.cause)
+			}
+			wantOverflow := errors.Is(tc.cause, strconv.ErrRange)
+			if errors.Is(err, core.ErrCurrencyOverflow) != wantOverflow || errors.Is(err, core.ErrNumericOverflow) != wantOverflow {
+				t.Fatalf("magnitude error = %v, want overflow identity only on range=%t", err, wantOverflow)
+			}
+			if errors.Is(err, core.ErrCurrencyDecimal) != errors.Is(tc.cause, strconv.ErrSyntax) {
+				t.Fatalf("magnitude error = %v, want decimal identity only on syntax", err)
+			}
+			var native *strconv.NumError
+			if errors.As(err, &native) != (tc.cause != nil) {
+				t.Fatalf("magnitude error = %v, want native error presence=%t", err, tc.cause != nil)
+			}
+			if tc.cause != nil && (native.Num != tc.digits || !errors.Is(native.Err, tc.cause)) {
+				t.Fatalf("magnitude error = %v, want exact native input/cause", err)
 			}
 		})
 	}

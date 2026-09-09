@@ -32,6 +32,8 @@ func FuzzDecimalParserAgainstStandardGrammarAndBigRationalOracle(f *testing.F) {
 		{code: currency.CodeCAD, minorUnits: math.MaxInt64},
 		{code: currency.CodeCAD, minorUnits: math.MinInt64},
 		{code: currency.CodeBHD, minorUnits: 12345},
+		{code: currency.CodeBHD, minorUnits: math.MinInt64},
+		{code: currency.CodeBHD, minorUnits: math.MaxInt64},
 		{code: currency.CodeCLF, minorUnits: math.MaxInt64},
 		{code: currency.CodeCLF, minorUnits: math.MinInt64},
 	}
@@ -47,33 +49,35 @@ func FuzzDecimalParserAgainstStandardGrammarAndBigRationalOracle(f *testing.F) {
 		if gotDecimalErr != nil {
 			f.Fatalf("Amount.Decimal(seed) error = %v, want nil", gotDecimalErr)
 		}
-		f.Add(uint8(seed.code-currency.CodeUSD), raw)
+		f.Add(uint8(seed.code), raw)
 	}
 	hostileSeeds := []struct {
 		raw      string
 		selector uint8
 	}{
-		{selector: uint8(currency.CodeCAD - currency.CodeUSD), raw: "-0.00"},
-		{selector: uint8(currency.CodeCAD - currency.CodeUSD), raw: "1.001"},
-		{selector: uint8(currency.CodeJPY - currency.CodeUSD), raw: "1.0"},
-		{selector: uint8(currency.CodeCLF - currency.CodeUSD), raw: "1.00001"},
-		{selector: uint8(currency.CodeCAD - currency.CodeUSD), raw: ""},
-		{selector: uint8(currency.CodeCAD - currency.CodeUSD), raw: "+"},
-		{selector: uint8(currency.CodeCAD - currency.CodeUSD), raw: ".01"},
-		{selector: uint8(currency.CodeCAD - currency.CodeUSD), raw: "1."},
-		{selector: uint8(currency.CodeCAD - currency.CodeUSD), raw: "1e2"},
-		{selector: uint8(currency.CodeCAD - currency.CodeUSD), raw: " 1.00"},
-		{selector: uint8(currency.CodeCAD - currency.CodeUSD), raw: "92233720368547758.08"},
-		{selector: uint8(currency.CodeCAD - currency.CodeUSD), raw: "-92233720368547758.09"},
+		{selector: uint8(currency.CodeCAD), raw: "-0.00"},
+		{selector: uint8(currency.CodeCAD), raw: "1.001"},
+		{selector: uint8(currency.CodeJPY), raw: "1.0"},
+		{selector: uint8(currency.CodeCLF), raw: "1.00001"},
+		{selector: uint8(currency.CodeCAD), raw: ""},
+		{selector: uint8(currency.CodeCAD), raw: "+"},
+		{selector: uint8(currency.CodeCAD), raw: ".01"},
+		{selector: uint8(currency.CodeCAD), raw: "1."},
+		{selector: uint8(currency.CodeCAD), raw: "1e2"},
+		{selector: uint8(currency.CodeCAD), raw: " 1.00"},
+		{selector: uint8(currency.CodeCAD), raw: "92233720368547758.08"},
+		{selector: uint8(currency.CodeCAD), raw: "-92233720368547758.09"},
 	}
 	for _, seed := range hostileSeeds {
 		f.Add(seed.selector, seed.raw)
 	}
+	f.Add(uint8(currency.CodeUnknown), "0")
+	f.Add(uint8(math.MaxUint8), "")
+	for _, size := range []int{currency.DecimalMaximumBytes - 1, currency.DecimalMaximumBytes, currency.DecimalMaximumBytes + 1} {
+		f.Add(uint8(currency.CodeJPY), strings.Repeat("0", size))
+	}
 	f.Fuzz(func(t *testing.T, selector uint8, raw string) {
-		code := currency.Code(
-			uint8(currency.CodeUSD) +
-				selector%uint8(currency.CodeCLF-currency.CodeUSD+1),
-		)
+		code := currency.Code(selector)
 		wantMinor, wantErr := oracleDecimal(grammar, code, raw)
 		got, gotErr := currency.Parse(code, raw)
 		proveFuzzDecimalResult(
@@ -200,6 +204,7 @@ func FuzzCodeJSONAgainstIndependentStringTokenOracle(f *testing.F) {
 		f.Fatalf("CodeCAD.MarshalJSON(seed) error = %v, want nil", gotCanonicalErr)
 	}
 	padding := currency.CodeJSONMaximumBytes - len(canonical)
+	f.Add(append(bytes.Repeat([]byte{' '}, padding-1), canonical...))
 	f.Add(append(bytes.Repeat([]byte{' '}, padding), canonical...))
 	f.Add(append(append([]byte(nil), canonical...), bytes.Repeat([]byte{' '}, padding)...))
 	f.Add(append(append([]byte(nil), canonical...), bytes.Repeat([]byte{' '}, padding+1)...))
@@ -349,8 +354,11 @@ func oracleDecimal(
 	raw string,
 ) (int64, error) {
 	exponent, admitted := oracleFractionDigits(code)
+	if !admitted {
+		return 0, core.ErrCurrencyContract
+	}
 	pattern := grammar.forExponent(exponent)
-	if !admitted || pattern == nil || raw == "" ||
+	if pattern == nil || raw == "" ||
 		len(raw) > currency.DecimalMaximumBytes || !pattern.MatchString(raw) {
 		return 0, core.ErrCurrencyDecimal
 	}
@@ -552,6 +560,9 @@ func proveFuzzDecimalRejection(
 			core.ErrCurrencyContract,
 			core.ErrPrimitiveContract,
 		)
+	}
+	if _, admitted := oracleFractionDigits(code); !admitted && errors.Is(gotErr, core.ErrCurrencyDecimal) {
+		t.Fatalf("invalid code rejection = %v, want currency refusal before decimal", gotErr)
 	}
 	if errors.Is(wantErr, core.ErrCurrencyOverflow) {
 		if !errors.Is(gotErr, core.ErrNumericOverflow) {

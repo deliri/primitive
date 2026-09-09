@@ -1,9 +1,12 @@
 package currency
 
 import (
+	"errors"
 	"math"
 	"strconv"
 	"strings"
+
+	"github.com/deliri/primitive/v2026/core"
 )
 
 // Decimal rejection reasons are the second tier of the decimal contract. Every
@@ -65,7 +68,9 @@ func parseDecimal(code Code, raw string) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	magnitude, err := accumulateDecimal(digits)
+	// decimalDigits has already established the bounded decimal grammar.
+	// Go owns unsigned conversion; this package owns the signed currency bound.
+	magnitude, err := parseDecimalMagnitude(digits)
 	if err != nil {
 		return 0, err
 	}
@@ -73,6 +78,19 @@ func parseDecimal(code Code, raw string) (int64, error) {
 		return 0, decimalError(decimalRejectionNegativeZero)
 	}
 	return signedValue(negative, magnitude)
+}
+
+// parseDecimalMagnitude owns the Go conversion and its error classification.
+// The decimal grammar is checked by decimalDigits before this boundary.
+func parseDecimalMagnitude(digits string) (uint64, error) {
+	value, err := strconv.ParseUint(digits, 10, 64)
+	if err != nil {
+		if errors.Is(err, strconv.ErrRange) {
+			return 0, errors.Join(overflowError(), err)
+		}
+		return 0, errors.Join(core.ErrCurrencyDecimal, err)
+	}
+	return value, nil
 }
 
 func decimalDigits(code Code, raw string) (string, bool, error) {
@@ -122,32 +140,8 @@ func asciiDigits(value string) bool {
 	return true
 }
 
-// accumulateDecimal owns only unsigned accumulation. The signed minor-unit
-// domain belongs to signedValue, so neither bound is expressed twice.
-func accumulateDecimal(digits string) (uint64, error) {
-	var value uint64
-	for index := range len(digits) {
-		digit := uint64(digits[index] - '0')
-		if value > (math.MaxUint64-digit)/10 {
-			return 0, overflowError()
-		}
-		value = value*10 + digit
-	}
-	return value, nil
-}
-
-func signedMagnitude(value int64) uint64 {
-	if value >= 0 {
-		return uint64(value)
-	}
-	if value == math.MinInt64 {
-		return uint64(math.MaxInt64) + 1
-	}
-	return uint64(-value)
-}
-
 // signedValue is the single owner of the int64 minor-unit domain. Both bounds
-// are reachable because accumulateDecimal stops only at the unsigned ceiling.
+// are reachable because strconv.ParseUint stops at the unsigned ceiling.
 func signedValue(negative bool, magnitude uint64) (int64, error) {
 	if !negative {
 		if magnitude > math.MaxInt64 {
@@ -169,21 +163,29 @@ func (a Amount) Decimal() (string, error) {
 	if err := a.Validate(); err != nil {
 		return "", err
 	}
+	var integer [DecimalMaximumBytes]byte
+	digits := strconv.AppendInt(integer[:0], a.minorUnits, 10)
 	exponent := int(a.code.fractionDigits())
-	digits := strconv.FormatUint(signedMagnitude(a.minorUnits), 10)
-	if exponent > 0 {
-		digits = fixedExponentDecimal(digits, exponent)
+	if exponent == 0 {
+		return string(digits), nil
 	}
-	if a.minorUnits < 0 {
-		return "-" + digits, nil
+	var decimal [DecimalMaximumBytes]byte
+	output := decimal[:0]
+	if digits[0] == '-' {
+		output = append(output, '-')
+		digits = digits[1:]
 	}
-	return digits, nil
-}
-
-func fixedExponentDecimal(digits string, exponent int) string {
 	if len(digits) <= exponent {
-		digits = strings.Repeat("0", exponent-len(digits)+1) + digits
+		output = append(output, '0', '.')
+		for range exponent - len(digits) {
+			output = append(output, '0')
+		}
+		output = append(output, digits...)
+		return string(output), nil
 	}
 	split := len(digits) - exponent
-	return digits[:split] + "." + digits[split:]
+	output = append(output, digits[:split]...)
+	output = append(output, '.')
+	output = append(output, digits[split:]...)
+	return string(output), nil
 }

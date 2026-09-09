@@ -1,0 +1,69 @@
+{
+  "release": "v2026.1.33",
+  "authorization": "User: bmp commit and push on to the next package",
+  "release_parent": "2c1987775687a283a6ab5d940c4b60a00ece60ca",
+  "reviewed_package_source_digest": "e707459172fc9322d76fc85fae9d651b52b52f895af69e026d672a95e54bc246",
+  "reviewed_package_sources_unchanged": true,
+  "reports": [
+    {
+      "path": "_docs/currency_upgrade_20260909.md",
+      "bytes": 16463,
+      "sha256": "d2b6050e0286ae0deb895215ea80ab369c0ebf8feea074b78e67a3bc6351dfd1"
+    },
+    {
+      "path": "_docs/currency_upgrade_20260909_evidence.json",
+      "bytes": 497232,
+      "sha256": "55c130e33c330ac9aaed8c2728a86913ae60ae9ee096b5c4858bd5187b3b9ef7"
+    }
+  ],
+  "coordinate_check": {
+    "args": [
+      "go",
+      "test",
+      "-json",
+      "-count=1",
+      "./compass",
+      "./version"
+    ],
+    "record": {
+      "path": "/home/d/engineering-evidence/primitive/currency-upgrade-20260909/release-v2026-1-33-coordinates/result.json",
+      "bytes": 772211,
+      "sha256": "bcfa7fd93a0339d3bc286484d6523564485c71572e2004dba1a147a32ac2baac"
+    },
+    "go": "go version go1.27.1 linux/amd64",
+    "environment": {
+      "GOWORK": "off",
+      "GOMAXPROCS": "8"
+    },
+    "exit": 0,
+    "counts": {
+      "pass": 72,
+      "fail": 0,
+      "skip": 0
+    },
+    "artifacts": [
+      {
+        "path": "/home/d/engineering-evidence/primitive/currency-upgrade-20260909/release-v2026-1-33-coordinates/started.json",
+        "bytes": 770439,
+        "sha256": "5466510c604cc7330d4d80583e941f5b09d9b479187743379d327af6d58552a5"
+      },
+      {
+        "path": "/home/d/engineering-evidence/primitive/currency-upgrade-20260909/release-v2026-1-33-coordinates/source.patch",
+        "bytes": 41917,
+        "sha256": "bb2cbb63d6c5f4094241732d7b94e47a6ccb2962274a1b553719c1f0fbb17061"
+      },
+      {
+        "path": "/home/d/engineering-evidence/primitive/currency-upgrade-20260909/release-v2026-1-33-coordinates/stdout",
+        "bytes": 139029,
+        "sha256": "cf179652b73540b2b69ab7fb0a0978dc29ef3253d6cf1a34d5216831a2947fca"
+      },
+      {
+        "path": "/home/d/engineering-evidence/primitive/currency-upgrade-20260909/release-v2026-1-33-coordinates/stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ]
+  },
+  "scope": "Reviewed Currency and shared contract sources unchanged. Only release coordinate tests repeated. ID next. No full-module gates or consumer updates.",
+  "raw_evidence_policy": "Profiles, binaries, logs and source snapshots remain outside Git on Furnace."
+}

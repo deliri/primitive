@@ -15,7 +15,7 @@ func mismatchError() error {
 }
 
 func overflowError() error {
-	return errors.Join(core.ErrCurrencyOverflow, errors.New("currency arithmetic exceeded int64"))
+	return core.ErrCurrencyOverflow
 }
 
 func decimalError(rejection decimalRejection) error {

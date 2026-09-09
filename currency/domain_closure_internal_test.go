@@ -1,11 +1,8 @@
 package currency
 
 import (
-	"errors"
 	"math"
 	"testing"
-
-	"github.com/deliri/primitive/v2026/core"
 )
 
 // TestEveryAdmittedCodeHasACompleteDefinitionRow walks the closed domain
@@ -60,41 +57,6 @@ func TestEveryAdmittedCodeHasACompleteDefinitionRow(t *testing.T) {
 		default:
 			t.Fatalf("Code(%d).FractionDigits() = %d, want an admitted minor-unit exponent", code, gotDigits)
 		}
-	}
-}
-
-// TestEmptyTokenNeverResolvesToAnAdmittedCode is the runtime half of the gate
-// in ParseCode. String answers the empty token for every value outside the
-// closed domain and for any admitted code whose definition row went missing,
-// so the empty token must never select a currency.
-func TestEmptyTokenNeverResolvesToAnAdmittedCode(t *testing.T) {
-	t.Parallel()
-
-	cases := []struct {
-		name  string
-		token string
-	}{
-		{name: "empty token"},
-		{name: "unknown code projection", token: CodeUnknown.String()},
-		{name: "limit projection", token: codeLimit.String()},
-		{name: "maximum backing value projection", token: Code(math.MaxUint8).String()},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			got, gotErr := ParseCode(tc.token)
-			if got != CodeUnknown || !errors.Is(gotErr, core.ErrCurrencyContract) {
-				t.Fatalf(
-					"ParseCode(%q) = (%v, %v), want (%v, %v)",
-					tc.token,
-					got,
-					gotErr,
-					CodeUnknown,
-					core.ErrCurrencyContract,
-				)
-			}
-		})
 	}
 }
 

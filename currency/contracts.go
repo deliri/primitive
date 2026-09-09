@@ -48,7 +48,9 @@ const (
 )
 
 const (
-	// DecimalMaximumBytes bounds external decimal input.
+	// DecimalMaximumBytes bounds external decimal input and canonical output.
+	// The admitted exponents fit the signed int64 digits plus a decimal point;
+	// the closed-domain projection test ratchets this shared bound.
 	DecimalMaximumBytes = 21
 	// AmountCanonicalJSONMaximumBytes is the exact maximum compact amount JSON extent.
 	AmountCanonicalJSONMaximumBytes = 55

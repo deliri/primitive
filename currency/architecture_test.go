@@ -1,11 +1,10 @@
 package currency
 
 import (
+	"embed"
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"os"
-	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -40,7 +39,7 @@ var (
 func TestCurrencyProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T) {
 	t.Parallel()
 
-	gotScan, gotErr := scanCurrencyArchitecture(".")
+	gotScan, gotErr := scanCurrencyArchitecture()
 	if gotErr != nil {
 		t.Fatalf("scanCurrencyArchitecture() error = %v, want nil", gotErr)
 	}
@@ -53,7 +52,7 @@ func TestCurrencyProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T)
 func TestCurrencyExactPublicSurfaceAndNoAliases(t *testing.T) {
 	t.Parallel()
 
-	gotScan, gotErr := scanCurrencyArchitecture(".")
+	gotScan, gotErr := scanCurrencyArchitecture()
 	if gotErr != nil {
 		t.Fatalf("scanCurrencyArchitecture() error = %v, want nil", gotErr)
 	}
@@ -127,7 +126,7 @@ func TestCurrencyExactPublicSurfaceAndNoAliases(t *testing.T) {
 func TestCurrencyProductionUsesOnlyStandardLibraryAndCoreWithoutMaps(t *testing.T) {
 	t.Parallel()
 
-	gotScan, gotErr := scanCurrencyArchitecture(".")
+	gotScan, gotErr := scanCurrencyArchitecture()
 	if gotErr != nil {
 		t.Fatalf("scanCurrencyArchitecture() error = %v, want nil", gotErr)
 	}
@@ -275,15 +274,13 @@ func TestCurrencyArchitectureMatcherClassifiesSyntheticBoundaries(t *testing.T) 
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			root := t.TempDir()
-			path := filepath.Join(root, "synthetic.go")
-			if gotErr := os.WriteFile(path, []byte(tc.source), 0o600); gotErr != nil {
-				t.Fatalf("os.WriteFile(%q) error = %v, want nil", path, gotErr)
-			}
-			gotScan, gotErr := scanCurrencyArchitecture(root)
+			file, gotErr := parser.ParseFile(token.NewFileSet(), "synthetic.go", tc.source, parser.SkipObjectResolution)
 			if gotErr != nil {
-				t.Fatalf("scanCurrencyArchitecture(synthetic) error = %v, want nil", gotErr)
+				t.Fatalf("parse synthetic source = %v, want nil", gotErr)
 			}
+			var gotScan currencyArchitectureScan
+			scanCurrencyFile("synthetic.go", file, &gotScan)
+			normalizeCurrencyScan(&gotScan)
 			if !slices.Equal(gotScan.structs, tc.wantStructs) {
 				t.Fatalf("synthetic structs = %q, want %q", gotScan.structs, tc.wantStructs)
 			}
@@ -319,18 +316,25 @@ type currencyArchitectureScan struct {
 	mapFiles      []string
 }
 
-func scanCurrencyArchitecture(root string) (currencyArchitectureScan, error) {
-	files, err := currencyProductionGoFiles(root)
+//go:embed *.go
+var currencySources embed.FS
+
+func scanCurrencyArchitecture() (currencyArchitectureScan, error) {
+	files, err := currencyProductionGoFiles()
 	if err != nil {
 		return currencyArchitectureScan{}, err
 	}
 	var scan currencyArchitectureScan
 	fileSet := token.NewFileSet()
 	for _, name := range files {
+		source, readErr := currencySources.ReadFile(name)
+		if readErr != nil {
+			return currencyArchitectureScan{}, readErr
+		}
 		file, parseErr := parser.ParseFile(
 			fileSet,
-			filepath.Join(root, name),
-			nil,
+			name,
+			source,
 			parser.SkipObjectResolution,
 		)
 		if parseErr != nil {
@@ -338,6 +342,11 @@ func scanCurrencyArchitecture(root string) (currencyArchitectureScan, error) {
 		}
 		scanCurrencyFile(name, file, &scan)
 	}
+	normalizeCurrencyScan(&scan)
+	return scan, nil
+}
+
+func normalizeCurrencyScan(scan *currencyArchitectureScan) {
 	slices.Sort(scan.structs)
 	slices.Sort(scan.surface)
 	slices.Sort(scan.aliases)
@@ -347,11 +356,10 @@ func scanCurrencyArchitecture(root string) (currencyArchitectureScan, error) {
 	scan.imports = slices.Compact(scan.imports)
 	scan.importAliases = slices.Compact(scan.importAliases)
 	scan.mapFiles = slices.Compact(scan.mapFiles)
-	return scan, nil
 }
 
-func currencyProductionGoFiles(root string) ([]string, error) {
-	entries, err := os.ReadDir(root)
+func currencyProductionGoFiles() ([]string, error) {
+	entries, err := currencySources.ReadDir(".")
 	if err != nil {
 		return nil, err
 	}
@@ -474,5 +482,100 @@ func scanCurrencyConstants(
 		if name.IsExported() {
 			scan.surface = append(scan.surface, "const "+name.Name)
 		}
+	}
+}
+
+func TestCurrencyExternalIngressHasSemanticFuzzOwners(t *testing.T) {
+	t.Parallel()
+	inventory := []struct{ door, target string }{
+		{"New", "FuzzAmountNominalArithmetic"},
+		{"Parse", "FuzzDecimalParserAgainstStandardGrammarAndBigRationalOracle"},
+		{"ParseCode", "FuzzParseCodeAgainstClosedCurrencyDomain"},
+		{"Amount.UnmarshalJSON", "FuzzAmountJSONAgainstStandardTokenStreamOracle"},
+		{"Code.UnmarshalJSON", "FuzzCodeJSONAgainstIndependentStringTokenOracle"},
+		{"minorUnitsJSON.UnmarshalJSON", "FuzzAmountJSONAgainstStandardTokenStreamOracle"},
+	}
+	var wantDoors, wantTargets []string
+	for _, entry := range inventory {
+		wantDoors = append(wantDoors, entry.door)
+		wantTargets = append(wantTargets, entry.target)
+	}
+	slices.Sort(wantDoors)
+	slices.Sort(wantTargets)
+	wantTargets = slices.Compact(wantTargets)
+	entries, err := currencySources.ReadDir(".")
+	if err != nil {
+		t.Fatalf("embedded source inventory = %v, want nil", err)
+	}
+	var gotDoors, gotTargets []string
+	for _, entry := range entries {
+		if !strings.HasSuffix(entry.Name(), ".go") {
+			continue
+		}
+		source, err := currencySources.ReadFile(entry.Name())
+		if err != nil {
+			t.Fatalf("embedded source %s = %v, want nil", entry.Name(), err)
+		}
+		file, err := parser.ParseFile(token.NewFileSet(), entry.Name(), source, parser.SkipObjectResolution)
+		if err != nil {
+			t.Fatalf("parse source %s = %v, want nil", entry.Name(), err)
+		}
+		testFile := strings.HasSuffix(entry.Name(), "_test.go")
+		for _, decl := range file.Decls {
+			fn, ok := decl.(*ast.FuncDecl)
+			if !ok {
+				continue
+			}
+			name := fn.Name.Name
+			if testFile {
+				if fn.Recv == nil && strings.HasPrefix(name, "Fuzz") {
+					gotTargets = append(gotTargets, name)
+				}
+				continue
+			}
+			if !currencyIngressFunction(name) {
+				continue
+			}
+			if fn.Recv != nil {
+				name = currencyReceiverName(fn.Recv.List[0].Type) + "." + name
+			}
+			gotDoors = append(gotDoors, name)
+		}
+	}
+	slices.Sort(gotDoors)
+	slices.Sort(gotTargets)
+	if !slices.Equal(gotDoors, wantDoors) {
+		t.Fatalf("external ingress = %q, want fuzz-owned %q", gotDoors, wantDoors)
+	}
+	if !slices.Equal(gotTargets, wantTargets) {
+		t.Fatalf("semantic fuzz owners = %q, want %q", gotTargets, wantTargets)
+	}
+}
+
+func currencyIngressFunction(name string) bool {
+	for _, prefix := range []string{"New", "Parse", "Decode", "Read", "Load", "Replay", "Unmarshal"} {
+		if strings.HasPrefix(name, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+func TestCurrencyIngressMatcherAttacksNamingDrift(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name string
+		want bool
+	}{
+		{"New", true}, {"NewAmount", true}, {"ParseCode", true}, {"DecodeText", true},
+		{"ReadAmount", true}, {"LoadAmount", true}, {"ReplayAmount", true}, {"UnmarshalJSON", true},
+		{"MarshalJSON", false}, {"Validate", false}, {"newMinorUnitsJSON", false}, {"parseDecimal", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := currencyIngressFunction(tc.name); got != tc.want {
+				t.Fatalf("ingress matcher %s = %t, want %t", tc.name, got, tc.want)
+			}
+		})
 	}
 }

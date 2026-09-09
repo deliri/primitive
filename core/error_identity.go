@@ -107,7 +107,7 @@ const (
 	ErrCurrencyContract
 	// ErrCurrencyMismatch identifies incompatible currencies.
 	ErrCurrencyMismatch
-	// ErrCurrencyOverflow identifies currency arithmetic overflow.
+	// ErrCurrencyOverflow identifies currency conversion or arithmetic overflow.
 	ErrCurrencyOverflow
 	// ErrCurrencyDecimal identifies rejected decimal currency input.
 	ErrCurrencyDecimal

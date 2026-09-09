@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -250,7 +251,7 @@ func TestAmountJSONUsesClosedExactProjection(t *testing.T) {
 
 			document := append(append([]byte(nil), wire...), []byte(strings.Repeat(" ", tc.count))...)
 			var gotWhitespace currency.Amount
-			gotWhitespaceErr := json.Unmarshal(document, &gotWhitespace)
+			gotWhitespaceErr := gotWhitespace.UnmarshalJSON(document)
 			if gotWhitespaceErr != nil || gotWhitespace != value {
 				t.Fatalf(
 					"json.Unmarshal(Amount with %d whitespace bytes) = (%v, %v), want (%v, nil)",
@@ -287,18 +288,18 @@ func TestAmountJSONValidSemanticMatrix(t *testing.T) {
 		wantCode  currency.Code
 		wantMinor int64
 	}{
-		{name: "USD zero", data: amountJSONFixture(currency.CodeTokenUSD, "0"), wantCode: currency.CodeUSD},
-		{name: "EUR positive one", data: amountJSONFixture(currency.CodeTokenEUR, "1"), wantCode: currency.CodeEUR, wantMinor: 1},
-		{name: "GBP negative one", data: amountJSONFixture(currency.CodeTokenGBP, "-1"), wantCode: currency.CodeGBP, wantMinor: -1},
-		{name: "CAD maximum", data: amountJSONFixture(currency.CodeTokenCAD, "9223372036854775807"), wantCode: currency.CodeCAD, wantMinor: math.MaxInt64},
-		{name: "AUD minimum", data: amountJSONFixture(currency.CodeTokenAUD, "-9223372036854775808"), wantCode: currency.CodeAUD, wantMinor: math.MinInt64},
-		{name: "JPY maximum", data: amountJSONFixture(currency.CodeTokenJPY, "9223372036854775807"), wantCode: currency.CodeJPY, wantMinor: math.MaxInt64},
-		{name: "CHF ordinary positive", data: amountJSONFixture(currency.CodeTokenCHF, "125"), wantCode: currency.CodeCHF, wantMinor: 125},
-		{name: "NZD ordinary negative", data: amountJSONFixture(currency.CodeTokenNZD, "-125"), wantCode: currency.CodeNZD, wantMinor: -125},
-		{name: "SGD one below maximum", data: amountJSONFixture(currency.CodeTokenSGD, "9223372036854775806"), wantCode: currency.CodeSGD, wantMinor: math.MaxInt64 - 1},
-		{name: "HKD one above minimum", data: amountJSONFixture(currency.CodeTokenHKD, "-9223372036854775807"), wantCode: currency.CodeHKD, wantMinor: math.MinInt64 + 1},
-		{name: "BHD arbitrary signed extent", data: amountJSONFixture(currency.CodeTokenBHD, "-123456789"), wantCode: currency.CodeBHD, wantMinor: -123456789},
-		{name: "CLF arbitrary signed extent", data: amountJSONFixture(currency.CodeTokenCLF, "123456789"), wantCode: currency.CodeCLF, wantMinor: 123456789},
+		{name: "USD zero", data: amountJSONForTest(t, currency.CodeUSD, 0), wantCode: currency.CodeUSD},
+		{name: "EUR positive one", data: amountJSONForTest(t, currency.CodeEUR, 1), wantCode: currency.CodeEUR, wantMinor: 1},
+		{name: "GBP negative one", data: amountJSONForTest(t, currency.CodeGBP, -1), wantCode: currency.CodeGBP, wantMinor: -1},
+		{name: "CAD maximum", data: amountJSONForTest(t, currency.CodeCAD, math.MaxInt64), wantCode: currency.CodeCAD, wantMinor: math.MaxInt64},
+		{name: "AUD minimum", data: amountJSONForTest(t, currency.CodeAUD, math.MinInt64), wantCode: currency.CodeAUD, wantMinor: math.MinInt64},
+		{name: "JPY maximum", data: amountJSONForTest(t, currency.CodeJPY, math.MaxInt64), wantCode: currency.CodeJPY, wantMinor: math.MaxInt64},
+		{name: "CHF ordinary positive", data: amountJSONForTest(t, currency.CodeCHF, 125), wantCode: currency.CodeCHF, wantMinor: 125},
+		{name: "NZD ordinary negative", data: amountJSONForTest(t, currency.CodeNZD, -125), wantCode: currency.CodeNZD, wantMinor: -125},
+		{name: "SGD one below maximum", data: amountJSONForTest(t, currency.CodeSGD, math.MaxInt64-1), wantCode: currency.CodeSGD, wantMinor: math.MaxInt64 - 1},
+		{name: "HKD one above minimum", data: amountJSONForTest(t, currency.CodeHKD, math.MinInt64+1), wantCode: currency.CodeHKD, wantMinor: math.MinInt64 + 1},
+		{name: "BHD arbitrary signed extent", data: amountJSONForTest(t, currency.CodeBHD, -123456789), wantCode: currency.CodeBHD, wantMinor: -123456789},
+		{name: "CLF arbitrary signed extent", data: amountJSONForTest(t, currency.CodeCLF, 123456789), wantCode: currency.CodeCLF, wantMinor: 123456789},
 		{
 			name: "field order is semantically irrelevant",
 			data: fmt.Appendf(nil,
@@ -555,7 +556,7 @@ func TestAmountJSONHostileMatrixPreservesReceiver(t *testing.T) {
 	}
 
 	var nilAmount *currency.Amount
-	if gotErr := nilAmount.UnmarshalJSON(canonical); !errors.Is(gotErr, core.ErrJSONContract) {
+	if gotErr := nilAmount.UnmarshalJSON(canonical); !errors.Is(gotErr, core.ErrJSONContract) || !errors.Is(gotErr, core.ErrCurrencyContract) {
 		t.Fatalf("nil Amount.UnmarshalJSON() error = %v, want %v", gotErr, core.ErrJSONContract)
 	}
 }
@@ -568,4 +569,46 @@ func amountJSONFixture(code, minorUnits string) []byte {
 		currency.JSONFieldMinorUnits,
 		minorUnits,
 	)
+}
+
+func TestAmountJSONPreservesNativeIntegerRefusals(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name         string
+		raw          string
+		wantNative   error
+		wantOverflow bool
+	}{
+		{name: "non-integer token retains Go syntax refusal", raw: "1x", wantNative: strconv.ErrSyntax},
+		{name: "one above maximum retains numeric and Go range refusal", raw: "9223372036854775808", wantNative: strconv.ErrRange, wantOverflow: true},
+		{name: "one below minimum retains numeric and Go range refusal", raw: "-9223372036854775809", wantNative: strconv.ErrRange, wantOverflow: true},
+		{name: "leading zero is only a canonical-form refusal", raw: "01"},
+		{name: "plus sign is only a canonical-form refusal", raw: "+1"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			before := mustAmount(t, currency.CodeCLF, math.MinInt64)
+			for _, initial := range []currency.Amount{{}, before} {
+				got := initial
+				err := got.UnmarshalJSON(amountJSONFixture(currency.CodeTokenCAD, tc.raw))
+				var native *strconv.NumError
+				if got != initial || !errors.Is(err, core.ErrJSONContract) || !errors.Is(err, core.ErrCurrencyDecimal) || errors.Is(err, core.ErrNumericOverflow) != tc.wantOverflow || errors.As(err, &native) != (tc.wantNative != nil) {
+					t.Fatalf("integer refusal = (%v,%v,native=%v), want preserved/decimal/overflow=%t/native=%v", got, err, native, tc.wantOverflow, tc.wantNative)
+				}
+				if tc.wantNative != nil && (!errors.Is(err, tc.wantNative) || native.Num != tc.raw) {
+					t.Fatalf("integer native refusal = %v, want %v for exact input %q", err, tc.wantNative, tc.raw)
+				}
+			}
+		})
+	}
+}
+
+func amountJSONForTest(t *testing.T, code currency.Code, minor int64) []byte {
+	t.Helper()
+	value := mustAmount(t, code, minor)
+	wire, err := value.MarshalJSON()
+	if err != nil {
+		t.Fatalf("typed amount fixture encoding = %v, want nil", err)
+	}
+	return wire
 }

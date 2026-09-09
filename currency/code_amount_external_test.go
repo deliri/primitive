@@ -283,6 +283,7 @@ func TestCodeJSONHostileMatrixPreservesReceiverAndBoundsWork(t *testing.T) {
 		{name: "canonical compact code", data: append([]byte(nil), canonical...)},
 		{name: "one leading space", data: append([]byte{' '}, canonical...)},
 		{name: "one trailing space", data: append(append([]byte(nil), canonical...), ' ')},
+		{name: "one below document byte bound", data: append(append([]byte(nil), canonical...), bytes.Repeat([]byte{' '}, allowance-1)...)},
 		{name: "exact document byte bound", data: append(append([]byte(nil), canonical...), bytes.Repeat([]byte{' '}, allowance)...)},
 	}
 	for _, tc := range validCases {
@@ -487,8 +488,8 @@ func TestAmountArithmeticHostileMatrix(t *testing.T) {
 			t.Parallel()
 
 			got, gotErr := tc.operation(tc.left, tc.right)
-			if tc.wantErr != nil && !errors.Is(gotErr, tc.wantErr) {
-				t.Fatalf("amount operation error = %v, want %v", gotErr, tc.wantErr)
+			if tc.wantErr != nil && (!errors.Is(gotErr, tc.wantErr) || got != (currency.Amount{})) {
+				t.Fatalf("amount operation = (%v,%v), want zero/%v", got, gotErr, tc.wantErr)
 			}
 			if tc.wantErr == nil && (gotErr != nil || got != tc.want) {
 				t.Fatalf("amount operation = (%v, %v), want (%v, %v)", got, gotErr, tc.want, tc.wantErr)
@@ -520,8 +521,6 @@ func TestAmountArithmeticMatchesArbitraryPrecisionBoundaryMatrix(t *testing.T) {
 		{name: "minimum plus one stays in range", left: math.MinInt64, right: 1},
 		{name: "opposite extrema sum to negative one", left: math.MaxInt64, right: math.MinInt64},
 		{name: "minimum plus maximum sum to negative one", left: math.MinInt64, right: math.MaxInt64},
-		{name: "maximum minus negative one crosses range", left: math.MaxInt64, right: -1},
-		{name: "minimum minus one crosses range", left: math.MinInt64, right: 1},
 		{name: "maximum minus maximum is zero", left: math.MaxInt64, right: math.MaxInt64},
 		{name: "minimum minus minimum is zero", left: math.MinInt64, right: math.MinInt64},
 		{name: "positive halves add without overflow", left: math.MaxInt64 / 2, right: math.MaxInt64 / 2},

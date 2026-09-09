@@ -13,3 +13,8 @@ BenchmarkFormatDecimal-10    	14531355	        84.15 ns/op	      72 B/op	       
 
 All benches use `b.Loop()` or `for range b.N` where the timer must pause, `b.ReportAllocs()`, and observe the result.
 No `unsafe`, no C.
+
+
+The September 9 package sweep, comparable workloads and retained CPU/memory
+profiles are recorded in [the current review](../_docs/currency_upgrade_20260909.md).
+The original note above remains historical evidence.

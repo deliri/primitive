@@ -40,7 +40,14 @@ func (u *minorUnitsJSON) UnmarshalJSON(data []byte) error {
 		return jsonError(errors.Join(decimalError(decimalRejectionJSONString), err))
 	}
 	value, err := strconv.ParseInt(raw, 10, 64)
-	if err != nil || strconv.FormatInt(value, 10) != raw {
+	if err != nil {
+		cause := decimalError(decimalRejectionCanonicalInt64)
+		if errors.Is(err, strconv.ErrRange) {
+			cause = errors.Join(cause, overflowError())
+		}
+		return jsonError(errors.Join(cause, err))
+	}
+	if strconv.FormatInt(value, 10) != raw {
 		return jsonError(decimalError(decimalRejectionCanonicalInt64))
 	}
 	*u = newMinorUnitsJSON(value)
