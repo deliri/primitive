@@ -1,13 +1,11 @@
 # Primitive upgrade priority — 2026-09-09
 
-Approved release: **v2026.1.28**. See [release notes](release_v2026.1.28.md)
-and [Attest evidence](attest_upgrade_20260909.md). Attest was first upgraded
-on September 6; this release publishes an explicitly approved follow-up. It
-must not be mistaken for a newly upgraded package.
+Approved release: **v2026.1.29**. See [release notes](release_v2026.1.29.md)
+and [Tailnet integration evidence](tailnet_integration_20260909.md).
+The requested Tailnet capability is integrated: Blink Kernel's
+`cmd/api/anvil_tailnet_boot.go` → Primitive → Tailscale v1.102.3.
 
-The next requested capability is **Tailnet**, per the user's explicit priority:
-Blink Kernel's `cmd/api/anvil_tailnet_boot.go` → Primitive → Tailscale v1.102.3.
-After that, **Controlplane** is the highest-ranked package without an individual
+Next, **Controlplane** is the highest-ranked package without an individual
 completed upgrade in this sequence. Its older benchmark report explicitly says
 no production change and records a single enum parser benchmark; that narrow
 reservation audit is not a completed package upgrade.
@@ -123,8 +121,8 @@ pinned vendor version.
 
 ## Remaining package queue
 
-User-directed Tailnet work takes priority. Then use the saved ranking after
-subtracting completed slices:
+The approved Tailnet integration is recorded separately from the original usage
+snapshot. Continue with the saved ranking after subtracting completed slices:
 
 `controlplane`, `shutdown`, `currency`, `id`, `distribution`, `lineio`,
 `fuzzfinder`, `runprotocol`, `lease`, `retrieval`, `manual`, `receipt`, `payment`,
@@ -150,7 +148,7 @@ editing. Benchmark comparisons use declared, checked workloads and retain both
 CPU and memory profiles, binaries, commands and source bindings. Remaining known
 surfaces keep the package open. Follow the entire local testing protocol.
 
-The user approved the v2026.1.28 Attest follow-up. Each new slice retains
+The user approved the v2026.1.29 Tailnet integration. Each new slice retains
 the same package-by-package standards and requires review before commit.
 
 Then update Blink Kernel, Peachfuzz, Bug and Witness to that published version,

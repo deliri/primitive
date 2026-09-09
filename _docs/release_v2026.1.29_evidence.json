@@ -1,0 +1,70 @@
+{
+  "release": "v2026.1.29",
+  "authorization": "User: that's minor and it's ok. bump commit and push",
+  "base_commit": "5fb274bc319ef79488ed59e03e41e0b1006f80cb",
+  "source_branch_commit": "0b98e1d52988916a5567717b6c5c06c2aab81240",
+  "reviewed_go_and_module_sources_unchanged_since_final_race": true,
+  "reports": [
+    {
+      "path": "/home/d/code/primitive/_docs/tailnet_integration_20260909.md",
+      "bytes": 14112,
+      "sha256": "d8df078c8e276f171de8db731151620a66d606e54635fbed92d4f11d75806881"
+    },
+    {
+      "path": "/home/d/code/primitive/_docs/tailnet_integration_20260909_evidence.json",
+      "bytes": 603823,
+      "sha256": "df4bbb689fb0cb392d5f3b840db4a29f09284b22f82be873a2ebbc117f8af28c"
+    }
+  ],
+  "coordinate_check": {
+    "command": [
+      "go",
+      "test",
+      "-json",
+      "-count=1",
+      "./compass",
+      "./version"
+    ],
+    "record": {
+      "path": "/home/d/engineering-evidence/primitive/tailnet-integration-20260909/release-v2026-1-29-coordinates/result.json",
+      "bytes": 768064,
+      "sha256": "e425229b31048a22ffbdc379917442fd1ebb2f0bcecab7895dfd0297524ae0cd"
+    },
+    "environment": {
+      "GOWORK": "off",
+      "GOMAXPROCS": "8"
+    },
+    "toolchain": "go version go1.27.1 linux/amd64",
+    "exit": 0,
+    "counts": {
+      "pass": 74,
+      "fail": 0,
+      "skip": 0
+    },
+    "artifacts": [
+      {
+        "path": "/home/d/engineering-evidence/primitive/tailnet-integration-20260909/release-v2026-1-29-coordinates/started.json",
+        "bytes": 765881,
+        "sha256": "0c60f0849474b76d48fa63a852361dab0dd698110b849f2738033e53b346fb55"
+      },
+      {
+        "path": "/home/d/engineering-evidence/primitive/tailnet-integration-20260909/release-v2026-1-29-coordinates/source.patch",
+        "bytes": 32222,
+        "sha256": "33bfaf370af835fa7c522d7fbeccf3ad1567aa58af93921a638859e425979b62"
+      },
+      {
+        "path": "/home/d/engineering-evidence/primitive/tailnet-integration-20260909/release-v2026-1-29-coordinates/stdout",
+        "bytes": 139016,
+        "sha256": "dbbc3bfec5abc09344e4d8fbd297f5ca27222e7735452a83f18c9b3afccd2e63"
+      },
+      {
+        "path": "/home/d/engineering-evidence/primitive/tailnet-integration-20260909/release-v2026-1-29-coordinates/stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ]
+  },
+  "validation_scope": "Focused tests and analyzers; Core ErrorIdentity tests for shared additions; Darwin/Windows compile checks, no native runs. Four ingress fuzz targets, serial 30s each with four workers. Tailnet targets rerun after final tag correction; unchanged Googleidentity targets retain their earlier exact source binding. No live enrollment, real-tailnet throughput, consumer build/deployment, full-module gates or independent acceptance receipt.",
+  "known_lint_failure": "Witness doctrine/http/server_timeouts incorrectly requires net/http.Server fields on tsnet.Server; preserved without suppression.",
+  "raw_evidence_policy": "Profiles, binaries, logs and source snapshots remain outside Git on server."
+}

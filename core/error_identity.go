@@ -503,6 +503,14 @@ const (
 	ErrProofLedgerAppendReceiptMismatch
 	// ErrProofLedgerAppendIndeterminate identifies an append whose durable outcome is unknown.
 	ErrProofLedgerAppendIndeterminate
+	// ErrTailnetContract identifies an invalid Tailnet capability agreement.
+	ErrTailnetContract
+	// ErrTailnetClosed identifies a closed Tailnet capability.
+	ErrTailnetClosed
+	// ErrTailnetEnrollment identifies failed provider enrollment.
+	ErrTailnetEnrollment
+	// ErrTailnetDestination identifies an attempt outside the pinned destination.
+	ErrTailnetDestination
 	errorIdentityLimit
 )
 
@@ -722,6 +730,10 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrProofLedgerTruncated, text: "proof ledger chain truncated"},
 		{identity: ErrProofLedgerAppendReceiptMismatch, text: "proof ledger append receipt mismatch"},
 		{identity: ErrProofLedgerAppendIndeterminate, text: "proof ledger append indeterminate"},
+		{identity: ErrTailnetContract, text: "tailnet contract violation"},
+		{identity: ErrTailnetClosed, text: "tailnet closed"},
+		{identity: ErrTailnetEnrollment, text: "tailnet enrollment failed"},
+		{identity: ErrTailnetDestination, text: "tailnet destination refused"},
 	}
 }
 
@@ -843,7 +855,7 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrControlPlaneContract, ErrIDContract, ErrSecretStoreContract,
 		ErrStripeContract, ErrPayPalContract, ErrTwilioContract, ErrPlunkContract, ErrGitHubContract,
 		ErrCapabilitiesContract, ErrGoModuleContract, ErrGoToolchainContract, ErrGitRepositoryContract,
-		ErrProofLedgerContract) {
+		ErrProofLedgerContract, ErrTailnetContract) {
 		return oneErrorIdentityParent(ErrPrimitiveContract)
 	}
 	if errorIdentityIn(identity, ErrGoToolchainExecution, ErrGoToolchainOutput) {
@@ -890,6 +902,9 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 // the complexity ceiling as new identities join; the next family lands in the
 // helper with headroom, not in a function already at the line.
 func errorIdentityParentsFilestoreThroughUpgrade(identity ErrorIdentity) errorIdentityParentSet {
+	if errorIdentityIn(identity, ErrTailnetClosed, ErrTailnetEnrollment, ErrTailnetDestination) {
+		return oneErrorIdentityParent(ErrTailnetContract)
+	}
 	if errorIdentityIn(identity, ErrDistributionVerification, ErrDistributionBinding) {
 		return oneErrorIdentityParent(ErrDistributionContract)
 	}
