@@ -2,6 +2,8 @@ package objectstore
 
 import (
 	"errors"
+	"io"
+	"math"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -23,13 +25,7 @@ func TestTransferProgressSchemaLayerTriad(t *testing.T) {
 			{name: "zero of one byte", completed: 0, total: 1},
 			{name: "one of one byte", completed: 1, total: 1},
 			{name: "one of two bytes", completed: 1, total: 2},
-			{name: "one below first stream boundary", completed: 32<<10 - 1, total: 32 << 10},
-			{name: "at first stream boundary", completed: 32 << 10, total: 32 << 10},
-			{name: "one above first boundary within second", completed: 32<<10 + 1, total: 64 << 10},
-			{name: "one below second stream boundary", completed: 64<<10 - 1, total: 64 << 10},
-			{name: "at second stream boundary", completed: 64 << 10, total: 64 << 10},
-			{name: "one above second boundary within third", completed: 64<<10 + 1, total: 96 << 10},
-			{name: "maximum signed extent", completed: uint64(^uint64(0) >> 1), total: uint64(^uint64(0) >> 1)},
+			{name: "maximum signed extent", completed: math.MaxInt64, total: math.MaxInt64},
 		}
 		for _, direction := range []Direction{DirectionUpload, DirectionDownload} {
 			t.Run(direction.String(), func(t *testing.T) {
@@ -53,18 +49,18 @@ func TestTransferProgressSchemaLayerTriad(t *testing.T) {
 		}
 	})
 
-	t.Run("negative every non-domain direction and overrun reject", func(t *testing.T) {
+	t.Run("negative every non-domain direction refuses otherwise valid extents", func(t *testing.T) {
 		t.Parallel()
 
 		zero := progressLength(t, 0)
 		one := progressLength(t, 1)
 		for raw := range 256 {
 			direction := Direction(raw)
-			got, gotErr := newTransferProgress(direction, one, zero)
+			got, gotErr := newTransferProgress(direction, zero, one)
 			if direction == DirectionUpload || direction == DirectionDownload {
-				if !errors.Is(gotErr, core.ErrObjectStoreSize) || got != (TransferProgress{}) {
-					t.Fatalf("newTransferProgress(%v, one above total) = (%v, %v), want zero and errors.Is %v",
-						direction, got, gotErr, core.ErrObjectStoreSize)
+				if gotErr != nil || got.Direction() != direction || got.Completed() != zero || got.Total() != one {
+					t.Fatalf("newTransferProgress(%v, valid extent) = (%v, %v), want exact direction, zero completed, one total",
+						direction, got, gotErr)
 				}
 				continue
 			}
@@ -86,75 +82,71 @@ func TestTransferProgressSchemaLayerTriad(t *testing.T) {
 	})
 }
 
-func TestProgressWriterReportsOnlyAcceptedMonotonicBytes(t *testing.T) {
+// Sequences attack cumulative accounting, early refusal, and retry after a
+// refused observation. No arbitrary buffer-size rows: this writer does not buffer.
+func TestProgressWriterAcceptedAndRefusedTransitions(t *testing.T) {
 	t.Parallel()
-
-	cases := []struct {
-		name string
-		size int
-	}{
-		{name: "one byte", size: 1},
-		{name: "two bytes", size: 2},
-		{name: "one below first stream boundary", size: 32<<10 - 1},
-		{name: "at first stream boundary", size: 32 << 10},
-		{name: "one above first stream boundary", size: 32<<10 + 1},
-		{name: "one below second stream boundary", size: 64<<10 - 1},
-		{name: "at second stream boundary", size: 64 << 10},
-		{name: "one above second stream boundary", size: 64<<10 + 1},
-		{name: "at third stream boundary", size: 96 << 10},
-		{name: "one above third stream boundary", size: 96<<10 + 1},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			total := progressLength(t, uint64(tc.size))
-			var observed TransferProgress
-			writer := progressDestination(func(progress TransferProgress) error {
-				observed = progress
-				return nil
-			}, DirectionUpload, total)
-			gotWritten, gotErr := writer.Write(make([]byte, tc.size))
-			if gotErr != nil || gotWritten != tc.size || observed.Completed().Uint64() != uint64(tc.size) ||
-				observed.Total() != total || observed.Direction() != DirectionUpload {
-				t.Fatalf("progress write(%d) = (%d, %v, %v), want exact final upload progress",
-					tc.size, gotWritten, gotErr, observed)
-			}
-		})
-	}
-}
-
-func TestProgressWriterRefusesObserverAndExtentFailuresTransactionally(t *testing.T) {
-	t.Parallel()
-
-	total := progressLength(t, 1)
 	for _, direction := range []Direction{DirectionUpload, DirectionDownload} {
 		t.Run(direction.String(), func(t *testing.T) {
 			t.Parallel()
-
-			calls := 0
-			writer := progressDestination(func(TransferProgress) error {
-				calls++
-				return core.ErrObjectStoreContract
-			}, direction, total)
-			gotWritten, gotErr := writer.Write([]byte{1})
-			wantErr := core.ErrObjectStoreSource
-			if direction == DirectionDownload {
-				wantErr = core.ErrObjectStoreDestination
-			}
-			if gotWritten != 0 || calls != 1 || !errors.Is(gotErr, wantErr) {
-				t.Fatalf("observer refusal = (%d bytes, %d calls, %v), want (0, 1, errors.Is %v)", gotWritten, calls, gotErr, wantErr)
-			}
-
-			calls = 0
-			writer = progressDestination(func(TransferProgress) error {
-				calls++
-				return nil
-			}, direction, total)
-			gotWritten, gotErr = writer.Write([]byte{1, 2})
-			if gotWritten != 0 || calls != 0 || !errors.Is(gotErr, core.ErrObjectStoreSize) {
-				t.Fatalf("extent refusal = (%d bytes, %d calls, %v), want (0, 0, errors.Is %v)",
-					gotWritten, calls, gotErr, core.ErrObjectStoreSize)
+			for _, tc := range []struct {
+				name          string
+				total         uint64
+				writes        []int
+				refuseCall    int
+				wantCompleted []uint64
+				wantCalls     []int
+				wantErrors    []error
+			}{
+				{name: "partial writes accumulate exactly", total: 3, writes: []int{1, 2}, wantCompleted: []uint64{1, 3}, wantCalls: []int{1, 2}, wantErrors: []error{nil, nil}},
+				{name: "empty observation fabricates no bytes", total: 1, writes: []int{0, 1, 0}, wantCompleted: []uint64{0, 1, 1}, wantCalls: []int{1, 2, 3}, wantErrors: []error{nil, nil, nil}},
+				{name: "oversized first write preserves next valid write", total: 1, writes: []int{2, 1}, wantCompleted: []uint64{0, 1}, wantCalls: []int{0, 1}, wantErrors: []error{core.ErrObjectStoreSize, nil}},
+				{name: "overrun after partial progress preserves accepted prefix", total: 2, writes: []int{1, 2, 1}, wantCompleted: []uint64{1, 1, 2}, wantCalls: []int{1, 1, 2}, wantErrors: []error{nil, core.ErrObjectStoreSize, nil}},
+				{name: "observer refusal does not consume extent", total: 2, writes: []int{1, 1, 1}, refuseCall: 2, wantCompleted: []uint64{1, 1, 2}, wantCalls: []int{1, 2, 3}, wantErrors: []error{nil, io.ErrClosedPipe, nil}},
+				{name: "empty transfer refuses first content byte", writes: []int{0, 1, 0}, wantCompleted: []uint64{0, 0, 0}, wantCalls: []int{1, 1, 2}, wantErrors: []error{nil, core.ErrObjectStoreSize, nil}},
+			} {
+				t.Run(tc.name, func(t *testing.T) {
+					t.Parallel()
+					calls := 0
+					var offered TransferProgress
+					writer := progressDestination(func(progress TransferProgress) error {
+						calls++
+						offered = progress
+						if calls == tc.refuseCall {
+							return io.ErrClosedPipe
+						}
+						return nil
+					}, direction, progressLength(t, tc.total))
+					before := uint64(0)
+					for step, size := range tc.writes {
+						priorCalls, priorOffer := calls, offered
+						n, err := writer.Write(make([]byte, size))
+						wantN := size
+						if tc.wantErrors[step] != nil {
+							wantN = 0
+						}
+						if n != wantN || !errors.Is(err, tc.wantErrors[step]) || calls != tc.wantCalls[step] {
+							t.Fatalf("step %d: written=%d error=%v calls=%d, want %d/%v/%d", step, n, err, calls, wantN, tc.wantErrors[step], tc.wantCalls[step])
+						}
+						if err != nil {
+							identity := core.ErrObjectStoreSource
+							if direction == DirectionDownload {
+								identity = core.ErrObjectStoreDestination
+							}
+							if !errors.Is(err, identity) {
+								t.Fatalf("step %d: error=%v, want direction identity %v", step, err, identity)
+							}
+						}
+						if calls == priorCalls {
+							if offered != priorOffer {
+								t.Fatalf("step %d: refused extent changed observation from %+v to %+v", step, priorOffer, offered)
+							}
+						} else if offered.Direction() != direction || offered.Total().Uint64() != tc.total || offered.Completed().Uint64() != before+uint64(size) || offered.Validate() != nil {
+							t.Fatalf("step %d: offered=%+v, want direction=%v completed=%d total=%d", step, offered, direction, before+uint64(size), tc.total)
+						}
+						before = tc.wantCompleted[step]
+					}
+				})
 			}
 		})
 	}

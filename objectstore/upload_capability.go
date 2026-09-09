@@ -169,6 +169,9 @@ func (c *UploadCapabilityCommitment) UnmarshalJSON(data []byte) error {
 		return errors.Join(core.ErrObjectStoreContract,
 			errors.New(uploadCapabilityCommitmentReceiverErrorText))
 	}
+	if len(data) > core.JSONDocumentMaximumBytes {
+		return errors.Join(core.ErrJSONContract, core.ErrObjectStoreContract, core.ErrObjectStoreSize)
+	}
 	var digest core.SHA256Digest
 	if err := json.Unmarshal(data, &digest); err != nil {
 		return errors.Join(core.ErrObjectStoreContract, err)

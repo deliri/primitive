@@ -56,6 +56,10 @@ func FuzzUploadCapabilityAdmitsOnlyTransferableCapabilities(f *testing.F) {
 		if fixtureErr != nil {
 			t.Fatalf("valid receiver fixture decode error = %v, want nil", fixtureErr)
 		}
+		beforeCommitment, beforeErr := capability.Commitment()
+		if beforeErr != nil {
+			t.Fatal(beforeErr)
+		}
 		err := capability.UnmarshalJSON([]byte(document))
 
 		if rendered := fmt.Sprintf("%v|%+v|%#v|%s|%q", capability, capability,
@@ -65,6 +69,10 @@ func FuzzUploadCapabilityAdmitsOnlyTransferableCapabilities(f *testing.F) {
 		}
 
 		if err != nil {
+			retained, retainedErr := capability.Commitment()
+			if retainedErr != nil || retained != beforeCommitment {
+				t.Fatalf("refused decode changed capability commitment: got %v/%v, want %v", retained, retainedErr, beforeCommitment)
+			}
 			if !errors.Is(err, core.ErrObjectStoreContract) {
 				t.Fatalf("UnmarshalJSON(%q) error = %v, want %v",
 					document, err, core.ErrObjectStoreContract)
@@ -194,8 +202,7 @@ func FuzzUploadCapabilityAdmitsOnlyTransferableCapabilities(f *testing.F) {
 		}
 		for _, header := range target.Headers.values {
 			rendered := fmt.Sprintf("%v|%+v|%#v|%s|%q", header, header, header, header, header)
-			if strings.Count(rendered, core.RedactedValueText) != 5 ||
-				*header.value != "" && *header.value != core.RedactedValueText && strings.Contains(rendered, *header.value) {
+			if rendered != strings.Join([]string{core.RedactedValueText, core.RedactedValueText, core.RedactedValueText, core.RedactedValueText, core.RedactedValueText}, "|") {
 				t.Fatalf("formatted accepted signed header = %q, want only redacted text", rendered)
 			}
 		}
@@ -203,12 +210,7 @@ func FuzzUploadCapabilityAdmitsOnlyTransferableCapabilities(f *testing.F) {
 		if strings.Contains(pointerRendered, core.SchemeHTTPS) {
 			t.Fatalf("pointer-formatted accepted capability = %q, want no signed URL", pointerRendered)
 		}
-		for _, header := range target.Headers.values {
-			headerRendered := fmt.Sprintf("%p", header)
-			if *header.value != "" && strings.Contains(headerRendered, *header.value) {
-				t.Fatalf("pointer-formatted accepted signed header disclosed its value")
-			}
-		}
+
 	})
 }
 

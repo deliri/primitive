@@ -104,7 +104,7 @@ func (t Transfer) UploadCapability() (UploadCapabilityCommitment, bool) {
 func (t Transfer) Validate() error {
 	if err := errors.Join(
 		t.provider.Validate(), t.direction.Validate(),
-		validateProviderDirection(t.provider, t.direction),
+		validateTransferBounds(t.provider, t.direction, t.bytes),
 	); err != nil {
 		return err
 	}
@@ -118,7 +118,8 @@ func (t Transfer) validateConfirmedIntegrity() error {
 	if t.commitment != CommitmentConfirmed || !t.status.IsSuccess() {
 		return core.ErrObjectStoreContract
 	}
-	if err := errors.Join(t.sha256.Validate(), t.crc32c.Validate(), t.status.Validate()); err != nil {
+	integrity := Integrity{Length: t.bytes, SHA256: t.sha256, CRC32C: t.crc32c}
+	if err := errors.Join(integrity.Validate(), t.status.Validate()); err != nil {
 		return errors.Join(core.ErrObjectStoreContract, err)
 	}
 	return nil
@@ -137,24 +138,28 @@ func validateOptionalUploadCapability(
 	return capability.Validate()
 }
 
-func validateProviderDirection(provider Provider, direction Direction) error {
+func validateTransferBounds(provider Provider, direction Direction, length core.ByteLength) error {
 	spec, err := Spec(provider)
 	if err != nil {
 		return err
 	}
+	maximum := spec.UploadMaximum
 	switch direction {
 	case DirectionUpload:
-		return nil
 	case DirectionDownload:
 		if spec.Directions != DirectionCapabilityUploadDownload {
 			return core.ErrObjectStoreContract
 		}
-		return nil
+		maximum = spec.DownloadMaximum
 	case DirectionUnknown, directionLimit:
 		return core.ErrObjectStoreContract
 	default:
 		return core.ErrObjectStoreContract
 	}
+	if length.Uint64() > maximum.Uint64() {
+		return errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreSize)
+	}
+	return nil
 }
 
 func (t Transfer) validateVersion() error {

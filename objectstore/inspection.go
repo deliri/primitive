@@ -21,7 +21,7 @@ type InspectionRequest struct {
 }
 
 func (r InspectionRequest) Validate() error {
-	if r.Source == nil {
+	if core.ReaderIsNil(r.Source) {
 		return errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreSource)
 	}
 	if _, err := r.MaximumBytes.Int64(); err != nil {
@@ -83,7 +83,7 @@ func Inspect(ctx context.Context, request InspectionRequest) (Inspection, error)
 		return Inspection{}, errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreSource, err)
 	}
 	over, err := inspectionSourceExceeds(request.Source, copier.sourceEnded)
-	if err != nil {
+	if err = errors.Join(err, contextstate.Validate(ctx)); err != nil {
 		return Inspection{}, errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreSource, err)
 	}
 	if over {
@@ -110,7 +110,7 @@ func (c *inspectionCopier) copy(ctx context.Context) error {
 			return err
 		}
 		done, err := c.copyChunk()
-		if err != nil {
+		if err = errors.Join(err, contextstate.Validate(ctx)); err != nil {
 			return err
 		}
 		if done {
@@ -155,7 +155,8 @@ func (c *inspectionCopier) acceptChunk(data []byte, readErr error) error {
 }
 
 func (c *inspectionCopier) chunkOutcome(readErr error) (bool, error) {
-	if errors.Is(readErr, io.EOF) {
+	// witness:waiver doctrine/error/sentinel_compare -- Objectstore owns this io.Reader boundary. Go requires unwrapped EOF for graceful completion; wrapped/joined failures must survive. Review by 2026-12-08 against Go's io.Reader contract.
+	if readErr == io.EOF {
 		c.sourceEnded = true
 		return true, nil
 	}

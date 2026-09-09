@@ -149,13 +149,13 @@ func (e TransferEvidence) Validate() error {
 	if !e.set {
 		return core.ErrObjectStoreContract
 	}
+	integrity := Integrity{Length: e.bytes, SHA256: e.sha256, CRC32C: e.crc32c}
 	if err := errors.Join(
-		e.provider.Validate(), e.direction.Validate(), e.bytes.Validate(),
-		e.sha256.Validate(), e.crc32c.Validate(),
+		e.provider.Validate(), e.direction.Validate(), integrity.Validate(),
 	); err != nil {
 		return errors.Join(core.ErrObjectStoreContract, err)
 	}
-	if err := validateProviderDirection(e.provider, e.direction); err != nil {
+	if err := validateTransferBounds(e.provider, e.direction, e.bytes); err != nil {
 		return errors.Join(core.ErrObjectStoreContract, err)
 	}
 	if err := validateTransferEvidenceVersion(e); err != nil {

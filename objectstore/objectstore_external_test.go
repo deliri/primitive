@@ -1590,7 +1590,7 @@ func BenchmarkUploadStreaming10MiB(b *testing.B) {
 
 func benchmarkUploadStreaming(b *testing.B, size int) {
 	payload := bytes.Repeat([]byte("o"), size)
-	httpClient := &http.Client{Transport: benchmarkDrainTransport{}}
+	httpClient := &http.Client{Transport: benchmarkDrainTransport{wantBytes: int64(size)}}
 	client := newObjectstoreClient(b, httpClient)
 	request := uploadRequest(
 		b,
@@ -1609,12 +1609,14 @@ func benchmarkUploadStreaming(b *testing.B, size int) {
 	for b.Loop() {
 		request.Source = bytes.NewReader(payload)
 		got, gotErr := objectstore.UploadGCS(
-			context.Background(),
+			b.Context(),
 			client,
 			request,
 		)
 		if gotErr != nil ||
-			got.Commitment() != objectstore.CommitmentConfirmed {
+			got.Validate() != nil || got.Commitment() != objectstore.CommitmentConfirmed ||
+			got.Provider() != objectstore.ProviderGoogleCloudStorage || got.Direction() != objectstore.DirectionUpload ||
+			got.Bytes() != request.Integrity.Length || got.SHA256() != request.Integrity.SHA256 || got.CRC32C() != request.Integrity.CRC32C {
 			b.Fatalf(
 				"Upload() = (commitment %v, %v), want (confirmed, nil)",
 				got.Commitment(),
@@ -1624,15 +1626,18 @@ func benchmarkUploadStreaming(b *testing.B, size int) {
 	}
 }
 
-type benchmarkDrainTransport struct{}
+type benchmarkDrainTransport struct{ wantBytes int64 }
 
-func (benchmarkDrainTransport) RoundTrip(
+func (t benchmarkDrainTransport) RoundTrip(
 	request *http.Request,
 ) (*http.Response, error) {
-	_, copyErr := io.Copy(io.Discard, request.Body)
+	count, copyErr := io.Copy(io.Discard, io.LimitReader(request.Body, t.wantBytes+1))
 	closeErr := request.Body.Close()
 	if err := errors.Join(copyErr, closeErr); err != nil {
 		return nil, err
+	}
+	if count != t.wantBytes || request.ContentLength != t.wantBytes {
+		return nil, core.ErrObjectStoreIntegrity
 	}
 	headers := make(http.Header)
 	headers.Set("X-Goog-Generation", "42")

@@ -1,15 +1,12 @@
 package objectstore
 
 import (
-	"bufio"
 	"errors"
 	"io"
 	"io/fs"
 
 	"github.com/deliri/primitive/v2026/core"
 )
-
-const exactExtentBufferBytes = 32 * 1024
 
 // ExactReader delivers exactly the declared extent from a source and proves
 // the source held precisely that many bytes, no more and no fewer. It is the
@@ -18,8 +15,7 @@ const exactExtentBufferBytes = 32 * 1024
 // transfer in gcsobjects. A short or overlong source is a source-integrity
 // failure, reachable through Failure after the stream ends.
 type ExactReader struct {
-	input      io.Reader
-	source     *bufio.Reader
+	source     io.Reader
 	failure    error
 	remaining  int64
 	delivered  uint64
@@ -38,8 +34,7 @@ func NewExactReader(source io.Reader, length core.ByteLength) (*ExactReader, err
 		return nil, errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreSize, err)
 	}
 	return &ExactReader{
-		input:     source,
-		source:    bufio.NewReaderSize(source, exactExtentBufferBytes),
+		source:    source,
 		remaining: remaining,
 	}, nil
 }
@@ -48,17 +43,35 @@ func NewExactReader(source io.Reader, length core.ByteLength) (*ExactReader, err
 // when the source delivered its exact extent. Callers read it after a copy so
 // a wrapped tee reader's error can be distinguished from a destination error.
 func (r *ExactReader) Failure() error {
+	if r == nil || r.source == nil {
+		return errors.Join(core.ErrObjectStoreContract, coreSourceIntegrity())
+	}
 	return r.failure
 }
 
 // Read delivers the next bytes, never more than the declared extent remains.
 func (r *ExactReader) Read(destination []byte) (int, error) {
+	if r == nil || r.source == nil {
+		return 0, errors.Join(core.ErrObjectStoreContract, coreSourceIntegrity())
+	}
 	if r.failure != nil {
 		return 0, r.failure
+	}
+	// A caller supplying no storage has not observed source progress.
+	if len(destination) == 0 {
+		return 0, nil
 	}
 	if r.remaining == 0 {
 		return 0, io.EOF
 	}
+	count, err := r.readNext(destination)
+	// readNext admits only nonnegative counts within the declared int64 extent.
+	// Account exactly the bytes returned, including a prefix beside a native error.
+	r.delivered += uint64(count)
+	return count, err
+}
+
+func (r *ExactReader) readNext(destination []byte) (int, error) {
 	if int64(len(destination)) > r.remaining {
 		destination = destination[:r.remaining]
 	}
@@ -86,9 +99,6 @@ func (r *ExactReader) recordEmptyRead() (int, error) {
 
 func (r *ExactReader) continueRead(count int, readErr error) (int, error) {
 	r.remaining -= int64(count)
-	if err := r.addDelivered(count); err != nil {
-		return r.fail(0, err)
-	}
 	if readErr != nil {
 		return r.fail(count, readErr)
 	}
@@ -96,48 +106,38 @@ func (r *ExactReader) continueRead(count int, readErr error) (int, error) {
 }
 
 func (r *ExactReader) finish(count int, readErr error) (int, error) {
-	if readErr != nil && !errors.Is(readErr, io.EOF) {
+	// witness:waiver doctrine/error/sentinel_compare -- Objectstore owns this io.Reader boundary. Go requires unwrapped EOF for graceful completion; wrapped/joined failures must survive. Review by 2026-12-08 against Go's io.Reader contract.
+	ended := readErr == io.EOF
+	if readErr != nil && !ended {
 		return r.fail(count, readErr)
 	}
-	if r.source.Buffered() != 0 {
-		return r.fail(0, nil)
-	}
-	remaining, proven, extentErr := exactSourceRemaining(r.input)
+	remaining, proven, extentErr := exactSourceRemaining(r.source)
 	if extentErr != nil || proven && remaining != 0 {
 		return r.fail(0, extentErr)
 	}
-	if !proven && !errors.Is(readErr, io.EOF) {
+	if !proven && !ended {
 		return r.fail(0, io.ErrNoProgress)
 	}
 	r.remaining = 0
-	if err := r.addDelivered(count); err != nil {
-		return r.fail(0, err)
-	}
 	r.verified = true
 	return count, readErr
-}
-
-func (r *ExactReader) addDelivered(count int) error {
-	value, err := core.CheckedUint64FromInt64(int64(count))
-	if err != nil {
-		return err
-	}
-	r.delivered += value
-	return nil
 }
 
 // ProveEmpty verifies the source is empty when the declared extent is zero:
 // a zero-length object still has to prove the source delivered nothing rather
 // than being assumed empty without a read.
 func (r *ExactReader) ProveEmpty() error {
+	if r == nil || r.source == nil {
+		return errors.Join(core.ErrObjectStoreContract, coreSourceIntegrity())
+	}
+	if r.failure != nil {
+		return r.failure
+	}
+
 	if r.remaining != 0 {
 		return coreSourceIntegrity()
 	}
-	if r.source.Buffered() != 0 {
-		r.failure = coreSourceIntegrity()
-		return r.failure
-	}
-	remaining, proven, err := exactSourceRemaining(r.input)
+	remaining, proven, err := exactSourceRemaining(r.source)
 	if err != nil || !proven || remaining != 0 {
 		if err == nil && !proven {
 			err = io.ErrNoProgress
@@ -167,10 +167,11 @@ func exactSourceRemaining(source io.Reader) (uint64, bool, error) {
 		return exact.RemainingBytes(), true, nil
 	}
 	if measured, ok := source.(exactLengthSource); ok {
-		if measured.Len() < 0 {
+		length := measured.Len()
+		if length < 0 {
 			return 0, true, coreSourceIntegrity()
 		}
-		remaining, err := core.CheckedUint64FromInt64(int64(measured.Len()))
+		remaining, err := core.CheckedUint64FromInt64(int64(length))
 		return remaining, true, err
 	}
 	if section, ok := source.(*io.SectionReader); ok {
@@ -196,7 +197,7 @@ func exactFileRemaining(file exactFileSource) (uint64, bool, error) {
 	if err != nil {
 		return 0, true, err
 	}
-	if position < 0 || position > info.Size() {
+	if info == nil || position < 0 || position > info.Size() {
 		return 0, true, coreSourceIntegrity()
 	}
 	remaining, conversionErr := core.CheckedUint64FromInt64(info.Size() - position)

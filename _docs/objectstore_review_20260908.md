@@ -1,0 +1,5 @@
+## Summary
+
+This slice tightens Objectstore stream and evidence admission: ExactReader talks to the caller-owned `io.Reader` (no extra `bufio`), native `(n, err)` including `(n, io.EOF)` hits the count guard, inspection re-checks context after the last read and remaining probe, typed-nil readers/writers share one Core helper with Exchange, browser upload projections refuse oversize bodies at construction, scalar JSON doors honor the Core document ceiling, and confirmed/received evidence now share `Integrity.Validate` plus provider/direction extent. Tracing ExactReader, Inspect, Upload/Download validation, transfer/received evidence, HTTP projection signing, and `core.WriterIsNil` against Exchange socket admission did not turn up a production correctness, race, lifetime, or silent-failure defect. Residual risk is the intentional unwrapped-EOF rule on generic readers (no remaining probe and no `io.EOF` on the last declared byte still fails with `io.ErrNoProgress`); that matches the new tests and the prior finish path, not a regression from dropping `bufio`.
+
+## Issues

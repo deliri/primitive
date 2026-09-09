@@ -249,7 +249,7 @@ func NewSocketServerCall(writer http.ResponseWriter, request *http.Request) (Soc
 
 // Validate rejects a partially populated HTTP ingress.
 func (c SocketServerCall) Validate() error {
-	if responseWriterIsNil(c.writer) || c.request == nil {
+	if core.WriterIsNil(c.writer) || c.request == nil {
 		return core.ErrExchangeContract
 	}
 	return nil

@@ -23,6 +23,12 @@ func FuzzParseSignedURL(f *testing.F) {
 
 	f.Fuzz(func(t *testing.T, value string) {
 		got, gotErr := objectstore.ParseSignedURL(value)
+		endpoint, endpointErr := core.ParseHTTPEndpoint(value)
+		native := endpoint.HTTPURL()
+		wantAccepted := endpointErr == nil && native.Scheme == core.SchemeHTTPS && native.EscapedPath() != "" && native.EscapedPath() != "/"
+		if (gotErr == nil) != wantAccepted {
+			t.Fatalf("signed URL admission error=%v, want accepted=%t for owned endpoint %+v", gotErr, wantAccepted, endpoint)
+		}
 		if gotErr != nil {
 			if !errors.Is(gotErr, core.ErrObjectStoreContract) {
 				t.Fatalf(

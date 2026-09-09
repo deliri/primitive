@@ -13,10 +13,9 @@ import (
 )
 
 const (
-	uploadHTTPProjectionUnsetErrorText    = "upload HTTP projection is unset"
-	uploadHTTPProjectionEncodingErrorText = "upload capability cannot be spent as one raw browser request"
-	uploadHTTPProjectionHeaderErrorText   = "upload HTTP projection contains an unsupported header shape"
-	uploadHTTPProjectionVersionErrorText  = "upload HTTP projection has no provider version response field"
+	uploadHTTPProjectionUnsetErrorText   = "upload HTTP projection is unset"
+	uploadHTTPProjectionHeaderErrorText  = "upload HTTP projection contains an unsupported header shape"
+	uploadHTTPProjectionVersionErrorText = "upload HTTP projection has no provider version response field"
 )
 
 // UploadHTTPProjection is the encode-only browser-spendable projection of one
@@ -80,31 +79,15 @@ func (p UploadHTTPProjection) Validate() error {
 	if err := p.capability.Validate(); err != nil {
 		return err
 	}
-	if err := p.integrity.Validate(); err != nil {
-		return err
-	}
 	if err := p.contentType.Validate(); err != nil {
 		return errors.Join(core.ErrObjectStoreContract, err)
 	}
-	return validateUploadHTTPProvider(p.capability.provider)
+	return validateUploadSigningHeaders(p.capability.provider, p.capability.target.Headers, p.integrity)
 }
 
 // IsZero reports whether no complete browser request has crossed the
 // constructor.
 func (p UploadHTTPProjection) IsZero() bool { return !p.set }
-
-func validateUploadHTTPProvider(provider Provider) error {
-	spec, err := Spec(provider)
-	if err != nil {
-		return err
-	}
-	if spec.UploadEncoding != UploadEncodingRawObject ||
-		spec.UploadMethod != exchange.MethodPut {
-		return errors.Join(core.ErrObjectStoreContract,
-			errors.New(uploadHTTPProjectionEncodingErrorText))
-	}
-	return nil
-}
 
 // Commitment returns the closure of the underlying issued capability. The
 // body declaration remains a separately typed fact for its issuing protocol to

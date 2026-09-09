@@ -63,115 +63,72 @@ func TestExactReaderConstructionRejectsNilSource(t *testing.T) {
 
 func TestExactReaderExtentLayerTriad(t *testing.T) {
 	t.Parallel()
-
-	type exactReaderCase struct {
+	for _, tc := range []struct {
 		name          string
+		source, want  []byte
 		declared      uint64
-		sourceBytes   int
-		wantDelivered int
-		wantErr       bool
-		wantEOF       bool
-	}
-	cases := []exactReaderCase{
-		{name: "neutral empty source proves declared zero", declared: 0, sourceBytes: 0},
-		{name: "minimum positive extent delivers one byte", declared: 1, sourceBytes: 1, wantDelivered: 1},
-		{name: "two byte extent delivers exactly", declared: 2, sourceBytes: 2, wantDelivered: 2},
-		{name: "three byte extent delivers exactly", declared: 3, sourceBytes: 3, wantDelivered: 3},
-		{name: "seven byte extent delivers exactly", declared: 7, sourceBytes: 7, wantDelivered: 7},
-		{name: "one below small power boundary delivers exactly", declared: 31, sourceBytes: 31, wantDelivered: 31},
-		{name: "small power boundary delivers exactly", declared: 32, sourceBytes: 32, wantDelivered: 32},
-		{name: "one above small power boundary delivers exactly", declared: 33, sourceBytes: 33, wantDelivered: 33},
-		{name: "one below kibibyte boundary delivers exactly", declared: 1023, sourceBytes: 1023, wantDelivered: 1023},
-		{name: "kibibyte boundary delivers exactly", declared: 1024, sourceBytes: 1024, wantDelivered: 1024},
-		{name: "one above kibibyte boundary delivers exactly", declared: 1025, sourceBytes: 1025, wantDelivered: 1025},
-		{name: "one below internal buffer boundary delivers exactly", declared: 32767, sourceBytes: 32767, wantDelivered: 32767},
-		{name: "internal buffer boundary delivers exactly", declared: 32768, sourceBytes: 32768, wantDelivered: 32768},
-		{name: "one above internal buffer boundary delivers exactly", declared: 32769, sourceBytes: 32769, wantDelivered: 32769},
-
-		{name: "declared zero rejects one source byte", declared: 0, sourceBytes: 1, wantErr: true},
-		{name: "declared zero rejects two source bytes", declared: 0, sourceBytes: 2, wantErr: true},
-		{name: "minimum positive extent rejects empty source", declared: 1, sourceBytes: 0, wantErr: true, wantEOF: true},
-		{name: "minimum positive extent rejects one extra byte", declared: 1, sourceBytes: 2, wantErr: true},
-		{name: "minimum positive extent rejects two extra bytes", declared: 1, sourceBytes: 3, wantErr: true},
-		{name: "two byte extent rejects empty source", declared: 2, sourceBytes: 0, wantErr: true, wantEOF: true},
-		{name: "two byte extent rejects one byte short", declared: 2, sourceBytes: 1, wantDelivered: 1, wantErr: true, wantEOF: true},
-		{name: "two byte extent rejects one byte long and withholds final declared byte", declared: 2, sourceBytes: 3, wantDelivered: 1, wantErr: true},
-		{name: "two byte extent rejects two bytes long and withholds final declared byte", declared: 2, sourceBytes: 4, wantDelivered: 1, wantErr: true},
-		{name: "three byte extent rejects empty source", declared: 3, sourceBytes: 0, wantErr: true, wantEOF: true},
-		{name: "three byte extent rejects two bytes short", declared: 3, sourceBytes: 1, wantDelivered: 1, wantErr: true, wantEOF: true},
-		{name: "three byte extent rejects one byte short", declared: 3, sourceBytes: 2, wantDelivered: 2, wantErr: true, wantEOF: true},
-		{name: "three byte extent rejects one byte long and withholds final declared byte", declared: 3, sourceBytes: 4, wantDelivered: 2, wantErr: true},
-		{name: "three byte extent rejects two bytes long and withholds final declared byte", declared: 3, sourceBytes: 5, wantDelivered: 2, wantErr: true},
-		{name: "one below small power rejects one byte short", declared: 31, sourceBytes: 30, wantDelivered: 30, wantErr: true, wantEOF: true},
-		{name: "one below small power rejects one byte long", declared: 31, sourceBytes: 32, wantDelivered: 30, wantErr: true},
-		{name: "small power rejects one byte short", declared: 32, sourceBytes: 31, wantDelivered: 31, wantErr: true, wantEOF: true},
-		{name: "small power rejects one byte long", declared: 32, sourceBytes: 33, wantDelivered: 31, wantErr: true},
-		{name: "one above small power rejects one byte short", declared: 33, sourceBytes: 32, wantDelivered: 32, wantErr: true, wantEOF: true},
-		{name: "one above small power rejects one byte long", declared: 33, sourceBytes: 34, wantDelivered: 32, wantErr: true},
-		{name: "one below internal buffer rejects one byte short", declared: 32767, sourceBytes: 32766, wantDelivered: 32766, wantErr: true, wantEOF: true},
-		{name: "one below internal buffer rejects one byte long", declared: 32767, sourceBytes: 32768, wantDelivered: 32766, wantErr: true},
-		{name: "internal buffer rejects one byte short", declared: 32768, sourceBytes: 32767, wantDelivered: 32767, wantErr: true, wantEOF: true},
-		{name: "internal buffer rejects one byte long", declared: 32768, sourceBytes: 32769, wantDelivered: 32767, wantErr: true},
-		{name: "one above internal buffer rejects one byte short", declared: 32769, sourceBytes: 32768, wantDelivered: 32768, wantErr: true, wantEOF: true},
-		{name: "one above internal buffer rejects one byte long", declared: 32769, sourceBytes: 32770, wantDelivered: 32768, wantErr: true},
-	}
-
-	for _, tc := range cases {
+		chunk         int
+		wantErr       error
+		wantRemaining int
+	}{
+		{name: "empty source requires empty proof", chunk: 1},
+		{name: "minimum object survives an oversized destination", source: []byte{0x81}, want: []byte{0x81}, declared: 1, chunk: 3},
+		{name: "partial final chunk preserves exact byte order", source: []byte{0, 0x81, 0xff}, want: []byte{0, 0x81, 0xff}, declared: 3, chunk: 2},
+		{name: "exact chunk boundary preserves terminal bytes", source: []byte{0x81, 0}, want: []byte{0x81, 0}, declared: 2, chunk: 2},
+		{name: "empty declaration refuses without consuming a byte", source: []byte{0x81}, chunk: 1, wantErr: core.ErrObjectStoreSource, wantRemaining: 1},
+		{name: "short empty source cannot prove a nonempty object", declared: 1, chunk: 1, wantErr: io.EOF},
+		{name: "short stream preserves exact delivered prefix", source: []byte{0, 0x81, 0xff}, want: []byte{0, 0x81, 0xff}, declared: 4, chunk: 2, wantErr: io.EOF},
+		{name: "overlong first chunk is withheld", source: []byte{0x81, 0xff}, declared: 1, chunk: 2, wantErr: core.ErrObjectStoreSource, wantRemaining: 1},
+		{name: "overlong final partial chunk is withheld after exact prefix", source: []byte{0, 0x81, 0xff, 0x42}, want: []byte{0, 0x81}, declared: 3, chunk: 2, wantErr: core.ErrObjectStoreSource, wantRemaining: 1},
+		{name: "overlong final full chunk is withheld", source: []byte{0, 0x81, 0xff, 0x42, 0x10}, want: []byte{0, 0x81}, declared: 4, chunk: 2, wantErr: core.ErrObjectStoreSource, wantRemaining: 1},
+	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-
-			source := bytes.Repeat([]byte{0xa5}, tc.sourceBytes)
-			reader, gotErr := objectstore.NewExactReader(
-				bytes.NewReader(source),
-				mustByteLength(t, tc.declared),
-			)
-			if gotErr != nil || reader == nil {
-				t.Fatalf("NewExactReader() = (%v, %v), want (non-nil, nil)", reader, gotErr)
+			source := bytes.NewReader(tc.source)
+			reader, err := objectstore.NewExactReader(source, mustByteLength(t, tc.declared))
+			if err != nil {
+				t.Fatal(err)
 			}
-
-			var destination bytes.Buffer
+			var got []byte
+			buffer := make([]byte, tc.chunk)
 			if tc.declared == 0 {
-				gotErr = reader.ProveEmpty()
+				err = reader.ProveEmpty()
 			} else {
-				for {
-					var chunk [1]byte
-					gotCount, readErr := reader.Read(chunk[:])
-					if gotCount > 0 {
-						_, _ = destination.Write(chunk[:gotCount])
+				for attempts := uint64(0); ; attempts++ {
+					if attempts > tc.declared+1 {
+						t.Fatalf("read attempts = %d, want at most declared extent %d plus one EOF read", attempts, tc.declared)
 					}
+					n, readErr := reader.Read(buffer)
+					if n < 0 || n > len(buffer) {
+						t.Fatalf("read count = %d, capacity = %d", n, len(buffer))
+					}
+					got = append(got, buffer[:n]...)
 					if readErr != nil {
-						gotErr = readErr
+						err = readErr
 						break
 					}
-					if gotCount == 0 {
-						t.Fatal("ExactReader.Read() = (0, nil), want progress or terminal error")
-					}
 				}
-				if errors.Is(gotErr, io.EOF) && reader.Failure() == nil {
-					gotErr = nil
+				if reader.Failure() == nil && errors.Is(err, io.EOF) {
+					err = nil
 				}
 			}
-			if tc.wantErr {
-				if !errors.Is(gotErr, core.ErrObjectStoreSource) ||
-					!errors.Is(gotErr, core.ErrObjectStoreIntegrity) ||
-					!errors.Is(reader.Failure(), core.ErrObjectStoreSource) ||
-					!errors.Is(reader.Failure(), core.ErrObjectStoreIntegrity) {
-					t.Fatalf(
-						"exact stream refusal = (error %v, failure %v), want errors.Is %v and %v",
-						gotErr,
-						reader.Failure(),
-						core.ErrObjectStoreSource,
-						core.ErrObjectStoreIntegrity,
-					)
-				}
-				if gotEOF := errors.Is(gotErr, io.EOF); gotEOF != tc.wantEOF {
-					t.Fatalf("exact stream refusal errors.Is(io.EOF) = %t, want %t", gotEOF, tc.wantEOF)
-				}
-			} else if gotErr != nil || reader.Failure() != nil {
-				t.Fatalf("exact stream = (error %v, failure %v), want (nil, nil)", gotErr, reader.Failure())
+			if !errors.Is(err, tc.wantErr) || !bytes.Equal(got, tc.want) || source.Len() != tc.wantRemaining {
+				t.Fatalf("stream = (%x, %v), remaining=%d; want (%x, %v), remaining=%d", got, err, source.Len(), tc.want, tc.wantErr, tc.wantRemaining)
 			}
-			if got := destination.Len(); got != tc.wantDelivered {
-				t.Fatalf("exact stream delivered bytes = %d, want %d", got, tc.wantDelivered)
+			if tc.wantErr != nil && (!errors.Is(reader.Failure(), core.ErrObjectStoreSource) || !errors.Is(reader.Failure(), core.ErrObjectStoreIntegrity)) {
+				t.Fatalf("failure = %v, want source and integrity identities", reader.Failure())
+			}
+			if tc.wantErr == nil && reader.Failure() != nil {
+				t.Fatalf("successful stream retained failure %v", reader.Failure())
+			}
+			remaining := source.Len()
+			n, again := reader.Read(buffer)
+			wantTerminal := io.EOF
+			if tc.wantErr != nil {
+				wantTerminal = tc.wantErr
+			}
+			if n != 0 || !errors.Is(again, wantTerminal) || source.Len() != remaining {
+				t.Fatalf("terminal replay = (%d, %v), remaining=%d; want no bytes, %v, unchanged source", n, again, source.Len(), wantTerminal)
 			}
 		})
 	}

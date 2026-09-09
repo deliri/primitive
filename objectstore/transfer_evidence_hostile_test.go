@@ -2,12 +2,11 @@ package objectstore
 
 import (
 	"bytes"
+	"encoding/json/jsontext"
 	json "encoding/json/v2"
 	"errors"
 	"hash/crc32"
-	"math"
 	"net/http"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -29,22 +28,19 @@ func TestProviderUploadObservationLayerTriad(t *testing.T) {
 	t.Parallel()
 
 	occurredAt := temporal.InstantFromNanoseconds(1_786_183_200_000_000_000)
-	valid := []transferEvidenceFixtureRequest{
-		{Provider: ProviderGoogleCloudStorage, Direction: DirectionUpload, Version: "1"},
-		{Provider: ProviderGoogleCloudStorage, Direction: DirectionUpload, Version: "2", Bytes: 1},
-		{Provider: ProviderGoogleCloudStorage, Direction: DirectionUpload, Version: "3", Bytes: 2},
-		{Provider: ProviderGoogleCloudStorage, Direction: DirectionUpload, Version: "7", Bytes: 7},
-		{Provider: ProviderGoogleCloudStorage, Direction: DirectionUpload, Version: "8", Bytes: 8},
-		{Provider: ProviderGoogleCloudStorage, Direction: DirectionUpload, Version: "9", Bytes: 9},
-		{Provider: ProviderGoogleCloudStorage, Direction: DirectionUpload, Version: "41", Bytes: 32<<10 - 1},
-		{Provider: ProviderGoogleCloudStorage, Direction: DirectionUpload, Version: "42", Bytes: 32 << 10},
-		{Provider: ProviderGoogleCloudStorage, Direction: DirectionUpload, Version: "43", Bytes: 32<<10 + 1},
-		{Provider: ProviderGoogleCloudStorage, Direction: DirectionUpload, Version: "9223372036854775807", Bytes: math.MaxInt64},
+	valid := []struct {
+		name    string
+		request transferEvidenceFixtureRequest
+	}{
+		{name: "zero-byte GCS upload retains minimum generation", request: transferEvidenceFixtureRequest{Provider: ProviderGoogleCloudStorage, Direction: DirectionUpload, Version: "1"}},
+		{name: "maximum GCS extent remains observable", request: transferEvidenceFixtureRequest{Provider: ProviderGoogleCloudStorage, Direction: DirectionUpload, Version: "1", Bytes: GoogleCloudStorageObjectMaximumBytes}},
+		{name: "maximum SDK generation remains exact", request: transferEvidenceFixtureRequest{Provider: ProviderGoogleCloudStorage, Direction: DirectionUpload, Version: "9223372036854775807", Bytes: 1}},
+		{name: "maximum opaque S3 version remains exact", request: transferEvidenceFixtureRequest{Provider: ProviderAmazonS3, Direction: DirectionUpload, Version: strings.Repeat("v", AmazonS3VersionIDMaximumBytes), Bytes: 1}},
 	}
-	for index, fixture := range valid {
-		t.Run("exact provider upload "+strconv.Itoa(index), func(t *testing.T) {
+	for _, tc := range valid {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			evidence := transferEvidenceFromFixture(t, fixture)
+			evidence := transferEvidenceFromFixture(t, tc.request)
 			version, present := evidence.Version()
 			if !present {
 				t.Fatal("TransferEvidence.Version() present = false, want true")
@@ -59,8 +55,8 @@ func TestProviderUploadObservationLayerTriad(t *testing.T) {
 			gotOccurredAt, occurredAtErr := got.OccurredAt()
 			if gotErr != nil || got.Validate() != nil || evidenceErr != nil || typeErr != nil || occurredAtErr != nil ||
 				gotEvidence != evidence || gotType != request.ContentType || gotOccurredAt != occurredAt {
-				t.Fatalf("VerifyProviderUpload(%d) closure = (%v, %v, %v, %v, %v, %v), want exact validated facts",
-					index, got, gotErr, gotEvidence, gotType, gotOccurredAt, errors.Join(evidenceErr, typeErr, occurredAtErr))
+				t.Fatalf("VerifyProviderUpload(%s) closure = (%v, %v, %v, %v, %v, %v), want exact validated facts",
+					tc.name, got, gotErr, gotEvidence, gotType, gotOccurredAt, errors.Join(evidenceErr, typeErr, occurredAtErr))
 			}
 		})
 	}
@@ -167,7 +163,7 @@ func TestTransferEvidenceProjectionLayerTriad(t *testing.T) {
 			{name: "stream chunk one below boundary without optional download version", request: transferEvidenceFixtureRequest{Provider: ProviderGoogleCloudStorage, Direction: DirectionDownload, Bytes: 32<<10 - 1}},
 			{name: "stream chunk at boundary", request: transferEvidenceFixtureRequest{Provider: ProviderGoogleCloudStorage, Direction: DirectionDownload, Bytes: 32 << 10, Version: "3"}},
 			{name: "stream chunk one above boundary", request: transferEvidenceFixtureRequest{Provider: ProviderGoogleCloudStorage, Direction: DirectionDownload, Bytes: 32<<10 + 1, Version: "4"}},
-			{name: "maximum signed byte length", request: transferEvidenceFixtureRequest{Provider: ProviderAmazonS3, Direction: DirectionUpload, Bytes: math.MaxInt64}},
+			{name: "maximum S3 raw upload extent", request: transferEvidenceFixtureRequest{Provider: ProviderAmazonS3, Direction: DirectionUpload, Bytes: AmazonS3PutObjectMaximumBytes}},
 			{name: "minimum amazon version identifier", request: transferEvidenceFixtureRequest{Provider: ProviderAmazonS3, Direction: DirectionUpload, Bytes: 1, Version: "v"}},
 			{name: "maximum amazon version identifier", request: transferEvidenceFixtureRequest{Provider: ProviderAmazonS3, Direction: DirectionDownload, Bytes: 1, Version: strings.Repeat("v", AmazonS3VersionIDMaximumBytes)}},
 			{name: "maximum amazon version json expansion", request: transferEvidenceFixtureRequest{Provider: ProviderAmazonS3, Direction: DirectionUpload, Bytes: 1, Version: strings.Repeat("<", AmazonS3VersionIDMaximumBytes)}},
@@ -295,32 +291,55 @@ func TestTransferEvidenceDecodeLayerTriad(t *testing.T) {
 		t.Fatalf("TransferEvidenceProjection.MarshalJSON() setup error = %v, want nil", gotErr)
 	}
 
-	t.Run("positive strict receiver accepts canonical and hostile-valid framing", func(t *testing.T) {
+	// Expected facts come from the issuer, independently of the decoder under test.
+	before := projection.evidence
+	withoutVersion := before
+	withoutVersion.version = ProviderVersion{}
+	withoutVersionWire := transferEvidenceWireFrom(before)
+	withoutVersionWire.Version = nil
+	absentDocument, err := json.Marshal(withoutVersionWire)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reordered := jsontext.Value(bytes.Clone(canonical))
+	if err := reordered.Canonicalize(); err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Equal(reordered, canonical) {
+		t.Fatalf("member-order mutation = %q, want different order from %q", reordered, canonical)
+	}
+	empty := transferEvidenceFromFixture(t, transferEvidenceFixtureRequest{Provider: ProviderAmazonS3, Direction: DirectionDownload})
+	emptyDocument, err := empty.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	google := transferEvidenceFromFixture(t, transferEvidenceFixtureRequest{Provider: ProviderGoogleCloudStorage, Direction: DirectionUpload, Bytes: 1, Version: "42"})
+	googleDocument, err := google.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Run("positive strict receiver preserves every issuer fact", func(t *testing.T) {
 		t.Parallel()
-
-		cases := []transferEvidenceDocumentCase{
-			{name: "canonical issuer document", build: unchangedTransferEvidenceDocument},
-			{name: "leading json whitespace", build: func(value []byte) []byte { return append([]byte(" \n\t"), value...) }},
-			{name: "trailing json whitespace", build: func(value []byte) []byte { return append(append([]byte(nil), value...), ' ', '\n', '\t') }},
-			{name: "both-side json whitespace", build: func(value []byte) []byte { return append(append([]byte(" \n"), value...), '\n', ' ') }},
-			{name: "members reordered without changing facts", build: reorderedTransferEvidenceDocument},
-			{name: "zero bytes remain explicitly present", build: zeroByteTransferEvidenceDocument},
-			{name: "optional version absent", build: versionAbsentTransferEvidenceDocument},
-			{name: "one below document ceiling", build: func(value []byte) []byte {
-				return padTransferEvidenceDocument(value, TransferEvidenceJSONMaximumBytes-1)
-			}},
-			{name: "exact document ceiling", build: func(value []byte) []byte { return padTransferEvidenceDocument(value, TransferEvidenceJSONMaximumBytes) }},
-			{name: "google generation uses canonical decimal", build: googleTransferEvidenceDocument},
-		}
-		for _, tc := range cases {
+		for _, tc := range []struct {
+			name     string
+			document []byte
+			want     TransferEvidence
+		}{
+			{name: "canonical issuer document", document: canonical, want: before},
+			{name: "legal framing whitespace changes no fact", document: append(append([]byte(" \n\t"), canonical...), '\n', ' '), want: before},
+			{name: "member order changes no fact", document: reordered, want: before},
+			{name: "empty content retains actual empty digests", document: emptyDocument, want: empty},
+			{name: "omitting version changes only version", document: absentDocument, want: withoutVersion},
+			{name: "one below document ceiling retains every fact", document: padTransferEvidenceDocument(canonical, TransferEvidenceJSONMaximumBytes-1), want: before},
+			{name: "exact document ceiling retains every fact", document: padTransferEvidenceDocument(canonical, TransferEvidenceJSONMaximumBytes), want: before},
+			{name: "GCS generation retains provider and integrity", document: googleDocument, want: google},
+		} {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
-
-				document := tc.build(canonical)
 				var got TransferEvidence
-				gotErr := got.UnmarshalJSON(document)
-				if gotErr != nil || got.Validate() != nil {
-					t.Fatalf("TransferEvidence.UnmarshalJSON() = (%v, %v), want valid evidence and nil", got, gotErr)
+				gotErr := got.UnmarshalJSON(tc.document)
+				if gotErr != nil || got != tc.want || got.Validate() != nil {
+					t.Fatalf("decoded evidence=(%+v,%v), want exact issuer facts %+v", got, gotErr, tc.want)
 				}
 			})
 		}
@@ -373,7 +392,11 @@ func TestTransferEvidenceDecodeLayerTriad(t *testing.T) {
 				t.Parallel()
 
 				got := before
-				gotErr := got.UnmarshalJSON(tc.build(canonical))
+				document := tc.build(canonical)
+				if bytes.Equal(document, canonical) {
+					t.Fatalf("refusal mutation %s = %q, want changed input", tc.name, document)
+				}
+				gotErr := got.UnmarshalJSON(document)
 				if !errors.Is(gotErr, tc.wantErr) || got != before {
 					t.Fatalf("TransferEvidence.UnmarshalJSON() = (%v, %v), want preserved receiver and errors.Is %v", got, gotErr, tc.wantErr)
 				}
@@ -385,9 +408,9 @@ func TestTransferEvidenceDecodeLayerTriad(t *testing.T) {
 		t.Parallel()
 
 		var got TransferEvidence
-		gotErr := got.UnmarshalJSON(versionAbsentTransferEvidenceDocument(canonical))
+		gotErr := got.UnmarshalJSON(absentDocument)
 		gotVersion, gotPresent := got.Version()
-		if gotErr != nil || gotPresent || gotVersion != (ProviderVersion{}) {
+		if gotErr != nil || gotPresent || gotVersion != (ProviderVersion{}) || got != withoutVersion {
 			t.Fatalf("version-absent decode = (%v, %t, %v), want zero version, false, nil", gotVersion, gotPresent, gotErr)
 		}
 	})
@@ -423,6 +446,9 @@ func sealedTransferEvidenceFixture(t testing.TB, request transferEvidenceFixture
 		t.Fatalf("core.NewByteLength(%d) error = %v, want nil", request.Bytes, gotErr)
 	}
 	payload := []byte{byte(request.Bytes), byte(request.Bytes >> 8), byte(request.Bytes >> 16)}
+	if request.Bytes == 0 {
+		payload = nil
+	}
 	transfer := Transfer{
 		provider: request.Provider, direction: request.Direction, commitment: CommitmentConfirmed,
 		bytes: length, sha256: core.SHA256Of(payload),
@@ -466,29 +492,11 @@ func transferEvidenceRoundTrip(t testing.TB, projection TransferEvidenceProjecti
 	return verified, nil
 }
 
-func unchangedTransferEvidenceDocument(value []byte) []byte { return append([]byte(nil), value...) }
-
 func padTransferEvidenceDocument(value []byte, size int) []byte {
 	if len(value) >= size {
 		return append([]byte(nil), value...)
 	}
 	return append(append([]byte(nil), value...), bytes.Repeat([]byte{' '}, size-len(value))...)
-}
-
-func reorderedTransferEvidenceDocument([]byte) []byte {
-	return []byte(`{"crc32c":"AAAAAA==","sha256":"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f","bytes":1,"version":"version-1","direction":"download","provider":"amazon_s3"}`)
-}
-
-func zeroByteTransferEvidenceDocument([]byte) []byte {
-	return []byte(`{"provider":"amazon_s3","direction":"upload","bytes":0,"sha256":"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f","crc32c":"AAAAAA=="}`)
-}
-
-func versionAbsentTransferEvidenceDocument([]byte) []byte {
-	return zeroByteTransferEvidenceDocument(nil)
-}
-
-func googleTransferEvidenceDocument([]byte) []byte {
-	return []byte(`{"provider":"google_cloud_storage","direction":"upload","version":"42","bytes":1,"sha256":"000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f","crc32c":"AAAAAA=="}`)
 }
 
 func unknownMemberTransferEvidenceDocument(value []byte) []byte {
@@ -557,7 +565,16 @@ func overflowBytesTransferEvidenceDocument(value []byte) []byte {
 }
 
 func uppercaseSHA256TransferEvidenceDocument(value []byte) []byte {
-	return bytes.Replace(value, []byte(`"sha256":"`), []byte(`"sha256":"A`), 1)
+	result := bytes.Clone(value)
+	prefix := []byte(`"sha256":"`)
+	start := bytes.Index(result, prefix) + len(prefix)
+	for index := start; index < start+2*core.SHA256DigestBytes; index++ {
+		if result[index] >= 'a' && result[index] <= 'f' {
+			result[index] -= 'a' - 'A'
+			return result
+		}
+	}
+	return result
 }
 
 func invalidCRC32CTransferEvidenceDocument(value []byte) []byte {

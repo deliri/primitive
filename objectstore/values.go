@@ -354,6 +354,9 @@ func (i Integrity) Validate() error {
 	if err := i.CRC32C.Validate(); err != nil {
 		return errors.Join(core.ErrObjectStoreContract, err)
 	}
+	if i.Length.Uint64() == 0 && (i.SHA256 != core.SHA256Of(nil) || i.CRC32C != core.NewCRC32C(0)) {
+		return core.ErrObjectStoreIntegrity
+	}
 	return nil
 }
 
@@ -394,7 +397,7 @@ type UploadRequest struct {
 // is read. The selected provider entry point owns its capability and extent
 // rules.
 func (r UploadRequest) Validate() error {
-	if r.Source == nil {
+	if core.ReaderIsNil(r.Source) {
 		return errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreSource)
 	}
 	if err := r.Target.Validate(); err != nil {
@@ -448,7 +451,7 @@ type DownloadRequest struct {
 // provider call begins. The selected provider entry point owns its capability
 // and extent rules.
 func (r DownloadRequest) Validate() error {
-	if r.Destination == nil {
+	if core.WriterIsNil(r.Destination) {
 		return errors.Join(
 			core.ErrObjectStoreContract,
 			core.ErrObjectStoreDestination,

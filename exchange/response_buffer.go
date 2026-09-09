@@ -6,7 +6,6 @@ import (
 	"io"
 	"maps"
 	"net/http"
-	"reflect"
 	"strconv"
 	"strings"
 
@@ -278,16 +277,3 @@ func (b *responseBuffer) prepareRelease(destination http.Header, method string) 
 }
 
 var _ http.ResponseWriter = (*responseBuffer)(nil)
-
-func responseWriterIsNil(writer http.ResponseWriter) bool {
-	if writer == nil {
-		return true
-	}
-	value := reflect.ValueOf(writer)
-	switch value.Kind() {
-	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
-		return value.IsNil()
-	default:
-		return false
-	}
-}

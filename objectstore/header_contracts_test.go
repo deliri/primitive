@@ -1030,6 +1030,7 @@ func gcsHashHeaders(t testing.TB, values ...string) []exchange.Header {
 
 func BenchmarkGoogleCloudStorageDownloadCRC32CProviderProjection(b *testing.B) {
 	const encoded = "SUYRpg=="
+	want := core.NewCRC32C(0x494611a6)
 	headers := exchange.CapturedHeaders{Values: gcsHashHeaders(
 		b,
 		"md5=1B2M2Y8AsgTpgAmY7PhCfg==",
@@ -1040,12 +1041,12 @@ func BenchmarkGoogleCloudStorageDownloadCRC32CProviderProjection(b *testing.B) {
 
 	for b.Loop() {
 		got, gotPresent, gotErr := googleCloudStorageDownloadCRC32C(headers)
-		if gotErr != nil || !gotPresent || got == (core.CRC32C{}) {
+		if gotErr != nil || !gotPresent || got != want {
 			b.Fatalf(
-				"googleCloudStorageDownloadCRC32C() = (%v, %t, %v), want set checksum and nil",
+				"googleCloudStorageDownloadCRC32C() = (%v, %t, %v), want (%v, true, nil)",
 				got,
 				gotPresent,
-				gotErr,
+				gotErr, want,
 			)
 		}
 	}

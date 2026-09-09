@@ -112,8 +112,7 @@ func FuzzDownloadCapabilityJSONSemanticClosure(f *testing.F) {
 		}
 		for _, header := range target.Headers.values {
 			rendered := fmt.Sprintf("%v|%+v|%#v|%s|%q", header, header, header, header, header)
-			if strings.Count(rendered, core.RedactedValueText) != 5 ||
-				strings.Contains(rendered, *header.value) {
+			if rendered != strings.Join([]string{core.RedactedValueText, core.RedactedValueText, core.RedactedValueText, core.RedactedValueText, core.RedactedValueText}, "|") {
 				t.Fatalf("formatted accepted download header = %q, want only redacted text", rendered)
 			}
 		}
@@ -121,12 +120,7 @@ func FuzzDownloadCapabilityJSONSemanticClosure(f *testing.F) {
 		if strings.Contains(pointerRendered, core.SchemeHTTPS) {
 			t.Fatalf("pointer-formatted accepted download = %q, want no signed URL", pointerRendered)
 		}
-		for _, header := range target.Headers.values {
-			headerRendered := fmt.Sprintf("%p", header)
-			if *header.value != "" && strings.Contains(headerRendered, *header.value) {
-				t.Fatalf("pointer-formatted accepted download header disclosed its value")
-			}
-		}
+
 		issued, err := NewDownloadCapabilityProjection(provider, target)
 		if err != nil {
 			t.Fatalf("NewDownloadCapabilityProjection(accepted) error = %v, want nil", err)

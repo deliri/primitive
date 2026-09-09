@@ -2,11 +2,11 @@ package objectstore_test
 
 import (
 	"bytes"
-	"context"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/objectstore"
+	"github.com/zeebo/blake3"
 )
 
 func BenchmarkInspectThreeDigestsAcrossStreamExtents(b *testing.B) {
@@ -35,18 +35,18 @@ func benchmarkInspectThreeDigests(b *testing.B, size int) {
 	if err != nil {
 		b.Fatalf("core.NewByteCount(%d) setup error = %v, want nil", size, err)
 	}
+	want := objectstore.Inspection{Integrity: integrity(b, payload), BLAKE3: objectstore.NewBLAKE3Digest(blake3.Sum256(payload))}
+	if err := want.Validate(); err != nil {
+		b.Fatalf("inspection workload error = %v, want nil", err)
+	}
 	b.ReportAllocs()
 	b.SetBytes(int64(len(payload)))
-	b.ResetTimer()
-
-	var got objectstore.Inspection
-	var gotErr error
 	for b.Loop() {
-		got, gotErr = objectstore.Inspect(context.Background(), objectstore.InspectionRequest{
+		got, gotErr := objectstore.Inspect(b.Context(), objectstore.InspectionRequest{
 			Source: bytes.NewReader(payload), MaximumBytes: maximum,
 		})
-	}
-	if gotErr != nil || got.Validate() != nil {
-		b.Fatalf("objectstore.Inspect(%d bytes) = (%+v, %v), want validated and nil", size, got, gotErr)
+		if gotErr != nil || got != want {
+			b.Fatalf("Inspect(%d bytes) = (%+v, %v), want (%+v, nil)", size, got, gotErr, want)
+		}
 	}
 }

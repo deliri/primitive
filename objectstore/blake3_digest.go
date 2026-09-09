@@ -90,6 +90,9 @@ func (d *BLAKE3Digest) UnmarshalJSON(data []byte) error {
 	if d == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrObjectStoreContract, errors.New(blake3DigestNilReceiverDiagnostic))
 	}
+	if len(data) > core.JSONDocumentMaximumBytes {
+		return errors.Join(core.ErrJSONContract, core.ErrObjectStoreContract, core.ErrObjectStoreSize)
+	}
 	value, err := core.DecodeJSONStringToken(data)
 	if err != nil {
 		return errors.Join(core.ErrObjectStoreContract, err)

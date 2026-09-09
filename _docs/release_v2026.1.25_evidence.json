@@ -1,0 +1,114 @@
+{
+  "release": "v2026.1.25",
+  "authorization": "User supplied Grok review a3607ce4 with no issues and explicitly instructed bump, commit, push, then move execution to d@192.168.1.81.",
+  "verification_scope": "Retained Objectstore/Core/affected Exchange checks, eleven fuzz campaigns and two diagnostics, six before/after benchmark pairs, fresh Compass/Version tests. Full-module gates not repeated locally.",
+  "review": {
+    "path": "_docs/objectstore_review_20260908.md",
+    "bytes": 1083,
+    "sha256": "02d8bd14948cb0cbe7036e9eec020bf416d7b964c94453d5822fd988bcba8f91"
+  },
+  "package_reports": [
+    {
+      "path": "objectstore/upgrade_review.md",
+      "bytes": 17845,
+      "sha256": "d0782a0a57cc49f104c495ed8cb5682b3692bfca8350bdff282abcfa24e75d06"
+    },
+    {
+      "path": "objectstore/upgrade_evidence.json",
+      "bytes": 3341143,
+      "sha256": "10a6266152797a7f7ba22a30c0fc0bc079f14a26cc33d4c7a553c1723d1748ee"
+    },
+    {
+      "path": "objectstore/upgrade_benchmark_baseline.md",
+      "bytes": 2388,
+      "sha256": "d8300b773ed2e8bdb89c383674d4843caf2d2311d3d75de5a185abab919d0ced"
+    },
+    {
+      "path": "objectstore/upgrade_benchmark_after.md",
+      "bytes": 3425,
+      "sha256": "7bc38d8a3935d06a0cb7a816a1ce1c049b0be1f77479cb34a5583e2f1ecf2c44"
+    }
+  ],
+  "coordinate_check": {
+    "label": "release-v2026-1-25-coordinates",
+    "argv": [
+      "go",
+      "test",
+      "-json",
+      "-count=1",
+      "./compass",
+      "./version"
+    ],
+    "cwd": "/Users/d/code/primitive",
+    "revision": {
+      "argv": [
+        "git",
+        "rev-parse",
+        "HEAD"
+      ],
+      "exit_status": 0,
+      "stdout": "07e59437fc990fcd16d247f9a9c788cc3db214bc",
+      "stderr": ""
+    },
+    "tree": "dirty",
+    "toolchain": {
+      "argv": [
+        "go",
+        "version"
+      ],
+      "exit_status": 0,
+      "stdout": "go version go1.27.1 darwin/arm64",
+      "stderr": ""
+    },
+    "environment": {
+      "argv": [
+        "go",
+        "env",
+        "GOOS",
+        "GOARCH",
+        "GOEXPERIMENT",
+        "GOMAXPROCS",
+        "GOWORK",
+        "GOGC",
+        "GOMEMLIMIT",
+        "CGO_ENABLED"
+      ],
+      "exit_status": 0,
+      "stdout": "darwin\narm64\n\n\noff\n\n\n1",
+      "stderr": ""
+    },
+    "started": "2026-09-09T01:15:39.863151+00:00",
+    "ended": "2026-09-09T01:15:41.786091+00:00",
+    "elapsed_seconds": 1.2658521250123158,
+    "exit_status": 0,
+    "test_events": {
+      "pass": 72,
+      "fail": 0,
+      "skip": 0
+    },
+    "package_events": {
+      "pass": 2,
+      "fail": 0,
+      "skip": 0
+    },
+    "artifacts": [
+      {
+        "path": "objectstore/testdata/test-upgrade-20260908/release-v2026-1-25-coordinates.stdout.txt",
+        "bytes": 137363,
+        "sha256": "588b97ec37a7f058062d25bd7062a64ee844b9e2890dc7a8e16a8de634e00abe"
+      },
+      {
+        "path": "objectstore/testdata/test-upgrade-20260908/release-v2026-1-25-coordinates.stderr.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "objectstore/testdata/test-upgrade-20260908/release-v2026-1-25-coordinates.git-status.txt",
+        "bytes": 1596,
+        "sha256": "ed52fb71230303dbb1f93a19847da53cccd3e74b080246918255ca839574c83c"
+      }
+    ],
+    "sources_changed_during_run": [],
+    "complete_source_record": "objectstore/upgrade_evidence.json: run release-v2026-1-25-coordinates"
+  }
+}

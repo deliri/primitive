@@ -180,6 +180,9 @@ func (c *DownloadCapabilityCommitment) UnmarshalJSON(data []byte) error {
 	if c == nil {
 		return errors.Join(core.ErrObjectStoreContract, errors.New(downloadCommitmentReceiverNilDiagnostic))
 	}
+	if len(data) > core.JSONDocumentMaximumBytes {
+		return errors.Join(core.ErrJSONContract, core.ErrObjectStoreContract, core.ErrObjectStoreSize)
+	}
 	var digest core.SHA256Digest
 	if err := json.Unmarshal(data, &digest); err != nil {
 		return errors.Join(core.ErrObjectStoreContract, err)
