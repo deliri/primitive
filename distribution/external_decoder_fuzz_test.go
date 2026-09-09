@@ -2,6 +2,7 @@ package distribution_test
 
 import (
 	"bytes"
+	"encoding/json/jsontext"
 	"errors"
 	"testing"
 
@@ -11,7 +12,7 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
-const distributionFuzzMaximumBytes = 256 << 10
+const distributionFuzzMaximumBytes = distribution.ResponseDocumentJSONMaximumBytes
 
 type distributionExternalDoor[T comparable] struct {
 	Seed         T
@@ -23,37 +24,55 @@ type distributionExternalDoor[T comparable] struct {
 }
 
 func FuzzSigningDomainExternalDecoders(f *testing.F) {
-	for _, domain := range []distribution.SigningDomain{
+	domains := []distribution.SigningDomain{
 		distribution.SigningDomainPublicationRequestV1, distribution.SigningDomainPublicationGrantV1,
 		distribution.SigningDomainPublicationCompletionV1, distribution.SigningDomainUpdateRequestV1,
 		distribution.SigningDomainUpdateResponseV1, distribution.SigningDomainUpgradeRequestV1,
-		distribution.SigningDomainUpgradeGrantV1,
-	} {
+		distribution.SigningDomainUpgradeGrantV1}
+	var canonical [][]byte
+	for _, domain := range domains {
 		encoded, err := domain.MarshalJSON()
 		if err != nil {
-			f.Fatalf("SigningDomain.MarshalJSON(seed) error = %v, want nil", err)
+			f.Fatalf("MarshalJSON(seed)=%v, want nil", err)
 		}
+		canonical = append(canonical, encoded)
 		f.Add(encoded)
+		f.Add([]byte(domain.String()))
 	}
 	for _, data := range distributionHostileSeeds() {
 		f.Add(data)
 	}
 	f.Fuzz(func(t *testing.T, data []byte) {
-		candidate := distribution.SigningDomainUpdateRequestV1
-		before := candidate
-		decodeErr := candidate.UnmarshalJSON(data)
-		if decodeErr != nil {
-			if !errors.Is(decodeErr, core.ErrJSONContract) || !errors.Is(decodeErr, core.ErrDistributionContract) || candidate != before {
-				t.Fatalf("SigningDomain.UnmarshalJSON() = (%v, %v), want preserved %v and typed refusal", candidate, decodeErr, before)
+		wantText, wantJSON := distribution.SigningDomainUnknown, distribution.SigningDomainUnknown
+		for i, domain := range domains {
+			if string(data) == domain.String() {
+				wantText = domain
 			}
-			return
+			if bytes.Equal(data, canonical[i]) {
+				wantJSON = domain
+			}
 		}
-		parsed, parseErr := distribution.ParseSigningDomain(candidate.String())
-		encoded, marshalErr := candidate.MarshalJSON()
-		var roundTrip distribution.SigningDomain
-		roundTripErr := roundTrip.UnmarshalJSON(encoded)
-		if parseErr != nil || marshalErr != nil || roundTripErr != nil || parsed != candidate || roundTrip != candidate {
-			t.Fatalf("SigningDomain accepted closure = (%v, %v, %v, %v, %v), want exact", parsed, roundTrip, parseErr, marshalErr, roundTripErr)
+		parsed, parseErr := distribution.ParseSigningDomain(string(data))
+		textValue, textErr := distribution.SigningDomainUnknown.ParseCanonicalText(data)
+		wantErr := error(nil)
+		if wantText == distribution.SigningDomainUnknown {
+			wantErr = core.ErrDistributionContract
+		}
+		if parsed != wantText || textValue != wantText || !errors.Is(parseErr, wantErr) || !errors.Is(textErr, wantErr) {
+			t.Fatalf("text decoders=(%v,%v,%v,%v), want (%v,%v)", parsed, textValue, parseErr, textErr, wantText, wantErr)
+		}
+		for _, before := range []distribution.SigningDomain{distribution.SigningDomainUnknown, distribution.SigningDomainUpdateRequestV1} {
+			got := before
+			err := got.UnmarshalJSON(data)
+			want := wantJSON
+			wantErr := error(nil)
+			if wantJSON == distribution.SigningDomainUnknown {
+				want = before
+				wantErr = core.ErrJSONContract
+			}
+			if got != want || !errors.Is(err, wantErr) {
+				t.Fatalf("UnmarshalJSON()=(%v,%v), want (%v,%v)", got, err, want, wantErr)
+			}
 		}
 	})
 }
@@ -311,6 +330,9 @@ func FuzzUpgradeGrantDocumentExternalDecoder(f *testing.F) {
 
 func fuzzDistributionDoor[T comparable](f *testing.F, door distributionExternalDoor[T]) {
 	f.Helper()
+	if door.Seed == door.Mutation {
+		f.Fatalf("fuzz mutation=%v, want changed typed fact", door.Mutation)
+	}
 	canonical := mustDistributionProjection(f, door, door.Seed)
 	f.Add(canonical)
 	f.Add(mustDistributionProjection(f, door, door.Mutation))
@@ -325,12 +347,18 @@ func fuzzDistributionDoor[T comparable](f *testing.F, door distributionExternalD
 				t.Fatalf("distribution decoder refusal = (%v, preserved %t), want %v/%v and exact receiver",
 					decodeErr, candidate == door.Seed, core.ErrJSONContract, core.ErrDistributionContract)
 			}
+			if bytes.Equal(data, canonical) {
+				t.Fatalf("canonical seed refused=%v, want admission", decodeErr)
+			}
 			return
 		}
 		if err := door.Validate(candidate); err != nil {
 			t.Fatalf("accepted distribution value Validate() error = %v, want nil", err)
 		}
 		encoded := mustDistributionProjection(t, door, candidate)
+		if len(encoded) > distributionFuzzMaximumBytes || !distributionJSONFactsEqual(data, encoded) {
+			t.Fatalf("accepted JSON projection=%d bytes, want bounded exact input facts", len(encoded))
+		}
 		var roundTrip T
 		roundTripErr := door.Unmarshal(&roundTrip, encoded)
 		second := mustDistributionProjection(t, door, roundTrip)
@@ -390,7 +418,7 @@ func upgradeGrantExpectation(f upgradeExchangeFixture, d distribution.UpgradeGra
 
 func distributionHostileSeeds() [][]byte {
 	return [][]byte{
-		nil, {}, []byte("null"), []byte("{}"), []byte("[]"), []byte(`{"unknown":true}`),
+		nil, []byte("null"), []byte("{}"), []byte("[]"), []byte(`{"unknown":true}`),
 		[]byte(`{"payload":null}`), bytes.Repeat([]byte{' '}, distributionFuzzMaximumBytes+1),
 	}
 }
@@ -413,10 +441,23 @@ func fuzzPublicationGrantDocument(f *testing.F, fixture publicationExchangeFixtu
 		candidate := fixture.grantDocument
 		decodeErr := candidate.UnmarshalJSON(data)
 		if decodeErr != nil {
-			if !errors.Is(decodeErr, core.ErrJSONContract) || !samePublicationGrantDocument(candidate, fixture.grantDocument) {
+			if !errors.Is(decodeErr, core.ErrJSONContract) || !errors.Is(decodeErr, core.ErrDistributionContract) || !samePublicationGrantDocument(candidate, fixture.grantDocument) {
 				t.Fatalf("PublicationGrantDocument refusal = (%v, preserved %t), want typed and exact", decodeErr, samePublicationGrantDocument(candidate, fixture.grantDocument))
 			}
 			return
+		}
+
+		projection, projectionErr := publicationGrantProjectionFromDocument(candidate)
+		if projectionErr != nil {
+			t.Fatalf("accepted grant projection error=%v, want nil", projectionErr)
+		}
+		encoded, projectionErr := projection.MarshalJSON()
+		if projectionErr != nil || !distributionJSONFactsEqual(data, encoded) {
+			t.Fatalf("accepted grant projection=(%d,%v), want exact input facts", len(encoded), projectionErr)
+		}
+		var roundTrip distribution.PublicationGrantDocument
+		if err := roundTrip.UnmarshalJSON(encoded); err != nil || !samePublicationGrantDocument(roundTrip, candidate) {
+			t.Fatalf("grant round trip=%v, want exact capability set", err)
 		}
 		proof, verifyErr := distribution.VerifyPublicationGrant(distribution.PublicationGrantExpectation{
 			Document: candidate, Request: fixture.request, TrustedKeys: fixture.authorityKeys,
@@ -454,10 +495,23 @@ func fuzzUpgradeGrantDocument(f *testing.F, fixture upgradeExchangeFixture) {
 		candidate := fixture.grantDoc
 		decodeErr := candidate.UnmarshalJSON(data)
 		if decodeErr != nil {
-			if !errors.Is(decodeErr, core.ErrJSONContract) || !sameUpgradeGrantDocument(candidate, fixture.grantDoc) {
+			if !errors.Is(decodeErr, core.ErrJSONContract) || !errors.Is(decodeErr, core.ErrDistributionContract) || !sameUpgradeGrantDocument(candidate, fixture.grantDoc) {
 				t.Fatalf("UpgradeGrantDocument refusal = (%v, preserved %t), want typed and exact", decodeErr, sameUpgradeGrantDocument(candidate, fixture.grantDoc))
 			}
 			return
+		}
+
+		projection, projectionErr := upgradeGrantProjectionFromDocument(candidate)
+		if projectionErr != nil {
+			t.Fatalf("accepted grant projection error=%v, want nil", projectionErr)
+		}
+		encoded, projectionErr := projection.MarshalJSON()
+		if projectionErr != nil || !distributionJSONFactsEqual(data, encoded) {
+			t.Fatalf("accepted grant projection=(%d,%v), want exact input facts", len(encoded), projectionErr)
+		}
+		var roundTrip distribution.UpgradeGrantDocument
+		if err := roundTrip.UnmarshalJSON(encoded); err != nil || !sameUpgradeGrantDocument(roundTrip, candidate) {
+			t.Fatalf("grant round trip=%v, want exact capability", err)
 		}
 		proof, verifyErr := distribution.VerifyUpgradeGrant(upgradeGrantExpectation(fixture, candidate))
 		if err := distributionProofOracle(proof.Validate(), verifyErr, sameUpgradeGrantDocument(candidate, fixture.grantDoc)); err != nil {
@@ -491,4 +545,18 @@ func sameUpgradeGrantDocument(left, right distribution.UpgradeGrantDocument) boo
 	rightCommitment, rightErr := right.Capability.Commitment()
 	return leftErr == nil && rightErr == nil && leftCommitment == rightCommitment &&
 		left.Payload == right.Payload && left.Attestation == right.Attestation
+}
+
+// Compare JSON facts through Go jsontext without converting integers to float64.
+// This catches decoders that ignore or alter input while still round-tripping.
+func distributionJSONFactsEqual(left, right []byte) bool {
+	if len(left) > distributionFuzzMaximumBytes || len(right) > distributionFuzzMaximumBytes {
+		return false
+	}
+	a, b := jsontext.Value(bytes.Clone(left)), jsontext.Value(bytes.Clone(right))
+	options := []jsontext.Options{jsontext.ReorderRawObjects(true), jsontext.CanonicalizeRawInts(false), jsontext.CanonicalizeRawFloats(false)}
+	if a.Format(options...) != nil || b.Format(options...) != nil {
+		return false
+	}
+	return bytes.Equal(a, b)
 }

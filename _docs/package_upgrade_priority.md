@@ -1,15 +1,20 @@
 # Primitive upgrade priority — 2026-09-09
 
-Approved release: **v2026.1.34**. See [release notes](release_v2026.1.34.md),
+Approved release: **v2026.1.35**. See [release notes](release_v2026.1.35.md),
 [the reviewed ID report](id_upgrade_20260909.md), and
 [execution evidence](id_upgrade_20260909_evidence.json).
 The user approved the ID slice and moving to **Distribution** next.
+
+Distribution is approved for v2026.1.35; see
+[the Distribution review fixes](distribution_review_20260909.md). The scoped Deploy
+capability-evidence repair belongs to that review, while Deploy's full package
+sweep stays queued. Lineio is next.
 
 ## Completed slices and separate follow-ups
 
 Exclude these previously upgraded packages from the automatic remaining queue:
 Attest, AWSidentity, Capabilities, Exchange, Filestore, Temporal, Hostfacts,
-Process, Core, Contextstate, Controlwire, Keygen, Release, Objectstore, Chit, Controlplane, Shutdown, Currency, and ID.
+Process, Core, Contextstate, Controlwire, Keygen, Release, Objectstore, Chit, Controlplane, Shutdown, Currency, ID, and Distribution.
 Individual reports live with those packages or under `_docs`. The first three
 have September 6 upgrade reports. Exchange/Filestore were released in v2026.1.19;
 Temporal/Hostfacts in v2026.1.20; Process/Core were checkpointed in v2026.1.21;
@@ -121,7 +126,7 @@ pinned vendor version.
 The approved Tailnet integration is recorded separately from the original usage
 snapshot. Continue with the saved ranking after subtracting completed slices:
 
-`distribution`, `lineio`,
+`lineio`,
 `fuzzfinder`, `runprotocol`, `lease`, `retrieval`, `manual`, `receipt`, `payment`,
 `submission`, `compass`, `googleidentity`, `filelock`, `submissionauth`,
 `proofledger`, `runnercontrol`, `secretstore`, `version`, `chitauth`,
@@ -145,7 +150,7 @@ editing. Benchmark comparisons use declared, checked workloads and retain both
 CPU and memory profiles, binaries, commands and source bindings. Remaining known
 surfaces keep the package open. Follow the entire local testing protocol.
 
-The user approved the v2026.1.34 ID release. Each new slice retains
+The user approved the v2026.1.35 Distribution release. Each new slice retains
 the same package-by-package standards and requires review before commit.
 
 Then update Blink Kernel, Peachfuzz, Bug and Witness to that published version,

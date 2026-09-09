@@ -1,0 +1,69 @@
+{
+  "release": "v2026.1.35",
+  "authorization": "User: bump commit push and onto the next package",
+  "parent": "0c20d585dcf1912af14e8eab44811542761ce92a",
+  "reviewed_input_digest": "425d7c32c8af5beecc323e49330a45364e3b05f33caf1102e6e76504d0d392cd",
+  "reviewed_go_inputs_unchanged": true,
+  "reports": [
+    {
+      "path": "_docs/distribution_review_20260909.md",
+      "bytes": 11719,
+      "sha256": "e74e8ab44d4869177557ea530271d0f7e84b94a41eb088784251eb965e0f7649"
+    },
+    {
+      "path": "_docs/distribution_review_20260909_evidence.json",
+      "bytes": 1676727,
+      "sha256": "6806278b5afa972258c6fa439fe4acb2b0abab975ec7d579012e35b2819fd4f3"
+    }
+  ],
+  "coordinate_check": {
+    "args": [
+      "go",
+      "test",
+      "-json",
+      "-count=1",
+      "./compass",
+      "./version"
+    ],
+    "go": "go version go1.27.1 linux/amd64",
+    "environment": {
+      "GOWORK": "off",
+      "GOMAXPROCS": "8"
+    },
+    "exit": 0,
+    "counts": {
+      "pass": 74,
+      "fail": 0,
+      "skip": 0
+    },
+    "record": {
+      "path": "/home/d/engineering-evidence/primitive/distribution-review-20260909/release-v2026-1-35-coordinates/result.json",
+      "bytes": 777220,
+      "sha256": "1af073b2185779bb085f8cbd9aef04d48d1ebe79475598e415971ba9ee40ac21"
+    },
+    "artifacts": [
+      {
+        "path": "/home/d/engineering-evidence/primitive/distribution-review-20260909/release-v2026-1-35-coordinates/started.json",
+        "bytes": 774650,
+        "sha256": "2e058b071e8a39ec561225e9ff48d5bc95f5933fb9edc1756d3ff1ab7bd6e5e2"
+      },
+      {
+        "path": "/home/d/engineering-evidence/primitive/distribution-review-20260909/release-v2026-1-35-coordinates/source.patch",
+        "bytes": 64312,
+        "sha256": "47f3d4902ed7b1b64771800ce9ae850d6525e90a0c0c7b43b4fc3f2d99efca8a"
+      },
+      {
+        "path": "/home/d/engineering-evidence/primitive/distribution-review-20260909/release-v2026-1-35-coordinates/stdout",
+        "bytes": 139028,
+        "sha256": "de6512ede50306825b7062d3b0067e09d87b0632352d2ca00f9745525c2ddc00"
+      },
+      {
+        "path": "/home/d/engineering-evidence/primitive/distribution-review-20260909/release-v2026-1-35-coordinates/stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ]
+  },
+  "scope": "Reviewed Distribution and scoped Deploy repair. Only release coordinates retested. No full-module gates or consumer migration. Lineio next.",
+  "raw_artifacts": "Retained outside Git on Furnace."
+}

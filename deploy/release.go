@@ -36,7 +36,7 @@ type UploadItemRequest struct {
 }
 
 func (r UploadItemRequest) Validate() error {
-	if r.Source == nil {
+	if core.ReaderIsNil(r.Source) {
 		return contractError(errors.New("deploy upload source is nil"))
 	}
 	for _, err := range []error{
@@ -244,6 +244,10 @@ func (r Receipt) Validate() error {
 		r.transfer.Direction() != objectstore.DirectionUpload {
 		return contractError(errors.New("deploy receipt names the wrong transfer"))
 	}
+	capability, present := r.transfer.UploadCapability()
+	if !present || capability != r.commitment {
+		return contractError(errors.New("deploy receipt capability differs from its grant"))
+	}
 	return nil
 }
 
@@ -362,16 +366,12 @@ func (p ReleasePlan) uploadItem(
 	if err != nil {
 		return Receipt{}, err
 	}
-	target, err := item.capability.Target()
-	if err != nil {
-		return Receipt{}, contractError(err)
-	}
 	contentType, err := contentTypeForRole(item.role, p.manifest)
 	if err != nil {
 		return Receipt{}, err
 	}
-	transfer, err := objectstore.UploadGCS(ctx, client, objectstore.UploadRequest{
-		Source: item.source, Observer: item.observer, ContentType: contentType, Target: target,
+	transfer, err := objectstore.Upload(ctx, client, objectstore.UploadCapabilityRequest{
+		Source: item.source, Observer: item.observer, ContentType: contentType, Capability: item.capability,
 		Integrity: integrity, Policy: p.policy,
 	})
 	if err != nil {

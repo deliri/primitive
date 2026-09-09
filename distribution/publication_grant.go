@@ -115,7 +115,7 @@ func (p PublicationGrantPayload) MarshalJSON() ([]byte, error) {
 		return nil, jsonError(err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(publicationGrantPayloadWire(p))
-	if err != nil || len(encoded) > responsePayloadJSONMaximumBytes {
+	if err != nil || len(encoded) > ResponsePayloadJSONMaximumBytes {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -125,7 +125,7 @@ func (p *PublicationGrantPayload) UnmarshalJSON(data []byte) error {
 	if p == nil {
 		return jsonError(errors.New("publication grant payload receiver is nil"))
 	}
-	wire, err := decodeStrict[publicationGrantPayloadWire](data, responsePayloadJSONMaximumBytes)
+	wire, err := decodeStrict[publicationGrantPayloadWire](data, ResponsePayloadJSONMaximumBytes)
 	if err != nil {
 		return err
 	}
@@ -192,7 +192,7 @@ func (d *PublicationGrantDocument) UnmarshalJSON(data []byte) error {
 	if d == nil {
 		return jsonError(errors.New("publication grant document receiver is nil"))
 	}
-	wire, err := decodeStrict[publicationGrantDocumentWire](data, publicationGrantJSONMaximumBytes)
+	wire, err := decodeStrict[publicationGrantDocumentWire](data, ResponseDocumentJSONMaximumBytes)
 	if err != nil {
 		return err
 	}
@@ -222,7 +222,7 @@ func (p PublicationGrantProjection) MarshalJSON() ([]byte, error) {
 		return nil, jsonError(err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(publicationGrantProjectionWire(p))
-	if err != nil || len(encoded) > publicationGrantJSONMaximumBytes {
+	if err != nil || len(encoded) > ResponseDocumentJSONMaximumBytes {
 		return nil, jsonError(err)
 	}
 	return encoded, nil

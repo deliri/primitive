@@ -128,7 +128,7 @@ func (p PublicationCompletionPayload) MarshalJSON() ([]byte, error) {
 		return nil, jsonError(err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(publicationCompletionPayloadWire(p))
-	if err != nil || len(encoded) > publicationCompletionMaximumBytes {
+	if err != nil || len(encoded) > PublicationCompletionPayloadJSONMaximumBytes {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -138,7 +138,7 @@ func (p *PublicationCompletionPayload) UnmarshalJSON(data []byte) error {
 	if p == nil {
 		return jsonError(errors.New("publication completion payload receiver is nil"))
 	}
-	wire, err := decodeStrict[publicationCompletionPayloadWire](data, publicationCompletionMaximumBytes)
+	wire, err := decodeStrict[publicationCompletionPayloadWire](data, PublicationCompletionPayloadJSONMaximumBytes)
 	if err != nil {
 		return err
 	}
@@ -227,7 +227,7 @@ func (p publicationCompletionProjectionPayload) MarshalJSON() ([]byte, error) {
 		return nil, jsonError(err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(p.wire())
-	if err != nil || len(encoded) > publicationCompletionMaximumBytes {
+	if err != nil || len(encoded) > PublicationCompletionPayloadJSONMaximumBytes {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -386,7 +386,7 @@ func validatePublicationCompletionBinding(expectation PublicationCompletionExpec
 	if err != nil {
 		return err
 	}
-	return validatePublicationCompletionEvidenceSet(manifest, expectation.Document.Payload.Evidence)
+	return validatePublicationCompletionEvidenceSet(manifest, expectation.Document.Payload.Evidence, expectation.Grant.Commitments)
 }
 
 func validatePublicationCompletionIdentity(
@@ -434,8 +434,13 @@ func publicationCompletionManifestDiffers(
 func validatePublicationCompletionEvidenceSet(
 	manifest release.VerifiedManifest,
 	evidenceSet [release.PublicationObjectCount]objectstore.TransferEvidence,
+	commitments [release.PublicationObjectCount]objectstore.UploadCapabilityCommitment,
 ) error {
 	for index, evidence := range evidenceSet {
+		capability, present := evidence.UploadCapability()
+		if !present || capability != commitments[index] {
+			return bindingError(errors.New("publication completion evidence differs from granted capability"))
+		}
 		role, ok := release.PublicationRoleAt(index)
 		if !ok {
 			return contractError(errors.New("publication completion role slot is invalid"))

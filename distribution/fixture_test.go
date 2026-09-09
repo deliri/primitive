@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"strconv"
 	"testing"
-	"time"
 
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/controlwire"
@@ -284,34 +283,29 @@ func uploadCapabilityProjection(
 	rawURL := "https://storage.googleapis.com/bucket/object-" + strconv.Itoa(index) +
 		"?X-Goog-Signature=signature&X-Goog-SignedHeaders=" +
 		url.QueryEscape("host;x-goog-hash;x-goog-if-generation-match")
-	document := struct {
-		Provider  string `json:"provider"`
-		Method    string `json:"method"`
-		URL       string `json:"url"`
-		ExpiresAt int64  `json:"expires_at"`
-	}{
-		Provider: objectstore.ProviderGoogleCloudStorage.String(),
-		Method:   objectstore.UploadMethodTokenSignedPut, URL: rawURL,
-		ExpiresAt: time.Date(2035, time.January, 1, 0, 0, 0, 0, time.UTC).UnixNano(),
-	}
-	encoded, err := json.Marshal(document)
+
+	signedURL, err := objectstore.ParseSignedURL(rawURL)
 	if err != nil {
-		t.Fatalf("json.Marshal(upload capability) error = %v, want nil", err)
+		t.Fatalf("ParseSignedURL()=%v, want nil", err)
+	}
+	headers, err := objectstore.NewSignedHeaders(nil)
+	if err != nil {
+		t.Fatalf("NewSignedHeaders()=%v, want nil", err)
+	}
+	target := objectstore.UploadTarget{URL: signedURL, Headers: headers, ExpiresAt: temporal.InstantFromNanoseconds(2_051_222_400_000_000_000)}
+	projection, err := objectstore.NewUploadCapabilityProjection(objectstore.ProviderGoogleCloudStorage, target)
+	if err != nil {
+		t.Fatalf("NewUploadCapabilityProjection()=%v, want nil", err)
+	}
+	encoded, err := projection.MarshalJSON()
+	if err != nil {
+		t.Fatalf("UploadCapabilityProjection.MarshalJSON()=%v, want nil", err)
 	}
 	var capability objectstore.UploadCapability
-	if err := json.Unmarshal(encoded, &capability); err != nil {
-		t.Fatalf("json.Unmarshal(objectstore.UploadCapability) error = %v, want nil", err)
+	if err := capability.UnmarshalJSON(encoded); err != nil {
+		t.Fatalf("UploadCapability.UnmarshalJSON()=%v, want nil", err)
 	}
-	target, err := capability.Target()
-	if err != nil {
-		t.Fatalf("objectstore.UploadCapability.Target() error = %v, want nil", err)
-	}
-	projection, err := objectstore.NewUploadCapabilityProjection(
-		objectstore.ProviderGoogleCloudStorage, target,
-	)
-	if err != nil {
-		t.Fatalf("objectstore.NewUploadCapabilityProjection() error = %v, want nil", err)
-	}
+
 	return projection, capability
 }
 
@@ -322,34 +316,29 @@ func downloadCapabilityProjection(
 	t.Helper()
 	rawURL := "https://storage.googleapis.com/bucket/object-" + strconv.Itoa(index) +
 		"?X-Goog-Signature=signature&X-Goog-SignedHeaders=" + url.QueryEscape("host")
-	document := struct {
-		Provider  string `json:"provider"`
-		Method    string `json:"method"`
-		URL       string `json:"url"`
-		ExpiresAt int64  `json:"expires_at"`
-	}{
-		Provider: objectstore.ProviderGoogleCloudStorage.String(),
-		Method:   objectstore.DownloadMethodTokenSignedGet, URL: rawURL,
-		ExpiresAt: time.Date(2035, time.January, 1, 0, 0, 0, 0, time.UTC).UnixNano(),
-	}
-	encoded, err := json.Marshal(document)
+
+	signedURL, err := objectstore.ParseSignedURL(rawURL)
 	if err != nil {
-		t.Fatalf("json.Marshal(download capability) error = %v, want nil", err)
+		t.Fatalf("ParseSignedURL()=%v, want nil", err)
+	}
+	headers, err := objectstore.NewSignedHeaders(nil)
+	if err != nil {
+		t.Fatalf("NewSignedHeaders()=%v, want nil", err)
+	}
+	target := objectstore.DownloadTarget{URL: signedURL, Headers: headers, ExpiresAt: temporal.InstantFromNanoseconds(2_051_222_400_000_000_000)}
+	projection, err := objectstore.NewDownloadCapabilityProjection(objectstore.ProviderGoogleCloudStorage, target)
+	if err != nil {
+		t.Fatalf("NewDownloadCapabilityProjection()=%v, want nil", err)
+	}
+	encoded, err := projection.MarshalJSON()
+	if err != nil {
+		t.Fatalf("DownloadCapabilityProjection.MarshalJSON()=%v, want nil", err)
 	}
 	var capability objectstore.DownloadCapability
-	if err := json.Unmarshal(encoded, &capability); err != nil {
-		t.Fatalf("json.Unmarshal(objectstore.DownloadCapability) error = %v, want nil", err)
+	if err := capability.UnmarshalJSON(encoded); err != nil {
+		t.Fatalf("DownloadCapability.UnmarshalJSON()=%v, want nil", err)
 	}
-	target, err := capability.Target()
-	if err != nil {
-		t.Fatalf("objectstore.DownloadCapability.Target() error = %v, want nil", err)
-	}
-	projection, err := objectstore.NewDownloadCapabilityProjection(
-		objectstore.ProviderGoogleCloudStorage, target,
-	)
-	if err != nil {
-		t.Fatalf("objectstore.NewDownloadCapabilityProjection() error = %v, want nil", err)
-	}
+
 	return projection, capability
 }
 

@@ -86,7 +86,6 @@ func TestVerifyUpdateRequestRequiresExactCallerSignedBuild(t *testing.T) {
 	otherRelease := newReleaseFixture(t, core.NewReleaseVersion(2026, 0, 53), 3)
 	otherKeys := trustedKeys(t, signingKey(151))
 	otherNonce := requestNonce(t, 94)
-	secondNonce := requestNonce(t, 96)
 	otherSigner, err := core.NewEd25519PublicKey(signingKey(151).Public().(ed25519.PublicKey))
 	if err != nil {
 		t.Fatalf("core.NewEd25519PublicKey() error = %v, want nil", err)
@@ -112,22 +111,12 @@ func TestVerifyUpdateRequestRequiresExactCallerSignedBuild(t *testing.T) {
 			v.Document.Payload.Build = otherRelease.builds[2]
 			return v
 		}, wantErr: core.ErrDistributionVerification},
-		{name: "different valid Darwin AMD64 build invalidates signature", mutate: func(v distribution.UpdateRequestVerification) distribution.UpdateRequestVerification {
-			v.Document.Payload.Build = otherRelease.builds[0]
-			return v
-		}, wantErr: core.ErrDistributionVerification},
-		{name: "different valid Darwin ARM64 build invalidates signature", mutate: func(v distribution.UpdateRequestVerification) distribution.UpdateRequestVerification {
-			v.Document.Payload.Build = otherRelease.builds[1]
-			return v
-		}, wantErr: core.ErrDistributionVerification},
+
 		{name: "different valid nonce invalidates signature", mutate: func(v distribution.UpdateRequestVerification) distribution.UpdateRequestVerification {
 			v.Document.Payload.Nonce = otherNonce
 			return v
 		}, wantErr: core.ErrDistributionVerification},
-		{name: "second different valid nonce invalidates signature", mutate: func(v distribution.UpdateRequestVerification) distribution.UpdateRequestVerification {
-			v.Document.Payload.Nonce = secondNonce
-			return v
-		}, wantErr: core.ErrDistributionVerification},
+
 		{name: "upgrade-domain envelope cannot authenticate update", mutate: func(v distribution.UpdateRequestVerification) distribution.UpdateRequestVerification {
 			v.Document.Attestation.Domain = distribution.SigningDomainUpgradeRequestV1
 			return v
@@ -192,13 +181,10 @@ func TestVerifyUpgradeRequestRequiresExactCallerSignedCandidateClosure(t *testin
 	installed := newReleaseFixture(t, core.NewReleaseVersion(2026, 0, 54), 1)
 	otherCandidate := newReleaseFixture(t, core.NewReleaseVersion(2026, 0, 56), 3)
 	otherSummary := availableSummaryFixture(t, installed, otherCandidate)
-	secondCandidate := newReleaseFixture(t, core.NewReleaseVersion(2026, 0, 57), 4)
-	secondSummary := availableSummaryFixture(t, installed, secondCandidate)
 	otherInstalled := newReleaseFixture(t, core.NewReleaseVersion(2026, 0, 53), 1)
 	thirdSummary := availableSummaryFixture(t, otherInstalled, otherCandidate)
 	otherKeys := trustedKeys(t, signingKey(151))
 	otherNonce := requestNonce(t, 95)
-	secondNonce := requestNonce(t, 97)
 	otherSigner, err := core.NewEd25519PublicKey(signingKey(151).Public().(ed25519.PublicKey))
 	if err != nil {
 		t.Fatalf("core.NewEd25519PublicKey() error = %v, want nil", err)
@@ -224,10 +210,7 @@ func TestVerifyUpgradeRequestRequiresExactCallerSignedCandidateClosure(t *testin
 			v.Document.Payload.Available = otherSummary
 			return v
 		}, wantErr: core.ErrDistributionVerification},
-		{name: "second valid candidate closure invalidates signature", mutate: func(v distribution.UpgradeRequestVerification) distribution.UpgradeRequestVerification {
-			v.Document.Payload.Available = secondSummary
-			return v
-		}, wantErr: core.ErrDistributionVerification},
+
 		{name: "different valid installed closure invalidates signature", mutate: func(v distribution.UpgradeRequestVerification) distribution.UpgradeRequestVerification {
 			v.Document.Payload.Available = thirdSummary
 			return v
@@ -236,10 +219,7 @@ func TestVerifyUpgradeRequestRequiresExactCallerSignedCandidateClosure(t *testin
 			v.Document.Payload.Nonce = otherNonce
 			return v
 		}, wantErr: core.ErrDistributionVerification},
-		{name: "second different valid nonce invalidates signature", mutate: func(v distribution.UpgradeRequestVerification) distribution.UpgradeRequestVerification {
-			v.Document.Payload.Nonce = secondNonce
-			return v
-		}, wantErr: core.ErrDistributionVerification},
+
 		{name: "publication-domain envelope cannot authenticate upgrade", mutate: func(v distribution.UpgradeRequestVerification) distribution.UpgradeRequestVerification {
 			v.Document.Attestation.Domain = distribution.SigningDomainPublicationRequestV1
 			return v

@@ -84,7 +84,7 @@ func (p PublicationRequestPayload) MarshalJSON() ([]byte, error) {
 		return nil, jsonError(err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(publicationRequestPayloadWire(p))
-	if err != nil || len(encoded) > requestPayloadJSONMaximumBytes {
+	if err != nil || len(encoded) > RequestPayloadJSONMaximumBytes {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -94,7 +94,7 @@ func (p *PublicationRequestPayload) UnmarshalJSON(data []byte) error {
 	if p == nil {
 		return jsonError(errors.New("publication request payload receiver is nil"))
 	}
-	wire, err := decodeStrict[publicationRequestPayloadWire](data, requestPayloadJSONMaximumBytes)
+	wire, err := decodeStrict[publicationRequestPayloadWire](data, RequestPayloadJSONMaximumBytes)
 	if err != nil {
 		return err
 	}

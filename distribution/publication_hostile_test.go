@@ -357,57 +357,30 @@ func TestPublicationLayerTriadExecutesExactPlanAndReturnsURLFreeCompletion(t *te
 	}
 }
 
-func TestPublicationLayerTriadRejectsPartialReceiptsAndCrossManifestPlan(t *testing.T) {
+func TestPublicationCompletionRejectsEveryIncompletePrefix(t *testing.T) {
 	t.Parallel()
-
-	fixture := newPublicationExchangeFixture(t)
-	var sources [release.PublicationObjectCount]distribution.PublicationSource
-	for index, payload := range fixture.release.payloads {
-		sources[index] = distribution.PublicationSource{Reader: bytes.NewReader(payload)}
-	}
-	plan, err := distribution.PreparePublicationPlan(distribution.PublicationPlanRequest{
-		Grant: fixture.verifiedGrant, Manifest: fixture.release.manifest,
-		Sources: sources, Policy: objectstorePolicy(t),
-	})
-	if err != nil {
-		t.Fatalf("distribution.PreparePublicationPlan() error = %v, want nil", err)
-	}
-	transport := &publicationTransport{failAt: 3}
-	receipts, uploadErr := deploy.ReleaseGCS(
-		context.Background(), objectstoreClient(t, transport), plan,
-	)
-	if !errors.Is(uploadErr, core.ErrDeployContract) || !errors.Is(uploadErr, core.ErrObjectStoreContract) ||
-		!errors.Is(uploadErr, core.ErrExchangeTransport) || receipts.Count() != 3 || transport.count() != 4 {
-		t.Fatalf("deploy.ReleaseGCS(partial) = receipts %d requests %d error %v, want 3, 4, errors.Is %v, %v, and %v",
-			receipts.Count(), transport.count(), uploadErr, core.ErrDeployContract,
-			core.ErrObjectStoreContract, core.ErrExchangeTransport)
-	}
-	_, err = distribution.IssuePublicationCompletion(
-		distribution.PublicationCompletionIssuance{
-			Signer: fixture.callerKey, Request: fixture.verifiedRequest,
-			Grant: fixture.verifiedGrant, Receipts: receipts,
-		},
-	)
-	if !errors.Is(err, core.ErrDistributionContract) {
-		t.Fatalf("distribution.IssuePublicationCompletion(partial) error = %v, want %v", err, core.ErrDistributionContract)
-	}
-
-	other := newReleaseFixture(t, core.NewReleaseVersion(2026, 0, 56), 3)
-	_, err = distribution.PreparePublicationPlan(distribution.PublicationPlanRequest{
-		Grant: fixture.verifiedGrant, Manifest: other.manifest,
-		Sources: sources, Policy: objectstorePolicy(t),
-	})
-	if !errors.Is(err, core.ErrDistributionBinding) {
-		t.Fatalf("distribution.PreparePublicationPlan(cross manifest) error = %v, want %v", err, core.ErrDistributionBinding)
-	}
-
-	var emptySources [release.PublicationObjectCount]distribution.PublicationSource
-	_, err = distribution.PreparePublicationPlan(distribution.PublicationPlanRequest{
-		Grant: fixture.verifiedGrant, Manifest: fixture.release.manifest,
-		Sources: emptySources, Policy: objectstorePolicy(t),
-	})
-	if !errors.Is(err, core.ErrDistributionContract) {
-		t.Fatalf("distribution.PreparePublicationPlan(no sources) error = %v, want %v", err, core.ErrDistributionContract)
+	f := newPublicationExchangeFixture(t)
+	for failAt := range release.PublicationObjectCount {
+		t.Run("failed "+release.PublicationRole(failAt+1).String(), func(t *testing.T) {
+			t.Parallel()
+			var sources [release.PublicationObjectCount]distribution.PublicationSource
+			for i, payload := range f.release.payloads {
+				sources[i].Reader = bytes.NewReader(payload)
+			}
+			plan, err := distribution.PreparePublicationPlan(distribution.PublicationPlanRequest{Grant: f.verifiedGrant, Manifest: f.release.manifest, Sources: sources, Policy: objectstorePolicy(t)})
+			if err != nil {
+				t.Fatalf("PreparePublicationPlan()=%v, want nil", err)
+			}
+			transport := &publicationTransport{failAt: failAt}
+			receipts, err := deploy.ReleaseGCS(t.Context(), objectstoreClient(t, transport), plan)
+			if !errors.Is(err, core.ErrExchangeTransport) || receipts.Count() != failAt || transport.count() != failAt+1 {
+				t.Fatalf("ReleaseGCS()=(%d,%d,%v), want (%d,%d,typed transport refusal)", receipts.Count(), transport.count(), err, failAt, failAt+1)
+			}
+			got, err := distribution.IssuePublicationCompletion(distribution.PublicationCompletionIssuance{Signer: f.callerKey, Request: f.verifiedRequest, Grant: f.verifiedGrant, Receipts: receipts})
+			if !errors.Is(err, core.ErrDistributionContract) || got != (distribution.PublicationCompletionProjection{}) {
+				t.Fatalf("IssuePublicationCompletion()=(%v,%v), want zero and %v", got, err, core.ErrDistributionContract)
+			}
+		})
 	}
 }
 

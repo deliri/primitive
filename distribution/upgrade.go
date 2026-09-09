@@ -10,6 +10,7 @@ import (
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/filestore"
 	"github.com/deliri/primitive/v2026/objectstore"
 	"github.com/deliri/primitive/v2026/release"
 	"github.com/deliri/primitive/v2026/temporal"
@@ -140,7 +141,7 @@ func (p UpgradeRequestPayload) MarshalJSON() ([]byte, error) {
 		return nil, jsonError(err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(upgradeRequestPayloadWire(p))
-	if err != nil || len(encoded) > requestPayloadJSONMaximumBytes {
+	if err != nil || len(encoded) > RequestPayloadJSONMaximumBytes {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -150,7 +151,7 @@ func (p *UpgradeRequestPayload) UnmarshalJSON(data []byte) error {
 	if p == nil {
 		return jsonError(errors.New("upgrade request payload receiver is nil"))
 	}
-	wire, err := decodeStrict[upgradeRequestPayloadWire](data, requestPayloadJSONMaximumBytes)
+	wire, err := decodeStrict[upgradeRequestPayloadWire](data, RequestPayloadJSONMaximumBytes)
 	if err != nil {
 		return err
 	}
@@ -284,7 +285,7 @@ func (p UpgradeGrantPayload) MarshalJSON() ([]byte, error) {
 		return nil, jsonError(err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(upgradeGrantPayloadWire(p))
-	if err != nil || len(encoded) > responsePayloadJSONMaximumBytes {
+	if err != nil || len(encoded) > ResponsePayloadJSONMaximumBytes {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -294,7 +295,7 @@ func (p *UpgradeGrantPayload) UnmarshalJSON(data []byte) error {
 	if p == nil {
 		return jsonError(errors.New("upgrade grant payload receiver is nil"))
 	}
-	wire, err := decodeStrict[upgradeGrantPayloadWire](data, responsePayloadJSONMaximumBytes)
+	wire, err := decodeStrict[upgradeGrantPayloadWire](data, ResponsePayloadJSONMaximumBytes)
 	if err != nil {
 		return err
 	}
@@ -477,8 +478,8 @@ func (r UpgradeStageRequest) Validate() error {
 	); err != nil {
 		return contractError(err)
 	}
-	if r.Root == nil {
-		return contractError(errors.New("upgrade stage root is nil"))
+	if err := filestore.ValidateRootIdentity(r.Root, r.Directory); err != nil {
+		return contractError(err)
 	}
 	request, err := r.Grant.Request()
 	if err != nil {
@@ -507,7 +508,10 @@ func PrepareUpgradeStage(request UpgradeStageRequest) (upgrade.StageRequest, err
 		Root: request.Root, Directory: request.Directory,
 		Source: source, Prepared: request.Prepared,
 	}
-	return stage, stage.Validate()
+	if err := stage.Validate(); err != nil {
+		return upgrade.StageRequest{}, contractError(err)
+	}
+	return stage, nil
 }
 
 var (

@@ -7,6 +7,9 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
+// SigningDomainJSONMaximumBytes bounds the longest canonical closed-domain token.
+const SigningDomainJSONMaximumBytes = len(SigningDomainPublicationCompletionV1Token) + len("\"\"")
+
 const signingDomainNonCanonicalDiagnostic = "distribution signing domain is not canonical"
 
 const (
@@ -57,15 +60,19 @@ func (d SigningDomain) Validate() error {
 func (d SigningDomain) IsValid() bool { return d.Validate() == nil }
 
 func (d SigningDomain) String() string {
-	if !d.IsValid() {
+	if d <= SigningDomainUnknown || d >= signingDomainLimit {
 		return ""
 	}
 	return signingDomainTokens()[d]
 }
 
 func ParseSigningDomain(value string) (SigningDomain, error) {
+	if value == "" {
+		return SigningDomainUnknown, contractError(errors.New("distribution signing domain is empty"))
+	}
+	tokens := signingDomainTokens()
 	for candidate := SigningDomainUnknown + 1; candidate < signingDomainLimit; candidate++ {
-		if candidate.String() == value {
+		if tokens[candidate] == value {
 			return candidate, nil
 		}
 	}
@@ -80,15 +87,7 @@ func (d SigningDomain) MarshalText() ([]byte, error) {
 }
 
 func (SigningDomain) ParseCanonicalText(text []byte) (SigningDomain, error) {
-	parsed, err := ParseSigningDomain(string(text))
-	if err != nil {
-		return SigningDomainUnknown, err
-	}
-	canonical, _ := parsed.MarshalText()
-	if string(canonical) != string(text) {
-		return SigningDomainUnknown, contractError(errors.New(signingDomainNonCanonicalDiagnostic))
-	}
-	return parsed, nil
+	return ParseSigningDomain(string(text))
 }
 
 func (d SigningDomain) MarshalJSON() ([]byte, error) {
@@ -102,6 +101,9 @@ func (d *SigningDomain) UnmarshalJSON(data []byte) error {
 	if d == nil {
 		return jsonError(errors.New("distribution signing domain receiver is nil"))
 	}
+	if len(data) > SigningDomainJSONMaximumBytes {
+		return jsonError(errors.New("distribution signing domain exceeds JSON byte limit"))
+	}
 	value, err := core.DecodeJSONStringToken(data)
 	if err != nil {
 		return jsonError(err)
@@ -110,9 +112,8 @@ func (d *SigningDomain) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return jsonError(err)
 	}
-	canonical, marshalErr := json.Marshal(value)
-	if marshalErr != nil || string(canonical) != string(data) {
-		return jsonError(errors.New(signingDomainNonCanonicalDiagnostic), marshalErr)
+	if len(data) != len(value)+2 || data[0] != '"' || data[len(data)-1] != '"' || string(data[1:len(data)-1]) != value {
+		return jsonError(errors.New(signingDomainNonCanonicalDiagnostic))
 	}
 	*d = parsed
 	return nil

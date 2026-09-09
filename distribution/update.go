@@ -117,7 +117,7 @@ func (p UpdateRequestPayload) MarshalJSON() ([]byte, error) {
 		return nil, jsonError(err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(updateRequestPayloadWire(p))
-	if err != nil || len(encoded) > requestPayloadJSONMaximumBytes {
+	if err != nil || len(encoded) > RequestPayloadJSONMaximumBytes {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -127,7 +127,7 @@ func (p *UpdateRequestPayload) UnmarshalJSON(data []byte) error {
 	if p == nil {
 		return jsonError(errors.New("update request payload receiver is nil"))
 	}
-	wire, err := decodeStrict[updateRequestPayloadWire](data, requestPayloadJSONMaximumBytes)
+	wire, err := decodeStrict[updateRequestPayloadWire](data, RequestPayloadJSONMaximumBytes)
 	if err != nil {
 		return err
 	}
@@ -260,7 +260,7 @@ func (p UpdateResponsePayload) MarshalJSON() ([]byte, error) {
 		return nil, jsonError(err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(updateResponsePayloadWire(p))
-	if err != nil || len(encoded) > responsePayloadJSONMaximumBytes {
+	if err != nil || len(encoded) > ResponsePayloadJSONMaximumBytes {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -270,7 +270,7 @@ func (p *UpdateResponsePayload) UnmarshalJSON(data []byte) error {
 	if p == nil {
 		return jsonError(errors.New("update response payload receiver is nil"))
 	}
-	wire, err := decodeStrict[updateResponsePayloadWire](data, responsePayloadJSONMaximumBytes)
+	wire, err := decodeStrict[updateResponsePayloadWire](data, ResponsePayloadJSONMaximumBytes)
 	if err != nil {
 		return err
 	}

@@ -9,16 +9,15 @@ import (
 )
 
 const (
-	requestPayloadJSONMaximumBytes = 96 << 10
+	RequestPayloadJSONMaximumBytes = 96 << 10
 	// RequestDocumentJSONMaximumBytes bounds every signed Distribution request.
 	RequestDocumentJSONMaximumBytes = 128 << 10
-	responsePayloadJSONMaximumBytes = 128 << 10
+	ResponsePayloadJSONMaximumBytes = 128 << 10
 	// ResponseDocumentJSONMaximumBytes is the transport ceiling shared by all
 	// signed distribution responses and grants.
-	ResponseDocumentJSONMaximumBytes       = 256 << 10
-	publicationGrantJSONMaximumBytes       = 256 << 10
-	publicationCompletionMaximumBytes      = 128 << 10
-	documentCommitmentFrameSeparator  byte = 0
+	ResponseDocumentJSONMaximumBytes                  = 256 << 10
+	PublicationCompletionPayloadJSONMaximumBytes      = 128 << 10
+	documentCommitmentFrameSeparator             byte = 0
 )
 
 func decodeStrict[T any](data []byte, maximum uint64) (T, error) {
@@ -37,7 +36,7 @@ func decodeStrict[T any](data []byte, maximum uint64) (T, error) {
 }
 
 func writeCanonical(destination io.Writer, encoded []byte) error {
-	if destination == nil {
+	if core.WriterIsNil(destination) {
 		return contractError(errors.New("canonical destination is nil"))
 	}
 	written, err := destination.Write(encoded)

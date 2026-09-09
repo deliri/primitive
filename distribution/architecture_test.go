@@ -1,16 +1,19 @@
 package distribution
 
 import (
+	"embed"
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"os"
 	"slices"
 	"strings"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
 )
+
+//go:embed *.go
+var distributionSources embed.FS
 
 type (
 	protocolFact[T any]      struct{}
@@ -140,7 +143,7 @@ func distributionProductionStructNames() ([]string, error) {
 	set := token.NewFileSet()
 	var names []string
 	for _, name := range files {
-		file, err := parser.ParseFile(set, name, nil, parser.SkipObjectResolution)
+		file, err := distributionParseSource(set, name)
 		if err != nil {
 			return nil, err
 		}
@@ -163,7 +166,7 @@ func distributionProductionStructNames() ([]string, error) {
 
 func distributionInventoryStructNames() ([]string, error) {
 	set := token.NewFileSet()
-	file, err := parser.ParseFile(set, "architecture_test.go", nil, parser.SkipObjectResolution)
+	file, err := distributionParseSource(set, "architecture_test.go")
 	if err != nil {
 		return nil, err
 	}
@@ -199,7 +202,7 @@ func distributionExportedFunctionNames() ([]string, error) {
 	set := token.NewFileSet()
 	var names []string
 	for _, name := range files {
-		file, err := parser.ParseFile(set, name, nil, parser.SkipObjectResolution)
+		file, err := distributionParseSource(set, name)
 		if err != nil {
 			return nil, err
 		}
@@ -215,7 +218,7 @@ func distributionExportedFunctionNames() ([]string, error) {
 }
 
 func distributionProductionFiles() ([]string, error) {
-	entries, err := os.ReadDir(".")
+	entries, err := distributionSources.ReadDir(".")
 	if err != nil {
 		return nil, err
 	}
@@ -228,4 +231,12 @@ func distributionProductionFiles() ([]string, error) {
 	}
 	slices.Sort(names)
 	return names, nil
+}
+
+func distributionParseSource(set *token.FileSet, name string) (*ast.File, error) {
+	data, err := distributionSources.ReadFile(name)
+	if err != nil {
+		return nil, err
+	}
+	return parser.ParseFile(set, name, data, parser.SkipObjectResolution)
 }

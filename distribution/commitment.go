@@ -22,14 +22,19 @@ type requestCommitmentWire struct {
 	Digest *core.SHA256Digest `json:"sha256"`
 }
 
+// RequestPayload is the closed set of request bodies this protocol can commit.
+// Values carry their bounds and canonical writer; arbitrary callback bodies
+// cannot introduce another protocol or an unbounded writer at this boundary.
+type RequestPayload interface {
+	PublicationRequestPayload | UpdateRequestPayload | UpgradeRequestPayload
+	attest.CanonicalBody[SigningDomain]
+}
+
 // CommitRequest streams one canonical payload into its protocol-specific
 // commitment frame.
-func CommitRequest(body attest.CanonicalBody[SigningDomain]) (RequestCommitment, error) {
-	if body == nil {
-		return RequestCommitment{}, contractError(errors.New("distribution commitment body is nil"))
-	}
+func CommitRequest[T RequestPayload](body T) (RequestCommitment, error) {
 	domain := body.AttestationDomain()
-	if err := domain.Validate(); err != nil {
+	if err := validateRequestDomain(domain); err != nil {
 		return RequestCommitment{}, contractError(err)
 	}
 	digest := core.NewDigestWriter()
@@ -59,7 +64,7 @@ func newRequestCommitment(domain SigningDomain, digest core.SHA256Digest) (Reque
 
 // Validate rejects an unset domain or all-zero digest.
 func (c RequestCommitment) Validate() error {
-	if err := errors.Join(c.domain.Validate(), c.digest.Validate()); err != nil {
+	if err := errors.Join(validateRequestDomain(c.domain), c.digest.Validate()); err != nil {
 		return contractError(err)
 	}
 	raw, err := c.digest.Bytes()
@@ -100,7 +105,7 @@ func (c *RequestCommitment) UnmarshalJSON(data []byte) error {
 	if c == nil {
 		return jsonError(errors.New("distribution request commitment receiver is nil"))
 	}
-	wire, err := decodeStrict[requestCommitmentWire](data, requestPayloadJSONMaximumBytes)
+	wire, err := decodeStrict[requestCommitmentWire](data, RequestPayloadJSONMaximumBytes)
 	if err != nil {
 		return err
 	}
@@ -120,3 +125,12 @@ var (
 	_ core.ValidatedJSONMarshaler = RequestCommitment{}
 	_ json.Unmarshaler            = (*RequestCommitment)(nil)
 )
+
+func validateRequestDomain(domain SigningDomain) error {
+	switch domain {
+	case SigningDomainPublicationRequestV1, SigningDomainUpdateRequestV1, SigningDomainUpgradeRequestV1:
+		return domain.Validate()
+	default:
+		return contractError(errors.New("request commitment domain is not a request"))
+	}
+}

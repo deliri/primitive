@@ -17,7 +17,7 @@ type PublicationSource struct {
 }
 
 func (s PublicationSource) Validate() error {
-	if s.Reader == nil {
+	if core.ReaderIsNil(s.Reader) {
 		return contractError(errors.New("publication source is nil"))
 	}
 	return nil

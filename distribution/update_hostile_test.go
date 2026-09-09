@@ -4,7 +4,6 @@ import (
 	json "encoding/json/v2"
 	"errors"
 	"testing"
-	"time"
 
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/controlwire"
@@ -99,49 +98,48 @@ func newUpdateExchangeFixture(t testing.TB) updateExchangeFixture {
 
 func TestUpdateExchangeLayerTriadAuthenticatesLatestWithoutInstallingAnything(t *testing.T) {
 	t.Parallel()
-
-	fixture := newUpdateExchangeFixture(t)
-	verification := distribution.UpdateResponseVerification{
-		Request: fixture.request, Document: fixture.responseDoc,
-		ResponseKeys: fixture.authorityKeys, LatestKeys: fixture.releaseKeys,
-		ManifestKeys: fixture.releaseKeys, ExpectedOffering: distributionOffering(t, 1),
-		ObservedAt: temporal.InstantFromNanoseconds(3_000),
+	f := newUpdateExchangeFixture(t)
+	cases := []struct {
+		name     string
+		request  distribution.UpdateRequestPayload
+		document distribution.UpdateResponseDocument
+		wantErr  error
+	}{
+		{name: "positive exact signed manifests", request: f.request, document: f.responseDoc},
+		{name: "negative another request nonce", request: distribution.UpdateRequestPayload{Build: f.request.Build, Nonce: requestNonce(t, 12), Revision: f.request.Revision}, document: f.responseDoc, wantErr: core.ErrDistributionBinding},
+		{name: "neutral absent response yields no manifest proof", request: f.request, wantErr: core.ErrDistributionVerification},
 	}
-	verified, err := distribution.VerifyUpdateResponse(verification)
-	if err != nil {
-		t.Fatalf("distribution.VerifyUpdateResponse() error = %v, want nil", err)
-	}
-	latest, err := verified.Latest()
-	if err != nil || latest.Document() != fixture.latest.Document() {
-		t.Fatalf("VerifiedUpdateResponse.Latest() = (%v, %v), want exact authenticated Latest", latest, err)
-	}
-	installed, err := verified.Installed()
-	if err != nil || installed.Document() != fixture.installed.Document() {
-		t.Fatalf("VerifiedUpdateResponse.Installed() = (%v, %v), want exact authenticated installed manifest", installed, err)
-	}
-	assessment, err := release.AssessLatest(release.AssessLatestRequest{
-		Latest: latest, Time: distributionLatestTimeEvidence(t, 3_000),
-	})
-	if err != nil || assessment.Freshness() != release.LatestFreshnessCurrent {
-		t.Fatalf("release.AssessLatest(update result) = (%v, %v), want current", assessment.Freshness(), err)
-	}
-
-	otherRequest := fixture.request
-	otherRequest.Nonce = requestNonce(t, 12)
-	verification.Request = otherRequest
-	if _, err := distribution.VerifyUpdateResponse(verification); !errors.Is(err, core.ErrDistributionBinding) {
-		t.Fatalf("distribution.VerifyUpdateResponse(other request) error = %v, want %v", err, core.ErrDistributionBinding)
-	}
-
-	if gotErr := (distribution.VerifiedUpdateResponse{}).Validate(); !errors.Is(gotErr, core.ErrDistributionVerification) {
-		t.Fatalf("distribution.VerifiedUpdateResponse{}.Validate() error = %v, want %v", gotErr, core.ErrDistributionVerification)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			input := updateResponseVerification(f, tc.document)
+			input.Request = tc.request
+			got, err := distribution.VerifyUpdateResponse(input)
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("VerifyUpdateResponse()=%v, want %v", err, tc.wantErr)
+			}
+			installed, installedErr := got.Installed()
+			latest, latestErr := got.Latest()
+			if tc.wantErr != nil {
+				if got != (distribution.VerifiedUpdateResponse{}) || installed != (release.VerifiedManifest{}) || latest != (release.VerifiedLatest{}) ||
+					!errors.Is(installedErr, core.ErrDistributionVerification) || !errors.Is(latestErr, core.ErrDistributionVerification) {
+					t.Fatalf("refused projection=(%v,%v,%v), want zero proofs and typed accessor refusal", got, installedErr, latestErr)
+				}
+			} else if installedErr != nil || latestErr != nil || installed.Document() != f.installed.Document() || latest.Document() != f.latest.Document() {
+				t.Fatalf("manifest projection=(%v,%v), want exact authenticated installed and latest", installedErr, latestErr)
+			}
+		})
 	}
 }
 
 func distributionLatestTimeEvidence(t testing.TB, nanoseconds int64) release.LatestTimeEvidence {
 	t.Helper()
 
-	observation, err := temporal.NewObservation(time.Unix(0, nanoseconds).UTC())
+	instant, err := temporal.InstantFromNanoseconds(nanoseconds).Time()
+	if err != nil {
+		t.Fatalf("Instant.Time()=%v, want nil", err)
+	}
+	observation, err := temporal.NewObservation(instant)
 	if err != nil {
 		t.Fatalf("temporal.NewObservation(%d) error = %v, want nil", nanoseconds, err)
 	}
