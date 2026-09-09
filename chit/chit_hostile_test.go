@@ -48,54 +48,8 @@ type chitDerivedEntryFixtureRequest struct {
 	Marker   byte
 }
 
-func TestManifestAccumulatorLayerTriad(t *testing.T) {
+func TestManifestAccumulatorRefusalAndTerminalTable(t *testing.T) {
 	t.Parallel()
-
-	t.Run("positive contiguous authenticated streams seal exact summaries", func(t *testing.T) {
-		t.Parallel()
-
-		cases := []struct {
-			name    string
-			objects uint64
-		}{
-			{name: "one object minimum stream", objects: 1},
-			{name: "two object stream", objects: 2},
-			{name: "three object stream", objects: 3},
-			{name: "four object stream", objects: 4},
-			{name: "five object stream", objects: 5},
-			{name: "seven object stream", objects: 7},
-			{name: "eight object stream", objects: 8},
-			{name: "ten object stream", objects: 10},
-			{name: "sixteen object stream", objects: 16},
-			{name: "thirty-two object stream", objects: 32},
-		}
-		for _, tc := range cases {
-			t.Run(tc.name, func(t *testing.T) {
-				t.Parallel()
-
-				fixture := newChitFixture(t, byte(tc.objects)+0x20, 1)
-				accumulator := NewManifestAccumulator()
-				if gotErr := accumulator.Add(fixture.addition); gotErr != nil {
-					t.Fatalf("ManifestAccumulator.Add(sequence 1) error = %v, want nil", gotErr)
-				}
-				for sequence := uint64(2); sequence <= tc.objects; sequence++ {
-					addition := chitManifestEntryFixture(t, chitDerivedEntryFixtureRequest{
-						Fixture: fixture, Marker: byte(sequence) + 0x40,
-						Sequence: sequence, Name: chitFixtureNameB,
-					})
-					if gotErr := accumulator.Add(addition); gotErr != nil {
-						t.Fatalf("ManifestAccumulator.Add(sequence %d) error = %v, want nil", sequence, gotErr)
-					}
-				}
-				got, gotErr := accumulator.Seal()
-				if gotErr != nil || got.Validate() != nil || got.Objects.Uint64() != tc.objects ||
-					got.TotalBytes.Uint64() != tc.objects {
-					t.Fatalf("ManifestAccumulator.Seal(%d objects) = (%v, %v), want exact %d-object/%d-byte summary",
-						tc.objects, got, gotErr, tc.objects, tc.objects)
-				}
-			})
-		}
-	})
 
 	t.Run("negative gaps substitutions overflow and terminal reuse fail loudly", func(t *testing.T) {
 		t.Parallel()
@@ -171,29 +125,6 @@ func TestManifestAccumulatorLayerTriad(t *testing.T) {
 			})
 		}
 
-		t.Run("total extent overflow leaves prior fold sealable", func(t *testing.T) {
-			t.Parallel()
-
-			maximum := mustChitByteLength(t, math.MaxInt64)
-			large := chitEvidenceEntryFixture(t, chitEntryFixtureRequest{
-				Private: fixture.private, Trusted: fixture.trusted, Scope: fixture.scope,
-				Marker: 0x51, Sequence: 1, Name: chitFixtureNameA, Extent: &maximum,
-			})
-			one := chitManifestEntryFixture(t, chitDerivedEntryFixtureRequest{
-				Fixture: fixture, Marker: 0x52, Sequence: 2, Name: chitFixtureNameB,
-			})
-			accumulator := NewManifestAccumulator()
-			if gotErr := accumulator.Add(large); gotErr != nil {
-				t.Fatalf("ManifestAccumulator.Add(maximum setup) error = %v, want nil", gotErr)
-			}
-			if gotErr := accumulator.Add(one); !errors.Is(gotErr, core.ErrNumericOverflow) {
-				t.Fatalf("ManifestAccumulator.Add(one above total maximum) error = %v, want errors.Is %v", gotErr, core.ErrNumericOverflow)
-			}
-			got, gotErr := accumulator.Seal()
-			if gotErr != nil || got.Objects.Uint64() != 1 || got.TotalBytes.Uint64() != math.MaxInt64 {
-				t.Fatalf("ManifestAccumulator.Seal(after refused overflow) = (%v, %v), want one-object maximum summary", got, gotErr)
-			}
-		})
 	})
 
 	t.Run("neutral empty and repeated seals emit no plausible summary", func(t *testing.T) {
@@ -255,37 +186,86 @@ func TestManifestEntryVerifierLayerTriad(t *testing.T) {
 		}
 	})
 
-	t.Run("negative absent selections and foreign summaries return no membership proof", func(t *testing.T) {
+	t.Run("summary and selection mutation table", func(t *testing.T) {
 		t.Parallel()
-
 		fixture := newChitFixture(t, 0x41, 1)
-		summary := manifestSummaryFixture(t, fixture.addition)
-		for index := uint64(1); index <= 10; index++ {
-			verifier, err := NewManifestEntryVerifier(mustEntrySequence(t, 10+index))
-			if err != nil {
-				t.Fatalf("NewManifestEntryVerifier(absent %d) error = %v, want nil", index, err)
-			}
-			if gotErr := verifier.Add(fixture.addition); gotErr != nil {
-				t.Fatalf("ManifestEntryVerifier.Add(absent %d) error = %v, want nil", index, gotErr)
-			}
-			got, gotErr := verifier.Seal(summary)
-			if !errors.Is(gotErr, core.ErrChitConflict) || got != (VerifiedManifestEntry{}) {
-				t.Fatalf("ManifestEntryVerifier.Seal(absent %d) = (%v, %v), want zero and errors.Is %v", index, got, gotErr, core.ErrChitConflict)
-			}
-
-			other := newChitFixture(t, byte(0x50+index), 1)
-			foreign := manifestSummaryFixture(t, other.addition)
-			foreignVerifier, err := NewManifestEntryVerifier(fixture.addition.Entry.Sequence)
-			if err != nil {
-				t.Fatalf("NewManifestEntryVerifier(foreign %d) error = %v, want nil", index, err)
-			}
-			if gotErr := foreignVerifier.Add(fixture.addition); gotErr != nil {
-				t.Fatalf("ManifestEntryVerifier.Add(foreign %d) error = %v, want nil", index, gotErr)
-			}
-			got, gotErr = foreignVerifier.Seal(foreign)
-			if !errors.Is(gotErr, core.ErrChitConflict) || got != (VerifiedManifestEntry{}) {
-				t.Fatalf("ManifestEntryVerifier.Seal(foreign summary %d) = (%v, %v), want zero and errors.Is %v", index, got, gotErr, core.ErrChitConflict)
-			}
+		foreign := newChitFixture(t, 0x62, 2)
+		additions := []ManifestAddition{fixture.addition}
+		for sequence := uint64(2); sequence <= 3; sequence++ {
+			additions = append(additions, chitManifestEntryFixture(t, chitDerivedEntryFixtureRequest{Fixture: fixture, Marker: byte(sequence + 0x51), Sequence: sequence, Name: chitFixtureNameB}))
+		}
+		expected := manifestSummaryFixture(t, additions...)
+		two, err := NewObjectCount(2)
+		if err != nil {
+			t.Fatal(err)
+		}
+		four, err := NewObjectCount(4)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cases := []struct {
+			name         string
+			selected     uint64
+			mutate       func(*ManifestSummary)
+			wantErr      error
+			wantReusable bool
+		}{
+			{name: "first entry exact membership", selected: 1},
+			{name: "interior entry exact membership", selected: 2},
+			{name: "last entry exact membership", selected: 3},
+			{name: "selection one past tail", selected: 4, wantErr: core.ErrChitConflict},
+			{name: "selection at uint64 ceiling", selected: math.MaxUint64, wantErr: core.ErrChitConflict},
+			{name: "foreign digest alone", selected: 1, mutate: func(v *ManifestSummary) { v.Digest = foreign.summary.Digest }, wantErr: core.ErrChitConflict},
+			{name: "object count one below", selected: 1, mutate: func(v *ManifestSummary) { v.Objects = two }, wantErr: core.ErrChitConflict},
+			{name: "object count one above", selected: 1, mutate: func(v *ManifestSummary) { v.Objects = four }, wantErr: core.ErrChitConflict},
+			{name: "byte count one below", selected: 1, mutate: func(v *ManifestSummary) { v.TotalBytes = mustChitByteLength(t, 2) }, wantErr: core.ErrChitConflict},
+			{name: "byte count one above", selected: 1, mutate: func(v *ManifestSummary) { v.TotalBytes = mustChitByteLength(t, 4) }, wantErr: core.ErrChitConflict},
+			{name: "valid empty extent contradicts nonempty stream", selected: 1, mutate: func(v *ManifestSummary) { v.TotalBytes = core.ByteLength{} }, wantErr: core.ErrChitConflict},
+			{name: "unset digest refuses before consuming fold", selected: 1, mutate: func(v *ManifestSummary) { v.Digest = ManifestDigest{} }, wantErr: core.ErrChitContract, wantReusable: true},
+			{name: "unset object count refuses before consuming fold", selected: 1, mutate: func(v *ManifestSummary) { v.Objects = ObjectCount{} }, wantErr: core.ErrChitContract, wantReusable: true},
+		}
+		for _, tc := range cases {
+			t.Run(tc.name, func(t *testing.T) {
+				t.Parallel()
+				verifier, err := NewManifestEntryVerifier(mustEntrySequence(t, tc.selected))
+				if err != nil {
+					t.Fatal(err)
+				}
+				for _, addition := range additions {
+					if err := verifier.Add(addition); err != nil {
+						t.Fatal(err)
+					}
+				}
+				want := expected
+				if tc.mutate != nil {
+					tc.mutate(&want)
+					if want == expected {
+						t.Fatalf("mutated summary = %+v, want distinct from %+v", want, expected)
+					}
+				}
+				proof, err := verifier.Seal(want)
+				if !errors.Is(err, tc.wantErr) {
+					t.Fatalf("Seal() = %v, want %v", err, tc.wantErr)
+				}
+				if tc.wantErr == nil {
+					got, getErr := proof.Addition()
+					summary, summaryErr := proof.Summary()
+					if getErr != nil || summaryErr != nil || got != additions[tc.selected-1] || summary != expected {
+						t.Fatalf("membership = %+v, %+v, %v, %v; want exact selected addition and summary", got, summary, getErr, summaryErr)
+					}
+				} else if proof != (VerifiedManifestEntry{}) {
+					t.Fatalf("refused proof = %+v, want zero", proof)
+				}
+				retry, retryErr := verifier.Seal(expected)
+				if tc.wantReusable {
+					got, getErr := retry.Addition()
+					if retryErr != nil || getErr != nil || got != additions[tc.selected-1] {
+						t.Fatalf("retry after malformed expectation = %+v, %v, %v; want exact membership", got, retryErr, getErr)
+					}
+				} else if !errors.Is(retryErr, core.ErrChitContract) || retry != (VerifiedManifestEntry{}) {
+					t.Fatalf("retry after terminal seal = %+v, %v; want zero and contract refusal", retry, retryErr)
+				}
+			})
 		}
 	})
 
@@ -343,7 +323,7 @@ func TestChitIssuanceLayerTriad(t *testing.T) {
 	t.Run("positive exact retries across the version domain converge on the persisted signed document", func(t *testing.T) {
 		t.Parallel()
 
-		versions := []uint64{1, 2, 3, 4, 5, 99, 100, 101, math.MaxUint32, math.MaxUint64}
+		versions := []uint64{1, 2, 9, 10, 99, 100, math.MaxUint32 - 1, math.MaxUint32, math.MaxUint32 + 1, 1<<53 - 1, 1 << 53, 1<<53 + 1, math.MaxInt64, math.MaxInt64 + 1, math.MaxUint64 - 1, math.MaxUint64}
 		for index, version := range versions {
 			fixture := newChitFixture(t, byte(0x71+index), version)
 			prior := fixture.document
@@ -437,7 +417,7 @@ func TestChitVerificationLayerTriad(t *testing.T) {
 	t.Run("positive independent authentic versions return exact signed chits", func(t *testing.T) {
 		t.Parallel()
 
-		versions := []uint64{1, 2, 3, 4, 5, 99, 100, 101, math.MaxUint32, math.MaxUint64}
+		versions := []uint64{1, 2, 9, 10, 99, 100, math.MaxUint32 - 1, math.MaxUint32, math.MaxUint32 + 1, 1<<53 - 1, 1 << 53, 1<<53 + 1, math.MaxInt64, math.MaxInt64 + 1, math.MaxUint64 - 1, math.MaxUint64}
 		for index, version := range versions {
 			fixture := newChitFixture(t, byte(0x23+index), version)
 			verified, gotErr := Verify(Verification{
@@ -660,6 +640,9 @@ func chitEvidenceEntryFixture(
 		if err := extent.Validate(); err != nil {
 			t.Fatalf("requested evidence extent Validate() error = %v, want nil", err)
 		}
+	}
+	if extent.Uint64() == 0 {
+		payload = nil
 	}
 	submission := mustLifecycleIdentity(t, request.Marker+1, receipt.NewSubmissionIdentity)
 	object := mustLifecycleIdentity(t, request.Marker+2, receipt.NewObjectIdentity)

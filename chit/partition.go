@@ -55,6 +55,9 @@ func (p *Partition) UnmarshalJSON(data []byte) error {
 	if p == nil {
 		return jsonError(errors.New("nil chit partition receiver"))
 	}
+	if err := validateScalarJSONExtent(data); err != nil {
+		return err
+	}
 	var digest core.SHA256Digest
 	if err := json.Unmarshal(data, &digest); err != nil {
 		return jsonError(err)

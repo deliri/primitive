@@ -2,11 +2,11 @@ package chit
 
 import (
 	"bytes"
+	"encoding/json/jsontext"
 	json "encoding/json/v2"
 	"errors"
 	"testing"
 
-	"encoding/json/jsontext"
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
@@ -187,8 +187,8 @@ func TestSignedChitQueryJSONPressuresMalformedAndExactByteBoundaries(t *testing.
 		t.Fatalf("QueryDocument.MarshalJSON() error = %v, want nil", err)
 	}
 	reordered, err := json.Marshal(struct {
-		Payload     QueryPayload                   `json:"payload"`
 		Attestation attest.Envelope[SigningDomain] `json:"attestation"`
+		Payload     QueryPayload                   `json:"payload"`
 	}{Attestation: fixture.document.Attestation, Payload: fixture.payload})
 	if err != nil {
 		t.Fatalf("json.Marshal(reordered query document) error = %v, want nil", err)
@@ -209,8 +209,8 @@ func TestSignedChitQueryJSONPressuresMalformedAndExactByteBoundaries(t *testing.
 		{name: "indented document", data: []byte(indented)},
 		{name: "one below document ceiling", data: signedQueryPadJSON(encoded, QueryDocumentJSONMaximumBytes-1)},
 		{name: "exact document ceiling", data: signedQueryPadJSON(encoded, QueryDocumentJSONMaximumBytes)},
-		{name: "canonical clone", data: bytes.Clone(encoded)},
-		{name: "second independent canonical decode", data: append([]byte(nil), encoded...)},
+		{name: "escaped member name has identical identity", data: bytes.Replace(encoded, []byte(`"payload"`), []byte(`"\u0070ayload"`), 1)},
+		{name: "whitespace after member colon", data: bytes.Replace(encoded, []byte(`:{`), []byte(":\n\t{"), 1)},
 	}
 	for _, tc := range valid {
 		t.Run(tc.name, func(t *testing.T) {

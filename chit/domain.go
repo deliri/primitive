@@ -81,6 +81,9 @@ func (d *SigningDomain) UnmarshalJSON(data []byte) error {
 	if d == nil {
 		return jsonError(errors.New("nil chit signing domain receiver"))
 	}
+	if err := validateScalarJSONExtent(data); err != nil {
+		return err
+	}
 	value, err := core.DecodeJSONStringToken(data)
 	if err != nil {
 		return jsonError(err)

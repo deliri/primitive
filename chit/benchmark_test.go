@@ -1,6 +1,8 @@
 package chit
 
 import (
+	"crypto/sha256"
+	"strings"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -22,6 +24,10 @@ func benchmarkManifestAccumulatorStreaming(b *testing.B, objects uint64) {
 	fixture := newChitFixture(b, 0x21, 1)
 	addition := fixture.addition
 	var canonicalBytes int64
+	reference := sha256.New()
+	if _, err := reference.Write([]byte(manifestFrameDomain + "\x00")); err != nil {
+		b.Fatal(err)
+	}
 	for sequence := uint64(1); sequence <= objects; sequence++ {
 		entrySequence, err := NewEntrySequence(sequence)
 		if err != nil {
@@ -33,7 +39,20 @@ func benchmarkManifestAccumulatorStreaming(b *testing.B, objects uint64) {
 			b.Fatalf("core.MarshalCanonicalJSONDocument(entry %d) error = %v, want nil", sequence, err)
 		}
 		canonicalBytes += int64(len(encoded) + 1)
+		if _, err := reference.Write(encoded); err != nil {
+			b.Fatal(err)
+		}
+		if _, err := reference.Write([]byte{0}); err != nil {
+			b.Fatal(err)
+		}
 	}
+	var raw [sha256.Size]byte
+	reference.Sum(raw[:0])
+	wantDigest, err := newManifestDigest(core.NewSHA256Digest(raw))
+	if err != nil {
+		b.Fatal(err)
+	}
+	wantBytes := objects * addition.Entry.Evidence.Payload.Body.Extent.Uint64()
 	b.ReportAllocs()
 	b.SetBytes(canonicalBytes)
 	b.ResetTimer()
@@ -50,7 +69,7 @@ func benchmarkManifestAccumulatorStreaming(b *testing.B, objects uint64) {
 			}
 		}
 		summary, err := accumulator.Seal()
-		if err != nil || summary.Objects.Uint64() != objects {
+		if err != nil || summary.Objects.Uint64() != objects || summary.TotalBytes.Uint64() != wantBytes || summary.Digest != wantDigest {
 			b.Fatalf("ManifestAccumulator.Seal() = (%v, %v), want %d objects", summary, err, objects)
 		}
 	}
@@ -98,8 +117,32 @@ func benchmarkVerifyCatalogPage(b *testing.B, entries int) {
 	for b.Loop() {
 		got, err := VerifyCatalog(verification)
 		payload, payloadErr := got.Payload()
-		if err != nil || payloadErr != nil || len(payload.Entries) != entries {
+		if err != nil || payloadErr != nil || !catalogPayloadsEqual(payload, document.Payload) {
 			b.Fatalf("VerifyCatalog() = (%d entries, %v, payload error %v), want %d entries and nil", len(payload.Entries), err, payloadErr, entries)
 		}
+	}
+}
+
+func BenchmarkEntryNameValidate(b *testing.B) {
+	b.ReportAllocs()
+	cases := []struct{ name, text string }{
+		{name: "single-component", text: strings.Repeat("a", EntryNameComponentMaximumBytes)},
+		{name: "maximum-components", text: strings.Repeat("a/", EntryNameMaximumComponents-1) + "z"},
+	}
+	for _, tc := range cases {
+		b.Run(tc.name, func(b *testing.B) {
+			name, err := ParseEntryName(tc.text)
+			if err != nil || name.String() != tc.text {
+				b.Fatalf("name setup = %v, %v", name, err)
+			}
+			b.ReportAllocs()
+			b.SetBytes(int64(len(tc.text)))
+			b.ResetTimer()
+			for b.Loop() {
+				if err := name.Validate(); err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
 	}
 }

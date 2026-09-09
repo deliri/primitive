@@ -7,7 +7,6 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"os"
 	"slices"
 	"strings"
 	"testing"
@@ -128,7 +127,8 @@ func FuzzChitExternalJSONDoorInventory(f *testing.F) {
 	}
 
 	f.Fuzz(func(t *testing.T, rawDoor uint8, data []byte) {
-		switch chitJSONDoor(rawDoor) {
+		door := chitJSONDoor((int(rawDoor)+int(chitJSONDoorLimit)-2)%int(chitJSONDoorLimit-1) + 1)
+		switch door {
 		case chitJSONDoorEntryName:
 			fuzzChitJSONValue(t, data, fixtures.entryName)
 		case chitJSONDoorChitID:
@@ -166,9 +166,9 @@ func FuzzChitExternalJSONDoorInventory(f *testing.F) {
 		case chitJSONDoorManifestDigest:
 			fuzzChitJSONValue(t, data, fixtures.manifestDigest)
 		case chitJSONDoorUnknown, chitJSONDoorLimit:
-			return
+			t.Fatalf("normalized JSON door = %d, want a public decoder", door)
 		default:
-			return
+			t.Fatalf("unhandled JSON door = %d", door)
 		}
 	})
 }
@@ -196,7 +196,8 @@ func FuzzChitExternalTextDoorInventory(f *testing.F) {
 	}
 	f.Fuzz(func(t *testing.T, rawDoor uint8, value string) {
 		var outcome chitTextOutcome
-		switch chitTextDoor(rawDoor) {
+		door := chitTextDoor((int(rawDoor)+int(chitTextDoorLimit)-2)%int(chitTextDoorLimit-1) + 1)
+		switch door {
 		case chitTextDoorEntryName:
 			got, err := ParseEntryName(value)
 			outcome = chitTextOutcome{input: value, projection: got.String(), err: err, validate: got.Validate}
@@ -210,9 +211,9 @@ func FuzzChitExternalTextDoorInventory(f *testing.F) {
 			got, err := SigningDomainUnknown.ParseCanonicalText([]byte(value))
 			outcome = chitTextOutcome{input: value, projection: got.String(), err: err, validate: got.Validate}
 		case chitTextDoorUnknown, chitTextDoorLimit:
-			return
+			t.Fatalf("normalized text door = %d, want a public parser", door)
 		default:
-			return
+			t.Fatalf("unhandled text door = %d", door)
 		}
 		fuzzChitTextOutcome(t, outcome)
 	})
@@ -223,15 +224,21 @@ type chitJSONValue interface {
 	MarshalJSON() ([]byte, error)
 }
 
-func fuzzChitJSONValue[T chitJSONValue](t *testing.T, data []byte, seed T) {
+func fuzzChitJSONValue[T chitJSONValue, P interface {
+	*T
+	json.Unmarshaler
+}](t *testing.T, data []byte, seed T) {
 	t.Helper()
 	before, err := seed.MarshalJSON()
 	if err != nil {
 		t.Fatalf("chit seed MarshalJSON() error = %v, want nil", err)
 	}
 	candidate := seed
-	decoder := any(&candidate).(json.Unmarshaler)
+	decoder := P(&candidate)
 	decodeErr := decoder.UnmarshalJSON(data)
+	if len(data) > core.JSONDocumentMaximumBytes && !errors.Is(decodeErr, core.ErrJSONContract) {
+		t.Fatalf("oversized %T decoder error = %v, want %v", candidate, decodeErr, core.ErrJSONContract)
+	}
 	if decodeErr != nil {
 		if !errors.Is(decodeErr, core.ErrChitContract) || !errors.Is(decodeErr, core.ErrJSONContract) {
 			t.Fatalf("chit JSON error = %v, want typed JSON/chit refusal", decodeErr)
@@ -250,7 +257,7 @@ func fuzzChitJSONValue[T chitJSONValue](t *testing.T, data []byte, seed T) {
 		t.Fatalf("chit canonical JSON = (%d bytes, %v), want bounded and nil", len(canonical), err)
 	}
 	var roundTrip T
-	if err := any(&roundTrip).(json.Unmarshaler).UnmarshalJSON(canonical); err != nil {
+	if err := P(&roundTrip).UnmarshalJSON(canonical); err != nil {
 		t.Fatalf("chit canonical JSON decode error = %v, want nil", err)
 	}
 	second, err := roundTrip.MarshalJSON()
@@ -422,7 +429,7 @@ func TestChitExternalIngressFuzzInventoryMatchesProduction(t *testing.T) {
 }
 
 func chitExportedJSONReceiverNames() ([]string, error) {
-	files, err := os.ReadDir(".")
+	files, err := chitContractSources.ReadDir(".")
 	if err != nil {
 		return nil, err
 	}
@@ -432,7 +439,11 @@ func chitExportedJSONReceiverNames() ([]string, error) {
 		if file.IsDir() || !strings.HasSuffix(file.Name(), ".go") || strings.HasSuffix(file.Name(), "_test.go") {
 			continue
 		}
-		parsed, parseErr := parser.ParseFile(fileSet, file.Name(), nil, parser.SkipObjectResolution)
+		source, readErr := chitContractSources.ReadFile(file.Name())
+		if readErr != nil {
+			return nil, readErr
+		}
+		parsed, parseErr := parser.ParseFile(fileSet, file.Name(), source, parser.SkipObjectResolution)
 		if parseErr != nil {
 			return nil, parseErr
 		}

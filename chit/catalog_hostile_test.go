@@ -62,28 +62,70 @@ func TestCustodyStateExhaustsItsByteDomainAndCanonicalJSON(t *testing.T) {
 	}
 }
 
-func TestCatalogLayerTriadAuthenticatesTenIndependentPages(t *testing.T) {
+func TestCatalogAuthenticatedBoundaryTable(t *testing.T) {
 	t.Parallel()
-
-	for index := range 10 {
-		fixture := newCatalogFixture(t, byte(0x21+index), uint64(index+1))
-		verified, err := VerifyCatalog(CatalogVerification{
-			Document: fixture.document, Request: fixture.request, TrustedKeys: fixture.trusted,
+	cases := []struct {
+		name  string
+		count int
+		state CustodyState
+		delta int64
+		more  bool
+	}{
+		{name: "empty terminal page", state: CustodyStateStored},
+		{name: "stored before retention", count: 1, state: CustodyStateStored, delta: -1},
+		{name: "stored at retention", count: 1, state: CustodyStateStored},
+		{name: "stored after retention", count: 1, state: CustodyStateStored, delta: 1},
+		{name: "unavailable at retention", count: 1, state: CustodyStateRetrievalUnavailable},
+		{name: "unavailable after retention", count: 1, state: CustodyStateRetrievalUnavailable, delta: 1},
+		{name: "deleted at retention", count: 1, state: CustodyStateDeleted},
+		{name: "deleted after retention", count: 1, state: CustodyStateDeleted, delta: 1},
+		{name: "minimum continued page", count: 1, state: CustodyStateStored, more: true},
+		{name: "one below maximum continued page", count: core.CatalogPageMaximumEntries - 1, state: CustodyStateStored, more: true},
+		{name: "maximum continued page", count: core.CatalogPageMaximumEntries, state: CustodyStateStored, more: true},
+		{name: "maximum terminal page", count: core.CatalogPageMaximumEntries, state: CustodyStateStored},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			fixture := newCatalogFixture(t, 0x42, 1)
+			payload := fixture.payload
+			payload.Entries = catalogHistoryEntries(t, fixture, tc.count)
+			for index := range payload.Entries {
+				payload.Entries[index].State = tc.state
+			}
+			instant, err := fixture.payload.ObservedAt.Nanoseconds()
+			if err != nil {
+				t.Fatal(err)
+			}
+			payload.ObservedAt = temporal.InstantFromNanoseconds(instant + tc.delta)
+			payload.Continuation = End()
+			if tc.more {
+				cursor, err := CursorFor(payload.Entries[len(payload.Entries)-1].Chit.Payload.Identity)
+				if err != nil {
+					t.Fatal(err)
+				}
+				payload.Continuation, err = More(cursor)
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			document, err := IssueCatalog(CatalogIssuance{Signer: fixture.private, Payload: payload})
+			if err != nil {
+				t.Fatal(err)
+			}
+			verified, err := VerifyCatalog(CatalogVerification{Document: document, Request: fixture.request, TrustedKeys: fixture.trusted})
+			if err != nil || !verifiedCatalogPayloadsEqual(verified, payload) {
+				t.Fatalf("catalog boundary verification = %v; want exact page with %d entries and state %v", err, tc.count, tc.state)
+			}
+			encoded, err := payload.MarshalJSON()
+			if err != nil {
+				t.Fatal(err)
+			}
+			var decoded CatalogPayload
+			if err := decoded.UnmarshalJSON(encoded); err != nil || !catalogPayloadsEqual(decoded, payload) {
+				t.Fatalf("catalog boundary decode = %+v, %v; want exact payload", decoded, err)
+			}
 		})
-		if err != nil || !verifiedCatalogPayloadsEqual(verified, fixture.payload) {
-			t.Fatalf("VerifyCatalog(configuration %d) = (%v, %v), want exact signed payload and nil",
-				index, verified, err)
-		}
-		payloadJSON, err := fixture.payload.MarshalJSON()
-		if err != nil {
-			t.Fatalf("CatalogPayload.MarshalJSON(configuration %d) error = %v, want nil", index, err)
-		}
-		var payloadRoundTrip CatalogPayload
-		if err := payloadRoundTrip.UnmarshalJSON(payloadJSON); err != nil ||
-			!catalogPayloadsEqual(payloadRoundTrip, fixture.payload) {
-			t.Fatalf("CatalogPayload round trip(configuration %d) = (%v, %v), want exact payload and nil",
-				index, payloadRoundTrip, err)
-		}
 	}
 }
 
@@ -133,13 +175,13 @@ func TestCatalogPartitionLayerTriadExhaustsMatchingForeignAndEmptyRelations(t *t
 	cases := []partitionRelationCase{{
 		name: "neutral empty partition emits no invented custody evidence", relation: partitionRelationEmpty,
 	}}
-	for _, count := range []int{1, 2, 3, 4, 5, 8, 16, 32, core.CatalogPageMaximumEntries - 1, core.CatalogPageMaximumEntries} {
+	for _, count := range []int{1, 2, core.CatalogPageMaximumEntries - 1, core.CatalogPageMaximumEntries} {
 		cases = append(cases, partitionRelationCase{
 			name:       "positive matching partition page extent " + strconv.Itoa(count),
 			entryCount: count, relation: partitionRelationMatching,
 		})
 	}
-	for position := range 20 {
+	for position := range core.CatalogPageMaximumEntries {
 		cases = append(cases, partitionRelationCase{
 			name:       "negative foreign partition at page position " + strconv.Itoa(position),
 			entryCount: core.CatalogPageMaximumEntries, foreignIndex: position, relation: partitionRelationForeign,
@@ -496,27 +538,39 @@ func TestCatalogJSONPressuresValidRejectedAndExactExtentBoundaries(t *testing.T)
 	if err != nil {
 		t.Fatalf("CatalogDocument.MarshalJSON() error = %v, want nil", err)
 	}
-	for index := range 10 {
-		candidate := newCatalogFixture(t, byte(0x52+index), uint64(index+1))
-		encoded, err := candidate.document.MarshalJSON()
-		if err != nil {
-			t.Fatalf("CatalogDocument.MarshalJSON(valid %d) error = %v, want nil", index, err)
-		}
-		var got CatalogDocument
-		if err := got.UnmarshalJSON(encoded); err != nil || !catalogDocumentsEqual(got, candidate.document) {
-			t.Fatalf("CatalogDocument.UnmarshalJSON(valid %d) = (%v, %v), want exact document and nil", index, got, err)
-		}
-	}
 
 	below := padCatalogJSON(canonical, core.JSONDocumentMaximumBytes-1)
 	at := padCatalogJSON(canonical, core.JSONDocumentMaximumBytes)
 	above := padCatalogJSON(canonical, core.JSONDocumentMaximumBytes+1)
-	for _, accepted := range [][]byte{below, at} {
-		var got CatalogDocument
-		if err := got.UnmarshalJSON(accepted); err != nil || !catalogDocumentsEqual(got, fixture.document) {
-			t.Fatalf("CatalogDocument.UnmarshalJSON(%d-byte boundary) = (%v, %v), want exact document and nil",
-				len(accepted), got, err)
-		}
+
+	reordered, err := core.MarshalCanonicalJSONDocument(struct {
+		Attestation attest.Envelope[SigningDomain] `json:"attestation"`
+		Payload     CatalogPayload                 `json:"payload"`
+	}{Attestation: fixture.document.Attestation, Payload: fixture.document.Payload})
+	if err != nil {
+		t.Fatal(err)
+	}
+	valid := []struct {
+		name string
+		data []byte
+	}{
+		{name: "canonical document", data: canonical},
+		{name: "leading JSON whitespace", data: append([]byte(" \t\r\n"), canonical...)},
+		{name: "trailing JSON whitespace", data: append(bytes.Clone(canonical), []byte(" \t\r\n")...)},
+		{name: "member order reversed", data: reordered},
+		{name: "escaped payload member name", data: bytes.Replace(canonical, []byte(`"payload"`), []byte(`"\u0070ayload"`), 1)},
+		{name: "whitespace inside object", data: bytes.Replace(canonical, []byte(`:{`), []byte(":\n\t{"), 1)},
+		{name: "one below complete document byte ceiling", data: below},
+		{name: "exact complete document byte ceiling", data: at},
+	}
+	for _, tc := range valid {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			var got CatalogDocument
+			if err := got.UnmarshalJSON(tc.data); err != nil || !catalogDocumentsEqual(got, fixture.document) {
+				t.Fatalf("CatalogDocument decode = %+v, %v; want exact fixture", got, err)
+			}
+		})
 	}
 
 	rejected := []struct {
@@ -533,6 +587,9 @@ func TestCatalogJSONPressuresValidRejectedAndExactExtentBoundaries(t *testing.T)
 		{name: "trailing document", data: append(bytes.Clone(canonical), canonical...)},
 		{name: "leading invalid token", data: append([]byte{'x'}, canonical...)},
 		{name: "one above maximum", data: above},
+		{name: "unknown member", data: append(bytes.Clone(canonical[:len(canonical)-1]), []byte(`,"future":true}`)...)},
+		{name: "duplicate payload", data: append(bytes.Clone(canonical[:len(canonical)-1]), []byte(`,"payload":null}`)...)},
+		{name: "duplicate attestation", data: append(bytes.Clone(canonical[:len(canonical)-1]), []byte(`,"attestation":null}`)...)},
 	}
 	for _, tc := range rejected {
 		t.Run(tc.name, func(t *testing.T) {

@@ -72,6 +72,9 @@ func (s *CustodyState) UnmarshalJSON(data []byte) error {
 	if s == nil {
 		return jsonError(errors.New("nil custody state receiver"))
 	}
+	if err := validateScalarJSONExtent(data); err != nil {
+		return err
+	}
 	value, err := core.DecodeJSONStringToken(data)
 	if err != nil {
 		return jsonError(err)
@@ -166,6 +169,9 @@ func (c Cursor) MarshalJSON() ([]byte, error) {
 func (c *Cursor) UnmarshalJSON(data []byte) error {
 	if c == nil {
 		return jsonError(errors.New("nil catalog cursor receiver"))
+	}
+	if err := validateScalarJSONExtent(data); err != nil {
+		return err
 	}
 	var value core.SHA256Digest
 	if err := json.Unmarshal(data, &value); err != nil {
@@ -293,7 +299,7 @@ func validateCatalogContinuation(payload CatalogPayload) error {
 func (CatalogPayload) AttestationDomain() SigningDomain { return SigningDomainCatalogV1 }
 
 func (p CatalogPayload) WriteCanonical(destination io.Writer) error {
-	if destination == nil {
+	if core.WriterIsNil(destination) {
 		return contractError(errors.New("catalog canonical destination is nil"))
 	}
 	encoded, err := p.MarshalJSON()
@@ -367,9 +373,12 @@ func (i CatalogIssuance) Validate() error {
 }
 
 func IssueCatalog(issuance CatalogIssuance) (CatalogDocument, error) {
-	if err := issuance.Validate(); err != nil {
-		return CatalogDocument{}, err
+	if err := issuance.Payload.Validate(); err != nil {
+		return CatalogDocument{}, contractError(err)
 	}
+	// The signer and caller may retain the input slice. Sign and return one
+	// bounded snapshot so later input mutation cannot change the signed facts.
+	issuance.Payload = cloneCatalogPayload(issuance.Payload)
 	envelope, err := attest.Sign(attest.SignRequest[SigningDomain]{Body: issuance.Payload, Signer: issuance.Signer})
 	if err != nil {
 		return CatalogDocument{}, contractError(err)

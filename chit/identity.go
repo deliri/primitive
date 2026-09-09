@@ -65,6 +65,9 @@ func (i *ChitID) UnmarshalJSON(data []byte) error {
 	if i == nil {
 		return jsonError(errors.New("nil chit identity receiver"))
 	}
+	if err := validateScalarJSONExtent(data); err != nil {
+		return err
+	}
 	var value id.UUIDv7
 	if err := json.Unmarshal(data, &value); err != nil {
 		return jsonError(err)
@@ -117,6 +120,9 @@ func (i CollectionID) MarshalJSON() ([]byte, error) {
 func (i *CollectionID) UnmarshalJSON(data []byte) error {
 	if i == nil {
 		return jsonError(errors.New("nil collection identity receiver"))
+	}
+	if err := validateScalarJSONExtent(data); err != nil {
+		return err
 	}
 	var value id.UUIDv7
 	if err := json.Unmarshal(data, &value); err != nil {

@@ -1,0 +1,73 @@
+{
+  "release": "v2026.1.27",
+  "authorization": "User explicitly instructed bump commit push after review 1944eb47 and closure of both suggestions.",
+  "base_commit": "8eedc412d3edf3b0490050407df1fe451ae34eef",
+  "reviewed_go_sources_unchanged_since_final_race": true,
+  "reports": [
+    {
+      "path": "/home/d/code/primitive/_docs/chit_upgrade_20260909.md",
+      "bytes": 17685,
+      "sha256": "d9c781f917ea2021ad33604cce0fab2cb44750d3eff24a27c2793deadc37a998"
+    },
+    {
+      "path": "/home/d/code/primitive/_docs/chit_upgrade_20260909_evidence.json",
+      "bytes": 484475,
+      "sha256": "7dda06fff5cd52885efcdf24f217621821ef6470222583a1b7da9dc406b5d1f4"
+    },
+    {
+      "path": "/home/d/code/primitive/_docs/chit_upgrade_20260909_review_followup.json",
+      "bytes": 259233,
+      "sha256": "a56d52af26dd6597e813c4037081c90a0876ac41fa5a235a22adf9b0cbe9721c"
+    }
+  ],
+  "coordinate_check": {
+    "command": [
+      "go",
+      "test",
+      "-json",
+      "-count=1",
+      "./compass",
+      "./version"
+    ],
+    "record": {
+      "path": "/home/d/engineering-evidence/primitive/chit-upgrade-20260909/release-v2026-1-27-coordinates/result.json",
+      "bytes": 762329,
+      "sha256": "f98ef9efbb11bac75a6c9f05865bf9101e5a65dc5c337c64e9a2cd24b8bd9a20"
+    },
+    "environment": {
+      "GOWORK": "off",
+      "GOMAXPROCS": "8"
+    },
+    "toolchain": "go version go1.27.1 linux/amd64",
+    "exit": 0,
+    "counts": {
+      "pass": 72,
+      "fail": 0,
+      "skip": 0
+    },
+    "artifacts": [
+      {
+        "path": "/home/d/engineering-evidence/primitive/chit-upgrade-20260909/release-v2026-1-27-coordinates/started.json",
+        "bytes": 760408,
+        "sha256": "171cb9629486605eb6de701e86d548a83b11c435b5f873df12beb4a04b8dbc9a"
+      },
+      {
+        "path": "/home/d/engineering-evidence/primitive/chit-upgrade-20260909/release-v2026-1-27-coordinates/source.patch",
+        "bytes": 52301,
+        "sha256": "76fcd6b1c10cda4fc6423a067b3ea15ea7dd3fc43b00afb0e41fdb48b156cebd"
+      },
+      {
+        "path": "/home/d/engineering-evidence/primitive/chit-upgrade-20260909/release-v2026-1-27-coordinates/stdout",
+        "bytes": 138989,
+        "sha256": "6e3421ada2ae0957640af214dfa4ef43d0ca93640416e4efb17d7d8ce13a5d7e"
+      },
+      {
+        "path": "/home/d/engineering-evidence/primitive/chit-upgrade-20260909/release-v2026-1-27-coordinates/stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ]
+  },
+  "validation_scope": "Final Chit race and scoped analyzers pass; original timed fuzz, benchmark/profile, cross-compilation, and complexity evidence retains original source bindings. Full-module gates not rerun. Fresh Compass/Version tests verify release coordinate.",
+  "raw_evidence_policy": "Profiles, binaries, logs, and source snapshots remain outside Git on the server."
+}

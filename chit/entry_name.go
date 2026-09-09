@@ -38,7 +38,7 @@ func (n EntryName) Validate() error {
 	if err := validateEntryNameText(n.value); err != nil {
 		return err
 	}
-	return validateEntryNameComponents(strings.Split(n.value, entryNameSeparator))
+	return validateEntryNameComponents(n.value)
 }
 
 func validateEntryNameText(value string) error {
@@ -51,11 +51,13 @@ func validateEntryNameText(value string) error {
 	return nil
 }
 
-func validateEntryNameComponents(components []string) error {
-	if len(components) > EntryNameMaximumComponents {
-		return contractError(errors.New("manifest entry name has too many components"))
-	}
-	for _, component := range components {
+func validateEntryNameComponents(value string) error {
+	count := 0
+	for component := range strings.SplitSeq(value, entryNameSeparator) {
+		count++
+		if count > EntryNameMaximumComponents {
+			return contractError(errors.New("manifest entry name has too many components"))
+		}
 		if component == "" || component == entryNameCurrent || component == entryNameParent ||
 			len(component) > EntryNameComponentMaximumBytes {
 			return contractError(errors.New("manifest entry name component is invalid"))
@@ -84,6 +86,9 @@ func (n EntryName) MarshalJSON() ([]byte, error) {
 func (n *EntryName) UnmarshalJSON(data []byte) error {
 	if n == nil {
 		return jsonError(errors.New("nil manifest entry name receiver"))
+	}
+	if err := validateScalarJSONExtent(data); err != nil {
+		return err
 	}
 	value, err := core.DecodeJSONStringToken(data)
 	if err != nil {
