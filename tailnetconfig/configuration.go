@@ -1,4 +1,4 @@
-package tailnet
+package tailnetconfig
 
 import (
 	"errors"
@@ -8,6 +8,8 @@ import (
 	"net/netip"
 	"strings"
 )
+
+var ErrContract = errors.New("tailnet contract")
 
 const MaximumStartupNanoseconds int64 = 60_000_000_000
 
@@ -69,16 +71,16 @@ func (c Configuration) Validate() error {
 	return nil
 }
 
-type protocolFact interface{ tailnetProtocolFact() }
-type capabilityWrapper interface{ tailnetCapabilityWrapper() }
-
-func (Configuration) tailnetProtocolFact()       {}
-func (GoogleIdentity) tailnetCapabilityWrapper() {}
-func (*Client) tailnetCapabilityWrapper()        {}
-
-var _ protocolFact = Configuration{}
-var _ capabilityWrapper = (*Client)(nil)
-
 func identifierRune(char rune) bool {
 	return char >= 'a' && char <= 'z' || char >= 'A' && char <= 'Z' || char >= '0' && char <= '9' || char == '-' || char == '_'
+}
+
+// IsAddress recognizes Tailscale's assigned ranges, never generic public CGNAT
+// reachability or caller authorization. Authorization remains separately required.
+func IsAddress(address netip.Addr) bool {
+	if address.Zone() != "" {
+		return false
+	}
+	address = address.Unmap()
+	return netip.MustParsePrefix("100.64.0.0/10").Contains(address) || netip.MustParsePrefix("fd7a:115c:a1e0::/48").Contains(address)
 }

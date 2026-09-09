@@ -5,9 +5,9 @@ package tailnet
 import (
 	"context"
 	"errors"
+	"github.com/deliri/primitive/v2026/tailnetconfig"
 	"net"
 	"net/http"
-	"net/netip"
 	"strings"
 	"sync"
 
@@ -19,7 +19,6 @@ import (
 )
 
 var (
-	ErrContract    = errors.New("tailnet contract")
 	ErrClosed      = errors.New("tailnet closed")
 	ErrEnrollment  = errors.New("tailnet enrollment")
 	ErrDestination = errors.New("tailnet destination")
@@ -43,7 +42,7 @@ func (s GoogleIdentity) Identity(ctx context.Context, audience googleidentity.Au
 // Client owns SDK state, connections, enrollment, and the shared HTTP transport.
 // Creation is effect-free; enrollment is bounded by the first request's context.
 type Client struct {
-	configuration Configuration
+	configuration tailnetconfig.Configuration
 	identity      IdentitySource
 	gate          chan struct{}
 	server        *tsnet.Server
@@ -54,18 +53,18 @@ type Client struct {
 	closeErr      error
 }
 
-func NewClient(configuration Configuration, identity IdentitySource) (*Client, error) {
+func NewClient(configuration tailnetconfig.Configuration, identity IdentitySource) (*Client, error) {
 	if err := configuration.Validate(); err != nil {
 		return nil, err
 	}
 	if identity == nil {
-		return nil, ErrContract
+		return nil, tailnetconfig.ErrContract
 	}
 	result := &Client{configuration: configuration, identity: identity, gate: make(chan struct{}, 1)}
 	result.transport = &http.Transport{DialContext: result.dial, MaxConnsPerHost: 2, MaxIdleConns: 2, MaxIdleConnsPerHost: 2, IdleConnTimeout: 0, MaxResponseHeaderBytes: 64 * 1024}
 	client, err := exchange.NewClient(&http.Client{Transport: result.transport})
 	if err != nil {
-		return nil, errors.Join(ErrContract, err)
+		return nil, errors.Join(tailnetconfig.ErrContract, err)
 	}
 	result.exchange = client
 	return result, nil
@@ -73,14 +72,14 @@ func NewClient(configuration Configuration, identity IdentitySource) (*Client, e
 
 func (c *Client) Exchange() (exchange.Client, error) {
 	if c == nil {
-		return exchange.Client{}, ErrContract
+		return exchange.Client{}, tailnetconfig.ErrContract
 	}
 	return c.exchange, c.exchange.Validate()
 }
 
 func (c *Client) dial(ctx context.Context, network, address string) (net.Conn, error) {
 	if c == nil || ctx == nil {
-		return nil, ErrContract
+		return nil, tailnetconfig.ErrContract
 	}
 	if network != "tcp" || address != c.configuration.Destination.String() {
 		return nil, ErrDestination
@@ -139,7 +138,7 @@ func (c *Client) enroll(ctx context.Context) (*tsnet.Server, error) {
 
 func (c *Client) Close() error {
 	if c == nil {
-		return ErrContract
+		return tailnetconfig.ErrContract
 	}
 	c.closeOnce.Do(func() {
 		c.gate <- struct{}{}
@@ -151,16 +150,6 @@ func (c *Client) Close() error {
 		}
 	})
 	return c.closeErr
-}
-
-// IsAddress recognizes Tailscale's assigned ranges, never generic public CGNAT
-// reachability or caller authorization. Authorization remains separately required.
-func IsAddress(address netip.Addr) bool {
-	if address.Zone() != "" {
-		return false
-	}
-	address = address.Unmap()
-	return netip.MustParsePrefix("100.64.0.0/10").Contains(address) || netip.MustParsePrefix("fd7a:115c:a1e0::/48").Contains(address)
 }
 
 var _ IdentitySource = GoogleIdentity{}

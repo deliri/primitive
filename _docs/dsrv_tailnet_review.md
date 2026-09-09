@@ -27,3 +27,8 @@ The SDK acquisition fixture exercises real signed-request construction against
 a local provider; it does not claim that a local provider is Google.
 
 No deployment, account credential, IAM role, firewall or paid compute changes.
+
+The pure configuration contract now lives in tailnetconfig. Importing product
+configuration does not import the Tailscale SDK or register its features in
+admin, webapp or website binaries. Only API boot imports the effect capability.
+The contract and adapter suites run in their owning packages.
