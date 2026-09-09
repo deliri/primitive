@@ -1,0 +1,82 @@
+{
+  "release": "v2026.1.31",
+  "authorization": "User: bump commit push",
+  "review_validation_base": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+  "release_parent": "66866eae263d344bc18552f021b3f2a074838bc1",
+  "reviewed_package_source_digest": "5424c88672a803c5a483a8bba0d98b459192020aa665f2aa0f6aaaeb0d8d22f1",
+  "reviewed_package_sources_unchanged": true,
+  "incoming_release": "v2026.1.30",
+  "incoming_change_relationship": "Manual production changes and Compass release coordinate are outside the Controlplane production dependency graph. Go module files unchanged.",
+  "production_dependencies": {
+    "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/release-v2026-1-31-dependencies.txt",
+    "bytes": 4318,
+    "sha256": "243e8a00f1e5196b0e46937f89f1a0d0a840d9f1694c97884a9a1bcd42bc4df0"
+  },
+  "reports": [
+    {
+      "path": "/home/d/code/primitive/_docs/controlplane_upgrade_20260909.md",
+      "bytes": 26379,
+      "sha256": "0c5655e1078c584a38626e64408a4756c5a070d22bcfc39ea6424e7905d1afd8"
+    },
+    {
+      "path": "/home/d/code/primitive/_docs/controlplane_upgrade_20260909_evidence.json",
+      "bytes": 183854,
+      "sha256": "0e5aed84fef24693f2bd7350120dfe2994c273e4e5579870c4e3d247f87b1639"
+    },
+    {
+      "path": "/home/d/code/primitive/_docs/controlplane_upgrade_20260909_review_followup.json",
+      "bytes": 78959,
+      "sha256": "02570f3e441011d3819cfb41a659a03d36cf81f01cabe3acb5346ca13c1d2f10"
+    }
+  ],
+  "coordinate_check": {
+    "args": [
+      "go",
+      "test",
+      "-json",
+      "-count=1",
+      "./compass",
+      "./version"
+    ],
+    "record": {
+      "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/release-v2026-1-31-coordinates/result.json",
+      "bytes": 770932,
+      "sha256": "3bde1205da182b699f4d88abb1855967a31a5eaaa823047885b834bb47f6319b"
+    },
+    "go": "go version go1.27.1 linux/amd64",
+    "environment": {
+      "GOWORK": "off",
+      "GOMAXPROCS": "8"
+    },
+    "exit": 0,
+    "counts": {
+      "pass": 72,
+      "fail": 0,
+      "skip": 0
+    },
+    "artifacts": [
+      {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/release-v2026-1-31-coordinates/started.json",
+        "bytes": 768609,
+        "sha256": "78ab4d9abb36145dcccb2361235b67f57cc187d06bc0d8d7fb15e8c9575ace73"
+      },
+      {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/release-v2026-1-31-coordinates/source.patch",
+        "bytes": 42757,
+        "sha256": "5edfb984002d1506cd6608d117524d0fc20647e28f4ad47021f59fc030316301"
+      },
+      {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/release-v2026-1-31-coordinates/stdout",
+        "bytes": 139042,
+        "sha256": "02f99ae5db3a5a3674f8e1b4fb8e256fcb053b6d44a445c6707a13d47b41b266"
+      },
+      {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/release-v2026-1-31-coordinates/stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ]
+  },
+  "validation_scope": "Reviewed scoped Controlplane checks retained with exact source binding. Release coordinate tests uncached. No repeat benchmark/fuzz passes for unchanged package; no full-module gates or consumer upgrades.",
+  "raw_evidence_policy": "Raw profiles, binaries, logs, and source snapshots remain outside Git on Furnace."
+}

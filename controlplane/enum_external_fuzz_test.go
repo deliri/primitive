@@ -11,6 +11,7 @@ import (
 
 type enumExternalDoor[T comparable] struct {
 	Parse     func(string) (T, error)
+	Construct func(uint8) (T, error)
 	Validate  func(T) error
 	String    func(T) string
 	Marshal   func(T) ([]byte, error)
@@ -73,10 +74,11 @@ func FuzzUsageDispositionExternalDecoders(f *testing.F) {
 
 func FuzzUsageClassExternalDecoders(f *testing.F) {
 	fuzzEnumExternalDoor(f, enumExternalDoor[controlplane.UsageClass]{
-		Values:   fuzzValidUsageClasses(),
-		Validate: func(value controlplane.UsageClass) error { return value.Validate() },
-		String:   func(value controlplane.UsageClass) string { return value.String() },
-		Marshal:  func(value controlplane.UsageClass) ([]byte, error) { return value.MarshalJSON() },
+		Values:    fuzzValidUsageClasses(),
+		Construct: controlplane.NewUsageClass,
+		Validate:  func(value controlplane.UsageClass) error { return value.Validate() },
+		String:    func(value controlplane.UsageClass) string { return value.String() },
+		Marshal:   func(value controlplane.UsageClass) ([]byte, error) { return value.MarshalJSON() },
 		Unmarshal: func(value *controlplane.UsageClass, data []byte) error {
 			return value.UnmarshalJSON(data)
 		},
@@ -86,10 +88,11 @@ func FuzzUsageClassExternalDecoders(f *testing.F) {
 
 func FuzzOutcomeClassExternalDecoders(f *testing.F) {
 	fuzzEnumExternalDoor(f, enumExternalDoor[controlplane.OutcomeClass]{
-		Values:   fuzzValidOutcomeClasses(),
-		Validate: func(value controlplane.OutcomeClass) error { return value.Validate() },
-		String:   func(value controlplane.OutcomeClass) string { return value.String() },
-		Marshal:  func(value controlplane.OutcomeClass) ([]byte, error) { return value.MarshalJSON() },
+		Values:    fuzzValidOutcomeClasses(),
+		Construct: controlplane.NewOutcomeClass,
+		Validate:  func(value controlplane.OutcomeClass) error { return value.Validate() },
+		String:    func(value controlplane.OutcomeClass) string { return value.String() },
+		Marshal:   func(value controlplane.OutcomeClass) ([]byte, error) { return value.MarshalJSON() },
 		Unmarshal: func(value *controlplane.OutcomeClass, data []byte) error {
 			return value.UnmarshalJSON(data)
 		},
@@ -117,6 +120,21 @@ func fuzzEnumExternalDoor[T comparable](f *testing.F, door enumExternalDoor[T]) 
 	}
 
 	f.Fuzz(func(t *testing.T, data []byte) {
+		if door.Construct != nil && len(data) != 0 {
+			ordinal := data[0]
+			got, err := door.Construct(ordinal)
+			var want T
+			admitted := int(ordinal) > 0 && int(ordinal) <= len(door.Values)
+			if admitted {
+				want = door.Values[int(ordinal)-1]
+			}
+			if admitted && (err != nil || got != want) {
+				t.Fatalf("constructor(%d) = (%v, %v), want (%v,nil)", ordinal, got, err, want)
+			}
+			if !admitted && (!errors.Is(err, door.WantError) || got != want) {
+				t.Fatalf("constructor(%d) = (%v, %v), want zero and %v", ordinal, got, err, door.WantError)
+			}
+		}
 		if door.Parse != nil {
 			requireEnumParseOracle(t, door, string(data))
 		}

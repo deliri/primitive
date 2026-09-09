@@ -80,7 +80,10 @@ func (p CheckInPayload) WriteCanonical(destination io.Writer) error {
 	if err != nil {
 		return err
 	}
-	return writeCanonical(destination, encoded)
+	if err := writeCanonical(destination, encoded); err != nil {
+		return checkInError(err)
+	}
+	return nil
 }
 
 // MarshalJSON emits one bounded canonical payload.
@@ -146,10 +149,16 @@ func (r CheckInRequest) Validate() error {
 	if err := r.Payload.Validate(); err != nil {
 		return checkInError(err)
 	}
-	return validateCheckInDocument(checkInDocumentValidation{
+	if err := validateCheckInDocument(checkInDocumentValidation{
 		binding: r.Payload.checkInBinding(), certificate: r.Certificate,
 		attestation: r.Attestation, domain: r.Payload.AttestationDomain(),
-	})
+	}); err != nil {
+		return checkInError(err)
+	}
+	if r.Attestation.Signer != r.Certificate.Body.DeviceKey {
+		return checkInError(installationBindingError())
+	}
+	return nil
 }
 
 // ControlRoute projects the only route this document may address.
@@ -218,7 +227,10 @@ func (c Client) IssueCheckIn(
 		return CheckInRequest{}, checkInError(err)
 	}
 	request := CheckInRequest{Payload: payload, Certificate: certificate, Attestation: envelope}
-	return request, request.Validate()
+	if err := request.Validate(); err != nil {
+		return CheckInRequest{}, err
+	}
+	return request, nil
 }
 
 // Validate closes the complete verification input.

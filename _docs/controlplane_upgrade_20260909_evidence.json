@@ -1,0 +1,4547 @@
+{
+  "status": "review_candidate_uncommitted",
+  "created_utc": "2026-09-09T07:21:21.772173+00:00",
+  "base_commit": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+  "host": {
+    "name": "furnace",
+    "ssh": "d@192.168.1.81",
+    "repo": "/home/d/code/primitive",
+    "cpu": "AMD EPYC 7282 16-Core Processor",
+    "logical_cpus": 32,
+    "os": "Fedora Linux 44 Server",
+    "kernel": "7.1.13-200.fc44.x86_64",
+    "power_posture": "shared host; no affinity or power isolation; schedutil observed later, not sampled at both benchmark starts"
+  },
+  "protocol": {
+    "path": "/home/d/code/primitive/_docs/testing_protocol.md",
+    "bytes": 84440,
+    "sha256": "dd83cd7f62c172092546dab6b7c7d5c59753b5e8ae784631a94cff4d6d48126c"
+  },
+  "package_source_digest": "7503062f2e17d5b364ad0806a3c39955ee52246a25804ec16500f93026cfbcce",
+  "package_sources": [
+    {
+      "path": "controlplane/authority_transition_test.go",
+      "sha256": "9378d6fe17300e8b5b034296a9bb42e59d1898efdb76684b0c301c5303047acd"
+    },
+    {
+      "path": "controlplane/boundary_benchmark_test.go",
+      "sha256": "d776dd14ddb21056969254f1abd288ac37a477f60d9d905ce6466522fc422051"
+    },
+    {
+      "path": "controlplane/commitment_boundary_test.go",
+      "sha256": "9eb79721d9f3cf2995ff1e5d6476d28303691d49dd51ab90ac1f3076004583ae"
+    },
+    {
+      "path": "controlplane/conflict_boundary_test.go",
+      "sha256": "0302c738458f1488a17bcd8fb9e949d7eeb66737a93ed319bee803b29e312a87"
+    },
+    {
+      "path": "controlplane/decoder_ownership_test.go",
+      "sha256": "3f280f5c497372c15b78995a70480ae7eadaa1d46b51352af9784785371bca31"
+    },
+    {
+      "path": "controlplane/ingress_inventory_test.go",
+      "sha256": "773157efb078d99da331b2e678b3705f60a73cb30cdc0292a900d462bcac8f9d"
+    },
+    {
+      "path": "controlplane/issuance_boundary_test.go",
+      "sha256": "c3c89d28b109e71d55c31ac3e0d347ee6333656c573cad640549e7ff6b0cc9e9"
+    },
+    {
+      "path": "controlplane/response_ownership_test.go",
+      "sha256": "ab607084774156c24e3aff937eeb75ddcc5b4229aea86cca19ca0ea1600bdc22"
+    },
+    {
+      "path": "controlplane/writer_boundary_test.go",
+      "sha256": "aae83ca5068f960e6b75aacd5cb2681574cf8e6a200dd7c6ef5922a59e9143d5"
+    },
+    {
+      "path": "controlplane/after_benchmarks.md",
+      "sha256": "aad24c7a72e27661b219ef5ccd3240353e6fa66ce72ab3700502217560c20af6"
+    },
+    {
+      "path": "controlplane/authority_transaction_hostile_test.go",
+      "sha256": "2da9c57a1bd949ecf7734b3ed4fc57dbd58e1149bef5aee7ca8e1b1430903bcb"
+    },
+    {
+      "path": "controlplane/before_benchmarks.md",
+      "sha256": "25cc1beec291e1e0fb6afd5b6d1026a1b00a4bcb9a45f6604ecccb22009d15b9"
+    },
+    {
+      "path": "controlplane/benchmark_external_test.go",
+      "sha256": "28497479b56e984852588ec1271007e8e54a07ddd5330beb620c460673344a3f"
+    },
+    {
+      "path": "controlplane/certificate.go",
+      "sha256": "ed87466d42b19542bdacce2ad569c806463b5a7b437d9abc8f3fb506809f6fbf"
+    },
+    {
+      "path": "controlplane/certificate_hostile_test.go",
+      "sha256": "e5b2c9f0695693db56b99afb2b9ea53a309f922b67000f800faf223a299f7a9e"
+    },
+    {
+      "path": "controlplane/checkin.go",
+      "sha256": "133244a4c0e0887343c0b352949cca21c0f4d06878e612bd946b8fa7c6da0d8c"
+    },
+    {
+      "path": "controlplane/checkin_authority.go",
+      "sha256": "4d8b871d3c8426c62689bc20f7d0aec729cc0f77d1c7f5c7fa92f4899a04ae37"
+    },
+    {
+      "path": "controlplane/checkin_hostile_test.go",
+      "sha256": "76870e5f842a2ede87a3ad70ffa2a4b240a04ba3e6d73f638dd2417289964c84"
+    },
+    {
+      "path": "controlplane/checkin_request.go",
+      "sha256": "078170405d5a2749dde56dbe3675061e643aad32c8ea6a81c8a030cba5329e9e"
+    },
+    {
+      "path": "controlplane/checkin_response.go",
+      "sha256": "8685ff797a43a8a0c0d27f550c22607219960fe83b5f744c390dc7811ab3c7b8"
+    },
+    {
+      "path": "controlplane/checkin_response_hostile_test.go",
+      "sha256": "65410997549a358a7986a1d89363a88442114e7f846ee48f9d45942a99c7c395"
+    },
+    {
+      "path": "controlplane/contract_internal_test.go",
+      "sha256": "bb067a3c8fdf63e40c33181a974b607e1aee90a2e612598ddd8f17ff1dd98302"
+    },
+    {
+      "path": "controlplane/contract_inventory_test.go",
+      "sha256": "d54fc29349afe8ffc0ac64e58da46d9108092ee26b699d4845f4f9f861d9fd8f"
+    },
+    {
+      "path": "controlplane/doc.go",
+      "sha256": "74081329ec9ed7d98808aea42b16874c9f5498fd3fe54c826d49cc641249ab87"
+    },
+    {
+      "path": "controlplane/document_ceiling_hostile_test.go",
+      "sha256": "76a212a9d3421201d491d5765508e77859afb5e94dc436e2037de622e5ccc8a8"
+    },
+    {
+      "path": "controlplane/enum_external_fuzz_test.go",
+      "sha256": "833ea3f040ee4932f51a0b8981370fe82b810ac64d4891329f07e9046b66d57a"
+    },
+    {
+      "path": "controlplane/errors.go",
+      "sha256": "6b4ba2f23352b65a8e573a964178eafff867b265bb3a3b78cc33f94ac76530f9"
+    },
+    {
+      "path": "controlplane/fixture_test.go",
+      "sha256": "0590bf290d3b47e97bf5ccccd30d66463718dbd7d27c5a956d7c4cc0e97f5f34"
+    },
+    {
+      "path": "controlplane/golden_wire_test.go",
+      "sha256": "05b12cb162b998ea0fae457b85fe6752437dcdd29d29d57064c83a926897e533"
+    },
+    {
+      "path": "controlplane/json_limits.go",
+      "sha256": "f154eeec9e8abd6b0c2c62f523e640f1404a46ee40c1dbeaaa19065bfd67efde"
+    },
+    {
+      "path": "controlplane/offering_external_fixture_test.go",
+      "sha256": "03865e292f21f5e39d881307437d04a5d0a56c33dd388524187436d7212b3cdf"
+    },
+    {
+      "path": "controlplane/product_status.go",
+      "sha256": "a73244748429aea538edcf683185e31b1e5a4f6d065dc7d09fd4f5f9e5607512"
+    },
+    {
+      "path": "controlplane/product_status_hostile_test.go",
+      "sha256": "62674dcfe361c7f106118bcdfb0f01c1915fd3037c46a36f73835253f3ba3321"
+    },
+    {
+      "path": "controlplane/protocol_members.go",
+      "sha256": "01d89bb91c246f167365360fff09908282203ed7a7b475d12319ad38fb7ce00b"
+    },
+    {
+      "path": "controlplane/registration.go",
+      "sha256": "30499a3e72f7396f8c24bede8ad08ac3b2ae8cb7c06498b00c86403ed8436ff5"
+    },
+    {
+      "path": "controlplane/registration_authority.go",
+      "sha256": "f0224d80827adc0e691becb5ba4292081a8cb78194c99b981fa20437368f37b6"
+    },
+    {
+      "path": "controlplane/registration_hostile_test.go",
+      "sha256": "df50a627c823565b97b231ec1130dbaa9900899efe74e05dfdd4a43b85cf4e8e"
+    },
+    {
+      "path": "controlplane/response_binding.go",
+      "sha256": "3bc2ad2ae139a6cafd9bc73c53c8e3d35eef7b029e9448b0880cdf905c39947f"
+    },
+    {
+      "path": "controlplane/response_document.go",
+      "sha256": "a13fbebdfaf03a568a06f03a89b4e54d10ea459a52ab32f9607a7187f62e67ef"
+    },
+    {
+      "path": "controlplane/response_document_hostile_test.go",
+      "sha256": "d4fd8a3343a99587d3317927e72bf9d226b411a3e6005f229fa5ab295faaf862"
+    },
+    {
+      "path": "controlplane/response_header.go",
+      "sha256": "d40399c50c7adf8d2b6d50092decb8d3affdf4289738f8358c93d6f83ccdb9c1"
+    },
+    {
+      "path": "controlplane/response_projection.go",
+      "sha256": "25f46f9417d84faa2ea3cdbaa182279121418db69cb39caaa029d56ea3be1b88"
+    },
+    {
+      "path": "controlplane/response_projection_hostile_test.go",
+      "sha256": "5693d18bd3556124963b14e651aeb8036aab3bfc69ad16dc6f6600102ae1c240"
+    },
+    {
+      "path": "controlplane/side_capability.go",
+      "sha256": "cb0c68971aad6dfadcad54e388fbc5ccaa52716c2ddda2694149b8525ae077f3"
+    },
+    {
+      "path": "controlplane/side_capability_hostile_test.go",
+      "sha256": "81359cf26d75aa9d80edfc9df70d9952e3e25524f190b00955ade78bdc573de7"
+    },
+    {
+      "path": "controlplane/signed_document_fuzz_test.go",
+      "sha256": "f8d1c872eb14c48cae09f5193b6dbad7c658b531f4b330e2ca641d9a4f99acfc"
+    },
+    {
+      "path": "controlplane/signing_domain.go",
+      "sha256": "415783171c8b28fb9e71fc6b1c541b9056fe41b4fb0edba0b1b224e791652295"
+    },
+    {
+      "path": "controlplane/signing_domain_hostile_test.go",
+      "sha256": "e891644eef5d30821bba789cd8f88235e2a67ecc9284d1195206ea1d9d0adea3"
+    },
+    {
+      "path": "controlplane/structure_external_fuzz_test.go",
+      "sha256": "9afb1cf65ef2bc1d0a939461e4721398372beebcf9b6a60c0de59c43ba439a32"
+    },
+    {
+      "path": "controlplane/testdata/check_in_request.json",
+      "sha256": "d6602ff78fbba14636501fae956769780c3d9e2ba980d3f039d6bc7c42a3e118"
+    },
+    {
+      "path": "controlplane/testdata/check_in_response.json",
+      "sha256": "877723704d8af737017320be4822fe1c948b05ac121d2cdcf30f2d2e46906617"
+    },
+    {
+      "path": "controlplane/testdata/fuzz/FuzzCheckInPayloadExternalDecoder/67b88adc00ac4ff8",
+      "sha256": "67b88adc00ac4ff8f440386048f0c397882665382677ced24c9e68465af86031"
+    },
+    {
+      "path": "controlplane/testdata/fuzz/FuzzRegistrationRequestExternalDecoder/0874327895ce28b3",
+      "sha256": "0874327895ce28b3cfeb5bf38ae02b2349c823db5d90e2d15a311e1aed72b4ae"
+    },
+    {
+      "path": "controlplane/testdata/registration_request.json",
+      "sha256": "c8c5bd0a8d27aca3a83a13ae916b1e6cfe476251f1c9586c9de7bb2cbd0cddb8"
+    },
+    {
+      "path": "controlplane/testdata/registration_response.json",
+      "sha256": "ab9ec2ca3b78ec2f0421e0bf69a1bd835492e22605c2d80686c1fe55cce81f70"
+    },
+    {
+      "path": "controlplane/upgrade_required_response_hostile_test.go",
+      "sha256": "51d0b93bbbe4af8eb061d940aef7db46f0dac6d4b47e3bb3141e3b36e823a664"
+    },
+    {
+      "path": "controlplane/usage_watermark.go",
+      "sha256": "27c3a19d189864656189741972d819c534f615f3b86db43dc2be9c598220e85d"
+    },
+    {
+      "path": "controlplane/usage_watermark_hostile_test.go",
+      "sha256": "97fb5e611c31a9780817b6119f3a0fa3551d2d395fdc17701c39cac5ed33436f"
+    },
+    {
+      "path": "controlplane/usage_window.go",
+      "sha256": "87d1904a982400b534dd04f39ad7a003b828adf6f18ffc5fef1b60e6852b9fb6"
+    },
+    {
+      "path": "controlplane/usage_window_hostile_test.go",
+      "sha256": "f72fd3fbbc7bfcc32f8c3e29f4b6b8da4fd6ea7ad9ceb45c64976dc84890fada"
+    },
+    {
+      "path": "controlplane/validation_witnesses.go",
+      "sha256": "f442626ad07e49196f11b59ad79f406369bbab5246a17106b716242e1b20a33b"
+    },
+    {
+      "path": "controlplane/verification.go",
+      "sha256": "29910542fb0cfb84c1903c27e256da96941b73ec17354f9970ec9894ed04de44"
+    },
+    {
+      "path": "controlplane/verification_hostile_test.go",
+      "sha256": "d0a579b4f10f810728d5f6beead09a3a9c57664c1c6f45c492b6f8c45f315f1e"
+    }
+  ],
+  "raw_evidence_root": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909",
+  "verified_source_snapshot_count": 4256,
+  "baseline_production_matches_base_commit": true,
+  "commands": {
+    "runner": {
+      "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/final.py",
+      "bytes": 2124,
+      "sha256": "c51220e4886a5b08f4b55eaee4d10e8bcd8c1194dc29d1716f41a24aecf5b9c8"
+    },
+    "baseline_runner": {
+      "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/before.py",
+      "bytes": 997,
+      "sha256": "fbc4cc3e747fef80dc32bb7ee9716e78a5e2e6e2415fdceaadfb6e9e4f158467"
+    },
+    "mutation_runner": {
+      "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/mutations.py",
+      "bytes": 1950,
+      "sha256": "eaafa4de45eb3dfa8c80d196a73e72d92c303b217986996ca68bf011e05a3101"
+    },
+    "profile_reader": {
+      "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/profile_review.py",
+      "bytes": 907,
+      "sha256": "9dfd9ac2a151ecdd63329ce6cf7ad2a8115ab6026b996d38dc551fb86a2dd481"
+    },
+    "supplemental_runner": {
+      "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/minimize_review.py",
+      "bytes": 1517,
+      "sha256": "f50fd77ac409a59f88705803d21b2cbcfbe8044f8dcb77057189ba2997b25fc7"
+    },
+    "recording": {
+      "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/record.py",
+      "bytes": 2006,
+      "sha256": "5962593328709e740173925b6ed9e6afd417b184f290658644ddfb6faa9d5c90"
+    },
+    "plan": {
+      "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-plan.json",
+      "bytes": 8525,
+      "sha256": "86c0bb16d69b68df2c8b03bcf94cd19c556007c6ea6075f4b34092c55eb94d7a"
+    },
+    "progress": {
+      "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-complete.json",
+      "bytes": 2213,
+      "sha256": "761f127f2b5fe5441f59805faf6210f01c9016680229f06c6eef85d481dfca23"
+    },
+    "supplemental_fuzz_plan": {
+      "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/bounded-minimize-plan.json",
+      "bytes": 2967,
+      "sha256": "569829f510ef1dc0e90e774d8c247dad6e0cb035aae679be1d04934adbeae958"
+    },
+    "supplemental_fuzz_completion": {
+      "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/bounded-minimize-complete.json",
+      "bytes": 589,
+      "sha256": "d6c91efc45fdb96d16073bab32efb365dbea9bc5108b54fc60b92248656808c2"
+    },
+    "go_minimization_contract": {
+      "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/go-minimization-source.json",
+      "bytes": 4896,
+      "sha256": "d04c0dc189b4a1304e481e30afdf60d25eb4398da9d137ff3345dfc8a6b9ed5a"
+    }
+  },
+  "budget": {
+    "benchmark": {
+      "seconds_per_case": 30,
+      "cases": 10,
+      "passes_per_revision": 1,
+      "nominal_seconds_per_revision": 300,
+      "unit_amplification": 10,
+      "observed_wall_seconds": {
+        "after-benchmarks": 336.6020487500027,
+        "before-benchmarks": 344.9503155630009
+      },
+      "notes": "Go caps the enum parser at 1e9 iterations before 30s; this row is informative only. Wall duration includes calibration/setup/compilation. Ratios to per-case flag exceeding 10 are reported, not hidden."
+    },
+    "fuzz": {
+      "seconds_per_target": 30,
+      "targets": 21,
+      "passes": 1,
+      "workers_per_target": 4,
+      "nominal_serial_seconds": 630,
+      "unit_amplification": 21,
+      "timeout_seconds_per_target": 120,
+      "maximum_timeout_sum_seconds": 2520,
+      "supplemental_campaigns": 6,
+      "supplemental_nominal_seconds": 180,
+      "supplemental_minimization_seconds": 1,
+      "total_nominal_seconds": 810,
+      "notes": "21x original target multiplier explicitly exceeds the protocol 10x visibility threshold. Six low-progress campaigns repeated with explicitly bounded minimization: 27 campaigns total, 810 nominal seconds, 27x the per-target flag. Targets are serial; workers run within one target."
+    },
+    "ordinary_tests": {
+      "count": 1,
+      "timeout": "Go default 10m",
+      "cache": "test result cache disabled by -count=1; compiler cache retained"
+    },
+    "retries": "No benchmark repetitions. Six explicitly recorded supplemental fuzz campaigns bound minimization after low original execution counts. Development test/analyzer retries are all retained and classified."
+  },
+  "benchmarks": {
+    "before": [
+      {
+        "name": "BenchmarkParseProductStatus",
+        "iterations": 1000000000,
+        "ns_per_op": 12.76,
+        "bytes_per_op": 0,
+        "allocs_per_op": 0,
+        "MB_per_s": null,
+        "effective_timed_seconds": 12.76,
+        "raw": "BenchmarkParseProductStatus-8      \t1000000000\t        12.76 ns/op\t       0 B/op\t       0 allocs/op"
+      },
+      {
+        "name": "BenchmarkRegistrationCodec/marshal",
+        "iterations": 264904,
+        "ns_per_op": 160232.0,
+        "bytes_per_op": 26907,
+        "allocs_per_op": 329,
+        "MB_per_s": 17.24,
+        "effective_timed_seconds": 42.446097728,
+        "raw": "BenchmarkRegistrationCodec/marshal-8         \t  264904\t    160232 ns/op\t  17.24 MB/s\t   26907 B/op\t     329 allocs/op"
+      },
+      {
+        "name": "BenchmarkRegistrationCodec/unmarshal",
+        "iterations": 91270,
+        "ns_per_op": 372431.0,
+        "bytes_per_op": 64305,
+        "allocs_per_op": 1091,
+        "MB_per_s": 7.42,
+        "effective_timed_seconds": 33.99177737,
+        "raw": "BenchmarkRegistrationCodec/unmarshal-8       \t   91270\t    372431 ns/op\t   7.42 MB/s\t   64305 B/op\t    1091 allocs/op"
+      },
+      {
+        "name": "BenchmarkVerifyRegistration",
+        "iterations": 76435,
+        "ns_per_op": 446004.0,
+        "bytes_per_op": 29820,
+        "allocs_per_op": 502,
+        "MB_per_s": null,
+        "effective_timed_seconds": 34.09031574,
+        "raw": "BenchmarkVerifyRegistration-8                \t   76435\t    446004 ns/op\t   29820 B/op\t     502 allocs/op"
+      },
+      {
+        "name": "BenchmarkVerifyCheckIn",
+        "iterations": 181562,
+        "ns_per_op": 206422.0,
+        "bytes_per_op": 9933,
+        "allocs_per_op": 195,
+        "MB_per_s": null,
+        "effective_timed_seconds": 37.478391164,
+        "raw": "BenchmarkVerifyCheckIn-8                     \t  181562\t    206422 ns/op\t    9933 B/op\t     195 allocs/op"
+      },
+      {
+        "name": "BenchmarkCommitCheckIn",
+        "iterations": 1322750,
+        "ns_per_op": 26539.0,
+        "bytes_per_op": 3138,
+        "allocs_per_op": 87,
+        "MB_per_s": null,
+        "effective_timed_seconds": 35.10446225,
+        "raw": "BenchmarkCommitCheckIn-8                     \t 1322750\t     26539 ns/op\t    3138 B/op\t      87 allocs/op"
+      },
+      {
+        "name": "BenchmarkAuthenticatedResponse/verify",
+        "iterations": 184126,
+        "ns_per_op": 204166.0,
+        "bytes_per_op": 11227,
+        "allocs_per_op": 174,
+        "MB_per_s": null,
+        "effective_timed_seconds": 37.592268916,
+        "raw": "BenchmarkAuthenticatedResponse/verify-8      \t  184126\t    204166 ns/op\t   11227 B/op\t     174 allocs/op"
+      },
+      {
+        "name": "BenchmarkAuthenticatedResponse/body",
+        "iterations": 4441106,
+        "ns_per_op": 8578.0,
+        "bytes_per_op": 2289,
+        "allocs_per_op": 27,
+        "MB_per_s": null,
+        "effective_timed_seconds": 38.095807268,
+        "raw": "BenchmarkAuthenticatedResponse/body-8        \t 4441106\t      8578 ns/op\t    2289 B/op\t      27 allocs/op"
+      },
+      {
+        "name": "BenchmarkAdvanceUsageWatermark/one_class",
+        "iterations": 6743878,
+        "ns_per_op": 5427.0,
+        "bytes_per_op": 912,
+        "allocs_per_op": 24,
+        "MB_per_s": null,
+        "effective_timed_seconds": 36.599025906,
+        "raw": "BenchmarkAdvanceUsageWatermark/one_class-8   \t 6743878\t      5427 ns/op\t     912 B/op\t      24 allocs/op"
+      },
+      {
+        "name": "BenchmarkAdvanceUsageWatermark/maximum_classes",
+        "iterations": 1232230,
+        "ns_per_op": 29161.0,
+        "bytes_per_op": 2817,
+        "allocs_per_op": 86,
+        "MB_per_s": null,
+        "effective_timed_seconds": 35.93305903,
+        "raw": "BenchmarkAdvanceUsageWatermark/maximum_classes-8         \t 1232230\t     29161 ns/op\t    2817 B/op\t      86 allocs/op"
+      }
+    ],
+    "after": [
+      {
+        "name": "BenchmarkParseProductStatus",
+        "iterations": 1000000000,
+        "ns_per_op": 12.7,
+        "bytes_per_op": 0,
+        "allocs_per_op": 0,
+        "MB_per_s": null,
+        "effective_timed_seconds": 12.7,
+        "raw": "BenchmarkParseProductStatus-8      \t1000000000\t        12.70 ns/op\t       0 B/op\t       0 allocs/op"
+      },
+      {
+        "name": "BenchmarkRegistrationCodec/marshal",
+        "iterations": 194038,
+        "ns_per_op": 191825.0,
+        "bytes_per_op": 26915,
+        "allocs_per_op": 329,
+        "MB_per_s": 14.4,
+        "effective_timed_seconds": 37.22133935,
+        "raw": "BenchmarkRegistrationCodec/marshal-8         \t  194038\t    191825 ns/op\t  14.40 MB/s\t   26915 B/op\t     329 allocs/op"
+      },
+      {
+        "name": "BenchmarkRegistrationCodec/unmarshal",
+        "iterations": 77388,
+        "ns_per_op": 458655.0,
+        "bytes_per_op": 64327,
+        "allocs_per_op": 1091,
+        "MB_per_s": 6.02,
+        "effective_timed_seconds": 35.49439314,
+        "raw": "BenchmarkRegistrationCodec/unmarshal-8       \t   77388\t    458655 ns/op\t   6.02 MB/s\t   64327 B/op\t    1091 allocs/op"
+      },
+      {
+        "name": "BenchmarkVerifyRegistration",
+        "iterations": 61189,
+        "ns_per_op": 530609.0,
+        "bytes_per_op": 29823,
+        "allocs_per_op": 502,
+        "MB_per_s": null,
+        "effective_timed_seconds": 32.467434101,
+        "raw": "BenchmarkVerifyRegistration-8                \t   61189\t    530609 ns/op\t   29823 B/op\t     502 allocs/op"
+      },
+      {
+        "name": "BenchmarkVerifyCheckIn",
+        "iterations": 153928,
+        "ns_per_op": 237861.0,
+        "bytes_per_op": 9935,
+        "allocs_per_op": 195,
+        "MB_per_s": null,
+        "effective_timed_seconds": 36.613468008,
+        "raw": "BenchmarkVerifyCheckIn-8                     \t  153928\t    237861 ns/op\t    9935 B/op\t     195 allocs/op"
+      },
+      {
+        "name": "BenchmarkCommitCheckIn",
+        "iterations": 1000000,
+        "ns_per_op": 38161.0,
+        "bytes_per_op": 3139,
+        "allocs_per_op": 87,
+        "MB_per_s": null,
+        "effective_timed_seconds": 38.161,
+        "raw": "BenchmarkCommitCheckIn-8                     \t 1000000\t     38161 ns/op\t    3139 B/op\t      87 allocs/op"
+      },
+      {
+        "name": "BenchmarkAuthenticatedResponse/verify",
+        "iterations": 186396,
+        "ns_per_op": 194047.0,
+        "bytes_per_op": 6712,
+        "allocs_per_op": 122,
+        "MB_per_s": null,
+        "effective_timed_seconds": 36.169584612,
+        "raw": "BenchmarkAuthenticatedResponse/verify-8      \t  186396\t    194047 ns/op\t    6712 B/op\t     122 allocs/op"
+      },
+      {
+        "name": "BenchmarkAuthenticatedResponse/body",
+        "iterations": 79987,
+        "ns_per_op": 453090.0,
+        "bytes_per_op": 69143,
+        "allocs_per_op": 1118,
+        "MB_per_s": null,
+        "effective_timed_seconds": 36.24130983,
+        "raw": "BenchmarkAuthenticatedResponse/body-8        \t   79987\t    453090 ns/op\t   69143 B/op\t    1118 allocs/op"
+      },
+      {
+        "name": "BenchmarkAdvanceUsageWatermark/one_class",
+        "iterations": 4505174,
+        "ns_per_op": 7811.0,
+        "bytes_per_op": 912,
+        "allocs_per_op": 24,
+        "MB_per_s": null,
+        "effective_timed_seconds": 35.189914114,
+        "raw": "BenchmarkAdvanceUsageWatermark/one_class-8   \t 4505174\t      7811 ns/op\t     912 B/op\t      24 allocs/op"
+      },
+      {
+        "name": "BenchmarkAdvanceUsageWatermark/maximum_classes",
+        "iterations": 1000000,
+        "ns_per_op": 35386.0,
+        "bytes_per_op": 2817,
+        "allocs_per_op": 86,
+        "MB_per_s": null,
+        "effective_timed_seconds": 35.386,
+        "raw": "BenchmarkAdvanceUsageWatermark/maximum_classes-8         \t 1000000\t     35386 ns/op\t    2817 B/op\t      86 allocs/op"
+      }
+    ],
+    "comparison": "One observation per workload per revision; no statistical latency trend. Harness parent allocation reporting and embedded setup changed; timed operations and fixture bytes did not."
+  },
+  "mutations": [
+    {
+      "name": "ceiling",
+      "path": "controlplane/usage_window.go",
+      "before_sha256": "87d1904a982400b534dd04f39ad7a003b828adf6f18ffc5fef1b60e6852b9fb6",
+      "mutation_sha256": "1ff3f57211c12e3c883b6e80113207565c3b254275afa91c10f5ba6fe6a5261c",
+      "removed": "documentJSONLimits(UsageWindowJSONMaximumBytes)",
+      "inserted": "documentJSONLimits(UsageWindowJSONMaximumBytes + 1)",
+      "target": "TestEveryDocumentCeilingOwnsBothSidesOfItsBoundary/usage_window",
+      "exit": 1,
+      "failed_tests": [
+        "TestEveryDocumentCeilingOwnsBothSidesOfItsBoundary/usage_window/one_above_ceiling",
+        "TestEveryDocumentCeilingOwnsBothSidesOfItsBoundary/usage_window",
+        "TestEveryDocumentCeilingOwnsBothSidesOfItsBoundary"
+      ]
+    },
+    {
+      "name": "usage-total-oracle",
+      "path": "controlplane/usage_window.go",
+      "before_sha256": "87d1904a982400b534dd04f39ad7a003b828adf6f18ffc5fef1b60e6852b9fb6",
+      "mutation_sha256": "9ad0beeb8c3c866be275d69d0e5ecce613747ca9992f79e9d1c114dff39d2599",
+      "removed": "if units != outcomes {",
+      "inserted": "if false {",
+      "target": "FuzzUsageWindowDecode",
+      "exit": 1,
+      "failed_tests": [
+        "FuzzUsageWindowDecode/seed#4",
+        "FuzzUsageWindowDecode"
+      ]
+    },
+    {
+      "name": "ingress-inventory",
+      "path": "controlplane/response_header.go",
+      "before_sha256": "d40399c50c7adf8d2b6d50092decb8d3affdf4289738f8358c93d6f83ccdb9c1",
+      "mutation_sha256": "d9f53513a8475825ed66cf92ac91eef91f5fa5b512eb3f51b7e55662f3f3bda6",
+      "removed": "var (",
+      "inserted": "func (*ResponseExpectation) UnmarshalJSON([]byte) error {return nil}\n\nvar (",
+      "target": "TestExternalJSONDoorsHaveSemanticFuzzProof",
+      "exit": 1,
+      "failed_tests": [
+        "TestExternalJSONDoorsHaveSemanticFuzzProof"
+      ]
+    },
+    {
+      "name": "struct-inventory",
+      "path": "controlplane/response_header.go",
+      "before_sha256": "d40399c50c7adf8d2b6d50092decb8d3affdf4289738f8358c93d6f83ccdb9c1",
+      "mutation_sha256": "4e35c4c748f1baa060b0248e33cf4b70eb81a4a6167376adb5f3072f07a3c0d0",
+      "removed": "var (",
+      "inserted": "type unclassifiedControlplaneFact struct { Count uint64 }\n\nvar (",
+      "target": "TestControlplaneProductionStructsHaveCompilerVisibleDataFlowRoles",
+      "exit": 1,
+      "failed_tests": [
+        "TestControlplaneProductionStructsHaveCompilerVisibleDataFlowRoles"
+      ]
+    }
+  ],
+  "runs": [
+    {
+      "label": "after-alloc-summary",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/after-alloc-summary/result.json",
+        "bytes": 769417,
+        "sha256": "4afaec6b9cf9642cb662002e7ba30224b302b09c94b372300d8e126b8b16e01c"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "tool",
+        "pprof",
+        "-top",
+        "-nodecount=20",
+        "-sample_index=alloc_space",
+        "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/after-benchmarks/controlplane.test",
+        "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/after-benchmarks/mem.pprof"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T07:14:53.436841+00:00",
+      "elapsed_seconds": 0.2152640300009807,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/after-alloc-summary/started.json",
+          "bytes": 767456,
+          "sha256": "33dfbf3fad2a20f4a6e4c767d04669e6737263aec8cf0f6437a0a229d25157e4"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/after-alloc-summary/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/after-alloc-summary/stdout",
+          "bytes": 2604,
+          "sha256": "b778b1f00cb15171e57dc4b2b680074bb37b40b17b0f4c5faa460d72e31cfd8e"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/after-alloc-summary/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "after-benchmarks",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/after-benchmarks/result.json",
+        "bytes": 770289,
+        "sha256": "3c0da7704f442b281efef91e5936fdde1fe4469efad58c1f6483fcfc59af5381"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-run=^$",
+        "-bench=.",
+        "-benchtime=30s",
+        "-benchmem",
+        "-count=1",
+        "-cpuprofile=/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/after-benchmarks/cpu.pprof",
+        "-memprofile=/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/after-benchmarks/mem.pprof",
+        "-o",
+        "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/after-benchmarks/controlplane.test",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T06:57:30.862675+00:00",
+      "elapsed_seconds": 336.6020487500027,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/after-benchmarks/started.json",
+          "bytes": 767635,
+          "sha256": "20fc2f0839d591e3f2fec53ec1f09a3d4bb89da16b26683eb692e9b724f3a59f"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/after-benchmarks/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/after-benchmarks/stdout",
+          "bytes": 12238,
+          "sha256": "ba94b45d1c1ecdce453b9fe72310d567bc4db654be44c509889d7b135a4ab686"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/after-benchmarks/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/after-benchmarks/cpu.pprof",
+          "bytes": 391016,
+          "sha256": "ba932416f85e8a1143c11ddf87e40103a202dfab9239d1665c038f9f6dd6b832"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/after-benchmarks/mem.pprof",
+          "bytes": 54854,
+          "sha256": "b9a0b3fc8d93c0525b2abe1772c5a41d7ffc9f74f8e974ec3212a8bb55a38cba"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/after-benchmarks/controlplane.test",
+          "bytes": 14658295,
+          "sha256": "23aaa86c7fbc49e3aa438ffc673ec3d758b1f6efe25a5aecd888d9205b191631"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "after-cpu-summary",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/after-cpu-summary/result.json",
+        "bytes": 769402,
+        "sha256": "da67a13e0adf6951fb5df8ab90bb87213ab8b14dc3dfe84e240e5d2955138212"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "tool",
+        "pprof",
+        "-top",
+        "-nodecount=20",
+        "-sample_index=cpu",
+        "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/after-benchmarks/controlplane.test",
+        "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/after-benchmarks/cpu.pprof"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T07:14:52.303731+00:00",
+      "elapsed_seconds": 0.40640476400221814,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/after-cpu-summary/started.json",
+          "bytes": 767448,
+          "sha256": "054f59b52e9e2c72b955551966f911071a2c1550397327595d93a000e4f50948"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/after-cpu-summary/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/after-cpu-summary/stdout",
+          "bytes": 2148,
+          "sha256": "97634a71036b99256101011d9f2ba8eff8f21abd0f325cd652639a65461d6283"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/after-cpu-summary/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "after-inuse-summary",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/after-inuse-summary/result.json",
+        "bytes": 769418,
+        "sha256": "ddb6d729f5398d06b0b30c8c279146eb56ec2b208de24cac2dd05681dd09037b"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "tool",
+        "pprof",
+        "-top",
+        "-nodecount=20",
+        "-sample_index=inuse_space",
+        "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/after-benchmarks/controlplane.test",
+        "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/after-benchmarks/mem.pprof"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T07:14:54.370554+00:00",
+      "elapsed_seconds": 0.09427325599972392,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/after-inuse-summary/started.json",
+          "bytes": 767456,
+          "sha256": "302d869e19a1d0052da0e3a1998bd7adcb386be98343bffbcb3bcbb54ad02641"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/after-inuse-summary/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/after-inuse-summary/stdout",
+          "bytes": 1003,
+          "sha256": "d6a5b06a6b86b0acb02560a738eca9d9c5235b97c942bfcea483070fcec89819"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/after-inuse-summary/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "baseline-errcheck",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/baseline-errcheck/result.json",
+        "bytes": 766199,
+        "sha256": "a48b39969343b78eed5e0a69ebeee6476db89e5e8323a1a7977cd58113bd46aa"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "/home/d/go/bin/errcheck",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T05:59:43.784042+00:00",
+      "elapsed_seconds": 0.34121124599914765,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/baseline-errcheck/started.json",
+          "bytes": 765113,
+          "sha256": "1aa25d0b4ecc730681dc6464f6da653ea2b13c8bec1e8c297cdcf4ecc242545b"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/baseline-errcheck/source.patch",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/baseline-errcheck/stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/baseline-errcheck/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "baseline-staticcheck",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/baseline-staticcheck/result.json",
+        "bytes": 766213,
+        "sha256": "19e818fbadef636717b7974170016208495d932398b79181d695b7e9b58ce1bd"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "/home/d/go/bin/staticcheck",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T05:59:41.511401+00:00",
+      "elapsed_seconds": 1.5924921959995118,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/baseline-staticcheck/started.json",
+          "bytes": 765116,
+          "sha256": "d38f0de87e5ea42cf21be39a345d7976b5ae5f3bc74382fc23750a7d2985ca70"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/baseline-staticcheck/source.patch",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/baseline-staticcheck/stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/baseline-staticcheck/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "baseline-tests",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/baseline-tests/result.json",
+        "bytes": 766324,
+        "sha256": "70b3862d405cd2311cf8a24b400e2cf8a632737653335ed9b084e79431367382"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-coverprofile=/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/baseline-tests/coverage.out",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T05:56:58.560904+00:00",
+      "elapsed_seconds": 2.569856867001363,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/baseline-tests/started.json",
+          "bytes": 765056,
+          "sha256": "55106e54160515cb0143d83848e1dc8b1ee4b9220d6285a5d6364c5993c243b3"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/baseline-tests/source.patch",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/baseline-tests/stdout",
+          "bytes": 1465062,
+          "sha256": "3281a85a13ccc36323797ba92a03444dfbc3fdb388aafdd1be4e9361824572f2"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/baseline-tests/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/baseline-tests/coverage.out",
+          "bytes": 99515,
+          "sha256": "30de62c385edb22db27738c720403816e0ca6002e46ea89c0ee1d71e4bbc1aa1"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 839
+      },
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "baseline-vet",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/baseline-vet/result.json",
+        "bytes": 766167,
+        "sha256": "f0c889ad8f067dc04dbaca1155c6ba190764a653e0919c2bc53f6546b9dfaca9"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "vet",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T05:59:39.168969+00:00",
+      "elapsed_seconds": 0.852852244002861,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/baseline-vet/started.json",
+          "bytes": 765103,
+          "sha256": "fffec25817acef7653fc38ff6b7546099db6a73de06b3df7e38dcddc4a45431f"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/baseline-vet/source.patch",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/baseline-vet/stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/baseline-vet/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "baseline-witness",
+      "classification": "analyzer_failure",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/baseline-witness/result.json",
+        "bytes": 766203,
+        "sha256": "ea3d42f020700a304f59195684fe4e5a5d4d5c053b367bd7d8ed9c20199d44fc"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "/home/d/go/bin/witness-lint",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T05:59:40.712921+00:00",
+      "elapsed_seconds": 0.08365084899924113,
+      "exit": 1,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/baseline-witness/started.json",
+          "bytes": 765117,
+          "sha256": "36da8c90c07df8214c8f2e1c393e55fa8efab44efd1804c1cc9a677cd03c595e"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/baseline-witness/source.patch",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/baseline-witness/stdout",
+          "bytes": 401,
+          "sha256": "6d60b474c4cc9502adc69e6f74f9d2f2253362bbae3995428c5f949d91c25c35"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/baseline-witness/stderr",
+          "bytes": 401,
+          "sha256": "077284f86f6dd5bbbcc2e1a00c3b268929197f081d6dcabfd8cfc8af424210b4"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "before-alloc-summary",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/before-alloc-summary/result.json",
+        "bytes": 767789,
+        "sha256": "ef4065a898fb67bf27b705cdd52bc0f2c5d0bc5db2d909f338311e5096961fac"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "tool",
+        "pprof",
+        "-top",
+        "-alloc_space",
+        "-nodecount=15",
+        "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/before-benchmarks/controlplane.test",
+        "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/before-benchmarks/mem.pprof"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T06:08:04.473005+00:00",
+      "elapsed_seconds": 0.21331644099700497,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/before-alloc-summary/started.json",
+          "bytes": 766328,
+          "sha256": "91364279fca023c4fa4fbe4d65920523bc74d24a487096cfe103d2738acfc134"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/before-alloc-summary/source.patch",
+          "bytes": 7075,
+          "sha256": "19206b69cbfae18d45ea6d78ed237b9f2f5d987d7c5e7076172422d2d153746b"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/before-alloc-summary/stdout",
+          "bytes": 2503,
+          "sha256": "faa6f73a3b163968da74c57de1454e2bf9e2b8ae817287c2840aaebce5746459"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/before-alloc-summary/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "before-benchmarks",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/before-benchmarks/result.json",
+        "bytes": 767353,
+        "sha256": "f6ab17f9d358b2f68050e89ace782bf790914a2f0b563b148bf6e57c6543c97b"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-run=^$",
+        "-bench=.",
+        "-benchtime=30s",
+        "-benchmem",
+        "-count=1",
+        "-cpuprofile=/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/before-benchmarks/cpu.pprof",
+        "-memprofile=/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/before-benchmarks/mem.pprof",
+        "-o",
+        "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/before-benchmarks/controlplane.test",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T05:59:44.834075+00:00",
+      "elapsed_seconds": 344.9503155630009,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/before-benchmarks/started.json",
+          "bytes": 765557,
+          "sha256": "17671cbbe111269e520a68330da4737a8fceacdfbedcc0201f5f0eb45a6194c4"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/before-benchmarks/source.patch",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/before-benchmarks/stdout",
+          "bytes": 12222,
+          "sha256": "c8da0393d906fdc7c63bc60f8e7d8c6e98e48b2162e05d58299176e53691f006"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/before-benchmarks/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/before-benchmarks/cpu.pprof",
+          "bytes": 400752,
+          "sha256": "358f16e35b7a30ea2f11ffebfcf6a879b1b2629760816f8be07b8bcc159ded13"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/before-benchmarks/mem.pprof",
+          "bytes": 48575,
+          "sha256": "734754c934be9e030314a008877c16019a3ef9cb10f43c1fc89d4f7e50fb78ed"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/before-benchmarks/controlplane.test",
+          "bytes": 13901838,
+          "sha256": "b287eba99e38d3ece88f35592ceb49ea452d6af4adc501aaf73f070e5462f8d7"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "before-cpu-summary",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/before-cpu-summary/result.json",
+        "bytes": 767761,
+        "sha256": "d19b5cac58e37d91f617bc13eba795a118542c357fd462def36f7f6243efa1d5"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "tool",
+        "pprof",
+        "-top",
+        "-nodecount=15",
+        "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/before-benchmarks/controlplane.test",
+        "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/before-benchmarks/cpu.pprof"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T06:08:03.401799+00:00",
+      "elapsed_seconds": 0.38752413199836155,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/before-cpu-summary/started.json",
+          "bytes": 766308,
+          "sha256": "b95d86585831185a3a62d3d787308fcd4ed9520211e6935878c9b3f160ad5dc8"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/before-cpu-summary/source.patch",
+          "bytes": 7075,
+          "sha256": "19206b69cbfae18d45ea6d78ed237b9f2f5d987d7c5e7076172422d2d153746b"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/before-cpu-summary/stdout",
+          "bytes": 1650,
+          "sha256": "c1b9b9c4eda2d89bd7978b6256c8a3c1bce551f1af18b28013359d256ffa7541"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/before-cpu-summary/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "before-inuse-summary",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/before-inuse-summary/result.json",
+        "bytes": 769424,
+        "sha256": "e6b1656d1dbde8daaf5d229ed172d5d8cc771e3ef90be6328334dd8f8cc858f4"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "tool",
+        "pprof",
+        "-top",
+        "-nodecount=20",
+        "-sample_index=inuse_space",
+        "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/before-benchmarks/controlplane.test",
+        "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/before-benchmarks/mem.pprof"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T07:14:51.461406+00:00",
+      "elapsed_seconds": 0.11378415500075789,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/before-inuse-summary/started.json",
+          "bytes": 767458,
+          "sha256": "ebc9f254c8ec8eb2e9066699800d9b1a2c99bf4ffde466d81c578b99d4bc2cd0"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/before-inuse-summary/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/before-inuse-summary/stdout",
+          "bytes": 1377,
+          "sha256": "752d1e9d13f5601ae1f571f2debe27ddc7b562b0a9646f052cd34c7bcee3633f"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/before-inuse-summary/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "bounded-minimize-FuzzCheckInRequestDecodeAndVerify",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/bounded-minimize-FuzzCheckInRequestDecodeAndVerify/result.json",
+        "bytes": 769434,
+        "sha256": "573966ac1ee20d1f884738370a8921934e3170ec7fad1f91a18668027433d943"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-run=^$",
+        "-fuzz=^FuzzCheckInRequestDecodeAndVerify$",
+        "-fuzztime=30s",
+        "-fuzzminimizetime=1s",
+        "-parallel=4",
+        "-timeout=2m",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T07:18:42.466303+00:00",
+      "elapsed_seconds": 31.245910155001184,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/bounded-minimize-FuzzCheckInRequestDecodeAndVerify/started.json",
+          "bytes": 767349,
+          "sha256": "5f2a37582bf3e009c2470e4d5654d209b9aa7b97c835227ad222461e3d418cde"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/bounded-minimize-FuzzCheckInRequestDecodeAndVerify/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/bounded-minimize-FuzzCheckInRequestDecodeAndVerify/stdout",
+          "bytes": 4806,
+          "sha256": "86d519d61c2cc3b6a99baea209fb7b8a9de31ec354714aea7aba55da410be902"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/bounded-minimize-FuzzCheckInRequestDecodeAndVerify/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 1
+      },
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": "fuzz: elapsed: 31s, execs: 62556 (0/sec), new interesting: 171 (total: 186)"
+    },
+    {
+      "label": "bounded-minimize-FuzzCheckInResponseDocumentDecodeAndVerify",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/bounded-minimize-FuzzCheckInResponseDocumentDecodeAndVerify/result.json",
+        "bytes": 769479,
+        "sha256": "08a58b2fedaa8540fff53823d7221cbf54ce62bad2cf7120625ad12a40cbb614"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-run=^$",
+        "-fuzz=^FuzzCheckInResponseDocumentDecodeAndVerify$",
+        "-fuzztime=30s",
+        "-fuzzminimizetime=1s",
+        "-parallel=4",
+        "-timeout=2m",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T07:19:14.403988+00:00",
+      "elapsed_seconds": 31.611463705998176,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/bounded-minimize-FuzzCheckInResponseDocumentDecodeAndVerify/started.json",
+          "bytes": 767358,
+          "sha256": "caa40f249441a2232daec1a5f777d5e99d7687523c8c48a1f04423e5e3c0f11f"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/bounded-minimize-FuzzCheckInResponseDocumentDecodeAndVerify/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/bounded-minimize-FuzzCheckInResponseDocumentDecodeAndVerify/stdout",
+          "bytes": 4985,
+          "sha256": "fb2e39c53840f0a8f763236f116739d371dc6800ad4906300f26a8cfb44f9d1f"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/bounded-minimize-FuzzCheckInResponseDocumentDecodeAndVerify/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 1
+      },
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": "fuzz: elapsed: 31s, execs: 92621 (0/sec), new interesting: 199 (total: 214)"
+    },
+    {
+      "label": "bounded-minimize-FuzzInstallationCertificateDocumentDecodeAndVerify",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/bounded-minimize-FuzzInstallationCertificateDocumentDecodeAndVerify/result.json",
+        "bytes": 769519,
+        "sha256": "43b964393302dc859761b44647aa4a79e6e43ebf2476a25e6fdac512a095e1e0"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-run=^$",
+        "-fuzz=^FuzzInstallationCertificateDocumentDecodeAndVerify$",
+        "-fuzztime=30s",
+        "-fuzzminimizetime=1s",
+        "-parallel=4",
+        "-timeout=2m",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T07:17:38.239671+00:00",
+      "elapsed_seconds": 31.406872378000116,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/bounded-minimize-FuzzInstallationCertificateDocumentDecodeAndVerify/started.json",
+          "bytes": 767366,
+          "sha256": "f246988890dd4f9fa53563ef4ecb1284ca3867b99331a8dde773a601b6f9bb28"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/bounded-minimize-FuzzInstallationCertificateDocumentDecodeAndVerify/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/bounded-minimize-FuzzInstallationCertificateDocumentDecodeAndVerify/stdout",
+          "bytes": 5142,
+          "sha256": "539304a5567daef186aec46af49175c554274dd8276c63a54a0b13f03d74d19c"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/bounded-minimize-FuzzInstallationCertificateDocumentDecodeAndVerify/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 1
+      },
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": "fuzz: elapsed: 31s, execs: 214927 (0/sec), new interesting: 218 (total: 232)"
+    },
+    {
+      "label": "bounded-minimize-FuzzRegistrationDocumentDecodeAndVerify",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/bounded-minimize-FuzzRegistrationDocumentDecodeAndVerify/result.json",
+        "bytes": 769463,
+        "sha256": "648202802c44c9d56b477756df8958d9e4c39992ea6a4e322f1a34b4d526a9ab"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-run=^$",
+        "-fuzz=^FuzzRegistrationDocumentDecodeAndVerify$",
+        "-fuzztime=30s",
+        "-fuzzminimizetime=1s",
+        "-parallel=4",
+        "-timeout=2m",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T07:18:10.337103+00:00",
+      "elapsed_seconds": 31.44479314000273,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/bounded-minimize-FuzzRegistrationDocumentDecodeAndVerify/started.json",
+          "bytes": 767355,
+          "sha256": "a11c16d359d7bbed213fb3cc9c95c07a545e3962a0d5dbfc37796bc3d4022a7a"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/bounded-minimize-FuzzRegistrationDocumentDecodeAndVerify/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/bounded-minimize-FuzzRegistrationDocumentDecodeAndVerify/stdout",
+          "bytes": 4925,
+          "sha256": "06f76ad9ea8ab7aad2fbf7d09401e0673b2b76e98d3ae13d07f48f9b3e0fbeb9"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/bounded-minimize-FuzzRegistrationDocumentDecodeAndVerify/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 1
+      },
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": "fuzz: elapsed: 31s, execs: 52021 (0/sec), new interesting: 186 (total: 202)"
+    },
+    {
+      "label": "bounded-minimize-FuzzRegistrationPayloadExternalDecoder",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/bounded-minimize-FuzzRegistrationPayloadExternalDecoder/result.json",
+        "bytes": 769458,
+        "sha256": "75a35917d27657427c5e348cd276195a88fe02994792d83aaec0f642370e168d"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-run=^$",
+        "-fuzz=^FuzzRegistrationPayloadExternalDecoder$",
+        "-fuzztime=30s",
+        "-fuzzminimizetime=1s",
+        "-parallel=4",
+        "-timeout=2m",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T07:19:46.706092+00:00",
+      "elapsed_seconds": 30.97880669799997,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/bounded-minimize-FuzzRegistrationPayloadExternalDecoder/started.json",
+          "bytes": 767354,
+          "sha256": "0f3a58b62eecf9e1e5ee0f550a9714088debe2c6be63ae18b8207232ce7982bc"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/bounded-minimize-FuzzRegistrationPayloadExternalDecoder/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/bounded-minimize-FuzzRegistrationPayloadExternalDecoder/stdout",
+          "bytes": 4920,
+          "sha256": "b62b63eda5394e6ffe94a782edb2dd2c704e5bf2f3af6a8ca9e547ca28234cd0"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/bounded-minimize-FuzzRegistrationPayloadExternalDecoder/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 1
+      },
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": "fuzz: elapsed: 30s, execs: 161929 (0/sec), new interesting: 218 (total: 234)"
+    },
+    {
+      "label": "bounded-minimize-FuzzUpgradeRequiredResponseSemanticClosure",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/bounded-minimize-FuzzUpgradeRequiredResponseSemanticClosure/result.json",
+        "bytes": 769478,
+        "sha256": "d9f990cdfe3b04a8fcefc8705d228ec5f34a3ebba91073aec0e70a554d62766c"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-run=^$",
+        "-fuzz=^FuzzUpgradeRequiredResponseSemanticClosure$",
+        "-fuzztime=30s",
+        "-fuzzminimizetime=1s",
+        "-parallel=4",
+        "-timeout=2m",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T07:20:18.369504+00:00",
+      "elapsed_seconds": 31.30100636499992,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/bounded-minimize-FuzzUpgradeRequiredResponseSemanticClosure/started.json",
+          "bytes": 767358,
+          "sha256": "4056808a249550e6a6e841cd34fcd8c4d7883873d36f27deea5d96b3b08baa7b"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/bounded-minimize-FuzzUpgradeRequiredResponseSemanticClosure/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/bounded-minimize-FuzzUpgradeRequiredResponseSemanticClosure/stdout",
+          "bytes": 4964,
+          "sha256": "511fc92ad312e00e44c27ccb55dbd44ab10fdb5adfcc5c44da8e4c4fb3071ef2"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/bounded-minimize-FuzzUpgradeRequiredResponseSemanticClosure/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 1
+      },
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": "fuzz: elapsed: 30s, execs: 22658 (0/sec), new interesting: 119 (total: 130)"
+    },
+    {
+      "label": "closed-complexity",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-complexity/result.json",
+        "bytes": 769979,
+        "sha256": "86537bc9a9909de08e620372745261809e3d428c8d62bac7035c27c633b253c8"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "/home/d/go/bin/gocyclo",
+        "-over",
+        "10",
+        "controlplane/certificate.go",
+        "controlplane/checkin.go",
+        "controlplane/checkin_authority.go",
+        "controlplane/checkin_request.go",
+        "controlplane/checkin_response.go",
+        "controlplane/doc.go",
+        "controlplane/errors.go",
+        "controlplane/json_limits.go",
+        "controlplane/product_status.go",
+        "controlplane/protocol_members.go",
+        "controlplane/registration.go",
+        "controlplane/registration_authority.go",
+        "controlplane/response_binding.go",
+        "controlplane/response_document.go",
+        "controlplane/response_header.go",
+        "controlplane/response_projection.go",
+        "controlplane/side_capability.go",
+        "controlplane/signing_domain.go",
+        "controlplane/usage_watermark.go",
+        "controlplane/usage_window.go",
+        "controlplane/validation_witnesses.go",
+        "controlplane/verification.go"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T06:57:23.981972+00:00",
+      "elapsed_seconds": 0.009383503998833476,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-complexity/started.json",
+          "bytes": 768027,
+          "sha256": "379077bfd11046bba16835dd864bfd767cd0d7fab5475887828e03c3750b6746"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-complexity/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-complexity/stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-complexity/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "closed-darwin",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-darwin/result.json",
+        "bytes": 769556,
+        "sha256": "418ce7c842e6e9609d65681da5881dae1cc16de7e7bae8af4c11d1ffa8d20ca9"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "env",
+        "GOOS=darwin",
+        "GOARCH=arm64",
+        "CGO_ENABLED=0",
+        "go",
+        "test",
+        "-c",
+        "-o",
+        "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-darwin/controlplane.test",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T06:57:24.679571+00:00",
+      "elapsed_seconds": 2.485765426998114,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-darwin/started.json",
+          "bytes": 767384,
+          "sha256": "671955bafa72b07146a59aef30f7a1d97153172f76edb5162f98275b2a4f4f12"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-darwin/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-darwin/stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-darwin/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-darwin/controlplane.test",
+          "bytes": 13825410,
+          "sha256": "f641324c027ecd66df31dcc57181481b501ae3dd0045384b21b47363d1b69cae"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "closed-errcheck",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-errcheck/result.json",
+        "bytes": 769137,
+        "sha256": "28b315630cc7274205c07a215d8c711d169cb9abe6940afb89e2d46317f29ea8"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "/home/d/go/bin/errcheck",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T06:57:22.121457+00:00",
+      "elapsed_seconds": 0.31887279599686735,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-errcheck/started.json",
+          "bytes": 767194,
+          "sha256": "e8c3c575a4c18f2d4ad0adf967948b24bc34320414108a4efa30a63c148c1925"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-errcheck/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-errcheck/stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-errcheck/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "closed-race",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-race/result.json",
+        "bytes": 769503,
+        "sha256": "a4b9e6663b087f3e382cb95452310cd2dec88f86e8b35746ede6e49c7c07cc60"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-race",
+        "-count=1",
+        "-coverprofile=/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-race/coverage.out",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T06:57:07.156064+00:00",
+      "elapsed_seconds": 10.34052703800262,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-race/started.json",
+          "bytes": 767342,
+          "sha256": "171d116c361fdad40c7d128b393d58a79dcbba0a36d0aa69a133c69ae2639963"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-race/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-race/stdout",
+          "bytes": 1761296,
+          "sha256": "d876c160a2bbcbc76960fd7d5ea6928629bc2668522481d70c7cc49af98729f8"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-race/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-race/coverage.out",
+          "bytes": 102108,
+          "sha256": "a35c514a85bfcc0cd11fa1c21f58ec0b6abe79eb6df300d6c5fb4063dadf0b11"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 977
+      },
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "closed-staticcheck",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-staticcheck/result.json",
+        "bytes": 769150,
+        "sha256": "7f30bfcf23e895c3113759e557598630ca6f51ed8b7ad512733e46c17840b2f5"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "/home/d/go/bin/staticcheck",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T06:57:19.827068+00:00",
+      "elapsed_seconds": 1.538217192999582,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-staticcheck/started.json",
+          "bytes": 767197,
+          "sha256": "663c5920263d0b3427f34a2f4db7a4845ad3daf68de2ab34682b2a58f49a30c5"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-staticcheck/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-staticcheck/stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-staticcheck/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "closed-vet",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-vet/result.json",
+        "bytes": 769106,
+        "sha256": "f108d0a9c5e6e7dbcef100b96f3a3d42720cdbf978df074fba584710162180c2"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "vet",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T06:57:18.238541+00:00",
+      "elapsed_seconds": 0.8273426429987012,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-vet/started.json",
+          "bytes": 767184,
+          "sha256": "39a609fc3a49d5b5d764c226f9c67f9a8b80df9603343c7f1f788c65a21eaf71"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-vet/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-vet/stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-vet/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "closed-windows",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-windows/result.json",
+        "bytes": 769570,
+        "sha256": "0e621c2ac6d2dfc1bfa4c2d1f32b6d903c85e8ffff790f72d03607c8b55c2711"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "env",
+        "GOOS=windows",
+        "GOARCH=amd64",
+        "CGO_ENABLED=0",
+        "go",
+        "test",
+        "-c",
+        "-o",
+        "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-windows/controlplane.test.exe",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T06:57:27.873950+00:00",
+      "elapsed_seconds": 2.27744921699923,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-windows/started.json",
+          "bytes": 767390,
+          "sha256": "6915d02a38adc09d96c2eb034c824ba3f66c1a6ec7d492943d8e1228353af9a7"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-windows/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-windows/stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-windows/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-windows/controlplane.test.exe",
+          "bytes": 14881280,
+          "sha256": "e6c2e61455933962015805d34b4db6eb2e993e59f50bcf0ba9a95ca23082a045"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "closed-witness",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-witness/result.json",
+        "bytes": 769137,
+        "sha256": "2d489e087cda3b2d29c1bdbb326d5d12c911b52ae493da3758a823b7d9db677b"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "/home/d/go/bin/witness-lint",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T06:57:23.183215+00:00",
+      "elapsed_seconds": 0.10146897199956584,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-witness/started.json",
+          "bytes": 767198,
+          "sha256": "591e7f0758cc07b9837d8061e7402d56a5547a78aafc8d19f630a079bc3526b3"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-witness/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-witness/stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/closed-witness/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "expanded-boundaries",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/expanded-boundaries/result.json",
+        "bytes": 768155,
+        "sha256": "7cda7293bc68f65f9ce8eb475ae7b47918e51c11ee5c3b5b4a77acd5e18e77cc"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T06:43:26.923360+00:00",
+      "elapsed_seconds": 2.1769837600004394,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/expanded-boundaries/started.json",
+          "bytes": 766473,
+          "sha256": "73d2c70d57c072b7f6869cb80005073e79c1b430bd58b9f92989e5a0ce9f9d0a"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/expanded-boundaries/source.patch",
+          "bytes": 24231,
+          "sha256": "5ce3a2fbba1593cad98332cde88230004c4f1b300dc9da1236db250fb129b141"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/expanded-boundaries/stdout",
+          "bytes": 1756330,
+          "sha256": "992ece89bb8741ae8c159eeaea48cd1a0dc20f399f6b3561fe02842ea223c8b2"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/expanded-boundaries/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 972
+      },
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "final-candidate-green",
+      "classification": "fixture_failure",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/final-candidate-green/result.json",
+        "bytes": 769186,
+        "sha256": "86ee01d623cbce736c4c97382357ebfc9f35cf4f511d3daac7a5cf200ea5958e"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T06:50:59.273643+00:00",
+      "elapsed_seconds": 2.1436270300000615,
+      "exit": 1,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/final-candidate-green/started.json",
+          "bytes": 767214,
+          "sha256": "7a66f7302ef6d5bd990d67192c117c40d31af6e735ad3787e1597c8e4c57689b"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/final-candidate-green/source.patch",
+          "bytes": 35699,
+          "sha256": "40490c95f6ed12f2fc3d1ae779c5a13e9df67cd1b6702e0a89cf48ad9c288044"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/final-candidate-green/stdout",
+          "bytes": 1761087,
+          "sha256": "d268b65fe9d5b00118e12379e8f52524651b90a1a2cab6be9e36907529237dc3"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/final-candidate-green/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 972,
+        "fail": 3
+      },
+      "failed_leaf_tests": [
+        "TestResponseDecoderCannotRewriteItsRetainedWireProof/smallest_admitted_body",
+        "TestResponseDecoderCannotRewriteItsRetainedWireProof/largest_admitted_count"
+      ],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "final-candidate-tests",
+      "classification": "compile_failure",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/final-candidate-tests/result.json",
+        "bytes": 769183,
+        "sha256": "3a8236958414bc6e0615768c236cd10ce4e1c7d8bfad1ffd72192523a2933b23"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T06:50:18.544607+00:00",
+      "elapsed_seconds": 0.5856441900032223,
+      "exit": 1,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/final-candidate-tests/started.json",
+          "bytes": 767214,
+          "sha256": "cd50793ff2cbbd7b174e1af010601881a7462695de8c882d1bbb91e634edf27c"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/final-candidate-tests/source.patch",
+          "bytes": 35699,
+          "sha256": "40490c95f6ed12f2fc3d1ae779c5a13e9df67cd1b6702e0a89cf48ad9c288044"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/final-candidate-tests/stdout",
+          "bytes": 3879,
+          "sha256": "87213746c10068a7bee1944aff18e34b94ec2a9573119d5b013362899682f1fa"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/final-candidate-tests/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "build_failed": true,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "final-machine",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/final-machine/result.json",
+        "bytes": 769188,
+        "sha256": "ff44a1157e87c83cc48619433085634036085b399247673d20bb40cfe62052c9"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "python3",
+        "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/machine_review.py"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T07:14:55.185826+00:00",
+      "elapsed_seconds": 0.10626110500015784,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/final-machine/started.json",
+          "bytes": 767250,
+          "sha256": "52c77da7d65617c2df3f67fa2fb35728d63c91cf2ec4d0bfaed0c60a92be8ff7"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/final-machine/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/final-machine/stdout",
+          "bytes": 5374,
+          "sha256": "9e6ee69fe7b0fe15248ad7439d78fa45e972dc993fdb609210836f0013c95d12"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/final-machine/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "final-race",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/final-race/result.json",
+        "bytes": 769498,
+        "sha256": "8dfb86580d8d2f440e1034f38cdb81ad4b9a8cf694197092c5b2bb17ee2a1a1b"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-race",
+        "-count=1",
+        "-coverprofile=/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/final-race/coverage.out",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T06:56:00.534102+00:00",
+      "elapsed_seconds": 11.480951088000438,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/final-race/started.json",
+          "bytes": 767341,
+          "sha256": "bad4ab918ed1199f39759d02d44cdc9597f163fe613cc73f32fa5b254f4871c0"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/final-race/source.patch",
+          "bytes": 36399,
+          "sha256": "72eecf5c8f45ab3094c501f4a2a1ee33b8137a9c4804f951b454c54682495654"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/final-race/stdout",
+          "bytes": 1761332,
+          "sha256": "c1ae42d00f203eabafafd0a778bbd9ace995c81b9657bb996efc2f6d8e505710"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/final-race/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/final-race/coverage.out",
+          "bytes": 102108,
+          "sha256": "a35c514a85bfcc0cd11fa1c21f58ec0b6abe79eb6df300d6c5fb4063dadf0b11"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 977
+      },
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "final-staticcheck",
+      "classification": "analyzer_failure",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/final-staticcheck/result.json",
+        "bytes": 769148,
+        "sha256": "7828c36d222fce1ca57830cad8cbbd772800294e0ac6dd6c3216f96e2951332d"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "/home/d/go/bin/staticcheck",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T06:56:13.780170+00:00",
+      "elapsed_seconds": 1.3284580350009492,
+      "exit": 1,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/final-staticcheck/started.json",
+          "bytes": 767197,
+          "sha256": "76280db16edefa0e7b6b554fc0ca314e34ec407f91d9ffc4ac2fe6b80a1f3fc8"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/final-staticcheck/source.patch",
+          "bytes": 36399,
+          "sha256": "72eecf5c8f45ab3094c501f4a2a1ee33b8137a9c4804f951b454c54682495654"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/final-staticcheck/stdout",
+          "bytes": 96,
+          "sha256": "035ff264ca8c027ecbe4fd8a145ab0280f7956ccabb1a900ba3357033c43608b"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/final-staticcheck/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "final-vet",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/final-vet/result.json",
+        "bytes": 769101,
+        "sha256": "3dbfebee399fd2870254c570aff9e223a430241aeae00941aba9755419410298"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "vet",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T06:56:12.701968+00:00",
+      "elapsed_seconds": 0.368268039997929,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/final-vet/started.json",
+          "bytes": 767184,
+          "sha256": "173e0920b830bc4b5d1864f4a626f69049a0a7f012f3835d782651d74200a3b4"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/final-vet/source.patch",
+          "bytes": 36399,
+          "sha256": "72eecf5c8f45ab3094c501f4a2a1ee33b8137a9c4804f951b454c54682495654"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/final-vet/stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/final-vet/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "fixture-corrected-green",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fixture-corrected-green/result.json",
+        "bytes": 769194,
+        "sha256": "4ac342896c2b6549f2f0d5035fa31394c4a769e1f392946a5e0cbdcffee1c643"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T06:53:57.183953+00:00",
+      "elapsed_seconds": 2.1577250779992028,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fixture-corrected-green/started.json",
+          "bytes": 767214,
+          "sha256": "09c24f055234bd596b2c757a6edf1ed7ab0f07cd43a9a9d697e80a839d2b4c92"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fixture-corrected-green/source.patch",
+          "bytes": 36399,
+          "sha256": "72eecf5c8f45ab3094c501f4a2a1ee33b8137a9c4804f951b454c54682495654"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fixture-corrected-green/stdout",
+          "bytes": 1760212,
+          "sha256": "b513d4113997edb8ee5f5271939a3c849a26df628354d7604d0054a0d1edb13e"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fixture-corrected-green/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 977
+      },
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "fuzz-FuzzAuthenticatedResponseExternalSemanticClosure",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzAuthenticatedResponseExternalSemanticClosure/result.json",
+        "bytes": 769433,
+        "sha256": "acaf9fd22d34da672b0a01f22134bb3213225368108587d02bd780bc37af21b8"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-run=^$",
+        "-fuzz=^FuzzAuthenticatedResponseExternalSemanticClosure$",
+        "-fuzztime=30s",
+        "-parallel=4",
+        "-timeout=2m",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T07:06:53.805813+00:00",
+      "elapsed_seconds": 31.825859696000407,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzAuthenticatedResponseExternalSemanticClosure/started.json",
+          "bytes": 767336,
+          "sha256": "1f64f10ae28a1588c1610cb953cdd77ac5262680da9166b9fd422e049ebb5b64"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzAuthenticatedResponseExternalSemanticClosure/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzAuthenticatedResponseExternalSemanticClosure/stdout",
+          "bytes": 5034,
+          "sha256": "127c782def0b52cd04ff971a1bb1a22241033b8c06a395f0b9ad517f2df523e1"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzAuthenticatedResponseExternalSemanticClosure/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 1
+      },
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": "fuzz: elapsed: 31s, execs: 14192 (0/sec), new interesting: 1 (total: 54)"
+    },
+    {
+      "label": "fuzz-FuzzCheckInPayloadExternalDecoder",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzCheckInPayloadExternalDecoder/result.json",
+        "bytes": 769357,
+        "sha256": "2cb92f5cd710d2f39386d9615a5b29171a5bbb6c8ac080952cc644c1b84973dc"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-run=^$",
+        "-fuzz=^FuzzCheckInPayloadExternalDecoder$",
+        "-fuzztime=30s",
+        "-parallel=4",
+        "-timeout=2m",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T07:11:12.552016+00:00",
+      "elapsed_seconds": 31.64479794899671,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzCheckInPayloadExternalDecoder/started.json",
+          "bytes": 767321,
+          "sha256": "ffc5e37cbcd97edba33ac7a2a92cb35427e799b2fdaac8708f6c814e35fd172c"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzCheckInPayloadExternalDecoder/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzCheckInPayloadExternalDecoder/stdout",
+          "bytes": 4781,
+          "sha256": "64b120d38130ff596ea5a16061267353f62d7928425852320b0c64a9c43bdea1"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzCheckInPayloadExternalDecoder/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 1
+      },
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": "fuzz: elapsed: 31s, execs: 121244 (0/sec), new interesting: 10 (total: 20)"
+    },
+    {
+      "label": "fuzz-FuzzCheckInRequestDecodeAndVerify",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzCheckInRequestDecodeAndVerify/result.json",
+        "bytes": 769358,
+        "sha256": "fdeb2569647c45fba578cd630d21f3ff5fb59a386995e6fa834c64bd7f2487f7"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-run=^$",
+        "-fuzz=^FuzzCheckInRequestDecodeAndVerify$",
+        "-fuzztime=30s",
+        "-parallel=4",
+        "-timeout=2m",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T07:09:03.336353+00:00",
+      "elapsed_seconds": 31.645488582002145,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzCheckInRequestDecodeAndVerify/started.json",
+          "bytes": 767321,
+          "sha256": "ea7caf0d24741bfd2e189ab604cd87f800857e7b5452251897889046d23eddc3"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzCheckInRequestDecodeAndVerify/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzCheckInRequestDecodeAndVerify/stdout",
+          "bytes": 4728,
+          "sha256": "d90f7176b35da0182ff0bd2765404b9bac9fdb2a7b0c109420119afbfefca970"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzCheckInRequestDecodeAndVerify/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 1
+      },
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": "fuzz: elapsed: 31s, execs: 24 (0/sec), new interesting: 0 (total: 15)"
+    },
+    {
+      "label": "fuzz-FuzzCheckInResponseDocumentDecodeAndVerify",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzCheckInResponseDocumentDecodeAndVerify/result.json",
+        "bytes": 769402,
+        "sha256": "1f1414792f89b42a46a50e045086ae5bff01dd7c9f4778b1b1519e57188fc225"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-run=^$",
+        "-fuzz=^FuzzCheckInResponseDocumentDecodeAndVerify$",
+        "-fuzztime=30s",
+        "-parallel=4",
+        "-timeout=2m",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T07:09:35.669959+00:00",
+      "elapsed_seconds": 31.59478923899951,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzCheckInResponseDocumentDecodeAndVerify/started.json",
+          "bytes": 767330,
+          "sha256": "1c1b6a39451dabb5aca3c618a8b9de91f2d2ae1a8b021c4ebb4b79277118181e"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzCheckInResponseDocumentDecodeAndVerify/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzCheckInResponseDocumentDecodeAndVerify/stdout",
+          "bytes": 4898,
+          "sha256": "7072c1b9b69597ad0e1ac70c758858a30f102dad18a23f2c1f2b556bdded7d87"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzCheckInResponseDocumentDecodeAndVerify/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 1
+      },
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": "fuzz: elapsed: 31s, execs: 24 (0/sec), new interesting: 0 (total: 15)"
+    },
+    {
+      "label": "fuzz-FuzzCheckInResponsePayloadExternalDecoder",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzCheckInResponsePayloadExternalDecoder/result.json",
+        "bytes": 769398,
+        "sha256": "9525d8bd20333e19a2c11d8ad6c5b74c30f3338b02205a94e49ef9683dec9673"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-run=^$",
+        "-fuzz=^FuzzCheckInResponsePayloadExternalDecoder$",
+        "-fuzztime=30s",
+        "-parallel=4",
+        "-timeout=2m",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T07:11:44.883957+00:00",
+      "elapsed_seconds": 31.627029298000707,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzCheckInResponsePayloadExternalDecoder/started.json",
+          "bytes": 767329,
+          "sha256": "6ade3e983d0f1a58ce34b9c1cb00d810d0c228e25794463ab50f463aebbb9a5e"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzCheckInResponsePayloadExternalDecoder/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzCheckInResponsePayloadExternalDecoder/stdout",
+          "bytes": 4925,
+          "sha256": "fd1e9350838ae231b7f566fcbfa2526d9f77136573e8675dfc1d86724dd2971a"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzCheckInResponsePayloadExternalDecoder/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 1
+      },
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": "fuzz: elapsed: 31s, execs: 15210 (0/sec), new interesting: 34 (total: 43)"
+    },
+    {
+      "label": "fuzz-FuzzInstallationCertificateBodyDecodeAndVerify",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzInstallationCertificateBodyDecodeAndVerify/result.json",
+        "bytes": 769423,
+        "sha256": "7e5bdbe019d6f08c5b91de500b6e1d7e1a64da6c05a1daa67ba72c20b47f3161"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-run=^$",
+        "-fuzz=^FuzzInstallationCertificateBodyDecodeAndVerify$",
+        "-fuzztime=30s",
+        "-parallel=4",
+        "-timeout=2m",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T07:07:58.660072+00:00",
+      "elapsed_seconds": 31.634359146999486,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzInstallationCertificateBodyDecodeAndVerify/started.json",
+          "bytes": 767334,
+          "sha256": "c7de8b1175a2288f50d8466bcaf0e1a85d499456854f76b9979c0e8e8f30adbf"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzInstallationCertificateBodyDecodeAndVerify/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzInstallationCertificateBodyDecodeAndVerify/stdout",
+          "bytes": 5030,
+          "sha256": "b8c918824eb9ff1ee5f7d17f49b242989343a5b2a5d879fb12ea36e8e8f904fc"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzInstallationCertificateBodyDecodeAndVerify/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 1
+      },
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": "fuzz: elapsed: 31s, execs: 658213 (0/sec), new interesting: 43 (total: 54)"
+    },
+    {
+      "label": "fuzz-FuzzInstallationCertificateDocumentDecodeAndVerify",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzInstallationCertificateDocumentDecodeAndVerify/result.json",
+        "bytes": 769443,
+        "sha256": "fcf0effa803676eb0a6f953e513c00ce09b56f23f82944dc7b6802a48a251322"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-run=^$",
+        "-fuzz=^FuzzInstallationCertificateDocumentDecodeAndVerify$",
+        "-fuzztime=30s",
+        "-parallel=4",
+        "-timeout=2m",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T07:07:26.317210+00:00",
+      "elapsed_seconds": 31.652054150003096,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzInstallationCertificateDocumentDecodeAndVerify/started.json",
+          "bytes": 767338,
+          "sha256": "321d7b16660d5b46344f7bb6d9604151811dfc3aecf53763ef3a6beed38e968f"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzInstallationCertificateDocumentDecodeAndVerify/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzInstallationCertificateDocumentDecodeAndVerify/stdout",
+          "bytes": 5051,
+          "sha256": "7e65fee5f80a2b3ce6a0b8e87b46135e7980f59fbe6a8a28d54d415b2f56d24f"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzInstallationCertificateDocumentDecodeAndVerify/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 1
+      },
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": "fuzz: elapsed: 31s, execs: 23 (0/sec), new interesting: 0 (total: 14)"
+    },
+    {
+      "label": "fuzz-FuzzOutcomeClassExternalDecoders",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzOutcomeClassExternalDecoders/result.json",
+        "bytes": 769353,
+        "sha256": "c9f652cf9168434967d553f49db163c796a4a21b9f378aa0b3ee6c5a1efcbe0b"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-run=^$",
+        "-fuzz=^FuzzOutcomeClassExternalDecoders$",
+        "-fuzztime=30s",
+        "-parallel=4",
+        "-timeout=2m",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T07:06:22.460373+00:00",
+      "elapsed_seconds": 30.655904253999324,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzOutcomeClassExternalDecoders/started.json",
+          "bytes": 767320,
+          "sha256": "9be9bdc2f648ececebc456c283b35085ac0ca64b4b02f4ef3076d45e6297b2e6"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzOutcomeClassExternalDecoders/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzOutcomeClassExternalDecoders/stdout",
+          "bytes": 4793,
+          "sha256": "62c022e596ee1029707425c3bb502d316e41503526a7afa790897d362414049f"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzOutcomeClassExternalDecoders/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 1
+      },
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": "fuzz: elapsed: 30s, execs: 979912 (0/sec), new interesting: 4 (total: 43)"
+    },
+    {
+      "label": "fuzz-FuzzProductStatusExternalDecoders",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzProductStatusExternalDecoders/result.json",
+        "bytes": 769358,
+        "sha256": "48fe88f2d3facab1506cee118e8f8922f46b5907d634d293b22e9fa253ffce4d"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-run=^$",
+        "-fuzz=^FuzzProductStatusExternalDecoders$",
+        "-fuzztime=30s",
+        "-parallel=4",
+        "-timeout=2m",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T07:04:15.796493+00:00",
+      "elapsed_seconds": 30.756325371999992,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzProductStatusExternalDecoders/started.json",
+          "bytes": 767321,
+          "sha256": "e41ae55b1f3b90eec77a271d5b285d11fb3007d85727885d80fec4b19eeb7f49"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzProductStatusExternalDecoders/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzProductStatusExternalDecoders/stdout",
+          "bytes": 4845,
+          "sha256": "14bf6d58698a5fbbdf3d4899d43e5fa9227a0f0e491d36235708a157bf7be141"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzProductStatusExternalDecoders/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 1
+      },
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": "fuzz: elapsed: 30s, execs: 922410 (0/sec), new interesting: 332 (total: 345)"
+    },
+    {
+      "label": "fuzz-FuzzRegistrationDocumentDecodeAndVerify",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzRegistrationDocumentDecodeAndVerify/result.json",
+        "bytes": 769388,
+        "sha256": "d2007ee3bb0157f0d5d14f553fb8f329ab47592ad8757c41554bd067beda531a"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-run=^$",
+        "-fuzz=^FuzzRegistrationDocumentDecodeAndVerify$",
+        "-fuzztime=30s",
+        "-parallel=4",
+        "-timeout=2m",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T07:08:30.980759+00:00",
+      "elapsed_seconds": 31.661824806997174,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzRegistrationDocumentDecodeAndVerify/started.json",
+          "bytes": 767327,
+          "sha256": "7e97dbed48a7f1499f6a39ee82f3ca2ad78b18a7ad8cd6cebde21e6e2ee44065"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzRegistrationDocumentDecodeAndVerify/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzRegistrationDocumentDecodeAndVerify/stdout",
+          "bytes": 4840,
+          "sha256": "b6a790d9d659a43e6e9243bfa4e2edecb7adbaa62f4381d764af4a702dc72b18"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzRegistrationDocumentDecodeAndVerify/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 1
+      },
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": "fuzz: elapsed: 31s, execs: 30 (0/sec), new interesting: 0 (total: 16)"
+    },
+    {
+      "label": "fuzz-FuzzRegistrationPayloadExternalDecoder",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzRegistrationPayloadExternalDecoder/result.json",
+        "bytes": 769382,
+        "sha256": "8bb28f65a09a5e304743224d41de78c2d4cbf9b7d3b1a6dda399ffcaf8b0cb7c"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-run=^$",
+        "-fuzz=^FuzzRegistrationPayloadExternalDecoder$",
+        "-fuzztime=30s",
+        "-parallel=4",
+        "-timeout=2m",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T07:10:40.232035+00:00",
+      "elapsed_seconds": 31.60171030699712,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzRegistrationPayloadExternalDecoder/started.json",
+          "bytes": 767326,
+          "sha256": "dd6501733eb68622fc460b3c543f8073b33b11abaf5abf32b70279bba950c477"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzRegistrationPayloadExternalDecoder/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzRegistrationPayloadExternalDecoder/stdout",
+          "bytes": 4842,
+          "sha256": "df47767139fee4157ee7cf1f0f067d5edf2c69b3063f1ffc8d1e530abaf48ce4"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzRegistrationPayloadExternalDecoder/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 1
+      },
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": "fuzz: elapsed: 31s, execs: 1114 (0/sec), new interesting: 7 (total: 16)"
+    },
+    {
+      "label": "fuzz-FuzzRegistrationRequestExternalDecoder",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzRegistrationRequestExternalDecoder/result.json",
+        "bytes": 769383,
+        "sha256": "d4741843bd3d697bd2454250ef9d3970c922834844b1000b1978916d5648df86"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-run=^$",
+        "-fuzz=^FuzzRegistrationRequestExternalDecoder$",
+        "-fuzztime=30s",
+        "-parallel=4",
+        "-timeout=2m",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T07:10:07.950460+00:00",
+      "elapsed_seconds": 31.596847406999586,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzRegistrationRequestExternalDecoder/started.json",
+          "bytes": 767326,
+          "sha256": "eb45b8e26bd645269ce8330b303f93f2c794aaa49be5b65f3189be9cd313d848"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzRegistrationRequestExternalDecoder/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzRegistrationRequestExternalDecoder/stdout",
+          "bytes": 4891,
+          "sha256": "9086daf9d30cd448f3a3f36079621893bd3af4b12ae6cb88be922b80492f06bd"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzRegistrationRequestExternalDecoder/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 1
+      },
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": "fuzz: elapsed: 31s, execs: 482017 (0/sec), new interesting: 39 (total: 49)"
+    },
+    {
+      "label": "fuzz-FuzzResponseCommitmentExternalDecoder",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzResponseCommitmentExternalDecoder/result.json",
+        "bytes": 769377,
+        "sha256": "baf8f493c8108a27b350ce0281562335a4d883d4eeba73b327f0c6310d744220"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-run=^$",
+        "-fuzz=^FuzzResponseCommitmentExternalDecoder$",
+        "-fuzztime=30s",
+        "-parallel=4",
+        "-timeout=2m",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T07:03:08.193870+00:00",
+      "elapsed_seconds": 35.47109295500195,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzResponseCommitmentExternalDecoder/started.json",
+          "bytes": 767325,
+          "sha256": "7c4475de5b4d81a6a3fcbeb464c162933617f1f4ee742c115f471582be8c86bc"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzResponseCommitmentExternalDecoder/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzResponseCommitmentExternalDecoder/stdout",
+          "bytes": 4873,
+          "sha256": "4f5e46609b2c43d0b65c881fda0224285a7de8b86048c8b3de7712aee0481725"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzResponseCommitmentExternalDecoder/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 1
+      },
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": "fuzz: elapsed: 31s, execs: 694713 (0/sec), new interesting: 16 (total: 25)"
+    },
+    {
+      "label": "fuzz-FuzzResponseHeaderExternalDecoder",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzResponseHeaderExternalDecoder/result.json",
+        "bytes": 769358,
+        "sha256": "ad2e3dc7136db1ced796a06464886ee8da9cfdd2de54770d87163e4fd86aa764"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-run=^$",
+        "-fuzz=^FuzzResponseHeaderExternalDecoder$",
+        "-fuzztime=30s",
+        "-parallel=4",
+        "-timeout=2m",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T07:12:17.198511+00:00",
+      "elapsed_seconds": 31.609188706999703,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzResponseHeaderExternalDecoder/started.json",
+          "bytes": 767321,
+          "sha256": "18b42a2d4bd7842b9dff21c48ad90c8a8b549b03470d0ad9cb4533afcf051046"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzResponseHeaderExternalDecoder/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzResponseHeaderExternalDecoder/stdout",
+          "bytes": 4831,
+          "sha256": "f5f8e00f65479e2dbc894a17940abd6b6b89791664f5b57efbcc99abdcdcee85"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzResponseHeaderExternalDecoder/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 1
+      },
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": "fuzz: elapsed: 31s, execs: 586064 (0/sec), new interesting: 186 (total: 195)"
+    },
+    {
+      "label": "fuzz-FuzzResponseHeaderFieldExternalDecoders",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzResponseHeaderFieldExternalDecoders/result.json",
+        "bytes": 769387,
+        "sha256": "642117f8abd127e5ed37b9b7d517d3c12a81269940271f85bb5a20ad1a1fae96"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-run=^$",
+        "-fuzz=^FuzzResponseHeaderFieldExternalDecoders$",
+        "-fuzztime=30s",
+        "-parallel=4",
+        "-timeout=2m",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T07:04:47.250313+00:00",
+      "elapsed_seconds": 31.62816670599932,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzResponseHeaderFieldExternalDecoders/started.json",
+          "bytes": 767327,
+          "sha256": "0123d6305622fd93e1e2b843e9fff032458dd9dcd7cc0c6728e00df2b4222c5b"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzResponseHeaderFieldExternalDecoders/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzResponseHeaderFieldExternalDecoders/stdout",
+          "bytes": 4958,
+          "sha256": "4ed5eeb6dceed153895bf771ae570c9e9363092faac3f9c9c7aaffe335ad118c"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzResponseHeaderFieldExternalDecoders/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 1
+      },
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": "fuzz: elapsed: 31s, execs: 931922 (0/sec), new interesting: 299 (total: 312)"
+    },
+    {
+      "label": "fuzz-FuzzSigningDomainExternalDecoders",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzSigningDomainExternalDecoders/result.json",
+        "bytes": 769358,
+        "sha256": "f5fc3079aadf9095b470e364ec1c035dadf1ee36798011b6c5559108c66026e3"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-run=^$",
+        "-fuzz=^FuzzSigningDomainExternalDecoders$",
+        "-fuzztime=30s",
+        "-parallel=4",
+        "-timeout=2m",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T07:03:44.355509+00:00",
+      "elapsed_seconds": 30.750761805000366,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzSigningDomainExternalDecoders/started.json",
+          "bytes": 767321,
+          "sha256": "d52f38eee4597e20b3e2ad6909232103c021c086b73433ff84525c4dd9a4c721"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzSigningDomainExternalDecoders/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzSigningDomainExternalDecoders/stdout",
+          "bytes": 4844,
+          "sha256": "8d75579f683c5e2a7d6ef6aad2a32e9b35e5875970c53457acc3616ecbd2d4ae"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzSigningDomainExternalDecoders/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 1
+      },
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": "fuzz: elapsed: 30s, execs: 954709 (0/sec), new interesting: 339 (total: 351)"
+    },
+    {
+      "label": "fuzz-FuzzUpgradeRequiredResponseSemanticClosure",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzUpgradeRequiredResponseSemanticClosure/result.json",
+        "bytes": 769403,
+        "sha256": "386689e0ed39c14f1fe992a3d60a65df88759ba3cb24db151cef387f0cc248f6"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-run=^$",
+        "-fuzz=^FuzzUpgradeRequiredResponseSemanticClosure$",
+        "-fuzztime=30s",
+        "-parallel=4",
+        "-timeout=2m",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T07:13:21.867046+00:00",
+      "elapsed_seconds": 31.666379884998605,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzUpgradeRequiredResponseSemanticClosure/started.json",
+          "bytes": 767330,
+          "sha256": "758c1f3a51aaeee34b9425efa65d2da890e6f1df514cdc3712c0ae111445d839"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzUpgradeRequiredResponseSemanticClosure/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzUpgradeRequiredResponseSemanticClosure/stdout",
+          "bytes": 4900,
+          "sha256": "5b67aa2021606784f282c17d442d521f1d208f070e1b8c7fd1841772610e82b9"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzUpgradeRequiredResponseSemanticClosure/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 1
+      },
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": "fuzz: elapsed: 31s, execs: 20 (0/sec), new interesting: 0 (total: 11)"
+    },
+    {
+      "label": "fuzz-FuzzUsageClassExternalDecoders",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzUsageClassExternalDecoders/result.json",
+        "bytes": 769343,
+        "sha256": "29547dfcc1b84bc43a7984d96996758e7c2472e53bc73bee01b8f3e2790996f8"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-run=^$",
+        "-fuzz=^FuzzUsageClassExternalDecoders$",
+        "-fuzztime=30s",
+        "-parallel=4",
+        "-timeout=2m",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T07:05:51.099928+00:00",
+      "elapsed_seconds": 30.676619882000523,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzUsageClassExternalDecoders/started.json",
+          "bytes": 767318,
+          "sha256": "67a0e82e6f24115b068a3a97e4e7b66882d1fc85ee18b04db60fcf43e86b59d6"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzUsageClassExternalDecoders/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzUsageClassExternalDecoders/stdout",
+          "bytes": 4753,
+          "sha256": "903c52e1500685735586aa4336a77053211d03e1eea53bf8c918db7f998a226c"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzUsageClassExternalDecoders/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 1
+      },
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": "fuzz: elapsed: 30s, execs: 978179 (0/sec), new interesting: 4 (total: 43)"
+    },
+    {
+      "label": "fuzz-FuzzUsageDispositionExternalDecoders",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzUsageDispositionExternalDecoders/result.json",
+        "bytes": 769372,
+        "sha256": "e19d2ac00bf5af3fecda65c1e64bb9f01692b193f7ef2d246cb455560ea4db3a"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-run=^$",
+        "-fuzz=^FuzzUsageDispositionExternalDecoders$",
+        "-fuzztime=30s",
+        "-parallel=4",
+        "-timeout=2m",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T07:05:19.584464+00:00",
+      "elapsed_seconds": 30.80711162300213,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzUsageDispositionExternalDecoders/started.json",
+          "bytes": 767324,
+          "sha256": "e56834164ef4a9e3a5b0cb6fd984013d8815a4a68e152a42f70dbd6dbe84f067"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzUsageDispositionExternalDecoders/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzUsageDispositionExternalDecoders/stdout",
+          "bytes": 4901,
+          "sha256": "bb5e33a17f4a2dd7dac882554096a1090e17f40332758376578953a0713fbc65"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzUsageDispositionExternalDecoders/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 1
+      },
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": "fuzz: elapsed: 30s, execs: 953817 (0/sec), new interesting: 328 (total: 338)"
+    },
+    {
+      "label": "fuzz-FuzzUsageWatermarkExternalDecoder",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzUsageWatermarkExternalDecoder/result.json",
+        "bytes": 769357,
+        "sha256": "a8d477058ccba43f3b5dff98b6bbfcf9541d65734e5d3a42ba0a54d54f952413"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-run=^$",
+        "-fuzz=^FuzzUsageWatermarkExternalDecoder$",
+        "-fuzztime=30s",
+        "-parallel=4",
+        "-timeout=2m",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T07:12:49.510195+00:00",
+      "elapsed_seconds": 31.67219319799915,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzUsageWatermarkExternalDecoder/started.json",
+          "bytes": 767321,
+          "sha256": "0ae3e76de43ebdcafc12fff55440db59e42fde8b289321e82e63eced78291ccc"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzUsageWatermarkExternalDecoder/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzUsageWatermarkExternalDecoder/stdout",
+          "bytes": 4833,
+          "sha256": "570ffd19399ab9c04fb4aa55f956b7a40a7ce2a972c7454694e2b9acba5fe4e3"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzUsageWatermarkExternalDecoder/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 1
+      },
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": "fuzz: elapsed: 31s, execs: 470962 (0/sec), new interesting: 192 (total: 201)"
+    },
+    {
+      "label": "fuzz-FuzzUsageWindowDecode",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzUsageWindowDecode/result.json",
+        "bytes": 769298,
+        "sha256": "f7fa7f5502a452f1c6557074595597cfa2f0edc18d76d0dc6b8649e98f1c11ca"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-run=^$",
+        "-fuzz=^FuzzUsageWindowDecode$",
+        "-fuzztime=30s",
+        "-parallel=4",
+        "-timeout=2m",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T07:13:54.220135+00:00",
+      "elapsed_seconds": 31.633546993998607,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzUsageWindowDecode/started.json",
+          "bytes": 767309,
+          "sha256": "ae6ea275e5730b4657300b4d577007c0553da260fd7ffdfdd1f3703ac5ed9fa4"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzUsageWindowDecode/source.patch",
+          "bytes": 36978,
+          "sha256": "1243daafd772614475a4061a601124aa605e1ed3d9af2dac9cce851b284701bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzUsageWindowDecode/stdout",
+          "bytes": 4573,
+          "sha256": "ff0437b57c3a2f90d00917436c8c78ff25ac143c95795383640330ab5ddd7441"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/fuzz-FuzzUsageWindowDecode/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 1
+      },
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": "fuzz: elapsed: 31s, execs: 446352 (0/sec), new interesting: 63 (total: 76)"
+    },
+    {
+      "label": "green-boundaries",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/green-boundaries/result.json",
+        "bytes": 767544,
+        "sha256": "25e00eb1b54701facd2f4ec5d5b663d6e309f65aaec8829b71685b5fcada9528"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T06:07:32.506578+00:00",
+      "elapsed_seconds": 1.9811253840016434,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/green-boundaries/started.json",
+          "bytes": 766097,
+          "sha256": "ef96852bfd259083090852c1dee1a37dc67d2aaf668531b014308a29eaf7a893"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/green-boundaries/source.patch",
+          "bytes": 7075,
+          "sha256": "19206b69cbfae18d45ea6d78ed237b9f2f5d987d7c5e7076172422d2d153746b"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/green-boundaries/stdout",
+          "bytes": 1631693,
+          "sha256": "f1c3ae4c44390250e95378d0cdcfb46a628448babb88e28cde996ae4e2bcfaee"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/green-boundaries/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 906
+      },
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "mutation-ceiling",
+      "classification": "compile_failure",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/mutation-ceiling/result.json",
+        "bytes": 769314,
+        "sha256": "2520a98a86590356745cd3ab976021c47077f42e98e6913f31be2402a5bee58e"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-run",
+        "^TestEveryDocumentCeilingOwnsBothSidesOfItsBoundary/usage_window$",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T06:52:12.859454+00:00",
+      "elapsed_seconds": 0.6600851180010068,
+      "exit": 1,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/mutation-ceiling/started.json",
+          "bytes": 767332,
+          "sha256": "c8f0f6b9f4ed3f472e88222c687a0c84b11d470b476e913f914de20326642c62"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/mutation-ceiling/source.patch",
+          "bytes": 36899,
+          "sha256": "1e6f14d7f4650904ede4b07105dd4d84dee7335ee66978ce4e802699df42066b"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/mutation-ceiling/stdout",
+          "bytes": 1243,
+          "sha256": "92a8ebe8318e8e090780a930fa15698c21de4dda53b3ce0e65a7971163258efb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/mutation-ceiling/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "build_failed": true,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "ownership-green",
+      "classification": "compile_failure",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/ownership-green/result.json",
+        "bytes": 768833,
+        "sha256": "31b3ff47db47f3ec5c7bdf6aa8151f1ec917cc4e14bac984614a8ecc8e14b0d8"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T06:48:28.449513+00:00",
+      "elapsed_seconds": 0.6619401720017777,
+      "exit": 1,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/ownership-green/started.json",
+          "bytes": 766975,
+          "sha256": "9b5c0b9b3556fae55e3d9ca3b60a42f67a5c921ca763beefdefb53bba9e4f409"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/ownership-green/source.patch",
+          "bytes": 32487,
+          "sha256": "d525859fdc9428321bc99b9643c40c69850c3db35b8f6301ef3224e941807c2c"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/ownership-green/stdout",
+          "bytes": 3879,
+          "sha256": "fe805a5d86870bd27c5a37494626768f738acc122778cce1ee4d0392b79c1932"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/ownership-green/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "build_failed": true,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "ratchet-ceiling",
+      "classification": "deliberate_mutation",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/ratchet-ceiling/result.json",
+        "bytes": 769310,
+        "sha256": "9cc8c5777fbafe113b0a7ab2145cf10132668dbb3bf832e7b423c29a8c811ed8"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-run",
+        "^TestEveryDocumentCeilingOwnsBothSidesOfItsBoundary/usage_window$",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T06:54:30.976407+00:00",
+      "elapsed_seconds": 1.814215704001981,
+      "exit": 1,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/ratchet-ceiling/started.json",
+          "bytes": 767332,
+          "sha256": "3d6c2694cf2e745425cbc8f3ae444f9d8badaa331033683129781234df2b1584"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/ratchet-ceiling/source.patch",
+          "bytes": 36908,
+          "sha256": "a92b6d53e97ef426e98a8533087b6459b9e955b662b366114d2da9de3fad8094"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/ratchet-ceiling/stdout",
+          "bytes": 11906,
+          "sha256": "eaf1b51099e956ae55e88488d07246b926efd35dc6c8c7aba8cd672038f3b384"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/ratchet-ceiling/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 2,
+        "fail": 3
+      },
+      "failed_leaf_tests": [
+        "TestEveryDocumentCeilingOwnsBothSidesOfItsBoundary/usage_window/one_above_ceiling"
+      ],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "ratchet-ingress-inventory",
+      "classification": "deliberate_mutation",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/ratchet-ingress-inventory/result.json",
+        "bytes": 769335,
+        "sha256": "e2e1331ebd26dece395efe6423d90b0c593794f243b0bc3fbdc27db7ea8015ea"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-run",
+        "^TestExternalJSONDoorsHaveSemanticFuzzProof$",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T06:54:36.083058+00:00",
+      "elapsed_seconds": 1.8421617179992609,
+      "exit": 1,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/ratchet-ingress-inventory/started.json",
+          "bytes": 767314,
+          "sha256": "50e72d447eb50fd20816fed5929e17d59a6c541024de08bfbfb32a49d4627527"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/ratchet-ingress-inventory/source.patch",
+          "bytes": 36846,
+          "sha256": "acafc7e9a5b02714ebe63e38115161fc63b0ae2ca04690529c934e6191e46c4b"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/ratchet-ingress-inventory/stdout",
+          "bytes": 2740,
+          "sha256": "db0f791c099e3e1e4f8dd2d14f8aff7166906992dbb981ad94a216c22506b5ab"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/ratchet-ingress-inventory/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "fail": 1
+      },
+      "failed_leaf_tests": [
+        "TestExternalJSONDoorsHaveSemanticFuzzProof"
+      ],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "ratchet-struct-inventory",
+      "classification": "deliberate_mutation",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/ratchet-struct-inventory/result.json",
+        "bytes": 769353,
+        "sha256": "45f3ded3fc1f6c6ec7b9fa03c981947378d5c5281f5c8ef438f0a73a3f2cd715"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-run",
+        "^TestControlplaneProductionStructsHaveCompilerVisibleDataFlowRoles$",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T06:54:38.662641+00:00",
+      "elapsed_seconds": 1.711745377000625,
+      "exit": 1,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/ratchet-struct-inventory/started.json",
+          "bytes": 767337,
+          "sha256": "54f35b04e6f4054d52d0586709a0e2e861238e57cc61ab7c37bc5f56c17cf99d"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/ratchet-struct-inventory/source.patch",
+          "bytes": 36835,
+          "sha256": "96a305e5853f9b1064601b2ea2378ca6effe282c70de64f563dc04682d33750d"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/ratchet-struct-inventory/stdout",
+          "bytes": 3044,
+          "sha256": "cd7ebcbe98e21e0b0ef9d38a817a992e21847dfe7dd70a7e03a47c70cd2ce6e5"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/ratchet-struct-inventory/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "fail": 1
+      },
+      "failed_leaf_tests": [
+        "TestControlplaneProductionStructsHaveCompilerVisibleDataFlowRoles"
+      ],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "ratchet-usage-total-oracle",
+      "classification": "deliberate_mutation",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/ratchet-usage-total-oracle/result.json",
+        "bytes": 769313,
+        "sha256": "f009786d7c9bd6de2cfab17d0be548b027ff9be71a8b1e985e4153b6589ee6b1"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-run",
+        "^FuzzUsageWindowDecode$",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T06:54:33.503057+00:00",
+      "elapsed_seconds": 1.8610741369993775,
+      "exit": 1,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/ratchet-usage-total-oracle/started.json",
+          "bytes": 767290,
+          "sha256": "99d3003bfe64c7407ea51857ff3811ed05a9a27334469d5cd42e11de5af6e310"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/ratchet-usage-total-oracle/source.patch",
+          "bytes": 36924,
+          "sha256": "50057094c0a203c403179a3010c51f7900771600a943a2586b8794293e4300b1"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/ratchet-usage-total-oracle/stdout",
+          "bytes": 12202,
+          "sha256": "0db60d84a25076969411f997130736444970398cec88da8529874ec65a03b712"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/ratchet-usage-total-oracle/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 12,
+        "fail": 2
+      },
+      "failed_leaf_tests": [
+        "FuzzUsageWindowDecode/seed#4"
+      ],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "red-boundaries",
+      "classification": "production_red",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/red-boundaries/result.json",
+        "bytes": 767460,
+        "sha256": "cdbf57f2ce01691a358f38016651c8ba70432cc15be1fd9e51a2af0c5e6a6092"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-run",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects|TestVerifiedResponseOwnsAuthenticatedBodyAcrossMutation|TestRegistrationAuthorityConsumesTokenOnEveryExit|TestCheckInIssuanceRefusesForeignBindingWithoutPartialDocument|TestCheckInResponseRefusesConflictThatItsProducerWouldAccept",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T06:05:58.946190+00:00",
+      "elapsed_seconds": 1.2333817430007912,
+      "exit": 1,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/red-boundaries/started.json",
+          "bytes": 766211,
+          "sha256": "709a5bb55b475e2eb7a2e4a44334ccda3abc1a019783fc5400562738dd4c3c0c"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/red-boundaries/source.patch",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/red-boundaries/stdout",
+          "bytes": 205653,
+          "sha256": "379cc402d4a40b493cd29bd9c8f81cde624dcb269c1717262f5fc8622c2355c0"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/red-boundaries/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 28,
+        "fail": 39
+      },
+      "failed_leaf_tests": [
+        "TestCheckInIssuanceRefusesForeignBindingWithoutPartialDocument/foreign_certificate_build_cannot_escape_beside_error",
+        "TestCheckInResponseRefusesConflictThatItsProducerWouldAccept/unchanged_predecessor_cannot_be_called_a_conflict",
+        "TestRegistrationAuthorityConsumesTokenOnEveryExit/zero_authority_still_owns_destruction",
+        "TestCheckInIssuanceRefusesForeignBindingWithoutPartialDocument/foreign_signer_cannot_issue_under_another_device_certificate",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/response_commitment/zero_progress_cannot_report_completion",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/response_commitment/negative_writer_count_cannot_report_completion",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/response_commitment/one-byte_truncation_cannot_report_completion",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/response_commitment/oversized_writer_count_cannot_report_completion",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/response_commitment/nil_destination_refuses_without_panic",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/check-in_response/oversized_writer_count_cannot_report_completion",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/response_commitment/full_count_cannot_erase_write_failure",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/response_commitment/partial_canceled_write_preserves_cancellation",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/check-in_response/one-byte_truncation_cannot_report_completion",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/certificate_body/one-byte_truncation_cannot_report_completion",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/certificate_body/zero_progress_cannot_report_completion",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/certificate_body/oversized_writer_count_cannot_report_completion",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/certificate_body/negative_writer_count_cannot_report_completion",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/check-in_response/zero_progress_cannot_report_completion",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/check-in_response/negative_writer_count_cannot_report_completion",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/registration_payload/oversized_writer_count_cannot_report_completion",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/check-in_payload/zero_progress_cannot_report_completion",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/registration_payload/negative_writer_count_cannot_report_completion",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/registration_payload/one-byte_truncation_cannot_report_completion",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/check-in_payload/negative_writer_count_cannot_report_completion",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/check-in_payload/one-byte_truncation_cannot_report_completion",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/registration_payload/zero_progress_cannot_report_completion",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/check-in_payload/oversized_writer_count_cannot_report_completion",
+        "TestVerifiedResponseOwnsAuthenticatedBodyAcrossMutation/destroyed_returned_certificate_cannot_invalidate_sibling_proof",
+        "TestVerifiedResponseOwnsAuthenticatedBodyAcrossMutation/same-size_certificate_build_mutation_remains_structurally_valid"
+      ],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "red-commitment",
+      "classification": "production_red",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/red-commitment/result.json",
+        "bytes": 767852,
+        "sha256": "3f3221e0882a5d6a17b215ec02f1453cee350058ace922e353dd365bed1dcb5a"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-run",
+        "TestResponseCommitmentSchemaLayerTriadClosesBodyExtent",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T06:09:14.312531+00:00",
+      "elapsed_seconds": 1.3052709240000695,
+      "exit": 1,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/red-commitment/started.json",
+          "bytes": 766370,
+          "sha256": "270deee24fe1ee4b6cc20065db092e46367e9fbfbfef9396eef1ff5f8bd4ec02"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/red-commitment/source.patch",
+          "bytes": 7075,
+          "sha256": "19206b69cbfae18d45ea6d78ed237b9f2f5d987d7c5e7076172422d2d153746b"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/red-commitment/stdout",
+          "bytes": 26749,
+          "sha256": "34e9c82733d49eeaaf9143da0ba12fba3f8dea91a6cea42989d3818c082464f5"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/red-commitment/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 6,
+        "fail": 4
+      },
+      "failed_leaf_tests": [
+        "TestResponseCommitmentSchemaLayerTriadClosesBodyExtent/one_above_response_ceiling_cannot_be_committed",
+        "TestResponseCommitmentSchemaLayerTriadClosesBodyExtent/bodyless_refusal_cannot_commit_a_different_digest",
+        "TestResponseCommitmentSchemaLayerTriadClosesBodyExtent/extreme_extent_cannot_bypass_body_ceiling"
+      ],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "red-decoder-ownership",
+      "classification": "fixture_failure",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/red-decoder-ownership/result.json",
+        "bytes": 768929,
+        "sha256": "44f3be3f6d55502c6afb1052c0c09c2419d4dd46e90469f60e2048ec53369923"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-run",
+        "TestResponseDecoderCannotRewriteItsRetainedWireProof",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T06:47:55.985435+00:00",
+      "elapsed_seconds": 1.7300411680007528,
+      "exit": 1,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/red-decoder-ownership/started.json",
+          "bytes": 767047,
+          "sha256": "fc6d526de009aa6aa29b616ccb7bc25625f7410491dcd5341f0d74b3b4e4b223"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/red-decoder-ownership/source.patch",
+          "bytes": 31670,
+          "sha256": "6a44cba5d885929cd4c2c2888a6a5b99355ed92b8fe7b8394a1f82953df1dab8"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/red-decoder-ownership/stdout",
+          "bytes": 9329,
+          "sha256": "817c50a0fc9943cc8cac63a8bbbf96e52c74dfae60d6c35deebb88dc02d9cf9c"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/red-decoder-ownership/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "fail": 3
+      },
+      "failed_leaf_tests": [
+        "TestResponseDecoderCannotRewriteItsRetainedWireProof/largest_admitted_count",
+        "TestResponseDecoderCannotRewriteItsRetainedWireProof/smallest_admitted_body"
+      ],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "red-original-decoder",
+      "classification": "production_red",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/red-original-decoder/result.json",
+        "bytes": 769177,
+        "sha256": "f8aee048cbdb8ec6fe5ebb7a157d17b4be502f811927b7b84856ba1284ee66ee"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-run",
+        "^TestResponseDecoderCannotRewriteItsRetainedWireProof$",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T06:54:28.443619+00:00",
+      "elapsed_seconds": 1.8040592869983811,
+      "exit": 1,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/red-original-decoder/started.json",
+          "bytes": 767250,
+          "sha256": "1220ece38db4fac706c8cf2c9afa4148aaa213b728156c988045b26700aef7ba"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/red-original-decoder/source.patch",
+          "bytes": 30904,
+          "sha256": "6dd27a3c3c67c75c3ec7a2055805514b614f3be9ba8025a2fd08c43b7ca133fc"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/red-original-decoder/stdout",
+          "bytes": 9956,
+          "sha256": "50ab068feef3cefe05d6866ee45d012973f9d7cf4e25d81c9a62abb08513f3c2"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/red-original-decoder/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "fail": 3
+      },
+      "failed_leaf_tests": [
+        "TestResponseDecoderCannotRewriteItsRetainedWireProof/largest_admitted_count",
+        "TestResponseDecoderCannotRewriteItsRetainedWireProof/smallest_admitted_body"
+      ],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "transition-tests",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/transition-tests/result.json",
+        "bytes": 768602,
+        "sha256": "40b5f393cb16d13279c609b2605ac0f4387a33416c25e57eb05b8be32a03ee82"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "./controlplane"
+      ],
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T06:45:48.025105+00:00",
+      "elapsed_seconds": 2.2125403239988373,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/transition-tests/started.json",
+          "bytes": 766780,
+          "sha256": "e10c0dd1f2bb44ba0c6dd05be286f8dd0114cc8f83b0da50f5f664e3b3f3de2b"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/transition-tests/source.patch",
+          "bytes": 31670,
+          "sha256": "6a44cba5d885929cd4c2c2888a6a5b99355ed92b8fe7b8394a1f82953df1dab8"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/transition-tests/stdout",
+          "bytes": 1737983,
+          "sha256": "6cd8c4172029083bdba8881b7844b9442bdf986f21c4f2f899c59ee3d42c0666"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/transition-tests/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 965
+      },
+      "failed_leaf_tests": [],
+      "build_failed": false,
+      "last_fuzz_progress": null
+    }
+  ],
+  "limitations": [
+    "Uncommitted candidate: base commit alone does not identify tested code.",
+    "Linux execution; Darwin arm64 and Windows amd64 compile only.",
+    "No full-module gates, consumer migration, or live external effects.",
+    "Coverage is statement coverage, not proof of every invariant.",
+    "Sampled memory profiles do not measure peak RSS or prove whole-stream O(1) memory.",
+    "Body extraction is materially slower to obtain an independent typed result; no speedup claim for that boundary."
+  ]
+}

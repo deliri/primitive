@@ -329,7 +329,13 @@ func FuzzCheckInRequestDecodeAndVerify(f *testing.F) {
 	f.Add(mustCheckInJSON(f, corrupt))
 	corrupt = issued.request
 	corrupt.Attestation.Signer, _ = testSigningKey(f, checkInOtherDeviceSeed)
-	f.Add(mustCheckInJSON(f, corrupt))
+	f.Add(checkInAttestationMutationJSON(f, issued.request, corrupt.Attestation))
+	_, foreignKey := testSigningKey(f, checkInOtherDeviceSeed)
+	foreignEnvelope, foreignErr := attest.Sign(attest.SignRequest[controlplane.SigningDomain]{Body: issued.request.Payload, Signer: foreignKey})
+	if foreignErr != nil {
+		f.Fatalf("Sign(foreign check-in seed) error = %v, want nil", foreignErr)
+	}
+	f.Add(checkInAttestationMutationJSON(f, issued.request, foreignEnvelope))
 	corrupt = issued.request
 	corrupt.Attestation.BodyLength = incrementBodyLength(f, corrupt.Attestation.BodyLength)
 	f.Add(mustCheckInJSON(f, corrupt))
@@ -354,8 +360,14 @@ func FuzzCheckInRequestDecodeAndVerify(f *testing.F) {
 		err := candidate.UnmarshalJSON(data)
 		if err != nil {
 			requireControlplaneDecodeRefusal(t, err)
+			if !errors.Is(err, core.ErrControlPlaneCheckIn) {
+				t.Fatalf("check-in decode error = %v, want check-in identity", err)
+			}
 			requireCheckInProjection(t, candidate, canonical)
 			return
+		}
+		if candidate.Attestation.Signer != candidate.Certificate.Body.DeviceKey {
+			t.Fatalf("admitted signer = %v, want certificate device %v", candidate.Attestation.Signer, candidate.Certificate.Body.DeviceKey)
 		}
 		reencoded := mustCheckInJSON(t, candidate)
 		requireCheckInStableRoundTrip(t, candidate, reencoded)

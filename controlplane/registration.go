@@ -255,7 +255,10 @@ func (b InstallationCertificateBody) WriteCanonical(destination io.Writer) error
 	if err != nil {
 		return err
 	}
-	return writeCanonical(destination, encoded)
+	if err := writeCanonical(destination, encoded); err != nil {
+		return registrationError(err)
+	}
+	return nil
 }
 
 // MarshalJSON emits one bounded canonical certificate body.
@@ -531,7 +534,10 @@ func (p RegistrationPayload) WriteCanonical(destination io.Writer) error {
 	if err != nil {
 		return err
 	}
-	return writeCanonical(destination, encoded)
+	if err := writeCanonical(destination, encoded); err != nil {
+		return registrationError(err)
+	}
+	return nil
 }
 
 // MarshalJSON emits one bounded canonical payload.
@@ -640,10 +646,14 @@ func issueRegistration(payload RegistrationPayload, signer crypto.Signer) (Regis
 
 func writeCanonical(destination io.Writer, encoded []byte) error {
 	if destination == nil {
-		return registrationError()
+		return core.ErrControlPlaneContract
 	}
-	if _, err := destination.Write(encoded); err != nil {
-		return registrationError(err)
+	written, err := destination.Write(encoded)
+	if err != nil {
+		return err
+	}
+	if written != len(encoded) {
+		return io.ErrShortWrite
 	}
 	return nil
 }

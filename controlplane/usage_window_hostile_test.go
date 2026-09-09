@@ -1,8 +1,12 @@
 package controlplane_test
 
 import (
+	"bytes"
 	json "encoding/json/v2"
 	"errors"
+	"math"
+	"math/big"
+	"slices"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/controlplane"
@@ -600,39 +604,73 @@ func TestNewOutcomeClassAdmitsExactlyTheOrdinalsValidateAdmits(t *testing.T) {
 // and an acceptance produces a value that validates and re-encodes to bytes that
 // decode to the same value.
 func FuzzUsageWindowDecode(f *testing.F) {
-	f.Add([]byte(`{"units":null,"outcomes":null,"bounds":{"start":"10","end":"20"},"freshness":"20"}`))
-	f.Add([]byte(`{"units":[{"class":1,"count":1}],"outcomes":[{"class":1,"count":1}],"bounds":{"start":"10","end":"20"},"freshness":"20"}`))
-	f.Add([]byte(`{"units":[{"class":0,"count":1}],"outcomes":[],"bounds":{"start":"10","end":"20"},"freshness":"20"}`))
-	f.Add([]byte(`{}`))
-	f.Add([]byte(``))
-
+	seeds := []controlplane.UsageWindow{testWindow(nil, nil), testCheckInWindow(), testWindow(fullUnitLadder(), fullOutcomeLadder()), testWindow(unitsOf(1, math.MaxUint64), outcomesOf(1, math.MaxUint64))}
+	for _, seed := range seeds {
+		canonical, err := seed.MarshalJSON()
+		if err != nil {
+			f.Fatalf("MarshalJSON(seed) error = %v, want nil", err)
+		}
+		f.Add(canonical)
+	}
+	canonical, err := seeds[1].MarshalJSON()
+	if err != nil {
+		f.Fatalf("MarshalJSON(seed) error = %v, want nil", err)
+	}
+	validCount, err := core.MarshalCanonicalJSONDocument(seeds[1].Units[0])
+	if err != nil {
+		f.Fatalf("MarshalCanonicalJSONDocument(count) error = %v, want nil", err)
+	}
+	mismatchCount := seeds[1].Units[0]
+	mismatchCount.Count++
+	invalidCount, err := core.MarshalCanonicalJSONDocument(mismatchCount)
+	if err != nil {
+		f.Fatalf("MarshalCanonicalJSONDocument(mismatched count) error = %v, want nil", err)
+	}
+	mismatched := bytes.Replace(canonical, validCount, invalidCount, 1)
+	if bytes.Equal(mismatched, canonical) {
+		f.Fatal("mismatched total seed = unchanged, want changed count")
+	}
+	f.Add(mismatched)
+	for _, extent := range []int{controlplane.UsageWindowJSONMaximumBytes - 1, controlplane.UsageWindowJSONMaximumBytes, controlplane.UsageWindowJSONMaximumBytes + 1} {
+		f.Add(append(bytes.Repeat([]byte{' '}, extent-len(canonical)), canonical...))
+	}
+	for _, data := range [][]byte{nil, []byte("null"), []byte("{}"), []byte("[]"), []byte(`{"units":[{"class":0,"count":1}]}`)} {
+		f.Add(data)
+	}
 	f.Fuzz(func(t *testing.T, data []byte) {
-		window := testWindow(unitsOf(9, 4), outcomesOf(9, 4))
-		untouched := window
-		if err := window.UnmarshalJSON(data); err != nil {
-			if window.Freshness != untouched.Freshness || window.Bounds != untouched.Bounds ||
-				len(window.Units) != len(untouched.Units) {
-				t.Fatalf("UnmarshalJSON() rejected %q but mutated the receiver to %v", data, window)
+		before := testCheckInWindow()
+		got := before
+		if err := got.UnmarshalJSON(data); err != nil {
+			if !errors.Is(err, core.ErrJSONContract) || !errors.Is(err, core.ErrControlPlaneUsageWindow) || got.Bounds != before.Bounds || got.Freshness != before.Freshness || !slices.Equal(got.Units, before.Units) || !slices.Equal(got.Outcomes, before.Outcomes) {
+				t.Fatalf("rejected window = (%v, %v), want exact receiver and typed refusal", got, err)
 			}
 			return
 		}
-		if err := window.Validate(); err != nil {
-			t.Fatalf("UnmarshalJSON() accepted %q into a window Validate() rejects: %v", data, err)
+		if err := got.Validate(); err != nil {
+			t.Fatalf("accepted Validate() error = %v, want nil", err)
 		}
-		encoded, err := window.MarshalJSON()
-		if err != nil {
-			t.Fatalf("MarshalJSON() of an accepted window error = %v, want nil", err)
+		// Independent arbitrary-precision accounting cannot inherit uint64 overflow.
+		units, outcomes := new(big.Int), new(big.Int)
+		for _, entry := range got.Units {
+			units.Add(units, new(big.Int).SetUint64(entry.Count))
+		}
+		for _, entry := range got.Outcomes {
+			outcomes.Add(outcomes, new(big.Int).SetUint64(entry.Count))
+		}
+		if units.Cmp(outcomes) != 0 || units.BitLen() > 64 || outcomes.BitLen() > 64 {
+			t.Fatalf("accepted totals = %v/%v, want equal uint64 totals", units, outcomes)
+		}
+		encoded, err := got.MarshalJSON()
+		if err != nil || len(encoded) > controlplane.UsageWindowJSONMaximumBytes {
+			t.Fatalf("MarshalJSON() = (%d bytes, %v), want bounded and nil", len(encoded), err)
 		}
 		var again controlplane.UsageWindow
-		if err := again.UnmarshalJSON(encoded); err != nil {
-			t.Fatalf("UnmarshalJSON() of re-encoded %s error = %v, want nil", encoded, err)
+		if err := again.UnmarshalJSON(encoded); err != nil || again.Bounds != got.Bounds || again.Freshness != got.Freshness || !slices.Equal(again.Units, got.Units) || !slices.Equal(again.Outcomes, got.Outcomes) {
+			t.Fatalf("canonical round trip = (%v, %v), want exact %v", again, err, got)
 		}
-		reencoded, err := again.MarshalJSON()
-		if err != nil {
-			t.Fatalf("second MarshalJSON() error = %v, want nil", err)
-		}
-		if string(reencoded) != string(encoded) {
-			t.Fatalf("re-encoding is not stable: got %s, want %s", reencoded, encoded)
+		second, err := again.MarshalJSON()
+		if err != nil || !bytes.Equal(second, encoded) {
+			t.Fatalf("second encoding = (%d bytes, %v), want exact %d bytes", len(second), err, len(encoded))
 		}
 	})
 }

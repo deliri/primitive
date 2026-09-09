@@ -67,7 +67,9 @@ type ResponseDocument[
 		json.Unmarshaler
 	},
 ] struct {
-	body        Body
+	// bodyJSON is private, bounded wire data. Accessors decode into fresh typed values.
+	// doctrine:local-allowed=external-wire
+	bodyJSON    []byte
 	commitment  ResponseCommitment
 	attestation attest.Envelope[SigningDomain]
 	set         bool
@@ -97,9 +99,11 @@ type VerifiedResponse[
 		json.Unmarshaler
 	},
 ] struct {
-	body   Body
-	header ResponseHeader
-	proof  attest.Verified[SigningDomain]
+	// Retain authenticated wire bytes, never a caller-mutable product graph.
+	// doctrine:local-allowed=external-wire
+	bodyJSON []byte
+	header   ResponseHeader
+	proof    attest.Verified[SigningDomain]
 }
 
 type responseCommitmentWire ResponseCommitment
@@ -120,6 +124,12 @@ func (c ResponseCommitment) Validate() error {
 	if err := validateResponseBodyPresence(c.Header, c.BodyLength); err != nil {
 		return responseDocumentError(err)
 	}
+	if c.BodyLength.Uint64() > core.JSONDocumentMaximumBytes {
+		return responseDocumentError()
+	}
+	if c.BodyLength.Uint64() == 0 && c.BodySHA256 != core.SHA256Of(nil) {
+		return responseDocumentError(core.ErrControlPlaneDecisionConsistency)
+	}
 	return nil
 }
 
@@ -132,8 +142,10 @@ func (c ResponseCommitment) WriteCanonical(destination io.Writer) error {
 	if err != nil {
 		return err
 	}
-	_, err = destination.Write(encoded)
-	return err
+	if err := writeCanonical(destination, encoded); err != nil {
+		return responseDocumentError(err)
+	}
+	return nil
 }
 
 func (c ResponseCommitment) MarshalJSON() ([]byte, error) {
@@ -339,10 +351,9 @@ func (d ResponseDocument[Body, BodyPtr]) Validate() error {
 	if !d.set {
 		return responseDocumentError()
 	}
-	if d.commitment.Header.Status != ProductStatusUpgradeRequired {
-		if err := BodyPtr(&d.body).Validate(); err != nil {
-			return responseDocumentError(err)
-		}
+	if d.commitment.BodyLength.Uint64() != uint64(len(d.bodyJSON)) ||
+		d.commitment.BodySHA256 != core.SHA256Of(d.bodyJSON) {
+		return responseDocumentError(core.ErrControlPlaneDecisionConsistency)
 	}
 	if err := validateResponseBodyPresence(d.commitment.Header, d.commitment.BodyLength); err != nil {
 		return responseDocumentError(err)
@@ -362,25 +373,15 @@ func (d *ResponseDocument[Body, BodyPtr]) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return jsonError(responseDocumentError(err))
 	}
-	body := BodyPtr(new(Body))
-	if wire.Header.Status == ProductStatusUpgradeRequired {
-		if len(wire.Body) != 0 {
-			return jsonError(responseDocumentError(core.ErrJSONContract))
-		}
-	} else {
-		if len(wire.Body) == 0 {
-			return jsonError(responseDocumentError(core.ErrJSONContract))
-		}
-		if err := body.UnmarshalJSON(wire.Body); err != nil {
-			return jsonError(responseDocumentError(err))
-		}
+	if _, err := decodeResponseBody[Body, BodyPtr](wire.Header, wire.Body); err != nil {
+		return jsonError(err)
 	}
 	commitment, err := responseCommitmentFromRaw(wire.Header, wire.Body)
 	if err != nil {
 		return jsonError(err)
 	}
 	candidate := ResponseDocument[Body, BodyPtr]{
-		body: *body, commitment: commitment, attestation: wire.Attestation, set: true,
+		bodyJSON: bytes.Clone(wire.Body), commitment: commitment, attestation: wire.Attestation, set: true,
 	}
 	if err := candidate.Validate(); err != nil {
 		return jsonError(err)
@@ -439,7 +440,7 @@ func VerifyResponse[
 		return VerifiedResponse[Body, BodyPtr]{}, responseDocumentError(err)
 	}
 	verified := VerifiedResponse[Body, BodyPtr]{
-		body: verification.Document.body, header: header, proof: proof,
+		bodyJSON: verification.Document.bodyJSON, header: header, proof: proof,
 	}
 	return verified, verified.Validate()
 }
@@ -464,11 +465,7 @@ func (v VerifiedResponse[Body, BodyPtr]) Validate() error {
 	if err := errors.Join(v.header.Validate(), v.proof.Validate()); err != nil {
 		return responseDocumentError(err)
 	}
-	if v.header.Status != ProductStatusUpgradeRequired {
-		if err := BodyPtr(&v.body).Validate(); err != nil {
-			return responseDocumentError(err)
-		}
-	}
+
 	return nil
 }
 
@@ -479,7 +476,36 @@ func (v VerifiedResponse[Body, BodyPtr]) Body() (Body, error) {
 	if v.header.Status == ProductStatusUpgradeRequired {
 		return *new(Body), core.ErrControlPlaneUpgradeRequired
 	}
-	return v.body, nil
+	return decodeResponseBody[Body, BodyPtr](v.header, v.bodyJSON)
+}
+
+// decodeResponseBody gives the consumer decoder its own buffer and returns only
+// a validated typed result. No mutable product value is retained by the proof.
+func decodeResponseBody[
+	Body any,
+	BodyPtr interface {
+		*Body
+		core.Validatable
+		json.Unmarshaler
+	},
+](header ResponseHeader, encoded []byte) (Body, error) {
+	var body Body
+	if header.Status == ProductStatusUpgradeRequired {
+		if len(encoded) != 0 {
+			return body, responseDocumentError(core.ErrJSONContract)
+		}
+		return body, nil
+	}
+	if len(encoded) == 0 {
+		return body, responseDocumentError(core.ErrJSONContract)
+	}
+	if err := BodyPtr(&body).UnmarshalJSON(bytes.Clone(encoded)); err != nil {
+		return *new(Body), responseDocumentError(err)
+	}
+	if err := BodyPtr(&body).Validate(); err != nil {
+		return *new(Body), responseDocumentError(err)
+	}
+	return body, nil
 }
 
 func (v VerifiedResponse[Body, BodyPtr]) Header() (ResponseHeader, error) {

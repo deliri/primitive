@@ -225,7 +225,10 @@ func (p CheckInResponsePayload) WriteCanonical(destination io.Writer) error {
 	if err != nil {
 		return err
 	}
-	return writeCanonical(destination, encoded)
+	if err := writeCanonical(destination, encoded); err != nil {
+		return checkInResponseError(err)
+	}
+	return nil
 }
 
 // MarshalJSON emits one bounded canonical payload.
@@ -396,7 +399,7 @@ func validateCheckInWatermarkSuccession(verification CheckInResponseVerification
 			return checkInResponseError(consistencyError())
 		}
 	case UsageDispositionConflict:
-		if actual == successor {
+		if actual == successor || actual == verification.PreviousWatermark {
 			return checkInResponseError(consistencyError())
 		}
 	default:

@@ -473,6 +473,16 @@ func TestAuthenticatedResponseDecoderPressuresFiftySixRepresentations(t *testing
 			if err := got.Validate(); err != nil {
 				t.Fatalf("rejected decode changed populated receiver: Validate() error = %v, want nil", err)
 			}
+			preservedProof, preservedErr := controlplane.VerifyResponse(controlplane.ResponseVerification[controlplane.RegistrationDocument, *controlplane.RegistrationDocument]{Client: fixture.client, Document: got, Expected: fixture.expected})
+			if preservedErr != nil {
+				t.Fatalf("rejected decode preserved verification error = %v, want nil", preservedErr)
+			}
+			preservedHeader, headerErr := preservedProof.Header()
+			preservedBody, bodyErr := preservedProof.Body()
+			if headerErr != nil || bodyErr != nil || preservedHeader != fixture.header {
+				t.Fatalf("preserved response facts = (%v, %v, %v), want exact header and body", preservedHeader, headerErr, bodyErr)
+			}
+			proveRegistrationBodyEqual(t, preservedBody, fixture.body)
 			var zero controlplane.ResponseDocument[controlplane.RegistrationDocument, *controlplane.RegistrationDocument]
 			zeroErr := zero.UnmarshalJSON(tc.document)
 			if !errors.Is(zeroErr, core.ErrJSONContract) ||

@@ -1,14 +1,17 @@
 package controlplane
 
 import (
+	"embed"
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"os"
 	"slices"
 	"strings"
 	"testing"
 )
+
+//go:embed *.go
+var controlplaneSources embed.FS
 
 type (
 	controlplaneProtocolFact[T any]     struct{}
@@ -108,7 +111,7 @@ func TestControlplaneProductionStructsHaveCompilerVisibleDataFlowRoles(t *testin
 }
 
 func controlplaneProductionStructNames() ([]controlplaneProductionStructName, error) {
-	entries, err := os.ReadDir(".")
+	entries, err := controlplaneSources.ReadDir(".")
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +122,11 @@ func controlplaneProductionStructNames() ([]controlplaneProductionStructName, er
 			strings.HasSuffix(entry.Name(), "_test.go") {
 			continue
 		}
-		file, parseErr := parser.ParseFile(files, entry.Name(), nil, parser.SkipObjectResolution)
+		source, readErr := controlplaneSources.ReadFile(entry.Name())
+		if readErr != nil {
+			return nil, readErr
+		}
+		file, parseErr := parser.ParseFile(files, entry.Name(), source, parser.SkipObjectResolution)
 		if parseErr != nil {
 			return nil, parseErr
 		}
@@ -145,7 +152,11 @@ func controlplaneProductionStructNames() ([]controlplaneProductionStructName, er
 func controlplaneClassifiedStructNames(t *testing.T) []controlplaneProductionStructName {
 	t.Helper()
 
-	file, err := parser.ParseFile(token.NewFileSet(), "contract_inventory_test.go", nil, parser.SkipObjectResolution)
+	source, err := controlplaneSources.ReadFile("contract_inventory_test.go")
+	if err != nil {
+		t.Fatalf("ReadFile(inventory source) error = %v, want nil", err)
+	}
+	file, err := parser.ParseFile(token.NewFileSet(), "contract_inventory_test.go", source, parser.SkipObjectResolution)
 	if err != nil {
 		t.Fatalf("parser.ParseFile() error = %v, want nil", err)
 	}

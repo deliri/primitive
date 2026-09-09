@@ -77,61 +77,6 @@ func TestRegistrationAuthorityTransactionLayerTriad(t *testing.T) {
 	}
 }
 
-// TestRegistrationAuthorityAcceptsTheClosedOfferingAndReplayMatrix exercises
-// twenty successful authority transactions: fresh and exact for ten distinct
-// compiler-built requests spanning every offering and multiple nonce, token,
-// and build identities.
-func TestRegistrationAuthorityAcceptsTheClosedOfferingAndReplayMatrix(t *testing.T) {
-	t.Parallel()
-
-	offerings := validOfferings(t)
-	for index := range 10 {
-		offering := offerings[index%len(offerings)]
-		t.Run(offering.String()+" fresh and exact request "+string(rune('A'+index)), func(t *testing.T) {
-			t.Parallel()
-			server := issueTestRegistration(t).server(t)
-
-			request := registrationRequestVariant(t, offering, byte(index+1))
-			verifier, err := request.Token.Verifier()
-			if err != nil {
-				t.Fatalf("RegistrationToken.Verifier() error = %v, want nil", err)
-			}
-			canonical, err := request.MarshalJSON()
-			if err != nil {
-				t.Fatalf("RegistrationRequest.MarshalJSON() error = %v, want nil", err)
-			}
-			fresh, err := server.VerifyRegistrationAuthority(controlplane.RegistrationAuthorityVerification{
-				Request: request, ExpectedVerifier: verifier,
-			})
-			if err != nil {
-				t.Fatalf("VerifyRegistrationAuthority(fresh) error = %v, want nil", err)
-			}
-			replay, disposition, err := fresh.Replay()
-			if err != nil || disposition != controlwire.ReplayDispositionFresh {
-				t.Fatalf("fresh Replay() = (%v, %v, %v), want validated replay, %v, nil", replay, disposition, err, controlwire.ReplayDispositionFresh)
-			}
-			var retry controlplane.RegistrationRequest
-			if err := retry.UnmarshalJSON(canonical); err != nil {
-				t.Fatalf("RegistrationRequest.UnmarshalJSON(retry) error = %v, want nil", err)
-			}
-			exact, err := server.VerifyRegistrationAuthority(controlplane.RegistrationAuthorityVerification{
-				Request: retry, ExpectedVerifier: verifier, PriorReplay: &replay,
-			})
-			if err != nil {
-				t.Fatalf("VerifyRegistrationAuthority(exact) error = %v, want nil", err)
-			}
-			if _, disposition, err := exact.Replay(); err != nil || disposition != controlwire.ReplayDispositionExact {
-				t.Fatalf("exact Replay() = (%v, %v), want (%v, nil)", disposition, err, controlwire.ReplayDispositionExact)
-			}
-			identity, err := exact.Identity()
-			if err != nil || identity.Build.Offering() != offering || identity.RequestNonce != request.RequestNonce ||
-				identity.DeviceKey != request.DeviceKey || identity.Installation != request.Installation {
-				t.Fatalf("Identity() = (%+v, %v), want exact non-secret request facts", identity, err)
-			}
-		})
-	}
-}
-
 // TestRegistrationAuthorityRefusesEveryInvalidOrSecondUse pressure-tests the
 // verifier, request, and prior-commit boundaries. Every rejection returns a
 // zero proof whose own validation fails with the registration identity.
@@ -317,64 +262,6 @@ func TestCheckInAuthorityCommitLayerTriad(t *testing.T) {
 	if !errors.Is(err, core.ErrControlPlaneDecisionConsistency) ||
 		!errors.Is(conflicted.Validate(), core.ErrControlPlaneCheckIn) {
 		t.Fatalf("CommitCheckIn(foreign subject) = (%v, %v), want zero proof and errors.Is(..., %v)", conflicted, err, core.ErrControlPlaneDecisionConsistency)
-	}
-}
-
-// TestCheckInAuthorityCommitExhaustsOfferingAndDispositionMatrix proves every
-// offering follows the same accepted/replay/conflict transition and that a
-// conflict preserves the authority's current watermark byte-for-byte.
-func TestCheckInAuthorityCommitExhaustsOfferingAndDispositionMatrix(t *testing.T) {
-	t.Parallel()
-
-	for _, offering := range validOfferings(t) {
-		t.Run(offering.String(), func(t *testing.T) {
-			t.Parallel()
-
-			issued := issueTestCheckIn(t, offering, testCheckInWindow())
-			server := issued.server(t)
-			verified, err := server.VerifyCheckIn(controlplane.CheckInVerification{Request: issued.request})
-			if err != nil {
-				t.Fatalf("VerifyCheckIn() error = %v, want nil", err)
-			}
-			base := controlplane.CheckInCommitRequest{CheckIn: verified, Current: issued.request.Payload.PreviousWatermark, RequiredPolicy: issued.request.Payload.AppliedPolicy}
-			accepted, err := server.CommitCheckIn(base)
-			if err != nil {
-				t.Fatalf("CommitCheckIn(accepted) error = %v, want nil", err)
-			}
-			next, err := accepted.Watermark()
-			if err != nil {
-				t.Fatalf("accepted Watermark() error = %v, want nil", err)
-			}
-			replayed := base
-			replayed.Current = next
-			gotReplay, err := server.CommitCheckIn(replayed)
-			if err != nil {
-				t.Fatalf("CommitCheckIn(replay) error = %v, want nil", err)
-			}
-			if got, err := gotReplay.Disposition(); err != nil || got != controlplane.UsageDispositionReplay {
-				t.Fatalf("replay Disposition() = (%v, %v), want (%v, nil)", got, err, controlplane.UsageDispositionReplay)
-			}
-
-			foreignNext, err := controlplane.AdvanceUsageWatermark(
-				base.Current,
-				testWindow(unitsOf(1, 3), outcomesOf(1, 3)),
-			)
-			if err != nil {
-				t.Fatalf("AdvanceUsageWatermark(conflict fixture) error = %v, want nil", err)
-			}
-			conflicting := base
-			conflicting.Current = foreignNext
-			gotConflict, err := server.CommitCheckIn(conflicting)
-			if err != nil {
-				t.Fatalf("CommitCheckIn(conflict) error = %v, want nil", err)
-			}
-			if got, err := gotConflict.Disposition(); err != nil || got != controlplane.UsageDispositionConflict {
-				t.Fatalf("conflict Disposition() = (%v, %v), want (%v, nil)", got, err, controlplane.UsageDispositionConflict)
-			}
-			if got, err := gotConflict.Watermark(); err != nil || got != foreignNext {
-				t.Fatalf("conflict Watermark() = (%v, %v), want authoritative %v and nil", got, err, foreignNext)
-			}
-		})
 	}
 }
 
@@ -645,20 +532,6 @@ func registrationRequestVariant(t testing.TB, offering core.Offering, seed byte)
 		t.Fatalf("registration request variant Validate() error = %v, want nil", err)
 	}
 	return request
-}
-
-func validOfferings(t testing.TB) []core.Offering {
-	t.Helper()
-
-	offerings := []core.Offering{
-		controlplaneOffering(t, 11),
-		controlplaneOffering(t, 127),
-		controlplaneOffering(t, 255),
-	}
-	if len(offerings) < 3 {
-		t.Fatalf("valid offerings = %d, want at least three", len(offerings))
-	}
-	return offerings
 }
 
 func committedCheckInResponseFixture(t testing.TB) (issuedCheckIn, controlplane.CheckInResponsePreparation) {

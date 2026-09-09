@@ -1,0 +1,1938 @@
+{
+  "status": "review_followup_uncommitted",
+  "created_utc": "2026-09-09T07:52:18.244561+00:00",
+  "base_commit": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+  "host": "furnace (d@192.168.1.81)",
+  "cwd": "/home/d/code/primitive",
+  "package_source_digest": "5424c88672a803c5a483a8bba0d98b459192020aa665f2aa0f6aaaeb0d8d22f1",
+  "package_sources": [
+    {
+      "path": "controlplane/authority_transition_test.go",
+      "sha256": "9378d6fe17300e8b5b034296a9bb42e59d1898efdb76684b0c301c5303047acd"
+    },
+    {
+      "path": "controlplane/boundary_benchmark_test.go",
+      "sha256": "d776dd14ddb21056969254f1abd288ac37a477f60d9d905ce6466522fc422051"
+    },
+    {
+      "path": "controlplane/checkin_binding_boundary_test.go",
+      "sha256": "535a14a724a0daea62f9b033e6b451813953655b958203f2952b62b26564fd89"
+    },
+    {
+      "path": "controlplane/commitment_boundary_test.go",
+      "sha256": "9eb79721d9f3cf2995ff1e5d6476d28303691d49dd51ab90ac1f3076004583ae"
+    },
+    {
+      "path": "controlplane/conflict_boundary_test.go",
+      "sha256": "0302c738458f1488a17bcd8fb9e949d7eeb66737a93ed319bee803b29e312a87"
+    },
+    {
+      "path": "controlplane/decoder_ownership_test.go",
+      "sha256": "3f280f5c497372c15b78995a70480ae7eadaa1d46b51352af9784785371bca31"
+    },
+    {
+      "path": "controlplane/ingress_inventory_test.go",
+      "sha256": "773157efb078d99da331b2e678b3705f60a73cb30cdc0292a900d462bcac8f9d"
+    },
+    {
+      "path": "controlplane/issuance_boundary_test.go",
+      "sha256": "c3c89d28b109e71d55c31ac3e0d347ee6333656c573cad640549e7ff6b0cc9e9"
+    },
+    {
+      "path": "controlplane/response_ownership_test.go",
+      "sha256": "ab607084774156c24e3aff937eeb75ddcc5b4229aea86cca19ca0ea1600bdc22"
+    },
+    {
+      "path": "controlplane/writer_boundary_test.go",
+      "sha256": "db09ba781242303afd17d7afe649ee9e652ae018120549a96bcc3eee5d47ee3a"
+    },
+    {
+      "path": "controlplane/after_benchmarks.md",
+      "sha256": "aad24c7a72e27661b219ef5ccd3240353e6fa66ce72ab3700502217560c20af6"
+    },
+    {
+      "path": "controlplane/authority_transaction_hostile_test.go",
+      "sha256": "2da9c57a1bd949ecf7734b3ed4fc57dbd58e1149bef5aee7ca8e1b1430903bcb"
+    },
+    {
+      "path": "controlplane/before_benchmarks.md",
+      "sha256": "25cc1beec291e1e0fb6afd5b6d1026a1b00a4bcb9a45f6604ecccb22009d15b9"
+    },
+    {
+      "path": "controlplane/benchmark_external_test.go",
+      "sha256": "28497479b56e984852588ec1271007e8e54a07ddd5330beb620c460673344a3f"
+    },
+    {
+      "path": "controlplane/certificate.go",
+      "sha256": "ed87466d42b19542bdacce2ad569c806463b5a7b437d9abc8f3fb506809f6fbf"
+    },
+    {
+      "path": "controlplane/certificate_hostile_test.go",
+      "sha256": "e5b2c9f0695693db56b99afb2b9ea53a309f922b67000f800faf223a299f7a9e"
+    },
+    {
+      "path": "controlplane/checkin.go",
+      "sha256": "133244a4c0e0887343c0b352949cca21c0f4d06878e612bd946b8fa7c6da0d8c"
+    },
+    {
+      "path": "controlplane/checkin_authority.go",
+      "sha256": "4d8b871d3c8426c62689bc20f7d0aec729cc0f77d1c7f5c7fa92f4899a04ae37"
+    },
+    {
+      "path": "controlplane/checkin_hostile_test.go",
+      "sha256": "76870e5f842a2ede87a3ad70ffa2a4b240a04ba3e6d73f638dd2417289964c84"
+    },
+    {
+      "path": "controlplane/checkin_request.go",
+      "sha256": "3d7d052a7dffd7804f9fcf7a5aedb502ff192b85f9f9d1d38c4eb981af7b8c26"
+    },
+    {
+      "path": "controlplane/checkin_response.go",
+      "sha256": "180fe6e34ff576bd8794bfb483d704a7b66df020c0c6aa2cf8e30a9b91cc2671"
+    },
+    {
+      "path": "controlplane/checkin_response_hostile_test.go",
+      "sha256": "65410997549a358a7986a1d89363a88442114e7f846ee48f9d45942a99c7c395"
+    },
+    {
+      "path": "controlplane/contract_internal_test.go",
+      "sha256": "bb067a3c8fdf63e40c33181a974b607e1aee90a2e612598ddd8f17ff1dd98302"
+    },
+    {
+      "path": "controlplane/contract_inventory_test.go",
+      "sha256": "d54fc29349afe8ffc0ac64e58da46d9108092ee26b699d4845f4f9f861d9fd8f"
+    },
+    {
+      "path": "controlplane/doc.go",
+      "sha256": "74081329ec9ed7d98808aea42b16874c9f5498fd3fe54c826d49cc641249ab87"
+    },
+    {
+      "path": "controlplane/document_ceiling_hostile_test.go",
+      "sha256": "76a212a9d3421201d491d5765508e77859afb5e94dc436e2037de622e5ccc8a8"
+    },
+    {
+      "path": "controlplane/enum_external_fuzz_test.go",
+      "sha256": "833ea3f040ee4932f51a0b8981370fe82b810ac64d4891329f07e9046b66d57a"
+    },
+    {
+      "path": "controlplane/errors.go",
+      "sha256": "6b4ba2f23352b65a8e573a964178eafff867b265bb3a3b78cc33f94ac76530f9"
+    },
+    {
+      "path": "controlplane/fixture_test.go",
+      "sha256": "0590bf290d3b47e97bf5ccccd30d66463718dbd7d27c5a956d7c4cc0e97f5f34"
+    },
+    {
+      "path": "controlplane/golden_wire_test.go",
+      "sha256": "05b12cb162b998ea0fae457b85fe6752437dcdd29d29d57064c83a926897e533"
+    },
+    {
+      "path": "controlplane/json_limits.go",
+      "sha256": "f154eeec9e8abd6b0c2c62f523e640f1404a46ee40c1dbeaaa19065bfd67efde"
+    },
+    {
+      "path": "controlplane/offering_external_fixture_test.go",
+      "sha256": "03865e292f21f5e39d881307437d04a5d0a56c33dd388524187436d7212b3cdf"
+    },
+    {
+      "path": "controlplane/product_status.go",
+      "sha256": "a73244748429aea538edcf683185e31b1e5a4f6d065dc7d09fd4f5f9e5607512"
+    },
+    {
+      "path": "controlplane/product_status_hostile_test.go",
+      "sha256": "62674dcfe361c7f106118bcdfb0f01c1915fd3037c46a36f73835253f3ba3321"
+    },
+    {
+      "path": "controlplane/protocol_members.go",
+      "sha256": "01d89bb91c246f167365360fff09908282203ed7a7b475d12319ad38fb7ce00b"
+    },
+    {
+      "path": "controlplane/registration.go",
+      "sha256": "c899adaffe5bc32f8b3c838a218cc55b3a0e863c589aefb49b5f23f3eae42f89"
+    },
+    {
+      "path": "controlplane/registration_authority.go",
+      "sha256": "f0224d80827adc0e691becb5ba4292081a8cb78194c99b981fa20437368f37b6"
+    },
+    {
+      "path": "controlplane/registration_hostile_test.go",
+      "sha256": "df50a627c823565b97b231ec1130dbaa9900899efe74e05dfdd4a43b85cf4e8e"
+    },
+    {
+      "path": "controlplane/response_binding.go",
+      "sha256": "3bc2ad2ae139a6cafd9bc73c53c8e3d35eef7b029e9448b0880cdf905c39947f"
+    },
+    {
+      "path": "controlplane/response_document.go",
+      "sha256": "a13fbebdfaf03a568a06f03a89b4e54d10ea459a52ab32f9607a7187f62e67ef"
+    },
+    {
+      "path": "controlplane/response_document_hostile_test.go",
+      "sha256": "d4fd8a3343a99587d3317927e72bf9d226b411a3e6005f229fa5ab295faaf862"
+    },
+    {
+      "path": "controlplane/response_header.go",
+      "sha256": "d40399c50c7adf8d2b6d50092decb8d3affdf4289738f8358c93d6f83ccdb9c1"
+    },
+    {
+      "path": "controlplane/response_projection.go",
+      "sha256": "25f46f9417d84faa2ea3cdbaa182279121418db69cb39caaa029d56ea3be1b88"
+    },
+    {
+      "path": "controlplane/response_projection_hostile_test.go",
+      "sha256": "5693d18bd3556124963b14e651aeb8036aab3bfc69ad16dc6f6600102ae1c240"
+    },
+    {
+      "path": "controlplane/side_capability.go",
+      "sha256": "cb0c68971aad6dfadcad54e388fbc5ccaa52716c2ddda2694149b8525ae077f3"
+    },
+    {
+      "path": "controlplane/side_capability_hostile_test.go",
+      "sha256": "81359cf26d75aa9d80edfc9df70d9952e3e25524f190b00955ade78bdc573de7"
+    },
+    {
+      "path": "controlplane/signed_document_fuzz_test.go",
+      "sha256": "91302572cca732ac59421d1686ffec7453528d23a849ea7be5d6acf021cee72d"
+    },
+    {
+      "path": "controlplane/signing_domain.go",
+      "sha256": "415783171c8b28fb9e71fc6b1c541b9056fe41b4fb0edba0b1b224e791652295"
+    },
+    {
+      "path": "controlplane/signing_domain_hostile_test.go",
+      "sha256": "e891644eef5d30821bba789cd8f88235e2a67ecc9284d1195206ea1d9d0adea3"
+    },
+    {
+      "path": "controlplane/structure_external_fuzz_test.go",
+      "sha256": "9afb1cf65ef2bc1d0a939461e4721398372beebcf9b6a60c0de59c43ba439a32"
+    },
+    {
+      "path": "controlplane/testdata/check_in_request.json",
+      "sha256": "d6602ff78fbba14636501fae956769780c3d9e2ba980d3f039d6bc7c42a3e118"
+    },
+    {
+      "path": "controlplane/testdata/check_in_response.json",
+      "sha256": "877723704d8af737017320be4822fe1c948b05ac121d2cdcf30f2d2e46906617"
+    },
+    {
+      "path": "controlplane/testdata/fuzz/FuzzCheckInPayloadExternalDecoder/67b88adc00ac4ff8",
+      "sha256": "67b88adc00ac4ff8f440386048f0c397882665382677ced24c9e68465af86031"
+    },
+    {
+      "path": "controlplane/testdata/fuzz/FuzzRegistrationRequestExternalDecoder/0874327895ce28b3",
+      "sha256": "0874327895ce28b3cfeb5bf38ae02b2349c823db5d90e2d15a311e1aed72b4ae"
+    },
+    {
+      "path": "controlplane/testdata/registration_request.json",
+      "sha256": "c8c5bd0a8d27aca3a83a13ae916b1e6cfe476251f1c9586c9de7bb2cbd0cddb8"
+    },
+    {
+      "path": "controlplane/testdata/registration_response.json",
+      "sha256": "ab9ec2ca3b78ec2f0421e0bf69a1bd835492e22605c2d80686c1fe55cce81f70"
+    },
+    {
+      "path": "controlplane/upgrade_required_response_hostile_test.go",
+      "sha256": "51d0b93bbbe4af8eb061d940aef7db46f0dac6d4b47e3bb3141e3b36e823a664"
+    },
+    {
+      "path": "controlplane/usage_watermark.go",
+      "sha256": "27c3a19d189864656189741972d819c534f615f3b86db43dc2be9c598220e85d"
+    },
+    {
+      "path": "controlplane/usage_watermark_hostile_test.go",
+      "sha256": "97fb5e611c31a9780817b6119f3a0fa3551d2d395fdc17701c39cac5ed33436f"
+    },
+    {
+      "path": "controlplane/usage_window.go",
+      "sha256": "87d1904a982400b534dd04f39ad7a003b828adf6f18ffc5fef1b60e6852b9fb6"
+    },
+    {
+      "path": "controlplane/usage_window_hostile_test.go",
+      "sha256": "f72fd3fbbc7bfcc32f8c3e29f4b6b8da4fd6ea7ad9ceb45c64976dc84890fada"
+    },
+    {
+      "path": "controlplane/validation_witnesses.go",
+      "sha256": "f442626ad07e49196f11b59ad79f406369bbab5246a17106b716242e1b20a33b"
+    },
+    {
+      "path": "controlplane/verification.go",
+      "sha256": "29910542fb0cfb84c1903c27e256da96941b73ec17354f9970ec9894ed04de44"
+    },
+    {
+      "path": "controlplane/verification_hostile_test.go",
+      "sha256": "d0a579b4f10f810728d5f6beead09a3a9c57664c1c6f45c492b6f8c45f315f1e"
+    }
+  ],
+  "verified_source_snapshot_count": 4241,
+  "previous_evidence": {
+    "path": "/home/d/code/primitive/_docs/controlplane_upgrade_20260909_evidence.json",
+    "bytes": 183854,
+    "sha256": "0e5aed84fef24693f2bd7350120dfe2994c273e4e5579870c4e3d247f87b1639"
+  },
+  "raw_evidence_root": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909",
+  "plan": {
+    "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-plan.json",
+    "bytes": 4009,
+    "sha256": "98026adcac5ff2f3142fe06a5f2e239e492f48a97708d6325e01a2c218d7d65e"
+  },
+  "first_plan": {
+    "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-first-plan.json",
+    "bytes": 3967,
+    "sha256": "d4463afcaa63ebd9ab1879814ac1f8c3fc13644582bfab9bc6fb02c298757821"
+  },
+  "runner": {
+    "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2_run.py",
+    "bytes": 2500,
+    "sha256": "444dc2ef797ef494164769fc298085d4bae7ba4f80d1e3d23382e65a998dc1c1"
+  },
+  "first_runner": {
+    "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2_first_run.py",
+    "bytes": 2458,
+    "sha256": "9ac9c70dc47eb6d787ea78593bfeacb96487caf9652aaf5ecc14925e0ada2f29"
+  },
+  "recording": {
+    "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/record.py",
+    "bytes": 2006,
+    "sha256": "5962593328709e740173925b6ed9e6afd417b184f290658644ddfb6faa9d5c90"
+  },
+  "protocol": {
+    "path": "/home/d/code/primitive/_docs/testing_protocol.md",
+    "bytes": 84440,
+    "sha256": "dd83cd7f62c172092546dab6b7c7d5c59753b5e8ae784631a94cff4d6d48126c"
+  },
+  "runs": [
+    {
+      "label": "review2-red",
+      "classification": "test_compile_failure",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-red/result.json",
+        "bytes": 770092,
+        "sha256": "95d9ab330f166f9a5612c2a441e4e74f8760ff4e34fbe91e6f70a08a3b56653a"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-run=TestCanonicalWriterLayerTriadPreservesExactEffects|TestReceivedCheckInSignerBindingLayerTriad",
+        "./controlplane"
+      ],
+      "go": "go version go1.27.1 linux/amd64",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "start": "2026-09-09T07:38:50.050508+00:00",
+      "elapsed_seconds": 0.661712372002512,
+      "exit": 1,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-red/started.json",
+          "bytes": 767979,
+          "sha256": "38a22145c12da1e30dca28ff4361751deda6a04c4668828437380144964d3396"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-red/source.patch",
+          "bytes": 38359,
+          "sha256": "8562b9ed5bf2e25964e2aecc597924f22d1f951e1c7f1aba08670c53cb6c55d4"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-red/stdout",
+          "bytes": 1265,
+          "sha256": "b8498c11eb88cbeafe13721d9bd4f77b3d9eb65840360f2fdd23f1d26e0b4d2e"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-red/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "review2-red-boundaries",
+      "classification": "production_regression_red",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-red-boundaries/result.json",
+        "bytes": 770139,
+        "sha256": "f768e3a971ab958492137859544a4f4178ab9ff15f2e9ca4b21a3ba3b9e78345"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-run=TestCanonicalWriterLayerTriadPreservesExactEffects|TestReceivedCheckInSignerBindingLayerTriad",
+        "./controlplane"
+      ],
+      "go": "go version go1.27.1 linux/amd64",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "start": "2026-09-09T07:39:14.212350+00:00",
+      "elapsed_seconds": 1.8722315070008335,
+      "exit": 1,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-red-boundaries/started.json",
+          "bytes": 767979,
+          "sha256": "4e17aee953c020912873413ce91e4d3d1b223971658e4ab2fe7ec58b34ea2210"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-red-boundaries/source.patch",
+          "bytes": 38359,
+          "sha256": "8562b9ed5bf2e25964e2aecc597924f22d1f951e1c7f1aba08670c53cb6c55d4"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-red-boundaries/stdout",
+          "bytes": 222031,
+          "sha256": "eb9bf5b7e57d40312cd93912fd2a12715cba5e61c5c3697adc4a93b5ef07a77d"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-red-boundaries/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 35,
+        "fail": 32
+      },
+      "failed_leaf_tests": [
+        "TestReceivedCheckInSignerBindingLayerTriad/changing_only_signer_cannot_hide_behind_later_signature_verification/empty_receiver_cannot_acquire_partial_facts",
+        "TestReceivedCheckInSignerBindingLayerTriad/changing_only_signer_cannot_hide_behind_later_signature_verification/populated_receiver_keeps_original_facts_on_refusal",
+        "TestReceivedCheckInSignerBindingLayerTriad/authentic_foreign_signature_cannot_enter_this_certificate_boundary/populated_receiver_keeps_original_facts_on_refusal",
+        "TestReceivedCheckInSignerBindingLayerTriad/authentic_foreign_signature_cannot_enter_this_certificate_boundary/empty_receiver_cannot_acquire_partial_facts",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/check-in_response/full_count_cannot_erase_write_failure",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/check-in_response/nil_destination_refuses_without_panic",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/check-in_response/zero_progress_cannot_report_completion",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/check-in_response/negative_writer_count_cannot_report_completion",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/check-in_response/one-byte_truncation_cannot_report_completion",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/check-in_response/oversized_writer_count_cannot_report_completion",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/check-in_payload/oversized_writer_count_cannot_report_completion",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/check-in_payload/one-byte_truncation_cannot_report_completion",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/check-in_payload/negative_writer_count_cannot_report_completion",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/check-in_payload/zero_progress_cannot_report_completion",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/response_commitment/partial_canceled_write_preserves_cancellation",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/response_commitment/oversized_writer_count_cannot_report_completion",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/check-in_payload/full_count_cannot_erase_write_failure",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/response_commitment/zero_progress_cannot_report_completion",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/response_commitment/negative_writer_count_cannot_report_completion",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/check-in_payload/nil_destination_refuses_without_panic",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/check-in_payload/partial_canceled_write_preserves_cancellation",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/response_commitment/nil_destination_refuses_without_panic",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/check-in_response/partial_canceled_write_preserves_cancellation",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/response_commitment/full_count_cannot_erase_write_failure",
+        "TestCanonicalWriterLayerTriadPreservesExactEffects/response_commitment/one-byte_truncation_cannot_report_completion"
+      ],
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "review2-green-boundaries",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-green-boundaries/result.json",
+        "bytes": 770210,
+        "sha256": "fb747c04975026b6501725e0fd4af8feef16856e190af6fa974038856cb9fd33"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-run=TestCanonicalWriterLayerTriadPreservesExactEffects|TestReceivedCheckInSignerBindingLayerTriad|TestCheckInIssuanceRefusesForeignBindingWithoutPartialDocument",
+        "./controlplane"
+      ],
+      "go": "go version go1.27.1 linux/amd64",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "start": "2026-09-09T07:39:47.776977+00:00",
+      "elapsed_seconds": 1.8717030549996707,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-green-boundaries/started.json",
+          "bytes": 768042,
+          "sha256": "d3e5d43bebff3caa9e6c8fe214f878adec0da65b427e47e3705a27a7ad1a7b1d"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-green-boundaries/source.patch",
+          "bytes": 40385,
+          "sha256": "4a5c31984c4b6bab8be521777d304d31fd4025212887adb586e1d36a960ebcb6"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-green-boundaries/stdout",
+          "bytes": 187142,
+          "sha256": "5db281fe4a839b66818dd3ca7cb127ae09644d42c1828c38f5754a07dbfb7f8c"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-green-boundaries/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 72
+      },
+      "failed_leaf_tests": [],
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "review2-package",
+      "classification": "obsolete_fuzz_fixture_failure",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-package/result.json",
+        "bytes": 770006,
+        "sha256": "348284b2ed88950ed60142a93fd92c4b0df9f32cfad54b845e6d7a3831cb769c"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "./controlplane"
+      ],
+      "go": "go version go1.27.1 linux/amd64",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "start": "2026-09-09T07:39:59.285821+00:00",
+      "elapsed_seconds": 0.9093032269993273,
+      "exit": 1,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-package/started.json",
+          "bytes": 767873,
+          "sha256": "e8155d953b293a0e568653b19b55f8eff31b7c1a86b8973a5f993fcffe095f2d"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-package/source.patch",
+          "bytes": 40385,
+          "sha256": "4a5c31984c4b6bab8be521777d304d31fd4025212887adb586e1d36a960ebcb6"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-package/stdout",
+          "bytes": 1792761,
+          "sha256": "ff0c348a26f92b0eb34b2035b59e959541049c8b44e369161ce9a5b44748465d"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-package/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 976,
+        "fail": 1
+      },
+      "failed_leaf_tests": [
+        "FuzzCheckInRequestDecodeAndVerify"
+      ],
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "review2-race",
+      "classification": "production_regression_red",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-race/result.json",
+        "bytes": 770097,
+        "sha256": "761b4708a04c194c72f7be62729dbb5bb0aaf84d45e3fc3e2195f74a1b11aff3"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-race",
+        "-count=1",
+        "./controlplane"
+      ],
+      "go": "go version go1.27.1 linux/amd64",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "start": "2026-09-09T07:40:41.126470+00:00",
+      "elapsed_seconds": 9.19985266599906,
+      "exit": 1,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-race/started.json",
+          "bytes": 767932,
+          "sha256": "dfedd93c91597b3514a48998eaf7bbbc63f545b4324fc22117c22165395637a0"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-race/source.patch",
+          "bytes": 42262,
+          "sha256": "d9cf8b0a6bcc57a84d6dd225a210e25f869427e75d7f0ab4e5dfd38313a502ca"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-race/stdout",
+          "bytes": 1808197,
+          "sha256": "d1e117c3a8747eaa12c808e8090f0650592c3c406283234380b038cc51cc79c2"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-race/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 992,
+        "fail": 2
+      },
+      "failed_leaf_tests": [
+        "FuzzCheckInRequestDecodeAndVerify/seed#8"
+      ],
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "review2-final-race",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-final-race/result.json",
+        "bytes": 770482,
+        "sha256": "d38625dabb70149f3d8078ca1b7aadcd2bed0f1fc5ef13a5e9dcb28b6c0d2a51"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-race",
+        "-count=1",
+        "-coverprofile=/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-final-race/coverage.out",
+        "./controlplane"
+      ],
+      "go": "go version go1.27.1 linux/amd64",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "start": "2026-09-09T07:43:16.288921+00:00",
+      "elapsed_seconds": 10.499929298999632,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-final-race/started.json",
+          "bytes": 768054,
+          "sha256": "761a6d0c0374840c5393715cd9e9378c9f25c4974c9308bbba347d6400c9d016"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-final-race/source.patch",
+          "bytes": 42276,
+          "sha256": "a1da7a889a55164bb32df34113d7be0d5ebe7621b36d085187527bf5e3003e93"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-final-race/stdout",
+          "bytes": 1816122,
+          "sha256": "0f4e381fa94f297a7e823b739d805bc9e5763ea169dc25eafb93a24e11c3d3a6"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-final-race/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-final-race/coverage.out",
+          "bytes": 102939,
+          "sha256": "41b5ea830d89d78e25cb67569c098383fa90f961cf0453e5926d1becb60a1146"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 997
+      },
+      "failed_leaf_tests": [],
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "review2-vet",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-vet/result.json",
+        "bytes": 770046,
+        "sha256": "b3f08c7dc8bc63669cbd1ff4cb1ac8acdd2fc12f90168d4a4b9cc0dc08407af1"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "vet",
+        "./controlplane"
+      ],
+      "go": "go version go1.27.1 linux/amd64",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "start": "2026-09-09T07:43:27.519195+00:00",
+      "elapsed_seconds": 0.8759494360019744,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-vet/started.json",
+          "bytes": 767889,
+          "sha256": "78dcf74e8a07ebb431d4e7e843a467390edf445f48d39d4b50b0dac3f73f9e92"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-vet/source.patch",
+          "bytes": 42276,
+          "sha256": "a1da7a889a55164bb32df34113d7be0d5ebe7621b36d085187527bf5e3003e93"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-vet/stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-vet/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "review2-staticcheck",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-staticcheck/result.json",
+        "bytes": 770091,
+        "sha256": "794780cb0eee9806d22b5b1b41a3b43f91519b63879937570085061168026025"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "/home/d/go/bin/staticcheck",
+        "./controlplane"
+      ],
+      "go": "go version go1.27.1 linux/amd64",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "start": "2026-09-09T07:43:29.082605+00:00",
+      "elapsed_seconds": 1.8454124790005153,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-staticcheck/started.json",
+          "bytes": 767902,
+          "sha256": "cbeda6c35fea6dbbbfc6d19b7521f9c0c220c7056db2251195cb5252afd678db"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-staticcheck/source.patch",
+          "bytes": 42276,
+          "sha256": "a1da7a889a55164bb32df34113d7be0d5ebe7621b36d085187527bf5e3003e93"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-staticcheck/stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-staticcheck/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "review2-errcheck",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-errcheck/result.json",
+        "bytes": 770077,
+        "sha256": "7c6b7a9facc9075fa788295911165d2b8a841bb5ac7993409624932e40f1a0ce"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "/home/d/go/bin/errcheck",
+        "./controlplane"
+      ],
+      "go": "go version go1.27.1 linux/amd64",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "start": "2026-09-09T07:43:31.625571+00:00",
+      "elapsed_seconds": 0.36085394300243934,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-errcheck/started.json",
+          "bytes": 767899,
+          "sha256": "d88761943f187af8b1f646b46c50d7e2b0b64c0347a961841b381eb5ea907d8e"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-errcheck/source.patch",
+          "bytes": 42276,
+          "sha256": "a1da7a889a55164bb32df34113d7be0d5ebe7621b36d085187527bf5e3003e93"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-errcheck/stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-errcheck/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "review2-witness",
+      "classification": "test_diagnostic_lint_failure",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-witness/result.json",
+        "bytes": 770081,
+        "sha256": "e5f3aabfdfb5c26f9a2e93578277b6a2a8c88de531e85b3d1639f0995f01548f"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "/home/d/go/bin/witness-lint",
+        "./controlplane"
+      ],
+      "go": "go version go1.27.1 linux/amd64",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "start": "2026-09-09T07:43:32.708907+00:00",
+      "elapsed_seconds": 0.11850552300165873,
+      "exit": 1,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-witness/started.json",
+          "bytes": 767903,
+          "sha256": "32ae661d3d71c80c2703c5ed13cce6e6cc6c0062c349a17ad3219d9e9ce50776"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-witness/source.patch",
+          "bytes": 42276,
+          "sha256": "a1da7a889a55164bb32df34113d7be0d5ebe7621b36d085187527bf5e3003e93"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-witness/stdout",
+          "bytes": 137,
+          "sha256": "8dc471d36b4762a5295ee37cb352afef472e30bcd29dddc8576c8e952deb0583"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-witness/stderr",
+          "bytes": 163,
+          "sha256": "dbedef2d32e6981f6c2cc1e41ca1dec7f56fc43b605f81d530419c919b0cb42a"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "review2-final-race-closed",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-final-race-closed/result.json",
+        "bytes": 770524,
+        "sha256": "19ca3cb873055bab3760660a0f2dda78da820edc0eaaa5f00ee7dbc833cec581"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-race",
+        "-count=1",
+        "-coverprofile=/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-final-race-closed/coverage.out",
+        "./controlplane"
+      ],
+      "go": "go version go1.27.1 linux/amd64",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "start": "2026-09-09T07:45:15.643231+00:00",
+      "elapsed_seconds": 10.932562738002161,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-final-race-closed/started.json",
+          "bytes": 768061,
+          "sha256": "d47bc4ced2b25b7c5d8c2c4cd9791c9adb7c766b14d5dec9a5be1bfb20f099b5"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-final-race-closed/source.patch",
+          "bytes": 42276,
+          "sha256": "a1da7a889a55164bb32df34113d7be0d5ebe7621b36d085187527bf5e3003e93"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-final-race-closed/stdout",
+          "bytes": 1816076,
+          "sha256": "8b1eb283ead554d010ee995b3aa7ef69a91493a115f7162eaa0f844381195c71"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-final-race-closed/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-final-race-closed/coverage.out",
+          "bytes": 102939,
+          "sha256": "41b5ea830d89d78e25cb67569c098383fa90f961cf0453e5926d1becb60a1146"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 997
+      },
+      "failed_leaf_tests": [],
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "review2-vet-closed",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-vet-closed/result.json",
+        "bytes": 770074,
+        "sha256": "65f3670a164ad07a170e4e06a45bc4613fde74de41ee9041e49b6c20be564d42"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "vet",
+        "./controlplane"
+      ],
+      "go": "go version go1.27.1 linux/amd64",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "start": "2026-09-09T07:45:27.262280+00:00",
+      "elapsed_seconds": 0.8215879419985868,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-vet-closed/started.json",
+          "bytes": 767889,
+          "sha256": "3a7438b4247dfd21512cb6da3906d229111e848671dc881feeb57e52e93ad027"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-vet-closed/source.patch",
+          "bytes": 42276,
+          "sha256": "a1da7a889a55164bb32df34113d7be0d5ebe7621b36d085187527bf5e3003e93"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-vet-closed/stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-vet-closed/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "review2-staticcheck-closed",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-staticcheck-closed/result.json",
+        "bytes": 770119,
+        "sha256": "7f6e5f26e668e418adb33e7a9d5e599380f661e18d8b84750297d95e800b2541"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "/home/d/go/bin/staticcheck",
+        "./controlplane"
+      ],
+      "go": "go version go1.27.1 linux/amd64",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "start": "2026-09-09T07:45:28.776272+00:00",
+      "elapsed_seconds": 1.7536721309988934,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-staticcheck-closed/started.json",
+          "bytes": 767902,
+          "sha256": "2b13d5de840118cb42b512b40af9fca93ebaa21e8c951693ffbcde1299d1361c"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-staticcheck-closed/source.patch",
+          "bytes": 42276,
+          "sha256": "a1da7a889a55164bb32df34113d7be0d5ebe7621b36d085187527bf5e3003e93"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-staticcheck-closed/stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-staticcheck-closed/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "review2-errcheck-closed",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-errcheck-closed/result.json",
+        "bytes": 770104,
+        "sha256": "54ea152fbf8578f5553c83d3c0fc3f7772ae57b6fde6d7be7910b2ccb06e8339"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "/home/d/go/bin/errcheck",
+        "./controlplane"
+      ],
+      "go": "go version go1.27.1 linux/amd64",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "start": "2026-09-09T07:45:31.246652+00:00",
+      "elapsed_seconds": 0.3091625419983757,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-errcheck-closed/started.json",
+          "bytes": 767899,
+          "sha256": "582f489f92f394d2e362e1627b9c34b79079999bb6cdbe547613b0b1f13163ab"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-errcheck-closed/source.patch",
+          "bytes": 42276,
+          "sha256": "a1da7a889a55164bb32df34113d7be0d5ebe7621b36d085187527bf5e3003e93"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-errcheck-closed/stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-errcheck-closed/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "review2-witness-closed",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-witness-closed/result.json",
+        "bytes": 770104,
+        "sha256": "275ac98b580a9321a8eafa8d404060ad1e4f532415bf2a07b42c17e43af7d505"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "/home/d/go/bin/witness-lint",
+        "./controlplane"
+      ],
+      "go": "go version go1.27.1 linux/amd64",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "start": "2026-09-09T07:45:32.274984+00:00",
+      "elapsed_seconds": 0.1472637670012773,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-witness-closed/started.json",
+          "bytes": 767903,
+          "sha256": "33f83d405980919fa3eb8f330aaed2616b38ae0f189c50b881a749ebcd6c1acd"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-witness-closed/source.patch",
+          "bytes": 42276,
+          "sha256": "a1da7a889a55164bb32df34113d7be0d5ebe7621b36d085187527bf5e3003e93"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-witness-closed/stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-witness-closed/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "review2-complexity",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-complexity/result.json",
+        "bytes": 770919,
+        "sha256": "360af992d14f7517a8e5ef2333c2e6825039812073a9b4fc7b2e72ea840ab6ff"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "/home/d/go/bin/gocyclo",
+        "-over",
+        "10",
+        "controlplane/certificate.go",
+        "controlplane/checkin.go",
+        "controlplane/checkin_authority.go",
+        "controlplane/checkin_request.go",
+        "controlplane/checkin_response.go",
+        "controlplane/doc.go",
+        "controlplane/errors.go",
+        "controlplane/json_limits.go",
+        "controlplane/product_status.go",
+        "controlplane/protocol_members.go",
+        "controlplane/registration.go",
+        "controlplane/registration_authority.go",
+        "controlplane/response_binding.go",
+        "controlplane/response_document.go",
+        "controlplane/response_header.go",
+        "controlplane/response_projection.go",
+        "controlplane/side_capability.go",
+        "controlplane/signing_domain.go",
+        "controlplane/usage_watermark.go",
+        "controlplane/usage_window.go",
+        "controlplane/validation_witnesses.go",
+        "controlplane/verification.go"
+      ],
+      "go": "go version go1.27.1 linux/amd64",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "start": "2026-09-09T07:45:33.115233+00:00",
+      "elapsed_seconds": 0.009893675996863749,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-complexity/started.json",
+          "bytes": 768732,
+          "sha256": "881196378863cd8ea183d536cc73f8b69ca5b49fb268bd975046f423f8f00728"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-complexity/source.patch",
+          "bytes": 42276,
+          "sha256": "a1da7a889a55164bb32df34113d7be0d5ebe7621b36d085187527bf5e3003e93"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-complexity/stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-complexity/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "review2-darwin",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-darwin/result.json",
+        "bytes": 770499,
+        "sha256": "d6995fb3c0e337d30598eac9cd7fd63a9972f028c304a397b5aac1abcb768b38"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "env",
+        "GOOS=darwin",
+        "GOARCH=arm64",
+        "CGO_ENABLED=0",
+        "go",
+        "test",
+        "-c",
+        "-o",
+        "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-darwin/controlplane.test",
+        "./controlplane"
+      ],
+      "go": "go version go1.27.1 linux/amd64",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "start": "2026-09-09T07:45:33.811284+00:00",
+      "elapsed_seconds": 1.9888987170015753,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-darwin/started.json",
+          "bytes": 768090,
+          "sha256": "d37ab11edd95694e0ff2398d8abd82fcf6a2645e5ccef133b5ad23787779d3a6"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-darwin/source.patch",
+          "bytes": 42276,
+          "sha256": "a1da7a889a55164bb32df34113d7be0d5ebe7621b36d085187527bf5e3003e93"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-darwin/stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-darwin/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-darwin/controlplane.test",
+          "bytes": 13876322,
+          "sha256": "5c90d8353d7a6477cd1634ba2fd0b8493f405af5ef7a50117fa9b3d94a6e41f5"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "review2-windows",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-windows/result.json",
+        "bytes": 770514,
+        "sha256": "7b566e25141820a07b9eb417bc8e2d0084ff23b986a3736375d96013d3f4a0f2"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "env",
+        "GOOS=windows",
+        "GOARCH=amd64",
+        "CGO_ENABLED=0",
+        "go",
+        "test",
+        "-c",
+        "-o",
+        "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-windows/controlplane.test.exe",
+        "./controlplane"
+      ],
+      "go": "go version go1.27.1 linux/amd64",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "start": "2026-09-09T07:45:36.504997+00:00",
+      "elapsed_seconds": 2.0148929189999762,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-windows/started.json",
+          "bytes": 768096,
+          "sha256": "e094dca30a05de7d4d5019c907bf345aae94c9eca81aa9ec8fb64ed3b1d15fb7"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-windows/source.patch",
+          "bytes": 42276,
+          "sha256": "a1da7a889a55164bb32df34113d7be0d5ebe7621b36d085187527bf5e3003e93"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-windows/stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-windows/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-windows/controlplane.test.exe",
+          "bytes": 14920704,
+          "sha256": "8fd16fd968f5302ba9d19d7226ea40e9b1feaaa2c7fd7b11b1ab3ea1a62da701"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "review2-benchmarks",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-benchmarks/result.json",
+        "bytes": 771245,
+        "sha256": "43a018af20dfa841c50f04384b64a127608025ff3bbfe5b7701ce17ce292309b"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-run=^$",
+        "-bench=.",
+        "-benchtime=30s",
+        "-benchmem",
+        "-count=1",
+        "-cpuprofile=/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-benchmarks/cpu.pprof",
+        "-memprofile=/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-benchmarks/mem.pprof",
+        "-o",
+        "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-benchmarks/controlplane.test",
+        "./controlplane"
+      ],
+      "go": "go version go1.27.1 linux/amd64",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "start": "2026-09-09T07:45:39.245506+00:00",
+      "elapsed_seconds": 332.5974842730029,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-benchmarks/started.json",
+          "bytes": 768346,
+          "sha256": "5e6d295a9ca67c9ee7ea5b46adfe8b4cad1ab403a0a3206fa5460b993fa65d39"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-benchmarks/source.patch",
+          "bytes": 42276,
+          "sha256": "a1da7a889a55164bb32df34113d7be0d5ebe7621b36d085187527bf5e3003e93"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-benchmarks/stdout",
+          "bytes": 12231,
+          "sha256": "42523230f7a912586df09f5c28737654750785b916be196d1b5280737f8415b6"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-benchmarks/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-benchmarks/cpu.pprof",
+          "bytes": 388618,
+          "sha256": "20957052d1aab4f9a01b10f723463dcf97cd51b57c2f3d35c1c0e6b7b802c8fa"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-benchmarks/mem.pprof",
+          "bytes": 55685,
+          "sha256": "34611e7d5ffc194db2fb550a436fb153ae49f22833b9a6de50aa3a917031bc1a"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-benchmarks/controlplane.test",
+          "bytes": 14701536,
+          "sha256": "a8627ce33c6522ecb06c22aa916e68576cd9192728c517fae8518ef235d0019d"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "review2-fuzz-checkin",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-fuzz-checkin/result.json",
+        "bytes": 770249,
+        "sha256": "a1d1dc9d41e34ed36963bb05abfb37683e74e2050a6b7d72f705019ed4898bd2"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-run=^$",
+        "-fuzz=^FuzzCheckInRequestDecodeAndVerify$",
+        "-fuzztime=30s",
+        "-fuzzminimizetime=1s",
+        "-parallel=4",
+        "-timeout=2m",
+        "./controlplane"
+      ],
+      "go": "go version go1.27.1 linux/amd64",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "start": "2026-09-09T07:51:12.574110+00:00",
+      "elapsed_seconds": 33.50613865700143,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-fuzz-checkin/started.json",
+          "bytes": 768054,
+          "sha256": "a0fafc9aef502398f6f5adc754d4d4bf433c33e2ff466e994c009fcb238219f1"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-fuzz-checkin/source.patch",
+          "bytes": 42276,
+          "sha256": "a1da7a889a55164bb32df34113d7be0d5ebe7621b36d085187527bf5e3003e93"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-fuzz-checkin/stdout",
+          "bytes": 4815,
+          "sha256": "ac209994865dfb4057905ed5d59d258f4eeeca44625ee886ea04db932ce7a132"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-fuzz-checkin/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {
+        "pass": 1
+      },
+      "failed_leaf_tests": [],
+      "last_fuzz_progress": "fuzz: elapsed: 30s, execs: 128787 (0/sec), new interesting: 111 (total: 298)"
+    },
+    {
+      "label": "review2-cpu-summary",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-cpu-summary/result.json",
+        "bytes": 770349,
+        "sha256": "c212d54886ee70b7c2a70d4482f21ace498d93878f25a15e0fa028cc0dfb209d"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "tool",
+        "pprof",
+        "-top",
+        "-nodecount=20",
+        "-sample_index=cpu",
+        "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-benchmarks/controlplane.test",
+        "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-benchmarks/cpu.pprof"
+      ],
+      "go": "go version go1.27.1 linux/amd64",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "start": "2026-09-09T07:52:14.667821+00:00",
+      "elapsed_seconds": 0.3653309340006672,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-cpu-summary/started.json",
+          "bytes": 768157,
+          "sha256": "42dc7a064d92b862148671dfecbdfcac3fea595c97c6c7bfa7874134e222eba6"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-cpu-summary/source.patch",
+          "bytes": 42276,
+          "sha256": "a1da7a889a55164bb32df34113d7be0d5ebe7621b36d085187527bf5e3003e93"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-cpu-summary/stdout",
+          "bytes": 2157,
+          "sha256": "bc99aca34d9df6afed53a6ca500e1b352798389d90c9b7fb22d76a5c3b98be42"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-cpu-summary/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "review2-alloc-summary",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-alloc-summary/result.json",
+        "bytes": 770365,
+        "sha256": "fbb666be01ed638a58f28c6ed5509f94ca794dc305d7007a50eb0b3b4b9d3f7e"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "tool",
+        "pprof",
+        "-top",
+        "-nodecount=20",
+        "-sample_index=alloc_space",
+        "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-benchmarks/controlplane.test",
+        "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-benchmarks/mem.pprof"
+      ],
+      "go": "go version go1.27.1 linux/amd64",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "start": "2026-09-09T07:52:15.810422+00:00",
+      "elapsed_seconds": 0.2138092970017169,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-alloc-summary/started.json",
+          "bytes": 768165,
+          "sha256": "e976a511dfe7095913ed81cb1437b5daab34025921a6827f943eb968d56a0595"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-alloc-summary/source.patch",
+          "bytes": 42276,
+          "sha256": "a1da7a889a55164bb32df34113d7be0d5ebe7621b36d085187527bf5e3003e93"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-alloc-summary/stdout",
+          "bytes": 2604,
+          "sha256": "2827c713be9429175f4c01670e6f934ea3683cc5ac38b62d8f7cd4bb2d8dd762"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-alloc-summary/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "last_fuzz_progress": null
+    },
+    {
+      "label": "review2-inuse-summary",
+      "classification": "successful_run",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-inuse-summary/result.json",
+        "bytes": 770366,
+        "sha256": "f7d732482e14b22aa386f1b8a5983f78305d9e0fa7368957dd8d230ef122c3f4"
+      },
+      "head": "b25bfdc8b82c0c47425927b6055762dd11ea2ac4",
+      "args": [
+        "go",
+        "tool",
+        "pprof",
+        "-top",
+        "-nodecount=20",
+        "-sample_index=inuse_space",
+        "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-benchmarks/controlplane.test",
+        "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-benchmarks/mem.pprof"
+      ],
+      "go": "go version go1.27.1 linux/amd64",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "start": "2026-09-09T07:52:16.796903+00:00",
+      "elapsed_seconds": 0.11642577299789991,
+      "exit": 0,
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-inuse-summary/started.json",
+          "bytes": 768165,
+          "sha256": "3d5a10573a8d7dd45f695ee34a0c56eccbbad19c16c0eb81ffb02322baa8d4d3"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-inuse-summary/source.patch",
+          "bytes": 42276,
+          "sha256": "a1da7a889a55164bb32df34113d7be0d5ebe7621b36d085187527bf5e3003e93"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-inuse-summary/stdout",
+          "bytes": 1521,
+          "sha256": "b8a155a29af305ff743dd87a4d6865264581d301c39f4f8e46f4e5a8fa6f8825"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/controlplane-upgrade-20260909/review2-inuse-summary/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "test_event_counts_including_parents": {},
+      "failed_leaf_tests": [],
+      "last_fuzz_progress": null
+    }
+  ],
+  "benchmarks": {
+    "original_production": [
+      {
+        "name": "BenchmarkParseProductStatus",
+        "iterations": 1000000000,
+        "ns_per_op": 12.76,
+        "bytes_per_op": 0,
+        "allocs_per_op": 0,
+        "MB_per_s": null,
+        "effective_timed_seconds": 12.76,
+        "raw": "BenchmarkParseProductStatus-8      \t1000000000\t        12.76 ns/op\t       0 B/op\t       0 allocs/op"
+      },
+      {
+        "name": "BenchmarkRegistrationCodec/marshal",
+        "iterations": 264904,
+        "ns_per_op": 160232.0,
+        "bytes_per_op": 26907,
+        "allocs_per_op": 329,
+        "MB_per_s": 17.24,
+        "effective_timed_seconds": 42.446097728,
+        "raw": "BenchmarkRegistrationCodec/marshal-8         \t  264904\t    160232 ns/op\t  17.24 MB/s\t   26907 B/op\t     329 allocs/op"
+      },
+      {
+        "name": "BenchmarkRegistrationCodec/unmarshal",
+        "iterations": 91270,
+        "ns_per_op": 372431.0,
+        "bytes_per_op": 64305,
+        "allocs_per_op": 1091,
+        "MB_per_s": 7.42,
+        "effective_timed_seconds": 33.99177737,
+        "raw": "BenchmarkRegistrationCodec/unmarshal-8       \t   91270\t    372431 ns/op\t   7.42 MB/s\t   64305 B/op\t    1091 allocs/op"
+      },
+      {
+        "name": "BenchmarkVerifyRegistration",
+        "iterations": 76435,
+        "ns_per_op": 446004.0,
+        "bytes_per_op": 29820,
+        "allocs_per_op": 502,
+        "MB_per_s": null,
+        "effective_timed_seconds": 34.09031574,
+        "raw": "BenchmarkVerifyRegistration-8                \t   76435\t    446004 ns/op\t   29820 B/op\t     502 allocs/op"
+      },
+      {
+        "name": "BenchmarkVerifyCheckIn",
+        "iterations": 181562,
+        "ns_per_op": 206422.0,
+        "bytes_per_op": 9933,
+        "allocs_per_op": 195,
+        "MB_per_s": null,
+        "effective_timed_seconds": 37.478391164,
+        "raw": "BenchmarkVerifyCheckIn-8                     \t  181562\t    206422 ns/op\t    9933 B/op\t     195 allocs/op"
+      },
+      {
+        "name": "BenchmarkCommitCheckIn",
+        "iterations": 1322750,
+        "ns_per_op": 26539.0,
+        "bytes_per_op": 3138,
+        "allocs_per_op": 87,
+        "MB_per_s": null,
+        "effective_timed_seconds": 35.10446225,
+        "raw": "BenchmarkCommitCheckIn-8                     \t 1322750\t     26539 ns/op\t    3138 B/op\t      87 allocs/op"
+      },
+      {
+        "name": "BenchmarkAuthenticatedResponse/verify",
+        "iterations": 184126,
+        "ns_per_op": 204166.0,
+        "bytes_per_op": 11227,
+        "allocs_per_op": 174,
+        "MB_per_s": null,
+        "effective_timed_seconds": 37.592268916,
+        "raw": "BenchmarkAuthenticatedResponse/verify-8      \t  184126\t    204166 ns/op\t   11227 B/op\t     174 allocs/op"
+      },
+      {
+        "name": "BenchmarkAuthenticatedResponse/body",
+        "iterations": 4441106,
+        "ns_per_op": 8578.0,
+        "bytes_per_op": 2289,
+        "allocs_per_op": 27,
+        "MB_per_s": null,
+        "effective_timed_seconds": 38.095807268,
+        "raw": "BenchmarkAuthenticatedResponse/body-8        \t 4441106\t      8578 ns/op\t    2289 B/op\t      27 allocs/op"
+      },
+      {
+        "name": "BenchmarkAdvanceUsageWatermark/one_class",
+        "iterations": 6743878,
+        "ns_per_op": 5427.0,
+        "bytes_per_op": 912,
+        "allocs_per_op": 24,
+        "MB_per_s": null,
+        "effective_timed_seconds": 36.599025906,
+        "raw": "BenchmarkAdvanceUsageWatermark/one_class-8   \t 6743878\t      5427 ns/op\t     912 B/op\t      24 allocs/op"
+      },
+      {
+        "name": "BenchmarkAdvanceUsageWatermark/maximum_classes",
+        "iterations": 1232230,
+        "ns_per_op": 29161.0,
+        "bytes_per_op": 2817,
+        "allocs_per_op": 86,
+        "MB_per_s": null,
+        "effective_timed_seconds": 35.93305903,
+        "raw": "BenchmarkAdvanceUsageWatermark/maximum_classes-8         \t 1232230\t     29161 ns/op\t    2817 B/op\t      86 allocs/op"
+      }
+    ],
+    "initial_candidate": [
+      {
+        "name": "BenchmarkParseProductStatus",
+        "iterations": 1000000000,
+        "ns_per_op": 12.7,
+        "bytes_per_op": 0,
+        "allocs_per_op": 0,
+        "MB_per_s": null,
+        "effective_timed_seconds": 12.7,
+        "raw": "BenchmarkParseProductStatus-8      \t1000000000\t        12.70 ns/op\t       0 B/op\t       0 allocs/op"
+      },
+      {
+        "name": "BenchmarkRegistrationCodec/marshal",
+        "iterations": 194038,
+        "ns_per_op": 191825.0,
+        "bytes_per_op": 26915,
+        "allocs_per_op": 329,
+        "MB_per_s": 14.4,
+        "effective_timed_seconds": 37.22133935,
+        "raw": "BenchmarkRegistrationCodec/marshal-8         \t  194038\t    191825 ns/op\t  14.40 MB/s\t   26915 B/op\t     329 allocs/op"
+      },
+      {
+        "name": "BenchmarkRegistrationCodec/unmarshal",
+        "iterations": 77388,
+        "ns_per_op": 458655.0,
+        "bytes_per_op": 64327,
+        "allocs_per_op": 1091,
+        "MB_per_s": 6.02,
+        "effective_timed_seconds": 35.49439314,
+        "raw": "BenchmarkRegistrationCodec/unmarshal-8       \t   77388\t    458655 ns/op\t   6.02 MB/s\t   64327 B/op\t    1091 allocs/op"
+      },
+      {
+        "name": "BenchmarkVerifyRegistration",
+        "iterations": 61189,
+        "ns_per_op": 530609.0,
+        "bytes_per_op": 29823,
+        "allocs_per_op": 502,
+        "MB_per_s": null,
+        "effective_timed_seconds": 32.467434101,
+        "raw": "BenchmarkVerifyRegistration-8                \t   61189\t    530609 ns/op\t   29823 B/op\t     502 allocs/op"
+      },
+      {
+        "name": "BenchmarkVerifyCheckIn",
+        "iterations": 153928,
+        "ns_per_op": 237861.0,
+        "bytes_per_op": 9935,
+        "allocs_per_op": 195,
+        "MB_per_s": null,
+        "effective_timed_seconds": 36.613468008,
+        "raw": "BenchmarkVerifyCheckIn-8                     \t  153928\t    237861 ns/op\t    9935 B/op\t     195 allocs/op"
+      },
+      {
+        "name": "BenchmarkCommitCheckIn",
+        "iterations": 1000000,
+        "ns_per_op": 38161.0,
+        "bytes_per_op": 3139,
+        "allocs_per_op": 87,
+        "MB_per_s": null,
+        "effective_timed_seconds": 38.161,
+        "raw": "BenchmarkCommitCheckIn-8                     \t 1000000\t     38161 ns/op\t    3139 B/op\t      87 allocs/op"
+      },
+      {
+        "name": "BenchmarkAuthenticatedResponse/verify",
+        "iterations": 186396,
+        "ns_per_op": 194047.0,
+        "bytes_per_op": 6712,
+        "allocs_per_op": 122,
+        "MB_per_s": null,
+        "effective_timed_seconds": 36.169584612,
+        "raw": "BenchmarkAuthenticatedResponse/verify-8      \t  186396\t    194047 ns/op\t    6712 B/op\t     122 allocs/op"
+      },
+      {
+        "name": "BenchmarkAuthenticatedResponse/body",
+        "iterations": 79987,
+        "ns_per_op": 453090.0,
+        "bytes_per_op": 69143,
+        "allocs_per_op": 1118,
+        "MB_per_s": null,
+        "effective_timed_seconds": 36.24130983,
+        "raw": "BenchmarkAuthenticatedResponse/body-8        \t   79987\t    453090 ns/op\t   69143 B/op\t    1118 allocs/op"
+      },
+      {
+        "name": "BenchmarkAdvanceUsageWatermark/one_class",
+        "iterations": 4505174,
+        "ns_per_op": 7811.0,
+        "bytes_per_op": 912,
+        "allocs_per_op": 24,
+        "MB_per_s": null,
+        "effective_timed_seconds": 35.189914114,
+        "raw": "BenchmarkAdvanceUsageWatermark/one_class-8   \t 4505174\t      7811 ns/op\t     912 B/op\t      24 allocs/op"
+      },
+      {
+        "name": "BenchmarkAdvanceUsageWatermark/maximum_classes",
+        "iterations": 1000000,
+        "ns_per_op": 35386.0,
+        "bytes_per_op": 2817,
+        "allocs_per_op": 86,
+        "MB_per_s": null,
+        "effective_timed_seconds": 35.386,
+        "raw": "BenchmarkAdvanceUsageWatermark/maximum_classes-8         \t 1000000\t     35386 ns/op\t    2817 B/op\t      86 allocs/op"
+      }
+    ],
+    "review_followup": [
+      {
+        "name": "BenchmarkParseProductStatus",
+        "iterations": 1000000000,
+        "ns_per_op": 12.59,
+        "bytes_per_op": 0,
+        "allocs_per_op": 0,
+        "MB_per_s": null,
+        "effective_timed_seconds": 12.59,
+        "raw": "BenchmarkParseProductStatus-8      \t1000000000\t        12.59 ns/op\t       0 B/op\t       0 allocs/op"
+      },
+      {
+        "name": "BenchmarkRegistrationCodec/marshal",
+        "iterations": 188442,
+        "ns_per_op": 192381.0,
+        "bytes_per_op": 26898,
+        "allocs_per_op": 329,
+        "MB_per_s": 14.36,
+        "effective_timed_seconds": 36.252660402,
+        "raw": "BenchmarkRegistrationCodec/marshal-8         \t  188442\t    192381 ns/op\t  14.36 MB/s\t   26898 B/op\t     329 allocs/op"
+      },
+      {
+        "name": "BenchmarkRegistrationCodec/unmarshal",
+        "iterations": 78250,
+        "ns_per_op": 453718.0,
+        "bytes_per_op": 64329,
+        "allocs_per_op": 1091,
+        "MB_per_s": 6.09,
+        "effective_timed_seconds": 35.5034335,
+        "raw": "BenchmarkRegistrationCodec/unmarshal-8       \t   78250\t    453718 ns/op\t   6.09 MB/s\t   64329 B/op\t    1091 allocs/op"
+      },
+      {
+        "name": "BenchmarkVerifyRegistration",
+        "iterations": 62936,
+        "ns_per_op": 561699.0,
+        "bytes_per_op": 29814,
+        "allocs_per_op": 502,
+        "MB_per_s": null,
+        "effective_timed_seconds": 35.351088264,
+        "raw": "BenchmarkVerifyRegistration-8                \t   62936\t    561699 ns/op\t   29814 B/op\t     502 allocs/op"
+      },
+      {
+        "name": "BenchmarkVerifyCheckIn",
+        "iterations": 147073,
+        "ns_per_op": 233524.0,
+        "bytes_per_op": 9934,
+        "allocs_per_op": 195,
+        "MB_per_s": null,
+        "effective_timed_seconds": 34.345075252,
+        "raw": "BenchmarkVerifyCheckIn-8                     \t  147073\t    233524 ns/op\t    9934 B/op\t     195 allocs/op"
+      },
+      {
+        "name": "BenchmarkCommitCheckIn",
+        "iterations": 995377,
+        "ns_per_op": 38049.0,
+        "bytes_per_op": 3139,
+        "allocs_per_op": 87,
+        "MB_per_s": null,
+        "effective_timed_seconds": 37.873099473,
+        "raw": "BenchmarkCommitCheckIn-8                     \t  995377\t     38049 ns/op\t    3139 B/op\t      87 allocs/op"
+      },
+      {
+        "name": "BenchmarkAuthenticatedResponse/verify",
+        "iterations": 186282,
+        "ns_per_op": 193626.0,
+        "bytes_per_op": 6712,
+        "allocs_per_op": 122,
+        "MB_per_s": null,
+        "effective_timed_seconds": 36.069038532,
+        "raw": "BenchmarkAuthenticatedResponse/verify-8      \t  186282\t    193626 ns/op\t    6712 B/op\t     122 allocs/op"
+      },
+      {
+        "name": "BenchmarkAuthenticatedResponse/body",
+        "iterations": 80654,
+        "ns_per_op": 444651.0,
+        "bytes_per_op": 69132,
+        "allocs_per_op": 1118,
+        "MB_per_s": null,
+        "effective_timed_seconds": 35.862881754,
+        "raw": "BenchmarkAuthenticatedResponse/body-8        \t   80654\t    444651 ns/op\t   69132 B/op\t    1118 allocs/op"
+      },
+      {
+        "name": "BenchmarkAdvanceUsageWatermark/one_class",
+        "iterations": 4650106,
+        "ns_per_op": 7442.0,
+        "bytes_per_op": 912,
+        "allocs_per_op": 24,
+        "MB_per_s": null,
+        "effective_timed_seconds": 34.606088852,
+        "raw": "BenchmarkAdvanceUsageWatermark/one_class-8   \t 4650106\t      7442 ns/op\t     912 B/op\t      24 allocs/op"
+      },
+      {
+        "name": "BenchmarkAdvanceUsageWatermark/maximum_classes",
+        "iterations": 947353,
+        "ns_per_op": 35049.0,
+        "bytes_per_op": 2817,
+        "allocs_per_op": 86,
+        "MB_per_s": null,
+        "effective_timed_seconds": 33.203775297,
+        "raw": "BenchmarkAdvanceUsageWatermark/maximum_classes-8         \t  947353\t     35049 ns/op\t    2817 B/op\t      86 allocs/op"
+      }
+    ]
+  },
+  "budgets": {
+    "benchmarks": {
+      "seconds_per_case": 30,
+      "cases": 10,
+      "passes": 1,
+      "nominal_seconds": 300,
+      "wall_seconds": 332.5974842730029,
+      "wall_to_per_case_flag_ratio": 11.086582809100097,
+      "warning": "Ratio to per-case flag exceeds 10x with setup and calibration; the declared ten-case total remains 300s nominal. Parser stops at Go 1e9 iteration ceiling before 30s and is informative only."
+    },
+    "fuzz": {
+      "targets": 1,
+      "seconds": 30,
+      "passes": 1,
+      "workers": 4,
+      "minimization_seconds": 1,
+      "timeout_seconds": 120
+    },
+    "test_timeout": "Go default 10m",
+    "repeats": "First scoped sequence stopped at Witness diagnostic finding; all attempts retained. One fresh benchmark pass and one changed-ingress fuzz campaign."
+  },
+  "suggestions": {
+    "rehash_body": "Not added: immutable private bytes validated at ingress, isolated decoder buffers, no public mutation path.",
+    "preflight_private_key": "Not added: Attest owns private-key consistency validation; request-owned binding applies to its validated envelope. Earlier rejection remains an optimization requiring appropriate Attest ownership."
+  },
+  "limits": [
+    "Uncommitted candidate; base SHA alone does not identify the tested source.",
+    "Linux execution; Darwin arm64 and Windows amd64 compile only.",
+    "No full-module gate or consumer upgrades.",
+    "One benchmark observation per candidate; shared host, no controlled power/affinity, no latency trend claim.",
+    "Initial 21-target fuzz campaigns remain historical; the current full race run executes all seeds, and the changed check-in request target has a fresh mutation campaign."
+  ]
+}

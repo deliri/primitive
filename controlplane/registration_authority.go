@@ -113,15 +113,15 @@ func (i RegistrationIdentity) Validate() error {
 func (s Authority) VerifyRegistrationAuthority(
 	verification RegistrationAuthorityVerification,
 ) (verified VerifiedRegistrationAuthority, resultErr error) {
-	if err := s.Validate(); err != nil {
-		return VerifiedRegistrationAuthority{}, registrationError(err)
-	}
 	defer func() {
 		if err := verification.Request.Token.Destroy(); err != nil {
 			verified = VerifiedRegistrationAuthority{}
 			resultErr = registrationError(errors.Join(resultErr, err))
 		}
 	}()
+	if err := s.Validate(); err != nil {
+		return VerifiedRegistrationAuthority{}, registrationError(err)
+	}
 	replay, disposition, err := resolveRegistrationAuthority(verification)
 	if err != nil {
 		return VerifiedRegistrationAuthority{}, err

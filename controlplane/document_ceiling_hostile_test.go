@@ -1,68 +1,83 @@
 package controlplane_test
 
 import (
+	"bytes"
 	"errors"
-	"strings"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/controlplane"
 	"github.com/deliri/primitive/v2026/core"
 )
 
-// TestEveryDocumentCeilingRefusesAnOversizedInput drives each declared byte
-// ceiling from the hostile side. The twelve constants existed as enforced
-// bounds with no test on either side; this pins the refusing side for every
-// document family with a syntactically valid JSON object one byte past its
-// ceiling, so a ceiling silently dropped from a decoder goes red. The
-// accepting side cannot be pinned at the exact boundary, because a canonical
-// document's size is determined by its facts and no valid document lands on
-// the ceiling byte for byte; the committed goldens prove acceptance well
-// inside every bound.
-func TestEveryDocumentCeilingRefusesAnOversizedInput(t *testing.T) {
-	t.Parallel()
+type boundedJSONDocument interface {
+	core.ValidatedJSONMarshaler
+	UnmarshalJSON([]byte) error
+}
 
-	oversized := func(ceiling int) []byte {
-		return []byte(`{"` + strings.Repeat("a", ceiling) + `":1}`)
-	}
-	cases := []struct {
-		decode  func([]byte) error
+// Padding a genuine typed document with permitted whitespace isolates its byte
+// ceiling. An unknown member would reject even if production removed the limit.
+func TestEveryDocumentCeilingOwnsBothSidesOfItsBoundary(t *testing.T) {
+	t.Parallel()
+	registration := issueTestRegistration(t)
+	checkIn := issueTestCheckIn(t, controlplaneOffering(t, 3), testCheckInWindow())
+	response := issueTestCheckInResponse(t)
+	registrationRequest := registrationRequestFixture(t)
+	commitment := commitmentFixture(t)
+	doors := []struct {
 		name    string
 		ceiling int
+		source  core.ValidatedJSONMarshaler
+		fresh   func() boundedJSONDocument
 	}{
-		{name: "check-in payload", ceiling: controlplane.CheckInPayloadJSONMaximumBytes,
-			decode: func(b []byte) error { var v controlplane.CheckInPayload; return v.UnmarshalJSON(b) }},
-		{name: "check-in request", ceiling: controlplane.CheckInRequestJSONMaximumBytes,
-			decode: func(b []byte) error { var v controlplane.CheckInRequest; return v.UnmarshalJSON(b) }},
-		{name: "check-in response payload", ceiling: controlplane.CheckInResponsePayloadJSONMaximumBytes,
-			decode: func(b []byte) error { var v controlplane.CheckInResponsePayload; return v.UnmarshalJSON(b) }},
-		{name: "check-in response document", ceiling: controlplane.CheckInResponseDocumentJSONMaximumBytes,
-			decode: func(b []byte) error { var v controlplane.CheckInResponseDocument; return v.UnmarshalJSON(b) }},
-		{name: "response header", ceiling: controlplane.ResponseHeaderJSONMaximumBytes,
-			decode: func(b []byte) error { var v controlplane.ResponseHeader; return v.UnmarshalJSON(b) }},
-		{name: "registration request", ceiling: controlplane.RegistrationRequestJSONMaximumBytes,
-			decode: func(b []byte) error { var v controlplane.RegistrationRequest; return v.UnmarshalJSON(b) }},
-		{name: "installation certificate body", ceiling: controlplane.InstallationCertificateBodyJSONMaximumBytes,
-			decode: func(b []byte) error { var v controlplane.InstallationCertificateBody; return v.UnmarshalJSON(b) }},
-		{name: "installation certificate document", ceiling: controlplane.InstallationCertificateDocumentJSONMaximumBytes,
-			decode: func(b []byte) error { var v controlplane.InstallationCertificateDocument; return v.UnmarshalJSON(b) }},
-		{name: "registration payload", ceiling: controlplane.RegistrationPayloadJSONMaximumBytes,
-			decode: func(b []byte) error { var v controlplane.RegistrationPayload; return v.UnmarshalJSON(b) }},
-		{name: "registration document", ceiling: controlplane.RegistrationDocumentJSONMaximumBytes,
-			decode: func(b []byte) error { var v controlplane.RegistrationDocument; return v.UnmarshalJSON(b) }},
-		{name: "usage watermark", ceiling: controlplane.UsageWatermarkJSONMaximumBytes,
-			decode: func(b []byte) error { var v controlplane.UsageWatermark; return v.UnmarshalJSON(b) }},
-		{name: "usage window", ceiling: controlplane.UsageWindowJSONMaximumBytes,
-			decode: func(b []byte) error { var v controlplane.UsageWindow; return v.UnmarshalJSON(b) }},
+		{"check-in payload", controlplane.CheckInPayloadJSONMaximumBytes, checkIn.request.Payload, func() boundedJSONDocument { return new(controlplane.CheckInPayload) }},
+		{"check-in request", controlplane.CheckInRequestJSONMaximumBytes, checkIn.request, func() boundedJSONDocument { return new(controlplane.CheckInRequest) }},
+		{"check-in response payload", controlplane.CheckInResponsePayloadJSONMaximumBytes, response.document.Payload, func() boundedJSONDocument { return new(controlplane.CheckInResponsePayload) }},
+		{"check-in response document", controlplane.CheckInResponseDocumentJSONMaximumBytes, response.document, func() boundedJSONDocument { return new(controlplane.CheckInResponseDocument) }},
+		{"response header", controlplane.ResponseHeaderJSONMaximumBytes, registration.document.Payload.Header, func() boundedJSONDocument { return new(controlplane.ResponseHeader) }},
+		{"registration request", controlplane.RegistrationRequestJSONMaximumBytes, registrationRequest, func() boundedJSONDocument { return new(controlplane.RegistrationRequest) }},
+		{"certificate body", controlplane.InstallationCertificateBodyJSONMaximumBytes, checkIn.certificate.Body, func() boundedJSONDocument { return new(controlplane.InstallationCertificateBody) }},
+		{"certificate document", controlplane.InstallationCertificateDocumentJSONMaximumBytes, checkIn.certificate, func() boundedJSONDocument { return new(controlplane.InstallationCertificateDocument) }},
+		{"registration payload", controlplane.RegistrationPayloadJSONMaximumBytes, registration.document.Payload, func() boundedJSONDocument { return new(controlplane.RegistrationPayload) }},
+		{"registration document", controlplane.RegistrationDocumentJSONMaximumBytes, registration.document, func() boundedJSONDocument { return new(controlplane.RegistrationDocument) }},
+		{"usage watermark", controlplane.UsageWatermarkJSONMaximumBytes, checkIn.request.Payload.PreviousWatermark, func() boundedJSONDocument { return new(controlplane.UsageWatermark) }},
+		{"usage window", controlplane.UsageWindowJSONMaximumBytes, checkIn.request.Payload.Window, func() boundedJSONDocument { return new(controlplane.UsageWindow) }},
+		{"response commitment", controlplane.ResponseCommitmentJSONMaximumBytes, commitment, func() boundedJSONDocument { return new(controlplane.ResponseCommitment) }},
 	}
-
-	for _, tc := range cases {
-		t.Run(tc.name+" refuses one byte past its ceiling", func(t *testing.T) {
+	for _, door := range doors {
+		t.Run(door.name, func(t *testing.T) {
 			t.Parallel()
-
-			err := tc.decode(oversized(tc.ceiling))
-			if !errors.Is(err, core.ErrControlPlaneContract) {
-				t.Fatalf("UnmarshalJSON(%d bytes over the %d ceiling) error = %v, want errors.Is %v",
-					len(oversized(tc.ceiling))-tc.ceiling, tc.ceiling, err, core.ErrControlPlaneContract)
+			canonical, err := door.source.MarshalJSON()
+			if err != nil || len(canonical) >= door.ceiling-1 {
+				t.Fatalf("canonical fixture = (%d bytes, %v), want below %d", len(canonical), err, door.ceiling-1)
+			}
+			for _, tc := range []struct {
+				name    string
+				size    int
+				wantErr error
+			}{
+				{name: "one below ceiling", size: door.ceiling - 1},
+				{name: "exact ceiling", size: door.ceiling},
+				{name: "one above ceiling", size: door.ceiling + 1, wantErr: core.ErrJSONContract},
+			} {
+				t.Run(tc.name, func(t *testing.T) {
+					t.Parallel()
+					data := append(bytes.Repeat([]byte{' '}, tc.size-len(canonical)), canonical...)
+					got := door.fresh()
+					if err := got.UnmarshalJSON(canonical); err != nil {
+						t.Fatalf("UnmarshalJSON(initial) error = %v, want nil", err)
+					}
+					gotErr := got.UnmarshalJSON(data)
+					if !errors.Is(gotErr, tc.wantErr) {
+						t.Errorf("UnmarshalJSON(%d bytes) error = %v, want %v", len(data), gotErr, tc.wantErr)
+					}
+					if tc.wantErr != nil && !errors.Is(gotErr, core.ErrControlPlaneContract) {
+						t.Errorf("oversized error = %v, want package identity", gotErr)
+					}
+					projected, err := got.MarshalJSON()
+					if err != nil || !bytes.Equal(projected, canonical) {
+						t.Fatalf("receiver projection = (%d bytes, %v), want exact %d bytes", len(projected), err, len(canonical))
+					}
+				})
 			}
 		})
 	}

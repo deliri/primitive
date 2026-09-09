@@ -1,15 +1,18 @@
 package controlplane_test
 
 import (
+	"embed"
 	json "encoding/json/v2"
-	"os"
-	"path/filepath"
+	"path"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/controlplane"
 	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/lease"
 )
+
+//go:embed testdata/*.json
+var controlplaneGoldenFiles embed.FS
 
 // TestGoldenDocumentsRoundTripByteExact is the proof that both ends of the
 // exchange agree.
@@ -283,9 +286,9 @@ func TestGoldenCheckInRequestCarriesTheFactsItClaims(t *testing.T) {
 func readGolden(t testing.TB, name string) []byte {
 	t.Helper()
 
-	data, err := os.ReadFile(filepath.Join("testdata", name))
+	data, err := controlplaneGoldenFiles.ReadFile(path.Join("testdata", name))
 	if err != nil {
-		t.Fatalf("os.ReadFile(%s) error = %v, want nil", name, err)
+		t.Fatalf("golden.ReadFile(%s) error = %v, want nil", name, err)
 	}
 	return data
 }
