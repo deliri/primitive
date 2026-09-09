@@ -345,12 +345,13 @@ func fixtureProvenance(t *testing.T) release.BuildProvenance {
 		GoToolchain        string            `json:"go_toolchain"`
 		MainPackage        string            `json:"main_package"`
 		ModuleMode         string            `json:"module_mode"`
+		BuildTags          []string          `json:"build_tags"`
 		LinkerAssignments  []struct{}        `json:"linker_assignments"`
 		GoExecutableSHA256 core.SHA256Digest `json:"go_executable_sha256"`
 	}{
 		GoToolchain: goToolchain, GoExecutableSHA256: core.NewSHA256Digest(goDigest),
 		MainPackage: "github.com/example/product/cmd/product", ModuleMode: "vendor",
-		LinkerAssignments: []struct{}{},
+		LinkerAssignments: []struct{}{}, BuildTags: []string{},
 	}
 	encoded, err := json.Marshal(wire)
 	if err != nil {

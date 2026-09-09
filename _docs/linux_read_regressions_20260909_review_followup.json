@@ -1,0 +1,129 @@
+{
+  "review": "f0073b5f",
+  "base_commit": "c7dcf14acc6d7d6633fe335c96a24366421dceda",
+  "reviewed_verdict": {
+    "path": "/home/d/engineering-evidence/primitive/linux-repair/review-f0073b5f/reviewed-report.md",
+    "bytes": 9834,
+    "sha256": "acd0754c03dc62336fd16f01455e95267cfece89962ccc6555cc66a3c8ce69dd"
+  },
+  "resolved": [
+    {
+      "issue": 1,
+      "change": "Explain why the EOF probe must use the raw SDK reader rather than the limited copy source."
+    },
+    {
+      "issue": 2,
+      "change": "Separate standard-library and Primitive imports in the four named tests, then apply gofmt."
+    }
+  ],
+  "changes": [
+    {
+      "path": "gcsobjects/client.go",
+      "before_sha256": "c6e84ef23035f10754491891200e53f13b5fcf1348de808561562349449c93bf",
+      "after_sha256": "f7b70accd23339885c06dac92b2fdef713002331b9ff1ac4c92dcfa34ca63ab7"
+    },
+    {
+      "path": "runnercontrol/subject_run_unix_external_test.go",
+      "before_sha256": "cdc56379d5bfb272353c58ce873347492f969df9cde77e9042176b6182f72656",
+      "after_sha256": "6185add85c82d168c9d73b15c428f798c3bc4bae08123510daeb98196413d658"
+    },
+    {
+      "path": "gcsobjects/read_stream_regression_test.go",
+      "before_sha256": "27c8c045d2c58e0b5468850de70c5fce17784e2ad886efa0ae540698ec8ebec5",
+      "after_sha256": "2a80f6aaac3d460ca0177e610f6b59735fdefbd093d5df2d12265ff5f9a1b1a9"
+    },
+    {
+      "path": "gcsobjects/read_stream_fuzz_test.go",
+      "before_sha256": "d86c9b623f4e2c0a3b784d76ece8401740825851971ebf77110a6f8020caf09a",
+      "after_sha256": "965d3c61ebdb8060796ad77b8a7f27f95cc8a87f1c24b9a2088306c90829e9a9"
+    },
+    {
+      "path": "gcsobjects/read_benchmark_test.go",
+      "before_sha256": "5737ae90cab9f3d44f0f0612b6b5e9b6fc2e0d6f593c0dc806408e5a571e92ca",
+      "after_sha256": "800616f1247a30add299f52805817b5d2dc5182e2d9148db942c47b337eb0e5a"
+    }
+  ],
+  "patch": {
+    "path": "/home/d/engineering-evidence/primitive/linux-repair/review-f0073b5f/changes.patch",
+    "bytes": 2217,
+    "sha256": "f582d34e09016287e2f4bd6a674e35f844658e9ff5b0eab66ae51e7929bf8625"
+  },
+  "checks": [
+    {
+      "command": [
+        "gofmt",
+        "-l",
+        "gcsobjects/client.go",
+        "runnercontrol/subject_run_unix_external_test.go",
+        "gcsobjects/read_stream_regression_test.go",
+        "gcsobjects/read_stream_fuzz_test.go",
+        "gcsobjects/read_benchmark_test.go"
+      ],
+      "exit": 0,
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/review-f0073b5f-format/result.json",
+        "bytes": 759961,
+        "sha256": "8aedf424822c9b67a7d66898758828b85b8c613edf2b86ac9b0a46a49149bf85"
+      },
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/review-f0073b5f-format/started.json",
+          "bytes": 758435,
+          "sha256": "390abe5e251c7baf9e11663f5251db2b7f428221f951b6ebf385c1ab91ab8cd5"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/review-f0073b5f-format/source.patch",
+          "bytes": 24964,
+          "sha256": "04a32ab5ea00d3b02434da34e9a107384309559248a8dd5d863a0f21270fdd97"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/review-f0073b5f-format/stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/review-f0073b5f-format/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "snapshot_directory": "/home/d/engineering-evidence/primitive/linux-repair/sources"
+    },
+    {
+      "command": [
+        "/home/d/go/bin/witness-lint",
+        "./gcsobjects"
+      ],
+      "exit": 0,
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/review-f0073b5f-witness/result.json",
+        "bytes": 759781,
+        "sha256": "7627affc5af4b25167f0540e942fa437353c09be21c768290136286e61d6e5a2"
+      },
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/review-f0073b5f-witness/started.json",
+          "bytes": 758251,
+          "sha256": "0bdc854ec1c99567ac15dd7cf48a276a6a1247da85821c255bba071c46653297"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/review-f0073b5f-witness/source.patch",
+          "bytes": 24964,
+          "sha256": "04a32ab5ea00d3b02434da34e9a107384309559248a8dd5d863a0f21270fdd97"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/review-f0073b5f-witness/stdout",
+          "bytes": 56,
+          "sha256": "afd7d57aeb78a63eddcb5302b7b2493518c8f91c69ed1768f761a77220a19108"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/review-f0073b5f-witness/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "snapshot_directory": "/home/d/engineering-evidence/primitive/linux-repair/sources"
+    }
+  ],
+  "measurement_posture": "Existing race, fuzz and benchmark results remain bound to their original source hashes. Follow-up edits are comments and import grouping only; those phases were not rerun."
+}

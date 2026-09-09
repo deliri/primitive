@@ -1,0 +1,3361 @@
+{
+  "base_commit": "c7dcf14acc6d7d6633fe335c96a24366421dceda",
+  "candidate_state": "uncommitted review slice",
+  "acceptance": "not issued",
+  "protocol": {
+    "path": "/home/d/code/primitive/_docs/testing_protocol.md",
+    "bytes": 84440,
+    "sha256": "dd83cd7f62c172092546dab6b7c7d5c59753b5e8ae784631a94cff4d6d48126c"
+  },
+  "machine": {
+    "system": "Linux",
+    "node": "dsrv",
+    "release": "7.1.13-200.fc44.x86_64",
+    "version": "#1 SMP PREEMPT_DYNAMIC Wed Sep  2 13:58:38 UTC 2026",
+    "machine": "x86_64",
+    "processor": ""
+  },
+  "logical_cpus": 32,
+  "before_events": {
+    "packages": {
+      "pass": 57,
+      "fail": 4
+    },
+    "test_events": {
+      "pass": 51746,
+      "fail": 65,
+      "skip": 4
+    },
+    "skips": [
+      {
+        "package": "github.com/deliri/primitive/v2026/gcsobjects",
+        "test": "TestAuthenticatedGCSDeletionRefusesSoftDeleteRetention"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/gcsobjects",
+        "test": "TestAuthenticatedGCSLifecycleUsesTheRealProviderAndProvesDeletion"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/gcsobjects",
+        "test": "TestGCSDownloadCapabilityRetrievesOneRealPrivateObjectThroughObjectstore"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/release",
+        "test": "TestVerifyBuildToolsProvesTheExactInstalledExecutables"
+      }
+    ],
+    "failure_events": [
+      {
+        "package": "github.com/deliri/primitive/v2026/deploy",
+        "test": "TestReleaseGCSUploadsExactManifestOrderAndReturnsReceipts"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/deploy",
+        "test": "TestReleaseGCSStopsOnceAndPreservesConfirmedPrefix"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/deploy",
+        "test": "TestPrepareReleaseRejectsEveryManifestIntegritySubstitution"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/deploy",
+        "test": "TestPrepareReleaseRejectsCrossObjectCapabilityAndIntegrityReuse"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/deploy",
+        "test": "TestReleasePublicationLayerTriad/positive_exact_plan_reaches_every_provider_object"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/deploy",
+        "test": "TestReleasePublicationLayerTriad/negative_first_provider_loss_returns_typed_zero_confirmed_prefix"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/deploy",
+        "test": "TestReleasePublicationLayerTriad"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/deploy",
+        "test": "TestPrepareReleaseRejectsEveryRoleSlotThatDoesNotMatchItsManifestEntry/unset_manifest_is_rejected"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/deploy",
+        "test": "TestPrepareReleaseRejectsEveryRoleSlotThatDoesNotMatchItsManifestEntry/unset_first_item_is_rejected"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/deploy",
+        "test": "TestPrepareReleaseRejectsEveryRoleSlotThatDoesNotMatchItsManifestEntry/swapped_binary_slots_are_rejected"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/deploy",
+        "test": "TestPrepareReleaseRejectsEveryRoleSlotThatDoesNotMatchItsManifestEntry/unset_manifest_item_is_rejected"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/deploy",
+        "test": "TestPrepareReleaseRejectsEveryRoleSlotThatDoesNotMatchItsManifestEntry/reversed_publication_order_is_rejected"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/deploy",
+        "test": "TestPrepareReleaseRejectsEveryRoleSlotThatDoesNotMatchItsManifestEntry/unset_objectstore_policy_is_rejected"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/deploy",
+        "test": "TestPrepareReleaseRejectsEveryRoleSlotThatDoesNotMatchItsManifestEntry/unset_last_metadata_item_is_rejected"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/deploy",
+        "test": "TestPrepareReleaseRejectsEveryRoleSlotThatDoesNotMatchItsManifestEntry/duplicated_last_item_is_rejected"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/deploy",
+        "test": "TestPrepareReleaseRejectsEveryRoleSlotThatDoesNotMatchItsManifestEntry/manifest_and_binary_slots_exchanged_are_rejected"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/deploy",
+        "test": "TestPrepareReleaseRejectsEveryRoleSlotThatDoesNotMatchItsManifestEntry/swapped_metadata_slots_are_rejected"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/deploy",
+        "test": "TestPrepareReleaseRejectsEveryRoleSlotThatDoesNotMatchItsManifestEntry"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/deploy",
+        "test": "TestReleaseGCSRefusesBeforeAnyObjectIsWritten/cancelled_context_is_refused"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/deploy",
+        "test": "TestReleaseGCSRefusesBeforeAnyObjectIsWritten/unset_objectstore_client_is_refused"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/deploy",
+        "test": "TestReleaseGCSRefusesBeforeAnyObjectIsWritten/nil_context_is_refused"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/deploy",
+        "test": "TestReleaseGCSRefusesBeforeAnyObjectIsWritten"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/deploy",
+        "test": null
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/distribution",
+        "test": "TestPublicationLayerTriadRejectsPartialReceiptsAndCrossManifestPlan"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/distribution",
+        "test": "TestUpgradeExchangeAuthenticatesExactSummaryAndDownloadBearer"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/distribution",
+        "test": "TestVerifyUpgradeRequestRequiresExactCallerSignedCandidateClosure"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/distribution",
+        "test": "TestPublicationLayerTriadExecutesExactPlanAndReturnsURLFreeCompletion"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/distribution",
+        "test": "TestVerifyPublicationCompletionRefusesCrossGrantManifestEvidenceAndTrust"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/distribution",
+        "test": "TestVerifyUpdateResponsePressuresBindingLifetimeAndAuthorityEdges"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/distribution",
+        "test": "TestVerifyUpgradeGrantPressuresCommitmentTrustAndLifetimeEdges"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/distribution",
+        "test": "TestVerifyPublicationRequestRequiresCallerManifestAndOfferingClosure"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/distribution",
+        "test": "TestUpdateExchangeLayerTriadAuthenticatesLatestWithoutInstallingAnything"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/distribution",
+        "test": "TestVerifyUpdateResponseRejectsAuthenticInstalledManifestForAnotherBuild"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/distribution",
+        "test": "TestVerifyUpdateRequestRequiresExactCallerSignedBuild"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/distribution",
+        "test": "TestVerifyPublicationGrantPressuresEveryBindingAndLifetimeEdge"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/distribution",
+        "test": "FuzzPublicationRequestPayloadExternalDecoder"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/distribution",
+        "test": "FuzzPublicationRequestDocumentExternalDecoder"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/distribution",
+        "test": "FuzzRequestCommitmentExternalDecoder"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/distribution",
+        "test": "FuzzPublicationGrantPayloadExternalDecoder"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/distribution",
+        "test": "FuzzPublicationGrantDocumentExternalDecoder"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/distribution",
+        "test": "FuzzPublicationCompletionPayloadExternalDecoder"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/distribution",
+        "test": "FuzzPublicationCompletionDocumentExternalDecoder"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/distribution",
+        "test": "FuzzUpdateRequestPayloadExternalDecoder"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/distribution",
+        "test": "FuzzUpdateRequestDocumentExternalDecoder"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/distribution",
+        "test": "FuzzUpdateResponsePayloadExternalDecoder"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/distribution",
+        "test": "FuzzUpdateResponseDocumentExternalDecoder"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/distribution",
+        "test": "FuzzUpgradeRequestPayloadExternalDecoder"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/distribution",
+        "test": "FuzzUpgradeRequestDocumentExternalDecoder"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/distribution",
+        "test": "FuzzUpgradeGrantPayloadExternalDecoder"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/distribution",
+        "test": "FuzzUpgradeGrantDocumentExternalDecoder"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/distribution",
+        "test": null
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/gcsobjects",
+        "test": "TestGCSClientConstructorAndCloseOwnTheSDKLifecycle"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/gcsobjects",
+        "test": "TestGCSClientDisablesOfficialSDKRetryForOneProviderExecutionPolicy"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/gcsobjects",
+        "test": "TestAuthenticatedGCSRequestValidationExhaustsCompositionFailures/zero-byte_stored_file_remains_a_real_object_operation"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/gcsobjects",
+        "test": "TestAuthenticatedGCSRequestValidationExhaustsCompositionFailures/zero-byte_served_media_remains_a_real_object_operation"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/gcsobjects",
+        "test": "TestAuthenticatedGCSRequestValidationExhaustsCompositionFailures"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/gcsobjects",
+        "test": "TestAuthenticatedGCSReadsExecuteTheOfficialSDKAndProveEveryByte/provider_body_is_longer_than_metadata"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/gcsobjects",
+        "test": "TestAuthenticatedGCSReadsExecuteTheOfficialSDKAndProveEveryByte"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/gcsobjects",
+        "test": null
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/runnercontrol",
+        "test": "TestRunSubjectProcessLifecycleLayerTriad/negative_cancellation_retains_reaped_evidence_and_stop_controller_start_refusal"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/runnercontrol",
+        "test": "TestRunSubjectProcessLifecycleLayerTriad"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/runnercontrol",
+        "test": null
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/testserial",
+        "test": "zero declaration"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/testserial",
+        "test": "zero hazard"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/testserial",
+        "test": "zero scope"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/testserial",
+        "test": "future hazard"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/testserial",
+        "test": "future scope"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/testserial",
+        "test": "process hazard with sibling scope"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/testserial",
+        "test": "sibling hazard with process scope"
+      }
+    ]
+  },
+  "after_events": {
+    "packages": {
+      "pass": 61
+    },
+    "test_events": {
+      "pass": 52100,
+      "skip": 4,
+      "fail": 7
+    },
+    "skips": [
+      {
+        "package": "github.com/deliri/primitive/v2026/gcsobjects",
+        "test": "TestAuthenticatedGCSDeletionRefusesSoftDeleteRetention"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/gcsobjects",
+        "test": "TestGCSDownloadCapabilityRetrievesOneRealPrivateObjectThroughObjectstore"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/gcsobjects",
+        "test": "TestAuthenticatedGCSLifecycleUsesTheRealProviderAndProvesDeletion"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/release",
+        "test": "TestVerifyBuildToolsProvesTheExactInstalledExecutables"
+      }
+    ],
+    "failure_events": [
+      {
+        "package": "github.com/deliri/primitive/v2026/testserial",
+        "test": "zero declaration"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/testserial",
+        "test": "zero hazard"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/testserial",
+        "test": "zero scope"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/testserial",
+        "test": "future hazard"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/testserial",
+        "test": "future scope"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/testserial",
+        "test": "process hazard with sibling scope"
+      },
+      {
+        "package": "github.com/deliri/primitive/v2026/testserial",
+        "test": "sibling hazard with process scope"
+      }
+    ]
+  },
+  "runs": [
+    {
+      "head": "c7dcf14acc6d7d6633fe335c96a24366421dceda",
+      "status_before": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "args": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkGCSReadAndStage$",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpuprofile=/home/d/engineering-evidence/primitive/linux-repair/benchmark-after/cpu.pprof",
+        "-memprofile=/home/d/engineering-evidence/primitive/linux-repair/benchmark-after/mem.pprof",
+        "-o=/home/d/engineering-evidence/primitive/linux-repair/benchmark-after/gcsobjects.test",
+        "./gcsobjects"
+      ],
+      "cwd": "/home/d/code/primitive",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T01:51:16.724607+00:00",
+      "exit": 0,
+      "elapsed_seconds": 73.06737625999995,
+      "status_after": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-after/started.json",
+          "bytes": 758200,
+          "sha256": "f27a08da818988d8ea939600f3285d73d4edf97fdbf9ab2baec43bae70c1ccc7"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-after/source.patch",
+          "bytes": 24814,
+          "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-after/stdout",
+          "bytes": 418,
+          "sha256": "115573acd051572d78c478e68549524e7809e169248edc7b3d20158895d071b7"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-after/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-after/cpu.pprof",
+          "bytes": 120942,
+          "sha256": "224aea20524823de461521f65b2cced363cc91035be7a689d9999019bc366646"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-after/mem.pprof",
+          "bytes": 29577,
+          "sha256": "9ddd015d8343bdcb94f6ed8ac4d87a08435fdb684ac34d1c637682f7f42c33d9"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-after/gcsobjects.test",
+          "bytes": 53417245,
+          "sha256": "d56ea4e6bc59ed4b8d9e79b4161a6710e48b6c6616c7cfbd9622fd161ca8e388"
+        }
+      ],
+      "source_inventory_count": 4364,
+      "source_inventory_sha256": "8f4427f2a3ed2da14084fda76d74a336d15d19b5f813461edfea803db674ca26",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-after/result.json",
+        "bytes": 760245,
+        "sha256": "0cb90de70ed85378398b1fd0f346df4dcc470ffdc9538ac3ad953c5a2d688826"
+      },
+      "label": "benchmark-after"
+    },
+    {
+      "head": "c7dcf14acc6d7d6633fe335c96a24366421dceda",
+      "status_before": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go",
+      "args": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkGCSReadAndStage$",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpuprofile=/home/d/engineering-evidence/primitive/linux-repair/benchmark-before/cpu.pprof",
+        "-memprofile=/home/d/engineering-evidence/primitive/linux-repair/benchmark-before/mem.pprof",
+        "-o=/home/d/engineering-evidence/primitive/linux-repair/benchmark-before/gcsobjects.test",
+        "./gcsobjects"
+      ],
+      "cwd": "/home/d/code/primitive",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T01:35:46.639761+00:00",
+      "exit": 0,
+      "elapsed_seconds": 73.69873207799901,
+      "status_after": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go",
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-before/started.json",
+          "bytes": 757716,
+          "sha256": "cd8f3aeab4f210b8c6c29ede07f34c6589e4850cc705fc9f09ac8caff7bf45d2"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-before/source.patch",
+          "bytes": 15313,
+          "sha256": "a96c1b945cc51bee306388fa9ba7c64e8bbe88c26358275748dc7cae4e080f11"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-before/stdout",
+          "bytes": 699922,
+          "sha256": "d23316b0a737d5d0b61b1e4218e251eb3a4d988726a639e9dc91d5ec896c83a7"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-before/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-before/cpu.pprof",
+          "bytes": 128508,
+          "sha256": "be79c0ed4b53eb8e1bbcb78786402be5890a63f865f4b8d58619aea2fed38e99"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-before/mem.pprof",
+          "bytes": 30434,
+          "sha256": "3e136360861ca2efbdc660037d045df209be05f81fa8f4e051081b283aae182b"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-before/gcsobjects.test",
+          "bytes": 53368100,
+          "sha256": "75cb8e4a1deebbca384db8b61f84fc5343c767a9255a76af5b16f6a6de15dc47"
+        }
+      ],
+      "source_inventory_count": 4362,
+      "source_inventory_sha256": "c136d6a52ac8169a3133f123ec4076f0077c82e17602bc21bcfdbca093b6424e",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-before/result.json",
+        "bytes": 759588,
+        "sha256": "82c4dfbbc14686033af413497bef0bc8f17d07139d035741207429d4c8be3523"
+      },
+      "label": "benchmark-before"
+    },
+    {
+      "head": "c7dcf14acc6d7d6633fe335c96a24366421dceda",
+      "status_before": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go",
+      "args": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkGCSReadAndStage$",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpuprofile=/home/d/engineering-evidence/primitive/linux-repair/benchmark-before-framed/cpu.pprof",
+        "-memprofile=/home/d/engineering-evidence/primitive/linux-repair/benchmark-before-framed/mem.pprof",
+        "-o=/home/d/engineering-evidence/primitive/linux-repair/benchmark-before-framed/gcsobjects.test",
+        "./gcsobjects"
+      ],
+      "cwd": "/home/d/code/primitive",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T01:37:43.641257+00:00",
+      "exit": 0,
+      "elapsed_seconds": 80.91593246000048,
+      "status_after": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go",
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-before-framed/started.json",
+          "bytes": 757737,
+          "sha256": "fe473094f66773878d04ae20141ff0d5ce7cd1c095f363d102f2cc88b3b3b0ec"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-before-framed/source.patch",
+          "bytes": 15477,
+          "sha256": "3f2e20bdc54b403439467161fbabdf19f112e545dfeb3d608cb2e5c848eec384"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-before-framed/stdout",
+          "bytes": 418,
+          "sha256": "57acf7ebabe1cd8ca5f3b2605bad9119166c19ee7433677a437bc3edc9d1e75d"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-before-framed/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-before-framed/cpu.pprof",
+          "bytes": 129112,
+          "sha256": "4e96b7111dd681019cf24ad44bedd242c232e4fdf2bf7605a68c3381893c31f8"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-before-framed/mem.pprof",
+          "bytes": 28734,
+          "sha256": "9f18b792a5765ccef05d046272430b9c57061c4593b3fb037d58704e6c144579"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-before-framed/gcsobjects.test",
+          "bytes": 53370036,
+          "sha256": "faf5dbcd93f86183acb31a64a6f7fa92263e95f1d0f41fbe5945a8b61ff5d4c1"
+        }
+      ],
+      "source_inventory_count": 4362,
+      "source_inventory_sha256": "1b35dccc43f398d1dca731208d5f9d776ce33368770fc9f8ba196c31d405f872",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-before-framed/result.json",
+        "bytes": 759655,
+        "sha256": "64dbd1c8724f4af3b3ef830d6a07cd0f9de8e66f1dcc0e94e750584a5eda44dc"
+      },
+      "label": "benchmark-before-framed"
+    },
+    {
+      "head": "c7dcf14acc6d7d6633fe335c96a24366421dceda",
+      "status_before": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "args": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkGCSReadAndStage$",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpuprofile=/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-after/cpu.pprof",
+        "-memprofile=/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-after/mem.pprof",
+        "-o=/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-after/gcsobjects.test",
+        "./gcsobjects"
+      ],
+      "cwd": "/home/d/code/primitive",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T01:57:01.495505+00:00",
+      "exit": 0,
+      "elapsed_seconds": 88.4275935279984,
+      "status_after": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-after/started.json",
+          "bytes": 758218,
+          "sha256": "8e2b129e6feccd999635ada694f66ded4970e083db3814eb1e8f82e722bd703b"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-after/source.patch",
+          "bytes": 24814,
+          "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-after/stdout",
+          "bytes": 418,
+          "sha256": "37d26083fc8482813e5006ee60f147f537ff6ab774d80f63d7544bce5b826ac8"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-after/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-after/cpu.pprof",
+          "bytes": 131835,
+          "sha256": "299dea3a13e43e714408425817efe6ae32f8a174f11a5d27809a9cbca98baf33"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-after/mem.pprof",
+          "bytes": 30846,
+          "sha256": "8ff4fbee9141b33719591ab85c55d220fe6abb1078891def4c32cde5f4e0932b"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-after/gcsobjects.test",
+          "bytes": 53418757,
+          "sha256": "a235300b836925551b0e58900ee59aa011d8c643f9ded0b4c26b2b23af295436"
+        }
+      ],
+      "source_inventory_count": 4364,
+      "source_inventory_sha256": "aaeb5e23f4de21df307004cddaec5c192e9cb4a2ee6e98e0328942cf8424a6f3",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-after/result.json",
+        "bytes": 760304,
+        "sha256": "2224150013b2b4b12e9877c86d628829152a0e8c3e63a0da768663f04d7ccbdf"
+      },
+      "label": "benchmark-final-after"
+    },
+    {
+      "head": "c7dcf14acc6d7d6633fe335c96a24366421dceda",
+      "status_before": "M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n?? gcsobjects/read_benchmark_test.go",
+      "args": [
+        "go",
+        "test",
+        "-run=^$",
+        "-bench=^BenchmarkGCSReadAndStage$",
+        "-benchtime=30s",
+        "-count=1",
+        "-cpuprofile=/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-before/cpu.pprof",
+        "-memprofile=/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-before/mem.pprof",
+        "-o=/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-before/gcsobjects.test",
+        "./gcsobjects"
+      ],
+      "cwd": "/home/d/code/primitive-benchmark-v2026.1.25",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T01:55:43.928047+00:00",
+      "exit": 0,
+      "elapsed_seconds": 76.77748698100004,
+      "status_after": "M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n?? gcsobjects/read_benchmark_test.go",
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-before/started.json",
+          "bytes": 757632,
+          "sha256": "a7e1bdf3448c17717dc23209fd141cd894761175d6db58251aadf070e4fdeeef"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-before/source.patch",
+          "bytes": 14205,
+          "sha256": "4c91b692b9080975673505f93241cceaa4ac5c4159f83b97cbf5ee0b33cfb5d8"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-before/stdout",
+          "bytes": 418,
+          "sha256": "a02f0ff6a55a95445bcdfa4f28780b408cbda35070672d3604b8ef18b2faccc6"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-before/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-before/cpu.pprof",
+          "bytes": 129629,
+          "sha256": "23262331efa45ba0b6783b5529f6d09f139814c8d9bdd6106d935a11ace78a7e"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-before/mem.pprof",
+          "bytes": 27897,
+          "sha256": "4482c6b5199283cde2fc6efcbd0cf21b64f078cb33aef12d284c41507925a220"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-before/gcsobjects.test",
+          "bytes": 53385580,
+          "sha256": "5c02c06e5b4713255e8f5cd69c4693ffb5e0fea01e1d56c4ed89714a1c634e31"
+        }
+      ],
+      "source_inventory_count": 4362,
+      "source_inventory_sha256": "082468bd3155f4ea5ac74a7df2b163c06c109e2136313fe2478d2146622f6912",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-before/result.json",
+        "bytes": 759420,
+        "sha256": "84e557901855af642e0772b6dc641979ce3d459ba998db2343af3688ec9c2bed"
+      },
+      "label": "benchmark-final-before"
+    },
+    {
+      "head": "c7dcf14acc6d7d6633fe335c96a24366421dceda",
+      "status_before": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-race",
+        "-count=1",
+        "-run=^TestGCSExactCopyLayerTriad$",
+        "./gcsobjects"
+      ],
+      "cwd": "/home/d/code/primitive",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T01:44:30.352343+00:00",
+      "exit": 0,
+      "elapsed_seconds": 7.128176454001732,
+      "status_after": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/complete-write-error-green/started.json",
+          "bytes": 757901,
+          "sha256": "2a06d98a6d82f7496035e3cabde599a06d0b7f61dc991d0f667533e2db685439"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/complete-write-error-green/source.patch",
+          "bytes": 24890,
+          "sha256": "8b19d845f2a20c425d41eb98f4928b772f769593a6795d78b0c95ad84ae68fa5"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/complete-write-error-green/stdout",
+          "bytes": 30156,
+          "sha256": "33b4785be07ffa790a0e74f9546d30ad2c1722eb325476ce7e74e42eae61b7f9"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/complete-write-error-green/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "source_inventory_count": 4364,
+      "source_inventory_sha256": "851bdbad4de3e9cba5a631b584f3a4ddb227df85abd835c557abb596696e9ea1",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/complete-write-error-green/result.json",
+        "bytes": 759343,
+        "sha256": "890c8fe2b1ff780fe22285fee24d16b0fdeec3f6831325a4ffa0dff588b0ca3f"
+      },
+      "label": "complete-write-error-green",
+      "events": {
+        "packages": {
+          "pass": 1
+        },
+        "test_events": {
+          "pass": 14
+        },
+        "skips": [],
+        "failure_events": []
+      }
+    },
+    {
+      "head": "c7dcf14acc6d7d6633fe335c96a24366421dceda",
+      "status_before": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-run=^TestGCSExactCopyLayerTriad$",
+        "./gcsobjects"
+      ],
+      "cwd": "/home/d/code/primitive",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T01:44:13.464952+00:00",
+      "exit": 1,
+      "elapsed_seconds": 3.4190287370001897,
+      "status_after": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/complete-write-error-red/started.json",
+          "bytes": 757888,
+          "sha256": "a4c988bdacb0aef86dedae9f9c54322b226c460e99ca4235e0eb0a72efa6cc79"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/complete-write-error-red/source.patch",
+          "bytes": 24930,
+          "sha256": "9ff0b06b67831802f76d3bbd6f8f6246029e854ec5c11210faeeef3ff84015c7"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/complete-write-error-red/stdout",
+          "bytes": 30588,
+          "sha256": "74b7ad6d5d13d2a2d405ea3418352fe20add2c8c29b5c866a6e9b18dccf32d88"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/complete-write-error-red/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "source_inventory_count": 4364,
+      "source_inventory_sha256": "8644a83a9eb6d9974cd87fcbbc6f66ec71ad68f69c2bcee642a011f6617f1fa4",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/complete-write-error-red/result.json",
+        "bytes": 759323,
+        "sha256": "e3cf208c84bf0ceb8ca180d47ec004a42705c75e65ef501de30ce71efbddbb14"
+      },
+      "label": "complete-write-error-red",
+      "events": {
+        "packages": {
+          "fail": 1
+        },
+        "test_events": {
+          "pass": 12,
+          "fail": 2
+        },
+        "skips": [],
+        "failure_events": [
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": "TestGCSExactCopyLayerTriad/negative_complete_write_cannot_erase_destination_failure"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": "TestGCSExactCopyLayerTriad"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": null
+          }
+        ]
+      }
+    },
+    {
+      "head": "c7dcf14acc6d7d6633fe335c96a24366421dceda",
+      "status_before": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "args": [
+        "/home/d/go/bin/gocyclo",
+        "-over",
+        "10",
+        "-ignore",
+        "_test.go",
+        "gcsobjects"
+      ],
+      "cwd": "/home/d/code/primitive",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T01:46:23.479112+00:00",
+      "exit": 0,
+      "elapsed_seconds": 0.006691181999485707,
+      "status_after": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/complexity/started.json",
+          "bytes": 757878,
+          "sha256": "7c4287237b86cdf32e7e820dc9ee284138b04f6a5085b6644908a6ee9bd1ca65"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/complexity/source.patch",
+          "bytes": 24814,
+          "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/complexity/stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/complexity/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "source_inventory_count": 4364,
+      "source_inventory_sha256": "8f4427f2a3ed2da14084fda76d74a336d15d19b5f813461edfea803db674ca26",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/complexity/result.json",
+        "bytes": 759255,
+        "sha256": "b1f0607a34312264c8f1a315377884bec3dfa29b143db0dcf8f630ec60631eb5"
+      },
+      "label": "complexity"
+    },
+    {
+      "head": "c7dcf14acc6d7d6633fe335c96a24366421dceda",
+      "status_before": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-race",
+        "-count=1",
+        "-run=TestGCSExactCopyLayerTriad|TestGCSListedReadExtentLayerTriad",
+        "./gcsobjects"
+      ],
+      "cwd": "/home/d/code/primitive",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T01:42:19.483787+00:00",
+      "exit": 0,
+      "elapsed_seconds": 7.4748408409996046,
+      "status_after": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/error-and-listed-green/started.json",
+          "bytes": 757744,
+          "sha256": "2e2df8609d5eee53dea5ad862d2f702c097ac0c575f93343bee1f1f2820ac42e"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/error-and-listed-green/source.patch",
+          "bytes": 24930,
+          "sha256": "9ff0b06b67831802f76d3bbd6f8f6246029e854ec5c11210faeeef3ff84015c7"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/error-and-listed-green/stdout",
+          "bytes": 50365,
+          "sha256": "60fb194e8a74e29eca7fd2aaada31e48908b9b613eac834b0419a8ede9bad0f8"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/error-and-listed-green/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "source_inventory_count": 4363,
+      "source_inventory_sha256": "3c89bcc59a86cdabd195bd1b673b984e4967b01949ab43764510a88018cfe98b",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/error-and-listed-green/result.json",
+        "bytes": 759131,
+        "sha256": "8f73ac9f2907768c966171914ab3cc3ba29aebe06f872a107995c60433e2d555"
+      },
+      "label": "error-and-listed-green",
+      "events": {
+        "packages": {
+          "pass": 1
+        },
+        "test_events": {
+          "pass": 23
+        },
+        "skips": [],
+        "failure_events": []
+      }
+    },
+    {
+      "head": "c7dcf14acc6d7d6633fe335c96a24366421dceda",
+      "status_before": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-race",
+        "-count=1",
+        "-p=4",
+        "-parallel=8",
+        "-timeout=20m",
+        "./..."
+      ],
+      "cwd": "/home/d/code/primitive",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T01:47:11.895031+00:00",
+      "exit": 0,
+      "elapsed_seconds": 48.77206217999992,
+      "status_after": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/final-module-race/started.json",
+          "bytes": 757904,
+          "sha256": "346c64b171936384b47fbfc6f12d6f61c1ee63cf615e38a9766f557eff580ee5"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/final-module-race/source.patch",
+          "bytes": 24814,
+          "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/final-module-race/stdout",
+          "bytes": 111491761,
+          "sha256": "f706c36c4e8d2296b322d0fd1a73ef449e64bda244a148d43e51dc910bb08c6b"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/final-module-race/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "source_inventory_count": 4364,
+      "source_inventory_sha256": "8f4427f2a3ed2da14084fda76d74a336d15d19b5f813461edfea803db674ca26",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/final-module-race/result.json",
+        "bytes": 759314,
+        "sha256": "97342bee82b525137899c399104797487f3c0a9b240987804522230a3a4f7bde"
+      },
+      "label": "final-module-race",
+      "events": {
+        "packages": {
+          "pass": 61
+        },
+        "test_events": {
+          "pass": 52100,
+          "skip": 4,
+          "fail": 7
+        },
+        "skips": [
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": "TestAuthenticatedGCSDeletionRefusesSoftDeleteRetention"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": "TestGCSDownloadCapabilityRetrievesOneRealPrivateObjectThroughObjectstore"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": "TestAuthenticatedGCSLifecycleUsesTheRealProviderAndProvesDeletion"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/release",
+            "test": "TestVerifyBuildToolsProvesTheExactInstalledExecutables"
+          }
+        ],
+        "failure_events": [
+          {
+            "package": "github.com/deliri/primitive/v2026/testserial",
+            "test": "zero declaration"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/testserial",
+            "test": "zero hazard"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/testserial",
+            "test": "zero scope"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/testserial",
+            "test": "future hazard"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/testserial",
+            "test": "future scope"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/testserial",
+            "test": "process hazard with sibling scope"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/testserial",
+            "test": "sibling hazard with process scope"
+          }
+        ]
+      }
+    },
+    {
+      "head": "c7dcf14acc6d7d6633fe335c96a24366421dceda",
+      "status_before": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-race",
+        "-count=1",
+        "-p=4",
+        "-parallel=8",
+        "-timeout=5m",
+        "./deploy",
+        "./distribution",
+        "./gcsobjects",
+        "./runnercontrol"
+      ],
+      "cwd": "/home/d/code/primitive",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T01:43:22.964360+00:00",
+      "exit": 0,
+      "elapsed_seconds": 12.360624099999768,
+      "status_after": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/final-scoped-race/started.json",
+          "bytes": 757971,
+          "sha256": "e2c3c8c8500d6f91bace7e5eb6a60bdee3c97fe0b507a307a39c6116c866d059"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/final-scoped-race/source.patch",
+          "bytes": 24930,
+          "sha256": "9ff0b06b67831802f76d3bbd6f8f6246029e854ec5c11210faeeef3ff84015c7"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/final-scoped-race/stdout",
+          "bytes": 3470101,
+          "sha256": "1d6b8331fc39ceb86fc74ef6a221d9e37a0cbb2985f23a992791c5d99b9efded"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/final-scoped-race/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "source_inventory_count": 4364,
+      "source_inventory_sha256": "79d4238e49dc11458c639a1f3632c09cdf63d7a45e2e5cca2f3c927534d28212",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/final-scoped-race/result.json",
+        "bytes": 759380,
+        "sha256": "74a59a5027a5da223b09b51d74d1e4595cbdad64754890d7787d4bdf2a6bf44b"
+      },
+      "label": "final-scoped-race",
+      "events": {
+        "packages": {
+          "pass": 4
+        },
+        "test_events": {
+          "pass": 1731,
+          "skip": 3
+        },
+        "skips": [
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": "TestAuthenticatedGCSLifecycleUsesTheRealProviderAndProvesDeletion"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": "TestAuthenticatedGCSDeletionRefusesSoftDeleteRetention"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": "TestGCSDownloadCapabilityRetrievesOneRealPrivateObjectThroughObjectstore"
+          }
+        ],
+        "failure_events": []
+      }
+    },
+    {
+      "head": "c7dcf14acc6d7d6633fe335c96a24366421dceda",
+      "status_before": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-race",
+        "-count=1",
+        "-p=4",
+        "-parallel=8",
+        "-timeout=5m",
+        "./deploy",
+        "./distribution",
+        "./gcsobjects",
+        "./runnercontrol"
+      ],
+      "cwd": "/home/d/code/primitive",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T01:35:19.456643+00:00",
+      "exit": 1,
+      "elapsed_seconds": 12.710187921999022,
+      "status_after": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go",
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/fixture-check-and-stream-red/started.json",
+          "bytes": 757484,
+          "sha256": "679da5f9cebd2be97e19cac482ad8a2cb9cae5161b6ea9f7b43755b0586c7eaa"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/fixture-check-and-stream-red/source.patch",
+          "bytes": 15313,
+          "sha256": "a96c1b945cc51bee306388fa9ba7c64e8bbe88c26358275748dc7cae4e080f11"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/fixture-check-and-stream-red/stdout",
+          "bytes": 3392158,
+          "sha256": "ae535c3b8a4096e98b276c206b55a8522d84406aca9bf447cdb063c1e8587830"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/fixture-check-and-stream-red/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "source_inventory_count": 4362,
+      "source_inventory_sha256": "c136d6a52ac8169a3133f123ec4076f0077c82e17602bc21bcfdbca093b6424e",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/fixture-check-and-stream-red/result.json",
+        "bytes": 758754,
+        "sha256": "c77a957258f5f0b1abf1a1d0ec9e4acd1cac6c9a3deeb81ca0dc6fbda6263b1a"
+      },
+      "label": "fixture-check-and-stream-red",
+      "events": {
+        "packages": {
+          "pass": 3,
+          "fail": 1
+        },
+        "test_events": {
+          "pass": 1679,
+          "skip": 3,
+          "fail": 4
+        },
+        "skips": [
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": "TestGCSDownloadCapabilityRetrievesOneRealPrivateObjectThroughObjectstore"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": "TestAuthenticatedGCSDeletionRefusesSoftDeleteRetention"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": "TestAuthenticatedGCSLifecycleUsesTheRealProviderAndProvesDeletion"
+          }
+        ],
+        "failure_events": [
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": "TestAuthenticatedGCSReadsExecuteTheOfficialSDKAndProveEveryByte/provider_body_is_longer_than_metadata"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": "TestAuthenticatedGCSReadsExecuteTheOfficialSDKAndProveEveryByte/chunked_extra_byte_cannot_hide_beyond_expected_prefix"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": "TestAuthenticatedGCSReadsExecuteTheOfficialSDKAndProveEveryByte/empty_metadata_cannot_hide_one_provider_byte"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": "TestAuthenticatedGCSReadsExecuteTheOfficialSDKAndProveEveryByte"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": null
+          }
+        ]
+      }
+    },
+    {
+      "head": "c7dcf14acc6d7d6633fe335c96a24366421dceda",
+      "status_before": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "args": [
+        "go",
+        "test",
+        "-run=^$",
+        "-fuzz=^FuzzGCSReadExtentSemanticBoundary$",
+        "-fuzztime=30s",
+        "-parallel=4",
+        "-timeout=3m",
+        "./gcsobjects"
+      ],
+      "cwd": "/home/d/code/primitive",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T01:52:30.912958+00:00",
+      "exit": 0,
+      "elapsed_seconds": 94.9770319700001,
+      "status_after": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/fuzz-stream/started.json",
+          "bytes": 757941,
+          "sha256": "b9ebfdcc1b2413a4e20ebd311fdb13f049266690b51fa62ef17ce4f9699e28d4"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/fuzz-stream/source.patch",
+          "bytes": 24814,
+          "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/fuzz-stream/stdout",
+          "bytes": 1021,
+          "sha256": "e3f4a584ae07af37f55512bbaeb9df8182a8291d24ca4383fabd9d488312d809"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/fuzz-stream/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "source_inventory_count": 4364,
+      "source_inventory_sha256": "8f4427f2a3ed2da14084fda76d74a336d15d19b5f813461edfea803db674ca26",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/fuzz-stream/result.json",
+        "bytes": 759321,
+        "sha256": "ad85bceb920d43f216874e118922c10e1dc10903a576058e3b8997e7ab256c67"
+      },
+      "label": "fuzz-stream"
+    },
+    {
+      "head": "c7dcf14acc6d7d6633fe335c96a24366421dceda",
+      "status_before": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "args": [
+        "/home/d/go/bin/witness-lint",
+        "./gcsobjects"
+      ],
+      "cwd": "/home/d/code/primitive",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T01:55:06.859403+00:00",
+      "exit": 0,
+      "elapsed_seconds": 0.07778917699943122,
+      "status_after": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/gcs-witness-final/started.json",
+          "bytes": 757831,
+          "sha256": "c4c35dfb346afbeb6853afc519d2e22225f2384b0cfe4055733dd5d9863f4b83"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/gcs-witness-final/source.patch",
+          "bytes": 24814,
+          "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/gcs-witness-final/stdout",
+          "bytes": 56,
+          "sha256": "afd7d57aeb78a63eddcb5302b7b2493518c8f91c69ed1768f761a77220a19108"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/gcs-witness-final/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "source_inventory_count": 4364,
+      "source_inventory_sha256": "aaeb5e23f4de21df307004cddaec5c192e9cb4a2ee6e98e0328942cf8424a6f3",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/gcs-witness-final/result.json",
+        "bytes": 759236,
+        "sha256": "3bd137c5e448bcab8e6297177eea21618841e74062c413757ec3eb16e1d40b5a"
+      },
+      "label": "gcs-witness-final"
+    },
+    {
+      "head": "c7dcf14acc6d7d6633fe335c96a24366421dceda",
+      "status_before": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "args": [
+        "/home/d/go/bin/witness-lint",
+        "./gcsobjects"
+      ],
+      "cwd": "/home/d/code/primitive",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T01:51:15.968932+00:00",
+      "exit": 1,
+      "elapsed_seconds": 0.06379496000045037,
+      "status_after": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/gcs-witness-installed/started.json",
+          "bytes": 757831,
+          "sha256": "e630cc824c2f77ea5877a9f54f2a9591a47e56ebb95fb5c3b3589810ec0021a5"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/gcs-witness-installed/source.patch",
+          "bytes": 24814,
+          "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/gcs-witness-installed/stdout",
+          "bytes": 183,
+          "sha256": "c69ca55f8a90c1fc4646df632f44baed67969998e72af7074e206a2c86a223bb"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/gcs-witness-installed/stderr",
+          "bytes": 127,
+          "sha256": "ba5d1aee4e900f9dba74c86cc9300773c9a0369506cc228b3d8a6f5a4d63dae7"
+        }
+      ],
+      "source_inventory_count": 4364,
+      "source_inventory_sha256": "8f4427f2a3ed2da14084fda76d74a336d15d19b5f813461edfea803db674ca26",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/gcs-witness-installed/result.json",
+        "bytes": 759255,
+        "sha256": "780cb05d38c43332290d721ee13cf6761a65ddc109b5111386530017b2597774"
+      },
+      "label": "gcs-witness-installed"
+    },
+    {
+      "head": "c7dcf14acc6d7d6633fe335c96a24366421dceda",
+      "status_before": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "args": [
+        "go",
+        "install",
+        "github.com/fzipp/gocyclo/cmd/gocyclo@v0.6.0"
+      ],
+      "cwd": "/home/d/code/primitive",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T01:46:22.098555+00:00",
+      "exit": 0,
+      "elapsed_seconds": 0.6678692629993748,
+      "status_after": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/install-complexity/started.json",
+          "bytes": 757852,
+          "sha256": "095fd9453d95702ce479378aadb876b5602d38335167a2a7a9eec33324c5742a"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/install-complexity/source.patch",
+          "bytes": 24814,
+          "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/install-complexity/stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/install-complexity/stderr",
+          "bytes": 48,
+          "sha256": "8d9c90222a381aadcc0093dd9cd4587225917a84c1cb23ad967d599984e2fcec"
+        }
+      ],
+      "source_inventory_count": 4364,
+      "source_inventory_sha256": "8f4427f2a3ed2da14084fda76d74a336d15d19b5f813461edfea803db674ca26",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/install-complexity/result.json",
+        "bytes": 759260,
+        "sha256": "f7781d80679bbe6071dc6508f80bd4b588d4dc9cdd0d62871b9054bf02b0035f"
+      },
+      "label": "install-complexity"
+    },
+    {
+      "head": "c7dcf14acc6d7d6633fe335c96a24366421dceda",
+      "status_before": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "args": [
+        "go",
+        "install",
+        "github.com/kisielk/errcheck@v1.20.0"
+      ],
+      "cwd": "/home/d/code/primitive",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T01:47:06.425483+00:00",
+      "exit": 0,
+      "elapsed_seconds": 3.0125237430002016,
+      "status_after": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/install-errcheck/started.json",
+          "bytes": 757844,
+          "sha256": "54d8cf4e927a93bd152a4f42c2f0f4f38b5200636927a93c3b1e92a59a73c8dd"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/install-errcheck/source.patch",
+          "bytes": 24814,
+          "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/install-errcheck/stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/install-errcheck/stderr",
+          "bytes": 95,
+          "sha256": "d87bb3bb837a4fa48d02d59137b02def8c27bf0f68e310597a2acc3261497a44"
+        }
+      ],
+      "source_inventory_count": 4364,
+      "source_inventory_sha256": "8f4427f2a3ed2da14084fda76d74a336d15d19b5f813461edfea803db674ca26",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/install-errcheck/result.json",
+        "bytes": 759244,
+        "sha256": "a8356323475b469e63d7aa276599c011f72c4fb840dd0bd475cb1dbfe0ad3151"
+      },
+      "label": "install-errcheck"
+    },
+    {
+      "head": "c7dcf14acc6d7d6633fe335c96a24366421dceda",
+      "status_before": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "args": [
+        "go",
+        "install",
+        "honnef.co/go/tools/cmd/staticcheck@v0.8.0"
+      ],
+      "cwd": "/home/d/code/primitive",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T01:45:16.497024+00:00",
+      "exit": 0,
+      "elapsed_seconds": 1.154588152998258,
+      "status_after": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/install-static-tools/started.json",
+          "bytes": 757850,
+          "sha256": "ceec8478243d6509b73f7c9ca3aed312721a4723d72fabc354381973c9ffc49c"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/install-static-tools/source.patch",
+          "bytes": 24814,
+          "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/install-static-tools/stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/install-static-tools/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "source_inventory_count": 4364,
+      "source_inventory_sha256": "8f4427f2a3ed2da14084fda76d74a336d15d19b5f813461edfea803db674ca26",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/install-static-tools/result.json",
+        "bytes": 759264,
+        "sha256": "327d34a2f3f58ca5b3494be0b901c9df1db58757ab930b59c9eda82070ff4ac7"
+      },
+      "label": "install-static-tools"
+    },
+    {
+      "head": "c7dcf14acc6d7d6633fe335c96a24366421dceda",
+      "status_before": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "args": [
+        "go",
+        "install",
+        "github.com/offGridSoft/witness/cmd/witness-lint@v0.0.0-20260803211814-57582de85018"
+      ],
+      "cwd": "/home/d/code/primitive",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T01:47:04.427133+00:00",
+      "exit": 1,
+      "elapsed_seconds": 1.30801928999972,
+      "status_after": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/install-witness/started.json",
+          "bytes": 757891,
+          "sha256": "02474fd39dd8a11ad59adb427f3be072bcb61ee7802fc4676d1e368be749be4c"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/install-witness/source.patch",
+          "bytes": 24814,
+          "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/install-witness/stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/install-witness/stderr",
+          "bytes": 606,
+          "sha256": "99db11ccd2e5926f74612f7293694e3917719b1964232c5def0cbfbe8321c189"
+        }
+      ],
+      "source_inventory_count": 4364,
+      "source_inventory_sha256": "8f4427f2a3ed2da14084fda76d74a336d15d19b5f813461edfea803db674ca26",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/install-witness/result.json",
+        "bytes": 759286,
+        "sha256": "acf60fc21e90431e83a4537ac1ce3bed8fc97cb79add98ac82d65889631c53ac"
+      },
+      "label": "install-witness"
+    },
+    {
+      "head": "c7dcf14acc6d7d6633fe335c96a24366421dceda",
+      "status_before": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "args": [
+        "env",
+        "GOPRIVATE=github.com/offGridSoft/witness",
+        "GIT_CONFIG_COUNT=1",
+        "GIT_CONFIG_KEY_0=url.ssh://git@github.com/.insteadOf",
+        "GIT_CONFIG_VALUE_0=https://github.com/",
+        "go",
+        "install",
+        "github.com/offGridSoft/witness/cmd/witness-lint@v0.0.0-20260803211814-57582de85018"
+      ],
+      "cwd": "/home/d/code/primitive",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T01:48:43.037033+00:00",
+      "exit": 0,
+      "elapsed_seconds": 121.74034638699959,
+      "status_after": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/install-witness-ssh/started.json",
+          "bytes": 758082,
+          "sha256": "c7e19d3b8927d7fa8e864131ab543f34e8a3e74636c7b57839c59ed8254d7bf1"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/install-witness-ssh/source.patch",
+          "bytes": 24814,
+          "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/install-witness-ssh/stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/install-witness-ssh/stderr",
+          "bytes": 233,
+          "sha256": "b5d9312e3a899b84dc0cecf8f04c521b397e44f200c8c1fee412986e89dbf637"
+        }
+      ],
+      "source_inventory_count": 4364,
+      "source_inventory_sha256": "8f4427f2a3ed2da14084fda76d74a336d15d19b5f813461edfea803db674ca26",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/install-witness-ssh/result.json",
+        "bytes": 759495,
+        "sha256": "5d76611c35675740d432bf704468830218a25073f913cd90d09a6949f7ee9873"
+      },
+      "label": "install-witness-ssh"
+    },
+    {
+      "head": "c7dcf14acc6d7d6633fe335c96a24366421dceda",
+      "status_before": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-run=^TestGCSExactCopyLayerTriad$",
+        "./gcsobjects"
+      ],
+      "cwd": "/home/d/code/primitive",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T01:41:31.674545+00:00",
+      "exit": 1,
+      "elapsed_seconds": 3.299765664000006,
+      "status_after": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/probe-error-red/started.json",
+          "bytes": 757663,
+          "sha256": "31316eee2882540acac81267f5ed009c302f969f8a69d3bb8538c4c11a3a75a1"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/probe-error-red/source.patch",
+          "bytes": 21034,
+          "sha256": "16359bf11495d077d0a6fc656061096b7359c7a0c0ac24f374c1784d3941e054"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/probe-error-red/stdout",
+          "bytes": 28654,
+          "sha256": "f993d84e102d1af43abf947e27dfda52afed1b5c2a828ae7abbacf1024ab764a"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/probe-error-red/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "source_inventory_count": 4363,
+      "source_inventory_sha256": "dc483873d230f6bfdcc2e49284fb49edb539128777a73ebea51901e2f930cc15",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/probe-error-red/result.json",
+        "bytes": 758985,
+        "sha256": "c43fd2cfb16c96ff260a1e2ce495da22f923098cc3c10cd82cf880eefa9f0c82"
+      },
+      "label": "probe-error-red",
+      "events": {
+        "packages": {
+          "fail": 1
+        },
+        "test_events": {
+          "pass": 11,
+          "fail": 2
+        },
+        "skips": [],
+        "failure_events": [
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": "TestGCSExactCopyLayerTriad/negative_probe_byte_cannot_erase_accompanying_deadline"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": "TestGCSExactCopyLayerTriad"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": null
+          }
+        ]
+      }
+    },
+    {
+      "head": "c7dcf14acc6d7d6633fe335c96a24366421dceda",
+      "status_before": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "args": [
+        "go",
+        "tool",
+        "pprof",
+        "-top",
+        "-nodecount=8",
+        "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-after/cpu.pprof"
+      ],
+      "cwd": "/home/d/code/primitive",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T01:59:00.115041+00:00",
+      "exit": 0,
+      "elapsed_seconds": 0.13559523200092372,
+      "status_after": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-after-cpu/started.json",
+          "bytes": 757934,
+          "sha256": "ec524740daa2f268640da8b6912f48a042a4248dbcb028f6bf220e23b5bc3f45"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-after-cpu/source.patch",
+          "bytes": 24814,
+          "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-after-cpu/stdout",
+          "bytes": 890,
+          "sha256": "41c5efedb8482cacda078440f99584ca50c57b0a3115643f904591ef0b56af3c"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-after-cpu/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "source_inventory_count": 4364,
+      "source_inventory_sha256": "aaeb5e23f4de21df307004cddaec5c192e9cb4a2ee6e98e0328942cf8424a6f3",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-after-cpu/result.json",
+        "bytes": 759340,
+        "sha256": "0bf9d2b14bbb0a054185c53ad84ba5b6609548572b29af345003745896c2ac83"
+      },
+      "label": "profile-after-cpu"
+    },
+    {
+      "head": "c7dcf14acc6d7d6633fe335c96a24366421dceda",
+      "status_before": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "args": [
+        "go",
+        "tool",
+        "pprof",
+        "-top",
+        "-alloc_space",
+        "-nodecount=8",
+        "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-after/mem.pprof"
+      ],
+      "cwd": "/home/d/code/primitive",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T01:59:00.944678+00:00",
+      "exit": 0,
+      "elapsed_seconds": 0.10339273899990076,
+      "status_after": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-after-memory/started.json",
+          "bytes": 757954,
+          "sha256": "a3cce4e6e4e3aa6586c22bbc6d7334b36f8242988163e388a884708ad04b2ff1"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-after-memory/source.patch",
+          "bytes": 24814,
+          "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-after-memory/stdout",
+          "bytes": 862,
+          "sha256": "2560b5d927c82d2afa340c45f718ec5a687ab849f4a125b866f9da623a231a79"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-after-memory/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "source_inventory_count": 4364,
+      "source_inventory_sha256": "aaeb5e23f4de21df307004cddaec5c192e9cb4a2ee6e98e0328942cf8424a6f3",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-after-memory/result.json",
+        "bytes": 759372,
+        "sha256": "7b22d36931c9133154c3c718dd0fba10508bf121181bda30fdab2c000532a2d6"
+      },
+      "label": "profile-after-memory"
+    },
+    {
+      "head": "c7dcf14acc6d7d6633fe335c96a24366421dceda",
+      "status_before": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "args": [
+        "go",
+        "tool",
+        "pprof",
+        "-top",
+        "-nodecount=8",
+        "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-before/cpu.pprof"
+      ],
+      "cwd": "/home/d/code/primitive",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T01:58:58.509749+00:00",
+      "exit": 0,
+      "elapsed_seconds": 0.12179266499879304,
+      "status_after": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-before-cpu/started.json",
+          "bytes": 757935,
+          "sha256": "aac02f9f374193ab2ed2abdc808a697935f244e52351f4385ca568562a1f995d"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-before-cpu/source.patch",
+          "bytes": 24814,
+          "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-before-cpu/stdout",
+          "bytes": 899,
+          "sha256": "c10de07902edd70b339aef11366ac7a930794e502d738f5f5c2269f3dca827cd"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-before-cpu/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "source_inventory_count": 4364,
+      "source_inventory_sha256": "aaeb5e23f4de21df307004cddaec5c192e9cb4a2ee6e98e0328942cf8424a6f3",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-before-cpu/result.json",
+        "bytes": 759345,
+        "sha256": "0749737d2426adb22d6150611d3c438dd31f2abfd10f4e1b82a13da597638f33"
+      },
+      "label": "profile-before-cpu"
+    },
+    {
+      "head": "c7dcf14acc6d7d6633fe335c96a24366421dceda",
+      "status_before": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "args": [
+        "go",
+        "tool",
+        "pprof",
+        "-top",
+        "-alloc_space",
+        "-nodecount=8",
+        "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-before/mem.pprof"
+      ],
+      "cwd": "/home/d/code/primitive",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T01:58:59.319603+00:00",
+      "exit": 0,
+      "elapsed_seconds": 0.11189041000034194,
+      "status_after": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-before-memory/started.json",
+          "bytes": 757955,
+          "sha256": "aa380c3619df19ad5bad5e8d7e8590bd7af93b9c0a6cf6cf1d318f01c01efbf4"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-before-memory/source.patch",
+          "bytes": 24814,
+          "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-before-memory/stdout",
+          "bytes": 862,
+          "sha256": "f619a6934f11701d8f850b718bb4d0ac305418c88c284b4a52062ab56c3cd879"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-before-memory/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "source_inventory_count": 4364,
+      "source_inventory_sha256": "aaeb5e23f4de21df307004cddaec5c192e9cb4a2ee6e98e0328942cf8424a6f3",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-before-memory/result.json",
+        "bytes": 759377,
+        "sha256": "93901644498604b19bccf03eb2f529eed04b96fc372df4d1663f6bb7988c7b79"
+      },
+      "label": "profile-before-memory"
+    },
+    {
+      "head": "c7dcf14acc6d7d6633fe335c96a24366421dceda",
+      "status_before": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "args": [
+        "/home/d/go/bin/errcheck",
+        "./deploy",
+        "./distribution",
+        "./gcsobjects",
+        "./runnercontrol"
+      ],
+      "cwd": "/home/d/code/primitive",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T01:47:10.120778+00:00",
+      "exit": 0,
+      "elapsed_seconds": 0.6251160229985544,
+      "status_after": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/scoped-errcheck/started.json",
+          "bytes": 757888,
+          "sha256": "76654715ab6c67d2597ef9e0d647634e2b6b7ba5c3c827046a0310b4bcfc6b69"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/scoped-errcheck/source.patch",
+          "bytes": 24814,
+          "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/scoped-errcheck/stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/scoped-errcheck/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "source_inventory_count": 4364,
+      "source_inventory_sha256": "8f4427f2a3ed2da14084fda76d74a336d15d19b5f813461edfea803db674ca26",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/scoped-errcheck/result.json",
+        "bytes": 759283,
+        "sha256": "e3cf8275ca00ad8ca7ed5c88e9b1124f4360c424d75c99fd981af5449c5368b2"
+      },
+      "label": "scoped-errcheck"
+    },
+    {
+      "head": "c7dcf14acc6d7d6633fe335c96a24366421dceda",
+      "status_before": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "args": [
+        "/home/d/go/bin/staticcheck",
+        "./deploy",
+        "./distribution",
+        "./gcsobjects",
+        "./runnercontrol"
+      ],
+      "cwd": "/home/d/code/primitive",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T01:46:17.700332+00:00",
+      "exit": 0,
+      "elapsed_seconds": 3.7167100549995666,
+      "status_after": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/scoped-staticcheck/started.json",
+          "bytes": 757891,
+          "sha256": "79dd0cc64f7c10d27b7bc25e89da1be882285af7d6029a2f4758ef8c3292aa86"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/scoped-staticcheck/source.patch",
+          "bytes": 24814,
+          "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/scoped-staticcheck/stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/scoped-staticcheck/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "source_inventory_count": 4364,
+      "source_inventory_sha256": "8f4427f2a3ed2da14084fda76d74a336d15d19b5f813461edfea803db674ca26",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/scoped-staticcheck/result.json",
+        "bytes": 759298,
+        "sha256": "925e6f62be7029834c328a8b909c99aa397e826eb2381667f3fec030bcfc5810"
+      },
+      "label": "scoped-staticcheck"
+    },
+    {
+      "head": "c7dcf14acc6d7d6633fe335c96a24366421dceda",
+      "status_before": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "args": [
+        "go",
+        "vet",
+        "./deploy",
+        "./distribution",
+        "./gcsobjects",
+        "./runnercontrol"
+      ],
+      "cwd": "/home/d/code/primitive",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T01:46:14.246102+00:00",
+      "exit": 0,
+      "elapsed_seconds": 2.7805456389996834,
+      "status_after": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/scoped-vet/started.json",
+          "bytes": 757878,
+          "sha256": "bf417a54aadc5296e34f131dda56e14bf946a40a70eaa1551cac55170d3bb038"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/scoped-vet/source.patch",
+          "bytes": 24814,
+          "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/scoped-vet/stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/scoped-vet/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "source_inventory_count": 4364,
+      "source_inventory_sha256": "8f4427f2a3ed2da14084fda76d74a336d15d19b5f813461edfea803db674ca26",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/scoped-vet/result.json",
+        "bytes": 759253,
+        "sha256": "8ba0426e6dfa3b329a5d661480a6abb00a549a35d3724fa44e8d6f32a72d465a"
+      },
+      "label": "scoped-vet"
+    },
+    {
+      "head": "c7dcf14acc6d7d6633fe335c96a24366421dceda",
+      "status_before": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-overlay=/home/d/engineering-evidence/primitive/linux-repair/mutations/skip-eof.json",
+        "-run=TestGCSListedReadExtentLayerTriad|FuzzGCSReadExtentSemanticBoundary",
+        "./gcsobjects"
+      ],
+      "cwd": "/home/d/code/primitive",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T01:46:10.115191+00:00",
+      "exit": 1,
+      "elapsed_seconds": 3.450200343999313,
+      "status_after": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/skipped-eof-mutation/started.json",
+          "bytes": 758019,
+          "sha256": "aabfcf28df57f47e8e74f2546c33fbfda6f3b0c55bab79eab55091f9c80dde30"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/skipped-eof-mutation/source.patch",
+          "bytes": 24814,
+          "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/skipped-eof-mutation/stdout",
+          "bytes": 58268,
+          "sha256": "c3e834a6659b86bfd77e2a14c24f7f161d2a269206159a3a042a182d22c0efd0"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/skipped-eof-mutation/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "source_inventory_count": 4364,
+      "source_inventory_sha256": "8f4427f2a3ed2da14084fda76d74a336d15d19b5f813461edfea803db674ca26",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/skipped-eof-mutation/result.json",
+        "bytes": 759437,
+        "sha256": "badc5593c7e2fe58d2514d7747b7f46d1fa24691cf959a60102ee192b1e29c34"
+      },
+      "label": "skipped-eof-mutation",
+      "events": {
+        "packages": {
+          "fail": 1
+        },
+        "test_events": {
+          "pass": 22,
+          "fail": 13
+        },
+        "skips": [],
+        "failure_events": [
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": "TestGCSListedReadExtentLayerTriad/negative_extra_byte_cannot_reach_listed_destination"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": "TestGCSListedReadExtentLayerTriad/negative_empty_listing_cannot_hide_a_byte"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": "TestGCSListedReadExtentLayerTriad/negative_chunked_trailing_byte_cannot_become_proof"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": "TestGCSListedReadExtentLayerTriad"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": "FuzzGCSReadExtentSemanticBoundary/seed#2"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": "FuzzGCSReadExtentSemanticBoundary/seed#3"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": "FuzzGCSReadExtentSemanticBoundary/seed#6"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": "FuzzGCSReadExtentSemanticBoundary/seed#7"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": "FuzzGCSReadExtentSemanticBoundary/seed#10"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": "FuzzGCSReadExtentSemanticBoundary/seed#11"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": "FuzzGCSReadExtentSemanticBoundary/seed#18"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": "FuzzGCSReadExtentSemanticBoundary/seed#19"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": "FuzzGCSReadExtentSemanticBoundary"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": null
+          }
+        ]
+      }
+    },
+    {
+      "head": "c7dcf14acc6d7d6633fe335c96a24366421dceda",
+      "status_before": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go",
+      "args": [
+        "go",
+        "test",
+        "-json",
+        "-race",
+        "-count=1",
+        "-p=4",
+        "-parallel=8",
+        "-timeout=5m",
+        "./deploy",
+        "./distribution",
+        "./gcsobjects",
+        "./runnercontrol"
+      ],
+      "cwd": "/home/d/code/primitive",
+      "environment": {
+        "GOWORK": "off",
+        "GOMAXPROCS": "8"
+      },
+      "go": "go version go1.27.1 linux/amd64",
+      "start": "2026-09-09T01:39:45.078999+00:00",
+      "exit": 0,
+      "elapsed_seconds": 12.36647796699981,
+      "status_after": "M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? gcsobjects/read_benchmark_test.go",
+      "sources_unchanged": true,
+      "artifacts": [
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/stream-green/started.json",
+          "bytes": 757545,
+          "sha256": "e82ebced69d7689a17aa2ef462497429f3017960cfdf52ba245064dd81595a32"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/stream-green/source.patch",
+          "bytes": 21034,
+          "sha256": "16359bf11495d077d0a6fc656061096b7359c7a0c0ac24f374c1784d3941e054"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/stream-green/stdout",
+          "bytes": 3390193,
+          "sha256": "91b40512ba6deeb0efb77f727f188fadf1be370d7df2ee769bde2bfd1e1c3d8c"
+        },
+        {
+          "path": "/home/d/engineering-evidence/primitive/linux-repair/stream-green/stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "source_inventory_count": 4362,
+      "source_inventory_sha256": "5e875f9890e4053af23938b49bb20c948a3fc4005c01f43bfe3078714c1d3707",
+      "record": {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/stream-green/result.json",
+        "bytes": 758811,
+        "sha256": "ab715e3e00d5183b7ab17123a0b2a9089417488d9ff97861932f9e33130bfee5"
+      },
+      "label": "stream-green",
+      "events": {
+        "packages": {
+          "pass": 4
+        },
+        "test_events": {
+          "pass": 1683,
+          "skip": 3
+        },
+        "skips": [
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": "TestAuthenticatedGCSLifecycleUsesTheRealProviderAndProvesDeletion"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": "TestAuthenticatedGCSDeletionRefusesSoftDeleteRetention"
+          },
+          {
+            "package": "github.com/deliri/primitive/v2026/gcsobjects",
+            "test": "TestGCSDownloadCapabilityRetrievesOneRealPrivateObjectThroughObjectstore"
+          }
+        ],
+        "failure_events": []
+      }
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-after/cpu.pprof",
+      "bytes": 120942,
+      "sha256": "224aea20524823de461521f65b2cced363cc91035be7a689d9999019bc366646"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-after/gcsobjects.test",
+      "bytes": 53417245,
+      "sha256": "d56ea4e6bc59ed4b8d9e79b4161a6710e48b6c6616c7cfbd9622fd161ca8e388"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-after/mem.pprof",
+      "bytes": 29577,
+      "sha256": "9ddd015d8343bdcb94f6ed8ac4d87a08435fdb684ac34d1c637682f7f42c33d9"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-after/result.json",
+      "bytes": 760245,
+      "sha256": "0cb90de70ed85378398b1fd0f346df4dcc470ffdc9538ac3ad953c5a2d688826"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-after/source.patch",
+      "bytes": 24814,
+      "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-after/started.json",
+      "bytes": 758200,
+      "sha256": "f27a08da818988d8ea939600f3285d73d4edf97fdbf9ab2baec43bae70c1ccc7"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-after/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-after/stdout",
+      "bytes": 418,
+      "sha256": "115573acd051572d78c478e68549524e7809e169248edc7b3d20158895d071b7"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-before/cpu.pprof",
+      "bytes": 128508,
+      "sha256": "be79c0ed4b53eb8e1bbcb78786402be5890a63f865f4b8d58619aea2fed38e99"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-before/gcsobjects.test",
+      "bytes": 53368100,
+      "sha256": "75cb8e4a1deebbca384db8b61f84fc5343c767a9255a76af5b16f6a6de15dc47"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-before/mem.pprof",
+      "bytes": 30434,
+      "sha256": "3e136360861ca2efbdc660037d045df209be05f81fa8f4e051081b283aae182b"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-before/result.json",
+      "bytes": 759588,
+      "sha256": "82c4dfbbc14686033af413497bef0bc8f17d07139d035741207429d4c8be3523"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-before/source.patch",
+      "bytes": 15313,
+      "sha256": "a96c1b945cc51bee306388fa9ba7c64e8bbe88c26358275748dc7cae4e080f11"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-before/started.json",
+      "bytes": 757716,
+      "sha256": "cd8f3aeab4f210b8c6c29ede07f34c6589e4850cc705fc9f09ac8caff7bf45d2"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-before/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-before/stdout",
+      "bytes": 699922,
+      "sha256": "d23316b0a737d5d0b61b1e4218e251eb3a4d988726a639e9dc91d5ec896c83a7"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-before-framed/cpu-top.txt",
+      "bytes": 899,
+      "sha256": "b2e4efe4e8deda7f491f017f5e8669d5258523d9846576884c30020a50e7d029"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-before-framed/cpu.pprof",
+      "bytes": 129112,
+      "sha256": "4e96b7111dd681019cf24ad44bedd242c232e4fdf2bf7605a68c3381893c31f8"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-before-framed/gcsobjects.test",
+      "bytes": 53370036,
+      "sha256": "faf5dbcd93f86183acb31a64a6f7fa92263e95f1d0f41fbe5945a8b61ff5d4c1"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-before-framed/mem-top.txt",
+      "bytes": 819,
+      "sha256": "2de92efaf4fef036cb236845bb61cd73e5ef542c2bf47484e736d3454613e1e6"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-before-framed/mem.pprof",
+      "bytes": 28734,
+      "sha256": "9f18b792a5765ccef05d046272430b9c57061c4593b3fb037d58704e6c144579"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-before-framed/result.json",
+      "bytes": 759655,
+      "sha256": "64dbd1c8724f4af3b3ef830d6a07cd0f9de8e66f1dcc0e94e750584a5eda44dc"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-before-framed/source.patch",
+      "bytes": 15477,
+      "sha256": "3f2e20bdc54b403439467161fbabdf19f112e545dfeb3d608cb2e5c848eec384"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-before-framed/started.json",
+      "bytes": 757737,
+      "sha256": "fe473094f66773878d04ae20141ff0d5ce7cd1c095f363d102f2cc88b3b3b0ec"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-before-framed/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-before-framed/stdout",
+      "bytes": 418,
+      "sha256": "57acf7ebabe1cd8ca5f3b2605bad9119166c19ee7433677a437bc3edc9d1e75d"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-after/cpu.pprof",
+      "bytes": 131835,
+      "sha256": "299dea3a13e43e714408425817efe6ae32f8a174f11a5d27809a9cbca98baf33"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-after/gcsobjects.test",
+      "bytes": 53418757,
+      "sha256": "a235300b836925551b0e58900ee59aa011d8c643f9ded0b4c26b2b23af295436"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-after/mem.pprof",
+      "bytes": 30846,
+      "sha256": "8ff4fbee9141b33719591ab85c55d220fe6abb1078891def4c32cde5f4e0932b"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-after/result.json",
+      "bytes": 760304,
+      "sha256": "2224150013b2b4b12e9877c86d628829152a0e8c3e63a0da768663f04d7ccbdf"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-after/source.patch",
+      "bytes": 24814,
+      "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-after/started.json",
+      "bytes": 758218,
+      "sha256": "8e2b129e6feccd999635ada694f66ded4970e083db3814eb1e8f82e722bd703b"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-after/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-after/stdout",
+      "bytes": 418,
+      "sha256": "37d26083fc8482813e5006ee60f147f537ff6ab774d80f63d7544bce5b826ac8"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-before/cpu.pprof",
+      "bytes": 129629,
+      "sha256": "23262331efa45ba0b6783b5529f6d09f139814c8d9bdd6106d935a11ace78a7e"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-before/gcsobjects.test",
+      "bytes": 53385580,
+      "sha256": "5c02c06e5b4713255e8f5cd69c4693ffb5e0fea01e1d56c4ed89714a1c634e31"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-before/mem.pprof",
+      "bytes": 27897,
+      "sha256": "4482c6b5199283cde2fc6efcbd0cf21b64f078cb33aef12d284c41507925a220"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-before/result.json",
+      "bytes": 759420,
+      "sha256": "84e557901855af642e0772b6dc641979ce3d459ba998db2343af3688ec9c2bed"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-before/source.patch",
+      "bytes": 14205,
+      "sha256": "4c91b692b9080975673505f93241cceaa4ac5c4159f83b97cbf5ee0b33cfb5d8"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-before/started.json",
+      "bytes": 757632,
+      "sha256": "a7e1bdf3448c17717dc23209fd141cd894761175d6db58251aadf070e4fdeeef"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-before/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/benchmark-final-before/stdout",
+      "bytes": 418,
+      "sha256": "a02f0ff6a55a95445bcdfa4f28780b408cbda35070672d3604b8ef18b2faccc6"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/complete-write-error-green/result.json",
+      "bytes": 759343,
+      "sha256": "890c8fe2b1ff780fe22285fee24d16b0fdeec3f6831325a4ffa0dff588b0ca3f"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/complete-write-error-green/source.patch",
+      "bytes": 24890,
+      "sha256": "8b19d845f2a20c425d41eb98f4928b772f769593a6795d78b0c95ad84ae68fa5"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/complete-write-error-green/started.json",
+      "bytes": 757901,
+      "sha256": "2a06d98a6d82f7496035e3cabde599a06d0b7f61dc991d0f667533e2db685439"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/complete-write-error-green/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/complete-write-error-green/stdout",
+      "bytes": 30156,
+      "sha256": "33b4785be07ffa790a0e74f9546d30ad2c1722eb325476ce7e74e42eae61b7f9"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/complete-write-error-red/result.json",
+      "bytes": 759323,
+      "sha256": "e3cf208c84bf0ceb8ca180d47ec004a42705c75e65ef501de30ce71efbddbb14"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/complete-write-error-red/source.patch",
+      "bytes": 24930,
+      "sha256": "9ff0b06b67831802f76d3bbd6f8f6246029e854ec5c11210faeeef3ff84015c7"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/complete-write-error-red/started.json",
+      "bytes": 757888,
+      "sha256": "a4c988bdacb0aef86dedae9f9c54322b226c460e99ca4235e0eb0a72efa6cc79"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/complete-write-error-red/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/complete-write-error-red/stdout",
+      "bytes": 30588,
+      "sha256": "74b7ad6d5d13d2a2d405ea3418352fe20add2c8c29b5c866a6e9b18dccf32d88"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/complexity/result.json",
+      "bytes": 759255,
+      "sha256": "b1f0607a34312264c8f1a315377884bec3dfa29b143db0dcf8f630ec60631eb5"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/complexity/source.patch",
+      "bytes": 24814,
+      "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/complexity/started.json",
+      "bytes": 757878,
+      "sha256": "7c4287237b86cdf32e7e820dc9ee284138b04f6a5085b6644908a6ee9bd1ca65"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/complexity/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/complexity/stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/error-and-listed-green/result.json",
+      "bytes": 759131,
+      "sha256": "8f73ac9f2907768c966171914ab3cc3ba29aebe06f872a107995c60433e2d555"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/error-and-listed-green/source.patch",
+      "bytes": 24930,
+      "sha256": "9ff0b06b67831802f76d3bbd6f8f6246029e854ec5c11210faeeef3ff84015c7"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/error-and-listed-green/started.json",
+      "bytes": 757744,
+      "sha256": "2e2df8609d5eee53dea5ad862d2f702c097ac0c575f93343bee1f1f2820ac42e"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/error-and-listed-green/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/error-and-listed-green/stdout",
+      "bytes": 50365,
+      "sha256": "60fb194e8a74e29eca7fd2aaada31e48908b9b613eac834b0419a8ede9bad0f8"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/final-module-race/result.json",
+      "bytes": 759314,
+      "sha256": "97342bee82b525137899c399104797487f3c0a9b240987804522230a3a4f7bde"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/final-module-race/source.patch",
+      "bytes": 24814,
+      "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/final-module-race/started.json",
+      "bytes": 757904,
+      "sha256": "346c64b171936384b47fbfc6f12d6f61c1ee63cf615e38a9766f557eff580ee5"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/final-module-race/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/final-module-race/stdout",
+      "bytes": 111491761,
+      "sha256": "f706c36c4e8d2296b322d0fd1a73ef449e64bda244a148d43e51dc910bb08c6b"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/final-scoped-race/result.json",
+      "bytes": 759380,
+      "sha256": "74a59a5027a5da223b09b51d74d1e4595cbdad64754890d7787d4bdf2a6bf44b"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/final-scoped-race/source.patch",
+      "bytes": 24930,
+      "sha256": "9ff0b06b67831802f76d3bbd6f8f6246029e854ec5c11210faeeef3ff84015c7"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/final-scoped-race/started.json",
+      "bytes": 757971,
+      "sha256": "e2c3c8c8500d6f91bace7e5eb6a60bdee3c97fe0b507a307a39c6116c866d059"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/final-scoped-race/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/final-scoped-race/stdout",
+      "bytes": 3470101,
+      "sha256": "1d6b8331fc39ceb86fc74ef6a221d9e37a0cbb2985f23a992791c5d99b9efded"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/fixture-check-and-stream-red/result.json",
+      "bytes": 758754,
+      "sha256": "c77a957258f5f0b1abf1a1d0ec9e4acd1cac6c9a3deeb81ca0dc6fbda6263b1a"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/fixture-check-and-stream-red/source.patch",
+      "bytes": 15313,
+      "sha256": "a96c1b945cc51bee306388fa9ba7c64e8bbe88c26358275748dc7cae4e080f11"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/fixture-check-and-stream-red/started.json",
+      "bytes": 757484,
+      "sha256": "679da5f9cebd2be97e19cac482ad8a2cb9cae5161b6ea9f7b43755b0586c7eaa"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/fixture-check-and-stream-red/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/fixture-check-and-stream-red/stdout",
+      "bytes": 3392158,
+      "sha256": "ae535c3b8a4096e98b276c206b55a8522d84406aca9bf447cdb063c1e8587830"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/fuzz-stream/result.json",
+      "bytes": 759321,
+      "sha256": "ad85bceb920d43f216874e118922c10e1dc10903a576058e3b8997e7ab256c67"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/fuzz-stream/source.patch",
+      "bytes": 24814,
+      "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/fuzz-stream/started.json",
+      "bytes": 757941,
+      "sha256": "b9ebfdcc1b2413a4e20ebd311fdb13f049266690b51fa62ef17ce4f9699e28d4"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/fuzz-stream/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/fuzz-stream/stdout",
+      "bytes": 1021,
+      "sha256": "e3f4a584ae07af37f55512bbaeb9df8182a8291d24ca4383fabd9d488312d809"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/gcs-witness/source.patch",
+      "bytes": 24814,
+      "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/gcs-witness/started.json",
+      "bytes": 757831,
+      "sha256": "34cc629f94023669a6ae4e7d0ab315a3eb1fe935d09b65f5ab2a0fb1fa056e4a"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/gcs-witness/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/gcs-witness/stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/gcs-witness/unavailable.json",
+      "bytes": 269,
+      "sha256": "2e73b671a3021b677bd849ee29a28aa48da62d840229d9ebbff52cbcc48e159b"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/gcs-witness-final/result.json",
+      "bytes": 759236,
+      "sha256": "3bd137c5e448bcab8e6297177eea21618841e74062c413757ec3eb16e1d40b5a"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/gcs-witness-final/source.patch",
+      "bytes": 24814,
+      "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/gcs-witness-final/started.json",
+      "bytes": 757831,
+      "sha256": "c4c35dfb346afbeb6853afc519d2e22225f2384b0cfe4055733dd5d9863f4b83"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/gcs-witness-final/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/gcs-witness-final/stdout",
+      "bytes": 56,
+      "sha256": "afd7d57aeb78a63eddcb5302b7b2493518c8f91c69ed1768f761a77220a19108"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/gcs-witness-installed/result.json",
+      "bytes": 759255,
+      "sha256": "780cb05d38c43332290d721ee13cf6761a65ddc109b5111386530017b2597774"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/gcs-witness-installed/source.patch",
+      "bytes": 24814,
+      "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/gcs-witness-installed/started.json",
+      "bytes": 757831,
+      "sha256": "e630cc824c2f77ea5877a9f54f2a9591a47e56ebb95fb5c3b3589810ec0021a5"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/gcs-witness-installed/stderr",
+      "bytes": 127,
+      "sha256": "ba5d1aee4e900f9dba74c86cc9300773c9a0369506cc228b3d8a6f5a4d63dae7"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/gcs-witness-installed/stdout",
+      "bytes": 183,
+      "sha256": "c69ca55f8a90c1fc4646df632f44baed67969998e72af7074e206a2c86a223bb"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/install-complexity/result.json",
+      "bytes": 759260,
+      "sha256": "f7781d80679bbe6071dc6508f80bd4b588d4dc9cdd0d62871b9054bf02b0035f"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/install-complexity/source.patch",
+      "bytes": 24814,
+      "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/install-complexity/started.json",
+      "bytes": 757852,
+      "sha256": "095fd9453d95702ce479378aadb876b5602d38335167a2a7a9eec33324c5742a"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/install-complexity/stderr",
+      "bytes": 48,
+      "sha256": "8d9c90222a381aadcc0093dd9cd4587225917a84c1cb23ad967d599984e2fcec"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/install-complexity/stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/install-errcheck/result.json",
+      "bytes": 759244,
+      "sha256": "a8356323475b469e63d7aa276599c011f72c4fb840dd0bd475cb1dbfe0ad3151"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/install-errcheck/source.patch",
+      "bytes": 24814,
+      "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/install-errcheck/started.json",
+      "bytes": 757844,
+      "sha256": "54d8cf4e927a93bd152a4f42c2f0f4f38b5200636927a93c3b1e92a59a73c8dd"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/install-errcheck/stderr",
+      "bytes": 95,
+      "sha256": "d87bb3bb837a4fa48d02d59137b02def8c27bf0f68e310597a2acc3261497a44"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/install-errcheck/stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/install-static-tools/result.json",
+      "bytes": 759264,
+      "sha256": "327d34a2f3f58ca5b3494be0b901c9df1db58757ab930b59c9eda82070ff4ac7"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/install-static-tools/source.patch",
+      "bytes": 24814,
+      "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/install-static-tools/started.json",
+      "bytes": 757850,
+      "sha256": "ceec8478243d6509b73f7c9ca3aed312721a4723d72fabc354381973c9ffc49c"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/install-static-tools/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/install-static-tools/stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/install-witness/result.json",
+      "bytes": 759286,
+      "sha256": "acf60fc21e90431e83a4537ac1ce3bed8fc97cb79add98ac82d65889631c53ac"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/install-witness/source.patch",
+      "bytes": 24814,
+      "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/install-witness/started.json",
+      "bytes": 757891,
+      "sha256": "02474fd39dd8a11ad59adb427f3be072bcb61ee7802fc4676d1e368be749be4c"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/install-witness/stderr",
+      "bytes": 606,
+      "sha256": "99db11ccd2e5926f74612f7293694e3917719b1964232c5def0cbfbe8321c189"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/install-witness/stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/install-witness-ssh/result.json",
+      "bytes": 759495,
+      "sha256": "5d76611c35675740d432bf704468830218a25073f913cd90d09a6949f7ee9873"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/install-witness-ssh/source.patch",
+      "bytes": 24814,
+      "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/install-witness-ssh/started.json",
+      "bytes": 758082,
+      "sha256": "c7e19d3b8927d7fa8e864131ab543f34e8a3e74636c7b57839c59ed8254d7bf1"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/install-witness-ssh/stderr",
+      "bytes": 233,
+      "sha256": "b5d9312e3a899b84dc0cecf8f04c521b397e44f200c8c1fee412986e89dbf637"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/install-witness-ssh/stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/mutations/skip-eof.go",
+      "bytes": 47972,
+      "sha256": "b75330925d003dbd33bbfe810af73fd39687e700033f2fe5eeb506556d74069e"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/mutations/skip-eof.json",
+      "bytes": 137,
+      "sha256": "7684110667d39e000cd2552d7c9043b75c03e776a75c83bfe40ec0530d9cec6f"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/probe-error-red/result.json",
+      "bytes": 758985,
+      "sha256": "c43fd2cfb16c96ff260a1e2ce495da22f923098cc3c10cd82cf880eefa9f0c82"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/probe-error-red/source.patch",
+      "bytes": 21034,
+      "sha256": "16359bf11495d077d0a6fc656061096b7359c7a0c0ac24f374c1784d3941e054"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/probe-error-red/started.json",
+      "bytes": 757663,
+      "sha256": "31316eee2882540acac81267f5ed009c302f969f8a69d3bb8538c4c11a3a75a1"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/probe-error-red/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/probe-error-red/stdout",
+      "bytes": 28654,
+      "sha256": "f993d84e102d1af43abf947e27dfda52afed1b5c2a828ae7abbacf1024ab764a"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-after-cpu/result.json",
+      "bytes": 759340,
+      "sha256": "0bf9d2b14bbb0a054185c53ad84ba5b6609548572b29af345003745896c2ac83"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-after-cpu/source.patch",
+      "bytes": 24814,
+      "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-after-cpu/started.json",
+      "bytes": 757934,
+      "sha256": "ec524740daa2f268640da8b6912f48a042a4248dbcb028f6bf220e23b5bc3f45"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-after-cpu/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-after-cpu/stdout",
+      "bytes": 890,
+      "sha256": "41c5efedb8482cacda078440f99584ca50c57b0a3115643f904591ef0b56af3c"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-after-memory/result.json",
+      "bytes": 759372,
+      "sha256": "7b22d36931c9133154c3c718dd0fba10508bf121181bda30fdab2c000532a2d6"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-after-memory/source.patch",
+      "bytes": 24814,
+      "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-after-memory/started.json",
+      "bytes": 757954,
+      "sha256": "a3cce4e6e4e3aa6586c22bbc6d7334b36f8242988163e388a884708ad04b2ff1"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-after-memory/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-after-memory/stdout",
+      "bytes": 862,
+      "sha256": "2560b5d927c82d2afa340c45f718ec5a687ab849f4a125b866f9da623a231a79"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-before-cpu/result.json",
+      "bytes": 759345,
+      "sha256": "0749737d2426adb22d6150611d3c438dd31f2abfd10f4e1b82a13da597638f33"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-before-cpu/source.patch",
+      "bytes": 24814,
+      "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-before-cpu/started.json",
+      "bytes": 757935,
+      "sha256": "aac02f9f374193ab2ed2abdc808a697935f244e52351f4385ca568562a1f995d"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-before-cpu/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-before-cpu/stdout",
+      "bytes": 899,
+      "sha256": "c10de07902edd70b339aef11366ac7a930794e502d738f5f5c2269f3dca827cd"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-before-memory/result.json",
+      "bytes": 759377,
+      "sha256": "93901644498604b19bccf03eb2f529eed04b96fc372df4d1663f6bb7988c7b79"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-before-memory/source.patch",
+      "bytes": 24814,
+      "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-before-memory/started.json",
+      "bytes": 757955,
+      "sha256": "aa380c3619df19ad5bad5e8d7e8590bd7af93b9c0a6cf6cf1d318f01c01efbf4"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-before-memory/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/profile-before-memory/stdout",
+      "bytes": 862,
+      "sha256": "f619a6934f11701d8f850b718bb4d0ac305418c88c284b4a52062ab56c3cd879"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/record.py",
+      "bytes": 2006,
+      "sha256": "5962593328709e740173925b6ed9e6afd417b184f290658644ddfb6faa9d5c90"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/report.py",
+      "bytes": 10625,
+      "sha256": "4cd67b8344463e64aafdeb1ed6c7a0f2cd7dfdc5d71a9a0e5676b93a46d00a1a"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/scoped-errcheck/result.json",
+      "bytes": 759283,
+      "sha256": "e3cf8275ca00ad8ca7ed5c88e9b1124f4360c424d75c99fd981af5449c5368b2"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/scoped-errcheck/source.patch",
+      "bytes": 24814,
+      "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/scoped-errcheck/started.json",
+      "bytes": 757888,
+      "sha256": "76654715ab6c67d2597ef9e0d647634e2b6b7ba5c3c827046a0310b4bcfc6b69"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/scoped-errcheck/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/scoped-errcheck/stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/scoped-staticcheck/result.json",
+      "bytes": 759298,
+      "sha256": "925e6f62be7029834c328a8b909c99aa397e826eb2381667f3fec030bcfc5810"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/scoped-staticcheck/source.patch",
+      "bytes": 24814,
+      "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/scoped-staticcheck/started.json",
+      "bytes": 757891,
+      "sha256": "79dd0cc64f7c10d27b7bc25e89da1be882285af7d6029a2f4758ef8c3292aa86"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/scoped-staticcheck/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/scoped-staticcheck/stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/scoped-vet/result.json",
+      "bytes": 759253,
+      "sha256": "8ba0426e6dfa3b329a5d661480a6abb00a549a35d3724fa44e8d6f32a72d465a"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/scoped-vet/source.patch",
+      "bytes": 24814,
+      "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/scoped-vet/started.json",
+      "bytes": 757878,
+      "sha256": "bf417a54aadc5296e34f131dda56e14bf946a40a70eaa1551cac55170d3bb038"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/scoped-vet/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/scoped-vet/stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/skipped-eof-mutation/result.json",
+      "bytes": 759437,
+      "sha256": "badc5593c7e2fe58d2514d7747b7f46d1fa24691cf959a60102ee192b1e29c34"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/skipped-eof-mutation/source.patch",
+      "bytes": 24814,
+      "sha256": "75e15fa1824501b829c6207a098e66206c24c3eeb21eea6dfa7b0ff39b126001"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/skipped-eof-mutation/started.json",
+      "bytes": 758019,
+      "sha256": "aabfcf28df57f47e8e74f2546c33fbfda6f3b0c55bab79eab55091f9c80dde30"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/skipped-eof-mutation/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/skipped-eof-mutation/stdout",
+      "bytes": 58268,
+      "sha256": "c3e834a6659b86bfd77e2a14c24f7f161d2a269206159a3a042a182d22c0efd0"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/snapshot-audit.json",
+      "bytes": 182,
+      "sha256": "794cd13f2c857ac8a01837eecc5a44a855468db4c8e984dbcf729803278fab39"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/source-index.json",
+      "bytes": 1042788,
+      "sha256": "bbf6e992a2e3261d64bd453ea412ff545b0230d3cf17817fd491e152245b89ca"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/stream-green/result.json",
+      "bytes": 758811,
+      "sha256": "ab715e3e00d5183b7ab17123a0b2a9089417488d9ff97861932f9e33130bfee5"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/stream-green/source.patch",
+      "bytes": 21034,
+      "sha256": "16359bf11495d077d0a6fc656061096b7359c7a0c0ac24f374c1784d3941e054"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/stream-green/started.json",
+      "bytes": 757545,
+      "sha256": "e82ebced69d7689a17aa2ef462497429f3017960cfdf52ba245064dd81595a32"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/stream-green/stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/stream-green/stdout",
+      "bytes": 3390193,
+      "sha256": "91b40512ba6deeb0efb77f727f188fadf1be370d7df2ee769bde2bfd1e1c3d8c"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/v2026.1.25-linux-race-20260909T012203Z/result.json",
+      "bytes": 31350,
+      "sha256": "33cd71e8e3c0fdd92fddf454f4e1485bbd808c82f468f214f55f0d2526d2f99a"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/v2026.1.25-linux-race-20260909T012203Z/started.json",
+      "bytes": 1770,
+      "sha256": "bc33e03895d56498f2b07a12d77310ec35f669f20f2acb12f81428ab4910fd6a"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/v2026.1.25-linux-race-20260909T012203Z/stderr.txt",
+      "bytes": 199,
+      "sha256": "bd5c7d5d21626feec40f7015467c74f419524a4537ef56dda59b73b16dab08b0"
+    },
+    {
+      "path": "/home/d/engineering-evidence/primitive/v2026.1.25-linux-race-20260909T012203Z/stdout.jsonl",
+      "bytes": 111085382,
+      "sha256": "510f07df9b47c32f54f1ca12488e8e7d97f1af338e082fbaac0ef89f10687237"
+    }
+  ],
+  "snapshots": {
+    "count": 4183,
+    "index": {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/source-index.json",
+      "bytes": 1042788,
+      "sha256": "bbf6e992a2e3261d64bd453ea412ff545b0230d3cf17817fd491e152245b89ca"
+    },
+    "audit": {
+      "missing": [],
+      "note": "Tracked historical bytes reconstructed from their retained patch and exact base commit; every snapshot checked against the original execution SHA256."
+    }
+  },
+  "benchmark_pair": {
+    "before": [
+      "BenchmarkGCSReadAndStage/1KiB-8         \t   52681\t    737666 ns/op\t   1.39 MB/s\t   75714 B/op\t     505 allocs/op",
+      "BenchmarkGCSReadAndStage/1MiB-8         \t    4839\t   6683688 ns/op\t 156.89 MB/s\t   73247 B/op\t     502 allocs/op"
+    ],
+    "after": [
+      "BenchmarkGCSReadAndStage/1KiB-8         \t   58618\t    710403 ns/op\t   1.44 MB/s\t   42225 B/op\t     505 allocs/op",
+      "BenchmarkGCSReadAndStage/1MiB-8         \t    6800\t   6292483 ns/op\t 166.64 MB/s\t   73337 B/op\t     504 allocs/op"
+    ]
+  },
+  "identical_harness": [
+    {
+      "candidate": {
+        "path": "/home/d/code/primitive/gcsobjects/read_benchmark_test.go",
+        "bytes": 1655,
+        "sha256": "5737ae90cab9f3d44f0f0612b6b5e9b6fc2e0d6f593c0dc806408e5a571e92ca"
+      },
+      "baseline": {
+        "path": "/home/d/code/primitive-benchmark-v2026.1.25/gcsobjects/read_benchmark_test.go",
+        "bytes": 1655,
+        "sha256": "5737ae90cab9f3d44f0f0612b6b5e9b6fc2e0d6f593c0dc806408e5a571e92ca"
+      }
+    },
+    {
+      "candidate": {
+        "path": "/home/d/code/primitive/gcsobjects/client_provider_hostile_test.go",
+        "bytes": 32938,
+        "sha256": "3f64c0963bd71edcd3f0babfcafef80cb96de0e42e99bf565173b619566210fc"
+      },
+      "baseline": {
+        "path": "/home/d/code/primitive-benchmark-v2026.1.25/gcsobjects/client_provider_hostile_test.go",
+        "bytes": 32938,
+        "sha256": "3f64c0963bd71edcd3f0babfcafef80cb96de0e42e99bf565173b619566210fc"
+      }
+    },
+    {
+      "candidate": {
+        "path": "/home/d/code/primitive/gcsobjects/list_hostile_test.go",
+        "bytes": 10080,
+        "sha256": "e940d8d25002943b035db1224587c9e5df50cd67f870dce4f5d0463c566432f6"
+      },
+      "baseline": {
+        "path": "/home/d/code/primitive-benchmark-v2026.1.25/gcsobjects/list_hostile_test.go",
+        "bytes": 10080,
+        "sha256": "e940d8d25002943b035db1224587c9e5df50cd67f870dce4f5d0463c566432f6"
+      }
+    }
+  ],
+  "unavailable_attempt": {
+    "execution": "not_started",
+    "cause": "FileNotFoundError: /home/d/go/bin/witness-lint was absent after the failed HTTPS installation",
+    "child_exit": null,
+    "later_attempts": [
+      "install-witness-ssh",
+      "gcs-witness-installed",
+      "gcs-witness-final"
+    ]
+  },
+  "limitations": [
+    "Full-module race preceded only the parent benchmark ReportAllocs addition; production, ordinary tests and fuzz callbacks match the final measured candidate.",
+    "Three live GCS tests and one Darwin/ARM64-specific Release check were skipped.",
+    "Other server jobs were observed; benchmark timing samples do not prove a speed trend.",
+    "This slice repairs the observed Linux regressions; it is not a claim that every GCSobjects trust surface has completed a package sweep."
+  ],
+  "review_followup": {
+    "path": "/home/d/code/primitive/_docs/linux_read_regressions_20260909_review_followup.json",
+    "bytes": 5382,
+    "sha256": "cadfb277803d4a84989f355fab38c39ae09c18fe57c382023e2d3edee71d012d"
+  }
+}

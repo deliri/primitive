@@ -191,11 +191,12 @@ func releaseProvenance(t testing.TB) release.BuildProvenance {
 		GoToolchain        string            `json:"go_toolchain"`
 		MainPackage        string            `json:"main_package"`
 		ModuleMode         string            `json:"module_mode"`
+		BuildTags          []string          `json:"build_tags"`
 		LinkerAssignments  []struct{}        `json:"linker_assignments"`
 		GoExecutableSHA256 core.SHA256Digest `json:"go_executable_sha256"`
 	}{
 		GoToolchain: goToolchain, MainPackage: "github.com/example/product/cmd/product",
-		ModuleMode: "vendor", LinkerAssignments: []struct{}{},
+		ModuleMode: "vendor", LinkerAssignments: []struct{}{}, BuildTags: []string{},
 		GoExecutableSHA256: core.NewSHA256Digest(goDigest),
 	}
 	encoded, err := json.Marshal(wire)

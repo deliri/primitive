@@ -136,8 +136,8 @@ func productionStructRole(name string) (string, bool) {
 		return "sealed authenticated provider evidence", true
 	case "gcsObjectIdentity", "gcsObjectProperties", "gcsObjectTimes", "gcsReadSession":
 		return "internal authenticated provider metadata projection", true
-	case "gcsExactSource":
-		return "provider-observed exact stream extent", true
+	case "gcsReadSource":
+		return "SDK read failure ownership during bounded copy", true
 	default:
 		return "", false
 	}

@@ -7,10 +7,13 @@ import (
 	"context"
 	"errors"
 	"io"
+	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/filestore"
 	"github.com/deliri/primitive/v2026/process"
 	"github.com/deliri/primitive/v2026/runnercontrol"
 	"github.com/deliri/primitive/v2026/runprotocol"
@@ -72,7 +75,8 @@ func TestRunSubjectProcessLifecycleLayerTriad(t *testing.T) {
 		t.Parallel()
 		ctx, cancel := context.WithCancel(t.Context())
 		defer cancel()
-		capability := runnableSubjectCapability(t, "/usr/bin/yes")
+		directory := t.TempDir()
+		capability := runnableSubjectCapability(t, subjectOutputSupervisor(t, directory))
 		capability.Execution.Subject.Controller = mustProfileAbsolutePath(t, "/primitive-test/missing-controller")
 		if err := capability.Validate(); err != nil {
 			t.Fatalf("ExperimentCapability.Validate(cancelled subject) error = %v, want nil", err)
@@ -151,4 +155,35 @@ type subjectCancellationWriter struct {
 func (w *subjectCancellationWriter) Write(data []byte) (int, error) {
 	w.once.Do(w.cancel)
 	return 0, context.Canceled
+}
+
+// This supervisor fixture ignores systemd-run arguments and emits until the
+// owned process group is cancelled. GNU yes parses those flags and exits first.
+func subjectOutputSupervisor(t testing.TB, directory string) string {
+	t.Helper()
+	path := filepath.Join(directory, "supervisor")
+	absolute := mustProfileAbsolutePath(t, path)
+	location, err := filestore.OpenParent(t.Context(), absolute)
+	if err != nil {
+		t.Fatalf("OpenParent(supervisor) error = %v, want nil", err)
+	}
+	defer func() {
+		if err := location.Root.Close(); err != nil {
+			t.Errorf("Close(supervisor root) error = %v, want nil", err)
+		}
+	}()
+	temporary, err := core.ParseRelativePath("supervisor.tmp")
+	if err != nil {
+		t.Fatalf("ParseRelativePath(supervisor temporary) error = %v, want nil", err)
+	}
+	script := "#!/bin/sh\nwhile :; do printf 'ready\\n'; done\n"
+	maximum, err := core.NewByteCount(uint64(len(script)))
+	if err != nil {
+		t.Fatalf("NewByteCount(supervisor) error = %v, want nil", err)
+	}
+	_, err = filestore.Write(t.Context(), filestore.WriteRequest{Source: strings.NewReader(script), Location: location, Temporary: temporary, Mode: 0o700, Install: filestore.InstallCreate, MaximumBytes: maximum})
+	if err != nil {
+		t.Fatalf("Write(supervisor) error = %v, want nil", err)
+	}
+	return path
 }

@@ -223,6 +223,9 @@ func authenticatedGCSIntegrityAtLength(t *testing.T, lengthValue uint64) objects
 		t.Fatalf("NewByteLength(%d) error = %v, want nil", lengthValue, gotLengthErr)
 	}
 	data := []byte("independent integrity fixture")
+	if lengthValue == 0 {
+		data = nil
+	}
 	return objectstore.Integrity{
 		SHA256: core.SHA256Of(data), Length: length,
 		CRC32C: core.NewCRC32C(crc32.Checksum(data, crc32.MakeTable(crc32.Castagnoli))),

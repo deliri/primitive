@@ -944,22 +944,9 @@ func sameListedGCSObject(listed, read GCSObjectMetadata) bool {
 }
 
 func streamGCSListedRead(reader *storage.Reader, destination io.Writer, listed GCSObjectMetadata) error {
-	exact, err := objectstore.NewExactReader(newGCSExactSource(reader, listed.Length()), listed.Length())
-	if err != nil {
-		return err
-	}
 	checksum := crc32.New(crc32.MakeTable(crc32.Castagnoli))
-	output := io.MultiWriter(destination, checksum)
-	if listed.Length().Uint64() == 0 {
-		err = exact.ProveEmpty()
-	} else {
-		_, err = io.Copy(output, exact)
-	}
-	if err != nil {
-		if exact.Failure() != nil {
-			return exact.Failure()
-		}
-		return errors.Join(core.ErrObjectStoreDestination, err)
+	if err := copyGCSExact(reader, io.MultiWriter(destination, checksum), listed.Length()); err != nil {
+		return err
 	}
 	if core.NewCRC32C(checksum.Sum32()) != listed.CRC32C() {
 		return core.ErrObjectStoreIntegrity
@@ -1044,23 +1031,11 @@ func readIntegrityFromMetadata(request GCSReadRequest, metadata GCSObjectMetadat
 }
 
 func streamGCSRead(reader *storage.Reader, destinationWriter io.Writer, integrity objectstore.Integrity) error {
-	exact, err := objectstore.NewExactReader(newGCSExactSource(reader, integrity.Length), integrity.Length)
-	if err != nil {
-		return err
-	}
 	digest := core.NewDigestWriter()
 	checksum := crc32.New(crc32.MakeTable(crc32.Castagnoli))
 	destination := io.MultiWriter(destinationWriter, digest, checksum)
-	if integrity.Length.Uint64() == 0 {
-		err = exact.ProveEmpty()
-	} else {
-		_, err = io.Copy(destination, exact)
-	}
-	if err != nil {
-		if exact.Failure() != nil {
-			return exact.Failure()
-		}
-		return errors.Join(core.ErrObjectStoreDestination, err)
+	if err := copyGCSExact(reader, destination, integrity.Length); err != nil {
+		return err
 	}
 	actualDigest, actualLength, err := digest.Seal()
 	if err != nil || actualDigest != integrity.SHA256 ||
@@ -1071,25 +1046,52 @@ func streamGCSRead(reader *storage.Reader, destinationWriter io.Writer, integrit
 	return nil
 }
 
-type gcsExactSource struct {
-	source    io.Reader
-	remaining uint64
+// gcsReadSource retains the SDK read error independently of a destination
+// error. The exact count alone cannot distinguish these two owners.
+type gcsReadSource struct {
+	source io.Reader
+	err    error
 }
 
-func newGCSExactSource(source io.Reader, length core.ByteLength) *gcsExactSource {
-	return &gcsExactSource{source: source, remaining: length.Uint64()}
-}
-
-func (s *gcsExactSource) Read(destination []byte) (int, error) {
+func (s *gcsReadSource) Read(destination []byte) (int, error) {
 	count, err := s.source.Read(destination)
-	if count < 0 || uint64(count) > s.remaining {
-		return 0, core.ErrObjectStoreIntegrity
-	}
-	s.remaining -= uint64(count)
+	s.err = err
 	return count, err
 }
 
-func (s *gcsExactSource) RemainingBytes() uint64 { return s.remaining }
+// copyGCSExact probes the raw SDK reader because metadata length is only an
+// expectation: the limited copy source reports EOF at that length without
+// proving that the provider stream ended.
+func copyGCSExact(reader io.Reader, destination io.Writer, length core.ByteLength) error {
+	extent, err := length.Int64()
+	if err != nil {
+		return errors.Join(core.ErrObjectStoreContract, err)
+	}
+	source := gcsReadSource{source: reader}
+	count, copyErr := io.Copy(destination, io.LimitReader(&source, extent))
+	// witness:waiver doctrine/error/sentinel_compare -- GCSobjects owns the SDK reader boundary; Go requires bare EOF for graceful completion and joined read failures must survive. Review by 2026-12-09.
+	if source.err != nil && source.err != io.EOF {
+		return errors.Join(core.ErrObjectStoreSource, core.ErrObjectStoreIntegrity, source.err, copyErr)
+	}
+	if copyErr != nil {
+		return errors.Join(core.ErrObjectStoreDestination, copyErr)
+	}
+	if count != extent {
+		return errors.Join(core.ErrObjectStoreSource, core.ErrObjectStoreIntegrity, source.err, io.ErrUnexpectedEOF)
+	}
+	return proveGCSEOF(reader)
+}
+
+func proveGCSEOF(reader io.Reader) error {
+	var probe [1]byte
+	source := gcsReadSource{source: reader}
+	count, err := io.ReadFull(&source, probe[:])
+	// witness:waiver doctrine/error/sentinel_compare -- GCSobjects owns the SDK reader boundary; only bare EOF with zero bytes proves an exhausted stream. Review by 2026-12-09.
+	if count == 0 && err == io.EOF {
+		return nil
+	}
+	return errors.Join(core.ErrObjectStoreSource, core.ErrObjectStoreIntegrity, err, source.err)
+}
 
 // DeleteGCSObject permanently deletes one exact current generation and proves
 // that no current object remains at the name. Soft-delete buckets are refused.

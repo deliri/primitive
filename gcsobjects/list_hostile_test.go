@@ -141,6 +141,8 @@ func TestGCSListToExactReadProductionHandoffLayerTriad(t *testing.T) {
 }
 
 type gcsListReadProvider struct {
+	mediaOverride *[]byte
+	chunked       bool
 	t             testing.TB
 	payload       []byte
 	listCalls     uint64
@@ -165,7 +167,11 @@ func (p *gcsListReadProvider) ServeHTTP(writer http.ResponseWriter, request *htt
 		return
 	}
 	p.mediaCalls++
-	writeGCSMediaResponse(p.t, writer, p.payload)
+	payload := p.payload
+	if p.mediaOverride != nil {
+		payload = *p.mediaOverride
+	}
+	writeGCSMediaResponseFraming(p.t, writer, payload, p.chunked)
 }
 
 func (p *gcsListReadProvider) object() storageapi.Object {
@@ -188,4 +194,52 @@ func parsedGCSObjectPrefix(t testing.TB, value string) GCSObjectPrefix {
 		t.Fatalf("ParseGCSObjectPrefix(%q) error = %v", value, err)
 	}
 	return prefix
+}
+
+func TestGCSListedReadExtentLayerTriad(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name            string
+		metadata, media []byte
+		chunked         bool
+		wantErr         error
+	}{
+		{name: "neutral empty listing requires an empty stream"},
+		{name: "positive exact listed byte", metadata: []byte{1}, media: []byte{1}},
+		{name: "negative empty listing cannot hide a byte", media: []byte{1}, wantErr: core.ErrObjectStoreIntegrity},
+		{name: "negative extra byte cannot reach listed destination", metadata: []byte{1}, media: []byte{1, 2}, wantErr: core.ErrObjectStoreIntegrity},
+		{name: "negative short stream cannot certify listed extent", metadata: []byte{1, 2}, media: []byte{1}, wantErr: core.ErrObjectStoreIntegrity},
+		{name: "negative equal extent cannot hide checksum substitution", metadata: []byte{1}, media: []byte{2}, wantErr: core.ErrObjectStoreIntegrity},
+		{name: "positive chunked listed byte proves EOF", metadata: []byte{1}, media: []byte{1}, chunked: true},
+		{name: "neutral chunked empty listing proves EOF", chunked: true},
+		{name: "negative chunked trailing byte cannot become proof", metadata: []byte{1}, media: []byte{1, 2}, chunked: true, wantErr: core.ErrObjectStoreIntegrity},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			provider := &gcsListReadProvider{t: t, payload: tc.metadata, mediaOverride: &tc.media, chunked: tc.chunked}
+			client := bucketTestClient(t, provider)
+			maximum := gcsProviderMaximum(t, 1)
+			request := GCSListRequest{Bucket: parsedGCSBucket(t, gcsProviderBucketText), Prefix: parsedGCSObjectPrefix(t, "users/01/evidence/"), MaxObjects: maximum}
+			var listed GCSObjectMetadata
+			var visits int
+			err := ListGCSObjects(t.Context(), client, request, func(value GCSObjectMetadata) error { listed = value; visits++; return nil })
+			if err != nil || visits != 1 || listed.Validate() != nil || listed.Length().Uint64() != uint64(len(tc.metadata)) {
+				t.Fatalf("ListGCSObjects = (%v, %d, %v), want one validated exact extent %d", listed, visits, err, len(tc.metadata))
+			}
+			var destination bytes.Buffer
+			got, gotErr := ReadListedGCSObject(t.Context(), client, GCSListedReadRequest{Destination: &destination, Object: listed, Maximum: gcsProviderMaximum(t, uint64(max(1, len(tc.metadata))))})
+			if !errors.Is(gotErr, tc.wantErr) || destination.Len() > len(tc.metadata) {
+				t.Fatalf("ReadListedGCSObject = (%v, %d bytes, %v), want bounded %d and %v", got, destination.Len(), gotErr, len(tc.metadata), tc.wantErr)
+			}
+			if tc.wantErr != nil {
+				if got != (GCSObjectMetadata{}) {
+					t.Fatalf("rejected listed read = %v, want zero proof", got)
+				}
+				return
+			}
+			if got != listed || !bytes.Equal(destination.Bytes(), tc.media) {
+				t.Fatalf("listed read = (%v, %v), want (%v, %v)", got, destination.Bytes(), listed, tc.media)
+			}
+		})
+	}
 }

@@ -1,0 +1,73 @@
+{
+  "release": "v2026.1.26",
+  "authorization": "User supplied reviewed slice f0073b5f; both review comments were resolved, then user explicitly instructed bump commit push.",
+  "reports": [
+    {
+      "path": "/home/d/code/primitive/_docs/linux_read_regressions_20260909.md",
+      "bytes": 10696,
+      "sha256": "48ed1552a322004720a27928d29424518e86edf6f1aa9f1f578780fc959cc140"
+    },
+    {
+      "path": "/home/d/code/primitive/_docs/linux_read_regressions_20260909_evidence.json",
+      "bytes": 155492,
+      "sha256": "9f18aba4a7d415bd88dd05292a593dc3ee5039e7e5ff03d5e759539fbbd3fdcb"
+    },
+    {
+      "path": "/home/d/code/primitive/_docs/linux_read_regressions_20260909_review_followup.json",
+      "bytes": 5382,
+      "sha256": "cadfb277803d4a84989f355fab38c39ae09c18fe57c382023e2d3edee71d012d"
+    }
+  ],
+  "coordinate_check": {
+    "command": [
+      "go",
+      "test",
+      "-json",
+      "-count=1",
+      "./compass",
+      "./version"
+    ],
+    "base_commit": "c7dcf14acc6d7d6633fe335c96a24366421dceda",
+    "source_state": "M compass/config.json\n M deploy/release_hostile_test.go\n M distribution/fixture_test.go\n M gcsobjects/architecture_test.go\n M gcsobjects/client.go\n M gcsobjects/client_provider_hostile_test.go\n M gcsobjects/list_hostile_test.go\n M gcsobjects/request_hostile_test.go\n M runnercontrol/subject_run_unix_external_test.go\n?? _docs/linux_read_regressions_20260909.md\n?? _docs/linux_read_regressions_20260909_evidence.json\n?? _docs/linux_read_regressions_20260909_review_followup.json\n?? _docs/release_v2026.1.26.md\n?? gcsobjects/read_benchmark_test.go\n?? gcsobjects/read_stream_fuzz_test.go\n?? gcsobjects/read_stream_regression_test.go",
+    "source_inventory_count": 4368,
+    "source_inventory_sha256": "9bcb7fd40dfe7cf66d7cb8d1fdaf3840a6794c250aa0d29cc66a75d83d9239c5",
+    "record": {
+      "path": "/home/d/engineering-evidence/primitive/linux-repair/release-v2026-1-26-coordinates/result.json",
+      "bytes": 760393,
+      "sha256": "a577735e44c2163ff100858aa624998c4408181f00358325f8f4f2a248880532"
+    },
+    "artifacts": [
+      {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/release-v2026-1-26-coordinates/started.json",
+        "bytes": 758713,
+        "sha256": "a9d15873c317ba5aa4b1bee9498bed6d424be4c3633b063ad569cd2a7769448a"
+      },
+      {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/release-v2026-1-26-coordinates/source.patch",
+        "bytes": 25229,
+        "sha256": "39f7b26bb4ba8ab64a914efec2888d242b6d0a71dc613995b8c81adcd416e653"
+      },
+      {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/release-v2026-1-26-coordinates/stdout",
+        "bytes": 139037,
+        "sha256": "e21d64af8f8f72ed07b4eb8b3057c16bee1e28f3338301f4b41b00e128c3c90b"
+      },
+      {
+        "path": "/home/d/engineering-evidence/primitive/linux-repair/release-v2026-1-26-coordinates/stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "toolchain": "go version go1.27.1 linux/amd64",
+    "environment": {
+      "GOWORK": "off",
+      "GOMAXPROCS": "8"
+    },
+    "counts": {
+      "pass": 72
+    },
+    "exit": 0
+  },
+  "validation_scope": "Existing full Linux race evidence: 61 passing packages and four explicitly skipped tests; scoped analyzers, GCS Witness and complexity, public read fuzzing and profiled benchmark pair. Post-review edits only comments and import grouping; fresh Compass/Version tests verify the release coordinate.",
+  "raw_evidence_policy": "Raw profiles, binaries, logs and snapshots remain outside Git on the server."
+}

@@ -13,6 +13,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -244,6 +246,7 @@ const (
 )
 
 type gcsReadCase struct {
+	chunked       bool
 	name          string
 	payload       []byte
 	metadataBytes []byte
@@ -254,6 +257,7 @@ type gcsReadCase struct {
 }
 
 type gcsReadProvider struct {
+	chunked       bool
 	t             testing.TB
 	payload       []byte
 	metadataBytes []byte
@@ -273,6 +277,11 @@ func TestAuthenticatedGCSReadsExecuteTheOfficialSDKAndProveEveryByte(t *testing.
 		{name: "caller digest differs from provider bytes", payload: gcsProviderPayload, metadataBytes: gcsProviderPayload, wantBytes: append([]byte("x"), gcsProviderPayload[1:]...), maximum: uint64(len(gcsProviderPayload)), disposition: gcsReadAvailable, wantErr: core.ErrObjectStoreIntegrity},
 		{name: "provider body is shorter than metadata", payload: short, metadataBytes: gcsProviderPayload, wantBytes: gcsProviderPayload, maximum: uint64(len(gcsProviderPayload)), disposition: gcsReadAvailable, wantErr: core.ErrObjectStoreIntegrity},
 		{name: "provider body is longer than metadata", payload: long, metadataBytes: gcsProviderPayload, wantBytes: gcsProviderPayload, maximum: uint64(len(gcsProviderPayload)), disposition: gcsReadAvailable, wantErr: core.ErrObjectStoreIntegrity},
+		{name: "empty metadata cannot hide one provider byte", payload: []byte{0x7f}, disposition: gcsReadAvailable, wantErr: core.ErrObjectStoreIntegrity},
+		{name: "chunked exact object proves terminal EOF", chunked: true, payload: gcsProviderPayload, metadataBytes: gcsProviderPayload, wantBytes: gcsProviderPayload, maximum: uint64(len(gcsProviderPayload)), disposition: gcsReadAvailable},
+		{name: "chunked empty object proves no payload", chunked: true, disposition: gcsReadAvailable},
+		{name: "chunked extra byte cannot hide beyond expected prefix", chunked: true, payload: long, metadataBytes: gcsProviderPayload, wantBytes: gcsProviderPayload, maximum: uint64(len(gcsProviderPayload)), disposition: gcsReadAvailable, wantErr: core.ErrObjectStoreIntegrity},
+		{name: "chunked short body cannot issue complete proof", chunked: true, payload: short, metadataBytes: gcsProviderPayload, wantBytes: gcsProviderPayload, maximum: uint64(len(gcsProviderPayload)), disposition: gcsReadAvailable, wantErr: core.ErrObjectStoreIntegrity},
 		{name: "missing media retains source and absence identities", wantBytes: gcsProviderPayload, maximum: uint64(len(gcsProviderPayload)), disposition: gcsReadMediaAbsent, wantErr: core.ErrObjectStoreAbsent},
 		{name: "missing generation metadata retains absence identity", payload: gcsProviderPayload, metadataBytes: gcsProviderPayload, wantBytes: gcsProviderPayload, maximum: uint64(len(gcsProviderPayload)), disposition: gcsReadMetadataAbsent, wantErr: core.ErrObjectStoreAbsent},
 	}
@@ -280,9 +289,10 @@ func TestAuthenticatedGCSReadsExecuteTheOfficialSDKAndProveEveryByte(t *testing.
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			provider := &gcsReadProvider{t: t, payload: tc.payload, metadataBytes: tc.metadataBytes, disposition: tc.disposition}
+			provider := &gcsReadProvider{t: t, chunked: tc.chunked, payload: tc.payload, metadataBytes: tc.metadataBytes, disposition: tc.disposition}
 			client := bucketTestClient(t, provider)
-			destination, root := gcsReadStageDestination(t, tc.maximum)
+			directory := t.TempDir()
+			destination, root := gcsReadStageDestination(t, directory, tc.maximum)
 			got, gotErr := ReadGCSObject(context.Background(), client, GCSReadRequest{
 				Destination: destination, Bucket: parsedGCSBucket(t, gcsProviderBucketText),
 				Name:      parsedGCSObjectName(t, gcsProviderObjectText),
@@ -321,9 +331,9 @@ func TestAuthenticatedGCSReadsExecuteTheOfficialSDKAndProveEveryByte(t *testing.
 	}
 }
 
-func gcsReadStageDestination(t testing.TB, expected uint64) (filestore.StageDestinationRequest, *os.Root) {
+func gcsReadStageDestination(t testing.TB, directory string, expected uint64) (filestore.StageDestinationRequest, *os.Root) {
 	t.Helper()
-	absolute, err := core.ParseAbsolutePath(t.TempDir())
+	absolute, err := core.ParseAbsolutePath(directory)
 	if err != nil {
 		t.Fatalf("core.ParseAbsolutePath(stage root) error = %v, want nil", err)
 	}
@@ -331,7 +341,11 @@ func gcsReadStageDestination(t testing.TB, expected uint64) (filestore.StageDest
 	if err != nil {
 		t.Fatalf("filestore.OpenRoot(stage root) error = %v, want nil", err)
 	}
-	t.Cleanup(func() { _ = root.Close() })
+	t.Cleanup(func() {
+		if err := root.Close(); err != nil {
+			t.Errorf("Close(stage root) error = %v, want nil", err)
+		}
+	})
 	path, err := core.ParseRelativePath("download.stage")
 	if err != nil {
 		t.Fatalf("core.ParseRelativePath(download.stage) error = %v, want nil", err)
@@ -375,10 +389,10 @@ func (p *gcsReadProvider) ServeHTTP(writer http.ResponseWriter, incoming *http.R
 		writeGoogleAPIError(writer, http.StatusNotFound)
 		return
 	}
-	writeGCSMediaResponse(p.t, writer, p.payload)
+	writeGCSMediaResponseFraming(p.t, writer, p.payload, p.chunked)
 }
 
-func writeGCSMediaResponse(t testing.TB, writer http.ResponseWriter, payload []byte) {
+func writeGCSMediaResponseFraming(t testing.TB, writer http.ResponseWriter, payload []byte, chunked bool) {
 	t.Helper()
 	integrity := gcsProviderIntegrity(t, payload, payload)
 	checksum, err := integrity.CRC32C.Base64()
@@ -393,7 +407,16 @@ func writeGCSMediaResponse(t testing.TB, writer http.ResponseWriter, payload []b
 	writer.Header().Set("X-Goog-Generation", "1786000000000001")
 	writer.Header().Set("X-Goog-Metageneration", "1")
 	writer.Header().Set("X-Goog-Hash", "crc32c="+checksum)
+	if !chunked {
+		writer.Header().Set("Content-Length", strconv.Itoa(len(payload)))
+	}
 	writer.WriteHeader(http.StatusOK)
+	if chunked {
+		if err := http.NewResponseController(writer).Flush(); err != nil {
+			t.Errorf("Flush(chunked headers) error = %v, want nil", err)
+			return
+		}
+	}
 	if _, err := writer.Write(payload); err != nil {
 		t.Errorf("provider media response error = %v, want nil", err)
 	}
@@ -548,9 +571,11 @@ func TestGCSClientConstructorAndCloseOwnTheSDKLifecycle(t *testing.T) {
 		Scope:  core.TestIsolationScopePackageProcess,
 	})
 
-	server := httptest.NewServer(http.NotFoundHandler())
+	directory := t.TempDir()
+	server := httptest.NewServer(gcsCredentialTestHandler(t, http.NotFoundHandler()))
 	t.Cleanup(server.Close)
 	t.Setenv("STORAGE_EMULATOR_HOST", server.URL)
+	t.Setenv("GOOGLE_APPLICATION_CREDENTIALS", gcsLocalCredentialFile(t, directory, server.URL))
 
 	client, gotErr := NewGCSClient(context.Background(), GCSClientConfig{
 		Authentication: GCSAuthenticationApplicationDefault,
@@ -582,12 +607,14 @@ func TestGCSClientDisablesOfficialSDKRetryForOneProviderExecutionPolicy(t *testi
 	})
 
 	var gotCalls atomic.Int64
-	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+	directory := t.TempDir()
+	server := httptest.NewServer(gcsCredentialTestHandler(t, http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
 		gotCalls.Add(1)
 		writeGoogleAPIError(writer, http.StatusServiceUnavailable)
-	}))
+	})))
 	t.Cleanup(server.Close)
 	t.Setenv("STORAGE_EMULATOR_HOST", server.URL)
+	t.Setenv("GOOGLE_APPLICATION_CREDENTIALS", gcsLocalCredentialFile(t, directory, server.URL))
 
 	client, gotClientErr := NewGCSClient(context.Background(), GCSClientConfig{
 		Authentication: GCSAuthenticationApplicationDefault,
@@ -704,3 +731,62 @@ func writeGoogleAPIError(writer http.ResponseWriter, status int) {
 var _ http.Handler = (*gcsUploadProvider)(nil)
 var _ http.Handler = (*gcsReadProvider)(nil)
 var _ http.Handler = (*gcsDeleteProvider)(nil)
+
+// Only this local endpoint can issue the synthetic credential's bearer token.
+func gcsCredentialTestHandler(t testing.TB, provider http.Handler) http.Handler {
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.URL.Path != "/token" {
+			provider.ServeHTTP(writer, request)
+			return
+		}
+		writer.Header().Set("Content-Type", "application/json")
+		response := struct {
+			AccessToken string `json:"access_token"`
+			TokenType   string `json:"token_type"`
+			ExpiresIn   int    `json:"expires_in"`
+		}{AccessToken: "local-test-token", TokenType: "Bearer", ExpiresIn: 3600}
+		if err := json.MarshalWrite(writer, response); err != nil {
+			t.Errorf("write token response error = %v, want nil", err)
+		}
+	})
+}
+
+func gcsLocalCredentialFile(t testing.TB, directory, endpoint string) string {
+	t.Helper()
+	var document gcsServiceAccountCredentialDocument
+	if err := json.Unmarshal(canonicalGCSServiceAccountCredential(t), &document); err != nil {
+		t.Fatalf("decode typed credential fixture error = %v, want nil", err)
+	}
+	document.TokenURI = endpoint + "/token"
+	encoded, err := json.Marshal(document)
+	if err != nil {
+		t.Fatalf("encode local credential error = %v, want nil", err)
+	}
+	path := filepath.Join(directory, "credential.json")
+	absolute, err := core.ParseAbsolutePath(path)
+	if err != nil {
+		t.Fatalf("ParseAbsolutePath(credential) error = %v, want nil", err)
+	}
+	location, err := filestore.OpenParent(t.Context(), absolute)
+	if err != nil {
+		t.Fatalf("OpenParent(credential) error = %v, want nil", err)
+	}
+	defer func() {
+		if err := location.Root.Close(); err != nil {
+			t.Errorf("Close(credential root) error = %v, want nil", err)
+		}
+	}()
+	temporary, err := core.ParseRelativePath("credential.tmp")
+	if err != nil {
+		t.Fatalf("ParseRelativePath(credential temporary) error = %v, want nil", err)
+	}
+	maximum, err := core.NewByteCount(uint64(len(encoded)))
+	if err != nil {
+		t.Fatalf("NewByteCount(credential) error = %v, want nil", err)
+	}
+	_, err = filestore.Write(t.Context(), filestore.WriteRequest{Source: bytes.NewReader(encoded), Location: location, Temporary: temporary, Mode: 0o600, Install: filestore.InstallCreate, MaximumBytes: maximum})
+	if err != nil {
+		t.Fatalf("Write(credential) error = %v, want nil", err)
+	}
+	return path
+}
