@@ -3,6 +3,7 @@ package id
 import (
 	"encoding"
 	"errors"
+	"strings"
 	"uuid"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -11,8 +12,8 @@ import (
 const (
 	// uuidTextBytes is the exact extent of the one canonical spelling.
 	uuidTextBytes = 36
-	// uuidCompactBytes is that spelling with its four dashes removed.
-	uuidCompactBytes = 32
+	// uuidUppercaseHexDigits are the noncanonical hexadecimal spellings Go accepts.
+	uuidUppercaseHexDigits = "ABCDEF"
 )
 
 // UUIDv7 is one canonical RFC 9562 version 7 value: the observation's Unix
@@ -63,11 +64,11 @@ const uuidOutsideCanonicalFormDiagnostic = "uuid text is outside the canonical f
 // padded spellings are refused, because a persisted identity has one
 // spelling or it is not this identity.
 func ParseUUIDv7(value string) (UUIDv7, error) {
-	if _, ok := compactCanonicalUUIDText(value); !ok {
+	if len(value) != uuidTextBytes || strings.ContainsAny(value, uuidUppercaseHexDigits) {
 		return UUIDv7{}, contractError(uuidOutsideCanonicalFormDiagnostic)
 	}
 	parsed, err := uuid.Parse(value)
-	if err != nil || parsed.String() != value {
+	if err != nil {
 		return UUIDv7{}, contractCause(uuidOutsideCanonicalFormDiagnostic, err)
 	}
 	candidate := UUIDv7{value: parsed}
@@ -77,40 +78,6 @@ func ParseUUIDv7(value string) (UUIDv7, error) {
 	return candidate, nil
 }
 
-// compactCanonicalUUIDText strips the four fixed dashes and refuses every
-// spelling that is not the lowercase canonical form.
-func compactCanonicalUUIDText(value string) ([uuidCompactBytes]byte, bool) {
-	var compact [uuidCompactBytes]byte
-	if len(value) != uuidTextBytes || !uuidDashesPlaced(value) {
-		return compact, false
-	}
-	index := 0
-	for position := range uuidTextBytes {
-		if uuidDashPosition(position) {
-			continue
-		}
-		character := value[position]
-		if character >= 'A' && character <= 'F' {
-			return compact, false
-		}
-		compact[index] = character
-		index++
-	}
-	return compact, true
-}
-
-// uuidDashesPlaced reports the four canonical separator positions hold dashes.
-func uuidDashesPlaced(value string) bool {
-	return value[8] == '-' && value[13] == '-' && value[18] == '-' && value[23] == '-'
-}
-
-// uuidDashPosition reports whether position is one of the four separators.
-func uuidDashPosition(position int) bool {
-	return position == 8 || position == 13 || position == 18 || position == 23
-}
-
-// canonicalText spells the value into one stack-owned canonical form shared
-// by String and AppendText, so the spelling has exactly one implementation.
 // String returns the canonical lowercase spelling, or the empty string for a
 // value that fails its own contract.
 func (u UUIDv7) String() string {
@@ -164,6 +131,9 @@ func (u UUIDv7) MarshalJSON() ([]byte, error) {
 func (u *UUIDv7) UnmarshalJSON(data []byte) error {
 	if u == nil {
 		return errors.Join(core.ErrJSONContract, contractError("nil uuid receiver"))
+	}
+	if len(data) > UUIDv7JSONMaximumBytes {
+		return jsonContractCause(identityJSONLengthDiagnostic, nil)
 	}
 	value, err := core.DecodeJSONStringToken(data)
 	if err != nil {

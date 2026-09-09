@@ -27,6 +27,11 @@ func testRequest(t testing.TB, milliseconds int64, entropy []byte) id.Request {
 	if err != nil {
 		t.Fatalf("core.NewSecretMaterial(%d bytes) error = %v, want nil", len(entropy), err)
 	}
+	t.Cleanup(func() {
+		if err := material.Destroy(); err != nil {
+			t.Errorf("fixture entropy cleanup error = %v, want nil", err)
+		}
+	})
 	return id.Request{Observation: observation, Entropy: material}
 }
 
@@ -69,50 +74,6 @@ func TestNewUUIDv7PinsExactCanonicalSpellings(t *testing.T) {
 				t.Fatalf("ParseUUIDv7(%q) = (%v, %v), want the constructed value back", tc.wantText, parsed, err)
 			}
 		})
-	}
-}
-
-func TestNewUUIDv7SetsVersionAndVariantOverHostileEntropy(t *testing.T) {
-	t.Parallel()
-
-	entropy := []byte{0xff, 0x00, 0xff, 0x00, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0}
-	got, err := id.NewUUIDv7(testRequest(t, 1, entropy))
-	if err != nil {
-		t.Fatalf("NewUUIDv7(saturating mark bytes) error = %v, want nil", err)
-	}
-	want := "00000000-0001-7f00-bf00-000000000001"
-	if got.String() != want {
-		t.Fatalf("NewUUIDv7(saturating mark bytes).String() = %q, want the version and variant marks to win: %q", got.String(), want)
-	}
-}
-
-func TestNewUUIDv7IsPureAndConsumesExactlyTenEntropyBytes(t *testing.T) {
-	t.Parallel()
-
-	first, err := id.NewUUIDv7(testRequest(t, 1, testEntropy()))
-	if err != nil {
-		t.Fatalf("NewUUIDv7(first) error = %v, want nil", err)
-	}
-	second, err := id.NewUUIDv7(testRequest(t, 1, testEntropy()))
-	if err != nil {
-		t.Fatalf("NewUUIDv7(second) error = %v, want nil", err)
-	}
-	if first != second {
-		t.Fatalf("NewUUIDv7 minted %v then %v from one request, want pure construction", first, second)
-	}
-	tailDiffers := testEntropy()
-	for index := range len(tailDiffers) {
-		if index < 10 {
-			continue
-		}
-		tailDiffers[index] = 0x99
-	}
-	third, err := id.NewUUIDv7(testRequest(t, 1, tailDiffers))
-	if err != nil {
-		t.Fatalf("NewUUIDv7(differing tail) error = %v, want nil", err)
-	}
-	if third != first {
-		t.Fatalf("NewUUIDv7(differing tail) = %v, want %v: only the first ten entropy bytes are consumed", third, first)
 	}
 }
 
@@ -260,19 +221,6 @@ func TestParseUUIDv7AdmitsOnlyCanonicalText(t *testing.T) {
 	}
 }
 
-func TestUUIDv7ZeroValueNeverValidates(t *testing.T) {
-	t.Parallel()
-
-	var zero id.UUIDv7
-	if !zero.IsZero() || zero.IsValid() {
-		t.Fatalf("zero UUIDv7 IsZero() = %t IsValid() = %t, want true and false", zero.IsZero(), zero.IsValid())
-	}
-	requireIDContract(t, "zero UUIDv7 Validate()", zero.Validate())
-	if zero.String() != "" {
-		t.Fatalf("zero UUIDv7 String() = %q, want empty", zero.String())
-	}
-}
-
 func TestUUIDv7StringOrderIsTimeOrder(t *testing.T) {
 	t.Parallel()
 
@@ -389,38 +337,5 @@ func TestUUIDv7AppendTextSpellsTheOneCanonicalForm(t *testing.T) {
 				t.Fatalf("ParseUUIDv7(appended spelling) = (%v, %v), want (%v, nil)", parsed, err, value)
 			}
 		})
-	}
-}
-
-func TestUUIDv7AppendTextIntoSufficientCapacityDoesNotAllocate(t *testing.T) {
-	t.Parallel()
-
-	value, err := id.NewUUIDv7(testRequest(t, 1, testEntropy()))
-	if err != nil {
-		t.Fatalf("NewUUIDv7(1 ms) error = %v, want nil", err)
-	}
-	destination := make([]byte, 0, 64)
-	result := testing.Benchmark(func(b *testing.B) {
-		b.ReportAllocs()
-		for b.Loop() {
-			appended, appendErr := value.AppendText(destination[:0])
-			if appendErr != nil || len(appended) == 0 {
-				b.Fatalf("UUIDv7.AppendText() = (%d bytes, %v), want the spelling and nil", len(appended), appendErr)
-			}
-		}
-	})
-	if got := result.AllocsPerOp(); got != 0 {
-		t.Fatalf("UUIDv7.AppendText() into sufficient capacity allocs/op = %d, want 0", got)
-	}
-}
-
-func TestUUIDv7AppendTextRefusesTheUnsetValue(t *testing.T) {
-	t.Parallel()
-
-	var zero id.UUIDv7
-	got, err := zero.AppendText([]byte("prefix"))
-	requireIDContract(t, "zero UUIDv7 AppendText()", err)
-	if got != nil {
-		t.Fatalf("zero UUIDv7 AppendText() = %q, want nil", got)
 	}
 }

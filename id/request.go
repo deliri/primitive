@@ -40,12 +40,12 @@ type Request struct {
 	Observation temporal.Observation
 }
 
-// Validate rejects an observation whose wall projection is invalid and
+// Validate rejects an invalid or pre-epoch wall projection and
 // entropy that is not exactly the keygen minimum secret extent, so every
 // request in the fleet has one spelling: temporal.Observe beside
 // keygen.GenerateSecret of core.SecretMaterialMinimumBytes.
 func (r Request) Validate() error {
-	if err := r.Observation.Validate(); err != nil {
+	if _, err := observedMilliseconds(r.Observation); err != nil {
 		return contractCause("request observation is invalid", err)
 	}
 	if err := r.Entropy.Validate(); err != nil {

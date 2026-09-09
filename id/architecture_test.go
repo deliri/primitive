@@ -1,15 +1,17 @@
 package id
 
 import (
+	"embed"
+	"github.com/deliri/primitive/v2026/temporal"
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"os"
-	"path/filepath"
+	"reflect"
 	"slices"
 	"strconv"
 	"strings"
 	"testing"
+	"uuid"
 
 	"github.com/deliri/primitive/v2026/core"
 )
@@ -33,7 +35,7 @@ var _ = idContractInventory{}
 func TestIDProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T) {
 	t.Parallel()
 
-	gotScan, gotErr := scanIDArchitecture(".")
+	gotScan, gotErr := scanIDArchitecture()
 	if gotErr != nil {
 		t.Fatalf("scanIDArchitecture() error = %v, want nil", gotErr)
 	}
@@ -49,11 +51,13 @@ func TestIDProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T) {
 func TestIDExactPublicSurfaceFieldsAndNoAliases(t *testing.T) {
 	t.Parallel()
 
-	gotScan, gotErr := scanIDArchitecture(".")
+	gotScan, gotErr := scanIDArchitecture()
 	if gotErr != nil {
 		t.Fatalf("scanIDArchitecture() error = %v, want nil", gotErr)
 	}
 	wantSurface := []string{
+		"const ULIDJSONMaximumBytes",
+		"const UUIDv7JSONMaximumBytes",
 		"func NewULID",
 		"func NewULIDFromBytes",
 		"func NewUUIDv7",
@@ -91,14 +95,13 @@ func TestIDExactPublicSurfaceFieldsAndNoAliases(t *testing.T) {
 	}
 }
 
-// TestIDProductionImportsProvePureValueConstruction pins the whole point of
-// the package: no clock, no entropy source, no effect substrate of any kind
-// can be reached from production code, because the import set cannot express
-// one.
-func TestIDProductionImportsProvePureValueConstruction(t *testing.T) {
+// The import inventory limits dependencies. The separate UUID selector
+// inventory is necessary because the same stdlib package also exposes clock
+// and entropy generators that ID must never invoke.
+func TestIDProductionImportsStayWithinOwnedBoundaries(t *testing.T) {
 	t.Parallel()
 
-	gotScan, gotErr := scanIDArchitecture(".")
+	gotScan, gotErr := scanIDArchitecture()
 	if gotErr != nil {
 		t.Fatalf("scanIDArchitecture() error = %v, want nil", gotErr)
 	}
@@ -123,7 +126,7 @@ func TestIDProductionImportsProvePureValueConstruction(t *testing.T) {
 func TestIDProductionOwnsNoMapBasedProtocolOrState(t *testing.T) {
 	t.Parallel()
 
-	gotScan, gotErr := scanIDArchitecture(".")
+	gotScan, gotErr := scanIDArchitecture()
 	if gotErr != nil {
 		t.Fatalf("scanIDArchitecture() error = %v, want nil", gotErr)
 	}
@@ -213,12 +216,12 @@ func TestIDArchitectureMatcherClassifiesSyntheticBoundaries(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			root := t.TempDir()
-			path := filepath.Join(root, "synthetic.go")
-			if gotErr := os.WriteFile(path, []byte(tc.code), 0o600); gotErr != nil {
-				t.Fatalf("os.WriteFile(%q) error = %v, want nil", path, gotErr)
+			file, gotErr := parser.ParseFile(token.NewFileSet(), "synthetic.go", tc.code, parser.SkipObjectResolution)
+			var got idArchitectureScan
+			if gotErr == nil {
+				scanIDFile("synthetic.go", file, &got)
+				sortIDArchitectureScan(&got)
 			}
-			got, gotErr := scanIDArchitecture(root)
 			if gotErr != nil {
 				t.Fatalf("scanIDArchitecture(synthetic) error = %v, want nil", gotErr)
 			}
@@ -230,29 +233,30 @@ func TestIDArchitectureMatcherClassifiesSyntheticBoundaries(t *testing.T) {
 }
 
 type idArchitectureScan struct {
-	structs        []string
-	surface        []string
-	exportedFields []string
-	aliases        []string
-	imports        []string
-	importAliases  []string
-	maps           []string
+	structs         []string
+	surface         []string
+	exportedFields  []string
+	aliases         []string
+	imports         []string
+	importAliases   []string
+	maps            []string
+	uuidMembers     []string
+	temporalMembers []string
 }
 
-func scanIDArchitecture(root string) (idArchitectureScan, error) {
-	files, err := idProductionGoFiles(root)
+func scanIDArchitecture() (idArchitectureScan, error) {
+	files, err := idProductionGoFiles()
 	if err != nil {
 		return idArchitectureScan{}, err
 	}
 	var scan idArchitectureScan
 	fileSet := token.NewFileSet()
 	for _, name := range files {
-		file, parseErr := parser.ParseFile(
-			fileSet,
-			filepath.Join(root, name),
-			nil,
-			parser.SkipObjectResolution,
-		)
+		source, readErr := idSources.ReadFile(name)
+		if readErr != nil {
+			return idArchitectureScan{}, readErr
+		}
+		file, parseErr := parser.ParseFile(fileSet, name, source, parser.SkipObjectResolution)
 		if parseErr != nil {
 			return idArchitectureScan{}, parseErr
 		}
@@ -273,6 +277,14 @@ func scanIDFile(name string, file *ast.File, scan *idArchitectureScan) {
 		}
 	}
 	ast.Inspect(file, func(node ast.Node) bool {
+		if selector, ok := node.(*ast.SelectorExpr); ok {
+			if qualifier, ok := selector.X.(*ast.Ident); ok && qualifier.Name == "temporal" && !slices.Contains(scan.temporalMembers, selector.Sel.Name) {
+				scan.temporalMembers = append(scan.temporalMembers, selector.Sel.Name)
+			}
+			if qualifier, ok := selector.X.(*ast.Ident); ok && qualifier.Name == "uuid" && !slices.Contains(scan.uuidMembers, selector.Sel.Name) {
+				scan.uuidMembers = append(scan.uuidMembers, selector.Sel.Name)
+			}
+		}
 		if _, ok := node.(*ast.MapType); ok {
 			scan.maps = append(scan.maps, name)
 		}
@@ -370,6 +382,8 @@ func sortIDArchitectureScan(scan *idArchitectureScan) {
 	slices.Sort(scan.imports)
 	slices.Sort(scan.importAliases)
 	slices.Sort(scan.maps)
+	slices.Sort(scan.uuidMembers)
+	slices.Sort(scan.temporalMembers)
 }
 
 func idArchitectureScansEqual(got idArchitectureScan, want idArchitectureScan) bool {
@@ -379,11 +393,11 @@ func idArchitectureScansEqual(got idArchitectureScan, want idArchitectureScan) b
 		slices.Equal(got.aliases, want.aliases) &&
 		slices.Equal(got.imports, want.imports) &&
 		slices.Equal(got.importAliases, want.importAliases) &&
-		slices.Equal(got.maps, want.maps)
+		slices.Equal(got.maps, want.maps) && slices.Equal(got.uuidMembers, want.uuidMembers) && slices.Equal(got.temporalMembers, want.temporalMembers)
 }
 
-func idProductionGoFiles(root string) ([]string, error) {
-	entries, err := os.ReadDir(root)
+func idProductionGoFiles() ([]string, error) {
+	entries, err := idSources.ReadDir(".")
 	if err != nil {
 		return nil, err
 	}
@@ -400,12 +414,19 @@ func idProductionGoFiles(root string) ([]string, error) {
 	return files, nil
 }
 
+//go:embed *.go
+var idSources embed.FS
+
 func classifiedIDStructs() ([]string, error) {
+	source, readErr := idSources.ReadFile("architecture_test.go")
+	if readErr != nil {
+		return nil, readErr
+	}
 	fileSet := token.NewFileSet()
 	file, err := parser.ParseFile(
 		fileSet,
 		"architecture_test.go",
-		nil,
+		source,
 		parser.SkipObjectResolution,
 	)
 	if err != nil {
@@ -436,4 +457,97 @@ func classifiedIDStructs() ([]string, error) {
 		}
 	}
 	return nil, core.ErrIDContract
+}
+
+type idUUIDPureAPIs struct {
+	UUID  uuid.UUID
+	Parse func(string) (uuid.UUID, error)
+	Nil   func() uuid.UUID
+}
+
+var _ = idUUIDPureAPIs{Parse: uuid.Parse, Nil: uuid.Nil}
+
+func TestIDStandardUUIDAPIsRemainPure(t *testing.T) {
+	t.Parallel()
+	scan, err := scanIDArchitecture()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var want []string
+	for field := range reflect.TypeFor[idUUIDPureAPIs]().Fields() {
+		want = append(want, field.Name)
+	}
+	slices.Sort(want)
+	if !slices.Equal(scan.uuidMembers, want) {
+		t.Fatalf("stdlib UUID members=%q, want only compiled pure APIs %q", scan.uuidMembers, want)
+	}
+}
+
+func TestIDUUIDSelectorMatcherDetectsEffectfulGenerators(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct{ name, source, member string }{
+		{"clock and entropy", "package p;func mint(){_ = uuid.NewV7()}", "NewV7"},
+		{"entropy", "package p;func mint(){_ = uuid.NewV4()}", "NewV4"},
+		{"default generator", "package p;func mint(){_ = uuid.New()}", "New"},
+		{"captured generator", "package p;var mint = uuid.NewV7", "NewV7"},
+		{"pure parse", "package p;func parse(){_,_ = uuid.Parse(\"\")}", "Parse"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			file, err := parser.ParseFile(token.NewFileSet(), "synthetic.go", tc.source, parser.SkipObjectResolution)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var scan idArchitectureScan
+			scanIDFile("synthetic.go", file, &scan)
+			if !slices.Equal(scan.uuidMembers, []string{tc.member}) {
+				t.Fatalf("UUID member scan=%q, want %q", scan.uuidMembers, tc.member)
+			}
+		})
+	}
+}
+
+type idTemporalPureAPIs struct {
+	Observation               temporal.Observation
+	NanosecondsPerMillisecond uint64
+}
+
+var _ = idTemporalPureAPIs{NanosecondsPerMillisecond: temporal.NanosecondsPerMillisecond}
+
+func TestIDTemporalAPIsRemainPure(t *testing.T) {
+	t.Parallel()
+	scan, err := scanIDArchitecture()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var want []string
+	for field := range reflect.TypeFor[idTemporalPureAPIs]().Fields() {
+		want = append(want, field.Name)
+	}
+	slices.Sort(want)
+	if !slices.Equal(scan.temporalMembers, want) {
+		t.Fatalf("Temporal members=%q, want only compiled data contracts %q", scan.temporalMembers, want)
+	}
+}
+
+func TestIDTemporalSelectorMatcherDetectsClockAcquisition(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct{ name, source, want string }{
+		{"observe", "package p;func observe(){_,_=temporal.Observe()}", "Observe"},
+		{"captured observer", "package p;var observe=temporal.Observe", "Observe"},
+		{"data contract", "package p;var observation temporal.Observation", "Observation"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			file, err := parser.ParseFile(token.NewFileSet(), "synthetic.go", tc.source, parser.SkipObjectResolution)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var scan idArchitectureScan
+			scanIDFile("synthetic.go", file, &scan)
+			if !slices.Equal(scan.temporalMembers, []string{tc.want}) {
+				t.Fatalf("Temporal members=%q, want %q", scan.temporalMembers, tc.want)
+			}
+		})
+	}
 }

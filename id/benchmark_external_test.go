@@ -1,6 +1,7 @@
 package id_test
 
 import (
+	"bytes"
 	"errors"
 	"testing"
 
@@ -73,5 +74,139 @@ func BenchmarkULIDAppendTextReusedBuffer(b *testing.B) {
 	}
 	if string(last) != value.String() {
 		b.Fatalf("ULID.AppendText() = %q, want %q", last, value.String())
+	}
+}
+
+func BenchmarkNewUUIDv7(b *testing.B) {
+	b.ReportAllocs()
+	request := testRequest(b, 1, testEntropy())
+	want, err := id.NewUUIDv7(request)
+	if err != nil {
+		b.Fatal(err)
+	}
+	var got id.UUIDv7
+	for b.Loop() {
+		got, err = id.NewUUIDv7(request)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+	if got != want {
+		b.Fatalf("constructed identity = %v, want %v", got, want)
+	}
+}
+
+func BenchmarkUUIDv7JSON(b *testing.B) {
+	b.ReportAllocs()
+	value, err := id.NewUUIDv7(testRequest(b, 1, testEntropy()))
+	if err != nil {
+		b.Fatal(err)
+	}
+	wire, err := value.MarshalJSON()
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.Run("encode", func(b *testing.B) {
+		b.ReportAllocs()
+		var got []byte
+		var err error
+		for b.Loop() {
+			got, err = value.MarshalJSON()
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+		if !bytes.Equal(got, wire) {
+			b.Fatalf("JSON = %q, want %q", got, wire)
+		}
+	})
+	b.Run("decode", func(b *testing.B) {
+		b.ReportAllocs()
+		var got id.UUIDv7
+		for b.Loop() {
+			if err := got.UnmarshalJSON(wire); err != nil {
+				b.Fatal(err)
+			}
+		}
+		if got != value {
+			b.Fatalf("decoded identity = %v, want %v", got, value)
+		}
+	})
+}
+
+func BenchmarkNewULID(b *testing.B) {
+	b.ReportAllocs()
+	request := testRequest(b, 1, testEntropy())
+	want, err := id.NewULID(request)
+	if err != nil {
+		b.Fatal(err)
+	}
+	var got id.ULID
+	for b.Loop() {
+		got, err = id.NewULID(request)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+	if got != want {
+		b.Fatalf("constructed identity = %v, want %v", got, want)
+	}
+}
+
+func BenchmarkULIDJSON(b *testing.B) {
+	b.ReportAllocs()
+	value, err := id.NewULID(testRequest(b, 1, testEntropy()))
+	if err != nil {
+		b.Fatal(err)
+	}
+	wire, err := value.MarshalJSON()
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.Run("encode", func(b *testing.B) {
+		b.ReportAllocs()
+		var got []byte
+		var err error
+		for b.Loop() {
+			got, err = value.MarshalJSON()
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+		if !bytes.Equal(got, wire) {
+			b.Fatalf("JSON = %q, want %q", got, wire)
+		}
+	})
+	b.Run("decode", func(b *testing.B) {
+		b.ReportAllocs()
+		var got id.ULID
+		for b.Loop() {
+			if err := got.UnmarshalJSON(wire); err != nil {
+				b.Fatal(err)
+			}
+		}
+		if got != value {
+			b.Fatalf("decoded identity = %v, want %v", got, value)
+		}
+	})
+}
+
+func BenchmarkUUIDv7AppendTextReusedBuffer(b *testing.B) {
+	b.ReportAllocs()
+	value, err := id.NewUUIDv7(testRequest(b, 1, testEntropy()))
+	if err != nil {
+		b.Fatal(err)
+	}
+	want := value.String()
+	destination := make([]byte, 0, len(want))
+	var got []byte
+	for b.Loop() {
+		got, err = value.AppendText(destination[:0])
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+	if string(got) != want {
+		b.Fatalf("appended text = %q, want %q", got, want)
 	}
 }

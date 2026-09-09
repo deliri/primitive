@@ -208,6 +208,9 @@ func (u *ULID) UnmarshalJSON(data []byte) error {
 	if u == nil {
 		return errors.Join(core.ErrJSONContract, contractError("nil ulid receiver"))
 	}
+	if len(data) > ULIDJSONMaximumBytes {
+		return jsonContractCause(identityJSONLengthDiagnostic, nil)
+	}
 	value, err := core.DecodeJSONStringToken(data)
 	if err != nil {
 		return jsonContractCause("decode ulid json", err)

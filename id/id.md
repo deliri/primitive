@@ -40,8 +40,8 @@ Crockford letters are refused, never corrected.
 ## When it refuses
 
 A request refuses entropy that is not exactly the keygen minimum secret
-extent and an observation whose wall projection is invalid. Construction
-refuses an instant before the epoch. The forty-eight-bit millisecond ceiling
+extent and an observation whose wall projection is invalid or precedes the
+epoch. Validate owns this rule before either construction path proceeds. The forty-eight-bit millisecond ceiling
 is a compile-time fact rather than a runtime branch, because temporal's
 exact nanosecond domain already fits inside it and a branch no caller can
 exercise proves nothing. Parse refuses any text that is not the one
@@ -53,3 +53,16 @@ Nowhere, deliberately. This is a pure value package: its inputs are typed
 products of temporal and keygen effects the caller already performed, and it
 has no effect leaf. The layering law is satisfied above it, at the doors that
 produced the inputs.
+
+## JSON input bounds
+
+UUIDv7JSONMaximumBytes and ULIDJSONMaximumBytes cap complete input at 218 and
+158 bytes respectively, before Core's strict JSON decoder reads it. Each bound
+admits the full canonical identifier encoded with every character as a JSON
+Unicode escape. Whitespace consumes that same budget. Refusal preserves both
+fresh and populated receivers and carries the Core JSON and ID identities.
+
+UUID decoding and rendering delegate directly to Go's uuid package. Primitive
+adds its lowercase, version-seven and variant admission contract. ULID keeps
+its fixed 128-bit Crockford projection; it has no clock, entropy generator,
+sequencer, mutable identity registry or replacement runtime.

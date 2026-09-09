@@ -1,0 +1,69 @@
+{
+  "release": "v2026.1.34",
+  "authorization": "User: go on, following ID review surface; interpreted explicitly as approval to release ID and start Distribution",
+  "release_parent": "a4fe42bbe45c9b05c9f176c8f400e91acfb1075b",
+  "reviewed_package_source_digest": "b097aa281d24ae88492eaf2364c3a6cf071a635776376f4991e99b56afdc6ce7",
+  "reviewed_package_sources_unchanged": true,
+  "reports": [
+    {
+      "path": "_docs/id_upgrade_20260909.md",
+      "bytes": 13986,
+      "sha256": "42d8215ea0fb41dd5118fa3f2094f5401168deca6506fd4f888742c3c853b139"
+    },
+    {
+      "path": "_docs/id_upgrade_20260909_evidence.json",
+      "bytes": 448708,
+      "sha256": "eef51776b907e107460c31eb97adbb8d453fd72afecb520daea0dacb9e245640"
+    }
+  ],
+  "coordinate_check": {
+    "args": [
+      "go",
+      "test",
+      "-json",
+      "-count=1",
+      "./compass",
+      "./version"
+    ],
+    "record": {
+      "path": "/home/d/engineering-evidence/primitive/id-upgrade-20260909/release-v2026-1-34-coordinates/result.json",
+      "bytes": 772768,
+      "sha256": "e030a673806ab77fa99d1be36efc81146c51a977b2d07adaa3bc6147db9cf08e"
+    },
+    "go": "go version go1.27.1 linux/amd64",
+    "environment": {
+      "GOWORK": "off",
+      "GOMAXPROCS": "8"
+    },
+    "exit": 0,
+    "counts": {
+      "pass": 72,
+      "fail": 0,
+      "skip": 0
+    },
+    "artifacts": [
+      {
+        "path": "/home/d/engineering-evidence/primitive/id-upgrade-20260909/release-v2026-1-34-coordinates/started.json",
+        "bytes": 771152,
+        "sha256": "5a43221b7afa7d0d05d3403585d7b7ab16bb529e3aca768f494ae363b9c354d9"
+      },
+      {
+        "path": "/home/d/engineering-evidence/primitive/id-upgrade-20260909/release-v2026-1-34-coordinates/source.patch",
+        "bytes": 63271,
+        "sha256": "6855f697c8b00908eac84c58d4952e5a3f3ec16f76d8c807bb506e2ce8a5b2eb"
+      },
+      {
+        "path": "/home/d/engineering-evidence/primitive/id-upgrade-20260909/release-v2026-1-34-coordinates/stdout",
+        "bytes": 139003,
+        "sha256": "984825e32fdd3286b17bd4d751e1ebd3cebe3c1ec4fda349119bb00f1735b8ea"
+      },
+      {
+        "path": "/home/d/engineering-evidence/primitive/id-upgrade-20260909/release-v2026-1-34-coordinates/stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ]
+  },
+  "scope": "Reviewed ID sources unchanged. Only release coordinate tests repeated. Distribution next. No full-module gates or consumer updates.",
+  "raw_evidence_policy": "Profiles, binaries, logs and source snapshots remain outside Git on Furnace."
+}
