@@ -48,6 +48,9 @@ func (v *Version) UnmarshalJSON(data []byte) error {
 	if v == nil {
 		return jsonError(errors.New("nil chit version receiver"))
 	}
+	if err := validateScalarJSONExtent(data); err != nil {
+		return err
+	}
 	var value uint64
 	if err := json.Unmarshal(data, &value); err != nil {
 		return jsonError(err)
@@ -95,7 +98,7 @@ func (p Payload) Validate() error {
 func (Payload) AttestationDomain() SigningDomain { return SigningDomainChitV1 }
 
 func (p Payload) WriteCanonical(destination io.Writer) error {
-	if destination == nil {
+	if core.WriterIsNil(destination) {
 		return contractError(errors.New("chit canonical destination is nil"))
 	}
 	encoded, err := p.MarshalJSON()
@@ -351,3 +354,12 @@ var (
 	_ core.ValidatedJSONMarshaler         = Document{}
 	_ attest.CanonicalBody[SigningDomain] = Payload{}
 )
+
+// Scalar decoders are public ingress doors even when no enclosing document
+// decoder runs. Check the shared wire bound before JSON allocates or scans.
+func validateScalarJSONExtent(data []byte) error {
+	if len(data) > core.JSONDocumentMaximumBytes {
+		return jsonError(errors.New("chit scalar exceeds the JSON document byte limit"))
+	}
+	return nil
+}

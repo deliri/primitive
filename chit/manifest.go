@@ -42,6 +42,9 @@ func (c *ObjectCount) UnmarshalJSON(data []byte) error {
 	if c == nil {
 		return jsonError(errors.New("nil object count receiver"))
 	}
+	if err := validateScalarJSONExtent(data); err != nil {
+		return err
+	}
 	var value uint64
 	if err := json.Unmarshal(data, &value); err != nil {
 		return jsonError(err)
@@ -88,6 +91,9 @@ func (s EntrySequence) MarshalJSON() ([]byte, error) {
 func (s *EntrySequence) UnmarshalJSON(data []byte) error {
 	if s == nil {
 		return jsonError(errors.New("nil entry sequence receiver"))
+	}
+	if err := validateScalarJSONExtent(data); err != nil {
+		return err
 	}
 	var value uint64
 	if err := json.Unmarshal(data, &value); err != nil {
@@ -184,6 +190,9 @@ func (d *ManifestDigest) UnmarshalJSON(data []byte) error {
 	if d == nil {
 		return jsonError(errors.New("nil manifest digest receiver"))
 	}
+	if err := validateScalarJSONExtent(data); err != nil {
+		return err
+	}
 	var value core.SHA256Digest
 	if err := value.UnmarshalJSON(data); err != nil {
 		return jsonError(err)
@@ -197,6 +206,7 @@ func (d *ManifestDigest) UnmarshalJSON(data []byte) error {
 }
 
 // ManifestSummary closes the exact ordered object set without materializing it.
+// Objects must be positive; TotalBytes may be zero for authenticated empty objects.
 type ManifestSummary struct {
 	Digest     ManifestDigest  `json:"digest"`
 	TotalBytes core.ByteLength `json:"total_bytes"`
@@ -209,9 +219,6 @@ func (s ManifestSummary) Validate() error {
 	}
 	if err := s.TotalBytes.Validate(); err != nil {
 		return contractError(errors.New("manifest total extent is invalid"), err)
-	}
-	if s.TotalBytes.Uint64() == 0 {
-		return contractError(errors.New("manifest total extent is zero"))
 	}
 	return s.Digest.Validate()
 }

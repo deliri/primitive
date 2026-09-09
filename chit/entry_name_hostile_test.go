@@ -8,6 +8,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/testserial"
 )
 
 type entryNameCase struct {
@@ -84,7 +85,11 @@ func TestEntryNamePortableBoundaryMatrix(t *testing.T) {
 			}
 			encoded, encodeErr := core.MarshalCanonicalJSONString(tc.value)
 			if encodeErr != nil {
-				return
+				if utf8.ValidString(tc.value) || !errors.Is(encodeErr, core.ErrJSONContract) {
+					t.Fatalf("hostile name encoding = %v, want only invalid UTF-8 refusal", encodeErr)
+				}
+				encoded = append([]byte{'"'}, []byte(tc.value)...)
+				encoded = append(encoded, '"')
 			}
 			got = preserved
 			gotErr = got.UnmarshalJSON(encoded)
@@ -154,4 +159,30 @@ func entryNameAtExtent(t *testing.T, wantBytes int) string {
 		t.Fatalf("entry-name fixture = (%d bytes, %d components), want (%d, at most %d)", len(got), len(components), wantBytes, EntryNameMaximumComponents)
 	}
 	return got
+}
+
+func TestEntryNameValidationAllocationRatchet(t *testing.T) {
+	testserial.Declare(t, core.TestIsolationDeclaration{Hazard: core.TestIsolationHazardRuntimeAllocation, Scope: core.TestIsolationScopePackageProcess})
+	cases := []struct {
+		name, text string
+		wantAllocs float64
+	}{
+		{name: "maximum component", text: strings.Repeat("a", EntryNameComponentMaximumBytes)},
+		{name: "maximum component count", text: strings.Repeat("a/", EntryNameMaximumComponents-1) + "z"},
+		{name: "maximum name bytes", text: entryNameAtExtent(t, EntryNameMaximumBytes)},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			testserial.Declare(t, core.TestIsolationDeclaration{Hazard: core.TestIsolationHazardRuntimeAllocation, Scope: core.TestIsolationScopePackageProcess})
+			value, err := ParseEntryName(tc.text)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var gotErr error
+			got := testing.AllocsPerRun(100, func() { gotErr = value.Validate() })
+			if gotErr != nil || got != tc.wantAllocs {
+				t.Fatalf("Validate() = %v, allocations %v; want nil, %v", gotErr, got, tc.wantAllocs)
+			}
+		})
+	}
 }

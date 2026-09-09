@@ -37,7 +37,7 @@ func (p QueryPayload) Validate() error {
 func (QueryPayload) AttestationDomain() SigningDomain { return SigningDomainQueryV1 }
 
 func (p QueryPayload) WriteCanonical(destination io.Writer) error {
-	if destination == nil {
+	if core.WriterIsNil(destination) {
 		return contractError(errors.New("chit query canonical destination is nil"))
 	}
 	encoded, err := p.MarshalJSON()
@@ -145,6 +145,9 @@ func (c QueryCommitment) MarshalJSON() ([]byte, error) {
 func (c *QueryCommitment) UnmarshalJSON(data []byte) error {
 	if c == nil {
 		return jsonError(errors.New("nil chit query commitment receiver"))
+	}
+	if err := validateScalarJSONExtent(data); err != nil {
+		return err
 	}
 	var digest core.SHA256Digest
 	if err := json.Unmarshal(data, &digest); err != nil {

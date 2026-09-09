@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -72,49 +73,34 @@ func TestPartitionJSONHostileTablePreservesTheReceiverAndCanonicalClosure(t *tes
 		want         Partition
 	}
 	cases := make([]partitionCase, 0, 40)
-	for marker := byte(1); marker <= 10; marker++ {
-		raw := [core.SHA256DigestBytes]byte{}
-		for index := range raw {
-			raw[index] = marker
-		}
-		want, constructErr := NewPartition(core.NewSHA256Digest(raw))
-		if constructErr != nil {
-			t.Fatalf("NewPartition(valid marker %d) error = %v, want nil", marker, constructErr)
-		}
-		encoded, marshalErr := want.MarshalJSON()
-		if marshalErr != nil {
-			t.Fatalf("Partition.MarshalJSON(valid marker %d) error = %v, want nil", marker, marshalErr)
-		}
-		cases = append(cases, partitionCase{
-			name: "canonical independent commitment marker " + strconv.Itoa(int(marker)), encoded: encoded, want: want,
-		})
-	}
+
 	cases = append(cases,
 		partitionCase{name: "empty document is refused", wantErr: core.ErrJSONContract},
 		partitionCase{name: "null is refused", encoded: []byte(`null`), wantErr: core.ErrJSONContract},
 		partitionCase{name: "empty string is refused", encoded: []byte(`""`), wantErr: core.ErrJSONContract},
 		partitionCase{name: "one hexadecimal digit is refused", encoded: []byte(`"0"`), wantErr: core.ErrJSONContract},
-		partitionCase{name: "one digit below exact extent is refused", encoded: []byte(`"111111111111111111111111111111111111111111111111111111111111111"`), wantErr: core.ErrJSONContract},
-		partitionCase{name: "one digit above exact extent is refused", encoded: []byte(`"11111111111111111111111111111111111111111111111111111111111111111"`), wantErr: core.ErrJSONContract},
+		partitionCase{name: "one digit below exact extent is refused", encoded: []byte(`"` + strings.Repeat("1", core.SHA256DigestBytes*2-1) + `"`), wantErr: core.ErrJSONContract},
+		partitionCase{name: "one digit above exact extent is refused", encoded: []byte(`"` + strings.Repeat("1", core.SHA256DigestBytes*2+1) + `"`), wantErr: core.ErrJSONContract},
 		partitionCase{name: "uppercase hexadecimal is refused", encoded: []byte(`"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"`), wantErr: core.ErrJSONContract},
 		partitionCase{name: "non hexadecimal text is refused", encoded: []byte(`"gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"`), wantErr: core.ErrJSONContract},
 		partitionCase{name: "numeric JSON is refused", encoded: []byte(`1`), wantErr: core.ErrJSONContract},
 		partitionCase{name: "all zero canonical digest is refused", encoded: []byte(`"0000000000000000000000000000000000000000000000000000000000000000"`), wantErr: core.ErrJSONContract, wantCauseErr: core.ErrChitContract},
 	)
-	for position := range 20 {
-		raw := [core.SHA256DigestBytes]byte{}
-		raw[position] = 1
-		want, constructErr := NewPartition(core.NewSHA256Digest(raw))
-		if constructErr != nil {
-			t.Fatalf("NewPartition(boundary byte %d) error = %v, want nil", position, constructErr)
+
+	for position := range core.SHA256DigestBytes {
+		for bit := range 8 {
+			raw := [core.SHA256DigestBytes]byte{}
+			raw[position] = 1 << bit
+			want, err := NewPartition(core.NewSHA256Digest(raw))
+			if err != nil {
+				t.Fatal(err)
+			}
+			encoded, err := want.MarshalJSON()
+			if err != nil {
+				t.Fatal(err)
+			}
+			cases = append(cases, partitionCase{name: "single nonzero bit at byte " + strconv.Itoa(position) + " bit " + strconv.Itoa(bit), encoded: encoded, want: want})
 		}
-		encoded, marshalErr := want.MarshalJSON()
-		if marshalErr != nil {
-			t.Fatalf("Partition.MarshalJSON(boundary byte %d) error = %v, want nil", position, marshalErr)
-		}
-		cases = append(cases, partitionCase{
-			name: "minimum nonzero JSON commitment at byte " + strconv.Itoa(position), encoded: encoded, want: want,
-		})
 	}
 
 	for _, tc := range cases {
