@@ -67,6 +67,18 @@ func (n TopicName) Validate() error {
 	if len(value) == 0 || len(value) > MaximumTopicBytes || !utf8.ValidString(value) {
 		return contractError("manual topic has invalid extent")
 	}
+	for segment := range strings.SplitSeq(value, ".") {
+		if err := validateTopicSegment(segment); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateTopicSegment(value string) error {
+	if value == "" {
+		return contractError(topicCanonicalDiagnostic)
+	}
 	for index, current := range value {
 		if !validTopicRune(index, current) {
 			return contractError(topicCanonicalDiagnostic)

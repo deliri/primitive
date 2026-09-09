@@ -35,7 +35,8 @@ type Topic interface {
 	ManualTopic() TopicName
 }
 
-// TopicName is one canonical lower-case command topic.
+// TopicName is one canonical lower-case command topic. Dots separate nonempty
+// segments; each segment contains letters, digits, or single interior hyphens.
 type TopicName string
 
 // Line is one bounded printable customer-facing line.
