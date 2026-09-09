@@ -56,6 +56,7 @@ const (
 	diagnosticSignalSourceClosed
 	diagnosticPanicErrorInvalid
 	diagnosticControllerUnconstructed
+	diagnosticContextPanicInvalid
 	diagnosticLimit
 )
 
@@ -98,6 +99,7 @@ func diagnosticLabels() [diagnosticLimit]string {
 		diagnosticControllerNil:               "controller is nil",
 		diagnosticSignalSourceClosed:          "signal source closed before any supported signal",
 		diagnosticPanicErrorInvalid:           "step panic error is invalid",
+		diagnosticContextPanicInvalid:         "context panic error is invalid",
 		diagnosticControllerUnconstructed:     "controller was not constructed by Watch",
 	}
 }
@@ -204,4 +206,47 @@ func boundedPanicBytes(value []byte) string {
 		return emptyPanicDiagnostic
 	}
 	return output.String()
+}
+
+// ContextPanicError preserves a panic encountered at an owned context boundary.
+// The retained cause distinguishes observation refusals from other runtime or
+// caller failures; the panic itself does not imply ErrContextObservation.
+// Its own Error method never calls the recovered value's formatting methods.
+// Non-error values retain only a bounded diagnostic, never an arbitrary graph.
+type ContextPanicError struct {
+	cause      error
+	diagnostic string
+}
+
+func (e ContextPanicError) Error() string      { return "shutdown: context call panicked: " + e.diagnostic }
+func (e ContextPanicError) Unwrap() error      { return e.cause }
+func (e ContextPanicError) Diagnostic() string { return e.diagnostic }
+func (e ContextPanicError) Validate() error {
+	if e.diagnostic == "" || !utf8.ValidString(e.diagnostic) || utf8.RuneCountInString(e.diagnostic) > panicDiagnosticMaximumRunes || !errors.Is(e.cause, core.ErrShutdownContract) {
+		return contractError(diagnosticContextPanicInvalid)
+	}
+	return nil
+}
+
+// recoverContextPanic is called directly by defer at an owned context boundary.
+// ErrContextObservation is retained only if the recovered error carries it.
+func recoverContextPanic(result *error) {
+	recovered := recover()
+	if recovered == nil {
+		return
+	}
+	var cause error
+	var detail string
+	switch value := recovered.(type) {
+	case error:
+		cause = value
+		detail = fmt.Sprintf("error value of type %T", value)
+	case string:
+		detail = value
+	case []byte:
+		detail = boundedPanicBytes(value)
+	default:
+		detail = fmt.Sprintf("non-error value of type %T", value)
+	}
+	*result = errors.Join(*result, ContextPanicError{cause: errors.Join(core.ErrShutdownContract, cause), diagnostic: boundedPanicDiagnostic(detail)})
 }

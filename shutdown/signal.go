@@ -2,6 +2,7 @@ package shutdown
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -14,7 +15,8 @@ import (
 
 const (
 	// signalTransitionCapacity buffers the first signal and the one signal that
-	// may escalate it, so os/signal never drops a delivery on a busy observer.
+	// may escalate it. Delivery follows os/signal: bursts may be coalesced or
+	// dropped when the bounded channel is full. This is not a lossless queue.
 	signalTransitionCapacity = 2
 	// escalationCapacity retains the single escalation fact a run can publish,
 	// so the owning goroutine never blocks on an absent consumer.
@@ -132,6 +134,9 @@ type signalSource struct {
 // Controller owns one signal subscription and its sole goroutine.
 type Controller struct {
 	ctx         context.Context
+	parentDone  <-chan struct{}
+	runErr      error
+	closeErr    error
 	cancel      context.CancelCauseFunc
 	source      signalSource
 	stop        chan struct{}
@@ -171,20 +176,35 @@ func watchSource(request WatchRequest, source signalSource) (*Controller, error)
 	return watchValidatedSource(request, source)
 }
 
-func watchValidatedSource(request WatchRequest, source signalSource) (*Controller, error) {
+func watchValidatedSource(request WatchRequest, source signalSource) (controller *Controller, err error) {
+	var cancel context.CancelCauseFunc
+	defer func() {
+		if err != nil {
+			if cancel != nil {
+				err = errors.Join(err, cancelContext(cancel, context.Canceled))
+			}
+			controller = nil
+		}
+	}()
+	defer recoverContextPanic(&err)
 	if source.events == nil || source.release == nil {
 		return nil, contractError(diagnosticSignalSourceIncomplete)
 	}
-	ctx, cancel := context.WithCancelCause(request.Parent)
-	controller := &Controller{
-		ctx:       ctx,
-		cancel:    cancel,
-		source:    source,
-		stop:      make(chan struct{}, controllerChannelCapacity),
-		done:      make(chan struct{}, controllerChannelCapacity),
-		escalated: make(chan Escalation, escalationCapacity),
+	// Acquire the observer's channel while construction is contained. Go still
+	// owns cancellation propagation; the observer never re-enters parent.Done.
+	parentDone := request.Parent.Done()
+	var ctx context.Context
+	ctx, cancel = context.WithCancelCause(request.Parent)
+	controller = &Controller{
+		ctx:        ctx,
+		parentDone: parentDone,
+		cancel:     cancel,
+		source:     source,
+		stop:       make(chan struct{}, controllerChannelCapacity),
+		done:       make(chan struct{}, controllerChannelCapacity),
+		escalated:  make(chan Escalation, escalationCapacity),
 	}
-	go controller.run(request.Parent, request.Policy)
+	go controller.run(request.Policy)
 	return controller, nil
 }
 
@@ -222,28 +242,26 @@ func (c *Controller) Close() error {
 	c.closeOnce.Do(func() {
 		close(c.stop)
 		c.release()
-		c.cancel(context.Canceled)
+		c.closeErr = cancelContext(c.cancel, context.Canceled)
 	})
 	<-c.done
-	return nil
+	return errors.Join(c.closeErr, c.runErr)
 }
 
 func (c *Controller) release() {
 	c.releaseOnce.Do(c.source.release)
 }
 
-func (c *Controller) run(
-	parent context.Context,
-	policy SignalPolicy,
-) {
+func (c *Controller) run(policy SignalPolicy) {
 	defer close(c.done)
 	defer close(c.escalated)
 	defer c.release()
+	defer recoverContextPanic(&c.runErr)
 	first, ok := c.waitFirst()
 	if !ok {
 		return
 	}
-	grace, stopGrace, err := escalationGrace(parent, policy)
+	grace, stopGrace, err := escalationGrace(c.ctx, policy)
 	if err != nil {
 		c.cancel(contractError(diagnosticGraceProjection, err))
 		return
@@ -258,14 +276,11 @@ func (c *Controller) run(
 		return
 	}
 	c.waitEscalation(escalationWait{
-		parent: parent, grace: grace, policy: policy, first: first,
+		grace: grace, policy: policy, first: first,
 	})
 }
 
-func escalationGrace(
-	parent context.Context,
-	policy SignalPolicy,
-) (<-chan struct{}, context.CancelFunc, error) {
+func escalationGrace(parent context.Context, policy SignalPolicy) (<-chan struct{}, context.CancelFunc, error) {
 	if policy.GraceExpiry == GraceExpiryDisabled {
 		return nil, func() {}, nil
 	}
@@ -300,7 +315,6 @@ func (c *Controller) waitFirst() (SignalKind, bool) {
 }
 
 type escalationWait struct {
-	parent context.Context
 	grace  <-chan struct{}
 	policy SignalPolicy
 	first  SignalKind
@@ -312,10 +326,11 @@ func (c *Controller) waitEscalation(request escalationWait) {
 		events = nil
 	}
 	for {
+		// witness:waiver doctrine/concurrency/select_without_done -- c.parentDone is the captured parent Done channel and c.stop joins Close; calling parent.Done here reintroduces the reviewed panic.
 		select {
 		case <-c.stop:
 			return
-		case <-request.parent.Done():
+		case <-c.parentDone:
 			return
 		case <-request.grace:
 			c.publish(newGraceEscalation(request.first))
@@ -361,6 +376,7 @@ var (
 	_ core.Validatable = Escalation{}
 	_ core.Validatable = SignalCause{}
 	_ core.Validatable = WatchRequest{}
+	_ core.Validatable = ContextPanicError{}
 	_ core.OffWireEnum = PhaseUnknown
 	_ core.OffWireEnum = StepOutcomeUnknown
 	_ core.OffWireEnum = SignalKindUnknown
@@ -369,3 +385,14 @@ var (
 	_ core.OffWireEnum = GraceExpiryActionUnknown
 	_ core.OffWireEnum = EscalationReasonUnknown
 )
+
+// cancelContext contains parent-method panics from Go's removeChild path. The
+// standard child is already canceled before Go unlinks it from the parent.
+func cancelContext(cancel context.CancelCauseFunc, cause error) error {
+	var err error
+	func() {
+		defer recoverContextPanic(&err)
+		cancel(cause)
+	}()
+	return err
+}

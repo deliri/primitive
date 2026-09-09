@@ -37,10 +37,10 @@ func TestSignalPolicyCrossProductAndWatchIngress(t *testing.T) {
 					GraceExpiry:  grace,
 					GracePeriod:  period.value,
 				}
-				wantValid := second.IsValid() && grace.IsValid() &&
+				wantValid := (second == SecondSignalRelease || second == SecondSignalEscalate) && (grace == GraceExpiryDisabled || grace == GraceExpiryEscalate) &&
 					((grace == GraceExpiryEscalate) == !period.value.IsZero())
 				gotErr := policy.Validate()
-				if (gotErr == nil) != wantValid {
+				if (gotErr == nil) != wantValid || (!wantValid && !errors.Is(gotErr, core.ErrShutdownContract)) {
 					t.Fatalf("policy second:%d grace:%d period:%s error:%v, want valid:%t",
 						second, grace, period.name, gotErr, wantValid)
 				}
@@ -122,7 +122,7 @@ func TestSignalPolicyCrossProductAndWatchIngress(t *testing.T) {
 		})
 	}
 
-	t.Run("a valid set that projects no platform signal names the projection", func(t *testing.T) {
+	t.Run("incomplete injected source is refused before ownership", func(t *testing.T) {
 		t.Parallel()
 		requireRejection(t, watchSourceRejection(WatchRequest{
 			Parent: t.Context(), Policy: valid.Policy, Set: SignalSetStandard,
@@ -347,12 +347,23 @@ func watchSourceRequestForTest(
 ) *Controller {
 	t.Helper()
 	controller, err := watchSource(request, signalSource{
-		events:  events,
-		release: func() { released <- struct{}{} },
+		events: events,
+		release: func() {
+			select {
+			case released <- struct{}{}:
+			default:
+				t.Errorf("release buffer already holds %d notifications, want zero before the sole release", len(released))
+			}
+		},
 	})
 	if err != nil {
 		t.Fatalf("watchSource() error = %v", err)
 	}
+	t.Cleanup(func() {
+		if err := controller.Close(); err != nil {
+			t.Errorf("owned Close = %v, want nil", err)
+		}
+	})
 	return controller
 }
 
@@ -364,7 +375,7 @@ func receiveEscalation(t *testing.T, controller *Controller) Escalation {
 			t.Fatalf("Escalated channel open = %t, want true", open)
 		}
 		return escalation
-	case <-time.After(10 * time.Second):
+	case <-shutdownBackstop(t).Done():
 		t.Fatalf("Escalated channel produced value = false after %s, want true",
 			10*time.Second)
 		return Escalation{}
@@ -378,7 +389,7 @@ func waitContext(ctx context.Context, t *testing.T) {
 	}
 	select {
 	case <-ctx.Done():
-	case <-time.After(10 * time.Second):
+	case <-shutdownBackstop(t).Done():
 		t.Fatalf("controller context terminated = false after %s, want true",
 			10*time.Second)
 	}
@@ -388,7 +399,17 @@ func waitController(t *testing.T, controller *Controller) {
 	t.Helper()
 	select {
 	case <-controller.Done():
-	case <-time.After(10 * time.Second):
+	case <-shutdownBackstop(t).Done():
 		t.Fatalf("controller joined = false after %s, want true", 10*time.Second)
 	}
+}
+
+func shutdownBackstop(t *testing.T) context.Context {
+	t.Helper()
+	ctx, cancel, err := temporal.WithTimeout(temporal.TimeoutRequest{Parent: t.Context(), Duration: durationForTest(t, 10*time.Second)})
+	if err != nil {
+		t.Fatalf("backstop = %v, want nil", err)
+	}
+	t.Cleanup(cancel)
+	return ctx
 }

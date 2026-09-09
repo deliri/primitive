@@ -16,12 +16,22 @@ import (
 func TestControllerRefusesAHandleThatSkippedWatch(t *testing.T) {
 	t.Parallel()
 
-	if err := new(shutdown.Controller).Close(); !errors.Is(err, core.ErrShutdownContract) {
-		t.Fatalf("Close(unconstructed controller) error = %v, want errors.Is %v", err, core.ErrShutdownContract)
+	cases := []struct {
+		name  string
+		value *shutdown.Controller
+	}{
+		{name: "unconstructed controller refuses close", value: new(shutdown.Controller)},
+		{name: "nil controller refuses close"},
 	}
-
-	var absent *shutdown.Controller
-	if err := absent.Close(); !errors.Is(err, core.ErrShutdownContract) {
-		t.Fatalf("Close(nil controller) error = %v, want errors.Is %v", err, core.ErrShutdownContract)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if err := tc.value.Close(); !errors.Is(err, core.ErrShutdownContract) {
+				t.Fatalf("Close = %v, want shutdown contract", err)
+			}
+			if tc.value.Context() != nil || tc.value.Done() != nil || tc.value.Escalated() != nil {
+				t.Fatalf("unconstructed accessors = (%v,%v,%v), want nil/nil/nil", tc.value.Context(), tc.value.Done(), tc.value.Escalated())
+			}
+		})
 	}
 }

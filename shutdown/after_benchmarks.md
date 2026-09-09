@@ -12,3 +12,8 @@ BenchmarkPlanRunMaximumNoop-10    	   31676	     36732 ns/op	    8592 B/op	     
 
 All benches use `b.Loop()` or `for range b.N` where the timer must pause, `b.ReportAllocs()`, and observe the result.
 No `unsafe`, no C.
+
+
+Current package-sweep measurements and retained CPU/memory profiles are recorded
+in [the September 9 upgrade review](../_docs/shutdown_upgrade_20260909.md).
+The values above remain historical reservation-audit evidence.

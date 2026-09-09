@@ -1,10 +1,10 @@
 package shutdown
 
 import (
+	"embed"
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"os"
 	"reflect"
 	"slices"
 	"sort"
@@ -12,6 +12,9 @@ import (
 	"strings"
 	"testing"
 )
+
+//go:embed *.go
+var shutdownSources embed.FS
 
 type (
 	shutdownProtocolFact[T any] struct{}
@@ -24,6 +27,7 @@ type (
 
 type shutdownContractInventory struct {
 	StepPanicError     shutdownTypedFailure[StepPanicError]
+	ContextPanicError  shutdownTypedFailure[ContextPanicError]
 	StepID             shutdownProtocolFact[StepID]
 	Step               shutdownProtocolFact[Step]
 	PlanPolicy         shutdownPolicy[PlanPolicy]
@@ -86,7 +90,6 @@ func TestProductionArchitectureHasOneOwnedGoroutineAndExactImports(t *testing.T)
 		"strconv",
 		"strings",
 		"sync",
-		"sync/atomic",
 		"syscall",
 		"unicode/utf8",
 	}
@@ -100,28 +103,74 @@ func TestProductionArchitectureHasOneOwnedGoroutineAndExactImports(t *testing.T)
 
 func TestProductionRejectsProcessExitAndWorldBuildingRatchet(t *testing.T) {
 	t.Parallel()
+	for name, file := range shutdownProductionFiles(t) {
+		if got := shutdownForbiddenSyntax(file); len(got) != 0 {
+			t.Fatalf("%s forbidden syntax = %v, want none", name, got)
+		}
+	}
+}
 
-	for name := range shutdownProductionFiles(t) {
-		data, err := os.ReadFile(name)
+func shutdownForbiddenSyntax(file *ast.File) []string {
+	imports := make(map[string]string)
+	for _, spec := range file.Imports {
+		path, err := strconv.Unquote(spec.Path.Value)
 		if err != nil {
-			t.Fatalf("os.ReadFile(%q) error = %v", name, err)
+			continue
 		}
-		source := string(data)
-		for _, forbidden := range []string{
-			"os.Exit(",
-			"runtime.Goexit(",
-			"exec.Command",
-			"syscall.Kill(",
-			"runtime.NumGoroutine",
-			"encoding/json/v2",
-			"map[",
-			"time.NewTimer(",
-		} {
-			if strings.Contains(source, forbidden) {
-				t.Fatalf("%s contains %q, want no process policy or world model",
-					name, forbidden)
+		name := path[strings.LastIndex(path, "/")+1:]
+		if spec.Name != nil {
+			name = spec.Name.Name
+		}
+		imports[name] = path
+	}
+	var forbidden []string
+	ast.Inspect(file, func(node ast.Node) bool {
+		if _, ok := node.(*ast.MapType); ok {
+			forbidden = append(forbidden, "map type")
+		}
+		call, ok := node.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		selector, ok := call.Fun.(*ast.SelectorExpr)
+		if !ok {
+			return true
+		}
+		owner, ok := selector.X.(*ast.Ident)
+		if !ok {
+			return true
+		}
+		qualified := imports[owner.Name] + "." + selector.Sel.Name
+		if slices.Contains([]string{"os.Exit", "runtime.Goexit", "os/exec.Command", "os/exec.CommandContext", "syscall.Kill", "runtime.NumGoroutine", "time.NewTimer"}, qualified) {
+			forbidden = append(forbidden, qualified)
+		}
+		return true
+	})
+	return forbidden
+}
+
+func TestShutdownForbiddenSyntaxMatcherIgnoresProseAndResolvesAliases(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name, source string
+		want         []string
+	}{
+		{name: "aliased process exit is still policy", source: `package p; import system "os";func f(){system.Exit(0)}`, want: []string{"os.Exit"}},
+		{name: "map declaration is still an unbounded collection", source: `package p;type X map[string]int`, want: []string{"map type"}},
+		{name: "direct timer bypasses Temporal", source: `package p;import clock "time";func f(){clock.NewTimer(1)}`, want: []string{"time.NewTimer"}},
+		{name: "documentation does not execute effects", source: `package p;const note="os.Exit(0) and map[string]int"`},
+		{name: "unrelated method spelling is not a standard library effect", source: `package p;type owner struct{};func f(x owner){x.Exit(0)}`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			file, err := parser.ParseFile(token.NewFileSet(), tc.name, tc.source, 0)
+			if err != nil {
+				t.Fatalf("fixture parse = %v, want nil", err)
 			}
-		}
+			if got := shutdownForbiddenSyntax(file); !slices.Equal(got, tc.want) {
+				t.Fatalf("forbidden syntax = %v, want %v", got, tc.want)
+			}
+		})
 	}
 }
 
@@ -162,7 +211,7 @@ func TestShutdownProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T)
 func shutdownProductionFiles(t *testing.T) map[string]*ast.File {
 	t.Helper()
 
-	entries, err := os.ReadDir(".")
+	entries, err := shutdownSources.ReadDir(".")
 	if err != nil {
 		t.Fatalf("os.ReadDir(.) error = %v", err)
 	}
@@ -174,11 +223,63 @@ func shutdownProductionFiles(t *testing.T) map[string]*ast.File {
 			strings.HasSuffix(name, "_test.go") {
 			continue
 		}
-		file, err := parser.ParseFile(fileSet, name, nil, 0)
+		data, err := shutdownSources.ReadFile(name)
+		if err != nil {
+			t.Fatalf("source %s = %v, want embedded bytes", name, err)
+		}
+		file, err := parser.ParseFile(fileSet, name, data, 0)
 		if err != nil {
 			t.Fatalf("parser.ParseFile(%q) error = %v", name, err)
 		}
 		files[name] = file
 	}
 	return files
+}
+
+func TestShutdownExternalIngressHasSemanticFuzzInventory(t *testing.T) {
+	t.Parallel()
+	// Off-wire enums have no byte decoder. Their entire byte domains are
+	// exhausted separately. These functions admit caller-owned nominal values,
+	// callbacks or provider signals; each has a semantic fuzz oracle.
+	inventory := []struct {
+		name   string
+		target func(*testing.F)
+	}{
+		{name: "NewStepID", target: FuzzStepIDNominalIngress},
+		{name: "NewPlan", target: FuzzPlanRegistrationAndExecution},
+		{name: "Watch", target: FuzzWatchPolicyAndSourceClosure},
+	}
+	var constructors []string
+	for _, file := range shutdownProductionFiles(t) {
+		for _, decl := range file.Decls {
+			fn, ok := decl.(*ast.FuncDecl)
+			if !ok {
+				continue
+			}
+			name := fn.Name.Name
+			if !ast.IsExported(name) {
+				continue
+			}
+			if strings.HasPrefix(name, "New") || name == "Watch" {
+				constructors = append(constructors, name)
+			}
+			for _, prefix := range []string{"Parse", "Decode", "Read", "Load", "Replay", "Unmarshal"} {
+				if strings.HasPrefix(name, prefix) {
+					t.Fatalf("new external decoder %s has no semantic fuzz inventory, want explicit coverage", name)
+				}
+			}
+		}
+	}
+	want := make([]string, 0, len(inventory))
+	for _, entry := range inventory {
+		if entry.target == nil {
+			t.Fatalf("fuzz target for %s = nil, want compiled oracle", entry.name)
+		}
+		want = append(want, entry.name)
+	}
+	slices.Sort(constructors)
+	slices.Sort(want)
+	if !slices.Equal(constructors, want) {
+		t.Fatalf("external constructors = %v, want fuzz inventory %v", constructors, want)
+	}
 }

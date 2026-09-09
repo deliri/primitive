@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strconv"
 	"sync"
-	"sync/atomic"
 
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
@@ -88,7 +87,7 @@ type Plan struct {
 	steps   [MaximumSteps]Step
 	policy  PlanPolicy
 	mu      sync.Mutex
-	started atomic.Bool
+	started bool
 	count   uint8
 }
 
@@ -110,7 +109,10 @@ func (p *Plan) Register(step Step) error {
 	}
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	if p.started.Load() {
+	if err := p.policy.Validate(); err != nil {
+		return err
+	}
+	if p.started {
 		return contractError(diagnosticPlanRegistrationClosed)
 	}
 	if int(p.count) > len(p.steps) {
@@ -272,15 +274,15 @@ func (p *Plan) beginRun() ([MaximumSteps]Step, uint8, PlanPolicy, error) {
 	if p == nil {
 		return [MaximumSteps]Step{}, 0, PlanPolicy{}, contractError(diagnosticPlanNil)
 	}
-	if !p.started.CompareAndSwap(false, true) {
-		return [MaximumSteps]Step{}, 0, PlanPolicy{},
-			contractError(diagnosticPlanAlreadyRun)
-	}
 	p.mu.Lock()
 	defer p.mu.Unlock()
+	if p.started {
+		return [MaximumSteps]Step{}, 0, PlanPolicy{}, contractError(diagnosticPlanAlreadyRun)
+	}
 	if err := p.validateLocked(); err != nil {
 		return [MaximumSteps]Step{}, 0, PlanPolicy{}, err
 	}
+	p.started = true
 	return p.steps, p.count, p.policy, nil
 }
 
@@ -316,9 +318,9 @@ type actionResult struct {
 }
 
 func runStep(root context.Context, step Step) StepResult {
-	if contextTerminal(root) {
+	if err := contextTerminalError(root); err != nil {
 		return newStepResult(step, StepOutcomeTotalBudgetExceeded,
-			totalTimeoutError(diagnosticStepSkipped))
+			totalTimeoutError(err, diagnosticStepSkipped))
 	}
 	ctx, cancel, err := temporal.WithTimeout(temporal.TimeoutRequest{
 		Parent: root, Duration: step.Budget,
@@ -381,13 +383,13 @@ func classifyStep(request stepClassification) StepResult {
 	if request.result.panicked {
 		return newStepResult(request.step, StepOutcomePanicked, observed)
 	}
-	if contextTerminal(request.root) {
+	if err := contextTerminalError(request.root); err != nil {
 		return newStepResult(request.step, StepOutcomeTotalBudgetExceeded,
-			totalTimeoutError(context.DeadlineExceeded, observed))
+			totalTimeoutError(err, observed))
 	}
-	if contextTerminal(request.stepContext) {
+	if err := contextTerminalError(request.stepContext); err != nil {
 		return newStepResult(request.step, StepOutcomeTimedOut,
-			stepTimeoutError(context.DeadlineExceeded, observed))
+			stepTimeoutError(err, observed))
 	}
 	if observed != nil {
 		return newStepResult(request.step, StepOutcomeFailed, stepFailureError(observed))
@@ -395,9 +397,21 @@ func classifyStep(request stepClassification) StepResult {
 	return newStepResult(request.step, StepOutcomeCompleted, nil)
 }
 
-func contextTerminal(ctx context.Context) bool {
-	state, err := contextstate.Observe(ctx)
-	return err != nil || state != contextstate.StateNone
+// contextTerminalError preserves the standard terminal identity and a custom
+// cancellation cause. An unobservable context is never relabeled as expiry.
+func contextTerminalError(ctx context.Context) error {
+	err := contextstate.Validate(ctx)
+	if err == nil {
+		return nil
+	}
+	if !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
+		return err
+	}
+	func() {
+		defer recoverContextPanic(&err)
+		err = errors.Join(err, context.Cause(ctx))
+	}()
+	return err
 }
 
 func newStepResult(step Step, outcome StepOutcome, failure error) StepResult {

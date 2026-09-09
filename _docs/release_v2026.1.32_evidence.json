@@ -1,0 +1,74 @@
+{
+  "release": "v2026.1.32",
+  "authorization": "User: bmp commit push onto the next package",
+  "release_parent": "567adddc7d5e552258f7034ef395cd41ca414f9d",
+  "reviewed_package_source_digest": "264375762f64d4cb44845b6cccb94e7f1dcaf2336b6444c4e74bf5c602e029ac",
+  "reviewed_package_sources_unchanged": true,
+  "reports": [
+    {
+      "path": "_docs/shutdown_upgrade_20260909.md",
+      "bytes": 24902,
+      "sha256": "794e0d53eeae5dd89c682486fec9c3fc40bdb057af8d84a491146416b1339fe5"
+    },
+    {
+      "path": "_docs/shutdown_upgrade_20260909_evidence.json",
+      "bytes": 338459,
+      "sha256": "055a97a5cac00dc2926bbfbff8e875197ef42c0952c49da454698d47160e601b"
+    },
+    {
+      "path": "_docs/shutdown_upgrade_20260909_review_followup.json",
+      "bytes": 285878,
+      "sha256": "7d9c8c37d8d8ce32f10292cf3cc654b71aa3ad2d1e32f1f19cc923784e58c5af"
+    }
+  ],
+  "coordinate_check": {
+    "args": [
+      "go",
+      "test",
+      "-json",
+      "-count=1",
+      "./compass",
+      "./version"
+    ],
+    "record": {
+      "path": "/home/d/engineering-evidence/primitive/shutdown-upgrade-20260909/release-v2026-1-32-coordinates/result.json",
+      "bytes": 771795,
+      "sha256": "b8eb937beea5db510cb269766454f113c9a7fd363436174a9ca377f301495d50"
+    },
+    "go": "go version go1.27.1 linux/amd64",
+    "environment": {
+      "GOWORK": "off",
+      "GOMAXPROCS": "8"
+    },
+    "exit": 0,
+    "counts": {
+      "pass": 72,
+      "fail": 0,
+      "skip": 0
+    },
+    "artifacts": [
+      {
+        "path": "/home/d/engineering-evidence/primitive/shutdown-upgrade-20260909/release-v2026-1-32-coordinates/started.json",
+        "bytes": 769857,
+        "sha256": "4bd966dd49dc016985d395611ff99fa94ef10ae9021754f1e2ec83eaec8996a0"
+      },
+      {
+        "path": "/home/d/engineering-evidence/primitive/shutdown-upgrade-20260909/release-v2026-1-32-coordinates/source.patch",
+        "bytes": 52757,
+        "sha256": "dd1d022dcd4994d25729265bdc6f855895a2197efc2bf017396707395fc528ea"
+      },
+      {
+        "path": "/home/d/engineering-evidence/primitive/shutdown-upgrade-20260909/release-v2026-1-32-coordinates/stdout",
+        "bytes": 138996,
+        "sha256": "18116023693b87ac5b16b5a8078e80a3e5e1d006d42edf38011696a3a105f5fb"
+      },
+      {
+        "path": "/home/d/engineering-evidence/primitive/shutdown-upgrade-20260909/release-v2026-1-32-coordinates/stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ]
+  },
+  "scope": "Reviewed Shutdown sources unchanged. Only release coordinate tests repeated. No full-module gates, new benchmarks, or consumer updates. Currency next.",
+  "raw_evidence_policy": "Raw profiles, binaries, logs and source snapshots remain outside Git on Furnace."
+}

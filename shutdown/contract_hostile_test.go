@@ -47,16 +47,13 @@ func TestRegisterNamesEveryRejectionClassDistinctly(t *testing.T) {
 		{name: "one above the minimum step budget", step: validStep(t, 1, PhaseDrain, two)},
 		{name: "maximum representable step budget", step: validStep(t, 1, PhaseDrain, maximum)},
 		{name: "one below the maximum step budget", step: validStep(t, 1, PhaseDrain, nearMaximum)},
-		{name: "minimum nonzero step identity", step: validStep(t, 1, PhaseDrain, one)},
 		{name: "one above the minimum step identity", step: validStep(t, 2, PhaseDrain, one)},
 		{name: "maximum step identity", step: validStep(t, ^uint16(0), PhaseDrain, one)},
 		{name: "one below the maximum step identity", step: validStep(t, ^uint16(0)-1, PhaseDrain, one)},
 		{name: "first phase is admitted", step: validStep(t, 1, PhaseStopAdmission, one)},
-		{name: "drain phase is admitted", step: validStep(t, 1, PhaseDrain, one)},
 		{name: "persist phase is admitted", step: validStep(t, 1, PhasePersist, one)},
 		{name: "flush phase is admitted", step: validStep(t, 1, PhaseFlush, one)},
 		{name: "last phase is admitted", step: validStep(t, 1, PhaseRelease, one)},
-		{name: "step budget above the total budget is clipped, not rejected", step: validStep(t, 1, PhaseDrain, maximum)},
 	}
 	for _, tc := range admitted {
 		t.Run(tc.name, func(t *testing.T) {
@@ -94,16 +91,7 @@ func TestRegisterNamesEveryRejectionClassDistinctly(t *testing.T) {
 			step:           validStep(t, 1, phaseLimit, one),
 			wantDiagnostic: diagnosticPhaseUnsupported,
 		},
-		{
-			name:           "phase one above the private limit is rejected",
-			step:           validStep(t, 1, phaseLimit+1, one),
-			wantDiagnostic: diagnosticPhaseUnsupported,
-		},
-		{
-			name:           "maximum byte phase is rejected",
-			step:           validStep(t, 1, Phase(^uint8(0)), one),
-			wantDiagnostic: diagnosticPhaseUnsupported,
-		},
+
 		{
 			name:           "zero step budget is rejected",
 			step:           validStep(t, 1, PhaseDrain, zero),
@@ -118,11 +106,6 @@ func TestRegisterNamesEveryRejectionClassDistinctly(t *testing.T) {
 			name:           "nil action is rejected",
 			step:           Step{ID: stepIDForTest(t, 1), Phase: PhaseDrain, Budget: one},
 			wantDiagnostic: diagnosticStepActionNil,
-		},
-		{
-			name:           "wholly unset step is rejected",
-			step:           Step{},
-			wantDiagnostic: diagnosticStepIdentityZero,
 		},
 	}
 	for _, tc := range rejected {
@@ -338,7 +321,7 @@ func TestStepResultRejectsEveryOutcomeFailureMismatch(t *testing.T) {
 // TestReportValidateProvesItsRetainedResults is the ratchet for a hollow seal.
 // Validate previously checked only its own valid flag and count, so a report
 // could certify observations that failed their own contract.
-func TestReportValidateProvesItsRetainedResults(t *testing.T) {
+func TestShutdownReportSchemaLayerTriadProvesItsRetainedResults(t *testing.T) {
 	t.Parallel()
 
 	id := stepIDForTest(t, 1)

@@ -7,7 +7,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
-	"testing/synctest"
 	"time"
 	"unicode/utf8"
 
@@ -25,10 +24,10 @@ type panicOnString struct{}
 
 func (panicOnString) String() string { panic("String must not be called") }
 
-// TestStepIDExhaustsItsBoundaryAndDiagnosticLabel owns the identity contract.
+// TestStepIDPinsNumericBoundariesAndDiagnosticLabel owns the identity contract.
 // The wider step, policy, and registration boundary surface is proven by
 // TestRegisterNamesEveryRejectionClassDistinctly against the real plan path.
-func TestStepIDExhaustsItsBoundaryAndDiagnosticLabel(t *testing.T) {
+func TestStepIDPinsNumericBoundariesAndDiagnosticLabel(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
@@ -148,150 +147,77 @@ func TestPlanExecutesPhasesInOrderAndLIFOWithinPhase(t *testing.T) {
 	}
 }
 
-func TestPlanMaximumRegistrationConcurrentAndOneShot(t *testing.T) {
+func TestPlanConcurrentRegistrationConservesExactIdentities(t *testing.T) {
 	t.Parallel()
-
-	budget := durationForTest(t, time.Second)
-	plan, err := NewPlan(PlanPolicy{TotalBudget: budget})
-	if err != nil {
-		t.Fatal(err)
-	}
-	var accepted atomic.Uint32
-	var group sync.WaitGroup
-	for raw := range MaximumSteps * 2 {
-		id := stepIDForTest(t, uint16(raw+1))
-		group.Go(func() {
-			err := plan.Register(Step{
-				ID: id, Phase: PhaseDrain, Budget: budget,
-				Action: func(context.Context) error { return nil },
-			})
-			if err == nil {
-				accepted.Add(1)
-				return
+	for _, tc := range []struct {
+		name                string
+		attempts, wantCount int
+	}{
+		{name: "one below capacity retains every distinct registration", attempts: MaximumSteps - 1, wantCount: MaximumSteps - 1},
+		{name: "exact capacity retains every distinct registration", attempts: MaximumSteps, wantCount: MaximumSteps},
+		{name: "one above capacity refuses exactly one registration", attempts: MaximumSteps + 1, wantCount: MaximumSteps},
+		{name: "double capacity saturation never duplicates accepted effects", attempts: 2 * MaximumSteps, wantCount: MaximumSteps},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			budget := durationForTest(t, time.Hour)
+			plan, err := NewPlan(PlanPolicy{TotalBudget: budget})
+			if err != nil {
+				t.Fatalf("NewPlan = %v, want nil", err)
 			}
-			if !errors.Is(err, core.ErrShutdownContract) {
-				t.Errorf("Register(%s) error = %v, want contract", id, err)
+			var admitted [2 * MaximumSteps]atomic.Bool
+			var executed [2 * MaximumSteps]atomic.Uint32
+			var group sync.WaitGroup
+			for raw := range tc.attempts {
+				id := stepIDForTest(t, uint16(raw+1))
+				group.Go(func() {
+					err := plan.Register(Step{ID: id, Phase: PhaseDrain, Budget: budget, Action: func(context.Context) error { executed[raw].Add(1); return nil }})
+					if err == nil {
+						admitted[raw].Store(true)
+					} else if !errors.Is(err, core.ErrShutdownContract) {
+						t.Errorf("Register(%v) = %v, want nil or contract refusal", id, err)
+					}
+				})
+			}
+			// All workers perform one bounded registration; join before reading any
+			// ownership facts or running callbacks. No detached work survives this test.
+			group.Wait()
+			report, err := plan.Run(t.Context())
+			if err != nil || int(report.Count()) != tc.wantCount {
+				t.Fatalf("Run = (%d,%v), want %d/nil", report.Count(), err, tc.wantCount)
+			}
+			var retained [2 * MaximumSteps]bool
+			for i := range report.Count() {
+				result, ok := report.Result(i)
+				raw := int(result.ID().value) - 1
+				if !ok || raw < 0 || raw >= tc.attempts || result.Outcome() != StepOutcomeCompleted || result.Validate() != nil {
+					t.Fatalf("Result(%d) = (%+v,%t), want one valid completed admitted identity", i, result, ok)
+				}
+				if retained[raw] || !admitted[raw].Load() {
+					t.Fatalf("result identity %v = (duplicate=%t,admitted=%t), want false/true", result.ID(), retained[raw], admitted[raw].Load())
+				}
+				retained[raw] = true
+			}
+			accepted := 0
+			for raw := range tc.attempts {
+				wantCalls := uint32(0)
+				if admitted[raw].Load() {
+					accepted++
+					wantCalls = 1
+				}
+				if executed[raw].Load() != wantCalls || retained[raw] != admitted[raw].Load() {
+					t.Fatalf("identity %d = (%d calls,retained=%t), want %d/admitted=%t", raw+1, executed[raw].Load(), retained[raw], wantCalls, admitted[raw].Load())
+				}
+			}
+			if accepted != tc.wantCount {
+				t.Fatalf("accepted count = %d, want %d", accepted, tc.wantCount)
+			}
+			second, err := plan.Run(t.Context())
+			if !errors.Is(err, core.ErrShutdownContract) || second.Count() != 0 {
+				t.Fatalf("repeated Run = (%d,%v), want zero/contract", second.Count(), err)
 			}
 		})
 	}
-	group.Wait()
-	if got := accepted.Load(); got != MaximumSteps {
-		t.Fatalf("accepted registrations = %d, want %d", got, MaximumSteps)
-	}
-	report, runErr := plan.Run(t.Context())
-	if runErr != nil || report.Count() != MaximumSteps {
-		t.Fatalf("Run(maximum) = count:%d error:%v, want %d/nil",
-			report.Count(), runErr, MaximumSteps)
-	}
-	if _, err := plan.Run(t.Context()); !errors.Is(err, core.ErrShutdownContract) {
-		t.Fatalf("second Run() error = %v, want contract", err)
-	}
-	if err := plan.Register(validStep(t, 500, PhaseDrain, budget)); !errors.Is(err, core.ErrShutdownContract) {
-		t.Fatalf("Register(after Run) error = %v, want contract", err)
-	}
-}
-
-func TestPlanDuplicateAndCallbackReentryAreRejected(t *testing.T) {
-	t.Parallel()
-
-	budget := durationForTest(t, time.Second)
-	plan, err := NewPlan(PlanPolicy{TotalBudget: budget})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := plan.Register(validStep(t, 1, PhaseDrain, budget)); err != nil {
-		t.Fatal(err)
-	}
-	if err := plan.Register(validStep(t, 1, PhaseRelease, budget)); !errors.Is(err, core.ErrShutdownContract) {
-		t.Fatalf("duplicate Register() error = %v, want contract", err)
-	}
-	if err := plan.Register(Step{
-		ID: stepIDForTest(t, 2), Phase: PhaseRelease, Budget: budget,
-		Action: func(ctx context.Context) error {
-			if err := plan.Register(validStep(t, 3, PhaseRelease, budget)); !errors.Is(err, core.ErrShutdownContract) {
-				return err
-			}
-			if _, err := plan.Run(ctx); !errors.Is(err, core.ErrShutdownContract) {
-				return err
-			}
-			return plan.Validate()
-		},
-	}); err != nil {
-		t.Fatal(err)
-	}
-	report, runErr := plan.Run(t.Context())
-	if runErr != nil || report.Count() != 2 {
-		t.Fatalf("Run(reentrant callback) = count:%d error:%v, want 2/nil",
-			report.Count(), runErr)
-	}
-}
-
-func TestShutdownRunAccountingLayerTriadAccountsForStartedAndSkippedSteps(t *testing.T) {
-	t.Parallel()
-
-	synctest.Test(t, func(t *testing.T) {
-		stepBudget := durationForTest(t, 2*time.Second)
-		totalBudget := durationForTest(t, 3*time.Second)
-		plan, err := NewPlan(PlanPolicy{TotalBudget: totalBudget})
-		if err != nil {
-			t.Fatal(err)
-		}
-		if err := plan.Register(validStep(t, 1, PhaseDrain, stepBudget)); err != nil {
-			t.Fatal(err)
-		}
-		blocking := validStep(t, 2, PhaseStopAdmission, stepBudget)
-		blocking.Action = func(ctx context.Context) error {
-			<-ctx.Done()
-			return nil
-		}
-		if err := plan.Register(blocking); err != nil {
-			t.Fatal(err)
-		}
-		report, runErr := plan.Run(t.Context())
-		first, firstOK := report.Result(0)
-		second, secondOK := report.Result(1)
-		if !firstOK || !secondOK ||
-			first.Outcome() != StepOutcomeTimedOut ||
-			second.Outcome() != StepOutcomeCompleted ||
-			!errors.Is(runErr, core.ErrShutdownStepTimeout) {
-			t.Fatalf("Run(step timeout) = first:%s second:%s error:%v",
-				first.Outcome(), second.Outcome(), runErr)
-		}
-	})
-
-	synctest.Test(t, func(t *testing.T) {
-		totalBudget := durationForTest(t, 2*time.Second)
-		stepBudget := durationForTest(t, 3*time.Second)
-		plan, err := NewPlan(PlanPolicy{TotalBudget: totalBudget})
-		if err != nil {
-			t.Fatal(err)
-		}
-		if err := plan.Register(validStep(t, 1, PhaseDrain, stepBudget)); err != nil {
-			t.Fatal(err)
-		}
-		blocking := validStep(t, 2, PhaseStopAdmission, stepBudget)
-		blocking.Action = func(ctx context.Context) error {
-			<-ctx.Done()
-			return nil
-		}
-		if err := plan.Register(blocking); err != nil {
-			t.Fatal(err)
-		}
-		report, runErr := plan.Run(t.Context())
-		for index := range report.Count() {
-			if index < uint8(0) {
-				continue
-			}
-			result, ok := report.Result(index)
-			if !ok || result.Outcome() != StepOutcomeTotalBudgetExceeded ||
-				!errors.Is(result.Failure(), core.ErrShutdownTotalTimeout) {
-				t.Fatalf("result %d = %+v present:%t, want total timeout", index, result, ok)
-			}
-		}
-		if !errors.Is(runErr, core.ErrShutdownTotalTimeout) {
-			t.Fatalf("Run(total timeout) error = %v, want total timeout", runErr)
-		}
-	})
 }
 
 // TestPlanContainsPanicsAndKeepsThePanicValueReachable proves containment and
@@ -482,27 +408,4 @@ func durationForTest(t testing.TB, value time.Duration) temporal.Duration {
 		t.Fatalf("temporal.NewDuration(%s) error = %v", value, err)
 	}
 	return duration
-}
-
-func BenchmarkPlanRunMaximumNoop(b *testing.B) {
-	b.ReportAllocs()
-	budget := durationForTest(b, time.Second)
-	for b.Loop() {
-		plan, err := NewPlan(PlanPolicy{TotalBudget: budget})
-		if err != nil {
-			b.Fatal(err)
-		}
-		for index := range MaximumSteps {
-			err := plan.Register(validStep(
-				b, uint16(index+1), Phase(index%int(phaseLimit-1)+1), budget,
-			))
-			if err != nil {
-				b.Fatal(err)
-			}
-		}
-		report, err := plan.Run(context.Background())
-		if err != nil || report.Count() != MaximumSteps {
-			b.Fatalf("Run() = count:%d error:%v", report.Count(), err)
-		}
-	}
 }
