@@ -335,7 +335,7 @@ func inspectionBuildEnvironment(t testing.TB, platform core.Platform, goExecutab
 		if err != nil {
 			t.Fatalf("ambient variable Name.Value() error = %v, want nil", err)
 		}
-		if slices.Contains([]string{"HOME", "GOCACHE", "GOMODCACHE", "GOPATH", "SYSTEMROOT"}, name) {
+		if slices.Contains([]string{"HOME", "GOCACHE", "GOMODCACHE", "GOPATH", "SYSTEMROOT", "TMPDIR", "GOTMPDIR"}, name) {
 			value, err := variable.Value.Value()
 			if err != nil {
 				t.Fatalf("ambient variable Value.Value(%s) error = %v, want nil", name, err)

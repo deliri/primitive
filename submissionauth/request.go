@@ -41,12 +41,12 @@ type Verified struct {
 
 type requestDocumentWire RequestDocument
 
-// Validate closes both documents and binds their exact build identities.
+// Validate closes both documents and binds their exact build and nominated device.
 func (d RequestDocument) Validate() error {
 	if err := errors.Join(d.Request.Validate(), d.Certificate.Validate()); err != nil {
 		return contractError(err)
 	}
-	if d.Request.Payload.Build != d.Certificate.Body.Build {
+	if d.Request.Payload.Build != d.Certificate.Body.Build || d.Request.Attestation.Signer != d.Certificate.Body.DeviceKey {
 		return bindingError()
 	}
 	return nil
@@ -54,6 +54,9 @@ func (d RequestDocument) Validate() error {
 
 // ControlRoute projects the sole route admitted by this credentialed request.
 func (d RequestDocument) ControlRoute() (controlwire.RouteContract, error) {
+	if err := d.Validate(); err != nil {
+		return controlwire.RouteContract{}, err
+	}
 	return controlwire.NewRouteContract(
 		d.Request.Payload.Build.Offering(), controlwire.RouteFamilySubmissions,
 	)

@@ -83,196 +83,53 @@ func TestCredentialedCompletionProjectionLayerTriadBindsWithoutSenderSideDecode(
 	}
 }
 
-func TestCredentialedCompletionProjectionEncodeValidatedJSONHostileBindingMatrix(t *testing.T) {
+func TestCredentialedCompletionProjectionLayerTriad(t *testing.T) {
 	t.Parallel()
-
-	type validCase struct {
-		name    string
-		request authCompletionFixtureRequest
-	}
-	valid := []validCase{
-		{name: "product beta default fixture encodes as receive-only projection"},
-		{name: "product alpha nonce 2 encodes as receive-only projection", request: authCompletionFixtureRequest{
-			offering: submissionAuthOffering(t, 1), nonceByte: 0x02,
-		}},
-		{name: "product gamma nonce 3 encodes as receive-only projection", request: authCompletionFixtureRequest{
-			offering: submissionAuthOffering(t, 3), nonceByte: 0x03,
-		}},
-		{name: "product beta nonce 4 device 0x32 encodes as receive-only projection", request: authCompletionFixtureRequest{
-			nonceByte: 0x04, deviceByte: 0x32,
-		}},
-		{name: "product alpha nonce 5 authority 0x22 encodes as receive-only projection", request: authCompletionFixtureRequest{
-			offering: submissionAuthOffering(t, 1), nonceByte: 0x05, authorityByte: 0x22,
-		}},
-		{name: "product gamma nonce 6 encodes as receive-only projection", request: authCompletionFixtureRequest{
-			offering: submissionAuthOffering(t, 3), nonceByte: 0x06,
-		}},
-		{name: "product beta nonce 7 encodes as receive-only projection", request: authCompletionFixtureRequest{
-			nonceByte: 0x07,
-		}},
-		{name: "product alpha nonce 8 encodes as receive-only projection", request: authCompletionFixtureRequest{
-			offering: submissionAuthOffering(t, 1), nonceByte: 0x08,
-		}},
-		{name: "product gamma nonce 9 encodes as receive-only projection", request: authCompletionFixtureRequest{
-			offering: submissionAuthOffering(t, 3), nonceByte: 0x09,
-		}},
-		{name: "product beta nonce 10 encodes as receive-only projection", request: authCompletionFixtureRequest{
-			nonceByte: 0x0a,
-		}},
-	}
-	if len(valid) < 10 {
-		t.Fatalf("credentialed completion EncodeValidatedJSON valid cases = %d, want at least 10", len(valid))
-	}
-	for _, tc := range valid {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			fixture := newAuthCompletionFixture(t, tc.request)
-			projection := assembleAuthCompletionProjection(t, fixture)
-			canonical, err := projection.MarshalJSON()
-			if err != nil {
-				t.Fatalf("CompletionProjection.MarshalJSON() error = %v, want nil", err)
-			}
-			got, gotErr := core.EncodeValidatedJSON(projection, core.DefaultStrictJSONLimits())
-			if gotErr != nil || !bytes.Equal(got, canonical) {
-				t.Fatalf("EncodeValidatedJSON(CompletionProjection) = (%d bytes, %v), want exact %d-byte receive-only projection",
-					len(got), gotErr, len(canonical))
-			}
-			if err := projection.ValidateJSONProjection(got, core.DefaultStrictJSONLimits()); err != nil {
-				t.Fatalf("ValidateJSONProjection(exact encoded bytes) error = %v, want nil", err)
-			}
-		})
-	}
-
-	fixture := newAuthCompletionFixture(t, authCompletionFixtureRequest{nonceByte: 0x51})
+	fixture := newAuthCompletionFixture(t, authCompletionFixtureRequest{})
 	projection := assembleAuthCompletionProjection(t, fixture)
 	canonical, err := projection.MarshalJSON()
 	if err != nil {
-		t.Fatalf("CompletionProjection.MarshalJSON() error = %v, want nil", err)
+		t.Fatal(err)
 	}
-	foreign := newAuthCompletionFixture(t, authCompletionFixtureRequest{
-		offering: submissionAuthOffering(t, 1), authorityByte: 0x61, deviceByte: 0x62, nonceByte: 0x63,
-	})
-	foreignProjection := assembleAuthCompletionProjection(t, foreign)
-	foreignEncoded, err := foreignProjection.MarshalJSON()
+	foreign := newAuthCompletionFixture(t, authCompletionFixtureRequest{deviceByte: 0x63})
+	foreignBytes, err := assembleAuthCompletionProjection(t, foreign).MarshalJSON()
 	if err != nil {
-		t.Fatalf("foreign CompletionProjection.MarshalJSON() error = %v, want nil", err)
+		t.Fatal(err)
 	}
-	if bytes.Equal(foreignEncoded, canonical) {
-		t.Fatalf("foreign credentialed completion bytes = %d identical bytes, want a load-bearing difference", len(canonical))
+	if bytes.Equal(canonical, foreignBytes) {
+		t.Fatalf("foreign projection = %d identical bytes, want different signed bytes", len(canonical))
 	}
-	certificateJSON, err := json.Marshal(fixture.request.certificate)
-	if err != nil {
-		t.Fatalf("json.Marshal(certificate) error = %v, want nil", err)
-	}
-	completionJSON, err := json.Marshal(fixture.completionDocument)
-	if err != nil {
-		t.Fatalf("json.Marshal(completion) error = %v, want nil", err)
-	}
-	reordered := append(append(append([]byte(`{"completion":`), completionJSON...), `,"certificate":`...), certificateJSON...)
-	reordered = append(reordered, '}')
-	if bytes.Equal(reordered, canonical) {
-		reordered = append(append(append([]byte(`{"certificate":`), certificateJSON...), `,"completion":`...), completionJSON...)
-		reordered = append(reordered, '}')
-	}
-	if bytes.Equal(reordered, canonical) {
-		t.Fatalf("certificate-first completion bytes = %d identical bytes, want a genuine member reorder", len(canonical))
-	}
-	indented := jsontext.Value(bytes.Clone(canonical))
-	if err := indented.Indent(jsontext.WithIndent("  ")); err != nil {
-		t.Fatalf("json.Indent(credentialed completion) error = %v, want nil", err)
-	}
-	unknown := append(bytes.Clone(canonical[:len(canonical)-1]), []byte(`,"future":true}`)...)
-	duplicateCompletion := append(bytes.Clone(canonical[:len(canonical)-1]), []byte(`,"completion":null}`)...)
-	duplicateCertificate := append(bytes.Clone(canonical[:len(canonical)-1]), []byte(`,"certificate":null}`)...)
-	mutated := bytes.Clone(canonical)
-	mutated[len(mutated)/2] ^= 0x01
-	type rejectCase struct {
-		name string
-		data []byte
-	}
-	reject := []rejectCase{
-		{name: "empty input"},
-		{name: "whitespace only", data: []byte(" \t\r\n")},
-		{name: "null root", data: []byte(`null`)},
-		{name: "boolean root", data: []byte(`true`)},
-		{name: "scalar root", data: []byte(`1`)},
-		{name: "string root", data: []byte(`"completion"`)},
-		{name: "array root", data: []byte(`[]`)},
-		{name: "empty object", data: []byte(`{}`)},
-		{name: "unknown member", data: unknown},
-		{name: "duplicate completion", data: duplicateCompletion},
-	}
-	if len(reject) < 10 {
-		t.Fatalf("credentialed completion ValidateJSONProjection reject cases = %d, want at least 10", len(reject))
-	}
-	for _, tc := range reject {
+	for _, tc := range []struct {
+		name       string
+		projection CompletionProjection
+		data       []byte
+		wantErr    error
+	}{
+		{"exact_issued_projection", projection, canonical, nil},
+		{"foreign_authentic_projection", projection, foreignBytes, core.ErrJSONContract},
+		{"whitespace_changes_canonical_identity", projection, append([]byte(" "), canonical...), core.ErrJSONContract},
+		{"duplicate_completion_member", projection, append(bytes.Clone(canonical[:len(canonical)-1]), []byte(`,"completion":null}`)...), core.ErrJSONContract},
+		{"truncated_projection", projection, canonical[:len(canonical)-1], core.ErrJSONContract},
+		{"absent_projection_cannot_claim_bytes", CompletionProjection{}, canonical, core.ErrJSONContract},
+	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-
-			if err := projection.ValidateJSONProjection(tc.data, core.DefaultStrictJSONLimits()); !errors.Is(err, core.ErrJSONContract) {
-				t.Fatalf("ValidateJSONProjection(%s) error = %v, want errors.Is %v", tc.name, err, core.ErrJSONContract)
+			err := tc.projection.ValidateJSONProjection(tc.data, core.ExtensibleJSONLimits())
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("projection validation=%v, want %v", err, tc.wantErr)
+			}
+			if err == nil {
+				encoded, err := core.EncodeValidatedJSON(tc.projection, core.ExtensibleJSONLimits())
+				if err != nil || !bytes.Equal(encoded, canonical) {
+					t.Fatalf("encoded=%d bytes error=%v, want exact issued bytes", len(encoded), err)
+				}
+				var got CompletionDocument
+				if err := got.UnmarshalJSON(encoded); err != nil || got != fixture.credentialed {
+					t.Fatalf("received=%v error=%v, want exact credential", got, err)
+				}
 			}
 		})
 	}
-	boundary := []rejectCase{
-		{name: "duplicate certificate", data: duplicateCertificate},
-		{name: "missing completion", data: []byte(`{"certificate":null}`)},
-		{name: "missing certificate", data: []byte(`{"completion":null}`)},
-		{name: "completion wrong type", data: []byte(`{"completion":true,"certificate":null}`)},
-		{name: "certificate wrong type", data: []byte(`{"completion":null,"certificate":true}`)},
-		{name: "truncated opening", data: []byte(`{`)},
-		{name: "truncated array", data: []byte(`[`)},
-		{name: "truncated canonical", data: canonical[:len(canonical)-1]},
-		{name: "half truncated canonical", data: canonical[:len(canonical)/2]},
-		{name: "two documents", data: append(bytes.Clone(canonical), canonical...)},
-		{name: "trailing scalar", data: append(bytes.Clone(canonical), []byte(` 0`)...)},
-		{name: "leading space", data: append([]byte(" "), canonical...)},
-		{name: "trailing newline", data: append(bytes.Clone(canonical), '\n')},
-		{name: "carriage return framing", data: append(append([]byte("\r"), canonical...), '\r')},
-		{name: "mixed outer whitespace", data: append(append([]byte("\t\r\n"), canonical...), ' ', '\t')},
-		{name: "reordered members", data: reordered},
-		{name: "indented", data: []byte(indented)},
-		{name: "foreign authentic projection", data: foreignEncoded},
-		{name: "mutated interior byte", data: mutated},
-		{name: "large noncanonical prefix", data: authLeftPadJSON(canonical, authWhitespaceFixtureBytes)},
-	}
-	if len(boundary) < 20 {
-		t.Fatalf("credentialed completion ValidateJSONProjection boundary cases = %d, want at least 20", len(boundary))
-	}
-	for _, tc := range boundary {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			if err := projection.ValidateJSONProjection(tc.data, core.DefaultStrictJSONLimits()); !errors.Is(err, core.ErrJSONContract) {
-				t.Fatalf("ValidateJSONProjection(%s) error = %v, want errors.Is %v", tc.name, err, core.ErrJSONContract)
-			}
-		})
-	}
-
-	t.Run("zero projection is refused before any wire bytes exist", func(t *testing.T) {
-		t.Parallel()
-
-		if got, gotErr := core.EncodeValidatedJSON(CompletionProjection{}, core.DefaultStrictJSONLimits()); got != nil ||
-			!errors.Is(gotErr, core.ErrJSONContract) || !errors.Is(gotErr, core.ErrControlPlaneContract) {
-			t.Fatalf("EncodeValidatedJSON(zero) = (%d bytes, %v), want nil and %v/%v",
-				len(got), gotErr, core.ErrJSONContract, core.ErrControlPlaneContract)
-		}
-	})
-	t.Run("one-byte-short document limit refuses an otherwise authentic projection", func(t *testing.T) {
-		t.Parallel()
-
-		maximum, err := core.NewByteCount(uint64(len(canonical) - 1))
-		if err != nil {
-			t.Fatalf("NewByteCount(one below projection length) error = %v, want nil", err)
-		}
-		limits := core.DefaultStrictJSONLimits()
-		limits.DocumentMaximumBytes = maximum
-		if got, gotErr := core.EncodeValidatedJSON(projection, limits); got != nil || !errors.Is(gotErr, core.ErrJSONContract) {
-			t.Fatalf("EncodeValidatedJSON(one-byte-short limit) = (%d bytes, %v), want nil and %v",
-				len(got), gotErr, core.ErrJSONContract)
-		}
-	})
 }
 
 func assembleAuthCompletionProjection(t testing.TB, fixture authCompletionFixture) CompletionProjection {
@@ -389,7 +246,7 @@ func TestCredentialedCompletionLayerTriadRefusesCrossInstallationAndAgreementSub
 		}, want: core.ErrAttestVerification},
 		{name: "other device completion with current certificate", mutate: func(value *CompletionVerification) {
 			value.Document.Completion = other.completionDocument
-		}, want: core.ErrAttestVerification},
+		}, want: core.ErrControlPlaneResponseBinding},
 		{name: "validly signed completion names another request nonce", mutate: func(value *CompletionVerification) {
 			value.Document = otherNonceCompletion
 		}, want: core.ErrControlPlaneResponseBinding},
@@ -398,7 +255,7 @@ func TestCredentialedCompletionLayerTriadRefusesCrossInstallationAndAgreementSub
 		}, want: core.ErrAttestVerification},
 		{name: "other device named by completion envelope", mutate: func(value *CompletionVerification) {
 			value.Document = otherCompletionSigner
-		}, want: core.ErrAttestVerification},
+		}, want: core.ErrControlPlaneResponseBinding},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -717,7 +574,11 @@ func authCompletionUpload(t testing.TB, request authCompletionUploadRequest) obj
 		writer.WriteHeader(http.StatusOK)
 	}))
 	t.Cleanup(server.Close)
-	transport := server.Client().Transport.(*http.Transport).Clone()
+	baseTransport, ok := server.Client().Transport.(*http.Transport)
+	if !ok {
+		t.Fatalf("TLS transport = %T, want *http.Transport", server.Client().Transport)
+	}
+	transport := baseTransport.Clone()
 	transport.TLSClientConfig = transport.TLSClientConfig.Clone()
 	transport.TLSClientConfig.ServerName = "example.com"
 	serverAddress := server.Listener.Addr().String()

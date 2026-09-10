@@ -240,6 +240,15 @@ func (p CompletionProjection) Build() (core.BuildIdentity, error) {
 	return p.payload.build, nil
 }
 
+// Signer returns the envelope key so an outer credential can bind its nominated
+// device without decoding the issue-only projection. Authentication remains with VerifyCompletion.
+func (p CompletionProjection) Signer() (core.Ed25519PublicKey, error) {
+	if err := p.Validate(); err != nil {
+		return core.Ed25519PublicKey{}, err
+	}
+	return p.attestation.Signer, nil
+}
+
 func (p CompletionProjection) MarshalJSON() ([]byte, error) {
 	if err := p.Validate(); err != nil {
 		return nil, jsonError(err)

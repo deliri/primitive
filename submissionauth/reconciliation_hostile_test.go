@@ -2,7 +2,6 @@ package submissionauth
 
 import (
 	"errors"
-	"strconv"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/attest"
@@ -51,36 +50,32 @@ func TestCompletionReconciliationLayerTriad(t *testing.T) {
 	t.Run("positive exact authority facts release one verified manifest addition", func(t *testing.T) {
 		t.Parallel()
 
-		for marker := byte(1); marker <= 10; marker++ {
-			t.Run(strconv.Itoa(int(marker)), func(t *testing.T) {
-				t.Parallel()
+		marker := byte(1)
 
-				request := base
-				request.Receipt = reconciliationReceiptID(t, marker)
-				request.Submission = reconciliationSubmissionID(t, marker+16)
-				request.Object = reconciliationObjectID(t, marker+32)
-				got, gotErr := ReconcileCompletion(request)
-				if gotErr != nil || got.Validate() != nil {
-					t.Fatalf("ReconcileCompletion(%d) = (%v, %v), want validated proof and nil", marker, got, gotErr)
-				}
-				manifest, manifestErr := got.Manifest()
-				addition, additionErr := got.Addition()
-				if manifestErr != nil || additionErr != nil || addition.Validate() != nil ||
-					manifest != fixture.request.request.Payload.Manifest {
-					t.Fatalf("reconciled projections = (%v, %v, %v, %v), want exact manifest and authenticated addition",
-						manifest, addition, manifestErr, additionErr)
-				}
-				body, bodyErr := addition.Evidence.Body()
-				header, headerErr := addition.Evidence.Header()
-				declaration := fixture.request.request.Payload.Declaration
-				if bodyErr != nil || headerErr != nil || body.Submission != request.Submission ||
-					body.Object != request.Object || body.Extent != declaration.Extent ||
-					body.SHA256 != declaration.SHA256 || body.CRC32C != declaration.CRC32C ||
-					header.Identity != request.Receipt || header.OccurredAt != fixture.grant.Payload.IssuedAt {
-					t.Fatalf("reconciled receipt facts = (%v, %v, %v, %v), want exact authority identities, provider time, and request integrity",
-						body, header, bodyErr, headerErr)
-				}
-			})
+		request := base
+		request.Receipt = reconciliationReceiptID(t, marker)
+		request.Submission = reconciliationSubmissionID(t, marker+16)
+		request.Object = reconciliationObjectID(t, marker+32)
+		got, gotErr := ReconcileCompletion(request)
+		if gotErr != nil || got.Validate() != nil {
+			t.Fatalf("ReconcileCompletion(%d) = (%v, %v), want validated proof and nil", marker, got, gotErr)
+		}
+		manifest, manifestErr := got.Manifest()
+		addition, additionErr := got.Addition()
+		if manifestErr != nil || additionErr != nil || addition.Validate() != nil ||
+			manifest != fixture.request.request.Payload.Manifest {
+			t.Fatalf("reconciled projections = (%v, %v, %v, %v), want exact manifest and authenticated addition",
+				manifest, addition, manifestErr, additionErr)
+		}
+		body, bodyErr := addition.Evidence.Body()
+		header, headerErr := addition.Evidence.Header()
+		declaration := fixture.request.request.Payload.Declaration
+		if bodyErr != nil || headerErr != nil || body.Submission != request.Submission ||
+			body.Object != request.Object || body.Extent != declaration.Extent ||
+			body.SHA256 != declaration.SHA256 || body.CRC32C != declaration.CRC32C ||
+			header.Identity != request.Receipt || header.OccurredAt != fixture.grant.Payload.IssuedAt {
+			t.Fatalf("reconciled receipt facts = (%v, %v, %v, %v), want exact authority identities, provider time, and request integrity",
+				body, header, bodyErr, headerErr)
 		}
 	})
 

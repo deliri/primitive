@@ -65,7 +65,7 @@ func (d CompletionDocument) Validate() error {
 	if err := errors.Join(d.Completion.Validate(), d.Certificate.Validate()); err != nil {
 		return contractError(err)
 	}
-	if d.Completion.Payload.Build != d.Certificate.Body.Build {
+	if d.Completion.Payload.Build != d.Certificate.Body.Build || d.Completion.Attestation.Signer != d.Certificate.Body.DeviceKey {
 		return bindingError()
 	}
 	return nil
@@ -73,6 +73,9 @@ func (d CompletionDocument) Validate() error {
 
 // ControlRoute projects the sole route admitted by this completion.
 func (d CompletionDocument) ControlRoute() (controlwire.RouteContract, error) {
+	if err := d.Validate(); err != nil {
+		return controlwire.RouteContract{}, err
+	}
 	return controlwire.NewRouteContract(
 		d.Completion.Payload.Build.Offering(), controlwire.RouteFamilySubmissionCompletions,
 	)
@@ -94,12 +97,16 @@ func (a CompletionAssembly) Validate() error {
 }
 
 func (a CompletionProjectionAssembly) Validate() error {
-	if err := errors.Join(a.Completion.Validate(), a.Certificate.Validate()); err != nil {
+	build, buildErr := a.Completion.Build()
+	if err := errors.Join(buildErr, a.Certificate.Validate()); err != nil {
 		return contractError(err)
 	}
-	build, err := a.Completion.Build()
-	if err != nil || build != a.Certificate.Body.Build {
+	if build != a.Certificate.Body.Build {
 		return bindingError()
+	}
+	signer, err := a.Completion.Signer()
+	if err != nil || signer != a.Certificate.Body.DeviceKey {
+		return bindingError(err)
 	}
 	return nil
 }

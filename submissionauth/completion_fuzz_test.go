@@ -43,16 +43,44 @@ func FuzzCredentialedCompletionProjectionValidateJSONProjectionOracle(f *testing
 
 func FuzzCredentialedCompletionJSONSemanticAndAuthorityClosure(f *testing.F) {
 	fixture := newAuthCompletionFixture(f, authCompletionFixtureRequest{})
+	foreign := newAuthCompletionFixture(f, authCompletionFixtureRequest{authorityByte: 0x65, deviceByte: 0x66, nonceByte: 0x67, generation: 8})
 	canonical, err := fixture.credentialed.MarshalJSON()
 	if err != nil {
 		f.Fatalf("CompletionDocument.MarshalJSON(seed) error = %v, want nil", err)
 	}
-	f.Add(canonical)
-	f.Add([]byte{})
-	f.Add([]byte(`{}`))
-	f.Add(append(bytes.Clone(canonical), 0))
+	for selector := range uint8(7) {
+		f.Add(canonical, selector)
+	}
+	f.Add([]byte{}, uint8(0))
+	f.Add([]byte(`{}`), uint8(0))
+	f.Add(append(bytes.Clone(canonical), 0), uint8(0))
 
-	f.Fuzz(func(t *testing.T, data []byte) {
+	f.Fuzz(func(t *testing.T, data []byte, selector uint8) {
+		if selector%7 != 0 {
+			candidate := fixture.credentialed
+			switch selector % 7 {
+			case 1:
+				candidate.Completion.Attestation.Signature = foreign.completionDocument.Attestation.Signature
+			case 2:
+				candidate.Certificate.Attestation.Signature = foreign.request.certificate.Attestation.Signature
+			case 3:
+				candidate.Completion.Payload.Nonce = foreign.completionNonce
+			case 4:
+				candidate.Completion.Payload.Authorization = authAuthorityNonce(t, 0x72)
+			case 5:
+				candidate.Completion.Payload.Evidence = foreign.completionDocument.Payload.Evidence
+			case 6:
+				candidate.Completion.Attestation.Signer = foreign.completionDocument.Attestation.Signer
+			}
+			if candidate == fixture.credentialed {
+				t.Fatalf("mutation selector = %d preserved every fact, want a load-bearing difference", selector)
+			}
+			var err error
+			data, err = core.MarshalCanonicalJSONDocument(completionDocumentWire(candidate))
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
 		got := fixture.credentialed
 		gotErr := got.UnmarshalJSON(data)
 		if gotErr != nil {
@@ -76,6 +104,14 @@ func FuzzCredentialedCompletionJSONSemanticAndAuthorityClosure(f *testing.F) {
 		var roundTrip CompletionDocument
 		if err := roundTrip.UnmarshalJSON(encoded); err != nil || roundTrip != got {
 			t.Fatalf("CompletionDocument canonical round trip = (%v, %v), want exact %v and nil", roundTrip, err, got)
+		}
+		again, err := roundTrip.MarshalJSON()
+		if err != nil || !bytes.Equal(encoded, again) {
+			t.Fatalf("second canonical output differs: %v", err)
+		}
+		assembled, err := AssembleCompletion(CompletionAssembly(roundTrip))
+		if err != nil || assembled != roundTrip {
+			t.Fatalf("assembly=%v error=%v, want exact received document", assembled, err)
 		}
 		verified, verifyErr := VerifyCompletion(CompletionVerification{
 			Document: roundTrip, Request: fixture.verifiedRequest,

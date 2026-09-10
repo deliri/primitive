@@ -101,7 +101,11 @@ func authSigningKey(t *testing.T, value byte) (core.Ed25519PublicKey, ed25519.Pr
 		seed[index] = value
 	}
 	private := ed25519.NewKeyFromSeed(seed)
-	public, err := core.NewEd25519PublicKey(private.Public().(ed25519.PublicKey))
+	rawPublic, ok := private.Public().(ed25519.PublicKey)
+	if !ok {
+		t.Fatalf("public key = %T, want ed25519.PublicKey", private.Public())
+	}
+	public, err := core.NewEd25519PublicKey(rawPublic)
 	if err != nil {
 		t.Fatalf("core.NewEd25519PublicKey() error = %v, want nil", err)
 	}
@@ -248,12 +252,7 @@ func TestCredentialedRequestLayerTriadRefusesEveryAuthorityAndDeviceSubstitution
 	if err != nil {
 		t.Fatalf("submission.IssueRequest(other device) error = %v, want nil", err)
 	}
-	otherDeviceDocument, err := Assemble(RequestAssembly{
-		Request: otherRequest, Certificate: fixture.certificate,
-	})
-	if err != nil {
-		t.Fatalf("Assemble(other device signature) error = %v, want nil", err)
-	}
+	otherDeviceDocument := RequestDocument{Request: otherRequest, Certificate: fixture.certificate}
 	partitionDocument := fixture.document
 	partitionDocument.Request.Payload.Manifest.Partition = submissionAuthPartition(t, 0x62)
 	if err := partitionDocument.Validate(); err != nil {
@@ -269,7 +268,7 @@ func TestCredentialedRequestLayerTriadRefusesEveryAuthorityAndDeviceSubstitution
 		}, wantErr: core.ErrAttestVerification},
 		{name: "request signature belongs to an uncertified device", request: Verification{
 			Document: otherDeviceDocument, Server: submissionAuthServer(t, fixture.trusted),
-		}, wantErr: core.ErrAttestVerification},
+		}, wantErr: core.ErrControlPlaneResponseBinding},
 		{name: "partition changed after device signing", request: Verification{
 			Document: partitionDocument, Server: submissionAuthServer(t, fixture.trusted),
 		}, wantErr: core.ErrAttestVerification},
@@ -449,18 +448,6 @@ func TestCredentialedRequestJSONIsStrictAndPreserving(t *testing.T) {
 			}
 		})
 	}
-}
-
-func authLeftPadJSON(encoded []byte, length int) []byte {
-	if length < len(encoded) {
-		return nil
-	}
-	padded := make([]byte, length)
-	for index := range length - len(encoded) {
-		padded[index] = ' '
-	}
-	copy(padded[length-len(encoded):], encoded)
-	return padded
 }
 
 // TestCredentialedRequestLayerTriadZeroValuesNeverAcquireProof is the neutral

@@ -1,16 +1,20 @@
 package submissionauth
 
 import (
+	"embed"
+	"github.com/deliri/primitive/v2026/core"
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"os"
-	"path/filepath"
+	"io/fs"
 	"slices"
 	"sort"
 	"strings"
 	"testing"
 )
+
+//go:embed *.go
+var authTestSources embed.FS
 
 type (
 	authProtocolFact[T any]      struct{}
@@ -51,7 +55,7 @@ func TestSubmissionAuthDataFlowStructInventoryRatchet(t *testing.T) {
 func submissionAuthProductionStructNames(t *testing.T) []string {
 	t.Helper()
 
-	entries, err := os.ReadDir(".")
+	entries, err := fs.ReadDir(authTestSources, ".")
 	if err != nil {
 		t.Fatalf("os.ReadDir(.) error = %v, want nil", err)
 	}
@@ -63,7 +67,7 @@ func submissionAuthProductionStructNames(t *testing.T) []string {
 			continue
 		}
 		file, parseErr := parser.ParseFile(
-			fileSet, filepath.Clean(entry.Name()), nil, parser.SkipObjectResolution,
+			fileSet, entry.Name(), authSource(t, entry.Name()), parser.SkipObjectResolution,
 		)
 		if parseErr != nil {
 			t.Fatalf("parser.ParseFile(%q) error = %v, want nil", entry.Name(), parseErr)
@@ -87,7 +91,7 @@ func submissionAuthClassifiedStructNames(t *testing.T) []string {
 	t.Helper()
 
 	file, err := parser.ParseFile(
-		token.NewFileSet(), "architecture_test.go", nil, parser.SkipObjectResolution,
+		token.NewFileSet(), "architecture_test.go", authSource(t, "architecture_test.go"), parser.SkipObjectResolution,
 	)
 	if err != nil {
 		t.Fatalf("parser.ParseFile(architecture_test.go) error = %v, want nil", err)
@@ -98,11 +102,17 @@ func submissionAuthClassifiedStructNames(t *testing.T) []string {
 			continue
 		}
 		for _, raw := range generic.Specs {
-			specification := raw.(*ast.TypeSpec)
+			specification, ok := raw.(*ast.TypeSpec)
+			if !ok {
+				continue
+			}
 			if specification.Name.Name != "submissionAuthContractInventory" {
 				continue
 			}
-			structure := specification.Type.(*ast.StructType)
+			structure, ok := specification.Type.(*ast.StructType)
+			if !ok {
+				t.Fatalf("inventory type = %T, want *ast.StructType", specification.Type)
+			}
 			names := make([]string, 0, len(structure.Fields.List))
 			for _, field := range structure.Fields.List {
 				for _, name := range field.Names {
@@ -118,3 +128,81 @@ func submissionAuthClassifiedStructNames(t *testing.T) []string {
 }
 
 var _ = submissionAuthContractInventory{}
+
+func authSource(t *testing.T, name string) []byte {
+	t.Helper()
+	data, err := authTestSources.ReadFile(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
+}
+
+type authIngressDoors struct {
+	RequestJSON    func(*RequestDocument, []byte) error
+	CompletionJSON func(*CompletionDocument, []byte) error
+	ProjectionJSON func(CompletionProjection, []byte, core.StrictJSONLimits) error
+}
+
+var authIngress = authIngressDoors{
+	RequestJSON:    (*RequestDocument).UnmarshalJSON,
+	CompletionJSON: (*CompletionDocument).UnmarshalJSON,
+	ProjectionJSON: CompletionProjection.ValidateJSONProjection,
+}
+var authIngressFuzz = struct {
+	Request            func(*testing.F)
+	Completion         func(*testing.F)
+	Projection         func(*testing.F)
+	SubmissionResponse func(*testing.F)
+	CompletionResponse func(*testing.F)
+}{
+	FuzzCredentialedRequestJSONSemanticAndAuthorityClosure,
+	FuzzCredentialedCompletionJSONSemanticAndAuthorityClosure,
+	FuzzCredentialedCompletionProjectionValidateJSONProjectionOracle,
+	FuzzSubmissionResponseAuthorityClosure,
+	FuzzCompletionResponseAuthorityClosure,
+}
+
+func TestSubmissionAuthDecoderInventoryRatchet(t *testing.T) {
+	_ = authIngress
+	_ = authIngressFuzz
+	t.Parallel()
+	var got []string
+	entries, err := fs.ReadDir(authTestSources, ".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range entries {
+		if !strings.HasSuffix(entry.Name(), ".go") || strings.HasSuffix(entry.Name(), "_test.go") {
+			continue
+		}
+		file, err := parser.ParseFile(token.NewFileSet(), entry.Name(), authSource(t, entry.Name()), parser.SkipObjectResolution)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, declaration := range file.Decls {
+			function, ok := declaration.(*ast.FuncDecl)
+			if !ok || function.Recv == nil {
+				continue
+			}
+			if function.Name.Name != "UnmarshalJSON" && function.Name.Name != "ValidateJSONProjection" {
+				continue
+			}
+			expression := function.Recv.List[0].Type
+			if pointer, ok := expression.(*ast.StarExpr); ok {
+				expression = pointer.X
+			}
+			receiver, ok := expression.(*ast.Ident)
+			if !ok {
+				t.Fatalf("decoder receiver = %T, want *ast.Ident", expression)
+			}
+			got = append(got, receiver.Name+"."+function.Name.Name)
+		}
+	}
+	// These are symbol coordinates for the compiler-bound doors above, not protocol strings.
+	want := []string{"CompletionDocument.UnmarshalJSON", "CompletionProjection.ValidateJSONProjection", "RequestDocument.UnmarshalJSON"}
+	slices.Sort(got)
+	if !slices.Equal(got, want) {
+		t.Fatalf("external JSON doors=%v, want fuzz-bound %v", got, want)
+	}
+}
