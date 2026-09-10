@@ -87,6 +87,14 @@ func TestSignedPayloadCanonicalOutputLayerTriad(t *testing.T) {
 					t.Parallel()
 					writer := &canonicalResponseWriter{response: response.result}
 					gotErr := payload.write(writer)
+					written := response.result.written(len(canonical))
+					var wantPrefix []byte
+					if written > 0 && written <= len(canonical) {
+						wantPrefix = canonical[:written]
+					}
+					if !bytes.Equal(writer.bytes.Bytes(), wantPrefix) {
+						t.Fatalf("got prefix=%x, want %x", writer.bytes.Bytes(), wantPrefix)
+					}
 					if response.wantErr == nil {
 						if gotErr != nil || !bytes.Equal(writer.bytes.Bytes(), canonical) {
 							t.Fatalf("WriteCanonical(exact) = (%x, %v), want (%x, nil)", writer.bytes.Bytes(), gotErr, canonical)
@@ -380,10 +388,10 @@ func TestRequestCommitmentJSONRejectsEveryNonCanonicalDigestForm(t *testing.T) {
 	}
 }
 
-// TestRequestJSONBoundaryIsStrictBoundedAndPreserving attacks document framing
-// rather than implementation fields: unknown, duplicate, missing, oversized,
+// TestRequestJSONBoundaryIsStrictAndPreserving attacks document framing
+// rather than implementation fields: unknown, duplicate, missing,
 // and malformed inputs all refuse without changing an already-valid receiver.
-func TestRequestJSONBoundaryIsStrictBoundedAndPreserving(t *testing.T) {
+func TestRequestJSONBoundaryIsStrictAndPreserving(t *testing.T) {
 	t.Parallel()
 
 	_, signer := testSigningKey(t, 0x74)
@@ -452,9 +460,6 @@ func TestRequestJSONBoundaryIsStrictBoundedAndPreserving(t *testing.T) {
 		{name: "mixed legal outer whitespace", data: append(append([]byte("\t\r\n"), encoded...), ' ', '\t')},
 		{name: "members in reverse order", data: reordered},
 		{name: "indented object", data: []byte(indented)},
-		{name: "one byte below document ceiling", data: leftPadJSON(encoded, RequestDocumentJSONMaximumBytes-1)},
-		{name: "exactly at document ceiling", data: leftPadJSON(encoded, RequestDocumentJSONMaximumBytes)},
-		{name: "canonical second decode", data: bytes.Clone(encoded)},
 	}
 	for _, tc := range validCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -497,7 +502,6 @@ func TestRequestJSONBoundaryIsStrictBoundedAndPreserving(t *testing.T) {
 		{name: "truncated after payload name", data: []byte(`{"payload":`)},
 		{name: "truncated canonical document", data: encoded[:len(encoded)-1]},
 		{name: "second document trails canonical value", data: append(bytes.Clone(encoded), encoded...)},
-		{name: "one byte above document ceiling", data: leftPadJSON(encoded, RequestDocumentJSONMaximumBytes+1)},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -516,19 +520,7 @@ func TestRequestJSONBoundaryIsStrictBoundedAndPreserving(t *testing.T) {
 	}
 }
 
-func leftPadJSON(encoded []byte, length int) []byte {
-	if length < len(encoded) {
-		return nil
-	}
-	padded := make([]byte, length)
-	for index := range length - len(encoded) {
-		padded[index] = ' '
-	}
-	copy(padded[length-len(encoded):], encoded)
-	return padded
-}
-
-// TestSigningDomainClosesItsEntireByteDomain proves only the request and grant
+// TestSigningDomainClosesItsEntireByteDomain proves only the request, grant, and completion
 // namespaces can enter an attestation envelope and that their texts are
 // distinct fixed points of their own parser.
 func TestSigningDomainClosesItsEntireByteDomain(t *testing.T) {

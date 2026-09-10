@@ -13,13 +13,6 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
-const (
-	// GrantPayloadJSONMaximumBytes bounds the authority-signed authorization.
-	GrantPayloadJSONMaximumBytes = 32 << 10
-	// GrantDocumentJSONMaximumBytes bounds one received grant including bearer.
-	GrantDocumentJSONMaximumBytes = 128 << 10
-)
-
 // GrantPayload is the complete authority-signed permission for one exact
 // request and bearer capability.
 type GrantPayload struct {
@@ -129,13 +122,13 @@ func (p GrantPayload) WriteCanonical(destination io.Writer) error {
 	return writeCanonicalPayload(destination, encoded)
 }
 
-// MarshalJSON emits one bounded canonical grant payload.
+// MarshalJSON emits one canonical grant payload.
 func (p GrantPayload) MarshalJSON() ([]byte, error) {
 	if err := p.Validate(); err != nil {
 		return nil, jsonError(err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(grantPayloadWire(p))
-	if err != nil || len(encoded) > GrantPayloadJSONMaximumBytes {
+	if err != nil {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -146,7 +139,7 @@ func (p *GrantPayload) UnmarshalJSON(data []byte) error {
 	if p == nil {
 		return jsonError(errors.New("nil grant payload receiver"))
 	}
-	wire, err := decodeStrict[grantPayloadWire](data, GrantPayloadJSONMaximumBytes)
+	wire, err := decodeStrict[grantPayloadWire](data)
 	if err != nil {
 		return err
 	}
@@ -176,7 +169,7 @@ func (d *GrantDocument) UnmarshalJSON(data []byte) error {
 	if d == nil {
 		return jsonError(errors.New("nil grant document receiver"))
 	}
-	wire, err := decodeStrict[grantDocumentWire](data, GrantDocumentJSONMaximumBytes)
+	wire, err := decodeStrict[grantDocumentWire](data)
 	if err != nil {
 		return err
 	}
@@ -206,7 +199,7 @@ func (p GrantProjection) MarshalJSON() ([]byte, error) {
 		return nil, jsonError(err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(grantProjectionWire(p))
-	if err != nil || len(encoded) > GrantDocumentJSONMaximumBytes {
+	if err != nil {
 		return nil, jsonError(err)
 	}
 	return encoded, nil

@@ -318,9 +318,9 @@ func TestAssemblyRefusesAuthenticDocumentsForDifferentBuilds(t *testing.T) {
 	}
 }
 
-// TestCredentialedRequestJSONIsStrictBoundedAndPreserving proves the outer
+// TestCredentialedRequestJSONIsStrictAndPreserving proves the outer
 // wire rejects framing attacks without weakening either nested document.
-func TestCredentialedRequestJSONIsStrictBoundedAndPreserving(t *testing.T) {
+func TestCredentialedRequestJSONIsStrictAndPreserving(t *testing.T) {
 	t.Parallel()
 
 	fixture := newAuthFixture(t, authFixtureRequest{})
@@ -393,9 +393,6 @@ func TestCredentialedRequestJSONIsStrictBoundedAndPreserving(t *testing.T) {
 		{name: "mixed legal outer whitespace", data: append(append([]byte("\t\r\n"), encoded...), ' ', '\t')},
 		{name: "members in reverse order", data: reordered},
 		{name: "indented credentialed request", data: []byte(indented)},
-		{name: "one byte below document ceiling", data: authLeftPadJSON(encoded, RequestDocumentJSONMaximumBytes-1)},
-		{name: "exactly at document ceiling", data: authLeftPadJSON(encoded, RequestDocumentJSONMaximumBytes)},
-		{name: "canonical second decode", data: bytes.Clone(encoded)},
 	}
 	for _, tc := range validCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -436,7 +433,6 @@ func TestCredentialedRequestJSONIsStrictBoundedAndPreserving(t *testing.T) {
 		{name: "truncated after request name", data: []byte(`{"request":`)},
 		{name: "truncated canonical credentialed request", data: encoded[:len(encoded)-1]},
 		{name: "second document trails canonical value", data: append(bytes.Clone(encoded), encoded...)},
-		{name: "one byte above document ceiling", data: authLeftPadJSON(encoded, RequestDocumentJSONMaximumBytes+1)},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

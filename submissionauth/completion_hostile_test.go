@@ -235,7 +235,7 @@ func TestCredentialedCompletionProjectionEncodeValidatedJSONHostileBindingMatrix
 		{name: "indented", data: []byte(indented)},
 		{name: "foreign authentic projection", data: foreignEncoded},
 		{name: "mutated interior byte", data: mutated},
-		{name: "one above ceiling", data: authLeftPadJSON(canonical, CompletionDocumentJSONMaximumBytes+1)},
+		{name: "large noncanonical prefix", data: authLeftPadJSON(canonical, authWhitespaceFixtureBytes)},
 	}
 	if len(boundary) < 20 {
 		t.Fatalf("credentialed completion ValidateJSONProjection boundary cases = %d, want at least 20", len(boundary))
@@ -386,10 +386,10 @@ func TestCredentialedCompletionLayerTriadRefusesCrossInstallationAndAgreementSub
 		}, want: core.ErrControlPlaneResponseBinding},
 		{name: "other request grant", mutate: func(value *CompletionVerification) {
 			value.Grant = other.grant
-		}, want: core.ErrControlPlaneResponseBinding},
+		}, want: core.ErrAttestVerification},
 		{name: "other device completion with current certificate", mutate: func(value *CompletionVerification) {
 			value.Document.Completion = other.completionDocument
-		}, want: core.ErrControlPlaneResponseBinding},
+		}, want: core.ErrAttestVerification},
 		{name: "validly signed completion names another request nonce", mutate: func(value *CompletionVerification) {
 			value.Document = otherNonceCompletion
 		}, want: core.ErrControlPlaneResponseBinding},
@@ -435,10 +435,9 @@ func TestCredentialedCompletionLayerTriadZeroValuesNeverAcquireCustodyProof(t *t
 	}
 }
 
-// TestCredentialedCompletionJSONIsStrictBoundedAndPreserving attacks the
-// public receiver at framing, shape, duplication, truncation, and exact byte
-// ceilings while proving every refusal preserves the previous valid value.
-func TestCredentialedCompletionJSONLayerTriadIsStrictBoundedAndPreserving(t *testing.T) {
+// TestCredentialedCompletionJSONIsStrictAndPreserving attacks the
+// public receiver at framing, shape, duplication, truncation, and malformed framing while proving every refusal preserves the previous valid value.
+func TestCredentialedCompletionJSONLayerTriadIsStrictAndPreserving(t *testing.T) {
 	t.Parallel()
 
 	fixture := newAuthCompletionFixture(t, authCompletionFixtureRequest{})
@@ -471,9 +470,6 @@ func TestCredentialedCompletionJSONLayerTriadIsStrictBoundedAndPreserving(t *tes
 		{name: "trailing newline", data: append(bytes.Clone(encoded), '\n')},
 		{name: "carriage return framing", data: append(append([]byte("\r"), encoded...), '\r')},
 		{name: "mixed outer whitespace", data: append(append([]byte("\t\r\n"), encoded...), ' ', '\t')},
-		{name: "half ceiling", data: authLeftPadJSON(encoded, CompletionDocumentJSONMaximumBytes/2)},
-		{name: "one below ceiling", data: authLeftPadJSON(encoded, CompletionDocumentJSONMaximumBytes-1)},
-		{name: "exact ceiling", data: authLeftPadJSON(encoded, CompletionDocumentJSONMaximumBytes)},
 	}
 	for _, tc := range valid {
 		t.Run(tc.name, func(t *testing.T) {
@@ -514,7 +510,6 @@ func TestCredentialedCompletionJSONLayerTriadIsStrictBoundedAndPreserving(t *tes
 		{name: "half truncated canonical", data: encoded[:len(encoded)/2]},
 		{name: "two documents", data: append(bytes.Clone(encoded), encoded...)},
 		{name: "trailing scalar", data: append(bytes.Clone(encoded), []byte(` 0`)...)},
-		{name: "one above ceiling", data: authLeftPadJSON(encoded, CompletionDocumentJSONMaximumBytes+1)},
 	}
 	for _, tc := range invalid {
 		t.Run(tc.name, func(t *testing.T) {

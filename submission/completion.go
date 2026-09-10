@@ -12,13 +12,6 @@ import (
 	"github.com/deliri/primitive/v2026/objectstore"
 )
 
-const (
-	// CompletionPayloadJSONMaximumBytes bounds one provider-evidence completion.
-	CompletionPayloadJSONMaximumBytes = 64 << 10
-	// CompletionDocumentJSONMaximumBytes bounds the signed completion document.
-	CompletionDocumentJSONMaximumBytes = 96 << 10
-)
-
 // CompletionPayload is the receive-side statement that one exact granted
 // upload completed. Evidence contains no bearer, URL, path, or object bytes.
 type CompletionPayload struct {
@@ -129,7 +122,7 @@ func (p CompletionPayload) MarshalJSON() ([]byte, error) {
 		return nil, jsonError(err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(completionPayloadWire(p))
-	if err != nil || len(encoded) > CompletionPayloadJSONMaximumBytes {
+	if err != nil {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -139,7 +132,7 @@ func (p *CompletionPayload) UnmarshalJSON(data []byte) error {
 	if p == nil {
 		return jsonError(errors.New("nil submission completion payload receiver"))
 	}
-	wire, err := decodeStrict[completionPayloadWire](data, CompletionPayloadJSONMaximumBytes)
+	wire, err := decodeStrict[completionPayloadWire](data)
 	if err != nil {
 		return err
 	}
@@ -166,7 +159,7 @@ func (d CompletionDocument) MarshalJSON() ([]byte, error) {
 		return nil, jsonError(err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(completionDocumentWire(d))
-	if err != nil || len(encoded) > CompletionDocumentJSONMaximumBytes {
+	if err != nil {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -176,7 +169,7 @@ func (d *CompletionDocument) UnmarshalJSON(data []byte) error {
 	if d == nil {
 		return jsonError(errors.New("nil submission completion document receiver"))
 	}
-	wire, err := decodeStrict[completionDocumentWire](data, CompletionDocumentJSONMaximumBytes)
+	wire, err := decodeStrict[completionDocumentWire](data)
 	if err != nil {
 		return err
 	}
@@ -222,7 +215,7 @@ func (p completionProjectionPayload) MarshalJSON() ([]byte, error) {
 		return nil, jsonError(err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(p.wire())
-	if err != nil || len(encoded) > CompletionPayloadJSONMaximumBytes {
+	if err != nil {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -254,7 +247,7 @@ func (p CompletionProjection) MarshalJSON() ([]byte, error) {
 	encoded, err := core.MarshalCanonicalJSONDocument(completionProjectionWire{
 		Payload: p.payload.wire(), Attestation: p.attestation,
 	})
-	if err != nil || len(encoded) > CompletionDocumentJSONMaximumBytes {
+	if err != nil {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -335,9 +328,6 @@ func (i CompletionIssuance) Validate() error {
 
 // IssueCompletion signs one exact confirmed provider result against its grant.
 func IssueCompletion(issuance CompletionIssuance) (CompletionProjection, error) {
-	if err := issuance.Validate(); err != nil {
-		return CompletionProjection{}, err
-	}
 	payload, err := completionProjection(issuance)
 	if err != nil {
 		return CompletionProjection{}, err
@@ -443,9 +433,6 @@ func VerifyCompletion(expectation CompletionExpectation) (VerifiedCompletion, er
 	if err := expectation.Validate(); err != nil {
 		return VerifiedCompletion{}, err
 	}
-	if err := validateCompletionBinding(expectation); err != nil {
-		return VerifiedCompletion{}, err
-	}
 	grantProof, err := attest.Verify(attest.VerifyRequest[SigningDomain]{
 		Body: expectation.Grant.Payload, Envelope: expectation.Grant.Attestation,
 		TrustedKeys: expectation.GrantKeys,
@@ -459,6 +446,9 @@ func VerifyCompletion(expectation CompletionExpectation) (VerifiedCompletion, er
 	})
 	if err != nil {
 		return VerifiedCompletion{}, contractError(err)
+	}
+	if err := validateCompletionBinding(expectation); err != nil {
+		return VerifiedCompletion{}, err
 	}
 	verified := VerifiedCompletion{document: expectation.Document, grantProof: grantProof, proof: proof}
 	return verified, verified.Validate()

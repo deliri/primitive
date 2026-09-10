@@ -134,8 +134,10 @@ type (
 )
 
 func UploadDecision(grant GrantProjection) (DecisionProjection, error) {
-	candidate := DecisionProjection{kind: DecisionUpload, grant: &grant}
-	return candidate, candidate.Validate()
+	if err := grant.Validate(); err != nil {
+		return DecisionProjection{}, err
+	}
+	return DecisionProjection{kind: DecisionUpload, grant: &grant}, nil
 }
 
 // ReuseDecisionRequest supplies the exact authenticated tenant scope and

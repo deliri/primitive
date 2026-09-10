@@ -10,14 +10,6 @@ import (
 	"github.com/deliri/primitive/v2026/submission"
 )
 
-const (
-	// RequestDocumentJSONMaximumBytes bounds one credentialed submission
-	// request, including bounded insignificant outer whitespace.
-	RequestDocumentJSONMaximumBytes = submission.RequestDocumentJSONMaximumBytes +
-		controlplane.InstallationCertificateDocumentJSONMaximumBytes +
-		core.CredentialedRequestDocumentSyntaxBytes + core.CredentialedDocumentWhitespaceMaximumBytes
-)
-
 // RequestDocument carries the signed evidence declaration and the
 // installation certificate that nominates its device key.
 type RequestDocument struct {
@@ -77,7 +69,6 @@ func (d RequestDocument) ControlNonce() controlwire.RequestNonce {
 	return d.Request.Payload.Nonce
 }
 
-
 // Validate closes every assembly input without constructing a document.
 func (a RequestAssembly) Validate() error {
 	return RequestDocument(a).Validate()
@@ -93,13 +84,13 @@ func Assemble(assembly RequestAssembly) (RequestDocument, error) {
 	return document, nil
 }
 
-// MarshalJSON emits one bounded canonical credentialed request.
+// MarshalJSON emits one canonical credentialed request.
 func (d RequestDocument) MarshalJSON() ([]byte, error) {
 	if err := d.Validate(); err != nil {
 		return nil, jsonError(err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(requestDocumentWire(d))
-	if err != nil || len(encoded) > RequestDocumentJSONMaximumBytes {
+	if err != nil {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -110,12 +101,7 @@ func (d *RequestDocument) UnmarshalJSON(data []byte) error {
 	if d == nil {
 		return jsonError(errors.New("nil credentialed submission request receiver"))
 	}
-	maximum, err := core.NewByteCount(uint64(RequestDocumentJSONMaximumBytes))
-	if err != nil {
-		return jsonError(err)
-	}
-	limits := core.DefaultStrictJSONLimits()
-	limits.DocumentMaximumBytes = maximum
+	limits := core.ExtensibleJSONLimits()
 	wire, err := core.DecodeStrictJSONStructure[requestDocumentWire](data, limits)
 	if err != nil {
 		return jsonError(err)

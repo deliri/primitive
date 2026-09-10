@@ -19,7 +19,7 @@ type UploadCallRequest struct {
 
 // Validate closes all caller-owned upload inputs without reading the source.
 func (r UploadCallRequest) Validate() error {
-	if r.Source == nil {
+	if core.ReaderIsNil(r.Source) {
 		return contractError(errors.New("submission upload source is nil"))
 	}
 	if err := errors.Join(r.Request.Validate(), r.Policy.Validate()); err != nil {

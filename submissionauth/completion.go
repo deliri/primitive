@@ -11,14 +11,6 @@ import (
 	"github.com/deliri/primitive/v2026/submission"
 )
 
-const (
-	// CompletionDocumentJSONMaximumBytes bounds one credentialed upload
-	// completion, including bounded insignificant outer whitespace.
-	CompletionDocumentJSONMaximumBytes = submission.CompletionDocumentJSONMaximumBytes +
-		controlplane.InstallationCertificateDocumentJSONMaximumBytes +
-		core.CredentialedCompletionDocumentSyntaxBytes + core.CredentialedDocumentWhitespaceMaximumBytes
-)
-
 // CompletionDocument carries one device-signed provider completion beside the
 // installation certificate that nominates the device key.
 type CompletionDocument struct {
@@ -97,7 +89,6 @@ func (d CompletionDocument) ControlNonce() controlwire.RequestNonce {
 	return d.Completion.Payload.Nonce
 }
 
-
 func (a CompletionAssembly) Validate() error {
 	return (CompletionDocument(a)).Validate()
 }
@@ -136,7 +127,7 @@ func (p CompletionProjection) MarshalJSON() ([]byte, error) {
 	}{
 		Completion: p.completion, Certificate: p.certificate,
 	})
-	if err != nil || len(encoded) > CompletionDocumentJSONMaximumBytes {
+	if err != nil {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -161,7 +152,7 @@ func (d CompletionDocument) MarshalJSON() ([]byte, error) {
 		return nil, jsonError(err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(completionDocumentWire(d))
-	if err != nil || len(encoded) > CompletionDocumentJSONMaximumBytes {
+	if err != nil {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -171,12 +162,7 @@ func (d *CompletionDocument) UnmarshalJSON(data []byte) error {
 	if d == nil {
 		return jsonError(errors.New("nil credentialed submission completion receiver"))
 	}
-	maximum, err := core.NewByteCount(uint64(CompletionDocumentJSONMaximumBytes))
-	if err != nil {
-		return jsonError(err)
-	}
-	limits := core.DefaultStrictJSONLimits()
-	limits.DocumentMaximumBytes = maximum
+	limits := core.ExtensibleJSONLimits()
 	wire, err := core.DecodeStrictJSONStructure[completionDocumentWire](data, limits)
 	if err != nil {
 		return jsonError(err)

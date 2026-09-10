@@ -24,6 +24,9 @@ func FuzzCompletionPayloadJSONSemanticClosure(f *testing.F) {
 		got := payload
 		gotErr := got.UnmarshalJSON(data)
 		if gotErr != nil {
+			if bytes.Equal(data, canonical) {
+				t.Fatalf("valid seed refused: %v", gotErr)
+			}
 			if !errors.Is(gotErr, core.ErrJSONContract) ||
 				!errors.Is(gotErr, core.ErrControlPlaneContract) || got != payload {
 				t.Fatalf("CompletionPayload.UnmarshalJSON(rejected) = (%v, %v), want preserved and typed JSON/control-plane rejection",
@@ -35,9 +38,8 @@ func FuzzCompletionPayloadJSONSemanticClosure(f *testing.F) {
 			t.Fatalf("CompletionPayload.UnmarshalJSON(accepted).Validate() error = %v, want nil", err)
 		}
 		encoded, err := got.MarshalJSON()
-		if err != nil || len(encoded) > CompletionPayloadJSONMaximumBytes {
-			t.Fatalf("CompletionPayload.MarshalJSON(accepted) = (%d bytes, %v), want <= %d and nil",
-				len(encoded), err, CompletionPayloadJSONMaximumBytes)
+		if err != nil {
+			t.Fatalf("canonical encoding failed: %v", err)
 		}
 		var roundTrip CompletionPayload
 		if err := roundTrip.UnmarshalJSON(encoded); err != nil || roundTrip != got {
@@ -66,6 +68,9 @@ func FuzzCompletionDocumentJSONSemanticAndSignatureClosure(f *testing.F) {
 		got := document
 		gotErr := got.UnmarshalJSON(data)
 		if gotErr != nil {
+			if bytes.Equal(data, canonical) {
+				t.Fatalf("valid seed refused: %v", gotErr)
+			}
 			if !errors.Is(gotErr, core.ErrJSONContract) ||
 				!errors.Is(gotErr, core.ErrControlPlaneContract) || got != document {
 				t.Fatalf("CompletionDocument.UnmarshalJSON(rejected) = (%v, %v), want preserved and typed JSON/control-plane rejection",
@@ -77,9 +82,8 @@ func FuzzCompletionDocumentJSONSemanticAndSignatureClosure(f *testing.F) {
 			t.Fatalf("CompletionDocument.UnmarshalJSON(accepted).Validate() error = %v, want nil", err)
 		}
 		encoded, err := got.MarshalJSON()
-		if err != nil || len(encoded) > CompletionDocumentJSONMaximumBytes {
-			t.Fatalf("CompletionDocument.MarshalJSON(accepted) = (%d bytes, %v), want <= %d and nil",
-				len(encoded), err, CompletionDocumentJSONMaximumBytes)
+		if err != nil {
+			t.Fatalf("canonical encoding failed: %v", err)
 		}
 		var roundTrip CompletionDocument
 		if err := roundTrip.UnmarshalJSON(encoded); err != nil || roundTrip != got {
@@ -90,6 +94,9 @@ func FuzzCompletionDocumentJSONSemanticAndSignatureClosure(f *testing.F) {
 			GrantKeys: fixture.grantKeys, CompletionKeys: fixture.deviceKeys, Nonce: fixture.nonce,
 		})
 		if verifyErr != nil {
+			if roundTrip == document {
+				t.Fatalf("authentic completion refused: %v", verifyErr)
+			}
 			stableRejection := errors.Is(verifyErr, core.ErrControlPlaneResponseBinding) ||
 				errors.Is(verifyErr, core.ErrAttestVerification)
 			if !errors.Is(verifyErr, core.ErrControlPlaneContract) || !stableRejection ||

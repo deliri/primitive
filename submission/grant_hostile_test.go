@@ -798,9 +798,9 @@ func TestAuthorizationNonceClosesEveryByteAndCanonicalTextEdge(t *testing.T) {
 	}
 }
 
-// TestGrantJSONBoundaryIsStrictBoundedAndPreserving attacks the bearer-bearing
+// TestGrantJSONBoundaryIsStrictAndPreserving attacks the bearer-bearing
 // outer document without comparing error text or exposing the bearer.
-func TestGrantJSONBoundaryIsStrictBoundedAndPreserving(t *testing.T) {
+func TestGrantJSONBoundaryIsStrictAndPreserving(t *testing.T) {
 	t.Parallel()
 
 	fixture := newGrantFixture(t, grantFixtureRequest{})
@@ -904,9 +904,6 @@ func TestGrantJSONBoundaryIsStrictBoundedAndPreserving(t *testing.T) {
 		{name: "mixed legal outer whitespace", data: append(append([]byte("\t\r\n"), encoded...), ' ', '\t')},
 		{name: "members in reverse order", data: reordered},
 		{name: "indented grant", data: []byte(indented)},
-		{name: "one byte below document ceiling", data: leftPadJSON(encoded, GrantDocumentJSONMaximumBytes-1)},
-		{name: "exactly at document ceiling", data: leftPadJSON(encoded, GrantDocumentJSONMaximumBytes)},
-		{name: "canonical second decode", data: bytes.Clone(encoded)},
 	}
 	for _, tc := range validCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -953,7 +950,6 @@ func TestGrantJSONBoundaryIsStrictBoundedAndPreserving(t *testing.T) {
 		{name: "truncated after payload name", data: []byte(`{"payload":`)},
 		{name: "truncated canonical grant", data: encoded[:len(encoded)-1]},
 		{name: "second grant trails canonical value", data: append(bytes.Clone(encoded), encoded...)},
-		{name: "one byte above document ceiling", data: leftPadJSON(encoded, GrantDocumentJSONMaximumBytes+1)},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

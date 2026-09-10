@@ -1,10 +1,8 @@
 package submission
 
 import (
-	"bytes"
 	json "encoding/json/v2"
 	"errors"
-	"strconv"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/attest"
@@ -278,32 +276,71 @@ func TestReuseDecisionAuthorityBoundaryRefusesEveryForeignOrUnauthenticatedCandi
 	}
 }
 
-func TestReuseDecisionAuthorityBoundaryAdmitsTenExactSameScopeCandidates(t *testing.T) {
+// These are receipt facts, not allocated or transferred object bytes.
+func TestReuseDecisionExtentRepresentationLayerTriad(t *testing.T) {
 	t.Parallel()
-
-	for index := range 10 {
-		extent := index + 1
-		t.Run("exact extent "+strconv.Itoa(extent), func(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		extent  uint64
+		wantErr error
+	}{
+		{"minimum_positive_extent", 1, nil},
+		{"integer_beyond_exact_float64", 1<<53 + 1, nil},
+		{"maximum_go_extent", 1<<63 - 1, nil},
+		{"one_above_go_extent", 1 << 63, core.ErrNumericOverflow},
+		{"unsigned_wrap_edge", ^uint64(0), core.ErrNumericOverflow},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			grant := newGrantFixture(t, grantFixtureRequest{content: bytes.Repeat([]byte{byte(extent)}, extent)})
-			reuse := newReuseEvidenceFixture(t, reuseEvidenceFixtureRequest{
-				Request: grant.request, KeyByte: 0x41, ScopeByte: byte(0x80 + extent),
-			})
-			projection, gotErr := ReuseDecision(reuseDecisionRequest(reuse))
-			if gotErr != nil || projection.Validate() != nil {
-				t.Fatalf("ReuseDecision(exact extent %d) = (%v, %v), want valid projection and nil",
-					extent, projection, gotErr)
+			request := testRequestPayload(t, grantFixtureRequest{})
+			length, err := core.NewByteLength(tc.extent)
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("got extent error=%v, want %v", err, tc.wantErr)
 			}
-			document := decodeDecisionProjection(t, projection)
-			verified, gotErr := VerifyDecision(DecisionExpectation{
-				Decision: document, Request: grant.request,
-				Scope:       receipt.Scope{Principal: reuse.account, Offering: reuse.offering},
-				ObservedAt:  temporal.InstantFromNanoseconds(testGrantIssuedAt),
-				TrustedKeys: reuse.trusted,
-			})
-			if gotErr != nil || verified.Validate() != nil {
-				t.Fatalf("VerifyDecision(exact extent %d) = (%v, %v), want valid proof and nil",
-					extent, verified, gotErr)
+			if tc.wantErr != nil {
+				if length != (core.ByteLength{}) {
+					t.Fatalf("got overflow length=%v, want zero", length)
+				}
+				return
+			}
+			request.Declaration.Extent = length
+			reuse := newReuseEvidenceFixture(t, reuseEvidenceFixtureRequest{Request: request, KeyByte: 0x41, ScopeByte: 0x61})
+			for _, attack := range []struct {
+				name      string
+				absent    bool
+				different bool
+				wantErr   error
+			}{
+				{name: "exact_signed_extent"},
+				{name: "one_bit_changed", different: true, wantErr: core.ErrControlPlaneResponseBinding},
+				{name: "neutral_absent_extent", absent: true, wantErr: core.ErrControlPlaneContract},
+			} {
+				t.Run(attack.name, func(t *testing.T) {
+					t.Parallel()
+					issuance := reuseDecisionRequest(reuse)
+					if attack.absent {
+						issuance.Declaration.Extent = core.ByteLength{}
+					}
+					if attack.different {
+						issuance.Declaration.Extent = testByteLength(t, tc.extent^2)
+					}
+					projection, err := ReuseDecision(issuance)
+					if !errors.Is(err, attack.wantErr) {
+						t.Fatalf("got error=%v, want %v", err, attack.wantErr)
+					}
+					if attack.wantErr != nil {
+						if projection != (DecisionProjection{}) {
+							t.Fatalf("got refused projection=%v, want zero", projection)
+						}
+						return
+					}
+					document := decodeDecisionProjection(t, projection)
+					proof, err := VerifyDecision(DecisionExpectation{Decision: document, Request: request, Scope: issuance.Scope, ObservedAt: temporal.InstantFromNanoseconds(testGrantIssuedAt), TrustedKeys: reuse.trusted})
+					evidence, hasEvidence := proof.Evidence()
+					if err != nil || !hasEvidence || evidence.Validate() != nil || document.Evidence == nil || *document.Evidence != reuse.evidence {
+						t.Fatalf("got reuse evidence present=%t error=%v, want exact signed receipt for %d bytes", hasEvidence, err, tc.extent)
+					}
+				})
 			}
 		})
 	}

@@ -23,6 +23,9 @@ func FuzzCredentialedCompletionProjectionValidateJSONProjectionOracle(f *testing
 	f.Fuzz(func(t *testing.T, data []byte) {
 		gotErr := projection.ValidateJSONProjection(data, core.DefaultStrictJSONLimits())
 		if gotErr != nil {
+			if bytes.Equal(data, canonical) {
+				t.Fatalf("valid seed refused: %v", gotErr)
+			}
 			if !errors.Is(gotErr, core.ErrJSONContract) {
 				t.Fatalf("ValidateJSONProjection(rejected) error = %v, want errors.Is %v", gotErr, core.ErrJSONContract)
 			}
@@ -53,6 +56,9 @@ func FuzzCredentialedCompletionJSONSemanticAndAuthorityClosure(f *testing.F) {
 		got := fixture.credentialed
 		gotErr := got.UnmarshalJSON(data)
 		if gotErr != nil {
+			if bytes.Equal(data, canonical) {
+				t.Fatalf("valid seed refused: %v", gotErr)
+			}
 			if !errors.Is(gotErr, core.ErrJSONContract) ||
 				!errors.Is(gotErr, core.ErrControlPlaneContract) || got != fixture.credentialed {
 				t.Fatalf("CompletionDocument.UnmarshalJSON(rejected) = (%v, %v), want preserved and typed JSON/control-plane rejection",
@@ -64,9 +70,8 @@ func FuzzCredentialedCompletionJSONSemanticAndAuthorityClosure(f *testing.F) {
 			t.Fatalf("CompletionDocument.UnmarshalJSON(accepted).Validate() error = %v, want nil", err)
 		}
 		encoded, err := got.MarshalJSON()
-		if err != nil || len(encoded) > CompletionDocumentJSONMaximumBytes {
-			t.Fatalf("CompletionDocument.MarshalJSON(accepted) = (%d bytes, %v), want <= %d and nil",
-				len(encoded), err, CompletionDocumentJSONMaximumBytes)
+		if err != nil {
+			t.Fatalf("canonical encoding failed: %v", err)
 		}
 		var roundTrip CompletionDocument
 		if err := roundTrip.UnmarshalJSON(encoded); err != nil || roundTrip != got {
@@ -79,6 +84,9 @@ func FuzzCredentialedCompletionJSONSemanticAndAuthorityClosure(f *testing.F) {
 			Nonce:  fixture.completionNonce,
 		})
 		if verifyErr != nil {
+			if roundTrip == fixture.credentialed {
+				t.Fatalf("authentic credential refused: %v", verifyErr)
+			}
 			stableRejection := errors.Is(verifyErr, core.ErrControlPlaneResponseBinding) ||
 				errors.Is(verifyErr, core.ErrAttestVerification)
 			if !errors.Is(verifyErr, core.ErrControlPlaneContract) || !stableRejection ||

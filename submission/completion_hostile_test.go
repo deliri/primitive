@@ -230,12 +230,14 @@ func TestCompletionVerificationLayerTriadRefusesEveryAuthenticCrossAgreementSubs
 		}, want: core.ErrControlPlaneResponseBinding},
 		{name: "other offering grant", mutate: func(value *CompletionExpectation) {
 			value.Grant = otherOffering.grantDocument
+			value.GrantKeys = otherOffering.grantKeys
 		}, want: core.ErrControlPlaneResponseBinding},
 		{name: "other content completion", mutate: func(value *CompletionExpectation) {
 			value.Document = otherContentDocument
 		}, want: core.ErrControlPlaneResponseBinding},
 		{name: "other offering completion", mutate: func(value *CompletionExpectation) {
 			value.Document = otherOfferingDocument
+			value.CompletionKeys = otherOffering.deviceKeys
 		}, want: core.ErrControlPlaneResponseBinding},
 		{name: "other authority grant keys", mutate: func(value *CompletionExpectation) {
 			value.GrantKeys = otherOffering.grantKeys
@@ -285,7 +287,7 @@ func TestCompletionAuthenticationLayerTriadZeroValuesNeverProjectEvidence(t *tes
 	}
 }
 
-func TestCompletionDocumentJSONLayerTriadClosesFramingShapeAndExactByteBoundaries(t *testing.T) {
+func TestCompletionDocumentJSONLayerTriadClosesFramingAndShape(t *testing.T) {
 	t.Parallel()
 
 	fixture := newCompletionFixture(t, submissionOffering(t, 2), []byte("completion document JSON proof"), 0x10)
@@ -316,9 +318,6 @@ func TestCompletionDocumentJSONLayerTriadClosesFramingShapeAndExactByteBoundarie
 		{name: "trailing newline", data: append(bytes.Clone(encoded), '\n')},
 		{name: "carriage return framing", data: append(append([]byte("\r"), encoded...), '\r')},
 		{name: "mixed outer whitespace", data: append(append([]byte("\t\r\n"), encoded...), ' ', '\t')},
-		{name: "half document ceiling", data: leftPadJSON(encoded, CompletionDocumentJSONMaximumBytes/2)},
-		{name: "one below document ceiling", data: leftPadJSON(encoded, CompletionDocumentJSONMaximumBytes-1)},
-		{name: "exact document ceiling", data: leftPadJSON(encoded, CompletionDocumentJSONMaximumBytes)},
 	}
 	for _, tc := range valid {
 		t.Run(tc.name, func(t *testing.T) {
@@ -360,7 +359,6 @@ func TestCompletionDocumentJSONLayerTriadClosesFramingShapeAndExactByteBoundarie
 		{name: "half truncated document", data: encoded[:len(encoded)/2]},
 		{name: "two documents", data: append(bytes.Clone(encoded), encoded...)},
 		{name: "trailing scalar", data: append(bytes.Clone(encoded), []byte(` 0`)...)},
-		{name: "one above document ceiling", data: leftPadJSON(encoded, CompletionDocumentJSONMaximumBytes+1)},
 	}
 	for _, tc := range invalid {
 		t.Run(tc.name, func(t *testing.T) {
@@ -380,7 +378,7 @@ func TestCompletionDocumentJSONLayerTriadClosesFramingShapeAndExactByteBoundarie
 	}
 }
 
-func TestCompletionPayloadJSONLayerTriadClosesFramingShapeAndExactByteBoundaries(t *testing.T) {
+func TestCompletionPayloadJSONLayerTriadClosesFramingAndShape(t *testing.T) {
 	t.Parallel()
 
 	fixture := newCompletionFixture(t, submissionOffering(t, 2), []byte("completion payload JSON proof"), 0x10)
@@ -419,9 +417,6 @@ func TestCompletionPayloadJSONLayerTriadClosesFramingShapeAndExactByteBoundaries
 		{name: "trailing newline", data: append(bytes.Clone(encoded), '\n')},
 		{name: "carriage return framing", data: append(append([]byte("\r"), encoded...), '\r')},
 		{name: "mixed outer whitespace", data: append(append([]byte("\t\r\n"), encoded...), ' ', '\t')},
-		{name: "half payload ceiling", data: leftPadJSON(encoded, CompletionPayloadJSONMaximumBytes/2)},
-		{name: "one below payload ceiling", data: leftPadJSON(encoded, CompletionPayloadJSONMaximumBytes-1)},
-		{name: "exact payload ceiling", data: leftPadJSON(encoded, CompletionPayloadJSONMaximumBytes)},
 	}
 	for _, tc := range valid {
 		t.Run(tc.name, func(t *testing.T) {
@@ -468,7 +463,6 @@ func TestCompletionPayloadJSONLayerTriadClosesFramingShapeAndExactByteBoundaries
 		{name: "half truncated payload", data: encoded[:len(encoded)/2]},
 		{name: "two payloads", data: append(bytes.Clone(encoded), encoded...)},
 		{name: "trailing scalar", data: append(bytes.Clone(encoded), []byte(` 0`)...)},
-		{name: "one above payload ceiling", data: leftPadJSON(encoded, CompletionPayloadJSONMaximumBytes+1)},
 	}
 	for _, tc := range invalid {
 		t.Run(tc.name, func(t *testing.T) {

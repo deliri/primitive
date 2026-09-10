@@ -12,12 +12,8 @@ import (
 )
 
 const (
-	// RequestPayloadJSONMaximumBytes bounds the device-signed declaration.
-	RequestPayloadJSONMaximumBytes = 32 << 10
-	// RequestDocumentJSONMaximumBytes bounds one signed request document.
-	RequestDocumentJSONMaximumBytes      = 64 << 10
-	requestCommitmentDomain              = "primitive/submission/request-commitment/v1"
-	requestCommitmentSeparator      byte = 0
+	requestCommitmentDomain         = "primitive/submission/request-commitment/v1"
+	requestCommitmentSeparator byte = 0
 )
 
 // RequestPayload is the exact declaration one installed build signs.
@@ -94,7 +90,7 @@ func (p RequestPayload) WriteCanonical(destination io.Writer) error {
 }
 
 func writeCanonicalPayload(destination io.Writer, encoded []byte) error {
-	if destination == nil {
+	if core.WriterIsNil(destination) {
 		return contractError(errors.New("submission canonical destination is nil"))
 	}
 	written, err := destination.Write(encoded)
@@ -107,13 +103,13 @@ func writeCanonicalPayload(destination io.Writer, encoded []byte) error {
 	return nil
 }
 
-// MarshalJSON emits one bounded canonical payload.
+// MarshalJSON emits one canonical payload.
 func (p RequestPayload) MarshalJSON() ([]byte, error) {
 	if err := p.Validate(); err != nil {
 		return nil, jsonError(err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(requestPayloadWire(p))
-	if err != nil || len(encoded) > RequestPayloadJSONMaximumBytes {
+	if err != nil {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -124,7 +120,7 @@ func (p *RequestPayload) UnmarshalJSON(data []byte) error {
 	if p == nil {
 		return jsonError(errors.New("nil submission request payload receiver"))
 	}
-	wire, err := decodeStrict[requestPayloadWire](data, RequestPayloadJSONMaximumBytes)
+	wire, err := decodeStrict[requestPayloadWire](data)
 	if err != nil {
 		return err
 	}
@@ -147,13 +143,13 @@ func (d RequestDocument) Validate() error {
 	return nil
 }
 
-// MarshalJSON emits one bounded canonical request.
+// MarshalJSON emits one canonical request.
 func (d RequestDocument) MarshalJSON() ([]byte, error) {
 	if err := d.Validate(); err != nil {
 		return nil, jsonError(err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(requestDocumentWire(d))
-	if err != nil || len(encoded) > RequestDocumentJSONMaximumBytes {
+	if err != nil {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -164,7 +160,7 @@ func (d *RequestDocument) UnmarshalJSON(data []byte) error {
 	if d == nil {
 		return jsonError(errors.New("nil submission request document receiver"))
 	}
-	wire, err := decodeStrict[requestDocumentWire](data, RequestDocumentJSONMaximumBytes)
+	wire, err := decodeStrict[requestDocumentWire](data)
 	if err != nil {
 		return err
 	}
@@ -318,16 +314,10 @@ func (c *RequestCommitment) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func decodeStrict[T any](data []byte, maximum uint64) (T, error) {
-	var zero T
-	limit, err := core.NewByteCount(maximum)
+func decodeStrict[T any](data []byte) (T, error) {
+	wire, err := core.DecodeStrictJSONStructure[T](data, core.ExtensibleJSONLimits())
 	if err != nil {
-		return zero, jsonError(err)
-	}
-	limits := core.DefaultStrictJSONLimits()
-	limits.DocumentMaximumBytes = limit
-	wire, err := core.DecodeStrictJSONStructure[T](data, limits)
-	if err != nil {
+		var zero T
 		return zero, jsonError(err)
 	}
 	return wire, nil

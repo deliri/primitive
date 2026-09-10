@@ -2,17 +2,16 @@ package submission
 
 import (
 	"bytes"
-	json "encoding/json/v2"
 	"errors"
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"os"
 	"slices"
 	"strings"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/id"
 	"github.com/deliri/primitive/v2026/receipt"
 	"github.com/deliri/primitive/v2026/temporal"
 )
@@ -67,22 +66,24 @@ func (d submissionJSONDoor) receiverName() string {
 }
 
 type submissionFuzzFixtures struct {
-	decisionDocument   DecisionDocument
-	decisionWire       []byte
-	grantWire          []byte
-	requestPayload     RequestPayload
-	completionPayload  CompletionPayload
-	requestDocument    RequestDocument
-	grantDocument      GrantDocument
-	completionDocument CompletionDocument
-	reuse              reuseEvidenceFixture
-	grant              grantFixture
-	completion         completionFixture
-	grantPayload       GrantPayload
-	requestCommitment  RequestCommitment
-	uploadID           UploadID
-	decisionKind       DecisionKind
-	signingDomain      SigningDomain
+	decisionDocument       DecisionDocument
+	decisionWire           []byte
+	uploadDecisionWire     []byte
+	uploadDecisionDocument DecisionDocument
+	grantWire              []byte
+	requestPayload         RequestPayload
+	completionPayload      CompletionPayload
+	requestDocument        RequestDocument
+	grantDocument          GrantDocument
+	completionDocument     CompletionDocument
+	reuse                  reuseEvidenceFixture
+	grant                  grantFixture
+	completion             completionFixture
+	grantPayload           GrantPayload
+	requestCommitment      RequestCommitment
+	uploadID               UploadID
+	decisionKind           DecisionKind
+	signingDomain          SigningDomain
 }
 
 type submissionJSONSeed struct {
@@ -93,18 +94,18 @@ type submissionJSONSeed struct {
 func FuzzSubmissionExternalJSONDoorInventory(f *testing.F) {
 	fixtures := submissionFixturesForFuzz(f)
 	for _, seed := range submissionJSONSeedsForFuzz(f, fixtures) {
-		f.Add(uint8(seed.door), seed.document)
+		f.Add(uint8(seed.door-1), seed.document)
 	}
 	for _, hostile := range [][]byte{
 		nil, {}, []byte(`null`), []byte(`{}`), []byte(`[]`), []byte(`""`),
 		[]byte(`0`), []byte(`true`), []byte(`{`),
 		bytes.Repeat([]byte(`[`), core.JSONNestingDepthMaximum+1),
 	} {
-		f.Add(uint8(submissionJSONDoorCompletionDocument), hostile)
+		f.Add(uint8(submissionJSONDoorCompletionDocument-1), hostile)
 	}
 
 	f.Fuzz(func(t *testing.T, rawDoor uint8, data []byte) {
-		switch submissionJSONDoor(rawDoor) {
+		switch submissionJSONDoor(rawDoor%uint8(submissionJSONDoorLimit-1) + 1) {
 		case submissionJSONDoorRequestPayload:
 			fuzzSubmissionJSONValue(t, data, fixtures.requestPayload)
 		case submissionJSONDoorRequestDocument:
@@ -146,37 +147,48 @@ const (
 )
 
 func FuzzSubmissionExternalTextDoorInventory(f *testing.F) {
-	fixtures := submissionFixturesForFuzz(f)
-	f.Add(uint8(submissionTextDoorUploadID), fixtures.uploadID.String())
-	f.Add(uint8(submissionTextDoorSigningDomain), fixtures.signingDomain.String())
-	f.Add(uint8(submissionTextDoorCanonicalSigningDomain), fixtures.signingDomain.String())
-	for _, hostile := range []string{"", " ", "unknown", "A", "\x00", "\xff"} {
-		f.Add(uint8(submissionTextDoorSigningDomain), hostile)
-		f.Add(uint8(submissionTextDoorUploadID), hostile)
+	identity := testManifestIntent(f).Upload
+	f.Add(uint8(submissionTextDoorUploadID-1), identity.String())
+	for _, domain := range []SigningDomain{SigningDomainRequestV1, SigningDomainGrantV1, SigningDomainCompletionV1} {
+		f.Add(uint8(submissionTextDoorSigningDomain-1), domain.String())
+		f.Add(uint8(submissionTextDoorCanonicalSigningDomain-1), domain.String())
 	}
-
+	for _, hostile := range []string{"", " ", "unknown", "A", "\x00", "\xff"} {
+		for door := submissionTextDoorUploadID; door < submissionTextDoorLimit; door++ {
+			f.Add(uint8(door-1), hostile)
+		}
+	}
 	f.Fuzz(func(t *testing.T, rawDoor uint8, value string) {
-		switch submissionTextDoor(rawDoor) {
-		case submissionTextDoorUploadID:
+		door := submissionTextDoor(rawDoor%uint8(submissionTextDoorLimit-1) + 1)
+		if door == submissionTextDoorUploadID {
 			got, err := ParseUploadID(value)
-			fuzzSubmissionTextOutcome(t, submissionTextOutcome{
-				input: value, projection: got.String(), err: err, validate: got.Validate,
-			})
-		case submissionTextDoorSigningDomain:
-			got, err := ParseSigningDomain(value)
-			fuzzSubmissionTextOutcome(t, submissionTextOutcome{
-				input: value, projection: got.String(), err: err, validate: got.Validate,
-			})
-		case submissionTextDoorCanonicalSigningDomain:
-			got, err := SigningDomainUnknown.ParseCanonicalText([]byte(value))
-			fuzzSubmissionTextOutcome(t, submissionTextOutcome{
-				input: value, projection: got.String(), err: err, validate: got.Validate,
-			})
-		case submissionTextDoorUnknown, submissionTextDoorLimit:
-			return
-		default:
+			_, ownerErr := id.ParseUUIDv7(value)
+			if (err == nil) != (ownerErr == nil) {
+				t.Fatalf("upload identity differs from UUIDv7 owner: %v / %v", err, ownerErr)
+			}
+			fuzzSubmissionTextOutcome(t, submissionTextOutcome{input: value, projection: got.String(), err: err, validate: got.Validate})
 			return
 		}
+		want := SigningDomainUnknown
+		switch value {
+		case SigningDomainRequestV1Token:
+			want = SigningDomainRequestV1
+		case SigningDomainGrantV1Token:
+			want = SigningDomainGrantV1
+		case SigningDomainCompletionV1Token:
+			want = SigningDomainCompletionV1
+		}
+		var got SigningDomain
+		var err error
+		if door == submissionTextDoorSigningDomain {
+			got, err = ParseSigningDomain(value)
+		} else {
+			got, err = SigningDomainUnknown.ParseCanonicalText([]byte(value))
+		}
+		if got != want || (err == nil) != (want != SigningDomainUnknown) {
+			t.Fatalf("domain=%v error=%v, want %v", got, err, want)
+		}
+		fuzzSubmissionTextOutcome(t, submissionTextOutcome{input: value, projection: got.String(), err: err, validate: got.Validate})
 	})
 }
 
@@ -185,24 +197,31 @@ type submissionJSONValue interface {
 	MarshalJSON() ([]byte, error)
 }
 
-func fuzzSubmissionJSONValue[T submissionJSONValue](t *testing.T, data []byte, seed T) {
+func fuzzSubmissionJSONValue[T interface {
+	comparable
+	submissionJSONValue
+}, P submissionJSONReceiver[T]](t *testing.T, data []byte, seed T) {
 	t.Helper()
 	before, err := seed.MarshalJSON()
 	if err != nil {
 		t.Fatalf("submission seed MarshalJSON() error = %v, want nil", err)
 	}
-	candidate := seed
-	decoder, ok := any(&candidate).(json.Unmarshaler)
-	if !ok {
-		t.Fatalf("submission JSON receiver %T lacks json.Unmarshaler", &candidate)
+	probe := seed
+	padded := append(bytes.Repeat([]byte(" "), len(data)%4096), before...)
+	if err := P(&probe).UnmarshalJSON(padded); err != nil || probe != seed {
+		t.Fatalf("generated valid representation changed facts or was refused: %v", err)
 	}
-	decodeErr := decoder.UnmarshalJSON(data)
+	candidate := seed
+	decodeErr := P(&candidate).UnmarshalJSON(data)
 	if decodeErr != nil {
+		if bytes.Equal(data, before) {
+			t.Fatalf("valid seed refused: %v", decodeErr)
+		}
 		if !submissionJSONRefusal(decodeErr) {
 			t.Fatalf("submission JSON door error = %v, want typed JSON/control-plane refusal", decodeErr)
 		}
 		after, marshalErr := candidate.MarshalJSON()
-		if marshalErr != nil || !bytes.Equal(after, before) {
+		if candidate != seed || marshalErr != nil || !bytes.Equal(after, before) {
 			t.Fatalf("rejected submission JSON door changed its receiver: marshal error %v", marshalErr)
 		}
 		return
@@ -211,16 +230,12 @@ func fuzzSubmissionJSONValue[T submissionJSONValue](t *testing.T, data []byte, s
 		t.Fatalf("accepted submission JSON validation error = %v, want nil", err)
 	}
 	canonical, err := candidate.MarshalJSON()
-	if err != nil || len(canonical) > core.JSONDocumentMaximumBytes {
-		t.Fatalf("submission canonical JSON = (%d bytes, %v), want bounded and nil", len(canonical), err)
+	if err != nil {
+		t.Fatalf("submission canonical JSON = (%d bytes, %v), want canonical bytes and nil", len(canonical), err)
 	}
 	var roundTrip T
-	roundTripDecoder, ok := any(&roundTrip).(json.Unmarshaler)
-	if !ok {
-		t.Fatalf("submission round-trip receiver %T lacks json.Unmarshaler", &roundTrip)
-	}
-	if err := roundTripDecoder.UnmarshalJSON(canonical); err != nil {
-		t.Fatalf("submission canonical JSON decode error = %v, want nil", err)
+	if err := P(&roundTrip).UnmarshalJSON(canonical); err != nil || roundTrip != candidate {
+		t.Fatalf("canonical JSON changed typed facts: %v", err)
 	}
 	second, err := roundTrip.MarshalJSON()
 	if err != nil || !bytes.Equal(second, canonical) {
@@ -240,7 +255,7 @@ func fuzzSubmissionRequestDocument(t *testing.T, data []byte, fixtures submissio
 	})
 	if err != nil {
 		if !errors.Is(err, core.ErrControlPlaneContract) ||
-			!errors.Is(err, core.ErrAttestVerification) || proof != (VerifiedRequest{}) {
+			!errors.Is(err, core.ErrAttestVerification) || proof != (VerifiedRequest{}) || candidate == fixtures.requestDocument {
 			t.Fatalf("VerifyRequest(fuzz document) = (%v, %v), want typed refusal and zero proof", proof, err)
 		}
 		return
@@ -252,9 +267,14 @@ func fuzzSubmissionRequestDocument(t *testing.T, data []byte, fixtures submissio
 
 func fuzzSubmissionGrantDocument(t *testing.T, data []byte, fixtures submissionFuzzFixtures) {
 	t.Helper()
+	probe := fixtures.grantDocument
+	padded := append(bytes.Repeat([]byte(" "), len(data)%4096), fixtures.grantWire...)
+	if err := probe.UnmarshalJSON(padded); err != nil || !sameGrantDocument(probe, fixtures.grantDocument) {
+		t.Fatalf("valid grant probe refused or changed: %v", err)
+	}
 	candidate := fixtures.grantDocument
 	if err := candidate.UnmarshalJSON(data); err != nil {
-		if !submissionJSONRefusal(err) || !sameGrantDocument(candidate, fixtures.grantDocument) {
+		if bytes.Equal(data, fixtures.grantWire) || !submissionJSONRefusal(err) || !sameGrantDocument(candidate, fixtures.grantDocument) {
 			t.Fatalf("GrantDocument refusal changed receiver or lost typed identity: %v", err)
 		}
 		return
@@ -268,7 +288,7 @@ func fuzzSubmissionGrantDocument(t *testing.T, data []byte, fixtures submissionF
 		TrustedKeys: fixtures.grant.trusted,
 	})
 	if err != nil {
-		if !errors.Is(err, core.ErrControlPlaneContract) || !verifiedGrantIsZero(proof) {
+		if !errors.Is(err, core.ErrControlPlaneContract) || !verifiedGrantIsZero(proof) || sameGrantDocument(candidate, fixtures.grantDocument) {
 			t.Fatalf("VerifyGrant(fuzz document) = (%v, %v), want typed refusal and zero proof", proof, err)
 		}
 		return
@@ -287,9 +307,14 @@ func verifiedGrantIsZero(proof VerifiedGrant) bool {
 
 func fuzzSubmissionDecisionDocument(t *testing.T, data []byte, fixtures submissionFuzzFixtures) {
 	t.Helper()
+	probe := fixtures.decisionDocument
+	padded := append(bytes.Repeat([]byte(" "), len(data)%4096), fixtures.decisionWire...)
+	if err := probe.UnmarshalJSON(padded); err != nil || !sameReuseDecision(probe, fixtures.decisionDocument) {
+		t.Fatalf("valid decision probe refused or changed: %v", err)
+	}
 	candidate := fixtures.decisionDocument
 	if err := candidate.UnmarshalJSON(data); err != nil {
-		if !submissionJSONRefusal(err) || !sameReuseDecision(candidate, fixtures.decisionDocument) {
+		if bytes.Equal(data, fixtures.decisionWire) || bytes.Equal(data, fixtures.uploadDecisionWire) || !submissionJSONRefusal(err) || !sameReuseDecision(candidate, fixtures.decisionDocument) {
 			t.Fatalf("DecisionDocument refusal changed receiver or lost typed identity: %v", err)
 		}
 		return
@@ -304,12 +329,12 @@ func fuzzSubmissionDecisionDocument(t *testing.T, data []byte, fixtures submissi
 		TrustedKeys: fixtures.grant.trusted,
 	})
 	if err != nil {
-		if !errors.Is(err, core.ErrControlPlaneContract) || proof != (VerifiedDecision{}) {
+		if !errors.Is(err, core.ErrControlPlaneContract) || proof != (VerifiedDecision{}) || sameReuseDecision(candidate, fixtures.decisionDocument) || sameUploadDecision(candidate, fixtures.uploadDecisionDocument) {
 			t.Fatalf("VerifyDecision(fuzz document) = (%v, %v), want typed refusal and zero proof", proof, err)
 		}
 		return
 	}
-	if proof.Validate() != nil || !sameReuseDecision(candidate, fixtures.decisionDocument) {
+	if proof.Validate() != nil || !(sameReuseDecision(candidate, fixtures.decisionDocument) || sameUploadDecision(candidate, fixtures.uploadDecisionDocument)) {
 		t.Fatalf("VerifyDecision(fuzz document) authenticated facts outside the signed seed")
 	}
 }
@@ -327,7 +352,7 @@ func fuzzSubmissionCompletionDocument(t *testing.T, data []byte, fixtures submis
 		CompletionKeys: fixtures.completion.deviceKeys, Nonce: fixtures.completion.nonce,
 	})
 	if err != nil {
-		if !errors.Is(err, core.ErrControlPlaneContract) || proof != (VerifiedCompletion{}) {
+		if !errors.Is(err, core.ErrControlPlaneContract) || proof != (VerifiedCompletion{}) || candidate == fixtures.completionDocument {
 			t.Fatalf("VerifyCompletion(fuzz document) = (%v, %v), want typed refusal and zero proof", proof, err)
 		}
 		return
@@ -382,10 +407,23 @@ func submissionFixturesForFuzz(t testing.TB) submissionFuzzFixtures {
 	if err != nil {
 		t.Fatalf("GrantProjection.MarshalJSON() error = %v, want nil", err)
 	}
+	uploadProjection, err := UploadDecision(grant.projection)
+	if err != nil {
+		t.Fatal(err)
+	}
+	uploadWire, err := uploadProjection.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var uploadDocument DecisionDocument
+	if err := uploadDocument.UnmarshalJSON(uploadWire); err != nil {
+		t.Fatal(err)
+	}
 	return submissionFuzzFixtures{
 		requestPayload: completion.request, requestDocument: requestDocument,
 		requestCommitment: commitment, signingDomain: SigningDomainRequestV1,
 		decisionKind: DecisionReuse, decisionDocument: decision, decisionWire: decisionWire,
+		uploadDecisionWire: uploadWire, uploadDecisionDocument: uploadDocument,
 		uploadID: completion.request.Manifest.Upload, grantPayload: grant.payload,
 		grantDocument: grant.document, grantWire: grantWire,
 		completionPayload: completionDocument.Payload, completionDocument: completionDocument,
@@ -402,6 +440,7 @@ func submissionJSONSeedsForFuzz(t testing.TB, fixtures submissionFuzzFixtures) [
 		submissionJSONSeedForFuzz(t, submissionJSONDoorSigningDomain, fixtures.signingDomain),
 		submissionJSONSeedForFuzz(t, submissionJSONDoorDecisionKind, fixtures.decisionKind),
 		{door: submissionJSONDoorDecisionDocument, document: fixtures.decisionWire},
+		{door: submissionJSONDoorDecisionDocument, document: fixtures.uploadDecisionWire},
 		submissionJSONSeedForFuzz(t, submissionJSONDoorUploadID, fixtures.uploadID),
 		submissionJSONSeedForFuzz(t, submissionJSONDoorGrantPayload, fixtures.grantPayload),
 		{door: submissionJSONDoorGrantDocument, document: fixtures.grantWire},
@@ -464,7 +503,7 @@ func TestSubmissionExternalIngressFuzzInventoryMatchesProduction(t *testing.T) {
 }
 
 func submissionExportedJSONReceiverNames() ([]string, error) {
-	files, err := os.ReadDir(".")
+	files, err := submissionContractSources.ReadDir(".")
 	if err != nil {
 		return nil, err
 	}
@@ -474,7 +513,11 @@ func submissionExportedJSONReceiverNames() ([]string, error) {
 		if file.IsDir() || !strings.HasSuffix(file.Name(), ".go") || strings.HasSuffix(file.Name(), "_test.go") {
 			continue
 		}
-		parsed, parseErr := parser.ParseFile(fileSet, file.Name(), nil, parser.SkipObjectResolution)
+		source, readErr := submissionContractSources.ReadFile(file.Name())
+		if readErr != nil {
+			return nil, readErr
+		}
+		parsed, parseErr := parser.ParseFile(fileSet, file.Name(), source, parser.SkipObjectResolution)
 		if parseErr != nil {
 			return nil, parseErr
 		}
@@ -495,4 +538,8 @@ func submissionExportedJSONReceiverNames() ([]string, error) {
 	}
 	slices.Sort(names)
 	return names, nil
+}
+
+func sameUploadDecision(left, right DecisionDocument) bool {
+	return left.Kind == DecisionUpload && right.Kind == DecisionUpload && left.Evidence == nil && right.Evidence == nil && left.Grant != nil && right.Grant != nil && sameGrantDocument(*left.Grant, *right.Grant)
 }
