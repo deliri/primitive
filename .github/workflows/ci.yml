@@ -40,14 +40,27 @@ jobs:
             commit:process.env.GITHUB_SHA, project:process.env.ANVIL_PROJECT_ID, request_nonce:nonce}));
           JS
           nonce=$(jq -er '.request_nonce' "$RUNNER_TEMP/anvil-request.json")
-          curl --fail-with-body --silent --show-error --connect-timeout 15 --max-time 600 \
-            -H "Authorization: Bearer $ANVIL_TOKEN" \
-            -H 'Content-Type: application/json' \
-            -H "Idempotency-Key: anvil-project-request:$nonce" \
-            --data-binary "@$RUNNER_TEMP/anvil-request.json" \
-            "$ANVIL_ENDPOINT/v1/private/anvil/github/project-runs" \
-            > "$RUNNER_TEMP/anvil-admission.json"
-          cat "$RUNNER_TEMP/anvil-admission.json"
+          echo "Admission nonce: $nonce; commit: $GITHUB_SHA"
+          for attempt in 1 2; do
+            receipt="$RUNNER_TEMP/anvil-admission-$attempt.json"
+            echo "Admission attempt $attempt"
+            if curl --fail-with-body --silent --show-error --connect-timeout 15 --max-time 400 \
+              -H "Authorization: Bearer $ANVIL_TOKEN" \
+              -H 'Content-Type: application/json' \
+              -H "Idempotency-Key: anvil-project-request:$nonce" \
+              --data-binary "@$RUNNER_TEMP/anvil-request.json" \
+              "$ANVIL_ENDPOINT/v1/private/anvil/github/project-runs" > "$receipt"; then
+              cat "$receipt"
+              break
+            else
+              status=$?
+              cat "$receipt"
+              echo "::warning::Admission attempt $attempt ended with curl status $status; completion is unconfirmed."
+              if [ "$attempt" = 2 ]; then exit "$status"; fi
+              echo 'Reconcile once with the identical request and idempotency key.'
+              sleep 15
+            fi
+          done
           jq -e '.admissions | length == 1 and all(.[]; .state == 2 or .state == 3)' \
-            "$RUNNER_TEMP/anvil-admission.json"
+            "$receipt"
           echo 'Anvil acknowledged this revision. Test results are recorded through the API.' >> "$GITHUB_STEP_SUMMARY"
