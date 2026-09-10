@@ -10,8 +10,6 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
-const EventJSONMaximumBytes = 96 << 10
-
 type CanonicalPayload interface {
 	core.ValidatedJSONMarshaler
 }
@@ -61,22 +59,12 @@ type eventCommitment[P CanonicalPayload] struct {
 
 type envelopeWire[P CanonicalPayload] Envelope[P]
 
-func proofLedgerJSONLimits(maximum uint64) (core.StrictJSONLimits, error) {
-	encodedMaximum, err := core.NewByteCount(maximum)
-	if err != nil {
-		return core.StrictJSONLimits{}, jsonError(err)
-	}
-	limits := core.DefaultStrictJSONLimits()
-	limits.DocumentMaximumBytes = encodedMaximum
-	if err := limits.Validate(); err != nil {
-		return core.StrictJSONLimits{}, jsonError(err)
-	}
-	return limits, nil
-}
-
 func NewGenesisHead(ledger LedgerIdentity) (Head, error) {
 	head := Head{Ledger: ledger, Hash: GenesisHash()}
-	return head, head.Validate()
+	if err := head.Validate(); err != nil {
+		return Head{}, err
+	}
+	return head, nil
 }
 
 func (h Head) Validate() error {
@@ -141,7 +129,10 @@ func NewEnvelope[P CanonicalPayload](issue Issue[P]) (Envelope[P], error) {
 	if err != nil {
 		return Envelope[P]{}, err
 	}
-	return event, event.Validate()
+	if err := event.Validate(); err != nil {
+		return Envelope[P]{}, err
+	}
+	return event, nil
 }
 
 func issueSequence(previous Position) (Sequence, error) {
@@ -173,14 +164,6 @@ func (e Envelope[P]) Validate() error {
 	if e.Hash != want {
 		return errors.Join(core.ErrProofLedgerTampering, contractError())
 	}
-	return e.validateEncodedSize()
-}
-
-func (e Envelope[P]) validateEncodedSize() error {
-	encoded, err := core.MarshalCanonicalJSONDocument(envelopeWire[P](e))
-	if err != nil || len(encoded) > EventJSONMaximumBytes {
-		return jsonError(err)
-	}
 	return nil
 }
 
@@ -205,7 +188,7 @@ func (e Envelope[P]) MarshalJSON() ([]byte, error) {
 		return nil, jsonError(err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(envelopeWire[P](e))
-	if err != nil || len(encoded) > EventJSONMaximumBytes {
+	if err != nil {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -216,11 +199,7 @@ func DecodeEnvelope[P CanonicalPayload, PPtr interface {
 	core.Validatable
 	json.Unmarshaler
 }](data []byte) (Envelope[P], error) {
-	limits, err := proofLedgerJSONLimits(EventJSONMaximumBytes)
-	if err != nil {
-		return Envelope[P]{}, err
-	}
-	wire, err := core.DecodeStrictJSONStructure[envelopeWire[P]](data, limits)
+	wire, err := core.DecodeStrictJSONStructure[envelopeWire[P]](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return Envelope[P]{}, jsonError(err)
 	}

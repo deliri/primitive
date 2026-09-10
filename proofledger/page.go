@@ -53,7 +53,7 @@ func (p Page[P]) Validate() error {
 	if err := p.validateContinuation(verifier); err != nil {
 		return err
 	}
-	return p.validateEncodedSize()
+	return nil
 }
 
 func (p Page[P]) validatePageShape(limit uint16) error {
@@ -82,19 +82,14 @@ func (p Page[P]) validateContinuation(verifier Verifier[P]) error {
 	return p.validateNonempty(verifier)
 }
 
-type pageWire[P CanonicalPayload] Page[P]
-
-func (p Page[P]) validateEncodedSize() error {
-	encoded, err := core.MarshalCanonicalJSONDocument(pageWire[P](p))
-	if err != nil || len(encoded) > PageJSONMaximumBytes {
-		return jsonError(err)
-	}
-	return nil
-}
-
 func (p Page[P]) validateNonempty(verifier Verifier[P]) error {
 	if verifier.Head() != p.Next {
 		return errors.Join(core.ErrProofLedgerSequenceConflict, contractError())
+	}
+	if p.More {
+		if _, err := nextSequence(p.Next.Sequence); err != nil {
+			return contractError(err)
+		}
 	}
 	return nil
 }

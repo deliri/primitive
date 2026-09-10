@@ -123,17 +123,25 @@ pinned vendor version.
 
 ## Remaining package queue
 
-The approved Tailnet integration is recorded separately from the original usage
-snapshot. Continue with the saved ranking after subtracting completed slices:
+The September 10 queue reconciliation includes the locally reviewed releases
+through Proofledger v2026.1.50. Since this ranking was captured, the Lineio,
+Fuzzartifact, Lease, Retrieval, Manual, Receipt, Payment, Submission, Compass,
+Googleidentity, Filelock, Submissionauth and Proofledger slices have landed.
+Their package reports and committed source are review evidence; independent
+runner acceptance remains a separate fact.
 
-`lineio`,
-`fuzzartifact`, `runprotocol`, `lease`, `retrieval`, `manual`, `receipt`, `payment`,
-`submission`, `compass`, `googleidentity`, `filelock`, `submissionauth`,
-`proofledger`, `runnercontrol`, `secretstore`, `version`, `chitauth`,
-`distributionauth`, `paymentauth`, `retrievalauth`, `upgrade`, `deploy`, `wiring`,
-`github`, `gomodule`, `timeproof`, `controlplanetest`, `gitrepo`, `machineprobe`,
-`paypal`, `plunk`, `runworkspace`, `sourceclaim`, `sourceobservation`,
-`sourceproof`, `stripe`, `testserial`, `twilio`.
+Continue in the user-approved September 10 order:
+
+`runnercontrol`, `secretstore`, `version`, `chitauth`, `distributionauth`,
+`paymentauth`, `retrievalauth`, `upgrade`, `deploy`, `wiring`, `github`,
+`gomodule`, `timeproof`, `controlplanetest`, `gitrepo`, `machineprobe`, `paypal`,
+`plunk`, `runworkspace`, `sourceclaim`, `sourceobservation`, `sourceproof`,
+`stripe`, `testserial`, `twilio`.
+
+Earlier skipped entry: `runprotocol` has scoped streaming changes but no
+reconciled full-sweep report. Keep it open for reconciliation; the scoped
+changes do not establish sweep closure. GCSobjects and GoToolchain retain the
+separate follow-up status recorded above.
 
 Before starting each slice, reconcile its individual report and commit history.
 A generic before/after report from the bulk reservation audit is insufficient

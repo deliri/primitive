@@ -1,7 +1,6 @@
 package proofledger
 
 import (
-	"bytes"
 	"context"
 	"crypto/ed25519"
 	"errors"
@@ -65,6 +64,15 @@ func fixtureLedger(t testing.TB) LedgerIdentity {
 	}
 	return got
 }
+func fixtureGenesis(t testing.TB) Head {
+	t.Helper()
+	got, err := NewGenesisHead(fixtureLedger(t))
+	if err != nil {
+		t.Fatalf("NewGenesisHead() error = %v, want nil", err)
+	}
+	return got
+}
+
 func fixtureEventIdentity(t testing.TB, index int) EventIdentity {
 	t.Helper()
 	values := []string{"01890f42-6a00-7000-8000-000000000002", "01890f42-6a00-7000-8000-000000000003", "01890f42-6a00-7000-8000-000000000004"}
@@ -95,7 +103,11 @@ func fixtureSigner(t testing.TB, seed byte) (ed25519.PrivateKey, core.Ed25519Pub
 	raw := make([]byte, ed25519.SeedSize)
 	raw[0] = seed
 	private := ed25519.NewKeyFromSeed(raw)
-	got, err := core.NewEd25519PublicKey(private.Public().(ed25519.PublicKey))
+	public, ok := private.Public().(ed25519.PublicKey)
+	if !ok {
+		t.Fatalf("private.Public() = %T, want ed25519.PublicKey", private.Public())
+	}
+	got, err := core.NewEd25519PublicKey(public)
 	if err != nil {
 		t.Fatalf("NewEd25519PublicKey() error = %v, want nil", err)
 	}
@@ -185,10 +197,13 @@ func TestProofLedgerLayerTriad(t *testing.T) {
 
 func TestProofLedgerChainTamperingAndTruncation(t *testing.T) {
 	t.Parallel()
-	genesis, _ := NewGenesisHead(fixtureLedger(t))
+	genesis := fixtureGenesis(t)
 	first := fixtureEvent(t, genesis, 0, 1)
 	second := fixtureEvent(t, first.Head(), 1, 2)
-	verifier, _ := NewVerifier[ledgerTestPayload](genesis)
+	verifier, err := NewVerifier[ledgerTestPayload](genesis)
+	if err != nil {
+		t.Fatalf("NewVerifier() error = %v, want nil", err)
+	}
 	if err := verifier.Observe(first); err != nil {
 		t.Fatalf("Observe(first) error = %v, want nil", err)
 	}
@@ -203,7 +218,7 @@ func TestProofLedgerChainTamperingAndTruncation(t *testing.T) {
 
 func TestProofLedgerCanonicalJSONHostile(t *testing.T) {
 	t.Parallel()
-	genesis, _ := NewGenesisHead(fixtureLedger(t))
+	genesis := fixtureGenesis(t)
 	event := fixtureEvent(t, genesis, 0, 1)
 	encoded, err := event.MarshalJSON()
 	if err != nil {
@@ -310,9 +325,11 @@ func (m *memoryAppender) Resolve(ctx context.Context, request ResolveRequest) (A
 	return entry.receipt, nil
 }
 
-func TestProofLedgerIdempotentAppendContract(t *testing.T) {
+// This is an in-memory implementation of the interface agreement; the package
+// owns no durable provider. Provider persistence requires its own integration proof.
+func TestProofLedgerMemoryProviderIdempotentAppendContract(t *testing.T) {
 	t.Parallel()
-	genesis, _ := NewGenesisHead(fixtureLedger(t))
+	genesis := fixtureGenesis(t)
 	provider := newMemoryAppender(t)
 	intent := fixtureIntent(t, genesis, 1, 1)
 	first, err := provider.Append(context.Background(), intent)
@@ -425,7 +442,7 @@ func (i *memoryIterator) Close() error {
 	return nil
 }
 
-func TestProofLedgerReaderBoundsPagesAndPreservesExactSequence(t *testing.T) {
+func TestProofLedgerMemoryReaderBoundsPagesAndPreservesExactSequence(t *testing.T) {
 	t.Parallel()
 	genesis, err := NewGenesisHead(fixtureLedger(t))
 	if err != nil {
@@ -509,32 +526,7 @@ func TestProofLedgerReceiptAttestationLayerTriad(t *testing.T) {
 	})
 }
 
-func TestReceiptDocumentEncodedExtentBoundary(t *testing.T) {
-	t.Parallel()
-	genesis, err := NewGenesisHead(fixtureLedger(t))
-	if err != nil {
-		t.Fatalf("NewGenesisHead() error = %v, want nil", err)
-	}
-	document := fixtureReceiptDocument(t, fixtureEvent(t, genesis, 0, 1))
-	canonical, err := document.MarshalJSON()
-	if err != nil {
-		t.Fatalf("AppendReceiptDocument.MarshalJSON() error = %v, want nil", err)
-	}
-	spacesAtMaximum := bytes.Repeat([]byte{' '}, AppendReceiptDocumentJSONMaximumBytes-len(canonical))
-	atMaximum := append(spacesAtMaximum, canonical...)
-	oneAbove := append([]byte{' '}, atMaximum...)
-
-	got := AppendReceiptDocument{}
-	if gotErr := got.UnmarshalJSON(atMaximum); gotErr != nil || got != document {
-		t.Fatalf("AppendReceiptDocument.UnmarshalJSON(at maximum) = (%+v, %v), want (%+v, nil)", got, gotErr, document)
-	}
-	got = document
-	if gotErr := got.UnmarshalJSON(oneAbove); !errors.Is(gotErr, core.ErrJSONContract) || got != document {
-		t.Fatalf("AppendReceiptDocument.UnmarshalJSON(one above maximum) = (%+v, %v), want preserved and %v", got, gotErr, core.ErrJSONContract)
-	}
-}
-
-func TestProofLedgerCancellationDoesNotAppendOrResolveSuccess(t *testing.T) {
+func TestProofLedgerMemoryProviderCancellationDoesNotAppendOrResolveSuccess(t *testing.T) {
 	t.Parallel()
 	genesis, err := NewGenesisHead(fixtureLedger(t))
 	if err != nil {
@@ -554,7 +546,7 @@ func TestProofLedgerCancellationDoesNotAppendOrResolveSuccess(t *testing.T) {
 }
 
 func BenchmarkProofLedgerEventHash(b *testing.B) {
-	genesis, _ := NewGenesisHead(fixtureLedger(b))
+	genesis := fixtureGenesis(b)
 	intent := fixtureIntent(b, genesis, 1, 1)
 	issue := Issue[ledgerTestPayload]{Intent: intent, Event: fixtureEventIdentity(b, 0), RecordedAt: fixtureInstant(b, 1)}
 	b.ReportAllocs()
@@ -573,7 +565,7 @@ func BenchmarkProofLedgerEventHash(b *testing.B) {
 }
 
 func BenchmarkProofLedgerReceiptVerification(b *testing.B) {
-	genesis, _ := NewGenesisHead(fixtureLedger(b))
+	genesis := fixtureGenesis(b)
 	event := fixtureEvent(b, genesis, 0, 1)
 	document := fixtureReceiptDocument(b, event)
 	trusted := fixtureTrustedKeys(b, document.Receipt.Producer)
@@ -594,13 +586,12 @@ func BenchmarkProofLedgerReceiptVerification(b *testing.B) {
 }
 
 func BenchmarkProofLedgerStreamingChainReplayPerEvent(b *testing.B) {
-	genesis, _ := NewGenesisHead(fixtureLedger(b))
+	genesis := fixtureGenesis(b)
 	first := fixtureEvent(b, genesis, 0, 1)
 	second := fixtureEvent(b, first.Head(), 1, 2)
 	third := fixtureEvent(b, second.Head(), 2, 3)
 	events := [...]Envelope[ledgerTestPayload]{first, second, third}
 	b.ReportAllocs()
-	b.ReportMetric(float64(len(events)), "events/op")
 	b.ResetTimer()
 	var sink Head
 	for b.Loop() {
@@ -618,4 +609,5 @@ func BenchmarkProofLedgerStreamingChainReplayPerEvent(b *testing.B) {
 	if sink != third.Head() {
 		b.Fatalf("Verifier.Head() = %+v, want %+v", sink, third.Head())
 	}
+	b.ReportMetric(float64(len(events)), "events/op")
 }

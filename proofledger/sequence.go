@@ -9,13 +9,11 @@ import (
 )
 
 const (
-	PageEventMaximum               = 8
-	PageJSONMaximumBytes           = 800 << 10
-	pageFramingMaximumBytes        = 32 << 10
-	_                         uint = PageJSONMaximumBytes - PageEventMaximum*EventJSONMaximumBytes - pageFramingMaximumBytes
-	genesisDomain                  = "primitive-proof-ledger-genesis-v1"
-	sequenceJSONMaximumBytes       = 20
-	pageLimitJSONMaximumBytes      = 3
+	// PageEventMaximum bounds one pagination window, not the ledger's extent.
+	PageEventMaximum          = 8
+	genesisDomain             = "primitive-proof-ledger-genesis-v1"
+	sequenceJSONMaximumBytes  = 20
+	pageLimitJSONMaximumBytes = 3
 )
 
 type Sequence uint64
@@ -59,7 +57,7 @@ func (s Sequence) Validate() error {
 
 func (s Sequence) Next() (Sequence, error) {
 	if err := s.Validate(); err != nil || s == Sequence(math.MaxUint64) {
-		return 0, errors.Join(core.ErrProofLedgerSequenceConflict, err)
+		return 0, errors.Join(core.ErrProofLedgerSequenceConflict, contractError(err))
 	}
 	return s + 1, nil
 }

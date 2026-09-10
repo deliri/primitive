@@ -11,11 +11,6 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
-const (
-	AppendReceiptJSONMaximumBytes         = 4 << 10
-	AppendReceiptDocumentJSONMaximumBytes = 1 << 16
-)
-
 // AppendReceipt is the producer-authenticated durable result of one exact
 // ledger append. It has no independent receipt identity: the ledger, event,
 // and idempotency request already name the operation it proves.
@@ -97,7 +92,7 @@ func (r AppendReceipt) MarshalJSON() ([]byte, error) {
 		return nil, jsonError(err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(appendReceiptWire(r))
-	if err != nil || len(encoded) > AppendReceiptJSONMaximumBytes {
+	if err != nil {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -107,11 +102,7 @@ func (r *AppendReceipt) UnmarshalJSON(data []byte) error {
 	if r == nil {
 		return jsonError()
 	}
-	limits, err := proofLedgerJSONLimits(AppendReceiptJSONMaximumBytes)
-	if err != nil {
-		return jsonError(err)
-	}
-	wire, err := core.DecodeStrictJSONStructure[appendReceiptWire](data, limits)
+	wire, err := core.DecodeStrictJSONStructure[appendReceiptWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return jsonError(err)
 	}
@@ -145,7 +136,7 @@ func (d AppendReceiptDocument) MarshalJSON() ([]byte, error) {
 		return nil, jsonError(err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(appendReceiptDocumentWire(d))
-	if err != nil || len(encoded) > AppendReceiptDocumentJSONMaximumBytes {
+	if err != nil {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -155,11 +146,7 @@ func (d *AppendReceiptDocument) UnmarshalJSON(data []byte) error {
 	if d == nil {
 		return jsonError(errors.New("nil proof ledger receipt document receiver"))
 	}
-	limits, err := receiptDocumentJSONLimits()
-	if err != nil {
-		return jsonError(err)
-	}
-	wire, err := core.DecodeStrictJSONStructure[appendReceiptDocumentWire](data, limits)
+	wire, err := core.DecodeStrictJSONStructure[appendReceiptDocumentWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return jsonError(err)
 	}
@@ -169,16 +156,6 @@ func (d *AppendReceiptDocument) UnmarshalJSON(data []byte) error {
 	}
 	*d = candidate
 	return nil
-}
-
-func receiptDocumentJSONLimits() (core.StrictJSONLimits, error) {
-	maximum, err := core.NewByteCount(AppendReceiptDocumentJSONMaximumBytes)
-	if err != nil {
-		return core.StrictJSONLimits{}, contractError(err)
-	}
-	limits := core.DefaultStrictJSONLimits()
-	limits.DocumentMaximumBytes = maximum
-	return limits, limits.Validate()
 }
 
 type AppendReceiptIssuance[P CanonicalPayload] struct {

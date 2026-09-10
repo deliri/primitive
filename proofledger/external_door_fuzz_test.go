@@ -40,17 +40,20 @@ func proveProofLedgerJSONDoor[D interface {
 	got := admitted
 	gotErr := P(&got).UnmarshalJSON(data)
 	if gotErr != nil {
-		if !errors.Is(gotErr, core.ErrJSONContract) || got != admitted {
+		if !errors.Is(gotErr, core.ErrJSONContract) || !errors.Is(gotErr, core.ErrProofLedgerContract) || got != admitted {
 			t.Fatalf("proof ledger UnmarshalJSON(rejected) = (%+v, %v), want preserved %+v and %v", got, gotErr, admitted, core.ErrJSONContract)
 		}
 		return
+	}
+	if err := got.Validate(); err != nil {
+		t.Fatalf("Validate(admitted) error = %v, want nil", err)
 	}
 	encoded, err := got.MarshalJSON()
 	if err != nil {
 		t.Fatalf("proof ledger MarshalJSON(accepted) error = %v, want nil", err)
 	}
 	var roundTrip D
-	if err := P(&roundTrip).UnmarshalJSON(encoded); err != nil {
+	if err := P(&roundTrip).UnmarshalJSON(encoded); err != nil || roundTrip != got {
 		t.Fatalf("proof ledger UnmarshalJSON(round trip) error = %v, want nil", err)
 	}
 	canonical, err := roundTrip.MarshalJSON()
@@ -60,10 +63,13 @@ func proveProofLedgerJSONDoor[D interface {
 }
 
 func FuzzProofLedgerExternalJSONDoorsSemanticClosure(f *testing.F) {
-	genesis, _ := NewGenesisHead(fixtureLedger(f))
+	genesis := fixtureGenesis(f)
 	event := fixtureEvent(f, genesis, 0, 1)
 	document := fixtureReceiptDocument(f, event)
-	limit, _ := NewPageLimit(PageEventMaximum)
+	limit, err := NewPageLimit(PageEventMaximum)
+	if err != nil {
+		f.Fatalf("NewPageLimit() error = %v, want nil", err)
+	}
 	addProofLedgerJSONSeed(f, proofLedgerJSONDoorLedgerIdentity, event.Ledger)
 	addProofLedgerJSONSeed(f, proofLedgerJSONDoorEventIdentity, event.Event)
 	addProofLedgerJSONSeed(f, proofLedgerJSONDoorSequence, event.Sequence)
@@ -76,7 +82,7 @@ func FuzzProofLedgerExternalJSONDoorsSemanticClosure(f *testing.F) {
 	f.Add(proofLedgerJSONDoorReceiptDocument, []byte(`{}`))
 
 	f.Fuzz(func(t *testing.T, door uint8, data []byte) {
-		switch door {
+		switch (door-1)%8 + 1 {
 		case proofLedgerJSONDoorLedgerIdentity:
 			proveProofLedgerJSONDoor[LedgerIdentity, *LedgerIdentity](t, data, event.Ledger)
 		case proofLedgerJSONDoorEventIdentity:

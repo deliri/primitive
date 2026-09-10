@@ -9,7 +9,7 @@ import (
 )
 
 func FuzzEnvelopeSemanticClosure(f *testing.F) {
-	genesis, _ := NewGenesisHead(fixtureLedger(f))
+	genesis := fixtureGenesis(f)
 	event := fixtureEvent(f, genesis, 0, 1)
 	canonical, err := event.MarshalJSON()
 	if err != nil {
