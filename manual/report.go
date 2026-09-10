@@ -30,7 +30,7 @@ func projectPage[T Topic](page Page[T]) PageReport {
 
 func clone(lines []Line) []Line { return append([]Line(nil), lines...) }
 
-// Validate rejects machine reports outside the stable schema and bounds.
+// Validate rejects machine reports outside the stable schema and structure.
 func (r Report) Validate() error {
 	if err := r.Schema.Validate(); err != nil {
 		return err
@@ -44,7 +44,7 @@ func (r Report) Validate() error {
 	if err := r.Summary.Validate(); err != nil {
 		return err
 	}
-	if len(r.Pages) == 0 || len(r.Pages) > MaximumPages {
+	if len(r.Pages) == 0 {
 		return contractError("manual report has invalid page count")
 	}
 	seen, err := validateReportPages(r.Pages)
@@ -74,9 +74,6 @@ func validateReportRelations(pages []PageReport, seen map[TopicName]struct{}) er
 			if _, exists := seen[related]; !exists {
 				return contractError("manual report related topic is absent")
 			}
-			if related == page.Topic {
-				return contractError("manual report page relates to itself")
-			}
 		}
 	}
 	return nil
@@ -102,15 +99,15 @@ func (p PageReport) Validate() error {
 	if err := p.Outcome.Validate(); err != nil {
 		return err
 	}
-	return validateTopicNames(p.Related)
+	return validateTopicNames(p.Topic, p.Related)
 }
 
-func validateTopicNames(names []TopicName) error {
-	if len(names) > MaximumSectionItems {
-		return contractError(relatedLimitDiagnostic)
-	}
+func validateTopicNames(owner TopicName, names []TopicName) error {
 	seen := make(map[TopicName]struct{}, len(names))
 	for _, name := range names {
+		if name == owner {
+			return contractError("manual report page relates to itself")
+		}
 		if err := name.Validate(); err != nil {
 			return err
 		}
@@ -124,7 +121,7 @@ func validateTopicNames(names []TopicName) error {
 
 // WriteJSON validates and streams one canonical JSON report.
 func WriteJSON(destination io.Writer, report Report) error {
-	if destination == nil {
+	if core.WriterIsNil(destination) {
 		return contractError(destinationNilDiagnostic)
 	}
 	if err := report.Validate(); err != nil {

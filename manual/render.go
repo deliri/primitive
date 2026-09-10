@@ -1,6 +1,7 @@
 package manual
 
 import (
+	"bufio"
 	"errors"
 	"io"
 
@@ -9,12 +10,20 @@ import (
 
 // WriteText validates and streams deterministic plain text.
 func WriteText[T Topic](destination io.Writer, request RenderRequest[T]) error {
-	if destination == nil {
+	if core.WriterIsNil(destination) {
 		return contractError(destinationNilDiagnostic)
 	}
 	if err := request.Validate(); err != nil {
 		return err
 	}
+	buffered := bufio.NewWriter(exactWriter{destination: destination})
+	if err := writeText(buffered, request); err != nil {
+		return err
+	}
+	return buffered.Flush()
+}
+
+func writeText[T Topic](destination io.Writer, request RenderRequest[T]) error {
 	if request.Selection.Mode == SelectionModeIndex {
 		return writeIndex(destination, request.Book)
 	}
@@ -162,7 +171,7 @@ func bulletPair(destination io.Writer, first, second Line) error {
 	return output(destination, "\n")
 }
 func output(destination io.Writer, value string) error {
-	_, err := io.WriteString(exactWriter{destination: destination}, value)
+	_, err := io.WriteString(destination, value)
 	return err
 }
 
@@ -170,6 +179,9 @@ type exactWriter struct{ destination io.Writer }
 
 func (w exactWriter) Write(value []byte) (int, error) {
 	written, err := w.destination.Write(value)
+	if written < 0 || written > len(value) {
+		return 0, errors.Join(core.ErrManualWrite, io.ErrShortWrite, err)
+	}
 	if err != nil {
 		return written, errors.Join(core.ErrManualWrite, err)
 	}

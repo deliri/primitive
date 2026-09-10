@@ -11,7 +11,6 @@ import (
 
 const (
 	destinationNilDiagnostic = "manual destination is nil"
-	relatedLimitDiagnostic   = "manual related topics exceed their item limit"
 	topicCanonicalDiagnostic = "manual topic is not canonical"
 )
 
@@ -35,37 +34,17 @@ func ParseLine(value string) (Line, error) {
 	return line, nil
 }
 
-// NewSchema validates and returns the supported machine schema.
-func NewSchema(value string) (Schema, error) {
-	schema := Schema(value)
-	if err := schema.Validate(); err != nil {
-		return "", err
-	}
-	return schema, nil
-}
-
 // String returns canonical topic text.
 func (n TopicName) String() string { return string(n) }
 
 // String returns customer-facing line text.
 func (l Line) String() string { return string(l) }
 
-// Validate rejects unsupported machine schemas.
-func (s Schema) Validate() error {
-	if s != SchemaV1 {
-		return contractError("manual report schema is unsupported")
-	}
-	return nil
-}
-
-// String returns canonical schema text.
-func (s Schema) String() string { return string(s) }
-
-// Validate rejects an empty, oversized, or non-canonical topic.
+// Validate rejects an empty or non-canonical topic.
 func (n TopicName) Validate() error {
 	value := string(n)
-	if len(value) == 0 || len(value) > MaximumTopicBytes || !utf8.ValidString(value) {
-		return contractError("manual topic has invalid extent")
+	if len(value) == 0 || !utf8.ValidString(value) {
+		return contractError("manual topic is empty or not valid UTF-8")
 	}
 	for segment := range strings.SplitSeq(value, ".") {
 		if err := validateTopicSegment(segment); err != nil {
@@ -100,17 +79,17 @@ func validTopicRune(index int, current rune) bool {
 	return index > 0 && current == '-'
 }
 
-// Validate rejects empty, oversized, untrimmed, or control-bearing text.
+// Validate rejects empty, untrimmed, or control-bearing text.
 func (l Line) Validate() error {
 	value := string(l)
-	if len(value) == 0 || len(value) > MaximumLineBytes || !utf8.ValidString(value) {
-		return contractError("manual line has invalid extent")
+	if len(value) == 0 || !utf8.ValidString(value) {
+		return contractError("manual line is empty or not valid UTF-8")
 	}
 	if strings.TrimSpace(value) != value {
 		return contractError("manual line is not trimmed")
 	}
 	for _, current := range value {
-		if unicode.IsControl(current) {
+		if unicode.IsControl(current) || current == '\u2028' || current == '\u2029' {
 			return contractError("manual line contains control text")
 		}
 	}
@@ -166,9 +145,6 @@ func validateRequiredSections(sections ...[]Line) error {
 }
 
 func validateDefinitions(definitions []Definition) error {
-	if len(definitions) > MaximumSectionItems {
-		return contractError("manual definitions exceed their item limit")
-	}
 	seen := make(map[Line]struct{}, len(definitions))
 	for _, definition := range definitions {
 		if err := definition.Validate(); err != nil {
@@ -183,21 +159,18 @@ func validateDefinitions(definitions []Definition) error {
 }
 
 func validateRelated[T Topic](owner T, related []T) error {
-	if len(related) > MaximumSectionItems {
-		return contractError(relatedLimitDiagnostic)
-	}
-	seen := make(map[T]struct{}, len(related))
+	seen := make(map[TopicName]struct{}, len(related))
 	for _, topic := range related {
 		if err := validTopic(topic); err != nil {
 			return err
 		}
-		if topic == owner {
+		if topic == owner || topic.ManualTopic() == owner.ManualTopic() {
 			return contractError("manual page relates to itself")
 		}
-		if _, exists := seen[topic]; exists {
+		if _, exists := seen[topic.ManualTopic()]; exists {
 			return contractError("manual page repeats a related topic")
 		}
-		seen[topic] = struct{}{}
+		seen[topic.ManualTopic()] = struct{}{}
 	}
 	return nil
 }
@@ -213,7 +186,7 @@ func (b Book[T]) Validate() error {
 	if err := b.Summary.Validate(); err != nil {
 		return err
 	}
-	if len(b.Pages) == 0 || len(b.Pages) > MaximumPages {
+	if len(b.Pages) == 0 {
 		return contractError("manual book has invalid page count")
 	}
 	seen, err := validateBookPages(b.Pages)
@@ -223,8 +196,8 @@ func (b Book[T]) Validate() error {
 	return validateBookRelations(b.Pages, seen)
 }
 
-func validateBookPages[T Topic](pages []Page[T]) (map[TopicName]struct{}, error) {
-	seen := make(map[TopicName]struct{}, len(pages))
+func validateBookPages[T Topic](pages []Page[T]) (map[TopicName]T, error) {
+	seen := make(map[TopicName]T, len(pages))
 	for _, page := range pages {
 		if err := page.Validate(); err != nil {
 			return nil, err
@@ -233,15 +206,15 @@ func validateBookPages[T Topic](pages []Page[T]) (map[TopicName]struct{}, error)
 		if _, exists := seen[name]; exists {
 			return nil, contractError("manual book repeats a topic")
 		}
-		seen[name] = struct{}{}
+		seen[name] = page.Topic
 	}
 	return seen, nil
 }
 
-func validateBookRelations[T Topic](pages []Page[T], seen map[TopicName]struct{}) error {
+func validateBookRelations[T Topic](pages []Page[T], seen map[TopicName]T) error {
 	for _, page := range pages {
 		for _, related := range page.Related {
-			if _, exists := seen[related.ManualTopic()]; !exists {
+			if declared, exists := seen[related.ManualTopic()]; !exists || declared != related {
 				return contractError("manual related topic is absent from the book")
 			}
 		}
@@ -303,9 +276,6 @@ func requiredLines(lines []Line) error {
 	return optionalLines(lines)
 }
 func optionalLines(lines []Line) error {
-	if len(lines) > MaximumSectionItems {
-		return contractError("manual section exceeds its item limit")
-	}
 	seen := make(map[Line]struct{}, len(lines))
 	for _, line := range lines {
 		if err := line.Validate(); err != nil {

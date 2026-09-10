@@ -2,17 +2,12 @@ package manual
 
 import "github.com/deliri/primitive/v2026/core"
 
+// SchemaV1Token is the canonical spelling of the sole machine manual schema.
+const SchemaV1Token = "primitive.manual.v1"
+
 const (
-	// MaximumPages bounds one product manual.
-	MaximumPages = 64
-	// MaximumSectionItems bounds every repeated page section.
-	MaximumSectionItems = 32
-	// MaximumLineBytes bounds one printable line.
-	MaximumLineBytes = 1024
-	// MaximumTopicBytes bounds one canonical command topic.
-	MaximumTopicBytes = 64
-	// SchemaV1 identifies the sole machine manual schema.
-	SchemaV1 Schema = "primitive.manual.v1"
+	SchemaUnknown Schema = iota
+	SchemaV1
 )
 
 const (
@@ -39,11 +34,11 @@ type Topic interface {
 // segments; each segment contains letters, digits, or single interior hyphens.
 type TopicName string
 
-// Line is one bounded printable customer-facing line.
+// Line is one printable customer-facing line.
 type Line string
 
 // Schema identifies a closed machine manual schema.
-type Schema string
+type Schema uint8
 
 // Definition explains one term before a product relies on it.
 type Definition struct {
@@ -85,7 +80,9 @@ type Page[T Topic] struct {
 	Related []T
 }
 
-// Book is one product's source of truth for help and manual output.
+// Book is one product's caller-owned source of truth for help and manual output.
+// Validation indexes topic identities and duplicate section items; that metadata
+// scales with item count. Rendering does not aggregate the emitted text.
 type Book[T Topic] struct {
 	Title    Line
 	Summary  Line
@@ -131,7 +128,9 @@ type RenderRequest[T Topic] struct {
 	View View
 }
 
-// Report is the stable machine projection of one complete Book.
+// Report is the caller-owned stable machine projection of one complete Book.
+// Project allocates independent slices; WriteJSON delegates streaming to Go,
+// whose encoder may buffer an individual string token.
 type Report struct {
 	Schema   Schema        `json:"schema"`
 	Title    Line          `json:"title"`

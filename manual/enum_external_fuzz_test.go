@@ -2,6 +2,7 @@ package manual_test
 
 import (
 	"bytes"
+	json "encoding/json/v2"
 	"errors"
 	"testing"
 
@@ -40,8 +41,23 @@ func fuzzViewCase(t *testing.T, data []byte) {
 	original := manual.ViewHelp
 	got := original
 	gotErr := got.UnmarshalJSON(data)
+	var token string
+	nativeErr := json.Unmarshal(data, &token)
+	expected := manual.ViewHelp
+	admitted := nativeErr == nil
+	switch token {
+	case manual.ViewHelp.String():
+	case manual.ViewManual.String():
+		expected = manual.ViewManual
+	default:
+		admitted = false
+	}
+	if (gotErr == nil) != admitted || (admitted && got != expected) {
+		t.Fatalf("View decode=%v/%v, want admitted=%t value=%v", got, gotErr, admitted, expected)
+	}
+
 	if gotErr != nil {
-		if !errors.Is(gotErr, core.ErrManualContract) || got != original {
+		if !errors.Is(gotErr, core.ErrManualContract) || !errors.Is(gotErr, core.ErrJSONContract) || got != original {
 			t.Fatalf("View.UnmarshalJSON(rejected) = (%v, %v), want (%v, %v)", got, gotErr, original, core.ErrManualContract)
 		}
 		return
@@ -68,8 +84,23 @@ func fuzzSelectionModeCase(t *testing.T, data []byte) {
 	original := manual.SelectionModeIndex
 	got := original
 	gotErr := got.UnmarshalJSON(data)
+	var token string
+	nativeErr := json.Unmarshal(data, &token)
+	expected := manual.SelectionModeIndex
+	admitted := nativeErr == nil
+	switch token {
+	case manual.SelectionModeIndex.String():
+	case manual.SelectionModeTopic.String():
+		expected = manual.SelectionModeTopic
+	default:
+		admitted = false
+	}
+	if (gotErr == nil) != admitted || (admitted && got != expected) {
+		t.Fatalf("SelectionMode decode=%v/%v, want admitted=%t value=%v", got, gotErr, admitted, expected)
+	}
+
 	if gotErr != nil {
-		if !errors.Is(gotErr, core.ErrManualContract) || got != original {
+		if !errors.Is(gotErr, core.ErrManualContract) || !errors.Is(gotErr, core.ErrJSONContract) || got != original {
 			t.Fatalf("SelectionMode.UnmarshalJSON(rejected) = (%v, %v), want (%v, %v)", got, gotErr, original, core.ErrManualContract)
 		}
 		return

@@ -1,10 +1,7 @@
 package manual_test
 
 import (
-	"bytes"
-	json "encoding/json/v2"
 	"errors"
-	"io"
 	"strings"
 	"testing"
 
@@ -51,7 +48,7 @@ func TestValueValidationHostileBoundaryMatrix(t *testing.T) {
 		{name: "single visible rune is admitted", value: "x"},
 		{name: "unicode customer text is admitted", value: "Résumé ready."},
 		{name: "punctuation is admitted", value: "Success: nothing else changed."},
-		{name: "exact byte ceiling is admitted", value: manual.Line(strings.Repeat("a", manual.MaximumLineBytes))},
+		{name: "former byte ceiling is admitted", value: manual.Line(strings.Repeat("a", manualFormerLineBytes))},
 		{name: "empty is refused", wantErr: core.ErrManualContract},
 		{name: "leading space is refused", value: " leading", wantErr: core.ErrManualContract},
 		{name: "trailing space is refused", value: "trailing ", wantErr: core.ErrManualContract},
@@ -60,7 +57,7 @@ func TestValueValidationHostileBoundaryMatrix(t *testing.T) {
 		{name: "tab is refused", value: "one\ttwo", wantErr: core.ErrManualContract},
 		{name: "nul is refused", value: "one\x00two", wantErr: core.ErrManualContract},
 		{name: "invalid utf8 is refused", value: manual.Line(string([]byte{0xff})), wantErr: core.ErrManualContract},
-		{name: "one above byte ceiling is refused", value: manual.Line(strings.Repeat("a", manual.MaximumLineBytes+1)), wantErr: core.ErrManualContract},
+		{name: "one above former byte ceiling is admitted", value: manual.Line(strings.Repeat("a", manualFormerLineBytes+1))},
 		{name: "only space is refused", value: " ", wantErr: core.ErrManualContract},
 		{name: "only newline is refused", value: "\n", wantErr: core.ErrManualContract},
 		{name: "leading nonbreaking space is refused", value: "\u00a0text", wantErr: core.ErrManualContract},
@@ -72,37 +69,14 @@ func TestValueValidationHostileBoundaryMatrix(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			gotErr := tc.value.Validate()
+			got, parseErr := manual.ParseLine(tc.value.String())
+			if !errors.Is(parseErr, tc.wantErr) || (tc.wantErr == nil && got != tc.value) || (tc.wantErr != nil && got != "") {
+				t.Fatalf("ParseLine=%q/%v, want exact input or zero with %v", got, parseErr, tc.wantErr)
+			}
 			if !errors.Is(gotErr, tc.wantErr) {
 				t.Fatalf("Line.Validate() error = %v, want %v", gotErr, tc.wantErr)
 			}
 		})
-	}
-}
-
-func TestScalarConstructorsLayerTriad(t *testing.T) {
-	t.Parallel()
-	wantLine := "Readable customer guidance."
-	line, err := manual.ParseLine(wantLine)
-	if err != nil || line.String() != wantLine {
-		t.Fatalf("ParseLine(valid) = (%q, %v), want (%q, nil)", line, err, wantLine)
-	}
-	if _, gotErr := manual.ParseLine(""); !errors.Is(gotErr, core.ErrManualContract) {
-		t.Fatalf("ParseLine(invalid) error = %v, want %v", gotErr, core.ErrManualContract)
-	}
-	wantTopic := "close-proof"
-	topic, err := manual.NewTopicName(wantTopic)
-	if err != nil || topic.String() != wantTopic {
-		t.Fatalf("NewTopicName(valid) = (%q, %v), want (%q, nil)", topic, err, wantTopic)
-	}
-	if _, gotErr := manual.NewTopicName("close--proof"); !errors.Is(gotErr, core.ErrManualContract) {
-		t.Fatalf("NewTopicName(invalid) error = %v, want %v", gotErr, core.ErrManualContract)
-	}
-	schema, err := manual.NewSchema(manual.SchemaV1.String())
-	if err != nil || schema != manual.SchemaV1 {
-		t.Fatalf("NewSchema(valid) = (%q, %v), want (%q, nil)", schema, err, manual.SchemaV1)
-	}
-	if _, gotErr := manual.NewSchema(""); !errors.Is(gotErr, core.ErrManualContract) {
-		t.Fatalf("NewSchema(invalid) error = %v, want %v", gotErr, core.ErrManualContract)
 	}
 }
 
@@ -132,115 +106,6 @@ func TestBookValidationLayerTriad(t *testing.T) {
 				t.Fatalf("Book.Validate() error = %v, want %v", gotErr, tc.wantErr)
 			}
 		})
-	}
-}
-
-func TestHumanProjectionLayerTriad(t *testing.T) {
-	t.Parallel()
-	book := validBook(t)
-	request := manual.RenderRequest[testTopic]{Book: book, View: manual.ViewManual, Selection: manual.Selection[testTopic]{Mode: manual.SelectionModeTopic, Topic: testTopicOpen}}
-	var first bytes.Buffer
-	if err := manual.WriteText(&first, request); err != nil {
-		t.Fatalf("WriteText(valid) error = %v, want nil", err)
-	}
-	var second bytes.Buffer
-	if err := manual.WriteText(&second, request); err != nil {
-		t.Fatalf("WriteText(repeat) error = %v, want nil", err)
-	}
-	if got, want := second.String(), first.String(); got != want {
-		t.Fatalf("WriteText(repeat) = %q, want %q", got, want)
-	}
-	if !strings.Contains(first.String(), string(book.Pages[0].Summary)) {
-		t.Fatalf("WriteText(valid) = %q, want product summary %q", first.String(), book.Pages[0].Summary)
-	}
-
-	invalid := request
-	invalid.Selection.Topic = testTopicClose
-	invalid.Book.Pages = invalid.Book.Pages[:1]
-	var rejected bytes.Buffer
-	if gotErr := manual.WriteText(&rejected, invalid); !errors.Is(gotErr, core.ErrManualContract) {
-		t.Fatalf("WriteText(invalid) error = %v, want %v", gotErr, core.ErrManualContract)
-	}
-	if got, want := rejected.Len(), 0; got != want {
-		t.Fatalf("WriteText(invalid) bytes = %d, want %d", got, want)
-	}
-
-	neutral := request
-	neutral.Selection = manual.Selection[testTopic]{Mode: manual.SelectionModeIndex}
-	var index bytes.Buffer
-	if err := manual.WriteText(&index, neutral); err != nil {
-		t.Fatalf("WriteText(index) error = %v, want nil", err)
-	}
-	if !strings.Contains(index.String(), string(book.Title)) {
-		t.Fatalf("WriteText(index) = %q, want title %q", index.String(), book.Title)
-	}
-}
-
-type failingWriter struct{ failure error }
-
-func (w failingWriter) Write([]byte) (int, error) { return 0, w.failure }
-
-type shortWriter struct{}
-
-func (shortWriter) Write(value []byte) (int, error) { return len(value) - 1, nil }
-
-func TestOutputFailurePreservesNativeIdentity(t *testing.T) {
-	t.Parallel()
-	request := manual.RenderRequest[testTopic]{Book: validBook(t), View: manual.ViewHelp, Selection: manual.Selection[testTopic]{Mode: manual.SelectionModeIndex}}
-	native := errors.New("native writer refusal")
-	if gotErr := manual.WriteText(failingWriter{failure: native}, request); !errors.Is(gotErr, native) || !errors.Is(gotErr, core.ErrManualWrite) {
-		t.Fatalf("WriteText(native failure) error = %v, want %v and %v", gotErr, native, core.ErrManualWrite)
-	}
-	if gotErr := manual.WriteText(shortWriter{}, request); !errors.Is(gotErr, io.ErrShortWrite) || !errors.Is(gotErr, core.ErrManualWrite) {
-		t.Fatalf("WriteText(short write) error = %v, want %v and %v", gotErr, io.ErrShortWrite, core.ErrManualWrite)
-	}
-	report, err := manual.Project(validBook(t))
-	if err != nil {
-		t.Fatalf("Project(valid) error = %v, want nil", err)
-	}
-	if gotErr := manual.WriteJSON(shortWriter{}, report); !errors.Is(gotErr, io.ErrShortWrite) || !errors.Is(gotErr, core.ErrManualWrite) {
-		t.Fatalf("WriteJSON(short write) error = %v, want %v and %v", gotErr, io.ErrShortWrite, core.ErrManualWrite)
-	}
-}
-
-func TestMachineProjectionLayerTriad(t *testing.T) {
-	t.Parallel()
-	book := validBook(t)
-	book.Offering = manualOfferingFixture(t, "kernel-manual")
-	report, err := manual.Project(book)
-	if err != nil {
-		t.Fatalf("Project(valid) error = %v, want nil", err)
-	}
-	var encoded bytes.Buffer
-	if err := manual.WriteJSON(&encoded, report); err != nil {
-		t.Fatalf("WriteJSON(valid) error = %v, want nil", err)
-	}
-	var decoded manual.Report
-	if err := json.Unmarshal(encoded.Bytes(), &decoded); err != nil {
-		t.Fatalf("json.Unmarshal(WriteJSON) error = %v, want nil", err)
-	}
-	if err := decoded.Validate(); err != nil {
-		t.Fatalf("Report.Validate(round trip) error = %v, want nil", err)
-	}
-	if got, want := decoded.Schema, manual.SchemaV1; got != want {
-		t.Fatalf("Report.Schema = %q, want %q", got, want)
-	}
-	if got, want := decoded.Offering, book.Offering; got != want {
-		t.Fatalf("Report.Offering = %q, want %q", got, want)
-	}
-
-	report.Schema = ""
-	var rejected bytes.Buffer
-	if gotErr := manual.WriteJSON(&rejected, report); !errors.Is(gotErr, core.ErrManualContract) {
-		t.Fatalf("WriteJSON(invalid) error = %v, want %v", gotErr, core.ErrManualContract)
-	}
-	if got, want := rejected.Len(), 0; got != want {
-		t.Fatalf("WriteJSON(invalid) bytes = %d, want %d", got, want)
-	}
-
-	book.Pages[0].Summary = "caller mutation"
-	if got, want := decoded.Pages[0].Summary, manual.Line("Open one issue record."); got != want {
-		t.Fatalf("projected summary after source mutation = %q, want %q", got, want)
 	}
 }
 

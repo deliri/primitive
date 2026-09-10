@@ -21,7 +21,7 @@ func TestTopicSegmentsLayerTriad(t *testing.T) {
 		{name: "three command segments", text: "anvil.file.run"},
 		{name: "hyphenated segments", text: "work-item.read-all"},
 		{name: "numeric segment", text: "api.v2"},
-		{name: "exact topic bound", text: strings.Repeat("a", manual.MaximumTopicBytes)},
+		{name: "former topic bound", text: strings.Repeat("a", manualFormerTopicBytes)},
 		{name: "empty", wantErr: core.ErrManualContract},
 		{name: "leading dot", text: ".work", wantErr: core.ErrManualContract},
 		{name: "trailing dot", text: "work.", wantErr: core.ErrManualContract},
@@ -32,7 +32,7 @@ func TestTopicSegmentsLayerTriad(t *testing.T) {
 		{name: "uppercase is not repaired", text: "Work.list", wantErr: core.ErrManualContract},
 		{name: "slash is not a topic separator", text: "work/list", wantErr: core.ErrManualContract},
 		{name: "space is not trimmed", text: "work.list ", wantErr: core.ErrManualContract},
-		{name: "over topic bound", text: strings.Repeat("a", manual.MaximumTopicBytes+1), wantErr: core.ErrManualContract},
+		{name: "past former topic bound", text: strings.Repeat("a", manualFormerTopicBytes+1)},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
