@@ -11,7 +11,7 @@ jobs:
     if: github.repository_owner == 'offGridSoft' || github.repository == 'deliri/primitive'
     # GitHub hosts this notification; Anvil runs the project on Fedora.
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 310
     steps:
       - name: Join the Anvil tailnet
         uses: tailscale/github-action@d1b6cd204f8dceda5b3eaad7f1f767be390056cd
@@ -41,26 +41,38 @@ jobs:
           JS
           nonce=$(jq -er '.request_nonce' "$RUNNER_TEMP/anvil-request.json")
           echo "Admission nonce: $nonce; commit: $GITHUB_SHA"
-          for attempt in 1 2; do
+          deadline=$((SECONDS + 18000))
+          backoff=15
+          attempt=0
+          while (( SECONDS < deadline )); do
+            attempt=$((attempt + 1))
+            remaining=$((deadline - SECONDS))
+            request_timeout=$((remaining < 400 ? remaining : 400))
             receipt="$RUNNER_TEMP/anvil-admission-$attempt.json"
             echo "Admission attempt $attempt"
-            if curl --fail-with-body --silent --show-error --connect-timeout 15 --max-time 400 \
+            if curl --fail-with-body --silent --show-error --connect-timeout 15 --max-time "$request_timeout" \
               -H "Authorization: Bearer $ANVIL_TOKEN" \
               -H 'Content-Type: application/json' \
               -H "Idempotency-Key: anvil-project-request:$nonce" \
               --data-binary "@$RUNNER_TEMP/anvil-request.json" \
               "$ANVIL_ENDPOINT/v1/private/anvil/github/project-runs" > "$receipt"; then
               cat "$receipt"
-              break
+              if jq -e '.admissions | length == 1 and all(.[]; .state == 2 or .state == 3)' "$receipt"; then
+                echo 'Anvil acknowledged this revision. Test results are recorded through the API.' >> "$GITHUB_STEP_SUMMARY"
+                exit 0
+              fi
+              echo "::warning::Admission attempt $attempt is not yet acknowledged."
             else
               status=$?
               cat "$receipt"
               echo "::warning::Admission attempt $attempt ended with curl status $status; completion is unconfirmed."
-              if [ "$attempt" = 2 ]; then exit "$status"; fi
-              echo 'Reconcile once with the identical request and idempotency key.'
-              sleep 15
             fi
+            remaining=$((deadline - SECONDS))
+            if (( remaining <= 0 )); then break; fi
+            wait_seconds=$((backoff < remaining ? backoff : remaining))
+            echo "Waiting $wait_seconds seconds before retrying the identical request and idempotency key."
+            sleep "$wait_seconds"
+            backoff=$((backoff < 120 ? backoff * 2 : 120))
           done
-          jq -e '.admissions | length == 1 and all(.[]; .state == 2 or .state == 3)' \
-            "$receipt"
-          echo 'Anvil acknowledged this revision. Test results are recorded through the API.' >> "$GITHUB_STEP_SUMMARY"
+          echo '::error::Anvil did not acknowledge admission within five hours.'
+          exit 1
