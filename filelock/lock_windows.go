@@ -4,42 +4,62 @@ package filelock
 
 import (
 	"errors"
-	"os"
-
 	"golang.org/x/sys/windows"
+	"runtime"
 )
 
-// lockRegionLength covers the whole file regardless of its size. Windows locks
-// byte ranges rather than files, so the maximum range is how a range lock is
-// spelled as a file lock.
+// The whole native 64-bit byte range, independent of the current file size.
 const lockRegionLength = ^uint32(0)
 
-// acquire performs the one real locking effect on Windows.
-//
-// ERROR_LOCK_VIOLATION is what LockFileEx returns instead of blocking when
-// LOCKFILE_FAIL_IMMEDIATELY is set and another process holds the range. It is
-// contention, not failure, and is the exact counterpart of EWOULDBLOCK on Unix.
-func acquire(file *os.File, exclusivity Exclusivity, patience Patience) (bool, error) {
+// Windows documents this event-handle bit as suppressing completion-port
+// notifications for this operation; Go retains ownership of its IOCP.
+const lockPrivateEvent = windows.Handle(1)
+
+func acquire(fd uintptr, exclusivity Exclusivity, patience Patience) (bool, error) {
 	flags, err := lockFlags(exclusivity, patience)
 	if err != nil {
 		return false, err
 	}
-	overlapped := new(windows.Overlapped)
-	err = windows.LockFileEx(
-		windows.Handle(file.Fd()),
-		flags,
-		0,
-		lockRegionLength,
-		lockRegionLength,
-		overlapped,
-	)
-	if err == nil {
-		return true, nil
+	handle := windows.Handle(fd)
+	contended := false
+	err = windowsLockOperation(handle, func(overlapped *windows.Overlapped) error {
+		nativeErr := windows.LockFileEx(handle, flags, 0, lockRegionLength, lockRegionLength, overlapped)
+		if patience == Immediate && errors.Is(nativeErr, windows.ERROR_LOCK_VIOLATION) {
+			contended = true
+			return nil
+		}
+		return nativeErr
+	})
+	if err != nil {
+		return false, err
 	}
-	if patience == Immediate && errors.Is(err, windows.ERROR_LOCK_VIOLATION) {
-		return false, nil
+	return !contended, nil
+}
+func release(fd uintptr) error {
+	handle := windows.Handle(fd)
+	return windowsLockOperation(handle, func(overlapped *windows.Overlapped) error {
+		return windows.UnlockFileEx(handle, 0, lockRegionLength, lockRegionLength, overlapped)
+	})
+}
+
+// Wait for native completion before releasing the Go descriptor reference or
+// the OVERLAPPED storage. No worker, retry policy or private IO runtime is added.
+func windowsLockOperation(handle windows.Handle, operation func(*windows.Overlapped) error) (resultErr error) {
+	event, err := windows.CreateEvent(nil, 1, 0, nil)
+	if err != nil {
+		return err
 	}
-	return false, err
+	defer func() { resultErr = errors.Join(resultErr, windows.CloseHandle(event)) }()
+	overlapped := windows.Overlapped{HEvent: event | lockPrivateEvent}
+	var pin runtime.Pinner
+	pin.Pin(&overlapped)
+	defer pin.Unpin()
+	resultErr = operation(&overlapped)
+	if errors.Is(resultErr, windows.ERROR_IO_PENDING) {
+		var transferred uint32
+		resultErr = windows.GetOverlappedResult(handle, &overlapped, &transferred, true)
+	}
+	return resultErr
 }
 
 func lockFlags(exclusivity Exclusivity, patience Patience) (uint32, error) {
@@ -60,15 +80,4 @@ func lockFlags(exclusivity Exclusivity, patience Patience) (uint32, error) {
 	default:
 		return 0, patience.Validate()
 	}
-}
-
-func release(file *os.File) error {
-	overlapped := new(windows.Overlapped)
-	return windows.UnlockFileEx(
-		windows.Handle(file.Fd()),
-		0,
-		lockRegionLength,
-		lockRegionLength,
-		overlapped,
-	)
 }

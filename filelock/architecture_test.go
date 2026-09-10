@@ -1,15 +1,21 @@
 package filelock
 
 import (
+	"context"
+	"embed"
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"path/filepath"
+	"io/fs"
+	"os"
 	"reflect"
 	"slices"
 	"strings"
 	"testing"
 )
+
+//go:embed *.go
+var filelockSource embed.FS
 
 type filelockDataFlowRole uint8
 
@@ -74,7 +80,7 @@ func filelockInventoryStructNames(t testing.TB) []string {
 }
 
 func filelockProductionStructNames() ([]string, error) {
-	files, gotGlobErr := filepath.Glob("*.go")
+	files, gotGlobErr := fs.Glob(filelockSource, "*.go")
 	if gotGlobErr != nil {
 		return nil, gotGlobErr
 	}
@@ -84,7 +90,11 @@ func filelockProductionStructNames() ([]string, error) {
 		if strings.HasSuffix(path, "_test.go") {
 			continue
 		}
-		file, gotParseErr := parser.ParseFile(set, path, nil, parser.SkipObjectResolution)
+		data, readErr := filelockSource.ReadFile(path)
+		if readErr != nil {
+			return nil, readErr
+		}
+		file, gotParseErr := parser.ParseFile(set, path, data, parser.SkipObjectResolution)
 		if gotParseErr != nil {
 			return nil, gotParseErr
 		}
@@ -94,7 +104,10 @@ func filelockProductionStructNames() ([]string, error) {
 				continue
 			}
 			for _, raw := range generic.Specs {
-				specification := raw.(*ast.TypeSpec)
+				specification, ok := raw.(*ast.TypeSpec)
+				if !ok {
+					continue
+				}
 				if _, ok := specification.Type.(*ast.StructType); ok {
 					names = append(names, specification.Name.Name)
 				}
@@ -103,4 +116,51 @@ func filelockProductionStructNames() ([]string, error) {
 	}
 	slices.Sort(names)
 	return names, nil
+}
+
+// The typed inventory binds the externally effectful API to fuzz coverage.
+type filelockDoorInventory struct {
+	Acquire func(context.Context, Request) (Acquisition, error)
+	Release func(context.Context, *os.File) error
+}
+
+var filelockDoors = filelockDoorInventory{Acquire: Acquire, Release: Release}
+
+func TestFilelockExternalDoorInventory(t *testing.T) {
+	t.Parallel()
+	entries, err := fs.Glob(filelockSource, "*.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, path := range entries {
+		if strings.HasSuffix(path, "_test.go") {
+			continue
+		}
+		data, err := filelockSource.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		source, err := parser.ParseFile(token.NewFileSet(), path, data, parser.SkipObjectResolution)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, decl := range source.Decls {
+			fn, ok := decl.(*ast.FuncDecl)
+			if !ok || fn.Recv != nil || !fn.Name.IsExported() {
+				continue
+			}
+			got = append(got, fn.Name.Name)
+		}
+	}
+	typ := reflect.TypeOf(filelockDoors)
+	want := make([]string, 0, typ.NumField())
+	for field := range typ.Fields() {
+		want = append(want, field.Name)
+	}
+	slices.Sort(got)
+	slices.Sort(want)
+	if !slices.Equal(got, want) {
+		t.Fatalf("external doors=%v, want fuzz-covered %v", got, want)
+	}
 }

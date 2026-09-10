@@ -3,7 +3,6 @@ package filelock_test
 import (
 	"errors"
 	"math"
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -17,7 +16,7 @@ func TestExclusivityClosesItsEntireByteDomain(t *testing.T) {
 	var offWire core.OffWireEnum = filelock.Exclusive
 	offWire.OffWireEnum()
 
-	seen := make(map[string]filelock.Exclusivity)
+	seen := [2]string{}
 	gotAdmitted := 0
 	for value := range math.MaxUint8 + 1 {
 		exclusivity := filelock.Exclusivity(value)
@@ -43,10 +42,10 @@ func TestExclusivityClosesItsEntireByteDomain(t *testing.T) {
 		if gotDiagnostic == "" || gotDiagnostic == core.UnknownEnumDiagnostic {
 			t.Fatalf("Exclusivity(%d).String() = %q, want a member diagnostic", value, gotDiagnostic)
 		}
-		if prior, duplicate := seen[gotDiagnostic]; duplicate {
-			t.Fatalf("Exclusivity(%d) diagnostic = %q, want distinct from Exclusivity(%d)", value, gotDiagnostic, prior)
+		if prior := seen[0]; gotAdmitted > 1 && prior == gotDiagnostic {
+			t.Fatalf("Exclusivity(%d) diagnostic = %q, want distinct from prior label %q", value, gotDiagnostic, prior)
 		}
-		seen[gotDiagnostic] = exclusivity
+		seen[gotAdmitted-1] = gotDiagnostic
 	}
 	if wantAdmitted := 2; gotAdmitted != wantAdmitted {
 		t.Fatalf("admitted exclusivities = %d, want %d", gotAdmitted, wantAdmitted)
@@ -64,7 +63,7 @@ func TestPatienceClosesItsEntireByteDomain(t *testing.T) {
 	var offWire core.OffWireEnum = filelock.Immediate
 	offWire.OffWireEnum()
 
-	seen := make(map[string]filelock.Patience)
+	seen := [2]string{}
 	gotAdmitted := 0
 	for value := range math.MaxUint8 + 1 {
 		patience := filelock.Patience(value)
@@ -90,10 +89,10 @@ func TestPatienceClosesItsEntireByteDomain(t *testing.T) {
 		if gotDiagnostic == "" || gotDiagnostic == core.UnknownEnumDiagnostic {
 			t.Fatalf("Patience(%d).String() = %q, want a member diagnostic", value, gotDiagnostic)
 		}
-		if prior, duplicate := seen[gotDiagnostic]; duplicate {
-			t.Fatalf("Patience(%d) diagnostic = %q, want distinct from Patience(%d)", value, gotDiagnostic, prior)
+		if prior := seen[0]; gotAdmitted > 1 && prior == gotDiagnostic {
+			t.Fatalf("Patience(%d) diagnostic = %q, want distinct from prior label %q", value, gotDiagnostic, prior)
 		}
-		seen[gotDiagnostic] = patience
+		seen[gotAdmitted-1] = gotDiagnostic
 	}
 	if wantAdmitted := 2; gotAdmitted != wantAdmitted {
 		t.Fatalf("admitted patiences = %d, want %d", gotAdmitted, wantAdmitted)
@@ -135,11 +134,7 @@ func TestRequestValidationExhaustsValidPolicyProductAndHostileBoundaries(t *test
 			request := filelock.Request{Exclusivity: tc.exclusivity, Patience: tc.patience}
 			if tc.withFile {
 				path := filepath.Join(dir, "request.lock")
-				file, gotOpenErr := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0o600)
-				if gotOpenErr != nil {
-					t.Fatalf("OpenFile(%s) error = %v, want nil", path, gotOpenErr)
-				}
-				t.Cleanup(func() { _ = file.Close() })
+				file := openFixtureLock(t, path)
 				request.File = file
 			}
 

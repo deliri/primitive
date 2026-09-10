@@ -1,12 +1,10 @@
-//go:build unix
+//go:build darwin || linux
 
 package filelock
 
 import (
 	"errors"
-	"os"
-
-	"golang.org/x/sys/unix"
+	"syscall"
 )
 
 // acquire performs the one real locking effect on Unix.
@@ -20,21 +18,21 @@ import (
 // EINTR is retried rather than reported. A signal arriving mid-call says
 // nothing about who holds the lock, and making every caller loop over that is
 // how the same retry ends up written three times.
-func acquire(file *os.File, exclusivity Exclusivity, patience Patience) (bool, error) {
+func acquire(fd uintptr, exclusivity Exclusivity, patience Patience) (bool, error) {
 	flags, err := lockFlags(exclusivity, patience)
 	if err != nil {
 		return false, err
 	}
 	for {
-		flockErr := unix.Flock(int(file.Fd()), flags)
+		flockErr := syscall.Flock(int(fd), flags)
 		if flockErr == nil {
 			return true, nil
 		}
-		if errors.Is(flockErr, unix.EINTR) {
+		if errors.Is(flockErr, syscall.EINTR) {
 			continue
 		}
 		if patience == Immediate &&
-			(errors.Is(flockErr, unix.EWOULDBLOCK) || errors.Is(flockErr, unix.EAGAIN)) {
+			(errors.Is(flockErr, syscall.EWOULDBLOCK) || errors.Is(flockErr, syscall.EAGAIN)) {
 			return false, nil
 		}
 		return false, flockErr
@@ -45,15 +43,15 @@ func lockFlags(exclusivity Exclusivity, patience Patience) (int, error) {
 	flags := 0
 	switch exclusivity {
 	case Exclusive:
-		flags = unix.LOCK_EX
+		flags = syscall.LOCK_EX
 	case Shared:
-		flags = unix.LOCK_SH
+		flags = syscall.LOCK_SH
 	default:
 		return 0, exclusivity.Validate()
 	}
 	switch patience {
 	case Immediate:
-		return flags | unix.LOCK_NB, nil
+		return flags | syscall.LOCK_NB, nil
 	case Blocking:
 		return flags, nil
 	default:
@@ -61,10 +59,10 @@ func lockFlags(exclusivity Exclusivity, patience Patience) (int, error) {
 	}
 }
 
-func release(file *os.File) error {
+func release(fd uintptr) error {
 	for {
-		err := unix.Flock(int(file.Fd()), unix.LOCK_UN)
-		if errors.Is(err, unix.EINTR) {
+		err := syscall.Flock(int(fd), syscall.LOCK_UN)
+		if errors.Is(err, syscall.EINTR) {
 			continue
 		}
 		return err

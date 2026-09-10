@@ -20,7 +20,8 @@ import (
 // A Blocking attempt returns only when it holds the lock or fails. Context is
 // validated on entry, but no cancellation can reach a process parked in the
 // lock call, so a caller that must remain interruptible uses Immediate and
-// owns its own retry cadence.
+// owns its own retry cadence. The Go descriptor reference remains pinned during
+// a blocking call; closing that same handle waits for this call to finish.
 func Acquire(ctx context.Context, request Request) (Acquisition, error) {
 	if err := contextstate.Validate(ctx); err != nil {
 		return Acquisition{}, err
@@ -28,7 +29,12 @@ func Acquire(ctx context.Context, request Request) (Acquisition, error) {
 	if err := request.Validate(); err != nil {
 		return Acquisition{}, err
 	}
-	held, err := acquire(request.File, request.Exclusivity, request.Patience)
+	var held bool
+	err := controlFile(request.File, func(fd uintptr) error {
+		var err error
+		held, err = acquire(fd, request.Exclusivity, request.Patience)
+		return err
+	})
 	if err != nil {
 		return Acquisition{}, lockError(err)
 	}
@@ -47,7 +53,7 @@ func Release(ctx context.Context, file *os.File) error {
 	if file == nil {
 		return contractError(errors.New(fileMissingDiagnostic))
 	}
-	if err := release(file); err != nil {
+	if err := controlFile(file, release); err != nil {
 		return lockError(err)
 	}
 	return nil
@@ -59,4 +65,15 @@ func contractError(err error) error {
 
 func lockError(err error) error {
 	return errors.Join(core.ErrFileLockUnavailable, err)
+}
+
+// controlFile pins descriptor lifetime through Go and leaves its poller mode intact.
+func controlFile(file *os.File, effect func(uintptr) error) error {
+	conn, err := file.SyscallConn()
+	if err != nil {
+		return err
+	}
+	var effectErr error
+	controlErr := conn.Control(func(fd uintptr) { effectErr = effect(fd) })
+	return errors.Join(controlErr, effectErr)
 }

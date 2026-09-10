@@ -141,7 +141,8 @@ func (a Acquisition) Validate() error {
 	return nil
 }
 
-// Held reports whether this process now holds the lock.
+// Held reports whether this attempt acquired the lock. It is an immutable
+// observation, not a claim about ownership after a later release or close.
 //
 // False is only ever returned for an Immediate attempt that found another
 // holder. It is a fact about contention, not a failure, which is why it is not

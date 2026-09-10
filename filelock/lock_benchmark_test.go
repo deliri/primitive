@@ -2,41 +2,88 @@ package filelock_test
 
 import (
 	"context"
+	"errors"
+	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/filelock"
+	"github.com/deliri/primitive/v2026/filestore"
 	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/deliri/primitive/v2026/filelock"
 )
 
-func BenchmarkImmediateExclusiveAcquireRelease(b *testing.B) {
-	path := filepath.Join(b.TempDir(), "benchmark.lock")
-	file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0o600)
+func openFixtureLock(t testing.TB, path string) *os.File {
+	t.Helper()
+	absolute, err := core.ParseAbsolutePath(path)
 	if err != nil {
-		b.Fatalf("OpenFile(%s) error = %v, want nil", path, err)
+		t.Fatal(err)
 	}
-	b.Cleanup(func() { _ = file.Close() })
-	ctx := context.Background()
-	request := filelock.Request{
-		File: file, Exclusivity: filelock.Exclusive, Patience: filelock.Immediate,
+	location, err := filestore.OpenParent(context.Background(), absolute)
+	if err != nil {
+		t.Fatal(err)
 	}
-	if err := request.Validate(); err != nil {
-		b.Fatalf("Request.Validate() error = %v, want nil", err)
+	defer func() {
+		if err := location.Root.Close(); err != nil {
+			t.Errorf("root close = %v, want nil", err)
+		}
+	}()
+	file, err := filestore.OpenLockFile(context.Background(), filestore.LockFileRequest{Location: location, Mode: 0600})
+	if err != nil {
+		t.Fatal(err)
 	}
-
+	t.Cleanup(func() {
+		if err := file.Close(); err != nil && !errors.Is(err, os.ErrClosed) {
+			t.Errorf("file close = %v, want nil or previously closed", err)
+		}
+	})
+	return file
+}
+func BenchmarkAdvisoryLock(b *testing.B) {
 	b.ReportAllocs()
-	b.ResetTimer()
-	for b.Loop() {
-		acquisition, acquireErr := filelock.Acquire(ctx, request)
-		if acquireErr != nil {
-			b.Fatalf("Acquire() error = %v, want nil", acquireErr)
-		}
-		held, heldErr := acquisition.Held()
-		if heldErr != nil || !held {
-			b.Fatalf("Acquisition.Held() = (%t, %v), want (true, nil)", held, heldErr)
-		}
-		if releaseErr := filelock.Release(ctx, file); releaseErr != nil {
-			b.Fatalf("Release() error = %v, want nil", releaseErr)
-		}
+	for _, tc := range []struct {
+		name     string
+		holder   filelock.Exclusivity
+		request  filelock.Exclusivity
+		wantHeld bool
+	}{
+		{"exclusive_acquire_release", filelock.ExclusivityUnknown, filelock.Exclusive, true},
+		{"shared_acquire_release", filelock.ExclusivityUnknown, filelock.Shared, true},
+		{"exclusive_contention", filelock.Exclusive, filelock.Exclusive, false},
+		{"shared_compatible_holder", filelock.Shared, filelock.Shared, true},
+	} {
+		b.Run(tc.name, func(b *testing.B) {
+			path := filepath.Join(b.TempDir(), "benchmark.lock")
+			holder, file := openFixtureLock(b, path), openFixtureLock(b, path)
+			ctx := b.Context()
+			if tc.holder != filelock.ExclusivityUnknown {
+				acquired, err := filelock.Acquire(ctx, filelock.Request{File: holder, Exclusivity: tc.holder, Patience: filelock.Immediate})
+				if err != nil {
+					b.Fatal(err)
+				}
+				held, err := acquired.Held()
+				if err != nil || !held {
+					b.Fatalf("holder=%v error=%v, want held", held, err)
+				}
+			}
+			request := filelock.Request{File: file, Exclusivity: tc.request, Patience: filelock.Immediate}
+			if err := request.Validate(); err != nil {
+				b.Fatal(err)
+			}
+			b.ReportAllocs()
+			for b.Loop() {
+				acquired, err := filelock.Acquire(ctx, request)
+				if err != nil {
+					b.Fatal(err)
+				}
+				held, err := acquired.Held()
+				if err != nil || held != tc.wantHeld {
+					b.Fatalf("held=%v error=%v, want %v", held, err, tc.wantHeld)
+				}
+				if held {
+					if err := filelock.Release(ctx, file); err != nil {
+						b.Fatal(err)
+					}
+				}
+			}
+		})
 	}
 }

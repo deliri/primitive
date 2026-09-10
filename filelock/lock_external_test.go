@@ -3,307 +3,270 @@ package filelock_test
 import (
 	"context"
 	"errors"
+	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/filelock"
+	"github.com/deliri/primitive/v2026/temporal"
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
-
-	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/filelock"
 )
 
-// lockBackstop is a deadlock backstop, not a performance assertion. A blocking
-// acquisition that is going to succeed does so as soon as the holder releases.
-const lockBackstop = 10 * time.Second
-
-// openLockFile opens one lock file. Each open is a separate open file
-// description, which is what advisory locks are attached to, so two of them
-// contend exactly as two processes would.
-func openLockFile(t *testing.T, path string) *os.File {
-	t.Helper()
-	file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0o600)
-	if err != nil {
-		t.Fatalf("OpenFile(%s) error = %v, want nil", path, err)
-	}
-	t.Cleanup(func() { _ = file.Close() })
-	return file
+type lockTestOutcome struct {
+	acquisition filelock.Acquisition
+	err         error
 }
 
-func requireHeld(t *testing.T, acquisition filelock.Acquisition, want bool, label string) {
+func holdFixtureLock(t testing.TB, file *os.File, exclusivity filelock.Exclusivity) {
 	t.Helper()
-	got, err := acquisition.Held()
+	got, err := filelock.Acquire(context.Background(), filelock.Request{File: file, Exclusivity: exclusivity, Patience: filelock.Immediate})
 	if err != nil {
-		t.Fatalf("%s Held() error = %v, want nil", label, err)
+		t.Fatal(err)
 	}
-	if got != want {
-		t.Fatalf("%s Held() = %t, want %t", label, got, want)
+	held, err := got.Held()
+	if err != nil || !held {
+		t.Fatalf("fixture held=%v error=%v, want true,nil", held, err)
 	}
 }
-
-func acquireImmediate(t *testing.T, file *os.File, exclusivity filelock.Exclusivity) filelock.Acquisition {
-	t.Helper()
-	acquisition, err := filelock.Acquire(t.Context(), filelock.Request{
-		File:        file,
-		Exclusivity: exclusivity,
-		Patience:    filelock.Immediate,
-	})
-	if err != nil {
-		t.Fatalf("Acquire(%v, immediate) error = %v, want nil", exclusivity, err)
-	}
-	return acquisition
-}
-
-// TestExclusionMatrixAdmitsExactlyTheCompatibleCombinations exhausts the closed
-// product of what one holder can be and what a second caller can ask for. The
-// whole point of the package is that a second process is told the truth, so
-// every cell is checked rather than sampled.
-func TestExclusionMatrixAdmitsExactlyTheCompatibleCombinations(t *testing.T) {
+func TestExclusionAndReleaseLayerTriad(t *testing.T) {
 	t.Parallel()
-
-	cases := []struct {
-		name     string
-		holder   filelock.Exclusivity
-		second   filelock.Exclusivity
-		wantHeld bool
+	for _, tc := range []struct {
+		name           string
+		holder, second filelock.Exclusivity
+		close          bool
+		wantHeld       bool
 	}{
-		{name: "exclusive holder excludes a second exclusive caller", holder: filelock.Exclusive, second: filelock.Exclusive},
-		{name: "exclusive holder excludes a shared caller", holder: filelock.Exclusive, second: filelock.Shared},
-		{name: "shared holder excludes an exclusive caller", holder: filelock.Shared, second: filelock.Exclusive},
-		{name: "shared holder admits another shared caller", holder: filelock.Shared, second: filelock.Shared, wantHeld: true},
-	}
-
-	for _, tc := range cases {
+		{"exclusive_excludes_exclusive", filelock.Exclusive, filelock.Exclusive, false, false},
+		{"exclusive_excludes_shared", filelock.Exclusive, filelock.Shared, false, false},
+		{"shared_excludes_exclusive", filelock.Shared, filelock.Exclusive, false, false},
+		{"shared_admits_shared", filelock.Shared, filelock.Shared, false, true},
+		{"close_releases_exclusive", filelock.Exclusive, filelock.Exclusive, true, false},
+		{"close_releases_shared", filelock.Shared, filelock.Exclusive, true, false},
+	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-
 			path := filepath.Join(t.TempDir(), "lock")
-			first := openLockFile(t, path)
-			requireHeld(t, acquireImmediate(t, first, tc.holder), true, "holder")
-
-			second := openLockFile(t, path)
-			requireHeld(t, acquireImmediate(t, second, tc.second), tc.wantHeld, "second caller")
+			holder, second := openFixtureLock(t, path), openFixtureLock(t, path)
+			holdFixtureLock(t, holder, tc.holder)
+			request := filelock.Request{File: second, Exclusivity: tc.second, Patience: filelock.Immediate}
+			acquired, err := filelock.Acquire(t.Context(), request)
+			held, heldErr := acquired.Held()
+			if err != nil || heldErr != nil || held != tc.wantHeld || acquired.Validate() != nil {
+				t.Fatalf("held=%v errors=%v/%v, want %v,nil,nil", held, err, heldErr, tc.wantHeld)
+			}
+			if held {
+				if err := filelock.Release(t.Context(), second); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if tc.close {
+				err = holder.Close()
+			} else {
+				err = filelock.Release(t.Context(), holder)
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			acquired, err = filelock.Acquire(t.Context(), request)
+			held, heldErr = acquired.Held()
+			if err != nil || heldErr != nil || !held {
+				t.Fatalf("successor held=%v errors=%v/%v, want true,nil,nil after release", held, err, heldErr)
+			}
+			if err := filelock.Release(t.Context(), second); err != nil {
+				t.Fatal(err)
+			}
 		})
 	}
 }
-
-// TestReleaseHandsTheLockToTheNextCaller proves the release path is real. A
-// package that acquired correctly but never released would pass every
-// contention test above and still wedge a product after its first run.
-func TestReleaseHandsTheLockToTheNextCaller(t *testing.T) {
+func TestBlockingAcquisitionHandoffLayerTriad(t *testing.T) {
 	t.Parallel()
-
-	path := filepath.Join(t.TempDir(), "lock")
-	first := openLockFile(t, path)
-	second := openLockFile(t, path)
-
-	requireHeld(t, acquireImmediate(t, first, filelock.Exclusive), true, "first")
-	requireHeld(t, acquireImmediate(t, second, filelock.Exclusive), false, "second while held")
-
-	if err := filelock.Release(t.Context(), first); err != nil {
-		t.Fatalf("Release() error = %v, want nil", err)
-	}
-	requireHeld(t, acquireImmediate(t, second, filelock.Exclusive), true, "second after release")
-}
-
-// TestClosingTheDescriptorReleasesTheLock pins the property that makes advisory
-// locking safe against a crash: the operating system drops the lock when the
-// descriptor goes away, so a process that dies without cleanup does not leave
-// the directory permanently locked.
-func TestClosingTheDescriptorReleasesTheLock(t *testing.T) {
-	t.Parallel()
-
-	path := filepath.Join(t.TempDir(), "lock")
-	holder, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0o600)
-	if err != nil {
-		t.Fatalf("OpenFile() error = %v, want nil", err)
-	}
-	requireHeld(t, acquireImmediate(t, holder, filelock.Exclusive), true, "holder")
-
-	successor := openLockFile(t, path)
-	requireHeld(t, acquireImmediate(t, successor, filelock.Exclusive), false, "successor while held")
-
-	if err := holder.Close(); err != nil {
-		t.Fatalf("Close() error = %v, want nil", err)
-	}
-	requireHeld(t, acquireImmediate(t, successor, filelock.Exclusive), true, "successor after the holder closed")
-}
-
-// TestBlockingAcquisitionWaitsForTheHolderRatherThanRefusing proves Blocking
-// and Immediate are genuinely different. A blocking caller must not come back
-// with held=false, because it has no refusal to report.
-func TestBlockingAcquisitionWaitsForTheHolderRatherThanRefusing(t *testing.T) {
-	t.Parallel()
-
-	path := filepath.Join(t.TempDir(), "lock")
-	holder := openLockFile(t, path)
-	waiter := openLockFile(t, path)
-	requireHeld(t, acquireImmediate(t, holder, filelock.Exclusive), true, "holder")
-
-	type outcome struct {
-		err         error
-		acquisition filelock.Acquisition
-	}
-	started := make(chan struct{})
-	done := make(chan outcome, 1)
-	go func() {
-		close(started)
-		acquisition, err := filelock.Acquire(context.Background(), filelock.Request{
-			File:        waiter,
-			Exclusivity: filelock.Exclusive,
-			Patience:    filelock.Blocking,
+	// Exact Blocking native flags are independently checked in platform tests.
+	// This table proves handoff and failure; a scheduling notification alone
+	// does not prove that the waiter has entered the kernel.
+	for _, tc := range []struct {
+		name           string
+		holder, waiter filelock.Exclusivity
+		close          bool
+	}{
+		{"exclusive_to_exclusive", filelock.Exclusive, filelock.Exclusive, false},
+		{"shared_to_exclusive", filelock.Shared, filelock.Exclusive, false},
+		{"exclusive_to_shared_on_close", filelock.Exclusive, filelock.Shared, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			path := filepath.Join(t.TempDir(), "lock")
+			holder, waiter := openFixtureLock(t, path), openFixtureLock(t, path)
+			holdFixtureLock(t, holder, tc.holder)
+			budget, err := temporal.DurationFromSeconds(10)
+			if err != nil {
+				t.Fatal(err)
+			}
+			watchdog, stop, err := temporal.WithTimeout(temporal.TimeoutRequest{Parent: t.Context(), Duration: budget})
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer stop()
+			started := make(chan struct{})
+			done := make(chan lockTestOutcome, 1)
+			go func() {
+				close(started)
+				got, err := filelock.Acquire(context.Background(), filelock.Request{File: waiter, Exclusivity: tc.waiter, Patience: filelock.Blocking})
+				done <- lockTestOutcome{got, err}
+			}()
+			<-started
+			if tc.close {
+				err = holder.Close()
+			} else {
+				err = filelock.Release(t.Context(), holder)
+			}
+			if err != nil {
+				err = errors.Join(err, holder.Close())
+			}
+			var got lockTestOutcome
+			select {
+			case got = <-done:
+			case <-watchdog.Done():
+				t.Fatal("blocking acquisition joined=false, want true after holder exit")
+			}
+			held, heldErr := got.acquisition.Held()
+			if err != nil || got.err != nil || heldErr != nil || !held {
+				t.Fatalf("held=%v errors=%v/%v/%v, want true and nil", held, err, got.err, heldErr)
+			}
+			if err := filelock.Release(t.Context(), waiter); err != nil {
+				t.Fatal(err)
+			}
 		})
-		done <- outcome{acquisition: acquisition, err: err}
-	}()
-	<-started
-
-	gotReleaseErr := filelock.Release(t.Context(), holder)
-	if gotReleaseErr != nil {
-		// Closing is the OS-owned abnormal completion path for a blocking lock.
-		// The goroutine is still joined below before the test reports failure.
-		_ = holder.Close()
-	}
-
-	select {
-	case got := <-done:
-		if gotReleaseErr != nil {
-			t.Fatalf("Release() error = %v, want nil", gotReleaseErr)
-		}
-		if got.err != nil {
-			t.Fatalf("blocking Acquire() error = %v, want nil", got.err)
-		}
-		requireHeld(t, got.acquisition, true, "blocking waiter")
-	case <-time.After(lockBackstop):
-		t.Fatalf("blocking Acquire did not return within %v of holder release or close", lockBackstop)
 	}
 }
-
-// TestAcquireRefusesAnUnusableRequestBeforeTouchingTheFile keeps the contract
-// gate ahead of the effect and proves every closed domain is closed.
-func TestAcquireRefusesAnUnusableRequestBeforeTouchingTheFile(t *testing.T) {
+func TestRefusedRequestDoesNotChangeNativeOwnership(t *testing.T) {
 	t.Parallel()
-
-	cases := []struct {
+	for _, tc := range []struct {
 		name        string
-		withFile    bool
 		exclusivity filelock.Exclusivity
 		patience    filelock.Patience
+		missing     bool
 	}{
-		{name: "missing file", exclusivity: filelock.Exclusive, patience: filelock.Immediate},
-		{name: "unset exclusivity", withFile: true, patience: filelock.Immediate},
-		{name: "unset patience", withFile: true, exclusivity: filelock.Exclusive},
-		{name: "exclusivity above the closed domain", withFile: true, exclusivity: filelock.Exclusivity(200), patience: filelock.Immediate},
-		{name: "patience above the closed domain", withFile: true, exclusivity: filelock.Exclusive, patience: filelock.Patience(200)},
-		{name: "both intents unset", withFile: true},
-	}
-
-	for _, tc := range cases {
+		{"absent_file", filelock.Exclusive, filelock.Immediate, true},
+		{"zero_exclusivity", filelock.ExclusivityUnknown, filelock.Immediate, false},
+		{"zero_patience", filelock.Exclusive, filelock.PatienceUnknown, false},
+		{"future_exclusivity", filelock.Exclusivity(3), filelock.Immediate, false},
+		{"future_patience", filelock.Exclusive, filelock.Patience(3), false},
+		{"all_bits_exclusivity", filelock.Exclusivity(255), filelock.Immediate, false},
+		{"all_bits_patience", filelock.Exclusive, filelock.Patience(255), false},
+	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-
-			request := filelock.Request{Exclusivity: tc.exclusivity, Patience: tc.patience}
-			if tc.withFile {
-				request.File = openLockFile(t, filepath.Join(t.TempDir(), "lock"))
+			path := filepath.Join(t.TempDir(), "refused.lock")
+			original, contender := openFixtureLock(t, path), openFixtureLock(t, path)
+			holdFixtureLock(t, original, filelock.Shared)
+			file := original
+			if tc.missing {
+				file = nil
 			}
-			acquisition, err := filelock.Acquire(t.Context(), request)
-			if !errors.Is(err, core.ErrPrimitiveContract) {
-				t.Fatalf("Acquire() error = %v, want errors.Is %v", err, core.ErrPrimitiveContract)
+			got, err := filelock.Acquire(t.Context(), filelock.Request{File: file, Exclusivity: tc.exclusivity, Patience: tc.patience})
+			if !errors.Is(err, core.ErrPrimitiveContract) || errors.Is(err, core.ErrFileLockUnavailable) || got != (filelock.Acquisition{}) {
+				t.Fatalf("outcome=%v error=%v, want zero contract refusal", got, err)
 			}
-			if _, heldErr := acquisition.Held(); !errors.Is(heldErr, core.ErrPrimitiveContract) {
-				t.Fatalf("Held() on a refused acquisition error = %v, want errors.Is %v",
-					heldErr, core.ErrPrimitiveContract)
+			// An invalid exclusive request must not upgrade or release the existing
+			// shared lock: another shared holder must fit and an exclusive must not.
+			shared, err := filelock.Acquire(t.Context(), filelock.Request{File: contender, Exclusivity: filelock.Shared, Patience: filelock.Immediate})
+			held, heldErr := shared.Held()
+			if err != nil || heldErr != nil || !held {
+				t.Fatalf("shared probe held=%v errors=%v/%v, want unchanged shared ownership", held, err, heldErr)
+			}
+			if err := filelock.Release(t.Context(), contender); err != nil {
+				t.Fatal(err)
+			}
+			exclusive, err := filelock.Acquire(t.Context(), filelock.Request{File: contender, Exclusivity: filelock.Exclusive, Patience: filelock.Immediate})
+			held, heldErr = exclusive.Held()
+			if err != nil || heldErr != nil || held {
+				t.Fatalf("exclusive probe held=%v errors=%v/%v, want contention with unchanged holder", held, err, heldErr)
 			}
 		})
 	}
 }
 
-// TestAcquisitionNobodyProducedCannotClaimAHold proves the sealed outcome. A
-// caller that assembled its own Acquisition never attempted anything, so it
-// must not be able to report holding a lock it does not hold.
-func TestAcquisitionNobodyProducedCannotClaimAHold(t *testing.T) {
-	t.Parallel()
+type filelockBrokenContext struct{ context.Context }
 
-	if _, err := (filelock.Acquisition{}).Held(); !errors.Is(err, core.ErrPrimitiveContract) {
-		t.Fatalf("Held(zero acquisition) error = %v, want errors.Is %v", err, core.ErrPrimitiveContract)
+func expiredLockContext(t *testing.T) context.Context {
+	t.Helper()
+	ctx, cancel, err := temporal.WithDeadline(temporal.DeadlineRequest{Parent: t.Context(), Deadline: temporal.InstantFromNanoseconds(0)})
+	if err != nil {
+		t.Fatal(err)
 	}
+	t.Cleanup(cancel)
+	return ctx
 }
-
-// TestReleaseRefusesAMissingFile keeps the release path's gate symmetric with
-// the acquisition path's.
-func TestReleaseRefusesAMissingFile(t *testing.T) {
+func TestContextIngressPreservesLockStateLayerTriad(t *testing.T) {
 	t.Parallel()
-
-	if err := filelock.Release(t.Context(), nil); !errors.Is(err, core.ErrPrimitiveContract) {
-		t.Fatalf("Release(nil file) error = %v, want errors.Is %v", err, core.ErrPrimitiveContract)
-	}
-}
-
-type contextGateOperation uint8
-
-const (
-	contextGateOperationUnknown contextGateOperation = iota
-	contextGateAcquire
-	contextGateRelease
-)
-
-// TestContextIngressRefusesTerminalStateBeforeLockMutation proves both public
-// effect doors consult contextstate before touching the descriptor. The exact
-// terminal states belong to contextstate; this table proves filelock preserves
-// them and produces no lock or unlock beside a refusal.
-func TestContextIngressRefusesTerminalStateBeforeLockMutation(t *testing.T) {
-	t.Parallel()
-
-	cancelled, cancel := context.WithCancel(context.Background())
-	cancel()
-	expired, stopExpired := context.WithDeadline(context.Background(), time.Unix(0, 0))
-	defer stopExpired()
-
-	cases := []struct {
-		ctx       context.Context
-		wantErr   error
-		name      string
-		operation contextGateOperation
+	for _, tc := range []struct {
+		name    string
+		context func(*testing.T) context.Context
+		wantErr error
 	}{
-		{name: "acquire refuses nil context before taking a lock", operation: contextGateAcquire, wantErr: core.ErrNilContext},
-		{name: "acquire refuses cancelled context before taking a lock", operation: contextGateAcquire, ctx: cancelled, wantErr: context.Canceled},
-		{name: "acquire refuses expired context before taking a lock", operation: contextGateAcquire, ctx: expired, wantErr: context.DeadlineExceeded},
-		{name: "release refuses nil context without dropping the lock", operation: contextGateRelease, wantErr: core.ErrNilContext},
-		{name: "release refuses cancelled context without dropping the lock", operation: contextGateRelease, ctx: cancelled, wantErr: context.Canceled},
-		{name: "release refuses expired context without dropping the lock", operation: contextGateRelease, ctx: expired, wantErr: context.DeadlineExceeded},
-	}
-
-	for _, tc := range cases {
+		{"active", func(t *testing.T) context.Context { return t.Context() }, nil},
+		{"nil", func(*testing.T) context.Context { return nil }, core.ErrNilContext},
+		{"typed_nil", func(*testing.T) context.Context { return (*filelockBrokenContext)(nil) }, core.ErrContextObservation},
+		{"cancelled", func(t *testing.T) context.Context {
+			ctx, cancel := context.WithCancel(t.Context())
+			cancel()
+			return ctx
+		}, context.Canceled},
+		{"expired", expiredLockContext, context.DeadlineExceeded},
+	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-
 			path := filepath.Join(t.TempDir(), "context.lock")
-			first := openLockFile(t, path)
-			second := openLockFile(t, path)
-
-			switch tc.operation {
-			case contextGateAcquire:
-				got, gotErr := filelock.Acquire(tc.ctx, filelock.Request{
-					File: first, Exclusivity: filelock.Exclusive, Patience: filelock.Immediate,
-				})
-				if !errors.Is(gotErr, tc.wantErr) {
-					t.Fatalf("Acquire(terminal context) error = %v, want %v", gotErr, tc.wantErr)
+			file, contender := openFixtureLock(t, path), openFixtureLock(t, path)
+			ctx := tc.context(t)
+			got, err := filelock.Acquire(ctx, filelock.Request{File: file, Exclusivity: filelock.Exclusive, Patience: filelock.Immediate})
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("acquire error=%v, want %v", err, tc.wantErr)
+			}
+			if tc.wantErr != nil && got != (filelock.Acquisition{}) {
+				t.Fatalf("refused outcome=%v, want zero", got)
+			}
+			probe, err := filelock.Acquire(t.Context(), filelock.Request{File: contender, Exclusivity: filelock.Exclusive, Patience: filelock.Immediate})
+			held, heldErr := probe.Held()
+			if err != nil || heldErr != nil || held != (tc.wantErr != nil) {
+				t.Fatalf("probe held=%v errors=%v/%v, want held=%v", held, err, heldErr, tc.wantErr != nil)
+			}
+			if held {
+				if err := filelock.Release(t.Context(), contender); err != nil {
+					t.Fatal(err)
 				}
-				if _, gotHeldErr := got.Held(); !errors.Is(gotHeldErr, core.ErrPrimitiveContract) {
-					t.Fatalf("Acquire(terminal context) acquisition.Held() error = %v, want %v", gotHeldErr, core.ErrPrimitiveContract)
-				}
-				requireHeld(t, acquireImmediate(t, second, filelock.Exclusive), true, "successor after refused acquire")
-			case contextGateRelease:
-				requireHeld(t, acquireImmediate(t, first, filelock.Exclusive), true, "holder")
-				gotErr := filelock.Release(tc.ctx, first)
-				if !errors.Is(gotErr, tc.wantErr) {
-					t.Fatalf("Release(terminal context) error = %v, want %v", gotErr, tc.wantErr)
-				}
-				requireHeld(t, acquireImmediate(t, second, filelock.Exclusive), false, "contender after refused release")
-				if gotReleaseErr := filelock.Release(t.Context(), first); gotReleaseErr != nil {
-					t.Fatalf("Release(active context) error = %v, want nil", gotReleaseErr)
-				}
-				requireHeld(t, acquireImmediate(t, second, filelock.Exclusive), true, "successor after accepted release")
-			default:
-				t.Fatalf("context gate operation = %d, want admitted operation", tc.operation)
+				holdFixtureLock(t, file, filelock.Exclusive)
+			}
+			if err := filelock.Release(ctx, file); !errors.Is(err, tc.wantErr) {
+				t.Fatalf("release error=%v, want %v", err, tc.wantErr)
+			}
+			probe, err = filelock.Acquire(t.Context(), filelock.Request{File: contender, Exclusivity: filelock.Exclusive, Patience: filelock.Immediate})
+			held, heldErr = probe.Held()
+			if err != nil || heldErr != nil || held != (tc.wantErr == nil) {
+				t.Fatalf("after release held=%v errors=%v/%v, want held=%v", held, err, heldErr, tc.wantErr == nil)
+			}
+		})
+	}
+}
+func TestAbsentCapabilityCannotClaimEffect(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name  string
+		check func() error
+	}{
+		{"zero_acquisition_validation", (filelock.Acquisition{}).Validate},
+		{"zero_acquisition_disclosure", func() error {
+			held, err := (filelock.Acquisition{}).Held()
+			if held {
+				return nil
+			}
+			return err
+		}},
+		{"nil_release", func() error { return filelock.Release(t.Context(), nil) }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if err := tc.check(); !errors.Is(err, core.ErrPrimitiveContract) {
+				t.Fatalf("error=%v, want primitive contract refusal", err)
 			}
 		})
 	}
