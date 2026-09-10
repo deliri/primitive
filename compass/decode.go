@@ -7,21 +7,13 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
-// DocumentMaximumBytes bounds every project Compass document before decoding.
-const DocumentMaximumBytes uint64 = 1 << 20
-
-// Decode reads one bounded strict project configuration into the project-owned
-// type T. Unknown or duplicated members, malformed JSON, oversized input, and
-// a rejected T.Validate all return the zero T with typed Compass identity.
+// Decode reads one strict project configuration into the project-owned type T.
+// Unknown or duplicated members, malformed JSON, and a rejected T.Validate
+// return the zero T with typed Compass identity. Compass imposes no document
+// byte or array count quota. Core's strict decoder retains the complete document;
+// memory therefore grows with the input and the returned configuration.
 func Decode[T core.Validatable](reader io.Reader) (T, error) {
-	maximum, err := core.NewByteCount(DocumentMaximumBytes)
-	if err != nil {
-		var zero T
-		return zero, contractError("configuration byte bound is invalid", err)
-	}
-	limits := core.DefaultStrictJSONLimits()
-	limits.DocumentMaximumBytes = maximum
-	value, err := core.DecodeStrictJSON[T](reader, limits)
+	value, err := core.DecodeStrictJSON[T](reader, core.ExtensibleJSONLimits())
 	if err != nil {
 		var zero T
 		return zero, errors.Join(core.ErrCompassContract, err)

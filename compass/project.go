@@ -10,15 +10,12 @@ import (
 	"github.com/deliri/primitive/v2026/gomodule"
 )
 
-// ProjectNameMaximumBytes bounds one human-facing project identity.
-const ProjectNameMaximumBytes = 128
-
 // ProjectName is the human-facing identity of one source project.
 type ProjectName struct {
 	value string
 }
 
-// ParseProjectName admits one bounded project name.
+// ParseProjectName admits one project name.
 func ParseProjectName(value string) (ProjectName, error) {
 	name := ProjectName{value: value}
 	if err := name.Validate(); err != nil {
@@ -27,10 +24,10 @@ func ParseProjectName(value string) (ProjectName, error) {
 	return name, nil
 }
 
-// Validate rejects absent, padded, control-bearing, or oversized names.
+// Validate rejects absent, padded, control-bearing, or invalid UTF-8 names.
 func (n ProjectName) Validate() error {
-	if n.value == "" || len(n.value) > ProjectNameMaximumBytes || !utf8.ValidString(n.value) {
-		return contractError("project name is absent, oversized, or invalid UTF-8", nil)
+	if n.value == "" || !utf8.ValidString(n.value) {
+		return contractError("project name is absent or invalid UTF-8", nil)
 	}
 	if strings.TrimSpace(n.value) != n.value {
 		return contractError("project name has surrounding whitespace", nil)
@@ -43,11 +40,8 @@ func (n ProjectName) Validate() error {
 	return nil
 }
 
-// String returns the admitted name, or empty text for an invalid value.
+// String returns the admitted name, or empty text for the zero value.
 func (n ProjectName) String() string {
-	if n.Validate() != nil {
-		return ""
-	}
 	return n.value
 }
 
@@ -77,7 +71,7 @@ func (n *ProjectName) UnmarshalJSON(data []byte) error {
 }
 
 // ReleaseCoordinates are the human-authored release values admitted by
-// Compass. Version is their only projection into display text or a Git tag.
+// Compass. Major must be nonzero; minor and patch may be zero.
 type ReleaseCoordinates struct {
 	Major uint32 `json:"major"`
 	Minor uint32 `json:"minor"`
