@@ -39,6 +39,7 @@ type goTestEventWire struct {
 	Package     string  `json:"Package"`
 	Test        string  `json:"Test"`
 	Output      string  `json:"Output"`
+	OutputType  string  `json:"OutputType"`
 	FailedBuild string  `json:"FailedBuild"`
 	Elapsed     float64 `json:"Elapsed"`
 }
@@ -95,6 +96,9 @@ func (c *GoTestObservationCompiler) consumeEvent(line []byte) error {
 	if !goTestActionKnown(event.Action) {
 		return observationFailure("go test JSON event has an unknown action", core.ErrJSONContract)
 	}
+	if !goTestOutputTypeKnown(event.OutputType) || event.OutputType != "" && event.Action != goTestOutputActionText {
+		return observationFailure("go test JSON event has invalid output metadata", core.ErrJSONContract)
+	}
 	if event.Package == "" {
 		return observationFailure("go test JSON event is missing its package identity", core.ErrJSONContract)
 	}
@@ -112,6 +116,17 @@ func (c *GoTestObservationCompiler) consumeEvent(line []byte) error {
 		c.benchmarks = append(c.benchmarks, measurement)
 	}
 	return nil
+}
+
+// These spellings belong to cmd/internal/test2json's external wire format.
+// Empty means ordinary output; metadata never supplies an execution outcome.
+func goTestOutputTypeKnown(value string) bool {
+	switch value {
+	case "", "frame", "error", "error-continue":
+		return true
+	default:
+		return false
+	}
 }
 
 func (c *GoTestObservationCompiler) observePackage(event goTestEventWire) error {
