@@ -18,7 +18,7 @@ const (
 	SigningDomainQueryV1Token = "primitive-payment-query-2026-1"
 )
 
-// SigningDomain closes the two payment authority statement namespaces.
+// SigningDomain closes the payment receipt, catalog, and query namespaces.
 type SigningDomain uint8
 
 const (

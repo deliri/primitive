@@ -13,10 +13,8 @@ import (
 )
 
 const (
-	QueryPayloadJSONMaximumBytes       = 32 << 10
-	QueryDocumentJSONMaximumBytes      = 64 << 10
-	queryCommitmentDomain              = "primitive/payment/query-commitment/v1"
-	queryCommitmentSeparator      byte = 0
+	queryCommitmentDomain         = "primitive/payment/query-commitment/v1"
+	queryCommitmentSeparator byte = 0
 )
 
 // QueryPayload is one exact payment catalog query signed by an installed device.
@@ -37,7 +35,7 @@ func (p QueryPayload) Validate() error {
 func (QueryPayload) AttestationDomain() SigningDomain { return SigningDomainQueryV1 }
 
 func (p QueryPayload) WriteCanonical(destination io.Writer) error {
-	if destination == nil {
+	if core.WriterIsNil(destination) {
 		return contractError(errors.New("payment query canonical destination is nil"))
 	}
 	encoded, err := p.MarshalJSON()
@@ -60,7 +58,7 @@ func (p QueryPayload) MarshalJSON() ([]byte, error) {
 	}
 	type wire QueryPayload
 	encoded, err := core.MarshalCanonicalJSONDocument(wire(p))
-	if err != nil || len(encoded) > QueryPayloadJSONMaximumBytes {
+	if err != nil {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -71,7 +69,7 @@ func (p *QueryPayload) UnmarshalJSON(data []byte) error {
 		return jsonError(errors.New("nil payment query payload receiver"))
 	}
 	type wire QueryPayload
-	decoded, err := decodeStrict[wire](data, QueryPayloadJSONMaximumBytes)
+	decoded, err := decodeStrict[wire](data)
 	if err != nil {
 		return err
 	}
@@ -174,7 +172,7 @@ func (d QueryDocument) MarshalJSON() ([]byte, error) {
 	}
 	type wire QueryDocument
 	encoded, err := core.MarshalCanonicalJSONDocument(wire(d))
-	if err != nil || len(encoded) > QueryDocumentJSONMaximumBytes {
+	if err != nil {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -185,7 +183,7 @@ func (d *QueryDocument) UnmarshalJSON(data []byte) error {
 		return jsonError(errors.New("nil payment query document receiver"))
 	}
 	type wire QueryDocument
-	decoded, err := decodeStrict[wire](data, QueryDocumentJSONMaximumBytes)
+	decoded, err := decodeStrict[wire](data)
 	if err != nil {
 		return err
 	}

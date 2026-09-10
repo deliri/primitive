@@ -132,7 +132,7 @@ func (CatalogPayload) AttestationDomain() SigningDomain { return SigningDomainCa
 
 // WriteCanonical writes the exact compact signed page.
 func (p CatalogPayload) WriteCanonical(destination io.Writer) error {
-	if destination == nil {
+	if core.WriterIsNil(destination) {
 		return contractError(errors.New("payment catalog destination is nil"))
 	}
 	encoded, err := p.MarshalJSON()
@@ -149,14 +149,14 @@ func (p CatalogPayload) WriteCanonical(destination io.Writer) error {
 	return nil
 }
 
-// MarshalJSON emits one bounded canonical payment page.
+// MarshalJSON emits one canonical payment page.
 func (p CatalogPayload) MarshalJSON() ([]byte, error) {
 	if err := p.Validate(); err != nil {
 		return nil, jsonError(err)
 	}
 	type wire CatalogPayload
 	encoded, err := core.MarshalCanonicalJSONDocument(wire(p))
-	if err != nil || len(encoded) > core.JSONDocumentMaximumBytes {
+	if err != nil {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -168,7 +168,7 @@ func (p *CatalogPayload) UnmarshalJSON(data []byte) error {
 		return jsonError(errors.New("nil payment catalog payload receiver"))
 	}
 	type wire CatalogPayload
-	decoded, err := decodeStrict[wire](data, core.JSONDocumentMaximumBytes)
+	decoded, err := decodeStrict[wire](data)
 	if err != nil {
 		return err
 	}
@@ -197,14 +197,14 @@ func (d CatalogDocument) Validate() error {
 	return nil
 }
 
-// MarshalJSON emits one bounded canonical signed page.
+// MarshalJSON emits one canonical signed page.
 func (d CatalogDocument) MarshalJSON() ([]byte, error) {
 	if err := d.Validate(); err != nil {
 		return nil, jsonError(err)
 	}
 	type wire CatalogDocument
 	encoded, err := core.MarshalCanonicalJSONDocument(wire(d))
-	if err != nil || len(encoded) > core.JSONDocumentMaximumBytes {
+	if err != nil {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -216,7 +216,7 @@ func (d *CatalogDocument) UnmarshalJSON(data []byte) error {
 		return jsonError(errors.New("nil payment catalog document receiver"))
 	}
 	type wire CatalogDocument
-	decoded, err := decodeStrict[wire](data, core.JSONDocumentMaximumBytes)
+	decoded, err := decodeStrict[wire](data)
 	if err != nil {
 		return err
 	}
@@ -244,9 +244,12 @@ func (i CatalogIssuance) Validate() error {
 
 // IssueCatalog signs one exact payment catalog page.
 func IssueCatalog(issuance CatalogIssuance) (CatalogDocument, error) {
-	if err := issuance.Validate(); err != nil {
+	// Validate before allocating, then own the entries before calling the signer.
+	if err := issuance.Payload.Validate(); err != nil {
 		return CatalogDocument{}, err
 	}
+	issuance.Payload = cloneCatalogPayload(issuance.Payload)
+	// Attest owns signer validation; the payload was validated before the copy.
 	envelope, err := attest.Sign(attest.SignRequest[SigningDomain]{
 		Body: issuance.Payload, Signer: issuance.Signer,
 	})

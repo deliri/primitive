@@ -10,12 +10,6 @@ import (
 	"github.com/deliri/primitive/v2026/payment"
 )
 
-const (
-	RequestDocumentJSONMaximumBytes = payment.QueryDocumentJSONMaximumBytes +
-		controlplane.InstallationCertificateDocumentJSONMaximumBytes +
-		core.CredentialedRequestDocumentSyntaxBytes + core.CredentialedDocumentWhitespaceMaximumBytes
-)
-
 type RequestDocument struct {
 	Request     payment.QueryDocument                        `json:"request"`
 	Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
@@ -71,7 +65,6 @@ func (d RequestDocument) ControlNonce() controlwire.RequestNonce {
 	return d.Request.Payload.Nonce
 }
 
-
 func (a RequestAssembly) Validate() error { return RequestDocument(a).Validate() }
 
 func Assemble(assembly RequestAssembly) (RequestDocument, error) {
@@ -86,7 +79,7 @@ func (d RequestDocument) MarshalJSON() ([]byte, error) {
 		return nil, jsonError(err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(requestDocumentWire(d))
-	if err != nil || len(encoded) > RequestDocumentJSONMaximumBytes {
+	if err != nil {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -96,13 +89,7 @@ func (d *RequestDocument) UnmarshalJSON(data []byte) error {
 	if d == nil {
 		return jsonError(errors.New("nil credentialed payment query receiver"))
 	}
-	maximum, err := core.NewByteCount(uint64(RequestDocumentJSONMaximumBytes))
-	if err != nil {
-		return jsonError(err)
-	}
-	limits := core.DefaultStrictJSONLimits()
-	limits.DocumentMaximumBytes = maximum
-	wire, err := core.DecodeStrictJSONStructure[requestDocumentWire](data, limits)
+	wire, err := core.DecodeStrictJSONStructure[requestDocumentWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return jsonError(err)
 	}

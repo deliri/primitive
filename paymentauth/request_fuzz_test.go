@@ -21,9 +21,7 @@ func FuzzCredentialedPaymentQueryJSONSemanticAndAuthorityClosure(f *testing.F) {
 	f.Add([]byte{})
 	f.Add([]byte(`{}`))
 	f.Add(append(bytes.Clone(canonical), 0))
-	f.Add(paymentQueryJSONAtLength(f, canonical, RequestDocumentJSONMaximumBytes-1))
-	f.Add(paymentQueryJSONAtLength(f, canonical, RequestDocumentJSONMaximumBytes))
-	f.Add(paymentQueryJSONAtLength(f, canonical, RequestDocumentJSONMaximumBytes+1))
+
 	f.Add(append(bytes.Clone(canonical[:len(canonical)-1]), []byte(`,"future":true}`)...))
 	f.Add(append(bytes.Clone(canonical[:len(canonical)-1]), []byte(`,"request":null}`)...))
 	f.Add([]byte(`{"request":true,"certificate":null}`))
@@ -32,6 +30,9 @@ func FuzzCredentialedPaymentQueryJSONSemanticAndAuthorityClosure(f *testing.F) {
 		var got RequestDocument
 		gotErr := got.UnmarshalJSON(data)
 		if gotErr != nil {
+			if bytes.Equal(data, canonical) {
+				t.Fatalf("valid signed seed refused: %v", gotErr)
+			}
 			preserved := fixture.document
 			preservedErr := preserved.UnmarshalJSON(data)
 			if !errors.Is(gotErr, core.ErrJSONContract) ||
@@ -46,9 +47,8 @@ func FuzzCredentialedPaymentQueryJSONSemanticAndAuthorityClosure(f *testing.F) {
 			t.Fatalf("RequestDocument.UnmarshalJSON(accepted).Validate() error = %v, want nil", err)
 		}
 		encoded, err := got.MarshalJSON()
-		if err != nil || len(encoded) > RequestDocumentJSONMaximumBytes {
-			t.Fatalf("RequestDocument.MarshalJSON(accepted) = (%d bytes, %v), want <= %d and nil",
-				len(encoded), err, RequestDocumentJSONMaximumBytes)
+		if err != nil {
+			t.Fatalf("canonical encoding failed: %v", err)
 		}
 		var roundTrip RequestDocument
 		if err := roundTrip.UnmarshalJSON(encoded); err != nil || roundTrip != got {
@@ -61,6 +61,9 @@ func FuzzCredentialedPaymentQueryJSONSemanticAndAuthorityClosure(f *testing.F) {
 		}
 		verified, verifyErr := Verify(Verification{Server: fixture.server, Document: roundTrip})
 		if verifyErr != nil {
+			if roundTrip == fixture.document {
+				t.Fatalf("valid signed seed refused: %v", verifyErr)
+			}
 			if !errors.Is(verifyErr, core.ErrAttestVerification) || verified != (Verified{}) {
 				t.Fatalf("Verify(fuzzed credential) = (%v, %v), want zero typed attestation rejection", verified, verifyErr)
 			}

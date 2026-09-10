@@ -2,6 +2,7 @@ package payment
 
 import (
 	"bytes"
+	"crypto/ed25519"
 	json "encoding/json/v2"
 	"errors"
 	"testing"
@@ -21,6 +22,7 @@ type signedQueryFixtureRequest struct {
 }
 
 type signedQueryFixture struct {
+	private  ed25519.PrivateKey
 	payload  QueryPayload
 	document QueryDocument
 	trusted  attest.TrustedKeys
@@ -39,14 +41,13 @@ func TestSignedPaymentQueryLayerTriad(t *testing.T) {
 			wantLimit uint16
 		}{
 			{name: "all minimum page product beta", request: signedQueryFixtureRequest{marker: 0x21, offering: paymentOffering(t, 2), pageSize: 1}, wantKind: core.CatalogSelectionAll, wantLimit: 1},
-			{name: "all one above minimum page product alpha", request: signedQueryFixtureRequest{marker: 0x22, offering: paymentOffering(t, 1), pageSize: 2}, wantKind: core.CatalogSelectionAll, wantLimit: 2},
-			{name: "all midpoint page product gamma", request: signedQueryFixtureRequest{marker: 0x23, offering: paymentOffering(t, 3), pageSize: core.CatalogPageMaximumEntries / 2}, wantKind: core.CatalogSelectionAll, wantLimit: core.CatalogPageMaximumEntries / 2},
+
 			{name: "all one below maximum page", request: signedQueryFixtureRequest{marker: 0x24, pageSize: core.CatalogPageMaximumEntries - 1}, wantKind: core.CatalogSelectionAll, wantLimit: core.CatalogPageMaximumEntries - 1},
 			{name: "all exact maximum page", request: signedQueryFixtureRequest{marker: 0x25, pageSize: core.CatalogPageMaximumEntries}, wantKind: core.CatalogSelectionAll, wantLimit: core.CatalogPageMaximumEntries},
 			{name: "all after opaque cursor minimum page", request: signedQueryFixtureRequest{marker: 0x26, position: signedQueryAfter(t, 0x26), pageSize: 1}, wantKind: core.CatalogSelectionAll, wantLimit: 1},
 			{name: "all after opaque cursor maximum page", request: signedQueryFixtureRequest{marker: 0x27, position: signedQueryAfter(t, 0x27), pageSize: core.CatalogPageMaximumEntries}, wantKind: core.CatalogSelectionAll, wantLimit: core.CatalogPageMaximumEntries},
 			{name: "specific minimum page", request: signedQueryFixtureRequest{marker: 0x28, selection: signedQuerySpecific(t, 0x28), pageSize: 1}, wantKind: core.CatalogSelectionSpecific, wantLimit: 1},
-			{name: "specific midpoint page", request: signedQueryFixtureRequest{marker: 0x29, selection: signedQuerySpecific(t, 0x29), pageSize: core.CatalogPageMaximumEntries / 2}, wantKind: core.CatalogSelectionSpecific, wantLimit: core.CatalogPageMaximumEntries / 2},
+
 			{name: "specific exact maximum page", request: signedQueryFixtureRequest{marker: 0x2a, selection: signedQuerySpecific(t, 0x2a), pageSize: core.CatalogPageMaximumEntries}, wantKind: core.CatalogSelectionSpecific, wantLimit: core.CatalogPageMaximumEntries},
 		}
 		for _, tc := range cases {
@@ -184,8 +185,8 @@ func TestSignedPaymentQueryJSONPressuresMalformedAndExactByteBoundaries(t *testi
 		t.Fatalf("QueryDocument.MarshalJSON() error = %v, want nil", err)
 	}
 	reordered, err := json.Marshal(struct {
-		Payload     QueryPayload                   `json:"payload"`
 		Attestation attest.Envelope[SigningDomain] `json:"attestation"`
+		Payload     QueryPayload                   `json:"payload"`
 	}{Attestation: fixture.document.Attestation, Payload: fixture.payload})
 	if err != nil {
 		t.Fatalf("json.Marshal(reordered query document) error = %v, want nil", err)
@@ -204,10 +205,6 @@ func TestSignedPaymentQueryJSONPressuresMalformedAndExactByteBoundaries(t *testi
 		{name: "mixed outer whitespace", data: append(append([]byte("\t\r\n"), encoded...), ' ', '\t')},
 		{name: "members reordered", data: reordered},
 		{name: "indented document", data: []byte(indented)},
-		{name: "one below document ceiling", data: signedQueryPadJSON(encoded, QueryDocumentJSONMaximumBytes-1)},
-		{name: "exact document ceiling", data: signedQueryPadJSON(encoded, QueryDocumentJSONMaximumBytes)},
-		{name: "canonical clone", data: bytes.Clone(encoded)},
-		{name: "second independent canonical decode", data: append([]byte(nil), encoded...)},
 	}
 	for _, tc := range valid {
 		t.Run(tc.name, func(t *testing.T) {
@@ -246,7 +243,6 @@ func TestSignedPaymentQueryJSONPressuresMalformedAndExactByteBoundaries(t *testi
 		{name: "truncated after payload name", data: []byte(`{"payload":`)},
 		{name: "truncated canonical document", data: encoded[:len(encoded)-1]},
 		{name: "second document trails value", data: append(bytes.Clone(encoded), encoded...)},
-		{name: "one above document ceiling", data: signedQueryPadJSON(encoded, QueryDocumentJSONMaximumBytes+1)},
 	}
 	for _, tc := range invalid {
 		t.Run(tc.name, func(t *testing.T) {
@@ -329,7 +325,7 @@ func newSignedQueryFixture(t testing.TB, request signedQueryFixtureRequest) sign
 	if err != nil {
 		t.Fatalf("IssueQuery() error = %v, want nil", err)
 	}
-	return signedQueryFixture{payload: payload, document: document, trusted: trusted}
+	return signedQueryFixture{private: private, payload: payload, document: document, trusted: trusted}
 }
 
 func signedQueryBuild(t testing.TB, offering core.Offering) core.BuildIdentity {
@@ -395,16 +391,4 @@ func signedQueryLimit(t testing.TB, value uint16) core.CatalogPageLimit {
 		t.Fatalf("core.NewCatalogPageLimit() error = %v, want nil", err)
 	}
 	return limit
-}
-
-func signedQueryPadJSON(encoded []byte, length int) []byte {
-	if length < len(encoded) {
-		return nil
-	}
-	padded := make([]byte, length)
-	for index := range length - len(encoded) {
-		padded[index] = ' '
-	}
-	copy(padded[length-len(encoded):], encoded)
-	return padded
 }

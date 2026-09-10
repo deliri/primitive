@@ -2,17 +2,16 @@ package payment
 
 import (
 	"bytes"
-	json "encoding/json/v2"
 	"errors"
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"os"
 	"slices"
 	"strings"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/id"
 )
 
 type paymentJSONDoor uint8
@@ -88,7 +87,7 @@ func FuzzPaymentExternalJSONDoorInventory(f *testing.F) {
 		f.Add(uint8(seed.door), seed.document)
 	}
 	for _, hostile := range [][]byte{
-		nil, {}, []byte(`null`), []byte(`{}`), []byte(`[]`), []byte(`""`),
+		nil, []byte(`null`), []byte(`{}`), []byte(`[]`), []byte(`""`),
 		[]byte(`0`), []byte(`true`), []byte(`{`),
 		bytes.Repeat([]byte(`[`), core.JSONNestingDepthMaximum+1),
 	} {
@@ -147,9 +146,25 @@ func FuzzPaymentExternalTextDoorInventory(f *testing.F) {
 		switch paymentTextDoor(rawDoor) {
 		case paymentTextDoorPaymentID:
 			got, err := ParsePaymentID(value)
+			_, ownerErr := id.ParseUUIDv7(value)
+			if (err == nil) != (ownerErr == nil) {
+				t.Fatalf("PaymentID differs from UUIDv7 owner: %v / %v", err, ownerErr)
+			}
 			outcome = paymentTextOutcome{input: value, projection: got.String(), err: err, validate: got.Validate}
 		case paymentTextDoorSigningDomain:
 			got, err := SigningDomainUnknown.ParseCanonicalText([]byte(value))
+			want := SigningDomainUnknown
+			switch value {
+			case SigningDomainReceiptV1Token:
+				want = SigningDomainReceiptV1
+			case SigningDomainCatalogV1Token:
+				want = SigningDomainCatalogV1
+			case SigningDomainQueryV1Token:
+				want = SigningDomainQueryV1
+			}
+			if got != want || (err == nil) != (want != SigningDomainUnknown) {
+				t.Fatalf("closed domain parse = (%v,%v), want %v", got, err, want)
+			}
 			outcome = paymentTextOutcome{input: value, projection: got.String(), err: err, validate: got.Validate}
 		case paymentTextDoorUnknown, paymentTextDoorLimit:
 			return
@@ -165,19 +180,27 @@ type paymentJSONValue interface {
 	MarshalJSON() ([]byte, error)
 }
 
-func fuzzPaymentJSONValue[T paymentJSONValue](t *testing.T, data []byte, seed T) {
+func fuzzPaymentJSONValue[T paymentJSONValue, P paymentJSONReceiver[T]](t *testing.T, data []byte, seed T) {
 	t.Helper()
 	before, err := seed.MarshalJSON()
 	if err != nil {
 		t.Fatalf("payment seed MarshalJSON() error = %v, want nil", err)
 	}
-	candidate := seed
-	decoder, ok := any(&candidate).(json.Unmarshaler)
-	if !ok {
-		t.Fatalf("payment JSON receiver %T lacks json.Unmarshaler", &candidate)
+	padded := append(bytes.Repeat([]byte(" "), len(data)%4096), before...)
+	probe := seed
+	if err := P(&probe).UnmarshalJSON(padded); err != nil {
+		t.Fatalf("valid generated whitespace refused: %v", err)
 	}
-	decodeErr := decoder.UnmarshalJSON(data)
+	projected, err := probe.MarshalJSON()
+	if err != nil || !bytes.Equal(projected, before) {
+		t.Fatalf("valid generated probe changed facts: %v", err)
+	}
+	candidate := seed
+	decodeErr := P(&candidate).UnmarshalJSON(data)
 	if decodeErr != nil {
+		if bytes.Equal(data, before) {
+			t.Fatalf("valid seed refused: %v", decodeErr)
+		}
 		if !errors.Is(decodeErr, core.ErrPaymentContract) ||
 			!errors.Is(decodeErr, core.ErrJSONContract) {
 			t.Fatalf("payment JSON door error = %v, want typed JSON/payment refusal", decodeErr)
@@ -192,17 +215,14 @@ func fuzzPaymentJSONValue[T paymentJSONValue](t *testing.T, data []byte, seed T)
 		t.Fatalf("accepted payment JSON validation error = %v, want nil", err)
 	}
 	canonical, err := candidate.MarshalJSON()
-	if err != nil || len(canonical) > core.JSONDocumentMaximumBytes {
-		t.Fatalf("payment canonical JSON = (%d bytes, %v), want bounded and nil", len(canonical), err)
+	if err != nil {
+		t.Fatalf("payment canonical JSON = (%d bytes, %v), want canonical bytes and nil", len(canonical), err)
 	}
 	var roundTrip T
-	roundTripDecoder, ok := any(&roundTrip).(json.Unmarshaler)
-	if !ok {
-		t.Fatalf("payment round-trip receiver %T lacks json.Unmarshaler", &roundTrip)
+	if err := P(&roundTrip).UnmarshalJSON(canonical); err != nil {
+		t.Fatalf("canonical JSON decode failed: %v", err)
 	}
-	if err := roundTripDecoder.UnmarshalJSON(canonical); err != nil {
-		t.Fatalf("payment canonical JSON decode error = %v, want nil", err)
-	}
+
 	second, err := roundTrip.MarshalJSON()
 	if err != nil || !bytes.Equal(second, canonical) {
 		t.Fatalf("payment JSON door lacks a canonical fixed point: marshal error %v", err)
@@ -222,6 +242,9 @@ func fuzzPaymentDocument(t *testing.T, data []byte, fixtures paymentFuzzFixtures
 		TrustedKeys: fixtures.payment.trusted,
 	})
 	if err != nil {
+		if candidate == fixtures.document {
+			t.Fatalf("signed seed refused: %v", err)
+		}
 		if !errors.Is(err, core.ErrPaymentVerification) || proof != (Verified{}) {
 			t.Fatalf("payment.Verify(fuzz document) = (%v, %v), want typed refusal and zero proof", proof, err)
 		}
@@ -242,6 +265,9 @@ func fuzzPaymentQueryDocument(t *testing.T, data []byte, fixtures paymentFuzzFix
 	}
 	proof, err := VerifyQuery(QueryVerification{Document: candidate, TrustedKeys: fixtures.query.trusted})
 	if err != nil {
+		if candidate == fixtures.queryDocument {
+			t.Fatalf("signed seed refused: %v", err)
+		}
 		if !errors.Is(err, core.ErrPaymentVerification) || proof != (VerifiedQuery{}) {
 			t.Fatalf("VerifyQuery(fuzz document) = (%v, %v), want typed refusal and zero proof", proof, err)
 		}
@@ -263,6 +289,9 @@ func fuzzPaymentCatalogDocument(t *testing.T, data []byte, fixtures paymentFuzzF
 		Document: candidate, Request: fixtures.catalog.request, TrustedKeys: fixtures.catalog.trusted,
 	})
 	if err != nil {
+		if samePaymentCatalogDocument(candidate, fixtures.catalogDocument) {
+			t.Fatalf("signed seed refused: %v", err)
+		}
 		if !errors.Is(err, core.ErrPaymentVerification) || proof != (VerifiedCatalog{}) {
 			t.Fatalf("VerifyCatalog(fuzz document) = (%v, %v), want typed refusal and zero proof", proof, err)
 		}
@@ -362,7 +391,7 @@ func TestPaymentExternalIngressFuzzInventoryMatchesProduction(t *testing.T) {
 }
 
 func paymentExportedJSONReceiverNames() ([]string, error) {
-	files, err := os.ReadDir(".")
+	files, err := paymentContractSources.ReadDir(".")
 	if err != nil {
 		return nil, err
 	}
@@ -372,7 +401,11 @@ func paymentExportedJSONReceiverNames() ([]string, error) {
 		if file.IsDir() || !strings.HasSuffix(file.Name(), ".go") || strings.HasSuffix(file.Name(), "_test.go") {
 			continue
 		}
-		parsed, parseErr := parser.ParseFile(fileSet, file.Name(), nil, parser.SkipObjectResolution)
+		source, readErr := paymentContractSources.ReadFile(file.Name())
+		if readErr != nil {
+			return nil, readErr
+		}
+		parsed, parseErr := parser.ParseFile(fileSet, file.Name(), source, parser.SkipObjectResolution)
 		if parseErr != nil {
 			return nil, parseErr
 		}

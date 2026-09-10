@@ -241,7 +241,7 @@ func proveCredentialedPaymentQueryVerificationNeutralState(t *testing.T) {
 	}
 }
 
-func TestCredentialedPaymentQueryJSONEnforcesTenValidTenRejectAndTwentyBoundaryCases(t *testing.T) {
+func TestCredentialedPaymentQueryJSONLayerTriad(t *testing.T) {
 	t.Parallel()
 
 	request := standardPaymentQueryFixtureRequest(t)
@@ -252,8 +252,8 @@ func TestCredentialedPaymentQueryJSONEnforcesTenValidTenRejectAndTwentyBoundaryC
 		t.Fatalf("RequestDocument.MarshalJSON() error = %v, want nil", err)
 	}
 	reordered, err := json.Marshal(struct {
-		Request     payment.QueryDocument                        `json:"request"`
 		Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
+		Request     payment.QueryDocument                        `json:"request"`
 	}{Request: fixture.document.Request, Certificate: fixture.document.Certificate})
 	if err != nil {
 		t.Fatalf("json.Marshal(reordered request) error = %v, want nil", err)
@@ -279,9 +279,6 @@ func TestCredentialedPaymentQueryJSONEnforcesTenValidTenRejectAndTwentyBoundaryC
 		{name: "valid trailing newline", data: append(bytes.Clone(encoded), '\n'), wantDocument: fixture.document},
 		{name: "valid carriage return framing", data: append(append([]byte("\r"), encoded...), '\r'), wantDocument: fixture.document},
 		{name: "valid mixed whitespace", data: append(append([]byte("\t\r\n"), encoded...), ' ', '\t'), wantDocument: fixture.document},
-		{name: "valid one byte below ceiling", data: paymentQueryJSONAtLength(t, encoded, RequestDocumentJSONMaximumBytes-1), wantDocument: fixture.document},
-		{name: "valid exactly at ceiling", data: paymentQueryJSONAtLength(t, encoded, RequestDocumentJSONMaximumBytes), wantDocument: fixture.document},
-		{name: "valid midpoint extent", data: paymentQueryJSONAtLength(t, encoded, RequestDocumentJSONMaximumBytes/2), wantDocument: fixture.document},
 
 		{name: "reject boolean document", data: []byte(`true`), receiver: fixture.document, wantDocument: fixture.document, wantErr: core.ErrJSONContract},
 		{name: "reject empty object", data: []byte(`{}`), receiver: fixture.document, wantDocument: fixture.document, wantErr: core.ErrJSONContract},
@@ -306,7 +303,7 @@ func TestCredentialedPaymentQueryJSONEnforcesTenValidTenRejectAndTwentyBoundaryC
 		{name: "boundary half truncated", data: encoded[:len(encoded)/2], wantErr: core.ErrJSONContract},
 		{name: "boundary two concatenated documents", data: append(bytes.Clone(encoded), encoded...), wantErr: core.ErrJSONContract},
 		{name: "boundary trailing scalar", data: append(bytes.Clone(encoded), []byte(` 0`)...), wantErr: core.ErrJSONContract},
-		{name: "boundary one byte above ceiling", data: paymentQueryJSONAtLength(t, encoded, RequestDocumentJSONMaximumBytes+1), wantErr: core.ErrJSONContract},
+
 		{name: "boundary leading byte order mark", data: append([]byte{0xef, 0xbb, 0xbf}, encoded...), wantErr: core.ErrJSONContract},
 		{name: "boundary trailing comma", data: append(bytes.Clone(encoded[:len(encoded)-1]), []byte(`,}`)...), wantErr: core.ErrJSONContract},
 		{name: "boundary prefixed token", data: append([]byte(`0 `), encoded...), wantErr: core.ErrJSONContract},

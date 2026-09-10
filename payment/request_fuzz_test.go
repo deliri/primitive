@@ -26,6 +26,9 @@ func FuzzQueryPayloadJSONSemanticClosure(f *testing.F) {
 		got := fixture.payload
 		gotErr := got.UnmarshalJSON(data)
 		if gotErr != nil {
+			if bytes.Equal(data, canonical) {
+				t.Fatalf("canonical signed seed refused: %v", gotErr)
+			}
 			if !errors.Is(gotErr, core.ErrJSONContract) ||
 				!errors.Is(gotErr, core.ErrPaymentContract) || got != fixture.payload {
 				t.Fatalf("QueryPayload.UnmarshalJSON(rejected) = (%v, %v), want preserved and typed JSON/Payment rejection",
@@ -37,9 +40,8 @@ func FuzzQueryPayloadJSONSemanticClosure(f *testing.F) {
 			t.Fatalf("QueryPayload.UnmarshalJSON(accepted).Validate() error = %v, want nil", err)
 		}
 		encoded, err := got.MarshalJSON()
-		if err != nil || len(encoded) > QueryPayloadJSONMaximumBytes {
-			t.Fatalf("QueryPayload.MarshalJSON(accepted) = (%d bytes, %v), want <= %d and nil",
-				len(encoded), err, QueryPayloadJSONMaximumBytes)
+		if err != nil {
+			t.Fatalf("canonical encoding failed: %v", err)
 		}
 		var roundTrip QueryPayload
 		if err := roundTrip.UnmarshalJSON(encoded); err != nil || roundTrip != got {
@@ -70,6 +72,9 @@ func FuzzQueryDocumentJSONSemanticAndSignatureClosure(f *testing.F) {
 		got := fixture.document
 		gotErr := got.UnmarshalJSON(data)
 		if gotErr != nil {
+			if bytes.Equal(data, canonical) {
+				t.Fatalf("canonical signed seed refused: %v", gotErr)
+			}
 			if !errors.Is(gotErr, core.ErrJSONContract) ||
 				!errors.Is(gotErr, core.ErrPaymentContract) || got != fixture.document {
 				t.Fatalf("QueryDocument.UnmarshalJSON(rejected) = (%v, %v), want preserved and typed JSON/Payment rejection",
@@ -81,9 +86,8 @@ func FuzzQueryDocumentJSONSemanticAndSignatureClosure(f *testing.F) {
 			t.Fatalf("QueryDocument.UnmarshalJSON(accepted).Validate() error = %v, want nil", err)
 		}
 		encoded, err := got.MarshalJSON()
-		if err != nil || len(encoded) > QueryDocumentJSONMaximumBytes {
-			t.Fatalf("QueryDocument.MarshalJSON(accepted) = (%d bytes, %v), want <= %d and nil",
-				len(encoded), err, QueryDocumentJSONMaximumBytes)
+		if err != nil {
+			t.Fatalf("canonical encoding failed: %v", err)
 		}
 		var roundTrip QueryDocument
 		if err := roundTrip.UnmarshalJSON(encoded); err != nil || roundTrip != got {
@@ -91,6 +95,9 @@ func FuzzQueryDocumentJSONSemanticAndSignatureClosure(f *testing.F) {
 		}
 		verified, verifyErr := VerifyQuery(QueryVerification{Document: roundTrip, TrustedKeys: fixture.trusted})
 		if verifyErr != nil {
+			if roundTrip == fixture.document {
+				t.Fatalf("signed seed refused verification: %v", verifyErr)
+			}
 			if !errors.Is(verifyErr, core.ErrPaymentVerification) || verified != (VerifiedQuery{}) {
 				t.Fatalf("VerifyQuery(fuzzed document) = (%v, %v), want zero typed verification rejection", verified, verifyErr)
 			}

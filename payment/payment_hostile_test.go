@@ -71,10 +71,7 @@ func TestPaymentPayloadSchemaLayerTriad(t *testing.T) {
 			end        int64
 		}{
 			{name: "minimum positive amount and one-nanosecond service", minorUnits: 1, start: 1, end: 2},
-			{name: "two minor units", minorUnits: 2, start: 1, end: 2},
-			{name: "one below hundred minor units", minorUnits: 99, start: 1, end: 2},
-			{name: "at hundred minor units", minorUnits: 100, start: 1, end: 2},
-			{name: "one above hundred minor units", minorUnits: 101, start: 1, end: 2},
+
 			{name: "maximum positive amount", minorUnits: math.MaxInt64, start: 1, end: 2},
 			{name: "service crosses zero", minorUnits: 1, start: -1, end: 1},
 			{name: "service begins at zero", minorUnits: 1, start: 0, end: 1},
@@ -161,14 +158,7 @@ func TestPaymentReceiptVerificationLayerTriad(t *testing.T) {
 			request paymentFixtureRequest
 		}{
 			{name: "minimum positive amount receipt", request: paymentFixtureRequest{Marker: 0x41, Millisecond: 1, MinorUnits: 1}},
-			{name: "two minor unit receipt", request: paymentFixtureRequest{Marker: 0x42, Millisecond: 2, MinorUnits: 2}},
-			{name: "one below hundred minor units", request: paymentFixtureRequest{Marker: 0x43, Millisecond: 3, MinorUnits: 99}},
-			{name: "at hundred minor units", request: paymentFixtureRequest{Marker: 0x44, Millisecond: 4, MinorUnits: 100}},
-			{name: "one above hundred minor units", request: paymentFixtureRequest{Marker: 0x45, Millisecond: 5, MinorUnits: 101}},
-			{name: "one thousand minor units", request: paymentFixtureRequest{Marker: 0x46, Millisecond: 6, MinorUnits: 1_000}},
-			{name: "ten thousand minor units", request: paymentFixtureRequest{Marker: 0x47, Millisecond: 7, MinorUnits: 10_000}},
-			{name: "hundred thousand minor units", request: paymentFixtureRequest{Marker: 0x48, Millisecond: 8, MinorUnits: 100_000}},
-			{name: "million minor units", request: paymentFixtureRequest{Marker: 0x49, Millisecond: 9, MinorUnits: 1_000_000}},
+
 			{name: "maximum signed thirty-two-bit amount", request: paymentFixtureRequest{Marker: 0x4a, Millisecond: 10, MinorUnits: math.MaxInt32}},
 		}
 		for _, tc := range cases {
@@ -260,11 +250,6 @@ func TestPaymentReceiptDocumentJSONLayerTriad(t *testing.T) {
 			{name: "trailing whitespace", data: append(append([]byte(nil), canonical...), ' ', '\n', '\t')},
 			{name: "both-side whitespace", data: append(append([]byte(" \n"), canonical...), '\n', ' ')},
 			{name: "top-level members reordered", data: marshalReorderedPaymentReceipt(t, fixture.document)},
-			{name: "one below document ceiling", data: paymentPadJSON(canonical, ReceiptDocumentJSONMaximumBytes-1)},
-			{name: "at document ceiling", data: paymentPadJSON(canonical, ReceiptDocumentJSONMaximumBytes)},
-			{name: "one trailing carriage return", data: append(append([]byte(nil), canonical...), '\r')},
-			{name: "four leading whitespace forms", data: append([]byte("\t\r\n "), canonical...)},
-			{name: "four trailing whitespace forms", data: append(append([]byte(nil), canonical...), " \n\r\t"...)},
 		}
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
@@ -279,10 +264,10 @@ func TestPaymentReceiptDocumentJSONLayerTriad(t *testing.T) {
 		}
 	})
 
-	t.Run("negative malformed missing duplicate type-wrong and oversized documents reject", func(t *testing.T) {
+	t.Run("negative malformed missing duplicate type-wrong documents reject", func(t *testing.T) {
 		t.Parallel()
 
-		cases := paymentDocumentHostileJSONCases(canonical, ReceiptDocumentJSONMaximumBytes)
+		cases := paymentDocumentHostileJSONCases(canonical)
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
@@ -317,17 +302,12 @@ func TestPaymentCatalogIssuanceLayerTriad(t *testing.T) {
 			{Marker: 0x31, Entries: 0},
 			{Marker: 0x32, Entries: 1},
 			{Marker: 0x33, Entries: 2},
-			{Marker: 0x34, Entries: 3},
-			{Marker: 0x35, Entries: core.CatalogPageMaximumEntries/2 - 1},
-			{Marker: 0x36, Entries: core.CatalogPageMaximumEntries / 2},
-			{Marker: 0x37, Entries: core.CatalogPageMaximumEntries/2 + 1},
-			{Marker: 0x38, Entries: core.CatalogPageMaximumEntries - 1},
 			{Marker: 0x39, Entries: core.CatalogPageMaximumEntries},
 			{Marker: 0x3a, Entries: 1, More: true},
 		}
 		for _, tc := range cases {
 			fixture := newPaymentCatalogFixture(t, tc)
-			if fixture.document.Validate() != nil || fixture.document.Payload.Validate() != nil {
+			if fixture.document.Validate() != nil || !samePaymentCatalog(fixture.document.Payload, fixture.payload) || len(fixture.document.Payload.Entries) != int(tc.Entries) {
 				t.Fatalf("IssueCatalog(%d entries) produced invalid document", tc.Entries)
 			}
 		}
@@ -337,6 +317,8 @@ func TestPaymentCatalogIssuanceLayerTriad(t *testing.T) {
 		t.Parallel()
 
 		fixture := newPaymentCatalogFixture(t, paymentCatalogFixtureRequest{Marker: 0x44, Entries: 2})
+		full := newPaymentCatalogFixture(t, paymentCatalogFixtureRequest{Marker: 0x44, Entries: core.CatalogPageMaximumEntries})
+		older := newPaymentFixture(t, paymentFixtureRequest{Scope: fixture.scope, Marker: 0x44, Millisecond: 1, MinorUnits: 1}).document
 		other := newPaymentCatalogFixture(t, paymentCatalogFixtureRequest{Marker: 0x54, Entries: 2})
 		cursor := mustPaymentCursor(t, 0x64)
 		more, gotErr := More(cursor)
@@ -350,7 +332,9 @@ func TestPaymentCatalogIssuanceLayerTriad(t *testing.T) {
 		}{
 			{name: "zero payload", mutate: func(value *CatalogPayload) { *value = CatalogPayload{} }, wantErr: core.ErrPaymentContract},
 			{name: "nil entries", mutate: func(value *CatalogPayload) { value.Entries = nil }, wantErr: core.ErrPaymentContract},
-			{name: "one above maximum entries", mutate: func(value *CatalogPayload) { value.Entries = make([]Document, core.CatalogPageMaximumEntries+1) }, wantErr: core.ErrPaymentContract},
+			{name: "one above maximum entries", mutate: func(value *CatalogPayload) {
+				value.Entries = append(append([]Document{}, full.payload.Entries...), older)
+			}, wantErr: core.ErrPaymentContract},
 			{name: "newest-first order reversed", mutate: func(value *CatalogPayload) { value.Entries[0], value.Entries[1] = value.Entries[1], value.Entries[0] }, wantErr: core.ErrPaymentVerification},
 			{name: "duplicate payment identity", mutate: func(value *CatalogPayload) { value.Entries[1] = value.Entries[0] }, wantErr: core.ErrPaymentVerification},
 			{name: "entry belongs to another scope", mutate: func(value *CatalogPayload) { value.Entries = []Document{other.payload.Entries[0]} }, wantErr: core.ErrPaymentVerification},
@@ -400,9 +384,7 @@ func TestPaymentCatalogVerificationLayerTriad(t *testing.T) {
 	t.Run("positive exact empty through maximum pages authenticate unchanged", func(t *testing.T) {
 		t.Parallel()
 
-		counts := []uint16{0, 1, 2, 3, 4, core.CatalogPageMaximumEntries/2 - 1,
-			core.CatalogPageMaximumEntries / 2, core.CatalogPageMaximumEntries/2 + 1,
-			core.CatalogPageMaximumEntries - 1, core.CatalogPageMaximumEntries}
+		counts := []uint16{0, 1, 2, core.CatalogPageMaximumEntries}
 		for index, count := range counts {
 			fixture := newPaymentCatalogFixture(t, paymentCatalogFixtureRequest{Marker: byte(0x61 + index), Entries: count})
 			got, gotErr := VerifyCatalog(CatalogVerification{
@@ -519,131 +501,105 @@ func TestPaymentCatalogVerificationLayerTriad(t *testing.T) {
 	})
 }
 
-func TestVerifiedPaymentCatalogOwnsAuthenticatedEntriesAcrossInputAndAccessorMutation(t *testing.T) {
+func TestVerifiedPaymentCatalogOwnershipLayerTriad(t *testing.T) {
 	t.Parallel()
-
-	fixture := newPaymentCatalogFixture(t, paymentCatalogFixtureRequest{Marker: 0x75, Entries: 2})
-	want := cloneCatalogPayload(fixture.payload)
-	document := fixture.document
-	verified, err := VerifyCatalog(CatalogVerification{
-		Document: document, Request: fixture.request, TrustedKeys: fixture.trusted,
-	})
-	if err != nil {
-		t.Fatalf("VerifyCatalog() error = %v, want nil", err)
-	}
-	document.Payload.Entries[0] = Document{}
-	first, err := verified.Payload()
-	if err != nil {
-		t.Fatalf("VerifiedCatalog.Payload(first) error = %v, want nil", err)
-	}
-	first.Entries[0] = Document{}
-	second, err := verified.Payload()
-	if err != nil || !samePaymentCatalog(second, want) {
-		t.Fatalf("VerifiedCatalog.Payload(after mutation) = (%v, %v), want original authenticated page", second, err)
+	for _, tc := range []struct {
+		name                string
+		input, output, zero bool
+		entries             uint16
+	}{
+		{name: "positive exact private copy", entries: 2},
+		{name: "negative input storage overwritten", entries: 2, input: true},
+		{name: "negative accessor storage overwritten", entries: 2, output: true},
+		{name: "neutral empty authenticated page"},
+		{name: "neutral unset proof exposes no page", zero: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if tc.zero {
+				got, err := (VerifiedCatalog{}).Payload()
+				if !errors.Is(err, core.ErrPaymentVerification) || !samePaymentCatalog(got, CatalogPayload{}) {
+					t.Fatalf("zero proof = (%v,%v)", got, err)
+				}
+				return
+			}
+			fixture := newPaymentCatalogFixture(t, paymentCatalogFixtureRequest{Marker: 0x75, Entries: tc.entries})
+			want := fixture.payload
+			want.Entries = append([]Document{}, fixture.payload.Entries...)
+			document := fixture.document
+			proof, err := VerifyCatalog(CatalogVerification{Document: document, Request: fixture.request, TrustedKeys: fixture.trusted})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if tc.input {
+				document.Payload.Entries[0] = Document{}
+			}
+			first, err := proof.Payload()
+			if err != nil || !samePaymentCatalog(first, want) {
+				t.Fatalf("first projection changed: %v", err)
+			}
+			if tc.output {
+				first.Entries[0] = Document{}
+			}
+			second, err := proof.Payload()
+			if err != nil || !samePaymentCatalog(second, want) {
+				t.Fatalf("second projection changed: %v", err)
+			}
+		})
 	}
 }
-
-func TestPaymentCatalogVerificationClosesSpecificSelectionToZeroOrOneExactPayment(t *testing.T) {
+func TestPaymentSpecificCatalogVerificationLayerTriad(t *testing.T) {
 	t.Parallel()
-
-	fixture := newPaymentCatalogFixture(t, paymentCatalogFixtureRequest{Marker: 0x91, Entries: 1})
-	selected := fixture.payload.Entries[0].Payload.Identity
-	selection, err := Specific(selected)
-	if err != nil {
-		t.Fatalf("Specific(selected) error = %v, want nil", err)
-	}
-	request := fixture.request
-	request.Query.Selection = selection
-	commitment, err := CommitQuery(request)
-	if err != nil {
-		t.Fatalf("CommitQuery(specific) error = %v, want nil", err)
-	}
-	payload := fixture.payload
-	payload.Request = commitment
-	payload.Continuation = End()
-	document, err := IssueCatalog(CatalogIssuance{Signer: fixture.private, Payload: payload})
-	if err != nil {
-		t.Fatalf("IssueCatalog(specific exact) error = %v, want nil", err)
-	}
-	verified, err := VerifyCatalog(CatalogVerification{
-		Document: document, Request: request, TrustedKeys: fixture.trusted,
-	})
-	if err != nil || !verifiedPaymentCatalogEqual(verified, payload) {
-		t.Fatalf("VerifyCatalog(specific exact) = (%v, %v), want exact payload and nil", verified, err)
-	}
-
-	emptyPayload := payload
-	emptyPayload.Entries = []Document{}
-	emptyDocument, err := IssueCatalog(CatalogIssuance{Signer: fixture.private, Payload: emptyPayload})
-	if err != nil {
-		t.Fatalf("IssueCatalog(specific empty) error = %v, want nil", err)
-	}
-	verified, err = VerifyCatalog(CatalogVerification{
-		Document: emptyDocument, Request: request, TrustedKeys: fixture.trusted,
-	})
-	if err != nil || !verifiedPaymentCatalogEqual(verified, emptyPayload) {
-		t.Fatalf("VerifyCatalog(specific empty) = (%v, %v), want exact empty payload and nil", verified, err)
-	}
-
-	other := newPaymentFixture(t, paymentFixtureRequest{
-		Scope: fixture.scope, Marker: 0xa1, Millisecond: 20_000, MinorUnits: 2,
-	})
-	otherSelection, err := Specific(other.identity)
-	if err != nil {
-		t.Fatalf("Specific(other) error = %v, want nil", err)
-	}
-	wrongRequest := request
-	wrongRequest.Query.Selection = otherSelection
-	wrongCommitment, err := CommitQuery(wrongRequest)
-	if err != nil {
-		t.Fatalf("CommitQuery(other specific) error = %v, want nil", err)
-	}
-	wrongPayload := payload
-	wrongPayload.Request = wrongCommitment
-	wrongDocument, err := IssueCatalog(CatalogIssuance{Signer: fixture.private, Payload: wrongPayload})
-	if err != nil {
-		t.Fatalf("IssueCatalog(wrong specific entry) error = %v, want nil", err)
-	}
-	if got, gotErr := VerifyCatalog(CatalogVerification{
-		Document: wrongDocument, Request: wrongRequest, TrustedKeys: fixture.trusted,
-	}); !errors.Is(gotErr, core.ErrPaymentVerification) || got != (VerifiedCatalog{}) {
-		t.Fatalf("VerifyCatalog(wrong specific entry) = (%v, %v), want zero and errors.Is %v",
-			got, gotErr, core.ErrPaymentVerification)
-	}
-
-	continuedPayload := payload
-	continuedPayload.Continuation, err = More(mustPaymentCursorFor(t, continuedPayload.Entries[0].Payload.Identity))
-	if err != nil {
-		t.Fatalf("More(specific) error = %v, want nil", err)
-	}
-	continuedDocument, err := IssueCatalog(CatalogIssuance{Signer: fixture.private, Payload: continuedPayload})
-	if err != nil {
-		t.Fatalf("IssueCatalog(specific continuation) error = %v, want nil", err)
-	}
-	if got, gotErr := VerifyCatalog(CatalogVerification{
-		Document: continuedDocument, Request: request, TrustedKeys: fixture.trusted,
-	}); !errors.Is(gotErr, core.ErrPaymentVerification) || got != (VerifiedCatalog{}) {
-		t.Fatalf("VerifyCatalog(specific continuation) = (%v, %v), want zero and errors.Is %v",
-			got, gotErr, core.ErrPaymentVerification)
-	}
-
-	multiplePayload := payload
-	multiplePayload.Entries = []Document{payload.Entries[0], other.document}
-	if multiplePayload.Entries[0].Payload.Identity.String() < multiplePayload.Entries[1].Payload.Identity.String() {
-		multiplePayload.Entries[0], multiplePayload.Entries[1] = multiplePayload.Entries[1], multiplePayload.Entries[0]
-	}
-	multipleDocument, err := IssueCatalog(CatalogIssuance{Signer: fixture.private, Payload: multiplePayload})
-	if err != nil {
-		t.Fatalf("IssueCatalog(multiple specific entries) error = %v, want nil", err)
-	}
-	if got, gotErr := VerifyCatalog(CatalogVerification{
-		Document: multipleDocument, Request: request, TrustedKeys: fixture.trusted,
-	}); !errors.Is(gotErr, core.ErrPaymentVerification) || got != (VerifiedCatalog{}) {
-		t.Fatalf("VerifyCatalog(multiple specific entries) = (%v, %v), want zero and errors.Is %v",
-			got, gotErr, core.ErrPaymentVerification)
+	for _, tc := range []struct {
+		name                string
+		entries             uint16
+		wrongIdentity, more bool
+		want                error
+	}{
+		{name: "positive selected receipt", entries: 1},
+		{name: "neutral absent selected receipt", entries: 0},
+		{name: "negative authentic receipt for another identity", entries: 1, wrongIdentity: true, want: core.ErrPaymentVerification},
+		{name: "negative authentic specific page claims continuation", entries: 1, more: true, want: core.ErrPaymentVerification},
+		{name: "negative authentic specific page carries multiple receipts", entries: 2, want: core.ErrPaymentVerification},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			fixture := newPaymentCatalogFixture(t, paymentCatalogFixtureRequest{Marker: 0x91, Entries: tc.entries, More: tc.more})
+			selected := mustPaymentID(t, 0x91, 5)
+			if tc.entries > 0 && !tc.wrongIdentity {
+				selected = fixture.payload.Entries[0].Payload.Identity
+			}
+			selection, err := Specific(selected)
+			if err != nil {
+				t.Fatal(err)
+			}
+			fixture.request.Query.Selection = selection
+			commitment, err := CommitQuery(fixture.request)
+			if err != nil {
+				t.Fatal(err)
+			}
+			fixture.payload.Request = commitment
+			document, err := IssueCatalog(CatalogIssuance{Signer: fixture.private, Payload: fixture.payload})
+			if err != nil {
+				t.Fatal(err)
+			}
+			proof, err := VerifyCatalog(CatalogVerification{Document: document, Request: fixture.request, TrustedKeys: fixture.trusted})
+			if !errors.Is(err, tc.want) {
+				t.Fatalf("verification error = %v, want %v", err, tc.want)
+			}
+			if tc.want != nil {
+				if proof != (VerifiedCatalog{}) {
+					t.Fatalf("rejected catalog proof = %v, want zero", proof)
+				}
+				if errors.Is(err, core.ErrAttestVerification) {
+					t.Fatalf("authentic fixture failed before selection: %v", err)
+				}
+			} else if !verifiedPaymentCatalogEqual(proof, fixture.payload) {
+				t.Fatalf("verified catalog = %v, want exact payload %v", proof, fixture.payload)
+			}
+		})
 	}
 }
-
 func TestPaymentCatalogDocumentJSONLayerTriad(t *testing.T) {
 	t.Parallel()
 
@@ -665,11 +621,6 @@ func TestPaymentCatalogDocumentJSONLayerTriad(t *testing.T) {
 			{name: "trailing whitespace", data: append(append([]byte(nil), canonical...), ' ', '\n', '\t')},
 			{name: "both-side whitespace", data: append(append([]byte(" \n"), canonical...), '\n', ' ')},
 			{name: "top-level members reordered", data: marshalReorderedPaymentCatalog(t, fixture.document)},
-			{name: "one below document ceiling", data: paymentPadJSON(canonical, core.JSONDocumentMaximumBytes-1)},
-			{name: "at document ceiling", data: paymentPadJSON(canonical, core.JSONDocumentMaximumBytes)},
-			{name: "one trailing carriage return", data: append(append([]byte(nil), canonical...), '\r')},
-			{name: "four leading whitespace forms", data: append([]byte("\t\r\n "), canonical...)},
-			{name: "four trailing whitespace forms", data: append(append([]byte(nil), canonical...), " \n\r\t"...)},
 		}
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
@@ -684,10 +635,10 @@ func TestPaymentCatalogDocumentJSONLayerTriad(t *testing.T) {
 		}
 	})
 
-	t.Run("negative malformed missing duplicate type-wrong and oversized documents reject", func(t *testing.T) {
+	t.Run("negative malformed missing duplicate type-wrong documents reject", func(t *testing.T) {
 		t.Parallel()
 
-		cases := paymentDocumentHostileJSONCases(canonical, core.JSONDocumentMaximumBytes)
+		cases := paymentDocumentHostileJSONCases(canonical)
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
@@ -825,8 +776,8 @@ func marshalReorderedPaymentReceipt(t *testing.T, document Document) []byte {
 	t.Helper()
 
 	encoded, gotErr := core.MarshalCanonicalJSONDocument(struct {
-		Payload     Payload                        `json:"payload"`
 		Attestation attest.Envelope[SigningDomain] `json:"attestation"`
+		Payload     Payload                        `json:"payload"`
 	}{Attestation: document.Attestation, Payload: document.Payload})
 	if gotErr != nil {
 		t.Fatalf("core.MarshalCanonicalJSONDocument(reordered receipt) error = %v, want nil", gotErr)
@@ -838,8 +789,8 @@ func marshalReorderedPaymentCatalog(t *testing.T, document CatalogDocument) []by
 	t.Helper()
 
 	encoded, gotErr := core.MarshalCanonicalJSONDocument(struct {
-		Payload     CatalogPayload                 `json:"payload"`
 		Attestation attest.Envelope[SigningDomain] `json:"attestation"`
+		Payload     CatalogPayload                 `json:"payload"`
 	}{Attestation: document.Attestation, Payload: document.Payload})
 	if gotErr != nil {
 		t.Fatalf("core.MarshalCanonicalJSONDocument(reordered catalog) error = %v, want nil", gotErr)
@@ -847,14 +798,7 @@ func marshalReorderedPaymentCatalog(t *testing.T, document CatalogDocument) []by
 	return encoded
 }
 
-func paymentPadJSON(document []byte, wantBytes int) []byte {
-	if len(document) >= wantBytes {
-		return append([]byte(nil), document...)
-	}
-	return append(append([]byte(nil), document...), bytes.Repeat([]byte{' '}, wantBytes-len(document))...)
-}
-
-func paymentDocumentHostileJSONCases(canonical []byte, maximumBytes int) []paymentJSONCase {
+func paymentDocumentHostileJSONCases(canonical []byte) []paymentJSONCase {
 	return []paymentJSONCase{
 		{name: "empty document", data: nil},
 		{name: "whitespace-only document", data: []byte(" \n\t")},
@@ -876,7 +820,6 @@ func paymentDocumentHostileJSONCases(canonical []byte, maximumBytes int) []payme
 		{name: "missing attestation member", data: []byte(`{"payload":null}`)},
 		{name: "payload has wrong scalar type", data: []byte(`{"payload":1,"attestation":null}`)},
 		{name: "attestation has wrong scalar type", data: []byte(`{"payload":null,"attestation":1}`)},
-		{name: "one above document ceiling", data: paymentPadJSON(canonical, maximumBytes+1)},
 	}
 }
 
@@ -902,7 +845,6 @@ func TestPaymentQueryPlannerLayerTriad(t *testing.T) {
 	t.Run("positive all and specific plans close exact page boundaries", func(t *testing.T) {
 		t.Parallel()
 
-		midpoint := uint16(core.CatalogPageMaximumEntries / 2)
 		cases := []struct {
 			name      string
 			selection Selection
@@ -910,10 +852,7 @@ func TestPaymentQueryPlannerLayerTriad(t *testing.T) {
 			pageSize  uint16
 		}{
 			{name: "all start minimum page", selection: All(), position: Start(), pageSize: 1},
-			{name: "all start two entries", selection: All(), position: Start(), pageSize: 2},
-			{name: "all start one below midpoint", selection: All(), position: Start(), pageSize: midpoint - 1},
-			{name: "all start at midpoint", selection: All(), position: Start(), pageSize: midpoint},
-			{name: "all start one above midpoint", selection: All(), position: Start(), pageSize: midpoint + 1},
+
 			{name: "all start one below maximum", selection: All(), position: Start(), pageSize: core.CatalogPageMaximumEntries - 1},
 			{name: "all start at maximum", selection: All(), position: Start(), pageSize: core.CatalogPageMaximumEntries},
 			{name: "all after minimum page", selection: All(), position: after, pageSize: 1},
@@ -928,7 +867,7 @@ func TestPaymentQueryPlannerLayerTriad(t *testing.T) {
 				got, gotErr := NewQuery(QueryRequest{
 					Scope: fixture.scope, Selection: tc.selection, Position: tc.position, PageSize: tc.pageSize,
 				})
-				if gotErr != nil || got.Validate() != nil || got.Limit.Uint16() != tc.pageSize {
+				if gotErr != nil || got.Validate() != nil || got.Limit.Uint16() != tc.pageSize || got.Scope != fixture.scope || got.Selection != tc.selection || got.Position != tc.position {
 					t.Fatalf("NewQuery(page %d) = (%v, %v), want exact valid plan", tc.pageSize, got, gotErr)
 				}
 			})

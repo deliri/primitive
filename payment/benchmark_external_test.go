@@ -7,21 +7,18 @@ import (
 	"github.com/deliri/primitive/v2026/payment"
 )
 
-func BenchmarkParseSigningDomain(b *testing.B) {
-	const value = payment.SigningDomainReceiptV1Token
-	var wantErr error
+func BenchmarkParseSigningDomainBatch(b *testing.B) {
+	const parsesPerBatch = 16
 	b.ReportAllocs()
-	var last payment.SigningDomain
 	for b.Loop() {
-		got, err := payment.SigningDomainUnknown.ParseCanonicalText([]byte(value))
-		if !errors.Is(err, wantErr) {
-			b.Fatalf("payment.ParseCanonicalText() error = %v, want %v", err, wantErr)
+		for range parsesPerBatch {
+			got, err := payment.SigningDomainUnknown.ParseCanonicalText([]byte(payment.SigningDomainReceiptV1Token))
+			if err != nil || got != payment.SigningDomainReceiptV1 {
+				b.Fatalf("parse = (%v,%v), want receipt domain", got, err)
+			}
 		}
-		last = got
 	}
-	if last.String() != value {
-		b.Fatalf("payment.ParseCanonicalText() = %q, want %q", last, value)
-	}
+	b.ReportMetric(parsesPerBatch, "parses/op")
 }
 
 func BenchmarkParsePaymentID(b *testing.B) {

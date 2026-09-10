@@ -12,13 +12,6 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
-const (
-	// ReceiptPayloadJSONMaximumBytes bounds one canonical payment fact.
-	ReceiptPayloadJSONMaximumBytes = 32 << 10
-	// ReceiptDocumentJSONMaximumBytes bounds one signed payment receipt.
-	ReceiptDocumentJSONMaximumBytes = 64 << 10
-)
-
 // ServicePeriod is the exact service interval paid for by one receipt.
 type ServicePeriod struct {
 	Start temporal.Instant `json:"start"`
@@ -75,7 +68,7 @@ func (Payload) AttestationDomain() SigningDomain { return SigningDomainReceiptV1
 
 // WriteCanonical writes the exact compact signed payload.
 func (p Payload) WriteCanonical(destination io.Writer) error {
-	if destination == nil {
+	if core.WriterIsNil(destination) {
 		return contractError(errors.New("payment canonical destination is nil"))
 	}
 	encoded, err := p.MarshalJSON()
@@ -92,14 +85,14 @@ func (p Payload) WriteCanonical(destination io.Writer) error {
 	return nil
 }
 
-// MarshalJSON emits one bounded canonical payload.
+// MarshalJSON emits one canonical payload.
 func (p Payload) MarshalJSON() ([]byte, error) {
 	if err := p.Validate(); err != nil {
 		return nil, jsonError(err)
 	}
 	type wire Payload
 	encoded, err := core.MarshalCanonicalJSONDocument(wire(p))
-	if err != nil || len(encoded) > ReceiptPayloadJSONMaximumBytes {
+	if err != nil {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -111,7 +104,7 @@ func (p *Payload) UnmarshalJSON(data []byte) error {
 		return jsonError(errors.New("nil payment payload receiver"))
 	}
 	type wire Payload
-	decoded, err := decodeStrict[wire](data, ReceiptPayloadJSONMaximumBytes)
+	decoded, err := decodeStrict[wire](data)
 	if err != nil {
 		return err
 	}
@@ -140,14 +133,14 @@ func (d Document) Validate() error {
 	return nil
 }
 
-// MarshalJSON emits one bounded canonical signed receipt.
+// MarshalJSON emits one canonical signed receipt.
 func (d Document) MarshalJSON() ([]byte, error) {
 	if err := d.Validate(); err != nil {
 		return nil, jsonError(err)
 	}
 	type wire Document
 	encoded, err := core.MarshalCanonicalJSONDocument(wire(d))
-	if err != nil || len(encoded) > ReceiptDocumentJSONMaximumBytes {
+	if err != nil {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -159,7 +152,7 @@ func (d *Document) UnmarshalJSON(data []byte) error {
 		return jsonError(errors.New("nil payment document receiver"))
 	}
 	type wire Document
-	decoded, err := decodeStrict[wire](data, ReceiptDocumentJSONMaximumBytes)
+	decoded, err := decodeStrict[wire](data)
 	if err != nil {
 		return err
 	}
@@ -272,16 +265,10 @@ func (v Verified) Document() (Document, error) {
 	return v.document, nil
 }
 
-func decodeStrict[T any](data []byte, maximum uint64) (T, error) {
-	var zero T
-	limit, err := core.NewByteCount(maximum)
+func decodeStrict[T any](data []byte) (T, error) {
+	decoded, err := core.DecodeStrictJSONStructure[T](data, core.ExtensibleJSONLimits())
 	if err != nil {
-		return zero, jsonError(err)
-	}
-	limits := core.DefaultStrictJSONLimits()
-	limits.DocumentMaximumBytes = limit
-	decoded, err := core.DecodeStrictJSONStructure[T](data, limits)
-	if err != nil {
+		var zero T
 		return zero, jsonError(err)
 	}
 	return decoded, nil
