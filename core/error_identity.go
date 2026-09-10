@@ -198,12 +198,12 @@ const (
 	// ErrExchangeWrite identifies an exchange write failure.
 	ErrExchangeWrite
 
-	// ErrFuzzFinderContract identifies a fuzz-finder contract violation.
-	ErrFuzzFinderContract
-	// ErrFuzzFinderFormat identifies an unsupported Go fuzz-artifact format.
-	ErrFuzzFinderFormat
-	// ErrFuzzFinderObservation identifies failed fuzz-artifact observation.
-	ErrFuzzFinderObservation
+	// ErrFuzzArtifactContract identifies a fuzz-artifact contract violation.
+	ErrFuzzArtifactContract
+	// ErrFuzzArtifactFormat identifies an unsupported Go fuzz-artifact format.
+	ErrFuzzArtifactFormat
+	// ErrFuzzArtifactObservation identifies failed fuzz-artifact observation.
+	ErrFuzzArtifactObservation
 
 	// ErrLeaseContract identifies a lease contract violation.
 	ErrLeaseContract
@@ -595,9 +595,9 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrExchangeTransport, text: "exchange transport failed"},
 		{identity: ErrExchangeRetryExhausted, text: "exchange retry budget exhausted"},
 		{identity: ErrExchangeWrite, text: "exchange write failed"},
-		{identity: ErrFuzzFinderContract, text: "fuzz finder contract violation"},
-		{identity: ErrFuzzFinderFormat, text: "Go fuzz artifact format unsupported"},
-		{identity: ErrFuzzFinderObservation, text: "fuzz artifact observation failed"},
+		{identity: ErrFuzzArtifactContract, text: "fuzz artifact contract violation"},
+		{identity: ErrFuzzArtifactFormat, text: "Go fuzz artifact format unsupported"},
+		{identity: ErrFuzzArtifactObservation, text: "fuzz artifact observation failed"},
 		{identity: ErrLeaseContract, text: "lease contract violation"},
 		{identity: ErrLeaseVerification, text: "lease verification failed"},
 		{identity: ErrLeaseRollback, text: "lease rollback rejected"},
@@ -843,7 +843,7 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrContextStateContract, ErrLineIOContract, ErrManualContract, ErrRunProtocolContract, ErrSourceClaimContract, ErrSourceObservationContract, ErrSourceProofContract, ErrCurrencyContract,
 		ErrKeygenContract, ErrTestIsolationContract, ErrFilestoreContract,
 		ErrTemporalContract, ErrExchangeContract,
-		ErrFuzzFinderContract, ErrLeaseContract,
+		ErrFuzzArtifactContract, ErrLeaseContract,
 		ErrProcessContract,
 		ErrCompassContract,
 		ErrReleaseContract, ErrDeployContract,
@@ -954,7 +954,7 @@ func errorIdentityParentsSecretStoreThroughPayment(identity ErrorIdentity) error
 	if identity == ErrPaymentVerification {
 		return oneErrorIdentityParent(ErrPaymentContract)
 	}
-	return errorIdentityParentsFuzzFinderThroughObjectStore(identity)
+	return errorIdentityParentsFuzzArtifactThroughObjectStore(identity)
 }
 
 func errorIdentityProviderParent(identity ErrorIdentity) ErrorIdentity {
@@ -1064,9 +1064,9 @@ func errorIdentityParentsControlExchange(identity ErrorIdentity) errorIdentityPa
 	return errorIdentityParentSet{}
 }
 
-func errorIdentityParentsFuzzFinderThroughObjectStore(identity ErrorIdentity) errorIdentityParentSet {
-	if errorIdentityIn(identity, ErrFuzzFinderFormat, ErrFuzzFinderObservation) {
-		return oneErrorIdentityParent(ErrFuzzFinderContract)
+func errorIdentityParentsFuzzArtifactThroughObjectStore(identity ErrorIdentity) errorIdentityParentSet {
+	if errorIdentityIn(identity, ErrFuzzArtifactFormat, ErrFuzzArtifactObservation) {
+		return oneErrorIdentityParent(ErrFuzzArtifactContract)
 	}
 	if errorIdentityIn(identity, ErrLeaseVerification, ErrLeaseRollback, ErrLeaseConflict,
 		ErrLeaseScope, ErrLeaseClock) {

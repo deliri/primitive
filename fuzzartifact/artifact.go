@@ -1,4 +1,4 @@
-package fuzzfinder
+package fuzzartifact
 
 import (
 	json "encoding/json/v2"
@@ -8,9 +8,8 @@ import (
 )
 
 const (
-	artifactCorpusToken          = "fuzz-corpus"
-	artifactCrasherToken         = "fuzz-crasher"
-	artifactKindJSONMaximumBytes = 64
+	artifactCorpusToken  = "fuzz-corpus"
+	artifactCrasherToken = "fuzz-crasher"
 )
 
 // ArtifactKind is the closed wire identity of a corpus or crasher artifact.
@@ -79,14 +78,12 @@ func (k ArtifactKind) MarshalJSON() ([]byte, error) {
 	return json.Marshal(k.String())
 }
 
-// UnmarshalJSON admits one bounded artifact-kind string and preserves the
-// receiver on rejection.
+// UnmarshalJSON admits one artifact-kind string and preserves the
+// receiver on rejection. The caller supplies and owns the complete JSON value;
+// this byte-slice interface does not stream input or impose a document-size quota.
 func (k *ArtifactKind) UnmarshalJSON(data []byte) error {
 	if k == nil {
 		return contractError(errors.New("artifact kind receiver is nil"))
-	}
-	if len(data) == 0 || len(data) > artifactKindJSONMaximumBytes {
-		return contractError(errors.Join(core.ErrJSONContract, errors.New("artifact kind JSON extent is invalid")))
 	}
 	// Admission is core's rule, not this package's. Restating it here as a quote
 	// scan plus a bare json.Unmarshal accepted documents that every other typed

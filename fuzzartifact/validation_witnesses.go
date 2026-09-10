@@ -1,4 +1,4 @@
-package fuzzfinder
+package fuzzartifact
 
 import (
 	json "encoding/json/v2"
@@ -11,7 +11,6 @@ var (
 
 	_ core.Validatable = CacheFormatUnknown
 	_ core.OffWireEnum = CacheFormatUnknown
-	_ core.Validatable = RetentionLimit{}
 	_ core.Validatable = FindRequest{}
 	_ core.Validatable = ArtifactUnknown
 	_ core.Validatable = GeneratedName{}

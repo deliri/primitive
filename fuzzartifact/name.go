@@ -1,7 +1,6 @@
-package fuzzfinder
+package fuzzartifact
 
 import (
-	"bytes"
 	"encoding/hex"
 	"errors"
 
@@ -93,10 +92,6 @@ func (n GeneratedName) Kind() ArtifactKind {
 // Format returns the exact Go toolchain format that produced n.
 func (n GeneratedName) Format() CacheFormat {
 	return n.format
-}
-
-func (n GeneratedName) compare(other GeneratedName) int {
-	return bytes.Compare(n.value[:], other.value[:])
 }
 
 func isLowerHex(value byte) bool {

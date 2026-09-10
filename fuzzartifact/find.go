@@ -1,47 +1,41 @@
-package fuzzfinder
+package fuzzartifact
 
 import (
 	"context"
 	"errors"
-	"slices"
 
+	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/filestore"
 )
 
-// Find streams one real rooted directory through Filestore. It retains only a
-// bounded canonical prefix and preserves Filestore's external-door identity
-// beneath the stable Fuzzfinder observation identity.
+// Find visits every matching direct child in native directory order. Visit is
+// synchronous backpressure; the caller owns any blocking work and must return.
+// No names are retained or sorted. A callback may have effects even when it
+// returns an error, so Delivered counts only callbacks returning nil.
 func Find(ctx context.Context, request FindRequest) (Observation, error) {
 	if err := request.Validate(); err != nil {
 		return Observation{}, err
 	}
 	current := newFinder(request)
-	err := filestore.Walk(ctx, filestore.WalkRequest{
-		Location: request.Location,
-		Visit:    current.visit,
-	})
+	err := filestore.Walk(ctx, filestore.WalkRequest{Location: request.Location, Visit: current.visit})
+	err = errors.Join(err, contextstate.Validate(ctx))
 	if err == nil {
 		return current.finish()
 	}
-	if current.observation.retained == 0 && !current.observation.hasAccounting() {
-		return failedFind(request, observationError(err))
+	if !current.observation.hasAccounting() {
+		result := Observation{kind: request.Kind, format: request.Format, state: ObservationFailed}
+		return result, errors.Join(result.Validate(), observationError(err))
 	}
 	return current.partial(observationError(err))
 }
 
-func failedFind(request FindRequest, err error) (Observation, error) {
-	result := failedObservation(request.Kind, request.Format, request.Retention)
-	return result, errors.Join(result.Validate(), err)
-}
-
 type finder struct {
 	observation Observation
+	visitor     func(GeneratedName) error
 }
 
 func newFinder(request FindRequest) finder {
-	return finder{
-		observation: Observation{limit: request.Retention, kind: request.Kind, format: request.Format},
-	}
+	return finder{observation: Observation{kind: request.Kind, format: request.Format}, visitor: request.Visit}
 }
 
 func (f *finder) visit(entry filestore.WalkEntry) (filestore.WalkDirective, error) {
@@ -52,37 +46,23 @@ func (f *finder) visit(entry filestore.WalkEntry) (filestore.WalkDirective, erro
 	case !entry.Entry.Type().IsRegular():
 		incrementSaturating(&f.observation.nonRegular)
 	default:
-		f.observeRegular(entry.Entry.Name())
+		return filestore.WalkContinue, f.observeRegular(entry.Entry.Name())
 	}
 	return filestore.WalkContinue, nil
 }
 
-func (f *finder) observeRegular(value string) {
-	name, err := ParseGeneratedName(f.observation.Format(), f.observation.kind, value)
+func (f *finder) observeRegular(value string) error {
+	name, err := ParseGeneratedName(f.observation.format, f.observation.kind, value)
 	if err != nil {
 		incrementSaturating(&f.observation.unsupportedRegular)
-		return
+		return nil
 	}
-	f.observeGenerated(name)
-}
-
-func (f *finder) observeGenerated(name GeneratedName) {
-	count := int(f.observation.retained)
-	position, found := slices.BinarySearchFunc(f.observation.names[:count], name, GeneratedName.compare)
-	if found {
-		return
+	incrementSaturating(&f.observation.matched)
+	if err := f.visitor(name); err != nil {
+		return err
 	}
-	if count < int(f.observation.limit.value) {
-		copy(f.observation.names[position+1:count+1], f.observation.names[position:count])
-		f.observation.names[position] = name
-		f.observation.retained++
-		return
-	}
-	incrementSaturating(&f.observation.overLimit)
-	if position < count {
-		copy(f.observation.names[position+1:count], f.observation.names[position:count-1])
-		f.observation.names[position] = name
-	}
+	incrementSaturating(&f.observation.delivered)
+	return nil
 }
 
 func (f *finder) finish() (Observation, error) {

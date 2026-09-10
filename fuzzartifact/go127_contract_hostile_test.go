@@ -1,11 +1,10 @@
-package fuzzfinder
+package fuzzartifact
 
 import (
 	"go/ast"
 	"go/build"
 	"go/parser"
 	"go/token"
-	"os"
 	"path/filepath"
 	"strconv"
 	"testing"
@@ -15,10 +14,7 @@ func TestCacheFormatGo127MatchesInstalledWriteToCorpusStructuralInvariant(t *tes
 	t.Parallel()
 
 	sourcePath := filepath.Join(build.Default.GOROOT, "src", "internal", "fuzz", "fuzz.go")
-	source, err := os.ReadFile(sourcePath)
-	if err != nil {
-		t.Fatalf("os.ReadFile(installed internal/fuzz source) error = %v, want nil", err)
-	}
+	source := readSourceForTest(t, sourcePath)
 	parsed, err := parser.ParseFile(token.NewFileSet(), sourcePath, source, 0)
 	if err != nil {
 		t.Fatalf("parser.ParseFile(installed internal/fuzz source) error = %v, want nil", err)

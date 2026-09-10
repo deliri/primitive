@@ -45,8 +45,8 @@ const (
 	PackageTemporal
 	// PackageExchange identifies the HTTP exchange package.
 	PackageExchange
-	// PackageFuzzFinder identifies the fuzz-artifact finder package.
-	PackageFuzzFinder
+	// PackageFuzzArtifact identifies the fuzz-artifact finder package.
+	PackageFuzzArtifact
 	// PackageLease identifies the lease package.
 	PackageLease
 	// PackageReceipt identifies authenticated accepted-evidence facts and watermarks.
@@ -198,7 +198,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageHostFacts, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
 			{Identity: PackageTemporal, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
 			{Identity: PackageExchange, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
-			{Identity: PackageFuzzFinder, Kind: PackageKindProduction, Role: PackageRoleOrchestration},
+			{Identity: PackageFuzzArtifact, Kind: PackageKindProduction, Role: PackageRoleOrchestration},
 			{Identity: PackageLease, Kind: PackageKindProduction, Role: PackageRoleDomainAgreement},
 			{Identity: PackageReceipt, Kind: PackageKindProduction, Role: PackageRoleDomainAgreement},
 			{Identity: PackageControlWire, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
@@ -439,7 +439,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"hostfacts",
 		"temporal",
 		"exchange",
-		"fuzzfinder",
+		"fuzzartifact",
 		"lease",
 		"receipt",
 		"controlwire",

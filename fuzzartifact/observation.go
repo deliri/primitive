@@ -1,4 +1,4 @@
-package fuzzfinder
+package fuzzartifact
 
 import (
 	"errors"
@@ -62,44 +62,33 @@ func (c EntryCount) Uint64() uint64 {
 	return c.value
 }
 
-// Observation is the bounded, canonical result of finding generated artifacts
-// in one directory. Names are observations only; they do not prove payload
-// identity or custody.
+// Observation records constant-size accounting for one directory scan.
+// Matched names were handed to Visit; Delivered counts callbacks returning nil.
+// Names are not retained. Neither count proves payload identity or custody.
 type Observation struct {
 	ignoredDirectories uint64
 	nonRegular         uint64
-	overLimit          uint64
 	unsupportedRegular uint64
-	limit              RetentionLimit
-	retained           uint16
-	names              [MaximumRetainedEntries]GeneratedName
+	matched            uint64
+	delivered          uint64
 	kind               ArtifactKind
 	format             CacheFormat
 	state              ObservationState
 }
 
-// Validate rejects contradictory observation states and noncanonical names.
+// Validate rejects contradictory completion and callback accounting.
 func (o Observation) Validate() error {
-	if err := o.state.Validate(); err != nil {
-		return err
+	if err := errors.Join(o.state.Validate(), o.kind.Validate(), o.format.Validate()); err != nil {
+		return contractError(err)
 	}
-	if err := o.kind.Validate(); err != nil {
-		return err
+	if o.delivered > o.matched {
+		return contractError(errors.New("delivered names exceed matched names"))
 	}
-	if err := o.format.Validate(); err != nil {
-		return err
+	if o.matched-o.delivered > 1 {
+		return contractError(errors.New("more than one callback was left unacknowledged"))
 	}
-	if err := o.limit.Validate(); err != nil {
-		return err
-	}
-	if o.retained > o.limit.value || o.retained > MaximumRetainedEntries {
-		return contractError(errors.New("retained count exceeds its limit"))
-	}
-	if o.overLimit != 0 && o.retained != o.limit.value {
-		return contractError(errors.New("over-limit observations require a full retained prefix"))
-	}
-	if err := o.validateNames(); err != nil {
-		return err
+	if o.delivered != o.matched && o.state != ObservationPartial {
+		return contractError(errors.New("unacknowledged callback requires a partial observation"))
 	}
 	return o.validateStateAccounting()
 }
@@ -108,16 +97,18 @@ func (o Observation) validateStateAccounting() error {
 	switch o.state {
 	case ObservationComplete:
 		if o.unsupportedRegular != 0 {
-			return contractError(errors.New("complete observation contains unsupported regular entries"))
+			return contractError(errors.New("complete observation contains refused entries"))
 		}
-	case ObservationPartial:
-		return nil
 	case ObservationUnsupportedFormat:
 		if o.unsupportedRegular == 0 {
-			return contractError(errors.New("unsupported observation has no unsupported regular entry"))
+			return contractError(errors.New("unsupported observation contradicts entry accounting"))
+		}
+	case ObservationPartial:
+		if !o.hasAccounting() {
+			return contractError(errors.New("partial observation contains no directory facts"))
 		}
 	case ObservationFailed:
-		if o.retained != 0 || o.hasAccounting() {
+		if o.hasAccounting() {
 			return contractError(errors.New("failed observation contains directory facts"))
 		}
 	default:
@@ -126,29 +117,8 @@ func (o Observation) validateStateAccounting() error {
 	return nil
 }
 
-func (o Observation) validateNames() error {
-	for index := range int(o.retained) {
-		if err := o.names[index].Validate(); err != nil {
-			return contractError(err)
-		}
-		if o.names[index].Kind() != o.kind || o.names[index].Format() != o.format {
-			return contractError(errors.New("retained generated name differs from the observation contract"))
-		}
-		if index > 0 && o.names[index-1].compare(o.names[index]) >= 0 {
-			return contractError(errors.New("retained generated names are not strictly canonical"))
-		}
-	}
-	for index := int(o.retained); index < len(o.names); index++ {
-		if o.names[index] != (GeneratedName{}) {
-			return contractError(errors.New("unretained generated-name storage is not empty"))
-		}
-	}
-	return nil
-}
-
 func (o Observation) hasAccounting() bool {
-	return o.ignoredDirectories != 0 || o.nonRegular != 0 ||
-		o.overLimit != 0 || o.unsupportedRegular != 0
+	return o.matched != 0 || o.ignoredDirectories != 0 || o.nonRegular != 0 || o.unsupportedRegular != 0
 }
 
 // State returns the observation completeness state.
@@ -168,15 +138,12 @@ func (o Observation) Format() CacheFormat {
 	return o.format
 }
 
-// Names returns a defensive copy of the canonical retained prefix.
-func (o Observation) Names() []GeneratedName {
-	return append([]GeneratedName(nil), o.names[:o.retained]...)
-}
+// Matched returns the number of generated names handed to the visitor.
+func (o Observation) Matched() EntryCount { return EntryCount{value: o.matched} }
 
-// Retained returns the number of returned names.
-func (o Observation) Retained() EntryCount {
-	return EntryCount{value: uint64(o.retained)}
-}
+// Delivered returns the number of visitor calls that returned nil.
+// A failed callback may have performed partial effects owned by the caller.
+func (o Observation) Delivered() EntryCount { return EntryCount{value: o.delivered} }
 
 // IgnoredDirectories returns the number of child directories not descended.
 func (o Observation) IgnoredDirectories() EntryCount {
@@ -188,21 +155,9 @@ func (o Observation) NonRegular() EntryCount {
 	return EntryCount{value: o.nonRegular}
 }
 
-// OverLimitObservations returns the number of otherwise valid observations
-// omitted or displaced after the retention limit was full. The unit is an
-// observation, so a non-native reader that repeats an omitted name repeats the
-// count; real directories cannot contain duplicate names.
-func (o Observation) OverLimitObservations() EntryCount {
-	return EntryCount{value: o.overLimit}
-}
-
 // UnsupportedRegular returns regular files outside the declared Go format.
 func (o Observation) UnsupportedRegular() EntryCount {
 	return EntryCount{value: o.unsupportedRegular}
-}
-
-func failedObservation(kind ArtifactKind, format CacheFormat, limit RetentionLimit) Observation {
-	return Observation{limit: limit, kind: kind, format: format, state: ObservationFailed}
 }
 
 func incrementSaturating(value *uint64) {

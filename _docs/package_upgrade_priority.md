@@ -79,7 +79,7 @@ pinned vendor version.
 | id | 20 | 5 | 2 | 4 | 9 | 6 |
 | distribution | 19 | 0 | 7 | 6 | 6 | 1 |
 | lineio | 16 | 0 | 0 | 0 | 16 | 0 |
-| fuzzfinder | 15 | 0 | 9 | 0 | 6 | 0 |
+| fuzzartifact | 15 | 0 | 9 | 0 | 6 | 0 |
 | runprotocol | 14 | 14 | 0 | 0 | 0 | 4 |
 | lease | 13 | 0 | 3 | 5 | 5 | 2 |
 | retrieval | 13 | 0 | 7 | 3 | 3 | 1 |
@@ -127,7 +127,7 @@ The approved Tailnet integration is recorded separately from the original usage
 snapshot. Continue with the saved ranking after subtracting completed slices:
 
 `lineio`,
-`fuzzfinder`, `runprotocol`, `lease`, `retrieval`, `manual`, `receipt`, `payment`,
+`fuzzartifact`, `runprotocol`, `lease`, `retrieval`, `manual`, `receipt`, `payment`,
 `submission`, `compass`, `googleidentity`, `filelock`, `submissionauth`,
 `proofledger`, `runnercontrol`, `secretstore`, `version`, `chitauth`,
 `distributionauth`, `paymentauth`, `retrievalauth`, `upgrade`, `deploy`, `wiring`,

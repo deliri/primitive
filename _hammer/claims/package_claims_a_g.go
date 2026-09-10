@@ -156,12 +156,12 @@ func emitPackageClaimSpecsAThroughG(emit func(packageClaimSpec) bool) bool {
 			excludes: "It does not own filenames, schemas, retention, capacity policy, cloud custody, accounting, or workflows.",
 		},
 		{
-			path: "fuzzfinder", title: "Bounded fuzz artifact discovery",
-			problem:  "Go fuzz cache entries and promoted crashers need bounded discovery without guessing their class from indistinguishable generated names.",
-			solution: "Fuzzfinder walks one rooted directory with caller-declared classification, bounded memory, and explicit partial accounting.",
+			path: "fuzzartifact", title: "Streaming fuzz artifact discovery",
+			problem:  "Go fuzz cache entries and promoted crashers need streaming discovery without guessing their class from indistinguishable generated names.",
+			solution: "Fuzzartifact walks one rooted directory with caller-declared classification, bounded memory, and explicit partial accounting.",
 			benefit:  "Evidence tools can find exact fuzz artifacts without running fuzzing or building an in-memory filesystem model.",
-			removal:  "Remove Fuzzfinder when cmd/go exposes a complete bounded typed artifact inventory.",
-			owns:     "Fuzzfinder owns rooted discovery, artifact coordinates, caller-carried class, and partial scan accounting.",
+			removal:  "Remove Fuzzartifact when cmd/go exposes a complete streaming typed artifact inventory.",
+			owns:     "Fuzzartifact owns rooted discovery, artifact coordinates, caller-carried class, and partial scan accounting.",
 			excludes: "It does not run fuzz targets, mutate files, retain payload custody, or define evidence acceptance.",
 		},
 		{

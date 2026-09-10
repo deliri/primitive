@@ -30,7 +30,7 @@ Audit exit per package: no hidden transfer/line quota; reader and writer paths c
 | exchange | 86 | streaming_doors_reviewed |
 | filelock | 0 | requires_review |
 | filestore | 13 | streaming_doors_reviewed |
-| fuzzfinder | 2 | requires_review |
+| fuzzartifact | 2 | streaming_doors_reviewed |
 | gcsobjects | 47 | requires_review |
 | github | 39 | streaming_doors_reviewed |
 | gitrepo | 0 | requires_review |

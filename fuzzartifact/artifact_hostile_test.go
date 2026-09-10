@@ -1,4 +1,4 @@
-package fuzzfinder
+package fuzzartifact
 
 import (
 	json "encoding/json/v2"
@@ -12,6 +12,8 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
+const formerArtifactJSONBytes = 64
+
 func TestArtifactKindExhaustsClosedWireDomain(t *testing.T) {
 	t.Parallel()
 
@@ -23,14 +25,14 @@ func TestArtifactKindExhaustsClosedWireDomain(t *testing.T) {
 			t.Fatalf("ArtifactKind(%d) validity = Validate:%v IsValid:%t, want %t", raw, gotErr, kind.IsValid(), wantValid)
 		}
 		if !wantValid {
-			if !errors.Is(gotErr, core.ErrFuzzFinderContract) {
-				t.Fatalf("ArtifactKind(%d).Validate() error = %v, want %v", raw, gotErr, core.ErrFuzzFinderContract)
+			if !errors.Is(gotErr, core.ErrFuzzArtifactContract) {
+				t.Fatalf("ArtifactKind(%d).Validate() error = %v, want %v", raw, gotErr, core.ErrFuzzArtifactContract)
 			}
 			if kind.String() != core.UnknownEnumDiagnostic {
 				t.Fatalf("ArtifactKind(%d).String() = %q, want %q", raw, kind.String(), core.UnknownEnumDiagnostic)
 			}
-			if _, marshalErr := json.Marshal(kind); !errors.Is(marshalErr, core.ErrFuzzFinderContract) {
-				t.Fatalf("json.Marshal(ArtifactKind(%d)) error = %v, want %v", raw, marshalErr, core.ErrFuzzFinderContract)
+			if _, marshalErr := json.Marshal(kind); !errors.Is(marshalErr, core.ErrFuzzArtifactContract) {
+				t.Fatalf("json.Marshal(ArtifactKind(%d)) error = %v, want %v", raw, marshalErr, core.ErrFuzzArtifactContract)
 			}
 			continue
 		}
@@ -98,8 +100,8 @@ func TestArtifactKindWireLayerTriad(t *testing.T) {
 			{name: "invalid utf-8 byte inside the token", wire: []byte("\"fuzz-corpus\xff\""), wantSyntax: true},
 			{name: "truncated string", wire: []byte(`"fuzz-corpus`), wantSyntax: true},
 			{name: "valid token with trailing document", wire: []byte(`"fuzz-corpus" true`), wantSyntax: true},
-			{name: "token at the exact extent ceiling", wire: []byte(strconv.Quote(strings.Repeat("a", artifactKindJSONMaximumBytes-2)))},
-			{name: "token one byte past the extent ceiling", wire: []byte(strconv.Quote(strings.Repeat("a", artifactKindJSONMaximumBytes-1)))},
+			{name: "unknown token at the former size cutoff", wire: []byte(strconv.Quote(strings.Repeat("a", formerArtifactJSONBytes-2)))},
+			{name: "unknown token beyond the former size cutoff", wire: []byte(strconv.Quote(strings.Repeat("a", formerArtifactJSONBytes-1)))},
 		}
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
@@ -107,8 +109,8 @@ func TestArtifactKindWireLayerTriad(t *testing.T) {
 
 				got := ArtifactCrasher
 				gotErr := (&got).UnmarshalJSON(tc.wire)
-				if !errors.Is(gotErr, core.ErrFuzzFinderContract) || got != ArtifactCrasher {
-					t.Fatalf("ArtifactKind.UnmarshalJSON(%q) = (%d, %v), want unchanged %d and %v", tc.wire, got, gotErr, ArtifactCrasher, core.ErrFuzzFinderContract)
+				if !errors.Is(gotErr, core.ErrFuzzArtifactContract) || got != ArtifactCrasher {
+					t.Fatalf("ArtifactKind.UnmarshalJSON(%q) = (%d, %v), want unchanged %d and %v", tc.wire, got, gotErr, ArtifactCrasher, core.ErrFuzzArtifactContract)
 				}
 				if tc.wantSyntax {
 					if _, ok := errors.AsType[*jsontext.SyntacticError](gotErr); !ok {
@@ -123,8 +125,8 @@ func TestArtifactKindWireLayerTriad(t *testing.T) {
 
 		var target *ArtifactKind
 		gotErr := target.UnmarshalJSON([]byte(strconv.Quote(ArtifactCorpus.String())))
-		if !errors.Is(gotErr, core.ErrFuzzFinderContract) {
-			t.Fatalf("nil ArtifactKind.UnmarshalJSON() error = %v, want %v", gotErr, core.ErrFuzzFinderContract)
+		if !errors.Is(gotErr, core.ErrFuzzArtifactContract) {
+			t.Fatalf("nil ArtifactKind.UnmarshalJSON() error = %v, want %v", gotErr, core.ErrFuzzArtifactContract)
 		}
 	})
 }
@@ -139,8 +141,8 @@ func TestArtifactKindDecodeInheritsTheCoreStringTokenContract(t *testing.T) {
 	for _, wire := range [][]byte{[]byte(`"\ud800"`), []byte("\"\xff\"")} {
 		got := ArtifactCorpus
 		gotErr := (&got).UnmarshalJSON(wire)
-		if !errors.Is(gotErr, core.ErrJSONContract) || !errors.Is(gotErr, core.ErrFuzzFinderContract) {
-			t.Fatalf("ArtifactKind.UnmarshalJSON(%q) error = %v, want %v and %v", wire, gotErr, core.ErrJSONContract, core.ErrFuzzFinderContract)
+		if !errors.Is(gotErr, core.ErrJSONContract) || !errors.Is(gotErr, core.ErrFuzzArtifactContract) {
+			t.Fatalf("ArtifactKind.UnmarshalJSON(%q) error = %v, want %v and %v", wire, gotErr, core.ErrJSONContract, core.ErrFuzzArtifactContract)
 		}
 		if got != ArtifactCorpus {
 			t.Fatalf("ArtifactKind.UnmarshalJSON(%q) receiver = %d, want unchanged %d", wire, got, ArtifactCorpus)

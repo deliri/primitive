@@ -133,7 +133,7 @@ func coreSpecialExportAdmissions() [coreSpecialExportAdmissionCount]coreSpecialE
 		architectureCatalogAdmission("PackageHostFacts", PackageHostFacts),
 		architectureCatalogAdmission("PackageTemporal", PackageTemporal),
 		architectureCatalogAdmission("PackageExchange", PackageExchange),
-		architectureCatalogAdmission("PackageFuzzFinder", PackageFuzzFinder),
+		architectureCatalogAdmission("PackageFuzzArtifact", PackageFuzzArtifact),
 		architectureCatalogAdmission("PackageLease", PackageLease),
 		architectureCatalogAdmission("PackageReceipt", PackageReceipt),
 		architectureCatalogAdmission("PackageProcess", PackageProcess),

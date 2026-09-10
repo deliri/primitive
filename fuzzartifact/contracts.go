@@ -1,4 +1,4 @@
-package fuzzfinder
+package fuzzartifact
 
 import (
 	"errors"
@@ -7,13 +7,7 @@ import (
 	"github.com/deliri/primitive/v2026/filestore"
 )
 
-const (
-	// MaximumRetainedEntries is the product-neutral safety ceiling for one
-	// bounded observation.
-	MaximumRetainedEntries uint16 = 128
-
-	generatedNameBytesGo1_27 = 16
-)
+const generatedNameBytesGo1_27 = 16
 
 func cacheFormatDiagnostics() [cacheFormatLimit]string {
 	return [...]string{
@@ -84,46 +78,21 @@ func (f CacheFormat) generatedNameBytes(kind ArtifactKind) (uint8, error) {
 	}
 }
 
-// RetentionLimit is the caller-selected bounded number of canonical names to
-// retain from one observation.
-type RetentionLimit struct {
-	value uint16
-}
-
-// NewRetentionLimit constructs a nonzero limit at or below the shared ceiling.
-func NewRetentionLimit(value uint16) (RetentionLimit, error) {
-	limit := RetentionLimit{value: value}
-	if err := limit.Validate(); err != nil {
-		return RetentionLimit{}, err
-	}
-	return limit, nil
-}
-
-// Validate rejects zero or above-ceiling limits.
-func (l RetentionLimit) Validate() error {
-	if l.value == 0 || l.value > MaximumRetainedEntries {
-		return contractError(errors.New("retention limit is outside the admitted range"))
-	}
-	return nil
-}
-
-// Uint16 returns the exact retained-name ceiling.
-func (l RetentionLimit) Uint16() uint16 {
-	return l.value
-}
-
 // FindRequest binds one rooted directory, one declared artifact class, the
-// exact Go format, and a retention limit to one observation.
+// exact Go format, and a synchronous visitor to one observation.
 //
 // Kind is declared rather than observed. Go 1.27 persists cache corpus and
 // testdata crashers through the same filename projection, so the name alone
-// cannot identify its class. Binding Kind into the request and retained name
+// cannot identify its class. Binding Kind into the request and emitted name
 // prevents corpus and crasher facts from being merged.
 type FindRequest struct {
-	Location  filestore.Location
-	Retention RetentionLimit
-	Kind      ArtifactKind
-	Format    CacheFormat
+	Location filestore.Location
+	// Visit runs synchronously while the directory is open. Its return provides
+	// backpressure; cancellation is checked between entries and cannot interrupt
+	// a blocked callback. The caller owns cancellation within callback effects.
+	Visit  func(GeneratedName) error
+	Kind   ArtifactKind
+	Format CacheFormat
 }
 
 // Validate rejects every unset or unsupported request boundary.
@@ -137,17 +106,20 @@ func (r FindRequest) Validate() error {
 	if err := r.Format.Validate(); err != nil {
 		return err
 	}
-	return r.Retention.Validate()
+	if r.Visit == nil {
+		return contractError(errors.New("generated-name visitor is missing"))
+	}
+	return nil
 }
 
 func contractError(cause error) error {
-	return errors.Join(core.ErrFuzzFinderContract, cause)
+	return errors.Join(core.ErrFuzzArtifactContract, cause)
 }
 
 func formatError(cause error) error {
-	return errors.Join(core.ErrFuzzFinderFormat, cause)
+	return errors.Join(core.ErrFuzzArtifactFormat, cause)
 }
 
 func observationError(cause error) error {
-	return errors.Join(core.ErrFuzzFinderObservation, cause)
+	return errors.Join(core.ErrFuzzArtifactObservation, cause)
 }
