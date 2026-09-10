@@ -175,3 +175,5 @@ This report preserves historical usage evidence without treating it as proof of
 current published-version adoption.
 
 Runnercontrol progress: v2026.1.51 fixed Go output metadata; v2026.1.52 closes the coverage-reader streaming slice. The package remains first in the queue. See [coverage streaming evidence](runnercontrol_coverage_streaming_20260910.md).
+
+Runnercontrol v2026.1.53 admits interleaved Go build events without counting dependencies as test units. JSON streaming and the package sweep remain open; see [build-event evidence](runnercontrol_build_events_20260910.md).

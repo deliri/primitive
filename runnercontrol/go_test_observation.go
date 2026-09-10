@@ -2,6 +2,7 @@ package runnercontrol
 
 import (
 	"context"
+	json "encoding/json/v2"
 	"errors"
 	"io"
 	"strconv"
@@ -44,15 +45,31 @@ type goTestEventWire struct {
 	Elapsed     float64 `json:"Elapsed"`
 }
 
+// Go emits two distinct wire agreements on the same stdout stream. The action
+// discriminator selects the exact strict decoder; build identities are not test
+// package identities (in particular, dependencies are not selected test units).
+type goEventActionWire struct {
+	Action string `json:"Action"`
+}
+type goBuildEventWire struct {
+	ImportPath string `json:"ImportPath"`
+	Action     string `json:"Action"`
+	Output     string `json:"Output"`
+}
+
+func (goEventActionWire) runnerControlInternalFlow() {}
+func (goBuildEventWire) runnerControlInternalFlow()  {}
+
 // GoTestObservationCompiler consumes the exact stdout emitted by go test
 // -json. It retains bounded state only for planned package units.
 type GoTestObservationCompiler struct {
-	failure    error
-	seen       map[string]struct{}
-	terminal   map[string]string
-	pending    []byte
-	benchmarks []runprotocol.BenchmarkMeasurement
-	policy     ObservationPolicy
+	failure     error
+	seen        map[string]struct{}
+	terminal    map[string]string
+	pending     []byte
+	benchmarks  []runprotocol.BenchmarkMeasurement
+	policy      ObservationPolicy
+	buildFailed bool
 }
 
 func NewGoTestObservationCompiler(policy ObservationPolicy) (*GoTestObservationCompiler, error) {
@@ -89,6 +106,13 @@ func (c *GoTestObservationCompiler) Write(data []byte) (int, error) {
 }
 
 func (c *GoTestObservationCompiler) consumeEvent(line []byte) error {
+	var action goEventActionWire
+	if err := json.Unmarshal(line, &action); err != nil {
+		return observationFailure("go event discriminator cannot be decoded", core.ErrJSONContract, err)
+	}
+	if action.Action == "build-output" || action.Action == "build-fail" {
+		return c.consumeBuildEvent(line)
+	}
 	event, err := core.DecodeStrictJSONStructure[goTestEventWire](line, core.DefaultStrictJSONLimits())
 	if err != nil {
 		return observationFailure("go test JSON event cannot be decoded", core.ErrJSONContract, err)
@@ -115,6 +139,24 @@ func (c *GoTestObservationCompiler) consumeEvent(line []byte) error {
 		}
 		c.benchmarks = append(c.benchmarks, measurement)
 	}
+	return nil
+}
+
+func (c *GoTestObservationCompiler) consumeBuildEvent(line []byte) error {
+	event, err := core.DecodeStrictJSONStructure[goBuildEventWire](line, core.DefaultStrictJSONLimits())
+	if err != nil {
+		return observationFailure("go build JSON event cannot be decoded", core.ErrJSONContract, err)
+	}
+	if event.Action == "build-output" {
+		if event.Output == "" {
+			return observationFailure("go build output is empty", core.ErrJSONContract)
+		}
+		return nil
+	}
+	if event.Output != "" {
+		return observationFailure("go build failure carries output outside an output event", core.ErrJSONContract)
+	}
+	c.buildFailed = true
 	return nil
 }
 
@@ -236,6 +278,9 @@ func newExecutionAttempt(policy ObservationPolicy) runprotocol.ExecutionAttempt 
 }
 
 func (c *GoTestObservationCompiler) validateObservedAccounting(observed, terminal uint32, executionErr error) error {
+	if c.buildFailed && executionErr == nil {
+		return observationFailure("go test exited successfully after a build failure", core.ErrPrimitiveContract)
+	}
 	if observed > c.policy.ExpectedUnits {
 		return observationFailure("go test observed package count exceeds planned units", core.ErrPrimitiveContract)
 	}

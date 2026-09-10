@@ -263,6 +263,12 @@ func appendSuffix(base func(testing.TB) [][]byte, suffix []byte) func(testing.TB
 }
 
 func FuzzGoTestObservationCompilerSemanticClosure(f *testing.F) {
+	dir := f.TempDir()
+	buildOutput, executionErr := goBuildFailureFixture(f, dir, true)
+	if executionErr == nil {
+		f.Fatal("goBuildFailureFixture() error = nil, want failed compilation")
+	}
+	f.Add(buildOutput)
 	canonical := events(event("pass", "example.com/fuzz", "", ""))(f)[0]
 	f.Add(canonical)
 	f.Add([]byte{})
