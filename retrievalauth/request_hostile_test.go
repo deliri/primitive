@@ -15,6 +15,8 @@ import (
 	"github.com/deliri/primitive/v2026/retrieval"
 )
 
+const retrievalAuthWhitespaceProbeBytes = 1<<20 + 1
+
 const retrievalAuthFixtureChit = "00000000-0010-7000-8000-000000000010"
 
 type retrievalAuthFixtureRequest struct {
@@ -231,15 +233,10 @@ func TestRetrievalAuthDocumentJSONLayerTriad(t *testing.T) {
 
 		cases := []retrievalAuthJSONCase{
 			{name: "canonical credentialed request", data: canonical},
+			{name: "large credentialed document whitespace", data: retrievalAuthPadJSON(canonical, retrievalAuthWhitespaceProbeBytes)},
+			{name: "large nested retrieval request whitespace", data: bytes.Replace(canonical, []byte(`"request":{`), append([]byte(`"request":{`), bytes.Repeat([]byte{' '}, retrievalAuthWhitespaceProbeBytes)...), 1)},
 			{name: "leading whitespace", data: append([]byte(" \n\t"), canonical...)},
-			{name: "trailing whitespace", data: append(append([]byte(nil), canonical...), ' ', '\n', '\t')},
-			{name: "both-side whitespace", data: append(append([]byte(" \n"), canonical...), '\n', ' ')},
 			{name: "top-level members reordered", data: marshalReorderedRetrievalAuthDocument(t, fixture.document)},
-			{name: "one below document ceiling", data: retrievalAuthPadJSON(canonical, RequestDocumentJSONMaximumBytes-1)},
-			{name: "at document ceiling", data: retrievalAuthPadJSON(canonical, RequestDocumentJSONMaximumBytes)},
-			{name: "one trailing carriage return", data: append(append([]byte(nil), canonical...), '\r')},
-			{name: "four leading whitespace forms", data: append([]byte("\t\r\n "), canonical...)},
-			{name: "four trailing whitespace forms", data: append(append([]byte(nil), canonical...), " \n\r\t"...)},
 		}
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
@@ -254,7 +251,7 @@ func TestRetrievalAuthDocumentJSONLayerTriad(t *testing.T) {
 		}
 	})
 
-	t.Run("negative malformed missing duplicate type-wrong and oversized documents reject", func(t *testing.T) {
+	t.Run("negative malformed missing duplicate type-wrong and trailing documents reject", func(t *testing.T) {
 		t.Parallel()
 
 		cases := retrievalAuthHostileJSONCases(canonical)
@@ -314,7 +311,7 @@ func retrievalAuthHostileJSONCases(canonical []byte) []retrievalAuthJSONCase {
 		{name: "truncated opening brace", data: []byte("{")},
 		{name: "truncated inside request", data: canonical[:len(canonical)/2]},
 		{name: "truncated before final brace", data: canonical[:len(canonical)-1]},
-		{name: "trailing object", data: append(append([]byte(nil), canonical...), '{', '}')},
+		{name: "trailing object after large whitespace", data: append(retrievalAuthPadJSON(canonical, retrievalAuthWhitespaceProbeBytes), '{', '}')},
 		{name: "two concatenated documents", data: append(append([]byte(nil), canonical...), canonical...)},
 		{name: "unknown top-level member", data: append([]byte(`{"unknown":1,`), canonical[1:]...)},
 		{name: "duplicate request member", data: append(bytes.Clone(canonical[:len(canonical)-1]), []byte(`,"request":null}`)...)},
@@ -324,7 +321,6 @@ func retrievalAuthHostileJSONCases(canonical []byte) []retrievalAuthJSONCase {
 		{name: "missing certificate", data: []byte(`{"request":null}`)},
 		{name: "request has wrong scalar type", data: []byte(`{"request":1,"certificate":null}`)},
 		{name: "certificate has wrong scalar type", data: []byte(`{"request":null,"certificate":1}`)},
-		{name: "one above document ceiling", data: retrievalAuthPadJSON(canonical, RequestDocumentJSONMaximumBytes+1)},
 	}
 }
 

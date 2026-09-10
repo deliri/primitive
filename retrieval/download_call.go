@@ -19,7 +19,7 @@ type DownloadCallRequest struct {
 
 // Validate closes the local destination and transfer policy without effects.
 func (r DownloadCallRequest) Validate() error {
-	if r.Destination == nil {
+	if core.WriterIsNil(r.Destination) {
 		return contractError(errors.New("retrieval download destination is nil"))
 	}
 	if err := r.Policy.Validate(); err != nil {

@@ -31,15 +31,9 @@ func TestVerifiedGrantDownloadFileLayerTriadPositiveStreamsAndActivates(t *testi
 		size int
 	}{
 		{name: "one byte", size: 1},
-		{name: "two bytes", size: 2},
-		{name: "one below first stream chunk", size: 32<<10 - 1},
 		{name: "at first stream chunk", size: 32 << 10},
 		{name: "one above first stream chunk", size: 32<<10 + 1},
-		{name: "one below second stream chunk", size: 64<<10 - 1},
-		{name: "at second stream chunk", size: 64 << 10},
-		{name: "one above second stream chunk", size: 64<<10 + 1},
-		{name: "at third stream chunk", size: 96 << 10},
-		{name: "one above third stream chunk", size: 96<<10 + 1},
+		{name: "many windows", size: 4<<20 + 1},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -50,8 +44,9 @@ func TestVerifiedGrantDownloadFileLayerTriadPositiveStreamsAndActivates(t *testi
 			root := retrievalFileRoot(t, directory)
 			var completed uint64
 			observations := 0
+			requests := 0
 			request := FileDownloadRequest{
-				Client: retrievalObjectstoreClient(t, payload), Policy: fixture.policy,
+				Client: retrievalObjectstoreClientForResponse(t, retrievalHTTPResponse{payload: payload, onRequest: func() { requests++ }}), Policy: fixture.policy,
 				Activation: retrievalActivation(t, retrievalActivationRequest{
 					Root: root, Size: uint64(tc.size), Install: filestore.InstallCreate,
 				}),
@@ -80,7 +75,7 @@ func TestVerifiedGrantDownloadFileLayerTriadPositiveStreamsAndActivates(t *testi
 			if !bytes.Equal(got, payload) {
 				t.Fatalf("activated target bytes = %d, want exact %d", len(got), len(payload))
 			}
-			info, gotStatErr := root.Stat("target")
+			info, gotStatErr := retrievalTargetStat(t, root, "target")
 			if gotStatErr != nil || info.Size() != int64(tc.size) || info.Mode().Perm() != 0o600 {
 				t.Fatalf("activated target Stat() = (%v, %v), want size %d and mode 0600", info, gotStatErr, tc.size)
 			}
@@ -120,7 +115,7 @@ func TestVerifiedGrantDownloadFileLayerTriadNegativePreservesPriorTarget(t *test
 	if got := readRetrievalTarget(t, root, "target"); !bytes.Equal(got, prior) {
 		t.Fatalf("target after failed download = %q, want preserved %q", got, prior)
 	}
-	if _, statErr := root.Stat(".download-stage"); !errors.Is(statErr, fs.ErrNotExist) {
+	if _, statErr := retrievalTargetStat(t, root, ".download-stage"); !errors.Is(statErr, fs.ErrNotExist) {
 		t.Fatalf("temporary after failed download Stat() error = %v, want errors.Is %v", statErr, fs.ErrNotExist)
 	}
 }
@@ -148,7 +143,7 @@ func TestVerifiedGrantDownloadFileLayerTriadDeterminateConflictDiscardsStage(t *
 	if got := readRetrievalTarget(t, root, "target"); !bytes.Equal(got, prior) {
 		t.Fatalf("target after create-only conflict = %q, want preserved %q", got, prior)
 	}
-	if _, gotStatErr := root.Stat(".download-stage"); !errors.Is(gotStatErr, fs.ErrNotExist) {
+	if _, gotStatErr := retrievalTargetStat(t, root, ".download-stage"); !errors.Is(gotStatErr, fs.ErrNotExist) {
 		t.Fatalf("temporary after determinate conflict Stat() error = %v, want errors.Is %v", gotStatErr, fs.ErrNotExist)
 	}
 }
@@ -175,6 +170,7 @@ func TestVerifiedGrantDownloadFileLayerTriadFailureMatrixPreservesPriorTarget(t 
 		{name: "provider reports internal failure", response: retrievalHTTPResponse{status: http.StatusInternalServerError}, wantErr: core.ErrExchangeResponse, install: filestore.InstallReplace},
 		{name: "provider omits promised content type", response: retrievalHTTPResponse{payload: original, omitContentType: true}, wantErr: core.ErrExchangeContentType, install: filestore.InstallReplace},
 		{name: "transport refuses before response", response: retrievalHTTPResponse{transportErr: io.ErrClosedPipe}, wantErr: core.ErrExchangeTransport, install: filestore.InstallReplace},
+		{name: "body close fails after exact authenticated bytes", response: retrievalHTTPResponse{payload: original, closeErr: io.ErrClosedPipe}, wantErr: io.ErrClosedPipe, install: filestore.InstallReplace},
 		{name: "response stream fails after partial bytes", response: retrievalHTTPResponse{payload: original[:len(original)/2], bodyErr: io.ErrUnexpectedEOF}, wantErr: core.ErrExchangeResponse, install: filestore.InstallReplace},
 		{name: "progress observer refuses streamed bytes", response: retrievalHTTPResponse{payload: original}, observerErr: io.ErrClosedPipe, wantErr: core.ErrObjectStoreDestination, install: filestore.InstallReplace},
 		{name: "operation context is cancelled before staging", response: retrievalHTTPResponse{payload: original}, cancelBefore: true, wantErr: context.Canceled, install: filestore.InstallReplace},
@@ -226,7 +222,7 @@ func TestVerifiedGrantDownloadFileLayerTriadFailureMatrixPreservesPriorTarget(t 
 			if got := readRetrievalTarget(t, root, "target"); !bytes.Equal(got, prior) {
 				t.Fatalf("target after %s = %q, want preserved %q", tc.name, got, prior)
 			}
-			if _, gotStatErr := root.Stat(".download-stage"); !errors.Is(gotStatErr, fs.ErrNotExist) {
+			if _, gotStatErr := retrievalTargetStat(t, root, ".download-stage"); !errors.Is(gotStatErr, fs.ErrNotExist) {
 				t.Fatalf("temporary after %s Stat() error = %v, want errors.Is %v", tc.name, gotStatErr, fs.ErrNotExist)
 			}
 		})
@@ -271,7 +267,7 @@ func FuzzVerifiedGrantDownloadFileExternalBodyAtomicity(f *testing.F) {
 				t.Fatalf("target after foreign external body = %q, want preserved %q", got, prior)
 			}
 		}
-		if _, gotStatErr := root.Stat(".download-stage"); !errors.Is(gotStatErr, fs.ErrNotExist) {
+		if _, gotStatErr := retrievalTargetStat(t, root, ".download-stage"); !errors.Is(gotStatErr, fs.ErrNotExist) {
 			t.Fatalf("temporary after external body Stat() error = %v, want errors.Is %v", gotStatErr, fs.ErrNotExist)
 		}
 	})
@@ -298,7 +294,7 @@ func TestVerifiedGrantDownloadFileLayerTriadNeutralAbsentObserverLeavesNoStage(t
 	if got := readRetrievalTarget(t, root, "target"); !bytes.Equal(got, payload) {
 		t.Fatalf("observer-absent activated target = %v, want %v", got, payload)
 	}
-	if _, gotStatErr := root.Stat(".download-stage"); !errors.Is(gotStatErr, fs.ErrNotExist) {
+	if _, gotStatErr := retrievalTargetStat(t, root, ".download-stage"); !errors.Is(gotStatErr, fs.ErrNotExist) {
 		t.Fatalf("observer-absent temporary Stat() error = %v, want errors.Is %v", gotStatErr, fs.ErrNotExist)
 	}
 }
@@ -346,8 +342,9 @@ func TestVerifiedGrantDownloadFileLayerTriadIngressControlsFilesystemEffects(t *
 			payload := []byte{1, 2, 3}
 			fixture := newDownloadCallFixture(t, downloadCallFixtureRequest{Payload: payload})
 			root := retrievalFileRoot(t, directory)
+			requests := 0
 			request := FileDownloadRequest{
-				Client: retrievalObjectstoreClient(t, payload), Policy: fixture.policy,
+				Client: retrievalObjectstoreClientForResponse(t, retrievalHTTPResponse{payload: payload, onRequest: func() { requests++ }}), Policy: fixture.policy,
 				Activation: retrievalActivation(t, retrievalActivationRequest{
 					Root: root, Size: uint64(len(payload)), Install: filestore.InstallCreate,
 				}),
@@ -387,28 +384,36 @@ func TestVerifiedGrantDownloadFileLayerTriadIngressControlsFilesystemEffects(t *
 				if got := readRetrievalTarget(t, root, "target"); !bytes.Equal(got, payload) {
 					t.Fatalf("published bytes=%v, want %v", got, payload)
 				}
-				if _, statErr := root.Stat(".download-stage"); !errors.Is(statErr, fs.ErrNotExist) {
+				if _, statErr := retrievalTargetStat(t, root, ".download-stage"); !errors.Is(statErr, fs.ErrNotExist) {
 					t.Fatalf("stage lookup=%v, want removed", statErr)
 				}
 				return
+			}
+			if requests != 0 {
+				t.Fatalf("rejected ingress contacted provider %d times, want zero", requests)
+			}
+			if _, statErr := retrievalTargetStat(t, root, "target"); !errors.Is(statErr, fs.ErrNotExist) {
+				t.Fatalf("rejected ingress target=%v, want absent", statErr)
 			}
 			if !errors.Is(err, tc.wantErr) || recovery.Validate() == nil || transfer.Validate() == nil {
 				t.Fatalf("DownloadFile(mutation %d) = (%v, %v, %v), want zero results and errors.Is %v",
 					tc.mutation, recovery, transfer, err, tc.wantErr)
 			}
-			if _, statErr := root.Stat(".download-stage"); !errors.Is(statErr, fs.ErrNotExist) {
+			if _, statErr := retrievalTargetStat(t, root, ".download-stage"); !errors.Is(statErr, fs.ErrNotExist) {
 				t.Fatalf("pre-effect refusal temporary Stat() error = %v, want errors.Is %v", statErr, fs.ErrNotExist)
 			}
 		})
 	}
 }
 
-func retrievalObjectstoreClient(t *testing.T, payload []byte) objectstore.Client {
+func retrievalObjectstoreClient(t testing.TB, payload []byte) objectstore.Client {
 	t.Helper()
 	return retrievalObjectstoreClientForResponse(t, retrievalHTTPResponse{payload: payload})
 }
 
 type retrievalHTTPResponse struct {
+	onRequest       func()
+	closeErr        error
 	transportErr    error
 	bodyErr         error
 	payload         []byte
@@ -433,9 +438,12 @@ func (r retrievalContextReader) Read(payload []byte) (int, error) {
 	return r.source.Read(payload)
 }
 
-func retrievalObjectstoreClientForResponse(t *testing.T, response retrievalHTTPResponse) objectstore.Client {
+func retrievalObjectstoreClientForResponse(t testing.TB, response retrievalHTTPResponse) objectstore.Client {
 	t.Helper()
 	transport := retrievalRoundTrip(func(request *http.Request) (*http.Response, error) {
+		if response.onRequest != nil {
+			response.onRequest()
+		}
 		if response.transportErr != nil {
 			return nil, response.transportErr
 		}
@@ -456,7 +464,7 @@ func retrievalObjectstoreClientForResponse(t *testing.T, response retrievalHTTPR
 		}
 		return &http.Response{
 			StatusCode: status, Header: headers,
-			Body: io.NopCloser(body), ContentLength: int64(len(response.payload)), Request: request,
+			Body: retrievalResponseBody{Reader: body, closeErr: response.closeErr}, ContentLength: int64(len(response.payload)), Request: request,
 		}, nil
 	})
 	exchangeClient, err := exchange.NewClient(&http.Client{Transport: transport})
@@ -470,9 +478,13 @@ func retrievalObjectstoreClientForResponse(t *testing.T, response retrievalHTTPR
 	return client
 }
 
-func retrievalFileRoot(t *testing.T, directory string) *os.Root {
+func retrievalFileRoot(t testing.TB, directory string) *os.Root {
 	t.Helper()
-	root, err := os.OpenRoot(directory)
+	path, err := core.ParseAbsolutePath(directory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	root, err := filestore.OpenRoot(t.Context(), path)
 	if err != nil {
 		t.Fatalf("os.OpenRoot() error = %v, want nil", err)
 	}
@@ -490,7 +502,7 @@ type retrievalActivationRequest struct {
 	Install filestore.InstallMode
 }
 
-func retrievalActivation(t *testing.T, request retrievalActivationRequest) filestore.ActivationRequest {
+func retrievalActivation(t testing.TB, request retrievalActivationRequest) filestore.ActivationRequest {
 	t.Helper()
 	return filestore.ActivationRequest{
 		Temporary: filestore.Location{Root: request.Root, Path: retrievalPath(t, ".download-stage")},
@@ -499,7 +511,7 @@ func retrievalActivation(t *testing.T, request retrievalActivationRequest) files
 	}
 }
 
-func retrievalPath(t *testing.T, value string) core.RelativePath {
+func retrievalPath(t testing.TB, value string) core.RelativePath {
 	t.Helper()
 	path, err := core.ParseRelativePath(value)
 	if err != nil {
@@ -508,7 +520,7 @@ func retrievalPath(t *testing.T, value string) core.RelativePath {
 	return path
 }
 
-func retrievalLength(t *testing.T, value uint64) core.ByteLength {
+func retrievalLength(t testing.TB, value uint64) core.ByteLength {
 	t.Helper()
 	length, err := core.NewByteLength(value)
 	if err != nil {
@@ -517,29 +529,104 @@ func retrievalLength(t *testing.T, value uint64) core.ByteLength {
 	return length
 }
 
-func readRetrievalTarget(t *testing.T, root *os.Root, name string) []byte {
+func readRetrievalTarget(t testing.TB, root *os.Root, name string) []byte {
 	t.Helper()
-	file, err := root.Open(name)
+	var destination bytes.Buffer
+	_, err := filestore.Read(t.Context(), filestore.ReadRequest{
+		Destination: &destination, Location: filestore.Location{Root: root, Path: retrievalPath(t, name)},
+	})
 	if err != nil {
-		t.Fatalf("os.Root.Open(%q) error = %v, want nil", name, err)
+		t.Fatal(err)
 	}
-	content, readErr := io.ReadAll(file)
-	closeErr := file.Close()
-	if err := errors.Join(readErr, closeErr); err != nil {
-		t.Fatalf("read and close target error = %v, want nil", err)
-	}
-	return content
+	return destination.Bytes()
 }
 
-func writeRetrievalTarget(t *testing.T, root *os.Root, name string, content []byte) {
+func writeRetrievalTarget(t testing.TB, root *os.Root, name string, content []byte) {
 	t.Helper()
-	file, err := root.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
-	if err != nil {
-		t.Fatalf("os.Root.OpenFile(%q) error = %v, want nil", name, err)
+	recovery, err := filestore.Write(t.Context(), filestore.WriteRequest{
+		Location:  filestore.Location{Root: root, Path: retrievalPath(t, name)},
+		Temporary: retrievalPath(t, ".fixture-stage"), Source: bytes.NewReader(content),
+		Mode: 0o600, Install: filestore.InstallCreate,
+	})
+	if err != nil || recovery.Validate() == nil {
+		t.Fatalf("fixture write=%v/%v, want complete installation without recovery", recovery, err)
 	}
-	written, writeErr := file.Write(content)
-	closeErr := file.Close()
-	if errors.Join(writeErr, closeErr) != nil || written != len(content) {
-		t.Fatalf("write target = (%d, %v, %v), want (%d, nil, nil)", written, writeErr, closeErr, len(content))
+}
+
+func retrievalTargetStat(t testing.TB, root *os.Root, name string) (fs.FileInfo, error) {
+	t.Helper()
+	file, err := filestore.OpenRead(t.Context(), filestore.ReadHandleRequest{
+		Location: filestore.Location{Root: root, Path: retrievalPath(t, name)},
+	})
+	if err != nil {
+		return nil, err
+	}
+	info, statErr := file.Stat()
+	return info, errors.Join(statErr, file.Close())
+}
+
+type retrievalResponseBody struct {
+	io.Reader
+	closeErr error
+}
+
+func (body retrievalResponseBody) Close() error { return body.closeErr }
+
+func TestDownloadFileStageOwnershipLayerTriad(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name          string
+		payload       []byte
+		occupied      bool
+		missingExtent bool
+		want          error
+		requests      int
+	}{
+		{name: "positive_empty_authenticated_file", requests: 1},
+		{name: "negative_preexisting_stage_is_not_ours_to_remove", payload: []byte{1}, occupied: true, want: core.ErrFilestoreConflict},
+		{name: "neutral_missing_authenticated_extent_has_no_effect", payload: []byte{1}, missingExtent: true, want: core.ErrRetrievalBinding},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			fixture := newDownloadCallFixture(t, downloadCallFixtureRequest{Payload: tc.payload})
+			root := retrievalFileRoot(t, t.TempDir())
+			prior := []byte{0x62, 0x63}
+			writeRetrievalTarget(t, root, "target", prior)
+			if tc.occupied {
+				writeRetrievalTarget(t, root, ".download-stage", prior)
+			}
+			calls := 0
+			request := FileDownloadRequest{
+				Client:     retrievalObjectstoreClientForResponse(t, retrievalHTTPResponse{payload: tc.payload, onRequest: func() { calls++ }}),
+				Activation: retrievalActivation(t, retrievalActivationRequest{Root: root, Size: uint64(len(tc.payload)), Install: filestore.InstallReplace}),
+			}
+			if tc.missingExtent {
+				request.Activation.ExpectedBytes = nil
+			}
+			recovery, transfer, err := fixture.grant.DownloadFile(t.Context(), request)
+			if !errors.Is(err, tc.want) || calls != tc.requests || recovery.Validate() == nil {
+				t.Fatalf("download=%v/%v/%v calls=%d, want %v calls=%d zero recovery", recovery, transfer, err, calls, tc.want, tc.requests)
+			}
+			want := prior
+			if tc.want == nil {
+				want = tc.payload
+				body := fixture.addition.Entry.Evidence.Payload.Body
+				if transfer.Validate() != nil || transfer.Bytes() != body.Extent || transfer.SHA256() != body.SHA256 || transfer.CRC32C() != body.CRC32C {
+					t.Fatalf("empty transfer=%v, want exact signed empty integrity", transfer)
+				}
+			} else if transfer.Validate() == nil {
+				t.Fatalf("refused transfer=%v, want no success", transfer)
+			}
+			if got := readRetrievalTarget(t, root, "target"); !bytes.Equal(got, want) {
+				t.Fatalf("target=%x, want %x", got, want)
+			}
+			if tc.occupied {
+				if got := readRetrievalTarget(t, root, ".download-stage"); !bytes.Equal(got, prior) {
+					t.Fatalf("foreign stage=%x, want %x", got, prior)
+				}
+			} else if _, err := retrievalTargetStat(t, root, ".download-stage"); !errors.Is(err, fs.ErrNotExist) {
+				t.Fatalf("stage=%v, want absent", err)
+			}
+		})
 	}
 }

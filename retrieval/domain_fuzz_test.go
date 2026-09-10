@@ -94,3 +94,29 @@ func FuzzSigningDomainJSONSemanticClosure(f *testing.F) {
 		}
 	})
 }
+
+func FuzzSigningDomainTextSemanticClosure(f *testing.F) {
+	for _, seed := range []string{retrieval.SigningDomainRequestV1Token, retrieval.SigningDomainGrantV1Token, "", retrieval.SigningDomainRequestV1Token + " ", "future"} {
+		f.Add([]byte(seed))
+	}
+	f.Fuzz(func(t *testing.T, data []byte) {
+		want := retrieval.SigningDomainUnknown
+		if bytes.Equal(data, []byte(retrieval.SigningDomainRequestV1Token)) {
+			want = retrieval.SigningDomainRequestV1
+		}
+		if bytes.Equal(data, []byte(retrieval.SigningDomainGrantV1Token)) {
+			want = retrieval.SigningDomainGrantV1
+		}
+		got, err := retrieval.SigningDomainUnknown.ParseCanonicalText(data)
+		if want == retrieval.SigningDomainUnknown {
+			if !errors.Is(err, core.ErrRetrievalContract) || got != want {
+				t.Fatalf("domain=%v/%v, want unknown and typed refusal", got, err)
+			}
+			return
+		}
+		text, textErr := got.MarshalText()
+		if err != nil || got != want || textErr != nil || !bytes.Equal(text, data) {
+			t.Fatalf("domain=%v/%v text=%q/%v, want %v exact input", got, err, text, textErr, want)
+		}
+	})
+}

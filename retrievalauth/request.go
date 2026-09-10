@@ -11,12 +11,6 @@ import (
 	"github.com/deliri/primitive/v2026/retrieval"
 )
 
-const (
-	RequestDocumentJSONMaximumBytes = retrieval.RequestDocumentJSONMaximumBytes +
-		controlplane.InstallationCertificateDocumentJSONMaximumBytes +
-		core.CredentialedRequestDocumentSyntaxBytes + core.CredentialedDocumentWhitespaceMaximumBytes
-)
-
 type RequestDocument struct {
 	Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
 	Request     retrieval.RequestDocument                    `json:"request"`
@@ -53,7 +47,6 @@ func (d RequestDocument) ControlNonce() controlwire.RequestNonce {
 	return d.Request.Payload.Nonce
 }
 
-
 type RequestAssembly struct {
 	Certificate controlplane.InstallationCertificateDocument
 	Request     retrieval.RequestDocument
@@ -76,7 +69,7 @@ func (d RequestDocument) MarshalJSON() ([]byte, error) {
 	}
 	type wire RequestDocument
 	encoded, err := core.MarshalCanonicalJSONDocument(wire(d))
-	if err != nil || len(encoded) > RequestDocumentJSONMaximumBytes {
+	if err != nil {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -86,14 +79,8 @@ func (d *RequestDocument) UnmarshalJSON(data []byte) error {
 	if d == nil {
 		return jsonError(errors.New("nil credentialed retrieval request receiver"))
 	}
-	maximum, err := core.NewByteCount(uint64(RequestDocumentJSONMaximumBytes))
-	if err != nil {
-		return jsonError(err)
-	}
-	limits := core.DefaultStrictJSONLimits()
-	limits.DocumentMaximumBytes = maximum
 	type wire RequestDocument
-	decoded, err := core.DecodeStrictJSONStructure[wire](data, limits)
+	decoded, err := core.DecodeStrictJSONStructure[wire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return jsonError(err)
 	}

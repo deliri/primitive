@@ -22,8 +22,8 @@ func FuzzRequestDocumentExternalDecoderAndVerifier(f *testing.F) {
 		f.Fatalf("RequestDocument.MarshalJSON(mutation) error = %v, want nil", err)
 	}
 	for _, seed := range [][]byte{
-		canonical, mutated, nil, {}, []byte("null"), []byte("{}"), []byte("[]"),
-		[]byte(`{"unknown":true}`), bytes.Repeat([]byte{' '}, RequestDocumentJSONMaximumBytes+1),
+		canonical, retrievalAuthPadJSON(canonical, retrievalAuthWhitespaceProbeBytes), mutated, nil, {}, []byte("null"), []byte("{}"), []byte("[]"),
+		[]byte(`{"unknown":true}`), bytes.Repeat([]byte{' '}, retrievalAuthWhitespaceProbeBytes),
 	} {
 		f.Add(seed)
 	}

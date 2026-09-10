@@ -15,13 +15,11 @@ import (
 )
 
 const (
-	RequestPayloadJSONMaximumBytes       = 32 << 10
-	RequestDocumentJSONMaximumBytes      = 64 << 10
-	requestCommitmentDomain              = "primitive/retrieval/request-commitment/v1"
-	requestCommitmentSeparator      byte = 0
+	requestCommitmentDomain         = "primitive/retrieval/request-commitment/v1"
+	requestCommitmentSeparator byte = 0
 )
 
-// Selection is one exact manifest entry or one position in a bounded all-entry traversal.
+// Selection is one exact manifest entry or one position in a streaming all-entry traversal.
 type Selection struct {
 	SpecificSequence chit.EntrySequence        `json:"specific_sequence"`
 	AfterSequence    chit.EntrySequence        `json:"after_sequence"`
@@ -124,6 +122,24 @@ func (s Selection) MarshalJSON() ([]byte, error) {
 	}{AfterSequence: s.AfterSequence, Kind: s.Kind, Position: s.Position})
 }
 
+// UnmarshalJSON validates the selected arm before publishing any decoded fields.
+func (s *Selection) UnmarshalJSON(data []byte) error {
+	if s == nil {
+		return jsonError(errors.New("nil retrieval selection receiver"))
+	}
+	type wire Selection
+	decoded, err := decodeStrict[wire](data)
+	if err != nil {
+		return err
+	}
+	candidate := Selection(decoded)
+	if err := candidate.Validate(); err != nil {
+		return jsonError(err)
+	}
+	*s = candidate
+	return nil
+}
+
 // RequestPayload is the exact chit/object request signed by one installation.
 type RequestPayload struct {
 	Scope     receipt.Scope            `json:"scope"`
@@ -147,6 +163,9 @@ func (p RequestPayload) Validate() error {
 func (RequestPayload) AttestationDomain() SigningDomain { return SigningDomainRequestV1 }
 
 func (p RequestPayload) WriteCanonical(destination io.Writer) error {
+	if core.WriterIsNil(destination) {
+		return contractError(errors.New("nil retrieval canonical destination"))
+	}
 	encoded, err := p.MarshalJSON()
 	if err != nil {
 		return err
@@ -167,7 +186,7 @@ func (p RequestPayload) MarshalJSON() ([]byte, error) {
 	}
 	type wire RequestPayload
 	encoded, err := core.MarshalCanonicalJSONDocument(wire(p))
-	if err != nil || len(encoded) > RequestPayloadJSONMaximumBytes {
+	if err != nil {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -178,7 +197,7 @@ func (p *RequestPayload) UnmarshalJSON(data []byte) error {
 		return jsonError(errors.New("nil retrieval request payload receiver"))
 	}
 	type wire RequestPayload
-	decoded, err := decodeStrict[wire](data, RequestPayloadJSONMaximumBytes)
+	decoded, err := decodeStrict[wire](data)
 	if err != nil {
 		return err
 	}
@@ -211,7 +230,7 @@ func (d RequestDocument) MarshalJSON() ([]byte, error) {
 	}
 	type wire RequestDocument
 	encoded, err := core.MarshalCanonicalJSONDocument(wire(d))
-	if err != nil || len(encoded) > RequestDocumentJSONMaximumBytes {
+	if err != nil {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -222,7 +241,7 @@ func (d *RequestDocument) UnmarshalJSON(data []byte) error {
 		return jsonError(errors.New("nil retrieval request document receiver"))
 	}
 	type wire RequestDocument
-	decoded, err := decodeStrict[wire](data, RequestDocumentJSONMaximumBytes)
+	decoded, err := decodeStrict[wire](data)
 	if err != nil {
 		return err
 	}
@@ -320,16 +339,10 @@ func (c *RequestCommitment) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func decodeStrict[T any](data []byte, maximum uint64) (T, error) {
-	var zero T
-	limit, err := core.NewByteCount(maximum)
+func decodeStrict[T any](data []byte) (T, error) {
+	decoded, err := core.DecodeStrictJSONStructure[T](data, core.ExtensibleJSONLimits())
 	if err != nil {
-		return zero, jsonError(err)
-	}
-	limits := core.DefaultStrictJSONLimits()
-	limits.DocumentMaximumBytes = limit
-	decoded, err := core.DecodeStrictJSONStructure[T](data, limits)
-	if err != nil {
+		var zero T
 		return zero, jsonError(err)
 	}
 	return decoded, nil

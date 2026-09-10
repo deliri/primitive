@@ -14,11 +14,6 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
-const (
-	GrantPayloadJSONMaximumBytes  = 128 << 10
-	GrantDocumentJSONMaximumBytes = 256 << 10
-)
-
 // GrantPayload is the complete signed authorization for one exact manifest
 // object and one separately transported download bearer.
 type GrantPayload struct {
@@ -51,6 +46,9 @@ func (p GrantPayload) Validate() error {
 func (GrantPayload) AttestationDomain() SigningDomain { return SigningDomainGrantV1 }
 
 func (p GrantPayload) WriteCanonical(destination io.Writer) error {
+	if core.WriterIsNil(destination) {
+		return contractError(errors.New("nil retrieval canonical destination"))
+	}
 	encoded, err := p.MarshalJSON()
 	if err != nil {
 		return err
@@ -71,7 +69,7 @@ func (p GrantPayload) MarshalJSON() ([]byte, error) {
 	}
 	type wire GrantPayload
 	encoded, err := core.MarshalCanonicalJSONDocument(wire(p))
-	if err != nil || len(encoded) > GrantPayloadJSONMaximumBytes {
+	if err != nil {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -82,7 +80,7 @@ func (p *GrantPayload) UnmarshalJSON(data []byte) error {
 		return jsonError(errors.New("nil retrieval grant payload receiver"))
 	}
 	type wire GrantPayload
-	decoded, err := decodeStrict[wire](data, GrantPayloadJSONMaximumBytes)
+	decoded, err := decodeStrict[wire](data)
 	if err != nil {
 		return err
 	}
@@ -117,7 +115,7 @@ func (d *GrantDocument) UnmarshalJSON(data []byte) error {
 	if d == nil {
 		return jsonError(errors.New("nil retrieval grant document receiver"))
 	}
-	decoded, err := decodeStrict[grantDocumentWire](data, GrantDocumentJSONMaximumBytes)
+	decoded, err := decodeStrict[grantDocumentWire](data)
 	if err != nil {
 		return err
 	}
@@ -157,7 +155,7 @@ func (p GrantProjection) MarshalJSON() ([]byte, error) {
 		return nil, jsonError(err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(grantProjectionWire(p))
-	if err != nil || len(encoded) > GrantDocumentJSONMaximumBytes {
+	if err != nil {
 		return nil, jsonError(err)
 	}
 	return encoded, nil

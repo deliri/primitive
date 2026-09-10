@@ -167,7 +167,7 @@ func downloadCallMutationName(mutation downloadCallMutation) string {
 }
 
 func downloadCallIsZero(call objectstore.DownloadCapabilityRequest) bool {
-	return call.Destination == nil && call.Capability.IsZero() && call.ContentType.IsZero()
+	return call.Destination == nil && call.Observer == nil && call.Capability.IsZero() && call.ContentType.IsZero() && call.Integrity == (objectstore.Integrity{}) && call.Policy == (objectstore.Policy{})
 }
 
 func newDownloadCallFixture(t testing.TB, fixtureRequest downloadCallFixtureRequest) downloadCallFixture {

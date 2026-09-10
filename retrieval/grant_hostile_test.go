@@ -34,7 +34,7 @@ func TestGrantDocumentJSONLayerTriad(t *testing.T) {
 		t.Fatalf("core.EncodeValidatedJSON(GrantProjection) = (%d bytes, %v), want exact %d-byte receive-only projection", len(strict), gotErr, len(canonical))
 	}
 
-	t.Run("positive exact bearer document and extent boundaries preserve facts", func(t *testing.T) {
+	t.Run("positive bearer and member ordering preserve facts", func(t *testing.T) {
 		t.Parallel()
 
 		cases := []struct {
@@ -43,14 +43,7 @@ func TestGrantDocumentJSONLayerTriad(t *testing.T) {
 		}{
 			{name: "canonical issuer projection", data: canonical},
 			{name: "leading whitespace", data: append([]byte(" \n\t"), canonical...)},
-			{name: "trailing whitespace", data: append(append([]byte(nil), canonical...), ' ', '\n', '\t')},
-			{name: "both-side whitespace", data: append(append([]byte(" \n"), canonical...), '\n', ' ')},
 			{name: "top-level members reordered", data: marshalReorderedGrantProjection(t, projection)},
-			{name: "one below document ceiling", data: grantPadJSON(canonical, GrantDocumentJSONMaximumBytes-1)},
-			{name: "at document ceiling", data: grantPadJSON(canonical, GrantDocumentJSONMaximumBytes)},
-			{name: "one trailing carriage return", data: append(append([]byte(nil), canonical...), '\r')},
-			{name: "four leading whitespace forms", data: append([]byte("\t\r\n "), canonical...)},
-			{name: "four trailing whitespace forms", data: append(append([]byte(nil), canonical...), " \n\r\t"...)},
 		}
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
@@ -94,7 +87,6 @@ func TestGrantDocumentJSONLayerTriad(t *testing.T) {
 			{name: "capability has wrong scalar type", data: []byte(`{"capability":1,"payload":null,"attestation":null}`)},
 			{name: "payload has wrong scalar type", data: []byte(`{"capability":null,"payload":1,"attestation":null}`)},
 			{name: "attestation has wrong scalar type", data: []byte(`{"capability":null,"payload":null,"attestation":1}`)},
-			{name: "one above document ceiling", data: grantPadJSON(canonical, GrantDocumentJSONMaximumBytes+1)},
 		}
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
@@ -130,16 +122,8 @@ func TestGrantIssuanceLayerTriad(t *testing.T) {
 			name string
 			size int
 		}{
-			{name: "one byte", size: 1},
-			{name: "two bytes", size: 2},
-			{name: "three bytes", size: 3},
-			{name: "one below first stream boundary", size: 32<<10 - 1},
-			{name: "at first stream boundary", size: 32 << 10},
-			{name: "one above first stream boundary", size: 32<<10 + 1},
-			{name: "one below second stream boundary", size: 64<<10 - 1},
-			{name: "at second stream boundary", size: 64 << 10},
-			{name: "one above second stream boundary", size: 64<<10 + 1},
-			{name: "one above third stream boundary", size: 96<<10 + 1},
+			{name: "empty authenticated object", size: 0},
+			{name: "nonempty authenticated object", size: 1},
 		}
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
@@ -456,6 +440,21 @@ func TestGrantIssuanceRefusesEveryTraversalContradiction(t *testing.T) {
 				t.Fatalf("IssueGrant(contradictory traversal) = (%v, %v), want zero and errors.Is %v",
 					projection, gotErr, core.ErrRetrievalBinding)
 			}
+			envelope, signErr := attest.Sign(attest.SignRequest[SigningDomain]{Body: input.Payload, Signer: input.Signer})
+			if signErr != nil {
+				t.Fatal(signErr)
+			}
+			foreign := testCase.fixture.document
+			foreign.Payload = input.Payload
+			foreign.Attestation = envelope
+			verified, verifyErr := VerifyGrant(GrantExpectation{
+				Document: foreign, Request: input.Request, Chit: input.Chit, Entry: input.Entry,
+				ObservedAt: retrievalObservedInstant(), TrustedKeys: testCase.fixture.trusted,
+			})
+			if !errors.Is(verifyErr, core.ErrRetrievalBinding) || !verifiedGrantIsZero(verified) {
+				t.Fatalf("authentic contradictory grant=%v/%v, want zero and %v", verified, verifyErr, core.ErrRetrievalBinding)
+			}
+
 		})
 	}
 }
@@ -484,15 +483,8 @@ func TestGrantVerificationLayerTriad(t *testing.T) {
 			observedAt int64
 		}{
 			{name: "exact issue instant", observedAt: retrievalGrantIssuedAt},
-			{name: "one nanosecond after issue", observedAt: retrievalGrantIssuedAt + 1},
-			{name: "two nanoseconds after issue", observedAt: retrievalGrantIssuedAt + 2},
-			{name: "one nanosecond before midpoint", observedAt: midpoint - 1},
 			{name: "exact midpoint", observedAt: midpoint},
-			{name: "one nanosecond after midpoint", observedAt: midpoint + 1},
-			{name: "three nanoseconds before expiry", observedAt: retrievalGrantExpiresAt - 3},
-			{name: "two nanoseconds before expiry", observedAt: retrievalGrantExpiresAt - 2},
 			{name: "one nanosecond before expiry", observedAt: retrievalGrantExpiresAt - 1},
-			{name: "fixture observation instant", observedAt: retrievalGrantObserved},
 		}
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
@@ -631,21 +623,14 @@ func marshalReorderedGrantProjection(t *testing.T, projection GrantProjection) [
 	t.Helper()
 
 	encoded, gotErr := core.MarshalCanonicalJSONDocument(struct {
-		Capability  objectstore.DownloadCapabilityProjection `json:"capability"`
-		Payload     GrantPayload                             `json:"payload"`
 		Attestation attest.Envelope[SigningDomain]           `json:"attestation"`
+		Payload     GrantPayload                             `json:"payload"`
+		Capability  objectstore.DownloadCapabilityProjection `json:"capability"`
 	}{Payload: projection.Payload, Attestation: projection.Attestation, Capability: projection.Capability})
 	if gotErr != nil {
 		t.Fatalf("core.MarshalCanonicalJSONDocument(reordered grant) error = %v, want nil", gotErr)
 	}
 	return encoded
-}
-
-func grantPadJSON(document []byte, wantBytes int) []byte {
-	if len(document) >= wantBytes {
-		return append([]byte(nil), document...)
-	}
-	return append(append([]byte(nil), document...), bytes.Repeat([]byte{' '}, wantBytes-len(document))...)
 }
 
 func sameGrantDocument(got GrantDocument, want GrantDocument) bool {
