@@ -13,10 +13,6 @@ import (
 // an outbound Authorization value.
 const bearerPrefix = "Bearer "
 
-// GoogleCloudCommandOutputMaximumBytes bounds one token plus the longest
-// line ending emitted by a provider command.
-const GoogleCloudCommandOutputMaximumBytes = TokenMaximumBytes + 2
-
 // Token is one opaque provider-acquired outbound identity bearer. Its value
 // has no assertion accessor and every generic formatting surface is redacted.
 type Token struct {
@@ -34,9 +30,9 @@ func newToken(value string) (Token, error) {
 // ParseGoogleCloudCommandOutput validates the complete stdout of one
 // caller-owned Google Cloud credential command. The command lifecycle, exit
 // status, and output capture remain caller-owned; Googleidentity owns the
-// bounded token syntax, provider provenance, and redacted disclosure.
+// token syntax, provider provenance, and redacted disclosure.
 func ParseGoogleCloudCommandOutput(output []byte) (Token, error) {
-	if len(output) == 0 || len(output) > GoogleCloudCommandOutputMaximumBytes {
+	if len(output) == 0 {
 		return Token{}, core.ErrGoogleIdentityContract
 	}
 	value := output
@@ -49,7 +45,7 @@ func ParseGoogleCloudCommandOutput(output []byte) (Token, error) {
 	return newToken(string(value))
 }
 
-// Validate checks provenance identity, extent, and RFC 6750 token68 syntax. It
+// Validate checks provenance identity and RFC 6750 token68 syntax. It
 // does not parse or verify JWT claims.
 func (t Token) Validate() error {
 	if t.value == nil {
@@ -69,7 +65,10 @@ func (t Token) BearerValue() (string, error) {
 
 // Format redacts the token for every formatting verb.
 func (Token) Format(state fmt.State, _ rune) {
-	_, _ = io.WriteString(state, core.RedactedValueText)
+	// fmt.Formatter has no error result; stop on the destination failure.
+	if _, err := io.WriteString(state, core.RedactedValueText); err != nil {
+		return
+	}
 }
 
 // validBearerToken reports whether value is one RFC 6750 token68 production:
@@ -92,7 +91,7 @@ func validBearerToken(value string) bool {
 }
 
 func validateBearerTokenValue(value string) error {
-	if len(value) == 0 || len(value) > TokenMaximumBytes || !validBearerToken(value) {
+	if len(value) == 0 || !validBearerToken(value) {
 		return core.ErrGoogleIdentityContract
 	}
 	return nil

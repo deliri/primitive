@@ -10,6 +10,7 @@ import (
 	"testing/synctest"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/temporal"
 )
 
 // Signed documents cross AcquireGoogleCloud before Verify; malformed bearer
@@ -45,17 +46,17 @@ func TestGoogleCloudVerifierSignedIngressHostile(t *testing.T) {
 		{name: "expired signed token is refused before certificates", claims: func(c *verifierTestClaims) { c.IssuedAt = verifierTestIssued - 2; c.Expires = verifierTestIssued - 1 }, wantErr: core.ErrGoogleIdentityContract},
 		{name: "unsigned algorithm cannot bypass signature verification", header: func(h *verifierTestHeader) { h.Algorithm = "none" }, wantErr: core.ErrGoogleIdentityContract},
 		{name: "truncated signature cannot preserve accepted claims", mutate: func(s string) string { return s[:strings.LastIndexByte(s, '.')+1] }, wantErr: core.ErrGoogleIdentityContract, wantCertificates: 1},
-		{name: "subject one below text ceiling is admitted", claims: func(c *verifierTestClaims) { c.Subject = strings.Repeat("s", GoogleCloudIdentityTextMaximumBytes-1) }, wantCertificates: 1},
-		{name: "subject at text ceiling is admitted", claims: func(c *verifierTestClaims) { c.Subject = strings.Repeat("s", GoogleCloudIdentityTextMaximumBytes) }, wantCertificates: 1},
-		{name: "subject one above text ceiling is refused", claims: func(c *verifierTestClaims) { c.Subject = strings.Repeat("s", GoogleCloudIdentityTextMaximumBytes+1) }, wantErr: core.ErrGoogleIdentityContract, wantCertificates: 1},
-		{name: "subject extreme below token ceiling is refused", claims: func(c *verifierTestClaims) { c.Subject = strings.Repeat("s", 8*GoogleCloudIdentityTextMaximumBytes) }, wantErr: core.ErrGoogleIdentityContract, wantCertificates: 1},
-		{name: "email one below text ceiling is admitted", claims: func(c *verifierTestClaims) { c.Email = strings.Repeat("e", GoogleCloudIdentityTextMaximumBytes-1) }, wantCertificates: 1},
-		{name: "email at text ceiling is admitted", claims: func(c *verifierTestClaims) { c.Email = strings.Repeat("e", GoogleCloudIdentityTextMaximumBytes) }, wantCertificates: 1},
-		{name: "email one above text ceiling is refused", claims: func(c *verifierTestClaims) { c.Email = strings.Repeat("e", GoogleCloudIdentityTextMaximumBytes+1) }, wantErr: core.ErrGoogleIdentityContract, wantCertificates: 1},
-		{name: "email extreme below token ceiling is refused", claims: func(c *verifierTestClaims) { c.Email = strings.Repeat("e", 8*GoogleCloudIdentityTextMaximumBytes) }, wantErr: core.ErrGoogleIdentityContract, wantCertificates: 1},
-		{name: "expiry one below representable second ceiling is admitted", claims: func(c *verifierTestClaims) { c.Expires = math.MaxInt64/1_000_000_000 - 1 }, wantCertificates: 1},
-		{name: "expiry at representable second ceiling is admitted", claims: func(c *verifierTestClaims) { c.Expires = math.MaxInt64 / 1_000_000_000 }, wantCertificates: 1},
-		{name: "expiry one above representable second ceiling is refused", claims: func(c *verifierTestClaims) { c.Expires = math.MaxInt64/1_000_000_000 + 1 }, wantErr: core.ErrGoogleIdentityContract, wantCertificates: 1},
+		{name: "subject one below former text extent is admitted", claims: func(c *verifierTestClaims) { c.Subject = strings.Repeat("s", googleFormerIdentityTextBytes-1) }, wantCertificates: 1},
+		{name: "subject at former text extent is admitted", claims: func(c *verifierTestClaims) { c.Subject = strings.Repeat("s", googleFormerIdentityTextBytes) }, wantCertificates: 1},
+		{name: "subject beyond former text extent is admitted", claims: func(c *verifierTestClaims) { c.Subject = strings.Repeat("s", googleFormerIdentityTextBytes+1) }, wantCertificates: 1},
+		{name: "large subject remains exact", claims: func(c *verifierTestClaims) { c.Subject = strings.Repeat("s", 8*googleFormerIdentityTextBytes) }, wantCertificates: 1},
+		{name: "email one below former text extent is admitted", claims: func(c *verifierTestClaims) { c.Email = strings.Repeat("e", googleFormerIdentityTextBytes-1) }, wantCertificates: 1},
+		{name: "email at former text extent is admitted", claims: func(c *verifierTestClaims) { c.Email = strings.Repeat("e", googleFormerIdentityTextBytes) }, wantCertificates: 1},
+		{name: "email beyond former text extent is admitted", claims: func(c *verifierTestClaims) { c.Email = strings.Repeat("e", googleFormerIdentityTextBytes+1) }, wantCertificates: 1},
+		{name: "large email remains exact", claims: func(c *verifierTestClaims) { c.Email = strings.Repeat("e", 8*googleFormerIdentityTextBytes) }, wantCertificates: 1},
+		{name: "expiry one below representable second ceiling is admitted", claims: func(c *verifierTestClaims) { c.Expires = math.MaxInt64/int64(temporal.NanosecondsPerSecond) - 1 }, wantCertificates: 1},
+		{name: "expiry at representable second ceiling is admitted", claims: func(c *verifierTestClaims) { c.Expires = math.MaxInt64 / int64(temporal.NanosecondsPerSecond) }, wantCertificates: 1},
+		{name: "expiry one above representable second ceiling is refused", claims: func(c *verifierTestClaims) { c.Expires = math.MaxInt64/int64(temporal.NanosecondsPerSecond) + 1 }, wantErr: core.ErrGoogleIdentityContract, wantCertificates: 1},
 		{name: "expiry at signed integer maximum cannot overflow into identity", claims: func(c *verifierTestClaims) { c.Expires = math.MaxInt64 }, wantErr: core.ErrGoogleIdentityContract, wantCertificates: 1},
 		{name: "absent bearer cannot fetch certificates or invent identity", mutate: func(string) string { return "" }, wantErr: core.ErrGoogleIdentityContract},
 		{name: "extra JWT segment is not ignored", mutate: func(s string) string { return s + ".extra" }, wantErr: core.ErrGoogleIdentityContract},
@@ -92,7 +93,9 @@ func TestGoogleCloudVerifierSignedIngressHostile(t *testing.T) {
 							t.Errorf("metadata format = %q, want %q", r.URL.Query().Get(googleFormatQueryName), googleFormatFullValue)
 						}
 						w.Header().Set(googleMetadataHeaderName, googleMetadataHeaderValue)
-						_, _ = io.WriteString(w, strings.TrimPrefix(bearer, bearerPrefix))
+						if _, err := io.WriteString(w, strings.TrimPrefix(bearer, bearerPrefix)); err != nil {
+							t.Errorf("provider write: %v", err)
+						}
 					}))
 					audience, err := ParseAudience(verifierTestAudience)
 					if err != nil {

@@ -5,8 +5,7 @@ import (
 	"context"
 	"errors"
 
-	"cloud.google.com/go/auth/credentials"
-	"cloud.google.com/go/auth/credentials/idtoken"
+	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
 	"github.com/deliri/primitive/v2026/filestore"
@@ -47,10 +46,7 @@ func (s ServiceAccountSource) Validate() error {
 }
 
 func (s ServiceAccountSource) Acquire(ctx context.Context, request IdentityTokenRequest) (Token, error) {
-	if ctx == nil {
-		return Token{}, core.ErrGoogleIdentityContract
-	}
-	if err := errors.Join(s.Validate(), request.Validate(), ctx.Err()); err != nil {
+	if err := errors.Join(s.Validate(), request.Validate(), contextstate.Validate(ctx)); err != nil {
 		return Token{}, contractError(err)
 	}
 	owned, cancel, err := temporal.WithTimeout(temporal.TimeoutRequest{Parent: ctx, Duration: request.Policy.OperationTimeout})
@@ -63,7 +59,12 @@ func (s ServiceAccountSource) Acquire(ctx context.Context, request IdentityToken
 		return Token{}, err
 	}
 	defer clear(document)
-	return acquireServiceAccountDocument(owned, s.client, request.Audience, document)
+	attempt, stop, err := temporal.WithTimeout(temporal.TimeoutRequest{Parent: owned, Duration: request.Policy.AttemptTimeout})
+	if err != nil {
+		return Token{}, contractError(err)
+	}
+	defer stop()
+	return acquireServiceAccountDocument(attempt, s.client, request.Audience, document)
 }
 
 // The official authentication SDK requires a complete credential JSON value.
@@ -101,18 +102,7 @@ func acquireServiceAccountDocument(ctx context.Context, client exchange.Client, 
 	if err != nil {
 		return Token{}, contractError(err)
 	}
-	credential, err := idtoken.NewCredentialsFromJSON(credentials.ServiceAccount, document, &idtoken.Options{Audience: audience.String(), Client: sdkClient})
-	if err != nil {
-		return Token{}, contractError(err)
-	}
-	token, err := credential.Token(ctx)
-	if err != nil {
-		return Token{}, contractError(err)
-	}
-	if token == nil {
-		return Token{}, core.ErrGoogleIdentityContract
-	}
-	return newToken(token.Value)
+	return serviceAccountToken(ctx, sdkClient, audience, document)
 }
 
 func (ServiceAccountSource) googleIdentityCapabilityWrapper() {}

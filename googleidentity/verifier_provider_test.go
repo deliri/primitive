@@ -3,13 +3,13 @@ package googleidentity
 import (
 	"context"
 	"errors"
+	"github.com/deliri/primitive/v2026/temporal"
 	"io"
 	"net/http"
 	"strconv"
 	"strings"
 	"testing"
 	"testing/synctest"
-	"time"
 
 	"github.com/deliri/primitive/v2026/core"
 )
@@ -48,9 +48,9 @@ func TestGoogleCloudVerifierCertificateLayerTriad(t *testing.T) {
 			writeVerifierCertificate(t, w, b)
 		}, wantErr: io.ErrUnexpectedEOF},
 		{name: "malformed certificate JSON preserves syntax refusal", response: func(w http.ResponseWriter, _ *http.Request, b []byte) { writeVerifierCertificate(t, w, b[:len(b)-1]) }, wantErr: core.ErrJSONContract},
-		{name: "certificate one below byte ceiling is admitted", response: paddedVerifierCertificate(verifierFormerCertificateCutoffBytes - 1)},
-		{name: "certificate at byte ceiling is admitted", response: paddedVerifierCertificate(verifierFormerCertificateCutoffBytes)},
-		{name: "certificate beyond former cutoff preserves signed identity", response: paddedVerifierCertificate(verifierFormerCertificateCutoffBytes + 1)},
+		{name: "certificate below former byte extent is admitted", response: paddedVerifierCertificate(t, verifierFormerCertificateCutoffBytes-1)},
+		{name: "certificate at former byte extent is admitted", response: paddedVerifierCertificate(t, verifierFormerCertificateCutoffBytes)},
+		{name: "certificate beyond former cutoff preserves signed identity", response: paddedVerifierCertificate(t, verifierFormerCertificateCutoffBytes+1)},
 		{name: "extreme declaration reads actual bytes and preserves truncation", response: func(w http.ResponseWriter, _ *http.Request, _ []byte) {
 			w.Header().Set("Content-Length", strconv.FormatInt(1<<62, 10))
 			w.WriteHeader(http.StatusOK)
@@ -91,55 +91,102 @@ func writeVerifierCertificate(t testing.TB, w http.ResponseWriter, body []byte) 
 	}
 }
 
-func paddedVerifierCertificate(size int) func(http.ResponseWriter, *http.Request, []byte) {
+func paddedVerifierCertificate(t testing.TB, size int) func(http.ResponseWriter, *http.Request, []byte) {
 	return func(w http.ResponseWriter, _ *http.Request, b []byte) {
 		w.Header().Set("Content-Length", strconv.Itoa(size))
 		// Only JSON whitespace changes; the real authority keys stay identical.
-		_, _ = w.Write(append(b, strings.Repeat(" ", size-len(b))...))
+		writeVerifierCertificate(t, w, append(b, strings.Repeat(" ", size-len(b))...))
 	}
 }
 
 func TestGoogleCloudVerifierCancellationWaitsForCertificateReadExit(t *testing.T) {
 	t.Parallel()
-	started, exited := make(chan struct{}), make(chan struct{})
-	p := newVerifierTestProvider(t, func(w http.ResponseWriter, r *http.Request, _ []byte) {
-		defer close(exited)
-		w.Header().Set("Content-Length", "128")
-		w.WriteHeader(http.StatusOK)
-		w.(http.Flusher).Flush()
-		close(started)
-		<-r.Context().Done()
-	})
-	bearer := p.sign(t, verifierTestHeader{Algorithm: verifierTestAlgorithm, KeyID: verifierTestKeyID}, verifierClaims(), false)
-	v := p.verifier(t, verifierTestAudience)
-	ctx, cancel := context.WithCancel(t.Context())
-	defer cancel()
-	type result struct {
-		identity GoogleCloudVerifiedIdentity
-		err      error
-	}
-	done := make(chan result, 1)
-	go func() { identity, err := v.Verify(ctx, bearer); done <- result{identity, err} }()
-	select {
-	case <-started:
-	case <-time.After(10 * time.Second):
-		t.Fatal("certificate read started = false, want true")
-	}
-	cancel()
-	select {
-	case got := <-done:
-		if got.identity != (GoogleCloudVerifiedIdentity{}) || !errors.Is(got.err, context.Canceled) || !errors.Is(got.err, core.ErrGoogleIdentityContract) {
-			t.Fatalf("cancelled Verify() = (%+v, %v), want zero and preserved cancellation", got.identity, got.err)
-		}
-	case <-time.After(10 * time.Second):
-		t.Fatal("verifier exited = false, want true")
-	}
-	select {
-	case <-exited:
-	case <-time.After(10 * time.Second):
-		t.Fatal("certificate handler exited = false, want true")
-	}
-	if calls := p.calls.Load(); calls != 1 {
-		t.Fatalf("certificate requests = %d, want 1", calls)
+	for _, tc := range []struct {
+		name       string
+		preCancel  bool
+		cancelRead bool
+		wantCalls  uint64
+		wantErr    error
+	}{
+		{name: "complete_certificate_preserves_exact_identity", wantCalls: 1},
+		{name: "cancelled_body_read_joins_provider_exit", cancelRead: true, wantCalls: 1, wantErr: context.Canceled},
+		{name: "cancelled_before_ingress_performs_no_certificate_request", preCancel: true, wantErr: context.Canceled},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			duration, err := temporal.DurationFromSeconds(10)
+			if err != nil {
+				t.Fatal(err)
+			}
+			watchdog, stop, err := temporal.WithTimeout(temporal.TimeoutRequest{Parent: t.Context(), Duration: duration})
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer stop()
+			started, exited, release := make(chan struct{}), make(chan struct{}), make(chan struct{})
+			p := newVerifierTestProvider(t, func(w http.ResponseWriter, r *http.Request, body []byte) {
+				defer close(exited)
+				w.Header().Set("Content-Length", strconv.Itoa(len(body)))
+				w.WriteHeader(http.StatusOK)
+				if err := http.NewResponseController(w).Flush(); err != nil {
+					t.Errorf("flush: %v", err)
+				}
+				close(started)
+				select {
+				case <-r.Context().Done():
+					return
+				case <-release:
+					writeVerifierCertificate(t, w, body)
+				}
+			})
+			bearer := p.sign(t, verifierTestHeader{Algorithm: verifierTestAlgorithm, KeyID: verifierTestKeyID}, verifierClaims(), false)
+			verifier := p.verifier(t, verifierTestAudience)
+			ctx, cancel := context.WithCancel(watchdog)
+			defer cancel()
+			if tc.preCancel {
+				cancel()
+			}
+			type result struct {
+				identity GoogleCloudVerifiedIdentity
+				err      error
+			}
+			done := make(chan result, 1)
+			go func() { identity, err := verifier.Verify(ctx, bearer); done <- result{identity, err} }()
+			if !tc.preCancel {
+				select {
+				case <-started:
+				case <-watchdog.Done():
+					t.Fatal("certificate read started=false, want true")
+				}
+				if tc.cancelRead {
+					cancel()
+				} else {
+					close(release)
+				}
+			}
+			var got result
+			select {
+			case got = <-done:
+			case <-watchdog.Done():
+				t.Fatal("verification joined=false, want true")
+			}
+			if !tc.preCancel {
+				select {
+				case <-exited:
+				case <-watchdog.Done():
+					t.Fatal("provider joined=false, want true")
+				}
+			}
+			want := GoogleCloudVerifiedIdentity{}
+			if tc.wantErr == nil {
+				want = verifierClaims().identity(t)
+			}
+			if !errors.Is(got.err, tc.wantErr) || got.identity != want || p.calls.Load() != tc.wantCalls {
+				t.Fatalf("identity=%v error=%v calls=%d, want %v, %v, %d", got.identity, got.err, p.calls.Load(), want, tc.wantErr, tc.wantCalls)
+			}
+			if tc.wantErr != nil && !errors.Is(got.err, core.ErrGoogleIdentityContract) {
+				t.Fatalf("error=%v, want identity boundary", got.err)
+			}
+		})
 	}
 }

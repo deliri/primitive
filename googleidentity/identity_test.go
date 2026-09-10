@@ -9,13 +9,14 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"io"
+	"io/fs"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
-	"path/filepath"
 	"reflect"
+	"regexp"
 	"slices"
 	"strings"
 	"sync/atomic"
@@ -23,6 +24,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
+	"github.com/deliri/primitive/v2026/temporal"
 )
 
 const googleTestToken = "eyJhbGciOiJSUzI1NiJ9.eyJhdWQiOiJ0ZXN0In0.signature"
@@ -56,7 +58,12 @@ func googleTestClientWithProxy(
 	tb.Helper()
 	server := httptest.NewServer(handler)
 	tb.Cleanup(server.Close)
-	transport := http.DefaultTransport.(*http.Transport).Clone()
+	standard, ok := http.DefaultTransport.(*http.Transport)
+	if !ok {
+		tb.Fatalf("transport = %T, want *http.Transport", http.DefaultTransport)
+	}
+	transport := standard.Clone()
+	tb.Cleanup(transport.CloseIdleConnections)
 	transport.Proxy = proxy
 	transport.DialContext = func(ctx context.Context, network, _ string) (net.Conn, error) {
 		var dialer net.Dialer
@@ -85,16 +92,16 @@ func TestGoogleAudienceHostileBoundaryTable(t *testing.T) {
 		{name: "custom audience remains exact", value: "release-broker"}, {name: "OAuth identifier remains exact", value: "123.apps.googleusercontent.com"},
 		{name: "query delimiters remain data", value: "service?tenant=one&role=writer"}, {name: "space remains data", value: "service audience"},
 		{name: "plus remains data", value: "service+audience"}, {name: "Unicode remains exact", value: "服务"},
-		{name: "one below maximum is admitted", value: strings.Repeat("a", AudienceMaximumBytes-1)}, {name: "exact maximum is admitted", value: strings.Repeat("a", AudienceMaximumBytes)},
-		{name: "empty value is refused", wantErr: core.ErrGoogleIdentityContract}, {name: "one above maximum is refused", value: strings.Repeat("a", AudienceMaximumBytes+1), wantErr: core.ErrGoogleIdentityContract},
-		{name: "far above maximum is refused", value: strings.Repeat("a", 4*AudienceMaximumBytes), wantErr: core.ErrGoogleIdentityContract},
+		{name: "one below former maximum is admitted", value: strings.Repeat("a", googleFormerAudienceBytes-1)}, {name: "exact former maximum is admitted", value: strings.Repeat("a", googleFormerAudienceBytes)},
+		{name: "empty value is refused", wantErr: core.ErrGoogleIdentityContract}, {name: "beyond former maximum is admitted", value: strings.Repeat("a", googleFormerAudienceBytes+1)},
+		{name: "many former windows are admitted", value: strings.Repeat("a", 4*googleFormerAudienceBytes)},
 		{name: "single invalid UTF8 byte is refused", value: string([]byte{0xff}), wantErr: core.ErrGoogleIdentityContract},
 		{name: "truncated two byte UTF8 is refused", value: string([]byte{0xc2}), wantErr: core.ErrGoogleIdentityContract},
 		{name: "truncated three byte UTF8 is refused", value: string([]byte{0xe2, 0x82}), wantErr: core.ErrGoogleIdentityContract},
 		{name: "surrogate UTF8 is refused", value: string([]byte{0xed, 0xa0, 0x80}), wantErr: core.ErrGoogleIdentityContract},
 		{name: "overlong UTF8 is refused", value: string([]byte{0xc0, 0xaf}), wantErr: core.ErrGoogleIdentityContract},
-		{name: "invalid maximum suffix is refused", value: strings.Repeat("a", AudienceMaximumBytes-1) + string([]byte{0xff}), wantErr: core.ErrGoogleIdentityContract},
-		{name: "multibyte extent above bound is refused", value: strings.Repeat("界", AudienceMaximumBytes/2), wantErr: core.ErrGoogleIdentityContract},
+		{name: "invalid suffix at former extent is refused", value: strings.Repeat("a", googleFormerAudienceBytes-1) + string([]byte{0xff}), wantErr: core.ErrGoogleIdentityContract},
+		{name: "large multibyte extent is admitted", value: strings.Repeat("界", googleFormerAudienceBytes/2)},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -120,9 +127,9 @@ func TestGoogleCommandOutputHostileBoundaryTable(t *testing.T) {
 		name    string
 		value   string
 	}{
-		{name: "one token byte reaches minimum", value: "a"}, {name: "three lexical segments remain opaque", value: "a.b.c"}, {name: "standard base64 alphabet is admitted", value: "abc+/"}, {name: "URL safe alphabet is admitted", value: "abc-_"}, {name: "tilde is admitted", value: "abc~"}, {name: "single padding is admitted", value: "abc="}, {name: "double padding is admitted", value: "abc=="}, {name: "line feed is trimmed", value: "abc\n"}, {name: "carriage return line feed is trimmed", value: "abc\r\n"}, {name: "exact maximum is admitted", value: strings.Repeat("a", TokenMaximumBytes)},
+		{name: "one token byte reaches minimum", value: "a"}, {name: "three lexical segments remain opaque", value: "a.b.c"}, {name: "standard base64 alphabet is admitted", value: "abc+/"}, {name: "URL safe alphabet is admitted", value: "abc-_"}, {name: "tilde is admitted", value: "abc~"}, {name: "single padding is admitted", value: "abc="}, {name: "double padding is admitted", value: "abc=="}, {name: "line feed is trimmed", value: "abc\n"}, {name: "carriage return line feed is trimmed", value: "abc\r\n"}, {name: "exact former maximum is admitted", value: strings.Repeat("a", googleFormerTokenBytes)},
 		{name: "empty output is refused", wantErr: core.ErrGoogleIdentityContract}, {name: "leading padding is refused", value: "=abc", wantErr: core.ErrGoogleIdentityContract}, {name: "interior padding is refused", value: "ab=c", wantErr: core.ErrGoogleIdentityContract}, {name: "space is refused", value: "ab c", wantErr: core.ErrGoogleIdentityContract}, {name: "tab is refused", value: "ab\tc", wantErr: core.ErrGoogleIdentityContract}, {name: "interior newline is refused", value: "ab\nc", wantErr: core.ErrGoogleIdentityContract}, {name: "bare carriage return is refused", value: "abc\r", wantErr: core.ErrGoogleIdentityContract}, {name: "double line feed is refused", value: "abc\n\n", wantErr: core.ErrGoogleIdentityContract}, {name: "leading line feed is refused", value: "\nabc", wantErr: core.ErrGoogleIdentityContract}, {name: "trailing space is refused", value: "abc ", wantErr: core.ErrGoogleIdentityContract},
-		{name: "comma is refused", value: "ab,c", wantErr: core.ErrGoogleIdentityContract}, {name: "non ASCII is refused", value: "ab界c", wantErr: core.ErrGoogleIdentityContract}, {name: "token one above maximum is refused", value: strings.Repeat("a", TokenMaximumBytes+1), wantErr: core.ErrGoogleIdentityContract}, {name: "output above framing maximum is refused", value: strings.Repeat("a", GoogleCloudCommandOutputMaximumBytes+1), wantErr: core.ErrGoogleIdentityContract},
+		{name: "comma is refused", value: "ab,c", wantErr: core.ErrGoogleIdentityContract}, {name: "non ASCII is refused", value: "ab界c", wantErr: core.ErrGoogleIdentityContract}, {name: "token beyond former maximum is admitted", value: strings.Repeat("a", googleFormerTokenBytes+1)}, {name: "output beyond former framing extent is admitted", value: strings.Repeat("a", (googleFormerTokenBytes+2)+1)},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -157,6 +164,7 @@ func TestLayerTriadGoogleIdentityAcquireRealHTTP(t *testing.T) {
 		{name: "provider fact with response flavor produces redacted bearer", body: googleTestToken, flavor: googleMetadataHeaderValue, status: http.StatusOK, wantCalls: 1},
 		{name: "missing response flavor refuses an otherwise valid bearer", body: googleTestToken, status: http.StatusOK, wantErr: core.ErrGoogleIdentityContract, wantCalls: 1},
 		{name: "foreign response flavor refuses an otherwise valid bearer", body: googleTestToken, flavor: "Foreign", status: http.StatusOK, wantErr: core.ErrGoogleIdentityContract, wantCalls: 1},
+		{name: "provider token crosses many former windows", body: strings.Repeat("a", 4*googleFormerTokenBytes), flavor: googleMetadataHeaderValue, status: http.StatusOK, wantCalls: 1},
 		{name: "empty provider fact is refused", flavor: googleMetadataHeaderValue, status: http.StatusOK, wantErr: core.ErrGoogleIdentityContract, wantCalls: 1},
 		{name: "cancelled intent performs no effect", body: googleTestToken, flavor: googleMetadataHeaderValue, status: http.StatusOK, cancel: true, wantErr: context.Canceled},
 	} {
@@ -172,7 +180,9 @@ func TestLayerTriadGoogleIdentityAcquireRealHTTP(t *testing.T) {
 					w.Header().Set(googleMetadataHeaderName, tc.flavor)
 				}
 				w.WriteHeader(tc.status)
-				_, _ = w.Write([]byte(tc.body))
+				if _, err := w.Write([]byte(tc.body)); err != nil {
+					t.Errorf("provider write: %v", err)
+				}
 			}))
 			ctx := t.Context()
 			if tc.cancel {
@@ -187,7 +197,7 @@ func TestLayerTriadGoogleIdentityAcquireRealHTTP(t *testing.T) {
 				}
 			} else {
 				bearer, bearerErr := got.BearerValue()
-				if err != nil || bearerErr != nil || bearer != "Bearer "+googleTestToken {
+				if err != nil || bearerErr != nil || bearer != bearerPrefix+tc.body {
 					t.Fatalf("AcquireGoogleCloud() bearer = (%q, %v, %v), want valid", bearer, err, bearerErr)
 				}
 			}
@@ -200,78 +210,139 @@ func TestLayerTriadGoogleIdentityAcquireRealHTTP(t *testing.T) {
 
 func TestGoogleMetadataAcquisitionBypassesConfiguredProxy(t *testing.T) {
 	t.Parallel()
-
-	var calls atomic.Uint64
-	var proxyCalls atomic.Uint64
-	client := googleTestClientWithProxy(t, http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
-		calls.Add(1)
-		writer.Header().Set(googleMetadataHeaderName, googleMetadataHeaderValue)
-		writer.WriteHeader(http.StatusOK)
-		_, _ = writer.Write([]byte(googleTestToken))
-	}), func(*http.Request) (*url.URL, error) {
-		proxyCalls.Add(1)
-		return nil, errors.New("configured proxy must not observe metadata acquisition")
-	})
-	got, gotErr := AcquireGoogleCloud(t.Context(), client, IdentityTokenRequest{Audience: mustGoogleAudience(t), Policy: mustGooglePolicy(t)})
-	bearer, bearerErr := got.BearerValue()
-	if gotErr != nil || bearerErr != nil || bearer != "Bearer "+googleTestToken || calls.Load() != 1 || proxyCalls.Load() != 0 {
-		t.Fatalf("AcquireGoogleCloud(no proxy) = (bearer %q, errors %v/%v, metadata calls %d, proxy calls %d), want exact bearer, nil/nil, 1, 0", bearer, gotErr, bearerErr, calls.Load(), proxyCalls.Load())
+	for _, tc := range []struct {
+		name      string
+		proxy     bool
+		cancel    bool
+		wantCalls uint64
+		wantErr   error
+	}{
+		{name: "configured_proxy_cannot_observe_metadata", proxy: true, wantCalls: 1},
+		{name: "absent_proxy_keeps_direct_metadata", wantCalls: 1},
+		{name: "cancelled_intent_reaches_neither_proxy_nor_metadata", proxy: true, cancel: true, wantErr: context.Canceled},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			var calls, proxyCalls atomic.Uint64
+			var proxy func(*http.Request) (*url.URL, error)
+			if tc.proxy {
+				proxy = func(*http.Request) (*url.URL, error) { proxyCalls.Add(1); return nil, core.ErrGoogleIdentityContract }
+			}
+			client := googleTestClientWithProxy(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				calls.Add(1)
+				w.Header().Set(googleMetadataHeaderName, googleMetadataHeaderValue)
+				if _, err := io.WriteString(w, googleTestToken); err != nil {
+					t.Errorf("provider write: %v", err)
+				}
+			}), proxy)
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+			if tc.cancel {
+				cancel()
+			}
+			got, err := client.Acquire(ctx, IdentityTokenRequest{Audience: mustGoogleAudience(t), Policy: mustGooglePolicy(t)})
+			if !errors.Is(err, tc.wantErr) || calls.Load() != tc.wantCalls || proxyCalls.Load() != 0 {
+				t.Fatalf("error=%v metadata=%d proxy=%d, want %v, %d, 0", err, calls.Load(), proxyCalls.Load(), tc.wantErr, tc.wantCalls)
+			}
+			if tc.wantErr != nil {
+				if got != (Token{}) {
+					t.Fatalf("refused token=%v, want zero", got)
+				}
+				return
+			}
+			bearer, err := got.BearerValue()
+			if err != nil || bearer != bearerPrefix+googleTestToken {
+				t.Fatalf("bearer matches=%t error=%v, want exact metadata token", bearer == bearerPrefix+googleTestToken, err)
+			}
+		})
 	}
 }
 
 func TestLayerTriadGoogleAccessTokenRealHTTP(t *testing.T) {
 	t.Parallel()
-	valid, _ := json.Marshal(googleAccessTokenResponse{AccessToken: "abc", TokenType: googleAccessTokenTypeBearer, ExpiresIn: 300})
 	for _, tc := range []struct {
-		wantErr   error
-		name      string
-		flavor    string
-		body      []byte
-		wantCalls uint64
-		cancel    bool
+		name     string
+		change   func(*googleAccessTokenResponse)
+		mutate   func([]byte) []byte
+		noFlavor bool
+		cancel   bool
+		wantErr  error
 	}{
-		{name: "provider receipt with response flavor produces bounded access bearer", body: valid, flavor: googleMetadataHeaderValue, wantCalls: 1},
-		{name: "missing response flavor refuses an otherwise valid access bearer", body: valid, wantErr: core.ErrGoogleIdentityContract, wantCalls: 1},
-		{name: "unknown response member is refused", body: []byte(`{"access_token":"abc","token_type":"Bearer","expires_in":300,"unknown":true}`), flavor: googleMetadataHeaderValue, wantErr: core.ErrGoogleIdentityContract, wantCalls: 1},
-		{name: "cancelled intent performs no effect", body: valid, flavor: googleMetadataHeaderValue, cancel: true, wantErr: context.Canceled},
+		{name: "minimum_positive_lifetime_remains_exact", change: func(w *googleAccessTokenResponse) { w.ExpiresIn = 1 }},
+		{name: "maximum_representable_lifetime_does_not_wrap", change: func(w *googleAccessTokenResponse) {
+			w.ExpiresIn = googleAccessTokenLifetimeSeconds(GoogleCloudAccessTokenLifetimeMaximumSeconds)
+		}},
+		{name: "above_native_lifetime_representation_is_refused", change: func(w *googleAccessTokenResponse) {
+			w.ExpiresIn = googleAccessTokenLifetimeSeconds(GoogleCloudAccessTokenLifetimeMaximumSeconds) + 1
+		}, wantErr: core.ErrGoogleIdentityContract},
+		{name: "zero_lifetime_cannot_invent_valid_token", change: func(w *googleAccessTokenResponse) { w.ExpiresIn = 0 }, wantErr: core.ErrGoogleIdentityContract},
+		{name: "negative_lifetime_cannot_wrap_unsigned", mutate: func(b []byte) []byte { return bytes.Replace(b, []byte(":300"), []byte(":-1"), 1) }, wantErr: core.ErrGoogleIdentityContract},
+		{name: "token_crosses_many_former_windows", change: func(w *googleAccessTokenResponse) { w.AccessToken = strings.Repeat("a", 4*googleFormerTokenBytes) }},
+		{name: "large_token_still_refuses_invalid_suffix", change: func(w *googleAccessTokenResponse) {
+			w.AccessToken = strings.Repeat("a", 4*googleFormerTokenBytes) + " "
+		}, wantErr: core.ErrGoogleIdentityContract},
+		{name: "missing_metadata_flavor_cannot_authenticate_source", noFlavor: true, wantErr: core.ErrGoogleIdentityContract},
+		{name: "unknown_response_member_is_refused", mutate: func(b []byte) []byte { return append(b[:len(b)-1], []byte(",\"unknown\":true}")...) }, wantErr: core.ErrGoogleIdentityContract},
+		{name: "cancelled_intent_performs_no_effect", cancel: true, wantErr: context.Canceled},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
+			wire := googleAccessTokenResponse{AccessToken: googleTestToken, TokenType: googleAccessTokenTypeBearer, ExpiresIn: 300}
+			if tc.change != nil {
+				tc.change(&wire)
+			}
+			body, err := core.MarshalCanonicalJSONDocument(wire)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if tc.mutate != nil {
+				body = tc.mutate(body)
+			}
 			var calls atomic.Uint64
 			client := googleTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				calls.Add(1)
-				if tc.flavor != "" {
-					w.Header().Set(googleMetadataHeaderName, tc.flavor)
+				if r.Method != http.MethodGet || r.URL.Path != googleMetadataAccessTokenPath || r.Header.Get(googleMetadataHeaderName) != googleMetadataHeaderValue {
+					t.Errorf("request=%v %v flavor=%v, want exact metadata intent", r.Method, r.URL.Path, r.Header.Get(googleMetadataHeaderName))
 				}
-				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write(tc.body)
+				if !tc.noFlavor {
+					w.Header().Set(googleMetadataHeaderName, googleMetadataHeaderValue)
+				}
+				if _, err := w.Write(body); err != nil {
+					t.Errorf("provider write: %v", err)
+				}
 			}))
-			ctx := t.Context()
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
 			if tc.cancel {
-				var cancel context.CancelFunc
-				ctx, cancel = context.WithCancel(ctx)
 				cancel()
 			}
 			got, err := AcquireGoogleCloudAccessToken(ctx, client, GoogleCloudAccessTokenRequest{Policy: mustGooglePolicy(t)})
-			if tc.wantErr != nil {
-				if !errors.Is(err, tc.wantErr) || got != (AccessToken{}) {
-					t.Fatalf("AcquireGoogleCloudAccessToken() = (%v, %v), want zero and %v", got, err, tc.wantErr)
-				}
-			} else {
-				bearer, bearerErr := got.BearerValue()
-				if err != nil || bearerErr != nil || bearer != "Bearer abc" || got.Lifetime().IsZero() {
-					t.Fatalf("access token closure = (%q, %v, %v), want bounded token", bearer, err, bearerErr)
-				}
+			wantCalls := uint64(1)
+			if tc.cancel {
+				wantCalls = 0
 			}
-			if calls.Load() != tc.wantCalls {
-				t.Fatalf("metadata calls = %d, want %d", calls.Load(), tc.wantCalls)
+			if !errors.Is(err, tc.wantErr) || calls.Load() != wantCalls {
+				t.Fatalf("error=%v calls=%d, want %v and %d", err, calls.Load(), tc.wantErr, wantCalls)
+			}
+			if tc.wantErr != nil {
+				if got != (AccessToken{}) || !errors.Is(err, core.ErrGoogleIdentityContract) {
+					t.Fatalf("refused token=%v error=%v, want zero typed refusal", got, err)
+				}
+				return
+			}
+			bearer, err := got.BearerValue()
+			if err != nil || bearer != bearerPrefix+wire.AccessToken || got.Lifetime().Nanoseconds() != int64(wire.ExpiresIn)*int64(temporal.NanosecondsPerSecond) || got.Validate() != nil {
+				t.Fatalf("token matches=%t lifetime=%v error=%v, want exact provider receipt", bearer == bearerPrefix+wire.AccessToken, got.Lifetime(), err)
 			}
 		})
 	}
 }
 
 type googleExternalDoorInventory struct {
-	Verify                        func(GoogleCloudVerifier, context.Context, string) (GoogleCloudVerifiedIdentity, error)
+	Audience_UnmarshalText        func(*Audience, []byte) error
+	Client_Acquire                func(Client, context.Context, IdentityTokenRequest) (Token, error)
+	ServiceAccountSource_Acquire  func(ServiceAccountSource, context.Context, IdentityTokenRequest) (Token, error)
+	GoogleCloudVerifier_Verify    func(GoogleCloudVerifier, context.Context, string) (GoogleCloudVerifiedIdentity, error)
 	AcquireGoogleCloud            func(context.Context, Client, IdentityTokenRequest) (Token, error)
 	AcquireGoogleCloudAccessToken func(context.Context, Client, GoogleCloudAccessTokenRequest) (AccessToken, error)
 	NewGoogleCloudVerifier        func(context.Context, GoogleCloudVerifierConfiguration) (GoogleCloudVerifier, error)
@@ -279,11 +350,11 @@ type googleExternalDoorInventory struct {
 	ParseGoogleCloudCommandOutput func([]byte) (Token, error)
 }
 
-var googleExternalDoors = googleExternalDoorInventory{Verify: GoogleCloudVerifier.Verify, AcquireGoogleCloud: AcquireGoogleCloud, AcquireGoogleCloudAccessToken: AcquireGoogleCloudAccessToken, NewGoogleCloudVerifier: NewGoogleCloudVerifier, ParseAudience: ParseAudience, ParseGoogleCloudCommandOutput: ParseGoogleCloudCommandOutput}
+var googleExternalDoors = googleExternalDoorInventory{Audience_UnmarshalText: (*Audience).UnmarshalText, Client_Acquire: Client.Acquire, ServiceAccountSource_Acquire: ServiceAccountSource.Acquire, GoogleCloudVerifier_Verify: GoogleCloudVerifier.Verify, AcquireGoogleCloud: AcquireGoogleCloud, AcquireGoogleCloudAccessToken: AcquireGoogleCloudAccessToken, NewGoogleCloudVerifier: NewGoogleCloudVerifier, ParseAudience: ParseAudience, ParseGoogleCloudCommandOutput: ParseGoogleCloudCommandOutput}
 
 func TestGoogleExternalDoorInventoryMatchesProduction(t *testing.T) {
 	t.Parallel()
-	got, err := scanGoogleExternalDoors(".")
+	got, err := scanGoogleExternalDoors()
 	if err != nil {
 		t.Fatalf("scanGoogleExternalDoors() error = %v, want nil", err)
 	}
@@ -297,18 +368,22 @@ func TestGoogleExternalDoorInventoryMatchesProduction(t *testing.T) {
 		t.Fatalf("Google external doors = %q, want %q", got, want)
 	}
 }
-func scanGoogleExternalDoors(root string) ([]string, error) {
-	entries, err := os.ReadDir(root)
+func scanGoogleExternalDoors() ([]string, error) {
+	entries, err := fs.Glob(googleIdentitySource, "*.go")
 	if err != nil {
 		return nil, err
 	}
 	set := token.NewFileSet()
 	var doors []string
 	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".go") || strings.HasSuffix(entry.Name(), "_test.go") {
+		if strings.HasSuffix(entry, "_test.go") {
 			continue
 		}
-		file, parseErr := parser.ParseFile(set, filepath.Join(root, entry.Name()), nil, parser.SkipObjectResolution)
+		data, readErr := googleIdentitySource.ReadFile(entry)
+		if readErr != nil {
+			return nil, readErr
+		}
+		file, parseErr := parser.ParseFile(set, entry, data, parser.SkipObjectResolution)
 		if parseErr != nil {
 			return nil, parseErr
 		}
@@ -319,8 +394,8 @@ func scanGoogleExternalDoors(root string) ([]string, error) {
 			}
 			name := declaration.Name.Name
 			if declaration.Recv != nil {
-				if name == "Verify" && googleIdentityReceiverName(declaration.Recv.List[0].Type) == "GoogleCloudVerifier" {
-					doors = append(doors, name)
+				if name == "Verify" || name == "Acquire" || name == "UnmarshalText" {
+					doors = append(doors, googleIdentityReceiverName(declaration.Recv.List[0].Type)+"_"+name)
 				}
 				return false
 			}
@@ -335,44 +410,116 @@ func scanGoogleExternalDoors(root string) ([]string, error) {
 }
 
 func FuzzGoogleAccessTokenResponseSemanticClosure(f *testing.F) {
-	canonical, _ := json.Marshal(googleAccessTokenResponse{AccessToken: "abc", TokenType: googleAccessTokenTypeBearer, ExpiresIn: 300})
-	for _, seed := range [][]byte{canonical, nil, {}, []byte(`{}`), []byte(`null`), []byte(`{"access_token":"a","access_token":"b","expires_in":1,"token_type":"Bearer"}`), bytes.Repeat([]byte{' '}, GoogleCloudAccessTokenResponseMaximumBytes+1)} {
-		f.Add(seed)
+	wire := googleAccessTokenResponse{AccessToken: googleTestToken, TokenType: googleAccessTokenTypeBearer, ExpiresIn: 300}
+	canonical, err := core.MarshalCanonicalJSONDocument(wire)
+	if err != nil {
+		f.Fatal(err)
 	}
+	grammar := regexp.MustCompile(googleTestBearerGrammar)
+	f.Add(canonical)
+	f.Add([]byte{})
+	f.Add([]byte("null"))
+	f.Add(append(bytes.Repeat([]byte(" "), 32<<10), canonical...))
 	f.Fuzz(func(t *testing.T, data []byte) {
+		var reference googleAccessTokenResponse
+		decodeErr := json.Unmarshal(data, &reference, json.RejectUnknownMembers(true))
+		wantOK := decodeErr == nil && reference.TokenType == googleAccessTokenTypeBearer && reference.ExpiresIn > 0 && uint64(reference.ExpiresIn) <= GoogleCloudAccessTokenLifetimeMaximumSeconds && grammar.MatchString(reference.AccessToken)
 		got, err := decodeGoogleAccessTokenResponse(data)
-		if err != nil {
+		if (err == nil) != wantOK {
+			t.Fatalf("access response admitted=%t error=%v, want %t", err == nil, err, wantOK)
+		}
+		if !wantOK {
 			if !errors.Is(err, core.ErrGoogleIdentityContract) || got != (googleAccessTokenResponse{}) {
-				t.Fatalf("decodeGoogleAccessTokenResponse(rejected) = (%+v, %v), want zero and %v", got, err, core.ErrGoogleIdentityContract)
+				t.Fatalf("rejected response=%v error=%v, want zero typed refusal", got, err)
+			}
+		} else {
+			if got != reference || got.Validate() != nil {
+				t.Fatalf("response=%v, want exact typed reference %v", got, reference)
+			}
+			first, err := core.MarshalCanonicalJSONDocument(got)
+			if err != nil {
+				t.Fatal(err)
+			}
+			round, err := decodeGoogleAccessTokenResponse(first)
+			if err != nil || round != got {
+				t.Fatalf("round trip=%v error=%v, want %v", round, err, got)
+			}
+			second, err := core.MarshalCanonicalJSONDocument(round)
+			if err != nil || !bytes.Equal(first, second) {
+				t.Fatalf("second canonical equal=%t error=%v, want true and nil", bytes.Equal(first, second), err)
+			}
+		}
+		var calls atomic.Uint64
+		client := googleTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			calls.Add(1)
+			if r.URL.Path != googleMetadataAccessTokenPath || r.Method != http.MethodGet {
+				t.Errorf("metadata request=%v %v, want GET access-token path", r.Method, r.URL.Path)
+			}
+			w.Header().Set(googleMetadataHeaderName, googleMetadataHeaderValue)
+			if _, err := w.Write(data); err != nil {
+				t.Errorf("response Write error=%v, want nil", err)
+			}
+		}))
+		acquired, acquireErr := AcquireGoogleCloudAccessToken(t.Context(), client, GoogleCloudAccessTokenRequest{Policy: mustGooglePolicy(t)})
+		if calls.Load() != 1 || (acquireErr == nil) != wantOK {
+			t.Fatalf("acquisition calls=%d error=%v, want one call and admitted=%t", calls.Load(), acquireErr, wantOK)
+		}
+		if !wantOK {
+			if acquired != (AccessToken{}) || !errors.Is(acquireErr, core.ErrGoogleIdentityContract) {
+				t.Fatalf("rejected acquisition=%v error=%v, want zero typed refusal", acquired, acquireErr)
 			}
 			return
 		}
-		if got.Validate() != nil {
-			t.Fatalf("decodeGoogleAccessTokenResponse(accepted).Validate() error = %v, want nil", got.Validate())
-		}
-		encoded, marshalErr := json.Marshal(got)
-		roundTrip, roundTripErr := decodeGoogleAccessTokenResponse(encoded)
-		if marshalErr != nil || roundTripErr != nil || roundTrip != got {
-			t.Fatalf("access response closure = (%+v, %v, %v), want (%+v, nil, nil)", roundTrip, marshalErr, roundTripErr, got)
+		text, err := acquired.BearerValue()
+		if err != nil || text != bearerPrefix+reference.AccessToken || acquired.Lifetime().Nanoseconds() != int64(reference.ExpiresIn)*int64(temporal.NanosecondsPerSecond) {
+			t.Fatalf("acquired token matches=%t lifetime=%v error=%v, want exact provider facts", text == bearerPrefix+reference.AccessToken, acquired.Lifetime(), err)
 		}
 	})
 }
-
 func FuzzParseGoogleCloudCommandOutputSemanticClosure(f *testing.F) {
-	for _, seed := range [][]byte{nil, {}, []byte("a"), []byte(googleTestToken), []byte(googleTestToken + "\n"), []byte("=bad"), bytes.Repeat([]byte{'a'}, TokenMaximumBytes+1)} {
-		f.Add(seed)
+	seed, err := newToken(googleTestToken)
+	if err != nil {
+		f.Fatal(err)
 	}
+	bearer, err := seed.BearerValue()
+	if err != nil {
+		f.Fatal(err)
+	}
+	canonical := []byte(strings.TrimPrefix(bearer, bearerPrefix))
+	f.Add(canonical)
+	f.Add(append(bytes.Clone(canonical), '\r', '\n'))
+	f.Add([]byte{})
+	f.Add([]byte("=bad"))
+	f.Add(bytes.Repeat([]byte("a"), googleFormerTokenBytes+1))
+	grammar := regexp.MustCompile(googleTestBearerGrammar)
 	f.Fuzz(func(t *testing.T, data []byte) {
-		got, err := googleExternalDoors.ParseGoogleCloudCommandOutput(data)
-		if err != nil {
+		raw := string(data)
+		if before, ok := strings.CutSuffix(raw, "\n"); ok {
+			raw = before
+			raw = strings.TrimSuffix(raw, "\r")
+		}
+		wantOK := grammar.MatchString(raw)
+		got, err := ParseGoogleCloudCommandOutput(data)
+		if (err == nil) != wantOK {
+			t.Fatalf("command admitted=%t error=%v, want %t", err == nil, err, wantOK)
+		}
+		if !wantOK {
 			if !errors.Is(err, core.ErrGoogleIdentityContract) || got != (Token{}) {
-				t.Fatalf("ParseGoogleCloudCommandOutput(rejected) = (%v, %v), want zero and %v", got, err, core.ErrGoogleIdentityContract)
+				t.Fatalf("rejected command=%v error=%v, want zero typed refusal", got, err)
 			}
 			return
 		}
-		bearer, bearerErr := got.BearerValue()
-		if got.Validate() != nil || bearerErr != nil || !strings.HasPrefix(bearer, "Bearer ") {
-			t.Fatalf("ParseGoogleCloudCommandOutput(accepted) = (%v, %v), want validated bearer", got, bearerErr)
+		value, err := got.BearerValue()
+		if err != nil || value != bearerPrefix+raw || got.Validate() != nil || fmt.Sprint(got) != core.RedactedValueText {
+			t.Fatalf("command disclosure matches=%t error=%v, want exact opaque bytes and redaction", value == bearerPrefix+raw, err)
+		}
+		canonicalToken, err := ParseGoogleCloudCommandOutput([]byte(raw))
+		if err != nil {
+			t.Fatal(err)
+		}
+		second, err := canonicalToken.BearerValue()
+		if err != nil || second != value {
+			t.Fatalf("canonical disclosure matches=%t error=%v, want true and nil", second == value, err)
 		}
 	})
 }

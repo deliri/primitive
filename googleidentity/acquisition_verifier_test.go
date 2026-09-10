@@ -74,7 +74,9 @@ func TestGoogleMetadataAcquisitionToVerifierLayerTriad(t *testing.T) {
 						bearer = full
 					}
 					w.Header().Set(googleMetadataHeaderName, googleMetadataHeaderValue)
-					_, _ = io.WriteString(w, strings.TrimPrefix(bearer, bearerPrefix))
+					if _, err := io.WriteString(w, strings.TrimPrefix(bearer, bearerPrefix)); err != nil {
+						t.Errorf("provider write: %v", err)
+					}
 				}))
 				audience, err := ParseAudience(verifierTestAudience)
 				if err != nil {

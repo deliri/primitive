@@ -9,10 +9,6 @@ import (
 )
 
 const (
-	// AudienceMaximumBytes bounds one Google Cloud identity audience.
-	AudienceMaximumBytes = 1000
-	// TokenMaximumBytes bounds one Google Cloud bearer.
-	TokenMaximumBytes = 16 * 1024
 	// DefaultTimeoutSeconds is the complete default acquisition budget.
 	DefaultTimeoutSeconds = 5
 )
@@ -22,16 +18,16 @@ type Audience struct {
 	value string
 }
 
-// ParseAudience owns one nonempty bounded UTF-8 audience.
+// ParseAudience owns one nonempty UTF-8 audience.
 func ParseAudience(value string) (Audience, error) {
-	if len(value) == 0 || len(value) > AudienceMaximumBytes ||
+	if len(value) == 0 ||
 		!utf8.ValidString(value) {
 		return Audience{}, core.ErrGoogleIdentityContract
 	}
 	return Audience{value: value}, nil
 }
 
-// Validate rejects unset, oversized, or invalid UTF-8 audiences.
+// Validate rejects unset or invalid UTF-8 audiences.
 func (a Audience) Validate() error {
 	_, err := ParseAudience(a.value)
 	return err
@@ -39,9 +35,6 @@ func (a Audience) Validate() error {
 
 // String returns the exact audience.
 func (a Audience) String() string {
-	if err := a.Validate(); err != nil {
-		return ""
-	}
 	return a.value
 }
 

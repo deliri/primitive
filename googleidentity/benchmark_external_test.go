@@ -1,25 +1,60 @@
 package googleidentity_test
 
 import (
-	"errors"
-	"testing"
-
 	"github.com/deliri/primitive/v2026/googleidentity"
+	"strings"
+	"testing"
 )
 
-func BenchmarkParseAudience(b *testing.B) {
-	const value = "https://iamcredentials.googleapis.com/"
-	var wantErr error
-	b.ReportAllocs()
-	var last googleidentity.Audience
-	for b.Loop() {
-		got, err := googleidentity.ParseAudience(value)
-		if !errors.Is(err, wantErr) {
-			b.Fatalf("googleidentity.ParseAudience() error = %v, want %v", err, wantErr)
-		}
-		last = got
+const audienceBenchmarkBatch = 64
+
+func BenchmarkAudienceParseBatch(b *testing.B) {
+	text := strings.Repeat("é", 256)
+	want, err := googleidentity.ParseAudience(text)
+	if err != nil || want.String() != text {
+		b.Fatalf("fixture error=%v, want exact audience", err)
 	}
-	if last.String() != value {
-		b.Fatalf("googleidentity.ParseAudience() = %q, want %q", last, value)
+	b.ReportAllocs()
+	for b.Loop() {
+		for range audienceBenchmarkBatch {
+			got, err := googleidentity.ParseAudience(text)
+			if err != nil || got != want {
+				b.Fatalf("audience got=%v error=%v, want %v", got, err, want)
+			}
+		}
+	}
+	b.ReportMetric(audienceBenchmarkBatch, "parses/op")
+}
+func BenchmarkAudienceStringBatch(b *testing.B) {
+	text := strings.Repeat("é", 256)
+	value, err := googleidentity.ParseAudience(text)
+	if err != nil || value.String() != text {
+		b.Fatalf("fixture error=%v, want exact audience", err)
+	}
+	b.ReportAllocs()
+	for b.Loop() {
+		for range audienceBenchmarkBatch {
+			got := value.String()
+			if got != text {
+				b.Fatalf("audience text got=%q, want %q", got, text)
+			}
+		}
+	}
+	b.ReportMetric(audienceBenchmarkBatch, "strings/op")
+}
+func BenchmarkCommandTokenDisclosure(b *testing.B) {
+	text := strings.Repeat("a", 4096)
+	input := []byte(text + "\r\n")
+	want := "Bearer " + text
+	b.ReportAllocs()
+	for b.Loop() {
+		token, err := googleidentity.ParseGoogleCloudCommandOutput(input)
+		if err != nil {
+			b.Fatal(err)
+		}
+		got, err := token.BearerValue()
+		if err != nil || got != want {
+			b.Fatalf("disclosure equal=%t error=%v, want exact token", got == want, err)
+		}
 	}
 }

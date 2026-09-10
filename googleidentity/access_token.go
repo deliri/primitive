@@ -28,7 +28,7 @@ func newGoogleAccessToken(value string, lifetime temporal.Duration) (AccessToken
 // at acquisition. Googleidentity does not turn it into a cache or refresh policy.
 func (t AccessToken) Lifetime() temporal.Duration { return t.lifetime }
 
-// Validate checks provenance, positive bounded lifetime, extent, and RFC 6750
+// Validate checks provenance, positive representable lifetime and RFC 6750
 // token68 syntax without parsing provider-specific claims.
 func (t AccessToken) Validate() error {
 	if t.value == nil || t.lifetime.IsZero() {
@@ -50,7 +50,10 @@ func (t AccessToken) BearerValue() (string, error) {
 
 // Format redacts the access token for every formatting verb.
 func (AccessToken) Format(state fmt.State, _ rune) {
-	_, _ = io.WriteString(state, core.RedactedValueText)
+	// fmt.Formatter has no error result; stop on the destination failure.
+	if _, err := io.WriteString(state, core.RedactedValueText); err != nil {
+		return
+	}
 }
 
 var (

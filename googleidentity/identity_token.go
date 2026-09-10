@@ -21,7 +21,6 @@ const (
 type googleProtocolContracts struct {
 	metadataHeader core.HTTPHeaderName
 	endpoint       core.HTTPEndpoint
-	responseLimit  core.ByteCount
 }
 
 func googleContracts() (googleProtocolContracts, error) {
@@ -33,16 +32,9 @@ func googleContracts() (googleProtocolContracts, error) {
 	if err != nil {
 		return googleProtocolContracts{}, contractError(err)
 	}
-	// Google answers with the bare token and no envelope, so its transport
-	// bound is the common token bound itself.
-	limit, err := core.NewByteCount(TokenMaximumBytes)
-	if err != nil {
-		return googleProtocolContracts{}, contractError(err)
-	}
 	return googleProtocolContracts{
 		endpoint:       endpoint,
 		metadataHeader: header,
-		responseLimit:  limit,
 	}, nil
 }
 
@@ -76,7 +68,6 @@ func AcquireGoogleCloud(
 		target:         target,
 		headers:        headers,
 		responseHeader: contracts.metadataHeader,
-		responseLimit:  contracts.responseLimit,
 		policy:         request.Policy,
 	})
 	if err != nil {

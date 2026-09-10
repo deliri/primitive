@@ -263,6 +263,7 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 		"func DurationFromNanoseconds",
 		"func DurationFromSeconds",
 		"func InstantFromNanoseconds",
+		"func InstantFromUnixSeconds",
 		"func IntervalFromBounds",
 		"func NewDuration",
 		"func NewInstant",

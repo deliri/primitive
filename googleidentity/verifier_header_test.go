@@ -26,10 +26,10 @@ func TestGoogleCloudVerifierHeaderBoundaryLayerTriad(t *testing.T) {
 		{name: "header null cannot become default authority", mutate: func([]byte) []byte { return []byte(`null`) }, wantErr: core.ErrGoogleIdentityContract},
 		{name: "truncated header cannot reach certificate acquisition", mutate: func(b []byte) []byte { return b[:len(b)-1] }, wantErr: core.ErrGoogleIdentityContract},
 		{name: "second header document cannot be silently ignored", mutate: func(b []byte) []byte { return append(b, b...) }, wantErr: core.ErrGoogleIdentityContract},
-		{name: "header one below byte ceiling preserves signature", mutate: padVerifierHeader(GoogleCloudIdentityHeaderMaximumBytes - 1), wantCertificates: 1},
-		{name: "header at byte ceiling preserves signature", mutate: padVerifierHeader(GoogleCloudIdentityHeaderMaximumBytes), wantCertificates: 1},
-		{name: "header one above byte ceiling cannot fetch authority", mutate: padVerifierHeader(GoogleCloudIdentityHeaderMaximumBytes + 1), wantErr: core.ErrGoogleIdentityContract},
-		{name: "header extreme below token ceiling cannot fetch authority", mutate: padVerifierHeader(2 * GoogleCloudIdentityHeaderMaximumBytes), wantErr: core.ErrGoogleIdentityContract},
+		{name: "header below former byte extent preserves signature", mutate: padVerifierHeader(googleFormerHeaderBytes - 1), wantCertificates: 1},
+		{name: "header at former byte extent preserves signature", mutate: padVerifierHeader(googleFormerHeaderBytes), wantCertificates: 1},
+		{name: "header beyond former byte extent preserves signature", mutate: padVerifierHeader(googleFormerHeaderBytes + 1), wantCertificates: 1},
+		{name: "large header preserves signature", mutate: padVerifierHeader(2 * googleFormerHeaderBytes), wantCertificates: 1},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

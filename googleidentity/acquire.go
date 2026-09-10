@@ -8,16 +8,14 @@ import (
 	"github.com/deliri/primitive/v2026/exchange"
 )
 
-// acquisitionCall is one bounded provider acquisition. Each entry point states
-// its own target, headers, and response bound, so nothing here selects a
-// provider or infers one bound from another.
+// acquisitionCall is one provider acquisition. Each entry point states
+// its own target, headers, so nothing here selects a provider.
 type acquisitionCall struct {
 	context        context.Context
 	client         Client
 	headers        exchange.Headers
 	responseHeader core.HTTPHeaderName
 	target         core.HTTPEndpoint
-	responseLimit  core.ByteCount
 	policy         Policy
 }
 
@@ -28,7 +26,6 @@ func (c acquisitionCall) Validate() error {
 		c.client.Validate(),
 		c.target.Validate(),
 		c.responseHeader.Validate(),
-		c.responseLimit.Validate(),
 		c.policy.Validate(),
 		c.headers.Validate(),
 	)

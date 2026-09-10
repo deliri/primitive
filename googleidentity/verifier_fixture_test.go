@@ -101,7 +101,11 @@ func newVerifierTestProvider(t testing.TB, response func(http.ResponseWriter, *h
 		}
 	}))
 	t.Cleanup(server.Close)
-	transport := server.Client().Transport.(*http.Transport).Clone()
+	standard, ok := server.Client().Transport.(*http.Transport)
+	if !ok {
+		t.Fatalf("transport = %T, want *http.Transport", server.Client().Transport)
+	}
+	transport := standard.Clone()
 	transport.Proxy = nil
 	transport.TLSClientConfig.ServerName = server.Certificate().DNSNames[0]
 	transport.DialContext = func(ctx context.Context, network, _ string) (net.Conn, error) {

@@ -11,9 +11,9 @@ func (a Audience) MarshalText() ([]byte, error) {
 	return []byte(a.value), nil
 }
 
-// UnmarshalText admits bounded UTF-8 without changing the receiver on refusal.
+// UnmarshalText admits UTF-8 without changing the receiver on refusal.
 func (a *Audience) UnmarshalText(data []byte) error {
-	if a == nil || len(data) > AudienceMaximumBytes {
+	if a == nil {
 		return core.ErrGoogleIdentityContract
 	}
 	admitted, err := ParseAudience(string(data))

@@ -9,9 +9,8 @@ import (
 )
 
 const (
-	GoogleCloudIdentityHeaderMaximumBytes = 4 << 10
-	googleCloudAlgorithmRS256Text         = "RS256"
-	googleCloudTokenTypeJWT               = "JWT"
+	googleCloudAlgorithmRS256Text = "RS256"
+	googleCloudTokenTypeJWT       = "JWT"
 )
 
 type googleCloudSigningAlgorithm uint8
@@ -66,14 +65,14 @@ func (h googleCloudJWTHeader) Validate() error {
 
 func validateGoogleCloudJWTHeader(token string) error {
 	segment, _, found := strings.Cut(token, ".")
-	if !found || base64.RawURLEncoding.DecodedLen(len(segment)) > GoogleCloudIdentityHeaderMaximumBytes {
+	if !found {
 		return core.ErrGoogleIdentityContract
 	}
 	encoded, err := base64.RawURLEncoding.DecodeString(segment)
 	if err != nil {
 		return contractError(err)
 	}
-	header, err := core.DecodeStrictJSONStructure[googleCloudJWTHeader](encoded, core.DefaultStrictJSONLimits())
+	header, err := core.DecodeStrictJSONStructure[googleCloudJWTHeader](encoded, core.ExtensibleJSONLimits())
 	if err != nil {
 		return contractError(err)
 	}

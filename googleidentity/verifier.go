@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"strings"
-	"time"
 	"unicode/utf8"
 
 	"github.com/deliri/primitive/v2026/contextstate"
@@ -16,7 +15,6 @@ import (
 )
 
 const (
-	GoogleCloudIdentityTextMaximumBytes   = 1024
 	googleCloudIdentityEmailClaim         = "email"
 	googleCloudIdentityEmailVerifiedClaim = "email_verified"
 	googleCloudIdentityBearerPrefix       = "Bearer "
@@ -48,7 +46,7 @@ type GoogleCloudVerifiedIdentity struct {
 }
 
 func (i GoogleCloudVerifiedIdentity) Validate() error {
-	if !validGoogleCloudIdentityText(i.Audience) || !validGoogleCloudIdentityText(i.Issuer) ||
+	if (Audience{value: i.Audience}).Validate() != nil || !validGoogleCloudIdentityText(i.Issuer) ||
 		!validGoogleCloudIdentityText(i.Subject) || !validGoogleCloudIdentityText(i.Email) ||
 		!validGoogleCloudIdentityIssuer(i.Issuer) || !i.EmailVerified {
 		return core.ErrGoogleIdentityContract
@@ -88,7 +86,7 @@ func validGoogleCloudIdentityIssuer(value string) bool {
 }
 
 func validGoogleCloudIdentityText(value string) bool {
-	return value != "" && len(value) <= GoogleCloudIdentityTextMaximumBytes &&
+	return value != "" &&
 		utf8.ValidString(value) && strings.TrimSpace(value) == value
 }
 
@@ -154,7 +152,7 @@ func (v GoogleCloudVerifier) Verify(ctx context.Context, authorization string) (
 }
 
 func googleCloudIdentityToken(authorization string) (string, error) {
-	if len(authorization) <= len(googleCloudIdentityBearerPrefix) || len(authorization) > TokenMaximumBytes+len(googleCloudIdentityBearerPrefix) ||
+	if len(authorization) <= len(googleCloudIdentityBearerPrefix) ||
 		!strings.HasPrefix(authorization, googleCloudIdentityBearerPrefix) {
 		return "", core.ErrGoogleIdentityContract
 	}
@@ -180,11 +178,11 @@ func googleCloudVerifiedIdentity(payload *idtoken.Payload) (GoogleCloudVerifiedI
 	if !ok || !emailVerified {
 		return GoogleCloudVerifiedIdentity{}, core.ErrGoogleIdentityContract
 	}
-	issuedAt, err := temporal.NewInstant(time.Unix(payload.IssuedAt, 0).UTC())
+	issuedAt, err := temporal.InstantFromUnixSeconds(payload.IssuedAt)
 	if err != nil {
 		return GoogleCloudVerifiedIdentity{}, contractError(err)
 	}
-	expires, err := temporal.NewInstant(time.Unix(payload.Expires, 0).UTC())
+	expires, err := temporal.InstantFromUnixSeconds(payload.Expires)
 	if err != nil {
 		return GoogleCloudVerifiedIdentity{}, contractError(err)
 	}

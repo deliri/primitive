@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 	"testing"
 	"testing/synctest"
@@ -14,13 +15,14 @@ import (
 )
 
 func FuzzGoogleCloudVerifierSignedSemanticClosure(f *testing.F) {
+	grammar := regexp.MustCompile(googleTestBearerGrammar)
 	provider := newVerifierTestProvider(f, nil)
 	header := verifierTestHeader{Algorithm: verifierTestAlgorithm, KeyID: verifierTestKeyID}
 	ordinary := verifierClaims()
 	minimum := ordinary
 	minimum.Subject = "s"
 	maximum := ordinary
-	maximum.Subject = strings.Repeat("s", GoogleCloudIdentityTextMaximumBytes)
+	maximum.Subject = strings.Repeat("s", googleFormerIdentityTextBytes)
 	claims := []verifierTestClaims{minimum, ordinary, maximum}
 	seeds := make([]string, len(claims))
 	for index, claim := range claims {
@@ -33,7 +35,7 @@ func FuzzGoogleCloudVerifierSignedSemanticClosure(f *testing.F) {
 	f.Add(provider.sign(f, header, foreignAudience, false))
 	f.Add(provider.sign(f, header, ordinary, true))
 	f.Add("")
-	f.Add(googleCloudIdentityBearerPrefix + strings.Repeat("a", TokenMaximumBytes+1))
+	f.Add(googleCloudIdentityBearerPrefix + strings.Repeat("a", googleFormerTokenBytes+1))
 	f.Fuzz(func(t *testing.T, bearer string) {
 		synctest.Test(t, func(t *testing.T) {
 			local := newVerifierTestProvider(t, nil)
@@ -46,21 +48,26 @@ func FuzzGoogleCloudVerifierSignedSemanticClosure(f *testing.F) {
 					t.Errorf("metadata format = %q, want %q", got, googleFormatFullValue)
 				}
 				w.Header().Set(googleMetadataHeaderName, googleMetadataHeaderValue)
-				_, _ = io.WriteString(w, raw)
+				if _, err := io.WriteString(w, raw); err != nil {
+					t.Errorf("provider write: %v", err)
+				}
 			}))
 			audience, audienceErr := ParseAudience(verifierTestAudience)
 			if audienceErr != nil {
 				t.Fatalf("ParseAudience() error = %v, want nil", audienceErr)
 			}
 			token, acquireErr := AcquireGoogleCloud(t.Context(), metadata, IdentityTokenRequest{Audience: audience, Policy: mustGooglePolicy(t)})
+			if (acquireErr == nil) != grammar.MatchString(raw) {
+				t.Fatalf("metadata admitted=%t, want grammar=%t", acquireErr == nil, grammar.MatchString(raw))
+			}
 			if acquireErr != nil {
 				if !errors.Is(acquireErr, core.ErrGoogleIdentityContract) || token != (Token{}) || local.calls.Load() != 0 {
 					t.Fatalf("metadata refusal = (%v,%v,%d certificates), want typed refusal, zero token and no certificate request", token, acquireErr, local.calls.Load())
 				}
 			} else {
 				acquired, valueErr := token.BearerValue()
-				if valueErr != nil || acquired != bearerPrefix+raw || token.Validate() != nil || len(raw) > TokenMaximumBytes {
-					t.Fatalf("metadata acquisition = (unchanged %t,%v), want bounded unchanged token and nil", acquired == bearerPrefix+raw, valueErr)
+				if valueErr != nil || acquired != bearerPrefix+raw || token.Validate() != nil {
+					t.Fatalf("metadata acquisition = (unchanged %t,%v), want unchanged token and nil", acquired == bearerPrefix+raw, valueErr)
 				}
 				// A missing Authorization prefix belongs to Verify's separate
 				// ingress. Keep its original bytes for that rejection proof.
@@ -90,9 +97,6 @@ func FuzzGoogleCloudVerifierSignedSemanticClosure(f *testing.F) {
 					t.Fatalf("Verify(refused) = (%+v, %v), want zero and %v", got, err, core.ErrGoogleIdentityContract)
 				}
 				return
-			}
-			if len(bearer) > TokenMaximumBytes+len(googleCloudIdentityBearerPrefix) {
-				t.Fatal("oversized bearer result = verified identity, want zero and typed refusal")
 			}
 			if matched < 0 {
 				t.Fatal("accepted signature source = unknown, want trusted signed seed")

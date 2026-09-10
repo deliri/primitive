@@ -16,16 +16,6 @@ const (
 	// GoogleCloudAccessTokenLifetimeMaximumSeconds is the largest whole-second
 	// provider lifetime representable by temporal.Duration.
 	GoogleCloudAccessTokenLifetimeMaximumSeconds = uint64(math.MaxInt64) / temporal.NanosecondsPerSecond
-	// GoogleCloudAccessTokenResponseWhitespaceMaximumBytes admits bounded JSON
-	// formatting without making provider whitespace an implicit protocol.
-	GoogleCloudAccessTokenResponseWhitespaceMaximumBytes = 1024
-	// googleAccessTokenResponseSyntaxMaximumBytes is the exact canonical JSON
-	// framing extent around an empty token and the largest admitted lifetime.
-	// The hostile typed-marshaler ratchet owns its agreement with the wire tags.
-	googleAccessTokenResponseSyntaxMaximumBytes = 65
-	// GoogleCloudAccessTokenResponseMaximumBytes bounds the complete metadata
-	// response before strict decoding and token construction.
-	GoogleCloudAccessTokenResponseMaximumBytes = TokenMaximumBytes + googleAccessTokenResponseSyntaxMaximumBytes + GoogleCloudAccessTokenResponseWhitespaceMaximumBytes
 )
 
 // GoogleCloudAccessTokenRequest is one Google Cloud access-token acquisition
@@ -77,8 +67,7 @@ func (r googleAccessTokenResponse) token() (AccessToken, error) {
 }
 
 type googleAccessTokenContracts struct {
-	endpoint      core.HTTPEndpoint
-	responseLimit core.ByteCount
+	endpoint core.HTTPEndpoint
 }
 
 func googleAccessContracts() (googleAccessTokenContracts, error) {
@@ -86,11 +75,7 @@ func googleAccessContracts() (googleAccessTokenContracts, error) {
 	if err != nil {
 		return googleAccessTokenContracts{}, contractError(err)
 	}
-	limit, err := core.NewByteCount(uint64(GoogleCloudAccessTokenResponseMaximumBytes))
-	if err != nil {
-		return googleAccessTokenContracts{}, contractError(err)
-	}
-	return googleAccessTokenContracts{endpoint: endpoint, responseLimit: limit}, nil
+	return googleAccessTokenContracts{endpoint: endpoint}, nil
 }
 
 // AcquireGoogleCloudAccessToken obtains one OAuth access bearer from Google
@@ -122,7 +107,6 @@ func AcquireGoogleCloudAccessToken(
 		target:         contracts.endpoint,
 		headers:        headers,
 		responseHeader: header,
-		responseLimit:  contracts.responseLimit,
 		policy:         request.Policy,
 	})
 	if err != nil {
@@ -136,12 +120,7 @@ func AcquireGoogleCloudAccessToken(
 }
 
 func decodeGoogleAccessTokenResponse(body []byte) (googleAccessTokenResponse, error) {
-	maximum, err := core.NewByteCount(uint64(GoogleCloudAccessTokenResponseMaximumBytes))
-	if err != nil {
-		return googleAccessTokenResponse{}, contractError(err)
-	}
-	limits := core.DefaultStrictJSONLimits()
-	limits.DocumentMaximumBytes = maximum
+	limits := core.ExtensibleJSONLimits()
 	limits.NestingDepthMaximum = 1
 	limits.ObjectFieldMaximum = 3
 	limits.ArrayItemMaximum = 1
