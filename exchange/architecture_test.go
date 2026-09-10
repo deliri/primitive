@@ -129,6 +129,7 @@ func TestInventoryDocumentDrivesTheRealJSONWritePath(t *testing.T) {
 // data-flow role. Membership comes from compiler-bound marker types; field
 // names are labels only.
 type exchangeContractInventory struct {
+	ResponseDelivery                            protocolContract[ResponseDelivery]
 	ResponseBufferRequest                       protocolContract[ResponseBufferRequest]
 	ResponseBufferResult                        protocolContract[ResponseBufferResult]
 	responseBuffer                              capabilityWrapper[responseBuffer]

@@ -57,6 +57,8 @@ func TestPublicIngressHasCompilerBoundSemanticFuzz(t *testing.T) {
 
 func externalIngressCoverage() []exchange.IngressCoverageForTest {
 	entries := []exchange.IngressCoverageForTest{
+		{Door: exchange.SendTo, Kind: exchange.IngressFuzzForTest, Fuzz: FuzzResponseDestinationPreservesDelivery},
+		{Door: exchange.SendNoBodyTo, Kind: exchange.IngressFuzzForTest, Fuzz: FuzzResponseDestinationPreservesDelivery},
 		{Door: exchange.Client.OfficialSDKResponseTransport, Kind: exchange.IngressCapabilityForTest, Proof: TestClientOfficialSDKTransportLayerTriad, Reason: "Projects caller-owned Go transport through a previously validated SDK boundary."},
 		{Door: (*exchange.BasicAuthorizationIdentity).UnmarshalJSON, Kind: exchange.IngressFuzzForTest, Fuzz: FuzzBasicAuthorizationIdentityJSONSemanticClosure},
 		{Door: exchange.ReceiveBasicAuthorization, Kind: exchange.IngressFuzzForTest, Fuzz: FuzzReceiveBasicAuthorizationSemanticClosure},

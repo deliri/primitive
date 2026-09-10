@@ -206,13 +206,16 @@ func TestAggregateResponseDeclaredExtentCannotWeakenTheBodyLimit(t *testing.T) {
 				[]byte{0x7d},
 				testCase.bodyBytes,
 			))
-			got, gotErr := readAggregateResponseBody(aggregateReadRequest{
+			got, written, gotErr := readAggregateResponseBody(aggregateReadRequest{
 				context: context.Background(),
 				response: &http.Response{
 					Body:          io.NopCloser(source),
 					ContentLength: testCase.declaredBytes,
 				},
 			})
+			if written != uint64(len(got)) {
+				t.Fatalf("written=%d, retained=%d", written, len(got))
+			}
 			if testCase.wantIdentity != nil {
 				if !errors.Is(gotErr, testCase.wantIdentity) {
 					t.Fatalf(

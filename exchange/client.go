@@ -123,18 +123,22 @@ type aggregateRequest struct {
 }
 
 type aggregateCall struct {
-	context context.Context
-	client  Client
-	request aggregateRequest
-	policy  OperationPolicy
+	destination ResponseDestination
+	context     context.Context
+	client      Client
+	request     aggregateRequest
+	policy      OperationPolicy
 }
 
 type aggregateResponse struct {
+	complete bool
 	body     []byte
 	metadata ResponseMetadata
 }
 
 type attemptResponse struct {
+	written    uint64
+	complete   bool
 	retryAfter string
 	headers    CapturedHeaders
 	body       []byte
@@ -260,15 +264,31 @@ func SendBounded(call BoundedCall) (BoundedResponse, error) {
 	if err := call.Validate(); err != nil {
 		return zero, err
 	}
-	target, err := validatedTarget(call.Request.Target)
+	input, err := prepareSendBounded(call)
 	if err != nil {
 		return zero, err
+	}
+	raw, err := executeAggregate(input)
+	if raw.metadata.Attempts == 0 {
+		return zero, err
+	}
+	response := BoundedResponse{Metadata: raw.metadata, Body: raw.body}
+	if validationErr := response.Validate(); validationErr != nil {
+		return zero, errors.Join(err, validationErr)
+	}
+	return response, err
+}
+
+func prepareSendBounded(call BoundedCall) (aggregateCall, error) {
+	target, err := validatedTarget(call.Request.Target)
+	if err != nil {
+		return aggregateCall{}, err
 	}
 	body := call.Request.Body
 	if body == nil {
 		body = []byte{}
 	}
-	raw, err := executeAggregate(aggregateCall{
+	return aggregateCall{
 		context: call.Context,
 		client:  call.Client,
 		request: aggregateRequest{
@@ -280,15 +300,7 @@ func SendBounded(call BoundedCall) (BoundedResponse, error) {
 			expectedStatus:              call.Request.ExpectedStatus,
 		},
 		policy: call.Policy.Operation,
-	})
-	if raw.metadata.Attempts == 0 {
-		return zero, err
-	}
-	response := BoundedResponse{Metadata: raw.metadata, Body: raw.body}
-	if validationErr := response.Validate(); validationErr != nil {
-		return zero, errors.Join(err, validationErr)
-	}
-	return response, err
+	}, nil
 }
 
 // SendNoBodyBounded performs one body-absent request and returns a complete
@@ -300,22 +312,11 @@ func SendNoBodyBounded(
 	if err := call.Validate(); err != nil {
 		return zero, err
 	}
-	target, err := validatedTarget(call.Request.Target)
+	input, err := prepareSendNoBodyBounded(call)
 	if err != nil {
 		return zero, err
 	}
-	raw, err := executeAggregate(aggregateCall{
-		context: call.Context,
-		client:  call.Client,
-		request: aggregateRequest{
-			target: target, semantics: call.Request.Semantics,
-			headers:                     call.Request.Headers,
-			capture:                     call.Request.CaptureHeaders,
-			expectedResponseContentType: call.Request.ExpectedResponseContentType,
-			expectedStatus:              call.Request.ExpectedStatus,
-		},
-		policy: call.Policy.Operation,
-	})
+	raw, err := executeAggregate(input)
 	if raw.metadata.Attempts == 0 {
 		return zero, err
 	}
@@ -327,6 +328,25 @@ func SendNoBodyBounded(
 		return zero, errors.Join(err, validationErr)
 	}
 	return response, err
+}
+
+func prepareSendNoBodyBounded(call NoBodyBoundedCall) (aggregateCall, error) {
+	target, err := validatedTarget(call.Request.Target)
+	if err != nil {
+		return aggregateCall{}, err
+	}
+	return aggregateCall{
+		context: call.Context,
+		client:  call.Client,
+		request: aggregateRequest{
+			target: target, semantics: call.Request.Semantics,
+			headers:                     call.Request.Headers,
+			capture:                     call.Request.CaptureHeaders,
+			expectedResponseContentType: call.Request.ExpectedResponseContentType,
+			expectedStatus:              call.Request.ExpectedStatus,
+		},
+		policy: call.Policy.Operation,
+	}, nil
 }
 
 // Validate checks the complete typed JSON client operation.
@@ -480,6 +500,7 @@ func executeAggregate(call aggregateCall) (aggregateResponse, error) {
 			aggregateAttempt{
 				context: operationContext, client: client,
 				request: call.request, timeout: call.policy.AttemptTimeout,
+				destination: call.destination, number: progress.attempts,
 			},
 		)
 		raw, observationErr := observedAggregateResponse(
@@ -533,7 +554,11 @@ func observedAggregateResponse(
 	if err := response.status.Validate(); err != nil {
 		return aggregateResponse{}, responseError(err)
 	}
-	responseBytes, err := core.NewByteLength(uint64(len(response.body)))
+	written := response.written
+	if response.body != nil {
+		written = uint64(len(response.body))
+	}
+	responseBytes, err := core.NewByteLength(written)
 	if err != nil {
 		return aggregateResponse{}, responseError(err)
 	}
@@ -543,7 +568,7 @@ func observedAggregateResponse(
 			Bytes:    responseBytes,
 			Attempts: attempts,
 		},
-		body: response.body,
+		body: response.body, complete: response.complete,
 	}
 	if err := result.metadata.Validate(); err != nil {
 		return aggregateResponse{}, err
@@ -552,10 +577,12 @@ func observedAggregateResponse(
 }
 
 type aggregateAttempt struct {
-	context context.Context
-	client  *http.Client
-	request aggregateRequest
-	timeout temporal.Duration
+	destination ResponseDestination
+	number      uint64
+	context     context.Context
+	client      *http.Client
+	request     aggregateRequest
+	timeout     temporal.Duration
 }
 
 func executeAggregateAttempt(input aggregateAttempt) (attemptResponse, error) {
@@ -569,6 +596,10 @@ func executeAggregateAttempt(input aggregateAttempt) (attemptResponse, error) {
 		return zero, requestError(err)
 	}
 	defer cancel()
+	destination, err := openResponseDestination(attemptContext, input.destination, input.number)
+	if err != nil {
+		return zero, requestError(err)
+	}
 	request, err := newAggregateHTTPRequest(attemptContext, input.request)
 	if err != nil {
 		return zero, err
@@ -586,7 +617,7 @@ func executeAggregateAttempt(input aggregateAttempt) (attemptResponse, error) {
 	}
 	return readAggregateHTTPResponse(
 		aggregateReadRequest{
-			context: attemptContext, response: response,
+			context: attemptContext, response: response, destination: destination,
 			capture:             input.request.capture,
 			expectedContentType: input.request.expectedResponseContentType,
 			expectedStatus:      input.request.expectedStatus,
@@ -653,6 +684,7 @@ func applyIdempotencyKey(request *http.Request, semantics RequestSemantics) {
 }
 
 type aggregateReadRequest struct {
+	destination         io.Writer
 	context             context.Context
 	response            *http.Response
 	expectedContentType core.HTTPMediaType
@@ -667,7 +699,8 @@ func readAggregateHTTPResponse(
 	if err != nil {
 		return result, err
 	}
-	result.body, err = readAggregateResponseBody(input)
+	result.body, result.written, err = readAggregateResponseBody(input)
+	result.complete = err == nil
 	closeErr := closeResponseBody(input.response.Body)
 	if err != nil && !errors.Is(err, core.ErrExchangeCancelled) {
 		err = responseError(err)
@@ -739,12 +772,20 @@ func validateAggregateResponseHeaders(
 
 // readAggregateResponseBody owns one complete response value. The declaration
 // is validated but never used as an allocation instruction or transfer quota.
-func readAggregateResponseBody(input aggregateReadRequest) ([]byte, error) {
+func readAggregateResponseBody(input aggregateReadRequest) ([]byte, uint64, error) {
 	declared, err := parseDeclaredBodyLength(input.response.ContentLength)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return readWholeBody(wholeBodyRead{context: input.context, source: input.response.Body, declared: declared})
+	if input.destination == nil {
+		body, err := readWholeBody(wholeBodyRead{context: input.context, source: input.response.Body, declared: declared})
+		return body, uint64(len(body)), err
+	}
+	written, err := copyDownload(downloadCopyRequest{
+		context: input.context, source: input.response.Body, destination: input.destination,
+		buffer: make([]byte, wholeBodyCopyWindow(declared)),
+	})
+	return nil, written, err
 }
 
 func validateIdentityContentCoding(headers http.Header) error {
