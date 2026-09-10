@@ -36,10 +36,6 @@ const (
 	// EvidenceDocumentCanonicalJSONMaximumBytes is the exact maximum compact document extent.
 	EvidenceDocumentCanonicalJSONMaximumBytes = len(`{"payload":,"attestation":}`) +
 		EvidencePayloadCanonicalJSONMaximumBytes + receiptEnvelopeCanonicalJSONMaximumBytes
-	evidenceDocumentWhitespaceAllowance = 8 << 10
-	// EvidenceDocumentJSONMaximumBytes bounds accepted strict JSON including whitespace.
-	EvidenceDocumentJSONMaximumBytes = EvidenceDocumentCanonicalJSONMaximumBytes +
-		evidenceDocumentWhitespaceAllowance
 )
 
 // EvidenceBody is the immutable integrity statement for one accepted object.
@@ -369,8 +365,7 @@ func (b *EvidenceBody) UnmarshalJSON(data []byte) error {
 		return jsonError(errors.New("nil evidence body receiver"))
 	}
 	limits, err := (jsonStructureContract{
-		maximumBytes: evidenceBodyCanonicalJSONMaximumBytes + 2048,
-		depth:        1, fields: 5,
+		depth: 1, fields: 5,
 	}).limits()
 	if err != nil {
 		return err
@@ -424,8 +419,7 @@ func (h *Header) UnmarshalJSON(data []byte) error {
 		return jsonError(errors.New("nil evidence header receiver"))
 	}
 	limits, err := (jsonStructureContract{
-		maximumBytes: evidenceHeaderCanonicalJSONMaximumBytes + 2048,
-		depth:        1, fields: 5,
+		depth: 1, fields: 5,
 	}).limits()
 	if err != nil {
 		return err
@@ -473,8 +467,7 @@ func (p *EvidencePayload) UnmarshalJSON(data []byte) error {
 		return jsonError(errors.New("nil evidence payload receiver"))
 	}
 	limits, err := (jsonStructureContract{
-		maximumBytes: EvidencePayloadCanonicalJSONMaximumBytes + 4096,
-		depth:        2, fields: 7,
+		depth: 2, fields: 7,
 	}).limits()
 	if err != nil {
 		return err
@@ -520,8 +513,7 @@ func (d *EvidenceDocument) UnmarshalJSON(data []byte) error {
 		return jsonError(errors.New("nil evidence document receiver"))
 	}
 	limits, err := (jsonStructureContract{
-		maximumBytes: EvidenceDocumentJSONMaximumBytes,
-		depth:        4, fields: 12,
+		depth: 4, fields: 12,
 	}).limits()
 	if err != nil {
 		return err

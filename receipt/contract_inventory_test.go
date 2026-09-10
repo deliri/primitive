@@ -1,15 +1,18 @@
 package receipt
 
 import (
+	"embed"
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"os"
 	"reflect"
 	"slices"
 	"strings"
 	"testing"
 )
+
+//go:embed *.go
+var receiptSourceFiles embed.FS
 
 type (
 	receiptProtocolFact[T any]     struct{}
@@ -100,7 +103,7 @@ func TestReceiptExternalIngressFuzzInventoryMatchesProduction(t *testing.T) {
 }
 
 func receiptExportedJSONReceiverNames() ([]string, error) {
-	files, err := os.ReadDir(".")
+	files, err := receiptSourceFiles.ReadDir(".")
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +114,7 @@ func receiptExportedJSONReceiverNames() ([]string, error) {
 			strings.HasSuffix(file.Name(), "_test.go") {
 			continue
 		}
-		parsed, parseErr := parser.ParseFile(fileSet, file.Name(), nil, parser.SkipObjectResolution)
+		parsed, parseErr := receiptParseProductionFile(fileSet, file.Name())
 		if parseErr != nil {
 			return nil, parseErr
 		}
@@ -150,9 +153,9 @@ func TestReceiptProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T) 
 	_ = receiptContractInventory{}.watermarkWire
 	inventory := reflect.TypeFor[receiptContractInventory]()
 	maximum := inventory.NumField()
-	files, err := os.ReadDir(".")
+	files, err := receiptSourceFiles.ReadDir(".")
 	if err != nil {
-		t.Fatalf("os.ReadDir() error = %v, want nil", err)
+		t.Fatalf("receiptSourceFiles.ReadDir() error = %v, want nil", err)
 	}
 	got := make([]receiptProductionStructName, maximum)
 	var count int
@@ -162,7 +165,7 @@ func TestReceiptProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T) 
 			strings.HasSuffix(file.Name(), "_test.go") {
 			continue
 		}
-		parsed, parseErr := parser.ParseFile(fileSet, file.Name(), nil, parser.SkipObjectResolution)
+		parsed, parseErr := receiptParseProductionFile(fileSet, file.Name())
 		if parseErr != nil {
 			t.Fatalf("parser.ParseFile(%q) error = %v, want nil", file.Name(), parseErr)
 		}
@@ -196,4 +199,12 @@ func TestReceiptProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T) 
 			t.Errorf("production struct %q has no compiler-visible data-flow role", gotName)
 		}
 	}
+}
+
+func receiptParseProductionFile(files *token.FileSet, name string) (*ast.File, error) {
+	source, err := receiptSourceFiles.ReadFile(name)
+	if err != nil {
+		return nil, err
+	}
+	return parser.ParseFile(files, name, source, parser.SkipObjectResolution)
 }

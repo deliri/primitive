@@ -15,11 +15,6 @@ const (
 	WatermarkCanonicalJSONMaximumBytes = len(
 		`{"revision":"","scope":,"generation":,"cursor_digest":"","chain_hash":""}`,
 	) + len("v1") + scopeCanonicalJSONMaximumBytes + 20 + 64 + 64
-	scopeJSONWhitespaceAllowance     = 1 << 10
-	watermarkJSONWhitespaceAllowance = 4 << 10
-	// WatermarkJSONMaximumBytes bounds accepted durable watermark JSON.
-	WatermarkJSONMaximumBytes = WatermarkCanonicalJSONMaximumBytes +
-		watermarkJSONWhitespaceAllowance
 )
 
 type cursorDigestDomain uint8
@@ -145,8 +140,7 @@ func (s *Scope) UnmarshalJSON(data []byte) error {
 		return jsonError(errors.New("nil watermark scope receiver"))
 	}
 	limits, err := (jsonStructureContract{
-		maximumBytes: scopeCanonicalJSONMaximumBytes + scopeJSONWhitespaceAllowance,
-		depth:        1, fields: 2,
+		depth: 1, fields: 2,
 	}).limits()
 	if err != nil {
 		return err
@@ -253,15 +247,14 @@ func (w Watermark) MarshalJSON() ([]byte, error) {
 	return encoded, nil
 }
 
-// UnmarshalJSON accepts bounded strict JSON without receiver mutation on failure.
+// UnmarshalJSON accepts strict JSON without receiver mutation on failure.
 func (w *Watermark) UnmarshalJSON(data []byte) error {
 	if w == nil {
 		return jsonError(errors.New("nil watermark receiver"))
 	}
 	limits, err := (jsonStructureContract{
-		maximumBytes: WatermarkJSONMaximumBytes,
-		depth:        2,
-		fields:       5,
+		depth:  2,
+		fields: 5,
 	}).limits()
 	if err != nil {
 		return err

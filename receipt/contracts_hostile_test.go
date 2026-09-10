@@ -308,9 +308,8 @@ func TestReceiptZeroAccessorsAndInternalJSONBoundsFailClosed(t *testing.T) {
 		t.Fatalf("errors.Is(watermarkConflict, ErrReceiptConflict) = false, want true")
 	}
 	for _, contract := range []jsonStructureContract{
-		{maximumBytes: -1, depth: 1, fields: 1},
-		{maximumBytes: 1, depth: 0, fields: 1},
-		{maximumBytes: 1, depth: 1, fields: 0},
+		{depth: 0, fields: 1},
+		{depth: 1, fields: 0},
 	} {
 		if _, gotErr := contract.limits(); !errors.Is(gotErr, core.ErrReceiptContract) {
 			t.Fatalf("jsonStructureContract%+v.limits() error = %v, want %v",

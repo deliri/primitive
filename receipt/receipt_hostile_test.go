@@ -234,7 +234,7 @@ func TestEvidenceBodyHostileBoundaryMatrix(t *testing.T) {
 		{name: "ordinary nonempty evidence is admitted", body: fixture.body},
 		{name: "canonical empty evidence is admitted", body: empty},
 		{name: "maximum extent is admitted", body: maximum},
-		{name: "one above the empty extent is admitted", body: twoByteExtent},
+		{name: "two-byte nonempty extent is admitted", body: twoByteExtent},
 		{name: "foreign submission is admitted", body: body(func(v *EvidenceBody) { v.Submission = other.submission })},
 		{name: "foreign object is admitted", body: body(func(v *EvidenceBody) { v.Object = other.object })},
 		{name: "foreign SHA-256 is admitted", body: body(func(v *EvidenceBody) { v.SHA256 = other.body.SHA256 })},
@@ -289,6 +289,8 @@ func TestEvidenceVerificationMutationMatrix(t *testing.T) {
 		{name: "occurrence mutation is verification failure", trusted: fixture.trusted, wantExpectation: fixture.expectation, want: core.ErrReceiptVerification, mutate: func(v *EvidenceDocument) { v.Payload.Header.OccurredAt = other.occurredAt }},
 		{name: "body extent mutation is verification failure", trusted: fixture.trusted, wantExpectation: fixture.expectation, want: core.ErrReceiptVerification, mutate: func(v *EvidenceDocument) { v.Payload.Body.Extent = mustByteLength(t, 2) }},
 		{name: "signature mutation is verification failure", trusted: fixture.trusted, wantExpectation: fixture.expectation, want: core.ErrReceiptVerification, mutate: func(v *EvidenceDocument) { v.Attestation.Signature = attest.Signature{} }},
+		{name: "tampering outranks a valid scope mismatch", trusted: fixture.trusted, wantExpectation: func() EvidenceExpectation { v := fixture.expectation; v.Principal = other.principal; return v }(), want: core.ErrReceiptVerification, mutate: func(v *EvidenceDocument) { v.Payload.Header.Identity = other.receipt }},
+		{name: "untrusted signer outranks a valid scope mismatch", trusted: other.trusted, wantExpectation: func() EvidenceExpectation { v := fixture.expectation; v.Offering = other.offering; return v }(), want: core.ErrReceiptVerification},
 		{name: "principal mismatch is typed scope failure", trusted: fixture.trusted, wantExpectation: func() EvidenceExpectation { v := fixture.expectation; v.Principal = other.principal; return v }(), want: core.ErrReceiptScope, wantField: ScopeFieldPrincipal},
 		{name: "offering mismatch is typed scope failure", trusted: fixture.trusted, wantExpectation: func() EvidenceExpectation { v := fixture.expectation; v.Offering = other.offering; return v }(), want: core.ErrReceiptScope, wantField: ScopeFieldOffering},
 		{name: "submission mismatch is typed scope failure", trusted: fixture.trusted, wantExpectation: func() EvidenceExpectation { v := fixture.expectation; v.Body.Submission = other.submission; return v }(), want: core.ErrReceiptScope, wantField: ScopeFieldSubmission},
@@ -307,6 +309,12 @@ func TestEvidenceVerificationMutationMatrix(t *testing.T) {
 			got, gotErr := VerifyEvidence(VerifyEvidenceRequest{
 				Document: candidate, TrustedKeys: tc.trusted, Expected: tc.wantExpectation,
 			})
+			for _, identity := range []error{core.ErrReceiptVerification, core.ErrReceiptScope, core.ErrReceiptConflict, core.ErrReceiptRollback} {
+				if errors.Is(gotErr, identity) != (tc.want == identity) {
+					t.Fatalf("error=%v, want exclusive identity %v", gotErr, tc.want)
+				}
+			}
+
 			if !errors.Is(gotErr, tc.want) {
 				t.Fatalf("VerifyEvidence() error = %v, want %v", gotErr, tc.want)
 			}
@@ -331,34 +339,6 @@ func TestEvidenceVerificationMutationMatrix(t *testing.T) {
 func TestWatermarkAdvanceLayerTriad(t *testing.T) {
 	t.Parallel()
 
-	fixture := newReceiptFixture(t, 50)
-	scope := Scope{Principal: fixture.principal, Offering: fixture.offering}
-	current := watermarkFixture(t, scope, 2, "current")
-	next := watermarkFixture(t, scope, 3, "next")
-
-	replay, err := AdvanceWatermark(AdvanceWatermarkRequest{Current: current, Candidate: current})
-	replayState, replayStateErr := replay.State()
-	replayWatermark, replayWatermarkErr := replay.Watermark()
-	if err != nil || replayStateErr != nil || replayWatermarkErr != nil ||
-		replayState != AdvanceReplay || replayWatermark != current {
-		t.Fatalf("AdvanceWatermark(replay) = (%v, %v), want current replay and nil", replay, err)
-	}
-	accepted, err := AdvanceWatermark(AdvanceWatermarkRequest{Current: current, Candidate: next})
-	acceptedState, acceptedStateErr := accepted.State()
-	acceptedWatermark, acceptedWatermarkErr := accepted.Watermark()
-	if err != nil || acceptedStateErr != nil || acceptedWatermarkErr != nil ||
-		acceptedState != AdvanceAccepted || acceptedWatermark != next {
-		t.Fatalf("AdvanceWatermark(higher) = (%v, %v), want candidate accepted and nil", accepted, err)
-	}
-	rejected, err := AdvanceWatermark(AdvanceWatermarkRequest{Current: next, Candidate: current})
-	if rejected != (AdvanceResult{}) || !errors.Is(err, core.ErrReceiptRollback) {
-		t.Fatalf("AdvanceWatermark(lower) = (%v, %v), want zero and %v", rejected, err, core.ErrReceiptRollback)
-	}
-}
-
-func TestWatermarkAdvanceHostileMatrix(t *testing.T) {
-	t.Parallel()
-
 	fixture := newReceiptFixture(t, 60)
 	other := newReceiptFixture(t, 70)
 	scope := Scope{Principal: fixture.principal, Offering: fixture.offering}
@@ -379,18 +359,14 @@ func TestWatermarkAdvanceHostileMatrix(t *testing.T) {
 		wantState  AdvanceState
 		wantReason ConflictReason
 	}{
-		{name: "identical generation and closures replay", current: current, candidate: current, wantState: AdvanceReplay},
+		{name: "neutral identical generation and closures replay", current: current, candidate: current, wantState: AdvanceReplay},
 		{name: "lowest generation replays itself", current: first, candidate: first, wantState: AdvanceReplay},
 		{name: "maximum generation replays itself", current: far, candidate: far, wantState: AdvanceReplay},
-		{name: "one step forward with both new closures accepts", current: current, candidate: next, wantState: AdvanceAccepted},
-		{name: "first to second generation accepts", current: first, candidate: current, wantState: AdvanceAccepted},
+		{name: "positive forward generation with both new closures accepts", current: current, candidate: next, wantState: AdvanceAccepted},
 		{name: "first to maximum generation accepts", current: first, candidate: far, wantState: AdvanceAccepted},
 		{name: "one below maximum to maximum accepts", current: from(current, func(v *Watermark) { v.Generation = mustGeneration(t, math.MaxUint64-1) }), candidate: far, wantState: AdvanceAccepted},
-		{name: "accepted advance selects the candidate not the current", current: first, candidate: next, wantState: AdvanceAccepted},
-		{name: "advance across a wide generation gap accepts", current: first, candidate: from(next, func(v *Watermark) { v.Generation = mustGeneration(t, 1<<40) }), wantState: AdvanceAccepted},
-		{name: "advance keeping neither closure accepts", current: current, candidate: from(far, func(v *Watermark) { v.CursorDigest = next.CursorDigest }), wantState: AdvanceAccepted},
 
-		{name: "one generation below rolls back", current: next, candidate: current, want: core.ErrReceiptRollback},
+		{name: "negative lower generation rolls back", current: next, candidate: current, want: core.ErrReceiptRollback},
 		{name: "maximum to first rolls back", current: far, candidate: first, want: core.ErrReceiptRollback},
 		{name: "one below the maximum rolls back", current: far, candidate: from(next, func(v *Watermark) { v.Generation = mustGeneration(t, math.MaxUint64-1) }), want: core.ErrReceiptRollback},
 		{name: "equal generation with cursor divergence conflicts", current: current, candidate: from(current, func(v *Watermark) { v.CursorDigest = next.CursorDigest }), want: core.ErrReceiptConflict, wantReason: ConflictReasonReplayDivergence},
@@ -401,10 +377,8 @@ func TestWatermarkAdvanceHostileMatrix(t *testing.T) {
 		{name: "foreign principal conflicts before generation", current: next, candidate: watermarkFixture(t, Scope{Principal: other.principal, Offering: fixture.offering}, 1, "foreign-principal"), want: core.ErrReceiptConflict, wantReason: ConflictReasonScope},
 		{name: "foreign offering conflicts before generation", current: next, candidate: watermarkFixture(t, Scope{Principal: fixture.principal, Offering: other.offering}, 1, "foreign-offering"), want: core.ErrReceiptConflict, wantReason: ConflictReasonScope},
 		{name: "foreign scope outranks an otherwise valid advance", current: current, candidate: watermarkFixture(t, Scope{Principal: other.principal, Offering: other.offering}, 3, "foreign-both"), want: core.ErrReceiptConflict, wantReason: ConflictReasonScope},
-		{name: "foreign scope outranks a rollback", current: far, candidate: watermarkFixture(t, Scope{Principal: other.principal, Offering: fixture.offering}, 1, "foreign-rollback"), want: core.ErrReceiptConflict, wantReason: ConflictReasonScope},
 		{name: "zero current is contract failure", candidate: next, want: core.ErrReceiptContract},
 		{name: "zero candidate is contract failure", current: current, want: core.ErrReceiptContract},
-		{name: "both zero is contract failure", want: core.ErrReceiptContract},
 	}
 	var coveredReasons [conflictReasonLimit]bool
 	for _, tc := range cases {
@@ -416,6 +390,12 @@ func TestWatermarkAdvanceHostileMatrix(t *testing.T) {
 			got, gotErr := AdvanceWatermark(AdvanceWatermarkRequest{
 				Current: tc.current, Candidate: tc.candidate,
 			})
+			for _, identity := range []error{core.ErrReceiptVerification, core.ErrReceiptScope, core.ErrReceiptConflict, core.ErrReceiptRollback} {
+				if errors.Is(gotErr, identity) != (tc.want == identity) {
+					t.Fatalf("error=%v, want exclusive identity %v", gotErr, tc.want)
+				}
+			}
+
 			if !errors.Is(gotErr, tc.want) {
 				t.Fatalf("AdvanceWatermark() error = %v, want %v", gotErr, tc.want)
 			}
@@ -601,7 +581,7 @@ func TestEvidenceDocumentJSONLayerTriad(t *testing.T) {
 		canonical[:len(canonical)-1],
 		append(append([]byte{}, canonical...), []byte(`{}`)...),
 		[]byte{'"', 0xff, '"'},
-		bytes.Repeat([]byte{' '}, EvidenceDocumentJSONMaximumBytes+1),
+		bytes.Repeat([]byte{' '}, receiptWhitespaceFixtureBytes),
 	} {
 		receiver := document
 		gotErr := receiver.UnmarshalJSON(data)

@@ -71,7 +71,7 @@ func TestWatermarkScopeStrictJSONHostileMatrix(t *testing.T) {
 		{name: "numeric principal is rejected", data: []byte(`{"principal_identity":1,"offering":"` + fixture.offering.String() + `"}`)},
 		{name: "invalid UTF-8 is rejected", data: []byte{'{', '"', 0xff, '"', ':', '1', '}'}},
 		{name: "nesting bomb is rejected", data: []byte(`{"principal_identity":{"nested":{"deeper":{}}}}`)},
-		{name: "one above byte bound is rejected", data: bytes.Repeat([]byte{' '}, scopeCanonicalJSONMaximumBytes+scopeJSONWhitespaceAllowance+1)},
+		{name: "whitespace without a document is rejected", data: bytes.Repeat([]byte{' '}, receiptWhitespaceFixtureBytes)},
 	}
 	for _, tc := range hostileCases {
 		t.Run(tc.name, func(t *testing.T) {

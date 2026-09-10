@@ -23,4 +23,9 @@
 // accepted-history digest; it does not calculate or replay an append-only
 // chain. Proofledger owns that separate mechanism and names its durable result
 // AppendReceipt so the two contracts cannot be mistaken for one identity.
+//
+// JSON methods accept and return complete caller-owned byte slices. They retain
+// exact typed schema validation without a package-imposed total input byte quota.
+// Canonical evidence and watermarks contain fixed-width facts; they do not read
+// or retain the object bytes described by Extent. Attest owns signing mechanics.
 package receipt

@@ -354,7 +354,7 @@ func TestSubmissionDecisionTaggedUnionRefusesAbsentAndContradictoryArms(t *testi
 	}
 }
 
-func TestSubmissionDecisionStrictJSONRefusesUnknownAndOversizeWithoutMutation(t *testing.T) {
+func TestSubmissionDecisionStrictJSONRefusesMalformedWithoutMutation(t *testing.T) {
 	t.Parallel()
 
 	grant := newGrantFixture(t, grantFixtureRequest{})
@@ -374,7 +374,7 @@ func TestSubmissionDecisionStrictJSONRefusesUnknownAndOversizeWithoutMutation(t 
 		{name: "null", data: []byte("null")},
 		{name: "array", data: []byte{'[', ']'}},
 		{name: "trailing object", data: append(append([]byte(nil), encoded...), '{', '}')},
-		{name: "oversize", data: make([]byte, int(DecisionDocumentJSONMaximumBytes)+1)},
+		{name: "non_JSON_zero_bytes", data: make([]byte, decisionWhitespaceFixtureBytes)},
 	}
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {

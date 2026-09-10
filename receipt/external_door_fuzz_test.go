@@ -2,7 +2,7 @@ package receipt
 
 import (
 	"bytes"
-	json "encoding/json/v2"
+	"encoding/hex"
 	"errors"
 	"testing"
 
@@ -96,7 +96,7 @@ func FuzzReceiptExternalJSONDoorInventory(f *testing.F) {
 		f.Add(uint8(seed.door), seed.document)
 	}
 	for _, hostile := range [][]byte{
-		nil, {}, []byte(`null`), []byte(`{}`), []byte(`[]`),
+		nil, []byte(`null`), []byte(`{}`), []byte(`[]`),
 		[]byte(`""`), []byte(`0`), []byte(`true`), []byte(`{`),
 		bytes.Repeat([]byte(`[`), core.JSONNestingDepthMaximum+1),
 	} {
@@ -184,25 +184,25 @@ func FuzzReceiptExternalTextDoorInventory(f *testing.F) {
 		case receiptTextDoorPrincipalIdentity:
 			got, err := ParsePrincipalIdentity(value)
 			fuzzReceiptTextOutcome(t, receiptTextOutcome{
-				input: value, projection: got.String(), err: err,
+				input: value, projection: got.String(), err: err, width: LifecycleIdentityBytes,
 				validate: got.Validate,
 			})
 		case receiptTextDoorSubmissionIdentity:
 			got, err := ParseSubmissionIdentity(value)
 			fuzzReceiptTextOutcome(t, receiptTextOutcome{
-				input: value, projection: got.String(), err: err,
+				input: value, projection: got.String(), err: err, width: LifecycleIdentityBytes,
 				validate: got.Validate,
 			})
 		case receiptTextDoorObjectIdentity:
 			got, err := ParseObjectIdentity(value)
 			fuzzReceiptTextOutcome(t, receiptTextOutcome{
-				input: value, projection: got.String(), err: err,
+				input: value, projection: got.String(), err: err, width: LifecycleIdentityBytes,
 				validate: got.Validate,
 			})
 		case receiptTextDoorReceiptID:
 			got, err := ParseReceiptID(value)
 			fuzzReceiptTextOutcome(t, receiptTextOutcome{
-				input: value, projection: got.String(), err: err,
+				input: value, projection: got.String(), err: err, width: ReceiptIDBytes,
 				validate: got.Validate,
 			})
 		case receiptTextDoorUnknown, receiptTextDoorLimit:
@@ -213,7 +213,7 @@ func FuzzReceiptExternalTextDoorInventory(f *testing.F) {
 	})
 }
 
-func fuzzReceiptJSONValue[T core.ValidatedJSONMarshaler](
+func fuzzReceiptJSONValue[T receiptJSONValue, P receiptJSONReceiver[T]](
 	t *testing.T,
 	data []byte,
 	seed T,
@@ -224,12 +224,15 @@ func fuzzReceiptJSONValue[T core.ValidatedJSONMarshaler](
 	if err != nil {
 		t.Fatalf("receipt seed MarshalJSON() error = %v, want nil", err)
 	}
-	candidate := seed
-	decoder, ok := any(&candidate).(json.Unmarshaler)
-	if !ok {
-		t.Fatalf("receipt JSON receiver %T lacks json.Unmarshaler", &candidate)
+	// An independent valid producer must remain admitted even if the arbitrary
+	// input is rejected. This catches reject-everything decoders and byte quotas.
+	probe := seed
+	padded := append(bytes.Repeat([]byte{' '}, len(data)), before...)
+	if probeErr := P(&probe).UnmarshalJSON(padded); probeErr != nil || probe != seed {
+		t.Fatalf("typed seed with %d whitespace bytes=%v/%v, want exact admitted seed", len(data), probe, probeErr)
 	}
-	decodeErr := decoder.UnmarshalJSON(data)
+	candidate := seed
+	decodeErr := P(&candidate).UnmarshalJSON(data)
 	if decodeErr != nil {
 		if !errors.Is(decodeErr, core.ErrReceiptContract) ||
 			!errors.Is(decodeErr, core.ErrJSONContract) {
@@ -247,17 +250,13 @@ func fuzzReceiptJSONValue[T core.ValidatedJSONMarshaler](
 		t.Fatalf("accepted receipt JSON validation error = %v, want nil", err)
 	}
 	canonical, err := candidate.MarshalJSON()
-	if err != nil || len(canonical) > core.JSONDocumentMaximumBytes {
-		t.Fatalf("receipt canonical JSON = (%d bytes, %v), want bounded and nil",
+	if err != nil || len(canonical) == 0 {
+		t.Fatalf("receipt canonical JSON = (%d bytes, %v), want nonempty canonical output and nil",
 			len(canonical), err)
 	}
 	var roundTrip T
-	roundTripDecoder, ok := any(&roundTrip).(json.Unmarshaler)
-	if !ok {
-		t.Fatalf("receipt round-trip receiver %T lacks json.Unmarshaler", &roundTrip)
-	}
-	if err := roundTripDecoder.UnmarshalJSON(canonical); err != nil {
-		t.Fatalf("receipt canonical JSON decode error = %v, want nil", err)
+	if err := P(&roundTrip).UnmarshalJSON(canonical); err != nil || roundTrip != candidate {
+		t.Fatalf("receipt canonical JSON decode=%v/%v, want exact accepted value", roundTrip, err)
 	}
 	second, err := roundTrip.MarshalJSON()
 	if err != nil || !bytes.Equal(second, canonical) {
@@ -285,6 +284,10 @@ func fuzzReceiptEvidenceDocument(
 			Body:      candidate.Payload.Body,
 		},
 	})
+	if (err == nil) != (candidate == fixtures.document) {
+		t.Fatalf("verification=%v, want accepted only for exact signed seed", err)
+	}
+
 	if err != nil {
 		if !errors.Is(err, core.ErrReceiptVerification) || proof != (VerifiedEvidence{}) {
 			t.Fatalf("VerifyEvidence(fuzz document) = (%v, %v), want typed refusal and zero proof",
@@ -355,6 +358,7 @@ func receiptJSONSeedForFuzz(
 }
 
 type receiptTextOutcome struct {
+	width      int
 	err        error
 	validate   func() error
 	input      string
@@ -363,6 +367,12 @@ type receiptTextOutcome struct {
 
 func fuzzReceiptTextOutcome(t *testing.T, outcome receiptTextOutcome) {
 	t.Helper()
+
+	raw, nativeErr := hex.DecodeString(outcome.input)
+	want := nativeErr == nil && len(raw) == outcome.width && hex.EncodeToString(raw) == outcome.input && !bytes.Equal(raw, make([]byte, len(raw)))
+	if (outcome.err == nil) != want {
+		t.Fatalf("identity decode=%v, want admitted=%t for exact canonical nonzero bytes", outcome.err, want)
+	}
 
 	if outcome.err != nil {
 		if !errors.Is(outcome.err, core.ErrReceiptContract) || outcome.projection != "" {

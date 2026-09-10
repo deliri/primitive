@@ -11,9 +11,6 @@ import (
 )
 
 const (
-	DecisionDocumentJSONMaximumBytes uint64 = uint64(
-		GrantDocumentJSONMaximumBytes + receipt.EvidenceDocumentJSONMaximumBytes,
-	)
 	decisionTokenUpload = "upload"
 	decisionTokenReuse  = "reuse"
 )
@@ -106,9 +103,9 @@ func (d *DecisionDocument) UnmarshalJSON(data []byte) error {
 		return jsonError(errors.New("nil submission decision receiver"))
 	}
 	type wire DecisionDocument
-	decoded, err := decodeStrict[wire](data, DecisionDocumentJSONMaximumBytes)
+	decoded, err := core.DecodeStrictJSONStructure[wire](data, core.ExtensibleJSONLimits())
 	if err != nil {
-		return err
+		return jsonError(err)
 	}
 	candidate := DecisionDocument(decoded)
 	if err := candidate.Validate(); err != nil {
@@ -199,7 +196,7 @@ func (p DecisionProjection) MarshalJSON() ([]byte, error) {
 		return nil, jsonError(err)
 	}
 	encoded, err := p.marshalJSON()
-	if err != nil || uint64(len(encoded)) > DecisionDocumentJSONMaximumBytes {
+	if err != nil {
 		return nil, jsonError(err)
 	}
 	return encoded, nil

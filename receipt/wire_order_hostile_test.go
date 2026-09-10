@@ -6,10 +6,8 @@ import (
 	json "encoding/json/v2"
 	"errors"
 	"go/ast"
-	"go/parser"
 	"go/token"
 	"io"
-	"os"
 	"slices"
 	"strings"
 	"testing"
@@ -267,9 +265,9 @@ func TestNoProductionMarshalerReliesOnDeclarationOrder(t *testing.T) {
 func productionFiles(t *testing.T) []*ast.File {
 	t.Helper()
 
-	entries, err := os.ReadDir(".")
+	entries, err := receiptSourceFiles.ReadDir(".")
 	if err != nil {
-		t.Fatalf("os.ReadDir(.) error = %v, want nil", err)
+		t.Fatalf("receiptSourceFiles.ReadDir(.) error = %v, want nil", err)
 	}
 	files := token.NewFileSet()
 	var got []*ast.File
@@ -279,7 +277,7 @@ func productionFiles(t *testing.T) []*ast.File {
 			strings.HasSuffix(name, "_test.go") {
 			continue
 		}
-		parsed, parseErr := parser.ParseFile(files, name, nil, parser.SkipObjectResolution)
+		parsed, parseErr := receiptParseProductionFile(files, name)
 		if parseErr != nil {
 			t.Fatalf("parser.ParseFile(%q) error = %v, want nil", name, parseErr)
 		}

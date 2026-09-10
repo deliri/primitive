@@ -24,6 +24,9 @@ func FuzzEvidenceDocumentJSON(f *testing.F) {
 		var got EvidenceDocument
 		gotErr := got.UnmarshalJSON(data)
 		if gotErr != nil {
+			if bytes.Equal(data, seed) {
+				t.Fatalf("canonical signed seed refused: %v", gotErr)
+			}
 			if !errors.Is(gotErr, core.ErrJSONContract) ||
 				got != (EvidenceDocument{}) {
 				t.Fatalf("rejected document = (%v, %v), want zero and %v", got, gotErr, core.ErrJSONContract)
@@ -54,6 +57,10 @@ func FuzzEvidenceDocumentJSON(f *testing.F) {
 				Body:      roundTrip.Payload.Body,
 			},
 		})
+		if (verifyErr == nil) != (roundTrip == document) {
+			t.Fatalf("verification=%v, want accepted only for the exact signed seed", verifyErr)
+		}
+
 		if verifyErr != nil {
 			if !errors.Is(verifyErr, core.ErrReceiptVerification) ||
 				verified != (VerifiedEvidence{}) {

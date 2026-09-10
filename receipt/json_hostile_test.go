@@ -54,8 +54,8 @@ func TestEvidenceDocumentStrictJSONHostileMatrix(t *testing.T) {
 		t.Fatalf("json.Marshal(document) error = %v, want nil", err)
 	}
 	reordered, err := json.Marshal(struct {
-		Payload     EvidencePayload         `json:"payload"`
 		Attestation attest.Envelope[Domain] `json:"attestation"`
+		Payload     EvidencePayload         `json:"payload"`
 	}{Attestation: document.Attestation, Payload: document.Payload})
 	if err != nil {
 		t.Fatalf("json.Marshal(reordered fixture) error = %v, want nil", err)
@@ -65,7 +65,7 @@ func TestEvidenceDocumentStrictJSONHostileMatrix(t *testing.T) {
 		data []byte
 	}{
 		{name: "canonical document is admitted", data: canonical},
-		{name: "bounded surrounding whitespace is admitted", data: append(append([]byte(" \n\t"), canonical...), '\r')},
+		{name: "surrounding JSON whitespace is admitted", data: append(append([]byte(" \n\t"), canonical...), '\r')},
 		{name: "member reordering is admitted and normalized", data: reordered},
 	}
 	for _, tc := range validCases {
@@ -92,7 +92,7 @@ func TestEvidenceDocumentStrictJSONHostileMatrix(t *testing.T) {
 		{name: "unknown member is rejected", data: bytes.Replace(canonical, []byte(`"payload":`), []byte(`"unknown":0,"payload":`), 1)},
 		{name: "wrong top-level type is rejected", data: []byte("[]")},
 		{name: "invalid UTF-8 is rejected", data: []byte{'"', 0xff, '"'}},
-		{name: "one above byte bound is rejected", data: bytes.Repeat([]byte{' '}, EvidenceDocumentJSONMaximumBytes+1)},
+		{name: "whitespace without a document is rejected", data: bytes.Repeat([]byte{' '}, receiptWhitespaceFixtureBytes)},
 		{name: "nesting bomb is rejected", data: []byte(`{"payload":{"header":{"receipt_identity":{"nested":{}}}}}`)},
 	}
 	for _, tc := range hostileCases {
@@ -309,7 +309,7 @@ func TestWatermarkPersistenceJSONLayerTriad(t *testing.T) {
 		{name: "unknown member is rejected", data: bytes.Replace(canonical, []byte(`"revision":`), []byte(`"unknown":0,"revision":`), 1)},
 		{name: "duplicate revision is rejected", data: bytes.Replace(canonical, []byte(`"revision":`), []byte(`"revision":"v1","revision":`), 1)},
 		{name: "wrong top-level type is rejected", data: []byte("[]")},
-		{name: "one above byte bound is rejected", data: bytes.Repeat([]byte{' '}, WatermarkJSONMaximumBytes+1)},
+		{name: "whitespace without a document is rejected", data: bytes.Repeat([]byte{' '}, receiptWhitespaceFixtureBytes)},
 	}
 	for _, tc := range hostileCases {
 		t.Run(tc.name, func(t *testing.T) {

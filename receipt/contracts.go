@@ -1,6 +1,7 @@
 package receipt
 
 import (
+	"bytes"
 	"encoding/hex"
 	json "encoding/json/v2"
 	"errors"
@@ -331,6 +332,7 @@ func (g *Generation) UnmarshalJSON(data []byte) error {
 	if g == nil {
 		return jsonError(errors.New("nil receipt generation receiver"))
 	}
+	data = bytes.Trim(data, " \t\r\n")
 	value, err := strconv.ParseUint(string(data), 10, 64)
 	if err != nil || string(data) != strconv.FormatUint(value, 10) {
 		return jsonError(errors.New("receipt generation is not canonical"), err)
