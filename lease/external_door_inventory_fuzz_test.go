@@ -94,6 +94,7 @@ func FuzzLeaseExternalJSONDoorInventory(f *testing.F) {
 	fixtures := leaseFixturesForFuzz(f)
 	for _, seed := range leaseJSONSeedsForFuzz(f, fixtures) {
 		f.Add(uint8(seed.door), seed.document)
+		f.Add(uint8(seed.door), append(bytes.Repeat([]byte{' '}, 32769), seed.document...))
 	}
 	for _, hostile := range [][]byte{
 		nil, {}, []byte(`null`), []byte(`{}`), []byte(`[]`), []byte(`""`),
@@ -104,7 +105,7 @@ func FuzzLeaseExternalJSONDoorInventory(f *testing.F) {
 	}
 
 	f.Fuzz(func(t *testing.T, rawDoor uint8, data []byte) {
-		switch leaseJSONDoor(rawDoor) {
+		switch leaseJSONDoor(1 + (rawDoor-1)%uint8(leaseJSONDoorLimit-1)) {
 		case leaseJSONDoorEntitlementID:
 			fuzzLeaseJSONValue(t, data, fixtures.entitlement)
 		case leaseJSONDoorDeviceID:
@@ -186,7 +187,7 @@ func FuzzLeaseExternalTextDoorInventory(f *testing.F) {
 
 	f.Fuzz(func(t *testing.T, rawDoor uint8, value string) {
 		var outcome leaseTextOutcome
-		switch leaseTextDoor(rawDoor) {
+		switch leaseTextDoor(1 + (rawDoor-1)%uint8(leaseTextDoorLimit-1)) {
 		case leaseTextDoorEntitlementID:
 			got, err := lease.ParseEntitlementID(value)
 			outcome = leaseTextOutcome{input: value, projection: got.String(), err: err, validate: got.Validate}
@@ -257,8 +258,8 @@ func fuzzLeaseJSONValue[T leaseJSONValue](t *testing.T, data []byte, seed T) {
 		t.Fatalf("accepted lease JSON validation error = %v, want nil", err)
 	}
 	canonical, err := candidate.MarshalJSON()
-	if err != nil || len(canonical) > core.JSONDocumentMaximumBytes {
-		t.Fatalf("lease canonical JSON = (%d bytes, %v), want bounded and nil", len(canonical), err)
+	if err != nil || len(canonical) == 0 {
+		t.Fatalf("lease canonical JSON = (%d bytes, %v), want nonempty and nil", len(canonical), err)
 	}
 	var roundTrip T
 	roundTripDecoder, ok := any(&roundTrip).(json.Unmarshaler)

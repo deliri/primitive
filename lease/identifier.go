@@ -15,10 +15,6 @@ const (
 	IdentifierHexBytes = 2 * IdentifierBytes
 	// IdentifierCanonicalJSONMaximumBytes is the exact compact JSON extent.
 	IdentifierCanonicalJSONMaximumBytes = IdentifierHexBytes + len(`""`)
-	identifierJSONWhitespaceAllowance   = 256
-	// IdentifierJSONMaximumBytes bounds accepted identifier JSON.
-	IdentifierJSONMaximumBytes = IdentifierCanonicalJSONMaximumBytes +
-		identifierJSONWhitespaceAllowance
 )
 
 type identifier struct {
@@ -63,9 +59,6 @@ func marshalIdentifier(i identifier) ([]byte, error) {
 }
 
 func unmarshalIdentifier(data []byte) (identifier, error) {
-	if len(data) == 0 || len(data) > IdentifierJSONMaximumBytes {
-		return identifier{}, jsonError(errors.New("lease identifier JSON extent is invalid"))
-	}
 	text, err := core.DecodeJSONStringToken(data)
 	if err != nil {
 		return identifier{}, jsonError(err)

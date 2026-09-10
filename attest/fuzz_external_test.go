@@ -38,7 +38,7 @@ func FuzzEnvelopeJSONSemanticClosure(f *testing.F) {
 	f.Add(duplicateDomainFixture(f, canonical))
 	f.Add(uppercaseSignatureFixture(f, canonical))
 	f.Add(suffixJSONFixture(" {}")(f, canonical))
-	for _, extent := range []int{attest.EnvelopeJSONMaximumBytes - 1, attest.EnvelopeJSONMaximumBytes, attest.EnvelopeJSONMaximumBytes + 1} {
+	for _, extent := range []int{attest.EnvelopeCanonicalJSONMaximumBytes + 1023, attest.EnvelopeCanonicalJSONMaximumBytes + 1024, attest.EnvelopeCanonicalJSONMaximumBytes + 1025, (1 << 20) + 1} {
 		f.Add(append(bytes.Clone(canonical), bytes.Repeat([]byte(" "), extent-len(canonical))...))
 	}
 	f.Add(append(bytes.Clone(canonical), 0))
@@ -58,7 +58,7 @@ func FuzzEnvelopeJSONSemanticClosure(f *testing.F) {
 		if (gotFreshErr == nil) != wantAdmitted || (gotPopulatedErr == nil) != wantAdmitted {
 			t.Fatalf("envelope admission errors = (%v, %v), want independent admission %t", gotFreshErr, gotPopulatedErr, wantAdmitted)
 		}
-		if len(data) <= attest.EnvelopeJSONMaximumBytes && bytes.Equal(bytes.TrimSpace(data), canonical) && (gotFreshErr != nil || gotPopulatedErr != nil) {
+		if bytes.Equal(bytes.TrimSpace(data), canonical) && (gotFreshErr != nil || gotPopulatedErr != nil) {
 			t.Fatalf("genuinely signed canonical seed rejected: (%v, %v)", gotFreshErr, gotPopulatedErr)
 		}
 		if gotFreshErr != nil || gotPopulatedErr != nil {

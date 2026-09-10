@@ -7,8 +7,6 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
-const enumJSONWhitespaceAllowance = 256
-
 type enumFact struct {
 	token string
 }
@@ -24,10 +22,7 @@ func marshalEnum(token string, maximum int) ([]byte, error) {
 	return encoded, nil
 }
 
-func decodeEnum(data []byte, maximum int) (string, error) {
-	if len(data) == 0 || len(data) > maximum {
-		return "", jsonError(errors.New(enumJSONExtentInvalidText))
-	}
+func decodeEnum(data []byte) (string, error) {
 	token, err := core.DecodeJSONStringToken(data)
 	if err != nil {
 		return "", jsonError(err)
@@ -49,9 +44,6 @@ const (
 	revisionV1Token = "v1"
 	// RevisionCanonicalJSONMaximumBytes is the exact compact revision maximum.
 	RevisionCanonicalJSONMaximumBytes = len(`"` + revisionV1Token + `"`)
-	// RevisionJSONMaximumBytes bounds accepted revision JSON.
-	RevisionJSONMaximumBytes = RevisionCanonicalJSONMaximumBytes +
-		enumJSONWhitespaceAllowance
 )
 
 func revisionFacts() [revisionLimit]enumFact {
@@ -102,7 +94,7 @@ func (r *Revision) UnmarshalJSON(data []byte) error {
 	if r == nil {
 		return jsonError(errors.New("revision receiver is nil"))
 	}
-	token, err := decodeEnum(data, RevisionJSONMaximumBytes)
+	token, err := decodeEnum(data)
 	if err != nil {
 		return err
 	}
@@ -133,8 +125,6 @@ const (
 	outcomeRefusalToken              = "refusal"
 	outcomeRevocationToken           = "revocation"
 	OutcomeCanonicalJSONMaximumBytes = len(`"` + outcomeRevocationToken + `"`)
-	OutcomeJSONMaximumBytes          = OutcomeCanonicalJSONMaximumBytes +
-		enumJSONWhitespaceAllowance
 )
 
 func outcomeFacts() [outcomeLimit]enumFact {
@@ -187,7 +177,7 @@ func (o *Outcome) UnmarshalJSON(data []byte) error {
 	if o == nil {
 		return jsonError(errors.New("outcome receiver is nil"))
 	}
-	token, err := decodeEnum(data, OutcomeJSONMaximumBytes)
+	token, err := decodeEnum(data)
 	if err != nil {
 		return err
 	}
@@ -217,8 +207,6 @@ const (
 	revocationSecurityOrPlatformRiskToken     = "security-or-platform-risk"
 	revocationInsolvencyToken                 = "insolvency"
 	RevocationReasonCanonicalJSONMaximumBytes = len(`"` + revocationSecurityOrPlatformRiskToken + `"`)
-	RevocationReasonJSONMaximumBytes          = RevocationReasonCanonicalJSONMaximumBytes +
-		enumJSONWhitespaceAllowance
 )
 
 func revocationReasonFacts() [revocationReasonLimit]enumFact {
@@ -272,7 +260,7 @@ func (r *RevocationReason) UnmarshalJSON(data []byte) error {
 	if r == nil {
 		return jsonError(errors.New("revocation reason receiver is nil"))
 	}
-	token, err := decodeEnum(data, RevocationReasonJSONMaximumBytes)
+	token, err := decodeEnum(data)
 	if err != nil {
 		return err
 	}

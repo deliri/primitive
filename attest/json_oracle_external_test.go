@@ -95,9 +95,6 @@ type envelopeJSONFacts struct {
 // expected facts without calling Envelope, Signature, or Core JSON decoders.
 func envelopeJSONOracle(raw []byte) (envelopeJSONFacts, bool) {
 	var facts envelopeJSONFacts
-	if len(raw) > attest.EnvelopeJSONMaximumBytes {
-		return facts, false
-	}
 	var parts envelopeJSONParts
 	if err := json.Unmarshal(raw, &parts, json.RejectUnknownMembers(true)); err != nil {
 		return facts, false

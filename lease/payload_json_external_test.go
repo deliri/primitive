@@ -4,6 +4,8 @@ import (
 	"bytes"
 	json "encoding/json/v2"
 	"errors"
+	"maps"
+	"slices"
 	"testing"
 
 	"encoding/json/jsontext"
@@ -12,7 +14,7 @@ import (
 	"github.com/deliri/primitive/v2026/lease"
 )
 
-// payloadJSONContract drives one bounded strict payload decoder through the
+// payloadJSONContract drives one strict payload decoder through the
 // same hostile grammar. Every payload in this package decodes through the same
 // Core strict-JSON gate, so one shared executor keeps the pressure identical
 // and makes a payload that quietly opts out of a rule visible as a diff.
@@ -22,7 +24,6 @@ type payloadJSONContract[T comparable] struct {
 	seed      T
 	canonical T
 	fields    []string
-	maximum   int
 }
 
 func TestSubjectStrictJSONPressure(t *testing.T) {
@@ -33,7 +34,6 @@ func TestSubjectStrictJSONPressure(t *testing.T) {
 		seed:      fixtureSubject(t, 31),
 		canonical: fixtureSubject(t, 33),
 		fields:    []string{"offering", "entitlement_id", "device_id"},
-		maximum:   lease.SubjectJSONMaximumBytes,
 		decode: func(value *lease.Subject, data []byte) error {
 			return value.UnmarshalJSON(data)
 		},
@@ -50,7 +50,6 @@ func TestGrantStrictJSONPressure(t *testing.T) {
 		seed:      fixtureGrant(),
 		canonical: other,
 		fields:    []string{"not_before", "contact_after", "not_after", "good_until"},
-		maximum:   lease.GrantJSONMaximumBytes,
 		decode: func(value *lease.Grant, data []byte) error {
 			return value.UnmarshalJSON(data)
 		},
@@ -68,8 +67,7 @@ func TestRefusalStrictJSONPressure(t *testing.T) {
 		canonical: lease.Refusal{
 			ContactAfter: fixtureInstant(7_000),
 		},
-		fields:  []string{"contact_after"},
-		maximum: lease.RefusalJSONMaximumBytes,
+		fields: []string{"contact_after"},
 		decode: func(value *lease.Refusal, data []byte) error {
 			return value.UnmarshalJSON(data)
 		},
@@ -84,7 +82,6 @@ func TestRevocationStrictJSONPressure(t *testing.T) {
 		seed:      lease.Revocation{Reason: lease.RevocationReasonLicenceBreach},
 		canonical: lease.Revocation{Reason: lease.RevocationReasonInsolvency},
 		fields:    []string{"reason"},
-		maximum:   lease.RevocationJSONMaximumBytes,
 		decode: func(value *lease.Revocation, data []byte) error {
 			return value.UnmarshalJSON(data)
 		},
@@ -177,8 +174,8 @@ func payloadJSONCases[T comparable](
 			wantErr: core.ErrJSONContract,
 		},
 		{
-			name:    "one byte over the document bound",
-			data:    append(make([]byte, contract.maximum+1), canonical...),
+			name:    "NUL prefix is not whitespace",
+			data:    append([]byte{0}, canonical...),
 			wantErr: core.ErrJSONContract,
 		},
 	}
@@ -272,7 +269,8 @@ func removeField(t *testing.T, canonical []byte, field string) []byte {
 	}
 	delete(fields, field)
 	result := []byte("{")
-	for _, member := range fields {
+	for _, name := range slices.Sorted(maps.Keys(fields)) {
+		member := fields[name]
 		if len(result) > 1 {
 			result = append(result, ',')
 		}
@@ -294,7 +292,7 @@ func appendObjectField(object []byte, field string) []byte {
 	return append(result, '}')
 }
 
-// TestPayloadUnmarshalRejectsNilReceivers proves every bounded payload decoder
+// TestPayloadUnmarshalRejectsNilReceivers proves every payload decoder
 // refuses a nil receiver with a typed contract error instead of panicking, so
 // a reflective or generic caller cannot turn a wire boundary into a crash.
 func TestPayloadUnmarshalRejectsNilReceivers(t *testing.T) {

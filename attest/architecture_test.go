@@ -104,7 +104,6 @@ func TestAttestExactPublicSurfaceAndNoTypeAliases(t *testing.T) {
 		"const CanonicalFieldNameSeparator",
 		"const CanonicalObjectMaximumFields",
 		"const EnvelopeCanonicalJSONMaximumBytes",
-		"const EnvelopeJSONMaximumBytes",
 		"const SigningDomainMaximumBytes",
 		"const TrustedKeyMaximumCount",
 		"func BeginCanonicalObject",

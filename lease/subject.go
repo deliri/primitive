@@ -11,10 +11,6 @@ const (
 	// SubjectCanonicalJSONMaximumBytes is the exact maximum compact subject extent.
 	SubjectCanonicalJSONMaximumBytes = len(`{"offering":,"entitlement_id":,"device_id":}`) +
 		core.OfferingCanonicalJSONMaximumBytes + 2*IdentifierCanonicalJSONMaximumBytes
-	subjectJSONWhitespaceAllowance = 1 << 10
-	// SubjectJSONMaximumBytes bounds accepted subject JSON.
-	SubjectJSONMaximumBytes = SubjectCanonicalJSONMaximumBytes +
-		subjectJSONWhitespaceAllowance
 )
 
 // Subject binds one decision to an exact offering, entitlement, and registered
@@ -52,7 +48,7 @@ func (s Subject) MarshalJSON() ([]byte, error) {
 	return encoded, nil
 }
 
-// UnmarshalJSON accepts one bounded strict subject without mutation on
+// UnmarshalJSON accepts one strict subject without mutation on
 // rejection.
 func (s *Subject) UnmarshalJSON(data []byte) error {
 	if s == nil {
@@ -60,9 +56,8 @@ func (s *Subject) UnmarshalJSON(data []byte) error {
 	}
 	type wire Subject
 	limits, err := (jsonStructureContract{
-		maximumBytes: SubjectJSONMaximumBytes,
-		depth:        1,
-		fields:       3,
+		depth:  1,
+		fields: 3,
 	}).limits()
 	if err != nil {
 		return err

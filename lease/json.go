@@ -8,26 +8,15 @@ import (
 )
 
 type jsonStructureContract struct {
-	maximumBytes int
-	depth        uint16
-	fields       uint16
+	depth  uint16
+	fields uint16
 }
 
 func (c jsonStructureContract) limits() (core.StrictJSONLimits, error) {
-	boundedMaximum, err := core.CheckedUint32FromInt(c.maximumBytes)
-	if err != nil {
-		return core.StrictJSONLimits{}, jsonError(err)
-	}
-	documentMaximum, err := core.NewByteCount(uint64(boundedMaximum))
-	if err != nil {
-		return core.StrictJSONLimits{}, jsonError(err)
-	}
-	limits := core.StrictJSONLimits{
-		DocumentMaximumBytes: documentMaximum,
-		NestingDepthMaximum:  c.depth,
-		ObjectFieldMaximum:   c.fields,
-		ArrayItemMaximum:     1,
-	}
+	limits := core.ExtensibleJSONLimits()
+	limits.NestingDepthMaximum = c.depth
+	limits.ObjectFieldMaximum = c.fields
+	limits.ArrayItemMaximum = 1
 	if err := limits.Validate(); err != nil {
 		return core.StrictJSONLimits{}, jsonError(err)
 	}
@@ -35,7 +24,7 @@ func (c jsonStructureContract) limits() (core.StrictJSONLimits, error) {
 }
 
 func writeCanonical(destination io.Writer, data []byte) error {
-	if destination == nil {
+	if core.WriterIsNil(destination) {
 		return contractError(errors.New("lease canonical destination is nil"))
 	}
 	written, err := destination.Write(data)

@@ -1,7 +1,6 @@
 package lease
 
 import (
-	"bytes"
 	json "encoding/json/v2"
 	"errors"
 	"io"
@@ -17,26 +16,14 @@ const (
 	GrantCanonicalJSONMaximumBytes = len(
 		`{"not_before":,"contact_after":,"not_after":,"good_until":}`,
 	) + 4*temporal.InstantCanonicalJSONMaximumBytes
-	grantJSONWhitespaceAllowance = 1 << 10
-	// GrantJSONMaximumBytes bounds accepted grant JSON.
-	GrantJSONMaximumBytes = GrantCanonicalJSONMaximumBytes +
-		grantJSONWhitespaceAllowance
 
 	// RefusalCanonicalJSONMaximumBytes is the exact compact refusal maximum.
 	RefusalCanonicalJSONMaximumBytes = len(`{"contact_after":}`) +
 		temporal.InstantCanonicalJSONMaximumBytes
-	refusalJSONWhitespaceAllowance = 1 << 10
-	// RefusalJSONMaximumBytes bounds accepted refusal JSON.
-	RefusalJSONMaximumBytes = RefusalCanonicalJSONMaximumBytes +
-		refusalJSONWhitespaceAllowance
 
 	// RevocationCanonicalJSONMaximumBytes is the exact compact revocation maximum.
 	RevocationCanonicalJSONMaximumBytes = len(`{"reason":}`) +
 		RevocationReasonCanonicalJSONMaximumBytes
-	revocationJSONWhitespaceAllowance = 256
-	// RevocationJSONMaximumBytes bounds accepted revocation JSON.
-	RevocationJSONMaximumBytes = RevocationCanonicalJSONMaximumBytes +
-		revocationJSONWhitespaceAllowance
 
 	decisionCommonCanonicalJSONBytes = len(
 		`{"revision":,"subject":,"generation":,"issued_at":,"outcome":,"body":}`,
@@ -51,10 +38,6 @@ const (
 	// DecisionCanonicalJSONMaximumBytes is the exact compact decision maximum.
 	DecisionCanonicalJSONMaximumBytes = decisionCommonCanonicalJSONBytes +
 		len(`"`+outcomeGrantToken+`"`) + GrantCanonicalJSONMaximumBytes
-	decisionJSONWhitespaceAllowance = 4 << 10
-	// DecisionJSONMaximumBytes bounds accepted decision JSON.
-	DecisionJSONMaximumBytes = DecisionCanonicalJSONMaximumBytes +
-		decisionJSONWhitespaceAllowance
 )
 
 var (
@@ -121,16 +104,15 @@ func (g Grant) MarshalJSON() ([]byte, error) {
 	return marshalBounded(wire(g), g.Validate, GrantCanonicalJSONMaximumBytes)
 }
 
-// UnmarshalJSON accepts one bounded strict grant.
+// UnmarshalJSON accepts one strict grant.
 func (g *Grant) UnmarshalJSON(data []byte) error {
 	if g == nil {
 		return jsonError(errors.New("grant receiver is nil"))
 	}
 	type wire Grant
 	decoded, err := decodeStructure[wire](data, jsonStructureContract{
-		maximumBytes: GrantJSONMaximumBytes,
-		depth:        1,
-		fields:       4,
+		depth:  1,
+		fields: 4,
 	})
 	if err != nil {
 		return err
@@ -162,16 +144,15 @@ func (r Refusal) MarshalJSON() ([]byte, error) {
 	return marshalBounded(wire(r), r.Validate, RefusalCanonicalJSONMaximumBytes)
 }
 
-// UnmarshalJSON accepts one bounded strict refusal.
+// UnmarshalJSON accepts one strict refusal.
 func (r *Refusal) UnmarshalJSON(data []byte) error {
 	if r == nil {
 		return jsonError(errors.New("refusal receiver is nil"))
 	}
 	type wire Refusal
 	decoded, err := decodeStructure[wire](data, jsonStructureContract{
-		maximumBytes: RefusalJSONMaximumBytes,
-		depth:        1,
-		fields:       1,
+		depth:  1,
+		fields: 1,
 	})
 	if err != nil {
 		return err
@@ -200,16 +181,15 @@ func (r Revocation) MarshalJSON() ([]byte, error) {
 	return marshalBounded(wire(r), r.Validate, RevocationCanonicalJSONMaximumBytes)
 }
 
-// UnmarshalJSON accepts one bounded strict revocation.
+// UnmarshalJSON accepts one strict revocation.
 func (r *Revocation) UnmarshalJSON(data []byte) error {
 	if r == nil {
 		return jsonError(errors.New("revocation receiver is nil"))
 	}
 	type wire Revocation
 	decoded, err := decodeStructure[wire](data, jsonStructureContract{
-		maximumBytes: RevocationJSONMaximumBytes,
-		depth:        1,
-		fields:       1,
+		depth:  1,
+		fields: 1,
 	})
 	if err != nil {
 		return err
@@ -273,7 +253,7 @@ func (w decisionWire) Validate() error {
 	if err := w.Outcome.Validate(); err != nil {
 		return err
 	}
-	if len(*w.Body) == 0 || len(*w.Body) > GrantJSONMaximumBytes {
+	if len(*w.Body) == 0 {
 		return jsonError(errors.New("decision body extent is invalid"))
 	}
 	return nil
@@ -476,27 +456,26 @@ func (d Decision) marshalBody() ([]byte, error) {
 	}
 }
 
-// UnmarshalJSON accepts one bounded strict tagged union without mutation on
+// UnmarshalJSON accepts one strict tagged union without mutation on
 // rejection.
 func (d *Decision) UnmarshalJSON(data []byte) error {
 	if d == nil {
 		return jsonError(errors.New("decision receiver is nil"))
 	}
 	limits, err := (jsonStructureContract{
-		maximumBytes: DecisionJSONMaximumBytes,
-		depth:        3,
-		fields:       6,
+		depth:  3,
+		fields: 6,
 	}).limits()
 	if err != nil {
 		return err
 	}
-	wire, err := core.DecodeStrictJSON[decisionWire](bytes.NewReader(data), limits)
+	wire, err := core.DecodeStrictJSONBytes[decisionWire](data, limits)
 	if err != nil {
 		return jsonError(err)
 	}
 	candidate, err := decisionFromWire(wire)
 	if err != nil {
-		return err
+		return jsonError(err)
 	}
 	*d = candidate
 	return nil

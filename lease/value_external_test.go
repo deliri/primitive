@@ -104,7 +104,7 @@ func TestIdentifierJSONHostilePressure(t *testing.T) {
 		{name: "separator", data: []byte(`"0102030405060708-90a0b0c0d0e0f10"`), wantErr: core.ErrLeaseContract},
 		{name: "invalid utf8", data: []byte{'"', 0xff, '"'}, wantErr: core.ErrJSONContract},
 		{name: "unpaired surrogate", data: []byte(`"\ud800000000000000000000000000000"`), wantErr: core.ErrJSONContract},
-		{name: "oversized", data: make([]byte, lease.IdentifierJSONMaximumBytes+1), wantErr: core.ErrJSONContract},
+		{name: "NUL is not JSON whitespace", data: []byte{0}, wantErr: core.ErrJSONContract},
 	}
 
 	for _, tc := range cases {
@@ -177,7 +177,7 @@ func TestGenerationJSONEntryPointPressure(t *testing.T) {
 		{name: "one above maximum", data: []byte(`"18446744073709551616"`), wantErr: core.ErrLeaseContract},
 		{name: "over digit bound", data: []byte(`"100000000000000000000"`), wantErr: core.ErrLeaseContract},
 		{name: "unpaired surrogate", data: []byte(`"\ud800"`), wantErr: core.ErrJSONContract},
-		{name: "over document bound", data: make([]byte, lease.GenerationJSONMaximumBytes+1), wantErr: core.ErrJSONContract},
+		{name: "NUL is not whitespace", data: []byte{0}, wantErr: core.ErrJSONContract},
 	}
 	seed, err := lease.NewGeneration(7)
 	if err != nil {
@@ -226,7 +226,6 @@ type enumJSONPressure[T comparable] struct {
 	name        string
 	valid       []byte
 	unsupported []byte
-	maximum     int
 }
 
 func TestWireEnumJSONEntryPointPressure(t *testing.T) {
@@ -234,16 +233,14 @@ func TestWireEnumJSONEntryPointPressure(t *testing.T) {
 
 	runEnumJSONPressure(t, enumJSONPressure[lease.Revision]{
 		name: "revision", seed: lease.RevisionV1, want: lease.RevisionV1,
-		valid: []byte(`"v1"`), unsupported: []byte(`"V1"`),
-		maximum: lease.RevisionJSONMaximumBytes,
+		valid: canonicalJSONForTest(t, lease.RevisionV1), unsupported: []byte(`"V1"`),
 		decode: func(value *lease.Revision, data []byte) error {
 			return value.UnmarshalJSON(data)
 		},
 	})
 	runEnumJSONPressure(t, enumJSONPressure[lease.Outcome]{
 		name: "outcome", seed: lease.OutcomeGrant, want: lease.OutcomeRevocation,
-		valid: []byte(`"revocation"`), unsupported: []byte(`"Grant"`),
-		maximum: lease.OutcomeJSONMaximumBytes,
+		valid: canonicalJSONForTest(t, lease.OutcomeRevocation), unsupported: []byte(`"Grant"`),
 		decode: func(value *lease.Outcome, data []byte) error {
 			return value.UnmarshalJSON(data)
 		},
@@ -251,8 +248,7 @@ func TestWireEnumJSONEntryPointPressure(t *testing.T) {
 	runEnumJSONPressure(t, enumJSONPressure[lease.RevocationReason]{
 		name: "revocation reason", seed: lease.RevocationReasonLicenceBreach,
 		want:  lease.RevocationReasonSecurityOrPlatformRisk,
-		valid: []byte(`"security-or-platform-risk"`), unsupported: []byte(`"nonpayment"`),
-		maximum: lease.RevocationReasonJSONMaximumBytes,
+		valid: canonicalJSONForTest(t, lease.RevocationReasonSecurityOrPlatformRisk), unsupported: []byte(`"nonpayment"`),
 		decode: func(value *lease.RevocationReason, data []byte) error {
 			return value.UnmarshalJSON(data)
 		},
@@ -275,7 +271,7 @@ func runEnumJSONPressure[T comparable](t *testing.T, contract enumJSONPressure[T
 		{name: "unquoted", data: contract.valid[1 : len(contract.valid)-1], wantErr: core.ErrJSONContract},
 		{name: "unsupported exact token", data: contract.unsupported, wantErr: core.ErrLeaseContract},
 		{name: "unpaired surrogate", data: []byte(`"\ud800"`), wantErr: core.ErrJSONContract},
-		{name: "over document bound", data: make([]byte, contract.maximum+1), wantErr: core.ErrJSONContract},
+		{name: "NUL is not whitespace", data: []byte{0}, wantErr: core.ErrJSONContract},
 	}
 	for _, tc := range cases {
 		t.Run(contract.name+"/"+tc.name, func(t *testing.T) {
@@ -360,4 +356,13 @@ func checkRevocationReasonDomain(t *testing.T) {
 			t.Errorf("RevocationReason(%d).IsValid() = %t, want %t", value, revocation.IsValid(), want)
 		}
 	}
+}
+
+func canonicalJSONForTest(t testing.TB, value json.Marshaler) []byte {
+	t.Helper()
+	data, err := value.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
 }

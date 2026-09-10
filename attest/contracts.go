@@ -18,16 +18,6 @@ const (
 	// EnvelopeCanonicalJSONMaximumBytes is the exact maximum canonical envelope
 	// extent. MarshalJSON never emits more.
 	EnvelopeCanonicalJSONMaximumBytes = 405
-	// EnvelopeJSONMaximumBytes is the maximum accepted envelope document extent.
-	// It is the canonical extent plus a bounded insignificant-whitespace
-	// allowance, so an envelope that a pretty-printer has indented still
-	// decodes and renormalizes to its canonical projection.
-	EnvelopeJSONMaximumBytes = EnvelopeCanonicalJSONMaximumBytes +
-		envelopeJSONWhitespaceAllowanceBytes
-	// envelopeJSONWhitespaceAllowanceBytes is the insignificant whitespace a
-	// decoded envelope may carry above its canonical extent. It admits deep
-	// indentation while keeping the decode input bounded.
-	envelopeJSONWhitespaceAllowanceBytes = 1 << 10
 )
 
 // SigningDomain is implemented by a protocol owner's closed domain enum.

@@ -1,7 +1,6 @@
 package attest
 
 import (
-	"bytes"
 	"errors"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -102,19 +101,16 @@ func (e Envelope[D]) MarshalJSON() ([]byte, error) {
 	return encoded, nil
 }
 
-// UnmarshalJSON accepts bounded strict JSON and preserves the receiver on
-// every rejection. Harmless JSON whitespace, member order, and equivalent
-// string escapes are accepted and normalize on the next marshal. The raw
-// document, whitespace included, is bounded by EnvelopeJSONMaximumBytes.
+// UnmarshalJSON accepts strict caller-owned whole JSON and preserves the
+// receiver on every rejection. Whitespace, member order, and equivalent string
+// escapes normalize on marshal. Input size follows the supplied byte slice;
+// this interface does not stream and imposes no document-size quota.
 func (e *Envelope[D]) UnmarshalJSON(data []byte) error {
 	if e == nil {
 		return envelopeJSONError(errors.New("nil envelope receiver"))
 	}
-	limits, err := envelopeJSONLimits()
-	if err != nil {
-		return envelopeJSONError(err)
-	}
-	wire, err := core.DecodeStrictJSON[envelopeWire](bytes.NewReader(data), limits)
+	limits := envelopeJSONLimits()
+	wire, err := core.DecodeStrictJSONBytes[envelopeWire](data, limits)
 	if err != nil {
 		return envelopeJSONError(err)
 	}
@@ -136,15 +132,10 @@ func (e *Envelope[D]) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func envelopeJSONLimits() (core.StrictJSONLimits, error) {
-	maximum, err := core.NewByteCount(EnvelopeJSONMaximumBytes)
-	if err != nil {
-		return core.StrictJSONLimits{}, err
-	}
-	return core.StrictJSONLimits{
-		DocumentMaximumBytes: maximum,
-		NestingDepthMaximum:  1,
-		ObjectFieldMaximum:   5,
-		ArrayItemMaximum:     1,
-	}, nil
+func envelopeJSONLimits() core.StrictJSONLimits {
+	limits := core.ExtensibleJSONLimits()
+	limits.NestingDepthMaximum = 1
+	limits.ObjectFieldMaximum = 5
+	limits.ArrayItemMaximum = 1
+	return limits
 }

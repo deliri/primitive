@@ -229,7 +229,7 @@ func TestDocumentStrictJSONPressure(t *testing.T) {
 		{name: "unknown outer field", data: injectObjectField(canonical, `"future":1`), wantErr: core.ErrJSONContract},
 		{name: "duplicate decision field", data: duplicateFirstField(canonical), wantErr: core.ErrJSONContract},
 		{name: "case variant decision field", data: injectObjectField(canonical, `"Decision":{}`), wantErr: core.ErrJSONContract},
-		{name: "over maximum whitespace", data: append(make([]byte, lease.DocumentJSONMaximumBytes+1), canonical...), wantErr: core.ErrJSONContract},
+		{name: "NUL prefix is not whitespace", data: append([]byte{0}, canonical...), wantErr: core.ErrJSONContract},
 		{name: "invalid utf8", data: []byte{0xff}, wantErr: core.ErrJSONContract},
 	}
 

@@ -81,7 +81,7 @@ func TestEnvelopeJSONPublicHostileRejectionPreservesReceiverMatrix(t *testing.T)
 		{name: "whitespace-only document rejects", makeInput: fixedJSONFixture([]byte(" \n\t"))},
 		{name: "truncated opening object rejects", makeInput: fixedJSONFixture([]byte("{"))},
 		{name: "truncated canonical document rejects", makeInput: truncateJSONFixture},
-		{name: "oversized document rejects before parse", makeInput: oversizedJSONFixture},
+		{name: "whitespace without a value is refused", makeInput: whitespaceOnlyJSONFixture},
 		{name: "unknown member rejects", makeInput: unknownMemberFixture},
 		{name: "exact duplicate domain rejects", makeInput: duplicateDomainFixture},
 		{name: "case-variant duplicate domain rejects", makeInput: caseVariantDomainFixture},
@@ -270,16 +270,15 @@ func TestEnvelopeJSONMaximumExtentAdmitsInsignificantWhitespace(t *testing.T) {
 			attest.EnvelopeCanonicalJSONMaximumBytes,
 		)
 	}
-	allowance := attest.EnvelopeJSONMaximumBytes - attest.EnvelopeCanonicalJSONMaximumBytes
-	if allowance <= 0 {
-		t.Fatalf("whitespace allowance = %d, want positive", allowance)
-	}
+	const allowance = 1 << 10 // Historical whitespace quota, retained as a regression coordinate.
 
 	cases := []struct {
 		makeInput envelopeJSONFixture
 		name      string
 	}{
 		{name: "canonical maximum extent closes", makeInput: cloneJSONFixture},
+		{name: "past former allowance normalizes", makeInput: suffixJSONFixture(strings.Repeat(" ", allowance+1))},
+		{name: "many whitespace windows normalize", makeInput: prefixJSONFixture(strings.Repeat(" ", (1<<20)+1))},
 		{name: "one leading space at maximum extent normalizes", makeInput: prefixJSONFixture(" ")},
 		{name: "one trailing space at maximum extent normalizes", makeInput: suffixJSONFixture(" ")},
 		{name: "surrounding whitespace at maximum extent normalizes", makeInput: surroundJSONFixture("\n\t", "\r\n")},
@@ -299,13 +298,6 @@ func TestEnvelopeJSONMaximumExtentAdmitsInsignificantWhitespace(t *testing.T) {
 			t.Parallel()
 
 			input := tc.makeInput(t, canonical)
-			if len(input) > attest.EnvelopeJSONMaximumBytes {
-				t.Fatalf(
-					"fixture length = %d, want at most the accepted maximum %d",
-					len(input),
-					attest.EnvelopeJSONMaximumBytes,
-				)
-			}
 			var gotEnvelope attest.Envelope[textDomain]
 			if gotErr := gotEnvelope.UnmarshalJSON(input); gotErr != nil {
 				t.Fatalf("Envelope.UnmarshalJSON() error = %v, want nil", gotErr)
@@ -323,19 +315,6 @@ func TestEnvelopeJSONMaximumExtentAdmitsInsignificantWhitespace(t *testing.T) {
 		})
 	}
 
-	t.Run("one byte past the whitespace allowance is rejected", func(t *testing.T) {
-		t.Parallel()
-
-		input := suffixJSONFixture(strings.Repeat(" ", allowance+1))(t, canonical)
-		var gotEnvelope attest.Envelope[textDomain]
-		gotErr := gotEnvelope.UnmarshalJSON(input)
-		if !errors.Is(gotErr, core.ErrJSONContract) {
-			t.Fatalf("Envelope.UnmarshalJSON() error = %v, want core.ErrJSONContract", gotErr)
-		}
-		if gotEnvelope != (attest.Envelope[textDomain]{}) {
-			t.Fatalf("Envelope.UnmarshalJSON() receiver = %+v, want the zero value", gotEnvelope)
-		}
-	})
 }
 
 func maximumExtentEnvelopeFixture(t testing.TB) attest.Envelope[textDomain] {
@@ -771,8 +750,8 @@ func truncateJSONFixture(_ testing.TB, input []byte) []byte {
 	return bytes.Clone(input[:len(input)-1])
 }
 
-func oversizedJSONFixture(testing.TB, []byte) []byte {
-	return bytes.Repeat([]byte(" "), attest.EnvelopeJSONMaximumBytes+1)
+func whitespaceOnlyJSONFixture(testing.TB, []byte) []byte {
+	return bytes.Repeat([]byte(" "), (1<<20)+1)
 }
 
 func reverseEnvelopeMembersFixture(t testing.TB, input []byte) []byte {

@@ -19,10 +19,6 @@ const (
 	DocumentCanonicalJSONMaximumBytes = len(`{"decision":,"attestation":}`) +
 		DecisionCanonicalJSONMaximumBytes +
 		leaseEnvelopeCanonicalJSONMaximumBytes
-	documentJSONWhitespaceAllowance = 8 << 10
-	// DocumentJSONMaximumBytes bounds an accepted signed document.
-	DocumentJSONMaximumBytes = DocumentCanonicalJSONMaximumBytes +
-		documentJSONWhitespaceAllowance
 )
 
 var (
@@ -66,7 +62,7 @@ func (d Document) MarshalJSON() ([]byte, error) {
 	return encoded, nil
 }
 
-// UnmarshalJSON accepts one bounded strict document without receiver mutation
+// UnmarshalJSON accepts one strict document without receiver mutation
 // on rejection.
 func (d *Document) UnmarshalJSON(data []byte) error {
 	if d == nil {
@@ -74,9 +70,8 @@ func (d *Document) UnmarshalJSON(data []byte) error {
 	}
 	type wire Document
 	limits, err := (jsonStructureContract{
-		maximumBytes: DocumentJSONMaximumBytes,
-		depth:        5,
-		fields:       6,
+		depth:  5,
+		fields: 6,
 	}).limits()
 	if err != nil {
 		return err

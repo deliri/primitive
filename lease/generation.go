@@ -13,10 +13,6 @@ const (
 	GenerationMaximumDecimalDigits = 20
 	// GenerationCanonicalJSONMaximumBytes is the exact compact JSON maximum.
 	GenerationCanonicalJSONMaximumBytes = GenerationMaximumDecimalDigits + len(`""`)
-	generationJSONWhitespaceAllowance   = 256
-	// GenerationJSONMaximumBytes bounds accepted generation JSON.
-	GenerationJSONMaximumBytes = GenerationCanonicalJSONMaximumBytes +
-		generationJSONWhitespaceAllowance
 )
 
 // Generation is a positive decision sequence number.
@@ -79,9 +75,6 @@ func (g Generation) MarshalJSON() ([]byte, error) {
 func (g *Generation) UnmarshalJSON(data []byte) error {
 	if g == nil {
 		return jsonError(errors.New("generation receiver is nil"))
-	}
-	if len(data) == 0 || len(data) > GenerationJSONMaximumBytes {
-		return jsonError(errors.New("generation JSON extent is invalid"))
 	}
 	text, err := core.DecodeJSONStringToken(data)
 	if err != nil {
