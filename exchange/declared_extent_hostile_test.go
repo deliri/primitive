@@ -24,8 +24,6 @@ func TestDeclaredExtentNeverReplacesTheBodyLimit(t *testing.T) {
 	t.Parallel()
 
 	const limitBytes = 4096
-	limit := mustByteCount(t, limitBytes)
-	policy := exchange.ServerBoundedPolicy{RequestBodyLimit: limit}
 	route := exchange.RouteSemantics{
 		Method: exchange.MethodPost,
 		Replay: exchange.ReplaySingleAttempt,
@@ -38,10 +36,10 @@ func TestDeclaredExtentNeverReplacesTheBodyLimit(t *testing.T) {
 		wantBytes     int
 	}{
 		{
-			name:          "an understated extent does not raise the limit",
+			name:          "an understated extent retains every actual byte",
 			sentBytes:     limitBytes + 1,
 			declaredBytes: 1,
-			wantIdentity:  core.ErrExchangeBodyLimit,
+			wantBytes:     limitBytes + 1,
 		},
 		{
 			name:          "an understated extent still admits a body within the limit",
@@ -56,16 +54,16 @@ func TestDeclaredExtentNeverReplacesTheBodyLimit(t *testing.T) {
 			wantBytes:     1,
 		},
 		{
-			name:          "an overstated extent above the limit is refused before reading",
+			name:          "an overstated extent above the limit does not impose a storage reservation",
 			sentBytes:     1,
 			declaredBytes: limitBytes + 1,
-			wantIdentity:  core.ErrExchangeBodyLimit,
+			wantBytes:     1,
 		},
 		{
-			name:          "an undeclared extent is bounded while reading",
+			name:          "an undeclared extent retains all actual bytes",
 			sentBytes:     limitBytes + 1,
 			declaredBytes: -1,
-			wantIdentity:  core.ErrExchangeBodyLimit,
+			wantBytes:     limitBytes + 1,
 		},
 		{
 			name:          "an unexpressible extent is a contract defect",
@@ -92,9 +90,9 @@ func TestDeclaredExtentNeverReplacesTheBodyLimit(t *testing.T) {
 			request.ContentLength = testCase.declaredBytes
 
 			got, gotErr := exchange.ReceiveBounded(exchange.BoundedReceiveCall{
-				Call:                socketServerCall(t, request),
-				Route:               route,
-				Policy:              policy,
+				Call:  socketServerCall(t, request),
+				Route: route,
+
 				ExpectedContentType: core.HTTPMediaTypeOctetStream(),
 			})
 			if testCase.wantIdentity != nil {

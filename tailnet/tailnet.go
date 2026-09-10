@@ -187,6 +187,7 @@ func nilIdentitySource(identity IdentitySource) bool {
 
 // newServer projects the validated agreement directly into the provider SDK.
 func newServer(configuration tailnetconfig.Configuration, authKey string) *tsnet.Server {
+	// witness:waiver doctrine/http/server_timeouts -- This literal is tailscale.com/tsnet.Server, not net/http.Server; the provider type has no HTTP server timeout fields.
 	return &tsnet.Server{
 		Dir: configuration.StateDirectory.String(), Hostname: configuration.Hostname.String(),
 		Ephemeral: true, AuthKey: authKey, ControlURL: ipn.DefaultControlURL,

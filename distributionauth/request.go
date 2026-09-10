@@ -90,9 +90,6 @@ func (d UpdateRequestDocument) ControlNonce() controlwire.RequestNonce {
 	return d.Request.Payload.Nonce
 }
 
-func (UpdateRequestDocument) ControlRequestBodyLimit() (core.ByteCount, error) {
-	return core.NewByteCount(uint64(RequestDocumentJSONMaximumBytes))
-}
 
 func (a UpdateRequestAssembly) Validate() error { return UpdateRequestDocument(a).Validate() }
 
@@ -205,9 +202,6 @@ func (d UpgradeRequestDocument) ControlNonce() controlwire.RequestNonce {
 	return d.Request.Payload.Nonce
 }
 
-func (UpgradeRequestDocument) ControlRequestBodyLimit() (core.ByteCount, error) {
-	return core.NewByteCount(uint64(RequestDocumentJSONMaximumBytes))
-}
 
 func (a UpgradeRequestAssembly) Validate() error { return UpgradeRequestDocument(a).Validate() }
 

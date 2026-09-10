@@ -57,12 +57,9 @@ func TestDownloadOverflowProbeDoesNotConfuseAStallWithEOF(t *testing.T) {
 			t.Parallel()
 
 			reader := &delayedProbeReader{emptyReads: testCase.emptyReads}
-			written, gotErr := probeDownloadEnd(downloadCopyRequest{
-				context: context.Background(), source: reader,
-			}, 7)
-			if written != 7 || !errors.Is(gotErr, testCase.want) {
-				t.Fatalf("probeDownloadEnd() = (%d, %v), want (7, %v)",
-					written, gotErr, testCase.want)
+			gotErr := probeStreamEnd(t.Context(), reader)
+			if !errors.Is(gotErr, testCase.want) || reader.reads != testCase.emptyReads {
+				t.Fatalf("probeStreamEnd() = (%d reads, %v), want (%d, %v)", reader.reads, gotErr, testCase.emptyReads, testCase.want)
 			}
 		})
 	}
@@ -77,7 +74,7 @@ func TestDownloadTransferRefusesAnUnendingEmptyReader(t *testing.T) {
 	}
 	written, gotErr := copyDownload(downloadCopyRequest{
 		context: context.Background(), source: emptyForeverReader{},
-		destination: io.Discard, limit: limit,
+		destination: io.Discard, limit: &limit,
 	})
 	if written != 0 || !errors.Is(gotErr, io.ErrNoProgress) {
 		t.Fatalf("copyDownload(empty reader) = (%d, %v), want (0, %v)",
@@ -241,7 +238,7 @@ func TestCopyDownloadGoDispatchLayerTriad(t *testing.T) {
 					t.Fatalf("fixture limit = %v, want nil", err)
 				}
 			}
-			gotBytes, gotErr := copyDownload(downloadCopyRequest{context: ctx, source: source, destination: destination, limit: limit})
+			gotBytes, gotErr := copyDownload(downloadCopyRequest{context: ctx, source: source, destination: destination, limit: &limit})
 			if !errors.Is(gotErr, tc.wantErr) || gotBytes != tc.wantBytes || storage.written.String() != tc.wantBody {
 				t.Fatalf("copy bytes/error/body = (%d, %v, %x), want (%d, %v, %x)", gotBytes, gotErr, storage.written.Bytes(), tc.wantBytes, tc.wantErr, tc.wantBody)
 			}

@@ -107,10 +107,10 @@ func TestServerReceiveCustodyLayerTriad(t *testing.T) {
 			case receiveCustodyBoundSocket:
 				got, gotErr = exchange.ReceiveReplayBoundSocketJSON[replayBoundDocument, *replayBoundDocument](socket, call)
 			case receiveCustodyJSON:
-				got, gotErr = exchange.ReceiveJSON[replayBoundDocument, *replayBoundDocument](exchange.JSONReceiveCall{Call: call, Route: contract.Route, Policy: exchange.ServerPolicy{RequestBodyLimit: contract.RequestBodyLimit}})
+				got, gotErr = exchange.ReceiveJSON[replayBoundDocument, *replayBoundDocument](exchange.JSONReceiveCall{Call: call, Route: contract.Route})
 			case receiveCustodyProjectedJSON:
 				got, gotErr = exchange.ReceiveProjectedJSON[replayBoundDocument, *replayBoundDocument](exchange.ProjectedJSONReceiveCall[replayBoundDocument, *replayBoundDocument]{
-					Call: call, Route: contract.Route, Policy: exchange.ServerPolicy{RequestBodyLimit: contract.RequestBodyLimit},
+					Call: call, Route: contract.Route,
 					Project: func(ctx context.Context, _ exchange.SocketServerCall, _ *replayBoundDocument) error {
 						projections++
 						projectedContext = ctx
@@ -225,8 +225,8 @@ func TestAggregateAndStreamFailureCustodyLayerTriad(t *testing.T) {
 		{name: "positive stream reports exact destination effect", stream: true, payload: "abc", limit: 3, terminal: io.EOF, wantDestination: "abc", wantKey: "op-A", wantBytes: 3, wantReadBytes: 3, wantCloses: 1},
 		{name: "negative aggregate close failure cannot publish bytes or key", payload: "abc", limit: 3, terminal: io.EOF, closeErr: io.ErrClosedPipe, wantErr: core.ErrExchangeRequest, wantNative: io.ErrClosedPipe, wantReadBytes: 3, wantCloses: 1},
 		{name: "negative stream close failure must retain the actual write", stream: true, payload: "abc", limit: 3, terminal: io.EOF, closeErr: io.ErrClosedPipe, wantErr: core.ErrExchangeRequest, wantNative: io.ErrClosedPipe, wantDestination: "abc", wantKey: "op-A", wantBytes: 3, wantReadBytes: 3, wantCloses: 1},
-		{name: "negative aggregate overflow withholds a private prefix", payload: "abc", limit: 2, terminal: io.EOF, wantErr: core.ErrExchangeBodyLimit, wantReadBytes: 3, wantCloses: 1},
-		{name: "negative stream overflow retains only the written prefix", stream: true, payload: "abc", limit: 2, terminal: io.EOF, wantErr: core.ErrExchangeBodyLimit, wantDestination: "ab", wantKey: "op-A", wantBytes: 2, wantReadBytes: 3, wantCloses: 1},
+		{name: "whole value retains the complete source", payload: "abc", limit: 2, terminal: io.EOF, wantAggregate: "abc", wantKey: "op-A", wantReadBytes: 3, wantCloses: 1},
+		{name: "stream continues beyond former aggregate budget", stream: true, payload: "abc", limit: 2, terminal: io.EOF, wantDestination: "abc", wantKey: "op-A", wantBytes: 3, wantReadBytes: 3, wantCloses: 1},
 		{name: "negative aggregate native read failure withholds partial document", payload: "abc", limit: 4, terminal: io.ErrUnexpectedEOF, wantErr: core.ErrExchangeRequest, wantNative: io.ErrUnexpectedEOF, wantReadBytes: 3, wantCloses: 1},
 		{name: "negative stream native read failure retains exact earlier writes", stream: true, payload: "abc", limit: 4, terminal: io.ErrUnexpectedEOF, wantErr: core.ErrExchangeRequest, wantNative: io.ErrUnexpectedEOF, wantDestination: "abc", wantKey: "op-A", wantBytes: 3, wantReadBytes: 3, wantCloses: 1},
 		{name: "negative aggregate reader panic withholds private bytes", payload: "abc", limit: 4, panicAfterPrefix: true, wantErr: core.ErrExchangeRequest, wantReadBytes: 3, wantCloses: 1},
@@ -246,17 +246,16 @@ func TestAggregateAndStreamFailureCustodyLayerTriad(t *testing.T) {
 				t.Fatalf("NewSocketServerCall() setup error = %v, want nil", err)
 			}
 			route := exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplayIdempotencyKey}
-			limit := mustByteCount(t, tc.limit)
 			var destination bytes.Buffer
 			var aggregate exchange.ReceivedBytes
 			var stream exchange.ReceivedStream
 			var gotErr error
 			var gotKey exchange.IdempotencyKey
 			if tc.stream {
-				stream, gotErr = exchange.ReceiveStream(exchange.StreamReceiveCall{Call: call, Route: route, Policy: exchange.ServerStreamPolicy{RequestBodyLimit: limit}, Destination: &destination, ExpectedContentType: core.HTTPMediaTypeOctetStream()})
+				stream, gotErr = exchange.ReceiveStream(exchange.StreamReceiveCall{Call: call, Route: route, Destination: &destination, ExpectedContentType: core.HTTPMediaTypeOctetStream()})
 				gotKey = stream.IdempotencyKey
 			} else {
-				aggregate, gotErr = exchange.ReceiveBounded(exchange.BoundedReceiveCall{Call: call, Route: route, Policy: exchange.ServerBoundedPolicy{RequestBodyLimit: limit}, ExpectedContentType: core.HTTPMediaTypeOctetStream()})
+				aggregate, gotErr = exchange.ReceiveBounded(exchange.BoundedReceiveCall{Call: call, Route: route, ExpectedContentType: core.HTTPMediaTypeOctetStream()})
 				gotKey = aggregate.IdempotencyKey
 			}
 			if !errors.Is(gotErr, tc.wantErr) || tc.wantNative != nil && !errors.Is(gotErr, tc.wantNative) {

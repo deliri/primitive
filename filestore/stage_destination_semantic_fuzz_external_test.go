@@ -20,6 +20,8 @@ func FuzzStageDestinationNativeWriterCustody(f *testing.F) {
 		f.Fatal(err)
 	}
 	f.Add(emitted, uint16(len(emitted)), uint16(0), false, false, false, false)
+	f.Add(emitted, uint16(1<<15), uint16(1), false, false, false, false)
+	f.Add([]byte{}, uint16(1<<15), uint16(1), false, false, false, false)
 	for _, seed := range []struct {
 		payload                              []byte
 		extent, fragment                     uint16
@@ -39,7 +41,7 @@ func FuzzStageDestinationNativeWriterCustody(f *testing.F) {
 	}
 	f.Fuzz(func(t *testing.T, payload []byte, rawExtent, rawFragment uint16, abandon, copyHandle, canceled, foreign bool) {
 		payload = payload[:min(len(payload), 2048)]
-		extent, err := core.NewByteLength(uint64(rawExtent % 2049))
+		extent, err := core.NewByteLength(uint64((rawExtent & 0x7fff) % 2049))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -48,7 +50,10 @@ func FuzzStageDestinationNativeWriterCustody(f *testing.F) {
 		root := requireTestRoot(t, directory)
 		stagePath := mustRelativePath(t, "stage")
 		targetPath := mustRelativePath(t, "target")
-		plan := filestore.ActivationRequest{Temporary: filestore.Location{Root: root, Path: stagePath}, Target: targetPath, ExpectedBytes: extent, Mode: 0o600, Install: filestore.InstallCreate}
+		plan := filestore.ActivationRequest{Temporary: filestore.Location{Root: root, Path: stagePath}, Target: targetPath, ExpectedBytes: new(extent), Mode: 0o600, Install: filestore.InstallCreate}
+		if rawExtent&(1<<15) != 0 {
+			plan.ExpectedBytes = nil
+		}
 		if err := plan.Validate(); err != nil {
 			t.Fatal(err)
 		}
@@ -136,7 +141,7 @@ func FuzzStageDestinationNativeWriterCustody(f *testing.F) {
 		case abandon:
 		case canceled:
 			wantErr = context.Canceled
-		case extent.Uint64() != uint64(len(payload)):
+		case plan.ExpectedBytes != nil && extent.Uint64() != uint64(len(payload)):
 			wantErr = core.ErrFilestoreSize
 		case foreign:
 			wantErr = core.ErrFilestoreActivationIndeterminate
@@ -178,7 +183,7 @@ func FuzzStageDestinationNativeWriterCustody(f *testing.F) {
 			}
 		} else if wantErr == nil && !abandon {
 			wantEntries = 2
-			if got.Validate() != nil || got.Path() != stagePath || got.BytesWritten() != extent {
+			if got.Validate() != nil || got.Path() != stagePath || got.BytesWritten().Uint64() != uint64(len(payload)) {
 				t.Fatalf("completed stage = %+v, want exact validated receipt", got)
 			}
 			reader, err := filestore.OpenStagedRead(t.Context(), got)

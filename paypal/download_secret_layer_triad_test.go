@@ -115,14 +115,10 @@ func payPalDownloadFixture(t testing.TB) (DownloadRequest, *bytes.Buffer) {
 	if err != nil {
 		t.Fatalf("core.ParseHTTPEndpoint() error = %v, want nil", err)
 	}
-	limit, err := core.NewByteCount(1 << 10)
-	if err != nil {
-		t.Fatalf("core.NewByteCount() error = %v, want nil", err)
-	}
 	destination := &bytes.Buffer{}
 	return DownloadRequest{Stream: exchange.DownloadRequest{
 		Target: target, Destination: destination,
 		Semantics:                   exchange.RequestSemantics{Method: exchange.MethodGet, Replay: exchange.ReplaySingleAttempt},
-		ExpectedResponseContentType: core.HTTPMediaTypeJSON(), ResponseBodyLimit: limit, ExpectedStatus: core.HTTPStatusOK(),
+		ExpectedResponseContentType: core.HTTPMediaTypeJSON(), ExpectedStatus: core.HTTPStatusOK(),
 	}}, destination
 }

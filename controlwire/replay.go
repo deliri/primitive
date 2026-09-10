@@ -115,26 +115,12 @@ func CommitReplayIdentity(request RoutedJSONRequest) (ReplayIdentity, error) {
 	return identity, nil
 }
 
-// replayRequestDocument enforces the emitting owner's byte budget before
-// admitting one struct document. Go owns JSON syntax; the request owns fields.
+// replayRequestDocument admits one complete struct document. Go owns JSON
+// syntax; the request owns its fields and the exact emitted representation.
 func replayRequestDocument(request RoutedJSONRequest) ([]byte, error) {
-	maximum, err := request.ControlRequestBodyLimit()
-	if err != nil {
-		return nil, err
-	}
-	if _, err := controlServerPolicy(maximum); err != nil {
-		return nil, err
-	}
-	limit, err := maximum.Uint64()
-	if err != nil {
-		return nil, err
-	}
 	document, err := request.MarshalJSON()
 	if err != nil {
 		return nil, err
-	}
-	if uint64(len(document)) > limit {
-		return nil, contractError()
 	}
 	// doctrine:local-allowed=external-wire
 	value := jsontext.Value(document)

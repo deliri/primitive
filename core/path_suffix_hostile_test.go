@@ -33,7 +33,7 @@ func TestWithSuffixOnlyEverNamesASibling(t *testing.T) {
 		{name: "leading separator escapes", suffix: string(filepath.Separator), wantErr: core.ErrPrimitiveContract},
 		{name: "parent reference escapes", suffix: string(filepath.Separator) + "..", wantErr: core.ErrPrimitiveContract},
 		{name: "embedded NUL is refused", suffix: "\x00", wantErr: core.ErrPrimitiveContract},
-		{name: "oversized component is refused", suffix: strings.Repeat("a", 512), wantErr: core.ErrPrimitiveContract},
+		{name: "512-byte suffix remains an exact sibling", suffix: strings.Repeat("a", 512), want: "slot" + strings.Repeat("a", 512)},
 	}
 
 	for _, tc := range cases {

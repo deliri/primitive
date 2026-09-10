@@ -27,8 +27,8 @@ func TestResponseBufferLayerTriad(t *testing.T) {
 	}{
 		{"one below ceiling releases exact bytes", bytes.Repeat([]byte{'a'}, ceiling-1), http.StatusCreated, nil, nil, true},
 		{"exact ceiling releases exact bytes", bytes.Repeat([]byte{'b'}, ceiling), http.StatusOK, nil, nil, true},
-		{"one above ceiling refuses even ignored write error", bytes.Repeat([]byte{'c'}, ceiling+1), http.StatusOK, nil, core.ErrExchangeBodyLimit, false},
-		{"extreme payload refuses before allocation", bytes.Repeat([]byte{'d'}, TransferBufferBytes), http.StatusOK, nil, core.ErrExchangeBodyLimit, false},
+		{"bytes beyond former cutoff release intact", bytes.Repeat([]byte{'c'}, ceiling+1), http.StatusOK, nil, nil, true},
+		{"multiple windows release intact", bytes.Repeat([]byte{'d'}, TransferBufferBytes), http.StatusOK, nil, nil, true},
 		{"product refusal withholds already written bytes", []byte("secret"), http.StatusOK, context.Canceled, context.Canceled, false},
 		{"empty successful response has zero body bytes", nil, http.StatusNoContent, nil, nil, true},
 		{"no-content status rejects body", []byte("body"), http.StatusNoContent, nil, http.ErrBodyNotAllowed, false},
@@ -39,12 +39,8 @@ func TestResponseBufferLayerTriad(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			maximum, err := core.NewByteCount(ceiling)
-			if err != nil {
-				t.Fatal(err)
-			}
 			destination := httptest.NewRecorder()
-			result, err := BufferResponse(context.Background(), ResponseBufferRequest{Call: SocketServerCall{writer: destination, request: httptest.NewRequest(http.MethodGet, "/", nil)}, BodyMaximum: maximum, Serve: func(call SocketServerCall) error {
+			result, err := BufferResponse(context.Background(), ResponseBufferRequest{Call: SocketServerCall{writer: destination, request: httptest.NewRequest(http.MethodGet, "/", nil)}, Serve: func(call SocketServerCall) error {
 				writer := call.writer
 				writer.Header().Set("X-Buffer-Test", "retained")
 				writer.WriteHeader(tc.status)
@@ -96,12 +92,8 @@ func TestResponseBufferPreservesRealDestinationFailure(t *testing.T) {
 			t.Error(err)
 		}
 	}()
-	limit, err := core.NewByteCount(8)
-	if err != nil {
-		t.Fatal(err)
-	}
 	destination := pipeResponseWriter{httptest.NewRecorder(), writer}
-	result, err := BufferResponse(context.Background(), ResponseBufferRequest{Call: SocketServerCall{writer: destination, request: httptest.NewRequest(http.MethodGet, "/", nil)}, BodyMaximum: limit, Serve: func(call SocketServerCall) error {
+	result, err := BufferResponse(context.Background(), ResponseBufferRequest{Call: SocketServerCall{writer: destination, request: httptest.NewRequest(http.MethodGet, "/", nil)}, Serve: func(call SocketServerCall) error {
 		w := call.writer
 		_, err := w.Write([]byte("body"))
 		return err
@@ -133,14 +125,10 @@ func TestResponseBufferHeaderAndCancellationLayerTriad(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			limit, err := core.NewByteCount(8)
-			if err != nil {
-				t.Fatal(err)
-			}
 			ctx, cancel := context.WithCancel(context.Background())
 			defer cancel()
 			destination := httptest.NewRecorder()
-			result, err := BufferResponse(ctx, ResponseBufferRequest{Call: SocketServerCall{writer: destination, request: httptest.NewRequest(http.MethodGet, "/", nil)}, BodyMaximum: limit, Serve: func(call SocketServerCall) error {
+			result, err := BufferResponse(ctx, ResponseBufferRequest{Call: SocketServerCall{writer: destination, request: httptest.NewRequest(http.MethodGet, "/", nil)}, Serve: func(call SocketServerCall) error {
 				w := call.writer
 				maps.Copy(w.Header(), tc.header)
 				_, writeErr := w.Write([]byte("body"))
@@ -172,13 +160,9 @@ func FuzzResponseBufferSemanticExtent(f *testing.F) {
 		f.Add(recorder.Body.Bytes(), limit)
 	}
 	f.Add([]byte{}, uint16(0))
-	f.Fuzz(func(t *testing.T, data []byte, rawLimit uint16) {
+	f.Fuzz(func(t *testing.T, data []byte, rawWindow uint16) {
 		if len(data) > 65536 {
 			return
-		}
-		maximum, err := core.NewByteCount(uint64(rawLimit) + 1)
-		if err != nil {
-			t.Fatal(err)
 		}
 		cases := []struct {
 			name                                                              string
@@ -202,7 +186,7 @@ func FuzzResponseBufferSemanticExtent(f *testing.F) {
 				method = http.MethodHead
 			}
 			calls := 0
-			result, gotErr := BufferResponse(ctx, ResponseBufferRequest{Call: SocketServerCall{writer: destination, request: httptest.NewRequestWithContext(ctx, method, "/", nil)}, BodyMaximum: maximum, Serve: func(call SocketServerCall) error {
+			result, gotErr := BufferResponse(ctx, ResponseBufferRequest{Call: SocketServerCall{writer: destination, request: httptest.NewRequestWithContext(ctx, method, "/", nil)}, Serve: func(call SocketServerCall) error {
 				calls++
 				length := len(data)
 				if tc.falseLength {
@@ -212,7 +196,11 @@ func FuzzResponseBufferSemanticExtent(f *testing.F) {
 				call.writer.Header().Set(core.HTTPHeaderContentType().String(), core.HTTPMediaTypeOctetStream().String())
 				call.writer.WriteHeader(http.StatusCreated)
 				// Ignore the local write result: the buffer must retain mechanical refusal.
-				_, _ = call.writer.Write(data)
+				for offset := 0; offset < len(data); {
+					end := min(len(data), offset+int(rawWindow)+1)
+					_, _ = call.writer.Write(data[offset:end])
+					offset = end
+				}
 				if tc.cancelled {
 					cancel()
 				}
@@ -222,13 +210,12 @@ func FuzzResponseBufferSemanticExtent(f *testing.F) {
 				return nil
 			}})
 			cancel()
-			overflow := len(data) > int(rawLimit)+1
-			withheld := overflow || tc.cancelled || tc.callbackFailure || tc.falseLength
+			withheld := tc.cancelled || tc.callbackFailure || tc.falseLength
 			if calls != 1 || result.Validate() != nil {
 				t.Fatalf("%s callback/result=(%d,%+v),want one callback and valid receipt", tc.name, calls, result)
 			}
-			if errors.Is(gotErr, core.ErrExchangeBodyLimit) != overflow || errors.Is(gotErr, context.Canceled) != tc.cancelled || errors.Is(gotErr, io.ErrUnexpectedEOF) != tc.callbackFailure {
-				t.Fatalf("%s causes=%v,want overflow/cancel/callback=%t/%t/%t", tc.name, gotErr, overflow, tc.cancelled, tc.callbackFailure)
+			if errors.Is(gotErr, core.ErrExchangeBodyLimit) || errors.Is(gotErr, context.Canceled) != tc.cancelled || errors.Is(gotErr, io.ErrUnexpectedEOF) != tc.callbackFailure {
+				t.Fatalf("%s causes=%v,want cancel/callback=%t/%t", tc.name, gotErr, tc.cancelled, tc.callbackFailure)
 			}
 			if withheld {
 				if gotErr == nil || result != (ResponseBufferResult{}) || destination.commits != 0 || destination.writes != 0 || destination.body.Len() != 0 || len(destination.header) != 0 {
@@ -293,12 +280,8 @@ func TestResponseBufferRepresentationLengthLayerTriad(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			limit, err := core.NewByteCount(8)
-			if err != nil {
-				t.Fatal(err)
-			}
 			destination := httptest.NewRecorder()
-			result, err := BufferResponse(t.Context(), ResponseBufferRequest{Call: SocketServerCall{writer: destination, request: httptest.NewRequest(tc.method, "/", nil)}, BodyMaximum: limit, Serve: func(call SocketServerCall) error {
+			result, err := BufferResponse(t.Context(), ResponseBufferRequest{Call: SocketServerCall{writer: destination, request: httptest.NewRequest(tc.method, "/", nil)}, Serve: func(call SocketServerCall) error {
 				call.writer.Header().Set(core.HTTPHeaderContentLength().String(), tc.length)
 				call.writer.WriteHeader(tc.status)
 				if tc.body == "" {

@@ -21,6 +21,8 @@ import (
 	storageapi "google.golang.org/api/storage/v1"
 )
 
+const gcsFormerResponseCutoffBytes = 1 << 20
+
 func TestGCSBucketPublicReadRequestValidateRefusesUnsetBucket(t *testing.T) {
 	t.Parallel()
 
@@ -308,7 +310,7 @@ func TestGCSBucketPublicReadProviderLayerTriadPreservesPolicyAndProvesAfterState
 	}
 }
 
-func TestGCSBucketPublicReadProviderResponseExtentRefusesOneByteAboveTheOwnedMaximum(t *testing.T) {
+func TestGCSBucketPublicReadProviderResponseExtentPreservesCompleteJSON(t *testing.T) {
 	t.Parallel()
 
 	policy := gcsPolicy("etag-extent", gcsPublicReadBinding(iam.AllUsers))
@@ -322,9 +324,10 @@ func TestGCSBucketPublicReadProviderResponseExtentRefusesOneByteAboveTheOwnedMax
 		response   []byte
 		wantChange GCSBucketPublicReadChange
 	}{
-		{name: "one byte below response maximum remains admissible", response: paddedGCSPolicyResponse(t, canonical, GCSProviderResponseMaximumBytes-1), wantChange: GCSBucketPublicReadUnchanged},
-		{name: "exact response maximum remains admissible", response: paddedGCSPolicyResponse(t, canonical, GCSProviderResponseMaximumBytes), wantChange: GCSBucketPublicReadUnchanged},
-		{name: "one byte above response maximum is refused", response: paddedGCSPolicyResponse(t, canonical, GCSProviderResponseMaximumBytes+1), wantErr: core.ErrObjectStoreContract},
+		{name: "one byte below response maximum remains admissible", response: paddedGCSPolicyResponse(t, canonical, gcsFormerResponseCutoffBytes-1), wantChange: GCSBucketPublicReadUnchanged},
+		{name: "exact response maximum remains admissible", response: paddedGCSPolicyResponse(t, canonical, gcsFormerResponseCutoffBytes), wantChange: GCSBucketPublicReadUnchanged},
+		{name: "one byte beyond former cutoff preserves provider observation", response: paddedGCSPolicyResponse(t, canonical, gcsFormerResponseCutoffBytes+1), wantChange: GCSBucketPublicReadUnchanged},
+		{name: "malformed tail beyond former cutoff cannot produce a grant", response: append(paddedGCSPolicyResponse(t, canonical, gcsFormerResponseCutoffBytes+1), byte(0xff)), wantErr: core.ErrJSONContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -335,9 +338,6 @@ func TestGCSBucketPublicReadProviderResponseExtentRefusesOneByteAboveTheOwnedMax
 				gotCalls.Add(1)
 				writer.Header().Set("Content-Type", "application/json")
 				writer.Header().Set("Content-Length", strconv.Itoa(len(tc.response)))
-				if len(tc.response) > GCSProviderResponseMaximumBytes {
-					return
-				}
 				if _, gotWriteErr := writer.Write(tc.response); gotWriteErr != nil {
 					t.Errorf("provider response write error = %v, want nil", gotWriteErr)
 				}
@@ -345,10 +345,10 @@ func TestGCSBucketPublicReadProviderResponseExtentRefusesOneByteAboveTheOwnedMax
 			bucket := parsedGCSBucket(t, gcsProviderBucketText)
 			got, gotErr := GrantGCSBucketPublicRead(context.Background(), client, GCSBucketPublicReadRequest{Bucket: bucket})
 			if tc.wantErr != nil {
-				if !errors.Is(gotErr, tc.wantErr) || !errors.Is(gotErr, core.ErrObjectStoreSize) ||
-					!errors.Is(gotErr, core.ErrExchangeResponse) || !errors.Is(gotErr, core.ErrExchangeBodyLimit) ||
+				if !errors.Is(gotErr, tc.wantErr) || !errors.Is(gotErr, core.ErrObjectStoreContract) ||
+					!errors.Is(gotErr, core.ErrExchangeResponse) || !errors.Is(gotErr, core.ErrJSONContract) ||
 					got != (GCSBucketPublicReadGrant{}) {
-					t.Fatalf("GrantGCSBucketPublicRead(%d-byte response) = (%v, %v), want zero with object-store and Exchange body-limit identities",
+					t.Fatalf("GrantGCSBucketPublicRead(%d-byte response) = (%v, %v), want zero with object-store and Exchange JSON identities",
 						len(tc.response), got, gotErr)
 				}
 			} else if gotErr != nil || got.Validate() != nil || got.Change() != tc.wantChange {
@@ -362,7 +362,7 @@ func TestGCSBucketPublicReadProviderResponseExtentRefusesOneByteAboveTheOwnedMax
 	}
 }
 
-func TestGCSBucketPublicReadProviderResponseWithoutDeclaredLengthRemainsBounded(t *testing.T) {
+func TestGCSBucketPublicReadProviderResponseWithoutDeclaredLengthRemainsComplete(t *testing.T) {
 	t.Parallel()
 
 	policy := gcsPolicy("etag-chunked", gcsPublicReadBinding(iam.AllUsers))
@@ -370,7 +370,7 @@ func TestGCSBucketPublicReadProviderResponseWithoutDeclaredLengthRemainsBounded(
 	if gotMarshalErr != nil {
 		t.Fatalf("json.Marshal(provider policy) error = %v, want nil", gotMarshalErr)
 	}
-	response := paddedGCSPolicyResponse(t, canonical, GCSProviderResponseMaximumBytes+1)
+	response := paddedGCSPolicyResponse(t, canonical, gcsFormerResponseCutoffBytes+1)
 	var gotCalls atomic.Int64
 	client := bucketTestClient(t, http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
 		gotCalls.Add(1)
@@ -387,11 +387,8 @@ func TestGCSBucketPublicReadProviderResponseWithoutDeclaredLengthRemainsBounded(
 	}))
 	bucket := parsedGCSBucket(t, gcsProviderBucketText)
 	got, gotErr := GrantGCSBucketPublicRead(context.Background(), client, GCSBucketPublicReadRequest{Bucket: bucket})
-	if !errors.Is(gotErr, core.ErrObjectStoreContract) || !errors.Is(gotErr, core.ErrObjectStoreSize) ||
-		!errors.Is(gotErr, core.ErrExchangeResponse) || !errors.Is(gotErr, core.ErrExchangeBodyLimit) ||
-		got != (GCSBucketPublicReadGrant{}) {
-		t.Fatalf("GrantGCSBucketPublicRead(chunked %d-byte response) = (%v, %v), want zero with object-store and Exchange body-limit identities",
-			len(response), got, gotErr)
+	if gotErr != nil || got.Validate() != nil || got.Change() != GCSBucketPublicReadUnchanged {
+		t.Fatalf("chunked provider response=(%+v,%v), want exact unchanged grant", got, gotErr)
 	}
 	if got := gotCalls.Load(); got != 1 {
 		t.Fatalf("provider calls = %d, want 1", got)

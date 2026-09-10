@@ -15,21 +15,15 @@ func TestTarArchiveRequestExhaustsValidationEquivalenceClasses(t *testing.T) {
 
 	repository := parsedRepository(t, "owner/repository")
 	commit := parsedCommit(t)
-	minimum := byteCountFixture(t, 1)
-	maximum := byteCountFixture(t, TarArchiveMaximumBytes)
-	aboveMaximum := byteCountFixture(t, TarArchiveMaximumBytes+1)
 	cases := []struct {
 		name    string
 		request TarArchiveRequest
 		wantErr error
 	}{
-		{name: "minimum one-byte custody is admitted", request: TarArchiveRequest{Destination: io.Discard, Repository: repository, Commit: commit, MaximumBytes: minimum}},
-		{name: "exact Primitive custody ceiling is admitted", request: TarArchiveRequest{Destination: io.Discard, Repository: repository, Commit: commit, MaximumBytes: maximum}},
-		{name: "missing destination is rejected", request: TarArchiveRequest{Repository: repository, Commit: commit, MaximumBytes: minimum}, wantErr: core.ErrGitHubContract},
-		{name: "missing repository is rejected", request: TarArchiveRequest{Destination: io.Discard, Commit: commit, MaximumBytes: minimum}, wantErr: core.ErrGitHubContract},
-		{name: "missing immutable commit is rejected", request: TarArchiveRequest{Destination: io.Discard, Repository: repository, MaximumBytes: minimum}, wantErr: core.ErrGitHubContract},
-		{name: "missing byte ceiling is rejected", request: TarArchiveRequest{Destination: io.Discard, Repository: repository, Commit: commit}, wantErr: core.ErrGitHubContract},
-		{name: "one byte above Primitive custody ceiling is rejected", request: TarArchiveRequest{Destination: io.Discard, Repository: repository, Commit: commit, MaximumBytes: aboveMaximum}, wantErr: core.ErrGitHubContract},
+		{name: "archive destination needs no extent quota", request: TarArchiveRequest{Destination: io.Discard, Repository: repository, Commit: commit}},
+		{name: "missing destination is rejected", request: TarArchiveRequest{Repository: repository, Commit: commit}, wantErr: core.ErrGitHubContract},
+		{name: "missing repository is rejected", request: TarArchiveRequest{Destination: io.Discard, Commit: commit}, wantErr: core.ErrGitHubContract},
+		{name: "missing immutable commit is rejected", request: TarArchiveRequest{Destination: io.Discard, Repository: repository}, wantErr: core.ErrGitHubContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

@@ -407,12 +407,10 @@ func CancellationSocketContract(path exchange.SocketRoutePath) (exchange.JSONSoc
 }
 
 func runStateSocketContract(path exchange.SocketRoutePath, replay exchange.ReplayMode) (exchange.JSONSocketContract, error) {
-	requestLimit, requestErr := core.NewByteCount(RunStateRequestMaximumBytes)
-	responseLimit, responseErr := core.NewByteCount(RunStateResponseMaximumBytes)
-	if err := errors.Join(path.Validate(), requestErr, responseErr); err != nil {
+	if err := errors.Join(path.Validate()); err != nil {
 		return exchange.JSONSocketContract{}, err
 	}
-	contract := exchange.JSONSocketContract{Path: path, Route: exchange.RouteSemantics{Method: exchange.MethodPost, Replay: replay}, RequestBodyLimit: requestLimit, ResponseBodyLimit: responseLimit, SuccessStatus: core.HTTPStatusOK()}
+	contract := exchange.JSONSocketContract{Path: path, Route: exchange.RouteSemantics{Method: exchange.MethodPost, Replay: replay}, SuccessStatus: core.HTTPStatusOK()}
 	return contract, contract.Validate()
 }
 

@@ -13,17 +13,13 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
-// ResponseBufferMaximumBytes is the mechanical allocation ceiling. Callers
-// choose a smaller budget appropriate to their response contract.
-const ResponseBufferMaximumBytes = 16 << 20
-
 // ResponseBufferRequest holds one response until Serve returns nil. Serve owns
-// the decision to release; Exchange owns byte bounds, framing and write results.
+// the decision to release; Exchange owns framing and write results. This API
+// retains the complete response in memory. Use WriteStream for incremental output.
 // It is synchronous and Serve must honor the supplied context's lifetime.
 type ResponseBufferRequest struct {
-	Call        SocketServerCall
-	Serve       func(SocketServerCall) error
-	BodyMaximum core.ByteCount
+	Call  SocketServerCall
+	Serve func(SocketServerCall) error
 }
 
 func (r ResponseBufferRequest) Validate() error {
@@ -32,16 +28,6 @@ func (r ResponseBufferRequest) Validate() error {
 	}
 	if err := r.Call.Validate(); err != nil {
 		return err
-	}
-	if err := r.BodyMaximum.Validate(); err != nil {
-		return errors.Join(core.ErrExchangeContract, err)
-	}
-	maximum, err := r.BodyMaximum.Uint64()
-	if err != nil {
-		return err
-	}
-	if maximum > ResponseBufferMaximumBytes {
-		return core.ErrExchangeBodyLimit
 	}
 	return nil
 }
@@ -72,7 +58,6 @@ type responseBuffer struct {
 	sealed  http.Header
 	body    []byte
 	failure error
-	maximum int
 	status  int
 }
 
@@ -89,11 +74,7 @@ func BufferResponse(ctx context.Context, request ResponseBufferRequest) (Respons
 	if err := contextstate.Validate(ctx); err != nil {
 		return ResponseBufferResult{}, err
 	}
-	maximum, err := request.BodyMaximum.Uint64()
-	if err != nil {
-		return ResponseBufferResult{}, err
-	}
-	buffer := &responseBuffer{header: make(http.Header), maximum: int(maximum)}
+	buffer := &responseBuffer{header: make(http.Header)}
 	if err := buffer.serve(ctx, request); err != nil {
 		return ResponseBufferResult{}, err
 	}
@@ -145,24 +126,8 @@ func (b *responseBuffer) Write(data []byte) (int, error) {
 		b.failure = errors.Join(core.ErrExchangeResponse, http.ErrBodyNotAllowed)
 		return 0, b.failure
 	}
-	if len(data) > b.maximum-len(b.body) {
-		b.failure = core.ErrExchangeBodyLimit
-		return 0, b.failure
-	}
-	b.reserve(len(data))
 	b.body = append(b.body, data...)
 	return len(data), nil
-}
-
-func (b *responseBuffer) reserve(additional int) {
-	needed := len(b.body) + additional
-	if needed <= cap(b.body) {
-		return
-	}
-	capacity := min(b.maximum, max(needed, 2*cap(b.body), TransferBufferBytes))
-	body := make([]byte, len(b.body), capacity)
-	copy(body, b.body)
-	b.body = body
 }
 
 func validateBufferedHeaders(headers http.Header) error {

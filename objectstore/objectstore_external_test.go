@@ -1126,8 +1126,6 @@ func TestUploadRequestHostileBoundaryTable(t *testing.T) {
 	attemptExceedsOperation := base
 	attemptExceedsOperation.Policy.OperationTimeout = durationSeconds(t, 1)
 	attemptExceedsOperation.Policy.AttemptTimeout = durationSeconds(t, 2)
-	zeroErrorLimit := base
-	zeroErrorLimit.Policy.ErrorBodyLimit = core.ByteCount{}
 	cases := []struct {
 		name    string
 		wantErr error
@@ -1140,10 +1138,9 @@ func TestUploadRequestHostileBoundaryTable(t *testing.T) {
 		{name: "unset SHA-256 is rejected", request: unsetSHA, wantErr: core.ErrObjectStoreContract},
 		{name: "unset CRC32C is rejected", request: unsetCRC, wantErr: core.ErrObjectStoreContract},
 		{name: "unset media type is rejected", request: unsetMediaType, wantErr: core.ErrObjectStoreContract},
-		{name: "zero operation timeout is rejected", request: zeroOperationTimeout, wantErr: core.ErrObjectStoreContract},
-		{name: "zero attempt timeout is rejected", request: zeroAttemptTimeout, wantErr: core.ErrObjectStoreContract},
+		{name: "zero operation timeout inherits caller lifetime", request: zeroOperationTimeout},
+		{name: "zero attempt timeout inherits caller lifetime", request: zeroAttemptTimeout},
 		{name: "attempt timeout beyond operation is rejected", request: attemptExceedsOperation, wantErr: core.ErrObjectStoreContract},
-		{name: "zero error body limit is rejected", request: zeroErrorLimit, wantErr: core.ErrObjectStoreContract},
 	}
 
 	for _, tc := range cases {
@@ -1213,7 +1210,7 @@ func TestDownloadRequestHostileBoundaryTable(t *testing.T) {
 		{name: "unset SHA-256 is rejected", request: unsetSHA, wantErr: core.ErrObjectStoreContract},
 		{name: "unset CRC32C is rejected", request: unsetCRC, wantErr: core.ErrObjectStoreContract},
 		{name: "unset media type is rejected", request: unsetMediaType, wantErr: core.ErrObjectStoreContract},
-		{name: "unset policy is rejected", request: unsetPolicy, wantErr: core.ErrObjectStoreContract},
+		{name: "zero timeouts inherit caller lifetime", request: unsetPolicy},
 	}
 
 	for _, tc := range cases {
@@ -1873,17 +1870,9 @@ func instantAt(tb testing.TB, value time.Time) temporal.Instant {
 func operationPolicy(tb testing.TB) objectstore.Policy {
 	tb.Helper()
 
-	errorLimit, gotLimitErr := core.NewByteCount(4096)
-	if gotLimitErr != nil {
-		tb.Fatalf(
-			"core.NewByteCount() setup error = %v, want nil",
-			gotLimitErr,
-		)
-	}
 	return objectstore.Policy{
 		OperationTimeout: durationSeconds(tb, 10),
 		AttemptTimeout:   durationSeconds(tb, 5),
-		ErrorBodyLimit:   errorLimit,
 	}
 }
 

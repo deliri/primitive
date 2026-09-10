@@ -335,14 +335,12 @@ func (s HeartbeatServer) Serve(call exchange.SocketServerCall) error {
 }
 
 func HeartbeatSocketContract(path exchange.SocketRoutePath) (exchange.JSONSocketContract, error) {
-	requestLimit, requestErr := core.NewByteCount(HeartbeatRequestMaximumBytes)
-	responseLimit, responseErr := core.NewByteCount(HeartbeatResponseMaximumBytes)
-	if err := errors.Join(path.Validate(), requestErr, responseErr); err != nil {
+	if err := errors.Join(path.Validate()); err != nil {
 		return exchange.JSONSocketContract{}, err
 	}
 	contract := exchange.JSONSocketContract{
 		Path: path, Route: exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt},
-		RequestBodyLimit: requestLimit, ResponseBodyLimit: responseLimit, SuccessStatus: core.HTTPStatusOK(),
+		SuccessStatus: core.HTTPStatusOK(),
 	}
 	return contract, contract.Validate()
 }

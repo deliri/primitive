@@ -127,7 +127,6 @@ type aggregateCall struct {
 	client  Client
 	request aggregateRequest
 	policy  OperationPolicy
-	limit   core.ByteCount
 }
 
 type aggregateResponse struct {
@@ -148,7 +147,7 @@ type retryProgress struct {
 }
 
 // SendJSON validates and encodes one typed request, then strictly decodes one
-// typed response. Both documents are bounded independently.
+// typed response. Returned documents occupy memory proportional to their values.
 func SendJSON[
 	RequestBody core.ValidatedJSONMarshaler,
 	ResponseBody core.Validatable,
@@ -165,7 +164,7 @@ func sendValidatedJSON[
 	ResponseBody core.Validatable,
 ](call JSONCall[RequestBody]) (JSONResponse[ResponseBody], error) {
 	var zero JSONResponse[ResponseBody]
-	requestLimits := strictJSONLimits(call.Policy.RequestBodyLimit)
+	requestLimits := strictJSONLimits()
 	body, err := core.EncodeValidatedJSON(call.Request.Body, requestLimits)
 	if err != nil {
 		return zero, requestError(err)
@@ -189,12 +188,11 @@ func sendValidatedJSON[
 			expectedStatus:              call.Request.ExpectedStatus,
 		},
 		policy: call.Policy.Operation,
-		limit:  call.Policy.ResponseBodyLimit,
 	})
 	if raw.metadata.Attempts == 0 {
 		return zero, err
 	}
-	return decodeJSONResponse[ResponseBody](raw, call.Policy.ResponseBodyLimit, err)
+	return decodeJSONResponse[ResponseBody](raw, err)
 }
 
 // SendReplayBoundJSON refuses a replayable mutation unless the caller-owned
@@ -248,24 +246,19 @@ func SendNoBodyJSON[
 			expectedStatus:              call.Request.ExpectedStatus,
 		},
 		policy: call.Policy.Operation,
-		limit:  call.Policy.ResponseBodyLimit,
 	})
 	if raw.metadata.Attempts == 0 {
 		return zero, err
 	}
-	return decodeJSONResponse[ResponseBody](raw, call.Policy.ResponseBodyLimit, err)
+	return decodeJSONResponse[ResponseBody](raw, err)
 }
 
 // SendBounded performs one aggregate byte request and response. Both are
-// bounded; callers needing extent-independent memory use Upload or Download.
+// retained as complete values; use Upload or Download for streaming memory.
 func SendBounded(call BoundedCall) (BoundedResponse, error) {
 	var zero BoundedResponse
 	if err := call.Validate(); err != nil {
 		return zero, err
-	}
-	requestLimit, _ := call.Policy.RequestBodyLimit.Uint64()
-	if uint64(len(call.Request.Body)) > requestLimit {
-		return zero, requestError(core.ErrExchangeBodyLimit)
 	}
 	target, err := validatedTarget(call.Request.Target)
 	if err != nil {
@@ -287,7 +280,6 @@ func SendBounded(call BoundedCall) (BoundedResponse, error) {
 			expectedStatus:              call.Request.ExpectedStatus,
 		},
 		policy: call.Policy.Operation,
-		limit:  call.Policy.ResponseBodyLimit,
 	})
 	if raw.metadata.Attempts == 0 {
 		return zero, err
@@ -299,7 +291,7 @@ func SendBounded(call BoundedCall) (BoundedResponse, error) {
 	return response, err
 }
 
-// SendNoBodyBounded performs one body-absent request and returns a bounded
+// SendNoBodyBounded performs one body-absent request and returns a complete
 // aggregate byte response.
 func SendNoBodyBounded(
 	call NoBodyBoundedCall,
@@ -323,7 +315,6 @@ func SendNoBodyBounded(
 			expectedStatus:              call.Request.ExpectedStatus,
 		},
 		policy: call.Policy.Operation,
-		limit:  call.Policy.ResponseBodyLimit,
 	})
 	if raw.metadata.Attempts == 0 {
 		return zero, err
@@ -449,22 +440,17 @@ func validatedTarget(target Target) (value core.HTTPEndpoint, err error) {
 	return endpoint, nil
 }
 
-func strictJSONLimits(documentMaximum core.ByteCount) core.StrictJSONLimits {
-	limits := core.DefaultStrictJSONLimits()
-	limits.DocumentMaximumBytes = documentMaximum
-	return limits
-}
+func strictJSONLimits() core.StrictJSONLimits { return core.ExtensibleJSONLimits() }
 
 func decodeJSONResponse[Body core.Validatable](
 	raw aggregateResponse,
-	limit core.ByteCount,
 	operationErr error,
 ) (JSONResponse[Body], error) {
 	var zero JSONResponse[Body]
 	if operationErr != nil {
 		return JSONResponse[Body]{Metadata: raw.metadata}, operationErr
 	}
-	body, err := core.DecodeStrictJSON[Body](bytes.NewReader(raw.body), strictJSONLimits(limit))
+	body, err := core.DecodeStrictJSONBytes[Body](raw.body, strictJSONLimits())
 	if err != nil {
 		return JSONResponse[Body]{Metadata: raw.metadata}, responseError(err)
 	}
@@ -494,7 +480,6 @@ func executeAggregate(call aggregateCall) (aggregateResponse, error) {
 			aggregateAttempt{
 				context: operationContext, client: client,
 				request: call.request, timeout: call.policy.AttemptTimeout,
-				limit: call.limit,
 			},
 		)
 		raw, observationErr := observedAggregateResponse(
@@ -571,7 +556,6 @@ type aggregateAttempt struct {
 	client  *http.Client
 	request aggregateRequest
 	timeout temporal.Duration
-	limit   core.ByteCount
 }
 
 func executeAggregateAttempt(input aggregateAttempt) (attemptResponse, error) {
@@ -603,7 +587,7 @@ func executeAggregateAttempt(input aggregateAttempt) (attemptResponse, error) {
 	return readAggregateHTTPResponse(
 		aggregateReadRequest{
 			context: attemptContext, response: response,
-			limit: input.limit, capture: input.request.capture,
+			capture:             input.request.capture,
 			expectedContentType: input.request.expectedResponseContentType,
 			expectedStatus:      input.request.expectedStatus,
 		},
@@ -673,7 +657,6 @@ type aggregateReadRequest struct {
 	response            *http.Response
 	expectedContentType core.HTTPMediaType
 	capture             HeaderSelection
-	limit               core.ByteCount
 	expectedStatus      core.HTTPStatusCode
 }
 
@@ -754,25 +737,14 @@ func validateAggregateResponseHeaders(
 	)
 }
 
-// readAggregateResponseBody reads one bounded response body, reserving the extent
-// the response declares. The declaration is only a reservation: the limit still
-// bounds what is read, so an understated or absent declaration cannot widen it.
-func readAggregateResponseBody(
-	input aggregateReadRequest,
-) ([]byte, error) {
-	declared, err := admittedBodyLength(
-		input.response.ContentLength,
-		input.limit,
-	)
+// readAggregateResponseBody owns one complete response value. The declaration
+// is validated but never used as an allocation instruction or transfer quota.
+func readAggregateResponseBody(input aggregateReadRequest) ([]byte, error) {
+	declared, err := parseDeclaredBodyLength(input.response.ContentLength)
 	if err != nil {
 		return nil, err
 	}
-	return readBoundedBody(boundedBodyRead{
-		context:  input.context,
-		source:   input.response.Body,
-		declared: declared,
-		limit:    input.limit,
-	})
+	return readWholeBody(wholeBodyRead{context: input.context, source: input.response.Body, declared: declared})
 }
 
 func validateIdentityContentCoding(headers http.Header) error {
@@ -828,103 +800,6 @@ func validateResponseContentType(
 		return responseError(core.ErrExchangeContentType)
 	}
 	return nil
-}
-
-// boundedBodyRead is one complete bounded aggregate body read. The declared
-// extent travels with the read so the buffer can be reserved once instead of
-// doubled through every intermediate size on the way to the real length.
-type boundedBodyRead struct {
-	context  context.Context
-	source   io.Reader
-	declared declaredBodyLength
-	limit    core.ByteCount
-}
-
-// boundedBodyDestination deliberately exposes only io.Writer. It starts with
-// the declared reservation, grows only when real bytes prove that declaration
-// absent or understated, and never grows beyond the admitted aggregate limit.
-type boundedBodyDestination struct {
-	storage     []byte
-	reservation int
-	limit       int
-}
-
-func (d *boundedBodyDestination) Write(payload []byte) (int, error) {
-	if d == nil || d.limit < len(d.storage) || len(payload) > d.limit-len(d.storage) {
-		return 0, core.ErrExchangeBodyLimit
-	}
-	start := len(d.storage)
-	needed := start + len(payload)
-	if needed > cap(d.storage) {
-		capacityFloor := max(needed, d.reservation)
-		d.storage = growBoundedBodyStorage(d.storage, capacityFloor, d.limit)
-	}
-	d.storage = d.storage[:needed]
-	written := copy(d.storage[start:], payload)
-	return written, nil
-}
-
-func growBoundedBodyStorage(storage []byte, needed, limit int) []byte {
-	capacity := min(max(cap(storage)*2, needed), limit)
-	grown := make([]byte, len(storage), capacity)
-	copy(grown, storage)
-	return grown
-}
-
-func readBoundedBody(read boundedBodyRead) (data []byte, err error) {
-	defer func() {
-		if recover() != nil {
-			data = nil
-			err = core.ErrExchangeContract
-		}
-	}()
-	if err := contextstate.Validate(read.context); err != nil {
-		return nil, cancelledError(err)
-	}
-	reserved, err := read.declared.reservedExtent(read.limit)
-	if err != nil {
-		return nil, err
-	}
-	limit, err := boundedBodyLimitExtent(read.limit)
-	if err != nil {
-		return nil, err
-	}
-	destination := &boundedBodyDestination{
-		reservation: reserved,
-		limit:       limit,
-	}
-	err = copyBoundedBody(read, destination)
-	if err != nil {
-		return nil, err
-	}
-	return destination.storage, nil
-}
-
-// copyBoundedBody lets Go size its initial copy to a small positive declaration
-// plus one byte. EOF below that bound proves completion; reaching it only proves
-// the declaration may be understated, so the remaining authorized extent still
-// crosses Go's normal bounded copy path. The declaration never widens the limit.
-func copyBoundedBody(read boundedBodyRead, destination *boundedBodyDestination) error {
-	declared := read.declared.length.Uint64()
-	if !read.declared.present || declared == 0 || declared > boundedBodyInitialReservationMaximumBytes || declared+1 >= uint64(destination.limit) {
-		_, err := copyDownload(downloadCopyRequest{context: read.context, source: read.source, destination: destination, limit: read.limit})
-		return err
-	}
-	first := int64(declared + 1)
-	source := &progressReader{context: read.context, source: read.source}
-	count, err := io.Copy(destination, io.LimitReader(source, first))
-	if err != nil {
-		return err
-	}
-	if count < first {
-		return contextAfterTransfer(read.context)
-	}
-	remaining, err := core.NewByteCount(uint64(destination.limit - len(destination.storage)))
-	if err != nil {
-		return err
-	}
-	_, err = copyDownload(downloadCopyRequest{context: read.context, source: read.source, destination: destination, limit: remaining})
-	return err
 }
 
 func captureHeaders(

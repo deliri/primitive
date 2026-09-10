@@ -454,9 +454,9 @@ func fixturePolicy(t *testing.T) objectstore.Policy {
 	t.Helper()
 	operation, _ := temporal.DurationFromSeconds(10)
 	attempt, _ := temporal.DurationFromSeconds(5)
-	errorLimit, _ := core.NewByteCount(4096)
+
 	return objectstore.Policy{
-		OperationTimeout: operation, AttemptTimeout: attempt, ErrorBodyLimit: errorLimit,
+		OperationTimeout: operation, AttemptTimeout: attempt,
 	}
 }
 

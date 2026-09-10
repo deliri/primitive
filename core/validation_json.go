@@ -317,11 +317,17 @@ func DecodeStrictJSON[T Validatable](reader io.Reader, limits StrictJSONLimits) 
 	if err != nil {
 		return zero, err
 	}
-	return decodeStrictJSONValidatedLimits[T](data, limits)
+	return DecodeStrictJSONBytes[T](data, limits)
 }
 
-func decodeStrictJSONValidatedLimits[T Validatable](data []byte, limits StrictJSONLimits) (T, error) {
+// DecodeStrictJSONBytes decodes an already-owned whole JSON document without
+// copying it through an intermediate reader buffer. The decoded value owns its
+// storage; callers retain the input. This API's memory follows the returned value.
+func DecodeStrictJSONBytes[T Validatable](data []byte, limits StrictJSONLimits) (T, error) {
 	var zero T
+	if err := limits.Validate(); err != nil {
+		return zero, err
+	}
 	if bytes.Equal(bytes.TrimSpace(data), []byte(jsonNullLiteralText)) {
 		return zero, jsonContractError("decoded json document is null", nil)
 	}

@@ -16,6 +16,8 @@ import (
 
 // Each case serves an actual TLS response to the official SDK. The signed
 // input remains fixed, so the certificate response alone determines admission.
+const verifierFormerCertificateCutoffBytes = 256 << 10
+
 func TestGoogleCloudVerifierCertificateLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
@@ -46,13 +48,13 @@ func TestGoogleCloudVerifierCertificateLayerTriad(t *testing.T) {
 			writeVerifierCertificate(t, w, b)
 		}, wantErr: io.ErrUnexpectedEOF},
 		{name: "malformed certificate JSON preserves syntax refusal", response: func(w http.ResponseWriter, _ *http.Request, b []byte) { writeVerifierCertificate(t, w, b[:len(b)-1]) }, wantErr: core.ErrJSONContract},
-		{name: "certificate one below byte ceiling is admitted", response: paddedVerifierCertificate(GoogleCloudIdentityCertificateMaximumBytes - 1)},
-		{name: "certificate at byte ceiling is admitted", response: paddedVerifierCertificate(GoogleCloudIdentityCertificateMaximumBytes)},
-		{name: "certificate one above byte ceiling yields no partial proof", response: paddedVerifierCertificate(GoogleCloudIdentityCertificateMaximumBytes + 1), wantErr: core.ErrExchangeBodyLimit},
-		{name: "extreme declared certificate size is refused before allocation", response: func(w http.ResponseWriter, _ *http.Request, _ []byte) {
+		{name: "certificate one below byte ceiling is admitted", response: paddedVerifierCertificate(verifierFormerCertificateCutoffBytes - 1)},
+		{name: "certificate at byte ceiling is admitted", response: paddedVerifierCertificate(verifierFormerCertificateCutoffBytes)},
+		{name: "certificate beyond former cutoff preserves signed identity", response: paddedVerifierCertificate(verifierFormerCertificateCutoffBytes + 1)},
+		{name: "extreme declaration reads actual bytes and preserves truncation", response: func(w http.ResponseWriter, _ *http.Request, _ []byte) {
 			w.Header().Set("Content-Length", strconv.FormatInt(1<<62, 10))
 			w.WriteHeader(http.StatusOK)
-		}, wantErr: core.ErrExchangeBodyLimit},
+		}, wantErr: io.ErrUnexpectedEOF},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

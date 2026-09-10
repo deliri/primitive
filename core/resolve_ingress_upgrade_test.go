@@ -33,12 +33,12 @@ func TestResolveTextCannotCleanAwayInvalidIngress(t *testing.T) {
 		width   int
 		wantErr error
 	}{
-		{name: "below", width: filesystemPathMaximumRunes - 1},
-		{name: "exact", width: filesystemPathMaximumRunes},
-		{name: "above", width: filesystemPathMaximumRunes + 1, wantErr: ErrPrimitiveContract},
+		{name: "below", width: 4096 - 1},
+		{name: "exact", width: 4096},
+		{name: "above", width: 4096 + 1},
 	} {
 		// Repeated separators deliberately normalize away. They pressure the raw
-		// ingress budget independently of the short final path's component limits.
+		// absence of raw extent quotas independently of the short final path.
 		cases = append(cases, struct {
 			name, text string
 			wantErr    error

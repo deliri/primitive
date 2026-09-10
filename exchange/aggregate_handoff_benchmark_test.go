@@ -29,10 +29,6 @@ func BenchmarkAggregateCompletedAttemptHandoff(b *testing.B) {
 	for _, tc := range cases {
 		b.Run(tc.name, func(b *testing.B) {
 			payload := []byte{0, 0xff}
-			limit, err := core.NewByteCount(uint64(len(payload)))
-			if err != nil {
-				b.Fatalf("body ceiling fixture = %v, want nil", err)
-			}
 			target, err := core.ParseHTTPEndpoint("https://provider.example.test/aggregate")
 			if err != nil {
 				b.Fatalf("target fixture = %v, want nil", err)
@@ -54,7 +50,7 @@ func BenchmarkAggregateCompletedAttemptHandoff(b *testing.B) {
 			for b.Loop() {
 				ctx, cancel := context.WithCancel(b.Context())
 				before := calls
-				produced, producerErr := executeAggregateAttempt(aggregateAttempt{context: ctx, client: client, request: request, timeout: timeout, limit: limit})
+				produced, producerErr := executeAggregateAttempt(aggregateAttempt{context: ctx, client: client, request: request, timeout: timeout})
 				if !errors.Is(producerErr, tc.wantProducerErr) || produced.status != core.HTTPStatusOK() || !bytes.Equal(produced.body, payload) || len(produced.headers.Values) != 0 || produced.retryAfter != "" || calls != before+1 || body == nil || body.readBytes != len(payload) || body.closes != 1 {
 					cancel()
 					b.Fatalf("producer observation = (%v,%x,%v), want exact binary response, native cause, and one read/close", produced.status, produced.body, producerErr)

@@ -236,14 +236,9 @@ func providerPolicy(t *testing.T) Policy {
 	if err != nil {
 		t.Fatalf("temporal.DurationFromSeconds(5) error = %v, want nil", err)
 	}
-	errorLimit, err := core.NewByteCount(4096)
-	if err != nil {
-		t.Fatalf("core.NewByteCount() error = %v, want nil", err)
-	}
 	return Policy{
 		OperationTimeout: operation,
 		AttemptTimeout:   attempt,
-		ErrorBodyLimit:   errorLimit,
 	}
 }
 

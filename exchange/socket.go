@@ -63,11 +63,9 @@ func validParsedSocketRoutePath(parsed *url.URL, value string) bool {
 // typed JSON route. A product supplies its compiler-owned route constant and
 // exact request and response structures; Primitive owns framing and effects.
 type JSONSocketContract struct {
-	Path              SocketRoutePath
-	RequestBodyLimit  core.ByteCount
-	ResponseBodyLimit core.ByteCount
-	SuccessStatus     core.HTTPStatusCode
-	Route             RouteSemantics
+	Path          SocketRoutePath
+	SuccessStatus core.HTTPStatusCode
+	Route         RouteSemantics
 }
 
 // Validate closes the complete paired route contract.
@@ -75,8 +73,6 @@ func (c JSONSocketContract) Validate() error {
 	if err := errors.Join(
 		c.Path.Validate(),
 		c.Route.Validate(),
-		validateJSONLimit(c.RequestBodyLimit),
-		validateJSONLimit(c.ResponseBodyLimit),
 		c.SuccessStatus.Validate(),
 	); err != nil {
 		return errors.Join(core.ErrExchangeContract, err)
@@ -211,9 +207,7 @@ func socketJSONCall[Request core.ValidatedJSONMarshaler](
 			ExpectedStatus: configuration.Contract.SuccessStatus,
 		},
 		Policy: JSONPolicy{
-			Operation:         configuration.Operation,
-			RequestBodyLimit:  configuration.Contract.RequestBodyLimit,
-			ResponseBodyLimit: configuration.Contract.ResponseBodyLimit,
+			Operation: configuration.Operation,
 		},
 	}
 }
@@ -409,9 +403,8 @@ func receiveSocketJSON[
 		return zero, errors.Join(core.ErrExchangeContract, err)
 	}
 	return receiveJSON[Body, BodyPtr](JSONReceiveCall{
-		Call:   call,
-		Route:  socket.contract.Route,
-		Policy: ServerPolicy{RequestBodyLimit: socket.contract.RequestBodyLimit},
+		Call:  call,
+		Route: socket.contract.Route,
 	})
 }
 
@@ -444,9 +437,8 @@ func receiveReplayBoundSocketJSON[
 		return zero, errors.Join(core.ErrExchangeContract, err)
 	}
 	return receiveReplayBoundJSON[Body, BodyPtr](JSONReceiveCall{
-		Call:   call,
-		Route:  socket.contract.Route,
-		Policy: ServerPolicy{RequestBodyLimit: socket.contract.RequestBodyLimit},
+		Call:  call,
+		Route: socket.contract.Route,
 	})
 }
 
@@ -478,7 +470,6 @@ func writeSocketJSON[Body core.ValidatedJSONMarshaler](
 			Body:   body,
 			Status: socket.contract.SuccessStatus,
 		},
-		Policy: JSONWritePolicy{ResponseBodyLimit: socket.contract.ResponseBodyLimit},
 	})
 }
 

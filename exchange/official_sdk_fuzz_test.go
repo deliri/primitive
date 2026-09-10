@@ -52,14 +52,9 @@ func (f officialSDKFuzzFraming) declaredLength(bodyBytes int, limit uint64) int 
 }
 
 func FuzzOfficialSDKResponseTransportSemanticBoundary(f *testing.F) {
-	seedLimit, seedLimitErr := core.NewByteCount(1)
-	if seedLimitErr != nil {
-		f.Fatalf("core.NewByteCount(seed) error = %v, want nil", seedLimitErr)
-	}
 	seedBoundary, seedBoundaryErr := exchange.NewOfficialSDKResponseBoundary(exchange.OfficialSDKResponseBoundaryRequest{
 		Method: exchange.MethodGet, PathPrefix: "/selected/", PathSuffix: "/response",
 		Representation: exchange.OfficialSDKResponseRepresentationJSON,
-		MaximumBytes:   seedLimit,
 	})
 	if seedBoundaryErr != nil || seedBoundary.Validate() != nil {
 		f.Fatalf("canonical SDK response boundary = (%v, %v), want validated boundary and nil", seedBoundary, seedBoundaryErr)
@@ -110,17 +105,13 @@ func FuzzOfficialSDKResponseTransportSemanticBoundary(f *testing.F) {
 			body = body[:officialSDKFuzzBodyMaximum]
 		}
 		limitValue := uint64(limitInput)%uint64(officialSDKFuzzBodyMaximum-1) + 1
-		limit, limitErr := core.NewByteCount(limitValue)
-		if limitErr != nil {
-			t.Fatalf("core.NewByteCount(%d) error = %v, want nil", limitValue, limitErr)
-		}
 		representation := exchange.OfficialSDKResponseRepresentationBinary
 		if jsonResponse {
 			representation = exchange.OfficialSDKResponseRepresentationJSON
 		}
 		boundary, boundaryErr := exchange.NewOfficialSDKResponseBoundary(exchange.OfficialSDKResponseBoundaryRequest{
 			Method: exchange.MethodGet, PathPrefix: "/selected/", PathSuffix: "/response",
-			Representation: representation, MaximumBytes: limit,
+			Representation: representation,
 		})
 		if boundaryErr != nil || boundary.Validate() != nil {
 			t.Fatalf("exchange.NewOfficialSDKResponseBoundary() = (%v, %v), want validated boundary and nil", boundary, boundaryErr)
@@ -202,22 +193,8 @@ func FuzzOfficialSDKResponseTransportSemanticBoundary(f *testing.F) {
 		if gotCalls := calls.Load(); gotCalls != 1 {
 			t.Fatalf("provider calls = %d, want 1", gotCalls)
 		}
-		wantDeclaredRejection := wantMatched && declaredLength >= 0 && uint64(declaredLength) > limitValue
-		wantStreamRejection := wantMatched && framing == officialSDKFuzzFramingChunked && uint64(len(body)) > limitValue
-		wantTruncation := declaredLength > len(body) && !wantDeclaredRejection
-		if wantDeclaredRejection || wantStreamRejection {
-			if response != nil {
-				if closeErr := response.Body.Close(); closeErr != nil {
-					t.Errorf("rejected response close error = %v, want nil", closeErr)
-				}
-			}
-			if response != nil || !errors.Is(gotErr, core.ErrExchangeResponse) ||
-				!errors.Is(gotErr, core.ErrExchangeBodyLimit) {
-				t.Fatalf("oversized matched response = (%v, %v), want nil, %v, and %v", response, gotErr, core.ErrExchangeResponse, core.ErrExchangeBodyLimit)
-			}
-			return
-		}
-		if wantMatched && wantTruncation {
+		wantTruncation := declaredLength > len(body)
+		if wantMatched && jsonResponse && wantTruncation {
 			if response != nil || !errors.Is(gotErr, core.ErrExchangeResponse) ||
 				!errors.Is(gotErr, io.ErrUnexpectedEOF) {
 				t.Fatalf("truncated matched response = (%v, %v), want nil, %v, and %v", response, gotErr, core.ErrExchangeResponse, io.ErrUnexpectedEOF)
@@ -247,7 +224,7 @@ func FuzzOfficialSDKResponseTransportSemanticBoundary(f *testing.F) {
 		if readErr != nil || closeErr != nil || !bytes.Equal(gotBody, body) {
 			t.Fatalf("admitted response body = (%d bytes, %v, %v), want exact %d bytes and nil/nil", len(gotBody), readErr, closeErr, len(body))
 		}
-		if wantMatched && response.ContentLength != int64(len(body)) {
+		if wantMatched && jsonResponse && response.ContentLength != int64(len(body)) {
 			t.Fatalf("buffered response ContentLength = %d, want %d", response.ContentLength, len(body))
 		}
 		if gotWriteErr != nil {
@@ -282,15 +259,10 @@ func FuzzOfficialSDKStreamingSuccessResponseSemanticBoundary(f *testing.F) {
 		if len(body) > officialSDKFuzzBodyMaximum {
 			body = body[:officialSDKFuzzBodyMaximum]
 		}
-		limit, limitErr := core.NewByteCount(64)
-		if limitErr != nil {
-			t.Fatalf("core.NewByteCount(64) error = %v, want nil", limitErr)
-		}
-		boundary, boundaryErr := exchange.NewOfficialSDKStreamingSuccessCeiling(
-			exchange.OfficialSDKStreamingSuccessCeilingRequest{
+		boundary, boundaryErr := exchange.NewOfficialSDKStreamingResponseBoundary(
+			exchange.OfficialSDKStreamingResponseBoundaryRequest{
 				Method: exchange.MethodGet, StreamQueryName: "alt", StreamQueryValue: "media",
 				AggregateRepresentation: exchange.OfficialSDKResponseRepresentationJSON,
-				AggregateMaximumBytes:   limit,
 			},
 		)
 		if boundaryErr != nil || boundary.Validate() != nil {
@@ -326,23 +298,16 @@ func FuzzOfficialSDKStreamingSuccessResponseSemanticBoundary(f *testing.F) {
 		}
 
 		wantStreaming := queryClass == 0 && statusClass == 0
-		wantBodyLimit := !wantStreaming && len(body) > 64
-		wantJSONRejection := !wantStreaming && !wantBodyLimit && len(body) != 0 && !jsontext.Value(body).IsValid()
-		if wantBodyLimit || wantJSONRejection {
+		wantJSONRejection := !wantStreaming && len(body) != 0 && !jsontext.Value(body).IsValid()
+		if wantJSONRejection {
 			if response != nil {
 				_ = response.Body.Close()
 			}
 			wantCause := error(core.ErrJSONContract)
-			if wantBodyLimit {
-				wantCause = core.ErrExchangeBodyLimit
-			}
 			if response != nil || !errors.Is(gotErr, core.ErrExchangeResponse) || !errors.Is(gotErr, wantCause) {
 				t.Fatalf("conditional aggregate response = (%v, %v), want nil, %v, and %v", response, gotErr, core.ErrExchangeResponse, wantCause)
 			}
 			wantRead := len(body)
-			if wantBodyLimit {
-				wantRead = 65
-			}
 			if source.closes != 1 || source.reads != wantRead {
 				t.Fatalf("SDK refusal source read/close = %d/%d, want %d/1", source.reads, source.closes, wantRead)
 			}

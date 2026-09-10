@@ -436,12 +436,10 @@ func writeDeliveryReceipt(request deliveryReceiptWrite) error {
 }
 
 func ObservationDeliverySocketContract(path exchange.SocketRoutePath, requestMaximum uint64) (exchange.JSONSocketContract, error) {
-	requestLimit, requestErr := core.NewByteCount(requestMaximum)
-	responseLimit, responseErr := core.NewByteCount(ObservationDeliveryReceiptMaximumBytes)
-	if err := errors.Join(path.Validate(), requestErr, responseErr); err != nil {
+	if err := errors.Join(path.Validate()); err != nil {
 		return exchange.JSONSocketContract{}, err
 	}
-	contract := exchange.JSONSocketContract{Path: path, Route: exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplayIdempotencyKey}, RequestBodyLimit: requestLimit, ResponseBodyLimit: responseLimit, SuccessStatus: core.HTTPStatusOK()}
+	contract := exchange.JSONSocketContract{Path: path, Route: exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplayIdempotencyKey}, SuccessStatus: core.HTTPStatusOK()}
 	return contract, contract.Validate()
 }
 

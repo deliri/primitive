@@ -11,15 +11,9 @@ import (
 )
 
 const (
-	repositorySeparator            = "/"
-	referenceCustodyMaximumBytes   = 1024
-	userAgentCustodyMaximumBytes   = 256
-	minimumTreeRequestEntryMaximum = 1
-	// TarArchiveMaximumBytes is Primitive's hard ceiling for one streamed
-	// repository archive. GitHub publishes no archive-size maximum, so products
-	// may only tighten this one-gibibyte mechanical custody limit.
-	// Provider contract: https://docs.github.com/en/rest/repos/contents?apiVersion=2026-03-10#download-a-repository-archive-tar
-	TarArchiveMaximumBytes = 1 << 30
+	repositorySeparator          = "/"
+	referenceCustodyMaximumBytes = 1024
+	userAgentCustodyMaximumBytes = 256
 )
 
 // Repository is one GitHub owner and repository-name pair. Primitive validates
@@ -220,32 +214,36 @@ func (o HeadObservation) Validate() error {
 	return nil
 }
 
-// FileRequest requests one exact path at one immutable commit. MaximumBytes is
-// product policy and may only tighten GitHub's inline-contents provider ceiling.
+// FileRequest streams one exact path at one immutable commit into Destination.
+// Destination and Buffer are borrowed through return and are never closed.
+// Buffer controls scratch space, not total file size; an empty buffer lets Go
+// allocate its copy window. It must not alias Destination storage.
 type FileRequest struct {
-	Repository   Repository
-	Path         core.SourcePath
-	MaximumBytes core.ByteCount
-	Commit       core.BuildCommit
+	Repository  Repository
+	Path        core.SourcePath
+	Commit      core.BuildCommit
+	Destination io.Writer
+	Buffer      []byte
 }
 
-// Validate checks the complete exact-source request before transport.
+// Validate checks the exact source and destination before any transport.
 func (r FileRequest) Validate() error {
-	if err := errors.Join(r.Repository.Validate(), r.Commit.Validate(), r.Path.Validate(), r.MaximumBytes.Validate()); err != nil {
+	if err := errors.Join(r.Repository.Validate(), r.Commit.Validate(), r.Path.Validate()); err != nil {
 		return contractError(err)
 	}
-	maximum, err := r.MaximumBytes.Uint64()
-	if err != nil || maximum > core.GitHubContentsInlineMaximumBytes {
+	if core.WriterIsNil(r.Destination) {
 		return core.ErrGitHubContract
 	}
 	return nil
 }
 
-// FileObservation is the exact bounded file returned by GitHub.
+// FileObservation identifies the prefix acknowledged by the destination.
+// A nil ReadFile error proves complete EOF; an error may accompany a partial
+// observation. Length and SHA256 describe acknowledged bytes, never an attempt.
+// The file bytes remain with the caller and are not retained by Primitive.
 type FileObservation struct {
 	Repository Repository
 	Path       core.SourcePath
-	Content    []byte
 	Length     core.ByteLength
 	Commit     core.BuildCommit
 	SHA256     core.SHA256Digest
@@ -286,23 +284,20 @@ func (s ArchiveTransferState) String() string {
 func (ArchiveTransferState) OffWireEnum() {}
 
 // TarArchiveRequest streams one tar archive for an immutable commit into a
-// caller-owned destination. MaximumBytes is product policy and may only
-// tighten Primitive's mechanical archive custody ceiling.
+// caller-owned destination without an archive extent quota.
 type TarArchiveRequest struct {
-	Destination  io.Writer
-	Repository   Repository
-	MaximumBytes core.ByteCount
-	Commit       core.BuildCommit
+	Destination io.Writer
+	Repository  Repository
+	Commit      core.BuildCommit
+	// Buffer is borrowed Go copy scratch, never an archive-size ceiling.
+	// Source and destination must not alias it; empty uses Go allocation.
+	Buffer []byte
 }
 
 // Validate checks the complete exact-source transfer request.
 func (r TarArchiveRequest) Validate() error {
-	if err := errors.Join(r.Repository.Validate(), r.Commit.Validate(), r.MaximumBytes.Validate()); err != nil || r.Destination == nil {
+	if err := errors.Join(r.Repository.Validate(), r.Commit.Validate()); err != nil || core.WriterIsNil(r.Destination) {
 		return contractError(err)
-	}
-	maximum, err := r.MaximumBytes.Uint64()
-	if err != nil || maximum > TarArchiveMaximumBytes {
-		return core.ErrGitHubContract
 	}
 	return nil
 }
@@ -323,20 +318,17 @@ func (o TarArchiveObservation) Validate() error {
 	if err := errors.Join(o.Repository.Validate(), o.Commit.Validate(), o.SHA256.Validate(), o.Length.Validate(), o.State.Validate()); err != nil {
 		return responseError(err)
 	}
-	if o.Length.Uint64() > TarArchiveMaximumBytes ||
-		(o.State == ArchiveTransferComplete && o.Length.Uint64() == 0) {
+	if o.State == ArchiveTransferComplete && o.Length.Uint64() == 0 {
 		return core.ErrGitHubResponse
 	}
 	return nil
 }
 
-// Validate proves coordinate binding, length, digest, and provider ceiling.
+// Validate checks the observation coordinates, extent, and digest shape.
+// It cannot re-verify bytes held by the caller.
 func (o FileObservation) Validate() error {
 	if err := errors.Join(o.Repository.Validate(), o.Commit.Validate(), o.Path.Validate(), o.Length.Validate(), o.SHA256.Validate()); err != nil {
 		return responseError(err)
-	}
-	if uint64(len(o.Content)) != o.Length.Uint64() || len(o.Content) > core.GitHubContentsInlineMaximumBytes || core.SHA256Of(o.Content) != o.SHA256 {
-		return core.ErrGitHubResponse
 	}
 	return nil
 }
@@ -394,20 +386,19 @@ type TreeVisitor interface {
 	VisitGitHubTreeEntry(TreeEntry) error
 }
 
-// TreeRequest requests a recursive immutable tree with a caller-owned tighter bound.
+// TreeRequest streams a recursive immutable tree through its synchronous visitor.
 type TreeRequest struct {
-	Visitor        TreeVisitor
-	Repository     Repository
-	MaximumEntries uint64
-	Commit         core.BuildCommit
+	Visitor    TreeVisitor
+	Repository Repository
+	Commit     core.BuildCommit
 }
 
-// Validate checks exact coordinates, visitor ownership, and provider ceiling.
+// Validate checks exact coordinates and visitor ownership.
 func (r TreeRequest) Validate() error {
 	if err := errors.Join(r.Repository.Validate(), r.Commit.Validate()); err != nil {
 		return contractError(err)
 	}
-	if r.MaximumEntries < minimumTreeRequestEntryMaximum || r.MaximumEntries > core.GitHubRecursiveTreeMaximumEntries || r.Visitor == nil {
+	if r.Visitor == nil {
 		return core.ErrGitHubContract
 	}
 	return nil
@@ -421,13 +412,10 @@ type TreeObservation struct {
 	Bytes      core.ByteLength
 }
 
-// Validate checks coordinates and provider ceilings.
+// Validate checks exact observed coordinates and representable byte counts.
 func (o TreeObservation) Validate() error {
 	if err := errors.Join(o.Repository.Validate(), o.Commit.Validate(), o.Bytes.Validate()); err != nil {
 		return responseError(err)
-	}
-	if o.Entries > core.GitHubRecursiveTreeMaximumEntries || o.Bytes.Uint64() > core.GitHubRecursiveTreeMaximumBytes {
-		return core.ErrGitHubResponse
 	}
 	return nil
 }

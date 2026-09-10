@@ -15,10 +15,10 @@ func TestAbsoluteFilesystemPathHostileBoundaryTable(t *testing.T) {
 	t.Parallel()
 
 	root := filepath.VolumeName(t.TempDir()) + string(filepath.Separator)
-	maximumRunePath := root + relativePathWithRunes(t, filesystemPathMaximumRunes-utf8.RuneCountInString(root))
+	maximumRunePath := root + relativePathWithRunes(t, 4096-utf8.RuneCountInString(root))
 	oneBelowMaximumRunePath := maximumRunePath[:len(maximumRunePath)-1]
-	overMaximumRunePath := root + relativePathWithRunes(t, filesystemPathMaximumRunes+1-utf8.RuneCountInString(root))
-	maximumComponents := root + strings.Repeat("a"+string(filepath.Separator), FilesystemPathMaximumComponents-1) + "a"
+	overMaximumRunePath := root + relativePathWithRunes(t, 4096+1-utf8.RuneCountInString(root))
+	maximumComponents := root + strings.Repeat("a"+string(filepath.Separator), 256-1) + "a"
 	overMaximumComponents := maximumComponents + string(filepath.Separator) + "a"
 	cases := []struct {
 		name        string
@@ -54,10 +54,10 @@ func TestAbsoluteFilesystemPathHostileBoundaryTable(t *testing.T) {
 		{name: "NUL final byte is rejected", value: "/a\x00"},
 		{name: "NUL middle byte is rejected", value: "/a\x00/b"},
 		{name: "invalid UTF8 byte is rejected", value: string([]byte{'/', 0xff})},
-		{name: "one above component maximum is rejected", value: overMaximumComponents},
-		{name: "one above complete-path rune maximum is rejected", value: overMaximumRunePath},
-		{name: "far above rune maximum is rejected", value: "/" + strings.Repeat("界", filesystemPathMaximumRunes*2)},
-		{name: "one component one byte above filesystem maximum is rejected", value: "/" + strings.Repeat("a", filesystemPathComponentMaximumBytes+1)},
+		{name: "one above component maximum remains lexical", value: overMaximumComponents, disposition: boundaryAccept},
+		{name: "one above complete-path rune maximum remains lexical", value: overMaximumRunePath, disposition: boundaryAccept},
+		{name: "far above rune maximum remains lexical", value: "/" + strings.Repeat("界", 4096*2), disposition: boundaryAccept},
+		{name: "one component one byte above filesystem maximum remains lexical", value: "/" + strings.Repeat("a", 255+1), disposition: boundaryAccept},
 		{name: "leading ASCII space prevents absolute path", value: " /a"},
 		{name: "leading newline prevents absolute path", value: "\n/a"},
 		{name: "backslash is not native absolute separator", value: `\a\b`},
@@ -119,11 +119,11 @@ func TestAbsoluteFilesystemPathHostileBoundaryTable(t *testing.T) {
 		})
 	}
 
-	if got := utf8.RuneCountInString(maximumRunePath); got != filesystemPathMaximumRunes {
-		t.Fatalf("maximum-rune fixture count = %d, want %d", got, filesystemPathMaximumRunes)
+	if got := utf8.RuneCountInString(maximumRunePath); got != 4096 {
+		t.Fatalf("maximum-rune fixture count = %d, want %d", got, 4096)
 	}
-	if got := utf8.RuneCountInString(overMaximumRunePath); got != filesystemPathMaximumRunes+1 {
-		t.Fatalf("over-maximum-rune fixture count = %d, want %d", got, filesystemPathMaximumRunes+1)
+	if got := utf8.RuneCountInString(overMaximumRunePath); got != 4096+1 {
+		t.Fatalf("over-maximum-rune fixture count = %d, want %d", got, 4096+1)
 	}
 }
 
@@ -368,8 +368,8 @@ func TestPathComponentHostileBoundaryTable(t *testing.T) {
 		{name: "four-byte Unicode rune is accepted", value: "🙂", disposition: boundaryAccept},
 		{name: "punctuation without native separator is accepted", value: "!@#$%^&()[]{}=+,;'", disposition: boundaryAccept},
 		{name: "less-than and greater-than are accepted", value: "a<b>c", disposition: boundaryAccept},
-		{name: "one byte below component maximum is accepted", value: strings.Repeat("a", filesystemPathComponentMaximumBytes-1), disposition: boundaryAccept},
-		{name: "exact component byte maximum is accepted", value: strings.Repeat("a", filesystemPathComponentMaximumBytes), disposition: boundaryAccept},
+		{name: "one byte below component maximum is accepted", value: strings.Repeat("a", 255-1), disposition: boundaryAccept},
+		{name: "exact component byte maximum is accepted", value: strings.Repeat("a", 255), disposition: boundaryAccept},
 		{name: "multibyte value one byte below maximum is accepted", value: strings.Repeat("é", 127), disposition: boundaryAccept},
 		{name: "multibyte value at exact maximum is accepted", value: strings.Repeat("é", 127) + "a", disposition: boundaryAccept},
 		{name: "empty component is rejected"},
@@ -387,10 +387,10 @@ func TestPathComponentHostileBoundaryTable(t *testing.T) {
 		{name: "invalid UTF8 first byte is rejected", value: string([]byte{0xff, 'a'})},
 		{name: "invalid UTF8 middle byte is rejected", value: string([]byte{'a', 0xff, 'b'})},
 		{name: "invalid UTF8 final byte is rejected", value: string([]byte{'a', 0xff})},
-		{name: "one byte above component maximum is rejected", value: strings.Repeat("a", filesystemPathComponentMaximumBytes+1)},
-		{name: "multibyte value one byte above maximum is rejected", value: strings.Repeat("é", 128)},
-		{name: "far above component maximum is rejected", value: strings.Repeat("界", filesystemPathComponentMaximumBytes*2)},
-		{name: "maximum bytes plus separator is rejected", value: strings.Repeat("a", filesystemPathComponentMaximumBytes) + string(filepath.Separator)},
+		{name: "one byte above component maximum remains lexical", value: strings.Repeat("a", 255+1), disposition: boundaryAccept},
+		{name: "multibyte value one byte above maximum remains lexical", value: strings.Repeat("é", 128), disposition: boundaryAccept},
+		{name: "far above component maximum remains lexical", value: strings.Repeat("界", 255*2), disposition: boundaryAccept},
+		{name: "maximum bytes plus separator is rejected", value: strings.Repeat("a", 255) + string(filepath.Separator)},
 		{name: "dot identity with separator suffix is rejected", value: "." + string(filepath.Separator)},
 		{name: "parent identity with separator suffix is rejected", value: ".." + string(filepath.Separator)},
 	}

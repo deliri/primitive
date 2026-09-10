@@ -1,7 +1,6 @@
 package exchange
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"io"
@@ -28,26 +27,6 @@ func (s RouteSemantics) Validate() error {
 		return err
 	}
 	return validateReplayMethod(s.Method, s.Replay)
-}
-
-// ServerPolicy bounds one received strict JSON document.
-type ServerPolicy struct {
-	RequestBodyLimit core.ByteCount
-}
-
-// Validate enforces Core's strict JSON maximum.
-func (p ServerPolicy) Validate() error {
-	return validateJSONLimit(p.RequestBodyLimit)
-}
-
-// JSONWritePolicy bounds one emitted strict JSON document.
-type JSONWritePolicy struct {
-	ResponseBodyLimit core.ByteCount
-}
-
-// Validate enforces Core's strict JSON maximum.
-func (p JSONWritePolicy) Validate() error {
-	return validateJSONLimit(p.ResponseBodyLimit)
 }
 
 // NoBody is the compiler-visible absence of an HTTP body.
@@ -78,9 +57,8 @@ func (r Received[Body]) Validate() error {
 
 // JSONReceiveCall supplies one body-only server receive boundary.
 type JSONReceiveCall struct {
-	Call   SocketServerCall
-	Route  RouteSemantics
-	Policy ServerPolicy
+	Call  SocketServerCall
+	Route RouteSemantics
 }
 
 // JSONProjector completes a decoded wire structure with typed state from the
@@ -104,7 +82,6 @@ type ProjectedJSONReceiveCall[
 ] struct {
 	Call    SocketServerCall
 	Project JSONProjector[Body, BodyPtr]
-	Policy  ServerPolicy
 	Route   RouteSemantics
 }
 
@@ -122,9 +99,6 @@ func (call JSONReceiveCall) Validate() error {
 	if err := validateServerIngress(call.Call.request, call.Route); err != nil {
 		return err
 	}
-	if err := call.Policy.Validate(); err != nil {
-		return requestError(err)
-	}
 	return validateJSONRequestMetadata(call.Call.request)
 }
 
@@ -134,7 +108,7 @@ func (call ProjectedJSONReceiveCall[Body, BodyPtr]) Validate() error {
 		return requestError(core.ErrExchangeContract)
 	}
 	return JSONReceiveCall{
-		Call: call.Call, Route: call.Route, Policy: call.Policy,
+		Call: call.Call, Route: call.Route,
 	}.Validate()
 }
 
@@ -216,9 +190,9 @@ func receiveJSON[
 	if err != nil {
 		return zero, err
 	}
-	body, err := core.DecodeStrictJSON[BodyPtr](
-		bytes.NewReader(data),
-		strictJSONLimits(call.Policy.RequestBodyLimit),
+	body, err := core.DecodeStrictJSONBytes[BodyPtr](
+		data,
+		strictJSONLimits(),
 	)
 	if err != nil {
 		return zero, requestError(err)
@@ -267,7 +241,7 @@ func receiveProjectedJSON[
 	}
 	data, key, err := receiveValidatedJSONDocument(
 		JSONReceiveCall{
-			Call: call.Call, Route: call.Route, Policy: call.Policy,
+			Call: call.Call, Route: call.Route,
 		},
 	)
 	if err != nil {
@@ -275,7 +249,7 @@ func receiveProjectedJSON[
 	}
 	body, err := core.DecodeStrictJSONStructure[Body](
 		data,
-		strictJSONLimits(call.Policy.RequestBodyLimit),
+		strictJSONLimits(),
 	)
 	if err != nil {
 		return zero, requestError(err)
@@ -391,18 +365,14 @@ func receiveValidatedJSONDocument(
 	if err != nil {
 		return nil, IdempotencyKey{}, err
 	}
-	declared, err := admittedBodyLength(
-		request.ContentLength,
-		call.Policy.RequestBodyLimit,
-	)
+	declared, err := parseDeclaredBodyLength(request.ContentLength)
 	if err != nil {
 		return nil, IdempotencyKey{}, requestError(err)
 	}
-	data, readErr := readBoundedBody(boundedBodyRead{
+	data, readErr := readWholeBody(wholeBodyRead{
 		context:  request.Context(),
 		source:   request.Body,
 		declared: declared,
-		limit:    call.Policy.RequestBodyLimit,
 	})
 	if readErr != nil {
 		return nil, IdempotencyKey{}, asRequestReadError(readErr)
@@ -619,7 +589,6 @@ func (r ServerNoBodyResponse) Validate() error {
 type JSONWriteCall[Body core.ValidatedJSONMarshaler] struct {
 	Call     SocketServerCall
 	Response ServerJSONResponse[Body]
-	Policy   JSONWritePolicy
 }
 
 // NoBodyWriteCall supplies one complete body-absent response effect.
@@ -635,9 +604,6 @@ func (call JSONWriteCall[Body]) Validate() error {
 	}
 	if err := call.Response.Validate(); err != nil {
 		return err
-	}
-	if err := call.Policy.Validate(); err != nil {
-		return responseError(err)
 	}
 	return nil
 }
@@ -659,7 +625,7 @@ func WriteJSON[
 	}
 	body, err := core.EncodeValidatedJSON(
 		call.Response.Body,
-		strictJSONLimits(call.Policy.ResponseBodyLimit),
+		strictJSONLimits(),
 	)
 	if err != nil {
 		return responseError(err)
@@ -773,8 +739,6 @@ func executeResponseWriterOperation(operation func() error) error {
 
 var (
 	_ core.Validatable = RouteSemantics{}
-	_ core.Validatable = ServerPolicy{}
-	_ core.Validatable = JSONWritePolicy{}
 	_ core.Validatable = NoBody{}
 	_ core.Validatable = JSONReceiveCall{}
 	_ core.Validatable = NoBodyReceiveCall{}

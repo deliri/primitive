@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"io/fs"
 	"os"
 	"testing"
 
@@ -163,6 +164,12 @@ func TestTransferRejectsTypedNilOwnersLayerTriad(t *testing.T) {
 			}
 			if !errors.Is(validationErr, core.ErrFilestoreContract) || !errors.Is(executionErr, core.ErrFilestoreContract) {
 				t.Fatalf("typed nil validation/execution = (%v,%v), want (%v,%v)", validationErr, executionErr, core.ErrFilestoreContract, core.ErrFilestoreContract)
+			}
+			for _, err := range []error{validationErr, executionErr} {
+				var pathErr *fs.PathError
+				if errors.Is(err, core.ErrFilestoreSource) || errors.Is(err, core.ErrFilestoreDestination) || errors.Is(err, core.ErrFilestoreActivation) || errors.As(err, &pathErr) {
+					t.Fatalf("nil owner crossed validation into an effect: %v", err)
+				}
 			}
 			entries, readErr := os.ReadDir(directory)
 			if readErr != nil || len(entries) != 0 {

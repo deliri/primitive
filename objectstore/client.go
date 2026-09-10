@@ -321,17 +321,17 @@ func prepareDownload(
 		digests: digests,
 		request: exchange.DownloadRequest{
 			Target: exchangeTarget{url: *request.Target.URL.value},
-			Destination: io.MultiWriter(
-				request.Destination,
-				digests.writer(),
-				progressDestination(request.Observer, DirectionDownload, request.Integrity.Length),
-			),
+			Destination: &exactDownloadWriter{
+				remaining: request.Integrity.Length.Uint64(),
+				destination: io.MultiWriter(request.Destination, digests.writer(),
+					progressDestination(request.Observer, DirectionDownload, request.Integrity.Length)),
+			},
 			Semantics:                   singleAttempt(exchange.MethodGet),
 			ExpectedResponseContentType: request.ContentType,
 			Headers:                     headers,
 			CaptureHeaders:              selection,
-			ResponseBodyLimit:           downloadLimit(request.Integrity.Length),
-			ExpectedStatus:              core.HTTPStatusOK(),
+
+			ExpectedStatus: core.HTTPStatusOK(),
 		},
 	}, nil
 }
@@ -402,7 +402,7 @@ func prepareUpload(
 			ContentType:    body.contentType,
 			Headers:        headers,
 			CaptureHeaders: selection,
-			ContentLength:  body.length,
+			ContentLength:  new(body.length),
 			ExpectedStatus: core.HTTPStatusOK(),
 		},
 	}, nil
@@ -834,13 +834,4 @@ func singleAttempt(method exchange.Method) exchange.RequestSemantics {
 	return exchange.RequestSemantics{
 		Method: method, Replay: exchange.ReplaySingleAttempt,
 	}
-}
-
-func downloadLimit(length core.ByteLength) core.ByteCount {
-	value := length.Uint64()
-	if value == 0 {
-		value = 1
-	}
-	limit, _ := core.NewByteCount(value)
-	return limit
 }

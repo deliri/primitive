@@ -1,11 +1,11 @@
 package github
 
 import (
-	"bytes"
-	"encoding/base64"
+	"context"
 	json "encoding/json/v2"
 	"errors"
 	"io"
+	"net/url"
 	"testing"
 	"time"
 
@@ -31,13 +31,13 @@ func TestGitHubExternalIngressHasSemanticFuzzTargets(t *testing.T) {
 	_ = externalIngressFuzzContract[func([]byte) (core.BuildCommit, error), func(*testing.F)]{
 		Door: decodeHead, Fuzz: FuzzDecodeGitHubHeadSemanticClosure,
 	}
-	_ = externalIngressFuzzContract[func(FileRequest, []byte) (FileObservation, error), func(*testing.F)]{
-		Door: fileObservation, Fuzz: FuzzGitHubFileResponseSemanticClosure,
+	_ = externalIngressFuzzContract[func(Client, context.Context, FileRequest) (FileObservation, error), func(*testing.F)]{
+		Door: Client.ReadFile, Fuzz: FuzzGitHubFileResponseSemanticClosure,
 	}
 	_ = externalIngressFuzzContract[func([]byte, temporal.Instant) (installationToken, error), func(*testing.F)]{
 		Door: decodeInstallationToken, Fuzz: FuzzDecodeGitHubInstallationAccessSemanticClosure,
 	}
-	_ = externalIngressFuzzContract[func(io.Reader, uint64, TreeVisitor) (uint64, error), func(*testing.F)]{
+	_ = externalIngressFuzzContract[func(io.Reader, TreeVisitor) (uint64, error), func(*testing.F)]{
 		Door: decodeTree, Fuzz: FuzzDecodeGitHubTreeSemanticClosure,
 	}
 	_ = externalIngressFuzzContract[func(exchange.CapturedHeaders, core.HTTPHeaderName) (core.HTTPEndpoint, error), func(*testing.F)]{
@@ -55,6 +55,8 @@ func FuzzGitHubArchiveLocationSemanticClosure(f *testing.F) {
 		f.Fatalf("core.ParseHTTPEndpoint(seed) error = %v, want nil", err)
 	}
 	f.Add(canonical.String())
+	f.Add("https://objects.example.test/a b")
+	f.Add("https://équipe.example.test/source")
 	f.Add("http://objects.example.test/archive")
 	f.Add("")
 	f.Fuzz(func(t *testing.T, raw string) {
@@ -72,11 +74,15 @@ func FuzzGitHubArchiveLocationSemanticClosure(f *testing.F) {
 			}
 			return
 		}
-		if err := got.Validate(); err != nil || got.String() != raw {
-			t.Fatalf("archiveLocation(accepted) = (%v, %v), want exact validated %q", got, err, raw)
+		expected, parseErr := url.Parse(raw)
+		if parseErr != nil {
+			t.Fatalf("Go rejected admitted location: %v", parseErr)
+		}
+		if err := got.Validate(); err != nil || got.HTTPURL() != *expected || got.String() != expected.String() {
+			t.Fatalf("archiveLocation(accepted) = (%v, %v), want Go's exact projection %q", got, err, expected.String())
 		}
 		roundTrip, err := core.ParseHTTPEndpoint(got.String())
-		if err != nil || roundTrip != got {
+		if err != nil || roundTrip.String() != got.String() || !roundTrip.SameOrigin(got) {
 			t.Fatalf("archive location canonical round trip = (%v, %v), want (%v, nil)", roundTrip, err, got)
 		}
 	})
@@ -149,51 +155,6 @@ func FuzzDecodeGitHubHeadSemanticClosure(f *testing.F) {
 		roundTrip, err := decodeHead(canonical)
 		if err != nil || roundTrip != got {
 			t.Fatalf("decodeHead(canonical) = (%v, %v), want (%v, nil)", roundTrip, err, got)
-		}
-	})
-}
-
-func FuzzGitHubFileResponseSemanticClosure(f *testing.F) {
-	request := FileRequest{
-		Repository: parsedRepository(f, "owner/repository"), Commit: parsedCommit(f),
-		Path: parsedPath(f, "source/main.go"), MaximumBytes: byteCountFixture(f, 1024),
-	}
-	content := []byte("package main")
-	seed, err := json.Marshal(contentsWire{
-		Path: request.Path.String(), Size: uint64(len(content)), Type: "file",
-		Encoding: "base64", Content: base64.StdEncoding.EncodeToString(content),
-	})
-	if err != nil {
-		f.Fatalf("json.Marshal(file seed) error = %v, want nil", err)
-	}
-	f.Add(seed)
-	f.Add([]byte{})
-	f.Add([]byte(`{}`))
-	f.Fuzz(func(t *testing.T, payload []byte) {
-		got, gotErr := fileObservation(request, payload)
-		if gotErr != nil {
-			zero := got.Repository == (Repository{}) && got.Commit == (core.BuildCommit{}) &&
-				got.Path == (core.SourcePath{}) && got.Length == (core.ByteLength{}) &&
-				got.SHA256 == (core.SHA256Digest{}) && len(got.Content) == 0
-			if !errors.Is(gotErr, core.ErrGitHubResponse) || !zero {
-				t.Fatalf("fileObservation(rejected) = (%v, %v), want zero and %v", got, gotErr, core.ErrGitHubResponse)
-			}
-			return
-		}
-		if err := got.Validate(); err != nil {
-			t.Fatalf("fileObservation(accepted).Validate() error = %v, want nil", err)
-		}
-		canonical, err := json.Marshal(contentsWire{
-			Path: got.Path.String(), Size: got.Length.Uint64(), Type: "file",
-			Encoding: "base64", Content: base64.StdEncoding.EncodeToString(got.Content),
-		})
-		if err != nil {
-			t.Fatalf("json.Marshal(accepted file) error = %v, want nil", err)
-		}
-		roundTrip, err := fileObservation(request, canonical)
-		if err != nil || roundTrip.Repository != got.Repository || roundTrip.Commit != got.Commit ||
-			roundTrip.Path != got.Path || roundTrip.Length != got.Length || roundTrip.SHA256 != got.SHA256 || !bytes.Equal(roundTrip.Content, got.Content) {
-			t.Fatalf("fileObservation(canonical) = (%v, %v), want exact accepted observation", roundTrip, err)
 		}
 	})
 }

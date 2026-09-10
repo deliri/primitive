@@ -27,17 +27,13 @@ func BenchmarkResponseBufferRelease(b *testing.B) {
 	for _, tc := range cases {
 		b.Run(tc.name, func(b *testing.B) {
 			payload := bytes.Repeat([]byte{0x5a}, tc.size)
-			maximum, err := core.NewByteCount(uint64(tc.size))
-			if err != nil {
-				b.Fatal(err)
-			}
 			destination := &materialFuzzWriter{header: make(http.Header)}
 			call, err := NewSocketServerCall(destination, httptest.NewRequestWithContext(b.Context(), http.MethodGet, "/", nil))
 			if err != nil {
 				b.Fatal(err)
 			}
 			callbacks := 0
-			request := ResponseBufferRequest{Call: call, BodyMaximum: maximum, Serve: func(socket SocketServerCall) error {
+			request := ResponseBufferRequest{Call: call, Serve: func(socket SocketServerCall) error {
 				callbacks++
 				socket.writer.WriteHeader(http.StatusOK)
 				written, err := socket.writer.Write(payload)

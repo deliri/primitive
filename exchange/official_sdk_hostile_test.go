@@ -24,7 +24,6 @@ type officialSDKBoundaryCase struct {
 	name        string
 	prefix      string
 	suffix      string
-	limit       uint64
 	constructor officialSDKBoundaryConstructor
 	method      Method
 }
@@ -32,16 +31,11 @@ type officialSDKBoundaryCase struct {
 func TestOfficialSDKResponseTransportConstructionRefusesEveryUnsetDependency(t *testing.T) {
 	t.Parallel()
 
-	limit, limitErr := core.NewByteCount(1)
-	if limitErr != nil {
-		t.Fatalf("core.NewByteCount() error = %v, want nil", limitErr)
-	}
-	boundary, boundaryErr := NewOfficialSDKResponseCeiling(OfficialSDKResponseCeilingRequest{
+	boundary, boundaryErr := NewOfficialSDKMethodResponseBoundary(OfficialSDKMethodResponseBoundaryRequest{
 		Method: MethodGet, Representation: OfficialSDKResponseRepresentationBinary,
-		MaximumBytes: limit,
 	})
 	if boundaryErr != nil {
-		t.Fatalf("NewOfficialSDKResponseCeiling() error = %v, want nil", boundaryErr)
+		t.Fatalf("NewOfficialSDKMethodResponseBoundary() error = %v, want nil", boundaryErr)
 	}
 	cases := []struct {
 		wantErr error
@@ -136,50 +130,43 @@ func TestOfficialSDKResponseBoundaryHostileConstructionMatrix(t *testing.T) {
 	t.Parallel()
 
 	validCases := []officialSDKBoundaryCase{
-		{name: "GET selected provider path is admitted", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/storage/", suffix: "/iam", limit: 1024},
-		{name: "HEAD selected provider path is admitted", constructor: officialSDKBoundarySelected, method: MethodHead, prefix: "/storage/", suffix: "/iam", limit: 1024},
-		{name: "POST selected JSON provider path is admitted", constructor: officialSDKBoundarySelectedJSON, method: MethodPost, prefix: "/v1/accounts/", suffix: ":signBlob", limit: 4096},
-		{name: "PUT selected provider path is admitted", constructor: officialSDKBoundarySelected, method: MethodPut, prefix: "/storage/", suffix: "/iam", limit: 1024},
-		{name: "PATCH selected provider path is admitted", constructor: officialSDKBoundarySelected, method: MethodPatch, prefix: "/storage/", suffix: "/object", limit: 1024},
-		{name: "DELETE selected provider path is admitted", constructor: officialSDKBoundarySelected, method: MethodDelete, prefix: "/storage/", suffix: "/object", limit: 1024},
-		{name: "OPTIONS selected provider path is admitted", constructor: officialSDKBoundarySelected, method: MethodOptions, prefix: "/storage/", suffix: "/object", limit: 1024},
-		{name: "GET all-path ceiling is admitted", constructor: officialSDKBoundaryAllPaths, method: MethodGet, limit: 1024},
-		{name: "POST JSON all-path ceiling is admitted", constructor: officialSDKBoundaryAllPathsJSON, method: MethodPost, limit: 4096},
-		{name: "DELETE all-path ceiling is admitted", constructor: officialSDKBoundaryAllPaths, method: MethodDelete, limit: OfficialSDKResponseMaximumBytes},
+		{name: "GET selected provider path is admitted", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/storage/", suffix: "/iam"},
+		{name: "HEAD selected provider path is admitted", constructor: officialSDKBoundarySelected, method: MethodHead, prefix: "/storage/", suffix: "/iam"},
+		{name: "POST selected JSON provider path is admitted", constructor: officialSDKBoundarySelectedJSON, method: MethodPost, prefix: "/v1/accounts/", suffix: ":signBlob"},
+		{name: "PUT selected provider path is admitted", constructor: officialSDKBoundarySelected, method: MethodPut, prefix: "/storage/", suffix: "/iam"},
+		{name: "PATCH selected provider path is admitted", constructor: officialSDKBoundarySelected, method: MethodPatch, prefix: "/storage/", suffix: "/object"},
+		{name: "DELETE selected provider path is admitted", constructor: officialSDKBoundarySelected, method: MethodDelete, prefix: "/storage/", suffix: "/object"},
+		{name: "OPTIONS selected provider path is admitted", constructor: officialSDKBoundarySelected, method: MethodOptions, prefix: "/storage/", suffix: "/object"},
+		{name: "GET all-path ceiling is admitted", constructor: officialSDKBoundaryAllPaths, method: MethodGet},
+		{name: "POST JSON all-path ceiling is admitted", constructor: officialSDKBoundaryAllPathsJSON, method: MethodPost},
+		{name: "DELETE all-path ceiling is admitted", constructor: officialSDKBoundaryAllPaths, method: MethodDelete},
 	}
 	rejectionCases := []officialSDKBoundaryCase{
-		{name: "unknown method is refused", constructor: officialSDKBoundarySelected, method: MethodUnknown, prefix: "/storage/", suffix: "/iam", limit: 1024, wantErr: core.ErrExchangeContract},
-		{name: "future method is refused", constructor: officialSDKBoundarySelected, method: Method(255), prefix: "/storage/", suffix: "/iam", limit: 1024, wantErr: core.ErrExchangeContract},
-		{name: "zero limit is refused", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/storage/", suffix: "/iam", wantErr: core.ErrExchangeContract},
-		{name: "limit above aggregate ceiling is refused", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/storage/", suffix: "/iam", limit: OfficialSDKResponseMaximumBytes + 1, wantErr: core.ErrExchangeContract},
-		{name: "empty prefix is refused", constructor: officialSDKBoundarySelected, method: MethodGet, suffix: "/iam", limit: 1024, wantErr: core.ErrExchangeContract},
-		{name: "empty suffix is refused", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/storage/", limit: 1024, wantErr: core.ErrExchangeContract},
-		{name: "relative prefix is refused", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "storage/", suffix: "/iam", limit: 1024, wantErr: core.ErrExchangeContract},
-		{name: "query-bearing prefix is refused", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/storage/?", suffix: "/iam", limit: 1024, wantErr: core.ErrExchangeContract},
-		{name: "fragment-bearing suffix is refused", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/storage/", suffix: "/iam#", limit: 1024, wantErr: core.ErrExchangeContract},
-		{name: "suffix above affix ceiling is refused", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/storage/", suffix: strings.Repeat("x", officialSDKPathAffixMaximumBytes+1), limit: 1024, wantErr: core.ErrExchangeContract},
+		{name: "unknown method is refused", constructor: officialSDKBoundarySelected, method: MethodUnknown, prefix: "/storage/", suffix: "/iam", wantErr: core.ErrExchangeContract},
+		{name: "future method is refused", constructor: officialSDKBoundarySelected, method: Method(255), prefix: "/storage/", suffix: "/iam", wantErr: core.ErrExchangeContract},
+		{name: "empty prefix is refused", constructor: officialSDKBoundarySelected, method: MethodGet, suffix: "/iam", wantErr: core.ErrExchangeContract},
+		{name: "empty suffix is refused", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/storage/", wantErr: core.ErrExchangeContract},
+		{name: "relative prefix is refused", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "storage/", suffix: "/iam", wantErr: core.ErrExchangeContract},
+		{name: "query-bearing prefix is refused", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/storage/?", suffix: "/iam", wantErr: core.ErrExchangeContract},
+		{name: "fragment-bearing suffix is refused", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/storage/", suffix: "/iam#", wantErr: core.ErrExchangeContract},
+		{name: "suffix above affix ceiling is refused", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/storage/", suffix: strings.Repeat("x", officialSDKPathAffixMaximumBytes+1), wantErr: core.ErrExchangeContract},
 	}
 	boundaryCases := []officialSDKBoundaryCase{
-		{name: "one byte limit is admitted", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/", suffix: "/", limit: 1},
-		{name: "one below aggregate ceiling is admitted", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/", suffix: "/", limit: OfficialSDKResponseMaximumBytes - 1},
-		{name: "aggregate ceiling is admitted", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/", suffix: "/", limit: OfficialSDKResponseMaximumBytes},
-		{name: "one above aggregate ceiling is refused", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/", suffix: "/", limit: OfficialSDKResponseMaximumBytes + 1, wantErr: core.ErrExchangeContract},
-		{name: "one byte prefix is admitted", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/", suffix: "x", limit: 1},
-		{name: "prefix at affix ceiling is admitted", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/" + strings.Repeat("p", officialSDKPathAffixMaximumBytes-1), suffix: "x", limit: 1},
-		{name: "prefix above affix ceiling is refused", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/" + strings.Repeat("p", officialSDKPathAffixMaximumBytes), suffix: "x", limit: 1, wantErr: core.ErrExchangeContract},
-		{name: "one byte suffix is admitted", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/", suffix: "x", limit: 1},
-		{name: "suffix at affix ceiling is admitted", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/", suffix: strings.Repeat("s", officialSDKPathAffixMaximumBytes), limit: 1},
-		{name: "suffix above affix ceiling is refused", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/", suffix: strings.Repeat("s", officialSDKPathAffixMaximumBytes+1), limit: 1, wantErr: core.ErrExchangeContract},
-		{name: "colon-prefixed SDK action suffix is admitted", constructor: officialSDKBoundarySelected, method: MethodPost, prefix: "/v1/accounts/", suffix: ":signBlob", limit: 1},
-		{name: "slash-prefixed resource suffix is admitted", constructor: officialSDKBoundarySelected, method: MethodPut, prefix: "/storage/", suffix: "/iam", limit: 1},
-		{name: "query delimiter at prefix edge is refused", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/?", suffix: "x", limit: 1, wantErr: core.ErrExchangeContract},
-		{name: "fragment delimiter at prefix edge is refused", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/#", suffix: "x", limit: 1, wantErr: core.ErrExchangeContract},
-		{name: "query delimiter at suffix edge is refused", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/", suffix: "?", limit: 1, wantErr: core.ErrExchangeContract},
-		{name: "fragment delimiter at suffix edge is refused", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/", suffix: "#", limit: 1, wantErr: core.ErrExchangeContract},
-		{name: "method immediately below domain is refused", constructor: officialSDKBoundaryAllPaths, method: MethodUnknown, limit: 1, wantErr: core.ErrExchangeContract},
-		{name: "last supported method is admitted", constructor: officialSDKBoundaryAllPaths, method: MethodOptions, limit: 1},
-		{name: "method immediately above domain is refused", constructor: officialSDKBoundaryAllPaths, method: MethodOptions + 1, limit: 1, wantErr: core.ErrExchangeContract},
-		{name: "all-path ceiling at one byte is admitted", constructor: officialSDKBoundaryAllPaths, method: MethodGet, limit: 1},
+		{name: "one byte prefix is admitted", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/", suffix: "x"},
+		{name: "prefix at affix ceiling is admitted", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/" + strings.Repeat("p", officialSDKPathAffixMaximumBytes-1), suffix: "x"},
+		{name: "prefix above affix ceiling is refused", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/" + strings.Repeat("p", officialSDKPathAffixMaximumBytes), suffix: "x", wantErr: core.ErrExchangeContract},
+		{name: "one byte suffix is admitted", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/", suffix: "x"},
+		{name: "suffix at affix ceiling is admitted", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/", suffix: strings.Repeat("s", officialSDKPathAffixMaximumBytes)},
+		{name: "suffix above affix ceiling is refused", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/", suffix: strings.Repeat("s", officialSDKPathAffixMaximumBytes+1), wantErr: core.ErrExchangeContract},
+		{name: "colon-prefixed SDK action suffix is admitted", constructor: officialSDKBoundarySelected, method: MethodPost, prefix: "/v1/accounts/", suffix: ":signBlob"},
+		{name: "slash-prefixed resource suffix is admitted", constructor: officialSDKBoundarySelected, method: MethodPut, prefix: "/storage/", suffix: "/iam"},
+		{name: "query delimiter at prefix edge is refused", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/?", suffix: "x", wantErr: core.ErrExchangeContract},
+		{name: "fragment delimiter at prefix edge is refused", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/#", suffix: "x", wantErr: core.ErrExchangeContract},
+		{name: "query delimiter at suffix edge is refused", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/", suffix: "?", wantErr: core.ErrExchangeContract},
+		{name: "fragment delimiter at suffix edge is refused", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/", suffix: "#", wantErr: core.ErrExchangeContract},
+		{name: "method immediately below domain is refused", constructor: officialSDKBoundaryAllPaths, method: MethodUnknown, wantErr: core.ErrExchangeContract},
+		{name: "last supported method is admitted", constructor: officialSDKBoundaryAllPaths, method: MethodOptions},
+		{name: "method immediately above domain is refused", constructor: officialSDKBoundaryAllPaths, method: MethodOptions + 1, wantErr: core.ErrExchangeContract},
 	}
 
 	runOfficialSDKBoundaryCases(t, validCases)
@@ -187,32 +174,28 @@ func TestOfficialSDKResponseBoundaryHostileConstructionMatrix(t *testing.T) {
 	runOfficialSDKBoundaryCases(t, boundaryCases)
 }
 
-func TestOfficialSDKStreamingSuccessCeilingExhaustsSingleByteQueryDomain(t *testing.T) {
+func TestOfficialSDKStreamingResponseBoundaryExhaustsSingleByteQueryDomain(t *testing.T) {
 	t.Parallel()
 
-	limit, err := core.NewByteCount(1)
-	if err != nil {
-		t.Fatalf("core.NewByteCount(1) error = %v, want nil", err)
-	}
 	const admittedNames = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_.-"
 	const admittedValues = "!\"$%'()*+,-./0123456789:;<>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
 	for raw := range 256 {
 		queryByte := byte(raw)
-		nameRequest := OfficialSDKStreamingSuccessCeilingRequest{
+		nameRequest := OfficialSDKStreamingResponseBoundaryRequest{
 			Method: MethodGet, StreamQueryName: string([]byte{queryByte}), StreamQueryValue: "media",
-			AggregateRepresentation: OfficialSDKResponseRepresentationJSON, AggregateMaximumBytes: limit,
+			AggregateRepresentation: OfficialSDKResponseRepresentationJSON,
 		}
-		nameBoundary, nameErr := NewOfficialSDKStreamingSuccessCeiling(nameRequest)
+		nameBoundary, nameErr := NewOfficialSDKStreamingResponseBoundary(nameRequest)
 		wantName := strings.ContainsRune(admittedNames, rune(queryByte))
 		if wantName != (nameErr == nil) {
 			t.Fatalf("single-byte query name 0x%02x admission = (%v, %v), want admitted=%t", raw, nameBoundary, nameErr, wantName)
 		}
 
-		valueRequest := OfficialSDKStreamingSuccessCeilingRequest{
+		valueRequest := OfficialSDKStreamingResponseBoundaryRequest{
 			Method: MethodGet, StreamQueryName: "alt", StreamQueryValue: string([]byte{queryByte}),
-			AggregateRepresentation: OfficialSDKResponseRepresentationJSON, AggregateMaximumBytes: limit,
+			AggregateRepresentation: OfficialSDKResponseRepresentationJSON,
 		}
-		valueBoundary, valueErr := NewOfficialSDKStreamingSuccessCeiling(valueRequest)
+		valueBoundary, valueErr := NewOfficialSDKStreamingResponseBoundary(valueRequest)
 		wantValue := strings.ContainsRune(admittedValues, rune(queryByte))
 		if wantValue != (valueErr == nil) {
 			t.Fatalf("single-byte query value 0x%02x admission = (%v, %v), want admitted=%t", raw, valueBoundary, valueErr, wantValue)
@@ -220,13 +203,9 @@ func TestOfficialSDKStreamingSuccessCeilingExhaustsSingleByteQueryDomain(t *test
 	}
 }
 
-func TestOfficialSDKStreamingSuccessCeilingLengthAndDependencyBoundaries(t *testing.T) {
+func TestOfficialSDKStreamingResponseBoundaryLengthAndDependencyBoundaries(t *testing.T) {
 	t.Parallel()
 
-	limit, err := core.NewByteCount(1)
-	if err != nil {
-		t.Fatalf("core.NewByteCount(1) error = %v, want nil", err)
-	}
 	cases := []struct {
 		wantErr    error
 		name       string
@@ -235,34 +214,32 @@ func TestOfficialSDKStreamingSuccessCeilingLengthAndDependencyBoundaries(t *test
 		maximum    core.ByteCount
 		method     Method
 	}{
-		{name: "one-byte query coordinates are admitted", method: MethodGet, queryName: "a", queryValue: "b", maximum: limit},
-		{name: "query name at exact ceiling is admitted", method: MethodGet, queryName: strings.Repeat("a", officialSDKQueryNameMaximumBytes), queryValue: "media", maximum: limit},
-		{name: "query name one above ceiling is refused", method: MethodGet, queryName: strings.Repeat("a", officialSDKQueryNameMaximumBytes+1), queryValue: "media", maximum: limit, wantErr: core.ErrExchangeContract},
-		{name: "query value at exact ceiling is admitted", method: MethodGet, queryName: "alt", queryValue: strings.Repeat("m", officialSDKQueryValueMaximumBytes), maximum: limit},
-		{name: "query value one above ceiling is refused", method: MethodGet, queryName: "alt", queryValue: strings.Repeat("m", officialSDKQueryValueMaximumBytes+1), maximum: limit, wantErr: core.ErrExchangeContract},
-		{name: "unknown method is refused", method: MethodUnknown, queryName: "alt", queryValue: "media", maximum: limit, wantErr: core.ErrExchangeContract},
-		{name: "future method is refused", method: Method(255), queryName: "alt", queryValue: "media", maximum: limit, wantErr: core.ErrExchangeContract},
-		{name: "missing query name is refused", method: MethodGet, queryValue: "media", maximum: limit, wantErr: core.ErrExchangeContract},
-		{name: "missing query value is refused", method: MethodGet, queryName: "alt", maximum: limit, wantErr: core.ErrExchangeContract},
-		{name: "missing aggregate maximum is refused", method: MethodGet, queryName: "alt", queryValue: "media", wantErr: core.ErrExchangeContract},
+		{name: "one-byte query coordinates are admitted", method: MethodGet, queryName: "a", queryValue: "b"},
+		{name: "query name at exact ceiling is admitted", method: MethodGet, queryName: strings.Repeat("a", officialSDKQueryNameMaximumBytes), queryValue: "media"},
+		{name: "query name one above ceiling is refused", method: MethodGet, queryName: strings.Repeat("a", officialSDKQueryNameMaximumBytes+1), queryValue: "media", wantErr: core.ErrExchangeContract},
+		{name: "query value at exact ceiling is admitted", method: MethodGet, queryName: "alt", queryValue: strings.Repeat("m", officialSDKQueryValueMaximumBytes)},
+		{name: "query value one above ceiling is refused", method: MethodGet, queryName: "alt", queryValue: strings.Repeat("m", officialSDKQueryValueMaximumBytes+1), wantErr: core.ErrExchangeContract},
+		{name: "unknown method is refused", method: MethodUnknown, queryName: "alt", queryValue: "media", wantErr: core.ErrExchangeContract},
+		{name: "future method is refused", method: Method(255), queryName: "alt", queryValue: "media", wantErr: core.ErrExchangeContract},
+		{name: "missing query name is refused", method: MethodGet, queryValue: "media", wantErr: core.ErrExchangeContract},
+		{name: "missing query value is refused", method: MethodGet, queryName: "alt", wantErr: core.ErrExchangeContract},
 	}
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, gotErr := NewOfficialSDKStreamingSuccessCeiling(OfficialSDKStreamingSuccessCeilingRequest{
+			got, gotErr := NewOfficialSDKStreamingResponseBoundary(OfficialSDKStreamingResponseBoundaryRequest{
 				Method: testCase.method, StreamQueryName: testCase.queryName, StreamQueryValue: testCase.queryValue,
 				AggregateRepresentation: OfficialSDKResponseRepresentationJSON,
-				AggregateMaximumBytes:   testCase.maximum,
 			})
 			if testCase.wantErr != nil {
 				if got != (OfficialSDKResponseBoundary{}) || !errors.Is(gotErr, testCase.wantErr) {
-					t.Fatalf("NewOfficialSDKStreamingSuccessCeiling() = (%v, %v), want zero and %v", got, gotErr, testCase.wantErr)
+					t.Fatalf("NewOfficialSDKStreamingResponseBoundary() = (%v, %v), want zero and %v", got, gotErr, testCase.wantErr)
 				}
 				return
 			}
 			if gotErr != nil || got.Validate() != nil {
-				t.Fatalf("NewOfficialSDKStreamingSuccessCeiling() = (%v, %v), want validated boundary and nil", got, gotErr)
+				t.Fatalf("NewOfficialSDKStreamingResponseBoundary() = (%v, %v), want validated boundary and nil", got, gotErr)
 			}
 		})
 	}
@@ -274,44 +251,31 @@ func runOfficialSDKBoundaryCases(t *testing.T, cases []officialSDKBoundaryCase) 
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			limit := core.ByteCount{}
-			var limitErr error
-			if testCase.limit != 0 {
-				limit, limitErr = core.NewByteCount(testCase.limit)
-			}
 			var got OfficialSDKResponseBoundary
 			var gotErr error
-			if limitErr != nil {
-				gotErr = limitErr
-			} else {
-				switch testCase.constructor {
-				case officialSDKBoundarySelected:
-					got, gotErr = NewOfficialSDKResponseBoundary(OfficialSDKResponseBoundaryRequest{
-						Method: testCase.method, PathPrefix: testCase.prefix,
-						PathSuffix:     testCase.suffix,
-						Representation: OfficialSDKResponseRepresentationBinary,
-						MaximumBytes:   limit,
-					})
-				case officialSDKBoundaryAllPaths:
-					got, gotErr = NewOfficialSDKResponseCeiling(OfficialSDKResponseCeilingRequest{
-						Method: testCase.method, Representation: OfficialSDKResponseRepresentationBinary,
-						MaximumBytes: limit,
-					})
-				case officialSDKBoundarySelectedJSON:
-					got, gotErr = NewOfficialSDKResponseBoundary(OfficialSDKResponseBoundaryRequest{
-						Method: testCase.method, PathPrefix: testCase.prefix,
-						PathSuffix:     testCase.suffix,
-						Representation: OfficialSDKResponseRepresentationJSON,
-						MaximumBytes:   limit,
-					})
-				case officialSDKBoundaryAllPathsJSON:
-					got, gotErr = NewOfficialSDKResponseCeiling(OfficialSDKResponseCeilingRequest{
-						Method: testCase.method, Representation: OfficialSDKResponseRepresentationJSON,
-						MaximumBytes: limit,
-					})
-				default:
-					t.Fatalf("official SDK boundary constructor = %d, want a declared test execution path", testCase.constructor)
-				}
+			switch testCase.constructor {
+			case officialSDKBoundarySelected:
+				got, gotErr = NewOfficialSDKResponseBoundary(OfficialSDKResponseBoundaryRequest{
+					Method: testCase.method, PathPrefix: testCase.prefix,
+					PathSuffix:     testCase.suffix,
+					Representation: OfficialSDKResponseRepresentationBinary,
+				})
+			case officialSDKBoundaryAllPaths:
+				got, gotErr = NewOfficialSDKMethodResponseBoundary(OfficialSDKMethodResponseBoundaryRequest{
+					Method: testCase.method, Representation: OfficialSDKResponseRepresentationBinary,
+				})
+			case officialSDKBoundarySelectedJSON:
+				got, gotErr = NewOfficialSDKResponseBoundary(OfficialSDKResponseBoundaryRequest{
+					Method: testCase.method, PathPrefix: testCase.prefix,
+					PathSuffix:     testCase.suffix,
+					Representation: OfficialSDKResponseRepresentationJSON,
+				})
+			case officialSDKBoundaryAllPathsJSON:
+				got, gotErr = NewOfficialSDKMethodResponseBoundary(OfficialSDKMethodResponseBoundaryRequest{
+					Method: testCase.method, Representation: OfficialSDKResponseRepresentationJSON,
+				})
+			default:
+				t.Fatalf("official SDK boundary constructor = %d, want a declared test execution path", testCase.constructor)
 			}
 			if testCase.wantErr != nil {
 				if !errors.Is(gotErr, testCase.wantErr) || got != (OfficialSDKResponseBoundary{}) {

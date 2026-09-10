@@ -10,7 +10,6 @@ const (
 	PayPalAccessTokenCustodyMaximumBytes    = 4 * 1024
 	PayPalClientIDCustodyMaximumBytes       = 255
 	PayPalClientSecretCustodyMaximumBytes   = 1024
-	PayPalWebhookEventCustodyMaximumBytes   = JSONDocumentMaximumBytes - 64*1024
 	PayPalWebhookIDMaximumBytes             = 50
 	PayPalAuthAlgorithmMaximumBytes         = 100
 	PayPalCertificateURLMaximumBytes        = 500

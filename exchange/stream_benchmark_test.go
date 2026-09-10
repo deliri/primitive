@@ -37,9 +37,6 @@ func BenchmarkUpload10MiBFileOverLoopback(b *testing.B) {
 	}()
 
 	created := mustHTTPStatus(b, http.StatusCreated)
-	serverPolicy := exchange.ServerStreamPolicy{
-		RequestBodyLimit: mustByteCount(b, testLargeTransferBytes),
-	}
 	observed := make(chan uploadBenchmarkObservation, 1)
 	server := httptest.NewServer(http.HandlerFunc(func(
 		writer http.ResponseWriter,
@@ -54,7 +51,7 @@ func BenchmarkUpload10MiBFileOverLoopback(b *testing.B) {
 					Method: exchange.MethodPut,
 					Replay: exchange.ReplaySingleAttempt,
 				},
-				Policy:              serverPolicy,
+
 				ExpectedContentType: core.HTTPMediaTypeOctetStream(),
 			},
 		)
@@ -105,7 +102,7 @@ func BenchmarkUpload10MiBFileOverLoopback(b *testing.B) {
 						Method: exchange.MethodPut,
 						Replay: exchange.ReplaySingleAttempt,
 					},
-					ContentLength:  mustByteLength(b, testLargeTransferBytes),
+					ContentLength:  new(mustByteLength(b, testLargeTransferBytes)),
 					ContentType:    core.HTTPMediaTypeOctetStream(),
 					ExpectedStatus: created,
 				},
@@ -182,7 +179,7 @@ func BenchmarkDownload10MiBFileOverLoopback(b *testing.B) {
 				Call: serverCall,
 				Response: exchange.ServerStreamResponse{
 					Source:        section,
-					ContentLength: mustByteLength(b, testLargeTransferBytes),
+					ContentLength: new(mustByteLength(b, testLargeTransferBytes)),
 					ContentType:   core.HTTPMediaTypeOctetStream(),
 					Status:        ok,
 				},
@@ -195,7 +192,6 @@ func BenchmarkDownload10MiBFileOverLoopback(b *testing.B) {
 	client := mustExchangeClient(b, server.Client())
 	target := mustEndpoint(b, server.URL)
 	policy := singleAttemptStreamPolicy(b)
-	responseLimit := mustByteCount(b, testLargeTransferBytes)
 	backstopDuration, err := temporal.NewDuration(testDeadlockBackstop)
 	if err != nil {
 		b.Fatal(err)
@@ -218,7 +214,7 @@ func BenchmarkDownload10MiBFileOverLoopback(b *testing.B) {
 						Method: exchange.MethodGet,
 						Replay: exchange.ReplaySingleAttempt,
 					},
-					ResponseBodyLimit:           responseLimit,
+
 					ExpectedStatus:              ok,
 					ExpectedResponseContentType: core.HTTPMediaTypeOctetStream(),
 				},

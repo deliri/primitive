@@ -88,7 +88,7 @@ func TestResponseBufferDestinationPanicRetainsCompletedReceipt(t *testing.T) {
 			var escaped any
 			func() {
 				defer func() { escaped = recover() }()
-				result, gotErr = BufferResponse(t.Context(), ResponseBufferRequest{Call: call, BodyMaximum: mustInternalByteCount(t, 4), Serve: func(socket SocketServerCall) error {
+				result, gotErr = BufferResponse(t.Context(), ResponseBufferRequest{Call: call, Serve: func(socket SocketServerCall) error {
 					calls++
 					socket.writer.WriteHeader(http.StatusCreated)
 					if len(tc.body) == 0 {

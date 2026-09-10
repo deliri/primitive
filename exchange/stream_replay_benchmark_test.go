@@ -30,17 +30,13 @@ func BenchmarkReplayStreamDownloadHandoff(b *testing.B) {
 	for _, tc := range cases {
 		b.Run(tc.name, func(b *testing.B) {
 			payload := []byte{0x00, 0xff}
-			limit, err := core.NewByteCount(uint64(len(payload)))
-			if err != nil {
-				b.Fatalf("limit setup = %v, want nil", err)
-			}
 			target, err := core.ParseHTTPEndpoint("https://replay-benchmark.invalid/stream")
 			if err != nil {
 				b.Fatalf("target setup = %v, want nil", err)
 			}
 			operation := replayDuration(b, 60*int64(temporal.NanosecondsPerSecond))
 			attemptTimeout := replayDuration(b, 30*int64(temporal.NanosecondsPerSecond))
-			policy := StreamPolicy{OperationTimeout: operation, AttemptTimeout: attemptTimeout, ErrorBodyLimit: limit, Redirect: RedirectPolicy{Mode: RedirectReject}}
+			policy := StreamPolicy{OperationTimeout: operation, AttemptTimeout: attemptTimeout, Redirect: RedirectPolicy{Mode: RedirectReject}}
 			replayPolicy := StreamReplayPolicy{OperationTimeout: operation, Retry: RetryPolicy{MaximumAttempts: 1}}
 			if err := errors.Join(policy.Validate(), replayPolicy.Validate()); err != nil {
 				b.Fatalf("policy setup = %v, want nil", err)
@@ -58,7 +54,7 @@ func BenchmarkReplayStreamDownloadHandoff(b *testing.B) {
 			destination.Grow(len(payload))
 			request := DownloadRequest{Target: target, Destination: &destination,
 				Semantics:      RequestSemantics{Method: MethodGet, Replay: ReplaySingleAttempt},
-				ExpectedStatus: core.HTTPStatusOK(), ResponseBodyLimit: limit}
+				ExpectedStatus: core.HTTPStatusOK()}
 			if err := request.Validate(); err != nil {
 				b.Fatalf("request setup = %v, want nil", err)
 			}

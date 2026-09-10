@@ -179,8 +179,7 @@ func TestCallerClientImmutabilityLayerTriad(t *testing.T) {
 					ExpectedStatus:              ok,
 				},
 				Policy: exchange.NoBodyBoundedPolicy{
-					Operation:         redirectOperationPolicy(t),
-					ResponseBodyLimit: mustByteCount(t, 4*1024),
+					Operation: redirectOperationPolicy(t),
 				},
 			},
 		)
@@ -248,8 +247,7 @@ func TestCallerClientImmutabilityLayerTriad(t *testing.T) {
 					ExpectedStatus: ok,
 				},
 				Policy: exchange.NoBodyBoundedPolicy{
-					Operation:         redirectOperationPolicy(t),
-					ResponseBodyLimit: mustByteCount(t, 4*1024),
+					Operation: redirectOperationPolicy(t),
 				},
 			},
 		)
@@ -310,8 +308,7 @@ func TestCallerClientImmutabilityLayerTriad(t *testing.T) {
 						ExpectedStatus:              ok,
 					},
 					Policy: exchange.NoBodyBoundedPolicy{
-						Operation:         singleAttemptOperationPolicy(t),
-						ResponseBodyLimit: mustByteCount(t, 4*1024),
+						Operation: singleAttemptOperationPolicy(t),
 					},
 				},
 			)

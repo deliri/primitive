@@ -33,34 +33,33 @@ type WebhookReceiveRequest struct {
 }
 
 func (r WebhookReceiveRequest) Validate() error {
-	if r.Call.Validate() != nil || r.Destination == nil || r.ObservedAt.Validate() != nil {
+	if r.Call.Validate() != nil || core.WriterIsNil(r.Destination) || r.ObservedAt.Validate() != nil {
 		return core.ErrPlunkContract
 	}
 	return nil
 }
 
 type webhookReceiverState struct {
-	secret  WebhookSecret
-	maximum core.ByteCount
+	secret WebhookSecret
 }
 type WebhookReceiver struct{ state *webhookReceiverState }
 
-func NewWebhookReceiver(secret WebhookSecret, maximum core.ByteCount) (WebhookReceiver, error) {
-	if err := errors.Join(secret.Validate(), validateWebhookMaximum(maximum)); err != nil {
+func NewWebhookReceiver(secret WebhookSecret) (WebhookReceiver, error) {
+	if err := secret.Validate(); err != nil {
 		return WebhookReceiver{}, contractError(err)
 	}
 	owned, err := ParseWebhookSecret(secret.value)
 	if err != nil {
 		return WebhookReceiver{}, err
 	}
-	return WebhookReceiver{state: &webhookReceiverState{secret: owned, maximum: maximum}}, nil
+	return WebhookReceiver{state: &webhookReceiverState{secret: owned}}, nil
 }
 
 func (r WebhookReceiver) Validate() error {
 	if r.state == nil {
 		return core.ErrPlunkContract
 	}
-	if err := errors.Join(r.state.secret.Validate(), validateWebhookMaximum(r.state.maximum)); err != nil {
+	if err := r.state.secret.Validate(); err != nil {
 		return contractError(err)
 	}
 	return nil
@@ -95,22 +94,14 @@ func (r WebhookReceiver) Receive(request WebhookReceiveRequest) (InboundObservat
 		Destination:         request.Destination,
 		Call:                request.Call,
 		ExpectedContentType: media,
-		Policy:              exchange.ServerStreamPolicy{RequestBodyLimit: r.state.maximum},
-		Route:               exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt},
+
+		Route: exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt},
 	})
 	observation := InboundObservation{Bytes: stream.Bytes, ObservedAt: request.ObservedAt}
 	if err != nil {
 		return observation, err
 	}
 	return observation, observation.Validate()
-}
-
-func validateWebhookMaximum(maximum core.ByteCount) error {
-	value, err := maximum.Uint64()
-	if err != nil || value == 0 || value > core.PlunkWebhookCustodyMaximumBytes {
-		return errors.Join(core.ErrPlunkContract, err)
-	}
-	return nil
 }
 
 var (

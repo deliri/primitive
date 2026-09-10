@@ -16,7 +16,8 @@ const walkDirectoryBatchEntries = 64
 // Walk streams descendants in native directory order with one fixed entry
 // batch per open directory. Memory and held handles depend on traversal depth,
 // not total entry count. Symbolic links are not descended into. The starting
-// directory is not delivered to Visit.
+// directory is not delivered to Visit. Native ReadDir order is not stable
+// across platforms or filesystem changes; callers own any ordering policy.
 func Walk(ctx context.Context, request WalkRequest) error {
 	if err := contextstate.Validate(ctx); err != nil {
 		return err

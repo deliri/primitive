@@ -32,13 +32,13 @@ func TestAggregateCompletedAttemptCancellationLayerTriad(t *testing.T) {
 		{name: "empty successful producer retains zero body and no retry", wantClass: attemptComplete},
 		{name: "one byte below ceiling is not rounded to absence", payload: []byte{0xff}, wantBody: []byte{0xff}, wantRead: 1, wantClass: attemptComplete},
 		{name: "exact ceiling preserves binary body", payload: []byte{0, 0xff}, wantBody: []byte{0, 0xff}, wantRead: 2, wantClass: attemptComplete},
-		{name: "one above ceiling withholds the aggregate", payload: []byte{0, 0xff, 1}, wantRead: 3, wantProducerErr: core.ErrExchangeBodyLimit, wantClass: attemptComplete, wantErr: core.ErrExchangeBodyLimit},
-		{name: "far above ceiling stops after one excess byte", payload: bytes.Repeat([]byte{0xff}, 1<<16), wantRead: 3, wantProducerErr: core.ErrExchangeBodyLimit, wantClass: attemptComplete, wantErr: core.ErrExchangeBodyLimit},
+		{name: "above former cutoff retains all bytes", payload: []byte{0, 0xff, 1}, wantBody: []byte{0, 0xff, 1}, wantRead: 3, wantClass: attemptComplete},
+		{name: "many windows retain all bytes", payload: bytes.Repeat([]byte{0xff}, 1<<16), wantBody: bytes.Repeat([]byte{0xff}, 1<<16), wantRead: 1 << 16, wantClass: attemptComplete},
 		{name: "native read refusal withholds partial aggregate and requests retry", payload: []byte{0xff}, fault: replayHandoffReadFailure, wantRead: 1, wantProducerErr: io.ErrUnexpectedEOF, wantClass: attemptRetry},
 		{name: "native close refusal retains completed bytes and requests retry", payload: []byte{0, 0xff}, fault: replayHandoffCloseFailure, wantBody: []byte{0, 0xff}, wantRead: 2, wantProducerErr: io.ErrClosedPipe, wantClass: attemptRetry},
 		{name: "canceling empty completed producer cannot invent body evidence", cancel: true, wantClass: attemptComplete, wantErr: context.Canceled},
 		{name: "canceling completed exact body preserves producer facts", payload: []byte{0, 0xff}, wantBody: []byte{0, 0xff}, wantRead: 2, cancel: true, wantClass: attemptComplete, wantErr: context.Canceled},
-		{name: "cancellation cannot erase prior overflow refusal", payload: []byte{0, 0xff, 1}, wantRead: 3, wantProducerErr: core.ErrExchangeBodyLimit, cancel: true, wantClass: attemptComplete, wantErr: context.Canceled, wantNative: core.ErrExchangeBodyLimit},
+		{name: "cancellation retains all completed bytes beyond former cutoff", payload: []byte{0, 0xff, 1}, wantBody: []byte{0, 0xff, 1}, wantRead: 3, cancel: true, wantClass: attemptComplete, wantErr: context.Canceled},
 		{name: "cancellation cannot erase prior native read refusal", payload: []byte{0xff}, fault: replayHandoffReadFailure, wantRead: 1, wantProducerErr: io.ErrUnexpectedEOF, cancel: true, wantClass: attemptComplete, wantErr: context.Canceled, wantNative: io.ErrUnexpectedEOF},
 		{name: "cancellation cannot erase prior native close refusal", payload: []byte{0, 0xff}, fault: replayHandoffCloseFailure, wantBody: []byte{0, 0xff}, wantRead: 2, wantProducerErr: io.ErrClosedPipe, cancel: true, wantClass: attemptComplete, wantErr: context.Canceled, wantNative: io.ErrClosedPipe},
 	}
@@ -50,10 +50,6 @@ func TestAggregateCompletedAttemptCancellationLayerTriad(t *testing.T) {
 			target, err := core.ParseHTTPEndpoint("https://provider.example.test/aggregate")
 			if err != nil {
 				t.Fatalf("endpoint fixture = %v, want nil", err)
-			}
-			limit, err := core.NewByteCount(2)
-			if err != nil {
-				t.Fatalf("extent fixture = %v, want nil", err)
 			}
 			body := &replayHandoffBody{reader: bytes.NewReader(tc.payload), fault: tc.fault}
 			calls := 0
@@ -67,7 +63,7 @@ func TestAggregateCompletedAttemptCancellationLayerTriad(t *testing.T) {
 			}
 			produced, producerErr := executeAggregateAttempt(aggregateAttempt{context: ctx, client: client,
 				request: aggregateRequest{target: target, semantics: semantics, expectedStatus: core.HTTPStatusOK()},
-				timeout: runtimeAgreementPolicy(t).ReadTimeout, limit: limit})
+				timeout: runtimeAgreementPolicy(t).ReadTimeout})
 			if produced.status != core.HTTPStatusOK() || !bytes.Equal(produced.body, tc.wantBody) || len(produced.headers.Values) != 0 || produced.retryAfter != "" {
 				t.Fatalf("producer = (%v,%x,%v,%q), want exact OK/%x and absent headers/retry-after", produced.status, produced.body, produced.headers.Values, produced.retryAfter, tc.wantBody)
 			}

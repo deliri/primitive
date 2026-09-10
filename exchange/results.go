@@ -62,16 +62,21 @@ func (r BoundedResponse) Validate() error {
 // Metadata.Bytes counts bytes acknowledged by the destination. For Upload,
 // Metadata.Bytes is zero: Go's HTTP response does not prove request-body delivery.
 // DeclaredRequestBytes retains Upload's declared request extent, never a peer
-// acknowledgement. Download leaves it zero.
+// acknowledgement. RequestLengthKnown distinguishes declared zero from unknown.
+// Download leaves both fields zero.
 type StreamResponse struct {
 	Metadata             ResponseMetadata
 	DeclaredRequestBytes core.ByteLength
+	RequestLengthKnown   bool
 }
 
 // Validate checks the completed transfer metadata.
 func (r StreamResponse) Validate() error {
 	if err := r.Metadata.Validate(); err != nil {
 		return err
+	}
+	if !r.RequestLengthKnown && r.DeclaredRequestBytes != (core.ByteLength{}) {
+		return core.ErrExchangeContract
 	}
 	_, err := r.DeclaredRequestBytes.Int64()
 	return err
@@ -84,12 +89,16 @@ func (r StreamResponse) Validate() error {
 type StreamRoundTripResponse struct {
 	Metadata             ResponseMetadata
 	DeclaredRequestBytes core.ByteLength
+	RequestLengthKnown   bool
 }
 
 // Validate checks the completed request and response observations.
 func (r StreamRoundTripResponse) Validate() error {
 	if err := r.Metadata.Validate(); err != nil {
 		return err
+	}
+	if !r.RequestLengthKnown && r.DeclaredRequestBytes != (core.ByteLength{}) {
+		return core.ErrExchangeContract
 	}
 	_, err := r.DeclaredRequestBytes.Int64()
 	return err

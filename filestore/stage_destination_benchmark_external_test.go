@@ -39,7 +39,7 @@ func BenchmarkStageDestinationCommitRemoveExactBytes(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	plan := filestore.ActivationRequest{Temporary: filestore.Location{Root: root, Path: temporary}, Target: target, ExpectedBytes: extent, Mode: 0o600, Install: filestore.InstallCreate}
+	plan := filestore.ActivationRequest{Temporary: filestore.Location{Root: root, Path: temporary}, Target: target, ExpectedBytes: new(extent), Mode: 0o600, Install: filestore.InstallCreate}
 	removal := filestore.RemovalRequest{Location: filestore.Location{Root: root, Path: target}}
 	if err := plan.Validate(); err != nil {
 		b.Fatal(err)

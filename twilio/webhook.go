@@ -67,12 +67,11 @@ func (o InboundObservation) Validate() error {
 type WebhookReceiverRequest struct {
 	Token          AuthToken
 	PublicEndpoint core.HTTPEndpoint
-	Maximum        core.ByteCount
 	Representation WebhookRepresentation
 }
 
 func (r WebhookReceiverRequest) Validate() error {
-	if err := errors.Join(r.Token.Validate(), r.PublicEndpoint.Validate(), r.Representation.Validate(), validateWebhookMaximum(r.Maximum)); err != nil {
+	if err := errors.Join(r.Token.Validate(), r.PublicEndpoint.Validate(), r.Representation.Validate()); err != nil {
 		return contractError(err)
 	}
 	if r.PublicEndpoint.HTTPURL().Scheme != core.SchemeHTTPS {
@@ -92,7 +91,7 @@ type WebhookReceiveRequest struct {
 }
 
 func (r WebhookReceiveRequest) Validate() error {
-	if r.Call.Validate() != nil || r.Destination == nil || r.ObservedAt.Validate() != nil {
+	if r.Call.Validate() != nil || core.WriterIsNil(r.Destination) || r.ObservedAt.Validate() != nil {
 		return core.ErrTwilioContract
 	}
 	return nil
@@ -101,7 +100,6 @@ func (r WebhookReceiveRequest) Validate() error {
 type webhookReceiverState struct {
 	token          AuthToken
 	publicEndpoint core.HTTPEndpoint
-	maximum        core.ByteCount
 	representation WebhookRepresentation
 }
 type WebhookReceiver struct{ state *webhookReceiverState }
@@ -114,13 +112,13 @@ func NewWebhookReceiver(request WebhookReceiverRequest) (WebhookReceiver, error)
 	if err != nil {
 		return WebhookReceiver{}, err
 	}
-	return WebhookReceiver{state: &webhookReceiverState{token: owned, publicEndpoint: request.PublicEndpoint, maximum: request.Maximum, representation: request.Representation}}, nil
+	return WebhookReceiver{state: &webhookReceiverState{token: owned, publicEndpoint: request.PublicEndpoint, representation: request.Representation}}, nil
 }
 func (r WebhookReceiver) Validate() error {
 	if r.state == nil {
 		return core.ErrTwilioContract
 	}
-	if err := errors.Join(r.state.token.Validate(), r.state.publicEndpoint.Validate(), r.state.representation.Validate(), validateWebhookMaximum(r.state.maximum)); err != nil {
+	if err := errors.Join(r.state.token.Validate(), r.state.publicEndpoint.Validate(), r.state.representation.Validate()); err != nil {
 		return contractError(err)
 	}
 	return nil
@@ -182,8 +180,8 @@ func (r WebhookReceiver) receiveCandidate(call exchange.SocketServerCall) ([]byt
 	received, err := exchange.ReceiveBounded(exchange.BoundedReceiveCall{
 		Call:                call,
 		ExpectedContentType: media,
-		Policy:              exchange.ServerBoundedPolicy{RequestBodyLimit: r.state.maximum},
-		Route:               exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt},
+
+		Route: exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt},
 	})
 	if err != nil {
 		return nil, "", err
@@ -302,13 +300,6 @@ func writeBody(ctx context.Context, destination io.Writer, body []byte) (core.By
 		return length, io.ErrShortWrite
 	}
 	return length, nil
-}
-func validateWebhookMaximum(maximum core.ByteCount) error {
-	value, err := maximum.Uint64()
-	if err != nil || value == 0 || value > core.TwilioWebhookCustodyMaximumBytes {
-		return errors.Join(core.ErrTwilioContract, err)
-	}
-	return nil
 }
 
 var (

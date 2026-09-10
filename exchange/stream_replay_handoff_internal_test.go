@@ -16,12 +16,12 @@ type replayHandoffBodyFault uint8
 
 const (
 	replayHandoffExact replayHandoffBodyFault = iota
-	replayHandoffOverflow
 	replayHandoffReadFailure
 	replayHandoffCloseFailure
 )
 
 type replayHandoffBody struct {
+	window    int
 	reader    *bytes.Reader
 	fault     replayHandoffBodyFault
 	closes    int
@@ -29,6 +29,9 @@ type replayHandoffBody struct {
 }
 
 func (b *replayHandoffBody) Read(p []byte) (int, error) {
+	if b.window > 0 && len(p) > b.window {
+		p = p[:b.window]
+	}
 	n, err := b.reader.Read(p)
 	b.readBytes += n
 	if errors.Is(err, io.EOF) && b.fault == replayHandoffReadFailure {
@@ -81,8 +84,8 @@ func TestReplayStreamDownloadHandoffLayerTriad(t *testing.T) {
 		{name: "last client-error status cannot acquire server-error retry", status: http.StatusInternalServerError - 1, wantProducerErr: core.ErrExchangeResponse, wantErr: core.ErrExchangeResponse, wantAttempts: 1, wantStatusError: true},
 		{name: "first server-error status consumes exactly the retry budget", status: http.StatusInternalServerError, wantProducerErr: core.ErrExchangeResponse, wantErr: core.ErrExchangeRetryExhausted, wantAttempts: 2, wantStatusError: true, wantExhausted: true},
 		{name: "last expressible server-error status remains retryable", status: 599, wantProducerErr: core.ErrExchangeResponse, wantErr: core.ErrExchangeRetryExhausted, wantAttempts: 2, wantStatusError: true, wantExhausted: true},
-		{name: "oversized successful stream retains exact partial destination and refuses replay", status: http.StatusOK, payload: []byte{0x00, 0xff, 0x01}, fault: replayHandoffOverflow, wantProducerErr: core.ErrExchangeBodyLimit, wantErr: core.ErrExchangeBodyLimit, wantBytes: 2, wantAttempts: 1},
-		{name: "oversized error body overrides retryable status without entering destination", status: http.StatusServiceUnavailable, payload: []byte{0x00, 0xff, 0x01}, fault: replayHandoffOverflow, wantProducerErr: core.ErrExchangeBodyLimit, wantErr: core.ErrExchangeBodyLimit, wantAttempts: 1, wantStatusError: true},
+		{name: "third successful byte completes without replay", status: http.StatusOK, payload: []byte{0x00, 0xff, 0x01}, wantBytes: 3, wantAttempts: 1},
+		{name: "larger discarded error body preserves status retry", status: http.StatusServiceUnavailable, payload: []byte{0x00, 0xff, 0x01}, wantProducerErr: core.ErrExchangeResponse, wantErr: core.ErrExchangeRetryExhausted, wantAttempts: 2, wantExhausted: true, wantStatusError: true},
 		{name: "truncated successful stream retains native failure and partial byte count", status: http.StatusOK, payload: []byte{0x00}, fault: replayHandoffReadFailure, wantProducerErr: io.ErrUnexpectedEOF, wantErr: core.ErrExchangeRetryExhausted, wantBytes: 1, wantAttempts: 2, wantExhausted: true},
 		{name: "truncated error body retains both status and native failure", status: http.StatusServiceUnavailable, payload: []byte{0x00}, fault: replayHandoffReadFailure, wantProducerErr: io.ErrUnexpectedEOF, wantErr: core.ErrExchangeRetryExhausted, wantAttempts: 2, wantStatusError: true, wantExhausted: true},
 		{name: "failed close after successful transfer cannot become success", status: http.StatusOK, payload: []byte{0x00, 0xff}, fault: replayHandoffCloseFailure, wantProducerErr: io.ErrClosedPipe, wantErr: core.ErrExchangeRetryExhausted, wantBytes: 2, wantAttempts: 2, wantExhausted: true},
@@ -93,18 +96,14 @@ func TestReplayStreamDownloadHandoffLayerTriad(t *testing.T) {
 		{name: "handoff cancellation preserves terminal status without replacing its cause", status: http.StatusCreated, cancelAtHandoff: true, wantProducerErr: core.ErrExchangeResponse, wantErr: context.Canceled, wantAttempts: 1, wantStatusError: true},
 		{name: "handoff cancellation cannot erase successful-stream native read refusal", status: http.StatusOK, payload: []byte{0x00}, fault: replayHandoffReadFailure, cancelAtHandoff: true, wantProducerErr: io.ErrUnexpectedEOF, wantErr: context.Canceled, wantBytes: 1, wantAttempts: 1},
 		{name: "handoff cancellation cannot erase successful-stream native close refusal", status: http.StatusOK, payload: []byte{0x00, 0xff}, fault: replayHandoffCloseFailure, cancelAtHandoff: true, wantProducerErr: io.ErrClosedPipe, wantErr: context.Canceled, wantBytes: 2, wantAttempts: 1},
-		{name: "handoff cancellation cannot erase acknowledged overflow refusal", status: http.StatusOK, payload: []byte{0x00, 0xff, 0x01}, fault: replayHandoffOverflow, cancelAtHandoff: true, wantProducerErr: core.ErrExchangeBodyLimit, wantErr: context.Canceled, wantBytes: 2, wantAttempts: 1},
+		{name: "handoff cancellation retains all three acknowledged bytes", status: http.StatusOK, payload: []byte{0x00, 0xff, 0x01}, cancelAtHandoff: true, wantErr: context.Canceled, wantBytes: 3, wantAttempts: 1},
 		{name: "handoff cancellation preserves both status and error-body native read refusal", status: http.StatusServiceUnavailable, payload: []byte{0x00}, fault: replayHandoffReadFailure, cancelAtHandoff: true, wantProducerErr: io.ErrUnexpectedEOF, wantErr: context.Canceled, wantAttempts: 1, wantStatusError: true},
 		{name: "handoff cancellation preserves both status and error-body native close refusal", status: http.StatusServiceUnavailable, payload: []byte{0x00, 0xff}, fault: replayHandoffCloseFailure, cancelAtHandoff: true, wantProducerErr: io.ErrClosedPipe, wantErr: context.Canceled, wantAttempts: 1, wantStatusError: true},
-		{name: "handoff cancellation preserves status plus terminal error-body overflow", status: http.StatusServiceUnavailable, payload: []byte{0x00, 0xff, 0x01}, fault: replayHandoffOverflow, cancelAtHandoff: true, wantProducerErr: core.ErrExchangeBodyLimit, wantErr: context.Canceled, wantAttempts: 1, wantStatusError: true},
+		{name: "handoff cancellation preserves status after complete diagnostic drain", status: http.StatusServiceUnavailable, payload: []byte{0x00, 0xff, 0x01}, cancelAtHandoff: true, wantProducerErr: core.ErrExchangeResponse, wantErr: context.Canceled, wantAttempts: 1, wantStatusError: true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			limit, err := core.NewByteCount(2)
-			if err != nil {
-				t.Fatalf("NewByteCount(2) setup error = %v, want nil", err)
-			}
 			target, err := core.ParseHTTPEndpoint("https://provider.example.test/stream")
 			if err != nil {
 				t.Fatalf("ParseHTTPEndpoint() setup error = %v, want nil", err)
@@ -136,10 +135,10 @@ func TestReplayStreamDownloadHandoffLayerTriad(t *testing.T) {
 						Context: ctx, Client: client,
 						Request: DownloadRequest{Target: target, Destination: &destination,
 							Semantics:      RequestSemantics{Method: MethodGet, Replay: ReplaySingleAttempt},
-							ExpectedStatus: core.HTTPStatusOK(), ResponseBodyLimit: limit},
+							ExpectedStatus: core.HTTPStatusOK()},
 						Policy: StreamPolicy{OperationTimeout: replayDuration(t, 60*int64(temporal.NanosecondsPerSecond)),
 							AttemptTimeout: replayDuration(t, 30*int64(temporal.NanosecondsPerSecond)),
-							ErrorBodyLimit: limit, Redirect: RedirectPolicy{Mode: RedirectReject}},
+							Redirect:       RedirectPolicy{Mode: RedirectReject}},
 					})
 					if produced.Metadata.Status != wantStatus || produced.Metadata.Attempts != 1 || produced.Metadata.Bytes.Uint64() != tc.wantBytes {
 						t.Fatalf("producer metadata = %+v, want status %v, one attempt and %d written bytes", produced.Metadata, wantStatus, tc.wantBytes)

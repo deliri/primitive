@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"encoding/base64"
 	json "encoding/json/v2"
 	"errors"
 	"math"
@@ -40,31 +39,9 @@ type headWire struct {
 	SHA string `json:"sha"`
 }
 
-type contentsLinksWire struct {
-	Self string `json:"self"`
-	Git  string `json:"git"`
-	HTML string `json:"html"`
-}
-
-type contentsWire struct {
-	Links       contentsLinksWire `json:"_links"`
-	Name        string            `json:"name"`
-	Path        string            `json:"path"`
-	SHA         string            `json:"sha"`
-	URL         string            `json:"url"`
-	HTMLURL     string            `json:"html_url"`
-	GitURL      string            `json:"git_url"`
-	DownloadURL string            `json:"download_url"`
-	Type        string            `json:"type"`
-	Content     string            `json:"content"`
-	Encoding    string            `json:"encoding"`
-	Size        uint64            `json:"size"`
-}
-
 type boundedRequest struct {
 	ctx         context.Context
 	target      core.HTTPEndpoint
-	maximum     uint64
 	status      core.HTTPStatusCode
 	method      exchange.Method
 	captureLink bool
@@ -82,7 +59,7 @@ func (c Client) ReadTagPage(ctx context.Context, request TagPageRequest) (TagPag
 	}
 	response, err := c.sendBounded(boundedRequest{
 		ctx: ctx, target: target, method: exchange.MethodGet, status: core.HTTPStatusOK(),
-		maximum: core.GitHubTagPageResponseCustodyMaximumBytes, captureLink: true,
+		captureLink: true,
 	})
 	if err != nil {
 		return TagPage{}, err
@@ -210,7 +187,6 @@ func (c Client) ReadHead(ctx context.Context, request HeadRequest) (HeadObservat
 	}
 	response, err := c.sendBounded(boundedRequest{
 		ctx: ctx, target: target, method: exchange.MethodGet, status: core.HTTPStatusOK(),
-		maximum: core.GitHubCommitResponseCustodyMaximumBytes,
 	})
 	if err != nil {
 		return HeadObservation{}, err
@@ -235,56 +211,12 @@ func decodeHead(payload []byte) (core.BuildCommit, error) {
 	return commit, nil
 }
 
-// ReadFile retrieves one bounded inline contents object at one immutable commit.
-func (c Client) ReadFile(ctx context.Context, request FileRequest) (FileObservation, error) {
-	if err := errors.Join(c.Validate(), request.Validate()); err != nil {
-		return FileObservation{}, contractError(err)
-	}
-	target, err := c.target(repositoryPath(request.Repository)+"/contents/"+sourcePath(request.Path), url.Values{"ref": []string{request.Commit.String()}})
-	if err != nil {
-		return FileObservation{}, err
-	}
-	response, err := c.sendBounded(boundedRequest{
-		ctx: ctx, target: target, method: exchange.MethodGet, status: core.HTTPStatusOK(),
-		maximum: core.GitHubContentsResponseCustodyMaximumBytes,
-	})
-	if err != nil {
-		return FileObservation{}, err
-	}
-	return fileObservation(request, response.Body)
-}
-
-func fileObservation(request FileRequest, payload []byte) (FileObservation, error) {
-	var wire contentsWire
-	if err := json.Unmarshal(payload, &wire, json.RejectUnknownMembers(true)); err != nil {
-		return FileObservation{}, responseError(err)
-	}
-	maximum, err := request.MaximumBytes.Uint64()
-	if err != nil || wire.Type != "file" || wire.Encoding != "base64" || wire.Path != request.Path.String() || wire.Size > maximum {
-		return FileObservation{}, responseError(err)
-	}
-	encoded := strings.ReplaceAll(wire.Content, "\n", "")
-	content, err := base64.StdEncoding.DecodeString(encoded)
-	if err != nil || uint64(len(content)) != wire.Size {
-		return FileObservation{}, responseError(err)
-	}
-	length, err := core.NewByteLength(uint64(len(content)))
-	if err != nil {
-		return FileObservation{}, responseError(err)
-	}
-	result := FileObservation{
-		Repository: request.Repository, Commit: request.Commit, Path: request.Path,
-		Length: length, SHA256: core.SHA256Of(content), Content: content,
-	}
-	return result, result.Validate()
-}
-
 func (c Client) sendBounded(request boundedRequest) (exchange.BoundedResponse, error) {
 	headers, capture, err := c.headers(request.ctx, request.captureLink)
 	if err != nil {
 		return exchange.BoundedResponse{}, err
 	}
-	policy, policyErr := boundedPolicy(request.maximum)
+	policy, policyErr := boundedPolicy()
 	media, mediaErr := exchange.StandardMediaTypeJSON.HTTPMediaType()
 	if err := errors.Join(policyErr, mediaErr); err != nil {
 		return exchange.BoundedResponse{}, err

@@ -20,7 +20,7 @@ func TestAdmitObservedPathRejectsUnusablePlatformAnswers(t *testing.T) {
 	root := t.TempDir()
 	separator := string(filepath.Separator)
 	volumeRoot := filepath.VolumeName(root) + separator
-	maximumComponents := volumeRoot + strings.Repeat("a"+separator, core.FilesystemPathMaximumComponents-1) + "a"
+	maximumComponents := volumeRoot + strings.Repeat("a"+separator, 256-1) + "a"
 	overMaximumComponents := maximumComponents + string(filepath.Separator) + "a"
 	tests := []struct {
 		wantErr error
@@ -52,13 +52,13 @@ func TestAdmitObservedPathRejectsUnusablePlatformAnswers(t *testing.T) {
 		{name: "trailing separator is refused", input: root + string(filepath.Separator), wantErr: core.ErrHostFactsObservation},
 		{name: "embedded NUL is refused", input: root + string(filepath.Separator) + "bad\x00name", wantErr: core.ErrHostFactsObservation},
 		{name: "invalid UTF-8 lead byte is refused", input: root + string(filepath.Separator) + "bad\xffname", wantErr: core.ErrHostFactsObservation},
-		{name: "one component above ceiling is refused", input: overMaximumComponents, wantErr: core.ErrHostFactsObservation},
+		{name: "257 components remain an exact observation", input: overMaximumComponents},
 		{name: "absolute parent escape is refused", input: root + string(filepath.Separator) + ".." + string(filepath.Separator) + "escape", wantErr: core.ErrHostFactsObservation},
 		{name: "absolute current-directory suffix is refused", input: root + string(filepath.Separator) + ".", wantErr: core.ErrHostFactsObservation},
 		{name: "absolute parent suffix is refused", input: root + string(filepath.Separator) + "..", wantErr: core.ErrHostFactsObservation},
-		{name: "component-count overflow remains refused after a long prefix", input: overMaximumComponents + string(filepath.Separator) + "tail", wantErr: core.ErrHostFactsObservation},
-		{name: "relative path at component ceiling remains refused", input: strings.Repeat("a"+string(filepath.Separator), core.FilesystemPathMaximumComponents-1) + "a", wantErr: core.ErrHostFactsObservation},
-		{name: "relative path above component ceiling remains refused", input: strings.Repeat("a"+string(filepath.Separator), core.FilesystemPathMaximumComponents) + "a", wantErr: core.ErrHostFactsObservation},
+		{name: "258 components preserve the observed tail", input: overMaximumComponents + string(filepath.Separator) + "tail"},
+		{name: "relative path at component ceiling remains refused", input: strings.Repeat("a"+string(filepath.Separator), 256-1) + "a", wantErr: core.ErrHostFactsObservation},
+		{name: "relative path above component ceiling remains refused", input: strings.Repeat("a"+string(filepath.Separator), 256) + "a", wantErr: core.ErrHostFactsObservation},
 		{name: "root followed by three separators is refused", input: root + strings.Repeat(string(filepath.Separator), 3) + "child", wantErr: core.ErrHostFactsObservation},
 		{name: "noncanonical child then current directory is refused", input: filepath.Join(root, "child") + string(filepath.Separator) + ".", wantErr: core.ErrHostFactsObservation},
 		{name: "noncanonical child then parent is refused", input: filepath.Join(root, "child") + string(filepath.Separator) + "..", wantErr: core.ErrHostFactsObservation},

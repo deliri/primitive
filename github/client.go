@@ -5,7 +5,6 @@ import (
 	"errors"
 	"net/url"
 	"strconv"
-	"strings"
 	"sync"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -183,15 +182,7 @@ func (c Client) target(providerPath string, query url.Values) (core.HTTPEndpoint
 }
 
 func repositoryPath(repository Repository) string {
-	return "/repos/" + url.PathEscape(repository.owner) + "/" + url.PathEscape(repository.name)
-}
-
-func sourcePath(value core.SourcePath) string {
-	segments := strings.Split(value.String(), "/")
-	for index := range segments {
-		segments[index] = url.PathEscape(segments[index])
-	}
-	return strings.Join(segments, "/")
+	return "/repos/" + repository.owner + "/" + repository.name
 }
 
 func (c Client) headers(ctx context.Context, captureLink bool) (exchange.Headers, exchange.HeaderSelection, error) {
@@ -233,10 +224,9 @@ func (c Client) headers(ctx context.Context, captureLink bool) (exchange.Headers
 	return headers, selection, nil
 }
 
-func boundedPolicy(maximum uint64) (exchange.NoBodyBoundedPolicy, error) {
-	limit, limitErr := core.NewByteCount(maximum)
+func boundedPolicy() (exchange.NoBodyBoundedPolicy, error) {
 	timeout, timeoutErr := temporal.DurationFromSeconds(core.GitHubOperationCustodyTimeoutSeconds)
-	if err := errors.Join(limitErr, timeoutErr); err != nil {
+	if err := timeoutErr; err != nil {
 		return exchange.NoBodyBoundedPolicy{}, contractError(err)
 	}
 	return exchange.NoBodyBoundedPolicy{
@@ -246,22 +236,7 @@ func boundedPolicy(maximum uint64) (exchange.NoBodyBoundedPolicy, error) {
 			Retry:            exchange.RetryPolicy{MaximumAttempts: 1},
 			Redirect:         exchange.RedirectPolicy{Mode: exchange.RedirectReject},
 		},
-		ResponseBodyLimit: limit,
 	}, nil
-}
-
-func streamPolicy() (exchange.StreamPolicy, core.ByteCount, error) {
-	limit, limitErr := core.NewByteCount(core.GitHubRecursiveTreeMaximumBytes)
-	timeout, timeoutErr := temporal.DurationFromSeconds(core.GitHubOperationCustodyTimeoutSeconds)
-	if err := errors.Join(limitErr, timeoutErr); err != nil {
-		return exchange.StreamPolicy{}, core.ByteCount{}, contractError(err)
-	}
-	return exchange.StreamPolicy{
-		OperationTimeout: timeout,
-		AttemptTimeout:   timeout,
-		ErrorBodyLimit:   limit,
-		Redirect:         exchange.RedirectPolicy{Mode: exchange.RedirectReject},
-	}, limit, nil
 }
 
 func expectedStatus(value int) (core.HTTPStatusCode, error) {

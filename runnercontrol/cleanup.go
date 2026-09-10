@@ -339,12 +339,10 @@ func (s CleanupServer) Serve(call exchange.SocketServerCall) error {
 	return exchange.WriteSocketJSON(s.socket, call, receipt)
 }
 func CleanupSocketContract(path exchange.SocketRoutePath) (exchange.JSONSocketContract, error) {
-	requestLimit, requestErr := core.NewByteCount(CleanupDocumentMaximumBytes)
-	responseLimit, responseErr := core.NewByteCount(CleanupReceiptMaximumBytes)
-	if err := errors.Join(path.Validate(), requestErr, responseErr); err != nil {
+	if err := errors.Join(path.Validate()); err != nil {
 		return exchange.JSONSocketContract{}, err
 	}
-	contract := exchange.JSONSocketContract{Path: path, Route: exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplayIdempotencyKey}, RequestBodyLimit: requestLimit, ResponseBodyLimit: responseLimit, SuccessStatus: core.HTTPStatusOK()}
+	contract := exchange.JSONSocketContract{Path: path, Route: exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplayIdempotencyKey}, SuccessStatus: core.HTTPStatusOK()}
 	return contract, contract.Validate()
 }
 

@@ -21,7 +21,7 @@ func FuzzReplayStreamPreservesDownloadAndRoundTripObservation(f *testing.F) {
 	writer := httptest.NewRecorder()
 	response := exchange.ServerStreamResponse{
 		Source: bytes.NewReader(seed), ContentType: core.HTTPMediaTypeOctetStream(),
-		ContentLength: mustByteLength(f, uint64(len(seed))), Status: core.HTTPStatusOK(),
+		ContentLength: new(mustByteLength(f, uint64(len(seed)))), Status: core.HTTPStatusOK(),
 	}
 	if err := response.Validate(); err != nil {
 		f.Fatalf("stream seed validation = %v, want nil", err)
@@ -48,9 +48,9 @@ func FuzzReplayStreamPreservesDownloadAndRoundTripObservation(f *testing.F) {
 	f.Add(canonical, uint16(len(seed)), false, uint8(streamFuzzCloseFailure), false)
 	f.Add(canonical, uint16(len(seed)), true, uint8(streamFuzzCloseFailure), true)
 	f.Add([]byte{}, uint16(1), false, uint8(streamFuzzIntact), false)
-	f.Fuzz(func(t *testing.T, data []byte, ceiling uint16, failedStatus bool, faultByte uint8, cancelAtHandoff bool) {
+	f.Fuzz(func(t *testing.T, data []byte, window uint16, failedStatus bool, faultByte uint8, cancelAtHandoff bool) {
 		const oracleMaximumBytes = 4096
-		if len(data) > oracleMaximumBytes || ceiling > oracleMaximumBytes+1 {
+		if len(data) > oracleMaximumBytes || window > oracleMaximumBytes+1 {
 			return
 		}
 		fault := streamFuzzFault(faultByte)
@@ -75,36 +75,26 @@ func FuzzReplayStreamPreservesDownloadAndRoundTripObservation(f *testing.F) {
 				return &http.Response{StatusCode: status, Body: body, ContentLength: -1, Request: request}, nil
 			})})
 			policy := singleAttemptStreamPolicy(t)
-			var limit core.ByteCount
-			if ceiling != 0 {
-				limit = mustByteCount(t, uint64(ceiling))
-			}
-			policy.ErrorBodyLimit = limit
 			request := exchange.DownloadRequest{
 				Target:         mustEndpoint(t, "https://replay-oracle.invalid/stream"),
 				Semantics:      exchange.RequestSemantics{Method: exchange.MethodGet, Replay: exchange.ReplaySingleAttempt},
-				ExpectedStatus: core.HTTPStatusOK(), ResponseBodyLimit: limit,
+				ExpectedStatus: core.HTTPStatusOK(),
 			}
 			var destination bytes.Buffer
-			request.Destination = &destination
-			wantBytes := min(len(data), int(ceiling))
+			request.Destination = io.MultiWriter(&destination)
+			request.Buffer = make([]byte, int(window))
+			wantBytes := len(data)
 			if failedStatus {
 				wantBytes = 0
 			}
-			wantRead := min(len(data), int(ceiling)+1)
+			wantRead := len(data)
 			wantProviderCalls := 1
 			wantMetadataAttempts := uint64(1)
-			wantOverflow := ceiling != 0 && len(data) > int(ceiling)
-			wantReadFailure := ceiling != 0 && !wantOverflow && fault == streamFuzzReadFailure
-			wantCloseFailure := ceiling != 0 && fault == streamFuzzCloseFailure
-			wantStatusError := ceiling != 0 && failedStatus
-			wantContract := ceiling == 0
-			if wantContract {
-				wantBytes, wantRead, wantProviderCalls, wantMetadataAttempts = 0, 0, 0, 0
-				wantStatus = core.HTTPStatusCode{}
-			}
-			wantFailure := wantContract || wantOverflow || wantReadFailure || wantCloseFailure || wantStatusError
-			wantExhausted := !cancelAtHandoff && !wantContract && !wantOverflow && wantFailure
+			wantReadFailure := fault == streamFuzzReadFailure
+			wantCloseFailure := fault == streamFuzzCloseFailure
+			wantStatusError := failedStatus
+			wantFailure := wantReadFailure || wantCloseFailure || wantStatusError
+			wantExhausted := !cancelAtHandoff && wantFailure
 			var produced exchange.StreamResponse
 			var producedErr error
 			got, gotErr := exchange.ReplayStream(exchange.StreamReplayCall{
@@ -117,10 +107,10 @@ func FuzzReplayStreamPreservesDownloadAndRoundTripObservation(f *testing.F) {
 					}
 					if roundTrip {
 						response, err := exchange.RoundTripStream(exchange.StreamRoundTripCall{Context: attemptContext, Client: client, Policy: policy,
-							Request: exchange.StreamRoundTripRequest{Target: request.Target, Source: bytes.NewReader(nil), Destination: &destination,
-								RequestContentLength: mustByteLength(t, 0), RequestContentType: core.HTTPMediaTypeOctetStream(),
+							Request: exchange.StreamRoundTripRequest{Target: request.Target, Source: bytes.NewReader(nil), Destination: request.Destination, Buffer: request.Buffer,
+								RequestContentLength: new(mustByteLength(t, 0)), RequestContentType: core.HTTPMediaTypeOctetStream(),
 								Semantics:      exchange.RequestSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt},
-								ExpectedStatus: request.ExpectedStatus, ResponseBodyLimit: request.ResponseBodyLimit}})
+								ExpectedStatus: request.ExpectedStatus}})
 						produced, producedErr = exchange.StreamResponse(response), err
 						if response.DeclaredRequestBytes.Uint64() != 0 {
 							t.Fatalf("empty upload declaration=%d, want 0", response.DeclaredRequestBytes.Uint64())
@@ -129,8 +119,8 @@ func FuzzReplayStreamPreservesDownloadAndRoundTripObservation(f *testing.F) {
 						produced, producedErr = exchange.Download(exchange.DownloadCall{Context: attemptContext, Client: client, Request: request, Policy: policy})
 					}
 					// Establish producer facts before handing them to replay.
-					if (producedErr != nil) != wantFailure || errors.Is(producedErr, core.ErrExchangeContract) != wantFailure || errors.Is(producedErr, core.ErrExchangeResponse) != (wantFailure && !wantContract) || errors.Is(producedErr, core.ErrExchangeBodyLimit) != wantOverflow || errors.Is(producedErr, io.ErrUnexpectedEOF) != wantReadFailure || errors.Is(producedErr, io.ErrClosedPipe) != wantCloseFailure {
-						t.Fatalf("producer cause = %v, want failure/response/overflow/read/close = %t/%t/%t/%t/%t", producedErr, wantFailure, wantFailure && !wantContract, wantOverflow, wantReadFailure, wantCloseFailure)
+					if (producedErr != nil) != wantFailure || errors.Is(producedErr, core.ErrExchangeContract) != wantFailure || errors.Is(producedErr, core.ErrExchangeResponse) != wantFailure || errors.Is(producedErr, core.ErrExchangeBodyLimit) || errors.Is(producedErr, io.ErrUnexpectedEOF) != wantReadFailure || errors.Is(producedErr, io.ErrClosedPipe) != wantCloseFailure {
+						t.Fatalf("producer cause = %v, want failure/response/overflow/read/close = %t/%t/%t/%t/%t", producedErr, wantFailure, wantFailure, false, wantReadFailure, wantCloseFailure)
 					}
 					statusError, hasStatus := errors.AsType[exchange.StatusError](producedErr)
 					if hasStatus != wantStatusError || hasStatus && (statusError.Status() != wantStatus || statusError.Expected() != core.HTTPStatusOK()) {

@@ -41,11 +41,11 @@ func FuzzProviderAuthKeyAdmission(f *testing.F) {
 
 	f.Add([]byte("null"))
 	f.Add([]byte("{broken"))
-	f.Add([]byte(strings.Repeat(" ", enrollmentResponseMaximumBytes+1)))
+	f.Add([]byte(strings.Repeat(" ", enrollmentFormerResponseCutoffBytes+1)))
 	grammar := regexp.MustCompile("^" + regexp.QuoteMeta(authKeyPrefix) + `[A-Za-z0-9-]+$`)
 	f.Fuzz(func(t *testing.T, data []byte) {
-		if len(data) > enrollmentResponseMaximumBytes+1 {
-			data = data[:enrollmentResponseMaximumBytes+1]
+		if len(data) > enrollmentFormerResponseCutoffBytes+1 {
+			data = data[:enrollmentFormerResponseCutoffBytes+1]
 		}
 		token := fixtureIdentityToken(t)
 		access, err := core.MarshalCanonicalJSONDocument(fixtureAccessResponse{AccessToken: fixtureAccessToken, TokenType: exchange.BearerAuthorizationScheme, ExpiresIn: 60})
@@ -75,7 +75,7 @@ func FuzzProviderAuthKeyAdmission(f *testing.F) {
 		var observed tailscale.Key
 		decodeErr := json.Unmarshal(data, &observed)
 		create := observed.Capabilities.Devices.Create
-		if decodeErr != nil || len(data) > enrollmentResponseMaximumBytes || observed.Key != got || len(got) > authKeyMaximumBytes || !grammar.MatchString(got) || observed.Invalid || !observed.Revoked.IsZero() || create.Reusable || !create.Ephemeral || create.Preauthorized || len(create.Tags) != 1 {
+		if decodeErr != nil || len(data) > enrollmentFormerResponseCutoffBytes || observed.Key != got || len(got) > authKeyMaximumBytes || !grammar.MatchString(got) || observed.Invalid || !observed.Revoked.IsZero() || create.Reusable || !create.Ephemeral || create.Preauthorized || len(create.Tags) != 1 {
 			t.Fatalf("accepted provider key = decode=%v, bytes=%d, keyMatches=%t, flags=%+v, want bounded exact single-use ephemeral key", decodeErr, len(data), observed.Key == got, create)
 		}
 		if create.Tags[0] != configuration.Tag.String() {

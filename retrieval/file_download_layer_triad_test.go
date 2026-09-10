@@ -316,11 +316,10 @@ const (
 	fileDownloadZeroPolicy
 	fileDownloadZeroOperation
 	fileDownloadZeroAttempt
-	fileDownloadZeroErrorLimit
 	fileDownloadZeroGrant
 )
 
-func TestVerifiedGrantDownloadFileLayerTriadIngressRefusesBeforeFilesystemEffect(t *testing.T) {
+func TestVerifiedGrantDownloadFileLayerTriadIngressControlsFilesystemEffects(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
@@ -335,10 +334,9 @@ func TestVerifiedGrantDownloadFileLayerTriadIngressRefusesBeforeFilesystemEffect
 		{name: "temporary names root entry", mutation: fileDownloadRootTemporary, wantErr: core.ErrRetrievalContract},
 		{name: "target names root entry", mutation: fileDownloadRootTarget, wantErr: core.ErrRetrievalContract},
 		{name: "activation extent differs from authenticated receipt", mutation: fileDownloadExtentMismatch, wantErr: core.ErrRetrievalBinding},
-		{name: "zero transfer policy", mutation: fileDownloadZeroPolicy, wantErr: core.ErrRetrievalContract},
-		{name: "zero operation timeout", mutation: fileDownloadZeroOperation, wantErr: core.ErrRetrievalContract},
-		{name: "zero attempt timeout", mutation: fileDownloadZeroAttempt, wantErr: core.ErrRetrievalContract},
-		{name: "zero error-body limit", mutation: fileDownloadZeroErrorLimit, wantErr: core.ErrRetrievalContract},
+		{name: "zero transfer policy", mutation: fileDownloadZeroPolicy},
+		{name: "zero operation timeout", mutation: fileDownloadZeroOperation},
+		{name: "zero attempt timeout", mutation: fileDownloadZeroAttempt},
 		{name: "zero verified grant", mutation: fileDownloadZeroGrant, wantErr: core.ErrRetrievalContract},
 	}
 	for _, tc := range cases {
@@ -369,21 +367,31 @@ func TestVerifiedGrantDownloadFileLayerTriadIngressRefusesBeforeFilesystemEffect
 			case fileDownloadRootTarget:
 				request.Activation.Target = retrievalPath(t, ".")
 			case fileDownloadExtentMismatch:
-				request.Activation.ExpectedBytes = retrievalLength(t, uint64(len(payload)+1))
+				request.Activation.ExpectedBytes = new(retrievalLength(t, uint64(len(payload)+1)))
 			case fileDownloadZeroPolicy:
 				request.Policy = objectstore.Policy{}
 			case fileDownloadZeroOperation:
 				request.Policy.OperationTimeout = temporal.Duration{}
 			case fileDownloadZeroAttempt:
 				request.Policy.AttemptTimeout = temporal.Duration{}
-			case fileDownloadZeroErrorLimit:
-				request.Policy.ErrorBodyLimit = core.ByteCount{}
 			case fileDownloadZeroGrant:
 				grant = VerifiedGrant{}
 			default:
 				t.Fatalf("file download mutation = %d, want published mutation", tc.mutation)
 			}
 			recovery, transfer, err := grant.DownloadFile(t.Context(), request)
+			if tc.wantErr == nil {
+				if err != nil || recovery.Validate() == nil || transfer.Validate() != nil || transfer.Bytes().Uint64() != uint64(len(payload)) || transfer.SHA256() != core.SHA256Of(payload) {
+					t.Fatalf("caller-owned lifetime transfer=%v/%v/%v, want complete authenticated bytes", recovery, transfer, err)
+				}
+				if got := readRetrievalTarget(t, root, "target"); !bytes.Equal(got, payload) {
+					t.Fatalf("published bytes=%v, want %v", got, payload)
+				}
+				if _, statErr := root.Stat(".download-stage"); !errors.Is(statErr, fs.ErrNotExist) {
+					t.Fatalf("stage lookup=%v, want removed", statErr)
+				}
+				return
+			}
 			if !errors.Is(err, tc.wantErr) || recovery.Validate() == nil || transfer.Validate() == nil {
 				t.Fatalf("DownloadFile(mutation %d) = (%v, %v, %v), want zero results and errors.Is %v",
 					tc.mutation, recovery, transfer, err, tc.wantErr)
@@ -486,7 +494,7 @@ func retrievalActivation(t *testing.T, request retrievalActivationRequest) files
 	t.Helper()
 	return filestore.ActivationRequest{
 		Temporary: filestore.Location{Root: request.Root, Path: retrievalPath(t, ".download-stage")},
-		Target:    retrievalPath(t, "target"), ExpectedBytes: retrievalLength(t, request.Size),
+		Target:    retrievalPath(t, "target"), ExpectedBytes: new(retrievalLength(t, request.Size)),
 		Mode: 0o600, Install: request.Install,
 	}
 }

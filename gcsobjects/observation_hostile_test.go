@@ -225,17 +225,13 @@ func observedTransferEvidence(t testing.TB, payload []byte, generation int64) ob
 	if err != nil {
 		t.Fatalf("observation expiry construction error = %v, want nil", err)
 	}
-	limit, err := core.NewByteCount(4096)
-	if err != nil {
-		t.Fatalf("core.NewByteCount() error = %v, want nil", err)
-	}
 	upload := objectstore.UploadRequest{
 		Source: bytes.NewReader(payload), ContentType: core.HTTPMediaTypeOctetStream(),
 		Target: objectstore.UploadTarget{
 			URL: url, Headers: headers, ExpiresAt: expiresAt,
 		},
 		Integrity: observationIntegrity(t, payload),
-		Policy:    objectstore.Policy{OperationTimeout: operation, AttemptTimeout: attempt, ErrorBodyLimit: limit},
+		Policy:    objectstore.Policy{OperationTimeout: operation, AttemptTimeout: attempt},
 	}
 	if err := upload.Validate(); err != nil {
 		t.Fatalf("objectstore.UploadRequest.Validate() error = %v, want nil", err)

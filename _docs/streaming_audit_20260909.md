@@ -2,7 +2,7 @@
 
 User requirement, 2026-09-09: Primitive must process reads and writes through fixed memory windows, regardless of whether the source contains 1 TB or 100 TB. Buffer budgets control working memory and backpressure; they must not become arbitrary file, line, object, request, response, or total-transfer acceptance quotas. Validation stays with the owning contract. Native I/O errors and cancellation remain observable.
 
-This requirement applies to every package, including packages whose earlier sweeps are already published. Earlier completion is historical and does not exempt a package. Implementation remains package by package, with before/after profiles and hostile streaming proof. Lineio now emits fixed-buffer fragments; its review follow-up is recorded. Filestore is the current slice: transfer and directory quotas are removed, with caller migration and profile-guided scratch-buffer work in progress. Witness source migration is now user-owned, per the latest instruction; the installed witness-lint remains a required Primitive check.
+This requirement applies to every package, including packages whose earlier sweeps are already published. Earlier completion is historical and does not exempt a package. Implementation remains package by package, with before/after profiles and hostile streaming proof. Lineio now emits fixed-buffer fragments; its review follow-up is recorded. The current uncommitted slice removes transfer quotas from the reviewed Filestore, Exchange, and GitHub streaming doors. Focused verification and profiles are retained outside Git; downstream product migration remains outstanding. Witness source migration is now user-owned, per the latest instruction; the installed witness-lint remains a required Primitive check.
 
 The inventory below is a navigation aid, not semantic verification. It includes every module package discovered by go list and scans production source plus ignored platform variants for likely limits/materialization. Zero matches does not mean compliant. Each package still requires read/write path review. Provider-specified and native representability constraints must be distinguished from Primitive-invented transfer quotas; this inventory has not verified the provider contracts.
 
@@ -27,12 +27,12 @@ Audit exit per package: no hidden transfer/line quota; reader and writer paths c
 | deploy | 0 | requires_review |
 | distribution | 42 | requires_review |
 | distributionauth | 19 | requires_review |
-| exchange | 86 | requires_review |
+| exchange | 86 | streaming_doors_reviewed |
 | filelock | 0 | requires_review |
-| filestore | 13 | in_progress |
+| filestore | 13 | streaming_doors_reviewed |
 | fuzzfinder | 2 | requires_review |
 | gcsobjects | 47 | requires_review |
-| github | 39 | requires_review |
+| github | 39 | streaming_doors_reviewed |
 | gitrepo | 0 | requires_review |
 | gomodule | 0 | requires_review |
 | googleidentity | 33 | requires_review |
@@ -76,6 +76,10 @@ Audit exit per package: no hidden transfer/line quota; reader and writer paths c
 | version | 0 | requires_review |
 | wiring | 0 | requires_review |
 
-Lineio review evidence: [review follow-up](lineio_review_20260909.md). Its Go source is verified; user review is pending. The other 62 packages still require this audit.
+Lineio review evidence: [review follow-up](lineio_review_20260909.md). Its Go source is verified; user review is pending. The remaining package-wide audits are not complete; the scoped review below does not establish whole-package compliance.
 
 Filestore caller migration is not completion of its consumers. In particular, Google authentication SDKs currently require materialized credential JSON; Googleidentity and GCSobjects retain that explicit whole-document ownership pending their provider-specific streaming review. Upgrade persistence and Go-source discovery also require their own decoder/aggregation review. Removed Filestore quotas are not silently replaced elsewhere.
+
+Streaming slice review, 2026-09-10: `/tmp/streaming_slice_review_20260909_findings.md` on Furnace reviewed the dirty tree based on `5d0811a74fef4a64ddedfeaff0f1fd7d4c6bff16` and found no production bug on the claimed GitHub-to-Filestore path. `streaming_doors_reviewed` records that limited production review, not a released revision or a whole-package audit. The reviewer reproduced selected Linux builds, not the author's test, fuzz, race, or profile runs. Candidate-line counts above remain the original inventory, not a fresh scan.
+
+Preserving a previous file requires caller composition: stage, stream, abandon on producer error, otherwise finish and commit. GitHub writes directly to the supplied destination. Its metadata JSON operations still materialize complete responses. Archive redirect-body drains rely on the caller context; tree visitors provide synchronous backpressure and must return. Go's `io.Pipe` is unbuffered. Product consumers, including Blink Kernel's old GitHub file API, still require migration before upgrading this slice.

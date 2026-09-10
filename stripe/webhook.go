@@ -40,35 +40,34 @@ type WebhookReceiveRequest struct {
 }
 
 func (r WebhookReceiveRequest) Validate() error {
-	if r.Call.Validate() != nil || r.Destination == nil || r.ObservedAt.Validate() != nil || r.Tolerance.Validate() != nil || r.Tolerance.IsZero() {
+	if r.Call.Validate() != nil || core.WriterIsNil(r.Destination) || r.ObservedAt.Validate() != nil || r.Tolerance.Validate() != nil || r.Tolerance.IsZero() {
 		return core.ErrStripeContract
 	}
 	return nil
 }
 
 type webhookReceiverState struct {
-	secret  WebhookSecret
-	maximum core.ByteCount
+	secret WebhookSecret
 }
 
 type WebhookReceiver struct{ state *webhookReceiverState }
 
-func NewWebhookReceiver(secret WebhookSecret, maximum core.ByteCount) (WebhookReceiver, error) {
-	if err := errors.Join(secret.Validate(), validateWebhookMaximum(maximum)); err != nil {
+func NewWebhookReceiver(secret WebhookSecret) (WebhookReceiver, error) {
+	if err := secret.Validate(); err != nil {
 		return WebhookReceiver{}, contractError(err)
 	}
 	owned, err := ParseWebhookSecret(secret.value)
 	if err != nil {
 		return WebhookReceiver{}, err
 	}
-	return WebhookReceiver{state: &webhookReceiverState{secret: owned, maximum: maximum}}, nil
+	return WebhookReceiver{state: &webhookReceiverState{secret: owned}}, nil
 }
 
 func (r WebhookReceiver) Validate() error {
 	if r.state == nil {
 		return core.ErrStripeContract
 	}
-	if err := errors.Join(r.state.secret.Validate(), validateWebhookMaximum(r.state.maximum)); err != nil {
+	if err := r.state.secret.Validate(); err != nil {
 		return contractError(err)
 	}
 	return nil
@@ -94,8 +93,8 @@ func (r WebhookReceiver) Receive(request WebhookReceiveRequest) (InboundObservat
 	received, err := exchange.ReceiveBounded(exchange.BoundedReceiveCall{
 		Call:                request.Call,
 		ExpectedContentType: media,
-		Policy:              exchange.ServerBoundedPolicy{RequestBodyLimit: r.state.maximum},
-		Route:               exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt},
+
+		Route: exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt},
 	})
 	if err != nil {
 		return InboundObservation{}, err
@@ -209,14 +208,6 @@ func writeBody(ctx context.Context, destination io.Writer, body []byte) (core.By
 		return length, io.ErrShortWrite
 	}
 	return length, nil
-}
-
-func validateWebhookMaximum(maximum core.ByteCount) error {
-	value, err := maximum.Uint64()
-	if err != nil || value == 0 || value > core.StripeWebhookCustodyMaximumBytes {
-		return errors.Join(core.ErrStripeContract, err)
-	}
-	return nil
 }
 
 var (

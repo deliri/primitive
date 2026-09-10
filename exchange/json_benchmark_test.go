@@ -153,12 +153,7 @@ func BenchmarkServerJSONBoundary(b *testing.B) {
 	b.ReportAllocs()
 
 	route := benchmarkJSONRoute()
-	readPolicy := exchange.ServerPolicy{
-		RequestBodyLimit: mustByteCount(b, testJSONBenchmarkLimitBytes),
-	}
-	writePolicy := exchange.JSONWritePolicy{
-		ResponseBodyLimit: mustByteCount(b, testJSONBenchmarkLimitBytes),
-	}
+
 	ok := mustHTTPStatus(b, http.StatusOK)
 
 	for _, payload := range jsonBenchmarkPayloads() {
@@ -177,9 +172,8 @@ func BenchmarkServerJSONBoundary(b *testing.B) {
 					transportDocument,
 					*transportDocument,
 				](exchange.JSONReceiveCall{
-					Call:   serverCall,
-					Route:  route,
-					Policy: readPolicy,
+					Call:  serverCall,
+					Route: route,
 				})
 				if receiveErr != nil {
 					b.Fatalf("ReceiveJSON() error = %v, want nil", receiveErr)
@@ -191,7 +185,6 @@ func BenchmarkServerJSONBoundary(b *testing.B) {
 							Body:   *received.Body,
 							Status: ok,
 						},
-						Policy: writePolicy,
 					},
 				)
 				if writeErr != nil {
@@ -233,9 +226,6 @@ func BenchmarkServerJSONBoundaryByLimit(b *testing.B) {
 	b.ReportAllocs()
 
 	route := benchmarkJSONRoute()
-	writePolicy := exchange.JSONWritePolicy{
-		ResponseBodyLimit: mustByteCount(b, testJSONBenchmarkLimitBytes),
-	}
 	ok := mustHTTPStatus(b, http.StatusOK)
 	_, encoded := mustJSONBenchmarkDocument(b, testJSONSmallDocumentBytes)
 
@@ -248,9 +238,6 @@ func BenchmarkServerJSONBoundaryByLimit(b *testing.B) {
 		{name: "limit1MiB", bytes: 1024 * 1024},
 	}
 	for _, limit := range limits {
-		readPolicy := exchange.ServerPolicy{
-			RequestBodyLimit: mustByteCount(b, limit.bytes),
-		}
 		b.Run(limit.name, func(b *testing.B) {
 			writer := newBenchJSONWriter(len(encoded))
 			b.ReportAllocs()
@@ -263,9 +250,8 @@ func BenchmarkServerJSONBoundaryByLimit(b *testing.B) {
 					transportDocument,
 					*transportDocument,
 				](exchange.JSONReceiveCall{
-					Call:   serverCall,
-					Route:  route,
-					Policy: readPolicy,
+					Call:  serverCall,
+					Route: route,
 				})
 				if receiveErr != nil {
 					b.Fatalf("ReceiveJSON() error = %v, want nil", receiveErr)
@@ -277,7 +263,6 @@ func BenchmarkServerJSONBoundaryByLimit(b *testing.B) {
 							Body:   *received.Body,
 							Status: ok,
 						},
-						Policy: writePolicy,
 					},
 				)
 				if writeErr != nil {
@@ -294,12 +279,7 @@ func BenchmarkServerJSONBoundaryByLimit(b *testing.B) {
 // every core, which is how a real instance is loaded.
 func BenchmarkServerJSONBoundaryParallel(b *testing.B) {
 	route := benchmarkJSONRoute()
-	readPolicy := exchange.ServerPolicy{
-		RequestBodyLimit: mustByteCount(b, testJSONBenchmarkLimitBytes),
-	}
-	writePolicy := exchange.JSONWritePolicy{
-		ResponseBodyLimit: mustByteCount(b, testJSONBenchmarkLimitBytes),
-	}
+
 	ok := mustHTTPStatus(b, http.StatusOK)
 	_, encoded := mustJSONBenchmarkDocument(
 		b,
@@ -321,9 +301,8 @@ func BenchmarkServerJSONBoundaryParallel(b *testing.B) {
 				transportDocument,
 				*transportDocument,
 			](exchange.JSONReceiveCall{
-				Call:   serverCall,
-				Route:  route,
-				Policy: readPolicy,
+				Call:  serverCall,
+				Route: route,
 			})
 			if receiveErr != nil {
 				b.Fatalf("ReceiveJSON() error = %v, want nil", receiveErr)
@@ -335,7 +314,6 @@ func BenchmarkServerJSONBoundaryParallel(b *testing.B) {
 						Body:   *received.Body,
 						Status: ok,
 					},
-					Policy: writePolicy,
 				},
 			)
 			if writeErr != nil {
@@ -355,12 +333,7 @@ func BenchmarkServerJSONBoundaryParallel(b *testing.B) {
 // The accepted-connection count proves that reuse did not silently become churn.
 func BenchmarkJSONRoundTripOverLoopbackParallel(b *testing.B) {
 	route := benchmarkJSONRoute()
-	readPolicy := exchange.ServerPolicy{
-		RequestBodyLimit: mustByteCount(b, testJSONBenchmarkLimitBytes),
-	}
-	writePolicy := exchange.JSONWritePolicy{
-		ResponseBodyLimit: mustByteCount(b, testJSONBenchmarkLimitBytes),
-	}
+
 	ok := mustHTTPStatus(b, http.StatusOK)
 	document, encoded := mustJSONBenchmarkDocument(
 		b,
@@ -378,9 +351,8 @@ func BenchmarkJSONRoundTripOverLoopbackParallel(b *testing.B) {
 			transportDocument,
 			*transportDocument,
 		](exchange.JSONReceiveCall{
-			Call:   serverCall,
-			Route:  route,
-			Policy: readPolicy,
+			Call:  serverCall,
+			Route: route,
 		})
 		if receiveErr != nil {
 			http.Error(writer, "receive", http.StatusBadRequest)
@@ -393,7 +365,6 @@ func BenchmarkJSONRoundTripOverLoopbackParallel(b *testing.B) {
 					Body:   *received.Body,
 					Status: ok,
 				},
-				Policy: writePolicy,
 			},
 		); writeErr != nil {
 			b.Errorf("WriteJSON() error = %v, want nil", writeErr)
@@ -418,9 +389,7 @@ func BenchmarkJSONRoundTripOverLoopbackParallel(b *testing.B) {
 	client := mustExchangeClient(b, &http.Client{Transport: owned})
 	target := mustEndpoint(b, server.URL)
 	policy := exchange.JSONPolicy{
-		Operation:         singleAttemptOperationPolicy(b),
-		RequestBodyLimit:  mustByteCount(b, testJSONBenchmarkLimitBytes),
-		ResponseBodyLimit: mustByteCount(b, testJSONBenchmarkLimitBytes),
+		Operation: singleAttemptOperationPolicy(b),
 	}
 	request := exchange.JSONRequest[transportDocument]{
 		Target: target,

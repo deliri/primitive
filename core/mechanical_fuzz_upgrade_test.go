@@ -94,7 +94,7 @@ func FuzzHTTPEndpointCanonicalProjection(f *testing.F) {
 }
 
 func FuzzAbsolutePathResolveTextIngress(f *testing.F) {
-	for _, source := range []string{".", "..", "child", "discard/../kept", "\x00/../kept", "\xff/../kept", strings.Repeat("/", filesystemPathMaximumRunes+1)} {
+	for _, source := range []string{".", "..", "child", "discard/../kept", "\x00/../kept", "\xff/../kept", strings.Repeat("/", 4096+1)} {
 		f.Add(source)
 	}
 	base, err := ParseAbsolutePath(filepath.Join(filepath.VolumeName(f.TempDir())+string(filepath.Separator), "resolve-base"))
@@ -109,7 +109,7 @@ func FuzzAbsolutePathResolveTextIngress(f *testing.F) {
 		wantPath, pathErr := ParseAbsolutePath(wantText)
 		// Go owns lexical resolution; the raw input gate is independently stated
 		// here so normalization cannot erase malformed bytes before admission.
-		wantOK := source != "" && utf8.ValidString(source) && utf8.RuneCountInString(source) <= filesystemPathMaximumRunes && !strings.ContainsRune(source, 0) && pathErr == nil
+		wantOK := source != "" && utf8.ValidString(source) && !strings.ContainsRune(source, 0) && pathErr == nil
 		got, err := base.ResolveText(source)
 		if (err == nil) != wantOK || wantOK && got != wantPath {
 			t.Fatalf("resolution=%v, %v; want Go path %v with raw admission %t", got, err, wantPath, wantOK)

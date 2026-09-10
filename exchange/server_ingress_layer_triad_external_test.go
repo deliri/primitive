@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -45,10 +46,6 @@ func startJSONIngressServer(
 	observed chan<- ingressObservation,
 ) *httptest.Server {
 	t.Helper()
-
-	policy := exchange.ServerPolicy{
-		RequestBodyLimit: mustByteCount(t, testJSONIngressLimitBytes),
-	}
 	return httptest.NewServer(http.HandlerFunc(func(
 		writer http.ResponseWriter,
 		request *http.Request,
@@ -58,9 +55,8 @@ func startJSONIngressServer(
 			transportDocument,
 			*transportDocument,
 		](exchange.JSONReceiveCall{
-			Call:   serverCall,
-			Route:  route,
-			Policy: policy,
+			Call:  serverCall,
+			Route: route,
 		})
 		observation := ingressObservation{err: receiveErr, body: received.Body, key: received.IdempotencyKey.String()}
 		if received.Body != nil {
@@ -256,12 +252,12 @@ func TestJSONIngressGuardHostileTable(t *testing.T) {
 			wantAbsent: core.ErrJSONContract,
 		},
 		{
-			name: "declared length above the route bound is refused",
+			name: "value beyond former route cutoff is complete",
 			request: jsonIngressRequest{
 				method: http.MethodPost,
 				body:   overLimit,
 			},
-			wantErr: core.ErrExchangeBodyLimit,
+			wantMessage: strings.Repeat("a", testJSONIngressLimitBytes),
 		},
 		{
 			name: "unknown JSON member is refused by the strict grammar",
@@ -458,157 +454,63 @@ func TestNoBodyIngressLayerTriad(t *testing.T) {
 	})
 }
 
-func TestStreamIngressBoundLayerTriad(t *testing.T) {
+func TestStreamIngressExtentLayerTriad(t *testing.T) {
 	t.Parallel()
-
-	const limit = 3 * exchange.TransferBufferBytes
-	newServer := func(
-		t *testing.T,
-		destination io.Writer,
-		observed chan<- ingressObservation,
-	) *httptest.Server {
-		t.Helper()
-
-		policy := exchange.ServerStreamPolicy{
-			RequestBodyLimit: mustByteCount(t, limit),
-		}
-		return httptest.NewServer(http.HandlerFunc(func(
-			writer http.ResponseWriter,
-			request *http.Request,
-		) {
-			serverCall := socketServerCallFrom(t, writer, request)
-			received, receiveErr := exchange.ReceiveStream(
-				exchange.StreamReceiveCall{
-					Call:                serverCall,
-					Destination:         destination,
-					Route:               exchange.RouteSemantics{Method: exchange.MethodPut, Replay: exchange.ReplaySingleAttempt},
-					Policy:              policy,
-					ExpectedContentType: core.HTTPMediaTypeOctetStream(),
-				},
-			)
-			observed <- ingressObservation{
-				err: receiveErr, bytes: received.Bytes.Uint64(),
-			}
-			writer.WriteHeader(http.StatusOK)
-		}))
+	const formerLimit = 3 * exchange.TransferBufferBytes
+	cases := []struct {
+		name    string
+		size    int
+		chunked bool
+	}{
+		{name: "below former cutoff", size: formerLimit - 1},
+		{name: "at former cutoff", size: formerLimit},
+		{name: "declared above former cutoff", size: formerLimit + 1},
+		{name: "chunked above former cutoff", size: formerLimit + 1, chunked: true},
 	}
-
-	t.Run("positive the exact bound streams into a real file with digest parity", func(t *testing.T) {
-		t.Parallel()
-
-		body := bytes.Repeat([]byte{0x11, 0x22, 0x33, 0x44}, limit/4)
-		want := sha256.Sum256(body)
-		path := filepath.Join(t.TempDir(), "received.bin")
-		destination, gotCreateErr := createExchangeFixtureFile(t, path)
-		if gotCreateErr != nil {
-			t.Fatalf("Filestore fixture create(%q) setup error = %v, want nil", path, gotCreateErr)
-		}
-		observed := make(chan ingressObservation, 1)
-		server := newServer(t, destination, observed)
-		defer server.Close()
-
-		sendRawRequest(t, server, jsonIngressRequest{
-			method:      http.MethodPut,
-			contentType: core.HTTPMediaTypeOctetStream().String(),
-			body:        body,
-		})
-		got := awaitIngressObservation(t, observed)
-		gotCloseErr := destination.Close()
-		if got.err != nil || gotCloseErr != nil {
-			t.Fatalf(
-				"exchange.ReceiveStream()/destination.Close() = (%v, %v), want (nil, nil)",
-				got.err,
-				gotCloseErr,
-			)
-		}
-		if got.bytes != limit {
-			t.Fatalf("streamed bytes = %d, want %d", got.bytes, limit)
-		}
-		if gotDigest := sha256File(t, path); gotDigest != want {
-			t.Fatalf("received SHA256 = %x, want %x", gotDigest, want)
-		}
-	})
-
-	t.Run("negative one byte above the bound is refused before the destination grows", func(t *testing.T) {
-		t.Parallel()
-
-		destination := bytes.NewBuffer(nil)
-		observed := make(chan ingressObservation, 1)
-		server := newServer(t, destination, observed)
-		defer server.Close()
-
-		sendRawRequest(t, server, jsonIngressRequest{
-			method:      http.MethodPut,
-			contentType: core.HTTPMediaTypeOctetStream().String(),
-			body:        bytes.Repeat([]byte{0xa5}, limit+1),
-		})
-		got := awaitIngressObservation(t, observed)
-		if !errors.Is(got.err, core.ErrExchangeRequest) ||
-			!errors.Is(got.err, core.ErrExchangeBodyLimit) {
-			t.Fatalf(
-				"exchange.ReceiveStream(one over) error = %v, want %v and %v",
-				got.err,
-				core.ErrExchangeRequest,
-				core.ErrExchangeBodyLimit,
-			)
-		}
-		if got.bytes != 0 || destination.Len() != 0 {
-			t.Fatalf(
-				"declared-over destination bytes/reported = (%d, %d), want (0, 0)",
-				destination.Len(),
-				got.bytes,
-			)
-		}
-	})
-
-	t.Run("neutral an unknown-length overrun writes exactly the bound and rejects the rest", func(t *testing.T) {
-		t.Parallel()
-
-		body := bytes.Repeat([]byte{0x5a}, limit+1)
-		destination := bytes.NewBuffer(nil)
-		observed := make(chan ingressObservation, 1)
-		server := newServer(t, destination, observed)
-		defer server.Close()
-
-		request, gotErr := http.NewRequestWithContext(
-			context.Background(),
-			http.MethodPut,
-			server.URL,
-			io.NopCloser(bytes.NewReader(body)),
-		)
-		if gotErr != nil {
-			t.Fatalf("http.NewRequestWithContext() setup error = %v, want nil", gotErr)
-		}
-		request.ContentLength = -1
-		request.Header.Set(
-			core.HTTPHeaderContentType().String(),
-			core.HTTPMediaTypeOctetStream().String(),
-		)
-		response, gotSendErr := server.Client().Do(request)
-		if gotSendErr == nil && response != nil && response.Body != nil {
-			_, _ = io.Copy(io.Discard, response.Body)
-			if gotCloseErr := response.Body.Close(); gotCloseErr != nil {
-				t.Fatalf("chunked response close error = %v, want nil", gotCloseErr)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			body := bytes.Repeat([]byte{0xa5}, tc.size)
+			want := sha256.Sum256(body)
+			path := filepath.Join(t.TempDir(), "received.bin")
+			destination, err := createExchangeFixtureFile(t, path)
+			if err != nil {
+				t.Fatal(err)
 			}
-		}
-		got := awaitIngressObservation(t, observed)
-		if !errors.Is(got.err, core.ErrExchangeBodyLimit) {
-			t.Fatalf(
-				"exchange.ReceiveStream(chunked one over) error = %v, want %v",
-				got.err,
-				core.ErrExchangeBodyLimit,
-			)
-		}
-		if got.bytes != limit || destination.Len() != limit ||
-			!bytes.Equal(destination.Bytes(), body[:limit]) {
-			t.Fatalf(
-				"chunked overrun reported/written/prefix = (%d, %d, %t), want (%d, %d, true)",
-				got.bytes,
-				destination.Len(),
-				bytes.Equal(destination.Bytes(), body[:limit]),
-				limit,
-				limit,
-			)
-		}
-	})
+			observed := make(chan ingressObservation, 1)
+			server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+				received, err := exchange.ReceiveStream(exchange.StreamReceiveCall{
+					Call: socketServerCallFrom(t, writer, request), Destination: destination,
+					Route:               exchange.RouteSemantics{Method: exchange.MethodPut, Replay: exchange.ReplaySingleAttempt},
+					ExpectedContentType: core.HTTPMediaTypeOctetStream(), Buffer: make([]byte, exchange.TransferBufferBytes),
+				})
+				observed <- ingressObservation{err: err, bytes: received.Bytes.Uint64()}
+				writer.WriteHeader(http.StatusOK)
+			}))
+			defer server.Close()
+			var source io.Reader = bytes.NewReader(body)
+			if tc.chunked {
+				source = io.NopCloser(source)
+			}
+			request, err := http.NewRequestWithContext(t.Context(), http.MethodPut, server.URL, source)
+			if err != nil {
+				t.Fatal(err)
+			}
+			request.Header.Set(core.HTTPHeaderContentType().String(), core.HTTPMediaTypeOctetStream().String())
+			response, sendErr := server.Client().Do(request)
+			if sendErr != nil {
+				t.Fatal(sendErr)
+			}
+			_, drainErr := io.Copy(io.Discard, response.Body)
+			closeErr := response.Body.Close()
+			got := awaitIngressObservation(t, observed)
+			fileCloseErr := destination.Close()
+			if err := errors.Join(got.err, drainErr, closeErr, fileCloseErr); err != nil {
+				t.Fatal(err)
+			}
+			if got.bytes != uint64(tc.size) || sha256File(t, path) != want {
+				t.Fatalf("receive bytes=%d want %d with exact digest", got.bytes, tc.size)
+			}
+		})
+	}
 }

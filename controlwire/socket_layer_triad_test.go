@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"encoding/json/jsontext"
+	json "encoding/json/v2"
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/controlplane"
 	"github.com/deliri/primitive/v2026/controlplanetest"
@@ -388,7 +389,8 @@ func validSocketRequestBodies(t testing.TB, request controlplane.RegistrationReq
 		{name: "mixed outer whitespace", body: append(append([]byte{'\t', '\r'}, canonical...), '\n', ' ')},
 		{name: "indented typed document", body: []byte(indented)},
 		{name: "one below request ceiling", body: padSocketRequest(canonical, controlplane.RegistrationRequestJSONMaximumBytes-1)},
-		{name: "exact request ceiling", body: padSocketRequest(canonical, controlplane.RegistrationRequestJSONMaximumBytes)},
+		{name: "exact former request ceiling", body: padSocketRequest(canonical, controlplane.RegistrationRequestJSONMaximumBytes)},
+		{name: "above former transport ceiling with valid document", body: padSocketRequest(canonical, core.JSONDocumentMaximumBytes+1)},
 	}
 }
 
@@ -509,12 +511,9 @@ func TestRoutedSocketAuthorityRejectsExternalRequestBoundaries(t *testing.T) {
 			request.Header.Set(core.HTTPHeaderIdempotencyKey().String(), otherNonce.String())
 			return request
 		}, want: []error{core.ErrControlWireNonce, core.ErrExchangeContract}},
-		{name: "one byte above request document ceiling is rejected", build: func() *http.Request {
-			return base(padSocketRequest(encoded, controlplane.RegistrationRequestJSONMaximumBytes+1))
-		}, want: []error{core.ErrExchangeRequest, core.ErrExchangeBodyLimit}},
-		{name: "one byte above transport ceiling is rejected before typed decoding", build: func() *http.Request {
+		{name: "large whitespace cannot become a document", build: func() *http.Request {
 			return base(bytes.Repeat([]byte{' '}, core.JSONDocumentMaximumBytes+1))
-		}, want: []error{core.ErrExchangeRequest, core.ErrExchangeBodyLimit}},
+		}, want: []error{core.ErrExchangeRequest, core.ErrJSONContract}},
 	}
 	malformed := []struct {
 		name string
@@ -566,14 +565,6 @@ func FuzzRoutedSocketAuthoritySemanticClosure(f *testing.F) {
 	}
 	jsonMediaType := standardMediaType(f, exchange.StandardMediaTypeJSON)
 	plainMediaType := standardMediaType(f, exchange.StandardMediaTypePlainText)
-	bodyLimitFact, err := fixture.request.ControlRequestBodyLimit()
-	if err != nil {
-		f.Fatalf("RegistrationRequest.ControlRequestBodyLimit() error = %v, want nil", err)
-	}
-	bodyLimit, err := bodyLimitFact.Uint64()
-	if err != nil {
-		f.Fatalf("registration request body limit Uint64() error = %v, want nil", err)
-	}
 	validVector := append([]byte{0, 0, 0}, []byte(fixture.request.RequestNonce.String())...)
 	for _, tc := range validSocketRequestBodies(f, fixture.request) {
 		f.Add(tc.body, validVector)
@@ -613,7 +604,7 @@ func FuzzRoutedSocketAuthoritySemanticClosure(f *testing.F) {
 		](controlwire.AuthorityJSONReceiveCall{Call: fixtureSocketServerCall(t, fuzzRequest(input)), Route: route, Authority: socketServer(t, fixture.support)})
 		oracle := receiveOracle(receiveOracleInput{
 			document: document, key: key, pathMode: modes[0],
-			methodMode: modes[1], contentMode: modes[2], route: route, bodyLimit: bodyLimit,
+			methodMode: modes[1], contentMode: modes[2], route: route,
 		})
 		if oracle.err != nil {
 			if got.Body != nil || !got.IdempotencyKey.IsZero() || got.Replay != (controlwire.ReplayIdentity{}) || got.Assessment != (controlwire.ProtocolAssessment{}) {
@@ -656,7 +647,6 @@ type receiveOracleInput struct {
 	key         string
 	document    []byte
 	route       controlwire.RouteContract
-	bodyLimit   uint64
 	pathMode    uint8
 	methodMode  uint8
 	contentMode uint8
@@ -676,11 +666,8 @@ func receiveOracle(input receiveOracleInput) receiveOracleResult {
 	if keyErr != nil {
 		return receiveOracleResult{err: keyErr, want: []error{core.ErrExchangeRequest, core.ErrExchangeContract}}
 	}
-	if uint64(len(input.document)) > input.bodyLimit {
-		return receiveOracleResult{err: core.ErrExchangeBodyLimit, want: []error{core.ErrExchangeRequest, core.ErrExchangeBodyLimit}}
-	}
 	var body controlplane.RegistrationRequest
-	if decodeErr := body.UnmarshalJSON(input.document); decodeErr != nil {
+	if decodeErr := json.Unmarshal(input.document, &body, json.RejectUnknownMembers(true)); decodeErr != nil {
 		return receiveOracleResult{err: decodeErr, want: []error{core.ErrExchangeRequest, core.ErrJSONContract}}
 	}
 	defer func() { _ = body.Token.Destroy() }()

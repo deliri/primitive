@@ -30,7 +30,7 @@ func TestGitHubTarArchiveTransportLayerTriad(t *testing.T) {
 		var destination bytes.Buffer
 		got, gotErr := client.ReadTarArchive(context.Background(), TarArchiveRequest{
 			Destination: &destination, Repository: parsedRepository(t, "owner/repository"),
-			Commit: parsedCommit(t), MaximumBytes: byteCountFixture(t, uint64(len(content))),
+			Commit: parsedCommit(t),
 		})
 		if gotErr != nil || got.State != ArchiveTransferComplete || got.Length.Uint64() != uint64(len(content)) ||
 			got.SHA256 != core.SHA256Of(content) || !bytes.Equal(destination.Bytes(), content) {
@@ -41,11 +41,11 @@ func TestGitHubTarArchiveTransportLayerTriad(t *testing.T) {
 		}
 	})
 
-	t.Run("negative one byte above caller ceiling remains typed partial evidence", func(t *testing.T) {
+	t.Run("archive continues through every byte without a transfer ceiling", func(t *testing.T) {
 		t.Parallel()
 
 		content := []byte("ceiling-plus-one")
-		maximum := uint64(len(content) - 1)
+		maximum := uint64(len(content))
 		var archiveCalls atomic.Uint64
 		server := archiveServer(t, content, &archiveCalls)
 		defer server.Close()
@@ -54,12 +54,12 @@ func TestGitHubTarArchiveTransportLayerTriad(t *testing.T) {
 		var destination bytes.Buffer
 		got, gotErr := client.ReadTarArchive(context.Background(), TarArchiveRequest{
 			Destination: &destination, Repository: parsedRepository(t, "owner/repository"),
-			Commit: parsedCommit(t), MaximumBytes: byteCountFixture(t, maximum),
+			Commit: parsedCommit(t),
 		})
 		wantBytes := content[:maximum]
-		if !errors.Is(gotErr, core.ErrExchangeBodyLimit) || got.State != ArchiveTransferIncomplete ||
+		if gotErr != nil || got.State != ArchiveTransferComplete ||
 			got.Length.Uint64() != maximum || got.SHA256 != core.SHA256Of(wantBytes) || !bytes.Equal(destination.Bytes(), wantBytes) {
-			t.Fatalf("Client.ReadTarArchive(over ceiling) = (%+v, %v, %q), want incomplete %d-byte evidence and %v", got, gotErr, destination.Bytes(), maximum, core.ErrExchangeBodyLimit)
+			t.Fatalf("Client.ReadTarArchive(over ceiling) = (%+v, %v, %q), want complete %d-byte evidence and nil", got, gotErr, destination.Bytes(), maximum)
 		}
 		if archiveCalls.Load() != 1 {
 			t.Fatalf("oversized archive transfer calls = %d, want 1", archiveCalls.Load())
@@ -77,7 +77,7 @@ func TestGitHubTarArchiveTransportLayerTriad(t *testing.T) {
 		var destination bytes.Buffer
 		got, gotErr := client.ReadTarArchive(context.Background(), TarArchiveRequest{
 			Destination: &destination, Repository: parsedRepository(t, "owner/repository"),
-			Commit: parsedCommit(t), MaximumBytes: byteCountFixture(t, 1),
+			Commit: parsedCommit(t),
 		})
 		if !errors.Is(gotErr, core.ErrGitHubResponse) || got.State != ArchiveTransferIncomplete ||
 			got.Length.Uint64() != 0 || got.SHA256 != core.SHA256Of(nil) || destination.Len() != 0 {
@@ -141,7 +141,7 @@ func TestGitHubTarArchiveAuthenticationStopsAtTheDocumentedAPIBoundary(t *testin
 	var destination bytes.Buffer
 	got, gotErr := client.ReadTarArchive(context.Background(), TarArchiveRequest{
 		Destination: &destination, Repository: parsedRepository(t, "owner/repository"),
-		Commit: parsedCommit(t), MaximumBytes: byteCountFixture(t, uint64(len(content))),
+		Commit: parsedCommit(t),
 	})
 	if gotErr != nil || got.State != ArchiveTransferComplete || !bytes.Equal(destination.Bytes(), content) || tokenCalls.Load() != 1 || archiveCalls.Load() != 1 {
 		t.Fatalf("authenticated ReadTarArchive() = (%+v, %v, %q, token calls %d, archive calls %d), want complete private transfer with one call per boundary", got, gotErr, destination.Bytes(), tokenCalls.Load(), archiveCalls.Load())

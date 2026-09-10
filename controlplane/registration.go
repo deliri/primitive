@@ -90,9 +90,6 @@ func (r RegistrationRequest) ControlRevision() controlwire.Revision { return r.R
 // ControlNonce projects the request identity already carried on the wire.
 func (r RegistrationRequest) ControlNonce() controlwire.RequestNonce { return r.RequestNonce }
 
-func (RegistrationRequest) ControlRequestBodyLimit() (core.ByteCount, error) {
-	return core.NewByteCount(RegistrationRequestJSONMaximumBytes)
-}
 
 func (r RegistrationRequest) validateFacts() error {
 	if err := r.Token.Validate(); err != nil {

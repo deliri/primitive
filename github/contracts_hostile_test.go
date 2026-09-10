@@ -51,39 +51,6 @@ func TestParseRepositoryHostileBoundaryTable(t *testing.T) {
 	}
 }
 
-func TestFileRequestProviderAndProductBounds(t *testing.T) {
-	t.Parallel()
-
-	repository := parsedRepository(t, "owner/repository")
-	commit := parsedCommit(t)
-	path := parsedPath(t, "source/main.go")
-	tests := []struct {
-		wantErr error
-		name    string
-		maximum uint64
-	}{
-		{name: "one byte product budget is admitted", maximum: 1},
-		{name: "one below provider inline ceiling is admitted", maximum: core.GitHubContentsInlineMaximumBytes - 1},
-		{name: "exact provider inline ceiling is admitted", maximum: core.GitHubContentsInlineMaximumBytes},
-		{name: "zero budget is rejected", maximum: 0, wantErr: core.ErrGitHubContract},
-		{name: "one above provider inline ceiling is rejected", maximum: core.GitHubContentsInlineMaximumBytes + 1, wantErr: core.ErrGitHubContract},
-	}
-	for _, testCase := range tests {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
-			maximum := core.ByteCount{}
-			if testCase.maximum != 0 {
-				maximum = byteCountFixture(t, testCase.maximum)
-			}
-			gotErr := (FileRequest{Repository: repository, Commit: commit, Path: path, MaximumBytes: maximum}).Validate()
-			if !errors.Is(gotErr, testCase.wantErr) {
-				t.Fatalf("FileRequest{MaximumBytes:%d}.Validate() error = %v, want %v", testCase.maximum, gotErr, testCase.wantErr)
-			}
-		})
-	}
-}
-
 func TestTreeEntryKindClosedDomainIsExhaustive(t *testing.T) {
 	t.Parallel()
 

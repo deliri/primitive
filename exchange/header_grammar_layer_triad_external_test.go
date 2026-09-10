@@ -175,8 +175,7 @@ func TestUntransmittableHeaderSpendsNoAttempt(t *testing.T) {
 				ExpectedStatus:              ok,
 			},
 			Policy: exchange.NoBodyBoundedPolicy{
-				Operation:         retryOperationPolicy(t, 5),
-				ResponseBodyLimit: mustByteCount(t, 4*1024),
+				Operation: retryOperationPolicy(t, 5),
 			},
 		},
 	)
@@ -234,8 +233,7 @@ func TestAggregateTransportFailureDoesNotFabricateResponseIdentity(t *testing.T)
 				ExpectedStatus:              ok,
 			},
 			Policy: exchange.NoBodyBoundedPolicy{
-				Operation:         singleAttemptOperationPolicy(t),
-				ResponseBodyLimit: mustByteCount(t, 4*1024),
+				Operation: singleAttemptOperationPolicy(t),
 			},
 		},
 	)

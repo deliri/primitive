@@ -32,9 +32,6 @@ func TestBoundedByteTransportLayerTriad(t *testing.T) {
 			2*exchange.TransferBufferBytes,
 		)
 		ok := mustHTTPStatus(t, http.StatusOK)
-		serverPolicy := exchange.ServerBoundedPolicy{
-			RequestBodyLimit: mustByteCount(t, uint64(len(body))),
-		}
 		observed := make(chan boundedServerObservation, 1)
 		server := httptest.NewServer(http.HandlerFunc(func(
 			writer http.ResponseWriter,
@@ -48,7 +45,7 @@ func TestBoundedByteTransportLayerTriad(t *testing.T) {
 						Method: exchange.MethodPost,
 						Replay: exchange.ReplaySingleAttempt,
 					},
-					Policy:              serverPolicy,
+
 					ExpectedContentType: core.HTTPMediaTypeOctetStream(),
 				},
 			)
@@ -93,9 +90,7 @@ func TestBoundedByteTransportLayerTriad(t *testing.T) {
 					ExpectedStatus:              ok,
 				},
 				Policy: exchange.BoundedPolicy{
-					Operation:         singleAttemptOperationPolicy(t),
-					RequestBodyLimit:  mustByteCount(t, uint64(len(body))),
-					ResponseBodyLimit: mustByteCount(t, uint64(len(body))),
+					Operation: singleAttemptOperationPolicy(t),
 				},
 			},
 		)
@@ -140,16 +135,24 @@ func TestBoundedByteTransportLayerTriad(t *testing.T) {
 		}
 	})
 
-	t.Run("negative one byte above the caller bound transmits no request", func(t *testing.T) {
+	t.Run("one byte above former cutoff is delivered in both directions", func(t *testing.T) {
 		t.Parallel()
 
 		var calls atomic.Uint64
 		server := httptest.NewServer(http.HandlerFunc(func(
 			writer http.ResponseWriter,
-			_ *http.Request,
+			request *http.Request,
 		) {
 			calls.Add(1)
-			writer.WriteHeader(http.StatusOK)
+			call := socketServerCallFrom(t, writer, request)
+			received, err := exchange.ReceiveBounded(exchange.BoundedReceiveCall{Call: call, Route: exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt}, ExpectedContentType: core.HTTPMediaTypeOctetStream()})
+			if err != nil {
+				t.Errorf("receive=%v,want complete bytes", err)
+				return
+			}
+			if err := exchange.WriteBounded(exchange.BoundedWriteCall{Call: call, Response: exchange.ServerBoundedResponse{Body: received.Body, ContentType: core.HTTPMediaTypeOctetStream(), Status: core.HTTPStatusOK()}}); err != nil {
+				t.Errorf("echo=%v,want complete bytes", err)
+			}
 		}))
 		defer server.Close()
 
@@ -171,26 +174,12 @@ func TestBoundedByteTransportLayerTriad(t *testing.T) {
 					ExpectedStatus:              ok,
 				},
 				Policy: exchange.BoundedPolicy{
-					Operation:         singleAttemptOperationPolicy(t),
-					RequestBodyLimit:  mustByteCount(t, exchange.TransferBufferBytes),
-					ResponseBodyLimit: mustByteCount(t, exchange.TransferBufferBytes),
+					Operation: singleAttemptOperationPolicy(t),
 				},
 			},
 		)
-		if !errors.Is(gotErr, core.ErrExchangeRequest) ||
-			!errors.Is(gotErr, core.ErrExchangeBodyLimit) {
-			t.Fatalf(
-				"SendBounded(one over) error = %v, want %v and %v",
-				gotErr,
-				core.ErrExchangeRequest,
-				core.ErrExchangeBodyLimit,
-			)
-		}
-		if calls.Load() != 0 {
-			t.Fatalf("bounded one-over server calls = %d, want 0", calls.Load())
-		}
-		if len(got.Body) != 0 || got.Metadata.Attempts != 0 {
-			t.Fatalf("SendBounded(one over) response = %+v, want zero", got)
+		if gotErr != nil || calls.Load() != 1 || !bytes.Equal(got.Body, body) || got.Metadata.Attempts != 1 || got.Metadata.Bytes.Uint64() != uint64(len(body)) {
+			t.Fatalf("whole-byte round trip=%d bytes/%v, calls=%d; want all %d bytes and one call", len(got.Body), gotErr, calls.Load(), len(body))
 		}
 	})
 
@@ -198,9 +187,6 @@ func TestBoundedByteTransportLayerTriad(t *testing.T) {
 		t.Parallel()
 
 		ok := mustHTTPStatus(t, http.StatusOK)
-		serverPolicy := exchange.ServerBoundedPolicy{
-			RequestBodyLimit: mustByteCount(t, 1),
-		}
 		observed := make(chan boundedServerObservation, 1)
 		server := httptest.NewServer(http.HandlerFunc(func(
 			writer http.ResponseWriter,
@@ -214,7 +200,7 @@ func TestBoundedByteTransportLayerTriad(t *testing.T) {
 						Method: exchange.MethodPost,
 						Replay: exchange.ReplaySingleAttempt,
 					},
-					Policy:              serverPolicy,
+
 					ExpectedContentType: core.HTTPMediaTypeOctetStream(),
 				},
 			)
@@ -254,9 +240,7 @@ func TestBoundedByteTransportLayerTriad(t *testing.T) {
 					ExpectedStatus:              ok,
 				},
 				Policy: exchange.BoundedPolicy{
-					Operation:         singleAttemptOperationPolicy(t),
-					RequestBodyLimit:  mustByteCount(t, 1),
-					ResponseBodyLimit: mustByteCount(t, 1),
+					Operation: singleAttemptOperationPolicy(t),
 				},
 			},
 		)
@@ -317,8 +301,7 @@ func TestAggregateUnexpectedStatusStillRejectsTransformingContentCoding(t *testi
 			ExpectedStatus: ok,
 		},
 		Policy: exchange.NoBodyBoundedPolicy{
-			Operation:         singleAttemptOperationPolicy(t),
-			ResponseBodyLimit: mustByteCount(t, 1024),
+			Operation: singleAttemptOperationPolicy(t),
 		},
 	})
 	if !errors.Is(gotErr, core.ErrExchangeResponse) || !errors.Is(gotErr, core.ErrExchangeContentType) {

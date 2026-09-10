@@ -134,7 +134,7 @@ func socketPairContract(t testing.TB, path string, replay exchange.ReplayMode) e
 		t.Fatalf("exchange.HTTPStatusAccepted() error = %v, want nil", err)
 	}
 	contract := exchange.JSONSocketContract{
-		Path: route, RequestBodyLimit: mustByteCount(t, 4*1024), ResponseBodyLimit: mustByteCount(t, 4*1024),
+		Path:          route,
 		SuccessStatus: status, Route: exchange.RouteSemantics{Method: exchange.MethodPost, Replay: replay},
 	}
 	if err := contract.Validate(); err != nil {

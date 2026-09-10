@@ -9,20 +9,10 @@ import (
 )
 
 const (
-	// filesystemPathMaximumRunes bounds a complete lexical path.
-	filesystemPathMaximumRunes = 4096
-	// FilesystemPathMaximumComponents bounds non-root lexical components.
-	FilesystemPathMaximumComponents = 256
-	// filesystemPathComponentMaximumBytes is the portable component byte cap.
-	filesystemPathComponentMaximumBytes = 255
-
-	filesystemPathEmptyDiagnostic              = "filesystem path is empty"
-	filesystemPathInvalidUTF8Diagnostic        = "filesystem path is not valid UTF-8"
-	filesystemPathRuneLimitDiagnostic          = "filesystem path exceeds the rune limit"
-	filesystemPathNULDiagnostic                = "filesystem path contains NUL"
-	filesystemPathNoncanonicalDiagnostic       = "filesystem path is not lexically clean"
-	filesystemPathComponentLimitDiagnostic     = "filesystem path exceeds the component limit"
-	filesystemPathOversizedComponentDiagnostic = "filesystem path contains an oversized component"
+	filesystemPathEmptyDiagnostic        = "filesystem path is empty"
+	filesystemPathInvalidUTF8Diagnostic  = "filesystem path is not valid UTF-8"
+	filesystemPathNULDiagnostic          = "filesystem path contains NUL"
+	filesystemPathNoncanonicalDiagnostic = "filesystem path is not lexically clean"
 )
 
 // PathComponent is one canonical, nonempty native filesystem component.
@@ -30,16 +20,14 @@ type PathComponent struct {
 	value string
 }
 
-// ParsePathComponent validates one component without touching the filesystem.
+// ParsePathComponent validates lexical component form without filesystem I/O.
+// The operating system owns the representability of a name during an effect.
 func ParsePathComponent(value string) (PathComponent, error) {
 	if value == "" {
 		return PathComponent{}, filesystemPathError("path component is empty")
 	}
 	if !utf8.ValidString(value) {
 		return PathComponent{}, filesystemPathError("path component is not valid UTF-8")
-	}
-	if len(value) > filesystemPathComponentMaximumBytes {
-		return PathComponent{}, filesystemPathError("path component exceeds the byte limit")
 	}
 	if value == "." || value == ".." || containsPathSeparator(value) ||
 		filepath.Base(value) != value || strings.IndexByte(value, 0) >= 0 {
@@ -329,7 +317,7 @@ func (p AbsolutePath) JoinRelative(relative RelativePath) (AbsolutePath, error) 
 // is cleaned and admitted as itself, everything else is cleaned and admitted
 // against the base, with climbs clamped at the filesystem root by the same
 // rule the kernel uses. Empty text is refused rather than silently meaning
-// the base itself. Raw text must satisfy UTF-8, NUL and rune bounds before
+// the base itself. Raw text must satisfy UTF-8 and NUL validation before
 // cleaning; parent segments cannot erase invalid ingress.
 func (p AbsolutePath) ResolveText(value string) (AbsolutePath, error) {
 	if err := p.Validate(); err != nil {
@@ -406,12 +394,6 @@ func validateFilesystemPath(value string, kind filesystemPathKind) error {
 	if filepath.Clean(value) != value {
 		return filesystemPathError(filesystemPathNoncanonicalDiagnostic)
 	}
-	if filesystemPathComponentCount(value) > FilesystemPathMaximumComponents {
-		return filesystemPathError(filesystemPathComponentLimitDiagnostic)
-	}
-	if filesystemPathHasOversizedComponent(value) {
-		return filesystemPathError(filesystemPathOversizedComponentDiagnostic)
-	}
 	return nil
 }
 
@@ -421,9 +403,6 @@ func validateFilesystemPathText(value string) error {
 	}
 	if !utf8.ValidString(value) {
 		return filesystemPathError(filesystemPathInvalidUTF8Diagnostic)
-	}
-	if utf8.RuneCountInString(value) > filesystemPathMaximumRunes {
-		return filesystemPathError(filesystemPathRuneLimitDiagnostic)
 	}
 	if strings.IndexByte(value, 0) >= 0 {
 		return filesystemPathError(filesystemPathNULDiagnostic)
@@ -446,41 +425,6 @@ func validateFilesystemPathKind(value string, kind filesystemPathKind) error {
 		return filesystemPathError("filesystem path kind is not admitted")
 	}
 	return nil
-}
-
-func filesystemPathComponentCount(value string) int {
-	remainder := filesystemPathWithoutVolume(value)
-	remainder = strings.Trim(remainder, string(filepath.Separator))
-	if remainder == "" {
-		return 0
-	}
-	count := 1
-	for index := range len(remainder) {
-		if os.IsPathSeparator(remainder[index]) {
-			count++
-		}
-	}
-	return count
-}
-
-func filesystemPathHasOversizedComponent(value string) bool {
-	value = filesystemPathWithoutVolume(value)
-	componentBytes := 0
-	for index := range len(value) {
-		if os.IsPathSeparator(value[index]) {
-			componentBytes = 0
-			continue
-		}
-		componentBytes++
-		if componentBytes > filesystemPathComponentMaximumBytes {
-			return true
-		}
-	}
-	return false
-}
-
-func filesystemPathWithoutVolume(value string) string {
-	return strings.TrimPrefix(value, filepath.VolumeName(value))
 }
 
 func filesystemPathError(message string) error {

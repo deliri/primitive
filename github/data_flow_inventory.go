@@ -24,25 +24,23 @@ func (TreeEntry) githubProtocolFact()             {}
 func (TreeRequest) githubProtocolFact()           {}
 func (TreeObservation) githubProtocolFact()       {}
 
-func (credentialState) githubInternalFlow()    {}
-func (installationToken) githubInternalFlow()  {}
-func (clientConstruction) githubInternalFlow() {}
-func (*clientState) githubInternalFlow()       {}
-func (jwtHeader) githubInternalFlow()          {}
-func (jwtUnixSeconds) githubInternalFlow()     {}
-func (jwtClaims) githubInternalFlow()          {}
-func (tagCommitWire) githubInternalFlow()      {}
-func (tagWire) githubInternalFlow()            {}
-func (headWire) githubInternalFlow()           {}
-func (contentsLinksWire) githubInternalFlow()  {}
-func (contentsWire) githubInternalFlow()       {}
-func (boundedRequest) githubInternalFlow()     {}
-func (treeEntryWire) githubInternalFlow()      {}
-func (treeDecodeState) githubInternalFlow()    {}
-func (treeDownloadResult) githubInternalFlow() {}
-func (treeDownloadCall) githubInternalFlow()   {}
-func (treeDecoder) githubInternalFlow()        {}
-func (archiveDestination) githubInternalFlow() {}
+func (credentialState) githubInternalFlow()     {}
+func (installationToken) githubInternalFlow()   {}
+func (clientConstruction) githubInternalFlow()  {}
+func (*clientState) githubInternalFlow()        {}
+func (jwtHeader) githubInternalFlow()           {}
+func (jwtUnixSeconds) githubInternalFlow()      {}
+func (jwtClaims) githubInternalFlow()           {}
+func (tagCommitWire) githubInternalFlow()       {}
+func (tagWire) githubInternalFlow()             {}
+func (headWire) githubInternalFlow()            {}
+func (boundedRequest) githubInternalFlow()      {}
+func (treeEntryWire) githubInternalFlow()       {}
+func (treeDecodeState) githubInternalFlow()     {}
+func (treeDownloadResult) githubInternalFlow()  {}
+func (treeDownloadCall) githubInternalFlow()    {}
+func (treeDecoder) githubInternalFlow()         {}
+func (downloadDestination) githubInternalFlow() {}
 
 func (AppCredential) githubCapabilityWrapper() {}
 func (Client) githubCapabilityWrapper()        {}
@@ -75,15 +73,13 @@ var (
 	_ internalFlow      = tagCommitWire{}
 	_ internalFlow      = tagWire{}
 	_ internalFlow      = headWire{}
-	_ internalFlow      = contentsLinksWire{}
-	_ internalFlow      = contentsWire{}
 	_ internalFlow      = boundedRequest{}
 	_ internalFlow      = treeEntryWire{}
 	_ internalFlow      = treeDecodeState{}
 	_ internalFlow      = treeDownloadResult{}
 	_ internalFlow      = treeDownloadCall{}
 	_ internalFlow      = treeDecoder{}
-	_ internalFlow      = archiveDestination{}
+	_ internalFlow      = downloadDestination{}
 	_ capabilityWrapper = AppCredential{}
 	_ capabilityWrapper = Client{}
 )

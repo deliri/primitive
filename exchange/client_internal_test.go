@@ -15,79 +15,65 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
-func TestAdmittedBodyLengthExhaustsTransportBoundaries(t *testing.T) {
+func TestDeclaredBodyLengthExhaustsTransportBoundaries(t *testing.T) {
 	t.Parallel()
 
 	const limitBytes = 4096
-	limit := mustInternalByteCount(t, limitBytes)
 	cases := []struct {
 		wantIdentity  error
 		name          string
 		contentLength int64
-		limit         core.ByteCount
 		wantLength    uint64
 		wantPresent   bool
 	}{
 		{
 			name:          "minimum integer is an unexpressible transport extent",
 			contentLength: math.MinInt64,
-			limit:         limit,
 			wantIdentity:  core.ErrExchangeContract,
 		},
 		{
 			name:          "one below absence is an unexpressible transport extent",
 			contentLength: -2,
-			limit:         limit,
 			wantIdentity:  core.ErrExchangeContract,
 		},
 		{
 			name:          "absence is admitted without an extent",
 			contentLength: -1,
-			limit:         limit,
 		},
 		{
 			name:          "declared empty is distinct from absence",
 			contentLength: 0,
-			limit:         limit,
 			wantPresent:   true,
 		},
 		{
 			name:          "smallest nonempty extent is admitted",
 			contentLength: 1,
-			limit:         limit,
 			wantPresent:   true,
 			wantLength:    1,
 		},
 		{
 			name:          "one below the limit is admitted",
 			contentLength: limitBytes - 1,
-			limit:         limit,
 			wantPresent:   true,
 			wantLength:    limitBytes - 1,
 		},
 		{
 			name:          "exactly the limit is admitted",
 			contentLength: limitBytes,
-			limit:         limit,
 			wantPresent:   true,
 			wantLength:    limitBytes,
 		},
 		{
-			name:          "one above the limit is refused",
+			name:          "one above former cutoff retains declaration",
 			contentLength: limitBytes + 1,
-			limit:         limit,
-			wantIdentity:  core.ErrExchangeBodyLimit,
+			wantPresent:   true,
+			wantLength:    limitBytes + 1,
 		},
 		{
-			name:          "maximum integer cannot inflate the authorized limit",
+			name:          "maximum integer remains representable",
 			contentLength: math.MaxInt64,
-			limit:         limit,
-			wantIdentity:  core.ErrExchangeBodyLimit,
-		},
-		{
-			name:          "unset limit is a contract defect",
-			contentLength: 1,
-			wantIdentity:  core.ErrExchangeContract,
+			wantPresent:   true,
+			wantLength:    math.MaxInt64,
 		},
 	}
 
@@ -95,14 +81,13 @@ func TestAdmittedBodyLengthExhaustsTransportBoundaries(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, gotErr := admittedBodyLength(
+			got, gotErr := parseDeclaredBodyLength(
 				testCase.contentLength,
-				testCase.limit,
 			)
 			if testCase.wantIdentity != nil {
 				if !errors.Is(gotErr, testCase.wantIdentity) {
 					t.Fatalf(
-						"admittedBodyLength(%d) error = %v, want errors.Is %v",
+						"parseDeclaredBodyLength(%d) error = %v, want errors.Is %v",
 						testCase.contentLength,
 						gotErr,
 						testCase.wantIdentity,
@@ -110,7 +95,7 @@ func TestAdmittedBodyLengthExhaustsTransportBoundaries(t *testing.T) {
 				}
 				if got != (declaredBodyLength{}) {
 					t.Fatalf(
-						"admittedBodyLength(%d) = %+v, want zero on refusal",
+						"parseDeclaredBodyLength(%d) = %+v, want zero on refusal",
 						testCase.contentLength,
 						got,
 					)
@@ -119,7 +104,7 @@ func TestAdmittedBodyLengthExhaustsTransportBoundaries(t *testing.T) {
 			}
 			if gotErr != nil {
 				t.Fatalf(
-					"admittedBodyLength(%d) error = %v, want nil",
+					"parseDeclaredBodyLength(%d) error = %v, want nil",
 					testCase.contentLength,
 					gotErr,
 				)
@@ -127,7 +112,7 @@ func TestAdmittedBodyLengthExhaustsTransportBoundaries(t *testing.T) {
 			if got.present != testCase.wantPresent ||
 				got.length.Uint64() != testCase.wantLength {
 				t.Fatalf(
-					"admittedBodyLength(%d) = (present %t, length %d), want (present %t, length %d)",
+					"parseDeclaredBodyLength(%d) = (present %t, length %d), want (present %t, length %d)",
 					testCase.contentLength,
 					got.present,
 					got.length.Uint64(),
@@ -143,7 +128,6 @@ func TestAggregateResponseDeclaredExtentCannotWeakenTheBodyLimit(t *testing.T) {
 	t.Parallel()
 
 	const limitBytes = 4096
-	limit := mustInternalByteCount(t, limitBytes)
 	cases := []struct {
 		wantIdentity  error
 		name          string
@@ -159,16 +143,16 @@ func TestAggregateResponseDeclaredExtentCannotWeakenTheBodyLimit(t *testing.T) {
 			wantBytes:     limitBytes,
 		},
 		{
-			name:          "absent declaration remains bounded while reading",
+			name:          "absent declaration streams all actual bytes",
 			bodyBytes:     limitBytes + 1,
 			declaredBytes: -1,
-			wantIdentity:  core.ErrExchangeBodyLimit,
+			wantBytes:     limitBytes + 1,
 		},
 		{
-			name:          "understated declaration does not raise the read limit",
+			name:          "understated declaration retains every actual byte",
 			bodyBytes:     limitBytes + 1,
 			declaredBytes: 1,
-			wantIdentity:  core.ErrExchangeBodyLimit,
+			wantBytes:     limitBytes + 1,
 		},
 		{
 			name:          "understated declaration admits bytes within the limit",
@@ -177,24 +161,22 @@ func TestAggregateResponseDeclaredExtentCannotWeakenTheBodyLimit(t *testing.T) {
 			wantBytes:     limitBytes,
 		},
 		{
-			name:          "declared empty cannot conceal one byte over the limit",
+			name:          "declared empty does not conceal actual bytes",
 			bodyBytes:     limitBytes + 1,
 			declaredBytes: 0,
-			wantIdentity:  core.ErrExchangeBodyLimit,
+			wantBytes:     limitBytes + 1,
 		},
 		{
-			name:          "one over declared limit is refused before reading",
+			name:          "one over declared limit does not impose a storage reservation",
 			bodyBytes:     1,
 			declaredBytes: limitBytes + 1,
-			wantUnread:    1,
-			wantIdentity:  core.ErrExchangeBodyLimit,
+			wantBytes:     1,
 		},
 		{
-			name:          "maximum declaration is refused before reading",
+			name:          "maximum declaration does not impose a storage reservation",
 			bodyBytes:     1,
 			declaredBytes: math.MaxInt64,
-			wantUnread:    1,
-			wantIdentity:  core.ErrExchangeBodyLimit,
+			wantBytes:     1,
 		},
 		{
 			name:          "one below absence is a response contract defect",
@@ -230,7 +212,6 @@ func TestAggregateResponseDeclaredExtentCannotWeakenTheBodyLimit(t *testing.T) {
 					Body:          io.NopCloser(source),
 					ContentLength: testCase.declaredBytes,
 				},
-				limit: limit,
 			})
 			if testCase.wantIdentity != nil {
 				if !errors.Is(gotErr, testCase.wantIdentity) {
@@ -270,52 +251,6 @@ func TestAggregateResponseDeclaredExtentCannotWeakenTheBodyLimit(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestDeclaredReservationDoesNotDoubleBeforeEOF(t *testing.T) {
-	t.Parallel()
-
-	const bodyBytes = 512 * 1024
-	body := bytes.Repeat([]byte{0x3c}, bodyBytes)
-	declared, err := parseDeclaredBodyLength(bodyBytes)
-	if err != nil {
-		t.Fatalf(
-			"parseDeclaredBodyLength(%d) error = %v, want nil",
-			bodyBytes,
-			err,
-		)
-	}
-	got, gotErr := readBoundedBody(boundedBodyRead{
-		context:  context.Background(),
-		source:   bytes.NewReader(body),
-		declared: declared,
-		limit:    mustInternalByteCount(t, bodyBytes),
-	})
-	if gotErr != nil {
-		t.Fatalf("readBoundedBody() error = %v, want nil", gotErr)
-	}
-	if !bytes.Equal(got, body) {
-		t.Fatalf(
-			"bytes.Equal(readBoundedBody(), source) = false for %d bytes, want true",
-			bodyBytes,
-		)
-	}
-	if gotCapacity := cap(got); gotCapacity != bodyBytes {
-		t.Fatalf(
-			"cap(readBoundedBody()) = %d, want exact declared reservation %d",
-			gotCapacity,
-			bodyBytes,
-		)
-	}
-}
-
-func mustInternalByteCount(t *testing.T, value uint64) core.ByteCount {
-	t.Helper()
-	got, err := core.NewByteCount(value)
-	if err != nil {
-		t.Fatalf("core.NewByteCount(%d) error = %v, want nil", value, err)
-	}
-	return got
 }
 
 func TestRetryAfterParserHostileBoundaryTable(t *testing.T) {

@@ -100,10 +100,6 @@ func TestHTTPTransportFailureHandoffTable(t *testing.T) {
 						if err != nil {
 							t.Fatalf("endpoint fixture = %v, want nil", err)
 						}
-						limit, err := core.NewByteCount(2)
-						if err != nil {
-							t.Fatalf("limit fixture = %v, want nil", err)
-						}
 						length, err := core.NewByteLength(2)
 						if err != nil {
 							t.Fatalf("length fixture = %v, want nil", err)
@@ -111,7 +107,7 @@ func TestHTTPTransportFailureHandoffTable(t *testing.T) {
 						semantics := RequestSemantics{Method: MethodGet, Replay: ReplaySingleAttempt}
 						timeout := runtimeAgreementPolicy(t).ReadTimeout
 						operation := OperationPolicy{OperationTimeout: timeout, AttemptTimeout: timeout, Retry: RetryPolicy{MaximumAttempts: 1}, Redirect: RedirectPolicy{Mode: RedirectReject}}
-						stream := StreamPolicy{OperationTimeout: timeout, AttemptTimeout: timeout, ErrorBodyLimit: limit, Redirect: RedirectPolicy{Mode: RedirectReject}}
+						stream := StreamPolicy{OperationTimeout: timeout, AttemptTimeout: timeout, Redirect: RedirectPolicy{Mode: RedirectReject}}
 						if tc.attemptNanoseconds != 0 {
 							attempt, err := temporal.DurationFromNanoseconds(tc.attemptNanoseconds)
 							if err != nil {
@@ -125,25 +121,25 @@ func TestHTTPTransportFailureHandoffTable(t *testing.T) {
 						var gotErr error
 						switch door.value {
 						case transportFailureNoBody:
-							got, err := SendNoBodyBounded(NoBodyBoundedCall{Context: ctx, Client: client, Request: NoBodyBoundedRequest{Target: target, Semantics: semantics, ExpectedStatus: core.HTTPStatusOK()}, Policy: NoBodyBoundedPolicy{Operation: operation, ResponseBodyLimit: limit}})
+							got, err := SendNoBodyBounded(NoBodyBoundedCall{Context: ctx, Client: client, Request: NoBodyBoundedRequest{Target: target, Semantics: semantics, ExpectedStatus: core.HTTPStatusOK()}, Policy: NoBodyBoundedPolicy{Operation: operation}})
 							metadata, gotErr = got.Metadata, err
 							if got.Body != nil {
 								t.Fatalf("unobserved bounded body = %x, want nil", got.Body)
 							}
 						case transportFailureBounded:
-							got, err := SendBounded(BoundedCall{Context: ctx, Client: client, Request: BoundedRequest{Target: target, Semantics: semantics, ExpectedStatus: core.HTTPStatusOK(), Body: []byte{0, 0xff}, RequestContentType: core.HTTPMediaTypeOctetStream()}, Policy: BoundedPolicy{Operation: operation, RequestBodyLimit: limit, ResponseBodyLimit: limit}})
+							got, err := SendBounded(BoundedCall{Context: ctx, Client: client, Request: BoundedRequest{Target: target, Semantics: semantics, ExpectedStatus: core.HTTPStatusOK(), Body: []byte{0, 0xff}, RequestContentType: core.HTTPMediaTypeOctetStream()}, Policy: BoundedPolicy{Operation: operation}})
 							metadata, gotErr = got.Metadata, err
 							if got.Body != nil {
 								t.Fatalf("unobserved bounded body = %x, want nil", got.Body)
 							}
 						case transportFailureUpload:
-							got, err := Upload(UploadCall{Context: ctx, Client: client, Request: UploadRequest{Target: target, Semantics: semantics, ExpectedStatus: core.HTTPStatusOK(), Source: source, ContentLength: length, ContentType: core.HTTPMediaTypeOctetStream()}, Policy: stream})
+							got, err := Upload(UploadCall{Context: ctx, Client: client, Request: UploadRequest{Target: target, Semantics: semantics, ExpectedStatus: core.HTTPStatusOK(), Source: source, ContentLength: new(length), ContentType: core.HTTPMediaTypeOctetStream()}, Policy: stream})
 							metadata, gotErr = got.Metadata, err
 						case transportFailureDownload:
-							got, err := Download(DownloadCall{Context: ctx, Client: client, Request: DownloadRequest{Target: target, Semantics: semantics, ExpectedStatus: core.HTTPStatusOK(), Destination: &destination, ResponseBodyLimit: limit}, Policy: stream})
+							got, err := Download(DownloadCall{Context: ctx, Client: client, Request: DownloadRequest{Target: target, Semantics: semantics, ExpectedStatus: core.HTTPStatusOK(), Destination: &destination}, Policy: stream})
 							metadata, gotErr = got.Metadata, err
 						case transportFailureRoundTrip:
-							got, err := RoundTripStream(StreamRoundTripCall{Context: ctx, Client: client, Request: StreamRoundTripRequest{Target: target, Semantics: semantics, ExpectedStatus: core.HTTPStatusOK(), Source: source, Destination: &destination, RequestContentLength: length, RequestContentType: core.HTTPMediaTypeOctetStream(), ResponseBodyLimit: limit}, Policy: stream})
+							got, err := RoundTripStream(StreamRoundTripCall{Context: ctx, Client: client, Request: StreamRoundTripRequest{Target: target, Semantics: semantics, ExpectedStatus: core.HTTPStatusOK(), Source: source, Destination: &destination, RequestContentLength: new(length), RequestContentType: core.HTTPMediaTypeOctetStream()}, Policy: stream})
 							metadata, gotErr = got.Metadata, err
 							if got.DeclaredRequestBytes != (core.ByteLength{}) {
 								t.Fatalf("unconsumed request receipt = %v, want zero", got.DeclaredRequestBytes)

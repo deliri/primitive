@@ -33,7 +33,7 @@ func TestContextBudgetLayerTriad(t *testing.T) {
 		wantErr          error
 	}{
 		{name: "exact response ceiling retains binary bytes over real HTTP", payload: []byte{0, 0xff}, method: exchange.MethodGet, maximum: 2, wantBody: []byte{0, 0xff}, wantCalls: 1, wantAttempts: 1, wantStatus: core.HTTPStatusOK(), wantHeaderLength: 2},
-		{name: "one above response ceiling withholds body but retains HTTP facts", payload: []byte{0, 0xff}, method: exchange.MethodGet, maximum: 1, wantCalls: 1, wantAttempts: 1, wantStatus: core.HTTPStatusOK(), wantHeaderLength: 2, wantErr: core.ErrExchangeBodyLimit},
+		{name: "complete response retains bytes and HTTP facts", payload: []byte{0, 0xff}, method: exchange.MethodGet, maximum: 1, wantBody: []byte{0, 0xff}, wantCalls: 1, wantAttempts: 1, wantStatus: core.HTTPStatusOK(), wantHeaderLength: 2},
 		{name: "empty successful HTTP response seals zero bytes without inventing body", method: exchange.MethodGet, maximum: 1, wantCalls: 1, wantAttempts: 1, wantStatus: core.HTTPStatusOK()},
 		{name: "HEAD retains declared extent without claiming transferred response bytes", payload: []byte{0, 0xff}, method: exchange.MethodHead, maximum: 2, wantCalls: 1, wantAttempts: 1, wantStatus: core.HTTPStatusOK(), wantHeaderLength: 2},
 		{name: "zero operation budget refuses before network execution", payload: []byte{0, 0xff}, method: exchange.MethodGet, maximum: 2, zeroPolicy: true, wantErr: core.ErrExchangeContract},
@@ -72,7 +72,7 @@ func TestContextBudgetLayerTriad(t *testing.T) {
 			got, gotErr := exchange.SendNoBodyBounded(exchange.NoBodyBoundedCall{
 				Context: t.Context(), Client: mustExchangeClient(t, client),
 				Request: exchange.NoBodyBoundedRequest{Target: mustEndpoint(t, server.URL), Semantics: exchange.RequestSemantics{Method: tc.method, Replay: exchange.ReplaySingleAttempt}, ExpectedStatus: core.HTTPStatusOK(), ExpectedResponseContentType: core.HTTPMediaTypeOctetStream(), CaptureHeaders: exchange.HeaderSelection{Names: []core.HTTPHeaderName{core.HTTPHeaderContentLength()}}},
-				Policy:  exchange.NoBodyBoundedPolicy{Operation: policy, ResponseBodyLimit: mustByteCount(t, tc.maximum)},
+				Policy:  exchange.NoBodyBoundedPolicy{Operation: policy},
 			})
 			if !errors.Is(gotErr, tc.wantErr) {
 				t.Fatalf("HTTP result error = %v, want %v", gotErr, tc.wantErr)

@@ -23,7 +23,7 @@ func TestActivationRequestClosesEveryPreEffectBoundary(t *testing.T) {
 		}
 		request := filestore.ActivationRequest{
 			Temporary: filestore.Location{Root: root, Path: mustRelativePath(t, ".stage")},
-			Target:    mustRelativePath(t, "target"), ExpectedBytes: expected,
+			Target:    mustRelativePath(t, "target"), ExpectedBytes: new(expected),
 			Mode: 0o600, Install: filestore.InstallReplace,
 		}
 		if err := request.Validate(); err != nil {
@@ -31,14 +31,14 @@ func TestActivationRequestClosesEveryPreEffectBoundary(t *testing.T) {
 		}
 		stage := request.StageDestination()
 		if err := stage.Validate(); err != nil || stage.Temporary != request.Temporary ||
-			stage.ExpectedBytes != expected || stage.Mode != request.Mode {
+			(stage.ExpectedBytes == nil || *stage.ExpectedBytes != expected) || stage.Mode != request.Mode {
 			t.Fatalf("ActivationRequest.StageDestination(%d) = (%v, %v), want exact plan projection", size, stage, err)
 		}
 	}
 
 	valid := filestore.ActivationRequest{
 		Temporary: filestore.Location{Root: root, Path: mustRelativePath(t, ".stage")},
-		Target:    mustRelativePath(t, "target"), ExpectedBytes: mustActivationLength(t, 1),
+		Target:    mustRelativePath(t, "target"), ExpectedBytes: new(mustActivationLength(t, 1)),
 		Mode: 0o600, Install: filestore.InstallReplace,
 	}
 	cases := []struct {
@@ -165,7 +165,7 @@ func TestActivationStageAgreementLayerTriad(t *testing.T) {
 					if err := staged.Validate(); err != nil || staged.Path() != stagePath || staged.BytesWritten().Uint64() != uint64(len(payload.data)) {
 						t.Fatalf("producer receipt = (%v,%v), want exact temporary and %d bytes", staged, err, len(payload.data))
 					}
-					plan := filestore.ActivationRequest{Temporary: filestore.Location{Root: root, Path: stagePath}, Target: target, ExpectedBytes: mustActivationLength(t, uint64(len(payload.data))), Mode: 0o600, Install: filestore.InstallCreate}
+					plan := filestore.ActivationRequest{Temporary: filestore.Location{Root: root, Path: stagePath}, Target: target, ExpectedBytes: new(mustActivationLength(t, uint64(len(payload.data)))), Mode: 0o600, Install: filestore.InstallCreate}
 					input := staged
 					if tc.changes&activationAgreementForeignRoot != 0 {
 						plan.Temporary.Root = foreignRoot
@@ -174,7 +174,7 @@ func TestActivationStageAgreementLayerTriad(t *testing.T) {
 						plan.Temporary.Path = mustRelativePath(t, ".different")
 					}
 					if tc.changes&activationAgreementForeignExtent != 0 {
-						plan.ExpectedBytes = mustActivationLength(t, uint64(len(payload.data)+1))
+						plan.ExpectedBytes = new(mustActivationLength(t, uint64(len(payload.data)+1)))
 					}
 					if tc.changes&activationAgreementForeignMode != 0 {
 						plan.Mode = 0o400

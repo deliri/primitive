@@ -172,6 +172,7 @@ func objectstoreTypeBindings() []inventoryBinding {
 		{typ: reflect.TypeFor[Client](), role: inventoryCapability},
 		{typ: reflect.TypeFor[Transfer](), role: inventoryCapability},
 		{typ: reflect.TypeFor[preparedDownload](), role: inventoryFlow},
+		{typ: reflect.TypeFor[exactDownloadWriter](), role: inventoryCapability},
 		{typ: reflect.TypeFor[preparedUpload](), role: inventoryFlow},
 		{typ: reflect.TypeFor[requestBody](), role: inventoryFlow},
 		{typ: reflect.TypeFor[uploadObservedSource](), role: inventoryFlow},

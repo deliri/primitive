@@ -32,7 +32,7 @@ func FuzzReceiveBoundedDeclaredExtentCustody(f *testing.F) {
 	f.Add(seed, int32(len(seed)-1), uint16(9), true, true)
 	f.Add(seed, int32(len(seed)+1), uint16(9), false, true)
 	f.Add([]byte{}, int32(1), uint16(9), true, true)
-	f.Fuzz(func(t *testing.T, data []byte, declared int32, ceiling uint16, readFailure, closeFailure bool) {
+	f.Fuzz(func(t *testing.T, data []byte, declared int32, window uint16, readFailure, closeFailure bool) {
 		if len(data) > 8192 {
 			return
 		}
@@ -40,7 +40,7 @@ func FuzzReceiveBoundedDeclaredExtentCustody(f *testing.F) {
 		if readFailure {
 			fault = streamFuzzReadFailure
 		}
-		source := &bindingObservedBody{reader: &streamFuzzReader{source: bytes.NewReader(data), fault: fault}}
+		source := &bindingObservedBody{reader: &streamFuzzReader{source: bytes.NewReader(data), fault: fault, window: int(window)}}
 		if closeFailure {
 			source.err = io.ErrClosedPipe
 		}
@@ -48,18 +48,14 @@ func FuzzReceiveBoundedDeclaredExtentCustody(f *testing.F) {
 		request.Body, request.ContentLength = source, int64(declared)
 		request.Header.Set(core.HTTPHeaderContentType().String(), core.HTTPMediaTypeOctetStream().String())
 		writer := httptest.NewRecorder()
-		var limit core.ByteCount
-		if ceiling != 0 {
-			limit = mustByteCount(t, uint64(ceiling))
-		}
-		got, err := exchange.ReceiveBounded(exchange.BoundedReceiveCall{Call: socketServerCallFrom(t, writer, request), Route: exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt}, ExpectedContentType: core.HTTPMediaTypeOctetStream(), Policy: exchange.ServerBoundedPolicy{RequestBodyLimit: limit}})
-		wantIngress := ceiling > 0 && declared >= -1 && int64(declared) <= int64(ceiling)
+		got, err := exchange.ReceiveBounded(exchange.BoundedReceiveCall{Call: socketServerCallFrom(t, writer, request), Route: exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt}, ExpectedContentType: core.HTTPMediaTypeOctetStream()})
+		wantIngress := declared >= -1
 		wantRead := 0
 		if wantIngress {
-			wantRead = min(len(data), int(ceiling)+1)
+			wantRead = len(data)
 		}
-		wantOverflow := ceiling > 0 && (int64(declared) > int64(ceiling) || wantIngress && len(data) > int(ceiling))
-		wantReadFailure := wantIngress && len(data) <= int(ceiling) && readFailure
+		wantOverflow := false
+		wantReadFailure := wantIngress && readFailure
 		wantAccepted := wantIngress && !wantOverflow && !wantReadFailure && !closeFailure
 		if wantAccepted {
 			if err != nil || !bytes.Equal(got.Body, data) || !got.IdempotencyKey.IsZero() || got.Validate() != nil {

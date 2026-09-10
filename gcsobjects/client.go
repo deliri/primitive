@@ -47,13 +47,8 @@ func NewGCSClient(ctx context.Context, config GCSClientConfig) (*GCSClient, erro
 }
 
 const (
-	// GCSAuthenticationResponseMaximumBytes is Primitive's custody ceiling for
-	// one provider credential exchange; Google publishes the token shape but no
-	// aggregate response extent.
-	// Source: https://cloud.google.com/iam/docs/reference/credentials/rest/v1/projects.serviceAccounts/generateAccessToken
-	GCSAuthenticationResponseMaximumBytes = 64 << 10
-	gcsSDKAlternateRepresentationQuery    = "alt"
-	gcsSDKMediaRepresentation             = "media"
+	gcsSDKAlternateRepresentationQuery = "alt"
+	gcsSDKMediaRepresentation          = "media"
 )
 
 func gcsSDKResponseMethods() [7]exchange.Method {
@@ -174,18 +169,13 @@ func gcsCredentialJSON(ctx context.Context, config GCSClientConfig) ([]byte, err
 }
 
 func gcsProviderResponseBoundary(method exchange.Method) (exchange.OfficialSDKResponseBoundary, error) {
-	limit, err := core.NewByteCount(GCSProviderResponseMaximumBytes)
-	if err != nil {
-		return exchange.OfficialSDKResponseBoundary{}, errors.Join(core.ErrObjectStoreContract, err)
-	}
 	if method == exchange.MethodGet {
-		boundary, streamErr := exchange.NewOfficialSDKStreamingSuccessCeiling(
-			exchange.OfficialSDKStreamingSuccessCeilingRequest{
+		boundary, streamErr := exchange.NewOfficialSDKStreamingResponseBoundary(
+			exchange.OfficialSDKStreamingResponseBoundaryRequest{
 				Method:                  method,
 				StreamQueryName:         gcsSDKAlternateRepresentationQuery,
 				StreamQueryValue:        gcsSDKMediaRepresentation,
 				AggregateRepresentation: exchange.OfficialSDKResponseRepresentationJSON,
-				AggregateMaximumBytes:   limit,
 			},
 		)
 		if streamErr != nil {
@@ -193,9 +183,8 @@ func gcsProviderResponseBoundary(method exchange.Method) (exchange.OfficialSDKRe
 		}
 		return boundary, nil
 	}
-	boundary, err := exchange.NewOfficialSDKResponseCeiling(exchange.OfficialSDKResponseCeilingRequest{
+	boundary, err := exchange.NewOfficialSDKMethodResponseBoundary(exchange.OfficialSDKMethodResponseBoundaryRequest{
 		Method: method, Representation: exchange.OfficialSDKResponseRepresentationJSON,
-		MaximumBytes: limit,
 	})
 	if err != nil {
 		return exchange.OfficialSDKResponseBoundary{}, errors.Join(core.ErrObjectStoreContract, err)
@@ -204,13 +193,8 @@ func gcsProviderResponseBoundary(method exchange.Method) (exchange.OfficialSDKRe
 }
 
 func gcsAuthenticationContext(ctx context.Context) (context.Context, error) {
-	limit, err := core.NewByteCount(GCSAuthenticationResponseMaximumBytes)
-	if err != nil {
-		return nil, errors.Join(core.ErrObjectStoreContract, err)
-	}
-	getBoundary, err := exchange.NewOfficialSDKResponseCeiling(exchange.OfficialSDKResponseCeilingRequest{
+	getBoundary, err := exchange.NewOfficialSDKMethodResponseBoundary(exchange.OfficialSDKMethodResponseBoundaryRequest{
 		Method: exchange.MethodGet, Representation: exchange.OfficialSDKResponseRepresentationJSON,
-		MaximumBytes: limit,
 	})
 	if err != nil {
 		return nil, errors.Join(core.ErrObjectStoreContract, err)
@@ -219,9 +203,8 @@ func gcsAuthenticationContext(ctx context.Context) (context.Context, error) {
 	if err != nil {
 		return nil, errors.Join(core.ErrObjectStoreContract, err)
 	}
-	postBoundary, err := exchange.NewOfficialSDKResponseCeiling(exchange.OfficialSDKResponseCeilingRequest{
+	postBoundary, err := exchange.NewOfficialSDKMethodResponseBoundary(exchange.OfficialSDKMethodResponseBoundaryRequest{
 		Method: exchange.MethodPost, Representation: exchange.OfficialSDKResponseRepresentationJSON,
-		MaximumBytes: limit,
 	})
 	if err != nil {
 		return nil, errors.Join(core.ErrObjectStoreContract, err)
@@ -293,14 +276,9 @@ func CreateBucket(
 }
 
 const (
-	// GCSProviderResponseMaximumBytes bounds one complete provider response
-	// before an official Google SDK decodes it. This is Primitive's custody
-	// ceiling; Google publishes error shapes but no aggregate response extent.
-	// Source: https://cloud.google.com/storage/docs/json_api/v1/status-codes
-	GCSProviderResponseMaximumBytes              = 1 << 20
-	gcsPublicReadRole               iam.RoleName = "roles/storage.legacyObjectReader"
-	gcsJSONBucketPathPrefix                      = "/storage/v1/b/"
-	gcsIAMPolicyPathSuffix                       = "/iam"
+	gcsPublicReadRole       iam.RoleName = "roles/storage.legacyObjectReader"
+	gcsJSONBucketPathPrefix string       = "/storage/v1/b/"
+	gcsIAMPolicyPathSuffix  string       = "/iam"
 )
 
 // GrantGCSBucketPublicRead idempotently adds the provider's unauthenticated,
@@ -610,7 +588,7 @@ func (r GCSReadRequest) Validate() error {
 		}
 	}
 	if r.Integrity.Length.Uint64() > objectstore.GoogleCloudStorageObjectMaximumBytes ||
-		r.Destination.ExpectedBytes != r.Integrity.Length {
+		r.Destination.ExpectedBytes == nil || *r.Destination.ExpectedBytes != r.Integrity.Length {
 		return errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreSize)
 	}
 	return nil

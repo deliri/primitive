@@ -144,9 +144,8 @@ func liveGCSDownloadPolicy(t testing.TB) objectstore.Policy {
 
 	operation, gotOperationErr := temporal.DurationFromSeconds(30)
 	attempt, gotAttemptErr := temporal.DurationFromSeconds(15)
-	errorBody, gotErrorBodyErr := core.NewByteCount(4096)
-	if gotOperationErr != nil || gotAttemptErr != nil || gotErrorBodyErr != nil {
-		t.Fatalf("download policy construction errors = (%v, %v, %v), want nil", gotOperationErr, gotAttemptErr, gotErrorBodyErr)
+	if gotOperationErr != nil || gotAttemptErr != nil {
+		t.Fatalf("download policy construction errors = (%v, %v), want nil", gotOperationErr, gotAttemptErr)
 	}
-	return objectstore.Policy{OperationTimeout: operation, AttemptTimeout: attempt, ErrorBodyLimit: errorBody}
+	return objectstore.Policy{OperationTimeout: operation, AttemptTimeout: attempt}
 }

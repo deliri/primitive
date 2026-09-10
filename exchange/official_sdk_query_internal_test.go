@@ -43,14 +43,10 @@ func (r *sdkQueryObservedTransport) RoundTrip(request *http.Request) (*http.Resp
 
 func sdkQueryBoundary(t testing.TB) OfficialSDKResponseBoundary {
 	t.Helper()
-	limit, err := core.NewByteCount(1)
-	if err != nil {
-		t.Fatal(err)
-	}
-	boundary, err := NewOfficialSDKStreamingSuccessCeiling(OfficialSDKStreamingSuccessCeilingRequest{
+	boundary, err := NewOfficialSDKStreamingResponseBoundary(OfficialSDKStreamingResponseBoundaryRequest{
 		StreamQueryName: sdkQueryFixtureName, StreamQueryValue: sdkQueryFixtureValue,
-		AggregateMaximumBytes: limit, Method: MethodGet,
-		AggregateRepresentation: OfficialSDKResponseRepresentationBinary,
+		Method:                  MethodGet,
+		AggregateRepresentation: OfficialSDKResponseRepresentationJSON,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -96,24 +92,24 @@ func TestOfficialSDKQueryCustodyLayerTriad(t *testing.T) {
 		{name: "positive escaped coordinate uses Go query semantics", query: "%61lt=m%65dia", status: http.StatusOK, wantStream: true},
 		{name: "neutral unrelated valid field leaves selection intact", query: "projection=full&" + exact, status: http.StatusOK, wantStream: true},
 		{name: "neutral empty separators use Go query semantics", query: "&&" + exact + "&&", status: http.StatusOK, wantStream: true},
-		{name: "negative malformed unrelated value cannot disappear", query: exact + "&broken=%zz", status: http.StatusOK, wantErr: core.ErrExchangeBodyLimit, wantReadBytes: 2, wantCloses: 1},
-		{name: "negative malformed unrelated name cannot disappear", query: exact + "&%zz=broken", status: http.StatusOK, wantErr: core.ErrExchangeBodyLimit, wantReadBytes: 2, wantCloses: 1},
-		{name: "negative malformed second selected value cannot disappear", query: exact + "&alt=%zz", status: http.StatusOK, wantErr: core.ErrExchangeBodyLimit, wantReadBytes: 2, wantCloses: 1},
-		{name: "negative semicolon field cannot disappear", query: exact + "&broken=a;b", status: http.StatusOK, wantErr: core.ErrExchangeBodyLimit, wantReadBytes: 2, wantCloses: 1},
-		{name: "negative incomplete escape cannot disappear", query: "broken=%&" + exact, status: http.StatusOK, wantErr: core.ErrExchangeBodyLimit, wantReadBytes: 2, wantCloses: 1},
-		{name: "negative duplicate exact coordinate is ambiguous", query: exact + "&" + exact, status: http.StatusOK, wantErr: core.ErrExchangeBodyLimit, wantReadBytes: 2, wantCloses: 1},
-		{name: "negative conflicting duplicate is ambiguous", query: exact + "&alt=json", status: http.StatusOK, wantErr: core.ErrExchangeBodyLimit, wantReadBytes: 2, wantCloses: 1},
-		{name: "negative missing equals adds empty duplicate", query: exact + "&alt", status: http.StatusOK, wantErr: core.ErrExchangeBodyLimit, wantReadBytes: 2, wantCloses: 1},
-		{name: "negative encoded duplicate is ambiguous", query: exact + "&%61lt=media", status: http.StatusOK, wantErr: core.ErrExchangeBodyLimit, wantReadBytes: 2, wantCloses: 1},
-		{name: "boundary empty query aggregates", status: http.StatusOK, wantErr: core.ErrExchangeBodyLimit, wantReadBytes: 2, wantCloses: 1},
-		{name: "boundary absent selected value aggregates", query: "alt=", status: http.StatusOK, wantErr: core.ErrExchangeBodyLimit, wantReadBytes: 2, wantCloses: 1},
-		{name: "boundary plus means space not exact coordinate", query: "alt=media+", status: http.StatusOK, wantErr: core.ErrExchangeBodyLimit, wantReadBytes: 2, wantCloses: 1},
-		{name: "boundary case-sensitive name aggregates", query: "ALT=media", status: http.StatusOK, wantErr: core.ErrExchangeBodyLimit, wantReadBytes: 2, wantCloses: 1},
-		{name: "boundary case-sensitive value aggregates", query: "alt=MEDIA", status: http.StatusOK, wantErr: core.ErrExchangeBodyLimit, wantReadBytes: 2, wantCloses: 1},
-		{name: "boundary escaped separator is part of value", query: "alt=media%26other=value", status: http.StatusOK, wantErr: core.ErrExchangeBodyLimit, wantReadBytes: 2, wantCloses: 1},
+		{name: "negative malformed unrelated value cannot disappear", query: exact + "&broken=%zz", status: http.StatusOK, wantErr: core.ErrJSONContract, wantReadBytes: 2, wantCloses: 1},
+		{name: "negative malformed unrelated name cannot disappear", query: exact + "&%zz=broken", status: http.StatusOK, wantErr: core.ErrJSONContract, wantReadBytes: 2, wantCloses: 1},
+		{name: "negative malformed second selected value cannot disappear", query: exact + "&alt=%zz", status: http.StatusOK, wantErr: core.ErrJSONContract, wantReadBytes: 2, wantCloses: 1},
+		{name: "negative semicolon field cannot disappear", query: exact + "&broken=a;b", status: http.StatusOK, wantErr: core.ErrJSONContract, wantReadBytes: 2, wantCloses: 1},
+		{name: "negative incomplete escape cannot disappear", query: "broken=%&" + exact, status: http.StatusOK, wantErr: core.ErrJSONContract, wantReadBytes: 2, wantCloses: 1},
+		{name: "negative duplicate exact coordinate is ambiguous", query: exact + "&" + exact, status: http.StatusOK, wantErr: core.ErrJSONContract, wantReadBytes: 2, wantCloses: 1},
+		{name: "negative conflicting duplicate is ambiguous", query: exact + "&alt=json", status: http.StatusOK, wantErr: core.ErrJSONContract, wantReadBytes: 2, wantCloses: 1},
+		{name: "negative missing equals adds empty duplicate", query: exact + "&alt", status: http.StatusOK, wantErr: core.ErrJSONContract, wantReadBytes: 2, wantCloses: 1},
+		{name: "negative encoded duplicate is ambiguous", query: exact + "&%61lt=media", status: http.StatusOK, wantErr: core.ErrJSONContract, wantReadBytes: 2, wantCloses: 1},
+		{name: "boundary empty query aggregates", status: http.StatusOK, wantErr: core.ErrJSONContract, wantReadBytes: 2, wantCloses: 1},
+		{name: "boundary absent selected value aggregates", query: "alt=", status: http.StatusOK, wantErr: core.ErrJSONContract, wantReadBytes: 2, wantCloses: 1},
+		{name: "boundary plus means space not exact coordinate", query: "alt=media+", status: http.StatusOK, wantErr: core.ErrJSONContract, wantReadBytes: 2, wantCloses: 1},
+		{name: "boundary case-sensitive name aggregates", query: "ALT=media", status: http.StatusOK, wantErr: core.ErrJSONContract, wantReadBytes: 2, wantCloses: 1},
+		{name: "boundary case-sensitive value aggregates", query: "alt=MEDIA", status: http.StatusOK, wantErr: core.ErrJSONContract, wantReadBytes: 2, wantCloses: 1},
+		{name: "boundary escaped separator is part of value", query: "alt=media%26other=value", status: http.StatusOK, wantErr: core.ErrJSONContract, wantReadBytes: 2, wantCloses: 1},
 		{name: "boundary last successful status keeps streaming custody", query: exact, status: http.StatusMultipleChoices - 1, wantStream: true},
-		{name: "boundary first redirect status cannot bypass aggregation", query: exact, status: http.StatusMultipleChoices, wantErr: core.ErrExchangeBodyLimit, wantReadBytes: 2, wantCloses: 1},
-		{name: "boundary status immediately below success cannot bypass aggregation", query: exact, status: http.StatusOK - 1, wantErr: core.ErrExchangeBodyLimit, wantReadBytes: 2, wantCloses: 1},
+		{name: "boundary first redirect status cannot bypass aggregation", query: exact, status: http.StatusMultipleChoices, wantErr: core.ErrJSONContract, wantReadBytes: 2, wantCloses: 1},
+		{name: "boundary status immediately below success cannot bypass aggregation", query: exact, status: http.StatusOK - 1, wantErr: core.ErrJSONContract, wantReadBytes: 2, wantCloses: 1},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -173,8 +169,8 @@ func FuzzOfficialSDKQueryCustodySemanticBoundary(f *testing.F) {
 			t.Fatalf("provider calls = %d, want 1", got.providerCalls)
 		}
 		if !want {
-			if got.response != nil || !errors.Is(got.err, core.ErrExchangeResponse) || !errors.Is(got.err, core.ErrExchangeBodyLimit) {
-				t.Fatalf("aggregate response/error = %v/%v, want nil and response/body-limit identities", got.response, got.err)
+			if got.response != nil || !errors.Is(got.err, core.ErrExchangeResponse) || !errors.Is(got.err, core.ErrJSONContract) {
+				t.Fatalf("aggregate response/error = %v/%v, want nil and response/JSON identities", got.response, got.err)
 			}
 			if got.body.readBytes != len(payload) || got.body.closes != 1 {
 				t.Fatalf("aggregate read/close = %d/%d, want %d/1", got.body.readBytes, got.body.closes, len(payload))

@@ -116,18 +116,18 @@ func sourceDownloadRequestFixtureWithObservation(t testing.TB, unit Unit, grant 
 	encoded, encodedErr := projection.MarshalJSON()
 	var capability objectstore.DownloadCapability
 	decodeErr := json.Unmarshal(encoded, &capability)
-	errorLimit, errorLimitErr := core.NewByteCount(4096)
+
 	operation, operationErr := temporal.DurationFromSeconds(10)
 	attempt, attemptErr := temporal.DurationFromSeconds(5)
 	integrity := objectstore.Integrity{SHA256: core.SHA256Of(expected), Length: sourceByteLength(t, uint64(len(expected))), CRC32C: checksum}
-	if err := errors.Join(checksumErr, signedErr, headersErr, projectionErr, encodedErr, decodeErr, errorLimitErr, operationErr, attemptErr); err != nil {
+	if err := errors.Join(checksumErr, signedErr, headersErr, projectionErr, encodedErr, decodeErr, operationErr, attemptErr); err != nil {
 		t.Fatalf("source download request fixture error = %v, want nil", err)
 	}
 	return SourceDownloadRequest{
 		Unit: unit, Grant: grant, Document: document, TrustedKeys: trusted,
 		ObservedAt: temporal.InstantFromNanoseconds(10), Client: client, Capability: capability,
 		Integrity: integrity, ContentType: core.HTTPMediaTypeOctetStream(),
-		Policy: objectstore.Policy{OperationTimeout: operation, AttemptTimeout: attempt, ErrorBodyLimit: errorLimit},
+		Policy: objectstore.Policy{OperationTimeout: operation, AttemptTimeout: attempt},
 	}
 }
 

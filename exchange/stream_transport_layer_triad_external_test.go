@@ -46,9 +46,6 @@ func TestUploadTransportLayerTriad(t *testing.T) {
 		wantDigest := sha256File(t, sourcePath)
 
 		created := mustHTTPStatus(t, http.StatusCreated)
-		serverPolicy := exchange.ServerStreamPolicy{
-			RequestBodyLimit: mustByteCount(t, testLargeTransferBytes),
-		}
 		observed := make(chan uploadServerObservation, 1)
 		server := httptest.NewServer(http.HandlerFunc(func(
 			writer http.ResponseWriter,
@@ -64,7 +61,7 @@ func TestUploadTransportLayerTriad(t *testing.T) {
 						Method: exchange.MethodPut,
 						Replay: exchange.ReplaySingleAttempt,
 					},
-					Policy:              serverPolicy,
+
 					ExpectedContentType: core.HTTPMediaTypeOctetStream(),
 				},
 			)
@@ -102,7 +99,7 @@ func TestUploadTransportLayerTriad(t *testing.T) {
 						Method: exchange.MethodPut,
 						Replay: exchange.ReplaySingleAttempt,
 					},
-					ContentLength:  mustByteLength(t, testLargeTransferBytes),
+					ContentLength:  new(mustByteLength(t, testLargeTransferBytes)),
 					ContentType:    core.HTTPMediaTypeOctetStream(),
 					ExpectedStatus: created,
 				},
@@ -150,9 +147,6 @@ func TestUploadTransportLayerTriad(t *testing.T) {
 		t.Parallel()
 
 		created := mustHTTPStatus(t, http.StatusCreated)
-		serverPolicy := exchange.ServerStreamPolicy{
-			RequestBodyLimit: mustByteCount(t, testLargeTransferBytes),
-		}
 		observed := make(chan uploadServerObservation, 1)
 		server := httptest.NewServer(http.HandlerFunc(func(
 			writer http.ResponseWriter,
@@ -167,7 +161,7 @@ func TestUploadTransportLayerTriad(t *testing.T) {
 						Method: exchange.MethodPut,
 						Replay: exchange.ReplaySingleAttempt,
 					},
-					Policy:              serverPolicy,
+
 					ExpectedContentType: core.HTTPMediaTypeOctetStream(),
 				},
 			)
@@ -199,7 +193,7 @@ func TestUploadTransportLayerTriad(t *testing.T) {
 						Method: exchange.MethodPut,
 						Replay: exchange.ReplaySingleAttempt,
 					},
-					ContentLength:  mustByteLength(t, testLargeTransferBytes),
+					ContentLength:  new(mustByteLength(t, testLargeTransferBytes)),
 					ContentType:    core.HTTPMediaTypeOctetStream(),
 					ExpectedStatus: created,
 				},
@@ -220,9 +214,6 @@ func TestUploadTransportLayerTriad(t *testing.T) {
 		t.Parallel()
 
 		created := mustHTTPStatus(t, http.StatusCreated)
-		serverPolicy := exchange.ServerStreamPolicy{
-			RequestBodyLimit: mustByteCount(t, 1),
-		}
 		observed := make(chan uploadServerObservation, 1)
 		server := httptest.NewServer(http.HandlerFunc(func(
 			writer http.ResponseWriter,
@@ -237,7 +228,7 @@ func TestUploadTransportLayerTriad(t *testing.T) {
 						Method: exchange.MethodPut,
 						Replay: exchange.ReplaySingleAttempt,
 					},
-					Policy:              serverPolicy,
+
 					ExpectedContentType: core.HTTPMediaTypeOctetStream(),
 				},
 			)
@@ -267,7 +258,7 @@ func TestUploadTransportLayerTriad(t *testing.T) {
 						Method: exchange.MethodPut,
 						Replay: exchange.ReplaySingleAttempt,
 					},
-					ContentLength:  mustByteLength(t, 0),
+					ContentLength:  new(mustByteLength(t, 0)),
 					ContentType:    core.HTTPMediaTypeOctetStream(),
 					ExpectedStatus: created,
 				},
@@ -319,7 +310,7 @@ func TestUploadMetadataIsValidatedNotStamped(t *testing.T) {
 					Method: exchange.MethodPut,
 					Replay: exchange.ReplaySingleAttempt,
 				},
-				ContentLength:  mustByteLength(t, extent),
+				ContentLength:  new(mustByteLength(t, extent)),
 				ContentType:    core.HTTPMediaTypeOctetStream(),
 				ExpectedStatus: created,
 			},
@@ -365,7 +356,7 @@ func TestUploadMetadataIsValidatedNotStamped(t *testing.T) {
 					Method: exchange.MethodPut,
 					Replay: exchange.ReplaySingleAttempt,
 				},
-				ContentLength:  mustByteLength(t, 1),
+				ContentLength:  new(mustByteLength(t, 1)),
 				ContentType:    core.HTTPMediaTypeOctetStream(),
 				ExpectedStatus: created,
 			},
@@ -424,7 +415,7 @@ func TestUploadMetadataIsValidatedNotStamped(t *testing.T) {
 					Method: exchange.MethodPut,
 					Replay: exchange.ReplaySingleAttempt,
 				},
-				ContentLength: mustByteLength(t, 1),
+				ContentLength: new(mustByteLength(t, 1)),
 				ContentType:   core.HTTPMediaTypeOctetStream(),
 				CaptureHeaders: exchange.HeaderSelection{
 					Names: []core.HTTPHeaderName{capturedName},
@@ -482,7 +473,7 @@ func TestDownloadTransportLayerTriad(t *testing.T) {
 				Call: serverCall,
 				Response: exchange.ServerStreamResponse{
 					Source:        section,
-					ContentLength: mustByteLength(t, testLargeTransferBytes),
+					ContentLength: new(mustByteLength(t, testLargeTransferBytes)),
 					ContentType:   core.HTTPMediaTypeOctetStream(),
 					Status:        ok,
 				},
@@ -508,7 +499,7 @@ func TestDownloadTransportLayerTriad(t *testing.T) {
 					Method: exchange.MethodGet,
 					Replay: exchange.ReplaySingleAttempt,
 				},
-				ResponseBodyLimit:           mustByteCount(t, testLargeTransferBytes),
+
 				ExpectedStatus:              ok,
 				ExpectedResponseContentType: core.HTTPMediaTypeOctetStream(),
 			},
@@ -548,7 +539,7 @@ func TestDownloadTransportLayerTriad(t *testing.T) {
 		}
 	})
 
-	t.Run("negative chunked one-over response writes only the bound and rejects the excess byte", func(t *testing.T) {
+	t.Run("chunked response continues beyond the transfer window", func(t *testing.T) {
 		t.Parallel()
 
 		ok := mustHTTPStatus(t, http.StatusOK)
@@ -583,32 +574,14 @@ func TestDownloadTransportLayerTriad(t *testing.T) {
 					Method: exchange.MethodGet,
 					Replay: exchange.ReplaySingleAttempt,
 				},
-				ResponseBodyLimit:           mustByteCount(t, limit),
+
 				ExpectedStatus:              ok,
 				ExpectedResponseContentType: core.HTTPMediaTypeOctetStream(),
 			},
 			Policy: singleAttemptStreamPolicy(t),
 		})
-		if !errors.Is(gotErr, core.ErrExchangeResponse) ||
-			!errors.Is(gotErr, core.ErrExchangeBodyLimit) {
-			t.Fatalf(
-				"exchange.Download(one over) error = %v, want %v and %v",
-				gotErr,
-				core.ErrExchangeResponse,
-				core.ErrExchangeBodyLimit,
-			)
-		}
-		if got.Metadata.Bytes.Uint64() != limit {
-			t.Fatalf("exchange.Download(one over) bytes = %d, want %d", got.Metadata.Bytes.Uint64(), limit)
-		}
-		if uint64(destination.Len()) != limit ||
-			!bytes.Equal(destination.Bytes(), body[:limit]) {
-			t.Fatalf(
-				"one-over destination bytes/prefix = (%d, %t), want (%d, true)",
-				destination.Len(),
-				bytes.Equal(destination.Bytes(), body[:limit]),
-				limit,
-			)
+		if gotErr != nil || got.Metadata.Bytes.Uint64() != uint64(len(body)) || !bytes.Equal(destination.Bytes(), body) {
+			t.Fatalf("transfer = %+v/%v, destination=%d bytes; want exact %d-byte completion", got, gotErr, destination.Len(), len(body))
 		}
 		select {
 		case serverGot := <-observed:
@@ -636,7 +609,7 @@ func TestDownloadTransportLayerTriad(t *testing.T) {
 				Call: serverCall,
 				Response: exchange.ServerStreamResponse{
 					Source:        bytes.NewReader(nil),
-					ContentLength: mustByteLength(t, 0),
+					ContentLength: new(mustByteLength(t, 0)),
 					ContentType:   core.HTTPMediaTypeOctetStream(),
 					Status:        ok,
 				},
@@ -655,7 +628,7 @@ func TestDownloadTransportLayerTriad(t *testing.T) {
 					Method: exchange.MethodGet,
 					Replay: exchange.ReplaySingleAttempt,
 				},
-				ResponseBodyLimit:           mustByteCount(t, 1),
+
 				ExpectedStatus:              ok,
 				ExpectedResponseContentType: core.HTTPMediaTypeOctetStream(),
 			},
@@ -706,8 +679,8 @@ func TestStreamRoundTripTransportLayerTriad(t *testing.T) {
 				Target: mustEndpoint(t, server.URL), Source: bytes.NewReader(requestBody), Destination: &destination,
 				Semantics:          exchange.RequestSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt},
 				RequestContentType: core.HTTPMediaTypeOctetStream(), ExpectedResponseContentType: core.HTTPMediaTypeOctetStream(),
-				RequestContentLength: mustByteLength(t, uint64(len(requestBody))), ResponseBodyLimit: mustByteCount(t, uint64(len(responseBody))),
-				ExpectedStatus: mustHTTPStatus(t, http.StatusOK),
+				RequestContentLength: new(mustByteLength(t, uint64(len(requestBody)))),
+				ExpectedStatus:       mustHTTPStatus(t, http.StatusOK),
 			},
 			Policy: singleAttemptStreamPolicy(t),
 		})
@@ -724,7 +697,7 @@ func TestStreamRoundTripTransportLayerTriad(t *testing.T) {
 		}
 	})
 
-	t.Run("negative one-over response preserves bounded prefix and typed refusal", func(t *testing.T) {
+	t.Run("round trip response continues beyond the transfer window", func(t *testing.T) {
 		t.Parallel()
 
 		limit := uint64(exchange.TransferBufferBytes)
@@ -745,11 +718,11 @@ func TestStreamRoundTripTransportLayerTriad(t *testing.T) {
 				Target: mustEndpoint(t, server.URL), Source: bytes.NewReader([]byte("x")), Destination: &destination,
 				Semantics:          exchange.RequestSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt},
 				RequestContentType: core.HTTPMediaTypeOctetStream(), ExpectedResponseContentType: core.HTTPMediaTypeOctetStream(),
-				RequestContentLength: mustByteLength(t, 1), ResponseBodyLimit: mustByteCount(t, limit), ExpectedStatus: mustHTTPStatus(t, http.StatusOK),
+				RequestContentLength: new(mustByteLength(t, 1)), ExpectedStatus: mustHTTPStatus(t, http.StatusOK),
 			}, Policy: singleAttemptStreamPolicy(t),
 		})
-		if !errors.Is(gotErr, core.ErrExchangeBodyLimit) || got.DeclaredRequestBytes.Uint64() != 1 || got.Metadata.Bytes.Uint64() != limit || uint64(destination.Len()) != limit || !bytes.Equal(destination.Bytes(), responseBody[:limit]) {
-			t.Fatalf("RoundTripStream(one over) = response:%+v body:%d error:%v, want 1 request byte, %d-byte prefix, %v", got, destination.Len(), gotErr, limit, core.ErrExchangeBodyLimit)
+		if gotErr != nil || got.DeclaredRequestBytes.Uint64() != 1 || got.Metadata.Bytes.Uint64() != uint64(len(responseBody)) || !bytes.Equal(destination.Bytes(), responseBody) {
+			t.Fatalf("transfer = %+v/%v, destination=%d bytes; want exact %d-byte completion", got, gotErr, destination.Len(), len(responseBody))
 		}
 		select {
 		case writeErr := <-observed:
@@ -776,7 +749,7 @@ func TestStreamRoundTripTransportLayerTriad(t *testing.T) {
 				Target: mustEndpoint(t, server.URL), Source: bytes.NewReader([]byte("x")), Destination: &destination,
 				Semantics:          exchange.RequestSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt},
 				RequestContentType: core.HTTPMediaTypeOctetStream(), ExpectedResponseContentType: core.HTTPMediaTypeOctetStream(),
-				RequestContentLength: mustByteLength(t, 1), ResponseBodyLimit: mustByteCount(t, 1), ExpectedStatus: mustHTTPStatus(t, http.StatusOK),
+				RequestContentLength: new(mustByteLength(t, 1)), ExpectedStatus: mustHTTPStatus(t, http.StatusOK),
 			}, Policy: singleAttemptStreamPolicy(t),
 		})
 		if !errors.Is(gotErr, context.Canceled) || got.Validate() == nil || calls.Load() != 0 || destination.Len() != 0 {

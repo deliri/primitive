@@ -55,8 +55,7 @@ func acquire(call acquisitionCall) (exchange.BoundedResponse, error) {
 			ExpectedStatus: status,
 		},
 		Policy: exchange.NoBodyBoundedPolicy{
-			Operation:         call.policy.exchange(),
-			ResponseBodyLimit: call.responseLimit,
+			Operation: call.policy.exchange(),
 		},
 	})
 	if err != nil {

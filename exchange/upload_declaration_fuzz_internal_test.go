@@ -54,15 +54,11 @@ func FuzzUploadResponseDeclarationCustody(f *testing.F) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		limit, err := core.NewByteCount(2)
-		if err != nil {
-			t.Fatal(err)
-		}
 		target, err := core.ParseHTTPEndpoint("https://provider.example.test/declaration")
 		if err != nil {
 			t.Fatal(err)
 		}
-		policy := StreamPolicy{OperationTimeout: runtimeAgreementPolicy(t).ReadTimeout, AttemptTimeout: runtimeAgreementPolicy(t).ReadTimeout, ErrorBodyLimit: limit, Redirect: RedirectPolicy{Mode: RedirectReject}}
+		policy := StreamPolicy{OperationTimeout: runtimeAgreementPolicy(t).ReadTimeout, AttemptTimeout: runtimeAgreementPolicy(t).ReadTimeout, Redirect: RedirectPolicy{Mode: RedirectReject}}
 		status := core.HTTPStatusOK()
 		if refuseStatus {
 			if err := status.AdmitInt(http.StatusServiceUnavailable); err != nil {
@@ -92,11 +88,11 @@ func FuzzUploadResponseDeclarationCustody(f *testing.F) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			request := UploadRequest{Target: target, Source: source, ContentLength: length, ContentType: core.HTTPMediaTypeOctetStream(), ExpectedStatus: core.HTTPStatusOK(), Semantics: RequestSemantics{Method: MethodPut, Replay: ReplaySingleAttempt}}
+			request := UploadRequest{Target: target, Source: source, ContentLength: new(length), ContentType: core.HTTPMediaTypeOctetStream(), ExpectedStatus: core.HTTPStatusOK(), Semantics: RequestSemantics{Method: MethodPut, Replay: ReplaySingleAttempt}}
 			var got StreamResponse
 			var destination bytes.Buffer
 			if roundTrip {
-				response, callErr := RoundTripStream(StreamRoundTripCall{Context: t.Context(), Client: client, Policy: policy, Request: StreamRoundTripRequest{Target: target, Source: source, Destination: &destination, RequestContentLength: length, RequestContentType: request.ContentType, ExpectedStatus: request.ExpectedStatus, Semantics: request.Semantics, ResponseBodyLimit: limit}})
+				response, callErr := RoundTripStream(StreamRoundTripCall{Context: t.Context(), Client: client, Policy: policy, Request: StreamRoundTripRequest{Target: target, Source: source, Destination: &destination, RequestContentLength: new(length), RequestContentType: request.ContentType, ExpectedStatus: request.ExpectedStatus, Semantics: request.Semantics}})
 				got = StreamResponse(response)
 				err = callErr
 			} else {

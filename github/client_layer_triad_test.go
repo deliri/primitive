@@ -50,60 +50,6 @@ wGIALp90B3rxF/CM52tQljuOUza4vSoG2wBNNkqTBlfkzP77Slp1OXVRb13ou/Tl
 Cf1H4fZfzVDbDuhxWVwY2pUmGi1CXkhOTlYwUm9o4gfXmCtYBbPG
 -----END RSA PRIVATE KEY-----` // #nosec G101 -- deterministic non-production fixture.
 
-func TestGitHubContentsTransportLayerTriad(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		wantErr     error
-		name        string
-		wantContent string
-		response    contentsWire
-	}{
-		{
-			name:        "positive exact file crosses public socket",
-			response:    contentsWire{Path: "source/main.go", Size: 12, Type: "file", Encoding: "base64", Content: base64.StdEncoding.EncodeToString([]byte("package main"))},
-			wantContent: "package main",
-		},
-		{
-			name:     "negative mismatched path releases no file",
-			response: contentsWire{Path: "other.go", Size: 12, Type: "file", Encoding: "base64", Content: base64.StdEncoding.EncodeToString([]byte("package main"))},
-			wantErr:  core.ErrGitHubResponse,
-		},
-		{
-			name:        "neutral empty file remains exact empty evidence",
-			response:    contentsWire{Path: "source/main.go", Size: 0, Type: "file", Encoding: "base64", Content: ""},
-			wantContent: "",
-		},
-	}
-	for _, testCase := range tests {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
-			server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, incoming *http.Request) {
-				if incoming.URL.Path != "/repos/owner/repository/contents/source/main.go" || incoming.URL.Query().Get("ref") != parsedCommit(t).String() ||
-					incoming.Header.Get(headerAPIVersion) != core.GitHubAPIVersion || incoming.Header.Get(headerUserAgent) != "primitive-test" || incoming.Header.Get("Authorization") != "" {
-					t.Errorf("GitHub file request = %s?%s headers=%v, want exact public provider agreement", incoming.URL.Path, incoming.URL.RawQuery, incoming.Header)
-				}
-				writeJSON(t, writer, testCase.response, http.StatusOK)
-			}))
-			defer server.Close()
-
-			client := clientFixture(t, server.URL)
-			maximum := byteCountFixture(t, core.GitHubContentsInlineMaximumBytes)
-			got, gotErr := client.ReadFile(context.Background(), FileRequest{
-				Repository: parsedRepository(t, "owner/repository"), Commit: parsedCommit(t),
-				Path: parsedPath(t, "source/main.go"), MaximumBytes: maximum,
-			})
-			if !errors.Is(gotErr, testCase.wantErr) {
-				t.Fatalf("Client.ReadFile() error = %v, want %v", gotErr, testCase.wantErr)
-			}
-			if string(got.Content) != testCase.wantContent {
-				t.Fatalf("Client.ReadFile().Content = %q, want %q", got.Content, testCase.wantContent)
-			}
-		})
-	}
-}
-
 func TestGitHubTagAndHeadTransportLayerTriad(t *testing.T) {
 	t.Parallel()
 
@@ -361,15 +307,6 @@ func clientFixture(t testing.TB, authorityText string) Client {
 		t.Fatalf("newClient(public fixture) error = %v, want nil", err)
 	}
 	return client
-}
-
-func byteCountFixture(t testing.TB, value uint64) core.ByteCount {
-	t.Helper()
-	got, err := core.NewByteCount(value)
-	if err != nil {
-		t.Fatalf("core.NewByteCount(%d) error = %v, want nil", value, err)
-	}
-	return got
 }
 
 func writeJSON[Value any](t testing.TB, writer http.ResponseWriter, value Value, status int) {

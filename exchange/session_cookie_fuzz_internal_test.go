@@ -136,10 +136,6 @@ func FuzzSessionClientGoCookieCustody(f *testing.F) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			limit, err := core.NewByteCount(1)
-			if err != nil {
-				t.Fatal(err)
-			}
 			steps := []struct {
 				client Client
 				target *url.URL
@@ -154,7 +150,7 @@ func FuzzSessionClientGoCookieCustody(f *testing.F) {
 				if err != nil {
 					t.Fatalf("Go-generated fixture endpoint refused: %v", err)
 				}
-				got, err := SendNoBodyBounded(NoBodyBoundedCall{Context: t.Context(), Client: step.client, Request: NoBodyBoundedRequest{Target: endpoint, Semantics: RequestSemantics{Method: MethodGet, Replay: ReplaySingleAttempt}, ExpectedStatus: core.HTTPStatusOK()}, Policy: NoBodyBoundedPolicy{Operation: OperationPolicy{OperationTimeout: timeout, AttemptTimeout: timeout, Retry: RetryPolicy{MaximumAttempts: 1}, Redirect: RedirectPolicy{Mode: RedirectReject}}, ResponseBodyLimit: limit}})
+				got, err := SendNoBodyBounded(NoBodyBoundedCall{Context: t.Context(), Client: step.client, Request: NoBodyBoundedRequest{Target: endpoint, Semantics: RequestSemantics{Method: MethodGet, Replay: ReplaySingleAttempt}, ExpectedStatus: core.HTTPStatusOK()}, Policy: NoBodyBoundedPolicy{Operation: OperationPolicy{OperationTimeout: timeout, AttemptTimeout: timeout, Retry: RetryPolicy{MaximumAttempts: 1}, Redirect: RedirectPolicy{Mode: RedirectReject}}}})
 				if err != nil || got.Validate() != nil || got.Metadata.Status != core.HTTPStatusOK() || got.Metadata.Attempts != 1 || got.Metadata.Bytes.Uint64() != 0 || len(got.Body) != 0 {
 					t.Fatalf("session step %d response=(%+v,%v), want empty one-attempt HTTP success", index, got, err)
 				}

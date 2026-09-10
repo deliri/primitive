@@ -101,7 +101,7 @@ func TestUploadFileSourceCustodyLayerTriad(t *testing.T) {
 				Context: t.Context(), Client: mustExchangeClient(t, server.Client()), Policy: singleAttemptStreamPolicy(t),
 				Request: exchange.UploadRequest{Target: mustEndpoint(t, server.URL), Source: source,
 					Semantics:     exchange.RequestSemantics{Method: exchange.MethodPut, Replay: exchange.ReplaySingleAttempt},
-					ContentLength: mustByteLength(t, tc.declared), ContentType: core.HTTPMediaTypeOctetStream(), ExpectedStatus: noContent},
+					ContentLength: new(mustByteLength(t, tc.declared)), ContentType: core.HTTPMediaTypeOctetStream(), ExpectedStatus: noContent},
 			})
 			if !errors.Is(gotErr, tc.wantErr) {
 				t.Fatalf("Upload() error = %v, want %v", gotErr, tc.wantErr)

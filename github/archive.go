@@ -4,22 +4,14 @@ import (
 	"context"
 	"errors"
 	"io"
-	"net/url"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
-	"github.com/deliri/primitive/v2026/temporal"
 )
 
 const (
 	// GitHub documents 302 as the archive endpoint's success response.
 	githubArchiveRedirectStatus = 302
-	// GitHub publishes no redirect-body bound; this is Primitive custody for a
-	// body whose useful capability is carried by Location.
-	githubArchiveRedirectResponseMaximumBytes = 64 * 1024
-	// GitHub publishes no archive transfer timeout; this Primitive custody bound
-	// fits within the documented five-minute private-link lifetime.
-	githubArchiveOperationTimeoutSeconds = 5 * 60
 )
 
 // GitHub archive protocol source:
@@ -32,20 +24,20 @@ const (
 // observes rather than follows its redirect, and performs the second GET as a
 // distinct credential-free transfer.
 
-type archiveDestination struct {
+type downloadDestination struct {
 	destination io.Writer
 	digest      *core.DigestWriter
 }
 
-func (d archiveDestination) Write(data []byte) (int, error) {
+func (d downloadDestination) Write(data []byte) (int, error) {
 	written, destinationErr := d.destination.Write(data)
 	if written < 0 || written > len(data) {
-		return 0, core.ErrGitHubResponse
+		return 0, errors.Join(core.ErrGitHubResponse, destinationErr)
 	}
 	if written > 0 {
 		digestWritten, digestErr := d.digest.Write(data[:written])
 		if digestErr != nil || digestWritten != written {
-			return written, errors.Join(core.ErrGitHubResponse, digestErr)
+			return written, errors.Join(core.ErrGitHubResponse, digestErr, destinationErr)
 		}
 	}
 	if destinationErr != nil {
@@ -75,22 +67,21 @@ func (c Client) readTarArchiveLocation(ctx context.Context, repository Repositor
 	if err != nil {
 		return core.HTTPEndpoint{}, err
 	}
-	target, err := c.target(repositoryPath(repository)+"/tarball/"+url.PathEscape(commit.String()), nil)
+	target, err := c.target(repositoryPath(repository)+"/tarball/"+commit.String(), nil)
 	if err != nil {
 		return core.HTTPEndpoint{}, err
 	}
 	location, locationErr := core.ParseHTTPHeaderName(headerLocation)
-	limit, limitErr := core.NewByteCount(githubArchiveRedirectResponseMaximumBytes)
-	timeout, timeoutErr := temporal.DurationFromSeconds(core.GitHubOperationCustodyTimeoutSeconds)
 	status, statusErr := expectedStatus(githubArchiveRedirectStatus)
-	if err := errors.Join(locationErr, limitErr, timeoutErr, statusErr); err != nil {
+	if err := errors.Join(locationErr, statusErr); err != nil {
 		return core.HTTPEndpoint{}, contractError(err)
 	}
-	response, err := exchange.SendNoBodyBounded(exchange.NoBodyBoundedCall{
+	response, err := exchange.Download(exchange.DownloadCall{
 		Context: ctx,
 		Client:  c.state.client,
-		Request: exchange.NoBodyBoundedRequest{
-			Target: target,
+		Request: exchange.DownloadRequest{
+			Destination: io.Discard,
+			Target:      target,
 			Semantics: exchange.RequestSemantics{
 				Method: exchange.MethodGet,
 				Replay: exchange.ReplaySingleAttempt,
@@ -99,14 +90,8 @@ func (c Client) readTarArchiveLocation(ctx context.Context, repository Repositor
 			CaptureHeaders: exchange.HeaderSelection{Names: []core.HTTPHeaderName{location}},
 			ExpectedStatus: status,
 		},
-		Policy: exchange.NoBodyBoundedPolicy{
-			Operation: exchange.OperationPolicy{
-				OperationTimeout: timeout,
-				AttemptTimeout:   timeout,
-				Retry:            exchange.RetryPolicy{MaximumAttempts: 1},
-				Redirect:         exchange.RedirectPolicy{Mode: exchange.RedirectObserve},
-			},
-			ResponseBodyLimit: limit,
+		Policy: exchange.StreamPolicy{
+			Redirect: exchange.RedirectPolicy{Mode: exchange.RedirectObserve},
 		},
 	})
 	if err != nil {
@@ -139,27 +124,21 @@ func (c Client) downloadTarArchive(ctx context.Context, target core.HTTPEndpoint
 	if err != nil {
 		return TarArchiveObservation{}, err
 	}
-	timeout, err := temporal.DurationFromSeconds(githubArchiveOperationTimeoutSeconds)
-	if err != nil {
-		return TarArchiveObservation{}, contractError(err)
-	}
 	digest := core.NewDigestWriter()
-	destination := archiveDestination{destination: request.Destination, digest: digest}
+	destination := downloadDestination{destination: request.Destination, digest: digest}
 	response, transferErr := exchange.Download(exchange.DownloadCall{
 		Context: ctx,
 		Client:  c.state.client,
 		Request: exchange.DownloadRequest{
-			Target: target, Destination: destination,
-			Semantics:         exchange.RequestSemantics{Method: exchange.MethodGet, Replay: exchange.ReplaySingleAttempt},
-			Headers:           headers,
-			ResponseBodyLimit: request.MaximumBytes,
-			ExpectedStatus:    core.HTTPStatusOK(),
+			Target: target, Destination: destination, Buffer: request.Buffer,
+			Semantics: exchange.RequestSemantics{Method: exchange.MethodGet, Replay: exchange.ReplaySingleAttempt},
+			Headers:   headers,
+
+			ExpectedStatus: core.HTTPStatusOK(),
 		},
 		Policy: exchange.StreamPolicy{
-			OperationTimeout: timeout,
-			AttemptTimeout:   timeout,
-			ErrorBodyLimit:   request.MaximumBytes,
-			Redirect:         exchange.RedirectPolicy{Mode: exchange.RedirectReject},
+
+			Redirect: exchange.RedirectPolicy{Mode: exchange.RedirectReject},
 		},
 	})
 	sha256, length, sealErr := digest.Seal()
@@ -199,4 +178,4 @@ func (c Client) archiveDownloadHeaders() (exchange.Headers, error) {
 	return headers, nil
 }
 
-var _ io.Writer = archiveDestination{}
+var _ io.Writer = downloadDestination{}

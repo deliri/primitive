@@ -353,7 +353,7 @@ func gcsReadStageDestination(t testing.TB, directory string, expected uint64) (f
 		t.Fatalf("core.NewByteLength(%d) error = %v, want nil", expected, err)
 	}
 	return filestore.StageDestinationRequest{
-		Temporary: filestore.Location{Root: root, Path: path}, ExpectedBytes: length, Mode: 0o600,
+		Temporary: filestore.Location{Root: root, Path: path}, ExpectedBytes: new(length), Mode: 0o600,
 	}, root
 }
 

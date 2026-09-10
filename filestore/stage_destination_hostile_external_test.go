@@ -81,7 +81,7 @@ func TestOpenStageDestinationHostileIngressMatrix(t *testing.T) {
 			directory := t.TempDir()
 			root := requireTestRoot(t, directory)
 			ctx := context.Context(t.Context())
-			request := filestore.StageDestinationRequest{Temporary: filestore.Location{Root: root, Path: mustRelativePath(t, "stage")}, Mode: 0o600, ExpectedBytes: stageDestinationLength(t, 0)}
+			request := filestore.StageDestinationRequest{Temporary: filestore.Location{Root: root, Path: mustRelativePath(t, "stage")}, Mode: 0o600, ExpectedBytes: new(stageDestinationLength(t, 0))}
 			payload := []byte{0, 255, 7}
 			if err := os.WriteFile(filepath.Join(directory, "neighbor"), payload, 0o600); err != nil {
 				t.Fatal(err)
@@ -219,7 +219,7 @@ func TestStageDestinationHostileExtentAndFinalizationMatrix(t *testing.T) {
 			root := requireTestRoot(t, directory)
 			destination, err := filestore.OpenStageDestination(t.Context(), filestore.StageDestinationRequest{
 				Temporary: filestore.Location{Root: root, Path: mustRelativePath(t, ".matrix")},
-				Mode:      0o600, ExpectedBytes: stageDestinationLength(t, tc.wantExtent),
+				Mode:      0o600, ExpectedBytes: new(stageDestinationLength(t, tc.wantExtent)),
 			})
 			if err != nil {
 				t.Fatalf("OpenStageDestination() error = %v, want nil", err)
@@ -357,7 +357,7 @@ func TestStageDestinationLinearOwnershipRefusesCopiesAndReuse(t *testing.T) {
 				input = &filestore.StageDestination{}
 			default:
 				var err error
-				original, err = filestore.OpenStageDestination(t.Context(), filestore.StageDestinationRequest{Temporary: filestore.Location{Root: root, Path: mustRelativePath(t, "stage")}, Mode: 0o600, ExpectedBytes: stageDestinationLength(t, uint64(len(payload)))})
+				original, err = filestore.OpenStageDestination(t.Context(), filestore.StageDestinationRequest{Temporary: filestore.Location{Root: root, Path: mustRelativePath(t, "stage")}, Mode: 0o600, ExpectedBytes: new(stageDestinationLength(t, uint64(len(payload))))})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -490,7 +490,7 @@ func TestStageDestinationCommitRefusesPostFinishMutation(t *testing.T) {
 			if err := os.WriteFile(filepath.Join(directory, "neighbor"), neighbor, 0o600); err != nil {
 				t.Fatal(err)
 			}
-			plan := filestore.ActivationRequest{Temporary: filestore.Location{Root: root, Path: mustRelativePath(t, "stage")}, Target: mustRelativePath(t, "target"), ExpectedBytes: stageDestinationLength(t, uint64(len(payload))), Mode: 0o600, Install: filestore.InstallCreate}
+			plan := filestore.ActivationRequest{Temporary: filestore.Location{Root: root, Path: mustRelativePath(t, "stage")}, Target: mustRelativePath(t, "target"), ExpectedBytes: new(stageDestinationLength(t, uint64(len(payload)))), Mode: 0o600, Install: filestore.InstallCreate}
 			destination, err := filestore.OpenStageDestination(t.Context(), plan.StageDestination())
 			if err != nil {
 				t.Fatal(err)
@@ -508,7 +508,7 @@ func TestStageDestinationCommitRefusesPostFinishMutation(t *testing.T) {
 				t.Fatal(err)
 			}
 			staged, err := filestore.FinishStageDestination(t.Context(), destination)
-			if err != nil || staged.Validate() != nil || staged.BytesWritten() != plan.ExpectedBytes {
+			if err != nil || staged.Validate() != nil || staged.BytesWritten() != *plan.ExpectedBytes {
 				t.Fatalf("producer = (%+v,%v), want exact validated receipt", staged, err)
 			}
 			request, err := plan.CommitRequest(staged)

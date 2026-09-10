@@ -13,57 +13,42 @@ import (
 // result fields are pinned independently; response execution has separate Go
 // HTTP differential fuzz targets in the ingress inventory.
 func FuzzOfficialSDKBoundaryCeilingAndStreamingConfiguration(f *testing.F) {
-	limit, err := core.NewByteCount(1)
-	if err != nil {
-		f.Fatal(err)
-	}
-	seed := OfficialSDKResponseBoundaryRequest{Method: MethodGet, Representation: OfficialSDKResponseRepresentationBinary, MaximumBytes: limit, PathPrefix: "/scope/", PathSuffix: "/item"}
+	seed := OfficialSDKResponseBoundaryRequest{Method: MethodGet, Representation: OfficialSDKResponseRepresentationBinary, PathPrefix: "/scope/", PathSuffix: "/item"}
 	if err := seed.Validate(); err != nil {
 		f.Fatal(err)
 	}
-	stream := OfficialSDKStreamingSuccessCeilingRequest{Method: seed.Method, AggregateRepresentation: seed.Representation, AggregateMaximumBytes: limit, StreamQueryName: sdkQueryFixtureName, StreamQueryValue: sdkQueryFixtureValue}
+	stream := OfficialSDKStreamingResponseBoundaryRequest{Method: seed.Method, AggregateRepresentation: seed.Representation, StreamQueryName: sdkQueryFixtureName, StreamQueryValue: sdkQueryFixtureValue}
 	if err := stream.Validate(); err != nil {
 		f.Fatal(err)
 	}
 	// These validated structs are the production configuration representation;
 	// they have no JSON or text encoding contract to invent for seed generation.
-	f.Add(seed.PathPrefix, seed.PathSuffix, stream.StreamQueryName, stream.StreamQueryValue, uint8(seed.Method), uint8(seed.Representation), uint32(1))
-	for _, maximum := range []uint32{0, OfficialSDKResponseMaximumBytes - 1, OfficialSDKResponseMaximumBytes, OfficialSDKResponseMaximumBytes + 1} {
-		f.Add(seed.PathPrefix, seed.PathSuffix, stream.StreamQueryName, stream.StreamQueryValue, uint8(seed.Method), uint8(seed.Representation), maximum)
-	}
+	f.Add(seed.PathPrefix, seed.PathSuffix, stream.StreamQueryName, stream.StreamQueryValue, uint8(seed.Method), uint8(seed.Representation))
 	for _, size := range []int{officialSDKPathAffixMaximumBytes - 1, officialSDKPathAffixMaximumBytes, officialSDKPathAffixMaximumBytes + 1} {
-		f.Add("/"+strings.Repeat("p", size-1), strings.Repeat("s", size), stream.StreamQueryName, stream.StreamQueryValue, uint8(seed.Method), uint8(seed.Representation), uint32(1))
+		f.Add("/"+strings.Repeat("p", size-1), strings.Repeat("s", size), stream.StreamQueryName, stream.StreamQueryValue, uint8(seed.Method), uint8(seed.Representation))
 	}
 	for _, size := range []int{officialSDKQueryNameMaximumBytes - 1, officialSDKQueryNameMaximumBytes, officialSDKQueryNameMaximumBytes + 1} {
-		f.Add(seed.PathPrefix, seed.PathSuffix, strings.Repeat("n", size), stream.StreamQueryValue, uint8(seed.Method), uint8(seed.Representation), uint32(1))
+		f.Add(seed.PathPrefix, seed.PathSuffix, strings.Repeat("n", size), stream.StreamQueryValue, uint8(seed.Method), uint8(seed.Representation))
 	}
 	for _, size := range []int{officialSDKQueryValueMaximumBytes - 1, officialSDKQueryValueMaximumBytes, officialSDKQueryValueMaximumBytes + 1} {
-		f.Add(seed.PathPrefix, seed.PathSuffix, stream.StreamQueryName, strings.Repeat("v", size), uint8(seed.Method), uint8(seed.Representation), uint32(1))
+		f.Add(seed.PathPrefix, seed.PathSuffix, stream.StreamQueryName, strings.Repeat("v", size), uint8(seed.Method), uint8(seed.Representation))
 	}
 	for _, method := range []Method{MethodUnknown, MethodGet, MethodPost, MethodPut, MethodDelete, MethodPatch, MethodHead, MethodOptions, Method(255)} {
-		f.Add(seed.PathPrefix, seed.PathSuffix, stream.StreamQueryName, stream.StreamQueryValue, uint8(method), uint8(seed.Representation), uint32(1))
+		f.Add(seed.PathPrefix, seed.PathSuffix, stream.StreamQueryName, stream.StreamQueryValue, uint8(method), uint8(seed.Representation))
 	}
 	for _, representation := range []OfficialSDKResponseRepresentation{OfficialSDKResponseRepresentationUnknown, OfficialSDKResponseRepresentationBinary, OfficialSDKResponseRepresentationJSON, OfficialSDKResponseRepresentation(255)} {
-		f.Add(seed.PathPrefix, seed.PathSuffix, stream.StreamQueryName, stream.StreamQueryValue, uint8(seed.Method), uint8(representation), uint32(1))
+		f.Add(seed.PathPrefix, seed.PathSuffix, stream.StreamQueryName, stream.StreamQueryValue, uint8(seed.Method), uint8(representation))
 	}
-	f.Add("", "", "", "", uint8(seed.Method), uint8(seed.Representation), uint32(1))
-	f.Add("relative", "suffix?query", "name=value", "value&other", uint8(seed.Method), uint8(seed.Representation), uint32(1))
-	f.Fuzz(func(t *testing.T, prefix, suffix, name, value string, methodByte, representationByte uint8, maximum uint32) {
+	f.Add("", "", "", "", uint8(seed.Method), uint8(seed.Representation))
+	f.Add("relative", "suffix?query", "name=value", "value&other", uint8(seed.Method), uint8(seed.Representation))
+	f.Fuzz(func(t *testing.T, prefix, suffix, name, value string, methodByte, representationByte uint8) {
 		if len(prefix) > officialSDKPathAffixMaximumBytes+1 || len(suffix) > officialSDKPathAffixMaximumBytes+1 || len(name) > officialSDKQueryNameMaximumBytes+1 || len(value) > officialSDKQueryValueMaximumBytes+1 {
 			return
-		}
-		var limit core.ByteCount
-		if maximum != 0 {
-			var err error
-			limit, err = core.NewByteCount(uint64(maximum))
-			if err != nil {
-				t.Fatal(err)
-			}
 		}
 		method, representation := Method(methodByte), OfficialSDKResponseRepresentation(representationByte)
 		validMethod := method == MethodGet || method == MethodPost || method == MethodPut || method == MethodDelete || method == MethodPatch || method == MethodHead || method == MethodOptions
 		validRepresentation := representation == OfficialSDKResponseRepresentationBinary || representation == OfficialSDKResponseRepresentationJSON
-		validCommon := validMethod && validRepresentation && maximum > 0 && maximum <= OfficialSDKResponseMaximumBytes
+		validCommon := validMethod && validRepresentation
 		validAffixes := len(prefix) > 0 && len(prefix) <= officialSDKPathAffixMaximumBytes && strings.HasPrefix(prefix, "/") && !strings.ContainsAny(prefix, "?#") && len(suffix) > 0 && len(suffix) <= officialSDKPathAffixMaximumBytes && !strings.ContainsAny(suffix, "?#")
 		validName := len(name) > 0 && len(name) <= officialSDKQueryNameMaximumBytes && strings.IndexFunc(name, func(r rune) bool {
 			return !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '_' || r == '-' || r == '.')
@@ -76,14 +61,14 @@ func FuzzOfficialSDKBoundaryCeilingAndStreamingConfiguration(f *testing.F) {
 			want         OfficialSDKResponseBoundary
 		}{
 			{name: "selected path", produce: func() (OfficialSDKResponseBoundary, error) {
-				return NewOfficialSDKResponseBoundary(OfficialSDKResponseBoundaryRequest{Method: method, Representation: representation, MaximumBytes: limit, PathPrefix: prefix, PathSuffix: suffix})
-			}, wantAccepted: validCommon && validAffixes, want: OfficialSDKResponseBoundary{method: method, representation: representation, limit: limit, prefix: prefix, suffix: suffix, scope: officialSDKResponseScopeSelectedPath, set: true}},
+				return NewOfficialSDKResponseBoundary(OfficialSDKResponseBoundaryRequest{Method: method, Representation: representation, PathPrefix: prefix, PathSuffix: suffix})
+			}, wantAccepted: validCommon && validAffixes, want: OfficialSDKResponseBoundary{method: method, representation: representation, prefix: prefix, suffix: suffix, scope: officialSDKResponseScopeSelectedPath, set: true}},
 			{name: "method ceiling", produce: func() (OfficialSDKResponseBoundary, error) {
-				return NewOfficialSDKResponseCeiling(OfficialSDKResponseCeilingRequest{Method: method, Representation: representation, MaximumBytes: limit})
-			}, wantAccepted: validCommon, want: OfficialSDKResponseBoundary{method: method, representation: representation, limit: limit, scope: officialSDKResponseScopeAllPaths, set: true}},
+				return NewOfficialSDKMethodResponseBoundary(OfficialSDKMethodResponseBoundaryRequest{Method: method, Representation: representation})
+			}, wantAccepted: validCommon, want: OfficialSDKResponseBoundary{method: method, representation: representation, scope: officialSDKResponseScopeAllPaths, set: true}},
 			{name: "stream query", produce: func() (OfficialSDKResponseBoundary, error) {
-				return NewOfficialSDKStreamingSuccessCeiling(OfficialSDKStreamingSuccessCeilingRequest{Method: method, AggregateRepresentation: representation, AggregateMaximumBytes: limit, StreamQueryName: name, StreamQueryValue: value})
-			}, wantAccepted: validCommon && validName && validValue, want: OfficialSDKResponseBoundary{method: method, representation: representation, limit: limit, streamQueryName: name, streamQueryValue: value, scope: officialSDKResponseScopeAllPaths, streamSuccess: true, set: true}},
+				return NewOfficialSDKStreamingResponseBoundary(OfficialSDKStreamingResponseBoundaryRequest{Method: method, AggregateRepresentation: representation, StreamQueryName: name, StreamQueryValue: value})
+			}, wantAccepted: validCommon && validName && validValue, want: OfficialSDKResponseBoundary{method: method, representation: representation, streamQueryName: name, streamQueryValue: value, scope: officialSDKResponseScopeAllPaths, streamSuccess: true, set: true}},
 		}
 		for _, tc := range cases {
 			got, err := tc.produce()

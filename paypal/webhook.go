@@ -170,7 +170,7 @@ func (p payPalWebhookVerificationProjection) Validate() error {
 	if err := p.WebhookID.Validate(); err != nil {
 		return err
 	}
-	if len(p.WebhookEvent) == 0 || len(p.WebhookEvent) > core.PayPalWebhookEventCustodyMaximumBytes ||
+	if len(p.WebhookEvent) == 0 ||
 		!p.WebhookEvent.IsValid() || p.WebhookEvent.Kind() != jsontext.KindBeginObject {
 		return core.ErrPayPalContract
 	}
@@ -207,7 +207,6 @@ func (p payPalWebhookVerificationProjection) ValidateJSONProjection(encoded []by
 type payPalWebhookReceiver struct {
 	client    Client
 	webhookID PayPalWebhookID
-	maximum   core.ByteCount
 }
 
 // PayPalWebhookReceiver verifies one exact raw callback through PayPal's
@@ -232,22 +231,22 @@ func (r PayPalWebhookReceiveRequest) Validate() error {
 	return nil
 }
 
-func NewPayPalWebhookReceiver(client Client, webhookID PayPalWebhookID, maximum core.ByteCount) (PayPalWebhookReceiver, error) {
-	if err := errors.Join(client.Validate(), webhookID.Validate(), validatePayPalWebhookMaximum(maximum)); err != nil {
+func NewPayPalWebhookReceiver(client Client, webhookID PayPalWebhookID) (PayPalWebhookReceiver, error) {
+	if err := errors.Join(client.Validate(), webhookID.Validate()); err != nil {
 		return PayPalWebhookReceiver{}, contractError(err)
 	}
 	owned, err := NewClient(client.state.client, client.state.token, client.state.sandbox)
 	if err != nil {
 		return PayPalWebhookReceiver{}, err
 	}
-	return PayPalWebhookReceiver{state: &payPalWebhookReceiver{client: owned, webhookID: webhookID, maximum: maximum}}, nil
+	return PayPalWebhookReceiver{state: &payPalWebhookReceiver{client: owned, webhookID: webhookID}}, nil
 }
 
 func (r PayPalWebhookReceiver) Validate() error {
 	if r.state == nil {
 		return core.ErrPayPalContract
 	}
-	return errors.Join(r.state.client.Validate(), r.state.webhookID.Validate(), validatePayPalWebhookMaximum(r.state.maximum))
+	return errors.Join(r.state.client.Validate(), r.state.webhookID.Validate())
 }
 
 func (r *PayPalWebhookReceiver) Close() error {
@@ -267,7 +266,7 @@ func (r PayPalWebhookReceiver) Receive(request PayPalWebhookReceiveRequest) (Inb
 	if err != nil {
 		return InboundObservation{}, contractError(err)
 	}
-	body, err := receiveWebhookBody(request.Call, r.state.maximum, media)
+	body, err := receiveWebhookBody(request.Call, media)
 	if err != nil {
 		return InboundObservation{}, err
 	}
@@ -436,7 +435,7 @@ func (c Client) verifyWebhook(ctx context.Context, projection payPalWebhookVerif
 			RequestContentType: media, ExpectedResponseContentType: media,
 			Headers: exchange.Headers{Values: []exchange.Header{authorization}}, ExpectedStatus: core.HTTPStatusOK(),
 		},
-		Policy: exchange.BoundedPolicy{Operation: policy, RequestBodyLimit: requestLimit, ResponseBodyLimit: responseLimit},
+		Policy: exchange.BoundedPolicy{Operation: policy},
 	})
 	if err != nil {
 		return PayPalWebhookVerificationUnknown, err
@@ -458,14 +457,6 @@ func decodePayPalVerificationResponse(body []byte, maximum core.ByteCount) (PayP
 		return PayPalWebhookVerificationUnknown, verificationError(err)
 	}
 	return wire.Status, nil
-}
-
-func validatePayPalWebhookMaximum(maximum core.ByteCount) error {
-	value, err := maximum.Uint64()
-	if err != nil || value > core.PayPalWebhookEventCustodyMaximumBytes {
-		return errors.Join(core.ErrPayPalContract, err)
-	}
-	return nil
 }
 
 type PayPalAuthAlgorithm string
@@ -614,12 +605,12 @@ func jsonMediaType() (core.HTTPMediaType, error) {
 	return exchange.StandardMediaTypeJSON.HTTPMediaType()
 }
 
-func receiveWebhookBody(call exchange.SocketServerCall, maximum core.ByteCount, media core.HTTPMediaType) ([]byte, error) {
+func receiveWebhookBody(call exchange.SocketServerCall, media core.HTTPMediaType) ([]byte, error) {
 	received, err := exchange.ReceiveBounded(exchange.BoundedReceiveCall{
 		Call:                call,
 		ExpectedContentType: media,
-		Policy:              exchange.ServerBoundedPolicy{RequestBodyLimit: maximum},
-		Route:               exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt},
+
+		Route: exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt},
 	})
 	if err != nil {
 		return nil, err

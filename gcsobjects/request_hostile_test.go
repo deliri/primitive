@@ -213,7 +213,7 @@ func setAuthenticatedGCSReadLength(t *testing.T, request *gcsobjects.GCSReadRequ
 		t.Fatalf("core.NewByteLength(%d) error = %v, want nil", value, err)
 	}
 	request.Integrity.Length = length
-	request.Destination.ExpectedBytes = length
+	request.Destination.ExpectedBytes = new(length)
 }
 
 func authenticatedGCSIntegrityAtLength(t *testing.T, lengthValue uint64) objectstore.Integrity {

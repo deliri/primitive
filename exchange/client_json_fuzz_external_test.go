@@ -29,7 +29,7 @@ func FuzzSendJSONReplayNoBodyAndSocketResponses(f *testing.F) {
 		f.Fatal(err)
 	}
 	recorder := httptest.NewRecorder()
-	if err := exchange.WriteJSON(exchange.JSONWriteCall[transportDocument]{Call: socketServerCallFrom(f, recorder, httptest.NewRequest(http.MethodGet, "/", nil)), Response: exchange.ServerJSONResponse[transportDocument]{Body: seed, Status: core.HTTPStatusOK()}, Policy: exchange.JSONWritePolicy{ResponseBodyLimit: mustByteCount(f, 4096)}}); err != nil {
+	if err := exchange.WriteJSON(exchange.JSONWriteCall[transportDocument]{Call: socketServerCallFrom(f, recorder, httptest.NewRequest(http.MethodGet, "/", nil)), Response: exchange.ServerJSONResponse[transportDocument]{Body: seed, Status: core.HTTPStatusOK()}}); err != nil {
 		f.Fatal(err)
 	}
 	canonical := recorder.Body.Bytes()
@@ -50,8 +50,8 @@ func FuzzSendJSONReplayNoBodyAndSocketResponses(f *testing.F) {
 	for _, hostile := range [][]byte{nil, []byte("null"), []byte(`{}`), []byte(`{"message":1}`), []byte(`{"message":"a","message":"b"}`), []byte(`{"message":"a","unknown":1}`)} {
 		f.Add(hostile, intent.Operation, uint16(len(canonical)), false, false, false, false)
 	}
-	f.Fuzz(func(t *testing.T, wire []byte, operation string, ceiling uint16, unexpectedStatus, closeFailure, foreignMedia, foreignKey bool) {
-		if len(wire) > 8192 || len(operation) > exchange.IdempotencyKeyMaximumBytes+1 || ceiling == 0 {
+	f.Fuzz(func(t *testing.T, wire []byte, operation string, window uint16, unexpectedStatus, closeFailure, foreignMedia, foreignKey bool) {
+		if len(wire) > 8192 || len(operation) > exchange.IdempotencyKeyMaximumBytes+1 {
 			return
 		}
 		var decoded *transportDocument
@@ -62,7 +62,7 @@ func FuzzSendJSONReplayNoBodyAndSocketResponses(f *testing.F) {
 			var requests int
 			var requestWire []byte
 			var requestMethod, requestPath, requestKey, requestType string
-			source := &bindingObservedBody{reader: bytes.NewReader(wire)}
+			source := &bindingObservedBody{reader: &streamFuzzReader{source: bytes.NewReader(wire), window: int(window)}}
 			if closeFailure {
 				source.err = io.ErrClosedPipe
 			}
@@ -111,8 +111,7 @@ func FuzzSendJSONReplayNoBodyAndSocketResponses(f *testing.F) {
 				semantics.Replay = exchange.ReplayIdempotencyKey
 				semantics.IdempotencyKey = key
 			}
-			limit := mustByteCount(t, uint64(ceiling))
-			call := exchange.JSONCall[replayBoundDocument]{Context: t.Context(), Client: client, Request: exchange.JSONRequest[replayBoundDocument]{Target: target, Body: requestDocument, Semantics: semantics, ExpectedStatus: core.HTTPStatusOK()}, Policy: exchange.JSONPolicy{Operation: singleAttemptOperationPolicy(t), RequestBodyLimit: mustByteCount(t, 4096), ResponseBodyLimit: limit}}
+			call := exchange.JSONCall[replayBoundDocument]{Context: t.Context(), Client: client, Request: exchange.JSONRequest[replayBoundDocument]{Target: target, Body: requestDocument, Semantics: semantics, ExpectedStatus: core.HTTPStatusOK()}, Policy: exchange.JSONPolicy{Operation: singleAttemptOperationPolicy(t)}}
 			var got exchange.JSONResponse[transportDocument]
 			var gotErr error
 			switch door {
@@ -121,7 +120,7 @@ func FuzzSendJSONReplayNoBodyAndSocketResponses(f *testing.F) {
 			case jsonClientBound:
 				got, gotErr = exchange.SendReplayBoundJSON[replayBoundDocument, transportDocument](call)
 			case jsonClientNoBody:
-				got, gotErr = exchange.SendNoBodyJSON[transportDocument](exchange.NoBodyJSONCall{Context: t.Context(), Client: client, Request: exchange.NoBodyRequest{Target: target, Semantics: exchange.RequestSemantics{Method: exchange.MethodGet, Replay: exchange.ReplaySingleAttempt}, ExpectedStatus: core.HTTPStatusOK()}, Policy: exchange.NoBodyJSONPolicy{Operation: call.Policy.Operation, ResponseBodyLimit: limit}})
+				got, gotErr = exchange.SendNoBodyJSON[transportDocument](exchange.NoBodyJSONCall{Context: t.Context(), Client: client, Request: exchange.NoBodyRequest{Target: target, Semantics: exchange.RequestSemantics{Method: exchange.MethodGet, Replay: exchange.ReplaySingleAttempt}, ExpectedStatus: core.HTTPStatusOK()}, Policy: exchange.NoBodyJSONPolicy{Operation: call.Policy.Operation}})
 			case jsonClientSocket, jsonClientBoundSocket:
 				replay := exchange.ReplaySingleAttempt
 				if door == jsonClientBoundSocket {
@@ -129,7 +128,6 @@ func FuzzSendJSONReplayNoBodyAndSocketResponses(f *testing.F) {
 				}
 				contract := socketPairContract(t, "/socket", replay)
 				contract.SuccessStatus = core.HTTPStatusOK()
-				contract.ResponseBodyLimit = limit
 				socket, err := exchange.NewClientSocket(exchange.ClientSocketConfiguration{Target: target, Client: client, Contract: contract, Operation: call.Policy.Operation})
 				if err != nil {
 					t.Fatal(err)
@@ -180,11 +178,11 @@ func FuzzSendJSONReplayNoBodyAndSocketResponses(f *testing.F) {
 				t.Fatalf("door %d wire = (%d,%q,%q,%q,%q,%q), want exact request (%q,%q,%q,%q)", door, requests, requestMethod, requestPath, requestKey, requestType, requestWire, wantMethod, wantKey, wantType, expectedRequest)
 			}
 			wantMediaRefusal := foreignMedia && !unexpectedStatus
-			wantRead := min(len(wire), int(ceiling)+1)
+			wantRead := len(wire)
 			if wantMediaRefusal {
 				wantRead = 0
 			}
-			wantOverflow := !wantMediaRefusal && len(wire) > int(ceiling)
+			wantOverflow := false
 			wantBytes := len(wire)
 			if wantMediaRefusal || wantOverflow {
 				wantBytes = 0

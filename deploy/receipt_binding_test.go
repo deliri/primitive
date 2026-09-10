@@ -100,11 +100,7 @@ func TestReceiptCapabilityBindingLayerTriad(t *testing.T) {
 			if err != nil {
 				t.Fatalf("attempt duration=%v, want nil", err)
 			}
-			limit, err := core.NewByteCount(4096)
-			if err != nil {
-				t.Fatalf("error-body bound=%v, want nil", err)
-			}
-			policy := objectstore.Policy{OperationTimeout: operation, AttemptTimeout: attempt, ErrorBodyLimit: limit}
+			policy := objectstore.Policy{OperationTimeout: operation, AttemptTimeout: attempt}
 			var transfer objectstore.Transfer
 			if !tc.absent {
 				if tc.raw {

@@ -282,7 +282,7 @@ func TestSocketGoMutualTLSLayerTriad(t *testing.T) {
 			client := mustExchangeClient(t, &http.Client{Transport: transport})
 			got, err := exchange.SendNoBodyBounded(exchange.NoBodyBoundedCall{Context: t.Context(), Client: client,
 				Request: exchange.NoBodyBoundedRequest{Target: mustEndpoint(t, server.URL), Semantics: exchange.RequestSemantics{Method: exchange.MethodGet, Replay: exchange.ReplaySingleAttempt}, ExpectedStatus: core.HTTPStatusOK()},
-				Policy:  exchange.NoBodyBoundedPolicy{Operation: singleAttemptOperationPolicy(t), ResponseBodyLimit: mustByteCount(t, 1)}})
+				Policy:  exchange.NoBodyBoundedPolicy{Operation: singleAttemptOperationPolicy(t)}})
 			if !errors.Is(err, tc.wantTransportErr) || calls.Load() != tc.wantCalls {
 				t.Fatalf("TLS transport = (%v,%d handler calls), want (%v,%d)", err, calls.Load(), tc.wantTransportErr, tc.wantCalls)
 			}

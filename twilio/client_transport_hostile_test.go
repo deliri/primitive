@@ -131,15 +131,11 @@ func twilioTransportRequest(t testing.TB, account string) exchange.StreamRoundTr
 	if err != nil {
 		t.Fatalf("core.NewByteLength() error = %v, want nil", err)
 	}
-	limit, err := core.NewByteCount(1 << 10)
-	if err != nil {
-		t.Fatalf("core.NewByteCount() error = %v, want nil", err)
-	}
 	return exchange.StreamRoundTripRequest{
 		Target: target, Source: bytes.NewReader(body), Destination: io.Discard,
 		Semantics:          exchange.RequestSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt},
 		RequestContentType: requestMedia, ExpectedResponseContentType: responseMedia,
-		RequestContentLength: length, ResponseBodyLimit: limit, ExpectedStatus: core.HTTPStatusOK(),
+		RequestContentLength: new(length), ExpectedStatus: core.HTTPStatusOK(),
 	}
 }
 
@@ -153,10 +149,6 @@ func twilioTransportPolicy(t testing.TB) exchange.StreamPolicy {
 	if err != nil {
 		t.Fatalf("temporal.DurationFromSeconds(attempt) error = %v, want nil", err)
 	}
-	limit, err := core.NewByteCount(1 << 10)
-	if err != nil {
-		t.Fatalf("core.NewByteCount() error = %v, want nil", err)
-	}
 	return exchange.StreamPolicy{OperationTimeout: operation, AttemptTimeout: attempt,
-		ErrorBodyLimit: limit, Redirect: exchange.RedirectPolicy{Mode: exchange.RedirectReject}}
+		Redirect: exchange.RedirectPolicy{Mode: exchange.RedirectReject}}
 }

@@ -24,7 +24,6 @@ const (
 	capabilityExecutionUploadZeroPolicy
 	capabilityExecutionUploadZeroOperationTimeout
 	capabilityExecutionUploadZeroAttemptTimeout
-	capabilityExecutionUploadZeroErrorBodyLimit
 	capabilityExecutionUploadAboveProviderMaximum
 	capabilityExecutionDownloadZeroRequest
 	capabilityExecutionDownloadZeroCapability
@@ -36,7 +35,6 @@ const (
 	capabilityExecutionDownloadZeroPolicy
 	capabilityExecutionDownloadZeroOperationTimeout
 	capabilityExecutionDownloadZeroAttemptTimeout
-	capabilityExecutionDownloadZeroErrorBodyLimit
 	capabilityExecutionDownloadAboveProviderMaximum
 )
 
@@ -57,10 +55,9 @@ func TestCapabilityExecutionHostileRequestBoundaryMatrix(t *testing.T) {
 		{name: "upload zero integrity", mutation: capabilityExecutionUploadZeroIntegrity, wantErr: core.ErrObjectStoreContract},
 		{name: "upload zero SHA-256", mutation: capabilityExecutionUploadZeroSHA256, wantErr: core.ErrObjectStoreContract},
 		{name: "upload zero CRC32C", mutation: capabilityExecutionUploadZeroCRC32C, wantErr: core.ErrObjectStoreContract},
-		{name: "upload zero policy", mutation: capabilityExecutionUploadZeroPolicy, wantErr: core.ErrObjectStoreContract},
-		{name: "upload zero operation timeout", mutation: capabilityExecutionUploadZeroOperationTimeout, wantErr: core.ErrObjectStoreContract},
-		{name: "upload zero attempt timeout", mutation: capabilityExecutionUploadZeroAttemptTimeout, wantErr: core.ErrObjectStoreContract},
-		{name: "upload zero error body limit", mutation: capabilityExecutionUploadZeroErrorBodyLimit, wantErr: core.ErrObjectStoreContract},
+		{name: "upload caller-owned lifetime", mutation: capabilityExecutionUploadZeroPolicy},
+		{name: "upload zero operation timeout", mutation: capabilityExecutionUploadZeroOperationTimeout},
+		{name: "upload zero attempt timeout", mutation: capabilityExecutionUploadZeroAttemptTimeout},
 		{name: "upload one byte above provider maximum", mutation: capabilityExecutionUploadAboveProviderMaximum, wantErr: core.ErrObjectStoreSize},
 		{name: "download zero request", mutation: capabilityExecutionDownloadZeroRequest, wantErr: core.ErrObjectStoreContract},
 		{name: "download zero capability", mutation: capabilityExecutionDownloadZeroCapability, wantErr: core.ErrObjectStoreContract},
@@ -69,10 +66,9 @@ func TestCapabilityExecutionHostileRequestBoundaryMatrix(t *testing.T) {
 		{name: "download zero integrity", mutation: capabilityExecutionDownloadZeroIntegrity, wantErr: core.ErrObjectStoreContract},
 		{name: "download zero SHA-256", mutation: capabilityExecutionDownloadZeroSHA256, wantErr: core.ErrObjectStoreContract},
 		{name: "download zero CRC32C", mutation: capabilityExecutionDownloadZeroCRC32C, wantErr: core.ErrObjectStoreContract},
-		{name: "download zero policy", mutation: capabilityExecutionDownloadZeroPolicy, wantErr: core.ErrObjectStoreContract},
-		{name: "download zero operation timeout", mutation: capabilityExecutionDownloadZeroOperationTimeout, wantErr: core.ErrObjectStoreContract},
-		{name: "download zero attempt timeout", mutation: capabilityExecutionDownloadZeroAttemptTimeout, wantErr: core.ErrObjectStoreContract},
-		{name: "download zero error body limit", mutation: capabilityExecutionDownloadZeroErrorBodyLimit, wantErr: core.ErrObjectStoreContract},
+		{name: "download caller-owned lifetime", mutation: capabilityExecutionDownloadZeroPolicy},
+		{name: "download zero operation timeout", mutation: capabilityExecutionDownloadZeroOperationTimeout},
+		{name: "download zero attempt timeout", mutation: capabilityExecutionDownloadZeroAttemptTimeout},
 		{name: "download one byte above provider maximum", mutation: capabilityExecutionDownloadAboveProviderMaximum, wantErr: core.ErrObjectStoreSize},
 	}
 
@@ -133,9 +129,6 @@ func TestCapabilityExecutionHostileRequestBoundaryMatrix(t *testing.T) {
 			case capabilityExecutionUploadZeroAttemptTimeout:
 				upload.Policy.AttemptTimeout = temporal.Duration{}
 				gotErr = upload.Validate()
-			case capabilityExecutionUploadZeroErrorBodyLimit:
-				upload.Policy.ErrorBodyLimit = core.ByteCount{}
-				gotErr = upload.Validate()
 			case capabilityExecutionUploadAboveProviderMaximum:
 				upload.Integrity.Length = mustByteLength(t, objectstore.GoogleCloudStorageObjectMaximumBytes+1)
 				gotErr = upload.Validate()
@@ -167,9 +160,6 @@ func TestCapabilityExecutionHostileRequestBoundaryMatrix(t *testing.T) {
 				gotErr = download.Validate()
 			case capabilityExecutionDownloadZeroAttemptTimeout:
 				download.Policy.AttemptTimeout = temporal.Duration{}
-				gotErr = download.Validate()
-			case capabilityExecutionDownloadZeroErrorBodyLimit:
-				download.Policy.ErrorBodyLimit = core.ByteCount{}
 				gotErr = download.Validate()
 			case capabilityExecutionDownloadAboveProviderMaximum:
 				download.Integrity.Length = mustByteLength(t, objectstore.GoogleCloudStorageObjectMaximumBytes+1)

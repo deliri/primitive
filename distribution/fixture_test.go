@@ -365,11 +365,7 @@ func objectstorePolicy(t testing.TB) objectstore.Policy {
 	if err != nil {
 		t.Fatalf("temporal.DurationFromSeconds(attempt) error = %v, want nil", err)
 	}
-	limit, err := core.NewByteCount(4 << 10)
-	if err != nil {
-		t.Fatalf("core.NewByteCount(error body limit) error = %v, want nil", err)
-	}
 	return objectstore.Policy{
-		OperationTimeout: operation, AttemptTimeout: attempt, ErrorBodyLimit: limit,
+		OperationTimeout: operation, AttemptTimeout: attempt,
 	}
 }

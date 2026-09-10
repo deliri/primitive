@@ -228,10 +228,6 @@ func TestSessionHTTPCookieCustodyLayerTriad(t *testing.T) {
 			if err != nil {
 				t.Fatalf("isolated constructor = %v, want nil", err)
 			}
-			limit, err := core.NewByteCount(1)
-			if err != nil {
-				t.Fatalf("body limit = %v, want nil", err)
-			}
 			timeout, err := temporal.DurationFromMilliseconds(30000)
 			if err != nil {
 				t.Fatalf("timeout = %v, want nil", err)
@@ -254,7 +250,7 @@ func TestSessionHTTPCookieCustodyLayerTriad(t *testing.T) {
 				got, err := SendNoBodyBounded(NoBodyBoundedCall{
 					Context: t.Context(), Client: step.client,
 					Request: NoBodyBoundedRequest{Target: target, Semantics: RequestSemantics{Method: MethodGet, Replay: ReplaySingleAttempt}, ExpectedStatus: core.HTTPStatusOK()},
-					Policy:  NoBodyBoundedPolicy{Operation: OperationPolicy{OperationTimeout: timeout, AttemptTimeout: timeout, Retry: RetryPolicy{MaximumAttempts: 1}, Redirect: RedirectPolicy{Mode: RedirectReject}}, ResponseBodyLimit: limit},
+					Policy:  NoBodyBoundedPolicy{Operation: OperationPolicy{OperationTimeout: timeout, AttemptTimeout: timeout, Retry: RetryPolicy{MaximumAttempts: 1}, Redirect: RedirectPolicy{Mode: RedirectReject}}},
 				})
 				if err != nil {
 					t.Fatalf("SendNoBodyBounded() = %v, want nil", err)

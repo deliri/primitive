@@ -102,7 +102,7 @@ func TestResponseBufferReleaseLayerTriad(t *testing.T) {
 			func() {
 				defer func() { gotPanic = recover() }()
 				result, gotErr = BufferResponse(t.Context(), ResponseBufferRequest{
-					Call: SocketServerCall{writer: destination, request: httptest.NewRequest(tc.method, "/", nil)}, BodyMaximum: mustInternalByteCount(t, 4),
+					Call: SocketServerCall{writer: destination, request: httptest.NewRequest(tc.method, "/", nil)},
 					Serve: func(call SocketServerCall) error {
 						callbackCalls++
 						if tc.bufferLength != nil {

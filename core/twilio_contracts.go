@@ -6,7 +6,6 @@ const (
 	TwilioAPIHost                         = "api.twilio.com"
 	TwilioAPIKeySecretCustodyMaximumBytes = 4 * 1024
 	TwilioAuthTokenCustodyMaximumBytes    = 4 * 1024
-	TwilioWebhookCustodyMaximumBytes      = 1 << 20
 	TwilioWebhookSignatureHeaderName      = "X-Twilio-Signature"
 	TwilioWebhookSignatureBytes           = 28
 	TwilioWebhookBodySHA256QueryName      = "bodySHA256"

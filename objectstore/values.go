@@ -360,11 +360,11 @@ func (i Integrity) Validate() error {
 	return nil
 }
 
-// Policy owns one attempt's finite time and rejected-body bounds.
+// Policy supplies optional operation and attempt timeouts. Zero inherits the
+// caller context without imposing a transfer deadline.
 type Policy struct {
 	OperationTimeout temporal.Duration
 	AttemptTimeout   temporal.Duration
-	ErrorBodyLimit   core.ByteCount
 }
 
 // Validate closes the one-attempt policy.
@@ -376,7 +376,7 @@ func (p Policy) exchange() exchange.StreamPolicy {
 	return exchange.StreamPolicy{
 		OperationTimeout: p.OperationTimeout,
 		AttemptTimeout:   p.AttemptTimeout,
-		ErrorBodyLimit:   p.ErrorBodyLimit,
+
 		Redirect: exchange.RedirectPolicy{
 			Mode: exchange.RedirectReject,
 		},

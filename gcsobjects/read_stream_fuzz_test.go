@@ -15,7 +15,7 @@ import (
 // proof on refusal, including when metadata agrees with only a source prefix.
 func FuzzGCSReadExtentSemanticBoundary(f *testing.F) {
 	for _, data := range [][]byte{nil, {0x7f}, []byte("distinct provider payload")} {
-		for mutation := uint8(0); mutation < 4; mutation++ {
+		for mutation := range uint8(4) {
 			f.Add(data, mutation, false)
 			f.Add(data, mutation, true)
 		}

@@ -81,7 +81,7 @@ func TestStreamReadCancellationLayerTriad(t *testing.T) {
 			}
 			source := &cancellationStepReader{steps: tc.steps, cancel: cancel}
 			destination := &retainingWriter{}
-			written, gotErr := copyDownload(downloadCopyRequest{context: ctx, source: source, destination: destination, limit: limit})
+			written, gotErr := copyDownload(downloadCopyRequest{context: ctx, source: source, destination: destination, limit: &limit})
 			if !errors.Is(gotErr, tc.wantErr) || errors.Is(gotErr, core.ErrExchangeCancelled) != tc.wantCancelled {
 				t.Fatalf("copy error/cancellation = (%v, %t), want (%v, %t)", gotErr, errors.Is(gotErr, core.ErrExchangeCancelled), tc.wantErr, tc.wantCancelled)
 			}

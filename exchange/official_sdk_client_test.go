@@ -21,7 +21,7 @@ func TestClientOfficialSDKTransportLayerTriad(t *testing.T) {
 	}{
 		{name: "owned TLS authority delivers exact bytes below ceiling", body: strings.Repeat("x", 127)},
 		{name: "owned TLS authority delivers exact bytes at ceiling", body: strings.Repeat("x", 128)},
-		{name: "owned TLS authority cannot release partial bytes above ceiling", body: strings.Repeat("x", 129), wantErr: core.ErrExchangeBodyLimit},
+		{name: "owned TLS authority preserves bytes beyond former cutoff", body: strings.Repeat("x", 129)},
 		{name: "empty response remains empty after owned transport projection"},
 	}
 	for _, tc := range cases {
@@ -41,13 +41,9 @@ func TestClientOfficialSDKTransportLayerTriad(t *testing.T) {
 			if err != nil {
 				t.Fatalf("NewClient() error = %v, want nil", err)
 			}
-			limit, err := core.NewByteCount(128)
+			boundary, err := exchange.NewOfficialSDKMethodResponseBoundary(exchange.OfficialSDKMethodResponseBoundaryRequest{Method: exchange.MethodGet, Representation: exchange.OfficialSDKResponseRepresentationBinary})
 			if err != nil {
-				t.Fatalf("NewByteCount() error = %v, want nil", err)
-			}
-			boundary, err := exchange.NewOfficialSDKResponseCeiling(exchange.OfficialSDKResponseCeilingRequest{Method: exchange.MethodGet, Representation: exchange.OfficialSDKResponseRepresentationBinary, MaximumBytes: limit})
-			if err != nil {
-				t.Fatalf("NewOfficialSDKResponseCeiling() error = %v, want nil", err)
+				t.Fatalf("NewOfficialSDKMethodResponseBoundary() error = %v, want nil", err)
 			}
 			transport, err := owned.OfficialSDKResponseTransport(boundary)
 			if err != nil {
@@ -84,7 +80,7 @@ func TestClientOfficialSDKTransportLayerTriad(t *testing.T) {
 				}
 				return
 			}
-			body, err := io.ReadAll(io.LimitReader(response.Body, 129))
+			body, err := io.ReadAll(response.Body)
 			if err != nil || string(body) != tc.body {
 				t.Fatalf("SDK body = (%q, %v), want (%q, nil)", body, err, tc.body)
 			}

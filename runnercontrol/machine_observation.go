@@ -170,15 +170,13 @@ func (s MachineObservationServer) Serve(call exchange.SocketServerCall) error {
 }
 
 func MachineObservationSocketContract(path exchange.SocketRoutePath) (exchange.JSONSocketContract, error) {
-	requestLimit, requestErr := core.NewByteCount(MachineObservationRequestMaximumBytes)
-	responseLimit, responseErr := core.NewByteCount(MachineObservationResponseMaximumBytes)
 	status, statusErr := exchange.HTTPStatusAccepted()
-	if err := errors.Join(path.Validate(), requestErr, responseErr, statusErr); err != nil {
+	if err := errors.Join(path.Validate(), statusErr); err != nil {
 		return exchange.JSONSocketContract{}, err
 	}
 	contract := exchange.JSONSocketContract{
 		Path: path, Route: exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt},
-		RequestBodyLimit: requestLimit, ResponseBodyLimit: responseLimit, SuccessStatus: status,
+		SuccessStatus: status,
 	}
 	return contract, contract.Validate()
 }

@@ -1047,12 +1047,10 @@ func validateExpansionApproval(record ExpansionRecord, approval ExpansionApprova
 	return nil
 }
 func ExpansionSocketContract(path exchange.SocketRoutePath) (exchange.JSONSocketContract, error) {
-	requestLimit, requestErr := core.NewByteCount(ExpansionManifestMaximumBytes)
-	responseLimit, responseErr := core.NewByteCount(ExpansionApprovalMaximumBytes)
-	if err := errors.Join(path.Validate(), requestErr, responseErr); err != nil {
+	if err := errors.Join(path.Validate()); err != nil {
 		return exchange.JSONSocketContract{}, err
 	}
-	contract := exchange.JSONSocketContract{Path: path, Route: exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplayIdempotencyKey}, RequestBodyLimit: requestLimit, ResponseBodyLimit: responseLimit, SuccessStatus: core.HTTPStatusOK()}
+	contract := exchange.JSONSocketContract{Path: path, Route: exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplayIdempotencyKey}, SuccessStatus: core.HTTPStatusOK()}
 	return contract, contract.Validate()
 }
 

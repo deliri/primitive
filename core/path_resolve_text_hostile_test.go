@@ -48,12 +48,12 @@ func TestResolveTextIsExactlyLexicalAbsIngress(t *testing.T) {
 		{name: "empty text is refused rather than meaning the base", text: "", wantErr: core.ErrPrimitiveContract},
 		{name: "text carrying a NUL byte is refused", text: "bad\x00name", wantErr: core.ErrPrimitiveContract},
 		{name: "invalid UTF-8 text is refused", text: "\xff\xfe", wantErr: core.ErrPrimitiveContract},
-		{name: "an oversized component is refused", text: oversizedComponent, wantErr: core.ErrPrimitiveContract},
-		{name: "an absolute path with an oversized component is refused", text: root + oversizedComponent, wantErr: core.ErrPrimitiveContract},
+		{name: "a 256-byte component remains lexical", text: oversizedComponent, want: join("work", "dir", oversizedComponent)},
+		{name: "an absolute 256-byte component remains lexical", text: root + oversizedComponent, want: root + oversizedComponent},
 		{name: "an absolute path carrying a NUL byte is refused", text: join("x") + "\x00", wantErr: core.ErrPrimitiveContract},
 		{name: "invalid UTF-8 absolute text is refused", text: root + "\xff", wantErr: core.ErrPrimitiveContract},
-		{name: "a component-count blowout is refused", text: strings.Repeat("a"+separator, core.FilesystemPathMaximumComponents+8) + "a", wantErr: core.ErrPrimitiveContract},
-		{name: "a rune-limit blowout is refused", text: separator + strings.Repeat("é", 4200), wantErr: core.ErrPrimitiveContract},
+		{name: "265 components resolve without an invented depth quota", text: strings.Repeat("a"+separator, 256+8) + "a", want: join("work", "dir", strings.Repeat("a"+separator, 256+8)+"a")},
+		{name: "4200 unicode runes remain lexical", text: root + strings.Repeat("é", 4200), want: root + strings.Repeat("é", 4200)},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

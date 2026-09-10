@@ -513,11 +513,7 @@ func publicationAuthObjectstorePolicy(
 	if err != nil {
 		t.Fatalf("upload expiry Since(certificate issue) error = %v, want nil", err)
 	}
-	limit, err := core.NewByteCount(4 << 10)
-	if err != nil {
-		t.Fatalf("core.NewByteCount(error body limit) error = %v, want nil", err)
-	}
 	return objectstore.Policy{
-		OperationTimeout: operation, AttemptTimeout: operation, ErrorBodyLimit: limit,
+		OperationTimeout: operation, AttemptTimeout: operation,
 	}
 }

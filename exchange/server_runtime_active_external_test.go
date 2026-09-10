@@ -91,7 +91,7 @@ func TestServerRuntimeActiveConnectionOwnershipTable(t *testing.T) {
 			call := exchange.NoBodyBoundedCall{
 				Context: requestContext, Client: client,
 				Request: exchange.NoBodyBoundedRequest{Target: mustEndpoint(t, "http://"+address.String()+"/"), Semantics: exchange.RequestSemantics{Method: exchange.MethodGet, Replay: exchange.ReplaySingleAttempt}, ExpectedStatus: core.HTTPStatusOK()},
-				Policy:  exchange.NoBodyBoundedPolicy{Operation: singleAttemptOperationPolicy(t), ResponseBodyLimit: mustByteCount(t, 1)},
+				Policy:  exchange.NoBodyBoundedPolicy{Operation: singleAttemptOperationPolicy(t)},
 			}
 			if err := call.Validate(); err != nil {
 				cancel()

@@ -68,14 +68,10 @@ func FuzzBoundedClientsPreserveCompletedProducerCause(f *testing.F) {
 		canonical := bytes.Clone(recorder.Body.Bytes())
 		f.Add(canonical, seed.limit, uint8(seed.fault), seed.cancel)
 	}
-	f.Fuzz(func(t *testing.T, payload []byte, rawLimit uint16, rawFault uint8, cancelAtClose bool) {
+	f.Fuzz(func(t *testing.T, payload []byte, window uint16, rawFault uint8, cancelAtClose bool) {
 		fault := replayHandoffBodyFault(rawFault)
-		if len(payload) > 8192 || rawLimit == 0 || rawLimit > 4096 || (fault != replayHandoffExact && fault != replayHandoffReadFailure && fault != replayHandoffCloseFailure) {
+		if len(payload) > 8192 || window > 4096 || (fault != replayHandoffExact && fault != replayHandoffReadFailure && fault != replayHandoffCloseFailure) {
 			return
-		}
-		limit, err := core.NewByteCount(uint64(rawLimit))
-		if err != nil {
-			t.Fatalf("bounded ceiling fixture = %v, want nil", err)
 		}
 		target, err := core.ParseHTTPEndpoint("https://provider.example.test/aggregate")
 		if err != nil {
@@ -93,17 +89,17 @@ func FuzzBoundedClientsPreserveCompletedProducerCause(f *testing.F) {
 			{name: "SendNoBodyBounded", send: func(ctx context.Context, client Client) (BoundedResponse, error) {
 				return SendNoBodyBounded(NoBodyBoundedCall{Context: ctx, Client: client,
 					Request: NoBodyBoundedRequest{Target: target, Semantics: semantics, ExpectedStatus: core.HTTPStatusOK()},
-					Policy:  NoBodyBoundedPolicy{Operation: policy, ResponseBodyLimit: limit}})
+					Policy:  NoBodyBoundedPolicy{Operation: policy}})
 			}},
 			{name: "SendBounded", send: func(ctx context.Context, client Client) (BoundedResponse, error) {
 				return SendBounded(BoundedCall{Context: ctx, Client: client,
 					Request: BoundedRequest{Target: target, Semantics: semantics, ExpectedStatus: core.HTTPStatusOK(), RequestContentType: core.HTTPMediaTypeOctetStream(), Body: []byte{0xff}},
-					Policy:  BoundedPolicy{Operation: policy, RequestBodyLimit: limit, ResponseBodyLimit: limit}})
+					Policy:  BoundedPolicy{Operation: policy}})
 			}},
 		}
 		for _, door := range doors {
 			ctx, cancel := context.WithCancel(t.Context())
-			body := &aggregateCancelBody{replayHandoffBody: &replayHandoffBody{reader: bytes.NewReader(payload), fault: fault}}
+			body := &aggregateCancelBody{replayHandoffBody: &replayHandoffBody{reader: bytes.NewReader(payload), fault: fault, window: int(window)}}
 			if cancelAtClose {
 				body.cancel = cancel
 			}
@@ -118,14 +114,12 @@ func FuzzBoundedClientsPreserveCompletedProducerCause(f *testing.F) {
 			}
 			got, gotErr := door.send(ctx, client)
 			cancel()
-			wantRead := min(len(payload), int(rawLimit)+1)
+			wantRead := len(payload)
 			if calls != 1 || body.closes != 1 || body.readBytes != wantRead {
 				t.Fatalf("%s producer call/close/read = %d/%d/%d, want 1/1/%d", door.name, calls, body.closes, body.readBytes, wantRead)
 			}
 			var wantNative error
-			if len(payload) > int(rawLimit) {
-				wantNative = core.ErrExchangeBodyLimit
-			} else if fault == replayHandoffReadFailure {
+			if fault == replayHandoffReadFailure {
 				wantNative = io.ErrUnexpectedEOF
 			}
 			if fault == replayHandoffCloseFailure {
@@ -150,7 +144,7 @@ func FuzzBoundedClientsPreserveCompletedProducerCause(f *testing.F) {
 			// classification fails. Only an incomplete aggregate is withheld;
 			// already observed status and attempt count must remain exact.
 			wantBody := payload
-			if len(payload) > int(rawLimit) || fault == replayHandoffReadFailure {
+			if fault == replayHandoffReadFailure {
 				wantBody = nil
 			}
 			if err := got.Validate(); err != nil {

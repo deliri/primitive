@@ -462,13 +462,11 @@ func (s AdmissionServer) ServeAuthenticated(call exchange.SocketServerCall, peer
 }
 
 func AdmissionSocketContract(path exchange.SocketRoutePath) (exchange.JSONSocketContract, error) {
-	requestLimit, requestErr := core.NewByteCount(AdmissionRequestMaximumBytes)
-	responseLimit, responseErr := core.NewByteCount(AdmissionResponseMaximumBytes)
 	accepted, statusErr := exchange.HTTPStatusAccepted()
-	if err := errors.Join(path.Validate(), requestErr, responseErr, statusErr); err != nil {
+	if err := errors.Join(path.Validate(), statusErr); err != nil {
 		return exchange.JSONSocketContract{}, err
 	}
-	contract := exchange.JSONSocketContract{Path: path, Route: exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplayIdempotencyKey}, RequestBodyLimit: requestLimit, ResponseBodyLimit: responseLimit, SuccessStatus: accepted}
+	contract := exchange.JSONSocketContract{Path: path, Route: exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplayIdempotencyKey}, SuccessStatus: accepted}
 	return contract, contract.Validate()
 }
 

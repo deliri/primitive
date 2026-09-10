@@ -107,7 +107,6 @@ const (
 	downloadCallZeroPolicy
 	downloadCallZeroOperationTimeout
 	downloadCallZeroAttemptTimeout
-	downloadCallZeroErrorLimit
 	downloadCallAttemptExceedsOperation
 	downloadCallZeroGrant
 )
@@ -118,7 +117,7 @@ func TestVerifiedGrantDownloadCallHostileIngressMatrix(t *testing.T) {
 	mutations := []downloadCallMutation{
 		downloadCallZeroRequest, downloadCallNilDestination, downloadCallZeroPolicy,
 		downloadCallZeroOperationTimeout, downloadCallZeroAttemptTimeout,
-		downloadCallZeroErrorLimit, downloadCallAttemptExceedsOperation, downloadCallZeroGrant,
+		downloadCallAttemptExceedsOperation, downloadCallZeroGrant,
 	}
 	for _, mutation := range mutations {
 		t.Run(downloadCallMutationName(mutation), func(t *testing.T) {
@@ -137,8 +136,6 @@ func TestVerifiedGrantDownloadCallHostileIngressMatrix(t *testing.T) {
 				request.Policy.OperationTimeout = temporal.Duration{}
 			case downloadCallZeroAttemptTimeout:
 				request.Policy.AttemptTimeout = temporal.Duration{}
-			case downloadCallZeroErrorLimit:
-				request.Policy.ErrorBodyLimit = core.ByteCount{}
 			case downloadCallAttemptExceedsOperation:
 				request.Policy.OperationTimeout = mustRetrievalDuration(t, 1)
 				request.Policy.AttemptTimeout = mustRetrievalDuration(t, 2)
@@ -148,6 +145,12 @@ func TestVerifiedGrantDownloadCallHostileIngressMatrix(t *testing.T) {
 				t.Fatalf("download call mutation = %d, want published mutation", mutation)
 			}
 			call, err := grant.DownloadCall(request)
+			if mutation == downloadCallZeroPolicy || mutation == downloadCallZeroOperationTimeout || mutation == downloadCallZeroAttemptTimeout {
+				if err != nil || call.Validate() != nil || call.Policy != request.Policy || call.Destination != request.Destination {
+					t.Fatalf("optional timeout projection=%+v/%v, want exact caller policy and destination", call, err)
+				}
+				return
+			}
 			if !errors.Is(err, core.ErrRetrievalContract) || !downloadCallIsZero(call) {
 				t.Fatalf("DownloadCall(%s) = (%v, %v), want zero and errors.Is %v",
 					downloadCallMutationName(mutation), call, err, core.ErrRetrievalContract)
@@ -159,7 +162,7 @@ func TestVerifiedGrantDownloadCallHostileIngressMatrix(t *testing.T) {
 func downloadCallMutationName(mutation downloadCallMutation) string {
 	return [...]string{
 		"zero request", "nil destination", "zero policy", "zero operation timeout",
-		"zero attempt timeout", "zero error limit", "attempt exceeds operation", "zero grant",
+		"zero attempt timeout", "attempt exceeds operation", "zero grant",
 	}[mutation]
 }
 
@@ -460,13 +463,9 @@ func retrievalLifecycleIdentity[T core.Validatable](
 
 func retrievalPolicy(t testing.TB) objectstore.Policy {
 	t.Helper()
-	limit, err := core.NewByteCount(4096)
-	if err != nil {
-		t.Fatalf("core.NewByteCount() error = %v, want nil", err)
-	}
 	return objectstore.Policy{
 		OperationTimeout: mustRetrievalDuration(t, 10),
-		AttemptTimeout:   mustRetrievalDuration(t, 5), ErrorBodyLimit: limit,
+		AttemptTimeout:   mustRetrievalDuration(t, 5),
 	}
 }
 

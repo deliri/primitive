@@ -16,7 +16,7 @@ import (
 const (
 	coreExportDependencyMaximum     = 32
 	coreSpecialExportAdmissionCount = 82
-	coreProviderExportContractCount = 60
+	coreProviderExportContractCount = 50
 )
 
 type coreExportName string
@@ -207,7 +207,6 @@ func coreProviderExportContracts() [coreProviderExportContractCount]coreProvider
 		{name: "StripeCredentialCustodyMaximumBytes", witness: StripeCredentialCustodyMaximumBytes, consumer: PackageStripe},
 		{name: "StripeWebhookSecretMinimumBytes", witness: StripeWebhookSecretMinimumBytes, consumer: PackageStripe},
 		{name: "StripeWebhookSecretCustodyMaximumBytes", witness: StripeWebhookSecretCustodyMaximumBytes, consumer: PackageStripe},
-		{name: "StripeWebhookCustodyMaximumBytes", witness: StripeWebhookCustodyMaximumBytes, consumer: PackageStripe},
 		{name: "StripeWebhookSignatureHeaderName", witness: StripeWebhookSignatureHeaderName, consumer: PackageStripe},
 		{name: "StripeWebhookSignatureMaximumBytes", witness: StripeWebhookSignatureMaximumBytes, consumer: PackageStripe},
 		{name: "PayPalLiveAPIHost", witness: PayPalLiveAPIHost, consumer: PackagePayPal},
@@ -217,7 +216,6 @@ func coreProviderExportContracts() [coreProviderExportContractCount]coreProvider
 		{name: "PayPalAccessTokenCustodyMaximumBytes", witness: PayPalAccessTokenCustodyMaximumBytes, consumer: PackagePayPal},
 		{name: "PayPalClientIDCustodyMaximumBytes", witness: PayPalClientIDCustodyMaximumBytes, consumer: PackagePayPal},
 		{name: "PayPalClientSecretCustodyMaximumBytes", witness: PayPalClientSecretCustodyMaximumBytes, consumer: PackagePayPal},
-		{name: "PayPalWebhookEventCustodyMaximumBytes", witness: PayPalWebhookEventCustodyMaximumBytes, consumer: PackagePayPal},
 		{name: "PayPalWebhookIDMaximumBytes", witness: PayPalWebhookIDMaximumBytes, consumer: PackagePayPal},
 		{name: "PayPalAuthAlgorithmMaximumBytes", witness: PayPalAuthAlgorithmMaximumBytes, consumer: PackagePayPal},
 		{name: "PayPalCertificateURLMaximumBytes", witness: PayPalCertificateURLMaximumBytes, consumer: PackagePayPal},
@@ -234,7 +232,6 @@ func coreProviderExportContracts() [coreProviderExportContractCount]coreProvider
 		{name: "TwilioAPIHost", witness: TwilioAPIHost, consumer: PackageTwilio},
 		{name: "TwilioAPIKeySecretCustodyMaximumBytes", witness: TwilioAPIKeySecretCustodyMaximumBytes, consumer: PackageTwilio},
 		{name: "TwilioAuthTokenCustodyMaximumBytes", witness: TwilioAuthTokenCustodyMaximumBytes, consumer: PackageTwilio},
-		{name: "TwilioWebhookCustodyMaximumBytes", witness: TwilioWebhookCustodyMaximumBytes, consumer: PackageTwilio},
 		{name: "TwilioWebhookSignatureHeaderName", witness: TwilioWebhookSignatureHeaderName, consumer: PackageTwilio},
 		{name: "TwilioWebhookSignatureBytes", witness: TwilioWebhookSignatureBytes, consumer: PackageTwilio},
 		{name: "TwilioWebhookBodySHA256QueryName", witness: TwilioWebhookBodySHA256QueryName, consumer: PackageTwilio},
@@ -244,20 +241,13 @@ func coreProviderExportContracts() [coreProviderExportContractCount]coreProvider
 		{name: "PlunkCredentialCustodyMaximumBytes", witness: PlunkCredentialCustodyMaximumBytes, consumer: PackagePlunk},
 		{name: "PlunkWebhookSecretMinimumBytes", witness: PlunkWebhookSecretMinimumBytes, consumer: PackagePlunk},
 		{name: "PlunkWebhookSecretCustodyMaximumBytes", witness: PlunkWebhookSecretCustodyMaximumBytes, consumer: PackagePlunk},
-		{name: "PlunkWebhookCustodyMaximumBytes", witness: PlunkWebhookCustodyMaximumBytes, consumer: PackagePlunk},
 		{name: "GitHubAPIHost", witness: GitHubAPIHost, consumer: PackageGitHub},
 		{name: "GitHubAPIVersion", witness: GitHubAPIVersion, consumer: PackageGitHub},
 		{name: "GitHubTagPageMaximumEntries", witness: GitHubTagPageMaximumEntries, consumer: PackageGitHub},
-		{name: "GitHubRecursiveTreeMaximumEntries", witness: GitHubRecursiveTreeMaximumEntries, consumer: PackageGitHub},
-		{name: "GitHubRecursiveTreeMaximumBytes", witness: GitHubRecursiveTreeMaximumBytes, consumer: PackageGitHub},
-		{name: "GitHubContentsInlineMaximumBytes", witness: GitHubContentsInlineMaximumBytes, consumer: PackageGitHub},
+		{name: "GitHubRawContentMediaType", witness: GitHubRawContentMediaType, consumer: PackageGitHub},
 		{name: "GitHubAppJWTMaximumLifetimeSeconds", witness: GitHubAppJWTMaximumLifetimeSeconds, consumer: PackageGitHub},
 		{name: "GitHubAppJWTClockSkewSeconds", witness: GitHubAppJWTClockSkewSeconds, consumer: PackageGitHub},
 		{name: "GitHubAppPrivateKeyCustodyMaximumBytes", witness: GitHubAppPrivateKeyCustodyMaximumBytes, consumer: PackageGitHub},
-		{name: "GitHubInstallationTokenResponseCustodyMaximumBytes", witness: GitHubInstallationTokenResponseCustodyMaximumBytes, consumer: PackageGitHub},
-		{name: "GitHubCommitResponseCustodyMaximumBytes", witness: GitHubCommitResponseCustodyMaximumBytes, consumer: PackageGitHub},
-		{name: "GitHubTagPageResponseCustodyMaximumBytes", witness: GitHubTagPageResponseCustodyMaximumBytes, consumer: PackageGitHub},
-		{name: "GitHubContentsResponseCustodyMaximumBytes", witness: GitHubContentsResponseCustodyMaximumBytes, consumer: PackageGitHub},
 		{name: "GitHubOperationCustodyTimeoutSeconds", witness: GitHubOperationCustodyTimeoutSeconds, consumer: PackageGitHub},
 	}
 }

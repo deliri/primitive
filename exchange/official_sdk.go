@@ -14,9 +14,6 @@ import (
 )
 
 const (
-	// OfficialSDKResponseMaximumBytes is the absolute aggregate-response
-	// ceiling an official SDK may ask Exchange to hold in memory.
-	OfficialSDKResponseMaximumBytes   = 1 << 20
 	officialSDKPathAffixMaximumBytes  = 16 * 1024
 	officialSDKQueryNameMaximumBytes  = 128
 	officialSDKQueryValueMaximumBytes = 1024
@@ -129,7 +126,6 @@ type OfficialSDKResponseBoundary struct {
 	suffix           string
 	streamQueryName  string
 	streamQueryValue string
-	limit            core.ByteCount
 	method           Method
 	representation   OfficialSDKResponseRepresentation
 	scope            officialSDKResponseScope
@@ -141,7 +137,6 @@ type OfficialSDKResponseBoundary struct {
 type OfficialSDKResponseBoundaryRequest struct {
 	PathPrefix     string
 	PathSuffix     string
-	MaximumBytes   core.ByteCount
 	Method         Method
 	Representation OfficialSDKResponseRepresentation
 }
@@ -156,7 +151,6 @@ func (r OfficialSDKResponseBoundaryRequest) boundary() OfficialSDKResponseBounda
 		method:         r.Method,
 		prefix:         r.PathPrefix,
 		suffix:         r.PathSuffix,
-		limit:          r.MaximumBytes,
 		representation: r.Representation,
 		scope:          officialSDKResponseScopeSelectedPath,
 		set:            true,
@@ -171,62 +165,56 @@ func NewOfficialSDKResponseBoundary(request OfficialSDKResponseBoundaryRequest) 
 	return request.boundary(), nil
 }
 
-// OfficialSDKResponseCeilingRequest selects one method-wide response ceiling.
-type OfficialSDKResponseCeilingRequest struct {
+// OfficialSDKMethodResponseBoundaryRequest selects the representation for one method.
+type OfficialSDKMethodResponseBoundaryRequest struct {
 	Method         Method
 	Representation OfficialSDKResponseRepresentation
-	MaximumBytes   core.ByteCount
 }
 
-// Validate rejects an invalid method-wide response ceiling request.
-func (r OfficialSDKResponseCeilingRequest) Validate() error {
+// Validate rejects an invalid method-wide response contract.
+func (r OfficialSDKMethodResponseBoundaryRequest) Validate() error {
 	return r.boundary().Validate()
 }
 
-func (r OfficialSDKResponseCeilingRequest) boundary() OfficialSDKResponseBoundary {
+func (r OfficialSDKMethodResponseBoundaryRequest) boundary() OfficialSDKResponseBoundary {
 	return OfficialSDKResponseBoundary{
 		method:         r.Method,
-		limit:          r.MaximumBytes,
 		representation: r.Representation,
 		scope:          officialSDKResponseScopeAllPaths,
 		set:            true,
 	}
 }
 
-// NewOfficialSDKResponseCeiling confines every response for one method. It is
+// NewOfficialSDKMethodResponseBoundary validates responses for one method. It is
 // used for SDK-owned authentication endpoints whose provider path is selected
 // by the credential implementation rather than by a product.
-func NewOfficialSDKResponseCeiling(request OfficialSDKResponseCeilingRequest) (OfficialSDKResponseBoundary, error) {
+func NewOfficialSDKMethodResponseBoundary(request OfficialSDKMethodResponseBoundaryRequest) (OfficialSDKResponseBoundary, error) {
 	if err := request.Validate(); err != nil {
 		return OfficialSDKResponseBoundary{}, err
 	}
 	return request.boundary(), nil
 }
 
-// OfficialSDKStreamingSuccessCeilingRequest selects one method-wide aggregate
-// response ceiling while allowing successful responses for one exact SDK query
-// coordinate to remain streaming. Non-success responses at that coordinate are
-// still aggregated, bounded, and representation-validated for the SDK's error
-// decoder.
-type OfficialSDKStreamingSuccessCeilingRequest struct {
+// OfficialSDKStreamingResponseBoundaryRequest leaves successful responses for one
+// exact SDK query coordinate streaming. Other responses use the declared
+// representation. JSON validation retains one complete value before SDK decoding.
+type OfficialSDKStreamingResponseBoundaryRequest struct {
 	StreamQueryName         string
 	StreamQueryValue        string
-	AggregateMaximumBytes   core.ByteCount
 	Method                  Method
 	AggregateRepresentation OfficialSDKResponseRepresentation
 }
 
 // Validate rejects an invalid streaming-success response policy.
-func (r OfficialSDKStreamingSuccessCeilingRequest) Validate() error {
+func (r OfficialSDKStreamingResponseBoundaryRequest) Validate() error {
 	return r.boundary().Validate()
 }
 
-func (r OfficialSDKStreamingSuccessCeilingRequest) boundary() OfficialSDKResponseBoundary {
+func (r OfficialSDKStreamingResponseBoundaryRequest) boundary() OfficialSDKResponseBoundary {
 	return OfficialSDKResponseBoundary{
 		method:           r.Method,
 		streamQueryName:  r.StreamQueryName,
 		streamQueryValue: r.StreamQueryValue,
-		limit:            r.AggregateMaximumBytes,
 		representation:   r.AggregateRepresentation,
 		scope:            officialSDKResponseScopeAllPaths,
 		streamSuccess:    true,
@@ -234,10 +222,10 @@ func (r OfficialSDKStreamingSuccessCeilingRequest) boundary() OfficialSDKRespons
 	}
 }
 
-// NewOfficialSDKStreamingSuccessCeiling confines aggregate SDK responses and
+// NewOfficialSDKStreamingResponseBoundary confines aggregate SDK responses and
 // leaves one exact successful media-style response as an owned stream.
-func NewOfficialSDKStreamingSuccessCeiling(
-	request OfficialSDKStreamingSuccessCeilingRequest,
+func NewOfficialSDKStreamingResponseBoundary(
+	request OfficialSDKStreamingResponseBoundaryRequest,
 ) (OfficialSDKResponseBoundary, error) {
 	if err := request.Validate(); err != nil {
 		return OfficialSDKResponseBoundary{}, err
@@ -245,12 +233,9 @@ func NewOfficialSDKStreamingSuccessCeiling(
 	return request.boundary(), nil
 }
 
-// Validate rejects unset, unbounded, unknown, or malformed response policy.
+// Validate rejects unset, unknown, or malformed response contracts.
 func (b OfficialSDKResponseBoundary) Validate() error {
 	if err := b.validateIdentity(); err != nil {
-		return err
-	}
-	if err := validateOfficialSDKResponseLimit(b.limit); err != nil {
 		return err
 	}
 	return b.validateScope()
@@ -260,14 +245,6 @@ func (b OfficialSDKResponseBoundary) validateIdentity() error {
 	if !b.set || b.method.Validate() != nil ||
 		b.scope.Validate() != nil || b.representation.Validate() != nil {
 		return core.ErrExchangeContract
-	}
-	return nil
-}
-
-func validateOfficialSDKResponseLimit(limit core.ByteCount) error {
-	maximum, err := limit.Uint64()
-	if err != nil || maximum > OfficialSDKResponseMaximumBytes {
-		return errors.Join(core.ErrExchangeContract, err)
 	}
 	return nil
 }
@@ -474,18 +451,18 @@ func (t officialSDKResponseTransport) projectResponse(
 	if response == nil {
 		return nil, transportError(core.ErrExchangeContract)
 	}
-	if response.Body == nil {
+	if core.ReaderIsNil(response.Body) {
 		return nil, transportError(core.ErrExchangeContract)
 	}
 	if !t.boundary.matches(request) {
 		return response, nil
 	}
-	if t.boundary.streamsSuccessfulResponse(request, response) {
+	if t.boundary.representation == OfficialSDKResponseRepresentationBinary || t.boundary.streamsSuccessfulResponse(request, response) {
 		return response, nil
 	}
 	payload, readErr := readOfficialSDKResponse(officialSDKResponseReadRequest{
 		request: request, response: response,
-		limit: t.boundary.limit, representation: t.boundary.representation,
+		representation: t.boundary.representation,
 	})
 	if readErr != nil {
 		return nil, readErr
@@ -517,13 +494,12 @@ func (b OfficialSDKResponseBoundary) streamsSuccessfulResponse(
 type officialSDKResponseReadRequest struct {
 	request        *http.Request
 	response       *http.Response
-	limit          core.ByteCount
 	representation OfficialSDKResponseRepresentation
 }
 
 func (r officialSDKResponseReadRequest) Validate() error {
-	if r.request == nil || r.response == nil || r.response.Body == nil ||
-		r.representation.Validate() != nil || validateOfficialSDKResponseLimit(r.limit) != nil {
+	if r.request == nil || r.response == nil || core.ReaderIsNil(r.response.Body) ||
+		r.representation.Validate() != nil {
 		return core.ErrExchangeContract
 	}
 	return nil
@@ -536,13 +512,13 @@ func readOfficialSDKResponse(readRequest officialSDKResponseReadRequest) ([]byte
 	if err := contextstate.Validate(readRequest.request.Context()); err != nil {
 		return nil, errors.Join(cancelledError(err), closeResponseBody(readRequest.response.Body))
 	}
-	declared, err := admittedBodyLength(readRequest.response.ContentLength, readRequest.limit)
+	declared, err := parseDeclaredBodyLength(readRequest.response.ContentLength)
 	if err != nil {
 		return nil, errors.Join(responseError(err), closeResponseBody(readRequest.response.Body))
 	}
-	payload, readErr := readBoundedBody(boundedBodyRead{
+	payload, readErr := readWholeBody(wholeBodyRead{
 		context: readRequest.request.Context(), source: readRequest.response.Body,
-		declared: declared, limit: readRequest.limit,
+		declared: declared,
 	})
 	closeErr := closeResponseBody(readRequest.response.Body)
 	if readErr != nil || closeErr != nil {
@@ -581,8 +557,8 @@ func validateOfficialSDKResponsePayload(
 var (
 	_ core.Validatable            = OfficialSDKResponseBoundary{}
 	_ core.Validatable            = OfficialSDKResponseBoundaryRequest{}
-	_ core.Validatable            = OfficialSDKResponseCeilingRequest{}
-	_ core.Validatable            = OfficialSDKStreamingSuccessCeilingRequest{}
+	_ core.Validatable            = OfficialSDKMethodResponseBoundaryRequest{}
+	_ core.Validatable            = OfficialSDKStreamingResponseBoundaryRequest{}
 	_ core.Validatable            = OfficialSDKResponseTransportRequest{}
 	_ core.Validatable            = officialSDKResponseReadRequest{}
 	_ core.Validatable            = officialSDKResponseScopeUnknown

@@ -53,9 +53,6 @@ func (d RequestDocument) ControlNonce() controlwire.RequestNonce {
 	return d.Request.Payload.Nonce
 }
 
-func (RequestDocument) ControlRequestBodyLimit() (core.ByteCount, error) {
-	return core.NewByteCount(uint64(RequestDocumentJSONMaximumBytes))
-}
 
 type RequestAssembly struct {
 	Certificate controlplane.InstallationCertificateDocument

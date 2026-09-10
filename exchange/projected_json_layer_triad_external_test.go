@@ -39,7 +39,6 @@ func TestProjectedJSONReceiveLayerTriad(t *testing.T) {
 	cases := []struct {
 		name        string
 		wire        []byte
-		limit       uint64
 		method      string
 		disposition projectionDisposition
 		closeErr    error
@@ -49,22 +48,20 @@ func TestProjectedJSONReceiveLayerTriad(t *testing.T) {
 		wantProject int
 		wantMessage string
 	}{
-		{name: "one below extent ceiling withholds wire before projection", wire: wire, limit: uint64(len(wire) - 1), wantErr: core.ErrExchangeBodyLimit, wantRead: len(wire)},
-		{name: "exact extent completes nonwire method and preserves source message", wire: wire, limit: uint64(len(wire)), wantRead: len(wire), wantProject: 1, wantMessage: document.Message},
-		{name: "one above extent cannot append or alter source message", wire: wire, limit: uint64(len(wire) + 1), wantRead: len(wire), wantProject: 1, wantMessage: document.Message},
-		{name: "missing projector closes unread body", wire: wire, limit: uint64(len(wire)), disposition: projectionMissing, wantErr: core.ErrExchangeContract},
-		{name: "wrong method closes before decode or projection", wire: wire, limit: uint64(len(wire)), method: http.MethodPut, wantErr: core.ErrExchangeContract},
-		{name: "no-op projector cannot publish an invalid nonwire method", wire: wire, limit: uint64(len(wire)), disposition: projectionUnchanged, wantRead: len(wire), wantProject: 1, wantErr: core.ErrExchangeContract},
-		{name: "callback refusal withholds a partly completed value", wire: wire, limit: uint64(len(wire)), disposition: projectionRefused, wantRead: len(wire), wantProject: 1, wantErr: core.ErrExchangeRequest, wantCause: io.ErrUnexpectedEOF},
-		{name: "callback panic withholds a partly completed value", wire: wire, limit: uint64(len(wire)), disposition: projectionPanicked, wantRead: len(wire), wantProject: 1, wantErr: core.ErrExchangeContract},
-		{name: "close failure withholds a fully validated projected value", wire: wire, limit: uint64(len(wire)), closeErr: io.ErrClosedPipe, wantRead: len(wire), wantProject: 1, wantErr: core.ErrExchangeRequest, wantCause: io.ErrClosedPipe},
-		{name: "callback refusal cannot erase a simultaneous close failure", wire: wire, limit: uint64(len(wire)), disposition: projectionRefused, closeErr: io.ErrClosedPipe, wantRead: len(wire), wantProject: 1, wantErr: core.ErrExchangeRequest, wantCause: io.ErrUnexpectedEOF},
-		{name: "unknown field never reaches projector", wire: unknownWire, limit: 128, wantRead: len(unknownWire), wantErr: core.ErrJSONContract},
-		{name: "duplicate field cannot select an arbitrary source value", wire: duplicateWire, limit: 128, wantRead: len(duplicateWire), wantErr: core.ErrJSONContract},
-		{name: "nonwire method cannot be supplied by JSON", wire: nonwireMember, limit: 128, wantRead: len(nonwireMember), wantErr: core.ErrJSONContract},
-		{name: "wrong member type never reaches projector", wire: wrongType, limit: 128, wantRead: len(wrongType), wantErr: core.ErrJSONContract},
-		{name: "truncated document cannot partially reach projector", wire: truncatedWire, limit: 128, wantRead: len(truncatedWire), wantErr: core.ErrJSONContract},
-		{name: "absent document cannot manufacture projected value", limit: 1, wantErr: core.ErrJSONContract},
+		{name: "exact extent completes nonwire method and preserves source message", wire: wire, wantRead: len(wire), wantProject: 1, wantMessage: document.Message},
+		{name: "missing projector closes unread body", wire: wire, disposition: projectionMissing, wantErr: core.ErrExchangeContract},
+		{name: "wrong method closes before decode or projection", wire: wire, method: http.MethodPut, wantErr: core.ErrExchangeContract},
+		{name: "no-op projector cannot publish an invalid nonwire method", wire: wire, disposition: projectionUnchanged, wantRead: len(wire), wantProject: 1, wantErr: core.ErrExchangeContract},
+		{name: "callback refusal withholds a partly completed value", wire: wire, disposition: projectionRefused, wantRead: len(wire), wantProject: 1, wantErr: core.ErrExchangeRequest, wantCause: io.ErrUnexpectedEOF},
+		{name: "callback panic withholds a partly completed value", wire: wire, disposition: projectionPanicked, wantRead: len(wire), wantProject: 1, wantErr: core.ErrExchangeContract},
+		{name: "close failure withholds a fully validated projected value", wire: wire, closeErr: io.ErrClosedPipe, wantRead: len(wire), wantProject: 1, wantErr: core.ErrExchangeRequest, wantCause: io.ErrClosedPipe},
+		{name: "callback refusal cannot erase a simultaneous close failure", wire: wire, disposition: projectionRefused, closeErr: io.ErrClosedPipe, wantRead: len(wire), wantProject: 1, wantErr: core.ErrExchangeRequest, wantCause: io.ErrUnexpectedEOF},
+		{name: "unknown field never reaches projector", wire: unknownWire, wantRead: len(unknownWire), wantErr: core.ErrJSONContract},
+		{name: "duplicate field cannot select an arbitrary source value", wire: duplicateWire, wantRead: len(duplicateWire), wantErr: core.ErrJSONContract},
+		{name: "nonwire method cannot be supplied by JSON", wire: nonwireMember, wantRead: len(nonwireMember), wantErr: core.ErrJSONContract},
+		{name: "wrong member type never reaches projector", wire: wrongType, wantRead: len(wrongType), wantErr: core.ErrJSONContract},
+		{name: "truncated document cannot partially reach projector", wire: truncatedWire, wantRead: len(truncatedWire), wantErr: core.ErrJSONContract},
+		{name: "absent document cannot manufacture projected value", wantErr: core.ErrJSONContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -101,7 +98,7 @@ func TestProjectedJSONReceiveLayerTriad(t *testing.T) {
 			if tc.disposition == projectionMissing {
 				projector = nil
 			}
-			got, gotErr := exchange.ReceiveProjectedJSON[projectedTransportDocument, *projectedTransportDocument](exchange.ProjectedJSONReceiveCall[projectedTransportDocument, *projectedTransportDocument]{Call: call, Project: projector, Policy: exchange.ServerPolicy{RequestBodyLimit: mustByteCount(t, tc.limit)}, Route: exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt}})
+			got, gotErr := exchange.ReceiveProjectedJSON[projectedTransportDocument, *projectedTransportDocument](exchange.ProjectedJSONReceiveCall[projectedTransportDocument, *projectedTransportDocument]{Call: call, Project: projector, Route: exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt}})
 			if !errors.Is(gotErr, tc.wantErr) || tc.wantCause != nil && !errors.Is(gotErr, tc.wantCause) || tc.closeErr != nil && !errors.Is(gotErr, tc.closeErr) {
 				t.Fatalf("receive error = %v, want (%v,%v,%v)", gotErr, tc.wantErr, tc.wantCause, tc.closeErr)
 			}
@@ -152,7 +149,7 @@ func TestProjectedJSONEmptyDocumentLayerTriad(t *testing.T) {
 				request.Header.Set(core.HTTPHeaderContentType().String(), core.HTTPMediaTypeJSON().String())
 				writer := httptest.NewRecorder()
 				var projects int
-				got, gotErr := exchange.ReceiveProjectedJSON[exchange.NoBody, *exchange.NoBody](exchange.ProjectedJSONReceiveCall[exchange.NoBody, *exchange.NoBody]{Call: socketServerCallFrom(t, writer, request), Policy: exchange.ServerPolicy{RequestBodyLimit: mustByteCount(t, 128)}, Route: exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt}, Project: func(_ context.Context, _ exchange.SocketServerCall, _ *exchange.NoBody) error { projects++; return nil }})
+				got, gotErr := exchange.ReceiveProjectedJSON[exchange.NoBody, *exchange.NoBody](exchange.ProjectedJSONReceiveCall[exchange.NoBody, *exchange.NoBody]{Call: socketServerCallFrom(t, writer, request), Route: exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt}, Project: func(_ context.Context, _ exchange.SocketServerCall, _ *exchange.NoBody) error { projects++; return nil }})
 				if !errors.Is(gotErr, tc.wantErr) || (got.Body != nil) != (tc.wantErr == nil) || !got.IdempotencyKey.IsZero() || projects != tc.wantProjects || body.closes != 1 || body.reads != len(input) {
 					t.Fatalf("empty projection = (%+v,%v,%d projects,%d closes,%d bytes), want exact empty state and (%v,%d,1,%d)", got, gotErr, projects, body.closes, body.reads, tc.wantErr, tc.wantProjects, len(input))
 				}

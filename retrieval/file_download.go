@@ -101,7 +101,7 @@ func (v VerifiedGrant) validateFileDownload(request FileDownloadRequest) error {
 		return contractError(err)
 	}
 	evidence := payload.Entry.Evidence.Payload
-	if evidence.Body.Extent != request.Activation.ExpectedBytes {
+	if request.Activation.ExpectedBytes == nil || evidence.Body.Extent != *request.Activation.ExpectedBytes {
 		return bindingError(errors.New("retrieval activation extent differs from authenticated entry"))
 	}
 	_, err = v.DownloadCall(DownloadCallRequest{

@@ -37,7 +37,7 @@ func TestOfficialSDKResponseTransportLayerTriad(t *testing.T) {
 		wantResponse  bool
 	}{
 		{name: "positive selected response at exact ceiling is released intact", path: selectedPath, limit: uint64(len(selectedBody)), wantBody: selectedBody, wantResponse: true, wantCallDelta: 1},
-		{name: "negative selected response above ceiling is refused without partial response", path: selectedPath, limit: uint64(len(selectedBody) - 1), wantErr: core.ErrExchangeBodyLimit, wantCallDelta: 1},
+		{name: "selected response crosses former ceiling intact", path: selectedPath, limit: uint64(len(selectedBody) - 1), wantBody: selectedBody, wantResponse: true, wantCallDelta: 1},
 		{name: "neutral unselected response remains SDK streaming data", path: neutralPath, limit: 1, wantBody: neutralBody, wantResponse: true, wantCallDelta: 1},
 		{name: "neutral sibling path segment remains SDK streaming data", path: siblingPrefixPath, limit: 1, wantBody: neutralBody, wantResponse: true, wantCallDelta: 1},
 	}
@@ -59,14 +59,9 @@ func TestOfficialSDKResponseTransportLayerTriad(t *testing.T) {
 			}))
 			t.Cleanup(server.Close)
 			before := calls.Load()
-			limit, limitErr := core.NewByteCount(testCase.limit)
-			if limitErr != nil {
-				t.Fatalf("core.NewByteCount() error = %v, want nil", limitErr)
-			}
 			boundary, boundaryErr := exchange.NewOfficialSDKResponseBoundary(exchange.OfficialSDKResponseBoundaryRequest{
 				Method: exchange.MethodGet, PathPrefix: "/storage/v1/b", PathSuffix: "/iam",
 				Representation: exchange.OfficialSDKResponseRepresentationBinary,
-				MaximumBytes:   limit,
 			})
 			if boundaryErr != nil {
 				t.Fatalf("exchange.NewOfficialSDKResponseBoundary() error = %v, want nil", boundaryErr)
@@ -113,36 +108,50 @@ func TestOfficialSDKResponseTransportLayerTriad(t *testing.T) {
 	}
 }
 
-func TestOfficialSDKColonActionSuffixAppliesSelectedResponseCeiling(t *testing.T) {
+func TestOfficialSDKColonActionSuffixSelectsExactJSONScope(t *testing.T) {
 	t.Parallel()
-
-	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
-		_, _ = io.WriteString(writer, "oversized")
-	}))
-	t.Cleanup(server.Close)
-	limit, limitErr := core.NewByteCount(1)
-	if limitErr != nil {
-		t.Fatalf("core.NewByteCount(1) error = %v, want nil", limitErr)
-	}
-	boundary, boundaryErr := exchange.NewOfficialSDKResponseBoundary(exchange.OfficialSDKResponseBoundaryRequest{
-		Method: exchange.MethodPost, PathPrefix: "/v1/accounts/", PathSuffix: ":signBlob",
-		Representation: exchange.OfficialSDKResponseRepresentationBinary,
-		MaximumBytes:   limit,
-	})
-	if boundaryErr != nil {
-		t.Fatalf("exchange.NewOfficialSDKResponseBoundary(:signBlob) error = %v, want nil", boundaryErr)
-	}
-	client := officialSDKClient(t, boundary)
-	request, requestErr := http.NewRequestWithContext(t.Context(), http.MethodPost, server.URL+"/v1/accounts/123:signBlob", nil)
-	if requestErr != nil {
-		t.Fatalf("http.NewRequestWithContext(:signBlob) error = %v, want nil", requestErr)
-	}
-	response, gotErr := client.Do(request)
-	if response != nil {
-		_ = response.Body.Close()
-	}
-	if response != nil || !errors.Is(gotErr, core.ErrExchangeResponse) || !errors.Is(gotErr, core.ErrExchangeBodyLimit) {
-		t.Fatalf("official SDK :signBlob response = (%v, %v), want nil, %v, and %v", response, gotErr, core.ErrExchangeResponse, core.ErrExchangeBodyLimit)
+	for _, tc := range []struct {
+		name, path string
+		wantErr    error
+	}{
+		{name: "exact action refuses malformed JSON", path: "/v1/accounts/123:signBlob", wantErr: core.ErrJSONContract},
+		{name: "sibling action retains binary stream", path: "/v1/accounts/123:signBlobExtra"},
+		{name: "sibling prefix retains binary stream", path: "/v1/accountsBackup/123:signBlob"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			const payload = "malformed"
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				if _, err := io.WriteString(w, payload); err != nil {
+					t.Errorf("provider Write=%v, want nil", err)
+				}
+			}))
+			t.Cleanup(server.Close)
+			boundary, err := exchange.NewOfficialSDKResponseBoundary(exchange.OfficialSDKResponseBoundaryRequest{Method: exchange.MethodPost, PathPrefix: "/v1/accounts/", PathSuffix: ":signBlob", Representation: exchange.OfficialSDKResponseRepresentationJSON})
+			if err != nil {
+				t.Fatalf("boundary=%v, want nil", err)
+			}
+			request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, server.URL+tc.path, nil)
+			if err != nil {
+				t.Fatalf("request=%v, want nil", err)
+			}
+			response, err := officialSDKClient(t, boundary).Do(request)
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("Do=%v, want %v", err, tc.wantErr)
+			}
+			if tc.wantErr != nil {
+				if response != nil {
+					_ = response.Body.Close()
+					t.Fatalf("refused response=%v, want nil", response)
+				}
+				return
+			}
+			body, readErr := io.ReadAll(response.Body)
+			closeErr := response.Body.Close()
+			if string(body) != payload || readErr != nil || closeErr != nil {
+				t.Fatalf("stream=(%q,%v,%v), want (%q,nil,nil)", body, readErr, closeErr, payload)
+			}
+		})
 	}
 }
 
@@ -158,7 +167,7 @@ func TestOfficialSDKStreamingSuccessTransportLayerTriad(t *testing.T) {
 		wantResponse bool
 	}{
 		{name: "positive exact media query leaves successful body streaming beyond aggregate ceiling", query: "alt=media", body: strings.Repeat("m", 257), status: http.StatusOK, wantResponse: true},
-		{name: "negative media query keeps provider failure bounded for SDK error decoding", query: "alt=media", body: strings.Repeat("e", 9), status: http.StatusInternalServerError, wantErr: core.ErrExchangeBodyLimit},
+		{name: "media query validates malformed provider failure before SDK decoding", query: "alt=media", body: strings.Repeat("e", 9), status: http.StatusInternalServerError, wantErr: core.ErrJSONContract},
 		{name: "neutral JSON query remains aggregate validated response", query: "alt=json", body: `{}`, status: http.StatusOK, wantResponse: true},
 	}
 	for _, testCase := range cases {
@@ -170,19 +179,14 @@ func TestOfficialSDKStreamingSuccessTransportLayerTriad(t *testing.T) {
 				_, _ = io.WriteString(writer, testCase.body)
 			}))
 			t.Cleanup(server.Close)
-			limit, limitErr := core.NewByteCount(8)
-			if limitErr != nil {
-				t.Fatalf("core.NewByteCount(8) error = %v, want nil", limitErr)
-			}
-			boundary, boundaryErr := exchange.NewOfficialSDKStreamingSuccessCeiling(
-				exchange.OfficialSDKStreamingSuccessCeilingRequest{
+			boundary, boundaryErr := exchange.NewOfficialSDKStreamingResponseBoundary(
+				exchange.OfficialSDKStreamingResponseBoundaryRequest{
 					Method: exchange.MethodGet, StreamQueryName: "alt", StreamQueryValue: "media",
 					AggregateRepresentation: exchange.OfficialSDKResponseRepresentationJSON,
-					AggregateMaximumBytes:   limit,
 				},
 			)
 			if boundaryErr != nil {
-				t.Fatalf("exchange.NewOfficialSDKStreamingSuccessCeiling() error = %v, want nil", boundaryErr)
+				t.Fatalf("exchange.NewOfficialSDKStreamingResponseBoundary() error = %v, want nil", boundaryErr)
 			}
 			client := officialSDKClient(t, boundary)
 			response, gotErr := client.Get(server.URL + "/object?" + testCase.query)
@@ -224,7 +228,7 @@ func TestOfficialSDKHTTPClientRefusesRedirectCancellationAndTransportFailure(t *
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			boundary, err := exchange.NewOfficialSDKResponseCeiling(exchange.OfficialSDKResponseCeilingRequest{Method: exchange.MethodGet, Representation: exchange.OfficialSDKResponseRepresentationBinary, MaximumBytes: mustByteCount(t, 128)})
+			boundary, err := exchange.NewOfficialSDKMethodResponseBoundary(exchange.OfficialSDKMethodResponseBoundaryRequest{Method: exchange.MethodGet, Representation: exchange.OfficialSDKResponseRepresentationBinary})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -267,11 +271,11 @@ func TestOfficialSDKHTTPClientRefusesRedirectCancellationAndTransportFailure(t *
 			}
 			response, gotErr := client.Do(request)
 			var body []byte
-			if response != nil {
+			if response != nil && !tc.redirect {
 				var readErr error
 				body, readErr = io.ReadAll(response.Body)
 				closeErr := response.Body.Close()
-				if readErr != nil || closeErr != nil {
+				if (!tc.redirect && readErr != nil || tc.redirect && !errors.Is(readErr, http.ErrBodyReadAfterClose)) || closeErr != nil {
 					t.Fatalf("response custody=(%v,%v), want complete read and close", readErr, closeErr)
 				}
 			}
@@ -279,7 +283,7 @@ func TestOfficialSDKHTTPClientRefusesRedirectCancellationAndTransportFailure(t *
 				t.Fatalf("SDK request=(%v,%d calls), want (%v,%v,%d)", gotErr, calls.Load(), tc.wantErr, tc.wantNative, tc.wantCalls)
 			}
 			if tc.wantStatus == 0 {
-				if response != nil {
+				if response != nil && !tc.redirect {
 					t.Fatalf("failed transport produced response %+v", response)
 				}
 				return
@@ -313,7 +317,7 @@ func TestOfficialSDKActiveReadOwnershipLayerTriad(t *testing.T) {
 			started := make(chan struct{})
 			release, stopHandler := context.WithCancel(t.Context())
 			defer stopHandler()
-			payload := strings.Repeat("p", 128)
+			payload := "\"" + strings.Repeat("p", 126) + "\""
 			var calls atomic.Int64
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if calls.Add(1) != 1 {
@@ -335,7 +339,7 @@ func TestOfficialSDKActiveReadOwnershipLayerTriad(t *testing.T) {
 				_, _ = io.WriteString(w, payload)
 			}))
 			defer server.Close()
-			boundary, err := exchange.NewOfficialSDKResponseCeiling(exchange.OfficialSDKResponseCeilingRequest{Method: exchange.MethodGet, Representation: exchange.OfficialSDKResponseRepresentationBinary, MaximumBytes: mustByteCount(t, uint64(len(payload)))})
+			boundary, err := exchange.NewOfficialSDKMethodResponseBoundary(exchange.OfficialSDKMethodResponseBoundaryRequest{Method: exchange.MethodGet, Representation: exchange.OfficialSDKResponseRepresentationJSON})
 			if err != nil {
 				t.Fatal(err)
 			}

@@ -63,11 +63,11 @@ func TestUploadEarlyResponseDeclarationLayerTriad(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			request := exchange.UploadRequest{Target: mustEndpoint(t, server.URL), Source: source, ContentLength: mustByteLength(t, 2), ContentType: core.HTTPMediaTypeOctetStream(), ExpectedStatus: core.HTTPStatusOK(), Semantics: exchange.RequestSemantics{Method: exchange.MethodPut, Replay: exchange.ReplaySingleAttempt}, Headers: exchange.Headers{Values: []exchange.Header{{Name: core.HTTPHeaderExpect(), Values: []exchange.HeaderValue{expect}}}}}
+			request := exchange.UploadRequest{Target: mustEndpoint(t, server.URL), Source: source, ContentLength: new(mustByteLength(t, 2)), ContentType: core.HTTPMediaTypeOctetStream(), ExpectedStatus: core.HTTPStatusOK(), Semantics: exchange.RequestSemantics{Method: exchange.MethodPut, Replay: exchange.ReplaySingleAttempt}, Headers: exchange.Headers{Values: []exchange.Header{{Name: core.HTTPHeaderExpect(), Values: []exchange.HeaderValue{expect}}}}}
 			var got exchange.StreamResponse
 			if tc.roundTrip {
 				var destination bytes.Buffer
-				response, callErr := exchange.RoundTripStream(exchange.StreamRoundTripCall{Context: t.Context(), Client: client, Policy: singleAttemptStreamPolicy(t), Request: exchange.StreamRoundTripRequest{Target: request.Target, Source: source, Destination: &destination, RequestContentLength: request.ContentLength, RequestContentType: request.ContentType, ExpectedStatus: request.ExpectedStatus, Semantics: request.Semantics, Headers: request.Headers, ResponseBodyLimit: mustByteCount(t, 2)}})
+				response, callErr := exchange.RoundTripStream(exchange.StreamRoundTripCall{Context: t.Context(), Client: client, Policy: singleAttemptStreamPolicy(t), Request: exchange.StreamRoundTripRequest{Target: request.Target, Source: source, Destination: &destination, RequestContentLength: request.ContentLength, RequestContentType: request.ContentType, ExpectedStatus: request.ExpectedStatus, Semantics: request.Semantics, Headers: request.Headers}})
 				got = exchange.StreamResponse(response)
 				err = callErr
 				if destination.Len() != 0 {

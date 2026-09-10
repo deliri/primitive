@@ -110,11 +110,7 @@ func payPalWebhookTestReceiver(t testing.TB, calls *uint64, status string) (PayP
 	if err != nil {
 		t.Fatalf("ParsePayPalWebhookID() error = %v, want nil", err)
 	}
-	maximum, err := core.NewByteCount(core.PayPalWebhookEventCustodyMaximumBytes)
-	if err != nil {
-		t.Fatalf("core.NewByteCount() error = %v, want nil", err)
-	}
-	receiver, err := NewPayPalWebhookReceiver(client, webhookID, maximum)
+	receiver, err := NewPayPalWebhookReceiver(client, webhookID)
 	if err != nil {
 		t.Fatalf("NewPayPalWebhookReceiver() error = %v, want nil", err)
 	}

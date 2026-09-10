@@ -198,10 +198,6 @@ func TestResponseHeaderFramingOwnershipLayerTriad(t *testing.T) {
 func TestResponseStatusBodyOwnershipLayerTriad(t *testing.T) {
 	t.Parallel()
 
-	writePolicy := exchange.JSONWritePolicy{
-		ResponseBodyLimit: mustByteCount(t, 4*1024),
-	}
-
 	t.Run("positive a body-bearing status admits a typed JSON response", func(t *testing.T) {
 		t.Parallel()
 
@@ -218,7 +214,6 @@ func TestResponseStatusBodyOwnershipLayerTriad(t *testing.T) {
 					Body:   transportDocument{Message: "written"},
 					Status: mustHTTPStatus(t, status),
 				},
-				Policy: writePolicy,
 			})
 			if gotErr != nil {
 				t.Fatalf("exchange.WriteJSON(status %d) error = %v, want nil", status, gotErr)
@@ -252,7 +247,6 @@ func TestResponseStatusBodyOwnershipLayerTriad(t *testing.T) {
 					Body:   transportDocument{Message: "forbidden"},
 					Status: mustHTTPStatus(t, status),
 				},
-				Policy: writePolicy,
 			})
 			if !errors.Is(gotErr, core.ErrExchangeResponse) {
 				t.Fatalf(
@@ -303,7 +297,6 @@ func TestResponseStatusBodyOwnershipLayerTriad(t *testing.T) {
 				Body:   transportDocument{Message: "written"},
 				Status: mustHTTPStatus(t, http.StatusOK),
 			},
-			Policy: writePolicy,
 		})
 		noBodyErr := exchange.WriteNoBody(exchange.NoBodyWriteCall{
 			Response: exchange.ServerNoBodyResponse{
@@ -313,7 +306,7 @@ func TestResponseStatusBodyOwnershipLayerTriad(t *testing.T) {
 		streamErr := exchange.WriteStream(exchange.StreamWriteCall{
 			Response: exchange.ServerStreamResponse{
 				Source:        bytes.NewReader(nil),
-				ContentLength: mustByteLength(t, 0),
+				ContentLength: new(mustByteLength(t, 0)),
 				ContentType:   core.HTTPMediaTypeOctetStream(),
 				Status:        mustHTTPStatus(t, http.StatusOK),
 			},
@@ -401,7 +394,7 @@ func TestStreamEgressExactExtentLayerTriad(t *testing.T) {
 					Call: socketServerCallFrom(t, writer, request),
 					Response: exchange.ServerStreamResponse{
 						Source:        bytes.NewReader(payload),
-						ContentLength: mustByteLength(t, tc.declaredLength),
+						ContentLength: new(mustByteLength(t, tc.declaredLength)),
 						ContentType:   core.HTTPMediaTypeOctetStream(),
 						Status:        ok,
 					},

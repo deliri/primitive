@@ -31,12 +31,7 @@ func TestJSONTransportLayerTriad(t *testing.T) {
 			t.Fatalf("ParseHTTPHeaderName() setup error = %v, want nil", gotHeaderErr)
 		}
 		created := mustHTTPStatus(t, http.StatusCreated)
-		serverPolicy := exchange.ServerPolicy{
-			RequestBodyLimit: mustByteCount(t, 4*1024),
-		}
-		writePolicy := exchange.JSONWritePolicy{
-			ResponseBodyLimit: mustByteCount(t, 4*1024),
-		}
+
 		observed := make(chan jsonServerObservation, 1)
 		server := httptest.NewServer(http.HandlerFunc(func(
 			writer http.ResponseWriter,
@@ -52,7 +47,6 @@ func TestJSONTransportLayerTriad(t *testing.T) {
 					Method: exchange.MethodPost,
 					Replay: exchange.ReplaySingleAttempt,
 				},
-				Policy: serverPolicy,
 			})
 			observation := jsonServerObservation{
 				receiveErr: receiveErr,
@@ -75,7 +69,6 @@ func TestJSONTransportLayerTriad(t *testing.T) {
 							},
 							Status: created,
 						},
-						Policy: writePolicy,
 					},
 				)
 			}
@@ -102,9 +95,7 @@ func TestJSONTransportLayerTriad(t *testing.T) {
 				ExpectedStatus: created,
 			},
 			Policy: exchange.JSONPolicy{
-				Operation:         singleAttemptOperationPolicy(t),
-				RequestBodyLimit:  mustByteCount(t, 4*1024),
-				ResponseBodyLimit: mustByteCount(t, 4*1024),
+				Operation: singleAttemptOperationPolicy(t),
 			},
 		})
 		if gotErr != nil {
@@ -202,8 +193,7 @@ func TestJSONTransportLayerTriad(t *testing.T) {
 					ExpectedStatus: ok,
 				},
 				Policy: exchange.NoBodyJSONPolicy{
-					Operation:         singleAttemptOperationPolicy(t),
-					ResponseBodyLimit: mustByteCount(t, 4*1024),
+					Operation: singleAttemptOperationPolicy(t),
 				},
 			},
 		)
@@ -269,8 +259,7 @@ func TestJSONTransportLayerTriad(t *testing.T) {
 					ExpectedStatus: ok,
 				},
 				Policy: exchange.NoBodyJSONPolicy{
-					Operation:         singleAttemptOperationPolicy(t),
-					ResponseBodyLimit: mustByteCount(t, 4*1024),
+					Operation: singleAttemptOperationPolicy(t),
 				},
 			},
 		)
@@ -297,9 +286,6 @@ func TestJSONTransportLayerTriad(t *testing.T) {
 		t.Parallel()
 
 		ok := mustHTTPStatus(t, http.StatusOK)
-		writePolicy := exchange.JSONWritePolicy{
-			ResponseBodyLimit: mustByteCount(t, 4*1024),
-		}
 		observed := make(chan jsonServerObservation, 1)
 		server := httptest.NewServer(http.HandlerFunc(func(
 			writer http.ResponseWriter,
@@ -322,7 +308,6 @@ func TestJSONTransportLayerTriad(t *testing.T) {
 						Body:   transportDocument{Message: "body absent"},
 						Status: ok,
 					},
-					Policy: writePolicy,
 				},
 			)
 			observed <- jsonServerObservation{
@@ -346,8 +331,7 @@ func TestJSONTransportLayerTriad(t *testing.T) {
 					ExpectedStatus: ok,
 				},
 				Policy: exchange.NoBodyJSONPolicy{
-					Operation:         singleAttemptOperationPolicy(t),
-					ResponseBodyLimit: mustByteCount(t, 4*1024),
+					Operation: singleAttemptOperationPolicy(t),
 				},
 			},
 		)

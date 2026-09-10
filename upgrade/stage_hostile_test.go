@@ -173,8 +173,9 @@ func TestDownloadSourceAndStagePolicyCloseEveryExecutionDependency(t *testing.T)
 		objectName: "bucket/other-candidate", transport: transport,
 	})
 	cases := []struct {
-		mutate func(*DownloadSource)
-		name   string
+		mutate   func(*DownloadSource)
+		name     string
+		accepted bool
 	}{
 		{name: "client unset", mutate: func(value *DownloadSource) {
 			value.Client = objectstore.Client{}
@@ -188,18 +189,15 @@ func TestDownloadSourceAndStagePolicyCloseEveryExecutionDependency(t *testing.T)
 		{name: "commitment belongs to another bearer", mutate: func(value *DownloadSource) {
 			value.Commitment = other.Commitment
 		}},
-		{name: "operation timeout unset", mutate: func(value *DownloadSource) {
+		{name: "operation timeout unset", accepted: true, mutate: func(value *DownloadSource) {
 			value.Policy.OperationTimeout = temporal.Duration{}
 		}},
-		{name: "attempt timeout unset", mutate: func(value *DownloadSource) {
+		{name: "attempt timeout unset", accepted: true, mutate: func(value *DownloadSource) {
 			value.Policy.AttemptTimeout = temporal.Duration{}
 		}},
 		{name: "attempt exceeds operation", mutate: func(value *DownloadSource) {
 			value.Policy.OperationTimeout, value.Policy.AttemptTimeout =
 				value.Policy.AttemptTimeout, value.Policy.OperationTimeout
-		}},
-		{name: "error body bound unset", mutate: func(value *DownloadSource) {
-			value.Policy.ErrorBodyLimit = core.ByteCount{}
 		}},
 	}
 	for _, tc := range cases {
@@ -208,7 +206,14 @@ func TestDownloadSourceAndStagePolicyCloseEveryExecutionDependency(t *testing.T)
 
 			candidate := source
 			tc.mutate(&candidate)
+			policy := candidate.Policy
 			gotErr := candidate.Validate()
+			if tc.accepted {
+				if gotErr != nil || candidate.Policy != policy {
+					t.Fatalf("optional timeout validation = %v, policy changed = %v", gotErr, candidate.Policy != policy)
+				}
+				return
+			}
 			if !errors.Is(gotErr, core.ErrUpgradeContract) {
 				t.Fatalf("DownloadSource.Validate(%s) error = %v, want %v",
 					tc.name, gotErr, core.ErrUpgradeContract)
@@ -514,14 +519,10 @@ func stageDownloadSourceForTest(
 	if err != nil {
 		t.Fatalf("temporal.DurationFromSeconds(attempt) error = %v, want nil", err)
 	}
-	errorLimit, err := core.NewByteCount(4 << 10)
-	if err != nil {
-		t.Fatalf("core.NewByteCount(error limit) error = %v, want nil", err)
-	}
 	return DownloadSource{
 		Client: objectClient, Capability: capability, Commitment: commitment,
 		Policy: objectstore.Policy{
-			OperationTimeout: operation, AttemptTimeout: attempt, ErrorBodyLimit: errorLimit,
+			OperationTimeout: operation, AttemptTimeout: attempt,
 		},
 	}
 }

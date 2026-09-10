@@ -1,6 +1,7 @@
 package exchange_test
 
 import (
+	"bytes"
 	"errors"
 	"io"
 	"strings"
@@ -15,7 +16,6 @@ func TestRequestFamilyValidationLayerTriad(t *testing.T) {
 
 	target := mustEndpoint(t, "https://example.test")
 	status := mustHTTPStatus(t, 200)
-	oneByte := mustByteCount(t, 1)
 	single := exchange.RequestSemantics{
 		Method: exchange.MethodGet,
 		Replay: exchange.ReplaySingleAttempt,
@@ -69,9 +69,9 @@ func TestRequestFamilyValidationLayerTriad(t *testing.T) {
 					return (exchange.UploadRequest{
 						Target: target, Source: strings.NewReader("payload"),
 						Semantics: single,
-						ContentLength: mustByteLength(t,
+						ContentLength: new(mustByteLength(t,
 							uint64(len("payload")),
-						),
+						)),
 						ContentType:    core.HTTPMediaTypeOctetStream(),
 						ExpectedStatus: status,
 					}).Validate()
@@ -82,9 +82,9 @@ func TestRequestFamilyValidationLayerTriad(t *testing.T) {
 				validate: func() error {
 					return (exchange.DownloadRequest{
 						Target: target, Destination: io.Discard,
-						Semantics:         single,
-						ResponseBodyLimit: oneByte,
-						ExpectedStatus:    status,
+						Semantics: single,
+
+						ExpectedStatus: status,
 					}).Validate()
 				},
 			},
@@ -158,9 +158,9 @@ func TestRequestFamilyValidationLayerTriad(t *testing.T) {
 					return (exchange.UploadRequest{
 						Target: target, Source: strings.NewReader("payload"),
 						Semantics: replayable,
-						ContentLength: mustByteLength(t,
+						ContentLength: new(mustByteLength(t,
 							uint64(len("payload")),
-						),
+						)),
 						ContentType:    core.HTTPMediaTypeOctetStream(),
 						ExpectedStatus: status,
 					}).Validate()
@@ -173,9 +173,9 @@ func TestRequestFamilyValidationLayerTriad(t *testing.T) {
 					return (exchange.UploadRequest{
 						Target: target, Source: strings.NewReader("payload"),
 						Semantics: single,
-						ContentLength: mustByteLength(t,
+						ContentLength: new(mustByteLength(t,
 							uint64(len("payload")),
-						),
+						)),
 						ExpectedStatus: status,
 					}).Validate()
 				},
@@ -186,8 +186,8 @@ func TestRequestFamilyValidationLayerTriad(t *testing.T) {
 				validate: func() error {
 					return (exchange.DownloadRequest{
 						Target: target, Semantics: single,
-						ResponseBodyLimit: oneByte,
-						ExpectedStatus:    status,
+
+						ExpectedStatus: status,
 					}).Validate()
 				},
 				wantErr: core.ErrExchangeRequest,
@@ -197,18 +197,18 @@ func TestRequestFamilyValidationLayerTriad(t *testing.T) {
 				validate: func() error {
 					return (exchange.DownloadRequest{
 						Target: target, Destination: io.Discard,
-						Semantics:         replayable,
-						ResponseBodyLimit: oneByte,
-						ExpectedStatus:    status,
+						Semantics: replayable,
+
+						ExpectedStatus: status,
 					}).Validate()
 				},
 				wantErr: core.ErrExchangeRequest,
 			},
 			{
-				name: "download refuses a zero response bound",
+				name: "download refuses a typed nil destination",
 				validate: func() error {
 					return (exchange.DownloadRequest{
-						Target: target, Destination: io.Discard,
+						Target: target, Destination: (*bytes.Buffer)(nil),
 						Semantics:      single,
 						ExpectedStatus: status,
 					}).Validate()
@@ -238,7 +238,7 @@ func TestRequestFamilyValidationLayerTriad(t *testing.T) {
 		}).Validate()
 		uploadErr := (exchange.UploadRequest{
 			Target: target, Source: strings.NewReader(""),
-			Semantics: single, ContentLength: mustByteLength(t, 0),
+			Semantics: single, ContentLength: new(mustByteLength(t, 0)),
 			ContentType: core.HTTPMediaTypeOctetStream(), ExpectedStatus: status,
 		}).Validate()
 		if boundedErr != nil || uploadErr != nil {

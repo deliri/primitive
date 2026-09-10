@@ -54,7 +54,7 @@ func (m Manager) AcquireSource(ctx context.Context, request SourceDownloadReques
 func (m Manager) downloadSourceArchive(ctx context.Context, archivePath core.RelativePath, request SourceDownloadRequest) (filestore.StagedFile, error) {
 	destination, err := filestore.OpenStageDestination(ctx, filestore.StageDestinationRequest{
 		Temporary:     filestore.Location{Root: m.root, Path: archivePath},
-		ExpectedBytes: request.Integrity.Length,
+		ExpectedBytes: new(request.Integrity.Length),
 		Mode:          0o600,
 	})
 	if err != nil {

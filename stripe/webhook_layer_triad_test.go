@@ -88,11 +88,7 @@ func stripeWebhookTestReceiver(t testing.TB) (WebhookReceiver, WebhookSecret) {
 	if err != nil {
 		t.Fatalf("ParseWebhookSecret() error = %v, want nil", err)
 	}
-	maximum, err := core.NewByteCount(core.StripeWebhookCustodyMaximumBytes)
-	if err != nil {
-		t.Fatalf("core.NewByteCount() error = %v, want nil", err)
-	}
-	receiver, err := NewWebhookReceiver(secret, maximum)
+	receiver, err := NewWebhookReceiver(secret)
 	if err != nil {
 		t.Fatalf("NewWebhookReceiver() error = %v, want nil", err)
 	}

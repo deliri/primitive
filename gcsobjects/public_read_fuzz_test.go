@@ -61,9 +61,9 @@ func FuzzGCSBucketPublicReadProviderPolicySemanticClosure(f *testing.F) {
 		f.Fatalf("json.Marshal(boundary policy) error = %v, want nil", err)
 	}
 	for _, extent := range []int{
-		GCSProviderResponseMaximumBytes - 1,
-		GCSProviderResponseMaximumBytes,
-		GCSProviderResponseMaximumBytes + 1,
+		gcsFormerResponseCutoffBytes - 1,
+		gcsFormerResponseCutoffBytes,
+		gcsFormerResponseCutoffBytes + 1,
 	} {
 		f.Add(paddedGCSPolicyResponse(f, boundaryPolicy, extent))
 	}
@@ -83,23 +83,11 @@ func FuzzGCSBucketPublicReadProviderPolicySemanticClosure(f *testing.F) {
 			if gotGets, gotSets := provider.gets.Load(), provider.sets.Load(); gotGets != 1 || gotSets != 0 {
 				t.Fatalf("rejected provider policy calls = (%d GET, %d SET, error %v), want (1, 0, typed provider refusal)", gotGets, gotSets, gotErr)
 			}
-			if len(providerBytes) > GCSProviderResponseMaximumBytes {
-				if !errors.Is(gotErr, core.ErrObjectStoreSize) ||
-					!errors.Is(gotErr, core.ErrExchangeResponse) ||
-					!errors.Is(gotErr, core.ErrExchangeBodyLimit) {
-					t.Fatalf("GrantGCSBucketPublicRead(rejected %d bytes) error = %v, want object-store size and Exchange body-limit identities",
-						len(providerBytes), gotErr)
-				}
-				return
-			}
 			if len(providerBytes) != 0 && !jsontext.Value(providerBytes).IsValid() &&
 				(!errors.Is(gotErr, core.ErrExchangeResponse) || !errors.Is(gotErr, core.ErrJSONContract)) {
 				t.Fatalf("GrantGCSBucketPublicRead(rejected invalid JSON) error = %v, want Exchange response and JSON identities", gotErr)
 			}
 			return
-		}
-		if len(providerBytes) > GCSProviderResponseMaximumBytes {
-			t.Fatalf("GrantGCSBucketPublicRead(accepted %d bytes) = %v, want bounded refusal", len(providerBytes), got)
 		}
 
 		if got.Validate() != nil || got.Bucket() != bucket {
@@ -229,9 +217,6 @@ func (p *gcsPublicReadFuzzProvider) ServeHTTP(writer http.ResponseWriter, incomi
 		if p.sets.Load() == 0 {
 			writer.Header().Set("Content-Type", "application/json")
 			writer.Header().Set("Content-Length", strconv.Itoa(len(p.initial)))
-			if len(p.initial) > GCSProviderResponseMaximumBytes {
-				return
-			}
 			if _, err := writer.Write(p.initial); err != nil {
 				p.t.Errorf("provider fuzz policy response error = %v, want nil", err)
 			}

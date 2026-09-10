@@ -36,12 +36,9 @@ func BenchmarkAggregateHeaderValueAdmission(b *testing.B) {
 			headers := make(http.Header)
 			headers[name.String()] = wire
 			body := &captureFixtureBody{}
-			limit, err := core.NewByteCount(1)
-			if err != nil {
-				b.Fatalf("fixture limit = %v, want nil", err)
-			}
-			input := aggregateReadRequest{context: b.Context(), response: &http.Response{StatusCode: http.StatusOK, Header: headers, Body: body}, capture: HeaderSelection{Names: []core.HTTPHeaderName{name}}, limit: limit, expectedStatus: core.HTTPStatusOK()}
+			input := aggregateReadRequest{context: b.Context(), response: &http.Response{StatusCode: http.StatusOK, Header: headers, Body: body}, capture: HeaderSelection{Names: []core.HTTPHeaderName{name}}, expectedStatus: core.HTTPStatusOK()}
 			var got attemptResponse
+			var err error
 			b.ReportAllocs()
 			for b.Loop() {
 				body.reads, body.closes = 0, 0

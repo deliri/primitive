@@ -86,8 +86,8 @@ func TestReceiveStreamDestinationCustodyLayerTriad(t *testing.T) {
 			destination := &streamStepWriter{steps: tc.steps}
 			got, gotErr := exchange.ReceiveStream(exchange.StreamReceiveCall{
 				Call: socketServerCall(t, request), Destination: destination,
-				Route:  exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplayIdempotencyKey},
-				Policy: exchange.ServerStreamPolicy{RequestBodyLimit: mustByteCount(t, 4)}, ExpectedContentType: core.HTTPMediaTypeOctetStream(),
+				Route:               exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplayIdempotencyKey},
+				ExpectedContentType: core.HTTPMediaTypeOctetStream(),
 			})
 			if !errors.Is(gotErr, tc.wantErr) || errors.Is(gotErr, core.ErrExchangeContract) != tc.wantContract {
 				t.Fatalf("receive error/contract = (%v, %t), want (%v, %t)", gotErr, errors.Is(gotErr, core.ErrExchangeContract), tc.wantErr, tc.wantContract)

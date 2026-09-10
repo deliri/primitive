@@ -33,31 +33,6 @@ func TestControlExchangePolicyIsAcceptedByExchange(t *testing.T) {
 	}
 }
 
-// TestControlExchangePolicyProjectsTheCompilerOwnedDocumentCeiling proves
-// neither end can silently configure a different aggregate JSON bound.
-func TestControlExchangePolicyProjectsTheCompilerOwnedDocumentCeiling(t *testing.T) {
-	t.Parallel()
-
-	policy, err := ControlExchangePolicy()
-	if err != nil {
-		t.Fatalf("ControlExchangePolicy() error = %v, want nil", err)
-	}
-	request, err := policy.RequestBodyLimit.Uint64()
-	if err != nil {
-		t.Fatalf("RequestBodyLimit.Uint64() error = %v, want nil", err)
-	}
-	response, err := policy.ResponseBodyLimit.Uint64()
-	if err != nil {
-		t.Fatalf("ResponseBodyLimit.Uint64() error = %v, want nil", err)
-	}
-	if request != core.JSONDocumentMaximumBytes {
-		t.Fatalf("RequestBodyLimit = %d, want %d", request, core.JSONDocumentMaximumBytes)
-	}
-	if response != core.JSONDocumentMaximumBytes {
-		t.Fatalf("ResponseBodyLimit = %d, want %d", response, core.JSONDocumentMaximumBytes)
-	}
-}
-
 // TestControlExchangeOperationBudgetFitsInsideItsOwnCeiling proves the attempt
 // count is a fact rather than a claim.
 //

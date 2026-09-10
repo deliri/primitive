@@ -26,6 +26,8 @@ type Location struct {
 
 // SymbolicLinkTarget is one native target observed without following its
 // symbolic link. Its bytes are not interpreted as a filesystem path.
+// Go materializes the complete target string; the caller owns that value.
+// Filestore imposes no target-size policy.
 type SymbolicLinkTarget struct{ value string }
 
 // Validate rejects an absent or NUL-carrying link target.
@@ -330,10 +332,12 @@ func (r StageRequest) Validate() error {
 }
 
 // StageDestinationRequest exclusively creates one temporary that an external
-// standard-library writer will fill to an exact final byte length.
+// standard-library writer fills. ExpectedBytes is optional: nil observes the
+// final native file extent; a supplied value requires exact equality, including
+// zero. OpenStageDestination copies the supplied value before returning.
 type StageDestinationRequest struct {
 	Temporary     Location
-	ExpectedBytes core.ByteLength
+	ExpectedBytes *core.ByteLength
 	Mode          fs.FileMode
 }
 
@@ -343,7 +347,7 @@ type StageDestinationRequest struct {
 type ActivationRequest struct {
 	Temporary     Location
 	Target        core.RelativePath
-	ExpectedBytes core.ByteLength
+	ExpectedBytes *core.ByteLength
 	Mode          fs.FileMode
 	Install       InstallMode
 }
@@ -381,7 +385,7 @@ func (r ActivationRequest) CommitRequest(staged StagedFile) (CommitRequest, erro
 		return CommitRequest{}, err
 	}
 	if staged.root != r.Temporary.Root || staged.Path() != r.Temporary.Path ||
-		staged.BytesWritten() != r.ExpectedBytes || staged.info.Mode().Perm() != r.Mode {
+		(r.ExpectedBytes != nil && staged.BytesWritten() != *r.ExpectedBytes) || staged.info.Mode().Perm() != r.Mode {
 		return CommitRequest{}, contractError(errors.New("filestore completed stage differs from activation plan"))
 	}
 	return request, nil
@@ -398,8 +402,10 @@ func (r StageDestinationRequest) Validate() error {
 	if err := validatePermissionMode(r.Mode); err != nil {
 		return err
 	}
-	if err := r.ExpectedBytes.Validate(); err != nil {
-		return contractError(err)
+	if r.ExpectedBytes != nil {
+		if err := r.ExpectedBytes.Validate(); err != nil {
+			return contractError(err)
+		}
 	}
 	return nil
 }

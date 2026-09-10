@@ -155,7 +155,7 @@ func singleAttemptStreamPolicy(t testing.TB) exchange.StreamPolicy {
 			t,
 			testAttemptTimeoutMilliseconds,
 		),
-		ErrorBodyLimit: mustByteCount(t, 4*1024),
+
 		Redirect: exchange.RedirectPolicy{
 			Mode: exchange.RedirectReject,
 		},

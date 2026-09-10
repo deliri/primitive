@@ -291,10 +291,6 @@ func (p gcsDownloadFuzzProvider) request(
 	if gotLengthErr != nil {
 		t.Fatalf("core.NewByteLength(%d) error = %v, want nil", len(p.payload), gotLengthErr)
 	}
-	errorBodyLimit, gotLimitErr := core.NewByteCount(4096)
-	if gotLimitErr != nil {
-		t.Fatalf("core.NewByteCount() error = %v, want nil", gotLimitErr)
-	}
 	operationTimeout, gotOperationErr := temporal.DurationFromSeconds(10)
 	if gotOperationErr != nil {
 		t.Fatalf("temporal.DurationFromSeconds(10) error = %v, want nil", gotOperationErr)
@@ -316,7 +312,6 @@ func (p gcsDownloadFuzzProvider) request(
 		Policy: Policy{
 			OperationTimeout: operationTimeout,
 			AttemptTimeout:   attemptTimeout,
-			ErrorBodyLimit:   errorBodyLimit,
 		},
 	}
 }

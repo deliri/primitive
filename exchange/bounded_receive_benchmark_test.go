@@ -30,8 +30,6 @@ func BenchmarkBoundedReceiveByDeclaredExtent(b *testing.B) {
 	b.ReportAllocs()
 
 	body := bytes.Repeat([]byte{0x5a}, benchmarkDeclaredBodyBytes)
-	limit := mustBenchmarkByteCount(b, uint64(len(body)))
-	policy := exchange.ServerBoundedPolicy{RequestBodyLimit: limit}
 	route := exchange.RouteSemantics{
 		Method: exchange.MethodPost,
 		Replay: exchange.ReplaySingleAttempt,
@@ -63,9 +61,9 @@ func BenchmarkBoundedReceiveByDeclaredExtent(b *testing.B) {
 				}
 				received, err := exchange.ReceiveBounded(
 					exchange.BoundedReceiveCall{
-						Call:                socketServerCall(b, request),
-						Route:               route,
-						Policy:              policy,
+						Call:  socketServerCall(b, request),
+						Route: route,
+
 						ExpectedContentType: core.HTTPMediaTypeOctetStream(),
 					},
 				)
@@ -82,13 +80,4 @@ func BenchmarkBoundedReceiveByDeclaredExtent(b *testing.B) {
 			}
 		})
 	}
-}
-
-func mustBenchmarkByteCount(b *testing.B, value uint64) core.ByteCount {
-	b.Helper()
-	count, err := core.NewByteCount(value)
-	if err != nil {
-		b.Fatalf("core.NewByteCount(%d) error = %v, want nil", value, err)
-	}
-	return count
 }

@@ -76,15 +76,13 @@ func (d inventoryDocument) MarshalJSON() ([]byte, error) {
 func TestInventoryDocumentDrivesTheRealJSONWritePath(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name       string
-		document   inventoryDocument
-		underLimit bool
-		wantErr    error
+		name     string
+		document inventoryDocument
+		wantErr  error
 	}{
 		{name: "valid nominal document crosses exact encoded ceiling", document: inventoryDocument{Name: "inventory"}},
 		{name: "empty owner value cannot release framing", wantErr: core.ErrExchangeContract},
 		{name: "escaped content retains Go JSON representation", document: inventoryDocument{Name: "quote\"\\\n"}},
-		{name: "encoded size one above budget cannot release partial JSON", document: inventoryDocument{Name: "inventory"}, underLimit: true, wantErr: core.ErrJSONContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -96,20 +94,12 @@ func TestInventoryDocumentDrivesTheRealJSONWritePath(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			extent := len(expected)
-			if tc.underLimit {
-				extent--
-			}
-			maximum, err := core.NewByteCount(uint64(extent))
-			if err != nil {
-				t.Fatal(err)
-			}
 			recorder := httptest.NewRecorder()
 			socket, err := NewSocketServerCall(recorder, httptest.NewRequest(http.MethodGet, "/", nil))
 			if err != nil {
 				t.Fatal(err)
 			}
-			call := JSONWriteCall[inventoryDocument]{Call: socket, Response: ServerJSONResponse[inventoryDocument]{Body: tc.document, Status: core.HTTPStatusOK()}, Policy: JSONWritePolicy{ResponseBodyLimit: maximum}}
+			call := JSONWriteCall[inventoryDocument]{Call: socket, Response: ServerJSONResponse[inventoryDocument]{Body: tc.document, Status: core.HTTPStatusOK()}}
 			validation := call.Validate()
 			if tc.document.Name == "" {
 				if !errors.Is(validation, core.ErrExchangeContract) {
@@ -139,21 +129,21 @@ func TestInventoryDocumentDrivesTheRealJSONWritePath(t *testing.T) {
 // data-flow role. Membership comes from compiler-bound marker types; field
 // names are labels only.
 type exchangeContractInventory struct {
-	ResponseBufferRequest                     protocolContract[ResponseBufferRequest]
-	ResponseBufferResult                      protocolContract[ResponseBufferResult]
-	responseBuffer                            capabilityWrapper[responseBuffer]
-	StatusError                               typedFailure[StatusError]
-	RetryExhaustedError                       typedFailure[RetryExhaustedError]
-	ServerErrorResponse                       protocolContract[ServerErrorResponse]
-	ServerRedirectResponse                    protocolContract[ServerRedirectResponse]
-	observedStandardResponseWriter            capabilityWrapper[observedStandardResponseWriter]
-	BasicAuthorizationRequest                 protocolContract[BasicAuthorizationRequest]
-	BearerAuthorization                       protocolContract[BearerAuthorization]
-	OfficialSDKResponseBoundary               protocolContract[OfficialSDKResponseBoundary]
-	OfficialSDKResponseBoundaryRequest        protocolContract[OfficialSDKResponseBoundaryRequest]
-	OfficialSDKResponseCeilingRequest         protocolContract[OfficialSDKResponseCeilingRequest]
-	OfficialSDKStreamingSuccessCeilingRequest protocolContract[OfficialSDKStreamingSuccessCeilingRequest]
-	OfficialSDKResponseTransportRequest       protocolContract[OfficialSDKResponseTransportRequest]
+	ResponseBufferRequest                       protocolContract[ResponseBufferRequest]
+	ResponseBufferResult                        protocolContract[ResponseBufferResult]
+	responseBuffer                              capabilityWrapper[responseBuffer]
+	StatusError                                 typedFailure[StatusError]
+	RetryExhaustedError                         typedFailure[RetryExhaustedError]
+	ServerErrorResponse                         protocolContract[ServerErrorResponse]
+	ServerRedirectResponse                      protocolContract[ServerRedirectResponse]
+	observedStandardResponseWriter              capabilityWrapper[observedStandardResponseWriter]
+	BasicAuthorizationRequest                   protocolContract[BasicAuthorizationRequest]
+	BearerAuthorization                         protocolContract[BearerAuthorization]
+	OfficialSDKResponseBoundary                 protocolContract[OfficialSDKResponseBoundary]
+	OfficialSDKResponseBoundaryRequest          protocolContract[OfficialSDKResponseBoundaryRequest]
+	OfficialSDKMethodResponseBoundaryRequest    protocolContract[OfficialSDKMethodResponseBoundaryRequest]
+	OfficialSDKStreamingResponseBoundaryRequest protocolContract[OfficialSDKStreamingResponseBoundaryRequest]
+	OfficialSDKResponseTransportRequest         protocolContract[OfficialSDKResponseTransportRequest]
 
 	replayFact            internalFlow[replayFact]
 	redirectFact          internalFlow[redirectFact]
@@ -216,8 +206,8 @@ type exchangeContractInventory struct {
 	uploadResponseRequest   internalFlow[uploadResponseRequest]
 	downloadResponseRequest internalFlow[downloadResponseRequest]
 	streamDrainRequest      internalFlow[streamDrainRequest]
-	boundedBodyRead         internalFlow[boundedBodyRead]
-	boundedBodyDestination  internalFlow[boundedBodyDestination]
+	wholeBodyRead           internalFlow[wholeBodyRead]
+	wholeBodyDestination    internalFlow[wholeBodyDestination]
 	downloadCopyRequest     internalFlow[downloadCopyRequest]
 	progressReader          internalFlow[progressReader]
 	observedStreamWriter    capabilityWrapper[observedStreamWriter]
@@ -225,24 +215,19 @@ type exchangeContractInventory struct {
 	declaredBodyLength      internalFlow[declaredBodyLength]
 	httpContentCoding       internalFlow[httpContentCoding]
 
-	RouteSemantics           protocolContract[RouteSemantics]
-	ServerPolicy             protocolContract[ServerPolicy]
-	JSONWritePolicy          protocolContract[JSONWritePolicy]
-	NoBody                   protocolContract[NoBody]
-	Received                 protocolContract[Received[*inventoryDocument]]
-	JSONReceiveCall          protocolContract[JSONReceiveCall]
-	ProjectedJSONReceiveCall protocolContract[ProjectedJSONReceiveCall[inventoryDocument, *inventoryDocument]]
-	NoBodyReceiveCall        protocolContract[NoBodyReceiveCall]
-	projectionRequest        internalFlow[projectionRequest[inventoryDocument, *inventoryDocument]]
-	ResponseHeaders          protocolContract[ResponseHeaders]
-	ServerJSONResponse       protocolContract[ServerJSONResponse[inventoryDocument]]
-	ServerNoBodyResponse     protocolContract[ServerNoBodyResponse]
-	JSONWriteCall            protocolContract[JSONWriteCall[inventoryDocument]]
-	NoBodyWriteCall          protocolContract[NoBodyWriteCall]
-	jsonWriteRequest         internalFlow[jsonWriteRequest]
-
-	ServerBoundedPolicy        protocolContract[ServerBoundedPolicy]
-	ServerStreamPolicy         protocolContract[ServerStreamPolicy]
+	RouteSemantics             protocolContract[RouteSemantics]
+	NoBody                     protocolContract[NoBody]
+	Received                   protocolContract[Received[*inventoryDocument]]
+	JSONReceiveCall            protocolContract[JSONReceiveCall]
+	ProjectedJSONReceiveCall   protocolContract[ProjectedJSONReceiveCall[inventoryDocument, *inventoryDocument]]
+	NoBodyReceiveCall          protocolContract[NoBodyReceiveCall]
+	projectionRequest          internalFlow[projectionRequest[inventoryDocument, *inventoryDocument]]
+	ResponseHeaders            protocolContract[ResponseHeaders]
+	ServerJSONResponse         protocolContract[ServerJSONResponse[inventoryDocument]]
+	ServerNoBodyResponse       protocolContract[ServerNoBodyResponse]
+	JSONWriteCall              protocolContract[JSONWriteCall[inventoryDocument]]
+	NoBodyWriteCall            protocolContract[NoBodyWriteCall]
+	jsonWriteRequest           internalFlow[jsonWriteRequest]
 	BoundedReceiveCall         protocolContract[BoundedReceiveCall]
 	StreamReceiveCall          protocolContract[StreamReceiveCall]
 	ReceivedBytes              protocolContract[ReceivedBytes]
@@ -572,8 +557,8 @@ var (
 	_                             = exchangeContractInventory{}.uploadResponseRequest
 	_                             = exchangeContractInventory{}.downloadResponseRequest
 	_                             = exchangeContractInventory{}.streamDrainRequest
-	_                             = exchangeContractInventory{}.boundedBodyRead
-	_                             = exchangeContractInventory{}.boundedBodyDestination
+	_                             = exchangeContractInventory{}.wholeBodyRead
+	_                             = exchangeContractInventory{}.wholeBodyDestination
 	_                             = exchangeContractInventory{}.downloadCopyRequest
 	_                             = exchangeContractInventory{}.progressReader
 	_                             = exchangeContractInventory{}.streamTransportFailure

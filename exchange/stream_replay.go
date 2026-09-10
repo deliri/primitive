@@ -111,6 +111,7 @@ func absentStreamObservation(response StreamResponse) bool {
 		response.Metadata.Status == (core.HTTPStatusCode{}) &&
 		response.Metadata.Bytes == (core.ByteLength{}) &&
 		response.DeclaredRequestBytes == (core.ByteLength{}) &&
+		!response.RequestLengthKnown &&
 		response.Metadata.Headers.Values == nil
 }
 

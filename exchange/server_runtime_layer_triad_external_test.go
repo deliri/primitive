@@ -168,7 +168,7 @@ func TestServerRuntimeLayerTriad(t *testing.T) {
 			response, err := exchange.SendNoBodyBounded(exchange.NoBodyBoundedCall{
 				Context: t.Context(), Client: client,
 				Request: exchange.NoBodyBoundedRequest{Target: mustEndpoint(t, "http://"+observed.String()+"/"), Semantics: exchange.RequestSemantics{Method: exchange.MethodGet, Replay: exchange.ReplaySingleAttempt}, ExpectedStatus: core.HTTPStatusOK(), ExpectedResponseContentType: core.HTTPMediaTypeOctetStream()},
-				Policy:  exchange.NoBodyBoundedPolicy{Operation: singleAttemptOperationPolicy(t), ResponseBodyLimit: mustByteCount(t, uint64(len(payload)))},
+				Policy:  exchange.NoBodyBoundedPolicy{Operation: singleAttemptOperationPolicy(t)},
 			})
 			if err != nil || !bytes.Equal(response.Body, payload) || response.Metadata.Bytes.Uint64() != uint64(len(payload)) || response.Metadata.Attempts != 1 || response.Metadata.Status != core.HTTPStatusOK() {
 				t.Fatalf("runtime exchange = (%x,%+v,%v), want exact binary body, status and one attempt", response.Body, response.Metadata, err)

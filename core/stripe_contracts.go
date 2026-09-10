@@ -11,7 +11,6 @@ const (
 	StripeCredentialCustodyMaximumBytes    = 4 * 1024
 	StripeWebhookSecretMinimumBytes        = 7
 	StripeWebhookSecretCustodyMaximumBytes = 4 * 1024
-	StripeWebhookCustodyMaximumBytes       = 1 << 20
 	StripeWebhookSignatureHeaderName       = "Stripe-Signature"
 	StripeWebhookSignatureMaximumBytes     = 8 * 1024
 )

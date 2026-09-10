@@ -89,11 +89,7 @@ func readServiceAccountCredential(ctx context.Context, path core.AbsolutePath) (
 }
 
 func acquireServiceAccountDocument(ctx context.Context, client exchange.Client, audience Audience, document []byte) (Token, error) {
-	maximum, err := core.NewByteCount(TokenMaximumBytes * 2)
-	if err != nil {
-		return Token{}, contractError(err)
-	}
-	boundary, err := exchange.NewOfficialSDKResponseCeiling(exchange.OfficialSDKResponseCeilingRequest{Method: exchange.MethodPost, Representation: exchange.OfficialSDKResponseRepresentationJSON, MaximumBytes: maximum})
+	boundary, err := exchange.NewOfficialSDKMethodResponseBoundary(exchange.OfficialSDKMethodResponseBoundaryRequest{Method: exchange.MethodPost, Representation: exchange.OfficialSDKResponseRepresentationJSON})
 	if err != nil {
 		return Token{}, contractError(err)
 	}

@@ -18,7 +18,6 @@ type RoutedJSONRequest interface {
 	ControlRoute() (RouteContract, error)
 	ControlRevision() Revision
 	ControlNonce() RequestNonce
-	ControlRequestBodyLimit() (core.ByteCount, error)
 }
 
 // AuthenticatedResponseProjection is an authority-issued response whose
@@ -178,16 +177,8 @@ func ReceiveRoutedJSON[
 	if err := call.Validate(); err != nil {
 		return zero, err
 	}
-	bodyLimit, err := BodyPtr(new(Body)).ControlRequestBodyLimit()
-	if err != nil {
-		return zero, err
-	}
-	policy, err := controlServerPolicy(bodyLimit)
-	if err != nil {
-		return zero, err
-	}
 	received, err := exchange.ReceiveJSON[Body, BodyPtr](exchange.JSONReceiveCall{
-		Call: call.Call, Route: controlRouteSemantics(), Policy: policy,
+		Call: call.Call, Route: controlRouteSemantics(),
 	})
 	if err != nil {
 		return zero, err
@@ -219,16 +210,11 @@ func WriteControlJSON[
 	if err := call.Authority.Validate(); err != nil {
 		return err
 	}
-	policy, err := controlJSONWritePolicy()
-	if err != nil {
-		return err
-	}
 	return exchange.WriteJSON(exchange.JSONWriteCall[Body]{
 		Call: call.Call,
 		Response: exchange.ServerJSONResponse[Body]{
 			Body: call.Body, Status: core.HTTPStatusOK(),
 		},
-		Policy: policy,
 	})
 }
 
@@ -331,19 +317,10 @@ func clientExchange[Body RoutedJSONRequest](
 }
 
 func controlClientPolicy(body RoutedJSONRequest) (exchange.JSONPolicy, error) {
-	maximum, err := body.ControlRequestBodyLimit()
-	if err != nil {
+	if err := body.Validate(); err != nil {
 		return exchange.JSONPolicy{}, contractError(err)
 	}
-	if _, err := controlServerPolicy(maximum); err != nil {
-		return exchange.JSONPolicy{}, err
-	}
-	policy, err := ControlExchangePolicy()
-	if err != nil {
-		return exchange.JSONPolicy{}, err
-	}
-	policy.RequestBodyLimit = maximum
-	return policy, nil
+	return ControlExchangePolicy()
 }
 
 func controlTarget(
@@ -418,22 +395,6 @@ func controlRouteSemantics() exchange.RouteSemantics {
 	return exchange.RouteSemantics{
 		Method: exchange.MethodPost, Replay: exchange.ReplayIdempotencyKey,
 	}
-}
-
-func controlServerPolicy(maximum core.ByteCount) (exchange.ServerPolicy, error) {
-	policy := exchange.ServerPolicy{RequestBodyLimit: maximum}
-	if err := policy.Validate(); err != nil {
-		return exchange.ServerPolicy{}, contractError(err)
-	}
-	return policy, nil
-}
-
-func controlJSONWritePolicy() (exchange.JSONWritePolicy, error) {
-	maximum, err := core.NewByteCount(core.JSONDocumentMaximumBytes)
-	if err != nil {
-		return exchange.JSONWritePolicy{}, contractError(err)
-	}
-	return exchange.JSONWritePolicy{ResponseBodyLimit: maximum}, nil
 }
 
 var (

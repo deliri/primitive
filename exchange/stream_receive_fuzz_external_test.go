@@ -24,14 +24,15 @@ const (
 )
 
 type streamFuzzReader struct {
+	window int
 	source *bytes.Reader
 	fault  streamFuzzFault
 	cancel context.CancelFunc
 }
 
 func (r *streamFuzzReader) Read(p []byte) (int, error) {
-	if len(p) > 1 {
-		p = p[:1]
+	if len(p) > max(1, r.window) {
+		p = p[:max(1, r.window)]
 	}
 	n, err := r.source.Read(p)
 	if r.fault == streamFuzzCancelOnRead {
@@ -49,7 +50,7 @@ func FuzzReceiveStreamCustodySemanticClosure(f *testing.F) {
 	// does not use Exchange's copy or classification helpers to compute wants.
 	seed := []byte{0x00, 0xff, 0x41}
 	writer := httptest.NewRecorder()
-	response := exchange.ServerStreamResponse{Source: bytes.NewReader(seed), ContentType: core.HTTPMediaTypeOctetStream(), ContentLength: mustByteLength(f, uint64(len(seed))), Status: core.HTTPStatusOK()}
+	response := exchange.ServerStreamResponse{Source: bytes.NewReader(seed), ContentType: core.HTTPMediaTypeOctetStream(), ContentLength: new(mustByteLength(f, uint64(len(seed)))), Status: core.HTTPStatusOK()}
 	if err := response.Validate(); err != nil {
 		f.Fatalf("typed stream seed validation = %v, want nil", err)
 	}
@@ -69,7 +70,7 @@ func FuzzReceiveStreamCustodySemanticClosure(f *testing.F) {
 	f.Add(canonical, uint16(len(seed)-1), uint8(streamFuzzCloseFailure))
 	f.Add(canonical, uint16(len(seed)), uint8(streamFuzzShortWrite))
 	f.Add([]byte{}, uint16(1), uint8(streamFuzzIntact))
-	f.Fuzz(func(t *testing.T, data []byte, ceiling uint16, faultByte uint8) {
+	f.Fuzz(func(t *testing.T, data []byte, window uint16, faultByte uint8) {
 		const oracleMaximumBytes = 4096
 		if len(data) > oracleMaximumBytes || faultByte > uint8(streamFuzzShortWrite) {
 			return
@@ -84,33 +85,25 @@ func FuzzReceiveStreamCustodySemanticClosure(f *testing.F) {
 		}
 		request := httptest.NewRequestWithContext(ctx, http.MethodPost, "/", body)
 		request.Header.Set(core.HTTPHeaderContentType().String(), core.HTTPMediaTypeOctetStream().String())
-		var limit core.ByteCount
-		if ceiling != 0 {
-			limit = mustByteCount(t, uint64(ceiling))
-		}
 		destination := &streamStepWriter{}
 		if fault == streamFuzzShortWrite {
 			destination.steps = []streamWriteStep{{}}
 		}
 		output := httptest.NewRecorder()
 		got, gotErr := exchange.ReceiveStream(exchange.StreamReceiveCall{
-			Call: socketServerCallFrom(t, output, request), Destination: destination,
-			Route:  exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt},
-			Policy: exchange.ServerStreamPolicy{RequestBodyLimit: limit}, ExpectedContentType: core.HTTPMediaTypeOctetStream(),
+			Call: socketServerCallFrom(t, output, request), Destination: destination, Buffer: make([]byte, int(window)%4097),
+			Route:               exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt},
+			ExpectedContentType: core.HTTPMediaTypeOctetStream(),
 		})
 
-		wantBytes := min(len(data), int(ceiling))
-		wantRead := min(len(data), int(ceiling)+1)
+		wantBytes := len(data)
+		wantRead := len(data)
 		wantWrites := wantBytes
 		var wantErr error
 		wantCloseFailure := fault == streamFuzzCloseFailure
-		wantOverflow := len(data) > int(ceiling)
-		wantReadFailure := fault == streamFuzzReadFailure && !wantOverflow
+		wantOverflow := false
+		wantReadFailure := fault == streamFuzzReadFailure
 		switch {
-		case ceiling == 0:
-			wantErr = core.ErrExchangeContract
-			wantBytes, wantRead, wantWrites = 0, 0, 0
-			wantOverflow, wantReadFailure = false, false
 		case fault == streamFuzzCancelOnRead:
 			wantErr = context.Canceled
 			wantBytes = min(len(data), 1)
@@ -120,8 +113,6 @@ func FuzzReceiveStreamCustodySemanticClosure(f *testing.F) {
 			wantErr = io.ErrShortWrite
 			wantBytes, wantRead, wantWrites = 0, 1, 1
 			wantOverflow = false
-		case wantOverflow:
-			wantErr = core.ErrExchangeBodyLimit
 		case wantReadFailure:
 			wantErr = io.ErrUnexpectedEOF
 		case wantCloseFailure:

@@ -9,21 +9,11 @@ import (
 )
 
 // FuzzParseDeclaredBodyLength proves the transport framing oracle: accepted
-// declarations preserve their extent, absence carries none, and reservation
-// never exceeds the caller's authorized bound.
+// declarations preserve their extent and absence carries none.
 func FuzzParseDeclaredBodyLength(f *testing.F) {
 	for _, seed := range []int64{math.MinInt64, -2, -1, 0, 1, 4096, math.MaxInt64} {
 		f.Add(seed)
 	}
-	limit, err := core.NewByteCount(512 * 1024)
-	if err != nil {
-		f.Fatalf("core.NewByteCount() error = %v, want nil", err)
-	}
-	allowed, err := limit.Uint64()
-	if err != nil {
-		f.Fatalf("ByteCount.Uint64() error = %v, want nil", err)
-	}
-
 	f.Fuzz(func(t *testing.T, value int64) {
 		declared, parseErr := parseDeclaredBodyLength(value)
 		if value < declaredBodyLengthAbsent {
@@ -55,12 +45,6 @@ func FuzzParseDeclaredBodyLength(f *testing.F) {
 		if !declared.present && declared.length.Uint64() != 0 {
 			t.Fatalf("absent parseDeclaredBodyLength(%d).length = %d, want 0", value, declared.length.Uint64())
 		}
-		reserved, gotErr := declared.reservedExtent(limit)
-		if gotErr != nil {
-			t.Fatalf("reservedExtent() error = %v, want nil", gotErr)
-		}
-		if reserved < 0 || uint64(reserved) > allowed {
-			t.Fatalf("parseDeclaredBodyLength(%d).reservedExtent() = %d, want within [0, %d]", value, reserved, allowed)
-		}
+
 	})
 }

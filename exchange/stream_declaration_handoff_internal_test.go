@@ -36,10 +36,6 @@ func TestStreamDeclarationHandoffLayerTriad(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			limit, err := core.NewByteCount(2)
-			if err != nil {
-				t.Fatal(err)
-			}
 			body := &replayHandoffBody{reader: bytes.NewReader(nil)}
 			if tc.closeFault {
 				body.fault = replayHandoffCloseFailure
@@ -55,7 +51,7 @@ func TestStreamDeclarationHandoffLayerTriad(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			produced, producerErr := Upload(UploadCall{Context: t.Context(), Client: client, Request: UploadRequest{Target: target, Source: bytes.NewReader(make([]byte, tc.declared)), ContentLength: length, ContentType: core.HTTPMediaTypeOctetStream(), ExpectedStatus: core.HTTPStatusOK(), Semantics: RequestSemantics{Method: MethodPut, Replay: ReplaySingleAttempt}}, Policy: StreamPolicy{OperationTimeout: runtimeAgreementPolicy(t).ReadTimeout, AttemptTimeout: runtimeAgreementPolicy(t).ReadTimeout, ErrorBodyLimit: limit, Redirect: RedirectPolicy{Mode: RedirectReject}}})
+			produced, producerErr := Upload(UploadCall{Context: t.Context(), Client: client, Request: UploadRequest{Target: target, Source: bytes.NewReader(make([]byte, tc.declared)), ContentLength: new(length), ContentType: core.HTTPMediaTypeOctetStream(), ExpectedStatus: core.HTTPStatusOK(), Semantics: RequestSemantics{Method: MethodPut, Replay: ReplaySingleAttempt}}, Policy: StreamPolicy{OperationTimeout: runtimeAgreementPolicy(t).ReadTimeout, AttemptTimeout: runtimeAgreementPolicy(t).ReadTimeout, Redirect: RedirectPolicy{Mode: RedirectReject}}})
 			if produced.DeclaredRequestBytes != length || produced.Metadata.Status != core.HTTPStatusOK() || produced.Metadata.Attempts != 1 || produced.Metadata.Bytes != (core.ByteLength{}) || produced.Metadata.Headers.Values != nil || calls != 1 || body.closes != 1 {
 				t.Fatalf("upload producer = %+v, calls/close %d/%d, want exact declaration %v and HTTP observation", produced, calls, body.closes, length)
 			}

@@ -113,10 +113,6 @@ func TestHTTPProducerClassifierStatusDomainLayerTriad(t *testing.T) {
 						if err != nil {
 							t.Fatal(err)
 						}
-						limit, err := core.NewByteCount(2)
-						if err != nil {
-							t.Fatal(err)
-						}
 						semantics := RequestSemantics{Method: MethodGet, Replay: mode.replay}
 						if err := semantics.Validate(); err != nil {
 							t.Fatal(err)
@@ -139,7 +135,7 @@ func TestHTTPProducerClassifierStatusDomainLayerTriad(t *testing.T) {
 									t.Fatal(err)
 								}
 								var destination bytes.Buffer
-								produced, producerErr := Download(DownloadCall{Context: ctx, Client: client, Request: DownloadRequest{Target: target, Destination: &destination, ExpectedStatus: row.expected, ResponseBodyLimit: limit, Semantics: RequestSemantics{Method: MethodGet, Replay: ReplaySingleAttempt}}, Policy: StreamPolicy{OperationTimeout: runtimeAgreementPolicy(t).ReadTimeout, AttemptTimeout: runtimeAgreementPolicy(t).ReadTimeout, ErrorBodyLimit: limit, Redirect: RedirectPolicy{Mode: RedirectReject}}})
+								produced, producerErr := Download(DownloadCall{Context: ctx, Client: client, Request: DownloadRequest{Target: target, Destination: &destination, ExpectedStatus: row.expected, Semantics: RequestSemantics{Method: MethodGet, Replay: ReplaySingleAttempt}}, Policy: StreamPolicy{OperationTimeout: runtimeAgreementPolicy(t).ReadTimeout, AttemptTimeout: runtimeAgreementPolicy(t).ReadTimeout, Redirect: RedirectPolicy{Mode: RedirectReject}}})
 								if produced.Metadata.Status != row.status || produced.Metadata.Attempts != 1 || produced.Metadata.Bytes != (core.ByteLength{}) || produced.DeclaredRequestBytes != (core.ByteLength{}) || produced.Metadata.Headers.Values != nil || destination.Len() != 0 {
 									cancel()
 									t.Fatalf("stream producer = %+v, want exact status %v and no byte/header evidence", produced, row.status)
@@ -169,7 +165,7 @@ func TestHTTPProducerClassifierStatusDomainLayerTriad(t *testing.T) {
 									t.Fatalf("stream classifier changed producer evidence: %+v -> %+v", retained, admitted)
 								}
 							} else {
-								produced, producerErr := executeAggregateAttempt(aggregateAttempt{context: ctx, client: goClient, request: aggregateRequest{target: target, semantics: semantics, expectedStatus: row.expected}, timeout: runtimeAgreementPolicy(t).ReadTimeout, limit: limit})
+								produced, producerErr := executeAggregateAttempt(aggregateAttempt{context: ctx, client: goClient, request: aggregateRequest{target: target, semantics: semantics, expectedStatus: row.expected}, timeout: runtimeAgreementPolicy(t).ReadTimeout})
 								if producerErr != nil || produced.status != row.status || produced.body != nil || produced.headers.Values != nil || produced.retryAfter != "" {
 									cancel()
 									t.Fatalf("aggregate producer = (%+v,%v), want status %v with no body/header/hint evidence", produced, producerErr, row.status)
@@ -244,10 +240,6 @@ func TestHTTPProducerClassifierRefusalLatticeLayerTriad(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			limit, err := core.NewByteCount(2)
-			if err != nil {
-				t.Fatal(err)
-			}
 			causes := []error{io.ErrClosedPipe}
 			for _, identity := range identities {
 				if row.bits&identity.bit != 0 {
@@ -273,7 +265,7 @@ func TestHTTPProducerClassifierRefusalLatticeLayerTriad(t *testing.T) {
 								t.Fatal(err)
 							}
 							var destination bytes.Buffer
-							produced, producerErr := Download(DownloadCall{Context: ctx, Client: client, Request: DownloadRequest{Target: target, Destination: &destination, ExpectedStatus: core.HTTPStatusOK(), ResponseBodyLimit: limit, Semantics: RequestSemantics{Method: MethodGet, Replay: ReplaySingleAttempt}}, Policy: StreamPolicy{OperationTimeout: runtimeAgreementPolicy(t).ReadTimeout, AttemptTimeout: runtimeAgreementPolicy(t).ReadTimeout, ErrorBodyLimit: limit, Redirect: RedirectPolicy{Mode: RedirectReject}}})
+							produced, producerErr := Download(DownloadCall{Context: ctx, Client: client, Request: DownloadRequest{Target: target, Destination: &destination, ExpectedStatus: core.HTTPStatusOK(), Semantics: RequestSemantics{Method: MethodGet, Replay: ReplaySingleAttempt}}, Policy: StreamPolicy{OperationTimeout: runtimeAgreementPolicy(t).ReadTimeout, AttemptTimeout: runtimeAgreementPolicy(t).ReadTimeout, Redirect: RedirectPolicy{Mode: RedirectReject}}})
 							if produced.Metadata.Status != (core.HTTPStatusCode{}) || produced.Metadata.Attempts != 0 || produced.Metadata.Bytes != (core.ByteLength{}) || produced.Metadata.Headers.Values != nil || produced.DeclaredRequestBytes != (core.ByteLength{}) || destination.Len() != 0 {
 								t.Fatalf("refused stream producer emitted facts: %+v", produced)
 							}
@@ -299,7 +291,7 @@ func TestHTTPProducerClassifierRefusalLatticeLayerTriad(t *testing.T) {
 							}
 						} else {
 							semantics := RequestSemantics{Method: MethodGet, Replay: ReplaySafe}
-							produced, producerErr := executeAggregateAttempt(aggregateAttempt{context: ctx, client: goClient, request: aggregateRequest{target: target, semantics: semantics, expectedStatus: core.HTTPStatusOK()}, timeout: runtimeAgreementPolicy(t).ReadTimeout, limit: limit})
+							produced, producerErr := executeAggregateAttempt(aggregateAttempt{context: ctx, client: goClient, request: aggregateRequest{target: target, semantics: semantics, expectedStatus: core.HTTPStatusOK()}, timeout: runtimeAgreementPolicy(t).ReadTimeout})
 							if produced.status != (core.HTTPStatusCode{}) || produced.body != nil || produced.headers.Values != nil || produced.retryAfter != "" {
 								t.Fatalf("refused aggregate producer emitted facts: %+v", produced)
 							}

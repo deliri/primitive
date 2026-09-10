@@ -156,7 +156,7 @@ func TestProviderObservationHandoffExhaustiveFaultMatrix(t *testing.T) {
 					}
 					rows := 0
 					var classes [observationPrimaryClassLimit]int
-					for fault := observationFault(0); fault < observationFaultLimit; fault++ {
+					for fault := range observationFaultLimit {
 						// A single field cannot be both absent and different. Exclude
 						// impossible fixture states instead of overwriting one mutation.
 						if fault&(foreignVersion|absentVersion) == foreignVersion|absentVersion || fault&(foreignChecksum|absentChecksum) == foreignChecksum|absentChecksum {

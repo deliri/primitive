@@ -26,7 +26,6 @@ func TestGitHubRecursiveTreeTransportLayerTriad(t *testing.T) {
 		wantErr     error
 		name        string
 		wireEntries []treeEntryWire
-		maximum     uint64
 		wantEntries uint64
 		truncated   bool
 	}{
@@ -37,16 +36,16 @@ func TestGitHubRecursiveTreeTransportLayerTriad(t *testing.T) {
 				{Path: "internal", Mode: "040000", Type: "tree", SHA: parsedCommit(t).String(), URL: "https://api.github.com/tree"},
 				{Path: "vendor/module", Mode: "160000", Type: "commit", SHA: parsedCommit(t).String(), URL: "https://api.github.com/commit"},
 			},
-			maximum: 3, wantEntries: 3,
+			wantEntries: 3,
 		},
 		{
 			name:        "negative provider truncation cannot produce completed observation",
 			wireEntries: []treeEntryWire{{Path: "main.go", Mode: "100644", Type: "blob", SHA: parsedCommit(t).String(), URL: "https://api.github.com/blob"}},
-			truncated:   true, maximum: 1, wantErr: core.ErrGitHubResponse,
+			truncated:   true, wantErr: core.ErrGitHubResponse,
 		},
 		{
 			name:        "neutral empty tree remains an exact zero-entry observation",
-			wireEntries: []treeEntryWire{}, maximum: 1, wantEntries: 0,
+			wireEntries: []treeEntryWire{}, wantEntries: 0,
 		},
 	}
 	for _, testCase := range tests {
@@ -70,7 +69,7 @@ func TestGitHubRecursiveTreeTransportLayerTriad(t *testing.T) {
 			client := clientFixture(t, server.URL)
 			got, gotErr := client.ReadTree(context.Background(), TreeRequest{
 				Repository: parsedRepository(t, "owner/repository"), Commit: parsedCommit(t),
-				MaximumEntries: testCase.maximum, Visitor: visitor,
+				Visitor: visitor,
 			})
 			if !errors.Is(gotErr, testCase.wantErr) {
 				t.Fatalf("Client.ReadTree() error = %v, want %v", gotErr, testCase.wantErr)
@@ -105,7 +104,7 @@ func FuzzDecodeGitHubTreeSemanticClosure(f *testing.F) {
 	f.Add([]byte(`{"sha":"x","url":"x","tree":[],"truncated":true}`))
 	f.Fuzz(func(t *testing.T, payload []byte) {
 		visitor := &collectingTreeVisitor{}
-		got, gotErr := decodeTree(bytes.NewReader(payload), core.GitHubRecursiveTreeMaximumEntries, visitor)
+		got, gotErr := decodeTree(bytes.NewReader(payload), visitor)
 		if gotErr != nil {
 			if !errors.Is(gotErr, core.ErrGitHubResponse) && !errors.Is(gotErr, core.ErrJSONContract) {
 				t.Fatalf("decodeTree(rejected) error = %v, want typed GitHub or JSON rejection", gotErr)

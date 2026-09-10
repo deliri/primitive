@@ -344,7 +344,7 @@ func liveGCSReadRequest(
 		Bucket: bucket, Name: name, Integrity: integrity,
 		Destination: filestore.StageDestinationRequest{
 			Temporary:     filestore.Location{Root: root, Path: path},
-			ExpectedBytes: integrity.Length, Mode: 0o600,
+			ExpectedBytes: new(integrity.Length), Mode: 0o600,
 		},
 	}
 }

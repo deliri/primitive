@@ -58,8 +58,7 @@ func TestRetryTransportLayerTriad(t *testing.T) {
 					ExpectedStatus:              ok,
 				},
 				Policy: exchange.NoBodyBoundedPolicy{
-					Operation:         retryOperationPolicy(t, 2),
-					ResponseBodyLimit: mustByteCount(t, 4*1024),
+					Operation: retryOperationPolicy(t, 2),
 				},
 			},
 		)
@@ -121,8 +120,7 @@ func TestRetryTransportLayerTriad(t *testing.T) {
 					ExpectedStatus:              ok,
 				},
 				Policy: exchange.NoBodyBoundedPolicy{
-					Operation:         retryOperationPolicy(t, 2),
-					ResponseBodyLimit: mustByteCount(t, 4*1024),
+					Operation: retryOperationPolicy(t, 2),
 				},
 			},
 		)
@@ -176,8 +174,7 @@ func TestRetryTransportLayerTriad(t *testing.T) {
 					ExpectedStatus:              ok,
 				},
 				Policy: exchange.NoBodyBoundedPolicy{
-					Operation:         retryOperationPolicy(t, 2),
-					ResponseBodyLimit: mustByteCount(t, 4*1024),
+					Operation: retryOperationPolicy(t, 2),
 				},
 			},
 		)
@@ -264,8 +261,7 @@ func TestRetryTransportLayerTriad(t *testing.T) {
 					ExpectedStatus:              ok,
 				},
 				Policy: exchange.NoBodyBoundedPolicy{
-					Operation:         singleAttemptOperationPolicy(t),
-					ResponseBodyLimit: mustByteCount(t, 4*1024),
+					Operation: singleAttemptOperationPolicy(t),
 				},
 			},
 		)
@@ -321,8 +317,7 @@ func TestRedirectTransportLayerTriad(t *testing.T) {
 				ExpectedStatus: mustHTTPStatus(t, http.StatusFound),
 			},
 			Policy: exchange.NoBodyBoundedPolicy{
-				Operation:         policy,
-				ResponseBodyLimit: mustByteCount(t, 4*1024),
+				Operation: policy,
 			},
 		})
 		if gotErr != nil || got.Metadata.Status != mustHTTPStatus(t, http.StatusFound) || len(got.Metadata.Headers.Values) != 1 {
@@ -383,8 +378,7 @@ func TestRedirectTransportLayerTriad(t *testing.T) {
 					ExpectedStatus:              ok,
 				},
 				Policy: exchange.NoBodyBoundedPolicy{
-					Operation:         redirectOperationPolicy(t),
-					ResponseBodyLimit: mustByteCount(t, 4*1024),
+					Operation: redirectOperationPolicy(t),
 				},
 			},
 		)
@@ -443,8 +437,7 @@ func TestRedirectTransportLayerTriad(t *testing.T) {
 					ExpectedStatus: ok,
 				},
 				Policy: exchange.NoBodyBoundedPolicy{
-					Operation:         redirectOperationPolicy(t),
-					ResponseBodyLimit: mustByteCount(t, 4*1024),
+					Operation: redirectOperationPolicy(t),
 				},
 			},
 		)
@@ -502,8 +495,7 @@ func TestRedirectTransportLayerTriad(t *testing.T) {
 					ExpectedStatus: ok,
 				},
 				Policy: exchange.NoBodyBoundedPolicy{
-					Operation:         redirectOperationPolicy(t),
-					ResponseBodyLimit: mustByteCount(t, 4*1024),
+					Operation: redirectOperationPolicy(t),
 				},
 			},
 		)
@@ -556,8 +548,7 @@ func TestRedirectTransportLayerTriad(t *testing.T) {
 					ExpectedStatus:              ok,
 				},
 				Policy: exchange.NoBodyBoundedPolicy{
-					Operation:         singleAttemptOperationPolicy(t),
-					ResponseBodyLimit: mustByteCount(t, 4*1024),
+					Operation: singleAttemptOperationPolicy(t),
 				},
 			},
 		)

@@ -1,7 +1,6 @@
 package controlwire
 
 import (
-	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
 	"github.com/deliri/primitive/v2026/temporal"
 )
@@ -58,22 +57,12 @@ const (
 // refusal: an unstated attempt count is not "once", and an unstated redirect
 // rule is not "reject".
 func ControlExchangePolicy() (exchange.JSONPolicy, error) {
-	request, err := core.NewByteCount(core.JSONDocumentMaximumBytes)
-	if err != nil {
-		return exchange.JSONPolicy{}, contractError(err)
-	}
-	response, err := core.NewByteCount(core.JSONDocumentMaximumBytes)
-	if err != nil {
-		return exchange.JSONPolicy{}, contractError(err)
-	}
 	operation, err := ControlExchangeOperationPolicy()
 	if err != nil {
 		return exchange.JSONPolicy{}, err
 	}
 	policy := exchange.JSONPolicy{
-		Operation:         operation,
-		RequestBodyLimit:  request,
-		ResponseBodyLimit: response,
+		Operation: operation,
 	}
 	if err := policy.Validate(); err != nil {
 		return exchange.JSONPolicy{}, contractError(err)

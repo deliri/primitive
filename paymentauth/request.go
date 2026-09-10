@@ -71,9 +71,6 @@ func (d RequestDocument) ControlNonce() controlwire.RequestNonce {
 	return d.Request.Payload.Nonce
 }
 
-func (RequestDocument) ControlRequestBodyLimit() (core.ByteCount, error) {
-	return core.NewByteCount(uint64(RequestDocumentJSONMaximumBytes))
-}
 
 func (a RequestAssembly) Validate() error { return RequestDocument(a).Validate() }
 

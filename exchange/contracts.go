@@ -525,93 +525,56 @@ func (p OperationPolicy) Validate() error {
 	return p.Redirect.Validate()
 }
 
-// JSONPolicy owns one bounded strict JSON operation.
+// JSONPolicy owns the execution policy for one strict JSON operation.
 type JSONPolicy struct {
-	Operation         OperationPolicy
-	RequestBodyLimit  core.ByteCount
-	ResponseBodyLimit core.ByteCount
+	Operation OperationPolicy
 }
 
-// Validate enforces Core's strict JSON document maximum.
-func (p JSONPolicy) Validate() error {
-	if err := p.Operation.Validate(); err != nil {
-		return err
-	}
-	if err := validateJSONLimit(p.RequestBodyLimit); err != nil {
-		return err
-	}
-	return validateJSONLimit(p.ResponseBodyLimit)
-}
+// Validate checks the owned operation.
+func (p JSONPolicy) Validate() error { return p.Operation.Validate() }
 
 // NoBodyJSONPolicy owns one body-absent request with a strict JSON response.
 type NoBodyJSONPolicy struct {
-	Operation         OperationPolicy
-	ResponseBodyLimit core.ByteCount
+	Operation OperationPolicy
 }
 
-// Validate checks the operation and response document limit.
-func (p NoBodyJSONPolicy) Validate() error {
-	if err := p.Operation.Validate(); err != nil {
-		return err
-	}
-	return validateJSONLimit(p.ResponseBodyLimit)
-}
+// Validate checks the owned operation.
+func (p NoBodyJSONPolicy) Validate() error { return p.Operation.Validate() }
 
 // NoBodyBoundedPolicy owns one body-absent request with an aggregate byte
 // response.
 type NoBodyBoundedPolicy struct {
-	Operation         OperationPolicy
-	ResponseBodyLimit core.ByteCount
+	Operation OperationPolicy
 }
 
-// Validate admits a positive response bound within the aggregate cap.
-func (p NoBodyBoundedPolicy) Validate() error {
-	if err := p.Operation.Validate(); err != nil {
-		return err
-	}
-	if _, err := p.ResponseBodyLimit.Int64(); err != nil {
-		return core.ErrExchangeContract
-	}
-	return nil
-}
+// Validate checks the owned operation.
+func (p NoBodyBoundedPolicy) Validate() error { return p.Operation.Validate() }
 
 // BoundedPolicy owns one aggregate byte request and response.
 type BoundedPolicy struct {
-	Operation         OperationPolicy
-	RequestBodyLimit  core.ByteCount
-	ResponseBodyLimit core.ByteCount
+	Operation OperationPolicy
 }
 
-// Validate admits positive limits representable by net/http and io.
-func (p BoundedPolicy) Validate() error {
-	if err := p.Operation.Validate(); err != nil {
-		return err
-	}
-	if _, err := p.RequestBodyLimit.Int64(); err != nil {
-		return core.ErrExchangeContract
-	}
-	if _, err := p.ResponseBodyLimit.Int64(); err != nil {
-		return core.ErrExchangeContract
-	}
-	return nil
-}
+// Validate checks the owned operation.
+func (p BoundedPolicy) Validate() error { return p.Operation.Validate() }
 
-// StreamPolicy owns total and attempt deadlines plus a bounded rejected body.
+// StreamPolicy supplies optional total and attempt deadlines for one stream.
+// Zero durations inherit the caller context without adding a deadline.
 // Streaming is structurally single-attempt; higher-level owners must reopen or
 // rewind their own custody capabilities before another call.
 type StreamPolicy struct {
 	OperationTimeout temporal.Duration
 	AttemptTimeout   temporal.Duration
-	ErrorBodyLimit   core.ByteCount
-	Redirect         RedirectPolicy
+
+	Redirect RedirectPolicy
 }
 
 // Validate closes the single-attempt streaming policy.
 func (p StreamPolicy) Validate() error {
-	if err := validateTimeoutPair(p.OperationTimeout, p.AttemptTimeout); err != nil {
-		return err
+	if err := errors.Join(p.OperationTimeout.Validate(), p.AttemptTimeout.Validate()); err != nil {
+		return errors.Join(core.ErrExchangeContract, err)
 	}
-	if _, err := p.ErrorBodyLimit.Int64(); err != nil {
+	if !p.OperationTimeout.IsZero() && !p.AttemptTimeout.IsZero() && greaterDuration(p.AttemptTimeout, p.OperationTimeout) {
 		return core.ErrExchangeContract
 	}
 	return p.Redirect.Validate()
@@ -660,7 +623,9 @@ type BoundedRequest struct {
 	ExpectedStatus              core.HTTPStatusCode
 }
 
-// UploadRequest supplies one caller-owned streaming source.
+// UploadRequest supplies one caller-owned streaming source. ContentLength is
+// optional: nil lets Go stream through EOF; non-nil is the exact supplied length.
+// The source and length are borrowed and must remain valid through Upload.
 type UploadRequest struct {
 	Target         Target
 	Source         io.Reader
@@ -668,26 +633,35 @@ type UploadRequest struct {
 	ContentType    core.HTTPMediaType
 	Headers        Headers
 	CaptureHeaders HeaderSelection
-	ContentLength  core.ByteLength
+	ContentLength  *core.ByteLength
 	ExpectedStatus core.HTTPStatusCode
 }
 
 // DownloadRequest supplies one caller-owned streaming destination.
 type DownloadRequest struct {
+	// Buffer is optional borrowed scratch for Go copy operations that need it.
+	// Empty uses Go allocation; ReaderFrom destinations own their copy window.
+	// Source and destination must not alias it. Reuse is safe after return.
+	Buffer                      []byte
 	Target                      Target
 	Destination                 io.Writer
 	Semantics                   RequestSemantics
 	ExpectedResponseContentType core.HTTPMediaType
 	Headers                     Headers
 	CaptureHeaders              HeaderSelection
-	ResponseBodyLimit           core.ByteCount
-	ExpectedStatus              core.HTTPStatusCode
+
+	ExpectedStatus core.HTTPStatusCode
 }
 
 // StreamRoundTripRequest supplies one caller-owned request stream and one
 // caller-owned response destination. The request is sent exactly once and the
-// response is copied through Exchange's fixed transfer buffer.
+// response is copied through borrowed or Go-allocated scratch. A nil
+// RequestContentLength streams the request through EOF using Go framing.
 type StreamRoundTripRequest struct {
+	// Buffer is optional borrowed scratch for Go copy operations that need it.
+	// Empty uses Go allocation; ReaderFrom destinations own their copy window.
+	// Source and destination must not alias it. Reuse is safe after return.
+	Buffer                      []byte
 	Target                      Target
 	Source                      io.Reader
 	Destination                 io.Writer
@@ -696,9 +670,9 @@ type StreamRoundTripRequest struct {
 	ExpectedResponseContentType core.HTTPMediaType
 	Headers                     Headers
 	CaptureHeaders              HeaderSelection
-	RequestContentLength        core.ByteLength
-	ResponseBodyLimit           core.ByteCount
-	ExpectedStatus              core.HTTPStatusCode
+	RequestContentLength        *core.ByteLength
+
+	ExpectedStatus core.HTTPStatusCode
 }
 
 func managedHeader(name core.HTTPHeaderName) bool {
@@ -722,16 +696,6 @@ func validateTimeoutPair(operation, attempt temporal.Duration) error {
 	}
 	if greaterDuration(attempt, operation) {
 		return core.ErrExchangeContract
-	}
-	return nil
-}
-
-func validateJSONLimit(limit core.ByteCount) error {
-	value, err := limit.Uint64()
-	defaults := core.DefaultStrictJSONLimits()
-	maximum, maximumErr := defaults.DocumentMaximumBytes.Uint64()
-	if errors.Join(err, maximumErr) != nil || value > maximum {
-		return core.ErrExchangeBodyLimit
 	}
 	return nil
 }

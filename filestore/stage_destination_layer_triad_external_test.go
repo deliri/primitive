@@ -61,7 +61,7 @@ func TestStageDestinationDurableWriterLayerTriad(t *testing.T) {
 			if err := os.WriteFile(filepath.Join(directory, "neighbor"), neighbor, 0o600); err != nil {
 				t.Fatal(err)
 			}
-			plan := filestore.ActivationRequest{Temporary: filestore.Location{Root: root, Path: mustRelativePath(t, "stage")}, Target: mustRelativePath(t, "target"), ExpectedBytes: stageDestinationLength(t, uint64(len(payload))), Mode: 0o600, Install: filestore.InstallCreate}
+			plan := filestore.ActivationRequest{Temporary: filestore.Location{Root: root, Path: mustRelativePath(t, "stage")}, Target: mustRelativePath(t, "target"), ExpectedBytes: new(stageDestinationLength(t, uint64(len(payload)))), Mode: 0o600, Install: filestore.InstallCreate}
 			if err := plan.Validate(); err != nil {
 				t.Fatal(err)
 			}
@@ -162,7 +162,7 @@ func TestStageDestinationDurableWriterLayerTriad(t *testing.T) {
 				t.Fatalf("settled handle = (%v,%v), want no file and contract refusal", gotFile, fileErr)
 			}
 			if tc.wantReceipt {
-				if err := got.Validate(); err != nil || got.Path() != plan.Temporary.Path || got.BytesWritten() != plan.ExpectedBytes {
+				if err := got.Validate(); err != nil || got.Path() != plan.Temporary.Path || got.BytesWritten() != *plan.ExpectedBytes {
 					t.Fatalf("receipt = (%+v,%v), want exact validated stage", got, err)
 				}
 				commit, err := plan.CommitRequest(got)

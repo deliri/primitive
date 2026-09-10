@@ -179,11 +179,11 @@ func sourceAcquisitionSocketFixture(t testing.TB) (runnercontrol.SourceAcquisiti
 	headers, headersErr := objectstore.NewSignedHeaders(nil)
 	target := objectstore.DownloadTarget{URL: signedURL, Headers: headers, ExpiresAt: temporal.InstantFromNanoseconds(50)}
 	capability, capabilityErr := objectstore.NewDownloadCapabilityProjection(objectstore.ProviderGoogleCloudStorage, target)
-	errorLimit, limitErr := core.NewByteCount(4096)
+
 	operationTimeout, operationErr := temporal.DurationFromSeconds(10)
 	attemptTimeout, attemptErr := temporal.DurationFromSeconds(5)
 	integrity := objectstore.Integrity{SHA256: manifest.ArchiveDigest, Length: manifest.ArchiveBytes, CRC32C: core.NewCRC32C(crc32.Checksum(archive, crc32.MakeTable(crc32.Castagnoli)))}
-	policy := objectstore.Policy{OperationTimeout: operationTimeout, AttemptTimeout: attemptTimeout, ErrorBodyLimit: errorLimit}
+	policy := objectstore.Policy{OperationTimeout: operationTimeout, AttemptTimeout: attemptTimeout}
 	grant := authenticated.Requested.Probe.Source
 	request := runnercontrol.SourceAcquisitionRequest{
 		SchemaVersion: runnercontrol.SchemaVersion, Fence: payload.Fence, Members: payload.Members,
@@ -194,7 +194,7 @@ func sourceAcquisitionSocketFixture(t testing.TB) (runnercontrol.SourceAcquisiti
 		Grant: admitted.Source, Document: document, Capability: capability,
 		Integrity: integrity, ContentType: core.HTTPMediaTypeOctetStream(), Policy: policy,
 	}
-	if err := errors.Join(bytesErr, fileErr, documentErr, urlErr, headersErr, capabilityErr, limitErr, operationErr, attemptErr, request.Validate(), projection.Validate()); err != nil {
+	if err := errors.Join(bytesErr, fileErr, documentErr, urlErr, headersErr, capabilityErr, operationErr, attemptErr, request.Validate(), projection.Validate()); err != nil {
 		t.Fatalf("source acquisition socket fixture error = %v, want nil", err)
 	}
 	return request, projection

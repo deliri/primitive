@@ -83,6 +83,10 @@ func (r *streamReader) Read(buffer []byte) (int, error) {
 func (r *streamReader) observe(count int, err error) error {
 	// witness:waiver doctrine/error/sentinel_compare -- Only Go's unwrapped EOF is clean termination; a joined EOF and native failure must retain Source refusal.
 	if err == io.EOF {
+		if cancellation := contextstate.Validate(r.ctx); cancellation != nil {
+			r.cause = cancellation
+			return cancellation
+		}
 		return io.EOF
 	}
 	if err != nil {

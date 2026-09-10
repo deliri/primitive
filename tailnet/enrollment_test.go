@@ -41,6 +41,8 @@ type localEnrollmentTransport struct {
 	base   http.RoundTripper
 }
 
+const enrollmentFormerResponseCutoffBytes = 64 << 10
+
 func (p localEnrollmentTransport) RoundTrip(request *http.Request) (*http.Response, error) {
 	copy := request.Clone(request.Context())
 	copy.URL.Scheme = p.target.Scheme
@@ -99,10 +101,10 @@ func TestAuthKeySDKLayerTriad(t *testing.T) {
 		{name: "credential refusal never requests a key", tokenStatus: http.StatusUnauthorized, wantErr: core.ErrTailnetEnrollment, wantCalls: 1},
 		{name: "malformed access response cannot enroll", tokenBody: []byte("{broken"), wantErr: core.ErrTailnetEnrollment, wantCalls: 1},
 		{name: "absent access token cannot create auth key", tokenBody: []byte("{}"), wantErr: core.ErrTailnetEnrollment, wantCalls: 1},
-		{name: "oversized access response stops at Exchange ceiling", tokenBody: []byte(strings.Repeat(" ", enrollmentResponseMaximumBytes+1)), wantErr: core.ErrTailnetEnrollment, wantCause: core.ErrExchangeBodyLimit, wantCalls: 1},
+		{name: "large whitespace-only access response fails JSON validation", tokenBody: []byte(strings.Repeat(" ", enrollmentFormerResponseCutoffBytes+1)), wantErr: core.ErrTailnetEnrollment, wantCause: core.ErrJSONContract, wantCalls: 1},
 		{name: "key refusal cannot expose partial credential", keyStatus: http.StatusForbidden, wantErr: core.ErrTailnetEnrollment, wantCalls: 2},
 		{name: "malformed key response cannot enroll", keyBody: []byte("{broken"), wantErr: core.ErrTailnetEnrollment, wantCalls: 2},
-		{name: "oversized key response stops at Exchange ceiling", keyBody: []byte(strings.Repeat(" ", enrollmentResponseMaximumBytes+1)), wantErr: core.ErrTailnetEnrollment, wantCause: core.ErrExchangeBodyLimit, wantCalls: 2},
+		{name: "large whitespace-only key response fails JSON validation", keyBody: []byte(strings.Repeat(" ", enrollmentFormerResponseCutoffBytes+1)), wantErr: core.ErrTailnetEnrollment, wantCause: core.ErrJSONContract, wantCalls: 2},
 		{name: "empty key cannot trigger ambient auth fallback", editKey: func(k *tailscale.Key) { k.Key = "" }, wantErr: core.ErrTailnetEnrollment, wantCalls: 2},
 		{name: "key file directive cannot become filesystem access", editKey: func(k *tailscale.Key) { k.Key = "file:/secret" }, wantErr: core.ErrTailnetEnrollment, wantCalls: 2},
 		{name: "key at byte ceiling remains exact", editKey: func(k *tailscale.Key) {
@@ -175,7 +177,7 @@ func TestAuthKeySDKLayerTriad(t *testing.T) {
 						status = tc.tokenStatus
 					}
 				case createKeyPath:
-					body, readErr := io.ReadAll(io.LimitReader(r.Body, enrollmentResponseMaximumBytes+1))
+					body, readErr := io.ReadAll(r.Body)
 					if readErr != nil {
 						t.Errorf("request read = %v, want nil", readErr)
 					}

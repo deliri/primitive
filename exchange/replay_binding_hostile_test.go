@@ -110,7 +110,6 @@ func TestReplayBoundJSONRefusesHeaderBodyIdentityDivergence(t *testing.T) {
 					Method: exchange.MethodPost,
 					Replay: exchange.ReplayIdempotencyKey,
 				},
-				Policy: exchange.ServerPolicy{RequestBodyLimit: mustByteCount(t, 4*1024)},
 			})
 			if tc.wantErr != nil {
 				if !errors.Is(gotErr, tc.wantErr) || got.Body != nil || !got.IdempotencyKey.IsZero() {
@@ -167,7 +166,6 @@ func TestSendReplayBoundJSONRefusesIdentityDivergenceBeforeNetwork(t *testing.T)
 					Response: exchange.ServerJSONResponse[replayBoundResponse]{
 						Status: core.HTTPStatusOK(), Body: replayBoundResponse{Accepted: true},
 					},
-					Policy: exchange.JSONWritePolicy{ResponseBodyLimit: mustByteCount(t, 4*1024)},
 				})
 				if writeErr != nil {
 					t.Errorf("exchange.WriteJSON() error = %v, want nil", writeErr)
@@ -192,7 +190,7 @@ func TestSendReplayBoundJSONRefusesIdentityDivergenceBeforeNetwork(t *testing.T)
 					ExpectedStatus: core.HTTPStatusOK(),
 				},
 				Policy: exchange.JSONPolicy{
-					Operation: singleAttemptOperationPolicy(t), RequestBodyLimit: mustByteCount(t, 4*1024), ResponseBodyLimit: mustByteCount(t, 4*1024),
+					Operation: singleAttemptOperationPolicy(t),
 				},
 			})
 			if tc.wantRequest == 0 {

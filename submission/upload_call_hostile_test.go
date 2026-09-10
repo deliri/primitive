@@ -128,7 +128,7 @@ func TestVerifiedDecisionUploadCallHostileBoundaryMatrix(t *testing.T) {
 		{name: "zero revision", mutation: uploadCallMutationZeroRevision, wantErr: core.ErrControlPlaneContract},
 		{name: "future revision", mutation: uploadCallMutationFutureRevision, wantErr: core.ErrControlPlaneContract},
 		{name: "zero nonce", mutation: uploadCallMutationZeroNonce, wantErr: core.ErrControlPlaneContract},
-		{name: "zero transfer policy", mutation: uploadCallMutationZeroPolicy, wantErr: core.ErrControlPlaneContract},
+		{name: "caller-owned transfer lifetime", mutation: uploadCallMutationZeroPolicy},
 		{name: "different declaration", mutation: uploadCallMutationDifferentDeclaration, wantErr: core.ErrControlPlaneResponseBinding},
 		{name: "different build", mutation: uploadCallMutationDifferentBuild, wantErr: core.ErrControlPlaneResponseBinding},
 		{name: "different nonce", mutation: uploadCallMutationDifferentNonce, wantErr: core.ErrControlPlaneResponseBinding},
@@ -176,9 +176,12 @@ func TestVerifiedDecisionUploadCallHostileBoundaryMatrix(t *testing.T) {
 				t.Fatalf("upload call mutation = %d, want a published test mutation", tc.mutation)
 			}
 			call, gotErr := decision.UploadCall(input)
-			if !errors.Is(gotErr, tc.wantErr) || !uploadCallIsZero(call) {
+			if !errors.Is(gotErr, tc.wantErr) || (tc.wantErr != nil && !uploadCallIsZero(call)) {
 				t.Fatalf("VerifiedDecision.UploadCall(hostile) = (%v, %v), want zero and errors.Is %v",
 					call, gotErr, tc.wantErr)
+			}
+			if tc.wantErr == nil && (call.Validate() != nil || call.Source != source || call.Policy != input.Policy) {
+				t.Fatalf("upload call=%+v, want exact source and caller lifetime", call)
 			}
 			if gotRemaining := source.Len(); gotRemaining != len(fixture.content) {
 				t.Fatalf("VerifiedDecision.UploadCall(hostile) source bytes remaining = %d, want untouched %d",
@@ -234,10 +237,6 @@ func uploadCallIsZero(call objectstore.UploadCapabilityRequest) bool {
 func providerPolicy(t *testing.T) objectstore.Policy {
 	t.Helper()
 
-	limit, err := core.NewByteCount(4096)
-	if err != nil {
-		t.Fatalf("core.NewByteCount() error = %v, want nil", err)
-	}
 	operation, err := temporal.DurationFromSeconds(10)
 	if err != nil {
 		t.Fatalf("temporal.DurationFromSeconds(operation) error = %v, want nil", err)
@@ -247,6 +246,6 @@ func providerPolicy(t *testing.T) objectstore.Policy {
 		t.Fatalf("temporal.DurationFromSeconds(attempt) error = %v, want nil", err)
 	}
 	return objectstore.Policy{
-		OperationTimeout: operation, AttemptTimeout: attempt, ErrorBodyLimit: limit,
+		OperationTimeout: operation, AttemptTimeout: attempt,
 	}
 }

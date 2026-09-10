@@ -396,7 +396,7 @@ func foldCgroupLimits(
 		return WorkloadMemoryLimit{}, err
 	}
 	var folded cgroupLimitFold
-	for range core.FilesystemPathMaximumComponents {
+	for {
 		if err = foldOneCgroupLevel(ctx, &folded, cgroupLevelRequest{
 			directory: current, component: component, source: membership.source,
 		}); err != nil {
@@ -415,7 +415,6 @@ func foldCgroupLimits(
 		}
 		current = parent
 	}
-	return WorkloadMemoryLimit{}, core.ErrCgroupContainment
 }
 
 // cgroupLevelRequest binds one cgroup directory to the interface it is read

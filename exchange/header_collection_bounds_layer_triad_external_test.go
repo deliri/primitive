@@ -348,17 +348,12 @@ func TestClosedModeDomainLayerTriad(t *testing.T) {
 }
 
 // TestUploadStatusAndDrainCompositionLayerTriad pins that an unexpected upload
-// status stays reachable even when the error body cannot be drained inside the
-// policy bound. Losing the status would leave the caller unable to distinguish
-// a rejected upload from an oversized diagnostic.
+// status stays reachable across any number of discarded diagnostic windows.
 func TestUploadStatusAndDrainCompositionLayerTriad(t *testing.T) {
 	t.Parallel()
 
 	policy := singleAttemptStreamPolicy(t)
-	errorLimit, errorLimitErr := policy.ErrorBodyLimit.Uint64()
-	if errorLimitErr != nil {
-		t.Fatalf("StreamPolicy.ErrorBodyLimit.Uint64() setup error = %v, want nil", errorLimitErr)
-	}
+	const diagnosticWindow = uint64(exchange.TransferBufferBytes)
 
 	cases := []struct {
 		name           string
@@ -366,17 +361,16 @@ func TestUploadStatusAndDrainCompositionLayerTriad(t *testing.T) {
 		wantBodyLimit  bool
 	}{
 		{
-			name:           "positive a drainable diagnostic reports only the status",
-			diagnosticSize: errorLimit / 2,
+			name:           "diagnostic below a transfer window preserves status",
+			diagnosticSize: diagnosticWindow / 2,
 		},
 		{
-			name:           "neutral an exactly bounded diagnostic reports only the status",
-			diagnosticSize: errorLimit,
+			name:           "diagnostic at a transfer window preserves status",
+			diagnosticSize: diagnosticWindow,
 		},
 		{
-			name:           "negative an oversized diagnostic still reports the status",
-			diagnosticSize: errorLimit + 1,
-			wantBodyLimit:  true,
+			name:           "diagnostic above a transfer window cannot invent a quota failure",
+			diagnosticSize: diagnosticWindow + 1,
 		},
 	}
 	for _, tc := range cases {
@@ -411,7 +405,7 @@ func TestUploadStatusAndDrainCompositionLayerTriad(t *testing.T) {
 							Method: exchange.MethodPut,
 							Replay: exchange.ReplaySingleAttempt,
 						},
-						ContentLength: mustByteLength(t, uint64(len(payload))),
+						ContentLength: new(mustByteLength(t, uint64(len(payload)))),
 						ContentType:   core.HTTPMediaTypeOctetStream(),
 						ExpectedStatus: mustHTTPStatus(
 							t,

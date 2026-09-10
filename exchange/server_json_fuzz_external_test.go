@@ -49,7 +49,7 @@ func FuzzReceiveJSONProjectedJSONAndSocketJSONCustody(f *testing.F) {
 	for _, wire := range [][]byte{nil, []byte("null"), []byte(`{}`), []byte(`{"operation":"a","operation":"b"}`), []byte(`{"operation":1}`), []byte(`{"operation":"a","unknown":1}`)} {
 		f.Add(wire, seed.Operation, uint16(len(canonical)), false, uint8(0))
 	}
-	f.Fuzz(func(t *testing.T, wire []byte, headerKey string, ceiling uint16, closeFailure bool, projectionFault uint8) {
+	f.Fuzz(func(t *testing.T, wire []byte, headerKey string, window uint16, closeFailure bool, projectionFault uint8) {
 		if len(wire) > maximumFuzzBytes || len(headerKey) > exchange.IdempotencyKeyMaximumBytes+1 || projectionFault > 2 {
 			return
 		}
@@ -63,15 +63,11 @@ func FuzzReceiveJSONProjectedJSONAndSocketJSONCustody(f *testing.F) {
 		structureAccepted := json.Unmarshal(wire, &projectedWire, json.RejectUnknownMembers(true)) == nil
 		keyAccepted := replayIdentityInputAdmitted(headerKey)
 		for _, door := range []jsonReceiveDoor{jsonReceivePlain, jsonReceiveBound, jsonReceiveProjected, jsonReceiveSocket, jsonReceiveBoundSocket} {
-			limit := core.ByteCount{}
-			if ceiling != 0 {
-				limit = mustByteCount(t, uint64(ceiling))
-			}
 			route := exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplayIdempotencyKey}
 			if door == jsonReceiveSocket {
 				route.Replay = exchange.ReplaySingleAttempt
 			}
-			source := &bindingObservedBody{reader: bytes.NewReader(wire)}
+			source := &bindingObservedBody{reader: &streamFuzzReader{source: bytes.NewReader(wire), window: int(window)}}
 			if closeFailure {
 				source.err = io.ErrClosedPipe
 			}
@@ -86,7 +82,7 @@ func FuzzReceiveJSONProjectedJSONAndSocketJSONCustody(f *testing.F) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			receive := exchange.JSONReceiveCall{Call: call, Route: route, Policy: exchange.ServerPolicy{RequestBodyLimit: limit}}
+			receive := exchange.JSONReceiveCall{Call: call, Route: route}
 			var got exchange.Received[*replayBoundDocument]
 			var gotErr error
 			var projections int
@@ -97,7 +93,7 @@ func FuzzReceiveJSONProjectedJSONAndSocketJSONCustody(f *testing.F) {
 			case jsonReceiveBound:
 				got, gotErr = exchange.ReceiveReplayBoundJSON[replayBoundDocument, *replayBoundDocument](receive)
 			case jsonReceiveProjected:
-				got, gotErr = exchange.ReceiveProjectedJSON[replayBoundDocument, *replayBoundDocument](exchange.ProjectedJSONReceiveCall[replayBoundDocument, *replayBoundDocument]{Call: call, Route: route, Policy: receive.Policy, Project: func(ctx context.Context, projectedCall exchange.SocketServerCall, body *replayBoundDocument) error {
+				got, gotErr = exchange.ReceiveProjectedJSON[replayBoundDocument, *replayBoundDocument](exchange.ProjectedJSONReceiveCall[replayBoundDocument, *replayBoundDocument]{Call: call, Route: route, Project: func(ctx context.Context, projectedCall exchange.SocketServerCall, body *replayBoundDocument) error {
 					projections++
 					projectedInput = *body
 					if ctx != request.Context() || projectedCall != call {
@@ -114,22 +110,7 @@ func FuzzReceiveJSONProjectedJSONAndSocketJSONCustody(f *testing.F) {
 				}})
 			case jsonReceiveSocket, jsonReceiveBoundSocket:
 				contract := socketPairContract(t, "/socket", route.Replay)
-				contract.RequestBodyLimit = limit
 				socket, constructorErr := exchange.NewServerSocket(contract)
-				if ceiling == 0 {
-					if !errors.Is(constructorErr, core.ErrExchangeContract) || socket != (exchange.ServerSocket{}) {
-						t.Fatalf("socket construction = (%v,%v), want zero and typed refusal", socket, constructorErr)
-					}
-					// The failed constructor has acquired no body custody. The fixture
-					// remains its owner until a receive call is made.
-					if source.reads != 0 || source.closes != 0 {
-						t.Fatalf("constructor read/close = (%d,%d), want zero", source.reads, source.closes)
-					}
-					if err := source.Close(); !errors.Is(err, source.err) {
-						t.Fatal(err)
-					}
-					continue
-				}
 				if constructorErr != nil {
 					t.Fatalf("socket construction = %v, want admitted positive bound", constructorErr)
 				}
@@ -141,12 +122,12 @@ func FuzzReceiveJSONProjectedJSONAndSocketJSONCustody(f *testing.F) {
 			default:
 				t.Fatalf("unclassified public receive door %d", door)
 			}
-			wantIngress := ceiling > 0 && (door == jsonReceiveSocket || keyAccepted)
+			wantIngress := door == jsonReceiveSocket || keyAccepted
 			wantRead := 0
 			if wantIngress {
-				wantRead = min(len(wire), int(ceiling)+1)
+				wantRead = len(wire)
 			}
-			withinExtent := wantIngress && len(wire) <= int(ceiling)
+			withinExtent := wantIngress
 			wantProjections := 0
 			if door == jsonReceiveProjected && withinExtent && structureAccepted {
 				wantProjections = 1
@@ -222,12 +203,12 @@ func FuzzReceiveBoundedAndNoBodyCustody(f *testing.F) {
 	f.Add([]byte{}, key.String(), uint16(1), true)
 	f.Add(seed, "", uint16(len(seed)), false)
 	f.Add(seed, "key space", uint16(len(seed)), true)
-	f.Fuzz(func(t *testing.T, data []byte, headerKey string, ceiling uint16, closeFailure bool) {
+	f.Fuzz(func(t *testing.T, data []byte, headerKey string, window uint16, closeFailure bool) {
 		if len(data) > maximumFuzzBytes || len(headerKey) > exchange.IdempotencyKeyMaximumBytes+1 {
 			return
 		}
 		for _, noBody := range []bool{false, true} {
-			source := &bindingObservedBody{reader: bytes.NewReader(data)}
+			source := &bindingObservedBody{reader: &streamFuzzReader{source: bytes.NewReader(data), window: int(window)}}
 			if closeFailure {
 				source.err = io.ErrClosedPipe
 			}
@@ -248,27 +229,22 @@ func FuzzReceiveBoundedAndNoBodyCustody(f *testing.F) {
 				got, err := exchange.ReceiveNoBody(exchange.NoBodyReceiveCall{Call: call, Route: route})
 				gotErr, gotKey = err, got.IdempotencyKey
 			} else {
-				var limit core.ByteCount
-				if ceiling != 0 {
-					limit = mustByteCount(t, uint64(ceiling))
-				}
-				got, err := exchange.ReceiveBounded(exchange.BoundedReceiveCall{Call: call, Route: route, Policy: exchange.ServerBoundedPolicy{RequestBodyLimit: limit}, ExpectedContentType: core.HTTPMediaTypeOctetStream()})
+				got, err := exchange.ReceiveBounded(exchange.BoundedReceiveCall{Call: call, Route: route, ExpectedContentType: core.HTTPMediaTypeOctetStream()})
 				gotErr, gotBody, gotKey = err, got.Body, got.IdempotencyKey
 			}
-			wantIngress := replayIdentityInputAdmitted(headerKey) && (noBody || ceiling > 0)
+			wantIngress := replayIdentityInputAdmitted(headerKey)
 			wantRead := 0
 			if wantIngress {
 				if noBody {
 					wantRead = min(len(data), 1)
 				} else {
-					wantRead = min(len(data), int(ceiling)+1)
+					wantRead = len(data)
 				}
 			}
 			wantAccepted := wantIngress && !closeFailure
 			if noBody {
 				wantAccepted = wantAccepted && len(data) == 0
-			} else {
-				wantAccepted = wantAccepted && len(data) <= int(ceiling)
+
 			}
 			if wantAccepted {
 				if gotErr != nil || gotKey.String() != headerKey || !noBody && !bytes.Equal(gotBody, data) {
@@ -277,7 +253,7 @@ func FuzzReceiveBoundedAndNoBodyCustody(f *testing.F) {
 			} else if !errors.Is(gotErr, core.ErrExchangeRequest) || gotBody != nil || !gotKey.IsZero() {
 				t.Fatalf("noBody %t refusal = (%x,%q,%v), want zero and request refusal", noBody, gotBody, gotKey.String(), gotErr)
 			}
-			wantOverflow := !noBody && wantIngress && len(data) > int(ceiling)
+			wantOverflow := false
 			if errors.Is(gotErr, core.ErrExchangeBodyLimit) != wantOverflow || errors.Is(gotErr, io.ErrClosedPipe) != closeFailure {
 				t.Fatalf("noBody %t error = %v, want overflow/close (%t,%t)", noBody, gotErr, wantOverflow, closeFailure)
 			}

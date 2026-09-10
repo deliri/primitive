@@ -16,12 +16,11 @@ import (
 )
 
 const (
-	GoogleCloudIdentityCertificateMaximumBytes = 256 << 10
-	GoogleCloudIdentityTextMaximumBytes        = 1024
-	googleCloudIdentityEmailClaim              = "email"
-	googleCloudIdentityEmailVerifiedClaim      = "email_verified"
-	googleCloudIdentityBearerPrefix            = "Bearer "
-	googleCloudIdentityIssuer                  = "https://accounts.google.com"
+	GoogleCloudIdentityTextMaximumBytes   = 1024
+	googleCloudIdentityEmailClaim         = "email"
+	googleCloudIdentityEmailVerifiedClaim = "email_verified"
+	googleCloudIdentityBearerPrefix       = "Bearer "
+	googleCloudIdentityIssuer             = "https://accounts.google.com"
 )
 
 // GoogleCloudVerifierConfiguration fixes the one audience accepted by a
@@ -104,12 +103,8 @@ func NewGoogleCloudVerifier(ctx context.Context, configuration GoogleCloudVerifi
 	if err := errors.Join(contextstate.Validate(ctx), configuration.Validate()); err != nil {
 		return GoogleCloudVerifier{}, contractError(err)
 	}
-	maximum, err := core.NewByteCount(GoogleCloudIdentityCertificateMaximumBytes)
-	if err != nil {
-		return GoogleCloudVerifier{}, contractError(err)
-	}
-	boundary, err := exchange.NewOfficialSDKResponseCeiling(exchange.OfficialSDKResponseCeilingRequest{
-		Method: exchange.MethodGet, Representation: exchange.OfficialSDKResponseRepresentationJSON, MaximumBytes: maximum,
+	boundary, err := exchange.NewOfficialSDKMethodResponseBoundary(exchange.OfficialSDKMethodResponseBoundaryRequest{
+		Method: exchange.MethodGet, Representation: exchange.OfficialSDKResponseRepresentationJSON,
 	})
 	if err != nil {
 		return GoogleCloudVerifier{}, contractError(err)

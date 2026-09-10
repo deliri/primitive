@@ -132,7 +132,7 @@ func TestServerWriteAdmissionLayerTriad(t *testing.T) {
 			var gotErr error
 			switch tc.lane {
 			case writeAdmissionJSON:
-				gotErr = WriteJSON(JSONWriteCall[admissionJSONDocument]{Call: call, Response: ServerJSONResponse[admissionJSONDocument]{Body: document, Status: core.HTTPStatusOK()}, Policy: JSONWritePolicy{ResponseBodyLimit: mustInternalByteCount(t, core.JSONDocumentMaximumBytes)}})
+				gotErr = WriteJSON(JSONWriteCall[admissionJSONDocument]{Call: call, Response: ServerJSONResponse[admissionJSONDocument]{Body: document, Status: core.HTTPStatusOK()}})
 			case writeAdmissionNoBody:
 				gotErr = WriteNoBody(NoBodyWriteCall{Call: call, Response: ServerNoBodyResponse{Status: mustInternalHTTPStatus(t, http.StatusNoContent)}})
 			case writeAdmissionBounded:
@@ -142,7 +142,7 @@ func TestServerWriteAdmissionLayerTriad(t *testing.T) {
 				if err != nil {
 					t.Fatalf("length setup error = %v, want nil", err)
 				}
-				gotErr = WriteStream(StreamWriteCall{Call: call, Response: ServerStreamResponse{Source: source, ContentLength: length, ContentType: core.HTTPMediaTypeOctetStream(), Status: core.HTTPStatusOK()}})
+				gotErr = WriteStream(StreamWriteCall{Call: call, Response: ServerStreamResponse{Source: source, ContentLength: new(length), ContentType: core.HTTPMediaTypeOctetStream(), Status: core.HTTPStatusOK()}})
 			case writeAdmissionError:
 				gotErr = Error(call, ServerErrorResponse{Message: "failed", Status: mustInternalHTTPStatus(t, http.StatusBadRequest)})
 			case writeAdmissionNotFound:

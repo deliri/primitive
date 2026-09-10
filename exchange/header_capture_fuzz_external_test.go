@@ -54,7 +54,7 @@ func FuzzCapturedHeadersPreserveExactSelection(f *testing.F) {
 		got, gotErr := exchange.SendNoBodyBounded(exchange.NoBodyBoundedCall{
 			Context: t.Context(), Client: client,
 			Request: exchange.NoBodyBoundedRequest{Target: mustEndpoint(t, "http://capture-oracle.invalid/"), Semantics: exchange.RequestSemantics{Method: exchange.MethodGet, Replay: exchange.ReplaySingleAttempt}, CaptureHeaders: selection, ExpectedStatus: core.HTTPStatusOK()},
-			Policy:  exchange.NoBodyBoundedPolicy{Operation: singleAttemptOperationPolicy(t), ResponseBodyLimit: mustByteCount(t, 1)},
+			Policy:  exchange.NoBodyBoundedPolicy{Operation: singleAttemptOperationPolicy(t)},
 		})
 		grammarAccepted := goHeaderGrammarAccepts(t, wire)
 		wantRefused := selected && count > 0 && (count > exchange.HeaderValueMaximumCount || len(wire) > exchange.HeaderValueMaximumBytes || !grammarAccepted)

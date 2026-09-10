@@ -86,7 +86,7 @@ func (c Client) requestInstallationToken(ctx context.Context, now temporal.Insta
 		return installationToken{}, err
 	}
 	status, statusErr := expectedStatus(201)
-	policy, policyErr := boundedPolicy(core.GitHubInstallationTokenResponseCustodyMaximumBytes)
+	policy, policyErr := boundedPolicy()
 	media, mediaErr := exchange.StandardMediaTypeJSON.HTTPMediaType()
 	if err := errors.Join(statusErr, policyErr, mediaErr); err != nil {
 		return installationToken{}, err

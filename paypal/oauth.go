@@ -258,7 +258,7 @@ func sendPayPalOAuthRequest(request payPalOAuthRequest) (exchange.BoundedRespons
 			ExpectedStatus:              core.HTTPStatusOK(),
 		},
 		Policy: exchange.BoundedPolicy{
-			Operation: request.policy, RequestBodyLimit: request.requestLimit, ResponseBodyLimit: request.responseLimit,
+			Operation: request.policy,
 		},
 	})
 }

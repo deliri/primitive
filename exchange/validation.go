@@ -60,14 +60,14 @@ func (r UploadRequest) Validate() error {
 	}); err != nil {
 		return err
 	}
-	if r.Source == nil {
+	if core.ReaderIsNil(r.Source) {
 		return requestError(core.ErrExchangeContract)
 	}
 	if r.Semantics.Replay != ReplaySingleAttempt &&
 		r.Semantics.Replay != ReplaySingleAttemptWithIdempotencyKey {
 		return requestError(core.ErrExchangeContract)
 	}
-	if _, err := r.ContentLength.Int64(); err != nil {
+	if _, err := streamContentLength(r.ContentLength); err != nil {
 		return requestError(err)
 	}
 	if err := r.ContentType.Validate(); err != nil {
@@ -83,14 +83,11 @@ func (r DownloadRequest) Validate() error {
 	}); err != nil {
 		return err
 	}
-	if r.Destination == nil {
+	if core.WriterIsNil(r.Destination) {
 		return requestError(core.ErrExchangeContract)
 	}
 	if r.Semantics.Replay != ReplaySingleAttempt {
 		return requestError(core.ErrExchangeContract)
-	}
-	if _, err := r.ResponseBodyLimit.Int64(); err != nil {
-		return requestError(err)
 	}
 	if err := validateOptionalMediaType(r.ExpectedResponseContentType); err != nil {
 		return requestError(err)
@@ -105,15 +102,12 @@ func (r StreamRoundTripRequest) Validate() error {
 	}); err != nil {
 		return err
 	}
-	if r.Source == nil || r.Destination == nil ||
+	if core.ReaderIsNil(r.Source) || core.WriterIsNil(r.Destination) ||
 		(r.Semantics.Replay != ReplaySingleAttempt &&
 			r.Semantics.Replay != ReplaySingleAttemptWithIdempotencyKey) {
 		return requestError(core.ErrExchangeContract)
 	}
-	if _, err := r.RequestContentLength.Int64(); err != nil {
-		return requestError(err)
-	}
-	if _, err := r.ResponseBodyLimit.Int64(); err != nil {
+	if _, err := streamContentLength(r.RequestContentLength); err != nil {
 		return requestError(err)
 	}
 	if err := r.RequestContentType.Validate(); err != nil {

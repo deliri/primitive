@@ -6,6 +6,7 @@ import (
 	json "encoding/json/v2"
 	"errors"
 	"io"
+	"math"
 	"net/url"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -44,18 +45,17 @@ type treeDownloadCall struct {
 	headers   exchange.Headers
 	target    core.HTTPEndpoint
 	policy    exchange.StreamPolicy
-	limit     core.ByteCount
 }
 
 type treeDecoder struct {
 	visitor TreeVisitor
 	decoder *jsontext.Decoder
 	state   treeDecodeState
-	maximum uint64
 }
 
 // ReadTree streams one recursive Git tree through the caller-owned visitor.
-// Primitive retains no repository-wide collection.
+// Primitive retains no repository-wide collection. The visitor is synchronous
+// backpressure and must return; the caller owns any blocking work it performs.
 func (c Client) ReadTree(ctx context.Context, request TreeRequest) (TreeObservation, error) {
 	if err := errors.Join(c.Validate(), request.Validate()); err != nil {
 		return TreeObservation{}, contractError(err)
@@ -64,11 +64,7 @@ func (c Client) ReadTree(ctx context.Context, request TreeRequest) (TreeObservat
 	if err != nil {
 		return TreeObservation{}, err
 	}
-	target, err := c.target(repositoryPath(request.Repository)+"/git/trees/"+url.PathEscape(request.Commit.String()), url.Values{"recursive": []string{"1"}})
-	if err != nil {
-		return TreeObservation{}, err
-	}
-	policy, limit, err := streamPolicy()
+	target, err := c.target(repositoryPath(request.Repository)+"/git/trees/"+request.Commit.String(), url.Values{"recursive": []string{"1"}})
 	if err != nil {
 		return TreeObservation{}, err
 	}
@@ -80,9 +76,9 @@ func (c Client) ReadTree(ctx context.Context, request TreeRequest) (TreeObservat
 	completed := make(chan treeDownloadResult, 1)
 	go downloadTree(treeDownloadCall{
 		ctx: ctx, client: c.state.client, target: target, headers: headers, media: media,
-		policy: policy, limit: limit, writer: writer, completed: completed,
+		policy: exchange.StreamPolicy{Redirect: exchange.RedirectPolicy{Mode: exchange.RedirectReject}}, writer: writer, completed: completed,
 	})
-	entries, decodeErr := decodeTree(reader, request.MaximumEntries, request.Visitor)
+	entries, decodeErr := decodeTree(reader, request.Visitor)
 	if decodeErr != nil {
 		_ = reader.CloseWithError(decodeErr)
 	} else {
@@ -106,7 +102,7 @@ func downloadTree(call treeDownloadCall) {
 		Request: exchange.DownloadRequest{
 			Target: call.target, Destination: call.writer,
 			Semantics:                   exchange.RequestSemantics{Method: exchange.MethodGet, Replay: exchange.ReplaySingleAttempt},
-			ExpectedResponseContentType: call.media, Headers: call.headers, ResponseBodyLimit: call.limit, ExpectedStatus: core.HTTPStatusOK(),
+			ExpectedResponseContentType: call.media, Headers: call.headers, ExpectedStatus: core.HTTPStatusOK(),
 		},
 		Policy: call.policy,
 	})
@@ -114,8 +110,8 @@ func downloadTree(call treeDownloadCall) {
 	call.completed <- treeDownloadResult{response: response, err: errors.Join(classifyExchangeError(err), closeErr)}
 }
 
-func decodeTree(source io.Reader, maximum uint64, visitor TreeVisitor) (uint64, error) {
-	decoding := treeDecoder{decoder: jsontext.NewDecoder(source), maximum: maximum, visitor: visitor}
+func decodeTree(source io.Reader, visitor TreeVisitor) (uint64, error) {
+	decoding := treeDecoder{decoder: jsontext.NewDecoder(source), visitor: visitor}
 	if err := requireToken(decoding.decoder, jsontext.KindBeginObject); err != nil {
 		return 0, err
 	}
@@ -191,7 +187,7 @@ func (d *treeDecoder) decodeEntries() error {
 		return err
 	}
 	for d.decoder.PeekKind() != jsontext.KindEndArray {
-		if d.state.entries == d.maximum || d.state.entries == core.GitHubRecursiveTreeMaximumEntries {
+		if d.state.entries == math.MaxUint64 {
 			return core.ErrGitHubResponse
 		}
 		var wire treeEntryWire

@@ -146,7 +146,6 @@ func TestReceiveReplayBindingCallbackLayerTriad(t *testing.T) {
 				defer func() { gotPanic = recover() }()
 				got, gotErr = exchange.ReceiveReplayBoundJSON[callbackBoundDocument, *callbackBoundDocument](exchange.JSONReceiveCall{
 					Call: call, Route: exchange.RouteSemantics{Method: exchange.MethodPost, Replay: tc.replay},
-					Policy: exchange.ServerPolicy{RequestBodyLimit: mustByteCount(t, uint64(len(wire)))},
 				})
 			}()
 			if gotPanic != nil || !errors.Is(gotErr, tc.wantErr) || errors.Is(gotErr, core.ErrExchangeIdempotencyBinding) != tc.wantBinding {
@@ -234,7 +233,7 @@ func TestSendReplayBindingCallbackLayerTriad(t *testing.T) {
 						Target: mustEndpoint(t, "https://binding.example.test/"), Body: document,
 						Semantics: exchange.RequestSemantics{Method: exchange.MethodPost, Replay: tc.replay, IdempotencyKey: key}, ExpectedStatus: core.HTTPStatusOK(),
 					},
-					Policy: exchange.JSONPolicy{Operation: singleAttemptOperationPolicy(t), RequestBodyLimit: mustByteCount(t, core.JSONDocumentMaximumBytes), ResponseBodyLimit: mustByteCount(t, uint64(len(responseWire)))},
+					Policy: exchange.JSONPolicy{Operation: singleAttemptOperationPolicy(t)},
 				})
 			}()
 			if gotPanic != nil || !errors.Is(gotErr, tc.wantErr) || errors.Is(gotErr, core.ErrExchangeIdempotencyBinding) != tc.wantBinding {

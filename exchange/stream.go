@@ -47,7 +47,7 @@ func Upload(call UploadCall) (StreamResponse, error) {
 	if err != nil {
 		return zero, err
 	}
-	operationContext, cancel, err := temporal.WithTimeout(
+	operationContext, cancel, err := streamContext(
 		temporal.TimeoutRequest{
 			Parent: call.Context, Duration: call.Policy.OperationTimeout,
 		},
@@ -56,7 +56,7 @@ func Upload(call UploadCall) (StreamResponse, error) {
 		return zero, requestError(err)
 	}
 	defer cancel()
-	attemptContext, attemptCancel, err := temporal.WithTimeout(
+	attemptContext, attemptCancel, err := streamContext(
 		temporal.TimeoutRequest{
 			Parent: operationContext, Duration: call.Policy.AttemptTimeout,
 		},
@@ -95,14 +95,13 @@ func Upload(call UploadCall) (StreamResponse, error) {
 	return finishUploadResponse(
 		uploadResponseRequest{
 			context: attemptContext, response: httpResponse,
-			request: call.Request, limit: call.Policy.ErrorBodyLimit,
+			request: call.Request,
 		},
 	)
 }
 
 // Download receives one response into the caller-owned destination exactly
-// once. It writes at most ResponseBodyLimit bytes and probes one additional
-// byte before declaring the response complete.
+// once, continuing until EOF or an execution failure without an extent quota.
 func Download(call DownloadCall) (StreamResponse, error) {
 	var zero StreamResponse
 	if err := call.Validate(); err != nil {
@@ -112,7 +111,7 @@ func Download(call DownloadCall) (StreamResponse, error) {
 	if err != nil {
 		return zero, err
 	}
-	operationContext, cancel, err := temporal.WithTimeout(
+	operationContext, cancel, err := streamContext(
 		temporal.TimeoutRequest{
 			Parent: call.Context, Duration: call.Policy.OperationTimeout,
 		},
@@ -121,7 +120,7 @@ func Download(call DownloadCall) (StreamResponse, error) {
 		return zero, requestError(err)
 	}
 	defer cancel()
-	attemptContext, attemptCancel, err := temporal.WithTimeout(
+	attemptContext, attemptCancel, err := streamContext(
 		temporal.TimeoutRequest{
 			Parent: operationContext, Duration: call.Policy.AttemptTimeout,
 		},
@@ -160,7 +159,7 @@ func Download(call DownloadCall) (StreamResponse, error) {
 	return finishDownloadResponse(
 		downloadResponseRequest{
 			context: attemptContext, response: httpResponse,
-			request: call.Request, errorLimit: call.Policy.ErrorBodyLimit,
+			request: call.Request,
 		},
 	)
 }
@@ -177,14 +176,14 @@ func RoundTripStream(call StreamRoundTripCall) (StreamRoundTripResponse, error) 
 	if err != nil {
 		return zero, err
 	}
-	operationContext, cancel, err := temporal.WithTimeout(temporal.TimeoutRequest{
+	operationContext, cancel, err := streamContext(temporal.TimeoutRequest{
 		Parent: call.Context, Duration: call.Policy.OperationTimeout,
 	})
 	if err != nil {
 		return zero, requestError(err)
 	}
 	defer cancel()
-	attemptContext, attemptCancel, err := temporal.WithTimeout(temporal.TimeoutRequest{
+	attemptContext, attemptCancel, err := streamContext(temporal.TimeoutRequest{
 		Parent: operationContext, Duration: call.Policy.AttemptTimeout,
 	})
 	if err != nil {
@@ -202,7 +201,7 @@ func RoundTripStream(call StreamRoundTripCall) (StreamRoundTripResponse, error) 
 			attemptContext: attemptContext, operationContext: operationContext, cause: err,
 		}), closeHTTPResponse(httpResponse))
 	}
-	return finishStreamRoundTrip(attemptContext, httpResponse, call.Request, call.Policy.ErrorBodyLimit)
+	return finishStreamRoundTrip(attemptContext, httpResponse, call.Request)
 }
 
 func newStreamRoundTripHTTPRequest(
@@ -225,7 +224,6 @@ func finishStreamRoundTrip(
 	ctx context.Context,
 	response *http.Response,
 	request StreamRoundTripRequest,
-	errorLimit core.ByteCount,
 ) (StreamRoundTripResponse, error) {
 	var zero StreamRoundTripResponse
 	if response == nil || response.Body == nil {
@@ -233,22 +231,25 @@ func finishStreamRoundTrip(
 	}
 	status, headers, err := streamRoundTripMetadata(response, request.CaptureHeaders)
 	result := StreamRoundTripResponse{
-		DeclaredRequestBytes: request.RequestContentLength,
-		Metadata:             ResponseMetadata{Status: status, Headers: headers, Attempts: 1},
+		Metadata: ResponseMetadata{Status: status, Headers: headers, Attempts: 1},
+	}
+	if request.RequestContentLength != nil {
+		result.DeclaredRequestBytes = *request.RequestContentLength
+		result.RequestLengthKnown = true
 	}
 	if err != nil {
 		return zero, errors.Join(err, closeHTTPResponse(response))
 	}
 	if status != request.ExpectedStatus {
-		drainErr := drainAndClose(streamDrainRequest{context: ctx, body: response.Body, limit: errorLimit})
+		drainErr := drainAndClose(streamDrainRequest{context: ctx, body: response.Body})
 		return result, errors.Join(StatusError{status: status, expected: request.ExpectedStatus}, drainErr)
 	}
 	download := downloadResponseRequest{
 		context: ctx, response: response,
 		request: DownloadRequest{
 			Destination:                 request.Destination,
+			Buffer:                      request.Buffer,
 			ExpectedResponseContentType: request.ExpectedResponseContentType,
-			ResponseBodyLimit:           request.ResponseBodyLimit,
 		},
 	}
 	if err := validateDownloadResponse(download); err != nil {
@@ -319,19 +320,25 @@ func newUploadHTTPRequest(
 	ctx context.Context,
 	input uploadHTTPRequest,
 ) (*http.Request, error) {
-	contentLength, err := input.request.ContentLength.Int64()
+	contentLength, err := streamContentLength(input.request.ContentLength)
 	if err != nil {
 		return nil, requestError(err)
 	}
-	remaining, proven, extentErr := exactUploadSourceExtent(input.request.Source)
-	if extentErr != nil || proven && remaining != contentLength {
-		return nil, requestError(errors.Join(core.ErrExchangeContract, extentErr))
+	if err := validateUploadSourceExtent(input.request, contentLength); err != nil {
+		return nil, err
+	}
+	var source io.Reader = io.NopCloser(input.request.Source)
+	if input.request.ContentLength != nil && contentLength == 0 {
+		if err := probeStreamEnd(ctx, input.request.Source); err != nil {
+			return nil, requestError(err)
+		}
+		source = http.NoBody
 	}
 	request, err := http.NewRequestWithContext(
 		ctx,
 		input.request.Semantics.Method.String(),
 		input.target.String(),
-		io.NopCloser(input.request.Source),
+		source,
 	)
 	if err != nil {
 		return nil, requestError(err)
@@ -348,6 +355,17 @@ func newUploadHTTPRequest(
 	applyRequestHeaders(request, input.request.Headers)
 	applyIdempotencyKey(request, input.request.Semantics)
 	return request, nil
+}
+
+func validateUploadSourceExtent(request UploadRequest, length int64) error {
+	if request.ContentLength == nil {
+		return nil
+	}
+	remaining, proven, err := exactUploadSourceExtent(request.Source)
+	if err != nil || proven && remaining != length {
+		return requestError(errors.Join(core.ErrExchangeContract, err))
+	}
+	return nil
 }
 
 type uploadRemainingByteReader interface {
@@ -453,7 +471,6 @@ type uploadResponseRequest struct {
 	context  context.Context
 	response *http.Response
 	request  UploadRequest
-	limit    core.ByteCount
 }
 
 func finishUploadResponse(
@@ -479,7 +496,11 @@ func finishUploadResponse(
 		Headers:  headers,
 		Attempts: 1,
 	}
-	response := StreamResponse{Metadata: metadata, DeclaredRequestBytes: input.request.ContentLength}
+	response := StreamResponse{Metadata: metadata}
+	if input.request.ContentLength != nil {
+		response.DeclaredRequestBytes = *input.request.ContentLength
+		response.RequestLengthKnown = true
+	}
 	if err := response.Validate(); err != nil {
 		closeErr := closeResponseBody(input.response.Body)
 		return zero, errors.Join(err, closeErr)
@@ -487,7 +508,6 @@ func finishUploadResponse(
 	drainErr := drainAndClose(
 		streamDrainRequest{
 			context: input.context, body: input.response.Body,
-			limit: input.limit,
 		},
 	)
 	if status != input.request.ExpectedStatus {
@@ -502,10 +522,9 @@ func finishUploadResponse(
 }
 
 type downloadResponseRequest struct {
-	context    context.Context
-	response   *http.Response
-	request    DownloadRequest
-	errorLimit core.ByteCount
+	context  context.Context
+	response *http.Response
+	request  DownloadRequest
 }
 
 func finishDownloadResponse(
@@ -540,7 +559,6 @@ func finishDownloadResponse(
 		drainErr := drainAndClose(
 			streamDrainRequest{
 				context: input.context, body: input.response.Body,
-				limit: input.errorLimit,
 			},
 		)
 		statusErr := StatusError{
@@ -565,10 +583,7 @@ func validateDownloadResponse(input downloadResponseRequest) error {
 	); err != nil {
 		return err
 	}
-	return validateDownloadResponseLength(
-		input.response.ContentLength,
-		input.request.ResponseBodyLimit,
-	)
+	return validateDownloadResponseLength(input.response.ContentLength)
 }
 
 func transferDownloadResponse(
@@ -579,7 +594,7 @@ func transferDownloadResponse(
 		downloadCopyRequest{
 			context: input.context, source: input.response.Body,
 			destination: input.request.Destination,
-			limit:       input.request.ResponseBodyLimit,
+			buffer:      input.request.Buffer,
 		},
 	)
 	closeErr := closeResponseBody(input.response.Body)
@@ -596,9 +611,8 @@ func transferDownloadResponse(
 
 func validateDownloadResponseLength(
 	contentLength int64,
-	limit core.ByteCount,
 ) error {
-	if _, err := admittedBodyLength(contentLength, limit); err != nil {
+	if _, err := parseDeclaredBodyLength(contentLength); err != nil {
 		return responseError(err)
 	}
 	return nil
@@ -607,14 +621,13 @@ func validateDownloadResponseLength(
 type streamDrainRequest struct {
 	context context.Context
 	body    io.ReadCloser
-	limit   core.ByteCount
 }
 
 func drainAndClose(request streamDrainRequest) error {
 	_, drainErr := copyDownload(
 		downloadCopyRequest{
 			context: request.context, source: request.body,
-			destination: io.Discard, limit: request.limit,
+			destination: io.Discard,
 		},
 	)
 	closeErr := closeResponseBody(request.body)
@@ -628,7 +641,10 @@ type downloadCopyRequest struct {
 	context     context.Context
 	source      io.Reader
 	destination io.Writer
-	limit       core.ByteCount
+	// A non-nil limit belongs to an aggregate or exact-extent operation.
+	// Ordinary downloads leave it nil and continue to EOF.
+	limit  *core.ByteCount
+	buffer []byte
 }
 
 // progressReader adds only Primitive's bounded cancellation and no-progress
@@ -706,24 +722,15 @@ func copyDownload(
 	if err := contextstate.Validate(request.context); err != nil {
 		return 0, cancelledError(err)
 	}
-	limit, err := request.limit.Int64()
+	source, limit, err := streamCopySource(request)
 	if err != nil {
 		return 0, err
 	}
-	progress := &progressReader{
-		context: request.context,
-		source:  request.source,
+	buffer := request.buffer
+	if len(buffer) == 0 {
+		buffer = nil
 	}
-	limited := &io.LimitedReader{
-		R: progress,
-		N: limit,
-	}
-	// Go selects ReaderFrom before allocating scratch and sizes its ordinary
-	// copy buffer to LimitedReader.N when the admitted extent is small.
-	count, err := io.Copy(
-		streamCopyDestination(request.destination),
-		limited,
-	)
+	count, err := io.CopyBuffer(streamCopyDestination(request.destination), source, buffer)
 	written, conversionErr := core.CheckedUint64FromInt64(count)
 	if conversionErr != nil {
 		return 0, errors.Join(core.ErrExchangeContract, conversionErr)
@@ -731,32 +738,40 @@ func copyDownload(
 	if err != nil {
 		return written, err
 	}
-	if count < limit {
+	if request.limit == nil || count < limit {
 		return written, contextAfterTransfer(request.context)
 	}
-	return probeDownloadEnd(request, written)
+	return written, probeStreamEnd(request.context, request.source)
 }
 
-func probeDownloadEnd(
-	request downloadCopyRequest,
-	written uint64,
-) (uint64, error) {
+// streamCopySource keeps Go's LimitedReader visible for operations with an
+// actual bound, while ordinary streams use only the progress observation.
+func streamCopySource(request downloadCopyRequest) (io.Reader, int64, error) {
+	source := &progressReader{context: request.context, source: request.source}
+	if request.limit == nil {
+		return source, 0, nil
+	}
+	limit, err := request.limit.Int64()
+	if err != nil {
+		return nil, 0, err
+	}
+	return &io.LimitedReader{R: source, N: limit}, limit, nil
+}
+
+func probeStreamEnd(ctx context.Context, source io.Reader) error {
 	var probe [1]byte
-	progress := &progressReader{
-		context: request.context,
-		source:  request.source,
+	count, err := io.ReadFull(&progressReader{context: ctx, source: source}, probe[:])
+	if count > 0 {
+		return core.ErrExchangeBodyLimit
 	}
-	read, readErr := io.ReadFull(progress, probe[:])
-	if read > 0 {
-		return written, core.ErrExchangeBodyLimit
+	// witness:waiver doctrine/error/sentinel_compare -- Go recognizes only the unwrapped EOF sentinel as clean termination; joined EOF and native failures must remain failures.
+	if err == io.EOF {
+		return contextAfterTransfer(ctx)
 	}
-	if errors.Is(readErr, io.EOF) {
-		return written, contextAfterTransfer(request.context)
+	if err != nil {
+		return err
 	}
-	if readErr != nil {
-		return written, readErr
-	}
-	return written, core.ErrExchangeContract
+	return core.ErrExchangeContract
 }
 
 func contextAfterTransfer(ctx context.Context) error {
@@ -794,3 +809,16 @@ var (
 	_ core.Validatable = DownloadCall{}
 	_ core.Validatable = StreamRoundTripCall{}
 )
+
+// streamContext keeps every stream lifetime owned even when no timeout is
+// requested. Go supplies cancellation; Temporal supplies an explicit clock bound.
+func streamContext(request temporal.TimeoutRequest) (context.Context, context.CancelFunc, error) {
+	if err := request.Validate(); err != nil {
+		return nil, nil, err
+	}
+	if request.Duration.IsZero() {
+		ctx, cancel := context.WithCancel(request.Parent)
+		return ctx, cancel, nil
+	}
+	return temporal.WithTimeout(request)
+}

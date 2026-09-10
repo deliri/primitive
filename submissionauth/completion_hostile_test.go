@@ -761,13 +761,9 @@ func authCompletionPolicy(t testing.TB) objectstore.Policy {
 	if err != nil {
 		t.Fatalf("controlwire.ControlExchangeOperationPolicy() error = %v, want nil", err)
 	}
-	errorLimit, err := core.NewByteCount(4 << 10)
-	if err != nil {
-		t.Fatalf("core.NewByteCount(error limit) error = %v, want nil", err)
-	}
 	policy := objectstore.Policy{
 		OperationTimeout: operation.OperationTimeout,
-		AttemptTimeout:   operation.AttemptTimeout, ErrorBodyLimit: errorLimit,
+		AttemptTimeout:   operation.AttemptTimeout,
 	}
 	if err := policy.Validate(); err != nil {
 		t.Fatalf("objectstore.Policy.Validate() error = %v, want nil", err)

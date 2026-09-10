@@ -89,12 +89,8 @@ func twilioWebhookTestReceiver(t testing.TB, publicURL string) (WebhookReceiver,
 	if err != nil {
 		t.Fatalf("core.ParseHTTPEndpoint() error = %v, want nil", err)
 	}
-	maximum, err := core.NewByteCount(core.TwilioWebhookCustodyMaximumBytes)
-	if err != nil {
-		t.Fatalf("core.NewByteCount() error = %v, want nil", err)
-	}
 	receiver, err := NewWebhookReceiver(WebhookReceiverRequest{
-		Token: token, PublicEndpoint: endpoint, Maximum: maximum, Representation: WebhookRepresentationForm,
+		Token: token, PublicEndpoint: endpoint, Representation: WebhookRepresentationForm,
 	})
 	if err != nil {
 		t.Fatalf("NewWebhookReceiver() error = %v, want nil", err)

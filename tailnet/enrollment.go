@@ -15,12 +15,11 @@ import (
 )
 
 const (
-	tokenExchangePath              = "/api/v2/oauth/token-exchange"
-	createKeyPath                  = "/api/v2/tailnet/-/keys"
-	enrollmentAPIHost              = "api.tailscale.com"
-	enrollmentResponseMaximumBytes = 64 << 10
-	authKeyMaximumBytes            = 1024
-	authKeyPrefix                  = "tskey-auth-"
+	tokenExchangePath   = "/api/v2/oauth/token-exchange"
+	createKeyPath       = "/api/v2/tailnet/-/keys"
+	enrollmentAPIHost   = "api.tailscale.com"
+	authKeyMaximumBytes = 1024
+	authKeyPrefix       = "tskey-auth-"
 )
 
 // enrollmentTransport belongs to one synchronous enrollment call. The provider
@@ -45,12 +44,8 @@ func (t enrollmentTransport) RoundTrip(request *http.Request) (*http.Response, e
 }
 
 func enrollmentHTTPClient(ctx context.Context, client exchange.Client) (*http.Client, error) {
-	maximum, err := core.NewByteCount(enrollmentResponseMaximumBytes)
-	if err != nil {
-		return nil, err
-	}
-	boundary, err := exchange.NewOfficialSDKResponseCeiling(exchange.OfficialSDKResponseCeilingRequest{
-		Method: exchange.MethodPost, Representation: exchange.OfficialSDKResponseRepresentationJSON, MaximumBytes: maximum,
+	boundary, err := exchange.NewOfficialSDKMethodResponseBoundary(exchange.OfficialSDKMethodResponseBoundaryRequest{
+		Method: exchange.MethodPost, Representation: exchange.OfficialSDKResponseRepresentationJSON,
 	})
 	if err != nil {
 		return nil, err
