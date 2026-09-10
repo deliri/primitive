@@ -173,3 +173,5 @@ prove published-version adoption. Preserve unrelated dirty consumer work.
 Consumer migration remains pending.
 This report preserves historical usage evidence without treating it as proof of
 current published-version adoption.
+
+Runnercontrol progress: v2026.1.51 fixed Go output metadata; v2026.1.52 closes the coverage-reader streaming slice. The package remains first in the queue. See [coverage streaming evidence](runnercontrol_coverage_streaming_20260910.md).

@@ -2,7 +2,6 @@ package runnercontrol_test
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 	"testing"
 
@@ -118,8 +117,8 @@ func coverageBoundaryCases() []coverageCase {
 		coverageSuccess("disjoint counts conserve exact arithmetic", "boundary", "mode: atomic\na.go:1.1,1.2 7 0\na.go:2.1,2.2 11 1\na.go:3.1,3.2 13 0\n", runnercontrol.CoverageAtomic, 31, 11),
 		coverageSuccess("reordered independent records preserve totals", "boundary", "mode: atomic\nb.go:2.1,2.2 3 0\na.go:1.1,1.2 2 1\n", runnercontrol.CoverageAtomic, 5, 2),
 		coverageSuccess("adjacent covered records add without deduplication", "boundary", "mode: count\na.go:1.1,1.2 1 1\na.go:1.1,1.2 1 1\n", runnercontrol.CoverageCount, 2, 2),
-		coverageExactLineCase(),
-		coverageAboveLineCase(),
+		coverageSuccess("Unicode whitespace split remains a field separator", "boundary", "mode: set\na.go:1.1,1.2\u20031\u20031\n", runnercontrol.CoverageSet, 1, 1, splitCoverageBytes),
+		coverageFailureCase("execution count above uint64 is refused", "boundary", "mode: count\na.go:1.1,1.2 1 18446744073709551616\n"),
 	}
 }
 
@@ -148,25 +147,9 @@ func splitCoverageLines(input []byte) [][]byte {
 	return [][]byte{append([]byte(nil), input[:index]...), append([]byte(nil), input[index:]...)}
 }
 
-func coverageExactLineCase() coverageCase {
-	prefix := "a"
-	suffix := ":1.1,1.2 1 1\n"
-	filler := strings.Repeat("x", int(runnercontrol.GoCoverageLineMaximumBytes)-len(prefix)-len(suffix)+1)
-	input := "mode: set\n" + prefix + filler + suffix
-	return coverageSuccess("record exactly at line byte ceiling is admitted", "boundary", input, runnercontrol.CoverageSet, 1, 1)
-}
-
-func coverageAboveLineCase() coverageCase {
-	return coverageCase{
-		name: "record one byte above line ceiling is refused", class: "boundary", wantErr: core.ErrPrimitiveContract, wantWriteErr: core.ErrJSONContract,
-		setup: func() [][]byte {
-			line := strings.Repeat("x", int(runnercontrol.GoCoverageLineMaximumBytes)+1)
-			return [][]byte{[]byte(fmt.Sprintf("mode: set\n%s", line))}
-		},
-	}
-}
-
 func FuzzGoCoverageCompilerSemanticClosure(f *testing.F) {
+	dir := f.TempDir()
+	f.Add(toolchainCoverageFixture(f, dir))
 	f.Add([]byte("mode: atomic\nexample.com/p/a.go:1.1,1.2 2 1\n"))
 	f.Add([]byte{})
 	f.Add([]byte("mode: future\n"))
@@ -189,6 +172,23 @@ func FuzzGoCoverageCompilerSemanticClosure(f *testing.F) {
 			t.Fatalf("GoCoverageCompiler.Write(fuzz input) = (%d, %v), want (%d, nil) so the raw artifact remains retainable", gotWritten, gotWriteErr, len(data))
 		}
 		got, gotErr := compiler.Seal()
+		// Chunk boundaries cannot change the admitted facts or refusal identity.
+		for _, width := range []int{1, 7, 4096} {
+			fragmented := runnercontrol.NewGoCoverageCompiler()
+			for offset := 0; offset < len(data); offset += width {
+				end := min(offset+width, len(data))
+				if _, err := fragmented.Write(data[offset:end]); err != nil {
+					if !errors.Is(err, core.ErrPrimitiveContract) {
+						t.Fatalf("Write(fragment) error = %v, want typed refusal", err)
+					}
+					break
+				}
+			}
+			other, otherErr := fragmented.Seal()
+			if other != got || (otherErr == nil) != (gotErr == nil) || errors.Is(otherErr, core.ErrNumericOverflow) != errors.Is(gotErr, core.ErrNumericOverflow) {
+				t.Fatalf("Seal(width %d) = %+v/%v, want bulk %+v/%v", width, other, otherErr, got, gotErr)
+			}
+		}
 		if gotErr != nil {
 			if !errors.Is(gotErr, core.ErrPrimitiveContract) || got != (runnercontrol.GoCoverageObservation{}) {
 				t.Fatalf("GoCoverageCompiler.Seal(rejected fuzz input) = (%+v, %v), want zero and errors.Is(..., %v)", got, gotErr, core.ErrPrimitiveContract)

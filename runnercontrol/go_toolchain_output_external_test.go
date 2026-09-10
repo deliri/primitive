@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"testing"
 	"time"
 
@@ -29,7 +28,7 @@ func TestGoTestObservationCompilerAcceptsRealToolchainOutput(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(t.Context(), time.Minute)
 	defer cancel()
-	command := exec.CommandContext(ctx, filepath.Join(runtime.GOROOT(), "bin", "go"), "test", "-json", "-count=1", ".")
+	command := exec.CommandContext(ctx, "go", "test", "-json", "-count=1", ".")
 	command.Dir = dir
 	var stderr bytes.Buffer
 	command.Stderr = &stderr
