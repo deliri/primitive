@@ -1,45 +1,53 @@
-name: Native Foundation gates
+name: Submit to Anvil
 
 on:
-  # Automatic runs are intentionally disabled to avoid noisy failure mail.
-  # Invoke this workflow explicitly when remote native-runner proof is needed.
-  workflow_dispatch:
+  push:
 
 permissions:
   contents: read
 
 jobs:
-  native:
-    name: Native gates (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 90
-    strategy:
-      fail-fast: false
-      matrix:
-        os:
-          - ubuntu-latest
-          - macos-latest
-          - windows-latest
-
+  submit:
+    if: github.repository_owner == 'offGridSoft' || github.repository == 'deliri/primitive'
+    # GitHub hosts this notification; Anvil runs the project on Fedora.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - name: Check out source
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Set up Go
-        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+      - name: Join the Anvil tailnet
+        uses: tailscale/github-action@d1b6cd204f8dceda5b3eaad7f1f767be390056cd
         with:
-          go-version-file: go.mod
-          cache: true
+          authkey: ${{ secrets.ANVIL_TAILSCALE_AUTHKEY }}
+          ping: 100.84.35.44
 
-      - name: Run canonical gate
-        shell: bash
-        run: bash scripts/gate.sh ".artifacts/gates/${{ runner.os }}-${{ runner.arch }}"
-
-      - name: Upload durable gate artifacts
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: foundation-gates-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: .artifacts/gates/
-          if-no-files-found: error
-          retention-days: 30
+      - name: Send the exact pushed revision to Anvil
+        env:
+          ANVIL_ENDPOINT: http://100.84.35.44:8089
+          ANVIL_TOKEN: ${{ secrets.ANVIL_GITHUB_TOKEN }}
+          ANVIL_PROJECT_ID: ${{ vars.ANVIL_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          test -n "$ANVIL_TOKEN"
+          test -n "$ANVIL_PROJECT_ID"
+          node <<'JS' > "$RUNNER_TEMP/anvil-request.json"
+          const crypto = require('node:crypto');
+          const id = crypto.randomBytes(16);
+          id.writeUIntBE(Date.now(), 0, 6);
+          id[6] = (id[6] & 15) | 112;
+          id[8] = (id[8] & 63) | 128;
+          const hex = id.toString('hex');
+          const nonce = `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
+          console.log(JSON.stringify({schema_version:1, repository:process.env.GITHUB_REPOSITORY,
+            commit:process.env.GITHUB_SHA, project:process.env.ANVIL_PROJECT_ID, request_nonce:nonce}));
+          JS
+          nonce=$(jq -er '.request_nonce' "$RUNNER_TEMP/anvil-request.json")
+          curl --fail-with-body --silent --show-error --connect-timeout 15 --max-time 600 \
+            -H "Authorization: Bearer $ANVIL_TOKEN" \
+            -H 'Content-Type: application/json' \
+            -H "Idempotency-Key: anvil-project-request:$nonce" \
+            --data-binary "@$RUNNER_TEMP/anvil-request.json" \
+            "$ANVIL_ENDPOINT/v1/private/anvil/github/project-runs" \
+            > "$RUNNER_TEMP/anvil-admission.json"
+          cat "$RUNNER_TEMP/anvil-admission.json"
+          jq -e '.admissions | length == 1 and all(.[]; .state == 2 or .state == 3)' \
+            "$RUNNER_TEMP/anvil-admission.json"
+          echo 'Anvil acknowledged this revision. Test results are recorded through the API.' >> "$GITHUB_STEP_SUMMARY"
