@@ -180,7 +180,7 @@ func (e *sourceExtraction) consumeFile(ctx context.Context, manager Manager, pat
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
 	fileHash := sha256.New()
-	if err := e.writeFile(ctx, sourceFileWrite{manager: manager, path: path, header: header, fileHash: fileHash}); err != nil {
+	if err := e.writeFile(ctx, sourceFileWrite{manager: manager, path: path, fileHash: fileHash}); err != nil {
 		return err
 	}
 	mode := archiveFileMode(header)
@@ -193,7 +193,6 @@ func (e *sourceExtraction) consumeFile(ctx context.Context, manager Manager, pat
 
 type sourceFileWrite struct {
 	fileHash hash.Hash
-	header   *tar.Header
 	path     core.RelativePath
 	manager  Manager
 }
@@ -203,18 +202,7 @@ func (e *sourceExtraction) writeFile(ctx context.Context, request sourceFileWrit
 	if err != nil {
 		return err
 	}
-	writeMaximum, err := core.CheckedUint64FromInt64(request.header.Size)
-	if err != nil {
-		return err
-	}
-	if writeMaximum == 0 {
-		writeMaximum = 1
-	}
-	limit, err := core.NewByteCount(writeMaximum)
-	if err != nil {
-		return err
-	}
-	_, err = filestore.Write(ctx, filestore.WriteRequest{Source: io.TeeReader(e.reader, request.fileHash), Location: filestore.Location{Root: request.manager.root, Path: request.path}, Temporary: temporary, Mode: 0o600, Install: filestore.InstallCreate, MaximumBytes: limit})
+	_, err = filestore.Write(ctx, filestore.WriteRequest{Source: io.TeeReader(e.reader, request.fileHash), Location: filestore.Location{Root: request.manager.root, Path: request.path}, Temporary: temporary, Mode: 0o600, Install: filestore.InstallCreate})
 	return err
 }
 
@@ -235,7 +223,7 @@ func (e *sourceExtraction) complete(ctx context.Context, manager Manager) error 
 	if digestFromHash(e.archiveHash) != e.document.Manifest.ArchiveDigest || digestFromHash(e.treeHash) != e.document.Manifest.Tree {
 		return core.ErrPrimitiveContract
 	}
-	return sealCheckout(ctx, manager.root, e.checkout, e.document.Manifest.EntryMaximum)
+	return sealCheckout(ctx, manager.root, e.checkout)
 }
 
 func validateSourceAuthorization(grant runnercontrol.SourceGrant, manifest runnercontrol.SourceArchiveManifest, observedAt temporal.Instant) error {
@@ -337,14 +325,9 @@ func drainArchiveTail(source io.Reader) error {
 		}
 	}
 }
-func sealCheckout(ctx context.Context, root *os.Root, checkout core.RelativePath, entryMaximum uint32) error {
-	maximum, err := filestore.NewDirectoryEntryMaximum(entryMaximum)
-	if err != nil {
-		return err
-	}
-	err = filestore.Walk(ctx, filestore.WalkRequest{
-		Location: filestore.Location{Root: root, Path: checkout}, Order: filestore.WalkOrderLexical, DirectoryEntryMaximum: maximum,
-		Visit: func(entry filestore.WalkEntry) (filestore.WalkDirective, error) {
+func sealCheckout(ctx context.Context, root *os.Root, checkout core.RelativePath) error {
+	err := filestore.Walk(ctx, filestore.WalkRequest{
+		Location: filestore.Location{Root: root, Path: checkout}, Visit: func(entry filestore.WalkEntry) (filestore.WalkDirective, error) {
 			if !entry.Entry.IsDir() {
 				return filestore.WalkContinue, nil
 			}

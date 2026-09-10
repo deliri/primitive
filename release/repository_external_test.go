@@ -611,13 +611,9 @@ func writeRepositoryFileForTest(t *testing.T, request repositoryFileWrite) {
 	if err != nil {
 		t.Fatalf("core.ParseRelativePath(stage) error = %v, want nil", err)
 	}
-	maximum, err := core.NewByteCount(uint64(max(1, len(request.body))))
-	if err != nil {
-		t.Fatalf("core.NewByteCount(fixture) error = %v, want nil", err)
-	}
 	recovery, err := filestore.Write(t.Context(), filestore.WriteRequest{
 		Source: strings.NewReader(request.body), Location: location, Temporary: temporary,
-		Mode: 0o600, Install: filestore.InstallReplace, MaximumBytes: maximum,
+		Mode: 0o600, Install: filestore.InstallReplace,
 	})
 	if err != nil {
 		t.Fatalf("filestore.Write(%s) error = %v, recovery = %v, want nil", request.name, err, recovery)

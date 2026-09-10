@@ -361,14 +361,10 @@ func digestInspectionFixture(t testing.TB, path core.AbsolutePath) (core.SHA256D
 			t.Errorf("digest parent Close() error = %v, want nil", err)
 		}
 	}()
-	maximum, err := core.NewByteCount(release.BuiltArtifactMaximumBytes)
-	if err != nil {
-		t.Fatalf("NewByteCount(digest ceiling) error = %v, want nil", err)
-	}
 	sha := sha256.New()
 	crc := crc32.New(crc32.MakeTable(crc32.Castagnoli))
 	count, err := filestore.Read(t.Context(), filestore.ReadRequest{
-		Location: location, Destination: io.MultiWriter(sha, crc), MaximumBytes: maximum,
+		Location: location, Destination: io.MultiWriter(sha, crc),
 	})
 	if err != nil {
 		t.Fatalf("filestore.Read(digest fixture) error = %v, want nil", err)

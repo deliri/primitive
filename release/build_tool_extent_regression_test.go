@@ -85,12 +85,8 @@ func TestBuildToolInspectionBindsTheCapturedExtent(t *testing.T) {
 			if got.Path != goCommandModulePath || got.GoVersion != version {
 				t.Fatalf("compiler identity = (%q, %q), want (%q, %q)", got.Path, got.GoVersion, goCommandModulePath, version)
 			}
-			maximum, err := core.NewByteCount(uint64(info.Size()))
-			if err != nil {
-				t.Fatalf("core.NewByteCount(compiler) error = %v, want nil", err)
-			}
 			oracle := sha256.New()
-			count, err := filestore.Read(t.Context(), filestore.ReadRequest{Location: location, Destination: oracle, MaximumBytes: maximum})
+			count, err := filestore.Read(t.Context(), filestore.ReadRequest{Location: location, Destination: oracle})
 			if err != nil || count.Uint64() != uint64(info.Size()) {
 				t.Fatalf("compiler oracle bytes = %v, error = %v, want %d, nil", count, err, info.Size())
 			}

@@ -68,6 +68,9 @@ func TestMachineProbeProcessBoundaryLayerTriad(t *testing.T) {
 	}
 }
 
+// Finite fixture crossing the former script transfer quota.
+const scriptExtentFixtureBytes uint64 = 128 * 1024
+
 func TestMachineProbeScriptExtentBoundary(t *testing.T) {
 	t.Parallel()
 
@@ -76,9 +79,9 @@ func TestMachineProbeScriptExtentBoundary(t *testing.T) {
 		name    string
 		bytes   uint64
 	}{
-		{name: "one byte below the script ceiling executes", bytes: machineprobe.ScriptMaximumBytes - 1},
-		{name: "the exact script ceiling executes", bytes: machineprobe.ScriptMaximumBytes},
-		{name: "one byte above the script ceiling is refused before execution", bytes: machineprobe.ScriptMaximumBytes + 1, wantErr: core.ErrFilestoreSize},
+		{name: "one byte below the former script quota executes", bytes: scriptExtentFixtureBytes - 1},
+		{name: "the exact former script quota executes", bytes: scriptExtentFixtureBytes},
+		{name: "one byte above the former script quota executes", bytes: scriptExtentFixtureBytes + 1},
 		{name: "an empty script cannot manufacture a machine observation", bytes: 0, wantErr: core.ErrHostFactsEvidence},
 	}
 
@@ -169,10 +172,9 @@ func writeProbeFixture(t *testing.T, directory string, script []byte) machinepro
 
 func writeFile(t *testing.T, root *os.Root, target, temporary string, content []byte, mode fs.FileMode) {
 	t.Helper()
-	maximum := max(uint64(len(content)), 1)
 	_, err := filestore.Write(t.Context(), filestore.WriteRequest{
 		Source: bytes.NewReader(content), Location: filestore.Location{Root: root, Path: mustRelativePath(t, target)},
-		Temporary: mustRelativePath(t, temporary), Mode: mode, Install: filestore.InstallCreate, MaximumBytes: mustByteCount(t, maximum),
+		Temporary: mustRelativePath(t, temporary), Mode: mode, Install: filestore.InstallCreate,
 	})
 	if err != nil {
 		t.Fatalf("filestore.Write(%s) error = %v, want nil", target, err)

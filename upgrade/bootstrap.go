@@ -110,8 +110,7 @@ func writeBootstrapArtifact(
 		Source:    source,
 		Location:  filestore.Location{Root: root, Path: path},
 		Temporary: temporary, Mode: executableMode,
-		Install:      filestore.InstallCreate,
-		MaximumBytes: artifact.Integrity().Extent(),
+		Install: filestore.InstallCreate,
 	})
 	if err != nil {
 		if recovery.Validate() != nil {

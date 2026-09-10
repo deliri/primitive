@@ -1,18 +1,18 @@
 # Primitive upgrade priority — 2026-09-09
 
-Approved release: **v2026.1.35**. See [release notes](release_v2026.1.35.md),
-[the reviewed ID report](id_upgrade_20260909.md), and
-[execution evidence](id_upgrade_20260909_evidence.json).
-The user approved the ID slice and moving to **Distribution** next.
+Published release: **v2026.1.35**. See [release notes](release_v2026.1.35.md)
+and [the Distribution review fixes](distribution_review_20260909.md).
 
-Distribution is approved for v2026.1.35; see
-[the Distribution review fixes](distribution_review_20260909.md). The scoped Deploy
-capability-evidence repair belongs to that review, while Deploy's full package
-sweep stays queued. Lineio is next.
+**Current requirement applies to every package:** fixed memory windows for
+reads and writes, with no arbitrary input/output extent quotas. The new
+[streaming audit](streaming_audit_20260909.md) inventories all 63 packages.
+Previously completed slices remain historical; none is exempt from this audit.
+Lineio is currently being changed to fixed-buffer fragments. Witness source
+migration is user-owned; the installed witness-lint still checks this slice. Its older whole-line measurements are retained as historical evidence.
 
 ## Completed slices and separate follow-ups
 
-Exclude these previously upgraded packages from the automatic remaining queue:
+These packages completed earlier quality sweeps; they remain in the new streaming audit:
 Attest, AWSidentity, Capabilities, Exchange, Filestore, Temporal, Hostfacts,
 Process, Core, Contextstate, Controlwire, Keygen, Release, Objectstore, Chit, Controlplane, Shutdown, Currency, ID, and Distribution.
 Individual reports live with those packages or under `_docs`. The first three
@@ -26,8 +26,8 @@ not a completed package sweep.
 GoToolchain was integrated in v2026.1.21 and is reserved for an explicitly
 requested later quality pass. GCSobjects received a scoped streaming repair in
 v2026.1.26, not a complete package sweep; keep that follow-up separate. Historical
-review limitations remain historical evidence, not permission to silently rerun
-already completed packages. The September 7 usage snapshot below is unchanged;
+review limitations remain historical evidence. The new streaming requirement
+authorizes revisiting these packages, one at a time. The September 7 usage snapshot below is unchanged;
 it measures import breadth and does not itself identify remaining work.
 
 ## Evidence and ranking method

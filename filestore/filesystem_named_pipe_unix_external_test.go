@@ -138,7 +138,6 @@ func runNamedPipeReadHelper(t *testing.T, rootDirectory string) {
 			Root: root,
 			Path: mustRelativePath(t, "source"),
 		},
-		MaximumBytes: mustByteCount(t, 1),
 	})
 	if !errors.Is(gotErr, core.ErrFilestoreSource) ||
 		!errors.Is(gotErr, fs.ErrInvalid) {

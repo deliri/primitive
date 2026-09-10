@@ -68,11 +68,10 @@ type filestoreContractInventory struct {
 	// One observation of a path, made before any effect and carrying no
 	// capability over it.
 	Inspection             streamedObservation[Inspection]
-	DirectoryEntryMaximum  boundedFact[DirectoryEntryMaximum]
 	StagedFile             ownershipReceipt[StagedFile]
 	StageDestination       capabilityWrapper[StageDestination]
 	directoryEntryEnsure   internalFlow[directoryEntryEnsure]
-	boundedCopyRequest     internalFlow[boundedCopyRequest]
+	streamCopyRequest      internalFlow[streamCopyRequest]
 	streamReader           internalFlow[streamReader]
 	streamWriter           internalFlow[streamWriter]
 	stageSynchronization   internalFlow[stageSynchronization]
@@ -87,7 +86,7 @@ type filestoreContractInventory struct {
 var (
 	_ = filestoreContractInventory{}
 	_ = filestoreContractInventory{}.directoryEntryEnsure
-	_ = filestoreContractInventory{}.boundedCopyRequest
+	_ = filestoreContractInventory{}.streamCopyRequest
 	_ = filestoreContractInventory{}.streamReader
 	_ = filestoreContractInventory{}.streamWriter
 	_ = filestoreContractInventory{}.stageSynchronization

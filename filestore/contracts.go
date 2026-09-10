@@ -16,9 +16,6 @@ const (
 	targetEqualsTemporaryDiagnostic = "filestore target equals its temporary path"
 	crossDirectoryDiagnostic        = "filestore target and temporary must share a directory"
 	createModeDiagnostic            = "create"
-	// SymbolicLinkTargetMaximumBytes bounds one observed link target without
-	// assuming it is a path; procfs also exposes handles such as socket:[inode].
-	SymbolicLinkTargetMaximumBytes = 64 << 10
 )
 
 // Location names one path through one real OS root capability.
@@ -27,13 +24,13 @@ type Location struct {
 	Path core.RelativePath
 }
 
-// SymbolicLinkTarget is one bounded target observed without following its
+// SymbolicLinkTarget is one native target observed without following its
 // symbolic link. Its bytes are not interpreted as a filesystem path.
 type SymbolicLinkTarget struct{ value string }
 
-// Validate rejects an absent, unbounded, or NUL-carrying link target.
+// Validate rejects an absent or NUL-carrying link target.
 func (t SymbolicLinkTarget) Validate() error {
-	if len(t.value) == 0 || len(t.value) > SymbolicLinkTargetMaximumBytes || strings.IndexByte(t.value, 0) >= 0 {
+	if len(t.value) == 0 || strings.IndexByte(t.value, 0) >= 0 {
 		return contractError(errors.New("filestore symbolic-link target is invalid"))
 	}
 	return nil
@@ -139,23 +136,23 @@ func (r DirectoryRequest) Validate() error {
 	return validatePermissionMode(r.Mode)
 }
 
-// ReadRequest streams one bounded regular file into Destination.
+// ReadRequest streams one regular file without an extent ceiling into Destination.
 type ReadRequest struct {
-	Destination  io.Writer
-	Location     Location
-	MaximumBytes core.ByteCount
+	// Buffer is optional scratch borrowed exclusively for this call. Its length
+	// controls the copy window, never the stream extent. Empty uses Go allocation.
+	// The caller may reuse it after return; source and destination must not alias it.
+	Buffer      []byte
+	Destination io.Writer
+	Location    Location
 }
 
 // Validate rejects every unset read boundary.
 func (r ReadRequest) Validate() error {
-	if r.Destination == nil {
+	if core.WriterIsNil(r.Destination) {
 		return contractError(errors.New("filestore read destination is missing"))
 	}
 	if err := r.Location.Validate(); err != nil {
 		return err
-	}
-	if _, err := r.MaximumBytes.Int64(); err != nil {
-		return contractError(err)
 	}
 	return nil
 }
@@ -270,17 +267,20 @@ func (r RenameRequest) Validate() error {
 // WriteRequest streams Source into one caller-named same-directory temporary
 // before atomic activation.
 type WriteRequest struct {
-	Source       io.Reader
-	Location     Location
-	Temporary    core.RelativePath
-	Mode         fs.FileMode
-	Install      InstallMode
-	MaximumBytes core.ByteCount
+	// Buffer is optional scratch borrowed exclusively for this call. Its length
+	// controls the copy window, never the stream extent. Empty uses Go allocation.
+	// The caller may reuse it after return; source and destination must not alias it.
+	Buffer    []byte
+	Source    io.Reader
+	Location  Location
+	Temporary core.RelativePath
+	Mode      fs.FileMode
+	Install   InstallMode
 }
 
 // Validate rejects every unset write boundary.
 func (r WriteRequest) Validate() error {
-	if r.Source == nil {
+	if core.ReaderIsNil(r.Source) {
 		return contractError(errors.New("filestore write source is missing"))
 	}
 	if err := r.Location.Validate(); err != nil {
@@ -298,23 +298,23 @@ func (r WriteRequest) Validate() error {
 	if err := r.Install.Validate(); err != nil {
 		return err
 	}
-	if _, err := r.MaximumBytes.Int64(); err != nil {
-		return contractError(err)
-	}
 	return nil
 }
 
 // StageRequest streams Source into one exact caller-owned temporary name.
 type StageRequest struct {
-	Source       io.Reader
-	Temporary    Location
-	Mode         fs.FileMode
-	MaximumBytes core.ByteCount
+	// Buffer is optional scratch borrowed exclusively for this call. Its length
+	// controls the copy window, never the stream extent. Empty uses Go allocation.
+	// The caller may reuse it after return; source and destination must not alias it.
+	Buffer    []byte
+	Source    io.Reader
+	Temporary Location
+	Mode      fs.FileMode
 }
 
 // Validate rejects every unset staging boundary.
 func (r StageRequest) Validate() error {
-	if r.Source == nil {
+	if core.ReaderIsNil(r.Source) {
 		return contractError(errors.New("filestore stage source is missing"))
 	}
 	if err := r.Temporary.Validate(); err != nil {
@@ -325,9 +325,6 @@ func (r StageRequest) Validate() error {
 	}
 	if err := validatePermissionMode(r.Mode); err != nil {
 		return err
-	}
-	if _, err := r.MaximumBytes.Int64(); err != nil {
-		return contractError(err)
 	}
 	return nil
 }
@@ -596,80 +593,6 @@ func (d WalkDirective) String() string {
 	return walkDirectiveDiagnostics()[d]
 }
 
-// WalkOrder selects the bounded directory-entry observation strategy.
-type WalkOrder uint8
-
-const (
-	// WalkOrderUnknown is the invalid zero order.
-	WalkOrderUnknown WalkOrder = iota
-	// WalkOrderNative streams fixed batches in operating-system order.
-	WalkOrderNative
-	// WalkOrderLexical sorts each directory under an explicit entry ceiling.
-	WalkOrderLexical
-	walkOrderLimit
-)
-
-func walkOrderDiagnostics() [walkOrderLimit]string {
-	return [walkOrderLimit]string{
-		WalkOrderNative:  "native",
-		WalkOrderLexical: "lexical",
-	}
-}
-
-// Validate closes the walk-order domain.
-func (o WalkOrder) Validate() error {
-	if !o.IsValid() {
-		return contractError(errors.New("filestore walk order is invalid"))
-	}
-	return nil
-}
-
-// IsValid reports membership in the closed walk-order domain.
-func (o WalkOrder) IsValid() bool {
-	return o > WalkOrderUnknown && o < walkOrderLimit &&
-		walkOrderDiagnostics()[o] != ""
-}
-
-// OffWireEnum declares WalkOrder as traversal execution policy rather than a
-// wire encoding.
-func (WalkOrder) OffWireEnum() {}
-
-// String returns the compiler-owned diagnostic label for o.
-func (o WalkOrder) String() string {
-	if !o.IsValid() {
-		return core.UnknownEnumDiagnostic
-	}
-	return walkOrderDiagnostics()[o]
-}
-
-// DirectoryEntryMaximum is one positive fixed allocation ceiling for a
-// lexically ordered directory.
-type DirectoryEntryMaximum struct {
-	value uint32
-}
-
-// DirectoryEntryMaximumLimit is the largest directory that lexical walking
-// will retain and sort. It bounds both allocation and the uint32-to-int
-// conversion on every supported Go architecture.
-const DirectoryEntryMaximumLimit uint32 = 1 << 16
-
-// NewDirectoryEntryMaximum constructs one lexical directory ceiling.
-func NewDirectoryEntryMaximum(value uint32) (DirectoryEntryMaximum, error) {
-	maximum := DirectoryEntryMaximum{value: value}
-	if err := maximum.Validate(); err != nil {
-		return DirectoryEntryMaximum{}, err
-	}
-	return maximum, nil
-}
-
-// Validate rejects a zero lexical directory ceiling.
-func (m DirectoryEntryMaximum) Validate() error {
-	if m.value == 0 || m.value > DirectoryEntryMaximumLimit {
-		return contractError(errors.New("filestore directory entry maximum is outside the admitted interval"))
-	}
-	return nil
-}
-
 // WalkEntry is one descendant observed from a rooted streaming traversal.
 type WalkEntry struct {
 	Entry fs.DirEntry
@@ -687,28 +610,17 @@ func (e WalkEntry) Validate() error {
 	return nil
 }
 
-// WalkRequest streams every descendant of one rooted directory to Visit.
+// WalkRequest streams descendants in native directory order to Visit.
+// Visit owns any ordering or aggregation its consumer requires.
 type WalkRequest struct {
-	Visit                 func(WalkEntry) (WalkDirective, error)
-	Location              Location
-	DirectoryEntryMaximum DirectoryEntryMaximum
-	Order                 WalkOrder
+	Visit    func(WalkEntry) (WalkDirective, error)
+	Location Location
 }
 
 // Validate rejects an unset root, path, or visitor.
 func (r WalkRequest) Validate() error {
 	if err := r.Location.Validate(); err != nil {
 		return err
-	}
-	if err := r.Order.Validate(); err != nil {
-		return err
-	}
-	if r.Order == WalkOrderLexical {
-		if err := r.DirectoryEntryMaximum.Validate(); err != nil {
-			return err
-		}
-	} else if r.DirectoryEntryMaximum != (DirectoryEntryMaximum{}) {
-		return contractError(errors.New("filestore native walk carries a lexical entry maximum"))
 	}
 	if r.Visit == nil {
 		return contractError(errors.New("filestore walk visitor is missing"))
@@ -766,8 +678,6 @@ var (
 	_ core.Validatable = RemovalRequest{}
 	_ core.Validatable = TreeRemovalRequest{}
 	_ core.Validatable = WalkDirective(0)
-	_ core.Validatable = WalkOrder(0)
-	_ core.Validatable = DirectoryEntryMaximum{}
 	_ core.Validatable = WalkEntry{}
 	_ core.Validatable = WalkRequest{}
 )

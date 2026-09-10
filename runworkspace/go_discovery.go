@@ -25,8 +25,7 @@ import (
 const GoDiscoverySourceMaximumBytes = 4 * 1024 * 1024
 
 const (
-	GoPackageTestFileMaximum       = 256
-	GoPackageDirectoryEntryMaximum = 4096
+	GoPackageTestFileMaximum = 256
 )
 
 type GoDeclaration struct {
@@ -172,15 +171,13 @@ func (m Manager) DiscoverGoPackage(ctx context.Context, request GoPackageDiscove
 		return GoPackageDiscovery{}, err
 	}
 	directory, err := core.ParseRelativePath(filepath.Join(request.Source.Checkout.String(), request.Target.Package.String()))
-	maximum, maximumErr := filestore.NewDirectoryEntryMaximum(GoPackageDirectoryEntryMaximum)
-	if err != nil || maximumErr != nil {
-		return GoPackageDiscovery{}, errors.Join(err, maximumErr)
+	if err != nil {
+		return GoPackageDiscovery{}, err
 	}
 	declarations := make([]GoPackageDiscoveredDeclaration, 0)
 	files := 0
 	walkErr := filestore.Walk(ctx, filestore.WalkRequest{
-		Location: filestore.Location{Root: m.root, Path: directory}, Order: filestore.WalkOrderLexical, DirectoryEntryMaximum: maximum,
-		Visit: func(entry filestore.WalkEntry) (filestore.WalkDirective, error) {
+		Location: filestore.Location{Root: m.root, Path: directory}, Visit: func(entry filestore.WalkEntry) (filestore.WalkDirective, error) {
 			if entry.Entry.IsDir() {
 				return filestore.WalkSkipDirectory, nil
 			}
@@ -230,12 +227,8 @@ func (m Manager) discoverGoPackageFile(ctx context.Context, request GoPackageDis
 }
 
 func (m Manager) readGoSource(ctx context.Context, relative core.RelativePath) ([]byte, error) {
-	maximum, err := core.NewByteCount(GoDiscoverySourceMaximumBytes)
-	if err != nil {
-		return nil, err
-	}
 	var content bytes.Buffer
-	if _, err := filestore.Read(ctx, filestore.ReadRequest{Destination: &content, Location: filestore.Location{Root: m.root, Path: relative}, MaximumBytes: maximum}); err != nil {
+	if _, err := filestore.Read(ctx, filestore.ReadRequest{Destination: &content, Location: filestore.Location{Root: m.root, Path: relative}}); err != nil {
 		return nil, err
 	}
 	return content.Bytes(), nil

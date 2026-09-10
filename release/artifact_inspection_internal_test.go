@@ -294,13 +294,9 @@ func writeInspectionContent(t *testing.T, request inspectionContentRequest) core
 	if err != nil {
 		t.Fatalf("ParseRelativePath(content stage) error = %v, want nil", err)
 	}
-	maximum, err := core.NewByteCount(uint64(max(1, len(request.Content))))
-	if err != nil {
-		t.Fatalf("NewByteCount(content) error = %v, want nil", err)
-	}
 	recovery, err := filestore.Write(t.Context(), filestore.WriteRequest{
 		Location: location, Temporary: temporary, Source: bytes.NewReader(request.Content),
-		MaximumBytes: maximum, Mode: 0o600, Install: filestore.InstallCreate,
+		Mode: 0o600, Install: filestore.InstallCreate,
 	})
 	if err != nil {
 		t.Fatalf("filestore.Write(content) error = %v, recovery = %v, want nil", err, recovery)

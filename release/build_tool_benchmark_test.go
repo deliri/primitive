@@ -29,12 +29,8 @@ func BenchmarkInspectBuildToolExecutable(b *testing.B) {
 			b.Errorf("compiler parent Close() error = %v, want nil", err)
 		}
 	}()
-	maximum, err := core.NewByteCount(buildToolExecutableMaximumBytes)
-	if err != nil {
-		b.Fatalf("core.NewByteCount() error = %v, want nil", err)
-	}
 	oracle := sha256.New()
-	extent, err := filestore.Read(b.Context(), filestore.ReadRequest{Location: location, Destination: oracle, MaximumBytes: maximum})
+	extent, err := filestore.Read(b.Context(), filestore.ReadRequest{Location: location, Destination: oracle})
 	if err != nil {
 		b.Fatalf("filestore.Read(compiler oracle) error = %v, want nil", err)
 	}

@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"io/fs"
-	"math"
 	"os"
 	"path/filepath"
 	"slices"
@@ -154,7 +153,6 @@ func FuzzWalkReplacementStandingSemanticClosure(f *testing.F) {
 		var gotPaths []core.RelativePath
 		gotErr := filestore.Walk(ctx, filestore.WalkRequest{
 			Location: filestore.Location{Root: fixture.root, Path: fixture.walk},
-			Order:    filestore.WalkOrderNative,
 			Visit: func(entry filestore.WalkEntry) (filestore.WalkDirective, error) {
 				gotPaths = append(gotPaths, entry.Path)
 				if entry.Path != fixture.branch {
@@ -218,37 +216,4 @@ func encodeWalkReplacementSelector(mutation walkReplacementMutation, skipEntry b
 		selector++
 	}
 	return selector
-}
-
-func TestDirectoryEntryMaximumRejectsAllocationAndConversionOverflow(t *testing.T) {
-	t.Parallel()
-
-	cases := []struct {
-		wantErr error
-		name    string
-		value   uint32
-	}{
-		{name: "zero rejects", value: 0, wantErr: core.ErrFilestoreContract},
-		{name: "one admits", value: 1},
-		{name: "one below allocation ceiling admits", value: filestore.DirectoryEntryMaximumLimit - 1},
-		{name: "exact allocation ceiling admits", value: filestore.DirectoryEntryMaximumLimit},
-		{name: "one above allocation ceiling rejects", value: filestore.DirectoryEntryMaximumLimit + 1, wantErr: core.ErrFilestoreContract},
-		{name: "maximum uint32 rejects before int conversion", value: math.MaxUint32, wantErr: core.ErrFilestoreContract},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-
-			got, gotErr := filestore.NewDirectoryEntryMaximum(tc.value)
-			if !errors.Is(gotErr, tc.wantErr) {
-				t.Fatalf("filestore.NewDirectoryEntryMaximum(%d) error = %v, want %v", tc.value, gotErr, tc.wantErr)
-			}
-			if (got.Validate() == nil) != (tc.wantErr == nil) || errors.Is(gotErr, core.ErrFilestoreSource) || errors.Is(gotErr, core.ErrFilestoreActivation) {
-				t.Fatalf("ceiling admission = (%v,%v), want exact pure contract outcome", got, gotErr)
-			}
-			if tc.wantErr != nil && got != (filestore.DirectoryEntryMaximum{}) {
-				t.Fatalf("filestore.NewDirectoryEntryMaximum(%d) = %v, want zero", tc.value, got)
-			}
-		})
-	}
 }

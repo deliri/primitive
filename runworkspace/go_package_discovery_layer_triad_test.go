@@ -133,13 +133,12 @@ func writePackageSource(t *testing.T, manager Manager, source VerifiedSource, na
 	target, targetErr := packageRoot.Join(component)
 	temporaryComponent, temporaryErr := core.ParsePathComponent("." + name + ".stage")
 	temporary, temporaryPathErr := packageRoot.Join(temporaryComponent)
-	maximum, maximumErr := core.NewByteCount(uint64(len(content)))
-	if err := errors.Join(componentErr, packageRootErr, targetErr, temporaryErr, temporaryPathErr, maximumErr); err != nil {
+	if err := errors.Join(componentErr, packageRootErr, targetErr, temporaryErr, temporaryPathErr); err != nil {
 		t.Fatalf("package source %q path setup error = %v, want nil", name, err)
 	}
 	_, err := filestore.Write(t.Context(), filestore.WriteRequest{
 		Source: bytes.NewReader([]byte(content)), Location: filestore.Location{Root: manager.root, Path: target}, Temporary: temporary,
-		Mode: fs.FileMode(0o600), Install: filestore.InstallCreate, MaximumBytes: maximum,
+		Mode: fs.FileMode(0o600), Install: filestore.InstallCreate,
 	})
 	if err != nil {
 		t.Fatalf("filestore.Write(%q) setup error = %v, want nil", name, err)

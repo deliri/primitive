@@ -71,10 +71,6 @@ func TestReadCallerUnwindCustodyLayerTriad(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			maximum, err := core.NewByteCount(uint64(max(1, len(tc.payload))))
-			if err != nil {
-				t.Fatal(err)
-			}
 			native := &fs.PathError{Op: "write", Path: "caller-destination", Err: fs.ErrPermission}
 			destination := &unwindReadDestination{panicAtWrite: tc.panicAtWrite, effectBeforePanic: tc.effectBeforePanic}
 			if tc.panicAtWrite || tc.returnFailure {
@@ -86,7 +82,7 @@ func TestReadCallerUnwindCustodyLayerTriad(t *testing.T) {
 			returned := false
 			func() {
 				defer func() { gotPanic = recover() }()
-				got, gotErr = readOwnedRegularFile(t.Context(), ReadRequest{Destination: destination, MaximumBytes: maximum}, file, before)
+				got, gotErr = readOwnedRegularFile(t.Context(), ReadRequest{Destination: destination}, file, before)
 				returned = true
 			}()
 			wantPanic := tc.panicAtWrite && tc.wantWrites > 0

@@ -13,7 +13,7 @@ import (
 
 // The source returns its prefix in one completed Read, then either returns a
 // native failure, panics with that same identity, or ends cleanly. No WriteTo
-// shortcut can bypass the terminal call, including the one-byte ceiling probe.
+// shortcut can bypass the terminal call, including the call observing source termination.
 type unwindStageSource struct {
 	prefix         []byte
 	terminal       error
@@ -48,20 +48,19 @@ func TestStageCallerUnwindCustodyLayerTriad(t *testing.T) {
 	for _, tc := range []struct {
 		name          string
 		prefix        []byte
-		maximum       uint64
 		panicAtEnd    bool
 		returnFailure bool
 		replaceName   bool
 		wantErr       error
 		wantCalls     int
 	}{
-		{name: "empty completed source retains its real empty receipt", maximum: 1, wantCalls: 1},
-		{name: "exact binary ceiling survives successful return", prefix: []byte{0, 255}, maximum: 2, wantCalls: 2},
-		{name: "native refusal removes only its partial file", prefix: []byte{0}, maximum: 2, returnFailure: true, wantErr: core.ErrFilestoreSource, wantCalls: 2},
-		{name: "panic before first byte cannot orphan a temporary", maximum: 2, panicAtEnd: true, wantCalls: 1},
-		{name: "panic after acknowledged prefix cannot orphan partial bytes", prefix: []byte{0}, maximum: 2, panicAtEnd: true, wantCalls: 2},
-		{name: "ceiling probe panic cannot orphan a complete but unsealed file", prefix: []byte{0, 255}, maximum: 2, panicAtEnd: true, wantCalls: 2},
-		{name: "panic cleanup cannot remove a replacement inode", prefix: []byte{0, 255}, maximum: 2, panicAtEnd: true, replaceName: true, wantCalls: 2},
+		{name: "empty completed source retains its real empty receipt", wantCalls: 1},
+		{name: "binary source survives successful return", prefix: []byte{0, 255}, wantCalls: 2},
+		{name: "native refusal removes only its partial file", prefix: []byte{0}, returnFailure: true, wantErr: core.ErrFilestoreSource, wantCalls: 2},
+		{name: "panic before first byte cannot orphan a temporary", panicAtEnd: true, wantCalls: 1},
+		{name: "panic after acknowledged prefix cannot orphan partial bytes", prefix: []byte{0}, panicAtEnd: true, wantCalls: 2},
+		{name: "terminal panic cannot orphan a complete but unsealed file", prefix: []byte{0, 255}, panicAtEnd: true, wantCalls: 2},
+		{name: "panic cleanup cannot remove a replacement inode", prefix: []byte{0, 255}, panicAtEnd: true, replaceName: true, wantCalls: 2},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -76,10 +75,6 @@ func TestStageCallerUnwindCustodyLayerTriad(t *testing.T) {
 				}
 			})
 			path, err := core.ParseRelativePath("stage")
-			if err != nil {
-				t.Fatal(err)
-			}
-			maximum, err := core.NewByteCount(tc.maximum)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -116,7 +111,7 @@ func TestStageCallerUnwindCustodyLayerTriad(t *testing.T) {
 					return mutationErr
 				}
 			}
-			request := StageRequest{Source: source, Temporary: Location{Root: root, Path: path}, Mode: 0o600, MaximumBytes: maximum}
+			request := StageRequest{Source: source, Temporary: Location{Root: root, Path: path}, Mode: 0o600}
 			var got StagedFile
 			var gotErr error
 			var gotPanic any

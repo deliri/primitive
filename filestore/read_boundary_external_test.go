@@ -29,7 +29,7 @@ const (
 	readBoundaryNilDestination
 	readBoundaryNilRoot
 	readBoundaryZeroPath
-	readBoundaryZeroMaximum
+
 	readBoundaryWriter
 	readBoundaryClosedWriter
 )
@@ -54,10 +54,10 @@ func TestReadNativeBoundaryLayerTriad(t *testing.T) {
 	t.Parallel()
 	binary := []byte{0, 255, 1, 127}
 	for _, tc := range []struct {
-		name                string
-		fault               readBoundaryFault
-		payload             []byte
-		maximum             uint64
+		name    string
+		fault   readBoundaryFault
+		payload []byte
+
 		writerCount         int
 		writerErr           error
 		want                []byte
@@ -65,29 +65,26 @@ func TestReadNativeBoundaryLayerTriad(t *testing.T) {
 		wantErr, wantNative error
 		wantWrites          int
 	}{
-		{name: "exact ceiling preserves opaque binary bytes", payload: binary, maximum: 4, want: binary, wantCount: 4},
-		{name: "spare byte of ceiling cannot become fabricated output", payload: binary, maximum: 5, want: binary, wantCount: 4},
-		{name: "overflow returns only acknowledged prefix", payload: binary, maximum: 3, want: binary[:3], wantCount: 3, wantErr: core.ErrFilestoreSize},
-		{name: "empty file emits nothing to a rejecting writer", fault: readBoundaryWriter, maximum: 1, writerErr: io.ErrClosedPipe},
-		{name: "missing leaf cannot fabricate a byte receipt", fault: readBoundaryMissing, maximum: 4, wantErr: core.ErrFilestoreSource, wantNative: fs.ErrNotExist},
-		{name: "missing ancestor retains native path refusal", fault: readBoundaryMissingParent, maximum: 4, wantErr: core.ErrFilestoreSource, wantNative: fs.ErrNotExist},
-		{name: "directory is refused before writer execution", fault: readBoundaryDirectory, maximum: 4, wantErr: core.ErrFilestoreSource, wantNative: fs.ErrInvalid},
-		{name: "confined link uses Go root resolution", fault: readBoundaryConfinedLink, payload: binary, maximum: 4, want: binary, wantCount: 4},
-		{name: "escaping ancestor cannot deliver outside bytes", fault: readBoundaryEscape, payload: binary, maximum: 4, wantErr: core.ErrFilestoreSource},
-		{name: "closed root preserves native closed identity", fault: readBoundaryClosedRoot, payload: binary, maximum: 4, wantErr: core.ErrFilestoreSource, wantNative: fs.ErrClosed},
-		{name: "nil context refuses before source acquisition", fault: readBoundaryNilContext, payload: binary, maximum: 4, wantErr: core.ErrNilContext},
-		{name: "canceled context refuses before source acquisition", fault: readBoundaryCanceled, payload: binary, maximum: 4, wantErr: context.Canceled},
-		{name: "nil destination cannot consume the source", fault: readBoundaryNilDestination, payload: binary, maximum: 4, wantErr: core.ErrFilestoreContract},
-		{name: "nil root cannot fall back to the working directory", fault: readBoundaryNilRoot, payload: binary, maximum: 4, wantErr: core.ErrFilestoreContract},
-		{name: "zero path cannot observe the root directory", fault: readBoundaryZeroPath, payload: binary, maximum: 4, wantErr: core.ErrFilestoreContract},
-		{name: "zero ceiling cannot read even an empty source", fault: readBoundaryZeroMaximum, wantErr: core.ErrFilestoreContract},
-		{name: "short nil write is not retried into success", fault: readBoundaryWriter, payload: binary, maximum: 4, writerCount: 2, want: binary[:2], wantCount: 2, wantErr: core.ErrFilestoreDestination, wantNative: io.ErrShortWrite, wantWrites: 1},
-		{name: "partial writer failure keeps exact acknowledgment and cause", fault: readBoundaryWriter, payload: binary, maximum: 4, writerCount: 2, writerErr: io.ErrClosedPipe, want: binary[:2], wantCount: 2, wantErr: core.ErrFilestoreDestination, wantNative: io.ErrClosedPipe, wantWrites: 1},
-		{name: "full write with an error still retains that error", fault: readBoundaryWriter, payload: binary, maximum: 4, writerCount: 4, writerErr: io.ErrClosedPipe, want: binary, wantCount: 4, wantErr: core.ErrFilestoreDestination, wantNative: io.ErrClosedPipe, wantWrites: 1},
-		{name: "zero progress writer cannot claim consumed source bytes", fault: readBoundaryWriter, payload: binary, maximum: 4, wantErr: core.ErrFilestoreDestination, wantNative: io.ErrShortWrite, wantWrites: 1},
-		{name: "negative writer count cannot wrap the receipt", fault: readBoundaryWriter, payload: binary, maximum: 4, writerCount: -1, wantErr: core.ErrFilestoreDestination, wantNative: io.ErrShortWrite, wantWrites: 1},
-		{name: "overreported writer count cannot escape its input extent", fault: readBoundaryWriter, payload: binary, maximum: 4, writerCount: 5, wantErr: core.ErrFilestoreDestination, wantNative: io.ErrShortWrite, wantWrites: 1},
-		{name: "closed Go destination preserves native failure", fault: readBoundaryClosedWriter, payload: binary, maximum: 4, wantErr: core.ErrFilestoreDestination, wantNative: fs.ErrClosed},
+		{name: "regular source preserves every opaque binary byte", payload: binary, want: binary, wantCount: 4},
+		{name: "empty file emits nothing to a rejecting writer", fault: readBoundaryWriter, writerErr: io.ErrClosedPipe},
+		{name: "missing leaf cannot fabricate a byte receipt", fault: readBoundaryMissing, wantErr: core.ErrFilestoreSource, wantNative: fs.ErrNotExist},
+		{name: "missing ancestor retains native path refusal", fault: readBoundaryMissingParent, wantErr: core.ErrFilestoreSource, wantNative: fs.ErrNotExist},
+		{name: "directory is refused before writer execution", fault: readBoundaryDirectory, wantErr: core.ErrFilestoreSource, wantNative: fs.ErrInvalid},
+		{name: "confined link uses Go root resolution", fault: readBoundaryConfinedLink, payload: binary, want: binary, wantCount: 4},
+		{name: "escaping ancestor cannot deliver outside bytes", fault: readBoundaryEscape, payload: binary, wantErr: core.ErrFilestoreSource},
+		{name: "closed root preserves native closed identity", fault: readBoundaryClosedRoot, payload: binary, wantErr: core.ErrFilestoreSource, wantNative: fs.ErrClosed},
+		{name: "nil context refuses before source acquisition", fault: readBoundaryNilContext, payload: binary, wantErr: core.ErrNilContext},
+		{name: "canceled context refuses before source acquisition", fault: readBoundaryCanceled, payload: binary, wantErr: context.Canceled},
+		{name: "nil destination cannot consume the source", fault: readBoundaryNilDestination, payload: binary, wantErr: core.ErrFilestoreContract},
+		{name: "nil root cannot fall back to the working directory", fault: readBoundaryNilRoot, payload: binary, wantErr: core.ErrFilestoreContract},
+		{name: "zero path cannot observe the root directory", fault: readBoundaryZeroPath, payload: binary, wantErr: core.ErrFilestoreContract},
+		{name: "short nil write is not retried into success", fault: readBoundaryWriter, payload: binary, writerCount: 2, want: binary[:2], wantCount: 2, wantErr: core.ErrFilestoreDestination, wantNative: io.ErrShortWrite, wantWrites: 1},
+		{name: "partial writer failure keeps exact acknowledgment and cause", fault: readBoundaryWriter, payload: binary, writerCount: 2, writerErr: io.ErrClosedPipe, want: binary[:2], wantCount: 2, wantErr: core.ErrFilestoreDestination, wantNative: io.ErrClosedPipe, wantWrites: 1},
+		{name: "full write with an error still retains that error", fault: readBoundaryWriter, payload: binary, writerCount: 4, writerErr: io.ErrClosedPipe, want: binary, wantCount: 4, wantErr: core.ErrFilestoreDestination, wantNative: io.ErrClosedPipe, wantWrites: 1},
+		{name: "zero progress writer cannot claim consumed source bytes", fault: readBoundaryWriter, payload: binary, wantErr: core.ErrFilestoreDestination, wantNative: io.ErrShortWrite, wantWrites: 1},
+		{name: "negative writer count cannot wrap the receipt", fault: readBoundaryWriter, payload: binary, writerCount: -1, wantErr: core.ErrFilestoreDestination, wantNative: io.ErrShortWrite, wantWrites: 1},
+		{name: "overreported writer count cannot escape its input extent", fault: readBoundaryWriter, payload: binary, writerCount: 5, wantErr: core.ErrFilestoreDestination, wantNative: io.ErrShortWrite, wantWrites: 1},
+		{name: "closed Go destination preserves native failure", fault: readBoundaryClosedWriter, payload: binary, wantErr: core.ErrFilestoreDestination, wantNative: fs.ErrClosed},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -120,12 +117,9 @@ func TestReadNativeBoundaryLayerTriad(t *testing.T) {
 			var output bytes.Buffer
 			writer := readBoundarySink{count: tc.writerCount, err: tc.writerErr}
 			request := filestore.ReadRequest{Location: filestore.Location{Root: root, Path: mustRelativePath(t, "source")}, Destination: &output}
-			if tc.maximum > 0 {
-				request.MaximumBytes = mustByteCount(t, tc.maximum)
-			}
 			ctx := t.Context()
 			switch tc.fault {
-			case readBoundaryRegular, readBoundaryZeroMaximum:
+			case readBoundaryRegular:
 			case readBoundaryMissing:
 				request.Location.Path = mustRelativePath(t, "missing")
 			case readBoundaryMissingParent:

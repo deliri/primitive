@@ -2,6 +2,8 @@ package lineio_test
 
 import (
 	"bytes"
+	"errors"
+	"io"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -10,49 +12,43 @@ import (
 
 func BenchmarkScanStreaming64Lines(b *testing.B) {
 	b.ReportAllocs()
-	benchmarkScanStreaming(b, 64, 64)
+	benchmarkFragments(b, bytes.Repeat([]byte("alpha\n"), 64), 64)
 }
-
 func BenchmarkScanStreaming4096Lines(b *testing.B) {
 	b.ReportAllocs()
-	benchmarkScanStreaming(b, 4096, 64)
+	benchmarkFragments(b, bytes.Repeat([]byte("alpha\n"), 4096), 64)
 }
 
-func benchmarkScanStreaming(b *testing.B, lines, initial int) {
+func benchmarkFragments(b *testing.B, payload []byte, buffer uint64) {
 	b.Helper()
-
-	payload := bytes.Repeat([]byte("alpha\n"), lines)
-	initialBytes, err := core.NewByteCount(uint64(initial))
-	if err != nil {
-		b.Fatalf("core.NewByteCount(%d) error = %v, want nil", initial, err)
-	}
-	maximumBytes, err := core.NewByteCount(lineio.MaximumLineBytes)
-	if err != nil {
-		b.Fatalf("core.NewByteCount(MaximumLineBytes) error = %v, want nil", err)
+	capacity := mustByteCount(b, buffer)
+	wantLines := bytes.Count(payload, []byte{lineio.Delimiter})
+	if len(payload) == 0 {
+		b.Fatalf("payload length = %d, want nonempty stream", len(payload))
 	}
 	b.ReportAllocs()
 	b.SetBytes(int64(len(payload)))
-	var got int
 	for b.Loop() {
-		scanner, err := lineio.New(lineio.Request{
-			Source: bytes.NewReader(payload),
-			Buffer: lineio.BufferPolicy{InitialBytes: initialBytes, MaximumLineBytes: maximumBytes},
-		})
+		reader, err := lineio.New(lineio.Request{Source: bytes.NewReader(payload), BufferBytes: capacity})
 		if err != nil {
-			b.Fatalf("lineio.New() error = %v, want nil", err)
+			b.Fatalf("New() = %v, want nil", err)
 		}
-		got = 0
-		for scanner.Scan() {
-			if len(scanner.Bytes()) == 0 {
-				b.Fatalf("Scanner.Bytes()=%q, want the fixture line", scanner.Bytes())
+		gotBytes, gotLines := 0, 0
+		for {
+			fragment, err := reader.ReadFragment()
+			gotBytes += len(fragment.Bytes)
+			if len(fragment.Bytes) > 0 && fragment.Bytes[len(fragment.Bytes)-1] == lineio.Delimiter {
+				gotLines++
 			}
-			got++
+			if err != nil {
+				if !errors.Is(err, io.EOF) || errors.Is(err, core.ErrLineIOScan) {
+					b.Fatalf("terminal = %v, want EOF", err)
+				}
+				break
+			}
 		}
-		if err := scanner.Err(); err != nil {
-			b.Fatalf("Scanner.Err() = %v, want nil", err)
-		}
-		if got != lines {
-			b.Fatalf("Scanner lines = %d, want %d", got, lines)
+		if gotBytes != len(payload) || gotLines != wantLines {
+			b.Fatalf("stream = (%d bytes,%d LF), want (%d,%d)", gotBytes, gotLines, len(payload), wantLines)
 		}
 	}
 }

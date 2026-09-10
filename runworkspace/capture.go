@@ -112,15 +112,13 @@ func (m Manager) OpenCapture(ctx context.Context, workspace Experiment, kind Cap
 // StreamCaptureEvidence reads one sealed capture through the rooted filestore
 // boundary and proves the on-disk bytes still match the typed reference.
 func (m Manager) StreamCaptureEvidence(ctx context.Context, workspace Experiment, evidence CaptureEvidence, destination io.Writer) error {
-	maximum, err := m.validateCaptureEvidenceStream(workspace, evidence, destination)
-	if err != nil {
+	if err := m.validateCaptureEvidenceStream(workspace, evidence, destination); err != nil {
 		return err
 	}
 	digest := core.NewDigestWriter()
 	read, err := filestore.Read(ctx, filestore.ReadRequest{
-		Destination:  io.MultiWriter(destination, digest),
-		Location:     filestore.Location{Root: m.root, Path: evidence.Path},
-		MaximumBytes: maximum,
+		Destination: io.MultiWriter(destination, digest),
+		Location:    filestore.Location{Root: m.root, Path: evidence.Path},
 	})
 	if err != nil {
 		return err
@@ -132,26 +130,22 @@ func (m Manager) StreamCaptureEvidence(ctx context.Context, workspace Experiment
 	return nil
 }
 
-func (m Manager) validateCaptureEvidenceStream(workspace Experiment, evidence CaptureEvidence, destination io.Writer) (core.ByteCount, error) {
-	if destination == nil {
-		return core.ByteCount{}, core.ErrPrimitiveContract
+func (m Manager) validateCaptureEvidenceStream(workspace Experiment, evidence CaptureEvidence, destination io.Writer) error {
+	if core.WriterIsNil(destination) {
+		return core.ErrPrimitiveContract
 	}
 	if err := errors.Join(m.Validate(), workspace.Validate(), evidence.Validate()); err != nil || workspace.Identity != evidence.Experiment {
-		return core.ByteCount{}, errors.Join(core.ErrPrimitiveContract, err)
+		return errors.Join(core.ErrPrimitiveContract, err)
 	}
 	name, err := captureName(evidence.Experiment, evidence.Kind)
 	if err != nil {
-		return core.ByteCount{}, err
+		return err
 	}
 	wantPath, err := workspace.Output.Join(name)
 	if err != nil || wantPath != evidence.Path {
-		return core.ByteCount{}, errors.Join(core.ErrPrimitiveContract, err)
+		return errors.Join(core.ErrPrimitiveContract, err)
 	}
-	maximum := evidence.Bytes.Uint64()
-	if maximum == 0 {
-		maximum = 1
-	}
-	return core.NewByteCount(maximum)
+	return nil
 }
 
 func captureName(experiment runprotocol.ExperimentID, kind CaptureKind) (core.PathComponent, error) {

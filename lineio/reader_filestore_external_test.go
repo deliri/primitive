@@ -1,11 +1,10 @@
 package lineio_test
 
 import (
-	"bufio"
 	"bytes"
 	"errors"
+	"io"
 	"io/fs"
-	"slices"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -19,18 +18,18 @@ const (
 	lineioProofFileMode      = fs.FileMode(0o600)
 )
 
-func TestScannerFilestoreLayerTriad(t *testing.T) {
+func TestReaderFilestoreLayerTriad(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		wantErr error
 		name    string
 		body    string
-		want    []string
+		closed  bool
+		wantErr error
 	}{
-		{name: "positive real file accepts exact CRLF boundary", body: stringsOfLength(hostileMaximumLineBytes) + "\r\n", want: []string{stringsOfLength(hostileMaximumLineBytes)}},
-		{name: "negative real file rejects one byte beyond boundary", body: stringsOfLength(hostileMaximumLineBytes+1) + "\n", wantErr: bufio.ErrTooLong},
-		{name: "neutral real empty file emits no line", body: ""},
+		{name: "large real file line crosses fixed buffer", body: string(bytes.Repeat([]byte{'x'}, 4096)) + "\r\n"},
+		{name: "closed real file preserves native failure", body: "kept\n", closed: true, wantErr: fs.ErrClosed},
+		{name: "empty real file remains neutral"},
 	}
 
 	for _, tc := range cases {
@@ -51,14 +50,12 @@ func TestScannerFilestoreLayerTriad(t *testing.T) {
 				}
 			})
 			target := mustRelativePath(t, lineioProofTargetName)
-			maximum := max(uint64(len(tc.body)), 1)
 			_, err = filestore.Write(t.Context(), filestore.WriteRequest{
-				Source:       bytes.NewReader([]byte(tc.body)),
-				Location:     filestore.Location{Root: root, Path: target},
-				Temporary:    mustRelativePath(t, lineioProofTemporaryName),
-				Mode:         lineioProofFileMode,
-				Install:      filestore.InstallCreate,
-				MaximumBytes: mustByteCount(t, maximum),
+				Source:    bytes.NewReader([]byte(tc.body)),
+				Location:  filestore.Location{Root: root, Path: target},
+				Temporary: mustRelativePath(t, lineioProofTemporaryName),
+				Mode:      lineioProofFileMode,
+				Install:   filestore.InstallCreate,
 			})
 			if err != nil {
 				t.Fatalf("filestore.Write(proof source) error = %v, want nil", err)
@@ -70,35 +67,41 @@ func TestScannerFilestoreLayerTriad(t *testing.T) {
 				t.Fatalf("filestore.OpenRead(proof source) error = %v, want nil", err)
 			}
 			t.Cleanup(func() {
-				if closeErr := file.Close(); closeErr != nil {
+				if closeErr := file.Close(); closeErr != nil && !tc.closed {
 					t.Errorf("proof file Close() error = %v, want nil", closeErr)
 				}
 			})
 
-			scanner, err := lineio.New(lineio.Request{
-				Source: file,
-				Buffer: lineio.BufferPolicy{
-					InitialBytes:     mustByteCount(t, hostileInitialBytes),
-					MaximumLineBytes: mustByteCount(t, hostileMaximumLineBytes),
-				},
-			})
-			if err != nil {
-				t.Fatalf("lineio.New(real file) error = %v, want nil", err)
-			}
-			got := scanStrings(scanner)
-			if !slices.Equal(got, tc.want) {
-				t.Fatalf("real file lines = %q, want %q", got, tc.want)
-			}
-			gotErr := scanner.Err()
-			if tc.wantErr == nil {
-				if gotErr != nil {
-					t.Fatalf("Scanner.Err(real file) = %v, want nil", gotErr)
+			if tc.closed {
+				if err := file.Close(); err != nil {
+					t.Fatalf("file.Close() = %v, want nil", err)
 				}
-				return
 			}
-			if !errors.Is(gotErr, core.ErrLineIOScan) || !errors.Is(gotErr, tc.wantErr) {
-				t.Fatalf("Scanner.Err(real file) = %v, want %v and %v", gotErr, core.ErrLineIOScan, tc.wantErr)
+			reader, err := lineio.New(lineio.Request{Source: file, BufferBytes: mustByteCount(t, streamBufferFixture)})
+			if err != nil {
+				t.Fatalf("New(real file) = %v, want nil", err)
 			}
+			var got []byte
+			var terminal error
+			for {
+				fragment, err := reader.ReadFragment()
+				got = append(got, fragment.Bytes...)
+				if err != nil {
+					terminal = err
+					break
+				}
+			}
+			wantBody := tc.body
+			wantErr := tc.wantErr
+			if tc.closed {
+				wantBody = ""
+			} else {
+				wantErr = io.EOF
+			}
+			if !bytes.Equal(got, []byte(wantBody)) || !errors.Is(terminal, wantErr) || errors.Is(terminal, core.ErrLineIOScan) != tc.closed {
+				t.Fatalf("real file = (%q,%v), want (%q,%v), scan failure %t", got, terminal, wantBody, wantErr, tc.closed)
+			}
+
 		})
 	}
 }
@@ -110,8 +113,4 @@ func mustRelativePath(t *testing.T, value string) core.RelativePath {
 		t.Fatalf("core.ParseRelativePath(%q) error = %v, want nil", value, err)
 	}
 	return path
-}
-
-func stringsOfLength(length int) string {
-	return string(bytes.Repeat([]byte{'x'}, length))
 }

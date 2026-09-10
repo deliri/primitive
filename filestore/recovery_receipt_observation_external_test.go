@@ -59,7 +59,7 @@ func TestRecoveryRevalidatesObservedReceiptLayerTriad(t *testing.T) {
 					root := requireTestRoot(t, t.TempDir())
 					stagePath, target := mustRelativePath(t, ".stage"), mustRelativePath(t, "target")
 					original := []byte{0, 0xff}
-					staged, err := filestore.Stage(t.Context(), filestore.StageRequest{Source: bytes.NewReader(original), Temporary: filestore.Location{Root: root, Path: stagePath}, Mode: 0o600, MaximumBytes: mustByteCount(t, uint64(len(original)))})
+					staged, err := filestore.Stage(t.Context(), filestore.StageRequest{Source: bytes.NewReader(original), Temporary: filestore.Location{Root: root, Path: stagePath}, Mode: 0o600})
 					if err != nil || staged.Validate() != nil {
 						t.Fatalf("stage producer = (%v,%v), want valid exact receipt", staged, err)
 					}
@@ -144,7 +144,7 @@ func TestSameInodeActivationDoesNotLeaveAnUnconsumedReceiptLayerTriad(t *testing
 			root := requireTestRoot(t, t.TempDir())
 			stagePath, target := mustRelativePath(t, ".stage"), mustRelativePath(t, "target")
 			payload := []byte{0, 0xff}
-			staged, err := filestore.Stage(t.Context(), filestore.StageRequest{Temporary: filestore.Location{Root: root, Path: stagePath}, Source: bytes.NewReader(payload), MaximumBytes: mustByteCount(t, uint64(len(payload))), Mode: 0o600})
+			staged, err := filestore.Stage(t.Context(), filestore.StageRequest{Temporary: filestore.Location{Root: root, Path: stagePath}, Source: bytes.NewReader(payload), Mode: 0o600})
 			if err != nil {
 				t.Fatal(err)
 			}

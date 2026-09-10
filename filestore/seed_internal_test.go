@@ -33,11 +33,7 @@ func FilestoreRoundTripSeedForTest(ctx context.Context, directory string) (emitt
 		return nil, err
 	}
 	input := []byte{0, 255, 1, 127}
-	maximum, err := core.NewByteCount(uint64(len(input)))
-	if err != nil {
-		return nil, err
-	}
-	request := WriteRequest{Source: bytes.NewReader(input), Location: Location{Root: root, Path: target}, Temporary: stage, Mode: 0o600, Install: InstallCreate, MaximumBytes: maximum}
+	request := WriteRequest{Source: bytes.NewReader(input), Location: Location{Root: root, Path: target}, Temporary: stage, Mode: 0o600, Install: InstallCreate}
 	if err := request.Validate(); err != nil {
 		return nil, err
 	}
@@ -49,7 +45,7 @@ func FilestoreRoundTripSeedForTest(ctx context.Context, directory string) (emitt
 		return nil, core.ErrFilestoreContract
 	}
 	var output bytes.Buffer
-	count, err := Read(ctx, ReadRequest{Location: request.Location, Destination: &output, MaximumBytes: maximum})
+	count, err := Read(ctx, ReadRequest{Location: request.Location, Destination: &output})
 	if err != nil {
 		return nil, err
 	}

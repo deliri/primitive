@@ -34,23 +34,22 @@ func TestStagingEffectLayerTriad(t *testing.T) {
 	)
 	for _, tc := range []struct {
 		name                string
-		size, maximum       int
+		size                int
 		fault               fault
 		wantErr, wantNative error
 	}{
-		{name: "fragmented exact buffer crossing retains every byte", size: (32 << 10) + 3, maximum: (32 << 10) + 3},
-		{name: "spare capacity cannot invent a suffix", size: (32 << 10) + 3, maximum: (32 << 10) + 4},
-		{name: "one byte beyond capacity leaves no partial stage", size: (32 << 10) + 3, maximum: (32 << 10) + 2, wantErr: core.ErrFilestoreSize},
-		{name: "empty input produces a real zero extent receipt", maximum: 1},
-		{name: "terminal source error after two buffers cleans the entire stage", size: 1 << 16, maximum: (1 << 16) + 1, fault: terminalSource, wantErr: core.ErrFilestoreSource, wantNative: io.ErrUnexpectedEOF},
-		{name: "occupied file is not truncated", size: 3, maximum: 3, fault: occupiedFile, wantErr: core.ErrFilestoreConflict, wantNative: fs.ErrExist},
-		{name: "occupied directory retains its child", size: 3, maximum: 3, fault: occupiedDirectory, wantErr: core.ErrFilestoreConflict, wantNative: fs.ErrExist},
-		{name: "absent parent is not created implicitly", size: 3, maximum: 3, fault: missingParent, wantErr: core.ErrFilestoreActivation, wantNative: fs.ErrNotExist},
-		{name: "closed root refuses without consuming source", size: 3, maximum: 3, fault: closedRoot, wantErr: core.ErrFilestoreActivation, wantNative: fs.ErrClosed},
-		{name: "cancellation precedes exclusive creation", size: 3, maximum: 3, fault: canceled, wantErr: context.Canceled},
-		{name: "nil context cannot acquire custody", size: 3, maximum: 3, fault: nilContext, wantErr: core.ErrNilContext},
-		{name: "nil source cannot publish an empty receipt", maximum: 1, fault: nilSource, wantErr: core.ErrFilestoreContract},
-		{name: "zero maximum refuses before source consumption", size: 3, wantErr: core.ErrFilestoreContract},
+		{name: "fragmented source immediately below the Go window remains exact", size: (32 << 10) - 1},
+		{name: "fragmented source exactly at the Go window remains exact", size: 32 << 10},
+		{name: "fragmented source above the Go window completes the entire stage", size: (32 << 10) + 1},
+		{name: "empty input produces a real zero extent receipt"},
+		{name: "terminal source error after two buffers cleans the entire stage", size: 1 << 16, fault: terminalSource, wantErr: core.ErrFilestoreSource, wantNative: io.ErrUnexpectedEOF},
+		{name: "occupied file is not truncated", size: 3, fault: occupiedFile, wantErr: core.ErrFilestoreConflict, wantNative: fs.ErrExist},
+		{name: "occupied directory retains its child", size: 3, fault: occupiedDirectory, wantErr: core.ErrFilestoreConflict, wantNative: fs.ErrExist},
+		{name: "absent parent is not created implicitly", size: 3, fault: missingParent, wantErr: core.ErrFilestoreActivation, wantNative: fs.ErrNotExist},
+		{name: "closed root refuses without consuming source", size: 3, fault: closedRoot, wantErr: core.ErrFilestoreActivation, wantNative: fs.ErrClosed},
+		{name: "cancellation precedes exclusive creation", size: 3, fault: canceled, wantErr: context.Canceled},
+		{name: "nil context cannot acquire custody", size: 3, fault: nilContext, wantErr: core.ErrNilContext},
+		{name: "nil source cannot publish an empty receipt", fault: nilSource, wantErr: core.ErrFilestoreContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -109,12 +108,8 @@ func TestStagingEffectLayerTriad(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			var maximum core.ByteCount
-			if tc.maximum != 0 {
-				maximum = mustByteCount(t, uint64(tc.maximum))
-			}
 			path := mustRelativePath(t, temporary)
-			got, gotErr := filestore.Stage(ctx, filestore.StageRequest{Source: source, Temporary: filestore.Location{Root: root, Path: path}, Mode: 0o600, MaximumBytes: maximum})
+			got, gotErr := filestore.Stage(ctx, filestore.StageRequest{Source: source, Temporary: filestore.Location{Root: root, Path: path}, Mode: 0o600})
 			if !errors.Is(gotErr, tc.wantErr) || tc.wantNative != nil && !errors.Is(gotErr, tc.wantNative) {
 				t.Fatalf("Stage = (%v,%v), want %v and native %v", got, gotErr, tc.wantErr, tc.wantNative)
 			}
@@ -127,7 +122,7 @@ func TestStagingEffectLayerTriad(t *testing.T) {
 				t.Fatalf("refused receipt = %+v, want exact zero", got)
 			}
 			wantUnread := 0
-			if tc.fault >= occupiedFile || tc.maximum == 0 {
+			if tc.fault >= occupiedFile {
 				wantUnread = len(payload)
 			}
 			if reader.Len() != wantUnread {

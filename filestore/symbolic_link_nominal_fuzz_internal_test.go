@@ -10,9 +10,8 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
-// Native filesystems may impose a smaller limit than the nominal 64 KiB
-// observation ceiling. This direct nominal ratchet exercises that full ceiling;
-// the external fuzz target separately drives native ReadSymbolicLink.
+// The finite fuzz budget crosses the former nominal quota. Native filesystem
+// constraints are exercised separately through ReadSymbolicLink.
 func FuzzSymbolicLinkTargetOpaqueNominalClosure(f *testing.F) {
 	directory := f.TempDir()
 	if err := os.Symlink("opaque:[1]", filepath.Join(directory, "link")); err != nil {
@@ -38,14 +37,14 @@ func FuzzSymbolicLinkTargetOpaqueNominalClosure(f *testing.F) {
 		f.Fatal(err)
 	}
 	f.Add(seed.String())
-	for _, value := range []string{"", "x\x00y", "\xff", strings.Repeat("x", SymbolicLinkTargetMaximumBytes-1), strings.Repeat("x", SymbolicLinkTargetMaximumBytes), strings.Repeat("x", SymbolicLinkTargetMaximumBytes+1)} {
+	for _, value := range []string{"", "x\x00y", "\xff", strings.Repeat("x", symbolicLinkTargetFixtureBytes-1), strings.Repeat("x", symbolicLinkTargetFixtureBytes), strings.Repeat("x", symbolicLinkTargetFixtureBytes+1)} {
 		f.Add(value)
 	}
 	f.Fuzz(func(t *testing.T, raw string) {
-		raw = raw[:min(len(raw), SymbolicLinkTargetMaximumBytes+1)]
+		raw = raw[:min(len(raw), symbolicLinkTargetFixtureBytes+1)]
 		got := SymbolicLinkTarget{value: raw}
 		// Independent byte scan; no path or Unicode grammar applies to this value.
-		admissible := len(raw) > 0 && len(raw) <= SymbolicLinkTargetMaximumBytes
+		admissible := len(raw) > 0
 		for i := range len(raw) {
 			if raw[i] == 0 {
 				admissible = false

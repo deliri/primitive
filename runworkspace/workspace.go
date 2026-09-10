@@ -21,7 +21,6 @@ import (
 
 const (
 	workspaceDirectoryMode fs.FileMode = 0o700
-	workspaceEntryMaximum  uint32      = 1 << 16
 )
 
 type Configuration struct {
@@ -320,14 +319,12 @@ func (m Manager) Observe(ctx context.Context, observedAt temporal.Instant, resid
 		return runnercontrol.MachineStateObservation{}, err
 	}
 	rootPath, err := core.ParseRelativePath(".")
-	maximum, maximumErr := filestore.NewDirectoryEntryMaximum(workspaceEntryMaximum)
-	if err != nil || maximumErr != nil {
-		return runnercontrol.MachineStateObservation{}, errors.Join(err, maximumErr)
+	if err != nil {
+		return runnercontrol.MachineStateObservation{}, err
 	}
 	var entries uint32
 	walkErr := filestore.Walk(ctx, filestore.WalkRequest{
-		Location: filestore.Location{Root: m.root, Path: rootPath}, Order: filestore.WalkOrderLexical, DirectoryEntryMaximum: maximum,
-		Visit: func(filestore.WalkEntry) (filestore.WalkDirective, error) {
+		Location: filestore.Location{Root: m.root, Path: rootPath}, Visit: func(filestore.WalkEntry) (filestore.WalkDirective, error) {
 			if entries == math.MaxUint32 {
 				return filestore.WalkDirectiveUnknown, core.ErrPrimitiveContract
 			}
@@ -351,18 +348,13 @@ func (m Manager) CleanupUnit(ctx context.Context, unit Unit) error {
 	if err := errors.Join(m.Validate(), unit.Validate()); err != nil || unit.RootIdentity != m.rootIdentity {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
-	maximum, err := filestore.NewDirectoryEntryMaximum(workspaceEntryMaximum)
-	if err != nil {
-		return err
-	}
 	if err := filestore.SetPermissions(ctx, filestore.PermissionRequest{
 		Location: filestore.Location{Root: m.root, Path: unit.Root}, Mode: workspaceDirectoryMode,
 	}); err != nil {
 		return err
 	}
 	walkErr := filestore.Walk(ctx, filestore.WalkRequest{
-		Location: filestore.Location{Root: m.root, Path: unit.Root}, Order: filestore.WalkOrderLexical, DirectoryEntryMaximum: maximum,
-		Visit: func(entry filestore.WalkEntry) (filestore.WalkDirective, error) {
+		Location: filestore.Location{Root: m.root, Path: unit.Root}, Visit: func(entry filestore.WalkEntry) (filestore.WalkDirective, error) {
 			if !entry.Entry.IsDir() {
 				return filestore.WalkContinue, nil
 			}
@@ -377,20 +369,18 @@ func (m Manager) CleanupUnit(ctx context.Context, unit Unit) error {
 }
 
 // Scrub removes every entry beneath the fixed run parent. It streams the
-// parent's bounded entry set and never follows a symbolic link outside the
+// parent's entries in native batches and never follows a symbolic link outside the
 // rooted filestore capability.
 func (m Manager) Scrub(ctx context.Context) error {
 	if err := m.Validate(); err != nil {
 		return err
 	}
 	rootPath, err := core.ParseRelativePath(".")
-	maximum, maximumErr := filestore.NewDirectoryEntryMaximum(workspaceEntryMaximum)
-	if err != nil || maximumErr != nil {
-		return errors.Join(err, maximumErr)
+	if err != nil {
+		return err
 	}
 	return filestore.Walk(ctx, filestore.WalkRequest{
 		Location: filestore.Location{Root: m.root, Path: rootPath},
-		Order:    filestore.WalkOrderLexical, DirectoryEntryMaximum: maximum,
 		Visit: func(entry filestore.WalkEntry) (filestore.WalkDirective, error) {
 			removeErr := filestore.RemoveTree(ctx, filestore.TreeRemovalRequest{
 				Location: filestore.Location{Root: m.root, Path: entry.Path},

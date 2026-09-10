@@ -202,21 +202,13 @@ func copyBuildToolFixture(t *testing.T, source, target core.AbsolutePath) {
 			t.Errorf("compiler Close error = %v, want nil", err)
 		}
 	}()
-	info, err := file.Stat()
-	if err != nil {
-		t.Fatalf("compiler Stat error = %v, want nil", err)
-	}
-	maximum, err := core.NewByteCount(uint64(info.Size()))
-	if err != nil {
-		t.Fatalf("compiler extent error = %v, want nil", err)
-	}
 	stage, err := core.ParseRelativePath("compiler-stage")
 	if err != nil {
 		t.Fatalf("compiler stage error = %v, want nil", err)
 	}
 	recovery, err := filestore.Write(t.Context(), filestore.WriteRequest{
 		Location: releaseFixtureLocation(t, target), Temporary: stage, Source: file,
-		MaximumBytes: maximum, Mode: 0o700, Install: filestore.InstallCreate,
+		Mode: 0o700, Install: filestore.InstallCreate,
 	})
 	if err != nil {
 		t.Fatalf("compiler fixture write = (%v, %v), want nil error", recovery, err)

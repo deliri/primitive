@@ -6,8 +6,6 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"slices"
-	"strings"
 
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
@@ -15,11 +13,10 @@ import (
 
 const walkDirectoryBatchEntries = 64
 
-// Walk visits descendants in the requested native or lexical order. Native
-// order retains one fixed entry batch per open directory; lexical order retains
-// at most the declared entry ceiling plus one per open directory before sorting.
-// Memory and held handles also depend on traversal depth. Symbolic-link entries
-// are not descended into. The starting directory is not delivered to Visit.
+// Walk streams descendants in native directory order with one fixed entry
+// batch per open directory. Memory and held handles depend on traversal depth,
+// not total entry count. Symbolic links are not descended into. The starting
+// directory is not delivered to Visit.
 func Walk(ctx context.Context, request WalkRequest) error {
 	if err := contextstate.Validate(ctx); err != nil {
 		return err
@@ -49,23 +46,28 @@ func walkDirectory(input walkDirectoryInput) error {
 	if err != nil {
 		return sourceError(err)
 	}
+	return walkOwnedDirectory(input, directory)
+}
+
+// walkOwnedDirectory owns the acquired Go handle for every return or unwind.
+func walkOwnedDirectory(input walkDirectoryInput, directory *os.File) (resultErr error) {
+	defer func() { resultErr = closeWalkDirectory(directory, resultErr) }()
 	info, err := directory.Stat()
 	if err != nil {
-		return closeWalkDirectory(directory, sourceError(err))
+		return sourceError(err)
 	}
 	if !info.IsDir() {
-		return closeWalkDirectory(directory, sourceError(fs.ErrInvalid))
+		return sourceError(fs.ErrInvalid)
 	}
 	if input.expectedIdentity != nil && !os.SameFile(input.expectedIdentity, info) {
-		return closeWalkDirectory(directory, sourceError(fs.ErrInvalid))
+		return sourceError(fs.ErrInvalid)
 	}
-	walkErr := readDirectoryEntries(readDirectoryInput{
+	return readDirectoryEntries(readDirectoryInput{
 		ctx:           input.ctx,
 		request:       input.request,
 		directoryPath: input.directoryPath,
 		directory:     directory,
 	})
-	return closeWalkDirectory(directory, walkErr)
 }
 
 type readDirectoryInput struct {
@@ -76,9 +78,6 @@ type readDirectoryInput struct {
 }
 
 func readDirectoryEntries(input readDirectoryInput) error {
-	if input.request.Order == WalkOrderLexical {
-		return readLexicalDirectoryEntries(input)
-	}
 	emptyReads := 0
 	for {
 		if err := contextstate.Validate(input.ctx); err != nil {
@@ -122,63 +121,6 @@ func readStreamingDirectoryBatch(input readDirectoryInput, emptyReads *int) (boo
 		return false, sourceError(err)
 	}
 	return false, nil
-}
-
-func readLexicalDirectoryEntries(input readDirectoryInput) error {
-	maximum := int(input.request.DirectoryEntryMaximum.value)
-	entries, err := readLexicalDirectoryBatch(input, maximum)
-	if err != nil {
-		return err
-	}
-	if len(entries) > maximum {
-		return contractError(errors.New("filestore directory exceeds entry maximum"))
-	}
-	slices.SortFunc(entries, func(left, right fs.DirEntry) int {
-		return strings.Compare(left.Name(), right.Name())
-	})
-	for _, entry := range entries {
-		if err := contextstate.Validate(input.ctx); err != nil {
-			return err
-		}
-		if err := visitWalkEntry(visitWalkEntryInput{
-			ctx:           input.ctx,
-			request:       input.request,
-			directoryPath: input.directoryPath,
-			entry:         entry,
-		}); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func readLexicalDirectoryBatch(input readDirectoryInput, maximum int) ([]fs.DirEntry, error) {
-	// The ceiling is an admission limit, not a reservation. Grow with the
-	// observed directory and read only enough to prove a ceiling violation.
-	entries := make([]fs.DirEntry, 0, min(maximum+1, walkDirectoryBatchEntries))
-	emptyReads := 0
-	for len(entries) <= maximum {
-		if err := contextstate.Validate(input.ctx); err != nil {
-			return nil, err
-		}
-		batch, err := input.directory.ReadDir(min(maximum+1-len(entries), walkDirectoryBatchEntries))
-		entries = append(entries, batch...)
-		if len(batch) == 0 && err == nil {
-			emptyReads++
-			if emptyReads >= core.ReaderConsecutiveEmptyReadMaximum {
-				return nil, sourceError(io.ErrNoProgress)
-			}
-			continue
-		}
-		emptyReads = 0
-		if errors.Is(err, io.EOF) {
-			return entries, nil
-		}
-		if err != nil {
-			return nil, sourceError(err)
-		}
-	}
-	return entries, nil
 }
 
 type visitWalkEntryInput struct {

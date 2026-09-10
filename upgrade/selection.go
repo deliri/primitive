@@ -154,10 +154,6 @@ func readSelection(
 	root *os.Root,
 ) (selectionDocument, error) {
 	var destination bytes.Buffer
-	maximum, err := core.NewByteCount(selectionDocumentMaximumBytes)
-	if err != nil {
-		return selectionDocument{}, persistenceError(err)
-	}
 	path, err := selectionPath()
 	if err != nil {
 		return selectionDocument{}, persistenceError(err)
@@ -167,7 +163,6 @@ func readSelection(
 		Location: filestore.Location{
 			Root: root, Path: path,
 		},
-		MaximumBytes: maximum,
 	})
 	if err != nil {
 		return selectionDocument{}, persistenceError(err)
@@ -186,10 +181,6 @@ func writeSelection(
 	mode filestore.InstallMode,
 ) error {
 	encoded, err := encodeSelection(document)
-	if err != nil {
-		return persistenceError(err)
-	}
-	maximum, err := core.NewByteCount(uint64(len(encoded)))
 	if err != nil {
 		return persistenceError(err)
 	}
@@ -212,7 +203,7 @@ func writeSelection(
 			Root: root, Path: path,
 		},
 		Temporary: temporary,
-		Mode:      documentMode, Install: mode, MaximumBytes: maximum,
+		Mode:      documentMode, Install: mode,
 	})
 	if err == nil {
 		return nil

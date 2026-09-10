@@ -62,7 +62,7 @@ func TestOpenStagedReadHostileValidExtentMatrix(t *testing.T) {
 				Temporary: filestore.Location{
 					Root: root, Path: mustRelativePath(t, ".valid-stage"),
 				},
-				Mode: 0o600, MaximumBytes: mustByteCount(t, uint64(max(tc.wantSize, 1))),
+				Mode: 0o600,
 			})
 			if err != nil {
 				t.Fatalf("Stage() error = %v, want nil", err)
@@ -113,7 +113,7 @@ func TestOpenStagedReadHostileRefusalMatrix(t *testing.T) {
 				Temporary: filestore.Location{
 					Root: root, Path: mustRelativePath(t, ".hostile-stage"),
 				},
-				Mode: 0o600, MaximumBytes: mustByteCount(t, 2),
+				Mode: 0o600,
 			})
 			if err != nil {
 				t.Fatalf("Stage() error = %v, want nil", err)

@@ -9,10 +9,6 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
-const (
-	streamSourceOverflowDiagnostic = "filestore source exceeds its maximum byte count"
-)
-
 type streamDestination uint8
 
 const (
@@ -50,11 +46,12 @@ func (d streamDestination) String() string {
 
 func (streamDestination) OffWireEnum() {}
 
-type boundedCopyRequest struct {
+type streamCopyRequest struct {
+	buffer      []byte
 	ctx         context.Context
 	destination io.Writer
 	source      io.Reader
-	maximum     core.ByteCount
+
 	knownExtent uint64
 	kind        streamDestination
 	extentKnown bool
@@ -68,7 +65,6 @@ type streamReader struct {
 	source     io.Reader
 	cause      error
 	emptyReads int
-	eof        bool
 }
 
 func (r *streamReader) Read(buffer []byte) (int, error) {
@@ -87,7 +83,6 @@ func (r *streamReader) Read(buffer []byte) (int, error) {
 func (r *streamReader) observe(count int, err error) error {
 	// witness:waiver doctrine/error/sentinel_compare -- Only Go's unwrapped EOF is clean termination; a joined EOF and native failure must retain Source refusal.
 	if err == io.EOF {
-		r.eof = true
 		return io.EOF
 	}
 	if err != nil {
@@ -135,52 +130,26 @@ func (w streamWriter) Write(buffer []byte) (int, error) {
 	return count, nil
 }
 
-func copyBounded(request boundedCopyRequest) (core.ByteLength, error) {
-	maximum, err := validatedStreamMaximum(request.maximum, request.kind)
-	if err != nil {
+// copyStream delegates transfer loops to Go with borrowed or Go-allocated scratch.
+// The observed file extent detects truncation; it never caps accepted growth.
+func copyStream(request streamCopyRequest) (core.ByteLength, error) {
+	if err := request.kind.Validate(); err != nil {
 		return core.ByteLength{}, err
 	}
 	source := streamReader{ctx: request.ctx, source: request.source}
 	destination := streamWriter{destination: request.destination, kind: request.kind}
-	// LimitedReader supplies the ceiling and lets Go size its own scratch
-	// buffer for small transfers. No maximum+1 arithmetic can overflow.
-	total, err := io.Copy(destination, io.LimitReader(&source, maximum))
+	buffer := request.buffer
+	if len(buffer) == 0 {
+		buffer = nil
+	}
+	total, err := io.CopyBuffer(destination, &source, buffer)
 	if err != nil {
 		return finishStream(uint64(total), errors.Join(err, source.cause))
 	}
-	if !source.eof {
-		err = probeBoundedSourceEnd(&source)
-	}
-	if err == nil && request.extentKnown && uint64(total) < request.knownExtent {
+	if request.extentKnown && uint64(total) < request.knownExtent {
 		err = sourceError(io.ErrUnexpectedEOF)
 	}
 	return finishStream(uint64(total), err)
-}
-
-func probeBoundedSourceEnd(source *streamReader) error {
-	var probe [1]byte
-	count, err := io.ReadFull(source, probe[:])
-	if count > 0 {
-		// ReadFull normalizes a full read's error. Preserve the independently
-		// observed native failure as well as the overflow it revealed.
-		return errors.Join(sizeError(errors.New(streamSourceOverflowDiagnostic)), source.cause)
-	}
-	// witness:waiver doctrine/error/sentinel_compare -- Only Go's unwrapped EOF is clean termination; a joined EOF and native failure must retain Source refusal.
-	if err == io.EOF {
-		return nil
-	}
-	return err
-}
-
-func validatedStreamMaximum(maximum core.ByteCount, kind streamDestination) (int64, error) {
-	if err := kind.Validate(); err != nil {
-		return 0, err
-	}
-	maximumBytes, err := maximum.Int64()
-	if err != nil {
-		return 0, contractError(err)
-	}
-	return maximumBytes, nil
 }
 
 func finishStream(total uint64, cause error) (core.ByteLength, error) {

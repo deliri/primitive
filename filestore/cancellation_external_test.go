@@ -65,7 +65,6 @@ func TestOperationsRejectTerminalAndNilContextsBeforeFilesystemEffects(t *testin
 				var destination bytes.Buffer
 				path := mustRelativePath(t, "target")
 				stagePath := mustRelativePath(t, "stage")
-				maximum := mustByteCount(t, uint64(len(payload)))
 				if err := os.WriteFile(filepath.Join(directory, "neighbor"), payload, 0o640); err != nil {
 					t.Fatal(err)
 				}
@@ -77,7 +76,7 @@ func TestOperationsRejectTerminalAndNilContextsBeforeFilesystemEffects(t *testin
 				var staged filestore.StagedFile
 				if operation.door == contextEffectCommit || operation.door == contextEffectRecover || operation.door == contextEffectDiscard {
 					var err error
-					staged, err = filestore.Stage(t.Context(), filestore.StageRequest{Source: bytes.NewReader(payload), Temporary: filestore.Location{Root: root, Path: stagePath}, Mode: 0o600, MaximumBytes: maximum})
+					staged, err = filestore.Stage(t.Context(), filestore.StageRequest{Source: bytes.NewReader(payload), Temporary: filestore.Location{Root: root, Path: stagePath}, Mode: 0o600})
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -129,11 +128,11 @@ func TestOperationsRejectTerminalAndNilContextsBeforeFilesystemEffects(t *testin
 				case contextEffectEnsure:
 					gotErr = filestore.EnsureDirectory(ctx, filestore.DirectoryRequest{Location: filestore.Location{Root: root, Path: mustRelativePath(t, filepath.Join("parent", "leaf"))}, Mode: 0o700})
 				case contextEffectRead:
-					count, gotErr = filestore.Read(ctx, filestore.ReadRequest{Location: location, Destination: &destination, MaximumBytes: maximum})
+					count, gotErr = filestore.Read(ctx, filestore.ReadRequest{Location: location, Destination: &destination})
 				case contextEffectWrite:
-					recovery, gotErr = filestore.Write(ctx, filestore.WriteRequest{Source: source, Location: location, Temporary: stagePath, Mode: 0o600, Install: filestore.InstallCreate, MaximumBytes: maximum})
+					recovery, gotErr = filestore.Write(ctx, filestore.WriteRequest{Source: source, Location: location, Temporary: stagePath, Mode: 0o600, Install: filestore.InstallCreate})
 				case contextEffectStage:
-					gotStage, gotErr = filestore.Stage(ctx, filestore.StageRequest{Source: source, Temporary: filestore.Location{Root: root, Path: stagePath}, Mode: 0o600, MaximumBytes: maximum})
+					gotStage, gotErr = filestore.Stage(ctx, filestore.StageRequest{Source: source, Temporary: filestore.Location{Root: root, Path: stagePath}, Mode: 0o600})
 				case contextEffectCommit:
 					gotErr = filestore.Commit(ctx, filestore.CommitRequest{Staged: staged, Target: path, Install: filestore.InstallCreate})
 				case contextEffectRecover:
@@ -211,10 +210,9 @@ func TestStageCancellationAfterRealPipeBytesCleansOwnedTemporary(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 	request := filestore.StageRequest{
-		Source:       reader,
-		Temporary:    filestore.Location{Root: root, Path: mustRelativePath(t, ".stage")},
-		Mode:         0o600,
-		MaximumBytes: mustByteCount(t, uint64(len(payload)+1)),
+		Source:    reader,
+		Temporary: filestore.Location{Root: root, Path: mustRelativePath(t, ".stage")},
+		Mode:      0o600,
 	}
 	stageDone := make(chan error, 1)
 	go func() {
@@ -306,10 +304,9 @@ func mustStage(t *testing.T, root *os.Root, path, content string) filestore.Stag
 	t.Helper()
 
 	staged, err := filestore.Stage(t.Context(), filestore.StageRequest{
-		Source:       bytes.NewReader([]byte(content)),
-		Temporary:    filestore.Location{Root: root, Path: mustRelativePath(t, path)},
-		Mode:         0o600,
-		MaximumBytes: mustByteCount(t, uint64(max(len(content), 1))),
+		Source:    bytes.NewReader([]byte(content)),
+		Temporary: filestore.Location{Root: root, Path: mustRelativePath(t, path)},
+		Mode:      0o600,
 	})
 	if err != nil {
 		t.Fatalf("Stage() error = %v, want nil", err)

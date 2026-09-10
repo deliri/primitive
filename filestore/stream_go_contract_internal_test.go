@@ -64,82 +64,78 @@ func (r *stalledCopyReader) Read(p []byte) (int, error) {
 	return 0, io.EOF
 }
 
-func TestBoundedCopySourceObservationLayerTriad(t *testing.T) {
+func TestStreamCopySourceObservationLayerTriad(t *testing.T) {
 	t.Parallel()
 	// These rows distinguish observed EOF from declarations, and destination
-	// bytes from the one overflow byte consumed solely to prove the ceiling.
+	// bytes from source reads that remain unacknowledged by the destination.
 	cases := []struct {
-		name        string
-		source      func() io.Reader
-		maximum     uint64
+		name   string
+		source func() io.Reader
+
 		known       uint64
 		extentKnown bool
 		want        []byte
 		wantErr     error
 		wantNative  error
 	}{
-		{name: "empty opaque source produces an empty receipt", source: func() io.Reader { return copyReaderOnly{bytes.NewReader(nil)} }, maximum: 1},
-		{name: "opaque exact ceiling requires an actual eof observation", source: func() io.Reader { return copyReaderOnly{bytes.NewReader([]byte{0, 255})} }, maximum: 2, want: []byte{0, 255}},
-		{name: "one byte below ceiling must not require filling it", source: func() io.Reader { return copyReaderOnly{bytes.NewReader([]byte{0})} }, maximum: 2, want: []byte{0}},
-		{name: "one byte above ceiling is consumed but never written", source: func() io.Reader { return copyReaderOnly{bytes.NewReader([]byte{0, 255, 7})} }, maximum: 2, want: []byte{0, 255}, wantErr: core.ErrFilestoreSize},
-		{name: "one byte reader cannot be rejected at exact ceiling", source: func() io.Reader { return iotest.OneByteReader(bytes.NewReader([]byte{0, 255})) }, maximum: 2, want: []byte{0, 255}},
-		{name: "half reader cannot be rejected at exact ceiling", source: func() io.Reader { return iotest.HalfReader(bytes.NewReader([]byte{0, 255, 7})) }, maximum: 3, want: []byte{0, 255, 7}},
-		{name: "data and eof in one read do not trigger another read", source: func() io.Reader { return &terminalCopyReader{data: []byte{0, 255}, err: io.EOF} }, maximum: 2, want: []byte{0, 255}},
-		{name: "limited reader larger than actual source is not overflow", source: func() io.Reader { return io.LimitReader(bytes.NewReader([]byte{0, 255}), 3) }, maximum: 2, want: []byte{0, 255}},
-		{name: "limited reader's own end is the supplied source end", source: func() io.Reader { return io.LimitReader(bytes.NewReader([]byte{0, 255, 7}), 2) }, maximum: 2, want: []byte{0, 255}},
-		{name: "section larger than backing reader is not overflow", source: func() io.Reader { return io.NewSectionReader(bytes.NewReader([]byte{0, 255}), 0, 3) }, maximum: 2, want: []byte{0, 255}},
-		{name: "section ending before backing reader limits the supplied source", source: func() io.Reader { return io.NewSectionReader(bytes.NewReader([]byte{0, 255, 7}), 0, 2) }, maximum: 2, want: []byte{0, 255}},
-		{name: "false zero Len cannot hide an extra byte", source: func() io.Reader { return misleadingLengthReader{Reader: bytes.NewReader([]byte{0, 255, 7})} }, maximum: 2, want: []byte{0, 255}, wantErr: core.ErrFilestoreSize},
-		{name: "false positive Len cannot invent an extra byte", source: func() io.Reader { return misleadingLengthReader{Reader: bytes.NewReader([]byte{0, 255}), remaining: 1} }, maximum: 2, want: []byte{0, 255}},
+		{name: "empty opaque source produces an empty receipt", source: func() io.Reader { return copyReaderOnly{bytes.NewReader(nil)} }},
+		{name: "opaque source requires an actual EOF observation", source: func() io.Reader { return copyReaderOnly{bytes.NewReader([]byte{0, 255})} }, want: []byte{0, 255}},
+		{name: "one byte reader cannot be rejected during fragmented transfer", source: func() io.Reader { return iotest.OneByteReader(bytes.NewReader([]byte{0, 255})) }, want: []byte{0, 255}},
+		{name: "half reader cannot be rejected during fragmented transfer", source: func() io.Reader { return iotest.HalfReader(bytes.NewReader([]byte{0, 255, 7})) }, want: []byte{0, 255, 7}},
+		{name: "data and eof in one read do not trigger another read", source: func() io.Reader { return &terminalCopyReader{data: []byte{0, 255}, err: io.EOF} }, want: []byte{0, 255}},
+		{name: "limited reader larger than actual source is not overflow", source: func() io.Reader { return io.LimitReader(bytes.NewReader([]byte{0, 255}), 3) }, want: []byte{0, 255}},
+		{name: "limited reader's own end is the supplied source end", source: func() io.Reader { return io.LimitReader(bytes.NewReader([]byte{0, 255, 7}), 2) }, want: []byte{0, 255}},
+		{name: "section larger than backing reader is not overflow", source: func() io.Reader { return io.NewSectionReader(bytes.NewReader([]byte{0, 255}), 0, 3) }, want: []byte{0, 255}},
+		{name: "section ending before backing reader limits the supplied source", source: func() io.Reader { return io.NewSectionReader(bytes.NewReader([]byte{0, 255, 7}), 0, 2) }, want: []byte{0, 255}},
+		{name: "false zero Len cannot hide an extra byte", source: func() io.Reader { return misleadingLengthReader{Reader: bytes.NewReader([]byte{0, 255, 7})} }, want: []byte{0, 255, 7}},
+		{name: "false positive Len cannot invent an extra byte", source: func() io.Reader { return misleadingLengthReader{Reader: bytes.NewReader([]byte{0, 255}), remaining: 1} }, want: []byte{0, 255}},
 		{name: "negative unrelated Len cannot invalidate a conforming Reader", source: func() io.Reader {
 			return misleadingLengthReader{Reader: bytes.NewReader([]byte{0, 255}), remaining: -1}
-		}, maximum: 2, want: []byte{0, 255}},
-		{name: "native error before data retains typed refusal", source: func() io.Reader { return iotest.ErrReader(fs.ErrPermission) }, maximum: 2, wantErr: core.ErrFilestoreSource, wantNative: fs.ErrPermission},
-		{name: "native error with data preserves consumed prefix", source: func() io.Reader { return &terminalCopyReader{data: []byte{0}, err: fs.ErrPermission} }, maximum: 2, want: []byte{0}, wantErr: core.ErrFilestoreSource, wantNative: fs.ErrPermission},
-		{name: "joined eof is not clean eof before ceiling", source: func() io.Reader {
+		}, want: []byte{0, 255}},
+		{name: "native error before data retains typed refusal", source: func() io.Reader { return iotest.ErrReader(fs.ErrPermission) }, wantErr: core.ErrFilestoreSource, wantNative: fs.ErrPermission},
+		{name: "native error with data preserves consumed prefix", source: func() io.Reader { return &terminalCopyReader{data: []byte{0}, err: fs.ErrPermission} }, want: []byte{0}, wantErr: core.ErrFilestoreSource, wantNative: fs.ErrPermission},
+		{name: "joined eof is not clean eof with a partial source fragment", source: func() io.Reader {
 			return &terminalCopyReader{data: []byte{0}, err: errors.Join(io.EOF, fs.ErrPermission)}
-		}, maximum: 2, want: []byte{0}, wantErr: core.ErrFilestoreSource, wantNative: fs.ErrPermission},
-		{name: "joined eof is not clean eof at ceiling", source: func() io.Reader {
+		}, want: []byte{0}, wantErr: core.ErrFilestoreSource, wantNative: fs.ErrPermission},
+		{name: "joined eof is not clean eof with a complete source fragment", source: func() io.Reader {
 			return &terminalCopyReader{data: []byte{0, 255}, err: errors.Join(io.EOF, fs.ErrPermission)}
-		}, maximum: 2, want: []byte{0, 255}, wantErr: core.ErrFilestoreSource, wantNative: fs.ErrPermission},
-		{name: "probe native failure cannot become clean eof", source: func() io.Reader {
+		}, want: []byte{0, 255}, wantErr: core.ErrFilestoreSource, wantNative: fs.ErrPermission},
+		{name: "post-data read native failure cannot become clean eof", source: func() io.Reader {
 			return io.MultiReader(bytes.NewReader([]byte{0, 255}), iotest.ErrReader(errors.Join(io.EOF, fs.ErrPermission)))
-		}, maximum: 2, want: []byte{0, 255}, wantErr: core.ErrFilestoreSource, wantNative: fs.ErrPermission},
-		{name: "overflow and native probe failure are both retained", source: func() io.Reader {
+		}, want: []byte{0, 255}, wantErr: core.ErrFilestoreSource, wantNative: fs.ErrPermission},
+		{name: "additional data and its native terminal failure are both retained", source: func() io.Reader {
 			return io.MultiReader(bytes.NewReader([]byte{0, 255}), &terminalCopyReader{data: []byte{7}, err: fs.ErrPermission})
-		}, maximum: 2, want: []byte{0, 255}, wantErr: core.ErrFilestoreSize, wantNative: fs.ErrPermission},
-		{name: "negative reader count retains native error and writes nothing", source: func() io.Reader { return &terminalCopyReader{countAdjustment: -1, err: fs.ErrPermission} }, maximum: 2, wantErr: core.ErrFilestoreSource, wantNative: fs.ErrPermission},
-		{name: "excessive reader count retains native error and writes nothing", source: func() io.Reader { return &terminalCopyReader{countAdjustment: 1, err: fs.ErrPermission} }, maximum: 2, wantErr: core.ErrFilestoreSource, wantNative: fs.ErrPermission},
-		{name: "one below no progress ceiling can finish empty", source: func() io.Reader { return &stalledCopyReader{empty: core.ReaderConsecutiveEmptyReadMaximum - 1} }, maximum: 2},
-		{name: "exact no progress ceiling is refused", source: func() io.Reader { return &stalledCopyReader{empty: core.ReaderConsecutiveEmptyReadMaximum} }, maximum: 2, wantErr: core.ErrFilestoreSource, wantNative: io.ErrNoProgress},
-		{name: "one above no progress ceiling is bounded", source: func() io.Reader { return &stalledCopyReader{empty: core.ReaderConsecutiveEmptyReadMaximum + 1} }, maximum: 2, wantErr: core.ErrFilestoreSource, wantNative: io.ErrNoProgress},
-		{name: "probe tolerates one below no progress ceiling", source: func() io.Reader {
+		}, want: []byte{0, 255, 7}, wantErr: core.ErrFilestoreSource, wantNative: fs.ErrPermission},
+		{name: "negative reader count retains native error and writes nothing", source: func() io.Reader { return &terminalCopyReader{countAdjustment: -1, err: fs.ErrPermission} }, wantErr: core.ErrFilestoreSource, wantNative: fs.ErrPermission},
+		{name: "excessive reader count retains native error and writes nothing", source: func() io.Reader { return &terminalCopyReader{countAdjustment: 1, err: fs.ErrPermission} }, wantErr: core.ErrFilestoreSource, wantNative: fs.ErrPermission},
+		{name: "one below no progress ceiling can finish empty", source: func() io.Reader { return &stalledCopyReader{empty: core.ReaderConsecutiveEmptyReadMaximum - 1} }},
+		{name: "exact no progress ceiling is refused", source: func() io.Reader { return &stalledCopyReader{empty: core.ReaderConsecutiveEmptyReadMaximum} }, wantErr: core.ErrFilestoreSource, wantNative: io.ErrNoProgress},
+		{name: "one above no progress ceiling is bounded", source: func() io.Reader { return &stalledCopyReader{empty: core.ReaderConsecutiveEmptyReadMaximum + 1} }, wantErr: core.ErrFilestoreSource, wantNative: io.ErrNoProgress},
+		{name: "post-data read tolerates one below no progress ceiling", source: func() io.Reader {
 			return &stalledCopyReader{data: []byte{0, 255}, empty: core.ReaderConsecutiveEmptyReadMaximum - 1}
-		}, maximum: 2, want: []byte{0, 255}},
-		{name: "probe refuses exact no progress ceiling", source: func() io.Reader {
+		}, want: []byte{0, 255}},
+		{name: "post-data read refuses exact no progress ceiling", source: func() io.Reader {
 			return &stalledCopyReader{data: []byte{0, 255}, empty: core.ReaderConsecutiveEmptyReadMaximum}
-		}, maximum: 2, want: []byte{0, 255}, wantErr: core.ErrFilestoreSource, wantNative: io.ErrNoProgress},
-		{name: "known empty observation does not invent bytes", source: func() io.Reader { return bytes.NewReader(nil) }, maximum: 2, extentKnown: true},
-		{name: "known extent shrinking by one is unexpected eof", source: func() io.Reader { return bytes.NewReader([]byte{0}) }, maximum: 2, known: 2, extentKnown: true, want: []byte{0}, wantErr: core.ErrFilestoreSource, wantNative: io.ErrUnexpectedEOF},
-		{name: "known exact extent still proves actual eof", source: func() io.Reader { return copyReaderOnly{bytes.NewReader([]byte{0, 255})} }, maximum: 2, known: 2, extentKnown: true, want: []byte{0, 255}},
-		{name: "known extent growing below ceiling returns observed bytes", source: func() io.Reader { return bytes.NewReader([]byte{0, 255}) }, maximum: 3, known: 1, extentKnown: true, want: []byte{0, 255}},
-		{name: "known extent growing past ceiling cannot widen it", source: func() io.Reader { return bytes.NewReader([]byte{0, 255, 7}) }, maximum: 2, known: 2, extentKnown: true, want: []byte{0, 255}, wantErr: core.ErrFilestoreSize},
+		}, want: []byte{0, 255}, wantErr: core.ErrFilestoreSource, wantNative: io.ErrNoProgress},
+		{name: "known empty observation does not invent bytes", source: func() io.Reader { return bytes.NewReader(nil) }, extentKnown: true},
+		{name: "known extent shrinking by one is unexpected eof", source: func() io.Reader { return bytes.NewReader([]byte{0}) }, known: 2, extentKnown: true, want: []byte{0}, wantErr: core.ErrFilestoreSource, wantNative: io.ErrUnexpectedEOF},
+		{name: "known exact extent still proves actual eof", source: func() io.Reader { return copyReaderOnly{bytes.NewReader([]byte{0, 255})} }, known: 2, extentKnown: true, want: []byte{0, 255}},
+		{name: "known extent growth remains an exact observation", source: func() io.Reader { return bytes.NewReader([]byte{0, 255, 7}) }, known: 2, extentKnown: true, want: []byte{0, 255, 7}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			maximum, err := core.NewByteCount(tc.maximum)
-			if err != nil {
-				t.Fatal(err)
-			}
 			source := tc.source()
 			var destination bytes.Buffer
-			got, gotErr := copyBounded(boundedCopyRequest{ctx: t.Context(), source: source, destination: &destination, maximum: maximum, kind: streamDestinationCaller, knownExtent: tc.known, extentKnown: tc.extentKnown})
+			got, gotErr := copyStream(streamCopyRequest{ctx: t.Context(), source: source, destination: &destination, kind: streamDestinationCaller, knownExtent: tc.known, extentKnown: tc.extentKnown})
 			if (gotErr == nil) != (tc.wantErr == nil) || tc.wantErr != nil && !errors.Is(gotErr, tc.wantErr) || tc.wantNative != nil && !errors.Is(gotErr, tc.wantNative) {
 				t.Fatalf("copy = (%d,%v), want (%d,%v,%v)", got.Uint64(), gotErr, len(tc.want), tc.wantErr, tc.wantNative)
 			}
 			if got.Uint64() != uint64(len(tc.want)) || !bytes.Equal(destination.Bytes(), tc.want) {
 				t.Fatalf("receipt/bytes = (%d,%v), want (%d,%v)", got.Uint64(), destination.Bytes(), len(tc.want), tc.want)
+			}
+			if terminal, ok := source.(*terminalCopyReader); ok && terminal.reads != 1 {
+				t.Fatalf("terminal source reads = %d, want exactly one terminal observation", terminal.reads)
 			}
 			if stalled, ok := source.(*stalledCopyReader); ok {
 				wantReads := core.ReaderConsecutiveEmptyReadMaximum
@@ -200,12 +196,8 @@ func TestBoundedCopyGoWriterAccountingLayerTriad(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			maximum, err := core.NewByteCount(2)
-			if err != nil {
-				t.Fatal(err)
-			}
 			destination := countedCopyWriter{maximum: tc.maximum, err: tc.cause, countAdjustment: tc.adjustment}
-			got, gotErr := copyBounded(boundedCopyRequest{ctx: t.Context(), source: bytes.NewReader(tc.payload), destination: &destination, maximum: maximum, kind: streamDestinationCaller})
+			got, gotErr := copyStream(streamCopyRequest{ctx: t.Context(), source: bytes.NewReader(tc.payload), destination: &destination, kind: streamDestinationCaller})
 			if (gotErr == nil) != (tc.wantErr == nil) || tc.wantErr != nil && (!errors.Is(gotErr, tc.wantErr) || !errors.Is(gotErr, core.ErrFilestoreDestination)) {
 				t.Fatalf("error = %v, want destination/%v", gotErr, tc.wantErr)
 			}

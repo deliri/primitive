@@ -21,32 +21,22 @@ func FuzzFragmentedWriteActivationSemanticCustody(f *testing.F) {
 	if err != nil {
 		f.Fatal(err)
 	}
-	f.Add(emitted, uint16(len(emitted)-1), false, false)
+	f.Add(emitted, false, false)
 	for _, seed := range []struct {
 		payload []byte
-		maximum uint16
 		failure bool
 		replace bool
 	}{
 		{payload: nil},
-		{payload: []byte{0, 255}, maximum: 1},
-		{payload: []byte{0, 255, 7}, maximum: 1},
-		{payload: []byte{0, 255}, maximum: 1, failure: true},
-		{payload: []byte{0, 255}, maximum: 2, replace: true},
+		{payload: []byte{0, 255}},
+		{payload: []byte{0, 255}, failure: true},
+		{payload: []byte{0, 255}, replace: true},
 		{payload: nil, failure: true, replace: true},
 	} {
-		f.Add(seed.payload, seed.maximum, seed.failure, seed.replace)
+		f.Add(seed.payload, seed.failure, seed.replace)
 	}
-	f.Fuzz(func(t *testing.T, payload []byte, rawMaximum uint16, failure, replace bool) {
+	f.Fuzz(func(t *testing.T, payload []byte, failure, replace bool) {
 		payload = payload[:min(len(payload), 4096)]
-		maximum, err := core.NewByteCount(uint64(rawMaximum%4097) + 1)
-		if err != nil {
-			t.Fatal(err)
-		}
-		ceiling, err := maximum.Uint64()
-		if err != nil {
-			t.Fatal(err)
-		}
 		directory := t.TempDir()
 		root := requireTestRoot(t, directory)
 		targetPath := mustRelativePath(t, "target")
@@ -67,17 +57,15 @@ func FuzzFragmentedWriteActivationSemanticCustody(f *testing.F) {
 		if failure {
 			source = io.MultiReader(source, iotest.ErrReader(errors.Join(io.EOF, native)))
 		}
-		got, gotErr := filestore.Write(t.Context(), filestore.WriteRequest{Source: source, Location: filestore.Location{Root: root, Path: targetPath}, Temporary: stagePath, Mode: 0o600, Install: install, MaximumBytes: maximum})
+		got, gotErr := filestore.Write(t.Context(), filestore.WriteRequest{Source: source, Location: filestore.Location{Root: root, Path: targetPath}, Temporary: stagePath, Mode: 0o600, Install: install})
 		var wantErr error
-		if uint64(len(payload)) > ceiling {
-			wantErr = core.ErrFilestoreSize
-		} else if failure {
+		if failure {
 			wantErr = core.ErrFilestoreSource
 		}
 		if (gotErr == nil) != (wantErr == nil) || wantErr != nil && !errors.Is(gotErr, wantErr) {
 			t.Fatalf("Write = %v, want %v", gotErr, wantErr)
 		}
-		if failure && uint64(len(payload)) <= ceiling {
+		if failure {
 			var gotNative *fs.PathError
 			if !errors.As(gotErr, &gotNative) || gotNative != native || !errors.Is(gotErr, fs.ErrPermission) {
 				t.Fatalf("Write native error = %v, want exact %v", gotErr, native)
@@ -107,7 +95,7 @@ func FuzzFragmentedWriteActivationSemanticCustody(f *testing.F) {
 				t.Fatalf("resolved Write recovery request = %+v, want zero after completed activation", got)
 			}
 			var received bytes.Buffer
-			count, err := filestore.Read(t.Context(), filestore.ReadRequest{Destination: &received, Location: filestore.Location{Root: root, Path: targetPath}, MaximumBytes: maximum})
+			count, err := filestore.Read(t.Context(), filestore.ReadRequest{Destination: &received, Location: filestore.Location{Root: root, Path: targetPath}})
 			if err != nil || count.Uint64() != uint64(len(payload)) || !bytes.Equal(received.Bytes(), payload) {
 				t.Fatalf("read-back = (%d,%v,%v), want exact %v", count.Uint64(), received.Bytes(), err, payload)
 			}

@@ -183,7 +183,7 @@ func FuzzSymbolicLinkObservationAndResolution(f *testing.F) {
 				t.Fatalf("link refusal = (%v,%v), want exact native source cause", linkErr, nativeLinkErr)
 			}
 		default:
-			admissible := len(nativeTarget) > 0 && len(nativeTarget) <= filestore.SymbolicLinkTargetMaximumBytes && !strings.ContainsRune(nativeTarget, 0)
+			admissible := len(nativeTarget) > 0 && !strings.ContainsRune(nativeTarget, 0)
 			if !admissible {
 				if !errors.Is(linkErr, core.ErrFilestoreContract) || errors.Is(linkErr, core.ErrFilestoreSource) {
 					t.Fatalf("observed target admission = %v, want exact contract refusal for %q", linkErr, nativeTarget)

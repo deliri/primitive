@@ -188,11 +188,7 @@ func serviceAccountSourceWithBytes(t testing.TB, dir string, encoded []byte) Ser
 	if err != nil {
 		t.Fatal(err)
 	}
-	maximum, err := core.NewByteCount(ServiceAccountCredentialMaximumBytes + 1)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := filestore.Write(t.Context(), filestore.WriteRequest{Source: bytes.NewReader(encoded), Location: location, Temporary: temporary, Mode: 0600, Install: filestore.InstallCreate, MaximumBytes: maximum}); err != nil {
+	if _, err := filestore.Write(t.Context(), filestore.WriteRequest{Source: bytes.NewReader(encoded), Location: location, Temporary: temporary, Mode: 0600, Install: filestore.InstallCreate}); err != nil {
 		t.Fatal(err)
 	}
 	client, err := exchange.NewStandardClient()
@@ -206,15 +202,18 @@ func serviceAccountSourceWithBytes(t testing.TB, dir string, encoded []byte) Ser
 	return source
 }
 
+// Finite regression/fuzz fixture crossing the former credential quota.
+const serviceAccountCredentialFixtureBytes = 64 << 10
+
 func TestServiceAccountFileExtentLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
 		name string
 		size int
 	}{
-		{"one below credential byte ceiling", ServiceAccountCredentialMaximumBytes - 1},
-		{"exact credential byte ceiling", ServiceAccountCredentialMaximumBytes},
-		{"one above credential byte ceiling", ServiceAccountCredentialMaximumBytes + 1},
+		{"one below former credential quota", serviceAccountCredentialFixtureBytes - 1},
+		{"exact former credential quota", serviceAccountCredentialFixtureBytes},
+		{"one above former credential quota", serviceAccountCredentialFixtureBytes + 1},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			size := tc.size
@@ -222,12 +221,8 @@ func TestServiceAccountFileExtentLayerTriad(t *testing.T) {
 			dir := t.TempDir()
 			source := serviceAccountSourceWithBytes(t, dir, bytes.Repeat([]byte{' '}, size))
 			got, err := readServiceAccountCredential(t.Context(), source.path)
-			if size > ServiceAccountCredentialMaximumBytes {
-				if !errors.Is(err, core.ErrFilestoreSize) || !errors.Is(err, core.ErrGoogleIdentityContract) || len(got) != 0 {
-					t.Fatalf("credential read = (%d,%v), want zero and typed size refusal", len(got), err)
-				}
-			} else if err != nil || len(got) != size {
-				t.Fatalf("credential read = (%d,%v), want (%d,nil)", len(got), err, size)
+			if err != nil || !bytes.Equal(got, bytes.Repeat([]byte{' '}, size)) {
+				t.Fatalf("credential read = (%d,%v), want %d exact fixture bytes and nil", len(got), err, size)
 			}
 		})
 	}
@@ -261,8 +256,8 @@ func FuzzServiceAccountCredentialAcquisition(f *testing.F) {
 	f.Add([]byte("{broken"))
 	f.Fuzz(func(t *testing.T, data []byte) {
 		dir := t.TempDir()
-		if len(data) > ServiceAccountCredentialMaximumBytes+1 {
-			data = data[:ServiceAccountCredentialMaximumBytes+1]
+		if len(data) > serviceAccountCredentialFixtureBytes+1 {
+			data = data[:serviceAccountCredentialFixtureBytes+1]
 		}
 		source := serviceAccountSourceWithBytes(t, dir, data)
 		// All mutated SDK endpoints terminate at this local provider. The adapter

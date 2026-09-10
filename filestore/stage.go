@@ -53,7 +53,7 @@ func (s StagedFile) Validate() error {
 	return nil
 }
 
-// Stage streams one bounded source into an exclusively created, synchronized
+// Stage streams one source without an extent ceiling into an exclusively created, synchronized
 // real file. Caller panics propagate through Go. During unwinding, Filestore
 // closes its handle and attempts to remove only its own temporary inode;
 // cleanup errors cannot replace the caller's panic or produce a receipt.
@@ -106,9 +106,9 @@ func finishStage(
 			})
 		}
 	}()
-	written, err := copyBounded(boundedCopyRequest{
-		ctx: ctx, destination: file, source: request.Source,
-		maximum: request.MaximumBytes, kind: streamDestinationFile,
+	written, err := copyStream(streamCopyRequest{
+		ctx: ctx, destination: file, source: request.Source, buffer: request.Buffer,
+		kind: streamDestinationFile,
 	})
 	copyReturned = true
 	if err != nil {
@@ -174,13 +174,12 @@ func Write(
 		return CommitRequest{}, err
 	}
 	staged, err := Stage(ctx, StageRequest{
-		Source: request.Source,
+		Source: request.Source, Buffer: request.Buffer,
 		Temporary: Location{
 			Root: request.Location.Root,
 			Path: request.Temporary,
 		},
-		Mode:         request.Mode,
-		MaximumBytes: request.MaximumBytes,
+		Mode: request.Mode,
 	})
 	if err != nil {
 		return CommitRequest{}, err

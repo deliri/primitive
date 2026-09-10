@@ -195,18 +195,13 @@ func readTrial(
 	slot Slot,
 ) (trialDocument, error) {
 	var destination bytes.Buffer
-	maximum, err := core.NewByteCount(trialDocumentMaximumBytes)
-	if err != nil {
-		return trialDocument{}, persistenceError(err)
-	}
 	path, err := trialPath(slot)
 	if err != nil {
 		return trialDocument{}, persistenceError(err)
 	}
 	_, err = filestore.Read(ctx, filestore.ReadRequest{
-		Destination:  &destination,
-		Location:     filestore.Location{Root: root, Path: path},
-		MaximumBytes: maximum,
+		Destination: &destination,
+		Location:    filestore.Location{Root: root, Path: path},
 	})
 	if err != nil {
 		return trialDocument{}, persistenceError(err)
@@ -247,10 +242,6 @@ func writeTrial(
 	if err != nil {
 		return persistenceError(err)
 	}
-	maximum, err := core.NewByteCount(uint64(len(encoded)))
-	if err != nil {
-		return persistenceError(err)
-	}
 	path, err := trialPath(slot)
 	if err != nil {
 		return persistenceError(err)
@@ -266,7 +257,6 @@ func writeTrial(
 		},
 		Temporary: temporary,
 		Mode:      documentMode, Install: filestore.InstallCreate,
-		MaximumBytes: maximum,
 	})
 	if err == nil {
 		return nil

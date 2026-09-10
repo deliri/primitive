@@ -18,7 +18,6 @@ func Find(ctx context.Context, request FindRequest) (Observation, error) {
 	current := newFinder(request)
 	err := filestore.Walk(ctx, filestore.WalkRequest{
 		Location: request.Location,
-		Order:    filestore.WalkOrderNative,
 		Visit:    current.visit,
 	})
 	if err == nil {

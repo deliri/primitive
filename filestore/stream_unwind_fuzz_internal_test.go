@@ -28,34 +28,27 @@ func FuzzStreamUnwindSemanticCustody(f *testing.F) {
 	if err != nil {
 		f.Fatal(err)
 	}
-	f.Add(uint8(unwindStage), emitted, uint16(len(emitted)), false, false)
+	f.Add(uint8(unwindStage), emitted, false, false)
 	for _, seed := range []struct {
 		door           unwindIngress
 		payload        []byte
-		maximum        uint16
 		panics, effect bool
 	}{
-		{door: unwindStage, maximum: 1, panics: true},
-		{door: unwindStage, payload: []byte{0, 255}, maximum: 2, panics: true},
-		{door: unwindStage, payload: []byte{0, 255}, maximum: 1, panics: true},
-		{door: unwindStage, maximum: 1},
-		{door: unwindWrite, payload: []byte{0, 255}, maximum: 2, panics: true},
-		{door: unwindWrite, payload: []byte{0, 255}, maximum: 2},
-		{door: unwindRead, maximum: 1, panics: true},
-		{door: unwindRead, payload: []byte{0, 255}, maximum: 2, panics: true},
-		{door: unwindRead, payload: []byte{0, 255}, maximum: 2, panics: true, effect: true},
-		{door: unwindRead, payload: []byte{0, 255}, maximum: 1},
+		{door: unwindStage, panics: true},
+		{door: unwindStage, payload: []byte{0, 255}, panics: true},
+		{door: unwindStage},
+		{door: unwindWrite, payload: []byte{0, 255}, panics: true},
+		{door: unwindWrite, payload: []byte{0, 255}},
+		{door: unwindRead, panics: true},
+		{door: unwindRead, payload: []byte{0, 255}, panics: true},
+		{door: unwindRead, payload: []byte{0, 255}, panics: true, effect: true},
+		{door: unwindRead, payload: []byte{0, 255}},
 	} {
-		f.Add(uint8(seed.door), seed.payload, seed.maximum, seed.panics, seed.effect)
+		f.Add(uint8(seed.door), seed.payload, seed.panics, seed.effect)
 	}
-	f.Fuzz(func(t *testing.T, rawDoor uint8, payload []byte, rawMaximum uint16, panics, effect bool) {
+	f.Fuzz(func(t *testing.T, rawDoor uint8, payload []byte, panics, effect bool) {
 		door := unwindIngress(rawDoor) % unwindIngressLimit
 		payload = payload[:min(len(payload), 4096)]
-		ceiling := uint64(max(1, rawMaximum%4097))
-		maximum, err := core.NewByteCount(ceiling)
-		if err != nil {
-			t.Fatal(err)
-		}
 		directory := t.TempDir()
 		root, err := os.OpenRoot(directory)
 		if err != nil {
@@ -108,31 +101,27 @@ func FuzzStreamUnwindSemanticCustody(f *testing.F) {
 			defer func() { gotPanic = recover() }()
 			switch door {
 			case unwindStage:
-				gotStage, gotErr = Stage(t.Context(), StageRequest{Source: source, Temporary: Location{Root: root, Path: stagePath}, Mode: 0o600, MaximumBytes: maximum})
+				gotStage, gotErr = Stage(t.Context(), StageRequest{Source: source, Temporary: Location{Root: root, Path: stagePath}, Mode: 0o600})
 			case unwindWrite:
-				gotCommit, gotErr = Write(t.Context(), WriteRequest{Source: source, Location: Location{Root: root, Path: targetPath}, Temporary: stagePath, Mode: 0o600, Install: InstallReplace, MaximumBytes: maximum})
+				gotCommit, gotErr = Write(t.Context(), WriteRequest{Source: source, Location: Location{Root: root, Path: targetPath}, Temporary: stagePath, Mode: 0o600, Install: InstallReplace})
 			case unwindRead:
-				gotCount, gotErr = Read(t.Context(), ReadRequest{Destination: destination, Location: Location{Root: root, Path: targetPath}, MaximumBytes: maximum})
+				gotCount, gotErr = Read(t.Context(), ReadRequest{Destination: destination, Location: Location{Root: root, Path: targetPath}})
 			}
 			returned = true
 		}()
-		wantPanic := panics && uint64(len(payload)) <= ceiling
+		wantPanic := panics
 		if door == unwindRead {
 			wantPanic = panics && len(payload) > 0
-		}
-		var wantErr error
-		if !wantPanic && uint64(len(payload)) > ceiling {
-			wantErr = core.ErrFilestoreSize
 		}
 		if wantPanic {
 			if gotPanic != native || returned || gotErr != nil || gotStage != (StagedFile{}) || gotCommit != (CommitRequest{}) || gotCount != (core.ByteLength{}) {
 				t.Fatalf("unwind = (%v,%t,%v,%+v,%+v,%+v), want original panic without a returned receipt", gotPanic, returned, gotErr, gotStage, gotCommit, gotCount)
 			}
-		} else if gotPanic != nil || !returned || (gotErr == nil) != (wantErr == nil) || wantErr != nil && !errors.Is(gotErr, wantErr) {
-			t.Fatalf("return = (%v,%t,%v), want returned %v", gotPanic, returned, gotErr, wantErr)
+		} else if gotPanic != nil || !returned || gotErr != nil {
+			t.Fatalf("return = (%v,%t,%v), want normal successful return", gotPanic, returned, gotErr)
 		}
 		if door == unwindRead {
-			wantBytes := payload[:min(uint64(len(payload)), ceiling)]
+			wantBytes := payload
 			if wantPanic && !effect {
 				wantBytes = nil
 			}
@@ -143,7 +132,7 @@ func FuzzStreamUnwindSemanticCustody(f *testing.F) {
 				t.Fatalf("read count = %d, want %d", gotCount.Uint64(), len(wantBytes))
 			}
 		}
-		if !wantPanic && wantErr == nil {
+		if !wantPanic {
 			switch door {
 			case unwindStage:
 				stagedBytes, err := os.ReadFile(directory + "/stage")
@@ -170,7 +159,7 @@ func FuzzStreamUnwindSemanticCustody(f *testing.F) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if door != unwindWrite || wantPanic || wantErr != nil {
+		if door != unwindWrite || wantPanic {
 			if !os.SameFile(before, after) || before.Mode() != after.Mode() || before.ModTime().UnixNano() != after.ModTime().UnixNano() {
 				t.Fatalf("preserved target = %v, want original inode and metadata %v", after, before)
 			}

@@ -223,9 +223,9 @@ func readOwnedRegularFile(ctx context.Context, request ReadRequest, file *os.Fil
 	if err != nil {
 		return core.ByteLength{}, sourceError(err)
 	}
-	return copyBounded(boundedCopyRequest{
-		ctx: ctx, destination: request.Destination, source: file,
-		maximum: request.MaximumBytes, kind: streamDestinationCaller,
+	return copyStream(streamCopyRequest{
+		ctx: ctx, destination: request.Destination, source: file, buffer: request.Buffer,
+		kind:        streamDestinationCaller,
 		knownExtent: extent, extentKnown: true,
 	})
 }

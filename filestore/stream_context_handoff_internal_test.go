@@ -44,25 +44,23 @@ func (w *contextHandoffDestination) Write(buffer []byte) (int, error) {
 	return n, err
 }
 
-// Direct bounded-copy ratchet: cancellation occurs at exact reader/writer
+// Direct stream-copy ratchet: cancellation occurs at exact reader/writer
 // handoffs, never by scheduler timing. Public stream tests cover file effects.
-func TestBoundedCopyContextHandoffLayerTriad(t *testing.T) {
+func TestStreamCopyContextHandoffLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
 		name                                          string
 		payload, want                                 []byte
-		maximum                                       uint64
 		nilContext, beforeRead, afterRead, afterWrite bool
 		wantErr                                       error
 		wantReads, wantWrites                         int
 	}{
-		{name: "active stream retains exact binary bytes through every handoff", payload: []byte{0, 255, 1}, maximum: 4, want: []byte{0, 255, 1}, wantReads: 4, wantWrites: 3},
-		{name: "empty stream observes EOF without calling destination", maximum: 1, wantReads: 1},
-		{name: "cancellation before first read cannot touch source", payload: []byte{0, 255, 1}, maximum: 4, beforeRead: true, wantErr: context.Canceled},
-		{name: "nil context refuses without reading caller material", payload: []byte{0, 255, 1}, maximum: 4, nilContext: true, wantErr: core.ErrNilContext},
-		{name: "destination cancellation prevents next source read", payload: []byte{0, 255, 1}, maximum: 4, afterWrite: true, want: []byte{0}, wantErr: context.Canceled, wantReads: 1, wantWrites: 1},
-		{name: "cancellation at byte ceiling prevents overflow probe consumption", payload: []byte{0, 255, 1}, maximum: 1, afterWrite: true, want: []byte{0}, wantErr: context.Canceled, wantReads: 1, wantWrites: 1},
-		{name: "cancellation during read preserves returned byte count and prefix", payload: []byte{0, 255, 1}, maximum: 4, afterRead: true, want: []byte{0}, wantErr: context.Canceled, wantReads: 1, wantWrites: 1},
+		{name: "active stream retains exact binary bytes through every handoff", payload: []byte{0, 255, 1}, want: []byte{0, 255, 1}, wantReads: 4, wantWrites: 3},
+		{name: "empty stream observes EOF without calling destination", wantReads: 1},
+		{name: "cancellation before first read cannot touch source", payload: []byte{0, 255, 1}, beforeRead: true, wantErr: context.Canceled},
+		{name: "nil context refuses without reading caller material", payload: []byte{0, 255, 1}, nilContext: true, wantErr: core.ErrNilContext},
+		{name: "destination cancellation prevents next source read", payload: []byte{0, 255, 1}, afterWrite: true, want: []byte{0}, wantErr: context.Canceled, wantReads: 1, wantWrites: 1},
+		{name: "cancellation during read preserves returned byte count and prefix", payload: []byte{0, 255, 1}, afterRead: true, want: []byte{0}, wantErr: context.Canceled, wantReads: 1, wantWrites: 1},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -82,11 +80,7 @@ func TestBoundedCopyContextHandoffLayerTriad(t *testing.T) {
 			if tc.afterWrite {
 				destination.cancel = cancel
 			}
-			maximum, err := core.NewByteCount(tc.maximum)
-			if err != nil {
-				t.Fatal(err)
-			}
-			got, gotErr := copyBounded(boundedCopyRequest{ctx: ctx, source: &source, destination: &destination, maximum: maximum, kind: streamDestinationCaller})
+			got, gotErr := copyStream(streamCopyRequest{ctx: ctx, source: &source, destination: &destination, kind: streamDestinationCaller})
 			if !errors.Is(gotErr, tc.wantErr) || errors.Is(gotErr, core.ErrFilestoreSource) || errors.Is(gotErr, core.ErrFilestoreDestination) || errors.Is(gotErr, core.ErrFilestoreSize) {
 				t.Fatalf("copy error = %v, want exact %v without source/destination/size classification", gotErr, tc.wantErr)
 			}

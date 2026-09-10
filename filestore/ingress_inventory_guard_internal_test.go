@@ -50,13 +50,13 @@ func TestIngressBindingRejectsNamesAndForeignFunctions(t *testing.T) {
 		input reflect.Value
 		want  string
 	}{
-		{name: "real free function keeps its compiler identity", input: reflect.ValueOf(NewDirectoryEntryMaximum), want: "NewDirectoryEntryMaximum"},
+		{name: "real free function keeps its compiler identity", input: reflect.ValueOf(OpenRoot), want: "OpenRoot"},
 		{name: "pointer method keeps its receiver identity", input: reflect.ValueOf((*HeldDirectory).Close), want: "HeldDirectory.Close"},
 		{name: "value method keeps its receiver identity", input: reflect.ValueOf(StagedFile.Path), want: "StagedFile.Path"},
 		{name: "foreign Go function cannot impersonate a package door", input: reflect.ValueOf(os.Open)},
 		{name: "missing reflection value cannot bind a door"},
 		{name: "typed nil function cannot bind a door", input: reflect.ValueOf(absent)},
-		{name: "raw function spelling is not a compiler binding", input: reflect.ValueOf("NewDirectoryEntryMaximum")},
+		{name: "raw function spelling is not a compiler binding", input: reflect.ValueOf("OpenRoot")},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

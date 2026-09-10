@@ -10,19 +10,7 @@ import (
 	"github.com/deliri/primitive/v2026/filestore"
 )
 
-func BenchmarkWalkLexicalSparseDirectory(b *testing.B) {
-	b.ReportAllocs()
-	benchmarkWalkSparseDirectory(b, filestore.WalkOrderLexical)
-}
-
 func BenchmarkWalkNativeSparseDirectory(b *testing.B) {
-	b.ReportAllocs()
-	benchmarkWalkSparseDirectory(b, filestore.WalkOrderNative)
-}
-
-func benchmarkWalkSparseDirectory(b *testing.B, order filestore.WalkOrder) {
-	b.Helper()
-
 	directory := b.TempDir()
 	if err := os.WriteFile(filepath.Join(directory, "entry"), nil, 0o600); err != nil {
 		b.Fatal(err)
@@ -42,20 +30,12 @@ func benchmarkWalkSparseDirectory(b *testing.B, order filestore.WalkOrder) {
 	}
 	request := filestore.WalkRequest{
 		Location: filestore.Location{Root: root, Path: path},
-		Order:    order,
 		Visit: func(entry filestore.WalkEntry) (filestore.WalkDirective, error) {
 			if err := entry.Validate(); err != nil {
 				return filestore.WalkDirectiveUnknown, err
 			}
 			return filestore.WalkContinue, nil
 		},
-	}
-	if order == filestore.WalkOrderLexical {
-		ceiling, ceilingErr := filestore.NewDirectoryEntryMaximum(filestore.DirectoryEntryMaximumLimit)
-		if ceilingErr != nil {
-			b.Fatal(ceilingErr)
-		}
-		request.DirectoryEntryMaximum = ceiling
 	}
 	var wantErr error
 	b.ReportAllocs()

@@ -614,15 +614,9 @@ func exchangeArchitectureSources(t testing.TB, fileSet *token.FileSet) []exchang
 	if err != nil {
 		t.Fatalf("source root path admission error = %v, want nil", err)
 	}
-	const sourceMaximumBytes = 1 << 20
-	limit, err := core.NewByteCount(sourceMaximumBytes)
-	if err != nil {
-		t.Fatalf("source limit admission error = %v, want nil", err)
-	}
 	var sources []exchangeArchitectureSource
 	err = filestore.Walk(t.Context(), filestore.WalkRequest{
-		Location: filestore.Location{Root: root, Path: path}, Order: filestore.WalkOrderNative,
-		Visit: func(entry filestore.WalkEntry) (filestore.WalkDirective, error) {
+		Location: filestore.Location{Root: root, Path: path}, Visit: func(entry filestore.WalkEntry) (filestore.WalkDirective, error) {
 			if entry.Entry.IsDir() {
 				return filestore.WalkSkipDirectory, nil
 			}
@@ -631,7 +625,7 @@ func exchangeArchitectureSources(t testing.TB, fileSet *token.FileSet) []exchang
 				return filestore.WalkContinue, nil
 			}
 			var data bytes.Buffer
-			_, err := filestore.Read(t.Context(), filestore.ReadRequest{Location: filestore.Location{Root: root, Path: entry.Path}, Destination: &data, MaximumBytes: limit})
+			_, err := filestore.Read(t.Context(), filestore.ReadRequest{Location: filestore.Location{Root: root, Path: entry.Path}, Destination: &data})
 			if err != nil {
 				return filestore.WalkContinue, err
 			}

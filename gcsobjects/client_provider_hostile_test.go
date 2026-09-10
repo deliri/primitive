@@ -304,9 +304,8 @@ func TestAuthenticatedGCSReadsExecuteTheOfficialSDKAndProveEveryByte(t *testing.
 				}
 				var leaked bytes.Buffer
 				_, leakErr := filestore.Read(t.Context(), filestore.ReadRequest{
-					Destination:  &leaked,
-					Location:     filestore.Location{Root: root, Path: destination.Temporary.Path},
-					MaximumBytes: gcsProviderMaximum(t, tc.maximum+1),
+					Destination: &leaked,
+					Location:    filestore.Location{Root: root, Path: destination.Temporary.Path},
 				})
 				if !errors.Is(leakErr, fs.ErrNotExist) || leaked.Len() != 0 {
 					t.Fatalf("rejected GCS read local stage = (%d bytes, %v), want absent and zero", leaked.Len(), leakErr)
@@ -316,9 +315,8 @@ func TestAuthenticatedGCSReadsExecuteTheOfficialSDKAndProveEveryByte(t *testing.
 			staged, stagedErr := got.Staged()
 			var content bytes.Buffer
 			_, readErr := filestore.Read(t.Context(), filestore.ReadRequest{
-				Destination:  &content,
-				Location:     filestore.Location{Root: root, Path: destination.Temporary.Path},
-				MaximumBytes: gcsProviderMaximum(t, tc.maximum+1),
+				Destination: &content,
+				Location:    filestore.Location{Root: root, Path: destination.Temporary.Path},
 			})
 			if gotErr != nil || got.Validate() != nil || stagedErr != nil || readErr != nil ||
 				!bytes.Equal(content.Bytes(), tc.wantBytes) {
@@ -780,11 +778,7 @@ func gcsLocalCredentialFile(t testing.TB, directory, endpoint string) string {
 	if err != nil {
 		t.Fatalf("ParseRelativePath(credential temporary) error = %v, want nil", err)
 	}
-	maximum, err := core.NewByteCount(uint64(len(encoded)))
-	if err != nil {
-		t.Fatalf("NewByteCount(credential) error = %v, want nil", err)
-	}
-	_, err = filestore.Write(t.Context(), filestore.WriteRequest{Source: bytes.NewReader(encoded), Location: location, Temporary: temporary, Mode: 0o600, Install: filestore.InstallCreate, MaximumBytes: maximum})
+	_, err = filestore.Write(t.Context(), filestore.WriteRequest{Source: bytes.NewReader(encoded), Location: location, Temporary: temporary, Mode: 0o600, Install: filestore.InstallCreate})
 	if err != nil {
 		t.Fatalf("Write(credential) error = %v, want nil", err)
 	}

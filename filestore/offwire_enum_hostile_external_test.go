@@ -162,55 +162,6 @@ func TestWalkDirectiveExhaustiveOffWireDomain(t *testing.T) {
 	}
 }
 
-func TestWalkOrderExhaustiveOffWireDomain(t *testing.T) {
-	t.Parallel()
-	admitted := [...]filestore.WalkOrder{filestore.WalkOrderNative, filestore.WalkOrderLexical}
-	cases := make([]struct {
-		name      string
-		value     filestore.WalkOrder
-		wantValid bool
-	}, math.MaxUint8+1)
-	for raw := range cases {
-		value := filestore.WalkOrder(raw)
-		cases[raw].name = fmt.Sprintf("backing value %d cannot change domain membership", raw)
-		cases[raw].value = value
-		cases[raw].wantValid = slices.Contains(admitted[:], value)
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			got := tc.value
-			gotErr := got.Validate()
-			if got != tc.value || got.IsValid() != tc.wantValid || (gotErr == nil) != tc.wantValid {
-				t.Fatalf("value/IsValid/Validate = (%v,%t,%v), want (%v,%t)", got, got.IsValid(), gotErr, tc.value, tc.wantValid)
-			}
-			if !tc.wantValid {
-				if !errors.Is(gotErr, core.ErrFilestoreContract) || errors.Is(gotErr, core.ErrFilestoreSource) || errors.Is(gotErr, core.ErrFilestoreActivation) || got.String() != core.UnknownEnumDiagnostic {
-					t.Fatalf("refusal = (%v,%q), want pure Contract and unknown diagnostic", gotErr, got.String())
-				}
-				return
-			}
-			label := got.String()
-			if label == "" || label == core.UnknownEnumDiagnostic {
-				t.Fatalf("admitted label = %q, want nonempty named diagnostic", label)
-			}
-			for _, other := range admitted {
-				if other != got && other.String() == label {
-					t.Fatalf("distinct arms %d/%d share %q, want unique labels", got, other, label)
-				}
-			}
-		})
-	}
-	var value filestore.WalkOrder
-	var _ core.OffWireEnum = value
-	if _, got := any(value).(json.Marshaler); got {
-		t.Fatalf("WalkOrder encodes JSON = %t, want false", got)
-	}
-	if _, got := any(&value).(json.Unmarshaler); got {
-		t.Fatalf("WalkOrder decodes JSON = %t, want false", got)
-	}
-}
-
 func TestHeldStandingExhaustiveOffWireDomain(t *testing.T) {
 	t.Parallel()
 	admitted := [...]filestore.HeldStanding{filestore.HeldStandingSame, filestore.HeldStandingReplaced, filestore.HeldStandingAbsent}

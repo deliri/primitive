@@ -45,19 +45,15 @@ func TestCopyBoundedPreservesConsumedPrefixAndNativeErrorAcrossCancellation(t *t
 			ctx, cancel := context.WithCancel(t.Context())
 			var destination bytes.Buffer
 			payload := []byte("consumed-prefix")
-			maximum, maximumErr := core.NewByteCount(uint64(len(payload) + 1))
-			if maximumErr != nil {
-				t.Fatalf("core.NewByteCount() error = %v, want nil", maximumErr)
-			}
-			gotLength, gotErr := copyBounded(boundedCopyRequest{
+			gotLength, gotErr := copyStream(streamCopyRequest{
 				ctx: ctx, source: &cancelAfterReadSource{cancel: cancel, cause: tc.readErr, data: payload},
-				destination: &destination, maximum: maximum, kind: streamDestinationCaller,
+				destination: &destination, kind: streamDestinationCaller,
 			})
 			if !errors.Is(gotErr, tc.wantErr) || errors.Is(gotErr, tc.wantExcluded) {
-				t.Fatalf("copyBounded() error = %v, want %v and not %v", gotErr, tc.wantErr, tc.wantExcluded)
+				t.Fatalf("copyStream() error = %v, want %v and not %v", gotErr, tc.wantErr, tc.wantExcluded)
 			}
 			if gotLength.Uint64() != uint64(len(payload)) || !bytes.Equal(destination.Bytes(), payload) {
-				t.Fatalf("copyBounded() = (length %d, bytes %q), want (%d, %q)", gotLength.Uint64(), destination.Bytes(), len(payload), payload)
+				t.Fatalf("copyStream() = (length %d, bytes %q), want (%d, %q)", gotLength.Uint64(), destination.Bytes(), len(payload), payload)
 			}
 		})
 	}

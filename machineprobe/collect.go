@@ -15,7 +15,6 @@ import (
 
 const (
 	OutputMaximumBytes uint64 = 256 * 1024
-	ScriptMaximumBytes uint64 = 128 * 1024
 )
 
 type Request struct {
@@ -200,13 +199,8 @@ func readScript(ctx context.Context, path core.AbsolutePath) ([]byte, core.ByteL
 	if err != nil {
 		return nil, core.ByteLength{}, err
 	}
-	limit, err := core.NewByteCount(ScriptMaximumBytes)
-	if err != nil {
-		closeErr := location.Root.Close()
-		return nil, core.ByteLength{}, errors.Join(core.ErrRunProtocolContract, err, closeErr)
-	}
 	var script bytes.Buffer
-	count, readErr := filestore.Read(ctx, filestore.ReadRequest{Destination: &script, Location: location, MaximumBytes: limit})
+	count, readErr := filestore.Read(ctx, filestore.ReadRequest{Destination: &script, Location: location})
 	closeErr := location.Root.Close()
 	if closeErr != nil {
 		closeErr = errors.Join(core.ErrFilestoreCleanup, closeErr)

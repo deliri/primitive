@@ -26,7 +26,7 @@ func TestStreamingAcceptsAndRejectsStandardLibraryReaderBehaviors(t *testing.T) 
 		name       string
 	}{
 		{
-			name:   "bytes reader may return a full bounded chunk",
+			name:   "bytes reader may return a full offered chunk",
 			reader: func(data []byte) io.Reader { return bytes.NewReader(data) },
 		},
 		{
@@ -108,31 +108,29 @@ func TestStreamingAcceptsAndRejectsStandardLibraryReaderBehaviors(t *testing.T) 
 		},
 	}
 	operations := []struct {
-		run  func(*testing.T, *os.Root, io.Reader, uint64) (string, error)
+		run  func(*testing.T, *os.Root, io.Reader) (string, error)
 		name string
 	}{
 		{
 			name: "stage",
-			run: func(t *testing.T, root *os.Root, source io.Reader, maximum uint64) (string, error) {
+			run: func(t *testing.T, root *os.Root, source io.Reader) (string, error) {
 				staged, err := filestore.Stage(t.Context(), filestore.StageRequest{
-					Source:       source,
-					Temporary:    filestore.Location{Root: root, Path: mustRelativePath(t, ".stage")},
-					Mode:         0o600,
-					MaximumBytes: mustByteCount(t, maximum),
+					Source:    source,
+					Temporary: filestore.Location{Root: root, Path: mustRelativePath(t, ".stage")},
+					Mode:      0o600,
 				})
 				return staged.Path().String(), err
 			},
 		},
 		{
 			name: "write",
-			run: func(t *testing.T, root *os.Root, source io.Reader, maximum uint64) (string, error) {
+			run: func(t *testing.T, root *os.Root, source io.Reader) (string, error) {
 				_, err := filestore.Write(t.Context(), filestore.WriteRequest{
-					Source:       source,
-					Location:     filestore.Location{Root: root, Path: mustRelativePath(t, "target")},
-					Temporary:    mustRelativePath(t, ".stage"),
-					Mode:         0o600,
-					Install:      filestore.InstallCreate,
-					MaximumBytes: mustByteCount(t, maximum),
+					Source:    source,
+					Location:  filestore.Location{Root: root, Path: mustRelativePath(t, "target")},
+					Temporary: mustRelativePath(t, ".stage"),
+					Mode:      0o600,
+					Install:   filestore.InstallCreate,
 				})
 				return "target", err
 			},
@@ -145,12 +143,10 @@ func TestStreamingAcceptsAndRejectsStandardLibraryReaderBehaviors(t *testing.T) 
 
 				rootDirectory := t.TempDir()
 				root := requireTestRoot(t, rootDirectory)
-				maximum := uint64(len(payload))
 				gotPath, gotErr := operation.run(
 					t,
 					root,
 					tc.reader(payload),
-					maximum,
 				)
 				if tc.wantErr != nil {
 					if !errors.Is(gotErr, tc.wantErr) ||

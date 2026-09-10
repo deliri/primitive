@@ -44,7 +44,7 @@ func inspectArtifact(
 	if err != nil {
 		return artifactVerificationUnknown, err
 	}
-	count, digest, hashed, checksum, err := readArtifactIntegrity(ctx, root, path, integrity)
+	count, digest, hashed, checksum, err := readArtifactIntegrity(ctx, root, path)
 	if err != nil {
 		return classifyArtifactReadError(err)
 	}
@@ -75,14 +75,12 @@ func readArtifactIntegrity(
 	ctx context.Context,
 	root *os.Root,
 	path core.RelativePath,
-	integrity release.ArtifactIntegrity,
 ) (core.ByteLength, core.SHA256Digest, core.ByteLength, core.CRC32C, error) {
 	sha := core.NewDigestWriter()
 	crc := crc32.New(crc32.MakeTable(crc32.Castagnoli))
 	count, err := filestore.Read(ctx, filestore.ReadRequest{
-		Destination:  io.MultiWriter(sha, crc),
-		Location:     filestore.Location{Root: root, Path: path},
-		MaximumBytes: integrity.Extent(),
+		Destination: io.MultiWriter(sha, crc),
+		Location:    filestore.Location{Root: root, Path: path},
 	})
 	if err != nil {
 		return core.ByteLength{}, core.SHA256Digest{}, core.ByteLength{}, core.CRC32C{}, err

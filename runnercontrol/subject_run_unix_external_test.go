@@ -177,11 +177,7 @@ func subjectOutputSupervisor(t testing.TB, directory string) string {
 		t.Fatalf("ParseRelativePath(supervisor temporary) error = %v, want nil", err)
 	}
 	script := "#!/bin/sh\nwhile :; do printf 'ready\\n'; done\n"
-	maximum, err := core.NewByteCount(uint64(len(script)))
-	if err != nil {
-		t.Fatalf("NewByteCount(supervisor) error = %v, want nil", err)
-	}
-	_, err = filestore.Write(t.Context(), filestore.WriteRequest{Source: strings.NewReader(script), Location: location, Temporary: temporary, Mode: 0o700, Install: filestore.InstallCreate, MaximumBytes: maximum})
+	_, err = filestore.Write(t.Context(), filestore.WriteRequest{Source: strings.NewReader(script), Location: location, Temporary: temporary, Mode: 0o700, Install: filestore.InstallCreate})
 	if err != nil {
 		t.Fatalf("Write(supervisor) error = %v, want nil", err)
 	}

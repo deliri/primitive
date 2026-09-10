@@ -17,6 +17,9 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
+// Finite regression/fuzz fixture crossing the former provider custody quota.
+const gcsCredentialFixtureBytes = 64 << 10
+
 type gcsCredentialFileShape uint8
 
 const (
@@ -54,12 +57,10 @@ func TestGCSCredentialFileIngressHostileBoundaryMatrix(t *testing.T) {
 		{name: "four KiB regular file is read exactly", shape: gcsCredentialFileRegular, content: repeatedCredentialBytes(4 << 10)},
 		{name: "eight KiB regular file is read exactly", shape: gcsCredentialFileRegular, content: repeatedCredentialBytes(8 << 10)},
 		{name: "sixteen KiB regular file is read exactly", shape: gcsCredentialFileRegular, content: repeatedCredentialBytes(16 << 10)},
+		{name: "later partial window preserves the complete credential", shape: gcsCredentialFileRegular, content: repeatedCredentialBytes(gcsCredentialFixtureBytes + 4096)},
+		{name: "four complete copy windows preserve every byte", shape: gcsCredentialFileRegular, content: repeatedCredentialBytes(2 * gcsCredentialFixtureBytes)},
 	}
 	rejectionCases := []gcsCredentialFileCase{
-		{name: "one byte above maximum is refused", shape: gcsCredentialFileRegular, content: repeatedCredentialBytes(GCSCredentialJSONMaximumBytes + 1), wantErrors: credentialSizeErrors()},
-		{name: "two bytes above maximum are refused", shape: gcsCredentialFileRegular, content: repeatedCredentialBytes(GCSCredentialJSONMaximumBytes + 2), wantErrors: credentialSizeErrors()},
-		{name: "one page above maximum is refused", shape: gcsCredentialFileRegular, content: repeatedCredentialBytes(GCSCredentialJSONMaximumBytes + 4096), wantErrors: credentialSizeErrors()},
-		{name: "twice the maximum is refused without partial bytes", shape: gcsCredentialFileRegular, content: repeatedCredentialBytes(2 * GCSCredentialJSONMaximumBytes), wantErrors: credentialSizeErrors()},
 		{name: "absent credential file preserves Filestore source identity", shape: gcsCredentialFileAbsent, wantErrors: credentialSourceErrors()},
 		{name: "absent credential parent preserves Filestore source identity", shape: gcsCredentialFileAbsentParent, wantErrors: credentialSourceErrors()},
 		{name: "directory cannot stand in for a credential file", shape: gcsCredentialFileDirectory, wantErrors: credentialSourceErrors()},
@@ -80,12 +81,12 @@ func TestGCSCredentialFileIngressHostileBoundaryMatrix(t *testing.T) {
 		{name: "one below Filestore buffer boundary is admitted", shape: gcsCredentialFileRegular, content: repeatedCredentialBytes((32 << 10) - 1)},
 		{name: "exact Filestore buffer boundary is admitted", shape: gcsCredentialFileRegular, content: repeatedCredentialBytes(32 << 10)},
 		{name: "one above Filestore buffer boundary is admitted", shape: gcsCredentialFileRegular, content: repeatedCredentialBytes((32 << 10) + 1)},
-		{name: "two below credential ceiling are admitted", shape: gcsCredentialFileRegular, content: repeatedCredentialBytes(GCSCredentialJSONMaximumBytes - 2)},
-		{name: "one below credential ceiling is admitted", shape: gcsCredentialFileRegular, content: repeatedCredentialBytes(GCSCredentialJSONMaximumBytes - 1)},
-		{name: "exact credential ceiling is admitted", shape: gcsCredentialFileRegular, content: repeatedCredentialBytes(GCSCredentialJSONMaximumBytes)},
-		{name: "one above credential ceiling is refused", shape: gcsCredentialFileRegular, content: repeatedCredentialBytes(GCSCredentialJSONMaximumBytes + 1), wantErrors: credentialSizeErrors()},
-		{name: "two above credential ceiling are refused", shape: gcsCredentialFileRegular, content: repeatedCredentialBytes(GCSCredentialJSONMaximumBytes + 2), wantErrors: credentialSizeErrors()},
-		{name: "binary byte spectrum below ceiling remains exact", shape: gcsCredentialFileRegular, content: byteSpectrum()},
+		{name: "two below former credential quota are admitted", shape: gcsCredentialFileRegular, content: repeatedCredentialBytes(gcsCredentialFixtureBytes - 2)},
+		{name: "one below former credential quota is admitted", shape: gcsCredentialFileRegular, content: repeatedCredentialBytes(gcsCredentialFixtureBytes - 1)},
+		{name: "exact former credential quota is admitted", shape: gcsCredentialFileRegular, content: repeatedCredentialBytes(gcsCredentialFixtureBytes)},
+		{name: "one above former credential quota preserves every byte", shape: gcsCredentialFileRegular, content: repeatedCredentialBytes(gcsCredentialFixtureBytes + 1)},
+		{name: "two-byte tail beyond former credential quota remains exact", shape: gcsCredentialFileRegular, content: repeatedCredentialBytes(gcsCredentialFixtureBytes + 2)},
+		{name: "binary byte spectrum below former quota remains exact", shape: gcsCredentialFileRegular, content: byteSpectrum()},
 		{name: "whitespace-only provider input remains exact", shape: gcsCredentialFileRegular, content: []byte(" \t\r\n")},
 		{name: "one nested parent remains confined and exact", shape: gcsCredentialFileNestedRegular, content: []byte("nested")},
 	}
@@ -186,10 +187,6 @@ func byteSpectrum() []byte {
 	return value
 }
 
-func credentialSizeErrors() []error {
-	return []error{core.ErrObjectStoreContract, core.ErrFilestoreSize}
-}
-
 func credentialSourceErrors() []error {
 	return []error{core.ErrObjectStoreContract, core.ErrFilestoreSource}
 }
@@ -258,13 +255,13 @@ func FuzzNewGCSClientCredentialFileSemanticBoundary(f *testing.F) {
 	f.Add(canonical)
 	f.Add([]byte{})
 	f.Add([]byte(`{"type":"service_account"}`))
-	f.Add(repeatedCredentialBytes(GCSCredentialJSONMaximumBytes - 1))
-	f.Add(repeatedCredentialBytes(GCSCredentialJSONMaximumBytes))
-	f.Add(repeatedCredentialBytes(GCSCredentialJSONMaximumBytes + 1))
+	f.Add(repeatedCredentialBytes(gcsCredentialFixtureBytes - 1))
+	f.Add(repeatedCredentialBytes(gcsCredentialFixtureBytes))
+	f.Add(repeatedCredentialBytes(gcsCredentialFixtureBytes + 1))
 
 	f.Fuzz(func(t *testing.T, input []byte) {
-		if len(input) > GCSCredentialJSONMaximumBytes+1 {
-			input = input[:GCSCredentialJSONMaximumBytes+1]
+		if len(input) > gcsCredentialFixtureBytes+1 {
+			input = input[:gcsCredentialFixtureBytes+1]
 		}
 		directory := t.TempDir()
 		path := filepath.Join(directory, "credential.json")
@@ -284,17 +281,8 @@ func FuzzNewGCSClientCredentialFileSemanticBoundary(f *testing.F) {
 		}
 		gotBytes, gotReadErr := gcsCredentialJSON(context.Background(), config)
 		client, gotClientErr := NewGCSClient(context.Background(), config)
-		if len(input) > GCSCredentialJSONMaximumBytes {
-			if gotBytes != nil || client != nil ||
-				!errors.Is(gotReadErr, core.ErrFilestoreSize) ||
-				!errors.Is(gotClientErr, core.ErrObjectStoreContract) ||
-				!errors.Is(gotClientErr, core.ErrFilestoreSize) {
-				t.Fatalf("oversized credential ingress = (%d bytes, %v, %v, %v), want nil bytes, nil client, object-store contract, and Filestore size", len(gotBytes), gotReadErr, client, gotClientErr)
-			}
-			return
-		}
 		if gotReadErr != nil || !bytes.Equal(gotBytes, input) {
-			t.Fatalf("bounded credential custody = (%d bytes, %v), want exact %d bytes and nil", len(gotBytes), gotReadErr, len(input))
+			t.Fatalf("complete credential custody = (%d bytes, %v), want exact %d bytes and nil", len(gotBytes), gotReadErr, len(input))
 		}
 		if gotClientErr != nil {
 			if client != nil || !errors.Is(gotClientErr, core.ErrObjectStoreContract) {

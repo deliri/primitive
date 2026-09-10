@@ -6,7 +6,7 @@ import (
 	"github.com/deliri/primitive/v2026/contextstate"
 )
 
-// ReadSymbolicLink observes one bounded target without following the link.
+// ReadSymbolicLink observes one native target without following the link.
 func ReadSymbolicLink(ctx context.Context, location Location) (SymbolicLinkTarget, error) {
 	if err := contextstate.Validate(ctx); err != nil {
 		return SymbolicLinkTarget{}, err

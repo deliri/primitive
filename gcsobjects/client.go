@@ -47,10 +47,6 @@ func NewGCSClient(ctx context.Context, config GCSClientConfig) (*GCSClient, erro
 }
 
 const (
-	// GCSCredentialJSONMaximumBytes is Primitive's custody ceiling for one
-	// service-account credential file before it enters Google's authentication SDK.
-	// Source: https://cloud.google.com/iam/docs/keys-create-delete#creating
-	GCSCredentialJSONMaximumBytes = 64 << 10
 	// GCSAuthenticationResponseMaximumBytes is Primitive's custody ceiling for
 	// one provider credential exchange; Google publishes the token shape but no
 	// aggregate response extent.
@@ -154,6 +150,8 @@ func gcsClientOptions(ctx context.Context, config GCSClientConfig) ([]option.Cli
 	return []option.ClientOption{clientOption, storage.WithJSONReads()}, nil
 }
 
+// Google authentication consumes complete credential JSON. The provider adapter
+// owns that materialized value; Filestore does not impose a transfer quota.
 func gcsCredentialJSON(ctx context.Context, config GCSClientConfig) ([]byte, error) {
 	if config.Authentication == GCSAuthenticationApplicationDefault {
 		return nil, nil
@@ -162,18 +160,14 @@ func gcsCredentialJSON(ctx context.Context, config GCSClientConfig) ([]byte, err
 	if err != nil {
 		return nil, errors.Join(core.ErrObjectStoreContract, err)
 	}
-	maximum, err := core.NewByteCount(GCSCredentialJSONMaximumBytes)
-	if err != nil {
-		return nil, errors.Join(core.ErrObjectStoreContract, location.Root.Close(), err)
-	}
 	var destination bytes.Buffer
 	_, readErr := filestore.Read(ctx, filestore.ReadRequest{
-		Destination:  &destination,
-		Location:     location,
-		MaximumBytes: maximum,
+		Destination: &destination,
+		Location:    location,
 	})
 	closeErr := location.Root.Close()
 	if readErr != nil || closeErr != nil {
+		clear(destination.Bytes())
 		return nil, errors.Join(core.ErrObjectStoreContract, readErr, closeErr)
 	}
 	return destination.Bytes(), nil

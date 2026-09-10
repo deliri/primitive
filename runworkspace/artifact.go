@@ -44,7 +44,7 @@ func (m Manager) ObserveArtifact(ctx context.Context, workspace Experiment, expe
 	}
 	digest := core.NewDigestWriter()
 	extent, err := filestore.Read(ctx, filestore.ReadRequest{
-		Destination: digest, Location: filestore.Location{Root: m.root, Path: path}, MaximumBytes: expectation.MaximumBytes,
+		Destination: digest, Location: filestore.Location{Root: m.root, Path: path},
 	})
 	if errors.Is(err, fs.ErrNotExist) && !expectation.Required {
 		return ArtifactEvidence{}, false, nil
@@ -89,7 +89,7 @@ func artifactNativePath(path runprotocol.SourcePath) (core.RelativePath, error) 
 // StreamArtifactEvidence proves the retained bytes still match the observation
 // while streaming them to the next evidence authority.
 func (m Manager) StreamArtifactEvidence(ctx context.Context, workspace Experiment, evidence ArtifactEvidence, destination io.Writer) error {
-	if destination == nil {
+	if core.WriterIsNil(destination) {
 		return core.ErrPrimitiveContract
 	}
 	if err := errors.Join(m.Validate(), workspace.Validate(), evidence.Validate(), validateExperimentArtifactPath(workspace, evidence.Path)); err != nil {
@@ -98,15 +98,7 @@ func (m Manager) StreamArtifactEvidence(ctx context.Context, workspace Experimen
 	if workspace.Identity != evidence.Experiment {
 		return core.ErrPrimitiveContract
 	}
-	maximum := evidence.Bytes.Uint64()
-	if maximum == 0 {
-		maximum = 1
-	}
-	limit, err := core.NewByteCount(maximum)
-	if err != nil {
-		return err
-	}
-	read, digest, err := m.streamArtifact(ctx, evidence.Path, limit, destination)
+	read, digest, err := m.streamArtifact(ctx, evidence.Path, destination)
 	if err != nil {
 		return err
 	}
@@ -124,10 +116,10 @@ func verifyStreamedArtifact(read core.ByteLength, digest *core.DigestWriter, evi
 	return nil
 }
 
-func (m Manager) streamArtifact(ctx context.Context, path core.RelativePath, maximum core.ByteCount, destination io.Writer) (core.ByteLength, *core.DigestWriter, error) {
+func (m Manager) streamArtifact(ctx context.Context, path core.RelativePath, destination io.Writer) (core.ByteLength, *core.DigestWriter, error) {
 	digest := core.NewDigestWriter()
 	read, err := filestore.Read(ctx, filestore.ReadRequest{
-		Destination: io.MultiWriter(destination, digest), Location: filestore.Location{Root: m.root, Path: path}, MaximumBytes: maximum,
+		Destination: io.MultiWriter(destination, digest), Location: filestore.Location{Root: m.root, Path: path},
 	})
 	return read, digest, err
 }

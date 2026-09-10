@@ -27,7 +27,7 @@ func (w *mutateAfterWrite) Write(data []byte) (int, error) {
 	return count, w.mutate()
 }
 
-func TestReadRefusesAFileThatChangesAfterItsExtentObservation(t *testing.T) {
+func TestReadPreservesObservedGrowthAndRefusesTruncation(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range []struct {
@@ -35,13 +35,15 @@ func TestReadRefusesAFileThatChangesAfterItsExtentObservation(t *testing.T) {
 		mutate       func(path string) error
 		name         string
 		initialBytes int
-		maximumBytes int
-		wantCopied   int
-		wantSource   bool
+		bufferBytes  int
+		want         []byte
+
+		wantCopied int
+		wantSource bool
 	}{
 		{
-			name:         "growth at the caller ceiling is detected by an eof probe",
-			initialBytes: 64, maximumBytes: 64, wantErr: core.ErrFilestoreSize, wantCopied: 64,
+			name:         "growth after the initial observation continues through EOF",
+			initialBytes: 64, wantCopied: 65, bufferBytes: 7, want: append(bytes.Repeat([]byte("a"), 64), byte('x')),
 			mutate: func(path string) error {
 				file, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0)
 				if err != nil {
@@ -53,7 +55,7 @@ func TestReadRefusesAFileThatChangesAfterItsExtentObservation(t *testing.T) {
 		},
 		{
 			name:         "shrink below the observed extent is a typed short source",
-			initialBytes: 64 << 10, maximumBytes: 64 << 10, wantErr: io.ErrUnexpectedEOF, wantCopied: 32 << 10, wantSource: true,
+			initialBytes: 64 << 10, bufferBytes: 128, wantErr: io.ErrUnexpectedEOF, wantCopied: 128, wantSource: true, want: bytes.Repeat([]byte("a"), 128),
 			mutate: func(path string) error { return os.Truncate(path, 0) },
 		},
 	} {
@@ -75,7 +77,7 @@ func TestReadRefusesAFileThatChangesAfterItsExtentObservation(t *testing.T) {
 
 			gotLength, gotErr := filestore.Read(t.Context(), filestore.ReadRequest{
 				Location:    filestore.Location{Root: root, Path: mustRelativePath(t, "source")},
-				Destination: destination, MaximumBytes: mustByteCount(t, uint64(testCase.maximumBytes)),
+				Destination: destination, Buffer: make([]byte, testCase.bufferBytes),
 			})
 			if !errors.Is(gotErr, testCase.wantErr) {
 				t.Fatalf("filestore.Read(changing source) error = %v, want %v", gotErr, testCase.wantErr)
@@ -83,7 +85,7 @@ func TestReadRefusesAFileThatChangesAfterItsExtentObservation(t *testing.T) {
 			if testCase.wantSource && !errors.Is(gotErr, core.ErrFilestoreSource) {
 				t.Fatalf("filestore.Read(changing source) error = %v, want %v", gotErr, core.ErrFilestoreSource)
 			}
-			if gotLength.Uint64() != uint64(testCase.wantCopied) || destination.destination.Len() != testCase.wantCopied {
+			if gotLength.Uint64() != uint64(testCase.wantCopied) || destination.destination.Len() != testCase.wantCopied || !bytes.Equal(destination.destination.Bytes(), testCase.want) {
 				t.Fatalf("filestore.Read(changing source) = (length %d, bytes %d), want (%d, %d)", gotLength.Uint64(), destination.destination.Len(), testCase.wantCopied, testCase.wantCopied)
 			}
 			if !destination.mutated {

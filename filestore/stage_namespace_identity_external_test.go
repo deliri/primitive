@@ -73,7 +73,7 @@ func TestStagedNamespaceEntryLayerTriad(t *testing.T) {
 				root := requireTestRoot(t, t.TempDir())
 				stagePath, target := mustRelativePath(t, ".stage"), mustRelativePath(t, "target")
 				original, foreign := []byte{0, 0xff}, []byte{0xff, 0}
-				staged, err := filestore.Stage(t.Context(), filestore.StageRequest{Temporary: filestore.Location{Root: root, Path: stagePath}, Source: bytes.NewReader(original), MaximumBytes: mustByteCount(t, uint64(len(original))), Mode: 0o600})
+				staged, err := filestore.Stage(t.Context(), filestore.StageRequest{Temporary: filestore.Location{Root: root, Path: stagePath}, Source: bytes.NewReader(original), Mode: 0o600})
 				if err != nil || staged.Validate() != nil || staged.BytesWritten().Uint64() != uint64(len(original)) {
 					t.Fatalf("producer = (%v,%v), want exact valid receipt", staged, err)
 				}

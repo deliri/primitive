@@ -149,7 +149,6 @@ func TestAuthenticatedGCSLifecycleUsesTheRealProviderAndProvesDeletion(t *testin
 	var downloaded bytes.Buffer
 	_, readErr := filestore.Read(t.Context(), filestore.ReadRequest{
 		Destination: &downloaded, Location: readRequest.Destination.Temporary,
-		MaximumBytes: liveGCSMaximum(t, len(gcsLivePayload)+1),
 	})
 	if metadataErr != nil || stagedErr != nil || readErr != nil || !bytes.Equal(downloaded.Bytes(), gcsLivePayload) {
 		t.Fatalf("ReadGCSObject(%q) bytes = %q, want %q", primaryName.String(), downloaded.Bytes(), gcsLivePayload)

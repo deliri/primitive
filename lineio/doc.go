@@ -1,3 +1,3 @@
-// Package lineio turns one io.Reader into a bounded stream of lines through
-// Go's bufio.Scanner and ScanLines primitives.
+// Package lineio streams LF-delimited input in fixed-memory fragments through
+// Go's bufio.Reader. It never imposes a line or stream length quota.
 package lineio

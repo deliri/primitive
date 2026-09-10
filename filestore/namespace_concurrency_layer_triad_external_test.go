@@ -76,7 +76,7 @@ func TestNamespaceConcurrencyLayerTriad(t *testing.T) {
 				if tc.empty {
 					payloads[index] = nil
 				}
-				requests[index] = filestore.WriteRequest{Source: bytes.NewReader(payloads[index]), Location: filestore.Location{Root: root, Path: mustRelativePath(t, target)}, Temporary: mustRelativePath(t, fmt.Sprintf("stage-%05d", index)), Mode: 0o600, Install: filestore.InstallCreate, MaximumBytes: mustByteCount(t, uint64(max(1, len(payloads[index]))))}
+				requests[index] = filestore.WriteRequest{Source: bytes.NewReader(payloads[index]), Location: filestore.Location{Root: root, Path: mustRelativePath(t, target)}, Temporary: mustRelativePath(t, fmt.Sprintf("stage-%05d", index)), Mode: 0o600, Install: filestore.InstallCreate}
 				if err := requests[index].Validate(); err != nil {
 					t.Fatal(err)
 				}

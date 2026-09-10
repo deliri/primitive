@@ -113,11 +113,10 @@ func writeExpectedArtifact(t testing.TB, rootPath core.AbsolutePath, protocolPat
 	parent, parentErr := base.Parent()
 	parentRelative, parentRelativeErr := parent.RelativeTo(mustArtifactRoot(t))
 	temporary, temporaryErr := parentRelative.Join(temporaryComponent)
-	maximum, maximumErr := core.NewByteCount(uint64(len(content)))
-	if err := errors.Join(pathErr, rootErr, baseErr, componentErr, temporaryComponentErr, parentErr, parentRelativeErr, temporaryErr, maximumErr); err != nil {
+	if err := errors.Join(pathErr, rootErr, baseErr, componentErr, temporaryComponentErr, parentErr, parentRelativeErr, temporaryErr); err != nil {
 		t.Fatalf("artifact write path setup error = %v, want nil", err)
 	}
-	_, writeErr := filestore.Write(t.Context(), filestore.WriteRequest{Source: bytes.NewReader(content), Location: filestore.Location{Root: root, Path: path}, Temporary: temporary, Mode: fs.FileMode(0o600), Install: filestore.InstallCreate, MaximumBytes: maximum})
+	_, writeErr := filestore.Write(t.Context(), filestore.WriteRequest{Source: bytes.NewReader(content), Location: filestore.Location{Root: root, Path: path}, Temporary: temporary, Mode: fs.FileMode(0o600), Install: filestore.InstallCreate})
 	closeErr := root.Close()
 	if err := errors.Join(writeErr, closeErr); err != nil {
 		t.Fatalf("filestore.Write(wanted artifact) error = %v, want nil", err)

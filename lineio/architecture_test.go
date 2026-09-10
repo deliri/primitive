@@ -17,25 +17,26 @@ import (
 	"github.com/deliri/primitive/v2026/lineio"
 )
 
-const lineioProductionDirectoryEntryMaximum uint32 = 64
-
 type (
 	lineioRequestContract[T any]    struct{}
 	lineioCapabilityContract[T any] struct{}
+	lineioReadCountGuardContract    struct{}
 )
 
 // lineioContractInventory classifies every production carrier by its actual
 // data-flow role. It is a compiler-visible wiring ratchet, not behavior proof.
 type lineioContractInventory struct {
-	BufferPolicy lineioRequestContract[lineio.BufferPolicy]
-	Request      lineioRequestContract[lineio.Request]
-	Scanner      lineioCapabilityContract[lineio.Scanner]
+	Fragment      lineioRequestContract[lineio.Fragment]
+	Request       lineioRequestContract[lineio.Request]
+	Reader        lineioCapabilityContract[lineio.Reader]
+	checkedReader lineioReadCountGuardContract
 }
 
 var (
-	_ core.Validatable = lineio.BufferPolicy{}
-	_ core.Validatable = lineio.Request{}
-	_ core.Validatable = (*lineio.Scanner)(nil)
+	_ lineioReadCountGuardContract = lineioContractInventory{}.checkedReader
+	_ core.Validatable             = lineio.Fragment{}
+	_ core.Validatable             = lineio.Request{}
+	_ core.Validatable             = (*lineio.Reader)(nil)
 )
 
 func TestLineIOProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T) {
@@ -75,15 +76,9 @@ func lineioProductionStructNames(ctx context.Context) (names []string, resultErr
 	if err != nil {
 		return nil, err
 	}
-	entryMaximum, err := filestore.NewDirectoryEntryMaximum(lineioProductionDirectoryEntryMaximum)
-	if err != nil {
-		return nil, err
-	}
 	files := token.NewFileSet()
 	walkErr := filestore.Walk(ctx, filestore.WalkRequest{
-		Location:              filestore.Location{Root: root, Path: locationPath},
-		Order:                 filestore.WalkOrderLexical,
-		DirectoryEntryMaximum: entryMaximum,
+		Location: filestore.Location{Root: root, Path: locationPath},
 		Visit: func(entry filestore.WalkEntry) (filestore.WalkDirective, error) {
 			if entry.Entry.IsDir() {
 				return filestore.WalkSkipDirectory, nil
@@ -139,4 +134,30 @@ func lineioClassifiedStructNames() []string {
 	}
 	slices.Sort(names)
 	return names
+}
+
+func TestProductionStructMatcherLayerTriad(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name, source string
+		want         []string
+	}{
+		{name: "grouped exported and private carriers are inventoried", source: "package fixture; type (Public struct{ Value int }; private struct{})", want: []string{"Public", "private"}},
+		{name: "new hidden carrier cannot escape beside ordinary declarations", source: "package fixture; const Value=1; func F(){}; type hidden struct{}", want: []string{"hidden"}},
+		{name: "scalar and interface declarations do not invent carriers", source: "package fixture; type Count int; type Reader interface{ Read([]byte)(int,error) }"},
+		{name: "function local struct is not a package data carrier", source: "package fixture; func F(){ type local struct{}; _=local{} }"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			parsed, err := parser.ParseFile(token.NewFileSet(), "fixture.go", tc.source, parser.SkipObjectResolution)
+			if err != nil {
+				t.Fatalf("ParseFile() = %v, want nil", err)
+			}
+			got := productionStructNames(parsed)
+			if !slices.Equal(got, tc.want) {
+				t.Fatalf("productionStructNames() = %q, want %q", got, tc.want)
+			}
+		})
+	}
 }

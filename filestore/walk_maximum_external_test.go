@@ -1,28 +1,30 @@
 package filestore_test
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/filestore"
 )
 
-// This materializes the public ceiling. Small-ceiling tables alone cannot
-// detect uint16 narrowing or a full-limit off-by-one in the actual walker.
-func TestLexicalWalkMaximumMaterializedBoundaryLayerTriad(t *testing.T) {
+// This finite fixture crosses the former directory quota. Every native name
+// must be delivered exactly once; fixture storage is owned by the test.
+const formerDirectoryQuotaFixture uint32 = 1 << 16
+
+func TestWalkFormerCardinalityBoundaryLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name    string
-		count   uint32
-		wantErr error
+		name  string
+		count uint32
 	}{
-		{name: "one below largest admitted directory delivers every entry", count: filestore.DirectoryEntryMaximumLimit - 1},
-		{name: "largest admitted directory delivers its final entry", count: filestore.DirectoryEntryMaximumLimit},
-		{name: "one above largest directory delivers no prefix", count: filestore.DirectoryEntryMaximumLimit + 1, wantErr: core.ErrFilestoreContract},
+		{name: "one below former quota delivers every entry", count: formerDirectoryQuotaFixture - 1},
+		{name: "former quota delivers its final entry", count: formerDirectoryQuotaFixture},
+		{name: "one above former quota delivers every entry", count: formerDirectoryQuotaFixture + 1},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -32,30 +34,25 @@ func TestLexicalWalkMaximumMaterializedBoundaryLayerTriad(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			maximum, err := filestore.NewDirectoryEntryMaximum(filestore.DirectoryEntryMaximumLimit)
-			if err != nil {
-				t.Fatal(err)
-			}
 			delivered := uint32(0)
-			request := filestore.WalkRequest{Location: filestore.Location{Root: requireTestRoot(t, directory), Path: mustRelativePath(t, ".")}, Order: filestore.WalkOrderLexical, DirectoryEntryMaximum: maximum, Visit: func(entry filestore.WalkEntry) (filestore.WalkDirective, error) {
-				want := fmt.Sprintf("entry-%05d", delivered)
+			seen := make([]bool, tc.count)
+			request := filestore.WalkRequest{Location: filestore.Location{Root: requireTestRoot(t, directory), Path: mustRelativePath(t, ".")}, Visit: func(entry filestore.WalkEntry) (filestore.WalkDirective, error) {
+				index, parseErr := strconv.ParseUint(strings.TrimPrefix(entry.Entry.Name(), "entry-"), 10, 32)
 				if err := entry.Validate(); err != nil {
 					return filestore.WalkDirectiveUnknown, err
 				}
-				if entry.Path.String() != want || entry.Entry.Name() != want || !entry.Entry.Type().IsRegular() {
-					t.Errorf("entry %d = (%v,%v), want regular %q", delivered, entry.Path, entry.Entry, want)
+				if parseErr != nil || index >= uint64(tc.count) || seen[index] || entry.Path.String() != entry.Entry.Name() || !entry.Entry.Type().IsRegular() {
+					t.Errorf("entry %d = (%v,%v), want unique regular fixture entry", delivered, entry.Path, entry.Entry)
 					return filestore.WalkDirectiveUnknown, core.ErrFilestoreContract
 				}
+				seen[index] = true
 				delivered++
 				return filestore.WalkContinue, nil
 			}}
 			gotErr := filestore.Walk(t.Context(), request)
 			wantCount := tc.count
-			if tc.wantErr != nil {
-				wantCount = 0
-			}
-			if !errors.Is(gotErr, tc.wantErr) || errors.Is(gotErr, core.ErrFilestoreSource) || delivered != wantCount {
-				t.Fatalf("Walk = (%d,%v), want (%d,%v)", delivered, gotErr, wantCount, tc.wantErr)
+			if gotErr != nil || delivered != wantCount {
+				t.Fatalf("Walk = (%d,%v), want (%d,nil)", delivered, gotErr, wantCount)
 			}
 			entries, err := os.ReadDir(directory)
 			if err != nil || len(entries) != int(tc.count) {

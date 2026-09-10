@@ -75,12 +75,8 @@ func handoffFunctionCoreSelectors(t *testing.T, function any) []string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	limit, err := core.NewByteCount(1 << 20)
-	if err != nil {
-		t.Fatal(err)
-	}
 	var source bytes.Buffer
-	if _, err := filestore.Read(t.Context(), filestore.ReadRequest{Location: filestore.Location{Root: root, Path: path}, Destination: &source, MaximumBytes: limit}); err != nil {
+	if _, err := filestore.Read(t.Context(), filestore.ReadRequest{Location: filestore.Location{Root: root, Path: path}, Destination: &source}); err != nil {
 		t.Fatal(err)
 	}
 	syntax, err := parser.ParseFile(token.NewFileSet(), file, source.Bytes(), parser.SkipObjectResolution)

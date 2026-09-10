@@ -112,10 +112,9 @@ func TestStageNoProgressThresholdBoundaryMatrix(t *testing.T) {
 			rootDirectory := t.TempDir()
 			root := requireTestRoot(t, rootDirectory)
 			staged, gotErr := filestore.Stage(t.Context(), filestore.StageRequest{
-				Source:       &emptyReadSequence{emptyReads: tc.emptyReads},
-				Temporary:    filestore.Location{Root: root, Path: mustRelativePath(t, ".stage")},
-				Mode:         0o600,
-				MaximumBytes: mustByteCount(t, 1),
+				Source:    &emptyReadSequence{emptyReads: tc.emptyReads},
+				Temporary: filestore.Location{Root: root, Path: mustRelativePath(t, ".stage")},
+				Mode:      0o600,
 			})
 			if tc.wantErr != nil {
 				if !errors.Is(gotErr, core.ErrFilestoreSource) ||
@@ -171,10 +170,9 @@ func TestStageRejectsImpossibleReaderCountsWithoutResidue(t *testing.T) {
 			rootDirectory := t.TempDir()
 			root := requireTestRoot(t, rootDirectory)
 			_, gotErr := filestore.Stage(t.Context(), filestore.StageRequest{
-				Source:       tc.source,
-				Temporary:    filestore.Location{Root: root, Path: mustRelativePath(t, ".stage")},
-				Mode:         0o600,
-				MaximumBytes: mustByteCount(t, 1),
+				Source:    tc.source,
+				Temporary: filestore.Location{Root: root, Path: mustRelativePath(t, ".stage")},
+				Mode:      0o600,
 			})
 			if !errors.Is(gotErr, core.ErrFilestoreSource) {
 				t.Fatalf("Stage() error = %v, want %v", gotErr, core.ErrFilestoreSource)
@@ -232,9 +230,8 @@ func TestReadRejectsImpossibleWriterCountsWithExactAccounting(t *testing.T) {
 			}
 			root := requireTestRoot(t, rootDirectory)
 			gotCount, gotErr := filestore.Read(t.Context(), filestore.ReadRequest{
-				Destination:  tc.writer,
-				Location:     filestore.Location{Root: root, Path: mustRelativePath(t, "source")},
-				MaximumBytes: mustByteCount(t, uint64(len(payload))),
+				Destination: tc.writer,
+				Location:    filestore.Location{Root: root, Path: mustRelativePath(t, "source")},
 			})
 			if !errors.Is(gotErr, core.ErrFilestoreDestination) ||
 				!errors.Is(gotErr, tc.wantNative) {
@@ -263,8 +260,7 @@ func TestReadPreservesExactDestinationPrefixAndENOSPCIdentity(t *testing.T) {
 			destination: &destination,
 			prefixBytes: acceptedPrefixBytes,
 		},
-		Location:     filestore.Location{Root: root, Path: mustRelativePath(t, "source")},
-		MaximumBytes: mustByteCount(t, uint64(len(payload))),
+		Location: filestore.Location{Root: root, Path: mustRelativePath(t, "source")},
 	})
 	if !errors.Is(gotErr, core.ErrFilestoreDestination) ||
 		!errors.Is(gotErr, syscall.ENOSPC) {

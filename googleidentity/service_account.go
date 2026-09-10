@@ -13,8 +13,6 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
-const ServiceAccountCredentialMaximumBytes = 64 << 10
-
 // IdentitySource owns acquisition. Product packages receive an opaque token,
 // never a provider credential document, private key, or unverified claim map.
 type IdentitySource interface {
@@ -68,6 +66,8 @@ func (s ServiceAccountSource) Acquire(ctx context.Context, request IdentityToken
 	return acquireServiceAccountDocument(owned, s.client, request.Audience, document)
 }
 
+// The official authentication SDK requires a complete credential JSON value.
+// This adapter owns that allocation; Filestore imposes no transfer quota.
 func readServiceAccountCredential(ctx context.Context, path core.AbsolutePath) (data []byte, resultErr error) {
 	location, err := filestore.OpenParent(ctx, path)
 	if err != nil {
@@ -80,12 +80,8 @@ func readServiceAccountCredential(ctx context.Context, path core.AbsolutePath) (
 			resultErr = contractError(errors.Join(resultErr, err))
 		}
 	}()
-	maximum, err := core.NewByteCount(ServiceAccountCredentialMaximumBytes)
-	if err != nil {
-		return nil, contractError(err)
-	}
 	var buffer bytes.Buffer
-	if _, err := filestore.Read(ctx, filestore.ReadRequest{Destination: &buffer, Location: location, MaximumBytes: maximum}); err != nil {
+	if _, err := filestore.Read(ctx, filestore.ReadRequest{Destination: &buffer, Location: location}); err != nil {
 		clear(buffer.Bytes())
 		return nil, contractError(err)
 	}

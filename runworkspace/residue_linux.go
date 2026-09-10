@@ -113,7 +113,6 @@ func (s LinuxResidueSource) observeSubjectProcesses(ctx context.Context) (counts
 	location := filestore.Location{Root: root, Path: rootPath}
 	walkErr := filestore.Walk(ctx, filestore.WalkRequest{
 		Location: location,
-		Order:    filestore.WalkOrderNative,
 		Visit: func(entry filestore.WalkEntry) (filestore.WalkDirective, error) {
 			contribution, observeErr := s.observeProcessEntry(ctx, location, entry)
 			if observeErr != nil {
@@ -191,7 +190,6 @@ func (s LinuxResidueSource) observeProcessDescriptors(ctx context.Context, proc 
 	var counts residueCounts
 	walkErr := filestore.Walk(ctx, filestore.WalkRequest{
 		Location: filestore.Location{Root: proc.Root, Path: descriptorPath},
-		Order:    filestore.WalkOrderNative,
 		Visit: func(entry filestore.WalkEntry) (filestore.WalkDirective, error) {
 			contribution, observeErr := s.observeDescriptor(ctx, proc, processID, entry.Entry.Name())
 			if observeErr != nil {
@@ -278,7 +276,6 @@ func countDirectoryEntries(ctx context.Context, root core.AbsolutePath, include 
 	defer func() { resultErr = errors.Join(resultErr, location.Root.Close()) }()
 	walkErr := filestore.Walk(ctx, filestore.WalkRequest{
 		Location: location,
-		Order:    filestore.WalkOrderNative,
 		Visit: func(entry filestore.WalkEntry) (filestore.WalkDirective, error) {
 			if include(entry.Entry.Name()) {
 				if err := incrementResidue(&count); err != nil {

@@ -72,6 +72,7 @@ at the call site and state the exact failure class being accepted.
 | `test/benchmarks` | must | review | Measure one thing, report allocs, run serial+last, manifest covers evidence |
 | `test/benchmark-integrity` | must | review | Benchmark work is observable, fixed, comparable, and cannot be optimized away |
 | `test/fuzz-boundary` | must | review | Every external ingress has semantic fuzz proof; evidence covered by manifest |
+| `test/streaming-extent` | must | review | Every package streams reads and writes beyond fixed memory windows without arbitrary extent quotas |
 | `test/ledger-chain` | must | review | Ledger tests prove the real chain |
 | `protocol/typed-boundary` | must | lint | Protocol payloads are typed structs and enums |
 | `test/waivers` | must | review | Waivers name why the rule is wrong for this case |
@@ -79,6 +80,49 @@ at the call site and state the exact failure class being accepted.
 Grep this index by `id` to jump to the rule body. Every rule body restates the
 `id`, `level`, and `enforcement` line so the table stays a navigation aid, not a
 duplicate truth source.
+
+## Streaming Across Every Package
+
+`id: test/streaming-extent`
+
+`level: must`
+
+`enforcement: review`
+
+User-directed Primitive requirement, 2026-09-09. This applies to every package,
+in both reading and writing directions, including previously reviewed packages.
+It takes precedence over older examples that treat input size alone as malformed.
+
+A buffer window controls working memory and backpressure. It must not become
+an arbitrary line, file, object, request, response, or total-transfer quota.
+A valid stream may contain 1 TB or 100 TB; the working window remains fixed.
+Processing time grows with bytes processed. O(1) describes working memory
+relative to stream extent, not constant execution time.
+
+Validation still checks the actual typed agreement, framing, identity and
+native representability. Real source, sink, operating-system and provider
+failures preserve their identities. Do not replace them with an invented
+Primitive transfer ceiling.
+
+Hostile tables and fuzz oracles must prove:
+
+- continuation immediately below, at and above the working window, including
+  many windows and a final partial window;
+- exact byte conservation on both read and write paths, including partial
+  progress accompanied by an error;
+- fixed working memory as input grows, with direct backpressure and
+  caller-owned cleanup and cancellation;
+- large valid input remains valid; malformed structure stays invalid
+  independently of its size.
+
+Use generated readers and draining writers to exercise large extents without
+materializing fixtures. Test execution budgets may be finite; they are evidence
+budgets, never production acceptance quotas. Report the actual tested extents.
+Do not claim a terabyte transfer was executed when only smaller workloads ran.
+
+Whole-value APIs must expose their allocation ownership honestly. When the
+operation can stream, use readers, writers, fragments, iterators or callbacks
+instead of growing an aggregate to fit the source.
 
 ## Review Checklist
 
@@ -511,7 +555,7 @@ Required adversarial shape:
   meaningful spectrum
 - exact-boundary cases must include the value at the boundary, one below, and
   one above
-- malformed input cases must include empty, truncated, oversized, unknown,
+- malformed input cases must include empty, truncated, unknown,
   duplicated, reordered, and type-wrong variants where relevant
 - enum/domain tests must include every valid enum value plus unknown/future
   values
@@ -700,7 +744,8 @@ The triad must be hostile, not polite. Examples:
 
 - duplicate refs with identical path/hash/bytes and conflicting path/hash/bytes
 - all dropped evidence, partially dropped evidence, and no reported evidence
-- missing trailing newline, truncated JSON, oversized line, and empty stream
+- missing trailing newline, truncated JSON, a valid line spanning many windows,
+  and an empty stream
 - forged index that matches disk size but lies about child hashes or counts
 - successful seal, seal failure before rename, and seal failure after temp file
   creation
@@ -991,7 +1036,7 @@ points each, not twenty miscellaneous edge cases.
 | ---------------------------- | ------------------------------------------------------- |
 | classification threshold     | `-1`, exact, `+1`, extreme                              |
 | producer count/cardinality   | `-1`, exact, `+1`, extreme                              |
-| size/extent limit            | `-1`, exact, `+1`, extreme                              |
+| memory window/native extent | `-1`, exact, `+1`, extreme; valid streams continue       |
 | enum/domain edge             | lowest valid, highest valid, unknown-next, pathological |
 | precedence/conflict strength | weaker, tie, stronger, saturation                       |
 
@@ -1855,9 +1900,10 @@ The seed corpus should include the meaningful representations the boundary
 claims to support:
 
 - canonical valid minimum, ordinary, and maximum typed documents
-- one below, exactly at, and one above every byte/count/depth threshold
+- one below, exactly at, and one above each working window or actual typed
+  representation boundary; larger valid streams continue
 - harmless accepted reordering or whitespace when the contract permits it
-- empty, whitespace-only, null, truncated, trailing-data, and oversized input
+- empty, whitespace-only, null, truncated, trailing-data, and multi-window input
 - missing, duplicate, unknown, conflicting, and wrong-type members
 - every published enum arm and at least one unknown/future representation
 - independently valid but foreign signatures, identities, accounts, builds,
@@ -1877,7 +1923,8 @@ For an accepted parser or decoder result, prove all applicable facts:
 
 - `Validate()` succeeds on the admitted nominal value
 - the result contains the exact typed facts implied by the accepted input
-- canonical marshal/write succeeds within the compiler-owned byte ceiling
+- canonical marshal/write preserves the exact accepted value without an
+  arbitrary output extent ceiling
 - parsing the canonical output yields the exact same nominal value
 - a second canonical marshal/write is byte-identical to the first
 - any signature, certificate, account, build, nonce, digest, extent, provider,
@@ -1935,11 +1982,11 @@ mutation selectors are the preferred way to guarantee that reachability.
 Fuzzing an external boundary must pressure its resource contract as well as its
 grammar:
 
-- the production decoder enforces its compiler-owned byte, depth, item, and
-  field ceilings before unbounded allocation or recursion
-- exact below/at/above limit seeds reach the real boundary
-- streaming readers use bounded buffers and do not read the world before
-  deciding an input is oversized
+- production decoders use fixed memory windows rather than arbitrary accepted
+  byte, item or total-transfer ceilings; actual grammar validation remains owned
+- exact below/at/above window seeds reach the real boundary and continue
+- streaming readers and writers conserve bytes across any number of windows
+  without materializing the stream
 - secondary oracle work is bounded; do not duplicate an arbitrary fuzz input
   into an unbounded in-memory model
 - large projects, object listings, ledgers, archives, and upload/download
@@ -1980,8 +2027,8 @@ func FuzzDocumentJSONSemanticClosure(f *testing.F) {
 			t.Fatalf("Document.UnmarshalJSON(accepted).Validate() error = %v, want nil", err)
 		}
 		encoded, err := got.MarshalJSON()
-		if err != nil || len(encoded) > DocumentJSONMaximumBytes {
-			t.Fatalf("Document.MarshalJSON(accepted) = (%d bytes, %v), want bounded and nil", len(encoded), err)
+		if err != nil {
+			t.Fatalf("Document.MarshalJSON(accepted) = (%d bytes, %v), want exact canonical output and nil", len(encoded), err)
 		}
 		var roundTrip Document
 		if err := roundTrip.UnmarshalJSON(encoded); err != nil || roundTrip != got {

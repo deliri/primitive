@@ -65,7 +65,7 @@ func FuzzWriteRecoveryHandoffSemanticCustody(f *testing.F) {
 			foreign[0] ^= 255
 		}
 		source := &stageIdentitySwapSource{remaining: payload, foreign: foreign, directory: directory, name: temporary.String(), preserve: "archive"}
-		request := filestore.WriteRequest{Source: source, Location: filestore.Location{Root: root, Path: target}, Temporary: temporary, Mode: 0o600, Install: install, MaximumBytes: mustByteCount(t, uint64(max(len(payload), 1)))}
+		request := filestore.WriteRequest{Source: source, Location: filestore.Location{Root: root, Path: target}, Temporary: temporary, Mode: 0o600, Install: install}
 		if err := request.Validate(); err != nil {
 			t.Fatal(err)
 		}

@@ -891,11 +891,7 @@ func registrationResponseFixtureBytes() ([]byte, error) {
 		return nil, err
 	}
 	defer func() { _ = location.Root.Close() }()
-	maximum, err := core.NewByteCount(core.JSONDocumentMaximumBytes)
-	if err != nil {
-		return nil, err
-	}
 	var data bytes.Buffer
-	_, err = filestore.Read(context.Background(), filestore.ReadRequest{Location: location, MaximumBytes: maximum, Destination: &data})
+	_, err = filestore.Read(context.Background(), filestore.ReadRequest{Location: location, Destination: &data})
 	return data.Bytes(), err
 }

@@ -55,7 +55,7 @@ func FuzzGCSReadExtentSemanticBoundary(f *testing.F) {
 				t.Fatalf("exact provider read = (%v, %v), want validated proof", got, gotErr)
 			}
 			var content bytes.Buffer
-			_, err := filestore.Read(t.Context(), filestore.ReadRequest{Destination: &content, Location: filestore.Location{Root: root, Path: destination.Temporary.Path}, MaximumBytes: gcsProviderMaximum(t, uint64(len(expected)+1))})
+			_, err := filestore.Read(t.Context(), filestore.ReadRequest{Destination: &content, Location: filestore.Location{Root: root, Path: destination.Temporary.Path}})
 			if err != nil || !bytes.Equal(content.Bytes(), expected) {
 				t.Fatalf("staged bytes = (%v, %v), want exact %v", content.Bytes(), err, expected)
 			}
@@ -71,7 +71,7 @@ func FuzzGCSReadExtentSemanticBoundary(f *testing.F) {
 				t.Fatalf("mutated provider read = (%v, %v), want zero and integrity refusal", got, gotErr)
 			}
 			var content bytes.Buffer
-			_, err := filestore.Read(t.Context(), filestore.ReadRequest{Destination: &content, Location: filestore.Location{Root: root, Path: destination.Temporary.Path}, MaximumBytes: gcsProviderMaximum(t, uint64(len(expected)+1))})
+			_, err := filestore.Read(t.Context(), filestore.ReadRequest{Destination: &content, Location: filestore.Location{Root: root, Path: destination.Temporary.Path}})
 			if !errors.Is(err, fs.ErrNotExist) || content.Len() != 0 {
 				t.Fatalf("rejected stage = (%d bytes, %v), want absent", content.Len(), err)
 			}

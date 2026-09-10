@@ -43,7 +43,7 @@ func TestOpenStagedReadLayerTriad(t *testing.T) {
 			directory := t.TempDir()
 			root := requireTestRoot(t, directory)
 			payload := deterministicPayload(tc.size)
-			staged, err := filestore.Stage(t.Context(), filestore.StageRequest{Source: bytes.NewReader(payload), Temporary: filestore.Location{Root: root, Path: mustRelativePath(t, "stage")}, Mode: 0o600, MaximumBytes: mustByteCount(t, uint64(max(1, len(payload))))})
+			staged, err := filestore.Stage(t.Context(), filestore.StageRequest{Source: bytes.NewReader(payload), Temporary: filestore.Location{Root: root, Path: mustRelativePath(t, "stage")}, Mode: 0o600})
 			if err != nil {
 				t.Fatal(err)
 			}

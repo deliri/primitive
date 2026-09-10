@@ -35,39 +35,37 @@ func TestDurableWriterLayerTriadCreateReplaceAndNeutralEffects(t *testing.T) {
 	binary := []byte{0, 255, 7, 1}
 	original := []byte{19, 0, 255, 88, 5}
 	for _, tc := range []struct {
-		name                string
-		fault               fault
-		payload             []byte
-		initial             []byte
-		occupied            bool
-		install             filestore.InstallMode
-		maximum             uint64
+		name     string
+		fault    fault
+		payload  []byte
+		initial  []byte
+		occupied bool
+		install  filestore.InstallMode
+
 		want                []byte
 		wantErr, wantNative error
 	}{
-		{name: "exact ceiling creates opaque binary content", payload: binary, install: filestore.InstallCreate, maximum: 4, want: binary},
-		{name: "spare ceiling cannot fabricate bytes", payload: binary, install: filestore.InstallCreate, maximum: 5, want: binary},
-		{name: "empty create publishes a real empty file", install: filestore.InstallCreate, maximum: 1},
-		{name: "replace of absent target still publishes", payload: binary, install: filestore.InstallReplace, maximum: 4, want: binary},
-		{name: "replace cannot leave an old suffix", payload: binary, occupied: true, initial: original, install: filestore.InstallReplace, maximum: 4, want: binary},
-		{name: "empty replacement consumes the whole prior extent", occupied: true, initial: original, install: filestore.InstallReplace, maximum: 1},
-		{name: "create conflict preserves occupied binary bytes", payload: binary, occupied: true, initial: original, install: filestore.InstallCreate, maximum: 4, wantErr: core.ErrFilestoreConflict, wantNative: fs.ErrExist},
-		{name: "existing empty file is occupied rather than absent", payload: binary, occupied: true, install: filestore.InstallCreate, maximum: 4, wantErr: core.ErrFilestoreConflict, wantNative: fs.ErrExist},
-		{name: "overflow cannot replace existing content", payload: binary, occupied: true, initial: original, install: filestore.InstallReplace, maximum: 3, wantErr: core.ErrFilestoreSize},
-		{name: "overflow cannot publish an absent target", payload: binary, install: filestore.InstallCreate, maximum: 3, wantErr: core.ErrFilestoreSize},
-		{name: "closed Go source leaves no empty publication", fault: closedSource, payload: binary, install: filestore.InstallCreate, maximum: 4, wantErr: core.ErrFilestoreSource, wantNative: fs.ErrClosed},
-		{name: "nil source refuses before staging", fault: nilSource, install: filestore.InstallCreate, maximum: 1, wantErr: core.ErrFilestoreContract},
-		{name: "closed root retains native activation refusal", fault: closedRoot, payload: binary, install: filestore.InstallCreate, maximum: 4, wantErr: core.ErrFilestoreActivation, wantNative: fs.ErrClosed},
-		{name: "cancellation preserves an existing target", fault: canceled, payload: binary, occupied: true, initial: original, install: filestore.InstallReplace, maximum: 4, wantErr: context.Canceled},
-		{name: "nil context cannot acquire stage custody", fault: nilContext, payload: binary, install: filestore.InstallCreate, maximum: 4, wantErr: core.ErrNilContext},
-		{name: "occupied temporary cannot be truncated", fault: temporaryFile, payload: binary, install: filestore.InstallCreate, maximum: 4, wantErr: core.ErrFilestoreConflict, wantNative: fs.ErrExist},
-		{name: "temporary directory retains its child", fault: temporaryDirectory, payload: binary, install: filestore.InstallCreate, maximum: 4, wantErr: core.ErrFilestoreConflict, wantNative: fs.ErrExist},
-		{name: "empty target directory refuses and stage is cleaned", fault: targetDirectory, payload: binary, install: filestore.InstallReplace, maximum: 4, wantErr: core.ErrFilestoreActivation},
-		{name: "nonempty target directory retains its child", fault: targetNonemptyDirectory, payload: binary, install: filestore.InstallReplace, maximum: 4, wantErr: core.ErrFilestoreActivation},
-		{name: "missing shared parent refuses before staging", fault: missingParent, payload: binary, install: filestore.InstallReplace, maximum: 4, wantErr: core.ErrFilestoreActivation, wantNative: fs.ErrNotExist},
-		{name: "unset install cannot choose replacement", payload: binary, occupied: true, initial: original, maximum: 4, wantErr: core.ErrFilestoreContract},
-		{name: "future install cannot choose replacement", payload: binary, occupied: true, initial: original, install: filestore.InstallMode(255), maximum: 4, wantErr: core.ErrFilestoreContract},
-		{name: "zero ceiling refuses before consuming bytes", payload: binary, install: filestore.InstallCreate, wantErr: core.ErrFilestoreContract},
+		{name: "create preserves opaque binary content", payload: binary, install: filestore.InstallCreate, want: binary},
+		{name: "empty create publishes a real empty file", install: filestore.InstallCreate},
+		{name: "replace of absent target still publishes", payload: binary, install: filestore.InstallReplace, want: binary},
+		{name: "replace cannot leave an old suffix", payload: binary, occupied: true, initial: original, install: filestore.InstallReplace, want: binary},
+		{name: "empty replacement consumes the whole prior extent", occupied: true, initial: original, install: filestore.InstallReplace},
+		{name: "create conflict preserves occupied binary bytes", payload: binary, occupied: true, initial: original, install: filestore.InstallCreate, wantErr: core.ErrFilestoreConflict, wantNative: fs.ErrExist},
+		{name: "existing empty file is occupied rather than absent", payload: binary, occupied: true, install: filestore.InstallCreate, wantErr: core.ErrFilestoreConflict, wantNative: fs.ErrExist},
+		{name: "multi-window source atomically replaces existing content", payload: deterministicPayload((32 << 10) + 1), want: deterministicPayload((32 << 10) + 1), occupied: true, initial: original, install: filestore.InstallReplace},
+		{name: "multi-window source atomically publishes an absent target", payload: deterministicPayload((32 << 10) + 1), want: deterministicPayload((32 << 10) + 1), install: filestore.InstallCreate},
+		{name: "closed Go source leaves no empty publication", fault: closedSource, payload: binary, install: filestore.InstallCreate, wantErr: core.ErrFilestoreSource, wantNative: fs.ErrClosed},
+		{name: "nil source refuses before staging", fault: nilSource, install: filestore.InstallCreate, wantErr: core.ErrFilestoreContract},
+		{name: "closed root retains native activation refusal", fault: closedRoot, payload: binary, install: filestore.InstallCreate, wantErr: core.ErrFilestoreActivation, wantNative: fs.ErrClosed},
+		{name: "cancellation preserves an existing target", fault: canceled, payload: binary, occupied: true, initial: original, install: filestore.InstallReplace, wantErr: context.Canceled},
+		{name: "nil context cannot acquire stage custody", fault: nilContext, payload: binary, install: filestore.InstallCreate, wantErr: core.ErrNilContext},
+		{name: "occupied temporary cannot be truncated", fault: temporaryFile, payload: binary, install: filestore.InstallCreate, wantErr: core.ErrFilestoreConflict, wantNative: fs.ErrExist},
+		{name: "temporary directory retains its child", fault: temporaryDirectory, payload: binary, install: filestore.InstallCreate, wantErr: core.ErrFilestoreConflict, wantNative: fs.ErrExist},
+		{name: "empty target directory refuses and stage is cleaned", fault: targetDirectory, payload: binary, install: filestore.InstallReplace, wantErr: core.ErrFilestoreActivation},
+		{name: "nonempty target directory retains its child", fault: targetNonemptyDirectory, payload: binary, install: filestore.InstallReplace, wantErr: core.ErrFilestoreActivation},
+		{name: "missing shared parent refuses before staging", fault: missingParent, payload: binary, install: filestore.InstallReplace, wantErr: core.ErrFilestoreActivation, wantNative: fs.ErrNotExist},
+		{name: "unset install cannot choose replacement", payload: binary, occupied: true, initial: original, wantErr: core.ErrFilestoreContract},
+		{name: "future install cannot choose replacement", payload: binary, occupied: true, initial: original, install: filestore.InstallMode(255), wantErr: core.ErrFilestoreContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -162,11 +160,7 @@ func TestDurableWriterLayerTriadCreateReplaceAndNeutralEffects(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			var maximum core.ByteCount
-			if tc.maximum != 0 {
-				maximum = mustByteCount(t, tc.maximum)
-			}
-			request := filestore.WriteRequest{Source: source, Location: filestore.Location{Root: root, Path: mustRelativePath(t, target)}, Temporary: mustRelativePath(t, temporary), Mode: 0o600, Install: tc.install, MaximumBytes: maximum}
+			request := filestore.WriteRequest{Source: source, Location: filestore.Location{Root: root, Path: mustRelativePath(t, target)}, Temporary: mustRelativePath(t, temporary), Mode: 0o600, Install: tc.install}
 			gotRecovery, gotErr := filestore.Write(ctx, request)
 			if !errors.Is(gotErr, tc.wantErr) || wantNative != nil && !errors.Is(gotErr, wantNative) || gotRecovery != (filestore.CommitRequest{}) {
 				t.Fatalf("Write = (%v,%v), want zero recovery and %v/native %v", gotRecovery, gotErr, tc.wantErr, wantNative)
@@ -181,7 +175,7 @@ func TestDurableWriterLayerTriadCreateReplaceAndNeutralEffects(t *testing.T) {
 					t.Fatalf("remaining source = %d, want complete consumption before activation", reader.Len())
 				}
 			}
-			if tc.fault == missingParent || tc.fault == temporaryFile || tc.fault == temporaryDirectory || tc.fault == closedRoot || tc.fault == canceled || tc.fault == nilContext || tc.maximum == 0 || !tc.install.IsValid() {
+			if tc.fault == missingParent || tc.fault == temporaryFile || tc.fault == temporaryDirectory || tc.fault == closedRoot || tc.fault == canceled || tc.fault == nilContext || !tc.install.IsValid() {
 				if reader.Len() != len(tc.payload) {
 					t.Fatalf("refused source remaining = %d, want %d untouched", reader.Len(), len(tc.payload))
 				}

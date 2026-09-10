@@ -40,13 +40,9 @@ func writeReleaseFileFixture(t testing.TB, request releaseFileFixture) *os.File 
 	if err != nil {
 		t.Fatalf("ParseRelativePath(fixture temporary) error = %v, want nil", err)
 	}
-	maximum, err := core.NewByteCount(uint64(max(1, len(request.Data))))
-	if err != nil {
-		t.Fatalf("NewByteCount(fixture) error = %v, want nil", err)
-	}
 	recovery, err := filestore.Write(t.Context(), filestore.WriteRequest{
 		Location: location, Temporary: temporary, Source: bytes.NewReader(request.Data),
-		MaximumBytes: maximum, Mode: 0o600, Install: filestore.InstallCreate,
+		Mode: 0o600, Install: filestore.InstallCreate,
 	})
 	if err != nil {
 		t.Fatalf("filestore.Write(fixture) error = %v, recovery = %v, want nil", err, recovery)
@@ -69,13 +65,9 @@ func writeReleaseFileFixture(t testing.TB, request releaseFileFixture) *os.File 
 func readReleaseFileFixture(t testing.TB, path core.AbsolutePath, maximumBytes uint64) []byte {
 	t.Helper()
 	location := releaseFixtureLocation(t, path)
-	maximum, err := core.NewByteCount(maximumBytes)
-	if err != nil {
-		t.Fatalf("NewByteCount(fixture read) error = %v, want nil", err)
-	}
 	var content bytes.Buffer
 	if _, err := filestore.Read(t.Context(), filestore.ReadRequest{
-		Location: location, Destination: &content, MaximumBytes: maximum,
+		Location: location, Destination: &content,
 	}); err != nil {
 		t.Fatalf("filestore.Read(fixture) error = %v, want nil", err)
 	}

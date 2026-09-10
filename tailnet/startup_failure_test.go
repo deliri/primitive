@@ -52,11 +52,7 @@ func TestEarlySDKFilesystemFailureReturnsError(t *testing.T) {
 			if err != nil {
 				t.Fatalf("temporary path = %v, want nil", err)
 			}
-			maximum, err := core.NewByteCount(1)
-			if err != nil {
-				t.Fatalf("extent = %v, want nil", err)
-			}
-			if _, err := filestore.Write(t.Context(), filestore.WriteRequest{Location: location, Temporary: temporary, Mode: 0600, Install: filestore.InstallCreate, MaximumBytes: maximum, Source: bytes.NewReader([]byte{'x'})}); err != nil {
+			if _, err := filestore.Write(t.Context(), filestore.WriteRequest{Location: location, Temporary: temporary, Mode: 0600, Install: filestore.InstallCreate, Source: bytes.NewReader([]byte{'x'})}); err != nil {
 				t.Fatalf("fixture Write() = %v, want nil", err)
 			}
 			configuration := fixtureConfiguration(t)

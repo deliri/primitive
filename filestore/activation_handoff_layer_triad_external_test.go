@@ -112,7 +112,7 @@ func TestReplaceActivationLayerTriad(t *testing.T) {
 				t.Fatalf("fixture = %d, want a declared target shape", tc.target)
 			}
 			targetBefore, targetBeforeErr := root.Lstat("target")
-			staged, err := filestore.Stage(t.Context(), filestore.StageRequest{Source: bytes.NewReader(tc.payload), Temporary: filestore.Location{Root: root, Path: mustRelativePath(t, "stage")}, Mode: 0o600, MaximumBytes: mustByteCount(t, uint64(max(len(tc.payload), 1)))})
+			staged, err := filestore.Stage(t.Context(), filestore.StageRequest{Source: bytes.NewReader(tc.payload), Temporary: filestore.Location{Root: root, Path: mustRelativePath(t, "stage")}, Mode: 0o600})
 			if err != nil {
 				t.Fatal(err)
 			}

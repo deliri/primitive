@@ -72,7 +72,6 @@ func TestRequestsRejectUnsetOwnershipBoundaries(t *testing.T) {
 	})
 	target := mustRelativePath(t, "target")
 	directory := mustRelativePath(t, "directory")
-	positive := mustByteCount(t, 1)
 	location := filestore.Location{Root: root, Path: target}
 	staged := mustStage(t, root, ".commit-stage", "x")
 	outgoing, err := os.Create(filepath.Join(rootDirectory, "outgoing"))
@@ -95,30 +94,30 @@ func TestRequestsRejectUnsetOwnershipBoundaries(t *testing.T) {
 		{name: "valid directory owns location and permission mode", wantValid: true, run: func(_ *testing.T) error {
 			return (filestore.DirectoryRequest{Location: location, Mode: 0o700}).Validate()
 		}},
-		{name: "valid read owns destination location and positive maximum", wantValid: true, run: func(_ *testing.T) error {
+		{name: "valid read owns destination and location without a size declaration", wantValid: true, run: func(_ *testing.T) error {
 			return (filestore.ReadRequest{
-				Destination: io.Discard, Location: location, MaximumBytes: positive,
+				Destination: io.Discard, Location: location,
 			}).Validate()
 		}},
 		{name: "valid create write owns every activation boundary", wantValid: true, run: func(t *testing.T) error {
 			return (filestore.WriteRequest{
 				Source: strings.NewReader("x"), Location: location,
 				Temporary: mustRelativePath(t, ".target-stage"), Mode: 0o600,
-				Install: filestore.InstallCreate, MaximumBytes: positive,
+				Install: filestore.InstallCreate,
 			}).Validate()
 		}},
 		{name: "valid replace write admits absent or existing target policy", wantValid: true, run: func(t *testing.T) error {
 			return (filestore.WriteRequest{
 				Source: strings.NewReader("x"), Location: location,
 				Temporary: mustRelativePath(t, ".target-stage"), Mode: 0o600,
-				Install: filestore.InstallReplace, MaximumBytes: positive,
+				Install: filestore.InstallReplace,
 			}).Validate()
 		}},
-		{name: "valid target-late stage owns source name mode and maximum", wantValid: true, run: func(t *testing.T) error {
+		{name: "valid target-late stage owns source name and mode", wantValid: true, run: func(t *testing.T) error {
 			return (filestore.StageRequest{
 				Source:    strings.NewReader("x"),
 				Temporary: filestore.Location{Root: root, Path: mustRelativePath(t, ".stage")},
-				Mode:      0o600, MaximumBytes: positive,
+				Mode:      0o600,
 			}).Validate()
 		}},
 		{name: "valid staged receipt retains exact file identity and bytes", wantValid: true, run: func(_ *testing.T) error {
@@ -164,41 +163,38 @@ func TestRequestsRejectUnsetOwnershipBoundaries(t *testing.T) {
 			return (filestore.DirectoryRequest{Location: location}).Validate()
 		}},
 		{name: "read without destination", run: func(_ *testing.T) error {
-			return (filestore.ReadRequest{Location: location, MaximumBytes: positive}).Validate()
-		}},
-		{name: "read without maximum", run: func(_ *testing.T) error {
-			return (filestore.ReadRequest{Location: location, Destination: io.Discard}).Validate()
+			return (filestore.ReadRequest{Location: location}).Validate()
 		}},
 		{name: "write without source", run: func(t *testing.T) error {
 			return (filestore.WriteRequest{
 				Location: location, Temporary: mustRelativePath(t, ".target-stage"), Mode: 0o600,
-				Install: filestore.InstallCreate, MaximumBytes: positive,
+				Install: filestore.InstallCreate,
 			}).Validate()
 		}},
 		{name: "write without install mode", run: func(t *testing.T) error {
 			return (filestore.WriteRequest{
 				Source: strings.NewReader("x"), Location: location,
-				Temporary: mustRelativePath(t, ".target-stage"), Mode: 0o600, MaximumBytes: positive,
+				Temporary: mustRelativePath(t, ".target-stage"), Mode: 0o600,
 			}).Validate()
 		}},
 		{name: "write without temporary path", run: func(_ *testing.T) error {
 			return (filestore.WriteRequest{
 				Source: strings.NewReader("x"), Location: location,
-				Mode: 0o600, Install: filestore.InstallCreate, MaximumBytes: positive,
+				Mode: 0o600, Install: filestore.InstallCreate,
 			}).Validate()
 		}},
 		{name: "stage without root", run: func(t *testing.T) error {
 			return (filestore.StageRequest{
 				Source:    strings.NewReader("x"),
 				Temporary: filestore.Location{Path: mustRelativePath(t, filepath.Join(directory.String(), ".stage"))},
-				Mode:      0o600, MaximumBytes: positive,
+				Mode:      0o600,
 			}).Validate()
 		}},
 		{name: "stage without temporary path", run: func(_ *testing.T) error {
 			return (filestore.StageRequest{
 				Source:    strings.NewReader("x"),
 				Temporary: filestore.Location{Root: root},
-				Mode:      0o600, MaximumBytes: positive,
+				Mode:      0o600,
 			}).Validate()
 		}},
 		{name: "stage without source", run: func(t *testing.T) error {
@@ -207,7 +203,7 @@ func TestRequestsRejectUnsetOwnershipBoundaries(t *testing.T) {
 					Root: root,
 					Path: mustRelativePath(t, filepath.Join(directory.String(), ".stage")),
 				},
-				Mode: 0o600, MaximumBytes: positive,
+				Mode: 0o600,
 			}).Validate()
 		}},
 		{name: "zero staged file", run: func(_ *testing.T) error {
@@ -280,7 +276,6 @@ func TestMutationRequestsRejectNonAtomicOrRootEntryPaths(t *testing.T) {
 
 	rootDirectory := t.TempDir()
 	root := requireTestRoot(t, rootDirectory)
-	positive := mustByteCount(t, 1)
 	target := mustRelativePath(t, filepath.Join("objects", "target"))
 	cases := []struct {
 		wantErr error
@@ -292,12 +287,11 @@ func TestMutationRequestsRejectNonAtomicOrRootEntryPaths(t *testing.T) {
 			wantErr: core.ErrFilestoreContract,
 			run: func(_ *testing.T) error {
 				return (filestore.WriteRequest{
-					Source:       strings.NewReader("x"),
-					Location:     filestore.Location{Root: root, Path: target},
-					Temporary:    target,
-					Mode:         0o600,
-					Install:      filestore.InstallCreate,
-					MaximumBytes: positive,
+					Source:    strings.NewReader("x"),
+					Location:  filestore.Location{Root: root, Path: target},
+					Temporary: target,
+					Mode:      0o600,
+					Install:   filestore.InstallCreate,
 				}).Validate()
 			},
 		},
@@ -306,12 +300,11 @@ func TestMutationRequestsRejectNonAtomicOrRootEntryPaths(t *testing.T) {
 			wantErr: core.ErrFilestoreContract,
 			run: func(t *testing.T) error {
 				return (filestore.WriteRequest{
-					Source:       strings.NewReader("x"),
-					Location:     filestore.Location{Root: root, Path: target},
-					Temporary:    mustRelativePath(t, filepath.Join("staging", ".target")),
-					Mode:         0o600,
-					Install:      filestore.InstallCreate,
-					MaximumBytes: positive,
+					Source:    strings.NewReader("x"),
+					Location:  filestore.Location{Root: root, Path: target},
+					Temporary: mustRelativePath(t, filepath.Join("staging", ".target")),
+					Mode:      0o600,
+					Install:   filestore.InstallCreate,
 				}).Validate()
 			},
 		},
@@ -320,12 +313,11 @@ func TestMutationRequestsRejectNonAtomicOrRootEntryPaths(t *testing.T) {
 			wantErr: core.ErrFilestoreContract,
 			run: func(t *testing.T) error {
 				return (filestore.WriteRequest{
-					Source:       strings.NewReader("x"),
-					Location:     filestore.Location{Root: root, Path: mustRelativePath(t, ".")},
-					Temporary:    mustRelativePath(t, ".stage"),
-					Mode:         0o600,
-					Install:      filestore.InstallCreate,
-					MaximumBytes: positive,
+					Source:    strings.NewReader("x"),
+					Location:  filestore.Location{Root: root, Path: mustRelativePath(t, ".")},
+					Temporary: mustRelativePath(t, ".stage"),
+					Mode:      0o600,
+					Install:   filestore.InstallCreate,
 				}).Validate()
 			},
 		},
@@ -334,10 +326,9 @@ func TestMutationRequestsRejectNonAtomicOrRootEntryPaths(t *testing.T) {
 			wantErr: core.ErrFilestoreContract,
 			run: func(t *testing.T) error {
 				return (filestore.StageRequest{
-					Source:       strings.NewReader("x"),
-					Temporary:    filestore.Location{Root: root, Path: mustRelativePath(t, ".")},
-					Mode:         0o600,
-					MaximumBytes: positive,
+					Source:    strings.NewReader("x"),
+					Temporary: filestore.Location{Root: root, Path: mustRelativePath(t, ".")},
+					Mode:      0o600,
 				}).Validate()
 			},
 		},
@@ -422,10 +413,9 @@ func TestRelativePathCannotBypassRealRootConfinement(t *testing.T) {
 			Root: root,
 			Path: mustRelativePath(t, filepath.Join("escape", "target")),
 		},
-		Temporary:    mustRelativePath(t, filepath.Join("escape", ".target-stage")),
-		Mode:         0o600,
-		Install:      filestore.InstallReplace,
-		MaximumBytes: mustByteCount(t, 6),
+		Temporary: mustRelativePath(t, filepath.Join("escape", ".target-stage")),
+		Mode:      0o600,
+		Install:   filestore.InstallReplace,
 	})
 	if !errors.Is(gotErr, core.ErrFilestoreActivation) {
 		t.Fatalf(
@@ -452,16 +442,6 @@ func mustRelativePath(t *testing.T, value string) core.RelativePath {
 	got, err := core.ParseRelativePath(value)
 	if err != nil {
 		t.Fatalf("ParseRelativePath(%q) error = %v, want nil", value, err)
-	}
-	return got
-}
-
-func mustByteCount(t *testing.T, value uint64) core.ByteCount {
-	t.Helper()
-
-	got, err := core.NewByteCount(value)
-	if err != nil {
-		t.Fatalf("NewByteCount(%d) error = %v, want nil", value, err)
 	}
 	return got
 }

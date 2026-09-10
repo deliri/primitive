@@ -157,7 +157,7 @@ func TestActivationStageAgreementLayerTriad(t *testing.T) {
 					root, foreignRoot := requireTestRoot(t, directory), requireTestRoot(t, foreignDirectory)
 					stagePath, target := mustRelativePath(t, ".planned"), mustRelativePath(t, "target")
 					staged, err := filestore.Stage(t.Context(), filestore.StageRequest{
-						Temporary: filestore.Location{Root: root, Path: stagePath}, Source: bytes.NewReader(payload.data), Mode: 0o600, MaximumBytes: mustByteCount(t, uint64(max(1, len(payload.data)))),
+						Temporary: filestore.Location{Root: root, Path: stagePath}, Source: bytes.NewReader(payload.data), Mode: 0o600,
 					})
 					if err != nil {
 						t.Fatalf("stage producer = %v, want nil", err)
