@@ -15,12 +15,6 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
-const (
-	CleanupPayloadMaximumBytes  = 128 * 1024
-	CleanupDocumentMaximumBytes = 256 * 1024
-	CleanupReceiptMaximumBytes  = 16 * 1024
-)
-
 type MachineStateObservation struct {
 	RootIdentity      core.SHA256Digest `json:"root_identity"`
 	Entries           uint32            `json:"entries"`
@@ -115,7 +109,7 @@ func (p CleanupPayload) MarshalJSON() ([]byte, error) {
 		return nil, errors.Join(core.ErrJSONContract, err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(cleanupPayloadWire(p))
-	if err != nil || len(encoded) > CleanupPayloadMaximumBytes {
+	if err != nil {
 		return nil, errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract, err)
 	}
 	return encoded, nil
@@ -124,7 +118,7 @@ func (p *CleanupPayload) UnmarshalJSON(data []byte) error {
 	if p == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[cleanupPayloadWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[cleanupPayloadWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
@@ -169,7 +163,7 @@ func (d CleanupDocument) MarshalJSON() ([]byte, error) {
 		return nil, errors.Join(core.ErrJSONContract, err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(cleanupDocumentWire(d))
-	if err != nil || len(encoded) > CleanupDocumentMaximumBytes {
+	if err != nil {
 		return nil, errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract, err)
 	}
 	return encoded, nil
@@ -178,7 +172,7 @@ func (d *CleanupDocument) UnmarshalJSON(data []byte) error {
 	if d == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[cleanupDocumentWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[cleanupDocumentWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
@@ -264,7 +258,7 @@ func (r *CleanupReceipt) UnmarshalJSON(data []byte) error {
 	if r == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[cleanupReceiptWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[cleanupReceiptWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}

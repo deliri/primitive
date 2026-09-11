@@ -11,11 +11,6 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
-const (
-	HeartbeatRequestMaximumBytes  = 64 * 1024
-	HeartbeatResponseMaximumBytes = 64 * 1024
-)
-
 type HeartbeatState uint8
 
 const (
@@ -244,7 +239,7 @@ func (r *HeartbeatRequest) UnmarshalJSON(data []byte) error {
 	if r == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[heartbeatRequestWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[heartbeatRequestWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
@@ -260,7 +255,7 @@ func (r *HeartbeatResponse) UnmarshalJSON(data []byte) error {
 	if r == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[heartbeatResponseWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[heartbeatResponseWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}

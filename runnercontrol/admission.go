@@ -14,8 +14,6 @@ import (
 )
 
 const (
-	AdmissionRequestMaximumBytes  = 256 * 1024
-	AdmissionResponseMaximumBytes = 512 * 1024
 	RunWorkerMaximum              = 256
 	MachineSessionMaximumHours    = 10
 	admissionIdempotencyNamespace = "runner-control-request:"
@@ -94,7 +92,7 @@ func (r *RequestedRun) UnmarshalJSON(data []byte) error {
 	if r == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[requestedRunWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[requestedRunWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
@@ -349,7 +347,7 @@ func (r *AdmittedRun) UnmarshalJSON(data []byte) error {
 	if r == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[admittedRunWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[admittedRunWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
@@ -370,7 +368,7 @@ func (r *AdmissionResponse) UnmarshalJSON(data []byte) error {
 	if r == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[admissionResponseWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[admissionResponseWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}

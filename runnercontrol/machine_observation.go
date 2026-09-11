@@ -10,11 +10,6 @@ import (
 	"github.com/deliri/primitive/v2026/runprotocol"
 )
 
-const (
-	MachineObservationRequestMaximumBytes  = 512 * 1024
-	MachineObservationResponseMaximumBytes = 16 * 1024
-)
-
 // MachineObservationSubmission binds the Primitive-produced machine sheet to
 // the clean fixed-workspace proof that made this generation eligible to claim.
 type MachineObservationSubmission struct {
@@ -88,7 +83,7 @@ func unmarshalMachineObservation[W any, T core.Validatable](data []byte, destina
 	if destination == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[W](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[W](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract, err)
 	}

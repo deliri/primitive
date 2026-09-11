@@ -127,7 +127,10 @@ func TestRunStateAndCancellationSocketProductionPathLayerTriad(t *testing.T) {
 		if err != nil {
 			t.Fatalf("runnercontrol.NewCancellationClient() error = %v, want nil", err)
 		}
-		_, _ = client.Cancel(t.Context(), request)
+		response, clientErr := client.Cancel(t.Context(), request)
+		if clientErr == nil {
+			t.Fatalf("Cancel(foreign origin) = %+v/%v, want refusal", response, clientErr)
+		}
 		serverErr := waitRunnerControlSocketServer(t, result)
 		if !errors.Is(serverErr, core.ErrPrimitiveContract) || calls != 0 {
 			t.Fatalf("foreign-origin cancellation = (server error %v, repository calls %d), want typed refusal and zero effects", serverErr, calls)
@@ -145,7 +148,11 @@ func TestMutualTLSAuthenticationProductionBoundaryLayerTriad(t *testing.T) {
 		machine := externalStructureSeeds(t).claimRequest.Machine
 		generation := externalStructureSeeds(t).claimRequest.Generation
 		want := runnerPeerFixture(t, machine, generation)
-		want.Credential, _ = runnercontrol.NewPeerCredential(runnercontrol.PeerCredentialMutualTLS, core.SHA256Of(certificateBytes))
+		credential, credentialErr := runnercontrol.NewPeerCredential(runnercontrol.PeerCredentialMutualTLS, core.SHA256Of(certificateBytes))
+		if credentialErr != nil {
+			t.Fatalf("NewPeerCredential() error = %v, want nil", credentialErr)
+		}
+		want.Credential = credential
 		repository := peerIdentityRepositoryFunc(func(_ context.Context, credential runnercontrol.PeerCredential, role runnercontrol.PeerRole) (runnercontrol.AuthenticatedPeer, error) {
 			if credential != want.Credential || role != runnercontrol.PeerRoleRunner {
 				return runnercontrol.AuthenticatedPeer{}, core.ErrPrimitiveContract

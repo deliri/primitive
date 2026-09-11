@@ -221,7 +221,7 @@ func controlPeerFixture(t testing.TB) runnercontrol.AuthenticatedPeer {
 
 func observationDeliverySocketContractFixture(t testing.TB, value string) exchange.JSONSocketContract {
 	t.Helper()
-	contract, err := runnercontrol.ObservationDeliverySocketContract(runnerControlSocketRouteFixture(t, value), core.JSONDocumentMaximumBytes)
+	contract, err := runnercontrol.ObservationDeliverySocketContract(runnerControlSocketRouteFixture(t, value))
 	if err != nil {
 		t.Fatalf("runnercontrol.ObservationDeliverySocketContract(%q) error = %v, want nil", value, err)
 	}

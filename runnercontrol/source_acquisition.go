@@ -12,9 +12,10 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
+// SourceAcquisitionRequestMaximumBytes is a caller route-budget default.
+// Nominal JSON decoding does not impose this transport budget.
 const (
-	SourceAcquisitionRequestMaximumBytes  = 128 * 1024
-	SourceAcquisitionResponseMaximumBytes = 512 * 1024
+	SourceAcquisitionRequestMaximumBytes = 128 * 1024
 )
 
 type SourceAcquisitionRequest struct {
@@ -57,7 +58,7 @@ func (r *SourceAcquisitionRequest) UnmarshalJSON(data []byte) error {
 	if r == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[sourceAcquisitionRequestWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[sourceAcquisitionRequestWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
@@ -97,7 +98,7 @@ func (a *SourceAcquisition) UnmarshalJSON(data []byte) error {
 	if a == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[sourceAcquisitionWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[sourceAcquisitionWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}

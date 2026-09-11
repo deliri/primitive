@@ -298,7 +298,7 @@ func foreignSchedulingTrustedKeys(t testing.TB) attest.TrustedKeys {
 	t.Helper()
 	seed := sha256.Sum256([]byte("foreign scheduling capability signer"))
 	privateKey := ed25519.NewKeyFromSeed(seed[:])
-	publicKey, publicErr := core.NewEd25519PublicKey(privateKey.Public().(ed25519.PublicKey))
+	publicKey, publicErr := core.NewEd25519PublicKey(ed25519.PublicKey(privateKey[ed25519.SeedSize:]))
 	trusted, trustedErr := attest.NewTrustedKeys(attest.TrustedKeysRequest{Keys: []core.Ed25519PublicKey{publicKey}})
 	if err := errors.Join(publicErr, trustedErr); err != nil {
 		t.Fatalf("foreign scheduling trust fixture error = %v, want nil", err)

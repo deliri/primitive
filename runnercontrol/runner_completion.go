@@ -17,10 +17,7 @@ import (
 )
 
 const (
-	ExperimentManifestMaximumEntries     = 256
-	RunnerCompletionPayloadMaximumBytes  = 900 * 1024
-	RunnerCompletionDocumentMaximumBytes = 1 << 20
-	RunnerCompletionReceiptMaximumBytes  = 16 * 1024
+	ExperimentManifestMaximumEntries = 256
 )
 
 type SourceGrantIdentity struct {
@@ -284,7 +281,7 @@ func (p RunnerCompletionPayload) MarshalJSON() ([]byte, error) {
 		return nil, errors.Join(core.ErrJSONContract, err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(runnerCompletionPayloadWire(p))
-	if err != nil || len(encoded) > RunnerCompletionPayloadMaximumBytes {
+	if err != nil {
 		return nil, errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract, err)
 	}
 	return encoded, nil
@@ -294,7 +291,7 @@ func (p *RunnerCompletionPayload) UnmarshalJSON(data []byte) error {
 	if p == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[runnerCompletionPayloadWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[runnerCompletionPayloadWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
@@ -341,7 +338,7 @@ func (d RunnerCompletionDocument) MarshalJSON() ([]byte, error) {
 		return nil, errors.Join(core.ErrJSONContract, err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(runnerCompletionDocumentWire(d))
-	if err != nil || len(encoded) > RunnerCompletionDocumentMaximumBytes {
+	if err != nil {
 		return nil, errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract, err)
 	}
 	return encoded, nil
@@ -351,7 +348,7 @@ func (d *RunnerCompletionDocument) UnmarshalJSON(data []byte) error {
 	if d == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[runnerCompletionDocumentWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[runnerCompletionDocumentWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
@@ -441,7 +438,7 @@ func (r *RunnerCompletionReceipt) UnmarshalJSON(data []byte) error {
 	if r == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[runnerCompletionReceiptWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[runnerCompletionReceiptWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}

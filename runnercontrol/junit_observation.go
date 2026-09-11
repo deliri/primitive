@@ -9,12 +9,6 @@ import (
 	"github.com/deliri/primitive/v2026/runprotocol"
 )
 
-const (
-	JUnitXMLMaximumBytes      uint64 = 8 << 20
-	JUnitXMLTokenMaximumBytes        = 1 << 20
-	JUnitXMLDepthMaximum             = 64
-)
-
 type JUnitObservation struct {
 	Accounting runprotocol.ExecutionAccounting `json:"accounting"`
 }
@@ -34,17 +28,20 @@ type junitStreamState struct {
 	caseSkipped bool
 	observed    uint32
 	depth       int
+	rootSeen    bool
 }
 
-// JUnitObservationCompiler streams one bounded JUnit report through the
-// standard XML decoder. The caller owns exactly one terminal action: Seal
+// JUnitObservationCompiler streams one JUnit document through the standard XML
+// decoder. The decoder owns its current materialized token and nesting stack;
+// memory depends on those values, not the total report length. This API does
+// not promise fixed memory for an arbitrarily large XML token. The caller owns
+// exactly one terminal action: Seal
 // closes successful input, while Abort closes abandoned input. Both join the
 // parser before returning.
 type JUnitObservationCompiler struct {
 	failure error
 	writer  *io.PipeWriter
 	done    <-chan junitCompileResult
-	bytes   uint64
 	policy  ObservationPolicy
 	sealed  bool
 }
@@ -74,11 +71,6 @@ func (c *JUnitObservationCompiler) Write(data []byte) (int, error) {
 	if c.failure != nil {
 		return 0, c.failure
 	}
-	if uint64(len(data)) > JUnitXMLMaximumBytes-c.bytes {
-		c.failure = observationFailure("JUnit XML exceeds the byte ceiling", core.ErrPrimitiveContract)
-		_ = c.writer.CloseWithError(c.failure)
-		return 0, c.failure
-	}
 	written, err := c.writer.Write(data)
 	if err == nil && written != len(data) {
 		err = io.ErrShortWrite
@@ -87,12 +79,6 @@ func (c *JUnitObservationCompiler) Write(data []byte) (int, error) {
 		c.failure = observationFailure("JUnit XML stream cannot be consumed", core.ErrPrimitiveContract, err)
 		return written, c.failure
 	}
-	writtenBytes, conversionErr := core.CheckedUint64FromInt64(int64(written))
-	if conversionErr != nil {
-		c.failure = observationFailure("JUnit XML write extent cannot be represented", core.ErrPrimitiveContract, conversionErr)
-		return written, c.failure
-	}
-	c.bytes += writtenBytes
 	return written, nil
 }
 
@@ -153,18 +139,25 @@ func (s *junitStreamState) consume(token xml.Token) error {
 	case xml.EndElement:
 		return s.consumeEnd(value)
 	case xml.CharData:
-		if len(value) > JUnitXMLTokenMaximumBytes {
-			return observationFailure("JUnit XML text token exceeds the byte ceiling", core.ErrPrimitiveContract)
+		if s.depth == 0 {
+			for _, character := range value {
+				if character != ' ' && character != '\t' && character != '\n' && character != '\r' {
+					return observationFailure("JUnit XML contains text outside its root", core.ErrPrimitiveContract)
+				}
+			}
 		}
 	}
 	return nil
 }
 
 func (s *junitStreamState) consumeStart(element xml.StartElement) error {
-	s.depth++
-	if s.depth > JUnitXMLDepthMaximum {
-		return observationFailure("JUnit XML exceeds the depth ceiling", core.ErrPrimitiveContract)
+	if s.depth == 0 {
+		if s.rootSeen {
+			return observationFailure("JUnit XML contains multiple roots", core.ErrPrimitiveContract)
+		}
+		s.rootSeen = true
 	}
+	s.depth++
 	if duplicateJUnitAttribute(element.Attr) {
 		return observationFailure("JUnit XML contains a duplicate attribute", core.ErrPrimitiveContract)
 	}
@@ -190,10 +183,10 @@ func (s *junitStreamState) consumeEnd(element xml.EndElement) error {
 	if !s.inCase {
 		return observationFailure("JUnit XML closes an absent testcase", core.ErrPrimitiveContract)
 	}
-	s.observed++
-	if s.observed > s.policy.ExpectedUnits {
+	if s.observed >= s.policy.ExpectedUnits {
 		return observationFailure("JUnit XML names more test cases than planned", core.ErrPrimitiveContract)
 	}
+	s.observed++
 	s.recordCase()
 	s.inCase = false
 	return nil

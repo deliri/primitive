@@ -82,23 +82,6 @@ func TestJUnitObservationCompilerAbortOwnsAndJoinsAnAbandonedParser(t *testing.T
 	}
 }
 
-func TestJUnitObservationCompilerWriteRefusesOverflowImmediately(t *testing.T) {
-	t.Parallel()
-
-	compiler, err := runnercontrol.NewJUnitObservationCompiler(runnercontrol.ObservationPolicy{
-		Format: runnercontrol.ObservationJUnitXML, ExpectedUnits: 1,
-	})
-	if err != nil {
-		t.Fatalf("NewJUnitObservationCompiler() error = %v, want nil", err)
-	}
-	defer compiler.Abort()
-	oversized := []byte(strings.Repeat("x", int(runnercontrol.JUnitXMLMaximumBytes)+1))
-	written, gotErr := compiler.Write(oversized)
-	if written != 0 || !errors.Is(gotErr, core.ErrPrimitiveContract) {
-		t.Fatalf("JUnitObservationCompiler.Write(overflow) = (%d, %v), want (0, %v)", written, gotErr, core.ErrPrimitiveContract)
-	}
-}
-
 func junitHostileCases() []junitBoundaryCase {
 	pass := `<testsuite><testcase name="one"/></testsuite>`
 	fail := `<testsuite><testcase name="one"><failure>assertion</failure></testcase></testsuite>`
@@ -146,8 +129,8 @@ func junitHostileCases() []junitBoundaryCase {
 		junitPass("boundary Unicode diagnostic attributes remain transportable", "boundary", `<testsuite><testcase name="測試-✓"/></testsuite>`, 1),
 		junitPass("boundary empty diagnostic elements remain neutral", "boundary", `<testsuite><properties/><system-out/><system-err/><testcase/></testsuite>`, 1),
 		junitPass("boundary failure-like prose outside testcase cannot create failure", "boundary", `<testsuite><system-out>&lt;failure/&gt;</system-out><testcase/></testsuite>`, 1),
-		junitPass("boundary maximum admitted nesting depth retains the testcase", "boundary", nestedJUnit(runnercontrol.JUnitXMLDepthMaximum, pass), 1),
-		junitReject("boundary one nesting level above ceiling is refused", "boundary", nestedJUnit(runnercontrol.JUnitXMLDepthMaximum+1, pass), 1),
+		junitPass("boundary maximum admitted nesting depth retains the testcase", "boundary", nestedJUnit(64, pass), 1),
+		junitPass("boundary deeper standard XML nesting retains the testcase", "boundary", nestedJUnit(256, pass), 1),
 	}
 }
 

@@ -76,7 +76,7 @@ func marshalCapabilityPayload[T core.Validatable, W any](value T, wire W) ([]byt
 		return nil, errors.Join(core.ErrJSONContract, err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(wire)
-	if err != nil || len(encoded) > core.JSONDocumentMaximumBytes {
+	if err != nil {
 		return nil, errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract, err)
 	}
 	return encoded, nil
@@ -86,7 +86,7 @@ func (c *SchedulingCapability) UnmarshalJSON(data []byte) error {
 	if c == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[schedulingCapabilityWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[schedulingCapabilityWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
@@ -102,7 +102,7 @@ func (c *MemberCapability) UnmarshalJSON(data []byte) error {
 	if c == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[memberCapabilityWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[memberCapabilityWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
@@ -118,7 +118,7 @@ func (c *ExperimentCapability) UnmarshalJSON(data []byte) error {
 	if c == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[experimentCapabilityWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[experimentCapabilityWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
@@ -188,7 +188,7 @@ func marshalCapabilityDocument[T core.Validatable, W any](value T, wire W) ([]by
 		return nil, errors.Join(core.ErrJSONContract, err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(wire)
-	if err != nil || len(encoded) > core.JSONDocumentMaximumBytes {
+	if err != nil {
 		return nil, errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract, err)
 	}
 	return encoded, nil
@@ -198,7 +198,7 @@ func (d *SchedulingCapabilityDocument) UnmarshalJSON(data []byte) error {
 	if d == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[schedulingCapabilityDocumentWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[schedulingCapabilityDocumentWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
@@ -214,7 +214,7 @@ func (d *MemberCapabilityDocument) UnmarshalJSON(data []byte) error {
 	if d == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[memberCapabilityDocumentWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[memberCapabilityDocumentWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
@@ -230,7 +230,7 @@ func (d *ExperimentCapabilityDocument) UnmarshalJSON(data []byte) error {
 	if d == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[experimentCapabilityDocumentWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[experimentCapabilityDocumentWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
@@ -319,7 +319,7 @@ func (c SchedulingClaim) MarshalJSON() ([]byte, error) {
 		return nil, errors.Join(core.ErrJSONContract, err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(schedulingClaimWire(c))
-	if err != nil || len(encoded) > core.JSONDocumentMaximumBytes {
+	if err != nil {
 		return nil, errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract, err)
 	}
 	return encoded, nil
@@ -329,7 +329,7 @@ func (c *SchedulingClaim) UnmarshalJSON(data []byte) error {
 	if c == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[schedulingClaimWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[schedulingClaimWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}

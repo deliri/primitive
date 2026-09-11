@@ -17,12 +17,6 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
-const (
-	ExperimentCompletionPayloadMaximumBytes  = 512 * 1024
-	ExperimentCompletionDocumentMaximumBytes = 768 * 1024
-	ExperimentCompletionReceiptMaximumBytes  = 16 * 1024
-)
-
 type ExperimentCompletionPayload struct {
 	Probe         runprotocol.ProbeIdentity         `json:"probe"`
 	StartedAt     *temporal.Instant                 `json:"started_at,omitempty"`
@@ -198,7 +192,7 @@ func (p ExperimentCompletionPayload) MarshalJSON() ([]byte, error) {
 		return nil, errors.Join(core.ErrJSONContract, err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(experimentCompletionPayloadWire(p))
-	if err != nil || len(encoded) > ExperimentCompletionPayloadMaximumBytes {
+	if err != nil {
 		return nil, errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract, err)
 	}
 	return encoded, nil
@@ -208,7 +202,7 @@ func (p *ExperimentCompletionPayload) UnmarshalJSON(data []byte) error {
 	if p == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[experimentCompletionPayloadWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[experimentCompletionPayloadWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
@@ -255,7 +249,7 @@ func (d ExperimentCompletionDocument) MarshalJSON() ([]byte, error) {
 		return nil, errors.Join(core.ErrJSONContract, err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(experimentCompletionDocumentWire(d))
-	if err != nil || len(encoded) > ExperimentCompletionDocumentMaximumBytes {
+	if err != nil {
 		return nil, errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract, err)
 	}
 	return encoded, nil
@@ -265,7 +259,7 @@ func (d *ExperimentCompletionDocument) UnmarshalJSON(data []byte) error {
 	if d == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[experimentCompletionDocumentWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[experimentCompletionDocumentWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
@@ -356,7 +350,7 @@ func (r *ExperimentCompletionReceipt) UnmarshalJSON(data []byte) error {
 	if r == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[experimentCompletionReceiptWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[experimentCompletionReceiptWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}

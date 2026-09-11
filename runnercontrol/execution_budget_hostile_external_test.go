@@ -83,12 +83,15 @@ func compileBudgetCase(tc executionBudgetCase) (runnercontrol.ExecutionBudget, e
 	switch tc.mutation {
 	case budgetUnchanged:
 	case budgetZeroConfigured:
-		budget.Configured, _ = temporal.DurationFromNanoseconds(0)
+		budget.Configured, err = temporal.DurationFromNanoseconds(0)
 	case budgetZeroEffective:
-		budget.Effective, _ = temporal.DurationFromNanoseconds(0)
+		budget.Effective, err = temporal.DurationFromNanoseconds(0)
 	case budgetChangedEffective:
-		one, _ := temporal.DurationFromNanoseconds(1)
-		budget.Effective, _ = budget.Effective.Add(one)
+		one, durationErr := temporal.DurationFromNanoseconds(1)
+		if durationErr != nil {
+			return runnercontrol.ExecutionBudget{}, durationErr
+		}
+		budget.Effective, err = budget.Effective.Add(one)
 	case budgetZeroUnits:
 		budget.ExpectedUnits = 0
 	case budgetExcessUnits:
@@ -99,6 +102,9 @@ func compileBudgetCase(tc executionBudgetCase) (runnercontrol.ExecutionBudget, e
 		budget.RepeatCount = 0
 	case budgetRepeatedPhase:
 		budget.RepeatCount = 2
+	}
+	if err != nil {
+		return runnercontrol.ExecutionBudget{}, err
 	}
 	return budget, budget.Validate()
 }

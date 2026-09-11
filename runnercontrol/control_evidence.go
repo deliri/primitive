@@ -16,10 +16,9 @@ import (
 )
 
 const (
-	RetainedExperimentMaximum          = 256
-	ExperimentDeliveryEntryMaximum     = 64
-	ExperimentDeliveryPageMaximum      = 16
-	ExperimentDeliveryPageMaximumBytes = 8 * core.JSONDocumentMaximumBytes
+	RetainedExperimentMaximum      = 256
+	ExperimentDeliveryEntryMaximum = 64
+	ExperimentDeliveryPageMaximum  = 16
 )
 
 type CleanupOutcomeKind uint8
@@ -377,7 +376,7 @@ func (p *ObservationEnvelopePayload) UnmarshalJSON(data []byte) error {
 	if p == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[observationEnvelopePayloadWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[observationEnvelopePayloadWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
@@ -416,7 +415,7 @@ func (e *ObservationEnvelope) UnmarshalJSON(data []byte) error {
 	if e == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[observationEnvelopeWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[observationEnvelopeWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
@@ -586,17 +585,17 @@ func (p ExperimentDeliveryPage) MarshalJSON() ([]byte, error) {
 		return nil, errors.Join(core.ErrJSONContract, err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(experimentDeliveryPageWire(p))
-	if err != nil || len(encoded) > ExperimentDeliveryPageMaximumBytes {
+	if err != nil {
 		return nil, errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract, err)
 	}
 	return encoded, nil
 }
 
 func (p *ExperimentDeliveryPage) UnmarshalJSON(data []byte) error {
-	if p == nil || len(data) > ExperimentDeliveryPageMaximumBytes {
+	if p == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[experimentDeliveryPageWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[experimentDeliveryPageWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}

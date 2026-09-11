@@ -77,8 +77,8 @@ func proveCapabilityDocumentClosure[T capabilityDocumentJSONValue](
 		t.Fatalf("%s.UnmarshalJSON(accepted).Validate() error = %v, want nil", name, err)
 	}
 	encoded, err := got.MarshalJSON()
-	if err != nil || len(encoded) > core.JSONDocumentMaximumBytes {
-		t.Fatalf("%s.MarshalJSON(accepted) = (%d bytes, %v), want <= %d bytes and nil", name, len(encoded), err, core.JSONDocumentMaximumBytes)
+	if err != nil {
+		t.Fatalf("%s.MarshalJSON(accepted) = (%d bytes, %v), want a canonical nominal document and nil", name, len(encoded), err)
 	}
 	var roundTrip T
 	if err := decode(&roundTrip, encoded); err != nil {

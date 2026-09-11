@@ -12,8 +12,6 @@ import (
 	"github.com/deliri/primitive/v2026/runprotocol"
 )
 
-const ObservationDeliveryReceiptMaximumBytes = 32 * 1024
-
 type ObservationDeliveryIdentity struct {
 	Observation core.SHA256Digest `json:"observation_digest"`
 	Manifest    core.SHA256Digest `json:"manifest_digest"`
@@ -87,7 +85,7 @@ func (s *ObservationDeliveryStage) UnmarshalJSON(data []byte) error {
 	if s == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[observationDeliveryStageWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[observationDeliveryStageWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
@@ -136,7 +134,7 @@ func (u *ObservationDeliveryPageUpload) UnmarshalJSON(data []byte) error {
 	if u == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[observationDeliveryPageUploadWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[observationDeliveryPageUploadWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
@@ -186,7 +184,7 @@ func (c *ObservationDeliveryCommit) UnmarshalJSON(data []byte) error {
 	if c == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[observationDeliveryCommitWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[observationDeliveryCommitWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
@@ -226,7 +224,7 @@ func (r *ObservationDeliveryReceipt) UnmarshalJSON(data []byte) error {
 	if r == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[observationDeliveryReceiptWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[observationDeliveryReceiptWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
@@ -435,7 +433,7 @@ func writeDeliveryReceipt(request deliveryReceiptWrite) error {
 	return exchange.WriteSocketJSON(request.socket, request.call, request.receipt)
 }
 
-func ObservationDeliverySocketContract(path exchange.SocketRoutePath, requestMaximum uint64) (exchange.JSONSocketContract, error) {
+func ObservationDeliverySocketContract(path exchange.SocketRoutePath) (exchange.JSONSocketContract, error) {
 	if err := errors.Join(path.Validate()); err != nil {
 		return exchange.JSONSocketContract{}, err
 	}

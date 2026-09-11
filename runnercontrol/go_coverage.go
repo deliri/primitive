@@ -49,12 +49,13 @@ type GoCoverageCompiler struct {
 	inField          bool
 	locationColon    bool
 	linePresent      bool
+	sealed           bool
 }
 
 func NewGoCoverageCompiler() *GoCoverageCompiler { return &GoCoverageCompiler{} }
 
 func (c *GoCoverageCompiler) Write(data []byte) (int, error) {
-	if c == nil {
+	if c == nil || c.sealed {
 		return 0, errors.Join(core.ErrPrimitiveContract, errors.New(goCoverageCompilerNilDiagnostic))
 	}
 	if c.failure != nil {
@@ -181,9 +182,10 @@ func (c *GoCoverageCompiler) accumulateCoverage(statements, count uint64) error 
 }
 
 func (c *GoCoverageCompiler) Seal() (GoCoverageObservation, error) {
-	if c == nil {
+	if c == nil || c.sealed {
 		return GoCoverageObservation{}, errors.Join(core.ErrPrimitiveContract, errors.New(goCoverageCompilerNilDiagnostic))
 	}
+	c.sealed = true
 	if c.failure != nil {
 		return GoCoverageObservation{}, c.failure
 	}

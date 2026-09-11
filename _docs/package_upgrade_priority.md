@@ -132,7 +132,7 @@ runner acceptance remains a separate fact.
 
 Continue in the user-approved September 10 order:
 
-`runnercontrol`, `secretstore`, `version`, `chitauth`, `distributionauth`,
+`secretstore`, `version`, `chitauth`, `distributionauth`,
 `paymentauth`, `retrievalauth`, `upgrade`, `deploy`, `wiring`, `github`,
 `gomodule`, `timeproof`, `controlplanetest`, `gitrepo`, `machineprobe`, `paypal`,
 `plunk`, `runworkspace`, `sourceclaim`, `sourceobservation`, `sourceproof`,
@@ -177,3 +177,11 @@ current published-version adoption.
 Runnercontrol progress: v2026.1.51 fixed Go output metadata; v2026.1.52 closes the coverage-reader streaming slice. The package remains first in the queue. See [coverage streaming evidence](runnercontrol_coverage_streaming_20260910.md).
 
 Runnercontrol v2026.1.53 admits interleaved Go build events without counting dependencies as test units. JSON streaming and the package sweep remain open; see [build-event evidence](runnercontrol_build_events_20260910.md).
+
+Runnercontrol v2026.1.54 completes this review: fixed-window Go JSON, nominal
+document ownership, JUnit framing, producer/accounting contradictions, snapshot
+ownership, lifecycle sealing, strict errcheck and the public ingress fuzz
+inventory. Its XML token and nominal-object memory contracts are explicit in
+[the completion report](runnercontrol_completion_20260910.md). Earlier open-slice
+notes above are historical. Independent acceptance and consumer migration remain
+separate. Secretstore is now first in this queue.

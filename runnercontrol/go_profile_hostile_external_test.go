@@ -25,7 +25,7 @@ type goPlanBoundaryCase struct {
 func TestCompileGoPlanCompletesHostileEvidenceFloor(t *testing.T) {
 	t.Parallel()
 
-	cases := goPlanSupplementalCases()
+	cases := goPlanSupplementalCases(t)
 	gotClasses := make(map[string]int)
 	for index := range cases {
 		gotClasses[cases[index].class]++
@@ -129,26 +129,36 @@ func baseAcceptanceGoPlanRequest(t testing.TB) runnercontrol.GoPlanRequest {
 	return goPlanRequestFixture(t, plan)
 }
 
-func goPlanSupplementalCases() []goPlanBoundaryCase {
+func goPlanSupplementalCases(t testing.TB) []goPlanBoundaryCase {
+	t.Helper()
+	selector := mustProfileName(t, "TestA+B")
+	coveragePath := mustProfileRelativePath(t, "coverage.out")
+	zero := mustProfileDuration(t, 0)
+	one := mustProfileDuration(t, 1)
+	integration := mustProfileIdentifier(t, "integration")
+	alpha := mustProfileIdentifier(t, "alpha")
+	omega := mustProfileIdentifier(t, "omega")
+	same := mustProfileIdentifier(t, "same")
+	zeta := mustProfileIdentifier(t, "zeta")
 	return []goPlanBoundaryCase{
 		{name: "valid anchored selector quotes regular expression metacharacters", class: "valid", mutate: func(r *runnercontrol.GoPlanRequest) {
-			selector, _ := runprotocol.NewName("TestA+B")
+
 			r.Experiment.Selector = &selector
 		}, wantFlag: "-run=^TestA\\+B$"},
-		{name: "valid set coverage retains its compiler-owned mode", class: "valid", mutate: addCoverage(runnercontrol.CoverageSet), wantFlag: "-covermode=set"},
-		{name: "valid count coverage retains its compiler-owned mode", class: "valid", mutate: addCoverage(runnercontrol.CoverageCount), wantFlag: "-covermode=count"},
-		{name: "valid diagnostic profile retains all five distinct artifact contracts", class: "valid", mutate: configureAllDiagnostics, wantFlag: "-trace=/workspace/artifacts/trace.out"},
+		{name: "valid set coverage retains its compiler-owned mode", class: "valid", mutate: addCoverage(t, runnercontrol.CoverageSet), wantFlag: "-covermode=set"},
+		{name: "valid count coverage retains its compiler-owned mode", class: "valid", mutate: addCoverage(t, runnercontrol.CoverageCount), wantFlag: "-covermode=count"},
+		{name: "valid diagnostic profile retains all five distinct artifact contracts", class: "valid", mutate: configureAllDiagnostics(t), wantFlag: "-trace=/workspace/artifacts/trace.out"},
 		{name: "rejection repeat count cannot amplify a Go evidence phase", class: "rejection", mutate: func(r *runnercontrol.GoPlanRequest) { r.Experiment.RepeatCount = 2 }, wantErr: core.ErrPrimitiveContract},
 		{name: "rejection coverage mode without a durable path is incomplete", class: "rejection", mutate: func(r *runnercontrol.GoPlanRequest) {
 			mode := runnercontrol.CoverageAtomic
 			r.Experiment.Coverage = &mode
 		}, wantErr: core.ErrPrimitiveContract},
 		{name: "rejection durable coverage path without a mode is incomplete", class: "rejection", mutate: func(r *runnercontrol.GoPlanRequest) {
-			path, _ := core.ParseRelativePath("coverage.out")
+			path := coveragePath
 			r.Experiment.CoveragePath = &path
 		}, wantErr: core.ErrPrimitiveContract},
-		{name: "boundary zero timeout is refused", class: "boundary", mutate: func(r *runnercontrol.GoPlanRequest) { r.Experiment.Timeout, _ = temporal.DurationFromNanoseconds(0) }, wantErr: core.ErrPrimitiveContract},
-		{name: "boundary minimum positive timeout is retained", class: "boundary", mutate: func(r *runnercontrol.GoPlanRequest) { r.Experiment.Timeout, _ = temporal.DurationFromNanoseconds(1) }, wantFlag: "-timeout=1ns"},
+		{name: "boundary zero timeout is refused", class: "boundary", mutate: func(r *runnercontrol.GoPlanRequest) { r.Experiment.Timeout = zero }, wantErr: core.ErrPrimitiveContract},
+		{name: "boundary minimum positive timeout is retained", class: "boundary", mutate: func(r *runnercontrol.GoPlanRequest) { r.Experiment.Timeout = one }, wantFlag: "-timeout=1ns"},
 		{name: "boundary zero expected units is refused", class: "boundary", mutate: func(r *runnercontrol.GoPlanRequest) { r.ExpectedUnits = 0 }, wantErr: core.ErrPrimitiveContract},
 		{name: "boundary one expected unit closes one wave", class: "boundary", mutate: func(r *runnercontrol.GoPlanRequest) { r.ExpectedUnits = 1; r.Experiment.PackageParallel = 1 }, wantFlag: "-p=1"},
 		{name: "boundary maximum requested package width is capped by the observed machine", class: "boundary", mutate: func(r *runnercontrol.GoPlanRequest) {
@@ -168,43 +178,49 @@ func goPlanSupplementalCases() []goPlanBoundaryCase {
 		{name: "boundary duplicate CPU entry is refused", class: "boundary", mutate: func(r *runnercontrol.GoPlanRequest) { r.Experiment.CPU = []uint16{1, 1} }, wantErr: core.ErrPrimitiveContract},
 		{name: "boundary descending CPU entries are refused", class: "boundary", mutate: func(r *runnercontrol.GoPlanRequest) { r.Experiment.CPU = []uint16{2, 1} }, wantErr: core.ErrPrimitiveContract},
 		{name: "boundary one canonical build tag is emitted exactly", class: "boundary", mutate: func(r *runnercontrol.GoPlanRequest) {
-			tag, _ := runprotocol.NewIdentifier("integration")
+			tag := integration
 			r.Experiment.Tags = []runprotocol.Identifier{tag}
 		}, wantFlag: "-tags=integration"},
 		{name: "boundary two canonical build tags preserve declared order", class: "boundary", mutate: func(r *runnercontrol.GoPlanRequest) {
-			first, _ := runprotocol.NewIdentifier("alpha")
-			second, _ := runprotocol.NewIdentifier("omega")
+			first := alpha
+			second := omega
 			r.Experiment.Tags = []runprotocol.Identifier{first, second}
 		}, wantFlag: "-tags=alpha,omega"},
 		{name: "boundary duplicate build tags are refused", class: "boundary", mutate: func(r *runnercontrol.GoPlanRequest) {
-			tag, _ := runprotocol.NewIdentifier("same")
+			tag := same
 			r.Experiment.Tags = []runprotocol.Identifier{tag, tag}
 		}, wantErr: core.ErrPrimitiveContract},
 		{name: "boundary descending build tags are refused", class: "boundary", mutate: func(r *runnercontrol.GoPlanRequest) {
-			first, _ := runprotocol.NewIdentifier("zeta")
-			second, _ := runprotocol.NewIdentifier("alpha")
+			first := zeta
+			second := alpha
 			r.Experiment.Tags = []runprotocol.Identifier{first, second}
 		}, wantErr: core.ErrPrimitiveContract},
 		{name: "boundary one hundred one effective waves are refused", class: "boundary", mutate: func(r *runnercontrol.GoPlanRequest) { r.ExpectedUnits = 202; r.Experiment.PackageParallel = 2 }, wantErr: core.ErrPrimitiveContract},
 	}
 }
 
-func addCoverage(mode runnercontrol.CoverageMode) func(*runnercontrol.GoPlanRequest) {
+func addCoverage(t testing.TB, mode runnercontrol.CoverageMode) func(*runnercontrol.GoPlanRequest) {
+	t.Helper()
+	value := mustProfileRelativePath(t, "coverage.out")
 	return func(request *runnercontrol.GoPlanRequest) {
-		path, _ := core.ParseRelativePath("coverage.out")
+		path := value
 		request.Experiment.Coverage = &mode
 		request.Experiment.CoveragePath = &path
 	}
 }
 
-func configureAllDiagnostics(request *runnercontrol.GoPlanRequest) {
-	request.Experiment.Profile = runnercontrol.GoProfileDiagnostic
-	request.Experiment.Kind = runprotocol.ProbeKindGoDiagnosticProfile
-	paths := make([]core.RelativePath, 5)
+func configureAllDiagnostics(t testing.TB) func(*runnercontrol.GoPlanRequest) {
+	t.Helper()
+	var base [5]core.RelativePath
 	for index, value := range []string{"cpu.pprof", "memory.pprof", "block.pprof", "mutex.pprof", "trace.out"} {
-		paths[index], _ = core.ParseRelativePath(value)
+		base[index] = mustProfileRelativePath(t, value)
 	}
-	request.Experiment.Diagnostics = &runnercontrol.DiagnosticArtifacts{CPU: &paths[0], Memory: &paths[1], Block: &paths[2], Mutex: &paths[3], Trace: &paths[4]}
+	return func(request *runnercontrol.GoPlanRequest) {
+		request.Experiment.Profile = runnercontrol.GoProfileDiagnostic
+		request.Experiment.Kind = runprotocol.ProbeKindGoDiagnosticProfile
+		paths := base
+		request.Experiment.Diagnostics = &runnercontrol.DiagnosticArtifacts{CPU: &paths[0], Memory: &paths[1], Block: &paths[2], Mutex: &paths[3], Trace: &paths[4]}
+	}
 }
 
 func TestCompileGoPlanExhaustsProfileVariantsAndRefusalEdges(t *testing.T) {
@@ -510,6 +526,15 @@ func mustProfileDuration(t testing.TB, value int64) temporal.Duration {
 	got, err := temporal.DurationFromNanoseconds(value)
 	if err != nil {
 		t.Fatalf("temporal.DurationFromNanoseconds(%d) profile fixture error = %v, want nil", value, err)
+	}
+	return got
+}
+
+func mustProfileIdentifier(t testing.TB, value string) runprotocol.Identifier {
+	t.Helper()
+	got, err := runprotocol.NewIdentifier(value)
+	if err != nil {
+		t.Fatalf("NewIdentifier(%q) error = %v, want nil", value, err)
 	}
 	return got
 }

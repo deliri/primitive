@@ -2,6 +2,7 @@ package runnercontrol_test
 
 import (
 	"bytes"
+	"crypto/ed25519"
 	"errors"
 	"testing"
 
@@ -114,13 +115,19 @@ func TestExpansionProducerSchemaVerifierLayerTriad(t *testing.T) {
 
 func FuzzExpansionDocumentSemanticClosure(f *testing.F) {
 	manifest := expansionManifestFixture(f, true)
-	key, _ := completionSignerFixture(f)
+	key, trusted := completionSignerFixture(f)
 	seedValue, issueErr := runnercontrol.IssueExpansion(manifest, key)
 	if issueErr != nil {
 		f.Fatalf("IssueExpansion(seed) error = %v, want nil", issueErr)
 	}
 	seed := mustExpansionDocumentJSON(f, seedValue)
 	f.Add(seed)
+	foreignKey := ed25519.NewKeyFromSeed(bytes.Repeat([]byte{2}, ed25519.SeedSize))
+	foreign, foreignErr := runnercontrol.IssueExpansion(manifest, foreignKey)
+	if foreignErr != nil {
+		f.Fatal(foreignErr)
+	}
+	f.Add(mustExpansionDocumentJSON(f, foreign))
 	f.Add([]byte{})
 	f.Add([]byte(`null`))
 
@@ -134,6 +141,16 @@ func FuzzExpansionDocumentSemanticClosure(f *testing.F) {
 			return
 		}
 		encoded := mustExpansionDocumentJSON(t, got)
+		verificationErr := runnercontrol.VerifyExpansion(got, trusted)
+		if bytes.Equal(encoded, seed) && verificationErr != nil {
+			t.Fatalf("signed seed verification = %v, want nil", verificationErr)
+		}
+		if verificationErr == nil && !bytes.Equal(encoded, seed) {
+			t.Fatalf("authenticated document = %d bytes, want exact signed seed %d bytes", len(encoded), len(seed))
+		}
+		if verificationErr != nil && !errors.Is(verificationErr, core.ErrAttestVerification) && !errors.Is(verificationErr, core.ErrPrimitiveContract) {
+			t.Fatalf("verification error = %v, want typed authentication or interval refusal", verificationErr)
+		}
 		var roundTrip runnercontrol.ExpansionDocument
 		if err := roundTrip.UnmarshalJSON(encoded); err != nil || !bytes.Equal(mustExpansionDocumentJSON(t, roundTrip), encoded) {
 			t.Fatalf("ExpansionDocument canonical closure = (second %q, error %v), want %q and nil", mustExpansionDocumentJSON(t, roundTrip), err, encoded)

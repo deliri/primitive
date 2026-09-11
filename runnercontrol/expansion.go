@@ -20,13 +20,11 @@ import (
 )
 
 const (
-	GoBuildTagMaximum                    = 64
-	GoBuildContextMaximum                = 32
-	ExpansionChildMaximum                = 256
-	ExpansionManifestMaximumBytes        = 1 << 20
-	ExpansionApprovalMaximumBytes        = 1 << 20
-	GoASTDiscoveryIdentifier             = "primitive-go-ast"
-	GoASTDiscoveryVersion         uint32 = 1
+	GoBuildTagMaximum               = 64
+	GoBuildContextMaximum           = 32
+	ExpansionChildMaximum           = 256
+	GoASTDiscoveryIdentifier        = "primitive-go-ast"
+	GoASTDiscoveryVersion    uint32 = 1
 )
 
 type GoBuildTag struct{ value string }
@@ -749,7 +747,7 @@ func (m ExpansionManifest) MarshalJSON() ([]byte, error) {
 		return nil, errors.Join(core.ErrJSONContract, err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(expansionManifestWire(m))
-	if err != nil || len(encoded) > ExpansionManifestMaximumBytes {
+	if err != nil {
 		return nil, errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract, err)
 	}
 	return encoded, nil
@@ -758,7 +756,7 @@ func (m *ExpansionManifest) UnmarshalJSON(data []byte) error {
 	if m == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[expansionManifestWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[expansionManifestWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
@@ -833,7 +831,7 @@ func (d *ExpansionDocument) UnmarshalJSON(data []byte) error {
 	if d == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[expansionDocumentWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[expansionDocumentWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
@@ -961,7 +959,7 @@ func (a *ExpansionApproval) UnmarshalJSON(data []byte) error {
 	if a == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[expansionApprovalWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[expansionApprovalWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}

@@ -12,11 +12,8 @@ import (
 )
 
 const (
-	ArtifactManifestMaximumEntries      = 256
-	ArtifactChunkMaximumBytes           = 512 * 1024
-	ArtifactChunkDocumentMaximumBytes   = 900 * 1024
-	ArtifactChunkReceiptMaximumBytes    = 16 * 1024
-	ArtifactManifestReceiptMaximumBytes = 16 * 1024
+	ArtifactManifestMaximumEntries = 256
+	ArtifactChunkMaximumBytes      = 512 * 1024
 )
 
 type ArtifactKind uint8
@@ -197,7 +194,7 @@ func (m *ArtifactManifest) UnmarshalJSON(data []byte) error {
 	if m == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[artifactManifestWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[artifactManifestWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
@@ -275,7 +272,7 @@ func (c ArtifactChunk) MarshalJSON() ([]byte, error) {
 		return nil, errors.Join(core.ErrJSONContract, err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(artifactChunkWire(c))
-	if err != nil || len(encoded) > ArtifactChunkDocumentMaximumBytes {
+	if err != nil {
 		return nil, errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract, err)
 	}
 	return encoded, nil
@@ -285,7 +282,7 @@ func (c *ArtifactChunk) UnmarshalJSON(data []byte) error {
 	if c == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[artifactChunkWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[artifactChunkWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
@@ -333,7 +330,7 @@ func (r *ArtifactManifestReceipt) UnmarshalJSON(data []byte) error {
 	if r == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[artifactManifestReceiptWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[artifactManifestReceiptWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
@@ -462,7 +459,7 @@ func (r *ArtifactChunkReceipt) UnmarshalJSON(data []byte) error {
 	if r == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[artifactChunkReceiptWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[artifactChunkReceiptWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}

@@ -20,8 +20,6 @@ const (
 
 const SourceArchiveSigningDomainToken = "primitive-runner-source-archive-2026-1"
 
-const SourceArchiveDocumentMaximumBytes = 1 << 20
-
 type SourceSigningDomain uint8
 
 const (
@@ -184,7 +182,7 @@ func (d SourceArchiveDocument) MarshalJSON() ([]byte, error) {
 		return nil, errors.Join(core.ErrJSONContract, err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(sourceArchiveDocumentWire(d))
-	if err != nil || len(encoded) > SourceArchiveDocumentMaximumBytes {
+	if err != nil {
 		return nil, errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract, err)
 	}
 	return encoded, nil
@@ -194,10 +192,7 @@ func (d *SourceArchiveDocument) UnmarshalJSON(data []byte) error {
 	if d == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	if len(data) > SourceArchiveDocumentMaximumBytes {
-		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
-	}
-	wire, err := core.DecodeStrictJSONStructure[sourceArchiveDocumentWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[sourceArchiveDocumentWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}

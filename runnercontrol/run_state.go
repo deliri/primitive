@@ -11,11 +11,6 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
-const (
-	RunStateRequestMaximumBytes  = 64 * 1024
-	RunStateResponseMaximumBytes = 1 << 20
-)
-
 type RunControlState uint8
 
 const (
@@ -254,7 +249,7 @@ func unmarshalRunState[W any, T core.Validatable](data []byte, target *T, conver
 	if target == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[W](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[W](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}

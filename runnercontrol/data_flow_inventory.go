@@ -173,7 +173,6 @@ func (machineObservationSubmissionWire) runnerControlInternalFlow()       {}
 func (machineObservationReceiptWire) runnerControlInternalFlow()          {}
 func (waveAccumulator) runnerControlInternalFlow()                        {}
 func (ExperimentObservationRequest) runnerControlInternalFlow()           {}
-func (goTestEventWire) runnerControlInternalFlow()                        {}
 func (ObservationDeliveryClientConfiguration) runnerControlInternalFlow() {}
 func (authenticatedPeerContextKey) runnerControlInternalFlow()            {}
 func (compiledGoArtifactPaths) runnerControlInternalFlow()                {}
@@ -188,7 +187,6 @@ func (deliveryReceiptWrite) runnerControlInternalFlow()                   {}
 func (deliveryClosure) runnerControlInternalFlow()                        {}
 func (expansionCounts) runnerControlInternalFlow()                        {}
 func (measurementValidation) runnerControlInternalFlow()                  {}
-func (boundedLineWrite) runnerControlInternalFlow()                       {}
 
 func (ClaimClient) runnerControlCapabilityWrapper()                 {}
 func (AdmissionClient) runnerControlCapabilityWrapper()             {}
@@ -392,7 +390,6 @@ var (
 	_ internalFlow = machineObservationReceiptWire{}
 	_ internalFlow = waveAccumulator{}
 	_ internalFlow = ExperimentObservationRequest{}
-	_ internalFlow = goTestEventWire{}
 	_ internalFlow = ObservationDeliveryClientConfiguration{}
 	_ internalFlow = authenticatedPeerContextKey{}
 	_ internalFlow = compiledGoArtifactPaths{}
@@ -407,7 +404,6 @@ var (
 	_ internalFlow = deliveryClosure{}
 	_ internalFlow = expansionCounts{}
 	_ internalFlow = measurementValidation{}
-	_ internalFlow = boundedLineWrite{}
 
 	_ capabilityWrapper = ClaimClient{}
 	_ capabilityWrapper = AdmissionClient{}

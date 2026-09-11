@@ -19,6 +19,13 @@ type structureJSONValue interface {
 
 func FuzzRunnerControlExternalStructureJSONSemanticClosure(f *testing.F) {
 	seeds := externalStructureSeeds(f)
+	signedClaim, trusted := schedulingClaimDocumentFixture(f)
+	executing := runnercontrol.ClaimResponse{SchemaVersion: runnercontrol.SchemaVersion, Kind: runnercontrol.ClaimExecute, Fence: signedClaim.Capability.Payload.Fence.Machine, Scheduling: &signedClaim}
+	executingJSON, err := executing.MarshalJSON()
+	if err != nil {
+		f.Fatal(err)
+	}
+	f.Add(uint8(2), executingJSON)
 	for index, seed := range seeds.encoded {
 		f.Add(uint8(index), seed)
 	}
@@ -33,6 +40,21 @@ func FuzzRunnerControlExternalStructureJSONSemanticClosure(f *testing.F) {
 			proveStructureJSONClosure(t, "ClaimRequest", seeds.claimRequest, data, (*runnercontrol.ClaimRequest).UnmarshalJSON)
 		case 2:
 			proveStructureJSONClosure(t, "ClaimResponse", seeds.claimResponse, data, (*runnercontrol.ClaimResponse).UnmarshalJSON)
+			var got runnercontrol.ClaimResponse
+			if err := got.UnmarshalJSON(data); err == nil && got.Scheduling != nil {
+				verifyErr := runnercontrol.VerifySchedulingClaim(*got.Scheduling, trusted)
+				if verifyErr == nil {
+					sameSignedNominal(t, got.Scheduling.Capability, signedClaim.Capability)
+					for _, member := range got.Scheduling.Members {
+						sameSignedNominal(t, member, signedClaim.Members[0])
+					}
+					for _, direct := range got.Scheduling.Direct {
+						sameSignedNominal(t, direct, signedClaim.Direct[0])
+					}
+				} else if !errors.Is(verifyErr, core.ErrAttestVerification) {
+					t.Fatalf("claim response verification = %v, want typed refusal", verifyErr)
+				}
+			}
 		case 3:
 			proveStructureJSONClosure(t, "HeartbeatRequest", seeds.heartbeatRequest, data, (*runnercontrol.HeartbeatRequest).UnmarshalJSON)
 		case 4:
@@ -55,10 +77,32 @@ func FuzzRunnerControlExternalStructureJSONSemanticClosure(f *testing.F) {
 			proveStructureJSONClosure(t, "ObservationEnvelopePayload", seeds.observationPayload, data, (*runnercontrol.ObservationEnvelopePayload).UnmarshalJSON)
 		case 13:
 			proveStructureJSONClosure(t, "ExperimentDeliveryPage", seeds.deliveryPage, data, (*runnercontrol.ExperimentDeliveryPage).UnmarshalJSON)
+			var got runnercontrol.ExperimentDeliveryPage
+			if err := got.UnmarshalJSON(data); err == nil {
+				for _, document := range got.Documents {
+					verifyErr := runnercontrol.VerifyExperimentCompletion(document, trusted)
+					if verifyErr == nil {
+						sameSignedNominal(t, document, seeds.deliveryPage.Documents[0])
+					} else if !errors.Is(verifyErr, core.ErrAttestVerification) {
+						t.Fatalf("page verification = %v, want typed refusal", verifyErr)
+					}
+				}
+			}
 		case 14:
 			proveStructureJSONClosure(t, "ExpansionManifest", seeds.expansionManifest, data, (*runnercontrol.ExpansionManifest).UnmarshalJSON)
 		case 15:
 			proveStructureJSONClosure(t, "ExpansionApproval", seeds.expansionApproval, data, (*runnercontrol.ExpansionApproval).UnmarshalJSON)
+			var got runnercontrol.ExpansionApproval
+			if err := got.UnmarshalJSON(data); err == nil {
+				verifyErr := runnercontrol.VerifyExpansionApproval(got, trusted)
+				if verifyErr == nil {
+					for _, document := range got.Experiments {
+						sameSignedNominal(t, document, seeds.expansionApproval.Experiments[0])
+					}
+				} else if !errors.Is(verifyErr, core.ErrAttestVerification) {
+					t.Fatalf("approval verification = %v, want typed refusal", verifyErr)
+				}
+			}
 		case 16:
 			proveStructureJSONClosure(t, "ArtifactManifestReceipt", seeds.artifactManifestReceipt, data, (*runnercontrol.ArtifactManifestReceipt).UnmarshalJSON)
 		case 17:

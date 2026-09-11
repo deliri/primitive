@@ -12,9 +12,7 @@ import (
 )
 
 const (
-	SchemaVersion             uint16 = 1
-	ClaimRequestMaximumBytes         = 64 * 1024
-	ClaimResponseMaximumBytes        = 1 << 20
+	SchemaVersion uint16 = 1
 )
 
 type ClaimKind uint8
@@ -158,7 +156,7 @@ func (r *ClaimRequest) UnmarshalJSON(data []byte) error {
 	if r == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[claimRequestWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[claimRequestWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
@@ -174,7 +172,7 @@ func (r *ClaimResponse) UnmarshalJSON(data []byte) error {
 	if r == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)
 	}
-	wire, err := core.DecodeStrictJSONStructure[claimResponseWire](data, core.DefaultStrictJSONLimits())
+	wire, err := core.DecodeStrictJSONStructure[claimResponseWire](data, core.ExtensibleJSONLimits())
 	if err != nil {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}

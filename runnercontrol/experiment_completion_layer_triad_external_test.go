@@ -232,7 +232,7 @@ func completionSignerFixture(t testing.TB) (ed25519.PrivateKey, attest.TrustedKe
 	t.Helper()
 	seed := sha256.Sum256([]byte("primitive-runnercontrol-experiment-completion-test"))
 	privateKey := ed25519.NewKeyFromSeed(seed[:])
-	publicKey, publicErr := core.NewEd25519PublicKey(privateKey.Public().(ed25519.PublicKey))
+	publicKey, publicErr := core.NewEd25519PublicKey(ed25519.PublicKey(privateKey[ed25519.SeedSize:]))
 	trusted, trustedErr := attest.NewTrustedKeys(attest.TrustedKeysRequest{Keys: []core.Ed25519PublicKey{publicKey}})
 	if err := errors.Join(publicErr, trustedErr); err != nil {
 		t.Fatalf("completion signer fixture error = %v, want nil", err)

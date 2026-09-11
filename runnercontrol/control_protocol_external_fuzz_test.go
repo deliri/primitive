@@ -2,6 +2,7 @@ package runnercontrol_test
 
 import (
 	"bytes"
+	"crypto/ed25519"
 	"errors"
 	"testing"
 
@@ -109,13 +110,19 @@ func FuzzArtifactChunkSemanticClosure(f *testing.F) {
 
 func FuzzCleanupDocumentSemanticClosure(f *testing.F) {
 	payload := cleanupPayloadFixture(f)
-	key, _ := completionSignerFixture(f)
+	key, trusted := completionSignerFixture(f)
 	seedValue, issueErr := runnercontrol.IssueCleanup(payload, key)
 	if issueErr != nil {
 		f.Fatalf("IssueCleanup(seed) error = %v, want nil", issueErr)
 	}
 	seed := mustCleanupDocumentJSON(f, seedValue)
 	f.Add(seed)
+	foreignKey := ed25519.NewKeyFromSeed(bytes.Repeat([]byte{2}, ed25519.SeedSize))
+	foreign, foreignErr := runnercontrol.IssueCleanup(payload, foreignKey)
+	if foreignErr != nil {
+		f.Fatal(foreignErr)
+	}
+	f.Add(mustCleanupDocumentJSON(f, foreign))
 	f.Add([]byte{})
 	f.Add([]byte(`null`))
 
@@ -129,6 +136,16 @@ func FuzzCleanupDocumentSemanticClosure(f *testing.F) {
 			return
 		}
 		encoded := mustCleanupDocumentJSON(t, got)
+		verificationErr := runnercontrol.VerifyCleanup(got, trusted)
+		if bytes.Equal(encoded, seed) && verificationErr != nil {
+			t.Fatalf("signed seed verification = %v, want nil", verificationErr)
+		}
+		if verificationErr == nil && !bytes.Equal(encoded, seed) {
+			t.Fatalf("authenticated document = %d bytes, want exact signed seed %d bytes", len(encoded), len(seed))
+		}
+		if verificationErr != nil && !errors.Is(verificationErr, core.ErrAttestVerification) && !errors.Is(verificationErr, core.ErrPrimitiveContract) {
+			t.Fatalf("verification error = %v, want typed authentication or interval refusal", verificationErr)
+		}
 		var roundTrip runnercontrol.CleanupDocument
 		if err := roundTrip.UnmarshalJSON(encoded); err != nil || !bytes.Equal(mustCleanupDocumentJSON(t, roundTrip), encoded) {
 			t.Fatalf("CleanupDocument canonical closure = (second %q, error %v), want %q and nil", mustCleanupDocumentJSON(t, roundTrip), err, encoded)
@@ -137,7 +154,7 @@ func FuzzCleanupDocumentSemanticClosure(f *testing.F) {
 }
 
 func FuzzObservationEnvelopeSemanticClosure(f *testing.F) {
-	seedValue, _, _, _, _ := completedObservationDeliveryFixture(f)
+	seedValue, _, _, controlKeys, _ := completedObservationDeliveryFixture(f)
 	seed := mustObservationEnvelopeJSON(f, seedValue)
 	f.Add(seed)
 	f.Add([]byte{})
@@ -153,6 +170,16 @@ func FuzzObservationEnvelopeSemanticClosure(f *testing.F) {
 			return
 		}
 		encoded := mustObservationEnvelopeJSON(t, got)
+		verificationErr := runnercontrol.VerifyObservationEnvelope(got, controlKeys)
+		if bytes.Equal(encoded, seed) && verificationErr != nil {
+			t.Fatalf("signed seed verification = %v, want nil", verificationErr)
+		}
+		if verificationErr == nil && !bytes.Equal(encoded, seed) {
+			t.Fatalf("authenticated envelope = %d bytes, want exact signed seed %d bytes", len(encoded), len(seed))
+		}
+		if verificationErr != nil && !errors.Is(verificationErr, core.ErrAttestVerification) {
+			t.Fatalf("envelope verification error = %v, want typed authentication refusal", verificationErr)
+		}
 		var roundTrip runnercontrol.ObservationEnvelope
 		if err := roundTrip.UnmarshalJSON(encoded); err != nil || !bytes.Equal(mustObservationEnvelopeJSON(t, roundTrip), encoded) {
 			t.Fatalf("ObservationEnvelope canonical closure = (second %q, error %v), want %q and nil", mustObservationEnvelopeJSON(t, roundTrip), err, encoded)
@@ -167,6 +194,7 @@ func FuzzObservationDeliveryStageSemanticClosure(f *testing.F) {
 	f.Add([]byte{})
 	f.Add([]byte(`null`))
 
+	_, trusted := completionSignerFixture(f)
 	f.Fuzz(func(t *testing.T, data []byte) {
 		got := seedValue
 		gotErr := got.UnmarshalJSON(data)
@@ -177,6 +205,12 @@ func FuzzObservationDeliveryStageSemanticClosure(f *testing.F) {
 			return
 		}
 		encoded := mustObservationDeliveryStageJSON(t, got)
+		verifyErr := runnercontrol.VerifyObservationEnvelope(got.Envelope, trusted)
+		if verifyErr == nil {
+			sameSignedNominal(t, got.Envelope, seedValue.Envelope)
+		} else if !errors.Is(verifyErr, core.ErrAttestVerification) {
+			t.Fatalf("delivery envelope verification = %v, want typed refusal", verifyErr)
+		}
 		var roundTrip runnercontrol.ObservationDeliveryStage
 		if err := roundTrip.UnmarshalJSON(encoded); err != nil || !bytes.Equal(mustObservationDeliveryStageJSON(t, roundTrip), encoded) {
 			t.Fatalf("ObservationDeliveryStage canonical closure = (second %q, error %v), want %q and nil", mustObservationDeliveryStageJSON(t, roundTrip), err, encoded)
@@ -196,6 +230,7 @@ func FuzzObservationDeliveryPageUploadSemanticClosure(f *testing.F) {
 	f.Add([]byte{})
 	f.Add([]byte(`null`))
 
+	_, trusted := completionSignerFixture(f)
 	f.Fuzz(func(t *testing.T, data []byte) {
 		got := seedValue
 		gotErr := got.UnmarshalJSON(data)
@@ -206,6 +241,14 @@ func FuzzObservationDeliveryPageUploadSemanticClosure(f *testing.F) {
 			return
 		}
 		encoded := mustObservationDeliveryPageUploadJSON(t, got)
+		for _, document := range got.Page.Documents {
+			verifyErr := runnercontrol.VerifyExperimentCompletion(document, trusted)
+			if verifyErr == nil {
+				sameSignedNominal(t, document, seedValue.Page.Documents[0])
+			} else if !errors.Is(verifyErr, core.ErrAttestVerification) {
+				t.Fatalf("delivery page verification = %v, want typed refusal", verifyErr)
+			}
+		}
 		var roundTrip runnercontrol.ObservationDeliveryPageUpload
 		if err := roundTrip.UnmarshalJSON(encoded); err != nil || !bytes.Equal(mustObservationDeliveryPageUploadJSON(t, roundTrip), encoded) {
 			t.Fatalf("ObservationDeliveryPageUpload canonical closure = (second %q, error %v), want %q and nil", mustObservationDeliveryPageUploadJSON(t, roundTrip), err, encoded)
@@ -251,13 +294,19 @@ func FuzzSourceArchiveDocumentSemanticClosure(f *testing.F) {
 		Tree: completion.Probe.Source.Tree, ArchiveDigest: core.SHA256Of([]byte("archive")), ArchiveBytes: archiveBytes,
 		EntryMaximum: 128, DepthMaximum: 32, FileMaximumBytes: fileMaximum, IssuedAt: temporal.InstantFromNanoseconds(1), ExpiresAt: temporal.InstantFromNanoseconds(100),
 	}
-	key, _ := completionSignerFixture(f)
+	key, trusted := completionSignerFixture(f)
 	seedValue, issueErr := runnercontrol.IssueSourceArchive(manifest, key)
 	if err := errors.Join(bytesErr, maximumErr, issueErr); err != nil {
 		f.Fatalf("source archive document seed error = %v, want nil", err)
 	}
 	seed := mustSourceArchiveDocumentJSON(f, seedValue)
 	f.Add(seed)
+	foreignKey := ed25519.NewKeyFromSeed(bytes.Repeat([]byte{2}, ed25519.SeedSize))
+	foreign, foreignErr := runnercontrol.IssueSourceArchive(manifest, foreignKey)
+	if foreignErr != nil {
+		f.Fatal(foreignErr)
+	}
+	f.Add(mustSourceArchiveDocumentJSON(f, foreign))
 	f.Add([]byte{})
 	f.Add([]byte(`null`))
 
@@ -271,6 +320,16 @@ func FuzzSourceArchiveDocumentSemanticClosure(f *testing.F) {
 			return
 		}
 		encoded := mustSourceArchiveDocumentJSON(t, got)
+		verificationErr := runnercontrol.VerifySourceArchive(runnercontrol.SourceArchiveVerification{Document: got, TrustedKeys: trusted, ObservedAt: temporal.InstantFromNanoseconds(2)})
+		if bytes.Equal(encoded, seed) && verificationErr != nil {
+			t.Fatalf("signed seed verification = %v, want nil", verificationErr)
+		}
+		if verificationErr == nil && !bytes.Equal(encoded, seed) {
+			t.Fatalf("authenticated document = %d bytes, want exact signed seed %d bytes", len(encoded), len(seed))
+		}
+		if verificationErr != nil && !errors.Is(verificationErr, core.ErrAttestVerification) && !errors.Is(verificationErr, core.ErrPrimitiveContract) {
+			t.Fatalf("verification error = %v, want typed authentication or interval refusal", verificationErr)
+		}
 		var roundTrip runnercontrol.SourceArchiveDocument
 		if err := roundTrip.UnmarshalJSON(encoded); err != nil || !bytes.Equal(mustSourceArchiveDocumentJSON(t, roundTrip), encoded) {
 			t.Fatalf("SourceArchiveDocument canonical closure = (second %q, error %v), want %q and nil", mustSourceArchiveDocumentJSON(t, roundTrip), err, encoded)

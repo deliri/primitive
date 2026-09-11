@@ -38,9 +38,6 @@ func FuzzExperimentCompletionJSONSemanticClosure(f *testing.F) {
 		}
 
 		encoded := mustCompletionJSON(t, got)
-		if len(encoded) > runnercontrol.ExperimentCompletionDocumentMaximumBytes {
-			t.Fatalf("ExperimentCompletionDocument.MarshalJSON(accepted) bytes = %d, want <= %d", len(encoded), runnercontrol.ExperimentCompletionDocumentMaximumBytes)
-		}
 		var roundTrip runnercontrol.ExperimentCompletionDocument
 		if roundTripErr := roundTrip.UnmarshalJSON(encoded); roundTripErr != nil {
 			t.Fatalf("ExperimentCompletionDocument canonical round trip error = %v, want nil", roundTripErr)

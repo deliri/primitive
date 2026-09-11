@@ -11,7 +11,7 @@ import (
 )
 
 // ExperimentObservationRequest is the typed handoff from domain-blind
-// execution into Primitive-owned evidence policy.
+// execution into mechanical process and evidence accounting.
 type ExperimentObservationRequest struct {
 	Failure      error
 	Process      *process.ResultObservation
@@ -43,7 +43,11 @@ func (r ExperimentObservationRequest) Validate() error {
 			return err
 		}
 	}
-	return validateExperimentMeasurements(measurementValidation{capability: r.Capability, failure: r.Failure, started: r.Process != nil, measurements: r.Measurements})
+	failure := r.Failure
+	if r.Process != nil && r.Process.ExitCode != 0 && failure == nil {
+		failure = core.ErrProcessWait
+	}
+	return validateExperimentMeasurements(measurementValidation{capability: r.Capability, failure: failure, started: r.Process != nil, measurements: r.Measurements})
 }
 
 type measurementValidation struct {
@@ -118,6 +122,9 @@ func validateGoAccounting(request measurementValidation) error {
 	if !ok || latest.Planned != policy.ExpectedUnits || latest.Filtered != policy.Filtered || latest.Cache != runprotocol.CacheDisabled {
 		return core.ErrPrimitiveContract
 	}
+	if request.failure == nil && (latest.Failed != 0 || latest.Unavailable != 0 || latest.Cancelled != 0 || latest.Expired != 0 || latest.NotRun != 0) {
+		return core.ErrPrimitiveContract
+	}
 	return nil
 }
 
@@ -179,6 +186,17 @@ func compileExperimentMeasurements(request ExperimentObservationRequest) (runpro
 	measurements := request.Measurements
 	measurements.Benchmarks = append([]runprotocol.BenchmarkMeasurement(nil), request.Measurements.Benchmarks...)
 	measurements.Scaling = append([]runprotocol.ScalingCapture(nil), request.Measurements.Scaling...)
+	for index := range measurements.Scaling {
+		measurements.Scaling[index].Samples = append([]runprotocol.ScalingSample(nil), request.Measurements.Scaling[index].Samples...)
+	}
+	if request.Measurements.Accounting != nil {
+		accounting := runprotocol.ExecutionAccounting{Attempts: append([]runprotocol.ExecutionAttempt(nil), request.Measurements.Accounting.Attempts...)}
+		measurements.Accounting = &accounting
+	}
+	if request.Measurements.CoverageBasisPoints != nil {
+		coverage := *request.Measurements.CoverageBasisPoints
+		measurements.CoverageBasisPoints = &coverage
+	}
 	if request.Process == nil {
 		if (request.Capability.Execution.Observation.Format == ObservationGoTestJSON || request.Capability.Execution.Observation.Format == ObservationJUnitXML) && measurements.Accounting == nil {
 			accounting := compileUnstartedAccounting(request.Capability.Execution.Observation, request.Failure)
