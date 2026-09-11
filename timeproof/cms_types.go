@@ -34,7 +34,7 @@ type cmsAttribute struct {
 
 type parsedSignedData struct {
 	Content          cmsEncapsulatedContent
-	DigestAlgorithms []pkix.AlgorithmIdentifier
+	DigestAlgorithms asn1.RawValue
 	Certificates     []*x509.Certificate
 	Signers          []cmsSignerInfo
 	Version          int

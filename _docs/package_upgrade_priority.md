@@ -213,3 +213,5 @@ Gomodule v2026.1.66: [local identity-boundary review](gomodule_review_20260911.m
 Timeproof v2026.1.67: [proof-quality slice](timeproof_proof_slice_20260911.md). Complete zero-proof accounting, typed provider refusals, both provider fuzz boundaries, compiler-owned decoder constraints and observed benchmark results are ratcheted. Aggregate response ownership and admission ceilings remain open; Timeproof stays first in the queue.
 
 Timeproof v2026.1.68: [status/DER custody slice](timeproof_status_stream_20260911.md). UTF-8 admission and unbounded status-text cardinality are fixed; private DER handoffs borrow bytes while verified custody remains independently owned. Aggregate response/certificate streaming stays open, and Timeproof remains first.
+
+Timeproof v2026.1.69: [digest declaration slice](timeproof_digest_stream_20260911.md). Digest declarations use borrowed DER and fixed-memory scans; source identity, duplicate refusal and OID grammar have behavioral/mutation/fuzz proof. Response custody and other aggregate collections remain open; Timeproof stays first.

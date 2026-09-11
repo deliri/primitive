@@ -32,6 +32,7 @@ func responseAgreementForFuzz(t testing.TB, fixture authenticFixture) responseFu
 }
 
 func FuzzVerifyFreeTSAResponse(f *testing.F) {
+	addDigestDeclarationSeeds(f)
 	agreement := responseAgreementForFuzz(f, loadAuthenticFixture(f))
 	addRefusalResponseSeeds(f, agreement.fixture)
 	canonical := agreement.proof.Evidence().ResponseBytes()

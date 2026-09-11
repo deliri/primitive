@@ -4,7 +4,6 @@ import "encoding/asn1"
 
 const (
 	certificateMaximumCount     = 16
-	digestAlgorithmMaximumCount = 4
 	signedAttributeMaximumCount = 32
 	signerMaximumCount          = 1
 	refusalMaximumCodeCount     = 8

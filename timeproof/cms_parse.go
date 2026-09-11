@@ -325,7 +325,7 @@ func validSignedTokenShape(signed parsedSignedData) bool {
 		signed.Signers[0].Version == cmsSignerInfoVersion
 }
 
-func validSignerAlgorithms(algorithms []pkix.AlgorithmIdentifier, signer cmsSignerInfo) bool {
+func validSignerAlgorithms(algorithms asn1.RawValue, signer cmsSignerInfo) bool {
 	return digestAlgorithmDeclared(algorithms, signer.DigestAlgorithm.Algorithm) &&
 		signatureDigestMatches(signer)
 }
@@ -349,14 +349,26 @@ func verifySignedToken(signed parsedSignedData, content []byte) (*x509.Certifica
 	return signer, attributes, nil
 }
 
-func digestAlgorithmDeclared(algorithms []pkix.AlgorithmIdentifier, want asn1.ObjectIdentifier) bool {
-	count := 0
-	for _, algorithm := range algorithms {
-		if algorithm.Algorithm.Equal(want) {
-			count++
-		}
+func digestAlgorithmDeclared(algorithms asn1.RawValue, want asn1.ObjectIdentifier) bool {
+	encoded, err := asn1.Marshal(want)
+	if err != nil {
+		return false
 	}
-	return count == 1
+	found := false
+	for fields := algorithms.Bytes; len(fields) != 0; {
+		oid, remaining, scanErr := consumeDeclaredAlgorithm(fields)
+		if scanErr != nil {
+			return false
+		}
+		if bytes.Equal(oid.FullBytes, encoded) {
+			if found {
+				return false
+			}
+			found = true
+		}
+		fields = remaining
+	}
+	return found
 }
 
 func signatureDigestMatches(signer cmsSignerInfo) bool {
@@ -411,7 +423,7 @@ func parseSignedData(explicit asn1.RawValue) (parsedSignedData, error) {
 		return parsedSignedData{}, err
 	}
 	digests, fields, err := consumeAlgorithmSet(fields)
-	if err != nil || len(digests) == 0 {
+	if err != nil || len(digests.Bytes) == 0 {
 		return parsedSignedData{}, invalidError(err)
 	}
 	content, fields, err := consumeEncapsulatedContent(fields)
@@ -477,25 +489,55 @@ func consumeExplicitContent(fields []byte) (asn1.RawValue, error) {
 	return content, nil
 }
 
-func consumeAlgorithmSet(der []byte) ([]pkix.AlgorithmIdentifier, []byte, error) {
+// consumeAlgorithmSet validates declarations in place and borrows their DER.
+// The collection's cardinality does not require an allocation or a quota.
+func consumeAlgorithmSet(der []byte) (asn1.RawValue, []byte, error) {
 	raw, remaining, err := consumeRaw(der)
 	if err != nil || !isUniversal(raw, asn1.TagSet, true) {
-		return nil, nil, invalidError(err)
+		return asn1.RawValue{}, nil, invalidError(err)
 	}
-	var algorithms []pkix.AlgorithmIdentifier
 	for fields := raw.Bytes; len(fields) != 0; {
-		if len(algorithms) >= digestAlgorithmMaximumCount {
-			return nil, nil, invalidError(nil)
+		_, next, scanErr := consumeDeclaredAlgorithm(fields)
+		if scanErr != nil {
+			return asn1.RawValue{}, nil, scanErr
 		}
-		var algorithm pkix.AlgorithmIdentifier
-		var decodeErr error
-		fields, decodeErr = asn1.Unmarshal(fields, &algorithm)
-		if decodeErr != nil {
-			return nil, nil, invalidError(decodeErr)
-		}
-		algorithms = append(algorithms, algorithm)
+		fields = next
 	}
-	return algorithms, remaining, nil
+	return raw, remaining, nil
+}
+
+func consumeDeclaredAlgorithm(der []byte) (asn1.RawValue, []byte, error) {
+	sequence, remaining, err := consumeRaw(der)
+	if err != nil || !isUniversal(sequence, asn1.TagSequence, true) {
+		return asn1.RawValue{}, nil, invalidError(err)
+	}
+	oid, fields, err := consumeRaw(sequence.Bytes)
+	if err != nil || !isUniversal(oid, asn1.TagOID, false) || !canonicalOIDBody(oid.Bytes) {
+		return asn1.RawValue{}, nil, invalidError(err)
+	}
+	if len(fields) != 0 {
+		_, fields, err = consumeRaw(fields)
+		if err != nil || len(fields) != 0 {
+			return asn1.RawValue{}, nil, invalidError(err)
+		}
+	}
+	return oid, remaining, nil
+}
+
+// canonicalOIDBody checks minimal, terminated base-128 subidentifiers without
+// converting an unknown identifier's arbitrarily wide arcs to machine integers.
+func canonicalOIDBody(body []byte) bool {
+	if len(body) == 0 {
+		return false
+	}
+	start := true
+	for _, octet := range body {
+		if start && octet == 0x80 {
+			return false
+		}
+		start = octet&0x80 == 0
+	}
+	return start
 }
 
 func consumeContextField(der []byte, tag int, required bool) (asn1.RawValue, []byte, error) {
