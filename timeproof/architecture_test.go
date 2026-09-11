@@ -99,6 +99,7 @@ func TestTimeproofProductionStructsHaveCompilerVisibleDataFlowRoles(
 		"strconv",
 		"strings",
 		"time",
+		"unicode/utf8",
 	}
 	if !slices.Equal(gotImports, wantImports) {
 		t.Fatalf(

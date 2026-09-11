@@ -8,7 +8,6 @@ const (
 	signedAttributeMaximumCount = 32
 	signerMaximumCount          = 1
 	refusalMaximumCodeCount     = 8
-	refusalStatusTextCount      = 8
 	enumJSONMaximumBytes        = 128
 	// derConstructed is the DER identifier bit that marks a constructed value.
 	derConstructed = 0x20

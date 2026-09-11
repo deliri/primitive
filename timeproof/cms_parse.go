@@ -10,6 +10,7 @@ import (
 	"encoding/asn1"
 	"math/big"
 	"time"
+	"unicode/utf8"
 
 	"github.com/deliri/primitive/v2026/temporal"
 )
@@ -120,6 +121,8 @@ func verifyTSAName(subject []byte, signer *x509.Certificate) error {
 	return nil
 }
 
+// parseTimestampResponse borrows its token span from the caller-owned DER.
+// The caller keeps those bytes immutable until verification completes.
 func parseTimestampResponse(der []byte) ([]byte, authorityConclusion, error) {
 	if len(der) == 0 {
 		return nil, authorityConclusion{}, invalidError(nil)
@@ -143,7 +146,7 @@ func parseTimestampResponse(der []byte) ([]byte, authorityConclusion, error) {
 	if err != nil || len(trailing) != 0 || !isUniversal(token, asn1.TagSequence, true) {
 		return nil, authorityConclusion{}, invalidError(err)
 	}
-	return append([]byte(nil), token.FullBytes...), conclusion, nil
+	return token.FullBytes, conclusion, nil
 }
 
 func consumeResponseStatus(der []byte) (authorityConclusion, []byte, error) {
@@ -215,20 +218,15 @@ func parseStatusInfoOptional(fields []byte) (refusalCodeSet, error) {
 }
 
 func validateStatusText(der []byte) error {
-	count := 0
+	if len(der) == 0 {
+		return invalidError(nil)
+	}
 	for len(der) != 0 {
 		value, remaining, err := consumeRaw(der)
-		if err != nil || !isUniversal(value, asn1.TagUTF8String, false) {
+		if err != nil || !isUniversal(value, asn1.TagUTF8String, false) || !utf8.Valid(value.Bytes) {
 			return invalidError(err)
 		}
-		count++
-		if count > refusalStatusTextCount {
-			return invalidError(nil)
-		}
 		der = remaining
-	}
-	if count == 0 {
-		return invalidError(nil)
 	}
 	return nil
 }
@@ -582,11 +580,7 @@ func consumeFinalSignature(fields []byte) ([]byte, error) {
 	if err != nil || !isUniversal(signatureRaw, asn1.TagOctetString, false) || len(trailing) != 0 {
 		return nil, invalidError(err)
 	}
-	var signature []byte
-	if rest, decodeErr := asn1.Unmarshal(signatureRaw.FullBytes, &signature); decodeErr != nil || len(rest) != 0 {
-		return nil, invalidError(decodeErr)
-	}
-	return signature, nil
+	return signatureRaw.Bytes, nil
 }
 
 func consumeIssuerAndSerial(der []byte) (cmsIssuerAndSerial, []byte, error) {
@@ -1140,12 +1134,11 @@ func consumeOID(der []byte) (asn1.ObjectIdentifier, []byte, error) {
 }
 
 func explicitOctets(raw asn1.RawValue) ([]byte, error) {
-	var value []byte
-	trailing, err := asn1.Unmarshal(raw.Bytes, &value)
-	if err != nil || len(trailing) != 0 || len(value) == 0 {
+	value, trailing, err := consumeRaw(raw.Bytes)
+	if err != nil || len(trailing) != 0 || !isUniversal(value, asn1.TagOctetString, false) || len(value.Bytes) == 0 {
 		return nil, invalidError(err)
 	}
-	return append([]byte(nil), value...), nil
+	return value.Bytes, nil
 }
 
 func uniqueAttribute(attributes []cmsAttribute, oid asn1.ObjectIdentifier) (cmsAttribute, error) {

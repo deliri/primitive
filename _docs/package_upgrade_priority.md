@@ -211,3 +211,5 @@ The user-directed clean removal retires the whole runtime graph/readiness API, i
 Gomodule v2026.1.66: [local identity-boundary review](gomodule_review_20260911.md). Exact source facts, typed refusal preservation, external-door fuzz coverage and structural inventory are ratcheted. Nominal JSON output memory remains explicit; this is not a bulk-stream API. Timeproof is next.
 
 Timeproof v2026.1.67: [proof-quality slice](timeproof_proof_slice_20260911.md). Complete zero-proof accounting, typed provider refusals, both provider fuzz boundaries, compiler-owned decoder constraints and observed benchmark results are ratcheted. Aggregate response ownership and admission ceilings remain open; Timeproof stays first in the queue.
+
+Timeproof v2026.1.68: [status/DER custody slice](timeproof_status_stream_20260911.md). UTF-8 admission and unbounded status-text cardinality are fixed; private DER handoffs borrow bytes while verified custody remains independently owned. Aggregate response/certificate streaming stays open, and Timeproof remains first.

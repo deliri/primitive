@@ -33,6 +33,7 @@ func responseAgreementForFuzz(t testing.TB, fixture authenticFixture) responseFu
 
 func FuzzVerifyFreeTSAResponse(f *testing.F) {
 	agreement := responseAgreementForFuzz(f, loadAuthenticFixture(f))
+	addRefusalResponseSeeds(f, agreement.fixture)
 	canonical := agreement.proof.Evidence().ResponseBytes()
 	f.Add(canonical)
 	f.Add([]byte{})
@@ -44,6 +45,7 @@ func FuzzVerifyFreeTSAResponse(f *testing.F) {
 
 func FuzzVerifyDigiCertResponse(f *testing.F) {
 	agreement := responseAgreementForFuzz(f, loadDigiCertAuthenticFixture(f))
+	addRefusalResponseSeeds(f, agreement.fixture)
 	canonical := agreement.proof.Evidence().ResponseBytes()
 	f.Add(canonical)
 	f.Add([]byte{})
@@ -68,6 +70,7 @@ func fuzzResponseAgreement(t *testing.T, response []byte, agreement responseFuzz
 			if !errors.As(gotErr, &refusal) || refusal.Validate() != nil || refusal.Status().granted() {
 				t.Fatalf("Verify(provider refusal) error = %v, want validated non-granting Refusal", gotErr)
 			}
+			fuzzRefusalSource(t, response, refusal)
 		}
 		return
 	}

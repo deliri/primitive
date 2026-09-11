@@ -267,14 +267,6 @@ func TestAuthorityRefusalHostileStatusInfoTable(t *testing.T) {
 	}
 	ceiling := int(maximumBit) + 1
 	token := authenticTokenDER(t)
-	oversizedText := make([]string, refusalStatusTextCount+1)
-	for index := range oversizedText {
-		oversizedText[index] = "refused"
-	}
-	exactText := make([]string, refusalStatusTextCount)
-	for index := range exactText {
-		exactText[index] = "refused"
-	}
 	cases := []struct {
 		name     string
 		response []byte
@@ -385,13 +377,7 @@ func TestAuthorityRefusalHostileStatusInfoTable(t *testing.T) {
 				encodeStatusText(t),
 			)),
 		},
-		{
-			name: "status text one above the element ceiling",
-			response: encodeSequence(encodeSequence(
-				encodeStatusInteger(t, rejection),
-				encodeStatusText(t, oversizedText...),
-			)),
-		},
+
 		{
 			name: "status text element that is not a UTF8String",
 			response: encodeSequence(encodeSequence(
@@ -453,19 +439,19 @@ func TestAuthorityRefusalHostileStatusInfoTable(t *testing.T) {
 		})
 	}
 
-	t.Run("exact status text element ceiling stays a typed refusal", func(t *testing.T) {
+	t.Run("multiple status text entries stay a typed refusal", func(t *testing.T) {
 		t.Parallel()
 
 		response := encodeSequence(encodeSequence(
 			encodeStatusInteger(t, rejection),
-			encodeStatusText(t, exactText...),
+			encodeStatusText(t, "refused", "retry later"),
 		))
 		gotErr := verifyCraftedResponse(t, response)
 		var refusal Refusal
 		if !errors.As(gotErr, &refusal) ||
 			refusal.Status() != RefusalStatusRejection {
 			t.Fatalf(
-				"Verify(exact text ceiling) error = %v, want Refusal with status %v",
+				"Verify(multiple status texts) error = %v, want Refusal with status %v",
 				gotErr,
 				RefusalStatusRejection,
 			)
