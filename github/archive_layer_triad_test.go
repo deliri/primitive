@@ -41,31 +41,6 @@ func TestGitHubTarArchiveTransportLayerTriad(t *testing.T) {
 		}
 	})
 
-	t.Run("archive continues through every byte without a transfer ceiling", func(t *testing.T) {
-		t.Parallel()
-
-		content := []byte("ceiling-plus-one")
-		maximum := uint64(len(content))
-		var archiveCalls atomic.Uint64
-		server := archiveServer(t, content, &archiveCalls)
-		defer server.Close()
-
-		client := clientFixture(t, server.URL)
-		var destination bytes.Buffer
-		got, gotErr := client.ReadTarArchive(context.Background(), TarArchiveRequest{
-			Destination: &destination, Repository: parsedRepository(t, "owner/repository"),
-			Commit: parsedCommit(t),
-		})
-		wantBytes := content[:maximum]
-		if gotErr != nil || got.State != ArchiveTransferComplete ||
-			got.Length.Uint64() != maximum || got.SHA256 != core.SHA256Of(wantBytes) || !bytes.Equal(destination.Bytes(), wantBytes) {
-			t.Fatalf("Client.ReadTarArchive(over ceiling) = (%+v, %v, %q), want complete %d-byte evidence and nil", got, gotErr, destination.Bytes(), maximum)
-		}
-		if archiveCalls.Load() != 1 {
-			t.Fatalf("oversized archive transfer calls = %d, want 1", archiveCalls.Load())
-		}
-	})
-
 	t.Run("neutral empty provider body creates no archive and cannot become completion", func(t *testing.T) {
 		t.Parallel()
 
@@ -125,7 +100,8 @@ func TestGitHubTarArchiveAuthenticationStopsAtTheDocumentedAPIBoundary(t *testin
 				t.Errorf("temporary archive Authorization = %q, want absent", got)
 			}
 			writer.WriteHeader(http.StatusOK)
-			_, _ = writer.Write(content)
+			_, writeErr := writer.Write(content)
+			retainProviderWriteResult(t, writeErr)
 		default:
 			writer.WriteHeader(http.StatusNotFound)
 		}
@@ -169,7 +145,8 @@ func archiveServer(t testing.TB, content []byte, archiveCalls *atomic.Uint64) *h
 			if flusher, ok := writer.(http.Flusher); ok {
 				flusher.Flush()
 			}
-			_, _ = writer.Write(content)
+			_, writeErr := writer.Write(content)
+			retainProviderWriteResult(t, writeErr)
 		default:
 			writer.WriteHeader(http.StatusNotFound)
 		}

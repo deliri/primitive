@@ -108,7 +108,9 @@ func newClient(construction clientConstruction) (Client, error) {
 		userAgent: construction.userAgent, credential: owned, observe: construction.observe,
 	}}
 	if err := candidate.Validate(); err != nil {
-		_ = owned.Close()
+		if owned.state != nil {
+			err = errors.Join(err, owned.Close())
+		}
 		return Client{}, err
 	}
 	return candidate, nil

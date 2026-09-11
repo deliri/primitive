@@ -13,23 +13,23 @@ import (
 
 type nilPointerVisitor struct{}
 
-func (*nilPointerVisitor) VisitGitHubTreeEntry(TreeEntry) error { panic("nil visitor invoked") }
+func (*nilPointerVisitor) VisitGitHubTreeEntry(*TreeEntryStream) error { panic("nil visitor invoked") }
 
 type nilMapVisitor map[string]int
 
-func (nilMapVisitor) VisitGitHubTreeEntry(TreeEntry) error { return nil }
+func (nilMapVisitor) VisitGitHubTreeEntry(*TreeEntryStream) error { return nil }
 
 type nilSliceVisitor []int
 
-func (nilSliceVisitor) VisitGitHubTreeEntry(TreeEntry) error { return nil }
+func (nilSliceVisitor) VisitGitHubTreeEntry(*TreeEntryStream) error { return nil }
 
 type nilChanVisitor chan int
 
-func (nilChanVisitor) VisitGitHubTreeEntry(TreeEntry) error { return nil }
+func (nilChanVisitor) VisitGitHubTreeEntry(*TreeEntryStream) error { return nil }
 
-type nilFuncVisitor func(TreeEntry) error
+type nilFuncVisitor func(*TreeEntryStream) error
 
-func (v nilFuncVisitor) VisitGitHubTreeEntry(e TreeEntry) error { return v(e) }
+func (v nilFuncVisitor) VisitGitHubTreeEntry(e *TreeEntryStream) error { return v(e) }
 
 func TestTreeVisitorAdmissionLayerTriad(t *testing.T) {
 	t.Parallel()
@@ -47,7 +47,7 @@ func TestTreeVisitorAdmissionLayerTriad(t *testing.T) {
 		{name: "present empty map receiver", visitor: nilMapVisitor{}},
 		{name: "present empty slice receiver", visitor: nilSliceVisitor{}},
 		{name: "present channel receiver", visitor: make(nilChanVisitor)},
-		{name: "present function receiver", visitor: nilFuncVisitor(func(TreeEntry) error { return nil })},
+		{name: "present function receiver", visitor: nilFuncVisitor(func(*TreeEntryStream) error { return nil })},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -55,7 +55,7 @@ func TestTreeVisitorAdmissionLayerTriad(t *testing.T) {
 			var calls atomic.Int64
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 				calls.Add(1)
-				writeJSON(t, w, treeResponseFixture{SHA: parsedCommit(t).String(), URL: "https://api.github.com/tree", Tree: []treeEntryWire{}}, http.StatusOK)
+				writeJSON(t, w, treeResponseFixture{SHA: parsedCommit(t).String(), URL: "https://api.github.com/tree", Tree: []treeEntryFixture{}}, http.StatusOK)
 			}))
 			defer server.Close()
 			request := TreeRequest{Repository: parsedRepository(t, "owner/repository"), Commit: parsedCommit(t), Visitor: tc.visitor}

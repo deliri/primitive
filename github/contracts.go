@@ -367,15 +367,20 @@ func (k TreeEntryKind) String() string {
 // OffWireEnum declares the enum as a typed observation, not provider wire text.
 func (TreeEntryKind) OffWireEnum() {}
 
-// TreeEntry is one typed recursive-tree observation.
+// TreeEntry commits the decoded path bytes and closed kind of one complete entry.
+// It retains no path text; the caller owns the streamed bytes.
 type TreeEntry struct {
-	Path core.SourcePath
-	Kind TreeEntryKind
+	PathSHA256 core.SHA256Digest
+	PathLength core.ByteLength
+	Kind       TreeEntryKind
 }
 
-// Validate checks path and closed kind.
+// Validate checks the nonempty streamed path commitment and closed kind.
 func (e TreeEntry) Validate() error {
-	if err := errors.Join(e.Path.Validate(), e.Kind.Validate()); err != nil {
+	if e.PathLength.Uint64() == 0 {
+		return core.ErrGitHubResponse
+	}
+	if err := errors.Join(e.PathSHA256.Validate(), e.PathLength.Validate(), e.Kind.Validate()); err != nil {
 		return responseError(err)
 	}
 	return nil
@@ -384,7 +389,7 @@ func (e TreeEntry) Validate() error {
 // TreeVisitor consumes entries as GitHub streams them. The consumer owns any
 // retained aggregation and therefore its product-specific memory policy.
 type TreeVisitor interface {
-	VisitGitHubTreeEntry(TreeEntry) error
+	VisitGitHubTreeEntry(*TreeEntryStream) error
 }
 
 // TreeRequest streams a recursive immutable tree through its synchronous visitor.

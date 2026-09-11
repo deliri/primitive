@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -31,12 +32,12 @@ func TestTreeDownloadCancellationLayerTriad(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			ctx, cancel := context.WithCancel(t.Context())
-			payload := marshalGitHubFixture(t, treeResponseFixture{SHA: parsedCommit(t).String(), URL: "https://api.github.com/tree", Tree: []treeEntryWire{}})
+			payload := marshalGitHubFixture(t, treeResponseFixture{SHA: parsedCommit(t).String(), URL: "https://api.github.com/tree", Tree: []treeEntryFixture{}})
 			if tc.malformed {
 				payload = []byte("!")
 			}
 			if tc.refuse {
-				payload = marshalGitHubFixture(t, treeResponseFixture{SHA: parsedCommit(t).String(), URL: "https://api.github.com/tree", Tree: []treeEntryWire{treeWire("main.go", "blob", parsedCommit(t).String())}})
+				payload = marshalGitHubFixture(t, treeResponseFixture{SHA: parsedCommit(t).String(), URL: "https://api.github.com/tree", Tree: []treeEntryFixture{treeWire("main.go", "blob", parsedCommit(t).String())}})
 				end := bytes.Index(payload, []byte(`],"truncated"`))
 				if end < 0 {
 					t.Fatalf("fixture=%q, want entry prefix before truncated", payload)
@@ -67,7 +68,14 @@ func TestTreeDownloadCancellationLayerTriad(t *testing.T) {
 				}
 			}()
 			visits := 0
-			visitor := nilFuncVisitor(func(entry TreeEntry) error {
+			visitor := nilFuncVisitor(func(stream *TreeEntryStream) error {
+				if _, err := io.Copy(io.Discard, stream); err != nil {
+					return err
+				}
+				entry, err := stream.Observation()
+				if err != nil {
+					return err
+				}
 				visits++
 				if err := entry.Validate(); err != nil {
 					return err
@@ -145,7 +153,7 @@ func TestTreeContextRefusalBeforeNetwork(t *testing.T) {
 					t.Errorf("Client.Close()=%v, want nil", err)
 				}
 			}()
-			request := TreeRequest{Repository: parsedRepository(t, "owner/repository"), Commit: parsedCommit(t), Visitor: nilFuncVisitor(func(TreeEntry) error { t.Errorf("visitor calls = %d, want zero", 1); return nil })}
+			request := TreeRequest{Repository: parsedRepository(t, "owner/repository"), Commit: parsedCommit(t), Visitor: nilFuncVisitor(func(*TreeEntryStream) error { t.Errorf("visitor calls = %d, want zero", 1); return nil })}
 			got, err := client.ReadTree(tc.ctx, request)
 			if !errors.Is(err, tc.wantErr) || got != (TreeObservation{}) {
 				t.Fatalf("ReadTree()=%+v/%v, want zero and %v", got, err, tc.wantErr)

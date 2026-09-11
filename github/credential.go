@@ -125,7 +125,9 @@ func (c *AppCredential) Close() error {
 
 // Format prevents ordinary diagnostics from disclosing credential material.
 func (AppCredential) Format(state fmt.State, _ rune) {
-	_, _ = io.WriteString(state, core.RedactedValueText)
+	if _, err := io.WriteString(state, core.RedactedValueText); err != nil {
+		return // fmt.Formatter cannot report errors; never fall back to key material.
+	}
 }
 
 func parsePrivateKey(payload []byte) (*rsa.PrivateKey, error) {

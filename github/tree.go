@@ -2,25 +2,13 @@ package github
 
 import (
 	"context"
-	"encoding/json/jsontext"
-	json "encoding/json/v2"
 	"errors"
 	"io"
-	"math"
 	"net/url"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
 )
-
-type treeEntryWire struct {
-	Path string `json:"path"`
-	Mode string `json:"mode"`
-	Type string `json:"type"`
-	SHA  string `json:"sha"`
-	URL  string `json:"url"`
-	Size uint64 `json:"size,omitzero"`
-}
 
 type treeDecodeState struct {
 	seenSHA       bool
@@ -45,12 +33,6 @@ type treeDownloadCall struct {
 	headers   exchange.Headers
 	target    core.HTTPEndpoint
 	policy    exchange.StreamPolicy
-}
-
-type treeDecoder struct {
-	visitor TreeVisitor
-	decoder *jsontext.Decoder
-	state   treeDecodeState
 }
 
 // ReadTree streams one recursive Git tree through the caller-owned visitor.
@@ -83,6 +65,17 @@ func (c Client) ReadTree(ctx context.Context, request TreeRequest) (TreeObservat
 		ctx: downloadContext, client: c.state.client, target: target, headers: headers, media: media,
 		policy: exchange.StreamPolicy{Redirect: exchange.RedirectPolicy{Mode: exchange.RedirectReject}}, writer: writer, completed: completed,
 	})
+	joined := false
+	defer func() {
+		cancelDownload()
+		// Pipe close releases a producer blocked in Write, including during panic.
+		if err := reader.Close(); err != nil {
+			panic(err) // io.PipeReader.Close has no failure mode.
+		}
+		if !joined {
+			<-completed
+		}
+	}()
 	entries, decodeErr := decodeTree(reader, request.Visitor)
 	if decodeErr != nil {
 		cancelDownload()
@@ -91,6 +84,7 @@ func (c Client) ReadTree(ctx context.Context, request TreeRequest) (TreeObservat
 		decodeErr = reader.Close()
 	}
 	download := <-completed
+	joined = true
 	if err := errors.Join(decodeErr, download.err); err != nil {
 		return TreeObservation{}, err
 	}
@@ -114,128 +108,4 @@ func downloadTree(call treeDownloadCall) {
 	})
 	closeErr := call.writer.CloseWithError(err)
 	call.completed <- treeDownloadResult{response: response, err: errors.Join(classifyExchangeError(err), closeErr)}
-}
-
-func decodeTree(source io.Reader, visitor TreeVisitor) (uint64, error) {
-	decoding := treeDecoder{decoder: jsontext.NewDecoder(source), visitor: visitor}
-	if err := requireToken(decoding.decoder, jsontext.KindBeginObject); err != nil {
-		return 0, err
-	}
-	if err := decoding.decodeObject(); err != nil {
-		return 0, err
-	}
-	return decoding.finish()
-}
-
-func (d *treeDecoder) decodeObject() error {
-	for d.decoder.PeekKind() != jsontext.KindEndObject {
-		name, err := d.decoder.ReadToken()
-		if err != nil || name.Kind() != jsontext.KindString {
-			return responseError(err)
-		}
-		if err := d.decodeMember(name.String()); err != nil {
-			return err
-		}
-	}
-	return requireToken(d.decoder, jsontext.KindEndObject)
-}
-
-func (d *treeDecoder) finish() (uint64, error) {
-	if _, err := d.decoder.ReadToken(); !errors.Is(err, io.EOF) {
-		return 0, responseError(err)
-	}
-	if !d.state.seenSHA || !d.state.seenURL || !d.state.seenTree || !d.state.seenTruncated || d.state.truncated {
-		return 0, core.ErrGitHubResponse
-	}
-	return d.state.entries, nil
-}
-
-func (d *treeDecoder) decodeMember(name string) error {
-	switch name {
-	case "sha":
-		return decodeIgnoredString(d.decoder, &d.state.seenSHA)
-	case "url":
-		return decodeIgnoredString(d.decoder, &d.state.seenURL)
-	case "tree":
-		if d.state.seenTree {
-			return core.ErrGitHubResponse
-		}
-		d.state.seenTree = true
-		return d.decodeEntries()
-	case "truncated":
-		if d.state.seenTruncated {
-			return core.ErrGitHubResponse
-		}
-		d.state.seenTruncated = true
-		if err := json.UnmarshalDecode(d.decoder, &d.state.truncated); err != nil {
-			return responseError(err)
-		}
-		return nil
-	default:
-		return core.ErrGitHubResponse
-	}
-}
-
-func decodeIgnoredString(decoder *jsontext.Decoder, seen *bool) error {
-	if *seen {
-		return core.ErrGitHubResponse
-	}
-	*seen = true
-	var value string
-	if err := json.UnmarshalDecode(decoder, &value); err != nil || value == "" {
-		return responseError(err)
-	}
-	return nil
-}
-
-func (d *treeDecoder) decodeEntries() error {
-	if err := requireToken(d.decoder, jsontext.KindBeginArray); err != nil {
-		return err
-	}
-	for d.decoder.PeekKind() != jsontext.KindEndArray {
-		if d.state.entries == math.MaxUint64 {
-			return core.ErrGitHubResponse
-		}
-		var wire treeEntryWire
-		if err := json.UnmarshalDecode(d.decoder, &wire, json.RejectUnknownMembers(true)); err != nil {
-			return responseError(err)
-		}
-		entry, err := projectTreeEntry(wire)
-		if err != nil {
-			return err
-		}
-		if err := d.visitor.VisitGitHubTreeEntry(entry); err != nil {
-			return err
-		}
-		d.state.entries++
-	}
-	return requireToken(d.decoder, jsontext.KindEndArray)
-}
-
-func projectTreeEntry(wire treeEntryWire) (TreeEntry, error) {
-	path, err := core.ParseSourcePath(wire.Path)
-	if err != nil {
-		return TreeEntry{}, responseError(err)
-	}
-	var kind TreeEntryKind
-	switch wire.Type {
-	case "blob":
-		kind = TreeEntryBlob
-	case "tree":
-		kind = TreeEntryDirectory
-	case "commit":
-		kind = TreeEntrySubmodule
-	default:
-		return TreeEntry{}, core.ErrGitHubResponse
-	}
-	entry := TreeEntry{Path: path, Kind: kind}
-	return entry, entry.Validate()
-}
-
-func requireToken(decoder *jsontext.Decoder, kind jsontext.Kind) error {
-	token, err := decoder.ReadToken()
-	if err != nil || token.Kind() != kind {
-		return responseError(err)
-	}
-	return nil
 }

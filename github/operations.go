@@ -101,7 +101,7 @@ func (c Client) nextTagPage(headers exchange.CapturedHeaders, request TagPageReq
 		if header.Name.String() != headerLink {
 			continue
 		}
-		if len(header.Values) != 1 || request.Page == math.MaxUint32 {
+		if len(header.Values) != 1 {
 			return 0, core.ErrGitHubResponse
 		}
 		value, err := header.Values[0].Value()
@@ -109,14 +109,21 @@ func (c Client) nextTagPage(headers exchange.CapturedHeaders, request TagPageReq
 			return 0, responseError(err)
 		}
 		next := request.Page + 1
+		foundNext := false
 		for entry := range strings.SplitSeq(value, ",") {
 			candidate := strings.TrimSpace(entry)
 			if !strings.Contains(candidate, githubLinkNextRelation) {
 				continue
 			}
+			if request.Page == math.MaxUint32 {
+				return 0, core.ErrGitHubResponse
+			}
 			if err := c.validateNextTagLink(candidate, request.Repository, next); err != nil {
 				return 0, err
 			}
+			foundNext = true
+		}
+		if foundNext {
 			return next, nil
 		}
 		return 0, nil

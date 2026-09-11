@@ -35,7 +35,6 @@ func (tagCommitWire) githubInternalFlow()       {}
 func (tagWire) githubInternalFlow()             {}
 func (headWire) githubInternalFlow()            {}
 func (boundedRequest) githubInternalFlow()      {}
-func (treeEntryWire) githubInternalFlow()       {}
 func (treeDecodeState) githubInternalFlow()     {}
 func (treeDownloadResult) githubInternalFlow()  {}
 func (treeDownloadCall) githubInternalFlow()    {}
@@ -74,7 +73,6 @@ var (
 	_ internalFlow      = tagWire{}
 	_ internalFlow      = headWire{}
 	_ internalFlow      = boundedRequest{}
-	_ internalFlow      = treeEntryWire{}
 	_ internalFlow      = treeDecodeState{}
 	_ internalFlow      = treeDownloadResult{}
 	_ internalFlow      = treeDownloadCall{}
@@ -83,3 +81,13 @@ var (
 	_ capabilityWrapper = AppCredential{}
 	_ capabilityWrapper = Client{}
 )
+
+func (*jsonStringStream) githubInternalFlow() {}
+
+var _ internalFlow = (*jsonStringStream)(nil)
+
+func (*TreeEntryStream) githubCapabilityWrapper() {}
+func (treePathFacts) githubInternalFlow()         {}
+
+var _ capabilityWrapper = (*TreeEntryStream)(nil)
+var _ internalFlow = treePathFacts{}

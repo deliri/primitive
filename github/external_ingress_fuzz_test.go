@@ -21,7 +21,18 @@ type externalIngressFuzzContract[Door, FuzzTarget any] struct {
 
 func TestGitHubExternalIngressHasSemanticFuzzTargets(t *testing.T) {
 	t.Parallel()
+	_ = externalIngressFuzzContract[func(*TreeEntryStream, []byte) (int, error), func(*testing.F)]{Door: (*TreeEntryStream).Read, Fuzz: FuzzGitHubStreamedPathMatchesCore}
+	_ = externalIngressFuzzContract[func(Client, exchange.CapturedHeaders, TagPageRequest) (uint32, error), func(*testing.F)]{Door: Client.nextTagPage, Fuzz: FuzzGitHubPaginationQuerySemanticClosure}
+	_ = externalIngressFuzzContract[func(Client, context.Context, TarArchiveRequest) (TarArchiveObservation, error), func(*testing.F)]{Door: Client.ReadTarArchive, Fuzz: FuzzGitHubArchiveTransferSemanticClosure}
+	_ = externalIngressFuzzContract[func(Client, context.Context, TreeRequest) (TreeObservation, error), func(*testing.F)]{Door: Client.ReadTree, Fuzz: FuzzGitHubPublicJSONSemanticClosure}
+	_ = externalIngressFuzzContract[func(Client, context.Context, HeadRequest) (HeadObservation, error), func(*testing.F)]{Door: Client.ReadHead, Fuzz: FuzzGitHubPublicJSONSemanticClosure}
+	_ = externalIngressFuzzContract[func(Client, context.Context, TagPageRequest) (TagPage, error), func(*testing.F)]{Door: Client.ReadTagPage, Fuzz: FuzzGitHubPublicJSONSemanticClosure}
 
+	_ = externalIngressFuzzContract[func(string) (Reference, error), func(*testing.F)]{Door: ParseReference, Fuzz: FuzzGitHubNominalIngressSemanticClosure}
+	_ = externalIngressFuzzContract[func(string) (UserAgent, error), func(*testing.F)]{Door: ParseUserAgent, Fuzz: FuzzGitHubNominalIngressSemanticClosure}
+	_ = externalIngressFuzzContract[func(uint64) (AppID, error), func(*testing.F)]{Door: NewAppID, Fuzz: FuzzGitHubNominalIngressSemanticClosure}
+	_ = externalIngressFuzzContract[func(uint64) (InstallationID, error), func(*testing.F)]{Door: NewInstallationID, Fuzz: FuzzGitHubNominalIngressSemanticClosure}
+	_ = externalIngressFuzzContract[func(AppID, InstallationID, []byte) (AppCredential, error), func(*testing.F)]{Door: NewAppCredential, Fuzz: FuzzGitHubAppCredentialSemanticCustody}
 	_ = externalIngressFuzzContract[func(string) (Repository, error), func(*testing.F)]{
 		Door: ParseRepository, Fuzz: FuzzParseRepositorySemanticClosure,
 	}

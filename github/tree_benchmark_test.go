@@ -11,7 +11,7 @@ import (
 // This benchmark measures one completed provider transfer and one synchronous
 // entry delivery, including the owned download context and worker join.
 func BenchmarkReadTreeOneEntry(b *testing.B) {
-	payload := marshalGitHubFixture(b, treeResponseFixture{SHA: parsedCommit(b).String(), URL: "https://api.github.com/tree", Tree: []treeEntryWire{treeWire("main.go", "blob", parsedCommit(b).String())}})
+	payload := marshalGitHubFixture(b, treeResponseFixture{SHA: parsedCommit(b).String(), URL: "https://api.github.com/tree", Tree: []treeEntryFixture{treeWire("main.go", "blob", parsedCommit(b).String())}})
 	if len(payload) == 0 {
 		b.Fatal("tree payload bytes = 0, want nonempty typed document")
 	}

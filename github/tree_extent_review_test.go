@@ -16,8 +16,18 @@ type countingTreeVisitor struct {
 	bad   bool
 }
 
-func (v *countingTreeVisitor) VisitGitHubTreeEntry(entry TreeEntry) error {
-	if entry.Validate() != nil || entry.Kind != TreeEntryBlob || entry.Path.String() != "main.go" {
+func (v *countingTreeVisitor) VisitGitHubTreeEntry(stream *TreeEntryStream) error {
+	var path [8]byte
+	n, err := io.ReadFull(stream, path[:])
+	if err != nil && !errors.Is(err, io.ErrUnexpectedEOF) {
+		return err
+	}
+	if !errors.Is(err, io.ErrUnexpectedEOF) || n != len("main.go") || string(path[:n]) != "main.go" {
+		v.bad = true
+		return core.ErrGitHubResponse
+	}
+	entry, err := stream.Observation()
+	if err != nil || entry.Validate() != nil || entry.Kind != TreeEntryBlob || entry.PathLength.Uint64() != 7 || entry.PathSHA256 != core.SHA256Of([]byte("main.go")) {
 		v.bad = true
 		return core.ErrGitHubResponse
 	}
@@ -38,7 +48,7 @@ func writeTreeExtent(w io.Writer, input treeExtentWire) error {
 			return err
 		}
 	}
-	entry := treeEntryWire{Path: "main.go", Mode: "100644", Type: "blob", SHA: "commit", URL: "https://api.github.com/blob"}
+	entry := treeEntryFixture{Path: "main.go", Mode: "100644", Type: "blob", SHA: "commit", URL: "https://api.github.com/blob"}
 	for range input.count {
 		if err := json.MarshalEncode(encoder, entry); err != nil {
 			return err
@@ -76,7 +86,7 @@ func TestTreeStreamsBeyondFormerCountAndByteCeilingsLayerTriad(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set(core.HTTPHeaderContentType().String(), core.HTTPMediaTypeJSON().String())
 				// A refused tail closes the consumer pipe and may cancel the provider write.
-				_ = writeTreeExtent(w, tc.wire)
+				retainProviderWriteResult(t, writeTreeExtent(w, tc.wire))
 			}))
 			defer server.Close()
 			visitor := &countingTreeVisitor{}

@@ -132,7 +132,6 @@ runner acceptance remains a separate fact.
 
 Continue in the user-approved September 10 order:
 
-`github`,
 `gomodule`, `timeproof`, `controlplanetest`, `gitrepo`, `machineprobe`, `paypal`,
 `plunk`, `runworkspace`, `sourceclaim`, `sourceobservation`, `sourceproof`,
 `stripe`, `testserial`, `twilio`.
@@ -207,4 +206,4 @@ The user-directed clean removal retires the whole runtime graph/readiness API, i
 
 ## GitHub boundary slice — v2026.1.64
 
-[Admission and cancellation review](github_review_20260910.md) closes absent App credentials, typed-nil tree visitors, and stalled provider reads after terminal refusal. `github` remains first: fixed-memory JSON representation handling and the remaining ingress/lifecycle proof surfaces are still open.
+[Streaming boundary review](github_streaming_review_20260911.md) replaces full-path custody with caller-owned path streaming, completes the ingress and lifecycle proof surfaces, and removes the unchecked-error baseline. Release closure is bound to the final committed gate and external integrity report. The separate wider stream-counter domain remains explicit; existing signed-int64 byte receipts do not represent an individual 10-exabyte transfer.
