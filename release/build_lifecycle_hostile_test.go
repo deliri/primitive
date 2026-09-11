@@ -80,7 +80,7 @@ func TestDeterministicFourTargetBuildLifecycleLayerTriad(t *testing.T) {
 				},
 				WorkingDirectory: fixture.root, HostEnvironment: hostEnvironment,
 				Repository: repository, Tools: tools, Command: command,
-				OutputLimit: outputLimit, WaitDelay: waitDelay,
+				OutputPolicy: process.OutputPolicy{Mode: process.OutputModeBounded, Maximum: outputLimit}, WaitDelay: waitDelay,
 			})
 			if err != nil || prepared.Validate() != nil {
 				t.Fatalf("release.PrepareBuildProcess(%v) = (%v, %v), want valid request and nil", wantPlatform, prepared, err)
@@ -155,7 +155,7 @@ func TestDeterministicFourTargetBuildLifecycleLayerTriad(t *testing.T) {
 			},
 			WorkingDirectory: fixture.root, HostEnvironment: hostEnvironment,
 			Repository: repository, Tools: verifiedBuildToolsForLiveTest(t), Command: command,
-			OutputLimit: outputLimit, WaitDelay: waitDelay,
+			OutputPolicy: process.OutputPolicy{Mode: process.OutputModeBounded, Maximum: outputLimit}, WaitDelay: waitDelay,
 		})
 		if !errors.Is(gotErr, core.ErrReleaseContract) || !zeroProcessRequest(got) {
 			t.Fatalf("release.PrepareBuildProcess(foreign commit) = (%v, %v), want exact zero and %v", got, gotErr, core.ErrReleaseContract)

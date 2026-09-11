@@ -37,7 +37,7 @@ type BuildProcessRequest struct {
 	Repository       VerifiedRepository
 	Tools            VerifiedBuildTools
 	Command          BuildCommand
-	OutputLimit      core.ByteCount
+	OutputPolicy     process.OutputPolicy
 	WaitDelay        temporal.Duration
 }
 
@@ -50,9 +50,6 @@ func (r BuildProcessRequest) Validate() error {
 // PrepareBuildProcess lowers one command into the generic typed process
 // boundary without starting it.
 func PrepareBuildProcess(request BuildProcessRequest) (process.Request, error) {
-	if err := request.Validate(); err != nil {
-		return process.Request{}, err
-	}
 	return prepareBuildProcess(request)
 }
 
@@ -89,7 +86,7 @@ func prepareBuildProcess(request BuildProcessRequest) (process.Request, error) {
 	prepared := process.Request{
 		Streams: request.Streams, Command: request.Tools.GoExecutable(),
 		WorkingDirectory: request.WorkingDirectory, Arguments: arguments,
-		Environment: environment, OutputPolicy: process.OutputPolicy{Mode: process.OutputModeBounded, Maximum: request.OutputLimit},
+		Environment: environment, OutputPolicy: request.OutputPolicy,
 		WaitDelay: request.WaitDelay,
 		Containment: process.Containment{
 			Isolation:    process.IsolationDirect,

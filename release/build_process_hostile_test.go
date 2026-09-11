@@ -65,7 +65,7 @@ func TestPrepareBuildProcessReplacesEveryTargetControlledEnvironmentFact(t *test
 		Command: command, Repository: repository, Tools: tools, WorkingDirectory: workingDirectory,
 		HostEnvironment: hostEnvironment,
 		Streams:         process.Streams{Stdin: strings.NewReader(""), Stdout: io.Discard, Stderr: io.Discard},
-		OutputLimit:     outputLimit, WaitDelay: waitDelay,
+		OutputPolicy:    process.OutputPolicy{Mode: process.OutputModeBounded, Maximum: outputLimit}, WaitDelay: waitDelay,
 	})
 	if err != nil {
 		t.Fatalf("release.PrepareBuildProcess() error = %v, want nil", err)
@@ -163,7 +163,7 @@ func TestPrepareBuildProcessRejectsAmbientOrUnusableHostExecutionInputs(t *testi
 			r.HostEnvironment = process.Environment{Mode: process.EnvironmentModeInherit}
 		}, wantErr: core.ErrReleaseContract},
 		{name: "nil stdin", mutate: func(r *release.BuildProcessRequest) { r.Streams.Stdin = nil }, wantErr: core.ErrReleaseContract},
-		{name: "zero output limit", mutate: func(r *release.BuildProcessRequest) { r.OutputLimit = core.ByteCount{} }, wantErr: core.ErrReleaseContract},
+		{name: "zero output policy", mutate: func(r *release.BuildProcessRequest) { r.OutputPolicy = process.OutputPolicy{} }, wantErr: core.ErrReleaseContract},
 		{name: "zero wait delay", mutate: func(r *release.BuildProcessRequest) { r.WaitDelay = temporal.Duration{} }, wantErr: core.ErrReleaseContract},
 	}
 	for _, tc := range cases {
@@ -223,7 +223,7 @@ func buildProcessRequestForHostileTest(t *testing.T, root, home string) release.
 		Command: command, Repository: repository, Tools: tools, WorkingDirectory: workingDirectory,
 		HostEnvironment: environment,
 		Streams:         process.Streams{Stdin: strings.NewReader(""), Stdout: io.Discard, Stderr: io.Discard},
-		OutputLimit:     outputLimit, WaitDelay: waitDelay,
+		OutputPolicy:    process.OutputPolicy{Mode: process.OutputModeBounded, Maximum: outputLimit}, WaitDelay: waitDelay,
 	}
 }
 

@@ -143,7 +143,7 @@ func emitPackageClaimSpecsHThroughR(emit func(packageClaimSpec) bool) bool {
 			solution: "Release verifies inputs, constructs deterministic build plans, inspects executables, seals manifests, authenticates Latest, and compares installed state.",
 			benefit:  "CLI tools share one exact release agreement while external packages retain execution, transfer, installation, and policy.",
 			removal:  "Remove Release when no consumer builds or evaluates signed native release artifacts through this agreement.",
-			owns:     "Release owns build-input validation, deterministic plan shape, executable inspection, manifest identity, provenance, and Latest decision mechanics.",
+			owns:     "Release owns build-input validation, deterministic plan shape, executable inspection, manifest identity, provenance, and Latest decision mechanics. Build preparation validates and preserves the caller's typed process output policy, including uncapped streaming.",
 			excludes: "It does not create files, execute builds, transfer artifacts, install software, schedule releases, persist state, or retry.",
 		},
 		{
