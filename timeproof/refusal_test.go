@@ -437,10 +437,10 @@ func TestAuthorityRefusalHostileStatusInfoTable(t *testing.T) {
 			t.Parallel()
 
 			gotErr := verifyCraftedResponse(t, tc.response)
-			if _, ok := errors.AsType[Refusal](gotErr); ok {
+			if refusal, ok := errors.AsType[Refusal](gotErr); ok {
 				t.Fatalf(
-					"Verify(hostile status info) error = %v, want no typed refusal from malformed input",
-					gotErr,
+					"Verify(hostile status info) error = %v (refusal %+v), want no typed refusal from malformed input",
+					gotErr, refusal,
 				)
 			}
 			if !errors.Is(gotErr, core.ErrTimeProofInvalid) {
@@ -719,8 +719,8 @@ func TestRefusalConstructionBoundaries(t *testing.T) {
 		for _, status := range []RefusalStatus{
 			RefusalStatusGranted, RefusalStatusGrantedWithMods,
 		} {
-			_, err := newRefusal(authorityConclusion{status: status})
-			if !errors.Is(err, core.ErrTimeProofContract) {
+			got, err := newRefusal(authorityConclusion{status: status})
+			if !errors.Is(err, core.ErrTimeProofContract) || got != (Refusal{}) {
 				t.Fatalf(
 					"newRefusal(%v) error = %v, want %v",
 					status,
@@ -734,8 +734,8 @@ func TestRefusalConstructionBoundaries(t *testing.T) {
 	t.Run("unknown status cannot become a refusal", func(t *testing.T) {
 		t.Parallel()
 
-		_, err := newRefusal(authorityConclusion{status: RefusalStatusUnknown})
-		if !errors.Is(err, core.ErrTimeProofContract) {
+		got, err := newRefusal(authorityConclusion{status: RefusalStatusUnknown})
+		if !errors.Is(err, core.ErrTimeProofContract) || got != (Refusal{}) {
 			t.Fatalf(
 				"newRefusal(unknown) error = %v, want %v",
 				err,

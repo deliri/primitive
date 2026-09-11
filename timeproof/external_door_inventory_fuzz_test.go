@@ -69,20 +69,22 @@ type timeproofJSONSeed struct {
 
 func FuzzTimeproofExternalJSONDoorInventory(f *testing.F) {
 	fixtures := timeproofFixturesForFuzz(f)
+	f.Add(uint8(timeproofJSONDoorAuthorityEvidence-1), timeproofRefusalJSONFixture(f, fixtures))
 	for _, seed := range timeproofJSONSeedsForFuzz(f, fixtures) {
-		f.Add(uint8(seed.door), seed.document)
+		f.Add(uint8(seed.door-1), seed.document)
 	}
 	for _, hostile := range [][]byte{
 		nil, {}, []byte(`null`), []byte(`{}`), []byte(`[]`), []byte(`""`),
 		[]byte(`0`), []byte(`true`), []byte(`{`),
 		bytes.Repeat([]byte(`[`), core.JSONNestingDepthMaximum+1),
 	} {
-		f.Add(uint8(timeproofJSONDoorAuthoritativeTimestamp), hostile)
+		f.Add(uint8(timeproofJSONDoorAuthoritativeTimestamp-1), hostile)
 	}
-	f.Add(uint8(timeproofJSONDoorAuthority), []byte(`""`))
+	f.Add(uint8(timeproofJSONDoorAuthority-1), []byte(`""`))
 
 	f.Fuzz(func(t *testing.T, rawDoor uint8, data []byte) {
-		switch timeproofJSONDoor(rawDoor) {
+		door := timeproofJSONDoor(rawDoor%uint8(timeproofJSONDoorLimit-1)) + 1
+		switch door {
 		case timeproofJSONDoorAuthority:
 			fuzzTimeproofJSONValue(t, data, fixtures.authority)
 		case timeproofJSONDoorTimestampPolicy:
@@ -110,17 +112,17 @@ type timeproofJSONValue interface {
 	MarshalJSON() ([]byte, error)
 }
 
-func fuzzTimeproofJSONValue[T timeproofJSONValue](t *testing.T, data []byte, seed T) {
+func fuzzTimeproofJSONValue[T timeproofJSONValue, P interface {
+	*T
+	json.Unmarshaler
+}](t *testing.T, data []byte, seed T) {
 	t.Helper()
 	before, err := seed.MarshalJSON()
 	if err != nil {
 		t.Fatalf("timeproof seed MarshalJSON() error = %v, want nil", err)
 	}
 	candidate := seed
-	decoder, ok := any(&candidate).(json.Unmarshaler)
-	if !ok {
-		t.Fatalf("timeproof JSON receiver %T lacks json.Unmarshaler", &candidate)
-	}
+	decoder := P(&candidate)
 	decodeErr := decoder.UnmarshalJSON(data)
 	if decodeErr != nil {
 		if !errors.Is(decodeErr, core.ErrTimeProofContract) ||
@@ -137,14 +139,11 @@ func fuzzTimeproofJSONValue[T timeproofJSONValue](t *testing.T, data []byte, see
 		t.Fatalf("accepted timeproof JSON validation error = %v, want nil", err)
 	}
 	canonical, err := candidate.MarshalJSON()
-	if err != nil || len(canonical) > core.JSONDocumentMaximumBytes {
-		t.Fatalf("timeproof canonical JSON = (%d bytes, %v), want bounded and nil", len(canonical), err)
+	if err != nil || len(canonical) > core.JSONDocumentMaximumBytes || !bytes.Equal(canonical, data) {
+		t.Fatalf("timeproof canonical JSON = (%d bytes, %v), want exact admitted source, bounded and nil", len(canonical), err)
 	}
 	var roundTrip T
-	roundTripDecoder, ok := any(&roundTrip).(json.Unmarshaler)
-	if !ok {
-		t.Fatalf("timeproof round-trip receiver %T lacks json.Unmarshaler", &roundTrip)
-	}
+	roundTripDecoder := P(&roundTrip)
 	if err := roundTripDecoder.UnmarshalJSON(canonical); err != nil {
 		t.Fatalf("timeproof canonical JSON decode error = %v, want nil", err)
 	}
@@ -166,8 +165,15 @@ func fuzzTimeproofAuthorityEvidence(t *testing.T, data []byte, fixtures timeproo
 		ExpectedDigest: candidate.Digest(),
 	})
 	if err != nil {
-		if !errors.Is(err, core.ErrTimeProofInvalid) || !proof.isZero() {
+		if (!errors.Is(err, core.ErrTimeProofInvalid) && !errors.Is(err, core.ErrTimeProofRefused)) || !timestampHasNoProof(proof) {
 			t.Fatalf("Verify(fuzz evidence) = (%v, %v), want typed refusal and zero proof", proof, err)
+		}
+
+		if errors.Is(err, core.ErrTimeProofRefused) {
+			var refusal Refusal
+			if !errors.As(err, &refusal) || refusal.Validate() != nil || refusal.Status().granted() {
+				t.Fatalf("Verify(refused evidence) error = %v, want validated non-granting Refusal", err)
+			}
 		}
 		return
 	}
@@ -277,6 +283,8 @@ func TestTimeproofExternalIngressFuzzInventoryMatchesProduction(t *testing.T) {
 		t.Fatalf("public JSON receivers = %v, fuzz inventory = %v", gotJSON, wantJSON)
 	}
 	_ = FuzzVerifyFreeTSAResponse
+	_ = FuzzVerifyDigiCertResponse
+	_ = FuzzVerifyAuthorityBindingMutations
 }
 
 func timeproofExportedJSONReceiverNames() ([]string, error) {

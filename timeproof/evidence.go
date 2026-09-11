@@ -17,10 +17,6 @@ type AuthorityEvidence struct {
 	request  Request
 }
 
-func (e AuthorityEvidence) isZero() bool {
-	return len(e.response) == 0 && len(e.request.body) == 0
-}
-
 type authorityEvidenceInput struct {
 	Response []byte
 	Request  Request

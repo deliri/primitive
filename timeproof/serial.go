@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	// serialMaximumBytes is RFC 5280's certificate-serial ceiling in bytes.
+	// serialMaximumBytes is the supported RFC 3161 serial width in bytes.
 	serialMaximumBytes = SerialMaximumBits / 8
 	// serialTokenMaximumLength bounds the canonical hexadecimal token.
 	serialTokenMaximumLength = 2 * serialMaximumBytes
@@ -18,8 +18,8 @@ const (
 	serialJSONMaximumBytes = serialTokenMaximumLength + 2
 )
 
-// SerialNumber is an exact positive RFC 3161 serial bounded by RFC 5280's
-// 160-bit certificate-serial ceiling and carried without leading zero bytes.
+// SerialNumber is an exact positive RFC 3161 serial with the 160-bit width
+// required for interoperable clients, carried without leading zero bytes.
 type SerialNumber struct {
 	value  [serialMaximumBytes]byte
 	length uint8

@@ -17,7 +17,7 @@ type Nonce struct {
 	value [NonceBytes]byte
 }
 
-func generateNonce() (Nonce, error) {
+func generateNonce() (nonce Nonce, err error) {
 	size, err := core.NewByteCount(NonceBytes)
 	if err != nil {
 		return Nonce{}, contractError(err)
@@ -26,13 +26,17 @@ func generateNonce() (Nonce, error) {
 	if err != nil {
 		return Nonce{}, contractError(err)
 	}
-	defer func() { _ = material.Destroy() }()
+	defer func() {
+		if destroyErr := material.Destroy(); destroyErr != nil {
+			nonce = Nonce{}
+			err = contractError(err, destroyErr)
+		}
+	}()
 	raw, err := material.CopyBytes()
 	if err != nil {
 		return Nonce{}, contractError(err)
 	}
 	defer clear(raw)
-	var nonce Nonce
 	copy(nonce.value[:], raw)
 	if err := nonce.Validate(); err != nil {
 		return Nonce{}, err

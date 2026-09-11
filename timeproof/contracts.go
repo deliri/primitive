@@ -13,7 +13,7 @@ const (
 	ResponseMaximumBytes = 128 * 1024
 	// NonceBytes is the fixed request-nonce width.
 	NonceBytes = 16
-	// SerialMaximumBits is RFC 5280's certificate-serial ceiling.
+	// SerialMaximumBits is the serial width RFC 3161 requires clients to accommodate.
 	SerialMaximumBits = 160
 )
 

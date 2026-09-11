@@ -57,7 +57,7 @@ func TestDigiCertVerifierLayerTriad(t *testing.T) {
 			Response: fixture.response, Request: wrongRequest,
 			ExpectedDigest: fixture.digest,
 		})
-		if !errors.Is(gotErr, core.ErrTimeProofInvalid) || !got.isZero() {
+		if !errors.Is(gotErr, core.ErrTimeProofInvalid) || !timestampHasNoProof(got) {
 			t.Fatalf(
 				"Verify(DigiCert response as FreeTSA) = (%v, %v), want (zero, %v)",
 				got, gotErr, core.ErrTimeProofInvalid,

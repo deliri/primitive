@@ -235,9 +235,3 @@ func authoritativeWireMatches(
 		timestamp.serial == wire.Serial &&
 		timestamp.policy == wire.Policy
 }
-
-func (t AuthoritativeTimestamp) isZero() bool {
-	return t.evidence.isZero() &&
-		t.time == (AuthoritativeTime{}) &&
-		t.policy == TimestampPolicyUnknown
-}

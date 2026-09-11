@@ -113,7 +113,7 @@ func TestTimeProofVerifierLayerTriad(t *testing.T) {
 			Response: response, Request: fixture.request,
 			ExpectedDigest: fixture.digest,
 		})
-		if !errors.Is(gotErr, core.ErrTimeProofInvalid) || !got.isZero() {
+		if !errors.Is(gotErr, core.ErrTimeProofInvalid) || !timestampHasNoProof(got) {
 			t.Fatalf(
 				"Verify(mutated) = (%v, %v), want zero and %v",
 				got,
@@ -127,7 +127,7 @@ func TestTimeProofVerifierLayerTriad(t *testing.T) {
 		t.Parallel()
 
 		got, gotErr := Verify(VerifyRequest{})
-		if !errors.Is(gotErr, core.ErrTimeProofContract) || !got.isZero() {
+		if !errors.Is(gotErr, core.ErrTimeProofContract) || !timestampHasNoProof(got) {
 			t.Fatalf(
 				"Verify(zero) = (%v, %v), want zero and %v",
 				got,
@@ -148,7 +148,7 @@ func TestVerifierPreservesStandardLibraryDERFailure(t *testing.T) {
 	})
 	var syntaxError asn1.SyntaxError
 	if !errors.Is(gotErr, core.ErrTimeProofInvalid) ||
-		!errors.As(gotErr, &syntaxError) || !got.isZero() {
+		!errors.As(gotErr, &syntaxError) || !timestampHasNoProof(got) {
 		t.Fatalf(
 			"Verify(indefinite DER) timestamp/error = (%v, %v), want zero and Timeproof invalid carrying asn1.SyntaxError",
 			got,
@@ -240,7 +240,7 @@ func TestAuthenticResponseMutationTable(t *testing.T) {
 				Response: response, Request: fixture.request,
 				ExpectedDigest: fixture.digest,
 			})
-			if !errors.Is(gotErr, core.ErrTimeProofInvalid) || !got.isZero() {
+			if !errors.Is(gotErr, core.ErrTimeProofInvalid) || !timestampHasNoProof(got) {
 				t.Fatalf(
 					"Verify(mutated at %d) = (%v, %v), want zero and %v",
 					tc.at,
@@ -286,7 +286,10 @@ func TestPreparedRequestWireOrderAndBinding(t *testing.T) {
 			gotErr,
 		)
 	}
-	wantDigest, _ := fixture.digest.Bytes()
+	wantDigest, digestErr := fixture.digest.Bytes()
+	if digestErr != nil {
+		t.Fatalf("fixture digest bytes error = %v, want nil", digestErr)
+	}
 	if gotVersion != 1 ||
 		!gotImprint.HashAlgorithm.Algorithm.Equal(oidSHA256()) ||
 		!bytes.Equal(gotImprint.HashedMessage, wantDigest[:]) ||
@@ -500,7 +503,7 @@ func TestVerifyRequestHostileResponseBoundaryTable(t *testing.T) {
 				}
 				return
 			}
-			if !errors.Is(gotErr, tc.wantErr) || !got.isZero() {
+			if !errors.Is(gotErr, tc.wantErr) || !timestampHasNoProof(got) {
 				t.Fatalf(
 					"Verify(boundary) timestamp/error = (%v, %v), want zero and %v",
 					got,
@@ -690,71 +693,86 @@ func TestAuthoritativeTimestampPersistenceLayerTriad(t *testing.T) {
 func BenchmarkPrepareRequest(b *testing.B) {
 	fixture := loadAuthenticFixture(b)
 	input := PrepareRequest{Digest: fixture.digest, Authority: AuthorityFreeTSA}
+	if err := input.Validate(); err != nil {
+		b.Fatalf("Prepare workload validation error = %v, want nil", err)
+	}
+	var last Request
 	b.ReportAllocs()
 	b.ResetTimer()
-
 	for b.Loop() {
-		if _, err := Prepare(input); err != nil {
+		got, err := Prepare(input)
+		if err != nil {
 			b.Fatalf("Prepare(valid) error = %v, want nil", err)
 		}
+		last = got
+	}
+	if err := last.Validate(); err != nil || last.Digest() != fixture.digest || len(last.body) == 0 {
+		b.Fatalf("Prepare result = (%v, %v), want exact digest and nonempty request", last, err)
 	}
 }
 
 func BenchmarkVerifyAuthenticFreeTSA(b *testing.B) {
 	fixture := loadAuthenticFixture(b)
-	request := VerifyRequest{
-		Response: fixture.response, Request: fixture.request,
-		ExpectedDigest: fixture.digest,
+	request := VerifyRequest{Response: fixture.response, Request: fixture.request, ExpectedDigest: fixture.digest}
+	want, err := Verify(request)
+	if err != nil || want.Validate() != nil {
+		b.Fatalf("Verify workload = (%v, %v), want valid and nil", want, err)
 	}
+	var last AuthoritativeTimestamp
 	b.ReportAllocs()
+	b.SetBytes(int64(len(request.Response)))
 	b.ResetTimer()
-
 	for b.Loop() {
-		if _, err := Verify(request); err != nil {
+		got, err := Verify(request)
+		if err != nil {
 			b.Fatalf("Verify(authentic) error = %v, want nil", err)
 		}
+		last = got
+	}
+	if last.Time() != want.Time() || last.Signer() != want.Signer() || last.Serial() != want.Serial() || !bytes.Equal(last.Evidence().ResponseBytes(), fixture.response) {
+		b.Fatalf("Verify result = %+v, want authenticated fixture facts %+v", last, want)
 	}
 }
 
 func BenchmarkRejectOversizedResponse(b *testing.B) {
 	fixture := loadAuthenticFixture(b)
-	request := VerifyRequest{
-		Response: bytes.Repeat([]byte{0}, ResponseMaximumBytes+1),
-		Request:  fixture.request, ExpectedDigest: fixture.digest,
+	request := VerifyRequest{Response: bytes.Repeat([]byte{0}, ResponseMaximumBytes+1), Request: fixture.request, ExpectedDigest: fixture.digest}
+	if len(request.Response) != ResponseMaximumBytes+1 {
+		b.Fatalf("response extent = %d, want %d", len(request.Response), ResponseMaximumBytes+1)
 	}
+	var last AuthoritativeTimestamp
 	b.ReportAllocs()
 	b.ResetTimer()
-
 	for b.Loop() {
-		if _, err := Verify(request); !errors.Is(
-			err,
-			core.ErrTimeProofContract,
-		) {
-			b.Fatalf(
-				"Verify(oversized response) error = %v, want %v",
-				err,
-				core.ErrTimeProofContract,
-			)
+		got, err := Verify(request)
+		if !errors.Is(err, core.ErrTimeProofContract) {
+			b.Fatalf("Verify(oversized) error = %v, want %v", err, core.ErrTimeProofContract)
 		}
+		last = got
+	}
+	if !timestampHasNoProof(last) {
+		b.Fatalf("Verify(rejected) proof = %+v, want zero", last)
 	}
 }
 
 func BenchmarkReplayCanonicalEvidence(b *testing.B) {
 	fixture := loadAuthenticFixture(b)
 	encoded, err := fixture.evidence.MarshalJSON()
-	if err != nil {
-		b.Fatalf("AuthorityEvidence.MarshalJSON() setup error = %v, want nil", err)
+	if err != nil || len(encoded) == 0 {
+		b.Fatalf("AuthorityEvidence.MarshalJSON() setup = (%d bytes, %v), want nonempty and nil", len(encoded), err)
 	}
+	var last AuthorityEvidence
 	b.ReportAllocs()
+	b.SetBytes(int64(len(encoded)))
 	b.ResetTimer()
-
 	for b.Loop() {
 		var evidence AuthorityEvidence
 		if err := evidence.UnmarshalJSON(encoded); err != nil {
-			b.Fatalf(
-				"AuthorityEvidence.UnmarshalJSON() error = %v, want nil",
-				err,
-			)
+			b.Fatalf("AuthorityEvidence.UnmarshalJSON() error = %v, want nil", err)
 		}
+		last = evidence
+	}
+	if last.Digest() != fixture.digest || !bytes.Equal(last.ResponseBytes(), fixture.response) {
+		b.Fatalf("replayed evidence = %+v, want exact fixture custody", last)
 	}
 }

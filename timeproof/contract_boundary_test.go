@@ -220,7 +220,7 @@ func TestCMSUnsignedVersionSurgeryTable(t *testing.T) {
 				Response: response, Request: fixture.request,
 				ExpectedDigest: fixture.digest,
 			})
-			if !errors.Is(gotErr, core.ErrTimeProofInvalid) || !got.isZero() {
+			if !errors.Is(gotErr, core.ErrTimeProofInvalid) || !timestampHasNoProof(got) {
 				t.Fatalf(
 					"Verify(SignedData %d / SignerInfo %d) = (%v, %v), want zero and %v",
 					tc.signedVersion,
