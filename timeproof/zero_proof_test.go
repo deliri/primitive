@@ -24,7 +24,8 @@ func TestTimestampZeroProofRejectsEveryPartialFact(t *testing.T) {
 		{name: "retained serial", value: AuthoritativeTimestamp{serial: verified.serial}},
 		{name: "retained generation", value: AuthoritativeTimestamp{time: verified.time}},
 		{name: "retained policy", value: AuthoritativeTimestamp{policy: verified.policy}},
-		{name: "retained response", value: AuthoritativeTimestamp{evidence: AuthorityEvidence{response: fixture.response}}},
+		{name: "retained response digest", value: AuthoritativeTimestamp{evidence: AuthorityEvidence{responseDigest: fixture.evidence.responseDigest}}},
+		{name: "retained response extent", value: AuthoritativeTimestamp{evidence: AuthorityEvidence{responseBytes: 1}}},
 		{name: "retained request body", value: AuthoritativeTimestamp{evidence: AuthorityEvidence{request: Request{body: fixture.request.body}}}},
 		{name: "retained request digest", value: AuthoritativeTimestamp{evidence: AuthorityEvidence{request: Request{digest: fixture.digest}}}},
 		{name: "retained request nonce", value: AuthoritativeTimestamp{evidence: AuthorityEvidence{request: Request{nonce: fixture.request.nonce}}}},
@@ -43,7 +44,7 @@ func TestTimestampZeroProofRejectsEveryPartialFact(t *testing.T) {
 // Every component participates in the refusal proof; populated private fields
 // cannot disappear behind an incomplete production-side zero predicate.
 func timestampHasNoProof(value AuthoritativeTimestamp) bool {
-	return value.evidence.response == nil && value.evidence.request.body == nil &&
+	return value.evidence.responseDigest == (core.SHA256Digest{}) && value.evidence.responseBytes == 0 && value.evidence.request.body == nil &&
 		value.evidence.request.digest == (core.SHA256Digest{}) &&
 		value.evidence.request.nonce == (Nonce{}) && value.evidence.request.authority == AuthorityUnknown &&
 		value.time == (AuthoritativeTime{}) && value.signer == (core.SHA256Digest{}) &&
@@ -58,7 +59,7 @@ func TestZeroProofPredicateCoversCompleteCarrierShapes(t *testing.T) {
 		want  []string
 	}{
 		{name: "timestamp proof fields", shape: reflect.TypeFor[AuthoritativeTimestamp](), want: []string{"evidence", "time", "signer", "serial", "policy"}},
-		{name: "evidence custody fields", shape: reflect.TypeFor[AuthorityEvidence](), want: []string{"response", "request"}},
+		{name: "evidence custody fields", shape: reflect.TypeFor[AuthorityEvidence](), want: []string{"responseDigest", "responseBytes", "request"}},
 		{name: "request binding fields", shape: reflect.TypeFor[Request](), want: []string{"body", "digest", "nonce", "authority"}},
 	}
 	for _, tc := range cases {

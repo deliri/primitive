@@ -129,17 +129,15 @@ func TestBorrowedDERDoesNotEscapeVerifiedCustody(t *testing.T) {
 		t.Fatalf("Verify(owned source) error = %v, want nil", err)
 	}
 	clear(response)
-	retained := got.Evidence().ResponseBytes()
-	if !bytes.Equal(retained, fixture.response) {
-		t.Fatalf("retained response bytes = %d, want unchanged authentic source after caller mutation", len(retained))
+	if !sameTimeproofEvidence(got.Evidence(), fixture.evidence) {
+		t.Fatalf("retained response identity = %+v, want original identity after source mutation", got.Evidence())
 	}
-	clear(retained)
 	encoded, err := got.MarshalJSON()
 	if err != nil {
 		t.Fatalf("verified MarshalJSON() error = %v, want nil after accessor mutation", err)
 	}
 	var replayed AuthoritativeTimestamp
-	if err := replayed.UnmarshalJSON(encoded); err != nil || replayed.Signer() != got.Signer() || !bytes.Equal(replayed.Evidence().ResponseBytes(), fixture.response) {
+	if err := replayed.Restore(RestoreRequest{Document: encoded, Response: fixture.response, ExpectedDigest: fixture.digest}); err != nil || replayed.Signer() != got.Signer() || !sameTimeproofEvidence(replayed.Evidence(), fixture.evidence) {
 		t.Fatalf("verified replay = (%+v, %v), want independent authentic custody", replayed, err)
 	}
 }

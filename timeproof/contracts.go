@@ -9,8 +9,6 @@ import (
 const (
 	// RequestMaximumBytes bounds one DER TimeStampReq.
 	RequestMaximumBytes = 1024
-	// ResponseMaximumBytes bounds one DER TimeStampResp and CMS token.
-	ResponseMaximumBytes = 128 * 1024
 	// NonceBytes is the fixed request-nonce width.
 	NonceBytes = 16
 	// SerialMaximumBits is the serial width RFC 3161 requires clients to accommodate.

@@ -67,6 +67,7 @@ func (r *ExactReader) Read(destination []byte) (int, error) {
 	count, err := r.readNext(destination)
 	// readNext admits only nonnegative counts within the declared int64 extent.
 	// Account exactly the bytes returned, including a prefix beside a native error.
+	// #nosec G115 -- readNext rejects negative counts and returns zero on that rejection.
 	r.delivered += uint64(count)
 	return count, err
 }

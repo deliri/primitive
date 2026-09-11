@@ -35,7 +35,7 @@ type cmsAttribute struct {
 type parsedSignedData struct {
 	Content          cmsEncapsulatedContent
 	DigestAlgorithms asn1.RawValue
-	Certificates     []*x509.Certificate
+	Certificates     asn1.RawValue
 	Signers          []cmsSignerInfo
 	Version          int
 }
@@ -43,8 +43,8 @@ type parsedSignedData struct {
 type parsedToken struct {
 	Signer       *x509.Certificate
 	TSTDER       []byte
-	Certificates []*x509.Certificate
-	Attributes   []cmsAttribute
+	Certificates asn1.RawValue
+	Attributes   asn1.RawValue
 	SignerInfo   cmsSignerInfo
 }
 

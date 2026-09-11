@@ -46,6 +46,7 @@ type timeproofContractInventory struct {
 	Request                    sealedProjection[Request]
 	TSTBindingVerification     internalFlow[tstBindingVerification]
 	VerifyRequest              operationRequest[VerifyRequest]
+	RestoreRequest             operationRequest[RestoreRequest]
 	AuthoritativeTimestamp     sealedProjection[AuthoritativeTimestamp]
 	AuthoritativeTimestampWire wireProjection[authoritativeTimestampWire]
 	AuthoritativeTime          protocolFact[AuthoritativeTime]

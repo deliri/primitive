@@ -21,7 +21,7 @@ func loadAuthenticTSTInfoFixture(t testing.TB) tstInfoFixture {
 
 	fixture := loadAuthenticFixture(t)
 	tokenDER, _, err := parseTimestampResponse(
-		fixture.evidence.ResponseBytes(),
+		fixture.response,
 	)
 	if err != nil {
 		t.Fatalf("parseTimestampResponse(authentic) error = %v, want nil", err)

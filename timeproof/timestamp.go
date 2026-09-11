@@ -59,7 +59,7 @@ func (w authoritativeTimestampWire) MarshalJSON() ([]byte, error) {
 	return json.Marshal(authoritativeTimestampWireJSON(w))
 }
 
-// VerifyRequest pairs one prepared request with the exact bounded response and
+// VerifyRequest borrows caller-owned response bytes for the duration of Verify and
 // a separately supplied expected digest.
 type VerifyRequest struct {
 	Response       []byte
@@ -78,14 +78,14 @@ func (r VerifyRequest) Validate() error {
 	if r.Request.Digest() != r.ExpectedDigest {
 		return invalidError(nil)
 	}
-	if len(r.Response) == 0 || len(r.Response) > ResponseMaximumBytes {
+	if len(r.Response) == 0 {
 		return contractError(nil)
 	}
 	return nil
 }
 
 // Verify checks RFC 3161, CMS, signer, chain, policy, nonce, and message
-// imprint binding, then owns the exact request and response as evidence.
+// imprint binding, then seals response identity without retaining response bytes.
 func Verify(request VerifyRequest) (AuthoritativeTimestamp, error) {
 	if err := request.Validate(); err != nil {
 		return AuthoritativeTimestamp{}, err
@@ -158,7 +158,7 @@ func (t AuthoritativeTimestamp) Time() AuthoritativeTime {
 	return t.time
 }
 
-// Evidence returns owned proof custody with copy-returning byte accessors.
+// Evidence returns fixed-size response identity and the owned request.
 func (t AuthoritativeTimestamp) Evidence() AuthorityEvidence {
 	return t.evidence
 }
@@ -184,10 +184,34 @@ func (t AuthoritativeTimestamp) MarshalJSON() ([]byte, error) {
 	}, core.DefaultStrictJSONLimits())
 }
 
-// UnmarshalJSON re-verifies the exact evidence before constructing a value.
-func (t *AuthoritativeTimestamp) UnmarshalJSON(data []byte) error {
+// RestoreRequest supplies metadata and caller-owned response bytes together
+// with an independently expected message digest.
+type RestoreRequest struct {
+	Document       []byte
+	Response       []byte
+	ExpectedDigest core.SHA256Digest
+}
+
+// Validate requires both the metadata and the independently bound source.
+func (r RestoreRequest) Validate() error {
+	if len(r.Document) == 0 || len(r.Response) == 0 {
+		return contractError(nil)
+	}
+	if err := r.ExpectedDigest.Validate(); err != nil {
+		return contractError(err)
+	}
+	return nil
+}
+
+// Restore re-verifies caller-owned response bytes before admitting metadata.
+// Metadata alone can never construct a verified timestamp. Failure preserves t.
+func (t *AuthoritativeTimestamp) Restore(request RestoreRequest) error {
+	data := request.Document
 	if t == nil {
 		return errorsJSON()
+	}
+	if err := request.Validate(); err != nil {
+		return errorsJSON(err)
 	}
 	wire, err := core.DecodeStrictJSON[authoritativeTimestampWire](
 		bytes.NewReader(data), core.DefaultStrictJSONLimits(),
@@ -196,8 +220,8 @@ func (t *AuthoritativeTimestamp) UnmarshalJSON(data []byte) error {
 		return errorsJSON()
 	}
 	verified, err := Verify(VerifyRequest{
-		Request: wire.Evidence.Request(), Response: wire.Evidence.ResponseBytes(),
-		ExpectedDigest: wire.Evidence.Digest(),
+		Request: wire.Evidence.Request(), Response: request.Response,
+		ExpectedDigest: request.ExpectedDigest,
 	})
 	if err != nil || !authoritativeWireMatches(verified, wire) {
 		return invalidError(err)
@@ -230,7 +254,9 @@ func authoritativeWireMatches(
 	timestamp AuthoritativeTimestamp,
 	wire authoritativeTimestampWire,
 ) bool {
-	return timestamp.time == wire.Time &&
+	return timestamp.evidence.ResponseDigest() == wire.Evidence.ResponseDigest() &&
+		timestamp.evidence.ResponseSize() == wire.Evidence.ResponseSize() &&
+		timestamp.time == wire.Time &&
 		timestamp.signer == wire.Signer &&
 		timestamp.serial == wire.Serial &&
 		timestamp.policy == wire.Policy

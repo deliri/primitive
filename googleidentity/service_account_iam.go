@@ -12,6 +12,7 @@ import (
 
 // Google's IAM ID-token endpoint requires an authenticated service-account
 // request. The SDK owns both the self-signed access JWT and the IAM protocol.
+// #nosec G101 -- Public IAM OAuth scope identifier, not a credential.
 const googleIAMCredentialScope = "https://www.googleapis.com/auth/cloud-platform"
 
 func serviceAccountIAMToken(ctx context.Context, client *http.Client, audience Audience, document []byte, wire serviceAccountDocument) (Token, error) {

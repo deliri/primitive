@@ -13,4 +13,11 @@ go install github.com/jgautheron/goconst/cmd/goconst@v1.10.1
 go install golang.org/x/tools/go/analysis/passes/fieldalignment/cmd/fieldalignment@v0.45.0
 go install github.com/securego/gosec/v2/cmd/gosec@v2.26.1
 go install github.com/offGridSoft/witness/cmd/witness-lint@"$witness_revision"
+# The Witness wrapper delegates to the standard Go analysis backend.
+tool_bin=$(go env GOBIN)
+if [ -z "$tool_bin" ]; then
+    tool_bin="$(go env GOPATH)/bin"
+fi
+go install golang.org/x/tools/cmd/deadcode@v0.45.0
+mv "$tool_bin/deadcode" "$tool_bin/deadcode-real"
 go install github.com/offGridSoft/witness/cmd/deadcode@"$witness_revision"

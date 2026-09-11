@@ -217,3 +217,8 @@ Timeproof v2026.1.68: [status/DER custody slice](timeproof_status_stream_2026091
 Timeproof v2026.1.69: [digest declaration slice](timeproof_digest_stream_20260911.md). Digest declarations use borrowed DER and fixed-memory scans; source identity, duplicate refusal and OID grammar have behavioral/mutation/fuzz proof. Response custody and other aggregate collections remain open; Timeproof stays first.
 
 Timeproof v2026.1.70: [scan-owned decoder storage](timeproof_scratch_20260911.md). Status/digest loops reuse ASN.1 scratch; allocation growth fails red before the fix, and typed refusal clears old decoded facts. Aggregate response/certificate/attribute work stays open; Timeproof remains first.
+
+
+## User-directed completion — v2026.1.71
+
+[Timeproof response custody completion](timeproof_completion_20260911.md) closes the remaining response copy and response/attribute/certificate admission quotas. Standard-library cryptographic chain verification is explicitly retained under the user's exception. The requested repository-wide verification and release replace continuation of this historical queue; old slice notes above are historical, not newly opened work.

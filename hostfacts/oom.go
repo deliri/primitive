@@ -227,6 +227,7 @@ func (s *oomScanner) read(ctx context.Context) error {
 		return err
 	}
 	maximum := min(uint64(goOOMBufferBytes), s.remaining)
+	// #nosec G115 -- maximum is min(goOOMBufferBytes, remaining); the fixed array window fits int.
 	count, readErr := s.source.Read(s.buffer[s.carry : s.carry+int(maximum)])
 	if count < 0 || uint64(count) > maximum {
 		return errors.Join(core.ErrHostFactsObservation, errors.New("reader returned an invalid count"))

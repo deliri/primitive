@@ -12,8 +12,7 @@ import (
 func TestGoJSONParserStorageHasNoGrowingInputCarrier(t *testing.T) {
 	t.Parallel()
 	for _, typ := range []reflect.Type{reflect.TypeFor[goJSONStream](), reflect.TypeFor[goJSONFloat](), reflect.TypeFor[goJSONProjection](), reflect.TypeFor[goBenchmarkStream]()} {
-		for index := 0; index < typ.NumField(); index++ {
-			field := typ.Field(index)
+		for field := range typ.Fields() {
 			switch field.Type.Kind() {
 			case reflect.Slice, reflect.Map, reflect.String:
 				t.Fatalf("%s.%s has growing carrier %s, want fixed storage or owned nominal value", typ.Name(), field.Name, field.Type)

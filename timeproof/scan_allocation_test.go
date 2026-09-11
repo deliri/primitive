@@ -25,6 +25,19 @@ func TestDERScanAllocationsDoNotScaleWithElementCount(t *testing.T) {
 			},
 		},
 		{
+			name: "signed attributes reuse one raw decode destination",
+			build: func(t testing.TB, count int) []byte {
+				t.Helper()
+				attribute := cmsAttribute{Type: oidContentType(), Values: []asn1.RawValue{rawValueFromDER(t, encodeSequence())}}
+				raw := encodedSignedAttributes(t, []cmsAttribute{attribute})
+				return bytes.Repeat(raw.Bytes, count)
+			},
+			run: func(data []byte) (int, error) {
+				got, err := parseSignedAttributes(asn1.RawValue{Class: asn1.ClassContextSpecific, Tag: 0, IsCompound: true, Bytes: data})
+				return len(got.Bytes), err
+			},
+		},
+		{
 			name: "status texts reuse one raw decode destination",
 			build: func(t testing.TB, count int) []byte {
 				t.Helper()

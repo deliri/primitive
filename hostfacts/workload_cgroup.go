@@ -681,6 +681,7 @@ func readBoundedValue(ctx context.Context, reader io.Reader, maximum uint64) ([]
 		written += count
 		// Validated read counts and the package ceiling keep written nonnegative
 		// and bounded by maximum+1, so this conversion cannot narrow.
+		// #nosec G115 -- written starts at zero and only adds validated counts within remaining slice capacity.
 		if uint64(written) > maximum {
 			return nil, core.ErrHostFactsObservation
 		}

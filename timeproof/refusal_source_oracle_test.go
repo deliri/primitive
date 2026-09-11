@@ -24,8 +24,8 @@ func fuzzRefusalSource(t *testing.T, response []byte, refusal Refusal) {
 	t.Helper()
 	// An independent standard-library struct decode checks UTF8String contents;
 	// the production path walks RawValue spans and therefore must prove that
-	// semantic check itself. This secondary model is bounded by Verify's current
-	// response admission contract, not used in production stream processing.
+	// semantic check itself. This secondary representation is a fuzz oracle;
+	// production does not retain its status-text collection.
 	var source refusalSourceDocument
 	trailing, err := asn1.Unmarshal(response, &source)
 	if err != nil || len(trailing) != 0 || len(source.Token.FullBytes) != 0 {
@@ -58,11 +58,7 @@ func addRefusalResponseSeeds(f *testing.F, fixture authenticFixture) {
 		f.Fatalf("RefusalStatus.rfcValue() error = %v, want nil", err)
 	}
 	response := encodeSequence(encodeSequence(encodeStatusInteger(f, status), encodeStatusText(f, "refused")))
-	evidence, err := newAuthorityEvidence(authorityEvidenceInput{Response: response, Request: fixture.request})
-	if err != nil {
-		f.Fatalf("newAuthorityEvidence(seed) error = %v, want nil", err)
-	}
-	canonical := evidence.ResponseBytes()
+	canonical := response
 	proof, err := Verify(VerifyRequest{Response: canonical, Request: fixture.request, ExpectedDigest: fixture.digest})
 	if !errors.Is(err, core.ErrTimeProofRefused) || !timestampHasNoProof(proof) {
 		f.Fatalf("Verify(refusal seed) = (%+v, %v), want zero and typed refusal", proof, err)

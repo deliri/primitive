@@ -2,6 +2,7 @@ package timeproof
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"errors"
 	"testing"
 
@@ -35,7 +36,7 @@ func FuzzVerifyFreeTSAResponse(f *testing.F) {
 	addDigestDeclarationSeeds(f)
 	agreement := responseAgreementForFuzz(f, loadAuthenticFixture(f))
 	addRefusalResponseSeeds(f, agreement.fixture)
-	canonical := agreement.proof.Evidence().ResponseBytes()
+	canonical := agreement.fixture.response
 	f.Add(canonical)
 	f.Add([]byte{})
 	f.Add(canonical[:len(canonical)/2])
@@ -47,7 +48,7 @@ func FuzzVerifyFreeTSAResponse(f *testing.F) {
 func FuzzVerifyDigiCertResponse(f *testing.F) {
 	agreement := responseAgreementForFuzz(f, loadDigiCertAuthenticFixture(f))
 	addRefusalResponseSeeds(f, agreement.fixture)
-	canonical := agreement.proof.Evidence().ResponseBytes()
+	canonical := agreement.fixture.response
 	f.Add(canonical)
 	f.Add([]byte{})
 	f.Add(canonical[:len(canonical)/2])
@@ -78,7 +79,7 @@ func fuzzResponseAgreement(t *testing.T, response []byte, agreement responseFuzz
 	if got.Validate() != nil || got.Time() != agreement.proof.Time() || got.Signer() != agreement.proof.Signer() || got.Serial() != agreement.proof.Serial() || got.Policy() != agreement.proof.Policy() {
 		t.Fatalf("Verify(accepted) facts = %+v, want authentic signed facts %+v", got, agreement.proof)
 	}
-	if got.Evidence().Digest() != agreement.fixture.digest || got.Evidence().Nonce() != agreement.fixture.request.Nonce() || got.Evidence().Authority() != agreement.fixture.request.Authority() || !bytes.Equal(got.Evidence().ResponseBytes(), response) {
+	if got.Evidence().Digest() != agreement.fixture.digest || got.Evidence().Nonce() != agreement.fixture.request.Nonce() || got.Evidence().Authority() != agreement.fixture.request.Authority() || got.Evidence().ResponseSize() != uint64(len(response)) || got.Evidence().ResponseDigest() != core.NewSHA256Digest(sha256.Sum256(response)) {
 		t.Fatalf("Verify(accepted) evidence = %+v, want exact request and response custody", got.Evidence())
 	}
 	der, _, err := parseTimestampResponse(response)
@@ -100,8 +101,8 @@ func fuzzResponseAgreement(t *testing.T, response []byte, agreement responseFuzz
 func FuzzVerifyAuthorityBindingMutations(f *testing.F) {
 	free := responseAgreementForFuzz(f, loadAuthenticFixture(f))
 	digi := responseAgreementForFuzz(f, loadDigiCertAuthenticFixture(f))
-	for provider := uint8(0); provider < 2; provider++ {
-		for mutation := uint8(0); mutation < 5; mutation++ {
+	for provider := range uint8(2) {
+		for mutation := range uint8(5) {
 			f.Add(provider, mutation, uint16(0))
 		}
 	}

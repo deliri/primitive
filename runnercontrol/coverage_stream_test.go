@@ -14,8 +14,7 @@ import (
 func TestGoCoverageCompilerHasNoInputSizedStorage(t *testing.T) {
 	t.Parallel()
 	shape := reflect.TypeFor[GoCoverageCompiler]()
-	for index := range shape.NumField() {
-		field := shape.Field(index)
+	for field := range shape.Fields() {
 		if field.Name == "failure" && field.Type == reflect.TypeFor[error]() {
 			continue
 		}

@@ -117,6 +117,9 @@ func distributionJSONCases(t testing.TB, wire []byte, maximum int) []distributio
 				{"one extra object", append(slices.Clone(items), items[0])},
 			} {
 				changed := slices.Clone(members)
+				if changed == nil {
+					t.Fatal("mutation fixture = nil, want nonempty members")
+				}
 				encoded, err := json.Marshal(extent.values)
 				if err != nil {
 					t.Fatalf("array encoding=%v, want nil", err)
@@ -134,6 +137,9 @@ func distributionJSONCases(t testing.TB, wire []byte, maximum int) []distributio
 			value []byte
 		}{{"null", []byte("null")}, {"wrong boolean type", []byte("true")}} {
 			mutated := slices.Clone(members)
+			if mutated == nil {
+				t.Fatal("mutation fixture = nil, want nonempty members")
+			}
 			mutated[i].value = bad.value
 			cases = append(cases, distributionJSONPressure{name: member.name + " " + bad.name, wire: distributionWireObject(mutated), wantErr: core.ErrJSONContract})
 		}

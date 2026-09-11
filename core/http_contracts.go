@@ -20,10 +20,6 @@ const (
 	httpMediaTypeMaximumBytes = 4096
 )
 
-// CredentialedCompletionDocumentSyntaxBytes is the exact structural overhead
-// of a completion document bound beside one installation certificate.
-const CredentialedCompletionDocumentSyntaxBytes = len(`{"completion":,"certificate":}`)
-
 const (
 	// httpStatusCodeMinimum is the first syntactically valid status code.
 	httpStatusCodeMinimum = 100

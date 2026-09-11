@@ -5,6 +5,7 @@ import (
 	"errors"
 	"go/ast"
 	"go/types"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -142,11 +143,24 @@ func TestCapabilityProductionPathLayerTriad(t *testing.T) {
 	t.Run("negative ill typed package returns typed compiler output refusal", func(t *testing.T) {
 		t.Parallel()
 
-		packagePath, pathErr := gomodule.ParseImportPath(core.PrimitiveModulePath + "/gotoolchain/testdata/analysisbroken")
-		if pathErr != nil {
-			t.Fatalf("gomodule.ParseImportPath(analysisbroken) error = %v, want nil", pathErr)
+		fixtureDirectory := t.TempDir()
+		for _, file := range []struct{ name, body string }{
+			{"go.mod", "module example.com/analysisbroken\n\ngo 1.27.1\n"},
+			{"broken.go", "package analysisbroken\nimport _ \"example.invalid/absent\"\n"},
+		} {
+			if err := os.WriteFile(filepath.Join(fixtureDirectory, file.name), []byte(file.body), 0o600); err != nil {
+				t.Fatalf("WriteFile(compiler fixture) error = %v, want nil", err)
+			}
 		}
-		got, gotErr := capability.AnalyzePackage(context.Background(), gotoolchain.AnalysisRequest{WorkingDirectory: directory, Package: packagePath})
+		fixtureRoot, pathErr := core.ParseAbsolutePath(fixtureDirectory)
+		if pathErr != nil {
+			t.Fatalf("ParseAbsolutePath(fixture) error = %v, want nil", pathErr)
+		}
+		packagePath, pathErr := gomodule.ParseImportPath("example.com/analysisbroken")
+		if pathErr != nil {
+			t.Fatalf("ParseImportPath(fixture) error = %v, want nil", pathErr)
+		}
+		got, gotErr := capability.AnalyzePackage(context.Background(), gotoolchain.AnalysisRequest{WorkingDirectory: fixtureRoot, Package: packagePath})
 		if !errors.Is(gotErr, core.ErrGoToolchainOutput) || !got.Incomplete || len(got.Units) != 1 || !got.Units[0].IllTyped {
 			t.Fatalf("Capability.AnalyzePackage(ill typed) = (%v units, incomplete=%t, %v), want explicit partial facts and %v", len(got.Units), got.Incomplete, gotErr, core.ErrGoToolchainOutput)
 		}

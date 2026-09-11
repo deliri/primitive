@@ -11,6 +11,7 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
+// #nosec G101 -- Public Google OAuth endpoint, not a credential.
 const googleServiceAccountTokenURL = "https://oauth2.googleapis.com/token"
 const googleServiceAccountUniverse = "googleapis.com"
 

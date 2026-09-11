@@ -24,7 +24,7 @@ func (c jsonStructureContract) limits() (core.StrictJSONLimits, error) {
 }
 
 func writeCanonical(destination io.Writer, data []byte) error {
-	if core.WriterIsNil(destination) {
+	if destination == nil || core.WriterIsNil(destination) {
 		return contractError(errors.New("lease canonical destination is nil"))
 	}
 	written, err := destination.Write(data)

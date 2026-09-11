@@ -145,6 +145,10 @@ const (
 	PackageProofLedger
 	// PackageGitHub identifies GitHub-authenticated source and repository contracts.
 	PackageGitHub
+	// PackageTailnet identifies the isolated Tailscale network capability.
+	PackageTailnet
+	// PackageTailnetConfig identifies the typed Tailscale connection agreement.
+	PackageTailnetConfig
 	packageIdentityLimit
 )
 
@@ -245,6 +249,8 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageCapabilities, Kind: PackageKindProduction, Role: PackageRoleValueContract},
 			{Identity: PackageProofLedger, Kind: PackageKindProduction, Role: PackageRoleDomainAgreement},
 			{Identity: PackageGitHub, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
+			{Identity: PackageTailnet, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
+			{Identity: PackageTailnetConfig, Kind: PackageKindProduction, Role: PackageRoleValueContract},
 		},
 	}
 }
@@ -485,6 +491,8 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"capabilities",
 		"proofledger",
 		"github",
+		"tailnet",
+		"tailnetconfig",
 	}
 }
 

@@ -324,7 +324,7 @@ func TestSigningTimeAttributeShapeTable(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			gotErr := validateSigningTimeAttribute(tc.attributes)
+			gotErr := validateSigningTimeAttribute(encodedSignedAttributes(t, tc.attributes))
 			if tc.wantErr == nil {
 				if gotErr != nil {
 					t.Fatalf(
@@ -606,7 +606,10 @@ func TestSigningCertificateAttributeClosure(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parseTimestampToken(authentic) error = %v, want nil", err)
 	}
-	v1, v1Count := countAttribute(token.Attributes, oidSigningCertificate())
+	v1, v1Count, lookupErr := countAttribute(token.Attributes, oidSigningCertificate())
+	if lookupErr != nil {
+		t.Fatalf("countAttribute() error = %v, want nil", lookupErr)
+	}
 	if v1Count != 1 {
 		t.Fatalf("authentic SigningCertificate count = %d, want 1", v1Count)
 	}
@@ -648,7 +651,7 @@ func TestSigningCertificateAttributeClosure(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			gotErr := verifySigningCertificateAttribute(tc.attributes, tc.signer)
+			gotErr := verifySigningCertificateAttribute(encodedSignedAttributes(t, tc.attributes), tc.signer)
 			if tc.wantErr == nil {
 				if gotErr != nil {
 					t.Fatalf(
@@ -1162,4 +1165,14 @@ func TestClosedEnumJSONIngressTable(t *testing.T) {
 			)
 		}
 	})
+}
+
+func encodedSignedAttributes(t testing.TB, attributes []cmsAttribute) asn1.RawValue {
+	t.Helper()
+	der, err := asn1.MarshalWithParams(attributes, "set")
+	if err != nil {
+		t.Fatalf("MarshalWithParams(attributes) error = %v, want nil", err)
+	}
+	raw := rawValueFromDER(t, der)
+	return asn1.RawValue{Class: asn1.ClassContextSpecific, Tag: 0, IsCompound: true, Bytes: raw.Bytes}
 }

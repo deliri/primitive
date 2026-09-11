@@ -10,6 +10,7 @@ import (
 )
 
 func openHeldDirectory(path string) (*os.File, FilesystemIdentity, error) {
+	// #nosec G304 -- Acquires the caller-authorized directory with O_DIRECTORY and O_NOFOLLOW, then verifies held identity.
 	file, err := os.OpenFile(path, os.O_RDONLY|syscall.O_NONBLOCK|syscall.O_DIRECTORY|syscall.O_NOFOLLOW, 0)
 	if err != nil {
 		return nil, FilesystemIdentity{}, err

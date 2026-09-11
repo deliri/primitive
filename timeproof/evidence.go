@@ -2,19 +2,19 @@ package timeproof
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/base64"
 	json "encoding/json/v2"
 
 	"github.com/deliri/primitive/v2026/core"
 )
 
-const authorityEvidenceJSONMaximumBytes = 192 * 1024
-
-// AuthorityEvidence owns one exact request and the exact timestamp response
-// accepted for it. Verify establishes the authoritative conclusion.
+// AuthorityEvidence seals the exact request and the response digest and extent.
+// The caller owns response bytes; Verify establishes the authoritative conclusion.
 type AuthorityEvidence struct {
-	response []byte
-	request  Request
+	responseDigest core.SHA256Digest
+	responseBytes  uint64
+	request        Request
 }
 
 type authorityEvidenceInput struct {
@@ -23,8 +23,9 @@ type authorityEvidenceInput struct {
 }
 
 type authorityEvidenceWire struct {
-	Response string  `json:"response_base64"`
-	Request  Request `json:"request"`
+	ResponseDigest core.SHA256Digest `json:"response_sha256"`
+	ResponseBytes  uint64            `json:"response_bytes"`
+	Request        Request           `json:"request"`
 }
 
 type authorityEvidenceWireJSON authorityEvidenceWire
@@ -38,8 +39,9 @@ func (w authorityEvidenceWire) MarshalJSON() ([]byte, error) {
 
 func newAuthorityEvidence(input authorityEvidenceInput) (AuthorityEvidence, error) {
 	evidence := AuthorityEvidence{
-		response: append([]byte(nil), input.Response...),
-		request:  input.Request,
+		responseDigest: core.NewSHA256Digest(sha256.Sum256(input.Response)),
+		responseBytes:  uint64(len(input.Response)),
+		request:        input.Request,
 	}
 	if err := evidence.Validate(); err != nil {
 		return AuthorityEvidence{}, err
@@ -53,7 +55,7 @@ func (e AuthorityEvidence) Validate() error {
 	if err := e.request.Validate(); err != nil {
 		return contractError(err)
 	}
-	if len(e.response) == 0 || len(e.response) > ResponseMaximumBytes {
+	if e.responseBytes == 0 || e.responseDigest.Validate() != nil {
 		return contractError(nil)
 	}
 	return nil
@@ -75,10 +77,11 @@ func (e AuthorityEvidence) Digest() core.SHA256Digest {
 // Nonce returns the request nonce.
 func (e AuthorityEvidence) Nonce() Nonce { return e.request.Nonce() }
 
-// ResponseBytes returns an independent copy of the exact TimeStampResp.
-func (e AuthorityEvidence) ResponseBytes() []byte {
-	return append([]byte(nil), e.response...)
-}
+// ResponseDigest returns SHA-256 of the exact verified response bytes.
+func (e AuthorityEvidence) ResponseDigest() core.SHA256Digest { return e.responseDigest }
+
+// ResponseSize returns the exact response extent, independently of any declaration.
+func (e AuthorityEvidence) ResponseSize() uint64 { return e.responseBytes }
 
 // MarshalJSON emits canonical proof custody.
 func (e AuthorityEvidence) MarshalJSON() ([]byte, error) {
@@ -86,14 +89,15 @@ func (e AuthorityEvidence) MarshalJSON() ([]byte, error) {
 		return nil, err
 	}
 	return core.EncodeValidatedJSON(authorityEvidenceWire{
-		Request:  e.request,
-		Response: base64.StdEncoding.EncodeToString(e.response),
+		Request:        e.request,
+		ResponseDigest: e.responseDigest,
+		ResponseBytes:  e.responseBytes,
 	}, core.DefaultStrictJSONLimits())
 }
 
 // UnmarshalJSON reconstructs bounded proof custody without asserting validity.
 func (e *AuthorityEvidence) UnmarshalJSON(data []byte) error {
-	if e == nil || len(data) == 0 || len(data) > authorityEvidenceJSONMaximumBytes {
+	if e == nil || len(data) == 0 {
 		return errorsJSON()
 	}
 	wire, err := core.DecodeStrictJSON[authorityEvidenceWire](
@@ -118,20 +122,18 @@ func (w authorityEvidenceWire) Validate() error {
 	if err := w.Request.Validate(); err != nil {
 		return err
 	}
-	if w.Response == "" {
+	if w.ResponseBytes == 0 || w.ResponseDigest.Validate() != nil {
 		return contractError(nil)
 	}
 	return nil
 }
 
 func evidenceFromWire(wire authorityEvidenceWire) (AuthorityEvidence, error) {
-	response, err := decodeEvidenceBase64(wire.Response, ResponseMaximumBytes)
-	if err != nil {
+	evidence := AuthorityEvidence{request: wire.Request, responseDigest: wire.ResponseDigest, responseBytes: wire.ResponseBytes}
+	if err := evidence.Validate(); err != nil {
 		return AuthorityEvidence{}, err
 	}
-	return newAuthorityEvidence(authorityEvidenceInput{
-		Request: wire.Request, Response: response,
-	})
+	return evidence, nil
 }
 
 func decodeEvidenceBase64(value string, maximum int) ([]byte, error) {

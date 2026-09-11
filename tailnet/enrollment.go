@@ -15,6 +15,7 @@ import (
 )
 
 const (
+	// #nosec G101 -- Public Tailscale OAuth route, not a credential.
 	tokenExchangePath   = "/api/v2/oauth/token-exchange"
 	createKeyPath       = "/api/v2/tailnet/-/keys"
 	enrollmentAPIHost   = "api.tailscale.com"

@@ -778,8 +778,8 @@ func readAggregateResponseBody(input aggregateReadRequest) ([]byte, uint64, erro
 		return nil, 0, err
 	}
 	if input.destination == nil {
-		body, err := readWholeBody(wholeBodyRead{context: input.context, source: input.response.Body, declared: declared})
-		return body, uint64(len(body)), err
+		body, readErr := readWholeBody(wholeBodyRead{context: input.context, source: input.response.Body, declared: declared})
+		return body, uint64(len(body)), readErr
 	}
 	written, err := copyDownload(downloadCopyRequest{
 		context: input.context, source: input.response.Body, destination: input.destination,

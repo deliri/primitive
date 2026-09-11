@@ -93,6 +93,7 @@ func (c *GoCoverageCompiler) drainRunes(final bool) error {
 	for c.runeLength > 0 && (final || utf8.FullRune(c.runeBytes[:c.runeLength])) {
 		value, size := utf8.DecodeRune(c.runeBytes[:c.runeLength])
 		copy(c.runeBytes[:], c.runeBytes[size:c.runeLength])
+		// #nosec G115 -- utf8.DecodeRune consumes 1..utf8.UTFMax bytes from this nonempty four-byte window.
 		c.runeLength -= uint8(size)
 		if err := c.consumeRune(value); err != nil {
 			return err
@@ -107,7 +108,7 @@ func (c *GoCoverageCompiler) consumeRune(value rune) error {
 	}
 	c.linePresent = true
 	if c.mode == CoverageModeUnknown {
-		if value > unicode.MaxASCII || int(c.headerLength) == len(c.header) {
+		if value < 0 || value > unicode.MaxASCII || int(c.headerLength) == len(c.header) {
 			return coverageFailure("go coverage mode is outside the admitted domain")
 		}
 		c.header[c.headerLength] = byte(value)

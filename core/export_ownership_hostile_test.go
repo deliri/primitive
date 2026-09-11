@@ -15,7 +15,7 @@ import (
 
 const (
 	coreExportDependencyMaximum     = 32
-	coreSpecialExportAdmissionCount = 81
+	coreSpecialExportAdmissionCount = 84
 	coreProviderExportContractCount = 50
 )
 
@@ -146,6 +146,11 @@ func coreSpecialExportAdmissions() [coreSpecialExportAdmissionCount]coreSpecialE
 		architectureCatalogAdmission("PackageUpgrade", PackageUpgrade),
 		architectureCatalogAdmission("PackageLineIO", PackageLineIO),
 		architectureCatalogAdmission("PackageManual", PackageManual),
+		architectureCatalogAdmission("PackageTailnet", PackageTailnet),
+		architectureCatalogAdmission("PackageTailnetConfig", PackageTailnetConfig),
+		// Checked integer conversions remain one coherent numeric agreement;
+		// consumers are not invented to satisfy a usage count.
+		coherentDomainContractAdmission("CheckedUint8FromInt", CheckedUint8FromInt),
 		architectureCatalogAdmission("ParsePackageIdentity", ParsePackageIdentity),
 		architectureCatalogAdmission("PrimitiveArchitecture", PrimitiveArchitecture),
 		architectureCatalogAdmission("PrimitivePackageCount", PrimitivePackageCount),

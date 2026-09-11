@@ -209,7 +209,7 @@ func FuzzGoogleSDKResponseSemanticClosure(f *testing.F) {
 	if err := seed.Destroy(); err != nil {
 		f.Fatalf("seed.Destroy() = %v, want nil", err)
 	}
-	for mutation := uint8(0); mutation < 6; mutation++ {
+	for mutation := range uint8(6) {
 		f.Add(canonical, mutation)
 	}
 	f.Add([]byte{}, uint8(0))

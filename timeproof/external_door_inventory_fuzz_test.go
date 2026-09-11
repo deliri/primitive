@@ -53,6 +53,7 @@ func (d timeproofJSONDoor) receiverName() string {
 }
 
 type timeproofFuzzFixtures struct {
+	response  []byte
 	evidence  AuthorityEvidence
 	request   Request
 	timestamp AuthoritativeTimestamp
@@ -160,26 +161,12 @@ func fuzzTimeproofAuthorityEvidence(t *testing.T, data []byte, fixtures timeproo
 	if err := candidate.UnmarshalJSON(data); err != nil {
 		return
 	}
-	proof, err := Verify(VerifyRequest{
-		Response: candidate.ResponseBytes(), Request: candidate.Request(),
-		ExpectedDigest: candidate.Digest(),
-	})
-	if err != nil {
-		if (!errors.Is(err, core.ErrTimeProofInvalid) && !errors.Is(err, core.ErrTimeProofRefused)) || !timestampHasNoProof(proof) {
-			t.Fatalf("Verify(fuzz evidence) = (%v, %v), want typed refusal and zero proof", proof, err)
-		}
+	if candidate.Validate() != nil {
+		t.Fatalf("accepted evidence = %+v, want valid structural metadata", candidate)
+	}
+	// Evidence is metadata, not authentication. The separate Restore oracle
+	// binds metadata to caller-owned bytes through the real verifier.
 
-		if errors.Is(err, core.ErrTimeProofRefused) {
-			var refusal Refusal
-			if !errors.As(err, &refusal) || refusal.Validate() != nil || refusal.Status().granted() {
-				t.Fatalf("Verify(refused evidence) error = %v, want validated non-granting Refusal", err)
-			}
-		}
-		return
-	}
-	if proof.Validate() != nil || !sameTimeproofEvidence(candidate, fixtures.evidence) {
-		t.Fatalf("Verify(fuzz evidence) authenticated facts outside the authentic seed")
-	}
 }
 
 func fuzzAuthoritativeTimestamp(t *testing.T, data []byte, fixtures timeproofFuzzFixtures) {
@@ -189,7 +176,7 @@ func fuzzAuthoritativeTimestamp(t *testing.T, data []byte, fixtures timeproofFuz
 		t.Fatalf("AuthoritativeTimestamp.MarshalJSON(seed) error = %v, want nil", err)
 	}
 	candidate := fixtures.timestamp
-	decodeErr := candidate.UnmarshalJSON(data)
+	decodeErr := candidate.Restore(RestoreRequest{Document: data, Response: fixtures.response, ExpectedDigest: fixtures.request.Digest()})
 	if decodeErr != nil {
 		stable := errors.Is(decodeErr, core.ErrJSONContract) ||
 			errors.Is(decodeErr, core.ErrTimeProofInvalid)
@@ -207,7 +194,7 @@ func fuzzAuthoritativeTimestamp(t *testing.T, data []byte, fixtures timeproofFuz
 		t.Fatalf("authenticated timestamp differs from authentic canonical seed")
 	}
 	proof, err := Verify(VerifyRequest{
-		Response: candidate.Evidence().ResponseBytes(), Request: candidate.Evidence().Request(),
+		Response: fixtures.response, Request: candidate.Evidence().Request(),
 		ExpectedDigest: candidate.Evidence().Digest(),
 	})
 	if err != nil || proof.Validate() != nil {
@@ -223,7 +210,7 @@ func sameTimeproofEvidence(left, right AuthorityEvidence) bool {
 	return left.Request().Digest() == right.Request().Digest() &&
 		left.Request().Nonce() == right.Request().Nonce() &&
 		left.Authority() == right.Authority() &&
-		bytes.Equal(left.ResponseBytes(), right.ResponseBytes())
+		left.ResponseDigest() == right.ResponseDigest() && left.ResponseSize() == right.ResponseSize()
 }
 
 func timeproofFixturesForFuzz(t testing.TB) timeproofFuzzFixtures {
@@ -237,6 +224,7 @@ func timeproofFixturesForFuzz(t testing.TB) timeproofFuzzFixtures {
 		t.Fatalf("Verify(authentic fixture) error = %v, want nil", err)
 	}
 	return timeproofFuzzFixtures{
+		response:  authentic.response,
 		authority: authentic.request.Authority(), policy: timestamp.Policy(),
 		request: authentic.request, nonce: authentic.request.Nonce(),
 		evidence: timestamp.Evidence(), serial: timestamp.Serial(), timestamp: timestamp,
@@ -304,7 +292,7 @@ func timeproofExportedJSONReceiverNames() ([]string, error) {
 		}
 		for _, declaration := range parsed.Decls {
 			function, ok := declaration.(*ast.FuncDecl)
-			if !ok || function.Name.Name != "UnmarshalJSON" || function.Recv == nil || len(function.Recv.List) != 1 {
+			if !ok || (function.Name.Name != "UnmarshalJSON" && function.Name.Name != "Restore") || function.Recv == nil || len(function.Recv.List) != 1 {
 				continue
 			}
 			pointer, ok := function.Recv.List[0].Type.(*ast.StarExpr)

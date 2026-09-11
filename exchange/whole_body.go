@@ -49,5 +49,6 @@ func wholeBodyCopyWindow(declared declaredBodyLength) int {
 	if !declared.present {
 		return TransferBufferBytes
 	}
+	// #nosec G115 -- min caps this conversion at the compiler-owned TransferBufferBytes scratch size.
 	return int(min(uint64(TransferBufferBytes), max(uint64(bytes.MinRead), declared.length.Uint64())))
 }

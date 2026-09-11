@@ -432,16 +432,16 @@ func declaredRealWorldImports() (realWorldImportInventory, error) {
 			PackageGoToolchain, PackageGitRepo, PackageProcess, PackageRelease, PackageRunWorkspace, PackageShutdown, PackageUpgrade),
 		realWorldImportOwners(realWorldSubstrateProcessExecution, PackageProcess),
 		realWorldImportOwners(realWorldSubstrateOperatingSystemSignal, PackageShutdown),
-		realWorldImportOwners(realWorldSubstrateHTTP, PackageExchange),
-		realWorldImportOwners(realWorldSubstrateClock, PackageGoogleIdentity, PackageTemporal, PackageTimeProof),
+		realWorldImportOwners(realWorldSubstrateHTTP, PackageExchange, PackageGoogleIdentity, PackageTailnet),
+		realWorldImportOwners(realWorldSubstrateClock, PackageTemporal, PackageTimeProof),
 		realWorldImportOwners(realWorldSubstrateEntropy, PackageKeygen),
-		realWorldImportOwners(realWorldSubstrateUnix, PackageFileLock, PackageHostFacts),
+		realWorldImportOwners(realWorldSubstrateUnix, PackageHostFacts),
 		realWorldImportOwners(realWorldSubstrateWindows, PackageFileLock, PackageHostFacts),
 		realWorldImportOwners(realWorldSubstrateGoogleCloudStorage, PackageGCSObjects),
 		realWorldImportOwners(realWorldSubstrateGoogleIAMCredentials, PackageGCSObjects),
 		realWorldImportOwners(realWorldSubstrateGoogleSecretManager, PackageSecretStore),
-		realWorldImportOwners(realWorldSubstrateNetwork, PackageExchange, PackageGCSObjects),
-		realWorldImportOwners(realWorldSubstrateSyscall, PackageCore, PackageFilestore, PackageProcess, PackageShutdown),
+		realWorldImportOwners(realWorldSubstrateNetwork, PackageExchange, PackageGCSObjects, PackageTailnet),
+		realWorldImportOwners(realWorldSubstrateSyscall, PackageCore, PackageFileLock, PackageFilestore, PackageProcess, PackageShutdown),
 	}
 	var inventory realWorldImportInventory
 	for _, contract := range contracts {
@@ -463,7 +463,7 @@ func realWorldImportOwners(substrate realWorldSubstrate, owners ...PackageIdenti
 
 func declaredRealWorldCalls() (realWorldCallInventory, error) {
 	contracts := []realWorldCallUse{
-		{owner: PackageCore, substrate: realWorldSubstrateOperatingSystem, selector: "IsPathSeparator", count: 3},
+		{owner: PackageCore, substrate: realWorldSubstrateOperatingSystem, selector: "IsPathSeparator", count: 1},
 		{owner: PackageFilestore, substrate: realWorldSubstrateOperatingSystem, selector: "Lstat", count: 4},
 		{owner: PackageFilestore, substrate: realWorldSubstrateOperatingSystem, selector: "OpenFile", count: 2},
 		{owner: PackageFilestore, substrate: realWorldSubstrateOperatingSystem, selector: "Pipe", count: 1},
@@ -497,11 +497,10 @@ func declaredRealWorldCalls() (realWorldCallInventory, error) {
 		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "Now", count: 1},
 		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "Parse", count: 2},
 		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "ParseDuration", count: 1},
-		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "Unix", count: 2},
+		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "Unix", count: 3},
 		{owner: PackageTimeProof, substrate: realWorldSubstrateClock, selector: "Date", count: 4},
-		{owner: PackageGoogleIdentity, substrate: realWorldSubstrateClock, selector: "Unix", count: 2},
 		{owner: PackageKeygen, substrate: realWorldSubstrateEntropy, selector: "Read", count: 4},
-		{owner: PackageFileLock, substrate: realWorldSubstrateUnix, selector: "Flock", count: 2},
+		{owner: PackageFileLock, substrate: realWorldSubstrateSyscall, selector: "Flock", count: 2},
 		{owner: PackageHostFacts, substrate: realWorldSubstrateUnix, selector: "Fstatfs", count: 2},
 		{owner: PackageHostFacts, substrate: realWorldSubstrateUnix, selector: "IoctlGetWinsize", count: 1},
 		{owner: PackageHostFacts, substrate: realWorldSubstrateUnix, selector: "Major", count: 1},
@@ -515,7 +514,11 @@ func declaredRealWorldCalls() (realWorldCallInventory, error) {
 		{owner: PackageFilestore, substrate: realWorldSubstrateSyscall, selector: "CreateFile", count: 1},
 		{owner: PackageFilestore, substrate: realWorldSubstrateSyscall, selector: "CloseHandle", count: 1},
 		{owner: PackageProcess, substrate: realWorldSubstrateSyscall, selector: "Kill", count: 3},
-		{owner: PackageFileLock, substrate: realWorldSubstrateWindows, selector: "Handle", count: 2},
+		{owner: PackageFileLock, substrate: realWorldSubstrateWindows, selector: "Handle", count: 3},
+		// Windows file locking now owns an event and waits for overlapped completion.
+		{owner: PackageFileLock, substrate: realWorldSubstrateWindows, selector: "CreateEvent", count: 1},
+		{owner: PackageFileLock, substrate: realWorldSubstrateWindows, selector: "CloseHandle", count: 1},
+		{owner: PackageFileLock, substrate: realWorldSubstrateWindows, selector: "GetOverlappedResult", count: 1},
 		{owner: PackageFileLock, substrate: realWorldSubstrateWindows, selector: "LockFileEx", count: 1},
 		{owner: PackageFileLock, substrate: realWorldSubstrateWindows, selector: "UnlockFileEx", count: 1},
 		{owner: PackageHostFacts, substrate: realWorldSubstrateWindows, selector: "GetConsoleScreenBufferInfo", count: 1},

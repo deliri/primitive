@@ -89,10 +89,10 @@ func addDigestDeclarationSeeds(f *testing.F) {
 	for _, count := range []int{4, 1024} {
 		response := responseWithDigestSet(f, digestSetFixture(f, count, 1))
 		got, err := Verify(VerifyRequest{Response: response, Request: fixture.request, ExpectedDigest: fixture.digest})
-		if err != nil {
+		if err != nil || got.Validate() != nil {
 			f.Fatalf("Verify(digest seed) error = %v, want nil", err)
 		}
-		f.Add(got.Evidence().ResponseBytes())
+		f.Add(response)
 	}
 	f.Add(responseWithDigestSet(f, digestSetFixture(f, 5, 2)))
 }

@@ -77,8 +77,11 @@ func verifyTimestampToken(verification timestampTokenVerification) (verifiedToke
 // validateSigningTimeAttribute enforces CMS cardinality and canonical time
 // encoding. CMS signingTime is the purported signature-operation time; RFC
 // 5652 does not require it to equal RFC 3161 genTime.
-func validateSigningTimeAttribute(attributes []cmsAttribute) error {
-	signingTime, count := countAttribute(attributes, oidSigningTime())
+func validateSigningTimeAttribute(attributes asn1.RawValue) error {
+	signingTime, count, err := countAttribute(attributes, oidSigningTime())
+	if err != nil {
+		return err
+	}
 	if count == 0 {
 		return nil
 	}
@@ -331,21 +334,21 @@ func validSignerAlgorithms(algorithms asn1.RawValue, signer cmsSignerInfo) bool 
 		signatureDigestMatches(signer)
 }
 
-func verifySignedToken(signed parsedSignedData, content []byte) (*x509.Certificate, []cmsAttribute, error) {
+func verifySignedToken(signed parsedSignedData, content []byte) (*x509.Certificate, asn1.RawValue, error) {
 	signerInfo := signed.Signers[0]
 	signer, err := findSignerCertificate(signerInfo, signed.Certificates)
 	if err != nil {
-		return nil, nil, invalidError(err)
+		return nil, asn1.RawValue{}, invalidError(err)
 	}
 	attributes, err := parseSignedAttributes(signerInfo.SignedAttributes)
 	if err != nil {
-		return nil, nil, err
+		return nil, asn1.RawValue{}, err
 	}
 	if err := verifyRequiredSignedAttributes(attributes, signerInfo, content); err != nil {
-		return nil, nil, invalidError(err)
+		return nil, asn1.RawValue{}, invalidError(err)
 	}
 	if err := verifySignerSignature(signerInfo, signer); err != nil {
-		return nil, nil, invalidError(err)
+		return nil, asn1.RawValue{}, invalidError(err)
 	}
 	return signer, attributes, nil
 }
@@ -666,74 +669,131 @@ func consumeAlgorithm(der []byte) (pkix.AlgorithmIdentifier, []byte, error) {
 	return algorithm, remaining, nil
 }
 
-func parseCertificates(raw asn1.RawValue) ([]*x509.Certificate, error) {
+// parseCertificates borrows the certificate set instead of retaining a
+// decoded collection. Duplicate detection rescans earlier DER spans.
+func parseCertificates(raw asn1.RawValue) (asn1.RawValue, error) {
 	if len(raw.Bytes) == 0 {
-		return nil, invalidError(nil)
+		return asn1.RawValue{}, invalidError(nil)
 	}
-	var certificates []*x509.Certificate
+	var scratch asn1.RawValue
 	for fields := raw.Bytes; len(fields) != 0; {
-		if len(certificates) >= certificateMaximumCount {
-			return nil, invalidError(nil)
+		certificate, remaining, err := consumeRawInto(fields, &scratch)
+		if err != nil || !isUniversal(certificate, asn1.TagSequence, true) {
+			return asn1.RawValue{}, invalidError(err)
 		}
-		certificateRaw, remaining, err := consumeRaw(fields)
-		if err != nil || !isUniversal(certificateRaw, asn1.TagSequence, true) {
-			return nil, invalidError(err)
+		if _, err := x509.ParseCertificate(certificate.FullBytes); err != nil {
+			return asn1.RawValue{}, invalidError(err)
 		}
-		certificate, err := x509.ParseCertificate(certificateRaw.FullBytes)
-		if err != nil {
-			return nil, invalidError(err)
+		prior := raw.Bytes[:len(raw.Bytes)-len(fields)]
+		if duplicateCertificate(prior, certificate.FullBytes) {
+			return asn1.RawValue{}, invalidError(nil)
 		}
-		for _, prior := range certificates {
-			if bytes.Equal(prior.Raw, certificate.Raw) {
-				return nil, invalidError(nil)
-			}
-		}
-		certificates = append(certificates, certificate)
 		fields = remaining
 	}
-	return certificates, nil
+	return raw, nil
 }
 
-func findSignerCertificate(signer cmsSignerInfo, certificates []*x509.Certificate) (*x509.Certificate, error) {
+func duplicateCertificate(prior, want []byte) bool {
+	var scratch asn1.RawValue
+	for len(prior) != 0 {
+		certificate, remaining, err := consumeRawInto(prior, &scratch)
+		if err != nil || bytes.Equal(certificate.FullBytes, want) {
+			return true
+		}
+		prior = remaining
+	}
+	return false
+}
+
+// walkCertificates decodes one standard-library certificate at a time.
+// The visitor determines whether an individual certificate must be retained.
+func walkCertificates(raw asn1.RawValue, visit func(*x509.Certificate) error) error {
+	var scratch asn1.RawValue
+	for fields := raw.Bytes; len(fields) != 0; {
+		value, remaining, err := consumeRawInto(fields, &scratch)
+		if err != nil {
+			return invalidError(err)
+		}
+		certificate, err := x509.ParseCertificate(value.FullBytes)
+		if err != nil {
+			return invalidError(err)
+		}
+		if err := visit(certificate); err != nil {
+			return err
+		}
+		fields = remaining
+	}
+	return nil
+}
+
+func findSignerCertificate(signer cmsSignerInfo, certificates asn1.RawValue) (*x509.Certificate, error) {
 	var match *x509.Certificate
-	for _, certificate := range certificates {
+	err := walkCertificates(certificates, func(certificate *x509.Certificate) error {
 		if certificate.SerialNumber.Cmp(signer.SID.Serial) != 0 ||
 			!bytes.Equal(certificate.RawIssuer, signer.SID.Issuer.FullBytes) {
-			continue
+			return nil
 		}
 		if match != nil {
-			return nil, invalidError(nil)
+			return invalidError(nil)
 		}
 		match = certificate
-	}
-	if match == nil {
-		return nil, invalidError(nil)
+		return nil
+	})
+	if err != nil || match == nil {
+		return nil, invalidError(err)
 	}
 	return match, nil
 }
 
-func parseSignedAttributes(raw asn1.RawValue) ([]cmsAttribute, error) {
-	if raw.Class != asn1.ClassContextSpecific || raw.Tag != 0 || !raw.IsCompound ||
-		len(raw.Bytes) == 0 {
-		return nil, invalidError(nil)
+// parseSignedAttributes validates the collection while borrowing its DER.
+// Unknown attributes never accumulate in a decoded collection.
+func parseSignedAttributes(raw asn1.RawValue) (asn1.RawValue, error) {
+	if raw.Class != asn1.ClassContextSpecific || raw.Tag != 0 || !raw.IsCompound || len(raw.Bytes) == 0 {
+		return asn1.RawValue{}, invalidError(nil)
 	}
-	var attributes []cmsAttribute
+	var scratch asn1.RawValue
 	for fields := raw.Bytes; len(fields) != 0; {
-		if len(attributes) >= signedAttributeMaximumCount {
-			return nil, invalidError(nil)
-		}
-		var attribute cmsAttribute
-		remaining, err := asn1.Unmarshal(fields, &attribute)
+		_, _, remaining, err := consumeSignedAttribute(fields, &scratch)
 		if err != nil {
-			return nil, invalidError(err)
+			return asn1.RawValue{}, err
 		}
-		attributes = append(attributes, attribute)
 		fields = remaining
 	}
-	return attributes, nil
+	return raw, nil
 }
 
-func verifyRequiredSignedAttributes(attributes []cmsAttribute, signer cmsSignerInfo, content []byte) error {
+// consumeSignedAttribute validates one attribute without decoding its values.
+func consumeSignedAttribute(der []byte, scratch *asn1.RawValue) (asn1.RawValue, asn1.RawValue, []byte, error) {
+	attribute, remaining, err := consumeRawInto(der, scratch)
+	if err != nil || !isUniversal(attribute, asn1.TagSequence, true) {
+		return asn1.RawValue{}, asn1.RawValue{}, nil, invalidError(err)
+	}
+	oid, fields, err := consumeRawInto(attribute.Bytes, scratch)
+	if err != nil || !isUniversal(oid, asn1.TagOID, false) || !canonicalOIDBody(oid.Bytes) {
+		return asn1.RawValue{}, asn1.RawValue{}, nil, invalidError(err)
+	}
+	values, trailing, err := consumeRawInto(fields, scratch)
+	if err != nil || len(trailing) != 0 || !isUniversal(values, asn1.TagSet, true) {
+		return asn1.RawValue{}, asn1.RawValue{}, nil, invalidError(err)
+	}
+	if err := validateAttributeValueElements(values.Bytes, scratch); err != nil {
+		return asn1.RawValue{}, asn1.RawValue{}, nil, err
+	}
+	return oid, values, remaining, nil
+}
+
+func validateAttributeValueElements(fields []byte, scratch *asn1.RawValue) error {
+	for len(fields) != 0 {
+		_, next, err := consumeRawInto(fields, scratch)
+		if err != nil {
+			return invalidError(err)
+		}
+		fields = next
+	}
+	return nil
+}
+
+func verifyRequiredSignedAttributes(attributes asn1.RawValue, signer cmsSignerInfo, content []byte) error {
 	contentType, err := uniqueAttribute(attributes, oidContentType())
 	if err != nil {
 		return invalidError(err)
@@ -1186,17 +1246,10 @@ func explicitOctets(raw asn1.RawValue) ([]byte, error) {
 	return value.Bytes, nil
 }
 
-func uniqueAttribute(attributes []cmsAttribute, oid asn1.ObjectIdentifier) (cmsAttribute, error) {
-	var found cmsAttribute
-	count := 0
-	for _, attribute := range attributes {
-		if attribute.Type.Equal(oid) {
-			found = attribute
-			count++
-		}
-	}
-	if count != 1 {
-		return cmsAttribute{}, invalidError(nil)
+func uniqueAttribute(attributes asn1.RawValue, oid asn1.ObjectIdentifier) (cmsAttribute, error) {
+	found, count, err := countAttribute(attributes, oid)
+	if err != nil || count != 1 {
+		return cmsAttribute{}, invalidError(err)
 	}
 	return found, nil
 }

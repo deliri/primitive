@@ -3,6 +3,7 @@ package timeproof
 import (
 	"bytes"
 	"crypto/sha256"
+	"crypto/x509"
 	"embed"
 	"encoding/asn1"
 	"encoding/base64"
@@ -176,7 +177,10 @@ func TestAuthenticResponseMutationTable(t *testing.T) {
 	// Every offset below is located from the parsed structure it names. A
 	// fraction of the response length would drift silently if the fixture
 	// changed and would not prove the structure the case claims to attack.
-	root := token.Certificates[len(token.Certificates)-1]
+	var root *x509.Certificate
+	if err := walkCertificates(token.Certificates, func(certificate *x509.Certificate) error { root = certificate; return nil }); err != nil || root == nil {
+		t.Fatalf("walkCertificates(fixture) error = %v, want root and nil", err)
+	}
 	if root.Equal(token.Signer) {
 		t.Fatalf(
 			"authentic certificate signer/last subject = (%q, %q), want a distinct issuer certificate",
@@ -425,47 +429,6 @@ func TestVerifyRequestHostileResponseBoundaryTable(t *testing.T) {
 			wantErr: core.ErrTimeProofInvalid,
 		},
 		{
-			name: "one below response ceiling remains bounded parser input",
-			request: VerifyRequest{
-				Response: bytes.Repeat(
-					[]byte{0},
-					ResponseMaximumBytes-1,
-				),
-				Request: fixture.request, ExpectedDigest: fixture.digest,
-			},
-			wantErr: core.ErrTimeProofInvalid,
-		},
-		{
-			name: "exact response ceiling remains bounded parser input",
-			request: VerifyRequest{
-				Response: bytes.Repeat([]byte{0}, ResponseMaximumBytes),
-				Request:  fixture.request, ExpectedDigest: fixture.digest,
-			},
-			wantErr: core.ErrTimeProofInvalid,
-		},
-		{
-			name: "one above response ceiling is rejected before parsing",
-			request: VerifyRequest{
-				Response: bytes.Repeat(
-					[]byte{0},
-					ResponseMaximumBytes+1,
-				),
-				Request: fixture.request, ExpectedDigest: fixture.digest,
-			},
-			wantErr: core.ErrTimeProofContract,
-		},
-		{
-			name: "far above response ceiling is rejected before parsing",
-			request: VerifyRequest{
-				Response: bytes.Repeat(
-					[]byte{0},
-					4*ResponseMaximumBytes,
-				),
-				Request: fixture.request, ExpectedDigest: fixture.digest,
-			},
-			wantErr: core.ErrTimeProofContract,
-		},
-		{
 			name: "foreign expected digest cannot select another subject",
 			request: VerifyRequest{
 				Response: fixture.response, Request: fixture.request,
@@ -531,7 +494,7 @@ func TestAuthorityEvidencePersistenceLayerTriad(t *testing.T) {
 			t.Fatalf("AuthorityEvidence.UnmarshalJSON() error = %v, want nil", gotErr)
 		}
 		got, gotErr := Verify(VerifyRequest{
-			Response: decoded.ResponseBytes(), Request: decoded.Request(),
+			Response: fixture.response, Request: decoded.Request(),
 			ExpectedDigest: fixture.digest,
 		})
 		if gotErr != nil || got.Policy() != TimestampPolicyFreeTSA {
@@ -555,7 +518,7 @@ func TestAuthorityEvidencePersistenceLayerTriad(t *testing.T) {
 		receiver := original
 		gotErr = receiver.UnmarshalJSON(append(encoded, '\n'))
 		if !errors.Is(gotErr, core.ErrJSONContract) ||
-			!bytes.Equal(receiver.ResponseBytes(), original.ResponseBytes()) {
+			!sameTimeproofEvidence(receiver, original) {
 			t.Fatalf(
 				"AuthorityEvidence.UnmarshalJSON(trailing) receiver/error = (%v, %v), want unchanged and %v",
 				receiver,
@@ -600,7 +563,7 @@ func TestAuthoritativeTimestampPersistenceLayerTriad(t *testing.T) {
 		t.Parallel()
 
 		var got AuthoritativeTimestamp
-		gotErr := got.UnmarshalJSON(encoded)
+		gotErr := got.Restore(RestoreRequest{Document: encoded, Response: fixture.response, ExpectedDigest: fixture.digest})
 		gotEncoded, gotMarshalErr := got.MarshalJSON()
 		if gotErr != nil || gotMarshalErr != nil ||
 			!bytes.Equal(gotEncoded, encoded) {
@@ -630,13 +593,13 @@ func TestAuthoritativeTimestampPersistenceLayerTriad(t *testing.T) {
 			t.Fatalf("json.Marshal(forged wire) error = %v, want nil", gotErr)
 		}
 		receiver := verified
-		gotErr = receiver.UnmarshalJSON(forgedJSON)
+		gotErr = receiver.Restore(RestoreRequest{Document: forgedJSON, Response: fixture.response, ExpectedDigest: fixture.digest})
 		receiverJSON, receiverMarshalErr := receiver.MarshalJSON()
 		if !errors.Is(gotErr, core.ErrTimeProofInvalid) ||
 			receiverMarshalErr != nil ||
 			!bytes.Equal(receiverJSON, encoded) {
 			t.Fatalf(
-				"AuthoritativeTimestamp.UnmarshalJSON(forged) receiver/error = (%q, %v), want unchanged and %v",
+				"AuthoritativeTimestamp.Restore(forged) receiver/error = (%q, %v), want unchanged and %v",
 				receiverJSON,
 				gotErr,
 				core.ErrTimeProofInvalid,
@@ -661,13 +624,13 @@ func TestAuthoritativeTimestampPersistenceLayerTriad(t *testing.T) {
 			t.Fatalf("json.Marshal(forged accuracy wire) error = %v, want nil", gotErr)
 		}
 		receiver := verified
-		gotErr = receiver.UnmarshalJSON(forgedJSON)
+		gotErr = receiver.Restore(RestoreRequest{Document: forgedJSON, Response: fixture.response, ExpectedDigest: fixture.digest})
 		receiverJSON, receiverMarshalErr := receiver.MarshalJSON()
 		if !errors.Is(gotErr, core.ErrTimeProofInvalid) ||
 			receiverMarshalErr != nil ||
 			!bytes.Equal(receiverJSON, encoded) {
 			t.Fatalf(
-				"AuthoritativeTimestamp.UnmarshalJSON(forged accuracy) receiver/error = (%q, %v), want unchanged and %v",
+				"AuthoritativeTimestamp.Restore(forged accuracy) receiver/error = (%q, %v), want unchanged and %v",
 				receiverJSON,
 				gotErr,
 				core.ErrTimeProofInvalid,
@@ -729,24 +692,24 @@ func BenchmarkVerifyAuthenticFreeTSA(b *testing.B) {
 		}
 		last = got
 	}
-	if last.Time() != want.Time() || last.Signer() != want.Signer() || last.Serial() != want.Serial() || !bytes.Equal(last.Evidence().ResponseBytes(), fixture.response) {
+	if last.Time() != want.Time() || last.Signer() != want.Signer() || last.Serial() != want.Serial() || !sameTimeproofEvidence(last.Evidence(), fixture.evidence) {
 		b.Fatalf("Verify result = %+v, want authenticated fixture facts %+v", last, want)
 	}
 }
 
-func BenchmarkRejectOversizedResponse(b *testing.B) {
+func BenchmarkRejectMalformedResponse(b *testing.B) {
 	fixture := loadAuthenticFixture(b)
-	request := VerifyRequest{Response: bytes.Repeat([]byte{0}, ResponseMaximumBytes+1), Request: fixture.request, ExpectedDigest: fixture.digest}
-	if len(request.Response) != ResponseMaximumBytes+1 {
-		b.Fatalf("response extent = %d, want %d", len(request.Response), ResponseMaximumBytes+1)
+	request := VerifyRequest{Response: bytes.Repeat([]byte{0}, len(fixture.response)), Request: fixture.request, ExpectedDigest: fixture.digest}
+	if len(request.Response) != len(fixture.response) {
+		b.Fatalf("response extent = %d, want %d", len(request.Response), len(fixture.response))
 	}
 	var last AuthoritativeTimestamp
 	b.ReportAllocs()
 	b.ResetTimer()
 	for b.Loop() {
 		got, err := Verify(request)
-		if !errors.Is(err, core.ErrTimeProofContract) {
-			b.Fatalf("Verify(oversized) error = %v, want %v", err, core.ErrTimeProofContract)
+		if !errors.Is(err, core.ErrTimeProofInvalid) {
+			b.Fatalf("Verify(malformed) error = %v, want %v", err, core.ErrTimeProofInvalid)
 		}
 		last = got
 	}
@@ -772,7 +735,7 @@ func BenchmarkReplayCanonicalEvidence(b *testing.B) {
 		}
 		last = evidence
 	}
-	if last.Digest() != fixture.digest || !bytes.Equal(last.ResponseBytes(), fixture.response) {
+	if last.Digest() != fixture.digest || !sameTimeproofEvidence(last, fixture.evidence) {
 		b.Fatalf("replayed evidence = %+v, want exact fixture custody", last)
 	}
 }

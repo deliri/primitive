@@ -34,7 +34,10 @@ func verifyTimestampSigner(
 		return err
 	}
 	root := registry.root
-	roots, intermediates := timestampCertificatePools(root, token)
+	roots, intermediates, err := timestampCertificatePools(root, token)
+	if err != nil {
+		return err
+	}
 	chain, err := verifyTimestampChain(timestampChainRequest{
 		signer: token.Signer, root: root, roots: roots,
 		intermediates: intermediates, generation: generationTime,
@@ -50,18 +53,17 @@ func verifyTimestampSigner(
 // unrelated extra certificates; this check closes ambiguity against the one
 // verified path. Signer selection separately rejects multiple embedded matches.
 func verifyNoConflictingCertificates(
-	embedded []*x509.Certificate,
+	embedded asn1.RawValue,
 	chain []*x509.Certificate,
 ) error {
-	for _, certificate := range embedded {
+	return walkCertificates(embedded, func(certificate *x509.Certificate) error {
 		for _, member := range chain {
-			if sameCertificateIdentity(certificate, member) &&
-				!certificate.Equal(member) {
+			if sameCertificateIdentity(certificate, member) && !certificate.Equal(member) {
 				return invalidError(nil)
 			}
 		}
-	}
-	return nil
+		return nil
+	})
 }
 
 func sameCertificateIdentity(left, right *x509.Certificate) bool {
@@ -73,17 +75,23 @@ func sameCertificateIdentity(left, right *x509.Certificate) bool {
 		bytes.Equal(left.RawIssuer, right.RawIssuer)
 }
 
-func timestampCertificatePools(root *x509.Certificate, token parsedToken) (*x509.CertPool, *x509.CertPool) {
+// timestampCertificatePools leaves chain construction and its working set
+// to crypto/x509. The parser itself does not retain a certificate list.
+func timestampCertificatePools(root *x509.Certificate, token parsedToken) (*x509.CertPool, *x509.CertPool, error) {
 	roots := x509.NewCertPool()
 	roots.AddCert(root)
 	intermediates := x509.NewCertPool()
-	for _, certificate := range token.Certificates {
+	err := walkCertificates(token.Certificates, func(certificate *x509.Certificate) error {
 		if certificate.Equal(token.Signer) || certificate.Equal(root) {
-			continue
+			return nil
 		}
 		intermediates.AddCert(certificate)
+		return nil
+	})
+	if err != nil {
+		return nil, nil, err
 	}
-	return roots, intermediates
+	return roots, intermediates, nil
 }
 
 type timestampChainRequest struct {
@@ -127,9 +135,15 @@ func criticalExtension(certificate *x509.Certificate, oid asn1.ObjectIdentifier)
 	return false
 }
 
-func verifySigningCertificateAttribute(attributes []cmsAttribute, signer *x509.Certificate) error {
-	v1, v1Count := countAttribute(attributes, oidSigningCertificate())
-	v2, v2Count := countAttribute(attributes, oidSigningCertificateV2())
+func verifySigningCertificateAttribute(attributes asn1.RawValue, signer *x509.Certificate) error {
+	v1, v1Count, err := countAttribute(attributes, oidSigningCertificate())
+	if err != nil {
+		return err
+	}
+	v2, v2Count, err := countAttribute(attributes, oidSigningCertificateV2())
+	if err != nil {
+		return err
+	}
 	if signer == nil || v1Count+v2Count == 0 ||
 		v1Count > 1 || v2Count > 1 {
 		return invalidError(nil)
@@ -145,16 +159,36 @@ func verifySigningCertificateAttribute(attributes []cmsAttribute, signer *x509.C
 	return nil
 }
 
-func countAttribute(attributes []cmsAttribute, oid asn1.ObjectIdentifier) (cmsAttribute, int) {
-	var found cmsAttribute
-	count := 0
-	for _, attribute := range attributes {
-		if attribute.Type.Equal(oid) {
-			found = attribute
-			count++
-		}
+// countAttribute retains only the requested attribute. Count saturates at
+// two because the contract distinguishes absent, unique, and duplicate.
+func countAttribute(attributes asn1.RawValue, oid asn1.ObjectIdentifier) (cmsAttribute, int, error) {
+	want, err := asn1.Marshal(oid)
+	if err != nil {
+		return cmsAttribute{}, 0, invalidError(err)
 	}
-	return found, count
+	var found cmsAttribute
+	var scratch asn1.RawValue
+	count := 0
+	for fields := attributes.Bytes; len(fields) != 0; {
+		got, values, next, scanErr := consumeSignedAttribute(fields, &scratch)
+		if scanErr != nil {
+			return cmsAttribute{}, 0, scanErr
+		}
+		fields = next
+		if !bytes.Equal(got.FullBytes, want) {
+			continue
+		}
+		if count != 0 {
+			return cmsAttribute{}, 2, nil
+		}
+		value, trailing, valueErr := consumeRawInto(values.Bytes, &scratch)
+		if valueErr != nil || len(trailing) != 0 {
+			return cmsAttribute{}, 0, invalidError(valueErr)
+		}
+		found = cmsAttribute{Type: oid, Values: []asn1.RawValue{value}}
+		count = 1
+	}
+	return found, count, nil
 }
 
 func verifySigningCertificateV1(attribute cmsAttribute, signer *x509.Certificate) error {

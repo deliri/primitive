@@ -32,7 +32,7 @@ type deliveryBody struct {
 
 func (b *deliveryBody) Read(p []byte) (int, error) {
 	n, err := b.source.Read(p)
-	if err == io.EOF && b.fault == deliveryReadFailure {
+	if errors.Is(err, io.EOF) && b.fault == deliveryReadFailure {
 		return n, io.ErrUnexpectedEOF
 	}
 	return n, err
@@ -97,7 +97,7 @@ func checkResponseDelivery(t *testing.T, payload []byte, fault deliveryFault, st
 	opened := uint64(0)
 	factory := func(attemptContext context.Context, attempt uint64) (io.Writer, error) {
 		if attemptContext == nil || attemptContext.Err() != nil {
-			t.Fatal("invalid attempt context")
+			t.Fatalf("attempt context = %v, want nonnil and uncancelled", attemptContext)
 		}
 		opened = attempt
 		return sink, nil
@@ -195,7 +195,7 @@ func TestResponseDestinationRetryCustody(t *testing.T) {
 		t.Fatalf("delivery=%+v calls/closes/sinks=%d/%d/%d err=%v", delivery, calls, closes, len(sinks), err)
 	}
 	if !bytes.Equal(sinks[0].body, []byte("first failure")) || !bytes.Equal(sinks[1].body, []byte("second success")) {
-		t.Fatal("retry contaminated response retention")
+		t.Fatalf("retry response bodies = %q / %q, want first failure / second success", sinks[0].body, sinks[1].body)
 	}
 }
 
@@ -224,7 +224,7 @@ func TestResponseDestinationRefusesInvalidSinkBeforeHTTP(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			client := mustExchangeClient(t, &http.Client{Transport: bindingTransport(func(*http.Request) (*http.Response, error) {
-				t.Fatal("refused sink reached HTTP")
+				t.Fatal("HTTP calls after sink refusal = 1, want 0")
 				return nil, io.ErrClosedPipe
 			})})
 			got, err := exchange.SendNoBodyTo(exchange.NoBodyBoundedCall{Context: t.Context(), Client: client, Request: exchange.NoBodyBoundedRequest{Target: mustEndpoint(t, "https://provider.example.test/refused"), Semantics: exchange.RequestSemantics{Method: exchange.MethodGet, Replay: exchange.ReplaySingleAttempt}, ExpectedStatus: core.HTTPStatusOK()}, Policy: exchange.NoBodyBoundedPolicy{Operation: singleAttemptOperationPolicy(t)}}, tc.factory)

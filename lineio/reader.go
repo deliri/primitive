@@ -97,7 +97,11 @@ func (r *Reader) Capacity() (core.ByteCount, error) {
 	if err := r.Validate(); err != nil {
 		return core.ByteCount{}, err
 	}
-	return core.NewByteCount(uint64(r.buffer.Size()))
+	size := r.buffer.Size()
+	if size < 0 {
+		return core.ByteCount{}, core.ErrLineIOContract
+	}
+	return core.NewByteCount(uint64(size))
 }
 
 // ReadFragment returns exact bytes before any accompanying error, like io.Reader.

@@ -147,6 +147,9 @@ func copyStream(request streamCopyRequest) (core.ByteLength, error) {
 		buffer = nil
 	}
 	total, err := io.CopyBuffer(destination, &source, buffer)
+	if total < 0 {
+		return core.ByteLength{}, sourceError(io.ErrUnexpectedEOF)
+	}
 	if err != nil {
 		return finishStream(uint64(total), errors.Join(err, source.cause))
 	}

@@ -336,7 +336,7 @@ func TestAWSAcquireBodyOwnershipAndRefusalIdentity(t *testing.T) {
 	}
 }
 
-func TestAWSAcquireEnforcesActualResponseExtent(t *testing.T) {
+func TestAWSAcquireStreamsTrailingWhitespaceThroughEOF(t *testing.T) {
 	t.Parallel()
 	canonical := awsProviderBytes(t, awsProviderDocument(awsTestBearer))
 	for _, tc := range []struct {
@@ -346,14 +346,11 @@ func TestAWSAcquireEnforcesActualResponseExtent(t *testing.T) {
 		wantErr  error
 		wantRead int
 	}{
-		{"one below ceiling with declaration", AmazonResponseMaximumBytes - 1, AmazonResponseMaximumBytes - 1, nil, AmazonResponseMaximumBytes - 1},
-		{"exact ceiling with declaration", AmazonResponseMaximumBytes, AmazonResponseMaximumBytes, nil, AmazonResponseMaximumBytes},
-		{"above ceiling refused from declaration", AmazonResponseMaximumBytes + 1, AmazonResponseMaximumBytes + 1, core.ErrExchangeBodyLimit, 0},
-		{"one below ceiling with unknown length", AmazonResponseMaximumBytes - 1, -1, nil, AmazonResponseMaximumBytes - 1},
-		{"exact ceiling with unknown length", AmazonResponseMaximumBytes, -1, nil, AmazonResponseMaximumBytes},
-		{"above ceiling with unknown length", AmazonResponseMaximumBytes + 1, -1, core.ErrExchangeBodyLimit, AmazonResponseMaximumBytes + 1},
-		{"understated length cannot widen ceiling", AmazonResponseMaximumBytes + 1, 1, core.ErrExchangeBodyLimit, AmazonResponseMaximumBytes + 1},
-		{"large stream stops after limit probe", AmazonResponseMaximumBytes * 16, -1, core.ErrExchangeBodyLimit, AmazonResponseMaximumBytes + 1},
+		{"exact declaration preserves bearer and consumes EOF", AmazonResponseMaximumBytes, AmazonResponseMaximumBytes, nil, AmazonResponseMaximumBytes},
+		{"unknown length preserves bearer and consumes EOF", AmazonResponseMaximumBytes, -1, nil, AmazonResponseMaximumBytes},
+		{"understated declaration does not truncate XML whitespace", AmazonResponseMaximumBytes + 1, 1, nil, AmazonResponseMaximumBytes + 1},
+		{"overstated declaration does not invent bytes", AmazonResponseMaximumBytes, AmazonResponseMaximumBytes * 2, nil, AmazonResponseMaximumBytes},
+		{"long whitespace stream has no transport quota", AmazonResponseMaximumBytes * 16, -1, nil, AmazonResponseMaximumBytes * 16},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

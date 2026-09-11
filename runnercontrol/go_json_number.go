@@ -79,7 +79,10 @@ func (n *goJSONFloat) validate() error {
 		}
 		return goJSONFailure()
 	}
-	exponent := int64(n.exponent) // bounded during accumulation.
+	if n.exponent > math.MaxInt64 {
+		return goJSONFailure()
+	}
+	exponent := int64(n.exponent)
 	if n.exponentNegative {
 		exponent = -exponent
 	}

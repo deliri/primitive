@@ -3,11 +3,9 @@ package timeproof
 import "encoding/asn1"
 
 const (
-	certificateMaximumCount     = 16
-	signedAttributeMaximumCount = 32
-	signerMaximumCount          = 1
-	refusalMaximumCodeCount     = 8
-	enumJSONMaximumBytes        = 128
+	signerMaximumCount      = 1
+	refusalMaximumCodeCount = 8
+	enumJSONMaximumBytes    = 128
 	// derConstructed is the DER identifier bit that marks a constructed value.
 	derConstructed = 0x20
 	// tstInfoVersion is the only TSTInfo version RFC 3161 defines.

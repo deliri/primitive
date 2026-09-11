@@ -62,7 +62,6 @@ func TestDigestSetEncodingLayerTriad(t *testing.T) {
 // standard library's arbitrary-width OID decoder. Provider fuzz targets cover
 // the complete signed response and independent authentic agreement.
 func FuzzDigestOIDRepresentation(f *testing.F) {
-	fixture := loadAuthenticFixture(f)
 	encoded, err := asn1.Marshal(oidSHA256())
 	if err != nil {
 		f.Fatalf("asn1.Marshal(seed) error = %v, want nil", err)
@@ -77,15 +76,6 @@ func FuzzDigestOIDRepresentation(f *testing.F) {
 	f.Add([]byte{0x80, 0})
 	f.Add([]byte{0x81})
 	f.Fuzz(func(t *testing.T, data []byte) {
-		// The oracle is bounded by the public response admission contract.
-		// Larger representations belong to the future streaming public API.
-		if len(data) > ResponseMaximumBytes {
-			got, err := Verify(VerifyRequest{Response: data, Request: fixture.request, ExpectedDigest: fixture.digest})
-			if !errors.Is(err, core.ErrTimeProofContract) || !timestampHasNoProof(got) {
-				t.Fatalf("Verify(oversized representation) = (%+v, %v), want zero proof and typed contract rejection", got, err)
-			}
-			return
-		}
 		oidDER := derTagged(byte(asn1.TagOID), data)
 		algorithm := derTagged(byte(asn1.TagSequence)|derConstructed, oidDER)
 		input := derTagged(byte(asn1.TagSet)|derConstructed, algorithm)

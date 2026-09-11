@@ -12,7 +12,7 @@ var (
 	_ core.Validatable            = SelectionModeUnknown
 	_ core.Validatable            = Report{}
 	_ core.Validatable            = PageReport{}
-	_ core.ValidatedJSONMarshaler = SchemaUnknown
+	_ core.ValidatedJSONMarshaler = Schema(0)
 	_ core.ValidatedJSONMarshaler = View(0)
 	_ core.ValidatedJSONMarshaler = SelectionMode(0)
 	_ core.OffWireEnum            = ViewUnknown

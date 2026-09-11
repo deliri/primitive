@@ -14,4 +14,5 @@ var (
 	_ core.ValidatedJSONMarshaler = authoritativeTimestampWire{}
 	_ core.ValidatedJSONMarshaler = AuthoritativeTimestamp{}
 	_ core.Validatable            = AuthoritativeTime{}
+	_ core.Validatable            = RestoreRequest{}
 )
