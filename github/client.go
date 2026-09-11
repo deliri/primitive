@@ -78,6 +78,9 @@ func NewClient(client exchange.Client, userAgent UserAgent) (Client, error) {
 
 // NewAppClient constructs a GitHub App client and takes its own credential copy.
 func NewAppClient(client exchange.Client, userAgent UserAgent, credential AppCredential) (Client, error) {
+	if err := credential.Validate(); err != nil {
+		return Client{}, authenticationError(err)
+	}
 	authority, err := core.ParseHTTPEndpoint(apiAuthority)
 	if err != nil {
 		return Client{}, contractError(err)

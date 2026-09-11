@@ -3,6 +3,7 @@ package github
 import (
 	"errors"
 	"io"
+	"reflect"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -398,10 +399,23 @@ func (r TreeRequest) Validate() error {
 	if err := errors.Join(r.Repository.Validate(), r.Commit.Validate()); err != nil {
 		return contractError(err)
 	}
-	if r.Visitor == nil {
+	if treeVisitorIsNil(r.Visitor) {
 		return core.ErrGitHubContract
 	}
 	return nil
+}
+
+func treeVisitorIsNil(visitor TreeVisitor) bool {
+	if visitor == nil {
+		return true
+	}
+	value := reflect.ValueOf(visitor)
+	switch value.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Pointer, reflect.Slice:
+		return value.IsNil()
+	default:
+		return false
+	}
 }
 
 // TreeObservation reports the exact completed streamed response extent.

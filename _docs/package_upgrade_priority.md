@@ -204,3 +204,7 @@ Deploy v2026.1.62: [local review](deploy_review_20260910.md). Provider extent ad
 ## Wiring removal — v2026.1.63
 
 The user-directed clean removal retires the whole runtime graph/readiness API, its catalog identity and authored package claims. See [migration and evidence scope](wiring_removal_20260910.md). No replacement graph engine or compatibility shim is introduced. Consumer migration is explicit and remains product-owned.
+
+## GitHub boundary slice — v2026.1.64
+
+[Admission and cancellation review](github_review_20260910.md) closes absent App credentials, typed-nil tree visitors, and stalled provider reads after terminal refusal. `github` remains first: fixed-memory JSON representation handling and the remaining ingress/lifecycle proof surfaces are still open.

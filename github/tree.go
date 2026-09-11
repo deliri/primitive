@@ -57,6 +57,9 @@ type treeDecoder struct {
 // Primitive retains no repository-wide collection. The visitor is synchronous
 // backpressure and must return; the caller owns any blocking work it performs.
 func (c Client) ReadTree(ctx context.Context, request TreeRequest) (TreeObservation, error) {
+	if ctx == nil {
+		return TreeObservation{}, core.ErrGitHubContract
+	}
 	if err := errors.Join(c.Validate(), request.Validate()); err != nil {
 		return TreeObservation{}, contractError(err)
 	}
@@ -72,14 +75,17 @@ func (c Client) ReadTree(ctx context.Context, request TreeRequest) (TreeObservat
 	if err != nil {
 		return TreeObservation{}, contractError(err)
 	}
+	downloadContext, cancelDownload := context.WithCancel(ctx)
+	defer cancelDownload()
 	reader, writer := io.Pipe()
 	completed := make(chan treeDownloadResult, 1)
 	go downloadTree(treeDownloadCall{
-		ctx: ctx, client: c.state.client, target: target, headers: headers, media: media,
+		ctx: downloadContext, client: c.state.client, target: target, headers: headers, media: media,
 		policy: exchange.StreamPolicy{Redirect: exchange.RedirectPolicy{Mode: exchange.RedirectReject}}, writer: writer, completed: completed,
 	})
 	entries, decodeErr := decodeTree(reader, request.Visitor)
 	if decodeErr != nil {
+		cancelDownload()
 		_ = reader.CloseWithError(decodeErr)
 	} else {
 		decodeErr = reader.Close()
