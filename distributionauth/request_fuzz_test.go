@@ -34,9 +34,9 @@ func FuzzCredentialedUpdateRequestJSONSemanticAndAuthorityClosure(f *testing.F) 
 			t.Fatalf("UpdateRequestDocument.UnmarshalJSON(accepted).Validate() error = %v, want nil", err)
 		}
 		encoded, err := got.MarshalJSON()
-		if err != nil || len(encoded) > RequestDocumentJSONMaximumBytes {
-			t.Fatalf("UpdateRequestDocument.MarshalJSON(accepted) = (%d bytes, %v), want <= %d and nil",
-				len(encoded), err, RequestDocumentJSONMaximumBytes)
+		if err != nil {
+			t.Fatalf("UpdateRequestDocument.MarshalJSON(accepted) = (%d bytes, %v), want canonical bytes and nil",
+				len(encoded), err)
 		}
 		var roundTrip UpdateRequestDocument
 		if err := roundTrip.UnmarshalJSON(encoded); err != nil || roundTrip != got {
@@ -81,9 +81,9 @@ func FuzzCredentialedUpgradeRequestJSONSemanticAndAuthorityClosure(f *testing.F)
 			t.Fatalf("UpgradeRequestDocument.UnmarshalJSON(accepted).Validate() error = %v, want nil", err)
 		}
 		encoded, err := got.MarshalJSON()
-		if err != nil || len(encoded) > RequestDocumentJSONMaximumBytes {
-			t.Fatalf("UpgradeRequestDocument.MarshalJSON(accepted) = (%d bytes, %v), want <= %d and nil",
-				len(encoded), err, RequestDocumentJSONMaximumBytes)
+		if err != nil {
+			t.Fatalf("UpgradeRequestDocument.MarshalJSON(accepted) = (%d bytes, %v), want canonical bytes and nil",
+				len(encoded), err)
 		}
 		var roundTrip UpgradeRequestDocument
 		if err := roundTrip.UnmarshalJSON(encoded); err != nil || roundTrip != got {

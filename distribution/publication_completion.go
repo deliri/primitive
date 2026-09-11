@@ -262,6 +262,14 @@ func (p PublicationCompletionProjection) ValidateJSONProjection(encoded []byte, 
 	)
 }
 
+// Signer returns the validated envelope's nominated key, without authenticating it.
+func (p PublicationCompletionProjection) Signer() (core.Ed25519PublicKey, error) {
+	if err := p.Validate(); err != nil {
+		return core.Ed25519PublicKey{}, err
+	}
+	return p.attestation.Signer, nil
+}
+
 func (p PublicationCompletionProjection) Build() (core.BuildIdentity, error) {
 	if err := p.Validate(); err != nil {
 		return core.BuildIdentity{}, err

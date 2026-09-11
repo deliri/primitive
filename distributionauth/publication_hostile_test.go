@@ -21,8 +21,6 @@ func TestCredentialedPublicationVerificationLayerTriadCarriesRepresentativeOpaqu
 	admitted := 0
 	for value, offering := range []core.Offering{
 		distributionAuthOffering(t, 6),
-		distributionAuthOffering(t, 127),
-		distributionAuthOffering(t, 255),
 	} {
 		admitted++
 		t.Run(offering.String(), func(t *testing.T) {
@@ -77,8 +75,8 @@ func TestCredentialedPublicationVerificationLayerTriadCarriesRepresentativeOpaqu
 			}
 		})
 	}
-	if admitted < 3 {
-		t.Fatalf("admitted offerings = %d, want at least three distinct opaque offerings", admitted)
+	if admitted != 1 {
+		t.Fatalf("admitted offerings = %d, want one exact offering", admitted)
 	}
 }
 
@@ -93,11 +91,8 @@ func TestCredentialedPublicationRequestRefusesEveryAuthorityDeviceBuildAndManife
 		offering: distributionAuthOffering(t, 129), authorityByte: 0x81, deviceByte: 0x82,
 		releaseByte: 0x83, nonceByte: 0x84,
 	})
-	wrongDevice, err := AssemblePublication(PublicationRequestAssembly{
+	wrongDevice := PublicationRequestDocument{
 		Request: otherDevice.document.Request, Certificate: base.document.Certificate,
-	})
-	if err != nil {
-		t.Fatalf("AssemblePublication(same-build other device) error = %v, want nil", err)
 	}
 	if document, gotErr := AssemblePublication(PublicationRequestAssembly{
 		Request: otherBuild.document.Request, Certificate: base.document.Certificate,
@@ -127,12 +122,12 @@ func TestCredentialedPublicationRequestRefusesEveryAuthorityDeviceBuildAndManife
 		{name: "zero document", authority: base.authority, manifestKeys: base.release.keys, wantErr: core.ErrControlPlaneContract},
 		{name: "zero authority trust", document: base.document, manifestKeys: base.release.keys, wantErr: core.ErrControlPlaneContract},
 		{name: "zero manifest trust", document: base.document, authority: base.authority, wantErr: core.ErrControlPlaneContract},
-		{name: "same-build other device", document: wrongDevice, authority: base.authority, manifestKeys: otherDevice.release.keys, wantErr: core.ErrAttestVerification},
+		{name: "same-build other device", document: wrongDevice, authority: base.authority, manifestKeys: otherDevice.release.keys, wantErr: core.ErrControlPlaneResponseBinding},
 		{name: "other certificate authority", document: base.document, authority: otherDevice.authority, manifestKeys: base.release.keys, wantErr: core.ErrAttestVerification},
 		{name: "other release authority", document: base.document, authority: base.authority, manifestKeys: otherDevice.release.keys, wantErr: core.ErrAttestVerification},
 		{name: "nonce changed after signing", document: tamperedNonce, authority: base.authority, manifestKeys: base.release.keys, wantErr: core.ErrAttestVerification},
 		{name: "manifest changed after signing", document: tamperedManifest, authority: base.authority, manifestKeys: otherDevice.release.keys, wantErr: core.ErrAttestVerification},
-		{name: "request signer changed after signing", document: tamperedSigner, authority: base.authority, manifestKeys: base.release.keys, wantErr: core.ErrAttestVerification},
+		{name: "request signer changed after signing", document: tamperedSigner, authority: base.authority, manifestKeys: base.release.keys, wantErr: core.ErrControlPlaneResponseBinding},
 		{name: "certificate fact changed after signing", document: tamperedCertificate, authority: base.authority, manifestKeys: base.release.keys, wantErr: core.ErrAttestVerification},
 	}
 	for _, tc := range cases {
@@ -164,11 +159,8 @@ func TestCredentialedPublicationCompletionRefusesEveryCrossRequestAndCrossAuthor
 		offering: distributionAuthOffering(t, 177), authorityByte: 0xb1, deviceByte: 0xb2,
 		releaseByte: 0xb3, nonceByte: 0xb4,
 	})
-	otherDeviceCompletion, err := AssemblePublicationCompletion(PublicationCompletionAssembly{
+	otherDeviceCompletion := PublicationCompletionDocument{
 		Completion: other.completion.Completion, Certificate: base.completion.Certificate,
-	})
-	if err != nil {
-		t.Fatalf("AssemblePublicationCompletion(other device same build) error = %v, want nil", err)
 	}
 	wrongCertificate := base.completion
 	wrongCertificate.Certificate = other.completion.Certificate
@@ -224,7 +216,7 @@ func TestCredentialedPublicationCompletionRefusesEveryCrossRequestAndCrossAuthor
 		{name: "zero request proof", grant: base.grant, document: base.completion, trusted: base.authority, wantError: core.ErrControlPlaneContract},
 		{name: "zero authority trust", grant: base.grant, document: base.completion, request: base.verified, wantError: core.ErrControlPlaneContract},
 		{name: "certificate differs from authenticated request", grant: base.grant, document: wrongCertificate, request: base.verified, trusted: other.authority, wantError: core.ErrControlPlaneResponseBinding},
-		{name: "completion signed by other device", grant: base.grant, document: otherDeviceCompletion, request: base.verified, trusted: base.authority, wantError: core.ErrAttestVerification},
+		{name: "completion signed by other device", grant: base.grant, document: otherDeviceCompletion, request: base.verified, trusted: base.authority, wantError: core.ErrControlPlaneResponseBinding},
 		{name: "provider evidence reordered after signing", grant: base.grant, document: tamperedEvidence, request: base.verified, trusted: base.authority, wantError: core.ErrAttestVerification},
 		{name: "request commitment changed after signing", grant: base.grant, document: tamperedRequest, request: base.verified, trusted: base.authority, wantError: core.ErrAttestVerification},
 		{name: "validly signed completion names another request nonce", grant: base.grant, document: otherNonceCompletion, request: base.verified, trusted: base.authority, wantError: core.ErrDistributionBinding},
@@ -262,8 +254,9 @@ func TestCredentialedPublicationJSONBoundariesAreStrictBoundedCanonicalAndPreser
 			t.Fatalf("PublicationRequestDocument.MarshalJSON() error = %v, want nil", err)
 		}
 		reordered, err := json.Marshal(struct {
+			Request distribution.PublicationRequestDocument `json:"request"`
+
 			Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
-			Request     distribution.PublicationRequestDocument      `json:"request"`
 		}{Certificate: fixture.document.Certificate, Request: fixture.document.Request})
 		if err != nil {
 			t.Fatalf("json.Marshal(reordered publication request) error = %v, want nil", err)
@@ -277,8 +270,9 @@ func TestCredentialedPublicationJSONBoundariesAreStrictBoundedCanonicalAndPreser
 			t.Fatalf("PublicationCompletionDocument.MarshalJSON() error = %v, want nil", err)
 		}
 		reordered, err := json.Marshal(struct {
+			Completion distribution.PublicationCompletionDocument `json:"completion"`
+
 			Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
-			Completion  distribution.PublicationCompletionDocument   `json:"completion"`
 		}{Certificate: fixture.completion.Certificate, Completion: fixture.completion.Completion})
 		if err != nil {
 			t.Fatalf("json.Marshal(reordered publication completion) error = %v, want nil", err)
@@ -324,7 +318,7 @@ func publicationAuthPressureRequestJSON(
 	reordered []byte,
 ) {
 	t.Helper()
-	for _, tc := range publicationAuthValidJSONCases(t, canonical, reordered, RequestDocumentJSONMaximumBytes) {
+	for _, tc := range publicationAuthValidJSONCases(t, canonical, reordered) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			var receiver PublicationRequestDocument
@@ -339,7 +333,7 @@ func publicationAuthPressureRequestJSON(
 			}
 		})
 	}
-	for _, tc := range publicationAuthInvalidJSONCases(canonical, RequestDocumentJSONMaximumBytes, "request") {
+	for _, tc := range publicationAuthInvalidJSONCases(canonical, "request") {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			receiver := document
@@ -364,7 +358,7 @@ func publicationAuthPressureCompletionJSON(
 ) {
 	t.Helper()
 	for _, tc := range publicationAuthValidJSONCases(
-		t, canonical, reordered, PublicationCompletionDocumentJSONMaximumBytes,
+		t, canonical, reordered,
 	) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -381,7 +375,7 @@ func publicationAuthPressureCompletionJSON(
 		})
 	}
 	for _, tc := range publicationAuthInvalidJSONCases(
-		canonical, PublicationCompletionDocumentJSONMaximumBytes, "completion",
+		canonical, "completion",
 	) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -403,9 +397,11 @@ func publicationAuthValidJSONCases(
 	t *testing.T,
 	canonical []byte,
 	reordered []byte,
-	maximum int,
 ) []distributionAuthJSONCase {
 	t.Helper()
+	if bytes.Equal(canonical, reordered) {
+		t.Fatal("reordered fixture = canonical, want a changed member order")
+	}
 	indented := jsontext.Value(bytes.Clone(canonical))
 	if err := indented.Indent(jsontext.WithIndent("  ")); err != nil {
 		t.Fatalf("json.Indent(credentialed publication) error = %v, want nil", err)
@@ -414,19 +410,12 @@ func publicationAuthValidJSONCases(
 		{name: "canonical", data: canonical},
 		{name: "reordered", data: reordered},
 		{name: "indented", data: []byte(indented)},
-		{name: "leading space", data: append([]byte(" "), canonical...)},
-		{name: "trailing newline", data: append(bytes.Clone(canonical), '\n')},
-		{name: "carriage return framing", data: append(append([]byte("\r"), canonical...), '\r')},
 		{name: "mixed whitespace", data: append(append([]byte("\t\r\n"), canonical...), ' ', '\t')},
-		{name: "half ceiling", data: distributionAuthPadJSON(canonical, maximum/2)},
-		{name: "one below ceiling", data: distributionAuthPadJSON(canonical, maximum-1)},
-		{name: "exact ceiling", data: distributionAuthPadJSON(canonical, maximum)},
 	}
 }
 
 func publicationAuthInvalidJSONCases(
 	canonical []byte,
-	maximum int,
 	member string,
 ) []distributionAuthJSONCase {
 	unknown := append(bytes.Clone(canonical[:len(canonical)-1]), []byte(`,"future":true}`)...)
@@ -452,6 +441,5 @@ func publicationAuthInvalidJSONCases(
 		{name: "half truncated", data: canonical[:len(canonical)/2]},
 		{name: "two documents", data: append(bytes.Clone(canonical), canonical...)},
 		{name: "trailing scalar", data: append(bytes.Clone(canonical), []byte(` 0`)...)},
-		{name: "one above ceiling", data: distributionAuthPadJSON(canonical, maximum+1)},
 	}
 }

@@ -46,15 +46,16 @@ type publicationAuthUpload struct {
 }
 
 type publicationAuthFixture struct {
-	installation    controlplanetest.Installation
-	verified        VerifiedPublication
-	grantProof      distribution.VerifiedPublicationGrant
-	document        PublicationRequestDocument
-	completion      PublicationCompletionDocument
-	grant           distribution.PublicationGrantDocument
-	grantProjection distribution.PublicationGrantProjection
-	release         publicationAuthRelease
-	authority       attest.TrustedKeys
+	installation         controlplanetest.Installation
+	verified             VerifiedPublication
+	grantProof           distribution.VerifiedPublicationGrant
+	document             PublicationRequestDocument
+	completion           PublicationCompletionDocument
+	completionProjection PublicationCompletionProjection
+	grant                distribution.PublicationGrantDocument
+	grantProjection      distribution.PublicationGrantProjection
+	release              publicationAuthRelease
+	authority            attest.TrustedKeys
 }
 
 type publicationAuthTransport struct {
@@ -118,13 +119,13 @@ func newPublicationAuthFixture(
 	grantProjection, grant, grantProof, uploadTarget := newPublicationAuthGrant(
 		t, verified, installation.AuthorityPrivate, authority,
 	)
-	completion := newPublicationAuthCompletion(
+	completion, completionProjection := newPublicationAuthCompletion(
 		t, installation, releaseFixture, verified, grantProof, uploadTarget,
 	)
 	return publicationAuthFixture{
 		installation: installation, release: releaseFixture, document: document,
 		verified: verified, authority: authority, grant: grant, grantProjection: grantProjection,
-		grantProof: grantProof, completion: completion,
+		grantProof: grantProof, completion: completion, completionProjection: completionProjection,
 	}
 }
 
@@ -350,7 +351,7 @@ func newPublicationAuthCompletion(
 	request VerifiedPublication,
 	grant distribution.VerifiedPublicationGrant,
 	uploadTarget objectstore.UploadTarget,
-) PublicationCompletionDocument {
+) (PublicationCompletionDocument, PublicationCompletionProjection) {
 	t.Helper()
 	var sources [release.PublicationObjectCount]distribution.PublicationSource
 	for index, payload := range releaseFixture.payloads {
@@ -402,7 +403,7 @@ func newPublicationAuthCompletion(
 	if err := document.UnmarshalJSON(encoded); err != nil {
 		t.Fatalf("PublicationCompletionDocument.UnmarshalJSON() error = %v, want nil", err)
 	}
-	return document
+	return document, credentialed
 }
 
 func publicationAuthUploadFixture(
@@ -464,7 +465,11 @@ func publicationAuthPrivateKey(marker byte) ed25519.PrivateKey {
 
 func publicationAuthTrustedKeys(t testing.TB, signer ed25519.PrivateKey) attest.TrustedKeys {
 	t.Helper()
-	public, err := core.NewEd25519PublicKey(signer.Public().(ed25519.PublicKey))
+	publicKey, ok := signer.Public().(ed25519.PublicKey)
+	if !ok {
+		t.Fatalf("signer.Public() = %T, want ed25519.PublicKey", signer.Public())
+	}
+	public, err := core.NewEd25519PublicKey(publicKey)
 	if err != nil {
 		t.Fatalf("core.NewEd25519PublicKey() error = %v, want nil", err)
 	}

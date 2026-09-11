@@ -10,12 +10,6 @@ import (
 	"github.com/deliri/primitive/v2026/distribution"
 )
 
-const (
-	RequestDocumentJSONMaximumBytes = distribution.RequestDocumentJSONMaximumBytes +
-		controlplane.InstallationCertificateDocumentJSONMaximumBytes +
-		core.CredentialedRequestDocumentSyntaxBytes + core.CredentialedDocumentWhitespaceMaximumBytes
-)
-
 type UpdateRequestDocument struct {
 	Request     distribution.UpdateRequestDocument           `json:"request"`
 	Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
@@ -67,7 +61,7 @@ func (d UpdateRequestDocument) Validate() error {
 	if err := errors.Join(d.Request.Validate(), d.Certificate.Validate()); err != nil {
 		return contractError(err)
 	}
-	if d.Request.Payload.Build != d.Certificate.Body.Build {
+	if d.Request.Payload.Build != d.Certificate.Body.Build || d.Request.Attestation.Signer != d.Certificate.Body.DeviceKey {
 		return bindingError()
 	}
 	return nil
@@ -75,6 +69,9 @@ func (d UpdateRequestDocument) Validate() error {
 
 // ControlRoute projects the sole route admitted by this update request.
 func (d UpdateRequestDocument) ControlRoute() (controlwire.RouteContract, error) {
+	if err := d.Validate(); err != nil {
+		return controlwire.RouteContract{}, err
+	}
 	return controlwire.NewRouteContract(
 		d.Request.Payload.Build.Offering(), controlwire.RouteFamilyUpdateChecks,
 	)
@@ -90,7 +87,6 @@ func (d UpdateRequestDocument) ControlNonce() controlwire.RequestNonce {
 	return d.Request.Payload.Nonce
 }
 
-
 func (a UpdateRequestAssembly) Validate() error { return UpdateRequestDocument(a).Validate() }
 
 func AssembleUpdate(assembly UpdateRequestAssembly) (UpdateRequestDocument, error) {
@@ -105,7 +101,7 @@ func (d UpdateRequestDocument) MarshalJSON() ([]byte, error) {
 		return nil, jsonError(err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(updateRequestDocumentWire(d))
-	if err != nil || len(encoded) > RequestDocumentJSONMaximumBytes {
+	if err != nil {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -157,7 +153,10 @@ func VerifyUpdate(verification UpdateVerification) (VerifiedUpdate, error) {
 	verified := VerifiedUpdate{
 		document: verification.Document, requestProof: request, certificateProof: certificate,
 	}
-	return verified, verified.Validate()
+	if err := verified.Validate(); err != nil {
+		return VerifiedUpdate{}, err
+	}
+	return verified, nil
 }
 
 func (v VerifiedUpdate) Validate() error {
@@ -178,7 +177,7 @@ func (d UpgradeRequestDocument) Validate() error {
 	if err := errors.Join(d.Request.Validate(), d.Certificate.Validate()); err != nil {
 		return contractError(err)
 	}
-	if d.Request.Payload.Available.Installed != d.Certificate.Body.Build {
+	if d.Request.Payload.Available.Installed != d.Certificate.Body.Build || d.Request.Attestation.Signer != d.Certificate.Body.DeviceKey {
 		return bindingError()
 	}
 	return nil
@@ -186,6 +185,9 @@ func (d UpgradeRequestDocument) Validate() error {
 
 // ControlRoute projects the sole route admitted by this upgrade request.
 func (d UpgradeRequestDocument) ControlRoute() (controlwire.RouteContract, error) {
+	if err := d.Validate(); err != nil {
+		return controlwire.RouteContract{}, err
+	}
 	candidate := d.Request.Payload.Available.Candidate
 	return controlwire.NewRouteContract(
 		candidate.Offering(), controlwire.RouteFamilyUpgrades,
@@ -202,7 +204,6 @@ func (d UpgradeRequestDocument) ControlNonce() controlwire.RequestNonce {
 	return d.Request.Payload.Nonce
 }
 
-
 func (a UpgradeRequestAssembly) Validate() error { return UpgradeRequestDocument(a).Validate() }
 
 func AssembleUpgrade(assembly UpgradeRequestAssembly) (UpgradeRequestDocument, error) {
@@ -217,7 +218,7 @@ func (d UpgradeRequestDocument) MarshalJSON() ([]byte, error) {
 		return nil, jsonError(err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(upgradeRequestDocumentWire(d))
-	if err != nil || len(encoded) > RequestDocumentJSONMaximumBytes {
+	if err != nil {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -269,7 +270,10 @@ func VerifyUpgrade(verification UpgradeVerification) (VerifiedUpgrade, error) {
 	verified := VerifiedUpgrade{
 		document: verification.Document, requestProof: request, certificateProof: certificate,
 	}
-	return verified, verified.Validate()
+	if err := verified.Validate(); err != nil {
+		return VerifiedUpgrade{}, err
+	}
+	return verified, nil
 }
 
 func (v VerifiedUpgrade) Validate() error {
@@ -288,12 +292,7 @@ func (v VerifiedUpgrade) Payload() (distribution.UpgradeRequestPayload, error) {
 
 func decodeRequest[T any](data []byte) (T, error) {
 	var zero T
-	maximum, err := core.NewByteCount(uint64(RequestDocumentJSONMaximumBytes))
-	if err != nil {
-		return zero, jsonError(err)
-	}
-	limits := core.DefaultStrictJSONLimits()
-	limits.DocumentMaximumBytes = maximum
+	limits := core.ExtensibleJSONLimits()
 	wire, err := core.DecodeStrictJSONStructure[T](data, limits)
 	if err != nil {
 		return zero, jsonError(err)

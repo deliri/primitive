@@ -33,7 +33,7 @@ func FuzzCredentialedPublicationRequestJSONSemanticAndAuthorityClosure(f *testin
 	f.Add([]byte{})
 	f.Add([]byte(`{}`))
 	f.Add(append(bytes.Clone(canonical), 0))
-	f.Add(distributionAuthPadJSON(canonical, RequestDocumentJSONMaximumBytes+1))
+	f.Add(append(bytes.Repeat([]byte(" "), 1<<20), canonical...))
 
 	f.Fuzz(func(t *testing.T, data []byte) {
 		got := fixture.document
@@ -50,9 +50,9 @@ func FuzzCredentialedPublicationRequestJSONSemanticAndAuthorityClosure(f *testin
 			t.Fatalf("PublicationRequestDocument.UnmarshalJSON(accepted).Validate() error = %v, want nil", err)
 		}
 		encoded, err := got.MarshalJSON()
-		if err != nil || len(encoded) > RequestDocumentJSONMaximumBytes {
-			t.Fatalf("PublicationRequestDocument.MarshalJSON(accepted) = (%d bytes, %v), want <= %d and nil",
-				len(encoded), err, RequestDocumentJSONMaximumBytes)
+		if err != nil {
+			t.Fatalf("PublicationRequestDocument.MarshalJSON(accepted) = (%d bytes, %v), want canonical bytes and nil",
+				len(encoded), err)
 		}
 		var roundTrip PublicationRequestDocument
 		if err := roundTrip.UnmarshalJSON(encoded); err != nil || roundTrip != got {
@@ -106,7 +106,7 @@ func FuzzCredentialedPublicationCompletionJSONSemanticAndAuthorityClosure(f *tes
 	f.Add([]byte{})
 	f.Add([]byte(`{}`))
 	f.Add(append(bytes.Clone(canonical), 0))
-	f.Add(distributionAuthPadJSON(canonical, PublicationCompletionDocumentJSONMaximumBytes+1))
+	f.Add(append(bytes.Repeat([]byte(" "), 1<<20), canonical...))
 
 	f.Fuzz(func(t *testing.T, data []byte) {
 		got := fixture.completion
@@ -123,9 +123,9 @@ func FuzzCredentialedPublicationCompletionJSONSemanticAndAuthorityClosure(f *tes
 			t.Fatalf("PublicationCompletionDocument.UnmarshalJSON(accepted).Validate() error = %v, want nil", err)
 		}
 		encoded, err := got.MarshalJSON()
-		if err != nil || len(encoded) > PublicationCompletionDocumentJSONMaximumBytes {
-			t.Fatalf("PublicationCompletionDocument.MarshalJSON(accepted) = (%d bytes, %v), want <= %d and nil",
-				len(encoded), err, PublicationCompletionDocumentJSONMaximumBytes)
+		if err != nil {
+			t.Fatalf("PublicationCompletionDocument.MarshalJSON(accepted) = (%d bytes, %v), want canonical bytes and nil",
+				len(encoded), err)
 		}
 		if bytes.Contains(encoded, []byte(core.GoogleCloudStorageHost)) {
 			t.Fatalf("PublicationCompletionDocument disclosed provider target material: %q", encoded)

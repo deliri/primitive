@@ -12,12 +12,6 @@ import (
 	"github.com/deliri/primitive/v2026/release"
 )
 
-const (
-	PublicationCompletionDocumentJSONMaximumBytes = distribution.ResponseDocumentJSONMaximumBytes +
-		controlplane.InstallationCertificateDocumentJSONMaximumBytes +
-		core.CredentialedCompletionDocumentSyntaxBytes + core.CredentialedDocumentWhitespaceMaximumBytes
-)
-
 type PublicationRequestDocument struct {
 	Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
 	Request     distribution.PublicationRequestDocument      `json:"request"`
@@ -46,7 +40,7 @@ func (d PublicationRequestDocument) Validate() error {
 	if err := errors.Join(d.Request.Validate(), d.Certificate.Validate()); err != nil {
 		return contractError(err)
 	}
-	if d.Request.Payload.Build != d.Certificate.Body.Build {
+	if d.Request.Payload.Build != d.Certificate.Body.Build || d.Request.Attestation.Signer != d.Certificate.Body.DeviceKey {
 		return bindingError()
 	}
 	return nil
@@ -54,6 +48,9 @@ func (d PublicationRequestDocument) Validate() error {
 
 // ControlRoute projects the sole route admitted by this publication request.
 func (d PublicationRequestDocument) ControlRoute() (controlwire.RouteContract, error) {
+	if err := d.Validate(); err != nil {
+		return controlwire.RouteContract{}, err
+	}
 	return controlwire.NewRouteContract(
 		d.Request.Payload.Build.Offering(), controlwire.RouteFamilyReleasePublications,
 	)
@@ -68,7 +65,6 @@ func (d PublicationRequestDocument) ControlRevision() controlwire.Revision {
 func (d PublicationRequestDocument) ControlNonce() controlwire.RequestNonce {
 	return d.Request.Payload.Nonce
 }
-
 
 func (a PublicationRequestAssembly) Validate() error {
 	return PublicationRequestDocument(a).Validate()
@@ -86,7 +82,7 @@ func (d PublicationRequestDocument) MarshalJSON() ([]byte, error) {
 		return nil, jsonError(err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(publicationRequestDocumentWire(d))
-	if err != nil || len(encoded) > RequestDocumentJSONMaximumBytes {
+	if err != nil {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -146,7 +142,10 @@ func VerifyPublication(verification PublicationVerification) (VerifiedPublicatio
 	verified := VerifiedPublication{
 		document: verification.Document, requestProof: request, certificateProof: certificate,
 	}
-	return verified, verified.Validate()
+	if err := verified.Validate(); err != nil {
+		return VerifiedPublication{}, err
+	}
+	return verified, nil
 }
 
 func (v VerifiedPublication) Validate() error {
@@ -212,7 +211,7 @@ func (d PublicationCompletionDocument) Validate() error {
 	if err := errors.Join(d.Completion.Validate(), d.Certificate.Validate()); err != nil {
 		return contractError(err)
 	}
-	if d.Completion.Payload.Build != d.Certificate.Body.Build {
+	if d.Completion.Payload.Build != d.Certificate.Body.Build || d.Completion.Attestation.Signer != d.Certificate.Body.DeviceKey {
 		return bindingError()
 	}
 	return nil
@@ -220,6 +219,9 @@ func (d PublicationCompletionDocument) Validate() error {
 
 // ControlRoute projects the sole route admitted by this publication completion.
 func (d PublicationCompletionDocument) ControlRoute() (controlwire.RouteContract, error) {
+	if err := d.Validate(); err != nil {
+		return controlwire.RouteContract{}, err
+	}
 	return controlwire.NewRouteContract(
 		d.Completion.Payload.Build.Offering(),
 		controlwire.RouteFamilyReleasePublicationCompletions,
@@ -237,7 +239,6 @@ func (d PublicationCompletionDocument) ControlNonce() controlwire.RequestNonce {
 	return d.Completion.Payload.Nonce
 }
 
-
 func (a PublicationCompletionAssembly) Validate() error {
 	return PublicationCompletionDocument(a).Validate()
 }
@@ -248,6 +249,10 @@ func (a PublicationCompletionProjectionAssembly) Validate() error {
 	}
 	build, err := a.Completion.Build()
 	if err != nil || build != a.Certificate.Body.Build {
+		return bindingError(err)
+	}
+	signer, err := a.Completion.Signer()
+	if err != nil || signer != a.Certificate.Body.DeviceKey {
 		return bindingError(err)
 	}
 	return nil
@@ -287,7 +292,7 @@ func (p PublicationCompletionProjection) MarshalJSON() ([]byte, error) {
 		Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
 		Completion  distribution.PublicationCompletionProjection `json:"completion"`
 	}{Completion: p.completion, Certificate: p.certificate})
-	if err != nil || len(encoded) > PublicationCompletionDocumentJSONMaximumBytes {
+	if err != nil {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -304,7 +309,7 @@ func (d PublicationCompletionDocument) MarshalJSON() ([]byte, error) {
 		return nil, jsonError(err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(publicationCompletionDocumentWire(d))
-	if err != nil || len(encoded) > PublicationCompletionDocumentJSONMaximumBytes {
+	if err != nil {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -314,12 +319,7 @@ func (d *PublicationCompletionDocument) UnmarshalJSON(data []byte) error {
 	if d == nil {
 		return jsonError(errors.New("nil credentialed publication completion receiver"))
 	}
-	maximum, err := core.NewByteCount(uint64(PublicationCompletionDocumentJSONMaximumBytes))
-	if err != nil {
-		return jsonError(err)
-	}
-	limits := core.DefaultStrictJSONLimits()
-	limits.DocumentMaximumBytes = maximum
+	limits := core.ExtensibleJSONLimits()
 	wire, err := core.DecodeStrictJSONStructure[publicationCompletionDocumentWire](data, limits)
 	if err != nil {
 		return jsonError(err)
@@ -371,7 +371,10 @@ func VerifyPublicationCompletion(
 	verified := VerifiedPublicationCompletion{
 		document: verification.Document, completionProof: completion, certificateProof: certificate,
 	}
-	return verified, verified.Validate()
+	if err := verified.Validate(); err != nil {
+		return VerifiedPublicationCompletion{}, err
+	}
+	return verified, nil
 }
 
 func (v VerifiedPublicationCompletion) Validate() error {

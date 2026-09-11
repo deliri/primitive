@@ -26,7 +26,7 @@ Audit exit per package: no hidden transfer/line quota; reader and writer paths c
 | currency | 15 | requires_review |
 | deploy | 0 | requires_review |
 | distribution | 42 | requires_review |
-| distributionauth | 19 | requires_review |
+| distributionauth | 19 | reviewed; explicit composed JSON ownership in [upgrade report](distributionauth_upgrade_20260910.md) |
 | exchange | 86 | streaming_doors_reviewed |
 | filelock | 0 | requires_review |
 | filestore | 13 | streaming_doors_reviewed |
