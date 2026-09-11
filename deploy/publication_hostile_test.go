@@ -103,8 +103,10 @@ func TestPrepareReleaseRejectsEveryRoleSlotThatDoesNotMatchItsManifestEntry(t *t
 			mutate: func(r *deploy.ReleasePlanRequest) { r.Manifest = release.VerifiedManifest{} },
 		},
 		{
-			name:   "unset objectstore policy is rejected",
-			mutate: func(r *deploy.ReleasePlanRequest) { r.Policy = objectstore.Policy{} },
+			name: "attempt timeout exceeds operation timeout",
+			mutate: func(r *deploy.ReleasePlanRequest) {
+				r.Policy.OperationTimeout, r.Policy.AttemptTimeout = r.Policy.AttemptTimeout, r.Policy.OperationTimeout
+			},
 		},
 		{
 			name:   "unset first item is rejected",

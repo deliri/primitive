@@ -24,7 +24,7 @@ Audit exit per package: no hidden transfer/line quota; reader and writer paths c
 | controlwire | 16 | requires_review |
 | core | 100 | requires_review |
 | currency | 15 | requires_review |
-| deploy | 0 | requires_review |
+| deploy | 0 | reviewed; fixed publication storage and delegated object streaming in [review](deploy_review_20260910.md) |
 | distribution | 42 | requires_review |
 | distributionauth | 19 | reviewed; explicit composed JSON ownership in [upgrade report](distributionauth_upgrade_20260910.md) |
 | exchange | 86 | streaming_doors_reviewed |

@@ -18,7 +18,6 @@ import (
 	"strings"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/deliri/primitive/v2026/attest"
 	"github.com/deliri/primitive/v2026/core"
@@ -71,7 +70,11 @@ func deployLoopbackClient(t *testing.T, handler http.Handler) objectstore.Client
 	server := httptest.NewTLSServer(handler)
 	t.Cleanup(server.Close)
 	serverAddress := strings.TrimPrefix(server.URL, "https://")
-	transport := server.Client().Transport.(*http.Transport).Clone()
+	base, ok := server.Client().Transport.(*http.Transport)
+	if !ok {
+		t.Fatalf("TLS test transport = %T, want *http.Transport", server.Client().Transport)
+	}
+	transport := base.Clone()
 	transport.TLSClientConfig = transport.TLSClientConfig.Clone()
 	transport.TLSClientConfig.ServerName = "example.com"
 	dialer := &net.Dialer{}
@@ -92,14 +95,14 @@ func (t *recordingTransport) RoundTrip(request *http.Request) (*http.Response, e
 	index := t.requests
 	t.requests++
 	if index == t.failAt {
-		return nil, errors.New("injected transport loss")
+		return nil, errors.Join(errors.New("injected transport loss"), request.Body.Close())
 	}
 	if index >= len(t.contentTypes) {
-		return nil, errors.New("unexpected upload count")
+		return nil, errors.Join(errors.New("unexpected upload count"), request.Body.Close())
 	}
 	t.contentTypes[index] = request.Header.Get("Content-Type")
 	if _, err := io.Copy(io.Discard, request.Body); err != nil {
-		return nil, err
+		return nil, errors.Join(err, request.Body.Close())
 	}
 	if err := request.Body.Close(); err != nil {
 		return nil, err
@@ -226,7 +229,7 @@ func newDeployFixture(t *testing.T) deployFixture {
 	return deployFixture{plan: plan, payloads: payloads}
 }
 
-func newDeployFixtureRequest(t *testing.T) deploy.ReleasePlanRequest {
+func newDeployFixtureRequest(t testing.TB) deploy.ReleasePlanRequest {
 	t.Helper()
 	manifest := fixtureVerifiedManifest(t)
 	manifestBytes, err := json.Marshal(manifest.Document())
@@ -253,20 +256,32 @@ func newDeployFixtureRequest(t *testing.T) deploy.ReleasePlanRequest {
 	return deploy.ReleasePlanRequest{Manifest: manifest, Items: items, Policy: fixturePolicy(t)}
 }
 
-func fixtureVerifiedManifest(t *testing.T) release.VerifiedManifest {
+func fixtureVerifiedManifest(t testing.TB) release.VerifiedManifest {
 	t.Helper()
 	version := core.NewReleaseVersion(2026, 0, 11)
-	commit, _ := core.ParseBuildCommit("b5c32d95d212b0a1a8cef4126e4d11ff288079ef")
+	commit, err := core.ParseBuildCommit("b5c32d95d212b0a1a8cef4126e4d11ff288079ef")
+	if err != nil {
+		t.Fatalf("ParseBuildCommit error = %v, want nil", err)
+	}
 	targets := release.Targets()
 	var artifacts [release.TargetCount]release.Artifact
 	for index := range release.TargetCount {
-		platform, _ := targets.At(index)
-		build, _ := core.NewBuildIdentity(core.BuildIdentityRequest{
+		platform, ok := targets.At(index)
+		if !ok {
+			t.Fatalf("Targets.At(%d) present = false, want true", index)
+		}
+		build, err := core.NewBuildIdentity(core.BuildIdentityRequest{
 			Offering: deployOffering(t, 1), Version: version, Commit: commit, Platform: platform,
 		})
+		if err != nil {
+			t.Fatalf("NewBuildIdentity error = %v, want nil", err)
+		}
 		payload := fixturePayload(index)
 		integrity := fixtureIntegrity(t, payload)
-		extent, _ := core.NewByteCount(integrity.Length.Uint64())
+		extent, err := core.NewByteCount(integrity.Length.Uint64())
+		if err != nil {
+			t.Fatalf("NewByteCount error = %v, want nil", err)
+		}
 		artifact, err := release.NewArtifact(release.ArtifactRequest{
 			Build: build, Extent: extent, SHA256: integrity.SHA256, CRC32C: integrity.CRC32C,
 		})
@@ -283,7 +298,10 @@ func fixtureVerifiedManifest(t *testing.T) release.VerifiedManifest {
 	for index := range release.MetadataAssetCount {
 		payload := fixturePayload(index + release.TargetCount + 1)
 		integrity := fixtureIntegrity(t, payload)
-		extent, _ := core.NewByteCount(integrity.Length.Uint64())
+		extent, err := core.NewByteCount(integrity.Length.Uint64())
+		if err != nil {
+			t.Fatalf("NewByteCount error = %v, want nil", err)
+		}
 		asset, err := release.NewMetadataAsset(release.MetadataAssetRequest{
 			Kind: release.MetadataKind(index + 1), Extent: extent,
 			SHA256: integrity.SHA256, CRC32C: integrity.CRC32C,
@@ -311,7 +329,10 @@ func fixtureVerifiedManifest(t *testing.T) release.VerifiedManifest {
 	if err != nil {
 		t.Fatalf("release.IssueManifest() error = %v", err)
 	}
-	public, _ := core.NewEd25519PublicKey(key.Public().(ed25519.PublicKey))
+	public, err := core.NewEd25519PublicKey(ed25519.PublicKey(key[ed25519.SeedSize:]))
+	if err != nil {
+		t.Fatalf("NewEd25519PublicKey error = %v, want nil", err)
+	}
 	trusted, err := attest.NewTrustedKeys(attest.TrustedKeysRequest{Keys: []core.Ed25519PublicKey{public}})
 	if err != nil {
 		t.Fatalf("attest.NewTrustedKeys() error = %v", err)
@@ -334,7 +355,7 @@ func deployOffering(t testing.TB, marker byte) core.Offering {
 	return offering
 }
 
-func fixtureProvenance(t *testing.T) release.BuildProvenance {
+func fixtureProvenance(t testing.TB) release.BuildProvenance {
 	t.Helper()
 	goToolchain, err := release.CurrentGoToolchain().Version()
 	if err != nil {
@@ -369,18 +390,21 @@ func fixtureCapability(t testing.TB, index int) objectstore.UploadCapability {
 	target := "https://storage.googleapis.com/bucket/object-" + strconv.Itoa(index) +
 		"?X-Goog-Signature=signature&X-Goog-SignedHeaders=" +
 		url.QueryEscape("host;x-goog-hash;x-goog-if-generation-match")
-	document := struct {
-		Provider  string `json:"provider"`
-		Method    string `json:"method"`
-		URL       string `json:"url"`
-		ExpiresAt int64  `json:"expires_at"`
-	}{
-		Provider: "google_cloud_storage", Method: "signed_put", URL: target,
-		ExpiresAt: time.Date(2035, time.January, 1, 0, 0, 0, 0, time.UTC).UnixNano(),
-	}
-	encoded, err := json.Marshal(document)
+	signed, err := objectstore.ParseSignedURL(target)
 	if err != nil {
-		t.Fatalf("json.Marshal(capability) error = %v", err)
+		t.Fatalf("ParseSignedURL error = %v, want nil", err)
+	}
+	headers, err := objectstore.NewSignedHeaders(nil)
+	if err != nil {
+		t.Fatalf("NewSignedHeaders error = %v, want nil", err)
+	}
+	projection, err := objectstore.NewUploadCapabilityProjection(objectstore.ProviderGoogleCloudStorage, objectstore.UploadTarget{URL: signed, Headers: headers, ExpiresAt: temporal.InstantFromNanoseconds(2051222400000000000)})
+	if err != nil {
+		t.Fatalf("NewUploadCapabilityProjection error = %v, want nil", err)
+	}
+	encoded, err := projection.MarshalJSON()
+	if err != nil {
+		t.Fatalf("capability projection MarshalJSON error = %v, want nil", err)
 	}
 	var capability objectstore.UploadCapability
 	if err := json.Unmarshal(encoded, &capability); err != nil {
@@ -450,10 +474,16 @@ func fixtureSigningKey() ed25519.PrivateKey {
 	return ed25519.NewKeyFromSeed(seed)
 }
 
-func fixturePolicy(t *testing.T) objectstore.Policy {
+func fixturePolicy(t testing.TB) objectstore.Policy {
 	t.Helper()
-	operation, _ := temporal.DurationFromSeconds(10)
-	attempt, _ := temporal.DurationFromSeconds(5)
+	operation, err := temporal.DurationFromSeconds(10)
+	if err != nil {
+		t.Fatalf("operation duration error = %v, want nil", err)
+	}
+	attempt, err := temporal.DurationFromSeconds(5)
+	if err != nil {
+		t.Fatalf("attempt duration error = %v, want nil", err)
+	}
 
 	return objectstore.Policy{
 		OperationTimeout: operation, AttemptTimeout: attempt,

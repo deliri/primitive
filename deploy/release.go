@@ -50,6 +50,19 @@ func (r UploadItemRequest) Validate() error {
 	if err != nil || provider != objectstore.ProviderGoogleCloudStorage {
 		return contractError(errors.New("deploy capability is not google cloud storage"), err)
 	}
+	// Admission uses the provider-owned limit before any earlier object can be
+	// uploaded. Release extents span uint64; GCS transport has a smaller domain.
+	extent, err := r.Integrity.Extent().Uint64()
+	if err != nil {
+		return contractError(err)
+	}
+	spec, err := objectstore.Spec(provider)
+	if err != nil {
+		return contractError(err)
+	}
+	if extent > spec.UploadMaximum.Uint64() {
+		return contractError(core.ErrObjectStoreSize)
+	}
 	commitment, err := r.Capability.Commitment()
 	if err != nil || commitment != r.Commitment {
 		return contractError(errors.New("deploy capability commitment differs from its grant"), err)
@@ -272,6 +285,11 @@ func (r Receipts) Validate() error {
 		if index < int(r.count) {
 			if err := receipt.Validate(); err != nil {
 				return err
+			}
+			for prior := range index {
+				if receipt.commitment == r.values[prior].commitment {
+					return contractError(errors.New("deploy receipt capability commitment is duplicated"))
+				}
 			}
 			if receipt.role != release.PublicationRole(index+1) {
 				return contractError(errors.New("deploy receipt occupies the wrong role slot"))

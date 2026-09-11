@@ -1,6 +1,6 @@
 # Primitive upgrade priority — 2026-09-09
 
-Published release: **v2026.1.35**. See [release notes](release_v2026.1.35.md)
+Historical release checkpoint: **v2026.1.35**. Current release coordinates and tags follow `compass/config.json`. See [release notes](release_v2026.1.35.md)
 and [the Distribution review fixes](distribution_review_20260909.md).
 
 **Current requirement applies to every package:** fixed memory windows for
@@ -132,7 +132,7 @@ runner acceptance remains a separate fact.
 
 Continue in the user-approved September 10 order:
 
-`deploy`, `wiring`, `github`,
+`wiring`, `github`,
 `gomodule`, `timeproof`, `controlplanetest`, `gitrepo`, `machineprobe`, `paypal`,
 `plunk`, `runworkspace`, `sourceclaim`, `sourceobservation`, `sourceproof`,
 `stripe`, `testserial`, `twilio`.
@@ -198,3 +198,5 @@ Paymentauth v2026.1.59: [local upgrade review](paymentauth_upgrade_20260910.md).
 Retrievalauth v2026.1.60: [local upgrade review](retrievalauth_upgrade_20260910.md). Upgrade is next. Independent acceptance and nested JSON streaming ownership remain separate.
 
 Upgrade v2026.1.61: [local review](upgrade_review_20260910.md). Fixed nominal metadata storage, typed-nil Bootstrap refusal and authenticated public lifecycle/fuzz proof. Deploy is next. Release tags now follow compass/config.json.
+
+Deploy v2026.1.62: [local review](deploy_review_20260910.md). Provider extent admission, unique confirmed grant receipts, exact TLS upload observations and semantic fuzz proof. Wiring is next; no product workflow or state machine was added.

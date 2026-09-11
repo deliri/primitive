@@ -51,7 +51,10 @@ func TestProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T) {
 				continue
 			}
 			for _, raw := range generic.Specs {
-				spec := raw.(*ast.TypeSpec)
+				spec, ok := raw.(*ast.TypeSpec)
+				if !ok {
+					t.Fatalf("type declaration = %T, want *ast.TypeSpec", raw)
+				}
 				if _, ok := spec.Type.(*ast.StructType); ok {
 					production = append(production, spec.Name.Name)
 				}
