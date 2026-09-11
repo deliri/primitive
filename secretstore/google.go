@@ -14,17 +14,6 @@ import (
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
 	"google.golang.org/api/option"
-	"google.golang.org/grpc"
-)
-
-const (
-	// GoogleAccessResponseEnvelopeMaximumBytes is Primitive's bounded allowance
-	// for the protobuf resource name, checksum, field framing, and transport
-	// evolution around Google's published 64-KiB secret payload maximum.
-	GoogleAccessResponseEnvelopeMaximumBytes = 4 * 1024
-	// GoogleAccessResponseMaximumBytes bounds decoding before the official SDK
-	// can allocate a complete AccessSecretVersion response.
-	GoogleAccessResponseMaximumBytes = PayloadMaximumBytes + GoogleAccessResponseEnvelopeMaximumBytes
 )
 
 // GoogleReader is a bounded authenticated capability over the official Google
@@ -37,12 +26,16 @@ type GoogleReader struct {
 // NewGoogleReader constructs one official-SDK client using ambient application
 // default credentials.
 func NewGoogleReader(ctx context.Context) (*GoogleReader, error) {
+	return newGoogleReader(ctx)
+}
+
+// newGoogleReader keeps SDK construction in one path. Tests supply only a local
+// transport; authentication and retry defaults remain SDK-owned in production.
+func newGoogleReader(ctx context.Context, options ...option.ClientOption) (*GoogleReader, error) {
 	if err := contextstate.Validate(ctx); err != nil {
 		return nil, errors.Join(core.ErrSecretStoreContract, err)
 	}
-	client, err := secretmanager.NewClient(ctx, option.WithGRPCDialOption(
-		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(GoogleAccessResponseMaximumBytes)),
-	))
+	client, err := secretmanager.NewClient(ctx, options...)
 	if err != nil {
 		return nil, googleAccessError(err)
 	}
@@ -106,6 +99,9 @@ func (r *GoogleReader) Close() error {
 }
 
 func accessResultFromGoogleResponse(request AccessRequest, response *secretmanagerpb.AccessSecretVersionResponse) (AccessResult, error) {
+	if response != nil && response.Payload != nil {
+		defer clear(response.Payload.Data)
+	}
 	if err := request.Validate(); err != nil {
 		return AccessResult{}, err
 	}
@@ -113,7 +109,6 @@ func accessResultFromGoogleResponse(request AccessRequest, response *secretmanag
 		return AccessResult{}, payloadError("Google Secret Manager response payload is absent")
 	}
 	payload := response.Payload.Data
-	defer clear(payload)
 	resolved, err := parseResolvedReference(response.Name)
 	if err != nil {
 		return AccessResult{}, err
@@ -145,8 +140,7 @@ func newAccessResult(request AccessRequest, resolved ResolvedReference, payload 
 	}
 	result := AccessResult{Request: request, Reference: resolved, Value: value}
 	if err := result.Validate(); err != nil {
-		_ = value.Destroy()
-		return AccessResult{}, err
+		return AccessResult{}, errors.Join(err, value.Destroy())
 	}
 	return result, nil
 }

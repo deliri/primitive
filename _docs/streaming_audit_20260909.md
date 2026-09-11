@@ -58,7 +58,7 @@ Audit exit per package: no hidden transfer/line quota; reader and writer paths c
 | runnercontrol | 100 | reviewed; explicit nominal/XML-token ownership in [completion report](runnercontrol_completion_20260910.md) |
 | runprotocol | 14 | requires_review |
 | runworkspace | 12 | requires_review |
-| secretstore | 20 | requires_review |
+| secretstore | 20 | reviewed; explicit SDK message ownership in [upgrade report](secretstore_upgrade_20260910.md) |
 | shutdown | 0 | requires_review |
 | sourceclaim | 0 | requires_review |
 | sourceobservation | 0 | requires_review |

@@ -103,7 +103,9 @@ func (v Value) Destroy() error {
 
 // Format keeps every generic formatting verb secret-free.
 func (v Value) Format(state fmt.State, _ rune) {
-	_, _ = io.WriteString(state, core.RedactedValueText)
+	if _, err := io.WriteString(state, core.RedactedValueText); err != nil {
+		return // fmt.Formatter has no error return; the destination owns write failure.
+	}
 }
 
 func valueStateValid(state *valueState) bool {

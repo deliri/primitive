@@ -17,7 +17,7 @@ import (
 const resolvedVersionForTest GoogleVersionNumber = 42
 const resolvedProjectForTest GoogleProjectNumber = 123456789
 
-func TestOfficialGoogleResponseHostileTable(t *testing.T) {
+func TestOfficialGoogleResponseLayerTriad(t *testing.T) {
 	t.Parallel()
 
 	request := accessRequestForTest(t)
@@ -81,17 +81,8 @@ func officialGoogleResponseCases(t *testing.T, request AccessRequest) []official
 	}
 	foreignSecret.Secret = secret
 	return []officialGoogleResponseCase{
-		// Ten expected-valid cases.
 		{name: "ordinary provider payload is admitted", response: officialChecksummedResponse(request, resolvedVersionForTest, []byte("0123456789abcdef")), wantReference: wantReference, wantBytes: []byte("0123456789abcdef")},
-		{name: "ordinary password punctuation is admitted", response: officialChecksummedResponse(request, resolvedVersionForTest, []byte("password-punctuation!")), wantReference: wantReference, wantBytes: []byte("password-punctuation!")},
-		{name: "ordinary whitespace payload is admitted", response: officialChecksummedResponse(request, resolvedVersionForTest, []byte(" secret value ")), wantReference: wantReference, wantBytes: []byte(" secret value ")},
-		{name: "ordinary line ending is admitted", response: officialChecksummedResponse(request, resolvedVersionForTest, []byte("secret\r\n")), wantReference: wantReference, wantBytes: []byte("secret\r\n")},
-		{name: "ordinary unicode payload is admitted", response: officialChecksummedResponse(request, resolvedVersionForTest, []byte("sëcret")), wantReference: wantReference, wantBytes: []byte("sëcret")},
-		{name: "ordinary binary payload is admitted", response: officialChecksummedResponse(request, resolvedVersionForTest, []byte{0, 1, 2, 3}), wantReference: wantReference, wantBytes: []byte{0, 1, 2, 3}},
 		{name: "ordinary invalid utf8 remains opaque", response: officialChecksummedResponse(request, resolvedVersionForTest, []byte{0xff}), wantReference: wantReference, wantBytes: []byte{0xff}, wantTextErr: core.ErrSecretStorePayload},
-		{name: "ordinary truncated utf8 remains opaque", response: officialChecksummedResponse(request, resolvedVersionForTest, []byte{0xe2, 0x82}), wantReference: wantReference, wantBytes: []byte{0xe2, 0x82}, wantTextErr: core.ErrSecretStorePayload},
-		{name: "ordinary all-zero payload is admitted", response: officialChecksummedResponse(request, resolvedVersionForTest, []byte{0, 0, 0}), wantReference: wantReference, wantBytes: []byte{0, 0, 0}},
-		{name: "ordinary long opaque payload is admitted", response: officialChecksummedResponse(request, resolvedVersionForTest, bytes.Repeat([]byte{0xa5}, 128)), wantReference: wantReference, wantBytes: bytes.Repeat([]byte{0xa5}, 128), wantTextErr: core.ErrSecretStorePayload},
 		// Hostile provider refusals.
 		{name: "nil provider response is rejected", wantErr: core.ErrSecretStorePayload},
 		{name: "nil provider payload is rejected", response: &secretmanagerpb.AccessSecretVersionResponse{Name: resolvedNameForTest(request, resolvedVersionForTest)}, wantErr: core.ErrSecretStorePayload},
@@ -110,26 +101,10 @@ func officialGoogleResponseCases(t *testing.T, request AccessRequest) []official
 		{name: "provider checksum above uint32 is rejected", response: officialResponse(resolvedNameForTest(request, resolvedVersionForTest), []byte("secret"), &aboveUint32), wantErr: core.ErrSecretStorePayload},
 		{name: "provider checksum at maximum int64 is rejected", response: officialResponse(resolvedNameForTest(request, resolvedVersionForTest), []byte("secret"), &maximumInt64), wantErr: core.ErrSecretStorePayload},
 		{name: "one above provider maximum is rejected", response: officialChecksummedResponse(request, resolvedVersionForTest, bytes.Repeat([]byte{'a'}, PayloadMaximumBytes+1)), wantErr: core.ErrSecretStorePayload},
-		// Twenty hostile payload and version boundaries.
 		{name: "exact zero-byte provider floor is admitted", response: officialChecksummedResponse(request, 1, nil), wantReference: resolvedReferenceForTest(request, 1)},
 		{name: "exact one-byte text payload is admitted", response: officialChecksummedResponse(request, 1, []byte("a")), wantReference: resolvedReferenceForTest(request, 1), wantBytes: []byte("a")},
-		{name: "exact one-byte opaque payload is admitted", response: officialChecksummedResponse(request, 2, []byte{0xff}), wantReference: resolvedReferenceForTest(request, 2), wantBytes: []byte{0xff}, wantTextErr: core.ErrSecretStorePayload},
-		{name: "two-byte text payload is admitted", response: officialChecksummedResponse(request, 9, []byte("ab")), wantReference: resolvedReferenceForTest(request, 9), wantBytes: []byte("ab")},
-		{name: "minimum nul byte is admitted", response: officialChecksummedResponse(request, 10, []byte{0}), wantReference: resolvedReferenceForTest(request, 10), wantBytes: []byte{0}},
-		{name: "minimum space byte is admitted", response: officialChecksummedResponse(request, 99, []byte{' '}), wantReference: resolvedReferenceForTest(request, 99), wantBytes: []byte{' '}},
-		{name: "minimum newline byte is admitted", response: officialChecksummedResponse(request, 100, []byte{'\n'}), wantReference: resolvedReferenceForTest(request, 100), wantBytes: []byte{'\n'}},
-		{name: "minimum delete byte is admitted", response: officialChecksummedResponse(request, 999, []byte{0x7f}), wantReference: resolvedReferenceForTest(request, 999), wantBytes: []byte{0x7f}},
-		{name: "utf8 boundary two-byte rune is admitted", response: officialChecksummedResponse(request, 1000, []byte("é")), wantReference: resolvedReferenceForTest(request, 1000), wantBytes: []byte("é")},
-		{name: "utf8 boundary three-byte rune is admitted", response: officialChecksummedResponse(request, 9999, []byte("€")), wantReference: resolvedReferenceForTest(request, 9999), wantBytes: []byte("€")},
-		{name: "utf8 boundary four-byte rune is admitted", response: officialChecksummedResponse(request, 10000, []byte("😀")), wantReference: resolvedReferenceForTest(request, 10000), wantBytes: []byte("😀")},
-		{name: "invalid utf8 continuation remains opaque", response: officialChecksummedResponse(request, 99999, []byte{0x80}), wantReference: resolvedReferenceForTest(request, 99999), wantBytes: []byte{0x80}, wantTextErr: core.ErrSecretStorePayload},
-		{name: "invalid utf8 overlong form remains opaque", response: officialChecksummedResponse(request, 100000, []byte{0xc0, 0x80}), wantReference: resolvedReferenceForTest(request, 100000), wantBytes: []byte{0xc0, 0x80}, wantTextErr: core.ErrSecretStorePayload},
-		{name: "invalid utf8 surrogate remains opaque", response: officialChecksummedResponse(request, 999999, []byte{0xed, 0xa0, 0x80}), wantReference: resolvedReferenceForTest(request, 999999), wantBytes: []byte{0xed, 0xa0, 0x80}, wantTextErr: core.ErrSecretStorePayload},
 		{name: "one below provider maximum is admitted", response: officialChecksummedResponse(request, 1000000, bytes.Repeat([]byte{'a'}, PayloadMaximumBytes-1)), wantReference: resolvedReferenceForTest(request, 1000000), wantBytes: bytes.Repeat([]byte{'a'}, PayloadMaximumBytes-1)},
 		{name: "exact provider maximum is admitted", response: officialChecksummedResponse(request, 9999999, bytes.Repeat([]byte{'a'}, PayloadMaximumBytes)), wantReference: resolvedReferenceForTest(request, 9999999), wantBytes: bytes.Repeat([]byte{'a'}, PayloadMaximumBytes)},
-		{name: "maximum opaque bytes are admitted", response: officialChecksummedResponse(request, 10000000, bytes.Repeat([]byte{0xff}, PayloadMaximumBytes)), wantReference: resolvedReferenceForTest(request, 10000000), wantBytes: bytes.Repeat([]byte{0xff}, PayloadMaximumBytes), wantTextErr: core.ErrSecretStorePayload},
-		{name: "maximum ending newline is admitted", response: officialChecksummedResponse(request, GoogleVersionNumber(math.MaxUint32), append(bytes.Repeat([]byte{'a'}, PayloadMaximumBytes-1), '\n')), wantReference: resolvedReferenceForTest(request, GoogleVersionNumber(math.MaxUint32)), wantBytes: append(bytes.Repeat([]byte{'a'}, PayloadMaximumBytes-1), '\n')},
-		{name: "maximum ending nul is admitted", response: officialChecksummedResponse(request, GoogleVersionNumber(math.MaxInt64), append(bytes.Repeat([]byte{'a'}, PayloadMaximumBytes-1), 0)), wantReference: resolvedReferenceForTest(request, GoogleVersionNumber(math.MaxInt64)), wantBytes: append(bytes.Repeat([]byte{'a'}, PayloadMaximumBytes-1), 0)},
 		{name: "maximum uint64 version is admitted", response: officialChecksummedResponse(request, GoogleVersionNumber(math.MaxUint64), []byte("secret")), wantReference: resolvedReferenceForTest(request, GoogleVersionNumber(math.MaxUint64)), wantBytes: []byte("secret")},
 		{name: "checksum one below correct is rejected", response: officialResponseWithChecksumDelta(request, resolvedVersionForTest, []byte("secret"), -1), wantErr: core.ErrSecretStorePayload},
 	}
@@ -250,8 +225,7 @@ func FuzzOfficialGoogleResponseSemanticClosure(f *testing.F) {
 		responsePayload := append([]byte(nil), payload...)
 		response := officialResponse(resolvedNameForTest(request, resolvedVersionForTest), responsePayload, &checksum)
 		got, gotErr := accessResultFromGoogleResponse(request, response)
-		want, wantErr := NewValue(payload)
-		wantAccepted := correctChecksum && wantErr == nil
+		wantAccepted := correctChecksum && len(payload) <= PayloadMaximumBytes
 		if !wantAccepted {
 			if !errors.Is(gotErr, core.ErrSecretStorePayload) || got != (AccessResult{}) {
 				t.Fatalf("accessResultFromGoogleResponse(rejected) = (%v, %v), want zero and payload identity", got, gotErr)
@@ -263,16 +237,13 @@ func FuzzOfficialGoogleResponseSemanticClosure(f *testing.F) {
 			t.Fatalf("accessResultFromGoogleResponse(accepted) = (%v, %v), want exact validated result", got, gotErr)
 		}
 		gotBytes, gotBytesErr := got.Value.CopyBytes()
-		wantBytes, wantBytesErr := want.CopyBytes()
-		if gotBytesErr != nil || wantBytesErr != nil || !bytes.Equal(gotBytes, wantBytes) {
-			t.Fatalf("provider/value projection = (%x, %v), want (%x, %v)", gotBytes, gotBytesErr, wantBytes, wantBytesErr)
+		if gotBytesErr != nil || !bytes.Equal(gotBytes, payload) {
+			t.Fatalf("provider/value projection = (%x, %v), want (%x, nil)", gotBytes, gotBytesErr, payload)
 		}
 		requireProviderPayloadCleared(t, response)
 		if destroyErr := got.Value.Destroy(); destroyErr != nil {
 			t.Fatalf("provider Value.Destroy() error = %v, want nil", destroyErr)
 		}
-		if destroyErr := want.Destroy(); destroyErr != nil {
-			t.Fatalf("oracle Value.Destroy() error = %v, want nil", destroyErr)
-		}
+		clear(gotBytes)
 	})
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 	"unicode/utf8"
@@ -282,7 +283,7 @@ type payloadBoundaryCase struct {
 	payload     []byte
 }
 
-func TestNewValueHostileTable(t *testing.T) {
+func TestNewValueLayerTriad(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range secretPayloadCases() {
@@ -400,12 +401,19 @@ func TestValueCopiesShareDestructionState(t *testing.T) {
 }
 
 func FuzzParseGoogleProjectIDSemanticClosure(f *testing.F) {
-	f.Add("project1")
-	f.Add("a12345")
+	seed, err := ParseGoogleProjectID("project1")
+	if err != nil {
+		f.Fatalf("project seed = %v, want nil", err)
+	}
+	f.Add(seed.String())
+	grammar := regexp.MustCompile(`^[a-z][a-z0-9-]{4,28}[a-z0-9]$`)
 	f.Add("")
 	f.Add("Project1")
 	f.Fuzz(func(t *testing.T, value string) {
 		got, gotErr := ParseGoogleProjectID(value)
+		if (gotErr == nil) != grammar.MatchString(value) {
+			t.Fatalf("ParseGoogleProjectID(%q) = %v, want grammar acceptance %t", value, gotErr, grammar.MatchString(value))
+		}
 		if gotErr != nil {
 			if got != (GoogleProjectID{}) || !errors.Is(gotErr, core.ErrSecretStoreContract) {
 				t.Fatalf("ParseGoogleProjectID(rejected) = (%v, %v), want zero and typed contract error", got, gotErr)
@@ -423,12 +431,19 @@ func FuzzParseGoogleProjectIDSemanticClosure(f *testing.F) {
 }
 
 func FuzzParseGoogleSecretIDSemanticClosure(f *testing.F) {
-	f.Add("runtime_secret-1")
-	f.Add("a")
+	seed, err := ParseGoogleSecretID("runtime_secret-1")
+	if err != nil {
+		f.Fatalf("secret seed = %v, want nil", err)
+	}
+	f.Add(seed.String())
+	grammar := regexp.MustCompile(`^[A-Za-z0-9_-]{1,255}$`)
 	f.Add("")
 	f.Add("runtime/secret")
 	f.Fuzz(func(t *testing.T, value string) {
 		got, gotErr := ParseGoogleSecretID(value)
+		if (gotErr == nil) != grammar.MatchString(value) {
+			t.Fatalf("ParseGoogleSecretID(%q) = %v, want grammar acceptance %t", value, gotErr, grammar.MatchString(value))
+		}
 		if gotErr != nil {
 			if got != (GoogleSecretID{}) || !errors.Is(gotErr, core.ErrSecretStoreContract) {
 				t.Fatalf("ParseGoogleSecretID(rejected) = (%v, %v), want zero and typed contract error", got, gotErr)

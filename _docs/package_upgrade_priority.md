@@ -132,7 +132,7 @@ runner acceptance remains a separate fact.
 
 Continue in the user-approved September 10 order:
 
-`secretstore`, `version`, `chitauth`, `distributionauth`,
+`version`, `chitauth`, `distributionauth`,
 `paymentauth`, `retrievalauth`, `upgrade`, `deploy`, `wiring`, `github`,
 `gomodule`, `timeproof`, `controlplanetest`, `gitrepo`, `machineprobe`, `paypal`,
 `plunk`, `runworkspace`, `sourceclaim`, `sourceobservation`, `sourceproof`,
@@ -185,3 +185,5 @@ inventory. Its XML token and nominal-object memory contracts are explicit in
 [the completion report](runnercontrol_completion_20260910.md). Earlier open-slice
 notes above are historical. Independent acceptance and consumer migration remain
 separate. Secretstore is now first in this queue.
+
+Secretstore v2026.1.55: [local upgrade review](secretstore_upgrade_20260910.md). Provider SDK message materialization is explicit; independent acceptance is not claimed.
