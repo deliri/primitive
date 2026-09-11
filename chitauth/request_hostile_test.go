@@ -218,11 +218,14 @@ func TestCredentialedChitQueryJSONLayerTriad(t *testing.T) {
 		t.Fatalf("RequestDocument.MarshalJSON() error = %v, want nil", err)
 	}
 	reordered, err := json.Marshal(struct {
-		Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
 		Request     chit.QueryDocument                           `json:"request"`
+		Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
 	}{Request: fixture.document.Request, Certificate: fixture.document.Certificate})
 	if err != nil {
 		t.Fatalf("json.Marshal(reordered request) error = %v, want nil", err)
+	}
+	if bytes.Equal(reordered, encoded) {
+		t.Fatal("reordered JSON = canonical bytes, want a real member-order change")
 	}
 	indented := jsontext.Value(bytes.Clone(encoded))
 	if err := indented.Indent(jsontext.WithIndent("  ")); err != nil {
