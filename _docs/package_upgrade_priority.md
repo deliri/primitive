@@ -215,3 +215,5 @@ Timeproof v2026.1.67: [proof-quality slice](timeproof_proof_slice_20260911.md). 
 Timeproof v2026.1.68: [status/DER custody slice](timeproof_status_stream_20260911.md). UTF-8 admission and unbounded status-text cardinality are fixed; private DER handoffs borrow bytes while verified custody remains independently owned. Aggregate response/certificate streaming stays open, and Timeproof remains first.
 
 Timeproof v2026.1.69: [digest declaration slice](timeproof_digest_stream_20260911.md). Digest declarations use borrowed DER and fixed-memory scans; source identity, duplicate refusal and OID grammar have behavioral/mutation/fuzz proof. Response custody and other aggregate collections remain open; Timeproof stays first.
+
+Timeproof v2026.1.70: [scan-owned decoder storage](timeproof_scratch_20260911.md). Status/digest loops reuse ASN.1 scratch; allocation growth fails red before the fix, and typed refusal clears old decoded facts. Aggregate response/certificate/attribute work stays open; Timeproof remains first.

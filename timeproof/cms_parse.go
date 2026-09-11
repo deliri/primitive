@@ -221,8 +221,9 @@ func validateStatusText(der []byte) error {
 	if len(der) == 0 {
 		return invalidError(nil)
 	}
+	var scratch asn1.RawValue
 	for len(der) != 0 {
-		value, remaining, err := consumeRaw(der)
+		value, remaining, err := consumeRawInto(der, &scratch)
 		if err != nil || !isUniversal(value, asn1.TagUTF8String, false) || !utf8.Valid(value.Bytes) {
 			return invalidError(err)
 		}
@@ -354,9 +355,10 @@ func digestAlgorithmDeclared(algorithms asn1.RawValue, want asn1.ObjectIdentifie
 	if err != nil {
 		return false
 	}
+	var scratch asn1.RawValue
 	found := false
 	for fields := algorithms.Bytes; len(fields) != 0; {
-		oid, remaining, scanErr := consumeDeclaredAlgorithm(fields)
+		oid, remaining, scanErr := consumeDeclaredAlgorithm(fields, &scratch)
 		if scanErr != nil {
 			return false
 		}
@@ -492,12 +494,13 @@ func consumeExplicitContent(fields []byte) (asn1.RawValue, error) {
 // consumeAlgorithmSet validates declarations in place and borrows their DER.
 // The collection's cardinality does not require an allocation or a quota.
 func consumeAlgorithmSet(der []byte) (asn1.RawValue, []byte, error) {
-	raw, remaining, err := consumeRaw(der)
+	var scratch asn1.RawValue
+	raw, remaining, err := consumeRawInto(der, &scratch)
 	if err != nil || !isUniversal(raw, asn1.TagSet, true) {
 		return asn1.RawValue{}, nil, invalidError(err)
 	}
 	for fields := raw.Bytes; len(fields) != 0; {
-		_, next, scanErr := consumeDeclaredAlgorithm(fields)
+		_, next, scanErr := consumeDeclaredAlgorithm(fields, &scratch)
 		if scanErr != nil {
 			return asn1.RawValue{}, nil, scanErr
 		}
@@ -506,17 +509,17 @@ func consumeAlgorithmSet(der []byte) (asn1.RawValue, []byte, error) {
 	return raw, remaining, nil
 }
 
-func consumeDeclaredAlgorithm(der []byte) (asn1.RawValue, []byte, error) {
-	sequence, remaining, err := consumeRaw(der)
+func consumeDeclaredAlgorithm(der []byte, scratch *asn1.RawValue) (asn1.RawValue, []byte, error) {
+	sequence, remaining, err := consumeRawInto(der, scratch)
 	if err != nil || !isUniversal(sequence, asn1.TagSequence, true) {
 		return asn1.RawValue{}, nil, invalidError(err)
 	}
-	oid, fields, err := consumeRaw(sequence.Bytes)
+	oid, fields, err := consumeRawInto(sequence.Bytes, scratch)
 	if err != nil || !isUniversal(oid, asn1.TagOID, false) || !canonicalOIDBody(oid.Bytes) {
 		return asn1.RawValue{}, nil, invalidError(err)
 	}
 	if len(fields) != 0 {
-		_, fields, err = consumeRaw(fields)
+		_, fields, err = consumeRawInto(fields, scratch)
 		if err != nil || len(fields) != 0 {
 			return asn1.RawValue{}, nil, invalidError(err)
 		}
@@ -1207,12 +1210,20 @@ func requireSequence(der []byte) (asn1.RawValue, error) {
 }
 
 func consumeRaw(der []byte) (asn1.RawValue, []byte, error) {
-	var raw asn1.RawValue
-	remaining, err := asn1.Unmarshal(der, &raw)
+	var scratch asn1.RawValue
+	return consumeRawInto(der, &scratch)
+}
+
+// consumeRawInto reuses a caller-owned decode destination. Returned values are
+// borrowed byte spans and remain valid when the destination is used again.
+func consumeRawInto(der []byte, scratch *asn1.RawValue) (asn1.RawValue, []byte, error) {
+	*scratch = asn1.RawValue{}
+	remaining, err := asn1.Unmarshal(der, scratch)
 	if err != nil {
+		*scratch = asn1.RawValue{}
 		return asn1.RawValue{}, nil, invalidError(err)
 	}
-	return raw, remaining, nil
+	return *scratch, remaining, nil
 }
 
 func isUniversal(raw asn1.RawValue, tag int, compound bool) bool {
