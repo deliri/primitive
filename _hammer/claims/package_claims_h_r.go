@@ -170,7 +170,7 @@ func emitPackageClaimSpecsHThroughR(emit func(packageClaimSpec) bool) bool {
 			solution: "Runnercontrol defines and exchanges typed control messages over the shared Runprotocol agreement, and exposes typed cmd/go string fragments and event frames through its existing fixed-memory decoder.",
 			benefit:  "Anvil, Witness, or another authority can coordinate execution without Primitive storing history or deciding acceptance.",
 			removal:  "Remove Runnercontrol when no independently deployed runner exchanges this control protocol.",
-			owns:     "Runnercontrol owns the mechanical outbound control socket, authentication bindings, delivery states, message validation, and cmd/go event framing. Streaming event callbacks retain no package inventory and impose no event or string-volume quota.",
+			owns:     "Runnercontrol owns the mechanical outbound control socket, authentication bindings, delivery states, message validation, and cmd/go event framing, including attribute and artifact metadata. Streaming event callbacks retain no package inventory and impose no event or string-volume quota.",
 			excludes: "It does not own source purpose, test semantics, runner implementation, Firestore history, human review, or completion policy.",
 		},
 		{

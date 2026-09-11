@@ -50,3 +50,24 @@ contains neither Tailnet nor Tailscale. The failed attempt remains recorded as a
 failure. A second semantic fuzz target checks every decoded payload byte across
 bounded oracle chunks while admitting the entire fuzz input; its three-second
 run passed. The module-wide production build also completed successfully.
+
+## Native metadata correction after v2026.1.73
+
+Inspection of the installed Go 1.27.1 test2json source exposed two missing actions:
+attr and artifacts, with Key, Value and Path string fields. The published
+v2026.1.73 tag remains immutable. The correction adds closed action/field enum arms
+and routes their bytes through the same fixed-buffer decoder. It neither opens
+artifact paths nor assigns meaning to attributes.
+
+Both native producer tests failed against revision
+8f3e57046be6bbfe20c0fe9ff270c94df6c5b3ab in primitive-native-metadata-red.
+The corrected decoder passed primitive-native-metadata-green. The tests execute
+real Go tests using Attr and ArtifactDir, check exact attribute values and verify
+that the emitted artifact path names the directory Go actually created under the
+test-owned root. Metadata semantic fuzzing consumes all input in bounded oracle
+chunks and checks every decoded byte and field closure. Its first attempt exposed
+a fixture error: JSON v2 omitempty omitted explicitly empty string pointers.
+Changing the typed fixture to omitzero preserves that distinction; the subsequent
+three-second attempt primitive-metadata-semantic-fuzz-explicit-empty passed.
+Both attempts remain retained. These are local execution facts, not independent
+acceptance, and do not close the full repository gate.

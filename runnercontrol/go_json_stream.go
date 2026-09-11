@@ -25,6 +25,9 @@ const (
 	GoEventFieldFailedBuild
 	GoEventFieldElapsed
 	GoEventFieldImportPath
+	GoEventFieldKey
+	GoEventFieldValue
+	GoEventFieldPath
 )
 
 type goJSONState uint8
@@ -332,6 +335,12 @@ func (s *goJSONStream) endString() error {
 			s.field = GoEventFieldElapsed
 		case "ImportPath":
 			s.field = GoEventFieldImportPath
+		case "Key":
+			s.field = GoEventFieldKey
+		case "Value":
+			s.field = GoEventFieldValue
+		case "Path":
+			s.field = GoEventFieldPath
 		default:
 			return goJSONFailure()
 		}

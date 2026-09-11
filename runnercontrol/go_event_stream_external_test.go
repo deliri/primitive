@@ -159,7 +159,7 @@ func TestGoEventStreamLayerTriadRefusalsAndCancellation(t *testing.T) {
 
 func TestGoEventStreamEveryActionRetainsItsWireIdentity(t *testing.T) {
 	t.Parallel()
-	for action := runnercontrol.GoEventActionStart; action <= runnercontrol.GoEventActionBuildFail; action++ {
+	for action := runnercontrol.GoEventActionStart; action <= runnercontrol.GoEventActionArtifacts; action++ {
 		t.Run(action.String(), func(t *testing.T) {
 			t.Parallel()
 			want := runnercontrol.GoEventFrame{Action: action}
@@ -193,7 +193,7 @@ func TestGoEventStreamEveryActionRetainsItsWireIdentity(t *testing.T) {
 // each borrowed source line. It does not retain diagnostic strings or a stream
 // model. Separate long-string tests prove byte-for-byte fragment delivery.
 func FuzzGoEventStreamSemanticClosure(f *testing.F) {
-	for action := runnercontrol.GoEventActionStart; action <= runnercontrol.GoEventActionBuildFail; action++ {
+	for action := runnercontrol.GoEventActionStart; action <= runnercontrol.GoEventActionArtifacts; action++ {
 		seed := runnercontrol.GoEventFrame{Action: action}
 		if err := seed.Validate(); err != nil {
 			f.Fatal(err)

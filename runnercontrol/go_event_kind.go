@@ -17,10 +17,12 @@ const (
 	GoEventActionSkip
 	GoEventActionBuildOutput
 	GoEventActionBuildFail
+	GoEventActionAttribute
+	GoEventActionArtifacts
 )
 
 func decodeGoEventAction(value string) (GoEventAction, error) {
-	for action := GoEventActionStart; action <= GoEventActionBuildFail; action++ {
+	for action := GoEventActionStart; action <= GoEventActionArtifacts; action++ {
 		if value == action.String() {
 			return action, nil
 		}
@@ -47,7 +49,7 @@ func decodeGoOutputKind(value string) (GoEventOutputKind, error) {
 }
 
 func (a GoEventAction) Validate() error {
-	if a < GoEventActionStart || a > GoEventActionBuildFail {
+	if a < GoEventActionStart || a > GoEventActionArtifacts {
 		return goJSONFailure()
 	}
 	return nil
@@ -76,6 +78,10 @@ func (a GoEventAction) String() string {
 		return "build-output"
 	case GoEventActionBuildFail:
 		return "build-fail"
+	case GoEventActionAttribute:
+		return "attr"
+	case GoEventActionArtifacts:
+		return "artifacts"
 	default:
 		return invalidEnumString()
 	}
@@ -113,7 +119,7 @@ func (k GoEventOutputKind) MarshalJSON() ([]byte, error) {
 	return core.MarshalCanonicalJSONString(k.String())
 }
 func (f GoEventField) Validate() error {
-	if f < GoEventFieldAction || f > GoEventFieldImportPath {
+	if f < GoEventFieldAction || f > GoEventFieldPath {
 		return goJSONFailure()
 	}
 	return nil
