@@ -22,7 +22,7 @@ func benchmarkStageCandidateStreaming(b *testing.B, size int) {
 	b.Helper()
 
 	data := bytes.Repeat([]byte{0x5a}, size)
-	root, directory := stageRootForTest(b)
+	root, directory := stageRootForTest(b, b.TempDir())
 	installed := artifactForTest(b, []byte("installed"), 1)
 	candidate := artifactForTest(b, data, 2)
 	target := stageTargetForTest(b, stageTargetFixture{
@@ -57,7 +57,11 @@ func BenchmarkResolvePrimaryFourKiB(b *testing.B) {
 	if err != nil {
 		b.Fatalf("os.OpenRoot() error = %v, want nil", err)
 	}
-	b.Cleanup(func() { _ = root.Close() })
+	b.Cleanup(func() {
+		if err := root.Close(); err != nil {
+			b.Errorf("Root.Close() error = %v, want nil", err)
+		}
+	})
 	data := make([]byte, 4<<10)
 	artifact := artifactForTest(b, data, 1)
 	installArtifactForTest(b, root, SlotA, artifact, data)

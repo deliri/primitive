@@ -132,7 +132,7 @@ runner acceptance remains a separate fact.
 
 Continue in the user-approved September 10 order:
 
-`upgrade`, `deploy`, `wiring`, `github`,
+`deploy`, `wiring`, `github`,
 `gomodule`, `timeproof`, `controlplanetest`, `gitrepo`, `machineprobe`, `paypal`,
 `plunk`, `runworkspace`, `sourceclaim`, `sourceobservation`, `sourceproof`,
 `stripe`, `testserial`, `twilio`.
@@ -196,3 +196,5 @@ Distributionauth v2026.1.58: [local upgrade review](distributionauth_upgrade_202
 Paymentauth v2026.1.59: [local upgrade review](paymentauth_upgrade_20260910.md). Retrievalauth is next. Independent acceptance and nested JSON streaming ownership remain separate.
 
 Retrievalauth v2026.1.60: [local upgrade review](retrievalauth_upgrade_20260910.md). Upgrade is next. Independent acceptance and nested JSON streaming ownership remain separate.
+
+Upgrade v2026.1.61: [local review](upgrade_review_20260910.md). Fixed nominal metadata storage, typed-nil Bootstrap refusal and authenticated public lifecycle/fuzz proof. Deploy is next. Release tags now follow compass/config.json.

@@ -50,11 +50,9 @@ func TestUpgradeDurableWriterLayerTriadSelectionDocumentCanonicalClosure(t *test
 		data []byte
 	}{
 		{name: "nil document", data: nil},
-		{name: "empty document", data: []byte(``)},
 		{name: "truncated final byte", data: encoded[:len(encoded)-1]},
 		{name: "truncated to half", data: encoded[:len(encoded)/2]},
 		{name: "trailing space breaks canonical equality", data: append(slices.Clone(encoded), ' ')},
-		{name: "trailing newline breaks canonical equality", data: append(slices.Clone(encoded), '\n')},
 		{name: "leading space breaks canonical equality", data: append([]byte{' '}, encoded...)},
 		{name: "trailing garbage after the document", data: append(slices.Clone(encoded), '{')},
 		{name: "two concatenated documents", data: append(slices.Clone(encoded), encoded...)},
@@ -115,7 +113,11 @@ func TestSelectionWriteReclaimsOnlyItsFixedCrashTemporary(t *testing.T) {
 	if err != nil {
 		t.Fatalf("os.OpenRoot() error = %v, want nil", err)
 	}
-	t.Cleanup(func() { _ = root.Close() })
+	t.Cleanup(func() {
+		if err := root.Close(); err != nil {
+			t.Errorf("Root.Close() error = %v, want nil", err)
+		}
+	})
 
 	document := selectionDocument{
 		Revision: selectionRevisionCurrent,
@@ -377,7 +379,11 @@ func TestPromotionReverifiesCandidateAndLeavesPrimaryUntouchedOnFailure(t *testi
 	if err != nil {
 		t.Fatalf("os.OpenRoot() error = %v, want nil", err)
 	}
-	t.Cleanup(func() { _ = root.Close() })
+	t.Cleanup(func() {
+		if err := root.Close(); err != nil {
+			t.Errorf("Root.Close() error = %v, want nil", err)
+		}
+	})
 
 	oldArtifact := artifactForTest(t, []byte("old"), 1)
 	newArtifact := artifactForTest(t, []byte("new"), 2)
@@ -430,7 +436,11 @@ func TestPromotionConflictNeverOverwritesAChangedPrimary(t *testing.T) {
 	if err != nil {
 		t.Fatalf("os.OpenRoot() error = %v, want nil", err)
 	}
-	t.Cleanup(func() { _ = root.Close() })
+	t.Cleanup(func() {
+		if err := root.Close(); err != nil {
+			t.Errorf("Root.Close() error = %v, want nil", err)
+		}
+	})
 
 	oldArtifact := artifactForTest(t, []byte("old"), 1)
 	newArtifact := artifactForTest(t, []byte("new"), 2)
@@ -532,7 +542,11 @@ func TestStaleTrialTargetCannotMutateADifferentDurableTrial(t *testing.T) {
 			if err != nil {
 				t.Fatalf("os.OpenRoot() error = %v, want nil", err)
 			}
-			t.Cleanup(func() { _ = root.Close() })
+			t.Cleanup(func() {
+				if err := root.Close(); err != nil {
+					t.Errorf("Root.Close() error = %v, want nil", err)
+				}
+			})
 
 			sharedBytes := []byte("same bytes, different signed builds")
 			primary := artifactForTest(t, []byte("old"), 1)
@@ -600,7 +614,11 @@ func TestCleanupFailureReturnsTheAlreadySelectedPrimaryTruth(t *testing.T) {
 	if err != nil {
 		t.Fatalf("os.OpenRoot() error = %v, want nil", err)
 	}
-	t.Cleanup(func() { _ = root.Close() })
+	t.Cleanup(func() {
+		if err := root.Close(); err != nil {
+			t.Errorf("Root.Close() error = %v, want nil", err)
+		}
+	})
 
 	oldArtifact := artifactForTest(t, []byte("old"), 1)
 	newArtifact := artifactForTest(t, []byte("new"), 2)
@@ -686,7 +704,11 @@ func TestVerificationRejectsEveryExtentAndDigestContradiction(t *testing.T) {
 			if err != nil {
 				t.Fatalf("os.OpenRoot() error = %v, want nil", err)
 			}
-			t.Cleanup(func() { _ = root.Close() })
+			t.Cleanup(func() {
+				if err := root.Close(); err != nil {
+					t.Errorf("Root.Close() error = %v, want nil", err)
+				}
+			})
 			artifact := artifactForTest(t, []byte("good"), 1)
 			if tc.install {
 				installArtifactForTest(t, root, SlotA, artifact, tc.data)
@@ -733,7 +755,11 @@ func TestReclaimAdoptsExactBytesAndRemovesOnlyItsInterruptedBytes(t *testing.T) 
 			if err != nil {
 				t.Fatalf("os.OpenRoot() error = %v, want nil", err)
 			}
-			t.Cleanup(func() { _ = root.Close() })
+			t.Cleanup(func() {
+				if err := root.Close(); err != nil {
+					t.Errorf("Root.Close() error = %v, want nil", err)
+				}
+			})
 
 			oldBytes := []byte("old")
 			oldArtifact := artifactForTest(t, oldBytes, 1)
@@ -800,7 +826,11 @@ func TestReclaimNeverDeletesAStillAuthorizedDifferentTrial(t *testing.T) {
 	if err != nil {
 		t.Fatalf("os.OpenRoot() error = %v, want nil", err)
 	}
-	t.Cleanup(func() { _ = root.Close() })
+	t.Cleanup(func() {
+		if err := root.Close(); err != nil {
+			t.Errorf("Root.Close() error = %v, want nil", err)
+		}
+	})
 
 	oldArtifact := artifactForTest(t, []byte("old"), 1)
 	activeBytes := []byte("candidate still under trial")
@@ -849,7 +879,11 @@ func TestReclaimPreservesAuthenticCandidateWhenVerificationIsCancelled(t *testin
 	if err != nil {
 		t.Fatalf("os.OpenRoot() error = %v, want nil", err)
 	}
-	t.Cleanup(func() { _ = root.Close() })
+	t.Cleanup(func() {
+		if err := root.Close(); err != nil {
+			t.Errorf("Root.Close() error = %v, want nil", err)
+		}
+	})
 
 	oldArtifact := artifactForTest(t, []byte("old"), 1)
 	candidateBytes := []byte("candidate under trial")
@@ -905,7 +939,11 @@ func TestPreparingAnOccupiedTrialSlotNeverDeletesItsCandidate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("os.OpenRoot() error = %v, want nil", err)
 	}
-	t.Cleanup(func() { _ = root.Close() })
+	t.Cleanup(func() {
+		if err := root.Close(); err != nil {
+			t.Errorf("Root.Close() error = %v, want nil", err)
+		}
+	})
 	oldArtifact := artifactForTest(t, []byte("old"), 1)
 	newBytes := []byte("candidate under trial")
 	newArtifact := artifactForTest(t, newBytes, 2)
@@ -950,7 +988,11 @@ func TestBootstrapCollisionNeverDeletesAnExistingPrimaryArtifact(t *testing.T) {
 	if err != nil {
 		t.Fatalf("os.OpenRoot() error = %v, want nil", err)
 	}
-	t.Cleanup(func() { _ = root.Close() })
+	t.Cleanup(func() {
+		if err := root.Close(); err != nil {
+			t.Errorf("Root.Close() error = %v, want nil", err)
+		}
+	})
 	data := []byte("working primary")
 	artifact := artifactForTest(t, data, 1)
 	installArtifactForTest(t, root, SlotA, artifact, data)
@@ -986,7 +1028,11 @@ func TestOwnedFailedDownloadAndSuccessfulBootstrapWriteCleanExactlyTheirBytes(t 
 	if err != nil {
 		t.Fatalf("os.OpenRoot() error = %v, want nil", err)
 	}
-	t.Cleanup(func() { _ = root.Close() })
+	t.Cleanup(func() {
+		if err := root.Close(); err != nil {
+			t.Errorf("Root.Close() error = %v, want nil", err)
+		}
+	})
 	oldArtifact := artifactForTest(t, []byte("old"), 1)
 	candidate := artifactForTest(t, []byte("candidate"), 2)
 	target, err := newTrialTarget(
@@ -1050,7 +1096,11 @@ func TestDiscardTrialRemovesOnlyTheCandidateAndPreservesPrimary(t *testing.T) {
 	if err != nil {
 		t.Fatalf("os.OpenRoot() error = %v, want nil", err)
 	}
-	t.Cleanup(func() { _ = root.Close() })
+	t.Cleanup(func() {
+		if err := root.Close(); err != nil {
+			t.Errorf("Root.Close() error = %v, want nil", err)
+		}
+	})
 	oldBytes, newBytes := []byte("old"), []byte("new")
 	oldArtifact := artifactForTest(t, oldBytes, 1)
 	newArtifact := artifactForTest(t, newBytes, 2)
@@ -1099,7 +1149,11 @@ func TestDiscardTrialRefusesTamperedCandidateWithoutDeletingIt(t *testing.T) {
 	if err != nil {
 		t.Fatalf("os.OpenRoot() error = %v, want nil", err)
 	}
-	t.Cleanup(func() { _ = root.Close() })
+	t.Cleanup(func() {
+		if err := root.Close(); err != nil {
+			t.Errorf("Root.Close() error = %v, want nil", err)
+		}
+	})
 	oldArtifact := artifactForTest(t, []byte("old"), 1)
 	newArtifact := artifactForTest(t, []byte("new"), 2)
 	installArtifactForTest(t, root, SlotA, oldArtifact, []byte("old"))

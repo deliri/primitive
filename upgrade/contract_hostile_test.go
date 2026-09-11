@@ -134,7 +134,11 @@ func TestFailedSlotCreationIsReportedAsPersistenceNotCleanup(t *testing.T) {
 	if err != nil {
 		t.Fatalf("filestore.OpenRoot() error = %v, want nil", err)
 	}
-	t.Cleanup(func() { _ = root.Close() })
+	t.Cleanup(func() {
+		if err := root.Close(); err != nil {
+			t.Errorf("Root.Close() error = %v, want nil", err)
+		}
+	})
 
 	oldBytes := []byte("old")
 	oldArtifact := artifactForTest(t, oldBytes, 1)
@@ -191,7 +195,11 @@ func TestSettledCleanupCompletesAfterTheCallerContextIsDone(t *testing.T) {
 	if err != nil {
 		t.Fatalf("os.OpenRoot() error = %v, want nil", err)
 	}
-	t.Cleanup(func() { _ = root.Close() })
+	t.Cleanup(func() {
+		if err := root.Close(); err != nil {
+			t.Errorf("Root.Close() error = %v, want nil", err)
+		}
+	})
 
 	oldBytes, newBytes := []byte("old"), []byte("new")
 	oldArtifact := artifactForTest(t, oldBytes, 1)
@@ -252,7 +260,11 @@ func TestSettledCleanupCompletesAfterTheCallerContextIsDone(t *testing.T) {
 	if err != nil {
 		t.Fatalf("os.OpenRoot() error = %v, want nil", err)
 	}
-	t.Cleanup(func() { _ = root2.Close() })
+	t.Cleanup(func() {
+		if err := root2.Close(); err != nil {
+			t.Errorf("Root.Close() error = %v, want nil", err)
+		}
+	})
 	installArtifactForTest(t, root2, SlotA, oldArtifact, oldBytes)
 	done, cancel2 := context.WithCancel(t.Context())
 	cancel2()

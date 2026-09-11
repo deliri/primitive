@@ -57,91 +57,80 @@ func TestProductionImportsAreExactAndNoWorldModelExists(t *testing.T) {
 // sentence. Every forbidden package (os/exec, runtime, sync, syscall, time) is
 // already refused by the exact production import set above, so the shapes that
 // remain unprovable from the import list are the ones matched here.
+func forbiddenUpgradeShape(node ast.Node) string {
+	switch typed := node.(type) {
+	case *ast.GoStmt:
+		return "goroutine"
+	case *ast.MapType:
+		return "map"
+	case *ast.ChanType:
+		return "channel"
+	case *ast.SelectStmt:
+		return "select"
+	case *ast.CallExpr:
+		selector, ok := typed.Fun.(*ast.SelectorExpr)
+		if !ok {
+			return ""
+		}
+		pkg, ok := selector.X.(*ast.Ident)
+		if ok && pkg.Name == "os" && selector.Sel.Name == "Exit" {
+			return "process exit"
+		}
+	}
+	return ""
+}
+
 func TestProductionCarriesNoGoroutineWorldModelOrProcessExit(t *testing.T) {
 	t.Parallel()
-
 	for _, source := range upgradeProductionFiles(t) {
 		ast.Inspect(source.syntax, func(node ast.Node) bool {
-			switch typed := node.(type) {
-			case *ast.GoStmt:
-				t.Errorf("%s starts a goroutine at %d, want one caller-owned path",
-					source.name, source.set.Position(typed.Pos()).Line)
-			case *ast.MapType:
-				t.Errorf("%s declares a map at %d, want typed structs and closed enums",
-					source.name, source.set.Position(typed.Pos()).Line)
-			case *ast.ChanType:
-				t.Errorf("%s declares a channel at %d, want no private scheduler",
-					source.name, source.set.Position(typed.Pos()).Line)
-			case *ast.SelectStmt:
-				t.Errorf("%s selects at %d, want no private scheduler",
-					source.name, source.set.Position(typed.Pos()).Line)
-			case *ast.CallExpr:
-				selector, ok := typed.Fun.(*ast.SelectorExpr)
-				if !ok {
-					return true
-				}
-				pkg, ok := selector.X.(*ast.Ident)
-				if ok && pkg.Name == "os" && selector.Sel.Name == "Exit" {
-					t.Errorf("%s calls os.Exit at %d, want a returned typed failure",
-						source.name, source.set.Position(typed.Pos()).Line)
-				}
+			if kind := forbiddenUpgradeShape(node); kind != "" {
+				t.Errorf("%s:%d contains %s, want caller-owned synchronous typed mechanics", source.name, source.set.Position(node.Pos()).Line, kind)
 			}
 			return true
 		})
 	}
 }
 
-// TestTheForbiddenShapeMatcherActuallyMatches proves the scan above is not
-// vacuously green. It runs the same matcher over synthetic source that contains
-// every forbidden shape.
+// The live repository scan and synthetic fixtures use exactly one matcher.
 func TestTheForbiddenShapeMatcherActuallyMatches(t *testing.T) {
 	t.Parallel()
-
-	const hostile = `package upgrade
-
+	for _, tc := range []struct {
+		name, source string
+		want         []string
+	}{
+		{name: "each forbidden syntax has one match", source: `package upgrade
 import "os"
-
 type worldModel map[string]int
-
-func offend(events chan int) {
-	go offend(events)
-	select {
-	case <-events:
-	}
-	os.Exit(1)
-}
-`
-	set := token.NewFileSet()
-	file, err := parser.ParseFile(set, "hostile.go", hostile, 0)
-	if err != nil {
-		t.Fatalf("parser.ParseFile(hostile) error = %v", err)
-	}
-	var goStatements, maps, channels, selects, exits int
-	ast.Inspect(file, func(node ast.Node) bool {
-		switch typed := node.(type) {
-		case *ast.GoStmt:
-			goStatements++
-		case *ast.MapType:
-			maps++
-		case *ast.ChanType:
-			channels++
-		case *ast.SelectStmt:
-			selects++
-		case *ast.CallExpr:
-			selector, ok := typed.Fun.(*ast.SelectorExpr)
-			if !ok {
+func offend(events chan int) { go offend(events); select { case <-events: }; os.Exit(1) }
+`, want: []string{"channel", "goroutine", "map", "process exit", "select"}},
+		{name: "synchronous struct and return remain admitted", source: `package upgrade
+type fact struct { value int }
+func value(v fact) int { return v.value }
+`},
+		{name: "comments and strings do not become executable shapes", source: `package upgrade
+// go worker(); os.Exit(1); map[string]int
+const diagnostic = "select channel"
+`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			file, err := parser.ParseFile(token.NewFileSet(), "fixture.go", tc.source, 0)
+			if err != nil {
+				t.Fatalf("ParseFile error = %v, want nil", err)
+			}
+			var got []string
+			ast.Inspect(file, func(node ast.Node) bool {
+				if kind := forbiddenUpgradeShape(node); kind != "" {
+					got = append(got, kind)
+				}
 				return true
+			})
+			sort.Strings(got)
+			if !slices.Equal(got, tc.want) {
+				t.Fatalf("forbidden syntax = %v, want %v", got, tc.want)
 			}
-			pkg, ok := selector.X.(*ast.Ident)
-			if ok && pkg.Name == "os" && selector.Sel.Name == "Exit" {
-				exits++
-			}
-		}
-		return true
-	})
-	if goStatements != 1 || maps != 1 || channels != 1 || selects != 1 || exits != 1 {
-		t.Fatalf("hostile matches = go:%d map:%d chan:%d select:%d exit:%d, "+
-			"want 1/1/1/1/1", goStatements, maps, channels, selects, exits)
+		})
 	}
 }
 
@@ -222,6 +211,7 @@ func TestEveryProductionStructHasADataFlowRole(t *testing.T) {
 		"TrialTarget":         "validated trial capability",
 		"bootstrapWrite":      "internal ownership receipt",
 		"candidateDownload":   "internal ownership receipt",
+		"metadataBuffer":      "fixed storage for one bounded canonical persistence document",
 		"selectionDocument":   "durable primary fact",
 		"selectionWire":       "canonical persistence wire",
 		"stageAuthorityFacts": "authenticated release-to-selector projection",

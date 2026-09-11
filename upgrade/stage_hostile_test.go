@@ -26,7 +26,7 @@ func TestStageAuthorityClosesAuthenticatedFactsAgainstDurableSelection(t *testin
 	t.Run("positive exact installed authority admits only the newer artifact", func(t *testing.T) {
 		t.Parallel()
 
-		root, _ := stageRootForTest(t)
+		root, _ := stageRootForTest(t, t.TempDir())
 		installed := artifactForTest(t, []byte("installed"), 1)
 		candidate := artifactForTest(t, []byte("candidate"), 2)
 		prior := selectionDocument{
@@ -51,7 +51,7 @@ func TestStageAuthorityClosesAuthenticatedFactsAgainstDurableSelection(t *testin
 	t.Run("negative changed durable primary seals both returned facts", func(t *testing.T) {
 		t.Parallel()
 
-		root, _ := stageRootForTest(t)
+		root, _ := stageRootForTest(t, t.TempDir())
 		installed := artifactForTest(t, []byte("installed"), 1)
 		changed := artifactForTest(t, []byte("changed primary"), 1)
 		candidate := artifactForTest(t, []byte("candidate"), 2)
@@ -122,7 +122,7 @@ func TestStageAuthorityClosesAuthenticatedFactsAgainstDurableSelection(t *testin
 	t.Run("neutral cancellation preserves the selector and returns no authority", func(t *testing.T) {
 		t.Parallel()
 
-		root, _ := stageRootForTest(t)
+		root, _ := stageRootForTest(t, t.TempDir())
 		installed := artifactForTest(t, []byte("installed"), 1)
 		candidate := artifactForTest(t, []byte("candidate"), 2)
 		prior := selectionDocument{
@@ -241,7 +241,7 @@ func TestDownloadAndVerifyCandidateLayerTriad(t *testing.T) {
 		t.Parallel()
 
 		payload := bytes.Repeat([]byte{0x5a}, (64<<10)+1)
-		root, directory := stageRootForTest(t)
+		root, directory := stageRootForTest(t, t.TempDir())
 		installed := artifactForTest(t, []byte("installed"), 1)
 		candidate := artifactForTest(t, payload, 2)
 		target := stageTargetForTest(t, stageTargetFixture{
@@ -288,7 +288,7 @@ func TestDownloadAndVerifyCandidateLayerTriad(t *testing.T) {
 	t.Run("negative transport failure removes only the owned partial candidate", func(t *testing.T) {
 		t.Parallel()
 
-		root, directory := stageRootForTest(t)
+		root, directory := stageRootForTest(t, t.TempDir())
 		installedBytes := []byte("installed")
 		installed := artifactForTest(t, installedBytes, 1)
 		candidate := artifactForTest(t, []byte("candidate"), 2)
@@ -330,7 +330,7 @@ func TestDownloadAndVerifyCandidateLayerTriad(t *testing.T) {
 		t.Parallel()
 
 		payload := bytes.Repeat([]byte{0x3c}, (32<<10)+1)
-		root, directory := stageRootForTest(t)
+		root, directory := stageRootForTest(t, t.TempDir())
 		installed := artifactForTest(t, []byte("installed"), 1)
 		candidate := artifactForTest(t, payload, 2)
 		target := stageTargetForTest(t, stageTargetFixture{
@@ -366,7 +366,7 @@ func TestDownloadAndVerifyCandidateLayerTriad(t *testing.T) {
 		t.Parallel()
 
 		payload := []byte("candidate")
-		root, directory := stageRootForTest(t)
+		root, directory := stageRootForTest(t, t.TempDir())
 		installed := artifactForTest(t, []byte("installed"), 1)
 		candidate := artifactForTest(t, payload, 2)
 		target := stageTargetForTest(t, stageTargetFixture{
@@ -402,7 +402,7 @@ func TestDownloadAndVerifyCandidateLayerTriad(t *testing.T) {
 func TestStageCapacityAndCleanupKeepNumericAndNativeIdentity(t *testing.T) {
 	t.Parallel()
 
-	root, directory := stageRootForTest(t)
+	root, directory := stageRootForTest(t, t.TempDir())
 	candidate := artifactForTest(t, []byte("candidate"), 2)
 	if err := admitStageCapacity(t.Context(), StageRequest{
 		Root: root, Directory: directory,
@@ -437,7 +437,7 @@ func TestStageCapacityAndCleanupKeepNumericAndNativeIdentity(t *testing.T) {
 func TestUpgradePathProjectionsRemainBoundToTheirAuthenticatedArtifacts(t *testing.T) {
 	t.Parallel()
 
-	_, directory := stageRootForTest(t)
+	_, directory := stageRootForTest(t, t.TempDir())
 	installed := artifactForTest(t, []byte("installed"), 1)
 	candidate := artifactForTest(t, []byte("candidate"), 2)
 	target := stageTargetForTest(t, stageTargetFixture{
@@ -552,15 +552,18 @@ func (t *stageDownloadTransport) RoundTrip(request *http.Request) (*http.Respons
 	}, nil
 }
 
-func stageRootForTest(t testing.TB) (*os.Root, core.AbsolutePath) {
+func stageRootForTest(t testing.TB, directory string) (*os.Root, core.AbsolutePath) {
 	t.Helper()
 
-	directory := t.TempDir()
 	root, err := os.OpenRoot(directory)
 	if err != nil {
 		t.Fatalf("os.OpenRoot() error = %v, want nil", err)
 	}
-	t.Cleanup(func() { _ = root.Close() })
+	t.Cleanup(func() {
+		if err := root.Close(); err != nil {
+			t.Errorf("Root.Close() error = %v, want nil", err)
+		}
+	})
 	return root, absolutePathForTest(t, directory)
 }
 

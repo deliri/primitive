@@ -33,7 +33,7 @@ func (r BootstrapRequest) Validate() error {
 	if err := r.Build.Validate(); err != nil {
 		return contractError(err)
 	}
-	if r.Source == nil {
+	if core.ReaderIsNil(r.Source) {
 		return contractError(errors.New("bootstrap source is missing"))
 	}
 	return nil

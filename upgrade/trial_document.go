@@ -194,19 +194,15 @@ func readTrial(
 	root *os.Root,
 	slot Slot,
 ) (trialDocument, error) {
-	var destination bytes.Buffer
 	path, err := trialPath(slot)
 	if err != nil {
 		return trialDocument{}, persistenceError(err)
 	}
-	_, err = filestore.Read(ctx, filestore.ReadRequest{
-		Destination: &destination,
-		Location:    filestore.Location{Root: root, Path: path},
-	})
+	data, err := readMetadata(ctx, root, path, trialDocumentMaximumBytes)
 	if err != nil {
 		return trialDocument{}, persistenceError(err)
 	}
-	document, err := decodeTrial(destination.Bytes())
+	document, err := decodeTrial(data)
 	if err != nil {
 		return trialDocument{}, persistenceError(err)
 	}

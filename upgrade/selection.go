@@ -153,21 +153,15 @@ func readSelection(
 	ctx context.Context,
 	root *os.Root,
 ) (selectionDocument, error) {
-	var destination bytes.Buffer
 	path, err := selectionPath()
 	if err != nil {
 		return selectionDocument{}, persistenceError(err)
 	}
-	_, err = filestore.Read(ctx, filestore.ReadRequest{
-		Destination: &destination,
-		Location: filestore.Location{
-			Root: root, Path: path,
-		},
-	})
+	data, err := readMetadata(ctx, root, path, selectionDocumentMaximumBytes)
 	if err != nil {
 		return selectionDocument{}, persistenceError(err)
 	}
-	document, err := decodeSelection(destination.Bytes())
+	document, err := decodeSelection(data)
 	if err != nil {
 		return selectionDocument{}, persistenceError(err)
 	}

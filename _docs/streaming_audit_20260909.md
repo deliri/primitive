@@ -72,7 +72,7 @@ Audit exit per package: no hidden transfer/line quota; reader and writer paths c
 | testserial | 0 | requires_review |
 | timeproof | 34 | requires_review |
 | twilio | 3 | requires_review |
-| upgrade | 16 | requires_review |
+| upgrade | 16 | reviewed; fixed nominal metadata and streaming artifacts in [review](upgrade_review_20260910.md) |
 | version | 0 | reviewed; fixed nominal token memory in [upgrade report](version_upgrade_20260910.md) |
 | wiring | 0 | requires_review |
 
