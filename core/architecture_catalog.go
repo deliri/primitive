@@ -111,8 +111,6 @@ const (
 	PackageDistribution
 	// PackageDistributionAuth identifies installation binding for update and upgrade requests.
 	PackageDistributionAuth
-	// PackageWiring identifies bounded runtime component-graph proof.
-	PackageWiring
 	// PackageLineIO identifies bounded line scanning over one reader.
 	PackageLineIO
 	// PackageManual identifies bounded human and machine manual projection.
@@ -230,7 +228,6 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackagePaymentAuth, Kind: PackageKindProduction, Role: PackageRoleAuthenticationBinding},
 			{Identity: PackageDistribution, Kind: PackageKindProduction, Role: PackageRoleDomainAgreement},
 			{Identity: PackageDistributionAuth, Kind: PackageKindProduction, Role: PackageRoleAuthenticationBinding},
-			{Identity: PackageWiring, Kind: PackageKindProduction, Role: PackageRoleValueContract},
 			{Identity: PackageLineIO, Kind: PackageKindProduction, Role: PackageRoleValueContract},
 			{Identity: PackageManual, Kind: PackageKindProduction, Role: PackageRoleValueContract},
 			{Identity: PackageSecretStore, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
@@ -471,7 +468,6 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"paymentauth",
 		"distribution",
 		"distributionauth",
-		"wiring",
 		"lineio",
 		"manual",
 		"secretstore",

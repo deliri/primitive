@@ -119,15 +119,6 @@ func emitPackageClaimSpecsSThroughZ(emit func(packageClaimSpec) bool) bool {
 			owns:     "Upgrade owns artifact staging, integrity verification, fixed-slot paths, trial command exposure, atomic selection, and former-slot cleanup.",
 			excludes: "It does not choose arguments, define test success, request consent, submit tickets, schedule work, retry, or own release authority.",
 		},
-		{
-			path: "wiring", title: "Bounded component-graph proof",
-			problem:  "Runtime composition can hide duplicate providers, missing dependencies, and cycles behind constructors or mutable registries.",
-			solution: "Wiring validates a bounded typed component graph and derives deterministic construction order without executing components.",
-			benefit:  "Process assembly becomes inspectable and reproducible without a dependency-injection runtime or universal service model.",
-			removal:  "Remove Wiring when no consumer needs shared static component-graph validation beyond direct construction.",
-			owns:     "Wiring owns component and dependency identities, graph bounds, duplicate and cycle refusal, and deterministic order.",
-			excludes: "It does not instantiate services, discover plugins, store global state, supervise lifetimes, or define product architecture.",
-		},
 	}
 	for _, spec := range specs {
 		if !emit(spec) {

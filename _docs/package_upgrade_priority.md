@@ -132,7 +132,7 @@ runner acceptance remains a separate fact.
 
 Continue in the user-approved September 10 order:
 
-`wiring`, `github`,
+`github`,
 `gomodule`, `timeproof`, `controlplanetest`, `gitrepo`, `machineprobe`, `paypal`,
 `plunk`, `runworkspace`, `sourceclaim`, `sourceobservation`, `sourceproof`,
 `stripe`, `testserial`, `twilio`.
@@ -200,3 +200,7 @@ Retrievalauth v2026.1.60: [local upgrade review](retrievalauth_upgrade_20260910.
 Upgrade v2026.1.61: [local review](upgrade_review_20260910.md). Fixed nominal metadata storage, typed-nil Bootstrap refusal and authenticated public lifecycle/fuzz proof. Deploy is next. Release tags now follow compass/config.json.
 
 Deploy v2026.1.62: [local review](deploy_review_20260910.md). Provider extent admission, unique confirmed grant receipts, exact TLS upload observations and semantic fuzz proof. Wiring is next; no product workflow or state machine was added.
+
+## Wiring removal — v2026.1.63
+
+The user-directed clean removal retires the whole runtime graph/readiness API, its catalog identity and authored package claims. See [migration and evidence scope](wiring_removal_20260910.md). No replacement graph engine or compatibility shim is introduced. Consumer migration is explicit and remains product-owned.

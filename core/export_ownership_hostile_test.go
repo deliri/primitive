@@ -15,7 +15,7 @@ import (
 
 const (
 	coreExportDependencyMaximum     = 32
-	coreSpecialExportAdmissionCount = 82
+	coreSpecialExportAdmissionCount = 81
 	coreProviderExportContractCount = 50
 )
 
@@ -144,7 +144,6 @@ func coreSpecialExportAdmissions() [coreSpecialExportAdmissionCount]coreSpecialE
 		architectureCatalogAdmission("PackageGoogleIdentity", PackageGoogleIdentity),
 		architectureCatalogAdmission("PackageAWSIdentity", PackageAWSIdentity),
 		architectureCatalogAdmission("PackageUpgrade", PackageUpgrade),
-		architectureCatalogAdmission("PackageWiring", PackageWiring),
 		architectureCatalogAdmission("PackageLineIO", PackageLineIO),
 		architectureCatalogAdmission("PackageManual", PackageManual),
 		architectureCatalogAdmission("ParsePackageIdentity", ParsePackageIdentity),

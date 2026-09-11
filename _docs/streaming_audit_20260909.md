@@ -74,7 +74,7 @@ Audit exit per package: no hidden transfer/line quota; reader and writer paths c
 | twilio | 3 | requires_review |
 | upgrade | 16 | reviewed; fixed nominal metadata and streaming artifacts in [review](upgrade_review_20260910.md) |
 | version | 0 | reviewed; fixed nominal token memory in [upgrade report](version_upgrade_20260910.md) |
-| wiring | 0 | requires_review |
+| wiring | 0 | removed in v2026.1.63; runtime graph/readiness is product-owned |
 
 Lineio review evidence: [review follow-up](lineio_review_20260909.md). Its Go source is verified; user review is pending. The remaining package-wide audits are not complete; the scoped review below does not establish whole-package compliance.
 
