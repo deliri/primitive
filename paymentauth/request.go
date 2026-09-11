@@ -42,7 +42,7 @@ func (d RequestDocument) Validate() error {
 	if err != nil {
 		return bindingError(err)
 	}
-	if d.Request.Payload.Build != d.Certificate.Body.Build || query.Scope != certificateScope {
+	if d.Request.Payload.Build != d.Certificate.Body.Build || query.Scope != certificateScope || d.Request.Attestation.Signer != d.Certificate.Body.DeviceKey {
 		return bindingError()
 	}
 	return nil
@@ -50,6 +50,9 @@ func (d RequestDocument) Validate() error {
 
 // ControlRoute projects the sole route admitted by this credentialed query.
 func (d RequestDocument) ControlRoute() (controlwire.RouteContract, error) {
+	if err := d.Validate(); err != nil {
+		return controlwire.RouteContract{}, err
+	}
 	return controlwire.NewRouteContract(
 		d.Request.Payload.Build.Offering(), controlwire.RouteFamilyPayments,
 	)
@@ -131,7 +134,10 @@ func Verify(verification Verification) (Verified, error) {
 	verified := Verified{
 		document: verification.Document, requestProof: request, certificateProof: certificate,
 	}
-	return verified, verified.Validate()
+	if err := verified.Validate(); err != nil {
+		return Verified{}, err
+	}
+	return verified, nil
 }
 
 func (v Verified) Validate() error {

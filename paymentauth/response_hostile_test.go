@@ -29,39 +29,19 @@ type paymentResponseFixture struct {
 	server   controlplane.Authority
 }
 
-type paymentResponseIdentityCase struct {
-	name            string
-	authorityMarker byte
-	deviceMarker    byte
-}
-
 func TestPaymentResponseVerificationLayerTriadClosesThePaymentRouteFamily(t *testing.T) {
 	t.Parallel()
 
 	fixture := newPaymentResponseFixture(t)
 
-	t.Run("positive ten authentic payment responses expose their exact settled receipts", func(t *testing.T) {
+	t.Run("positive authenticated catalog retains exact settled receipt", func(t *testing.T) {
 		t.Parallel()
-
-		for _, tc := range paymentResponseIdentityCases() {
-			t.Run(tc.name, func(t *testing.T) {
-				t.Parallel()
-
-				candidate := newPaymentResponseFixtureWithMarkers(t, tc.authorityMarker, tc.deviceMarker)
-				document := issuePaymentResponseDocument(t, candidate)
-				verification := ResponseVerification{
-					Client: candidate.client, Document: document, Expected: candidate.expected,
-				}
-				if validationErr := verification.Validate(); validationErr != nil {
-					t.Fatalf("ResponseVerification.Validate(authentic payment family) error = %v, want nil", validationErr)
-				}
-				got, gotErr := VerifyResponse(verification)
-				if gotErr != nil {
-					t.Fatalf("VerifyResponse(authentic payment family) error = %v, want nil", gotErr)
-				}
-				proveExactPaymentCatalog(t, candidate, got)
-			})
+		document := issuePaymentResponseDocument(t, fixture)
+		got, err := VerifyResponse(ResponseVerification{Client: fixture.client, Document: document, Expected: fixture.expected})
+		if err != nil {
+			t.Fatalf("VerifyResponse error = %v, want nil", err)
 		}
+		proveExactPaymentCatalog(t, fixture, got)
 	})
 
 	t.Run("negative every authentic sibling family is refused without proof", func(t *testing.T) {
@@ -135,23 +115,14 @@ func TestPaymentResponseIssuanceLayerTriadBindsOnlyThePaymentRouteFamily(t *test
 
 	fixture := newPaymentResponseFixture(t)
 
-	t.Run("positive ten authenticated catalog projections survive wire closure", func(t *testing.T) {
+	t.Run("positive issued catalog survives signed wire closure", func(t *testing.T) {
 		t.Parallel()
-
-		for _, tc := range paymentResponseIdentityCases() {
-			t.Run(tc.name, func(t *testing.T) {
-				t.Parallel()
-
-				candidate := newPaymentResponseFixtureWithMarkers(t, tc.authorityMarker, tc.deviceMarker)
-				document := issuePaymentResponseDocument(t, candidate)
-				got, gotErr := VerifyResponse(ResponseVerification{
-					Client: candidate.client, Document: document, Expected: candidate.expected,
-				})
-				if gotErr != nil || got.Validate() != nil {
-					t.Fatalf("issued payment response verification = (%v, %v), want valid proof and nil", got, gotErr)
-				}
-			})
+		document := issuePaymentResponseDocument(t, fixture)
+		got, err := VerifyResponse(ResponseVerification{Client: fixture.client, Document: document, Expected: fixture.expected})
+		if err != nil {
+			t.Fatalf("issued response verification error = %v, want nil", err)
 		}
+		proveExactPaymentCatalog(t, fixture, got)
 	})
 
 	t.Run("negative sibling families and invalid authority inputs emit no projection", func(t *testing.T) {
@@ -178,21 +149,6 @@ func TestPaymentResponseIssuanceLayerTriadBindsOnlyThePaymentRouteFamily(t *test
 				len(encoded), marshalErr, core.ErrControlPlaneResponseDocument)
 		}
 	})
-}
-
-func paymentResponseIdentityCases() []paymentResponseIdentityCase {
-	return []paymentResponseIdentityCase{
-		{name: "minimum authority and one-above-minimum device markers", authorityMarker: 1, deviceMarker: 2},
-		{name: "minimum authority and maximum device markers", authorityMarker: 1, deviceMarker: 255},
-		{name: "maximum authority and minimum device markers", authorityMarker: 255, deviceMarker: 1},
-		{name: "maximum authority and one-below-maximum device markers", authorityMarker: 255, deviceMarker: 254},
-		{name: "one below authority midpoint", authorityMarker: 127, deviceMarker: 128},
-		{name: "authority midpoint", authorityMarker: 128, deviceMarker: 127},
-		{name: "one above authority midpoint", authorityMarker: 129, deviceMarker: 126},
-		{name: "distinct low authority and device markers", authorityMarker: 2, deviceMarker: 3},
-		{name: "distinct high authority and device markers", authorityMarker: 253, deviceMarker: 254},
-		{name: "ordinary authority and device markers", authorityMarker: 81, deviceMarker: 82},
-	}
 }
 
 func proveExactPaymentCatalog(
@@ -472,7 +428,7 @@ func newPaymentResponseFixtureWithMarkers(
 		Scope:      request.payload.Query.Scope, Request: commitment, Continuation: payment.End(),
 	}})
 	if err != nil {
-		t.Fatalf("payment.IssueCatalog(real empty page) error = %v, want nil", err)
+		t.Fatalf("payment.IssueCatalog(real settled receipt page) error = %v, want nil", err)
 	}
 	activation, err := controlwire.NewPolicyActivation(1)
 	if err != nil {

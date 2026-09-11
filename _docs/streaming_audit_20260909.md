@@ -46,7 +46,7 @@ Audit exit per package: no hidden transfer/line quota; reader and writer paths c
 | manual | 3 | requires_review |
 | objectstore | 56 | requires_review |
 | payment | 21 | requires_review |
-| paymentauth | 7 | requires_review |
+| paymentauth | 7 | reviewed; explicit composed JSON ownership in [upgrade report](paymentauth_upgrade_20260910.md) |
 | paypal | 27 | requires_review |
 | plunk | 4 | requires_review |
 | process | 18 | requires_review |
