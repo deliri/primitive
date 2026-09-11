@@ -60,7 +60,7 @@ func BenchmarkGoOOMStateJSON(b *testing.B) {
 
 func BenchmarkGoOOMEvidenceJSON(b *testing.B) {
 	b.ReportAllocs()
-	want := GoOOMBannerEvidence{examined: mustByteLength(b, GoOOMMaximumEvidenceBytes), state: GoOOMBannerPresent}
+	want := GoOOMBannerEvidence{examined: mustByteLength(b, goOOMFixtureBytes), state: GoOOMBannerPresent}
 	data, err := want.MarshalJSON()
 	if err != nil {
 		b.Fatalf("evidence fixture error = %v, want nil", err)

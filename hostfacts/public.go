@@ -97,7 +97,7 @@ func ObserveEffectiveWorkloadMemoryLimit(ctx context.Context) (WorkloadMemoryLim
 	return observeEffectiveWorkloadMemoryLimit(ctx)
 }
 
-// ClassifyGoOOMBanner consumes exactly the declared bounded extent and reports
+// ClassifyGoOOMBanner streams exactly the declared extent with a fixed buffer and reports
 // only canonical Go runtime OOM banner presence.
 func ClassifyGoOOMBanner(ctx context.Context, request GoOOMBannerRequest) (GoOOMBannerEvidence, error) {
 	if err := contextstate.Validate(ctx); err != nil {
@@ -113,6 +113,9 @@ func ClassifyGoOOMBanner(ctx context.Context, request GoOOMBannerRequest) (GoOOM
 		if err := scanner.read(ctx); err != nil {
 			return GoOOMBannerEvidence{}, fail(OperationGoOOMBanner, core.ErrHostFactsObservation, err)
 		}
+	}
+	if err := contextstate.Validate(ctx); err != nil {
+		return GoOOMBannerEvidence{}, fail(OperationGoOOMBanner, core.ErrHostFactsObservation, err)
 	}
 	state := GoOOMBannerAbsent
 	if scanner.found {

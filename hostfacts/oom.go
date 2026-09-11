@@ -13,8 +13,6 @@ import (
 
 const (
 	goOOMBufferBytes = 32 << 10
-	// GoOOMMaximumEvidenceBytes bounds one banner-classification source.
-	GoOOMMaximumEvidenceBytes = 1 << 20
 
 	// GoOOMPrefixedBanner and GoOOMPlainBanner are the exact Go runtime
 	// diagnostics recognized by ClassifyGoOOMBanner. Consumers use these
@@ -114,15 +112,18 @@ type GoOOMBannerRequest struct {
 	Length core.ByteLength
 }
 
-// Validate rejects a nil source or an extent beyond the production bound.
+// Validate requires a reader and a nominal extent; stream length has no quota.
 func (r GoOOMBannerRequest) Validate() error {
-	if r.Source == nil || r.Length.Uint64() > GoOOMMaximumEvidenceBytes {
+	if core.ReaderIsNil(r.Source) {
 		return errors.Join(core.ErrHostFactsContract, errors.New("go OOM banner request is invalid"))
+	}
+	if err := r.Length.Validate(); err != nil {
+		return errors.Join(core.ErrHostFactsContract, err)
 	}
 	return nil
 }
 
-// GoOOMBannerEvidence is bounded, persistable banner-presence evidence.
+// GoOOMBannerEvidence records exact examined extent and banner presence.
 type GoOOMBannerEvidence struct {
 	examined core.ByteLength
 	state    GoOOMBannerState
@@ -130,8 +131,8 @@ type GoOOMBannerEvidence struct {
 
 // Validate rejects evidence that the production classifier could not emit.
 func (e GoOOMBannerEvidence) Validate() error {
-	if e.examined.Uint64() > GoOOMMaximumEvidenceBytes {
-		return errors.Join(core.ErrHostFactsEvidence, errors.New("go OOM evidence extent exceeds the classifier bound"))
+	if err := e.examined.Validate(); err != nil {
+		return errors.Join(core.ErrHostFactsEvidence, err)
 	}
 	if err := e.state.Validate(); err != nil {
 		return err
@@ -162,8 +163,8 @@ func (w goOOMBannerWire) Validate() error {
 	if w.BytesExamined == nil || w.State == nil {
 		return core.ErrHostFactsEvidence
 	}
-	if w.BytesExamined.Uint64() > GoOOMMaximumEvidenceBytes {
-		return core.ErrHostFactsEvidence
+	if err := w.BytesExamined.Validate(); err != nil {
+		return errors.Join(core.ErrHostFactsEvidence, err)
 	}
 	return w.State.Validate()
 }
@@ -258,6 +259,9 @@ func (s *oomScanner) match(count int) {
 
 func classifyOOMRead(remaining uint64, emptyReads int, readErr error) error {
 	if remaining == 0 {
+		if readErr != nil && readErr != io.EOF {
+			return readErr
+		}
 		return nil
 	}
 	if errors.Is(readErr, io.EOF) {

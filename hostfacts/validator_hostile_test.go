@@ -171,16 +171,16 @@ func TestGoOOMBannerEvidenceValidatorAdmitsOnlyClassifierProvenance(t *testing.T
 		{name: "one below shortest banner remains absence", extent: minimumPresence - 1, state: GoOOMBannerAbsent},
 		{name: "shortest banner extent admits absence", extent: minimumPresence, state: GoOOMBannerAbsent},
 		{name: "shortest banner extent admits presence", extent: minimumPresence, state: GoOOMBannerPresent},
-		{name: "maximum classifier extent admits absence", extent: GoOOMMaximumEvidenceBytes, state: GoOOMBannerAbsent},
-		{name: "maximum classifier extent admits presence", extent: GoOOMMaximumEvidenceBytes, state: GoOOMBannerPresent},
+		{name: "maximum nominal extent admits absence", extent: math.MaxInt64, state: GoOOMBannerAbsent},
+		{name: "maximum nominal extent admits presence", extent: math.MaxInt64, state: GoOOMBannerPresent},
 		{name: "unknown state is never classifier evidence", extent: 0, state: GoOOMBannerUnknown, wantErr: core.ErrHostFactsEvidence},
 		{name: "future state is never classifier evidence", extent: 0, state: GoOOMBannerState(math.MaxUint8), wantErr: core.ErrHostFactsEvidence},
 		{name: "zero bytes cannot contain the shortest banner", extent: 0, state: GoOOMBannerPresent, wantErr: core.ErrHostFactsEvidence},
 		{name: "one byte cannot contain the shortest banner", extent: 1, state: GoOOMBannerPresent, wantErr: core.ErrHostFactsEvidence},
 		{name: "two below shortest banner cannot prove presence", extent: minimumPresence - 2, state: GoOOMBannerPresent, wantErr: core.ErrHostFactsEvidence},
 		{name: "one below shortest banner cannot prove presence", extent: minimumPresence - 1, state: GoOOMBannerPresent, wantErr: core.ErrHostFactsEvidence},
-		{name: "one over classifier extent cannot be evidence", extent: GoOOMMaximumEvidenceBytes + 1, state: GoOOMBannerAbsent, wantErr: core.ErrHostFactsEvidence},
-		{name: "two over classifier extent cannot be evidence", extent: GoOOMMaximumEvidenceBytes + 2, state: GoOOMBannerPresent, wantErr: core.ErrHostFactsEvidence},
+		{name: "one over former ceiling admits absence", extent: goOOMFixtureBytes + 1, state: GoOOMBannerAbsent},
+		{name: "two over former ceiling admits presence", extent: goOOMFixtureBytes + 2, state: GoOOMBannerPresent},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

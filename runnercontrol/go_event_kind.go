@@ -1,71 +1,120 @@
 package runnercontrol
 
-type goEventAction uint8
+import "github.com/deliri/primitive/v2026/core"
+
+type GoEventAction uint8
 
 const (
-	goEventUnknown goEventAction = iota
-	goEventStart
-	goEventRun
-	goEventPause
-	goEventContinue
-	goEventPass
-	goEventBenchmark
-	goEventFail
-	goEventOutput
-	goEventSkip
-	goEventBuildOutput
-	goEventBuildFail
+	GoEventActionUnknown GoEventAction = iota
+	GoEventActionStart
+	GoEventActionRun
+	GoEventActionPause
+	GoEventActionContinue
+	GoEventActionPass
+	GoEventActionBenchmark
+	GoEventActionFail
+	GoEventActionOutput
+	GoEventActionSkip
+	GoEventActionBuildOutput
+	GoEventActionBuildFail
 )
 
-func decodeGoEventAction(value string) (goEventAction, error) {
-	switch value {
-	case "start":
-		return goEventStart, nil
-	case "run":
-		return goEventRun, nil
-	case "pause":
-		return goEventPause, nil
-	case "cont":
-		return goEventContinue, nil
-	case "pass":
-		return goEventPass, nil
-	case "bench":
-		return goEventBenchmark, nil
-	case "fail":
-		return goEventFail, nil
-	case "output":
-		return goEventOutput, nil
-	case "skip":
-		return goEventSkip, nil
-	case "build-output":
-		return goEventBuildOutput, nil
-	case "build-fail":
-		return goEventBuildFail, nil
-	default:
-		return goEventUnknown, goJSONFailure()
+func decodeGoEventAction(value string) (GoEventAction, error) {
+	for action := GoEventActionStart; action <= GoEventActionBuildFail; action++ {
+		if value == action.String() {
+			return action, nil
+		}
 	}
+	return GoEventActionUnknown, goJSONFailure()
 }
 
-type goOutputKind uint8
+type GoEventOutputKind uint8
 
 const (
-	goOutputOrdinary goOutputKind = iota
-	goOutputFrame
-	goOutputError
-	goOutputErrorContinue
+	GoEventOutputOrdinary GoEventOutputKind = iota
+	GoEventOutputFrame
+	GoEventOutputError
+	GoEventOutputErrorContinue
 )
 
-func decodeGoOutputKind(value string) (goOutputKind, error) {
-	switch value {
-	case "":
-		return goOutputOrdinary, nil
-	case "frame":
-		return goOutputFrame, nil
-	case "error":
-		return goOutputError, nil
-	case "error-continue":
-		return goOutputErrorContinue, nil
-	default:
-		return goOutputOrdinary, goJSONFailure()
+func decodeGoOutputKind(value string) (GoEventOutputKind, error) {
+	for kind := GoEventOutputOrdinary; kind <= GoEventOutputErrorContinue; kind++ {
+		if value == kind.String() {
+			return kind, nil
+		}
 	}
+	return GoEventOutputOrdinary, goJSONFailure()
+}
+
+func (a GoEventAction) Validate() error {
+	if a < GoEventActionStart || a > GoEventActionBuildFail {
+		return goJSONFailure()
+	}
+	return nil
+}
+func (a GoEventAction) String() string {
+	switch a {
+	case GoEventActionStart:
+		return "start"
+	case GoEventActionRun:
+		return "run"
+	case GoEventActionPause:
+		return "pause"
+	case GoEventActionContinue:
+		return "cont"
+	case GoEventActionPass:
+		return "pass"
+	case GoEventActionBenchmark:
+		return "bench"
+	case GoEventActionFail:
+		return "fail"
+	case GoEventActionOutput:
+		return "output"
+	case GoEventActionSkip:
+		return "skip"
+	case GoEventActionBuildOutput:
+		return "build-output"
+	case GoEventActionBuildFail:
+		return "build-fail"
+	default:
+		return invalidEnumString()
+	}
+}
+func (a GoEventAction) MarshalJSON() ([]byte, error) {
+	if err := a.Validate(); err != nil {
+		return nil, err
+	}
+	return core.MarshalCanonicalJSONString(a.String())
+}
+func (k GoEventOutputKind) Validate() error {
+	if k > GoEventOutputErrorContinue {
+		return goJSONFailure()
+	}
+	return nil
+}
+func (k GoEventOutputKind) String() string {
+	switch k {
+	case GoEventOutputOrdinary:
+		return ""
+	case GoEventOutputFrame:
+		return "frame"
+	case GoEventOutputError:
+		return "error"
+	case GoEventOutputErrorContinue:
+		return "error-continue"
+	default:
+		return invalidEnumString()
+	}
+}
+func (k GoEventOutputKind) MarshalJSON() ([]byte, error) {
+	if err := k.Validate(); err != nil {
+		return nil, err
+	}
+	return core.MarshalCanonicalJSONString(k.String())
+}
+func (f GoEventField) Validate() error {
+	if f < GoEventFieldAction || f > GoEventFieldImportPath {
+		return goJSONFailure()
+	}
+	return nil
 }

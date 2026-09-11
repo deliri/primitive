@@ -68,6 +68,7 @@ func TestRunnerControlExternalDecodersHaveNamedFuzzTargets(t *testing.T) {
 		"ObservationFormat":             "FuzzRunnerControlExternalEnumJSONSemanticClosure",
 		"PeerCredentialKind":            "FuzzPeerCredentialKindExternalJSONSemanticClosure",
 		"PeerRole":                      "FuzzRunnerControlExternalEnumJSONSemanticClosure",
+		"ReadGoEventStream":             "FuzzGoEventStreamSemanticClosure",
 		"RequestedRun":                  "FuzzRequestedRunSemanticClosure",
 		"RunControlState":               "FuzzRunnerControlExternalEnumJSONSemanticClosure",
 		"RunStateRequest":               "FuzzRunStateRequestJSONSemanticClosure",
@@ -111,13 +112,15 @@ func TestRunnerControlExternalDecodersHaveNamedFuzzTargets(t *testing.T) {
 				}
 			} else if function.Name.Name == "UnmarshalJSON" && function.Recv != nil {
 				decoders[runnerControlReceiverName(function.Recv.List[0].Type)] = true
+			} else if function.Recv == nil && (strings.HasPrefix(function.Name.Name, "Read") || strings.HasPrefix(function.Name.Name, "Parse") || strings.HasPrefix(function.Name.Name, "Decode") || strings.HasPrefix(function.Name.Name, "Load") || strings.HasPrefix(function.Name.Name, "Replay")) {
+				decoders[function.Name.Name] = true
 			}
 		}
 	}
 	for name := range decoders {
 		target, ok := inventory[name]
 		if !ok || !targets[target] {
-			t.Errorf("%s.UnmarshalJSON fuzz target = %q, want named live semantic target", name, target)
+			t.Errorf("%s external decoder fuzz target = %q, want named live semantic target", name, target)
 		}
 	}
 	for name := range inventory {

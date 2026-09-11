@@ -48,6 +48,15 @@ func emitPackageClaimSpecsAThroughG(emit func(packageClaimSpec) bool) bool {
 			excludes: "It does not own custody, catalog persistence, account permission, or listing policy.",
 		},
 		{
+			path: "compass", title: "Compiler-visible project configuration",
+			problem:  "Copied release coordinates and untyped configuration parsing can disagree about the project being built.",
+			solution: "Compass validates the common project declaration and decodes each caller-owned configuration struct through one shared boundary.",
+			benefit:  "One authored configuration supplies validated project identity and release coordinates to Go consumers.",
+			removal:  "Remove Compass when no consumer shares the project declaration or its strict typed configuration decoder.",
+			owns:     "Compass owns the common project shape, declaration validation, and strict configuration decoding.",
+			excludes: "It does not choose product settings, publish releases, execute deployments, or interpret caller-specific configuration fields.",
+		},
+		{
 			path: "contextstate", title: "Context terminal-state observation",
 			problem:  "Packages repeatedly reinterpret cancellation and deadline state or add goroutines around a fact Context already owns.",
 			solution: "Contextstate observes Context.Err through one typed bounded contract without clocks, stored contexts, or helper goroutines.",

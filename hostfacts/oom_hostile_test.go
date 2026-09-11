@@ -34,7 +34,7 @@ func TestGoOOMBannerClassifierHostileBoundaryTable(t *testing.T) {
 		{name: "plain banner after prefix noise is present", data: "noise\n" + GoOOMPlainBanner, length: uint64(len("noise\n" + GoOOMPlainBanner)), chunk: 3, wantState: GoOOMBannerPresent},
 		{name: "prefixed banner before suffix noise is present", data: GoOOMPrefixedBanner + "\nnoise", length: uint64(len(GoOOMPrefixedBanner + "\nnoise")), chunk: 5, wantState: GoOOMBannerPresent},
 		{name: "both banners remain present", data: GoOOMPlainBanner + GoOOMPrefixedBanner, length: uint64(len(GoOOMPlainBanner + GoOOMPrefixedBanner)), chunk: 7, wantState: GoOOMBannerPresent},
-		{name: "banner at maximum extent tail is present", data: strings.Repeat("x", GoOOMMaximumEvidenceBytes-len(GoOOMPlainBanner)) + GoOOMPlainBanner, length: GoOOMMaximumEvidenceBytes, chunk: 4093, wantState: GoOOMBannerPresent},
+		{name: "banner at megabyte fixture tail is present", data: strings.Repeat("x", goOOMFixtureBytes-len(GoOOMPlainBanner)) + GoOOMPlainBanner, length: goOOMFixtureBytes, chunk: 4093, wantState: GoOOMBannerPresent},
 		{name: "one byte short plain banner is absent", data: GoOOMPlainBanner[:len(GoOOMPlainBanner)-1], length: uint64(len(GoOOMPlainBanner) - 1), chunk: 2, wantState: GoOOMBannerAbsent},
 		{name: "one byte short prefixed banner is absent", data: GoOOMPrefixedBanner[:len(GoOOMPrefixedBanner)-1], length: uint64(len(GoOOMPrefixedBanner) - 1), chunk: 2, wantState: GoOOMBannerAbsent},
 		{name: "wrong capitalization is absent", data: "Fatal error: out of memory", length: uint64(len("Fatal error: out of memory")), chunk: 4, wantState: GoOOMBannerAbsent},
@@ -42,7 +42,7 @@ func TestGoOOMBannerClassifierHostileBoundaryTable(t *testing.T) {
 		{name: "declared extent hides trailing banner", data: "prefix" + GoOOMPlainBanner, length: uint64(len("prefix")), chunk: 2, wantState: GoOOMBannerAbsent},
 		{name: "short source fails", data: "short", length: 6, chunk: 2, wantErr: io.ErrUnexpectedEOF},
 		{name: "empty source with positive extent fails", data: "", length: 1, chunk: 1, wantErr: io.ErrUnexpectedEOF},
-		{name: "declared maximum with short source fails", data: "x", length: GoOOMMaximumEvidenceBytes, chunk: 1, wantErr: io.ErrUnexpectedEOF},
+		{name: "declared megabyte with short source fails", data: "x", length: goOOMFixtureBytes, chunk: 1, wantErr: io.ErrUnexpectedEOF},
 		{name: "overlapping fatal prefix recovers", data: "fatal fatal error: out of memory", length: uint64(len("fatal fatal error: out of memory")), chunk: 2, wantState: GoOOMBannerPresent},
 		{name: "repeated banner prefix near miss is absent", data: strings.Repeat("fatal error: out of memorx", 20), length: uint64(len(strings.Repeat("fatal error: out of memorx", 20))), chunk: 3, wantState: GoOOMBannerAbsent},
 	}
@@ -106,13 +106,6 @@ func TestGoOOMBannerEverySplitPositionPreservesPresence(t *testing.T) {
 func TestGoOOMBannerRequestAndReaderFailureBoundaries(t *testing.T) {
 	t.Parallel()
 
-	overMaximum := GoOOMBannerRequest{
-		Source: bytes.NewReader(nil),
-		Length: mustByteLength(t, GoOOMMaximumEvidenceBytes+1),
-	}
-	if gotErr := overMaximum.Validate(); !errors.Is(gotErr, core.ErrHostFactsContract) {
-		t.Fatalf("GoOOMBannerRequest(over maximum).Validate() error = %v, want %v", gotErr, core.ErrHostFactsContract)
-	}
 	if gotErr := (GoOOMBannerRequest{}).Validate(); !errors.Is(gotErr, core.ErrHostFactsContract) {
 		t.Fatalf("GoOOMBannerRequest{}.Validate() error = %v, want %v", gotErr, core.ErrHostFactsContract)
 	}
@@ -165,8 +158,8 @@ func TestGoOOMBannerEvidenceJSONHostileTable(t *testing.T) {
 		{name: "prefixed banner extent admits presence", extent: uint64(len(GoOOMPrefixedBanner)), state: GoOOMBannerPresent},
 		{name: "kilobyte absence is canonical", extent: 1 << 10, state: GoOOMBannerAbsent},
 		{name: "kilobyte presence is canonical", extent: 1 << 10, state: GoOOMBannerPresent},
-		{name: "one below evidence ceiling is canonical", extent: GoOOMMaximumEvidenceBytes - 1, state: GoOOMBannerAbsent},
-		{name: "exact evidence ceiling is canonical", extent: GoOOMMaximumEvidenceBytes, state: GoOOMBannerPresent},
+		{name: "one below megabyte fixture is canonical", extent: goOOMFixtureBytes - 1, state: GoOOMBannerAbsent},
+		{name: "megabyte fixture is canonical", extent: goOOMFixtureBytes, state: GoOOMBannerPresent},
 	}
 	for _, tc := range validCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -208,7 +201,6 @@ func TestGoOOMBannerEvidenceJSONHostileTable(t *testing.T) {
 		{name: "negative extent is rejected", wire: `{"bytes_examined":-1,"state":"absent"}`},
 		{name: "fractional extent is rejected", wire: `{"bytes_examined":1.0,"state":"absent"}`},
 		{name: "string extent is rejected", wire: `{"bytes_examined":"1","state":"absent"}`},
-		{name: "one over evidence ceiling is rejected", wire: fmt.Sprintf(`{"bytes_examined":%d,"state":"absent"}`, GoOOMMaximumEvidenceBytes+1)},
 		{name: "trailing newline is rejected", wire: "{\"bytes_examined\":0,\"state\":\"absent\"}\n"},
 		{name: "leading space is rejected", wire: ` {"bytes_examined":0,"state":"absent"}`},
 		{name: "space before separator is rejected", wire: `{"bytes_examined":0, "state":"absent"}`},
@@ -368,6 +360,7 @@ func FuzzGoOOMBannerEvidenceJSONSemanticClosure(f *testing.F) {
 		classifiedEvidenceFixture(f, 0, GoOOMBannerAbsent),
 		classifiedEvidenceFixture(f, uint64(len(GoOOMPlainBanner)), GoOOMBannerPresent),
 		classifiedEvidenceFixture(f, 1<<10, GoOOMBannerAbsent),
+		classifiedEvidenceFixture(f, goOOMFixtureBytes+1, GoOOMBannerAbsent),
 	} {
 		seed, err := fixture.MarshalJSON()
 		if err != nil {
@@ -380,7 +373,6 @@ func FuzzGoOOMBannerEvidenceJSONSemanticClosure(f *testing.F) {
 		[]byte("null"),
 		[]byte(`{}`),
 		[]byte(`{"bytes_examined":0,"state":"unknown"}`),
-		[]byte(fmt.Sprintf(`{"bytes_examined":%d,"state":"absent"}`, GoOOMMaximumEvidenceBytes+1)),
 	} {
 		f.Add(seed)
 	}
@@ -425,7 +417,7 @@ func FuzzGoOOMBannerClassifier(f *testing.F) {
 	f.Add([]byte(GoOOMPrefixedBanner), uint32(7))
 	f.Add([]byte("fatal error: out of memorx"), uint32(3))
 	f.Add([]byte{}, uint32(1))
-	f.Add(bytes.Repeat([]byte{'x'}, GoOOMMaximumEvidenceBytes+1), uint32(goOOMBufferBytes-1))
+	f.Add(bytes.Repeat([]byte{'x'}, goOOMFixtureBytes+1), uint32(goOOMBufferBytes-1))
 
 	f.Fuzz(func(t *testing.T, data []byte, chunk uint32) {
 		maximum := int(chunk%uint32(goOOMBufferBytes)) + 1
@@ -434,12 +426,6 @@ func FuzzGoOOMBannerClassifier(f *testing.F) {
 			Source: source,
 			Length: mustByteLength(t, uint64(len(data))),
 		})
-		if len(data) > GoOOMMaximumEvidenceBytes {
-			if !errors.Is(gotErr, core.ErrHostFactsContract) || got != (GoOOMBannerEvidence{}) || len(source.data) != len(data) {
-				t.Fatalf("oversize banner = %+v/%v remaining=%d, want zero unread refusal", got, gotErr, len(source.data))
-			}
-			return
-		}
 		if gotErr != nil {
 			t.Fatalf("ClassifyGoOOMBanner(%d bytes) error = %v, want nil", len(data), gotErr)
 		}
@@ -508,7 +494,7 @@ func referenceGoOOMBannerEvidenceJSON(data []byte) (GoOOMBannerEvidence, error) 
 		return GoOOMBannerEvidence{}, core.ErrJSONContract
 	}
 	extent, err := strconv.ParseUint(string(extentToken), 10, 64)
-	if err != nil || strconv.FormatUint(extent, 10) != string(extentToken) || extent > GoOOMMaximumEvidenceBytes {
+	if err != nil || strconv.FormatUint(extent, 10) != string(extentToken) {
 		return GoOOMBannerEvidence{}, core.ErrJSONContract
 	}
 	state, err := referenceGoOOMBannerStateJSON(stateToken)

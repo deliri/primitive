@@ -34,7 +34,7 @@ func (o GoTestObservation) Validate() error {
 type GoTestObservationCompiler struct {
 	failure     error
 	seen        map[[32]byte]struct{}
-	terminal    map[[32]byte]goEventAction
+	terminal    map[[32]byte]GoEventAction
 	stream      goJSONStream
 	benchmarks  []runprotocol.BenchmarkMeasurement
 	policy      ObservationPolicy
@@ -49,7 +49,7 @@ func NewGoTestObservationCompiler(policy ObservationPolicy) (*GoTestObservationC
 	if policy.Format != ObservationGoTestJSON {
 		return nil, observationFailure("go test observation compiler requires go-test-json format", core.ErrPrimitiveContract)
 	}
-	return &GoTestObservationCompiler{policy: policy, seen: make(map[[32]byte]struct{}), terminal: make(map[[32]byte]goEventAction), benchmarks: []runprotocol.BenchmarkMeasurement{}}, nil
+	return &GoTestObservationCompiler{policy: policy, seen: make(map[[32]byte]struct{}), terminal: make(map[[32]byte]GoEventAction), benchmarks: []runprotocol.BenchmarkMeasurement{}}, nil
 }
 
 func (c *GoTestObservationCompiler) Write(data []byte) (int, error) {
@@ -69,13 +69,13 @@ func (c *GoTestObservationCompiler) Write(data []byte) (int, error) {
 }
 
 func (c *GoTestObservationCompiler) consumeProjection(event goJSONProjection) error {
-	build := event.action == goEventBuildOutput || event.action == goEventBuildFail
+	build := event.action == GoEventActionBuildOutput || event.action == GoEventActionBuildFail
 	if build {
-		allowed := uint16(1)<<goJSONAction | uint16(1)<<goJSONImportPath | uint16(1)<<goJSONOutput
+		allowed := uint16(1)<<GoEventFieldAction | uint16(1)<<GoEventFieldImportPath | uint16(1)<<GoEventFieldOutput
 		if event.fields & ^allowed != 0 {
 			return goJSONFailure()
 		}
-		if event.action == goEventBuildOutput {
+		if event.action == GoEventActionBuildOutput {
 			if !event.outputPresent {
 				return goJSONFailure()
 			}
@@ -87,16 +87,16 @@ func (c *GoTestObservationCompiler) consumeProjection(event goJSONProjection) er
 		}
 		return nil
 	}
-	if event.fields&(uint16(1)<<goJSONImportPath) != 0 || event.action == goEventUnknown || !event.packagePresent {
+	if event.fields&(uint16(1)<<GoEventFieldImportPath) != 0 || event.action == GoEventActionUnknown || !event.packagePresent {
 		return goJSONFailure()
 	}
-	if event.outputType != goOutputOrdinary && event.action != goEventOutput {
+	if event.outputType != GoEventOutputOrdinary && event.action != GoEventActionOutput {
 		return goJSONFailure()
 	}
 	if err := c.observePackage(event); err != nil {
 		return err
 	}
-	if event.action == goEventOutput {
+	if event.action == GoEventActionOutput {
 		measurement, present, err := event.benchmark.result()
 		if err != nil {
 			return err
@@ -154,11 +154,11 @@ func (c *GoTestObservationCompiler) unavailableObservation() (GoTestObservation,
 	attempt := newExecutionAttempt(c.policy)
 	for _, action := range c.terminal {
 		switch action {
-		case goEventPass:
+		case GoEventActionPass:
 			attempt.Passed++
-		case goEventFail:
+		case GoEventActionFail:
 			attempt.Failed++
-		case goEventSkip:
+		case GoEventActionSkip:
 			attempt.Skipped++
 		default:
 			return GoTestObservation{}, goJSONFailure()
@@ -181,11 +181,11 @@ func (c *GoTestObservationCompiler) compileAccounting(executionErr error) (runpr
 	attempt := newExecutionAttempt(c.policy)
 	for _, action := range c.terminal {
 		switch action {
-		case goEventPass:
+		case GoEventActionPass:
 			attempt.Passed++
-		case goEventFail:
+		case GoEventActionFail:
 			attempt.Failed++
-		case goEventSkip:
+		case GoEventActionSkip:
 			attempt.Skipped++
 		default:
 			return runprotocol.ExecutionAccounting{}, goJSONFailure()
@@ -225,7 +225,7 @@ func (c *GoTestObservationCompiler) validateObservedAccounting(observed, termina
 		return nil
 	}
 	for _, action := range c.terminal {
-		if action == goEventFail {
+		if action == GoEventActionFail {
 			return observationFailure("go test exited successfully after a failed package", core.ErrPrimitiveContract)
 		}
 	}
@@ -258,8 +258,8 @@ func (c *GoTestObservationCompiler) classifyInterrupted(accounting *runprotocol.
 	}
 }
 
-func goTestTerminalAction(action goEventAction) bool {
-	return action == goEventPass || action == goEventFail || action == goEventSkip
+func goTestTerminalAction(action GoEventAction) bool {
+	return action == GoEventActionPass || action == GoEventActionFail || action == GoEventActionSkip
 }
 
 func observationFailure(message string, causes ...error) error {

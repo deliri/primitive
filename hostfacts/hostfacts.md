@@ -13,7 +13,7 @@ filesystem, runtime, cgroup, terminal, or platform probe.
 - block-device rotation when the platform can answer it;
 - Go logical CPU count and Go-managed memory pressure;
 - physical memory and the effective Linux cgroup memory limit;
-- bounded Go runtime OOM-banner evidence;
+- Go runtime OOM-banner evidence over exact streamed extents with a fixed buffer;
 - terminal attachment and column geometry for one open descriptor;
 - hostname and the current platform; and
 - standard-library home, configuration, cache, and temporary directory bases.
@@ -37,3 +37,10 @@ observations. Platform leaves use `golang.org/x/sys/unix` or
 operation. Kernel text enters through fixed ceilings and is decoded immediately
 into package-owned facts; no host model, probe registry, scheduler, monitor, or
 background lifecycle exists.
+
+The OOM observer has no product quota on total bytes. Its declared extent uses
+Primitive ByteLength (Go's signed size domain); it reads with a fixed 32 KiB
+buffer and a banner-length overlap. Evidence preserves the exact examined extent.
+A read error or cancellation on the final chunk cannot become successful evidence;
+an EOF accompanying exactly the declared bytes is accepted. Presence proves only
+the canonical banner was observed, not why the process emitted it.

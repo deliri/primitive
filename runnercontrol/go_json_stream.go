@@ -12,19 +12,19 @@ import (
 // This is the flat scalar grammar of cmd/go events, not a general JSON runtime.
 // Go's JSON decoder validates/unescapes each complete scalar string fragment.
 // Only identity digests and mechanical accounting projections survive a fragment.
-type goJSONField uint8
+type GoEventField uint8
 
 const (
-	goJSONNoField goJSONField = iota
-	goJSONAction
-	goJSONPackage
-	goJSONTest
-	goJSONOutput
-	goJSONOutputType
-	goJSONTime
-	goJSONFailedBuild
-	goJSONElapsed
-	goJSONImportPath
+	GoEventFieldUnknown GoEventField = iota
+	GoEventFieldAction
+	GoEventFieldPackage
+	GoEventFieldTest
+	GoEventFieldOutput
+	GoEventFieldOutputType
+	GoEventFieldTime
+	GoEventFieldFailedBuild
+	GoEventFieldElapsed
+	GoEventFieldImportPath
 )
 
 type goJSONState uint8
@@ -42,8 +42,8 @@ const (
 )
 
 type goJSONProjection struct {
-	action         goEventAction
-	outputType     goOutputKind
+	action         GoEventAction
+	outputType     GoEventOutputKind
 	packageID      [sha256.Size]byte
 	packagePresent bool
 	testPresent    bool
@@ -53,13 +53,14 @@ type goJSONProjection struct {
 }
 
 type goJSONStream struct {
+	observeString func(GoEventStringFragment) error
 	digest        hash.Hash
 	projection    goJSONProjection
 	fragment      [256]byte
 	scalar        [16]byte
 	used          int
 	scalarUsed    int
-	field         goJSONField
+	field         GoEventField
 	state         goJSONState
 	key           bool
 	escaped       bool
@@ -126,7 +127,7 @@ func (s *goJSONStream) consume(value byte, emit func(goJSONProjection) error) er
 		}
 		s.state = goJSONValue
 	case goJSONValue:
-		if s.field == goJSONElapsed {
+		if s.field == GoEventFieldElapsed {
 			s.numberState = 0
 			s.number = goJSONFloat{}
 			s.state = goJSONNumber
@@ -282,7 +283,12 @@ func (s *goJSONStream) flushString() error {
 		return observationFailure("go event string cannot be decoded", core.ErrJSONContract, err)
 	}
 	s.used = 1
-	if s.key || s.field == goJSONAction || s.field == goJSONOutputType {
+	if !s.key && s.observeString != nil {
+		if err := s.observeString(GoEventStringFragment{Field: s.field, Data: []byte(decoded)}); err != nil {
+			return err
+		}
+	}
+	if s.key || s.field == GoEventFieldAction || s.field == GoEventFieldOutputType {
 		if len(decoded) > len(s.scalar)-s.scalarUsed {
 			return goJSONFailure()
 		}
@@ -291,14 +297,14 @@ func (s *goJSONStream) flushString() error {
 		return nil
 	}
 	switch s.field {
-	case goJSONPackage:
+	case GoEventFieldPackage:
 		s.projection.packagePresent = s.projection.packagePresent || decoded != ""
 		if _, err := s.digest.Write([]byte(decoded)); err != nil {
 			return err
 		}
-	case goJSONTest:
+	case GoEventFieldTest:
 		s.projection.testPresent = s.projection.testPresent || decoded != ""
-	case goJSONOutput:
+	case GoEventFieldOutput:
 		s.projection.outputPresent = s.projection.outputPresent || decoded != ""
 		s.projection.benchmark.write(decoded)
 	}
@@ -309,23 +315,23 @@ func (s *goJSONStream) endString() error {
 	if s.key {
 		switch string(s.scalar[:s.scalarUsed]) {
 		case "Action":
-			s.field = goJSONAction
+			s.field = GoEventFieldAction
 		case "Package":
-			s.field = goJSONPackage
+			s.field = GoEventFieldPackage
 		case "Test":
-			s.field = goJSONTest
+			s.field = GoEventFieldTest
 		case "Output":
-			s.field = goJSONOutput
+			s.field = GoEventFieldOutput
 		case "OutputType":
-			s.field = goJSONOutputType
+			s.field = GoEventFieldOutputType
 		case "Time":
-			s.field = goJSONTime
+			s.field = GoEventFieldTime
 		case "FailedBuild":
-			s.field = goJSONFailedBuild
+			s.field = GoEventFieldFailedBuild
 		case "Elapsed":
-			s.field = goJSONElapsed
+			s.field = GoEventFieldElapsed
 		case "ImportPath":
-			s.field = goJSONImportPath
+			s.field = GoEventFieldImportPath
 		default:
 			return goJSONFailure()
 		}
@@ -338,22 +344,27 @@ func (s *goJSONStream) endString() error {
 		return nil
 	}
 	switch s.field {
-	case goJSONAction:
+	case GoEventFieldAction:
 		action, err := decodeGoEventAction(string(s.scalar[:s.scalarUsed]))
 		if err != nil {
 			return err
 		}
 		s.projection.action = action
-	case goJSONOutputType:
+	case GoEventFieldOutputType:
 		kind, err := decodeGoOutputKind(string(s.scalar[:s.scalarUsed]))
 		if err != nil {
 			return err
 		}
 		s.projection.outputType = kind
-	case goJSONPackage:
+	case GoEventFieldPackage:
 		s.digest.Sum(s.projection.packageID[:0])
-	case goJSONOutput:
+	case GoEventFieldOutput:
 		s.projection.benchmark.endToken()
+	}
+	if s.observeString != nil {
+		if err := s.observeString(GoEventStringFragment{Field: s.field, Final: true}); err != nil {
+			return err
+		}
 	}
 	s.state = goJSONAfterValue
 	return nil

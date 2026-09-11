@@ -75,6 +75,24 @@ func emitPackageClaimSpecsSThroughZ(emit func(packageClaimSpec) bool) bool {
 			excludes: "It does not decide submission admission, issue upload capabilities, transfer evidence, or own account policy.",
 		},
 		{
+			path: "tailnet", title: "Isolated userspace Tailscale connection",
+			problem:  "Consumers otherwise copy provider enrollment, identity exchange, connection lifetime, and SDK transport behavior.",
+			solution: "Tailnet validates a typed connection request, enrolls through the isolated provider boundary, and owns the userspace connection and close path.",
+			benefit:  "Consumers use the shared exchange capability without duplicating Tailscale enrollment and transport mechanics.",
+			removal:  "Remove Tailnet when no consumer needs a userspace Tailscale connection.",
+			owns:     "Tailnet owns provider enrollment, userspace connection creation, transport projection, and explicit connection cleanup.",
+			excludes: "It does not decide network membership, product authorization, company policy, or the meaning of transported requests.",
+		},
+		{
+			path: "tailnetconfig", title: "Typed Tailscale connection declaration",
+			problem:  "Provider identifiers, tags, addresses, and connection settings need one validated agreement before enrollment can begin.",
+			solution: "Tailnetconfig owns nominal provider names and the validated configuration consumed by Tailnet.",
+			benefit:  "Malformed connection intent is refused before provider or network effects.",
+			removal:  "Remove Tailnetconfig with the Tailnet connection boundary or an equivalent complete shared provider agreement.",
+			owns:     "Tailnetconfig owns provider identifier grammar, address admission, and connection configuration validation.",
+			excludes: "It does not enroll devices, open sockets, store credentials, or choose product network policy.",
+		},
+		{
 			path: "temporal", title: "Typed time values and effects",
 			problem:  "Raw time values mix units, permit invalid ranges, hide wall-clock acquisition, and encourage policy to call time.Now directly.",
 			solution: "Temporal provides exact nanosecond values, durations, instants, caller-controlled clocks, timers, and bounded context-aware waits.",
@@ -118,6 +136,15 @@ func emitPackageClaimSpecsSThroughZ(emit func(packageClaimSpec) bool) bool {
 			removal:  "Remove Upgrade when no installed tool self-upgrades through the two-slot release contract.",
 			owns:     "Upgrade owns artifact staging, integrity verification, fixed-slot paths, trial command exposure, atomic selection, and former-slot cleanup.",
 			excludes: "It does not choose arguments, define test success, request consent, submit tickets, schedule work, retry, or own release authority.",
+		},
+		{
+			path: "version", title: "Derived release identity and Git tags",
+			problem:  "Separate version constants and hand-built tag strings drift from the authored project configuration.",
+			solution: "Version derives immutable release coordinates and canonical Git tags from a validated Compass project declaration.",
+			benefit:  "Builds and release tooling share one version source with compiler-visible validation.",
+			removal:  "Remove Version when no consumer derives release identities from the shared project declaration.",
+			owns:     "Version owns release coordinate validation, canonical tag parsing, and derived representations.",
+			excludes: "It does not choose a release number, modify configuration, create commits, publish tags, or certify a build.",
 		},
 	}
 	for _, spec := range specs {
