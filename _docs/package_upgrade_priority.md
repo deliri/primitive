@@ -132,7 +132,7 @@ runner acceptance remains a separate fact.
 
 Continue in the user-approved September 10 order:
 
-`gomodule`, `timeproof`, `controlplanetest`, `gitrepo`, `machineprobe`, `paypal`,
+`timeproof`, `controlplanetest`, `gitrepo`, `machineprobe`, `paypal`,
 `plunk`, `runworkspace`, `sourceclaim`, `sourceobservation`, `sourceproof`,
 `stripe`, `testserial`, `twilio`.
 
@@ -207,3 +207,5 @@ The user-directed clean removal retires the whole runtime graph/readiness API, i
 ## GitHub boundary slice — v2026.1.64
 
 [Streaming boundary review](github_streaming_review_20260911.md) replaces full-path custody with caller-owned path streaming, completes the ingress and lifecycle proof surfaces, and removes the unchecked-error baseline. Release closure is bound to the final committed gate and external integrity report. The separate wider stream-counter domain remains explicit; existing signed-int64 byte receipts do not represent an individual 10-exabyte transfer.
+
+Gomodule v2026.1.66: [local identity-boundary review](gomodule_review_20260911.md). Exact source facts, typed refusal preservation, external-door fuzz coverage and structural inventory are ratcheted. Nominal JSON output memory remains explicit; this is not a bulk-stream API. Timeproof is next.

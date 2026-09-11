@@ -9,6 +9,11 @@ import (
 
 func BenchmarkParsePath(b *testing.B) {
 	const value = "github.com/deliri/primitive/v2026"
+	fixture, err := gomodule.ParsePath(value)
+	if err != nil || fixture.String() != value {
+		b.Fatalf("benchmark workload = (%v, %v), want %q and nil", fixture, err, value)
+	}
+	b.SetBytes(int64(len(value)))
 	var wantErr error
 	b.ReportAllocs()
 	var last gomodule.Path
@@ -26,6 +31,11 @@ func BenchmarkParsePath(b *testing.B) {
 
 func BenchmarkParseImportPath(b *testing.B) {
 	const value = "github.com/deliri/primitive/v2026/filestore"
+	fixture, err := gomodule.ParseImportPath(value)
+	if err != nil || fixture.String() != value {
+		b.Fatalf("benchmark workload = (%v, %v), want %q and nil", fixture, err, value)
+	}
+	b.SetBytes(int64(len(value)))
 	var wantErr error
 	b.ReportAllocs()
 	var last gomodule.ImportPath
