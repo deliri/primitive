@@ -12,9 +12,9 @@ import (
 // AuthorityEvidence seals the exact request and the response digest and extent.
 // The caller owns response bytes; Verify establishes the authoritative conclusion.
 type AuthorityEvidence struct {
+	request        Request
 	responseDigest core.SHA256Digest
 	responseBytes  uint64
-	request        Request
 }
 
 type authorityEvidenceInput struct {
@@ -23,9 +23,9 @@ type authorityEvidenceInput struct {
 }
 
 type authorityEvidenceWire struct {
+	Request        Request           `json:"request"`
 	ResponseDigest core.SHA256Digest `json:"response_sha256"`
 	ResponseBytes  uint64            `json:"response_bytes"`
-	Request        Request           `json:"request"`
 }
 
 type authorityEvidenceWireJSON authorityEvidenceWire

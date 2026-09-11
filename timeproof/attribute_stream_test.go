@@ -21,10 +21,10 @@ func TestSignedAttributeScanLayerTriad(t *testing.T) {
 	}
 	many[len(many)-1] = known
 	cases := []struct {
+		wantErr    error
 		name       string
 		attributes []cmsAttribute
 		wantCount  int
-		wantErr    error
 	}{
 		{name: "required attribute retains exact value", attributes: []cmsAttribute{known}, wantCount: 1},
 		{name: "foreign attribute supplies no required fact", attributes: []cmsAttribute{foreign}},

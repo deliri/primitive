@@ -52,9 +52,9 @@ func TestRestoreResponseBindingLayerTriad(t *testing.T) {
 		t.Fatalf("MarshalJSON(seed) error = %v, want nil", err)
 	}
 	cases := []struct {
-		name    string
 		mutate  func(*testing.T, *RestoreRequest)
 		wantErr error
+		name    string
 	}{
 		{name: "matching document and source reverify"},
 		{name: "metadata alone cannot restore proof", mutate: func(t *testing.T, r *RestoreRequest) { r.Response = nil }, wantErr: core.ErrJSONContract},
@@ -140,10 +140,10 @@ func TestCertificateSetScanLayerTriad(t *testing.T) {
 	t.Parallel()
 	fixture := loadAuthenticFixture(t)
 	for _, tc := range []struct {
+		wantErr   error
 		name      string
 		count     int
 		duplicate bool
-		wantErr   error
 	}{
 		{name: "authentic certificate set preserves signer"},
 		{name: "seventeen unrelated certificates do not impose a quota", count: 17},
