@@ -16,7 +16,7 @@ Audit exit per package: no hidden transfer/line quota; reader and writer paths c
 | awsidentity | 11 | requires_review |
 | capabilities | 5 | requires_review |
 | chit | 26 | requires_review |
-| chitauth | 7 | requires_review |
+| chitauth | 7 | reviewed; explicit composed JSON ownership in [upgrade report](chitauth_upgrade_20260910.md) |
 | compass | 7 | requires_review |
 | contextstate | 0 | requires_review |
 | controlplane | 60 | requires_review |

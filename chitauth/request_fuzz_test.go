@@ -21,9 +21,6 @@ func FuzzCredentialedChitQueryJSONSemanticAndAuthorityClosure(f *testing.F) {
 	f.Add([]byte{})
 	f.Add([]byte(`{}`))
 	f.Add(append(bytes.Clone(canonical), 0))
-	f.Add(queryJSONAtLength(f, canonical, RequestDocumentJSONMaximumBytes-1))
-	f.Add(queryJSONAtLength(f, canonical, RequestDocumentJSONMaximumBytes))
-	f.Add(queryJSONAtLength(f, canonical, RequestDocumentJSONMaximumBytes+1))
 	f.Add(append(bytes.Clone(canonical[:len(canonical)-1]), []byte(`,"future":true}`)...))
 	f.Add(append(bytes.Clone(canonical[:len(canonical)-1]), []byte(`,"request":null}`)...))
 	f.Add([]byte(`{"request":true,"certificate":null}`))
@@ -46,9 +43,9 @@ func FuzzCredentialedChitQueryJSONSemanticAndAuthorityClosure(f *testing.F) {
 			t.Fatalf("RequestDocument.UnmarshalJSON(accepted).Validate() error = %v, want nil", err)
 		}
 		encoded, err := got.MarshalJSON()
-		if err != nil || len(encoded) > RequestDocumentJSONMaximumBytes {
-			t.Fatalf("RequestDocument.MarshalJSON(accepted) = (%d bytes, %v), want <= %d and nil",
-				len(encoded), err, RequestDocumentJSONMaximumBytes)
+		if err != nil {
+			t.Fatalf("RequestDocument.MarshalJSON(accepted) = (%d bytes, %v), want canonical output and nil",
+				len(encoded), err)
 		}
 		var roundTrip RequestDocument
 		if err := roundTrip.UnmarshalJSON(encoded); err != nil || roundTrip != got {
@@ -87,6 +84,53 @@ func FuzzCredentialedChitQueryJSONSemanticAndAuthorityClosure(f *testing.F) {
 		if payloadErr != nil || gotPayload != fixture.payload {
 			t.Fatalf("independent chit query payload = (%v, %v), want (%v, nil)",
 				gotPayload, payloadErr, fixture.payload)
+		}
+	})
+}
+
+// The selector guarantees that structurally valid but unauthenticated signed
+// states reach the real verifier, rather than mutating only JSON framing.
+func FuzzCredentialedChitQuerySignedMutationClosure(f *testing.F) {
+	fixture := newQueryFixture(f, standardQueryFixtureRequest(f))
+	for selector := range uint8(4) {
+		f.Add(selector)
+	}
+	f.Fuzz(func(t *testing.T, selector uint8) {
+		document := fixture.document
+		wantErr := error(nil)
+		switch selector % 4 {
+		case 0:
+		case 1:
+			document.Request.Payload.Nonce = queryNonce(t, 0x7e)
+			wantErr = core.ErrAttestVerification
+		case 2:
+			document.Request.Payload.Query.Selection = querySpecificSelection(t)
+			wantErr = core.ErrAttestVerification
+		case 3:
+			document.Request.Attestation.BodySHA256 = core.SHA256Of([]byte("foreign query digest"))
+			wantErr = core.ErrAttestVerification
+		}
+		if selector%4 != 0 && document == fixture.document {
+			t.Fatal("signed mutation = unchanged, want one changed semantic fact")
+		}
+		wire, err := document.MarshalJSON()
+		if err != nil {
+			t.Fatalf("structural mutation MarshalJSON = %v, want nil before authentication", err)
+		}
+		var received RequestDocument
+		if err := received.UnmarshalJSON(wire); err != nil || received != document {
+			t.Fatalf("signed mutation decode = %v, want exact typed mutation", err)
+		}
+		proof, err := Verify(Verification{Server: fixture.server, Document: received})
+		if wantErr != nil {
+			if !errors.Is(err, wantErr) || proof != (Verified{}) {
+				t.Fatalf("signed mutation Verify = %v/%v, want zero/%v", proof, err, wantErr)
+			}
+			return
+		}
+		payload, payloadErr := proof.Payload()
+		if err != nil || payloadErr != nil || payload != fixture.payload {
+			t.Fatalf("signed baseline = %v/%v, want exact authenticated payload", err, payloadErr)
 		}
 	})
 }

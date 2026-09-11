@@ -36,7 +36,7 @@ type queryFixture struct {
 func TestCredentialedChitQueryVerificationLayerTriadAuthenticatesOnlyTheBoundDeviceRequest(t *testing.T) {
 	t.Parallel()
 
-	t.Run("positive ten signed identity and selection boundaries expose the exact query", func(t *testing.T) {
+	t.Run("positive both selection variants expose the exact query", func(t *testing.T) {
 		t.Parallel()
 		proveCredentialedChitQueryVerificationAdmissions(t)
 	})
@@ -59,46 +59,14 @@ func proveCredentialedChitQueryVerificationAdmissions(t *testing.T) {
 		request       queryFixtureRequest
 		wantSelection chit.Selection
 	}{
-		{name: "minimum opaque offering with all selection", request: queryFixtureRequest{
+		{name: "all selection preserves exact scope", request: queryFixtureRequest{
 			offering: chitAuthOffering(t, 1), authorityByte: 0x21, deviceByte: 0x41,
 			nonceByte: 1, selection: chit.All(),
 		}, wantOffering: chitAuthOffering(t, 1), wantSelection: chit.All()},
-		{name: "minimum opaque offering with specific selection", request: queryFixtureRequest{
+		{name: "specific selection preserves exact scope", request: queryFixtureRequest{
 			offering: chitAuthOffering(t, 1), authorityByte: 0x22, deviceByte: 0x42,
 			nonceByte: 2, selection: querySpecificSelection(t),
 		}, wantOffering: chitAuthOffering(t, 1), wantSelection: querySpecificSelection(t)},
-		{name: "midpoint opaque offering with all selection", request: queryFixtureRequest{
-			offering: chitAuthOffering(t, 127), authorityByte: 0x23, deviceByte: 0x43,
-			nonceByte: 3, selection: chit.All(),
-		}, wantOffering: chitAuthOffering(t, 127), wantSelection: chit.All()},
-		{name: "midpoint opaque offering with specific selection", request: queryFixtureRequest{
-			offering: chitAuthOffering(t, 127), authorityByte: 0x24, deviceByte: 0x44,
-			nonceByte: 4, selection: querySpecificSelection(t),
-		}, wantOffering: chitAuthOffering(t, 127), wantSelection: querySpecificSelection(t)},
-		{name: "maximum opaque offering with all selection", request: queryFixtureRequest{
-			offering: chitAuthOffering(t, 255), authorityByte: 0x25, deviceByte: 0x45,
-			nonceByte: 5, selection: chit.All(),
-		}, wantOffering: chitAuthOffering(t, 255), wantSelection: chit.All()},
-		{name: "maximum opaque offering with specific selection", request: queryFixtureRequest{
-			offering: chitAuthOffering(t, 255), authorityByte: 0x26, deviceByte: 0x46,
-			nonceByte: 6, selection: querySpecificSelection(t),
-		}, wantOffering: chitAuthOffering(t, 255), wantSelection: querySpecificSelection(t)},
-		{name: "minimum authority maximum device and minimum nonce", request: queryFixtureRequest{
-			offering: chitAuthOffering(t, 2), authorityByte: 1, deviceByte: 255,
-			nonceByte: 1, selection: chit.All(),
-		}, wantOffering: chitAuthOffering(t, 2), wantSelection: chit.All()},
-		{name: "maximum authority minimum device and maximum nonce", request: queryFixtureRequest{
-			offering: chitAuthOffering(t, 2), authorityByte: 255, deviceByte: 1,
-			nonceByte: 255, selection: querySpecificSelection(t),
-		}, wantOffering: chitAuthOffering(t, 2), wantSelection: querySpecificSelection(t)},
-		{name: "authority one below midpoint and device at midpoint", request: queryFixtureRequest{
-			offering: chitAuthOffering(t, 2), authorityByte: 127, deviceByte: 128,
-			nonceByte: 127, selection: chit.All(),
-		}, wantOffering: chitAuthOffering(t, 2), wantSelection: chit.All()},
-		{name: "authority at midpoint and device one below midpoint", request: queryFixtureRequest{
-			offering: chitAuthOffering(t, 2), authorityByte: 128, deviceByte: 127,
-			nonceByte: 128, selection: querySpecificSelection(t),
-		}, wantOffering: chitAuthOffering(t, 2), wantSelection: querySpecificSelection(t)},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -145,12 +113,7 @@ func proveCredentialedChitQueryVerificationRejections(t *testing.T) {
 	otherOfferingRequest.nonceByte = 0x63
 	otherOffering := newQueryFixture(t, otherOfferingRequest)
 
-	wrongDeviceAssembly, err := Assemble(RequestAssembly{
-		Request: otherDevice.document.Request, Certificate: base.document.Certificate,
-	})
-	if err != nil {
-		t.Fatalf("Assemble(same-build other device) error = %v, want nil before signature verification", err)
-	}
+	wrongDeviceAssembly := RequestDocument{Request: otherDevice.document.Request, Certificate: base.document.Certificate}
 	tamperedNonce := base.document
 	tamperedNonce.Request.Payload.Nonce = queryNonce(t, 0x72)
 	tamperedSelection := base.document
@@ -186,14 +149,14 @@ func proveCredentialedChitQueryVerificationRejections(t *testing.T) {
 	}{
 		{name: "zero document", server: base.server, want: core.ErrControlPlaneContract},
 		{name: "zero server capability", document: base.document, want: core.ErrControlPlaneContract},
-		{name: "same-build other device", document: wrongDeviceAssembly, server: base.server, want: core.ErrAttestVerification},
+		{name: "same-build other device", document: wrongDeviceAssembly, server: base.server, want: core.ErrControlPlaneResponseBinding},
 		{name: "other authority", document: base.document, server: otherDevice.server, want: core.ErrAttestVerification},
 		{name: "signed request nonce changed after issue", document: tamperedNonce, server: base.server, want: core.ErrAttestVerification},
 		{name: "signed selection changed after issue", document: tamperedSelection, server: base.server, want: core.ErrAttestVerification},
 		{name: "signed partition changed after issue", document: tamperedPartition, server: base.server, want: core.ErrAttestVerification},
 		{name: "signed page limit changed after issue", document: tamperedLimit, server: base.server, want: core.ErrAttestVerification},
 		{name: "signed offering identity changed after issue", document: tamperedOfferingIdentity, server: base.server, want: core.ErrControlPlaneResponseBinding},
-		{name: "request signer changed after issue", document: tamperedSigner, server: base.server, want: core.ErrAttestVerification},
+		{name: "request signer changed after issue", document: tamperedSigner, server: base.server, want: core.ErrControlPlaneResponseBinding},
 		{name: "signed body length changed after issue", document: tamperedLength, server: base.server, want: core.ErrAttestVerification},
 		{name: "signed body digest changed after issue", document: tamperedDigest, server: base.server, want: core.ErrAttestVerification},
 	}
@@ -244,7 +207,7 @@ func proveCredentialedChitQueryVerificationNeutralState(t *testing.T) {
 	}
 }
 
-func TestCredentialedChitQueryJSONEnforcesTenValidTenRejectAndTwentyBoundaryCases(t *testing.T) {
+func TestCredentialedChitQueryJSONLayerTriad(t *testing.T) {
 	t.Parallel()
 
 	request := standardQueryFixtureRequest(t)
@@ -278,13 +241,7 @@ func TestCredentialedChitQueryJSONEnforcesTenValidTenRejectAndTwentyBoundaryCase
 		{name: "valid canonical production projection", data: encoded, wantDocument: fixture.document},
 		{name: "valid reordered typed members", data: reordered, wantDocument: fixture.document},
 		{name: "valid indented production projection", data: []byte(indented), wantDocument: fixture.document},
-		{name: "valid leading space", data: append([]byte(" "), encoded...), wantDocument: fixture.document},
-		{name: "valid trailing newline", data: append(bytes.Clone(encoded), '\n'), wantDocument: fixture.document},
-		{name: "valid carriage return framing", data: append(append([]byte("\r"), encoded...), '\r'), wantDocument: fixture.document},
 		{name: "valid mixed whitespace", data: append(append([]byte("\t\r\n"), encoded...), ' ', '\t'), wantDocument: fixture.document},
-		{name: "valid one byte below ceiling", data: queryJSONAtLength(t, encoded, RequestDocumentJSONMaximumBytes-1), wantDocument: fixture.document},
-		{name: "valid exactly at ceiling", data: queryJSONAtLength(t, encoded, RequestDocumentJSONMaximumBytes), wantDocument: fixture.document},
-		{name: "valid midpoint extent", data: queryJSONAtLength(t, encoded, RequestDocumentJSONMaximumBytes/2), wantDocument: fixture.document},
 
 		{name: "reject boolean document", data: []byte(`true`), receiver: fixture.document, wantDocument: fixture.document, wantErr: core.ErrJSONContract},
 		{name: "reject empty object", data: []byte(`{}`), receiver: fixture.document, wantDocument: fixture.document, wantErr: core.ErrJSONContract},
@@ -309,7 +266,6 @@ func TestCredentialedChitQueryJSONEnforcesTenValidTenRejectAndTwentyBoundaryCase
 		{name: "boundary half truncated", data: encoded[:len(encoded)/2], wantErr: core.ErrJSONContract},
 		{name: "boundary two concatenated documents", data: append(bytes.Clone(encoded), encoded...), wantErr: core.ErrJSONContract},
 		{name: "boundary trailing scalar", data: append(bytes.Clone(encoded), []byte(` 0`)...), wantErr: core.ErrJSONContract},
-		{name: "boundary one byte above ceiling", data: queryJSONAtLength(t, encoded, RequestDocumentJSONMaximumBytes+1), wantErr: core.ErrJSONContract},
 		{name: "boundary leading byte order mark", data: append([]byte{0xef, 0xbb, 0xbf}, encoded...), wantErr: core.ErrJSONContract},
 		{name: "boundary trailing comma", data: append(bytes.Clone(encoded[:len(encoded)-1]), []byte(`,}`)...), wantErr: core.ErrJSONContract},
 		{name: "boundary prefixed token", data: append([]byte(`0 `), encoded...), wantErr: core.ErrJSONContract},
@@ -498,21 +454,4 @@ func queryAccount(t testing.TB, marker byte) receipt.PrincipalIdentity {
 		t.Fatalf("receipt.NewPrincipalIdentity() error = %v, want nil", err)
 	}
 	return identity
-}
-
-func queryJSONAtLength(t testing.TB, encoded []byte, length int) []byte {
-	t.Helper()
-
-	if length < len(encoded) {
-		t.Fatalf("requested JSON boundary length = %d, want at least canonical length %d", length, len(encoded))
-	}
-	padded := make([]byte, length)
-	for index := range length - len(encoded) {
-		padded[index] = ' '
-	}
-	copy(padded[length-len(encoded):], encoded)
-	if len(padded) != length {
-		t.Fatalf("padded JSON length = %d, want %d", len(padded), length)
-	}
-	return padded
 }

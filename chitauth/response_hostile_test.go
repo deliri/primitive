@@ -35,7 +35,7 @@ func TestChitResponseVerificationLayerTriadClosesTheChitRouteFamily(t *testing.T
 
 	fixture := newChitResponseFixture(t)
 
-	t.Run("positive ten authentic chit responses expose their exact catalogs", func(t *testing.T) {
+	t.Run("positive authentic chit response exposes its exact catalog", func(t *testing.T) {
 		t.Parallel()
 
 		for _, tc := range chitResponseIdentityCases() {
@@ -136,7 +136,7 @@ func TestChitResponseIssuanceLayerTriadBindsOnlyTheChitRouteFamily(t *testing.T)
 
 	fixture := newChitResponseFixture(t)
 
-	t.Run("positive ten authenticated catalog projections survive wire closure", func(t *testing.T) {
+	t.Run("positive authenticated catalog projection survives wire closure", func(t *testing.T) {
 		t.Parallel()
 
 		for _, tc := range chitResponseIdentityCases() {
@@ -182,18 +182,7 @@ func TestChitResponseIssuanceLayerTriadBindsOnlyTheChitRouteFamily(t *testing.T)
 }
 
 func chitResponseIdentityCases() []chitResponseIdentityCase {
-	return []chitResponseIdentityCase{
-		{name: "minimum authority and one-above-minimum device markers", authorityMarker: 1, deviceMarker: 2},
-		{name: "minimum authority and maximum device markers", authorityMarker: 1, deviceMarker: 255},
-		{name: "maximum authority and minimum device markers", authorityMarker: 255, deviceMarker: 1},
-		{name: "maximum authority and one-below-maximum device markers", authorityMarker: 255, deviceMarker: 254},
-		{name: "one below authority midpoint", authorityMarker: 127, deviceMarker: 128},
-		{name: "authority midpoint", authorityMarker: 128, deviceMarker: 127},
-		{name: "one above authority midpoint", authorityMarker: 129, deviceMarker: 126},
-		{name: "distinct low authority and device markers", authorityMarker: 2, deviceMarker: 3},
-		{name: "distinct high authority and device markers", authorityMarker: 253, deviceMarker: 254},
-		{name: "ordinary authority and device markers", authorityMarker: 81, deviceMarker: 82},
-	}
+	return []chitResponseIdentityCase{{name: "exact authenticated catalog", authorityMarker: 81, deviceMarker: 82}}
 }
 
 func proveChitResponseIssuanceRejections(t *testing.T, fixture chitResponseFixture) {

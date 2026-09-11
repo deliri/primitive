@@ -10,12 +10,6 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
-const (
-	RequestDocumentJSONMaximumBytes = chit.QueryDocumentJSONMaximumBytes +
-		controlplane.InstallationCertificateDocumentJSONMaximumBytes +
-		core.CredentialedRequestDocumentSyntaxBytes + core.CredentialedDocumentWhitespaceMaximumBytes
-)
-
 type RequestDocument struct {
 	Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
 	Request     chit.QueryDocument                           `json:"request"`
@@ -48,7 +42,7 @@ func (d RequestDocument) Validate() error {
 	if err != nil {
 		return bindingError(err)
 	}
-	if d.Request.Payload.Build != d.Certificate.Body.Build || query.Scope != certificateScope {
+	if d.Request.Payload.Build != d.Certificate.Body.Build || query.Scope != certificateScope || d.Request.Attestation.Signer != d.Certificate.Body.DeviceKey {
 		return bindingError()
 	}
 	return nil
@@ -56,6 +50,9 @@ func (d RequestDocument) Validate() error {
 
 // ControlRoute projects the sole route admitted by this credentialed query.
 func (d RequestDocument) ControlRoute() (controlwire.RouteContract, error) {
+	if err := d.Validate(); err != nil {
+		return controlwire.RouteContract{}, err
+	}
 	return controlwire.NewRouteContract(
 		d.Request.Payload.Build.Offering(), controlwire.RouteFamilyChits,
 	)
@@ -71,7 +68,6 @@ func (d RequestDocument) ControlNonce() controlwire.RequestNonce {
 	return d.Request.Payload.Nonce
 }
 
-
 func (a RequestAssembly) Validate() error { return RequestDocument(a).Validate() }
 
 func Assemble(assembly RequestAssembly) (RequestDocument, error) {
@@ -86,7 +82,7 @@ func (d RequestDocument) MarshalJSON() ([]byte, error) {
 		return nil, jsonError(err)
 	}
 	encoded, err := core.MarshalCanonicalJSONDocument(requestDocumentWire(d))
-	if err != nil || len(encoded) > RequestDocumentJSONMaximumBytes {
+	if err != nil {
 		return nil, jsonError(err)
 	}
 	return encoded, nil
@@ -96,12 +92,7 @@ func (d *RequestDocument) UnmarshalJSON(data []byte) error {
 	if d == nil {
 		return jsonError(errors.New("nil credentialed chit query receiver"))
 	}
-	maximum, err := core.NewByteCount(uint64(RequestDocumentJSONMaximumBytes))
-	if err != nil {
-		return jsonError(err)
-	}
-	limits := core.DefaultStrictJSONLimits()
-	limits.DocumentMaximumBytes = maximum
+	limits := core.ExtensibleJSONLimits()
 	wire, err := core.DecodeStrictJSONStructure[requestDocumentWire](data, limits)
 	if err != nil {
 		return jsonError(err)
@@ -144,7 +135,10 @@ func Verify(verification Verification) (Verified, error) {
 	verified := Verified{
 		document: verification.Document, requestProof: request, certificateProof: certificate,
 	}
-	return verified, verified.Validate()
+	if err := verified.Validate(); err != nil {
+		return Verified{}, err
+	}
+	return verified, nil
 }
 
 func (v Verified) Validate() error {

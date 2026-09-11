@@ -91,11 +91,17 @@ func classifiedStructNames(t *testing.T) []string {
 			continue
 		}
 		for _, raw := range generic.Specs {
-			specification := raw.(*ast.TypeSpec)
+			specification, ok := raw.(*ast.TypeSpec)
+			if !ok {
+				continue
+			}
 			if specification.Name.Name != "contractInventory" {
 				continue
 			}
-			structure := specification.Type.(*ast.StructType)
+			structure, ok := specification.Type.(*ast.StructType)
+			if !ok {
+				t.Fatal("contractInventory type = non-struct, want struct")
+			}
 			names := make([]string, 0, len(structure.Fields.List))
 			for _, field := range structure.Fields.List {
 				for _, name := range field.Names {
