@@ -22,8 +22,8 @@ var authenticFixtureFiles embed.FS
 
 type authenticFixture struct {
 	response []byte
-	evidence AuthorityEvidence
 	request  Request
+	evidence AuthorityEvidence
 	digest   core.SHA256Digest
 }
 

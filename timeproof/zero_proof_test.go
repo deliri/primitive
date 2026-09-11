@@ -59,7 +59,7 @@ func TestZeroProofPredicateCoversCompleteCarrierShapes(t *testing.T) {
 		want  []string
 	}{
 		{name: "timestamp proof fields", shape: reflect.TypeFor[AuthoritativeTimestamp](), want: []string{"evidence", "time", "signer", "serial", "policy"}},
-		{name: "evidence custody fields", shape: reflect.TypeFor[AuthorityEvidence](), want: []string{"responseDigest", "responseBytes", "request"}},
+		{name: "evidence custody fields", shape: reflect.TypeFor[AuthorityEvidence](), want: []string{"request", "responseDigest", "responseBytes"}},
 		{name: "request binding fields", shape: reflect.TypeFor[Request](), want: []string{"body", "digest", "nonce", "authority"}},
 	}
 	for _, tc := range cases {
