@@ -132,7 +132,7 @@ runner acceptance remains a separate fact.
 
 Continue in the user-approved September 10 order:
 
-`retrievalauth`, `upgrade`, `deploy`, `wiring`, `github`,
+`upgrade`, `deploy`, `wiring`, `github`,
 `gomodule`, `timeproof`, `controlplanetest`, `gitrepo`, `machineprobe`, `paypal`,
 `plunk`, `runworkspace`, `sourceclaim`, `sourceobservation`, `sourceproof`,
 `stripe`, `testserial`, `twilio`.
@@ -194,3 +194,5 @@ Chitauth v2026.1.57: [local upgrade review](chitauth_upgrade_20260910.md). Distr
 Distributionauth v2026.1.58: [local upgrade review](distributionauth_upgrade_20260910.md). Paymentauth is next. Composed JSON ownership and independent-acceptance limits remain explicit.
 
 Paymentauth v2026.1.59: [local upgrade review](paymentauth_upgrade_20260910.md). Retrievalauth is next. Independent acceptance and nested JSON streaming ownership remain separate.
+
+Retrievalauth v2026.1.60: [local upgrade review](retrievalauth_upgrade_20260910.md). Upgrade is next. Independent acceptance and nested JSON streaming ownership remain separate.

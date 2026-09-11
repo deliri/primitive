@@ -17,15 +17,36 @@ func FuzzRequestDocumentExternalDecoderAndVerifier(f *testing.F) {
 	}
 	mutation := fixture.document
 	mutation.Request.Payload.Nonce = other.request.Payload.Nonce
+	if mutation == fixture.document {
+		f.Fatal("nonce mutation = baseline, want changed signed fact")
+	}
 	mutated, err := mutation.MarshalJSON()
 	if err != nil {
 		f.Fatalf("RequestDocument.MarshalJSON(mutation) error = %v, want nil", err)
 	}
 	for _, seed := range [][]byte{
-		canonical, retrievalAuthPadJSON(canonical, retrievalAuthWhitespaceProbeBytes), mutated, nil, {}, []byte("null"), []byte("{}"), []byte("[]"),
+		canonical, retrievalAuthPadJSON(f, canonical, retrievalAuthWhitespaceProbeBytes), mutated, nil, []byte("null"), []byte("{}"), []byte("[]"),
 		[]byte(`{"unknown":true}`), bytes.Repeat([]byte{' '}, retrievalAuthWhitespaceProbeBytes),
 	} {
 		f.Add(seed)
+	}
+	foreign := newRetrievalAuthFixture(f, retrievalAuthFixtureRequest{DeviceByte: 0x32})
+	for _, mutate := range []func(*RequestDocument){
+		func(d *RequestDocument) { d.Request.Attestation.Signer = foreign.request.Attestation.Signer },
+		func(d *RequestDocument) { d.Request.Attestation.Signature = foreign.request.Attestation.Signature },
+		func(d *RequestDocument) { d.Request.Attestation.BodySHA256 = other.request.Attestation.BodySHA256 },
+		func(d *RequestDocument) { d.Certificate = foreign.certificate },
+	} {
+		changed := fixture.document
+		mutate(&changed)
+		if changed == fixture.document {
+			f.Fatal("signed seed mutation = baseline, want changed authenticated fact")
+		}
+		wire, err := core.MarshalCanonicalJSONDocument(requestDocumentWire(changed))
+		if err != nil {
+			f.Fatalf("typed signed mutation MarshalJSON error = %v, want nil", err)
+		}
+		f.Add(wire)
 	}
 	f.Fuzz(func(t *testing.T, data []byte) {
 		candidate := fixture.document

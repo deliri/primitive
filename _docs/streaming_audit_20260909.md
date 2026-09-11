@@ -54,7 +54,7 @@ Audit exit per package: no hidden transfer/line quota; reader and writer paths c
 | receipt | 33 | requires_review |
 | release | 57 | requires_review |
 | retrieval | 14 | requires_review |
-| retrievalauth | 7 | requires_review |
+| retrievalauth | 7 | reviewed; explicit composed JSON ownership in [upgrade report](retrievalauth_upgrade_20260910.md) |
 | runnercontrol | 100 | reviewed; explicit nominal/XML-token ownership in [completion report](runnercontrol_completion_20260910.md) |
 | runprotocol | 14 | requires_review |
 | runworkspace | 12 | requires_review |

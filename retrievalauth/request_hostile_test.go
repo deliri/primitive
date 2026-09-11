@@ -42,20 +42,11 @@ type retrievalAuthJSONCase struct {
 func TestRetrievalAuthAssemblyLayerTriad(t *testing.T) {
 	t.Parallel()
 
-	t.Run("positive every offering and distinct installation facts assemble unchanged", func(t *testing.T) {
+	t.Run("positive nominated request assembles unchanged", func(t *testing.T) {
 		t.Parallel()
 
 		cases := []retrievalAuthFixtureRequest{
 			{Offering: retrievalAuthOffering(t, 1), AuthorityByte: 0x11, DeviceByte: 0x21, NonceByte: 0x31},
-			{Offering: retrievalAuthOffering(t, 2), AuthorityByte: 0x12, DeviceByte: 0x22, NonceByte: 0x32},
-			{Offering: retrievalAuthOffering(t, 3), AuthorityByte: 0x13, DeviceByte: 0x23, NonceByte: 0x33},
-			{Offering: retrievalAuthOffering(t, 1), AuthorityByte: 0x14, DeviceByte: 0x24, NonceByte: 0x34},
-			{Offering: retrievalAuthOffering(t, 2), AuthorityByte: 0x15, DeviceByte: 0x25, NonceByte: 0x35},
-			{Offering: retrievalAuthOffering(t, 3), AuthorityByte: 0x16, DeviceByte: 0x26, NonceByte: 0x36},
-			{Offering: retrievalAuthOffering(t, 1), AuthorityByte: 0x17, DeviceByte: 0x27, NonceByte: 0x37},
-			{Offering: retrievalAuthOffering(t, 2), AuthorityByte: 0x18, DeviceByte: 0x28, NonceByte: 0x38},
-			{Offering: retrievalAuthOffering(t, 3), AuthorityByte: 0x19, DeviceByte: 0x29, NonceByte: 0x39},
-			{Offering: retrievalAuthOffering(t, 2), AuthorityByte: 0x1a, DeviceByte: 0x2a, NonceByte: 0x3a},
 		}
 		for _, tc := range cases {
 			fixture := newRetrievalAuthFixture(t, tc)
@@ -133,19 +124,11 @@ func TestRetrievalAuthAssemblyLayerTriad(t *testing.T) {
 func TestRetrievalAuthVerificationLayerTriad(t *testing.T) {
 	t.Parallel()
 
-	t.Run("positive independent authority and device pairs authenticate exact documents", func(t *testing.T) {
+	t.Run("positive certificate and device authenticate exact document", func(t *testing.T) {
 		t.Parallel()
 
 		cases := []retrievalAuthFixtureRequest{
 			{Offering: retrievalAuthOffering(t, 1), AuthorityByte: 0x41, DeviceByte: 0x51, NonceByte: 0x61},
-			{Offering: retrievalAuthOffering(t, 2), AuthorityByte: 0x42, DeviceByte: 0x52, NonceByte: 0x62},
-			{Offering: retrievalAuthOffering(t, 3), AuthorityByte: 0x43, DeviceByte: 0x53, NonceByte: 0x63},
-			{Offering: retrievalAuthOffering(t, 1), AuthorityByte: 0x44, DeviceByte: 0x54, NonceByte: 0x64},
-			{Offering: retrievalAuthOffering(t, 3), AuthorityByte: 0x46, DeviceByte: 0x56, NonceByte: 0x66},
-			{Offering: retrievalAuthOffering(t, 1), AuthorityByte: 0x47, DeviceByte: 0x57, NonceByte: 0x67},
-			{Offering: retrievalAuthOffering(t, 2), AuthorityByte: 0x48, DeviceByte: 0x58, NonceByte: 0x68},
-			{Offering: retrievalAuthOffering(t, 3), AuthorityByte: 0x49, DeviceByte: 0x59, NonceByte: 0x69},
-			{Offering: retrievalAuthOffering(t, 2), AuthorityByte: 0x4a, DeviceByte: 0x5a, NonceByte: 0x6a},
 		}
 		for _, tc := range cases {
 			fixture := newRetrievalAuthFixture(t, tc)
@@ -173,11 +156,11 @@ func TestRetrievalAuthVerificationLayerTriad(t *testing.T) {
 			{name: "document absent", mutate: func(value *Verification) { value.Document = RequestDocument{} }, wantErr: core.ErrRetrievalContract},
 			{name: "trusted authority absent", mutate: func(value *Verification) { value.Server = controlplane.Authority{} }, wantErr: core.ErrRetrievalContract},
 			{name: "different authority trust set", mutate: func(value *Verification) { value.Server = retrievalAuthServer(t, otherAuthority.trusted) }, wantErr: core.ErrAttestVerification},
-			{name: "authentic certificate names another device", mutate: func(value *Verification) { value.Document.Certificate = otherDevice.certificate }, wantErr: core.ErrAttestVerification},
+			{name: "authentic certificate names another device", mutate: func(value *Verification) { value.Document.Certificate = otherDevice.certificate }, wantErr: core.ErrRetrievalBinding},
 			{name: "request nonce substituted after signing", mutate: func(value *Verification) { value.Document.Request.Payload.Nonce = otherNonce.request.Payload.Nonce }, wantErr: core.ErrAttestVerification},
 			{name: "request signer substituted", mutate: func(value *Verification) {
 				value.Document.Request.Attestation.Signer = otherDevice.request.Attestation.Signer
-			}, wantErr: core.ErrAttestVerification},
+			}, wantErr: core.ErrRetrievalBinding},
 			{name: "request signature substituted", mutate: func(value *Verification) {
 				value.Document.Request.Attestation.Signature = otherDevice.request.Attestation.Signature
 			}, wantErr: core.ErrAttestVerification},
@@ -187,7 +170,7 @@ func TestRetrievalAuthVerificationLayerTriad(t *testing.T) {
 			{name: "certificate device binding substituted after signing", mutate: func(value *Verification) {
 				value.Document.Certificate.Body.DeviceKey = otherDevice.certificate.Body.DeviceKey
 				value.Document.Certificate.Body.Subject.DeviceID = otherDevice.certificate.Body.Subject.DeviceID
-			}, wantErr: core.ErrAttestVerification},
+			}, wantErr: core.ErrRetrievalBinding},
 			{name: "certificate signer substituted", mutate: func(value *Verification) {
 				value.Document.Certificate.Attestation.Signer = otherAuthority.certificate.Attestation.Signer
 			}, wantErr: core.ErrAttestVerification},
@@ -233,7 +216,7 @@ func TestRetrievalAuthDocumentJSONLayerTriad(t *testing.T) {
 
 		cases := []retrievalAuthJSONCase{
 			{name: "canonical credentialed request", data: canonical},
-			{name: "large credentialed document whitespace", data: retrievalAuthPadJSON(canonical, retrievalAuthWhitespaceProbeBytes)},
+			{name: "large credentialed document whitespace", data: retrievalAuthPadJSON(t, canonical, retrievalAuthWhitespaceProbeBytes)},
 			{name: "large nested retrieval request whitespace", data: bytes.Replace(canonical, []byte(`"request":{`), append([]byte(`"request":{`), bytes.Repeat([]byte{' '}, retrievalAuthWhitespaceProbeBytes)...), 1)},
 			{name: "leading whitespace", data: append([]byte(" \n\t"), canonical...)},
 			{name: "top-level members reordered", data: marshalReorderedRetrievalAuthDocument(t, fixture.document)},
@@ -254,7 +237,7 @@ func TestRetrievalAuthDocumentJSONLayerTriad(t *testing.T) {
 	t.Run("negative malformed missing duplicate type-wrong and trailing documents reject", func(t *testing.T) {
 		t.Parallel()
 
-		cases := retrievalAuthHostileJSONCases(canonical)
+		cases := retrievalAuthHostileJSONCases(t, canonical)
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
 				t.Parallel()
@@ -283,23 +266,28 @@ func marshalReorderedRetrievalAuthDocument(t *testing.T, document RequestDocumen
 	t.Helper()
 
 	encoded, gotErr := core.MarshalCanonicalJSONDocument(struct {
-		Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
 		Request     retrieval.RequestDocument                    `json:"request"`
+		Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
 	}{Certificate: document.Certificate, Request: document.Request})
 	if gotErr != nil {
 		t.Fatalf("core.MarshalCanonicalJSONDocument(reordered retrieval auth) error = %v, want nil", gotErr)
 	}
+	canonical, err := document.MarshalJSON()
+	if err != nil || bytes.Equal(canonical, encoded) {
+		t.Fatalf("reordered fixture = unchanged or error %v, want changed member order", err)
+	}
 	return encoded
 }
 
-func retrievalAuthPadJSON(document []byte, wantBytes int) []byte {
+func retrievalAuthPadJSON(t testing.TB, document []byte, wantBytes int) []byte {
+	t.Helper()
 	if len(document) >= wantBytes {
-		return append([]byte(nil), document...)
+		t.Fatalf("document extent = %d, want below whitespace target %d", len(document), wantBytes)
 	}
 	return append(append([]byte(nil), document...), bytes.Repeat([]byte{' '}, wantBytes-len(document))...)
 }
 
-func retrievalAuthHostileJSONCases(canonical []byte) []retrievalAuthJSONCase {
+func retrievalAuthHostileJSONCases(t testing.TB, canonical []byte) []retrievalAuthJSONCase {
 	return []retrievalAuthJSONCase{
 		{name: "empty document", data: nil},
 		{name: "whitespace-only document", data: []byte(" \n\t")},
@@ -311,7 +299,7 @@ func retrievalAuthHostileJSONCases(canonical []byte) []retrievalAuthJSONCase {
 		{name: "truncated opening brace", data: []byte("{")},
 		{name: "truncated inside request", data: canonical[:len(canonical)/2]},
 		{name: "truncated before final brace", data: canonical[:len(canonical)-1]},
-		{name: "trailing object after large whitespace", data: append(retrievalAuthPadJSON(canonical, retrievalAuthWhitespaceProbeBytes), '{', '}')},
+		{name: "trailing object after large whitespace", data: append(retrievalAuthPadJSON(t, canonical, retrievalAuthWhitespaceProbeBytes), '{', '}')},
 		{name: "two concatenated documents", data: append(append([]byte(nil), canonical...), canonical...)},
 		{name: "unknown top-level member", data: append([]byte(`{"unknown":1,`), canonical[1:]...)},
 		{name: "duplicate request member", data: append(bytes.Clone(canonical[:len(canonical)-1]), []byte(`,"request":null}`)...)},

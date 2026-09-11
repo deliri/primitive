@@ -27,11 +27,17 @@ func (d RequestDocument) Validate() error {
 	if err != nil || d.Request.Payload.Scope != scope {
 		return bindingError(errors.New("retrieval request scope differs from certificate"), err)
 	}
+	if d.Request.Attestation.Signer != d.Certificate.Body.DeviceKey {
+		return bindingError(errors.New("retrieval request signer differs from certificate"))
+	}
 	return nil
 }
 
 // ControlRoute projects the sole route admitted by this credentialed request.
 func (d RequestDocument) ControlRoute() (controlwire.RouteContract, error) {
+	if err := d.Validate(); err != nil {
+		return controlwire.RouteContract{}, err
+	}
 	return controlwire.NewRouteContract(
 		d.Request.Payload.Build.Offering(), controlwire.RouteFamilyRetrievals,
 	)
@@ -133,7 +139,10 @@ func Verify(verification Verification) (Verified, error) {
 		return Verified{}, contractError(err)
 	}
 	verified := Verified{document: verification.Document, requestProof: proof, certificateProof: certificate}
-	return verified, verified.Validate()
+	if err := verified.Validate(); err != nil {
+		return Verified{}, err
+	}
+	return verified, nil
 }
 
 func (v Verified) Validate() error {
