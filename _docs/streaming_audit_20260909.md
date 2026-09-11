@@ -73,7 +73,7 @@ Audit exit per package: no hidden transfer/line quota; reader and writer paths c
 | timeproof | 34 | requires_review |
 | twilio | 3 | requires_review |
 | upgrade | 16 | requires_review |
-| version | 0 | requires_review |
+| version | 0 | reviewed; fixed nominal token memory in [upgrade report](version_upgrade_20260910.md) |
 | wiring | 0 | requires_review |
 
 Lineio review evidence: [review follow-up](lineio_review_20260909.md). Its Go source is verified; user review is pending. The remaining package-wide audits are not complete; the scoped review below does not establish whole-package compliance.

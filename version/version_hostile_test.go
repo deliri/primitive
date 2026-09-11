@@ -140,12 +140,29 @@ func TestTagJSONPreservesReceiverOnTypedRefusal(t *testing.T) {
 }
 
 func FuzzTagSemanticClosure(f *testing.F) {
-	f.Add("v2026.1.3")
+	seed := releaseFromCoordinates(f, 2026, 1, 3).Tag()
+	canonical, err := seed.MarshalText()
+	if err != nil {
+		f.Fatal(err)
+	}
+	f.Add(string(canonical))
 	f.Add("")
 	f.Add("2026.1.3")
 	f.Add("v2026.1.3-shadow")
 	f.Fuzz(func(t *testing.T, text string) {
 		got, gotErr := version.ParseTag(text)
+		if (gotErr == nil) != admittedTag(text) {
+			t.Fatalf("ParseTag(%q) = %v, want independent grammar acceptance %t", text, gotErr, admittedTag(text))
+		}
+		receiver := seed
+		textErr := receiver.UnmarshalText([]byte(text))
+		if gotErr != nil {
+			if !errors.Is(textErr, core.ErrReleaseContract) || receiver != seed {
+				t.Fatalf("UnmarshalText = %v/%v, want preserved typed refusal", receiver, textErr)
+			}
+		} else if textErr != nil || receiver != got {
+			t.Fatalf("UnmarshalText = %v/%v, want %v/nil", receiver, textErr, got)
+		}
 		if gotErr != nil {
 			if !errors.Is(gotErr, core.ErrReleaseContract) || got != (version.Tag{}) {
 				t.Fatalf("ParseTag(%q) = (%v, %v), want zero typed refusal", text, got, gotErr)

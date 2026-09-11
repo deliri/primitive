@@ -132,7 +132,7 @@ runner acceptance remains a separate fact.
 
 Continue in the user-approved September 10 order:
 
-`version`, `chitauth`, `distributionauth`,
+`chitauth`, `distributionauth`,
 `paymentauth`, `retrievalauth`, `upgrade`, `deploy`, `wiring`, `github`,
 `gomodule`, `timeproof`, `controlplanetest`, `gitrepo`, `machineprobe`, `paypal`,
 `plunk`, `runworkspace`, `sourceclaim`, `sourceobservation`, `sourceproof`,
@@ -187,3 +187,5 @@ notes above are historical. Independent acceptance and consumer migration remain
 separate. Secretstore is now first in this queue.
 
 Secretstore v2026.1.55: [local upgrade review](secretstore_upgrade_20260910.md). Provider SDK message materialization is explicit; independent acceptance is not claimed.
+
+Version v2026.1.56: [local upgrade review](version_upgrade_20260910.md). Fixed nominal JSON-token memory; Chitauth is next.

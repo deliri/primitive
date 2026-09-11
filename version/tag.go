@@ -1,12 +1,21 @@
 package version
 
 import (
+	"bytes"
 	"errors"
 
 	"github.com/deliri/primitive/v2026/core"
 )
 
 const gitTagPrefix = "v"
+
+// TagTextMaximumBytes follows from the prefix, three uint32 decimal
+// coordinates (at most ten digits each), and two separators.
+const TagTextMaximumBytes = len(gitTagPrefix) + 3*10 + 2
+
+// A tag is ASCII. Each byte can occupy at most six bytes as a JSON Unicode
+// escape; the two quotes are framing. Whitespace is not part of this bound.
+const tagJSONTokenMaximumBytes = 2 + 6*TagTextMaximumBytes
 
 // Tag is the canonical Git tag derived from a Release.
 type Tag struct {
@@ -16,6 +25,9 @@ type Tag struct {
 // ParseTag admits one canonical v-prefixed release tag observed at an external
 // boundary. A project's own tag is derived from Release.Tag instead.
 func ParseTag(text string) (Tag, error) {
+	if len(text) > TagTextMaximumBytes {
+		return Tag{}, errors.Join(core.ErrReleaseContract, errors.New("project release tag exceeds coordinate representation"))
+	}
 	if len(text) < 2 || text[0] != gitTagPrefix[0] {
 		return Tag{}, errors.Join(core.ErrReleaseContract, errors.New("project release tag is not v-prefixed"))
 	}
@@ -65,6 +77,9 @@ func (t *Tag) UnmarshalText(text []byte) error {
 	if t == nil {
 		return errors.Join(core.ErrReleaseContract, errors.New("project release tag receiver is nil"))
 	}
+	if len(text) > TagTextMaximumBytes {
+		return errors.Join(core.ErrReleaseContract, errors.New("project release tag exceeds coordinate representation"))
+	}
 	parsed, err := ParseTag(string(text))
 	if err != nil {
 		return err
@@ -84,7 +99,11 @@ func (t *Tag) UnmarshalJSON(data []byte) error {
 	if t == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrReleaseContract, errors.New("project release tag receiver is nil"))
 	}
-	text, err := core.DecodeJSONStringToken(data)
+	token := bytes.Trim(data, " \t\r\n")
+	if len(token) > tagJSONTokenMaximumBytes {
+		return errors.Join(core.ErrJSONContract, core.ErrReleaseContract, errors.New("project release tag token exceeds coordinate representation"))
+	}
+	text, err := core.DecodeJSONStringToken(token)
 	if err != nil {
 		return errors.Join(core.ErrReleaseContract, err)
 	}
