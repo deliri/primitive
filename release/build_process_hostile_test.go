@@ -187,7 +187,7 @@ func zeroProcessRequest(request process.Request) bool {
 	return request.Streams.Stdin == nil && request.Streams.Stdout == nil && request.Streams.Stderr == nil &&
 		request.Command == (core.AbsolutePath{}) && request.WorkingDirectory == (core.AbsolutePath{}) &&
 		request.Arguments == nil && request.Environment.Mode == process.EnvironmentModeUnknown &&
-		request.Environment.Variables == nil && request.OutputLimit == (core.ByteCount{}) &&
+		request.Environment.Variables == nil && request.OutputPolicy == (process.OutputPolicy{}) &&
 		request.WaitDelay == (temporal.Duration{})
 }
 

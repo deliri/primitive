@@ -66,7 +66,7 @@ func FuzzPlanJSONExternalIngress(f *testing.F) {
 			t.Fatalf("decoder changed caller bytes: got=%x want=%x", input, inputBefore)
 		}
 		if !wantAccepted {
-			if !errors.Is(err, core.ErrProcessContract) || !errors.Is(err, core.ErrJSONContract) || receiver.Command != before.Command || receiver.WorkingDirectory != before.WorkingDirectory || receiver.OutputLimit != before.OutputLimit || receiver.WaitDelay != before.WaitDelay || receiver.Containment != before.Containment || receiver.SchemaVersion != before.SchemaVersion || receiver.Environment.Mode != before.Environment.Mode || !slices.Equal(receiver.Arguments, before.Arguments) || !slices.Equal(receiver.Environment.Variables, before.Environment.Variables) || (receiver.Arguments == nil) != (before.Arguments == nil) || (receiver.Environment.Variables == nil) != (before.Environment.Variables == nil) {
+			if !errors.Is(err, core.ErrProcessContract) || !errors.Is(err, core.ErrJSONContract) || receiver.Command != before.Command || receiver.WorkingDirectory != before.WorkingDirectory || receiver.OutputPolicy != before.OutputPolicy || receiver.WaitDelay != before.WaitDelay || receiver.Containment != before.Containment || receiver.SchemaVersion != before.SchemaVersion || receiver.Environment.Mode != before.Environment.Mode || !slices.Equal(receiver.Arguments, before.Arguments) || !slices.Equal(receiver.Environment.Variables, before.Environment.Variables) || (receiver.Arguments == nil) != (before.Arguments == nil) || (receiver.Environment.Variables == nil) != (before.Environment.Variables == nil) {
 				t.Fatalf("refusal changed receiver or lost identity: %v", err)
 			}
 			return
@@ -87,15 +87,17 @@ func FuzzPlanJSONExternalIngress(f *testing.F) {
 			t.Fatalf("accepted plan lost canonical closure: %v", err)
 		}
 		bound, err := receiver.Bind(Streams{Stdin: bytes.NewReader(nil), Stdout: &bytes.Buffer{}, Stderr: &bytes.Buffer{}})
-		if err != nil || bound.Command != receiver.Command || bound.WorkingDirectory != receiver.WorkingDirectory || bound.Environment.Mode != EnvironmentModeExact || !slices.Equal(bound.Environment.Variables, receiver.Environment.Variables) || !slices.Equal(bound.Arguments, receiver.Arguments) || bound.Containment != receiver.Containment || bound.OutputLimit != receiver.OutputLimit || bound.WaitDelay != receiver.WaitDelay {
+		if err != nil || bound.Command != receiver.Command || bound.WorkingDirectory != receiver.WorkingDirectory || bound.Environment.Mode != EnvironmentModeExact || !slices.Equal(bound.Environment.Variables, receiver.Environment.Variables) || !slices.Equal(bound.Arguments, receiver.Arguments) || bound.Containment != receiver.Containment || bound.OutputPolicy != receiver.OutputPolicy || bound.WaitDelay != receiver.WaitDelay {
 			t.Fatalf("accepted intent changed at bind: %v", err)
 		}
 	})
 }
 
 func planWireAdmittedByContract(w planWire) bool {
-	output, outputErr := w.OutputLimit.Uint64()
-	if w.SchemaVersion != ExecutionPlanSchemaVersion || w.Command.Validate() != nil || w.WorkingDirectory.Validate() != nil || outputErr != nil || output > math.MaxInt64 || w.WaitDelay.Validate() != nil || w.WaitDelay.IsZero() {
+	output, outputErr := w.OutputPolicy.Maximum.Uint64()
+	bounded := w.OutputPolicy.Mode == OutputModeBounded && outputErr == nil && output <= math.MaxInt64
+	streaming := w.OutputPolicy.Mode == OutputModeStreaming && w.OutputPolicy.Maximum == (core.ByteCount{})
+	if w.SchemaVersion != ExecutionPlanSchemaVersion || w.Command.Validate() != nil || w.WorkingDirectory.Validate() != nil || (!bounded && !streaming) || w.WaitDelay.Validate() != nil || w.WaitDelay.IsZero() {
 		return false
 	}
 	if w.Isolation != IsolationDirect.String() && w.Isolation != IsolationGroup.String() {

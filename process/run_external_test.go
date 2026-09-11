@@ -96,7 +96,7 @@ func TestRunStreamingLayerTriad(t *testing.T) {
 			Stdout: &stdout,
 			Stderr: io.Discard,
 		})
-		request.OutputLimit = byteCount(t, 8)
+		request.OutputPolicy.Maximum = byteCount(t, 8)
 		got, gotErr := process.Run(context.Background(), request)
 		if !errors.Is(gotErr, core.ErrProcessOutputLimit) ||
 			!errors.Is(gotErr, core.ErrProcessStream) {
@@ -124,12 +124,12 @@ func TestRunStreamingLayerTriad(t *testing.T) {
 		var exceeded process.OutputLimitExceeded
 		if !errors.As(gotErr, &exceeded) ||
 			exceeded.Stream() != process.StreamStdout ||
-			exceeded.Limit() != request.OutputLimit {
+			exceeded.Limit() != request.OutputPolicy.Maximum {
 			t.Fatalf(
 				"process.Run(output over bound) typed detail = %+v from %v, want stdout/%v",
 				exceeded,
 				gotErr,
-				request.OutputLimit,
+				request.OutputPolicy.Maximum,
 			)
 		}
 	})
@@ -526,7 +526,7 @@ func TestRunOutputBoundPressure(t *testing.T) {
 					Stdin: bytes.NewReader(nil), Stdout: counter, Stderr: io.Discard,
 				},
 			)
-			request.OutputLimit = byteCount(t, tc.limit)
+			request.OutputPolicy.Maximum = byteCount(t, tc.limit)
 			got, gotErr := process.Run(context.Background(), request)
 			if !errors.Is(gotErr, tc.wantErr) {
 				t.Fatalf("process.Run() error = %v, want %v", gotErr, tc.wantErr)
@@ -608,7 +608,7 @@ func TestRunBoundsStdoutAndStderrIndependently(t *testing.T) {
 				behavior,
 				process.Streams{Stdin: bytes.NewReader(nil), Stdout: stdout, Stderr: stderr},
 			)
-			request.OutputLimit = byteCount(t, tc.limit)
+			request.OutputPolicy.Maximum = byteCount(t, tc.limit)
 			got, gotErr := process.Run(context.Background(), request)
 			wantErr := tc.wantStdoutErr || tc.wantStderrErr
 			if (gotErr != nil) != wantErr {
@@ -1636,7 +1636,7 @@ func processRequest(
 		Environment:      process.Environment{Mode: process.EnvironmentModeInherit},
 		WorkingDirectory: absolutePath(tb, workingDirectory),
 		Streams:          streams,
-		OutputLimit:      byteCount(tb, 1<<20),
+		OutputPolicy:     process.OutputPolicy{Mode: process.OutputModeBounded, Maximum: byteCount(tb, 1<<20)},
 		WaitDelay:        waitDelay,
 		Containment: process.Containment{
 			Isolation:    process.IsolationDirect,

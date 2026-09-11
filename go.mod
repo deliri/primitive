@@ -17,6 +17,7 @@ require (
 	golang.org/x/tools v0.49.0
 	google.golang.org/api v0.293.0
 	google.golang.org/grpc v1.83.1
+	google.golang.org/protobuf v1.36.12
 	tailscale.com v1.102.3
 	tailscale.com/client/tailscale/v2 v2.10.1
 )
@@ -100,6 +101,5 @@ require (
 	google.golang.org/genproto v0.0.0-20260819154853-08b0e4226688 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260819154853-08b0e4226688 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260819154853-08b0e4226688 // indirect
-	google.golang.org/protobuf v1.36.12 // indirect
 	gvisor.dev/gvisor v0.0.0-20260224225140-573d5e7127a8 // indirect
 )

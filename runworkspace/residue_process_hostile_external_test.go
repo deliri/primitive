@@ -110,7 +110,7 @@ func residueProbeFixtures(t testing.TB, working string, outputs [8]string) []run
 			Kind: runworkspace.ResidueProbeKind(index + 1),
 			Plan: process.Plan{
 				SchemaVersion: process.ExecutionPlanSchemaVersion, Command: command, WorkingDirectory: workingDirectory,
-				Arguments: arguments, Environment: environment, OutputLimit: outputLimit, WaitDelay: wait,
+				Arguments: arguments, Environment: environment, OutputPolicy: process.OutputPolicy{Mode: process.OutputModeBounded, Maximum: outputLimit}, WaitDelay: wait,
 				Containment: process.Containment{Isolation: process.IsolationDirect, CancelSignal: process.CancelSignalKill},
 			},
 		}

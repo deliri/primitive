@@ -35,10 +35,10 @@ func TestCommandStreamsRetainIndependentLimitFailuresLayerTriad(t *testing.T) {
 			defer cancel(nil)
 			failures := &streamFailures{cancel: cancel}
 			var stdout, stderr bytes.Buffer
-			streams := newCommandStreams(Request{Streams: Streams{Stdin: bytes.NewReader(nil), Stdout: &stdout, Stderr: &stderr}, OutputLimit: limit}, failures)
+			streams := newCommandStreams(Request{Streams: Streams{Stdin: bytes.NewReader(nil), Stdout: &stdout, Stderr: &stderr}, OutputPolicy: OutputPolicy{Mode: OutputModeBounded, Maximum: limit}}, failures)
 			outputs := []struct {
 				stream      Stream
-				writer      *boundedWriter
+				writer      *observedWriter
 				destination *bytes.Buffer
 				size        int
 			}{
@@ -110,7 +110,7 @@ func TestBoundedWriterEmptyPrefixLayerTriad(t *testing.T) {
 			defer cancel(nil)
 			destination := &emptyWriteRejectingDestination{}
 			failures := &streamFailures{cancel: cancel}
-			streams := newCommandStreams(Request{Streams: Streams{Stdin: bytes.NewReader(nil), Stdout: destination, Stderr: io.Discard}, OutputLimit: limit}, failures)
+			streams := newCommandStreams(Request{Streams: Streams{Stdin: bytes.NewReader(nil), Stdout: destination, Stderr: io.Discard}, OutputPolicy: OutputPolicy{Mode: OutputModeBounded, Maximum: limit}}, failures)
 			count, err := streams.stdout.Write(tc.first)
 			if count != len(tc.first) || err != nil {
 				t.Fatalf("initial write=%d, %v; want %d, nil", count, err, len(tc.first))

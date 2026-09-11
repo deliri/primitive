@@ -43,8 +43,8 @@ func (f *streamFailures) joined() error {
 // writer for stdout and stderr observes serialized, exactly accounted writes.
 type commandStreams struct {
 	stdin  *observedReader
-	stdout *boundedWriter
-	stderr *boundedWriter
+	stdout *observedWriter
+	stderr *observedWriter
 }
 
 func newCommandStreams(
@@ -57,18 +57,18 @@ func newCommandStreams(
 			source:   request.Streams.Stdin,
 			failures: failures,
 		},
-		stdout: &boundedWriter{
+		stdout: &observedWriter{
 			destination: request.Streams.Stdout,
 			failures:    failures,
 			writeMu:     outputMu,
-			limit:       request.OutputLimit,
+			policy:      request.OutputPolicy,
 			stream:      StreamStdout,
 		},
-		stderr: &boundedWriter{
+		stderr: &observedWriter{
 			destination: request.Streams.Stderr,
 			failures:    failures,
 			writeMu:     outputMu,
-			limit:       request.OutputLimit,
+			policy:      request.OutputPolicy,
 			stream:      StreamStderr,
 		},
 	}
@@ -134,16 +134,16 @@ func (r *observedReader) observeCount(count int) error {
 	return nil
 }
 
-type boundedWriter struct {
+type observedWriter struct {
 	destination io.Writer
 	failures    *streamFailures
 	writeMu     *sync.Mutex
-	limit       core.ByteCount
+	policy      OutputPolicy
 	count       uint64
 	stream      Stream
 }
 
-func (w *boundedWriter) Write(buffer []byte) (count int, err error) {
+func (w *observedWriter) Write(buffer []byte) (count int, err error) {
 	w.writeMu.Lock()
 	defer w.writeMu.Unlock()
 	defer func() {
@@ -153,7 +153,14 @@ func (w *boundedWriter) Write(buffer []byte) (count int, err error) {
 			w.failures.record(w.stream, err)
 		}
 	}()
-	maximum, limitErr := w.limit.Uint64()
+	if policyErr := w.policy.Validate(); policyErr != nil {
+		w.failures.record(w.stream, policyErr)
+		return 0, policyErr
+	}
+	if w.policy.Mode == OutputModeStreaming {
+		return w.forward(buffer)
+	}
+	maximum, limitErr := w.policy.Maximum.Uint64()
 	if limitErr != nil {
 		w.failures.record(w.stream, limitErr)
 		return 0, limitErr
@@ -168,12 +175,12 @@ func (w *boundedWriter) Write(buffer []byte) (count int, err error) {
 	if err != nil {
 		return count, err
 	}
-	exceeded := newOutputLimitExceeded(w.stream, w.limit)
+	exceeded := newOutputLimitExceeded(w.stream, w.policy.Maximum)
 	w.failures.record(w.stream, exceeded)
 	return count, exceeded
 }
 
-func (w *boundedWriter) forward(buffer []byte) (int, error) {
+func (w *observedWriter) forward(buffer []byte) (int, error) {
 	count, err := forwardFullWrite(w.destination, &w.count, buffer)
 	if err != nil {
 		w.failures.record(w.stream, err)

@@ -1,8 +1,9 @@
 // Package process runs one typed command over Go's os/exec primitive.
 //
 // Input and output remain caller-owned streams. Process forwards bytes without
-// retaining whole output, applies one fixed bound independently to stdout and
-// stderr, and reports the direct child's exit and resource observations.
+// retaining whole output. OutputPolicy explicitly chooses uncapped streaming or
+// a caller-declared bound applied independently to stdout and stderr. Process
+// reports exact byte counts and the direct child's exit and resource observations.
 //
 // Process does not interpret a shell language, construct pipelines, schedule
 // work, or retain a process registry. It does own the isolation and signal a

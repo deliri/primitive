@@ -8,7 +8,7 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
-const ExecutionPlanSchemaVersion uint16 = 1
+const ExecutionPlanSchemaVersion uint16 = 2
 
 // Plan is the stream-free, exact execution capability carried across a
 // trusted control boundary. The authority compiles it from closed policy;
@@ -18,7 +18,7 @@ type Plan struct {
 	WorkingDirectory core.AbsolutePath
 	Arguments        []Argument
 	Environment      Environment
-	OutputLimit      core.ByteCount
+	OutputPolicy     OutputPolicy
 	WaitDelay        temporal.Duration
 	SchemaVersion    uint16
 	Containment      Containment
@@ -31,7 +31,7 @@ func (p Plan) Validate() error {
 	request := Request{
 		Command: p.Command, WorkingDirectory: p.WorkingDirectory,
 		Arguments: p.Arguments, Environment: p.Environment,
-		OutputLimit: p.OutputLimit, WaitDelay: p.WaitDelay,
+		OutputPolicy: p.OutputPolicy, WaitDelay: p.WaitDelay,
 		Containment: p.Containment,
 	}
 	if err := validateRequestHead(request); err != nil {
@@ -44,7 +44,7 @@ func (p Plan) Validate() error {
 	if uint64(len(p.Arguments)) > maximum || uint64(len(p.Environment.Variables)) > maximum {
 		return contractError("execution plan array exceeds JSON limit")
 	}
-	if err := validateOutputLimit(p.OutputLimit); err != nil {
+	if err := p.OutputPolicy.Validate(); err != nil {
 		return err
 	}
 	if err := p.WaitDelay.Validate(); err != nil || p.WaitDelay.IsZero() {
@@ -66,7 +66,7 @@ func (p Plan) Bind(streams Streams) (Request, error) {
 			Mode:      p.Environment.Mode,
 			Variables: append([]EnvironmentVariable(nil), p.Environment.Variables...),
 		},
-		OutputLimit: p.OutputLimit, WaitDelay: p.WaitDelay, Containment: p.Containment,
+		OutputPolicy: p.OutputPolicy, WaitDelay: p.WaitDelay, Containment: p.Containment,
 	}
 	return request, request.Validate()
 }
@@ -78,7 +78,7 @@ type planWire struct {
 	CancelSignal     string            `json:"cancel_signal"`
 	Arguments        []string          `json:"arguments"`
 	Environment      []string          `json:"environment"`
-	OutputLimit      core.ByteCount    `json:"output_limit"`
+	OutputPolicy     OutputPolicy      `json:"output"`
 	WaitDelay        temporal.Duration `json:"wait_delay"`
 	SchemaVersion    uint16            `json:"schema_version"`
 }
@@ -102,7 +102,7 @@ func (p Plan) MarshalJSON() ([]byte, error) {
 	encoded, err := core.MarshalCanonicalJSONDocument(planWire{
 		SchemaVersion: p.SchemaVersion, Command: p.Command,
 		WorkingDirectory: p.WorkingDirectory, Arguments: arguments,
-		Environment: environment, OutputLimit: p.OutputLimit,
+		Environment: environment, OutputPolicy: p.OutputPolicy,
 		WaitDelay: p.WaitDelay, Isolation: p.Containment.Isolation.String(),
 		CancelSignal: p.Containment.CancelSignal.String(),
 	})
@@ -129,7 +129,7 @@ func (p *Plan) UnmarshalJSON(data []byte) error {
 	candidate := Plan{
 		SchemaVersion: wire.SchemaVersion, Command: wire.Command,
 		WorkingDirectory: wire.WorkingDirectory, Arguments: arguments,
-		Environment: environment, OutputLimit: wire.OutputLimit,
+		Environment: environment, OutputPolicy: wire.OutputPolicy,
 		WaitDelay: wire.WaitDelay, Containment: containment,
 	}
 	// Omitted vectors and noncanonical spellings can make the published

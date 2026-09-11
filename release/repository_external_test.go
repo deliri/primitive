@@ -568,7 +568,7 @@ func runRepositoryGitForTest(t *testing.T, fixture repositoryFixture, arguments 
 	}
 	return runFixtureProcess(t.Context(), t, process.Request{
 		Command: fixture.git, WorkingDirectory: fixture.root, Arguments: args,
-		Environment: commandEnvironment, WaitDelay: wait, OutputLimit: limit,
+		Environment: commandEnvironment, WaitDelay: wait, OutputPolicy: process.OutputPolicy{Mode: process.OutputModeBounded, Maximum: limit},
 		Containment: process.Containment{Isolation: process.IsolationDirect, CancelSignal: process.CancelSignalKill},
 	})
 }

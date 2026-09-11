@@ -234,7 +234,7 @@ func compileExternalExecution(compilation externalCompilation) (ExperimentExecut
 	plan := process.Plan{
 		SchemaVersion: process.ExecutionPlanSchemaVersion,
 		Command:       compilation.base.Command, WorkingDirectory: compilation.base.WorkingDirectory,
-		Arguments: arguments, Environment: environment, OutputLimit: compilation.base.OutputLimit,
+		Arguments: arguments, Environment: environment, OutputPolicy: process.OutputPolicy{Mode: process.OutputModeBounded, Maximum: compilation.base.OutputLimit},
 		WaitDelay:   compilation.base.WaitDelay,
 		Containment: process.Containment{Isolation: process.IsolationGroup, CancelSignal: process.CancelSignalTerminate},
 	}

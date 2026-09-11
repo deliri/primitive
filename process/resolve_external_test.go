@@ -375,8 +375,8 @@ func TestResolveProducesACommandRunCanActuallyExecute(t *testing.T) {
 			Stdout: io.Discard,
 			Stderr: io.Discard,
 		},
-		OutputLimit: byteCount(t, 1<<16),
-		WaitDelay:   delay,
+		OutputPolicy: process.OutputPolicy{Mode: process.OutputModeBounded, Maximum: byteCount(t, 1<<16)},
+		WaitDelay:    delay,
 		Containment: process.Containment{
 			Isolation:    process.IsolationDirect,
 			CancelSignal: process.CancelSignalKill,

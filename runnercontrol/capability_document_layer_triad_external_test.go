@@ -260,7 +260,7 @@ func capabilityExecution(t testing.TB) runnercontrol.ExperimentExecution {
 	}
 	plan := process.Plan{
 		SchemaVersion: process.ExecutionPlanSchemaVersion, Command: capabilityPath(t, "/bin/sh"), WorkingDirectory: capabilityPath(t, "/source"),
-		Arguments: arguments, Environment: environment, OutputLimit: capabilityByteCount(t, 1_024), WaitDelay: mustCapabilityDuration(t, 100),
+		Arguments: arguments, Environment: environment, OutputPolicy: process.OutputPolicy{Mode: process.OutputModeBounded, Maximum: capabilityByteCount(t, 1_024)}, WaitDelay: mustCapabilityDuration(t, 100),
 		Containment: process.Containment{Isolation: process.IsolationGroup, CancelSignal: process.CancelSignalTerminate},
 	}
 	subject := runnercontrol.SubjectExecution{

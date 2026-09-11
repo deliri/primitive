@@ -21,6 +21,8 @@ import (
 // doors additionally bind their actual semantic fuzzer below; kernel-owned
 // observations and capability constructors are identified separately.
 type processExternalDoorInventory struct {
+	OutputMode_UnmarshalJSON   func(*process.OutputMode, []byte) error
+	OutputPolicy_Validate      func(process.OutputPolicy) error
 	Alive                      func(process.ProcessIdentity) (process.Liveness, error)
 	AmbientArguments           func() ([]process.Argument, error)
 	Begin                      func(context.Context, process.Request) (*process.Execution, error)
@@ -44,7 +46,9 @@ type processExternalDoorInventory struct {
 }
 
 var processExternalDoors = processExternalDoorInventory{
-	Alive: process.Alive, AmbientArguments: process.AmbientArguments, Begin: process.Begin,
+	OutputMode_UnmarshalJSON: (*process.OutputMode).UnmarshalJSON,
+	OutputPolicy_Validate:    process.OutputPolicy.Validate,
+	Alive:                    process.Alive, AmbientArguments: process.AmbientArguments, Begin: process.Begin,
 	DiscardDeviceArgument: process.DiscardDeviceArgument,
 	NewArgument:           process.NewArgument, NewEnvironmentName: process.NewEnvironmentName, NewEnvironmentValue: process.NewEnvironmentValue,
 	NewTruncatingWriter: process.NewTruncatingWriter, ObserveProcesses: process.ObserveProcesses,
@@ -56,6 +60,8 @@ var processExternalDoors = processExternalDoorInventory{
 // Fields deliberately use the same compiler-checked operation names as the
 // call inventory. An added operation cannot disappear from classification.
 type processExternalFuzzProofInventory struct {
+	OutputMode_UnmarshalJSON func(*testing.F)
+	OutputPolicy_Validate    func(*testing.F)
 	AmbientArguments, Begin, NewArgument, NewEnvironmentName, NewEnvironmentValue, NewTruncatingWriter,
 	ParseArguments, ParseEffectiveEnvironment, ParseExactEnvironment, Resolve, ResolveExecutable, Run,
 	Streams_WriteOutput, TruncatingWriter_Write, ResultObservation_Validate func(*testing.F)
@@ -63,7 +69,9 @@ type processExternalFuzzProofInventory struct {
 
 func processExternalFuzzProofs() processExternalFuzzProofInventory {
 	return processExternalFuzzProofInventory{
-		AmbientArguments: FuzzParseArgumentsAndAmbientExternalIngress, Begin: FuzzRunAndBeginStreamingExternalIngress,
+		OutputMode_UnmarshalJSON: FuzzOutputModeJSONSemanticClosure,
+		OutputPolicy_Validate:    FuzzOutputPolicyExternalIngress,
+		AmbientArguments:         FuzzParseArgumentsAndAmbientExternalIngress, Begin: FuzzRunAndBeginStreamingExternalIngress,
 		NewArgument: FuzzArgumentEnvironmentAtomsExternalIngress, NewEnvironmentName: FuzzArgumentEnvironmentAtomsExternalIngress, NewEnvironmentValue: FuzzArgumentEnvironmentAtomsExternalIngress,
 		NewTruncatingWriter: FuzzTruncatingWriterExternalIngress, ParseArguments: FuzzParseArgumentsAndAmbientExternalIngress,
 		ParseEffectiveEnvironment: FuzzParseEffectiveEnvironmentExternalIngress, ParseExactEnvironment: FuzzParseExactEnvironmentExternalIngress,

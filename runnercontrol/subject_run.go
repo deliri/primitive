@@ -133,7 +133,7 @@ func subjectNetworkControllerPlan(capability ExperimentCapability, operation sub
 		SchemaVersion:    process.ExecutionPlanSchemaVersion,
 		Command:          controller,
 		WorkingDirectory: workingDirectory,
-		Arguments:        arguments, Environment: environment, OutputLimit: output,
+		Arguments:        arguments, Environment: environment, OutputPolicy: process.OutputPolicy{Mode: process.OutputModeBounded, Maximum: output},
 		WaitDelay:   capability.Execution.Process.WaitDelay,
 		Containment: process.Containment{Isolation: process.IsolationGroup, CancelSignal: process.CancelSignalTerminate},
 	}
@@ -218,7 +218,7 @@ func subjectStopPlan(capability ExperimentCapability) (process.Plan, error) {
 	plan := process.Plan{
 		SchemaVersion: process.ExecutionPlanSchemaVersion,
 		Command:       capability.Execution.Subject.Controller, WorkingDirectory: capability.Execution.Subject.SourceRoot,
-		Arguments: arguments, Environment: environment, OutputLimit: output, WaitDelay: capability.Execution.Process.WaitDelay,
+		Arguments: arguments, Environment: environment, OutputPolicy: process.OutputPolicy{Mode: process.OutputModeBounded, Maximum: output}, WaitDelay: capability.Execution.Process.WaitDelay,
 		Containment: process.Containment{Isolation: process.IsolationGroup, CancelSignal: process.CancelSignalTerminate},
 	}
 	return plan, plan.Validate()

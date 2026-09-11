@@ -179,7 +179,7 @@ func run(ctx context.Context, request Request) (runprotocol.MachineProbeExecutio
 	result, err := process.Run(ctx, process.Request{
 		Streams: process.Streams{Stdin: bytes.NewReader(script), Stdout: &stdout, Stderr: &stderr},
 		Command: request.Bash, WorkingDirectory: request.WorkingDirectory, Arguments: []process.Argument{argument},
-		Environment: request.Environment, OutputLimit: limit, WaitDelay: request.WaitDelay,
+		Environment: request.Environment, OutputPolicy: process.OutputPolicy{Mode: process.OutputModeBounded, Maximum: limit}, WaitDelay: request.WaitDelay,
 	})
 	if err != nil {
 		return runprotocol.MachineProbeExecution{}, nil, nil, err

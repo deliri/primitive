@@ -96,7 +96,7 @@ func FuzzRunAndBeginStreamingExternalIngress(f *testing.F) {
 		for _, supervised := range []bool{false, true} {
 			var stdout, stderr bytes.Buffer
 			request := processRequest(t, "copy", process.Streams{Stdin: bytes.NewReader(payload), Stdout: &stdout, Stderr: &stderr})
-			request.OutputLimit = limit
+			request.OutputPolicy.Maximum = limit
 			backstop, err := temporal.DurationFromNanoseconds(int64(processTestBackstop))
 			if err != nil {
 				t.Fatal(err)

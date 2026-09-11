@@ -224,7 +224,7 @@ func prepareBuildDependencyProcess(
 	prepared := process.Request{
 		Streams: process.Streams{Stdin: bytes.NewReader(nil), Stdout: stdout, Stderr: request.Stderr},
 		Command: request.Tools.GoExecutable(), WorkingDirectory: request.WorkingDirectory,
-		Arguments: arguments, Environment: environment, OutputLimit: maximum, WaitDelay: request.WaitDelay,
+		Arguments: arguments, Environment: environment, OutputPolicy: process.OutputPolicy{Mode: process.OutputModeBounded, Maximum: maximum}, WaitDelay: request.WaitDelay,
 		Containment: process.Containment{
 			Isolation:    process.IsolationDirect,
 			CancelSignal: process.CancelSignalKill,

@@ -89,7 +89,7 @@ func prepareBuildProcess(request BuildProcessRequest) (process.Request, error) {
 	prepared := process.Request{
 		Streams: request.Streams, Command: request.Tools.GoExecutable(),
 		WorkingDirectory: request.WorkingDirectory, Arguments: arguments,
-		Environment: environment, OutputLimit: request.OutputLimit,
+		Environment: environment, OutputPolicy: process.OutputPolicy{Mode: process.OutputModeBounded, Maximum: request.OutputLimit},
 		WaitDelay: request.WaitDelay,
 		Containment: process.Containment{
 			Isolation:    process.IsolationDirect,

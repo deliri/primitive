@@ -226,7 +226,7 @@ func buildInspectionFixture(t testing.TB, request buildInspectionFixtureRequest)
 	}
 	runFixtureProcess(ctx, t, process.Request{
 		Command: goExecutable, WorkingDirectory: directory, Arguments: arguments,
-		Environment: environment, WaitDelay: wait, OutputLimit: maximum,
+		Environment: environment, WaitDelay: wait, OutputPolicy: process.OutputPolicy{Mode: process.OutputModeBounded, Maximum: maximum},
 		Containment: process.Containment{Isolation: process.IsolationDirect, CancelSignal: process.CancelSignalKill},
 	})
 	return output

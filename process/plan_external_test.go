@@ -75,7 +75,7 @@ func planFromRequest(request process.Request) process.Plan {
 		SchemaVersion: process.ExecutionPlanSchemaVersion,
 		Command:       request.Command, WorkingDirectory: request.WorkingDirectory,
 		Arguments: request.Arguments, Environment: environment,
-		OutputLimit: request.OutputLimit, WaitDelay: request.WaitDelay,
+		OutputPolicy: request.OutputPolicy, WaitDelay: request.WaitDelay,
 		Containment: containment,
 	}
 }

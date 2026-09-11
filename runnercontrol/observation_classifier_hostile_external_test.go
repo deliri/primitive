@@ -135,7 +135,7 @@ func experimentObservationRequestFixture(t testing.TB) runnercontrol.ExperimentO
 	if budgetErr != nil {
 		t.Fatalf("runnercontrol.NewExecutionBudget(observation fixture) error = %v, want nil", budgetErr)
 	}
-	plan := process.Plan{SchemaVersion: process.ExecutionPlanSchemaVersion, Command: command, WorkingDirectory: working, Arguments: arguments, Environment: environment, OutputLimit: output, WaitDelay: wait, Containment: process.Containment{Isolation: process.IsolationGroup, CancelSignal: process.CancelSignalTerminate}}
+	plan := process.Plan{SchemaVersion: process.ExecutionPlanSchemaVersion, Command: command, WorkingDirectory: working, Arguments: arguments, Environment: environment, OutputPolicy: process.OutputPolicy{Mode: process.OutputModeBounded, Maximum: output}, WaitDelay: wait, Containment: process.Containment{Isolation: process.IsolationGroup, CancelSignal: process.CancelSignalTerminate}}
 	capability := runnercontrol.ExperimentCapability{
 		SchemaVersion: runnercontrol.SchemaVersion, MemberCapabilityDigest: core.SHA256Of([]byte("member")), Fence: payload.Fence,
 		Run: payload.Run, Experiment: payload.Observation.Experiment, Probe: payload.Probe, Source: payload.Probe.Source,

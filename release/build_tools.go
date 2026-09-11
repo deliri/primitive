@@ -263,7 +263,7 @@ func probeGoVersion(
 		Streams: process.Streams{Stdin: bytes.NewReader(nil), Stdout: &stdout, Stderr: &stderr},
 		Command: request.GoExecutable, WorkingDirectory: request.WorkingDirectory,
 		Arguments: arguments, Environment: request.HostEnvironment,
-		OutputLimit: limit, WaitDelay: request.WaitDelay,
+		OutputPolicy: process.OutputPolicy{Mode: process.OutputModeBounded, Maximum: limit}, WaitDelay: request.WaitDelay,
 		Containment: process.Containment{
 			Isolation:    process.IsolationDirect,
 			CancelSignal: process.CancelSignalKill,

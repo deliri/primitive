@@ -218,7 +218,7 @@ func CompileSubjectProcess(capability ExperimentCapability) (process.Plan, error
 	compiled := process.Plan{
 		SchemaVersion: process.ExecutionPlanSchemaVersion,
 		Command:       capability.Execution.Subject.Supervisor, WorkingDirectory: target.WorkingDirectory,
-		Arguments: parsed, Environment: environment, OutputLimit: target.OutputLimit,
+		Arguments: parsed, Environment: environment, OutputPolicy: target.OutputPolicy,
 		WaitDelay:   target.WaitDelay,
 		Containment: process.Containment{Isolation: process.IsolationGroup, CancelSignal: process.CancelSignalTerminate},
 	}

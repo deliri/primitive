@@ -100,7 +100,7 @@ func (c Capability) StreamWorktree(ctx context.Context, request WorktreeRequest,
 	result, runErr := process.Run(ctx, process.Request{
 		Streams: process.Streams{Stdin: bytes.NewReader(nil), Stdout: &writer, Stderr: io.Discard},
 		Command: c.command, WorkingDirectory: request.Root, Arguments: arguments, Environment: c.environment,
-		OutputLimit: maximum, WaitDelay: c.configuration.WaitDelay,
+		OutputPolicy: process.OutputPolicy{Mode: process.OutputModeBounded, Maximum: maximum}, WaitDelay: c.configuration.WaitDelay,
 		Containment: process.Containment{Isolation: process.IsolationDirect, CancelSignal: process.CancelSignalTerminate},
 	})
 	if writer.failure != nil {

@@ -519,7 +519,7 @@ func runRepositoryGit(ctx context.Context, request repositoryGitRequest) (proces
 		WorkingDirectory: request.verification.Root,
 		Arguments:        arguments,
 		Environment:      environment,
-		OutputLimit:      maximum,
+		OutputPolicy:           process.OutputPolicy{Mode: process.OutputModeBounded, Maximum: maximum},
 		WaitDelay:        request.verification.WaitDelay,
 		Containment: process.Containment{
 			Isolation:    process.IsolationDirect,

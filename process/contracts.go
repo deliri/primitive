@@ -546,7 +546,7 @@ type Request struct {
 	WorkingDirectory core.AbsolutePath
 	Arguments        []Argument
 	Environment      Environment
-	OutputLimit      core.ByteCount
+	OutputPolicy     OutputPolicy
 	WaitDelay        temporal.Duration
 	Containment      Containment
 }
@@ -559,7 +559,7 @@ func (r Request) Validate() error {
 	if err := r.Streams.Validate(); err != nil {
 		return err
 	}
-	if err := validateOutputLimit(r.OutputLimit); err != nil {
+	if err := r.OutputPolicy.Validate(); err != nil {
 		return err
 	}
 	if err := r.WaitDelay.Validate(); err != nil {

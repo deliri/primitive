@@ -26,6 +26,9 @@ func planContractCases() []planContractCase {
 	maximum := int(core.DefaultStrictJSONLimits().ArrayItemMaximum)
 	return []planContractCase{
 		{name: "positive/exact intent survives every field"},
+		{name: "positive/uncapped stream mode survives publication and binding", change: func(p Plan) (Plan, error) { p.OutputPolicy = OutputPolicy{Mode: OutputModeStreaming}; return p, nil }},
+		{name: "negative/unknown output mode cannot bind", change: func(p Plan) (Plan, error) { p.OutputPolicy.Mode = OutputModeUnknown; return p, nil }, wantValidate: core.ErrProcessContract, wantMarshal: core.ErrProcessContract},
+		{name: "negative/streaming mode cannot hide a bound", change: func(p Plan) (Plan, error) { p.OutputPolicy.Mode = OutputModeStreaming; return p, nil }, wantValidate: core.ErrProcessContract, wantMarshal: core.ErrProcessContract},
 		{name: "positive/direct quit remains a distinct contract", change: planContainmentChange(IsolationDirect, CancelSignalQuit)},
 		{name: "positive/direct interrupt remains a distinct contract", change: planContainmentChange(IsolationDirect, CancelSignalInterrupt)},
 		{name: "positive/direct terminate remains a distinct contract", change: planContainmentChange(IsolationDirect, CancelSignalTerminate)},
@@ -53,7 +56,7 @@ func planContractCases() []planContractCase {
 			p.Environment.Variables = append(p.Environment.Variables, p.Environment.Variables[0])
 			return p, nil
 		}, wantValidate: core.ErrProcessContract, wantMarshal: core.ErrProcessContract},
-		{name: "negative/unset output limit cannot bind", change: func(p Plan) (Plan, error) { p.OutputLimit = core.ByteCount{}; return p, nil }, wantValidate: core.ErrProcessContract, wantMarshal: core.ErrProcessContract},
+		{name: "negative/unset output limit cannot bind", change: func(p Plan) (Plan, error) { p.OutputPolicy.Maximum = core.ByteCount{}; return p, nil }, wantValidate: core.ErrProcessContract, wantMarshal: core.ErrProcessContract},
 		{name: "negative/zero wait delay cannot bind", change: func(p Plan) (Plan, error) { p.WaitDelay = temporal.Duration{}; return p, nil }, wantValidate: core.ErrProcessContract, wantMarshal: core.ErrProcessContract},
 		{name: "negative/unknown containment cannot bind", change: planContainmentChange(IsolationUnknown, CancelSignalKill), wantValidate: core.ErrProcessContract, wantMarshal: core.ErrProcessContract},
 		{name: "boundary/arguments below JSON array cap", change: planArgumentCountChange(maximum - 1)},
@@ -109,11 +112,11 @@ func TestPlanContractAndPublicationLayerTriad(t *testing.T) {
 				t.Fatalf("binding wrote stdout=%q stderr=%q; want no output", output.Bytes(), diagnostic.Bytes())
 			}
 			if tc.wantValidate != nil {
-				if bound.Command != (core.AbsolutePath{}) || bound.WorkingDirectory != (core.AbsolutePath{}) || bound.Arguments != nil || bound.Environment.Mode != EnvironmentModeUnknown || bound.Environment.Variables != nil || bound.OutputLimit != (core.ByteCount{}) || bound.WaitDelay != (temporal.Duration{}) || bound.Containment != (Containment{}) || bound.Streams != (Streams{}) {
+				if bound.Command != (core.AbsolutePath{}) || bound.WorkingDirectory != (core.AbsolutePath{}) || bound.Arguments != nil || bound.Environment.Mode != EnvironmentModeUnknown || bound.Environment.Variables != nil || bound.OutputPolicy.Maximum != (core.ByteCount{}) || bound.WaitDelay != (temporal.Duration{}) || bound.Containment != (Containment{}) || bound.Streams != (Streams{}) {
 					t.Fatalf("refusal exposed request: %+v", bound)
 				}
 			} else {
-				if bound.Command != p.Command || bound.WorkingDirectory != p.WorkingDirectory || bound.Containment != p.Containment || bound.OutputLimit != p.OutputLimit || bound.WaitDelay != p.WaitDelay || !slices.Equal(bound.Arguments, p.Arguments) || !slices.Equal(bound.Environment.Variables, p.Environment.Variables) || bound.Environment.Mode != p.Environment.Mode || bound.Streams != streams {
+				if bound.Command != p.Command || bound.WorkingDirectory != p.WorkingDirectory || bound.Containment != p.Containment || bound.OutputPolicy != p.OutputPolicy || bound.WaitDelay != p.WaitDelay || !slices.Equal(bound.Arguments, p.Arguments) || !slices.Equal(bound.Environment.Variables, p.Environment.Variables) || bound.Environment.Mode != p.Environment.Mode || bound.Streams != streams {
 					t.Fatalf("binding changed intent: %+v", bound)
 				}
 				if len(bound.Arguments) != 0 {
@@ -146,7 +149,7 @@ func TestPlanContractAndPublicationLayerTriad(t *testing.T) {
 			if err != nil || !bytes.Equal(encoded, again) {
 				t.Fatalf("canonical closure failed: %v", err)
 			}
-			if decoded.Command != p.Command || decoded.WorkingDirectory != p.WorkingDirectory || decoded.Containment != p.Containment || decoded.WaitDelay != p.WaitDelay || decoded.OutputLimit != p.OutputLimit || !slices.Equal(decoded.Arguments, p.Arguments) || !slices.Equal(decoded.Environment.Variables, p.Environment.Variables) || decoded.Environment.Mode != EnvironmentModeExact {
+			if decoded.Command != p.Command || decoded.WorkingDirectory != p.WorkingDirectory || decoded.Containment != p.Containment || decoded.WaitDelay != p.WaitDelay || decoded.OutputPolicy != p.OutputPolicy || !slices.Equal(decoded.Arguments, p.Arguments) || !slices.Equal(decoded.Environment.Variables, p.Environment.Variables) || decoded.Environment.Mode != EnvironmentModeExact {
 				t.Fatalf("decoded plan lost facts: %+v", decoded)
 			}
 		})
@@ -160,7 +163,7 @@ func planContractFixture(root string) (Plan, error) {
 	environment, d := ParseExactEnvironment([]string{"V=value"})
 	limit, e := core.NewByteCount(1024)
 	wait, f := temporal.DurationFromNanoseconds(17)
-	return Plan{Command: command, WorkingDirectory: directory, Arguments: arguments, Environment: environment, OutputLimit: limit, WaitDelay: wait, SchemaVersion: ExecutionPlanSchemaVersion, Containment: Containment{Isolation: IsolationDirect, CancelSignal: CancelSignalKill}}, errors.Join(a, b, c, d, e, f)
+	return Plan{Command: command, WorkingDirectory: directory, Arguments: arguments, Environment: environment, OutputPolicy: OutputPolicy{Mode: OutputModeBounded, Maximum: limit}, WaitDelay: wait, SchemaVersion: ExecutionPlanSchemaVersion, Containment: Containment{Isolation: IsolationDirect, CancelSignal: CancelSignalKill}}, errors.Join(a, b, c, d, e, f)
 }
 
 func planContainmentChange(isolation Isolation, signal CancelSignal) func(Plan) (Plan, error) {
@@ -191,7 +194,7 @@ func planEnvironmentCountChange(count int) func(Plan) (Plan, error) {
 	}
 }
 func planOutputChange(bytes uint64) func(Plan) (Plan, error) {
-	return func(p Plan) (Plan, error) { v, e := core.NewByteCount(bytes); p.OutputLimit = v; return p, e }
+	return func(p Plan) (Plan, error) { v, e := core.NewByteCount(bytes); p.OutputPolicy.Maximum = v; return p, e }
 }
 func planWaitChange(nanos int64) func(Plan) (Plan, error) {
 	return func(p Plan) (Plan, error) {

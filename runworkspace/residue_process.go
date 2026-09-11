@@ -84,8 +84,8 @@ func (p ResidueProbe) Validate() error {
 	if err := errors.Join(p.Kind.Validate(), p.Plan.Validate()); err != nil {
 		return err
 	}
-	maximum, err := p.Plan.OutputLimit.Uint64()
-	if err != nil || maximum == 0 || maximum > residueProbeOutputMaximumBytes {
+	maximum, err := p.Plan.OutputPolicy.Maximum.Uint64()
+	if err != nil || p.Plan.OutputPolicy.Mode != process.OutputModeBounded || maximum == 0 || maximum > residueProbeOutputMaximumBytes {
 		return errors.Join(core.ErrPrimitiveContract, err, errors.New("residue probe output limit exceeds the fixed count grammar"))
 	}
 	return nil

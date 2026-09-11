@@ -1793,9 +1793,10 @@ Required:
 - comparison runs use the same benchmark identity, input size, toolchain,
   machine profile, power posture, and concurrency unless the changed dimension
   is the subject of the experiment
-- accepted Anvil benchmark evidence uses a 30-second benchmark duration and
-  records the effective duration; shorter exploratory runs are informative,
-  not acceptance evidence
+- benchmark and fuzz verification budgets, including fuzz minimization, are at
+  most 3 seconds per target under the owner's current instruction; record both
+  configured and actual elapsed duration, including startup, corpus replay and
+  shutdown overhead; a local run cannot issue its own acceptance
 - CPU and memory profiles come from the same exact revision and benchmark
   configuration as the reported measurements
 - the receipt retains sample counts, allocation counts, bytes, duration,

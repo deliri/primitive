@@ -475,7 +475,7 @@ func CompileGoPlan(request GoPlanRequest) (ExperimentExecution, error) {
 	if err != nil {
 		return ExperimentExecution{}, err
 	}
-	plan := process.Plan{SchemaVersion: process.ExecutionPlanSchemaVersion, Command: request.Command, WorkingDirectory: request.WorkingDirectory, Arguments: parsedArguments, Environment: environment, OutputLimit: request.OutputLimit, WaitDelay: request.WaitDelay, Containment: process.Containment{Isolation: process.IsolationGroup, CancelSignal: process.CancelSignalTerminate}}
+	plan := process.Plan{SchemaVersion: process.ExecutionPlanSchemaVersion, Command: request.Command, WorkingDirectory: request.WorkingDirectory, Arguments: parsedArguments, Environment: environment, OutputPolicy: process.OutputPolicy{Mode: process.OutputModeBounded, Maximum: request.OutputLimit}, WaitDelay: request.WaitDelay, Containment: process.Containment{Isolation: process.IsolationGroup, CancelSignal: process.CancelSignalTerminate}}
 	filtered := request.Experiment.Profile == GoProfileFocused || request.Experiment.Profile == GoProfileBenchmark || request.Experiment.Profile == GoProfileFuzz
 	workspace := WritableWorkspace{Root: request.WorkspaceRoot, Home: request.Environment.Home, Output: paths.output, Cache: request.Environment.Cache, Temporary: request.Environment.Temporary}
 	compiled := ExperimentExecution{Process: plan, Workspace: workspace, Subject: request.Subject, Artifacts: artifacts, Observation: ObservationPolicy{Format: ObservationGoTestJSON, ExpectedUnits: request.ExpectedUnits, Filtered: filtered}, Budget: budget, Go: &resolution}

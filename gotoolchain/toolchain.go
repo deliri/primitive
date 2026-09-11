@@ -174,7 +174,7 @@ func (c Capability) executeTo(ctx context.Context, directory core.AbsolutePath, 
 	request := process.Request{
 		Streams: process.Streams{Stdin: bytes.NewReader(nil), Stdout: stdout, Stderr: &stderr},
 		Command: c.command, WorkingDirectory: directory, Arguments: arguments, Environment: c.environment,
-		OutputLimit: c.configuration.Limits.OutputBytes, WaitDelay: c.configuration.Limits.WaitDelay,
+		OutputPolicy: process.OutputPolicy{Mode: process.OutputModeBounded, Maximum: c.configuration.Limits.OutputBytes}, WaitDelay: c.configuration.Limits.WaitDelay,
 		Containment: process.Containment{Isolation: process.IsolationGroup, CancelSignal: process.CancelSignalTerminate},
 	}
 	result, runErr := runToolchainGroup(ctx, request)

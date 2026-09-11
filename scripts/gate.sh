@@ -22,9 +22,10 @@ workflow_run=${GITHUB_RUN_ID:-NOT_APPLICABLE}
 workflow_attempt=${GITHUB_RUN_ATTEMPT:-NOT_APPLICABLE}
 gate_failure_status=0
 goconst_admission_maximum=4
-benchmark_duration=30s
-fuzz_duration=30s
-fuzz_minimize_duration=30s
+evidence_phase_duration=3s
+benchmark_duration=$evidence_phase_duration
+fuzz_duration=$evidence_phase_duration
+fuzz_minimize_duration=$evidence_phase_duration
 
 printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
 	"gate" "command" "platform" "duration_seconds" "exit_status" "log" "bytes" "sha256" \

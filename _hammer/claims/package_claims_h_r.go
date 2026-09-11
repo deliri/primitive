@@ -111,9 +111,9 @@ func emitPackageClaimSpecsHThroughR(emit func(packageClaimSpec) bool) bool {
 			excludes: "It does not interpret email events, select campaigns, store contacts, retry product operations, or grant product authority.",
 		},
 		{
-			path: "process", title: "Typed bounded process execution",
+			path: "process", title: "Typed streaming process execution",
 			problem:  "Raw os/exec use scatters cancellation, containment, signal, stream ownership, output bounds, and exit classification.",
-			solution: "Process runs one typed command over os/exec with caller-owned streams, independent output bounds, and exact child results.",
+			solution: "Process runs one typed command over os/exec with caller-owned streams, an explicit choice of uncapped or bounded output, and exact child results.",
 			benefit:  "Consumers retain recognizable Go process semantics while crossing one auditable execution boundary.",
 			removal:  "Remove a Process feature when os/exec provides its full typed ownership and bound; remove the package when no shared gap remains.",
 			owns:     "Process owns command validation, startup, stream forwarding, containment, cancellation delivery, wait, and resource observation.",

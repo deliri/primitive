@@ -43,7 +43,7 @@ func planIngressCases() []planIngressCase {
 		{name: "negative/duplicate environment preserves receiver", change: func(w *planWire) { w.Environment = []string{"V=old", "V=new"} }, wantErr: core.ErrProcessContract},
 		{name: "negative/environment without separator preserves receiver", change: func(w *planWire) { w.Environment = []string{"missing"} }, wantErr: core.ErrProcessContract},
 		{name: "negative/empty environment name preserves receiver", change: func(w *planWire) { w.Environment = []string{"=value"} }, wantErr: core.ErrProcessContract},
-		{name: "negative/omitted output budget preserves receiver", change: func(w *planWire) { w.OutputLimit = core.ByteCount{} }, omitZero: true, wantErr: core.ErrProcessContract},
+		{name: "negative/omitted output budget preserves receiver", change: func(w *planWire) { w.OutputPolicy.Maximum = core.ByteCount{} }, omitZero: true, wantErr: core.ErrProcessContract},
 		{name: "negative/omitted wait budget preserves receiver", change: func(w *planWire) { w.WaitDelay = temporal.Duration{} }, omitZero: true, wantErr: core.ErrProcessContract},
 		{name: "negative/unknown field preserves receiver", damage: func(b []byte) []byte { return append([]byte(`{"unowned":true,`), b[1:]...) }, wantErr: core.ErrProcessContract},
 		{name: "negative/duplicate fields preserve receiver", damage: func(b []byte) []byte { return append(append(bytes.Clone(b[:len(b)-1]), ','), b[1:]...) }, wantErr: core.ErrProcessContract},
@@ -84,7 +84,7 @@ func TestPlanJSONIngressLayerTriad(t *testing.T) {
 				t.Fatalf("decoder changed caller bytes: got=%x want=%x", input, inputBefore)
 			}
 			if tc.wantErr != nil {
-				if !errors.Is(err, core.ErrJSONContract) || receiver.Command != before.Command || receiver.WorkingDirectory != before.WorkingDirectory || receiver.OutputLimit != before.OutputLimit || receiver.WaitDelay != before.WaitDelay || receiver.Containment != before.Containment || receiver.SchemaVersion != before.SchemaVersion || receiver.Environment.Mode != before.Environment.Mode || !slices.Equal(receiver.Arguments, before.Arguments) || !slices.Equal(receiver.Environment.Variables, before.Environment.Variables) || (receiver.Arguments == nil) != (before.Arguments == nil) || (receiver.Environment.Variables == nil) != (before.Environment.Variables == nil) {
+				if !errors.Is(err, core.ErrJSONContract) || receiver.Command != before.Command || receiver.WorkingDirectory != before.WorkingDirectory || receiver.OutputPolicy != before.OutputPolicy || receiver.WaitDelay != before.WaitDelay || receiver.Containment != before.Containment || receiver.SchemaVersion != before.SchemaVersion || receiver.Environment.Mode != before.Environment.Mode || !slices.Equal(receiver.Arguments, before.Arguments) || !slices.Equal(receiver.Environment.Variables, before.Environment.Variables) || (receiver.Arguments == nil) != (before.Arguments == nil) || (receiver.Environment.Variables == nil) != (before.Environment.Variables == nil) {
 					t.Fatalf("refusal lost identity or changed receiver: %v", err)
 				}
 				return
@@ -98,7 +98,7 @@ func TestPlanJSONIngressLayerTriad(t *testing.T) {
 				arguments[i] = value
 			}
 			environment, projectionErr := receiver.Environment.Strings()
-			if projectionErr != nil || receiver.Validate() != nil || receiver.Command != wire.Command || receiver.WorkingDirectory != wire.WorkingDirectory || receiver.OutputLimit != wire.OutputLimit || receiver.WaitDelay != wire.WaitDelay || receiver.SchemaVersion != wire.SchemaVersion || receiver.Containment.Isolation.String() != wire.Isolation || receiver.Containment.CancelSignal.String() != wire.CancelSignal || receiver.Environment.Mode != EnvironmentModeExact || !slices.Equal(arguments, wire.Arguments) || !slices.Equal(environment, wire.Environment) {
+			if projectionErr != nil || receiver.Validate() != nil || receiver.Command != wire.Command || receiver.WorkingDirectory != wire.WorkingDirectory || receiver.OutputPolicy != wire.OutputPolicy || receiver.WaitDelay != wire.WaitDelay || receiver.SchemaVersion != wire.SchemaVersion || receiver.Containment.Isolation.String() != wire.Isolation || receiver.Containment.CancelSignal.String() != wire.CancelSignal || receiver.Environment.Mode != EnvironmentModeExact || !slices.Equal(arguments, wire.Arguments) || !slices.Equal(environment, wire.Environment) {
 				t.Fatalf("accepted document changed intent: %v", projectionErr)
 			}
 			canonical, err := receiver.MarshalJSON()

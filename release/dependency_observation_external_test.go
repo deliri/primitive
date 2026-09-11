@@ -332,7 +332,7 @@ func dependencyObservationFixture(t *testing.T, root, home, mainPackage string) 
 	}
 	output := runFixtureProcess(t.Context(), t, process.Request{
 		Command: tools.GoExecutable(), WorkingDirectory: working, Arguments: arguments,
-		Environment: environment, WaitDelay: wait, OutputLimit: limit,
+		Environment: environment, WaitDelay: wait, OutputPolicy: process.OutputPolicy{Mode: process.OutputModeBounded, Maximum: limit},
 		Containment: process.Containment{Isolation: process.IsolationDirect, CancelSignal: process.CancelSignalKill},
 	})
 	var module dependencyFixtureModule

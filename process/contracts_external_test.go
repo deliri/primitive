@@ -736,21 +736,21 @@ func TestRequestIngressPressure(t *testing.T) {
 		{
 			name: "minimum output limit of one byte is accepted",
 			mutate: func(tb testing.TB, value process.Request) process.Request {
-				value.OutputLimit = byteCount(tb, 1)
+				value.OutputPolicy.Maximum = byteCount(tb, 1)
 				return value
 			},
 		},
 		{
 			name: "maximum signed output limit is accepted",
 			mutate: func(tb testing.TB, value process.Request) process.Request {
-				value.OutputLimit = byteCount(tb, math.MaxInt64)
+				value.OutputPolicy.Maximum = byteCount(tb, math.MaxInt64)
 				return value
 			},
 		},
 		{
 			name: "first unsigned-only output limit is rejected",
 			mutate: func(tb testing.TB, value process.Request) process.Request {
-				value.OutputLimit = byteCount(tb, uint64(math.MaxInt64)+1)
+				value.OutputPolicy.Maximum = byteCount(tb, uint64(math.MaxInt64)+1)
 				return value
 			},
 			wantErr: core.ErrNumericOverflow,
@@ -891,7 +891,7 @@ func TestRequestIngressPressure(t *testing.T) {
 		{
 			name: "unset output limit is rejected",
 			mutate: func(_ testing.TB, value process.Request) process.Request {
-				value.OutputLimit = core.ByteCount{}
+				value.OutputPolicy.Maximum = core.ByteCount{}
 				return value
 			},
 			wantErr: core.ErrProcessContract,

@@ -45,7 +45,7 @@ func benchmarkRunStreamingStdout(b *testing.B, output uint64) {
 			Stdin: bytes.NewReader(nil), Stdout: &destination, Stderr: io.Discard,
 		},
 	)
-	request.OutputLimit = byteCount(b, output)
+	request.OutputPolicy = process.OutputPolicy{Mode: process.OutputModeStreaming}
 	b.SetBytes(int64(output))
 
 	for b.Loop() {
@@ -73,7 +73,7 @@ func benchmarkRunStreamingStdin(b *testing.B, input uint64) {
 	request := processRequest(b, "stdin-count", process.Streams{
 		Stdin: bytes.NewReader(nil), Stdout: &output, Stderr: io.Discard,
 	})
-	request.OutputLimit = byteCount(b, uint64(len(want)))
+	request.OutputPolicy.Maximum = byteCount(b, uint64(len(want)))
 	b.SetBytes(int64(input))
 
 	for b.Loop() {
