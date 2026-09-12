@@ -62,4 +62,5 @@ exhaustive Unicode proof. Blink retains its real payload field-boundary tests.
   of borrowing it. `go test -json ./textrepair -run
   '^TestPrefixIgnoredMalformedSuffixDoesNotAllocate$' -count=1 -timeout=3m`
   failed the zero-allocation invariant, one failed test/package, exit 1.
-  Mutation discarded. The source bytes and changed line remain in the receipt.
+  Mutation discarded. The receipt retains the source digest; the changed line
+  is identified above, not archived as source bytes by the capture harness.
