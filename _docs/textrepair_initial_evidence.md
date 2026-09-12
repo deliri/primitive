@@ -47,3 +47,19 @@ by this local capture harness; these are not independent acceptance receipts.
 The new package still requires broader architecture/resource review, final
 lint, independent acceptance and consumer migration. Baseline failures must
 not disappear from the release gate. No release tag was created here.
+
+## Consumer-test ownership follow-up
+
+The generic ignored-malformed-suffix allocation proof moves from Blink's
+deleted local TruncateUTF8 contract to Prefix. A literal multiwidth prefix
+table pins every byte ceiling through and beyond a one/two/three/four-byte
+rune sequence. It replaces duplicate spelling-based examples, not a claimed
+exhaustive Unicode proof. Blink retains its real payload field-boundary tests.
+
+- T8SSgE: `go test -json ./textrepair -count=1 -timeout=3m`, 14 passed events,
+  one package passed, exit 0, dirty tests over e6f96d3.
+- 51aZr9: deliberate mutation cloned the valid-prefix return value instead
+  of borrowing it. `go test -json ./textrepair -run
+  '^TestPrefixIgnoredMalformedSuffixDoesNotAllocate$' -count=1 -timeout=3m`
+  failed the zero-allocation invariant, one failed test/package, exit 1.
+  Mutation discarded. The source bytes and changed line remain in the receipt.
