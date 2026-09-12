@@ -149,6 +149,8 @@ const (
 	PackageTailnet
 	// PackageTailnetConfig identifies the typed Tailscale connection agreement.
 	PackageTailnetConfig
+	// PackageTextRepair identifies bounded UTF-8 prefix repair.
+	PackageTextRepair
 	packageIdentityLimit
 )
 
@@ -251,6 +253,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageGitHub, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 			{Identity: PackageTailnet, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
 			{Identity: PackageTailnetConfig, Kind: PackageKindProduction, Role: PackageRoleValueContract},
+			{Identity: PackageTextRepair, Kind: PackageKindProduction, Role: PackageRoleValueContract},
 		},
 	}
 }
@@ -493,6 +496,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"github",
 		"tailnet",
 		"tailnetconfig",
+		"textrepair",
 	}
 }
 
