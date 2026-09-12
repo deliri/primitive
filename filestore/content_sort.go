@@ -110,11 +110,11 @@ func SortContentIndex(ctx context.Context, request ContentSortRequest) (ContentI
 	if err != nil {
 		return ContentIndexSummary{}, errors.Join(core.ErrFilestoreContract, err)
 	}
-	summary, digest, err := inspectContentIndex(ctx, sorted, nil)
+	summary, digest, err := inspectContentIndex(ctx, sorted, nil, false)
 	if err != nil {
 		return ContentIndexSummary{}, errors.Join(core.ErrFilestoreContract, err)
 	}
-	emitted, emittedDigest, err := inspectContentIndex(ctx, sorted, request.Destination)
+	emitted, emittedDigest, err := inspectContentIndex(ctx, sorted, request.Destination, false)
 	if err != nil {
 		return ContentIndexSummary{}, errors.Join(core.ErrFilestoreContract, err)
 	}
@@ -283,7 +283,7 @@ func mergeContentPair(ctx context.Context, left, right io.Reader, destination io
 	}
 }
 
-func inspectContentIndex(ctx context.Context, file *os.File, destination io.Writer) (ContentIndexSummary, core.SHA256Digest, error) {
+func inspectContentIndex(ctx context.Context, file *os.File, destination io.Writer, unique bool) (ContentIndexSummary, core.SHA256Digest, error) {
 	if _, err := file.Seek(0, io.SeekStart); err != nil {
 		return ContentIndexSummary{}, core.SHA256Digest{}, err
 	}
@@ -309,6 +309,9 @@ func inspectContentIndex(ctx context.Context, file *os.File, destination io.Writ
 			}
 		}
 		if count != 0 && prior.Digest == entry.Digest {
+			if unique {
+				return ContentIndexSummary{}, core.SHA256Digest{}, core.ErrFilestoreContract
+			}
 			if prior.Extent != entry.Extent {
 				first, second := prior.Extent, entry.Extent
 				if first.Uint64() > second.Uint64() {

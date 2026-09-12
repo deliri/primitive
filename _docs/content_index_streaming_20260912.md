@@ -21,3 +21,21 @@ Local evidence, not independent acceptance, is retained under `/private/tmp/peac
 The merge mutation pins complete-record loss, beyond partial-record decoding. The typed-union fuzz oracle pins exact sorted membership, duplicate idempotence, conflicting digest extents, order independence and total-extent overflow. Writer and request refusal tests preserve error identity and zero summaries. Production data-flow and external-ingress inventories name the new contracts.
 
 Peachfuzz has not consumed this version at the time of this owner note. Its capped aggregate index and consumers still require conversion. The final whole-project gate and independent acceptance remain outstanding.
+
+## Held-index inspection follow-through
+
+The consuming product must preflight an existing index without sorting it again
+or reopening its path. `InspectContentIndex` therefore binds one held regular
+file to an expected index digest and encoded extent, refuses duplicate or
+unordered records, and returns only the derived unique count/extent summary.
+It leaves the caller's native file open for a rewind. This is byte and record
+verification, not a durable receipt or an immutability claim.
+
+`primitive-content-inspection-semantic-proof` passed the owner architecture,
+record/sort tests and a three-second inspection fuzz phase. Its independent
+oracle uses raw record widths, unsigned network byte order, standard-library
+SHA-256, strict digest order and signed aggregate extent.
+`primitive-content-inspection-foreign-digest-red` failed after the expected
+digest comparison was deliberately replaced with digest-validity alone.
+The mutation was discarded; `primitive-content-inspection-binding-restored`
+records the restored focused scope. All attempts remain local evidence.
