@@ -9,6 +9,10 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
+func observedGroupLiveness(_ ProcessIdentity) (Liveness, error) {
+	return LivenessUnknown, contractError("host admits no process-group observation")
+}
+
 // applyContainment refuses everything beyond the direct silent stop on hosts
 // with no process-group or signal vocabulary, so a caller is never told a
 // containment exists that nobody can enforce.

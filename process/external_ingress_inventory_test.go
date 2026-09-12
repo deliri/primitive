@@ -21,6 +21,7 @@ import (
 // doors additionally bind their actual semantic fuzzer below; kernel-owned
 // observations and capability constructors are identified separately.
 type processExternalDoorInventory struct {
+	Execution_GroupLiveness    func(*process.Execution) (process.Liveness, error)
 	OutputMode_UnmarshalJSON   func(*process.OutputMode, []byte) error
 	OutputPolicy_Validate      func(process.OutputPolicy) error
 	Alive                      func(process.ProcessIdentity) (process.Liveness, error)
@@ -46,6 +47,7 @@ type processExternalDoorInventory struct {
 }
 
 var processExternalDoors = processExternalDoorInventory{
+	Execution_GroupLiveness:  (*process.Execution).GroupLiveness,
 	OutputMode_UnmarshalJSON: (*process.OutputMode).UnmarshalJSON,
 	OutputPolicy_Validate:    process.OutputPolicy.Validate,
 	Alive:                    process.Alive, AmbientArguments: process.AmbientArguments, Begin: process.Begin,
@@ -85,15 +87,16 @@ func processExternalFuzzProofs() processExternalFuzzProofInventory {
 // snapshot's raw row decoder has its own native-leaf fuzz proof. Native tests
 // remain necessary: fuzzing a leaf cannot establish a platform API's behavior.
 type processNativeMetadataDoorInventory struct {
-	Alive                 func(process.ProcessIdentity) (process.Liveness, error)
-	DiscardDeviceArgument func() (process.Argument, error)
-	ObserveProcesses      func(context.Context, process.ProcessVisit) error
-	Self                  func() (process.ProcessIdentity, error)
-	StandardStreams       func() (process.Streams, error)
+	Execution_GroupLiveness func(*process.Execution) (process.Liveness, error)
+	Alive                   func(process.ProcessIdentity) (process.Liveness, error)
+	DiscardDeviceArgument   func() (process.Argument, error)
+	ObserveProcesses        func(context.Context, process.ProcessVisit) error
+	Self                    func() (process.ProcessIdentity, error)
+	StandardStreams         func() (process.Streams, error)
 }
 
 func processNativeMetadataDoors() processNativeMetadataDoorInventory {
-	return processNativeMetadataDoorInventory{process.Alive, process.DiscardDeviceArgument, process.ObserveProcesses, process.Self, process.StandardStreams}
+	return processNativeMetadataDoorInventory{(*process.Execution).GroupLiveness, process.Alive, process.DiscardDeviceArgument, process.ObserveProcesses, process.Self, process.StandardStreams}
 }
 
 func TestProcessExternalIngressInventoryMatchesProduction(t *testing.T) {
@@ -198,7 +201,7 @@ func processParsedExternalDoors(file *ast.File) []string {
 		if !ok || !ast.IsExported(owner.Name) || !ast.IsExported(name) {
 			continue
 		}
-		raw := strings.HasPrefix(name, "Unmarshal") || name == "Validate" && jsonOwners[owner.Name]
+		raw := strings.HasPrefix(name, "Unmarshal") || name == "Validate" && jsonOwners[owner.Name] || owner.Name == "Execution" && name == "GroupLiveness"
 		ast.Inspect(function.Type.Params, func(node ast.Node) bool {
 			if ident, ok := node.(*ast.Ident); ok && (ident.Name == "byte" || ident.Name == "string") {
 				raw = true

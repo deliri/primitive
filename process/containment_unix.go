@@ -6,6 +6,8 @@ import (
 	"errors"
 	"os/exec"
 	"syscall"
+
+	"github.com/deliri/primitive/v2026/core"
 )
 
 // applyContainment projects the validated containment onto the one command
@@ -56,6 +58,24 @@ func groupSweepError(killErr error) error {
 		return nil
 	}
 	return killErr
+}
+
+func observedGroupLiveness(identity ProcessIdentity) (Liveness, error) {
+	pid, err := unixProcessID(identity)
+	if err != nil {
+		return LivenessUnknown, err
+	}
+	return groupProbeLiveness(syscall.Kill(-pid, 0))
+}
+
+func groupProbeLiveness(probeErr error) (Liveness, error) {
+	if probeErr == nil || errors.Is(probeErr, syscall.EPERM) {
+		return LivenessAlive, nil
+	}
+	if errors.Is(probeErr, syscall.ESRCH) {
+		return LivenessGone, nil
+	}
+	return LivenessUnknown, errors.Join(core.ErrProcessObservation, probeErr)
 }
 
 // deliverSignal addresses one admitted signal to the direct child or, under

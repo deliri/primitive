@@ -114,6 +114,22 @@ func (e *Execution) Sweep() error {
 	return sweepGroup(e.identity)
 }
 
+// GroupLiveness observes whether the group created by Begin still exists.
+// It sends no signal, is legal after Wait, and does not establish ownership
+// of a reused group number. Alive includes zombies and permission-denied
+// groups; only Gone proves absence. A supervisor may use this observation
+// to await disappearance after a refused sweep, never to justify signalling
+// a reaped identity again.
+func (e *Execution) GroupLiveness() (Liveness, error) {
+	if err := e.usable(); err != nil {
+		return LivenessUnknown, err
+	}
+	if e.containment.Isolation != IsolationGroup {
+		return LivenessUnknown, contractError("group observation requires group containment")
+	}
+	return observedGroupLiveness(e.identity)
+}
+
 // Wait streams to completion, reaps the direct child, and seals the
 // observation. Exactly one wait exists per execution: a second call is a
 // contract violation, not a cached answer, because the first caller may

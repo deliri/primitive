@@ -9,6 +9,10 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
+func observedGroupLiveness(_ ProcessIdentity) (Liveness, error) {
+	return LivenessUnknown, contractError("windows admits no process-group observation")
+}
+
 // windowsCancelKillOnlyDiagnostic is the one spelling of the refusal Windows
 // answers for every cancel signal it cannot deliver, shared by the
 // containment gate and the delivery leaf.
