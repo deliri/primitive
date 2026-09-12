@@ -36,6 +36,7 @@ const (
 	chitJSONDoorObjectCount
 	chitJSONDoorEntrySequence
 	chitJSONDoorManifestDigest
+	chitJSONDoorManifestAdmission
 	chitJSONDoorLimit
 )
 
@@ -77,6 +78,8 @@ func (d chitJSONDoor) receiverName() string {
 		return "EntrySequence"
 	case chitJSONDoorManifestDigest:
 		return "ManifestDigest"
+	case chitJSONDoorManifestAdmission:
+		return "ManifestAdmission"
 	case chitJSONDoorUnknown, chitJSONDoorLimit:
 		return ""
 	default:
@@ -85,27 +88,28 @@ func (d chitJSONDoor) receiverName() string {
 }
 
 type chitFuzzFixtures struct {
-	entryName       EntryName
-	queryPayload    QueryPayload
-	payload         Payload
-	catalogPayload  CatalogPayload
-	queryDocument   QueryDocument
-	document        Document
-	catalogDocument CatalogDocument
-	query           signedQueryFixture
-	catalog         catalogFixture
-	chit            chitFixture
-	objectCount     ObjectCount
-	entrySequence   EntrySequence
-	version         Version
-	queryCommitment QueryCommitment
-	cursor          Cursor
-	manifestDigest  ManifestDigest
-	collectionID    CollectionID
-	partition       Partition
-	chitID          ChitID
-	custodyState    CustodyState
-	signingDomain   SigningDomain
+	entryName         EntryName
+	queryPayload      QueryPayload
+	payload           Payload
+	catalogPayload    CatalogPayload
+	queryDocument     QueryDocument
+	document          Document
+	catalogDocument   CatalogDocument
+	query             signedQueryFixture
+	catalog           catalogFixture
+	chit              chitFixture
+	objectCount       ObjectCount
+	entrySequence     EntrySequence
+	version           Version
+	queryCommitment   QueryCommitment
+	cursor            Cursor
+	manifestDigest    ManifestDigest
+	manifestAdmission ManifestAdmission
+	collectionID      CollectionID
+	partition         Partition
+	chitID            ChitID
+	custodyState      CustodyState
+	signingDomain     SigningDomain
 }
 
 type chitJSONSeed struct {
@@ -165,6 +169,8 @@ func FuzzChitExternalJSONDoorInventory(f *testing.F) {
 			fuzzChitJSONValue(t, data, fixtures.entrySequence)
 		case chitJSONDoorManifestDigest:
 			fuzzChitJSONValue(t, data, fixtures.manifestDigest)
+		case chitJSONDoorManifestAdmission:
+			fuzzChitJSONValue(t, data, fixtures.manifestAdmission)
 		case chitJSONDoorUnknown, chitJSONDoorLimit:
 			t.Fatalf("normalized JSON door = %d, want a public decoder", door)
 		default:
@@ -362,6 +368,17 @@ func chitFixturesForFuzz(t testing.TB) chitFuzzFixtures {
 	if err != nil {
 		t.Fatalf("CommitQuery() error = %v, want nil", err)
 	}
+	admissions, err := NewManifestAdmissionAccumulator()
+	if err != nil {
+		t.Fatalf("NewManifestAdmissionAccumulator() error = %v, want nil", err)
+	}
+	manifestAdmission, err := admissions.Add(chit.addition)
+	if err != nil {
+		t.Fatalf("ManifestAdmissionAccumulator.Add() error = %v, want nil", err)
+	}
+	if err := admissions.Destroy(); err != nil {
+		t.Fatalf("ManifestAdmissionAccumulator.Destroy() error = %v, want nil", err)
+	}
 	return chitFuzzFixtures{
 		chit: chit, catalog: catalog, query: query,
 		entryName: chit.addition.Entry.Name, chitID: chit.identity,
@@ -373,6 +390,7 @@ func chitFixturesForFuzz(t testing.TB) chitFuzzFixtures {
 		catalogPayload: catalog.payload, catalogDocument: catalog.document,
 		signingDomain: SigningDomainChitV1, objectCount: chit.summary.Objects,
 		entrySequence: chit.addition.Entry.Sequence, manifestDigest: chit.summary.Digest,
+		manifestAdmission: manifestAdmission,
 	}
 }
 
@@ -397,6 +415,7 @@ func chitJSONSeedsForFuzz(t testing.TB, fixtures chitFuzzFixtures) []chitJSONSee
 		chitJSONSeedForFuzz(t, chitJSONDoorObjectCount, fixtures.objectCount),
 		chitJSONSeedForFuzz(t, chitJSONDoorEntrySequence, fixtures.entrySequence),
 		chitJSONSeedForFuzz(t, chitJSONDoorManifestDigest, fixtures.manifestDigest),
+		chitJSONSeedForFuzz(t, chitJSONDoorManifestAdmission, fixtures.manifestAdmission),
 	}
 }
 

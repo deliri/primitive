@@ -1,11 +1,15 @@
 package chit
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	json "encoding/json/v2"
 	"errors"
 	"math"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/keygen"
 	"github.com/deliri/primitive/v2026/receipt"
 )
 
@@ -248,6 +252,37 @@ type VerifiedManifestEntry struct {
 	summary  ManifestSummary
 }
 
+const manifestAdmissionDomain = "primitive/chit/manifest-admission/v1"
+
+// ManifestAdmission is an opaque, persistable ticket for one addition admitted
+// by a ManifestAdmissionAccumulator. It is not membership proof until the same
+// accumulator seals the complete stream against an authenticated summary.
+type ManifestAdmission struct {
+	entry ManifestEntry
+	tag   [sha256.Size]byte
+}
+
+type manifestAdmissionWire struct {
+	Entry  ManifestEntry `json:"entry"`
+	Ticket string        `json:"ticket"`
+}
+
+// ManifestAdmissionAccumulator folds one manifest while issuing constant-size
+// tickets that callers may spool instead of retaining one verifier per entry.
+type ManifestAdmissionAccumulator struct {
+	manifest *ManifestAccumulator
+	key      core.SecretMaterial
+	sealed   bool
+}
+
+// VerifiedManifestAdmission is the sealed capability that admits tickets
+// issued during one exact manifest fold.
+type VerifiedManifestAdmission struct {
+	key      core.SecretMaterial
+	summary  ManifestSummary
+	verified bool
+}
+
 const (
 	manifestAccumulatorUnsetDiagnostic  = "manifest accumulator is unset"
 	manifestAccumulatorSealedDiagnostic = "manifest accumulator is sealed"
@@ -258,6 +293,170 @@ func NewManifestAccumulator() *ManifestAccumulator {
 	_, _ = digest.Write([]byte(manifestFrameDomain))
 	_, _ = digest.Write([]byte{0})
 	return &ManifestAccumulator{digest: digest}
+}
+
+// NewManifestAdmissionAccumulator begins one constant-memory manifest fold.
+func NewManifestAdmissionAccumulator() (*ManifestAdmissionAccumulator, error) {
+	size, err := core.NewByteCount(sha256.Size)
+	if err != nil {
+		return nil, contractError(err)
+	}
+	key, err := keygen.GenerateSecret(keygen.SecretRequest{Size: size})
+	if err != nil {
+		return nil, contractError(err)
+	}
+	return &ManifestAdmissionAccumulator{manifest: NewManifestAccumulator(), key: key}, nil
+}
+
+// Add admits one authenticated addition and returns its persistable ticket.
+func (a *ManifestAdmissionAccumulator) Add(addition ManifestAddition) (ManifestAdmission, error) {
+	if a == nil || a.manifest == nil || a.sealed {
+		return ManifestAdmission{}, contractError(errors.New(manifestAccumulatorUnsetDiagnostic))
+	}
+	if err := a.manifest.Add(addition); err != nil {
+		return ManifestAdmission{}, err
+	}
+	tag, err := manifestAdmissionTag(a.key, addition.Entry)
+	if err != nil {
+		return ManifestAdmission{}, err
+	}
+	admission := ManifestAdmission{entry: addition.Entry, tag: tag}
+	return admission, admission.Validate()
+}
+
+// Seal authenticates the complete fold before releasing the ticket verifier.
+func (a *ManifestAdmissionAccumulator) Seal(expected ManifestSummary) (VerifiedManifestAdmission, error) {
+	if a == nil || a.manifest == nil || a.sealed {
+		return VerifiedManifestAdmission{}, contractError(errors.New(manifestAccumulatorUnsetDiagnostic))
+	}
+	if err := expected.Validate(); err != nil {
+		return VerifiedManifestAdmission{}, contractError(err)
+	}
+	a.sealed = true
+	got, err := a.manifest.Seal()
+	if err != nil {
+		return VerifiedManifestAdmission{}, errors.Join(err, a.Destroy())
+	}
+	if got != expected {
+		return VerifiedManifestAdmission{}, errors.Join(
+			conflictError(errors.New("manifest admission stream differs from expected summary")),
+			a.Destroy(),
+		)
+	}
+	verified := VerifiedManifestAdmission{key: a.key, summary: got, verified: true}
+	a.key = core.SecretMaterial{}
+	return verified, verified.Validate()
+}
+
+// Destroy abandons an unsealed accumulator's ticket authority. After a
+// successful Seal, ownership has moved to VerifiedManifestAdmission.
+func (a *ManifestAdmissionAccumulator) Destroy() error {
+	if a == nil || a.key.Validate() != nil {
+		return nil
+	}
+	return a.key.Destroy()
+}
+
+func manifestAdmissionTag(key core.SecretMaterial, entry ManifestEntry) ([sha256.Size]byte, error) {
+	var zero [sha256.Size]byte
+	rawKey, err := key.CopyBytes()
+	if err != nil {
+		return zero, contractError(err)
+	}
+	defer clear(rawKey)
+	encoded, err := core.MarshalCanonicalJSONDocument(entry)
+	if err != nil {
+		return zero, jsonError(err)
+	}
+	digest := hmac.New(sha256.New, rawKey)
+	_, _ = digest.Write([]byte(manifestAdmissionDomain))
+	_, _ = digest.Write([]byte{0})
+	_, _ = digest.Write(encoded)
+	copy(zero[:], digest.Sum(nil))
+	return zero, nil
+}
+
+func (a ManifestAdmission) Validate() error {
+	return a.entry.Validate()
+}
+
+func (a ManifestAdmission) Entry() (ManifestEntry, error) {
+	if err := a.Validate(); err != nil {
+		return ManifestEntry{}, err
+	}
+	return a.entry, nil
+}
+
+func (a ManifestAdmission) MarshalJSON() ([]byte, error) {
+	if err := a.Validate(); err != nil {
+		return nil, jsonError(err)
+	}
+	return core.MarshalCanonicalJSONDocument(manifestAdmissionWire{
+		Entry: a.entry, Ticket: hex.EncodeToString(a.tag[:]),
+	})
+}
+
+func (a *ManifestAdmission) UnmarshalJSON(data []byte) error {
+	if a == nil {
+		return jsonError(errors.New("nil manifest admission receiver"))
+	}
+	wire, err := decodeStrict[manifestAdmissionWire](data, core.JSONDocumentMaximumBytes)
+	if err != nil {
+		return err
+	}
+	if len(wire.Ticket) != hex.EncodedLen(sha256.Size) {
+		return jsonError(errors.New("manifest admission ticket extent differs"))
+	}
+	var tag [sha256.Size]byte
+	decoded, err := hex.Decode(tag[:], []byte(wire.Ticket))
+	if err != nil || decoded != len(tag) || hex.EncodeToString(tag[:]) != wire.Ticket {
+		return jsonError(errors.New("manifest admission ticket is not canonical"), err)
+	}
+	candidate := ManifestAdmission{entry: wire.Entry, tag: tag}
+	if err := candidate.Validate(); err != nil {
+		return jsonError(err)
+	}
+	*a = candidate
+	return nil
+}
+
+func (v VerifiedManifestAdmission) Validate() error {
+	if !v.verified {
+		return contractError(errors.New("manifest admission proof is unset"))
+	}
+	return errors.Join(v.key.Validate(), v.summary.Validate())
+}
+
+// Destroy invalidates this manifest ticket verifier and every copied handle.
+func (v VerifiedManifestAdmission) Destroy() error {
+	if !v.verified || v.key.Validate() != nil {
+		return nil
+	}
+	return v.key.Destroy()
+}
+
+// Verify authenticates one replayed ticket and evidence document as a member
+// of the complete manifest already sealed by this capability.
+func (v VerifiedManifestAdmission) Verify(admission ManifestAdmission, evidence receipt.VerifiedEvidence) (VerifiedManifestEntry, error) {
+	if err := errors.Join(v.Validate(), admission.Validate(), evidence.Validate()); err != nil {
+		return VerifiedManifestEntry{}, contractError(err)
+	}
+	document, err := evidence.Document()
+	if err != nil || document != admission.entry.Evidence {
+		return VerifiedManifestEntry{}, conflictError(errors.New("manifest admission evidence differs"), err)
+	}
+	want, err := manifestAdmissionTag(v.key, admission.entry)
+	if err != nil {
+		return VerifiedManifestEntry{}, err
+	}
+	if !hmac.Equal(want[:], admission.tag[:]) {
+		return VerifiedManifestEntry{}, conflictError(errors.New("manifest admission ticket differs"))
+	}
+	proof := VerifiedManifestEntry{
+		addition: ManifestAddition{Entry: admission.entry, Evidence: evidence},
+		summary:  v.summary,
+	}
+	return proof, proof.Validate()
 }
 
 // NewManifestEntryVerifier begins one O(1) lookup over a manifest stream.
@@ -408,7 +607,10 @@ var (
 	_ core.Validatable            = ManifestDigest{}
 	_ core.Validatable            = ManifestSummary{}
 	_ core.Validatable            = VerifiedManifestEntry{}
+	_ core.Validatable            = ManifestAdmission{}
+	_ core.Validatable            = VerifiedManifestAdmission{}
 	_ core.ValidatedJSONMarshaler = ManifestDigest{}
+	_ core.ValidatedJSONMarshaler = ManifestAdmission{}
 	_ core.ValidatedJSONMarshaler = ObjectCount{}
 	_ core.ValidatedJSONMarshaler = EntrySequence{}
 )
