@@ -55,6 +55,11 @@ func TestFilestorePublicIngressHasCompilerBoundSemanticProof(t *testing.T) {
 
 func filestoreIngressProofs() []filestoreIngressProof {
 	entries := []filestoreIngressProof{
+		{door: reflect.ValueOf(filestore.ReadContentIndexEntry), fuzz: FuzzContentIndexCanonicalRecord},
+		{door: reflect.ValueOf(filestore.WriteContentIndexEntry), fuzz: FuzzContentIndexCanonicalRecord},
+		{door: reflect.ValueOf(filestore.SortContentIndex), fuzz: FuzzContentSortExactUnion},
+		{door: reflect.ValueOf(filestore.ContentIndexConflictError.Error), fuzz: FuzzContentSortExactUnion},
+		{door: reflect.ValueOf(filestore.ContentIndexConflictError.Unwrap), fuzz: FuzzContentSortExactUnion},
 		{door: reflect.ValueOf(filestore.Write), fuzz: FuzzWriteReadRoundTrip},
 		{door: reflect.ValueOf(filestore.Read), fuzz: FuzzWriteReadRoundTrip},
 		{door: reflect.ValueOf(filestore.Stage), fuzz: FuzzStageCommitRoundTrip},
