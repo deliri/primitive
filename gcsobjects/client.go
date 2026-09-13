@@ -929,6 +929,40 @@ func streamGCSListedRead(reader *storage.Reader, destination io.Writer, listed G
 	return nil
 }
 
+// GCSObjectLookupRequest selects one exact object, without listing a prefix.
+type GCSObjectLookupRequest struct {
+	Bucket GCSBucket
+	Name   GCSObjectName
+}
+
+func (r GCSObjectLookupRequest) Validate() error {
+	return errors.Join(r.Bucket.Validate(), r.Name.Validate())
+}
+
+// LookupGCSObject discovers the current generation at a known key through the
+// official SDK. The returned metadata does not prove object bytes. A caller
+// needing integrity proof must read and verify this exact generation.
+func LookupGCSObject(ctx context.Context, client *GCSClient, request GCSObjectLookupRequest) (GCSObjectMetadata, error) {
+	if err := validateGCSCall(ctx, client); err != nil {
+		return GCSObjectMetadata{}, err
+	}
+	if err := request.Validate(); err != nil {
+		return GCSObjectMetadata{}, err
+	}
+	attrs, err := client.client.Bucket(request.Bucket.String()).Object(request.Name.String()).Attrs(ctx)
+	if err != nil {
+		return GCSObjectMetadata{}, projectGCSError(err, core.ErrObjectStoreSource)
+	}
+	metadata, err := metadataFromGCSAttrs(attrs)
+	if err != nil {
+		return GCSObjectMetadata{}, errors.Join(core.ErrObjectStoreSource, err)
+	}
+	if metadata.Bucket() != request.Bucket || metadata.Name() != request.Name {
+		return GCSObjectMetadata{}, errors.Join(core.ErrObjectStoreIntegrity, core.ErrObjectStoreSource)
+	}
+	return metadata, nil
+}
+
 // ObserveGCSUpload reads only the official provider metadata for the exact
 // generation authenticated by a client completion. It downloads no object
 // bytes and releases proof only when provider identity, extent, and CRC32C all

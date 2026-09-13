@@ -41,6 +41,7 @@ func TestAuthenticatedGCSOperationsAreCompilerSelectedEntryPoints(t *testing.T) 
 		"IssueGCSDownloadCapability",
 		"IssueGCSUploadCapability",
 		"ListGCSObjects",
+		"LookupGCSObject",
 		"NewGCSCapabilityIssuer",
 		"NewGCSClient",
 		"ObserveGCSUpload",
@@ -125,7 +126,7 @@ func productionStructRole(name string) (string, bool) {
 	case "GCSMediaUpload", "GCSFileUpload", "GCSReadRequest", "GCSListRequest", "GCSListedReadRequest", "GCSUploadObservationRequest", "GCSDeleteRequest",
 		"GCSDeleteObjectRequest", "GCSBucketCreateRequest", "GCSBucketPublicReadRequest", "GCSRootPrefixRequest",
 		"GCSChildPrefixRequest", "GCSObjectInPrefixRequest", "GCSUploadCapabilityRequest",
-		"GCSDownloadCapabilityRequest":
+		"GCSDownloadCapabilityRequest", "GCSObjectLookupRequest":
 		return "authenticated provider execution ingress", true
 	case "gcsWrite":
 		return "internal owner-only write projection", true
