@@ -116,7 +116,7 @@ func TestAuthenticatedGCSLifecycleUsesTheRealProviderAndProvesDeletion(t *testin
 		wantGen, _ := emptyMetadata.Generation().Int64()
 		t.Fatalf("exact delete generation = %d, want the created generation %d", gotGen, wantGen)
 	}
-	verifyLiveGCSObjectAbsent(t, client, bucket, emptyName, core.SHA256Of(nil))
+	verifyLiveGCSObjectAbsent(t, client, bucket, emptyName)
 	emptyMetadata, gotEmptyCreateErr = gcsobjects.UploadFile(context.Background(), client, liveGCSFileUpload(t, bucket, emptyName, nil, nil))
 	if gotEmptyCreateErr != nil {
 		t.Fatalf("replacement UploadFile(%q empty stream) error = %v, want nil", emptyName.String(), gotEmptyCreateErr)
@@ -128,7 +128,7 @@ func TestAuthenticatedGCSLifecycleUsesTheRealProviderAndProvesDeletion(t *testin
 	if !errors.Is(gotShortErr, core.ErrObjectStoreSource) || !errors.Is(gotShortErr, core.ErrObjectStoreIntegrity) {
 		t.Fatalf("short source UploadFile(%q) error = %v, want source and integrity identities", shortName.String(), gotShortErr)
 	}
-	verifyLiveGCSObjectAbsent(t, client, bucket, shortName, core.SHA256Of(gcsLivePayload))
+	verifyLiveGCSObjectAbsent(t, client, bucket, shortName)
 
 	wrongDigestName := liveGCSObjectName(t, prefix, gcsLiveWrongDigestObjectLeaf)
 	wrongDigestRequest := liveGCSFileUpload(t, bucket, wrongDigestName, gcsLivePayload, gcsLivePayload)
@@ -137,9 +137,9 @@ func TestAuthenticatedGCSLifecycleUsesTheRealProviderAndProvesDeletion(t *testin
 	if !errors.Is(gotWrongDigestErr, core.ErrObjectStoreSource) || !errors.Is(gotWrongDigestErr, core.ErrObjectStoreIntegrity) {
 		t.Fatalf("wrong digest UploadFile(%q) error = %v, want source and integrity identities", wrongDigestName.String(), gotWrongDigestErr)
 	}
-	verifyLiveGCSObjectAbsent(t, client, bucket, wrongDigestName, core.SHA256Of(gcsLivePayload))
+	verifyLiveGCSObjectAbsent(t, client, bucket, wrongDigestName)
 
-	readRequest := liveGCSReadRequest(t, bucket, primaryName, liveGCSIntegrity(t, gcsLivePayload))
+	readRequest := liveGCSReadRequest(t, bucket, primaryName, created.Generation(), liveGCSIntegrity(t, gcsLivePayload))
 	readResult, gotReadErr := gcsobjects.ReadGCSObject(context.Background(), client, readRequest)
 	if gotReadErr != nil {
 		t.Fatalf("ReadGCSObject(%q) error = %v, want nil", primaryName.String(), gotReadErr)
@@ -160,7 +160,7 @@ func TestAuthenticatedGCSLifecycleUsesTheRealProviderAndProvesDeletion(t *testin
 
 	wrongIntegrity := liveGCSIntegrity(t, gcsLivePayload)
 	wrongIntegrity.SHA256 = core.SHA256Of([]byte("wrong read digest"))
-	wrongRequest := liveGCSReadRequest(t, bucket, primaryName, wrongIntegrity)
+	wrongRequest := liveGCSReadRequest(t, bucket, primaryName, created.Generation(), wrongIntegrity)
 	_, gotWrongReadErr := gcsobjects.ReadGCSObject(context.Background(), client, wrongRequest)
 	if !errors.Is(gotWrongReadErr, core.ErrObjectStoreIntegrity) {
 		t.Fatalf("ReadGCSObject(%q wrong checksum) error = %v, want errors.Is(..., %v)", primaryName.String(), gotWrongReadErr, core.ErrObjectStoreIntegrity)
@@ -178,8 +178,8 @@ func TestAuthenticatedGCSLifecycleUsesTheRealProviderAndProvesDeletion(t *testin
 	if gotDeleted := deleted.Deleted().Uint64(); gotDeleted != gcsLiveExpectedObjects {
 		t.Fatalf("DeleteGCSObjects(%q) deleted = %d, want %d exact objects", prefix.String(), gotDeleted, gcsLiveExpectedObjects)
 	}
-	verifyLiveGCSObjectAbsent(t, client, bucket, primaryName, core.SHA256Of(gcsLivePayload))
-	verifyLiveGCSObjectAbsent(t, client, bucket, emptyName, core.SHA256Of(nil))
+	verifyLiveGCSObjectAbsent(t, client, bucket, primaryName)
+	verifyLiveGCSObjectAbsent(t, client, bucket, emptyName)
 }
 
 func TestAuthenticatedGCSDeletionRefusesSoftDeleteRetention(t *testing.T) {
@@ -309,14 +309,19 @@ func verifyLiveGCSMetadata(
 	}
 }
 
-func verifyLiveGCSObjectAbsent(t *testing.T, client *gcsobjects.GCSClient, bucket gcsobjects.GCSBucket, name gcsobjects.GCSObjectName, sha256 core.SHA256Digest) {
+func verifyLiveGCSObjectAbsent(t *testing.T, client *gcsobjects.GCSClient, bucket gcsobjects.GCSBucket, name gcsobjects.GCSObjectName) {
 	t.Helper()
-	integrity := liveGCSIntegrity(t, gcsLivePayload)
-	integrity.SHA256 = sha256
-	request := liveGCSReadRequest(t, bucket, name, integrity)
-	_, gotReadErr := gcsobjects.ReadGCSObject(context.Background(), client, request)
-	if !errors.Is(gotReadErr, core.ErrObjectStoreAbsent) {
-		t.Fatalf("ReadGCSObject(%q after refused write or purge) error = %v, want errors.Is(..., %v)", name.String(), gotReadErr, core.ErrObjectStoreAbsent)
+	// A missing arbitrary generation cannot prove absence of the object head.
+	// This operator-only lifecycle test uses a bounded inventory; serving code
+	// must continue using known-key, exact-generation reads without List.
+	prefix, err := gcsobjects.ParseGCSObjectPrefix(name.String())
+	if err != nil {
+		t.Fatalf("ParseGCSObjectPrefix = %v, want nil", err)
+	}
+	var count int
+	err = gcsobjects.ListGCSObjects(t.Context(), client, gcsobjects.GCSListRequest{Bucket: bucket, Prefix: prefix, MaxObjects: liveGCSMaximum(t, 1)}, func(gcsobjects.GCSObjectMetadata) error { count++; return nil })
+	if err != nil || count != 0 {
+		t.Fatalf("absent object inventory = (%d, %v), want (0, nil)", count, err)
 	}
 }
 
@@ -324,6 +329,7 @@ func liveGCSReadRequest(
 	t *testing.T,
 	bucket gcsobjects.GCSBucket,
 	name gcsobjects.GCSObjectName,
+	generation gcsobjects.GCSGeneration,
 	integrity objectstore.Integrity,
 ) gcsobjects.GCSReadRequest {
 	t.Helper()
@@ -341,7 +347,7 @@ func liveGCSReadRequest(
 		t.Fatalf("core.ParseRelativePath(download.stage) error = %v, want nil", err)
 	}
 	return gcsobjects.GCSReadRequest{
-		Bucket: bucket, Name: name, Integrity: integrity,
+		Bucket: bucket, Name: name, Generation: generation, Integrity: integrity,
 		Destination: filestore.StageDestinationRequest{
 			Temporary:     filestore.Location{Root: root, Path: path},
 			ExpectedBytes: new(integrity.Length), Mode: 0o600,

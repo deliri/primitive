@@ -45,7 +45,7 @@ func FuzzGCSReadExtentSemanticBoundary(f *testing.F) {
 		provider := &gcsReadProvider{t: t, payload: payload, metadataBytes: expected, chunked: chunked, disposition: gcsReadAvailable}
 		client := bucketTestClient(t, provider)
 		integrity := gcsProviderIntegrity(t, expected, expected)
-		request := GCSReadRequest{Destination: destination, Bucket: parsedGCSBucket(t, gcsProviderBucketText), Name: parsedGCSObjectName(t, gcsProviderObjectText), Integrity: integrity}
+		request := GCSReadRequest{Generation: gcsReadGeneration(t), Destination: destination, Bucket: parsedGCSBucket(t, gcsProviderBucketText), Name: parsedGCSObjectName(t, gcsProviderObjectText), Integrity: integrity}
 		if err := request.Validate(); err != nil {
 			t.Fatalf("typed fuzz request error = %v, want nil", err)
 		}

@@ -200,7 +200,11 @@ func authenticatedGCSRequestFixtures(t *testing.T) (
 		Bucket: bucket, Name: name, Source: bytes.NewReader([]byte("payload")),
 		Integrity: integrity, CustomTime: customTime,
 	}
-	read := liveGCSReadRequest(t, bucket, name, integrity)
+	generation, err := gcsobjects.NewGCSGeneration(1)
+	if err != nil {
+		t.Fatalf("NewGCSGeneration = %v, want nil", err)
+	}
+	read := liveGCSReadRequest(t, bucket, name, generation, integrity)
 	deleteRequest := gcsobjects.GCSDeleteRequest{Bucket: bucket, Prefix: prefix, MaxObjects: maximum}
 	deleteObjectRequest := gcsobjects.GCSDeleteObjectRequest{Bucket: bucket, Name: name}
 	return media, file, read, deleteRequest, deleteObjectRequest

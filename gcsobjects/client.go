@@ -500,6 +500,7 @@ type gcsWrite struct {
 type GCSReadRequest struct {
 	Bucket      GCSBucket
 	Name        GCSObjectName
+	Generation  GCSGeneration
 	Destination filestore.StageDestinationRequest
 	Integrity   objectstore.Integrity
 }
@@ -582,7 +583,7 @@ func gcsGenerationFromEvidence(evidence objectstore.TransferEvidence) (GCSGenera
 
 // Validate rejects incomplete or contradictory read ingress.
 func (r GCSReadRequest) Validate() error {
-	for _, err := range []error{r.Bucket.Validate(), r.Name.Validate(), r.Integrity.Validate(), r.Destination.Validate()} {
+	for _, err := range []error{r.Bucket.Validate(), r.Name.Validate(), r.Generation.Validate(), r.Integrity.Validate(), r.Destination.Validate()} {
 		if err != nil {
 			return errors.Join(core.ErrObjectStoreContract, err)
 		}
@@ -772,20 +773,22 @@ type gcsReadSession struct {
 }
 
 func openGCSReadSession(ctx context.Context, client *GCSClient, request GCSReadRequest) (gcsReadSession, error) {
-	object := client.client.Bucket(request.Bucket.String()).Object(request.Name.String())
+	generation, err := request.Generation.Int64()
+	if err != nil {
+		return gcsReadSession{}, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	object := client.client.Bucket(request.Bucket.String()).Object(request.Name.String()).Generation(generation)
 	reader, err := object.NewReader(ctx)
 	if err != nil {
 		return gcsReadSession{}, projectGCSError(err, core.ErrObjectStoreSource)
 	}
 	metadata, err := metadataFromReader(ctx, object, reader)
 	if err != nil {
-		_ = reader.Close()
-		return gcsReadSession{}, err
+		return gcsReadSession{}, errors.Join(err, reader.Close())
 	}
 	integrity, err := readIntegrityFromMetadata(request, metadata)
 	if err != nil {
-		_ = reader.Close()
-		return gcsReadSession{}, err
+		return gcsReadSession{}, errors.Join(err, reader.Close())
 	}
 	return gcsReadSession{reader: reader, metadata: metadata, integrity: integrity}, nil
 }
@@ -996,6 +999,9 @@ func metadataFromReader(ctx context.Context, object *storage.ObjectHandle, reade
 }
 
 func readIntegrityFromMetadata(request GCSReadRequest, metadata GCSObjectMetadata) (objectstore.Integrity, error) {
+	if metadata.Bucket() != request.Bucket || metadata.Name() != request.Name || metadata.Generation() != request.Generation {
+		return objectstore.Integrity{}, core.ErrObjectStoreIntegrity
+	}
 	if metadata.Length() != request.Integrity.Length || metadata.CRC32C() != request.Integrity.CRC32C {
 		return objectstore.Integrity{}, errors.Join(core.ErrObjectStoreSize, core.ErrObjectStoreIntegrity)
 	}

@@ -23,7 +23,7 @@ func BenchmarkGCSReadAndStage(b *testing.B) {
 			}
 			client := bucketTestClient(b, &gcsReadProvider{t: b, payload: payload, metadataBytes: payload, disposition: gcsReadAvailable})
 			destination, _ := gcsReadStageDestination(b, directory, uint64(len(payload)))
-			request := GCSReadRequest{Destination: destination, Bucket: parsedGCSBucket(b, gcsProviderBucketText), Name: parsedGCSObjectName(b, gcsProviderObjectText), Integrity: gcsProviderIntegrity(b, payload, payload)}
+			request := GCSReadRequest{Generation: gcsReadGeneration(b), Destination: destination, Bucket: parsedGCSBucket(b, gcsProviderBucketText), Name: parsedGCSObjectName(b, gcsProviderObjectText), Integrity: gcsProviderIntegrity(b, payload, payload)}
 			if err := request.Validate(); err != nil || bytes.Count(payload, []byte{0}) == len(payload) {
 				b.Fatalf("benchmark request error = %v, want valid nonuniform bytes", err)
 			}

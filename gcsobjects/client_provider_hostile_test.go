@@ -294,6 +294,7 @@ func TestAuthenticatedGCSReadsExecuteTheOfficialSDKAndProveEveryByte(t *testing.
 			directory := t.TempDir()
 			destination, root := gcsReadStageDestination(t, directory, tc.maximum)
 			got, gotErr := ReadGCSObject(context.Background(), client, GCSReadRequest{
+				Generation:  gcsReadGeneration(t),
 				Destination: destination, Bucket: parsedGCSBucket(t, gcsProviderBucketText),
 				Name:      parsedGCSObjectName(t, gcsProviderObjectText),
 				Integrity: gcsExpectedReadIntegrity(t, tc.wantBytes, tc.metadataBytes, tc.maximum),
@@ -369,7 +370,23 @@ func gcsExpectedReadIntegrity(t testing.TB, digest, checksum []byte, expected ui
 	}
 }
 
+func gcsReadGeneration(t testing.TB) GCSGeneration {
+	t.Helper()
+	generation, err := NewGCSGeneration(gcsProviderGeneration)
+	if err != nil {
+		t.Fatalf("NewGCSGeneration = (%v, %v), want pinned provider generation", generation, err)
+	}
+	return generation
+}
+
 func (p *gcsReadProvider) ServeHTTP(writer http.ResponseWriter, incoming *http.Request) {
+	// The real SDK must select the agreed generation before requesting bytes,
+	// including when the current head happens to contain identical content.
+	if got := incoming.URL.Query().Get("generation"); got != strconv.FormatInt(gcsProviderGeneration, 10) {
+		p.t.Errorf("read provider generation = %q, want %d", got, gcsProviderGeneration)
+		writer.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	if incoming.Method != exchange.MethodGet.String() {
 		p.t.Errorf("read provider method = %q, want %q", incoming.Method, exchange.MethodGet.String())
 		writer.WriteHeader(http.StatusMethodNotAllowed)
