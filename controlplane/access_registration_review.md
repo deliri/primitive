@@ -36,7 +36,50 @@ The semantic fuzz callback checks strict refusal and preserved receiver,
 canonical closure and byte ceiling, exact nominal identity, and independent
 revealed-byte comparison to the pinned token before accepting authentication.
 These tests do not prove product account policy, Firestore transactions, HTTP
-routing, purchase settlement or launch acceptance. Numeric hostile-table floors
-and the wider package doctrine gate are not claimed closed by this narrow slice.
+routing, purchase settlement or launch acceptance.
 Local dirty-tree execution is not independent acceptance; committed-scope checks
 must remain distinguishable from these author diagnostics.
+
+## Hostile-boundary audit
+
+The follow-up closes the request's previously unpinned boundary surfaces:
+
+- Ten accepted rows pin independently retained route, build, version, platform,
+  nonce and bound-device facts. Changed facts must change the replay commitment.
+- Ten rejection rows cover absent/non-object/truncated/trailing documents,
+  unknown/duplicate/case-folded members and incorrect token types.
+- Twenty boundary rows cover below/at/above/extreme document and token extents,
+  token framing, nonce extents/zero/null, installation extents/zero/conflict,
+  malformed UTF-8 and excessive depth. Rows are distinct contracts, not added
+  spellings of one collapsed producer state. Boundary rows are not also counted
+  against the accepted/rejected quotas.
+- The decoder projection has a compiler-visible field/type/tag drift guard.
+- A real certificate is issued from the verified proof and independently
+  verified. Its exact fields are asserted, an account-only forgery is rejected
+  with a zero proof, and absent registration proof cannot issue a certificate.
+- Fuzzing includes a genuinely valid foreign token and below/at/above ceiling
+  documents, with authentication and canonical closure checked in the callback.
+- The benchmark fixes its six-field workload before timing, reports bytes and
+  allocations and checks an observed proof after timing. No performance
+  improvement is claimed from the shared developer machine.
+
+`primitive-access-registration-hostile-boundaries-first` retained 42 passing
+events. `primitive-access-doctrine-pinned` ran the gate's pinned Witness version
+`v0.0.0-20260803211814-57582de85018` over the two touched package directories and
+exited 0; it did not substitute the developer's dirty installed binary.
+`primitive-access-audit-vet` exited 0. The deliberately widened decoder limit in
+`primitive-access-document-ceiling-mutation-red` failed the above-ceiling case
+(two failed events including its parent); the mutation was discarded.
+
+This boundary validates/authenticates one request against a verifier and an
+optional exact replay; it is not a producer emitting evidence batches into a
+policy classifier. The 50-case producer/classifier matrix is not substituted for
+these parser/authentication contracts. Fresh/exact replay and typed refusal are
+proved by their own tests; no batch classification lattice is invented.
+
+The canonical script's benchmark budget was corrected from three to 30 seconds,
+and execution order corrected to tools/tests, benchmarks, then fuzz targets.
+This does not turn the script's local success or GitHub admission notification
+into an independent acceptance receipt. The script's broader execution accounting
+and the independent authority's receipt must still be audited before certifying
+the whole repository. Product integration remains a separate proof surface.

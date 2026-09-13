@@ -23,7 +23,7 @@ workflow_attempt=${GITHUB_RUN_ATTEMPT:-NOT_APPLICABLE}
 gate_failure_status=0
 goconst_admission_maximum=4
 evidence_phase_duration=3s
-benchmark_duration=$evidence_phase_duration
+benchmark_duration=30s
 fuzz_duration=$evidence_phase_duration
 fuzz_minimize_duration=$evidence_phase_duration
 
@@ -345,11 +345,11 @@ run_gate test-race-shuffle go test -race -shuffle=on -count=2 ./...
 run_gate fuzz-inventory discover_go_targets Fuzz
 run_gate fuzz-inventory-ratchet validate_target_inventory \
 	"$artifact_directory/fuzz-inventory.log" 30 fuzz
-run_fuzz_targets "$artifact_directory/fuzz-inventory.log"
 run_gate benchmark-inventory discover_go_targets Benchmark
 run_gate benchmark-inventory-ratchet validate_target_inventory \
 	"$artifact_directory/benchmark-inventory.log" 51 benchmark
 run_benchmarks "$artifact_directory/benchmark-inventory.log"
+run_fuzz_targets "$artifact_directory/fuzz-inventory.log"
 
 if test "$gate_failure_status" -ne 0; then
 	printf '%s\n' "FAIL canonical gate; see $result_file"

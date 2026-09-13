@@ -10,6 +10,8 @@ import (
 	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/lease"
+	"github.com/deliri/primitive/v2026/receipt"
+	"github.com/deliri/primitive/v2026/temporal"
 )
 
 func accessRegistrationFixture(t testing.TB) (controlplane.AccessRegistrationRequest, controlplane.Authority) {
@@ -172,6 +174,56 @@ func TestAccessRegistrationRejectsBrokenFacts(t *testing.T) {
 	}
 }
 
+func TestAccessRegistrationCertificateBindsVerifiedFacts(t *testing.T) {
+	t.Parallel()
+	request, server := accessRegistrationFixture(t)
+	verifier, err := request.Token.Verifier()
+	if err != nil {
+		t.Fatalf("Verifier() error = %v, want nil", err)
+	}
+	proof, err := server.VerifyAccessRegistration(controlplane.AccessRegistrationVerification{Request: request, ExpectedVerifier: verifier})
+	if err != nil {
+		t.Fatalf("VerifyAccessRegistration() error = %v, want nil", err)
+	}
+	account, err := receipt.NewPrincipalIdentity([receipt.LifecycleIdentityBytes]byte{71})
+	if err != nil {
+		t.Fatalf("NewPrincipalIdentity() error = %v, want nil", err)
+	}
+	entitlement, err := lease.NewEntitlementID([lease.IdentifierBytes]byte{72})
+	if err != nil {
+		t.Fatalf("NewEntitlementID() error = %v, want nil", err)
+	}
+	_, signer := testSigningKey(t, 31)
+	defer clear(signer)
+	at := temporal.InstantFromNanoseconds(1_800_000_000_000_000_000)
+	certificate, err := server.IssueRegisteredInstallation(controlplane.RegistrationCertificateIssuance{Registration: proof, Account: account, Entitlement: entitlement, IssuedAt: at}, signer)
+	if err != nil {
+		t.Fatalf("IssueRegisteredInstallation() error = %v, want nil", err)
+	}
+	want := controlplane.InstallationCertificateBody{Subject: lease.Subject{Offering: request.Build.Offering(), EntitlementID: entitlement, DeviceID: request.Installation}, Build: request.Build, DeviceKey: request.DeviceKey, Account: account, IssuedAt: at, Revision: request.Revision}
+	if certificate.Body != want {
+		t.Fatalf("certificate body = %+v, want %+v", certificate.Body, want)
+	}
+	if _, err := server.VerifyInstallationCertificate(certificate); err != nil {
+		t.Fatalf("VerifyInstallationCertificate() error = %v, want nil", err)
+	}
+	changed := certificate
+	changed.Body.Account, err = receipt.NewPrincipalIdentity([receipt.LifecycleIdentityBytes]byte{73})
+	if err != nil {
+		t.Fatalf("NewPrincipalIdentity(foreign) error = %v, want nil", err)
+	}
+	if changed.Body == certificate.Body {
+		t.Fatal("mutation = unchanged body, want changed account binding")
+	}
+	if got, err := server.VerifyInstallationCertificate(changed); !errors.Is(err, core.ErrAttestVerification) || got != (controlplane.VerifiedInstallationCertificate{}) {
+		t.Fatalf("VerifyInstallationCertificate(foreign account) = (%+v, %v), want zero and %v", got, err, core.ErrAttestVerification)
+	}
+	zero, err := server.IssueRegisteredInstallation(controlplane.RegistrationCertificateIssuance{Account: account, Entitlement: entitlement, IssuedAt: at}, signer)
+	if !errors.Is(err, core.ErrControlPlaneRegistration) || zero != (controlplane.InstallationCertificateDocument{}) {
+		t.Fatalf("IssueRegisteredInstallation(absent proof) = (%+v, %v), want zero and typed refusal", zero, err)
+	}
+}
+
 func FuzzAccessRegistrationSemanticClosure(f *testing.F) {
 	seed, server := accessRegistrationFixture(f)
 	canonical, err := seed.MarshalJSON()
@@ -188,6 +240,27 @@ func FuzzAccessRegistrationSemanticClosure(f *testing.F) {
 	f.Add([]byte(`{}`))
 	f.Add(canonical[:len(canonical)-1])
 	f.Add(bytes.Repeat([]byte{' '}, controlplane.AccessRegistrationRequestJSONMaximumBytes+1))
+	for _, size := range []int{controlplane.AccessRegistrationRequestJSONMaximumBytes - 1, controlplane.AccessRegistrationRequestJSONMaximumBytes, controlplane.AccessRegistrationRequestJSONMaximumBytes + 1} {
+		bounded := append(bytes.Clone(canonical), bytes.Repeat([]byte{' '}, size-len(canonical))...)
+		f.Add(bounded)
+		f.Cleanup(func() { clear(bounded) })
+	}
+	foreign := seed
+	foreign.Token, err = controlwire.NewAccessToken([controlwire.AccessTokenBytes]byte{43})
+	if err != nil {
+		f.Fatalf("NewAccessToken(foreign seed) error = %v, want nil", err)
+	}
+	foreignBytes, err := foreign.MarshalJSON()
+	if err != nil {
+		f.Fatalf("MarshalJSON(foreign seed) error = %v, want nil", err)
+	}
+	f.Add(foreignBytes)
+	f.Cleanup(func() {
+		clear(foreignBytes)
+		if err := foreign.Token.Destroy(); err != nil {
+			f.Errorf("Destroy(foreign seed) error = %v, want nil", err)
+		}
+	})
 	f.Fuzz(func(t *testing.T, data []byte) {
 		got := seed
 		err := got.UnmarshalJSON(data)
