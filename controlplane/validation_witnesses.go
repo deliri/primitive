@@ -47,3 +47,7 @@ var (
 	// bytes, so a document cannot verify under one and read as the other.
 	_ encoding.TextMarshaler = SigningDomain(SigningDomainUnknown)
 )
+
+var (
+	_ core.ValidatedJSONMarshaler = AccessRegistrationRequest{}
+)

@@ -511,6 +511,12 @@ const (
 	ErrTailnetEnrollment
 	// ErrTailnetDestination identifies an attempt outside the pinned destination.
 	ErrTailnetDestination
+	// ErrAccessPermitContract identifies an invalid scoped access agreement.
+	ErrAccessPermitContract
+	// ErrAccessPermitDenied identifies refused or unauthenticated access.
+	ErrAccessPermitDenied
+	// ErrAccessPermitBinding identifies a foreign exchange or subject binding.
+	ErrAccessPermitBinding
 	errorIdentityLimit
 )
 
@@ -734,6 +740,9 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrTailnetClosed, text: "tailnet closed"},
 		{identity: ErrTailnetEnrollment, text: "tailnet enrollment failed"},
 		{identity: ErrTailnetDestination, text: "tailnet destination refused"},
+		{identity: ErrAccessPermitContract, text: "access permit contract violation"},
+		{identity: ErrAccessPermitDenied, text: "access permit denied"},
+		{identity: ErrAccessPermitBinding, text: "access permit binding mismatch"},
 	}
 }
 
@@ -855,8 +864,11 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrControlPlaneContract, ErrIDContract, ErrSecretStoreContract,
 		ErrStripeContract, ErrPayPalContract, ErrTwilioContract, ErrPlunkContract, ErrGitHubContract,
 		ErrCapabilitiesContract, ErrGoModuleContract, ErrGoToolchainContract, ErrGitRepositoryContract,
-		ErrProofLedgerContract, ErrTailnetContract) {
+		ErrProofLedgerContract, ErrTailnetContract, ErrAccessPermitContract) {
 		return oneErrorIdentityParent(ErrPrimitiveContract)
+	}
+	if errorIdentityIn(identity, ErrAccessPermitDenied, ErrAccessPermitBinding) {
+		return oneErrorIdentityParent(ErrAccessPermitContract)
 	}
 	if errorIdentityIn(identity, ErrGoToolchainExecution, ErrGoToolchainOutput) {
 		return oneErrorIdentityParent(ErrGoToolchainContract)

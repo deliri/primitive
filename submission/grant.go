@@ -345,3 +345,7 @@ var (
 	_ json.Unmarshaler                    = (*GrantDocument)(nil)
 	_ attest.CanonicalBody[SigningDomain] = GrantPayload{}
 )
+
+var (
+	_ core.ValidatedJSONMarshaler = GrantRecord{}
+)

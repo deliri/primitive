@@ -468,7 +468,8 @@ func declaredRealWorldCalls() (realWorldCallInventory, error) {
 		{owner: PackageFilestore, substrate: realWorldSubstrateOperatingSystem, selector: "OpenFile", count: 2},
 		{owner: PackageFilestore, substrate: realWorldSubstrateOperatingSystem, selector: "Pipe", count: 1},
 		{owner: PackageFilestore, substrate: realWorldSubstrateOperatingSystem, selector: "OpenRoot", count: 3},
-		{owner: PackageFilestore, substrate: realWorldSubstrateOperatingSystem, selector: "SameFile", count: 10},
+		// d5de09b adds three content-sort held-file identity comparisons.
+		{owner: PackageFilestore, substrate: realWorldSubstrateOperatingSystem, selector: "SameFile", count: 13},
 		{owner: PackageFilestore, substrate: realWorldSubstrateOperatingSystem, selector: "Stat", count: 2},
 		{owner: PackageHostFacts, substrate: realWorldSubstrateOperatingSystem, selector: "Hostname", count: 1},
 		{owner: PackageHostFacts, substrate: realWorldSubstrateOperatingSystem, selector: "Environ", count: 1},
@@ -513,7 +514,8 @@ func declaredRealWorldCalls() (realWorldCallInventory, error) {
 		{owner: PackageFilestore, substrate: realWorldSubstrateSyscall, selector: "UTF16PtrFromString", count: 1},
 		{owner: PackageFilestore, substrate: realWorldSubstrateSyscall, selector: "CreateFile", count: 1},
 		{owner: PackageFilestore, substrate: realWorldSubstrateSyscall, selector: "CloseHandle", count: 1},
-		{owner: PackageProcess, substrate: realWorldSubstrateSyscall, selector: "Kill", count: 3},
+		// 42e6179 adds the read-only process-group liveness probe (signal zero).
+		{owner: PackageProcess, substrate: realWorldSubstrateSyscall, selector: "Kill", count: 4},
 		{owner: PackageFileLock, substrate: realWorldSubstrateWindows, selector: "Handle", count: 3},
 		// Windows file locking now owns an event and waits for overlapped completion.
 		{owner: PackageFileLock, substrate: realWorldSubstrateWindows, selector: "CreateEvent", count: 1},

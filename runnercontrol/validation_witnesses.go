@@ -24,3 +24,8 @@ var (
 	_ core.ValidatedJSONMarshaler = SchedulingUnitKind(0)
 	_ core.ValidatedJSONMarshaler = SubjectIsolationEngine(0)
 )
+
+var (
+	_ core.ValidatedJSONMarshaler = GoEventAction(0)
+	_ core.ValidatedJSONMarshaler = GoEventOutputKind(0)
+)
