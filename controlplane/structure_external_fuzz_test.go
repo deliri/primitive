@@ -93,35 +93,119 @@ func mustRegistrationRequestProjection(t testing.TB, value controlplane.Registra
 }
 
 func FuzzRegistrationRequestExternalDecoder(f *testing.F) {
-	server := issueTestRegistration(f).server(f)
-	var seed controlplane.RegistrationRequest
-	if err := seed.UnmarshalJSON(readGolden(f, "registration_request.json")); err != nil {
-		f.Fatalf("registration request golden UnmarshalJSON() error = %v, want nil", err)
+	issued := issueTestCheckIn(f, controlplaneOffering(f, 3), testCheckInWindow())
+	defer clear(issued.device)
+	defer clear(issued.authority)
+	server := issued.server(f)
+	token, err := controlwire.NewRegistrationToken([controlwire.RegistrationTokenBytes]byte{83})
+	if err != nil {
+		f.Fatalf("NewRegistrationToken(seed) error = %v, want nil", err)
+	}
+	defer token.Destroy()
+	seed := controlplane.RegistrationRequest{
+		Token: token, Build: issued.certificate.Body.Build, DeviceKey: issued.certificate.Body.DeviceKey,
+		Installation: issued.subject.DeviceID, RequestNonce: issued.request.Payload.RequestNonce,
+		Revision: issued.certificate.Body.Revision,
+	}
+	wantIdentity, err := seed.Identity()
+	if err != nil {
+		f.Fatalf("seed.Identity() error = %v, want nil", err)
 	}
 	verifier, err := seed.Token.Verifier()
 	if err != nil {
 		f.Fatalf("RegistrationToken.Verifier(seed) error = %v, want nil", err)
 	}
-	prior, err := controlwire.CommitReplayIdentity(seed)
-	if err != nil {
-		f.Fatalf("CommitReplayIdentity(seed) error = %v, want nil", err)
-	}
+	canonical := mustRegistrationRequestProjection(f, seed)
+	defer clear(canonical)
+	f.Add(canonical)
 	mutation := seed
 	mutation.RequestNonce = otherRequestNonce(f)
-	fuzzStructureExternalDoor(f, structureExternalDoor[controlplane.RegistrationRequest]{
-		Seed: seed, Mutations: []controlplane.RegistrationRequest{mutation},
-		Marshal: func(value controlplane.RegistrationRequest) ([]byte, error) { return value.MarshalJSON() },
-		Unmarshal: func(value *controlplane.RegistrationRequest, data []byte) error {
-			return value.UnmarshalJSON(data)
-		},
-		Validate: func(value controlplane.RegistrationRequest) error { return value.Validate() },
-		Authenticate: func(value controlplane.RegistrationRequest, authentic bool) error {
-			proof, verifyErr := server.VerifyRegistrationAuthority(controlplane.RegistrationAuthorityVerification{
-				Request: value, ExpectedVerifier: verifier, PriorReplay: &prior,
-			})
-			return registrationAuthorityAuthenticationOracle(proof, verifyErr, authentic)
-		},
-		WantError: core.ErrControlPlaneRegistration,
+	if mutation.RequestNonce == seed.RequestNonce {
+		f.Fatalf("mutated nonce = %v, want distinct from %v", mutation.RequestNonce, seed.RequestNonce)
+	}
+	f.Add(mustRegistrationRequestProjection(f, mutation))
+	mutation = seed
+	mutation.DeviceKey, mutation.Installation = testDeviceKey(f, checkInOtherDeviceSeed)
+	if mutation.Installation == seed.Installation {
+		f.Fatalf("mutated installation = %v, want distinct from %v", mutation.Installation, seed.Installation)
+	}
+	f.Add(mustRegistrationRequestProjection(f, mutation))
+	for _, size := range []int{controlplane.RegistrationRequestJSONMaximumBytes - 1, controlplane.RegistrationRequestJSONMaximumBytes, controlplane.RegistrationRequestJSONMaximumBytes + 1} {
+		f.Add(append(append([]byte(nil), canonical...), bytes.Repeat([]byte{' '}, size-len(canonical))...))
+	}
+	f.Add([]byte{})
+	f.Add([]byte("null"))
+	f.Add([]byte("{}"))
+	f.Add(canonical[:len(canonical)-1])
+	// Obtain the prior commitment through the real admitting producer.
+	admitted, err := server.VerifyRegistrationAuthority(controlplane.RegistrationAuthorityVerification{Request: seed, ExpectedVerifier: verifier})
+	if err != nil {
+		f.Fatalf("VerifyRegistrationAuthority(seed) error = %v, want nil", err)
+	}
+	prior, disposition, err := admitted.Replay()
+	if err != nil || disposition != controlwire.ReplayDispositionFresh {
+		f.Fatalf("Replay(seed) = (%v, %v), want fresh and nil", disposition, err)
+	}
+	f.Fuzz(func(t *testing.T, data []byte) {
+		var candidate controlplane.RegistrationRequest
+		if err := candidate.UnmarshalJSON(canonical); err != nil {
+			t.Fatalf("UnmarshalJSON(populated receiver) error = %v, want nil", err)
+		}
+		original := candidate
+		defer original.Token.Destroy()
+		decodeErr := candidate.UnmarshalJSON(data)
+		if decodeErr != nil {
+			if !errors.Is(decodeErr, core.ErrJSONContract) || !errors.Is(decodeErr, core.ErrControlPlaneRegistration) || candidate != original {
+				t.Fatalf("UnmarshalJSON(rejected) = (%v, %v), want preserved receiver and JSON/registration refusal", candidate, decodeErr)
+			}
+			var fresh controlplane.RegistrationRequest
+			freshErr := fresh.UnmarshalJSON(data)
+			if !errors.Is(freshErr, core.ErrControlPlaneRegistration) || fresh != (controlplane.RegistrationRequest{}) {
+				t.Fatalf("UnmarshalJSON(fresh rejection) = (%v, %v), want zero receiver and typed refusal", fresh, freshErr)
+			}
+			return
+		}
+		defer candidate.Token.Destroy()
+		identity, err := candidate.Identity()
+		if err != nil {
+			t.Fatalf("Identity(accepted) error = %v, want nil", err)
+		}
+		encoded := mustRegistrationRequestProjection(t, candidate)
+		defer clear(encoded)
+		if len(encoded) > controlplane.RegistrationRequestJSONMaximumBytes {
+			t.Fatalf("canonical byte count = %d, want <= %d", len(encoded), controlplane.RegistrationRequestJSONMaximumBytes)
+		}
+		var roundTrip controlplane.RegistrationRequest
+		if err := roundTrip.UnmarshalJSON(encoded); err != nil {
+			t.Fatalf("UnmarshalJSON(canonical) error = %v, want nil", err)
+		}
+		defer roundTrip.Token.Destroy()
+		second := mustRegistrationRequestProjection(t, roundTrip)
+		defer clear(second)
+		secondIdentity, err := roundTrip.Identity()
+		if err != nil || secondIdentity != identity || !bytes.Equal(second, encoded) {
+			t.Fatalf("canonical closure = (%+v, %v), want exact identity %+v and stable bytes", secondIdentity, err, identity)
+		}
+		presented, err := candidate.Token.Verifier()
+		if err != nil {
+			t.Fatalf("Verifier(accepted) error = %v, want nil", err)
+		}
+		proof, verifyErr := server.VerifyRegistrationAuthority(controlplane.RegistrationAuthorityVerification{Request: candidate, ExpectedVerifier: verifier, PriorReplay: &prior})
+		if bytes.Equal(encoded, canonical) {
+			gotIdentity, identityErr := proof.Identity()
+			gotReplay, gotDisposition, replayErr := proof.Replay()
+			if errors.Join(verifyErr, identityErr, replayErr) != nil || gotIdentity != wantIdentity || !gotReplay.Equal(prior) || gotDisposition != controlwire.ReplayDispositionExact {
+				t.Fatalf("exact retry = (%+v, %v, %v), want original identity %+v, commitment and exact disposition", gotIdentity, gotDisposition, errors.Join(verifyErr, identityErr, replayErr), wantIdentity)
+			}
+			return
+		}
+		wantErr := core.ErrControlWireReplayConflict
+		if !verifier.Equal(presented) {
+			wantErr = core.ErrControlWireToken
+		}
+		if !errors.Is(verifyErr, wantErr) || !errors.Is(verifyErr, core.ErrControlPlaneRegistration) || proof != (controlplane.VerifiedRegistrationAuthority{}) {
+			t.Fatalf("changed registration = (%v, %v), want zero proof and %v", proof, verifyErr, wantErr)
+		}
 	})
 }
 
@@ -313,23 +397,6 @@ func registrationAuthenticationOracle(proof controlplane.VerifiedRegistration, e
 		return errors.Join(err, proof.Validate())
 	}
 	if !errors.Is(err, core.ErrControlPlaneContract) || proof != (controlplane.VerifiedRegistration{}) {
-		return errors.Join(core.ErrControlPlaneContract, err)
-	}
-	return nil
-}
-
-func registrationAuthorityAuthenticationOracle(proof controlplane.VerifiedRegistrationAuthority, err error, authentic bool) error {
-	if authentic {
-		if err != nil {
-			return err
-		}
-		_, disposition, replayErr := proof.Replay()
-		if replayErr != nil || disposition != controlwire.ReplayDispositionExact {
-			return errors.Join(core.ErrControlPlaneContract, replayErr)
-		}
-		return nil
-	}
-	if !errors.Is(err, core.ErrControlPlaneRegistration) || proof.Validate() == nil {
 		return errors.Join(core.ErrControlPlaneContract, err)
 	}
 	return nil
