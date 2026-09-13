@@ -341,9 +341,9 @@ func (d Decision) validateUnion() error {
 func (d Decision) validateIssuedAt() error {
 	switch d.outcome {
 	case OutcomeGrant:
-		if err := requireNotAfter(d.header.IssuedAt, d.grant.ContactAfter); err != nil {
-			return contractError(errors.New("grant contact precedes issuance"), err)
-		}
+		// An authority may reaffirm an existing grant after contact is due.
+		// Preserve its approved deadlines, including remaining continuity.
+		// Issuance still cannot follow the absolute end of that authority.
 		return requireNotAfter(d.header.IssuedAt, d.grant.GoodUntil)
 	case OutcomeRefusal:
 		return requireNotAfter(d.header.IssuedAt, d.refusal.ContactAfter)

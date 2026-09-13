@@ -43,7 +43,7 @@ func TestDecisionLayerTriad(t *testing.T) {
 			wantErr: core.ErrLeaseContract,
 		},
 		{
-			name: "negative next contact before issuance is refused",
+			name: "positive due contact preserves approved authority",
 			build: func(tb testing.TB) (lease.Decision, error) {
 				grant := fixtureGrant()
 				return lease.NewGrantDecision(lease.GrantDecisionRequest{
@@ -51,7 +51,7 @@ func TestDecisionLayerTriad(t *testing.T) {
 					Grant:  grant,
 				})
 			},
-			wantErr: core.ErrLeaseContract,
+			want: lease.OutcomeGrant,
 		},
 		{
 			name: "neutral recoverable refusal closes without a grant",
