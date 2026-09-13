@@ -48,6 +48,8 @@ type controlwireContractInventory struct {
 	AuthorityNonce            controlwireProtocolFact[AuthorityNonce]
 	RegistrationToken         controlwireSecretCarrier[RegistrationToken]
 	RegistrationTokenVerifier controlwireDerivedFact[RegistrationTokenVerifier]
+	AccessToken               controlwireSecretCarrier[AccessToken]
+	AccessTokenVerifier       controlwireDerivedFact[AccessTokenVerifier]
 	PolicyCursor              controlwireProtocolFact[PolicyCursor]
 	RouteContract             controlwireProtocolFact[RouteContract]
 	ProtocolCapability        controlwireProtocolFact[ProtocolCapability]

@@ -374,6 +374,27 @@ func TestControlwireExternalIngressFuzzInventoryMatchesProduction(t *testing.T) 
 		}
 		wantJSON = append(wantJSON, door.receiverName())
 	}
+	// Secret lifecycle and domain-separated verifier oracles live in dedicated
+	// external-package fuzz targets instead of the generic JSON harness.
+	for _, door := range []struct{ receiver, target string }{
+		{"AccessToken", "FuzzAccessTokenTextAndJSONSemanticClosure"},
+		{"AccessTokenVerifier", "FuzzAccessTokenVerifierJSONSemanticClosure"},
+	} {
+		file, err := controlwireParseSource(token.NewFileSet(), "access_token_test.go")
+		if err != nil {
+			t.Fatalf("parse access-token fuzz source = %v, want nil", err)
+		}
+		found := false
+		for _, declaration := range file.Decls {
+			if function, ok := declaration.(*ast.FuncDecl); ok && function.Name.Name == door.target {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatalf("fuzz target for %s = absent, want %s", door.receiver, door.target)
+		}
+		wantJSON = append(wantJSON, door.receiver)
+	}
 	slices.Sort(wantJSON)
 	if !slices.Equal(gotJSON, wantJSON) {
 		t.Fatalf("public JSON receivers = %v, fuzz inventory = %v", gotJSON, wantJSON)
