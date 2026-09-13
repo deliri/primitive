@@ -26,6 +26,7 @@ const (
 	routeReleasePublicationCompletionsToken = "release-publication-completions"
 	routeUpdateChecksToken                  = "update-checks"
 	routeUpgradesToken                      = "upgrades"
+	routeActivationsToken                   = "activations"
 
 	routeRegistrationsSuffix                 = routeSeparator + routeRegistrationsToken
 	routeCheckInsSuffix                      = routeSeparator + routeCheckInsToken
@@ -39,6 +40,7 @@ const (
 	routeReleasePublicationCompletionsSuffix = routeSeparator + routeReleasePublicationCompletionsToken
 	routeUpdateChecksSuffix                  = routeSeparator + routeUpdateChecksToken
 	routeUpgradesSuffix                      = routeSeparator + routeUpgradesToken
+	routeActivationsSuffix                   = routeSeparator + routeActivationsToken
 )
 
 // RouteFamily is the closed set of control-plane route families.
@@ -71,6 +73,10 @@ const (
 	RouteFamilyUpdateChecks
 	// RouteFamilyUpgrades requests one exact candidate download capability.
 	RouteFamilyUpgrades
+	// RouteFamilyActivations exchanges a reusable AccessToken for a one-use
+	// RegistrationToken. The product checks current authorization and commits
+	// the grant before delivery; Primitive owns the token and route mechanics.
+	RouteFamilyActivations
 	routeFamilyLimit
 )
 
@@ -89,6 +95,7 @@ func routeSuffixes() [routeFamilyLimit]string {
 		RouteFamilyReleasePublicationCompletions: routeReleasePublicationCompletionsSuffix,
 		RouteFamilyUpdateChecks:                  routeUpdateChecksSuffix,
 		RouteFamilyUpgrades:                      routeUpgradesSuffix,
+		RouteFamilyActivations:                   routeActivationsSuffix,
 	}
 }
 
@@ -107,6 +114,7 @@ func routeFamilyTokens() [routeFamilyLimit]string {
 		RouteFamilyReleasePublicationCompletions: routeReleasePublicationCompletionsToken,
 		RouteFamilyUpdateChecks:                  routeUpdateChecksToken,
 		RouteFamilyUpgrades:                      routeUpgradesToken,
+		RouteFamilyActivations:                   routeActivationsToken,
 	}
 }
 
