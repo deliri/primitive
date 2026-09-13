@@ -3,6 +3,7 @@ package submission
 import (
 	"bytes"
 	"errors"
+	"github.com/deliri/primitive/v2026/objectstore"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -89,8 +90,8 @@ func FuzzCompletionDocumentJSONSemanticAndSignatureClosure(f *testing.F) {
 		if err := roundTrip.UnmarshalJSON(encoded); err != nil || roundTrip != got {
 			t.Fatalf("CompletionDocument canonical round trip = (%v, %v), want exact %v and nil", roundTrip, err, got)
 		}
-		verified, verifyErr := VerifyCompletion(CompletionExpectation{
-			Document: roundTrip, Request: fixture.request, Grant: fixture.grantDocument,
+		verified, verifyErr := VerifyCompletion(CompletionExpectation{Provider: objectstore.ProviderGoogleCloudStorage,
+			Document: roundTrip, Request: fixture.request, Grant: fixture.grantRecord,
 			GrantKeys: fixture.grantKeys, CompletionKeys: fixture.deviceKeys, Nonce: fixture.nonce,
 		})
 		if verifyErr != nil {

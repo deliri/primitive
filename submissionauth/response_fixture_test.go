@@ -4,6 +4,7 @@ import (
 	"github.com/deliri/primitive/v2026/chit"
 	"github.com/deliri/primitive/v2026/controlplane"
 	"github.com/deliri/primitive/v2026/controlwire"
+	"github.com/deliri/primitive/v2026/objectstore"
 	"testing"
 )
 
@@ -23,7 +24,7 @@ func authResponseExpectation(header controlplane.ResponseHeader) controlplane.Re
 }
 func authCompletionResponseBody(t testing.TB, fixture authCompletionFixture) chit.Document {
 	t.Helper()
-	verified, err := VerifyCompletion(CompletionVerification{Document: fixture.credentialed, Request: fixture.verifiedRequest, Grant: fixture.grant,
+	verified, err := VerifyCompletion(CompletionVerification{Provider: objectstore.ProviderGoogleCloudStorage, Document: fixture.credentialed, Request: fixture.verifiedRequest, Grant: fixture.grant,
 		GrantKeys: fixture.request.trusted, Server: submissionAuthServer(t, fixture.request.trusted), Nonce: fixture.completionNonce})
 	if err != nil {
 		t.Fatal(err)

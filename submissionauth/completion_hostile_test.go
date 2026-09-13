@@ -40,7 +40,7 @@ type authCompletionFixtureRequest struct {
 }
 
 type authCompletionFixture struct {
-	grant                submission.GrantDocument
+	grant                submission.GrantRecord
 	grantProjection      submission.GrantProjection
 	credentialed         CompletionDocument
 	completionDocument   submission.CompletionDocument
@@ -172,7 +172,7 @@ func TestCredentialedCompletionLayerTriadClosesRepresentativeOpaqueOfferings(t *
 				t.Fatalf("completion control projection(%v) = (%v, %v, %v), want exact route and signed nonce",
 					offering, route, fixture.credentialed.ControlNonce(), routeErr)
 			}
-			verified, err := VerifyCompletion(CompletionVerification{
+			verified, err := VerifyCompletion(CompletionVerification{Provider: objectstore.ProviderGoogleCloudStorage,
 				Document: fixture.credentialed, Request: fixture.verifiedRequest,
 				Grant: fixture.grant, GrantKeys: fixture.request.trusted,
 				Server: submissionAuthServer(t, fixture.request.trusted),
@@ -230,7 +230,7 @@ func TestCredentialedCompletionLayerTriadRefusesCrossInstallationAndAgreementSub
 			value.Request = Verified{}
 		}, want: core.ErrControlPlaneContract},
 		{name: "grant absent", mutate: func(value *CompletionVerification) {
-			value.Grant = submission.GrantDocument{}
+			value.Grant = submission.GrantRecord{}
 		}, want: core.ErrControlPlaneContract},
 		{name: "authority trust absent", mutate: func(value *CompletionVerification) {
 			value.Server = controlplane.Authority{}
@@ -261,7 +261,7 @@ func TestCredentialedCompletionLayerTriadRefusesCrossInstallationAndAgreementSub
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			verification := CompletionVerification{
+			verification := CompletionVerification{Provider: objectstore.ProviderGoogleCloudStorage,
 				Document: base.credentialed, Request: base.verifiedRequest,
 				Grant: base.grant, GrantKeys: base.request.trusted,
 				Server: submissionAuthServer(t, base.request.trusted),
@@ -487,8 +487,12 @@ func newAuthCompletionFixture(t testing.TB, request authCompletionFixtureRequest
 	if err != nil {
 		t.Fatalf("submissionauth.AssembleCompletion() error = %v, want nil", err)
 	}
+	record, err := grantProjection.Record()
+	if err != nil {
+		t.Fatal(err)
+	}
 	return authCompletionFixture{
-		request: base, verifiedRequest: verifiedRequest, grant: grant, grantProjection: grantProjection,
+		request: base, verifiedRequest: verifiedRequest, grant: record, grantProjection: grantProjection,
 		credentialed: credentialed, completionDocument: completion, completionProjection: projection,
 		completionNonce: completionNonce,
 	}

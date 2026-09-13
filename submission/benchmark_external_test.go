@@ -2,6 +2,7 @@ package submission
 
 import (
 	"bytes"
+	"github.com/deliri/primitive/v2026/objectstore"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/attest"
@@ -90,7 +91,7 @@ func BenchmarkSubmission(b *testing.B) {
 			}
 		}},
 		{"VerifyCompletion", func(b *testing.B) {
-			got, err := VerifyCompletion(CompletionExpectation{Document: document, Request: fixture.request, Grant: fixture.grantDocument, GrantKeys: fixture.grantKeys, CompletionKeys: fixture.deviceKeys, Nonce: fixture.nonce})
+			got, err := VerifyCompletion(CompletionExpectation{Provider: objectstore.ProviderGoogleCloudStorage, Document: document, Request: fixture.request, Grant: fixture.grantRecord, GrantKeys: fixture.grantKeys, CompletionKeys: fixture.deviceKeys, Nonce: fixture.nonce})
 			if err != nil || got.document != document {
 				b.Fatalf("completion proof error=%v", err)
 			}

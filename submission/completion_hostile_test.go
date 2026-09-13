@@ -27,6 +27,7 @@ type completionFixture struct {
 	transfer      objectstore.Transfer
 	request       RequestPayload
 	grantDocument GrantDocument
+	grantRecord   GrantRecord
 	grant         VerifiedGrant
 	grantKeys     attest.TrustedKeys
 	deviceKeys    attest.TrustedKeys
@@ -53,9 +54,9 @@ func TestCompletionAuthenticationLayerTriadBindsRealTransferToRepresentativeOpaq
 				t.Fatalf("IssueCompletion(%v) error = %v, want nil", offering, err)
 			}
 			document := receiveCompletionProjection(t, projection)
-			verified, err := VerifyCompletion(CompletionExpectation{
+			verified, err := VerifyCompletion(CompletionExpectation{Provider: objectstore.ProviderGoogleCloudStorage,
 				Document: document, Request: fixture.request,
-				Grant:     fixture.grantDocument,
+				Grant:     fixture.grantRecord,
 				GrantKeys: fixture.grantKeys, CompletionKeys: fixture.deviceKeys, Nonce: fixture.nonce,
 			})
 			if err != nil {
@@ -211,7 +212,7 @@ func TestCompletionVerificationLayerTriadRefusesEveryAuthenticCrossAgreementSubs
 			value.Request = RequestPayload{}
 		}, want: core.ErrControlPlaneContract},
 		{name: "grant absent", mutate: func(value *CompletionExpectation) {
-			value.Grant = GrantDocument{}
+			value.Grant = GrantRecord{}
 		}, want: core.ErrControlPlaneContract},
 		{name: "grant keys absent", mutate: func(value *CompletionExpectation) {
 			value.GrantKeys = attest.TrustedKeys{}
@@ -226,10 +227,10 @@ func TestCompletionVerificationLayerTriadRefusesEveryAuthenticCrossAgreementSubs
 			value.Request = otherOffering.request
 		}, want: core.ErrControlPlaneResponseBinding},
 		{name: "other content grant", mutate: func(value *CompletionExpectation) {
-			value.Grant = otherContent.grantDocument
+			value.Grant = otherContent.grantRecord
 		}, want: core.ErrControlPlaneResponseBinding},
 		{name: "other offering grant", mutate: func(value *CompletionExpectation) {
-			value.Grant = otherOffering.grantDocument
+			value.Grant = otherOffering.grantRecord
 			value.GrantKeys = otherOffering.grantKeys
 		}, want: core.ErrControlPlaneResponseBinding},
 		{name: "other content completion", mutate: func(value *CompletionExpectation) {
@@ -253,8 +254,8 @@ func TestCompletionVerificationLayerTriadRefusesEveryAuthenticCrossAgreementSubs
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			expectation := CompletionExpectation{
-				Document: baseDocument, Request: base.request, Grant: base.grantDocument,
+			expectation := CompletionExpectation{Provider: objectstore.ProviderGoogleCloudStorage,
+				Document: baseDocument, Request: base.request, Grant: base.grantRecord,
 				GrantKeys: base.grantKeys, CompletionKeys: base.deviceKeys, Nonce: base.nonce,
 			}
 			tc.mutate(&expectation)
@@ -539,9 +540,13 @@ func newCompletionFixture(t testing.TB, offering core.Offering, content []byte, 
 	if err != nil {
 		t.Fatalf("controlwire.NewRequestNonce(completion) error = %v, want nil", err)
 	}
+	record, err := grantFixture.projection.Record()
+	if err != nil {
+		t.Fatal(err)
+	}
 	return completionFixture{
 		request: grantFixture.request, grant: verifiedGrant,
-		grantDocument: grantFixture.document, grantKeys: grantFixture.trusted,
+		grantDocument: grantFixture.document, grantRecord: record, grantKeys: grantFixture.trusted,
 		deviceSigner: deviceSigner, deviceKeys: deviceKeys,
 		nonce:    nonce,
 		transfer: completionUpload(t, verifiedGrant, grantFixture.request, content),

@@ -47,11 +47,16 @@ type CompletionIssuance struct {
 	Nonce    controlwire.RequestNonce
 }
 
-// CompletionExpectation supplies the original request, exact signed grant,
-// and the two independently selected trust sets used by an authority.
+// CompletionExpectation supplies the original request, retained non-secret
+// signed grant, independently selected provider policy and two trust sets. It
+// never needs the spendable upload capability. The authority must still observe
+// the exact provider object before acknowledging durable custody.
 type CompletionExpectation struct {
-	Request        RequestPayload
-	Grant          GrantDocument
+	Request RequestPayload
+	Grant   GrantRecord
+	// Provider is independently selected by authority policy, not loaded from
+	// a client claim or inferred from a capability commitment.
+	Provider       objectstore.Provider
 	Document       CompletionDocument
 	GrantKeys      attest.TrustedKeys
 	CompletionKeys attest.TrustedKeys
@@ -352,7 +357,7 @@ func IssueCompletion(issuance CompletionIssuance) (CompletionProjection, error) 
 func (e CompletionExpectation) Validate() error {
 	if err := errors.Join(
 		e.Document.Validate(), e.Request.Validate(), e.Grant.Validate(),
-		e.GrantKeys.Validate(), e.CompletionKeys.Validate(),
+		e.GrantKeys.Validate(), e.CompletionKeys.Validate(), e.Provider.Validate(),
 		validateCompletionNonce(e.Nonce, e.Request.Nonce),
 	); err != nil {
 		return contractError(err)
@@ -399,9 +404,8 @@ func validateCompletionEvidenceBinding(
 	payload CompletionPayload,
 	grant GrantPayload,
 ) error {
-	provider, err := expectation.Grant.Capability.Provider()
-	if err != nil || provider != payload.Evidence.Provider() {
-		return bindingError(errors.New("completion evidence provider differs"), err)
+	if expectation.Provider != payload.Evidence.Provider() {
+		return bindingError(errors.New("completion evidence provider differs"))
 	}
 	evidenceCapability, present := payload.Evidence.UploadCapability()
 	if !present || evidenceCapability != grant.Capability {

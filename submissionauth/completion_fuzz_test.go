@@ -3,6 +3,7 @@ package submissionauth
 import (
 	"bytes"
 	"errors"
+	"github.com/deliri/primitive/v2026/objectstore"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -113,7 +114,7 @@ func FuzzCredentialedCompletionJSONSemanticAndAuthorityClosure(f *testing.F) {
 		if err != nil || assembled != roundTrip {
 			t.Fatalf("assembly=%v error=%v, want exact received document", assembled, err)
 		}
-		verified, verifyErr := VerifyCompletion(CompletionVerification{
+		verified, verifyErr := VerifyCompletion(CompletionVerification{Provider: objectstore.ProviderGoogleCloudStorage,
 			Document: roundTrip, Request: fixture.verifiedRequest,
 			Grant: fixture.grant, GrantKeys: fixture.request.trusted,
 			Server: submissionAuthServer(t, fixture.request.trusted),

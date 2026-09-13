@@ -8,6 +8,7 @@ import (
 	"github.com/deliri/primitive/v2026/controlplane"
 	"github.com/deliri/primitive/v2026/controlwire"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/objectstore"
 	"github.com/deliri/primitive/v2026/submission"
 )
 
@@ -40,9 +41,11 @@ type CompletionProjectionAssembly struct {
 }
 
 // CompletionVerification supplies the authenticated original request, exact
-// grant, and authority keys used for both certificate and grant verification.
+// non-secret grant record, provider policy, and authority keys used for both
+// certificate and grant verification. Provider must come from authority policy.
 type CompletionVerification struct {
-	Grant     submission.GrantDocument
+	Grant     submission.GrantRecord
+	Provider  objectstore.Provider
 	Document  CompletionDocument
 	Request   Verified
 	Server    controlplane.Authority
@@ -185,7 +188,7 @@ func (d *CompletionDocument) UnmarshalJSON(data []byte) error {
 func (v CompletionVerification) Validate() error {
 	if err := errors.Join(
 		v.Server.Validate(), v.GrantKeys.Validate(), v.Document.Validate(), v.Request.Validate(), v.Grant.Validate(),
-		v.Nonce.Validate(),
+		v.Nonce.Validate(), v.Provider.Validate(),
 	); err != nil {
 		return contractError(err)
 	}
@@ -215,7 +218,7 @@ func VerifyCompletion(verification CompletionVerification) (VerifiedCompletion, 
 	completion, err := submission.VerifyCompletion(submission.CompletionExpectation{
 		Document: verification.Document.Completion,
 		Request:  verification.Request.document.Request.Payload,
-		Grant:    verification.Grant, GrantKeys: verification.GrantKeys,
+		Grant:    verification.Grant, Provider: verification.Provider, GrantKeys: verification.GrantKeys,
 		CompletionKeys: deviceKeys, Nonce: verification.Nonce,
 	})
 	if err != nil {

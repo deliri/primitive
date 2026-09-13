@@ -68,6 +68,7 @@ type submissionContractInventory struct {
 	CompletionExpectation           protocolFact[CompletionExpectation]
 	GrantPayload                    protocolFact[GrantPayload]
 	GrantDocument                   protocolFact[GrantDocument]
+	GrantRecord                     protocolFact[GrantRecord]
 	GrantProjection                 protocolFact[GrantProjection]
 	GrantIssuance                   protocolFact[GrantIssuance]
 	GrantExpectation                protocolFact[GrantExpectation]

@@ -3,6 +3,7 @@ package submission
 import (
 	"bytes"
 	"errors"
+	"github.com/deliri/primitive/v2026/objectstore"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -346,9 +347,9 @@ func fuzzSubmissionCompletionDocument(t *testing.T, data []byte, fixtures submis
 	if err := candidate.UnmarshalJSON(data); err != nil {
 		return
 	}
-	proof, err := VerifyCompletion(CompletionExpectation{
+	proof, err := VerifyCompletion(CompletionExpectation{Provider: objectstore.ProviderGoogleCloudStorage,
 		Document: candidate, Request: fixtures.completion.request,
-		Grant: fixtures.completion.grantDocument, GrantKeys: fixtures.completion.grantKeys,
+		Grant: fixtures.completion.grantRecord, GrantKeys: fixtures.completion.grantKeys,
 		CompletionKeys: fixtures.completion.deviceKeys, Nonce: fixtures.completion.nonce,
 	})
 	if err != nil {
@@ -490,6 +491,9 @@ func TestSubmissionExternalIngressFuzzInventoryMatchesProduction(t *testing.T) {
 		t.Fatalf("submissionExportedJSONReceiverNames() error = %v, want nil", err)
 	}
 	var wantJSON []string
+	// GrantRecord owns its real issuer-seeded signature oracle separately.
+	_ = FuzzGrantRecordSemanticAndSignatureClosure
+	wantJSON = append(wantJSON, "GrantRecord")
 	for door := range submissionJSONDoorLimit {
 		if door < submissionJSONDoorUnknown+1 {
 			continue

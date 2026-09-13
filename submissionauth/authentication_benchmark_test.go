@@ -10,7 +10,7 @@ import (
 func BenchmarkAuthentication(b *testing.B) {
 	fixture := newAuthCompletionFixture(b, authCompletionFixtureRequest{})
 	server := submissionAuthServer(b, fixture.request.trusted)
-	verification := CompletionVerification{Document: fixture.credentialed, Request: fixture.verifiedRequest, Grant: fixture.grant, GrantKeys: fixture.request.trusted, Server: server, Nonce: fixture.completionNonce}
+	verification := CompletionVerification{Provider: objectstore.ProviderGoogleCloudStorage, Document: fixture.credentialed, Request: fixture.verifiedRequest, Grant: fixture.grant, GrantKeys: fixture.request.trusted, Server: server, Nonce: fixture.completionNonce}
 	completion, err := VerifyCompletion(verification)
 	if err != nil {
 		b.Fatal(err)

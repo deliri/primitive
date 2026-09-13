@@ -2,6 +2,7 @@ package submission
 
 import (
 	"errors"
+	"github.com/deliri/primitive/v2026/objectstore"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/attest"
@@ -40,7 +41,7 @@ func TestCompletionAuthenticationOrderLayerTriad(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			request := CompletionExpectation{Document: document, Request: fixture.request, Grant: fixture.grantDocument, GrantKeys: fixture.grantKeys, CompletionKeys: fixture.deviceKeys, Nonce: fixture.nonce}
+			request := CompletionExpectation{Provider: objectstore.ProviderGoogleCloudStorage, Document: document, Request: fixture.request, Grant: fixture.grantRecord, GrantKeys: fixture.grantKeys, CompletionKeys: fixture.deviceKeys, Nonce: fixture.nonce}
 			if tc.binding {
 				request.Nonce = foreignNonce
 			}
