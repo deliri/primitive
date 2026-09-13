@@ -154,6 +154,7 @@ func TestControlplaneSideCapabilitiesPermitOnlyTheirPeerOperations(t *testing.T)
 		reflect.ValueOf(controlplane.Authority.IssueRegistration),
 		reflect.ValueOf(controlplane.Authority.PrepareCheckInResponse),
 		reflect.ValueOf(controlplane.Authority.Validate),
+		reflect.ValueOf(controlplane.Authority.VerifyAccessRegistration),
 		reflect.ValueOf(controlplane.Authority.VerifyCheckIn),
 		reflect.ValueOf(controlplane.Authority.VerifyInstallationCertificate),
 		reflect.ValueOf(controlplane.Authority.VerifyRegistrationAuthority),

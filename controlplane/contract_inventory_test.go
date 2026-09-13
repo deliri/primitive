@@ -36,6 +36,9 @@ type controlplaneContractInventory struct {
 	AuthorityConfiguration            controlplaneServerInput[AuthorityConfiguration]
 	Authority                         controlplaneServerCapability[Authority]
 	RegistrationRequest               controlplaneProtocolFact[RegistrationRequest]
+	AccessRegistrationRequest         controlplaneProtocolFact[AccessRegistrationRequest]
+	AccessRegistrationVerification    controlplaneAuthorityInput[AccessRegistrationVerification]
+	accessRegistrationRequestWire     controlplaneInternalFlow[accessRegistrationRequestWire]
 	RegistrationIdentity              controlplaneProtocolFact[RegistrationIdentity]
 	InstallationCertificateBody       controlplaneProtocolFact[InstallationCertificateBody]
 	InstallationCertificateDocument   controlplaneProtocolFact[InstallationCertificateDocument]
@@ -86,6 +89,7 @@ func TestControlplaneProductionStructsHaveCompilerVisibleDataFlowRoles(t *testin
 	t.Parallel()
 
 	_ = controlplaneContractInventory{}
+	_ = controlplaneContractInventory{}.accessRegistrationRequestWire
 	_ = controlplaneContractInventory{}.checkInBinding
 	_ = controlplaneContractInventory{}.checkInDocumentValidation
 	_ = controlplaneContractInventory{}.usageWindowBoundsWire

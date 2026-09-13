@@ -32,6 +32,7 @@ func TestExternalJSONDoorsHaveSemanticFuzzProof(t *testing.T) {
 		{reflect.TypeFor[controlplane.UsageClass](), FuzzUsageClassExternalDecoders},
 		{reflect.TypeFor[controlplane.OutcomeClass](), FuzzOutcomeClassExternalDecoders},
 		{reflect.TypeFor[controlplane.RegistrationRequest](), FuzzRegistrationRequestExternalDecoder},
+		{reflect.TypeFor[controlplane.AccessRegistrationRequest](), FuzzAccessRegistrationSemanticClosure},
 		{reflect.TypeFor[controlplane.InstallationCertificateBody](), FuzzInstallationCertificateBodyDecodeAndVerify},
 		{reflect.TypeFor[controlplane.InstallationCertificateDocument](), FuzzInstallationCertificateDocumentDecodeAndVerify},
 		{reflect.TypeFor[controlplane.RegistrationPayload](), FuzzRegistrationPayloadExternalDecoder},

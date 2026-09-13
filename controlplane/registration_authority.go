@@ -38,7 +38,8 @@ type RegistrationIdentity struct {
 
 // VerifiedRegistrationAuthority is proof that the request matched the
 // authority's persisted one-way verifier and was either fresh or byte-exact to
-// the request that consumed it. Its fields are private so callers cannot claim
+// its recorded request. One-use registration selects replay by grant; reusable
+// access registration selects replay by installation. Its fields are private so callers cannot claim
 // that verification happened.
 type VerifiedRegistrationAuthority struct {
 	replay      controlwire.ReplayIdentity
