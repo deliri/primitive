@@ -23,7 +23,8 @@ func TestDecisionJSONCrossFieldRefusalLayerTriad(t *testing.T) {
 		wantErr error
 	}{
 		{name: "grant at contact boundary", outcome: OutcomeGrant, issued: 3000},
-		{name: "grant one past contact is JSON refusal", outcome: OutcomeGrant, issued: 3001, wantErr: core.ErrJSONContract},
+		{name: "grant one past contact preserves authority", outcome: OutcomeGrant, issued: 3001},
+		{name: "grant one past hard expiry is JSON refusal", outcome: OutcomeGrant, issued: 5001, wantErr: core.ErrJSONContract},
 		{name: "refusal at contact boundary", outcome: OutcomeRefusal, issued: 6000},
 		{name: "refusal one past contact is JSON refusal", outcome: OutcomeRefusal, issued: 6001, wantErr: core.ErrJSONContract},
 	} {
