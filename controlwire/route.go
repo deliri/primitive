@@ -137,6 +137,15 @@ func (f RouteFamily) String() string {
 	return routeSuffixes()[f]
 }
 
+// Token returns the canonical protocol identity without the URL path separator.
+// Callers deriving another typed identity need not parse a diagnostic or URL.
+func (f RouteFamily) Token() string {
+	if f.Validate() != nil {
+		return ""
+	}
+	return routeFamilyTokens()[f]
+}
+
 // ParseRouteFamily accepts one exact compiler-owned wire token.
 func ParseRouteFamily(value string) (RouteFamily, error) {
 	tokens := routeFamilyTokens()

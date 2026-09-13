@@ -511,6 +511,22 @@ const (
 	ErrTailnetEnrollment
 	// ErrTailnetDestination identifies an attempt outside the pinned destination.
 	ErrTailnetDestination
+	// ErrPermitContract identifies invalid permit contract.
+	ErrPermitContract
+	// ErrPermitAuthentication identifies permit authentication failed.
+	ErrPermitAuthentication
+	// ErrPermitBinding identifies permit binding mismatch.
+	ErrPermitBinding
+	// ErrPermitValidity identifies permit outside signed validity.
+	ErrPermitValidity
+	// ErrPermitAction identifies action not permitted.
+	ErrPermitAction
+	// ErrPermitReplay identifies permit generation rollback.
+	ErrPermitReplay
+	// ErrPermitRevision identifies unsupported permit revision.
+	ErrPermitRevision
+	// ErrPermitWrite identifies permit write failed.
+	ErrPermitWrite
 	errorIdentityLimit
 )
 
@@ -734,6 +750,14 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrTailnetClosed, text: "tailnet closed"},
 		{identity: ErrTailnetEnrollment, text: "tailnet enrollment failed"},
 		{identity: ErrTailnetDestination, text: "tailnet destination refused"},
+		{identity: ErrPermitContract, text: "invalid permit contract"},
+		{identity: ErrPermitAuthentication, text: "permit authentication failed"},
+		{identity: ErrPermitBinding, text: "permit binding mismatch"},
+		{identity: ErrPermitValidity, text: "permit outside signed validity"},
+		{identity: ErrPermitAction, text: "action not permitted"},
+		{identity: ErrPermitReplay, text: "permit generation rollback"},
+		{identity: ErrPermitRevision, text: "unsupported permit revision"},
+		{identity: ErrPermitWrite, text: "permit write failed"},
 	}
 }
 
@@ -855,8 +879,12 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrControlPlaneContract, ErrIDContract, ErrSecretStoreContract,
 		ErrStripeContract, ErrPayPalContract, ErrTwilioContract, ErrPlunkContract, ErrGitHubContract,
 		ErrCapabilitiesContract, ErrGoModuleContract, ErrGoToolchainContract, ErrGitRepositoryContract,
-		ErrProofLedgerContract, ErrTailnetContract) {
+		ErrProofLedgerContract, ErrTailnetContract, ErrPermitContract) {
 		return oneErrorIdentityParent(ErrPrimitiveContract)
+	}
+	if errorIdentityIn(identity, ErrPermitAuthentication, ErrPermitBinding, ErrPermitValidity,
+		ErrPermitAction, ErrPermitReplay, ErrPermitRevision, ErrPermitWrite) {
+		return oneErrorIdentityParent(ErrPermitContract)
 	}
 	if errorIdentityIn(identity, ErrGoToolchainExecution, ErrGoToolchainOutput) {
 		return oneErrorIdentityParent(ErrGoToolchainContract)
