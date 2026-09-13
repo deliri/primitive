@@ -11,7 +11,7 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
-func protocolFamilyInventory() [12]controlwire.RouteFamily {
+func protocolFamilyInventory() [13]controlwire.RouteFamily {
 	return [...]controlwire.RouteFamily{
 		controlwire.RouteFamilyRegistrations,
 		controlwire.RouteFamilyCheckIns,
@@ -25,6 +25,7 @@ func protocolFamilyInventory() [12]controlwire.RouteFamily {
 		controlwire.RouteFamilyReleasePublicationCompletions,
 		controlwire.RouteFamilyUpdateChecks,
 		controlwire.RouteFamilyUpgrades,
+		controlwire.RouteFamilyActivations,
 	}
 }
 
@@ -35,7 +36,7 @@ func TestProtocolSupportExhaustsEveryBoundedSubsetWithoutAliasing(t *testing.T) 
 	families := protocolFamilyInventory()
 	all := protocolCapabilities(families[:])
 	for mask := uint16(1); mask < uint16(1)<<len(all); mask++ {
-		t.Run(fmt.Sprintf("membership_%012b", mask), func(t *testing.T) {
+		t.Run(fmt.Sprintf("membership_%013b", mask), func(t *testing.T) {
 			t.Parallel()
 			wantMembers := protocolCapabilitiesFromMask(mask)
 			input := slices.Clone(wantMembers)

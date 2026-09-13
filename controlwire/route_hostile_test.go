@@ -16,7 +16,7 @@ import (
 // from passing merely because the total number of accepted bytes stayed equal.
 func TestRouteFamilyClosesItsEntireByteDomain(t *testing.T) {
 	t.Parallel()
-	published := []RouteFamily{RouteFamilyRegistrations, RouteFamilyCheckIns, RouteFamilySubmissions, RouteFamilySubmissionCompletions, RouteFamilyChits, RouteFamilyRetrievals, RouteFamilyPayments, RouteFamilyReleaseMaterials, RouteFamilyReleasePublications, RouteFamilyReleasePublicationCompletions, RouteFamilyUpdateChecks, RouteFamilyUpgrades}
+	published := []RouteFamily{RouteFamilyRegistrations, RouteFamilyCheckIns, RouteFamilySubmissions, RouteFamilySubmissionCompletions, RouteFamilyChits, RouteFamilyRetrievals, RouteFamilyPayments, RouteFamilyReleaseMaterials, RouteFamilyReleasePublications, RouteFamilyReleasePublicationCompletions, RouteFamilyUpdateChecks, RouteFamilyUpgrades, RouteFamilyActivations}
 	for raw := range 256 {
 		t.Run(fmt.Sprintf("backing_byte_%d", raw), func(t *testing.T) {
 			t.Parallel()
@@ -70,7 +70,7 @@ func TestRouteFamilyWireContractAcceptsEveryPublishedTokenAndRejectsHostileDocum
 		RouteFamilyRegistrations, RouteFamilyCheckIns, RouteFamilySubmissions,
 		RouteFamilySubmissionCompletions, RouteFamilyChits, RouteFamilyRetrievals,
 		RouteFamilyPayments, RouteFamilyReleaseMaterials, RouteFamilyReleasePublications,
-		RouteFamilyReleasePublicationCompletions, RouteFamilyUpdateChecks, RouteFamilyUpgrades,
+		RouteFamilyReleasePublicationCompletions, RouteFamilyUpdateChecks, RouteFamilyUpgrades, RouteFamilyActivations,
 	}
 	for _, family := range families {
 		t.Run(fmt.Sprintf("published_family_%d", family), func(t *testing.T) {
@@ -163,7 +163,7 @@ func TestRouteContractProjectsExactlyItsTwoFacts(t *testing.T) {
 		RouteFamilyRetrievals, RouteFamilyPayments,
 		RouteFamilyReleaseMaterials,
 		RouteFamilyReleasePublications, RouteFamilyReleasePublicationCompletions,
-		RouteFamilyUpdateChecks, RouteFamilyUpgrades,
+		RouteFamilyUpdateChecks, RouteFamilyUpgrades, RouteFamilyActivations,
 	}
 	for _, offering := range []core.Offering{
 		{Token: "a"},
