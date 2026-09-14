@@ -15,7 +15,7 @@ import (
 
 const (
 	coreExportDependencyMaximum     = 32
-	coreSpecialExportAdmissionCount = 86 // Includes the catalog-owned PackagePermit identity.
+	coreSpecialExportAdmissionCount = 87 // Includes both catalog-owned permit agreements.
 	coreProviderExportContractCount = 50
 )
 
@@ -149,6 +149,7 @@ func coreSpecialExportAdmissions() [coreSpecialExportAdmissionCount]coreSpecialE
 		architectureCatalogAdmission("PackageTailnet", PackageTailnet),
 		architectureCatalogAdmission("PackageTailnetConfig", PackageTailnetConfig),
 		architectureCatalogAdmission("PackageTextRepair", PackageTextRepair),
+		architectureCatalogAdmission("PackageAccessPermit", PackageAccessPermit),
 		architectureCatalogAdmission("PackagePermit", PackagePermit),
 		// Checked integer conversions remain one coherent numeric agreement;
 		// consumers are not invented to satisfy a usage count.

@@ -40,6 +40,11 @@ witnesses in other packages) reproduce with identical diagnostics on clean
 v2026.1.85 at `c87eada049b9035a08cc1980c2f72ff9cefdf3d6`; both comparison
 attempts are retained. This is an explicit baseline, not a green core claim.
 
+After incorporating v2026.1.87 and reconciling the closed package/error
+inventories, the complete core/permit/controlwire race run passed all 11,531
+test events with cache reuse disabled. The newer baseline also resolves the two
+previously recorded core failures. Earlier failed attempts remain retained.
+
 This is a new wire domain. It does not decode legacy product-owned permission
 documents. Consumers must explicitly migrate persisted agreements and preserve
 existing paid obligations through their own policy. No compatibility authority

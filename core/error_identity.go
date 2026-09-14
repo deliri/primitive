@@ -511,6 +511,12 @@ const (
 	ErrTailnetEnrollment
 	// ErrTailnetDestination identifies an attempt outside the pinned destination.
 	ErrTailnetDestination
+	// ErrAccessPermitContract identifies an invalid scoped access agreement.
+	ErrAccessPermitContract
+	// ErrAccessPermitDenied identifies refused or unauthenticated access.
+	ErrAccessPermitDenied
+	// ErrAccessPermitBinding identifies a foreign exchange or subject binding.
+	ErrAccessPermitBinding
 	// ErrPermitContract identifies invalid permit contract.
 	ErrPermitContract
 	// ErrPermitAuthentication identifies permit authentication failed.
@@ -750,6 +756,9 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrTailnetClosed, text: "tailnet closed"},
 		{identity: ErrTailnetEnrollment, text: "tailnet enrollment failed"},
 		{identity: ErrTailnetDestination, text: "tailnet destination refused"},
+		{identity: ErrAccessPermitContract, text: "access permit contract violation"},
+		{identity: ErrAccessPermitDenied, text: "access permit denied"},
+		{identity: ErrAccessPermitBinding, text: "access permit binding mismatch"},
 		{identity: ErrPermitContract, text: "invalid permit contract"},
 		{identity: ErrPermitAuthentication, text: "permit authentication failed"},
 		{identity: ErrPermitBinding, text: "permit binding mismatch"},
@@ -879,8 +888,11 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrControlPlaneContract, ErrIDContract, ErrSecretStoreContract,
 		ErrStripeContract, ErrPayPalContract, ErrTwilioContract, ErrPlunkContract, ErrGitHubContract,
 		ErrCapabilitiesContract, ErrGoModuleContract, ErrGoToolchainContract, ErrGitRepositoryContract,
-		ErrProofLedgerContract, ErrTailnetContract, ErrPermitContract) {
+		ErrProofLedgerContract, ErrTailnetContract, ErrAccessPermitContract, ErrPermitContract) {
 		return oneErrorIdentityParent(ErrPrimitiveContract)
+	}
+	if errorIdentityIn(identity, ErrAccessPermitDenied, ErrAccessPermitBinding) {
+		return oneErrorIdentityParent(ErrAccessPermitContract)
 	}
 	if errorIdentityIn(identity, ErrPermitAuthentication, ErrPermitBinding, ErrPermitValidity,
 		ErrPermitAction, ErrPermitReplay, ErrPermitRevision, ErrPermitWrite) {

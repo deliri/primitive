@@ -39,3 +39,7 @@ var (
 	_ core.OffWireEnum = CancelSignalUnknown
 	_ core.OffWireEnum = LivenessUnknown
 )
+
+var (
+	_ core.ValidatedJSONMarshaler = OutputMode(0)
+)

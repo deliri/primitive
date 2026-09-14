@@ -35,3 +35,8 @@ var (
 	// redaction is a compiler-visible obligation, not a convention.
 	_ fmt.Formatter = RegistrationToken{}
 )
+
+var (
+	_ core.ValidatedJSONMarshaler = AccessToken{}
+	_ core.ValidatedJSONMarshaler = AccessTokenVerifier{}
+)

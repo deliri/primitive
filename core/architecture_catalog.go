@@ -151,6 +151,8 @@ const (
 	PackageTailnetConfig
 	// PackageTextRepair identifies bounded UTF-8 prefix repair.
 	PackageTextRepair
+	// PackageAccessPermit identifies authenticated scoped access agreements.
+	PackageAccessPermit
 	// PackagePermit identifies signed opaque action grants shared by peers.
 	PackagePermit
 	packageIdentityLimit
@@ -256,6 +258,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageTailnet, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
 			{Identity: PackageTailnetConfig, Kind: PackageKindProduction, Role: PackageRoleValueContract},
 			{Identity: PackageTextRepair, Kind: PackageKindProduction, Role: PackageRoleValueContract},
+			{Identity: PackageAccessPermit, Kind: PackageKindProduction, Role: PackageRoleAuthenticationBinding},
 			{Identity: PackagePermit, Kind: PackageKindProduction, Role: PackageRoleAuthenticationBinding},
 		},
 	}
@@ -500,6 +503,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"tailnet",
 		"tailnetconfig",
 		"textrepair",
+		"accesspermit",
 		"permit",
 	}
 }
