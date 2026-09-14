@@ -200,10 +200,14 @@ func (c OutcomeCount) Validate() error {
 // carrying a product's own counters would be a shape only that product could
 // fill and only an authority that already knew that product could read.
 type UsageWindow struct {
-	Units     []UsageCount            `json:"units"`
-	Outcomes  []OutcomeCount          `json:"outcomes"`
-	Bounds    temporal.IntervalBounds `json:"bounds"`
-	Freshness temporal.Instant        `json:"freshness"`
+	Units    []UsageCount   `json:"units"`
+	Outcomes []OutcomeCount `json:"outcomes"`
+	// Measurements are independent additive counters in a caller-owned ordinal
+	// vocabulary. Unlike Units and Outcomes their values have no shared unit and
+	// must never be summed together. Product names and meanings stay outside.
+	Measurements []UsageCount            `json:"measurements,omitzero"`
+	Bounds       temporal.IntervalBounds `json:"bounds"`
+	Freshness    temporal.Instant        `json:"freshness"`
 }
 
 // usageWindowBoundsWire is the wire spelling of the reporting interval.
@@ -220,32 +224,46 @@ type usageWindowBoundsWire struct {
 }
 
 type usageWindowWire struct {
-	Units     []UsageCount          `json:"units"`
-	Outcomes  []OutcomeCount        `json:"outcomes"`
-	Bounds    usageWindowBoundsWire `json:"bounds"`
-	Freshness temporal.Instant      `json:"freshness"`
+	Units        []UsageCount          `json:"units"`
+	Outcomes     []OutcomeCount        `json:"outcomes"`
+	Measurements []UsageCount          `json:"measurements,omitzero"`
+	Bounds       usageWindowBoundsWire `json:"bounds"`
+	Freshness    temporal.Instant      `json:"freshness"`
 }
 
 func (w UsageWindow) wire() usageWindowWire {
 	return usageWindowWire{
-		Units:     w.Units,
-		Outcomes:  w.Outcomes,
-		Bounds:    usageWindowBoundsWire{Start: w.Bounds.Start, End: w.Bounds.End},
-		Freshness: w.Freshness,
+		Units:        w.Units,
+		Outcomes:     w.Outcomes,
+		Measurements: w.Measurements,
+		Bounds:       usageWindowBoundsWire{Start: w.Bounds.Start, End: w.Bounds.End},
+		Freshness:    w.Freshness,
 	}
 }
 
 func (w usageWindowWire) window() UsageWindow {
 	return UsageWindow{
-		Units:     w.Units,
-		Outcomes:  w.Outcomes,
-		Bounds:    temporal.IntervalBounds{Start: w.Bounds.Start, End: w.Bounds.End},
-		Freshness: w.Freshness,
+		Units:        w.Units,
+		Outcomes:     w.Outcomes,
+		Measurements: w.Measurements,
+		Bounds:       temporal.IntervalBounds{Start: w.Bounds.Start, End: w.Bounds.End},
+		Freshness:    w.Freshness,
 	}
 }
 
 // Validate closes every reported fact and every relationship between them.
 func (w UsageWindow) Validate() error {
+	if len(w.Measurements) != 0 && len(w.Units) == 0 {
+		return usageWindowError()
+	}
+	for index, measurement := range w.Measurements {
+		if err := measurement.Validate(); err != nil {
+			return usageWindowError(err)
+		}
+		if index > 0 && w.Measurements[index-1].Class >= measurement.Class {
+			return usageWindowError()
+		}
+	}
 	if err := errors.Join(w.Bounds.Validate(), w.Freshness.Validate()); err != nil {
 		return usageWindowError(err)
 	}

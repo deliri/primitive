@@ -605,6 +605,9 @@ func TestNewOutcomeClassAdmitsExactlyTheOrdinalsValidateAdmits(t *testing.T) {
 // decode to the same value.
 func FuzzUsageWindowDecode(f *testing.F) {
 	seeds := []controlplane.UsageWindow{testWindow(nil, nil), testCheckInWindow(), testWindow(fullUnitLadder(), fullOutcomeLadder()), testWindow(unitsOf(1, math.MaxUint64), outcomesOf(1, math.MaxUint64))}
+	measured := testCheckInWindow()
+	measured.Measurements = unitsOf(1, math.MaxUint64, 2, math.MaxUint64)
+	seeds = append(seeds, measured)
 	for _, seed := range seeds {
 		canonical, err := seed.MarshalJSON()
 		if err != nil {
@@ -639,9 +642,10 @@ func FuzzUsageWindowDecode(f *testing.F) {
 	}
 	f.Fuzz(func(t *testing.T, data []byte) {
 		before := testCheckInWindow()
+		before.Measurements = unitsOf(1, 9)
 		got := before
 		if err := got.UnmarshalJSON(data); err != nil {
-			if !errors.Is(err, core.ErrJSONContract) || !errors.Is(err, core.ErrControlPlaneUsageWindow) || got.Bounds != before.Bounds || got.Freshness != before.Freshness || !slices.Equal(got.Units, before.Units) || !slices.Equal(got.Outcomes, before.Outcomes) {
+			if !errors.Is(err, core.ErrJSONContract) || !errors.Is(err, core.ErrControlPlaneUsageWindow) || got.Bounds != before.Bounds || got.Freshness != before.Freshness || !slices.Equal(got.Units, before.Units) || !slices.Equal(got.Outcomes, before.Outcomes) || !slices.Equal(got.Measurements, before.Measurements) {
 				t.Fatalf("rejected window = (%v, %v), want exact receiver and typed refusal", got, err)
 			}
 			return
@@ -665,7 +669,7 @@ func FuzzUsageWindowDecode(f *testing.F) {
 			t.Fatalf("MarshalJSON() = (%d bytes, %v), want bounded and nil", len(encoded), err)
 		}
 		var again controlplane.UsageWindow
-		if err := again.UnmarshalJSON(encoded); err != nil || again.Bounds != got.Bounds || again.Freshness != got.Freshness || !slices.Equal(again.Units, got.Units) || !slices.Equal(again.Outcomes, got.Outcomes) {
+		if err := again.UnmarshalJSON(encoded); err != nil || again.Bounds != got.Bounds || again.Freshness != got.Freshness || !slices.Equal(again.Units, got.Units) || !slices.Equal(again.Outcomes, got.Outcomes) || !slices.Equal(again.Measurements, got.Measurements) {
 			t.Fatalf("canonical round trip = (%v, %v), want exact %v", again, err, got)
 		}
 		second, err := again.MarshalJSON()

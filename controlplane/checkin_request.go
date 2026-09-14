@@ -172,7 +172,6 @@ func (r CheckInRequest) ControlRevision() controlwire.Revision { return r.Payloa
 // ControlNonce projects the request identity already carried in the signed payload.
 func (r CheckInRequest) ControlNonce() controlwire.RequestNonce { return r.Payload.RequestNonce }
 
-
 // MarshalJSON emits one bounded canonical request.
 func (r CheckInRequest) MarshalJSON() ([]byte, error) {
 	if err := r.Validate(); err != nil {
@@ -283,6 +282,7 @@ func (v VerifiedCheckIn) Request() (CheckInRequest, error) {
 func cloneCheckInRequest(request CheckInRequest) CheckInRequest {
 	request.Payload.Window.Units = append([]UsageCount(nil), request.Payload.Window.Units...)
 	request.Payload.Window.Outcomes = append([]OutcomeCount(nil), request.Payload.Window.Outcomes...)
+	request.Payload.Window.Measurements = append([]UsageCount(nil), request.Payload.Window.Measurements...)
 	return request
 }
 
