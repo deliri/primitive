@@ -61,9 +61,17 @@ type Terms struct {
 	ExpiresAt    temporal.Instant         `json:"expires_at"`
 	ContactAt    temporal.Instant         `json:"contact_at"`
 	RetryAfter   temporal.Duration        `json:"retry_after"`
+	// Reporting is the product-assigned machine window. Zero means the product
+	// has not granted reporting; it never means an unrestricted window.
+	Reporting ReportSchedule `json:"reporting,omitzero"`
 }
 
 func (t Terms) Validate() error {
+	if t.Reporting != (ReportSchedule{}) {
+		if err := t.Reporting.Validate(); err != nil {
+			return errors.Join(core.ErrPermitContract, err)
+		}
+	}
 	if err := t.RequestNonce.Validate(); err != nil {
 		return errors.Join(core.ErrPermitContract, err)
 	}

@@ -16,6 +16,7 @@ func TestPermitProductionStructInventory(t *testing.T) {
 		name, role string
 		found      bool
 	}{
+		{"ReportRequest", "protocol fact: signed report and authority-authenticated device nomination", false},
 		{"QuietPeriod", "protocol fact: exact excluded transmission interval", false},
 		{"QuietPeriods", "protocol fact: immutable ordered exclusions", false},
 		{"TransmissionPolicy", "protocol fact: caller-selected transmission exclusions", false},
@@ -86,6 +87,7 @@ func TestPermitProductionStructInventory(t *testing.T) {
 func TestPermitExternalDoorInventory(t *testing.T) {
 	t.Parallel()
 	doors := []struct{ name, file, target string }{
+		{"ReportRequest.UnmarshalJSON", "report_request_test.go", "FuzzReportRequestSemanticClosure"},
 		{"QuietPeriods.UnmarshalJSON", "report_authorization_test.go", "FuzzReportPermissionResponse"},
 		{"SignedReportAuthorization.UnmarshalJSON", "report_authorization_test.go", "FuzzReportPermissionResponse"},
 		{"ReportPermissionResponse.UnmarshalJSON", "report_authorization_test.go", "FuzzReportPermissionResponse"},

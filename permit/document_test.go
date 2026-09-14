@@ -114,12 +114,33 @@ func TestPermitForeignInstallationAndTrustRefuse(t *testing.T) {
 }
 
 func FuzzPermitDecodeSignedSemanticClosure(f *testing.F) {
-	request, _ := permitFixture(f)
+	request, key := permitFixture(f)
+	withReporting := request.Document.Terms
+	withReporting.Reporting = reportSchedule(f)
+	var signErr error
+	request.Document, signErr = Sign(withReporting, key)
+	if signErr != nil {
+		f.Fatalf("Sign(reporting grant) error = %v, want nil", signErr)
+	}
+	// Absence is a genuine signed product state, not an authentication failure.
+	// Keep both compiler-produced seeds so retained corpus from either state has
+	// an independent authentication oracle.
+	withoutReporting := request.Document.Terms
+	withoutReporting.Reporting = ReportSchedule{}
+	plain, err := Sign(withoutReporting, key)
+	if err != nil {
+		f.Fatalf("Sign(no reporting grant) error = %v, want nil", err)
+	}
+	plainBytes, err := plain.MarshalJSON()
+	if err != nil {
+		f.Fatalf("MarshalJSON(no reporting grant) error = %v, want nil", err)
+	}
+	f.Add(plainBytes, uint8(0))
 	var seed bytes.Buffer
 	if err := request.Document.Write(&seed); err != nil {
 		f.Fatalf("Write(seed) = %v, want nil", err)
 	}
-	for selector := uint8(0); selector < 9; selector++ {
+	for selector := uint8(0); selector < 15; selector++ {
 		f.Add(seed.Bytes(), selector)
 	}
 	f.Add([]byte{}, uint8(0))
@@ -146,9 +167,12 @@ func FuzzPermitDecodeSignedSemanticClosure(f *testing.F) {
 		candidate := request
 		candidate.Document = got
 		proof, verifyErr := Verify(candidate)
-		if got == request.Document {
+		if got == request.Document || got == plain {
 			if verifyErr != nil || proof.Allows(permitAction(t, "operation-a"), request.EffectiveAt) != nil {
 				t.Fatalf("authentic seed = %v, want valid start permission", verifyErr)
+			}
+			if got == plain {
+				selector %= 9
 			}
 			candidate.Document.Terms = mutatePermitTerm(t, got.Terms, selector)
 			mutated, mutationErr := Verify(candidate)

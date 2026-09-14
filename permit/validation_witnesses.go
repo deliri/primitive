@@ -3,6 +3,7 @@ package permit
 import "github.com/deliri/primitive/v2026/core"
 
 var (
+	_ core.ValidatedJSONMarshaler = ReportRequest{}
 	_ core.ValidatedJSONMarshaler = Action{}
 	_ core.ValidatedJSONMarshaler = Actions{}
 	_ core.ValidatedJSONMarshaler = Revision(0)

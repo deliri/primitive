@@ -19,7 +19,7 @@ func mutatePermitTerm(t testing.TB, terms Terms, selector uint8) Terms {
 	t.Helper()
 	got := terms
 	var err error
-	switch selector % 9 {
+	switch selector % 15 {
 	case 0:
 		got.Actions = Actions{}
 	case 1:
@@ -38,6 +38,18 @@ func mutatePermitTerm(t testing.TB, terms Terms, selector uint8) Terms {
 		got.Subject.EntitlementID, err = lease.NewEntitlementID([16]byte{98})
 	case 8:
 		got.RequestNonce, err = controlwire.NewRequestNonce([32]byte{32})
+	case 9:
+		got.Reporting.NextReportAt = temporal.InstantFromNanoseconds(101)
+	case 10:
+		got.Reporting.WindowDuration = reportDuration(t, 11)
+	case 11:
+		got.Reporting.RepeatInterval = reportDuration(t, 101)
+	case 12:
+		got.Reporting.JitterMaximum = reportDuration(t, 2)
+	case 13:
+		got.Reporting.Policy.Activation++
+	case 14:
+		got.Reporting = ReportSchedule{}
 	default:
 		t.Fatalf("mutation selector = %d, want within exhaustive domain", selector)
 	}
@@ -49,11 +61,18 @@ func mutatePermitTerm(t testing.TB, terms Terms, selector uint8) Terms {
 
 func TestPermitEverySignedTermMutationRefuses(t *testing.T) {
 	t.Parallel()
-	names := []string{"skill set", "activation", "expiry", "contact", "retry", "generation", "installation", "entitlement", "response identity"}
+	names := []string{"skill set", "activation", "expiry", "contact", "retry", "generation", "installation", "entitlement", "response identity", "report opening", "report width", "report recurrence", "report jitter", "report policy", "report grant removed"}
 	for selector, name := range names {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			request, _ := permitFixture(t)
+			request, key := permitFixture(t)
+			terms := request.Document.Terms
+			terms.Reporting = reportSchedule(t)
+			var signErr error
+			request.Document, signErr = Sign(terms, key)
+			if signErr != nil {
+				t.Fatalf("Sign(reporting grant) error = %v, want nil", signErr)
+			}
 			baseline, err := Verify(request)
 			if err != nil || baseline.Allows(permitAction(t, "operation-a"), request.EffectiveAt) != nil {
 				t.Fatalf("baseline = %v, want authenticated start", err)
