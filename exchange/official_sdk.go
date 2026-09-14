@@ -380,6 +380,14 @@ type officialSDKResponseTransport struct {
 	boundary OfficialSDKResponseBoundary
 }
 
+// CloseIdleConnections preserves the standard client's optional transport
+// shutdown contract through every response-boundary wrapper. The standard
+// client also owns the no-op behavior for bases without an idle pool.
+func (t officialSDKResponseTransport) CloseIdleConnections() {
+	client := http.Client{Transport: t.base}
+	client.CloseIdleConnections()
+}
+
 // NewStandardOfficialSDKResponseTransport confines the standard Go transport.
 func NewStandardOfficialSDKResponseTransport(
 	boundary OfficialSDKResponseBoundary,

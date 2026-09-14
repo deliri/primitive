@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"net/http"
 	"net/mail"
 	"strings"
 
@@ -80,6 +81,7 @@ func gcsServiceAccountASCII(value string) bool {
 // principal to sign one Objectstore-owned raw object request.
 type GCSCapabilityIssuer struct {
 	service *iamcredentials.Service
+	pool    *http.Transport
 }
 
 // NewGCSCapabilityIssuer constructs the official IAM Credentials client
@@ -91,15 +93,29 @@ func NewGCSCapabilityIssuer(
 	if err := contextstate.Validate(ctx); err != nil {
 		return nil, errors.Join(core.ErrObjectStoreContract, err)
 	}
-	options, err := gcsClientOptions(ctx, config)
+	options, pool, err := gcsClientOptions(ctx, config)
 	if err != nil {
 		return nil, err
 	}
 	service, err := iamcredentials.NewService(ctx, options...)
 	if err != nil {
+		pool.CloseIdleConnections()
 		return nil, errors.Join(core.ErrObjectStoreContract, err)
 	}
-	return &GCSCapabilityIssuer{service: service}, nil
+	return &GCSCapabilityIssuer{service: service, pool: pool}, nil
+}
+
+// Close releases the issuer-owned authentication and provider connection pool.
+func (i *GCSCapabilityIssuer) Close() error {
+	if err := i.Validate(); err != nil {
+		return err
+	}
+	if i.pool != nil {
+		i.pool.CloseIdleConnections()
+		i.pool = nil
+	}
+	i.service = nil
+	return nil
 }
 
 // Validate rejects an unconstructed signing capability.

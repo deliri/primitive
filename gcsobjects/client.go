@@ -6,6 +6,7 @@ import (
 	"errors"
 	"hash/crc32"
 	"io"
+	"net/http"
 	"slices"
 	"strconv"
 	"unicode/utf8"
@@ -27,23 +28,27 @@ import (
 )
 
 // GCSClient is an authenticated capability over the official Cloud Storage SDK.
-type GCSClient struct{ client *storage.Client }
+type GCSClient struct {
+	client *storage.Client
+	pool   *http.Transport
+}
 
 // NewGCSClient constructs an authenticated production Cloud Storage client.
 func NewGCSClient(ctx context.Context, config GCSClientConfig) (*GCSClient, error) {
 	if err := contextstate.Validate(ctx); err != nil {
 		return nil, errors.Join(core.ErrObjectStoreContract, err)
 	}
-	options, err := gcsClientOptions(ctx, config)
+	options, pool, err := gcsClientOptions(ctx, config)
 	if err != nil {
 		return nil, err
 	}
 	client, err := storage.NewClient(ctx, options...)
 	if err != nil {
+		pool.CloseIdleConnections()
 		return nil, errors.Join(core.ErrObjectStoreContract, err)
 	}
 	client.SetRetry(storage.WithPolicy(storage.RetryNever))
-	return &GCSClient{client: client}, nil
+	return &GCSClient{client: client, pool: pool}, nil
 }
 
 const (
@@ -66,6 +71,7 @@ func gcsSDKResponseMethods() [7]exchange.Method {
 func gcsProviderHTTPClientOption(
 	ctx context.Context,
 	config GCSClientConfig,
+	pool *http.Transport,
 ) (option.ClientOption, error) {
 	credentialJSON, err := gcsCredentialJSON(ctx, config)
 	if err != nil {
@@ -73,7 +79,7 @@ func gcsProviderHTTPClientOption(
 	}
 	defer clear(credentialJSON)
 
-	authContext, err := gcsAuthenticationContext(ctx)
+	authContext, err := gcsAuthenticationContext(ctx, pool)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +87,7 @@ func gcsProviderHTTPClientOption(
 	if err != nil {
 		return nil, err
 	}
-	providerTransport, err := exchange.NewStandardOfficialSDKResponseTransport(boundaries[0])
+	providerTransport, err := exchange.NewOfficialSDKResponseTransport(exchange.OfficialSDKResponseTransportRequest{Base: pool, Boundary: boundaries[0]})
 	if err != nil {
 		return nil, err
 	}
@@ -134,15 +140,23 @@ func gcsProviderAuthenticationOptions(credentialJSON []byte) []option.ClientOpti
 	return options
 }
 
-func gcsClientOptions(ctx context.Context, config GCSClientConfig) ([]option.ClientOption, error) {
+func gcsClientOptions(ctx context.Context, config GCSClientConfig) ([]option.ClientOption, *http.Transport, error) {
 	if err := config.Validate(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	clientOption, err := gcsProviderHTTPClientOption(ctx, config)
+	// Clone standard policy, but own this client's connection pool. Authentication
+	// and SDK wrappers need not expose their internal transport to close it.
+	standard, ok := http.DefaultTransport.(*http.Transport)
+	if !ok || standard == nil {
+		return nil, nil, core.ErrObjectStoreContract
+	}
+	pool := standard.Clone()
+	clientOption, err := gcsProviderHTTPClientOption(ctx, config, pool)
 	if err != nil {
-		return nil, errors.Join(core.ErrObjectStoreContract, err)
+		pool.CloseIdleConnections()
+		return nil, nil, errors.Join(core.ErrObjectStoreContract, err)
 	}
-	return []option.ClientOption{clientOption, storage.WithJSONReads()}, nil
+	return []option.ClientOption{clientOption, storage.WithJSONReads()}, pool, nil
 }
 
 // Google authentication consumes complete credential JSON. The provider adapter
@@ -192,14 +206,14 @@ func gcsProviderResponseBoundary(method exchange.Method) (exchange.OfficialSDKRe
 	return boundary, nil
 }
 
-func gcsAuthenticationContext(ctx context.Context) (context.Context, error) {
+func gcsAuthenticationContext(ctx context.Context, pool *http.Transport) (context.Context, error) {
 	getBoundary, err := exchange.NewOfficialSDKMethodResponseBoundary(exchange.OfficialSDKMethodResponseBoundaryRequest{
 		Method: exchange.MethodGet, Representation: exchange.OfficialSDKResponseRepresentationJSON,
 	})
 	if err != nil {
 		return nil, errors.Join(core.ErrObjectStoreContract, err)
 	}
-	authTransport, err := exchange.NewStandardOfficialSDKResponseTransport(getBoundary)
+	authTransport, err := exchange.NewOfficialSDKResponseTransport(exchange.OfficialSDKResponseTransportRequest{Base: pool, Boundary: getBoundary})
 	if err != nil {
 		return nil, errors.Join(core.ErrObjectStoreContract, err)
 	}
@@ -238,6 +252,10 @@ func (c *GCSClient) Close() error {
 		return err
 	}
 	err := c.client.Close()
+	if c.pool != nil {
+		c.pool.CloseIdleConnections()
+		c.pool = nil
+	}
 	c.client = nil
 	if err != nil {
 		return errors.Join(core.ErrObjectStoreContract, err)
