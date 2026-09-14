@@ -73,6 +73,7 @@ func externalIngressCoverage() []exchange.IngressCoverageForTest {
 		{Door: exchange.SendReplayBoundSocketJSON[replayBoundDocument, transportDocument], Kind: exchange.IngressFuzzForTest, Fuzz: FuzzSendJSONReplayNoBodyAndSocketResponses},
 		{Door: exchange.SendNoBodyBounded, Kind: exchange.IngressFuzzForTest, Fuzz: FuzzCapturedHeadersPreserveExactSelection},
 		{Door: exchange.ReceiveJSON[replayBoundDocument, *replayBoundDocument], Kind: exchange.IngressFuzzForTest, Fuzz: FuzzReceiveJSONProjectedJSONAndSocketJSONCustody},
+		{Door: exchange.ReceiveOwnedJSON[replayBoundDocument, *replayBoundDocument], Kind: exchange.IngressFuzzForTest, Fuzz: FuzzReceiveJSONProjectedJSONAndSocketJSONCustody},
 		{Door: exchange.ReceiveReplayBoundJSON[replayBoundDocument, *replayBoundDocument], Kind: exchange.IngressFuzzForTest, Fuzz: FuzzReceiveJSONProjectedJSONAndSocketJSONCustody},
 		{Door: exchange.ReceiveProjectedJSON[replayBoundDocument, *replayBoundDocument], Kind: exchange.IngressFuzzForTest, Fuzz: FuzzReceiveJSONProjectedJSONAndSocketJSONCustody},
 		{Door: exchange.ReceiveSocketJSON[replayBoundDocument, *replayBoundDocument], Kind: exchange.IngressFuzzForTest, Fuzz: FuzzReceiveJSONProjectedJSONAndSocketJSONCustody},

@@ -136,6 +136,42 @@ func ReceiveJSON[
 	)
 }
 
+// OwnedJSONReceiveCall supplies the release operation for a decoded resource
+// that cannot be returned because validation or request-body close failed.
+type OwnedJSONReceiveCall[Body core.Validatable] struct {
+	Receive JSONReceiveCall
+	Release func(Body) error
+}
+
+func (c OwnedJSONReceiveCall[Body]) Validate() error {
+	if c.Release == nil {
+		return requestError(core.ErrExchangeContract)
+	}
+	return c.Receive.Validate()
+}
+
+// ReceiveOwnedJSON preserves the release handle across request-body close.
+// Success transfers custody to the caller. Failure returns zero and retains
+// both the input error and any error from releasing the decoded body.
+func ReceiveOwnedJSON[Body any, BodyPtr interface {
+	*Body
+	core.Validatable
+}](call OwnedJSONReceiveCall[BodyPtr]) (Received[BodyPtr], error) {
+	if err := call.Validate(); err != nil {
+		return Received[BodyPtr]{}, err
+	}
+	received, err := executeRequestBodyOperation(call.Receive.Call.request, func() (Received[BodyPtr], error) {
+		return receiveJSON[Body, BodyPtr](call.Receive)
+	})
+	if err != nil {
+		if received.Body != nil {
+			err = errors.Join(err, call.Release(received.Body))
+		}
+		return Received[BodyPtr]{}, err
+	}
+	return received, nil
+}
+
 // ReceiveReplayBoundJSON receives one strict typed document and refuses it
 // unless the validated body and real HTTP request carry the same idempotency
 // identity. Every refusal returns zero output.

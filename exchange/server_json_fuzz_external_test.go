@@ -23,9 +23,10 @@ const (
 	jsonReceiveProjected
 	jsonReceiveSocket
 	jsonReceiveBoundSocket
+	jsonReceiveOwned
 )
 
-// Every callback calls all five public decoders. Go's strict JSON decoder and
+// Every callback calls all six public decoders. Go's strict JSON decoder and
 // independently supplied source/header facts decide admission before production
 // results are inspected. Socket construction is also exercised inside callbacks.
 func FuzzReceiveJSONProjectedJSONAndSocketJSONCustody(f *testing.F) {
@@ -62,7 +63,7 @@ func FuzzReceiveJSONProjectedJSONAndSocketJSONCustody(f *testing.F) {
 		var projectedWire replayBoundDocument
 		structureAccepted := json.Unmarshal(wire, &projectedWire, json.RejectUnknownMembers(true)) == nil
 		keyAccepted := replayIdentityInputAdmitted(headerKey)
-		for _, door := range []jsonReceiveDoor{jsonReceivePlain, jsonReceiveBound, jsonReceiveProjected, jsonReceiveSocket, jsonReceiveBoundSocket} {
+		for _, door := range []jsonReceiveDoor{jsonReceivePlain, jsonReceiveBound, jsonReceiveProjected, jsonReceiveSocket, jsonReceiveBoundSocket, jsonReceiveOwned} {
 			route := exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplayIdempotencyKey}
 			if door == jsonReceiveSocket {
 				route.Replay = exchange.ReplaySingleAttempt
@@ -87,7 +88,15 @@ func FuzzReceiveJSONProjectedJSONAndSocketJSONCustody(f *testing.F) {
 			var gotErr error
 			var projections int
 			var projectedInput replayBoundDocument
+			var released replayBoundDocument
+			releases := 0
 			switch door {
+			case jsonReceiveOwned:
+				got, gotErr = exchange.ReceiveOwnedJSON[replayBoundDocument, *replayBoundDocument](exchange.OwnedJSONReceiveCall[*replayBoundDocument]{Receive: receive, Release: func(body *replayBoundDocument) error {
+					releases++
+					released = *body
+					return nil
+				}})
 			case jsonReceivePlain:
 				got, gotErr = exchange.ReceiveJSON[replayBoundDocument, *replayBoundDocument](receive)
 			case jsonReceiveBound:
@@ -133,6 +142,13 @@ func FuzzReceiveJSONProjectedJSONAndSocketJSONCustody(f *testing.F) {
 				wantProjections = 1
 			}
 			wantAccepted := withinExtent && bodyAccepted
+			wantReleases := 0
+			if door == jsonReceiveOwned && wantAccepted && closeFailure {
+				wantReleases = 1
+			}
+			if releases != wantReleases || (wantReleases == 1 && released != *decoded) {
+				t.Fatalf("door %d released = (%d,%+v), want %d exact decoded values", door, releases, released, wantReleases)
+			}
 			wantOperation := ""
 			if wantAccepted {
 				wantOperation = decoded.Operation

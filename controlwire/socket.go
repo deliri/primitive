@@ -3,6 +3,7 @@ package controlwire
 import (
 	"context"
 	json "encoding/json/v2"
+	"errors"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
@@ -165,7 +166,8 @@ func SendRoutedJSON[
 
 // ReceiveRoutedJSON receives one strict request document, then binds the real
 // path and idempotency field to the independently projected facts in that
-// document.
+// document. Resource-bearing bodies require ReceiveOwnedRoutedJSON so a later
+// binding refusal can release successfully decoded custody.
 func ReceiveRoutedJSON[
 	Body any,
 	BodyPtr interface {
@@ -173,16 +175,62 @@ func ReceiveRoutedJSON[
 		RoutedJSONRequest
 	},
 ](call AuthorityJSONReceiveCall) (RoutedJSONReceive[BodyPtr], error) {
+	return receiveRoutedJSON[Body, BodyPtr](call, nil)
+}
+
+// OwnedAuthorityJSONReceiveCall gives the decoder an explicit release operation
+// for an admitted body that cannot be handed to the caller. Release is required
+// before any input is read and is never called for an undecoded or returned body.
+type OwnedAuthorityJSONReceiveCall[Body RoutedJSONRequest] struct {
+	Receive AuthorityJSONReceiveCall
+	Release func(Body) error
+}
+
+func (c OwnedAuthorityJSONReceiveCall[Body]) Validate() error {
+	if c.Release == nil {
+		return routeError(core.ErrExchangeContract)
+	}
+	return c.Receive.Validate()
+}
+
+// ReceiveOwnedRoutedJSON transfers successfully decoded custody to the caller
+// only on success. Every later refusal releases it and retains cleanup errors.
+// Use this door for requests carrying tokens or other destructible resources.
+func ReceiveOwnedRoutedJSON[Body any, BodyPtr interface {
+	*Body
+	RoutedJSONRequest
+}](call OwnedAuthorityJSONReceiveCall[BodyPtr]) (RoutedJSONReceive[BodyPtr], error) {
+	if err := call.Validate(); err != nil {
+		return RoutedJSONReceive[BodyPtr]{}, err
+	}
+	return receiveRoutedJSON[Body, BodyPtr](call.Receive, call.Release)
+}
+
+func receiveRoutedJSON[Body any, BodyPtr interface {
+	*Body
+	RoutedJSONRequest
+}](call AuthorityJSONReceiveCall, release func(BodyPtr) error) (result RoutedJSONReceive[BodyPtr], resultErr error) {
 	var zero RoutedJSONReceive[BodyPtr]
 	if err := call.Validate(); err != nil {
 		return zero, err
 	}
-	received, err := exchange.ReceiveJSON[Body, BodyPtr](exchange.JSONReceiveCall{
-		Call: call.Call, Route: controlRouteSemantics(),
-	})
+	input := exchange.JSONReceiveCall{Call: call.Call, Route: controlRouteSemantics()}
+	var received exchange.Received[BodyPtr]
+	var err error
+	if release == nil {
+		received, err = exchange.ReceiveJSON[Body, BodyPtr](input)
+	} else {
+		received, err = exchange.ReceiveOwnedJSON[Body, BodyPtr](exchange.OwnedJSONReceiveCall[BodyPtr]{Receive: input, Release: release})
+	}
 	if err != nil {
 		return zero, err
 	}
+	// Successful decode owns a resource even when subsequent binding refuses it.
+	defer func() {
+		if resultErr != nil && release != nil {
+			resultErr = errors.Join(resultErr, release(received.Body))
+		}
+	}()
 	if err := bindReceivedRequest(call.Route, received); err != nil {
 		return zero, err
 	}
@@ -194,7 +242,7 @@ func ReceiveRoutedJSON[
 	if err != nil {
 		return zero, err
 	}
-	result := RoutedJSONReceive[BodyPtr]{
+	result = RoutedJSONReceive[BodyPtr]{
 		Received: received, Assessment: assessment, Replay: replay,
 	}
 	if err := result.Validate(); err != nil {

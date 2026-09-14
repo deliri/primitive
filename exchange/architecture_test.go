@@ -220,6 +220,7 @@ type exchangeContractInventory struct {
 	NoBody                     protocolContract[NoBody]
 	Received                   protocolContract[Received[*inventoryDocument]]
 	JSONReceiveCall            protocolContract[JSONReceiveCall]
+	OwnedJSONReceiveCall       protocolContract[OwnedJSONReceiveCall[*inventoryDocument]]
 	ProjectedJSONReceiveCall   protocolContract[ProjectedJSONReceiveCall[inventoryDocument, *inventoryDocument]]
 	NoBodyReceiveCall          protocolContract[NoBodyReceiveCall]
 	projectionRequest          internalFlow[projectionRequest[inventoryDocument, *inventoryDocument]]
