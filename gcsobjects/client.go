@@ -22,6 +22,7 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/googleapi"
+	"google.golang.org/api/iamcredentials/v1"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	htransport "google.golang.org/api/transport/http"
@@ -130,7 +131,10 @@ func gcsProviderResponseBoundaries() ([7]exchange.OfficialSDKResponseBoundary, e
 }
 
 func gcsProviderAuthenticationOptions(credentialJSON []byte) []option.ClientOption {
-	options := []option.ClientOption{option.WithScopes(storage.ScopeFullControl)}
+	// This authenticated transport serves both Storage and IAM Credentials.
+	// SignBlob requires IAM or cloud-platform scope in addition to IAM permission;
+	// storage-only OAuth tokens cannot authorize capability issuance.
+	options := []option.ClientOption{option.WithScopes(storage.ScopeFullControl, iamcredentials.CloudPlatformScope)}
 	if len(credentialJSON) != 0 {
 		options = append(
 			options,
