@@ -16,6 +16,25 @@ func TestPermitProductionStructInventory(t *testing.T) {
 		name, role string
 		found      bool
 	}{
+		{"QuietPeriod", "protocol fact: exact excluded transmission interval", false},
+		{"QuietPeriods", "protocol fact: immutable ordered exclusions", false},
+		{"TransmissionPolicy", "protocol fact: caller-selected transmission exclusions", false},
+		{"ReportAuthorization", "protocol fact: mutable authorization without schedule", false},
+		{"SignedReportAuthorization", "protocol fact: authenticated current restrictions", false},
+		{"ReportPermissionResponse", "protocol fact: current authorization plus single issued carrier", false},
+		{"ReportHead", "internal flow: caller-supplied sequence and digest comparison", false},
+		{"ReportProjectID", "protocol fact: canonical project component", false},
+		{"ReportScope", "protocol fact: tenant and epoch binding", false},
+		{"ReportEvidence", "protocol fact: evidence digest and extent", false},
+		{"ReportPayload", "protocol fact: signed additive source facts", false},
+		{"ProjectPermission", "protocol fact: initial scope and schedule", false},
+		{"ReportAcknowledgment", "sealed projection: committed report identity and next schedule", false},
+		{"SignedReport", "protocol fact: device-attested report", false},
+		{"SignedProjectPermission", "protocol fact: authority-attested initial schedule", false},
+		{"SignedReportAcknowledgment", "sealed projection: authority-attested committed report", false},
+		{"ReportSchedule", "protocol fact: caller-selected recurring timing bounds", false},
+		{"ReportOccurrence", "internal flow: authorization-intersected occurrence", false},
+		{"ReportTiming", "internal flow: supplied observation and current authorization", false},
 		{"RegistrationResponse", "protocol fact: enrollment and permission bound to one response", false},
 		{"CheckInResponse", "protocol fact: usage response and permission bound to one response", false},
 		{"Action", "protocol fact: opaque canonical action identity", false},
@@ -68,6 +87,15 @@ func TestPermitProductionStructInventory(t *testing.T) {
 func TestPermitExternalDoorInventory(t *testing.T) {
 	t.Parallel()
 	doors := []struct{ name, file, target string }{
+		{"QuietPeriods.UnmarshalJSON", "report_authorization_test.go", "FuzzReportPermissionResponse"},
+		{"SignedReportAuthorization.UnmarshalJSON", "report_authorization_test.go", "FuzzReportPermissionResponse"},
+		{"ReportPermissionResponse.UnmarshalJSON", "report_authorization_test.go", "FuzzReportPermissionResponse"},
+		{"ParseReportProjectID", "report_signed_test.go", "FuzzReportProjectAndDomain"},
+		{"ReportProjectID.UnmarshalJSON", "report_signed_test.go", "FuzzReportProjectAndDomain"},
+		{"ReportDomain.ParseCanonicalText", "report_signed_test.go", "FuzzReportProjectAndDomain"},
+		{"SignedReport.UnmarshalJSON", "report_signed_test.go", "FuzzReportSignedSemanticClosure"},
+		{"SignedProjectPermission.UnmarshalJSON", "report_signed_test.go", "FuzzReportSignedSemanticClosure"},
+		{"SignedReportAcknowledgment.UnmarshalJSON", "report_signed_test.go", "FuzzReportSignedSemanticClosure"},
 		{"ParseAction", "action_test.go", "FuzzParseActionSemanticClosure"},
 		{"Action.UnmarshalJSON", "action_test.go", "FuzzActionSemanticClosure"},
 		{"Actions.UnmarshalJSON", "action_test.go", "FuzzActionsSemanticClosure"},

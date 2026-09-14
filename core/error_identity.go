@@ -533,6 +533,24 @@ const (
 	ErrPermitRevision
 	// ErrPermitWrite identifies permit write failed.
 	ErrPermitWrite
+	// ErrReportContract identifies invalid report contract.
+	ErrReportContract
+	// ErrReportSchedule identifies invalid report schedule.
+	ErrReportSchedule
+	// ErrReportBinding identifies report binding mismatch.
+	ErrReportBinding
+	// ErrReportAuthentication identifies report authentication failed.
+	ErrReportAuthentication
+	// ErrReportTooEarly identifies report before admission opening.
+	ErrReportTooEarly
+	// ErrReportOutsideWindow identifies report outside admission window.
+	ErrReportOutsideWindow
+	// ErrReportConflict identifies report sequence has conflicting content.
+	ErrReportConflict
+	// ErrReportSequence identifies report sequence is not next.
+	ErrReportSequence
+	// ErrReportOverflow identifies report arithmetic overflow.
+	ErrReportOverflow
 	errorIdentityLimit
 )
 
@@ -767,6 +785,15 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrPermitReplay, text: "permit generation rollback"},
 		{identity: ErrPermitRevision, text: "unsupported permit revision"},
 		{identity: ErrPermitWrite, text: "permit write failed"},
+		{identity: ErrReportContract, text: "invalid report contract"},
+		{identity: ErrReportSchedule, text: "invalid report schedule"},
+		{identity: ErrReportBinding, text: "report binding mismatch"},
+		{identity: ErrReportAuthentication, text: "report authentication failed"},
+		{identity: ErrReportTooEarly, text: "report before admission opening"},
+		{identity: ErrReportOutsideWindow, text: "report outside admission window"},
+		{identity: ErrReportConflict, text: "report sequence has conflicting content"},
+		{identity: ErrReportSequence, text: "report sequence is not next"},
+		{identity: ErrReportOverflow, text: "report arithmetic overflow"},
 	}
 }
 
@@ -893,6 +920,12 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 	}
 	if errorIdentityIn(identity, ErrAccessPermitDenied, ErrAccessPermitBinding) {
 		return oneErrorIdentityParent(ErrAccessPermitContract)
+	}
+	if identity == ErrReportContract {
+		return oneErrorIdentityParent(ErrPrimitiveContract)
+	}
+	if errorIdentityIn(identity, ErrReportSchedule, ErrReportBinding, ErrReportAuthentication, ErrReportTooEarly, ErrReportOutsideWindow, ErrReportConflict, ErrReportSequence, ErrReportOverflow) {
+		return oneErrorIdentityParent(ErrReportContract)
 	}
 	if errorIdentityIn(identity, ErrPermitAuthentication, ErrPermitBinding, ErrPermitValidity,
 		ErrPermitAction, ErrPermitReplay, ErrPermitRevision, ErrPermitWrite) {
