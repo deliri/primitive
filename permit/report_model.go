@@ -98,19 +98,20 @@ func (p ProjectPermission) Validate() error {
 }
 
 type ReportAcknowledgment struct {
-	Scope           ReportScope       `json:"scope"`
-	Sequence        uint64            `json:"sequence"`
-	ReportDigest    core.SHA256Digest `json:"report_digest"`
-	ProjectRevision uint64            `json:"project_revision"`
-	AcceptedAt      temporal.Instant  `json:"accepted_at"`
-	Schedule        ReportSchedule    `json:"schedule"`
+	Scope        ReportScope       `json:"scope"`
+	Sequence     uint64            `json:"sequence"`
+	ReportDigest core.SHA256Digest `json:"report_digest"`
+	// ProjectRevision may be zero when an empty report commits without a contribution.
+	ProjectRevision uint64           `json:"project_revision"`
+	AcceptedAt      temporal.Instant `json:"accepted_at"`
+	Schedule        ReportSchedule   `json:"schedule"`
 }
 
 func (a ReportAcknowledgment) Validate() error {
 	if err := errors.Join(a.Scope.Validate(), a.ReportDigest.Validate(), a.AcceptedAt.Validate(), a.Schedule.Validate()); err != nil {
 		return errors.Join(core.ErrReportContract, err)
 	}
-	if a.Sequence == 0 || a.Sequence > math.MaxInt64 || a.ProjectRevision == 0 || a.ProjectRevision > math.MaxInt64 {
+	if a.Sequence == 0 || a.Sequence > math.MaxInt64 || a.ProjectRevision > math.MaxInt64 {
 		return core.ErrReportContract
 	}
 	order, err := a.Schedule.NextReportAt.Compare(a.AcceptedAt)
