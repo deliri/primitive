@@ -7,6 +7,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/controlplane"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/id"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -62,9 +63,9 @@ func TestReportHeadLayerTriad(t *testing.T) {
 				}
 			}
 			if tc.foreignScope {
-				head.Scope.Project, err = ParseReportProjectID("other")
+				head.Scope.Project, err = id.NewULIDFromBytes([16]byte{5})
 				if err != nil {
-					t.Fatalf("ParseReportProjectID() = %v, want nil", err)
+					t.Fatalf("NewULIDFromBytes() = %v, want nil", err)
 				}
 			}
 			before := head

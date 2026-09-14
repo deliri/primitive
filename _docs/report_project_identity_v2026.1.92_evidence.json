@@ -1,0 +1,252 @@
+{
+  "acceptance": false,
+  "attempts": [
+    {
+      "base_revision": "c3d1e92daa7b75eca39903ed02b20fd85b20bb63",
+      "dirty": true,
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "./permit",
+        "-timeout=2m"
+      ],
+      "exit_status": 0,
+      "test_events": {
+        "pass": 209,
+        "fail": 0,
+        "skip": 0
+      },
+      "toolchain": "go version go1.27.1 darwin/arm64",
+      "cache": "bypassed by -count=1",
+      "receipt": "/private/tmp/peachfuzz-state-readonly-evidence/primitive-report-project-identity-green-20260914/execution.json",
+      "outputs": [
+        {
+          "path": "stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "stdout",
+          "bytes": 322627,
+          "sha256": "4fb1afa9d930cb0babf3b0ea0ee8a42b6fb1d0b5a847bfd9e18474a531da99e0"
+        }
+      ]
+    },
+    {
+      "base_revision": "c3d1e92daa7b75eca39903ed02b20fd85b20bb63",
+      "dirty": true,
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "./permit",
+        "-run",
+        "^TestReportScopeUsesAuthorityIssuedProjectIdentity$",
+        "-timeout=2m"
+      ],
+      "exit_status": 1,
+      "test_events": {
+        "pass": 0,
+        "fail": 1,
+        "skip": 0
+      },
+      "toolchain": "go version go1.27.1 darwin/arm64",
+      "cache": "bypassed by -count=1",
+      "receipt": "/private/tmp/peachfuzz-state-readonly-evidence/primitive-report-project-identity-red-20260914/execution.json",
+      "outputs": [
+        {
+          "path": "stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "stdout",
+          "bytes": 2697,
+          "sha256": "24a008f81a79cce4816b262eeb437f2983a28e8a724f62f6ea7c9ffe091790f2"
+        }
+      ]
+    },
+    {
+      "base_revision": "c3d1e92daa7b75eca39903ed02b20fd85b20bb63",
+      "dirty": true,
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "./permit",
+        "-run",
+        "^$",
+        "-fuzz",
+        "^FuzzReportPermissionResponse$",
+        "-fuzztime=2s",
+        "-fuzzminimizetime=1s",
+        "-parallel=1",
+        "-timeout=2m"
+      ],
+      "exit_status": 0,
+      "test_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      },
+      "toolchain": "go version go1.27.1 darwin/arm64",
+      "cache": "bypassed by -count=1",
+      "receipt": "/private/tmp/peachfuzz-state-readonly-evidence/primitive-report-ulid-authorization-fuzz-20260914/execution.json",
+      "outputs": [
+        {
+          "path": "stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "stdout",
+          "bytes": 2073,
+          "sha256": "6a215d558ba5e88daa2f1b7f70910abcc92b77a65697dcd506e6690af9df4c80"
+        }
+      ]
+    },
+    {
+      "base_revision": "c3d1e92daa7b75eca39903ed02b20fd85b20bb63",
+      "dirty": true,
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "./permit",
+        "-run",
+        "^$",
+        "-fuzz",
+        "^FuzzReportDomain$",
+        "-fuzztime=2s",
+        "-fuzzminimizetime=1s",
+        "-parallel=1",
+        "-timeout=2m"
+      ],
+      "exit_status": 0,
+      "test_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      },
+      "toolchain": "go version go1.27.1 darwin/arm64",
+      "cache": "bypassed by -count=1",
+      "receipt": "/private/tmp/peachfuzz-state-readonly-evidence/primitive-report-ulid-domain-fuzz-20260914/execution.json",
+      "outputs": [
+        {
+          "path": "stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "stdout",
+          "bytes": 1972,
+          "sha256": "7fbcb4b6fab3d27daca9df7767ceea93ed3187d90ee528dcb28e857ffe441049"
+        }
+      ]
+    },
+    {
+      "base_revision": "c3d1e92daa7b75eca39903ed02b20fd85b20bb63",
+      "dirty": true,
+      "argv": [
+        "witness-lint",
+        "./permit"
+      ],
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "toolchain": "go version go1.27.1 darwin/arm64",
+      "cache": "not a test acceptance run",
+      "receipt": "/private/tmp/peachfuzz-state-readonly-evidence/primitive-report-ulid-lint-20260914/execution.json",
+      "outputs": [
+        {
+          "path": "stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    },
+    {
+      "base_revision": "c3d1e92daa7b75eca39903ed02b20fd85b20bb63",
+      "dirty": true,
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "./permit",
+        "-run",
+        "^$",
+        "-fuzz",
+        "^FuzzReportSignedSemanticClosure$",
+        "-fuzztime=2s",
+        "-fuzzminimizetime=1s",
+        "-parallel=1",
+        "-timeout=2m"
+      ],
+      "exit_status": 0,
+      "test_events": {
+        "pass": 1,
+        "fail": 0,
+        "skip": 0
+      },
+      "toolchain": "go version go1.27.1 darwin/arm64",
+      "cache": "bypassed by -count=1",
+      "receipt": "/private/tmp/peachfuzz-state-readonly-evidence/primitive-report-ulid-signatures-fuzz-20260914/execution.json",
+      "outputs": [
+        {
+          "path": "stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "stdout",
+          "bytes": 2099,
+          "sha256": "9345d318bfe47f18beeb787ffb555bc3c811190f60101d16db916d442f397f72"
+        }
+      ]
+    },
+    {
+      "base_revision": "c3d1e92daa7b75eca39903ed02b20fd85b20bb63",
+      "dirty": true,
+      "argv": [
+        "go",
+        "vet",
+        "./permit"
+      ],
+      "exit_status": 0,
+      "test_events": {
+        "pass": 0,
+        "fail": 0,
+        "skip": 0
+      },
+      "toolchain": "go version go1.27.1 darwin/arm64",
+      "cache": "not a test acceptance run",
+      "receipt": "/private/tmp/peachfuzz-state-readonly-evidence/primitive-report-ulid-vet-20260914/execution.json",
+      "outputs": [
+        {
+          "path": "stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    }
+  ]
+}

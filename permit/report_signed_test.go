@@ -22,7 +22,7 @@ func reportScopeFixture(t testing.TB) ReportScope {
 	if err != nil {
 		t.Fatalf("epoch = %v, want nil", err)
 	}
-	project, err := ParseReportProjectID("parser")
+	project, err := id.NewULIDFromBytes([16]byte{4})
 	if err != nil {
 		t.Fatalf("project = %v, want nil", err)
 	}
@@ -166,34 +166,16 @@ func FuzzReportSignedSemanticClosure(f *testing.F) {
 		}
 	})
 }
-func FuzzReportProjectAndDomain(f *testing.F) {
-	project, err := ParseReportProjectID("parser")
-	if err != nil {
-		f.Fatalf("project = %v, want nil", err)
-	}
-	seed, err := project.MarshalJSON()
-	if err != nil {
-		f.Fatalf("marshal = %v, want nil", err)
-	}
-	f.Add(seed)
-	f.Add([]byte("primitive-project-report-v1"))
-	f.Fuzz(func(t *testing.T, data []byte) {
-		got := project
-		err := got.UnmarshalJSON(data)
+func FuzzReportDomain(f *testing.F) {
+	for _, domain := range []ReportDomain{ReportDomainPayload, ReportDomainPermission, ReportDomainAcknowledgment, ReportDomainAuthorization} {
+		seed, err := domain.MarshalText()
 		if err != nil {
-			if !errors.Is(err, core.ErrReportContract) || got != project {
-				t.Fatalf("project rejection = %v/%v, want preserved/typed", got, err)
-			}
-		} else {
-			encoded, err := got.MarshalJSON()
-			if err != nil || got.Validate() != nil {
-				t.Fatalf("accepted project = %v/%v, want valid/nil", got, err)
-			}
-			var again ReportProjectID
-			if err := again.UnmarshalJSON(encoded); err != nil || again != got {
-				t.Fatalf("project closure = %v/%v, want %v/nil", again, err, got)
-			}
+			f.Fatalf("MarshalText() = %v, want nil", err)
 		}
+		f.Add(seed)
+	}
+	f.Add([]byte{})
+	f.Fuzz(func(t *testing.T, data []byte) {
 		domain, err := (ReportDomainUnknown).ParseCanonicalText(data)
 		if err != nil {
 			if domain != ReportDomainUnknown || !errors.Is(err, core.ErrReportContract) {

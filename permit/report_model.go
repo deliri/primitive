@@ -13,54 +13,15 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
-const ReportProjectMaximumBytes = 64
 const ReportDocumentMaximumBytes = 64 << 10
-
-// ReportProjectID is one canonical path component, never a provider path.
-type ReportProjectID struct{ value string }
-
-func ParseReportProjectID(value string) (ReportProjectID, error) {
-	if len(value) == 0 || len(value) > ReportProjectMaximumBytes || value[0] < 'a' || value[0] > 'z' || value[len(value)-1] == '-' {
-		return ReportProjectID{}, core.ErrReportContract
-	}
-	for _, c := range []byte(value) {
-		if !(c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '-') {
-			return ReportProjectID{}, core.ErrReportContract
-		}
-	}
-	return ReportProjectID{value: value}, nil
-}
-func (p ReportProjectID) String() string  { return p.value }
-func (p ReportProjectID) Validate() error { _, err := ParseReportProjectID(p.value); return err }
-func (p ReportProjectID) MarshalJSON() ([]byte, error) {
-	if err := p.Validate(); err != nil {
-		return nil, err
-	}
-	return core.MarshalCanonicalJSONString(p.value)
-}
-func (p *ReportProjectID) UnmarshalJSON(data []byte) error {
-	if p == nil {
-		return core.ErrReportContract
-	}
-	text, err := core.DecodeJSONStringToken(data)
-	if err != nil {
-		return errors.Join(core.ErrReportContract, err)
-	}
-	got, err := ParseReportProjectID(text)
-	if err != nil {
-		return err
-	}
-	*p = got
-	return nil
-}
 
 // ReportScope binds every carrier to a tenant, product, project and authorized epoch.
 type ReportScope struct {
-	Company      id.ULID         `json:"company"`
-	Offering     core.Offering   `json:"offering"`
-	Project      ReportProjectID `json:"project"`
-	Installation lease.DeviceID  `json:"installation"`
-	Epoch        id.ULID         `json:"epoch"`
+	Company      id.ULID        `json:"company"`
+	Offering     core.Offering  `json:"offering"`
+	Project      id.ULID        `json:"project"`
+	Installation lease.DeviceID `json:"installation"`
+	Epoch        id.ULID        `json:"epoch"`
 }
 
 func (s ReportScope) Validate() error {
