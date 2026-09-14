@@ -48,3 +48,14 @@ HTTP decoding and the real typed AccessRegistrationRequest decoder. No live
 provider is contacted. Durable receipt, ledger and provider layers are unchanged
 and are not claimed by this ownership slice. Registration handler wiring and
 both clients' connected execution remain downstream proof work.
+
+## Version 2026.1.89
+
+The release includes the published v2026.1.88 transport shutdown changes and
+declares patch 89 in compass/config.json. `primitive-v89-combined-tests` passed
+21,023 test events across controlwire, exchange, controlplane, permit and
+gcsobjects. Three live GCS tests were skipped: authenticated deletion retention,
+authenticated lifecycle, and private object retrieval. Those are unavailable
+provider proofs, not passes. `primitive-v89-combined-vet` and
+`primitive-v89-combined-staticcheck` passed over the same package selection.
+Publication does not resolve those gaps or issue independent acceptance.
