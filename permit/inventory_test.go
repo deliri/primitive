@@ -16,6 +16,10 @@ func TestPermitProductionStructInventory(t *testing.T) {
 		name, role string
 		found      bool
 	}{
+		{"BuildTransfer", "protocol fact: exact build replacement with unchanged signed rights", false},
+		{"BuildTransferIssuance", "internal flow: authenticated prior facts and product-selected build", false},
+		{"BuildTransferVerification", "internal flow: expected prior facts and exact destination", false},
+		{"VerifiedBuildTransfer", "capability wrapper: independently authenticated certificate and unchanged permission", false},
 		{"ReportRequest", "protocol fact: signed report and authority-authenticated device nomination", false},
 		{"QuietPeriod", "protocol fact: exact excluded transmission interval", false},
 		{"QuietPeriods", "protocol fact: immutable ordered exclusions", false},
@@ -87,6 +91,7 @@ func TestPermitProductionStructInventory(t *testing.T) {
 func TestPermitExternalDoorInventory(t *testing.T) {
 	t.Parallel()
 	doors := []struct{ name, file, target string }{
+		{"BuildTransfer.UnmarshalJSON", "build_transfer_test.go", "FuzzBuildTransferSemanticClosure"},
 		{"ReportRequest.UnmarshalJSON", "report_request_test.go", "FuzzReportRequestSemanticClosure"},
 		{"QuietPeriods.UnmarshalJSON", "report_authorization_test.go", "FuzzReportPermissionResponse"},
 		{"SignedReportAuthorization.UnmarshalJSON", "report_authorization_test.go", "FuzzReportPermissionResponse"},

@@ -20,6 +20,8 @@ type (
 )
 
 type contractInventory struct {
+	UpgradeDeliveryProjection                 protocolFact[UpgradeDeliveryProjection]
+	UpgradeDeliveryDocument                   protocolFact[UpgradeDeliveryDocument]
 	MaterialResponseIssuance                  protocolFact[MaterialResponseIssuance]
 	MaterialResponseVerification              protocolFact[MaterialResponseVerification]
 	PublicationRequestDocument                protocolFact[PublicationRequestDocument]
