@@ -1,0 +1,3440 @@
+{
+  "kind": "development-release-evidence",
+  "acceptance": false,
+  "release": "v2026.1.98",
+  "code_revision": "481f8a0d604fa96e3d43161ffb0a8afe2f598875",
+  "scope": [
+    "./filestore"
+  ],
+  "scope_notes": [
+    "Only the changed package was tested/analyzed; no repository-wide completion claim.",
+    "Mac native and race runs cover the unchanged production implementation; the subsequent native-mode test-oracle correction has a separate Mac race run and a full clean-commit Furnace race run.",
+    "The Mac race run started at 3c637fd; the live source tree advanced to 481f8a0 for the test-only mode-oracle fix during that run. Do not represent that run alone as exact final-revision acceptance.",
+    "Fuzz campaigns cover the two new public doors, 2 seconds each plus up to 1 second minimization; complete process duration is retained separately from configured fuzz work.",
+    "No performance claim or benchmark comparison; no native Windows execution.",
+    "Initial failures and diagnostic tool-scope mistakes remain separate retained attempts.",
+    "Independent acceptance belongs to the user. Consumer adoption and installed end-to-end upgrade/reporting work are not completed by this release."
+  ],
+  "required_final_successes": [
+    "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-native-02/execution.json",
+    "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-race-01/execution.json",
+    "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-native-mode-01/execution.json",
+    "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-fuzz-directory-01/execution.json",
+    "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-fuzz-custody-01/execution.json",
+    "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-furnace/filestore-198-linux-02/execution.json",
+    "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-furnace/filestore-198-linux-fuzz-directory-01/execution.json",
+    "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-furnace/filestore-198-linux-fuzz-custody-01/execution.json",
+    "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-final-staticcheck/execution.json",
+    "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-final-vet/execution.json",
+    "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-final-witness/execution.json",
+    "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-vulnerabilities-02/execution.json",
+    "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-dead-code-02/execution.json"
+  ],
+  "executions": [
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-dead-code-02/execution.json",
+      "sha256": "ac721c923d96e2f72b1a505fcdb17efd68138cbf604f0045180ed822530409de",
+      "bytes": 2085,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "d882c1042b5a11cfe6dcb567ef295d2f88c12cc1",
+        "dirty": true,
+        "cwd": "/Users/d/code/primitive",
+        "argv": [
+          "/private/tmp/primitive-196-tools/deadcode-real",
+          "-test",
+          "-filter",
+          "^github.com/deliri/primitive/v2026/filestore(_test)?$",
+          "./filestore"
+        ],
+        "machine": {
+          "system": "Darwin",
+          "node": "Ases-MBP.localdomain",
+          "release": "27.0.0",
+          "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+          "machine": "arm64",
+          "processor": "arm"
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 darwin/arm64",
+        "test_cache_bypassed": false,
+        "build_cache": "eligible",
+        "attempt": "primitive-filestore-198-dead-code-02",
+        "started_utc": "2026-09-21T11:07:54.370250+00:00",
+        "elapsed_ns": 2144304958,
+        "finished_utc": "2026-09-21T11:07:56.520984+00:00",
+        "exit_code": 0,
+        "signal": null,
+        "artifacts": {
+          "source-digests.json": {
+            "sha256": "2f4d3b4be8e960da55bf322833606dbe15c6272f38ac8510afe1b1ca6005cbc5",
+            "bytes": 321686
+          },
+          "tracked.patch": {
+            "sha256": "03eed203b26b0efb11f35cda6ae7b2af8e7309b6f4cc661821f2f3f19136ade8",
+            "bytes": 2926
+          },
+          "stdout": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "working-tree.status": {
+            "sha256": "51182beb7d7ab015b2589d868db98994df11e5bf0e7055b055db74de7d38e570",
+            "bytes": 200
+          },
+          "stderr": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "started.json": {
+            "sha256": "d417baebe4a02c370675864d478abe326109c32a21109a0bd0ef68436b02cdb0",
+            "bytes": 1150
+          }
+        }
+      }
+    },
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-final-staticcheck/execution.json",
+      "sha256": "9cd33f8d3acb942461654ced673b906a7db4da974252a62581b033cfbc93d287",
+      "bytes": 1962,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "481f8a0d604fa96e3d43161ffb0a8afe2f598875",
+        "dirty": false,
+        "cwd": "/Users/d/code/primitive",
+        "argv": [
+          "staticcheck",
+          "./filestore"
+        ],
+        "machine": {
+          "system": "Darwin",
+          "node": "Ases-MBP.localdomain",
+          "release": "27.0.0",
+          "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+          "machine": "arm64",
+          "processor": "arm"
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 darwin/arm64",
+        "test_cache_bypassed": false,
+        "build_cache": "eligible",
+        "attempt": "primitive-filestore-198-final-staticcheck",
+        "started_utc": "2026-09-21T11:16:55.245046+00:00",
+        "elapsed_ns": 4075617250,
+        "finished_utc": "2026-09-21T11:16:59.321778+00:00",
+        "exit_code": 0,
+        "signal": null,
+        "artifacts": {
+          "source-digests.json": {
+            "sha256": "40d7ddd4c793a8107aaa5d6dcd3c0dc593f774f02f8e45f5605d3c006085aa3b",
+            "bytes": 321686
+          },
+          "tracked.patch": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "stdout": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "working-tree.status": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "stderr": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "started.json": {
+            "sha256": "7a24b808fc3d4f8e16fe63ac9c49ad2dd611f45104ac9bce47424620ed199c70",
+            "bytes": 1032
+          }
+        }
+      }
+    },
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-final-vet/execution.json",
+      "sha256": "5749478a3aeed77c1a6b3451fe04979cb65b80048e5786e94e3c1e00fb974107",
+      "bytes": 1989,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "481f8a0d604fa96e3d43161ffb0a8afe2f598875",
+        "dirty": false,
+        "cwd": "/Users/d/code/primitive",
+        "argv": [
+          "go",
+          "vet",
+          "-mod=readonly",
+          "-p=1",
+          "./filestore"
+        ],
+        "machine": {
+          "system": "Darwin",
+          "node": "Ases-MBP.localdomain",
+          "release": "27.0.0",
+          "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+          "machine": "arm64",
+          "processor": "arm"
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 darwin/arm64",
+        "test_cache_bypassed": false,
+        "build_cache": "eligible",
+        "attempt": "primitive-filestore-198-final-vet",
+        "started_utc": "2026-09-21T11:16:13.055471+00:00",
+        "elapsed_ns": 1894520250,
+        "finished_utc": "2026-09-21T11:16:14.953148+00:00",
+        "exit_code": 0,
+        "signal": null,
+        "artifacts": {
+          "source-digests.json": {
+            "sha256": "40d7ddd4c793a8107aaa5d6dcd3c0dc593f774f02f8e45f5605d3c006085aa3b",
+            "bytes": 321686
+          },
+          "tracked.patch": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "stdout": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "working-tree.status": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "stderr": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "started.json": {
+            "sha256": "751dde7728490b6a83cf68b3984f9839db6d64bbc19992bb00d8a69eaba04c01",
+            "bytes": 1059
+          }
+        }
+      }
+    },
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-final-witness/execution.json",
+      "sha256": "446ccabb4c684d444e713b90266404988bd48fc74c16400913a1a4dd80d14794",
+      "bytes": 2014,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "481f8a0d604fa96e3d43161ffb0a8afe2f598875",
+        "dirty": false,
+        "cwd": "/Users/d/code/primitive",
+        "argv": [
+          "/private/tmp/primitive-198-tools/witness-lint",
+          "/Users/d/code/primitive/filestore"
+        ],
+        "machine": {
+          "system": "Darwin",
+          "node": "Ases-MBP.localdomain",
+          "release": "27.0.0",
+          "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+          "machine": "arm64",
+          "processor": "arm"
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 darwin/arm64",
+        "test_cache_bypassed": false,
+        "build_cache": "eligible",
+        "attempt": "primitive-filestore-198-final-witness",
+        "started_utc": "2026-09-21T11:16:14.052222+00:00",
+        "elapsed_ns": 128061917,
+        "finished_utc": "2026-09-21T11:16:14.180936+00:00",
+        "exit_code": 0,
+        "signal": null,
+        "artifacts": {
+          "source-digests.json": {
+            "sha256": "40d7ddd4c793a8107aaa5d6dcd3c0dc593f774f02f8e45f5605d3c006085aa3b",
+            "bytes": 321686
+          },
+          "tracked.patch": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "stdout": {
+            "sha256": "402b00d3898432e44e50fd07311ee161374ba9293945c89d61a48b58939ff635",
+            "bytes": 56
+          },
+          "working-tree.status": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "stderr": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "started.json": {
+            "sha256": "2bdea3fa3075e130c56aebe1eca54fa57d994e6b96a4bcb857291cba600a7799",
+            "bytes": 1084
+          }
+        }
+      }
+    },
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-focused-01/execution.json",
+      "sha256": "bb542cfd80159fcd7e01b41e51ed18ab46b793d69765eb63a3e9c162715081e0",
+      "bytes": 3379,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "d882c1042b5a11cfe6dcb567ef295d2f88c12cc1",
+        "dirty": true,
+        "cwd": "/Users/d/code/primitive",
+        "argv": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-p=1",
+          "-parallel=1",
+          "-timeout=3m",
+          "-run",
+          "TestCreateDirectoryNativeOwnershipLayerTriad|TestOpenCustodyReadNativeOwnershipLayerTriad|TestFilestorePublicIngressHasCompilerBoundSemanticProof|FuzzCreateDirectoryNativeModeAndExclusivity|FuzzOpenCustodyReadExactInodeAndBytes",
+          "./filestore"
+        ],
+        "machine": {
+          "system": "Darwin",
+          "node": "Ases-MBP.localdomain",
+          "release": "27.0.0",
+          "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+          "machine": "arm64",
+          "processor": "arm"
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 darwin/arm64",
+        "test_cache_bypassed": true,
+        "build_cache": "eligible",
+        "attempt": "primitive-filestore-198-focused-01",
+        "started_utc": "2026-09-21T11:00:11.661326+00:00",
+        "elapsed_ns": 5842432666,
+        "finished_utc": "2026-09-21T11:00:17.504492+00:00",
+        "exit_code": 0,
+        "signal": null,
+        "test_outcome_events": {
+          "pass": 108,
+          "fail": 0,
+          "skip": 0
+        },
+        "outcome_count_unit": "Go test terminal events, including parent tests, subtests, fuzz seed tests, and explicit repetitions",
+        "scope_filters": [
+          "TestCreateDirectoryNativeOwnershipLayerTriad|TestOpenCustodyReadNativeOwnershipLayerTriad|TestFilestorePublicIngressHasCompilerBoundSemanticProof|FuzzCreateDirectoryNativeModeAndExclusivity|FuzzOpenCustodyReadExactInodeAndBytes"
+        ],
+        "not_run": {
+          "count": null,
+          "reason": "Excluded tests and packages are not enumerated; evidence covers only the exact argv scope."
+        },
+        "unavailable": {
+          "count": null,
+          "reason": "Not separately classified by this development recorder; inspect retained setup and process failures."
+        },
+        "timed_out": {
+          "count": null,
+          "reason": "Inspect retained process output and exit; no absence-of-timeout claim inferred from test events."
+        },
+        "artifacts": {
+          "source-digests.json": {
+            "sha256": "d9931a418c33b7e76ef1a8f9d7c4ebf20d0235d8d5fd55dc8a5563d8ee5f7fe6",
+            "bytes": 321685
+          },
+          "tracked.patch": {
+            "sha256": "03eed203b26b0efb11f35cda6ae7b2af8e7309b6f4cc661821f2f3f19136ade8",
+            "bytes": 2926
+          },
+          "stdout": {
+            "sha256": "17b2b64eb3a7fb316bc006a1408b80564e78035243746dc3e8f42e50bffa6754",
+            "bytes": 216425
+          },
+          "working-tree.status": {
+            "sha256": "51182beb7d7ab015b2589d868db98994df11e5bf0e7055b055db74de7d38e570",
+            "bytes": 200
+          },
+          "stderr": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "started.json": {
+            "sha256": "8561f5025cd433eb014d65b833587d2be636e15f5e14bbb235756138df957441",
+            "bytes": 1373
+          },
+          "test-outcomes.json": {
+            "sha256": "6659536db3b6201e70903f157447dd1952ea9e8c11201801a5f2d571a1cd340f",
+            "bytes": 21404
+          }
+        }
+      }
+    },
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-furnace/filestore-198-linux-01/execution.json",
+      "sha256": "f0e534e8e34a21bf48b403f4f54c6b46b5a1cf678b7922e498035f82ce83a112",
+      "bytes": 3026,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "3c637fd779c8c0cd43633fcff09153ac2bfe431b",
+        "dirty": false,
+        "cwd": "/data/repos/primitive",
+        "argv": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-p=1",
+          "-parallel=1",
+          "-timeout=10m",
+          "-o",
+          "/data/evidence/primitive/filestore-198-linux-01/filestore.test",
+          "./filestore"
+        ],
+        "machine": {
+          "system": "Linux",
+          "node": "furnace",
+          "release": "7.1.13-200.fc44.x86_64",
+          "version": "#1 SMP PREEMPT_DYNAMIC Wed Sep  2 13:58:38 UTC 2026",
+          "machine": "x86_64",
+          "processor": ""
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/work/cache/go-build",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 linux/amd64",
+        "test_cache_bypassed": true,
+        "build_cache": "eligible",
+        "attempt": "filestore-198-linux-01",
+        "started_utc": "2026-09-21T11:10:49.113733+00:00",
+        "elapsed_ns": 54584047363,
+        "finished_utc": "2026-09-21T11:11:43.697996+00:00",
+        "exit_code": 1,
+        "signal": null,
+        "test_outcome_events": {
+          "pass": 5503,
+          "fail": 5,
+          "skip": 0
+        },
+        "outcome_count_unit": "Go test terminal events, including parent tests, subtests, fuzz seed tests, and explicit repetitions",
+        "scope_filters": [],
+        "not_run": {
+          "count": null,
+          "reason": "Excluded tests and packages are not enumerated; evidence covers only the exact argv scope."
+        },
+        "unavailable": {
+          "count": null,
+          "reason": "Not separately classified by this development recorder; inspect retained setup and process failures."
+        },
+        "timed_out": {
+          "count": null,
+          "reason": "Inspect retained process output and exit; no absence-of-timeout claim inferred from test events."
+        },
+        "artifacts": {
+          "working-tree.status": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "tracked.patch": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "source-digests.json": {
+            "sha256": "be608896139cf9ddfe704511a957839831519dbbd06305d5d556a7956d79f525",
+            "bytes": 321686
+          },
+          "started.json": {
+            "sha256": "f657135db57771e190450e6d1316b86fd81e632a744af782ab8be8b357fe9d9d",
+            "bytes": 1117
+          },
+          "stdout": {
+            "sha256": "6717a79803d275dcbe1895af8dae85e93e8015bb61166c98f8c805656b96421a",
+            "bytes": 12222805
+          },
+          "stderr": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "filestore.test": {
+            "sha256": "9805144375d6f467aefc433e4270f57511ecaa456549137054035b3a0ac26bb3",
+            "bytes": 13480266
+          },
+          "test-outcomes.json": {
+            "sha256": "1b31ba7d4bdea79e19efc5fae3ad786fde8a6cdb158ec0355547f25b6ea00d8b",
+            "bytes": 1169635
+          }
+        }
+      },
+      "accounting": {
+        "kind": "development-execution-accounting-supplement",
+        "acceptance": false,
+        "revision": "3c637fd779c8c0cd43633fcff09153ac2bfe431b",
+        "argv": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-p=1",
+          "-parallel=1",
+          "-timeout=10m",
+          "-o",
+          "/data/evidence/primitive/filestore-198-linux-01/filestore.test",
+          "./filestore"
+        ],
+        "inventory_path": "/data/evidence/primitive/filestore-198-transfer/stdout",
+        "inventory_sha256": "ec5212267d7ef7824873e675dfd8ebfcac7c850b70e4c3d7fa76fc74c62d8a17",
+        "inventory_top_level_test_and_fuzz_targets": 193,
+        "planned_repetitions": 1,
+        "terminal_event_counts_including_subtests": {
+          "pass": 5503,
+          "fail": 5,
+          "skip": 0
+        },
+        "not_run_top_level_attempts": 0,
+        "not_run_targets_and_attempts": {},
+        "unsettled_started_test_attempts": {},
+        "timed_out_package_executions": 0,
+        "unavailable_package_executions": 0,
+        "process_exit_code": 1,
+        "signal": null,
+        "observed_package_success": false,
+        "scope_note": "Top-level inventory includes all Test and Fuzz functions in filestore; omitted targets count as not run. Runtime subtests are counted only when emitted. Seed execution does not claim a fuzz campaign."
+      },
+      "accounting_sha256": "81c6fb76c1326e8d70382335d14c8ea3d7f058f15d49238a55e062e387dc9819"
+    },
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-furnace/filestore-198-linux-02/execution.json",
+      "sha256": "5242368677c99726fdd77066cf89eb7712460d4ba876bd514dd82041a3e64dfa",
+      "bytes": 3059,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "481f8a0d604fa96e3d43161ffb0a8afe2f598875",
+        "dirty": false,
+        "cwd": "/data/repos/primitive",
+        "argv": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-race",
+          "-shuffle=198",
+          "-p=1",
+          "-parallel=1",
+          "-timeout=10m",
+          "-o",
+          "/data/evidence/primitive/filestore-198-linux-02/filestore.test",
+          "./filestore"
+        ],
+        "machine": {
+          "system": "Linux",
+          "node": "furnace",
+          "release": "7.1.13-200.fc44.x86_64",
+          "version": "#1 SMP PREEMPT_DYNAMIC Wed Sep  2 13:58:38 UTC 2026",
+          "machine": "x86_64",
+          "processor": ""
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/work/cache/go-build",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 linux/amd64",
+        "test_cache_bypassed": true,
+        "build_cache": "eligible",
+        "attempt": "filestore-198-linux-02",
+        "started_utc": "2026-09-21T11:13:59.260467+00:00",
+        "elapsed_ns": 67391833874,
+        "finished_utc": "2026-09-21T11:15:06.652655+00:00",
+        "exit_code": 0,
+        "signal": null,
+        "test_outcome_events": {
+          "pass": 5508,
+          "fail": 0,
+          "skip": 0
+        },
+        "outcome_count_unit": "Go test terminal events, including parent tests, subtests, fuzz seed tests, and explicit repetitions",
+        "scope_filters": [],
+        "not_run": {
+          "count": null,
+          "reason": "Excluded tests and packages are not enumerated; evidence covers only the exact argv scope."
+        },
+        "unavailable": {
+          "count": null,
+          "reason": "Not separately classified by this development recorder; inspect retained setup and process failures."
+        },
+        "timed_out": {
+          "count": null,
+          "reason": "Inspect retained process output and exit; no absence-of-timeout claim inferred from test events."
+        },
+        "artifacts": {
+          "working-tree.status": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "tracked.patch": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "source-digests.json": {
+            "sha256": "40d7ddd4c793a8107aaa5d6dcd3c0dc593f774f02f8e45f5605d3c006085aa3b",
+            "bytes": 321686
+          },
+          "started.json": {
+            "sha256": "d8ced3cbf0fe7ed6d3340ef98e0186d3268460bf3675f9745c917a48f42ca270",
+            "bytes": 1150
+          },
+          "stdout": {
+            "sha256": "c2ec03d975922d2dbec41be92c6a720ddac8740ef0fc860a7c218671efc25e6e",
+            "bytes": 12221276
+          },
+          "stderr": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "filestore.test": {
+            "sha256": "91e1c4c995f1272b9733766fa0bb8b81b371630c73404d12958c4d83431d02a3",
+            "bytes": 17199265
+          },
+          "test-outcomes.json": {
+            "sha256": "5d690dedc36d9df38c2fceb006c644df4710bd9fd1f4d4aff1d4c91c6c4ad49a",
+            "bytes": 1169819
+          }
+        }
+      },
+      "accounting": {
+        "kind": "development-execution-accounting-supplement",
+        "acceptance": false,
+        "revision": "481f8a0d604fa96e3d43161ffb0a8afe2f598875",
+        "argv": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-race",
+          "-shuffle=198",
+          "-p=1",
+          "-parallel=1",
+          "-timeout=10m",
+          "-o",
+          "/data/evidence/primitive/filestore-198-linux-02/filestore.test",
+          "./filestore"
+        ],
+        "inventory_path": "/data/evidence/primitive/filestore-198-transfer/stdout",
+        "inventory_sha256": "ec5212267d7ef7824873e675dfd8ebfcac7c850b70e4c3d7fa76fc74c62d8a17",
+        "inventory_top_level_test_and_fuzz_targets": 193,
+        "planned_repetitions": 1,
+        "terminal_event_counts_including_subtests": {
+          "pass": 5508,
+          "fail": 0,
+          "skip": 0
+        },
+        "not_run_top_level_attempts": 0,
+        "not_run_targets_and_attempts": {},
+        "unsettled_started_test_attempts": {},
+        "timed_out_package_executions": 0,
+        "unavailable_package_executions": 0,
+        "process_exit_code": 0,
+        "signal": null,
+        "observed_package_success": true,
+        "scope_note": "Top-level inventory includes all Test and Fuzz functions in filestore; omitted targets count as not run. Runtime subtests are counted only when emitted. Seed execution does not claim a fuzz campaign."
+      },
+      "accounting_sha256": "046bee7d7cbcd01d6dd4805768dde58ef70aac946ddbfd1bd0abda50a757604e"
+    },
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-furnace/filestore-198-linux-fuzz-custody-01/execution.json",
+      "sha256": "cc98e3a4813e4397b2e72d28ffe513c8699e4c405856a5a3495040b14d36cff2",
+      "bytes": 2996,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "481f8a0d604fa96e3d43161ffb0a8afe2f598875",
+        "dirty": false,
+        "cwd": "/data/repos/primitive",
+        "argv": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-p=1",
+          "-parallel=1",
+          "-timeout=1m",
+          "-run",
+          "^$",
+          "-fuzz",
+          "^FuzzOpenCustodyReadExactInodeAndBytes$",
+          "-fuzztime=2s",
+          "-fuzzminimizetime=1s",
+          "./filestore"
+        ],
+        "machine": {
+          "system": "Linux",
+          "node": "furnace",
+          "release": "7.1.13-200.fc44.x86_64",
+          "version": "#1 SMP PREEMPT_DYNAMIC Wed Sep  2 13:58:38 UTC 2026",
+          "machine": "x86_64",
+          "processor": ""
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/work/cache/go-build",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 linux/amd64",
+        "test_cache_bypassed": true,
+        "build_cache": "eligible",
+        "attempt": "filestore-198-linux-fuzz-custody-01",
+        "started_utc": "2026-09-21T11:16:54.067345+00:00",
+        "elapsed_ns": 2691112113,
+        "finished_utc": "2026-09-21T11:16:56.758778+00:00",
+        "exit_code": 0,
+        "signal": null,
+        "test_outcome_events": {
+          "pass": 1,
+          "fail": 0,
+          "skip": 0
+        },
+        "outcome_count_unit": "Go test terminal events, including parent tests, subtests, fuzz seed tests, and explicit repetitions",
+        "scope_filters": [
+          "^$",
+          "^FuzzOpenCustodyReadExactInodeAndBytes$"
+        ],
+        "not_run": {
+          "count": null,
+          "reason": "Excluded tests and packages are not enumerated; evidence covers only the exact argv scope."
+        },
+        "unavailable": {
+          "count": null,
+          "reason": "Not separately classified by this development recorder; inspect retained setup and process failures."
+        },
+        "timed_out": {
+          "count": null,
+          "reason": "Inspect retained process output and exit; no absence-of-timeout claim inferred from test events."
+        },
+        "artifacts": {
+          "working-tree.status": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "tracked.patch": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "source-digests.json": {
+            "sha256": "40d7ddd4c793a8107aaa5d6dcd3c0dc593f774f02f8e45f5605d3c006085aa3b",
+            "bytes": 321686
+          },
+          "started.json": {
+            "sha256": "1e839374c2539413f0787e8dc8774048b083554244b66b92d156dbc2fdbeea85",
+            "bytes": 1179
+          },
+          "stdout": {
+            "sha256": "a55f8512561063d006ad74c3bfc45b7b1d42d7f0e02259b28cd2215acf14142a",
+            "bytes": 2229
+          },
+          "stderr": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "test-outcomes.json": {
+            "sha256": "d0ed0f1d4705573dd2cc3b0b24aac844a4f067eed4e417a0d35cab2341f6705a",
+            "bytes": 169
+          }
+        }
+      }
+    },
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-furnace/filestore-198-linux-fuzz-directory-01/execution.json",
+      "sha256": "eeddc770fceb7f26c452bb2f57f56f8832bd4c2c3d7c6b2fd11a8c3dd4132442",
+      "bytes": 3011,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "481f8a0d604fa96e3d43161ffb0a8afe2f598875",
+        "dirty": false,
+        "cwd": "/data/repos/primitive",
+        "argv": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-p=1",
+          "-parallel=1",
+          "-timeout=1m",
+          "-run",
+          "^$",
+          "-fuzz",
+          "^FuzzCreateDirectoryNativeModeAndExclusivity$",
+          "-fuzztime=2s",
+          "-fuzzminimizetime=1s",
+          "./filestore"
+        ],
+        "machine": {
+          "system": "Linux",
+          "node": "furnace",
+          "release": "7.1.13-200.fc44.x86_64",
+          "version": "#1 SMP PREEMPT_DYNAMIC Wed Sep  2 13:58:38 UTC 2026",
+          "machine": "x86_64",
+          "processor": ""
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/work/cache/go-build",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 linux/amd64",
+        "test_cache_bypassed": true,
+        "build_cache": "eligible",
+        "attempt": "filestore-198-linux-fuzz-directory-01",
+        "started_utc": "2026-09-21T11:15:44.875192+00:00",
+        "elapsed_ns": 53375486960,
+        "finished_utc": "2026-09-21T11:16:38.251005+00:00",
+        "exit_code": 0,
+        "signal": null,
+        "test_outcome_events": {
+          "pass": 1,
+          "fail": 0,
+          "skip": 0
+        },
+        "outcome_count_unit": "Go test terminal events, including parent tests, subtests, fuzz seed tests, and explicit repetitions",
+        "scope_filters": [
+          "^$",
+          "^FuzzCreateDirectoryNativeModeAndExclusivity$"
+        ],
+        "not_run": {
+          "count": null,
+          "reason": "Excluded tests and packages are not enumerated; evidence covers only the exact argv scope."
+        },
+        "unavailable": {
+          "count": null,
+          "reason": "Not separately classified by this development recorder; inspect retained setup and process failures."
+        },
+        "timed_out": {
+          "count": null,
+          "reason": "Inspect retained process output and exit; no absence-of-timeout claim inferred from test events."
+        },
+        "artifacts": {
+          "working-tree.status": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "tracked.patch": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "source-digests.json": {
+            "sha256": "40d7ddd4c793a8107aaa5d6dcd3c0dc593f774f02f8e45f5605d3c006085aa3b",
+            "bytes": 321686
+          },
+          "started.json": {
+            "sha256": "693410f32a12d6d071cfe4e8db3b96210a595a01b566b2f8c927a1c6a9de58a0",
+            "bytes": 1187
+          },
+          "stdout": {
+            "sha256": "5bc9318148bc62b02d095d80ea7ec8631ce8ae8ff791a0c8a1c52d3b179a2dde",
+            "bytes": 2281
+          },
+          "stderr": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "test-outcomes.json": {
+            "sha256": "978d6094e536ba9b6546df207e0f238a791e2239ab94330308e02a68b1101564",
+            "bytes": 175
+          }
+        }
+      }
+    },
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-fuzz-custody-01/execution.json",
+      "sha256": "24d5bf1eebd3828348454b3629fd983fcf70246177925909974b26d00e937e36",
+      "bytes": 3079,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "481f8a0d604fa96e3d43161ffb0a8afe2f598875",
+        "dirty": false,
+        "cwd": "/Users/d/code/primitive",
+        "argv": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-p=1",
+          "-parallel=1",
+          "-timeout=1m",
+          "-run",
+          "^$",
+          "-fuzz",
+          "^FuzzOpenCustodyReadExactInodeAndBytes$",
+          "-fuzztime=2s",
+          "-fuzzminimizetime=1s",
+          "./filestore"
+        ],
+        "machine": {
+          "system": "Darwin",
+          "node": "Ases-MBP.localdomain",
+          "release": "27.0.0",
+          "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+          "machine": "arm64",
+          "processor": "arm"
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 darwin/arm64",
+        "test_cache_bypassed": true,
+        "build_cache": "eligible",
+        "attempt": "primitive-filestore-198-fuzz-custody-01",
+        "started_utc": "2026-09-21T11:19:25.571846+00:00",
+        "elapsed_ns": 2954768250,
+        "finished_utc": "2026-09-21T11:19:28.527237+00:00",
+        "exit_code": 0,
+        "signal": null,
+        "test_outcome_events": {
+          "pass": 1,
+          "fail": 0,
+          "skip": 0
+        },
+        "outcome_count_unit": "Go test terminal events, including parent tests, subtests, fuzz seed tests, and explicit repetitions",
+        "scope_filters": [
+          "^$",
+          "^FuzzOpenCustodyReadExactInodeAndBytes$"
+        ],
+        "not_run": {
+          "count": null,
+          "reason": "Excluded tests and packages are not enumerated; evidence covers only the exact argv scope."
+        },
+        "unavailable": {
+          "count": null,
+          "reason": "Not separately classified by this development recorder; inspect retained setup and process failures."
+        },
+        "timed_out": {
+          "count": null,
+          "reason": "Inspect retained process output and exit; no absence-of-timeout claim inferred from test events."
+        },
+        "artifacts": {
+          "source-digests.json": {
+            "sha256": "40d7ddd4c793a8107aaa5d6dcd3c0dc593f774f02f8e45f5605d3c006085aa3b",
+            "bytes": 321686
+          },
+          "tracked.patch": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "stdout": {
+            "sha256": "01e695a7cc90a672d4988913a9760d2d795399cc810498aedc28f27d8f2b0a07",
+            "bytes": 2193
+          },
+          "working-tree.status": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "stderr": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "started.json": {
+            "sha256": "96e723ebea1812eda5b271ad74c11510b8cab59df1cfde84fbf730a146f83fce",
+            "bytes": 1262
+          },
+          "test-outcomes.json": {
+            "sha256": "591c4b12646364fec09e4d261fe9ecb4949080966bd53064bcd40ea504d44b03",
+            "bytes": 169
+          }
+        }
+      }
+    },
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-fuzz-directory-01/execution.json",
+      "sha256": "1222aa62dd2605d7033d70e03152ee0d26dc2ae58eecf43de2a6e34633fac1a9",
+      "bytes": 3093,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "481f8a0d604fa96e3d43161ffb0a8afe2f598875",
+        "dirty": false,
+        "cwd": "/Users/d/code/primitive",
+        "argv": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-p=1",
+          "-parallel=1",
+          "-timeout=1m",
+          "-run",
+          "^$",
+          "-fuzz",
+          "^FuzzCreateDirectoryNativeModeAndExclusivity$",
+          "-fuzztime=2s",
+          "-fuzzminimizetime=1s",
+          "./filestore"
+        ],
+        "machine": {
+          "system": "Darwin",
+          "node": "Ases-MBP.localdomain",
+          "release": "27.0.0",
+          "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+          "machine": "arm64",
+          "processor": "arm"
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 darwin/arm64",
+        "test_cache_bypassed": true,
+        "build_cache": "eligible",
+        "attempt": "primitive-filestore-198-fuzz-directory-01",
+        "started_utc": "2026-09-21T11:18:46.162688+00:00",
+        "elapsed_ns": 7899663583,
+        "finished_utc": "2026-09-21T11:18:54.063158+00:00",
+        "exit_code": 0,
+        "signal": null,
+        "test_outcome_events": {
+          "pass": 1,
+          "fail": 0,
+          "skip": 0
+        },
+        "outcome_count_unit": "Go test terminal events, including parent tests, subtests, fuzz seed tests, and explicit repetitions",
+        "scope_filters": [
+          "^$",
+          "^FuzzCreateDirectoryNativeModeAndExclusivity$"
+        ],
+        "not_run": {
+          "count": null,
+          "reason": "Excluded tests and packages are not enumerated; evidence covers only the exact argv scope."
+        },
+        "unavailable": {
+          "count": null,
+          "reason": "Not separately classified by this development recorder; inspect retained setup and process failures."
+        },
+        "timed_out": {
+          "count": null,
+          "reason": "Inspect retained process output and exit; no absence-of-timeout claim inferred from test events."
+        },
+        "artifacts": {
+          "source-digests.json": {
+            "sha256": "40d7ddd4c793a8107aaa5d6dcd3c0dc593f774f02f8e45f5605d3c006085aa3b",
+            "bytes": 321686
+          },
+          "tracked.patch": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "stdout": {
+            "sha256": "69f0690d1559996c52e6ced56996b8c1f65fed67eb4e58da80692a74b3ff56c0",
+            "bytes": 2248
+          },
+          "working-tree.status": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "stderr": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "started.json": {
+            "sha256": "b7cc6e9e30d5686d69bf0d670f1e3e925e3914d1f2dc066efaee4f75b5fdfb3d",
+            "bytes": 1270
+          },
+          "test-outcomes.json": {
+            "sha256": "77505aa8b6ffb3c5c84ca7f6da38847a26c0768e1be3526ddf9c66dadd944077",
+            "bytes": 175
+          }
+        }
+      }
+    },
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-gates-01/build/execution.json",
+      "sha256": "4a0144060ac422f57974accc069e50d0faca1c49d79ccefb1b051382f39ed2b4",
+      "bytes": 1966,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "d882c1042b5a11cfe6dcb567ef295d2f88c12cc1",
+        "dirty": true,
+        "cwd": "/Users/d/code/primitive",
+        "argv": [
+          "go",
+          "build",
+          "-mod=readonly",
+          "-p=1",
+          "./filestore"
+        ],
+        "machine": {
+          "system": "Darwin",
+          "node": "Ases-MBP.localdomain",
+          "release": "27.0.0",
+          "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+          "machine": "arm64",
+          "processor": "arm"
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 darwin/arm64",
+        "test_cache_bypassed": false,
+        "build_cache": "eligible",
+        "attempt": "build",
+        "started_utc": "2026-09-21T11:04:28.991610+00:00",
+        "elapsed_ns": 767847750,
+        "finished_utc": "2026-09-21T11:04:29.762652+00:00",
+        "exit_code": 0,
+        "signal": null,
+        "artifacts": {
+          "source-digests.json": {
+            "sha256": "664e68a7ba74d3ebdca2b227b30c0a05b5f9b1221c7d4425201ce87552ad8003",
+            "bytes": 321686
+          },
+          "tracked.patch": {
+            "sha256": "03eed203b26b0efb11f35cda6ae7b2af8e7309b6f4cc661821f2f3f19136ade8",
+            "bytes": 2926
+          },
+          "stdout": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "working-tree.status": {
+            "sha256": "51182beb7d7ab015b2589d868db98994df11e5bf0e7055b055db74de7d38e570",
+            "bytes": 200
+          },
+          "stderr": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "started.json": {
+            "sha256": "5228ae03d365577dc351745c3b58f3d41ad01de501ca50a02b8323c7441d3a71",
+            "bytes": 1032
+          }
+        }
+      }
+    },
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-gates-01/complexity/execution.json",
+      "sha256": "55e98ab68ce50d64dd2f832f58b49efe0fe94bc8235590363e812683b8f65404",
+      "bytes": 1982,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "d882c1042b5a11cfe6dcb567ef295d2f88c12cc1",
+        "dirty": true,
+        "cwd": "/Users/d/code/primitive",
+        "argv": [
+          "gocyclo",
+          "-over",
+          "10",
+          "--ignore",
+          "_test.go",
+          "filestore"
+        ],
+        "machine": {
+          "system": "Darwin",
+          "node": "Ases-MBP.localdomain",
+          "release": "27.0.0",
+          "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+          "machine": "arm64",
+          "processor": "arm"
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 darwin/arm64",
+        "test_cache_bypassed": false,
+        "build_cache": "eligible",
+        "attempt": "complexity",
+        "started_utc": "2026-09-21T11:04:45.813718+00:00",
+        "elapsed_ns": 31049292,
+        "finished_utc": "2026-09-21T11:04:45.845930+00:00",
+        "exit_code": 0,
+        "signal": null,
+        "artifacts": {
+          "source-digests.json": {
+            "sha256": "664e68a7ba74d3ebdca2b227b30c0a05b5f9b1221c7d4425201ce87552ad8003",
+            "bytes": 321686
+          },
+          "tracked.patch": {
+            "sha256": "03eed203b26b0efb11f35cda6ae7b2af8e7309b6f4cc661821f2f3f19136ade8",
+            "bytes": 2926
+          },
+          "stdout": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "working-tree.status": {
+            "sha256": "51182beb7d7ab015b2589d868db98994df11e5bf0e7055b055db74de7d38e570",
+            "bytes": 200
+          },
+          "stderr": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "started.json": {
+            "sha256": "db0380a4d12f2adaa87d66175fece6337e41388fc1c84c460468eba9aa474dbd",
+            "bytes": 1049
+          }
+        }
+      }
+    },
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-gates-01/constants/execution.json",
+      "sha256": "bff0c0f7d6a451f8aa493bc54aa566eace130fac1c76ae4054d1e9389b42e051",
+      "bytes": 2028,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "d882c1042b5a11cfe6dcb567ef295d2f88c12cc1",
+        "dirty": true,
+        "cwd": "/Users/d/code/primitive",
+        "argv": [
+          "goconst",
+          "-grouped",
+          "-min-length",
+          "4",
+          "-min-occurrences",
+          "3",
+          "-ignore-tests",
+          "./filestore"
+        ],
+        "machine": {
+          "system": "Darwin",
+          "node": "Ases-MBP.localdomain",
+          "release": "27.0.0",
+          "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+          "machine": "arm64",
+          "processor": "arm"
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 darwin/arm64",
+        "test_cache_bypassed": false,
+        "build_cache": "eligible",
+        "attempt": "constants",
+        "started_utc": "2026-09-21T11:04:46.118326+00:00",
+        "elapsed_ns": 42594167,
+        "finished_utc": "2026-09-21T11:04:46.164575+00:00",
+        "exit_code": 0,
+        "signal": null,
+        "artifacts": {
+          "source-digests.json": {
+            "sha256": "664e68a7ba74d3ebdca2b227b30c0a05b5f9b1221c7d4425201ce87552ad8003",
+            "bytes": 321686
+          },
+          "tracked.patch": {
+            "sha256": "03eed203b26b0efb11f35cda6ae7b2af8e7309b6f4cc661821f2f3f19136ade8",
+            "bytes": 2926
+          },
+          "stdout": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "working-tree.status": {
+            "sha256": "51182beb7d7ab015b2589d868db98994df11e5bf0e7055b055db74de7d38e570",
+            "bytes": 200
+          },
+          "stderr": {
+            "sha256": "0e8ea312e7b2531a9b3b59ea56068a2ad791cfb565057da3863d0df4bf2a149c",
+            "bytes": 136
+          },
+          "started.json": {
+            "sha256": "a0f97260230cf7c64eda2674639dbe63ad25bbc10444148f6fd763abee771287",
+            "bytes": 1093
+          }
+        }
+      }
+    },
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-gates-01/dead-code/execution.json",
+      "sha256": "a0370c9a57a74ffa6aedb3fcaacfa026a18718de2ccc76b143fa5ee6432a279f",
+      "bytes": 1948,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "d882c1042b5a11cfe6dcb567ef295d2f88c12cc1",
+        "dirty": true,
+        "cwd": "/Users/d/code/primitive",
+        "argv": [
+          "deadcode",
+          "-test",
+          "./filestore"
+        ],
+        "machine": {
+          "system": "Darwin",
+          "node": "Ases-MBP.localdomain",
+          "release": "27.0.0",
+          "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+          "machine": "arm64",
+          "processor": "arm"
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 darwin/arm64",
+        "test_cache_bypassed": false,
+        "build_cache": "eligible",
+        "attempt": "dead-code",
+        "started_utc": "2026-09-21T11:04:49.976209+00:00",
+        "elapsed_ns": 2630318125,
+        "finished_utc": "2026-09-21T11:04:52.607086+00:00",
+        "exit_code": 0,
+        "signal": null,
+        "artifacts": {
+          "source-digests.json": {
+            "sha256": "664e68a7ba74d3ebdca2b227b30c0a05b5f9b1221c7d4425201ce87552ad8003",
+            "bytes": 321686
+          },
+          "tracked.patch": {
+            "sha256": "03eed203b26b0efb11f35cda6ae7b2af8e7309b6f4cc661821f2f3f19136ade8",
+            "bytes": 2926
+          },
+          "stdout": {
+            "sha256": "e86fd8d648058a8cd43598cabba326973a3ca2353a47833ca5b819cdfb4bdeb7",
+            "bytes": 25454
+          },
+          "working-tree.status": {
+            "sha256": "51182beb7d7ab015b2589d868db98994df11e5bf0e7055b055db74de7d38e570",
+            "bytes": 200
+          },
+          "stderr": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "started.json": {
+            "sha256": "b3d3e63206f065845c5e075e0d4426a0227ec42db21431ce239ab333db049639",
+            "bytes": 1009
+          }
+        }
+      }
+    },
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-gates-01/errcheck/execution.json",
+      "sha256": "0635220e714daeb9c1be24c33ff3e4ea1ca666e6b6003b54cc4028ad97b84a2e",
+      "bytes": 1928,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "d882c1042b5a11cfe6dcb567ef295d2f88c12cc1",
+        "dirty": true,
+        "cwd": "/Users/d/code/primitive",
+        "argv": [
+          "errcheck",
+          "./filestore"
+        ],
+        "machine": {
+          "system": "Darwin",
+          "node": "Ases-MBP.localdomain",
+          "release": "27.0.0",
+          "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+          "machine": "arm64",
+          "processor": "arm"
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 darwin/arm64",
+        "test_cache_bypassed": false,
+        "build_cache": "eligible",
+        "attempt": "errcheck",
+        "started_utc": "2026-09-21T11:04:35.510378+00:00",
+        "elapsed_ns": 468933875,
+        "finished_utc": "2026-09-21T11:04:35.981092+00:00",
+        "exit_code": 0,
+        "signal": null,
+        "artifacts": {
+          "source-digests.json": {
+            "sha256": "664e68a7ba74d3ebdca2b227b30c0a05b5f9b1221c7d4425201ce87552ad8003",
+            "bytes": 321686
+          },
+          "tracked.patch": {
+            "sha256": "03eed203b26b0efb11f35cda6ae7b2af8e7309b6f4cc661821f2f3f19136ade8",
+            "bytes": 2926
+          },
+          "stdout": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "working-tree.status": {
+            "sha256": "51182beb7d7ab015b2589d868db98994df11e5bf0e7055b055db74de7d38e570",
+            "bytes": 200
+          },
+          "stderr": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "started.json": {
+            "sha256": "0907c8de1ff75f47b1878dcbb07157658bd3f119f3f6e93f3c1bd79e7b963bde",
+            "bytes": 995
+          }
+        }
+      }
+    },
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-gates-01/fieldalignment/execution.json",
+      "sha256": "df872ab80babc4652e4ff50bd4ccd2b786f56a9f675164e22bb5bcfe318f8033",
+      "bytes": 1941,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "d882c1042b5a11cfe6dcb567ef295d2f88c12cc1",
+        "dirty": true,
+        "cwd": "/Users/d/code/primitive",
+        "argv": [
+          "fieldalignment",
+          "./filestore"
+        ],
+        "machine": {
+          "system": "Darwin",
+          "node": "Ases-MBP.localdomain",
+          "release": "27.0.0",
+          "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+          "machine": "arm64",
+          "processor": "arm"
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 darwin/arm64",
+        "test_cache_bypassed": false,
+        "build_cache": "eligible",
+        "attempt": "fieldalignment",
+        "started_utc": "2026-09-21T11:04:46.445421+00:00",
+        "elapsed_ns": 508312000,
+        "finished_utc": "2026-09-21T11:04:46.954287+00:00",
+        "exit_code": 0,
+        "signal": null,
+        "artifacts": {
+          "source-digests.json": {
+            "sha256": "664e68a7ba74d3ebdca2b227b30c0a05b5f9b1221c7d4425201ce87552ad8003",
+            "bytes": 321686
+          },
+          "tracked.patch": {
+            "sha256": "03eed203b26b0efb11f35cda6ae7b2af8e7309b6f4cc661821f2f3f19136ade8",
+            "bytes": 2926
+          },
+          "stdout": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "working-tree.status": {
+            "sha256": "51182beb7d7ab015b2589d868db98994df11e5bf0e7055b055db74de7d38e570",
+            "bytes": 200
+          },
+          "stderr": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "started.json": {
+            "sha256": "99401c9d3a5d409f0b4c534a16c38d652564474a8a197c3d6e67cd2eb891ffb7",
+            "bytes": 1007
+          }
+        }
+      }
+    },
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-gates-01/format/execution.json",
+      "sha256": "1c336e91381a68c4a02e03624b89168c79669f51900fcaa33aeeafdaacbd2e12",
+      "bytes": 1930,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "d882c1042b5a11cfe6dcb567ef295d2f88c12cc1",
+        "dirty": true,
+        "cwd": "/Users/d/code/primitive",
+        "argv": [
+          "gofmt",
+          "-l",
+          "filestore"
+        ],
+        "machine": {
+          "system": "Darwin",
+          "node": "Ases-MBP.localdomain",
+          "release": "27.0.0",
+          "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+          "machine": "arm64",
+          "processor": "arm"
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 darwin/arm64",
+        "test_cache_bypassed": false,
+        "build_cache": "eligible",
+        "attempt": "format",
+        "started_utc": "2026-09-21T11:04:28.635018+00:00",
+        "elapsed_ns": 86905708,
+        "finished_utc": "2026-09-21T11:04:28.723890+00:00",
+        "exit_code": 0,
+        "signal": null,
+        "artifacts": {
+          "source-digests.json": {
+            "sha256": "664e68a7ba74d3ebdca2b227b30c0a05b5f9b1221c7d4425201ce87552ad8003",
+            "bytes": 321686
+          },
+          "tracked.patch": {
+            "sha256": "03eed203b26b0efb11f35cda6ae7b2af8e7309b6f4cc661821f2f3f19136ade8",
+            "bytes": 2926
+          },
+          "stdout": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "working-tree.status": {
+            "sha256": "51182beb7d7ab015b2589d868db98994df11e5bf0e7055b055db74de7d38e570",
+            "bytes": 200
+          },
+          "stderr": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "started.json": {
+            "sha256": "a46be1ff88bf819f394a750b691cd327f027f40ecd9ee44e970b7cf3ca84b217",
+            "bytes": 998
+          }
+        }
+      }
+    },
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-gates-01/go-fix/execution.json",
+      "sha256": "8311318e3c9658fbe64b10d32a86efcdf88f6d3adb7625a062601deada879395",
+      "bytes": 1946,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "d882c1042b5a11cfe6dcb567ef295d2f88c12cc1",
+        "dirty": true,
+        "cwd": "/Users/d/code/primitive",
+        "argv": [
+          "go",
+          "fix",
+          "-diff",
+          "./filestore"
+        ],
+        "machine": {
+          "system": "Darwin",
+          "node": "Ases-MBP.localdomain",
+          "release": "27.0.0",
+          "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+          "machine": "arm64",
+          "processor": "arm"
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 darwin/arm64",
+        "test_cache_bypassed": false,
+        "build_cache": "eligible",
+        "attempt": "go-fix",
+        "started_utc": "2026-09-21T11:04:30.070385+00:00",
+        "elapsed_ns": 1435355667,
+        "finished_utc": "2026-09-21T11:04:31.510759+00:00",
+        "exit_code": 0,
+        "signal": null,
+        "artifacts": {
+          "source-digests.json": {
+            "sha256": "664e68a7ba74d3ebdca2b227b30c0a05b5f9b1221c7d4425201ce87552ad8003",
+            "bytes": 321686
+          },
+          "tracked.patch": {
+            "sha256": "03eed203b26b0efb11f35cda6ae7b2af8e7309b6f4cc661821f2f3f19136ade8",
+            "bytes": 2926
+          },
+          "stdout": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "working-tree.status": {
+            "sha256": "51182beb7d7ab015b2589d868db98994df11e5bf0e7055b055db74de7d38e570",
+            "bytes": 200
+          },
+          "stderr": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "started.json": {
+            "sha256": "8b2f86f9a6154e7cfc6d3eabbfb71739b6d28285591490ea981e65177a71f636",
+            "bytes": 1011
+          }
+        }
+      }
+    },
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-gates-01/nilaway/execution.json",
+      "sha256": "c67010dc9ab2f482e8cdc2cc21473d112e9c5599c2e1188a8280e8ec733b1b66",
+      "bytes": 1927,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "d882c1042b5a11cfe6dcb567ef295d2f88c12cc1",
+        "dirty": true,
+        "cwd": "/Users/d/code/primitive",
+        "argv": [
+          "nilaway",
+          "./filestore"
+        ],
+        "machine": {
+          "system": "Darwin",
+          "node": "Ases-MBP.localdomain",
+          "release": "27.0.0",
+          "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+          "machine": "arm64",
+          "processor": "arm"
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 darwin/arm64",
+        "test_cache_bypassed": false,
+        "build_cache": "eligible",
+        "attempt": "nilaway",
+        "started_utc": "2026-09-21T11:04:36.273183+00:00",
+        "elapsed_ns": 8561651333,
+        "finished_utc": "2026-09-21T11:04:44.835853+00:00",
+        "exit_code": 0,
+        "signal": null,
+        "artifacts": {
+          "source-digests.json": {
+            "sha256": "664e68a7ba74d3ebdca2b227b30c0a05b5f9b1221c7d4425201ce87552ad8003",
+            "bytes": 321686
+          },
+          "tracked.patch": {
+            "sha256": "03eed203b26b0efb11f35cda6ae7b2af8e7309b6f4cc661821f2f3f19136ade8",
+            "bytes": 2926
+          },
+          "stdout": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "working-tree.status": {
+            "sha256": "51182beb7d7ab015b2589d868db98994df11e5bf0e7055b055db74de7d38e570",
+            "bytes": 200
+          },
+          "stderr": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "started.json": {
+            "sha256": "226e84d4b73240225af27786fddfffad664fccdb3a5462da6bfdb98adb333fc4",
+            "bytes": 993
+          }
+        }
+      }
+    },
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-gates-01/security/execution.json",
+      "sha256": "b14c98da118691328bd4863849e5b0d1866c992fd6fe9a51e4708c419b26aed1",
+      "bytes": 1941,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "d882c1042b5a11cfe6dcb567ef295d2f88c12cc1",
+        "dirty": true,
+        "cwd": "/Users/d/code/primitive",
+        "argv": [
+          "gosec",
+          "-quiet",
+          "./filestore"
+        ],
+        "machine": {
+          "system": "Darwin",
+          "node": "Ases-MBP.localdomain",
+          "release": "27.0.0",
+          "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+          "machine": "arm64",
+          "processor": "arm"
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 darwin/arm64",
+        "test_cache_bypassed": false,
+        "build_cache": "eligible",
+        "attempt": "security",
+        "started_utc": "2026-09-21T11:04:47.247561+00:00",
+        "elapsed_ns": 1057970416,
+        "finished_utc": "2026-09-21T11:04:48.307295+00:00",
+        "exit_code": 0,
+        "signal": null,
+        "artifacts": {
+          "source-digests.json": {
+            "sha256": "664e68a7ba74d3ebdca2b227b30c0a05b5f9b1221c7d4425201ce87552ad8003",
+            "bytes": 321686
+          },
+          "tracked.patch": {
+            "sha256": "03eed203b26b0efb11f35cda6ae7b2af8e7309b6f4cc661821f2f3f19136ade8",
+            "bytes": 2926
+          },
+          "stdout": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "working-tree.status": {
+            "sha256": "51182beb7d7ab015b2589d868db98994df11e5bf0e7055b055db74de7d38e570",
+            "bytes": 200
+          },
+          "stderr": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "started.json": {
+            "sha256": "412c46dd86409fd7e087bc66cbbecb1dd74cdfb478e87d2f70db5ccf449c71df",
+            "bytes": 1006
+          }
+        }
+      }
+    },
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-gates-01/staticcheck/execution.json",
+      "sha256": "4f715ef9121ce0acb87f182b3c8e6e51d457fd364c003ecac045669cc514b90c",
+      "bytes": 1938,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "d882c1042b5a11cfe6dcb567ef295d2f88c12cc1",
+        "dirty": true,
+        "cwd": "/Users/d/code/primitive",
+        "argv": [
+          "staticcheck",
+          "./filestore"
+        ],
+        "machine": {
+          "system": "Darwin",
+          "node": "Ases-MBP.localdomain",
+          "release": "27.0.0",
+          "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+          "machine": "arm64",
+          "processor": "arm"
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 darwin/arm64",
+        "test_cache_bypassed": false,
+        "build_cache": "eligible",
+        "attempt": "staticcheck",
+        "started_utc": "2026-09-21T11:04:33.742255+00:00",
+        "elapsed_ns": 1467383667,
+        "finished_utc": "2026-09-21T11:04:35.210386+00:00",
+        "exit_code": 1,
+        "signal": null,
+        "artifacts": {
+          "source-digests.json": {
+            "sha256": "664e68a7ba74d3ebdca2b227b30c0a05b5f9b1221c7d4425201ce87552ad8003",
+            "bytes": 321686
+          },
+          "tracked.patch": {
+            "sha256": "03eed203b26b0efb11f35cda6ae7b2af8e7309b6f4cc661821f2f3f19136ade8",
+            "bytes": 2926
+          },
+          "stdout": {
+            "sha256": "9e66f797dbcf345c70028328c0fe7a5cbd1e62e9dbaef5493d57e8749aafed11",
+            "bytes": 340
+          },
+          "working-tree.status": {
+            "sha256": "51182beb7d7ab015b2589d868db98994df11e5bf0e7055b055db74de7d38e570",
+            "bytes": 200
+          },
+          "stderr": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "started.json": {
+            "sha256": "fa06babcd4b1832769539d16eb6d852d6ea1355a9ff17c406380b40c99dc0edf",
+            "bytes": 1001
+          }
+        }
+      }
+    },
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-gates-01/vet/execution.json",
+      "sha256": "47acf4720221567128638ad1d1d54de28682955a2dff0d949e958f7ab7cd56ed",
+      "bytes": 1963,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "d882c1042b5a11cfe6dcb567ef295d2f88c12cc1",
+        "dirty": true,
+        "cwd": "/Users/d/code/primitive",
+        "argv": [
+          "go",
+          "vet",
+          "-mod=readonly",
+          "-p=1",
+          "./filestore"
+        ],
+        "machine": {
+          "system": "Darwin",
+          "node": "Ases-MBP.localdomain",
+          "release": "27.0.0",
+          "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+          "machine": "arm64",
+          "processor": "arm"
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 darwin/arm64",
+        "test_cache_bypassed": false,
+        "build_cache": "eligible",
+        "attempt": "vet",
+        "started_utc": "2026-09-21T11:04:31.868372+00:00",
+        "elapsed_ns": 1557162209,
+        "finished_utc": "2026-09-21T11:04:33.433384+00:00",
+        "exit_code": 0,
+        "signal": null,
+        "artifacts": {
+          "source-digests.json": {
+            "sha256": "664e68a7ba74d3ebdca2b227b30c0a05b5f9b1221c7d4425201ce87552ad8003",
+            "bytes": 321686
+          },
+          "tracked.patch": {
+            "sha256": "03eed203b26b0efb11f35cda6ae7b2af8e7309b6f4cc661821f2f3f19136ade8",
+            "bytes": 2926
+          },
+          "stdout": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "working-tree.status": {
+            "sha256": "51182beb7d7ab015b2589d868db98994df11e5bf0e7055b055db74de7d38e570",
+            "bytes": 200
+          },
+          "stderr": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "started.json": {
+            "sha256": "1d37505f2c34e942c4a1e3d16cd7ac62a757f7b3f18596d3d05cec7f826cb7ee",
+            "bytes": 1028
+          }
+        }
+      }
+    },
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-gates-01/vulnerabilities/execution.json",
+      "sha256": "992e84e23cf30029b6df6b6fffb75528e10040b70a88beefa15304e2030e5145",
+      "bytes": 1942,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "d882c1042b5a11cfe6dcb567ef295d2f88c12cc1",
+        "dirty": true,
+        "cwd": "/Users/d/code/primitive",
+        "argv": [
+          "govulncheck",
+          "./filestore"
+        ],
+        "machine": {
+          "system": "Darwin",
+          "node": "Ases-MBP.localdomain",
+          "release": "27.0.0",
+          "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+          "machine": "arm64",
+          "processor": "arm"
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 darwin/arm64",
+        "test_cache_bypassed": false,
+        "build_cache": "eligible",
+        "attempt": "vulnerabilities",
+        "started_utc": "2026-09-21T11:04:48.605523+00:00",
+        "elapsed_ns": 1065499209,
+        "finished_utc": "2026-09-21T11:04:49.673336+00:00",
+        "exit_code": 1,
+        "signal": null,
+        "artifacts": {
+          "source-digests.json": {
+            "sha256": "664e68a7ba74d3ebdca2b227b30c0a05b5f9b1221c7d4425201ce87552ad8003",
+            "bytes": 321686
+          },
+          "tracked.patch": {
+            "sha256": "03eed203b26b0efb11f35cda6ae7b2af8e7309b6f4cc661821f2f3f19136ade8",
+            "bytes": 2926
+          },
+          "stdout": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "working-tree.status": {
+            "sha256": "51182beb7d7ab015b2589d868db98994df11e5bf0e7055b055db74de7d38e570",
+            "bytes": 200
+          },
+          "stderr": {
+            "sha256": "bf0241327b42a04c61e28bde52c56aa3a2dc0d692477d2bdc80f9b1e4f4c7579",
+            "bytes": 131
+          },
+          "started.json": {
+            "sha256": "990aea3d4ef163af185de37e3636bdde7a5b61cfe486247fea026cb02e1b8823",
+            "bytes": 1005
+          }
+        }
+      }
+    },
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-gates-01/witness-lint/execution.json",
+      "sha256": "3024630c26dfc800dba2f67edf8dd93780dd32bc75eaf085ba634b5b12b3667a",
+      "bytes": 1963,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "d882c1042b5a11cfe6dcb567ef295d2f88c12cc1",
+        "dirty": true,
+        "cwd": "/Users/d/code/primitive",
+        "argv": [
+          "witness-lint",
+          "/Users/d/code/primitive/filestore"
+        ],
+        "machine": {
+          "system": "Darwin",
+          "node": "Ases-MBP.localdomain",
+          "release": "27.0.0",
+          "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+          "machine": "arm64",
+          "processor": "arm"
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 darwin/arm64",
+        "test_cache_bypassed": false,
+        "build_cache": "eligible",
+        "attempt": "witness-lint",
+        "started_utc": "2026-09-21T11:04:45.155585+00:00",
+        "elapsed_ns": 361659417,
+        "finished_utc": "2026-09-21T11:04:45.519651+00:00",
+        "exit_code": 1,
+        "signal": null,
+        "artifacts": {
+          "source-digests.json": {
+            "sha256": "664e68a7ba74d3ebdca2b227b30c0a05b5f9b1221c7d4425201ce87552ad8003",
+            "bytes": 321686
+          },
+          "tracked.patch": {
+            "sha256": "03eed203b26b0efb11f35cda6ae7b2af8e7309b6f4cc661821f2f3f19136ade8",
+            "bytes": 2926
+          },
+          "stdout": {
+            "sha256": "3bd54c63326ba41fccf73afa3c9961d6ccb02470980ea2e7df69f91fdc8c5a1a",
+            "bytes": 447
+          },
+          "working-tree.status": {
+            "sha256": "51182beb7d7ab015b2589d868db98994df11e5bf0e7055b055db74de7d38e570",
+            "bytes": 200
+          },
+          "stderr": {
+            "sha256": "c7f81ea2531a117bee0ce14c406dc8dbdb1ca42c92075b3b4338c18288b0be13",
+            "bytes": 407
+          },
+          "started.json": {
+            "sha256": "3214a16bf25d17164cdf0e2b1ce27454ec9ecab8fc1be4261d0a4767193c56cd",
+            "bytes": 1025
+          }
+        }
+      }
+    },
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-inventory-01/execution.json",
+      "sha256": "73d2200de4b91cba9dd7f4ed296524c06277d87288d87b1ac2b6de3e693c8f5c",
+      "bytes": 2066,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "3c637fd779c8c0cd43633fcff09153ac2bfe431b",
+        "dirty": false,
+        "cwd": "/Users/d/code/primitive",
+        "argv": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-count=1",
+          "-p=1",
+          "-run",
+          "^$",
+          "-list",
+          "^(Test|Fuzz)",
+          "./filestore"
+        ],
+        "machine": {
+          "system": "Darwin",
+          "node": "Ases-MBP.localdomain",
+          "release": "27.0.0",
+          "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+          "machine": "arm64",
+          "processor": "arm"
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 darwin/arm64",
+        "test_cache_bypassed": true,
+        "build_cache": "eligible",
+        "attempt": "primitive-filestore-198-inventory-01",
+        "started_utc": "2026-09-21T11:11:38.033704+00:00",
+        "elapsed_ns": 1752468250,
+        "finished_utc": "2026-09-21T11:11:39.788808+00:00",
+        "exit_code": 0,
+        "signal": null,
+        "artifacts": {
+          "source-digests.json": {
+            "sha256": "be608896139cf9ddfe704511a957839831519dbbd06305d5d556a7956d79f525",
+            "bytes": 321686
+          },
+          "tracked.patch": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "stdout": {
+            "sha256": "ec5212267d7ef7824873e675dfd8ebfcac7c850b70e4c3d7fa76fc74c62d8a17",
+            "bytes": 8830
+          },
+          "working-tree.status": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "stderr": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "started.json": {
+            "sha256": "69110c319373c1b66e2b9824e950f6ad6f0af02a5b3305cff67657935877a882",
+            "bytes": 1133
+          }
+        }
+      }
+    },
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-mutations-01/adopt-existing-directory/run/execution.json",
+      "sha256": "0e3a0564f05ae68d1ce66f07974d683e8c55556c9b960b1ab4ef333a092a1964",
+      "bytes": 3118,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "d882c1042b5a11cfe6dcb567ef295d2f88c12cc1",
+        "dirty": true,
+        "cwd": "/Users/d/code/primitive",
+        "argv": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-p=1",
+          "-parallel=1",
+          "-timeout=2m",
+          "-overlay",
+          "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-mutations-01/adopt-existing-directory/overlay.json",
+          "-run",
+          "^TestCreateDirectoryNativeOwnershipLayerTriad$",
+          "./filestore"
+        ],
+        "machine": {
+          "system": "Darwin",
+          "node": "Ases-MBP.localdomain",
+          "release": "27.0.0",
+          "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+          "machine": "arm64",
+          "processor": "arm"
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 darwin/arm64",
+        "test_cache_bypassed": true,
+        "build_cache": "eligible",
+        "attempt": "run",
+        "started_utc": "2026-09-21T11:02:55.077212+00:00",
+        "elapsed_ns": 5201208042,
+        "finished_utc": "2026-09-21T11:03:00.282232+00:00",
+        "exit_code": 1,
+        "signal": null,
+        "test_outcome_events": {
+          "pass": 10,
+          "fail": 5,
+          "skip": 0
+        },
+        "outcome_count_unit": "Go test terminal events, including parent tests, subtests, fuzz seed tests, and explicit repetitions",
+        "scope_filters": [
+          "^TestCreateDirectoryNativeOwnershipLayerTriad$"
+        ],
+        "not_run": {
+          "count": null,
+          "reason": "Excluded tests and packages are not enumerated; evidence covers only the exact argv scope."
+        },
+        "unavailable": {
+          "count": null,
+          "reason": "Not separately classified by this development recorder; inspect retained setup and process failures."
+        },
+        "timed_out": {
+          "count": null,
+          "reason": "Inspect retained process output and exit; no absence-of-timeout claim inferred from test events."
+        },
+        "artifacts": {
+          "source-digests.json": {
+            "sha256": "664e68a7ba74d3ebdca2b227b30c0a05b5f9b1221c7d4425201ce87552ad8003",
+            "bytes": 321686
+          },
+          "tracked.patch": {
+            "sha256": "03eed203b26b0efb11f35cda6ae7b2af8e7309b6f4cc661821f2f3f19136ade8",
+            "bytes": 2926
+          },
+          "stdout": {
+            "sha256": "08f0c69b1a4d4dff348ac51b00f9789c16a8f605158f97285a399a5777a84f73",
+            "bytes": 35866
+          },
+          "working-tree.status": {
+            "sha256": "51182beb7d7ab015b2589d868db98994df11e5bf0e7055b055db74de7d38e570",
+            "bytes": 200
+          },
+          "stderr": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "started.json": {
+            "sha256": "5aebd3032c5ddb01fec948298a0957eaca86009c448378a32de8a1e66b0f0fea",
+            "bytes": 1296
+          },
+          "test-outcomes.json": {
+            "sha256": "84272730a118c3ce53adc095443d72605e4b77dd6ee25d702b9369facdda23e3",
+            "bytes": 3161
+          }
+        }
+      }
+    },
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-mutations-01/follow-symbolic-evidence/run/execution.json",
+      "sha256": "9e670302a45d77ccff8c271513df3f97ef1b1b328b88ae85efd1d3f5d410c495",
+      "bytes": 3118,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "d882c1042b5a11cfe6dcb567ef295d2f88c12cc1",
+        "dirty": true,
+        "cwd": "/Users/d/code/primitive",
+        "argv": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-p=1",
+          "-parallel=1",
+          "-timeout=2m",
+          "-overlay",
+          "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-mutations-01/follow-symbolic-evidence/overlay.json",
+          "-run",
+          "^TestOpenCustodyReadNativeOwnershipLayerTriad$",
+          "./filestore"
+        ],
+        "machine": {
+          "system": "Darwin",
+          "node": "Ases-MBP.localdomain",
+          "release": "27.0.0",
+          "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+          "machine": "arm64",
+          "processor": "arm"
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 darwin/arm64",
+        "test_cache_bypassed": true,
+        "build_cache": "eligible",
+        "attempt": "run",
+        "started_utc": "2026-09-21T11:03:00.544036+00:00",
+        "elapsed_ns": 5265954792,
+        "finished_utc": "2026-09-21T11:03:05.812657+00:00",
+        "exit_code": 1,
+        "signal": null,
+        "test_outcome_events": {
+          "pass": 11,
+          "fail": 4,
+          "skip": 0
+        },
+        "outcome_count_unit": "Go test terminal events, including parent tests, subtests, fuzz seed tests, and explicit repetitions",
+        "scope_filters": [
+          "^TestOpenCustodyReadNativeOwnershipLayerTriad$"
+        ],
+        "not_run": {
+          "count": null,
+          "reason": "Excluded tests and packages are not enumerated; evidence covers only the exact argv scope."
+        },
+        "unavailable": {
+          "count": null,
+          "reason": "Not separately classified by this development recorder; inspect retained setup and process failures."
+        },
+        "timed_out": {
+          "count": null,
+          "reason": "Inspect retained process output and exit; no absence-of-timeout claim inferred from test events."
+        },
+        "artifacts": {
+          "source-digests.json": {
+            "sha256": "664e68a7ba74d3ebdca2b227b30c0a05b5f9b1221c7d4425201ce87552ad8003",
+            "bytes": 321686
+          },
+          "tracked.patch": {
+            "sha256": "03eed203b26b0efb11f35cda6ae7b2af8e7309b6f4cc661821f2f3f19136ade8",
+            "bytes": 2926
+          },
+          "stdout": {
+            "sha256": "32ceb2aa887dfd028b0684c0eef558af3921494b2de4f58a18a07ebc6acbc1f8",
+            "bytes": 35553
+          },
+          "working-tree.status": {
+            "sha256": "51182beb7d7ab015b2589d868db98994df11e5bf0e7055b055db74de7d38e570",
+            "bytes": 200
+          },
+          "stderr": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "started.json": {
+            "sha256": "e8dda87c6804c510d8ade215e28fe6e5f913891386a042f2d90f514a144acf2f",
+            "bytes": 1296
+          },
+          "test-outcomes.json": {
+            "sha256": "7a80c2b698974fb6c6dbe58690b4fa25e62dd35cab5f9a9f8685b938bc5579d4",
+            "bytes": 3170
+          }
+        }
+      }
+    },
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-native-01/execution.json",
+      "sha256": "dbb20f626267904f965ef04665efaf709e0fa454518fce7300588b76366fc542",
+      "bytes": 2901,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "d882c1042b5a11cfe6dcb567ef295d2f88c12cc1",
+        "dirty": true,
+        "cwd": "/Users/d/code/primitive",
+        "argv": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-p=1",
+          "-parallel=1",
+          "-timeout=5m",
+          "./filestore"
+        ],
+        "machine": {
+          "system": "Darwin",
+          "node": "Ases-MBP.localdomain",
+          "release": "27.0.0",
+          "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+          "machine": "arm64",
+          "processor": "arm"
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 darwin/arm64",
+        "test_cache_bypassed": true,
+        "build_cache": "eligible",
+        "attempt": "primitive-filestore-198-native-01",
+        "started_utc": "2026-09-21T11:01:04.506675+00:00",
+        "elapsed_ns": 234717294667,
+        "finished_utc": "2026-09-21T11:04:59.227203+00:00",
+        "exit_code": 1,
+        "signal": null,
+        "test_outcome_events": {
+          "pass": 5506,
+          "fail": 2,
+          "skip": 0
+        },
+        "outcome_count_unit": "Go test terminal events, including parent tests, subtests, fuzz seed tests, and explicit repetitions",
+        "scope_filters": [],
+        "not_run": {
+          "count": null,
+          "reason": "Excluded tests and packages are not enumerated; evidence covers only the exact argv scope."
+        },
+        "unavailable": {
+          "count": null,
+          "reason": "Not separately classified by this development recorder; inspect retained setup and process failures."
+        },
+        "timed_out": {
+          "count": null,
+          "reason": "Inspect retained process output and exit; no absence-of-timeout claim inferred from test events."
+        },
+        "artifacts": {
+          "source-digests.json": {
+            "sha256": "664e68a7ba74d3ebdca2b227b30c0a05b5f9b1221c7d4425201ce87552ad8003",
+            "bytes": 321686
+          },
+          "tracked.patch": {
+            "sha256": "03eed203b26b0efb11f35cda6ae7b2af8e7309b6f4cc661821f2f3f19136ade8",
+            "bytes": 2926
+          },
+          "stdout": {
+            "sha256": "03aaa0afd5f7433bfbeb8fcbd61421a9862525eac3cb471143fa7598b28f21f3",
+            "bytes": 12094364
+          },
+          "working-tree.status": {
+            "sha256": "51182beb7d7ab015b2589d868db98994df11e5bf0e7055b055db74de7d38e570",
+            "bytes": 200
+          },
+          "stderr": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "started.json": {
+            "sha256": "2a803df2ff9cb9d17e80bd7ca9e1bc373b99a71e8be4b1acc95033f4a8c70c68",
+            "bytes": 1125
+          },
+          "test-outcomes.json": {
+            "sha256": "f473f2d1b86be43af1d6e15589be71001cf2f6ebc2cbcf5d24d5e01c99e545ac",
+            "bytes": 1170738
+          }
+        }
+      },
+      "accounting": {
+        "kind": "development-execution-accounting-supplement",
+        "acceptance": false,
+        "revision": "d882c1042b5a11cfe6dcb567ef295d2f88c12cc1",
+        "argv": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-p=1",
+          "-parallel=1",
+          "-timeout=5m",
+          "./filestore"
+        ],
+        "inventory_path": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-inventory-01/stdout",
+        "inventory_sha256": "ec5212267d7ef7824873e675dfd8ebfcac7c850b70e4c3d7fa76fc74c62d8a17",
+        "inventory_top_level_test_and_fuzz_targets": 193,
+        "planned_repetitions": 1,
+        "terminal_event_counts_including_subtests": {
+          "pass": 5506,
+          "fail": 2,
+          "skip": 0
+        },
+        "not_run_top_level_attempts": 0,
+        "not_run_targets_and_attempts": {},
+        "unsettled_started_test_attempts": {},
+        "timed_out_package_executions": 0,
+        "unavailable_package_executions": 0,
+        "process_exit_code": 1,
+        "signal": null,
+        "observed_package_success": false,
+        "scope_note": "Top-level inventory includes all Test and Fuzz functions in filestore; omitted targets count as not run. Runtime subtests are counted only when emitted. Seed execution does not claim a fuzz campaign."
+      },
+      "accounting_sha256": "85b1f8b69468e783cc3757782802f748260714b6338c8ef0bc10e40df16a89cb"
+    },
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-native-02/execution.json",
+      "sha256": "030898a1e36092469ece56ff0a36e165c8a0ac3d5d8b06bed8092622c1e51c7d",
+      "bytes": 2902,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "d882c1042b5a11cfe6dcb567ef295d2f88c12cc1",
+        "dirty": true,
+        "cwd": "/Users/d/code/primitive",
+        "argv": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-p=1",
+          "-parallel=1",
+          "-timeout=10m",
+          "./filestore"
+        ],
+        "machine": {
+          "system": "Darwin",
+          "node": "Ases-MBP.localdomain",
+          "release": "27.0.0",
+          "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+          "machine": "arm64",
+          "processor": "arm"
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 darwin/arm64",
+        "test_cache_bypassed": true,
+        "build_cache": "eligible",
+        "attempt": "primitive-filestore-198-native-02",
+        "started_utc": "2026-09-21T11:07:21.664792+00:00",
+        "elapsed_ns": 270249441417,
+        "finished_utc": "2026-09-21T11:11:51.916917+00:00",
+        "exit_code": 0,
+        "signal": null,
+        "test_outcome_events": {
+          "pass": 5508,
+          "fail": 0,
+          "skip": 0
+        },
+        "outcome_count_unit": "Go test terminal events, including parent tests, subtests, fuzz seed tests, and explicit repetitions",
+        "scope_filters": [],
+        "not_run": {
+          "count": null,
+          "reason": "Excluded tests and packages are not enumerated; evidence covers only the exact argv scope."
+        },
+        "unavailable": {
+          "count": null,
+          "reason": "Not separately classified by this development recorder; inspect retained setup and process failures."
+        },
+        "timed_out": {
+          "count": null,
+          "reason": "Inspect retained process output and exit; no absence-of-timeout claim inferred from test events."
+        },
+        "artifacts": {
+          "source-digests.json": {
+            "sha256": "2f4d3b4be8e960da55bf322833606dbe15c6272f38ac8510afe1b1ca6005cbc5",
+            "bytes": 321686
+          },
+          "tracked.patch": {
+            "sha256": "03eed203b26b0efb11f35cda6ae7b2af8e7309b6f4cc661821f2f3f19136ade8",
+            "bytes": 2926
+          },
+          "stdout": {
+            "sha256": "22721c7227f8451b99b5e19b24a7794b3c4a8125a617c578c34a3265a5202f15",
+            "bytes": 12094425
+          },
+          "working-tree.status": {
+            "sha256": "51182beb7d7ab015b2589d868db98994df11e5bf0e7055b055db74de7d38e570",
+            "bytes": 200
+          },
+          "stderr": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "started.json": {
+            "sha256": "80cbed07b9bb6a9be75d4a42380ffc8be54c04d0c4cb5a4932c494ba07a2830e",
+            "bytes": 1126
+          },
+          "test-outcomes.json": {
+            "sha256": "4da74f48f7e7bc412f98a365b54ecbfab6423706d033d6e4db95f39000acbd2e",
+            "bytes": 1171065
+          }
+        }
+      },
+      "accounting": {
+        "kind": "development-execution-accounting-supplement",
+        "acceptance": false,
+        "revision": "d882c1042b5a11cfe6dcb567ef295d2f88c12cc1",
+        "argv": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-p=1",
+          "-parallel=1",
+          "-timeout=10m",
+          "./filestore"
+        ],
+        "inventory_path": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-inventory-01/stdout",
+        "inventory_sha256": "ec5212267d7ef7824873e675dfd8ebfcac7c850b70e4c3d7fa76fc74c62d8a17",
+        "inventory_top_level_test_and_fuzz_targets": 193,
+        "planned_repetitions": 1,
+        "terminal_event_counts_including_subtests": {
+          "pass": 5508,
+          "fail": 0,
+          "skip": 0
+        },
+        "not_run_top_level_attempts": 0,
+        "not_run_targets_and_attempts": {},
+        "unsettled_started_test_attempts": {},
+        "timed_out_package_executions": 0,
+        "unavailable_package_executions": 0,
+        "process_exit_code": 0,
+        "signal": null,
+        "observed_package_success": true,
+        "scope_note": "Top-level inventory includes all Test and Fuzz functions in filestore; omitted targets count as not run. Runtime subtests are counted only when emitted. Seed execution does not claim a fuzz campaign."
+      },
+      "accounting_sha256": "131c7a8f32a011e3785d418c326f72b027d3500fb3fb42fc20b7778e44221cd8"
+    },
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-native-mode-01/execution.json",
+      "sha256": "04795ee04f47a081ee6733a4ae8e6eea89bd1c5bca7bab78a4bee67af1e0646b",
+      "bytes": 3026,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "481f8a0d604fa96e3d43161ffb0a8afe2f598875",
+        "dirty": false,
+        "cwd": "/Users/d/code/primitive",
+        "argv": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-race",
+          "-p=1",
+          "-parallel=1",
+          "-timeout=2m",
+          "-run",
+          "^TestDirectoryPositionModeOwnershipLayerTriad$",
+          "./filestore"
+        ],
+        "machine": {
+          "system": "Darwin",
+          "node": "Ases-MBP.localdomain",
+          "release": "27.0.0",
+          "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+          "machine": "arm64",
+          "processor": "arm"
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 darwin/arm64",
+        "test_cache_bypassed": true,
+        "build_cache": "eligible",
+        "attempt": "primitive-filestore-198-native-mode-01",
+        "started_utc": "2026-09-21T11:14:00.453453+00:00",
+        "elapsed_ns": 7174020792,
+        "finished_utc": "2026-09-21T11:14:07.628409+00:00",
+        "exit_code": 0,
+        "signal": null,
+        "test_outcome_events": {
+          "pass": 6,
+          "fail": 0,
+          "skip": 0
+        },
+        "outcome_count_unit": "Go test terminal events, including parent tests, subtests, fuzz seed tests, and explicit repetitions",
+        "scope_filters": [
+          "^TestDirectoryPositionModeOwnershipLayerTriad$"
+        ],
+        "not_run": {
+          "count": null,
+          "reason": "Excluded tests and packages are not enumerated; evidence covers only the exact argv scope."
+        },
+        "unavailable": {
+          "count": null,
+          "reason": "Not separately classified by this development recorder; inspect retained setup and process failures."
+        },
+        "timed_out": {
+          "count": null,
+          "reason": "Inspect retained process output and exit; no absence-of-timeout claim inferred from test events."
+        },
+        "artifacts": {
+          "source-digests.json": {
+            "sha256": "40d7ddd4c793a8107aaa5d6dcd3c0dc593f774f02f8e45f5605d3c006085aa3b",
+            "bytes": 321686
+          },
+          "tracked.patch": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "stdout": {
+            "sha256": "f5db693da70ba6159e33ca63f52ac5c5d17e4a66e1ceb577aaab90a59885392e",
+            "bytes": 13370
+          },
+          "working-tree.status": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "stderr": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "started.json": {
+            "sha256": "08e1cb5e97ea4b0c1473b2bccd55c5931f5daf38aa2201464b8f350598710457",
+            "bytes": 1210
+          },
+          "test-outcomes.json": {
+            "sha256": "07d863a106f72c5b8d5713aac0a4fd583d736cc2f4d2f074de6b3b628553b55a",
+            "bytes": 1227
+          }
+        }
+      },
+      "accounting": {
+        "kind": "development-execution-accounting-supplement",
+        "acceptance": false,
+        "revision": "481f8a0d604fa96e3d43161ffb0a8afe2f598875",
+        "argv": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=1",
+          "-race",
+          "-p=1",
+          "-parallel=1",
+          "-timeout=2m",
+          "-run",
+          "^TestDirectoryPositionModeOwnershipLayerTriad$",
+          "./filestore"
+        ],
+        "inventory_path": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-inventory-01/stdout",
+        "inventory_sha256": "ec5212267d7ef7824873e675dfd8ebfcac7c850b70e4c3d7fa76fc74c62d8a17",
+        "inventory_top_level_test_and_fuzz_targets": 193,
+        "planned_repetitions": 1,
+        "terminal_event_counts_including_subtests": {
+          "pass": 6,
+          "fail": 0,
+          "skip": 0
+        },
+        "not_run_top_level_attempts": 192,
+        "not_run_targets_and_attempts": {
+          "FuzzAppendRotationNativeOwnership": 1,
+          "FuzzContentIndexCanonicalRecord": 1,
+          "FuzzContentSortExactUnion": 1,
+          "FuzzCopyContentExactAgreement": 1,
+          "FuzzCreateDirectoryNativeModeAndExclusivity": 1,
+          "FuzzCustodyNamespaceAndTimestampSemanticClosure": 1,
+          "FuzzDirectoryAcquisitionNamespaceCustody": 1,
+          "FuzzEnsureDirectoryNativeNamespaceCustody": 1,
+          "FuzzFragmentedWriteActivationSemanticCustody": 1,
+          "FuzzHeldStandingNativeIdentityAndCustody": 1,
+          "FuzzInspectContentIndexExactBinding": 1,
+          "FuzzInspectionNativeFactsSemanticClosure": 1,
+          "FuzzOpenCustodyReadExactInodeAndBytes": 1,
+          "FuzzOpenParentAndRootIdentityNativeCustody": 1,
+          "FuzzPermissionNativeMetadataSemanticClosure": 1,
+          "FuzzPipeNativeCustodyAndBytes": 1,
+          "FuzzReadUpdateAppendLockNativeHandleCustody": 1,
+          "FuzzRemovalNativeNamespaceSemanticClosure": 1,
+          "FuzzRenameNativeNamespaceCustody": 1,
+          "FuzzScratchCreationModesSemanticClosure": 1,
+          "FuzzSharingNativeObservationAndCustody": 1,
+          "FuzzStageCommitRoundTrip": 1,
+          "FuzzStageDestinationNativeWriterCustody": 1,
+          "FuzzStreamCopySourceSemanticCustody": 1,
+          "FuzzStreamUnwindSemanticCustody": 1,
+          "FuzzSymbolicLinkObservationAndResolution": 1,
+          "FuzzSymbolicLinkTargetOpaqueNominalClosure": 1,
+          "FuzzWalkCardinalitySemanticClosure": 1,
+          "FuzzWalkReplacementStandingSemanticClosure": 1,
+          "FuzzWriteReadRoundTrip": 1,
+          "FuzzWriteRecoveryHandoffSemanticCustody": 1,
+          "TestActivationRequestClosesEveryPreEffectBoundary": 1,
+          "TestActivationStageAgreementLayerTriad": 1,
+          "TestAllocationSeparatesReportedFactsFromFabrication": 1,
+          "TestAppendAndLockRegularityGatesSettleOnlyRefusedHandles": 1,
+          "TestAppendIntentLayerTriad": 1,
+          "TestAppendModeExhaustiveOffWireDomain": 1,
+          "TestBoundedCopyGoWriterAccountingLayerTriad": 1,
+          "TestCanonicalizeGoResolutionLayerTriad": 1,
+          "TestClosedOSRootNativeErrorMatrix": 1,
+          "TestCommitExhaustsOwnedAndHostileNamespaceStates": 1,
+          "TestContentIndexWriterRefusalPreservesIdentity": 1,
+          "TestContentInspectionLayerTriadExactHeldBytes": 1,
+          "TestContentMergeRefusesMissingCompleteRecord": 1,
+          "TestContentSortLayerTriadExactStream": 1,
+          "TestContentSortRefusalReturnsNoSummary": 1,
+          "TestCopyBoundedPreservesConsumedPrefixAndNativeErrorAcrossCancellation": 1,
+          "TestCopyContentAdmissionLayerTriadNoReadOrWriteOnRefusal": 1,
+          "TestCopyContentDestinationLayerTriadPreservesNativeFailureAndShortWrite": 1,
+          "TestCopyContentSourceLayerTriadPreservesReaderFaultsAndRefusesPartialProof": 1,
+          "TestCopyContentStreamLayerTriadPreservesDeclaredContentAcrossWindows": 1,
+          "TestCreateDirectoryConcurrentOwnership": 1,
+          "TestCreateDirectoryNativeOwnershipLayerTriad": 1,
+          "TestCreateDirectoryRequiresExistingParent": 1,
+          "TestCrossDirectoryActivationLayerTriad": 1,
+          "TestCustodyEffectsUseOwnedFileSynchronization": 1,
+          "TestCustodyExactRegularNamespaceLayerTriad": 1,
+          "TestCustodyRequestAdmissionLayerTriad": 1,
+          "TestDirectoryComponentExtentUsesNativeAdmissionLayerTriad": 1,
+          "TestDirectoryPositionExhaustiveOffWireDomain": 1,
+          "TestDurableWriterLayerTriadCreateReplaceAndNeutralEffects": 1,
+          "TestEnsureDirectoryAdmittedPathBoundaryMatrix": 1,
+          "TestEnsureDirectoryNativeNamespaceLayerTriad": 1,
+          "TestEnsureDirectoryOwnerPermissionEffectsLayerTriad": 1,
+          "TestEnsureDirectoryRetainsOwnedSynchronization": 1,
+          "TestFilestoreDataFlowStructInventoryRatchet": 1,
+          "TestFilestoreImportsOnlyGoAndOwnedPrimitiveContracts": 1,
+          "TestFilestoreProductionArchitectureMatcherDetectsForbiddenSyntheticShapes": 1,
+          "TestFilestoreProductionUsesGoAndOSPrimitivesWithoutCoordinationMachineryRatchet": 1,
+          "TestFilestorePublicIngressHasCompilerBoundSemanticProof": 1,
+          "TestFilestoreTimeEffectsBelongToTemporal": 1,
+          "TestFilesystemIdentityProjectionLayerTriad": 1,
+          "TestHeldStandingExhaustiveOffWireDomain": 1,
+          "TestHeldStandingNativeIdentityLayerTriad": 1,
+          "TestHeldStandingNativeSearchPermissionLayerTriad": 1,
+          "TestIngressBindingRejectsNamesAndForeignFunctions": 1,
+          "TestIngressProjectionExemptionRequiresExactOwningSignature": 1,
+          "TestInspectAdmissionLayerTriad": 1,
+          "TestInspectGoSearchPermissionLayerTriad": 1,
+          "TestInspectNativeExtentCrossesEvery32BitConversionBoundary": 1,
+          "TestInspectNativeObservationLayerTriad": 1,
+          "TestInspectReportsRealStorageBehindARegularFile": 1,
+          "TestInspectReportsUnreachableThroughANamedPipeParentWithoutBlocking": 1,
+          "TestInspectionSchemaLayerTriad": 1,
+          "TestInstallModeExhaustiveOffWireDomain": 1,
+          "TestKindOnlyInspectionConstructionLayerTriad": 1,
+          "TestLockFileNativeCapabilityLayerTriad": 1,
+          "TestLockFileProducesExactNativeLockIdentity": 1,
+          "TestMutableRegularHandlesRestoreBlockingModeBeforeOwnershipTransfer": 1,
+          "TestMutationRequestsRejectNonAtomicOrRootEntryPaths": 1,
+          "TestNamespaceConcurrencyLayerTriad": 1,
+          "TestNativeWalkBatchAndSkipLayerTriad": 1,
+          "TestObserveSharingRefusesWhereOpensDoNotContend": 1,
+          "TestObservedAllocationProjectsAndRefusesAtEveryBlockBoundary": 1,
+          "TestOpenCustodyReadNativeOwnershipLayerTriad": 1,
+          "TestOpenDirectoryLayerTriad": 1,
+          "TestOpenParentNativeCapabilityLayerTriad": 1,
+          "TestOpenParentNativeOwnerPermissionLayerTriad": 1,
+          "TestOpenReadFileAcquiresNamedPipeWithoutBlocking": 1,
+          "TestOpenReadFileRequestsNonblockingAcquisition": 1,
+          "TestOpenRegularReadFileRefusesNamedPipeOnTheAcquiredHandle": 1,
+          "TestOpenRegularReadFileRestoresBlockingMode": 1,
+          "TestOpenRootAcceptsTheDirectoriesProductsKeep": 1,
+          "TestOpenRootConfinesEveryPathToTheDirectoryItOpened": 1,
+          "TestOpenRootFollowsASymlinkedDirectoryButStillConfines": 1,
+          "TestOpenRootRefusesASymlinkToARegularFile": 1,
+          "TestOpenRootRefusesWhatCannotBeARoot": 1,
+          "TestOpenStageDestinationHostileIngressMatrix": 1,
+          "TestOpenStagedReadHostileRefusalMatrix": 1,
+          "TestOpenStagedReadHostileValidExtentMatrix": 1,
+          "TestOpenStagedReadLayerTriad": 1,
+          "TestOpenedDirectoryModeNativeCustodyLayerTriad": 1,
+          "TestOperationsRejectTerminalAndNilContextsBeforeFilesystemEffects": 1,
+          "TestOwnedFileSyncAndCloseLayerTriad": 1,
+          "TestOwnedNativeFileMethodMatcherRejectsBorrowedCalls": 1,
+          "TestOwnedParameterSyncMatcherRejectsBorrowedAndUncalledMethods": 1,
+          "TestOwnedParentArgumentMatcherRejectsMissingAndForeignFacts": 1,
+          "TestOwnershipUnsignedCoordinatesLayerTriad": 1,
+          "TestParentDirectorySynchronizationLayerTriad": 1,
+          "TestPathKindExhaustiveOffWireDomain": 1,
+          "TestPermissionEffectLayerTriad": 1,
+          "TestPermissionMetadataRetainsOwnedFileSynchronization": 1,
+          "TestPermissionModeHostileBoundaryMatrix": 1,
+          "TestPermissionNamedPipeUsesNativeSynchronization": 1,
+          "TestPermissionSyncCapabilityRefusalPreservesMetadata": 1,
+          "TestPermissionsCompleteFieldAndRefusalLayerTriad": 1,
+          "TestPipeCustodyLayerTriad": 1,
+          "TestPipeEndpointAdmissionExhaustsPresenceAndAliasing": 1,
+          "TestPipeNativeDescriptorCapacityLayerTriad": 1,
+          "TestPrepareRegularReadFileKeepsDescriptorInsideSyscallConn": 1,
+          "TestPublicHandleOpenersRefuseNamedFIFOWithoutConsumingPeer": 1,
+          "TestReadAndUpdateNativeHandleLayerTriad": 1,
+          "TestReadCallerUnwindCustodyLayerTriad": 1,
+          "TestReadNativeBoundaryLayerTriad": 1,
+          "TestReadPreservesExactDestinationPrefixAndENOSPCIdentity": 1,
+          "TestReadPreservesObservedGrowthAndRefusesTruncation": 1,
+          "TestReadRejectsImpossibleWriterCountsWithExactAccounting": 1,
+          "TestReadRejectsNamedPipeBeforeBlockingOpen": 1,
+          "TestReadSymbolicLinkNativeObservationLayerTriad": 1,
+          "TestReadSymbolicLinkNativeTargetAdmissionLayerTriad": 1,
+          "TestRecoverExhaustsReachableAndHostileNamespaceStates": 1,
+          "TestRecoveryRevalidatesObservedReceiptLayerTriad": 1,
+          "TestRegularReadDescriptorSourceMatcherRejectsDisguisedCalls": 1,
+          "TestRelativePathCannotBypassRealRootConfinement": 1,
+          "TestRemovalRetainsParentSynchronization": 1,
+          "TestRemovalSynchronizationMatcherRejectsMissingAndBorrowedCalls": 1,
+          "TestRemoveTreeNamespaceLayerTriad": 1,
+          "TestRenameNativeNamespaceLayerTriad": 1,
+          "TestRenameNativePermissionAndDurabilityLayerTriad": 1,
+          "TestRenameRetainsBothChangedParentSynchronizationArguments": 1,
+          "TestReplaceActivationLayerTriad": 1,
+          "TestRequestsRejectUnsetOwnershipBoundaries": 1,
+          "TestRootFromHeldDescriptorLayerTriad": 1,
+          "TestRootIdentityNativeCustodyLayerTriad": 1,
+          "TestRotateAppendValidationOwnershipLayerTriad": 1,
+          "TestSameInodeActivationDoesNotLeaveAnUnconsumedReceiptLayerTriad": 1,
+          "TestScratchDirectoryLayerTriad": 1,
+          "TestScratchFileLayerTriad": 1,
+          "TestSharingAdmissionLayerTriad": 1,
+          "TestSharingExhaustiveOffWireDomain": 1,
+          "TestStageCallerUnwindCustodyLayerTriad": 1,
+          "TestStageCancellationAfterRealPipeBytesCleansOwnedTemporary": 1,
+          "TestStageCancellationAtExactEOFRemovesOwnedFileLayerTriad": 1,
+          "TestStageDeclarationIsOptionalAndOwnedLayerTriad": 1,
+          "TestStageDestinationCommitRefusesPostFinishMutation": 1,
+          "TestStageDestinationDurableWriterLayerTriad": 1,
+          "TestStageDestinationHostileExtentAndFinalizationMatrix": 1,
+          "TestStageDestinationLinearOwnershipRefusesCopiesAndReuse": 1,
+          "TestStageDestinationRetainsFileAndParentSynchronization": 1,
+          "TestStageNoProgressThresholdBoundaryMatrix": 1,
+          "TestStageRejectsImpossibleReaderCountsWithoutResidue": 1,
+          "TestStagedNamespaceEntryLayerTriad": 1,
+          "TestStagingEffectLayerTriad": 1,
+          "TestStreamAdapterArchitectureExceptionsStayExact": 1,
+          "TestStreamCopyContextHandoffLayerTriad": 1,
+          "TestStreamCopySourceObservationLayerTriad": 1,
+          "TestStreamDestinationExhaustiveErrorOwnershipLayerTriad": 1,
+          "TestStreamingAcceptsAndRejectsStandardLibraryReaderBehaviors": 1,
+          "TestSymbolicLinkTargetOpaqueByteBoundaryLayerTriad": 1,
+          "TestSymbolicObservationNativeSearchPermissionLayerTriad": 1,
+          "TestTemporalOwnershipMatcherRequiresActualImportIdentity": 1,
+          "TestTouchNativeTimestampBoundaryLayerTriad": 1,
+          "TestTransferContinuesBeyondFormerExtentLayerTriad": 1,
+          "TestTransferRejectsTypedNilOwnersLayerTriad": 1,
+          "TestTransferScratchOwnershipLayerTriad": 1,
+          "TestWalkBatchBackpressureLayerTriad": 1,
+          "TestWalkDirectiveExhaustiveOffWireDomain": 1,
+          "TestWalkFormerCardinalityBoundaryLayerTriad": 1,
+          "TestWalkRefusalLayerTriad": 1,
+          "TestWalkReplacementStandingLayerTriad": 1,
+          "TestWalkVisitorUnwindCustodyLayerTriad": 1,
+          "TestWindowsOpenRootStructurallyPinsInspectedDirectoryIdentity": 1
+        },
+        "unsettled_started_test_attempts": {},
+        "timed_out_package_executions": 0,
+        "unavailable_package_executions": 0,
+        "process_exit_code": 0,
+        "signal": null,
+        "observed_package_success": true,
+        "scope_note": "Top-level inventory includes all Test and Fuzz functions in filestore; omitted targets count as not run. Runtime subtests are counted only when emitted. Seed execution does not claim a fuzz campaign."
+      },
+      "accounting_sha256": "81445fc115804dc10addd0f39af7397795893fbc8910816decd0fdf0bd77564c"
+    },
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-race-01/execution.json",
+      "sha256": "8362823798a3071090ee186623780eb2a312545251f6aef44b49716c3f0523cf",
+      "bytes": 3170,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "3c637fd779c8c0cd43633fcff09153ac2bfe431b",
+        "dirty": false,
+        "cwd": "/Users/d/code/primitive",
+        "argv": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=2",
+          "-race",
+          "-shuffle=198",
+          "-p=1",
+          "-parallel=1",
+          "-timeout=15m",
+          "-o",
+          "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-race-01/filestore.test",
+          "./filestore"
+        ],
+        "machine": {
+          "system": "Darwin",
+          "node": "Ases-MBP.localdomain",
+          "release": "27.0.0",
+          "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+          "machine": "arm64",
+          "processor": "arm"
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 darwin/arm64",
+        "test_cache_bypassed": true,
+        "build_cache": "eligible",
+        "attempt": "primitive-filestore-198-race-01",
+        "started_utc": "2026-09-21T11:12:12.709146+00:00",
+        "elapsed_ns": 374323748625,
+        "finished_utc": "2026-09-21T11:18:27.035824+00:00",
+        "exit_code": 0,
+        "signal": null,
+        "test_outcome_events": {
+          "pass": 11016,
+          "fail": 0,
+          "skip": 0
+        },
+        "outcome_count_unit": "Go test terminal events, including parent tests, subtests, fuzz seed tests, and explicit repetitions",
+        "scope_filters": [],
+        "not_run": {
+          "count": null,
+          "reason": "Excluded tests and packages are not enumerated; evidence covers only the exact argv scope."
+        },
+        "unavailable": {
+          "count": null,
+          "reason": "Not separately classified by this development recorder; inspect retained setup and process failures."
+        },
+        "timed_out": {
+          "count": null,
+          "reason": "Inspect retained process output and exit; no absence-of-timeout claim inferred from test events."
+        },
+        "artifacts": {
+          "source-digests.json": {
+            "sha256": "be608896139cf9ddfe704511a957839831519dbbd06305d5d556a7956d79f525",
+            "bytes": 321686
+          },
+          "tracked.patch": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "stdout": {
+            "sha256": "54b3dddeca2caf0ace4cf1450eaf1d6d2c94a639f90017a7d38fe6e75aff1b2c",
+            "bytes": 24187633
+          },
+          "working-tree.status": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "stderr": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "started.json": {
+            "sha256": "5d908b99c1daf0ee0a27e95ad8383ed4d1210c37ee158aaab2efc624158ef7c5",
+            "bytes": 1259
+          },
+          "filestore.test": {
+            "sha256": "a049d9641a0975454b9165d9b4d93cbb76914e604dd0cdeeac0e2096bd719ac2",
+            "bytes": 15790306
+          },
+          "test-outcomes.json": {
+            "sha256": "29a60b7fda3680ac833fee91406dab57c2908c7625e398b23bf3bcaccd3b7090",
+            "bytes": 2341445
+          }
+        }
+      },
+      "accounting": {
+        "kind": "development-execution-accounting-supplement",
+        "acceptance": false,
+        "revision": "3c637fd779c8c0cd43633fcff09153ac2bfe431b",
+        "argv": [
+          "go",
+          "test",
+          "-mod=readonly",
+          "-json",
+          "-count=2",
+          "-race",
+          "-shuffle=198",
+          "-p=1",
+          "-parallel=1",
+          "-timeout=15m",
+          "-o",
+          "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-race-01/filestore.test",
+          "./filestore"
+        ],
+        "inventory_path": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-inventory-01/stdout",
+        "inventory_sha256": "ec5212267d7ef7824873e675dfd8ebfcac7c850b70e4c3d7fa76fc74c62d8a17",
+        "inventory_top_level_test_and_fuzz_targets": 193,
+        "planned_repetitions": 2,
+        "terminal_event_counts_including_subtests": {
+          "pass": 11016,
+          "fail": 0,
+          "skip": 0
+        },
+        "not_run_top_level_attempts": 0,
+        "not_run_targets_and_attempts": {},
+        "unsettled_started_test_attempts": {},
+        "timed_out_package_executions": 0,
+        "unavailable_package_executions": 0,
+        "process_exit_code": 0,
+        "signal": null,
+        "observed_package_success": true,
+        "scope_note": "Top-level inventory includes all Test and Fuzz functions in filestore; omitted targets count as not run. Runtime subtests are counted only when emitted. Seed execution does not claim a fuzz campaign."
+      },
+      "accounting_sha256": "ad85b90dca781cb450508a6692725b1a8bacccfd5bdff93ae55efa848aa706b1"
+    },
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-staticcheck-02/execution.json",
+      "sha256": "8b2a7b95e945d08f069b5f5c7735db0bdfa52fd11bf8e9620a76c2f0bc9becdb",
+      "bytes": 1963,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "d882c1042b5a11cfe6dcb567ef295d2f88c12cc1",
+        "dirty": true,
+        "cwd": "/Users/d/code/primitive",
+        "argv": [
+          "staticcheck",
+          "./filestore"
+        ],
+        "machine": {
+          "system": "Darwin",
+          "node": "Ases-MBP.localdomain",
+          "release": "27.0.0",
+          "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+          "machine": "arm64",
+          "processor": "arm"
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 darwin/arm64",
+        "test_cache_bypassed": false,
+        "build_cache": "eligible",
+        "attempt": "primitive-filestore-198-staticcheck-02",
+        "started_utc": "2026-09-21T11:05:15.580512+00:00",
+        "elapsed_ns": 4164973500,
+        "finished_utc": "2026-09-21T11:05:19.746868+00:00",
+        "exit_code": 0,
+        "signal": null,
+        "artifacts": {
+          "source-digests.json": {
+            "sha256": "664e68a7ba74d3ebdca2b227b30c0a05b5f9b1221c7d4425201ce87552ad8003",
+            "bytes": 321686
+          },
+          "tracked.patch": {
+            "sha256": "03eed203b26b0efb11f35cda6ae7b2af8e7309b6f4cc661821f2f3f19136ade8",
+            "bytes": 2926
+          },
+          "stdout": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "working-tree.status": {
+            "sha256": "51182beb7d7ab015b2589d868db98994df11e5bf0e7055b055db74de7d38e570",
+            "bytes": 200
+          },
+          "stderr": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "started.json": {
+            "sha256": "aef15725ea7f80758878ef0f04742ebee995a1eb7a1cef04170972239ec865c2",
+            "bytes": 1028
+          }
+        }
+      }
+    },
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-vulnerabilities-02/execution.json",
+      "sha256": "c128ee40ef3b8d55bdf3065b0f184df00318f8ae1284c9b738c322b7c1f2c94c",
+      "bytes": 1968,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "d882c1042b5a11cfe6dcb567ef295d2f88c12cc1",
+        "dirty": true,
+        "cwd": "/Users/d/code/primitive",
+        "argv": [
+          "govulncheck",
+          "./filestore"
+        ],
+        "machine": {
+          "system": "Darwin",
+          "node": "Ases-MBP.localdomain",
+          "release": "27.0.0",
+          "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+          "machine": "arm64",
+          "processor": "arm"
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 darwin/arm64",
+        "test_cache_bypassed": false,
+        "build_cache": "eligible",
+        "attempt": "primitive-filestore-198-vulnerabilities-02",
+        "started_utc": "2026-09-21T11:06:51.036802+00:00",
+        "elapsed_ns": 2155981916,
+        "finished_utc": "2026-09-21T11:06:53.193430+00:00",
+        "exit_code": 0,
+        "signal": null,
+        "artifacts": {
+          "source-digests.json": {
+            "sha256": "664e68a7ba74d3ebdca2b227b30c0a05b5f9b1221c7d4425201ce87552ad8003",
+            "bytes": 321686
+          },
+          "tracked.patch": {
+            "sha256": "03eed203b26b0efb11f35cda6ae7b2af8e7309b6f4cc661821f2f3f19136ade8",
+            "bytes": 2926
+          },
+          "stdout": {
+            "sha256": "3016e51e4eac0d421674d2128bbbdefb2924b4646e0c14a1ab034977ad73fae5",
+            "bytes": 26
+          },
+          "working-tree.status": {
+            "sha256": "51182beb7d7ab015b2589d868db98994df11e5bf0e7055b055db74de7d38e570",
+            "bytes": 200
+          },
+          "stderr": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "started.json": {
+            "sha256": "5f64818fc9ccbacfba8fae4ca2acf4bf32dc5b76006e3f2bd30102f8eb5475c0",
+            "bytes": 1032
+          }
+        }
+      }
+    },
+    {
+      "retained_execution": "/private/tmp/peachfuzz-live-20260920/primitive-filestore-198-witness-02/execution.json",
+      "sha256": "6b70ad8f8fb0f1e6177e752a0711d11cedc2b7fe2fa72b12e3e65ae3e3c1b383",
+      "bytes": 2015,
+      "execution": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "d882c1042b5a11cfe6dcb567ef295d2f88c12cc1",
+        "dirty": true,
+        "cwd": "/Users/d/code/primitive",
+        "argv": [
+          "/private/tmp/primitive-198-tools/witness-lint",
+          "/Users/d/code/primitive/filestore"
+        ],
+        "machine": {
+          "system": "Darwin",
+          "node": "Ases-MBP.localdomain",
+          "release": "27.0.0",
+          "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+          "machine": "arm64",
+          "processor": "arm"
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+          "GOMAXPROCS": "1",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 darwin/arm64",
+        "test_cache_bypassed": false,
+        "build_cache": "eligible",
+        "attempt": "primitive-filestore-198-witness-02",
+        "started_utc": "2026-09-21T11:09:02.186916+00:00",
+        "elapsed_ns": 348024542,
+        "finished_utc": "2026-09-21T11:09:02.539819+00:00",
+        "exit_code": 0,
+        "signal": null,
+        "artifacts": {
+          "source-digests.json": {
+            "sha256": "2f4d3b4be8e960da55bf322833606dbe15c6272f38ac8510afe1b1ca6005cbc5",
+            "bytes": 321686
+          },
+          "tracked.patch": {
+            "sha256": "03eed203b26b0efb11f35cda6ae7b2af8e7309b6f4cc661821f2f3f19136ade8",
+            "bytes": 2926
+          },
+          "stdout": {
+            "sha256": "402b00d3898432e44e50fd07311ee161374ba9293945c89d61a48b58939ff635",
+            "bytes": 56
+          },
+          "working-tree.status": {
+            "sha256": "51182beb7d7ab015b2589d868db98994df11e5bf0e7055b055db74de7d38e570",
+            "bytes": 200
+          },
+          "stderr": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          },
+          "started.json": {
+            "sha256": "336339b432b233663556aadae94a811762eb729af1dac93be3f37cb91f001418",
+            "bytes": 1080
+          }
+        }
+      }
+    }
+  ]
+}

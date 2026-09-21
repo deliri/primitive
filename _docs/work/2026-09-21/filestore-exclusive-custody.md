@@ -50,3 +50,25 @@ unrelated dependency APIs are not roots of a filestore-only test executable.
 
 Execution records are development facts, not independent acceptance. Publication,
 consumer adoption, and the remaining product work must be reported separately.
+
+Final development evidence is indexed in
+`filestore-exclusive-custody-executions.json`. The Mac native suite passed 5,508
+test events; its two race/shuffle repetitions passed 11,016. Furnace's initial
+run exposed an existing oracle that accidentally cleared inherited setgid bits
+when predicting a no-effect directory operation. The corrected oracle compares
+preserved modes against the observed original entry, and uses a native chmod
+oracle only for the branch that applies permissions. Furnace then passed all
+5,508 events with race detection at committed revision `481f8a0`.
+
+The Mac race run began at `3c637fd` and overlapped that test-only oracle edit in
+the live source tree. It is not represented as an exact final-revision receipt.
+The changed oracle separately passed on the Mac with race detection, and the
+full Furnace run used the clean final source commit. Production files did not
+change between those commits.
+
+Both new semantic fuzz campaigns passed on each host. Each configured two
+seconds of fuzz work and at most one second of minimization; actual process
+durations, including compilation/startup/corpus work, remain in the records.
+No benchmark improvement or native Windows execution is claimed. The final
+pinned doctrine, vet, staticcheck, and vulnerability checks passed. Other
+selected package gates and their initial failures are retained in the index.
