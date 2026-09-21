@@ -47,6 +47,20 @@ func OpenRead(ctx context.Context, request ReadHandleRequest) (*os.File, error) 
 	return file, err
 }
 
+// OpenCustodyRead opens an existing regular entry while refusing a symbolic
+// link at the final name. The observed entry must match the acquired handle.
+// The caller owns and closes the ordinary Go file and coordinates later
+// namespace changes. No bytes are read and no entry is created or modified.
+func OpenCustodyRead(ctx context.Context, request ReadHandleRequest) (*os.File, error) {
+	if err := contextstate.Validate(ctx); err != nil {
+		return nil, err
+	}
+	if err := request.Validate(); err != nil {
+		return nil, err
+	}
+	return openCustodyFile(request.Location.Root, request.Location.Path.String())
+}
+
 // OpenUpdate opens one existing regular file below a rooted boundary for
 // caller-owned reading and in-place updates. The caller owns and must close the
 // returned handle. Filestore verifies the opened object is regular before the
