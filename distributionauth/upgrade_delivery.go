@@ -28,6 +28,12 @@ func (p UpgradeDeliveryProjection) MarshalJSON() ([]byte, error) {
 	return core.MarshalCanonicalJSONDocument(wire(p))
 }
 
+// ValidateJSONProjection proves the outbound bearer through its receiving
+// agreement; the issuing projection deliberately cannot decode capabilities.
+func (p UpgradeDeliveryProjection) ValidateJSONProjection(encoded []byte, limits core.StrictJSONLimits) error {
+	return core.ValidateReceiveOnlyJSONProjection[UpgradeDeliveryProjection, UpgradeDeliveryDocument, *UpgradeDeliveryDocument](p, encoded, limits)
+}
+
 // UpgradeDeliveryDocument is the receiving half of UpgradeDeliveryProjection.
 // Structural admission does not authorize a download or execution.
 type UpgradeDeliveryDocument struct {

@@ -1,0 +1,720 @@
+[
+  {
+    "kind": "development-execution-fact",
+    "acceptance": false,
+    "revision": "f76bc45b32f11388f1621782b23085d7b2df3f59",
+    "dirty": true,
+    "cwd": "/Users/d/code/primitive",
+    "argv": [
+      "go",
+      "test",
+      "-json",
+      "-count=1",
+      "-timeout=2m",
+      "./distributionauth",
+      "-run",
+      "^TestUpgradeDeliveryHTTPWriterLayerTriad$"
+    ],
+    "machine": {
+      "system": "Darwin",
+      "node": "Ases-MBP.localdomain",
+      "release": "27.0.0",
+      "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+      "machine": "arm64",
+      "processor": "arm"
+    },
+    "environment": {
+      "GOWORK": "off",
+      "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+      "GOMAXPROCS": "2",
+      "GOFLAGS": null,
+      "GOTOOLCHAIN": null,
+      "GOEXPERIMENT": null,
+      "GOOS": null,
+      "GOARCH": null,
+      "CGO_ENABLED": null,
+      "FIRESTORE_EMULATOR_HOST": null
+    },
+    "go_version": "go version go1.27.1 darwin/arm64",
+    "test_cache_bypassed": true,
+    "build_cache": "eligible",
+    "attempt": "upgrade-delivery-http-red-01",
+    "started_utc": "2026-09-21T06:17:27.944735+00:00",
+    "elapsed_ns": 1201277417,
+    "finished_utc": "2026-09-21T06:17:29.146578+00:00",
+    "exit_code": 1,
+    "signal": null,
+    "test_outcome_events": {
+      "pass": 3,
+      "fail": 2,
+      "skip": 0
+    },
+    "outcome_count_unit": "Go test terminal events, including parent tests, subtests, fuzz seed tests, and explicit repetitions",
+    "scope_filters": [
+      "^TestUpgradeDeliveryHTTPWriterLayerTriad$"
+    ],
+    "not_run": {
+      "count": null,
+      "reason": "Excluded tests and packages are not enumerated; evidence covers only the exact argv scope."
+    },
+    "unavailable": {
+      "count": null,
+      "reason": "Not separately classified by this development recorder; inspect retained setup and process failures."
+    },
+    "timed_out": {
+      "count": null,
+      "reason": "Inspect retained process output and exit; no absence-of-timeout claim inferred from test events."
+    },
+    "artifacts": {
+      "source-digests.json": {
+        "sha256": "7f880f0673e3f15a23062bc8a1868f864e40eaab0a20dcbd1dcab5b2e1f08b5d",
+        "bytes": 321196
+      },
+      "tracked.patch": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "stdout": {
+        "sha256": "80ccf36110f52bb4f4dff1515b8d6938d202fbd5f625e20d919656f5b39dd2e0",
+        "bytes": 13735
+      },
+      "working-tree.status": {
+        "sha256": "05b00a01c1b01cd9f30434d1957037151e92d387c02f4dcc44238a2ab0529c1a",
+        "bytes": 50
+      },
+      "stderr": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "started.json": {
+        "sha256": "da84eba662513860a360f3fb8b1a15861c80309295b38c4235e9c1556373f8bc",
+        "bytes": 1136
+      },
+      "test-outcomes.json": {
+        "sha256": "a15ca18778ea515f536c0e77b59de800ff6aa1cc4178c4b96310c3135023dadd",
+        "bytes": 1063
+      }
+    }
+  },
+  {
+    "kind": "development-execution-fact",
+    "acceptance": false,
+    "revision": "f76bc45b32f11388f1621782b23085d7b2df3f59",
+    "dirty": true,
+    "cwd": "/Users/d/code/primitive",
+    "argv": [
+      "go",
+      "test",
+      "-json",
+      "-count=1",
+      "-timeout=3m",
+      "./distributionauth"
+    ],
+    "machine": {
+      "system": "Darwin",
+      "node": "Ases-MBP.localdomain",
+      "release": "27.0.0",
+      "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+      "machine": "arm64",
+      "processor": "arm"
+    },
+    "environment": {
+      "GOWORK": "off",
+      "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+      "GOMAXPROCS": "2",
+      "GOFLAGS": null,
+      "GOTOOLCHAIN": null,
+      "GOEXPERIMENT": null,
+      "GOOS": null,
+      "GOARCH": null,
+      "CGO_ENABLED": null,
+      "FIRESTORE_EMULATOR_HOST": null
+    },
+    "go_version": "go version go1.27.1 darwin/arm64",
+    "test_cache_bypassed": true,
+    "build_cache": "eligible",
+    "attempt": "upgrade-delivery-http-green-01",
+    "started_utc": "2026-09-21T06:17:53.076077+00:00",
+    "elapsed_ns": 1648046583,
+    "finished_utc": "2026-09-21T06:17:54.724752+00:00",
+    "exit_code": 0,
+    "signal": null,
+    "test_outcome_events": {
+      "pass": 292,
+      "fail": 0,
+      "skip": 0
+    },
+    "outcome_count_unit": "Go test terminal events, including parent tests, subtests, fuzz seed tests, and explicit repetitions",
+    "scope_filters": [],
+    "not_run": {
+      "count": null,
+      "reason": "Excluded tests and packages are not enumerated; evidence covers only the exact argv scope."
+    },
+    "unavailable": {
+      "count": null,
+      "reason": "Not separately classified by this development recorder; inspect retained setup and process failures."
+    },
+    "timed_out": {
+      "count": null,
+      "reason": "Inspect retained process output and exit; no absence-of-timeout claim inferred from test events."
+    },
+    "artifacts": {
+      "source-digests.json": {
+        "sha256": "8052d5023da900cbb03110d9c36387dc8faa446b1c4e646125bdca48fb77a91f",
+        "bytes": 321196
+      },
+      "tracked.patch": {
+        "sha256": "17a520001642214545f62456f974c4739dd38b7f06496bc1a62db0a819e26be1",
+        "bytes": 955
+      },
+      "stdout": {
+        "sha256": "4d22951d0e335db6cea6ba23867770a66f0b57eb75e5f9b12dbdc91fc93cf0f1",
+        "bytes": 626320
+      },
+      "working-tree.status": {
+        "sha256": "95231653682718a14bb513ae22c90edf21367c7bc9f135b675e71662fe4c42bd",
+        "bytes": 90
+      },
+      "stderr": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "started.json": {
+        "sha256": "1d0aeddc694727db12f1aa340e7d0398cfac626af84c96fc6dc9382cbd05b0b2",
+        "bytes": 1077
+      },
+      "test-outcomes.json": {
+        "sha256": "42a3a9e5dca5b1f8f910916c2278dfcd6be8471ac06c18db5aeb176976f1eb78",
+        "bytes": 64777
+      }
+    }
+  },
+  {
+    "kind": "development-execution-fact",
+    "acceptance": false,
+    "revision": "f76bc45b32f11388f1621782b23085d7b2df3f59",
+    "dirty": true,
+    "cwd": "/Users/d/code/primitive",
+    "argv": [
+      "go",
+      "test",
+      "-json",
+      "-race",
+      "-shuffle=on",
+      "-count=2",
+      "-timeout=3m",
+      "./distributionauth"
+    ],
+    "machine": {
+      "system": "Darwin",
+      "node": "Ases-MBP.localdomain",
+      "release": "27.0.0",
+      "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+      "machine": "arm64",
+      "processor": "arm"
+    },
+    "environment": {
+      "GOWORK": "off",
+      "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+      "GOMAXPROCS": "2",
+      "GOFLAGS": null,
+      "GOTOOLCHAIN": null,
+      "GOEXPERIMENT": null,
+      "GOOS": null,
+      "GOARCH": null,
+      "CGO_ENABLED": null,
+      "FIRESTORE_EMULATOR_HOST": null
+    },
+    "go_version": "go version go1.27.1 darwin/arm64",
+    "test_cache_bypassed": true,
+    "build_cache": "eligible",
+    "attempt": "upgrade-delivery-http-race-01",
+    "started_utc": "2026-09-21T06:18:22.312026+00:00",
+    "elapsed_ns": 26008276209,
+    "finished_utc": "2026-09-21T06:18:48.321044+00:00",
+    "exit_code": 0,
+    "signal": null,
+    "test_outcome_events": {
+      "pass": 584,
+      "fail": 0,
+      "skip": 0
+    },
+    "outcome_count_unit": "Go test terminal events, including parent tests, subtests, fuzz seed tests, and explicit repetitions",
+    "scope_filters": [],
+    "not_run": {
+      "count": null,
+      "reason": "Excluded tests and packages are not enumerated; evidence covers only the exact argv scope."
+    },
+    "unavailable": {
+      "count": null,
+      "reason": "Not separately classified by this development recorder; inspect retained setup and process failures."
+    },
+    "timed_out": {
+      "count": null,
+      "reason": "Inspect retained process output and exit; no absence-of-timeout claim inferred from test events."
+    },
+    "artifacts": {
+      "source-digests.json": {
+        "sha256": "6d460f0ba86c249ecb6300e48023c1b9dac7509eb59bc3fec6583c8547701cb4",
+        "bytes": 321196
+      },
+      "tracked.patch": {
+        "sha256": "80a4d278dceb9fc3ccac5218172b4bac9c46b9d2517f85ef52897d0fe197e4b8",
+        "bytes": 1900
+      },
+      "stdout": {
+        "sha256": "7f2e1fe529ac642a769c446396311a927ad85c8518911f69fe55a055fe84fc30",
+        "bytes": 1252527
+      },
+      "working-tree.status": {
+        "sha256": "e4d69d1190411d4954be3f359abaa06cf46d560a032a1af04eb1b7e8dee3564e",
+        "bytes": 135
+      },
+      "stderr": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "started.json": {
+        "sha256": "04bf77a1efb517cc3d9b3b12b8a068d4f9c6c6a96dcf196d3fa119e1ae7bcb93",
+        "bytes": 1108
+      },
+      "test-outcomes.json": {
+        "sha256": "cb143d58a909e0ecc88a7e18de8f9d322197dfa325a95bf8dbe39bfb9c65bfb0",
+        "bytes": 129891
+      }
+    }
+  },
+  {
+    "kind": "development-execution-fact",
+    "acceptance": false,
+    "revision": "f76bc45b32f11388f1621782b23085d7b2df3f59",
+    "dirty": true,
+    "cwd": "/Users/d/code/primitive",
+    "argv": [
+      "go",
+      "test",
+      "-json",
+      "-run",
+      "^$",
+      "-fuzz",
+      "^FuzzUpgradeDeliverySemanticClosure$",
+      "-fuzztime=2s",
+      "-fuzzminimizetime=1s",
+      "-parallel=1",
+      "-timeout=2m",
+      "./distributionauth"
+    ],
+    "machine": {
+      "system": "Darwin",
+      "node": "Ases-MBP.localdomain",
+      "release": "27.0.0",
+      "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+      "machine": "arm64",
+      "processor": "arm"
+    },
+    "environment": {
+      "GOWORK": "off",
+      "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+      "GOMAXPROCS": "2",
+      "GOFLAGS": null,
+      "GOTOOLCHAIN": null,
+      "GOEXPERIMENT": null,
+      "GOOS": null,
+      "GOARCH": null,
+      "CGO_ENABLED": null,
+      "FIRESTORE_EMULATOR_HOST": null
+    },
+    "go_version": "go version go1.27.1 darwin/arm64",
+    "test_cache_bypassed": false,
+    "build_cache": "eligible",
+    "attempt": "upgrade-delivery-fuzz-01",
+    "started_utc": "2026-09-21T06:19:27.641845+00:00",
+    "elapsed_ns": 6853971500,
+    "finished_utc": "2026-09-21T06:19:34.496441+00:00",
+    "exit_code": 0,
+    "signal": null,
+    "test_outcome_events": {
+      "pass": 1,
+      "fail": 0,
+      "skip": 0
+    },
+    "outcome_count_unit": "Go test terminal events, including parent tests, subtests, fuzz seed tests, and explicit repetitions",
+    "scope_filters": [
+      "^$",
+      "^FuzzUpgradeDeliverySemanticClosure$"
+    ],
+    "not_run": {
+      "count": null,
+      "reason": "Excluded tests and packages are not enumerated; evidence covers only the exact argv scope."
+    },
+    "unavailable": {
+      "count": null,
+      "reason": "Not separately classified by this development recorder; inspect retained setup and process failures."
+    },
+    "timed_out": {
+      "count": null,
+      "reason": "Inspect retained process output and exit; no absence-of-timeout claim inferred from test events."
+    },
+    "artifacts": {
+      "source-digests.json": {
+        "sha256": "6d460f0ba86c249ecb6300e48023c1b9dac7509eb59bc3fec6583c8547701cb4",
+        "bytes": 321196
+      },
+      "tracked.patch": {
+        "sha256": "80a4d278dceb9fc3ccac5218172b4bac9c46b9d2517f85ef52897d0fe197e4b8",
+        "bytes": 1900
+      },
+      "stdout": {
+        "sha256": "517f157cc02821dfe1b767f04f7dd2a404aabccf8be4aa26d1f3e41015697db8",
+        "bytes": 2245
+      },
+      "working-tree.status": {
+        "sha256": "e4d69d1190411d4954be3f359abaa06cf46d560a032a1af04eb1b7e8dee3564e",
+        "bytes": 135
+      },
+      "stderr": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "started.json": {
+        "sha256": "7ca48ad27e5f3fd3a1a4b2ea1c0d2eeb0d8417136df726300013408621ae6fd7",
+        "bytes": 1202
+      },
+      "test-outcomes.json": {
+        "sha256": "c70e524269f971f982ef7371480558d364d5bdd5210923a9b23d6c51ddec16ad",
+        "bytes": 173
+      }
+    }
+  },
+  {
+    "kind": "development-execution-fact",
+    "acceptance": false,
+    "revision": "f76bc45b32f11388f1621782b23085d7b2df3f59",
+    "dirty": true,
+    "cwd": "/Users/d/code/primitive",
+    "argv": [
+      "go",
+      "vet",
+      "./distributionauth"
+    ],
+    "machine": {
+      "system": "Darwin",
+      "node": "Ases-MBP.localdomain",
+      "release": "27.0.0",
+      "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+      "machine": "arm64",
+      "processor": "arm"
+    },
+    "environment": {
+      "GOWORK": "off",
+      "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+      "GOMAXPROCS": "2",
+      "GOFLAGS": null,
+      "GOTOOLCHAIN": null,
+      "GOEXPERIMENT": null,
+      "GOOS": null,
+      "GOARCH": null,
+      "CGO_ENABLED": null,
+      "FIRESTORE_EMULATOR_HOST": null
+    },
+    "go_version": "go version go1.27.1 darwin/arm64",
+    "test_cache_bypassed": false,
+    "build_cache": "eligible",
+    "attempt": "upgrade-delivery-vet-01",
+    "started_utc": "2026-09-21T06:19:49.001899+00:00",
+    "elapsed_ns": 298919959,
+    "finished_utc": "2026-09-21T06:19:49.301363+00:00",
+    "exit_code": 0,
+    "signal": null,
+    "artifacts": {
+      "source-digests.json": {
+        "sha256": "6d460f0ba86c249ecb6300e48023c1b9dac7509eb59bc3fec6583c8547701cb4",
+        "bytes": 321196
+      },
+      "tracked.patch": {
+        "sha256": "80a4d278dceb9fc3ccac5218172b4bac9c46b9d2517f85ef52897d0fe197e4b8",
+        "bytes": 1900
+      },
+      "stdout": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "working-tree.status": {
+        "sha256": "e4d69d1190411d4954be3f359abaa06cf46d560a032a1af04eb1b7e8dee3564e",
+        "bytes": 135
+      },
+      "stderr": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "started.json": {
+        "sha256": "a6d033fa0cba7f32da5e8c8558f6c4c0dacf75012b043e195b86dc2546fda14b",
+        "bytes": 1022
+      }
+    }
+  },
+  {
+    "kind": "development-execution-fact",
+    "acceptance": false,
+    "revision": "f76bc45b32f11388f1621782b23085d7b2df3f59",
+    "dirty": true,
+    "cwd": "/Users/d/code/primitive",
+    "argv": [
+      "witness-lint",
+      "/Users/d/code/primitive/distributionauth"
+    ],
+    "machine": {
+      "system": "Darwin",
+      "node": "Ases-MBP.localdomain",
+      "release": "27.0.0",
+      "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+      "machine": "arm64",
+      "processor": "arm"
+    },
+    "environment": {
+      "GOWORK": "off",
+      "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+      "GOMAXPROCS": "2",
+      "GOFLAGS": null,
+      "GOTOOLCHAIN": null,
+      "GOEXPERIMENT": null,
+      "GOOS": null,
+      "GOARCH": null,
+      "CGO_ENABLED": null,
+      "FIRESTORE_EMULATOR_HOST": null
+    },
+    "go_version": "go version go1.27.1 darwin/arm64",
+    "test_cache_bypassed": false,
+    "build_cache": "eligible",
+    "attempt": "upgrade-delivery-doctrine-01",
+    "started_utc": "2026-09-21T06:19:49.663358+00:00",
+    "elapsed_ns": 29490292,
+    "finished_utc": "2026-09-21T06:19:49.693426+00:00",
+    "exit_code": 0,
+    "signal": null,
+    "artifacts": {
+      "source-digests.json": {
+        "sha256": "6d460f0ba86c249ecb6300e48023c1b9dac7509eb59bc3fec6583c8547701cb4",
+        "bytes": 321196
+      },
+      "tracked.patch": {
+        "sha256": "80a4d278dceb9fc3ccac5218172b4bac9c46b9d2517f85ef52897d0fe197e4b8",
+        "bytes": 1900
+      },
+      "stdout": {
+        "sha256": "50b4ac832dc6a3a74138c38c6892b4824e354612e29d188ae1921637f40ffc54",
+        "bytes": 24
+      },
+      "working-tree.status": {
+        "sha256": "e4d69d1190411d4954be3f359abaa06cf46d560a032a1af04eb1b7e8dee3564e",
+        "bytes": 135
+      },
+      "stderr": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "started.json": {
+        "sha256": "413b9587ddd9d9d1c61f90fad4f8eda452b4ae9ebe0bd531c3ee74cbb4e67c82",
+        "bytes": 1048
+      }
+    }
+  },
+  {
+    "kind": "development-execution-fact",
+    "acceptance": false,
+    "revision": "f76bc45b32f11388f1621782b23085d7b2df3f59",
+    "dirty": true,
+    "cwd": "/Users/d/code/primitive",
+    "argv": [
+      "/private/tmp/primitive-196-tools/staticcheck",
+      "./distributionauth"
+    ],
+    "machine": {
+      "system": "Darwin",
+      "node": "Ases-MBP.localdomain",
+      "release": "27.0.0",
+      "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+      "machine": "arm64",
+      "processor": "arm"
+    },
+    "environment": {
+      "GOWORK": "off",
+      "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+      "GOMAXPROCS": "2",
+      "GOFLAGS": null,
+      "GOTOOLCHAIN": null,
+      "GOEXPERIMENT": null,
+      "GOOS": null,
+      "GOARCH": null,
+      "CGO_ENABLED": null,
+      "FIRESTORE_EMULATOR_HOST": null
+    },
+    "go_version": "go version go1.27.1 darwin/arm64",
+    "test_cache_bypassed": false,
+    "build_cache": "eligible",
+    "attempt": "upgrade-delivery-staticcheck-01",
+    "started_utc": "2026-09-21T06:20:06.663306+00:00",
+    "elapsed_ns": 919187750,
+    "finished_utc": "2026-09-21T06:20:07.583029+00:00",
+    "exit_code": 0,
+    "signal": null,
+    "artifacts": {
+      "source-digests.json": {
+        "sha256": "6d460f0ba86c249ecb6300e48023c1b9dac7509eb59bc3fec6583c8547701cb4",
+        "bytes": 321196
+      },
+      "tracked.patch": {
+        "sha256": "80a4d278dceb9fc3ccac5218172b4bac9c46b9d2517f85ef52897d0fe197e4b8",
+        "bytes": 1900
+      },
+      "stdout": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "working-tree.status": {
+        "sha256": "e4d69d1190411d4954be3f359abaa06cf46d560a032a1af04eb1b7e8dee3564e",
+        "bytes": 135
+      },
+      "stderr": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "started.json": {
+        "sha256": "e9d4c97e2e7c18bc4e233660b0a3ff8450dc35f9014a9e8bc9c278585777b816",
+        "bytes": 1061
+      }
+    }
+  },
+  {
+    "kind": "development-execution-fact",
+    "acceptance": false,
+    "revision": "f76bc45b32f11388f1621782b23085d7b2df3f59",
+    "dirty": true,
+    "cwd": "/Users/d/code/primitive",
+    "argv": [
+      "/private/tmp/primitive-196-tools/fieldalignment",
+      "./distributionauth"
+    ],
+    "machine": {
+      "system": "Darwin",
+      "node": "Ases-MBP.localdomain",
+      "release": "27.0.0",
+      "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+      "machine": "arm64",
+      "processor": "arm"
+    },
+    "environment": {
+      "GOWORK": "off",
+      "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+      "GOMAXPROCS": "2",
+      "GOFLAGS": null,
+      "GOTOOLCHAIN": null,
+      "GOEXPERIMENT": null,
+      "GOOS": null,
+      "GOARCH": null,
+      "CGO_ENABLED": null,
+      "FIRESTORE_EMULATOR_HOST": null
+    },
+    "go_version": "go version go1.27.1 darwin/arm64",
+    "test_cache_bypassed": false,
+    "build_cache": "eligible",
+    "attempt": "upgrade-delivery-fieldalignment-01",
+    "started_utc": "2026-09-21T06:20:07.945701+00:00",
+    "elapsed_ns": 229643333,
+    "finished_utc": "2026-09-21T06:20:08.176019+00:00",
+    "exit_code": 3,
+    "signal": null,
+    "artifacts": {
+      "source-digests.json": {
+        "sha256": "6d460f0ba86c249ecb6300e48023c1b9dac7509eb59bc3fec6583c8547701cb4",
+        "bytes": 321196
+      },
+      "tracked.patch": {
+        "sha256": "80a4d278dceb9fc3ccac5218172b4bac9c46b9d2517f85ef52897d0fe197e4b8",
+        "bytes": 1900
+      },
+      "stdout": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "working-tree.status": {
+        "sha256": "e4d69d1190411d4954be3f359abaa06cf46d560a032a1af04eb1b7e8dee3564e",
+        "bytes": 135
+      },
+      "stderr": {
+        "sha256": "7c79f328f7744de464e7f576a117a619b371f89b1cc65516317dd21d09d80744",
+        "bytes": 595
+      },
+      "started.json": {
+        "sha256": "ef38267732d1f0c9d1bcddaba8a159989799665aac5c3714d8f286aa65a784f6",
+        "bytes": 1067
+      }
+    }
+  },
+  {
+    "kind": "development-execution-fact",
+    "acceptance": false,
+    "revision": "f76bc45b32f11388f1621782b23085d7b2df3f59",
+    "dirty": true,
+    "cwd": "/Users/d/code/primitive",
+    "argv": [
+      "/private/tmp/primitive-196-tools/fieldalignment",
+      "./distributionauth"
+    ],
+    "machine": {
+      "system": "Darwin",
+      "node": "Ases-MBP.localdomain",
+      "release": "27.0.0",
+      "version": "Darwin Kernel Version 27.0.0: Tue Aug 11 21:22:49 PDT 2026; root:xnu-13432.1.9~1/RELEASE_ARM64_T6000",
+      "machine": "arm64",
+      "processor": "arm"
+    },
+    "environment": {
+      "GOWORK": "off",
+      "GOCACHE": "/private/tmp/peachfuzz-live-20260920/test-cache",
+      "GOMAXPROCS": "2",
+      "GOFLAGS": null,
+      "GOTOOLCHAIN": null,
+      "GOEXPERIMENT": null,
+      "GOOS": null,
+      "GOARCH": null,
+      "CGO_ENABLED": null,
+      "FIRESTORE_EMULATOR_HOST": null
+    },
+    "go_version": "go version go1.27.1 darwin/arm64",
+    "test_cache_bypassed": false,
+    "build_cache": "eligible",
+    "attempt": "upgrade-delivery-fieldalignment-02",
+    "started_utc": "2026-09-21T06:20:33.110022+00:00",
+    "elapsed_ns": 711707708,
+    "finished_utc": "2026-09-21T06:20:33.822299+00:00",
+    "exit_code": 3,
+    "signal": null,
+    "artifacts": {
+      "source-digests.json": {
+        "sha256": "5c72f80618e3a59dc79594accf5bf2ffda7152e3670cc2960948dbc2bd68b4a5",
+        "bytes": 321196
+      },
+      "tracked.patch": {
+        "sha256": "80a4d278dceb9fc3ccac5218172b4bac9c46b9d2517f85ef52897d0fe197e4b8",
+        "bytes": 1900
+      },
+      "stdout": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0
+      },
+      "working-tree.status": {
+        "sha256": "e4d69d1190411d4954be3f359abaa06cf46d560a032a1af04eb1b7e8dee3564e",
+        "bytes": 135
+      },
+      "stderr": {
+        "sha256": "11e908b1fdaf4dac6ca0f4ccc309962e9c06f64b21b5c3b2ab31d02848874c18",
+        "bytes": 476
+      },
+      "started.json": {
+        "sha256": "03fce59acb5337b6554a9ff02bffb52674fe16c99cb438ac7bd8b20486315946",
+        "bytes": 1067
+      }
+    }
+  }
+]

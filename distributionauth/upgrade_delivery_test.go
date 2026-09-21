@@ -106,6 +106,14 @@ func FuzzUpgradeDeliverySemanticClosure(f *testing.F) {
 	f.Add([]byte("null"))
 	f.Add(canonical[:len(canonical)-1])
 	f.Fuzz(func(t *testing.T, data []byte) {
+		projectionErr := projection.ValidateJSONProjection(data, core.ExtensibleJSONLimits())
+		if bytes.Equal(data, canonical) {
+			if projectionErr != nil {
+				t.Fatalf("exact issuing projection error = %v, want nil", projectionErr)
+			}
+		} else if !errors.Is(projectionErr, core.ErrJSONContract) {
+			t.Fatalf("changed issuing projection error = %v, want ErrJSONContract", projectionErr)
+		}
 		var got UpgradeDeliveryDocument
 		if err := got.UnmarshalJSON(canonical); err != nil {
 			t.Fatalf("decode seed = %v, want nil", err)
