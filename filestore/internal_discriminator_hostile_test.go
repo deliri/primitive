@@ -106,16 +106,17 @@ func TestDirectoryPositionExhaustiveOffWireDomain(t *testing.T) {
 func TestDirectoryPositionModeOwnershipLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		wantErr  error
-		name     string
-		wantMode fs.FileMode
-		position directoryPosition
+		wantErr       error
+		name          string
+		wantMode      fs.FileMode
+		position      directoryPosition
+		wantPreserved bool
 	}{
-		{name: "intermediate retains ancestor mode", position: directoryIntermediate, wantMode: 0o700},
+		{name: "intermediate retains ancestor mode", position: directoryIntermediate, wantPreserved: true},
 		{name: "final applies requested mode", position: directoryFinal, wantMode: 0o750},
-		{name: "zero position refuses before changing mode", wantMode: 0o700, wantErr: core.ErrFilestoreContract},
-		{name: "future position refuses before changing mode", position: directoryPositionLimit, wantMode: 0o700, wantErr: core.ErrFilestoreContract},
-		{name: "maximum position cannot wrap into final", position: directoryPosition(math.MaxUint8), wantMode: 0o700, wantErr: core.ErrFilestoreContract},
+		{name: "zero position refuses before changing mode", wantPreserved: true, wantErr: core.ErrFilestoreContract},
+		{name: "future position refuses before changing mode", position: directoryPositionLimit, wantPreserved: true, wantErr: core.ErrFilestoreContract},
+		{name: "maximum position cannot wrap into final", position: directoryPosition(math.MaxUint8), wantPreserved: true, wantErr: core.ErrFilestoreContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -150,20 +151,26 @@ func TestDirectoryPositionModeOwnershipLayerTriad(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			// Windows retains Go's native chmod semantics, so compare the requested
-			// mode against a second real directory rather than assuming Unix bits.
-			if err := root.Mkdir("oracle", 0o700); err != nil {
-				t.Fatal(err)
+			// Preservation includes inherited native bits such as setgid. A fresh
+			// chmod is only an oracle for the branch that actually requests chmod;
+			// it may clear bits that a no-effect branch must retain.
+			wantMode := before.Mode()
+			if !tc.wantPreserved {
+				// The OS supplies its actual chmod semantics, including on Windows.
+				if err := root.Mkdir("oracle", 0o700); err != nil {
+					t.Fatal(err)
+				}
+				if err := root.Chmod("oracle", tc.wantMode); err != nil {
+					t.Fatal(err)
+				}
+				oracle, err := root.Stat("oracle")
+				if err != nil {
+					t.Fatal(err)
+				}
+				wantMode = oracle.Mode()
 			}
-			if err := root.Chmod("oracle", tc.wantMode); err != nil {
-				t.Fatal(err)
-			}
-			oracle, err := root.Stat("oracle")
-			if err != nil {
-				t.Fatal(err)
-			}
-			if !os.SameFile(before, after) || after.Mode() != oracle.Mode() || !after.ModTime().Equal(before.ModTime()) || string(data) != string([]byte{0, 255, 1}) {
-				t.Fatalf("directory custody = (%v,%v,%v), want same inode, native mode %v and unchanged child", after.Mode(), after.ModTime(), data, oracle.Mode())
+			if !os.SameFile(before, after) || after.Mode() != wantMode || !after.ModTime().Equal(before.ModTime()) || string(data) != string([]byte{0, 255, 1}) {
+				t.Fatalf("directory custody = (%v,%v,%v), want same inode, native mode %v and unchanged child", after.Mode(), after.ModTime(), data, wantMode)
 			}
 		})
 	}
