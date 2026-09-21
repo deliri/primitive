@@ -14,12 +14,12 @@ import (
 )
 
 type sequencedBoundDocument struct {
-	Operation   string `json:"operation"`
-	first       bindingCallbackFault
-	laterKey    string
 	validation  error
 	projections *int
 	marshals    *int
+	Operation   string `json:"operation"`
+	laterKey    string
+	first       bindingCallbackFault
 }
 
 func (d sequencedBoundDocument) Validate() error {
@@ -52,19 +52,19 @@ func (d sequencedBoundDocument) IdempotencyKey() (exchange.IdempotencyKey, error
 func TestSocketReplayIdentityLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name            string
-		plain           bool
-		first           bindingCallbackFault
-		laterKey        string
 		validation      error
-		cancelled       bool
-		wantErr         error
 		wantNative      error
-		wantBinding     bool
+		wantErr         error
+		laterKey        string
+		name            string
+		wantKey         string
 		wantProjections int
 		wantMarshals    int
 		wantCalls       int
-		wantKey         string
+		cancelled       bool
+		first           bindingCallbackFault
+		plain           bool
+		wantBinding     bool
 		wantAccepted    bool
 	}{
 		{name: "positive one key observation binds the exact body to transport", laterKey: "op-B", wantProjections: 1, wantMarshals: 1, wantCalls: 1, wantKey: "op-A", wantAccepted: true},

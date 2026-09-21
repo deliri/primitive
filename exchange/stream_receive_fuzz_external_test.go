@@ -24,10 +24,10 @@ const (
 )
 
 type streamFuzzReader struct {
-	window int
 	source *bytes.Reader
-	fault  streamFuzzFault
 	cancel context.CancelFunc
+	window int
+	fault  streamFuzzFault
 }
 
 func (r *streamFuzzReader) Read(p []byte) (int, error) {

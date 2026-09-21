@@ -13,8 +13,8 @@ import (
 func TestGoogleCloudVerifierSignedMutationPairsPreserveAuthority(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name              string
 		mutate            func(*verifierTestClaims)
+		name              string
 		wantSamePrincipal bool
 	}{
 		{name: "email rename requires a fresh signature and preserves principal", mutate: func(c *verifierTestClaims) { c.Email = "renamed@example.iam.gserviceaccount.com" }, wantSamePrincipal: true},

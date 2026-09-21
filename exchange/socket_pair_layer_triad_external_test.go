@@ -18,13 +18,13 @@ func TestSocketPairLayerTriad(t *testing.T) {
 	intent := replayBoundDocument{Operation: "operation-A"}
 	reply := transportDocument{Message: "accepted-fact"}
 	cases := []struct {
-		name                            string
-		replay                          exchange.ReplayMode
-		intent                          replayBoundDocument
-		zeroContract, dormant           bool
-		wantCalls                       int64
-		wantKey                         string
 		wantConstructorErr, wantSendErr error
+		name                            string
+		intent                          replayBoundDocument
+		wantKey                         string
+		wantCalls                       int64
+		replay                          exchange.ReplayMode
+		zeroContract, dormant           bool
 	}{
 		{name: "single attempt crosses the shared agreement without inventing replay identity", replay: exchange.ReplaySingleAttempt, intent: intent, wantCalls: 1},
 		{name: "bound replay identity survives both independently constructed socket sides", replay: exchange.ReplayIdempotencyKey, intent: intent, wantCalls: 1, wantKey: intent.Operation},
@@ -41,9 +41,9 @@ func TestSocketPairLayerTriad(t *testing.T) {
 			}
 			serverSocket, serverErr := exchange.NewServerSocket(contract)
 			type observation struct {
+				err    error
 				intent replayBoundDocument
 				key    exchange.IdempotencyKey
-				err    error
 			}
 			observed := make(chan observation, 1)
 			var calls atomic.Int64

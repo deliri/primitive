@@ -26,11 +26,11 @@ import (
 func TestGCSCapabilityAuthenticationLayerTriadPreservesSigningScope(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr   error
 		name      string
+		wantCalls uint64
 		refused   bool
 		canceled  bool
-		wantCalls uint64
-		wantErr   error
 	}{
 		{name: "authenticated signing carries storage and IAM usable scope", wantCalls: 1},
 		{name: "provider refusal releases no upload capability", refused: true, wantCalls: 1, wantErr: core.ErrObjectStoreDestination},
@@ -71,7 +71,7 @@ func TestGCSCapabilityAuthenticationLayerTriadPreservesSigningScope(t *testing.T
 						AccessToken string `json:"access_token"`
 						TokenType   string `json:"token_type"`
 						ExpiresIn   int    `json:"expires_in"`
-					}{"synthetic-scoped-token", "Bearer", 3600}
+					}{AccessToken: "synthetic-scoped-token", TokenType: "Bearer", ExpiresIn: 3600}
 					if err := json.MarshalWrite(w, response); err != nil {
 						t.Errorf("token response error = %v, want nil", err)
 					}

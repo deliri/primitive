@@ -96,7 +96,7 @@ type processNativeMetadataDoorInventory struct {
 }
 
 func processNativeMetadataDoors() processNativeMetadataDoorInventory {
-	return processNativeMetadataDoorInventory{(*process.Execution).GroupLiveness, process.Alive, process.DiscardDeviceArgument, process.ObserveProcesses, process.Self, process.StandardStreams}
+	return processNativeMetadataDoorInventory{Execution_GroupLiveness: (*process.Execution).GroupLiveness, Alive: process.Alive, DiscardDeviceArgument: process.DiscardDeviceArgument, ObserveProcesses: process.ObserveProcesses, Self: process.Self, StandardStreams: process.StandardStreams}
 }
 
 func TestProcessExternalIngressInventoryMatchesProduction(t *testing.T) {

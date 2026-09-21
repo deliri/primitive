@@ -21,9 +21,9 @@ func TestReceiptReuseDecisionExtentLayerTriad(t *testing.T) {
 	}
 	before := decodeDecisionProjection(t, projection)
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		data    []byte
-		wantErr error
 	}{
 		{name: "canonical_reuse", data: encoded},
 		{name: "large_valid_prefix", data: append(bytes.Repeat([]byte(" "), decisionWhitespaceFixtureBytes), encoded...)},

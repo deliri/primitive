@@ -27,10 +27,10 @@ const (
 )
 
 type fileCountingDestination struct {
+	digest       *core.DigestWriter
 	count        uint64
 	maximumWrite int
 	fail         bool
-	digest       *core.DigestWriter
 }
 
 func (w *fileCountingDestination) Write(p []byte) (int, error) {
@@ -64,11 +64,11 @@ func fileExpectedDigest(t testing.TB, length uint64) core.SHA256Digest {
 func TestGitHubRawFileStreamingLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr error
 		name    string
 		size    uint64
 		window  int
 		failure fileStreamFailure
-		wantErr error
 	}{
 		{name: "empty file has an empty digest", window: 1},
 		{name: "one byte crosses one byte window", size: 1, window: 1},
@@ -148,8 +148,8 @@ func TestGitHubRawFileStreamingLayerTriad(t *testing.T) {
 func TestFileInvalidIngressCannotReachHTTP(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name   string
 		mutate func(*FileRequest)
+		name   string
 	}{
 		{name: "nil interface", mutate: func(r *FileRequest) { r.Destination = nil }},
 		{name: "typed nil buffer", mutate: func(r *FileRequest) { r.Destination = (*bytes.Buffer)(nil) }},
@@ -243,8 +243,8 @@ func (w fileInvalidCountWriter) Write(p []byte) (int, error) {
 func TestFileNativeFailureSurvivesInvalidWriteCount(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name   string
 		writer io.Writer
+		name   string
 	}{
 		{name: "negative acknowledgment", writer: fileInvalidCountWriter{}},
 		{name: "acknowledgment exceeds offered bytes", writer: fileInvalidCountWriter{excess: true}},

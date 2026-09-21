@@ -23,9 +23,9 @@ func TestUploadAdmissionProviderExtentLayerTriad(t *testing.T) {
 	}
 	maximum := spec.UploadMaximum.Uint64()
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		extent  uint64
-		wantErr error
 	}{
 		{name: "smallest nonempty nominal object", extent: 1},
 		{name: "one byte below GCS limit", extent: maximum - 1},

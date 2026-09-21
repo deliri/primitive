@@ -18,11 +18,11 @@ import (
 func TestGitHubStreamPublishesOnlyCompletedStagedFilesLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr      error
 		name         string
 		size         uint64
 		failure      fileStreamFailure
 		cancelFinish bool
-		wantErr      error
 	}{
 		{name: "complete empty file replaces old bytes"},
 		{name: "complete byte replaces old bytes", size: 1},

@@ -25,10 +25,10 @@ func TestGoObservationProducerClassifierExhaustiveStateLayerTriad(t *testing.T) 
 		{name: "skipped", action: "skip", skipped: 1},
 	} {
 		for _, ending := range []struct {
-			name                       string
 			err                        error
-			outcome                    runprotocol.Outcome
+			name                       string
 			failed, cancelled, expired uint32
+			outcome                    runprotocol.Outcome
 		}{
 			{name: "zero exit", outcome: runprotocol.OutcomePassed},
 			{name: "process refusal", err: core.ErrProcessWait, outcome: runprotocol.OutcomeFailed, failed: 1},

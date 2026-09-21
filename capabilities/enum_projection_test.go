@@ -14,16 +14,16 @@ func TestEnumJSONProjectionRejectsCompleteInvalidByteDomains(t *testing.T) {
 		disposition := StandardSymbolDisposition(raw)
 		identity := Identity{effect: Effect(raw)}
 		cases := []struct {
-			name     string
-			valid    bool
 			validate func() error
 			isValid  func() bool
 			text     func() string
 			encode   func() ([]byte, error)
+			name     string
+			valid    bool
 		}{
-			{"operation", raw < int(operationLimit), operation.Validate, operation.IsValid, operation.String, operation.MarshalJSON},
-			{"disposition", raw >= int(StandardSymbolPure) && raw <= int(StandardSymbolUnresolved), disposition.Validate, disposition.IsValid, disposition.String, disposition.MarshalJSON},
-			{"identity", raw >= int(EffectFilesystem) && raw < int(effectLimit), identity.Validate, identity.IsValid, identity.String, identity.MarshalJSON},
+			{name: "operation", valid: raw < int(operationLimit), validate: operation.Validate, isValid: operation.IsValid, text: operation.String, encode: operation.MarshalJSON},
+			{name: "disposition", valid: raw >= int(StandardSymbolPure) && raw <= int(StandardSymbolUnresolved), validate: disposition.Validate, isValid: disposition.IsValid, text: disposition.String, encode: disposition.MarshalJSON},
+			{name: "identity", valid: raw >= int(EffectFilesystem) && raw < int(effectLimit), validate: identity.Validate, isValid: identity.IsValid, text: identity.String, encode: identity.MarshalJSON},
 		}
 		for _, tc := range cases {
 			err := tc.validate()

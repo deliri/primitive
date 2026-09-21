@@ -13,9 +13,9 @@ import (
 func TestAppendAndLockRegularityGatesSettleOnlyRefusedHandles(t *testing.T) {
 	t.Parallel()
 	for _, operation := range []struct {
-		name         string
-		run          func(*os.File) error
 		wantBoundary error
+		run          func(*os.File) error
+		name         string
 	}{
 		{name: "append", run: validateAppendFile, wantBoundary: core.ErrFilestoreActivation},
 		{name: "lock", run: validateLockFile, wantBoundary: core.ErrFilestoreDestination},
@@ -23,9 +23,9 @@ func TestAppendAndLockRegularityGatesSettleOnlyRefusedHandles(t *testing.T) {
 		t.Run(operation.name, func(t *testing.T) {
 			t.Parallel()
 			for _, tc := range []struct {
+				wantNative error
 				name       string
 				fixture    custodySyncFixture
-				wantNative error
 				wantLive   bool
 			}{
 				{name: "empty regular file remains live", fixture: custodySyncEmpty, wantLive: true},

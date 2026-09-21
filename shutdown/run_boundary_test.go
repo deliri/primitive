@@ -14,9 +14,9 @@ import (
 func TestPlanRegistrationRequiresConstructedPolicy(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr     error
 		name        string
 		constructed bool
-		wantErr     error
 	}{
 		{name: "zero plan refuses an otherwise executable step", wantErr: core.ErrShutdownContract},
 		{name: "constructed plan admits the same step", constructed: true},
@@ -82,8 +82,8 @@ func TestShutdownCallbackProducerClassifierLayerTriad(t *testing.T) {
 		{name: "one nanosecond after total expiry", elapsed: 3*time.Second + 1, wantBudget: StepOutcomeTotalBudgetExceeded},
 	} {
 		for _, exit := range []struct {
-			name    string
 			failure error
+			name    string
 			panics  bool
 		}{
 			{name: "nil callback result"},
@@ -137,13 +137,13 @@ func TestShutdownCallbackProducerClassifierLayerTriad(t *testing.T) {
 						t.Fatalf("handoff class %d = (%+v,%t,count=%d), want ID1/drain/%v/count1", primary, result, ok, report.Count(), want)
 					}
 					for _, identity := range []struct {
-						outcome StepOutcome
 						err     error
+						outcome StepOutcome
 					}{
-						{StepOutcomeFailed, core.ErrShutdownStepFailure},
-						{StepOutcomeTimedOut, core.ErrShutdownStepTimeout},
-						{StepOutcomeTotalBudgetExceeded, core.ErrShutdownTotalTimeout},
-						{StepOutcomePanicked, core.ErrShutdownStepPanic},
+						{outcome: StepOutcomeFailed, err: core.ErrShutdownStepFailure},
+						{outcome: StepOutcomeTimedOut, err: core.ErrShutdownStepTimeout},
+						{outcome: StepOutcomeTotalBudgetExceeded, err: core.ErrShutdownTotalTimeout},
+						{outcome: StepOutcomePanicked, err: core.ErrShutdownStepPanic},
 					} {
 						wantMatch := want == identity.outcome
 						if errors.Is(result.Failure(), identity.err) != wantMatch || errors.Is(runErr, identity.err) != wantMatch {
@@ -186,11 +186,11 @@ func TestShutdownCallbackProducerClassifierLayerTriad(t *testing.T) {
 func TestShutdownSkippedStepsKeepDeadlineAndEffectFacts(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name        string
-		expire      bool
-		wantCalls   int
-		wantOutcome StepOutcome
 		wantErr     error
+		name        string
+		wantCalls   int
+		expire      bool
+		wantOutcome StepOutcome
 	}{
 		{name: "active total budget executes later cleanup", wantCalls: 2, wantOutcome: StepOutcomeCompleted},
 		{name: "expired total budget never executes later cleanup", expire: true, wantCalls: 1, wantOutcome: StepOutcomeTotalBudgetExceeded, wantErr: core.ErrShutdownTotalTimeout},

@@ -11,9 +11,9 @@ func TestHTTPEndpointCanonicalExtentClosure(t *testing.T) {
 	t.Parallel()
 	const prefix = "https://example.invalid/"
 	cases := []struct {
+		wantErr error
 		name    string
 		source  string
-		wantErr error
 	}{
 		{name: "neutral/short empty path", source: prefix},
 		{name: "positive/escaped space retains its Go spelling", source: prefix + " "},
@@ -22,9 +22,9 @@ func TestHTTPEndpointCanonicalExtentClosure(t *testing.T) {
 		{name: "negative/invalid escape remains rejected", source: prefix + "%", wantErr: ErrPrimitiveContract},
 	}
 	widths := []struct {
+		wantErr error
 		name    string
 		size    int
-		wantErr error
 	}{
 		{name: "one below", size: httpEndpointMaximumBytes - 1},
 		{name: "exact", size: httpEndpointMaximumBytes},
@@ -47,9 +47,9 @@ func TestHTTPEndpointCanonicalExtentClosure(t *testing.T) {
 				t.Fatalf("fixture URL=%v, %v; want canonical extent %d", parsed, err, width.size)
 			}
 			cases = append(cases, struct {
+				wantErr error
 				name    string
 				source  string
-				wantErr error
 			}{name: "boundary/" + shape.name + "/" + width.name, source: source, wantErr: width.wantErr})
 		}
 	}
@@ -69,9 +69,9 @@ func TestHTTPEndpointCanonicalExtentClosure(t *testing.T) {
 			budget := size - len(prefix)
 			source := prefix + strings.Repeat(shape.unit, budget/len(shape.unit)) + strings.Repeat("a", budget%len(shape.unit))
 			cases = append(cases, struct {
+				wantErr error
 				name    string
 				source  string
-				wantErr error
 			}{name: "short-input threshold/" + shape.name + "/" + delta.name, source: source})
 		}
 	}

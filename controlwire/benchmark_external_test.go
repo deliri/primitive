@@ -49,9 +49,9 @@ func BenchmarkRequestNonceJSON(b *testing.B) {
 		b.Fatal(err)
 	}
 	cases := []struct {
+		wantErr error
 		name    string
 		data    []byte
-		wantErr error
 	}{
 		{name: "Canonical", data: canonical},
 		{name: "Oversized", data: oversized, wantErr: core.ErrControlWireNonce},

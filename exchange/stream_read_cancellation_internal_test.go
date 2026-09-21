@@ -10,14 +10,14 @@ import (
 )
 
 type cancellationReadStep struct {
-	payload string
 	err     error
+	payload string
 	cancel  bool
 }
 
 type cancellationStepReader struct {
-	steps     []cancellationReadStep
 	cancel    context.CancelFunc
+	steps     []cancellationReadStep
 	calls     int
 	readBytes int
 }
@@ -45,16 +45,16 @@ func TestStreamReadCancellationLayerTriad(t *testing.T) {
 	// Every row pins a distinct read/error/probe ordering. In particular, an
 	// observed excess byte is stronger evidence than cancellation after Read.
 	cases := []struct {
+		wantErr       error
 		name          string
+		wantBody      string
 		steps         []cancellationReadStep
 		limit         uint64
-		cancelBefore  bool
-		wantErr       error
-		wantCancelled bool
-		wantBody      string
 		wantWritten   uint64
 		wantReadBytes int
 		wantReadCalls int
+		cancelBefore  bool
+		wantCancelled bool
 	}{
 		{name: "cancelled before reading cannot consume a byte", steps: []cancellationReadStep{{payload: "a"}}, limit: 2, cancelBefore: true, wantErr: context.Canceled, wantCancelled: true},
 		{name: "cancel after a short successful read retains its byte", steps: []cancellationReadStep{{payload: "a", cancel: true}}, limit: 2, wantErr: context.Canceled, wantCancelled: true, wantBody: "a", wantWritten: 1, wantReadBytes: 1, wantReadCalls: 1},

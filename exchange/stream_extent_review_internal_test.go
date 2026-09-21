@@ -11,8 +11,8 @@ import (
 )
 
 type streamingReviewBody struct {
-	remaining     uint64
 	terminal      error
+	remaining     uint64
 	closes, reads int
 }
 
@@ -34,8 +34,8 @@ func (r *streamingReviewBody) Read(p []byte) (int, error) {
 func (r *streamingReviewBody) Close() error { r.closes++; return nil }
 
 type streamingReviewSink struct {
-	bytes    uint64
 	writeErr error
+	bytes    uint64
 }
 
 func (w *streamingReviewSink) Write(p []byte) (int, error) {
@@ -51,12 +51,12 @@ func (w *streamingReviewSink) Write(p []byte) (int, error) {
 func TestDownloadUncappedExtentLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		terminal, writeErr, wantErr error
 		name                        string
 		size                        uint64
 		declared                    int64
-		terminal, writeErr, wantErr error
-		canceled                    bool
 		wantBytes                   uint64
+		canceled                    bool
 	}{
 		{name: "unknown length below the Go window completes", size: 32767, declared: -1, wantBytes: 32767},
 		{name: "unknown length at the Go window completes", size: 32768, declared: -1, wantBytes: 32768},

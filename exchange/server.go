@@ -139,8 +139,8 @@ func ReceiveJSON[
 // OwnedJSONReceiveCall supplies the release operation for a decoded resource
 // that cannot be returned because validation or request-body close failed.
 type OwnedJSONReceiveCall[Body core.Validatable] struct {
-	Receive JSONReceiveCall
 	Release func(Body) error
+	Receive JSONReceiveCall
 }
 
 func (c OwnedJSONReceiveCall[Body]) Validate() error {

@@ -83,8 +83,8 @@ func FuzzBoundedClientsPreserveCompletedProducerCause(f *testing.F) {
 		}
 		semantics := RequestSemantics{Method: MethodGet, Replay: ReplaySingleAttempt}
 		doors := []struct {
-			name string
 			send func(context.Context, Client) (BoundedResponse, error)
+			name string
 		}{
 			{name: "SendNoBodyBounded", send: func(ctx context.Context, client Client) (BoundedResponse, error) {
 				return SendNoBodyBounded(NoBodyBoundedCall{Context: ctx, Client: client,

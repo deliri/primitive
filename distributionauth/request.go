@@ -314,6 +314,7 @@ var (
 
 	_ core.ValidatedJSONMarshaler = UpdateRequestDocument{}
 	_ core.ValidatedJSONMarshaler = UpgradeRequestDocument{}
+	_ core.ValidatedJSONMarshaler = UpgradeDeliveryProjection{}
 	_ json.Unmarshaler            = (*UpdateRequestDocument)(nil)
 	_ json.Unmarshaler            = (*UpgradeRequestDocument)(nil)
 )

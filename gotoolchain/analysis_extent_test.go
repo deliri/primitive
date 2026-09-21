@@ -42,10 +42,10 @@ func TestAnalysisMetadataExtentIsCallerOwned(t *testing.T) {
 		t.Fatalf("fixture bytes = %d, want above default %d", stream.Len(), DefaultOutputBytes)
 	}
 	for _, tc := range []struct {
+		want     error
 		name     string
 		bytes    uint64
 		packages uint64
-		want     error
 	}{
 		{name: "mechanical stream extent", bytes: math.MaxInt64, packages: math.MaxUint64},
 		{name: "exact caller extent", bytes: uint64(stream.Len()), packages: count},

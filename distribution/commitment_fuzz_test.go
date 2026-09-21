@@ -62,9 +62,9 @@ func FuzzRequestCommitmentCanonicalFrame(f *testing.F) {
 func TestRequestCommitmentEmptyDigestCannotBecomeProof(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		digest  core.SHA256Digest
-		wantErr error
 	}{
 		{name: "unset digest", wantErr: core.ErrDistributionContract},
 		{name: "explicit all zero digest", digest: core.NewSHA256Digest([sha256.Size]byte{}), wantErr: core.ErrDistributionContract},

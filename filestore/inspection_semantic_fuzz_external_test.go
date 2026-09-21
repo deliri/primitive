@@ -27,9 +27,9 @@ func FuzzInspectionNativeFactsSemanticClosure(f *testing.F) {
 		f.Add([]byte{0, 255}, uint8(index), uint16(0o600))
 	}
 	for _, seed := range []struct {
-		kind    filestore.PathKind
 		payload []byte
 		mode    uint16
+		kind    filestore.PathKind
 	}{
 		{kind: filestore.PathKindRegularFile, payload: []byte{}},
 		{kind: filestore.PathKindUnreachable, payload: []byte{0}, mode: 1},

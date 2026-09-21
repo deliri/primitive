@@ -33,8 +33,8 @@ type dependencyFixtureModule struct {
 }
 
 type dependencyLiveFixture struct {
-	request release.BuildDependencyObservationRequest
 	module  dependencyFixtureModule
+	request release.BuildDependencyObservationRequest
 }
 
 // TestObserveBuildDependenciesReturnsTheRealCrossTargetModuleUnion is the
@@ -397,10 +397,10 @@ func TestDependencyObservationBindsVerifiedRootAndCommitBeforeEffects(t *testing
 		t.Fatalf("release.PrepareBuildPlan(foreign) error = %v, want nil", err)
 	}
 	for _, tc := range []struct {
+		wantErr       error
 		name          string
 		foreignRoot   bool
 		foreignCommit bool
-		wantErr       error
 	}{
 		{name: "same verified root and commit admit observation"},
 		{name: "foreign root with verified commit refuses substitution", foreignRoot: true, wantErr: core.ErrReleaseContract},

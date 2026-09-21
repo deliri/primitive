@@ -11,8 +11,8 @@ import (
 func TestChitZeroJSONValuesAndNilReceiversTable(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name string
 		run  func(*testing.T)
+		name string
 	}{
 		{name: "entry name", run: chitZeroJSONContract[EntryName]},
 		{name: "chit identity", run: chitZeroJSONContract[ChitID]},
@@ -62,8 +62,8 @@ func TestChitTaggedUnionExhaustiveTable(t *testing.T) {
 	// Each byte-domain discriminator is crossed with absent and present data.
 	// Explicit legal arms form the oracle; production Validate never selects it.
 	type unionCase struct {
-		name      string
 		value     core.ValidatedJSONMarshaler
+		name      string
 		wantValid bool
 	}
 	cases := make([]unionCase, 0, 3*256*2)

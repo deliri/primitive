@@ -28,10 +28,10 @@ const (
 func TestOpenParentNativeCapabilityLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr, wantExcluded         error
 		name, parent, child, wantBase string
 		createChild                   bool
 		mutation                      parentAcquisitionMutation
-		wantErr, wantExcluded         error
 	}{
 		{name: "binary child remains usable through the exact returned parent", parent: "parent", child: "child", wantBase: "child", createChild: true},
 		{name: "absent child still returns its real parent", parent: "parent", child: "child", wantBase: "child"},
@@ -59,12 +59,12 @@ func TestOpenParentNativeCapabilityLayerTriad(t *testing.T) {
 			for _, entry := range []struct {
 				name string
 				data []byte
-			}{{filepath.Join(container, "neighbor"), payload}, {filepath.Join(container, "file-parent"), payload}, {filepath.Join(container, "parent", "referent"), payload}, {filepath.Join(outside, "retained"), payload}} {
+			}{{name: filepath.Join(container, "neighbor"), data: payload}, {name: filepath.Join(container, "file-parent"), data: payload}, {name: filepath.Join(container, "parent", "referent"), data: payload}, {name: filepath.Join(outside, "retained"), data: payload}} {
 				if err := os.WriteFile(entry.name, entry.data, 0o600); err != nil {
 					t.Fatal(err)
 				}
 			}
-			for _, link := range []struct{ name, target string }{{"alias", "parent"}, {"outside-parent", outside}, {"loop-parent", "loop-parent"}} {
+			for _, link := range []struct{ name, target string }{{name: "alias", target: "parent"}, {name: "outside-parent", target: outside}, {name: "loop-parent", target: "loop-parent"}} {
 				if err := os.Symlink(link.target, filepath.Join(container, link.name)); err != nil {
 					t.Fatal(err)
 				}

@@ -13,8 +13,8 @@ import (
 )
 
 type socketMutableTarget struct {
-	value       url.URL
 	later       *url.URL
+	value       url.URL
 	projections int
 }
 
@@ -47,17 +47,17 @@ func TestClientSocketCustodyLayerTriad(t *testing.T) {
 		{Message: "second request \u03bb\U0001f50c"},
 	}
 	cases := []struct {
+		wantErr             error
 		name                string
-		disturbance         disturbance
 		header              string
 		capture             string
-		omitHeaders         bool
-		wantErr             error
-		wantCalls           int
-		wantProjections     int
 		wantHeader          string
 		wantCapture         string
+		wantCalls           int
+		wantProjections     int
 		wantCapturedHeaders int
+		disturbance         disturbance
+		omitHeaders         bool
 	}{
 		{name: "positive original configuration crosses twice unchanged", wantCalls: 2, wantProjections: 1, header: "sealed-1", wantHeader: "sealed-1", capture: "observed-1", wantCapture: "observed-1", wantCapturedHeaders: 1},
 		{name: "negative caller replacement cannot rename an owned header", disturbance: replaceHeader, wantCalls: 2, wantProjections: 1, header: "sealed-2", wantHeader: "sealed-2", capture: "observed-2", wantCapture: "observed-2", wantCapturedHeaders: 1},

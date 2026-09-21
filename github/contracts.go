@@ -220,11 +220,11 @@ func (o HeadObservation) Validate() error {
 // Buffer controls scratch space, not total file size; an empty buffer lets Go
 // allocate its copy window. It must not alias Destination storage.
 type FileRequest struct {
+	Destination io.Writer
 	Repository  Repository
 	Path        core.SourcePath
-	Commit      core.BuildCommit
-	Destination io.Writer
 	Buffer      []byte
+	Commit      core.BuildCommit
 }
 
 // Validate checks the exact source and destination before any transport.
@@ -289,10 +289,10 @@ func (ArchiveTransferState) OffWireEnum() {}
 type TarArchiveRequest struct {
 	Destination io.Writer
 	Repository  Repository
-	Commit      core.BuildCommit
 	// Buffer is borrowed Go copy scratch, never an archive-size ceiling.
 	// Source and destination must not alias it; empty uses Go allocation.
 	Buffer []byte
+	Commit core.BuildCommit
 }
 
 // Validate checks the complete exact-source transfer request.
@@ -308,9 +308,9 @@ func (r TarArchiveRequest) Validate() error {
 // non-nil transfer error and preserve partial-result accounting.
 type TarArchiveObservation struct {
 	Repository Repository
+	Length     core.ByteLength
 	Commit     core.BuildCommit
 	SHA256     core.SHA256Digest
-	Length     core.ByteLength
 	State      ArchiveTransferState
 }
 
@@ -370,8 +370,8 @@ func (TreeEntryKind) OffWireEnum() {}
 // TreeEntry commits the decoded path bytes and closed kind of one complete entry.
 // It retains no path text; the caller owns the streamed bytes.
 type TreeEntry struct {
-	PathSHA256 core.SHA256Digest
 	PathLength core.ByteLength
+	PathSHA256 core.SHA256Digest
 	Kind       TreeEntryKind
 }
 

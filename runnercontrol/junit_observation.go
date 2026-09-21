@@ -21,13 +21,13 @@ type junitCompileResult struct {
 }
 
 type junitStreamState struct {
-	policy      ObservationPolicy
+	depth       int
 	attempt     runprotocol.ExecutionAttempt
+	policy      ObservationPolicy
+	observed    uint32
 	inCase      bool
 	caseFailed  bool
 	caseSkipped bool
-	observed    uint32
-	depth       int
 	rootSeen    bool
 }
 
@@ -167,7 +167,7 @@ func (s *junitStreamState) consumeStart(element xml.StartElement) error {
 			return observationFailure("JUnit XML nests testcase elements", core.ErrPrimitiveContract)
 		}
 		s.inCase, s.caseFailed, s.caseSkipped = true, false, false
-	case "failure", "error":
+	case "failure", junitErrorElement:
 		s.caseFailed = s.inCase
 	case "skipped", "disabled":
 		s.caseSkipped = s.inCase
@@ -238,3 +238,5 @@ var (
 	_ core.Validatable = JUnitObservation{}
 	_ io.Writer        = (*JUnitObservationCompiler)(nil)
 )
+
+const junitErrorElement = "error"

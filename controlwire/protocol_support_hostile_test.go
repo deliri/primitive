@@ -11,7 +11,7 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
-func protocolFamilyInventory() [13]controlwire.RouteFamily {
+func protocolFamilyInventory() [15]controlwire.RouteFamily {
 	return [...]controlwire.RouteFamily{
 		controlwire.RouteFamilyRegistrations,
 		controlwire.RouteFamilyCheckIns,
@@ -26,6 +26,8 @@ func protocolFamilyInventory() [13]controlwire.RouteFamily {
 		controlwire.RouteFamilyUpdateChecks,
 		controlwire.RouteFamilyUpgrades,
 		controlwire.RouteFamilyActivations,
+		controlwire.RouteFamilyUpgradeReports,
+		controlwire.RouteFamilyUpgradeEvidence,
 	}
 }
 

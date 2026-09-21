@@ -79,12 +79,12 @@ func TestReportRequestAuthenticationLayerTriad(t *testing.T) {
 func TestReportRequestRejectsAuthenticForeignNominations(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr           error
 		name              string
 		authority, device byte
-		wantErr           error
 	}{
-		{"foreign authority cannot nominate same device key", 18, 23, core.ErrReportAuthentication},
-		{"same authority cannot substitute another device key", 17, 24, core.ErrReportBinding},
+		{name: "foreign authority cannot nominate same device key", authority: 18, device: 23, wantErr: core.ErrReportAuthentication},
+		{name: "same authority cannot substitute another device key", authority: 17, device: 24, wantErr: core.ErrReportBinding},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -154,26 +154,26 @@ func FuzzReportRequestSemanticClosure(f *testing.F) {
 func TestReportRequestRejectsChangedSignedFacts(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name   string
 		mutate func(*ReportRequest)
+		name   string
 	}{
-		{"report sequence substituted", func(r *ReportRequest) { r.Report.Payload.Sequence++ }},
-		{"report predecessor substituted", func(r *ReportRequest) { r.Report.Payload.Previous = core.SHA256Of([]byte("foreign predecessor")) }},
-		{"report evidence digest substituted", func(r *ReportRequest) { r.Report.Payload.Evidence.Digest = core.SHA256Of([]byte("foreign evidence")) }},
-		{"report evidence extent substituted", func(r *ReportRequest) { r.Report.Payload.Evidence.Bytes++ }},
-		{"report evidence extent at signed integer maximum", func(r *ReportRequest) { r.Report.Payload.Evidence.Bytes = math.MaxInt64 }},
-		{"report company substituted", func(r *ReportRequest) { r.Report.Payload.Scope.Company = r.Report.Payload.Scope.Project }},
-		{"report project substituted", func(r *ReportRequest) { r.Report.Payload.Scope.Project = r.Report.Payload.Scope.Company }},
-		{"report epoch substituted", func(r *ReportRequest) { r.Report.Payload.Scope.Epoch = r.Report.Payload.Scope.Company }},
-		{"report interval start substituted", func(r *ReportRequest) { r.Report.Payload.Window.Bounds.Start = temporal.InstantFromNanoseconds(1) }},
-		{"report interval end substituted", func(r *ReportRequest) { r.Report.Payload.Window.Bounds.End = temporal.InstantFromNanoseconds(51) }},
-		{"report attested digest substituted", func(r *ReportRequest) { r.Report.Attestation.BodySHA256 = core.SHA256Of([]byte("foreign body")) }},
-		{"report attested length substituted", func(r *ReportRequest) { r.Report.Attestation.BodyLength, _ = core.NewByteCount(1) }},
-		{"certificate issue time substituted", func(r *ReportRequest) { r.Certificate.Body.IssuedAt = temporal.InstantFromNanoseconds(1) }},
-		{"certificate attested digest substituted", func(r *ReportRequest) {
+		{name: "report sequence substituted", mutate: func(r *ReportRequest) { r.Report.Payload.Sequence++ }},
+		{name: "report predecessor substituted", mutate: func(r *ReportRequest) { r.Report.Payload.Previous = core.SHA256Of([]byte("foreign predecessor")) }},
+		{name: "report evidence digest substituted", mutate: func(r *ReportRequest) { r.Report.Payload.Evidence.Digest = core.SHA256Of([]byte("foreign evidence")) }},
+		{name: "report evidence extent substituted", mutate: func(r *ReportRequest) { r.Report.Payload.Evidence.Bytes++ }},
+		{name: "report evidence extent at signed integer maximum", mutate: func(r *ReportRequest) { r.Report.Payload.Evidence.Bytes = math.MaxInt64 }},
+		{name: "report company substituted", mutate: func(r *ReportRequest) { r.Report.Payload.Scope.Company = r.Report.Payload.Scope.Project }},
+		{name: "report project substituted", mutate: func(r *ReportRequest) { r.Report.Payload.Scope.Project = r.Report.Payload.Scope.Company }},
+		{name: "report epoch substituted", mutate: func(r *ReportRequest) { r.Report.Payload.Scope.Epoch = r.Report.Payload.Scope.Company }},
+		{name: "report interval start substituted", mutate: func(r *ReportRequest) { r.Report.Payload.Window.Bounds.Start = temporal.InstantFromNanoseconds(1) }},
+		{name: "report interval end substituted", mutate: func(r *ReportRequest) { r.Report.Payload.Window.Bounds.End = temporal.InstantFromNanoseconds(51) }},
+		{name: "report attested digest substituted", mutate: func(r *ReportRequest) { r.Report.Attestation.BodySHA256 = core.SHA256Of([]byte("foreign body")) }},
+		{name: "report attested length substituted", mutate: func(r *ReportRequest) { r.Report.Attestation.BodyLength, _ = core.NewByteCount(1) }},
+		{name: "certificate issue time substituted", mutate: func(r *ReportRequest) { r.Certificate.Body.IssuedAt = temporal.InstantFromNanoseconds(1) }},
+		{name: "certificate attested digest substituted", mutate: func(r *ReportRequest) {
 			r.Certificate.Attestation.BodySHA256 = core.SHA256Of([]byte("foreign certificate"))
 		}},
-		{"certificate attested length substituted", func(r *ReportRequest) { r.Certificate.Attestation.BodyLength, _ = core.NewByteCount(1) }},
+		{name: "certificate attested length substituted", mutate: func(r *ReportRequest) { r.Certificate.Attestation.BodyLength, _ = core.NewByteCount(1) }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -201,13 +201,13 @@ func TestReportRequestRejectsChangedSignedFacts(t *testing.T) {
 func TestReportRequestDocumentExtentBoundary(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		length  int
-		wantErr error
 	}{
-		{"one below request byte ceiling", ReportRequestMaximumBytes - 1, nil},
-		{"exact request byte ceiling", ReportRequestMaximumBytes, nil},
-		{"one above request byte ceiling", ReportRequestMaximumBytes + 1, core.ErrReportContract},
+		{name: "one below request byte ceiling", length: ReportRequestMaximumBytes - 1, wantErr: nil},
+		{name: "exact request byte ceiling", length: ReportRequestMaximumBytes, wantErr: nil},
+		{name: "one above request byte ceiling", length: ReportRequestMaximumBytes + 1, wantErr: core.ErrReportContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

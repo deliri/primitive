@@ -15,8 +15,8 @@ func TestResolveTextCannotCleanAwayInvalidIngress(t *testing.T) {
 	}
 	sep := string(filepath.Separator)
 	cases := []struct {
-		name, text string
 		wantErr    error
+		name, text string
 	}{
 		{name: "positive/dot remains lexical", text: "."},
 		{name: "positive/parent remains lexical", text: ".."},
@@ -29,9 +29,9 @@ func TestResolveTextCannotCleanAwayInvalidIngress(t *testing.T) {
 		{name: "negative/absolute invalid UTF8 cannot disappear", text: base.String() + sep + "\xff" + sep + "..", wantErr: ErrPrimitiveContract},
 	}
 	for _, edge := range []struct {
+		wantErr error
 		name    string
 		width   int
-		wantErr error
 	}{
 		{name: "below", width: 4096 - 1},
 		{name: "exact", width: 4096},
@@ -40,8 +40,8 @@ func TestResolveTextCannotCleanAwayInvalidIngress(t *testing.T) {
 		// Repeated separators deliberately normalize away. They pressure the raw
 		// absence of raw extent quotas independently of the short final path.
 		cases = append(cases, struct {
-			name, text string
 			wantErr    error
+			name, text string
 		}{name: "boundary/raw rune limit/" + edge.name, text: "." + strings.Repeat(sep, edge.width-1), wantErr: edge.wantErr})
 	}
 	for _, tc := range cases {

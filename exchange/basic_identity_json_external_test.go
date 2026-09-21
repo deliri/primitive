@@ -28,10 +28,10 @@ func TestBasicIdentityJSONLayerTriad(t *testing.T) {
 		return append(bytes.Repeat([]byte{' '}, size-len(minimumWire)), minimumWire...)
 	}
 	cases := []struct {
-		name    string
-		wire    []byte
-		want    exchange.BasicAuthorizationIdentity
 		wantErr error
+		name    string
+		want    exchange.BasicAuthorizationIdentity
+		wire    []byte
 	}{
 		{name: "positive minimum nonempty identity survives", wire: minimumWire, want: "i"},
 		{name: "positive JSON quoting preserves a quote in identity", wire: encode("i\"d"), want: "i\"d"},

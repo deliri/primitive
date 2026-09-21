@@ -20,8 +20,8 @@ const (
 )
 
 type namespaceWriteObservation struct {
-	receipt filestore.CommitRequest
 	err     error
+	receipt filestore.CommitRequest
 	index   int
 }
 

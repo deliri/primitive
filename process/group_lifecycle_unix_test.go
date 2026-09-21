@@ -37,8 +37,8 @@ func TestGroupLivenessNativeLayerTriadOwnsObservationAndReaping(t *testing.T) {
 		proveGroupLifecycle(t, []byte("owned input\n"))
 	})
 	for _, tc := range []struct {
-		name   string
 		handle *process.Execution
+		name   string
 	}{
 		{name: "nil capability exposes no observation"},
 		{name: "unstarted capability exposes no observation", handle: new(process.Execution)},
@@ -75,8 +75,16 @@ func proveGroupLifecycle(t *testing.T, payload []byte) {
 	ctx, cancel := context.WithTimeout(t.Context(), processTestBackstop)
 	defer cancel()
 	reader, writer := io.Pipe()
-	defer reader.Close()
-	defer writer.Close()
+	defer func() {
+		if err := reader.Close(); err != nil {
+			t.Errorf("reader.Close() cleanup error = %v, want nil", err)
+		}
+	}()
+	defer func() {
+		if err := writer.Close(); err != nil {
+			t.Errorf("writer.Close() cleanup error = %v, want nil", err)
+		}
+	}()
 	var stdout bytes.Buffer
 	request := processRequest(t, "copy", process.Streams{Stdin: reader, Stdout: &stdout, Stderr: io.Discard})
 	request.Containment.Isolation = process.IsolationGroup

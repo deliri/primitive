@@ -27,8 +27,8 @@ const (
 func TestAggregateDurationParserLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name, input string
 		wantErr     error
+		name, input string
 	}{
 		{name: "zero preserves the additive identity", input: "0"},
 		{name: "one preserves the minimum positive value", input: "1"},

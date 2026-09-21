@@ -11,8 +11,8 @@ import (
 func TestGitHubNominalCustodyBoundaries(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name, input                    string
 		wantReferenceErr, wantAgentErr error
+		name, input                    string
 	}{
 		{name: "empty has no nominal identity", wantReferenceErr: core.ErrGitHubContract, wantAgentErr: core.ErrGitHubContract},
 		{name: "one ASCII byte is a complete nominal value", input: "x"},
@@ -62,11 +62,11 @@ func TestTagPageSchemaLayerTriad(t *testing.T) {
 	}
 	tag := Tag{Name: ref, Commit: parsedCommit(t)}
 	cases := []struct {
-		name                                          string
-		page, next                                    uint32
-		count                                         int
-		missingRepository, missingName, missingCommit bool
 		wantErr                                       error
+		name                                          string
+		count                                         int
+		page, next                                    uint32
+		missingRepository, missingName, missingCommit bool
 	}{
 		{name: "empty first page preserves neutral observation", page: 1},
 		{name: "nonempty page preserves one exact next page", page: 1, next: 2, count: 1},

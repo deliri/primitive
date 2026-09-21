@@ -19,9 +19,9 @@ func (f opaqueRoundTripper) RoundTrip(request *http.Request) (*http.Response, er
 func TestClientWithoutProxyLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr                                              error
 		name                                                 string
 		zero, opaque, nilTransport, typedNil, proxy, timeout bool
-		wantErr                                              error
 	}{
 		{name: "proxy removal clones caller transport", proxy: true},
 		{name: "already direct transport still receives separate custody"},

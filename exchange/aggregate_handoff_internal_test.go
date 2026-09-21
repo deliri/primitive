@@ -18,16 +18,16 @@ import (
 func TestAggregateCompletedAttemptCancellationLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name            string
-		payload         []byte
-		fault           replayHandoffBodyFault
-		cancel          bool
-		wantBody        []byte
-		wantRead        int
 		wantProducerErr error
-		wantClass       attemptDisposition
 		wantErr         error
 		wantNative      error
+		name            string
+		payload         []byte
+		wantBody        []byte
+		wantRead        int
+		fault           replayHandoffBodyFault
+		cancel          bool
+		wantClass       attemptDisposition
 	}{
 		{name: "empty successful producer retains zero body and no retry", wantClass: attemptComplete},
 		{name: "one byte below ceiling is not rounded to absence", payload: []byte{0xff}, wantBody: []byte{0xff}, wantRead: 1, wantClass: attemptComplete},

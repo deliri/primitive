@@ -13,11 +13,11 @@ import (
 // jsonStringStream decodes one JSON string incrementally. The opening quote
 // has already been consumed. Custody is one UTF-8 rune, independent of length.
 type jsonStringStream struct {
+	terminal   error
 	observe    func(rune) error
 	source     *bufio.Reader
-	pending    [utf8.UTFMax]byte
 	begin, end int
-	terminal   error
+	pending    [utf8.UTFMax]byte
 }
 
 func (s *jsonStringStream) Read(p []byte) (int, error) {
@@ -98,41 +98,52 @@ func readJSONEscape(source *bufio.Reader) (rune, error) {
 	case 't':
 		return '\t', nil
 	case 'u':
-		first, hexErr := readJSONHexRune(source)
-		if hexErr != nil {
-			return 0, hexErr
-		}
-		if first >= 0xdc00 && first <= 0xdfff {
-			return 0, core.ErrGitHubResponse
-		}
-		if first < 0xd800 || first > 0xdbff {
-			return first, nil
-		}
-		slash, slashErr := source.ReadByte()
-		if slashErr != nil {
-			return 0, jsonStreamError(slashErr)
-		}
-		if slash != '\\' {
-			return 0, core.ErrGitHubResponse
-		}
-		marker, markerErr := source.ReadByte()
-		if markerErr != nil {
-			return 0, jsonStreamError(markerErr)
-		}
-		if marker != 'u' {
-			return 0, core.ErrGitHubResponse
-		}
-		second, secondErr := readJSONHexRune(source)
-		if secondErr != nil {
-			return 0, secondErr
-		}
-		if second < 0xdc00 || second > 0xdfff {
-			return 0, core.ErrGitHubResponse
-		}
-		return utf16.DecodeRune(first, second), nil
+		return readJSONUnicodeEscape(source)
 	default:
 		return 0, core.ErrGitHubResponse
 	}
+}
+func readJSONUnicodeEscape(source *bufio.Reader) (rune, error) {
+	first, hexErr := readJSONHexRune(source)
+	if hexErr != nil {
+		return 0, hexErr
+	}
+	if first >= 0xdc00 && first <= 0xdfff {
+		return 0, core.ErrGitHubResponse
+	}
+	if first < 0xd800 || first > 0xdbff {
+		return first, nil
+	}
+	second, err := readJSONLowSurrogate(source)
+	if err != nil {
+		return 0, err
+	}
+
+	return utf16.DecodeRune(first, second), nil
+}
+func readJSONLowSurrogate(source *bufio.Reader) (rune, error) {
+	slash, slashErr := source.ReadByte()
+	if slashErr != nil {
+		return 0, jsonStreamError(slashErr)
+	}
+	if slash != '\\' {
+		return 0, core.ErrGitHubResponse
+	}
+	marker, markerErr := source.ReadByte()
+	if markerErr != nil {
+		return 0, jsonStreamError(markerErr)
+	}
+	if marker != 'u' {
+		return 0, core.ErrGitHubResponse
+	}
+	second, secondErr := readJSONHexRune(source)
+	if secondErr != nil {
+		return 0, secondErr
+	}
+	if second < 0xdc00 || second > 0xdfff {
+		return 0, core.ErrGitHubResponse
+	}
+	return second, nil
 }
 func readJSONHexRune(source *bufio.Reader) (rune, error) {
 	var value rune

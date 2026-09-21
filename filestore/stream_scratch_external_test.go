@@ -25,8 +25,8 @@ func (r *scratchObservingReader) Read(p []byte) (int, error) {
 }
 
 type scratchObservingWriter struct {
-	destination bytes.Buffer
 	scratch     []byte
+	destination bytes.Buffer
 	wrongWindow bool
 }
 

@@ -11,10 +11,10 @@ import (
 func TestStageDeclarationIsOptionalAndOwnedLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr                    error
 		name                       string
 		declared, written, mutated uint64
 		known, mutate              bool
-		wantErr                    error
 	}{
 		{name: "unknown empty extent"},
 		{name: "unknown nonempty extent", written: 32769},

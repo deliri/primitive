@@ -15,11 +15,11 @@ import (
 func TestTagPaginationBindingLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr  error
+		links    func(string) []string
 		name     string
 		page     uint32
-		links    func(string) []string
 		wantNext uint32
-		wantErr  error
 	}{
 		{name: "absent continuation", page: 1},
 		{name: "exact named repository continuation", page: 1, links: func(a string) []string { return []string{a + `/repos/owner/repository/tags?page=2&per_page=100`} }, wantNext: 2},

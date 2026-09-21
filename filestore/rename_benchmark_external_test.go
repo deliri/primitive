@@ -20,7 +20,7 @@ func BenchmarkRenameBinaryInodeRoundTrip(b *testing.B) {
 	for _, tc := range []struct {
 		name  string
 		cross bool
-	}{{"SameParent", false}, {"CrossParent", true}} {
+	}{{name: "SameParent", cross: false}, {name: "CrossParent", cross: true}} {
 		b.Run(tc.name, func(b *testing.B) {
 			directory := b.TempDir()
 			root, err := os.OpenRoot(directory)

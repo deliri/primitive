@@ -14,9 +14,9 @@ func TestTreeEntryStreamOwnershipLayerTriad(t *testing.T) {
 	t.Parallel()
 	payload := marshalGitHubFixture(t, treeResponseFixture{SHA: parsedCommit(t).String(), URL: "https://api.github.com/tree", Tree: []treeEntryFixture{treeWire("main.go", "blob", parsedCommit(t).String())}})
 	cases := []struct {
+		wantErr error
 		name    string
 		consume bool
-		wantErr error
 	}{
 		{name: "complete path permits metadata", consume: true},
 		{name: "unread path cannot claim completion", wantErr: core.ErrGitHubResponse},

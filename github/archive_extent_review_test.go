@@ -28,9 +28,9 @@ func (r *archiveExtentReader) Read(p []byte) (int, error) {
 }
 
 type archiveExtentObservation struct {
+	err    error
 	count  int64
 	digest core.SHA256Digest
-	err    error
 }
 
 func TestArchiveContinuesBeyondFormerGiBCeilingLayerTriad(t *testing.T) {
@@ -89,10 +89,10 @@ func TestArchiveContinuesBeyondFormerGiBCeilingLayerTriad(t *testing.T) {
 func TestArchiveObservationExtentHasNoInventedCeilingLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr error
 		name    string
 		length  uint64
 		state   ArchiveTransferState
-		wantErr error
 	}{
 		{name: "below former GiB ceiling", length: (1 << 30) - 1, state: ArchiveTransferComplete},
 		{name: "at former GiB ceiling", length: 1 << 30, state: ArchiveTransferComplete},

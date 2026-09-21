@@ -121,8 +121,8 @@ func TestPathExtentJSONReceiverLayerTriad(t *testing.T) {
 	// are caller-owned allocations; no claim of streaming a filename is made.
 	text := strings.Repeat("x", 1<<20)
 	cases := []struct {
-		name, text string
 		wantErr    error
+		name, text string
 	}{
 		{name: "one MiB component preserves every byte", text: text},
 		{name: "large NUL mutation cannot acquire path identity", text: text + "\x00", wantErr: ErrPrimitiveContract},

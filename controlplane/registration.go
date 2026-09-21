@@ -90,7 +90,6 @@ func (r RegistrationRequest) ControlRevision() controlwire.Revision { return r.R
 // ControlNonce projects the request identity already carried on the wire.
 func (r RegistrationRequest) ControlNonce() controlwire.RequestNonce { return r.RequestNonce }
 
-
 func (r RegistrationRequest) validateFacts() error {
 	if err := r.Token.Validate(); err != nil {
 		return registrationError(err)

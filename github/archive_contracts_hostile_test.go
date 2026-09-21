@@ -16,9 +16,9 @@ func TestTarArchiveRequestExhaustsValidationEquivalenceClasses(t *testing.T) {
 	repository := parsedRepository(t, "owner/repository")
 	commit := parsedCommit(t)
 	cases := []struct {
+		wantErr error
 		name    string
 		request TarArchiveRequest
-		wantErr error
 	}{
 		{name: "archive destination needs no extent quota", request: TarArchiveRequest{Destination: io.Discard, Repository: repository, Commit: commit}},
 		{name: "missing destination is rejected", request: TarArchiveRequest{Repository: repository, Commit: commit}, wantErr: core.ErrGitHubContract},
@@ -75,10 +75,10 @@ func TestGitHubArchiveLocationExhaustsHeaderAndTransportBoundaries(t *testing.T)
 	validHTTPS := "https://objects.example.test/temporary/archive?token=opaque"
 	validLoopback := "http://127.0.0.1:8080/archive"
 	cases := []struct {
-		name    string
-		headers exchange.CapturedHeaders
-		want    string
 		wantErr error
+		name    string
+		want    string
+		headers exchange.CapturedHeaders
 	}{
 		{name: "absolute HTTPS temporary capability is admitted", headers: capturedHeaderFixture(t, location, validHTTPS), want: validHTTPS},
 		{name: "loopback HTTP provider fixture is admitted", headers: capturedHeaderFixture(t, location, validLoopback), want: validLoopback},

@@ -14,9 +14,9 @@ func TestReportAcknowledgmentRevisionLayerTriad(t *testing.T) {
 	request, key := permitFixture(t)
 	scope := reportScopeFixture(t)
 	for _, tc := range []struct {
+		wantErr  error
 		name     string
 		revision uint64
-		wantErr  error
 	}{
 		{name: "empty first report preserves zero master revision", revision: 0},
 		{name: "first contribution records revision one", revision: 1},

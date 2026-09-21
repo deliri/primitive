@@ -307,6 +307,9 @@ func TestPaymentCatalogIssuanceLayerTriad(t *testing.T) {
 		}
 		for _, tc := range cases {
 			fixture := newPaymentCatalogFixture(t, tc)
+			if err := (CatalogIssuance{Signer: fixture.private, Payload: fixture.payload}).Validate(); err != nil {
+				t.Fatalf("CatalogIssuance.Validate(%d entries) error = %v, want nil", tc.Entries, err)
+			}
 			if fixture.document.Validate() != nil || !samePaymentCatalog(fixture.document.Payload, fixture.payload) || len(fixture.document.Payload.Entries) != int(tc.Entries) {
 				t.Fatalf("IssueCatalog(%d entries) produced invalid document", tc.Entries)
 			}
@@ -360,6 +363,9 @@ func TestPaymentCatalogIssuanceLayerTriad(t *testing.T) {
 				input := fixture.payload
 				input.Entries = append([]Document(nil), fixture.payload.Entries...)
 				tc.mutate(&input)
+				if err := (CatalogIssuance{Signer: fixture.private, Payload: input}).Validate(); !errors.Is(err, tc.wantErr) {
+					t.Fatalf("CatalogIssuance.Validate() error = %v, want %v", err, tc.wantErr)
+				}
 				got, issueErr := IssueCatalog(CatalogIssuance{Signer: fixture.private, Payload: input})
 				if !errors.Is(issueErr, tc.wantErr) || !samePaymentCatalogDocument(got, CatalogDocument{}) {
 					t.Fatalf("IssueCatalog() = (%v, %v), want zero and errors.Is %v", got, issueErr, tc.wantErr)
@@ -551,10 +557,10 @@ func TestVerifiedPaymentCatalogOwnershipLayerTriad(t *testing.T) {
 func TestPaymentSpecificCatalogVerificationLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		want                error
 		name                string
 		entries             uint16
 		wrongIdentity, more bool
-		want                error
 	}{
 		{name: "positive selected receipt", entries: 1},
 		{name: "neutral absent selected receipt", entries: 0},
@@ -776,8 +782,8 @@ func marshalReorderedPaymentReceipt(t *testing.T, document Document) []byte {
 	t.Helper()
 
 	encoded, gotErr := core.MarshalCanonicalJSONDocument(struct {
-		Attestation attest.Envelope[SigningDomain] `json:"attestation"`
 		Payload     Payload                        `json:"payload"`
+		Attestation attest.Envelope[SigningDomain] `json:"attestation"`
 	}{Attestation: document.Attestation, Payload: document.Payload})
 	if gotErr != nil {
 		t.Fatalf("core.MarshalCanonicalJSONDocument(reordered receipt) error = %v, want nil", gotErr)
@@ -789,8 +795,8 @@ func marshalReorderedPaymentCatalog(t *testing.T, document CatalogDocument) []by
 	t.Helper()
 
 	encoded, gotErr := core.MarshalCanonicalJSONDocument(struct {
-		Attestation attest.Envelope[SigningDomain] `json:"attestation"`
 		Payload     CatalogPayload                 `json:"payload"`
+		Attestation attest.Envelope[SigningDomain] `json:"attestation"`
 	}{Attestation: document.Attestation, Payload: document.Payload})
 	if gotErr != nil {
 		t.Fatalf("core.MarshalCanonicalJSONDocument(reordered catalog) error = %v, want nil", gotErr)

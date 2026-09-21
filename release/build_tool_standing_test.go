@@ -20,9 +20,9 @@ import (
 func TestOpenedBuildToolStandingLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr                                 error
 		name                                    string
 		absent, foreign, link, canceled, closed bool
-		wantErr                                 error
 	}{
 		{name: "held compiler at its own path yields exact facts"},
 		{name: "absent name cannot borrow compiler proof", absent: true, wantErr: core.ErrReleaseContract},

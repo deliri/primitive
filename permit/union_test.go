@@ -20,10 +20,10 @@ func TestActionUnionLayerTriad(t *testing.T) {
 		t.Fatalf("NewActions both = %v, want nil", err)
 	}
 	for _, tc := range []struct {
-		name    string
-		action  Action
-		want    Actions
 		wantErr error
+		name    string
+		want    Actions
+		action  Action
 	}{
 		{name: "new identity is sorted without replacing existing identity", action: a, want: both},
 		{name: "zero identity refuses without changing receiver", wantErr: core.ErrPermitContract},

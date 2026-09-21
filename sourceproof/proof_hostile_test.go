@@ -66,11 +66,11 @@ func TestResultPreservesEveryProofStateAndSnapshotMeaning(t *testing.T) {
 	older := proofSnapshot(t, "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210")
 
 	cases := []struct {
-		state            sourceproof.State
-		evidenceSnapshot core.SourceSnapshot
-		withEvidence     bool
 		wantErr          error
 		name             string
+		evidenceSnapshot core.SourceSnapshot
+		state            sourceproof.State
+		withEvidence     bool
 	}{
 		{name: "proven result cites current snapshot", state: sourceproof.StateProven, evidenceSnapshot: current, withEvidence: true},
 		{name: "contradicted result cites current counterevidence", state: sourceproof.StateContradicted, evidenceSnapshot: current, withEvidence: true},
@@ -147,9 +147,9 @@ func TestRequirementResultRejectsIntrinsicStateEvidenceContradictions(t *testing
 	snapshot := proofSnapshot(t, "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")
 	evidence := []sourceproof.EvidenceReference{proofEvidence(t, proofSubject(t, core.SourceSubjectPackage, "exchange"), snapshot)}
 	cases := []struct {
+		wantErr error
 		name    string
 		result  sourceproof.RequirementResult
-		wantErr error
 	}{
 		{
 			name: "proven state without evidence is refused at the document wall",
@@ -194,8 +194,8 @@ func TestRequirementResultRejectsIntrinsicStateEvidenceContradictions(t *testing
 }
 
 type proofResultKey struct {
-	subject core.SourceSubject
 	claim   sourceclaim.ID
+	subject core.SourceSubject
 }
 
 type proofResultResolver struct {

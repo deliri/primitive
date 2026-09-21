@@ -22,12 +22,12 @@ func TestInspectionSchemaLayerTriad(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, tc := range []struct {
-		name        string
-		base        PathKind
-		mutate      func(Inspection) Inspection
-		wantKind    PathKind
 		wantErr     error
 		wantCause   error
+		mutate      func(Inspection) Inspection
+		name        string
+		base        PathKind
+		wantKind    PathKind
 		wantPresent bool
 		wantRegular bool
 		wantOwner   bool
@@ -101,8 +101,8 @@ func TestInspectionSchemaLayerTriad(t *testing.T) {
 			owner, ownerErr := in.Ownership()
 			allocation, allocationErr := in.Allocation()
 			for _, result := range []struct {
-				name      string
 				gotErr    error
+				name      string
 				wantValid bool
 			}{
 				{name: "kind", gotErr: kindErr, wantValid: tc.wantErr == nil},
@@ -153,10 +153,10 @@ func TestInspectionSchemaLayerTriad(t *testing.T) {
 func TestKindOnlyInspectionConstructionLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name    string
-		in      PathKind
-		want    Inspection
 		wantErr error
+		name    string
+		want    Inspection
+		in      PathKind
 	}{
 		{name: "absent kind constructs exactly an empty observation", in: PathKindAbsent, want: Inspection{kind: PathKindAbsent}},
 		{name: "unreachable kind preserves its distinct empty observation", in: PathKindUnreachable, want: Inspection{kind: PathKindUnreachable}},

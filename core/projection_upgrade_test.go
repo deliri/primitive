@@ -10,8 +10,8 @@ import (
 // The producer deliberately claims its projection is valid. Core must enforce
 // its own structural boundary even when the product's semantic proof lies.
 type untrustedIssueProjection struct {
-	wire  []byte
 	calls *int
+	wire  []byte
 }
 
 func (untrustedIssueProjection) Validate() error                { return nil }
@@ -27,10 +27,10 @@ func TestIssueProjectionCannotWaiveCoreBounds(t *testing.T) {
 	t.Parallel()
 	defaults := DefaultStrictJSONLimits()
 	cases := []struct {
+		wantErr error
 		name    string
 		wire    []byte
 		limits  StrictJSONLimits
-		wantErr error
 	}{
 		{name: "positive/empty object is still an exact projection", wire: []byte(`{}`), limits: defaults},
 		{name: "positive/empty array retains its kind", wire: []byte(`[]`), limits: defaults},
@@ -59,10 +59,10 @@ func TestIssueProjectionCannotWaiveCoreBounds(t *testing.T) {
 	// Each axis has independent caller and global thresholds. The fixtures
 	// change the actual encoded structure, not an unrelated invalid setting.
 	boundaries := []struct {
-		name   string
-		limit  int
 		wire   func(int) []byte
+		name   string
 		limits StrictJSONLimits
+		limit  int
 	}{
 		{name: "caller document bytes", limit: 16, wire: func(n int) []byte { return []byte(`"` + strings.Repeat("x", n-2) + `"`) }, limits: StrictJSONLimits{DocumentMaximumBytes: ByteCount{value: 16}, NestingDepthMaximum: defaults.NestingDepthMaximum, ObjectFieldMaximum: defaults.ObjectFieldMaximum, ArrayItemMaximum: defaults.ArrayItemMaximum}},
 		{name: "global document bytes", limit: JSONDocumentMaximumBytes, wire: func(n int) []byte { return []byte(`"` + strings.Repeat("x", n-2) + `"`) }, limits: defaults},
@@ -75,17 +75,17 @@ func TestIssueProjectionCannotWaiveCoreBounds(t *testing.T) {
 	}
 	for _, boundary := range boundaries {
 		for _, edge := range []struct {
+			wantErr error
 			name    string
 			offset  int
-			wantErr error
 		}{
 			{name: "one below", offset: -1}, {name: "exact", offset: 0}, {name: "one above", offset: 1, wantErr: ErrJSONContract},
 		} {
 			cases = append(cases, struct {
+				wantErr error
 				name    string
 				wire    []byte
 				limits  StrictJSONLimits
-				wantErr error
 			}{name: "boundary/" + boundary.name + "/" + edge.name, wire: boundary.wire(boundary.limit + edge.offset), limits: boundary.limits, wantErr: edge.wantErr})
 		}
 	}

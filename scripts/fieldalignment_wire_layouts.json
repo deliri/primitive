@@ -1,0 +1,188 @@
+[
+  {
+    "file": "accesspermit/permit.go",
+    "type": "Binding",
+    "declaration": "struct {\n\tFamily       controlwire.RouteFamily   `json:\"family\"`\n\tSubject      lease.Subject             `json:\"subject\"`\n\tAccount      receipt.PrincipalIdentity `json:\"account\"`\n\tRequestNonce controlwire.RequestNonce  `json:\"request_nonce\"`\n\tGeneration   lease.Generation          `json:\"generation\"`\n}",
+    "reason": "Preserve the published field order used by Go JSON encoding; reordering changes canonical bytes and any bound digests or signatures."
+  },
+  {
+    "file": "accesspermit/response.go",
+    "type": "RegistrationResponse",
+    "declaration": "struct {\n\tRegistration controlplane.RegistrationDocument `json:\"registration\"`\n\tPermit       Document                          `json:\"permit\"`\n}",
+    "reason": "Preserve the published field order used by Go JSON encoding; reordering changes canonical bytes and any bound digests or signatures."
+  },
+  {
+    "file": "accesspermit/response.go",
+    "type": "CheckInResponse",
+    "declaration": "struct {\n\tCheckIn controlplane.CheckInResponseDocument `json:\"check_in\"`\n\tPermit  Document                             `json:\"permit\"`\n}",
+    "reason": "Preserve the published field order used by Go JSON encoding; reordering changes canonical bytes and any bound digests or signatures."
+  },
+  {
+    "file": "capabilities/classification.go",
+    "type": "classificationWire",
+    "declaration": "struct {\n\tOperation   Operation                 `json:\"operation\"`\n\tEffect      *Identity                 `json:\"effect,omitempty\"`\n\tSecondary   []Identity                `json:\"secondary,omitempty\"`\n\tDisposition StandardSymbolDisposition `json:\"disposition\"`\n}",
+    "reason": "Preserve the published field order used by Go JSON encoding; reordering changes canonical bytes and any bound digests or signatures."
+  },
+  {
+    "file": "chit/manifest.go",
+    "type": "manifestAdmissionWire",
+    "declaration": "struct {\n\tEntry  ManifestEntry `json:\"entry\"`\n\tTicket string        `json:\"ticket\"`\n}",
+    "reason": "Preserve the published field order used by Go JSON encoding; reordering changes canonical bytes and any bound digests or signatures."
+  },
+  {
+    "file": "googleidentity/verifier_header.go",
+    "type": "googleCloudJWTHeader",
+    "declaration": "struct {\n\tAlgorithm googleCloudSigningAlgorithm `json:\"alg\"`\n\tKeyID     string                      `json:\"kid\"`\n\tType      string                      `json:\"typ,omitempty\"`\n}",
+    "reason": "Preserve the published field order used by Go JSON encoding; reordering changes canonical bytes and any bound digests or signatures."
+  },
+  {
+    "file": "manual/types.go",
+    "type": "Report",
+    "declaration": "struct {\n\tSchema   Schema        `json:\"schema\"`\n\tTitle    Line          `json:\"title\"`\n\tSummary  Line          `json:\"summary\"`\n\tOffering core.Offering `json:\"offering\"`\n\tPages    []PageReport  `json:\"pages\"`\n}",
+    "reason": "Preserve the published field order used by Go JSON encoding; reordering changes canonical bytes and any bound digests or signatures."
+  },
+  {
+    "file": "permit/document.go",
+    "type": "Terms",
+    "declaration": "struct {\n\tRequestNonce controlwire.RequestNonce `json:\"request_nonce\"`\n\tRevision     Revision                 `json:\"revision\"`\n\tSubject      lease.Subject            `json:\"subject\"`\n\tBuild        core.BuildIdentity       `json:\"build\"`\n\tGeneration   lease.Generation         `json:\"generation\"`\n\tActions      Actions                  `json:\"actions\"`\n\tNotBefore    temporal.Instant         `json:\"not_before\"`\n\tExpiresAt    temporal.Instant         `json:\"expires_at\"`\n\tContactAt    temporal.Instant         `json:\"contact_at\"`\n\tRetryAfter   temporal.Duration        `json:\"retry_after\"`\n\tReporting    ReportSchedule           `json:\"reporting,omitzero\"`\n}",
+    "reason": "Preserve the published field order used by Go JSON encoding; reordering changes canonical bytes and any bound digests or signatures."
+  },
+  {
+    "file": "permit/report_authorization.go",
+    "type": "ReportPermissionResponse",
+    "declaration": "struct {\n\tAuthorization     SignedReportAuthorization   `json:\"authorization\"`\n\tInitialPermission *SignedProjectPermission    `json:\"initial_permission,omitempty\"`\n\tAcknowledgment    *SignedReportAcknowledgment `json:\"acknowledgment,omitempty\"`\n}",
+    "reason": "Preserve the published field order used by Go JSON encoding; reordering changes canonical bytes and any bound digests or signatures."
+  },
+  {
+    "file": "permit/report_model.go",
+    "type": "ReportScope",
+    "declaration": "struct {\n\tCompany      id.ULID        `json:\"company\"`\n\tOffering     core.Offering  `json:\"offering\"`\n\tProject      id.ULID        `json:\"project\"`\n\tInstallation lease.DeviceID `json:\"installation\"`\n\tEpoch        id.ULID        `json:\"epoch\"`\n}",
+    "reason": "Preserve the published field order used by Go JSON encoding; reordering changes canonical bytes and any bound digests or signatures."
+  },
+  {
+    "file": "permit/report_model.go",
+    "type": "ReportPayload",
+    "declaration": "struct {\n\tScope    ReportScope              `json:\"scope\"`\n\tSequence uint64                   `json:\"sequence\"`\n\tPrevious core.SHA256Digest        `json:\"previous\"`\n\tWindow   controlplane.UsageWindow `json:\"window\"`\n\tEvidence ReportEvidence           `json:\"evidence\"`\n\tPolicy   controlwire.PolicyCursor `json:\"policy\"`\n}",
+    "reason": "Preserve the published field order used by Go JSON encoding; reordering changes canonical bytes and any bound digests or signatures."
+  },
+  {
+    "file": "process/result.go",
+    "type": "ResultObservation",
+    "declaration": "struct {\n\tTerminationSignal *SignalNumber     `json:\"termination_signal,omitempty\"`\n\tCPUTime           temporal.Duration `json:\"cpu_time_nanoseconds\"`\n\tStdinBytes        core.ByteLength   `json:\"stdin_bytes\"`\n\tStdoutBytes       core.ByteLength   `json:\"stdout_bytes\"`\n\tStderrBytes       core.ByteLength   `json:\"stderr_bytes\"`\n\tPeakMemoryBytes   *core.ByteLength  `json:\"peak_memory_bytes,omitempty\"`\n\tExitCode          int64             `json:\"exit_code\"`\n}",
+    "reason": "Preserve the published field order used by Go JSON encoding; reordering changes canonical bytes and any bound digests or signatures."
+  },
+  {
+    "file": "release/material.go",
+    "type": "MaterialRequest",
+    "declaration": "struct {\n\tPrimitive version.Tag              `json:\"primitive\"`\n\tOffering  core.Offering            `json:\"offering\"`\n\tVersion   core.ReleaseVersion      `json:\"version\"`\n\tCommit    core.BuildCommit         `json:\"commit\"`\n\tNonce     controlwire.RequestNonce `json:\"nonce\"`\n\tRevision  controlwire.Revision     `json:\"revision\"`\n}",
+    "reason": "Preserve the published field order used by Go JSON encoding; reordering changes canonical bytes and any bound digests or signatures."
+  },
+  {
+    "file": "sourceclaim/claim.go",
+    "type": "ExecutionRequirement",
+    "declaration": "struct {\n\tSubject core.SourceSubject `json:\"subject\"`\n\tTarget  Reference          `json:\"target\"`\n\tKind    ExecutionKind      `json:\"kind\"`\n}",
+    "reason": "Preserve the published field order used by Go JSON encoding; reordering changes canonical bytes and any bound digests or signatures."
+  },
+  {
+    "file": "sourceclaim/claim.go",
+    "type": "CompilerRequirement",
+    "declaration": "struct {\n\tTarget    core.SourceSubject `json:\"target\"`\n\tReference *Reference         `json:\"reference,omitempty\"`\n\tPredicate CompilerPredicate  `json:\"predicate\"`\n}",
+    "reason": "Preserve the published field order used by Go JSON encoding; reordering changes canonical bytes and any bound digests or signatures."
+  },
+  {
+    "file": "sourceclaim/claim.go",
+    "type": "Claim",
+    "declaration": "struct {\n\tID           ID                    `json:\"id\"`\n\tAuthor       core.Ed25519PublicKey `json:\"author\"`\n\tSubject      core.SourceSubject    `json:\"subject\"`\n\tTitle        Text                  `json:\"title\"`\n\tProblem      Narrative             `json:\"problem\"`\n\tSolution     Narrative             `json:\"solution\"`\n\tBenefit      Narrative             `json:\"benefit\"`\n\tRemoval      Narrative             `json:\"removal\"`\n\tOwns         []Boundary            `json:\"owns\"`\n\tDoesNotOwn   []Boundary            `json:\"does_not_own\"`\n\tRequirements []Requirement         `json:\"requirements\"`\n}",
+    "reason": "Preserve the published field order used by Go JSON encoding; reordering changes canonical bytes and any bound digests or signatures."
+  },
+  {
+    "file": "sourceobservation/file.go",
+    "type": "Declaration",
+    "declaration": "struct {\n\tName     Symbol          `json:\"name\"`\n\tKind     DeclarationKind `json:\"kind\"`\n\tLine     uint64          `json:\"line\"`\n\tColumn   uint64          `json:\"column\"`\n\tExported bool            `json:\"exported\"`\n}",
+    "reason": "Preserve the published field order used by Go JSON encoding; reordering changes canonical bytes and any bound digests or signatures."
+  },
+  {
+    "file": "sourceobservation/file.go",
+    "type": "Reference",
+    "declaration": "struct {\n\tCall   *capabilities.Classification `json:\"call,omitempty\"`\n\tFrom   Symbol                       `json:\"from\"`\n\tTo     Symbol                       `json:\"to\"`\n\tImport *ImportPath                  `json:\"import,omitempty\"`\n\tKind   ReferenceKind                `json:\"kind\"`\n\tLine   uint64                       `json:\"line\"`\n\tColumn uint64                       `json:\"column\"`\n}",
+    "reason": "Preserve the published field order used by Go JSON encoding; reordering changes canonical bytes and any bound digests or signatures."
+  },
+  {
+    "file": "sourceobservation/file.go",
+    "type": "File",
+    "declaration": "struct {\n\tCalls        CallCoverage            `json:\"calls\"`\n\tRepository   core.RepositoryIdentity `json:\"repository\"`\n\tPath         core.SourcePath         `json:\"path\"`\n\tPackage      *core.SourcePath        `json:\"package,omitempty\"`\n\tSnapshot     core.SourceSnapshot     `json:\"snapshot\"`\n\tSourceDigest core.SHA256Digest       `json:\"source_digest\"`\n\tBytes        core.ByteLength         `json:\"bytes\"`\n\tLanguage     Language                `json:\"language\"`\n\tGenerated    GeneratedState          `json:\"generated\"`\n\tSelections   []BuildSelection        `json:\"selections\"`\n\tDeclarations []Declaration           `json:\"declarations\"`\n\tImports      []Import                `json:\"imports\"`\n\tEffects      []Effect                `json:\"effects\"`\n\tReferences   []Reference             `json:\"references\"`\n}",
+    "reason": "Preserve the published field order used by Go JSON encoding; reordering changes canonical bytes and any bound digests or signatures."
+  },
+  {
+    "file": "sourceobservation/rollup.go",
+    "type": "FileReference",
+    "declaration": "struct {\n\tPath              core.SourcePath   `json:\"path\"`\n\tPackage           *core.SourcePath  `json:\"package,omitempty\"`\n\tObservationDigest core.SHA256Digest `json:\"observation_digest\"`\n}",
+    "reason": "Preserve the published field order used by Go JSON encoding; reordering changes canonical bytes and any bound digests or signatures."
+  },
+  {
+    "file": "sourceobservation/rollup.go",
+    "type": "Project",
+    "declaration": "struct {\n\tRepository core.RepositoryIdentity `json:\"repository\"`\n\tSnapshot   core.SourceSnapshot     `json:\"snapshot\"`\n\tToolchain  Toolchain               `json:\"toolchain\"`\n\tContexts   []BuildContext          `json:\"build_contexts\"`\n\tFiles      FileMembership          `json:\"files\"`\n\tPackages   PackageMembership       `json:\"packages\"`\n}",
+    "reason": "Preserve the published field order used by Go JSON encoding; reordering changes canonical bytes and any bound digests or signatures."
+  },
+  {
+    "file": "sourceproof/proof.go",
+    "type": "Result",
+    "declaration": "struct {\n\tClaim        sourceclaim.ID        `json:\"claim\"`\n\tSubject      core.SourceSubject    `json:\"subject\"`\n\tClaimDigest  core.SHA256Digest     `json:\"claim_digest\"`\n\tSnapshot     core.SourceSnapshot   `json:\"snapshot\"`\n\tVerifier     core.Ed25519PublicKey `json:\"verifier\"`\n\tRequirements []RequirementResult   `json:\"requirements\"`\n}",
+    "reason": "Preserve the published field order used by Go JSON encoding; reordering changes canonical bytes and any bound digests or signatures."
+  },
+  {
+    "file": "chitauth/request_hostile_test.go",
+    "type": "reorderedChitQueryJSON",
+    "declaration": "struct {\n\tRequest     chit.QueryDocument                           `json:\"request\"`\n\tCertificate controlplane.InstallationCertificateDocument `json:\"certificate\"`\n}",
+    "reason": "This hostile JSON fixture must reverse production member order; aligning it neutralizes the mutation and invalidates the boundary proof."
+  },
+  {
+    "file": "distributionauth/request_hostile_test.go",
+    "type": "reorderedUpdateRequestJSON",
+    "declaration": "struct {\n\tCertificate controlplane.InstallationCertificateDocument `json:\"certificate\"`\n\tRequest     distribution.UpdateRequestDocument           `json:\"request\"`\n}",
+    "reason": "This hostile JSON fixture must reverse production member order; aligning it neutralizes the mutation and invalidates the boundary proof."
+  },
+  {
+    "file": "distributionauth/request_hostile_test.go",
+    "type": "reorderedUpgradeRequestJSON",
+    "declaration": "struct {\n\tRequest     distribution.UpgradeRequestDocument          `json:\"request\"`\n\tCertificate controlplane.InstallationCertificateDocument `json:\"certificate\"`\n}",
+    "reason": "This hostile JSON fixture must reverse production member order; aligning it neutralizes the mutation and invalidates the boundary proof."
+  },
+  {
+    "file": "distributionauth/publication_hostile_test.go",
+    "type": "reorderedPublicationRequestJSON",
+    "declaration": "struct {\n\tRequest     distribution.PublicationRequestDocument      `json:\"request\"`\n\tCertificate controlplane.InstallationCertificateDocument `json:\"certificate\"`\n}",
+    "reason": "This hostile JSON fixture must reverse production member order; aligning it neutralizes the mutation and invalidates the boundary proof."
+  },
+  {
+    "file": "distributionauth/publication_hostile_test.go",
+    "type": "reorderedPublicationCompletionJSON",
+    "declaration": "struct {\n\tCompletion  distribution.PublicationCompletionDocument   `json:\"completion\"`\n\tCertificate controlplane.InstallationCertificateDocument `json:\"certificate\"`\n}",
+    "reason": "This hostile JSON fixture must reverse production member order; aligning it neutralizes the mutation and invalidates the boundary proof."
+  },
+  {
+    "file": "paymentauth/request_hostile_test.go",
+    "type": "reorderedPaymentQueryJSON",
+    "declaration": "struct {\n\tCertificate controlplane.InstallationCertificateDocument `json:\"certificate\"`\n\tRequest     payment.QueryDocument                        `json:\"request\"`\n}",
+    "reason": "This hostile JSON fixture must reverse production member order; aligning it neutralizes the mutation and invalidates the boundary proof."
+  },
+  {
+    "file": "retrievalauth/request_hostile_test.go",
+    "type": "reorderedRetrievalRequestJSON",
+    "declaration": "struct {\n\tRequest     retrieval.RequestDocument                    `json:\"request\"`\n\tCertificate controlplane.InstallationCertificateDocument `json:\"certificate\"`\n}",
+    "reason": "This hostile JSON fixture must reverse production member order; aligning it neutralizes the mutation and invalidates the boundary proof."
+  },
+  {
+    "file": "timeproof/refusal_source_oracle_test.go",
+    "type": "refusalSourceDocument",
+    "declaration": "struct {\n\tStatus refusalSourceStatus\n\tToken  asn1.RawValue `asn1:\"optional\"`\n}",
+    "reason": "The independent ASN.1 decoder consumes SEQUENCE fields in declaration order; aligning these fields changes the RFC 3161 oracle grammar."
+  },
+  {
+    "file": "timeproof/refusal_source_oracle_test.go",
+    "type": "refusalSourceStatus",
+    "declaration": "struct {\n\tStatus  int\n\tText    []string       `asn1:\"optional\"`\n\tFailure asn1.BitString `asn1:\"optional\"`\n}",
+    "reason": "The independent ASN.1 decoder consumes SEQUENCE fields in declaration order; aligning these fields changes the RFC 3161 oracle grammar."
+  }
+]

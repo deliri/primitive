@@ -11,11 +11,11 @@ import (
 func TestGoBuildEventLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name                                    string
-		build                                   goBuildEventWire
-		terminal                                string
 		executionErr                            error
 		wantErr                                 error
+		build                                   goBuildEventWire
+		name                                    string
+		terminal                                string
 		wantPassed, wantFailed, wantUnavailable uint32
 	}{
 		{name: "dependency diagnostic preserves selected pass", build: goBuildEventWire{Action: "build-output", ImportPath: "dependency", Output: "compiler diagnostic\n"}, terminal: "pass", wantPassed: 1},
@@ -67,10 +67,10 @@ func TestGoBuildEventLayerTriad(t *testing.T) {
 func TestGoBuildAndTestWireMembersRemainSeparate(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct{ name, data string }{
-		{"test package member cannot cross build wire", `{"Action":"build-output","ImportPath":"dependency","Output":"diagnostic","Package":"selected"}`},
-		{"build identity cannot cross test wire", `{"Action":"pass","Package":"selected","ImportPath":"dependency"}`},
-		{"duplicate discriminator cannot change wire selection", `{"Action":"build-fail","ImportPath":"dependency","Action":"pass"}`},
-		{"build identity has the wrong JSON type", `{"Action":"build-fail","ImportPath":5}`},
+		{name: "test package member cannot cross build wire", data: `{"Action":"build-output","ImportPath":"dependency","Output":"diagnostic","Package":"selected"}`},
+		{name: "build identity cannot cross test wire", data: `{"Action":"pass","Package":"selected","ImportPath":"dependency"}`},
+		{name: "duplicate discriminator cannot change wire selection", data: `{"Action":"build-fail","ImportPath":"dependency","Action":"pass"}`},
+		{name: "build identity has the wrong JSON type", data: `{"Action":"build-fail","ImportPath":5}`},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

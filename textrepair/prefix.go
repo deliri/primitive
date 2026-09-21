@@ -30,7 +30,8 @@ func Prefix(request Request) (string, error) {
 	if err := request.Validate(); err != nil {
 		return "", err
 	}
-	limit := int(min(uint64(len(request.Source)), request.MaximumBytes.Uint64()))
+	// Both operands are nonnegative and min is at most len(Source), an int.
+	limit := int(min(uint64(len(request.Source)), request.MaximumBytes.Uint64())) // #nosec G115 -- The source's native int length proves this narrowing conversion fits on every target architecture.
 	if limit == 0 {
 		return "", nil
 	}
@@ -38,6 +39,10 @@ func Prefix(request Request) (string, error) {
 	if utf8.ValidString(source[:limit]) {
 		return source[:limit], nil
 	}
+	return repairPrefix(source, limit), nil
+}
+
+func repairPrefix(source string, limit int) string {
 	var repaired strings.Builder
 	offset, written := 0, 0
 	repairing := false
@@ -61,7 +66,7 @@ func Prefix(request Request) (string, error) {
 		offset += size
 	}
 	if repairing {
-		return repaired.String(), nil
+		return repaired.String()
 	}
-	return source[:offset], nil
+	return source[:offset]
 }

@@ -50,9 +50,21 @@ func (r UploadItemRequest) Validate() error {
 	if err != nil || provider != objectstore.ProviderGoogleCloudStorage {
 		return contractError(errors.New("deploy capability is not google cloud storage"), err)
 	}
+	if err := validateUploadExtent(r.Integrity, provider); err != nil {
+		return err
+	}
+
+	commitment, err := r.Capability.Commitment()
+	if err != nil || commitment != r.Commitment {
+		return contractError(errors.New("deploy capability commitment differs from its grant"), err)
+	}
+	return nil
+}
+
+func validateUploadExtent(integrity release.ArtifactIntegrity, provider objectstore.Provider) error {
 	// Admission uses the provider-owned limit before any earlier object can be
 	// uploaded. Release extents span uint64; GCS transport has a smaller domain.
-	extent, err := r.Integrity.Extent().Uint64()
+	extent, err := integrity.Extent().Uint64()
 	if err != nil {
 		return contractError(err)
 	}
@@ -62,10 +74,6 @@ func (r UploadItemRequest) Validate() error {
 	}
 	if extent > spec.UploadMaximum.Uint64() {
 		return contractError(core.ErrObjectStoreSize)
-	}
-	commitment, err := r.Capability.Commitment()
-	if err != nil || commitment != r.Commitment {
-		return contractError(errors.New("deploy capability commitment differs from its grant"), err)
 	}
 	return nil
 }

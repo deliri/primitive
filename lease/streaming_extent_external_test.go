@@ -21,10 +21,10 @@ type extentPointer[T extentValue] interface {
 	UnmarshalJSON([]byte) error
 }
 type extentDoor struct {
+	decode        func([]byte) (bool, error)
 	name          string
 	canonical     []byte
 	formerMaximum int
-	decode        func([]byte) (bool, error)
 }
 
 // extentDoorFor returns observed equality, leaving every got/want check in the table.
@@ -66,10 +66,10 @@ func TestJSONWhitespaceExtentLayerTriad(t *testing.T) {
 		t.Run(door.name, func(t *testing.T) {
 			t.Parallel()
 			for _, tc := range []struct {
-				name    string
-				padding int
-				tail    []byte
 				wantErr error
+				name    string
+				tail    []byte
+				padding int
 			}{
 				{name: "canonical fixed point"},
 				{name: "one byte below former document quota", padding: door.formerMaximum - len(door.canonical) - 1},
@@ -101,10 +101,10 @@ func TestSignedDocumentNestedWhitespaceLayerTriad(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, tc := range []struct {
+		wantErr  error
 		name     string
 		padding  int
 		truncate bool
-		wantErr  error
 	}{
 		{name: "canonical authentic agreement"},
 		{name: "every nested object beyond old limits", padding: 32769},
@@ -134,9 +134,9 @@ func TestSignedDocumentNestedWhitespaceLayerTriad(t *testing.T) {
 }
 
 type prefixWriter struct {
+	err    error
 	buffer bytes.Buffer
 	count  int
-	err    error
 	calls  int
 }
 
@@ -189,8 +189,8 @@ func TestCanonicalWriterNilIngress(t *testing.T) {
 	t.Parallel()
 	f := leaseFixturesForFuzz(t)
 	for _, tc := range []struct {
-		name        string
 		destination io.Writer
+		name        string
 	}{
 		{name: "nil interface"},
 		{name: "typed nil pointer", destination: (*nilWriter)(nil)},

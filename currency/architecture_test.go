@@ -488,12 +488,12 @@ func scanCurrencyConstants(
 func TestCurrencyExternalIngressHasSemanticFuzzOwners(t *testing.T) {
 	t.Parallel()
 	inventory := []struct{ door, target string }{
-		{"New", "FuzzAmountNominalArithmetic"},
-		{"Parse", "FuzzDecimalParserAgainstStandardGrammarAndBigRationalOracle"},
-		{"ParseCode", "FuzzParseCodeAgainstClosedCurrencyDomain"},
-		{"Amount.UnmarshalJSON", "FuzzAmountJSONAgainstStandardTokenStreamOracle"},
-		{"Code.UnmarshalJSON", "FuzzCodeJSONAgainstIndependentStringTokenOracle"},
-		{"minorUnitsJSON.UnmarshalJSON", "FuzzAmountJSONAgainstStandardTokenStreamOracle"},
+		{door: "New", target: "FuzzAmountNominalArithmetic"},
+		{door: "Parse", target: "FuzzDecimalParserAgainstStandardGrammarAndBigRationalOracle"},
+		{door: "ParseCode", target: "FuzzParseCodeAgainstClosedCurrencyDomain"},
+		{door: "Amount.UnmarshalJSON", target: "FuzzAmountJSONAgainstStandardTokenStreamOracle"},
+		{door: "Code.UnmarshalJSON", target: "FuzzCodeJSONAgainstIndependentStringTokenOracle"},
+		{door: "minorUnitsJSON.UnmarshalJSON", target: "FuzzAmountJSONAgainstStandardTokenStreamOracle"},
 	}
 	var wantDoors, wantTargets []string
 	for _, entry := range inventory {
@@ -567,9 +567,9 @@ func TestCurrencyIngressMatcherAttacksNamingDrift(t *testing.T) {
 		name string
 		want bool
 	}{
-		{"New", true}, {"NewAmount", true}, {"ParseCode", true}, {"DecodeText", true},
-		{"ReadAmount", true}, {"LoadAmount", true}, {"ReplayAmount", true}, {"UnmarshalJSON", true},
-		{"MarshalJSON", false}, {"Validate", false}, {"newMinorUnitsJSON", false}, {"parseDecimal", false},
+		{name: "New", want: true}, {name: "NewAmount", want: true}, {name: "ParseCode", want: true}, {name: "DecodeText", want: true},
+		{name: "ReadAmount", want: true}, {name: "LoadAmount", want: true}, {name: "ReplayAmount", want: true}, {name: "UnmarshalJSON", want: true},
+		{name: "MarshalJSON", want: false}, {name: "Validate", want: false}, {name: "newMinorUnitsJSON", want: false}, {name: "parseDecimal", want: false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

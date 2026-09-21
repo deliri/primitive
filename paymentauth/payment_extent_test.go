@@ -17,9 +17,9 @@ func TestPaymentQueryExtentLayerTriad(t *testing.T) {
 	const window = 2 << 20
 	padded := paymentQueryJSONAtLength(t, canonical, window)
 	for _, tc := range []struct {
+		want error
 		name string
 		data []byte
-		want error
 	}{
 		{name: "positive valid request crosses many windows", data: padded},
 		{name: "negative second object beyond many windows", data: append(bytes.Clone(padded), []byte("{}")...), want: core.ErrJSONContract},

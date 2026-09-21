@@ -45,14 +45,14 @@ const (
 )
 
 type goJSONProjection struct {
+	benchmark      goBenchmarkStream
+	fields         uint16
+	packageID      [sha256.Size]byte
 	action         GoEventAction
 	outputType     GoEventOutputKind
-	packageID      [sha256.Size]byte
 	packagePresent bool
 	testPresent    bool
 	outputPresent  bool
-	fields         uint16
-	benchmark      goBenchmarkStream
 }
 
 type goJSONStream struct {
@@ -82,16 +82,12 @@ func (s *goJSONStream) consume(value byte, emit func(goJSONProjection) error) er
 		return s.stringByte(value)
 	}
 	if s.state == goJSONNumber {
-		if value != ',' && value != '}' && value != ' ' && value != '\t' && value != '\r' && value != '\n' {
+		if !goJSONNumberDelimiter(value) {
 			return s.numberByte(value)
 		}
-		if s.numberState != 2 && s.numberState != 3 && s.numberState != 5 && s.numberState != 8 {
-			return goJSONFailure()
-		}
-		if err := s.number.validate(); err != nil {
+		if err := s.endNumber(); err != nil {
 			return err
 		}
-		s.state = goJSONAfterValue
 	}
 	if value == '\n' {
 		if s.state != goJSONEnd {
@@ -103,6 +99,29 @@ func (s *goJSONStream) consume(value byte, emit func(goJSONProjection) error) er
 	if value == ' ' || value == '\r' || value == '\t' {
 		return nil
 	}
+	return s.consumeStructure(value)
+}
+
+func goJSONNumberDelimiter(value byte) bool {
+	switch value {
+	case ',', '}', ' ', '\t', '\r', '\n':
+		return true
+	}
+	return false
+}
+
+func (s *goJSONStream) endNumber() error {
+	if s.numberState != 2 && s.numberState != 3 && s.numberState != 5 && s.numberState != 8 {
+		return goJSONFailure()
+	}
+	if err := s.number.validate(); err != nil {
+		return err
+	}
+	s.state = goJSONAfterValue
+	return nil
+}
+
+func (s *goJSONStream) consumeStructure(value byte) error {
 	switch s.state {
 	case goJSONStart:
 		if value != '{' {
@@ -116,39 +135,54 @@ func (s *goJSONStream) consume(value byte, emit func(goJSONProjection) error) er
 		}
 		s.state = goJSONKey
 	case goJSONKey, goJSONNextKey:
-		if value == '}' && s.state == goJSONKey {
-			s.state = goJSONEnd
-			return nil
-		}
-		if value != '"' {
-			return goJSONFailure()
-		}
-		s.startString(true)
+		return s.beginKey(value)
 	case goJSONColon:
 		if value != ':' {
 			return goJSONFailure()
 		}
 		s.state = goJSONValue
 	case goJSONValue:
-		if s.field == GoEventFieldElapsed {
-			s.numberState = 0
-			s.number = goJSONFloat{}
-			s.state = goJSONNumber
-			return s.numberByte(value)
-		}
-		if value != '"' {
-			return goJSONFailure()
-		}
-		s.startString(false)
+		return s.beginValue(value)
 	case goJSONAfterValue:
-		switch value {
-		case ',':
-			s.state = goJSONNextKey
-		case '}':
-			s.state = goJSONEnd
-		default:
-			return goJSONFailure()
-		}
+		return s.endValue(value)
+	default:
+		return goJSONFailure()
+	}
+	return nil
+}
+
+func (s *goJSONStream) beginKey(value byte) error {
+	if value == '}' && s.state == goJSONKey {
+		s.state = goJSONEnd
+		return nil
+	}
+	if value != '"' {
+		return goJSONFailure()
+	}
+	s.startString(true)
+	return nil
+}
+
+func (s *goJSONStream) beginValue(value byte) error {
+	if s.field == GoEventFieldElapsed {
+		s.numberState = 0
+		s.number = goJSONFloat{}
+		s.state = goJSONNumber
+		return s.numberByte(value)
+	}
+	if value != '"' {
+		return goJSONFailure()
+	}
+	s.startString(false)
+	return nil
+}
+
+func (s *goJSONStream) endValue(value byte) error {
+	switch value {
+	case ',':
+		s.state = goJSONNextKey
+	case '}':
+		s.state = goJSONEnd
 	default:
 		return goJSONFailure()
 	}
@@ -157,55 +191,74 @@ func (s *goJSONStream) consume(value byte, emit func(goJSONProjection) error) er
 
 func (s *goJSONStream) numberByte(value byte) error {
 	s.number.consume(value)
-	digit := value >= '0' && value <= '9'
 	switch s.numberState {
 	case 0, 1:
-		if value == '-' && s.numberState == 0 {
-			s.numberState = 1
-			return nil
-		}
-		if value == '0' {
-			s.numberState = 2
-			return nil
-		}
-		if value >= '1' && value <= '9' {
-			s.numberState = 3
-			return nil
-		}
+		return s.numberIntegerStart(value)
 	case 2, 3:
-		if digit && s.numberState == 3 {
-			return nil
-		}
-		if value == '.' {
-			s.numberState = 4
-			return nil
-		}
-		if value == 'e' || value == 'E' {
-			s.numberState = 6
-			return nil
-		}
+		return s.numberIntegerDigit(value)
 	case 4, 5:
-		if digit {
-			s.numberState = 5
-			return nil
-		}
-		if s.numberState == 5 && (value == 'e' || value == 'E') {
-			s.numberState = 6
-			return nil
-		}
+		return s.numberFractionDigit(value)
 	case 6, 7:
-		if s.numberState == 6 && (value == '+' || value == '-') {
-			s.numberState = 7
-			return nil
-		}
-		if digit {
-			s.numberState = 8
-			return nil
-		}
+		return s.numberExponentStart(value)
 	case 8:
-		if digit {
+		if value >= '0' && value <= '9' {
 			return nil
 		}
+	}
+	return goJSONFailure()
+}
+
+func (s *goJSONStream) numberIntegerStart(value byte) error {
+	if value == '-' && s.numberState == 0 {
+		s.numberState = 1
+		return nil
+	}
+	if value == '0' {
+		s.numberState = 2
+		return nil
+	}
+	if value >= '1' && value <= '9' {
+		s.numberState = 3
+		return nil
+	}
+	return goJSONFailure()
+}
+
+func (s *goJSONStream) numberIntegerDigit(value byte) error {
+	if value >= '0' && value <= '9' && s.numberState == 3 {
+		return nil
+	}
+	if value == '.' {
+		s.numberState = 4
+		return nil
+	}
+	if value == 'e' || value == 'E' {
+		s.numberState = 6
+		return nil
+	}
+	return goJSONFailure()
+}
+
+func (s *goJSONStream) numberFractionDigit(value byte) error {
+	if value >= '0' && value <= '9' {
+		s.numberState = 5
+		return nil
+	}
+	if s.numberState == 5 && (value == 'e' || value == 'E') {
+		s.numberState = 6
+		return nil
+	}
+	return goJSONFailure()
+}
+
+func (s *goJSONStream) numberExponentStart(value byte) error {
+	if s.numberState == 6 && (value == '+' || value == '-') {
+		s.numberState = 7
+		return nil
+	}
+	if value >= '0' && value <= '9' {
+		s.numberState = 8
+		return nil
 	}
 	return goJSONFailure()
 }
@@ -223,44 +276,31 @@ func (s *goJSONStream) stringByte(value byte) error {
 		return goJSONFailure()
 	}
 	if value == '"' && !s.escaped && s.unicodeDigits == 0 {
-		if s.highSurrogate {
-			return goJSONFailure()
-		}
-		if err := s.flushString(); err != nil {
-			return err
-		}
-		return s.endString()
+		return s.finishString()
 	}
 	if s.used >= len(s.fragment)-1 {
 		return goJSONFailure()
 	}
 	s.fragment[s.used] = value
 	s.used++
+	if err := s.advanceStringEscape(value); err != nil {
+		return err
+	}
+
+	if s.stringFragmentReady() {
+		return s.flushString()
+	}
+	return nil
+}
+
+func (s *goJSONStream) stringFragmentReady() bool {
+	return s.used >= 192 && !s.escaped && s.unicodeDigits == 0 && !s.highSurrogate && utf8.Valid(s.fragment[1:s.used])
+}
+
+func (s *goJSONStream) advanceStringEscape(value byte) error {
 	switch {
 	case s.unicodeDigits > 0:
-		var digit uint16
-		switch {
-		case value >= '0' && value <= '9':
-			digit = uint16(value - '0')
-		case value >= 'a' && value <= 'f':
-			digit = uint16(value - 'a' + 10)
-		case value >= 'A' && value <= 'F':
-			digit = uint16(value - 'A' + 10)
-		default:
-			return goJSONFailure()
-		}
-		s.unicodeValue = s.unicodeValue*16 + digit
-		s.unicodeDigits--
-		if s.unicodeDigits == 0 {
-			if s.highSurrogate {
-				if s.unicodeValue < 0xdc00 || s.unicodeValue > 0xdfff {
-					return goJSONFailure()
-				}
-				s.highSurrogate = false
-			} else if s.unicodeValue >= 0xd800 && s.unicodeValue <= 0xdbff {
-				s.highSurrogate = true
-			}
-		}
+		return s.consumeUnicodeDigit(value)
 	case s.escaped:
 		s.escaped = false
 		if value == 'u' {
@@ -273,10 +313,53 @@ func (s *goJSONStream) stringByte(value byte) error {
 	case s.highSurrogate:
 		return goJSONFailure()
 	}
-	if s.used >= 192 && !s.escaped && s.unicodeDigits == 0 && !s.highSurrogate && utf8.Valid(s.fragment[1:s.used]) {
-		return s.flushString()
+	return nil
+}
+
+func (s *goJSONStream) consumeUnicodeDigit(value byte) error {
+	digit, err := goJSONHexDigit(value)
+	if err != nil {
+		return err
+	}
+
+	s.unicodeValue = s.unicodeValue*16 + digit
+	s.unicodeDigits--
+	if s.unicodeDigits == 0 {
+		if s.highSurrogate {
+			if s.unicodeValue < 0xdc00 || s.unicodeValue > 0xdfff {
+				return goJSONFailure()
+			}
+			s.highSurrogate = false
+		} else if s.unicodeValue >= 0xd800 && s.unicodeValue <= 0xdbff {
+			s.highSurrogate = true
+		}
 	}
 	return nil
+}
+
+func goJSONHexDigit(value byte) (uint16, error) {
+	var digit uint16
+	switch {
+	case value >= '0' && value <= '9':
+		digit = uint16(value - '0')
+	case value >= 'a' && value <= 'f':
+		digit = uint16(value - 'a' + 10)
+	case value >= 'A' && value <= 'F':
+		digit = uint16(value - 'A' + 10)
+	default:
+		return 0, goJSONFailure()
+	}
+	return digit, nil
+}
+
+func (s *goJSONStream) finishString() error {
+	if s.highSurrogate {
+		return goJSONFailure()
+	}
+	if err := s.flushString(); err != nil {
+		return err
+	}
+	return s.endString()
 }
 
 func (s *goJSONStream) flushString() error {
@@ -291,6 +374,10 @@ func (s *goJSONStream) flushString() error {
 			return err
 		}
 	}
+	return s.retainString(decoded)
+}
+
+func (s *goJSONStream) retainString(decoded string) error {
 	if s.key || s.field == GoEventFieldAction || s.field == GoEventFieldOutputType {
 		if len(decoded) > len(s.scalar)-s.scalarUsed {
 			return goJSONFailure()
@@ -299,6 +386,10 @@ func (s *goJSONStream) flushString() error {
 		s.scalarUsed += len(decoded)
 		return nil
 	}
+	return s.projectString(decoded)
+}
+
+func (s *goJSONStream) projectString(decoded string) error {
 	switch s.field {
 	case GoEventFieldPackage:
 		s.projection.packagePresent = s.projection.packagePresent || decoded != ""
@@ -316,41 +407,7 @@ func (s *goJSONStream) flushString() error {
 
 func (s *goJSONStream) endString() error {
 	if s.key {
-		switch string(s.scalar[:s.scalarUsed]) {
-		case "Action":
-			s.field = GoEventFieldAction
-		case "Package":
-			s.field = GoEventFieldPackage
-		case "Test":
-			s.field = GoEventFieldTest
-		case "Output":
-			s.field = GoEventFieldOutput
-		case "OutputType":
-			s.field = GoEventFieldOutputType
-		case "Time":
-			s.field = GoEventFieldTime
-		case "FailedBuild":
-			s.field = GoEventFieldFailedBuild
-		case "Elapsed":
-			s.field = GoEventFieldElapsed
-		case "ImportPath":
-			s.field = GoEventFieldImportPath
-		case "Key":
-			s.field = GoEventFieldKey
-		case "Value":
-			s.field = GoEventFieldValue
-		case "Path":
-			s.field = GoEventFieldPath
-		default:
-			return goJSONFailure()
-		}
-		mask := uint16(1) << s.field
-		if s.projection.fields&mask != 0 {
-			return goJSONFailure()
-		}
-		s.projection.fields |= mask
-		s.state = goJSONColon
-		return nil
+		return s.endKey()
 	}
 	switch s.field {
 	case GoEventFieldAction:
@@ -376,6 +433,22 @@ func (s *goJSONStream) endString() error {
 		}
 	}
 	s.state = goJSONAfterValue
+	return nil
+}
+
+func (s *goJSONStream) endKey() error {
+	field, err := decodeGoEventField(string(s.scalar[:s.scalarUsed]))
+	if err != nil {
+		return err
+	}
+	s.field = field
+
+	mask := uint16(1) << s.field
+	if s.projection.fields&mask != 0 {
+		return goJSONFailure()
+	}
+	s.projection.fields |= mask
+	s.state = goJSONColon
 	return nil
 }
 

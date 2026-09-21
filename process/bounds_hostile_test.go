@@ -274,10 +274,10 @@ func TestParseEffectiveEnvironmentRefusesOversizeBeforeOSProjection(t *testing.T
 func TestRequestValidationCannotBypassProjectionBounds(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr       error
 		name          string
 		argumentCount uint32
 		variableCount uint32
-		wantErr       error
 	}{
 		{name: "neutral/no argv or explicit environment variables"},
 		{name: "positive/exact argument count is usable", argumentCount: process.ArgumentCountMaximum},

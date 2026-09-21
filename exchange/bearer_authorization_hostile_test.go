@@ -20,10 +20,10 @@ func TestReceiveBearerAuthorizationHeaderBoundaryTable(t *testing.T) {
 	maximumToken := strings.Repeat("Z", exchange.BearerAuthorizationTokenMaximumBytes)
 	prefix := exchange.BearerAuthorizationScheme + " "
 	cases := []struct {
-		name      string
-		inputs    [][]string
-		wantToken string
 		wantErr   error
+		name      string
+		wantToken string
+		inputs    [][]string
 	}{
 		{name: "scheme case never changes opaque token bytes", inputs: [][]string{{canonical}, {strings.ToLower(exchange.BearerAuthorizationScheme) + " token-123"}, {strings.ToUpper(exchange.BearerAuthorizationScheme) + " token-123"}}, wantToken: "token-123"},
 		{name: "absence and empty field cannot manufacture credentials", inputs: [][]string{nil, {}, {""}}, wantErr: core.ErrExchangeRequest},
@@ -101,10 +101,10 @@ func bearerAuthorizationWire(t testing.TB, token string) string {
 func TestBearerAuthorizationMatchesLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr     error
 		name        string
 		left, right string
 		wantMatch   bool
-		wantErr     error
 	}{
 		{name: "minimum exact credentials match", left: "A", right: "A", wantMatch: true},
 		{name: "maximum exact credentials remain comparable", left: strings.Repeat("A", exchange.BearerAuthorizationTokenMaximumBytes), right: strings.Repeat("A", exchange.BearerAuthorizationTokenMaximumBytes), wantMatch: true},
@@ -167,9 +167,9 @@ func TestBearerAuthorizationGrammarTransitionsTable(t *testing.T) {
 func TestBearerAuthorizationHeaderCustodyTable(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr error
 		name    string
 		token   []byte
-		wantErr error
 	}{
 		{name: "absent token produces no header", wantErr: core.ErrExchangeContract},
 		{name: "minimum material is sufficient", token: []byte("A")},

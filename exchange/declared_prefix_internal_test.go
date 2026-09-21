@@ -31,13 +31,13 @@ func (r *declaredPrefixReader) Read(p []byte) (int, error) {
 func TestSmallDeclaredBodyTransferLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		terminal  error
+		wantErr   error
 		name      string
 		declared  int64
 		body      int
-		terminal  error
-		cancelled bool
 		wantRead  int
-		wantErr   error
+		cancelled bool
 	}{
 		{name: "exact small declaration cannot pad or omit body", declared: 3, body: 3, wantRead: 3},
 		{name: "overstatement remains a reservation rather than fabricated bytes", declared: 4, body: 3, wantRead: 3},

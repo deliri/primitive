@@ -33,12 +33,12 @@ const (
 func TestEnsureDirectoryNativeNamespaceLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr    error
 		name, path string
+		changed    string
+		created    []string
 		mode       fs.FileMode
 		mutation   ensureDirectoryMutation
-		created    []string
-		changed    string
-		wantErr    error
 		native     bool
 	}{
 		{name: "one missing entry gets exact mode and no sibling", path: "new", mode: 0o750, created: []string{"new"}},
@@ -89,7 +89,7 @@ func TestEnsureDirectoryNativeNamespaceLayerTriad(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			for _, link := range []struct{ name, target string }{{"link", "real"}, {"file-link", "file"}, {"dangling", "missing"}, {"outside", outside}, {"loop", "loop"}, {filepath.Join("real", "back"), ".."}} {
+			for _, link := range []struct{ name, target string }{{name: "link", target: "real"}, {name: "file-link", target: "file"}, {name: "dangling", target: "missing"}, {name: "outside", target: outside}, {name: "loop", target: "loop"}, {name: filepath.Join("real", "back"), target: ".."}} {
 				if err := os.Symlink(link.target, filepath.Join(directory, link.name)); err != nil {
 					t.Fatal(err)
 				}

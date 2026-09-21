@@ -12,8 +12,8 @@ func TestGoCoverageContinuesBeyondHistoricalExtents(t *testing.T) {
 	for _, tc := range []struct {
 		name    string
 		chunk   string
-		repeats int
 		suffix  string
+		repeats int
 		want    uint64
 	}{
 		{name: "eight MiB location uses repeated fixed fragments", chunk: strings.Repeat("x", 4096), repeats: 2048, suffix: ":1.1,1.2 1 1\n", want: 1},

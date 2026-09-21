@@ -27,11 +27,11 @@ func TestAssessmentSelectionProducerClassifierExhaustiveMatrix(t *testing.T) {
 	t.Parallel()
 	installed := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 30), 1)
 	for _, version := range []struct {
-		order   core.Comparison
+		wantErr error
 		version core.ReleaseVersion
+		order   core.Comparison
 		state   SelectionState
 		primary selectionHandoffClass
-		wantErr error
 	}{
 		{order: core.ComparisonGreater, version: core.NewReleaseVersion(2026, 7, 29), primary: selectionHandoffContradiction, wantErr: core.ErrReleaseRollback},
 		{order: core.ComparisonEqual, version: installed.builds[0].Version(), state: SelectionCurrent, primary: selectionHandoffNeutral},
@@ -107,13 +107,13 @@ func TestAssessmentSelectionProducerClassifierExhaustiveMatrix(t *testing.T) {
 }
 
 type selectionHandoffProof struct {
-	Selection            Selection
-	State                SelectionState
-	Installed, Candidate releaseFixture
-	Latest               VerifiedLatest
-	Assessment           LatestAssessment
 	Time                 LatestTimeEvidence
+	Latest               VerifiedLatest
+	Selection            Selection
+	Installed, Candidate releaseFixture
+	Assessment           LatestAssessment
 	Target               int
+	State                SelectionState
 }
 
 func proveSelectionHandoff(t *testing.T, proof selectionHandoffProof) {
@@ -206,12 +206,12 @@ func TestAssessmentPreparationProducerClassifierBoundaryAndRefusalMatrix(t *test
 		t.Fatal("fixture Available ok = false, want true")
 	}
 	for _, tc := range []struct {
-		name      string
-		primary   selectionHandoffClass
-		at        int64
-		mutate    func(*testing.T, *LatestTimeEvidence)
-		freshness LatestFreshness
 		wantErr   error
+		mutate    func(*testing.T, *LatestTimeEvidence)
+		name      string
+		at        int64
+		primary   selectionHandoffClass
+		freshness LatestFreshness
 	}{
 		{name: "one before valid-from withdraws readiness", primary: selectionHandoffBoundary, at: 1_999, freshness: LatestFreshnessNotYetValid},
 		{name: "exact valid-from admits readiness", primary: selectionHandoffBoundary, at: 2_000, freshness: LatestFreshnessCurrent},
@@ -294,11 +294,11 @@ func TestSelectionIngressLayerTriadPreservesRefusalAndAbsence(t *testing.T) {
 		t.Fatalf("outside-target identity error = %v, want valid Core identity", err)
 	}
 	for _, tc := range []struct {
+		wantErr error
+		mutate  func(*EvaluateInstalledRequest)
 		name    string
 		primary selectionHandoffClass
-		mutate  func(*EvaluateInstalledRequest)
 		state   SelectionState
-		wantErr error
 	}{
 		{name: "valid retained authority remains current", primary: selectionHandoffNeutral, state: SelectionCurrent},
 		{name: "explicit absence requests refresh without artifact authority", primary: selectionHandoffNeutral, mutate: func(r *EvaluateInstalledRequest) { r.Evaluate.Latest = MissingCachedLatest() }, state: SelectionRefreshRequired},

@@ -54,8 +54,8 @@ func TestSecretMaterialConcurrentCopiesAndDestruction(t *testing.T) {
 				}
 				const workers = 8
 				type outcome struct {
-					data []byte
 					err  error
+					data []byte
 				}
 				results := make(chan outcome, workers)
 				start := make(chan struct{})

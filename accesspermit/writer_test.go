@@ -10,8 +10,8 @@ import (
 )
 
 type faultWriter struct {
-	limit, calls, bytes int
 	err                 error
+	limit, calls, bytes int
 }
 
 func (w *faultWriter) Write(p []byte) (int, error) {
@@ -25,16 +25,16 @@ func TestPermitCanonicalTermsWriterLayerTriad(t *testing.T) {
 	t.Parallel()
 	seed, _, _ := permitFixture(t)
 	for _, tc := range []struct {
+		writeErr, wantErr    error
 		name                 string
 		terms                Terms
 		limit                int
-		writeErr, wantErr    error
 		wantCalls, wantBytes int
 	}{
-		{"zero terms do not touch output", Terms{}, 0, nil, core.ErrAccessPermitContract, 0, 0},
-		{"refused before first byte", seed.Terms, 0, io.ErrClosedPipe, io.ErrClosedPipe, 1, 0},
-		{"partial write preserves cancellation", seed.Terms, 7, context.Canceled, context.Canceled, 1, 7},
-		{"silent short write is not success", seed.Terms, 0, nil, io.ErrShortWrite, 1, 0},
+		{name: "zero terms do not touch output", terms: Terms{}, limit: 0, writeErr: nil, wantErr: core.ErrAccessPermitContract, wantCalls: 0, wantBytes: 0},
+		{name: "refused before first byte", terms: seed.Terms, limit: 0, writeErr: io.ErrClosedPipe, wantErr: io.ErrClosedPipe, wantCalls: 1, wantBytes: 0},
+		{name: "partial write preserves cancellation", terms: seed.Terms, limit: 7, writeErr: context.Canceled, wantErr: context.Canceled, wantCalls: 1, wantBytes: 7},
+		{name: "silent short write is not success", terms: seed.Terms, limit: 0, writeErr: nil, wantErr: io.ErrShortWrite, wantCalls: 1, wantBytes: 0},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

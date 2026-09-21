@@ -50,9 +50,9 @@ func TestGrantRecordRetainedAgreementLayerTriad(t *testing.T) {
 		t.Fatalf("restarted completion = (%v, %v), want exact provider facts", payload, err)
 	}
 	for _, tc := range []struct {
-		name    string
-		mutate  func(*CompletionExpectation)
 		wantErr error
+		mutate  func(*CompletionExpectation)
+		name    string
 	}{
 		{name: "missing retained grant produces no proof", mutate: func(v *CompletionExpectation) { v.Grant = GrantRecord{} }, wantErr: core.ErrControlPlaneContract},
 		{name: "authority provider differs from completion", mutate: func(v *CompletionExpectation) { v.Provider = objectstore.ProviderAmazonS3 }, wantErr: core.ErrControlPlaneResponseBinding},
@@ -142,9 +142,9 @@ func TestGrantRecordByteBoundaryLayerTriad(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		size    int
-		wantErr error
 	}{
 		{name: "one below record ceiling admits padded agreement", size: GrantRecordJSONMaximumBytes - 1},
 		{name: "exact record ceiling admits padded agreement", size: GrantRecordJSONMaximumBytes},
@@ -262,7 +262,7 @@ func FuzzGrantRecordSignedFactRecombination(f *testing.F) {
 	if err != nil {
 		f.Fatal(err)
 	}
-	for selector := uint8(0); selector < 10; selector++ {
+	for selector := range uint8(10) {
 		f.Add(selector, uint32(1))
 	}
 	f.Fuzz(func(t *testing.T, selector uint8, delta uint32) {
@@ -329,9 +329,9 @@ func mutateRetainedGrantFact(t testing.TB, seed, other GrantRecord, selector uin
 // This is a test-owned disk fixture, not the API's durable writer or manifest.
 // The child has no original upload bearer, private signer, or in-memory proof.
 type retainedCompletionFixture struct {
-	Grant      GrantRecord        `json:"grant"`
 	Request    RequestPayload     `json:"request"`
 	Completion CompletionDocument `json:"completion"`
+	Grant      GrantRecord        `json:"grant"`
 }
 
 func TestGrantRecordFreshProcessLayerTriad(t *testing.T) {
@@ -356,7 +356,9 @@ func TestGrantRecordFreshProcessLayerTriad(t *testing.T) {
 			if !errors.Is(err, core.ErrJSONContract) || stored != (retainedCompletionFixture{}) {
 				t.Fatalf("disk refusal = (%v, %v), want zero and JSON rejection", stored, err)
 			}
-			fmt.Fprintln(os.Stdout, marker+":"+mode)
+			if _, err := fmt.Fprintln(os.Stdout, marker+":"+mode); err != nil {
+				t.Fatalf("write child completion marker error = %v, want nil", err)
+			}
 			return
 		}
 		if err != nil {
@@ -391,7 +393,9 @@ func TestGrantRecordFreshProcessLayerTriad(t *testing.T) {
 		default:
 			t.Fatalf("child mode = %q, want explicit contract", mode)
 		}
-		fmt.Fprintln(os.Stdout, marker+":"+mode)
+		if _, err := fmt.Fprintln(os.Stdout, marker+":"+mode); err != nil {
+			t.Fatalf("write child completion marker error = %v, want nil", err)
+		}
 		return
 	}
 	fixture := newCompletionFixture(t, submissionOffering(t, 2), []byte("fresh process retained transfer"), 0x10)

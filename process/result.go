@@ -86,8 +86,8 @@ type Result struct {
 	stdoutBytes        core.ByteLength
 	stderrBytes        core.ByteLength
 	peakMemory         core.ByteLength
-	peakMemoryReported bool
 	signal             SignalNumber
+	peakMemoryReported bool
 	signalReported     bool
 	set                bool
 }

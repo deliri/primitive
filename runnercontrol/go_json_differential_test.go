@@ -82,14 +82,14 @@ func FuzzGoEventFlatGrammarMatchesStandardJSON(f *testing.F) {
 func TestGoJSONFloatNativeRangeAndLongSpelling(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct{ name, value string }{
-		{"zero", "0"}, {"negative zero", "-0"},
-		{"largest finite float", "1.7976931348623157e308"},
-		{"rounding above finite float", "1.7976931348623159e308"},
-		{"exponent overflow", "1e309"},
-		{"zero with arbitrarily spelled exponent", "0e999999999999999999999"},
-		{"underflow with arbitrarily spelled exponent", "1e-999999999999999999999"},
-		{"long fraction compensated by exponent", "0." + strings.Repeat("0", 2048) + "1e2049"},
-		{"long integer compensated by exponent", "1" + strings.Repeat("0", 2048) + "e-2048"},
+		{name: "zero", value: "0"}, {name: "negative zero", value: "-0"},
+		{name: "largest finite float", value: "1.7976931348623157e308"},
+		{name: "rounding above finite float", value: "1.7976931348623159e308"},
+		{name: "exponent overflow", value: "1e309"},
+		{name: "zero with arbitrarily spelled exponent", value: "0e999999999999999999999"},
+		{name: "underflow with arbitrarily spelled exponent", value: "1e-999999999999999999999"},
+		{name: "long fraction compensated by exponent", value: "0." + strings.Repeat("0", 2048) + "1e2049"},
+		{name: "long integer compensated by exponent", value: "1" + strings.Repeat("0", 2048) + "e-2048"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			value := tc.value

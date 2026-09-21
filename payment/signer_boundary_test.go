@@ -11,8 +11,8 @@ import (
 )
 
 type paymentSigningFailure struct {
-	private ed25519.PrivateKey
 	cause   error
+	private ed25519.PrivateKey
 	calls   int
 }
 
@@ -34,9 +34,9 @@ func TestPaymentSignerFailureLayerTriad(t *testing.T) {
 	t.Parallel()
 	f := paymentFixturesForFuzz(t)
 	for _, door := range []struct {
+		issue   func(crypto.Signer, bool) paymentIssuanceOutcome
 		name    string
 		private ed25519.PrivateKey
-		issue   func(crypto.Signer, bool) paymentIssuanceOutcome
 	}{
 		{name: "receipt", private: f.payment.private, issue: func(s crypto.Signer, invalid bool) paymentIssuanceOutcome {
 			payload := f.payload
@@ -66,11 +66,11 @@ func TestPaymentSignerFailureLayerTriad(t *testing.T) {
 		t.Run(door.name, func(t *testing.T) {
 			t.Parallel()
 			for _, tc := range []struct {
-				name               string
 				cause              error
-				nilSigner, invalid bool
 				want               error
+				name               string
 				calls              int
+				nilSigner, invalid bool
 			}{
 				{name: "positive exact signed document", calls: 1},
 				{name: "negative signer native failure", cause: io.ErrClosedPipe, want: io.ErrClosedPipe, calls: 1},

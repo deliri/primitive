@@ -217,10 +217,7 @@ func TestCredentialedChitQueryJSONLayerTriad(t *testing.T) {
 	if err != nil {
 		t.Fatalf("RequestDocument.MarshalJSON() error = %v, want nil", err)
 	}
-	reordered, err := json.Marshal(struct {
-		Request     chit.QueryDocument                           `json:"request"`
-		Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
-	}{Request: fixture.document.Request, Certificate: fixture.document.Certificate})
+	reordered, err := json.Marshal(reorderedChitQueryJSON{Request: fixture.document.Request, Certificate: fixture.document.Certificate})
 	if err != nil {
 		t.Fatalf("json.Marshal(reordered request) error = %v, want nil", err)
 	}
@@ -457,4 +454,11 @@ func queryAccount(t testing.TB, marker byte) receipt.PrincipalIdentity {
 		t.Fatalf("receipt.NewPrincipalIdentity() error = %v, want nil", err)
 	}
 	return identity
+}
+
+// reorderedChitQueryJSON intentionally reverses the production member order.
+// The boundary test proves this fixture differs before submitting it.
+type reorderedChitQueryJSON struct {
+	Request     chit.QueryDocument                           `json:"request"`
+	Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
 }

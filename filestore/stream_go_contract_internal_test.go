@@ -22,8 +22,8 @@ type misleadingLengthReader struct {
 func (r misleadingLengthReader) Len() int { return r.remaining }
 
 type terminalCopyReader struct {
-	data            []byte
 	err             error
+	data            []byte
 	countAdjustment int
 	reads           int
 }
@@ -69,17 +69,16 @@ func TestStreamCopySourceObservationLayerTriad(t *testing.T) {
 	// These rows distinguish observed EOF from declarations, and destination
 	// bytes from source reads that remain unacknowledged by the destination.
 	cases := []struct {
-		name   string
-		source func() io.Reader
-
-		known       uint64
-		extentKnown bool
-		want        []byte
 		wantErr     error
 		wantNative  error
+		source      func() io.Reader
+		name        string
+		want        []byte
+		known       uint64
+		extentKnown bool
 	}{
-		{name: "empty opaque source produces an empty receipt", source: func() io.Reader { return copyReaderOnly{bytes.NewReader(nil)} }},
-		{name: "opaque source requires an actual EOF observation", source: func() io.Reader { return copyReaderOnly{bytes.NewReader([]byte{0, 255})} }, want: []byte{0, 255}},
+		{name: "empty opaque source produces an empty receipt", source: func() io.Reader { return copyReaderOnly{Reader: bytes.NewReader(nil)} }},
+		{name: "opaque source requires an actual EOF observation", source: func() io.Reader { return copyReaderOnly{Reader: bytes.NewReader([]byte{0, 255})} }, want: []byte{0, 255}},
 		{name: "one byte reader cannot be rejected during fragmented transfer", source: func() io.Reader { return iotest.OneByteReader(bytes.NewReader([]byte{0, 255})) }, want: []byte{0, 255}},
 		{name: "half reader cannot be rejected during fragmented transfer", source: func() io.Reader { return iotest.HalfReader(bytes.NewReader([]byte{0, 255, 7})) }, want: []byte{0, 255, 7}},
 		{name: "data and eof in one read do not trigger another read", source: func() io.Reader { return &terminalCopyReader{data: []byte{0, 255}, err: io.EOF} }, want: []byte{0, 255}},
@@ -119,7 +118,7 @@ func TestStreamCopySourceObservationLayerTriad(t *testing.T) {
 		}, want: []byte{0, 255}, wantErr: core.ErrFilestoreSource, wantNative: io.ErrNoProgress},
 		{name: "known empty observation does not invent bytes", source: func() io.Reader { return bytes.NewReader(nil) }, extentKnown: true},
 		{name: "known extent shrinking by one is unexpected eof", source: func() io.Reader { return bytes.NewReader([]byte{0}) }, known: 2, extentKnown: true, want: []byte{0}, wantErr: core.ErrFilestoreSource, wantNative: io.ErrUnexpectedEOF},
-		{name: "known exact extent still proves actual eof", source: func() io.Reader { return copyReaderOnly{bytes.NewReader([]byte{0, 255})} }, known: 2, extentKnown: true, want: []byte{0, 255}},
+		{name: "known exact extent still proves actual eof", source: func() io.Reader { return copyReaderOnly{Reader: bytes.NewReader([]byte{0, 255})} }, known: 2, extentKnown: true, want: []byte{0, 255}},
 		{name: "known extent growth remains an exact observation", source: func() io.Reader { return bytes.NewReader([]byte{0, 255, 7}) }, known: 2, extentKnown: true, want: []byte{0, 255, 7}},
 	}
 	for _, tc := range cases {
@@ -151,9 +150,9 @@ func TestStreamCopySourceObservationLayerTriad(t *testing.T) {
 }
 
 type countedCopyWriter struct {
+	err             error
 	accepted        bytes.Buffer
 	maximum         int
-	err             error
 	countAdjustment int
 	writes          int
 }
@@ -173,13 +172,13 @@ func (w *countedCopyWriter) Write(p []byte) (int, error) {
 func TestBoundedCopyGoWriterAccountingLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		cause      error
+		wantErr    error
 		name       string
 		payload    []byte
 		maximum    int
 		adjustment int
-		cause      error
 		wantCount  uint64
-		wantErr    error
 		wantWrites int
 	}{
 		{name: "empty source never calls destination", maximum: 2},
@@ -206,7 +205,7 @@ func TestBoundedCopyGoWriterAccountingLayerTriad(t *testing.T) {
 			}
 			if tc.adjustment == 0 {
 				native := countedCopyWriter{maximum: tc.maximum, err: tc.cause}
-				nativeCount, nativeErr := io.Copy(&native, copyReaderOnly{bytes.NewReader(tc.payload)})
+				nativeCount, nativeErr := io.Copy(&native, copyReaderOnly{Reader: bytes.NewReader(tc.payload)})
 				if uint64(nativeCount) != got.Uint64() || native.writes != destination.writes || !bytes.Equal(native.accepted.Bytes(), destination.accepted.Bytes()) || !errors.Is(gotErr, nativeErr) {
 					t.Fatalf("Go Copy = (%d,%v,%d), primitive = (%d,%v,%d)", nativeCount, nativeErr, native.writes, got.Uint64(), gotErr, destination.writes)
 				}

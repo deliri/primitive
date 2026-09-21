@@ -66,7 +66,7 @@ func (t ReportTiming) Validate() error {
 }
 
 // Occurrence jumps over missed periods arithmetically, using bounded memory.
-// Unsigned distance avoids overflow across the signed Unix epoch extremes.
+// Reduced signed phases avoid overflow across the Unix epoch extremes.
 func (s ReportSchedule) Occurrence(t ReportTiming) (ReportOccurrence, error) {
 	if err := errors.Join(s.Validate(), t.Validate()); err != nil {
 		return ReportOccurrence{}, err
@@ -79,7 +79,9 @@ func (s ReportSchedule) Occurrence(t ReportTiming) (ReportOccurrence, error) {
 	p, w := s.RepeatInterval.Nanoseconds(), s.WindowDuration.Nanoseconds()
 	open := o
 	if q >= o {
-		remainder := int64((uint64(q) - uint64(o)) % uint64(p))
+		// Reduce both signed instants first. Their residues are in [0,p),
+		// so subtraction cannot overflow even across the Unix epoch extremes.
+		remainder := reportPhase(reportPhase(q, p)-reportPhase(o, p), p)
 		open = q - remainder
 		if remainder >= w {
 			if open > math.MaxInt64-p {
@@ -97,6 +99,14 @@ func (s ReportSchedule) Occurrence(t ReportTiming) (ReportOccurrence, error) {
 		return ReportOccurrence{}, core.ErrPermitValidity
 	}
 	return ReportOccurrence{Open: temporal.InstantFromNanoseconds(open), Close: temporal.InstantFromNanoseconds(closeAt)}, nil
+}
+
+func reportPhase(instant, period int64) int64 {
+	phase := instant % period
+	if phase < 0 {
+		phase += period
+	}
+	return phase
 }
 
 // Admit checks the observed instant, not the future eligible instant.
@@ -134,7 +144,9 @@ func (s ReportSchedule) SendAt(t ReportTiming, jitter temporal.Duration) (tempor
 	open, _ := o.Open.Nanoseconds()
 	closeAt, _ := o.Close.Nanoseconds()
 	start := max(now, open)
-	remaining := uint64(closeAt) - uint64(start) - 1
-	delay := min(uint64(jitter.Nanoseconds()), remaining)
-	return temporal.InstantFromNanoseconds(start + int64(delay)), nil
+	// Occurrence limits close-open to WindowDuration, a positive int64;
+	// start lies within that interval, so this distance is representable.
+	remaining := closeAt - start - 1
+	delay := min(jitter.Nanoseconds(), remaining)
+	return temporal.InstantFromNanoseconds(start + delay), nil
 }

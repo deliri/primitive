@@ -253,11 +253,7 @@ func TestCredentialedPublicationJSONBoundariesAreStrictBoundedCanonicalAndPreser
 		if err != nil {
 			t.Fatalf("PublicationRequestDocument.MarshalJSON() error = %v, want nil", err)
 		}
-		reordered, err := json.Marshal(struct {
-			Request distribution.PublicationRequestDocument `json:"request"`
-
-			Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
-		}{Certificate: fixture.document.Certificate, Request: fixture.document.Request})
+		reordered, err := json.Marshal(reorderedPublicationRequestJSON{Certificate: fixture.document.Certificate, Request: fixture.document.Request})
 		if err != nil {
 			t.Fatalf("json.Marshal(reordered publication request) error = %v, want nil", err)
 		}
@@ -269,11 +265,7 @@ func TestCredentialedPublicationJSONBoundariesAreStrictBoundedCanonicalAndPreser
 		if err != nil {
 			t.Fatalf("PublicationCompletionDocument.MarshalJSON() error = %v, want nil", err)
 		}
-		reordered, err := json.Marshal(struct {
-			Completion distribution.PublicationCompletionDocument `json:"completion"`
-
-			Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
-		}{Certificate: fixture.completion.Certificate, Completion: fixture.completion.Completion})
+		reordered, err := json.Marshal(reorderedPublicationCompletionJSON{Certificate: fixture.completion.Certificate, Completion: fixture.completion.Completion})
 		if err != nil {
 			t.Fatalf("json.Marshal(reordered publication completion) error = %v, want nil", err)
 		}
@@ -442,4 +434,18 @@ func publicationAuthInvalidJSONCases(
 		{name: "two documents", data: append(bytes.Clone(canonical), canonical...)},
 		{name: "trailing scalar", data: append(bytes.Clone(canonical), []byte(` 0`)...)},
 	}
+}
+
+// reorderedPublicationRequestJSON intentionally reverses the production member order.
+// The boundary test proves this fixture differs before submitting it.
+type reorderedPublicationRequestJSON struct {
+	Request     distribution.PublicationRequestDocument      `json:"request"`
+	Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
+}
+
+// reorderedPublicationCompletionJSON intentionally reverses the production member order.
+// The boundary test proves this fixture differs before submitting it.
+type reorderedPublicationCompletionJSON struct {
+	Completion  distribution.PublicationCompletionDocument   `json:"completion"`
+	Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
 }

@@ -37,16 +37,16 @@ func TestProjectedJSONReceiveLayerTriad(t *testing.T) {
 	wrongType := []byte(`{"message":1}`)
 	truncatedWire := []byte(`{"message":`)
 	cases := []struct {
-		name        string
-		wire        []byte
-		method      string
-		disposition projectionDisposition
 		closeErr    error
 		wantErr     error
 		wantCause   error
+		name        string
+		method      string
+		wantMessage string
+		wire        []byte
 		wantRead    int
 		wantProject int
-		wantMessage string
+		disposition projectionDisposition
 	}{
 		{name: "exact extent completes nonwire method and preserves source message", wire: wire, wantRead: len(wire), wantProject: 1, wantMessage: document.Message},
 		{name: "missing projector closes unread body", wire: wire, disposition: projectionMissing, wantErr: core.ErrExchangeContract},
@@ -132,9 +132,9 @@ func TestProjectedJSONEmptyDocumentLayerTriad(t *testing.T) {
 		t.Fatal(err)
 	}
 	cases := []struct {
+		wantErr      error
 		name         string
 		inputs       [][]byte
-		wantErr      error
 		wantProjects int
 	}{
 		{name: "neutral empty object and null preserve the same empty typed state", inputs: [][]byte{wire, []byte("null")}, wantProjects: 1},

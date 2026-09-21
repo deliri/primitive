@@ -26,10 +26,10 @@ func (b *ownedJSONBody) Close() error { b.closes++; return b.closeErr }
 func TestOwnedJSONReceiveLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name                 string
-		malformed            bool
 		closeErr, releaseErr error
+		name                 string
 		wantReleases         int
+		malformed            bool
 	}{
 		{name: "decoded custody transfers after successful close"},
 		{name: "close refusal destroys decoded custody", closeErr: io.ErrClosedPipe, wantReleases: 1},
@@ -49,7 +49,11 @@ func TestOwnedJSONReceiveLayerTriad(t *testing.T) {
 			if err != nil {
 				t.Fatalf("token seed = %v, want nil", err)
 			}
-			defer token.Destroy()
+			defer func() {
+				if err := token.Destroy(); err != nil {
+					t.Errorf("token.Destroy() cleanup error = %v, want nil", err)
+				}
+			}()
 			nonce, err := controlwire.NewRequestNonce([32]byte{7})
 			if err != nil {
 				t.Fatalf("nonce = %v, want nil", err)
@@ -85,7 +89,11 @@ func TestOwnedJSONReceiveLayerTriad(t *testing.T) {
 				if err != nil || got.Body == nil {
 					t.Fatalf("accepted result = (%v,%v), want live owned body", got, err)
 				}
-				defer got.Body.Token.Destroy()
+				defer func() {
+					if err := got.Body.Token.Destroy(); err != nil {
+						t.Errorf("got.Body.Token.Destroy() cleanup error = %v, want nil", err)
+					}
+				}()
 				observed, verifyErr := got.Body.Token.Verifier()
 				want, wantErr := seed.Token.Verifier()
 				if verifyErr != nil || wantErr != nil || observed != want || got.Body.Build != seed.Build {

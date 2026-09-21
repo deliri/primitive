@@ -54,10 +54,10 @@ func (f observationFault) primaryClass() observationPrimaryClass {
 }
 
 type handoffProviderTransport struct {
-	maximum       int64
 	versionHeader string
 	version       string
 	observed      []byte
+	maximum       int64
 	calls         int
 }
 
@@ -86,11 +86,11 @@ func (p *handoffProviderTransport) RoundTrip(request *http.Request) (*http.Respo
 func TestProviderObservationHandoffExhaustiveFaultMatrix(t *testing.T) {
 	t.Parallel()
 	for _, provider := range []struct {
+		upload                  func(context.Context, Client, UploadRequest) (Transfer, error)
 		name                    string
-		kind                    Provider
 		header                  string
 		version, changedVersion string
-		upload                  func(context.Context, Client, UploadRequest) (Transfer, error)
+		kind                    Provider
 	}{
 		{name: "S3", kind: ProviderAmazonS3, header: headerS3Version, version: "version-a", changedVersion: "version-b", upload: UploadS3},
 		{name: "GCS", kind: ProviderGoogleCloudStorage, header: headerGCSGeneration, version: "41", changedVersion: "42", upload: UploadGCS},
@@ -255,13 +255,13 @@ func (f observationFault) String() string {
 	}
 	var names []string
 	for _, field := range []struct {
-		fault observationFault
 		name  string
+		fault observationFault
 	}{
-		{absentEvidence, "absent evidence"}, {foreignVersion, "different version"},
-		{foreignLength, "different extent"}, {foreignChecksum, "different checksum"},
-		{absentContentType, "absent media type"}, {absentOccurrence, "absent occurrence"},
-		{absentVersion, "absent version"}, {absentChecksum, "absent checksum"},
+		{fault: absentEvidence, name: "absent evidence"}, {fault: foreignVersion, name: "different version"},
+		{fault: foreignLength, name: "different extent"}, {fault: foreignChecksum, name: "different checksum"},
+		{fault: absentContentType, name: "absent media type"}, {fault: absentOccurrence, name: "absent occurrence"},
+		{fault: absentVersion, name: "absent version"}, {fault: absentChecksum, name: "absent checksum"},
 	} {
 		if f&field.fault != 0 {
 			names = append(names, field.name)

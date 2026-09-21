@@ -31,65 +31,74 @@ func decodeTree(source io.Reader, visitor TreeVisitor) (uint64, error) {
 		if end {
 			break
 		}
-		switch name {
-		case "sha":
-			if d.state.seenSHA {
-				return 0, core.ErrGitHubResponse
-			}
-			d.state.seenSHA = true
-			if err := d.ignoreString(true); err != nil {
-				return 0, err
-			}
-		case "url":
-			if d.state.seenURL {
-				return 0, core.ErrGitHubResponse
-			}
-			d.state.seenURL = true
-			if err := d.ignoreString(true); err != nil {
-				return 0, err
-			}
-		case "truncated":
-			if d.state.seenTruncated {
-				return 0, core.ErrGitHubResponse
-			}
-			d.state.seenTruncated = true
-			value, valueErr := d.next()
-			if valueErr != nil {
-				return 0, jsonStreamError(valueErr)
-			}
-			switch value {
-			case 't':
-				d.state.truncated = true
-				if err := d.literal("rue"); err != nil {
-					return 0, err
-				}
-			case 'f':
-				if err := d.literal("alse"); err != nil {
-					return 0, err
-				}
-			default:
-				return 0, core.ErrGitHubResponse
-			}
-		case "tree":
-			if d.state.seenTree {
-				return 0, core.ErrGitHubResponse
-			}
-			d.state.seenTree = true
-			if err := d.entries(); err != nil {
-				return 0, err
-			}
-		default:
-			return 0, core.ErrGitHubResponse
+		if err := d.readRootMember(name); err != nil {
+			return 0, err
 		}
+
 	}
 	if _, err := d.next(); !errors.Is(err, io.EOF) {
 		return 0, jsonStreamError(err)
 	}
-	if !d.state.seenSHA || !d.state.seenURL || !d.state.seenTree || !d.state.seenTruncated || d.state.truncated {
-		return 0, core.ErrGitHubResponse
+	if err := d.complete(); err != nil {
+		return 0, err
 	}
 	return d.state.entries, nil
 }
+
+func (d *treeDecoder) complete() error {
+	if !d.state.seenSHA || !d.state.seenURL || !d.state.seenTree || !d.state.seenTruncated || d.state.truncated {
+		return core.ErrGitHubResponse
+	}
+	return nil
+}
+
+func (d *treeDecoder) readRootMember(name string) error {
+	switch name {
+	case "sha":
+		return d.readIdentityMember(&d.state.seenSHA)
+	case "url":
+		return d.readIdentityMember(&d.state.seenURL)
+	case treeTruncatedMember:
+		return d.readTruncated()
+	case "tree":
+		if d.state.seenTree {
+			return core.ErrGitHubResponse
+		}
+		d.state.seenTree = true
+		return d.entries()
+	default:
+		return core.ErrGitHubResponse
+	}
+}
+
+func (d *treeDecoder) readIdentityMember(seen *bool) error {
+	if *seen {
+		return core.ErrGitHubResponse
+	}
+	*seen = true
+	return d.ignoreString(true)
+}
+
+func (d *treeDecoder) readTruncated() error {
+	if d.state.seenTruncated {
+		return core.ErrGitHubResponse
+	}
+	d.state.seenTruncated = true
+	value, err := d.next()
+	if err != nil {
+		return jsonStreamError(err)
+	}
+	switch value {
+	case 't':
+		d.state.truncated = true
+		return d.literal("rue")
+	case 'f':
+		return d.literal("alse")
+	default:
+		return core.ErrGitHubResponse
+	}
+}
+
 func (d *treeDecoder) next() (byte, error) {
 	for {
 		value, err := d.source.ReadByte()
@@ -120,31 +129,19 @@ func (d *treeDecoder) literal(want string) error {
 	return nil
 }
 func (d *treeDecoder) member(first bool) (string, bool, error) {
-	if !first {
-		separator, err := d.next()
-		if err != nil {
-			return "", false, jsonStreamError(err)
-		}
-		if separator == '}' {
-			return "", true, nil
-		}
-		if separator != ',' {
-			return "", false, core.ErrGitHubResponse
-		}
-	}
-	opening, err := d.next()
+	opening, err := d.memberOpening(first)
 	if err != nil {
-		return "", false, jsonStreamError(err)
+		return "", false, err
 	}
-	if first && opening == '}' {
+	if opening == '}' {
 		return "", true, nil
 	}
 	if opening != '"' {
 		return "", false, core.ErrGitHubResponse
 	}
-	// Longest recognized member is "truncated". Additional decoded name bytes
+	// Longest recognized member is treeTruncatedMember. Additional decoded name bytes
 	// prove an unknown field; this is the schema, not an input-size ceiling.
-	name, err := d.closedString(len("truncated"))
+	name, err := d.closedString(len(treeTruncatedMember))
 	if err != nil {
 		return "", false, err
 	}
@@ -153,8 +150,30 @@ func (d *treeDecoder) member(first bool) (string, bool, error) {
 	}
 	return name, false, nil
 }
+func (d *treeDecoder) memberOpening(first bool) (byte, error) {
+	if !first {
+		separator, err := d.next()
+		if err != nil {
+			return 0, jsonStreamError(err)
+		}
+		if separator == '}' {
+			return '}', nil
+		}
+		if separator != ',' {
+			return 0, core.ErrGitHubResponse
+		}
+	}
+	opening, err := d.next()
+	if err != nil {
+		return 0, jsonStreamError(err)
+	}
+	if !first && opening == '}' {
+		return 0, core.ErrGitHubResponse
+	}
+	return opening, nil
+}
 func (d *treeDecoder) closedString(maximum int) (string, error) {
-	var buffer [len("truncated") + 1]byte
+	var buffer [len(treeTruncatedMember) + 1]byte
 	stream := jsonStringStream{source: d.source}
 	n, err := io.ReadFull(&stream, buffer[:maximum+1])
 	if !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {
@@ -174,6 +193,10 @@ func (d *treeDecoder) ignoreString(nonempty bool) error {
 		return core.ErrGitHubResponse
 	}
 	stream := jsonStringStream{source: d.source}
+	return consumeIgnoredString(&stream, nonempty)
+}
+
+func consumeIgnoredString(stream *jsonStringStream, nonempty bool) error {
 	var scratch [4096]byte
 	seen := false
 	for {
@@ -202,6 +225,10 @@ func (d *treeDecoder) ignoreUint64() error {
 	if first < '0' || first > '9' {
 		return core.ErrGitHubResponse
 	}
+	return d.consumeUint64(first)
+}
+
+func (d *treeDecoder) consumeUint64(first byte) error {
 	value := uint64(first - '0')
 	for {
 		next, readErr := d.source.ReadByte()
@@ -226,35 +253,59 @@ func (d *treeDecoder) entries() error {
 	}
 	first := true
 	for {
-		opening, err := d.next()
+		opening, err := d.entryOpening(first)
 		if err != nil {
-			return jsonStreamError(err)
+			return err
 		}
 		if opening == ']' {
 			return nil
 		}
-		if !first {
-			if opening != ',' {
-				return core.ErrGitHubResponse
-			}
-			opening, err = d.next()
-			if err != nil {
-				return jsonStreamError(err)
-			}
-		}
+
 		first = false
 		if opening != '{' || d.state.entries == math.MaxUint64 {
 			return core.ErrGitHubResponse
 		}
-		stream := TreeEntryStream{decoder: d, digest: core.NewDigestWriter()}
-		err = d.visitor.VisitGitHubTreeEntry(&stream)
-		stream.decoder = nil // the callback borrows this reader only through return
-		if err != nil {
+		if err := d.visitEntry(); err != nil {
 			return err
 		}
-		if !errors.Is(stream.terminal, io.EOF) {
-			return core.ErrGitHubResponse
-		}
-		d.state.entries++
+
 	}
 }
+
+func (d *treeDecoder) entryOpening(first bool) (byte, error) {
+	opening, err := d.next()
+	if err != nil {
+		return 0, jsonStreamError(err)
+	}
+	if opening == ']' || first {
+		return opening, nil
+	}
+	if opening != ',' {
+		return 0, core.ErrGitHubResponse
+	}
+	opening, err = d.next()
+	if err != nil {
+		return 0, jsonStreamError(err)
+	}
+	// A close after a comma is not the end of an array; it is a trailing comma.
+	if opening == ']' {
+		return 0, core.ErrGitHubResponse
+	}
+	return opening, nil
+}
+
+func (d *treeDecoder) visitEntry() error {
+	stream := TreeEntryStream{decoder: d, digest: core.NewDigestWriter()}
+	err := d.visitor.VisitGitHubTreeEntry(&stream)
+	stream.decoder = nil // the callback borrows this reader only through return
+	if err != nil {
+		return err
+	}
+	if !errors.Is(stream.terminal, io.EOF) {
+		return core.ErrGitHubResponse
+	}
+	d.state.entries++
+	return nil
+}
+
+const treeTruncatedMember = "truncated"

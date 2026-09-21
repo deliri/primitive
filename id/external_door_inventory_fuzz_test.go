@@ -21,7 +21,7 @@ type idExternalDoorInventory struct {
 	UUIDv7UnmarshalJSON func(*UUIDv7, []byte) error
 }
 
-var _ = idExternalDoorInventory{NewULID, NewULIDFromBytes, NewUUIDv7, ParseULID, ParseUUIDv7, (*ULID).UnmarshalJSON, (*UUIDv7).UnmarshalJSON}
+var _ = idExternalDoorInventory{NewULID: NewULID, NewULIDFromBytes: NewULIDFromBytes, NewUUIDv7: NewUUIDv7, ParseULID: ParseULID, ParseUUIDv7: ParseUUIDv7, ULIDUnmarshalJSON: (*ULID).UnmarshalJSON, UUIDv7UnmarshalJSON: (*UUIDv7).UnmarshalJSON}
 
 func idExternalDoorName(function *ast.FuncDecl) string {
 	if !function.Name.IsExported() {
@@ -79,8 +79,8 @@ func TestIDExternalDoorInventoryMatchesProduction(t *testing.T) {
 func TestIDExternalDoorsHaveSemanticFuzzOwners(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		door  string
 		owner func(*testing.F)
+		door  string
 	}{
 		{door: "NewULID", owner: FuzzIdentityRequest},
 		{door: "NewUUIDv7", owner: FuzzIdentityRequest},
@@ -106,12 +106,12 @@ func TestIDExternalDoorsHaveSemanticFuzzOwners(t *testing.T) {
 func TestIDExternalDoorMatcherAttacksNewIngress(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct{ name, source, want string }{
-		{"constructor", "package p; func NewOther(){}", "NewOther"},
-		{"parser", "package p; func ParseOther(){}", "ParseOther"},
-		{"decoder", "package p; func DecodeOther(){}", "DecodeOther"},
-		{"unmarshal", "package p; func (*Other) UnmarshalText(){}", "OtherUnmarshalText"},
-		{"private", "package p; func parseOther(){}", ""},
-		{"projection", "package p; func (Other) String(){}", ""},
+		{name: "constructor", source: "package p; func NewOther(){}", want: "NewOther"},
+		{name: "parser", source: "package p; func ParseOther(){}", want: "ParseOther"},
+		{name: "decoder", source: "package p; func DecodeOther(){}", want: "DecodeOther"},
+		{name: "unmarshal", source: "package p; func (*Other) UnmarshalText(){}", want: "OtherUnmarshalText"},
+		{name: "private", source: "package p; func parseOther(){}", want: ""},
+		{name: "projection", source: "package p; func (Other) String(){}", want: ""},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

@@ -22,10 +22,10 @@ import (
 func TestWalkReplacementStandingLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr   error
 		name      string
 		mutation  walkReplacementMutation
 		directive filestore.WalkDirective
-		wantErr   error
 	}{
 		{name: "stable identity retains child", mutation: walkReplacementStable, directive: filestore.WalkContinue},
 		{name: "symlink substitution cannot redirect descent", mutation: walkReplacementSymlink, directive: filestore.WalkContinue, wantErr: core.ErrFilestoreSource},
@@ -121,10 +121,10 @@ const (
 func TestWalkRefusalLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name       string
-		fault      walkBoundaryFault
 		wantErr    error
+		name       string
 		wantVisits int
+		fault      walkBoundaryFault
 	}{
 		{name: "stable entries preserve native delivery", wantVisits: 2},
 		{name: "empty directory emits no entries and stays empty", fault: walkBoundaryEmptyDirectory},

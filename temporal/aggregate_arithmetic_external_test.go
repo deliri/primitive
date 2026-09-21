@@ -13,13 +13,13 @@ import (
 // A bounded math/big oracle pressures both limbs independently of math/bits.
 func FuzzAggregateDurationArithmetic(f *testing.F) {
 	for _, seed := range []struct{ high, low, addHigh, addLow, multiplier uint64 }{
-		{0, 0, 0, 0, 0},
-		{0, 1, 0, 1, 1},
-		{0, math.MaxUint64, 0, 1, 2},
-		{1, 0, 0, math.MaxUint64, math.MaxUint64},
-		{math.MaxUint64, math.MaxUint64, 0, 1, 2},
-		{math.MaxUint64, math.MaxUint64, 0, 0, 1},
-		{math.MaxUint64, math.MaxUint64, 0, 0, 0},
+		{high: 0, low: 0, addHigh: 0, addLow: 0, multiplier: 0},
+		{high: 0, low: 1, addHigh: 0, addLow: 1, multiplier: 1},
+		{high: 0, low: math.MaxUint64, addHigh: 0, addLow: 1, multiplier: 2},
+		{high: 1, low: 0, addHigh: 0, addLow: math.MaxUint64, multiplier: math.MaxUint64},
+		{high: math.MaxUint64, low: math.MaxUint64, addHigh: 0, addLow: 1, multiplier: 2},
+		{high: math.MaxUint64, low: math.MaxUint64, addHigh: 0, addLow: 0, multiplier: 1},
+		{high: math.MaxUint64, low: math.MaxUint64, addHigh: 0, addLow: 0, multiplier: 0},
 	} {
 		f.Add(seed.high, seed.low, seed.addHigh, seed.addLow, seed.multiplier)
 	}
@@ -38,13 +38,13 @@ func FuzzAggregateDurationArithmetic(f *testing.F) {
 		wantSum := new(big.Int).Add(left, right)
 		wantProduct := new(big.Int).Mul(left, new(big.Int).SetUint64(multiplier))
 		for _, result := range []struct {
-			name   string
-			got    temporal.AggregateDuration
 			gotErr error
 			want   *big.Int
+			name   string
+			got    temporal.AggregateDuration
 		}{
-			{"sum", sum, sumErr, wantSum},
-			{"product", product, productErr, wantProduct},
+			{name: "sum", got: sum, gotErr: sumErr, want: wantSum},
+			{name: "product", got: product, gotErr: productErr, want: wantProduct},
 		} {
 			if result.want.BitLen() > 128 {
 				if result.got != (temporal.AggregateDuration{}) || !errors.Is(result.gotErr, core.ErrTemporalOverflow) || !errors.Is(result.gotErr, core.ErrNumericOverflow) {

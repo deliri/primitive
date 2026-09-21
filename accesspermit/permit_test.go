@@ -61,11 +61,11 @@ func permitFixture(t testing.TB) (Document, attest.TrustedKeys, ed25519.PrivateK
 func TestPermitVerificationLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantVerify error
+		wantAllow  error
 		name       string
 		decision   Decision
 		tamper     bool
-		wantVerify error
-		wantAllow  error
 	}{
 		{name: "authentic scoped grant admits inside its interval", decision: DecisionAllow},
 		{name: "unsigned grant substitution cannot upgrade refusal", decision: DecisionRefuse, tamper: true, wantVerify: core.ErrAccessPermitDenied},
@@ -107,21 +107,21 @@ func TestPermitVerificationLayerTriad(t *testing.T) {
 func TestPermitHalfOpenWindowBoundaries(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		at      int64
-		wantErr error
 	}{
-		{"minimum representable observation precedes grant", math.MinInt64, core.ErrAccessPermitDenied},
-		{"one before activation cannot start", 99, core.ErrAccessPermitDenied},
-		{"exact activation starts", 100, nil},
-		{"one after activation remains admitted", 101, nil},
-		{"one before refresh remains admitted", 199, nil},
-		{"exact refresh is not expiry", 200, nil},
-		{"one after refresh remains admitted", 201, nil},
-		{"one before expiry remains admitted", 299, nil},
-		{"exact expiry refuses", 300, core.ErrAccessPermitDenied},
-		{"one after expiry refuses", 301, core.ErrAccessPermitDenied},
-		{"maximum observation cannot wrap into the interval", math.MaxInt64, core.ErrAccessPermitDenied},
+		{name: "minimum representable observation precedes grant", at: math.MinInt64, wantErr: core.ErrAccessPermitDenied},
+		{name: "one before activation cannot start", at: 99, wantErr: core.ErrAccessPermitDenied},
+		{name: "exact activation starts", at: 100, wantErr: nil},
+		{name: "one after activation remains admitted", at: 101, wantErr: nil},
+		{name: "one before refresh remains admitted", at: 199, wantErr: nil},
+		{name: "exact refresh is not expiry", at: 200, wantErr: nil},
+		{name: "one after refresh remains admitted", at: 201, wantErr: nil},
+		{name: "one before expiry remains admitted", at: 299, wantErr: nil},
+		{name: "exact expiry refuses", at: 300, wantErr: core.ErrAccessPermitDenied},
+		{name: "one after expiry refuses", at: 301, wantErr: core.ErrAccessPermitDenied},
+		{name: "maximum observation cannot wrap into the interval", at: math.MaxInt64, wantErr: core.ErrAccessPermitDenied},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -140,23 +140,23 @@ func TestPermitHalfOpenWindowBoundaries(t *testing.T) {
 func TestPermitEverySignedFactRejectsSubstitution(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name    string
 		mutate  func(*Terms)
+		name    string
 		binding bool
 	}{
-		{"foreign route family", func(t *Terms) { t.Binding.Family = controlwire.RouteFamilyCheckIns }, true},
-		{"foreign namespace", func(t *Terms) { t.Binding.Subject.Offering = core.Offering{Token: "future-device"} }, true},
-		{"foreign account", func(t *Terms) { t.Binding.Account, _ = receipt.NewPrincipalIdentity([16]byte{9}) }, true},
-		{"foreign entitlement", func(t *Terms) { t.Binding.Subject.EntitlementID, _ = lease.NewEntitlementID([16]byte{9}) }, true},
-		{"foreign installation", func(t *Terms) { t.Binding.Subject.DeviceID, _ = lease.NewDeviceID([16]byte{9}) }, true},
-		{"foreign request nonce", func(t *Terms) {
+		{name: "foreign route family", mutate: func(t *Terms) { t.Binding.Family = controlwire.RouteFamilyCheckIns }, binding: true},
+		{name: "foreign namespace", mutate: func(t *Terms) { t.Binding.Subject.Offering = core.Offering{Token: "future-device"} }, binding: true},
+		{name: "foreign account", mutate: func(t *Terms) { t.Binding.Account, _ = receipt.NewPrincipalIdentity([16]byte{9}) }, binding: true},
+		{name: "foreign entitlement", mutate: func(t *Terms) { t.Binding.Subject.EntitlementID, _ = lease.NewEntitlementID([16]byte{9}) }, binding: true},
+		{name: "foreign installation", mutate: func(t *Terms) { t.Binding.Subject.DeviceID, _ = lease.NewDeviceID([16]byte{9}) }, binding: true},
+		{name: "foreign request nonce", mutate: func(t *Terms) {
 			t.Binding.RequestNonce, _ = controlwire.NewRequestNonce([core.SHA256DigestBytes]byte{9})
-		}, true},
-		{"foreign generation", func(t *Terms) { t.Binding.Generation, _ = lease.NewGeneration(2) }, true},
-		{"earlier activation", func(t *Terms) { t.Window.NotBefore = temporal.InstantFromNanoseconds(99) }, false},
-		{"later refresh", func(t *Terms) { t.Window.RefreshAfter = temporal.InstantFromNanoseconds(201) }, false},
-		{"extended expiry", func(t *Terms) { t.Window.NotAfter = temporal.InstantFromNanoseconds(301) }, false},
-		{"changed decision", func(t *Terms) { t.Window.Decision = DecisionRefuse }, false},
+		}, binding: true},
+		{name: "foreign generation", mutate: func(t *Terms) { t.Binding.Generation, _ = lease.NewGeneration(2) }, binding: true},
+		{name: "earlier activation", mutate: func(t *Terms) { t.Window.NotBefore = temporal.InstantFromNanoseconds(99) }, binding: false},
+		{name: "later refresh", mutate: func(t *Terms) { t.Window.RefreshAfter = temporal.InstantFromNanoseconds(201) }, binding: false},
+		{name: "extended expiry", mutate: func(t *Terms) { t.Window.NotAfter = temporal.InstantFromNanoseconds(301) }, binding: false},
+		{name: "changed decision", mutate: func(t *Terms) { t.Window.Decision = DecisionRefuse }, binding: false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

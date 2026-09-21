@@ -32,9 +32,9 @@ func TestInspectNativeObservationLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
 		name     string
-		fixture  nativeInspectionFixture
-		mode     fs.FileMode
 		extent   int64
+		mode     fs.FileMode
+		fixture  nativeInspectionFixture
 		wantKind filestore.PathKind
 	}{
 		{name: "filesystem root needs no final component", fixture: nativeInspectionRoot, wantKind: filestore.PathKindDirectory},

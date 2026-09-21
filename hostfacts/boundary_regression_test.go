@@ -13,10 +13,10 @@ import (
 func TestDiskAssessmentAdmissionLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr                 error
 		name                    string
 		available, total, floor uint64
 		state                   DiskPressureState
-		wantErr                 error
 	}{
 		{name: "disabled pressure retains exhausted capacity", total: 1, state: DiskPressureDisabled},
 		{name: "one below device ceiling admits exact pressure", available: 1, total: 2, floor: 1, state: DiskPressureReached},
@@ -55,8 +55,8 @@ func TestDiskAssessmentAdmissionLayerTriad(t *testing.T) {
 func TestHostnameValidationClosesAdmission(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name, value string
 		wantErr     error
+		name, value string
 	}{
 		{name: "unset observation refuses", wantErr: core.ErrHostFactsContract},
 		{name: "smallest printable host retains exact byte", value: "h"},
@@ -79,9 +79,9 @@ func TestHostnameValidationClosesAdmission(t *testing.T) {
 func TestBoundedValueMaximumRejectsBeforeReading(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		maximum uint64
-		wantErr error
 	}{
 		{name: "zero ceiling accepts empty value", maximum: 0},
 		{name: "package ceiling accepts empty value", maximum: virtualFileMaximumBytes},

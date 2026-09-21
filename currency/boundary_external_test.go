@@ -63,10 +63,10 @@ func TestCurrencyNominalDomainExhaustsUnderlyingByte(t *testing.T) {
 func TestCurrencyArithmeticLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name                string
-		leftCode, rightCode currency.Code
-		left, right         int64
 		wantErr             error
+		name                string
+		left, right         int64
+		leftCode, rightCode currency.Code
 	}{
 		{name: "positive opposite extrema retain exact signed arithmetic", leftCode: currency.CodeCAD, rightCode: currency.CodeCAD, left: math.MaxInt64, right: math.MinInt64},
 		{name: "neutral zero cannot alter either arithmetic operand", leftCode: currency.CodeCLF, rightCode: currency.CodeCLF, left: 0, right: 0},
@@ -85,9 +85,9 @@ func TestCurrencyArithmeticLayerTriad(t *testing.T) {
 				t.Fatalf("invalid producer = (%v,%v), want zero/contract", left, leftErr)
 			}
 			for _, op := range []struct {
-				name   string
 				apply  func(currency.Amount, currency.Amount) (currency.Amount, error)
 				oracle *big.Int
+				name   string
 			}{
 				{name: "add", apply: currency.Amount.Add, oracle: new(big.Int).Add(big.NewInt(tc.left), big.NewInt(tc.right))},
 				{name: "subtract", apply: currency.Amount.Subtract, oracle: new(big.Int).Sub(big.NewInt(tc.left), big.NewInt(tc.right))},
@@ -186,12 +186,12 @@ func FuzzAmountNominalArithmetic(f *testing.F) {
 		left, le := currency.New(currency.Code(leftCode), leftMinor)
 		right, re := currency.New(currency.Code(rightCode), rightMinor)
 		for _, input := range []struct {
-			code  currency.Code
-			minor int64
-			got   currency.Amount
 			err   error
+			got   currency.Amount
+			minor int64
+			code  currency.Code
 		}{
-			{currency.Code(leftCode), leftMinor, left, le}, {currency.Code(rightCode), rightMinor, right, re},
+			{code: currency.Code(leftCode), minor: leftMinor, got: left, err: le}, {code: currency.Code(rightCode), minor: rightMinor, got: right, err: re},
 		} {
 			_, valid := oracleFractionDigits(input.code)
 			if !valid {
@@ -213,12 +213,12 @@ func FuzzAmountNominalArithmetic(f *testing.F) {
 			admission = core.ErrCurrencyMismatch
 		}
 		for _, op := range []struct {
-			name   string
 			apply  func(currency.Amount, currency.Amount) (currency.Amount, error)
 			oracle *big.Int
+			name   string
 		}{
-			{"add", currency.Amount.Add, new(big.Int).Add(big.NewInt(leftMinor), big.NewInt(rightMinor))},
-			{"subtract", currency.Amount.Subtract, new(big.Int).Sub(big.NewInt(leftMinor), big.NewInt(rightMinor))},
+			{name: "add", apply: currency.Amount.Add, oracle: new(big.Int).Add(big.NewInt(leftMinor), big.NewInt(rightMinor))},
+			{name: "subtract", apply: currency.Amount.Subtract, oracle: new(big.Int).Sub(big.NewInt(leftMinor), big.NewInt(rightMinor))},
 		} {
 			got, err := op.apply(left, right)
 			wantErr := admission

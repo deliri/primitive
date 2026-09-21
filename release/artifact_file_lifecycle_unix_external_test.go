@@ -15,10 +15,10 @@ import (
 func TestBuiltArtifactFileInspectionLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		mode    os.FileMode
 		zero    bool
-		wantErr error
 	}{
 		{name: "executable closes into exact artifact authority", mode: 0o700},
 		{name: "readable bytes without executable standing cannot become authority", mode: 0o600, wantErr: core.ErrProcessContract},

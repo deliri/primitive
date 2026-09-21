@@ -12,9 +12,9 @@ import (
 )
 
 type exactEnvironmentAdmissionCase struct {
+	wantErr error
 	name    string
 	values  []string
-	wantErr error
 }
 
 // Typed cases are shared with the semantic fuzz seeds; verdicts stay in the

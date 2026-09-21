@@ -13,8 +13,8 @@ import (
 )
 
 type streamWriteStep struct {
-	accepted int
 	err      error
+	accepted int
 	panics   bool
 }
 
@@ -54,12 +54,12 @@ func (r bytewiseStreamReader) Read(p []byte) (int, error) {
 func TestReceiveStreamDestinationCustodyLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name         string
-		payload      string
-		steps        []streamWriteStep
 		wantErr      error
 		wantNative   error
+		name         string
+		payload      string
 		wantBody     string
+		steps        []streamWriteStep
 		wantBytes    uint64
 		wantReads    int
 		wantWrites   int

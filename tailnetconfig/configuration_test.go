@@ -17,24 +17,24 @@ func TestConfigurationLayerTriad(t *testing.T) {
 	t.Parallel()
 	configuration := fixtureConfiguration(t)
 	cases := []struct {
-		name    string
-		mutate  func(*tailnetconfig.Configuration)
 		wantErr error
+		mutate  func(*tailnetconfig.Configuration)
+		name    string
 	}{
-		{"positive pinned destination and explicit enrollment", func(*tailnetconfig.Configuration) {}, nil},
-		{"neutral zero client identity cannot enroll", func(c *tailnetconfig.Configuration) { c.ClientID = "" }, core.ErrTailnetContract},
-		{"missing host label cannot acquire ambient hostname", func(c *tailnetconfig.Configuration) { c.Hostname = "" }, core.ErrTailnetContract},
-		{"missing tag cannot enroll as a user node", func(c *tailnetconfig.Configuration) { c.Tag = "" }, core.ErrTailnetContract},
-		{"missing audience cannot receive a generic token", func(c *tailnetconfig.Configuration) { c.Audience = googleidentity.Audience{} }, core.ErrTailnetContract},
-		{"missing state owner cannot use home directory", func(c *tailnetconfig.Configuration) { c.StateDirectory = core.AbsolutePath{} }, core.ErrTailnetContract},
-		{"zero deadline cannot leave enrollment unbounded", func(c *tailnetconfig.Configuration) { c.StartupTimeout = temporal.Duration{} }, core.ErrTailnetContract},
-		{"zero destination cannot select another host", func(c *tailnetconfig.Configuration) { c.Destination = netip.AddrPort{} }, core.ErrTailnetContract},
-		{"public destination cannot escape capability", func(c *tailnetconfig.Configuration) { c.Destination = netip.MustParseAddrPort("1.1.1.1:443") }, core.ErrTailnetContract},
-		{"private LAN destination requires a different capability", func(c *tailnetconfig.Configuration) { c.Destination = netip.MustParseAddrPort("192.168.1.81:8088") }, core.ErrTailnetContract},
-		{"zero destination port cannot select an ephemeral port", func(c *tailnetconfig.Configuration) { c.Destination = netip.MustParseAddrPort("100.84.35.44:0") }, core.ErrTailnetContract},
-		{"tailnet IPv6 destination is explicitly admitted", func(c *tailnetconfig.Configuration) {
+		{name: "positive pinned destination and explicit enrollment", mutate: func(*tailnetconfig.Configuration) {}, wantErr: nil},
+		{name: "neutral zero client identity cannot enroll", mutate: func(c *tailnetconfig.Configuration) { c.ClientID = "" }, wantErr: core.ErrTailnetContract},
+		{name: "missing host label cannot acquire ambient hostname", mutate: func(c *tailnetconfig.Configuration) { c.Hostname = "" }, wantErr: core.ErrTailnetContract},
+		{name: "missing tag cannot enroll as a user node", mutate: func(c *tailnetconfig.Configuration) { c.Tag = "" }, wantErr: core.ErrTailnetContract},
+		{name: "missing audience cannot receive a generic token", mutate: func(c *tailnetconfig.Configuration) { c.Audience = googleidentity.Audience{} }, wantErr: core.ErrTailnetContract},
+		{name: "missing state owner cannot use home directory", mutate: func(c *tailnetconfig.Configuration) { c.StateDirectory = core.AbsolutePath{} }, wantErr: core.ErrTailnetContract},
+		{name: "zero deadline cannot leave enrollment unbounded", mutate: func(c *tailnetconfig.Configuration) { c.StartupTimeout = temporal.Duration{} }, wantErr: core.ErrTailnetContract},
+		{name: "zero destination cannot select another host", mutate: func(c *tailnetconfig.Configuration) { c.Destination = netip.AddrPort{} }, wantErr: core.ErrTailnetContract},
+		{name: "public destination cannot escape capability", mutate: func(c *tailnetconfig.Configuration) { c.Destination = netip.MustParseAddrPort("1.1.1.1:443") }, wantErr: core.ErrTailnetContract},
+		{name: "private LAN destination requires a different capability", mutate: func(c *tailnetconfig.Configuration) { c.Destination = netip.MustParseAddrPort("192.168.1.81:8088") }, wantErr: core.ErrTailnetContract},
+		{name: "zero destination port cannot select an ephemeral port", mutate: func(c *tailnetconfig.Configuration) { c.Destination = netip.MustParseAddrPort("100.84.35.44:0") }, wantErr: core.ErrTailnetContract},
+		{name: "tailnet IPv6 destination is explicitly admitted", mutate: func(c *tailnetconfig.Configuration) {
 			c.Destination = netip.MustParseAddrPort("[fd7a:115c:a1e0::1]:8088")
-		}, nil},
+		}, wantErr: nil},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -51,29 +51,29 @@ func TestConfigurationLayerTriad(t *testing.T) {
 func TestNamesBoundaryContracts(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr  error
+		validate func(string) error
 		name     string
 		in       string
-		validate func(string) error
-		wantErr  error
 	}{
-		{"client ID exact ceiling", strings.Repeat("a", 128), func(s string) error { return tailnetconfig.ClientID(s).Validate() }, nil},
-		{"client ID above ceiling", strings.Repeat("a", 129), func(s string) error { return tailnetconfig.ClientID(s).Validate() }, core.ErrTailnetContract},
-		{"client ID separators preserve provider alphabet", "Az_09-id", func(s string) error { return tailnetconfig.ClientID(s).Validate() }, nil},
-		{"client ID control byte rejected", "id\n", func(s string) error { return tailnetconfig.ClientID(s).Validate() }, core.ErrTailnetContract},
-		{"hostname exact ceiling", strings.Repeat("a", 63), func(s string) error { return tailnetconfig.Hostname(s).Validate() }, nil},
-		{"hostname above ceiling", strings.Repeat("a", 64), func(s string) error { return tailnetconfig.Hostname(s).Validate() }, core.ErrTailnetContract},
-		{"hostname minimum single byte", "a", func(s string) error { return tailnetconfig.Hostname(s).Validate() }, nil},
-		{"hostname zero bytes", "", func(s string) error { return tailnetconfig.Hostname(s).Validate() }, core.ErrTailnetContract},
-		{"hostname no leading hyphen", "-host", func(s string) error { return tailnetconfig.Hostname(s).Validate() }, core.ErrTailnetContract},
-		{"hostname no trailing hyphen", "host-", func(s string) error { return tailnetconfig.Hostname(s).Validate() }, core.ErrTailnetContract},
-		{"hostname canonical lower case", "Host", func(s string) error { return tailnetconfig.Hostname(s).Validate() }, core.ErrTailnetContract},
-		{"hostname no underscore", "host_name", func(s string) error { return tailnetconfig.Hostname(s).Validate() }, core.ErrTailnetContract},
-		{"hostname no suffix injection", "host.other", func(s string) error { return tailnetconfig.Hostname(s).Validate() }, core.ErrTailnetContract},
-		{"hostname no unicode lookalike", "hοst", func(s string) error { return tailnetconfig.Hostname(s).Validate() }, core.ErrTailnetContract},
-		{"tag requires typed prefix", "blink-api", func(s string) error { return tailnetconfig.Tag(s).Validate() }, core.ErrTailnetContract},
-		{"tag empty suffix", "tag:", func(s string) error { return tailnetconfig.Tag(s).Validate() }, core.ErrTailnetContract},
-		{"tag singular named authority", "tag:blink-api", func(s string) error { return tailnetconfig.Tag(s).Validate() }, nil},
-		{"tag no second authority", "tag:blink-api,tag:admin", func(s string) error { return tailnetconfig.Tag(s).Validate() }, core.ErrTailnetContract},
+		{name: "client ID exact ceiling", in: strings.Repeat("a", 128), validate: func(s string) error { return tailnetconfig.ClientID(s).Validate() }, wantErr: nil},
+		{name: "client ID above ceiling", in: strings.Repeat("a", 129), validate: func(s string) error { return tailnetconfig.ClientID(s).Validate() }, wantErr: core.ErrTailnetContract},
+		{name: "client ID separators preserve provider alphabet", in: "Az_09-id", validate: func(s string) error { return tailnetconfig.ClientID(s).Validate() }, wantErr: nil},
+		{name: "client ID control byte rejected", in: "id\n", validate: func(s string) error { return tailnetconfig.ClientID(s).Validate() }, wantErr: core.ErrTailnetContract},
+		{name: "hostname exact ceiling", in: strings.Repeat("a", 63), validate: func(s string) error { return tailnetconfig.Hostname(s).Validate() }, wantErr: nil},
+		{name: "hostname above ceiling", in: strings.Repeat("a", 64), validate: func(s string) error { return tailnetconfig.Hostname(s).Validate() }, wantErr: core.ErrTailnetContract},
+		{name: "hostname minimum single byte", in: "a", validate: func(s string) error { return tailnetconfig.Hostname(s).Validate() }, wantErr: nil},
+		{name: "hostname zero bytes", in: "", validate: func(s string) error { return tailnetconfig.Hostname(s).Validate() }, wantErr: core.ErrTailnetContract},
+		{name: "hostname no leading hyphen", in: "-host", validate: func(s string) error { return tailnetconfig.Hostname(s).Validate() }, wantErr: core.ErrTailnetContract},
+		{name: "hostname no trailing hyphen", in: "host-", validate: func(s string) error { return tailnetconfig.Hostname(s).Validate() }, wantErr: core.ErrTailnetContract},
+		{name: "hostname canonical lower case", in: "Host", validate: func(s string) error { return tailnetconfig.Hostname(s).Validate() }, wantErr: core.ErrTailnetContract},
+		{name: "hostname no underscore", in: "host_name", validate: func(s string) error { return tailnetconfig.Hostname(s).Validate() }, wantErr: core.ErrTailnetContract},
+		{name: "hostname no suffix injection", in: "host.other", validate: func(s string) error { return tailnetconfig.Hostname(s).Validate() }, wantErr: core.ErrTailnetContract},
+		{name: "hostname no unicode lookalike", in: "hοst", validate: func(s string) error { return tailnetconfig.Hostname(s).Validate() }, wantErr: core.ErrTailnetContract},
+		{name: "tag requires typed prefix", in: "blink-api", validate: func(s string) error { return tailnetconfig.Tag(s).Validate() }, wantErr: core.ErrTailnetContract},
+		{name: "tag empty suffix", in: "tag:", validate: func(s string) error { return tailnetconfig.Tag(s).Validate() }, wantErr: core.ErrTailnetContract},
+		{name: "tag singular named authority", in: "tag:blink-api", validate: func(s string) error { return tailnetconfig.Tag(s).Validate() }, wantErr: nil},
+		{name: "tag no second authority", in: "tag:blink-api,tag:admin", validate: func(s string) error { return tailnetconfig.Tag(s).Validate() }, wantErr: core.ErrTailnetContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -91,13 +91,13 @@ func TestTailnetAddressBoundaries(t *testing.T) {
 		in   string
 		want bool
 	}{
-		{"100.63.255.255", false}, {"100.64.0.0", true}, {"100.64.0.1", true},
-		{"100.127.255.255", true}, {"100.128.0.0", false}, {"255.255.255.255", false},
-		{"0.0.0.0", false}, {"127.0.0.1", false}, {"192.168.1.81", false},
-		{"fd7a:115c:a1df:ffff:ffff:ffff:ffff:ffff", false}, {"fd7a:115c:a1e0::", true},
-		{"fd7a:115c:a1e0::1", true}, {"fd7a:115c:a1e0:ffff:ffff:ffff:ffff:ffff", true},
-		{"fd7a:115c:a1e1::", false}, {"fd7a:115c:a1e0::1%eth0", false},
-		{"::ffff:100.84.35.44", true}, {"::ffff:1.1.1.1", false}, {"::", false},
+		{in: "100.63.255.255", want: false}, {in: "100.64.0.0", want: true}, {in: "100.64.0.1", want: true},
+		{in: "100.127.255.255", want: true}, {in: "100.128.0.0", want: false}, {in: "255.255.255.255", want: false},
+		{in: "0.0.0.0", want: false}, {in: "127.0.0.1", want: false}, {in: "192.168.1.81", want: false},
+		{in: "fd7a:115c:a1df:ffff:ffff:ffff:ffff:ffff", want: false}, {in: "fd7a:115c:a1e0::", want: true},
+		{in: "fd7a:115c:a1e0::1", want: true}, {in: "fd7a:115c:a1e0:ffff:ffff:ffff:ffff:ffff", want: true},
+		{in: "fd7a:115c:a1e1::", want: false}, {in: "fd7a:115c:a1e0::1%eth0", want: false},
+		{in: "::ffff:100.84.35.44", want: true}, {in: "::ffff:1.1.1.1", want: false}, {in: "::", want: false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.in, func(t *testing.T) {

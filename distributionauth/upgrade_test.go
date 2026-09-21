@@ -79,10 +79,10 @@ func credentialBoundary[D interface {
 		t.Fatal("signer mutation = unchanged, want one changed key")
 	}
 	for _, tc := range []struct {
-		name    string
 		input   D
 		wantErr error
-	}{{"nominated signer", base, nil}, {"foreign signer", bad, core.ErrControlPlaneResponseBinding}, {"absent certificate", absent, core.ErrControlPlaneContract}} {
+		name    string
+	}{{name: "nominated signer", input: base, wantErr: nil}, {name: "foreign signer", input: bad, wantErr: core.ErrControlPlaneResponseBinding}, {name: "absent certificate", input: absent, wantErr: core.ErrControlPlaneContract}} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got, err := assemble(tc.input)
@@ -125,11 +125,11 @@ func TestCompletionProjectionNominationLayerTriad(t *testing.T) {
 	base := newPublicationAuthFixture(t, publicationAuthFixtureRequest{})
 	other := newPublicationAuthFixture(t, publicationAuthFixtureRequest{deviceByte: 0xee})
 	for _, tc := range []struct {
+		wantErr     error
 		name        string
 		certificate controlplane.InstallationCertificateDocument
-		wantErr     error
 	}{
-		{"nominated device", base.installation.Certificate, nil}, {"foreign device", other.installation.Certificate, core.ErrControlPlaneResponseBinding}, {"absent certificate", controlplane.InstallationCertificateDocument{}, core.ErrControlPlaneContract},
+		{name: "nominated device", certificate: base.installation.Certificate, wantErr: nil}, {name: "foreign device", certificate: other.installation.Certificate, wantErr: core.ErrControlPlaneResponseBinding}, {name: "absent certificate", certificate: controlplane.InstallationCertificateDocument{}, wantErr: core.ErrControlPlaneContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

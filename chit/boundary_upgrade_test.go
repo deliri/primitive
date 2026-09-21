@@ -15,11 +15,11 @@ import (
 )
 
 type chitCanonicalFixture struct {
-	name string
 	body interface {
 		WriteCanonical(io.Writer) error
 		MarshalJSON() ([]byte, error)
 	}
+	name string
 }
 
 func chitCanonicalFixtures(t testing.TB) []chitCanonicalFixture {
@@ -33,10 +33,10 @@ func chitCanonicalFixtures(t testing.TB) []chitCanonicalFixture {
 }
 
 type chitWriteResult struct {
-	amount int
 	err    error
-	calls  int
 	bytes  []byte
+	amount int
+	calls  int
 }
 
 func (w *chitWriteResult) Write(data []byte) (int, error) {
@@ -63,9 +63,9 @@ func TestChitCanonicalWriterBoundaryTable(t *testing.T) {
 				t.Fatalf("canonical fixture = %d bytes, %v", len(canonical), err)
 			}
 			cases := []struct {
+				cause, wantErr error
 				name           string
 				amount         int
-				cause, wantErr error
 			}{
 				{name: "exact complete write", amount: len(canonical)},
 				{name: "zero progress", amount: 0, wantErr: io.ErrShortWrite},
@@ -89,9 +89,9 @@ func TestChitCanonicalWriterBoundaryTable(t *testing.T) {
 				})
 			}
 			absent := []struct {
-				name        string
 				destination io.Writer
 				wantErr     error
+				name        string
 			}{
 				{name: "nil interface", wantErr: core.ErrChitContract},
 				{name: "typed nil pointer with callable method", destination: (*chitNilPointerWriter)(nil), wantErr: core.ErrChitContract},
@@ -149,8 +149,8 @@ func TestIssueCatalogOwnsSignedEntriesTable(t *testing.T) {
 	fixture := newCatalogFixture(t, 0x44, 1)
 	other := newCatalogFixture(t, 0x65, 2)
 	cases := []struct {
-		name   string
 		mutate func(*CatalogEntry)
+		name   string
 	}{
 		{name: "custody availability", mutate: func(e *CatalogEntry) { e.State = CustodyStateDeleted }},
 		{name: "chit identity", mutate: func(e *CatalogEntry) { e.Chit.Payload.Identity = other.payload.Entries[0].Chit.Payload.Identity }},
@@ -251,8 +251,8 @@ func TestChitJSONScalarExtentTable(t *testing.T) {
 	t.Parallel()
 	fixtures := chitFixturesForFuzz(t)
 	cases := []struct {
-		name          string
 		seed          chitJSONValue
+		name          string
 		rejectPadding bool
 	}{
 		{name: "version", seed: fixtures.version, rejectPadding: true},
@@ -334,8 +334,8 @@ func TestChitNumericExtentPrecedesParsingTable(t *testing.T) {
 	t.Parallel()
 	fixtures := chitFixturesForFuzz(t)
 	cases := []struct {
-		name string
 		seed chitJSONValue
+		name string
 	}{
 		{name: "version", seed: fixtures.version},
 		{name: "object count", seed: fixtures.objectCount},

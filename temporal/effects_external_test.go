@@ -19,10 +19,10 @@ const temporalTestContextKey temporalContextKey = iota
 func TestTimeoutEffectLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr, wantTerminal                                                error
 		name                                                                 string
 		duration, parentDuration, wantDeadline, wantElapsed                  time.Duration
 		parentDeadline, parentCancelled, childCancelled, detached, nilParent bool
-		wantErr, wantTerminal                                                error
 	}{
 		{name: "zero expires at construction", wantTerminal: context.DeadlineExceeded},
 		{name: "minimum positive timeout fires exactly", duration: 1, wantDeadline: 1, wantElapsed: 1, wantTerminal: context.DeadlineExceeded},
@@ -116,11 +116,11 @@ func TestTimeoutEffectLayerTriad(t *testing.T) {
 func TestDeadlineEffectLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr, wantTerminal                    error
 		name                                     string
 		delta                                    time.Duration
-		unset, nilParent, cancelled, cancelChild bool
 		wantElapsed                              time.Duration
-		wantErr, wantTerminal                    error
+		unset, nilParent, cancelled, cancelChild bool
 	}{
 		{name: "one nanosecond before present is expired", delta: -1, wantTerminal: context.DeadlineExceeded},
 		{name: "present is already expired", wantTerminal: context.DeadlineExceeded},
@@ -196,10 +196,10 @@ func TestDeadlineEffectLayerTriad(t *testing.T) {
 func TestWaitEffectLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr                               error
 		name                                  string
 		duration, parentDuration, wantElapsed time.Duration
 		parentDeadline, cancelled, nilParent  bool
-		wantErr                               error
 	}{
 		{name: "zero wait does not advance Go time"},
 		{name: "minimum positive wait cannot return early", duration: 1, wantElapsed: 1},
@@ -248,10 +248,10 @@ func TestWaitEffectLayerTriad(t *testing.T) {
 func TestTickerEffectLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr  error
 		name     string
 		interval time.Duration
 		ticks    int
-		wantErr  error
 	}{
 		{name: "zero interval is refused before Go can panic", wantErr: core.ErrTemporalContract},
 		{name: "minimum interval retains nanosecond separation", interval: 1, ticks: 2},

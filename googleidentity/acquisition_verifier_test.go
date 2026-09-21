@@ -19,12 +19,12 @@ import (
 func TestGoogleMetadataAcquisitionToVerifierLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name             string
+		wantErr          error
 		mutate           func(*verifierTestClaims)
+		name             string
+		wantCertificates uint64
 		foreign          bool
 		cancel           bool
-		wantErr          error
-		wantCertificates uint64
 	}{
 		{name: "attached account survives metadata acquisition and verification", wantCertificates: 1},
 		{name: "foreign signature cannot become an acquired identity", foreign: true, wantErr: core.ErrGoogleIdentityContract, wantCertificates: 1},
@@ -53,7 +53,7 @@ func TestGoogleMetadataAcquisitionToVerifierLayerTriad(t *testing.T) {
 					Subject  string `json:"sub"`
 					IssuedAt int64  `json:"iat"`
 					Expires  int64  `json:"exp"`
-				}{claims.Issuer, claims.Audience, claims.Subject, claims.IssuedAt, claims.Expires}
+				}{Issuer: claims.Issuer, Audience: claims.Audience, Subject: claims.Subject, IssuedAt: claims.IssuedAt, Expires: claims.Expires}
 				h, err := core.MarshalCanonicalJSONDocument(header)
 				if err != nil {
 					t.Fatalf("marshal header error = %v, want nil", err)

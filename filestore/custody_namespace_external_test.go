@@ -29,11 +29,11 @@ const (
 func TestCustodyExactRegularNamespaceLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantNative error
 		name       string
-		entry      custodyNamespace
 		payload    []byte
 		mode       fs.FileMode
-		wantNative error
+		entry      custodyNamespace
 	}{
 		{name: "binary regular file retains bytes and inode", payload: []byte{0, 255, 7}, mode: 0o600},
 		{name: "empty regular file remains an exact empty fact", mode: 0o600},

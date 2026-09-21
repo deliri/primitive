@@ -71,7 +71,7 @@ func TestGCSClientShutdownLayerTriadClosesRealProviderConnections(t *testing.T) 
 	}
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
-	for count := int64(0); count < wantClosed; count++ {
+	for count := range wantClosed {
 		select {
 		case <-closed:
 		case <-ctx.Done():
@@ -140,7 +140,7 @@ func TestGCSCapabilityIssuerShutdownLayerTriadClosesSigningConnections(t *testin
 	}
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
-	for count := int64(0); count < wantClosed; count++ {
+	for count := range wantClosed {
 		select {
 		case <-closed:
 		case <-ctx.Done():

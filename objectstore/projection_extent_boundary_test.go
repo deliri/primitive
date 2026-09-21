@@ -18,9 +18,9 @@ func TestUploadHTTPProjectionExtentLayerTriad(t *testing.T) {
 				t.Fatal(err)
 			}
 			for _, tc := range []struct {
+				want  error
 				name  string
 				bytes uint64
-				want  error
 			}{
 				{name: "empty object remains an exact raw request"},
 				{name: "one below provider maximum remains spendable", bytes: spec.UploadMaximum.Uint64() - 1},

@@ -19,9 +19,9 @@ import (
 func TestGCSReadGenerationRefusalLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr    error
 		name       string
 		generation int64
-		wantErr    error
 		wantCalls  bool
 	}{
 		{name: "pinned generation creates exact verified private stage", generation: gcsProviderGeneration, wantCalls: true},

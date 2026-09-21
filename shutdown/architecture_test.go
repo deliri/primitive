@@ -242,8 +242,8 @@ func TestShutdownExternalIngressHasSemanticFuzzInventory(t *testing.T) {
 	// exhausted separately. These functions admit caller-owned nominal values,
 	// callbacks or provider signals; each has a semantic fuzz oracle.
 	inventory := []struct {
-		name   string
 		target func(*testing.F)
+		name   string
 	}{
 		{name: "NewStepID", target: FuzzStepIDNominalIngress},
 		{name: "NewPlan", target: FuzzPlanRegistrationAndExecution},

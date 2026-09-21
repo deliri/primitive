@@ -32,8 +32,8 @@ func digestBoundaryOffsets(length int) []int {
 func TestDigestWriterMatchesGoAtEveryStreamBoundary(t *testing.T) {
 	t.Parallel()
 	shapes := []struct {
-		name    string
 		offsets func(int) []int
+		name    string
 	}{
 		{name: "whole stream", offsets: func(n int) []int { return []int{n} }},
 		{name: "one byte writes", offsets: func(n int) []int {
@@ -153,8 +153,8 @@ func TestDigestWriterResetDiscardsEveryPriorStream(t *testing.T) {
 func TestDigestWriterRefusesUnconstructedReceivers(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name string
 		make func() *core.DigestWriter
+		name string
 	}{
 		{name: "nil", make: func() *core.DigestWriter { return nil }},
 		{name: "allocated zero", make: func() *core.DigestWriter { return new(core.DigestWriter) }},
@@ -190,8 +190,8 @@ func TestDigestWriterRefusesUnconstructedReceivers(t *testing.T) {
 func TestDigestWriterComposesThroughGoWriters(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name   string
 		reader func([]byte) io.Reader
+		name   string
 	}{
 		{name: "bulk", reader: func(data []byte) io.Reader { return bytes.NewReader(data) }},
 		{name: "single bytes", reader: func(data []byte) io.Reader { return &slowReader{content: data} }},

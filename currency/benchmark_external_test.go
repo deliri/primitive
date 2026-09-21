@@ -15,8 +15,8 @@ func BenchmarkParseDecimal(b *testing.B) {
 	b.ReportAllocs()
 	for _, tc := range []struct {
 		name   string
-		code   currency.Code
 		minor  int64
+		code   currency.Code
 		trim   bool
 		reject bool
 	}{

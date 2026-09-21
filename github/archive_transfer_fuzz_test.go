@@ -9,9 +9,9 @@ import (
 )
 
 type archivePrefixDestination struct {
+	refusal error
 	bytes.Buffer
 	remaining int
-	refusal   error
 }
 
 func (d *archivePrefixDestination) Write(p []byte) (int, error) {

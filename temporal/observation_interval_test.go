@@ -13,9 +13,9 @@ import (
 func TestObservationElapsedLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr             error
 		name                string
 		start, finish, want int64
-		wantErr             error
 	}{
 		{name: "point observation is neutral", start: 7, finish: 7},
 		{name: "elapsed crosses epoch without rounding", start: -3, finish: 2, want: 5},
@@ -154,9 +154,9 @@ func TestObservationRejectsEveryUnusableCarrierBeforeProjection(t *testing.T) {
 func TestIntervalBoundsConstructionLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr          error
 		name             string
 		start, end, want int64
-		wantErr          error
 	}{
 		{name: "minimum point is neutral", start: math.MinInt64, end: math.MinInt64},
 		{name: "maximum point is neutral", start: math.MaxInt64, end: math.MaxInt64},

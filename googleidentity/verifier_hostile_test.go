@@ -19,13 +19,13 @@ import (
 func TestGoogleCloudVerifierSignedIngressHostile(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name             string
+		wantErr          error
 		claims           func(*verifierTestClaims)
 		header           func(*verifierTestHeader)
 		mutate           func(string) string
-		foreign          bool
-		wantErr          error
+		name             string
 		wantCertificates uint64
+		foreign          bool
 	}{
 		{name: "signed ordinary principal survives verification", wantCertificates: 1},
 		{name: "different signed subject remains a distinct principal", claims: func(c *verifierTestClaims) { c.Subject = "principal-02" }, wantCertificates: 1},

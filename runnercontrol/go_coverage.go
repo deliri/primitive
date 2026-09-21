@@ -62,31 +62,32 @@ func (c *GoCoverageCompiler) Write(data []byte) (int, error) {
 		return 0, c.failure
 	}
 	for _, value := range data {
-		// Source locations are observed only for their separator. Skip ordinary
-		// ASCII bytes directly; whitespace and UTF-8 still take the lexical path.
-		if c.inField && c.fields == 1 && c.runeLength == 0 && value > ' ' && value < utf8.RuneSelf {
-			c.locationColon = c.locationColon || value == ':'
-			continue
-		}
-		if c.runeLength == 0 && value < utf8.RuneSelf {
-			if err := c.consumeRune(rune(value)); err != nil {
-				c.failure = err
-				return len(data), nil
-			}
-			continue
-		}
-		c.runeBytes[c.runeLength] = value
-		c.runeLength++
-		if !utf8.FullRune(c.runeBytes[:c.runeLength]) {
-			continue
-		}
-		if err := c.drainRunes(false); err != nil {
+		if err := c.consumeByte(value); err != nil {
 			c.failure = err
-			// The capture writer can retain this complete input chunk. Seal refuses it.
+			// Capture retains the whole input chunk; Seal refuses its proof.
 			return len(data), nil
 		}
+
 	}
 	return len(data), nil
+}
+
+// consumeByte avoids decoding ASCII locations while retaining the exact lexical
+// treatment of whitespace and fragmented UTF-8 on the slower path.
+func (c *GoCoverageCompiler) consumeByte(value byte) error {
+	if c.inField && c.fields == 1 && c.runeLength == 0 && value > ' ' && value < utf8.RuneSelf {
+		c.locationColon = c.locationColon || value == ':'
+		return nil
+	}
+	if c.runeLength == 0 && value < utf8.RuneSelf {
+		return c.consumeRune(rune(value))
+	}
+	c.runeBytes[c.runeLength] = value
+	c.runeLength++
+	if !utf8.FullRune(c.runeBytes[:c.runeLength]) {
+		return nil
+	}
+	return c.drainRunes(false)
 }
 
 func (c *GoCoverageCompiler) drainRunes(final bool) error {
@@ -108,12 +109,7 @@ func (c *GoCoverageCompiler) consumeRune(value rune) error {
 	}
 	c.linePresent = true
 	if c.mode == CoverageModeUnknown {
-		if value < 0 || value > unicode.MaxASCII || int(c.headerLength) == len(c.header) {
-			return coverageFailure("go coverage mode is outside the admitted domain")
-		}
-		c.header[c.headerLength] = byte(value)
-		c.headerLength++
-		return nil
+		return c.consumeHeaderRune(value)
 	}
 	if unicode.IsSpace(value) {
 		c.inField = false
@@ -134,6 +130,15 @@ func (c *GoCoverageCompiler) consumeRune(value rune) error {
 	default:
 		return coverageFailure("go coverage record must contain exactly three fields")
 	}
+}
+
+func (c *GoCoverageCompiler) consumeHeaderRune(value rune) error {
+	if value < 0 || value > unicode.MaxASCII || int(c.headerLength) == len(c.header) {
+		return coverageFailure("go coverage mode is outside the admitted domain")
+	}
+	c.header[c.headerLength] = byte(value)
+	c.headerLength++
+	return nil
 }
 
 func appendCoverageDigit(number *uint64, value rune, maximum uint64) error {

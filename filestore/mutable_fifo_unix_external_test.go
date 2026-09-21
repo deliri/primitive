@@ -21,9 +21,9 @@ import (
 func TestPublicHandleOpenersRefuseNamedFIFOWithoutConsumingPeer(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		door    nativeHandleDoor
-		wantErr error
 	}{
 		{name: "read opener refuses FIFO before exposing its stream", door: nativeHandleRead, wantErr: core.ErrFilestoreSource},
 		{name: "update opener refuses FIFO despite native read-write access", door: nativeHandleUpdate, wantErr: core.ErrFilestoreActivation},

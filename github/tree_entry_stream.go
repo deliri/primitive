@@ -11,14 +11,15 @@ import (
 // Read through EOF, then call Observation. Neither the complete path nor the
 // tree is retained. The reader must not escape the visitor's lifetime.
 type TreeEntryStream struct {
-	decoder             *treeDecoder
-	digest              *core.DigestWriter
-	path                jsonStringStream
-	pathFacts           treePathFacts
-	observation         TreeEntry
-	terminal            error
-	fields              uint8
-	started, pathActive bool
+	terminal    error
+	decoder     *treeDecoder
+	digest      *core.DigestWriter
+	path        jsonStringStream
+	observation TreeEntry
+	pathFacts   treePathFacts
+	fields      uint8
+	started     bool
+	pathActive  bool
 }
 
 // Observation returns typed metadata only after the entire entry reached EOF.
@@ -48,6 +49,10 @@ func (s *TreeEntryStream) Read(p []byte) (int, error) {
 			return n, err
 		}
 	}
+	return s.readMembers(p)
+}
+
+func (s *TreeEntryStream) readMembers(p []byte) (int, error) {
 	for {
 		name, end, memberErr := s.decoder.member(!s.started)
 		s.started = true
@@ -109,22 +114,9 @@ func (s *TreeEntryStream) finishEntry() error {
 	return io.EOF
 }
 func (s *TreeEntryStream) readMember(name string) error {
-	var bit uint8
-	switch name {
-	case "path":
-		bit = 1
-	case "type":
-		bit = 2
-	case "mode":
-		bit = 4
-	case "sha":
-		bit = 8
-	case "url":
-		bit = 16
-	case "size":
-		bit = 32
-	default:
-		return core.ErrGitHubResponse
+	bit, err := treeMemberBit(name)
+	if err != nil {
+		return err
 	}
 	if s.fields&bit != 0 {
 		return core.ErrGitHubResponse
@@ -138,13 +130,33 @@ func (s *TreeEntryStream) readMember(name string) error {
 		s.path = jsonStringStream{source: s.decoder.source, observe: s.pathFacts.admit}
 		s.pathActive = true
 		return nil
-	case "type":
+	case treeTypeMember:
 		return s.readKind()
 	case "size":
 		return s.decoder.ignoreUint64()
 	default:
 		return s.decoder.ignoreString(false)
 	}
+}
+func treeMemberBit(name string) (uint8, error) {
+	var bit uint8
+	switch name {
+	case "path":
+		bit = 1
+	case treeTypeMember:
+		bit = 2
+	case "mode":
+		bit = 4
+	case "sha":
+		bit = 8
+	case "url":
+		bit = 16
+	case "size":
+		bit = 32
+	default:
+		return 0, core.ErrGitHubResponse
+	}
+	return bit, nil
 }
 func (s *TreeEntryStream) readKind() error {
 	if openingErr := s.decoder.expect('"'); openingErr != nil {
@@ -186,13 +198,7 @@ func (p *treePathFacts) admit(value rune) error {
 	case '\\', 0, '\r', '\n':
 		return core.ErrGitHubResponse
 	case '/':
-		if p.segment == 0 || p.onlyDots && p.segment <= 2 {
-			return core.ErrGitHubResponse
-		}
-		p.segment = 0
-		p.onlyDots = false
-		p.slash = true
-		return nil
+		return p.closeSegment()
 	}
 	if p.segment == 0 {
 		p.onlyDots = value == '.'
@@ -204,6 +210,15 @@ func (p *treePathFacts) admit(value rune) error {
 	}
 	return nil
 }
+func (p *treePathFacts) closeSegment() error {
+	if p.segment == 0 || p.onlyDots && p.segment <= 2 {
+		return core.ErrGitHubResponse
+	}
+	p.segment = 0
+	p.onlyDots = false
+	p.slash = true
+	return nil
+}
 func (p *treePathFacts) finish() error {
 	if !p.seen || p.trailingSpace || p.segment == 0 || p.onlyDots && (p.segment == 2 || p.segment == 1 && p.slash) {
 		return core.ErrGitHubResponse
@@ -212,3 +227,5 @@ func (p *treePathFacts) finish() error {
 }
 
 var _ io.Reader = (*TreeEntryStream)(nil)
+
+const treeTypeMember = "type"

@@ -12,10 +12,10 @@ import (
 )
 
 type canonicalBoundaryWriter struct {
-	count int
 	err   error
-	calls int
 	got   []byte
+	count int
+	calls int
 }
 
 func (w *canonicalBoundaryWriter) Write(p []byte) (int, error) {
@@ -31,17 +31,17 @@ func TestCanonicalWriterLayerTriad(t *testing.T) {
 	upgrade := newUpgradeExchangeFixture(t)
 	completion := completedPublicationDocument(t, publication, 0)
 	bodies := []struct {
-		name    string
 		body    attest.CanonicalBody[distribution.SigningDomain]
 		marshal func() ([]byte, error)
+		name    string
 	}{
-		{"publication request", publication.request, publication.request.MarshalJSON},
-		{"publication grant", publication.grantPayload, publication.grantPayload.MarshalJSON},
-		{"publication completion", completion.Payload, completion.Payload.MarshalJSON},
-		{"update request", update.request, update.request.MarshalJSON},
-		{"update response", update.responseDoc.Payload, update.responseDoc.Payload.MarshalJSON},
-		{"upgrade request", upgrade.request, upgrade.request.MarshalJSON},
-		{"upgrade grant", upgrade.grantDoc.Payload, upgrade.grantDoc.Payload.MarshalJSON},
+		{name: "publication request", body: publication.request, marshal: publication.request.MarshalJSON},
+		{name: "publication grant", body: publication.grantPayload, marshal: publication.grantPayload.MarshalJSON},
+		{name: "publication completion", body: completion.Payload, marshal: completion.Payload.MarshalJSON},
+		{name: "update request", body: update.request, marshal: update.request.MarshalJSON},
+		{name: "update response", body: update.responseDoc.Payload, marshal: update.responseDoc.Payload.MarshalJSON},
+		{name: "upgrade request", body: upgrade.request, marshal: upgrade.request.MarshalJSON},
+		{name: "upgrade grant", body: upgrade.grantDoc.Payload, marshal: upgrade.grantDoc.Payload.MarshalJSON},
 	}
 	for _, b := range bodies {
 		t.Run(b.name, func(t *testing.T) {
@@ -51,19 +51,19 @@ func TestCanonicalWriterLayerTriad(t *testing.T) {
 				t.Fatalf("MarshalJSON()=(%d,%v), want nonempty canonical bytes", len(wire), err)
 			}
 			cases := []struct {
-				name    string
-				n       int
 				err     error
 				wantErr error
+				name    string
+				n       int
 			}{
-				{"complete write", len(wire), nil, nil},
-				{"zero accepted bytes", 0, nil, io.ErrShortWrite},
-				{"last byte missing", len(wire) - 1, nil, io.ErrShortWrite},
-				{"negative writer count", -1, nil, io.ErrShortWrite},
-				{"impossible extra byte", len(wire) + 1, nil, io.ErrShortWrite},
-				{"refusal before output", 0, io.ErrClosedPipe, io.ErrClosedPipe},
-				{"refusal after prefix", len(wire) - 1, io.ErrClosedPipe, io.ErrClosedPipe},
-				{"refusal despite full count", len(wire), io.ErrClosedPipe, io.ErrClosedPipe},
+				{name: "complete write", n: len(wire), err: nil, wantErr: nil},
+				{name: "zero accepted bytes", n: 0, err: nil, wantErr: io.ErrShortWrite},
+				{name: "last byte missing", n: len(wire) - 1, err: nil, wantErr: io.ErrShortWrite},
+				{name: "negative writer count", n: -1, err: nil, wantErr: io.ErrShortWrite},
+				{name: "impossible extra byte", n: len(wire) + 1, err: nil, wantErr: io.ErrShortWrite},
+				{name: "refusal before output", n: 0, err: io.ErrClosedPipe, wantErr: io.ErrClosedPipe},
+				{name: "refusal after prefix", n: len(wire) - 1, err: io.ErrClosedPipe, wantErr: io.ErrClosedPipe},
+				{name: "refusal despite full count", n: len(wire), err: io.ErrClosedPipe, wantErr: io.ErrClosedPipe},
 			}
 			for _, tc := range cases {
 				t.Run(tc.name, func(t *testing.T) {
@@ -79,8 +79,8 @@ func TestCanonicalWriterLayerTriad(t *testing.T) {
 				})
 			}
 			nils := []struct {
-				name   string
 				writer io.Writer
+				name   string
 			}{{name: "absent destination"}, {name: "typed nil destination", writer: (*bytes.Buffer)(nil)}}
 			for _, tc := range nils {
 				t.Run(tc.name, func(t *testing.T) {
@@ -103,9 +103,9 @@ func TestCanonicalWriterLayerTriad(t *testing.T) {
 func TestPublicationSourceRejectsEveryAbsentReader(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name    string
 		reader  io.Reader
 		wantErr error
+		name    string
 	}{
 		{name: "absent reader", wantErr: core.ErrDistributionContract},
 		{name: "typed nil reader", reader: (*bytes.Reader)(nil), wantErr: core.ErrDistributionContract},
@@ -138,9 +138,9 @@ func TestCompletionVerifierBindsEveryEvidenceCapabilityToItsGrant(t *testing.T) 
 				t.Fatalf("foreign capability=(%v,%v), want distinct valid commitment", commitment, err)
 			}
 			cases := []struct {
+				wantErr error
 				name    string
 				foreign bool
-				wantErr error
 			}{
 				{name: "same signed upload"},
 				{name: "same bytes under foreign signed destination", foreign: true, wantErr: core.ErrDistributionBinding},

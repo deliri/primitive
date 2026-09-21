@@ -34,7 +34,7 @@ func TestClientAddressAuthorityExhaustsCompleteByteDomain(t *testing.T) {
 			name      string
 			authority exchange.ClientAddressAuthority
 			wantValid bool
-		}{name, authority, wantValid})
+		}{name: name, authority: authority, wantValid: wantValid})
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

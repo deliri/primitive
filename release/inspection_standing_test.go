@@ -12,9 +12,9 @@ import (
 func TestInspectionStandingLayerTriadRefusesLostPathCustody(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr                 error
 		name                    string
 		remove, replace, cancel bool
-		wantErr                 error
 	}{
 		{name: "unchanged path retains held identity"},
 		{name: "removed name cannot retain standing", remove: true, wantErr: core.ErrReleaseContract},

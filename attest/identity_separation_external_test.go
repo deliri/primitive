@@ -60,8 +60,8 @@ func TestSignPublicDeterminismAndSeparationMatrix(t *testing.T) {
 				t.Fatalf("signatures equal = %t, want %t after one changed signed fact", got, tc.wantEqual)
 			}
 			for _, signed := range []struct {
-				envelope attest.Envelope[testDomain]
 				key      ed25519.PrivateKey
+				envelope attest.Envelope[testDomain]
 			}{{envelope: gotFirst, key: firstKey}, {envelope: gotSecond, key: secondKey}} {
 				signature, err := signed.envelope.Signature.Bytes()
 				if err != nil || !ed25519.Verify(signed.key.Public().(ed25519.PublicKey), independentAttestationFrame(t, signed.envelope), signature[:]) {

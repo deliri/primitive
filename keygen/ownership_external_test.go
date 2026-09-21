@@ -14,9 +14,9 @@ import (
 func TestSigningKeyCustodyAndProjectionLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr           error
 		name              string
 		active, destroyed bool
-		wantErr           error
 	}{
 		{name: "unissued key refuses every projection", wantErr: core.ErrKeygenContract},
 		{name: "active key projects independent Go values", active: true},

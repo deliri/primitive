@@ -16,6 +16,7 @@ import (
 func TestReportHeadLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr       error
 		name          string
 		sequence      uint64
 		headSequence  uint64
@@ -23,7 +24,6 @@ func TestReportHeadLayerTriad(t *testing.T) {
 		wrongPrevious bool
 		foreignScope  bool
 		wantReplay    bool
-		wantErr       error
 	}{
 		{name: "first report advances explicit initial head", sequence: 1},
 		{name: "next report advances committed predecessor", sequence: 2, headSequence: 1},

@@ -64,9 +64,9 @@ func TestOfficialSDKShutdownLayerTriadPreservesPoolOwnership(t *testing.T) {
 			t.Fatalf("%s NewRequestWithContext() error = %v, want nil", step.name, err)
 		}
 		response, err := client.Do(request)
-		if err != nil {
+		if err != nil || response == nil {
 			cancel()
-			t.Fatalf("%s Do() error = %v, want nil", step.name, err)
+			t.Fatalf("%s Do() response/error = %v/%v, want non-nil/nil", step.name, response, err)
 		}
 		count, readErr := io.Copy(io.Discard, response.Body)
 		closeErr := response.Body.Close()

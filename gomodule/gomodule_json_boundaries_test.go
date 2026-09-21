@@ -20,9 +20,9 @@ func TestJSONRepresentationLayerTriad(t *testing.T) {
 		t.Fatalf("Path.MarshalJSON(seed) error = %v, want nil", err)
 	}
 	cases := []struct {
+		wantErr error
 		name    string
 		input   string
-		wantErr error
 	}{
 		{name: "canonical typed document", input: string(canonical)},
 		{name: "surrounding JSON whitespace", input: " \n\t" + string(canonical) + "\r "},

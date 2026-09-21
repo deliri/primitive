@@ -14,12 +14,12 @@ func TestAdvanceLatestProducerClassifierOrderMatrix(t *testing.T) {
 	t.Parallel()
 	retained := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 30), 5)
 	for _, tc := range []struct {
+		wantErr    error
 		name       string
 		generation uint64
 		version    core.ReleaseVersion
 		state      LatestAdvanceState
 		primary    selectionHandoffClass
-		wantErr    error
 	}{
 		{name: "lower generation cannot borrow a lower version", generation: 4, version: core.NewReleaseVersion(2026, 7, 29), primary: selectionHandoffContradiction, wantErr: core.ErrReleaseRollback},
 		{name: "lower generation cannot borrow the same version", generation: 4, version: core.NewReleaseVersion(2026, 7, 30), primary: selectionHandoffContradiction, wantErr: core.ErrReleaseRollback},
@@ -64,11 +64,11 @@ func TestAdvanceLatestRefusalAndStreamIdentityPrecedence(t *testing.T) {
 	t.Parallel()
 	retained := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 30), 5)
 	for _, tc := range []struct {
+		wantErr                             error
 		name                                string
 		generation                          uint64
 		zeroRetained, zeroProposed, foreign bool
 		primary                             selectionHandoffClass
-		wantErr                             error
 	}{
 		{name: "missing retained proof cannot become first append", generation: 6, zeroRetained: true, primary: selectionHandoffRefusal, wantErr: core.ErrReleaseVerification},
 		{name: "missing proposed proof cannot become neutral replay", generation: 6, zeroProposed: true, primary: selectionHandoffRefusal, wantErr: core.ErrReleaseVerification},

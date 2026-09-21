@@ -141,13 +141,13 @@ func TestGCSListToExactReadProductionHandoffLayerTriad(t *testing.T) {
 }
 
 type gcsListReadProvider struct {
-	mediaOverride *[]byte
-	chunked       bool
 	t             testing.TB
+	mediaOverride *[]byte
 	payload       []byte
 	listCalls     uint64
 	metadataCalls uint64
 	mediaCalls    uint64
+	chunked       bool
 }
 
 func (p *gcsListReadProvider) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
@@ -199,10 +199,10 @@ func parsedGCSObjectPrefix(t testing.TB, value string) GCSObjectPrefix {
 func TestGCSListedReadExtentLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr         error
 		name            string
 		metadata, media []byte
 		chunked         bool
-		wantErr         error
 	}{
 		{name: "neutral empty listing requires an empty stream"},
 		{name: "positive exact listed byte", metadata: []byte{1}, media: []byte{1}},

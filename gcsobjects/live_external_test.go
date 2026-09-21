@@ -90,6 +90,7 @@ func TestAuthenticatedGCSLifecycleUsesTheRealProviderAndProvesDeletion(t *testin
 		t.Fatalf("UploadMedia(%q) error = %v, want nil", primaryName.String(), gotCreateErr)
 	}
 	verifyLiveGCSMetadata(t, created, bucket, primaryName, gcsLivePayload, gcsLiveMediaContentType, gcsLiveMediaCacheControl)
+	verifyLiveGCSObjectCount(t, client, bucket, prefix, primaryName, 1)
 
 	_, gotConflictErr := gcsobjects.UploadMedia(context.Background(), client, liveGCSMediaUpload(t, bucket, primaryName, gcsLivePayload, gcsLivePayload))
 	if !errors.Is(gotConflictErr, core.ErrObjectStoreConflict) {
@@ -116,7 +117,7 @@ func TestAuthenticatedGCSLifecycleUsesTheRealProviderAndProvesDeletion(t *testin
 		wantGen, _ := emptyMetadata.Generation().Int64()
 		t.Fatalf("exact delete generation = %d, want the created generation %d", gotGen, wantGen)
 	}
-	verifyLiveGCSObjectAbsent(t, client, bucket, emptyName)
+	verifyLiveGCSObjectCount(t, client, bucket, prefix, emptyName, 0)
 	emptyMetadata, gotEmptyCreateErr = gcsobjects.UploadFile(context.Background(), client, liveGCSFileUpload(t, bucket, emptyName, nil, nil))
 	if gotEmptyCreateErr != nil {
 		t.Fatalf("replacement UploadFile(%q empty stream) error = %v, want nil", emptyName.String(), gotEmptyCreateErr)
@@ -128,7 +129,7 @@ func TestAuthenticatedGCSLifecycleUsesTheRealProviderAndProvesDeletion(t *testin
 	if !errors.Is(gotShortErr, core.ErrObjectStoreSource) || !errors.Is(gotShortErr, core.ErrObjectStoreIntegrity) {
 		t.Fatalf("short source UploadFile(%q) error = %v, want source and integrity identities", shortName.String(), gotShortErr)
 	}
-	verifyLiveGCSObjectAbsent(t, client, bucket, shortName)
+	verifyLiveGCSObjectCount(t, client, bucket, prefix, shortName, 0)
 
 	wrongDigestName := liveGCSObjectName(t, prefix, gcsLiveWrongDigestObjectLeaf)
 	wrongDigestRequest := liveGCSFileUpload(t, bucket, wrongDigestName, gcsLivePayload, gcsLivePayload)
@@ -137,7 +138,7 @@ func TestAuthenticatedGCSLifecycleUsesTheRealProviderAndProvesDeletion(t *testin
 	if !errors.Is(gotWrongDigestErr, core.ErrObjectStoreSource) || !errors.Is(gotWrongDigestErr, core.ErrObjectStoreIntegrity) {
 		t.Fatalf("wrong digest UploadFile(%q) error = %v, want source and integrity identities", wrongDigestName.String(), gotWrongDigestErr)
 	}
-	verifyLiveGCSObjectAbsent(t, client, bucket, wrongDigestName)
+	verifyLiveGCSObjectCount(t, client, bucket, prefix, wrongDigestName, 0)
 
 	readRequest := liveGCSReadRequest(t, bucket, primaryName, created.Generation(), liveGCSIntegrity(t, gcsLivePayload))
 	readResult, gotReadErr := gcsobjects.ReadGCSObject(context.Background(), client, readRequest)
@@ -178,8 +179,8 @@ func TestAuthenticatedGCSLifecycleUsesTheRealProviderAndProvesDeletion(t *testin
 	if gotDeleted := deleted.Deleted().Uint64(); gotDeleted != gcsLiveExpectedObjects {
 		t.Fatalf("DeleteGCSObjects(%q) deleted = %d, want %d exact objects", prefix.String(), gotDeleted, gcsLiveExpectedObjects)
 	}
-	verifyLiveGCSObjectAbsent(t, client, bucket, primaryName)
-	verifyLiveGCSObjectAbsent(t, client, bucket, emptyName)
+	verifyLiveGCSObjectCount(t, client, bucket, prefix, primaryName, 0)
+	verifyLiveGCSObjectCount(t, client, bucket, prefix, emptyName, 0)
 }
 
 func TestAuthenticatedGCSDeletionRefusesSoftDeleteRetention(t *testing.T) {
@@ -309,19 +310,20 @@ func verifyLiveGCSMetadata(
 	}
 }
 
-func verifyLiveGCSObjectAbsent(t *testing.T, client *gcsobjects.GCSClient, bucket gcsobjects.GCSBucket, name gcsobjects.GCSObjectName) {
+func verifyLiveGCSObjectCount(t *testing.T, client *gcsobjects.GCSClient, bucket gcsobjects.GCSBucket, prefix gcsobjects.GCSObjectPrefix, name gcsobjects.GCSObjectName, want int) {
 	t.Helper()
-	// A missing arbitrary generation cannot prove absence of the object head.
-	// This operator-only lifecycle test uses a bounded inventory; serving code
-	// must continue using known-key, exact-generation reads without List.
-	prefix, err := gcsobjects.ParseGCSObjectPrefix(name.String())
-	if err != nil {
-		t.Fatalf("ParseGCSObjectPrefix = %v, want nil", err)
-	}
+	// Inventory only this test's owned prefix and count the exact object name.
+	// A nonexistent generation alone cannot establish absence of the object head.
+	// The positive check before deletion proves this observer sees the live object.
 	var count int
-	err = gcsobjects.ListGCSObjects(t.Context(), client, gcsobjects.GCSListRequest{Bucket: bucket, Prefix: prefix, MaxObjects: liveGCSMaximum(t, 1)}, func(gcsobjects.GCSObjectMetadata) error { count++; return nil })
-	if err != nil || count != 0 {
-		t.Fatalf("absent object inventory = (%d, %v), want (0, nil)", count, err)
+	err := gcsobjects.ListGCSObjects(t.Context(), client, gcsobjects.GCSListRequest{Bucket: bucket, Prefix: prefix, MaxObjects: liveGCSMaximum(t, gcsLiveDestructiveObjectBound)}, func(metadata gcsobjects.GCSObjectMetadata) error {
+		if metadata.Name() == name {
+			count++
+		}
+		return nil
+	})
+	if err != nil || count != want {
+		t.Fatalf("exact object %q inventory = (%d, %v), want (%d, nil)", name.String(), count, err, want)
 	}
 }
 
@@ -341,7 +343,11 @@ func liveGCSReadRequest(
 	if err != nil {
 		t.Fatalf("filestore.OpenRoot(GCS read root) error = %v, want nil", err)
 	}
-	t.Cleanup(func() { _ = root.Close() })
+	t.Cleanup(func() {
+		if err := root.Close(); err != nil {
+			t.Errorf("close GCS read root = %v, want nil", err)
+		}
+	})
 	path, err := core.ParseRelativePath("download.stage")
 	if err != nil {
 		t.Fatalf("core.ParseRelativePath(download.stage) error = %v, want nil", err)

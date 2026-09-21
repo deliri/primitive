@@ -88,11 +88,11 @@ func TestProjectNameJSONReceiverLayerTriad(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, tc := range []struct {
+		wantErr     error
 		name        string
+		wantText    string
 		data        []byte
 		nilReceiver bool
-		wantText    string
-		wantErr     error
 	}{
 		{name: "new_name", data: []byte("\"new\""), wantText: "new"},
 		{name: "escaped_quote", data: []byte("\"A\\\"B\""), wantText: "A\"B"},

@@ -30,23 +30,23 @@ func TestServerReceiveCustodyLayerTriad(t *testing.T) {
 		t.Fatalf("fixture encoding error = %v, want nil", err)
 	}
 	cases := []struct {
-		name           string
-		lane           receiveCustodyLane
+		closeErr       error
+		wantErr        error
+		wantNative     error
+		wantKey        string
 		path           string
 		query          string
 		rawPath        string
 		method         string
-		replay         exchange.ReplayMode
-		closeErr       error
-		cancelled      bool
-		unsetSocket    bool
-		wantErr        error
-		wantNative     error
-		wantBody       bool
-		wantKey        string
-		wantReads      int
-		wantCloses     int
+		name           string
 		wantProjection int
+		wantCloses     int
+		wantReads      int
+		cancelled      bool
+		wantBody       bool
+		unsetSocket    bool
+		replay         exchange.ReplayMode
+		lane           receiveCustodyLane
 	}{
 		{name: "positive plain socket retains exact decoded bytes", lane: receiveCustodySocket, path: "/socket", method: http.MethodPost, replay: exchange.ReplaySingleAttempt, wantBody: true, wantReads: len(wire), wantCloses: 1},
 		{name: "positive bound socket retains exact body and header identity", lane: receiveCustodyBoundSocket, path: "/socket", method: http.MethodPost, replay: exchange.ReplayIdempotencyKey, wantBody: true, wantKey: "op-A", wantReads: len(wire), wantCloses: 1},
@@ -145,15 +145,15 @@ func TestServerReceiveCustodyLayerTriad(t *testing.T) {
 func TestNoBodyReceiveCustodyLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name       string
-		method     string
-		replay     exchange.ReplayMode
-		key        string
 		closeErr   error
 		wantErr    error
 		wantNative error
+		name       string
+		method     string
+		key        string
 		wantKey    string
 		wantCloses int
+		replay     exchange.ReplayMode
 	}{
 		{name: "neutral body absence preserves absent identity", method: http.MethodPost, replay: exchange.ReplaySingleAttempt, wantCloses: 1},
 		{name: "positive keyed body absence preserves exact identity", method: http.MethodPost, replay: exchange.ReplayIdempotencyKey, key: "op-A", wantKey: "op-A", wantCloses: 1},
@@ -187,9 +187,9 @@ func TestNoBodyReceiveCustodyLayerTriad(t *testing.T) {
 }
 
 type custodyTerminalReader struct {
+	terminal         error
 	prefix           *bytes.Reader
 	panicAfterPrefix bool
-	terminal         error
 }
 
 func (r *custodyTerminalReader) Read(p []byte) (int, error) {
@@ -205,21 +205,21 @@ func (r *custodyTerminalReader) Read(p []byte) (int, error) {
 func TestAggregateAndStreamFailureCustodyLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name             string
-		stream           bool
-		payload          string
-		limit            uint64
 		closeErr         error
 		terminal         error
-		panicAfterPrefix bool
 		wantErr          error
 		wantNative       error
 		wantAggregate    string
-		wantDestination  string
 		wantKey          string
+		payload          string
+		name             string
+		wantDestination  string
+		limit            uint64
 		wantBytes        uint64
 		wantReadBytes    int
 		wantCloses       int
+		panicAfterPrefix bool
+		stream           bool
 	}{
 		{name: "positive aggregate publishes exact owned bytes after close", payload: "abc", limit: 3, terminal: io.EOF, wantAggregate: "abc", wantKey: "op-A", wantReadBytes: 3, wantCloses: 1},
 		{name: "positive stream reports exact destination effect", stream: true, payload: "abc", limit: 3, terminal: io.EOF, wantDestination: "abc", wantKey: "op-A", wantBytes: 3, wantReadBytes: 3, wantCloses: 1},

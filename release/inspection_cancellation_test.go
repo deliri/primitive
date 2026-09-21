@@ -24,10 +24,10 @@ func TestBuildToolReadLayerTriadPreservesCancellation(t *testing.T) {
 		t.Fatalf("Resolve(go) error = %v, want nil", err)
 	}
 	for _, tc := range []struct {
+		wantErr        error
 		name           string
 		cancelReadSize int
 		before         bool
-		wantErr        error
 	}{
 		{name: "live context retains complete compiler proof"},
 		{name: "canceled before parsing cannot produce proof", before: true, wantErr: context.Canceled},

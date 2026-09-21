@@ -629,11 +629,11 @@ type BoundedRequest struct {
 type UploadRequest struct {
 	Target         Target
 	Source         io.Reader
-	Semantics      RequestSemantics
+	ContentLength  *core.ByteLength
 	ContentType    core.HTTPMediaType
+	Semantics      RequestSemantics
 	Headers        Headers
 	CaptureHeaders HeaderSelection
-	ContentLength  *core.ByteLength
 	ExpectedStatus core.HTTPStatusCode
 }
 
@@ -658,20 +658,19 @@ type DownloadRequest struct {
 // response is copied through borrowed or Go-allocated scratch. A nil
 // RequestContentLength streams the request through EOF using Go framing.
 type StreamRoundTripRequest struct {
-	// Buffer is optional borrowed scratch for Go copy operations that need it.
-	// Empty uses Go allocation; ReaderFrom destinations own their copy window.
-	// Source and destination must not alias it. Reuse is safe after return.
-	Buffer                      []byte
 	Target                      Target
 	Source                      io.Reader
 	Destination                 io.Writer
-	Semantics                   RequestSemantics
+	RequestContentLength        *core.ByteLength
 	RequestContentType          core.HTTPMediaType
 	ExpectedResponseContentType core.HTTPMediaType
-	Headers                     Headers
-	CaptureHeaders              HeaderSelection
-	RequestContentLength        *core.ByteLength
-
+	// Buffer is optional borrowed scratch for Go copy operations that need it.
+	// Empty uses Go allocation; ReaderFrom destinations own their copy window.
+	// Source and destination must not alias it. Reuse is safe after return.
+	Buffer         []byte
+	Semantics      RequestSemantics
+	Headers        Headers
+	CaptureHeaders HeaderSelection
 	ExpectedStatus core.HTTPStatusCode
 }
 

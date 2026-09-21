@@ -187,8 +187,8 @@ func TestSignedChitQueryJSONPressuresMalformedAndExactByteBoundaries(t *testing.
 		t.Fatalf("QueryDocument.MarshalJSON() error = %v, want nil", err)
 	}
 	reordered, err := json.Marshal(struct {
-		Attestation attest.Envelope[SigningDomain] `json:"attestation"`
 		Payload     QueryPayload                   `json:"payload"`
+		Attestation attest.Envelope[SigningDomain] `json:"attestation"`
 	}{Attestation: fixture.document.Attestation, Payload: fixture.payload})
 	if err != nil {
 		t.Fatalf("json.Marshal(reordered query document) error = %v, want nil", err)

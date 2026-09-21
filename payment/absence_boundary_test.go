@@ -11,9 +11,9 @@ func TestPaymentServicePeriodBoundsLayerTriad(t *testing.T) {
 	t.Parallel()
 	at := temporal.InstantFromNanoseconds
 	for _, tc := range []struct {
+		want   error
 		name   string
 		period ServicePeriod
-		want   error
 	}{
 		{name: "positive smallest interval", period: ServicePeriod{Start: at(0), End: at(1)}},
 		{name: "positive pre-epoch interval", period: ServicePeriod{Start: at(-2), End: at(-1)}},
@@ -62,9 +62,9 @@ func paymentJSONAbsent[T paymentJSONValue, P paymentJSONReceiver[T]](t *testing.
 			t.Fatal(err)
 		}
 		for _, tc := range []struct {
+			want               error
 			name               string
 			nilReceiver, empty bool
-			want               error
 		}{
 			{name: "positive present receiver decodes exact value"},
 			{name: "negative absent receiver refuses valid value", nilReceiver: true, want: core.ErrJSONContract},

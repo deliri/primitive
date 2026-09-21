@@ -17,12 +17,12 @@ func TestCompilerExportedMethodSetsHaveCatalogCoverage(t *testing.T) {
 		imported  string
 		receivers []string
 	}{
-		{"os", []string{"File", "Root", "Process"}},
-		{"os/exec", []string{"Cmd"}},
-		{"net", []string{"Conn", "PacketConn", "Listener", "TCPConn", "UDPConn", "UnixConn", "IPConn", "Dialer", "ListenConfig"}},
-		{"net/http", []string{"Client", "Header", "ResponseWriter", "ResponseController", "Flusher", "Hijacker", "RoundTripper", "Server", "Transport"}},
-		{"time", []string{"Timer", "Ticker"}},
-		{"syscall", []string{"RawConn"}},
+		{imported: "os", receivers: []string{"File", "Root", "Process"}},
+		{imported: "os/exec", receivers: []string{"Cmd"}},
+		{imported: "net", receivers: []string{"Conn", "PacketConn", "Listener", "TCPConn", "UDPConn", "UnixConn", "IPConn", "Dialer", "ListenConfig"}},
+		{imported: "net/http", receivers: []string{"Client", "Header", "ResponseWriter", "ResponseController", "Flusher", "Hijacker", "RoundTripper", "Server", "Transport"}},
+		{imported: "time", receivers: []string{"Timer", "Ticker"}},
+		{imported: "syscall", receivers: []string{"RawConn"}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.imported+" exported receiver coverage", func(t *testing.T) {

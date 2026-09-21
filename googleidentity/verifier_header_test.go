@@ -13,9 +13,9 @@ import (
 func TestGoogleCloudVerifierHeaderBoundaryLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name             string
-		mutate           func([]byte) []byte
 		wantErr          error
+		mutate           func([]byte) []byte
+		name             string
 		wantCertificates uint64
 	}{
 		{name: "canonical compiler owned header admits signed claims", wantCertificates: 1},

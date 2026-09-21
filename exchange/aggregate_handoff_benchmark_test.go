@@ -17,11 +17,11 @@ import (
 func BenchmarkAggregateCompletedAttemptHandoff(b *testing.B) {
 	b.ReportAllocs()
 	cases := []struct {
+		wantProducerErr error
+		wantErr         error
 		name            string
 		fault           replayHandoffBodyFault
 		cancel          bool
-		wantProducerErr error
-		wantErr         error
 	}{
 		{name: "binary_complete"},
 		{name: "cancel_after_native_close", fault: replayHandoffCloseFailure, cancel: true, wantProducerErr: io.ErrClosedPipe, wantErr: context.Canceled},

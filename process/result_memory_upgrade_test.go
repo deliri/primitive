@@ -12,11 +12,11 @@ import (
 func TestResultMemoryOwnershipLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr  error
 		name     string
 		bytes    uint64
 		reported bool
 		unset    bool
-		wantErr  error
 	}{
 		{name: "neutral/unreported memory remains unavailable"},
 		{name: "boundary/reported zero is distinct from unreported", reported: true},

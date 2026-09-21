@@ -43,16 +43,16 @@ func (s GoogleIdentity) Identity(ctx context.Context, audience googleidentity.Au
 // Client owns SDK state, connections, enrollment, and the shared HTTP transport.
 // Creation is effect-free; enrollment is bounded by the first request's context.
 type Client struct {
-	configuration tailnetconfig.Configuration
 	identity      IdentitySource
+	closeErr      error
 	gate          chan struct{}
 	server        *tsnet.Server
 	transport     *http.Transport
 	exchange      exchange.Client
 	enrollment    exchange.Client
-	closed        atomic.Bool
+	configuration tailnetconfig.Configuration
 	closeOnce     sync.Once
-	closeErr      error
+	closed        atomic.Bool
 }
 
 func NewClient(configuration tailnetconfig.Configuration, identity IdentitySource) (*Client, error) {

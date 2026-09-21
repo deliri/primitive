@@ -83,12 +83,12 @@ const (
 func TestShutdownSignalObservationLayerTriadOwnsEveryExit(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantCause  error
 		name       string
 		first      bool
 		end        signalEnd
 		second     SecondSignalAction
 		grace      GraceExpiryAction
-		wantCause  error
 		wantReason EscalationReason
 	}{
 		{name: "neutral close before any signal", end: signalEndClose, second: SecondSignalRelease, grace: GraceExpiryDisabled, wantCause: context.Canceled},

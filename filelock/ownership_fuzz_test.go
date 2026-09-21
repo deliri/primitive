@@ -15,13 +15,13 @@ func FuzzAdvisoryLockOwnershipSemanticClosure(f *testing.F) {
 		patience                       filelock.Patience
 		holder, shared, closed, cancel bool
 	}{
-		{filelock.Exclusive, filelock.Immediate, false, false, false, false},
-		{filelock.Shared, filelock.Immediate, true, true, false, false},
-		{filelock.Exclusive, filelock.Immediate, true, false, false, false},
-		{filelock.Exclusive, filelock.Blocking, false, false, false, false},
-		{filelock.ExclusivityUnknown, filelock.Immediate, false, false, false, false},
-		{filelock.Shared, filelock.Immediate, false, false, true, false},
-		{filelock.Exclusive, filelock.Immediate, true, false, false, true},
+		{exclusivity: filelock.Exclusive, patience: filelock.Immediate, holder: false, shared: false, closed: false, cancel: false},
+		{exclusivity: filelock.Shared, patience: filelock.Immediate, holder: true, shared: true, closed: false, cancel: false},
+		{exclusivity: filelock.Exclusive, patience: filelock.Immediate, holder: true, shared: false, closed: false, cancel: false},
+		{exclusivity: filelock.Exclusive, patience: filelock.Blocking, holder: false, shared: false, closed: false, cancel: false},
+		{exclusivity: filelock.ExclusivityUnknown, patience: filelock.Immediate, holder: false, shared: false, closed: false, cancel: false},
+		{exclusivity: filelock.Shared, patience: filelock.Immediate, holder: false, shared: false, closed: true, cancel: false},
+		{exclusivity: filelock.Exclusive, patience: filelock.Immediate, holder: true, shared: false, closed: false, cancel: true},
 	} {
 		f.Add(uint8(seed.exclusivity), uint8(seed.patience), seed.holder, seed.shared, seed.closed, seed.cancel)
 	}

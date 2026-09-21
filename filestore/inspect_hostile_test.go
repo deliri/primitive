@@ -15,9 +15,9 @@ import (
 func TestInspectAdmissionLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr                         error
 		name                            string
 		unsetPath, nilContext, canceled bool
-		wantErr                         error
 	}{
 		{name: "active ingress observes exact binary-file extent"},
 		{name: "unset path cannot select a working directory", unsetPath: true, wantErr: core.ErrFilestoreContract},

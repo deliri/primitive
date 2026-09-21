@@ -27,11 +27,11 @@ func commitmentFixture(t testing.TB) controlplane.ResponseCommitment {
 func TestResponseCommitmentSchemaLayerTriadClosesBodyExtent(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr     error
 		name        string
 		length      uint64
 		bodyless    bool
 		emptyDigest bool
-		wantErr     error
 	}{
 		{name: "one byte is the smallest present body", length: 1},
 		{name: "one below response ceiling is representable", length: core.JSONDocumentMaximumBytes - 1},

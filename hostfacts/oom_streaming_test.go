@@ -102,12 +102,12 @@ const (
 // Fault injection at io.Reader, not a replacement classifier or a fabricated
 // evidence record. Every byte still enters ClassifyGoOOMBanner.
 type oomFaultSource struct {
+	delivered error
 	reader    *bytes.Reader
 	cancel    context.CancelFunc
-	ending    oomReadEnding
 	calls     int
 	consumed  int
-	delivered error
+	ending    oomReadEnding
 	cancelled bool
 }
 
@@ -139,7 +139,7 @@ func (s *oomFaultSource) Read(p []byte) (int, error) {
 func FuzzGoOOMFinalReadEvidence(f *testing.F) {
 	// Go owns these canonical diagnostics; the boundary consumes their raw
 	// bytes rather than a JSON document. No wire spelling is duplicated here.
-	for ending := oomReadEndingOrdinary; ending < oomReadEndingLimit; ending++ {
+	for ending := range oomReadEndingLimit {
 		f.Add([]byte(GoOOMPlainBanner), uint8(ending))
 	}
 	f.Add([]byte{}, uint8(oomReadEndingFailure))

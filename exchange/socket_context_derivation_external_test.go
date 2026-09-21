@@ -14,9 +14,9 @@ import (
 func TestSocketContextDerivationLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr                                                          error
 		name                                                             string
 		zeroCall, nilContext, sameContext, cancelOriginal, cancelDerived bool
-		wantErr                                                          error
 	}{
 		{name: "replacement context cannot inherit the old value by accident"},
 		{name: "same context still follows Go request-copy ownership", sameContext: true},

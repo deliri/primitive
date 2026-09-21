@@ -100,6 +100,10 @@ func ReadGoEventStream(ctx context.Context, request GoEventStreamRequest) error 
 		}
 		return request.OnEvent(frame)
 	}
+	return readGoEventFragments(ctx, reader, &parser, emit)
+}
+
+func readGoEventFragments(ctx context.Context, reader *lineio.Reader, parser *goJSONStream, emit func(goJSONProjection) error) error {
 	for {
 		if err := contextstate.Validate(ctx); err != nil {
 			return err

@@ -31,10 +31,10 @@ func TestCorruptDurationCannotEscapeThroughEffectsOrJSON(t *testing.T) {
 			wire, wireErr := tc.value.MarshalJSON()
 			projection, projectionErr := NewNumericDuration(tc.value)
 			for _, result := range []struct {
-				name   string
 				gotErr error
+				name   string
 			}{
-				{"timeout", timeoutErr}, {"ticker", tickerErr}, {"wait", waitErr}, {"JSON", wireErr}, {"numeric construction", projectionErr},
+				{name: "timeout", gotErr: timeoutErr}, {name: "ticker", gotErr: tickerErr}, {name: "wait", gotErr: waitErr}, {name: "JSON", gotErr: wireErr}, {name: "numeric construction", gotErr: projectionErr},
 			} {
 				if !errors.Is(result.gotErr, core.ErrTemporalContract) {
 					t.Fatalf("%s error = %v, want %v", result.name, result.gotErr, core.ErrTemporalContract)
@@ -55,9 +55,9 @@ func TestCorruptDurationCannotEscapeThroughEffectsOrJSON(t *testing.T) {
 func TestInvalidIntervalCannotProjectPartialFacts(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		value   Interval
-		wantErr error
 	}{
 		{name: "missing start", value: Interval{end: InstantFromNanoseconds(0)}, wantErr: core.ErrTemporalContract},
 		{name: "missing end", value: Interval{start: InstantFromNanoseconds(0)}, wantErr: core.ErrTemporalContract},

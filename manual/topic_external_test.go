@@ -12,9 +12,9 @@ import (
 func TestTopicSegmentsLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr error
 		name    string
 		text    string
-		wantErr error
 	}{
 		{name: "single command", text: "compile"},
 		{name: "two command segments", text: "work.list"},

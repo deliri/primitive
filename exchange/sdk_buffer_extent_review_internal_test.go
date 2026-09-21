@@ -13,9 +13,9 @@ import (
 func TestOfficialSDKBinaryBodyTransfersUnreadOwnership(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		terminal error
 		name     string
 		size     uint64
-		terminal error
 		abandon  bool
 	}{
 		{name: "empty body remains an owned stream"},
@@ -113,8 +113,8 @@ func TestOfficialSDKResponseRefusesAbsentReaderBeforeHandoff(t *testing.T) {
 	t.Parallel()
 	var typedNil *streamingReviewBody
 	for _, tc := range []struct {
-		name string
 		body io.ReadCloser
+		name string
 	}{
 		{name: "nil interface"},
 		{name: "typed nil reader", body: typedNil},

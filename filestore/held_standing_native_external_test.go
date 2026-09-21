@@ -17,10 +17,10 @@ import (
 func TestHeldStandingNativeIdentityLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr, wantCause error
 		name               string
 		mutation           heldNativeMutation
 		want               filestore.HeldStanding
-		wantErr, wantCause error
 	}{
 		{name: "same inode survives observation without consuming held bytes", want: filestore.HeldStandingSame},
 		{name: "hard-link spelling retains identical native identity", mutation: heldNativeHardLink, want: filestore.HeldStandingSame},

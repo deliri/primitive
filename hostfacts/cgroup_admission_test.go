@@ -13,9 +13,9 @@ import (
 func TestCgroupMembershipSelectionLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr          error
 		name, text, path string
 		source           WorkloadMemoryLimitSource
-		wantErr          error
 	}{
 		{name: "empty membership stays unavailable"},
 		{name: "unrelated controller cannot manufacture memory", text: "2:cpu:/cpu\n"},
@@ -48,9 +48,9 @@ func TestCgroupMembershipSelectionLayerTriad(t *testing.T) {
 func TestCgroupVersionAndContainmentLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr             error
 		name, path, root    string
 		source, mountSource WorkloadMemoryLimitSource
-		wantErr             error
 	}{
 		{name: "root membership resolves exact mount", path: "/", root: "/", source: WorkloadMemoryLimitSourceCgroupV2, mountSource: WorkloadMemoryLimitSourceCgroupV2},
 		{name: "nested membership resolves bounded child", path: "/tenant/job", root: "/tenant", source: WorkloadMemoryLimitSourceCgroupV1, mountSource: WorkloadMemoryLimitSourceCgroupV1},

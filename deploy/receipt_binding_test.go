@@ -59,9 +59,9 @@ func receiptBoundaryCapability(t testing.TB, object string) objectstore.UploadCa
 func TestReceiptCapabilityBindingLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr                    error
 		name                       string
 		foreign, raw, fail, absent bool
-		wantErr                    error
 	}{
 		{name: "confirmed capability matches receipt"},
 		{name: "confirmed transfer under another granted destination", foreign: true, wantErr: core.ErrDeployContract},

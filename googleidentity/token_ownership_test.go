@@ -22,8 +22,8 @@ func TestGoogleTokenOwnershipAndRedactionLayerTriad(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, tc := range []struct {
-		name   string
 		mutate func([]byte)
+		name   string
 	}{
 		{name: "source_prefix_mutation", mutate: func(b []byte) { b[0] = 'x' }},
 		{name: "source_suffix_mutation", mutate: func(b []byte) { b[len(b)-1] = 'x' }},
@@ -48,10 +48,10 @@ func TestGoogleTokenOwnershipAndRedactionLayerTriad(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, tc := range []struct {
-		name  string
 		value fmt.Formatter
+		name  string
 	}{
-		{"identity_bearer", token}, {"access_bearer", access}, {"unset_identity", Token{}}, {"unset_access", AccessToken{}},
+		{name: "identity_bearer", value: token}, {name: "access_bearer", value: access}, {name: "unset_identity", value: Token{}}, {name: "unset_access", value: AccessToken{}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -63,10 +63,10 @@ func TestGoogleTokenOwnershipAndRedactionLayerTriad(t *testing.T) {
 		})
 	}
 	for _, tc := range []struct {
-		name   string
 		reveal func() (string, error)
+		name   string
 	}{
-		{"unset_identity_disclosure", (Token{}).BearerValue}, {"unset_access_disclosure", (AccessToken{}).BearerValue},
+		{name: "unset_identity_disclosure", reveal: (Token{}).BearerValue}, {name: "unset_access_disclosure", reveal: (AccessToken{}).BearerValue},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

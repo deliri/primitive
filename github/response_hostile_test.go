@@ -21,10 +21,10 @@ type responsePressureCase struct {
 }
 
 type treeResponseFixture struct {
-	SHA       string          `json:"sha"`
-	URL       string          `json:"url"`
+	SHA       string             `json:"sha"`
+	URL       string             `json:"url"`
 	Tree      []treeEntryFixture `json:"tree"`
-	Truncated bool            `json:"truncated"`
+	Truncated bool               `json:"truncated"`
 }
 
 func TestGitHubResponseDecodersHostileBoundaryTable(t *testing.T) {

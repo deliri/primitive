@@ -11,10 +11,10 @@ import (
 func TestServerRuntimeReadinessLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr     error
 		name        string
 		input       []error
 		wantPresent bool
-		wantErr     error
 	}{
 		{name: "neutral absence cannot create readiness"},
 		{name: "completed acquisition publishes nil exactly once", input: []error{nil}, wantPresent: true},

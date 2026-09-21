@@ -71,7 +71,7 @@ func FuzzNativeSignalObservation(f *testing.F) {
 			native syscall.Signal
 			kind   SignalKind
 		}{
-			{syscall.SIGINT, SignalKindInterrupt}, {syscall.SIGTERM, SignalKindTerminate}, {syscall.SIGHUP, SignalKindHangup},
+			{native: syscall.SIGINT, kind: SignalKindInterrupt}, {native: syscall.SIGTERM, kind: SignalKindTerminate}, {native: syscall.SIGHUP, kind: SignalKindHangup},
 		} {
 			if native == pair.native {
 				want = pair.kind

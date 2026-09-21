@@ -11,11 +11,11 @@ import (
 )
 
 type unwindReadDestination struct {
+	terminal error
 	bytes.Buffer
-	terminal          error
+	writes            int
 	panicAtWrite      bool
 	effectBeforePanic bool
-	writes            int
 }
 
 func (w *unwindReadDestination) Write(p []byte) (int, error) {
@@ -36,14 +36,14 @@ func (w *unwindReadDestination) Write(p []byte) (int, error) {
 func TestReadCallerUnwindCustodyLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr           error
 		name              string
 		payload           []byte
+		wantBytes         []byte
+		wantWrites        int
 		panicAtWrite      bool
 		effectBeforePanic bool
 		returnFailure     bool
-		wantWrites        int
-		wantBytes         []byte
-		wantErr           error
 	}{
 		{name: "empty source never invokes a hostile destination", panicAtWrite: true},
 		{name: "binary source preserves exact returned receipt", payload: []byte{0, 255}, wantWrites: 1, wantBytes: []byte{0, 255}},

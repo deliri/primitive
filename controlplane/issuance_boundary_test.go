@@ -13,10 +13,10 @@ import (
 func TestRegistrationAuthorityConsumesTokenOnEveryExit(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr       error
+		mutate        func(*controlplane.RegistrationAuthorityVerification)
 		name          string
 		zeroAuthority bool
-		mutate        func(*controlplane.RegistrationAuthorityVerification)
-		wantErr       error
 	}{
 		{name: "fresh authenticated request consumes secret"},
 		{name: "zero authority still owns destruction", zeroAuthority: true, wantErr: core.ErrControlPlaneContract},
@@ -64,9 +64,9 @@ func TestRegistrationAuthorityConsumesTokenOnEveryExit(t *testing.T) {
 func TestCheckInIssuanceRefusesForeignBindingWithoutPartialDocument(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name    string
-		mutate  func(*testing.T, *controlplane.CheckInPayload, *controlplane.InstallationCertificateDocument, *ed25519.PrivateKey)
 		wantErr error
+		mutate  func(*testing.T, *controlplane.CheckInPayload, *controlplane.InstallationCertificateDocument, *ed25519.PrivateKey)
+		name    string
 	}{
 		{name: "exact device key and certificate produce verifiable request"},
 		{name: "foreign signer cannot issue under another device certificate", mutate: func(t *testing.T, _ *controlplane.CheckInPayload, _ *controlplane.InstallationCertificateDocument, key *ed25519.PrivateKey) {

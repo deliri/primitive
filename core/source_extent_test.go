@@ -10,8 +10,8 @@ func TestSourcePathExtentDoesNotReplaceCanonicalValidation(t *testing.T) {
 	t.Parallel()
 	prefix := strings.Repeat("segment/", 512)
 	for _, tc := range []struct {
-		name, path string
 		want       error
+		name, path string
 	}{
 		{name: "long canonical path", path: prefix + "value.go"},
 		{name: "long path cannot escape at tail", path: prefix + "../value.go", want: ErrPrimitiveContract},

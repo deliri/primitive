@@ -20,17 +20,17 @@ import (
 func TestContextBudgetLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr          error
 		name             string
 		payload          []byte
-		method           exchange.Method
-		maximum          uint64
-		zeroPolicy       bool
 		wantBody         []byte
+		maximum          uint64
 		wantCalls        uint64
 		wantAttempts     uint64
-		wantStatus       core.HTTPStatusCode
 		wantHeaderLength uint64
-		wantErr          error
+		wantStatus       core.HTTPStatusCode
+		method           exchange.Method
+		zeroPolicy       bool
 	}{
 		{name: "exact response ceiling retains binary bytes over real HTTP", payload: []byte{0, 0xff}, method: exchange.MethodGet, maximum: 2, wantBody: []byte{0, 0xff}, wantCalls: 1, wantAttempts: 1, wantStatus: core.HTTPStatusOK(), wantHeaderLength: 2},
 		{name: "complete response retains bytes and HTTP facts", payload: []byte{0, 0xff}, method: exchange.MethodGet, maximum: 1, wantBody: []byte{0, 0xff}, wantCalls: 1, wantAttempts: 1, wantStatus: core.HTTPStatusOK(), wantHeaderLength: 2},

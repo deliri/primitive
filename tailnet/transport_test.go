@@ -33,14 +33,14 @@ func (b *trackedRequestBody) Close() error { b.closes++; return nil }
 func TestEnrollmentTransportContextAndRequestTable(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantCause     error
 		name          string
 		path          string
 		host          string
 		scheme        string
 		authorization string
-		cancel        bool
 		wantCalls     int
-		wantCause     error
+		cancel        bool
 	}{
 		{name: "SDK background token request inherits exact owning context", path: tokenExchangePath, wantCalls: 1},
 		{name: "authenticated key request inherits exact owning context", path: createKeyPath, authorization: exchange.BearerAuthorizationScheme + " " + fixtureAccessToken, wantCalls: 1},

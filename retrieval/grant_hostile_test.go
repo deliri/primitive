@@ -623,9 +623,9 @@ func marshalReorderedGrantProjection(t *testing.T, projection GrantProjection) [
 	t.Helper()
 
 	encoded, gotErr := core.MarshalCanonicalJSONDocument(struct {
-		Attestation attest.Envelope[SigningDomain]           `json:"attestation"`
-		Payload     GrantPayload                             `json:"payload"`
 		Capability  objectstore.DownloadCapabilityProjection `json:"capability"`
+		Payload     GrantPayload                             `json:"payload"`
+		Attestation attest.Envelope[SigningDomain]           `json:"attestation"`
 	}{Payload: projection.Payload, Attestation: projection.Attestation, Capability: projection.Capability})
 	if gotErr != nil {
 		t.Fatalf("core.MarshalCanonicalJSONDocument(reordered grant) error = %v, want nil", gotErr)

@@ -94,11 +94,11 @@ func awsProviderBytes(tb testing.TB, document amazonResponse) []byte {
 // TLS test owns wire framing. No live AWS or SigV4 authentication is claimed.
 type awsResponseTransport struct {
 	body     io.ReadCloser
+	cause    error
+	observed *http.Request
 	status   int
 	length   int64
 	calls    int
-	observed *http.Request
-	cause    error
 }
 
 func (r *awsResponseTransport) RoundTrip(request *http.Request) (*http.Response, error) {
@@ -112,11 +112,11 @@ func (r *awsResponseTransport) RoundTrip(request *http.Request) (*http.Response,
 
 type awsObservedBody struct {
 	reader   io.Reader
-	bytes    int
-	closes   int
 	readErr  error
 	closeErr error
 	cancel   context.CancelFunc
+	bytes    int
+	closes   int
 }
 
 func (b *awsObservedBody) Read(p []byte) (int, error) {
@@ -156,10 +156,10 @@ func awsRequest(tb testing.TB) Request {
 }
 
 type awsProviderCase struct {
-	name      string
-	change    func(*amazonResponse)
-	wantToken string
 	wantErr   error
+	change    func(*amazonResponse)
+	name      string
+	wantToken string
 }
 
 func awsProviderCases() []awsProviderCase {
@@ -271,10 +271,10 @@ func TestAWSAcquireProviderEnvelopeBoundaries(t *testing.T) {
 func TestAWSAcquireBodyOwnershipAndRefusalIdentity(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name                                     string
 		readErr, closeErr, transportErr, wantErr error
-		cancel                                   bool
+		name                                     string
 		status                                   int
+		cancel                                   bool
 	}{
 		{name: "complete receipt", status: http.StatusOK},
 		{name: "partial bytes and read error cannot release token", readErr: io.ErrUnexpectedEOF, status: http.StatusOK, wantErr: io.ErrUnexpectedEOF},
@@ -340,17 +340,17 @@ func TestAWSAcquireStreamsTrailingWhitespaceThroughEOF(t *testing.T) {
 	t.Parallel()
 	canonical := awsProviderBytes(t, awsProviderDocument(awsTestBearer))
 	for _, tc := range []struct {
+		wantErr  error
 		name     string
 		extent   int
 		declared int64
-		wantErr  error
 		wantRead int
 	}{
-		{"exact declaration preserves bearer and consumes EOF", AmazonResponseMaximumBytes, AmazonResponseMaximumBytes, nil, AmazonResponseMaximumBytes},
-		{"unknown length preserves bearer and consumes EOF", AmazonResponseMaximumBytes, -1, nil, AmazonResponseMaximumBytes},
-		{"understated declaration does not truncate XML whitespace", AmazonResponseMaximumBytes + 1, 1, nil, AmazonResponseMaximumBytes + 1},
-		{"overstated declaration does not invent bytes", AmazonResponseMaximumBytes, AmazonResponseMaximumBytes * 2, nil, AmazonResponseMaximumBytes},
-		{"long whitespace stream has no transport quota", AmazonResponseMaximumBytes * 16, -1, nil, AmazonResponseMaximumBytes * 16},
+		{name: "exact declaration preserves bearer and consumes EOF", extent: AmazonResponseMaximumBytes, declared: AmazonResponseMaximumBytes, wantErr: nil, wantRead: AmazonResponseMaximumBytes},
+		{name: "unknown length preserves bearer and consumes EOF", extent: AmazonResponseMaximumBytes, declared: -1, wantErr: nil, wantRead: AmazonResponseMaximumBytes},
+		{name: "understated declaration does not truncate XML whitespace", extent: AmazonResponseMaximumBytes + 1, declared: 1, wantErr: nil, wantRead: AmazonResponseMaximumBytes + 1},
+		{name: "overstated declaration does not invent bytes", extent: AmazonResponseMaximumBytes, declared: AmazonResponseMaximumBytes * 2, wantErr: nil, wantRead: AmazonResponseMaximumBytes},
+		{name: "long whitespace stream has no transport quota", extent: AmazonResponseMaximumBytes * 16, declared: -1, wantErr: nil, wantRead: AmazonResponseMaximumBytes * 16},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

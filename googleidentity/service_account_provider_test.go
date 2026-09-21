@@ -81,15 +81,15 @@ func decodeServiceAccountAssertion(value string, key *rsa.PublicKey) (googleClou
 func TestGoogleServiceAccountProviderBoundaryLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name       string
+		wantErr    error
 		mutate     func([]byte) []byte
+		name       string
 		status     int
+		wantCalls  uint64
+		wantStatus int
 		redirect   bool
 		truncate   bool
 		cancel     bool
-		wantErr    error
-		wantCalls  uint64
-		wantStatus int
 	}{
 		{name: "signed_request_uses_exchange_and_exact_target_audience", wantCalls: 1},
 		{name: "provider_json_whitespace_spans_many_windows", mutate: func(b []byte) []byte { return append([]byte(strings.Repeat(" ", 128<<10)), b...) }, wantCalls: 1},

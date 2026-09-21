@@ -70,9 +70,9 @@ func writeTreeExtent(w io.Writer, input treeExtentWire) error {
 func TestTreeStreamsBeyondFormerCountAndByteCeilingsLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr error
 		name    string
 		wire    treeExtentWire
-		wantErr error
 	}{
 		{name: "below former count", wire: treeExtentWire{count: 99_999}},
 		{name: "at former count", wire: treeExtentWire{count: 100_000}},

@@ -20,10 +20,10 @@ func TestDecodeBuildDependenciesLayerTriadPressuresGoListProtocol(t *testing.T) 
 	wantB := buildDependencyWire{Path: "example.com/b/v2", Version: "v2.0.0-20260804010203-0123456789ab", Sum: testModuleSumB}
 	standard := goListPackageWire{ImportPath: "io", Standard: true}
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		input   []byte
 		want    []buildDependencyWire
-		wantErr error
 	}{
 		{name: "main-only stream clears previous target modules", input: goListStreamFixture(t, main)},
 		{name: "standard package creates no dependency fact", input: goListStreamFixture(t, standard, main)},

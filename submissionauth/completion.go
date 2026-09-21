@@ -44,13 +44,13 @@ type CompletionProjectionAssembly struct {
 // non-secret grant record, provider policy, and authority keys used for both
 // certificate and grant verification. Provider must come from authority policy.
 type CompletionVerification struct {
-	Grant     submission.GrantRecord
-	Provider  objectstore.Provider
 	Document  CompletionDocument
 	Request   Verified
 	Server    controlplane.Authority
 	GrantKeys attest.TrustedKeys
+	Grant     submission.GrantRecord
 	Nonce     controlwire.RequestNonce
+	Provider  objectstore.Provider
 }
 
 // VerifiedCompletion proves certificate authentication happened before the

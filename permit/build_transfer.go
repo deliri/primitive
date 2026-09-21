@@ -56,11 +56,11 @@ func (d *BuildTransfer) UnmarshalJSON(data []byte) error {
 // BuildTransferIssuance consumes previously authenticated facts. The product
 // selects Build; this operation cannot select a release or extend any right.
 type BuildTransferIssuance struct {
+	Signer      ed25519.PrivateKey
+	Build       core.BuildIdentity
 	Certificate controlplane.VerifiedInstallationCertificate
 	Permission  Verified
-	Build       core.BuildIdentity
 	Authority   controlplane.Authority
-	Signer      ed25519.PrivateKey
 }
 
 func (r BuildTransferIssuance) Validate() error {
@@ -109,11 +109,11 @@ func IssueBuildTransfer(r BuildTransferIssuance) (BuildTransfer, error) {
 // BuildTransferVerification binds the response to locally authenticated prior
 // facts and the exact destination build selected by the receiving product.
 type BuildTransferVerification struct {
-	Document            BuildTransfer
+	Build               core.BuildIdentity
 	PreviousCertificate controlplane.VerifiedInstallationCertificate
+	Document            BuildTransfer
 	PreviousPermission  Verified
 	TrustedKeys         attest.TrustedKeys
-	Build               core.BuildIdentity
 	EffectiveAt         temporal.Instant
 }
 

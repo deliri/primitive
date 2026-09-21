@@ -11,8 +11,8 @@ import (
 )
 
 type contextHandoffSource struct {
-	data   []byte
 	cancel context.CancelFunc
+	data   []byte
 	reads  int
 }
 
@@ -30,8 +30,8 @@ func (s *contextHandoffSource) Read(buffer []byte) (int, error) {
 }
 
 type contextHandoffDestination struct {
-	bytes  bytes.Buffer
 	cancel context.CancelFunc
+	bytes  bytes.Buffer
 	writes int
 }
 
@@ -49,11 +49,11 @@ func (w *contextHandoffDestination) Write(buffer []byte) (int, error) {
 func TestStreamCopyContextHandoffLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr                                       error
 		name                                          string
 		payload, want                                 []byte
-		nilContext, beforeRead, afterRead, afterWrite bool
-		wantErr                                       error
 		wantReads, wantWrites                         int
+		nilContext, beforeRead, afterRead, afterWrite bool
 	}{
 		{name: "active stream retains exact binary bytes through every handoff", payload: []byte{0, 255, 1}, want: []byte{0, 255, 1}, wantReads: 4, wantWrites: 3},
 		{name: "empty stream observes EOF without calling destination", wantReads: 1},

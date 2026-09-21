@@ -46,11 +46,13 @@ func FuzzRunnerControlExternalEnumJSONSemanticClosure(f *testing.F) {
 	addEnumSeed(f, 20, runnercontrol.ObservationJUnitXML)
 	addEnumSeed(f, 21, runnercontrol.SubjectIsolationSystemd)
 	addEnumSeed(f, 22, runnercontrol.RunControlQueued)
+	addEnumSeed(f, 23, runnercontrol.GoEventActionRun)
+	addEnumSeed(f, 24, runnercontrol.GoEventOutputFrame)
 	f.Add(uint8(0), []byte{})
 	f.Add(uint8(22), []byte(`"future"`))
 
 	f.Fuzz(func(t *testing.T, selector uint8, data []byte) {
-		switch selector % 23 {
+		switch selector % 25 {
 		case 0:
 			proveEnumJSONClosure(t, "HeartbeatState", runnercontrol.HeartbeatReady, data, (*runnercontrol.HeartbeatState).UnmarshalJSON)
 		case 1:
@@ -95,6 +97,11 @@ func FuzzRunnerControlExternalEnumJSONSemanticClosure(f *testing.F) {
 			proveEnumJSONClosure(t, "ObservationFormat", runnercontrol.ObservationGoTestJSON, data, (*runnercontrol.ObservationFormat).UnmarshalJSON)
 		case 21:
 			proveEnumJSONClosure(t, "SubjectIsolationEngine", runnercontrol.SubjectIsolationSystemd, data, (*runnercontrol.SubjectIsolationEngine).UnmarshalJSON)
+		case 23:
+			proveEnumJSONClosure(t, "GoEventAction", runnercontrol.GoEventActionRun, data, (*runnercontrol.GoEventAction).UnmarshalJSON)
+		case 24:
+			proveEnumJSONClosure(t, "GoEventOutputKind", runnercontrol.GoEventOutputFrame, data, (*runnercontrol.GoEventOutputKind).UnmarshalJSON)
+
 		case 22:
 			proveEnumJSONClosure(t, "RunControlState", runnercontrol.RunControlQueued, data, (*runnercontrol.RunControlState).UnmarshalJSON)
 		}

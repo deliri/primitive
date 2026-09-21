@@ -216,11 +216,11 @@ func (e *GoOOMBannerEvidence) UnmarshalJSON(data []byte) error {
 
 type oomScanner struct {
 	source     io.Reader
-	found      bool
 	carry      int
 	remaining  uint64
 	emptyReads int
 	buffer     [goOOMBufferBytes + goOOMOverlapBytes]byte
+	found      bool
 }
 
 func (s *oomScanner) read(ctx context.Context) error {
@@ -259,6 +259,7 @@ func (s *oomScanner) match(count int) {
 
 func classifyOOMRead(remaining uint64, emptyReads int, readErr error) error {
 	if remaining == 0 {
+		// witness:waiver doctrine/error/sentinel_compare -- Exact EOF alone is successful; joined EOF and source failures must survive.
 		if readErr != nil && readErr != io.EOF {
 			return readErr
 		}

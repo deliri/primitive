@@ -13,10 +13,10 @@ import (
 )
 
 type streamFailureBody struct {
-	size        int
 	callbackErr error
 	writerErr   error
 	retained    io.Writer
+	size        int
 	calls       int
 	accepted    int
 }
@@ -46,10 +46,10 @@ func (b *streamFailureBody) WriteCanonical(destination io.Writer) error {
 func TestAttestStreamFailureIdentityAndClosureTable(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name         string
-		size         int
 		callbackErr  error
 		wantErr      error
+		name         string
+		size         int
 		wantOverflow bool
 	}{
 		{name: "minimum complete body retains exact proof", size: 1},

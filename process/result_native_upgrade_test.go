@@ -16,10 +16,10 @@ import (
 func TestReapedResultCaptureLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr error
 		name    string
 		exit    int
 		invalid bool
-		wantErr error
 	}{
 		{name: "neutral/silent zero exit remains a real observation"},
 		{name: "positive/nonzero exit is an exact observation", exit: 7},

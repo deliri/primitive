@@ -16,13 +16,13 @@ import (
 func TestGCSExactCopyLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name               string
-		source             func() io.Reader
-		length             uint64
 		writerErr          error
-		fullWrite          bool
-		wantBytes          string
 		wantErr, wantCause error
+		source             func() io.Reader
+		name               string
+		wantBytes          string
+		length             uint64
+		fullWrite          bool
 	}{
 		{name: "neutral empty stream proves EOF", source: func() io.Reader { return bytes.NewReader(nil) }},
 		{name: "positive exact byte waits for EOF", source: func() io.Reader { return bytes.NewBufferString("a") }, length: 1, wantBytes: "a"},
@@ -68,8 +68,8 @@ func TestGCSExactCopyLayerTriad(t *testing.T) {
 }
 
 type gcsTerminalReader struct {
-	data     []byte
 	terminal error
+	data     []byte
 }
 
 func (r *gcsTerminalReader) Read(p []byte) (int, error) {

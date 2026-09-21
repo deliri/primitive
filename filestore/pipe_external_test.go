@@ -44,12 +44,12 @@ const (
 func TestPipeCustodyLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr, wantWriteErr error
 		name                  string
+		payload               []byte
+		wantRead              []byte
 		context               pipeContextKind
 		fault                 pipeEndpointFault
-		payload               []byte
-		wantErr, wantWriteErr error
-		wantRead              []byte
 		wantEndpoints         bool
 	}{
 		{name: "binary bytes survive exact native pipe custody", payload: []byte{0, 255, 1, 127}, wantRead: []byte{0, 255, 1, 127}, wantEndpoints: true},
@@ -183,10 +183,10 @@ func TestPipeCustodyLayerTriad(t *testing.T) {
 func TestPipeEndpointAdmissionExhaustsPresenceAndAliasing(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr                                error
 		name                                   string
 		omitReader, omitWriter, alias, reverse bool
 		fault                                  pipeEndpointFault
-		wantErr                                error
 	}{
 		{name: "distinct endpoints preserve buffered native bytes"},
 		{name: "missing reader cannot transfer a complete capability", omitReader: true, wantErr: core.ErrFilestoreContract},

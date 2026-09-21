@@ -12,9 +12,9 @@ func TestTransferEvidenceCannotExceedProviderExtent(t *testing.T) {
 	t.Parallel()
 	for _, operation := range []struct {
 		name      string
+		version   string
 		provider  Provider
 		direction Direction
-		version   string
 	}{
 		{name: "S3 upload", provider: ProviderAmazonS3, direction: DirectionUpload},
 		{name: "S3 download", provider: ProviderAmazonS3, direction: DirectionDownload},
@@ -33,9 +33,9 @@ func TestTransferEvidenceCannotExceedProviderExtent(t *testing.T) {
 				maximum = spec.DownloadMaximum.Uint64()
 			}
 			for _, tc := range []struct {
+				want   error
 				name   string
 				length uint64
-				want   error
 			}{
 				{name: "empty transfer remains a real object"},
 				{name: "one below provider ceiling remains representable", length: maximum - 1},

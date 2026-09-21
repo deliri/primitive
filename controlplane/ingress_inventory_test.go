@@ -25,27 +25,27 @@ type ingressProof struct {
 func TestExternalJSONDoorsHaveSemanticFuzzProof(t *testing.T) {
 	t.Parallel()
 	inventory := []ingressProof{
-		{reflect.TypeFor[controlplane.SigningDomain](), FuzzSigningDomainExternalDecoders},
-		{reflect.TypeFor[controlplane.ProductStatus](), FuzzProductStatusExternalDecoders},
-		{reflect.TypeFor[controlplane.ResponseHeaderField](), FuzzResponseHeaderFieldExternalDecoders},
-		{reflect.TypeFor[controlplane.UsageDisposition](), FuzzUsageDispositionExternalDecoders},
-		{reflect.TypeFor[controlplane.UsageClass](), FuzzUsageClassExternalDecoders},
-		{reflect.TypeFor[controlplane.OutcomeClass](), FuzzOutcomeClassExternalDecoders},
-		{reflect.TypeFor[controlplane.RegistrationRequest](), FuzzRegistrationRequestExternalDecoder},
-		{reflect.TypeFor[controlplane.AccessRegistrationRequest](), FuzzAccessRegistrationSemanticClosure},
-		{reflect.TypeFor[controlplane.InstallationCertificateBody](), FuzzInstallationCertificateBodyDecodeAndVerify},
-		{reflect.TypeFor[controlplane.InstallationCertificateDocument](), FuzzInstallationCertificateDocumentDecodeAndVerify},
-		{reflect.TypeFor[controlplane.RegistrationPayload](), FuzzRegistrationPayloadExternalDecoder},
-		{reflect.TypeFor[controlplane.RegistrationDocument](), FuzzRegistrationDocumentDecodeAndVerify},
-		{reflect.TypeFor[controlplane.CheckInPayload](), FuzzCheckInPayloadExternalDecoder},
-		{reflect.TypeFor[controlplane.CheckInRequest](), FuzzCheckInRequestDecodeAndVerify},
-		{reflect.TypeFor[controlplane.CheckInResponsePayload](), FuzzCheckInResponsePayloadExternalDecoder},
-		{reflect.TypeFor[controlplane.CheckInResponseDocument](), FuzzCheckInResponseDocumentDecodeAndVerify},
-		{reflect.TypeFor[controlplane.ResponseHeader](), FuzzResponseHeaderExternalDecoder},
-		{reflect.TypeFor[controlplane.UsageWatermark](), FuzzUsageWatermarkExternalDecoder},
-		{reflect.TypeFor[controlplane.UsageWindow](), FuzzUsageWindowDecode},
-		{reflect.TypeFor[controlplane.ResponseCommitment](), FuzzResponseCommitmentExternalDecoder},
-		{reflect.TypeFor[controlplane.ResponseDocument[controlplane.RegistrationDocument, *controlplane.RegistrationDocument]](), FuzzAuthenticatedResponseExternalSemanticClosure},
+		{owner: reflect.TypeFor[controlplane.SigningDomain](), fuzz: FuzzSigningDomainExternalDecoders},
+		{owner: reflect.TypeFor[controlplane.ProductStatus](), fuzz: FuzzProductStatusExternalDecoders},
+		{owner: reflect.TypeFor[controlplane.ResponseHeaderField](), fuzz: FuzzResponseHeaderFieldExternalDecoders},
+		{owner: reflect.TypeFor[controlplane.UsageDisposition](), fuzz: FuzzUsageDispositionExternalDecoders},
+		{owner: reflect.TypeFor[controlplane.UsageClass](), fuzz: FuzzUsageClassExternalDecoders},
+		{owner: reflect.TypeFor[controlplane.OutcomeClass](), fuzz: FuzzOutcomeClassExternalDecoders},
+		{owner: reflect.TypeFor[controlplane.RegistrationRequest](), fuzz: FuzzRegistrationRequestExternalDecoder},
+		{owner: reflect.TypeFor[controlplane.AccessRegistrationRequest](), fuzz: FuzzAccessRegistrationSemanticClosure},
+		{owner: reflect.TypeFor[controlplane.InstallationCertificateBody](), fuzz: FuzzInstallationCertificateBodyDecodeAndVerify},
+		{owner: reflect.TypeFor[controlplane.InstallationCertificateDocument](), fuzz: FuzzInstallationCertificateDocumentDecodeAndVerify},
+		{owner: reflect.TypeFor[controlplane.RegistrationPayload](), fuzz: FuzzRegistrationPayloadExternalDecoder},
+		{owner: reflect.TypeFor[controlplane.RegistrationDocument](), fuzz: FuzzRegistrationDocumentDecodeAndVerify},
+		{owner: reflect.TypeFor[controlplane.CheckInPayload](), fuzz: FuzzCheckInPayloadExternalDecoder},
+		{owner: reflect.TypeFor[controlplane.CheckInRequest](), fuzz: FuzzCheckInRequestDecodeAndVerify},
+		{owner: reflect.TypeFor[controlplane.CheckInResponsePayload](), fuzz: FuzzCheckInResponsePayloadExternalDecoder},
+		{owner: reflect.TypeFor[controlplane.CheckInResponseDocument](), fuzz: FuzzCheckInResponseDocumentDecodeAndVerify},
+		{owner: reflect.TypeFor[controlplane.ResponseHeader](), fuzz: FuzzResponseHeaderExternalDecoder},
+		{owner: reflect.TypeFor[controlplane.UsageWatermark](), fuzz: FuzzUsageWatermarkExternalDecoder},
+		{owner: reflect.TypeFor[controlplane.UsageWindow](), fuzz: FuzzUsageWindowDecode},
+		{owner: reflect.TypeFor[controlplane.ResponseCommitment](), fuzz: FuzzResponseCommitmentExternalDecoder},
+		{owner: reflect.TypeFor[controlplane.ResponseDocument[controlplane.RegistrationDocument, *controlplane.RegistrationDocument]](), fuzz: FuzzAuthenticatedResponseExternalSemanticClosure},
 	}
 	want := make(map[string]bool, len(inventory))
 	for _, entry := range inventory {
@@ -113,11 +113,11 @@ func TestIngressReceiverMatcherCoversPointerAndGenericSyntax(t *testing.T) {
 		source string
 		want   string
 	}{
-		{"value receiver", "Document", "Document"},
-		{"pointer receiver", "*Document", "Document"},
-		{"one generic parameter", "Document[Body]", "Document"},
-		{"two generic parameters", "*Document[Body, BodyPtr]", "Document"},
-		{"non-receiver syntax", "[]byte", ""},
+		{name: "value receiver", source: "Document", want: "Document"},
+		{name: "pointer receiver", source: "*Document", want: "Document"},
+		{name: "one generic parameter", source: "Document[Body]", want: "Document"},
+		{name: "two generic parameters", source: "*Document[Body, BodyPtr]", want: "Document"},
+		{name: "non-receiver syntax", source: "[]byte", want: ""},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

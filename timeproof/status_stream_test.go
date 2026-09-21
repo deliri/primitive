@@ -23,9 +23,9 @@ func TestStatusTextAdmissionLayerTriad(t *testing.T) {
 		many[index] = "refused"
 	}
 	cases := []struct {
+		wantErr error
 		name    string
 		text    []byte
-		wantErr error
 	}{
 		{name: "one UTF8 status text", text: encodeStatusText(t, "refused"), wantErr: core.ErrTimeProofRefused},
 		{name: "one empty string still supplies one entry", text: encodeStatusText(t, ""), wantErr: core.ErrTimeProofRefused},

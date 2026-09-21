@@ -18,8 +18,8 @@ import (
 func BenchmarkNativeHandleAcquisition(b *testing.B) {
 	b.ReportAllocs()
 	for _, operation := range []struct {
-		name string
 		open func(context.Context, filestore.Location) (*os.File, error)
+		name string
 	}{
 		{name: "Read", open: func(ctx context.Context, location filestore.Location) (*os.File, error) {
 			return filestore.OpenRead(ctx, filestore.ReadHandleRequest{Location: location})

@@ -22,9 +22,9 @@ func TestOutputPolicyLayerTriadExhaustsModeAndExtentPartitions(t *testing.T) {
 		t.Fatal(err)
 	}
 	cases := []struct {
+		wantErr error
 		name    string
 		input   OutputPolicy
-		wantErr error
 	}{
 		{name: "explicit streaming needs no extent", input: OutputPolicy{Mode: OutputModeStreaming}},
 		{name: "bounded minimum remains exact", input: OutputPolicy{Mode: OutputModeBounded, Maximum: one}},

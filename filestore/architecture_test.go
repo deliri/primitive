@@ -36,6 +36,7 @@ type architectureScan struct {
 // filestoreContractInventory classifies every production struct by its real
 // role. The generic arguments make every inventory entry compiler-visible.
 type filestoreContractInventory struct {
+	CopyContentRequest            validatedRequest[CopyContentRequest]
 	ContentIndexInspectionRequest validatedRequest[ContentIndexInspectionRequest]
 	ContentIndexEntry             boundedFact[ContentIndexEntry]
 	ContentSortRequest            validatedRequest[ContentSortRequest]

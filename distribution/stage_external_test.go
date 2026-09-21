@@ -57,9 +57,9 @@ func TestUpgradeStageProjectionLayerTriad(t *testing.T) {
 	}
 	prepared := preparedDistributionRelease(t)
 	cases := []struct {
+		wantErr                 error
 		name                    string
 		foreign, closed, absent bool
-		wantErr                 error
 	}{
 		{name: "same directory returns exact unexecuted capability"},
 		{name: "foreign directory refuses all stage output", foreign: true, wantErr: core.ErrDistributionContract},

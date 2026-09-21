@@ -25,14 +25,14 @@ var (
 func TestCallableOperationsLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		function  reflect.Value
 		name      string
 		operation Operation
-		function  reflect.Value
 	}{
-		{"bounded file read", OperationReadFile, reflect.ValueOf(filestore.Read)},
-		{"durable file write", OperationWriteFile, reflect.ValueOf(filestore.Write)},
-		{"bounded process execution", OperationRunProcess, reflect.ValueOf(process.Run)},
-		{"one exact clock observation", OperationObserveTime, reflect.ValueOf(temporal.Observe)},
+		{name: "bounded file read", operation: OperationReadFile, function: reflect.ValueOf(filestore.Read)},
+		{name: "durable file write", operation: OperationWriteFile, function: reflect.ValueOf(filestore.Write)},
+		{name: "bounded process execution", operation: OperationRunProcess, function: reflect.ValueOf(process.Run)},
+		{name: "one exact clock observation", operation: OperationObserveTime, function: reflect.ValueOf(temporal.Observe)},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

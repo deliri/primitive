@@ -18,10 +18,10 @@ import (
 func BenchmarkReplayStreamDownloadHandoff(b *testing.B) {
 	b.ReportAllocs()
 	cases := []struct {
+		wantNative      error
 		name            string
 		fault           replayHandoffBodyFault
 		cancelAtHandoff bool
-		wantNative      error
 		wantCancelled   bool
 	}{
 		{name: "binary_success"},

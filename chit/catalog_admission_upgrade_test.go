@@ -13,10 +13,10 @@ func TestCatalogRefusalPrecedesSignerCallbacksTable(t *testing.T) {
 	foreign := newCatalogFixture(t, 0x73, 2)
 	validEntries := catalogHistoryEntries(t, fixture, core.CatalogPageMaximumEntries+1)
 	cases := []struct {
+		wantErr error
+		mutate  func(*CatalogPayload)
 		name    string
 		count   int
-		mutate  func(*CatalogPayload)
-		wantErr error
 	}{
 		{name: "nil entries are absence", mutate: func(p *CatalogPayload) { p.Entries = nil }, wantErr: core.ErrChitContract},
 		{name: "valid empty terminal page", count: 0},
@@ -60,6 +60,9 @@ func TestCatalogRefusalPrecedesSignerCallbacksTable(t *testing.T) {
 				if catalogPayloadsEqual(payload, before) {
 					t.Fatalf("mutated page = %+v, want distinct from %+v", payload, before)
 				}
+			}
+			if err := (CatalogIssuance{Signer: fixture.private, Payload: payload}).Validate(); !errors.Is(err, tc.wantErr) {
+				t.Fatalf("CatalogIssuance.Validate() error = %v, want %v", err, tc.wantErr)
 			}
 			publicCalls := 0
 			signer := &chitMutationSigner{Signer: fixture.private, mutate: func() {}, mutatePublic: func() { publicCalls++ }}

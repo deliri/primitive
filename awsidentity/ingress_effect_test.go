@@ -26,17 +26,17 @@ const (
 func TestAWSAcquireInvalidIngressCannotPerformEffect(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		kind    awsInvalidIngress
-		wantErr error
 	}{
-		{"unset client", awsInvalidClient, core.ErrAWSIdentityContract},
-		{"unset request", awsInvalidRequest, core.ErrAWSIdentityContract},
-		{"request audience changed after construction", awsInvalidAudience, core.ErrAWSIdentityContract},
-		{"request policy unset after construction", awsInvalidPolicy, core.ErrAWSIdentityContract},
-		{"pre cancelled context", awsCancelledContext, context.Canceled},
-		{"expired temporal budget", awsExpiredContext, context.DeadlineExceeded},
-		{"nil context", awsNilContext, core.ErrAWSIdentityContract},
+		{name: "unset client", kind: awsInvalidClient, wantErr: core.ErrAWSIdentityContract},
+		{name: "unset request", kind: awsInvalidRequest, wantErr: core.ErrAWSIdentityContract},
+		{name: "request audience changed after construction", kind: awsInvalidAudience, wantErr: core.ErrAWSIdentityContract},
+		{name: "request policy unset after construction", kind: awsInvalidPolicy, wantErr: core.ErrAWSIdentityContract},
+		{name: "pre cancelled context", kind: awsCancelledContext, wantErr: context.Canceled},
+		{name: "expired temporal budget", kind: awsExpiredContext, wantErr: context.DeadlineExceeded},
+		{name: "nil context", kind: awsNilContext, wantErr: core.ErrAWSIdentityContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

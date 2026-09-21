@@ -81,12 +81,12 @@ func TestOfficialSDKQueryCustodyLayerTriad(t *testing.T) {
 	t.Parallel()
 	exact := url.QueryEscape(sdkQueryFixtureName) + "=" + url.QueryEscape(sdkQueryFixtureValue)
 	cases := []struct {
+		wantErr       error
 		name, query   string
 		status        int
-		wantStream    bool
-		wantErr       error
 		wantReadBytes int
 		wantCloses    int
+		wantStream    bool
 	}{
 		{name: "positive exact coordinate transfers unread custody", query: exact, status: http.StatusOK, wantStream: true},
 		{name: "positive escaped coordinate uses Go query semantics", query: "%61lt=m%65dia", status: http.StatusOK, wantStream: true},

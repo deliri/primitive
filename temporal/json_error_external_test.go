@@ -15,10 +15,10 @@ import (
 func TestTemporalJSONRefusalLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name, decimal                                                    string
-		wantSigned                                                       int64
-		wantWide                                                         string
 		wantInstantErr, wantDurationErr, wantAggregateErr, wantNumberErr error
+		name, decimal                                                    string
+		wantWide                                                         string
+		wantSigned                                                       int64
 	}{
 		{name: "zero replaces an existing value", decimal: "0", wantWide: "0"},
 		{name: "one preserves the smallest positive value", decimal: "1", wantSigned: 1, wantWide: "1"},
@@ -51,12 +51,12 @@ func TestTemporalJSONRefusalLayerTriad(t *testing.T) {
 			durationErr := duration.UnmarshalJSON(quoted)
 			aggregateErr := aggregate.UnmarshalJSON(quoted)
 			for _, result := range []struct {
-				name            string
 				gotErr, wantErr error
+				name            string
 			}{
-				{"instant", instantErr, tc.wantInstantErr},
-				{"duration", durationErr, tc.wantDurationErr},
-				{"aggregate", aggregateErr, tc.wantAggregateErr},
+				{name: "instant", gotErr: instantErr, wantErr: tc.wantInstantErr},
+				{name: "duration", gotErr: durationErr, wantErr: tc.wantDurationErr},
+				{name: "aggregate", gotErr: aggregateErr, wantErr: tc.wantAggregateErr},
 			} {
 				if !errors.Is(result.gotErr, result.wantErr) || (result.wantErr != nil && (!errors.Is(result.gotErr, core.ErrJSONContract) || !errors.Is(result.gotErr, core.ErrTemporalContract))) {
 					t.Fatalf("%s decode = %v, want %v with JSON and Temporal identities", result.name, result.gotErr, result.wantErr)
@@ -98,11 +98,11 @@ func TestTemporalJSONRefusalLayerTriad(t *testing.T) {
 			instantErr = numericInstant.UnmarshalJSON([]byte(tc.decimal))
 			durationErr = numericDuration.UnmarshalJSON([]byte(tc.decimal))
 			for _, result := range []struct {
-				name            string
 				gotErr, wantErr error
+				name            string
 			}{
-				{"numeric instant", instantErr, tc.wantInstantErr},
-				{"numeric duration", durationErr, tc.wantDurationErr},
+				{name: "numeric instant", gotErr: instantErr, wantErr: tc.wantInstantErr},
+				{name: "numeric duration", gotErr: durationErr, wantErr: tc.wantDurationErr},
 			} {
 				if !errors.Is(result.gotErr, result.wantErr) || (result.wantErr != nil && (!errors.Is(result.gotErr, core.ErrJSONContract) || !errors.Is(result.gotErr, core.ErrTemporalContract))) {
 					t.Fatalf("%s decode = %v, want %v with JSON and Temporal identities", result.name, result.gotErr, result.wantErr)

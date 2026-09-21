@@ -20,11 +20,11 @@ import (
 func TestAnalysisBatchAmortizesRealCompilerCommands(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr   error
 		name      string
 		packages  int
-		limited   bool
 		wantCalls int
-		wantErr   error
+		limited   bool
 	}{
 		{name: "single subject keeps exact command path", packages: 1, wantCalls: 2},
 		{name: "two subjects share one compiler load", packages: 2, wantCalls: 2},

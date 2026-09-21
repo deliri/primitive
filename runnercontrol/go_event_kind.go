@@ -1,6 +1,9 @@
 package runnercontrol
 
-import "github.com/deliri/primitive/v2026/core"
+import (
+	"errors"
+	"github.com/deliri/primitive/v2026/core"
+)
 
 type GoEventAction uint8
 
@@ -54,37 +57,12 @@ func (a GoEventAction) Validate() error {
 	}
 	return nil
 }
+func (a GoEventAction) IsValid() bool { return a.Validate() == nil }
 func (a GoEventAction) String() string {
-	switch a {
-	case GoEventActionStart:
-		return "start"
-	case GoEventActionRun:
-		return "run"
-	case GoEventActionPause:
-		return "pause"
-	case GoEventActionContinue:
-		return "cont"
-	case GoEventActionPass:
-		return "pass"
-	case GoEventActionBenchmark:
-		return "bench"
-	case GoEventActionFail:
-		return "fail"
-	case GoEventActionOutput:
-		return "output"
-	case GoEventActionSkip:
-		return "skip"
-	case GoEventActionBuildOutput:
-		return "build-output"
-	case GoEventActionBuildFail:
-		return "build-fail"
-	case GoEventActionAttribute:
-		return "attr"
-	case GoEventActionArtifacts:
-		return "artifacts"
-	default:
+	if !a.IsValid() {
 		return invalidEnumString()
 	}
+	return [...]string{"", "start", "run", "pause", "cont", "pass", "bench", "fail", "output", "skip", "build-output", "build-fail", "attr", "artifacts"}[a]
 }
 func (a GoEventAction) MarshalJSON() ([]byte, error) {
 	if err := a.Validate(); err != nil {
@@ -105,7 +83,7 @@ func (k GoEventOutputKind) String() string {
 	case GoEventOutputFrame:
 		return "frame"
 	case GoEventOutputError:
-		return "error"
+		return goEventErrorText
 	case GoEventOutputErrorContinue:
 		return "error-continue"
 	default:
@@ -124,3 +102,63 @@ func (f GoEventField) Validate() error {
 	}
 	return nil
 }
+
+func (k GoEventOutputKind) IsValid() bool { return k.Validate() == nil }
+
+func (a *GoEventAction) UnmarshalJSON(data []byte) error {
+	if a == nil {
+		return goJSONFailure()
+	}
+	text, err := core.DecodeJSONStringToken(data)
+	if err != nil {
+		return errors.Join(goJSONFailure(), err)
+	}
+	candidate, err := decodeGoEventAction(text)
+	if err != nil {
+		return err
+	}
+	*a = candidate
+	return nil
+}
+
+func (k *GoEventOutputKind) UnmarshalJSON(data []byte) error {
+	if k == nil {
+		return goJSONFailure()
+	}
+	text, err := core.DecodeJSONStringToken(data)
+	if err != nil {
+		return errors.Join(goJSONFailure(), err)
+	}
+	candidate, err := decodeGoOutputKind(text)
+	if err != nil {
+		return err
+	}
+	*k = candidate
+	return nil
+}
+
+func (f GoEventField) IsValid() bool { return f.Validate() == nil }
+
+func decodeGoEventField(text string) (GoEventField, error) {
+	for field := GoEventFieldAction; field <= GoEventFieldPath; field++ {
+		if field.String() == text {
+			return field, nil
+		}
+	}
+	return GoEventFieldUnknown, goJSONFailure()
+}
+
+// OffWireEnum declares the streaming observer's field discriminator. Field
+// fragments are delivered through Go callbacks and have no JSON representation.
+func (GoEventField) OffWireEnum() {}
+
+func (f GoEventField) String() string {
+	if !f.IsValid() {
+		return invalidEnumString()
+	}
+	return [...]string{"", "Action", "Package", "Test", "Output", "OutputType", "Time", "FailedBuild", "Elapsed", "ImportPath", "Key", "Value", "Path"}[f]
+}
+
+var _ core.OffWireEnum = GoEventFieldUnknown
+
+const goEventErrorText = "error"

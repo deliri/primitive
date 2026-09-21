@@ -33,7 +33,7 @@ func TestAnalyzePackageResolvesCgoThroughTheRealCompiler(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, variable := range []struct{ name, value string }{
-		{"CGO_ENABLED", "1"}, {"GOENV", "off"}, {"GOFLAGS", "-buildvcs=false"}, {"GOTOOLCHAIN", "local"}, {"GOPROXY", "off"}, {"GOSUMDB", "off"},
+		{name: "CGO_ENABLED", value: "1"}, {name: "GOENV", value: "off"}, {name: "GOFLAGS", value: "-buildvcs=false"}, {name: "GOTOOLCHAIN", value: "local"}, {name: "GOPROXY", value: "off"}, {name: "GOSUMDB", value: "off"},
 	} {
 		environment = compilerEnvironmentVariable(t, environment, variable.name, variable.value)
 	}

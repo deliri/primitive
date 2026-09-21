@@ -61,7 +61,7 @@ func TestRuleProducerClassifierHandoff(t *testing.T) {
 				for _, source := range []struct {
 					rule standardSymbolRule
 					want Classification
-				}{{first, left}, {second, right}} {
+				}{{rule: first, want: left}, {rule: second, want: right}} {
 					fact, err := source.rule.resolve(symbol, symbol.Selector.String())
 					if err != nil || fact.Symbol != symbol || !fact.Classification.Equal(source.want) {
 						t.Fatalf("producer = (%+v,%v), want retained %+v", fact, err, source.want)

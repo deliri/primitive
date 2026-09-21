@@ -17,9 +17,9 @@ import (
 func TestCanonicalizeGoResolutionLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr, wantCause       error
 		name, path, wantRelative string
 		ingress                  symbolicObservationIngress
-		wantErr, wantCause       error
 	}{
 		{name: "real binary file remains an existing absolute observation", path: "file", wantRelative: "root/file"},
 		{name: "directory target remains directory without invented file rule", path: "directory", wantRelative: "root/directory"},

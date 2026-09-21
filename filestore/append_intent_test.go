@@ -17,11 +17,11 @@ import (
 func TestAppendIntentLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr        error
 		name           string
 		append         filestore.AppendMode
 		entry          nativeHandleEntry
 		empty, noWrite bool
-		wantErr        error
 	}{
 		{name: "exclusive create publishes a new append capability", append: filestore.AppendCreate, entry: nativeHandleMissing},
 		{name: "exclusive create cannot truncate binary occupied file", append: filestore.AppendCreate, wantErr: core.ErrFilestoreConflict},
@@ -263,10 +263,10 @@ const (
 func TestRotateAppendValidationOwnershipLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr, wantNative error
 		name                string
 		mutation            rotationMutation
 		empty, wantClosed   bool
-		wantErr, wantNative error
 	}{
 		{name: "valid handoff closes exact outgoing and creates empty incoming", wantClosed: true},
 		{name: "empty outgoing still transfers actual handle ownership", empty: true, wantClosed: true},

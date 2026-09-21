@@ -14,9 +14,9 @@ import (
 func TestWriteStreamUnknownLengthPreservesEveryByteLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		terminal error
 		name     string
 		size     uint64
-		terminal error
 	}{
 		{name: "unknown empty source completes without a fabricated declaration"},
 		{name: "one byte does not require a declaration", size: 1},
@@ -55,12 +55,12 @@ func TestWriteStreamUnknownLengthPreservesEveryByteLayerTriad(t *testing.T) {
 func TestUnknownLengthHTTPStreamsCrossBothDirectionsLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name     string
-		size     uint64
-		known    bool
-		declared uint64
 		terminal error
 		wantErr  error
+		name     string
+		size     uint64
+		declared uint64
+		known    bool
 	}{
 		{name: "unknown empty request"},
 		{name: "unknown request beyond one copy window", size: TransferBufferBytes + 1},
@@ -75,9 +75,9 @@ func TestUnknownLengthHTTPStreamsCrossBothDirectionsLayerTriad(t *testing.T) {
 			for _, roundTrip := range []bool{false, true} {
 				const replyBytes = TransferBufferBytes + 1
 				type received struct {
+					readErr, writeErr error
 					length            int64
 					count             uint64
-					readErr, writeErr error
 				}
 				observed := make(chan received, 1)
 				calls := 0
@@ -164,9 +164,9 @@ func TestUnknownLengthHTTPStreamsCrossBothDirectionsLayerTriad(t *testing.T) {
 func TestExactStreamEndPreservesJoinedNativeFailures(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		terminal, errorIdentity error
 		name                    string
 		size                    uint64
-		terminal, errorIdentity error
 	}{
 		{name: "clean empty EOF"},
 		{name: "clean EOF after exact data", size: 3},

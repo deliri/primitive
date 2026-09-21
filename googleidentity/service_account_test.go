@@ -42,10 +42,10 @@ func TestServiceAccountSDKBoundaryRefusesUnownedCredentialKinds(t *testing.T) {
 		name string
 		data []byte
 	}{
-		{"empty credential cannot detect ADC", nil},
-		{"null credential cannot detect ADC", []byte("null")},
-		{"wrong JSON root is not a service account", []byte("[]")},
-		{"missing key cannot issue assertion", []byte(`{"type":"service_account","client_email":"worker@example.invalid"}`)},
+		{name: "empty credential cannot detect ADC", data: nil},
+		{name: "null credential cannot detect ADC", data: []byte("null")},
+		{name: "wrong JSON root is not a service account", data: []byte("[]")},
+		{name: "missing key cannot issue assertion", data: []byte(`{"type":"service_account","client_email":"worker@example.invalid"}`)},
 	}
 	for _, kind := range []credentials.CredType{credentials.AuthorizedUser, credentials.ExternalAccount, credentials.ImpersonatedServiceAccount} {
 		data, err := core.MarshalCanonicalJSONDocument(serviceAccountFixtureDocument{Type: kind})
@@ -55,7 +55,7 @@ func TestServiceAccountSDKBoundaryRefusesUnownedCredentialKinds(t *testing.T) {
 		cases = append(cases, struct {
 			name string
 			data []byte
-		}{"foreign credential kind " + string(kind), data})
+		}{name: "foreign credential kind " + string(kind), data: data})
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -137,9 +137,9 @@ func TestServiceAccountFileExtentLayerTriad(t *testing.T) {
 		name string
 		size int
 	}{
-		{"one below former credential quota", serviceAccountCredentialFixtureBytes - 1},
-		{"exact former credential quota", serviceAccountCredentialFixtureBytes},
-		{"one above former credential quota", serviceAccountCredentialFixtureBytes + 1},
+		{name: "one below former credential quota", size: serviceAccountCredentialFixtureBytes - 1},
+		{name: "exact former credential quota", size: serviceAccountCredentialFixtureBytes},
+		{name: "one above former credential quota", size: serviceAccountCredentialFixtureBytes + 1},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			size := tc.size

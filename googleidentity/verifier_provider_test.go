@@ -21,9 +21,9 @@ const verifierFormerCertificateCutoffBytes = 256 << 10
 func TestGoogleCloudVerifierCertificateLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name     string
-		response func(http.ResponseWriter, *http.Request, []byte)
 		wantErr  error
+		response func(http.ResponseWriter, *http.Request, []byte)
+		name     string
 	}{
 		{name: "trusted certificate yields exact signed identity"},
 		{name: "empty certificate response yields no proof", response: func(w http.ResponseWriter, _ *http.Request, _ []byte) { w.WriteHeader(http.StatusNoContent) }, wantErr: core.ErrGoogleIdentityContract},
@@ -102,11 +102,11 @@ func paddedVerifierCertificate(t testing.TB, size int) func(http.ResponseWriter,
 func TestGoogleCloudVerifierCancellationWaitsForCertificateReadExit(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr    error
 		name       string
+		wantCalls  uint64
 		preCancel  bool
 		cancelRead bool
-		wantCalls  uint64
-		wantErr    error
 	}{
 		{name: "complete_certificate_preserves_exact_identity", wantCalls: 1},
 		{name: "cancelled_body_read_joins_provider_exit", cancelRead: true, wantCalls: 1, wantErr: context.Canceled},
@@ -147,11 +147,11 @@ func TestGoogleCloudVerifierCancellationWaitsForCertificateReadExit(t *testing.T
 				cancel()
 			}
 			type result struct {
-				identity GoogleCloudVerifiedIdentity
 				err      error
+				identity GoogleCloudVerifiedIdentity
 			}
 			done := make(chan result, 1)
-			go func() { identity, err := verifier.Verify(ctx, bearer); done <- result{identity, err} }()
+			go func() { identity, err := verifier.Verify(ctx, bearer); done <- result{identity: identity, err: err} }()
 			if !tc.preCancel {
 				select {
 				case <-started:

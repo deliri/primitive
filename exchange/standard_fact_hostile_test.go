@@ -17,11 +17,11 @@ func TestStandardHeaderExhaustsCompleteByteDomain(t *testing.T) {
 	// class, not 252 earned rows toward a parser or classifier quota. Expected
 	// names bind to the owning constants, independently of the enum's lookup.
 	type headerCase struct {
-		name      string
-		input     StandardHeader
-		wantName  string
-		wantValid bool
 		wantErr   error
+		name      string
+		wantName  string
+		input     StandardHeader
+		wantValid bool
 	}
 	cases := [math.MaxUint8 + 1]headerCase{}
 	for ordinal := range cases {
@@ -64,11 +64,11 @@ func TestStandardHeaderExhaustsCompleteByteDomain(t *testing.T) {
 func TestStandardMediaTypeExhaustsCompleteByteDomain(t *testing.T) {
 	t.Parallel()
 	type mediaCase struct {
-		name      string
-		input     StandardMediaType
-		wantName  string
-		wantValid bool
 		wantErr   error
+		name      string
+		wantName  string
+		input     StandardMediaType
+		wantValid bool
 	}
 	cases := [math.MaxUint8 + 1]mediaCase{}
 	for ordinal := range cases {

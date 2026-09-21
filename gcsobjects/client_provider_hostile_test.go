@@ -246,21 +246,21 @@ const (
 )
 
 type gcsReadCase struct {
-	chunked       bool
 	name          string
 	payload       []byte
 	metadataBytes []byte
 	wantBytes     []byte
 	maximum       uint64
 	wantErr       core.ErrorIdentity
+	chunked       bool
 	disposition   gcsReadDisposition
 }
 
 type gcsReadProvider struct {
-	chunked       bool
 	t             testing.TB
 	payload       []byte
 	metadataBytes []byte
+	chunked       bool
 	disposition   gcsReadDisposition
 }
 

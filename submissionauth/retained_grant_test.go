@@ -22,10 +22,10 @@ func TestRetainedGrantCredentialedCompletionLayerTriad(t *testing.T) {
 	}
 	base := CompletionVerification{Provider: objectstore.ProviderGoogleCloudStorage, Document: fixture.credentialed, Request: fixture.verifiedRequest, Grant: retained, GrantKeys: fixture.request.trusted, Server: submissionAuthServer(t, fixture.request.trusted), Nonce: fixture.completionNonce}
 	for _, tc := range []struct {
+		wantErr  error
 		name     string
 		grant    submission.GrantRecord
 		provider objectstore.Provider
-		wantErr  error
 	}{
 		{name: "retained agreement authenticates nominated device", grant: retained, provider: objectstore.ProviderGoogleCloudStorage},
 		{name: "missing grant never creates credentialed proof", provider: objectstore.ProviderGoogleCloudStorage, wantErr: core.ErrControlPlaneContract},

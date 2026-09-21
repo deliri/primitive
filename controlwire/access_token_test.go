@@ -65,7 +65,11 @@ func TestAccessTokenIdentityLayerTriad(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewAccessToken(mutated) error = %v, want nil", err)
 	}
-	defer mutated.Destroy()
+	defer func() {
+		if err := mutated.Destroy(); err != nil {
+			t.Errorf("mutated.Destroy() cleanup error = %v, want nil", err)
+		}
+	}()
 	other, err := mutated.Verifier()
 	if err != nil || other == verifier {
 		t.Fatalf("mutation verifier = (%v, %v), want distinct and nil", other, err)
@@ -150,7 +154,11 @@ func TestAccessTokenCopiesRedactAndDestroyTogether(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ParseAccessToken() error = %v, want nil", err)
 	}
-	defer parsed.Destroy()
+	defer func() {
+		if err := parsed.Destroy(); err != nil {
+			t.Errorf("parsed.Destroy() cleanup error = %v, want nil", err)
+		}
+	}()
 	clear(text)
 	want, err := token.Verifier()
 	if err != nil {
@@ -232,7 +240,11 @@ func FuzzAccessTokenTextAndJSONSemanticClosure(f *testing.F) {
 			}
 			return
 		}
-		defer got.Destroy()
+		defer func() {
+			if err := got.Destroy(); err != nil {
+				t.Errorf("got.Destroy() cleanup error = %v, want nil", err)
+			}
+		}()
 		if !wantAccepted || got.Validate() != nil {
 			t.Fatalf("acceptance = %v, want independently admitted canonical token", got)
 		}
@@ -250,7 +262,11 @@ func FuzzAccessTokenTextAndJSONSemanticClosure(f *testing.F) {
 		if err := round.UnmarshalJSON(encoded); err != nil {
 			t.Fatalf("canonical parse error = %v, want nil", err)
 		}
-		defer round.Destroy()
+		defer func() {
+			if err := round.Destroy(); err != nil {
+				t.Errorf("round.Destroy() cleanup error = %v, want nil", err)
+			}
+		}()
 		verifier, err := got.Verifier()
 		if err != nil {
 			t.Fatalf("Verifier() error = %v, want nil", err)

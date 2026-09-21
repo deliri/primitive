@@ -15,31 +15,31 @@ import (
 func TestAWSRequestInputRefusesInvalidOwnedFields(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name     string
 		change   func(*RequestInput)
+		name     string
 		wantCore bool
 	}{
-		{"unset audience", func(i *RequestInput) { i.Audience = Audience{} }, false},
-		{"oversized audience", func(i *RequestInput) { i.Audience = Audience{value: strings.Repeat("a", AudienceMaximumBytes+1)} }, false},
-		{"invalid UTF8 audience", func(i *RequestInput) { i.Audience = Audience{value: "\xff"} }, false},
-		{"unset policy", func(i *RequestInput) { i.Policy = Policy{} }, false},
-		{"empty URL", func(i *RequestInput) { i.SignedURL = "" }, true},
-		{"relative URL", func(i *RequestInput) { i.SignedURL = "/identity" }, true},
-		{"opaque URL", func(i *RequestInput) { i.SignedURL = core.SchemeHTTPS + ":opaque" }, true},
-		{"credential bearing URL", func(i *RequestInput) {
+		{name: "unset audience", change: func(i *RequestInput) { i.Audience = Audience{} }, wantCore: false},
+		{name: "oversized audience", change: func(i *RequestInput) { i.Audience = Audience{value: strings.Repeat("a", AudienceMaximumBytes+1)} }, wantCore: false},
+		{name: "invalid UTF8 audience", change: func(i *RequestInput) { i.Audience = Audience{value: "\xff"} }, wantCore: false},
+		{name: "unset policy", change: func(i *RequestInput) { i.Policy = Policy{} }, wantCore: false},
+		{name: "empty URL", change: func(i *RequestInput) { i.SignedURL = "" }, wantCore: true},
+		{name: "relative URL", change: func(i *RequestInput) { i.SignedURL = "/identity" }, wantCore: true},
+		{name: "opaque URL", change: func(i *RequestInput) { i.SignedURL = core.SchemeHTTPS + ":opaque" }, wantCore: true},
+		{name: "credential bearing URL", change: func(i *RequestInput) {
 			u, _ := url.Parse(i.SignedURL)
 			u.User = url.UserPassword("user", "secret")
 			i.SignedURL = u.String()
-		}, true},
-		{"fragment URL", func(i *RequestInput) { i.SignedURL += "#secret" }, true},
-		{"empty fragment delimiter", func(i *RequestInput) { i.SignedURL += "#" }, true},
-		{"invalid host escape", func(i *RequestInput) { i.SignedURL = core.SchemeHTTPS + "://%zz/" }, true},
-		{"encoded slash is not literal root", func(i *RequestInput) {
+		}, wantCore: true},
+		{name: "fragment URL", change: func(i *RequestInput) { i.SignedURL += "#secret" }, wantCore: true},
+		{name: "empty fragment delimiter", change: func(i *RequestInput) { i.SignedURL += "#" }, wantCore: true},
+		{name: "invalid host escape", change: func(i *RequestInput) { i.SignedURL = core.SchemeHTTPS + "://%zz/" }, wantCore: true},
+		{name: "encoded slash is not literal root", change: func(i *RequestInput) {
 			u, _ := url.Parse(i.SignedURL)
 			u.RawPath = "/%2f"
 			u.Path = "//"
 			i.SignedURL = u.String()
-		}, false},
+		}, wantCore: false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

@@ -13,8 +13,8 @@ import (
 func TestVerifiedResponseOwnsAuthenticatedBodyAcrossMutation(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name   string
 		mutate func(*testing.T, *controlplane.RegistrationDocument)
+		name   string
 	}{
 		{name: "certificate build mutation remains structurally valid", mutate: func(t *testing.T, body *controlplane.RegistrationDocument) {
 			original := body.Payload.Certificate.Body.Build
@@ -57,7 +57,7 @@ func TestVerifiedResponseOwnsAuthenticatedBodyAcrossMutation(t *testing.T) {
 			for _, observed := range []struct {
 				name  string
 				proof controlplane.VerifiedResponse[controlplane.RegistrationDocument, *controlplane.RegistrationDocument]
-			}{{"original", proof}, {"sibling", sibling}} {
+			}{{name: "original", proof: proof}, {name: "sibling", proof: sibling}} {
 				got, err := observed.proof.Body()
 				if err != nil {
 					t.Errorf("%s Body() error = %v, want nil after external mutation", observed.name, err)

@@ -26,9 +26,9 @@ func (w contentRejectingWriter) Write(data []byte) (int, error) {
 func TestContentIndexWriterRefusalPreservesIdentity(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name    string
 		writer  io.Writer
 		wantErr error
+		name    string
 	}{
 		{name: "nil destination", wantErr: core.ErrFilestoreContract},
 		{name: "typed nil destination", writer: (*bytes.Buffer)(nil), wantErr: core.ErrFilestoreContract},
@@ -49,9 +49,9 @@ func TestContentIndexWriterRefusalPreservesIdentity(t *testing.T) {
 func TestContentSortRefusalReturnsNoSummary(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name      string
-		configure func(*testing.T, *ContentSortRequest) context.Context
 		wantErr   error
+		configure func(*testing.T, *ContentSortRequest) context.Context
+		name      string
 	}{
 		{name: "cancelled before scratch mutation", configure: func(t *testing.T, r *ContentSortRequest) context.Context {
 			ctx, cancel := context.WithCancel(t.Context())

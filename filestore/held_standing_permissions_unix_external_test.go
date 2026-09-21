@@ -22,9 +22,9 @@ func TestHeldStandingNativeSearchPermissionLayerTriad(t *testing.T) {
 		t.Skip("root bypasses native owner search refusals")
 	}
 	for _, tc := range []struct {
+		wantErr error
 		mode    fs.FileMode
 		want    filestore.HeldStanding
-		wantErr error
 	}{
 		{mode: 0o000, want: filestore.HeldStandingUnknown, wantErr: core.ErrFilestoreSource},
 		{mode: 0o100, want: filestore.HeldStandingSame},

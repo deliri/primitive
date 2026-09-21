@@ -30,18 +30,18 @@ func TestPermitTrustedSignerAndDetachedFacts(t *testing.T) {
 		t.Fatalf("body length = %v, want nil", err)
 	}
 	for _, tc := range []struct {
-		name    string
-		mutate  func(*Document)
-		trusted attest.TrustedKeys
 		wantErr error
+		mutate  func(*Document)
+		name    string
+		trusted attest.TrustedKeys
 	}{
-		{"authentic but untrusted signer", func(d *Document) { d.Signature = foreignSignature }, keys, core.ErrAttestVerification},
-		{"trusted key removal invalidates previous signer", func(*Document) {}, foreignKeys, core.ErrAttestVerification},
-		{"signature from foreign signer cannot be spliced", func(d *Document) { d.Signature.Signature = foreignSignature.Signature }, keys, core.ErrAttestVerification},
-		{"signer field cannot be spliced", func(d *Document) { d.Signature.Signer = public }, keys, core.ErrAttestVerification},
-		{"body length cannot be replaced", func(d *Document) { d.Signature.BodyLength = length }, keys, core.ErrAttestVerification},
-		{"body digest cannot be replaced", func(d *Document) { d.Signature.BodySHA256 = core.NewSHA256Digest([core.SHA256DigestBytes]byte{1}) }, keys, core.ErrAttestVerification},
-		{"empty trust set cannot authorize", func(*Document) {}, attest.TrustedKeys{}, core.ErrAttestContract},
+		{name: "authentic but untrusted signer", mutate: func(d *Document) { d.Signature = foreignSignature }, trusted: keys, wantErr: core.ErrAttestVerification},
+		{name: "trusted key removal invalidates previous signer", mutate: func(*Document) {}, trusted: foreignKeys, wantErr: core.ErrAttestVerification},
+		{name: "signature from foreign signer cannot be spliced", mutate: func(d *Document) { d.Signature.Signature = foreignSignature.Signature }, trusted: keys, wantErr: core.ErrAttestVerification},
+		{name: "signer field cannot be spliced", mutate: func(d *Document) { d.Signature.Signer = public }, trusted: keys, wantErr: core.ErrAttestVerification},
+		{name: "body length cannot be replaced", mutate: func(d *Document) { d.Signature.BodyLength = length }, trusted: keys, wantErr: core.ErrAttestVerification},
+		{name: "body digest cannot be replaced", mutate: func(d *Document) { d.Signature.BodySHA256 = core.NewSHA256Digest([core.SHA256DigestBytes]byte{1}) }, trusted: keys, wantErr: core.ErrAttestVerification},
+		{name: "empty trust set cannot authorize", mutate: func(*Document) {}, trusted: attest.TrustedKeys{}, wantErr: core.ErrAttestContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

@@ -111,7 +111,7 @@ func TestPersistedMetadataReadLayerTriad(t *testing.T) {
 		canonical []byte
 		maximum   int
 	}{
-		{"selector", selected, selectionDocumentMaximumBytes}, {"trial", trialBytes, trialDocumentMaximumBytes},
+		{name: "selector", canonical: selected, maximum: selectionDocumentMaximumBytes}, {name: "trial", canonical: trialBytes, maximum: trialDocumentMaximumBytes},
 	} {
 		for _, mode := range []string{"canonical", "empty", "oversized", "absent"} {
 			t.Run(kind.name+" "+mode, func(t *testing.T) {

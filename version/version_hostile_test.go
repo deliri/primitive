@@ -84,10 +84,10 @@ func TestParseTagHostileBoundaries(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr error
 		name    string
 		text    string
 		want    core.ReleaseVersion
-		wantErr error
 	}{
 		{name: "zero coordinate is canonical external input", text: "v0.0.0", want: core.NewReleaseVersion(0, 0, 0)},
 		{name: "ordinary calendar release is canonical", text: "v2026.1.3", want: core.NewReleaseVersion(2026, 1, 3)},

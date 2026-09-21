@@ -321,10 +321,10 @@ func TestNumericValuesRoundTripThroughARealWireStruct(t *testing.T) {
 func TestNumericValueProjectionLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantInstantErr error
 		name           string
 		start          temporal.Instant
 		duration       int64
-		wantInstantErr error
 	}{
 		{name: "unset instant remains invalid beside real zero duration", wantInstantErr: core.ErrTemporalContract},
 		{name: "epoch remains set beside real zero duration", start: temporal.InstantFromNanoseconds(0)},
@@ -369,8 +369,8 @@ func TestNumericValueProjectionLayerTriad(t *testing.T) {
 func TestNumericNilReceiversRefuseBeforeMutation(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name   string
 		decode func([]byte) error
+		name   string
 	}{
 		{name: "nil instant receiver", decode: (*temporal.NumericInstant)(nil).UnmarshalJSON},
 		{name: "nil duration receiver", decode: (*temporal.NumericDuration)(nil).UnmarshalJSON},
@@ -387,10 +387,10 @@ func TestNumericNilReceiversRefuseBeforeMutation(t *testing.T) {
 func TestNumericProjectionPreservesInstantValueSemantics(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr           error
 		name              string
 		start, step, want int64
 		wantOrder         core.Comparison
-		wantErr           error
 	}{
 		{name: "zero displacement is neutral", start: -1, want: -1, wantOrder: core.ComparisonEqual},
 		{name: "advance crosses epoch exactly", start: -1, step: 1, want: 0, wantOrder: core.ComparisonGreater},

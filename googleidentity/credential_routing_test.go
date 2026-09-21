@@ -32,11 +32,11 @@ func (r *googleCredentialRouteTransport) RoundTrip(request *http.Request) (*http
 func TestGoogleCredentialDocumentRoutingLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name         string
+		wantErr      error
 		change       func(*serviceAccountDocument)
 		changeJSON   func([]byte) []byte
+		name         string
 		wantEndpoint string
-		wantErr      error
 	}{
 		{name: "absent_token_uri_uses_sdk_documented_endpoint", wantEndpoint: googleServiceAccountTokenURL, wantErr: io.ErrClosedPipe},
 		{name: "explicit_default_universe_keeps_oauth_protocol", change: func(d *serviceAccountDocument) { d.UniverseDomain = googleServiceAccountUniverse }, wantEndpoint: googleServiceAccountTokenURL, wantErr: io.ErrClosedPipe},

@@ -10,8 +10,8 @@ import (
 )
 
 type extentDocument struct {
-	Values []string `json:"values"`
 	Tail   string   `json:"tail"`
+	Values []string `json:"values"`
 }
 
 func (d extentDocument) Validate() error { return nil }
@@ -37,9 +37,9 @@ func TestJSONCallerExtentPreservesStrictTailValidation(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, tc := range []struct {
+		want  error
 		name  string
 		input []byte
-		want  error
 	}{
 		{name: "all items and final byte retained", input: encoded},
 		{name: "unknown field after large prefix", input: append(bytes.Clone(encoded[:len(encoded)-1]), []byte(`,"unknown":true}`)...), want: ErrJSONContract},

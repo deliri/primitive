@@ -24,24 +24,24 @@ func TestEveryDocumentCeilingOwnsBothSidesOfItsBoundary(t *testing.T) {
 	registrationRequest := registrationRequestFixture(t)
 	commitment := commitmentFixture(t)
 	doors := []struct {
-		name    string
-		ceiling int
 		source  core.ValidatedJSONMarshaler
 		fresh   func() boundedJSONDocument
+		name    string
+		ceiling int
 	}{
-		{"check-in payload", controlplane.CheckInPayloadJSONMaximumBytes, checkIn.request.Payload, func() boundedJSONDocument { return new(controlplane.CheckInPayload) }},
-		{"check-in request", controlplane.CheckInRequestJSONMaximumBytes, checkIn.request, func() boundedJSONDocument { return new(controlplane.CheckInRequest) }},
-		{"check-in response payload", controlplane.CheckInResponsePayloadJSONMaximumBytes, response.document.Payload, func() boundedJSONDocument { return new(controlplane.CheckInResponsePayload) }},
-		{"check-in response document", controlplane.CheckInResponseDocumentJSONMaximumBytes, response.document, func() boundedJSONDocument { return new(controlplane.CheckInResponseDocument) }},
-		{"response header", controlplane.ResponseHeaderJSONMaximumBytes, registration.document.Payload.Header, func() boundedJSONDocument { return new(controlplane.ResponseHeader) }},
-		{"registration request", controlplane.RegistrationRequestJSONMaximumBytes, registrationRequest, func() boundedJSONDocument { return new(controlplane.RegistrationRequest) }},
-		{"certificate body", controlplane.InstallationCertificateBodyJSONMaximumBytes, checkIn.certificate.Body, func() boundedJSONDocument { return new(controlplane.InstallationCertificateBody) }},
-		{"certificate document", controlplane.InstallationCertificateDocumentJSONMaximumBytes, checkIn.certificate, func() boundedJSONDocument { return new(controlplane.InstallationCertificateDocument) }},
-		{"registration payload", controlplane.RegistrationPayloadJSONMaximumBytes, registration.document.Payload, func() boundedJSONDocument { return new(controlplane.RegistrationPayload) }},
-		{"registration document", controlplane.RegistrationDocumentJSONMaximumBytes, registration.document, func() boundedJSONDocument { return new(controlplane.RegistrationDocument) }},
-		{"usage watermark", controlplane.UsageWatermarkJSONMaximumBytes, checkIn.request.Payload.PreviousWatermark, func() boundedJSONDocument { return new(controlplane.UsageWatermark) }},
-		{"usage window", controlplane.UsageWindowJSONMaximumBytes, checkIn.request.Payload.Window, func() boundedJSONDocument { return new(controlplane.UsageWindow) }},
-		{"response commitment", controlplane.ResponseCommitmentJSONMaximumBytes, commitment, func() boundedJSONDocument { return new(controlplane.ResponseCommitment) }},
+		{name: "check-in payload", ceiling: controlplane.CheckInPayloadJSONMaximumBytes, source: checkIn.request.Payload, fresh: func() boundedJSONDocument { return new(controlplane.CheckInPayload) }},
+		{name: "check-in request", ceiling: controlplane.CheckInRequestJSONMaximumBytes, source: checkIn.request, fresh: func() boundedJSONDocument { return new(controlplane.CheckInRequest) }},
+		{name: "check-in response payload", ceiling: controlplane.CheckInResponsePayloadJSONMaximumBytes, source: response.document.Payload, fresh: func() boundedJSONDocument { return new(controlplane.CheckInResponsePayload) }},
+		{name: "check-in response document", ceiling: controlplane.CheckInResponseDocumentJSONMaximumBytes, source: response.document, fresh: func() boundedJSONDocument { return new(controlplane.CheckInResponseDocument) }},
+		{name: "response header", ceiling: controlplane.ResponseHeaderJSONMaximumBytes, source: registration.document.Payload.Header, fresh: func() boundedJSONDocument { return new(controlplane.ResponseHeader) }},
+		{name: "registration request", ceiling: controlplane.RegistrationRequestJSONMaximumBytes, source: registrationRequest, fresh: func() boundedJSONDocument { return new(controlplane.RegistrationRequest) }},
+		{name: "certificate body", ceiling: controlplane.InstallationCertificateBodyJSONMaximumBytes, source: checkIn.certificate.Body, fresh: func() boundedJSONDocument { return new(controlplane.InstallationCertificateBody) }},
+		{name: "certificate document", ceiling: controlplane.InstallationCertificateDocumentJSONMaximumBytes, source: checkIn.certificate, fresh: func() boundedJSONDocument { return new(controlplane.InstallationCertificateDocument) }},
+		{name: "registration payload", ceiling: controlplane.RegistrationPayloadJSONMaximumBytes, source: registration.document.Payload, fresh: func() boundedJSONDocument { return new(controlplane.RegistrationPayload) }},
+		{name: "registration document", ceiling: controlplane.RegistrationDocumentJSONMaximumBytes, source: registration.document, fresh: func() boundedJSONDocument { return new(controlplane.RegistrationDocument) }},
+		{name: "usage watermark", ceiling: controlplane.UsageWatermarkJSONMaximumBytes, source: checkIn.request.Payload.PreviousWatermark, fresh: func() boundedJSONDocument { return new(controlplane.UsageWatermark) }},
+		{name: "usage window", ceiling: controlplane.UsageWindowJSONMaximumBytes, source: checkIn.request.Payload.Window, fresh: func() boundedJSONDocument { return new(controlplane.UsageWindow) }},
+		{name: "response commitment", ceiling: controlplane.ResponseCommitmentJSONMaximumBytes, source: commitment, fresh: func() boundedJSONDocument { return new(controlplane.ResponseCommitment) }},
 	}
 	for _, door := range doors {
 		t.Run(door.name, func(t *testing.T) {
@@ -51,9 +51,9 @@ func TestEveryDocumentCeilingOwnsBothSidesOfItsBoundary(t *testing.T) {
 				t.Fatalf("canonical fixture = (%d bytes, %v), want below %d", len(canonical), err, door.ceiling-1)
 			}
 			for _, tc := range []struct {
+				wantErr error
 				name    string
 				size    int
-				wantErr error
 			}{
 				{name: "one below ceiling", size: door.ceiling - 1},
 				{name: "exact ceiling", size: door.ceiling},

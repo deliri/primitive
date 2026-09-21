@@ -339,12 +339,12 @@ func TestObservedAggregateResponseLayerTriad(t *testing.T) {
 	}
 	header := Header{Name: core.HTTPHeaderAccept(), Values: []HeaderValue{value}}
 	cases := []struct {
+		wantErr  error
 		name     string
-		status   core.HTTPStatusCode
-		attempts uint64
 		body     []byte
 		headers  CapturedHeaders
-		wantErr  error
+		attempts uint64
+		status   core.HTTPStatusCode
 	}{
 		{name: "binary observation cannot normalize or truncate bytes", status: core.HTTPStatusOK(), attempts: 2, body: []byte{0, 0xff}},
 		{name: "empty completed attempt retains status without inventing bytes", status: core.HTTPStatusOK(), attempts: 1},

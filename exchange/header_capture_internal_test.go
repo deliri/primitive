@@ -19,13 +19,13 @@ const capturedValueFixture = "opaque-header-value"
 func TestHeaderValueConversionBoundaries(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name        string
-		count       int
-		replacement string
-		replaceAt   int
-		replace     bool
-		wantCount   int
 		wantErr     error
+		name        string
+		replacement string
+		count       int
+		replaceAt   int
+		wantCount   int
+		replace     bool
 	}{
 		{name: "neutral no values produces no invented field value"},
 		{name: "positive one value cannot disappear", count: 1, wantCount: 1},
@@ -73,16 +73,16 @@ func TestHeaderValueConversionBoundaries(t *testing.T) {
 func TestHeaderCaptureCustodyLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantSelectionErr   error
+		wantErr            error
 		name               string
 		count              int
+		wantFields         int
+		wantValues         int
 		invalidLast        bool
 		selectField        bool
 		prefix             bool
 		duplicateSelection bool
-		wantSelectionErr   error
-		wantFields         int
-		wantValues         int
-		wantErr            error
 	}{
 		{name: "positive exact selected ceiling retains every ordered value", count: HeaderValueMaximumCount, selectField: true, wantFields: 1, wantValues: HeaderValueMaximumCount},
 		{name: "negative selected value ceiling cannot return invalid typed field", count: HeaderValueMaximumCount + 1, selectField: true, wantErr: core.ErrExchangeContract},

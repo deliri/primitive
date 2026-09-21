@@ -45,10 +45,10 @@ func BenchmarkAdvisoryLock(b *testing.B) {
 		request  filelock.Exclusivity
 		wantHeld bool
 	}{
-		{"exclusive_acquire_release", filelock.ExclusivityUnknown, filelock.Exclusive, true},
-		{"shared_acquire_release", filelock.ExclusivityUnknown, filelock.Shared, true},
-		{"exclusive_contention", filelock.Exclusive, filelock.Exclusive, false},
-		{"shared_compatible_holder", filelock.Shared, filelock.Shared, true},
+		{name: "exclusive_acquire_release", holder: filelock.ExclusivityUnknown, request: filelock.Exclusive, wantHeld: true},
+		{name: "shared_acquire_release", holder: filelock.ExclusivityUnknown, request: filelock.Shared, wantHeld: true},
+		{name: "exclusive_contention", holder: filelock.Exclusive, request: filelock.Exclusive, wantHeld: false},
+		{name: "shared_compatible_holder", holder: filelock.Shared, request: filelock.Shared, wantHeld: true},
 	} {
 		b.Run(tc.name, func(b *testing.B) {
 			path := filepath.Join(b.TempDir(), "benchmark.lock")

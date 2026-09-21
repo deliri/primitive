@@ -39,10 +39,10 @@ const (
 func TestScratchFileLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name       string
-		fault      scratchFault
 		wantErr    error
 		wantNative error
+		name       string
+		fault      scratchFault
 	}{
 		{name: "created bytes are visible to an independent reader before close"},
 		{name: "cancelled context creates no entry", fault: scratchCancelled, wantErr: context.Canceled},

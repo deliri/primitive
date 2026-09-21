@@ -38,10 +38,10 @@ func BenchmarkAuthentication(b *testing.B) {
 	}
 	b.ReportAllocs()
 	for _, tc := range []struct {
-		name string
 		run  func() error
+		name string
 	}{
-		{"verify_request", func() error {
+		{name: "verify_request", run: func() error {
 			got, err := Verify(Verification{Document: fixture.request.document, Server: server})
 			if err != nil {
 				return err
@@ -52,7 +52,7 @@ func BenchmarkAuthentication(b *testing.B) {
 			}
 			return err
 		}},
-		{"request_json_roundtrip", func() error {
+		{name: "request_json_roundtrip", run: func() error {
 			var got RequestDocument
 			if err := got.UnmarshalJSON(requestJSON); err != nil {
 				return err
@@ -63,7 +63,7 @@ func BenchmarkAuthentication(b *testing.B) {
 			}
 			return err
 		}},
-		{"verify_completion", func() error {
+		{name: "verify_completion", run: func() error {
 			got, err := VerifyCompletion(verification)
 			if err != nil {
 				return err
@@ -74,7 +74,7 @@ func BenchmarkAuthentication(b *testing.B) {
 			}
 			return err
 		}},
-		{"completion_json_roundtrip", func() error {
+		{name: "completion_json_roundtrip", run: func() error {
 			var got CompletionDocument
 			if err := got.UnmarshalJSON(completionJSON); err != nil {
 				return err
@@ -85,14 +85,14 @@ func BenchmarkAuthentication(b *testing.B) {
 			}
 			return err
 		}},
-		{"projection_json", func() error {
+		{name: "projection_json", run: func() error {
 			encoded, err := projection.MarshalJSON()
 			if err == nil && !bytes.Equal(encoded, completionJSON) {
 				b.Fatalf("projection = %d bytes, want exact %d bytes", len(encoded), len(completionJSON))
 			}
 			return err
 		}},
-		{"reconcile_receipt", func() error {
+		{name: "reconcile_receipt", run: func() error {
 			got, err := ReconcileCompletion(reconciliation)
 			if err != nil {
 				return err

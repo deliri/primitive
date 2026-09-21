@@ -25,28 +25,28 @@ func reportSchedule(t testing.TB) ReportSchedule {
 func TestReportScheduleLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr                             error
 		name                                string
 		now, notBefore, expiry, open, close int64
-		wantErr                             error
 	}{
-		{"before initial opening", 99, 0, 1000, 100, 110, core.ErrReportTooEarly},
-		{"exact initial opening", 100, 0, 1000, 100, 110, nil},
-		{"one above opening", 101, 0, 1000, 100, 110, nil},
-		{"one before exclusive close", 109, 0, 1000, 100, 110, nil},
-		{"exact exclusive close", 110, 0, 1000, 200, 210, core.ErrReportOutsideWindow},
-		{"one after exclusive close", 111, 0, 1000, 200, 210, core.ErrReportOutsideWindow},
-		{"one before second opening", 199, 0, 1000, 200, 210, core.ErrReportOutsideWindow},
-		{"exact second opening", 200, 0, 1000, 200, 210, nil},
-		{"one above second opening", 201, 0, 1000, 200, 210, nil},
-		{"many missed periods preserve phase", 900, 0, 1000, 900, 910, nil},
-		{"not-before clips initial opening", 100, 105, 1000, 105, 110, core.ErrReportOutsideWindow},
-		{"not-before exact clipped opening", 105, 105, 1000, 105, 110, nil},
-		{"not-before skips expired occurrence", 105, 110, 1000, 200, 210, core.ErrReportOutsideWindow},
-		{"expiry clips close", 104, 0, 105, 100, 105, nil},
-		{"expiry is exclusive", 105, 0, 105, 0, 0, core.ErrPermitValidity},
-		{"expiry before first opening", 99, 0, 100, 0, 0, core.ErrPermitValidity},
-		{"not-before ahead is not proof of current eligibility", 0, 901, 1000, 901, 910, core.ErrReportTooEarly},
-		{"last representable occurrence overflow refuses", math.MaxInt64, 0, math.MaxInt64, 0, 0, core.ErrReportOverflow},
+		{name: "before initial opening", now: 99, notBefore: 0, expiry: 1000, open: 100, close: 110, wantErr: core.ErrReportTooEarly},
+		{name: "exact initial opening", now: 100, notBefore: 0, expiry: 1000, open: 100, close: 110, wantErr: nil},
+		{name: "one above opening", now: 101, notBefore: 0, expiry: 1000, open: 100, close: 110, wantErr: nil},
+		{name: "one before exclusive close", now: 109, notBefore: 0, expiry: 1000, open: 100, close: 110, wantErr: nil},
+		{name: "exact exclusive close", now: 110, notBefore: 0, expiry: 1000, open: 200, close: 210, wantErr: core.ErrReportOutsideWindow},
+		{name: "one after exclusive close", now: 111, notBefore: 0, expiry: 1000, open: 200, close: 210, wantErr: core.ErrReportOutsideWindow},
+		{name: "one before second opening", now: 199, notBefore: 0, expiry: 1000, open: 200, close: 210, wantErr: core.ErrReportOutsideWindow},
+		{name: "exact second opening", now: 200, notBefore: 0, expiry: 1000, open: 200, close: 210, wantErr: nil},
+		{name: "one above second opening", now: 201, notBefore: 0, expiry: 1000, open: 200, close: 210, wantErr: nil},
+		{name: "many missed periods preserve phase", now: 900, notBefore: 0, expiry: 1000, open: 900, close: 910, wantErr: nil},
+		{name: "not-before clips initial opening", now: 100, notBefore: 105, expiry: 1000, open: 105, close: 110, wantErr: core.ErrReportOutsideWindow},
+		{name: "not-before exact clipped opening", now: 105, notBefore: 105, expiry: 1000, open: 105, close: 110, wantErr: nil},
+		{name: "not-before skips expired occurrence", now: 105, notBefore: 110, expiry: 1000, open: 200, close: 210, wantErr: core.ErrReportOutsideWindow},
+		{name: "expiry clips close", now: 104, notBefore: 0, expiry: 105, open: 100, close: 105, wantErr: nil},
+		{name: "expiry is exclusive", now: 105, notBefore: 0, expiry: 105, open: 0, close: 0, wantErr: core.ErrPermitValidity},
+		{name: "expiry before first opening", now: 99, notBefore: 0, expiry: 100, open: 0, close: 0, wantErr: core.ErrPermitValidity},
+		{name: "not-before ahead is not proof of current eligibility", now: 0, notBefore: 901, expiry: 1000, open: 901, close: 910, wantErr: core.ErrReportTooEarly},
+		{name: "last representable occurrence overflow refuses", now: math.MaxInt64, notBefore: 0, expiry: math.MaxInt64, open: 0, close: 0, wantErr: core.ErrReportOverflow},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -71,18 +71,18 @@ func TestReportScheduleLayerTriad(t *testing.T) {
 func TestReportScheduleRejectsInvalidShape(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name   string
 		mutate func(*ReportSchedule)
+		name   string
 	}{
-		{"unset opening", func(s *ReportSchedule) { s.NextReportAt = temporal.Instant{} }},
-		{"zero window", func(s *ReportSchedule) { s.WindowDuration = temporal.Duration{} }},
-		{"zero period", func(s *ReportSchedule) { s.RepeatInterval = temporal.Duration{} }},
-		{"window equal period", func(s *ReportSchedule) { s.WindowDuration = s.RepeatInterval }},
-		{"window above period", func(s *ReportSchedule) { s.WindowDuration = reportDuration(t, 101) }},
-		{"jitter equal window", func(s *ReportSchedule) { s.JitterMaximum = s.WindowDuration }},
-		{"jitter above window", func(s *ReportSchedule) { s.JitterMaximum = reportDuration(t, 11) }},
-		{"unset policy", func(s *ReportSchedule) { s.Policy = controlwire.PolicyCursor{} }},
-		{"overflow first close", func(s *ReportSchedule) { s.NextReportAt = temporal.InstantFromNanoseconds(math.MaxInt64) }},
+		{name: "unset opening", mutate: func(s *ReportSchedule) { s.NextReportAt = temporal.Instant{} }},
+		{name: "zero window", mutate: func(s *ReportSchedule) { s.WindowDuration = temporal.Duration{} }},
+		{name: "zero period", mutate: func(s *ReportSchedule) { s.RepeatInterval = temporal.Duration{} }},
+		{name: "window equal period", mutate: func(s *ReportSchedule) { s.WindowDuration = s.RepeatInterval }},
+		{name: "window above period", mutate: func(s *ReportSchedule) { s.WindowDuration = reportDuration(t, 101) }},
+		{name: "jitter equal window", mutate: func(s *ReportSchedule) { s.JitterMaximum = s.WindowDuration }},
+		{name: "jitter above window", mutate: func(s *ReportSchedule) { s.JitterMaximum = reportDuration(t, 11) }},
+		{name: "unset policy", mutate: func(s *ReportSchedule) { s.Policy = controlwire.PolicyCursor{} }},
+		{name: "overflow first close", mutate: func(s *ReportSchedule) { s.NextReportAt = temporal.InstantFromNanoseconds(math.MaxInt64) }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -104,7 +104,7 @@ func TestReportJitterNeverCrossesClose(t *testing.T) {
 		name              string
 		now, jitter, want int64
 	}{
-		{"before opening", 99, 1, 101}, {"exact opening", 100, 1, 101}, {"late wake clips at last nanosecond", 109, 1, 109}, {"closed occurrence skips forward", 110, 1, 201}, {"zero jitter stays at opening", 100, 0, 100},
+		{name: "before opening", now: 99, jitter: 1, want: 101}, {name: "exact opening", now: 100, jitter: 1, want: 101}, {name: "late wake clips at last nanosecond", now: 109, jitter: 1, want: 109}, {name: "closed occurrence skips forward", now: 110, jitter: 1, want: 201}, {name: "zero jitter stays at opening", now: 100, jitter: 0, want: 100},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

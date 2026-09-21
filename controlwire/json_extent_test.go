@@ -124,9 +124,9 @@ func TestProtocolSupportCorruptCountRefusesBeforeIndexing(t *testing.T) {
 func TestNilJSONReceiversRefuseEveryExternalDoor(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name     string
 		receiver controlwireJSONBoundary
 		want     error
+		name     string
 	}{
 		{name: "request nonce", receiver: (*RequestNonce)(nil), want: core.ErrControlWireNonce},
 		{name: "authority nonce", receiver: (*AuthorityNonce)(nil), want: core.ErrControlWireNonce},
@@ -154,10 +154,10 @@ func TestProtocolSupportPrivateStorageCannotSmuggleCapabilities(t *testing.T) {
 	first := ProtocolCapability{Revision: Revision2026V1, Family: RouteFamilyRegistrations}
 	last := ProtocolCapability{Revision: Revision2026V1, Family: RouteFamilyUpgrades}
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		count   int
 		values  [ProtocolCapabilityMaximum]ProtocolCapability
-		wantErr error
 	}{
 		{name: "positive exact sorted two member prefix", count: 2, values: [ProtocolCapabilityMaximum]ProtocolCapability{first, last}},
 		{name: "negative undeclared capability after prefix", count: 1, values: [ProtocolCapabilityMaximum]ProtocolCapability{first, last}, wantErr: core.ErrControlWireProtocolSupport},

@@ -67,8 +67,8 @@ func (r invalidCountReader) Read(p []byte) (int, error) {
 }
 
 type stalledReader struct {
-	remaining int
 	source    io.Reader
+	remaining int
 }
 
 func (r *stalledReader) Read(p []byte) (int, error) {
@@ -99,10 +99,10 @@ func mustByteCount(t testing.TB, value uint64) core.ByteCount {
 func TestReaderIngressLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name          string
-		source        func() io.Reader
-		body          string
 		wantErr       error
+		source        func() io.Reader
+		name          string
+		body          string
 		wantScanError bool
 	}{
 		{name: "empty source does not invent a fragment"},
@@ -217,10 +217,10 @@ func TestReaderIngressLayerTriad(t *testing.T) {
 func TestRequestMemoryConfigurationLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr   error
+		source    func() io.Reader
 		name      string
 		size      uint64
-		source    func() io.Reader
-		wantErr   error
 		construct bool
 	}{
 		{name: "unset buffer is invalid", wantErr: core.ErrLineIOContract, construct: true},
@@ -271,10 +271,10 @@ func TestRequestMemoryConfigurationLayerTriad(t *testing.T) {
 func TestReaderStateExhaustive(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr   error
 		name      string
 		construct bool
 		zero      bool
-		wantErr   error
 	}{
 		{name: "nil reader refuses every operation", wantErr: core.ErrLineIOContract},
 		{name: "zero reader refuses every operation", zero: true, wantErr: core.ErrLineIOContract},
@@ -316,9 +316,9 @@ func TestReaderStateExhaustive(t *testing.T) {
 func TestFragmentFramingLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr  error
 		name     string
 		fragment lineio.Fragment
-		wantErr  error
 	}{
 		{name: "zero fragment is neutral"},
 		{name: "opaque continuation is valid", fragment: lineio.Fragment{Bytes: []byte("x\r\x00"), More: true}},
@@ -480,9 +480,9 @@ func TestReaderOwnsItsBufferLayerTriad(t *testing.T) {
 func TestReaderSourceBufferErrorLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		cause error
 		name  string
 		body  string
-		cause error
 	}{
 		{name: "immediate source buffer failure is terminal", cause: bufio.ErrBufferFull},
 		{name: "partial data with source buffer failure is terminal", body: "partial", cause: bufio.ErrBufferFull},

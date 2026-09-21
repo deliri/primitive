@@ -16,8 +16,8 @@ import (
 func TestClientOfficialSDKTransportLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name, body string
 		wantErr    error
+		name, body string
 	}{
 		{name: "owned TLS authority delivers exact bytes below ceiling", body: strings.Repeat("x", 127)},
 		{name: "owned TLS authority delivers exact bytes at ceiling", body: strings.Repeat("x", 128)},
@@ -95,8 +95,8 @@ func TestClientOfficialSDKTransportRejectsUnadmittedConstruction(t *testing.T) {
 		t.Fatalf("NewStandardClient() error = %v, want nil", err)
 	}
 	for _, tc := range []struct {
-		name   string
 		client exchange.Client
+		name   string
 	}{
 		{name: "zero client cannot create transport"},
 		{name: "admitted default transport cannot bypass zero boundary", client: client},

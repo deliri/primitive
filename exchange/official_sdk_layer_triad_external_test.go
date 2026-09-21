@@ -111,8 +111,8 @@ func TestOfficialSDKResponseTransportLayerTriad(t *testing.T) {
 func TestOfficialSDKColonActionSuffixSelectsExactJSONScope(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name, path string
 		wantErr    error
+		name, path string
 	}{
 		{name: "exact action refuses malformed JSON", path: "/v1/accounts/123:signBlob", wantErr: core.ErrJSONContract},
 		{name: "sibling action retains binary stream", path: "/v1/accounts/123:signBlobExtra"},
@@ -214,11 +214,11 @@ func TestOfficialSDKStreamingSuccessTransportLayerTriad(t *testing.T) {
 func TestOfficialSDKHTTPClientRefusesRedirectCancellationAndTransportFailure(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr, wantNative                   error
 		name                                  string
-		redirect, cancelled, closedConnection bool
 		wantCalls                             int64
 		wantStatus                            int
-		wantErr, wantNative                   error
+		redirect, cancelled, closedConnection bool
 	}{
 		{name: "redirect cannot issue a second provider request", redirect: true, wantCalls: 1, wantStatus: http.StatusFound, wantErr: core.ErrExchangeRedirect},
 		{name: "pre-cancelled context cannot reach provider", cancelled: true, wantErr: core.ErrExchangeCancelled, wantNative: context.Canceled},
@@ -301,10 +301,10 @@ func TestOfficialSDKHTTPClientRefusesRedirectCancellationAndTransportFailure(t *
 func TestOfficialSDKActiveReadOwnershipLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name                          string
-		cancelActive, cancelAfterDone bool
 		wantErr, wantNative           error
+		name                          string
 		wantBytes                     int
+		cancelActive, cancelAfterDone bool
 	}{
 		{name: "cancellation after response headers closes active body", cancelActive: true, wantErr: core.ErrExchangeCancelled, wantNative: context.Canceled},
 		{name: "completed provider body retains exact bytes", wantBytes: 128},

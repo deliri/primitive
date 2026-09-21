@@ -15,22 +15,22 @@ import (
 func TestTransferCapabilityEvidenceLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr                 error
 		name                    string
 		failAt                  int
-		absent                  bool
 		wantCount, wantRequests int
-		wantErr                 error
+		absent                  bool
 	}{
 		{name: "complete publication preserves every capability", failAt: -1, wantCount: release.PublicationObjectCount, wantRequests: release.PublicationObjectCount},
 		{name: "absent plan emits no capability proof", failAt: -1, absent: true, wantErr: core.ErrDeployContract},
 	}
 	for i := range release.PublicationObjectCount {
 		cases = append(cases, struct {
+			wantErr                 error
 			name                    string
 			failAt                  int
-			absent                  bool
 			wantCount, wantRequests int
-			wantErr                 error
+			absent                  bool
 		}{
 			name: "failure at publication slot " + strconv.Itoa(i), failAt: i, wantCount: i, wantRequests: i + 1, wantErr: core.ErrDeployContract})
 	}
@@ -85,13 +85,13 @@ func TestTransferCapabilityEvidenceLayerTriad(t *testing.T) {
 func TestUploadItemSourceAdmissionLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name    string
-		source  func() io.Reader
 		wantErr error
+		source  func() io.Reader
+		name    string
 	}{
-		{"owned empty stream", func() io.Reader { return bytes.NewReader(nil) }, nil},
-		{"absent reader", func() io.Reader { return nil }, core.ErrDeployContract},
-		{"typed nil reader", func() io.Reader { return (*bytes.Reader)(nil) }, core.ErrDeployContract},
+		{name: "owned empty stream", source: func() io.Reader { return bytes.NewReader(nil) }, wantErr: nil},
+		{name: "absent reader", source: func() io.Reader { return nil }, wantErr: core.ErrDeployContract},
+		{name: "typed nil reader", source: func() io.Reader { return (*bytes.Reader)(nil) }, wantErr: core.ErrDeployContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

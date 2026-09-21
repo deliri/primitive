@@ -85,17 +85,17 @@ func localEnrollmentClient(t testing.TB, handler http.Handler) exchange.Client {
 func TestAuthKeySDKLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name         string
-		tokenStatus  int
-		tokenBody    []byte
-		editKey      func(*tailscale.Key)
-		keyStatus    int
-		keyBody      []byte
-		cancelBefore bool
-		cancelToken  bool
 		wantErr      error
 		wantCause    error
+		editKey      func(*tailscale.Key)
+		name         string
+		tokenBody    []byte
+		keyBody      []byte
+		tokenStatus  int
+		keyStatus    int
 		wantCalls    int32
+		cancelBefore bool
+		cancelToken  bool
 	}{
 		{name: "ephemeral single-use key preserves exact provider key", wantCalls: 2},
 		{name: "credential refusal never requests a key", tokenStatus: http.StatusUnauthorized, wantErr: core.ErrTailnetEnrollment, wantCalls: 1},

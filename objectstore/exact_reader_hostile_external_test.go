@@ -64,11 +64,11 @@ func TestExactReaderConstructionRejectsNilSource(t *testing.T) {
 func TestExactReaderExtentLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr       error
 		name          string
 		source, want  []byte
 		declared      uint64
 		chunk         int
-		wantErr       error
 		wantRemaining int
 	}{
 		{name: "empty source requires empty proof", chunk: 1},

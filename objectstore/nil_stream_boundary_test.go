@@ -15,10 +15,10 @@ import (
 func TestStreamRequestAdmissionLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name                              string
+		wantSourceErr, wantDestinationErr error
 		source                            func() io.Reader
 		destination                       func() io.Writer
-		wantSourceErr, wantDestinationErr error
+		name                              string
 	}{
 		{name: "nonempty native streams admit typed boundaries", source: func() io.Reader { return bytes.NewReader([]byte{1}) }, destination: func() io.Writer { return new(bytes.Buffer) }},
 		{name: "empty native streams remain present capabilities", source: func() io.Reader { return bytes.NewReader(nil) }, destination: func() io.Writer { return new(bytes.Buffer) }},
@@ -39,9 +39,9 @@ func TestStreamRequestAdmissionLayerTriad(t *testing.T) {
 			}
 			inspection := objectstore.InspectionRequest{Source: source, MaximumBytes: maximum}
 			for _, door := range []struct {
-				name     string
-				validate func() error
 				wantErr  error
+				validate func() error
+				name     string
 			}{
 				{name: "upload", validate: upload.Validate, wantErr: tc.wantSourceErr},
 				{name: "inspection", validate: inspection.Validate, wantErr: tc.wantSourceErr},
@@ -66,9 +66,9 @@ func (s *refusedStreamTransport) RoundTrip(*http.Request) (*http.Response, error
 func TestAbsentStreamsRefuseBeforeEffects(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name        string
 		source      io.Reader
 		destination io.Writer
+		name        string
 	}{
 		{name: "absent interfaces cannot initiate effects"},
 		{name: "typed nil streams cannot initiate effects", source: (*bytes.Reader)(nil), destination: (*bytes.Buffer)(nil)},
@@ -83,9 +83,9 @@ func TestAbsentStreamsRefuseBeforeEffects(t *testing.T) {
 			upload.Source = tc.source
 			download := downloadRequest(t, provider, signedProviderURL(providerEndpoint(provider), provider, objectstore.DirectionDownload), tc.destination, payload)
 			for _, door := range []struct {
-				name      string
-				run       func() (objectstore.Transfer, error)
 				want      error
+				run       func() (objectstore.Transfer, error)
+				name      string
 				direction objectstore.Direction
 			}{
 				{name: "upload", run: func() (objectstore.Transfer, error) { return objectstore.UploadGCS(t.Context(), client, upload) }, want: core.ErrObjectStoreSource, direction: objectstore.DirectionUpload},

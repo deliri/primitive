@@ -145,8 +145,8 @@ func TestCapabilityProductionPathLayerTriad(t *testing.T) {
 
 		fixtureDirectory := t.TempDir()
 		for _, file := range []struct{ name, body string }{
-			{"go.mod", "module example.com/analysisbroken\n\ngo 1.27.1\n"},
-			{"broken.go", "package analysisbroken\nimport _ \"example.invalid/absent\"\n"},
+			{name: "go.mod", body: "module example.com/analysisbroken\n\ngo 1.27.1\n"},
+			{name: "broken.go", body: "package analysisbroken\nimport _ \"example.invalid/absent\"\n"},
 		} {
 			if err := os.WriteFile(filepath.Join(fixtureDirectory, file.name), []byte(file.body), 0o600); err != nil {
 				t.Fatalf("WriteFile(compiler fixture) error = %v, want nil", err)

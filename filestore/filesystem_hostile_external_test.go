@@ -24,9 +24,9 @@ func TestClosedOSRootNativeErrorMatrix(t *testing.T) {
 		removeTree
 	)
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		door    door
-		wantErr error
 	}{
 		{name: "closed root cannot create append handle", door: appendCreate, wantErr: core.ErrFilestoreActivation},
 		{name: "closed root cannot reopen append handle", door: appendExisting, wantErr: core.ErrFilestoreActivation},

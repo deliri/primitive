@@ -23,15 +23,15 @@ type responseSocket[B core.Validatable, P interface {
 	core.Validatable
 	json.Unmarshaler
 }] struct {
-	canonical       []byte
-	sibling         []byte
-	body            []byte
-	header          controlplane.ResponseHeader
-	wantBinding     controlplane.ResponseExpectation
-	siblingExpected controlplane.ResponseExpectation
 	verify          func(controlplane.ResponseDocument[B, P], controlplane.ResponseExpectation) (controlplane.VerifiedResponse[B, P], error)
 	compare         func(testing.TB, B, []byte)
 	dispose         func(testing.TB, B)
+	canonical       []byte
+	sibling         []byte
+	body            []byte
+	wantBinding     controlplane.ResponseExpectation
+	siblingExpected controlplane.ResponseExpectation
+	header          controlplane.ResponseHeader
 }
 
 func responseSocketFixture[I core.ValidatedJSONMarshaler, B core.Validatable, P interface {
@@ -109,10 +109,10 @@ func (s responseSocket[B, P]) evidence(t testing.TB, proof controlplane.Verified
 func (s responseSocket[B, P]) triad(t *testing.T) {
 	t.Helper()
 	cases := []struct {
+		wantErr     error
 		name        string
 		data        []byte
 		wantBinding controlplane.ResponseExpectation
-		wantErr     error
 	}{
 		{name: "signed body remains bound to exact request", data: s.canonical, wantBinding: s.wantBinding},
 		{name: "authentic sibling family cannot cross socket", data: s.sibling, wantBinding: s.siblingExpected, wantErr: core.ErrControlPlaneResponseBinding},
@@ -124,11 +124,11 @@ func (s responseSocket[B, P]) triad(t *testing.T) {
 		t.Fatal("nonce mutation = baseline, want changed binding")
 	}
 	cases = append(cases, struct {
+		wantErr     error
 		name        string
 		data        []byte
 		wantBinding controlplane.ResponseExpectation
-		wantErr     error
-	}{"signed response for another nonce", s.canonical, wrongNonce, core.ErrControlPlaneResponseBinding})
+	}{name: "signed response for another nonce", data: s.canonical, wantBinding: wrongNonce, wantErr: core.ErrControlPlaneResponseBinding})
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

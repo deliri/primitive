@@ -17,9 +17,9 @@ import (
 func TestReleaseMaterialOpenLayerTriadConsumesExactCustody(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name    string
-		mutate  func(*testing.T, *release.MaterialResponse)
 		wantErr error
+		mutate  func(*testing.T, *release.MaterialResponse)
+		name    string
 	}{
 		{name: "valid response opens the exact Go signing identity"},
 		{name: "invalid request cannot expose otherwise live signing custody", mutate: func(_ *testing.T, r *release.MaterialResponse) { r.Request = release.MaterialRequest{} }, wantErr: core.ErrReleaseContract},

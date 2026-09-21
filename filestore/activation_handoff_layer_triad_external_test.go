@@ -66,10 +66,10 @@ func TestReplaceActivationLayerTriad(t *testing.T) {
 		targetNonemptyDirectory
 	)
 	for _, tc := range []struct {
-		name    string
-		target  targetKind
-		payload []byte
 		wantErr error
+		name    string
+		payload []byte
+		target  targetKind
 	}{
 		{name: "absent target receives the exact synchronized inode", payload: []byte{0, 255, 7}},
 		{name: "occupied target is displaced without truncating its open handle", target: targetRegular, payload: []byte{0, 255, 7}},

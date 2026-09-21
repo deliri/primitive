@@ -35,8 +35,8 @@ type GoTestObservationCompiler struct {
 	failure     error
 	seen        map[[32]byte]struct{}
 	terminal    map[[32]byte]GoEventAction
-	stream      goJSONStream
 	benchmarks  []runprotocol.BenchmarkMeasurement
+	stream      goJSONStream
 	policy      ObservationPolicy
 	buildFailed bool
 	sealed      bool
@@ -71,21 +71,7 @@ func (c *GoTestObservationCompiler) Write(data []byte) (int, error) {
 func (c *GoTestObservationCompiler) consumeProjection(event goJSONProjection) error {
 	build := event.action == GoEventActionBuildOutput || event.action == GoEventActionBuildFail
 	if build {
-		allowed := uint16(1)<<GoEventFieldAction | uint16(1)<<GoEventFieldImportPath | uint16(1)<<GoEventFieldOutput
-		if event.fields & ^allowed != 0 {
-			return goJSONFailure()
-		}
-		if event.action == GoEventActionBuildOutput {
-			if !event.outputPresent {
-				return goJSONFailure()
-			}
-		} else {
-			if event.outputPresent {
-				return goJSONFailure()
-			}
-			c.buildFailed = true
-		}
-		return nil
+		return c.consumeBuildProjection(event)
 	}
 	if event.fields&(uint16(1)<<GoEventFieldImportPath) != 0 || event.action == GoEventActionUnknown || !event.packagePresent {
 		return goJSONFailure()
@@ -97,16 +83,39 @@ func (c *GoTestObservationCompiler) consumeProjection(event goJSONProjection) er
 		return err
 	}
 	if event.action == GoEventActionOutput {
-		measurement, present, err := event.benchmark.result()
-		if err != nil {
-			return err
+		return c.observeBenchmark(event.benchmark)
+	}
+	return nil
+}
+
+func (c *GoTestObservationCompiler) observeBenchmark(benchmark goBenchmarkStream) error {
+	measurement, present, err := benchmark.result()
+	if err != nil {
+		return err
+	}
+	if present {
+		if len(c.benchmarks) >= runprotocol.BenchmarkMeasurementMaximum {
+			return observationFailure("go benchmark aggregate exceeds its nominal capacity", core.ErrPrimitiveContract)
 		}
-		if present {
-			if len(c.benchmarks) >= runprotocol.BenchmarkMeasurementMaximum {
-				return observationFailure("go benchmark aggregate exceeds its nominal capacity", core.ErrPrimitiveContract)
-			}
-			c.benchmarks = append(c.benchmarks, measurement)
+		c.benchmarks = append(c.benchmarks, measurement)
+	}
+	return nil
+}
+
+func (c *GoTestObservationCompiler) consumeBuildProjection(event goJSONProjection) error {
+	allowed := uint16(1)<<GoEventFieldAction | uint16(1)<<GoEventFieldImportPath | uint16(1)<<GoEventFieldOutput
+	if event.fields & ^allowed != 0 {
+		return goJSONFailure()
+	}
+	if event.action == GoEventActionBuildOutput {
+		if !event.outputPresent {
+			return goJSONFailure()
 		}
+	} else {
+		if event.outputPresent {
+			return goJSONFailure()
+		}
+		c.buildFailed = true
 	}
 	return nil
 }

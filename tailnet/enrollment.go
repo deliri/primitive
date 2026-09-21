@@ -141,8 +141,10 @@ func authKeyCharacter(character rune) bool {
 
 func validateEnrollmentAuthorization(authorization string) error {
 	value, found := strings.CutPrefix(authorization, exchange.BearerAuthorizationScheme+" ")
-	if !found || value == "" || strings.ContainsAny(value, " \t\r\n") {
+	if !found || value == "" || strings.ContainsAny(value, enrollmentWhitespace) {
 		return core.ErrTailnetEnrollment
 	}
 	return nil
 }
+
+const enrollmentWhitespace = " \t\r\n"

@@ -16,8 +16,8 @@ func TestServerProjectionOwnsExactEnrollment(t *testing.T) {
 		hostname tailnetconfig.Hostname
 		tag      tailnetconfig.Tag
 	}{
-		{"minimum explicit names and key", authKeyPrefix + "a", "a", "tag:a"},
-		{"maximum host and credential extent", authKeyPrefix + strings.Repeat("a", authKeyMaximumBytes-len(authKeyPrefix)), tailnetconfig.Hostname(strings.Repeat("a", tailnetconfig.HostnameMaximumBytes)), tailnetconfig.Tag(tailnetconfig.TagPrefix + strings.Repeat("a", tailnetconfig.HostnameMaximumBytes))},
+		{name: "minimum explicit names and key", key: authKeyPrefix + "a", hostname: "a", tag: "tag:a"},
+		{name: "maximum host and credential extent", key: authKeyPrefix + strings.Repeat("a", authKeyMaximumBytes-len(authKeyPrefix)), hostname: tailnetconfig.Hostname(strings.Repeat("a", tailnetconfig.HostnameMaximumBytes)), tag: tailnetconfig.Tag(tailnetconfig.TagPrefix + strings.Repeat("a", tailnetconfig.HostnameMaximumBytes))},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

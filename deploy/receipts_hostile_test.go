@@ -34,9 +34,9 @@ func TestReceiptCollectionLayerTriad(t *testing.T) {
 	}
 	first := Receipt{transfer: transfer, commitment: commitment, role: release.PublicationRoleWindowsAMD64, valid: true}
 	for _, tc := range []struct {
-		name      string
-		mutate    func(*Receipts)
 		wantErr   error
+		mutate    func(*Receipts)
+		name      string
 		wantCount int
 	}{
 		{name: "one confirmed object", wantCount: 1},

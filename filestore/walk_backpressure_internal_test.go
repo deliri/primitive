@@ -19,10 +19,10 @@ import (
 func TestWalkBatchBackpressureLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr                              error
 		name                                 string
 		count, closeAt, cancelAt, wantVisits int
 		closed, cancelled                    bool
-		wantErr                              error
 	}{
 		{name: "empty producer emits nothing"},
 		{name: "partial second batch delivers every entry", count: walkDirectoryBatchEntries + 1, wantVisits: walkDirectoryBatchEntries + 1},

@@ -15,9 +15,9 @@ import (
 func TestServerListenerConfigurationAgreementTable(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name        string
-		configured  func(netip.AddrPort) netip.AddrPort
 		wantErr     error
+		configured  func(netip.AddrPort) netip.AddrPort
+		name        string
 		wantClaimed bool
 		closeBefore bool
 	}{

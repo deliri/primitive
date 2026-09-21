@@ -16,9 +16,9 @@ func TestGrantReaffirmationPreservesDeadlinesLayerTriad(t *testing.T) {
 	subject := fixtureSubject(t, 1)
 	grant := fixtureGrant()
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		issued  int64
-		wantErr error
 	}{
 		{name: "one before contact retains future contact", issued: 2999},
 		{name: "exact contact can be acknowledged", issued: 3000},

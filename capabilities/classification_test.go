@@ -53,17 +53,17 @@ func TestCatalogConflictsAndNeutralityLayerTriad(t *testing.T) {
 	effect := standardSymbolRule{importPath: path.String(), effect: EffectFilesystem, effectSelectors: []string{selector.String()}}
 	pure := standardSymbolRule{importPath: path.String(), pureSelectors: []string{selector.String()}}
 	cases := []struct {
+		wantErr error
 		name    string
 		rules   []standardSymbolRule
 		want    StandardSymbolDisposition
-		wantErr error
 	}{
-		{"one admitted effect", []standardSymbolRule{effect}, StandardSymbolEffect, nil},
-		{"duplicate identical fact is idempotent", []standardSymbolRule{effect, effect}, StandardSymbolEffect, nil},
-		{"same symbol conflicting facts refuse", []standardSymbolRule{effect, pure}, StandardSymbolUnknown, core.ErrCapabilitiesContract},
-		{"reversed contradiction still refuses", []standardSymbolRule{pure, effect}, StandardSymbolUnknown, core.ErrCapabilitiesContract},
-		{"absence retains unresolved", nil, StandardSymbolUnresolved, nil},
-		{"intra-rule contradictory dispositions refuse", []standardSymbolRule{{importPath: path.String(), effect: EffectFilesystem, effectSelectors: effect.effectSelectors, pureSelectors: pure.pureSelectors}}, StandardSymbolUnknown, core.ErrCapabilitiesContract},
+		{name: "one admitted effect", rules: []standardSymbolRule{effect}, want: StandardSymbolEffect, wantErr: nil},
+		{name: "duplicate identical fact is idempotent", rules: []standardSymbolRule{effect, effect}, want: StandardSymbolEffect, wantErr: nil},
+		{name: "same symbol conflicting facts refuse", rules: []standardSymbolRule{effect, pure}, want: StandardSymbolUnknown, wantErr: core.ErrCapabilitiesContract},
+		{name: "reversed contradiction still refuses", rules: []standardSymbolRule{pure, effect}, want: StandardSymbolUnknown, wantErr: core.ErrCapabilitiesContract},
+		{name: "absence retains unresolved", rules: nil, want: StandardSymbolUnresolved, wantErr: nil},
+		{name: "intra-rule contradictory dispositions refuse", rules: []standardSymbolRule{{importPath: path.String(), effect: EffectFilesystem, effectSelectors: effect.effectSelectors, pureSelectors: pure.pureSelectors}}, want: StandardSymbolUnknown, wantErr: core.ErrCapabilitiesContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

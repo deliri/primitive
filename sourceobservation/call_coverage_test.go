@@ -48,21 +48,21 @@ func TestCallCoverageStateJSONRefusalIdentity(t *testing.T) {
 func TestCallCoverageAccountingLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name    string
-		before  CallCoverage
-		fact    capabilities.Classification
-		want    CallCoverage
 		wantErr error
+		name    string
+		fact    capabilities.Classification
+		before  CallCoverage
+		want    CallCoverage
 	}{
-		{"observed pure call increments only pure", CallCoverage{State: CallCoverageObserved}, capabilities.Classification{Disposition: capabilities.StandardSymbolPure}, CallCoverage{State: CallCoverageObserved, Pure: 1}, nil},
-		{"effect retains effect count", CallCoverage{State: CallCoverageObserved}, capabilities.Classification{Disposition: capabilities.StandardSymbolEffect, Effect: capabilities.EffectTransport}, CallCoverage{State: CallCoverageObserved, Effects: 1}, nil},
-		{"context remains incomplete", CallCoverage{State: CallCoverageObserved}, capabilities.Classification{Disposition: capabilities.StandardSymbolContextual}, CallCoverage{State: CallCoverageObserved, Contextual: 1}, nil},
-		{"unresolved remains incomplete", CallCoverage{State: CallCoverageObserved}, capabilities.Classification{Disposition: capabilities.StandardSymbolUnresolved}, CallCoverage{State: CallCoverageObserved, Unresolved: 1}, nil},
-		{"unobserved refuses invented evidence", CallCoverage{}, capabilities.Classification{Disposition: capabilities.StandardSymbolPure}, CallCoverage{}, core.ErrSourceObservationConflict},
-		{"zero classification preserves counters", CallCoverage{State: CallCoverageObserved}, capabilities.Classification{}, CallCoverage{State: CallCoverageObserved}, core.ErrCapabilitiesContract},
-		{"counter at ceiling refuses wrap", CallCoverage{State: CallCoverageObserved, Pure: math.MaxUint64}, capabilities.Classification{Disposition: capabilities.StandardSymbolPure}, CallCoverage{State: CallCoverageObserved, Pure: math.MaxUint64}, core.ErrSourceObservationConflict},
-		{"aggregate ceiling refuses another owner", CallCoverage{State: CallCoverageObserved, Pure: math.MaxUint64}, capabilities.Classification{Disposition: capabilities.StandardSymbolUnresolved}, CallCoverage{State: CallCoverageObserved, Pure: math.MaxUint64}, core.ErrSourceObservationConflict},
-		{"exact ceiling succeeds", CallCoverage{State: CallCoverageObserved, Pure: math.MaxUint64 - 1}, capabilities.Classification{Disposition: capabilities.StandardSymbolPure}, CallCoverage{State: CallCoverageObserved, Pure: math.MaxUint64}, nil},
+		{name: "observed pure call increments only pure", before: CallCoverage{State: CallCoverageObserved}, fact: capabilities.Classification{Disposition: capabilities.StandardSymbolPure}, want: CallCoverage{State: CallCoverageObserved, Pure: 1}, wantErr: nil},
+		{name: "effect retains effect count", before: CallCoverage{State: CallCoverageObserved}, fact: capabilities.Classification{Disposition: capabilities.StandardSymbolEffect, Effect: capabilities.EffectTransport}, want: CallCoverage{State: CallCoverageObserved, Effects: 1}, wantErr: nil},
+		{name: "context remains incomplete", before: CallCoverage{State: CallCoverageObserved}, fact: capabilities.Classification{Disposition: capabilities.StandardSymbolContextual}, want: CallCoverage{State: CallCoverageObserved, Contextual: 1}, wantErr: nil},
+		{name: "unresolved remains incomplete", before: CallCoverage{State: CallCoverageObserved}, fact: capabilities.Classification{Disposition: capabilities.StandardSymbolUnresolved}, want: CallCoverage{State: CallCoverageObserved, Unresolved: 1}, wantErr: nil},
+		{name: "unobserved refuses invented evidence", before: CallCoverage{}, fact: capabilities.Classification{Disposition: capabilities.StandardSymbolPure}, want: CallCoverage{}, wantErr: core.ErrSourceObservationConflict},
+		{name: "zero classification preserves counters", before: CallCoverage{State: CallCoverageObserved}, fact: capabilities.Classification{}, want: CallCoverage{State: CallCoverageObserved}, wantErr: core.ErrCapabilitiesContract},
+		{name: "counter at ceiling refuses wrap", before: CallCoverage{State: CallCoverageObserved, Pure: math.MaxUint64}, fact: capabilities.Classification{Disposition: capabilities.StandardSymbolPure}, want: CallCoverage{State: CallCoverageObserved, Pure: math.MaxUint64}, wantErr: core.ErrSourceObservationConflict},
+		{name: "aggregate ceiling refuses another owner", before: CallCoverage{State: CallCoverageObserved, Pure: math.MaxUint64}, fact: capabilities.Classification{Disposition: capabilities.StandardSymbolUnresolved}, want: CallCoverage{State: CallCoverageObserved, Pure: math.MaxUint64}, wantErr: core.ErrSourceObservationConflict},
+		{name: "exact ceiling succeeds", before: CallCoverage{State: CallCoverageObserved, Pure: math.MaxUint64 - 1}, fact: capabilities.Classification{Disposition: capabilities.StandardSymbolPure}, want: CallCoverage{State: CallCoverageObserved, Pure: math.MaxUint64}, wantErr: nil},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

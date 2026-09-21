@@ -23,13 +23,13 @@ func TestNoBroadcastWindowsLayerTriad(t *testing.T) {
 		name                  string
 		now, start, end, want int64
 	}{
-		{"before exclusion remains eligible", 100, 101, 105, 100},
-		{"exact exclusion start advances", 100, 100, 105, 105},
-		{"inside exclusion advances", 104, 100, 105, 105},
-		{"exclusive exclusion end allows", 105, 100, 105, 105},
-		{"exclusion covers slot and skips period", 100, 100, 110, 200},
-		{"exclusion covers multiple periods", 100, 100, 305, 305},
-		{"exclusion ends in gap uses next slot", 100, 100, 350, 400},
+		{name: "before exclusion remains eligible", now: 100, start: 101, end: 105, want: 100},
+		{name: "exact exclusion start advances", now: 100, start: 100, end: 105, want: 105},
+		{name: "inside exclusion advances", now: 104, start: 100, end: 105, want: 105},
+		{name: "exclusive exclusion end allows", now: 105, start: 100, end: 105, want: 105},
+		{name: "exclusion covers slot and skips period", now: 100, start: 100, end: 110, want: 200},
+		{name: "exclusion covers multiple periods", now: 100, start: 100, end: 305, want: 305},
+		{name: "exclusion ends in gap uses next slot", now: 100, start: 100, end: 350, want: 400},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

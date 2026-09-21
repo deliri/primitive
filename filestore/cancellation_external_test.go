@@ -37,21 +37,21 @@ func TestOperationsRejectTerminalAndNilContextsBeforeFilesystemEffects(t *testin
 		name string
 		door contextEffectDoor
 	}{
-		{"ensure cannot create a directory prefix", contextEffectEnsure},
-		{"read cannot consume source bytes", contextEffectRead},
-		{"write cannot stage caller bytes", contextEffectWrite},
-		{"stage cannot return a receipt", contextEffectStage},
-		{"commit cannot consume a synchronized stage", contextEffectCommit},
-		{"recover cannot settle partially linked custody", contextEffectRecover},
-		{"discard cannot remove caller custody", contextEffectDiscard},
-		{"append cannot acquire an incoming handle", contextEffectAppend},
-		{"rotation cannot close outgoing caller custody", contextEffectRotate},
-		{"remove cannot unlink existing bytes", contextEffectRemove},
+		{name: "ensure cannot create a directory prefix", door: contextEffectEnsure},
+		{name: "read cannot consume source bytes", door: contextEffectRead},
+		{name: "write cannot stage caller bytes", door: contextEffectWrite},
+		{name: "stage cannot return a receipt", door: contextEffectStage},
+		{name: "commit cannot consume a synchronized stage", door: contextEffectCommit},
+		{name: "recover cannot settle partially linked custody", door: contextEffectRecover},
+		{name: "discard cannot remove caller custody", door: contextEffectDiscard},
+		{name: "append cannot acquire an incoming handle", door: contextEffectAppend},
+		{name: "rotation cannot close outgoing caller custody", door: contextEffectRotate},
+		{name: "remove cannot unlink existing bytes", door: contextEffectRemove},
 	} {
 		for _, tc := range []struct {
+			wantErr    error
 			name       string
 			nilContext bool
-			wantErr    error
 		}{
 			{name: "canceled context", wantErr: context.Canceled},
 			{name: "nil context", nilContext: true, wantErr: core.ErrNilContext},

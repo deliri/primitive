@@ -17,8 +17,8 @@ func TestControllerRefusesAHandleThatSkippedWatch(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		name  string
 		value *shutdown.Controller
+		name  string
 	}{
 		{name: "unconstructed controller refuses close", value: new(shutdown.Controller)},
 		{name: "nil controller refuses close"},

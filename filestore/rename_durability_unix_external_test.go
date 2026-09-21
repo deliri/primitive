@@ -38,7 +38,7 @@ func TestRenameNativePermissionAndDurabilityLayerTriad(t *testing.T) {
 				for _, entry := range []struct {
 					name string
 					data []byte
-				}{{"source", payload}, {"target", oldTarget}, {"neighbor", payload}} {
+				}{{name: "source", data: payload}, {name: "target", data: oldTarget}, {name: "neighbor", data: payload}} {
 					if err := os.WriteFile(filepath.Join(directory, entry.name), entry.data, 0o600); err != nil {
 						t.Fatal(err)
 					}

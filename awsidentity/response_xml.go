@@ -49,7 +49,7 @@ func nextAmazonXMLContent(decoder *xml.Decoder, prolog bool) (xml.Token, error) 
 func amazonXMLPadding(token xml.Token, prolog bool) bool {
 	switch value := token.(type) {
 	case xml.CharData:
-		return len(bytes.Trim(value, " \t\r\n")) == 0
+		return len(bytes.Trim(value, xmlWhitespace)) == 0
 	case xml.Comment:
 		return true
 	case xml.ProcInst:
@@ -58,3 +58,5 @@ func amazonXMLPadding(token xml.Token, prolog bool) bool {
 		return false
 	}
 }
+
+const xmlWhitespace = " \t\r\n"

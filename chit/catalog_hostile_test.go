@@ -67,8 +67,8 @@ func TestCatalogAuthenticatedBoundaryTable(t *testing.T) {
 	cases := []struct {
 		name  string
 		count int
-		state CustodyState
 		delta int64
+		state CustodyState
 		more  bool
 	}{
 		{name: "empty terminal page", state: CustodyStateStored},
@@ -544,8 +544,8 @@ func TestCatalogJSONPressuresValidRejectedAndExactExtentBoundaries(t *testing.T)
 	above := padCatalogJSON(canonical, core.JSONDocumentMaximumBytes+1)
 
 	reordered, err := core.MarshalCanonicalJSONDocument(struct {
-		Attestation attest.Envelope[SigningDomain] `json:"attestation"`
 		Payload     CatalogPayload                 `json:"payload"`
+		Attestation attest.Envelope[SigningDomain] `json:"attestation"`
 	}{Attestation: fixture.document.Attestation, Payload: fixture.document.Payload})
 	if err != nil {
 		t.Fatal(err)

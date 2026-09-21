@@ -460,9 +460,9 @@ func classifiedIDStructs() ([]string, error) {
 }
 
 type idUUIDPureAPIs struct {
-	UUID  uuid.UUID
 	Parse func(string) (uuid.UUID, error)
 	Nil   func() uuid.UUID
+	UUID  uuid.UUID
 }
 
 var _ = idUUIDPureAPIs{Parse: uuid.Parse, Nil: uuid.Nil}
@@ -486,11 +486,11 @@ func TestIDStandardUUIDAPIsRemainPure(t *testing.T) {
 func TestIDUUIDSelectorMatcherDetectsEffectfulGenerators(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct{ name, source, member string }{
-		{"clock and entropy", "package p;func mint(){_ = uuid.NewV7()}", "NewV7"},
-		{"entropy", "package p;func mint(){_ = uuid.NewV4()}", "NewV4"},
-		{"default generator", "package p;func mint(){_ = uuid.New()}", "New"},
-		{"captured generator", "package p;var mint = uuid.NewV7", "NewV7"},
-		{"pure parse", "package p;func parse(){_,_ = uuid.Parse(\"\")}", "Parse"},
+		{name: "clock and entropy", source: "package p;func mint(){_ = uuid.NewV7()}", member: "NewV7"},
+		{name: "entropy", source: "package p;func mint(){_ = uuid.NewV4()}", member: "NewV4"},
+		{name: "default generator", source: "package p;func mint(){_ = uuid.New()}", member: "New"},
+		{name: "captured generator", source: "package p;var mint = uuid.NewV7", member: "NewV7"},
+		{name: "pure parse", source: "package p;func parse(){_,_ = uuid.Parse(\"\")}", member: "Parse"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -533,9 +533,9 @@ func TestIDTemporalAPIsRemainPure(t *testing.T) {
 func TestIDTemporalSelectorMatcherDetectsClockAcquisition(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct{ name, source, want string }{
-		{"observe", "package p;func observe(){_,_=temporal.Observe()}", "Observe"},
-		{"captured observer", "package p;var observe=temporal.Observe", "Observe"},
-		{"data contract", "package p;var observation temporal.Observation", "Observation"},
+		{name: "observe", source: "package p;func observe(){_,_=temporal.Observe()}", want: "Observe"},
+		{name: "captured observer", source: "package p;var observe=temporal.Observe", want: "Observe"},
+		{name: "data contract", source: "package p;var observation temporal.Observation", want: "Observation"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

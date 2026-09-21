@@ -11,8 +11,8 @@ import (
 
 func BenchmarkValidateContext(b *testing.B) {
 	cases := []struct {
-		name     string
 		terminal error
+		name     string
 	}{
 		{name: "Live"},
 		{name: "Cancelled", terminal: context.Canceled},
@@ -43,8 +43,8 @@ func BenchmarkValidateContext(b *testing.B) {
 
 func BenchmarkObserveContext(b *testing.B) {
 	cases := []struct {
-		name     string
 		terminal error
+		name     string
 		want     contextstate.State
 	}{
 		{name: "Live", want: contextstate.StateNone},
@@ -76,8 +76,8 @@ func BenchmarkObserveContext(b *testing.B) {
 
 func BenchmarkObserveAfterDoneContext(b *testing.B) {
 	cases := []struct {
-		name     string
 		terminal error
+		name     string
 		want     contextstate.State
 	}{
 		{name: "Cancelled", terminal: context.Canceled, want: contextstate.StateCancelled},

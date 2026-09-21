@@ -16,8 +16,8 @@ import (
 func TestServerRuntimePolicyProjectionBoundaryTable(t *testing.T) {
 	t.Parallel()
 	fields := []struct {
-		name  string
 		set   func(*ServerRuntimePolicy, temporal.Duration)
+		name  string
 		index int
 	}{
 		{name: "header read", index: 0, set: func(p *ServerRuntimePolicy, d temporal.Duration) { p.ReadHeaderTimeout = d }},
@@ -26,10 +26,10 @@ func TestServerRuntimePolicyProjectionBoundaryTable(t *testing.T) {
 		{name: "keepalive idle", index: 3, set: func(p *ServerRuntimePolicy, d temporal.Duration) { p.IdleTimeout = d }},
 	}
 	cases := []struct {
+		wantErr     error
 		name        string
 		nanoseconds int64
 		wantTimeout time.Duration
-		wantErr     error
 	}{
 		{name: "zero must not select Go unbounded timeout", wantErr: core.ErrExchangeContract},
 		{name: "smallest positive timeout cannot round to unbounded", nanoseconds: 1, wantTimeout: 1},
@@ -95,10 +95,10 @@ func TestServerRuntimePolicyProjectionBoundaryTable(t *testing.T) {
 func TestServerRuntimeHeaderExtentBoundaryTable(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr    error
 		name       string
 		inputs     []uint64
 		wantHeader int
-		wantErr    error
 	}{
 		{name: "absent extent cannot select Go default", inputs: []uint64{0}, wantErr: core.ErrExchangeContract},
 		{name: "smallest positive extent remains exact", inputs: []uint64{1}, wantHeader: 1},

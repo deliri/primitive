@@ -105,12 +105,12 @@ func TestDistributionDecoderMatcherLayerTriad(t *testing.T) {
 		name, source string
 		want         []string
 	}{
-		{"pointer decoder", "package p; type Socket struct{}; func (*Socket) UnmarshalJSON([]byte) error{return nil}", []string{"Socket"}},
-		{"value decoder", "package p; type Socket struct{}; func (Socket) UnmarshalJSON([]byte) error{return nil}", []string{"Socket"}},
-		{"encoder is not ingress", "package p; type Socket struct{}; func (Socket) MarshalJSON()([]byte,error){return nil,nil}", nil},
-		{"free function is not a type boundary", "package p; func UnmarshalJSON([]byte) error{return nil}", nil},
-		{"unrelated method", "package p; type Socket struct{}; func (*Socket) Validate()error{return nil}", nil},
-		{"two distinct owners", "package p; type A struct{}; type B struct{}; func (*A) UnmarshalJSON([]byte)error{return nil};func(B)UnmarshalJSON([]byte)error{return nil}", []string{"A", "B"}},
+		{name: "pointer decoder", source: "package p; type Socket struct{}; func (*Socket) UnmarshalJSON([]byte) error{return nil}", want: []string{"Socket"}},
+		{name: "value decoder", source: "package p; type Socket struct{}; func (Socket) UnmarshalJSON([]byte) error{return nil}", want: []string{"Socket"}},
+		{name: "encoder is not ingress", source: "package p; type Socket struct{}; func (Socket) MarshalJSON()([]byte,error){return nil,nil}", want: nil},
+		{name: "free function is not a type boundary", source: "package p; func UnmarshalJSON([]byte) error{return nil}", want: nil},
+		{name: "unrelated method", source: "package p; type Socket struct{}; func (*Socket) Validate()error{return nil}", want: nil},
+		{name: "two distinct owners", source: "package p; type A struct{}; type B struct{}; func (*A) UnmarshalJSON([]byte)error{return nil};func(B)UnmarshalJSON([]byte)error{return nil}", want: []string{"A", "B"}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

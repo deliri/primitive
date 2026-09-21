@@ -16,6 +16,7 @@ import (
 func TestRemoveTreeNamespaceLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr  error
 		name     string
 		kind     filestore.PathKind
 		nested   bool
@@ -23,7 +24,6 @@ func TestRemoveTreeNamespaceLayerTriad(t *testing.T) {
 		rootPath bool
 		canceled bool
 		closed   bool
-		wantErr  error
 	}{
 		{name: "binary regular file is removed without touching neighbor", kind: filestore.PathKindRegularFile},
 		{name: "empty directory is removed without invented descendants", kind: filestore.PathKindDirectory},

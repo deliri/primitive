@@ -35,15 +35,14 @@ func TestDurableWriterLayerTriadCreateReplaceAndNeutralEffects(t *testing.T) {
 	binary := []byte{0, 255, 7, 1}
 	original := []byte{19, 0, 255, 88, 5}
 	for _, tc := range []struct {
-		name     string
-		fault    fault
-		payload  []byte
-		initial  []byte
-		occupied bool
-		install  filestore.InstallMode
-
-		want                []byte
 		wantErr, wantNative error
+		name                string
+		payload             []byte
+		initial             []byte
+		want                []byte
+		fault               fault
+		occupied            bool
+		install             filestore.InstallMode
 	}{
 		{name: "create preserves opaque binary content", payload: binary, install: filestore.InstallCreate, want: binary},
 		{name: "empty create publishes a real empty file", install: filestore.InstallCreate},

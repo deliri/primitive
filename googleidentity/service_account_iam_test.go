@@ -19,8 +19,8 @@ import (
 
 type googleIAMFixtureIntent struct {
 	Audience     Audience `json:"audience"`
-	IncludeEmail bool     `json:"includeEmail"`
 	Delegates    []string `json:"delegates,omitempty"`
+	IncludeEmail bool     `json:"includeEmail"`
 }
 type googleIAMFixtureReceipt struct {
 	Token string `json:"token"`
@@ -29,10 +29,10 @@ type googleIAMFixtureReceipt struct {
 func TestGoogleServiceAccountIAMBoundaryLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr  error
+		mutate   func([]byte) []byte
 		name     string
 		redirect bool
-		mutate   func([]byte) []byte
-		wantErr  error
 	}{
 		{name: "sdk_authenticates_exact_iam_intent"},
 		{name: "large_iam_response_whitespace", mutate: func(b []byte) []byte { return append([]byte(strings.Repeat(" ", 128<<10)), b...) }},

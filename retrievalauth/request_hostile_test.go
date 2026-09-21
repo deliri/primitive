@@ -265,10 +265,7 @@ func TestRetrievalAuthDocumentJSONLayerTriad(t *testing.T) {
 func marshalReorderedRetrievalAuthDocument(t *testing.T, document RequestDocument) []byte {
 	t.Helper()
 
-	encoded, gotErr := core.MarshalCanonicalJSONDocument(struct {
-		Request     retrieval.RequestDocument                    `json:"request"`
-		Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
-	}{Certificate: document.Certificate, Request: document.Request})
+	encoded, gotErr := core.MarshalCanonicalJSONDocument(reorderedRetrievalRequestJSON{Certificate: document.Certificate, Request: document.Request})
 	if gotErr != nil {
 		t.Fatalf("core.MarshalCanonicalJSONDocument(reordered retrieval auth) error = %v, want nil", gotErr)
 	}
@@ -408,4 +405,11 @@ func retrievalAuthSeed(marker byte) [ed25519.SeedSize]byte {
 		seed[index] = marker
 	}
 	return seed
+}
+
+// reorderedRetrievalRequestJSON intentionally reverses the production member order.
+// The boundary test proves this fixture differs before submitting it.
+type reorderedRetrievalRequestJSON struct {
+	Request     retrieval.RequestDocument                    `json:"request"`
+	Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
 }

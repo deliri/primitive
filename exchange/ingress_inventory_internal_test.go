@@ -28,10 +28,10 @@ const (
 
 type IngressCoverageForTest struct {
 	Door   any
-	Kind   IngressCoverageKindForTest
 	Fuzz   func(*testing.F)
 	Proof  func(*testing.T)
 	Reason string
+	Kind   IngressCoverageKindForTest
 }
 type IngressDeclarationForTest struct {
 	Symbol, File string

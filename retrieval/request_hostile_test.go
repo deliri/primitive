@@ -381,8 +381,8 @@ func marshalReorderedRetrievalRequest(t *testing.T, document RequestDocument) []
 	t.Helper()
 
 	encoded, gotErr := core.MarshalCanonicalJSONDocument(struct {
-		Attestation attest.Envelope[SigningDomain] `json:"attestation"`
 		Payload     RequestPayload                 `json:"payload"`
+		Attestation attest.Envelope[SigningDomain] `json:"attestation"`
 	}{Attestation: document.Attestation, Payload: document.Payload})
 	if gotErr != nil {
 		t.Fatalf("core.MarshalCanonicalJSONDocument(reordered request) error = %v, want nil", gotErr)

@@ -13,18 +13,18 @@ import (
 func TestAudienceTextLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name, input string
 		wantErr     error
+		name, input string
 	}{
-		{"minimum nonempty audience", "a", nil},
-		{"OIDC audience without URL scheme", "api.tailscale.com/federated-client", nil},
-		{"escaped text is preserved exactly", "a\"\\b", nil},
-		{"multibyte UTF8 at former byte extent", strings.Repeat("é", googleFormerAudienceBytes/2), nil},
-		{"below former byte extent", strings.Repeat("a", googleFormerAudienceBytes-1), nil},
-		{"former byte extent", strings.Repeat("a", googleFormerAudienceBytes), nil},
-		{"beyond former byte extent", strings.Repeat("a", googleFormerAudienceBytes+1), nil},
-		{"invalid UTF8 cannot be repaired", string([]byte{0xff}), core.ErrGoogleIdentityContract},
-		{"absent audience does not erase prior binding", "", core.ErrGoogleIdentityContract},
+		{name: "minimum nonempty audience", input: "a", wantErr: nil},
+		{name: "OIDC audience without URL scheme", input: "api.tailscale.com/federated-client", wantErr: nil},
+		{name: "escaped text is preserved exactly", input: "a\"\\b", wantErr: nil},
+		{name: "multibyte UTF8 at former byte extent", input: strings.Repeat("é", googleFormerAudienceBytes/2), wantErr: nil},
+		{name: "below former byte extent", input: strings.Repeat("a", googleFormerAudienceBytes-1), wantErr: nil},
+		{name: "former byte extent", input: strings.Repeat("a", googleFormerAudienceBytes), wantErr: nil},
+		{name: "beyond former byte extent", input: strings.Repeat("a", googleFormerAudienceBytes+1), wantErr: nil},
+		{name: "invalid UTF8 cannot be repaired", input: string([]byte{0xff}), wantErr: core.ErrGoogleIdentityContract},
+		{name: "absent audience does not erase prior binding", input: "", wantErr: core.ErrGoogleIdentityContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -63,9 +63,9 @@ func TestAudienceTextLayerTriad(t *testing.T) {
 func TestAudienceEmptyBoundaryLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name     string
-		receiver *Audience
 		wantErr  error
+		receiver *Audience
+		name     string
 	}{
 		{name: "nil_receiver_cannot_accept", wantErr: core.ErrGoogleIdentityContract},
 		{name: "zero_receiver_accepts_valid_binding", receiver: &Audience{}},
@@ -83,10 +83,10 @@ func TestAudienceEmptyBoundaryLayerTriad(t *testing.T) {
 		})
 	}
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		value   Audience
 		want    string
-		wantErr error
 	}{
 		{name: "zero_cannot_marshal_as_valid_binding", wantErr: core.ErrGoogleIdentityContract},
 		{name: "valid_binding_marshal_is_exact", value: Audience{value: "next"}, want: "next"},

@@ -74,8 +74,8 @@ func TestContextConstructionContainsBrokenParentContracts(t *testing.T) {
 				t.Fatal(err)
 			}
 			for _, call := range []struct {
-				name      string
 				construct func() (context.Context, context.CancelFunc, error)
+				name      string
 			}{
 				{name: "timeout", construct: func() (context.Context, context.CancelFunc, error) {
 					return temporal.WithTimeout(temporal.TimeoutRequest{Parent: supplied, Duration: duration})

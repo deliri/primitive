@@ -34,9 +34,9 @@ func (w WritableWorkspace) ValidateEnvironment(environment process.Environment) 
 		name string
 		path core.AbsolutePath
 	}{
-		{core.EnvironmentHomeName, w.Home},
-		{core.EnvironmentTemporaryName, w.Temporary},
-		{core.EnvironmentCacheName, w.Cache},
+		{name: core.EnvironmentHomeName, path: w.Home},
+		{name: core.EnvironmentTemporaryName, path: w.Temporary},
+		{name: core.EnvironmentCacheName, path: w.Cache},
 	}
 	for _, requirement := range required {
 		want := requirement.name + "=" + requirement.path.String()

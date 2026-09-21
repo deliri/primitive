@@ -99,11 +99,11 @@ func TestSocketVerifiedCertificateObservationLayerTriad(t *testing.T) {
 	// neutrality of the fields that cannot confer verified identity. This is an
 	// observation of a Go-owned state, not a second certificate verifier.
 	cases := []struct {
-		name     string
-		state    *tls.ConnectionState
-		zeroCall bool
-		want     core.SHA256Digest
 		wantErr  error
+		state    *tls.ConnectionState
+		name     string
+		want     core.SHA256Digest
+		zeroCall bool
 	}{
 		{name: "unbound call cannot mint identity", zeroCall: true, wantErr: core.ErrExchangeContract},
 		{name: "plaintext cannot mint identity", wantErr: core.ErrExchangeContract},
@@ -227,14 +227,14 @@ func TestSocketGoMutualTLSLayerTriad(t *testing.T) {
 	wrongKey := fixture.client
 	wrongKey.PrivateKey = fixture.server.PrivateKey
 	cases := []struct {
-		name             string
-		mode             tls.ClientAuthType
-		certificate      *tls.Certificate
-		roots            *x509.CertPool
-		wantCalls        int64
-		wantIdentity     core.SHA256Digest
 		wantIdentityErr  error
 		wantTransportErr error
+		certificate      *tls.Certificate
+		roots            *x509.CertPool
+		name             string
+		mode             tls.ClientAuthType
+		wantCalls        int64
+		wantIdentity     core.SHA256Digest
 	}{
 		{name: "Go verifies client before identity observation", mode: tls.RequireAndVerifyClientCert, certificate: &fixture.client, roots: fixture.roots, wantCalls: 1, wantIdentity: core.NewSHA256Digest(sha256.Sum256(fixture.leaf.Raw))},
 		{name: "required client absence stops before handler", mode: tls.RequireAndVerifyClientCert, roots: fixture.roots, wantTransportErr: core.ErrExchangeTransport},
@@ -250,8 +250,8 @@ func TestSocketGoMutualTLSLayerTriad(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			type observation struct {
-				digest                core.SHA256Digest
 				identityErr, writeErr error
+				digest                core.SHA256Digest
 			}
 			observed := make(chan observation, 1)
 			var calls atomic.Int64

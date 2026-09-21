@@ -19,10 +19,10 @@ func TestTreeDownloadCancellationLayerTriad(t *testing.T) {
 	t.Parallel()
 	visitorErr := errors.New("visitor refused entry")
 	cases := []struct {
+		wantErr   error
 		name      string
 		malformed bool
 		refuse    bool
-		wantErr   error
 	}{
 		{name: "malformed prefix cancels stalled provider", malformed: true, wantErr: core.ErrGitHubResponse},
 		{name: "visitor refusal cancels stalled provider", refuse: true, wantErr: visitorErr},
@@ -83,13 +83,13 @@ func TestTreeDownloadCancellationLayerTriad(t *testing.T) {
 				return visitorErr
 			})
 			type result struct {
-				observation TreeObservation
 				err         error
+				observation TreeObservation
 			}
 			done := make(chan result, 1)
 			go func() {
 				got, err := client.ReadTree(ctx, TreeRequest{Repository: parsedRepository(t, "owner/repository"), Commit: parsedCommit(t), Visitor: visitor})
-				done <- result{got, err}
+				done <- result{observation: got, err: err}
 			}()
 			var got result
 			select {
@@ -133,9 +133,9 @@ func TestTreeContextRefusalBeforeNetwork(t *testing.T) {
 	cancelled, cancel := context.WithCancel(t.Context())
 	cancel()
 	for _, tc := range []struct {
-		name    string
 		ctx     context.Context
 		wantErr error
+		name    string
 	}{
 		{name: "absent context", wantErr: core.ErrGitHubContract},
 		{name: "already cancelled context", ctx: cancelled, wantErr: context.Canceled},

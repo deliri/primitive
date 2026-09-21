@@ -12,9 +12,9 @@ import (
 type observationResolver struct {
 	files           map[core.SourcePath]sourceobservation.File
 	packages        map[core.SourcePath]sourceobservation.Package
+	packageFiles    map[core.SourcePath][]sourceobservation.FileReference
 	projectFiles    []sourceobservation.FileReference
 	projectPackages []sourceobservation.PackageReference
-	packageFiles    map[core.SourcePath][]sourceobservation.FileReference
 }
 
 func (r observationResolver) StreamProjectFiles(_ context.Context, _ sourceobservation.Project, emit sourceobservation.EmitFileReference) error {
@@ -64,10 +64,10 @@ func TestProjectVerificationLayerTriadClosesSeparatelyRetainedObservations(t *te
 	t.Parallel()
 
 	cases := []struct {
-		setup       func(testing.TB) (sourceobservation.Project, observationResolver)
 		wantErr     error
-		wantSummary sourceobservation.Summary
+		setup       func(testing.TB) (sourceobservation.Project, observationResolver)
 		name        string
+		wantSummary sourceobservation.Summary
 	}{
 		{
 			name: "positive exact package membership resolves every child digest",

@@ -11,8 +11,8 @@ import (
 )
 
 type treePanicTransport struct {
-	payload []byte
 	closed  chan struct{}
+	payload []byte
 }
 
 func (p treePanicTransport) RoundTrip(request *http.Request) (*http.Response, error) {
@@ -46,7 +46,7 @@ func TestTreeVisitorPanicJoinsOwnedDownload(t *testing.T) {
 	}()
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
-	panicFact := &struct{ name string }{"visitor"}
+	panicFact := &struct{ name string }{name: "visitor"}
 	request := TreeRequest{Repository: parsedRepository(t, "owner/repository"), Commit: parsedCommit(t), Visitor: nilFuncVisitor(func(*TreeEntryStream) error { panic(panicFact) })}
 	done := make(chan bool, 1)
 	go func() {

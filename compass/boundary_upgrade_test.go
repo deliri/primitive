@@ -22,17 +22,17 @@ func TestCompassDocumentExtentLayerTriad(t *testing.T) {
 	canonical := encodedConfiguration(t, want.Project)
 	gap := bytes.Repeat([]byte(" "), compassWhitespaceFixtureBytes)
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		data    []byte
-		wantErr error
 	}{
-		{"canonical", canonical, nil},
-		{"large_prefix", append(bytes.Clone(gap), canonical...), nil},
-		{"large_interior", append(append([]byte{'{'}, gap...), canonical[1:]...), nil},
-		{"large_suffix", append(bytes.Clone(canonical), gap...), nil},
-		{"neutral_whitespace", gap, core.ErrJSONContract},
-		{"trailing_document_after_gap", append(append(bytes.Clone(canonical), gap...), []byte("{}")...), core.ErrJSONContract},
-		{"truncated_after_prefix", append(bytes.Clone(gap), canonical[:len(canonical)-1]...), core.ErrJSONContract},
+		{name: "canonical", data: canonical, wantErr: nil},
+		{name: "large_prefix", data: append(bytes.Clone(gap), canonical...), wantErr: nil},
+		{name: "large_interior", data: append(append([]byte{'{'}, gap...), canonical[1:]...), wantErr: nil},
+		{name: "large_suffix", data: append(bytes.Clone(canonical), gap...), wantErr: nil},
+		{name: "neutral_whitespace", data: gap, wantErr: core.ErrJSONContract},
+		{name: "trailing_document_after_gap", data: append(append(bytes.Clone(canonical), gap...), []byte("{}")...), wantErr: core.ErrJSONContract},
+		{name: "truncated_after_prefix", data: append(bytes.Clone(gap), canonical[:len(canonical)-1]...), wantErr: core.ErrJSONContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -56,23 +56,23 @@ func TestCompassDocumentExtentLayerTriad(t *testing.T) {
 func TestProjectNameAdmissionLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name, text string
 		wantErr    error
+		name, text string
 	}{
-		{"minimum_name", "P", nil},
-		{"unicode_name", "Évidence", nil},
-		{"internal_space", "Evidence Tool", nil},
-		{"escaped_quote_and_backslash", "A\"\\B", nil},
-		{"decomposed_unicode_remains_exact", "e\u0301", nil},
-		{"beyond_old_byte_ceiling", strings.Repeat("n", 129), nil},
-		{"large_multibyte_name", strings.Repeat("界", 4096), nil},
-		{"neutral_empty", "", core.ErrCompassContract},
-		{"leading_ascii_space", " P", core.ErrCompassContract},
-		{"trailing_unicode_space", "P\u00a0", core.ErrCompassContract},
-		{"embedded_newline", "A\nB", core.ErrCompassContract},
-		{"embedded_null", "A\x00B", core.ErrCompassContract},
-		{"unicode_control", "A\u0085B", core.ErrCompassContract},
-		{"invalid_utf8", "\xff", core.ErrCompassContract},
+		{name: "minimum_name", text: "P", wantErr: nil},
+		{name: "unicode_name", text: "Évidence", wantErr: nil},
+		{name: "internal_space", text: "Evidence Tool", wantErr: nil},
+		{name: "escaped_quote_and_backslash", text: "A\"\\B", wantErr: nil},
+		{name: "decomposed_unicode_remains_exact", text: "e\u0301", wantErr: nil},
+		{name: "beyond_old_byte_ceiling", text: strings.Repeat("n", 129), wantErr: nil},
+		{name: "large_multibyte_name", text: strings.Repeat("界", 4096), wantErr: nil},
+		{name: "neutral_empty", text: "", wantErr: core.ErrCompassContract},
+		{name: "leading_ascii_space", text: " P", wantErr: core.ErrCompassContract},
+		{name: "trailing_unicode_space", text: "P\u00a0", wantErr: core.ErrCompassContract},
+		{name: "embedded_newline", text: "A\nB", wantErr: core.ErrCompassContract},
+		{name: "embedded_null", text: "A\x00B", wantErr: core.ErrCompassContract},
+		{name: "unicode_control", text: "A\u0085B", wantErr: core.ErrCompassContract},
+		{name: "invalid_utf8", text: "\xff", wantErr: core.ErrCompassContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -106,8 +106,8 @@ func TestProjectNameAdmissionLayerTriad(t *testing.T) {
 }
 
 type compassTerminalReader struct {
-	data  []byte
 	cause error
+	data  []byte
 }
 
 func (r *compassTerminalReader) Read(destination []byte) (int, error) {
@@ -133,24 +133,24 @@ func TestCompassReaderFailureLayerTriad(t *testing.T) {
 	want := compass.Configuration{Project: projectFixture(t, "Project", "example.com/project", "owner/project", 2026, 1, 3)}
 	canonical := encodedConfiguration(t, want.Project)
 	for _, tc := range []struct {
-		name       string
-		makeReader func() io.Reader
 		wantErr    error
+		makeReader func() io.Reader
+		name       string
 	}{
-		{"data_and_eof", func() io.Reader { return &compassTerminalReader{data: canonical, cause: io.EOF} }, nil},
-		{"one_byte_reads", func() io.Reader { return iotest.OneByteReader(bytes.NewReader(canonical)) }, nil},
-		{"native_failure_after_complete_json", func() io.Reader { return &compassTerminalReader{data: canonical, cause: io.ErrClosedPipe} }, io.ErrClosedPipe},
-		{"cancellation_and_eof_after_json", func() io.Reader {
+		{name: "data_and_eof", makeReader: func() io.Reader { return &compassTerminalReader{data: canonical, cause: io.EOF} }, wantErr: nil},
+		{name: "one_byte_reads", makeReader: func() io.Reader { return iotest.OneByteReader(bytes.NewReader(canonical)) }, wantErr: nil},
+		{name: "native_failure_after_complete_json", makeReader: func() io.Reader { return &compassTerminalReader{data: canonical, cause: io.ErrClosedPipe} }, wantErr: io.ErrClosedPipe},
+		{name: "cancellation_and_eof_after_json", makeReader: func() io.Reader {
 			return &compassTerminalReader{data: canonical, cause: errors.Join(io.EOF, context.Canceled)}
-		}, context.Canceled},
-		{"wrapped_eof_is_not_clean_completion", func() io.Reader {
+		}, wantErr: context.Canceled},
+		{name: "wrapped_eof_is_not_clean_completion", makeReader: func() io.Reader {
 			return &compassTerminalReader{data: canonical, cause: fmt.Errorf("reader: %w", io.EOF)}
-		}, io.EOF},
-		{"no_progress", func() io.Reader { return &compassTerminalReader{} }, io.ErrNoProgress},
-		{"negative_count", func() io.Reader { return compassBadCountReader{count: -1} }, core.ErrJSONContract},
-		{"overreported_count", func() io.Reader { return compassBadCountReader{} }, core.ErrJSONContract},
-		{"absent_source", func() io.Reader { return nil }, core.ErrJSONContract},
-		{"typed_nil_source", func() io.Reader { return (*bytes.Reader)(nil) }, core.ErrJSONContract},
+		}, wantErr: io.EOF},
+		{name: "no_progress", makeReader: func() io.Reader { return &compassTerminalReader{} }, wantErr: io.ErrNoProgress},
+		{name: "negative_count", makeReader: func() io.Reader { return compassBadCountReader{count: -1} }, wantErr: core.ErrJSONContract},
+		{name: "overreported_count", makeReader: func() io.Reader { return compassBadCountReader{} }, wantErr: core.ErrJSONContract},
+		{name: "absent_source", makeReader: func() io.Reader { return nil }, wantErr: core.ErrJSONContract},
+		{name: "typed_nil_source", makeReader: func() io.Reader { return (*bytes.Reader)(nil) }, wantErr: core.ErrJSONContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -172,8 +172,8 @@ func TestCompassReaderFailureLayerTriad(t *testing.T) {
 }
 
 type extendedCompass struct {
-	Project compass.Project       `json:"project"`
 	Names   []compass.ProjectName `json:"names"`
+	Project compass.Project       `json:"project"`
 }
 
 func (c extendedCompass) Validate() error {
@@ -194,13 +194,13 @@ func TestCompassCallerOwnedDocumentLayerTriad(t *testing.T) {
 	t.Parallel()
 	project := projectFixture(t, "Project", "example.com/project", "owner/project", 2026, 1, 3)
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		count   int
-		wantErr error
 	}{
-		{"one_typed_name", 1, nil},
-		{"array_beyond_old_default", 1025, nil},
-		{"neutral_missing_names", 0, io.ErrUnexpectedEOF},
+		{name: "one_typed_name", count: 1, wantErr: nil},
+		{name: "array_beyond_old_default", count: 1025, wantErr: nil},
+		{name: "neutral_missing_names", count: 0, wantErr: io.ErrUnexpectedEOF},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

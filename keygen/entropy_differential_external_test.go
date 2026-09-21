@@ -22,10 +22,10 @@ import (
 func TestEntropyDoorsMatchGoAndPreserveStreamOnRefusalLayerTriad(t *testing.T) {
 	testserial.Declare(t, core.TestIsolationDeclaration{Hazard: core.TestIsolationHazardGlobalRegistry, Scope: core.TestIsolationScopePackageProcess})
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		extent  int
 		issued  bool
-		wantErr error
 	}{
 		{name: "unissued empty capability cannot become an issued no-op", wantErr: core.ErrKeygenContract},
 		{name: "unissued destination refuses without entropy", extent: 1, wantErr: core.ErrKeygenContract},

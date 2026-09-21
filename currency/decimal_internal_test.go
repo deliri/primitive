@@ -109,10 +109,10 @@ func TestDecimalUnsignedOverflowPreservesStandardLibraryFailure(t *testing.T) {
 func TestDecimalMagnitudeClassifiesNativeFailure(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		cause  error
 		name   string
 		digits string
 		want   uint64
-		cause  error
 	}{
 		{name: "empty digits are syntax", digits: "", cause: strconv.ErrSyntax},
 		{name: "embedded nondigit is syntax", digits: "12x3", cause: strconv.ErrSyntax},

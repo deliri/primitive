@@ -18,9 +18,9 @@ import (
 
 type armedWatchParent struct {
 	context.Context
+	failure    error
 	armed      atomic.Bool
 	calls      atomic.Uint32
-	failure    error
 	valuePanic bool
 }
 
@@ -87,8 +87,8 @@ func TestControllerEscalationNeverReentersParentDone(t *testing.T) {
 func TestWatchConstructionPanicKeepsItsActualErrorIdentity(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name            string
 		failure         error
+		name            string
 		valuePanic      bool
 		wantObservation bool
 	}{
@@ -123,9 +123,9 @@ func TestWatchConstructionPanicKeepsItsActualErrorIdentity(t *testing.T) {
 func TestSkippedStepPreservesObservedTerminalIdentity(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		want     error
 		name     string
 		deadline bool
-		want     error
 	}{
 		{name: "canceled root never claims a deadline", want: context.Canceled},
 		{name: "expired root keeps the deadline", deadline: true, want: context.DeadlineExceeded},
@@ -358,9 +358,9 @@ func FuzzWatchParentPanicIngress(f *testing.F) {
 func TestContextPanicErrorSchemaLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name    string
-		value   ContextPanicError
 		wantErr error
+		value   ContextPanicError
+		name    string
 	}{
 		{name: "bounded native diagnostic keeps its typed cause", value: ContextPanicError{cause: errors.Join(core.ErrShutdownContract, errHostileCleanup), diagnostic: "retained"}},
 		{name: "unset panic is no evidence", wantErr: core.ErrShutdownContract},
@@ -406,12 +406,12 @@ func (p terminalParentProbe) Value(key any) any {
 func TestTerminalContextObservationPreservesRefusalAndCustomCause(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name       string
 		terminal   error
+		want       error
+		name       string
 		panicErr   bool
 		panicValue bool
 		custom     bool
-		want       error
 		wantNative bool
 	}{
 		{name: "active context supplies no terminal fact"},

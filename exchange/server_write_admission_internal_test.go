@@ -39,9 +39,9 @@ func (w *admissionResponseWriter) WriteHeader(status int)      { w.statusCalls++
 func (w *admissionResponseWriter) Write(p []byte) (int, error) { w.writes++; return w.body.Write(p) }
 
 type admissionJSONDocument struct {
-	Message  string `json:"message"`
 	cancel   context.CancelFunc
 	marshals *int
+	Message  string `json:"message"`
 }
 
 func (d admissionJSONDocument) Validate() error {
@@ -78,19 +78,19 @@ func TestServerWriteAdmissionLayerTriad(t *testing.T) {
 	http.NotFound(notFound, httptest.NewRequest(http.MethodGet, "/", nil))
 	cookie := http.Cookie{Name: "boundary", Value: "owned", Path: "/", HttpOnly: true}
 	cases := []struct {
-		name         string
-		lane         writeAdmissionLane
-		cancelled    bool
-		cancelInJSON bool
-		wantErr      error
 		wantNative   error
+		wantErr      error
+		wantCookie   string
+		name         string
 		wantBody     string
+		wantWrites   int
 		wantStatus   int
 		wantStatuses int
-		wantWrites   int
 		wantMarshals int
+		cancelInJSON bool
+		cancelled    bool
 		wantHeaders  bool
-		wantCookie   string
+		lane         writeAdmissionLane
 	}{
 		{name: "positive JSON performs one exact encoded write", lane: writeAdmissionJSON, wantBody: `{"message":"abc"}`, wantStatus: http.StatusOK, wantStatuses: 1, wantWrites: 1, wantMarshals: 1, wantHeaders: true},
 		{name: "neutral no-body response commits only status and framing", lane: writeAdmissionNoBody, wantStatus: http.StatusNoContent, wantStatuses: 1, wantHeaders: true},

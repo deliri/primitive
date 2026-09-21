@@ -11,9 +11,9 @@ import (
 func TestClientAdmissionLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name     string
 		identity IdentitySource
 		wantErr  error
+		name     string
 	}{
 		{name: "explicit refusing source is admitted without acquisition", identity: &refusingIdentity{}, wantErr: nil},
 		{name: "absent source cannot create a capability", wantErr: core.ErrTailnetContract},
@@ -40,9 +40,9 @@ func TestClientAdmissionLayerTriad(t *testing.T) {
 func TestExchangeCapabilityLifetime(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name    string
-		setup   func(*testing.T) *Client
 		wantErr error
+		setup   func(*testing.T) *Client
+		name    string
 	}{
 		{name: "nil receiver refuses capability", setup: func(*testing.T) *Client { return nil }, wantErr: core.ErrTailnetContract},
 		{name: "zero receiver refuses capability with owning identity", setup: func(*testing.T) *Client { return new(Client) }, wantErr: core.ErrTailnetContract},

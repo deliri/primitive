@@ -29,8 +29,8 @@ func TestEarlySDKFilesystemFailureReturnsError(t *testing.T) {
 		name   string
 		nested bool
 	}{
-		{"state path is a regular file", false},
-		{"state parent is a regular file", true},
+		{name: "state path is a regular file", nested: false},
+		{name: "state parent is a regular file", nested: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

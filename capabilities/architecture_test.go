@@ -50,17 +50,17 @@ func TestCapabilityProductionInventories(t *testing.T) {
 	}
 	public := capabilityPublicDoors{
 		All: All, ForEffect: ForEffect, ForPackage: ForPackage,
-		IdentityForEffect:     capabilityFuzzDoor[func(Effect) (Identity, error)]{IdentityForEffect, FuzzParseIdentityExactDomain},
-		ParseIdentity:         capabilityFuzzDoor[func(string) (Identity, error)]{ParseIdentity, FuzzParseIdentityExactDomain},
-		ParseSymbolName:       capabilityFuzzDoor[func(string) (SymbolName, error)]{ParseSymbolName, FuzzSymbolNameGoIdentifier},
-		Resolve:               capabilityFuzzDoor[func(Requirement) (Match, error)]{Resolve, FuzzResolveRequirementExactOwnership},
-		ResolveStandardSymbol: capabilityFuzzDoor[func(StandardSymbol) (StandardSymbolFact, error)]{ResolveStandardSymbol, FuzzStandardSymbolNamespaceClosure},
+		IdentityForEffect:     capabilityFuzzDoor[func(Effect) (Identity, error)]{Door: IdentityForEffect, Fuzz: FuzzParseIdentityExactDomain},
+		ParseIdentity:         capabilityFuzzDoor[func(string) (Identity, error)]{Door: ParseIdentity, Fuzz: FuzzParseIdentityExactDomain},
+		ParseSymbolName:       capabilityFuzzDoor[func(string) (SymbolName, error)]{Door: ParseSymbolName, Fuzz: FuzzSymbolNameGoIdentifier},
+		Resolve:               capabilityFuzzDoor[func(Requirement) (Match, error)]{Door: Resolve, Fuzz: FuzzResolveRequirementExactOwnership},
+		ResolveStandardSymbol: capabilityFuzzDoor[func(StandardSymbol) (StandardSymbolFact, error)]{Door: ResolveStandardSymbol, Fuzz: FuzzStandardSymbolNamespaceClosure},
 	}
 	jsonDoors := capabilityJSONDoors{
-		Identity:                  capabilityFuzzDoor[func(*Identity, []byte) error]{(*Identity).UnmarshalJSON, FuzzIdentityJSONSemanticClosure},
-		Operation:                 capabilityFuzzDoor[func(*Operation, []byte) error]{(*Operation).UnmarshalJSON, FuzzOperationJSONSemanticClosure},
-		StandardSymbolDisposition: capabilityFuzzDoor[func(*StandardSymbolDisposition, []byte) error]{(*StandardSymbolDisposition).UnmarshalJSON, FuzzStandardSymbolDispositionJSONSemanticClosure},
-		Classification:            capabilityFuzzDoor[func(*Classification, []byte) error]{(*Classification).UnmarshalJSON, FuzzClassificationJSONSemanticClosure},
+		Identity:                  capabilityFuzzDoor[func(*Identity, []byte) error]{Door: (*Identity).UnmarshalJSON, Fuzz: FuzzIdentityJSONSemanticClosure},
+		Operation:                 capabilityFuzzDoor[func(*Operation, []byte) error]{Door: (*Operation).UnmarshalJSON, Fuzz: FuzzOperationJSONSemanticClosure},
+		StandardSymbolDisposition: capabilityFuzzDoor[func(*StandardSymbolDisposition, []byte) error]{Door: (*StandardSymbolDisposition).UnmarshalJSON, Fuzz: FuzzStandardSymbolDispositionJSONSemanticClosure},
+		Classification:            capabilityFuzzDoor[func(*Classification, []byte) error]{Door: (*Classification).UnmarshalJSON, Fuzz: FuzzClassificationJSONSemanticClosure},
 	}
 	var wantFunctions, wantDecoders []string
 	for field := range reflect.TypeOf(public).Fields() {
@@ -164,12 +164,12 @@ func TestCapabilityInventoryDiscoversUnlistedEntry(t *testing.T) {
 		name, source string
 		want         capabilitySourceFacts
 	}{
-		{"empty package", "package fixture", capabilitySourceFacts{}},
-		{"new standalone entry", "package fixture; func DecodeFuture([]byte){}", capabilitySourceFacts{functions: []string{"DecodeFuture"}}},
-		{"new pointer text decoder", "package fixture;type Item struct{};func(*Item) UnmarshalText([]byte){}", capabilitySourceFacts{structs: []string{"Item"}, decoders: []string{"Item.UnmarshalText"}}},
-		{"new string method", "package fixture;type Item struct{};func(Item) ParseFuture(string){}", capabilitySourceFacts{structs: []string{"Item"}, decoders: []string{"Item.ParseFuture"}}},
-		{"private struct", "package fixture;type hidden struct{}", capabilitySourceFacts{structs: []string{"hidden"}}},
-		{"alias cannot hide struct", "package fixture;type Alias=Original", capabilitySourceFacts{aliases: []string{"Alias"}}},
+		{name: "empty package", source: "package fixture", want: capabilitySourceFacts{}},
+		{name: "new standalone entry", source: "package fixture; func DecodeFuture([]byte){}", want: capabilitySourceFacts{functions: []string{"DecodeFuture"}}},
+		{name: "new pointer text decoder", source: "package fixture;type Item struct{};func(*Item) UnmarshalText([]byte){}", want: capabilitySourceFacts{structs: []string{"Item"}, decoders: []string{"Item.UnmarshalText"}}},
+		{name: "new string method", source: "package fixture;type Item struct{};func(Item) ParseFuture(string){}", want: capabilitySourceFacts{structs: []string{"Item"}, decoders: []string{"Item.ParseFuture"}}},
+		{name: "private struct", source: "package fixture;type hidden struct{}", want: capabilitySourceFacts{structs: []string{"hidden"}}},
+		{name: "alias cannot hide struct", source: "package fixture;type Alias=Original", want: capabilitySourceFacts{aliases: []string{"Alias"}}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

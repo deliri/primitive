@@ -14,10 +14,10 @@ import (
 func TestListenAddressGoLiteralGrammarTable(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name     string
-		inputs   []string
-		wantText string
 		wantErr  error
+		name     string
+		wantText string
+		inputs   []string
 	}{
 		{name: "IPv4 decimal port canonicalization stays with Go", inputs: []string{"127.0.0.1:08080"}, wantText: "127.0.0.1:8080"},
 		{name: "expanded IPv6 case and compression canonicalize together", inputs: []string{"[2001:0DB8:0:0:0:0:0:1]:443"}, wantText: "[2001:db8::1]:443"},

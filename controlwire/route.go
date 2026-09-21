@@ -27,6 +27,8 @@ const (
 	routeUpdateChecksToken                  = "update-checks"
 	routeUpgradesToken                      = "upgrades"
 	routeActivationsToken                   = "activations"
+	routeUpgradeReportsToken                = "upgrade-reports"
+	routeUpgradeEvidenceToken               = "upgrade-evidence"
 
 	routeRegistrationsSuffix                 = routeSeparator + routeRegistrationsToken
 	routeCheckInsSuffix                      = routeSeparator + routeCheckInsToken
@@ -41,6 +43,8 @@ const (
 	routeUpdateChecksSuffix                  = routeSeparator + routeUpdateChecksToken
 	routeUpgradesSuffix                      = routeSeparator + routeUpgradesToken
 	routeActivationsSuffix                   = routeSeparator + routeActivationsToken
+	routeUpgradeReportsSuffix                = routeSeparator + routeUpgradeReportsToken
+	routeUpgradeEvidenceSuffix               = routeSeparator + routeUpgradeEvidenceToken
 )
 
 // RouteFamily is the closed set of control-plane route families.
@@ -77,6 +81,12 @@ const (
 	// RegistrationToken. The product checks current authorization and commits
 	// the grant before delivery; Primitive owns the token and route mechanics.
 	RouteFamilyActivations
+	// RouteFamilyUpgradeReports records an authenticated observation of one
+	// previously admitted candidate attempt, with independently receipted evidence.
+	RouteFamilyUpgradeReports
+	// RouteFamilyUpgradeEvidence requests an exact submission capability bound
+	// to an authenticated attempt. The authority owns eligibility for the effect.
+	RouteFamilyUpgradeEvidence
 	routeFamilyLimit
 )
 
@@ -96,6 +106,8 @@ func routeSuffixes() [routeFamilyLimit]string {
 		RouteFamilyUpdateChecks:                  routeUpdateChecksSuffix,
 		RouteFamilyUpgrades:                      routeUpgradesSuffix,
 		RouteFamilyActivations:                   routeActivationsSuffix,
+		RouteFamilyUpgradeReports:                routeUpgradeReportsSuffix,
+		RouteFamilyUpgradeEvidence:               routeUpgradeEvidenceSuffix,
 	}
 }
 
@@ -115,6 +127,8 @@ func routeFamilyTokens() [routeFamilyLimit]string {
 		RouteFamilyUpdateChecks:                  routeUpdateChecksToken,
 		RouteFamilyUpgrades:                      routeUpgradesToken,
 		RouteFamilyActivations:                   routeActivationsToken,
+		RouteFamilyUpgradeReports:                routeUpgradeReportsToken,
+		RouteFamilyUpgradeEvidence:               routeUpgradeEvidenceToken,
 	}
 }
 

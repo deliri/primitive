@@ -26,10 +26,10 @@ func TestBuildToolInspectionBindsTheCapturedExtent(t *testing.T) {
 		t.Fatalf("process.Resolve(go) error = %v, want nil", err)
 	}
 	for _, tc := range []struct {
-		name        string
-		extentDelta int64
 		wantErr     error
 		wantCause   error
+		name        string
+		extentDelta int64
 	}{
 		{name: "exact captured extent admits the whole compiler"},
 		{name: "growth beyond captured extent cannot be silently hashed", extentDelta: -1, wantErr: core.ErrReleaseContract},

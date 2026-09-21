@@ -32,7 +32,7 @@ func BenchmarkDecodeConfiguration(b *testing.B) {
 	for _, tc := range []struct {
 		name       string
 		fragmented bool
-	}{{"contiguous", false}, {"one_byte_reads", true}} {
+	}{{name: "contiguous", fragmented: false}, {name: "one_byte_reads", fragmented: true}} {
 		b.Run(tc.name, func(b *testing.B) {
 			source := bytes.NewReader(encoded)
 			var reader io.Reader = source

@@ -574,9 +574,9 @@ func amountJSONFixture(code, minorUnits string) []byte {
 func TestAmountJSONPreservesNativeIntegerRefusals(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantNative   error
 		name         string
 		raw          string
-		wantNative   error
 		wantOverflow bool
 	}{
 		{name: "non-integer token retains Go syntax refusal", raw: "1x", wantNative: strconv.ErrSyntax},

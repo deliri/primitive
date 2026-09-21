@@ -19,13 +19,13 @@ func FuzzMethodJSONSemanticClosure(f *testing.F) {
 	// The independent oracle binds each published nominal arm to Go's token,
 	// rather than asking Method.String or parseMethod to grade themselves.
 	methods := []struct {
-		value Method
 		token string
+		value Method
 	}{
-		{MethodGet, http.MethodGet}, {MethodHead, http.MethodHead},
-		{MethodPost, http.MethodPost}, {MethodPut, http.MethodPut},
-		{MethodPatch, http.MethodPatch}, {MethodDelete, http.MethodDelete},
-		{MethodOptions, http.MethodOptions},
+		{value: MethodGet, token: http.MethodGet}, {value: MethodHead, token: http.MethodHead},
+		{value: MethodPost, token: http.MethodPost}, {value: MethodPut, token: http.MethodPut},
+		{value: MethodPatch, token: http.MethodPatch}, {value: MethodDelete, token: http.MethodDelete},
+		{value: MethodOptions, token: http.MethodOptions},
 	}
 	for _, method := range methods {
 		wire, err := method.value.MarshalJSON()

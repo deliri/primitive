@@ -124,9 +124,9 @@ func FuzzServerRuntimeConfigurationAdmission(f *testing.F) {
 func TestServerCapabilityZeroAdmissionTable(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name     string
 		runtime  *ServerRuntime
 		listener *ServerListener
+		name     string
 	}{
 		{name: "nil capabilities cannot execute or invent an address"},
 		{name: "zero capabilities cannot execute or invent an address", runtime: &ServerRuntime{}, listener: &ServerListener{}},

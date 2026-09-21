@@ -36,13 +36,13 @@ func TestRecoveryRevalidatesObservedReceiptLayerTriad(t *testing.T) {
 		name string
 		mode filestore.InstallMode
 	}{
-		{"exclusive create", filestore.InstallCreate}, {"atomic replace", filestore.InstallReplace},
+		{name: "exclusive create", mode: filestore.InstallCreate}, {name: "atomic replace", mode: filestore.InstallReplace},
 	}
 	cases := []struct {
+		wantErr   error
 		name      string
 		wantBytes []byte
 		wantMode  fs.FileMode
-		wantErr   error
 	}{
 		{name: "exact receipt completes without retaining a stage name", wantBytes: []byte{0, 0xff}, wantMode: 0o600},
 		{name: "truncation to empty cannot become a completed two-byte receipt", wantMode: 0o600, wantErr: core.ErrFilestoreSize},
@@ -127,10 +127,10 @@ func TestRecoveryRevalidatesObservedReceiptLayerTriad(t *testing.T) {
 func TestSameInodeActivationDoesNotLeaveAnUnconsumedReceiptLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr   error
 		name      string
 		install   filestore.InstallMode
 		recover   bool
-		wantErr   error
 		wantStage bool
 	}{
 		{name: "exclusive commit treats even the owned hard link as occupied", install: filestore.InstallCreate, wantErr: core.ErrFilestoreConflict, wantStage: true},

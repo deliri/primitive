@@ -13,8 +13,8 @@ import (
 func TestProjectionOwnershipLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name   string
 		mutate func(*manual.Book[testTopic], *manual.Report)
+		name   string
 	}{
 		{name: "usage", mutate: func(b *manual.Book[testTopic], r *manual.Report) {
 			b.Pages[0].Usage[0] = "mutated"
@@ -107,10 +107,10 @@ func (w *manualWindowSink) Write(data []byte) (int, error) {
 func TestTextExtentLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr   error
 		name      string
 		size      int
 		malformed bool
-		wantErr   error
 	}{
 		{name: "below_window", size: manualStreamWindow - 1},
 		{name: "exact_window", size: manualStreamWindow},

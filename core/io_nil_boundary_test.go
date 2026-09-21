@@ -36,9 +36,9 @@ func (nilIOValue) Write(p []byte) (int, error) { panic("nil classification invok
 func TestIOInterfaceNilKindLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name   string
 		reader io.Reader
 		writer io.Writer
+		name   string
 		want   bool
 	}{
 		{name: "absent interface is refused", want: true},

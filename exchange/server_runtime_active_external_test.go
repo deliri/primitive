@@ -19,15 +19,15 @@ import (
 func TestServerRuntimeActiveConnectionOwnershipTable(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name               string
-		cancelGraceful     bool
-		completeActive     bool
 		wantClientBoundary error
 		wantShutdown       error
 		wantRequestCause   error
 		wantClientCause    error
-		wantRequests       int64
+		name               string
 		wantMetadata       exchange.ResponseMetadata
+		wantRequests       int64
+		cancelGraceful     bool
+		completeActive     bool
 	}{
 		{name: "force close cancels the active Go request", wantRequestCause: context.Canceled, wantClientCause: io.EOF, wantClientBoundary: core.ErrExchangeTransport, wantRequests: 1},
 		{name: "canceled graceful drain preserves active request until force close", cancelGraceful: true, wantShutdown: context.Canceled, wantRequestCause: context.Canceled, wantClientCause: io.EOF, wantClientBoundary: core.ErrExchangeTransport, wantRequests: 1},

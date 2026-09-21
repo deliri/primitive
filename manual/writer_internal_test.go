@@ -58,14 +58,14 @@ func TestTextLayoutLayerTriad(t *testing.T) {
 	help := "first\n\nSummary.\n\n" + headingUsage + "\n\n- use\n\n" + headingSuccess + "\n\n- yes\n\n" + headingRefusal + "\n\n- no\n\n"
 	full := help + headingPrerequisites + "\n\n- ready\n\n" + headingChanges + "\n\n- writes\n\n" + headingUnchanged + "\n\n- keeps\n\n" + headingExamples + "\n\n- example\n\n" + headingTerms + "\n\n- item: one\n\n" + headingRelated + "\n\n- second\n"
 	for _, tc := range []struct {
+		wantErr        error
 		name           string
+		want           string
 		selection      Selection[renderTopic]
 		view           View
 		optionalAbsent bool
 		topicAbsent    bool
 		reverse        bool
-		want           string
-		wantErr        error
 	}{
 		{name: "index_preserves_declared_order", selection: Selection[renderTopic]{Mode: SelectionModeIndex}, view: ViewHelp, want: "Guide\n\nOverview.\n\n" + headingTopics + "\n\n- first: Summary.\n- second: Summary.\n"},
 		{name: "index_preserves_reversed_declaration", selection: Selection[renderTopic]{Mode: SelectionModeIndex}, view: ViewHelp, reverse: true, want: "Guide\n\nOverview.\n\n" + headingTopics + "\n\n- second: Summary.\n- first: Summary.\n"},
@@ -103,9 +103,9 @@ func TestTextLayoutLayerTriad(t *testing.T) {
 }
 
 type prefixWriter struct {
+	err          error
 	got          bytes.Buffer
 	remaining    int
-	err          error
 	calls        int
 	failed       bool
 	afterFailure bool
@@ -127,8 +127,8 @@ func (w *prefixWriter) Write(data []byte) (int, error) {
 }
 
 type invalidCountWriter struct {
-	count int
 	err   error
+	count int
 }
 
 func (w invalidCountWriter) Write(data []byte) (int, error) {
@@ -146,8 +146,8 @@ func TestWriterBackpressureLayerTriad(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, door := range []struct {
-		name  string
 		write func(io.Writer) error
+		name  string
 	}{
 		{name: "text", write: func(w io.Writer) error {
 			return WriteText(w, RenderRequest[renderTopic]{Book: book, View: ViewManual, Selection: Selection[renderTopic]{Mode: SelectionModeTopic, Topic: renderFirst}})
@@ -161,8 +161,8 @@ func TestWriterBackpressureLayerTriad(t *testing.T) {
 				t.Fatalf("fixture bytes=%d error=%v, want nonempty output", complete.Len(), err)
 			}
 			for _, tc := range []struct {
-				name  string
 				cause error
+				name  string
 			}{
 				{name: "short_count_without_native_error"},
 				{name: "native_failure_preserves_exact_prefix", cause: io.ErrClosedPipe},
@@ -183,9 +183,9 @@ func TestWriterBackpressureLayerTriad(t *testing.T) {
 				})
 			}
 			for _, tc := range []struct {
+				cause error
 				name  string
 				count int
-				cause error
 			}{
 				{name: "negative_count", count: -1},
 				{name: "excess_count", count: 1},
@@ -243,8 +243,8 @@ func TestClosedManualEnums(t *testing.T) {
 func TestManualEnumNilReceivers(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name   string
 		decode func([]byte) error
+		name   string
 	}{
 		{name: "schema", decode: (*Schema)(nil).UnmarshalJSON},
 		{name: "view", decode: (*View)(nil).UnmarshalJSON},
@@ -272,9 +272,9 @@ func TestTextWindowFailureLayerTriad(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, tc := range []struct {
+		cause  error
 		name   string
 		prefix int
-		cause  error
 	}{
 		{name: "before_first_flush", prefix: window - 1},
 		{name: "at_first_flush", prefix: window},

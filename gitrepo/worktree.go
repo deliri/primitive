@@ -169,10 +169,10 @@ func requireSuccess(result process.Result) error {
 
 type worktreeEntryWriter struct {
 	consumer WorktreeConsumer
+	failure  error
 	path     []byte
 	entries  uint64
 	bytes    uint64
-	failure  error
 }
 
 func (w *worktreeEntryWriter) Write(data []byte) (int, error) {

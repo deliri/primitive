@@ -89,9 +89,9 @@ func TestManifestAdmissionLayerTriad(t *testing.T) {
 		fixture := newChitFixture(t, 0xa1, 1)
 		foreign := newChitFixture(t, 0xa2, 1)
 		cases := []struct {
-			name     string
-			exercise func(*testing.T) (VerifiedManifestEntry, error)
 			wantErr  error
+			exercise func(*testing.T) (VerifiedManifestEntry, error)
+			name     string
 		}{
 			{name: "nil accumulator cannot issue a ticket", wantErr: core.ErrChitContract, exercise: func(t *testing.T) (VerifiedManifestEntry, error) {
 				_, err := (*ManifestAdmissionAccumulator)(nil).Add(fixture.addition)
@@ -207,9 +207,9 @@ func TestManifestAdmissionJSONTicketBoundaryTable(t *testing.T) {
 	}
 	ticket := strings.Repeat("0", 64)
 	cases := []struct {
+		wantErr error
 		name    string
 		wire    []byte
-		wantErr error
 	}{
 		{name: "canonical compiler-owned ticket is accepted", wire: canonical},
 		{name: "surrounding JSON whitespace preserves the typed ticket", wire: append(append([]byte(" \n"), canonical...), '\t')},

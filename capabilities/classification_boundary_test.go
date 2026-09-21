@@ -128,10 +128,10 @@ func TestJSONNilReceiversRefuse(t *testing.T) {
 	var disposition *StandardSymbolDisposition
 	var classification *Classification
 	cases := []struct {
-		name   string
 		decode func([]byte) error
+		name   string
 	}{
-		{"identity", identity.UnmarshalJSON}, {"operation", operation.UnmarshalJSON}, {"disposition", disposition.UnmarshalJSON}, {"classification", classification.UnmarshalJSON},
+		{name: "identity", decode: identity.UnmarshalJSON}, {name: "operation", decode: operation.UnmarshalJSON}, {name: "disposition", decode: disposition.UnmarshalJSON}, {name: "classification", decode: classification.UnmarshalJSON},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

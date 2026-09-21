@@ -14,8 +14,8 @@ import (
 )
 
 type refusingIdentity struct {
-	calls int
 	cause error
+	calls int
 }
 
 func (s *refusingIdentity) Identity(context.Context, googleidentity.Audience) (googleidentity.Token, error) {

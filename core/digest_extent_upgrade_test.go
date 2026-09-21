@@ -14,11 +14,11 @@ import (
 func TestDigestWriterSignedExtentAdmission(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name      string
-		count     uint64
-		data      []byte
-		wantCount uint64
 		wantErr   error
+		name      string
+		data      []byte
+		count     uint64
+		wantCount uint64
 	}{
 		{name: "neutral/empty stream", wantCount: 0},
 		{name: "positive/first binary byte", data: []byte{0xff}, wantCount: 1},

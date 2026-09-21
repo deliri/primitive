@@ -56,9 +56,9 @@ func (*sessionUncalledSuffixList) String() string             { panic(core.ErrEx
 func TestSessionClientAdmissionLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name    string
 		list    cookiejar.PublicSuffixList
 		wantErr error
+		name    string
 	}{
 		{name: "negative absent authority cannot create an insecure jar", wantErr: core.ErrExchangeContract},
 		{name: "negative typed nil pointer cannot escape admission", list: (*sessionUncalledSuffixList)(nil), wantErr: core.ErrExchangeContract},
@@ -196,9 +196,9 @@ func TestSessionHTTPCookieCustodyLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
 		name      string
+		wantValue string
 		cookies   []http.Cookie
 		wantCount int
-		wantValue string
 	}{
 		{name: "positive real response cookie returns with exact value", cookies: []http.Cookie{{Name: sessionCookieName, Value: sessionCookieValue, Path: "/"}}, wantCount: 1, wantValue: sessionCookieValue},
 		{name: "negative path excluded cookie never appears on wire", cookies: []http.Cookie{{Name: sessionCookieName, Value: sessionCookieValue, Path: sessionCookiePath}}},
@@ -235,8 +235,8 @@ func TestSessionHTTPCookieCustodyLayerTriad(t *testing.T) {
 			calls := []struct {
 				client    Client
 				path      string
-				wantCount int
 				wantValue string
+				wantCount int
 			}{
 				{client: client, path: sessionEstablishPath},
 				{client: client, path: sessionObservePath, wantCount: tc.wantCount, wantValue: tc.wantValue},

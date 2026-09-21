@@ -54,8 +54,8 @@ func TestEvidenceDocumentStrictJSONHostileMatrix(t *testing.T) {
 		t.Fatalf("json.Marshal(document) error = %v, want nil", err)
 	}
 	reordered, err := json.Marshal(struct {
-		Attestation attest.Envelope[Domain] `json:"attestation"`
 		Payload     EvidencePayload         `json:"payload"`
+		Attestation attest.Envelope[Domain] `json:"attestation"`
 	}{Attestation: document.Attestation, Payload: document.Payload})
 	if err != nil {
 		t.Fatalf("json.Marshal(reordered fixture) error = %v, want nil", err)

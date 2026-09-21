@@ -78,10 +78,10 @@ func TestInstantConstructionAndProjectionHostileBoundaries(t *testing.T) {
 func TestInstantRFC3339ProjectsCanonicalUTCText(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name                 string
-		instant              temporal.Instant
-		wantSecond, wantNano string
 		wantErr              error
+		name                 string
+		wantSecond, wantNano string
+		instant              temporal.Instant
 	}{
 		{name: "unset cannot be formatted", wantErr: core.ErrTemporalContract},
 		{name: "epoch is a set zero", instant: temporal.InstantFromNanoseconds(0), wantSecond: "1970-01-01T00:00:00Z", wantNano: "1970-01-01T00:00:00Z"},

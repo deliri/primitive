@@ -13,19 +13,19 @@ func TestUnixSecondsInstantLayerTriad(t *testing.T) {
 	t.Parallel()
 	const scale = int64(temporal.NanosecondsPerSecond)
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		seconds int64
-		wantErr error
 	}{
-		{"minimum_exact_second", math.MinInt64 / scale, nil},
-		{"second_below_minimum", math.MinInt64/scale - 1, core.ErrTemporalOverflow},
-		{"before_epoch", -1, nil},
-		{"epoch_is_set", 0, nil},
-		{"after_epoch", 1, nil},
-		{"maximum_exact_second", math.MaxInt64 / scale, nil},
-		{"second_above_maximum", math.MaxInt64/scale + 1, core.ErrTemporalOverflow},
-		{"native_minimum_cannot_wrap", math.MinInt64, core.ErrTemporalOverflow},
-		{"native_maximum_cannot_wrap", math.MaxInt64, core.ErrTemporalOverflow},
+		{name: "minimum_exact_second", seconds: math.MinInt64 / scale, wantErr: nil},
+		{name: "second_below_minimum", seconds: math.MinInt64/scale - 1, wantErr: core.ErrTemporalOverflow},
+		{name: "before_epoch", seconds: -1, wantErr: nil},
+		{name: "epoch_is_set", seconds: 0, wantErr: nil},
+		{name: "after_epoch", seconds: 1, wantErr: nil},
+		{name: "maximum_exact_second", seconds: math.MaxInt64 / scale, wantErr: nil},
+		{name: "second_above_maximum", seconds: math.MaxInt64/scale + 1, wantErr: core.ErrTemporalOverflow},
+		{name: "native_minimum_cannot_wrap", seconds: math.MinInt64, wantErr: core.ErrTemporalOverflow},
+		{name: "native_maximum_cannot_wrap", seconds: math.MaxInt64, wantErr: core.ErrTemporalOverflow},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

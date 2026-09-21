@@ -43,15 +43,15 @@ func TestHTTPTransportFailureHandoffTable(t *testing.T) {
 	}
 	reset := &net.OpError{Op: "read", Net: "tcp", Err: syscall.ECONNRESET}
 	cases := []struct {
-		name                         string
-		native                       error
-		cancelBefore, cancelAtReturn bool
-		wantCalls                    int
 		wantErr, wantNative          error
-		wantCanceled, wantURL        bool
+		native                       error
 		wantNetError                 *net.OpError
+		name                         string
+		wantCalls                    int
 		attemptNanoseconds           int64
 		wantElapsedNanoseconds       int64
+		cancelBefore, cancelAtReturn bool
+		wantCanceled, wantURL        bool
 		wantDeadline                 bool
 	}{
 		{name: "native closed pipe remains an exact transport refusal", native: io.ErrClosedPipe, wantCalls: 1, wantErr: core.ErrExchangeTransport, wantNative: io.ErrClosedPipe, wantURL: true},

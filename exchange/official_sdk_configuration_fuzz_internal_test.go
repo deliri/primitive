@@ -55,10 +55,10 @@ func FuzzOfficialSDKBoundaryCeilingAndStreamingConfiguration(f *testing.F) {
 		}) < 0
 		validValue := len(value) > 0 && len(value) <= officialSDKQueryValueMaximumBytes && strings.IndexFunc(value, func(r rune) bool { return r < '!' || r > '~' || r == '&' || r == '=' || r == '#' }) < 0
 		cases := []struct {
-			name         string
 			produce      func() (OfficialSDKResponseBoundary, error)
-			wantAccepted bool
+			name         string
 			want         OfficialSDKResponseBoundary
+			wantAccepted bool
 		}{
 			{name: "selected path", produce: func() (OfficialSDKResponseBoundary, error) {
 				return NewOfficialSDKResponseBoundary(OfficialSDKResponseBoundaryRequest{Method: method, Representation: representation, PathPrefix: prefix, PathSuffix: suffix})

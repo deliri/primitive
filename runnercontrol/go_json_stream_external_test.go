@@ -69,8 +69,8 @@ func TestGoJSONStreamingDiscardsArbitraryDiagnosticExtent(t *testing.T) {
 func TestGoJSONStreamingEscapesAndDuplicateMetrics(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name, data string
 		wantErr    error
+		name, data string
 	}{
 		{name: "escaped package identity equals UTF8 identity", data: "{\"Action\":\"start\",\"Package\":\"\\uD83D\\uDE00\"}\n{\"Action\":\"pass\",\"Package\":\"😀\"}\n"},
 		{name: "duplicate benchmark unit cannot choose first value", data: "{\"Action\":\"output\",\"Package\":\"p\",\"Output\":\"BenchmarkX 1 1 ns/op 2 ns/op 0 B/op 0 allocs/op\"}\n", wantErr: core.ErrJSONContract},

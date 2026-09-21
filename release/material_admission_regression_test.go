@@ -24,9 +24,9 @@ func TestMaterialRequestConstructionNeverReturnsPartialIntent(t *testing.T) {
 	}
 	base := MaterialRequestInput{Offering: releaseOffering(t, 2), Version: core.NewReleaseVersion(2026, 1, 1), Commit: commit, Nonce: nonce}
 	cases := []struct {
-		name    string
-		mutate  func(*MaterialRequestInput)
 		wantErr error
+		mutate  func(*MaterialRequestInput)
+		name    string
 	}{
 		{name: "complete intent retains exact input fields", mutate: func(*MaterialRequestInput) {}},
 		{name: "absent offering cannot retain other valid fields", mutate: func(r *MaterialRequestInput) { r.Offering = core.Offering{} }, wantErr: core.ErrReleaseContract},
@@ -78,9 +78,9 @@ func TestReleaseSigningSeedJSONBoundsPreservePreviousCustody(t *testing.T) {
 		t.Fatalf("ReleaseSigningSeed.MarshalJSON() error = %v, want nil", err)
 	}
 	cases := []struct {
+		wantErr error
 		name    string
 		extent  int
-		wantErr error
 	}{
 		{name: "one below document ceiling retains the exact seed", extent: documentExtentMaximum - 1},
 		{name: "exact document ceiling retains the exact seed", extent: documentExtentMaximum},

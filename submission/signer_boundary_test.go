@@ -45,11 +45,11 @@ func TestSubmissionSignerFailureLayerTriad(t *testing.T) {
 	grant := newGrantFixture(t, grantFixtureRequest{})
 	_, authority := testSigningKey(t, 0x41)
 	for _, door := range []struct {
-		name  string
 		key   crypto.Signer
 		issue func(crypto.Signer, bool) submissionIssuanceOutcome
+		name  string
 	}{
-		{"request", fixture.deviceSigner, func(s crypto.Signer, invalid bool) submissionIssuanceOutcome {
+		{name: "request", key: fixture.deviceSigner, issue: func(s crypto.Signer, invalid bool) submissionIssuanceOutcome {
 			payload := fixture.request
 			if invalid {
 				payload = RequestPayload{}
@@ -57,7 +57,7 @@ func TestSubmissionSignerFailureLayerTriad(t *testing.T) {
 			got, err := IssueRequest(RequestIssuance{Signer: s, Payload: payload})
 			return submissionIssuanceOutcome{err: err, zero: got == (RequestDocument{}), exact: got == requestDocument}
 		}},
-		{"grant", authority, func(s crypto.Signer, invalid bool) submissionIssuanceOutcome {
+		{name: "grant", key: authority, issue: func(s crypto.Signer, invalid bool) submissionIssuanceOutcome {
 			payload := grant.payload
 			if invalid {
 				payload = GrantPayload{}
@@ -65,7 +65,7 @@ func TestSubmissionSignerFailureLayerTriad(t *testing.T) {
 			got, err := IssueGrant(GrantIssuance{Signer: s, Payload: payload, Capability: grant.projection.Capability})
 			return submissionIssuanceOutcome{err: err, zero: grantProjectionIsZero(got), exact: got.Payload == grant.payload && got.Attestation == grant.document.Attestation && !got.Capability.IsZero()}
 		}},
-		{"completion", fixture.deviceSigner, func(s crypto.Signer, invalid bool) submissionIssuanceOutcome {
+		{name: "completion", key: fixture.deviceSigner, issue: func(s crypto.Signer, invalid bool) submissionIssuanceOutcome {
 			request := fixture.request
 			if invalid {
 				request = RequestPayload{}
@@ -77,11 +77,11 @@ func TestSubmissionSignerFailureLayerTriad(t *testing.T) {
 		t.Run(door.name, func(t *testing.T) {
 			t.Parallel()
 			for _, tc := range []struct {
-				name               string
 				cause              error
-				nilSigner, invalid bool
 				want               error
+				name               string
 				calls              int
+				nilSigner, invalid bool
 			}{
 				{name: "exact_once", calls: 1},
 				{name: "native_signer_failure", cause: io.ErrClosedPipe, want: io.ErrClosedPipe, calls: 1},

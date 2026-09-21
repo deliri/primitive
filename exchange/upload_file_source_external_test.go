@@ -22,15 +22,15 @@ func TestUploadFileSourceCustodyLayerTriad(t *testing.T) {
 		pipeFile
 	)
 	cases := []struct {
+		wantErr        error
 		name           string
-		kind           sourceKind
 		payload        string
+		wantWire       string
 		offset         int64
 		declared       uint64
-		wantErr        error
 		wantCalls      int
 		wantBytes      uint64
-		wantWire       string
+		kind           sourceKind
 		wantSourceOpen bool
 	}{
 		{name: "regular file exact extent crosses unchanged", payload: "a\x00z", declared: 3, wantCalls: 1, wantBytes: 3, wantWire: "a\x00z", wantSourceOpen: true},
@@ -86,8 +86,8 @@ func TestUploadFileSourceCustodyLayerTriad(t *testing.T) {
 				}
 			}
 			type observation struct {
-				wire []byte
 				err  error
+				wire []byte
 			}
 			observed := make(chan observation, 1)
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -16,10 +16,10 @@ func TestStreamLifetimeBelongsToCallerLayerTriad(t *testing.T) {
 	t.Parallel()
 	duration := runtimeAgreementPolicy(t).ReadTimeout
 	cases := []struct {
+		wantErr                                error
 		name                                   string
 		operation, attempt                     temporal.Duration
 		parentDeadline, canceled, wantDeadline bool
-		wantErr                                error
 	}{
 		{name: "caller keeps lifetime open"},
 		{name: "caller deadline is inherited exactly", parentDeadline: true, wantDeadline: true},

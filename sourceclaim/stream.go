@@ -58,11 +58,11 @@ func Consume(stream Stream, destination Emit) (Summary, error) {
 }
 
 type claimConsumer struct {
+	err         error
 	destination Emit
 	digest      *core.DigestWriter
 	previous    Claim
 	summary     Summary
-	err         error
 	seen        bool
 }
 

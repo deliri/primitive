@@ -79,10 +79,10 @@ func TestHTTPProducerClassifierStatusDomainLayerTriad(t *testing.T) {
 						primary = handoffBoundary
 					}
 					row := struct {
+						wantAggregateError, wantStreamError                              error
 						status, expected                                                 core.HTTPStatusCode
 						primary                                                          handoffPrimary
 						wantAggregate                                                    attemptDisposition
-						wantAggregateError, wantStreamError                              error
 						wantAggregateStatusError, wantStreamStatusError, wantStreamRetry bool
 					}{status: status, expected: expected, primary: primary, wantAggregate: attemptComplete}
 					if status != expected {
@@ -220,13 +220,13 @@ const handoffTerminalBits = handoffCanceled | handoffRequest | handoffRedirect |
 func TestHTTPProducerClassifierRefusalLatticeLayerTriad(t *testing.T) {
 	t.Parallel()
 	identities := []struct {
-		bit      handoffCauseBits
 		identity error
+		bit      handoffCauseBits
 	}{
-		{handoffCanceled, core.ErrExchangeCancelled}, {handoffRequest, core.ErrExchangeRequest},
-		{handoffRedirect, core.ErrExchangeRedirect}, {handoffContentType, core.ErrExchangeContentType},
-		{handoffBodyLimit, core.ErrExchangeBodyLimit}, {handoffResponse, core.ErrExchangeResponse},
-		{handoffTransport, core.ErrExchangeTransport},
+		{bit: handoffCanceled, identity: core.ErrExchangeCancelled}, {bit: handoffRequest, identity: core.ErrExchangeRequest},
+		{bit: handoffRedirect, identity: core.ErrExchangeRedirect}, {bit: handoffContentType, identity: core.ErrExchangeContentType},
+		{bit: handoffBodyLimit, identity: core.ErrExchangeBodyLimit}, {bit: handoffResponse, identity: core.ErrExchangeResponse},
+		{bit: handoffTransport, identity: core.ErrExchangeTransport},
 	}
 	for bits := range handoffCauseDomain {
 		row := struct {

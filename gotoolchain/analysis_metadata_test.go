@@ -29,11 +29,11 @@ func TestAnalysisMetadataGraphLayerTriad(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, tc := range []struct {
-		name                              string
-		mutate                            func(*analysisPackageWire) []analysisPackageWire
 		wantErr                           error
-		wantImports, wantErrors           int
+		mutate                            func(*analysisPackageWire) []analysisPackageWire
+		name                              string
 		wantName, wantForTest, wantExport string
+		wantImports, wantErrors           int
 	}{
 		{name: "cgo pseudo-import has no ordinary dependency unit", mutate: func(w *analysisPackageWire) []analysisPackageWire {
 			w.Imports = []string{core.GoCgoImportPath}
@@ -171,12 +171,12 @@ func TestAnalysisMetadataRepresentationBoundaries(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, tc := range []struct {
+		wantErr        error
 		name           string
 		data           []byte
 		count, maximum uint64
-		noSizes        bool
 		wantCount      int
-		wantErr        error
+		noSizes        bool
 	}{
 		{name: "canonical compiler record remains admitted", data: canonical, wantCount: 1},
 		{name: "harmless stream whitespace creates no extra unit", data: append([]byte(" \t\n"), canonical...), wantCount: 1},
@@ -270,11 +270,11 @@ func TestAnalysisMetadataLayerTriadRetainsBoundsAndIdentity(t *testing.T) {
 	data, limits := compilerMetadataSeed(t, t.TempDir())
 	sizes := types.SizesFor("gc", "amd64")
 	for _, tc := range []struct {
-		name      string
+		wantErr   error
 		mutate    func([]byte) []byte
+		name      string
 		maximum   int
 		wantCount int
-		wantErr   error
 	}{
 		{name: "real compiler metadata binds the source unit", wantCount: 1},
 		{name: "empty stream remains no metadata", mutate: func([]byte) []byte { return nil }},

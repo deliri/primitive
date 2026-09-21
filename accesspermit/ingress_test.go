@@ -21,25 +21,25 @@ func TestPermitDecoderLayerTriad(t *testing.T) {
 	}
 	seed := string(encoded)
 	for _, tc := range []struct {
-		name, input string
 		wantErr     error
+		name, input string
 	}{
-		{"canonical signed facts survive transport", seed, nil},
-		{"legal whitespace preserves signed facts", "\n" + seed + "\t", nil},
-		{"one below document ceiling", seed + strings.Repeat(" ", DocumentMaximumBytes-1-len(seed)), nil},
-		{"exact document ceiling", seed + strings.Repeat(" ", DocumentMaximumBytes-len(seed)), nil},
-		{"one above document ceiling", seed + strings.Repeat(" ", DocumentMaximumBytes+1-len(seed)), core.ErrJSONContract},
-		{"empty stream emits no agreement", "", core.ErrJSONContract},
-		{"explicit null cannot grant access", "null", core.ErrJSONContract},
-		{"truncated outer document", seed[:len(seed)-1], core.ErrJSONContract},
-		{"trailing second document", seed + seed, core.ErrJSONContract},
-		{"unknown outer member", strings.Replace(seed, "{", `{"extra":0,`, 1), core.ErrJSONContract},
-		{"duplicate allow member", strings.Replace(seed, `"decision":"allow"`, `"decision":"allow","decision":"allow"`, 1), core.ErrJSONContract},
-		{"conflicting decision members", strings.Replace(seed, `"decision":"allow"`, `"decision":"allow","decision":"refuse"`, 1), core.ErrJSONContract},
-		{"numeric decision cannot become allow", strings.Replace(seed, `"decision":"allow"`, `"decision":1`, 1), core.ErrJSONContract},
-		{"future decision is not refusal", strings.Replace(seed, `"decision":"allow"`, `"decision":"future"`, 1), core.ErrJSONContract},
-		{"missing decision cannot default", strings.Replace(seed, `,"decision":"allow"`, "", 1), core.ErrJSONContract},
-		{"future revision cannot borrow current signature", strings.Replace(seed, `"revision":1`, `"revision":2`, 1), core.ErrJSONContract},
+		{name: "canonical signed facts survive transport", input: seed, wantErr: nil},
+		{name: "legal whitespace preserves signed facts", input: "\n" + seed + "\t", wantErr: nil},
+		{name: "one below document ceiling", input: seed + strings.Repeat(" ", DocumentMaximumBytes-1-len(seed)), wantErr: nil},
+		{name: "exact document ceiling", input: seed + strings.Repeat(" ", DocumentMaximumBytes-len(seed)), wantErr: nil},
+		{name: "one above document ceiling", input: seed + strings.Repeat(" ", DocumentMaximumBytes+1-len(seed)), wantErr: core.ErrJSONContract},
+		{name: "empty stream emits no agreement", input: "", wantErr: core.ErrJSONContract},
+		{name: "explicit null cannot grant access", input: "null", wantErr: core.ErrJSONContract},
+		{name: "truncated outer document", input: seed[:len(seed)-1], wantErr: core.ErrJSONContract},
+		{name: "trailing second document", input: seed + seed, wantErr: core.ErrJSONContract},
+		{name: "unknown outer member", input: strings.Replace(seed, "{", `{"extra":0,`, 1), wantErr: core.ErrJSONContract},
+		{name: "duplicate allow member", input: strings.Replace(seed, `"decision":"allow"`, `"decision":"allow","decision":"allow"`, 1), wantErr: core.ErrJSONContract},
+		{name: "conflicting decision members", input: strings.Replace(seed, `"decision":"allow"`, `"decision":"allow","decision":"refuse"`, 1), wantErr: core.ErrJSONContract},
+		{name: "numeric decision cannot become allow", input: strings.Replace(seed, `"decision":"allow"`, `"decision":1`, 1), wantErr: core.ErrJSONContract},
+		{name: "future decision is not refusal", input: strings.Replace(seed, `"decision":"allow"`, `"decision":"future"`, 1), wantErr: core.ErrJSONContract},
+		{name: "missing decision cannot default", input: strings.Replace(seed, `,"decision":"allow"`, "", 1), wantErr: core.ErrJSONContract},
+		{name: "future revision cannot borrow current signature", input: strings.Replace(seed, `"revision":1`, `"revision":2`, 1), wantErr: core.ErrJSONContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -99,15 +99,15 @@ func TestPermitStreamingRefusalPreservesCauseAndConsumption(t *testing.T) {
 		t.Fatalf("MarshalJSON() error = %v, want nil", err)
 	}
 	for _, tc := range []struct {
-		name      string
 		source    io.Reader
 		wantErr   error
+		name      string
 		wantBytes int
 	}{
-		{"cancelled before bytes", refusedReader{context.Canceled}, context.Canceled, 0},
-		{"failure after complete document is not EOF", io.MultiReader(bytes.NewReader(encoded), refusedReader{io.ErrClosedPipe}), io.ErrClosedPipe, len(encoded)},
-		{"partial transport retains unexpected EOF", io.MultiReader(bytes.NewReader(encoded[:10]), refusedReader{io.ErrUnexpectedEOF}), io.ErrUnexpectedEOF, 10},
-		{"unbounded source stops at ceiling plus probe", spaceReader{}, core.ErrJSONContract, DocumentMaximumBytes + 1},
+		{name: "cancelled before bytes", source: refusedReader{err: context.Canceled}, wantErr: context.Canceled, wantBytes: 0},
+		{name: "failure after complete document is not EOF", source: io.MultiReader(bytes.NewReader(encoded), refusedReader{err: io.ErrClosedPipe}), wantErr: io.ErrClosedPipe, wantBytes: len(encoded)},
+		{name: "partial transport retains unexpected EOF", source: io.MultiReader(bytes.NewReader(encoded[:10]), refusedReader{err: io.ErrUnexpectedEOF}), wantErr: io.ErrUnexpectedEOF, wantBytes: 10},
+		{name: "unbounded source stops at ceiling plus probe", source: spaceReader{}, wantErr: core.ErrJSONContract, wantBytes: DocumentMaximumBytes + 1},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

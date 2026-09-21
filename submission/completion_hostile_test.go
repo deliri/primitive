@@ -27,10 +27,10 @@ type completionFixture struct {
 	transfer      objectstore.Transfer
 	request       RequestPayload
 	grantDocument GrantDocument
-	grantRecord   GrantRecord
 	grant         VerifiedGrant
 	grantKeys     attest.TrustedKeys
 	deviceKeys    attest.TrustedKeys
+	grantRecord   GrantRecord
 	nonce         controlwire.RequestNonce
 }
 
@@ -46,10 +46,15 @@ func TestCompletionAuthenticationLayerTriadBindsRealTransferToRepresentativeOpaq
 			t.Parallel()
 
 			fixture := newCompletionFixture(t, offering, []byte(`{"proof":"source-free"}`), byte(index)+0x10)
-			projection, err := IssueCompletion(CompletionIssuance{
+			issuance := CompletionIssuance{
 				Signer: fixture.deviceSigner, Request: fixture.request,
 				Grant: fixture.grant, Transfer: fixture.transfer, Nonce: fixture.nonce,
-			})
+			}
+			if err := issuance.Validate(); err != nil {
+				t.Fatalf("CompletionIssuance.Validate(%v) error = %v, want nil", offering, err)
+			}
+			projection, err := IssueCompletion(issuance)
+
 			if err != nil {
 				t.Fatalf("IssueCompletion(%v) error = %v, want nil", offering, err)
 			}
@@ -177,9 +182,14 @@ func TestCompletionIssuanceLayerTriadRefusesEveryCrossAgreementSubstitution(t *t
 			if nonce == (controlwire.RequestNonce{}) {
 				nonce = base.nonce
 			}
-			got, err := IssueCompletion(CompletionIssuance{
+			issuance := CompletionIssuance{
 				Signer: tc.signer, Request: tc.request, Grant: tc.grant, Transfer: tc.transfer, Nonce: nonce,
-			})
+			}
+			if err := issuance.Validate(); !errors.Is(err, core.ErrControlPlaneContract) {
+				t.Fatalf("CompletionIssuance.Validate() error = %v, want control-plane refusal", err)
+			}
+			got, err := IssueCompletion(issuance)
+
 			if !errors.Is(err, core.ErrControlPlaneContract) || got != (CompletionProjection{}) {
 				t.Fatalf("IssueCompletion() = (%v, %v), want zero and errors.Is %v",
 					got, err, core.ErrControlPlaneContract)

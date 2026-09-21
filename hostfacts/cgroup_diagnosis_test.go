@@ -13,9 +13,9 @@ import (
 func TestCgroupMembershipRecheckDiagnosisTable(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr    error
 		name, text string
 		missing    bool
-		wantErr    error
 	}{
 		{name: "unchanged membership survives recheck", text: "0::/team/job\n"},
 		{name: "path move cannot masquerade as read failure", text: "0::/other/job\n", wantErr: core.ErrCgroupMembershipChanged},
@@ -56,8 +56,8 @@ func TestCgroupMountSelectionDiagnosisTable(t *testing.T) {
 	const rootMount = "30 23 0:27 / /mount rw - " + cgroupV2Filesystem + " cgroup rw\n"
 	const nestedMount = "31 23 0:27 /team /nested rw - " + cgroupV2Filesystem + " cgroup rw\n"
 	for _, tc := range []struct {
-		name, text, wantPath string
 		wantErr              error
+		name, text, wantPath string
 	}{
 		{name: "single root mount remains exact", text: rootMount, wantPath: "/mount"},
 		{name: "more specific mount owns subtree", text: rootMount + nestedMount, wantPath: "/nested"},

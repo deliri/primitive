@@ -117,7 +117,7 @@ func BenchmarkCanonicalizeAncestorAndFinalLink(b *testing.B) {
 	if err != nil || !bytes.Equal(got, payload) {
 		b.Fatalf("retained bytes = (%v,%v), want %v", got, err, payload)
 	}
-	for _, link := range []struct{ name, want string }{{"parent", "real"}, {filepath.Join("real", "link"), "file"}} {
+	for _, link := range []struct{ name, want string }{{name: "parent", want: "real"}, {name: filepath.Join("real", "link"), want: "file"}} {
 		got, err := os.Readlink(filepath.Join(directory, link.name))
 		if err != nil || got != link.want {
 			b.Fatalf("retained target = (%q,%v), want %q", got, err, link.want)

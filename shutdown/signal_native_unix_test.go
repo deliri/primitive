@@ -21,8 +21,8 @@ func TestWatchNativeUnixLifecycle(t *testing.T) {
 	testserial.Declare(t, core.TestIsolationDeclaration{Hazard: core.TestIsolationHazardProcessSignal, Scope: core.TestIsolationScopePackageProcess})
 	for _, tc := range []struct {
 		name   string
-		set    SignalSet
 		native syscall.Signal
+		set    SignalSet
 		want   SignalKind
 		second bool
 	}{

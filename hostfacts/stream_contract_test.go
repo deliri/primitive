@@ -12,16 +12,16 @@ import (
 )
 
 type hostfactsReadStep struct {
-	data       string
 	err        error
+	data       string
 	countDelta int
 }
 type hostfactsScriptReader struct {
+	lastError    error
+	cancel       context.CancelFunc
 	steps        []hostfactsReadStep
 	calls, bytes int
-	lastError    error
 	cancelCalls  int
-	cancel       context.CancelFunc
 }
 
 func (r *hostfactsScriptReader) Read(p []byte) (int, error) {
@@ -45,16 +45,16 @@ func (r *hostfactsScriptReader) Read(p []byte) (int, error) {
 func TestOOMReadAccountingLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr              error
+		wantReadErr          error
+		wantAlsoErr          error
 		name                 string
 		steps                []hostfactsReadStep
 		length               uint64
+		wantCalls, wantBytes int
+		wantCancelCalls      int
 		cancelOnRead         bool
 		wantState            GoOOMBannerState
-		wantErr              error
-		wantCalls, wantBytes int
-		wantReadErr          error
-		wantAlsoErr          error
-		wantCancelCalls      int
 	}{
 		{name: "empty extent never reads even a failing source", steps: []hostfactsReadStep{{err: io.ErrClosedPipe}}, wantState: GoOOMBannerAbsent},
 		{name: "exact bytes with EOF seal presence", steps: []hostfactsReadStep{{data: GoOOMPlainBanner, err: io.EOF}}, length: uint64(len(GoOOMPlainBanner)), wantState: GoOOMBannerPresent, wantReadErr: io.EOF, wantCalls: 1, wantBytes: len(GoOOMPlainBanner)},
@@ -174,11 +174,11 @@ func TestOOMConsecutiveEmptyReadBoundary(t *testing.T) {
 	t.Parallel()
 	const limit = core.ReaderConsecutiveEmptyReadMaximum
 	cases := []struct {
+		wantErr                 error
 		name                    string
 		emptyBefore, emptyAfter int
-		progressBetween         bool
 		wantCalls, wantBytes    int
-		wantErr                 error
+		progressBetween         bool
 	}{
 		{name: "one below stall limit permits subsequent byte", emptyBefore: limit - 1, wantCalls: limit, wantBytes: 1},
 		{name: "exact stall limit refuses before pending byte", emptyBefore: limit, wantCalls: limit, wantErr: io.ErrNoProgress},

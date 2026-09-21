@@ -22,10 +22,10 @@ func TestReaderFilestoreLayerTriad(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
+		wantErr error
 		name    string
 		body    string
 		closed  bool
-		wantErr error
 	}{
 		{name: "large real file line crosses fixed buffer", body: string(bytes.Repeat([]byte{'x'}, 4096)) + "\r\n"},
 		{name: "closed real file preserves native failure", body: "kept\n", closed: true, wantErr: fs.ErrClosed},

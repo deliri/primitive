@@ -1,0 +1,2059 @@
+{
+  "kind": "development-release-evidence",
+  "acceptance": false,
+  "version": "v2026.1.96",
+  "base_revision": "c0cc3e0b84bf49337c39f69c568c3ed2caa9eb3b",
+  "source_manifest": "/private/tmp/peachfuzz-live-20260920/primitive-196-final-source-digests.json",
+  "source_manifest_digest": "4bed54e9ad60e4ed2c507cfe4da8cbb425ccc236a41a378019c371e05f805921",
+  "mac_native_counts": {
+    "package": {
+      "pass": 66
+    },
+    "test": {
+      "pass": 90371,
+      "skip": 3,
+      "fail": 7
+    }
+  },
+  "furnace": {
+    "native": {
+      "directory": "/data/evidence/raw/primitive-v196-20260920-gates03/native-tests-01",
+      "receipt": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "c0cc3e0b84bf49337c39f69c568c3ed2caa9eb3b",
+        "dirty": true,
+        "cwd": "/data/repos/primitive",
+        "argv": [
+          "go",
+          "test",
+          "-json",
+          "-count=1",
+          "-p=2",
+          "-parallel=2",
+          "-timeout=15m",
+          "-o",
+          "/work/runtime/primitive196-gates03/native-binaries/",
+          "./..."
+        ],
+        "machine": {
+          "system": "Linux",
+          "node": "furnace",
+          "release": "7.1.13-200.fc44.x86_64",
+          "version": "#1 SMP PREEMPT_DYNAMIC Wed Sep  2 13:58:38 UTC 2026",
+          "machine": "x86_64",
+          "processor": ""
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/work/cache/primitive196",
+          "GOMAXPROCS": "2",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 linux/amd64",
+        "test_cache_bypassed": true,
+        "build_cache": "eligible",
+        "attempt": "native-tests-01",
+        "started_utc": "2026-09-21T03:38:38.499733+00:00",
+        "elapsed_ns": 74645652718,
+        "finished_utc": "2026-09-21T03:39:53.145669+00:00",
+        "exit_code": 0,
+        "signal": null,
+        "artifacts": {
+          "working-tree.status": {
+            "sha256": "312238d64c91a4d353ed9ef9ea92e647e41265ce4a7160895d655cf4d82074df",
+            "bytes": 24720
+          },
+          "tracked.patch": {
+            "sha256": "d5aed44f2952080ba37df407664adcf0903580fbe2c07c9f8225535175db2327",
+            "bytes": 974926
+          },
+          "source-digests.json": {
+            "sha256": "906897e651e523c28e29fd341071cdf964a05c4748bda0eb46bdc66c15c25fa1",
+            "bytes": 321025
+          },
+          "started.json": {
+            "sha256": "936d65aa5d26abf6ff492bcee4c67e32ccef2e93c559c3152efa7adbb8025539",
+            "bytes": 1075
+          },
+          "stdout": {
+            "sha256": "0d8db53437dd241932bdce6ffb3a87dd3b53ba3c1aeab2b8dd52a98d4ca2f05a",
+            "bytes": 195043731
+          },
+          "stderr": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        }
+      },
+      "counts": {
+        "package": {
+          "pass": 66
+        },
+        "test": {
+          "pass": 90381,
+          "skip": 4,
+          "fail": 7
+        }
+      }
+    },
+    "race": {
+      "directory": "/data/evidence/raw/primitive-v196-20260920-gates03/race-tests-01",
+      "receipt": {
+        "kind": "development-execution-fact",
+        "acceptance": false,
+        "revision": "c0cc3e0b84bf49337c39f69c568c3ed2caa9eb3b",
+        "dirty": true,
+        "cwd": "/data/repos/primitive",
+        "argv": [
+          "go",
+          "test",
+          "-json",
+          "-race",
+          "-shuffle=on",
+          "-count=2",
+          "-p=2",
+          "-parallel=2",
+          "-timeout=15m",
+          "-o",
+          "/work/runtime/primitive196-gates03/race-binaries/",
+          "./..."
+        ],
+        "machine": {
+          "system": "Linux",
+          "node": "furnace",
+          "release": "7.1.13-200.fc44.x86_64",
+          "version": "#1 SMP PREEMPT_DYNAMIC Wed Sep  2 13:58:38 UTC 2026",
+          "machine": "x86_64",
+          "processor": ""
+        },
+        "environment": {
+          "GOWORK": "off",
+          "GOCACHE": "/work/cache/primitive196",
+          "GOMAXPROCS": "2",
+          "GOFLAGS": null,
+          "GOTOOLCHAIN": null,
+          "GOEXPERIMENT": null,
+          "GOOS": null,
+          "GOARCH": null,
+          "CGO_ENABLED": null,
+          "FIRESTORE_EMULATOR_HOST": null
+        },
+        "go_version": "go version go1.27.1 linux/amd64",
+        "test_cache_bypassed": false,
+        "build_cache": "eligible",
+        "attempt": "race-tests-01",
+        "started_utc": "2026-09-21T03:39:53.606877+00:00",
+        "elapsed_ns": 568996811999,
+        "finished_utc": "2026-09-21T03:49:22.603989+00:00",
+        "exit_code": 0,
+        "signal": null,
+        "artifacts": {
+          "working-tree.status": {
+            "sha256": "312238d64c91a4d353ed9ef9ea92e647e41265ce4a7160895d655cf4d82074df",
+            "bytes": 24720
+          },
+          "tracked.patch": {
+            "sha256": "d5aed44f2952080ba37df407664adcf0903580fbe2c07c9f8225535175db2327",
+            "bytes": 974926
+          },
+          "source-digests.json": {
+            "sha256": "906897e651e523c28e29fd341071cdf964a05c4748bda0eb46bdc66c15c25fa1",
+            "bytes": 321025
+          },
+          "started.json": {
+            "sha256": "91cd5c1db9d000ca1b56f19dfcfb65697317c4f60bb32c10ca6201a69ddf4450",
+            "bytes": 1104
+          },
+          "stdout": {
+            "sha256": "484027014ecf592de8e60c9b57d52ea09658c98c5f170c7dd70ffc9ffb2178b6",
+            "bytes": 390102417
+          },
+          "stderr": {
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0
+          }
+        }
+      },
+      "counts": {
+        "package": {
+          "pass": 66
+        },
+        "test": {
+          "pass": 180774,
+          "skip": 8,
+          "fail": 28
+        }
+      }
+    },
+    "platform_compile": [
+      {
+        "target": "windows-amd64",
+        "kind": "compile-only",
+        "native_execution": false,
+        "exit_code": 0,
+        "binaries": [
+          {
+            "path": "/work/runtime/primitive196-platform-compile-scoped/windows-amd64/filestore.test.exe",
+            "bytes": 13446144,
+            "sha256": "eb58c6e17092df3fb69ad7e93347bca9b65e4102fb7dd155ea5b733d3d7cf99b"
+          },
+          {
+            "path": "/work/runtime/primitive196-platform-compile-scoped/windows-amd64/github.test.exe",
+            "bytes": 15100928,
+            "sha256": "f23c62b6dba55fb26a120d09d7daa26d7e35f228292fac3eb6bdafaa24859b90"
+          },
+          {
+            "path": "/work/runtime/primitive196-platform-compile-scoped/windows-amd64/permit.test.exe",
+            "bytes": 11535872,
+            "sha256": "8d49dd0eeeea53bbb5916b9132b56e25bdaba10e3db99f7cd236a91fe4b41a9c"
+          },
+          {
+            "path": "/work/runtime/primitive196-platform-compile-scoped/windows-amd64/runnercontrol.test.exe",
+            "bytes": 21549056,
+            "sha256": "b865ec6837f72b98da8dc017d7f9876a64857cafece228d09685b72bb7577cce"
+          },
+          {
+            "path": "/work/runtime/primitive196-platform-compile-scoped/windows-amd64/textrepair.test.exe",
+            "bytes": 7259648,
+            "sha256": "76dd62e4ea50c478252cab174798fde66623df2145d78f2b757a73110fd8bcf7"
+          },
+          {
+            "path": "/work/runtime/primitive196-platform-compile-scoped/windows-amd64/upgradereport.test.exe",
+            "bytes": 10643968,
+            "sha256": "d2c1bc9e819f2657e4a40ebbe140f4514191c022a16b375f40bea27e211c3f0f"
+          }
+        ]
+      },
+      {
+        "target": "linux-arm64",
+        "kind": "compile-only",
+        "native_execution": false,
+        "exit_code": 0,
+        "binaries": [
+          {
+            "path": "/work/runtime/primitive196-platform-compile-scoped/linux-arm64/filestore.test",
+            "bytes": 12430020,
+            "sha256": "4ac6665635147ecbdc3d3e759ab3811e64ea4421f12df032893c309856c30148"
+          },
+          {
+            "path": "/work/runtime/primitive196-platform-compile-scoped/linux-arm64/github.test",
+            "bytes": 13710468,
+            "sha256": "01177e05077ffa4fdf7feaef4a55cf17c41e41bfa2d7bb49ce1ed91c86ee7286"
+          },
+          {
+            "path": "/work/runtime/primitive196-platform-compile-scoped/linux-arm64/permit.test",
+            "bytes": 10503032,
+            "sha256": "f063033fe5847e2b158d603c9e9cd2e6c4be078567efea875d1a3fd9a89bc180"
+          },
+          {
+            "path": "/work/runtime/primitive196-platform-compile-scoped/linux-arm64/runnercontrol.test",
+            "bytes": 19843472,
+            "sha256": "143e45764e8b460e273f086544ace4734f03b59025881cf5d614b3c48e4c720f"
+          },
+          {
+            "path": "/work/runtime/primitive196-platform-compile-scoped/linux-arm64/textrepair.test",
+            "bytes": 6680213,
+            "sha256": "92a7908cac6da147003c645b11d0197c92cf45c6279a0efac1daa49c3dd00061"
+          },
+          {
+            "path": "/work/runtime/primitive196-platform-compile-scoped/linux-arm64/upgradereport.test",
+            "bytes": 9667445,
+            "sha256": "69f8471ee3781f15215c26f2a38514331acaa368c441b7ea467a5534f10ecf5e"
+          }
+        ]
+      }
+    ]
+  },
+  "completed_checks": [
+    {
+      "name": "format",
+      "argv": [
+        "gofmt",
+        "-l",
+        "."
+      ],
+      "empty_output_required": true,
+      "state": "passed",
+      "exit_code": 0
+    },
+    {
+      "name": "module-tidy",
+      "argv": [
+        "go",
+        "mod",
+        "tidy",
+        "-diff"
+      ],
+      "empty_output_required": true,
+      "state": "passed",
+      "exit_code": 0
+    },
+    {
+      "name": "workflow",
+      "argv": [
+        "actionlint",
+        ".github/workflows/ci.yml"
+      ],
+      "empty_output_required": false,
+      "state": "passed",
+      "exit_code": 0
+    },
+    {
+      "name": "build",
+      "argv": [
+        "go",
+        "build",
+        "-p=2",
+        "./..."
+      ],
+      "empty_output_required": false,
+      "state": "passed",
+      "exit_code": 0
+    },
+    {
+      "name": "go-fix",
+      "argv": [
+        "go",
+        "fix",
+        "-diff",
+        "./..."
+      ],
+      "empty_output_required": true,
+      "state": "passed",
+      "exit_code": 0
+    },
+    {
+      "name": "vet",
+      "argv": [
+        "go",
+        "vet",
+        "-p=2",
+        "./..."
+      ],
+      "empty_output_required": false,
+      "state": "passed",
+      "exit_code": 0
+    },
+    {
+      "name": "staticcheck",
+      "argv": [
+        "staticcheck",
+        "./..."
+      ],
+      "empty_output_required": false,
+      "state": "passed",
+      "exit_code": 0
+    },
+    {
+      "name": "errcheck",
+      "argv": [
+        "errcheck",
+        "./..."
+      ],
+      "empty_output_required": false,
+      "state": "passed",
+      "exit_code": 0
+    },
+    {
+      "name": "nilaway",
+      "argv": [
+        "nilaway",
+        "./..."
+      ],
+      "empty_output_required": false,
+      "state": "passed",
+      "exit_code": 0
+    },
+    {
+      "name": "witness-lint",
+      "argv": [
+        "witness-lint",
+        "/Users/d/code/primitive/accesspermit",
+        "/Users/d/code/primitive/attest",
+        "/Users/d/code/primitive/awsidentity",
+        "/Users/d/code/primitive/capabilities",
+        "/Users/d/code/primitive/chit",
+        "/Users/d/code/primitive/chitauth",
+        "/Users/d/code/primitive/compass",
+        "/Users/d/code/primitive/contextstate",
+        "/Users/d/code/primitive/controlplane",
+        "/Users/d/code/primitive/controlplanetest",
+        "/Users/d/code/primitive/controlwire",
+        "/Users/d/code/primitive/core",
+        "/Users/d/code/primitive/currency",
+        "/Users/d/code/primitive/deploy",
+        "/Users/d/code/primitive/distribution",
+        "/Users/d/code/primitive/distributionauth",
+        "/Users/d/code/primitive/exchange",
+        "/Users/d/code/primitive/filelock",
+        "/Users/d/code/primitive/filestore",
+        "/Users/d/code/primitive/fuzzartifact",
+        "/Users/d/code/primitive/gcsobjects",
+        "/Users/d/code/primitive/github",
+        "/Users/d/code/primitive/gitrepo",
+        "/Users/d/code/primitive/gomodule",
+        "/Users/d/code/primitive/googleidentity",
+        "/Users/d/code/primitive/gotoolchain",
+        "/Users/d/code/primitive/hostfacts",
+        "/Users/d/code/primitive/id",
+        "/Users/d/code/primitive/keygen",
+        "/Users/d/code/primitive/lease",
+        "/Users/d/code/primitive/lineio",
+        "/Users/d/code/primitive/machineprobe",
+        "/Users/d/code/primitive/manual",
+        "/Users/d/code/primitive/objectstore",
+        "/Users/d/code/primitive/payment",
+        "/Users/d/code/primitive/paymentauth",
+        "/Users/d/code/primitive/paypal",
+        "/Users/d/code/primitive/permit",
+        "/Users/d/code/primitive/plunk",
+        "/Users/d/code/primitive/process",
+        "/Users/d/code/primitive/proofledger",
+        "/Users/d/code/primitive/receipt",
+        "/Users/d/code/primitive/release",
+        "/Users/d/code/primitive/retrieval",
+        "/Users/d/code/primitive/retrievalauth",
+        "/Users/d/code/primitive/runnercontrol",
+        "/Users/d/code/primitive/runprotocol",
+        "/Users/d/code/primitive/runworkspace",
+        "/Users/d/code/primitive/secretstore",
+        "/Users/d/code/primitive/shutdown",
+        "/Users/d/code/primitive/sourceclaim",
+        "/Users/d/code/primitive/sourceobservation",
+        "/Users/d/code/primitive/sourceproof",
+        "/Users/d/code/primitive/stripe",
+        "/Users/d/code/primitive/submission",
+        "/Users/d/code/primitive/submissionauth",
+        "/Users/d/code/primitive/tailnet",
+        "/Users/d/code/primitive/tailnetconfig",
+        "/Users/d/code/primitive/temporal",
+        "/Users/d/code/primitive/testserial",
+        "/Users/d/code/primitive/textrepair",
+        "/Users/d/code/primitive/timeproof",
+        "/Users/d/code/primitive/twilio",
+        "/Users/d/code/primitive/upgrade",
+        "/Users/d/code/primitive/upgradereport",
+        "/Users/d/code/primitive/version"
+      ],
+      "empty_output_required": false,
+      "state": "failed",
+      "exit_code": 1
+    },
+    {
+      "name": "complexity",
+      "argv": [
+        "gocyclo",
+        "-over",
+        "10",
+        "--ignore",
+        "_test.go",
+        "."
+      ],
+      "empty_output_required": false,
+      "state": "passed",
+      "exit_code": 0
+    },
+    {
+      "name": "constants",
+      "argv": [
+        "goconst",
+        "-grouped",
+        "-min-length",
+        "4",
+        "-min-occurrences",
+        "3",
+        "-ignore-tests",
+        "-ignore",
+        "(^|/)(testdata|[._][^/]+)(/|$)",
+        "./..."
+      ],
+      "empty_output_required": false,
+      "state": "passed",
+      "exit_code": 0
+    },
+    {
+      "name": "field-alignment-tool-tests",
+      "argv": [
+        "go",
+        "test",
+        "-o",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-03/field-alignment-tool-tests-binaries/",
+        "-count=1",
+        "./_tools/fieldalignmentgate"
+      ],
+      "empty_output_required": false,
+      "state": "passed",
+      "exit_code": 0
+    },
+    {
+      "name": "field-alignment",
+      "argv": [
+        "go",
+        "run",
+        "./_tools/fieldalignmentgate"
+      ],
+      "empty_output_required": false,
+      "state": "passed",
+      "exit_code": 0
+    },
+    {
+      "name": "security",
+      "argv": [
+        "gosec",
+        "-quiet",
+        "./..."
+      ],
+      "empty_output_required": false,
+      "state": "passed",
+      "exit_code": 0
+    },
+    {
+      "name": "vulnerabilities",
+      "argv": [
+        "govulncheck",
+        "./..."
+      ],
+      "empty_output_required": false,
+      "state": "passed",
+      "exit_code": 0
+    },
+    {
+      "name": "dead-code",
+      "argv": [
+        "deadcode",
+        "-test",
+        "./..."
+      ],
+      "empty_output_required": true,
+      "state": "passed",
+      "exit_code": 0
+    },
+    {
+      "name": "native-tests",
+      "argv": [
+        "go",
+        "test",
+        "-o",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-03/native-tests-binaries/",
+        "-json",
+        "-count=1",
+        "-parallel=2",
+        "-p=2",
+        "-timeout=10m",
+        "./..."
+      ],
+      "empty_output_required": false,
+      "state": "passed",
+      "exit_code": 0
+    },
+    {
+      "name": "race-shuffle",
+      "argv": [
+        "go",
+        "test",
+        "-o",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-03/race-shuffle-binaries/",
+        "-json",
+        "-race",
+        "-shuffle=on",
+        "-count=2",
+        "-parallel=2",
+        "-p=2",
+        "-timeout=15m",
+        "./..."
+      ],
+      "empty_output_required": false,
+      "state": "failed",
+      "exit_code": 1
+    }
+  ],
+  "witness_followup": "/private/tmp/peachfuzz-live-20260920/primitive-196-witness-final-01",
+  "live_gcs": "/private/tmp/peachfuzz-live-20260920/primitive-196-gcs-native-02",
+  "bounded_changed_package_phases": [
+    {
+      "package": "filestore",
+      "import_path": "github.com/deliri/primitive/v2026/filestore",
+      "directory": "/Users/d/code/primitive/filestore",
+      "target": "BenchmarkContentIndexRecordAdmission",
+      "name": "filestore-BenchmarkContentIndexRecordAdmission",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-run",
+        "^$",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=5m",
+        "-o",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/filestore-BenchmarkContentIndexRecordAdmission-artifacts/executed.test",
+        "-bench",
+        "^BenchmarkContentIndexRecordAdmission$",
+        "-benchmem",
+        "-benchtime=3s",
+        "-cpuprofile",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/filestore-BenchmarkContentIndexRecordAdmission-artifacts/cpu.pprof",
+        "-memprofile",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/filestore-BenchmarkContentIndexRecordAdmission-artifacts/memory.pprof",
+        "github.com/deliri/primitive/v2026/filestore"
+      ],
+      "configured_seconds": 3,
+      "state": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 4.387363917,
+      "effective_to_configured_ratio": 1.462454639,
+      "budget_attention": false,
+      "budget_failure": false
+    },
+    {
+      "package": "filestore",
+      "import_path": "github.com/deliri/primitive/v2026/filestore",
+      "directory": "/Users/d/code/primitive/filestore",
+      "target": "BenchmarkCopyContentExactAgreement",
+      "name": "filestore-BenchmarkCopyContentExactAgreement",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-run",
+        "^$",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=5m",
+        "-o",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/filestore-BenchmarkCopyContentExactAgreement-artifacts/executed.test",
+        "-bench",
+        "^BenchmarkCopyContentExactAgreement$",
+        "-benchmem",
+        "-benchtime=3s",
+        "-cpuprofile",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/filestore-BenchmarkCopyContentExactAgreement-artifacts/cpu.pprof",
+        "-memprofile",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/filestore-BenchmarkCopyContentExactAgreement-artifacts/memory.pprof",
+        "github.com/deliri/primitive/v2026/filestore"
+      ],
+      "configured_seconds": 3,
+      "state": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 8.138215458,
+      "effective_to_configured_ratio": 2.7127384859999997,
+      "budget_attention": false,
+      "budget_failure": false
+    },
+    {
+      "package": "github",
+      "import_path": "github.com/deliri/primitive/v2026/github",
+      "directory": "/Users/d/code/primitive/github",
+      "target": "BenchmarkReadTreeOneEntry",
+      "name": "github-BenchmarkReadTreeOneEntry",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-run",
+        "^$",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=5m",
+        "-o",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/github-BenchmarkReadTreeOneEntry-artifacts/executed.test",
+        "-bench",
+        "^BenchmarkReadTreeOneEntry$",
+        "-benchmem",
+        "-benchtime=3s",
+        "-cpuprofile",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/github-BenchmarkReadTreeOneEntry-artifacts/cpu.pprof",
+        "-memprofile",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/github-BenchmarkReadTreeOneEntry-artifacts/memory.pprof",
+        "github.com/deliri/primitive/v2026/github"
+      ],
+      "configured_seconds": 3,
+      "state": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 4.888165208,
+      "effective_to_configured_ratio": 1.6293884026666667,
+      "budget_attention": false,
+      "budget_failure": false
+    },
+    {
+      "package": "runnercontrol",
+      "import_path": "github.com/deliri/primitive/v2026/runnercontrol",
+      "directory": "/Users/d/code/primitive/runnercontrol",
+      "target": "BenchmarkGoJSONDiagnosticStreaming",
+      "name": "runnercontrol-BenchmarkGoJSONDiagnosticStreaming",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-run",
+        "^$",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=5m",
+        "-o",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/runnercontrol-BenchmarkGoJSONDiagnosticStreaming-artifacts/executed.test",
+        "-bench",
+        "^BenchmarkGoJSONDiagnosticStreaming$",
+        "-benchmem",
+        "-benchtime=3s",
+        "-cpuprofile",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/runnercontrol-BenchmarkGoJSONDiagnosticStreaming-artifacts/cpu.pprof",
+        "-memprofile",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/runnercontrol-BenchmarkGoJSONDiagnosticStreaming-artifacts/memory.pprof",
+        "github.com/deliri/primitive/v2026/runnercontrol"
+      ],
+      "configured_seconds": 3,
+      "state": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 8.427393542,
+      "effective_to_configured_ratio": 2.809131180666667,
+      "budget_attention": false,
+      "budget_failure": false
+    },
+    {
+      "package": "textrepair",
+      "import_path": "github.com/deliri/primitive/v2026/textrepair",
+      "directory": "/Users/d/code/primitive/textrepair",
+      "target": "BenchmarkPrefixMalformedPrefix",
+      "name": "textrepair-BenchmarkPrefixMalformedPrefix",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-run",
+        "^$",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=5m",
+        "-o",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/textrepair-BenchmarkPrefixMalformedPrefix-artifacts/executed.test",
+        "-bench",
+        "^BenchmarkPrefixMalformedPrefix$",
+        "-benchmem",
+        "-benchtime=3s",
+        "-cpuprofile",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/textrepair-BenchmarkPrefixMalformedPrefix-artifacts/cpu.pprof",
+        "-memprofile",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/textrepair-BenchmarkPrefixMalformedPrefix-artifacts/memory.pprof",
+        "github.com/deliri/primitive/v2026/textrepair"
+      ],
+      "configured_seconds": 3,
+      "state": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 4.257563459,
+      "effective_to_configured_ratio": 1.4191878196666667,
+      "budget_attention": false,
+      "budget_failure": false
+    },
+    {
+      "package": "upgradereport",
+      "import_path": "github.com/deliri/primitive/v2026/upgradereport",
+      "directory": "/Users/d/code/primitive/upgradereport",
+      "target": "BenchmarkSignedRequestVerification",
+      "name": "upgradereport-BenchmarkSignedRequestVerification",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-run",
+        "^$",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=5m",
+        "-o",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/upgradereport-BenchmarkSignedRequestVerification-artifacts/executed.test",
+        "-bench",
+        "^BenchmarkSignedRequestVerification$",
+        "-benchmem",
+        "-benchtime=3s",
+        "-cpuprofile",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/upgradereport-BenchmarkSignedRequestVerification-artifacts/cpu.pprof",
+        "-memprofile",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/upgradereport-BenchmarkSignedRequestVerification-artifacts/memory.pprof",
+        "github.com/deliri/primitive/v2026/upgradereport"
+      ],
+      "configured_seconds": 3,
+      "state": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 4.871079584,
+      "effective_to_configured_ratio": 1.6236931946666668,
+      "budget_attention": false,
+      "budget_failure": false
+    },
+    {
+      "package": "filestore",
+      "import_path": "github.com/deliri/primitive/v2026/filestore",
+      "directory": "/Users/d/code/primitive/filestore",
+      "target": "FuzzCopyContentExactAgreement",
+      "name": "filestore-FuzzCopyContentExactAgreement",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-run",
+        "^$",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=5m",
+        "-o",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/filestore-FuzzCopyContentExactAgreement-artifacts/executed.test",
+        "-fuzz",
+        "^FuzzCopyContentExactAgreement$",
+        "-fuzztime=2s",
+        "-fuzzminimizetime=1s",
+        "github.com/deliri/primitive/v2026/filestore"
+      ],
+      "configured_seconds": 3,
+      "state": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 8.090794959,
+      "effective_to_configured_ratio": 2.696931653,
+      "budget_attention": false,
+      "budget_failure": false
+    },
+    {
+      "package": "filestore",
+      "import_path": "github.com/deliri/primitive/v2026/filestore",
+      "directory": "/Users/d/code/primitive/filestore",
+      "target": "FuzzInspectContentIndexExactBinding",
+      "name": "filestore-FuzzInspectContentIndexExactBinding",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-run",
+        "^$",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=5m",
+        "-o",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/filestore-FuzzInspectContentIndexExactBinding-artifacts/executed.test",
+        "-fuzz",
+        "^FuzzInspectContentIndexExactBinding$",
+        "-fuzztime=2s",
+        "-fuzzminimizetime=1s",
+        "github.com/deliri/primitive/v2026/filestore"
+      ],
+      "configured_seconds": 3,
+      "state": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 3.621098291,
+      "effective_to_configured_ratio": 1.2070327636666667,
+      "budget_attention": false,
+      "budget_failure": false
+    },
+    {
+      "package": "filestore",
+      "import_path": "github.com/deliri/primitive/v2026/filestore",
+      "directory": "/Users/d/code/primitive/filestore",
+      "target": "FuzzContentSortExactUnion",
+      "name": "filestore-FuzzContentSortExactUnion",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-run",
+        "^$",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=5m",
+        "-o",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/filestore-FuzzContentSortExactUnion-artifacts/executed.test",
+        "-fuzz",
+        "^FuzzContentSortExactUnion$",
+        "-fuzztime=2s",
+        "-fuzzminimizetime=1s",
+        "github.com/deliri/primitive/v2026/filestore"
+      ],
+      "configured_seconds": 3,
+      "state": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 2.728614583,
+      "effective_to_configured_ratio": 0.9095381943333334,
+      "budget_attention": false,
+      "budget_failure": false
+    },
+    {
+      "package": "github",
+      "import_path": "github.com/deliri/primitive/v2026/github",
+      "directory": "/Users/d/code/primitive/github",
+      "target": "FuzzDecodeGitHubTreeSemanticClosure",
+      "name": "github-FuzzDecodeGitHubTreeSemanticClosure",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-run",
+        "^$",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=5m",
+        "-o",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/github-FuzzDecodeGitHubTreeSemanticClosure-artifacts/executed.test",
+        "-fuzz",
+        "^FuzzDecodeGitHubTreeSemanticClosure$",
+        "-fuzztime=2s",
+        "-fuzzminimizetime=1s",
+        "github.com/deliri/primitive/v2026/github"
+      ],
+      "configured_seconds": 3,
+      "state": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 7.177854042,
+      "effective_to_configured_ratio": 2.392618014,
+      "budget_attention": false,
+      "budget_failure": false
+    },
+    {
+      "package": "github",
+      "import_path": "github.com/deliri/primitive/v2026/github",
+      "directory": "/Users/d/code/primitive/github",
+      "target": "FuzzGitHubJSONStringStreamingSemanticClosure",
+      "name": "github-FuzzGitHubJSONStringStreamingSemanticClosure",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-run",
+        "^$",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=5m",
+        "-o",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/github-FuzzGitHubJSONStringStreamingSemanticClosure-artifacts/executed.test",
+        "-fuzz",
+        "^FuzzGitHubJSONStringStreamingSemanticClosure$",
+        "-fuzztime=2s",
+        "-fuzzminimizetime=1s",
+        "github.com/deliri/primitive/v2026/github"
+      ],
+      "configured_seconds": 3,
+      "state": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 2.850620041,
+      "effective_to_configured_ratio": 0.9502066803333333,
+      "budget_attention": false,
+      "budget_failure": false
+    },
+    {
+      "package": "permit",
+      "import_path": "github.com/deliri/primitive/v2026/permit",
+      "directory": "/Users/d/code/primitive/permit",
+      "target": "FuzzReportPermissionResponse",
+      "name": "permit-FuzzReportPermissionResponse",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-run",
+        "^$",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=5m",
+        "-o",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/permit-FuzzReportPermissionResponse-artifacts/executed.test",
+        "-fuzz",
+        "^FuzzReportPermissionResponse$",
+        "-fuzztime=2s",
+        "-fuzzminimizetime=1s",
+        "github.com/deliri/primitive/v2026/permit"
+      ],
+      "configured_seconds": 3,
+      "state": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 6.46290375,
+      "effective_to_configured_ratio": 2.15430125,
+      "budget_attention": false,
+      "budget_failure": false
+    },
+    {
+      "package": "permit",
+      "import_path": "github.com/deliri/primitive/v2026/permit",
+      "directory": "/Users/d/code/primitive/permit",
+      "target": "FuzzReportScheduleSignedEpochArithmetic",
+      "name": "permit-FuzzReportScheduleSignedEpochArithmetic",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-run",
+        "^$",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=5m",
+        "-o",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/permit-FuzzReportScheduleSignedEpochArithmetic-artifacts/executed.test",
+        "-fuzz",
+        "^FuzzReportScheduleSignedEpochArithmetic$",
+        "-fuzztime=2s",
+        "-fuzzminimizetime=1s",
+        "github.com/deliri/primitive/v2026/permit"
+      ],
+      "configured_seconds": 3,
+      "state": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 2.921169541,
+      "effective_to_configured_ratio": 0.9737231803333333,
+      "budget_attention": false,
+      "budget_failure": false
+    },
+    {
+      "package": "permit",
+      "import_path": "github.com/deliri/primitive/v2026/permit",
+      "directory": "/Users/d/code/primitive/permit",
+      "target": "FuzzReportScheduleSemanticClosure",
+      "name": "permit-FuzzReportScheduleSemanticClosure",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-run",
+        "^$",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=5m",
+        "-o",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/permit-FuzzReportScheduleSemanticClosure-artifacts/executed.test",
+        "-fuzz",
+        "^FuzzReportScheduleSemanticClosure$",
+        "-fuzztime=2s",
+        "-fuzzminimizetime=1s",
+        "github.com/deliri/primitive/v2026/permit"
+      ],
+      "configured_seconds": 3,
+      "state": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 3.586802958,
+      "effective_to_configured_ratio": 1.1956009859999999,
+      "budget_attention": false,
+      "budget_failure": false
+    },
+    {
+      "package": "runnercontrol",
+      "import_path": "github.com/deliri/primitive/v2026/runnercontrol",
+      "directory": "/Users/d/code/primitive/runnercontrol",
+      "target": "FuzzGoEventStringProjectionMatchesStandardJSON",
+      "name": "runnercontrol-FuzzGoEventStringProjectionMatchesStandardJSON",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-run",
+        "^$",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=5m",
+        "-o",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/runnercontrol-FuzzGoEventStringProjectionMatchesStandardJSON-artifacts/executed.test",
+        "-fuzz",
+        "^FuzzGoEventStringProjectionMatchesStandardJSON$",
+        "-fuzztime=2s",
+        "-fuzzminimizetime=1s",
+        "github.com/deliri/primitive/v2026/runnercontrol"
+      ],
+      "configured_seconds": 3,
+      "state": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 10.54265875,
+      "effective_to_configured_ratio": 3.514219583333333,
+      "budget_attention": false,
+      "budget_failure": false
+    },
+    {
+      "package": "runnercontrol",
+      "import_path": "github.com/deliri/primitive/v2026/runnercontrol",
+      "directory": "/Users/d/code/primitive/runnercontrol",
+      "target": "FuzzGoEventFlatGrammarMatchesStandardJSON",
+      "name": "runnercontrol-FuzzGoEventFlatGrammarMatchesStandardJSON",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-run",
+        "^$",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=5m",
+        "-o",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/runnercontrol-FuzzGoEventFlatGrammarMatchesStandardJSON-artifacts/executed.test",
+        "-fuzz",
+        "^FuzzGoEventFlatGrammarMatchesStandardJSON$",
+        "-fuzztime=2s",
+        "-fuzzminimizetime=1s",
+        "github.com/deliri/primitive/v2026/runnercontrol"
+      ],
+      "configured_seconds": 3,
+      "state": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 3.103927667,
+      "effective_to_configured_ratio": 1.0346425556666665,
+      "budget_attention": false,
+      "budget_failure": false
+    },
+    {
+      "package": "runnercontrol",
+      "import_path": "github.com/deliri/primitive/v2026/runnercontrol",
+      "directory": "/Users/d/code/primitive/runnercontrol",
+      "target": "FuzzGoEventElapsedNativeFloatAgreement",
+      "name": "runnercontrol-FuzzGoEventElapsedNativeFloatAgreement",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-run",
+        "^$",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=5m",
+        "-o",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/runnercontrol-FuzzGoEventElapsedNativeFloatAgreement-artifacts/executed.test",
+        "-fuzz",
+        "^FuzzGoEventElapsedNativeFloatAgreement$",
+        "-fuzztime=2s",
+        "-fuzzminimizetime=1s",
+        "github.com/deliri/primitive/v2026/runnercontrol"
+      ],
+      "configured_seconds": 3,
+      "state": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 3.080588083,
+      "effective_to_configured_ratio": 1.0268626943333332,
+      "budget_attention": false,
+      "budget_failure": false
+    },
+    {
+      "package": "runnercontrol",
+      "import_path": "github.com/deliri/primitive/v2026/runnercontrol",
+      "directory": "/Users/d/code/primitive/runnercontrol",
+      "target": "FuzzRunnerControlExternalEnumJSONSemanticClosure",
+      "name": "runnercontrol-FuzzRunnerControlExternalEnumJSONSemanticClosure",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-run",
+        "^$",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=5m",
+        "-o",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/runnercontrol-FuzzRunnerControlExternalEnumJSONSemanticClosure-artifacts/executed.test",
+        "-fuzz",
+        "^FuzzRunnerControlExternalEnumJSONSemanticClosure$",
+        "-fuzztime=2s",
+        "-fuzzminimizetime=1s",
+        "github.com/deliri/primitive/v2026/runnercontrol"
+      ],
+      "configured_seconds": 3,
+      "state": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 3.074206959,
+      "effective_to_configured_ratio": 1.024735653,
+      "budget_attention": false,
+      "budget_failure": false
+    },
+    {
+      "package": "runnercontrol",
+      "import_path": "github.com/deliri/primitive/v2026/runnercontrol",
+      "directory": "/Users/d/code/primitive/runnercontrol",
+      "target": "FuzzGoCoverageCompilerSemanticClosure",
+      "name": "runnercontrol-FuzzGoCoverageCompilerSemanticClosure",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-run",
+        "^$",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=5m",
+        "-o",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/runnercontrol-FuzzGoCoverageCompilerSemanticClosure-artifacts/executed.test",
+        "-fuzz",
+        "^FuzzGoCoverageCompilerSemanticClosure$",
+        "-fuzztime=2s",
+        "-fuzzminimizetime=1s",
+        "github.com/deliri/primitive/v2026/runnercontrol"
+      ],
+      "configured_seconds": 3,
+      "state": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 3.71883875,
+      "effective_to_configured_ratio": 1.2396129166666667,
+      "budget_attention": false,
+      "budget_failure": false
+    },
+    {
+      "package": "runnercontrol",
+      "import_path": "github.com/deliri/primitive/v2026/runnercontrol",
+      "directory": "/Users/d/code/primitive/runnercontrol",
+      "target": "FuzzGoEventStreamDecodedContent",
+      "name": "runnercontrol-FuzzGoEventStreamDecodedContent",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-run",
+        "^$",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=5m",
+        "-o",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/runnercontrol-FuzzGoEventStreamDecodedContent-artifacts/executed.test",
+        "-fuzz",
+        "^FuzzGoEventStreamDecodedContent$",
+        "-fuzztime=2s",
+        "-fuzzminimizetime=1s",
+        "github.com/deliri/primitive/v2026/runnercontrol"
+      ],
+      "configured_seconds": 3,
+      "state": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 3.391448083,
+      "effective_to_configured_ratio": 1.1304826943333333,
+      "budget_attention": false,
+      "budget_failure": false
+    },
+    {
+      "package": "runnercontrol",
+      "import_path": "github.com/deliri/primitive/v2026/runnercontrol",
+      "directory": "/Users/d/code/primitive/runnercontrol",
+      "target": "FuzzGoTestObservationCompilerSemanticClosure",
+      "name": "runnercontrol-FuzzGoTestObservationCompilerSemanticClosure",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-run",
+        "^$",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=5m",
+        "-o",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/runnercontrol-FuzzGoTestObservationCompilerSemanticClosure-artifacts/executed.test",
+        "-fuzz",
+        "^FuzzGoTestObservationCompilerSemanticClosure$",
+        "-fuzztime=2s",
+        "-fuzzminimizetime=1s",
+        "github.com/deliri/primitive/v2026/runnercontrol"
+      ],
+      "configured_seconds": 3,
+      "state": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 3.673355,
+      "effective_to_configured_ratio": 1.2244516666666667,
+      "budget_attention": false,
+      "budget_failure": false
+    },
+    {
+      "package": "textrepair",
+      "import_path": "github.com/deliri/primitive/v2026/textrepair",
+      "directory": "/Users/d/code/primitive/textrepair",
+      "target": "FuzzUTF8PrefixSemanticOrder",
+      "name": "textrepair-FuzzUTF8PrefixSemanticOrder",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-run",
+        "^$",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=5m",
+        "-o",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/textrepair-FuzzUTF8PrefixSemanticOrder-artifacts/executed.test",
+        "-fuzz",
+        "^FuzzUTF8PrefixSemanticOrder$",
+        "-fuzztime=2s",
+        "-fuzzminimizetime=1s",
+        "github.com/deliri/primitive/v2026/textrepair"
+      ],
+      "configured_seconds": 3,
+      "state": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 2.735274125,
+      "effective_to_configured_ratio": 0.9117580416666667,
+      "budget_attention": false,
+      "budget_failure": false
+    },
+    {
+      "package": "upgradereport",
+      "import_path": "github.com/deliri/primitive/v2026/upgradereport",
+      "directory": "/Users/d/code/primitive/upgradereport",
+      "target": "FuzzEvidenceAuthenticationAndCanonicalClosure",
+      "name": "upgradereport-FuzzEvidenceAuthenticationAndCanonicalClosure",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-run",
+        "^$",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=5m",
+        "-o",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/upgradereport-FuzzEvidenceAuthenticationAndCanonicalClosure-artifacts/executed.test",
+        "-fuzz",
+        "^FuzzEvidenceAuthenticationAndCanonicalClosure$",
+        "-fuzztime=2s",
+        "-fuzzminimizetime=1s",
+        "github.com/deliri/primitive/v2026/upgradereport"
+      ],
+      "configured_seconds": 3,
+      "state": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 4.886818625,
+      "effective_to_configured_ratio": 1.6289395416666668,
+      "budget_attention": false,
+      "budget_failure": false
+    },
+    {
+      "package": "upgradereport",
+      "import_path": "github.com/deliri/primitive/v2026/upgradereport",
+      "directory": "/Users/d/code/primitive/upgradereport",
+      "target": "FuzzEvidenceResignedOuterCannotAuthorizeForgedInner",
+      "name": "upgradereport-FuzzEvidenceResignedOuterCannotAuthorizeForgedInner",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-run",
+        "^$",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=5m",
+        "-o",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/upgradereport-FuzzEvidenceResignedOuterCannotAuthorizeForgedInner-artifacts/executed.test",
+        "-fuzz",
+        "^FuzzEvidenceResignedOuterCannotAuthorizeForgedInner$",
+        "-fuzztime=2s",
+        "-fuzzminimizetime=1s",
+        "github.com/deliri/primitive/v2026/upgradereport"
+      ],
+      "configured_seconds": 3,
+      "state": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 3.092177666,
+      "effective_to_configured_ratio": 1.0307258886666666,
+      "budget_attention": false,
+      "budget_failure": false
+    },
+    {
+      "package": "upgradereport",
+      "import_path": "github.com/deliri/primitive/v2026/upgradereport",
+      "directory": "/Users/d/code/primitive/upgradereport",
+      "target": "FuzzClosedEnumCanonicalAdmission",
+      "name": "upgradereport-FuzzClosedEnumCanonicalAdmission",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-run",
+        "^$",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=5m",
+        "-o",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/upgradereport-FuzzClosedEnumCanonicalAdmission-artifacts/executed.test",
+        "-fuzz",
+        "^FuzzClosedEnumCanonicalAdmission$",
+        "-fuzztime=2s",
+        "-fuzzminimizetime=1s",
+        "github.com/deliri/primitive/v2026/upgradereport"
+      ],
+      "configured_seconds": 3,
+      "state": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 3.585687791,
+      "effective_to_configured_ratio": 1.1952292636666666,
+      "budget_attention": false,
+      "budget_failure": false
+    },
+    {
+      "package": "upgradereport",
+      "import_path": "github.com/deliri/primitive/v2026/upgradereport",
+      "directory": "/Users/d/code/primitive/upgradereport",
+      "target": "FuzzRequestAuthenticationAndCanonicalClosure",
+      "name": "upgradereport-FuzzRequestAuthenticationAndCanonicalClosure",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-run",
+        "^$",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=5m",
+        "-o",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/upgradereport-FuzzRequestAuthenticationAndCanonicalClosure-artifacts/executed.test",
+        "-fuzz",
+        "^FuzzRequestAuthenticationAndCanonicalClosure$",
+        "-fuzztime=2s",
+        "-fuzzminimizetime=1s",
+        "github.com/deliri/primitive/v2026/upgradereport"
+      ],
+      "configured_seconds": 3,
+      "state": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 3.257794125,
+      "effective_to_configured_ratio": 1.0859313750000001,
+      "budget_attention": false,
+      "budget_failure": false
+    },
+    {
+      "package": "upgradereport",
+      "import_path": "github.com/deliri/primitive/v2026/upgradereport",
+      "directory": "/Users/d/code/primitive/upgradereport",
+      "target": "FuzzAcknowledgmentAuthenticationAndExactRequestBinding",
+      "name": "upgradereport-FuzzAcknowledgmentAuthenticationAndExactRequestBinding",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-run",
+        "^$",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=5m",
+        "-o",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/upgradereport-FuzzAcknowledgmentAuthenticationAndExactRequestBinding-artifacts/executed.test",
+        "-fuzz",
+        "^FuzzAcknowledgmentAuthenticationAndExactRequestBinding$",
+        "-fuzztime=2s",
+        "-fuzzminimizetime=1s",
+        "github.com/deliri/primitive/v2026/upgradereport"
+      ],
+      "configured_seconds": 3,
+      "state": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 2.923215875,
+      "effective_to_configured_ratio": 0.9744052916666667,
+      "budget_attention": false,
+      "budget_failure": false
+    },
+    {
+      "package": "upgradereport",
+      "import_path": "github.com/deliri/primitive/v2026/upgradereport",
+      "directory": "/Users/d/code/primitive/upgradereport",
+      "target": "FuzzSignedObservationSemanticMutation",
+      "name": "upgradereport-FuzzSignedObservationSemanticMutation",
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-run",
+        "^$",
+        "-count=1",
+        "-p=1",
+        "-parallel=1",
+        "-timeout=5m",
+        "-o",
+        "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/upgradereport-FuzzSignedObservationSemanticMutation-artifacts/executed.test",
+        "-fuzz",
+        "^FuzzSignedObservationSemanticMutation$",
+        "-fuzztime=2s",
+        "-fuzzminimizetime=1s",
+        "github.com/deliri/primitive/v2026/upgradereport"
+      ],
+      "configured_seconds": 3,
+      "state": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 2.85154125,
+      "effective_to_configured_ratio": 0.9505137499999999,
+      "budget_attention": false,
+      "budget_failure": false
+    }
+  ],
+  "phase_manifest": "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/manifest.json",
+  "attempt_records": [
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-01/build/execution.json",
+      "sha256": "019a4f0fec45999e020353c5defbbfbf9e47af9028af713e4e2e392880eeb98f",
+      "exit_code": 0,
+      "elapsed_ns": 4400353458
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-01/complexity/execution.json",
+      "sha256": "daee2d02e5198c84d200ab1f09ba9824f7a3fb55ccde054e69bfa6bfe8c98172",
+      "exit_code": 1,
+      "elapsed_ns": 100782542
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-01/constants/execution.json",
+      "sha256": "db78a265093983acf4c65d4a381e7f3c0fbe87a5a37efac2ea303b2a1a141ca6",
+      "exit_code": 0,
+      "elapsed_ns": 393434875
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-01/dead-code/execution.json",
+      "sha256": "64eb19255e63ed80ef019ad555dd71ecb250867a47c3f387a4b95620f9002976",
+      "exit_code": 0,
+      "elapsed_ns": 21263470458
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-01/errcheck/execution.json",
+      "sha256": "7fdba120c83ef1e4e21f4933f3973fa360533ac0fb2b1efeb8c2ddded644287c",
+      "exit_code": 1,
+      "elapsed_ns": 2195341791
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-01/field-alignment/execution.json",
+      "sha256": "cf72c57247c4f1c564b22f00311a506f618f4500a61db13be2c64113daf4396a",
+      "exit_code": 3,
+      "elapsed_ns": 3089744792
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-01/format/execution.json",
+      "sha256": "93fa442a7ec587d748fe0362ba76d7f4b9a61212bbeaab665b7a0c3b9d3f965e",
+      "exit_code": 0,
+      "elapsed_ns": 623941291
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-01/go-fix/execution.json",
+      "sha256": "137bdf23fb5b3a724e3105d5b7363475efba29afeda54e616210dcad8375d6e0",
+      "exit_code": 1,
+      "elapsed_ns": 7636661750
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-01/module-tidy/execution.json",
+      "sha256": "db5235fd99b65e8c239808e5a9a99d29358020e1a952e3af89db28a001d55c03",
+      "exit_code": 0,
+      "elapsed_ns": 4364834750
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-01/native-tests/execution.json",
+      "sha256": "4dfa64b82b7a218795783f8af7ecc83bd897fceb3a042f9e6a76fc20b3246bf9",
+      "exit_code": 0,
+      "elapsed_ns": 235024486667
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-01/nilaway/execution.json",
+      "sha256": "25861488dadd6f22654cbd9609a1a2398e44b66515a5ae6e0b971f780f51a7d7",
+      "exit_code": 3,
+      "elapsed_ns": 61433364458
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-01/race-shuffle/execution.json",
+      "sha256": "8e498630fe5ce12591774d49be00e4377ba56a7eef6ac1756927ae32f7d92861",
+      "exit_code": 0,
+      "elapsed_ns": 645653604542
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-01/security/execution.json",
+      "sha256": "15304e52cb8f16495f6e7d3df3e64683f5ae86af1f3900e2f47e73339c9973e3",
+      "exit_code": 1,
+      "elapsed_ns": 5987850333
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-01/staticcheck/execution.json",
+      "sha256": "35be167674d74054226f02036cbbaf119ff4ddda480b6336900e19855807ef9c",
+      "exit_code": 0,
+      "elapsed_ns": 27231999667
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-01/vet/execution.json",
+      "sha256": "966a2992fa023df1cb724d40ec1dbe5db5e18ee23440f40fc85d1bd25efa4f2b",
+      "exit_code": 0,
+      "elapsed_ns": 15362065459
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-01/vulnerabilities/execution.json",
+      "sha256": "ac1012331c879893abb03da734f0c60eeb620fa5a0ce1cb78d058d83ceff8252",
+      "exit_code": 0,
+      "elapsed_ns": 32268380875
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-01/witness-lint/execution.json",
+      "sha256": "0d967fdb6a04aa7c6c865109f12d2b05c8251a93a7c6c1771dbd25ca0b0914c7",
+      "exit_code": 1,
+      "elapsed_ns": 1378350084
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-01/workflow/execution.json",
+      "sha256": "95407670a15d85252509e04c7e9185fc0dbe486123ab58e3f406ef71a29d6428",
+      "exit_code": 0,
+      "elapsed_ns": 151880375
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-02/build/execution.json",
+      "sha256": "a411fd20f613cb62e57082936dc1ab6c4ca56d3ff02c2dacdfd94593fd1ec7f7",
+      "exit_code": 0,
+      "elapsed_ns": 2037301208
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-02/complexity/execution.json",
+      "sha256": "e849855ee0c0d06366de3e0a733ac7360f1a36c8bcb886e94c73d41a493731be",
+      "exit_code": 1,
+      "elapsed_ns": 114463083
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-02/constants/execution.json",
+      "sha256": "fb1762ea284101c8f244ed7144e38d4a99c493e499a311ef27e186f51f295f80",
+      "exit_code": 0,
+      "elapsed_ns": 237646250
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-02/dead-code/execution.json",
+      "sha256": "cb99d54aeb1cd226c41f7177f1446a4de230999e26565e46df3594e6a3d39a06",
+      "exit_code": 0,
+      "elapsed_ns": 24405488167
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-02/errcheck/execution.json",
+      "sha256": "8cdeab285e3e74b551e8bc66c26a83572a6244985dacaece11feca6bbed5d6c3",
+      "exit_code": 0,
+      "elapsed_ns": 1987665625
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-02/field-alignment/execution.json",
+      "sha256": "2b5cbef65d2b818831074741342ec9642e9b9f97ef381aca91d5491b230a4d45",
+      "exit_code": 1,
+      "elapsed_ns": 3032899958
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-02/field-alignment-tool-tests/execution.json",
+      "sha256": "88ff1ea9362afc68383c7f7ef26c271942fb2e77257c16faed77da3bb0508949",
+      "exit_code": 0,
+      "elapsed_ns": 693107334
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-02/format/execution.json",
+      "sha256": "7a965855e1b1a5d45fc4ca662722e4906ab4f195d1f24a206b88fc244777dc9c",
+      "exit_code": 0,
+      "elapsed_ns": 555153625
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-02/go-fix/execution.json",
+      "sha256": "552e0823e42460744f23df65c195ec8876e649f727733a5d499b658c10e5e62a",
+      "exit_code": 0,
+      "elapsed_ns": 4377840708
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-02/module-tidy/execution.json",
+      "sha256": "9c7081c87341afac2342c069c8b2f59d8e83b430fd04a917008071e8e8272e6c",
+      "exit_code": 0,
+      "elapsed_ns": 133999709
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-02/native-tests/execution.json",
+      "sha256": "ec0c6b6ddeca9fe64d943dcdcef227c3b232f8bd5401b1e97477db79fcf6ece3",
+      "exit_code": 1,
+      "elapsed_ns": 218819842958
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-02/nilaway/execution.json",
+      "sha256": "f9eba641ed6a666a354f54b82eab741c345a502a70f3e5739a1952789b997bcd",
+      "exit_code": 0,
+      "elapsed_ns": 63076187541
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-02/race-shuffle/execution.json",
+      "sha256": "2e5531998d1419fc7c8acf7bf23ebc5769b81eea1f2f78497378114cd20b3f71",
+      "exit_code": 1,
+      "elapsed_ns": 626421476375
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-02/security/execution.json",
+      "sha256": "beb243d0d5eb0b5a78bd7a57a5c3acce5815dead4ad9e43170b302cf6edd3072",
+      "exit_code": 1,
+      "elapsed_ns": 6801234042
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-02/staticcheck/execution.json",
+      "sha256": "33ed254fc81e89efbd22378216c95022ccd433c68ee19b23b57c421efc581681",
+      "exit_code": 1,
+      "elapsed_ns": 10816400625
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-02/vet/execution.json",
+      "sha256": "08af71a3ddc021f9fa0f0281ad083e73407c7c848a32cf701eeb67a22d163bef",
+      "exit_code": 0,
+      "elapsed_ns": 3780420042
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-02/vulnerabilities/execution.json",
+      "sha256": "b56f0a04de1d9918e9efde7f8169ef26244018f53d7b31a37dd28f04f3082ffc",
+      "exit_code": 0,
+      "elapsed_ns": 32988734875
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-02/witness-lint/execution.json",
+      "sha256": "bbd81dab3f3decf1f2dbe882238d30b0ae3df014cef93d9c5d90a3ef3944457e",
+      "exit_code": 0,
+      "elapsed_ns": 1389922375
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-02/workflow/execution.json",
+      "sha256": "ff1752bb2034fdc42c2b76f94fb4aa5bc73e2ba47a5935071fd087de898bfa64",
+      "exit_code": 0,
+      "elapsed_ns": 21258375
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-03/build/execution.json",
+      "sha256": "e4f29ee3f5f492edcf5b4f3bdbc88b0ccf74725a55cb52e2277ae3b249c206fd",
+      "exit_code": 0,
+      "elapsed_ns": 3520490709
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-03/complexity/execution.json",
+      "sha256": "9f2ef3b0ec5d87b3ca672129ce888d7b2fbc4477901c4ba2b508fa0e350d98a9",
+      "exit_code": 0,
+      "elapsed_ns": 117083875
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-03/constants/execution.json",
+      "sha256": "d0ea5233d336627adc3075b372c976880c55e541fa39083328ea10b66eb5d240",
+      "exit_code": 0,
+      "elapsed_ns": 236015750
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-03/dead-code/execution.json",
+      "sha256": "03f7be57747f8dba2b388907a4054b1339c2adabe3289b794f0a0ba74692c8c7",
+      "exit_code": 0,
+      "elapsed_ns": 25353727333
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-03/errcheck/execution.json",
+      "sha256": "0aab7dd62c503a3f27f11c2a3048cce07ef57a9a724e03f87af204e2b491474e",
+      "exit_code": 0,
+      "elapsed_ns": 1878372500
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-03/field-alignment/execution.json",
+      "sha256": "c50282b635e6ada24451bca406f2cb7aa9d5b6cabd95c9ddad755ddfb7f0c546",
+      "exit_code": 0,
+      "elapsed_ns": 2818731250
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-03/field-alignment-tool-tests/execution.json",
+      "sha256": "04c4ab600fb7f4c074a400079d83b08a47e76a9411e2584179e3ffc76bc0fc91",
+      "exit_code": 0,
+      "elapsed_ns": 788980750
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-03/format/execution.json",
+      "sha256": "9ee8cf75dff28c342527f5a284c6a13cbc6a80a824b8dbab177a5e6dc86b8724",
+      "exit_code": 0,
+      "elapsed_ns": 585126500
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-03/go-fix/execution.json",
+      "sha256": "37b0c753a237a3adf8e59070669e6be4fc35393dd543c3318035f939d40968a9",
+      "exit_code": 0,
+      "elapsed_ns": 5298300791
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-03/module-tidy/execution.json",
+      "sha256": "f612902e558f47ada08023c5de9ddc62d33256b04af4763bd05c516c7cc1c6bf",
+      "exit_code": 0,
+      "elapsed_ns": 148110916
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-03/native-tests/execution.json",
+      "sha256": "0533e51b9ceb67844f2ee4a3e72b45b158903a8faf427e55dafe43dfb0fb87bb",
+      "exit_code": 0,
+      "elapsed_ns": 218386538292
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-03/nilaway/execution.json",
+      "sha256": "972c8dd3780347aa7d4ac94f95fcb9bd026afcde0fef0169e290a60a183c0089",
+      "exit_code": 0,
+      "elapsed_ns": 59219323833
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-03/race-shuffle/execution.json",
+      "sha256": "f9b3b216c1d1ab4dff1e13c89e16276e1e6585670c1f9bf38631c7141df0f8c2",
+      "exit_code": 1,
+      "elapsed_ns": 454955629834
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-03/security/execution.json",
+      "sha256": "dd75553b6834ef18beaef3ac7834a8248e24c34ab95013dcd87a763685192749",
+      "exit_code": 0,
+      "elapsed_ns": 4908099708
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-03/staticcheck/execution.json",
+      "sha256": "ce09afe07c9c4bff0b060c2ba50144ec911db311521c514576f0ee811afbbe1f",
+      "exit_code": 0,
+      "elapsed_ns": 10102236917
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-03/vet/execution.json",
+      "sha256": "1447c13aa7d1a83b2cd04ad179e44bca2b8b51f0c0ba7e1e8fe98ed081f4ad21",
+      "exit_code": 0,
+      "elapsed_ns": 2550246500
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-03/vulnerabilities/execution.json",
+      "sha256": "b8a4a8f8f2fd7a9d315d21a787ac7796c3c7fb7adfec5740b157a7325ececb5d",
+      "exit_code": 0,
+      "elapsed_ns": 32807177584
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-03/witness-lint/execution.json",
+      "sha256": "cf716dab728982a14edc547d9b130d9aab1df009d96ed86cb822f23789b1ebf1",
+      "exit_code": 1,
+      "elapsed_ns": 1348247708
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-release-gates-03/workflow/execution.json",
+      "sha256": "50ad0a2d39c17019f4bbbfae5fd6b969c393d0f207735e46926943d83b26a37a",
+      "exit_code": 0,
+      "elapsed_ns": 21201542
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-layout-recovery-01/behavior/execution.json",
+      "sha256": "26eec823e323ef95d0679da8ccc63506b4c5f79bcbd7bdaea004cb51ac266efb",
+      "exit_code": 0,
+      "elapsed_ns": 276943943583
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-disjoint-report-timing-red/execution.json",
+      "sha256": "d1713cadfea5e2bd690eee96e1aeb0a35e50932944b0c6f25547f09357cde7ed",
+      "exit_code": 1,
+      "elapsed_ns": 168079958
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-disjoint-report-timing-red-02/execution.json",
+      "sha256": "6a5035320cfdf763641babffe16d0985be732d383b66448cd110281935b1bd18",
+      "exit_code": 1,
+      "elapsed_ns": 987471250
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-disjoint-report-timing-green/execution.json",
+      "sha256": "c971d04519135af0631ffae5538e68a40052175ec17b3c2a71b4a584329e301d",
+      "exit_code": 0,
+      "elapsed_ns": 1728669333
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-gcs-native-01/run/execution.json",
+      "sha256": "3014769dbe8c17656d1d44e8a27c0bd1792825826994d4b6cba3cfee18745c62",
+      "exit_code": 1,
+      "elapsed_ns": 15207233333
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-gcs-native-02/run/execution.json",
+      "sha256": "61aacb6c6994a20d747108a372a614c9c57773972bd2976a07f9c1932bbd9ae1",
+      "exit_code": 0,
+      "elapsed_ns": 7493768541
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-witness-final-01/execution.json",
+      "sha256": "cb159be3a26d8dc76bc1ad900228d2075d151e7a99941f3d1e16a624347c192c",
+      "exit_code": 0,
+      "elapsed_ns": 1759293375
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/filestore-BenchmarkContentIndexRecordAdmission/execution.json",
+      "sha256": "7778108b1dce1e0e8d6dd6d0848f4ed3774c7187f0ddb2f09ef7faded3b6782c",
+      "exit_code": 0,
+      "elapsed_ns": 4387363917
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/filestore-BenchmarkCopyContentExactAgreement/execution.json",
+      "sha256": "df730e61af14b8440109ed9fe2e0ccca659367a78bbc942264fd6805a386c818",
+      "exit_code": 0,
+      "elapsed_ns": 8138215458
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/filestore-FuzzContentSortExactUnion/execution.json",
+      "sha256": "77bec95b6a4a73332bfed238ec52a76170cf4e6ee32fe12474d00046006f4eb6",
+      "exit_code": 0,
+      "elapsed_ns": 2728614583
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/filestore-FuzzCopyContentExactAgreement/execution.json",
+      "sha256": "10555c4a6753b4bc3126c4d15c4645722a3fab81846975c61ca8dcea52a0ae6a",
+      "exit_code": 0,
+      "elapsed_ns": 8090794959
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/filestore-FuzzInspectContentIndexExactBinding/execution.json",
+      "sha256": "0a6eb702ea6c15c351499b03f25f47382f19ea64db3222c36bb461aab67163c9",
+      "exit_code": 0,
+      "elapsed_ns": 3621098291
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/github-BenchmarkReadTreeOneEntry/execution.json",
+      "sha256": "b2c892e061f2817b2ed89db3da42f3326f63ec42356eff85476eec5b0c8ce4d6",
+      "exit_code": 0,
+      "elapsed_ns": 4888165208
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/github-FuzzDecodeGitHubTreeSemanticClosure/execution.json",
+      "sha256": "cb6d47f518b7ad5259507a8a1ede63f3382e70c95518920378d945b31ae3fa3a",
+      "exit_code": 0,
+      "elapsed_ns": 7177854042
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/github-FuzzGitHubJSONStringStreamingSemanticClosure/execution.json",
+      "sha256": "4bdc7da7bea9472ef4e9ea21548c3d4739472ed6dc5cbd4c4185b19d0834ab51",
+      "exit_code": 0,
+      "elapsed_ns": 2850620041
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/permit-FuzzReportPermissionResponse/execution.json",
+      "sha256": "e5bec9cd101cc656bbd03be09768500ba9b53a2d57f5f6344f71216e15eee7ac",
+      "exit_code": 0,
+      "elapsed_ns": 6462903750
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/permit-FuzzReportScheduleSemanticClosure/execution.json",
+      "sha256": "d096ba076b7db4a70991c5475d94ffe368ff64eb214fcf02c161837c1c0346f5",
+      "exit_code": 0,
+      "elapsed_ns": 3586802958
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/permit-FuzzReportScheduleSignedEpochArithmetic/execution.json",
+      "sha256": "e65c394990be6f2e8a52addaac8a702cddccd4358ffbc9c63022329e72ade068",
+      "exit_code": 0,
+      "elapsed_ns": 2921169541
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/runnercontrol-BenchmarkGoJSONDiagnosticStreaming/execution.json",
+      "sha256": "f04688f7609093fb6f32ee477132f535c95dfa0a61aa8ed9f949b2eeabd24ea6",
+      "exit_code": 0,
+      "elapsed_ns": 8427393542
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/runnercontrol-FuzzGoCoverageCompilerSemanticClosure/execution.json",
+      "sha256": "223fbd5a620bb3e6ef39e1c2b457e5bb30e1c4fa76872da9a40ebb3a23f834b4",
+      "exit_code": 0,
+      "elapsed_ns": 3718838750
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/runnercontrol-FuzzGoEventElapsedNativeFloatAgreement/execution.json",
+      "sha256": "96ffe736165bc1710a417f58f31e1d9a6bd09a0032a30a6c049d2b0fd38f0131",
+      "exit_code": 0,
+      "elapsed_ns": 3080588083
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/runnercontrol-FuzzGoEventFlatGrammarMatchesStandardJSON/execution.json",
+      "sha256": "b213b93399f356e529ab486d26239a8e5ee0230c63dd646df95f1a43a7b12fa3",
+      "exit_code": 0,
+      "elapsed_ns": 3103927667
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/runnercontrol-FuzzGoEventStreamDecodedContent/execution.json",
+      "sha256": "70e5f672481d2e387c456a0e1943aff9c00a8d955c8a0ba9811b0589fbcbfadb",
+      "exit_code": 0,
+      "elapsed_ns": 3391448083
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/runnercontrol-FuzzGoEventStringProjectionMatchesStandardJSON/execution.json",
+      "sha256": "349b5f1473c55f683a9f0c23577c5b4e3b3091b18a250431bcb993255a7e851d",
+      "exit_code": 0,
+      "elapsed_ns": 10542658750
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/runnercontrol-FuzzGoTestObservationCompilerSemanticClosure/execution.json",
+      "sha256": "602aa3a4b9779482169941d7db76b6c0c4c59d0fac2701a6490f786cfcfe1572",
+      "exit_code": 0,
+      "elapsed_ns": 3673355000
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/runnercontrol-FuzzRunnerControlExternalEnumJSONSemanticClosure/execution.json",
+      "sha256": "f25d20603fe8c5e6e66880e846137c2c3998edc1238c48c63c0852a6e0263ec9",
+      "exit_code": 0,
+      "elapsed_ns": 3074206959
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/textrepair-BenchmarkPrefixMalformedPrefix/execution.json",
+      "sha256": "5600699d6f65c044b3c50912eb6acc6a07f918ce357d9b0d5ac9a1cae44c8219",
+      "exit_code": 0,
+      "elapsed_ns": 4257563459
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/textrepair-FuzzUTF8PrefixSemanticOrder/execution.json",
+      "sha256": "cb1f1742b1edf1d4d32cc88b26418b9779c61dc9ea113a9a516a62fdca746c8b",
+      "exit_code": 0,
+      "elapsed_ns": 2735274125
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/upgradereport-BenchmarkSignedRequestVerification/execution.json",
+      "sha256": "bfbf1f065e096d5eb2a1e88160c36e58552d1d6377bec172af256af13ff6bcc5",
+      "exit_code": 0,
+      "elapsed_ns": 4871079584
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/upgradereport-FuzzAcknowledgmentAuthenticationAndExactRequestBinding/execution.json",
+      "sha256": "2ce9fbd062d8e5d1b46eaef10c784f69757e4dc8ac10b079f4cdd541e32825dc",
+      "exit_code": 0,
+      "elapsed_ns": 2923215875
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/upgradereport-FuzzClosedEnumCanonicalAdmission/execution.json",
+      "sha256": "e2c908a634215db08aaf164f363b6452fdab7c2f5edde4b200cfaabf4a3da52e",
+      "exit_code": 0,
+      "elapsed_ns": 3585687791
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/upgradereport-FuzzEvidenceAuthenticationAndCanonicalClosure/execution.json",
+      "sha256": "f10912d51f18f5793282322fa92f288cbae400c572dda2074372ae0789850e83",
+      "exit_code": 0,
+      "elapsed_ns": 4886818625
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/upgradereport-FuzzEvidenceResignedOuterCannotAuthorizeForgedInner/execution.json",
+      "sha256": "79bc7e99c8281cacad5f0dbd76235a7b0b5e20f31a9f173077551bc39533089d",
+      "exit_code": 0,
+      "elapsed_ns": 3092177666
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/upgradereport-FuzzRequestAuthenticationAndCanonicalClosure/execution.json",
+      "sha256": "b38b30abe190efce886003b832a824c337e87793c1e6a415b4f46f49e898c418",
+      "exit_code": 0,
+      "elapsed_ns": 3257794125
+    },
+    {
+      "path": "/private/tmp/peachfuzz-live-20260920/primitive-196-changed-package-phases-01/upgradereport-FuzzSignedObservationSemanticMutation/execution.json",
+      "sha256": "6ddfe0e0aa78a7ed3691f2751cd0b4eff5fcbe1808bd7aa25d3186ffa5ccd994",
+      "exit_code": 0,
+      "elapsed_ns": 2851541250
+    }
+  ],
+  "qualifications": [
+    "Mac repository-wide race run and initial broad platform compilation were cancelled following the user scope correction; neither is claimed as a pass.",
+    "All subsequent verification is restricted to changed upgrade-related packages.",
+    "Native suites skipped three environment-gated GCS tests; a separate real-provider run passed each of those three tests.",
+    "Seven nested testserial failure events per native repetition are expected refusal observations emitted by TestDeclareRejectsInvalidDeclarationsBeforeFollowingBehavior; they remain included in raw counts.",
+    "Full native and Furnace race source differs from final source only in the benchmark failure diagnostic corrected for witness-lint. The final benchmark ran successfully on the corrected source.",
+    "Windows amd64 and Linux arm64 checks compile the six changed packages; they do not claim native execution on those platforms.",
+    "Configured benchmark budget is 3 seconds per benchmark measurement; fuzzing uses 2 seconds plus up to 1 second minimization. Actual elapsed time, startup, and corpus replay are retained separately."
+  ]
+}

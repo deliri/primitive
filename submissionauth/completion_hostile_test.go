@@ -40,13 +40,13 @@ type authCompletionFixtureRequest struct {
 }
 
 type authCompletionFixture struct {
-	grant                submission.GrantRecord
 	grantProjection      submission.GrantProjection
 	credentialed         CompletionDocument
 	completionDocument   submission.CompletionDocument
 	completionProjection submission.CompletionProjection
 	request              authFixture
 	verifiedRequest      Verified
+	grant                submission.GrantRecord
 	completionNonce      controlwire.RequestNonce
 }
 
@@ -100,17 +100,17 @@ func TestCredentialedCompletionProjectionLayerTriad(t *testing.T) {
 		t.Fatalf("foreign projection = %d identical bytes, want different signed bytes", len(canonical))
 	}
 	for _, tc := range []struct {
-		name       string
-		projection CompletionProjection
-		data       []byte
 		wantErr    error
+		name       string
+		data       []byte
+		projection CompletionProjection
 	}{
-		{"exact_issued_projection", projection, canonical, nil},
-		{"foreign_authentic_projection", projection, foreignBytes, core.ErrJSONContract},
-		{"whitespace_changes_canonical_identity", projection, append([]byte(" "), canonical...), core.ErrJSONContract},
-		{"duplicate_completion_member", projection, append(bytes.Clone(canonical[:len(canonical)-1]), []byte(`,"completion":null}`)...), core.ErrJSONContract},
-		{"truncated_projection", projection, canonical[:len(canonical)-1], core.ErrJSONContract},
-		{"absent_projection_cannot_claim_bytes", CompletionProjection{}, canonical, core.ErrJSONContract},
+		{name: "exact_issued_projection", projection: projection, data: canonical, wantErr: nil},
+		{name: "foreign_authentic_projection", projection: projection, data: foreignBytes, wantErr: core.ErrJSONContract},
+		{name: "whitespace_changes_canonical_identity", projection: projection, data: append([]byte(" "), canonical...), wantErr: core.ErrJSONContract},
+		{name: "duplicate_completion_member", projection: projection, data: append(bytes.Clone(canonical[:len(canonical)-1]), []byte(`,"completion":null}`)...), wantErr: core.ErrJSONContract},
+		{name: "truncated_projection", projection: projection, data: canonical[:len(canonical)-1], wantErr: core.ErrJSONContract},
+		{name: "absent_projection_cannot_claim_bytes", projection: CompletionProjection{}, data: canonical, wantErr: core.ErrJSONContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

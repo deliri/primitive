@@ -15,10 +15,10 @@ import (
 func TestTerminalPTYObservationLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantColumnsErr error
 		name           string
 		columns        uint16
 		wantAttachment TerminalAttachment
-		wantColumnsErr error
 	}{
 		{name: "zero width preserves attachment without geometry", wantAttachment: TerminalAttachmentTerminalWithoutGeometry, wantColumnsErr: core.ErrHostFactsContract},
 		{name: "minimum column remains exact", columns: 1, wantAttachment: TerminalAttachmentTerminal},

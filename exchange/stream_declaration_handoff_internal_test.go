@@ -14,10 +14,10 @@ import (
 func TestStreamDeclarationHandoffLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr                             error
 		name                                string
 		declared                            uint64
 		closeFault, dropMetadata, dropWhole bool
-		wantErr                             error
 		wantZero                            bool
 	}{
 		{name: "admitted upload declaration survives replay projection", declared: 2},

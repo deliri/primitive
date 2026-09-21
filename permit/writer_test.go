@@ -9,10 +9,10 @@ import (
 )
 
 type permissionWriterObservation struct {
-	calls int
-	data  []byte
-	short bool
 	err   error
+	data  []byte
+	calls int
+	short bool
 }
 
 func (w *permissionWriterObservation) Write(data []byte) (int, error) {
@@ -55,14 +55,14 @@ func TestPermitWriterLayerTriad(t *testing.T) {
 func TestPermitWriterShortWriteAndCause(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		cause     error
 		name      string
 		short     bool
-		cause     error
 		wantShort bool
 	}{
-		{"short write without error", true, nil, true},
-		{"partial write retains resource failure", true, io.ErrClosedPipe, true},
-		{"full extent with resource failure is still failure", false, io.ErrClosedPipe, false},
+		{name: "short write without error", short: true, cause: nil, wantShort: true},
+		{name: "partial write retains resource failure", short: true, cause: io.ErrClosedPipe, wantShort: true},
+		{name: "full extent with resource failure is still failure", short: false, cause: io.ErrClosedPipe, wantShort: false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -82,15 +82,15 @@ func TestPermitWriterShortWriteAndCause(t *testing.T) {
 func TestPermitCanonicalOutputCeiling(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr   error
 		name      string
 		size      int
-		wantErr   error
 		wantCalls int
 	}{
-		{"empty projection is refused", 0, core.ErrPermitContract, 0},
-		{"one below ceiling is written", DocumentMaximumBytes - 1, nil, 1},
-		{"exact ceiling is written", DocumentMaximumBytes, nil, 1},
-		{"one above ceiling never reaches writer", DocumentMaximumBytes + 1, core.ErrPermitContract, 0},
+		{name: "empty projection is refused", size: 0, wantErr: core.ErrPermitContract, wantCalls: 0},
+		{name: "one below ceiling is written", size: DocumentMaximumBytes - 1, wantErr: nil, wantCalls: 1},
+		{name: "exact ceiling is written", size: DocumentMaximumBytes, wantErr: nil, wantCalls: 1},
+		{name: "one above ceiling never reaches writer", size: DocumentMaximumBytes + 1, wantErr: core.ErrPermitContract, wantCalls: 0},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

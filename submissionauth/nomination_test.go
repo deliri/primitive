@@ -18,13 +18,13 @@ func TestCredentialNominationLayerTriad(t *testing.T) {
 		t.Fatalf("nominee mutation = %v, want same build and different key from %v", foreign.certificate.Body, base.request.certificate.Body)
 	}
 	for _, tc := range []struct {
+		wantErr     error
 		name        string
 		certificate controlplane.InstallationCertificateDocument
-		wantErr     error
 	}{
-		{"exact_nominated_device", base.request.certificate, nil},
-		{"same_build_foreign_nominated_device", foreign.certificate, core.ErrControlPlaneResponseBinding},
-		{"absent_certificate_cannot_nominate", controlplane.InstallationCertificateDocument{}, core.ErrControlPlaneContract},
+		{name: "exact_nominated_device", certificate: base.request.certificate, wantErr: nil},
+		{name: "same_build_foreign_nominated_device", certificate: foreign.certificate, wantErr: core.ErrControlPlaneResponseBinding},
+		{name: "absent_certificate_cannot_nominate", certificate: controlplane.InstallationCertificateDocument{}, wantErr: core.ErrControlPlaneContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -32,17 +32,17 @@ func TestCredentialNominationLayerTriad(t *testing.T) {
 			completionAssembly := CompletionAssembly{Completion: base.completionDocument, Certificate: tc.certificate}
 			projectionAssembly := CompletionProjectionAssembly{Completion: base.completionProjection, Certificate: tc.certificate}
 			for _, door := range []struct {
-				name string
 				run  func() (bool, error)
+				name string
 			}{
-				{"request_assembly", func() (bool, error) { got, err := Assemble(requestAssembly); return got == (RequestDocument{}), err }},
-				{"request_validation", func() (bool, error) { return true, RequestDocument(requestAssembly).Validate() }},
-				{"completion_assembly", func() (bool, error) {
+				{name: "request_assembly", run: func() (bool, error) { got, err := Assemble(requestAssembly); return got == (RequestDocument{}), err }},
+				{name: "request_validation", run: func() (bool, error) { return true, RequestDocument(requestAssembly).Validate() }},
+				{name: "completion_assembly", run: func() (bool, error) {
 					got, err := AssembleCompletion(completionAssembly)
 					return got == (CompletionDocument{}), err
 				}},
-				{"completion_validation", func() (bool, error) { return true, CompletionDocument(completionAssembly).Validate() }},
-				{"projection_assembly", func() (bool, error) {
+				{name: "completion_validation", run: func() (bool, error) { return true, CompletionDocument(completionAssembly).Validate() }},
+				{name: "projection_assembly", run: func() (bool, error) {
 					got, err := AssembleCompletionProjection(projectionAssembly)
 					return got == (CompletionProjection{}), err
 				}},
@@ -63,24 +63,24 @@ func TestCredentialRouteLayerTriad(t *testing.T) {
 	t.Parallel()
 	fixture := newAuthCompletionFixture(t, authCompletionFixtureRequest{})
 	for _, tc := range []struct {
+		wantErr    error
 		name       string
 		request    RequestDocument
 		completion CompletionDocument
-		wantErr    error
 	}{
-		{"exact_credential_routes", fixture.request.document, fixture.credentialed, nil},
-		{"missing_certificates", RequestDocument{Request: fixture.request.request}, CompletionDocument{Completion: fixture.completionDocument}, core.ErrControlPlaneContract},
-		{"absent_documents", RequestDocument{}, CompletionDocument{}, core.ErrControlPlaneContract},
+		{name: "exact_credential_routes", request: fixture.request.document, completion: fixture.credentialed, wantErr: nil},
+		{name: "missing_certificates", request: RequestDocument{Request: fixture.request.request}, completion: CompletionDocument{Completion: fixture.completionDocument}, wantErr: core.ErrControlPlaneContract},
+		{name: "absent_documents", request: RequestDocument{}, completion: CompletionDocument{}, wantErr: core.ErrControlPlaneContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			for _, door := range []struct {
-				name   string
 				route  func() (controlwire.RouteContract, error)
+				name   string
 				family controlwire.RouteFamily
 			}{
-				{"request", tc.request.ControlRoute, controlwire.RouteFamilySubmissions},
-				{"completion", tc.completion.ControlRoute, controlwire.RouteFamilySubmissionCompletions},
+				{name: "request", route: tc.request.ControlRoute, family: controlwire.RouteFamilySubmissions},
+				{name: "completion", route: tc.completion.ControlRoute, family: controlwire.RouteFamilySubmissionCompletions},
 			} {
 				t.Run(door.name, func(t *testing.T) {
 					t.Parallel()
@@ -103,13 +103,13 @@ func TestCompletionProjectionSignerLayerTriad(t *testing.T) {
 	t.Parallel()
 	fixture := newAuthCompletionFixture(t, authCompletionFixtureRequest{})
 	for _, tc := range []struct {
+		wantErr    error
 		name       string
 		projection submission.CompletionProjection
 		want       core.Ed25519PublicKey
-		wantErr    error
 	}{
-		{"issued_key_is_exact", fixture.completionProjection, fixture.request.certificate.Body.DeviceKey, nil},
-		{"absent_projection_has_no_signer", submission.CompletionProjection{}, core.Ed25519PublicKey{}, core.ErrControlPlaneContract},
+		{name: "issued_key_is_exact", projection: fixture.completionProjection, want: fixture.request.certificate.Body.DeviceKey, wantErr: nil},
+		{name: "absent_projection_has_no_signer", projection: submission.CompletionProjection{}, want: core.Ed25519PublicKey{}, wantErr: core.ErrControlPlaneContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -123,14 +123,14 @@ func TestCompletionProjectionSignerLayerTriad(t *testing.T) {
 func TestCredentialOutputRefusalLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name    string
-		run     func() (bool, error)
 		wantErr error
+		run     func() (bool, error)
+		name    string
 	}{
-		{"absent_request_cannot_encode", func() (bool, error) { data, err := (RequestDocument{}).MarshalJSON(); return data == nil, err }, core.ErrJSONContract},
-		{"absent_completion_cannot_encode", func() (bool, error) { data, err := (CompletionDocument{}).MarshalJSON(); return data == nil, err }, core.ErrJSONContract},
-		{"absent_projection_cannot_encode", func() (bool, error) { data, err := (CompletionProjection{}).MarshalJSON(); return data == nil, err }, core.ErrJSONContract},
-		{"absent_verified_request_cannot_expose_document", func() (bool, error) { got, err := (Verified{}).Document(); return got == (RequestDocument{}), err }, core.ErrControlPlaneContract},
+		{name: "absent_request_cannot_encode", run: func() (bool, error) { data, err := (RequestDocument{}).MarshalJSON(); return data == nil, err }, wantErr: core.ErrJSONContract},
+		{name: "absent_completion_cannot_encode", run: func() (bool, error) { data, err := (CompletionDocument{}).MarshalJSON(); return data == nil, err }, wantErr: core.ErrJSONContract},
+		{name: "absent_projection_cannot_encode", run: func() (bool, error) { data, err := (CompletionProjection{}).MarshalJSON(); return data == nil, err }, wantErr: core.ErrJSONContract},
+		{name: "absent_verified_request_cannot_expose_document", run: func() (bool, error) { got, err := (Verified{}).Document(); return got == (RequestDocument{}), err }, wantErr: core.ErrControlPlaneContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

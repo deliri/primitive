@@ -22,14 +22,14 @@ func TestSocketServerCallLayerTriad(t *testing.T) {
 		typedNilWriter
 	)
 	cases := []struct {
-		name             string
-		writer           writerPresence
-		absentRequest    bool
-		cancelled        bool
 		wantErr          error
 		wantContextErr   error
 		wantContextCause error
+		name             string
 		wantCalls        int
+		writer           writerPresence
+		absentRequest    bool
+		cancelled        bool
 	}{
 		{name: "positive both capabilities retain exact identity", wantCalls: 1},
 		{name: "negative missing request cannot retain writer", absentRequest: true, wantErr: core.ErrExchangeContract, wantContextErr: core.ErrExchangeContract},

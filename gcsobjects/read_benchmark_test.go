@@ -14,7 +14,7 @@ func BenchmarkGCSReadAndStage(b *testing.B) {
 	for _, tc := range []struct {
 		name string
 		size int
-	}{{"1KiB", 1 << 10}, {"1MiB", 1 << 20}} {
+	}{{name: "1KiB", size: 1 << 10}, {name: "1MiB", size: 1 << 20}} {
 		b.Run(tc.name, func(b *testing.B) {
 			directory := b.TempDir()
 			payload := make([]byte, tc.size)

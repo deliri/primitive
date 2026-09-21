@@ -1062,9 +1062,9 @@ func TestSignatureJSONDocumentExtentIncludesWhitespace(t *testing.T) {
 		t.Fatalf("signature fixture encoding error = %v, want nil", err)
 	}
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		extent  int
-		wantErr error
 	}{
 		{name: "one byte below shared JSON document cap", extent: core.JSONDocumentMaximumBytes - 1},
 		{name: "exact shared JSON document cap", extent: core.JSONDocumentMaximumBytes},

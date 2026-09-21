@@ -11,11 +11,11 @@ import (
 func TestFilesystemIdentityProjectionLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr  error
 		name     string
 		raw      uint64
-		observed bool
 		want     uint64
-		wantErr  error
+		observed bool
 	}{
 		{name: "unobserved zero cannot become a host identity", wantErr: core.ErrFilestoreContract},
 		{name: "unobserved numeric residue cannot escape", raw: math.MaxUint64, wantErr: core.ErrFilestoreContract},

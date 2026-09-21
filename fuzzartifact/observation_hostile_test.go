@@ -25,9 +25,9 @@ func TestDirectoryProducerAccountingLayerTriad(t *testing.T) {
 	)
 	cases := []struct {
 		name                                                     string
-		mode                                                     fs.FileMode
 		text                                                     string
 		wantMatched, wantDirectories, wantOther, wantUnsupported uint64
+		mode                                                     fs.FileMode
 	}{
 		{name: "regular generated name is delivered", text: generatedNameForPosition(t, ArtifactCorpus, 1).String(), wantMatched: 1},
 		{name: "foreign regular name is never delivered", text: "foreign", wantUnsupported: 1},
@@ -102,9 +102,9 @@ func TestObservationSchemaLayerTriad(t *testing.T) {
 	t.Parallel()
 	base := Observation{kind: ArtifactCorpus, format: CacheFormatGo1_27, state: ObservationComplete}
 	cases := []struct {
-		name    string
-		mutate  func(*Observation)
 		wantErr error
+		mutate  func(*Observation)
+		name    string
 	}{
 		{name: "complete zero contains no invented output", mutate: func(*Observation) {}},
 		{name: "complete exact acknowledgments", mutate: func(o *Observation) { o.matched = 3; o.delivered = 3 }},

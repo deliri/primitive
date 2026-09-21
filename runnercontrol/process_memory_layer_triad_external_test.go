@@ -12,11 +12,11 @@ import (
 func TestProcessMemoryReceiverLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr     error
 		name        string
 		bytes       uint64
 		reported    bool
 		invalidExit bool
-		wantErr     error
 	}{
 		{name: "positive/reported memory replaces stale measurement", bytes: 31, reported: true},
 		{name: "boundary/reported zero replaces stale measurement", reported: true},

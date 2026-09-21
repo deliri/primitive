@@ -29,10 +29,10 @@ func TestRetrievalJSONExtentLayerTriad(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, door := range []struct {
-		name    string
-		former  int
 		marshal func() ([]byte, error)
 		decode  func([]byte, bool) (bool, error)
+		name    string
+		former  int
 	}{
 		{name: "request_payload", former: retrievalFormerRequestPayloadBytes, marshal: request.Payload.MarshalJSON, decode: func(data []byte, accept bool) (bool, error) {
 			got := request.Payload
@@ -74,9 +74,9 @@ func TestRetrievalJSONExtentLayerTriad(t *testing.T) {
 				t.Fatal(err)
 			}
 			for _, tc := range []struct {
+				want error
 				name string
 				data []byte
-				want error
 			}{
 				{name: "positive_one_past_removed_ceiling", data: retrievalPadJSON(encoded, door.former+1)},
 				{name: "positive_large_whitespace_inside_object", data: append(append([]byte{'{'}, bytes.Repeat([]byte{' '}, retrievalWhitespaceProbeBytes)...), encoded[1:]...)},
@@ -97,9 +97,9 @@ func TestRetrievalJSONExtentLayerTriad(t *testing.T) {
 }
 
 type retrievalBoundaryWriter struct {
+	err    error
 	output bytes.Buffer
 	count  int
-	err    error
 	calls  int
 }
 
@@ -115,10 +115,10 @@ func TestRetrievalCanonicalWriterLayerTriad(t *testing.T) {
 	request := newRetrievalRequestFixture(t, retrievalRequestFixtureRequest{Selection: StartAll()}).payload
 	grant := newDownloadCallFixture(t, downloadCallFixtureRequest{Payload: []byte{1}}).grantPayload
 	for _, door := range []struct {
-		name    string
 		marshal func() ([]byte, error)
 		write   func(io.Writer) error
 		invalid func(io.Writer) error
+		name    string
 	}{
 		{name: "request", marshal: request.MarshalJSON, write: request.WriteCanonical, invalid: (RequestPayload{}).WriteCanonical},
 		{name: "grant", marshal: grant.MarshalJSON, write: grant.WriteCanonical, invalid: (GrantPayload{}).WriteCanonical},
@@ -130,12 +130,12 @@ func TestRetrievalCanonicalWriterLayerTriad(t *testing.T) {
 				t.Fatal(err)
 			}
 			for _, tc := range []struct {
-				name    string
-				count   int
 				cause   error
 				want    error
-				invalid bool
+				name    string
+				count   int
 				calls   int
+				invalid bool
 			}{
 				{name: "positive_exact_bytes_once", count: len(canonical), calls: 1},
 				{name: "negative_error_before_any_byte", cause: io.ErrClosedPipe, want: io.ErrClosedPipe, calls: 1},
@@ -173,8 +173,8 @@ func TestRetrievalCanonicalWriterLayerTriad(t *testing.T) {
 				}
 			})
 			for _, tc := range []struct {
-				name        string
 				destination io.Writer
+				name        string
 			}{
 				{name: "negative_nil_interface"},
 				{name: "negative_typed_nil", destination: (*bytes.Buffer)(nil)},
@@ -199,9 +199,9 @@ func TestDownloadCallDestinationLayerTriad(t *testing.T) {
 	t.Parallel()
 	fixture := newDownloadCallFixture(t, downloadCallFixtureRequest{Payload: []byte{1}})
 	for _, tc := range []struct {
-		name        string
 		destination io.Writer
 		want        error
+		name        string
 	}{
 		{name: "positive_discard_is_real_destination", destination: io.Discard},
 		{name: "negative_typed_nil", destination: (*bytes.Buffer)(nil), want: core.ErrRetrievalContract},
@@ -237,10 +237,10 @@ func TestSelectionJSONLayerTriad(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		data    []byte
 		want    Selection
-		wantErr error
 	}{
 		{name: "positive_specific_excludes_traversal", data: mustSelectionJSON(t, specific), want: specific},
 		{name: "negative_missing_position", data: retrievalMissingSelectionPosition(t), want: StartAll(), wantErr: core.ErrJSONContract},
@@ -306,8 +306,8 @@ func retrievalMissingSelectionPosition(t testing.TB) []byte {
 func TestRetrievalNilReceiverBoundaries(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name   string
 		decode func([]byte) error
+		name   string
 	}{
 		{name: "selection", decode: (*Selection)(nil).UnmarshalJSON},
 		{name: "request_payload", decode: (*RequestPayload)(nil).UnmarshalJSON},

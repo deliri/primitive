@@ -36,10 +36,10 @@ func ownedRegistrationSeed(t testing.TB) controlplane.AccessRegistrationRequest 
 func TestOwnedRoutedReceiverCustodyLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name                                                       string
-		foreignKey, foreignRoute, empty, omitRelease, closeFailure bool
 		releaseErr, wantErr                                        error
+		name                                                       string
 		wantReleases                                               int
+		foreignKey, foreignRoute, empty, omitRelease, closeFailure bool
 	}{
 		{name: "accepted token transfers live custody to caller"},
 		{name: "foreign nonce destroys decoded token", foreignKey: true, wantErr: core.ErrControlWireNonce, wantReleases: 1},
@@ -128,7 +128,11 @@ func TestOwnedRoutedReceiverCustodyLayerTriad(t *testing.T) {
 				if got.Body == nil {
 					t.Fatal("accepted body = nil, want owned token")
 				}
-				defer got.Body.Token.Destroy()
+				defer func() {
+					if err := got.Body.Token.Destroy(); err != nil {
+						t.Errorf("got.Body.Token.Destroy() cleanup error = %v, want nil", err)
+					}
+				}()
 				verifier, err := got.Body.Token.Verifier()
 				wantVerifier, wantErr := seed.Token.Verifier()
 				if err != nil || wantErr != nil || verifier != wantVerifier || got.Body.Build != seed.Build || got.Body.RequestNonce != seed.RequestNonce || got.Body.DeviceKey != seed.DeviceKey || got.Body.Installation != seed.Installation {

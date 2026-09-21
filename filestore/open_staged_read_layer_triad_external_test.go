@@ -26,10 +26,10 @@ func TestOpenStagedReadLayerTriad(t *testing.T) {
 		closedRoot
 	)
 	for _, tc := range []struct {
+		wantErr, wantNative error
 		name                string
 		size                int
 		fault               fault
-		wantErr, wantNative error
 	}{
 		{name: "empty receipt opens an actual empty inode"},
 		{name: "buffer crossing returns every staged byte", size: (32 << 10) + 1},

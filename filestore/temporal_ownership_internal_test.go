@@ -43,7 +43,7 @@ func temporalBypasses(file *ast.File) []string {
 		if spec.Name != nil {
 			alias = spec.Name.Name
 		}
-		imports = append(imports, struct{ alias, path string }{alias, imported})
+		imports = append(imports, struct{ alias, path string }{alias: alias, path: imported})
 	}
 	var got []string
 	symbols := temporalEffectSymbols()

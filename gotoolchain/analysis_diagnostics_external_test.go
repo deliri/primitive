@@ -17,9 +17,9 @@ import (
 func TestAnalysisRetainsCompilerDiagnosticIdentity(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct{ name, file, source string }{
-		{"direct missing import", "a/value.go", "package a\nimport _ \"example.invalid/missing\"\n"},
-		{"transitive missing import", "b/value.go", "package b\nimport _ \"example.invalid/missing\"\n"},
-		{"test missing import", "a/value_test.go", "package a\nimport _ \"example.invalid/missing\"\n"},
+		{name: "direct missing import", file: "a/value.go", source: "package a\nimport _ \"example.invalid/missing\"\n"},
+		{name: "transitive missing import", file: "b/value.go", source: "package b\nimport _ \"example.invalid/missing\"\n"},
+		{name: "test missing import", file: "a/value_test.go", source: "package a\nimport _ \"example.invalid/missing\"\n"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -87,8 +87,8 @@ func TestAnalysisRetainsEveryCompilerLoadDiagnostic(t *testing.T) {
 				}
 			}
 			for _, fixture := range []struct{ filename, source string }{
-				{"value.go", "package " + packageName + "\nimport _ \"example.invalid/first\"\n"},
-				{"second.go", "package " + packageName + "\nimport _ \"example.invalid/second\"\n"},
+				{filename: "value.go", source: "package " + packageName + "\nimport _ \"example.invalid/first\"\n"},
+				{filename: "second.go", source: "package " + packageName + "\nimport _ \"example.invalid/second\"\n"},
 			} {
 				if err := os.WriteFile(filepath.Join(request.WorkingDirectory.String(), directory, fixture.filename), []byte(fixture.source), 0o600); err != nil {
 					t.Fatal(err)

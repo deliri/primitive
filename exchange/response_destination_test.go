@@ -25,9 +25,9 @@ const (
 
 type deliveryBody struct {
 	source *bytes.Reader
-	fault  deliveryFault
 	cancel context.CancelFunc
 	closes int
+	fault  deliveryFault
 }
 
 func (b *deliveryBody) Read(p []byte) (int, error) {
@@ -128,8 +128,8 @@ func checkResponseDelivery(t *testing.T, payload []byte, fault deliveryFault, st
 		err  error
 		want bool
 	}{
-		{io.ErrUnexpectedEOF, fault == deliveryReadFailure}, {io.ErrClosedPipe, fault == deliveryCloseFailure},
-		{core.ErrExchangeBodyLimit, refused}, {context.Canceled, fault == deliveryCancelAtClose},
+		{err: io.ErrUnexpectedEOF, want: fault == deliveryReadFailure}, {err: io.ErrClosedPipe, want: fault == deliveryCloseFailure},
+		{err: core.ErrExchangeBodyLimit, want: refused}, {err: context.Canceled, want: fault == deliveryCancelAtClose},
 	}
 	for _, identity := range identities {
 		if errors.Is(err, identity.err) != identity.want {
@@ -210,15 +210,15 @@ func TestResponseDestinationRefusesInvalidSinkBeforeHTTP(t *testing.T) {
 	t.Parallel()
 	var typedNil *deliverySink
 	cases := []struct {
-		name     string
-		factory  exchange.ResponseDestination
 		identity error
+		factory  exchange.ResponseDestination
+		name     string
 	}{
-		{"absent", nil, core.ErrExchangeContract},
-		{"nil writer", func(context.Context, uint64) (io.Writer, error) { return nil, nil }, core.ErrExchangeContract},
-		{"typed nil", func(context.Context, uint64) (io.Writer, error) { return typedNil, nil }, core.ErrExchangeContract},
-		{"factory failure", func(context.Context, uint64) (io.Writer, error) { return nil, io.ErrClosedPipe }, io.ErrClosedPipe},
-		{"factory panic", func(context.Context, uint64) (io.Writer, error) { panic("fixture") }, core.ErrExchangeContract},
+		{name: "absent", factory: nil, identity: core.ErrExchangeContract},
+		{name: "nil writer", factory: func(context.Context, uint64) (io.Writer, error) { return nil, nil }, identity: core.ErrExchangeContract},
+		{name: "typed nil", factory: func(context.Context, uint64) (io.Writer, error) { return typedNil, nil }, identity: core.ErrExchangeContract},
+		{name: "factory failure", factory: func(context.Context, uint64) (io.Writer, error) { return nil, io.ErrClosedPipe }, identity: io.ErrClosedPipe},
+		{name: "factory panic", factory: func(context.Context, uint64) (io.Writer, error) { panic("fixture") }, identity: core.ErrExchangeContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

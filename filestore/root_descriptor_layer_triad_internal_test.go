@@ -30,11 +30,11 @@ const (
 func TestRootFromHeldDescriptorLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name           string
-		fixture        rootDescriptorFixture
 		wantErr        error
-		wantPathErr    bool
+		name           string
 		wantChildren   int
+		fixture        rootDescriptorFixture
+		wantPathErr    bool
 		wantControlErr bool
 	}{
 		{name: "empty directory creates no children", fixture: rootDescriptorEmpty},

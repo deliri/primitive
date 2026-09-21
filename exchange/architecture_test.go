@@ -76,9 +76,9 @@ func (d inventoryDocument) MarshalJSON() ([]byte, error) {
 func TestInventoryDocumentDrivesTheRealJSONWritePath(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr  error
 		name     string
 		document inventoryDocument
-		wantErr  error
 	}{
 		{name: "valid nominal document crosses exact encoded ceiling", document: inventoryDocument{Name: "inventory"}},
 		{name: "empty owner value cannot release framing", wantErr: core.ErrExchangeContract},
@@ -487,10 +487,10 @@ func boundInventoryStructNames(inventory reflect.Type) ([]string, error) {
 func TestInventoryBindingUsesCompilerTypesTable(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name    string
 		input   reflect.Type
-		want    []string
 		wantErr error
+		name    string
+		want    []string
 	}{
 		{name: "misleading field label cannot replace referenced protocol type", input: reflect.TypeFor[struct {
 			Header protocolContract[StreamResponse]
@@ -572,8 +572,8 @@ var (
 var _ = exchangeContractInventory{}.responseBuffer
 
 type exchangeArchitectureSource struct {
-	name   string
 	syntax *ast.File
+	name   string
 }
 
 // Setup reads the source through Filestore before handing bytes to Go's AST

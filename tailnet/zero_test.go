@@ -10,12 +10,12 @@ import (
 func TestZeroCapabilityCannotBlockOrPerformEffects(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name string
 		run  func(*testing.T) error
+		name string
 	}{
-		{"nil close refuses without panic", func(*testing.T) error { return (*Client)(nil).Close() }},
-		{"zero close refuses without waiting on nil gate", func(*testing.T) error { return new(Client).Close() }},
-		{"zero dial refuses before gate or provider", func(t *testing.T) error {
+		{name: "nil close refuses without panic", run: func(*testing.T) error { return (*Client)(nil).Close() }},
+		{name: "zero close refuses without waiting on nil gate", run: func(*testing.T) error { return new(Client).Close() }},
+		{name: "zero dial refuses before gate or provider", run: func(t *testing.T) error {
 			connection, err := new(Client).dial(t.Context(), "tcp", "100.64.0.1:1")
 			if connection != nil {
 				t.Errorf("zero client connection = %v, want nil", connection)

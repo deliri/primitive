@@ -94,10 +94,10 @@ func TestOwnedNativeFileMethodMatcherRejectsBorrowedCalls(t *testing.T) {
 func TestOpenedDirectoryModeNativeCustodyLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name    string
-		fixture custodySyncFixture
-		mode    fs.FileMode
 		wantErr error
+		name    string
+		mode    fs.FileMode
+		fixture custodySyncFixture
 	}{
 		{name: "empty directory mode changes on the held inode", fixture: custodySyncDirectory, mode: 0o750},
 		{name: "nonempty directory keeps its child bytes", fixture: custodySyncWritten, mode: 0o750},

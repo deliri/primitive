@@ -13,12 +13,12 @@ import (
 )
 
 type planIngressCase struct {
-	name           string
+	wantErr        error
 	change         func(*planWire)
 	damage         func([]byte) []byte
-	omitZero       bool
+	name           string
 	canonicalBytes int
-	wantErr        error
+	omitZero       bool
 }
 
 func planIngressCases() []planIngressCase {

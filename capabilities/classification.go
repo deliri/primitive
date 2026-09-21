@@ -10,8 +10,8 @@ import (
 // Its zero value is invalid. Unresolved and contextual are explicit knowledge
 // states and never carry invented effects.
 type Classification struct {
-	Operation   Operation
 	Secondary   []Effect
+	Operation   Operation
 	Disposition StandardSymbolDisposition
 	Effect      Effect
 }

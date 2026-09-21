@@ -16,6 +16,7 @@ import (
 func TestPermissionEffectLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr          error
 		name             string
 		oldMode, newMode fs.FileMode
 		directory        bool
@@ -24,7 +25,6 @@ func TestPermissionEffectLayerTriad(t *testing.T) {
 		missing          bool
 		canceled         bool
 		closed           bool
-		wantErr          error
 	}{
 		{name: "read-only seal retains binary bytes and inode", oldMode: 0o600, newMode: 0o400},
 		{name: "write-only result remains synchronizable through the held file", oldMode: 0o400, newMode: 0o200},

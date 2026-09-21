@@ -105,9 +105,9 @@ func verifyPackages(ctx context.Context, project Project, resolver Resolver) (Fi
 
 type packageVerifier struct {
 	ctx      context.Context
-	project  Project
 	resolver Resolver
 	allFiles *fileMembershipConsumer
+	project  Project
 }
 
 func (v packageVerifier) verify(reference PackageReference) error {
@@ -160,10 +160,10 @@ func (v packageVerifier) verifyPackageFiles(observed Package) error {
 
 type packageFileVerifier struct {
 	ctx         context.Context
-	project     Project
-	packagePath core.SourcePath
 	resolver    Resolver
 	allFiles    *fileMembershipConsumer
+	packagePath core.SourcePath
+	project     Project
 }
 
 func (v packageFileVerifier) verify(reference FileReference) error {
@@ -214,10 +214,10 @@ func verifyFiles(ctx context.Context, project Project, resolver Resolver) (Summa
 
 type projectFileVerifier struct {
 	ctx      context.Context
-	project  Project
 	resolver Resolver
 	summary  *Summary
 	packaged *fileMembershipConsumer
+	project  Project
 }
 
 func (v projectFileVerifier) verify(reference FileReference) error {

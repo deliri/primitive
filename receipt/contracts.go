@@ -332,7 +332,7 @@ func (g *Generation) UnmarshalJSON(data []byte) error {
 	if g == nil {
 		return jsonError(errors.New("nil receipt generation receiver"))
 	}
-	data = bytes.Trim(data, " \t\r\n")
+	data = bytes.Trim(data, receiptWhitespace)
 	value, err := strconv.ParseUint(string(data), 10, 64)
 	if err != nil || string(data) != strconv.FormatUint(value, 10) {
 		return jsonError(errors.New("receipt generation is not canonical"), err)
@@ -358,3 +358,5 @@ var (
 	_ core.OffWireEnum = AdvanceUnknown
 	_ core.OffWireEnum = ConflictReasonUnknown
 )
+
+const receiptWhitespace = " \t\r\n"

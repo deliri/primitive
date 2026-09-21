@@ -15,10 +15,10 @@ import (
 )
 
 type planContractCase struct {
-	name         string
-	change       func(Plan) (Plan, error)
 	wantValidate error
 	wantMarshal  error
+	change       func(Plan) (Plan, error)
+	name         string
 	wantBytes    int
 }
 

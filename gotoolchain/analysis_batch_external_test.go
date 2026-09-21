@@ -59,8 +59,8 @@ func TestAnalysisBatchPreservesExactPackageResults(t *testing.T) {
 			}
 			if tc.transitiveTest {
 				for _, file := range []struct{ path, source string }{
-					{"a/internal_test.go", "package a\nconst Extra = 3\n"},
-					{"b/value.go", "package b\nimport \"example.com/batch/a\"\nvar Value = a.Value\n"},
+					{path: "a/internal_test.go", source: "package a\nconst Extra = 3\n"},
+					{path: "b/value.go", source: "package b\nimport \"example.com/batch/a\"\nvar Value = a.Value\n"},
 				} {
 					if err := os.WriteFile(filepath.Join(request.WorkingDirectory.String(), file.path), []byte(file.source), 0o600); err != nil {
 						t.Fatal(err)
@@ -149,9 +149,9 @@ func TestAnalysisBatchPreservesExactPackageResults(t *testing.T) {
 func analysisBatchFixture(t testing.TB, directory string) (gotoolchain.Capability, gotoolchain.AnalysisBatchRequest) {
 	t.Helper()
 	for _, file := range []struct{ path, body string }{
-		{"go.mod", "module example.com/batch\n\ngo 1.27.1\n"},
-		{"a/value.go", "package a\nimport \"strings\"\nvar Value = strings.Contains(\"value\",\"a\")\n"},
-		{"b/value.go", "package b\nimport \"strings\"\nvar Value = strings.Contains(\"other\",\"b\")\n"},
+		{path: "go.mod", body: "module example.com/batch\n\ngo 1.27.1\n"},
+		{path: "a/value.go", body: "package a\nimport \"strings\"\nvar Value = strings.Contains(\"value\",\"a\")\n"},
+		{path: "b/value.go", body: "package b\nimport \"strings\"\nvar Value = strings.Contains(\"other\",\"b\")\n"},
 	} {
 		name := filepath.Join(directory, file.path)
 		if err := os.MkdirAll(filepath.Dir(name), 0o700); err != nil {
@@ -187,10 +187,10 @@ func analysisBatchFixture(t testing.TB, directory string) (gotoolchain.Capabilit
 func TestAnalysisBatchBoundaryRefusesBeforeDeliveringFacts(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name                              string
-		mutate                            func(*gotoolchain.AnalysisBatchRequest)
-		nilContext, canceled, nilConsumer bool
 		want                              error
+		mutate                            func(*gotoolchain.AnalysisBatchRequest)
+		name                              string
+		nilContext, canceled, nilConsumer bool
 	}{
 		{name: "empty batch cannot invent completion", mutate: func(r *gotoolchain.AnalysisBatchRequest) { r.Packages = nil }, want: core.ErrGoToolchainContract},
 		{name: "duplicate subject cannot double deliver", mutate: func(r *gotoolchain.AnalysisBatchRequest) { r.Packages[1] = r.Packages[0] }, want: core.ErrGoToolchainContract},
@@ -280,9 +280,9 @@ func TestAnalysisBatchConsumerFailureCancelsAndJoinsSibling(t *testing.T) {
 func TestAnalysisResultCannotCertifyForeignOrMissingFacts(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name   string
-		mutate func(*gotoolchain.AnalysisResult)
 		want   error
+		mutate func(*gotoolchain.AnalysisResult)
+		name   string
 	}{
 		{name: "unchanged compiler result remains valid"},
 		{name: "zero request cannot claim valid units", mutate: func(r *gotoolchain.AnalysisResult) { r.Request = gotoolchain.AnalysisRequest{} }, want: core.ErrGoToolchainContract},

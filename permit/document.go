@@ -67,10 +67,8 @@ type Terms struct {
 }
 
 func (t Terms) Validate() error {
-	if t.Reporting != (ReportSchedule{}) {
-		if err := t.Reporting.Validate(); err != nil {
-			return errors.Join(core.ErrPermitContract, err)
-		}
+	if err := validateOptionalReporting(t.Reporting); err != nil {
+		return err
 	}
 	if err := t.RequestNonce.Validate(); err != nil {
 		return errors.Join(core.ErrPermitContract, err)
@@ -84,13 +82,26 @@ func (t Terms) Validate() error {
 	if t.Build.Offering() != t.Subject.Offering || t.RetryAfter.IsZero() {
 		return core.ErrPermitContract
 	}
-	order, err := t.NotBefore.Compare(t.ExpiresAt)
+	return validateTermsTimes(t.NotBefore, t.ExpiresAt, t.ContactAt)
+}
+
+func validateTermsTimes(notBefore, expiresAt, contactAt temporal.Instant) error {
+	order, err := notBefore.Compare(expiresAt)
 	if err != nil || order != core.ComparisonLess {
 		return core.ErrPermitContract
 	}
-	order, err = t.ContactAt.Compare(t.NotBefore)
+	order, err = contactAt.Compare(notBefore)
 	if err != nil || order == core.ComparisonLess {
 		return core.ErrPermitContract
+	}
+	return nil
+}
+
+func validateOptionalReporting(reporting ReportSchedule) error {
+	if reporting != (ReportSchedule{}) {
+		if err := reporting.Validate(); err != nil {
+			return errors.Join(core.ErrPermitContract, err)
+		}
 	}
 	return nil
 }
@@ -245,13 +256,13 @@ func Sign(terms Terms, signer crypto.Signer) (Document, error) {
 // VerifyRequest contains independently known installation/build and an effective
 // time supplied by Primitive's clock verification, not an entitlement decision.
 type VerifyRequest struct {
-	RequestNonce      controlwire.RequestNonce
-	Document          Document
-	TrustedKeys       attest.TrustedKeys
 	Subject           lease.Subject
 	Build             core.BuildIdentity
+	Document          Document
+	TrustedKeys       attest.TrustedKeys
 	EffectiveAt       temporal.Instant
 	MinimumGeneration lease.Generation
+	RequestNonce      controlwire.RequestNonce
 }
 
 // Verified cannot be constructed by callers and retains the authenticated terms.
@@ -289,16 +300,8 @@ func Verify(r VerifyRequest) (Verified, error) {
 	if t.RequestNonce != r.RequestNonce || t.Subject != r.Subject || t.Build != r.Build {
 		return Verified{}, core.ErrPermitBinding
 	}
-	generation, err := t.Generation.Uint64()
-	if err != nil {
-		return Verified{}, errors.Join(core.ErrPermitContract, err)
-	}
-	minimum, err := r.MinimumGeneration.Uint64()
-	if err != nil {
-		return Verified{}, errors.Join(core.ErrPermitContract, err)
-	}
-	if generation < minimum {
-		return Verified{}, core.ErrPermitReplay
+	if err := verifyMinimumGeneration(t.Generation, r.MinimumGeneration); err != nil {
+		return Verified{}, err
 	}
 	start, _ := r.EffectiveAt.Compare(t.NotBefore)
 	end, _ := r.EffectiveAt.Compare(t.ExpiresAt)
@@ -306,6 +309,21 @@ func Verify(r VerifyRequest) (Verified, error) {
 		return Verified{}, core.ErrPermitValidity
 	}
 	return Verified{terms: t, proof: proof}, nil
+}
+
+func verifyMinimumGeneration(generationValue, minimumValue lease.Generation) error {
+	generation, err := generationValue.Uint64()
+	if err != nil {
+		return errors.Join(core.ErrPermitContract, err)
+	}
+	minimum, err := minimumValue.Uint64()
+	if err != nil {
+		return errors.Join(core.ErrPermitContract, err)
+	}
+	if generation < minimum {
+		return core.ErrPermitReplay
+	}
+	return nil
 }
 
 // Allows checks signed membership and validity at invocation. It never decides

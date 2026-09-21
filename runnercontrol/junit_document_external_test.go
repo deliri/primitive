@@ -13,8 +13,8 @@ import (
 func TestJUnitDocumentFramingLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name, document string
 		wantErr        error
+		name, document string
 	}{
 		{name: "one document contributes one testcase", document: "<testcase/>"},
 		{name: "surrounding XML whitespace contributes no evidence", document: " \t\r\n<testcase/> \t\r\n"},
@@ -77,8 +77,8 @@ type junitFuzzDocument struct {
 	Cases   []junitFuzzCase `xml:"testcase"`
 }
 type junitFuzzCase struct {
-	Name    string    `xml:"name,attr"`
 	Skipped *struct{} `xml:"skipped,omitempty"`
+	Name    string    `xml:"name,attr"`
 }
 
 func FuzzJUnitObservationSemanticAccounting(f *testing.F) {

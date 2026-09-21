@@ -16,9 +16,9 @@ import (
 func TestScratchDirectoryLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		fault   scratchFault
-		wantErr error
 	}{
 		{name: "missing chain is created with exact final permissions"},
 		{name: "existing directory retains its children on repeated preparation", fault: scratchExistingDirectory},

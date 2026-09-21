@@ -13,9 +13,9 @@ import (
 func TestUTF8PrefixLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr            error
 		name, source, want string
 		budget             uint64
-		wantErr            error
 	}{
 		{name: "valid multiwidth prefix fits exactly", source: "aé界😀", budget: 10, want: "aé界😀"},
 		{name: "crossing rune cannot be skipped for smaller suffix", source: "éa", budget: 1},
@@ -36,7 +36,7 @@ func TestUTF8PrefixLayerTriad(t *testing.T) {
 
 func TestUTF8PrefixExhaustiveSingleByteDomain(t *testing.T) {
 	t.Parallel()
-	for value := 0; value < 256; value++ {
+	for value := range 256 {
 		for budget := uint64(0); budget <= 2; budget++ {
 			source := string([]byte{byte(value)})
 			want := ""

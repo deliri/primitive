@@ -48,10 +48,10 @@ func TestReplacementRejectsContradictoryEffect(t *testing.T) {
 		want                           Operation
 		owner                          Effect
 	}{
-		{"file read", "os", "", symbolReadFile, OperationReadFile, EffectFilesystem},
-		{"file write", "os", "", symbolWriteFile, OperationWriteFile, EffectFilesystem},
-		{"clock observation", timeContractText, "", "Now", OperationObserveTime, EffectTime},
-		{"command execution", catalogOsExec, "Cmd", "Run", OperationRunProcess, EffectProcess},
+		{name: "file read", path: "os", receiver: "", selector: symbolReadFile, want: OperationReadFile, owner: EffectFilesystem},
+		{name: "file write", path: "os", receiver: "", selector: symbolWriteFile, want: OperationWriteFile, owner: EffectFilesystem},
+		{name: "clock observation", path: timeContractText, receiver: "", selector: "Now", want: OperationObserveTime, owner: EffectTime},
+		{name: "command execution", path: catalogOsExec, receiver: "Cmd", selector: "Run", want: OperationRunProcess, owner: EffectProcess},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

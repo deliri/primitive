@@ -55,12 +55,12 @@ func TestSigningDomainTokenClosureLayerTriad(t *testing.T) {
 func TestEmptySigningTokenNeverNamesATableHole(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name  string
 		parse func() (SigningDomain, error)
+		name  string
 	}{
-		{"text parser", func() (SigningDomain, error) { return ParseSigningDomain("") }},
-		{"canonical text parser", func() (SigningDomain, error) { return SigningDomainUnknown.ParseCanonicalText(nil) }},
-		{"JSON parser", func() (SigningDomain, error) {
+		{name: "text parser", parse: func() (SigningDomain, error) { return ParseSigningDomain("") }},
+		{name: "canonical text parser", parse: func() (SigningDomain, error) { return SigningDomainUnknown.ParseCanonicalText(nil) }},
+		{name: "JSON parser", parse: func() (SigningDomain, error) {
 			var d SigningDomain
 			err := d.UnmarshalJSON([]byte{'"', '"'})
 			return d, err

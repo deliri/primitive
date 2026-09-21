@@ -280,15 +280,15 @@ func TestReuseDecisionAuthorityBoundaryRefusesEveryForeignOrUnauthenticatedCandi
 func TestReuseDecisionExtentRepresentationLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		extent  uint64
-		wantErr error
 	}{
-		{"minimum_positive_extent", 1, nil},
-		{"integer_beyond_exact_float64", 1<<53 + 1, nil},
-		{"maximum_go_extent", 1<<63 - 1, nil},
-		{"one_above_go_extent", 1 << 63, core.ErrNumericOverflow},
-		{"unsigned_wrap_edge", ^uint64(0), core.ErrNumericOverflow},
+		{name: "minimum_positive_extent", extent: 1, wantErr: nil},
+		{name: "integer_beyond_exact_float64", extent: 1<<53 + 1, wantErr: nil},
+		{name: "maximum_go_extent", extent: 1<<63 - 1, wantErr: nil},
+		{name: "one_above_go_extent", extent: 1 << 63, wantErr: core.ErrNumericOverflow},
+		{name: "unsigned_wrap_edge", extent: ^uint64(0), wantErr: core.ErrNumericOverflow},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -306,10 +306,10 @@ func TestReuseDecisionExtentRepresentationLayerTriad(t *testing.T) {
 			request.Declaration.Extent = length
 			reuse := newReuseEvidenceFixture(t, reuseEvidenceFixtureRequest{Request: request, KeyByte: 0x41, ScopeByte: 0x61})
 			for _, attack := range []struct {
+				wantErr   error
 				name      string
 				absent    bool
 				different bool
-				wantErr   error
 			}{
 				{name: "exact_signed_extent"},
 				{name: "one_bit_changed", different: true, wantErr: core.ErrControlPlaneResponseBinding},

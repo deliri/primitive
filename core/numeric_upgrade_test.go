@@ -12,10 +12,10 @@ func TestNumericJSONRefusalCannotRetainUnboundedInput(t *testing.T) {
 	t.Parallel()
 	maximum := strconv.FormatUint(math.MaxUint64, 10)
 	cases := []struct {
-		name, wire string
-		want       uint64
 		wantErr    error
 		wantNative error
+		name, wire string
+		want       uint64
 	}{
 		{name: "neutral/zero", wire: "0"},
 		{name: "positive/maximum uint64", wire: maximum, want: math.MaxUint64},

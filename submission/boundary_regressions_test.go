@@ -30,21 +30,21 @@ func TestSubmissionJSONExtentLayerTriad(t *testing.T) {
 	t.Parallel()
 	fixture := submissionFixturesForFuzz(t)
 	doors := []struct {
+		decode func([]byte) (bool, error)
 		name   string
 		value  []byte
-		decode func([]byte) (bool, error)
 	}{
-		{"request_payload", mustSubmissionJSON(t, fixture.requestPayload), submissionPreservingDecode(fixture.requestPayload)},
-		{"request_document", mustSubmissionJSON(t, fixture.requestDocument), submissionPreservingDecode(fixture.requestDocument)},
-		{"grant_payload", mustSubmissionJSON(t, fixture.grantPayload), submissionPreservingDecode(fixture.grantPayload)},
-		{"completion_payload", mustSubmissionJSON(t, fixture.completionPayload), submissionPreservingDecode(fixture.completionPayload)},
-		{"completion_document", mustSubmissionJSON(t, fixture.completionDocument), submissionPreservingDecode(fixture.completionDocument)},
-		{"grant_document", fixture.grantWire, func(data []byte) (bool, error) {
+		{name: "request_payload", value: mustSubmissionJSON(t, fixture.requestPayload), decode: submissionPreservingDecode(fixture.requestPayload)},
+		{name: "request_document", value: mustSubmissionJSON(t, fixture.requestDocument), decode: submissionPreservingDecode(fixture.requestDocument)},
+		{name: "grant_payload", value: mustSubmissionJSON(t, fixture.grantPayload), decode: submissionPreservingDecode(fixture.grantPayload)},
+		{name: "completion_payload", value: mustSubmissionJSON(t, fixture.completionPayload), decode: submissionPreservingDecode(fixture.completionPayload)},
+		{name: "completion_document", value: mustSubmissionJSON(t, fixture.completionDocument), decode: submissionPreservingDecode(fixture.completionDocument)},
+		{name: "grant_document", value: fixture.grantWire, decode: func(data []byte) (bool, error) {
 			got := fixture.grantDocument
 			err := got.UnmarshalJSON(data)
 			return sameGrantDocument(got, fixture.grantDocument), err
 		}},
-		{"decision_document", fixture.decisionWire, func(data []byte) (bool, error) {
+		{name: "decision_document", value: fixture.decisionWire, decode: func(data []byte) (bool, error) {
 			got := fixture.decisionDocument
 			err := got.UnmarshalJSON(data)
 			return sameReuseDecision(got, fixture.decisionDocument), err
@@ -55,17 +55,17 @@ func TestSubmissionJSONExtentLayerTriad(t *testing.T) {
 			t.Parallel()
 			gap := bytes.Repeat([]byte(" "), submissionWhitespaceFixtureBytes)
 			cases := []struct {
+				wantErr error
 				name    string
 				data    []byte
-				wantErr error
 			}{
-				{"canonical", door.value, nil},
-				{"large_prefix", append(bytes.Clone(gap), door.value...), nil},
-				{"large_interior", append(append([]byte{'{'}, gap...), door.value[1:]...), nil},
-				{"large_suffix", append(bytes.Clone(door.value), gap...), nil},
-				{"neutral_whitespace", gap, core.ErrJSONContract},
-				{"second_value_after_gap", append(append(bytes.Clone(door.value), gap...), []byte("{}")...), core.ErrJSONContract},
-				{"truncated_after_large_prefix", append(bytes.Clone(gap), door.value[:len(door.value)-1]...), core.ErrJSONContract},
+				{name: "canonical", data: door.value, wantErr: nil},
+				{name: "large_prefix", data: append(bytes.Clone(gap), door.value...), wantErr: nil},
+				{name: "large_interior", data: append(append([]byte{'{'}, gap...), door.value[1:]...), wantErr: nil},
+				{name: "large_suffix", data: append(bytes.Clone(door.value), gap...), wantErr: nil},
+				{name: "neutral_whitespace", data: gap, wantErr: core.ErrJSONContract},
+				{name: "second_value_after_gap", data: append(append(bytes.Clone(door.value), gap...), []byte("{}")...), wantErr: core.ErrJSONContract},
+				{name: "truncated_after_large_prefix", data: append(bytes.Clone(gap), door.value[:len(door.value)-1]...), wantErr: core.ErrJSONContract},
 			}
 			for _, tc := range cases {
 				t.Run(tc.name, func(t *testing.T) {
@@ -107,29 +107,29 @@ func TestSubmissionCanonicalDestinationLayerTriad(t *testing.T) {
 	}
 	document := receiveCompletionProjection(t, projection)
 	bodies := []struct {
-		name  string
 		valid submissionCanonicalJSON
 		zero  submissionCanonicalJSON
+		name  string
 	}{
-		{"request", fixture.request, RequestPayload{}},
-		{"grant", fixture.grantDocument.Payload, GrantPayload{}},
-		{"completion", document.Payload, CompletionPayload{}},
-		{"projection", projection.payload, completionProjectionPayload{}},
+		{name: "request", valid: fixture.request, zero: RequestPayload{}},
+		{name: "grant", valid: fixture.grantDocument.Payload, zero: GrantPayload{}},
+		{name: "completion", valid: document.Payload, zero: CompletionPayload{}},
+		{name: "projection", valid: projection.payload, zero: completionProjectionPayload{}},
 	}
 	for _, body := range bodies {
 		t.Run(body.name, func(t *testing.T) {
 			t.Parallel()
 			for _, tc := range []struct {
+				wantErr   error
 				name      string
 				nilWriter bool
 				typedNil  bool
 				invalid   bool
-				wantErr   error
 			}{
-				{"valid", false, false, false, nil},
-				{"absent_destination", true, false, false, core.ErrControlPlaneContract},
-				{"typed_nil_destination", false, true, false, core.ErrControlPlaneContract},
-				{"invalid_body_no_output", false, false, true, core.ErrJSONContract},
+				{name: "valid", nilWriter: false, typedNil: false, invalid: false, wantErr: nil},
+				{name: "absent_destination", nilWriter: true, typedNil: false, invalid: false, wantErr: core.ErrControlPlaneContract},
+				{name: "typed_nil_destination", nilWriter: false, typedNil: true, invalid: false, wantErr: core.ErrControlPlaneContract},
+				{name: "invalid_body_no_output", nilWriter: false, typedNil: false, invalid: true, wantErr: core.ErrJSONContract},
 			} {
 				t.Run(tc.name, func(t *testing.T) {
 					t.Parallel()
@@ -178,16 +178,16 @@ func TestUploadSourceAdmissionLayerTriad(t *testing.T) {
 	t.Parallel()
 	fixture := newUploadCallFixture(t, []byte("source must stay unread"))
 	for _, tc := range []struct {
+		wantErr        error
 		name           string
 		nilSource      bool
 		typedNil       bool
 		invalidRequest bool
-		wantErr        error
 	}{
-		{"owned_unread_source", false, false, false, nil},
-		{"absent_source", true, false, false, core.ErrControlPlaneContract},
-		{"typed_nil_source", false, true, false, core.ErrControlPlaneContract},
-		{"invalid_request_no_read", false, false, true, core.ErrControlPlaneContract},
+		{name: "owned_unread_source", nilSource: false, typedNil: false, invalidRequest: false, wantErr: nil},
+		{name: "absent_source", nilSource: true, typedNil: false, invalidRequest: false, wantErr: core.ErrControlPlaneContract},
+		{name: "typed_nil_source", nilSource: false, typedNil: true, invalidRequest: false, wantErr: core.ErrControlPlaneContract},
+		{name: "invalid_request_no_read", nilSource: false, typedNil: false, invalidRequest: true, wantErr: core.ErrControlPlaneContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -228,16 +228,16 @@ func TestUploadDecisionConstructionLayerTriad(t *testing.T) {
 	t.Parallel()
 	fixture := newGrantFixture(t, grantFixtureRequest{})
 	for _, tc := range []struct {
-		name    string
-		mutate  func(*GrantProjection)
 		wantErr error
+		mutate  func(*GrantProjection)
+		name    string
 	}{
-		{"exact_grant", func(*GrantProjection) {}, nil},
-		{"neutral_zero", func(g *GrantProjection) { *g = GrantProjection{} }, core.ErrControlPlaneContract},
-		{"missing_bearer", func(g *GrantProjection) { g.Capability = objectstore.UploadCapabilityProjection{} }, core.ErrControlPlaneContract},
-		{"missing_attestation", func(g *GrantProjection) { g.Attestation = attest.Envelope[SigningDomain]{} }, core.ErrControlPlaneContract},
-		{"wrong_signing_domain", func(g *GrantProjection) { g.Attestation.Domain = SigningDomainRequestV1 }, core.ErrControlPlaneResponseBinding},
-		{"foreign_capability_commitment", func(g *GrantProjection) { g.Payload.Capability = objectstore.UploadCapabilityCommitment{} }, core.ErrControlPlaneContract},
+		{name: "exact_grant", mutate: func(*GrantProjection) {}, wantErr: nil},
+		{name: "neutral_zero", mutate: func(g *GrantProjection) { *g = GrantProjection{} }, wantErr: core.ErrControlPlaneContract},
+		{name: "missing_bearer", mutate: func(g *GrantProjection) { g.Capability = objectstore.UploadCapabilityProjection{} }, wantErr: core.ErrControlPlaneContract},
+		{name: "missing_attestation", mutate: func(g *GrantProjection) { g.Attestation = attest.Envelope[SigningDomain]{} }, wantErr: core.ErrControlPlaneContract},
+		{name: "wrong_signing_domain", mutate: func(g *GrantProjection) { g.Attestation.Domain = SigningDomainRequestV1 }, wantErr: core.ErrControlPlaneResponseBinding},
+		{name: "foreign_capability_commitment", mutate: func(g *GrantProjection) { g.Payload.Capability = objectstore.UploadCapabilityCommitment{} }, wantErr: core.ErrControlPlaneContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

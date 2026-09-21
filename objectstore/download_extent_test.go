@@ -8,8 +8,8 @@ import (
 )
 
 type extentDestination struct {
-	count          int
 	err            error
+	count          int
 	calls, offered int
 }
 
@@ -22,11 +22,11 @@ func (w *extentDestination) Write(p []byte) (int, error) {
 func TestExactDownloadWriterAcknowledgmentLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name                              string
-		remaining                         uint64
-		payload                           string
-		count                             int
 		cause, wantErr                    error
+		name                              string
+		payload                           string
+		remaining                         uint64
+		count                             int
 		wantCount, wantOffered, wantCalls int
 		wantRemaining                     uint64
 	}{

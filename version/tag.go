@@ -99,7 +99,7 @@ func (t *Tag) UnmarshalJSON(data []byte) error {
 	if t == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrReleaseContract, errors.New("project release tag receiver is nil"))
 	}
-	token := bytes.Trim(data, " \t\r\n")
+	token := bytes.Trim(data, tagWhitespace)
 	if len(token) > tagJSONTokenMaximumBytes {
 		return errors.Join(core.ErrJSONContract, core.ErrReleaseContract, errors.New("project release tag token exceeds coordinate representation"))
 	}
@@ -119,3 +119,5 @@ var (
 	_ core.Validatable            = Tag{}
 	_ core.ValidatedJSONMarshaler = Tag{}
 )
+
+const tagWhitespace = " \t\r\n"

@@ -93,20 +93,20 @@ func (d observationJSONDoor) receiverName() string {
 }
 
 type observationJSONFixtures struct {
-	contextID         sourceobservation.ContextID
 	language          sourceobservation.Language
 	symbol            sourceobservation.Symbol
 	importPath        sourceobservation.ImportPath
 	effectName        sourceobservation.EffectName
 	toolchain         sourceobservation.Toolchain
+	contextID         sourceobservation.ContextID
+	file              sourceobservation.File
 	fileReference     sourceobservation.FileReference
 	packageReference  sourceobservation.PackageReference
-	fileMembership    sourceobservation.FileMembership
-	packageMembership sourceobservation.PackageMembership
-	file              sourceobservation.File
 	packageValue      sourceobservation.Package
 	project           sourceobservation.Project
 	summary           sourceobservation.Summary
+	fileMembership    sourceobservation.FileMembership
+	packageMembership sourceobservation.PackageMembership
 }
 
 type observationJSONSeed struct {
@@ -185,8 +185,8 @@ func TestSourceObservationWireUsesSnapshotWithoutGitState(t *testing.T) {
 
 	fixtures := observationFixturesForFuzz(t)
 	cases := []struct {
-		name  string
 		value observationJSONValue
+		name  string
 	}{
 		{name: "file binds to exact source snapshot", value: fixtures.file},
 		{name: "package binds to exact source snapshot", value: fixtures.packageValue},

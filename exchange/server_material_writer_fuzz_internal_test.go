@@ -29,8 +29,8 @@ type materialFuzzWriter struct {
 	header                      http.Header
 	body                        bytes.Buffer
 	status, commits, writes     int
-	fail                        bool
 	acknowledge                 int
+	fail                        bool
 	panicWrite, panicAfterWrite bool
 }
 

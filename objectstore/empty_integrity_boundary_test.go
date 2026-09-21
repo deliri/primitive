@@ -10,10 +10,10 @@ import (
 func TestEmptyObjectIntegrityCannotCarryForeignDigests(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name string
-		sha  core.SHA256Digest
-		crc  core.CRC32C
 		want error
+		name string
+		crc  core.CRC32C
+		sha  core.SHA256Digest
 	}{
 		{name: "empty object carries Go empty-stream digests", sha: core.SHA256Of(nil), crc: core.NewCRC32C(0)},
 		{name: "nonempty SHA256 cannot describe zero bytes", sha: core.SHA256Of([]byte{1}), crc: core.NewCRC32C(0), want: core.ErrObjectStoreIntegrity},

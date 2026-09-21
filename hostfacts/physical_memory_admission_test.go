@@ -12,9 +12,9 @@ import (
 func TestPhysicalMemoryPlatformResultLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		cause    error
 		name     string
 		total    uint64
-		cause    error
 		identity core.ErrorIdentity
 	}{
 		{name: "one byte remains an exact nonzero fact", total: 1},

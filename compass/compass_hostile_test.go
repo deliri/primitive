@@ -14,10 +14,10 @@ import (
 )
 
 type compassConfigurationCase struct {
+	wantErr error
 	name    string
 	data    []byte
 	want    compass.Configuration
-	wantErr error
 }
 
 func validConfigurationCase(t testing.TB, name string, project compass.Project) compassConfigurationCase {

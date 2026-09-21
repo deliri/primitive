@@ -35,13 +35,13 @@ func TestCustodyRequestAdmissionLayerTriad(t *testing.T) {
 		lock
 	)
 	for _, tc := range []struct {
+		wantErr   error
 		name      string
-		operation door
 		path      string
 		instant   temporal.Instant
 		mode      fs.FileMode
+		operation door
 		rootless  bool
-		wantErr   error
 	}{
 		{name: "epoch is selected rather than unset", path: "entry", instant: temporal.InstantFromNanoseconds(0)},
 		{name: "minimum signed instant cannot be narrowed", path: "entry", instant: temporal.InstantFromNanoseconds(math.MinInt64)},
@@ -113,9 +113,9 @@ func TestCustodyRequestAdmissionLayerTriad(t *testing.T) {
 func TestTouchNativeTimestampBoundaryLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		instant temporal.Instant
-		wantErr error
 	}{
 		{name: "unset time refuses before stamping", wantErr: core.ErrFilestoreContract},
 		{name: "minimum signed nanosecond retains native precision", instant: temporal.InstantFromNanoseconds(math.MinInt64)},

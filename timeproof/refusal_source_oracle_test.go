@@ -9,6 +9,7 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
+// ASN.1 SEQUENCE positions are wire fields, including fields without tags.
 type refusalSourceDocument struct {
 	Status refusalSourceStatus
 	Token  asn1.RawValue `asn1:"optional"`

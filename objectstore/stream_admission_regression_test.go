@@ -12,8 +12,8 @@ import (
 )
 
 type countedStreamReply struct {
-	count int
 	cause error
+	count int
 	calls int
 }
 
@@ -28,10 +28,10 @@ func (r *countedStreamReply) Read(p []byte) (int, error) {
 func TestExactReaderNativeReplyLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		cause, wantErr        error
 		name                  string
 		declared              uint64
 		replyCount, wantCount int
-		cause, wantErr        error
 		wantDelivered         uint64
 	}{
 		{name: "one byte and EOF in one source call is complete", declared: 1, replyCount: 1, cause: io.EOF, wantCount: 1, wantErr: io.EOF, wantDelivered: 1},
@@ -167,8 +167,8 @@ func TestInspectionFinalReadCancellationCannotSealProof(t *testing.T) {
 func TestStreamEOFCannotHideAnotherFailure(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name        string
 		cause       error
+		name        string
 		wantFailure bool
 	}{
 		{name: "native EOF is graceful completion", cause: io.EOF},

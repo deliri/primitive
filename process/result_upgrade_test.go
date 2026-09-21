@@ -11,9 +11,9 @@ import (
 func TestResultFactsLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr  error
 		name     string
 		value    Result
-		wantErr  error
 		wantExit int64
 	}{
 		{name: "neutral/reaped zero counters remain valid facts", value: resultFactsFixture(0)},

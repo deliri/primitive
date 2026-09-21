@@ -28,9 +28,9 @@ func TestJSONWholeValueWithoutTransportQuotaLayerTriad(t *testing.T) {
 		t.Fatal(err)
 	}
 	cases := []struct {
+		wantErr error
 		name    string
 		wire    []byte
-		wantErr error
 	}{
 		{name: "complete value beyond former default", wire: wire},
 		{name: "unknown field after large value", wire: append(bytes.Clone(wire[:len(wire)-1]), []byte(",\"unknown\":true}")...), wantErr: core.ErrJSONContract},

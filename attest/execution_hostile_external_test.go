@@ -57,11 +57,11 @@ func (b observedExecutionBody) WriteCanonical(destination io.Writer) error {
 func TestSignCanonicalWriterTerminalExitMatrix(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name          string
-		exit          bodyExit
 		wantErr       error
 		wantNative    error
+		name          string
 		wantSignCalls int
+		exit          bodyExit
 	}{
 		{name: "completed stream signs once and closes capability", exit: bodyExitComplete, wantSignCalls: 1},
 		{name: "partial writer error preserves identity and never signs", exit: bodyExitPartialError, wantErr: core.ErrAttestContract, wantNative: fixtureErrorWrite},

@@ -24,14 +24,14 @@ const (
 func TestServerStandardResponsesLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr             error
 		name                string
-		door                standardResponseFixtureDoor
 		method              string
-		status              int
 		message, location   string
 		cookie              http.Cookie
+		status              int
+		door                standardResponseFixtureDoor
 		cancelled, zeroCall bool
-		wantErr             error
 	}{
 		{name: "error body preserves Go escaping and text framing", door: standardResponseError, status: http.StatusBadRequest, message: "<invalid> & request"},
 		{name: "server error retains embedded and trailing newline bytes", door: standardResponseError, status: http.StatusInternalServerError, message: "first\nsecond\n"},

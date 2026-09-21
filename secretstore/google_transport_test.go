@@ -69,11 +69,11 @@ func localGoogleReader(t *testing.T, access func(context.Context, *secretmanager
 func TestGoogleSDKTransportLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		providerErr error
+		wantErr     error
 		name        string
 		payload     []byte
 		metadata    int
-		providerErr error
-		wantErr     error
 	}{
 		{name: "exact payload crosses the real SDK", payload: []byte("synthetic-secret")},
 		{name: "empty payload remains valid custody", payload: []byte{}},
@@ -148,12 +148,12 @@ func TestGoogleSDKCancellationReleasesReaderBeforeClose(t *testing.T) {
 	})
 	ctx, cancel := context.WithCancel(t.Context())
 	type outcome struct {
-		result AccessResult
 		err    error
+		result AccessResult
 	}
 	done := make(chan outcome, 1)
 	request := accessRequestForTest(t)
-	go func() { result, err := reader.Access(ctx, request); done <- outcome{result, err} }()
+	go func() { result, err := reader.Access(ctx, request); done <- outcome{result: result, err: err} }()
 	joined := false
 	t.Cleanup(func() {
 		cancel()

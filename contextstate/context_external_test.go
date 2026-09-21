@@ -125,9 +125,9 @@ type contextFixture struct {
 func TestContextstateObservationLayerTriadPreservesOnlyExactStandardTerminalFacts(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name        string
-		makeFixture func() contextFixture
 		wantErr     error
+		makeFixture func() contextFixture
+		name        string
 		wantState   contextstate.State
 		wantExact   bool
 	}{
@@ -182,8 +182,8 @@ func TestContextstateObservationLayerTriadPreservesOnlyExactStandardTerminalFact
 				}
 			})
 			operations := []struct {
-				name      string
 				call      func(context.Context) (contextstate.State, error)
+				name      string
 				afterDone bool
 			}{
 				{name: "Observe", call: contextstate.Observe},

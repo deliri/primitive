@@ -102,22 +102,22 @@ func TestActivationStageAgreementLayerTriad(t *testing.T) {
 		{name: "empty stage is a real receipt without invented content"},
 	}
 	changes := []struct {
-		bit  activationAgreementChange
 		name string
+		bit  activationAgreementChange
 	}{
-		{activationAgreementForeignRoot, "foreign rooted capability"},
-		{activationAgreementForeignPath, "foreign temporary name"},
-		{activationAgreementForeignExtent, "foreign byte extent"},
-		{activationAgreementForeignMode, "foreign permission mode"},
-		{activationAgreementAbsentReceipt, "absent stage receipt"},
+		{bit: activationAgreementForeignRoot, name: "foreign rooted capability"},
+		{bit: activationAgreementForeignPath, name: "foreign temporary name"},
+		{bit: activationAgreementForeignExtent, name: "foreign byte extent"},
+		{bit: activationAgreementForeignMode, name: "foreign permission mode"},
+		{bit: activationAgreementAbsentReceipt, name: "absent stage receipt"},
 	}
 	for _, payload := range payloads {
 		t.Run(payload.name, func(t *testing.T) {
 			t.Parallel()
 			cases := make([]struct {
+				wantErr error
 				name    string
 				changes activationAgreementChange
-				wantErr error
 				class   activationAgreementClass
 			}, 0, int(activationAgreementDomain))
 			for bits := range activationAgreementDomain {
@@ -144,11 +144,11 @@ func TestActivationStageAgreementLayerTriad(t *testing.T) {
 					wantErr = core.ErrFilestoreContract
 				}
 				cases = append(cases, struct {
+					wantErr error
 					name    string
 					changes activationAgreementChange
-					wantErr error
 					class   activationAgreementClass
-				}{name, bits, wantErr, class})
+				}{name: name, changes: bits, wantErr: wantErr, class: class})
 			}
 			for _, tc := range cases {
 				t.Run(tc.name, func(t *testing.T) {

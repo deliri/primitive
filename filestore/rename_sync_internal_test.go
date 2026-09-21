@@ -93,8 +93,8 @@ func TestOwnedParentArgumentMatcherRejectsMissingAndForeignFacts(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
 		name, source     string
-		wantDeclarations int
 		want             [][]string
+		wantDeclarations int
 	}{
 		{name: "actual target then source arguments stay ordered", source: "package p;func owner(ctx C,r R){sync(root,r.Target);sync(root,r.Location.Path)}", wantDeclarations: 1, want: [][]string{{"Target"}, {"Location", "Path"}}},
 		{name: "parameter rename cannot erase ownership", source: "package p;func owner(ctx C,renamed R){sync(root,renamed.Target)}", wantDeclarations: 1, want: [][]string{{"Target"}}},

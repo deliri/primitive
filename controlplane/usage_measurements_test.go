@@ -13,10 +13,10 @@ import (
 func TestUsageMeasurementsLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr      error
 		name         string
 		measurements []controlplane.UsageCount
 		empty        bool
-		wantErr      error
 	}{
 		{name: "absent measurements preserve ordinary work"},
 		{name: "empty work creates no measurements", empty: true},

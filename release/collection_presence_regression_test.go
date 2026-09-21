@@ -22,10 +22,10 @@ func TestDependencyDocumentRequiresAnExplicitModuleCollection(t *testing.T) {
 		t.Fatalf("MarshalJSON(baseline) error = %v, want nil", err)
 	}
 	for _, tc := range []struct {
-		name    string
-		modules []buildDependencyWire
 		options json.Options
 		wantErr error
+		name    string
+		modules []buildDependencyWire
 	}{
 		{name: "explicit empty module set remains an observed empty set", modules: []buildDependencyWire{}},
 		{name: "null module set cannot become observed absence", options: json.FormatNilSliceAsNull(true), wantErr: core.ErrReleaseContract},
@@ -71,10 +71,10 @@ func TestBuildProvenanceRequiresExplicitSelectorCollections(t *testing.T) {
 		t.Fatalf("BuildProvenance.MarshalJSON(baseline) error = %v, want nil", err)
 	}
 	for _, tc := range []struct {
-		name    string
-		mutate  func(*buildProvenanceWire)
 		options json.Options
 		wantErr error
+		mutate  func(*buildProvenanceWire)
+		name    string
 	}{
 		{name: "explicit empty build tags stay empty", mutate: func(w *buildProvenanceWire) { w.BuildTags = []string{} }},
 		{name: "null build tags cannot become observed absence", mutate: func(w *buildProvenanceWire) { w.BuildTags = nil }, options: json.FormatNilSliceAsNull(true), wantErr: core.ErrReleaseContract},

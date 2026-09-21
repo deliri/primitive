@@ -13,12 +13,12 @@ import (
 )
 
 type environmentWithCase struct {
+	wantErr error
+	damage  func(*process.Environment, *process.EnvironmentVariable)
 	name    string
-	source  []string
 	key     string
 	value   string
-	damage  func(*process.Environment, *process.EnvironmentVariable)
-	wantErr error
+	source  []string
 }
 
 func environmentWithCases() []environmentWithCase {

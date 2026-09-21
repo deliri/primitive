@@ -34,12 +34,11 @@ func TestReadPreservesObservedGrowthAndRefusesTruncation(t *testing.T) {
 		wantErr      error
 		mutate       func(path string) error
 		name         string
+		want         []byte
 		initialBytes int
 		bufferBytes  int
-		want         []byte
-
-		wantCopied int
-		wantSource bool
+		wantCopied   int
+		wantSource   bool
 	}{
 		{
 			name:         "growth after the initial observation continues through EOF",

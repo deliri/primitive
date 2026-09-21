@@ -78,9 +78,9 @@ func compilerEnvironmentFixture(t testing.TB) process.Environment {
 		t.Fatal(err)
 	}
 	for _, variable := range []struct{ name, value string }{
-		{"GOOS", core.OperatingSystemLinux.String()},
-		{"GOARCH", core.CPUArchitectureAMD64.String()},
-		{"CGO_ENABLED", "0"}, {"GOENV", "off"}, {"GOFLAGS", ""}, {"GOTOOLCHAIN", "local"},
+		{name: "GOOS", value: core.OperatingSystemLinux.String()},
+		{name: "GOARCH", value: core.CPUArchitectureAMD64.String()},
+		{name: "CGO_ENABLED", value: "0"}, {name: "GOENV", value: "off"}, {name: "GOFLAGS", value: ""}, {name: "GOTOOLCHAIN", value: "local"},
 	} {
 		environment = compilerEnvironmentVariable(t, environment, variable.name, variable.value)
 	}

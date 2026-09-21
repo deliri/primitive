@@ -380,10 +380,10 @@ func TestDependencyObservationMergeLayerTriadUnionsExactTargetFacts(t *testing.T
 		maximum = append(maximum, buildDependencyWire{Path: path, Version: a.Version, Sum: a.Sum})
 	}
 	for _, tc := range []struct {
-		name              string
-		left, right, want []buildDependencyWire
-		rightMain         string
 		wantErr           error
+		name              string
+		rightMain         string
+		left, right, want []buildDependencyWire
 	}{
 		{name: "empty targets retain an empty closure"},
 		{name: "first dependency cannot disappear into empty accumulator", right: []buildDependencyWire{a}, want: []buildDependencyWire{a}},

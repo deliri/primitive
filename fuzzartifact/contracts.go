@@ -86,13 +86,13 @@ func (f CacheFormat) generatedNameBytes(kind ArtifactKind) (uint8, error) {
 // cannot identify its class. Binding Kind into the request and emitted name
 // prevents corpus and crasher facts from being merged.
 type FindRequest struct {
-	Location filestore.Location
 	// Visit runs synchronously while the directory is open. Its return provides
 	// backpressure; cancellation is checked between entries and cannot interrupt
 	// a blocked callback. The caller owns cancellation within callback effects.
-	Visit  func(GeneratedName) error
-	Kind   ArtifactKind
-	Format CacheFormat
+	Visit    func(GeneratedName) error
+	Location filestore.Location
+	Kind     ArtifactKind
+	Format   CacheFormat
 }
 
 // Validate rejects every unset or unsupported request boundary.

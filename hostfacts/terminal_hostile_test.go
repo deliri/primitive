@@ -92,10 +92,10 @@ func TestTerminalGeometryValidatesAttachmentAgainstColumns(t *testing.T) {
 func TestTerminalGeometryConstructorLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name                    string
-		construct               func() (TerminalGeometry, error)
-		want                    TerminalGeometry
 		wantErr, wantColumnsErr error
+		construct               func() (TerminalGeometry, error)
+		name                    string
+		want                    TerminalGeometry
 	}{
 		{name: "smallest attached width seals exact columns", construct: func() (TerminalGeometry, error) { return newAttachedTerminalGeometry(1) }, want: TerminalGeometry{attachment: TerminalAttachmentTerminal, columns: 1}},
 		{name: "largest attached width does not truncate", construct: func() (TerminalGeometry, error) { return newAttachedTerminalGeometry(math.MaxUint16) }, want: TerminalGeometry{attachment: TerminalAttachmentTerminal, columns: math.MaxUint16}},

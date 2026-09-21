@@ -90,9 +90,9 @@ const (
 func TestOwnedFileSyncAndCloseLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr         error
 		name            string
 		fixture         custodySyncFixture
-		wantErr         error
 		wantSyncRefusal bool
 	}{
 		{name: "empty regular file is synchronized and closed", fixture: custodySyncEmpty},

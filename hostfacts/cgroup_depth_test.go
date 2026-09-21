@@ -14,12 +14,12 @@ import (
 func TestCgroupAncestorDepthLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr   error
 		name      string
-		depth     int
 		rootValue string
+		depth     int
 		canceled  bool
 		wantState WorkloadMemoryLimitState
-		wantErr   error
 	}{
 		{name: "mount root is observed without ascent", rootValue: "400", wantState: WorkloadMemoryLimitLimited},
 		{name: "255 levels retain the mount declaration", depth: 255, rootValue: "400", wantState: WorkloadMemoryLimitLimited},

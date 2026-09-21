@@ -76,11 +76,11 @@ func (n SymbolName) String() string {
 
 // StandardSymbol identifies one package-qualified low-level symbol.
 type StandardSymbol struct {
-	ImportPath gomodule.ImportPath
-	Selector   SymbolName
 	// Receiver is absent for package functions and names the compiler-resolved
 	// declaring type for methods. It never names a caller's variable or alias.
-	Receiver *SymbolName
+	Receiver   *SymbolName
+	ImportPath gomodule.ImportPath
+	Selector   SymbolName
 }
 
 func (s StandardSymbol) Validate() error {
@@ -166,7 +166,7 @@ func (r standardSymbolRule) resolve(symbol StandardSymbol, selector string) (Sta
 		selectors   []string
 		disposition StandardSymbolDisposition
 	}{
-		{r.effectSelectors, StandardSymbolEffect}, {r.pureSelectors, StandardSymbolPure}, {r.contextualSelectors, StandardSymbolContextual},
+		{selectors: r.effectSelectors, disposition: StandardSymbolEffect}, {selectors: r.pureSelectors, disposition: StandardSymbolPure}, {selectors: r.contextualSelectors, disposition: StandardSymbolContextual},
 	}
 	for _, group := range groups {
 		if !slices.Contains(group.selectors, selector) {

@@ -42,6 +42,10 @@ func (n *goJSONFloat) consume(value byte) {
 	if value < '0' || value > '9' {
 		return
 	}
+	n.consumeDigit(value)
+}
+
+func (n *goJSONFloat) consumeDigit(value byte) {
 	if n.exponentPart {
 		digit := uint64(value - '0')
 		if n.exponent > (math.MaxInt64-digit)/10 {
@@ -93,6 +97,10 @@ func (n *goJSONFloat) validate() error {
 		return nil
 	}
 	exponent += n.scale
+	return n.validateDecimal(exponent)
+}
+
+func (n *goJSONFloat) validateDecimal(exponent int64) error {
 	// A sticky digit keeps an exact halfway prefix from becoming an exact tie.
 	decimal := "0." + string(n.digits[:n.length])
 	if n.sticky {

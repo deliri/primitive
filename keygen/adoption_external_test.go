@@ -23,15 +23,15 @@ func TestAdoptPrivateKeyRejectsEverySingleBitDisagreementLayerTriad(t *testing.T
 	t.Parallel()
 	seed := nonZeroSeed()
 	cases := []struct {
+		wantErr error
 		name    string
 		bit     int
-		wantErr error
 	}{{name: "canonical Go key retains exact identity", bit: -1}}
 	for bit := range ed25519.PrivateKeySize * 8 {
 		cases = append(cases, struct {
+			wantErr error
 			name    string
 			bit     int
-			wantErr error
 		}{name: fmt.Sprintf("changed_private_bit_%d_cannot_silently_change_identity", bit), bit: bit, wantErr: core.ErrKeygenContract})
 	}
 	for _, tc := range cases {
@@ -89,10 +89,10 @@ func TestAdoptPrivateKeyRejectsEverySingleBitDisagreementLayerTriad(t *testing.T
 func TestAdoptPrivateKeyExactExtentAndZeroSeed(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr, wantSource error
 		name                string
 		extent              int
 		canonicalZero       bool
-		wantErr, wantSource error
 	}{
 		{name: "absent private key", wantErr: core.ErrKeygenContract},
 		{name: "seed alone cannot impersonate complete private key", extent: keygen.SeedSize, wantErr: core.ErrKeygenContract},
@@ -128,9 +128,9 @@ func TestAdoptPrivateKeyExactExtentAndZeroSeed(t *testing.T) {
 func TestAdoptSigningKeyPreservesEverySeedBitAndGoIdentity(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr error
 		name    string
 		seed    [keygen.SeedSize]byte
-		wantErr error
 	}{
 		{name: "zero seed cannot become an active signing key", wantErr: core.ErrKeygenEntropy},
 		{name: "every seed position retains its distinct byte", seed: nonZeroSeed()},
@@ -139,9 +139,9 @@ func TestAdoptSigningKeyPreservesEverySeedBitAndGoIdentity(t *testing.T) {
 		var seed [keygen.SeedSize]byte
 		seed[bit/8] = 1 << uint(bit%8)
 		cases = append(cases, struct {
+			wantErr error
 			name    string
 			seed    [keygen.SeedSize]byte
-			wantErr error
 		}{name: fmt.Sprintf("single_seed_bit_%d_survives_adoption", bit), seed: seed})
 	}
 	for _, tc := range cases {

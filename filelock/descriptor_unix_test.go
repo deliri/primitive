@@ -36,9 +36,9 @@ func TestUnixBorrowPreservesDescriptorModeLayerTriad(t *testing.T) {
 		pipe    bool
 		release bool
 	}{
-		{"pipe_acquisition_preserves_nonblocking_io", true, false},
-		{"pipe_unlock_preserves_nonblocking_io", true, true},
-		{"regular_file_acquisition_preserves_flags", false, false},
+		{name: "pipe_acquisition_preserves_nonblocking_io", pipe: true, release: false},
+		{name: "pipe_unlock_preserves_nonblocking_io", pipe: true, release: true},
+		{name: "regular_file_acquisition_preserves_flags", pipe: false, release: false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -76,6 +76,12 @@ func TestUnixBorrowPreservesDescriptorModeLayerTriad(t *testing.T) {
 			}); err != nil {
 				t.Fatal(err)
 			}
+			// Compare with the native effect just observed. The kernel may itself
+			// record locking in descriptor flags; Primitive must add no changes.
+			wantFlags := fixtureFlags(t, file)
+			if tc.pipe && wantFlags != before {
+				t.Fatalf("native pipe flags=%#x, want preserved %#x", wantFlags, before)
+			}
 			var gotErr error
 			if tc.release {
 				gotErr = filelock.Release(t.Context(), file)
@@ -95,8 +101,8 @@ func TestUnixBorrowPreservesDescriptorModeLayerTriad(t *testing.T) {
 				}
 			}
 			after := fixtureFlags(t, file)
-			if !errors.Is(gotErr, wantErr) || after != before {
-				t.Fatalf("error=%v descriptor flags=%#x, want %v and unchanged %#x", gotErr, after, wantErr, before)
+			if !errors.Is(gotErr, wantErr) || after != wantFlags {
+				t.Fatalf("error=%v descriptor flags=%#x, want native %v and %#x", gotErr, after, wantErr, wantFlags)
 			}
 		})
 	}
@@ -109,11 +115,11 @@ func TestClosedFilePreservesGoControlFailureLayerTriad(t *testing.T) {
 		patience    filelock.Patience
 		release     bool
 	}{
-		{"exclusive_immediate", filelock.Exclusive, filelock.Immediate, false},
-		{"shared_immediate", filelock.Shared, filelock.Immediate, false},
-		{"exclusive_blocking", filelock.Exclusive, filelock.Blocking, false},
-		{"shared_blocking", filelock.Shared, filelock.Blocking, false},
-		{"closed_release", filelock.ExclusivityUnknown, filelock.PatienceUnknown, true},
+		{name: "exclusive_immediate", exclusivity: filelock.Exclusive, patience: filelock.Immediate, release: false},
+		{name: "shared_immediate", exclusivity: filelock.Shared, patience: filelock.Immediate, release: false},
+		{name: "exclusive_blocking", exclusivity: filelock.Exclusive, patience: filelock.Blocking, release: false},
+		{name: "shared_blocking", exclusivity: filelock.Shared, patience: filelock.Blocking, release: false},
+		{name: "closed_release", exclusivity: filelock.ExclusivityUnknown, patience: filelock.PatienceUnknown, release: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

@@ -25,10 +25,10 @@ type uploadObservation struct {
 }
 
 type exactProvider struct {
-	mu             sync.Mutex
 	observations   []uploadObservation
 	selected       int
 	status         int
+	mu             sync.Mutex
 	omitGeneration bool
 }
 
@@ -70,10 +70,10 @@ func TestProviderToReceiptPrefixLayerTriad(t *testing.T) {
 	t.Parallel()
 	for index := range release.PublicationObjectCount {
 		for _, tc := range []struct {
+			wantErr        error
 			name           string
 			status         int
 			omit           bool
-			wantErr        error
 			wantCommitment objectstore.Commitment
 		}{
 			{name: "confirmed", status: http.StatusOK, wantCommitment: objectstore.CommitmentConfirmed},

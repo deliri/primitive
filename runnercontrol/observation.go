@@ -30,13 +30,8 @@ func (r ExperimentObservationRequest) Validate() error {
 	if err != nil || comparison == core.ComparisonGreater {
 		return errors.Join(core.ErrPrimitiveContract, err)
 	}
-	if r.Process == nil && r.Failure == nil {
-		return core.ErrPrimitiveContract
-	}
-	if r.Process != nil {
-		if err := r.Process.Validate(); err != nil {
-			return err
-		}
+	if err := validateObservedProcess(r.Process, r.Failure); err != nil {
+		return err
 	}
 	for index := range r.Artifacts {
 		if err := r.Artifacts[index].Validate(); err != nil {
@@ -48,6 +43,18 @@ func (r ExperimentObservationRequest) Validate() error {
 		failure = core.ErrProcessWait
 	}
 	return validateExperimentMeasurements(measurementValidation{capability: r.Capability, failure: failure, started: r.Process != nil, measurements: r.Measurements})
+}
+
+func validateObservedProcess(result *process.ResultObservation, failure error) error {
+	if result == nil && failure == nil {
+		return core.ErrPrimitiveContract
+	}
+	if result != nil {
+		if err := result.Validate(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 type measurementValidation struct {
@@ -116,13 +123,19 @@ func validateGoAccounting(request measurementValidation) error {
 		}
 		return core.ErrPrimitiveContract
 	}
-	accounting := request.measurements.Accounting
+	return validateLatestGoAttempt(*request.measurements.Accounting, request.capability.Execution.Observation, request.failure)
+}
+
+func validateLatestGoAttempt(accounting runprotocol.ExecutionAccounting, policy ObservationPolicy, failure error) error {
 	latest, ok := accounting.Latest()
-	policy := request.capability.Execution.Observation
 	if !ok || latest.Planned != policy.ExpectedUnits || latest.Filtered != policy.Filtered || latest.Cache != runprotocol.CacheDisabled {
 		return core.ErrPrimitiveContract
 	}
-	if request.failure == nil && (latest.Failed != 0 || latest.Unavailable != 0 || latest.Cancelled != 0 || latest.Expired != 0 || latest.NotRun != 0) {
+	return validateAttemptFailure(latest, failure)
+}
+
+func validateAttemptFailure(latest runprotocol.ExecutionAttempt, failure error) error {
+	if failure == nil && (latest.Failed != 0 || latest.Unavailable != 0 || latest.Cancelled != 0 || latest.Expired != 0 || latest.NotRun != 0) {
 		return core.ErrPrimitiveContract
 	}
 	return nil
@@ -183,20 +196,7 @@ func CompileExperimentObservation(request ExperimentObservationRequest) (runprot
 }
 
 func compileExperimentMeasurements(request ExperimentObservationRequest) (runprotocol.ExperimentMeasurements, error) {
-	measurements := request.Measurements
-	measurements.Benchmarks = append([]runprotocol.BenchmarkMeasurement(nil), request.Measurements.Benchmarks...)
-	measurements.Scaling = append([]runprotocol.ScalingCapture(nil), request.Measurements.Scaling...)
-	for index := range measurements.Scaling {
-		measurements.Scaling[index].Samples = append([]runprotocol.ScalingSample(nil), request.Measurements.Scaling[index].Samples...)
-	}
-	if request.Measurements.Accounting != nil {
-		accounting := runprotocol.ExecutionAccounting{Attempts: append([]runprotocol.ExecutionAttempt(nil), request.Measurements.Accounting.Attempts...)}
-		measurements.Accounting = &accounting
-	}
-	if request.Measurements.CoverageBasisPoints != nil {
-		coverage := *request.Measurements.CoverageBasisPoints
-		measurements.CoverageBasisPoints = &coverage
-	}
+	measurements := copyExperimentMeasurements(request.Measurements)
 	if request.Process == nil {
 		if (request.Capability.Execution.Observation.Format == ObservationGoTestJSON || request.Capability.Execution.Observation.Format == ObservationJUnitXML) && measurements.Accounting == nil {
 			accounting := compileUnstartedAccounting(request.Capability.Execution.Observation, request.Failure)
@@ -218,6 +218,24 @@ func compileExperimentMeasurements(request ExperimentObservationRequest) (runpro
 		measurements.PeakMemoryBytes = request.Process.PeakMemoryBytes.Uint64()
 	}
 	return measurements, nil
+}
+
+func copyExperimentMeasurements(source runprotocol.ExperimentMeasurements) runprotocol.ExperimentMeasurements {
+	measurements := source
+	measurements.Benchmarks = append([]runprotocol.BenchmarkMeasurement(nil), source.Benchmarks...)
+	measurements.Scaling = append([]runprotocol.ScalingCapture(nil), source.Scaling...)
+	for index := range measurements.Scaling {
+		measurements.Scaling[index].Samples = append([]runprotocol.ScalingSample(nil), source.Scaling[index].Samples...)
+	}
+	if source.Accounting != nil {
+		accounting := runprotocol.ExecutionAccounting{Attempts: append([]runprotocol.ExecutionAttempt(nil), source.Accounting.Attempts...)}
+		measurements.Accounting = &accounting
+	}
+	if source.CoverageBasisPoints != nil {
+		coverage := *source.CoverageBasisPoints
+		measurements.CoverageBasisPoints = &coverage
+	}
+	return measurements
 }
 
 func compileUnstartedAccounting(policy ObservationPolicy, failure error) runprotocol.ExecutionAccounting {

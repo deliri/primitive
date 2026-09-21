@@ -83,9 +83,9 @@ func TestAWSIdentityProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing
 func TestAWSExternalDoorInventoryMatchesProduction(t *testing.T) {
 	t.Parallel()
 	inventory := awsPublicFunctions{
-		Acquire:       awsFuzzDoor[func(context.Context, Client, Request) (Token, error)]{Acquire, FuzzAWSProviderResponseSemanticClosure},
-		NewRequest:    awsFuzzDoor[func(RequestInput) (Request, error)]{NewRequest, FuzzAWSRequestQueryClosure},
-		ParseAudience: awsFuzzDoor[func(string) (Audience, error)]{ParseAudience, FuzzAWSAudienceExactUTF8},
+		Acquire:       awsFuzzDoor[func(context.Context, Client, Request) (Token, error)]{Door: Acquire, Fuzz: FuzzAWSProviderResponseSemanticClosure},
+		NewRequest:    awsFuzzDoor[func(RequestInput) (Request, error)]{Door: NewRequest, Fuzz: FuzzAWSRequestQueryClosure},
+		ParseAudience: awsFuzzDoor[func(string) (Audience, error)]{Door: ParseAudience, Fuzz: FuzzAWSAudienceExactUTF8},
 		NewClient:     NewClient, DefaultPolicy: DefaultPolicy,
 	}
 	got, err := scanAWSProduction(".")
@@ -190,12 +190,12 @@ func TestAWSArchitectureDiscoveryCannotHideNewDoors(t *testing.T) {
 		name, source string
 		want         awsSourceFacts
 	}{
-		{"empty package has no invented facts", "package fixture", awsSourceFacts{}},
-		{"new decoder outside old name allowlist is discovered", "package fixture; func DecodeFuture([]byte){}", awsSourceFacts{functions: []string{"DecodeFuture"}}},
-		{"new pointer decoder method is discovered", "package fixture; type Token struct{}; func (*Token) UnmarshalText([]byte){}", awsSourceFacts{structs: []string{"Token"}, methods: []string{"Token.UnmarshalText"}}},
-		{"unclassified private struct is discovered", "package fixture; type hidden struct{}", awsSourceFacts{structs: []string{"hidden"}}},
-		{"alias cannot substitute a real struct", "package fixture; type Alias = Original", awsSourceFacts{aliases: []string{"Alias"}}},
-		{"private function is not external ingress", "package fixture; func decode(){}", awsSourceFacts{}},
+		{name: "empty package has no invented facts", source: "package fixture", want: awsSourceFacts{}},
+		{name: "new decoder outside old name allowlist is discovered", source: "package fixture; func DecodeFuture([]byte){}", want: awsSourceFacts{functions: []string{"DecodeFuture"}}},
+		{name: "new pointer decoder method is discovered", source: "package fixture; type Token struct{}; func (*Token) UnmarshalText([]byte){}", want: awsSourceFacts{structs: []string{"Token"}, methods: []string{"Token.UnmarshalText"}}},
+		{name: "unclassified private struct is discovered", source: "package fixture; type hidden struct{}", want: awsSourceFacts{structs: []string{"hidden"}}},
+		{name: "alias cannot substitute a real struct", source: "package fixture; type Alias = Original", want: awsSourceFacts{aliases: []string{"Alias"}}},
+		{name: "private function is not external ingress", source: "package fixture; func decode(){}", want: awsSourceFacts{}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

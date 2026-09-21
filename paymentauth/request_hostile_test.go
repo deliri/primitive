@@ -215,10 +215,7 @@ func TestCredentialedPaymentQueryJSONLayerTriad(t *testing.T) {
 	if err != nil {
 		t.Fatalf("RequestDocument.MarshalJSON() error = %v, want nil", err)
 	}
-	reordered, err := json.Marshal(struct {
-		Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
-		Request     payment.QueryDocument                        `json:"request"`
-	}{Request: fixture.document.Request, Certificate: fixture.document.Certificate})
+	reordered, err := json.Marshal(reorderedPaymentQueryJSON{Request: fixture.document.Request, Certificate: fixture.document.Certificate})
 	if err != nil {
 		t.Fatalf("json.Marshal(reordered request) error = %v, want nil", err)
 	}
@@ -469,4 +466,11 @@ func paymentQueryJSONAtLength(t testing.TB, encoded []byte, length int) []byte {
 		t.Fatalf("padded JSON length = %d, want %d", len(padded), length)
 	}
 	return padded
+}
+
+// reorderedPaymentQueryJSON intentionally reverses the production member order.
+// The boundary test proves this fixture differs before submitting it.
+type reorderedPaymentQueryJSON struct {
+	Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
+	Request     payment.QueryDocument                        `json:"request"`
 }

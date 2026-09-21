@@ -27,9 +27,9 @@ func TestProductionStructInventory(t *testing.T) {
 		typeOf reflect.Type
 		role   inventoryRole
 	}{
-		{reflect.TypeFor[Client](), roleCapability},
-		{reflect.TypeFor[GoogleIdentity](), roleCapability},
-		{reflect.TypeFor[enrollmentTransport](), roleOperationTransport},
+		{typeOf: reflect.TypeFor[Client](), role: roleCapability},
+		{typeOf: reflect.TypeFor[GoogleIdentity](), role: roleCapability},
+		{typeOf: reflect.TypeFor[enrollmentTransport](), role: roleOperationTransport},
 	}
 	var want []string
 	for _, entry := range entries {

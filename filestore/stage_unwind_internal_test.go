@@ -15,11 +15,11 @@ import (
 // native failure, panics with that same identity, or ends cleanly. No WriteTo
 // shortcut can bypass the terminal call, including the call observing source termination.
 type unwindStageSource struct {
-	prefix         []byte
 	terminal       error
 	beforeTerminal func() error
-	panicAtEnd     bool
+	prefix         []byte
 	calls          int
+	panicAtEnd     bool
 }
 
 func (s *unwindStageSource) Read(p []byte) (int, error) {
@@ -46,13 +46,13 @@ func (s *unwindStageSource) Read(p []byte) (int, error) {
 func TestStageCallerUnwindCustodyLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr       error
 		name          string
 		prefix        []byte
+		wantCalls     int
 		panicAtEnd    bool
 		returnFailure bool
 		replaceName   bool
-		wantErr       error
-		wantCalls     int
 	}{
 		{name: "empty completed source retains its real empty receipt", wantCalls: 1},
 		{name: "binary source survives successful return", prefix: []byte{0, 255}, wantCalls: 2},

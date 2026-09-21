@@ -38,7 +38,11 @@ func ParseAction(text string) (Action, error) {
 	}
 	var a Action
 	copy(a.name[:], text)
-	a.size = uint8(len(text))
+	size, err := core.CheckedUint8FromInt(len(text))
+	if err != nil {
+		return Action{}, errors.Join(core.ErrPermitContract, err)
+	}
+	a.size = size
 	if err := a.Validate(); err != nil {
 		return Action{}, err
 	}
@@ -49,22 +53,24 @@ func (a Action) Validate() error {
 	if a.size == 0 || int(a.size) > len(a.name) {
 		return core.ErrPermitContract
 	}
-	for i, c := range a.name {
-		if i >= int(a.size) {
-			if c != 0 {
-				return core.ErrPermitContract
-			}
-			continue
+	for i, c := range a.name[:a.size] {
+		if !actionCharacter(c, i > 0 && i < int(a.size)-1) {
+			return core.ErrPermitContract
 		}
-		if c >= 'a' && c <= 'z' || c >= '0' && c <= '9' {
-			continue
+	}
+	for _, c := range a.name[a.size:] {
+		if c != 0 {
+			return core.ErrPermitContract
 		}
-		if i > 0 && i < int(a.size)-1 && (c == '-' || c == '_' || c == '.') {
-			continue
-		}
-		return core.ErrPermitContract
 	}
 	return nil
+}
+
+func actionCharacter(c byte, interior bool) bool {
+	if c >= 'a' && c <= 'z' || c >= '0' && c <= '9' {
+		return true
+	}
+	return interior && (c == '-' || c == '_' || c == '.')
 }
 
 func (a Action) String() string {
@@ -110,7 +116,11 @@ func NewActions(values ...Action) (Actions, error) {
 	}
 	var set Actions
 	copy(set.values[:], values)
-	set.count = uint8(len(values))
+	count, err := core.CheckedUint8FromInt(len(values))
+	if err != nil {
+		return Actions{}, errors.Join(core.ErrPermitContract, err)
+	}
+	set.count = count
 	slices.SortFunc(set.values[:set.count], compareAction)
 	if err := set.Validate(); err != nil {
 		return Actions{}, err

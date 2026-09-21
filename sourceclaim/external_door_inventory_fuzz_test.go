@@ -58,11 +58,11 @@ func (d claimJSONDoor) receiverName() string {
 }
 
 type claimJSONFixtures struct {
-	claim     sourceclaim.Claim
-	summary   sourceclaim.Summary
 	id        sourceclaim.ID
 	text      sourceclaim.Text
 	reference sourceclaim.Reference
+	claim     sourceclaim.Claim
+	summary   sourceclaim.Summary
 }
 
 type claimJSONSeed struct {

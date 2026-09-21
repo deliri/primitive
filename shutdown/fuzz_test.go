@@ -57,9 +57,9 @@ func FuzzPlanRegistrationAndExecution(f *testing.F) {
 			t.Fatalf("NewPlan = %v, want nil", err)
 		}
 		type admittedStep struct {
+			position int
 			id       StepID
 			phase    Phase
-			position int
 			outcome  StepOutcome
 		}
 		admitted := make([]admittedStep, 0, MaximumSteps)

@@ -21,31 +21,31 @@ func TestProofLedgerReceiptBindingLayerTriad(t *testing.T) {
 	foreign := fixtureReceiptDocument(t, first)
 	trusted := fixtureTrustedKeys(t, document.Receipt.Producer)
 	for _, tc := range []struct {
-		name    string
-		mutate  func(*AppendReceiptVerification[ledgerTestPayload])
 		wantErr error
+		mutate  func(*AppendReceiptVerification[ledgerTestPayload])
+		name    string
 	}{
-		{"exact_signed_receipt_exposes_exact_document", func(v *AppendReceiptVerification[ledgerTestPayload]) {}, nil},
-		{"event_identity_is_bound", func(v *AppendReceiptVerification[ledgerTestPayload]) { v.Document.Receipt.Event = first.Event }, core.ErrProofLedgerAppendReceiptMismatch},
-		{"request_identity_is_bound", func(v *AppendReceiptVerification[ledgerTestPayload]) { v.Document.Receipt.Request = first.Request }, core.ErrProofLedgerAppendReceiptMismatch},
-		{"sequence_is_bound", func(v *AppendReceiptVerification[ledgerTestPayload]) { v.Document.Receipt.Sequence++ }, core.ErrProofLedgerAppendReceiptMismatch},
-		{"predecessor_digest_is_bound", func(v *AppendReceiptVerification[ledgerTestPayload]) {
+		{name: "exact_signed_receipt_exposes_exact_document", mutate: func(v *AppendReceiptVerification[ledgerTestPayload]) {}, wantErr: nil},
+		{name: "event_identity_is_bound", mutate: func(v *AppendReceiptVerification[ledgerTestPayload]) { v.Document.Receipt.Event = first.Event }, wantErr: core.ErrProofLedgerAppendReceiptMismatch},
+		{name: "request_identity_is_bound", mutate: func(v *AppendReceiptVerification[ledgerTestPayload]) { v.Document.Receipt.Request = first.Request }, wantErr: core.ErrProofLedgerAppendReceiptMismatch},
+		{name: "sequence_is_bound", mutate: func(v *AppendReceiptVerification[ledgerTestPayload]) { v.Document.Receipt.Sequence++ }, wantErr: core.ErrProofLedgerAppendReceiptMismatch},
+		{name: "predecessor_digest_is_bound", mutate: func(v *AppendReceiptVerification[ledgerTestPayload]) {
 			v.Document.Receipt.PreviousHash = core.SHA256Of([]byte("other predecessor"))
-		}, core.ErrProofLedgerAppendReceiptMismatch},
-		{"event_digest_is_bound", func(v *AppendReceiptVerification[ledgerTestPayload]) { v.Document.Receipt.Hash = first.Hash }, core.ErrProofLedgerAppendReceiptMismatch},
-		{"recording_time_is_bound", func(v *AppendReceiptVerification[ledgerTestPayload]) {
+		}, wantErr: core.ErrProofLedgerAppendReceiptMismatch},
+		{name: "event_digest_is_bound", mutate: func(v *AppendReceiptVerification[ledgerTestPayload]) { v.Document.Receipt.Hash = first.Hash }, wantErr: core.ErrProofLedgerAppendReceiptMismatch},
+		{name: "recording_time_is_bound", mutate: func(v *AppendReceiptVerification[ledgerTestPayload]) {
 			v.Document.Receipt.RecordedAt = first.RecordedAt
-		}, core.ErrProofLedgerAppendReceiptMismatch},
-		{"authentic_foreign_signature_is_refused", func(v *AppendReceiptVerification[ledgerTestPayload]) {
+		}, wantErr: core.ErrProofLedgerAppendReceiptMismatch},
+		{name: "authentic_foreign_signature_is_refused", mutate: func(v *AppendReceiptVerification[ledgerTestPayload]) {
 			v.Document.Attestation.Signature = foreign.Attestation.Signature
-		}, core.ErrAttestVerification},
-		{"producer_nomination_is_bound", func(v *AppendReceiptVerification[ledgerTestPayload]) { v.Document.Receipt.Producer = fixtureKey(t, 3) }, core.ErrProofLedgerAppendReceiptMismatch},
-		{"untrusted_signer_cannot_authenticate", func(v *AppendReceiptVerification[ledgerTestPayload]) {
+		}, wantErr: core.ErrAttestVerification},
+		{name: "producer_nomination_is_bound", mutate: func(v *AppendReceiptVerification[ledgerTestPayload]) { v.Document.Receipt.Producer = fixtureKey(t, 3) }, wantErr: core.ErrProofLedgerAppendReceiptMismatch},
+		{name: "untrusted_signer_cannot_authenticate", mutate: func(v *AppendReceiptVerification[ledgerTestPayload]) {
 			v.TrustedKeys = fixtureTrustedKeys(t, fixtureKey(t, 3))
-		}, core.ErrAttestVerification},
-		{"absent_event_exposes_no_proof", func(v *AppendReceiptVerification[ledgerTestPayload]) { v.Event = Envelope[ledgerTestPayload]{} }, core.ErrProofLedgerContract},
-		{"absent_document_exposes_no_proof", func(v *AppendReceiptVerification[ledgerTestPayload]) { v.Document = AppendReceiptDocument{} }, core.ErrProofLedgerContract},
-		{"absent_trust_exposes_no_proof", func(v *AppendReceiptVerification[ledgerTestPayload]) { v.TrustedKeys = attest.TrustedKeys{} }, core.ErrProofLedgerContract},
+		}, wantErr: core.ErrAttestVerification},
+		{name: "absent_event_exposes_no_proof", mutate: func(v *AppendReceiptVerification[ledgerTestPayload]) { v.Event = Envelope[ledgerTestPayload]{} }, wantErr: core.ErrProofLedgerContract},
+		{name: "absent_document_exposes_no_proof", mutate: func(v *AppendReceiptVerification[ledgerTestPayload]) { v.Document = AppendReceiptDocument{} }, wantErr: core.ErrProofLedgerContract},
+		{name: "absent_trust_exposes_no_proof", mutate: func(v *AppendReceiptVerification[ledgerTestPayload]) { v.TrustedKeys = attest.TrustedKeys{} }, wantErr: core.ErrProofLedgerContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

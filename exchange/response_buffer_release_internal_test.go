@@ -50,23 +50,23 @@ func (w *bufferReleaseDestination) Write(data []byte) (int, error) {
 func TestResponseBufferReleaseLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name            string
+		serveErr        error
+		wantNative      error
+		wantErr         error
 		method          string
 		body            string
-		beforeLength    []string
-		bufferLength    []string
-		fault           bufferDestinationFault
-		servePanic      bool
-		serveErr        error
-		wantErr         error
-		wantNative      error
-		wantShort       bool
-		wantCommitted   bool
-		wantBytes       uint64
 		wantBody        string
+		name            string
+		bufferLength    []string
+		beforeLength    []string
 		wantLength      []string
+		wantBytes       uint64
 		wantStatusCalls int
 		wantWrites      int
+		servePanic      bool
+		fault           bufferDestinationFault
+		wantShort       bool
+		wantCommitted   bool
 	}{
 		{name: "positive exact release retains receipt and bytes", method: http.MethodGet, body: "abcd", wantCommitted: true, wantBytes: 4, wantBody: "abcd", wantStatusCalls: 1, wantWrites: 1},
 		{name: "positive matching outer length remains valid", method: http.MethodGet, body: "abcd", beforeLength: []string{"4"}, wantCommitted: true, wantBytes: 4, wantBody: "abcd", wantLength: []string{"4"}, wantStatusCalls: 1, wantWrites: 1},

@@ -19,12 +19,12 @@ func createSymbolicLinkNativeFixture(container string) error {
 		}
 	}
 	for _, link := range []struct{ name, target string }{
-		{"link", "file"}, {"chain", "link"}, {"parent", "directory"},
-		{"outside", filepath.Join(container, "outside")},
-		{"absolute", filepath.Join(container, "outside", "entry")},
-		{"dangling", "missing"}, {"self", "self"}, {"first", "second"}, {"second", "first"},
-		{"opaque", "socket:[123]"}, {"lexical", "./directory/../file"}, {"directory-link", "directory"},
-		{"directory/child-link", "entry"}, {"outside/child-link", "entry"},
+		{name: "link", target: "file"}, {name: "chain", target: "link"}, {name: "parent", target: "directory"},
+		{name: "outside", target: filepath.Join(container, "outside")},
+		{name: "absolute", target: filepath.Join(container, "outside", "entry")},
+		{name: "dangling", target: "missing"}, {name: "self", target: "self"}, {name: "first", target: "second"}, {name: "second", target: "first"},
+		{name: "opaque", target: "socket:[123]"}, {name: "lexical", target: "./directory/../file"}, {name: "directory-link", target: "directory"},
+		{name: "directory/child-link", target: "entry"}, {name: "outside/child-link", target: "entry"},
 	} {
 		if err := os.Symlink(link.target, filepath.Join(container, "root", link.name)); err != nil {
 			return err

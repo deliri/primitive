@@ -536,7 +536,7 @@ func parseCgroupLimit(data []byte, source WorkloadMemoryLimitSource) (uint64, bo
 // interfaces both publish exactly this shape.
 func canonicalVirtualValueToken(data []byte) (string, error) {
 	token := strings.TrimSuffix(string(data), "\n")
-	if token == "" || strings.ContainsAny(token, " \t\r\n") {
+	if token == "" || strings.ContainsAny(token, cgroupWhitespace) {
 		return "", core.ErrHostFactsObservation
 	}
 	return token, nil
@@ -834,3 +834,5 @@ func scanVirtualLines(
 	closedRoot = true
 	return errors.Join(scanErr, fileCloseErr, rootCloseErr)
 }
+
+const cgroupWhitespace = " \t\r\n"

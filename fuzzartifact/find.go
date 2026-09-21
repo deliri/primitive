@@ -30,8 +30,8 @@ func Find(ctx context.Context, request FindRequest) (Observation, error) {
 }
 
 type finder struct {
-	observation Observation
 	visitor     func(GeneratedName) error
+	observation Observation
 }
 
 func newFinder(request FindRequest) finder {

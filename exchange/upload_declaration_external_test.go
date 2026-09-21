@@ -25,9 +25,9 @@ func (s *unreadUploadSource) Read(p []byte) (int, error) { s.reads.Add(1); retur
 func TestUploadEarlyResponseDeclarationLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr       error
 		name          string
 		status        int
-		wantErr       error
 		wantReadCalls int64
 		roundTrip     bool
 	}{

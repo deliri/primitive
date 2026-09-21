@@ -115,9 +115,9 @@ func FuzzReceiveBasicAuthorizationSemanticClosure(f *testing.F) {
 	// These are malformed Primitive seeds, emitted without copying Basic wire
 	// tokens or hand-encoding Base64 in the test.
 	for _, credential := range []struct{ identity, secret string }{
-		{"", "secret"}, {"identity", ""}, {"identity\u0085", "secret"},
-		{"identity", "secret\u0085"}, {"\xff", "secret"}, {"identity", "\xff"},
-		{"identity", strings.Repeat("s", exchange.BasicAuthorizationSecretMaximumBytes+1)},
+		{identity: "", secret: "secret"}, {identity: "identity", secret: ""}, {identity: "identity\u0085", secret: "secret"},
+		{identity: "identity", secret: "secret\u0085"}, {identity: "\xff", secret: "secret"}, {identity: "identity", secret: "\xff"},
+		{identity: "identity", secret: strings.Repeat("s", exchange.BasicAuthorizationSecretMaximumBytes+1)},
 	} {
 		request, err := http.NewRequest(http.MethodGet, "https://example.invalid", nil)
 		if err != nil {

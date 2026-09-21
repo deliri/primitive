@@ -23,8 +23,8 @@ func TestHandoffErrorDomainBindsClassifierInputs(t *testing.T) {
 	t.Parallel()
 	model := handoffFunctionCoreSelectors(t, TestHTTPProducerClassifierRefusalLatticeLayerTriad)
 	functions := []struct {
-		name     string
 		function any
+		name     string
 	}{
 		{name: "aggregate refusal decision", function: classifyAggregateCause},
 		{name: "stream refusal precedence", function: terminalStreamReplayCause},

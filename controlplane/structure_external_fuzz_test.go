@@ -101,7 +101,11 @@ func FuzzRegistrationRequestExternalDecoder(f *testing.F) {
 	if err != nil {
 		f.Fatalf("NewRegistrationToken(seed) error = %v, want nil", err)
 	}
-	defer token.Destroy()
+	defer func() {
+		if err := token.Destroy(); err != nil {
+			f.Errorf("token.Destroy() cleanup error = %v, want nil", err)
+		}
+	}()
 	seed := controlplane.RegistrationRequest{
 		Token: token, Build: issued.certificate.Body.Build, DeviceKey: issued.certificate.Body.DeviceKey,
 		Installation: issued.subject.DeviceID, RequestNonce: issued.request.Payload.RequestNonce,
@@ -152,7 +156,11 @@ func FuzzRegistrationRequestExternalDecoder(f *testing.F) {
 			t.Fatalf("UnmarshalJSON(populated receiver) error = %v, want nil", err)
 		}
 		original := candidate
-		defer original.Token.Destroy()
+		defer func() {
+			if err := original.Token.Destroy(); err != nil {
+				t.Errorf("original.Token.Destroy() cleanup error = %v, want nil", err)
+			}
+		}()
 		decodeErr := candidate.UnmarshalJSON(data)
 		if decodeErr != nil {
 			if !errors.Is(decodeErr, core.ErrJSONContract) || !errors.Is(decodeErr, core.ErrControlPlaneRegistration) || candidate != original {
@@ -165,7 +173,11 @@ func FuzzRegistrationRequestExternalDecoder(f *testing.F) {
 			}
 			return
 		}
-		defer candidate.Token.Destroy()
+		defer func() {
+			if err := candidate.Token.Destroy(); err != nil {
+				t.Errorf("candidate.Token.Destroy() cleanup error = %v, want nil", err)
+			}
+		}()
 		identity, err := candidate.Identity()
 		if err != nil {
 			t.Fatalf("Identity(accepted) error = %v, want nil", err)
@@ -179,7 +191,11 @@ func FuzzRegistrationRequestExternalDecoder(f *testing.F) {
 		if err := roundTrip.UnmarshalJSON(encoded); err != nil {
 			t.Fatalf("UnmarshalJSON(canonical) error = %v, want nil", err)
 		}
-		defer roundTrip.Token.Destroy()
+		defer func() {
+			if err := roundTrip.Token.Destroy(); err != nil {
+				t.Errorf("roundTrip.Token.Destroy() cleanup error = %v, want nil", err)
+			}
+		}()
 		second := mustRegistrationRequestProjection(t, roundTrip)
 		defer clear(second)
 		secondIdentity, err := roundTrip.Identity()

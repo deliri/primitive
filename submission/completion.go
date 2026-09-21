@@ -52,15 +52,15 @@ type CompletionIssuance struct {
 // never needs the spendable upload capability. The authority must still observe
 // the exact provider object before acknowledging durable custody.
 type CompletionExpectation struct {
-	Request RequestPayload
-	Grant   GrantRecord
-	// Provider is independently selected by authority policy, not loaded from
-	// a client claim or inferred from a capability commitment.
-	Provider       objectstore.Provider
+	Request        RequestPayload
 	Document       CompletionDocument
 	GrantKeys      attest.TrustedKeys
 	CompletionKeys attest.TrustedKeys
+	Grant          GrantRecord
 	Nonce          controlwire.RequestNonce
+	// Provider is independently selected by authority policy, not loaded from
+	// a client claim or inferred from a capability commitment.
+	Provider objectstore.Provider
 }
 
 // VerifiedCompletion is the authenticated exact provider evidence safe for an

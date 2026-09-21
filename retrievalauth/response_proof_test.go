@@ -28,11 +28,11 @@ func TestResponseSocketLayerTriad(t *testing.T) {
 		name   string
 		family controlwire.RouteFamily
 	}{
-		{"registration", controlwire.RouteFamilyRegistrations}, {"check-in", controlwire.RouteFamilyCheckIns},
-		{"submission", controlwire.RouteFamilySubmissions}, {"completion", controlwire.RouteFamilySubmissionCompletions},
-		{"chit", controlwire.RouteFamilyChits}, {"payment", controlwire.RouteFamilyPayments},
-		{"material", controlwire.RouteFamilyReleaseMaterials}, {"publication", controlwire.RouteFamilyReleasePublications},
-		{"publication completion", controlwire.RouteFamilyReleasePublicationCompletions}, {"update", controlwire.RouteFamilyUpdateChecks}, {"upgrade", controlwire.RouteFamilyUpgrades},
+		{name: "registration", family: controlwire.RouteFamilyRegistrations}, {name: "check-in", family: controlwire.RouteFamilyCheckIns},
+		{name: "submission", family: controlwire.RouteFamilySubmissions}, {name: "completion", family: controlwire.RouteFamilySubmissionCompletions},
+		{name: "chit", family: controlwire.RouteFamilyChits}, {name: "payment", family: controlwire.RouteFamilyPayments},
+		{name: "material", family: controlwire.RouteFamilyReleaseMaterials}, {name: "publication", family: controlwire.RouteFamilyReleasePublications},
+		{name: "publication completion", family: controlwire.RouteFamilyReleasePublicationCompletions}, {name: "update", family: controlwire.RouteFamilyUpdateChecks}, {name: "upgrade", family: controlwire.RouteFamilyUpgrades},
 	}
 	for _, tc := range families {
 		t.Run("authentic "+tc.name+" response cannot cross retrieval socket", func(t *testing.T) {

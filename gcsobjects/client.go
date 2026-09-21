@@ -522,9 +522,9 @@ type gcsWrite struct {
 type GCSReadRequest struct {
 	Bucket      GCSBucket
 	Name        GCSObjectName
-	Generation  GCSGeneration
 	Destination filestore.StageDestinationRequest
 	Integrity   objectstore.Integrity
+	Generation  GCSGeneration
 }
 
 // GCSReadResult transfers ownership of one integrity-verified local stage and

@@ -116,42 +116,46 @@ func TestAccessRegistrationAuthorityLayerTriad(t *testing.T) {
 func TestAccessRegistrationRejectsBrokenFacts(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name    string
-		mutate  func(*testing.T, *controlplane.AccessRegistrationVerification)
 		wantErr error
+		mutate  func(*testing.T, *controlplane.AccessRegistrationVerification)
+		name    string
 	}{
-		{"missing verifier", func(_ *testing.T, v *controlplane.AccessRegistrationVerification) {
+		{name: "missing verifier", mutate: func(_ *testing.T, v *controlplane.AccessRegistrationVerification) {
 			v.ExpectedVerifier = controlwire.AccessTokenVerifier{}
-		}, core.ErrControlWireToken},
-		{"foreign verifier", func(t *testing.T, v *controlplane.AccessRegistrationVerification) {
+		}, wantErr: core.ErrControlWireToken},
+		{name: "foreign verifier", mutate: func(t *testing.T, v *controlplane.AccessRegistrationVerification) {
 			token, err := controlwire.NewAccessToken([controlwire.AccessTokenBytes]byte{43})
 			if err != nil {
 				t.Fatalf("NewAccessToken() error = %v, want nil", err)
 			}
-			defer token.Destroy()
+			defer func() {
+				if err := token.Destroy(); err != nil {
+					t.Errorf("token.Destroy() cleanup error = %v, want nil", err)
+				}
+			}()
 			v.ExpectedVerifier, err = token.Verifier()
 			if err != nil {
 				t.Fatalf("Verifier() error = %v, want nil", err)
 			}
-		}, core.ErrControlWireToken},
-		{"missing token", func(_ *testing.T, v *controlplane.AccessRegistrationVerification) {
+		}, wantErr: core.ErrControlWireToken},
+		{name: "missing token", mutate: func(_ *testing.T, v *controlplane.AccessRegistrationVerification) {
 			v.Request.Token = controlwire.AccessToken{}
-		}, core.ErrControlWireToken},
-		{"missing nonce", func(_ *testing.T, v *controlplane.AccessRegistrationVerification) {
+		}, wantErr: core.ErrControlWireToken},
+		{name: "missing nonce", mutate: func(_ *testing.T, v *controlplane.AccessRegistrationVerification) {
 			v.Request.RequestNonce = controlwire.RequestNonce{}
-		}, core.ErrControlPlaneRegistration},
-		{"unknown revision", func(_ *testing.T, v *controlplane.AccessRegistrationVerification) {
+		}, wantErr: core.ErrControlPlaneRegistration},
+		{name: "unknown revision", mutate: func(_ *testing.T, v *controlplane.AccessRegistrationVerification) {
 			v.Request.Revision = controlwire.Revision(255)
-		}, core.ErrControlPlaneRegistration},
-		{"missing build", func(_ *testing.T, v *controlplane.AccessRegistrationVerification) {
+		}, wantErr: core.ErrControlPlaneRegistration},
+		{name: "missing build", mutate: func(_ *testing.T, v *controlplane.AccessRegistrationVerification) {
 			v.Request.Build = core.BuildIdentity{}
-		}, core.ErrControlPlaneRegistration},
-		{"device key mismatches installation", func(t *testing.T, v *controlplane.AccessRegistrationVerification) {
+		}, wantErr: core.ErrControlPlaneRegistration},
+		{name: "device key mismatches installation", mutate: func(t *testing.T, v *controlplane.AccessRegistrationVerification) {
 			v.Request.DeviceKey, _ = testSigningKey(t, 33)
-		}, core.ErrControlPlaneInstallationBinding},
-		{"empty replay is not absence", func(_ *testing.T, v *controlplane.AccessRegistrationVerification) {
+		}, wantErr: core.ErrControlPlaneInstallationBinding},
+		{name: "empty replay is not absence", mutate: func(_ *testing.T, v *controlplane.AccessRegistrationVerification) {
 			v.PriorReplay = &controlwire.ReplayIdentity{}
-		}, core.ErrControlPlaneRegistration},
+		}, wantErr: core.ErrControlPlaneRegistration},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -270,7 +274,11 @@ func FuzzAccessRegistrationSemanticClosure(f *testing.F) {
 			}
 			return
 		}
-		defer got.Token.Destroy()
+		defer func() {
+			if err := got.Token.Destroy(); err != nil {
+				t.Errorf("got.Token.Destroy() cleanup error = %v, want nil", err)
+			}
+		}()
 		if err := got.Validate(); err != nil {
 			t.Fatalf("accepted Validate() error = %v, want nil", err)
 		}
@@ -283,7 +291,11 @@ func FuzzAccessRegistrationSemanticClosure(f *testing.F) {
 		if err := round.UnmarshalJSON(encoded); err != nil {
 			t.Fatalf("canonical decode error = %v, want nil", err)
 		}
-		defer round.Token.Destroy()
+		defer func() {
+			if err := round.Token.Destroy(); err != nil {
+				t.Errorf("round.Token.Destroy() cleanup error = %v, want nil", err)
+			}
+		}()
 		gotIdentity, err := got.Identity()
 		if err != nil {
 			t.Fatalf("Identity() error = %v, want nil", err)

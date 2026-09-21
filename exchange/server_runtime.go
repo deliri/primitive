@@ -179,9 +179,9 @@ func (c ServerRuntimeConfiguration) Validate() error {
 type ServerRuntime struct {
 	server        *http.Server
 	ready         chan error
+	bound         atomic.Pointer[ServerListener]
 	configuration ServerRuntimeConfiguration
 	started       atomic.Bool
-	bound         atomic.Pointer[ServerListener]
 }
 
 // NewServerRuntime constructs a dormant runtime without opening files or a

@@ -12,20 +12,20 @@ import (
 func TestNativeLockFlagAgreementLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr error
 		name    string
+		want    int
 		ex      Exclusivity
 		p       Patience
-		want    int
-		wantErr error
 	}{
-		{"exclusive_immediate", Exclusive, Immediate, unix.LOCK_EX | unix.LOCK_NB, nil},
-		{"exclusive_blocking", Exclusive, Blocking, unix.LOCK_EX, nil},
-		{"shared_immediate", Shared, Immediate, unix.LOCK_SH | unix.LOCK_NB, nil},
-		{"shared_blocking", Shared, Blocking, unix.LOCK_SH, nil},
-		{"unset_exclusivity", ExclusivityUnknown, Immediate, 0, core.ErrPrimitiveContract},
-		{"unset_patience", Exclusive, PatienceUnknown, 0, core.ErrPrimitiveContract},
-		{"future_exclusivity", Exclusivity(3), Immediate, 0, core.ErrPrimitiveContract},
-		{"future_patience", Exclusive, Patience(3), 0, core.ErrPrimitiveContract},
+		{name: "exclusive_immediate", ex: Exclusive, p: Immediate, want: unix.LOCK_EX | unix.LOCK_NB, wantErr: nil},
+		{name: "exclusive_blocking", ex: Exclusive, p: Blocking, want: unix.LOCK_EX, wantErr: nil},
+		{name: "shared_immediate", ex: Shared, p: Immediate, want: unix.LOCK_SH | unix.LOCK_NB, wantErr: nil},
+		{name: "shared_blocking", ex: Shared, p: Blocking, want: unix.LOCK_SH, wantErr: nil},
+		{name: "unset_exclusivity", ex: ExclusivityUnknown, p: Immediate, want: 0, wantErr: core.ErrPrimitiveContract},
+		{name: "unset_patience", ex: Exclusive, p: PatienceUnknown, want: 0, wantErr: core.ErrPrimitiveContract},
+		{name: "future_exclusivity", ex: Exclusivity(3), p: Immediate, want: 0, wantErr: core.ErrPrimitiveContract},
+		{name: "future_patience", ex: Exclusive, p: Patience(3), want: 0, wantErr: core.ErrPrimitiveContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -44,11 +44,11 @@ func TestNativeInvalidDescriptorCannotBecomeContention(t *testing.T) {
 		p      Patience
 		unlock bool
 	}{
-		{"exclusive_immediate", Exclusive, Immediate, false},
-		{"shared_immediate", Shared, Immediate, false},
-		{"exclusive_blocking", Exclusive, Blocking, false},
-		{"shared_blocking", Shared, Blocking, false},
-		{"release_invalid", ExclusivityUnknown, PatienceUnknown, true},
+		{name: "exclusive_immediate", ex: Exclusive, p: Immediate, unlock: false},
+		{name: "shared_immediate", ex: Shared, p: Immediate, unlock: false},
+		{name: "exclusive_blocking", ex: Exclusive, p: Blocking, unlock: false},
+		{name: "shared_blocking", ex: Shared, p: Blocking, unlock: false},
+		{name: "release_invalid", ex: ExclusivityUnknown, p: PatienceUnknown, unlock: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

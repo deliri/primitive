@@ -30,8 +30,8 @@ func FuzzStreamUnwindSemanticCustody(f *testing.F) {
 	}
 	f.Add(uint8(unwindStage), emitted, false, false)
 	for _, seed := range []struct {
-		door           unwindIngress
 		payload        []byte
+		door           unwindIngress
 		panics, effect bool
 	}{
 		{door: unwindStage, panics: true},

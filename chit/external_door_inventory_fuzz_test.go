@@ -90,23 +90,23 @@ func (d chitJSONDoor) receiverName() string {
 type chitFuzzFixtures struct {
 	entryName         EntryName
 	queryPayload      QueryPayload
-	payload           Payload
 	catalogPayload    CatalogPayload
+	payload           Payload
 	queryDocument     QueryDocument
-	document          Document
+	manifestAdmission ManifestAdmission
 	catalogDocument   CatalogDocument
+	document          Document
 	query             signedQueryFixture
 	catalog           catalogFixture
 	chit              chitFixture
 	objectCount       ObjectCount
-	entrySequence     EntrySequence
 	version           Version
+	entrySequence     EntrySequence
 	queryCommitment   QueryCommitment
 	cursor            Cursor
 	manifestDigest    ManifestDigest
-	manifestAdmission ManifestAdmission
-	collectionID      CollectionID
 	partition         Partition
+	collectionID      CollectionID
 	chitID            ChitID
 	custodyState      CustodyState
 	signingDomain     SigningDomain

@@ -13,24 +13,24 @@ import (
 func TestTagGrammarMatchesPinnedProvider(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		input   string
-		wantErr error
 	}{
-		{"minimum lower-case letter", "tag:a", nil},
-		{"minimum upper-case letter is a distinct provider tag", "tag:A", nil},
-		{"provider permits trailing hyphen", "tag:a-", nil},
-		{"provider permits mixed case without repair", "tag:Production-A", nil},
-		{"digits after initial letter remain exact", "tag:a0", nil},
-		{"digit cannot begin provider tag", "tag:0", core.ErrTailnetContract},
-		{"hyphen cannot begin provider tag", "tag:-a", core.ErrTailnetContract},
-		{"underscore is not provider punctuation", "tag:a_b", core.ErrTailnetContract},
-		{"unicode lookalike cannot become provider authority", "tag:а", core.ErrTailnetContract},
-		{"empty suffix cannot become provider authority", "tag:", core.ErrTailnetContract},
-		{"missing prefix cannot become provider authority", "a", core.ErrTailnetContract},
-		{"one below local suffix bound", tailnetconfig.TagPrefix + strings.Repeat("A", tailnetconfig.TagNameMaximumBytes-1), nil},
-		{"exact local suffix bound", tailnetconfig.TagPrefix + strings.Repeat("A", tailnetconfig.TagNameMaximumBytes), nil},
-		{"above local suffix bound remains a local refusal", tailnetconfig.TagPrefix + strings.Repeat("A", tailnetconfig.TagNameMaximumBytes+1), core.ErrTailnetContract},
+		{name: "minimum lower-case letter", input: "tag:a", wantErr: nil},
+		{name: "minimum upper-case letter is a distinct provider tag", input: "tag:A", wantErr: nil},
+		{name: "provider permits trailing hyphen", input: "tag:a-", wantErr: nil},
+		{name: "provider permits mixed case without repair", input: "tag:Production-A", wantErr: nil},
+		{name: "digits after initial letter remain exact", input: "tag:a0", wantErr: nil},
+		{name: "digit cannot begin provider tag", input: "tag:0", wantErr: core.ErrTailnetContract},
+		{name: "hyphen cannot begin provider tag", input: "tag:-a", wantErr: core.ErrTailnetContract},
+		{name: "underscore is not provider punctuation", input: "tag:a_b", wantErr: core.ErrTailnetContract},
+		{name: "unicode lookalike cannot become provider authority", input: "tag:а", wantErr: core.ErrTailnetContract},
+		{name: "empty suffix cannot become provider authority", input: "tag:", wantErr: core.ErrTailnetContract},
+		{name: "missing prefix cannot become provider authority", input: "a", wantErr: core.ErrTailnetContract},
+		{name: "one below local suffix bound", input: tailnetconfig.TagPrefix + strings.Repeat("A", tailnetconfig.TagNameMaximumBytes-1), wantErr: nil},
+		{name: "exact local suffix bound", input: tailnetconfig.TagPrefix + strings.Repeat("A", tailnetconfig.TagNameMaximumBytes), wantErr: nil},
+		{name: "above local suffix bound remains a local refusal", input: tailnetconfig.TagPrefix + strings.Repeat("A", tailnetconfig.TagNameMaximumBytes+1), wantErr: core.ErrTailnetContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

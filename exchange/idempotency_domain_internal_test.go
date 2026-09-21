@@ -16,10 +16,10 @@ import (
 func TestIdempotencyKeyWireDomainTable(t *testing.T) {
 	t.Parallel()
 	type keyCase struct {
+		wantErr error
 		name    string
 		input   string
 		want    string
-		wantErr error
 	}
 	cases := make([]keyCase, 0, 3*(math.MaxUint8+1)+IdempotencyKeyMaximumBytes+2)
 	for raw := range math.MaxUint8 + 1 {

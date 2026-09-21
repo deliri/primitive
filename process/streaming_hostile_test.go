@@ -37,13 +37,13 @@ func TestCommandStreamsRetainIndependentLimitFailuresLayerTriad(t *testing.T) {
 			var stdout, stderr bytes.Buffer
 			streams := newCommandStreams(Request{Streams: Streams{Stdin: bytes.NewReader(nil), Stdout: &stdout, Stderr: &stderr}, OutputPolicy: OutputPolicy{Mode: OutputModeBounded, Maximum: limit}}, failures)
 			outputs := []struct {
-				stream      Stream
 				writer      *observedWriter
 				destination *bytes.Buffer
 				size        int
+				stream      Stream
 			}{
-				{StreamStdout, streams.stdout, &stdout, tc.stdout},
-				{StreamStderr, streams.stderr, &stderr, tc.stderr},
+				{stream: StreamStdout, writer: streams.stdout, destination: &stdout, size: tc.stdout},
+				{stream: StreamStderr, writer: streams.stderr, destination: &stderr, size: tc.stderr},
 			}
 			for _, output := range outputs {
 				payload := bytes.Repeat([]byte{byte(output.stream)}, output.size)
@@ -88,10 +88,10 @@ func (w *emptyWriteRejectingDestination) Write(payload []byte) (int, error) {
 func TestBoundedWriterEmptyPrefixLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr               error
 		name                  string
 		first, second         []byte
 		wantSecond, wantCalls int
-		wantErr               error
 	}{
 		{name: "neutral/empty first and second writes never touch caller"},
 		{name: "positive/remaining byte reaches caller", first: []byte("ab"), second: []byte("c"), wantSecond: 1, wantCalls: 2},
@@ -126,9 +126,9 @@ func TestBoundedWriterEmptyPrefixLayerTriad(t *testing.T) {
 // The schedule controls consecutive empty reads; a single actual byte must
 // reset that budget, and EOF must never count as no progress.
 type progressScheduleReader struct {
+	terminal error
 	empty    int
 	data     bool
-	terminal error
 }
 
 func (r *progressScheduleReader) Read(payload []byte) (int, error) {
@@ -146,13 +146,13 @@ func (r *progressScheduleReader) Read(payload []byte) (int, error) {
 func TestObservedReaderNoProgressLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		terminal  error
+		wantErr   error
 		name      string
 		empty     int
-		data      bool
-		terminal  error
 		calls     int
 		wantCount uint64
-		wantErr   error
+		data      bool
 	}{
 		{name: "neutral/immediate EOF is not a failure", terminal: io.EOF, calls: 1, wantErr: io.EOF},
 		{name: "boundary/EOF below empty-read limit remains EOF", empty: core.ReaderConsecutiveEmptyReadMaximum - 1, terminal: io.EOF, calls: core.ReaderConsecutiveEmptyReadMaximum, wantErr: io.EOF},

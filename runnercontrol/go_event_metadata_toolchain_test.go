@@ -15,10 +15,10 @@ import (
 )
 
 type goEventMetadataFixture struct {
-	Action runnercontrol.GoEventAction `json:"Action"`
 	Key    *string                     `json:"Key,omitzero"`
 	Value  *string                     `json:"Value,omitzero"`
 	Path   *string                     `json:"Path,omitzero"`
+	Action runnercontrol.GoEventAction `json:"Action"`
 }
 
 func FuzzGoEventStreamMetadataContent(f *testing.F) {

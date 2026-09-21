@@ -101,31 +101,30 @@ func (b *goBenchmarkStream) endToken() {
 		b.malformed = b.malformed || b.number.invalid || b.number.dot || b.number.coefficient == 0
 		b.position = 2
 	default:
-		if !b.oversized {
-			if b.waitingUnit {
-				b.metric(token)
-			} else if token == "ns/op" {
-				b.found, b.malformed = true, true
-			}
-		}
-		b.waitingUnit = !b.waitingUnit
+		b.endMetricToken(token)
 	}
 	b.previous, b.number = b.number, goNumericToken{}
 	b.length, b.active, b.oversized = 0, false, false
 }
 
+func (b *goBenchmarkStream) endMetricToken(token string) {
+	if !b.oversized {
+		if b.waitingUnit {
+			b.metric(token)
+		} else if token == "ns/op" {
+			b.found, b.malformed = true, true
+		}
+	}
+	b.waitingUnit = !b.waitingUnit
+}
+
 func (b *goBenchmarkStream) metric(unit string) {
-	var mask uint8
-	switch unit {
-	case "ns/op":
-		mask = 1
-		b.found = true
-	case "B/op":
-		mask = 2
-	case "allocs/op":
-		mask = 4
-	default:
+	mask := goBenchmarkUnitMask(unit)
+	if mask == 0 {
 		return
+	}
+	if mask == 1 {
+		b.found = true
 	}
 	// Conflicting or identical duplicate units are malformed producer records,
 	// not an order-dependent first-match-wins measurement.
@@ -140,6 +139,10 @@ func (b *goBenchmarkStream) metric(unit string) {
 	if mask != 1 && n.dot {
 		b.malformed = true
 	}
+	b.projectMetric(mask, n)
+}
+
+func (b *goBenchmarkStream) projectMetric(mask uint8, n goNumericToken) {
 	switch mask {
 	case 1:
 		for n.scale > 0 && n.coefficient%10 == 0 {
@@ -151,6 +154,19 @@ func (b *goBenchmarkStream) metric(unit string) {
 		b.measurement.BytesPerOp = n.coefficient
 	case 4:
 		b.measurement.AllocationsPerOp = n.coefficient
+	}
+}
+
+func goBenchmarkUnitMask(unit string) uint8 {
+	switch unit {
+	case "ns/op":
+		return 1
+	case "B/op":
+		return 2
+	case "allocs/op":
+		return 4
+	default:
+		return 0
 	}
 }
 

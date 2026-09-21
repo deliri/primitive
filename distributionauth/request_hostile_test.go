@@ -264,10 +264,7 @@ func testUpdateJSONBoundary(t *testing.T, document UpdateRequestDocument) {
 	if err != nil {
 		t.Fatalf("UpdateRequestDocument.MarshalJSON() error = %v, want nil", err)
 	}
-	reordered, err := json.Marshal(struct {
-		Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
-		Request     distribution.UpdateRequestDocument           `json:"request"`
-	}{Request: document.Request, Certificate: document.Certificate})
+	reordered, err := json.Marshal(reorderedUpdateRequestJSON{Request: document.Request, Certificate: document.Certificate})
 	if err != nil {
 		t.Fatalf("json.Marshal(reordered update) error = %v, want nil", err)
 	}
@@ -308,11 +305,7 @@ func testUpgradeJSONBoundary(t *testing.T, document UpgradeRequestDocument) {
 	if err != nil {
 		t.Fatalf("UpgradeRequestDocument.MarshalJSON() error = %v, want nil", err)
 	}
-	reordered, err := json.Marshal(struct {
-		Request distribution.UpgradeRequestDocument `json:"request"`
-
-		Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
-	}{Request: document.Request, Certificate: document.Certificate})
+	reordered, err := json.Marshal(reorderedUpgradeRequestJSON{Request: document.Request, Certificate: document.Certificate})
 	if err != nil {
 		t.Fatalf("json.Marshal(reordered upgrade) error = %v, want nil", err)
 	}
@@ -570,4 +563,18 @@ func distributionAuthNonce(t testing.TB, marker byte) controlwire.RequestNonce {
 		t.Fatalf("controlwire.NewRequestNonce() error = %v, want nil", err)
 	}
 	return nonce
+}
+
+// reorderedUpdateRequestJSON intentionally reverses the production member order.
+// The boundary test proves this fixture differs before submitting it.
+type reorderedUpdateRequestJSON struct {
+	Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
+	Request     distribution.UpdateRequestDocument           `json:"request"`
+}
+
+// reorderedUpgradeRequestJSON intentionally reverses the production member order.
+// The boundary test proves this fixture differs before submitting it.
+type reorderedUpgradeRequestJSON struct {
+	Request     distribution.UpgradeRequestDocument          `json:"request"`
+	Certificate controlplane.InstallationCertificateDocument `json:"certificate"`
 }

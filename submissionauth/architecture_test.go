@@ -156,11 +156,11 @@ var authIngressFuzz = struct {
 	SubmissionResponse func(*testing.F)
 	CompletionResponse func(*testing.F)
 }{
-	FuzzCredentialedRequestJSONSemanticAndAuthorityClosure,
-	FuzzCredentialedCompletionJSONSemanticAndAuthorityClosure,
-	FuzzCredentialedCompletionProjectionValidateJSONProjectionOracle,
-	FuzzSubmissionResponseAuthorityClosure,
-	FuzzCompletionResponseAuthorityClosure,
+	Request:            FuzzCredentialedRequestJSONSemanticAndAuthorityClosure,
+	Completion:         FuzzCredentialedCompletionJSONSemanticAndAuthorityClosure,
+	Projection:         FuzzCredentialedCompletionProjectionValidateJSONProjectionOracle,
+	SubmissionResponse: FuzzSubmissionResponseAuthorityClosure,
+	CompletionResponse: FuzzCompletionResponseAuthorityClosure,
 }
 
 func TestSubmissionAuthDecoderInventoryRatchet(t *testing.T) {

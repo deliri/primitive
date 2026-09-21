@@ -79,10 +79,10 @@ func TestUpgradeDeliveryLayerTriad(t *testing.T) {
 		name string
 		data []byte
 	}{
-		{"empty response releases no download or permission", nil},
-		{"null response releases no download or permission", []byte("null")},
-		{"truncated response releases neither partial component", canonical[:len(canonical)-1]},
-		{"trailing response cannot replace one receipt", append(bytes.Clone(canonical), canonical...)},
+		{name: "empty response releases no download or permission", data: nil},
+		{name: "null response releases no download or permission", data: []byte("null")},
+		{name: "truncated response releases neither partial component", data: canonical[:len(canonical)-1]},
+		{name: "trailing response cannot replace one receipt", data: append(bytes.Clone(canonical), canonical...)},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -150,10 +150,10 @@ func FuzzUpgradeDeliverySemanticClosure(f *testing.F) {
 }
 
 type upgradeDeliveryFactSet struct {
-	Capability  objectstore.DownloadCapabilityCommitment
-	Payload     distribution.UpgradeGrantPayload
-	Attestation attest.Envelope[distribution.SigningDomain]
 	Transfer    permit.BuildTransfer
+	Attestation attest.Envelope[distribution.SigningDomain]
+	Payload     distribution.UpgradeGrantPayload
+	Capability  objectstore.DownloadCapabilityCommitment
 }
 
 func upgradeDeliveryFacts(t testing.TB, document UpgradeDeliveryDocument) upgradeDeliveryFactSet {

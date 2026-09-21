@@ -19,15 +19,15 @@ func TestServerRuntimeLayerTriad(t *testing.T) {
 	t.Parallel()
 	ipv4 := netip.AddrFrom4([4]byte{127, 0, 0, 1})
 	cases := []struct {
+		wantHost       netip.Addr
 		name           string
 		address        string
-		wantHost       netip.Addr
+		wantRequests   int64
+		maximumHeader  uint64
 		preopen        bool
 		configureBound bool
 		forceClose     bool
 		dormant        bool
-		wantRequests   int64
-		maximumHeader  uint64
 	}{
 		{name: "Go allocated listener serves exact binary bytes and drains", address: "127.0.0.1:0", wantHost: ipv4, wantRequests: 1},
 		{name: "portable header ceiling leaves Go read allowance representable", address: "127.0.0.1:0", wantHost: ipv4, wantRequests: 1, maximumHeader: core.HTTPServerHeaderMaximumBytes},

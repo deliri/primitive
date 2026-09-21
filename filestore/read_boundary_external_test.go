@@ -35,9 +35,9 @@ const (
 )
 
 type readBoundarySink struct {
+	err          error
 	data         []byte
 	count, calls int
-	err          error
 }
 
 func (w *readBoundarySink) Write(data []byte) (int, error) {
@@ -54,16 +54,15 @@ func TestReadNativeBoundaryLayerTriad(t *testing.T) {
 	t.Parallel()
 	binary := []byte{0, 255, 1, 127}
 	for _, tc := range []struct {
-		name    string
-		fault   readBoundaryFault
-		payload []byte
-
-		writerCount         int
 		writerErr           error
-		want                []byte
-		wantCount           uint64
 		wantErr, wantNative error
+		name                string
+		payload             []byte
+		want                []byte
+		writerCount         int
+		wantCount           uint64
 		wantWrites          int
+		fault               readBoundaryFault
 	}{
 		{name: "regular source preserves every opaque binary byte", payload: binary, want: binary, wantCount: 4},
 		{name: "empty file emits nothing to a rejecting writer", fault: readBoundaryWriter, writerErr: io.ErrClosedPipe},

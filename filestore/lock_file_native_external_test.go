@@ -18,12 +18,12 @@ import (
 func TestLockFileNativeCapabilityLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr        error
 		name           string
+		mode           fs.FileMode
 		entry          nativeHandleEntry
 		mutation       readUpdateMutation
-		mode           fs.FileMode
 		empty, noWrite bool
-		wantErr        error
 	}{
 		{name: "missing carrier creates a real readable writable file", entry: nativeHandleMissing, mode: 0o640},
 		{name: "existing binary carrier is reopened without truncation", mode: 0o640},

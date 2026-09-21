@@ -12,8 +12,8 @@ import (
 )
 
 type lockTestOutcome struct {
-	acquisition filelock.Acquisition
 	err         error
+	acquisition filelock.Acquisition
 }
 
 func holdFixtureLock(t testing.TB, file *os.File, exclusivity filelock.Exclusivity) {
@@ -35,12 +35,12 @@ func TestExclusionAndReleaseLayerTriad(t *testing.T) {
 		close          bool
 		wantHeld       bool
 	}{
-		{"exclusive_excludes_exclusive", filelock.Exclusive, filelock.Exclusive, false, false},
-		{"exclusive_excludes_shared", filelock.Exclusive, filelock.Shared, false, false},
-		{"shared_excludes_exclusive", filelock.Shared, filelock.Exclusive, false, false},
-		{"shared_admits_shared", filelock.Shared, filelock.Shared, false, true},
-		{"close_releases_exclusive", filelock.Exclusive, filelock.Exclusive, true, false},
-		{"close_releases_shared", filelock.Shared, filelock.Exclusive, true, false},
+		{name: "exclusive_excludes_exclusive", holder: filelock.Exclusive, second: filelock.Exclusive, close: false, wantHeld: false},
+		{name: "exclusive_excludes_shared", holder: filelock.Exclusive, second: filelock.Shared, close: false, wantHeld: false},
+		{name: "shared_excludes_exclusive", holder: filelock.Shared, second: filelock.Exclusive, close: false, wantHeld: false},
+		{name: "shared_admits_shared", holder: filelock.Shared, second: filelock.Shared, close: false, wantHeld: true},
+		{name: "close_releases_exclusive", holder: filelock.Exclusive, second: filelock.Exclusive, close: true, wantHeld: false},
+		{name: "close_releases_shared", holder: filelock.Shared, second: filelock.Exclusive, close: true, wantHeld: false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -87,9 +87,9 @@ func TestBlockingAcquisitionHandoffLayerTriad(t *testing.T) {
 		holder, waiter filelock.Exclusivity
 		close          bool
 	}{
-		{"exclusive_to_exclusive", filelock.Exclusive, filelock.Exclusive, false},
-		{"shared_to_exclusive", filelock.Shared, filelock.Exclusive, false},
-		{"exclusive_to_shared_on_close", filelock.Exclusive, filelock.Shared, true},
+		{name: "exclusive_to_exclusive", holder: filelock.Exclusive, waiter: filelock.Exclusive, close: false},
+		{name: "shared_to_exclusive", holder: filelock.Shared, waiter: filelock.Exclusive, close: false},
+		{name: "exclusive_to_shared_on_close", holder: filelock.Exclusive, waiter: filelock.Shared, close: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -110,7 +110,7 @@ func TestBlockingAcquisitionHandoffLayerTriad(t *testing.T) {
 			go func() {
 				close(started)
 				got, err := filelock.Acquire(context.Background(), filelock.Request{File: waiter, Exclusivity: tc.waiter, Patience: filelock.Blocking})
-				done <- lockTestOutcome{got, err}
+				done <- lockTestOutcome{acquisition: got, err: err}
 			}()
 			<-started
 			if tc.close {
@@ -145,13 +145,13 @@ func TestRefusedRequestDoesNotChangeNativeOwnership(t *testing.T) {
 		patience    filelock.Patience
 		missing     bool
 	}{
-		{"absent_file", filelock.Exclusive, filelock.Immediate, true},
-		{"zero_exclusivity", filelock.ExclusivityUnknown, filelock.Immediate, false},
-		{"zero_patience", filelock.Exclusive, filelock.PatienceUnknown, false},
-		{"future_exclusivity", filelock.Exclusivity(3), filelock.Immediate, false},
-		{"future_patience", filelock.Exclusive, filelock.Patience(3), false},
-		{"all_bits_exclusivity", filelock.Exclusivity(255), filelock.Immediate, false},
-		{"all_bits_patience", filelock.Exclusive, filelock.Patience(255), false},
+		{name: "absent_file", exclusivity: filelock.Exclusive, patience: filelock.Immediate, missing: true},
+		{name: "zero_exclusivity", exclusivity: filelock.ExclusivityUnknown, patience: filelock.Immediate, missing: false},
+		{name: "zero_patience", exclusivity: filelock.Exclusive, patience: filelock.PatienceUnknown, missing: false},
+		{name: "future_exclusivity", exclusivity: filelock.Exclusivity(3), patience: filelock.Immediate, missing: false},
+		{name: "future_patience", exclusivity: filelock.Exclusive, patience: filelock.Patience(3), missing: false},
+		{name: "all_bits_exclusivity", exclusivity: filelock.Exclusivity(255), patience: filelock.Immediate, missing: false},
+		{name: "all_bits_patience", exclusivity: filelock.Exclusive, patience: filelock.Patience(255), missing: false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -199,19 +199,19 @@ func expiredLockContext(t *testing.T) context.Context {
 func TestContextIngressPreservesLockStateLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name    string
-		context func(*testing.T) context.Context
 		wantErr error
+		context func(*testing.T) context.Context
+		name    string
 	}{
-		{"active", func(t *testing.T) context.Context { return t.Context() }, nil},
-		{"nil", func(*testing.T) context.Context { return nil }, core.ErrNilContext},
-		{"typed_nil", func(*testing.T) context.Context { return (*filelockBrokenContext)(nil) }, core.ErrContextObservation},
-		{"cancelled", func(t *testing.T) context.Context {
+		{name: "active", context: func(t *testing.T) context.Context { return t.Context() }, wantErr: nil},
+		{name: "nil", context: func(*testing.T) context.Context { return nil }, wantErr: core.ErrNilContext},
+		{name: "typed_nil", context: func(*testing.T) context.Context { return (*filelockBrokenContext)(nil) }, wantErr: core.ErrContextObservation},
+		{name: "cancelled", context: func(t *testing.T) context.Context {
 			ctx, cancel := context.WithCancel(t.Context())
 			cancel()
 			return ctx
-		}, context.Canceled},
-		{"expired", expiredLockContext, context.DeadlineExceeded},
+		}, wantErr: context.Canceled},
+		{name: "expired", context: expiredLockContext, wantErr: context.DeadlineExceeded},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -250,18 +250,18 @@ func TestContextIngressPreservesLockStateLayerTriad(t *testing.T) {
 func TestAbsentCapabilityCannotClaimEffect(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name  string
 		check func() error
+		name  string
 	}{
-		{"zero_acquisition_validation", (filelock.Acquisition{}).Validate},
-		{"zero_acquisition_disclosure", func() error {
+		{name: "zero_acquisition_validation", check: (filelock.Acquisition{}).Validate},
+		{name: "zero_acquisition_disclosure", check: func() error {
 			held, err := (filelock.Acquisition{}).Held()
 			if held {
 				return nil
 			}
 			return err
 		}},
-		{"nil_release", func() error { return filelock.Release(t.Context(), nil) }},
+		{name: "nil_release", check: func() error { return filelock.Release(t.Context(), nil) }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

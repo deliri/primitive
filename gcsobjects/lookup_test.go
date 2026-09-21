@@ -16,10 +16,10 @@ import (
 func TestLookupGCSObjectLayerTriadExactKeyAndNoEnumeration(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name    string
-		mutate  func(*storageapi.Object)
-		status  int
 		wantErr error
+		mutate  func(*storageapi.Object)
+		name    string
+		status  int
 	}{
 		{name: "exact key discovers current generation"},
 		{name: "absent key yields zero metadata", status: http.StatusNotFound, wantErr: core.ErrObjectStoreAbsent},
@@ -78,13 +78,13 @@ func TestLookupGCSObjectLayerTriadExactKeyAndNoEnumeration(t *testing.T) {
 func TestLookupGCSObjectRejectsInvalidCallBeforeProvider(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr    error
 		name       string
 		cancel     bool
 		nilContext bool
 		nilClient  bool
 		zeroBucket bool
 		zeroName   bool
-		wantErr    error
 	}{
 		{name: "cancelled context performs no request", cancel: true, wantErr: context.Canceled},
 		{name: "nil context performs no request", nilContext: true, wantErr: core.ErrObjectStoreContract},

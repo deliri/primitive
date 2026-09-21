@@ -13,9 +13,9 @@ import (
 func TestAWSAcquireRequiresOneCompleteXMLDocument(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr        error
 		name           string
 		prefix, suffix []byte
-		wantErr        error
 	}{
 		{name: "one complete document"},
 		{name: "leading XML whitespace", prefix: []byte(" \t\r\n")},

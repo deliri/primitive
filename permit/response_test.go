@@ -12,24 +12,24 @@ import (
 func TestPermitResponseBindingLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name    string
-		mutate  func(*Terms) error
 		wantErr error
+		mutate  func(*Terms) error
+		name    string
 	}{
-		{"same response facts survive both public decoders", func(*Terms) error { return nil }, nil},
-		{"empty skill selection remains an empty permission", func(p *Terms) error { p.Actions = Actions{}; return nil }, nil},
-		{"foreign response nonce cannot replace the expected answer", func(p *Terms) error {
+		{name: "same response facts survive both public decoders", mutate: func(*Terms) error { return nil }, wantErr: nil},
+		{name: "empty skill selection remains an empty permission", mutate: func(p *Terms) error { p.Actions = Actions{}; return nil }, wantErr: nil},
+		{name: "foreign response nonce cannot replace the expected answer", mutate: func(p *Terms) error {
 			var err error
 			p.RequestNonce, err = controlwire.NewRequestNonce([32]byte{77})
 			return err
-		}, core.ErrPermitBinding},
-		{"foreign generation cannot borrow the response identity", func(p *Terms) error { var err error; p.Generation, err = lease.NewGeneration(2); return err }, core.ErrPermitBinding},
-		{"shifted activation cannot borrow the provider timestamp", func(p *Terms) error {
+		}, wantErr: core.ErrPermitBinding},
+		{name: "foreign generation cannot borrow the response identity", mutate: func(p *Terms) error { var err error; p.Generation, err = lease.NewGeneration(2); return err }, wantErr: core.ErrPermitBinding},
+		{name: "shifted activation cannot borrow the provider timestamp", mutate: func(p *Terms) error {
 			var startErr, endErr error
 			p.NotBefore, startErr = p.NotBefore.Add(p.RetryAfter)
 			p.ExpiresAt, endErr = p.ExpiresAt.Add(p.RetryAfter)
 			return errors.Join(startErr, endErr)
-		}, core.ErrPermitBinding},
+		}, wantErr: core.ErrPermitBinding},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

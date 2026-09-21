@@ -432,7 +432,8 @@ func declaredRealWorldImports() (realWorldImportInventory, error) {
 			PackageGoToolchain, PackageGitRepo, PackageProcess, PackageRelease, PackageRunWorkspace, PackageShutdown, PackageUpgrade),
 		realWorldImportOwners(realWorldSubstrateProcessExecution, PackageProcess),
 		realWorldImportOwners(realWorldSubstrateOperatingSystemSignal, PackageShutdown),
-		realWorldImportOwners(realWorldSubstrateHTTP, PackageExchange, PackageGoogleIdentity, PackageTailnet),
+		// GCS owns its provider client's HTTP transport and shutdown.
+		realWorldImportOwners(realWorldSubstrateHTTP, PackageExchange, PackageGoogleIdentity, PackageGCSObjects, PackageTailnet),
 		realWorldImportOwners(realWorldSubstrateClock, PackageTemporal, PackageTimeProof),
 		realWorldImportOwners(realWorldSubstrateEntropy, PackageKeygen),
 		realWorldImportOwners(realWorldSubstrateUnix, PackageHostFacts),

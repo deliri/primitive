@@ -61,19 +61,19 @@ var proofLedgerIngress = struct {
 	DomainText func(AppendReceiptSigningDomain, []byte) (AppendReceiptSigningDomain, error)
 	Envelope   func([]byte) (Envelope[ledgerTestPayload], error)
 }{
-	(*LedgerIdentity).UnmarshalJSON, (*EventIdentity).UnmarshalJSON,
-	(*Sequence).UnmarshalJSON, (*Position).UnmarshalJSON, (*PageLimit).UnmarshalJSON,
-	(*AppendReceipt).UnmarshalJSON, (*AppendReceiptDocument).UnmarshalJSON,
-	(*AppendReceiptSigningDomain).UnmarshalJSON, AppendReceiptSigningDomain.ParseCanonicalText,
-	DecodeEnvelope[ledgerTestPayload, *ledgerTestPayload],
+	Ledger: (*LedgerIdentity).UnmarshalJSON, Event: (*EventIdentity).UnmarshalJSON,
+	Sequence: (*Sequence).UnmarshalJSON, Position: (*Position).UnmarshalJSON, PageLimit: (*PageLimit).UnmarshalJSON,
+	Receipt: (*AppendReceipt).UnmarshalJSON, Document: (*AppendReceiptDocument).UnmarshalJSON,
+	Domain: (*AppendReceiptSigningDomain).UnmarshalJSON, DomainText: AppendReceiptSigningDomain.ParseCanonicalText,
+	Envelope: DecodeEnvelope[ledgerTestPayload, *ledgerTestPayload],
 }
 
 var proofLedgerFuzzInventory = struct {
 	Envelope, JSON, Receipt, Replay, Domain func(*testing.F)
 }{
-	FuzzEnvelopeSemanticClosure, FuzzProofLedgerExternalJSONDoorsSemanticClosure,
-	FuzzProofLedgerReceiptAuthentication, FuzzProofLedgerReplayAndAppendHead,
-	FuzzProofLedgerSigningDomainText,
+	Envelope: FuzzEnvelopeSemanticClosure, JSON: FuzzProofLedgerExternalJSONDoorsSemanticClosure,
+	Receipt: FuzzProofLedgerReceiptAuthentication, Replay: FuzzProofLedgerReplayAndAppendHead,
+	Domain: FuzzProofLedgerSigningDomainText,
 }
 
 func TestProofLedgerExternalIngressInventory(t *testing.T) {

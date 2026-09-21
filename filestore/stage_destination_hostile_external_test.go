@@ -57,9 +57,9 @@ const (
 func TestOpenStageDestinationHostileIngressMatrix(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr, wantNative error
 		name                string
 		mutation            stageDestinationIngressMutation
-		wantErr, wantNative error
 	}{
 		{name: "nil context cannot create custody", mutation: stageDestinationIngressNilContext, wantErr: core.ErrNilContext},
 		{name: "canceled context cannot create custody", mutation: stageDestinationIngressCanceledContext, wantErr: context.Canceled},
@@ -323,10 +323,10 @@ const (
 func TestStageDestinationLinearOwnershipRefusesCopiesAndReuse(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr                     error
 		name                        string
 		fixture                     stageOwnershipFixture
 		cancel                      bool
-		wantErr                     error
 		wantOriginalLive, wantStage bool
 	}{
 		{name: "nil handle cannot mint a file or receipt", fixture: stageOwnershipNil, wantErr: core.ErrFilestoreContract},
@@ -468,9 +468,9 @@ const (
 func TestStageDestinationCommitRefusesPostFinishMutation(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr, wantNative error
 		name                string
 		mutation            settledStageMutation
-		wantErr, wantNative error
 		wantForeign         bool
 	}{
 		{name: "exact finished receipt activates original inode"},

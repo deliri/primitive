@@ -22,12 +22,12 @@ const (
 )
 
 type standardResponseFixture struct {
+	wantErr   error
 	name      string
 	text      string
 	method    string
 	status    int
 	operation standardResponseOperation
-	wantErr   error
 }
 
 func (f standardResponseFixture) goWrite(w http.ResponseWriter, r *http.Request) {
@@ -184,9 +184,9 @@ func TestStandardResponseWriteFailureIsObserved(t *testing.T) {
 		{name: "redirect", operation: standardResponseRedirect, status: http.StatusFound, text: "/target"},
 	}
 	faults := []struct {
+		want  error
 		name  string
 		fault standardWriterFault
-		want  error
 	}{
 		{name: "closed writer", fault: standardWriteClosed, want: io.ErrClosedPipe},
 		{name: "partial failed write", fault: standardWritePartial, want: io.ErrClosedPipe},

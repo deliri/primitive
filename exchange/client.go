@@ -131,18 +131,18 @@ type aggregateCall struct {
 }
 
 type aggregateResponse struct {
-	complete bool
 	body     []byte
 	metadata ResponseMetadata
+	complete bool
 }
 
 type attemptResponse struct {
-	written    uint64
-	complete   bool
 	retryAfter string
 	headers    CapturedHeaders
 	body       []byte
+	written    uint64
 	status     core.HTTPStatusCode
+	complete   bool
 }
 
 type retryProgress struct {
@@ -577,11 +577,11 @@ func observedAggregateResponse(
 }
 
 type aggregateAttempt struct {
-	destination ResponseDestination
-	number      uint64
 	context     context.Context
+	destination ResponseDestination
 	client      *http.Client
 	request     aggregateRequest
+	number      uint64
 	timeout     temporal.Duration
 }
 

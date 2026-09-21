@@ -575,12 +575,12 @@ func (body retrievalResponseBody) Close() error { return body.closeErr }
 func TestDownloadFileStageOwnershipLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		want          error
 		name          string
 		payload       []byte
+		requests      int
 		occupied      bool
 		missingExtent bool
-		want          error
-		requests      int
 	}{
 		{name: "positive_empty_authenticated_file", requests: 1},
 		{name: "negative_preexisting_stage_is_not_ours_to_remove", payload: []byte{1}, occupied: true, want: core.ErrFilestoreConflict},

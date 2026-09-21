@@ -12,9 +12,9 @@ import (
 func TestIntervalRequestWallCorrectionLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr                                                    error
 		name                                                       string
 		start, finish, startWall, finishWall, wantEnd, wantElapsed int64
-		wantErr                                                    error
 	}{
 		{name: "backward finish wall does not reverse elapsed carrier", start: 0, finish: 1, startWall: 10, finishWall: -10, wantEnd: 11, wantElapsed: 1},
 		{name: "forward finish wall cannot invent elapsed time", start: 0, finish: 1, startWall: 10, finishWall: math.MaxInt64, wantEnd: 11, wantElapsed: 1},

@@ -58,13 +58,13 @@ func (w *bufferPanicDestination) Write(data []byte) (int, error) {
 func TestResponseBufferDestinationPanicRetainsCompletedReceipt(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name, body                            string
-		phase                                 bufferPanicPhase
 		wantErr                               error
-		wantCommitted                         bool
-		wantHeaders, wantStatuses, wantWrites int
+		name, body                            string
 		wantBody                              string
+		wantHeaders, wantStatuses, wantWrites int
 		wantBytes                             uint64
+		phase                                 bufferPanicPhase
+		wantCommitted                         bool
 	}{
 		{name: "completed destination returns exact body and status", body: "abcd", wantCommitted: true, wantHeaders: 1, wantStatuses: 1, wantWrites: 1, wantBody: "abcd", wantBytes: 4},
 		{name: "Header panic cannot escape or invent a status receipt", body: "abcd", phase: bufferHeaderPanic, wantErr: core.ErrExchangeWrite, wantHeaders: 1},

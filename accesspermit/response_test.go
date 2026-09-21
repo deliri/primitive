@@ -114,9 +114,9 @@ func TestResponsePermitBindingLayerTriad(t *testing.T) {
 	t.Parallel()
 	registration, checkIn, keys := responseFixture(t)
 	for _, tc := range []struct {
-		name     string
-		mutation func(*Document)
 		want     error
+		mutation func(*Document)
+		name     string
 	}{
 		{name: "exact registration and permit share authenticated identity"},
 		{name: "foreign nonce cannot accompany authentic registration", mutation: func(d *Document) {

@@ -18,23 +18,23 @@ func TestResponseBufferLayerTriad(t *testing.T) {
 	t.Parallel()
 	const ceiling = 8
 	cases := []struct {
+		cause         error
+		wantErr       error
 		name          string
 		body          []byte
 		status        int
-		cause         error
-		wantErr       error
 		wantCommitted bool
 	}{
-		{"one below ceiling releases exact bytes", bytes.Repeat([]byte{'a'}, ceiling-1), http.StatusCreated, nil, nil, true},
-		{"exact ceiling releases exact bytes", bytes.Repeat([]byte{'b'}, ceiling), http.StatusOK, nil, nil, true},
-		{"bytes beyond former cutoff release intact", bytes.Repeat([]byte{'c'}, ceiling+1), http.StatusOK, nil, nil, true},
-		{"multiple windows release intact", bytes.Repeat([]byte{'d'}, TransferBufferBytes), http.StatusOK, nil, nil, true},
-		{"product refusal withholds already written bytes", []byte("secret"), http.StatusOK, context.Canceled, context.Canceled, false},
-		{"empty successful response has zero body bytes", nil, http.StatusNoContent, nil, nil, true},
-		{"no-content status rejects body", []byte("body"), http.StatusNoContent, nil, http.ErrBodyNotAllowed, false},
-		{"not-modified status rejects body", []byte("body"), http.StatusNotModified, nil, http.ErrBodyNotAllowed, false},
-		{"informational status is outside buffered scope", nil, http.StatusEarlyHints, nil, core.ErrExchangeResponse, false},
-		{"out of domain status cannot panic", nil, 1000, nil, core.ErrExchangeResponse, false},
+		{name: "one below ceiling releases exact bytes", body: bytes.Repeat([]byte{'a'}, ceiling-1), status: http.StatusCreated, cause: nil, wantErr: nil, wantCommitted: true},
+		{name: "exact ceiling releases exact bytes", body: bytes.Repeat([]byte{'b'}, ceiling), status: http.StatusOK, cause: nil, wantErr: nil, wantCommitted: true},
+		{name: "bytes beyond former cutoff release intact", body: bytes.Repeat([]byte{'c'}, ceiling+1), status: http.StatusOK, cause: nil, wantErr: nil, wantCommitted: true},
+		{name: "multiple windows release intact", body: bytes.Repeat([]byte{'d'}, TransferBufferBytes), status: http.StatusOK, cause: nil, wantErr: nil, wantCommitted: true},
+		{name: "product refusal withholds already written bytes", body: []byte("secret"), status: http.StatusOK, cause: context.Canceled, wantErr: context.Canceled, wantCommitted: false},
+		{name: "empty successful response has zero body bytes", body: nil, status: http.StatusNoContent, cause: nil, wantErr: nil, wantCommitted: true},
+		{name: "no-content status rejects body", body: []byte("body"), status: http.StatusNoContent, cause: nil, wantErr: http.ErrBodyNotAllowed, wantCommitted: false},
+		{name: "not-modified status rejects body", body: []byte("body"), status: http.StatusNotModified, cause: nil, wantErr: http.ErrBodyNotAllowed, wantCommitted: false},
+		{name: "informational status is outside buffered scope", body: nil, status: http.StatusEarlyHints, cause: nil, wantErr: core.ErrExchangeResponse, wantCommitted: false},
+		{name: "out of domain status cannot panic", body: nil, status: 1000, cause: nil, wantErr: core.ErrExchangeResponse, wantCommitted: false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -92,7 +92,7 @@ func TestResponseBufferPreservesRealDestinationFailure(t *testing.T) {
 			t.Error(err)
 		}
 	}()
-	destination := pipeResponseWriter{httptest.NewRecorder(), writer}
+	destination := pipeResponseWriter{ResponseRecorder: httptest.NewRecorder(), body: writer}
 	result, err := BufferResponse(context.Background(), ResponseBufferRequest{Call: SocketServerCall{writer: destination, request: httptest.NewRequest(http.MethodGet, "/", nil)}, Serve: func(call SocketServerCall) error {
 		w := call.writer
 		_, err := w.Write([]byte("body"))
@@ -109,18 +109,18 @@ func TestResponseBufferPreservesRealDestinationFailure(t *testing.T) {
 func TestResponseBufferHeaderAndCancellationLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name    string
-		header  http.Header
-		cancel  bool
 		wantErr error
+		header  http.Header
+		name    string
+		cancel  bool
 	}{
-		{"canonical declared length matches", http.Header{core.HTTPHeaderContentLength().String(): []string{"4"}}, false, nil},
-		{"false declared length refuses", http.Header{core.HTTPHeaderContentLength().String(): []string{"5"}}, false, core.ErrExchangeResponse},
-		{"duplicate declared length refuses", http.Header{core.HTTPHeaderContentLength().String(): []string{"4", "4"}}, false, core.ErrExchangeResponse},
-		{"noncanonical name cannot bypass framing", http.Header{"content-length": []string{"5"}}, false, core.ErrExchangeResponse},
-		{"trailer protocol requires streaming path", http.Header{core.HTTPHeaderTrailer().String(): []string{"Digest"}}, false, core.ErrExchangeResponse},
-		{"header injection refuses", http.Header{"X-Test": []string{"a\r\nb"}}, false, core.ErrExchangeResponse},
-		{"cancellation before release withholds bytes", nil, true, context.Canceled},
+		{name: "canonical declared length matches", header: http.Header{core.HTTPHeaderContentLength().String(): []string{"4"}}, cancel: false, wantErr: nil},
+		{name: "false declared length refuses", header: http.Header{core.HTTPHeaderContentLength().String(): []string{"5"}}, cancel: false, wantErr: core.ErrExchangeResponse},
+		{name: "duplicate declared length refuses", header: http.Header{core.HTTPHeaderContentLength().String(): []string{"4", "4"}}, cancel: false, wantErr: core.ErrExchangeResponse},
+		{name: "noncanonical name cannot bypass framing", header: http.Header{"content-length": []string{"5"}}, cancel: false, wantErr: core.ErrExchangeResponse},
+		{name: "trailer protocol requires streaming path", header: http.Header{core.HTTPHeaderTrailer().String(): []string{"Digest"}}, cancel: false, wantErr: core.ErrExchangeResponse},
+		{name: "header injection refuses", header: http.Header{"X-Test": []string{"a\r\nb"}}, cancel: false, wantErr: core.ErrExchangeResponse},
+		{name: "cancellation before release withholds bytes", header: nil, cancel: true, wantErr: context.Canceled},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -260,22 +260,22 @@ func FuzzResponseBufferSemanticExtent(f *testing.F) {
 func TestResponseBufferRepresentationLengthLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr  error
 		name     string
 		method   string
-		status   int
 		body     string
 		length   string
 		wantBody string
-		wantErr  error
+		status   int
 	}{
-		{"HEAD suppresses generated representation", http.MethodHead, http.StatusOK, "body", "4", "", nil},
-		{"HEAD permits ungenerated representation length", http.MethodHead, http.StatusOK, "", "4", "", nil},
-		{"HEAD refuses incorrect generated length", http.MethodHead, http.StatusOK, "body", "5", "", core.ErrExchangeResponse},
-		{"HEAD refuses malformed length", http.MethodHead, http.StatusOK, "", "-1", "", core.ErrExchangeResponse},
-		{"not modified retains representation length", http.MethodGet, http.StatusNotModified, "", "4", "", nil},
-		{"ordinary empty response refuses false length", http.MethodGet, http.StatusOK, "", "4", "", core.ErrExchangeResponse},
-		{"ordinary response releases representation", http.MethodGet, http.StatusOK, "body", "4", "body", nil},
-		{"HEAD empty representation remains empty", http.MethodHead, http.StatusOK, "", "0", "", nil},
+		{name: "HEAD suppresses generated representation", method: http.MethodHead, status: http.StatusOK, body: "body", length: "4", wantBody: "", wantErr: nil},
+		{name: "HEAD permits ungenerated representation length", method: http.MethodHead, status: http.StatusOK, body: "", length: "4", wantBody: "", wantErr: nil},
+		{name: "HEAD refuses incorrect generated length", method: http.MethodHead, status: http.StatusOK, body: "body", length: "5", wantBody: "", wantErr: core.ErrExchangeResponse},
+		{name: "HEAD refuses malformed length", method: http.MethodHead, status: http.StatusOK, body: "", length: "-1", wantBody: "", wantErr: core.ErrExchangeResponse},
+		{name: "not modified retains representation length", method: http.MethodGet, status: http.StatusNotModified, body: "", length: "4", wantBody: "", wantErr: nil},
+		{name: "ordinary empty response refuses false length", method: http.MethodGet, status: http.StatusOK, body: "", length: "4", wantBody: "", wantErr: core.ErrExchangeResponse},
+		{name: "ordinary response releases representation", method: http.MethodGet, status: http.StatusOK, body: "body", length: "4", wantBody: "body", wantErr: nil},
+		{name: "HEAD empty representation remains empty", method: http.MethodHead, status: http.StatusOK, body: "", length: "0", wantBody: "", wantErr: nil},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

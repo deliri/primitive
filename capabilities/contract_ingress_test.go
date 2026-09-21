@@ -15,12 +15,12 @@ func TestSymbolContractsPreserveCrossPackageErrorIdentity(t *testing.T) {
 	invalid.ImportPath = gomodule.ImportPath{}
 	wantCause := invalid.ImportPath.Validate()
 	cases := []struct {
-		name     string
 		validate func() error
+		name     string
 	}{
-		{"symbol ingress", invalid.Validate},
-		{"fact ingress", (StandardSymbolFact{Symbol: invalid, Disposition: StandardSymbolUnresolved}).Validate},
-		{"operation function ingress", (OperationContract{Function: invalid, Result: valid.Selector, ResultPackage: core.PackageCore}).Validate},
+		{name: "symbol ingress", validate: invalid.Validate},
+		{name: "fact ingress", validate: (StandardSymbolFact{Symbol: invalid, Disposition: StandardSymbolUnresolved}).Validate},
+		{name: "operation function ingress", validate: (OperationContract{Function: invalid, Result: valid.Selector, ResultPackage: core.PackageCore}).Validate},
 	}
 	// The shared nominal import-path sentinel remains visible across the package wall.
 	if !errors.Is(wantCause, core.ErrGoModuleContract) {
@@ -50,32 +50,32 @@ func TestOperationContractBoundaryMutations(t *testing.T) {
 				t.Fatalf("fixture = (%+v,%t,%v)", original, found, err)
 			}
 			cases := []struct {
-				name    string
-				mutate  func(*OperationContract)
 				wantErr error
+				mutate  func(*OperationContract)
+				name    string
 			}{
-				{"unchanged callable", func(*OperationContract) {}, nil},
-				{"missing result package", func(c *OperationContract) { c.ResultPackage = core.PackageUnknown }, core.ErrCapabilitiesContract},
-				{"future result package", func(c *OperationContract) { c.ResultPackage = core.PackageIdentity(255) }, core.ErrCapabilitiesContract},
-				{"missing result type", func(c *OperationContract) { c.Result = SymbolName{} }, core.ErrCapabilitiesContract},
-				{"missing function selector", func(c *OperationContract) { c.Function.Selector = SymbolName{} }, core.ErrCapabilitiesContract},
-				{"missing function import", func(c *OperationContract) { c.Function.ImportPath = gomodule.ImportPath{} }, core.ErrCapabilitiesContract},
-				{"method cannot substitute package function", func(c *OperationContract) { receiver := original.Result; c.Function.Receiver = &receiver }, core.ErrCapabilitiesContract},
-				{"present empty receiver is not absent", func(c *OperationContract) { receiver := SymbolName{}; c.Function.Receiver = &receiver }, core.ErrCapabilitiesContract},
-				{"request presence flip", func(c *OperationContract) { c.HasRequest = !c.HasRequest }, core.ErrCapabilitiesContract},
+				{name: "unchanged callable", mutate: func(*OperationContract) {}, wantErr: nil},
+				{name: "missing result package", mutate: func(c *OperationContract) { c.ResultPackage = core.PackageUnknown }, wantErr: core.ErrCapabilitiesContract},
+				{name: "future result package", mutate: func(c *OperationContract) { c.ResultPackage = core.PackageIdentity(255) }, wantErr: core.ErrCapabilitiesContract},
+				{name: "missing result type", mutate: func(c *OperationContract) { c.Result = SymbolName{} }, wantErr: core.ErrCapabilitiesContract},
+				{name: "missing function selector", mutate: func(c *OperationContract) { c.Function.Selector = SymbolName{} }, wantErr: core.ErrCapabilitiesContract},
+				{name: "missing function import", mutate: func(c *OperationContract) { c.Function.ImportPath = gomodule.ImportPath{} }, wantErr: core.ErrCapabilitiesContract},
+				{name: "method cannot substitute package function", mutate: func(c *OperationContract) { receiver := original.Result; c.Function.Receiver = &receiver }, wantErr: core.ErrCapabilitiesContract},
+				{name: "present empty receiver is not absent", mutate: func(c *OperationContract) { receiver := SymbolName{}; c.Function.Receiver = &receiver }, wantErr: core.ErrCapabilitiesContract},
+				{name: "request presence flip", mutate: func(c *OperationContract) { c.HasRequest = !c.HasRequest }, wantErr: core.ErrCapabilitiesContract},
 			}
 			if original.HasRequest {
 				cases = append(cases, struct {
-					name    string
-					mutate  func(*OperationContract)
 					wantErr error
-				}{"missing declared request", func(c *OperationContract) { c.Request = SymbolName{} }, core.ErrCapabilitiesContract})
+					mutate  func(*OperationContract)
+					name    string
+				}{name: "missing declared request", mutate: func(c *OperationContract) { c.Request = SymbolName{} }, wantErr: core.ErrCapabilitiesContract})
 			} else {
 				cases = append(cases, struct {
-					name    string
-					mutate  func(*OperationContract)
 					wantErr error
-				}{"unsolicited request", func(c *OperationContract) { c.Request = original.Result }, core.ErrCapabilitiesContract})
+					mutate  func(*OperationContract)
+					name    string
+				}{name: "unsolicited request", mutate: func(c *OperationContract) { c.Request = original.Result }, wantErr: core.ErrCapabilitiesContract})
 			}
 			for _, tc := range cases {
 				t.Run(tc.name, func(t *testing.T) {

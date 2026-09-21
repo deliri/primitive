@@ -16,16 +16,16 @@ import (
 func TestStreamsWriteOutputLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name       string
-		stream     process.Stream
-		payload    []byte
-		nilStream  process.Stream
-		count      int
 		cause      error
-		wantCount  uint64
 		wantErr    error
 		wantNative error
+		name       string
+		payload    []byte
+		count      int
+		wantCount  uint64
 		wantCalls  int
+		stream     process.Stream
+		nilStream  process.Stream
 	}{
 		{name: "positive/stdout preserves binary payload", stream: process.StreamStdout, payload: []byte{0, 255, 'x'}, count: 3, wantCount: 3, wantCalls: 1},
 		{name: "positive/stderr preserves binary payload", stream: process.StreamStderr, payload: []byte{0, 255, 'x'}, count: 3, wantCount: 3, wantCalls: 1},
@@ -76,9 +76,9 @@ func TestStreamsWriteOutputLayerTriad(t *testing.T) {
 }
 
 type outputOutcomeWriter struct {
+	cause    error
 	retained bytes.Buffer
 	count    int
-	cause    error
 	calls    int
 }
 

@@ -360,20 +360,20 @@ func TestInventoryScannerHostileShapeTable(t *testing.T) {
 func TestInventoryBindingHostileTable(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr  error
 		name     string
 		bindings []inventoryBinding
 		want     []string
-		wantErr  error
 	}{
-		{name: "compiler-owned public type", bindings: []inventoryBinding{{reflect.TypeFor[Client](), inventoryCapability}}, want: []string{"Client"}},
-		{name: "compiler-owned private flow", bindings: []inventoryBinding{{reflect.TypeFor[inspectionCopier](), inventoryFlow}}, want: []string{"inspectionCopier"}},
+		{name: "compiler-owned public type", bindings: []inventoryBinding{{typ: reflect.TypeFor[Client](), role: inventoryCapability}}, want: []string{"Client"}},
+		{name: "compiler-owned private flow", bindings: []inventoryBinding{{typ: reflect.TypeFor[inspectionCopier](), role: inventoryFlow}}, want: []string{"inspectionCopier"}},
 		{name: "empty inventory does not invent ownership"},
 		{name: "absent type is refused", bindings: []inventoryBinding{{role: inventoryFlow}}, wantErr: core.ErrObjectStoreContract},
-		{name: "foreign type cannot satisfy local contract", bindings: []inventoryBinding{{reflect.TypeFor[core.ByteLength](), inventoryProtocol}}, wantErr: core.ErrObjectStoreContract},
-		{name: "pointer is not a named local declaration", bindings: []inventoryBinding{{reflect.TypeFor[*Client](), inventoryCapability}}, wantErr: core.ErrObjectStoreContract},
+		{name: "foreign type cannot satisfy local contract", bindings: []inventoryBinding{{typ: reflect.TypeFor[core.ByteLength](), role: inventoryProtocol}}, wantErr: core.ErrObjectStoreContract},
+		{name: "pointer is not a named local declaration", bindings: []inventoryBinding{{typ: reflect.TypeFor[*Client](), role: inventoryCapability}}, wantErr: core.ErrObjectStoreContract},
 		{name: "missing role cannot classify a type", bindings: []inventoryBinding{{typ: reflect.TypeFor[Client]()}}, wantErr: core.ErrObjectStoreContract},
-		{name: "unknown future role is refused", bindings: []inventoryBinding{{reflect.TypeFor[Client](), inventoryRole(255)}}, wantErr: core.ErrObjectStoreContract},
-		{name: "duplicate types cannot inflate ownership", bindings: []inventoryBinding{{reflect.TypeFor[Client](), inventoryCapability}, {reflect.TypeFor[Client](), inventoryFlow}}, wantErr: core.ErrObjectStoreContract},
+		{name: "unknown future role is refused", bindings: []inventoryBinding{{typ: reflect.TypeFor[Client](), role: inventoryRole(255)}}, wantErr: core.ErrObjectStoreContract},
+		{name: "duplicate types cannot inflate ownership", bindings: []inventoryBinding{{typ: reflect.TypeFor[Client](), role: inventoryCapability}, {typ: reflect.TypeFor[Client](), role: inventoryFlow}}, wantErr: core.ErrObjectStoreContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

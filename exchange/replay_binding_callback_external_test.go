@@ -28,9 +28,9 @@ const (
 // Fault is test-owned input that crosses the real decoder. It avoids a global
 // callback switch: each parallel row owns the behavior of its decoded value.
 type callbackBoundDocument struct {
+	marshals  *int
 	Operation string               `json:"operation"`
 	Fault     bindingCallbackFault `json:"fault"`
-	marshals  *int
 }
 
 func (d callbackBoundDocument) Validate() error {
@@ -95,17 +95,17 @@ func (f bindingTransport) RoundTrip(r *http.Request) (*http.Response, error) { r
 func TestReceiveReplayBindingCallbackLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name        string
-		fault       bindingCallbackFault
-		replay      exchange.ReplayMode
-		header      string
 		closeErr    error
 		wantErr     error
 		wantNative  error
-		wantBinding bool
-		wantBody    bool
+		name        string
+		header      string
 		wantKey     string
 		wantCloses  int
+		fault       bindingCallbackFault
+		replay      exchange.ReplayMode
+		wantBinding bool
+		wantBody    bool
 	}{
 		{name: "positive exact identity survives decoding and projection", replay: exchange.ReplayIdempotencyKey, header: "op-A", wantBody: true, wantKey: "op-A", wantCloses: 1},
 		{name: "positive keyed single attempt retains the same binding", replay: exchange.ReplaySingleAttemptWithIdempotencyKey, header: "op-A", wantBody: true, wantKey: "op-A", wantCloses: 1},
@@ -172,14 +172,14 @@ func TestReceiveReplayBindingCallbackLayerTriad(t *testing.T) {
 func TestSendReplayBindingCallbackLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name        string
-		fault       bindingCallbackFault
-		replay      exchange.ReplayMode
-		header      string
 		wantErr     error
 		wantNative  error
-		wantBinding bool
+		name        string
+		header      string
 		wantCalls   int
+		fault       bindingCallbackFault
+		replay      exchange.ReplayMode
+		wantBinding bool
 		wantBody    bool
 	}{
 		{name: "positive exact binding reaches the standard transport", replay: exchange.ReplayIdempotencyKey, header: "op-A", wantCalls: 1, wantBody: true},

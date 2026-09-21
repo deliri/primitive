@@ -18,10 +18,10 @@ import (
 func TestScrubNativeBatchContinuationLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr           error
 		name              string
 		width             int
 		nested, cancelled bool
-		wantErr           error
 	}{
 		{name: "empty owned root remains empty"},
 		{name: "one below batch preserves complete removal", width: 63},

@@ -70,10 +70,10 @@ func TestAmbientLookupLayerTriad(t *testing.T) {
 		t.Fatalf("probe name = %v, want nil", err)
 	}
 	for _, tc := range []struct {
+		wantErr     error
 		name, value string
 		present     bool
 		invalidName bool
-		wantErr     error
 	}{
 		{name: "absent variable cannot become present empty"},
 		{name: "zero name is caller refusal even with present OS value", present: true, value: "present", invalidName: true, wantErr: core.ErrProcessContract},
@@ -132,9 +132,9 @@ func TestResolveWorkingPathCallerBoundaryTable(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, tc := range []struct {
+		wantErr    error
 		name, text string
 		want       core.AbsolutePath
-		wantErr    error
 	}{
 		{name: "relative dot retains observed coordinate", text: ".", want: working},
 		{name: "absolute coordinate is not joined twice", text: working.String(), want: working},

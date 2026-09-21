@@ -25,8 +25,8 @@ const (
 // verifier. Product code separately decides which verified principal is
 // authorized for a capability.
 type GoogleCloudVerifierConfiguration struct {
-	Audience Audience
 	Client   exchange.Client
+	Audience Audience
 }
 
 func (c GoogleCloudVerifierConfiguration) Validate() error {

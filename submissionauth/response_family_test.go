@@ -31,15 +31,15 @@ func TestSubmissionResponseFamilyLayerTriad(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, tc := range []struct {
+		wantErr   error
 		name      string
+		wantSigns int
 		family    controlwire.RouteFamily
 		absent    bool
-		wantErr   error
-		wantSigns int
 	}{
-		{"exact_family_authenticates", controlwire.RouteFamilySubmissions, false, nil, 1},
-		{"sibling_family_refused_before_signing", controlwire.RouteFamilySubmissionCompletions, false, core.ErrControlPlaneResponseBinding, 0},
-		{"absent_authority_cannot_issue", controlwire.RouteFamilySubmissions, true, core.ErrControlPlaneResponseDocument, 0},
+		{name: "exact_family_authenticates", family: controlwire.RouteFamilySubmissions, absent: false, wantErr: nil, wantSigns: 1},
+		{name: "sibling_family_refused_before_signing", family: controlwire.RouteFamilySubmissionCompletions, absent: false, wantErr: core.ErrControlPlaneResponseBinding, wantSigns: 0},
+		{name: "absent_authority_cannot_issue", family: controlwire.RouteFamilySubmissions, absent: true, wantErr: core.ErrControlPlaneResponseDocument, wantSigns: 0},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -104,15 +104,15 @@ func TestCompletionResponseFamilyLayerTriad(t *testing.T) {
 	fixture := newAuthCompletionFixture(t, authCompletionFixtureRequest{})
 	body := authCompletionResponseBody(t, fixture)
 	for _, tc := range []struct {
+		wantErr   error
 		name      string
+		wantSigns int
 		family    controlwire.RouteFamily
 		absent    bool
-		wantErr   error
-		wantSigns int
 	}{
-		{"exact_family_authenticates", controlwire.RouteFamilySubmissionCompletions, false, nil, 1},
-		{"sibling_family_refused_before_signing", controlwire.RouteFamilySubmissions, false, core.ErrControlPlaneResponseBinding, 0},
-		{"absent_authority_cannot_issue", controlwire.RouteFamilySubmissionCompletions, true, core.ErrControlPlaneResponseDocument, 0},
+		{name: "exact_family_authenticates", family: controlwire.RouteFamilySubmissionCompletions, absent: false, wantErr: nil, wantSigns: 1},
+		{name: "sibling_family_refused_before_signing", family: controlwire.RouteFamilySubmissions, absent: false, wantErr: core.ErrControlPlaneResponseBinding, wantSigns: 0},
+		{name: "absent_authority_cannot_issue", family: controlwire.RouteFamilySubmissionCompletions, absent: true, wantErr: core.ErrControlPlaneResponseDocument, wantSigns: 0},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

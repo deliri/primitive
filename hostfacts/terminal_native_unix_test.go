@@ -22,10 +22,10 @@ const (
 func TestTerminalDescriptorObservationLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		kind    descriptorFixtureKind
 		closed  bool
-		wantErr error
 	}{
 		{name: "pipe remains detached and owned by caller", kind: descriptorFixturePipe},
 		{name: "null device remains detached and owned by caller", kind: descriptorFixtureNull},

@@ -211,11 +211,11 @@ func TestLayerTriadGoogleIdentityAcquireRealHTTP(t *testing.T) {
 func TestGoogleMetadataAcquisitionBypassesConfiguredProxy(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr   error
 		name      string
+		wantCalls uint64
 		proxy     bool
 		cancel    bool
-		wantCalls uint64
-		wantErr   error
 	}{
 		{name: "configured_proxy_cannot_observe_metadata", proxy: true, wantCalls: 1},
 		{name: "absent_proxy_keeps_direct_metadata", wantCalls: 1},
@@ -261,12 +261,12 @@ func TestGoogleMetadataAcquisitionBypassesConfiguredProxy(t *testing.T) {
 func TestLayerTriadGoogleAccessTokenRealHTTP(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name     string
+		wantErr  error
 		change   func(*googleAccessTokenResponse)
 		mutate   func([]byte) []byte
+		name     string
 		noFlavor bool
 		cancel   bool
-		wantErr  error
 	}{
 		{name: "minimum_positive_lifetime_remains_exact", change: func(w *googleAccessTokenResponse) { w.ExpiresIn = 1 }},
 		{name: "maximum_representable_lifetime_does_not_wrap", change: func(w *googleAccessTokenResponse) {

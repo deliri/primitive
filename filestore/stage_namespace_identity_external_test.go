@@ -45,12 +45,12 @@ func TestStagedNamespaceEntryLayerTriad(t *testing.T) {
 		name   string
 		effect stageEntryEffect
 	}{
-		{"create activation", stageEntryCommitCreate},
-		{"replace activation", stageEntryCommitReplace},
-		{"create recovery", stageEntryRecoverCreate},
-		{"replace recovery", stageEntryRecoverReplace},
-		{"discard custody", stageEntryDiscard},
-		{"open staged read", stageEntryRead},
+		{name: "create activation", effect: stageEntryCommitCreate},
+		{name: "replace activation", effect: stageEntryCommitReplace},
+		{name: "create recovery", effect: stageEntryRecoverCreate},
+		{name: "replace recovery", effect: stageEntryRecoverReplace},
+		{name: "discard custody", effect: stageEntryDiscard},
+		{name: "open staged read", effect: stageEntryRead},
 	}
 	cases := []struct {
 		name       string
@@ -183,7 +183,7 @@ func TestStagedNamespaceEntryLayerTriad(t *testing.T) {
 				for _, protected := range []struct {
 					name string
 					want []byte
-				}{{"archive", original}, {"stranger", foreign}} {
+				}{{name: "archive", want: original}, {name: "stranger", want: foreign}} {
 					got, err := root.ReadFile(protected.name)
 					if err != nil || !bytes.Equal(got, protected.want) {
 						t.Fatalf("protected %s = (%x,%v), want exact %x", protected.name, got, err, protected.want)

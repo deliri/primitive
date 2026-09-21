@@ -24,9 +24,9 @@ func TestCredentialNominationAndRouteLayerTriad(t *testing.T) {
 	absent := base.document
 	absent.Certificate = controlplane.InstallationCertificateDocument{}
 	for _, tc := range []struct {
+		wantErr  error
 		name     string
 		document RequestDocument
-		wantErr  error
 	}{
 		{name: "nominated signer admits exact route", document: base.document},
 		{name: "foreign device cannot assemble or route", document: foreign, wantErr: core.ErrControlPlaneResponseBinding},
@@ -47,7 +47,7 @@ func TestCredentialNominationAndRouteLayerTriad(t *testing.T) {
 				if tc.document.Certificate == (controlplane.InstallationCertificateDocument{}) {
 					wire, err = core.MarshalCanonicalJSONDocument(struct {
 						Request chit.QueryDocument `json:"request"`
-					}{tc.document.Request})
+					}{Request: tc.document.Request})
 				} else {
 					wire, err = core.MarshalCanonicalJSONDocument(requestDocumentWire(tc.document))
 				}

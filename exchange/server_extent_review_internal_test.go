@@ -13,12 +13,12 @@ import (
 func TestReceiveStreamUncappedExtentLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		terminal, writeErr, wantErr error
 		name                        string
 		size                        uint64
 		declared                    int64
-		terminal, writeErr, wantErr error
-		canceled, nilDestination    bool
 		wantBytes                   uint64
+		canceled, nilDestination    bool
 	}{
 		{name: "below copy window", size: 32767, declared: -1, wantBytes: 32767},
 		{name: "at copy window", size: 32768, declared: -1, wantBytes: 32768},

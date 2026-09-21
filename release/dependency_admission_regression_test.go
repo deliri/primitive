@@ -16,9 +16,9 @@ func TestDependencyChecksumJSONRefusesAlternateRepresentations(t *testing.T) {
 	t.Parallel()
 	canonical := goModuleSumPrefix + base64.StdEncoding.EncodeToString(make([]byte, core.SHA256DigestBytes))
 	cases := []struct {
+		wantErr error
 		name    string
 		sum     string
-		wantErr error
 	}{
 		{name: "canonical zero digest retains every byte", sum: canonical},
 		{name: "canonical all bits set retains alphabet endpoints", sum: goModuleSumPrefix + base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{255}, core.SHA256DigestBytes))},
@@ -95,10 +95,10 @@ func TestDependencyStreamCountIncludesTheExactCeiling(t *testing.T) {
 		t.Fatalf("json.Marshal(standard) error = %v, want nil", err)
 	}
 	cases := []struct {
-		name    string
-		count   int
-		suffix  string
 		wantErr error
+		name    string
+		suffix  string
+		count   int
 	}{
 		{name: "no packages cannot manufacture a main module", wantErr: core.ErrReleaseContract},
 		{name: "one main package retains an empty dependency set", count: 1},

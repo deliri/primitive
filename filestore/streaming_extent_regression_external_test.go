@@ -114,9 +114,9 @@ func TestTransferContinuesBeyondFormerExtentLayerTriad(t *testing.T) {
 func TestTransferRejectsTypedNilOwnersLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name        string
 		source      io.Reader
 		destination io.Writer
+		name        string
 		door        transferExtentDoor
 	}{
 		{name: "read rejects typed nil buffer", destination: (*bytes.Buffer)(nil), door: transferExtentRead},

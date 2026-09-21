@@ -94,10 +94,10 @@ func verifiedBuildToolsForLiveTest(t *testing.T) release.VerifiedBuildTools {
 func TestBuildToolResolvedPathLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr                          error
 		name                             string
 		links                            []string
 		unresolvable, canceled, external bool
-		wantErr                          error
 	}{
 		{name: "regular compiler retains exact path"},
 		{name: "confined final link retains target instead of alias", links: []string{"go-real"}},

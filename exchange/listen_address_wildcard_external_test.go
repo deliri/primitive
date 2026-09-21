@@ -15,11 +15,11 @@ import (
 func TestListenAddressHostInterpretationMatchesGo(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr      error
 		name         string
+		wantText     string
 		inputs       []string
 		wantWildcard bool
-		wantErr      error
-		wantText     string
 	}{
 		{name: "absent host cannot infer all interfaces", inputs: []string{":8080"}, wantWildcard: true, wantErr: core.ErrExchangeContract},
 		{name: "IPv4 unspecified host cannot bind all interfaces", inputs: []string{"0.0.0.0:8080"}, wantWildcard: true, wantErr: core.ErrExchangeContract},

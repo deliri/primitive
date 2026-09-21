@@ -37,9 +37,9 @@ func BenchmarkReceiveBasicAuthorizationCustody(b *testing.B) {
 		b.Fatal(err)
 	}
 	cases := []struct {
+		wantErr error
 		name    string
 		value   string
-		wantErr error
 	}{
 		{name: "maximum_credentials", value: value},
 		{name: "partial_base64_refusal", value: value[:len(value)-1] + "!", wantErr: core.ErrExchangeRequest},

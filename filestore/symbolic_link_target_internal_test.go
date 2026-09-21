@@ -14,8 +14,8 @@ const symbolicLinkTargetFixtureBytes = 64 << 10
 func TestSymbolicLinkTargetOpaqueByteBoundaryLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name, input, want string
 		wantErr           error
+		name, input, want string
 	}{
 		{name: "zero observation has no target", wantErr: core.ErrFilestoreContract},
 		{name: "one opaque byte survives without path interpretation", input: "?", want: "?"},

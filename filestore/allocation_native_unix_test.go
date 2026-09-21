@@ -17,8 +17,8 @@ func TestInspectReportsRealStorageBehindARegularFile(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
 		name   string
-		kind   filestore.PathKind
 		extent int64
+		kind   filestore.PathKind
 		dense  bool
 	}{
 		{name: "empty regular file reports native zero allocation", kind: filestore.PathKindRegularFile},

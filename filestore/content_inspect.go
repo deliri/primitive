@@ -38,12 +38,9 @@ func InspectContentIndex(ctx context.Context, request ContentIndexInspectionRequ
 	if err := request.Validate(); err != nil {
 		return ContentIndexSummary{}, err
 	}
-	info, err := request.File.Stat()
+	expectedExtent, err := inspectContentFile(request)
 	if err != nil {
-		return ContentIndexSummary{}, errors.Join(core.ErrFilestoreContract, err)
-	}
-	if !info.Mode().IsRegular() || info.Size() < 0 || uint64(info.Size()) != request.Content.Extent.Uint64() {
-		return ContentIndexSummary{}, core.ErrFilestoreContract
+		return ContentIndexSummary{}, err
 	}
 	summary, digest, err := inspectContentIndex(ctx, request.File, nil, true)
 	if err != nil {
@@ -55,11 +52,26 @@ func InspectContentIndex(ctx context.Context, request ContentIndexInspectionRequ
 	if err != nil {
 		return ContentIndexSummary{}, errors.Join(core.ErrFilestoreContract, err)
 	}
-	if extent < 0 || uint64(extent) != request.Content.Extent.Uint64() || digest != request.Content.Digest {
+	if extent != expectedExtent || digest != request.Content.Digest {
 		return ContentIndexSummary{}, core.ErrFilestoreContract
 	}
 	if err := contextstate.Validate(ctx); err != nil {
 		return ContentIndexSummary{}, err
 	}
 	return summary, nil
+}
+
+func inspectContentFile(request ContentIndexInspectionRequest) (int64, error) {
+	info, err := request.File.Stat()
+	if err != nil {
+		return 0, errors.Join(core.ErrFilestoreContract, err)
+	}
+	expectedExtent, err := request.Content.Extent.Int64()
+	if err != nil {
+		return 0, errors.Join(core.ErrFilestoreContract, err)
+	}
+	if !info.Mode().IsRegular() || info.Size() != expectedExtent {
+		return 0, core.ErrFilestoreContract
+	}
+	return expectedExtent, nil
 }

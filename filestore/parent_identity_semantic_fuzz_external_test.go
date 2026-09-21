@@ -74,7 +74,7 @@ func FuzzOpenParentAndRootIdentityNativeCustody(f *testing.F) {
 				t.Fatal(err)
 			}
 		}
-		for _, link := range []struct{ name, target string }{{"alias", "real"}, {"outside-alias", "outside"}, {"loop", "loop"}} {
+		for _, link := range []struct{ name, target string }{{name: "alias", target: "real"}, {name: "outside-alias", target: "outside"}, {name: "loop", target: "loop"}} {
 			if err := os.Symlink(link.target, filepath.Join(container, link.name)); err != nil {
 				t.Fatal(err)
 			}

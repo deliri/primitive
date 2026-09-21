@@ -21,8 +21,8 @@ var ingressSources embed.FS
 
 type ingressFuzzBinding struct {
 	receiver reflect.Type
-	method   string
 	campaign func(*testing.F)
+	method   string
 }
 
 func jsonIngressBinding[T any, P interface {

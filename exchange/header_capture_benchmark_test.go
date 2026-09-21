@@ -17,9 +17,9 @@ import (
 func BenchmarkAggregateHeaderValueAdmission(b *testing.B) {
 	b.ReportAllocs()
 	cases := []struct {
+		wantErr    error
 		name       string
 		values     int
-		wantErr    error
 		wantFields int
 		wantValues int
 		wantReads  int

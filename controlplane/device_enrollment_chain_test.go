@@ -23,7 +23,11 @@ func TestDeviceEnrollmentCryptographicChainRejectsRebindingAndImpersonation(t *t
 	if err != nil {
 		t.Fatalf("NewRegistrationToken() error = %v, want nil", err)
 	}
-	defer token.Destroy()
+	defer func() {
+		if err := token.Destroy(); err != nil {
+			t.Errorf("token.Destroy() cleanup error = %v, want nil", err)
+		}
+	}()
 	request := controlplane.RegistrationRequest{
 		Token: token, Build: issued.certificate.Body.Build,
 		DeviceKey: issued.certificate.Body.DeviceKey, Installation: issued.subject.DeviceID,

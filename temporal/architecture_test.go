@@ -26,22 +26,22 @@ type (
 )
 
 type temporalContractInventory struct {
-	Instant           temporalSealedValue[Instant]
-	Duration          temporalSealedValue[Duration]
-	AggregateDuration temporalSealedValue[AggregateDuration]
-	Observation       temporalSealedValue[Observation]
-	Interval          temporalSealedValue[Interval]
-	NumericInstant    temporalPersistenceFact[NumericInstant]
-	NumericDuration   temporalPersistenceFact[NumericDuration]
-	IntervalRequest   temporalIngressRequest[IntervalRequest]
-	IntervalBounds    temporalPersistenceFact[IntervalBounds]
-	TimeoutRequest    temporalCapabilityIntent[TimeoutRequest]
-	DeadlineRequest   temporalCapabilityIntent[DeadlineRequest]
-	WaitRequest       temporalCapabilityIntent[WaitRequest]
-	TickerRequest     temporalCapabilityIntent[TickerRequest]
-	Ticker            temporalCapabilityIntent[Ticker]
 	ContextResult     temporalCapabilityIntent[contextConstruction]
+	Ticker            temporalCapabilityIntent[Ticker]
+	TimeoutRequest    temporalCapabilityIntent[TimeoutRequest]
+	WaitRequest       temporalCapabilityIntent[WaitRequest]
+	IntervalRequest   temporalIngressRequest[IntervalRequest]
+	Observation       temporalSealedValue[Observation]
+	DeadlineRequest   temporalCapabilityIntent[DeadlineRequest]
 	PrecisionFact     temporalDefinitionFact[precisionFact]
+	Interval          temporalSealedValue[Interval]
+	IntervalBounds    temporalPersistenceFact[IntervalBounds]
+	Instant           temporalSealedValue[Instant]
+	NumericInstant    temporalPersistenceFact[NumericInstant]
+	AggregateDuration temporalSealedValue[AggregateDuration]
+	NumericDuration   temporalPersistenceFact[NumericDuration]
+	TickerRequest     temporalCapabilityIntent[TickerRequest]
+	Duration          temporalSealedValue[Duration]
 }
 
 var _ = temporalContractInventory{}
@@ -149,12 +149,12 @@ var (
 	_ interface{ Validate() error } = TickerRequest{}
 	_ interface{ Validate() error } = (*Ticker)(nil)
 
-	_ = IntervalRequest{Observation{}, Observation{}}
-	_ = IntervalBounds{Instant{}, Instant{}}
-	_ = TimeoutRequest{context.Background(), Duration{}}
-	_ = DeadlineRequest{context.Background(), Instant{}}
-	_ = WaitRequest{context.Background(), Duration{}}
-	_ = TickerRequest{Duration{}}
+	_ = IntervalRequest{Start: Observation{}, Finish: Observation{}}
+	_ = IntervalBounds{Start: Instant{}, End: Instant{}}
+	_ = TimeoutRequest{Parent: context.Background(), Duration: Duration{}}
+	_ = DeadlineRequest{Parent: context.Background(), Deadline: Instant{}}
+	_ = WaitRequest{Context: context.Background(), Duration: Duration{}}
+	_ = TickerRequest{Interval: Duration{}}
 
 	_ func(time.Time) (Instant, error)                                   = NewInstant
 	_ func(string) (Instant, error)                                      = ParseRFC3339

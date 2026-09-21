@@ -13,10 +13,10 @@ import (
 func TestReceivedCheckInSignerBindingLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name          string
-		mutate        func(*testing.T, *controlplane.CheckInRequest)
 		wantErr       error
 		wantVerifyErr error
+		mutate        func(*testing.T, *controlplane.CheckInRequest)
+		name          string
 	}{
 		{name: "exact certified signer survives decode projection and authentication"},
 		{name: "authentic foreign signature cannot enter this certificate boundary", mutate: func(t *testing.T, request *controlplane.CheckInRequest) {
@@ -67,8 +67,8 @@ func TestReceivedCheckInSignerBindingLayerTriad(t *testing.T) {
 				name    string
 				request controlplane.CheckInRequest
 			}{
-				{"populated receiver keeps original facts on refusal", issued.request},
-				{"empty receiver cannot acquire partial facts", controlplane.CheckInRequest{}},
+				{name: "populated receiver keeps original facts on refusal", request: issued.request},
+				{name: "empty receiver cannot acquire partial facts", request: controlplane.CheckInRequest{}},
 			} {
 				t.Run(initial.name, func(t *testing.T) {
 					t.Parallel()

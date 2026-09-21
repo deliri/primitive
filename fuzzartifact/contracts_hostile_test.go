@@ -131,11 +131,11 @@ func TestCacheFormatGeneratedNameDigestProjectionLayerTriad(t *testing.T) {
 		})
 	}
 	cases := []struct {
+		wantErr error
 		name    string
+		digest  core.SHA256Digest
 		format  CacheFormat
 		kind    ArtifactKind
-		digest  core.SHA256Digest
-		wantErr error
 	}{
 		{name: "unset digest cannot impersonate all-zero digest", format: CacheFormatGo1_27, kind: ArtifactCorpus, wantErr: core.ErrPrimitiveContract},
 		{name: "unknown kind cannot produce a name", format: CacheFormatGo1_27, digest: core.NewSHA256Digest([core.SHA256DigestBytes]byte{}), wantErr: core.ErrFuzzArtifactContract},

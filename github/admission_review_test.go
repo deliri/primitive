@@ -34,9 +34,9 @@ func (v nilFuncVisitor) VisitGitHubTreeEntry(e *TreeEntryStream) error { return 
 func TestTreeVisitorAdmissionLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name    string
 		visitor TreeVisitor
 		wantErr error
+		name    string
 	}{
 		{name: "absent visitor", wantErr: core.ErrGitHubContract},
 		{name: "nil pointer receiver", visitor: (*nilPointerVisitor)(nil), wantErr: core.ErrGitHubContract},
@@ -119,8 +119,8 @@ func TestAppClientCredentialAdmissionLayerTriad(t *testing.T) {
 		t.Fatalf("owned client after caller close=%v, want nil", err)
 	}
 	for _, tc := range []struct {
-		name       string
 		credential AppCredential
+		name       string
 	}{
 		{name: "absent credential cannot downgrade to public"},
 		{name: "destroyed aliased key cannot construct client", credential: alias},

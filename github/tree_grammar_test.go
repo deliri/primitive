@@ -11,10 +11,10 @@ func TestTreeGrammarLayerTriad(t *testing.T) {
 	t.Parallel()
 	canonical := marshalGitHubFixture(t, treeResponseFixture{SHA: parsedCommit(t).String(), URL: "https://api.github.com/tree", Tree: []treeEntryFixture{treeWire("main.go", "blob", parsedCommit(t).String())}})
 	cases := []struct {
+		wantErr                error
 		name, old, replacement string
 		wantEntries            uint64
 		wantVisits             int
-		wantErr                error
 	}{
 		{name: "complete canonical entry", wantEntries: 1, wantVisits: 1},
 		{name: "null completion flag cannot mean false", old: `"truncated":false`, replacement: `"truncated":null`, wantVisits: 1, wantErr: core.ErrGitHubResponse},

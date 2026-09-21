@@ -231,7 +231,7 @@ func (s *producerScan) collectFunc(pkg string, decl *ast.FuncDecl) {
 	for _, param := range decl.Type.Params.List {
 		if name := producerTypeName(param.Type); name != "" {
 			key := producerQualify(pkg, name)
-			s.demanded[key] = append(s.demanded[key], producerSite{pkg, decl.Name.Name + "()"})
+			s.demanded[key] = append(s.demanded[key], producerSite{pkg: pkg, where: decl.Name.Name + "()"})
 		}
 	}
 }
@@ -291,7 +291,7 @@ func (s *producerScan) collectStructFields(pkg, owner string, structure *ast.Str
 			}
 			if typeName := producerTypeName(field.Type); typeName != "" {
 				key := producerQualify(pkg, typeName)
-				s.demanded[key] = append(s.demanded[key], producerSite{pkg, owner + "." + name.Name})
+				s.demanded[key] = append(s.demanded[key], producerSite{pkg: pkg, where: owner + "." + name.Name})
 			}
 		}
 	}

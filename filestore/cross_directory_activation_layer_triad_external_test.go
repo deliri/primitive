@@ -14,10 +14,10 @@ import (
 func TestCrossDirectoryActivationLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr                   error
 		name                      string
 		install                   filestore.InstallMode
 		landed, missing, occupied bool
-		wantErr                   error
 	}{
 		{name: "create publishes staged inode into a different parent", install: filestore.InstallCreate},
 		{name: "replace consumes occupied target in a different parent", install: filestore.InstallReplace, occupied: true},

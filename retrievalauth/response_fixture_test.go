@@ -15,15 +15,15 @@ import (
 )
 
 type responseFixture struct {
-	request     retrievalAuthFixture
 	signer      ed25519.PrivateKey
-	grant       retrieval.GrantProjection
-	chit        chit.Verified
-	member      chit.VerifiedManifestEntry
-	header      controlplane.ResponseHeader
-	expectation controlplane.ResponseExpectation
-	client      controlplane.Client
 	canonical   []byte
+	expectation controlplane.ResponseExpectation
+	header      controlplane.ResponseHeader
+	member      chit.VerifiedManifestEntry
+	chit        chit.Verified
+	grant       retrieval.GrantProjection
+	request     retrievalAuthFixture
+	client      controlplane.Client
 }
 
 // The fixture drives real receipt, manifest, chit and grant issuers/verifiers.

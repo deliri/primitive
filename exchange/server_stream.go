@@ -250,12 +250,12 @@ func closeRequestBody(body io.Closer) (err error) {
 // and must remain valid and unchanged until WriteStream returns.
 type ServerStreamResponse struct {
 	Source        io.Reader
+	ContentLength *core.ByteLength
 	ContentType   core.HTTPMediaType
 	Headers       ResponseHeaders
-	ContentLength *core.ByteLength
-	Status        core.HTTPStatusCode
 	// Buffer is borrowed copy scratch, not a response-size ceiling.
 	Buffer []byte
+	Status core.HTTPStatusCode
 }
 
 // Validate checks the complete pre-write streaming response.

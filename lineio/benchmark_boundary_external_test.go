@@ -11,9 +11,9 @@ func BenchmarkFragmentStreaming(b *testing.B) {
 	b.ReportAllocs()
 	cases := []struct {
 		name   string
+		suffix string
 		extent int
 		buffer uint64
-		suffix string
 	}{
 		{name: "Line64KiBBuffer64", extent: 64 << 10, buffer: 64},
 		{name: "Line64KiBBuffer64KiB", extent: 64 << 10, buffer: 64 << 10},

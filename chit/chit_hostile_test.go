@@ -204,10 +204,10 @@ func TestManifestEntryVerifierLayerTriad(t *testing.T) {
 			t.Fatal(err)
 		}
 		cases := []struct {
+			wantErr      error
+			mutate       func(*ManifestSummary)
 			name         string
 			selected     uint64
-			mutate       func(*ManifestSummary)
-			wantErr      error
 			wantReusable bool
 		}{
 			{name: "first entry exact membership", selected: 1},

@@ -16,9 +16,9 @@ import (
 func TestGroupSweepOutcomeLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name  string
 		input error
 		want  error
+		name  string
 	}{
 		{name: "positive/delivered signal remains successful"},
 		{name: "neutral/absent group remains a successful no-op", input: unix.ESRCH},

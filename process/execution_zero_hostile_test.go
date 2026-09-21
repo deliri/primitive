@@ -16,8 +16,8 @@ import (
 func TestExecutionRefusesAHandleThatSkippedBegin(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name   string
 		handle *Execution
+		name   string
 	}{
 		{name: "negative/nil handle cannot supervise a child"},
 		{name: "neutral/allocated zero handle is not a begun execution", handle: new(Execution)},

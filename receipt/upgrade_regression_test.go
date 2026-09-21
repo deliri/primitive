@@ -24,8 +24,8 @@ func TestReceiptJSONExtentLayerTriad(t *testing.T) {
 	t.Parallel()
 	f := receiptJSONFixturesForFuzz(t)
 	for _, door := range []struct {
-		name string
 		run  func(*testing.T)
+		name string
 	}{
 		{name: "body", run: func(t *testing.T) { receiptJSONExtentCases(t, f.body) }},
 		{name: "header", run: func(t *testing.T) { receiptJSONExtentCases(t, f.header) }},
@@ -44,9 +44,9 @@ func receiptJSONExtentCases[T receiptJSONValue, P receiptJSONReceiver[T]](t *tes
 		t.Fatal(err)
 	}
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		data    []byte
-		wantErr error
 	}{
 		{name: "canonical", data: canonical},
 		{name: "large_prefix", data: append(bytes.Repeat([]byte(" "), receiptWhitespaceFixtureBytes), canonical...)},
@@ -68,9 +68,9 @@ func receiptJSONExtentCases[T receiptJSONValue, P receiptJSONReceiver[T]](t *tes
 }
 
 type receiptPrefixWriter struct {
+	cause        error
 	prefix       bytes.Buffer
 	remaining    int
-	cause        error
 	failed       bool
 	afterFailure bool
 }
@@ -96,8 +96,8 @@ func TestReceiptCanonicalWriterLayerTriad(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, tc := range []struct {
-		name  string
 		cause error
+		name  string
 	}{
 		{name: "short_count"}, {name: "native_failure", cause: io.ErrClosedPipe},
 	} {
@@ -117,10 +117,10 @@ func TestReceiptCanonicalWriterLayerTriad(t *testing.T) {
 		})
 	}
 	for _, tc := range []struct {
-		name        string
 		destination io.Writer
-		invalid     bool
 		want        error
+		name        string
+		invalid     bool
 	}{
 		{name: "typed_nil", destination: (*bytes.Buffer)(nil), want: core.ErrReceiptContract},
 		{name: "nil_interface", want: core.ErrReceiptContract},
@@ -151,10 +151,10 @@ func TestGenerationWhitespaceLayerTriad(t *testing.T) {
 	t.Parallel()
 	seed := mustGeneration(t, 2)
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		data    []byte
 		want    uint64
-		wantErr error
 	}{
 		{name: "positive_canonical", data: []byte("1"), want: 1},
 		{name: "neutral_JSON_whitespace", data: []byte(" \t1\r\n"), want: 1},

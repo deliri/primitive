@@ -35,9 +35,9 @@ func (*sharingSafeNilContext) Err() error { return nil }
 func TestSharingAdmissionLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		ingress sharingIngress
-		wantErr error
 	}{
 		{name: "active context reaches native probe", ingress: sharingIngressActive},
 		{name: "nil context cannot issue native observation", ingress: sharingIngressNil, wantErr: core.ErrNilContext},

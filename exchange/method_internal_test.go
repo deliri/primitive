@@ -15,24 +15,24 @@ import (
 func TestMethodExhaustsClosedDomain(t *testing.T) {
 	t.Parallel()
 	bindings := []struct {
-		method Method
 		wire   string
+		method Method
 	}{
-		{MethodGet, http.MethodGet}, {MethodHead, http.MethodHead}, {MethodPost, http.MethodPost},
-		{MethodPut, http.MethodPut}, {MethodPatch, http.MethodPatch}, {MethodDelete, http.MethodDelete}, {MethodOptions, http.MethodOptions},
+		{method: MethodGet, wire: http.MethodGet}, {method: MethodHead, wire: http.MethodHead}, {method: MethodPost, wire: http.MethodPost},
+		{method: MethodPut, wire: http.MethodPut}, {method: MethodPatch, wire: http.MethodPatch}, {method: MethodDelete, wire: http.MethodDelete}, {method: MethodOptions, wire: http.MethodOptions},
 	}
 	cases := make([]struct {
-		name     string
-		input    Method
-		wantWire string
 		wantErr  error
+		name     string
+		wantWire string
+		input    Method
 	}, 0, math.MaxUint8+1)
 	for raw := range math.MaxUint8 + 1 {
 		row := struct {
-			name     string
-			input    Method
-			wantWire string
 			wantErr  error
+			name     string
+			wantWire string
+			input    Method
 		}{name: strconv.Itoa(raw), input: Method(raw), wantErr: core.ErrExchangeContract}
 		for _, binding := range bindings {
 			if row.input == binding.method {
@@ -83,11 +83,11 @@ func TestMethodJSONReceiverLayerTriad(t *testing.T) {
 		t.Fatal(err)
 	}
 	cases := []struct {
+		wantErr     error
 		name        string
 		wire        []byte
 		nilReceiver bool
 		want        Method
-		wantErr     error
 	}{
 		{name: "canonical method replaces populated receiver", wire: canonical, want: MethodGet},
 		{name: "Go-permitted surrounding whitespace is neutral", wire: append(append([]byte{' ', '\t'}, canonical...), '\n'), want: MethodGet},

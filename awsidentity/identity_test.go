@@ -76,15 +76,15 @@ func awsSignedURL(audience Audience, host, region string) string {
 	// not authenticated SigV4 signatures.
 	query := make(url.Values)
 	for _, pair := range []struct {
-		field amazonQueryField
 		value string
+		field amazonQueryField
 	}{
-		{amazonQueryFieldAction, amazonActionValue}, {amazonQueryFieldVersion, amazonVersionValue},
-		{amazonQueryFieldAudience, audience.String()}, {amazonQueryFieldSigningAlgorithm, amazonSigningAlgorithmValue},
-		{amazonQueryFieldDuration, amazonDurationValue}, {amazonQueryFieldSignatureAlgorithm, amazonSigAlgorithmValue},
-		{amazonQueryFieldCredential, awsTestAccess + "/" + awsTestDate + "/" + region + "/" + amazonCredentialService + "/" + amazonCredentialTerminal},
-		{amazonQueryFieldDate, awsTestInstant}, {amazonQueryFieldExpires, "60"},
-		{amazonQueryFieldSignedHeaders, amazonSignedHeadersValue}, {amazonQueryFieldSignature, strings.Repeat("a", hex.EncodedLen(core.SHA256DigestBytes))},
+		{field: amazonQueryFieldAction, value: amazonActionValue}, {field: amazonQueryFieldVersion, value: amazonVersionValue},
+		{field: amazonQueryFieldAudience, value: audience.String()}, {field: amazonQueryFieldSigningAlgorithm, value: amazonSigningAlgorithmValue},
+		{field: amazonQueryFieldDuration, value: amazonDurationValue}, {field: amazonQueryFieldSignatureAlgorithm, value: amazonSigAlgorithmValue},
+		{field: amazonQueryFieldCredential, value: awsTestAccess + "/" + awsTestDate + "/" + region + "/" + amazonCredentialService + "/" + amazonCredentialTerminal},
+		{field: amazonQueryFieldDate, value: awsTestInstant}, {field: amazonQueryFieldExpires, value: "60"},
+		{field: amazonQueryFieldSignedHeaders, value: amazonSignedHeadersValue}, {field: amazonQueryFieldSignature, value: strings.Repeat("a", hex.EncodedLen(core.SHA256DigestBytes))},
 	} {
 		query.Set(pair.field.name(), pair.value)
 	}
@@ -134,9 +134,9 @@ func TestAWSRequestInputHostileBoundaryTable(t *testing.T) {
 	type testCase struct {
 		wantErr error
 		name    string
+		value   string
 		kind    awsURLMutation
 		field   amazonQueryField
-		value   string
 	}
 	cases := []testCase{
 		{name: "commercial regional endpoint is admitted"},
@@ -308,7 +308,7 @@ func TestLayerTriadAWSAcquireRealTLS(t *testing.T) {
 }
 
 type awsHTTPRequestObservation struct {
+	bodyErr, writeErr                  error
 	method, path, query, authorization string
 	bodyBytes                          int
-	bodyErr, writeErr                  error
 }

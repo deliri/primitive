@@ -16,9 +16,9 @@ import (
 func TestAnalysisUnitFailureIsolationLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr         error
 		name            string
 		testSource      string
-		wantErr         error
 		wantTest        bool
 		breakProduction bool
 	}{
@@ -35,8 +35,8 @@ func TestAnalysisUnitFailureIsolationLayerTriad(t *testing.T) {
 			t.Parallel()
 			directory := t.TempDir()
 			for _, file := range []struct{ name, data string }{
-				{"go.mod", "module example.com/probe\n\ngo 1.27.1\n"},
-				{"probe.go", "package probe\nconst Value = 1\n"},
+				{name: "go.mod", data: "module example.com/probe\n\ngo 1.27.1\n"},
+				{name: "probe.go", data: "package probe\nconst Value = 1\n"},
 			} {
 				if err := os.WriteFile(filepath.Join(directory, file.name), []byte(file.data), 0o600); err != nil {
 					t.Fatal(err)

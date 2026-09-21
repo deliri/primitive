@@ -63,9 +63,9 @@ func TestRandomRequestsRefuseBeforeGoEntropyLayerTriad(t *testing.T) {
 func TestTokenPrivateExtentAndZeroContent(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		extent  int
-		wantErr error
 	}{
 		{name: "undrawn storage refuses", wantErr: core.ErrKeygenContract},
 		{name: "one zero byte is a legitimate public token", extent: 1},

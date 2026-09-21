@@ -38,7 +38,7 @@ func TestSigningDomainJSONRefusalAllocationDoesNotScaleWithInput(t *testing.T) {
 	cases := []struct {
 		name string
 		size int
-	}{{"one kilobyte", 1 << 10}, {"one mebibyte", 1 << 20}}
+	}{{name: "one kilobyte", size: 1 << 10}, {name: "one mebibyte", size: 1 << 20}}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			testserial.Declare(t, core.TestIsolationDeclaration{Hazard: core.TestIsolationHazardRuntimeAllocation, Scope: core.TestIsolationScopePackageProcess})
@@ -71,16 +71,16 @@ func TestSigningDomainDirectJSONCanonicalLayerTriad(t *testing.T) {
 			}
 			escaped := append([]byte{'"', '\\', 'u', '0', '0', '7', '0'}, canonical[2:]...)
 			cases := []struct {
+				wantErr error
 				name    string
 				wire    []byte
-				wantErr error
 			}{
-				{"exact token", canonical, nil},
-				{"leading whitespace", append([]byte{' '}, canonical...), core.ErrJSONContract},
-				{"trailing whitespace", append(bytes.Clone(canonical), ' '), core.ErrJSONContract},
-				{"escaped equivalent ASCII", escaped, core.ErrJSONContract},
-				{"null is absence", []byte("null"), core.ErrJSONContract},
-				{"trailing document", append(bytes.Clone(canonical), []byte(" false")...), core.ErrJSONContract},
+				{name: "exact token", wire: canonical, wantErr: nil},
+				{name: "leading whitespace", wire: append([]byte{' '}, canonical...), wantErr: core.ErrJSONContract},
+				{name: "trailing whitespace", wire: append(bytes.Clone(canonical), ' '), wantErr: core.ErrJSONContract},
+				{name: "escaped equivalent ASCII", wire: escaped, wantErr: core.ErrJSONContract},
+				{name: "null is absence", wire: []byte("null"), wantErr: core.ErrJSONContract},
+				{name: "trailing document", wire: append(bytes.Clone(canonical), []byte(" false")...), wantErr: core.ErrJSONContract},
 			}
 			for _, tc := range cases {
 				t.Run(tc.name, func(t *testing.T) {

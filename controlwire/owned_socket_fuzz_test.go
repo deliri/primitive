@@ -46,7 +46,11 @@ func FuzzOwnedJSONAndRoutedReceiversSemanticClosure(f *testing.F) {
 		var nominal controlplane.AccessRegistrationRequest
 		decodeErr := nominal.UnmarshalJSON(data)
 		if decodeErr == nil {
-			defer nominal.Token.Destroy()
+			defer func() {
+				if err := nominal.Token.Destroy(); err != nil {
+					t.Errorf("nominal.Token.Destroy() cleanup error = %v, want nil", err)
+				}
+			}()
 		}
 		for _, routed := range [...]bool{false, true} {
 			request := httptest.NewRequest(http.MethodPost, path, bytes.NewReader(data))
@@ -79,7 +83,11 @@ func FuzzOwnedJSONAndRoutedReceiversSemanticClosure(f *testing.F) {
 				}
 			}
 			if got != nil {
-				defer got.Token.Destroy()
+				defer func() {
+					if err := got.Token.Destroy(); err != nil {
+						t.Errorf("got.Token.Destroy() cleanup error = %v, want nil", err)
+					}
+				}()
 			}
 			if receiveErr != nil {
 				if got != nil || (!errors.Is(receiveErr, core.ErrExchangeContract) && !errors.Is(receiveErr, core.ErrControlWireContract)) {
@@ -119,7 +127,11 @@ func FuzzOwnedJSONAndRoutedReceiversSemanticClosure(f *testing.F) {
 			if err := second.UnmarshalJSON(encoded); err != nil {
 				t.Fatalf("accepted roundtrip = %v, want nil", err)
 			}
-			defer second.Token.Destroy()
+			defer func() {
+				if err := second.Token.Destroy(); err != nil {
+					t.Errorf("second.Token.Destroy() cleanup error = %v, want nil", err)
+				}
+			}()
 			again, err := second.MarshalJSON()
 			if err != nil || !bytes.Equal(again, encoded) {
 				t.Fatalf("canonical second pass equality/error = %t/%v, want true,nil", bytes.Equal(again, encoded), err)

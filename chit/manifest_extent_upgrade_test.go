@@ -12,10 +12,10 @@ import (
 func TestManifestAuthenticatedExtentTable(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantAddErr, wantSealErr error
 		name                    string
 		extents                 []uint64
 		wantObjects, wantBytes  uint64
-		wantAddErr, wantSealErr error
 	}{
 		{name: "no receipts cannot invent a manifest", wantSealErr: core.ErrChitContract},
 		{name: "one authenticated empty object", extents: []uint64{0}, wantObjects: 1},

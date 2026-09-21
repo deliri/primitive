@@ -12,9 +12,9 @@ import (
 )
 
 type nestedBoundaryCase struct {
+	wantErr error
 	name    string
 	input   string
-	wantErr error
 }
 
 func nestedBoundaryCases() []nestedBoundaryCase {
@@ -45,9 +45,9 @@ func nestedBoundaryCases() []nestedBoundaryCase {
 		{name: "long s collides with ASCII s under simple folding", input: `{"s":1,"ſ":2}`, wantErr: core.ErrAttestContract},
 	}
 	for _, boundary := range []struct {
+		wantErr error
 		name    string
 		delta   int
-		wantErr error
 	}{
 		{name: "one below", delta: -1},
 		{name: "exact", delta: 0},

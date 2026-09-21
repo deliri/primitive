@@ -12,10 +12,10 @@ import (
 func TestContentInspectionLayerTriadExactHeldBytes(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr                                      error
 		name                                         string
 		order                                        []uint64
 		wrongDigest, wrongExtent, cancelled, missing bool
-		wantErr                                      error
 	}{
 		{name: "empty canonical stream remains empty"},
 		{name: "strict ordered records bind exact held bytes", order: []uint64{1, 2}},

@@ -32,10 +32,10 @@ const (
 func TestReadAndUpdateNativeHandleLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, operation := range []struct {
-		name         string
-		door         nativeHandleDoor
-		flag         int
 		wantBoundary error
+		name         string
+		flag         int
+		door         nativeHandleDoor
 	}{
 		{name: "read", door: nativeHandleRead, flag: os.O_RDONLY, wantBoundary: core.ErrFilestoreSource},
 		{name: "update", door: nativeHandleUpdate, flag: os.O_RDWR, wantBoundary: core.ErrFilestoreActivation},
@@ -43,11 +43,11 @@ func TestReadAndUpdateNativeHandleLayerTriad(t *testing.T) {
 		t.Run(operation.name, func(t *testing.T) {
 			t.Parallel()
 			for _, tc := range []struct {
+				wantErr            error
 				name               string
 				entry              nativeHandleEntry
 				mutation           readUpdateMutation
 				empty, wantRefusal bool
-				wantErr            error
 			}{
 				{name: "binary extent cannot be truncated during acquisition"},
 				{name: "empty file yields a real capability without invented bytes", empty: true},

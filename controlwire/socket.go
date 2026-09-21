@@ -182,8 +182,8 @@ func ReceiveRoutedJSON[
 // for an admitted body that cannot be handed to the caller. Release is required
 // before any input is read and is never called for an undecoded or returned body.
 type OwnedAuthorityJSONReceiveCall[Body RoutedJSONRequest] struct {
-	Receive AuthorityJSONReceiveCall
 	Release func(Body) error
+	Receive AuthorityJSONReceiveCall
 }
 
 func (c OwnedAuthorityJSONReceiveCall[Body]) Validate() error {

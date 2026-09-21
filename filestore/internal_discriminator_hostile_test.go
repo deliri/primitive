@@ -17,9 +17,9 @@ import (
 func TestStreamDestinationExhaustiveErrorOwnershipLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := make([]struct {
+		want  error
 		name  string
 		value streamDestination
-		want  error
 	}, math.MaxUint8+1)
 	for raw := range cases {
 		value := streamDestination(raw)
@@ -106,10 +106,10 @@ func TestDirectoryPositionExhaustiveOffWireDomain(t *testing.T) {
 func TestDirectoryPositionModeOwnershipLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name     string
-		position directoryPosition
-		wantMode fs.FileMode
 		wantErr  error
+		name     string
+		wantMode fs.FileMode
+		position directoryPosition
 	}{
 		{name: "intermediate retains ancestor mode", position: directoryIntermediate, wantMode: 0o700},
 		{name: "final applies requested mode", position: directoryFinal, wantMode: 0o750},

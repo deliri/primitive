@@ -22,22 +22,22 @@ func TestCompletionAuthenticationOrderLayerTriad(t *testing.T) {
 	}
 	foreignNonce := testRequestPayload(t, grantFixtureRequest{requestNonceByte: 0x23}).Nonce
 	for _, tc := range []struct {
+		wantErr     error
 		name        string
 		binding     bool
 		grantTrust  bool
 		deviceTrust bool
 		tamper      bool
 		zero        bool
-		wantErr     error
 	}{
-		{"authentic_exact", false, false, false, false, false, nil},
-		{"authentic_nonce_mismatch", true, false, false, false, false, core.ErrControlPlaneResponseBinding},
-		{"untrusted_grant_exact", false, true, false, false, false, core.ErrAttestVerification},
-		{"untrusted_grant_mismatch", true, true, false, false, false, core.ErrAttestVerification},
-		{"untrusted_device_exact", false, false, true, false, false, core.ErrAttestVerification},
-		{"untrusted_device_mismatch", true, false, true, false, false, core.ErrAttestVerification},
-		{"tampered_signed_nonce", false, false, false, true, false, core.ErrAttestVerification},
-		{"neutral_document", false, false, false, false, true, core.ErrControlPlaneContract},
+		{name: "authentic_exact", binding: false, grantTrust: false, deviceTrust: false, tamper: false, zero: false, wantErr: nil},
+		{name: "authentic_nonce_mismatch", binding: true, grantTrust: false, deviceTrust: false, tamper: false, zero: false, wantErr: core.ErrControlPlaneResponseBinding},
+		{name: "untrusted_grant_exact", binding: false, grantTrust: true, deviceTrust: false, tamper: false, zero: false, wantErr: core.ErrAttestVerification},
+		{name: "untrusted_grant_mismatch", binding: true, grantTrust: true, deviceTrust: false, tamper: false, zero: false, wantErr: core.ErrAttestVerification},
+		{name: "untrusted_device_exact", binding: false, grantTrust: false, deviceTrust: true, tamper: false, zero: false, wantErr: core.ErrAttestVerification},
+		{name: "untrusted_device_mismatch", binding: true, grantTrust: false, deviceTrust: true, tamper: false, zero: false, wantErr: core.ErrAttestVerification},
+		{name: "tampered_signed_nonce", binding: false, grantTrust: false, deviceTrust: false, tamper: true, zero: false, wantErr: core.ErrAttestVerification},
+		{name: "neutral_document", binding: false, grantTrust: false, deviceTrust: false, tamper: false, zero: true, wantErr: core.ErrControlPlaneContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

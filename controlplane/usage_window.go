@@ -256,13 +256,8 @@ func (w UsageWindow) Validate() error {
 	if len(w.Measurements) != 0 && len(w.Units) == 0 {
 		return usageWindowError()
 	}
-	for index, measurement := range w.Measurements {
-		if err := measurement.Validate(); err != nil {
-			return usageWindowError(err)
-		}
-		if index > 0 && w.Measurements[index-1].Class >= measurement.Class {
-			return usageWindowError()
-		}
+	if err := validateUsageMeasurements(w.Measurements); err != nil {
+		return err
 	}
 	if err := errors.Join(w.Bounds.Validate(), w.Freshness.Validate()); err != nil {
 		return usageWindowError(err)
@@ -279,6 +274,18 @@ func (w UsageWindow) Validate() error {
 		return err
 	}
 	return validateUsageTotals(units, outcomes)
+}
+
+func validateUsageMeasurements(measurements []UsageCount) error {
+	for index, measurement := range measurements {
+		if err := measurement.Validate(); err != nil {
+			return usageWindowError(err)
+		}
+		if index > 0 && measurements[index-1].Class >= measurement.Class {
+			return usageWindowError()
+		}
+	}
+	return nil
 }
 
 // validateUsageTotals proves the classifications account for exactly the work.

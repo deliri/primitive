@@ -915,14 +915,11 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrControlPlaneContract, ErrIDContract, ErrSecretStoreContract,
 		ErrStripeContract, ErrPayPalContract, ErrTwilioContract, ErrPlunkContract, ErrGitHubContract,
 		ErrCapabilitiesContract, ErrGoModuleContract, ErrGoToolchainContract, ErrGitRepositoryContract,
-		ErrProofLedgerContract, ErrTailnetContract, ErrAccessPermitContract, ErrPermitContract) {
+		ErrProofLedgerContract, ErrTailnetContract, ErrAccessPermitContract, ErrPermitContract, ErrReportContract) {
 		return oneErrorIdentityParent(ErrPrimitiveContract)
 	}
 	if errorIdentityIn(identity, ErrAccessPermitDenied, ErrAccessPermitBinding) {
 		return oneErrorIdentityParent(ErrAccessPermitContract)
-	}
-	if identity == ErrReportContract {
-		return oneErrorIdentityParent(ErrPrimitiveContract)
 	}
 	if errorIdentityIn(identity, ErrReportSchedule, ErrReportBinding, ErrReportAuthentication, ErrReportTooEarly, ErrReportOutsideWindow, ErrReportConflict, ErrReportSequence, ErrReportOverflow) {
 		return oneErrorIdentityParent(ErrReportContract)
@@ -942,6 +939,10 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrProofLedgerAppendReceiptMismatch, ErrProofLedgerAppendIndeterminate) {
 		return oneErrorIdentityParent(ErrProofLedgerContract)
 	}
+	return errorIdentityParentsControlThroughHost(identity)
+}
+
+func errorIdentityParentsControlThroughHost(identity ErrorIdentity) errorIdentityParentSet {
 	if errorIdentityIn(identity, ErrControlWireRevision, ErrControlWireNonce, ErrControlWireToken,
 		ErrControlWirePolicyCursor, ErrControlWireRoute, ErrControlWireProtocolSupport,
 		ErrControlWireReplayConflict,

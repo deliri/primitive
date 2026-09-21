@@ -14,9 +14,9 @@ import (
 func TestConfigurationExactBoundaryTable(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name    string
-		edit    func(*tailnetconfig.Configuration)
 		wantErr error
+		edit    func(*tailnetconfig.Configuration)
+		name    string
 	}{
 		{name: "client identifier minimum", edit: func(c *tailnetconfig.Configuration) { c.ClientID = "a" }},
 		{name: "client identifier below maximum", edit: func(c *tailnetconfig.Configuration) {
@@ -84,16 +84,16 @@ func TestConfigurationExactBoundaryTable(t *testing.T) {
 func TestStartupTimeoutBoundaryTable(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr     error
 		name        string
 		nanoseconds int64
-		wantErr     error
 	}{
-		{"zero has no enrollment budget", 0, core.ErrTailnetContract},
-		{"minimum one nanosecond is not rounded away", 1, nil},
-		{"one below maximum", tailnetconfig.MaximumStartupNanoseconds - 1, nil},
-		{"exact maximum", tailnetconfig.MaximumStartupNanoseconds, nil},
-		{"one above maximum", tailnetconfig.MaximumStartupNanoseconds + 1, core.ErrTailnetContract},
-		{"maximum representable duration cannot bypass ceiling", 1<<63 - 1, core.ErrTailnetContract},
+		{name: "zero has no enrollment budget", nanoseconds: 0, wantErr: core.ErrTailnetContract},
+		{name: "minimum one nanosecond is not rounded away", nanoseconds: 1, wantErr: nil},
+		{name: "one below maximum", nanoseconds: tailnetconfig.MaximumStartupNanoseconds - 1, wantErr: nil},
+		{name: "exact maximum", nanoseconds: tailnetconfig.MaximumStartupNanoseconds, wantErr: nil},
+		{name: "one above maximum", nanoseconds: tailnetconfig.MaximumStartupNanoseconds + 1, wantErr: core.ErrTailnetContract},
+		{name: "maximum representable duration cannot bypass ceiling", nanoseconds: 1<<63 - 1, wantErr: core.ErrTailnetContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

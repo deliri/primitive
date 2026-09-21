@@ -129,30 +129,30 @@ func (d coreJSONDoor) receiverName() string {
 }
 
 type coreJSONFixtures struct {
-	relativePath    RelativePath
-	absolutePath    AbsolutePath
-	sourcePath      SourcePath
-	repository      RepositoryIdentity
-	snapshot        SourceSnapshot
-	subjectKind     SourceSubjectKind
-	subject         SourceSubject
-	component       PathComponent
-	mediaType       HTTPMediaType
 	header          HTTPHeaderName
 	offering        Offering
+	sourcePath      SourcePath
+	repository      RepositoryIdentity
+	relativePath    RelativePath
+	component       PathComponent
+	mediaType       HTTPMediaType
+	absolutePath    AbsolutePath
+	subject         SourceSubject
 	endpoint        HTTPEndpoint
 	build           BuildIdentity
-	byteLength      ByteLength
 	byteCount       ByteCount
+	byteLength      ByteLength
 	version         ReleaseVersion
 	crc32c          CRC32C
 	status          HTTPStatusCode
 	pageLimit       CatalogPageLimit
 	errorIdentity   ErrorIdentity
+	publicKey       Ed25519PublicKey
+	snapshot        SourceSnapshot
 	sha256          SHA256Digest
 	commit          BuildCommit
-	publicKey       Ed25519PublicKey
 	platform        Platform
+	subjectKind     SourceSubjectKind
 	packageKind     PackageKind
 	packageRole     PackageRole
 	packageIdentity PackageIdentity

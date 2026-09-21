@@ -11,9 +11,9 @@ import (
 func TestCheckInResponseRefusesConflictThatItsProducerWouldAccept(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr  error
 		name     string
 		previous bool
-		wantErr  error
 	}{
 		{name: "different committed window remains a conflict"},
 		{name: "unchanged predecessor cannot be called a conflict", previous: true, wantErr: core.ErrControlPlaneDecisionConsistency},

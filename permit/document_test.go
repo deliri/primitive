@@ -40,15 +40,15 @@ func TestPermitVerificationLayerTriad(t *testing.T) {
 func TestPermitSignedValidityBoundaries(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		at      int64
-		wantErr error
 	}{
-		{"before activation", 99, core.ErrPermitValidity}, {"exact activation", 100, nil},
-		{"after activation", 101, nil}, {"before contact", 149, nil},
-		{"exact contact does not revoke permission", 150, nil}, {"after contact", 151, nil},
-		{"before expiry", 199, nil}, {"exact expiry", 200, core.ErrPermitValidity},
-		{"after expiry", 201, core.ErrPermitValidity}, {"minimum instant", -1 << 63, core.ErrPermitValidity}, {"maximum instant", 1<<63 - 1, core.ErrPermitValidity},
+		{name: "before activation", at: 99, wantErr: core.ErrPermitValidity}, {name: "exact activation", at: 100, wantErr: nil},
+		{name: "after activation", at: 101, wantErr: nil}, {name: "before contact", at: 149, wantErr: nil},
+		{name: "exact contact does not revoke permission", at: 150, wantErr: nil}, {name: "after contact", at: 151, wantErr: nil},
+		{name: "before expiry", at: 199, wantErr: nil}, {name: "exact expiry", at: 200, wantErr: core.ErrPermitValidity},
+		{name: "after expiry", at: 201, wantErr: core.ErrPermitValidity}, {name: "minimum instant", at: -1 << 63, wantErr: core.ErrPermitValidity}, {name: "maximum instant", at: 1<<63 - 1, wantErr: core.ErrPermitValidity},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -73,15 +73,15 @@ func TestPermitPreviouslyVerifiedProofExpiresAtInvocation(t *testing.T) {
 		t.Fatalf("Verify before expiry = %v, want nil", err)
 	}
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		at      int64
-		wantErr error
 	}{
-		{"before signed start", 99, core.ErrPermitValidity},
-		{"exact signed start", 100, nil},
-		{"last valid nanosecond", 199, nil},
-		{"exact expiry invalidates retained proof", 200, core.ErrPermitValidity},
-		{"after expiry cannot reuse retained proof", 201, core.ErrPermitValidity},
+		{name: "before signed start", at: 99, wantErr: core.ErrPermitValidity},
+		{name: "exact signed start", at: 100, wantErr: nil},
+		{name: "last valid nanosecond", at: 199, wantErr: nil},
+		{name: "exact expiry invalidates retained proof", at: 200, wantErr: core.ErrPermitValidity},
+		{name: "after expiry cannot reuse retained proof", at: 201, wantErr: core.ErrPermitValidity},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -140,7 +140,7 @@ func FuzzPermitDecodeSignedSemanticClosure(f *testing.F) {
 	if err := request.Document.Write(&seed); err != nil {
 		f.Fatalf("Write(seed) = %v, want nil", err)
 	}
-	for selector := uint8(0); selector < 15; selector++ {
+	for selector := range uint8(15) {
 		f.Add(seed.Bytes(), selector)
 	}
 	f.Add([]byte{}, uint8(0))

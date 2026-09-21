@@ -44,9 +44,9 @@ func (r AnalysisBatchRequest) Validate() error {
 // Err is the original typed error chain. Successful units in a partial Analysis
 // remain usable; metadata is read-only while the batch callback is executing.
 type AnalysisResult struct {
+	Err      error
 	Request  AnalysisRequest
 	Analysis PackageAnalysis
-	Err      error
 }
 
 func (r AnalysisResult) Validate() error {

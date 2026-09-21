@@ -312,8 +312,8 @@ func (call StreamRoundTripCall) Validate() error {
 }
 
 type uploadHTTPRequest struct {
-	target  core.HTTPEndpoint
 	request UploadRequest
+	target  core.HTTPEndpoint
 }
 
 func newUploadHTTPRequest(

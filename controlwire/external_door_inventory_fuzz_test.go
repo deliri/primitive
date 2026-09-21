@@ -377,8 +377,8 @@ func TestControlwireExternalIngressFuzzInventoryMatchesProduction(t *testing.T) 
 	// Secret lifecycle and domain-separated verifier oracles live in dedicated
 	// external-package fuzz targets instead of the generic JSON harness.
 	for _, door := range []struct{ receiver, target string }{
-		{"AccessToken", "FuzzAccessTokenTextAndJSONSemanticClosure"},
-		{"AccessTokenVerifier", "FuzzAccessTokenVerifierJSONSemanticClosure"},
+		{receiver: "AccessToken", target: "FuzzAccessTokenTextAndJSONSemanticClosure"},
+		{receiver: "AccessTokenVerifier", target: "FuzzAccessTokenVerifierJSONSemanticClosure"},
 	} {
 		file, err := controlwireParseSource(token.NewFileSet(), "access_token_test.go")
 		if err != nil {

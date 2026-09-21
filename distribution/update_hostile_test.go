@@ -100,10 +100,10 @@ func TestUpdateExchangeLayerTriadAuthenticatesLatestWithoutInstallingAnything(t 
 	t.Parallel()
 	f := newUpdateExchangeFixture(t)
 	cases := []struct {
+		wantErr  error
 		name     string
 		request  distribution.UpdateRequestPayload
 		document distribution.UpdateResponseDocument
-		wantErr  error
 	}{
 		{name: "positive exact signed manifests", request: f.request, document: f.responseDoc},
 		{name: "negative another request nonce", request: distribution.UpdateRequestPayload{Build: f.request.Build, Nonce: requestNonce(t, 12), Revision: f.request.Revision}, document: f.responseDoc, wantErr: core.ErrDistributionBinding},

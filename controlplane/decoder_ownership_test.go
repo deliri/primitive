@@ -61,7 +61,7 @@ func TestResponseDecoderCannotRewriteItsRetainedWireProof(t *testing.T) {
 	for _, tc := range []struct {
 		name  string
 		count uint64
-	}{{"smallest admitted body", 1}, {"largest admitted count", ^uint64(0)}} {
+	}{{name: "smallest admitted body", count: 1}, {name: "largest admitted count", count: ^uint64(0)}} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			fixture := authenticatedResponseForTest(t, 30)

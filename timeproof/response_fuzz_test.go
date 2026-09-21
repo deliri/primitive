@@ -10,9 +10,9 @@ import (
 )
 
 type responseFuzzAgreement struct {
+	token   parsedToken
 	fixture authenticFixture
 	proof   AuthoritativeTimestamp
-	token   parsedToken
 }
 
 func responseAgreementForFuzz(t testing.TB, fixture authenticFixture) responseFuzzAgreement {

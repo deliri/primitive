@@ -22,22 +22,22 @@ func TestProofLedgerReplayLayerTriad(t *testing.T) {
 	tampered := second
 	tampered.Payload.Value = 3
 	for _, tc := range []struct {
-		name    string
-		after   Head
-		events  []Envelope[ledgerTestPayload]
-		want    Head
 		wantErr error
+		name    string
+		events  []Envelope[ledgerTestPayload]
+		after   Head
+		want    Head
 	}{
-		{"genesis_replays_three_distinct_links", genesis, []Envelope[ledgerTestPayload]{first, second, third}, third.Head(), nil},
-		{"resumed_cursor_replays_exact_suffix", first.Head(), []Envelope[ledgerTestPayload]{second, third}, third.Head(), nil},
-		{"empty_genesis_retains_empty_chain", genesis, nil, genesis, nil},
-		{"empty_suffix_retains_existing_head", second.Head(), nil, second.Head(), nil},
-		{"duplicate_event_cannot_advance_twice", genesis, []Envelope[ledgerTestPayload]{first, first}, first.Head(), core.ErrProofLedgerSequenceConflict},
-		{"gap_cannot_skip_first_event", genesis, []Envelope[ledgerTestPayload]{second}, genesis, core.ErrProofLedgerSequenceConflict},
-		{"reverse_order_cannot_rewind_cursor", second.Head(), []Envelope[ledgerTestPayload]{first}, second.Head(), core.ErrProofLedgerSequenceConflict},
-		{"authentic_sibling_chain_cannot_replace_link", first.Head(), []Envelope[ledgerTestPayload]{foreignLink}, first.Head(), core.ErrProofLedgerPreviousHashMismatch},
-		{"payload_tampering_preserves_admitted_prefix", genesis, []Envelope[ledgerTestPayload]{first, tampered}, first.Head(), core.ErrProofLedgerTampering},
-		{"absent_event_cannot_create_evidence", genesis, []Envelope[ledgerTestPayload]{{}}, genesis, core.ErrProofLedgerContract},
+		{name: "genesis_replays_three_distinct_links", after: genesis, events: []Envelope[ledgerTestPayload]{first, second, third}, want: third.Head(), wantErr: nil},
+		{name: "resumed_cursor_replays_exact_suffix", after: first.Head(), events: []Envelope[ledgerTestPayload]{second, third}, want: third.Head(), wantErr: nil},
+		{name: "empty_genesis_retains_empty_chain", after: genesis, events: nil, want: genesis, wantErr: nil},
+		{name: "empty_suffix_retains_existing_head", after: second.Head(), events: nil, want: second.Head(), wantErr: nil},
+		{name: "duplicate_event_cannot_advance_twice", after: genesis, events: []Envelope[ledgerTestPayload]{first, first}, want: first.Head(), wantErr: core.ErrProofLedgerSequenceConflict},
+		{name: "gap_cannot_skip_first_event", after: genesis, events: []Envelope[ledgerTestPayload]{second}, want: genesis, wantErr: core.ErrProofLedgerSequenceConflict},
+		{name: "reverse_order_cannot_rewind_cursor", after: second.Head(), events: []Envelope[ledgerTestPayload]{first}, want: second.Head(), wantErr: core.ErrProofLedgerSequenceConflict},
+		{name: "authentic_sibling_chain_cannot_replace_link", after: first.Head(), events: []Envelope[ledgerTestPayload]{foreignLink}, want: first.Head(), wantErr: core.ErrProofLedgerPreviousHashMismatch},
+		{name: "payload_tampering_preserves_admitted_prefix", after: genesis, events: []Envelope[ledgerTestPayload]{first, tampered}, want: first.Head(), wantErr: core.ErrProofLedgerTampering},
+		{name: "absent_event_cannot_create_evidence", after: genesis, events: []Envelope[ledgerTestPayload]{{}}, want: genesis, wantErr: core.ErrProofLedgerContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -87,12 +87,12 @@ func TestProofLedgerSequenceExhaustionLayerTriad(t *testing.T) {
 		t.Fatalf("NewPageLimit(1) error = %v, want nil", err)
 	}
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		more    bool
-		wantErr error
 	}{
-		{"last_native_sequence_is_a_final_page", false, nil},
-		{"last_native_sequence_cannot_promise_a_successor", true, core.ErrProofLedgerSequenceConflict},
+		{name: "last_native_sequence_is_a_final_page", more: false, wantErr: nil},
+		{name: "last_native_sequence_cannot_promise_a_successor", more: true, wantErr: core.ErrProofLedgerSequenceConflict},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

@@ -63,9 +63,9 @@ func BenchmarkReceiptBoundary(b *testing.B) {
 		b.Fatal(err)
 	}
 	for _, tc := range []struct {
+		run   func(*testing.B)
 		name  string
 		bytes int
-		run   func(*testing.B)
 	}{
 		{name: "issue", run: func(b *testing.B) {
 			request := IssueEvidenceRequest{Offering: fixture.offering, Key: fixture.private, Body: fixture.body, OccurredAt: fixture.occurredAt, Identity: fixture.receipt, Principal: fixture.principal}

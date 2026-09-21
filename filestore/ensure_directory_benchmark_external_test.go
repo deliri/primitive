@@ -17,7 +17,7 @@ func BenchmarkEnsureExistingDirectoryModeTransitions(b *testing.B) {
 	for _, tc := range []struct {
 		name  string
 		depth int
-	}{{"Depth1", 1}, {"Depth16", 16}} {
+	}{{name: "Depth1", depth: 1}, {name: "Depth16", depth: 16}} {
 		b.Run(tc.name, func(b *testing.B) {
 			directory := b.TempDir()
 			pathText := strings.Repeat("ancestor"+string(filepath.Separator), tc.depth-1) + "target"

@@ -15,9 +15,9 @@ import (
 func BenchmarkPackageVariantCheck(b *testing.B) {
 	directory := b.TempDir()
 	for _, file := range []struct{ path, source string }{
-		{"go.mod", "module example.com/variants\n\ngo 1.27.1\n"},
-		{"value.go", "package variants\nimport \"net/http\"\nfunc Header(r *http.Request) http.Header { return r.Header }\n"},
-		{"value_test.go", "package variants\nimport \"net/http\"\nvar TestValue = http.MethodGet\n"},
+		{path: "go.mod", source: "module example.com/variants\n\ngo 1.27.1\n"},
+		{path: "value.go", source: "package variants\nimport \"net/http\"\nfunc Header(r *http.Request) http.Header { return r.Header }\n"},
+		{path: "value_test.go", source: "package variants\nimport \"net/http\"\nvar TestValue = http.MethodGet\n"},
 	} {
 		if err := os.WriteFile(filepath.Join(directory, file.path), []byte(file.source), 0o600); err != nil {
 			b.Fatal(err)

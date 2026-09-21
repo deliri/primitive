@@ -17,10 +17,10 @@ type canonicalDocument interface {
 }
 
 type canonicalWriteObservation struct {
-	count   int
 	err     error
-	calls   int
 	offered []byte
+	count   int
+	calls   int
 }
 
 func (w *canonicalWriteObservation) Write(data []byte) (int, error) {
@@ -44,16 +44,16 @@ func TestCanonicalWriterLayerTriadPreservesExactEffects(t *testing.T) {
 	}
 	commitment := controlplane.ResponseCommitment{Header: registration.document.Payload.Header, BodyLength: length, BodySHA256: core.SHA256Of(bodyBytes)}
 	documents := []struct {
-		name     string
 		valid    canonicalDocument
 		zero     canonicalDocument
+		name     string
 		identity core.ErrorIdentity
 	}{
-		{"certificate body", checkIn.certificate.Body, controlplane.InstallationCertificateBody{}, core.ErrControlPlaneRegistration},
-		{"registration payload", registration.document.Payload, controlplane.RegistrationPayload{}, core.ErrControlPlaneRegistration},
-		{"check-in payload", checkIn.request.Payload, controlplane.CheckInPayload{}, core.ErrControlPlaneCheckIn},
-		{"check-in response", response.document.Payload, controlplane.CheckInResponsePayload{}, core.ErrControlPlaneCheckInResponse},
-		{"response commitment", commitment, controlplane.ResponseCommitment{}, core.ErrControlPlaneResponseDocument},
+		{name: "certificate body", valid: checkIn.certificate.Body, zero: controlplane.InstallationCertificateBody{}, identity: core.ErrControlPlaneRegistration},
+		{name: "registration payload", valid: registration.document.Payload, zero: controlplane.RegistrationPayload{}, identity: core.ErrControlPlaneRegistration},
+		{name: "check-in payload", valid: checkIn.request.Payload, zero: controlplane.CheckInPayload{}, identity: core.ErrControlPlaneCheckIn},
+		{name: "check-in response", valid: response.document.Payload, zero: controlplane.CheckInResponsePayload{}, identity: core.ErrControlPlaneCheckInResponse},
+		{name: "response commitment", valid: commitment, zero: controlplane.ResponseCommitment{}, identity: core.ErrControlPlaneResponseDocument},
 	}
 	for _, document := range documents {
 		t.Run(document.name, func(t *testing.T) {
@@ -63,13 +63,13 @@ func TestCanonicalWriterLayerTriadPreservesExactEffects(t *testing.T) {
 				t.Fatalf("canonical fixture = (%d bytes, %v), want nonempty and nil", len(encoded), err)
 			}
 			for _, tc := range []struct {
-				name      string
-				count     int
 				cause     error
 				wantErr   error
+				name      string
+				count     int
+				wantCalls int
 				nilWriter bool
 				zeroBody  bool
-				wantCalls int
 			}{
 				{name: "exact full write preserves every signed byte", count: len(encoded), wantCalls: 1},
 				{name: "one-byte truncation cannot report completion", count: len(encoded) - 1, wantErr: io.ErrShortWrite, wantCalls: 1},

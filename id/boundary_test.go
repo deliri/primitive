@@ -37,13 +37,13 @@ func TestIDJSONBoundedProjectionLayerTriad(t *testing.T) {
 		t.Fatal(errors.Join(ue, le))
 	}
 	for _, fixture := range []struct {
+		check   func(testing.TB, []byte)
 		name    string
 		text    string
 		maximum int
-		check   func(testing.TB, []byte)
 	}{
-		{"uuid", u.String(), UUIDv7JSONMaximumBytes, func(t testing.TB, b []byte) { checkUUIDv7JSON(t, b, u) }},
-		{"ulid", l.String(), ULIDJSONMaximumBytes, func(t testing.TB, b []byte) { checkULIDJSON(t, b, l) }},
+		{name: "uuid", text: u.String(), maximum: UUIDv7JSONMaximumBytes, check: func(t testing.TB, b []byte) { checkUUIDv7JSON(t, b, u) }},
+		{name: "ulid", text: l.String(), maximum: ULIDJSONMaximumBytes, check: func(t testing.TB, b []byte) { checkULIDJSON(t, b, l) }},
 	} {
 		t.Run(fixture.name, func(t *testing.T) {
 			t.Parallel()
@@ -56,21 +56,21 @@ func TestIDJSONBoundedProjectionLayerTriad(t *testing.T) {
 				name string
 				data []byte
 			}{
-				{"canonical", canonical},
-				{"one below input ceiling", append(bytes.Repeat([]byte(" "), fixture.maximum-len(canonical)-1), canonical...)},
-				{"exact input ceiling", append(bytes.Repeat([]byte(" "), fixture.maximum-len(canonical)), canonical...)},
-				{"one above input ceiling", append(bytes.Repeat([]byte(" "), fixture.maximum-len(canonical)+1), canonical...)},
-				{"all Unicode escapes at ceiling", escaped},
-				{"escaped token plus one byte", append(bytes.Clone(escaped), ' ')},
-				{"empty input", nil},
-				{"neutral null", []byte("null")},
-				{"array", []byte("[]")},
-				{"object", []byte("{}")},
-				{"number", []byte("1")},
-				{"concatenated documents", append(bytes.Clone(canonical), canonical...)},
-				{"trailing garbage", append(bytes.Clone(canonical), 'x')},
-				{"unpaired surrogate", []byte("\"\\ud800\"")},
-				{"invalid UTF8", []byte{'"', 0xff, '"'}},
+				{name: "canonical", data: canonical},
+				{name: "one below input ceiling", data: append(bytes.Repeat([]byte(" "), fixture.maximum-len(canonical)-1), canonical...)},
+				{name: "exact input ceiling", data: append(bytes.Repeat([]byte(" "), fixture.maximum-len(canonical)), canonical...)},
+				{name: "one above input ceiling", data: append(bytes.Repeat([]byte(" "), fixture.maximum-len(canonical)+1), canonical...)},
+				{name: "all Unicode escapes at ceiling", data: escaped},
+				{name: "escaped token plus one byte", data: append(bytes.Clone(escaped), ' ')},
+				{name: "empty input", data: nil},
+				{name: "neutral null", data: []byte("null")},
+				{name: "array", data: []byte("[]")},
+				{name: "object", data: []byte("{}")},
+				{name: "number", data: []byte("1")},
+				{name: "concatenated documents", data: append(bytes.Clone(canonical), canonical...)},
+				{name: "trailing garbage", data: append(bytes.Clone(canonical), 'x')},
+				{name: "unpaired surrogate", data: []byte("\"\\ud800\"")},
+				{name: "invalid UTF8", data: []byte{'"', 0xff, '"'}},
 			} {
 				t.Run(tc.name, func(t *testing.T) { t.Parallel(); fixture.check(t, tc.data) })
 			}
@@ -85,13 +85,13 @@ func TestIDRequestAdmissionLayerTriad(t *testing.T) {
 		nanoseconds int64
 		valid       bool
 	}{
-		{"one nanosecond before epoch", -1, false},
-		{"minimum signed observation", math.MinInt64, false},
-		{"neutral epoch", 0, true},
-		{"positive submillisecond", 1, true},
-		{"last nanosecond before next stamp", int64(temporal.NanosecondsPerMillisecond) - 1, true},
-		{"next stamp", int64(temporal.NanosecondsPerMillisecond), true},
-		{"maximum observation", math.MaxInt64, true},
+		{name: "one nanosecond before epoch", nanoseconds: -1, valid: false},
+		{name: "minimum signed observation", nanoseconds: math.MinInt64, valid: false},
+		{name: "neutral epoch", nanoseconds: 0, valid: true},
+		{name: "positive submillisecond", nanoseconds: 1, valid: true},
+		{name: "last nanosecond before next stamp", nanoseconds: int64(temporal.NanosecondsPerMillisecond) - 1, valid: true},
+		{name: "next stamp", nanoseconds: int64(temporal.NanosecondsPerMillisecond), valid: true},
+		{name: "maximum observation", nanoseconds: math.MaxInt64, valid: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -130,11 +130,11 @@ func TestIDEveryTextPositionAttacksAllByteValues(t *testing.T) {
 		t.Fatal(errors.Join(ue, le))
 	}
 	for _, tc := range []struct {
-		name, text string
 		check      func(testing.TB, string)
+		name, text string
 	}{
-		{"uuid", u.String(), checkUUIDText},
-		{"ulid", l.String(), checkULIDText},
+		{name: "uuid", text: u.String(), check: checkUUIDText},
+		{name: "ulid", text: l.String(), check: checkULIDText},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -176,14 +176,14 @@ func TestIDAppendersPreserveOwnedBufferBoundaries(t *testing.T) {
 		t.Fatal(errors.Join(ue, le))
 	}
 	for _, value := range []struct {
-		name, text string
 		append     func([]byte) ([]byte, error)
+		name, text string
 		valid      bool
 	}{
-		{"uuid", u.String(), u.AppendText, true},
-		{"ulid", l.String(), l.AppendText, true},
-		{"unset uuid", "", (UUIDv7{}).AppendText, false},
-		{"unset ulid", "", (ULID{}).AppendText, false},
+		{name: "uuid", text: u.String(), append: u.AppendText, valid: true},
+		{name: "ulid", text: l.String(), append: l.AppendText, valid: true},
+		{name: "unset uuid", text: "", append: (UUIDv7{}).AppendText, valid: false},
+		{name: "unset ulid", text: "", append: (ULID{}).AppendText, valid: false},
 	} {
 		t.Run(value.name, func(t *testing.T) {
 			t.Parallel()
@@ -191,7 +191,7 @@ func TestIDAppendersPreserveOwnedBufferBoundaries(t *testing.T) {
 				name  string
 				slack int
 			}{
-				{"one byte short", -1}, {"exact capacity", 0}, {"one byte spare", 1},
+				{name: "one byte short", slack: -1}, {name: "exact capacity", slack: 0}, {name: "one byte spare", slack: 1},
 			} {
 				t.Run(extent.name, func(t *testing.T) {
 					t.Parallel()
@@ -231,9 +231,9 @@ func TestIDUsesCorrectedWallAndPreservesCallerEntropy(t *testing.T) {
 		wall  int64
 		valid bool
 	}{
-		{"correction before epoch", -1, false},
-		{"correction to epoch", 0, true},
-		{"correction beyond carrier", math.MaxInt64, true},
+		{name: "correction before epoch", wall: -1, valid: false},
+		{name: "correction to epoch", wall: 0, valid: true},
+		{name: "correction beyond carrier", wall: math.MaxInt64, valid: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -335,10 +335,10 @@ func TestIdentityValidationAndZeroProjectionLayerTriad(t *testing.T) {
 		value       UUIDv7
 		valid, zero bool
 	}{
-		{"valid marks", good, true, false},
-		{"unset", UUIDv7{}, false, true},
-		{"wrong version", UUIDv7{value: uuid.UUID{6: 0x60, 8: 0x80}}, false, false},
-		{"wrong variant", UUIDv7{value: uuid.UUID{6: 0x70, 8: 0xc0}}, false, false},
+		{name: "valid marks", value: good, valid: true, zero: false},
+		{name: "unset", value: UUIDv7{}, valid: false, zero: true},
+		{name: "wrong version", value: UUIDv7{value: uuid.UUID{6: 0x60, 8: 0x80}}, valid: false, zero: false},
+		{name: "wrong variant", value: UUIDv7{value: uuid.UUID{6: 0x70, 8: 0xc0}}, valid: false, zero: false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -359,9 +359,9 @@ func TestIdentityValidationAndZeroProjectionLayerTriad(t *testing.T) {
 		name string
 		raw  [identityBytes]byte
 	}{
-		{"neutral unset", [identityBytes]byte{}},
-		{"single lowest bit", [identityBytes]byte{identityBytes - 1: 1}},
-		{"single timestamp bit", [identityBytes]byte{0: 0x80}},
+		{name: "neutral unset", raw: [identityBytes]byte{}},
+		{name: "single lowest bit", raw: [identityBytes]byte{identityBytes - 1: 1}},
+		{name: "single timestamp bit", raw: [identityBytes]byte{0: 0x80}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -390,7 +390,7 @@ func TestIdentityNilJSONReceiversRefuseAllTokenClasses(t *testing.T) {
 		name string
 		data []byte
 	}{
-		{"empty", nil}, {"null", []byte("null")}, {"string", []byte("\"x\"")}, {"overfull", bytes.Repeat([]byte(" "), UUIDv7JSONMaximumBytes+1)},
+		{name: "empty", data: nil}, {name: "null", data: []byte("null")}, {name: "string", data: []byte("\"x\"")}, {name: "overfull", data: bytes.Repeat([]byte(" "), UUIDv7JSONMaximumBytes+1)},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -417,13 +417,13 @@ func TestIdentityAllocationBudgets(t *testing.T) {
 	uuidBuffer := make([]byte, 0, len(uuidText))
 	ulidBuffer := make([]byte, 0, len(ulidText))
 	for _, tc := range []struct {
-		name string
 		run  func() (bool, error)
+		name string
 	}{
-		{"UUID parser", func() (bool, error) { got, err := ParseUUIDv7(uuidText); return got == u, err }},
-		{"ULID parser", func() (bool, error) { got, err := ParseULID(ulidText); return got == l, err }},
-		{"UUID append exact capacity", func() (bool, error) { got, err := u.AppendText(uuidBuffer[:0]); return string(got) == uuidText, err }},
-		{"ULID append exact capacity", func() (bool, error) { got, err := l.AppendText(ulidBuffer[:0]); return string(got) == ulidText, err }},
+		{name: "UUID parser", run: func() (bool, error) { got, err := ParseUUIDv7(uuidText); return got == u, err }},
+		{name: "ULID parser", run: func() (bool, error) { got, err := ParseULID(ulidText); return got == l, err }},
+		{name: "UUID append exact capacity", run: func() (bool, error) { got, err := u.AppendText(uuidBuffer[:0]); return string(got) == uuidText, err }},
+		{name: "ULID append exact capacity", run: func() (bool, error) { got, err := l.AppendText(ulidBuffer[:0]); return string(got) == ulidText, err }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			testserial.Declare(t, core.TestIsolationDeclaration{Hazard: core.TestIsolationHazardRuntimeAllocation, Scope: core.TestIsolationScopePackageProcess})
@@ -448,7 +448,7 @@ func TestIdentityConstructionRacesOwnedDestruction(t *testing.T) {
 		name  string
 		nanos int64
 	}{
-		{"epoch", 0}, {"maximum observation", math.MaxInt64},
+		{name: "epoch", nanos: 0}, {name: "maximum observation", nanos: math.MaxInt64},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

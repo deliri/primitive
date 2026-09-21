@@ -18,10 +18,10 @@ import (
 func TestCompilerVendorSelectionLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr                                  error
 		name                                     string
 		removeOriginal, breakSelected, removeUse bool
 		wantObject                               bool
-		wantErr                                  error
 	}{
 		{name: "selected vendor survives removal of original replacement", removeOriginal: true, wantObject: true},
 		{name: "broken vendor cannot borrow a healthy replacement export", breakSelected: true, wantErr: core.ErrGoToolchainOutput},

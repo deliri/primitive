@@ -28,10 +28,10 @@ const (
 func TestOpenDirectoryLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name          string
-		fixture       heldDirectoryFixture
 		wantErr       error
 		wantNativeErr error
+		name          string
+		fixture       heldDirectoryFixture
 	}{
 		{name: "empty directory acquisition and release create no children", fixture: heldDirectoryEmpty},
 		{name: "renamed directory retains original inode and child through replaced path", fixture: heldDirectoryRenamed},

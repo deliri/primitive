@@ -37,13 +37,13 @@ func (t *googleDeadlineTransport) RoundTrip(r *http.Request) (*http.Response, er
 func TestGoogleServiceAccountAttemptDeadlineLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr        error
 		name           string
 		attemptSeconds uint64
 		parentSeconds  uint64
-		cancel         bool
 		wantSeconds    uint64
 		wantCalls      int
-		wantErr        error
+		cancel         bool
 	}{
 		{name: "shorter_attempt_deadline_reaches_sdk", attemptSeconds: 1, wantSeconds: 1, wantCalls: 1, wantErr: io.ErrClosedPipe},
 		{name: "equal_operation_attempt", attemptSeconds: 5, wantSeconds: 5, wantCalls: 1, wantErr: io.ErrClosedPipe},

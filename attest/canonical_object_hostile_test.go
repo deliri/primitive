@@ -335,9 +335,9 @@ func TestCanonicalObjectStateTransitionsRefuseReuseDuplicatesAndOverflow(t *test
 	t.Run("member count pressures both sides of the ceiling without losing fields", func(t *testing.T) {
 		t.Parallel()
 		for _, tc := range []struct {
+			wantErr error
 			name    string
 			count   int
-			wantErr error
 		}{
 			{name: "one below maximum", count: attest.CanonicalObjectMaximumFields - 1},
 			{name: "exact maximum", count: attest.CanonicalObjectMaximumFields},
@@ -676,9 +676,9 @@ func TestCanonicalObjectDestinationPrefixConsumesTheDocumentBudget(t *testing.T)
 		t.Fatalf("prefix fixture encoding error = %v, want nil", err)
 	}
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		extent  int
-		wantErr error
 	}{
 		{name: "prefix leaves one byte of slack", extent: attest.CanonicalBodyMaximumBytes - 1},
 		{name: "prefix and member exactly consume document budget", extent: attest.CanonicalBodyMaximumBytes},

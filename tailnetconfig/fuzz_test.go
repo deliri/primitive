@@ -75,14 +75,14 @@ func FuzzConfigurationIngress(f *testing.F) {
 			t.Fatalf("tag oracle disagreement = provider:%t regex:%t, want agreement", providerAllowsTag, wantTag)
 		}
 		for _, row := range []struct {
-			name              string
 			gotErr            error
-			want              bool
+			name              string
 			gotText, wantText string
+			want              bool
 		}{
-			{"client identifier", clientErr, wantClient, client.String(), clientText},
-			{"hostname", hostnameErr, wantHostname, hostname.String(), hostnameText},
-			{"tag", tagErr, wantTag, tag.String(), tagText},
+			{name: "client identifier", gotErr: clientErr, want: wantClient, gotText: client.String(), wantText: clientText},
+			{name: "hostname", gotErr: hostnameErr, want: wantHostname, gotText: hostname.String(), wantText: hostnameText},
+			{name: "tag", gotErr: tagErr, want: wantTag, gotText: tag.String(), wantText: tagText},
 		} {
 			if (row.gotErr == nil) != row.want {
 				t.Fatalf("%s admission = %v, want valid=%t", row.name, row.gotErr, row.want)

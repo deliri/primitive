@@ -34,13 +34,13 @@ const (
 func TestCheckInAuthorityProducerComparisonLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantProducerErr  error
+		wantErr          error
 		name             string
 		primary          authorityTransitionClass
 		position         authorityCurrentFact
 		corruptSignature bool
 		zeroProof        bool
-		wantProducerErr  error
-		wantErr          error
 		wantDisposition  controlplane.UsageDisposition
 	}{
 		{name: "authenticated predecessor advances exactly once", primary: transitionBoundary, wantDisposition: controlplane.UsageDispositionAccepted},

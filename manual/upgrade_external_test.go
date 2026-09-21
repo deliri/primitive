@@ -62,10 +62,10 @@ func manualLines(count int) []manual.Line {
 func TestManualContractLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name    string
-		mutate  func(*manual.Book[namedTopic])
-		pages   int
 		wantErr error
+		mutate  func(*manual.Book[namedTopic])
+		name    string
+		pages   int
 	}{
 		{name: "positive_complete_book", pages: 2, mutate: func(b *manual.Book[namedTopic]) {
 			b.Pages[0].Prerequisites = []manual.Line{"A valid prerequisite."}
@@ -160,9 +160,9 @@ func TestManualContractLayerTriad(t *testing.T) {
 func TestManualLineSeparatorsLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		value   string
-		wantErr error
 	}{
 		{name: "positive_internal_unicode_space", value: "left\u00a0right"},
 		{name: "positive_emoji_joiner", value: "👩‍💻"},
@@ -184,9 +184,9 @@ func TestManualLineSeparatorsLayerTriad(t *testing.T) {
 func TestManualPageReportSelfRelation(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		related bool
-		wantErr error
 	}{
 		{name: "positive_independent_page_without_related"},
 		{name: "negative_page_owns_self_relation_refusal", related: true, wantErr: core.ErrManualContract},
@@ -217,8 +217,8 @@ func TestManualNilDestinationsLayerTriad(t *testing.T) {
 	}
 	request := manual.RenderRequest[testTopic]{Book: book, View: manual.ViewHelp, Selection: manual.Selection[testTopic]{Mode: manual.SelectionModeIndex}}
 	for _, door := range []struct {
-		name  string
 		write func(io.Writer) error
+		name  string
 	}{
 		{name: "text", write: func(w io.Writer) error { return manual.WriteText(w, request) }},
 		{name: "json", write: func(w io.Writer) error { return manual.WriteJSON(w, report) }},
@@ -226,9 +226,9 @@ func TestManualNilDestinationsLayerTriad(t *testing.T) {
 		t.Run(door.name, func(t *testing.T) {
 			t.Parallel()
 			for _, tc := range []struct {
-				name    string
 				writer  io.Writer
 				wantErr error
+				name    string
 			}{
 				{name: "positive_discard", writer: io.Discard},
 				{name: "negative_typed_nil", writer: (*bytes.Buffer)(nil), wantErr: core.ErrManualContract},
@@ -257,9 +257,9 @@ func TestManualSchemaJSONLayerTriad(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		data    []byte
-		wantErr error
 	}{
 		{name: "positive_published_schema", data: canonical},
 		{name: "negative_future_schema", data: []byte(`"future"`), wantErr: core.ErrManualContract},
@@ -279,9 +279,9 @@ func TestManualSchemaJSONLayerTriad(t *testing.T) {
 func TestMachineReportRefusalLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name    string
-		mutate  func(*manual.Report)
 		wantErr error
+		mutate  func(*manual.Report)
+		name    string
 	}{
 		{name: "positive_complete_projection"},
 		{name: "neutral_optional_related_absent", mutate: func(r *manual.Report) { r.Pages[0].Related = nil }},

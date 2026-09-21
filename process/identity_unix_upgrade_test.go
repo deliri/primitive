@@ -13,10 +13,10 @@ import (
 func TestUnixProcessIDLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name    string
-		id      ProcessIdentity
-		want    int
 		wantErr error
+		name    string
+		want    int
+		id      ProcessIdentity
 	}{
 		{name: "neutral/zero has no process identity", wantErr: core.ErrProcessContract},
 		{name: "positive/minimum PID remains positive", id: 1, want: 1},
@@ -46,10 +46,10 @@ func TestUnixAliveIdentityBoundaryLayerTriad(t *testing.T) {
 		t.Fatal(err)
 	}
 	cases := []struct {
+		wantErr error
 		name    string
 		id      ProcessIdentity
 		want    Liveness
-		wantErr error
 	}{
 		{name: "positive/self is a real live process", id: self, want: LivenessAlive},
 		{name: "neutral/zero cannot probe the caller group", wantErr: core.ErrProcessContract},

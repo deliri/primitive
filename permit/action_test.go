@@ -17,8 +17,8 @@ import (
 func TestActionRepresentationBoundaries(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name, input string
 		wantErr     error
+		name, input string
 	}{
 		{name: "minimum single letter", input: "a"},
 		{name: "minimum single digit", input: "0"},
@@ -56,11 +56,11 @@ func TestActionsLayerTriad(t *testing.T) {
 	t.Parallel()
 	a, b := permitAction(t, "operation-a"), permitAction(t, "operation-b")
 	for _, tc := range []struct {
+		wantErr      error
 		name         string
 		input        []Action
 		wantCount    int
 		wantA, wantB bool
-		wantErr      error
 	}{
 		{name: "two distinct identities canonically reordered", input: []Action{b, a}, wantCount: 2, wantA: true, wantB: true},
 		{name: "duplicate identity rejected", input: []Action{a, a}, wantErr: core.ErrPermitContract},
@@ -87,7 +87,7 @@ func TestActionsLayerTriad(t *testing.T) {
 			for _, member := range []struct {
 				action Action
 				want   bool
-			}{{a, tc.wantA}, {b, tc.wantB}} {
+			}{{action: a, want: tc.wantA}, {action: b, want: tc.wantB}} {
 				present, err := got.Contains(member.action)
 				if err != nil || present != member.want {
 					t.Fatalf("Contains(%v) = %t/%v, want %t/nil", member.action, present, err, member.want)

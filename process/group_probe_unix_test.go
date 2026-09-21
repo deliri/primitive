@@ -14,10 +14,10 @@ import (
 func TestGroupProbeLayerTriadDistinguishesAbsenceFromDeniedSignal(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name    string
 		in      error
-		want    Liveness
 		wantErr error
+		name    string
+		want    Liveness
 	}{
 		{name: "signalable group exists", want: LivenessAlive},
 		{name: "only ESRCH proves absent group", in: syscall.ESRCH, want: LivenessGone},

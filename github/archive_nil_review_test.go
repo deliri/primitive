@@ -16,8 +16,8 @@ import (
 func TestArchiveTypedNilDestinationHasNoEffectLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name        string
 		destination io.Writer
+		name        string
 	}{
 		{name: "missing destination"},
 		{name: "typed nil bytes buffer", destination: (*bytes.Buffer)(nil)},

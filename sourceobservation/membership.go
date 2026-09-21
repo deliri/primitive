@@ -36,11 +36,11 @@ func ConsumeFileReferences(stream FileReferenceStream, destination EmitFileRefer
 }
 
 type fileMembershipConsumer struct {
+	err         error
 	destination EmitFileReference
 	digest      *core.DigestWriter
 	previous    FileReference
 	count       uint64
-	err         error
 	seen        bool
 }
 
@@ -123,11 +123,11 @@ func ConsumePackageReferences(stream PackageReferenceStream, destination EmitPac
 }
 
 type packageMembershipConsumer struct {
+	err         error
 	destination EmitPackageReference
 	digest      *core.DigestWriter
 	previous    core.SourcePath
 	count       uint64
-	err         error
 	seen        bool
 }
 

@@ -16,9 +16,9 @@ import (
 // The embedded real request supplies validated typed facts. Only the emitting
 // capability is broken by each row.
 type replayEmissionProbe struct {
-	controlplane.RegistrationRequest
-	wire       []byte
 	marshalErr error
+	wire       []byte
+	controlplane.RegistrationRequest
 }
 
 func (p replayEmissionProbe) MarshalJSON() ([]byte, error) { return p.wire, p.marshalErr }
@@ -35,10 +35,10 @@ func TestReplayCommitmentEmissionLayerTriad(t *testing.T) {
 		t.Fatal(err)
 	}
 	cases := []struct {
-		name       string
-		wire       []byte
 		errorCause error
 		wantErr    error
+		name       string
+		wire       []byte
 	}{
 		{name: "canonical producer retains every request fact", wire: canonical},
 		{name: "neutral absent marshal output cannot create a replay identity", wantErr: core.ErrControlWireContract},
@@ -78,9 +78,9 @@ func TestRouteCapabilityRefusalDoesNotLeakPartialFacts(t *testing.T) {
 		t.Fatal(err)
 	}
 	cases := []struct {
+		wantErr  error
 		name     string
 		revision controlwire.Revision
-		wantErr  error
 	}{
 		{name: "published revision binds exact pair", revision: controlwire.Revision2026V1},
 		{name: "unset revision yields no partial capability", revision: controlwire.RevisionUnknown, wantErr: core.ErrControlWireProtocolSupport},
@@ -132,9 +132,9 @@ func TestReceiveFinalValidationDoesNotLeakPartialOutput(t *testing.T) {
 		t.Fatalf("fixture encoding error=%v, want nil", err)
 	}
 	for _, tc := range []struct {
+		wantErr  error
 		name     string
 		unstable bool
-		wantErr  error
 	}{
 		{name: "positive stable producer survives final binding"},
 		{name: "negative changed revision cannot leak received facts", unstable: true, wantErr: core.ErrControlWireProtocolSupport},

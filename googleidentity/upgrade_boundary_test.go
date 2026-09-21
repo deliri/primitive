@@ -23,10 +23,10 @@ const googleFormerIdentityTextBytes = 1024
 func TestGoogleExtentAdmissionLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr  error
 		name     string
 		audience string
 		command  []byte
-		wantErr  error
 	}{
 		{name: "audience_beyond_former_extent", audience: strings.Repeat("a", googleFormerAudienceBytes+1)},
 		{name: "audience_large_unicode", audience: strings.Repeat("界", 4096)},
@@ -81,9 +81,9 @@ func TestGoogleAccessJSONExtentLayerTriad(t *testing.T) {
 	}
 	gap := bytes.Repeat([]byte(" "), 128<<10)
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		input   []byte
-		wantErr error
 	}{
 		{name: "canonical", input: canonical},
 		{name: "large_prefix", input: append(bytes.Clone(gap), canonical...)},
@@ -112,9 +112,9 @@ func TestGoogleHeaderExtentLayerTriad(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		input   []byte
-		wantErr error
 	}{
 		{name: "canonical_header", input: data},
 		{name: "header_beyond_former_extent", input: append(bytes.Clone(data), bytes.Repeat([]byte(" "), googleFormerHeaderBytes)...)},
@@ -133,10 +133,10 @@ func TestGoogleHeaderExtentLayerTriad(t *testing.T) {
 func TestGoogleExactAudienceVerificationLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr  error
 		name     string
 		audience string
 		foreign  bool
-		wantErr  error
 	}{
 		{name: "ordinary_exact_audience", audience: verifierTestAudience},
 		{name: "surrounding_space_is_audience_data", audience: " " + verifierTestAudience + " "},
@@ -176,9 +176,9 @@ type googleBrokenContext struct{ context.Context }
 func TestGoogleServiceAccountContextLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name    string
-		ctx     func(*testing.T) context.Context
 		wantErr error
+		ctx     func(*testing.T) context.Context
+		name    string
 	}{
 		{name: "usable_context_preserves_missing_file", ctx: func(t *testing.T) context.Context { return t.Context() }, wantErr: fs.ErrNotExist},
 		{name: "absent_context", ctx: func(*testing.T) context.Context { return nil }, wantErr: core.ErrNilContext},

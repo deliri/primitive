@@ -39,9 +39,9 @@ func TestPartialFileAnalysisRetainsResolvedSiblingFacts(t *testing.T) {
 				filename = "broken.go"
 			}
 			for _, file := range []struct{ name, body string }{
-				{"go.mod", "module example.com/probe\n\ngo 1.27.1\n"},
-				{"healthy.go", "package probe\nfunc Target(v int) int { return v }\nfunc Healthy() int { return Target(7) }\n"},
-				{filename, tc.source},
+				{name: "go.mod", body: "module example.com/probe\n\ngo 1.27.1\n"},
+				{name: "healthy.go", body: "package probe\nfunc Target(v int) int { return v }\nfunc Healthy() int { return Target(7) }\n"},
+				{name: filename, body: tc.source},
 			} {
 				if err := os.WriteFile(filepath.Join(directory, file.name), []byte(file.body), 0o600); err != nil {
 					t.Fatal(err)

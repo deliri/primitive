@@ -16,8 +16,7 @@ func TestAccessRegistrationDecoderProjectionMatchesPublicAgreement(t *testing.T)
 	if public.NumField() != wire.NumField() {
 		t.Fatalf("public/wire field counts = %d/%d, want equal", public.NumField(), wire.NumField())
 	}
-	for i := range public.NumField() {
-		field := public.Field(i)
+	for field := range public.Fields() {
 		got, ok := wire.FieldByName(field.Name)
 		if !ok {
 			t.Errorf("decoder field %s = absent, want public agreement field", field.Name)

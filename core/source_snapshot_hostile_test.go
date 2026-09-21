@@ -18,9 +18,9 @@ func TestSourceSnapshotCanonicalBoundaryAndPreservedRefusal(t *testing.T) {
 	}
 
 	cases := []struct {
+		wantErr error
 		name    string
 		input   string
-		wantErr error
 	}{
 		{name: "canonical snapshot round trips", input: string(canonical)},
 		{name: "empty token is not JSON", input: "", wantErr: core.ErrJSONContract},

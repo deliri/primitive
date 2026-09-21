@@ -86,7 +86,6 @@ func (r MaterialRequest) ControlRevision() controlwire.Revision { return r.Revis
 // ControlNonce projects the request identity carried by the document.
 func (r MaterialRequest) ControlNonce() controlwire.RequestNonce { return r.Nonce }
 
-
 func (r MaterialRequest) MarshalJSON() ([]byte, error) {
 	if err := r.Validate(); err != nil {
 		return nil, jsonError(err)

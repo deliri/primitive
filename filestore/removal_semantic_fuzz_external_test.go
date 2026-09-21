@@ -17,9 +17,9 @@ import (
 
 type removalFixtureEntry struct {
 	name   string
-	mode   fs.FileMode
-	data   []byte
 	target string
+	data   []byte
+	mode   fs.FileMode
 }
 
 // This oracle walks only the bounded test fixture, never caller datasets.

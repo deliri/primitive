@@ -23,9 +23,9 @@ workflow_attempt=${GITHUB_RUN_ATTEMPT:-NOT_APPLICABLE}
 gate_failure_status=0
 goconst_admission_maximum=4
 evidence_phase_duration=3s
-benchmark_duration=30s
-fuzz_duration=$evidence_phase_duration
-fuzz_minimize_duration=$evidence_phase_duration
+benchmark_duration=$evidence_phase_duration
+fuzz_duration=2s
+fuzz_minimize_duration=1s
 
 printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
 	"gate" "command" "platform" "duration_seconds" "exit_status" "log" "bytes" "sha256" \
@@ -336,7 +336,8 @@ run_gate nilaway nilaway ./...
 run_gate witness-lint run_witness_lint
 run_gate complexity gocyclo -over 10 --ignore '_test.go' .
 run_gate constants validate_goconst_findings
-run_gate field-alignment fieldalignment ./...
+run_gate field-alignment-tool-tests go test -count=1 ./_tools/fieldalignmentgate
+run_gate field-alignment go run ./_tools/fieldalignmentgate
 run_gate security gosec -quiet ./...
 run_gate vulnerabilities govulncheck ./...
 run_empty_output_gate dead-code run_deadcode

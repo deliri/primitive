@@ -140,12 +140,12 @@ func (r DirectoryRequest) Validate() error {
 
 // ReadRequest streams one regular file without an extent ceiling into Destination.
 type ReadRequest struct {
+	Destination io.Writer
+	Location    Location
 	// Buffer is optional scratch borrowed exclusively for this call. Its length
 	// controls the copy window, never the stream extent. Empty uses Go allocation.
 	// The caller may reuse it after return; source and destination must not alias it.
-	Buffer      []byte
-	Destination io.Writer
-	Location    Location
+	Buffer []byte
 }
 
 // Validate rejects every unset read boundary.
@@ -269,15 +269,15 @@ func (r RenameRequest) Validate() error {
 // WriteRequest streams Source into one caller-named same-directory temporary
 // before atomic activation.
 type WriteRequest struct {
-	// Buffer is optional scratch borrowed exclusively for this call. Its length
-	// controls the copy window, never the stream extent. Empty uses Go allocation.
-	// The caller may reuse it after return; source and destination must not alias it.
-	Buffer    []byte
 	Source    io.Reader
 	Location  Location
 	Temporary core.RelativePath
-	Mode      fs.FileMode
-	Install   InstallMode
+	// Buffer is optional scratch borrowed exclusively for this call. Its length
+	// controls the copy window, never the stream extent. Empty uses Go allocation.
+	// The caller may reuse it after return; source and destination must not alias it.
+	Buffer  []byte
+	Mode    fs.FileMode
+	Install InstallMode
 }
 
 // Validate rejects every unset write boundary.
@@ -305,13 +305,13 @@ func (r WriteRequest) Validate() error {
 
 // StageRequest streams Source into one exact caller-owned temporary name.
 type StageRequest struct {
+	Source    io.Reader
+	Temporary Location
 	// Buffer is optional scratch borrowed exclusively for this call. Its length
 	// controls the copy window, never the stream extent. Empty uses Go allocation.
 	// The caller may reuse it after return; source and destination must not alias it.
-	Buffer    []byte
-	Source    io.Reader
-	Temporary Location
-	Mode      fs.FileMode
+	Buffer []byte
+	Mode   fs.FileMode
 }
 
 // Validate rejects every unset staging boundary.
@@ -336,8 +336,8 @@ func (r StageRequest) Validate() error {
 // final native file extent; a supplied value requires exact equality, including
 // zero. OpenStageDestination copies the supplied value before returning.
 type StageDestinationRequest struct {
-	Temporary     Location
 	ExpectedBytes *core.ByteLength
+	Temporary     Location
 	Mode          fs.FileMode
 }
 
@@ -345,9 +345,9 @@ type StageDestinationRequest struct {
 // activation plan. It lets a cross-package streaming producer validate every
 // local filesystem effect before the temporary is created.
 type ActivationRequest struct {
+	ExpectedBytes *core.ByteLength
 	Temporary     Location
 	Target        core.RelativePath
-	ExpectedBytes *core.ByteLength
 	Mode          fs.FileMode
 	Install       InstallMode
 }

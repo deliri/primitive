@@ -17,9 +17,9 @@ import (
 func TestPermissionModeHostileBoundaryMatrix(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr error
 		name    string
 		mode    fs.FileMode
-		wantErr error
 	}{}
 	for mode := fs.FileMode(0); mode <= fs.ModePerm; mode++ {
 		var wantErr error
@@ -27,17 +27,17 @@ func TestPermissionModeHostileBoundaryMatrix(t *testing.T) {
 			wantErr = core.ErrFilestoreContract
 		}
 		cases = append(cases, struct {
+			wantErr error
 			name    string
 			mode    fs.FileMode
-			wantErr error
-		}{fmt.Sprintf("permission field %#o retains exact admission", mode), mode, wantErr})
+		}{name: fmt.Sprintf("permission field %#o retains exact admission", mode), mode: mode, wantErr: wantErr})
 	}
 	for bit := fs.ModePerm + 1; bit != 0; bit <<= 1 {
 		cases = append(cases, struct {
+			wantErr error
 			name    string
 			mode    fs.FileMode
-			wantErr error
-		}{fmt.Sprintf("high mode bit %#x cannot hide behind valid permissions", bit), bit | fs.ModePerm, core.ErrFilestoreContract})
+		}{name: fmt.Sprintf("high mode bit %#x cannot hide behind valid permissions", bit), mode: bit | fs.ModePerm, wantErr: core.ErrFilestoreContract})
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

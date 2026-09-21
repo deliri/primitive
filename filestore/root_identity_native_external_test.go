@@ -33,9 +33,9 @@ const (
 func TestRootIdentityNativeCustodyLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr, wantExcluded error
 		name                  string
 		fixture               rootIdentityFixture
-		wantErr, wantExcluded error
 		native                bool
 	}{
 		{name: "descriptor-backed root proves its original native directory", fixture: rootIdentityOriginal},

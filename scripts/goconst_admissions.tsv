@@ -1,4 +1,3 @@
 benchmark	Source-claim execution kind, source-declaration kind, and runner profile kind are independently validated closed domains; one shared token would couple their wire contracts.
-file	Core source-subject kind, Filestore destination diagnostic, and GitHub vendor contents type are separate domains; provider terminology must remain isolated.
 test	Source-claim execution kind, source-declaration kind, and JavaScript CLI subcommand are independent contracts, not one interchangeable enum.
 unavailable	Capability operation, host capacity observation, and source-proof evidence status are independent closed domains with different admission rules.

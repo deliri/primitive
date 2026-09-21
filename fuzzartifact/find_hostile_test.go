@@ -17,13 +17,13 @@ import (
 func TestFindRealDirectoryLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		visitErr                                      error
+		wantErr                                       error
 		name                                          string
 		generated                                     int
-		unsupported, child, cancelBefore, cancelVisit bool
-		visitErr                                      error
-		wantState                                     ObservationState
-		wantErr                                       error
 		wantMatched, wantDelivered                    uint64
+		unsupported, child, cancelBefore, cancelVisit bool
+		wantState                                     ObservationState
 	}{
 		{name: "empty directory produces no visits", wantState: ObservationComplete},
 		{name: "one corpus name reaches visitor", generated: 1, wantState: ObservationComplete, wantMatched: 1, wantDelivered: 1},
@@ -92,9 +92,9 @@ func TestFindRealDirectoryLayerTriad(t *testing.T) {
 func TestFindInvalidIngressEmitsNoCallback(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name    string
-		mutate  func(*FindRequest)
 		wantErr error
+		mutate  func(*FindRequest)
+		name    string
 		failed  bool
 	}{
 		{name: "unset root", mutate: func(r *FindRequest) { r.Location.Root = nil }, wantErr: core.ErrFuzzArtifactContract},

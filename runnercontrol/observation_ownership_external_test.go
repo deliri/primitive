@@ -32,9 +32,9 @@ func TestExperimentObservationOwnsAccountingSnapshot(t *testing.T) {
 func TestExperimentObservationAccountingContradictionLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		attempt runprotocol.ExecutionAttempt
-		wantErr error
 	}{
 		{name: "passed accounting agrees with zero exit", attempt: runprotocol.ExecutionAttempt{Passed: 1}},
 		{name: "skipped accounting remains an explicit skip", attempt: runprotocol.ExecutionAttempt{Skipped: 1}},

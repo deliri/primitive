@@ -95,7 +95,10 @@ func (r ReportPermissionResponse) Timing(at temporal.Instant) (ReportTiming, err
 		return ReportTiming{}, core.ErrPermitValidity
 	}
 	t := ReportTiming{ObservedAt: at, NotBefore: temporal.InstantFromNanoseconds(nb), ExpiresAt: temporal.InstantFromNanoseconds(expiry)}
-	return t, t.Validate()
+	if err := t.Validate(); err != nil {
+		return ReportTiming{}, err
+	}
+	return t, nil
 }
 func (r ReportPermissionResponse) MarshalJSON() ([]byte, error) {
 	if err := r.Validate(); err != nil {

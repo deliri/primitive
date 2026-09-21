@@ -15,9 +15,9 @@ func TestStandardSymbolOwnershipLayerTriad(t *testing.T) {
 		name          string
 		importPath    string
 		selector      string
+		wantSecondary []Effect
 		want          StandardSymbolDisposition
 		wantEffect    Effect
-		wantSecondary []Effect
 		wantOperation Operation
 	}{
 		{name: "positive os ReadFile belongs to filesystem", wantOperation: OperationReadFile, importPath: "os", selector: "ReadFile", want: StandardSymbolEffect, wantEffect: EffectFilesystem},
@@ -126,21 +126,21 @@ func TestStandardSymbolReceiverOwnershipLayerTriad(t *testing.T) {
 		name, imported, receiver, selector string
 		want                               Classification
 	}{
-		{"file close is a filesystem effect", "os", "File", "Close", Classification{Disposition: StandardSymbolEffect, Effect: EffectFilesystem}},
-		{"file name is a pure coordinate", "os", "File", "Name", Classification{Disposition: StandardSymbolPure, Effect: EffectUnknown}},
-		{"unknown receiver cannot inherit the function classification", "os", "FutureFile", "ReadFile", Classification{Disposition: StandardSymbolUnresolved, Effect: EffectUnknown}},
-		{"root metadata is a filesystem effect", "os", "Root", "Stat", Classification{Disposition: StandardSymbolEffect, Effect: EffectFilesystem}},
-		{"process wait owns process observation", "os", "Process", "Wait", Classification{Disposition: StandardSymbolEffect, Effect: EffectProcess}},
-		{"command run owns execution", "os/exec", "Cmd", "Run", Classification{Disposition: StandardSymbolEffect, Effect: EffectProcess, Operation: OperationRunProcess}},
-		{"command environment owns host observation", "os/exec", "Cmd", "Environ", Classification{Disposition: StandardSymbolEffect, Effect: EffectHost}},
-		{"command rendering does not execute", "os/exec", "Cmd", "String", Classification{Disposition: StandardSymbolPure, Effect: EffectUnknown}},
-		{"HTTP client performs transport", "net/http", "Client", "Do", Classification{Disposition: StandardSymbolEffect, Effect: EffectTransport}},
-		{"HTTP header formatting is pure", "net/http", "Header", "Get", Classification{Disposition: StandardSymbolPure, Effect: EffectUnknown}},
-		{"connection write performs transport", "net", "Conn", "Write", Classification{Disposition: StandardSymbolEffect, Effect: EffectTransport}},
-		{"timer stop changes the clock facility", "time", "Timer", "Stop", Classification{Disposition: StandardSymbolEffect, Effect: EffectTime}},
-		{"time formatting is pure", "time", "Time", "String", Classification{Disposition: StandardSymbolPure, Effect: EffectUnknown}},
-		{"descriptor control owns the host boundary", "syscall", "RawConn", "Control", Classification{Disposition: StandardSymbolEffect, Effect: EffectHost}},
-		{"unknown method stays unknown", "os", "File", "FutureMethod", Classification{Disposition: StandardSymbolUnresolved, Effect: EffectUnknown}},
+		{name: "file close is a filesystem effect", imported: "os", receiver: "File", selector: "Close", want: Classification{Disposition: StandardSymbolEffect, Effect: EffectFilesystem}},
+		{name: "file name is a pure coordinate", imported: "os", receiver: "File", selector: "Name", want: Classification{Disposition: StandardSymbolPure, Effect: EffectUnknown}},
+		{name: "unknown receiver cannot inherit the function classification", imported: "os", receiver: "FutureFile", selector: "ReadFile", want: Classification{Disposition: StandardSymbolUnresolved, Effect: EffectUnknown}},
+		{name: "root metadata is a filesystem effect", imported: "os", receiver: "Root", selector: "Stat", want: Classification{Disposition: StandardSymbolEffect, Effect: EffectFilesystem}},
+		{name: "process wait owns process observation", imported: "os", receiver: "Process", selector: "Wait", want: Classification{Disposition: StandardSymbolEffect, Effect: EffectProcess}},
+		{name: "command run owns execution", imported: "os/exec", receiver: "Cmd", selector: "Run", want: Classification{Disposition: StandardSymbolEffect, Effect: EffectProcess, Operation: OperationRunProcess}},
+		{name: "command environment owns host observation", imported: "os/exec", receiver: "Cmd", selector: "Environ", want: Classification{Disposition: StandardSymbolEffect, Effect: EffectHost}},
+		{name: "command rendering does not execute", imported: "os/exec", receiver: "Cmd", selector: "String", want: Classification{Disposition: StandardSymbolPure, Effect: EffectUnknown}},
+		{name: "HTTP client performs transport", imported: "net/http", receiver: "Client", selector: "Do", want: Classification{Disposition: StandardSymbolEffect, Effect: EffectTransport}},
+		{name: "HTTP header formatting is pure", imported: "net/http", receiver: "Header", selector: "Get", want: Classification{Disposition: StandardSymbolPure, Effect: EffectUnknown}},
+		{name: "connection write performs transport", imported: "net", receiver: "Conn", selector: "Write", want: Classification{Disposition: StandardSymbolEffect, Effect: EffectTransport}},
+		{name: "timer stop changes the clock facility", imported: "time", receiver: "Timer", selector: "Stop", want: Classification{Disposition: StandardSymbolEffect, Effect: EffectTime}},
+		{name: "time formatting is pure", imported: "time", receiver: "Time", selector: "String", want: Classification{Disposition: StandardSymbolPure, Effect: EffectUnknown}},
+		{name: "descriptor control owns the host boundary", imported: "syscall", receiver: "RawConn", selector: "Control", want: Classification{Disposition: StandardSymbolEffect, Effect: EffectHost}},
+		{name: "unknown method stays unknown", imported: "os", receiver: "File", selector: "FutureMethod", want: Classification{Disposition: StandardSymbolUnresolved, Effect: EffectUnknown}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

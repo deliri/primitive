@@ -38,8 +38,8 @@ func (r ResponseBufferRequest) Validate() error {
 // A panic cannot acknowledge its in-flight effect: a zero receipt is absent
 // evidence, not proof that a misbehaving destination performed no effect.
 type ResponseBufferResult struct {
-	Status    core.HTTPStatusCode
 	Bytes     core.ByteLength
+	Status    core.HTTPStatusCode
 	Committed bool
 }
 
@@ -54,10 +54,10 @@ func (r ResponseBufferResult) Validate() error {
 }
 
 type responseBuffer struct {
+	failure error
 	header  http.Header
 	sealed  http.Header
 	body    []byte
-	failure error
 	status  int
 }
 

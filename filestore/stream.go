@@ -47,11 +47,10 @@ func (d streamDestination) String() string {
 func (streamDestination) OffWireEnum() {}
 
 type streamCopyRequest struct {
-	buffer      []byte
 	ctx         context.Context
 	destination io.Writer
 	source      io.Reader
-
+	buffer      []byte
 	knownExtent uint64
 	kind        streamDestination
 	extentKnown bool

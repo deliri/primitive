@@ -43,30 +43,30 @@ func TestIssuanceRefusalsPreserveIdentityAndZeroOutput(t *testing.T) {
 		t.Fatalf("ReleaseGCS()=%v, want nil", err)
 	}
 	issuers := []struct {
-		name  string
 		issue func(crypto.Signer) (bool, error)
+		name  string
 	}{
-		{"publication request", func(s crypto.Signer) (bool, error) {
+		{name: "publication request", issue: func(s crypto.Signer) (bool, error) {
 			d, e := distribution.IssuePublicationRequest(distribution.PublicationRequestIssuance{Signer: s, Payload: p.request})
 			return d == (distribution.PublicationRequestDocument{}), e
 		}},
-		{"update request", func(s crypto.Signer) (bool, error) {
+		{name: "update request", issue: func(s crypto.Signer) (bool, error) {
 			d, e := distribution.IssueUpdateRequest(distribution.UpdateRequestIssuance{Signer: s, Payload: u.request})
 			return d == (distribution.UpdateRequestDocument{}), e
 		}},
-		{"upgrade request", func(s crypto.Signer) (bool, error) {
+		{name: "upgrade request", issue: func(s crypto.Signer) (bool, error) {
 			d, e := distribution.IssueUpgradeRequest(distribution.UpgradeRequestIssuance{Signer: s, Payload: g.request})
 			return d == (distribution.UpgradeRequestDocument{}), e
 		}},
-		{"update response", func(s crypto.Signer) (bool, error) {
+		{name: "update response", issue: func(s crypto.Signer) (bool, error) {
 			d, e := distribution.IssueUpdateResponse(distribution.UpdateResponseIssuance{Signer: s, Payload: u.responseDoc.Payload})
 			return d == (distribution.UpdateResponseDocument{}), e
 		}},
-		{"publication completion", func(s crypto.Signer) (bool, error) {
+		{name: "publication completion", issue: func(s crypto.Signer) (bool, error) {
 			d, e := distribution.IssuePublicationCompletion(distribution.PublicationCompletionIssuance{Signer: s, Request: p.verifiedRequest, Grant: p.verifiedGrant, Receipts: receipts})
 			return d == (distribution.PublicationCompletionProjection{}), e
 		}},
-		{"publication grant", func(s crypto.Signer) (bool, error) {
+		{name: "publication grant", issue: func(s crypto.Signer) (bool, error) {
 			d, e := distribution.IssuePublicationGrant(distribution.PublicationGrantIssuance{Signer: s, Payload: p.grantPayload, Capabilities: p.grantProjection.Capabilities})
 			zero := d.Payload == (distribution.PublicationGrantPayload{}) && d.Attestation == (attest.Envelope[distribution.SigningDomain]{})
 			for _, c := range d.Capabilities {
@@ -74,7 +74,7 @@ func TestIssuanceRefusalsPreserveIdentityAndZeroOutput(t *testing.T) {
 			}
 			return zero, e
 		}},
-		{"upgrade grant", func(s crypto.Signer) (bool, error) {
+		{name: "upgrade grant", issue: func(s crypto.Signer) (bool, error) {
 			d, e := distribution.IssueUpgradeGrant(distribution.UpgradeGrantIssuance{Signer: s, Payload: g.grantDoc.Payload, Capability: g.grantProjection.Capability})
 			return d.Payload == (distribution.UpgradeGrantPayload{}) && d.Attestation == (attest.Envelope[distribution.SigningDomain]{}) && d.Capability.IsZero(), e
 		}},
@@ -83,10 +83,10 @@ func TestIssuanceRefusalsPreserveIdentityAndZeroOutput(t *testing.T) {
 		t.Run(issuer.name, func(t *testing.T) {
 			t.Parallel()
 			cases := []struct {
-				name      string
-				absent    bool
-				wantCalls int
 				wantCause error
+				name      string
+				wantCalls int
+				absent    bool
 			}{
 				{name: "absent signer emits no document", absent: true, wantCause: core.ErrAttestContract},
 				{name: "signing provider refusal emits no document", wantCalls: 1, wantCause: io.ErrClosedPipe},
@@ -116,20 +116,20 @@ func TestPublicationPlanPreflightLayerTriad(t *testing.T) {
 	t.Parallel()
 	f := newPublicationExchangeFixture(t)
 	cases := []struct {
+		wantErr   error
 		name      string
 		missing   int
 		zeroGrant bool
-		wantErr   error
 	}{
 		{name: "exact plan preserves unread sources", missing: -1},
 		{name: "absent grant emits no plan", missing: -1, zeroGrant: true, wantErr: core.ErrDistributionContract},
 	}
 	for i := range release.PublicationObjectCount {
 		cases = append(cases, struct {
+			wantErr   error
 			name      string
 			missing   int
 			zeroGrant bool
-			wantErr   error
 		}{name: "absent source for " + release.PublicationRole(i+1).String(), missing: i, wantErr: core.ErrDistributionContract})
 	}
 	for _, tc := range cases {
@@ -172,9 +172,9 @@ func TestPublicationPlanForeignManifestHasNoSourceEffect(t *testing.T) {
 	f := newPublicationExchangeFixture(t)
 	other := newReleaseFixture(t, core.NewReleaseVersion(2026, 0, 56), 3)
 	cases := []struct {
+		wantErr  error
 		name     string
 		manifest release.VerifiedManifest
-		wantErr  error
 	}{
 		{name: "exact manifest", manifest: f.release.manifest},
 		{name: "another authenticated manifest", manifest: other.manifest, wantErr: core.ErrDistributionBinding},

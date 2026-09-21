@@ -158,7 +158,7 @@ func repositoryGrantDigest(g RepositoryGrant) core.SHA256Digest {
 		Enabled          bool                           `json:"enabled"`
 		ExpiresAt        temporal.Instant               `json:"expires_at"`
 	}
-	encoded, err := core.MarshalCanonicalJSONDocument(projection{g.Origin, g.Subject, g.Repository, g.SourceAuthority, g.CredentialIssuer, g.Enabled, g.ExpiresAt})
+	encoded, err := core.MarshalCanonicalJSONDocument(projection{Origin: g.Origin, Subject: g.Subject, Repository: g.Repository, SourceAuthority: g.SourceAuthority, CredentialIssuer: g.CredentialIssuer, Enabled: g.Enabled, ExpiresAt: g.ExpiresAt})
 	if err != nil {
 		return core.SHA256Digest{}
 	}

@@ -710,10 +710,10 @@ func cgroupV2MountForTest(t *testing.T, root string) cgroupMount {
 func TestReadBoundedValueAllocationLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		payload []byte
 		maximum uint64
-		wantErr error
 	}{
 		{name: "neutral empty value reserves only the stream batch", maximum: virtualFileMaximumBytes},
 		{name: "positive sparse token does not reserve the one-mebibyte ceiling", payload: []byte("max\n"), maximum: virtualFileMaximumBytes},

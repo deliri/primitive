@@ -10,26 +10,26 @@ import (
 func TestUnsetJSONOwnersEmitNoWireEvidence(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
-		name    string
 		marshal func() ([]byte, error)
+		name    string
 	}{
-		{"signing domain", distribution.SigningDomainUnknown.MarshalJSON},
-		{"request commitment", (distribution.RequestCommitment{}).MarshalJSON},
-		{"publication request payload", (distribution.PublicationRequestPayload{}).MarshalJSON},
-		{"publication request document", (distribution.PublicationRequestDocument{}).MarshalJSON},
-		{"publication grant payload", (distribution.PublicationGrantPayload{}).MarshalJSON},
-		{"publication grant projection", (distribution.PublicationGrantProjection{}).MarshalJSON},
-		{"publication completion payload", (distribution.PublicationCompletionPayload{}).MarshalJSON},
-		{"publication completion document", (distribution.PublicationCompletionDocument{}).MarshalJSON},
-		{"publication completion projection", (distribution.PublicationCompletionProjection{}).MarshalJSON},
-		{"update request payload", (distribution.UpdateRequestPayload{}).MarshalJSON},
-		{"update request document", (distribution.UpdateRequestDocument{}).MarshalJSON},
-		{"update response payload", (distribution.UpdateResponsePayload{}).MarshalJSON},
-		{"update response document", (distribution.UpdateResponseDocument{}).MarshalJSON},
-		{"upgrade request payload", (distribution.UpgradeRequestPayload{}).MarshalJSON},
-		{"upgrade request document", (distribution.UpgradeRequestDocument{}).MarshalJSON},
-		{"upgrade grant payload", (distribution.UpgradeGrantPayload{}).MarshalJSON},
-		{"upgrade grant projection", (distribution.UpgradeGrantProjection{}).MarshalJSON},
+		{name: "signing domain", marshal: distribution.SigningDomainUnknown.MarshalJSON},
+		{name: "request commitment", marshal: (distribution.RequestCommitment{}).MarshalJSON},
+		{name: "publication request payload", marshal: (distribution.PublicationRequestPayload{}).MarshalJSON},
+		{name: "publication request document", marshal: (distribution.PublicationRequestDocument{}).MarshalJSON},
+		{name: "publication grant payload", marshal: (distribution.PublicationGrantPayload{}).MarshalJSON},
+		{name: "publication grant projection", marshal: (distribution.PublicationGrantProjection{}).MarshalJSON},
+		{name: "publication completion payload", marshal: (distribution.PublicationCompletionPayload{}).MarshalJSON},
+		{name: "publication completion document", marshal: (distribution.PublicationCompletionDocument{}).MarshalJSON},
+		{name: "publication completion projection", marshal: (distribution.PublicationCompletionProjection{}).MarshalJSON},
+		{name: "update request payload", marshal: (distribution.UpdateRequestPayload{}).MarshalJSON},
+		{name: "update request document", marshal: (distribution.UpdateRequestDocument{}).MarshalJSON},
+		{name: "update response payload", marshal: (distribution.UpdateResponsePayload{}).MarshalJSON},
+		{name: "update response document", marshal: (distribution.UpdateResponseDocument{}).MarshalJSON},
+		{name: "upgrade request payload", marshal: (distribution.UpgradeRequestPayload{}).MarshalJSON},
+		{name: "upgrade request document", marshal: (distribution.UpgradeRequestDocument{}).MarshalJSON},
+		{name: "upgrade grant payload", marshal: (distribution.UpgradeGrantPayload{}).MarshalJSON},
+		{name: "upgrade grant projection", marshal: (distribution.UpgradeGrantProjection{}).MarshalJSON},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -49,26 +49,26 @@ func TestGrantProjectionRefusesForeignDomainAndCapability(t *testing.T) {
 	otherUpload, _ := uploadCapabilityProjection(t, 100)
 	otherDownload, _ := downloadCapabilityProjection(t, 100)
 	cases := []struct {
-		name    string
-		marshal func() ([]byte, error)
 		wantErr error
+		marshal func() ([]byte, error)
+		name    string
 	}{
-		{"publication grant foreign domain", func() ([]byte, error) {
+		{name: "publication grant foreign domain", marshal: func() ([]byte, error) {
 			v := p.grantProjection
 			v.Attestation.Domain = distribution.SigningDomainUpgradeGrantV1
 			return v.MarshalJSON()
-		}, core.ErrDistributionBinding},
-		{"publication grant foreign capability", func() ([]byte, error) {
+		}, wantErr: core.ErrDistributionBinding},
+		{name: "publication grant foreign capability", marshal: func() ([]byte, error) {
 			v := p.grantProjection
 			v.Capabilities[0] = otherUpload
 			return v.MarshalJSON()
-		}, core.ErrDistributionBinding},
-		{"upgrade grant foreign domain", func() ([]byte, error) {
+		}, wantErr: core.ErrDistributionBinding},
+		{name: "upgrade grant foreign domain", marshal: func() ([]byte, error) {
 			v := u.grantProjection
 			v.Attestation.Domain = distribution.SigningDomainPublicationGrantV1
 			return v.MarshalJSON()
-		}, core.ErrDistributionBinding},
-		{"upgrade grant foreign capability", func() ([]byte, error) { v := u.grantProjection; v.Capability = otherDownload; return v.MarshalJSON() }, core.ErrDistributionBinding},
+		}, wantErr: core.ErrDistributionBinding},
+		{name: "upgrade grant foreign capability", marshal: func() ([]byte, error) { v := u.grantProjection; v.Capability = otherDownload; return v.MarshalJSON() }, wantErr: core.ErrDistributionBinding},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

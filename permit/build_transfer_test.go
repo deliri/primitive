@@ -53,58 +53,58 @@ func buildTransferFixture(t testing.TB) (BuildTransferIssuance, BuildTransferVer
 func TestBuildTransferPermissionLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name    string
-		mutate  func(*testing.T, *BuildTransferVerification)
 		wantErr error
+		mutate  func(*testing.T, *BuildTransferVerification)
+		name    string
 	}{
-		{"changed build retains every other signed fact", func(*testing.T, *BuildTransferVerification) {}, nil},
-		{"expiry one nanosecond below remains valid", func(t *testing.T, r *BuildTransferVerification) {
+		{name: "changed build retains every other signed fact", mutate: func(*testing.T, *BuildTransferVerification) {}, wantErr: nil},
+		{name: "expiry one nanosecond below remains valid", mutate: func(t *testing.T, r *BuildTransferVerification) {
 			r.EffectiveAt = shiftTransferInstant(t, r.Document.Permission.Terms.ExpiresAt, -1)
-		}, nil},
-		{"exact expiry cannot become a renewal", func(t *testing.T, r *BuildTransferVerification) {
+		}, wantErr: nil},
+		{name: "exact expiry cannot become a renewal", mutate: func(t *testing.T, r *BuildTransferVerification) {
 			r.EffectiveAt = r.Document.Permission.Terms.ExpiresAt
-		}, core.ErrPermitValidity},
-		{"one nanosecond after expiry stays expired", func(t *testing.T, r *BuildTransferVerification) {
+		}, wantErr: core.ErrPermitValidity},
+		{name: "one nanosecond after expiry stays expired", mutate: func(t *testing.T, r *BuildTransferVerification) {
 			r.EffectiveAt = shiftTransferInstant(t, r.Document.Permission.Terms.ExpiresAt, +1)
-		}, core.ErrPermitValidity},
-		{"before original activation cannot execute", func(t *testing.T, r *BuildTransferVerification) {
+		}, wantErr: core.ErrPermitValidity},
+		{name: "before original activation cannot execute", mutate: func(t *testing.T, r *BuildTransferVerification) {
 			r.EffectiveAt = shiftTransferInstant(t, r.Document.Permission.Terms.NotBefore, -1)
-		}, core.ErrPermitValidity},
-		{"same build cannot claim a transfer", func(t *testing.T, r *BuildTransferVerification) {
+		}, wantErr: core.ErrPermitValidity},
+		{name: "same build cannot claim a transfer", mutate: func(t *testing.T, r *BuildTransferVerification) {
 			r.Build = r.Document.Certificate.Body.Build
 			r.Document.Permission.Terms.Build, _ = priorBuild(r.PreviousPermission)
-		}, core.ErrPermitBinding},
-		{"extra action cannot ride a build change", func(t *testing.T, r *BuildTransferVerification) {
+		}, wantErr: core.ErrPermitBinding},
+		{name: "extra action cannot ride a build change", mutate: func(t *testing.T, r *BuildTransferVerification) {
 			r.Document.Permission.Terms.Actions, _ = NewActions(permitAction(t, "operation-a"), permitAction(t, "operation-b"))
-		}, core.ErrPermitBinding},
-		{"removed action is not an exact transfer", func(t *testing.T, r *BuildTransferVerification) { r.Document.Permission.Terms.Actions = Actions{} }, core.ErrPermitBinding},
-		{"expiry extension cannot ride a build change", func(t *testing.T, r *BuildTransferVerification) {
+		}, wantErr: core.ErrPermitBinding},
+		{name: "removed action is not an exact transfer", mutate: func(t *testing.T, r *BuildTransferVerification) { r.Document.Permission.Terms.Actions = Actions{} }, wantErr: core.ErrPermitBinding},
+		{name: "expiry extension cannot ride a build change", mutate: func(t *testing.T, r *BuildTransferVerification) {
 			r.Document.Permission.Terms.ExpiresAt = shiftTransferInstant(t, r.Document.Permission.Terms.ExpiresAt, +1)
-		}, core.ErrPermitBinding},
-		{"activation shift cannot reset elapsed permission", func(t *testing.T, r *BuildTransferVerification) {
+		}, wantErr: core.ErrPermitBinding},
+		{name: "activation shift cannot reset elapsed permission", mutate: func(t *testing.T, r *BuildTransferVerification) {
 			r.Document.Permission.Terms.NotBefore = shiftTransferInstant(t, r.Document.Permission.Terms.NotBefore, -1)
-		}, core.ErrPermitBinding},
-		{"contact shift cannot postpone renewal", func(t *testing.T, r *BuildTransferVerification) {
+		}, wantErr: core.ErrPermitBinding},
+		{name: "contact shift cannot postpone renewal", mutate: func(t *testing.T, r *BuildTransferVerification) {
 			r.Document.Permission.Terms.ContactAt = shiftTransferInstant(t, r.Document.Permission.Terms.ContactAt, +1)
-		}, core.ErrPermitBinding},
-		{"retry delay cannot be replaced", func(t *testing.T, r *BuildTransferVerification) {
+		}, wantErr: core.ErrPermitBinding},
+		{name: "retry delay cannot be replaced", mutate: func(t *testing.T, r *BuildTransferVerification) {
 			r.Document.Permission.Terms.RetryAfter, _ = temporal.DurationFromMilliseconds(2000)
-		}, core.ErrPermitBinding},
-		{"generation advance cannot manufacture usage", func(t *testing.T, r *BuildTransferVerification) {
+		}, wantErr: core.ErrPermitBinding},
+		{name: "generation advance cannot manufacture usage", mutate: func(t *testing.T, r *BuildTransferVerification) {
 			r.Document.Permission.Terms.Generation, _ = lease.NewGeneration(2)
-		}, core.ErrPermitBinding},
-		{"nonce substitution cannot replace the prior response", func(t *testing.T, r *BuildTransferVerification) {
+		}, wantErr: core.ErrPermitBinding},
+		{name: "nonce substitution cannot replace the prior response", mutate: func(t *testing.T, r *BuildTransferVerification) {
 			r.Document.Permission.Terms.RequestNonce, _ = controlwire.NewRequestNonce([32]byte{99})
-		}, core.ErrPermitBinding},
-		{"reporting removal cannot disable the registered phase", func(t *testing.T, r *BuildTransferVerification) {
+		}, wantErr: core.ErrPermitBinding},
+		{name: "reporting removal cannot disable the registered phase", mutate: func(t *testing.T, r *BuildTransferVerification) {
 			r.Document.Permission.Terms.Reporting = ReportSchedule{}
-		}, core.ErrPermitBinding},
-		{"reporting opening cannot move with upgrade time", func(t *testing.T, r *BuildTransferVerification) {
+		}, wantErr: core.ErrPermitBinding},
+		{name: "reporting opening cannot move with upgrade time", mutate: func(t *testing.T, r *BuildTransferVerification) {
 			r.Document.Permission.Terms.Reporting.NextReportAt = shiftTransferInstant(t, r.Document.Permission.Terms.Reporting.NextReportAt, 1)
-		}, core.ErrPermitBinding},
-		{"certificate date cannot reenroll the key", func(t *testing.T, r *BuildTransferVerification) {
+		}, wantErr: core.ErrPermitBinding},
+		{name: "certificate date cannot reenroll the key", mutate: func(t *testing.T, r *BuildTransferVerification) {
 			r.Document.Certificate.Body.IssuedAt = shiftTransferInstant(t, r.Document.Certificate.Body.IssuedAt, +1)
-		}, core.ErrPermitBinding},
+		}, wantErr: core.ErrPermitBinding},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

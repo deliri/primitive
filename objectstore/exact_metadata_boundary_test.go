@@ -18,10 +18,10 @@ type exactMetadataInfo struct {
 func (i exactMetadataInfo) Size() int64 { return i.extent }
 
 type exactMetadataSource struct {
-	source           *bytes.Reader
 	info             fs.FileInfo
-	position         int64
 	seekErr, statErr error
+	source           *bytes.Reader
+	position         int64
 	statCalls        int
 }
 
@@ -37,12 +37,12 @@ func (s *exactMetadataSource) Stat() (fs.FileInfo, error) { s.statCalls++; retur
 func TestExactReaderMetadataReplyLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name                     string
 		info                     fs.FileInfo
-		position                 int64
 		seekErr, statErr, want   error
-		empty                    bool
+		name                     string
+		position                 int64
 		wantCount, wantStatCalls int
+		empty                    bool
 	}{
 		{name: "finite file position proves exact final byte", info: exactMetadataInfo{extent: 1}, position: 1, wantCount: 1, wantStatCalls: 1},
 		{name: "empty file metadata proves empty object", info: exactMetadataInfo{}, empty: true, wantStatCalls: 1},

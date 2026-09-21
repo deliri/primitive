@@ -44,9 +44,9 @@ func TestWindowsPendingLockJoinsNativeCompletion(t *testing.T) {
 		holder Exclusivity
 		flags  uint32
 	}{
-		{"exclusive_waits_for_exclusive", Exclusive, windows.LOCKFILE_EXCLUSIVE_LOCK},
-		{"exclusive_waits_for_shared", Shared, windows.LOCKFILE_EXCLUSIVE_LOCK},
-		{"shared_waits_for_exclusive", Exclusive, 0},
+		{name: "exclusive_waits_for_exclusive", holder: Exclusive, flags: windows.LOCKFILE_EXCLUSIVE_LOCK},
+		{name: "exclusive_waits_for_shared", holder: Shared, flags: windows.LOCKFILE_EXCLUSIVE_LOCK},
+		{name: "shared_waits_for_exclusive", holder: Exclusive, flags: 0},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

@@ -45,7 +45,7 @@ func BenchmarkAWSProviderXML(b *testing.B) {
 	for _, tc := range []struct {
 		name  string
 		bytes int
-	}{{"minimum", 1}, {"maximum", TokenMaximumBytes}} {
+	}{{name: "minimum", bytes: 1}, {name: "maximum", bytes: TokenMaximumBytes}} {
 		b.Run(tc.name, func(b *testing.B) {
 			value := strings.Repeat("a", tc.bytes)
 			data := awsProviderBytes(b, awsProviderDocument(value))
@@ -72,7 +72,7 @@ func BenchmarkAWSBearerDisclosure(b *testing.B) {
 	for _, tc := range []struct {
 		name  string
 		bytes int
-	}{{"minimum", 1}, {"maximum", TokenMaximumBytes}} {
+	}{{name: "minimum", bytes: 1}, {name: "maximum", bytes: TokenMaximumBytes}} {
 		b.Run(tc.name, func(b *testing.B) {
 			input := strings.Repeat("a", tc.bytes)
 			token, err := newToken(input)

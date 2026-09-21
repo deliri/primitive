@@ -40,9 +40,9 @@ func paymentJSONExtent[T paymentJSONValue, P paymentJSONReceiver[T]](t *testing.
 		}
 		gap := bytes.Repeat([]byte(" "), paymentJSONStressWindow)
 		for _, tc := range []struct {
+			want error
 			name string
 			data []byte
-			want error
 		}{
 			{name: "positive canonical", data: canonical},
 			{name: "positive whitespace before value crosses many windows", data: append(bytes.Clone(gap), canonical...)},
@@ -73,9 +73,9 @@ func paymentJSONExtent[T paymentJSONValue, P paymentJSONReceiver[T]](t *testing.
 }
 
 type paymentBoundaryWriter struct {
-	count int
 	cause error
 	seen  []byte
+	count int
 	calls int
 }
 
@@ -89,8 +89,8 @@ func TestPaymentCanonicalWriterLayerTriad(t *testing.T) {
 	t.Parallel()
 	f := paymentFixturesForFuzz(t)
 	for _, body := range []struct {
-		name           string
 		valid, invalid attest.CanonicalBody[SigningDomain]
+		name           string
 	}{
 		{name: "receipt", valid: f.payload, invalid: Payload{}},
 		{name: "query", valid: f.queryPayload, invalid: QueryPayload{}},
@@ -104,9 +104,9 @@ func TestPaymentCanonicalWriterLayerTriad(t *testing.T) {
 			}
 			want := bytes.Clone(canonical.Bytes())
 			for _, tc := range []struct {
+				cause, want error
 				name        string
 				count       int
-				cause, want error
 				invalid     bool
 			}{
 				{name: "positive full write", count: len(want)},
@@ -136,8 +136,8 @@ func TestPaymentCanonicalWriterLayerTriad(t *testing.T) {
 				})
 			}
 			for _, tc := range []struct {
-				name        string
 				destination io.Writer
+				name        string
 			}{
 				{name: "nil destination"},
 				{name: "typed nil destination", destination: (*bytes.Buffer)(nil)},
@@ -169,9 +169,9 @@ func TestPaymentCanonicalWriterLayerTriad(t *testing.T) {
 }
 
 type paymentMutatingSigner struct {
-	private  ed25519.PrivateKey
 	onPublic func()
 	onSign   func()
+	private  ed25519.PrivateKey
 }
 
 func (s paymentMutatingSigner) Public() crypto.PublicKey {

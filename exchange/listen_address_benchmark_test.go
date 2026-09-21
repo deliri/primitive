@@ -14,10 +14,10 @@ import (
 func BenchmarkListenAddressAdmission(b *testing.B) {
 	b.ReportAllocs()
 	cases := []struct {
+		wantErr  error
 		name     string
 		input    string
 		wantText string
-		wantErr  error
 	}{
 		{name: "concrete_ipv4", input: "127.0.0.1:65535", wantText: "127.0.0.1:65535"},
 		{name: "concrete_mapped_ipv4", input: "[::ffff:127.0.0.1]:8080", wantText: "[::ffff:127.0.0.1]:8080"},

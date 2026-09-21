@@ -23,8 +23,8 @@ func TestInspectGoSearchPermissionLayerTriad(t *testing.T) {
 		t.Skip("root bypasses the owner-permission refusal boundary")
 	}
 	for _, tc := range []struct {
-		mode    fs.FileMode
 		wantErr error
+		mode    fs.FileMode
 	}{
 		{mode: 0o000, wantErr: fs.ErrPermission},
 		{mode: 0o100},

@@ -29,10 +29,10 @@ const (
 func TestStageDestinationDurableWriterLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr, wantNative                                      error
 		name                                                     string
 		namespace                                                destinationNamespace
 		abandon, empty, wantReceipt, wantTemporary, wantConflict bool
-		wantErr, wantNative                                      error
 	}{
 		{name: "fragmented binary producer transfers original inode", wantReceipt: true},
 		{name: "empty producer transfers a real empty inode", empty: true, wantReceipt: true},

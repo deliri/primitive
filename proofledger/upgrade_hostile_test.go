@@ -75,10 +75,10 @@ func TestProofLedgerEventExtentLayerTriad(t *testing.T) {
 		name string
 		size int
 	}{
-		{"one_below_former_event_quota", formerEventExtent - 1},
-		{"exact_former_event_quota", formerEventExtent},
-		{"one_above_former_event_quota", formerEventExtent + 1},
-		{"many_windows_with_partial_tail", 1<<20 + 17},
+		{name: "one_below_former_event_quota", size: formerEventExtent - 1},
+		{name: "exact_former_event_quota", size: formerEventExtent},
+		{name: "one_above_former_event_quota", size: formerEventExtent + 1},
+		{name: "many_windows_with_partial_tail", size: 1<<20 + 17},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -133,13 +133,13 @@ func TestProofLedgerPageExtentLayerTriad(t *testing.T) {
 		t.Fatalf("NewPageLimit(1) error = %v, want nil", err)
 	}
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		page    Page[extentPayload]
-		wantErr error
 	}{
-		{"large_event_preserves_page_continuation", Page[extentPayload]{Events: []Envelope[extentPayload]{event}, After: issue.Intent.ExpectedHead, Next: event.Head(), Limit: limit, More: true}, nil},
-		{"large_event_cannot_claim_wrong_next", Page[extentPayload]{Events: []Envelope[extentPayload]{event}, After: issue.Intent.ExpectedHead, Next: issue.Intent.ExpectedHead, Limit: limit}, core.ErrProofLedgerSequenceConflict},
-		{"empty_page_preserves_exact_cursor", Page[extentPayload]{After: event.Head(), Next: event.Head(), Limit: limit}, nil},
+		{name: "large_event_preserves_page_continuation", page: Page[extentPayload]{Events: []Envelope[extentPayload]{event}, After: issue.Intent.ExpectedHead, Next: event.Head(), Limit: limit, More: true}, wantErr: nil},
+		{name: "large_event_cannot_claim_wrong_next", page: Page[extentPayload]{Events: []Envelope[extentPayload]{event}, After: issue.Intent.ExpectedHead, Next: issue.Intent.ExpectedHead, Limit: limit}, wantErr: core.ErrProofLedgerSequenceConflict},
+		{name: "empty_page_preserves_exact_cursor", page: Page[extentPayload]{After: event.Head(), Next: event.Head(), Limit: limit}, wantErr: nil},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -161,27 +161,27 @@ func TestProofLedgerReceiptExtentLayerTriad(t *testing.T) {
 		name string
 		size int
 	}{
-		{"below_former_receipt_quota", formerReceiptExtent - 1},
-		{"exact_former_receipt_quota", formerReceiptExtent},
-		{"above_former_receipt_quota", formerReceiptExtent + 1},
-		{"below_former_document_quota", formerReceiptDocumentExtent - 1},
-		{"exact_former_document_quota", formerReceiptDocumentExtent},
-		{"above_former_document_quota", formerReceiptDocumentExtent + 1},
-		{"many_windows_and_partial_tail", 1<<20 + 17},
+		{name: "below_former_receipt_quota", size: formerReceiptExtent - 1},
+		{name: "exact_former_receipt_quota", size: formerReceiptExtent},
+		{name: "above_former_receipt_quota", size: formerReceiptExtent + 1},
+		{name: "below_former_document_quota", size: formerReceiptDocumentExtent - 1},
+		{name: "exact_former_document_quota", size: formerReceiptDocumentExtent},
+		{name: "above_former_document_quota", size: formerReceiptDocumentExtent + 1},
+		{name: "many_windows_and_partial_tail", size: 1<<20 + 17},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			for _, door := range []struct {
-				name    string
 				marshal func() ([]byte, error)
 				decode  func([]byte) (bool, error)
+				name    string
 			}{
-				{"receipt", document.Receipt.MarshalJSON, func(data []byte) (bool, error) {
+				{name: "receipt", marshal: document.Receipt.MarshalJSON, decode: func(data []byte) (bool, error) {
 					got := document.Receipt
 					err := got.UnmarshalJSON(data)
 					return got == document.Receipt, err
 				}},
-				{"document", document.MarshalJSON, func(data []byte) (bool, error) {
+				{name: "document", marshal: document.MarshalJSON, decode: func(data []byte) (bool, error) {
 					got := document
 					err := got.UnmarshalJSON(data)
 					return got == document, err
@@ -216,14 +216,14 @@ func TestProofLedgerRefusalIdentityLayerTriad(t *testing.T) {
 		}
 	})
 	for _, tc := range []struct {
+		wantErr  error
 		name     string
 		sequence Sequence
 		want     Sequence
-		wantErr  error
 	}{
-		{"maximum_minus_one_advances_exactly", math.MaxUint64 - 1, math.MaxUint64, nil},
-		{"maximum_preserves_contract_and_conflict", math.MaxUint64, 0, core.ErrProofLedgerSequenceConflict},
-		{"zero_cannot_issue_a_successor", 0, 0, core.ErrProofLedgerSequenceConflict},
+		{name: "maximum_minus_one_advances_exactly", sequence: math.MaxUint64 - 1, want: math.MaxUint64, wantErr: nil},
+		{name: "maximum_preserves_contract_and_conflict", sequence: math.MaxUint64, want: 0, wantErr: core.ErrProofLedgerSequenceConflict},
+		{name: "zero_cannot_issue_a_successor", sequence: 0, want: 0, wantErr: core.ErrProofLedgerSequenceConflict},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -236,9 +236,9 @@ func TestProofLedgerRefusalIdentityLayerTriad(t *testing.T) {
 }
 
 type receiptWriter struct {
+	cause error
 	bytes.Buffer
 	limit int
-	cause error
 }
 
 func (w *receiptWriter) Write(data []byte) (int, error) {
@@ -258,17 +258,17 @@ func TestProofLedgerCanonicalWriterLayerTriad(t *testing.T) {
 		t.Fatalf("MarshalJSON() error = %v, want nil", err)
 	}
 	for _, tc := range []struct {
+		cause, wantErr error
 		name           string
 		value          AppendReceipt
 		limit          int
-		cause, wantErr error
 		want           int
 	}{
-		{"exact_write_preserves_every_byte", receipt, len(canonical), nil, nil, len(canonical)},
-		{"partial_write_retains_native_failure", receipt, 17, io.ErrClosedPipe, io.ErrClosedPipe, 17},
-		{"full_progress_still_preserves_failure", receipt, len(canonical), io.ErrClosedPipe, io.ErrClosedPipe, len(canonical)},
-		{"short_write_without_error_is_refused", receipt, len(canonical) - 1, nil, io.ErrShortWrite, len(canonical) - 1},
-		{"absent_receipt_writes_nothing", AppendReceipt{}, len(canonical), nil, core.ErrProofLedgerContract, 0},
+		{name: "exact_write_preserves_every_byte", value: receipt, limit: len(canonical), cause: nil, wantErr: nil, want: len(canonical)},
+		{name: "partial_write_retains_native_failure", value: receipt, limit: 17, cause: io.ErrClosedPipe, wantErr: io.ErrClosedPipe, want: 17},
+		{name: "full_progress_still_preserves_failure", value: receipt, limit: len(canonical), cause: io.ErrClosedPipe, wantErr: io.ErrClosedPipe, want: len(canonical)},
+		{name: "short_write_without_error_is_refused", value: receipt, limit: len(canonical) - 1, cause: nil, wantErr: io.ErrShortWrite, want: len(canonical) - 1},
+		{name: "absent_receipt_writes_nothing", value: AppendReceipt{}, limit: len(canonical), cause: nil, wantErr: core.ErrProofLedgerContract, want: 0},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

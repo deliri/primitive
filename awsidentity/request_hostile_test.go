@@ -15,13 +15,13 @@ func TestAWSRequestEveryQueryFieldMultiplicity(t *testing.T) {
 	t.Parallel()
 	for field := amazonQueryFieldAction; field < amazonQueryFieldLimit; field++ {
 		for _, tc := range []struct {
+			wantErr  error
 			name     string
 			mutation awsURLMutation
-			wantErr  error
 		}{
-			{"absent", awsURLDelete, core.ErrAWSIdentityContract},
-			{"empty", awsURLSet, core.ErrAWSIdentityContract},
-			{"duplicate", awsURLAppend, core.ErrAWSIdentityContract},
+			{name: "absent", mutation: awsURLDelete, wantErr: core.ErrAWSIdentityContract},
+			{name: "empty", mutation: awsURLSet, wantErr: core.ErrAWSIdentityContract},
+			{name: "duplicate", mutation: awsURLAppend, wantErr: core.ErrAWSIdentityContract},
 		} {
 			t.Run(field.name()+" "+tc.name, func(t *testing.T) {
 				t.Parallel()
@@ -61,39 +61,39 @@ func TestAWSRequestCredentialAndCanonicalQueryBindings(t *testing.T) {
 	t.Parallel()
 	credential := awsTestAccess + "/" + awsTestDate + "/" + awsTestRegion + "/" + amazonCredentialService + "/" + amazonCredentialTerminal
 	for _, tc := range []struct {
-		name    string
-		field   amazonQueryField
-		value   string
 		wantErr error
+		name    string
+		value   string
+		field   amazonQueryField
 	}{
-		{"signature algorithm bound to SigV4", amazonQueryFieldSignatureAlgorithm, "other", core.ErrAWSIdentityContract},
-		{"signed headers cannot expand", amazonQueryFieldSignedHeaders, amazonSignedHeadersValue + ";authorization", core.ErrAWSIdentityContract},
-		{"credential access ID absent", amazonQueryFieldCredential, strings.TrimPrefix(credential, awsTestAccess), core.ErrAWSIdentityContract},
-		{"credential date too short", amazonQueryFieldCredential, strings.Replace(credential, awsTestDate, awsTestDate[:len(awsTestDate)-1], 1), core.ErrAWSIdentityContract},
-		{"credential date too long", amazonQueryFieldCredential, strings.Replace(credential, awsTestDate, awsTestDate+"0", 1), core.ErrAWSIdentityContract},
-		{"credential date non decimal", amazonQueryFieldCredential, strings.Replace(credential, awsTestDate, "20260x29", 1), core.ErrAWSIdentityContract},
-		{"credential region foreign", amazonQueryFieldCredential, strings.Replace(credential, awsTestRegion, "us-west-2", 1), core.ErrAWSIdentityContract},
-		{"credential service foreign", amazonQueryFieldCredential, strings.Replace(credential, "/"+amazonCredentialService+"/", "/s3/", 1), core.ErrAWSIdentityContract},
-		{"credential terminal foreign", amazonQueryFieldCredential, strings.TrimSuffix(credential, amazonCredentialTerminal) + "other", core.ErrAWSIdentityContract},
-		{"credential segment missing", amazonQueryFieldCredential, strings.TrimSuffix(credential, "/"+amazonCredentialTerminal), core.ErrAWSIdentityContract},
-		{"credential segment extra", amazonQueryFieldCredential, credential + "/extra", core.ErrAWSIdentityContract},
-		{"credential tiny access ID stays opaque", amazonQueryFieldCredential, strings.Replace(credential, awsTestAccess, "x", 1), nil},
-		{"credential date disagrees with signed date", amazonQueryFieldDate, "20260730T120000Z", core.ErrAWSIdentityContract},
-		{"signed date truncated", amazonQueryFieldDate, "202607", core.ErrAWSIdentityContract},
-		{"signed date impossible hour", amazonQueryFieldDate, awsTestDate + "T250000Z", core.ErrAWSIdentityContract},
-		{"signed date lowercase zone", amazonQueryFieldDate, awsTestDate + "T120000z", core.ErrAWSIdentityContract},
-		{"signed date fractional seconds noncanonical", amazonQueryFieldDate, awsTestDate + "T120000.1Z", core.ErrAWSIdentityContract},
-		{"signed date zero hour", amazonQueryFieldDate, awsTestDate + "T000000Z", nil},
-		{"signed date last second", amazonQueryFieldDate, awsTestDate + "T235959Z", nil},
-		{"expiry one above minimum", amazonQueryFieldExpires, "2", nil},
-		{"expiry one below ceiling", amazonQueryFieldExpires, strconv.Itoa(amazonSignedURLMaximumSecs - 1), nil},
-		{"expiry one above ceiling", amazonQueryFieldExpires, strconv.Itoa(amazonSignedURLMaximumSecs + 1), core.ErrAWSIdentityContract},
-		{"expiry positive sign", amazonQueryFieldExpires, "+1", core.ErrAWSIdentityContract},
-		{"expiry negative sign", amazonQueryFieldExpires, "-1", core.ErrAWSIdentityContract},
-		{"expiry leading whitespace", amazonQueryFieldExpires, " 1", core.ErrAWSIdentityContract},
-		{"expiry fractional", amazonQueryFieldExpires, "1.0", core.ErrAWSIdentityContract},
-		{"expiry uint64 overflow", amazonQueryFieldExpires, "18446744073709551616", core.ErrAWSIdentityContract},
-		{"security token escaped delimiters", amazonQueryFieldSecurityToken, "a+/=%&", nil},
+		{name: "signature algorithm bound to SigV4", field: amazonQueryFieldSignatureAlgorithm, value: "other", wantErr: core.ErrAWSIdentityContract},
+		{name: "signed headers cannot expand", field: amazonQueryFieldSignedHeaders, value: amazonSignedHeadersValue + ";authorization", wantErr: core.ErrAWSIdentityContract},
+		{name: "credential access ID absent", field: amazonQueryFieldCredential, value: strings.TrimPrefix(credential, awsTestAccess), wantErr: core.ErrAWSIdentityContract},
+		{name: "credential date too short", field: amazonQueryFieldCredential, value: strings.Replace(credential, awsTestDate, awsTestDate[:len(awsTestDate)-1], 1), wantErr: core.ErrAWSIdentityContract},
+		{name: "credential date too long", field: amazonQueryFieldCredential, value: strings.Replace(credential, awsTestDate, awsTestDate+"0", 1), wantErr: core.ErrAWSIdentityContract},
+		{name: "credential date non decimal", field: amazonQueryFieldCredential, value: strings.Replace(credential, awsTestDate, "20260x29", 1), wantErr: core.ErrAWSIdentityContract},
+		{name: "credential region foreign", field: amazonQueryFieldCredential, value: strings.Replace(credential, awsTestRegion, "us-west-2", 1), wantErr: core.ErrAWSIdentityContract},
+		{name: "credential service foreign", field: amazonQueryFieldCredential, value: strings.Replace(credential, "/"+amazonCredentialService+"/", "/s3/", 1), wantErr: core.ErrAWSIdentityContract},
+		{name: "credential terminal foreign", field: amazonQueryFieldCredential, value: strings.TrimSuffix(credential, amazonCredentialTerminal) + "other", wantErr: core.ErrAWSIdentityContract},
+		{name: "credential segment missing", field: amazonQueryFieldCredential, value: strings.TrimSuffix(credential, "/"+amazonCredentialTerminal), wantErr: core.ErrAWSIdentityContract},
+		{name: "credential segment extra", field: amazonQueryFieldCredential, value: credential + "/extra", wantErr: core.ErrAWSIdentityContract},
+		{name: "credential tiny access ID stays opaque", field: amazonQueryFieldCredential, value: strings.Replace(credential, awsTestAccess, "x", 1), wantErr: nil},
+		{name: "credential date disagrees with signed date", field: amazonQueryFieldDate, value: "20260730T120000Z", wantErr: core.ErrAWSIdentityContract},
+		{name: "signed date truncated", field: amazonQueryFieldDate, value: "202607", wantErr: core.ErrAWSIdentityContract},
+		{name: "signed date impossible hour", field: amazonQueryFieldDate, value: awsTestDate + "T250000Z", wantErr: core.ErrAWSIdentityContract},
+		{name: "signed date lowercase zone", field: amazonQueryFieldDate, value: awsTestDate + "T120000z", wantErr: core.ErrAWSIdentityContract},
+		{name: "signed date fractional seconds noncanonical", field: amazonQueryFieldDate, value: awsTestDate + "T120000.1Z", wantErr: core.ErrAWSIdentityContract},
+		{name: "signed date zero hour", field: amazonQueryFieldDate, value: awsTestDate + "T000000Z", wantErr: nil},
+		{name: "signed date last second", field: amazonQueryFieldDate, value: awsTestDate + "T235959Z", wantErr: nil},
+		{name: "expiry one above minimum", field: amazonQueryFieldExpires, value: "2", wantErr: nil},
+		{name: "expiry one below ceiling", field: amazonQueryFieldExpires, value: strconv.Itoa(amazonSignedURLMaximumSecs - 1), wantErr: nil},
+		{name: "expiry one above ceiling", field: amazonQueryFieldExpires, value: strconv.Itoa(amazonSignedURLMaximumSecs + 1), wantErr: core.ErrAWSIdentityContract},
+		{name: "expiry positive sign", field: amazonQueryFieldExpires, value: "+1", wantErr: core.ErrAWSIdentityContract},
+		{name: "expiry negative sign", field: amazonQueryFieldExpires, value: "-1", wantErr: core.ErrAWSIdentityContract},
+		{name: "expiry leading whitespace", field: amazonQueryFieldExpires, value: " 1", wantErr: core.ErrAWSIdentityContract},
+		{name: "expiry fractional", field: amazonQueryFieldExpires, value: "1.0", wantErr: core.ErrAWSIdentityContract},
+		{name: "expiry uint64 overflow", field: amazonQueryFieldExpires, value: "18446744073709551616", wantErr: core.ErrAWSIdentityContract},
+		{name: "security token escaped delimiters", field: amazonQueryFieldSecurityToken, value: "a+/=%&", wantErr: nil},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -124,22 +124,22 @@ func TestAWSRequestCredentialAndCanonicalQueryBindings(t *testing.T) {
 func TestAWSRequestEndpointAndAudienceOwnership(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name, host, region, audience string
 		wantErr                      error
+		name, host, region, audience string
 	}{
-		{"China regional endpoint", "sts.cn-north-1.amazonaws.com.cn", "cn-north-1", "a", nil},
-		{"China dual stack endpoint", "sts.cn-north-1.api.amazonwebservices.com.cn", "cn-north-1", "a", nil},
-		{"China FIPS endpoint", "sts-fips.cn-north-1.amazonaws.com.cn", "cn-north-1", "a", nil},
-		{"China FIPS dual stack endpoint", "sts-fips.cn-north-1.api.amazonwebservices.com.cn", "cn-north-1", "a", nil},
-		{"hostname case keeps exact capability", "STS.US-EAST-2.AMAZONAWS.COM", awsTestRegion, "a", nil},
-		{"future syntactic region remains provider owned", "sts.future-region-9.amazonaws.com", "future-region-9", "a", nil},
-		{"audience maximum remains exact", awsTestHost, awsTestRegion, strings.Repeat("a", AudienceMaximumBytes), nil},
-		{"audience encoding remains exact", awsTestHost, awsTestRegion, "é +&=%/", nil},
-		{"audience embedded zero remains opaque", awsTestHost, awsTestRegion, "a\x00b", nil},
-		{"trailing host dot is not contracted shape", awsTestHost + ".", awsTestRegion, "a", core.ErrAWSIdentityContract},
-		{"foreign suffix after approved suffix", awsTestHost + ".example.test", awsTestRegion, "a", core.ErrAWSIdentityContract},
-		{"underscore cannot hide in region", "sts.us_east-2.amazonaws.com", "us_east-2", "a", core.ErrAWSIdentityContract},
-		{"explicit default port is refused", awsTestHost + ":443", awsTestRegion, "a", core.ErrAWSIdentityContract},
+		{name: "China regional endpoint", host: "sts.cn-north-1.amazonaws.com.cn", region: "cn-north-1", audience: "a", wantErr: nil},
+		{name: "China dual stack endpoint", host: "sts.cn-north-1.api.amazonwebservices.com.cn", region: "cn-north-1", audience: "a", wantErr: nil},
+		{name: "China FIPS endpoint", host: "sts-fips.cn-north-1.amazonaws.com.cn", region: "cn-north-1", audience: "a", wantErr: nil},
+		{name: "China FIPS dual stack endpoint", host: "sts-fips.cn-north-1.api.amazonwebservices.com.cn", region: "cn-north-1", audience: "a", wantErr: nil},
+		{name: "hostname case keeps exact capability", host: "STS.US-EAST-2.AMAZONAWS.COM", region: awsTestRegion, audience: "a", wantErr: nil},
+		{name: "future syntactic region remains provider owned", host: "sts.future-region-9.amazonaws.com", region: "future-region-9", audience: "a", wantErr: nil},
+		{name: "audience maximum remains exact", host: awsTestHost, region: awsTestRegion, audience: strings.Repeat("a", AudienceMaximumBytes), wantErr: nil},
+		{name: "audience encoding remains exact", host: awsTestHost, region: awsTestRegion, audience: "é +&=%/", wantErr: nil},
+		{name: "audience embedded zero remains opaque", host: awsTestHost, region: awsTestRegion, audience: "a\x00b", wantErr: nil},
+		{name: "trailing host dot is not contracted shape", host: awsTestHost + ".", region: awsTestRegion, audience: "a", wantErr: core.ErrAWSIdentityContract},
+		{name: "foreign suffix after approved suffix", host: awsTestHost + ".example.test", region: awsTestRegion, audience: "a", wantErr: core.ErrAWSIdentityContract},
+		{name: "underscore cannot hide in region", host: "sts.us_east-2.amazonaws.com", region: "us_east-2", audience: "a", wantErr: core.ErrAWSIdentityContract},
+		{name: "explicit default port is refused", host: awsTestHost + ":443", region: awsTestRegion, audience: "a", wantErr: core.ErrAWSIdentityContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -168,14 +168,14 @@ func TestAWSRequestEndpointAndAudienceOwnership(t *testing.T) {
 func TestAWSRequestRevalidatesOwnedFields(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name   string
 		change func(*Request)
+		name   string
 	}{
-		{"unset endpoint", func(r *Request) { r.endpoint = nil }},
-		{"zero endpoint", func(r *Request) { r.endpoint = &core.HTTPEndpoint{} }},
-		{"unset audience", func(r *Request) { r.audience = Audience{} }},
-		{"foreign audience", func(r *Request) { r.audience = Audience{value: "foreign"} }},
-		{"unset policy", func(r *Request) { r.policy = Policy{} }},
+		{name: "unset endpoint", change: func(r *Request) { r.endpoint = nil }},
+		{name: "zero endpoint", change: func(r *Request) { r.endpoint = &core.HTTPEndpoint{} }},
+		{name: "unset audience", change: func(r *Request) { r.audience = Audience{} }},
+		{name: "foreign audience", change: func(r *Request) { r.audience = Audience{value: "foreign"} }},
+		{name: "unset policy", change: func(r *Request) { r.policy = Policy{} }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

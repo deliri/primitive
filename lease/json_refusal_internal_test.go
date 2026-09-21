@@ -17,10 +17,10 @@ func TestDecisionJSONCrossFieldRefusalLayerTriad(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, tc := range []struct {
-		name    string
-		outcome Outcome
-		issued  int64
 		wantErr error
+		name    string
+		issued  int64
+		outcome Outcome
 	}{
 		{name: "grant at contact boundary", outcome: OutcomeGrant, issued: 3000},
 		{name: "grant one past contact preserves authority", outcome: OutcomeGrant, issued: 3001},

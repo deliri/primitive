@@ -15,28 +15,28 @@ import (
 func TestPermissionsCompleteFieldAndRefusalLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr  error
 		name     string
 		value    Permissions
 		wantMode fs.FileMode
-		wantErr  error
 	}{
 		{name: "unobserved zero cannot become observed mode zero", wantErr: core.ErrFilestoreContract},
 		{name: "unobserved residue cannot leak a permission bit", value: Permissions{value: 1}, wantErr: core.ErrFilestoreContract},
 	}
 	for mode := fs.FileMode(0); mode <= fs.ModePerm; mode++ {
 		cases = append(cases, struct {
+			wantErr  error
 			name     string
 			value    Permissions
 			wantMode fs.FileMode
-			wantErr  error
 		}{name: fmt.Sprintf("observed permission field %#o retains every bit", mode), value: Permissions{value: mode, set: true}, wantMode: mode})
 	}
 	for bit := fs.ModePerm + 1; bit != 0; bit <<= 1 {
 		cases = append(cases, struct {
+			wantErr  error
 			name     string
 			value    Permissions
 			wantMode fs.FileMode
-			wantErr  error
 		}{name: fmt.Sprintf("non-permission bit %#x cannot masquerade as permissions", bit), value: Permissions{value: bit | fs.ModePerm, set: true}, wantErr: core.ErrFilestoreContract})
 	}
 	for _, tc := range cases {
@@ -67,10 +67,10 @@ func TestPermissionsCompleteFieldAndRefusalLayerTriad(t *testing.T) {
 func TestOwnershipUnsignedCoordinatesLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr          error
 		name             string
 		value            Ownership
 		wantUID, wantGID uint32
-		wantErr          error
 	}{
 		{name: "unobserved zero cannot claim root ownership", wantErr: core.ErrFilestoreContract},
 		{name: "unobserved UID residue cannot escape", value: Ownership{uid: 1}, wantErr: core.ErrFilestoreContract},

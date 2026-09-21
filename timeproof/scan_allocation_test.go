@@ -12,9 +12,9 @@ import (
 func TestDERScanAllocationsDoNotScaleWithElementCount(t *testing.T) {
 	testserial.Declare(t, core.TestIsolationDeclaration{Hazard: core.TestIsolationHazardRuntimeAllocation, Scope: core.TestIsolationScopePackageProcess})
 	cases := []struct {
-		name  string
 		build func(testing.TB, int) []byte
 		run   func([]byte) (int, error)
+		name  string
 	}{
 		{
 			name:  "digest declarations reuse one raw decode destination",

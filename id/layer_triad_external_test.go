@@ -12,8 +12,8 @@ func TestIdentityConstructionAndParsingLayerTriad(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
-		name string
 		run  func(*testing.T)
+		name string
 	}{
 		{name: "positive one request produces canonical UUIDv7 and ULID identities", run: func(t *testing.T) {
 			t.Parallel()

@@ -7,8 +7,8 @@ import (
 )
 
 type strictReadOutcome struct {
-	count int
 	err   error
+	count int
 	calls int
 }
 
@@ -37,8 +37,8 @@ func TestStrictJSONReaderPreservesSimultaneousFailures(t *testing.T) {
 		{name: "count exceeds supplied buffer", count: 3, wantReadErr: true},
 	}
 	outcomes := []struct {
-		name            string
 		err             error
+		name            string
 		permitsDocument bool
 	}{
 		{name: "no native error", permitsDocument: true},

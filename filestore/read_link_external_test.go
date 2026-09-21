@@ -27,9 +27,9 @@ const (
 func TestReadSymbolicLinkNativeObservationLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr, wantCause     error
 		name, path, wantTarget string
 		ingress                symbolicObservationIngress
-		wantErr, wantCause     error
 		absoluteTarget         bool
 	}{
 		{name: "relative target is observed without reading binary referent", path: "link", wantTarget: "file"},

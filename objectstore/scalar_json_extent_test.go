@@ -15,9 +15,9 @@ func TestScalarJSONExtentLayerTriad(t *testing.T) {
 	canonical := append([]byte{'"'}, bytes.Repeat([]byte{'a'}, 2*BLAKE3DigestBytes)...)
 	canonical = append(canonical, '"')
 	for _, tc := range []struct {
-		name string
-		data func() []byte
 		want error
+		data func() []byte
+		name string
 	}{
 		{name: "minimum canonical token", data: func() []byte { return bytes.Clone(canonical) }},
 		{name: "one below shared document ceiling", data: func() []byte {
@@ -36,8 +36,8 @@ func TestScalarJSONExtentLayerTriad(t *testing.T) {
 			t.Parallel()
 			data := tc.data()
 			for _, door := range []struct {
-				name string
 				run  func([]byte) (bool, error)
+				name string
 			}{
 				{name: "BLAKE3", run: func(data []byte) (bool, error) {
 					before := NewBLAKE3Digest([BLAKE3DigestBytes]byte{1})

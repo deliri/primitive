@@ -13,29 +13,29 @@ import (
 func TestWindowSchemaLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr             error
 		name                string
 		start, refresh, end int64
 		decision            Decision
-		wantErr             error
 	}{
-		{"nonempty allow interval", 100, 200, 300, DecisionAllow, nil},
-		{"explicit refusal still retains exact contact interval", 100, 200, 300, DecisionRefuse, nil},
-		{"refresh one below start cannot precede activation", 100, 99, 300, DecisionAllow, core.ErrAccessPermitContract},
-		{"refresh exactly at start", 100, 100, 300, DecisionAllow, nil},
-		{"refresh one above start", 100, 101, 300, DecisionAllow, nil},
-		{"refresh one below end", 100, 299, 300, DecisionAllow, nil},
-		{"refresh exactly at end", 100, 300, 300, DecisionAllow, nil},
-		{"refresh one above end refuses", 100, 301, 300, DecisionAllow, core.ErrAccessPermitContract},
-		{"end one below start refuses", 100, 100, 99, DecisionAllow, core.ErrAccessPermitContract},
-		{"end exactly at start refuses empty authority", 100, 100, 100, DecisionAllow, core.ErrAccessPermitContract},
-		{"one nanosecond interval remains representable", 100, 100, 101, DecisionAllow, nil},
-		{"full signed range never subtracts into overflow", math.MinInt64, 0, math.MaxInt64, DecisionAllow, nil},
-		{"minimum timestamp starts one nanosecond interval", math.MinInt64, math.MinInt64, math.MinInt64 + 1, DecisionAllow, nil},
-		{"maximum timestamp ends one nanosecond interval", math.MaxInt64 - 1, math.MaxInt64, math.MaxInt64, DecisionAllow, nil},
-		{"reverse full range refuses without overflow", math.MaxInt64, 0, math.MinInt64, DecisionAllow, core.ErrAccessPermitContract},
-		{"missing decision cannot silently refuse", 100, 200, 300, DecisionUnknown, core.ErrAccessPermitContract},
-		{"future decision cannot silently grant", 100, 200, 300, Decision(3), core.ErrAccessPermitContract},
-		{"pathological decision cannot silently grant", 100, 200, 300, Decision(math.MaxUint8), core.ErrAccessPermitContract},
+		{name: "nonempty allow interval", start: 100, refresh: 200, end: 300, decision: DecisionAllow, wantErr: nil},
+		{name: "explicit refusal still retains exact contact interval", start: 100, refresh: 200, end: 300, decision: DecisionRefuse, wantErr: nil},
+		{name: "refresh one below start cannot precede activation", start: 100, refresh: 99, end: 300, decision: DecisionAllow, wantErr: core.ErrAccessPermitContract},
+		{name: "refresh exactly at start", start: 100, refresh: 100, end: 300, decision: DecisionAllow, wantErr: nil},
+		{name: "refresh one above start", start: 100, refresh: 101, end: 300, decision: DecisionAllow, wantErr: nil},
+		{name: "refresh one below end", start: 100, refresh: 299, end: 300, decision: DecisionAllow, wantErr: nil},
+		{name: "refresh exactly at end", start: 100, refresh: 300, end: 300, decision: DecisionAllow, wantErr: nil},
+		{name: "refresh one above end refuses", start: 100, refresh: 301, end: 300, decision: DecisionAllow, wantErr: core.ErrAccessPermitContract},
+		{name: "end one below start refuses", start: 100, refresh: 100, end: 99, decision: DecisionAllow, wantErr: core.ErrAccessPermitContract},
+		{name: "end exactly at start refuses empty authority", start: 100, refresh: 100, end: 100, decision: DecisionAllow, wantErr: core.ErrAccessPermitContract},
+		{name: "one nanosecond interval remains representable", start: 100, refresh: 100, end: 101, decision: DecisionAllow, wantErr: nil},
+		{name: "full signed range never subtracts into overflow", start: math.MinInt64, refresh: 0, end: math.MaxInt64, decision: DecisionAllow, wantErr: nil},
+		{name: "minimum timestamp starts one nanosecond interval", start: math.MinInt64, refresh: math.MinInt64, end: math.MinInt64 + 1, decision: DecisionAllow, wantErr: nil},
+		{name: "maximum timestamp ends one nanosecond interval", start: math.MaxInt64 - 1, refresh: math.MaxInt64, end: math.MaxInt64, decision: DecisionAllow, wantErr: nil},
+		{name: "reverse full range refuses without overflow", start: math.MaxInt64, refresh: 0, end: math.MinInt64, decision: DecisionAllow, wantErr: core.ErrAccessPermitContract},
+		{name: "missing decision cannot silently refuse", start: 100, refresh: 200, end: 300, decision: DecisionUnknown, wantErr: core.ErrAccessPermitContract},
+		{name: "future decision cannot silently grant", start: 100, refresh: 200, end: 300, decision: Decision(3), wantErr: core.ErrAccessPermitContract},
+		{name: "pathological decision cannot silently grant", start: 100, refresh: 200, end: 300, decision: Decision(math.MaxUint8), wantErr: core.ErrAccessPermitContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -53,7 +53,7 @@ func TestWindowSchemaLayerTriad(t *testing.T) {
 
 func FuzzPermitSignedFactMutations(f *testing.F) {
 	seed, keys, _ := permitFixture(f)
-	for selector := uint8(0); selector < 7; selector++ {
+	for selector := range uint8(7) {
 		f.Add(selector, int64(201))
 	}
 	f.Fuzz(func(t *testing.T, selector uint8, value int64) {

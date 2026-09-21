@@ -23,9 +23,9 @@ func TestCgroupDirectoryDisappearanceLayerTriad(t *testing.T) {
 		{name: "v1", component: cgroupV1LimitName, unlimited: strconv.FormatUint(cgroupV1UnlimitedMin, 10), source: WorkloadMemoryLimitSourceCgroupV1},
 	} {
 		for _, tc := range []struct {
+			wantErr                 error
 			name, remove, rootValue string
 			wantState               WorkloadMemoryLimitState
-			wantErr                 error
 		}{
 			{name: "existing directories without declarations stay unavailable", wantState: WorkloadMemoryLimitUnavailable},
 			{name: "existing leaf without interface inherits finite ancestor", rootValue: "400", wantState: WorkloadMemoryLimitLimited},

@@ -358,11 +358,11 @@ func receiptJSONSeedForFuzz(
 }
 
 type receiptTextOutcome struct {
-	width      int
 	err        error
 	validate   func() error
 	input      string
 	projection string
+	width      int
 }
 
 func fuzzReceiptTextOutcome(t *testing.T, outcome receiptTextOutcome) {

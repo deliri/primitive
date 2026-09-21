@@ -33,10 +33,10 @@ func TestStagingEffectLayerTriad(t *testing.T) {
 		nilSource
 	)
 	for _, tc := range []struct {
+		wantErr, wantNative error
 		name                string
 		size                int
 		fault               fault
-		wantErr, wantNative error
 	}{
 		{name: "fragmented source immediately below the Go window remains exact", size: (32 << 10) - 1},
 		{name: "fragmented source exactly at the Go window remains exact", size: 32 << 10},

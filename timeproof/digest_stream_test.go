@@ -50,10 +50,10 @@ func TestDigestDeclarationLayerTriad(t *testing.T) {
 		t.Fatalf("Verify(authentic) error = %v, want nil", err)
 	}
 	cases := []struct {
+		wantErr error
 		name    string
 		foreign int
 		copies  int
-		wantErr error
 	}{
 		{name: "one authentic digest declaration", copies: 1},
 		{name: "four foreign declarations do not hide the signer digest", foreign: 4, copies: 1},

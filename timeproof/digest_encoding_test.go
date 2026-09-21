@@ -20,9 +20,9 @@ func TestDigestSetEncodingLayerTriad(t *testing.T) {
 	sequence := func(body []byte) []byte { return derTagged(byte(asn1.TagSequence)|derConstructed, body) }
 	set := func(body []byte) []byte { return derTagged(byte(asn1.TagSet)|derConstructed, body) }
 	cases := []struct {
+		wantErr error
 		name    string
 		in      []byte
-		wantErr error
 	}{
 		{name: "algorithm without optional parameters", in: set(sequence(oid))},
 		{name: "algorithm with NULL parameters", in: set(sequence(append(bytes.Clone(oid), asn1.NullBytes...)))},

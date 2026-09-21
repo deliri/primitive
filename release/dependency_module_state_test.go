@@ -22,10 +22,10 @@ func TestGoModuleObservationLayerTriadRefusesConflictingOrFailedFacts(t *testing
 	failedMain.Error = &goListErrorWire{Err: "module observation failed"}
 	failedDependency.Error = failedMain.Error
 	for _, tc := range []struct {
+		wantErr error
 		name    string
 		module  goListModuleWire
 		want    []buildDependencyWire
-		wantErr error
 	}{
 		{name: "main-only observation retains an explicitly empty dependency closure", module: main},
 		{name: "dependency observation preserves selected version and checksum", module: dependency, want: []buildDependencyWire{{Path: dependency.Path, Version: dependency.Version, Sum: dependency.Sum}}},

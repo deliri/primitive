@@ -43,10 +43,10 @@ func FuzzReadUpdateAppendLockNativeHandleCustody(f *testing.F) {
 	}
 	f.Add(uint8(nativeHandleRead), uint8(nativeHandleRegular), uint8(0), emitted, []byte{31}, uint16(1), false, false)
 	for _, seed := range []struct {
+		payload, change   []byte
 		door              nativeHandleDoor
 		entry             nativeHandleEntry
 		append            filestore.AppendMode
-		payload, change   []byte
 		canceled, replace bool
 	}{
 		{door: nativeHandleRead, payload: []byte{0, 255}, change: []byte{31}, replace: true},

@@ -14,10 +14,10 @@ import (
 func TestAnalyzeTestOnlyPackageThroughTheRealCompiler(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr         error
 		name            string
 		source          string
 		includeTests    bool
-		wantErr         error
 		wantDeclaration bool
 	}{
 		{name: "test only package retains test declarations", source: "package probe\nconst TestValue = 1\n", includeTests: true, wantDeclaration: true},

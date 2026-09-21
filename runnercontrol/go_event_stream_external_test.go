@@ -30,8 +30,8 @@ func TestGoEventStreamLayerTriadLongStringPreservesExactDecodedBytes(t *testing.
 	t.Parallel()
 	const marker = "PEACHFUZZ_STREAM_FIXTURE"
 	seed := struct {
-		Action runnercontrol.GoEventAction `json:"Action"`
 		Output string                      `json:"Output"`
+		Action runnercontrol.GoEventAction `json:"Action"`
 	}{Action: runnercontrol.GoEventActionOutput, Output: marker}
 	encoded, err := json.Marshal(seed)
 	if err != nil {
@@ -102,21 +102,21 @@ func TestGoEventStreamLayerTriadRefusalsAndCancellation(t *testing.T) {
 		t.Fatal(err)
 	}
 	cases := []struct {
-		name        string
-		source      func() io.Reader
 		stringError error
 		eventError  error
-		cancelField bool
 		wantErr     error
+		source      func() io.Reader
+		name        string
 		wantEvents  int
+		cancelField bool
 	}{
 		{name: "typed nil source rejected", source: func() io.Reader { return (*strings.Reader)(nil) }, wantErr: core.ErrPrimitiveContract},
-		{name: "source refusal before frame", source: func() io.Reader { return goEventFailureReader{io.ErrClosedPipe} }, wantErr: io.ErrClosedPipe},
+		{name: "source refusal before frame", source: func() io.Reader { return goEventFailureReader{cause: io.ErrClosedPipe} }, wantErr: io.ErrClosedPipe},
 		{name: "source refusal retains admitted prefix without sealing stream", source: func() io.Reader {
-			return io.MultiReader(bytes.NewReader(append(append([]byte(nil), canonical...), '\n')), goEventFailureReader{io.ErrClosedPipe})
+			return io.MultiReader(bytes.NewReader(append(append([]byte(nil), canonical...), '\n')), goEventFailureReader{cause: io.ErrClosedPipe})
 		}, wantErr: io.ErrClosedPipe, wantEvents: 1},
 		{name: "joined EOF cannot accept incomplete source", source: func() io.Reader {
-			return io.MultiReader(bytes.NewReader(canonical), goEventFailureReader{errors.Join(io.EOF, io.ErrClosedPipe)})
+			return io.MultiReader(bytes.NewReader(canonical), goEventFailureReader{cause: errors.Join(io.EOF, io.ErrClosedPipe)})
 		}, wantErr: io.ErrClosedPipe},
 		{name: "field callback refusal propagates", source: func() io.Reader { return bytes.NewReader(canonical) }, stringError: io.ErrShortWrite, wantErr: io.ErrShortWrite},
 		{name: "event callback refusal propagates", source: func() io.Reader { return bytes.NewReader(canonical) }, eventError: io.ErrShortWrite, wantErr: io.ErrShortWrite, wantEvents: 1},
@@ -288,8 +288,8 @@ func TestGoEventStreamOutputKindsRemainClosed(t *testing.T) {
 
 func BenchmarkGoEventStreamFixedBuffer(b *testing.B) {
 	seed := struct {
-		Action runnercontrol.GoEventAction `json:"Action"`
 		Output string                      `json:"Output"`
+		Action runnercontrol.GoEventAction `json:"Action"`
 	}{Action: runnercontrol.GoEventActionOutput, Output: strings.Repeat("x", 64<<10)}
 	encoded, err := json.Marshal(seed)
 	if err != nil {
@@ -335,8 +335,8 @@ func TestGoEventStreamStringFragmentBoundaries(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			fixture := struct {
-				Action runnercontrol.GoEventAction `json:"Action"`
 				Output string                      `json:"Output"`
+				Action runnercontrol.GoEventAction `json:"Action"`
 			}{Action: runnercontrol.GoEventActionOutput, Output: tc.text}
 			encoded, err := json.Marshal(fixture)
 			if err != nil {
@@ -383,8 +383,8 @@ func TestGoEventStreamStringFragmentBoundaries(t *testing.T) {
 const goEventOracleChunk = 4 << 10
 
 type goEventPayloadFixture struct {
-	Action runnercontrol.GoEventAction `json:"Action"`
 	Output string                      `json:"Output"`
+	Action runnercontrol.GoEventAction `json:"Action"`
 }
 type goEventPayloadSource struct {
 	input   []byte

@@ -91,12 +91,12 @@ func TestProgressWriterAcceptedAndRefusedTransitions(t *testing.T) {
 			t.Parallel()
 			for _, tc := range []struct {
 				name          string
-				total         uint64
 				writes        []int
-				refuseCall    int
 				wantCompleted []uint64
 				wantCalls     []int
 				wantErrors    []error
+				total         uint64
+				refuseCall    int
 			}{
 				{name: "partial writes accumulate exactly", total: 3, writes: []int{1, 2}, wantCompleted: []uint64{1, 3}, wantCalls: []int{1, 2}, wantErrors: []error{nil, nil}},
 				{name: "empty observation fabricates no bytes", total: 1, writes: []int{0, 1, 0}, wantCompleted: []uint64{0, 1, 1}, wantCalls: []int{1, 2, 3}, wantErrors: []error{nil, nil, nil}},

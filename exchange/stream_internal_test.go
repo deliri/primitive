@@ -87,10 +87,10 @@ func TestDownloadTransferRefusesAnUnendingEmptyReader(t *testing.T) {
 func TestZeroExtentBoundariesDoNotConfuseAStallWithEOF(t *testing.T) {
 	t.Parallel()
 	doors := []struct {
-		name     string
-		probe    func(context.Context, io.Reader) error
 		boundary error
 		overflow error
+		probe    func(context.Context, io.Reader) error
+		name     string
 	}{
 		{name: "request body absence", boundary: core.ErrExchangeRequest, overflow: core.ErrExchangeContract, probe: func(ctx context.Context, r io.Reader) error {
 			return refuseRequestBody((&http.Request{Body: io.NopCloser(r)}).WithContext(ctx))
@@ -98,11 +98,11 @@ func TestZeroExtentBoundariesDoNotConfuseAStallWithEOF(t *testing.T) {
 		{name: "response zero extent", boundary: core.ErrExchangeResponse, overflow: core.ErrExchangeBodyLimit, probe: probeEmptyResponseSource},
 	}
 	cases := []struct {
+		wantNative   error
 		name         string
 		emptyReads   int
 		eof          bool
 		wantOverflow bool
-		wantNative   error
 	}{
 		{name: "actual EOF creates no body evidence", eof: true},
 		{name: "immediate byte contradicts absence", wantOverflow: true},
@@ -193,17 +193,17 @@ func (w *copyReaderFromDestination) ReadFrom(r io.Reader) (int64, error) {
 func TestCopyDownloadGoDispatchLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		readFromErr       error
+		wantErr           error
 		name              string
 		payload           string
-		limit             uint64
-		readerFrom        bool
-		readFromErr       error
-		cancelled         bool
-		wantErr           error
-		wantBytes         uint64
 		wantBody          string
+		limit             uint64
+		wantBytes         uint64
 		wantReadBytes     int
 		wantReadFromCalls int
+		readerFrom        bool
+		cancelled         bool
 	}{
 		{name: "positive plain writer receives exact binary extent", payload: "\x00\xff", limit: 2, wantBytes: 2, wantBody: "\x00\xff", wantReadBytes: 2},
 		{name: "negative source WriterTo cannot bypass a plain destination limit", payload: "abc", limit: 2, wantErr: core.ErrExchangeBodyLimit, wantBytes: 2, wantBody: "ab", wantReadBytes: 3},

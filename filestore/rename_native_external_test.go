@@ -31,8 +31,8 @@ const (
 
 type renameNativeFixture struct {
 	source, target           string
-	sourceShape, targetShape renameEntryShape
 	payload, targetPayload   []byte
+	sourceShape, targetShape renameEntryShape
 	retainSourceAlias        bool
 }
 
@@ -48,16 +48,16 @@ func createRenameNativeFixture(directory, outside string, fixture renameNativeFi
 			return err
 		}
 	}
-	for _, link := range []struct{ name, target string }{{"alias", "real"}, {"escape", outside}} {
+	for _, link := range []struct{ name, target string }{{name: "alias", target: "real"}, {name: "escape", target: outside}} {
 		if err := os.Symlink(link.target, filepath.Join(directory, link.name)); err != nil {
 			return err
 		}
 	}
 	for _, entry := range []struct {
 		name    string
-		shape   renameEntryShape
 		payload []byte
-	}{{fixture.source, fixture.sourceShape, fixture.payload}, {fixture.target, fixture.targetShape, fixture.targetPayload}} {
+		shape   renameEntryShape
+	}{{name: fixture.source, shape: fixture.sourceShape, payload: fixture.payload}, {name: fixture.target, shape: fixture.targetShape, payload: fixture.targetPayload}} {
 		path := filepath.Join(directory, entry.name)
 		switch entry.shape {
 		case renameEntryMissing:
@@ -130,10 +130,10 @@ func TestRenameNativeNamespaceLayerTriad(t *testing.T) {
 	t.Parallel()
 	binary := []byte{0, 255, 1, 0}
 	for _, tc := range []struct {
+		wantErr  error
 		name     string
 		fixture  renameNativeFixture
 		mutation renameRequestMutation
-		wantErr  error
 	}{
 		{name: "binary inode moves within one parent", fixture: renameNativeFixture{source: "source", target: "target", sourceShape: renameEntryRegular, payload: binary}},
 		{name: "empty source produces a real empty target", fixture: renameNativeFixture{source: "source", target: "target", sourceShape: renameEntryRegular}},
@@ -309,10 +309,10 @@ func TestRenameNativeNamespaceLayerTriad(t *testing.T) {
 				}
 			} else {
 				for _, entry := range []struct {
-					name      string
 					before    fs.FileInfo
 					beforeErr error
-				}{{tc.fixture.source, sourceBefore, sourceBeforeErr}, {tc.fixture.target, targetBefore, targetBeforeErr}} {
+					name      string
+				}{{name: tc.fixture.source, before: sourceBefore, beforeErr: sourceBeforeErr}, {name: tc.fixture.target, before: targetBefore, beforeErr: targetBeforeErr}} {
 					if entry.beforeErr != nil {
 						continue
 					}

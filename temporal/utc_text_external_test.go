@@ -14,49 +14,49 @@ import (
 func TestCompactUTCExactCalendarAndExtent(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name, input, canonical string
 		wantErr                error
+		name, input, canonical string
 	}{
-		{"epoch", "19700101T000000Z", "1970-01-01T00:00:00Z", nil},
-		{"second before epoch", "19691231T235959Z", "1969-12-31T23:59:59Z", nil},
-		{"second after epoch", "19700101T000001Z", "1970-01-01T00:00:01Z", nil},
-		{"leap day divisible by four", "20240229T000000Z", "2024-02-29T00:00:00Z", nil},
-		{"century divisible by four hundred", "20000229T000000Z", "2000-02-29T00:00:00Z", nil},
-		{"month end thirty days", "20260430T235959Z", "2026-04-30T23:59:59Z", nil},
-		{"month end thirty one days", "20260731T235959Z", "2026-07-31T23:59:59Z", nil},
-		{"last second of year", "20261231T235959Z", "2026-12-31T23:59:59Z", nil},
-		{"first representable whole second", "16770921T001244Z", "1677-09-21T00:12:44Z", nil},
-		{"second above first representable", "16770921T001245Z", "1677-09-21T00:12:45Z", nil},
-		{"last representable whole second", "22620411T234716Z", "2262-04-11T23:47:16Z", nil},
-		{"second below last representable", "22620411T234715Z", "2262-04-11T23:47:15Z", nil},
-		{"empty", "", "", core.ErrTemporalContract},
-		{"one byte below exact extent", "19700101T000000", "", core.ErrTemporalContract},
-		{"one byte above exact extent", "19700101T000000ZZ", "", core.ErrTemporalContract},
-		{"huge representation", "19700101T000000Z" + strings.Repeat("0", temporal.CompactUTCTextBytes), "", core.ErrTemporalContract},
-		{"one second before extent", "16770921T001243Z", "", core.ErrTemporalOverflow},
-		{"one second after extent", "22620411T234717Z", "", core.ErrTemporalOverflow},
-		{"year zero outside extent", "00000101T000000Z", "", core.ErrTemporalOverflow},
-		{"year maximum outside extent", "99991231T235959Z", "", core.ErrTemporalOverflow},
-		{"non leap February twenty nine", "20260229T000000Z", "", core.ErrTemporalContract},
-		{"century not divisible by four hundred", "19000229T000000Z", "", core.ErrTemporalContract},
-		{"month zero", "20260001T000000Z", "", core.ErrTemporalContract},
-		{"month thirteen", "20261301T000000Z", "", core.ErrTemporalContract},
-		{"day zero", "20260100T000000Z", "", core.ErrTemporalContract},
-		{"day thirty two", "20260132T000000Z", "", core.ErrTemporalContract},
-		{"day after thirty day month", "20260431T000000Z", "", core.ErrTemporalContract},
-		{"hour twenty four", "20260101T240000Z", "", core.ErrTemporalContract},
-		{"minute sixty", "20260101T006000Z", "", core.ErrTemporalContract},
-		{"leap second is not Go calendar time", "20260101T000060Z", "", core.ErrTemporalContract},
-		{"lowercase separator", "20260101t000000Z", "", core.ErrTemporalContract},
-		{"lowercase zone", "20260101T000000z", "", core.ErrTemporalContract},
-		{"numeric UTC offset wrong format", "20260101T000000+0000", "", core.ErrTemporalContract},
-		{"RFC3339 wrong format", "2026-01-01T00:00:00Z", "", core.ErrTemporalContract},
-		{"fractional second cannot be rounded", "20260101T000000.1Z", "", core.ErrTemporalContract},
-		{"leading whitespace", " 20260101T000000Z", "", core.ErrTemporalContract},
-		{"trailing whitespace", "20260101T000000Z ", "", core.ErrTemporalContract},
-		{"embedded zero", "20260101T00\x00000Z", "", core.ErrTemporalContract},
-		{"nondecimal date", "2026xx01T000000Z", "", core.ErrTemporalContract},
-		{"nondecimal clock", "20260101Txx0000Z", "", core.ErrTemporalContract},
+		{name: "epoch", input: "19700101T000000Z", canonical: "1970-01-01T00:00:00Z", wantErr: nil},
+		{name: "second before epoch", input: "19691231T235959Z", canonical: "1969-12-31T23:59:59Z", wantErr: nil},
+		{name: "second after epoch", input: "19700101T000001Z", canonical: "1970-01-01T00:00:01Z", wantErr: nil},
+		{name: "leap day divisible by four", input: "20240229T000000Z", canonical: "2024-02-29T00:00:00Z", wantErr: nil},
+		{name: "century divisible by four hundred", input: "20000229T000000Z", canonical: "2000-02-29T00:00:00Z", wantErr: nil},
+		{name: "month end thirty days", input: "20260430T235959Z", canonical: "2026-04-30T23:59:59Z", wantErr: nil},
+		{name: "month end thirty one days", input: "20260731T235959Z", canonical: "2026-07-31T23:59:59Z", wantErr: nil},
+		{name: "last second of year", input: "20261231T235959Z", canonical: "2026-12-31T23:59:59Z", wantErr: nil},
+		{name: "first representable whole second", input: "16770921T001244Z", canonical: "1677-09-21T00:12:44Z", wantErr: nil},
+		{name: "second above first representable", input: "16770921T001245Z", canonical: "1677-09-21T00:12:45Z", wantErr: nil},
+		{name: "last representable whole second", input: "22620411T234716Z", canonical: "2262-04-11T23:47:16Z", wantErr: nil},
+		{name: "second below last representable", input: "22620411T234715Z", canonical: "2262-04-11T23:47:15Z", wantErr: nil},
+		{name: "empty", input: "", canonical: "", wantErr: core.ErrTemporalContract},
+		{name: "one byte below exact extent", input: "19700101T000000", canonical: "", wantErr: core.ErrTemporalContract},
+		{name: "one byte above exact extent", input: "19700101T000000ZZ", canonical: "", wantErr: core.ErrTemporalContract},
+		{name: "huge representation", input: "19700101T000000Z" + strings.Repeat("0", temporal.CompactUTCTextBytes), canonical: "", wantErr: core.ErrTemporalContract},
+		{name: "one second before extent", input: "16770921T001243Z", canonical: "", wantErr: core.ErrTemporalOverflow},
+		{name: "one second after extent", input: "22620411T234717Z", canonical: "", wantErr: core.ErrTemporalOverflow},
+		{name: "year zero outside extent", input: "00000101T000000Z", canonical: "", wantErr: core.ErrTemporalOverflow},
+		{name: "year maximum outside extent", input: "99991231T235959Z", canonical: "", wantErr: core.ErrTemporalOverflow},
+		{name: "non leap February twenty nine", input: "20260229T000000Z", canonical: "", wantErr: core.ErrTemporalContract},
+		{name: "century not divisible by four hundred", input: "19000229T000000Z", canonical: "", wantErr: core.ErrTemporalContract},
+		{name: "month zero", input: "20260001T000000Z", canonical: "", wantErr: core.ErrTemporalContract},
+		{name: "month thirteen", input: "20261301T000000Z", canonical: "", wantErr: core.ErrTemporalContract},
+		{name: "day zero", input: "20260100T000000Z", canonical: "", wantErr: core.ErrTemporalContract},
+		{name: "day thirty two", input: "20260132T000000Z", canonical: "", wantErr: core.ErrTemporalContract},
+		{name: "day after thirty day month", input: "20260431T000000Z", canonical: "", wantErr: core.ErrTemporalContract},
+		{name: "hour twenty four", input: "20260101T240000Z", canonical: "", wantErr: core.ErrTemporalContract},
+		{name: "minute sixty", input: "20260101T006000Z", canonical: "", wantErr: core.ErrTemporalContract},
+		{name: "leap second is not Go calendar time", input: "20260101T000060Z", canonical: "", wantErr: core.ErrTemporalContract},
+		{name: "lowercase separator", input: "20260101t000000Z", canonical: "", wantErr: core.ErrTemporalContract},
+		{name: "lowercase zone", input: "20260101T000000z", canonical: "", wantErr: core.ErrTemporalContract},
+		{name: "numeric UTC offset wrong format", input: "20260101T000000+0000", canonical: "", wantErr: core.ErrTemporalContract},
+		{name: "RFC3339 wrong format", input: "2026-01-01T00:00:00Z", canonical: "", wantErr: core.ErrTemporalContract},
+		{name: "fractional second cannot be rounded", input: "20260101T000000.1Z", canonical: "", wantErr: core.ErrTemporalContract},
+		{name: "leading whitespace", input: " 20260101T000000Z", canonical: "", wantErr: core.ErrTemporalContract},
+		{name: "trailing whitespace", input: "20260101T000000Z ", canonical: "", wantErr: core.ErrTemporalContract},
+		{name: "embedded zero", input: "20260101T00\x00000Z", canonical: "", wantErr: core.ErrTemporalContract},
+		{name: "nondecimal date", input: "2026xx01T000000Z", canonical: "", wantErr: core.ErrTemporalContract},
+		{name: "nondecimal clock", input: "20260101Txx0000Z", canonical: "", wantErr: core.ErrTemporalContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -82,17 +82,17 @@ func TestCompactUTCExactCalendarAndExtent(t *testing.T) {
 func TestCompactUTCRefusesFractionalPrecisionLoss(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name    string
-		instant temporal.Instant
-		want    string
 		wantErr error
+		name    string
+		want    string
+		instant temporal.Instant
 	}{
-		{"unset", temporal.Instant{}, "", core.ErrTemporalContract},
-		{"epoch", temporal.InstantFromNanoseconds(0), "19700101T000000Z", nil},
-		{"one nanosecond before epoch", temporal.InstantFromNanoseconds(-1), "", core.ErrTemporalContract},
-		{"one nanosecond after epoch", temporal.InstantFromNanoseconds(1), "", core.ErrTemporalContract},
-		{"minimum instant has fraction", temporal.InstantFromNanoseconds(math.MinInt64), "", core.ErrTemporalContract},
-		{"maximum instant has fraction", temporal.InstantFromNanoseconds(math.MaxInt64), "", core.ErrTemporalContract},
+		{name: "unset", instant: temporal.Instant{}, want: "", wantErr: core.ErrTemporalContract},
+		{name: "epoch", instant: temporal.InstantFromNanoseconds(0), want: "19700101T000000Z", wantErr: nil},
+		{name: "one nanosecond before epoch", instant: temporal.InstantFromNanoseconds(-1), want: "", wantErr: core.ErrTemporalContract},
+		{name: "one nanosecond after epoch", instant: temporal.InstantFromNanoseconds(1), want: "", wantErr: core.ErrTemporalContract},
+		{name: "minimum instant has fraction", instant: temporal.InstantFromNanoseconds(math.MinInt64), want: "", wantErr: core.ErrTemporalContract},
+		{name: "maximum instant has fraction", instant: temporal.InstantFromNanoseconds(math.MaxInt64), want: "", wantErr: core.ErrTemporalContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -107,33 +107,33 @@ func TestCompactUTCRefusesFractionalPrecisionLoss(t *testing.T) {
 func TestRFC3339UTCPreservesZeroOffsetAndExtent(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name, input, canonical string
 		wantErr                error
+		name, input, canonical string
 	}{
-		{"Z offset", "1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z", nil},
-		{"positive zero offset", "1970-01-01T00:00:00+00:00", "1970-01-01T00:00:00Z", nil},
-		{"negative zero offset", "1970-01-01T00:00:00-00:00", "1970-01-01T00:00:00Z", nil},
-		{"one nanosecond", "1970-01-01T00:00:00.000000001Z", "1970-01-01T00:00:00.000000001Z", nil},
-		{"trailing fraction zero canonicalized", "1970-01-01T00:00:00.1000Z", "1970-01-01T00:00:00.1Z", nil},
-		{"minimum instant", "1677-09-21T00:12:43.145224192Z", "1677-09-21T00:12:43.145224192Z", nil},
-		{"one above minimum", "1677-09-21T00:12:43.145224193Z", "1677-09-21T00:12:43.145224193Z", nil},
-		{"maximum instant", "2262-04-11T23:47:16.854775807Z", "2262-04-11T23:47:16.854775807Z", nil},
-		{"one below maximum", "2262-04-11T23:47:16.854775806Z", "2262-04-11T23:47:16.854775806Z", nil},
-		{"maximum syntax extent zero offset", "1970-01-01T00:00:00.123456789+00:00", "1970-01-01T00:00:00.123456789Z", nil},
-		{"one below minimum instant", "1677-09-21T00:12:43.145224191Z", "", core.ErrTemporalOverflow},
-		{"one above maximum instant", "2262-04-11T23:47:16.854775808Z", "", core.ErrTemporalOverflow},
-		{"smallest positive offset", "1970-01-01T00:00:00+00:01", "", core.ErrTemporalContract},
-		{"smallest negative offset", "1970-01-01T00:00:00-00:01", "", core.ErrTemporalContract},
-		{"largest positive offset", "1970-01-01T00:00:00+23:59", "", core.ErrTemporalContract},
-		{"largest negative offset", "1970-01-01T00:00:00-23:59", "", core.ErrTemporalContract},
-		{"offset normalized to epoch is still non UTC", "1970-01-01T01:00:00+01:00", "", core.ErrTemporalContract},
-		{"empty", "", "", core.ErrTemporalContract},
-		{"one below minimum text extent", "1970-01-01T00:00:00", "", core.ErrTemporalContract},
-		{"one above maximum fraction digits", "1970-01-01T00:00:00.1234567890Z", "", core.ErrTemporalContract},
-		{"invalid clock despite UTC suffix", "1970-01-01T25:00:00Z", "", core.ErrTemporalContract},
-		{"invalid calendar despite zero suffix", "1970-02-30T00:00:00+00:00", "", core.ErrTemporalContract},
-		{"whitespace after UTC", "1970-01-01T00:00:00Z ", "", core.ErrTemporalContract},
-		{"junk before zero offset", "junk+00:00", "", core.ErrTemporalContract},
+		{name: "Z offset", input: "1970-01-01T00:00:00Z", canonical: "1970-01-01T00:00:00Z", wantErr: nil},
+		{name: "positive zero offset", input: "1970-01-01T00:00:00+00:00", canonical: "1970-01-01T00:00:00Z", wantErr: nil},
+		{name: "negative zero offset", input: "1970-01-01T00:00:00-00:00", canonical: "1970-01-01T00:00:00Z", wantErr: nil},
+		{name: "one nanosecond", input: "1970-01-01T00:00:00.000000001Z", canonical: "1970-01-01T00:00:00.000000001Z", wantErr: nil},
+		{name: "trailing fraction zero canonicalized", input: "1970-01-01T00:00:00.1000Z", canonical: "1970-01-01T00:00:00.1Z", wantErr: nil},
+		{name: "minimum instant", input: "1677-09-21T00:12:43.145224192Z", canonical: "1677-09-21T00:12:43.145224192Z", wantErr: nil},
+		{name: "one above minimum", input: "1677-09-21T00:12:43.145224193Z", canonical: "1677-09-21T00:12:43.145224193Z", wantErr: nil},
+		{name: "maximum instant", input: "2262-04-11T23:47:16.854775807Z", canonical: "2262-04-11T23:47:16.854775807Z", wantErr: nil},
+		{name: "one below maximum", input: "2262-04-11T23:47:16.854775806Z", canonical: "2262-04-11T23:47:16.854775806Z", wantErr: nil},
+		{name: "maximum syntax extent zero offset", input: "1970-01-01T00:00:00.123456789+00:00", canonical: "1970-01-01T00:00:00.123456789Z", wantErr: nil},
+		{name: "one below minimum instant", input: "1677-09-21T00:12:43.145224191Z", canonical: "", wantErr: core.ErrTemporalOverflow},
+		{name: "one above maximum instant", input: "2262-04-11T23:47:16.854775808Z", canonical: "", wantErr: core.ErrTemporalOverflow},
+		{name: "smallest positive offset", input: "1970-01-01T00:00:00+00:01", canonical: "", wantErr: core.ErrTemporalContract},
+		{name: "smallest negative offset", input: "1970-01-01T00:00:00-00:01", canonical: "", wantErr: core.ErrTemporalContract},
+		{name: "largest positive offset", input: "1970-01-01T00:00:00+23:59", canonical: "", wantErr: core.ErrTemporalContract},
+		{name: "largest negative offset", input: "1970-01-01T00:00:00-23:59", canonical: "", wantErr: core.ErrTemporalContract},
+		{name: "offset normalized to epoch is still non UTC", input: "1970-01-01T01:00:00+01:00", canonical: "", wantErr: core.ErrTemporalContract},
+		{name: "empty", input: "", canonical: "", wantErr: core.ErrTemporalContract},
+		{name: "one below minimum text extent", input: "1970-01-01T00:00:00", canonical: "", wantErr: core.ErrTemporalContract},
+		{name: "one above maximum fraction digits", input: "1970-01-01T00:00:00.1234567890Z", canonical: "", wantErr: core.ErrTemporalContract},
+		{name: "invalid clock despite UTC suffix", input: "1970-01-01T25:00:00Z", canonical: "", wantErr: core.ErrTemporalContract},
+		{name: "invalid calendar despite zero suffix", input: "1970-02-30T00:00:00+00:00", canonical: "", wantErr: core.ErrTemporalContract},
+		{name: "whitespace after UTC", input: "1970-01-01T00:00:00Z ", canonical: "", wantErr: core.ErrTemporalContract},
+		{name: "junk before zero offset", input: "junk+00:00", canonical: "", wantErr: core.ErrTemporalContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

@@ -47,6 +47,8 @@ func TestRunnerControlExternalDecodersHaveNamedFuzzTargets(t *testing.T) {
 		"ExperimentCompletionPayload":   "FuzzRunnerControlExternalStructureJSONSemanticClosure",
 		"ExperimentCompletionReceipt":   "FuzzRunnerControlExternalStructureJSONSemanticClosure",
 		"ExperimentDeliveryPage":        "FuzzRunnerControlExternalStructureJSONSemanticClosure",
+		"GoEventAction":                 "FuzzRunnerControlExternalEnumJSONSemanticClosure",
+		"GoEventOutputKind":             "FuzzRunnerControlExternalEnumJSONSemanticClosure",
 		"GoBuildTag":                    "FuzzRunnerControlExternalEnumJSONSemanticClosure",
 		"GoInstrumentation":             "FuzzRunnerControlExternalEnumJSONSemanticClosure",
 		"GoModuleMode":                  "FuzzRunnerControlExternalEnumJSONSemanticClosure",

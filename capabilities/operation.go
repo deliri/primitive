@@ -60,10 +60,10 @@ func (o *Operation) UnmarshalJSON(data []byte) error {
 // type coordinates. Callers still construct its request and select policy.
 // These are bounded alternatives, never drop-in semantic aliases.
 type OperationContract struct {
-	ResultPackage core.PackageIdentity
 	Function      StandardSymbol
 	Request       SymbolName
 	Result        SymbolName
+	ResultPackage core.PackageIdentity
 	HasRequest    bool
 }
 
@@ -103,8 +103,8 @@ func (o Operation) Contract() (OperationContract, bool, error) {
 }
 
 type operationDefinition struct {
-	owner, resultPackage      core.PackageIdentity
 	selector, request, result string
+	owner, resultPackage      core.PackageIdentity
 }
 
 func (operationDefinition) capabilitiesInternalFlow() {}

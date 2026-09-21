@@ -21,11 +21,11 @@ const (
 )
 
 type replayHandoffBody struct {
-	window    int
 	reader    *bytes.Reader
-	fault     replayHandoffBodyFault
+	window    int
 	closes    int
 	readBytes int
+	fault     replayHandoffBodyFault
 }
 
 func (b *replayHandoffBody) Read(p []byte) (int, error) {
@@ -58,15 +58,15 @@ func TestReplayStreamDownloadHandoffLayerTriad(t *testing.T) {
 	// These are named regression and status-boundary rows. They are not the
 	// complete producer/classifier matrix required for the package sweep.
 	cases := []struct {
-		name            string
-		status          int
-		payload         []byte
-		fault           replayHandoffBodyFault
-		cancelAtHandoff bool
 		wantProducerErr error
 		wantErr         error
+		name            string
+		payload         []byte
+		status          int
 		wantBytes       uint64
 		wantAttempts    uint64
+		fault           replayHandoffBodyFault
+		cancelAtHandoff bool
 		wantStatusError bool
 		wantExhausted   bool
 	}{
@@ -208,11 +208,11 @@ func replayHandoffPolicy(t testing.TB) StreamReplayPolicy {
 func TestReplayStreamCannotRepairInvalidAttemptEvidence(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
+		wantErr   error
 		name      string
-		status    core.HTTPStatusCode
 		attempts  uint64
 		wantCalls int
-		wantErr   error
+		status    core.HTTPStatusCode
 	}{
 		{name: "zero attempt count", status: core.HTTPStatusOK(), wantCalls: 1, wantErr: core.ErrExchangeRequest},
 		{name: "multiple attempts behind single attempt callback", status: core.HTTPStatusOK(), attempts: 2, wantCalls: 1, wantErr: core.ErrExchangeRequest},

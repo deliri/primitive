@@ -11,9 +11,9 @@ import (
 func TestParentDirectorySynchronizationLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
+		wantErr    error
 		name, path string
 		closed     bool
-		wantErr    error
 	}{
 		{name: "nested parent sync cannot create target", path: filepath.Join("objects", "target")},
 		{name: "root parent sync cannot create missing leaf", path: "target"},

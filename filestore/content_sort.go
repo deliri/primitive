@@ -36,14 +36,18 @@ func (r ContentSortRequest) Validate() error {
 	}
 	first, firstErr := r.Files[0].Stat()
 	second, secondErr := r.Files[1].Stat()
-	if err := errors.Join(firstErr, secondErr); err != nil {
-		return errors.Join(core.ErrFilestoreContract, err)
+	if firstErr != nil || secondErr != nil {
+		return errors.Join(core.ErrFilestoreContract, firstErr, secondErr)
 	}
 	if !first.Mode().IsRegular() || !second.Mode().IsRegular() || os.SameFile(first, second) {
 		return core.ErrFilestoreContract
 	}
-	if destination, ok := r.Destination.(*os.File); ok {
-		info, err := destination.Stat()
+	return validateContentDestination(r.Destination, first, second)
+}
+
+func validateContentDestination(destination io.Writer, first, second os.FileInfo) error {
+	if file, ok := destination.(*os.File); ok {
+		info, err := file.Stat()
 		if err != nil {
 			return errors.Join(core.ErrFilestoreContract, err)
 		}
@@ -163,49 +167,66 @@ func writeInitialContentRuns(ctx context.Context, source, destination *os.File) 
 	var entries [contentSortRunEntries]ContentIndexEntry
 	var total int64
 	for {
-		count := 0
-		for count < len(entries) {
-			if err := contextstate.Validate(ctx); err != nil {
-				return 0, err
-			}
-			entry, err := ReadContentIndexEntry(reader)
-			if errors.Is(err, io.EOF) {
-				break
-			}
-			if err != nil {
-				return 0, err
-			}
-			entries[count] = entry
-			count++
+		count, err := readContentRun(ctx, reader, entries[:])
+		if err != nil {
+			return 0, err
 		}
+
 		if count == 0 {
 			break
 		}
 		if total > math.MaxInt64/ContentIndexRecordBytes-int64(count) {
 			return 0, core.ErrFilestoreContract
 		}
-		var comparisonErr error
-		slices.SortFunc(entries[:count], func(a, b ContentIndexEntry) int {
-			order, err := compareContentEntries(a, b)
-			if err != nil {
-				comparisonErr = err
-			}
-			return order
-		})
-		if comparisonErr != nil {
-			return 0, comparisonErr
+		if err := writeContentRun(writer, entries[:count]); err != nil {
+			return 0, err
 		}
-		for _, entry := range entries[:count] {
-			if err := WriteContentIndexEntry(writer, entry); err != nil {
-				return 0, err
-			}
-		}
+
 		total += int64(count)
 	}
 	if err := writer.Flush(); err != nil {
 		return 0, err
 	}
 	return total, contextstate.Validate(ctx)
+}
+
+func readContentRun(ctx context.Context, reader io.Reader, entries []ContentIndexEntry) (int, error) {
+	count := 0
+	for count < len(entries) {
+		if err := contextstate.Validate(ctx); err != nil {
+			return 0, err
+		}
+		entry, err := ReadContentIndexEntry(reader)
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			return 0, err
+		}
+		entries[count] = entry
+		count++
+	}
+	return count, nil
+}
+
+func writeContentRun(writer io.Writer, entries []ContentIndexEntry) error {
+	var comparisonErr error
+	slices.SortFunc(entries, func(a, b ContentIndexEntry) int {
+		order, err := compareContentEntries(a, b)
+		if err != nil {
+			comparisonErr = err
+		}
+		return order
+	})
+	if comparisonErr != nil {
+		return comparisonErr
+	}
+	for _, entry := range entries {
+		if err := WriteContentIndexEntry(writer, entry); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func resetContentScratch(file *os.File) error {
@@ -252,23 +273,11 @@ func mergeContentPair(ctx context.Context, left, right io.Reader, destination io
 		if err := contextstate.Validate(ctx); err != nil {
 			return err
 		}
-		if aErr != nil && !errors.Is(aErr, io.EOF) {
-			return aErr
+		order, done, err := compareContentHeads(a, b, aErr, bErr)
+		if err != nil || done {
+			return err
 		}
-		if bErr != nil && !errors.Is(bErr, io.EOF) {
-			return bErr
-		}
-		if errors.Is(aErr, io.EOF) && errors.Is(bErr, io.EOF) {
-			return nil
-		}
-		order := 0
-		if aErr == nil && bErr == nil {
-			var err error
-			order, err = compareContentEntries(a, b)
-			if err != nil {
-				return err
-			}
-		}
+
 		if bErr != nil || (aErr == nil && order <= 0) {
 			if err := WriteContentIndexEntry(destination, a); err != nil {
 				return err
@@ -281,6 +290,27 @@ func mergeContentPair(ctx context.Context, left, right io.Reader, destination io
 			b, bErr = ReadContentIndexEntry(right)
 		}
 	}
+}
+
+func compareContentHeads(a, b ContentIndexEntry, aErr, bErr error) (int, bool, error) {
+	if aErr != nil && !errors.Is(aErr, io.EOF) {
+		return 0, false, aErr
+	}
+	if bErr != nil && !errors.Is(bErr, io.EOF) {
+		return 0, false, bErr
+	}
+	if errors.Is(aErr, io.EOF) && errors.Is(bErr, io.EOF) {
+		return 0, true, nil
+	}
+	order := 0
+	if aErr == nil && bErr == nil {
+		var err error
+		order, err = compareContentEntries(a, b)
+		if err != nil {
+			return 0, false, err
+		}
+	}
+	return order, false, nil
 }
 
 func inspectContentIndex(ctx context.Context, file *os.File, destination io.Writer, unique bool) (ContentIndexSummary, core.SHA256Digest, error) {
@@ -302,37 +332,29 @@ func inspectContentIndex(ctx context.Context, file *os.File, destination io.Writ
 		if err != nil {
 			return ContentIndexSummary{}, core.SHA256Digest{}, err
 		}
-		if count != 0 {
-			order, err := compareContentEntries(prior, entry)
-			if err != nil || order > 0 {
-				return ContentIndexSummary{}, core.SHA256Digest{}, errors.Join(core.ErrFilestoreContract, err)
-			}
+		duplicate, err := admitContentIndexEntry(prior, entry, count != 0, unique)
+		if err != nil {
+			return ContentIndexSummary{}, core.SHA256Digest{}, err
 		}
-		if count != 0 && prior.Digest == entry.Digest {
-			if unique {
-				return ContentIndexSummary{}, core.SHA256Digest{}, core.ErrFilestoreContract
-			}
-			if prior.Extent != entry.Extent {
-				first, second := prior.Extent, entry.Extent
-				if first.Uint64() > second.Uint64() {
-					first, second = second, first
-				}
-				return ContentIndexSummary{}, core.SHA256Digest{}, ContentIndexConflictError{Digest: entry.Digest, First: first, Second: second}
-			}
+		if duplicate {
 			continue
 		}
+
 		if total > math.MaxUint64-entry.Extent.Uint64() {
 			return ContentIndexSummary{}, core.SHA256Digest{}, core.ErrFilestoreContract
 		}
-		if destination != nil {
-			if err := WriteContentIndexEntry(destination, entry); err != nil {
-				return ContentIndexSummary{}, core.SHA256Digest{}, err
-			}
+		if err := writeObservedContent(destination, entry); err != nil {
+			return ContentIndexSummary{}, core.SHA256Digest{}, err
 		}
+
 		count++
 		total += entry.Extent.Uint64()
 		prior = entry
 	}
+	return sealContentIndexSummary(ctx, digest, count, total)
+}
+
+func sealContentIndexSummary(ctx context.Context, digest *core.DigestWriter, count, total uint64) (ContentIndexSummary, core.SHA256Digest, error) {
 	extent, err := core.NewByteLength(total)
 	if err != nil {
 		return ContentIndexSummary{}, core.SHA256Digest{}, err
@@ -346,4 +368,37 @@ func inspectContentIndex(ctx context.Context, file *os.File, destination io.Writ
 		return ContentIndexSummary{}, core.SHA256Digest{}, err
 	}
 	return summary, checksum, nil
+}
+
+// admitContentIndexEntry verifies order and duplicate identity without retaining
+// any history beyond the immediately preceding canonical record.
+func admitContentIndexEntry(prior, entry ContentIndexEntry, hasPrior, unique bool) (bool, error) {
+	if !hasPrior {
+		return false, nil
+	}
+	order, err := compareContentEntries(prior, entry)
+	if err != nil || order > 0 {
+		return false, errors.Join(core.ErrFilestoreContract, err)
+	}
+	if prior.Digest != entry.Digest {
+		return false, nil
+	}
+	if unique {
+		return false, core.ErrFilestoreContract
+	}
+	if prior.Extent != entry.Extent {
+		first, second := prior.Extent, entry.Extent
+		if first.Uint64() > second.Uint64() {
+			first, second = second, first
+		}
+		return false, ContentIndexConflictError{Digest: entry.Digest, First: first, Second: second}
+	}
+	return true, nil
+}
+
+func writeObservedContent(destination io.Writer, entry ContentIndexEntry) error {
+	if destination == nil {
+		return nil
+	}
+	return WriteContentIndexEntry(destination, entry)
 }

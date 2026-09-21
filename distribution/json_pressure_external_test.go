@@ -67,9 +67,9 @@ func distributionWireObject(members []distributionWireMember) []byte {
 }
 
 type distributionJSONPressure struct {
+	wantErr error
 	name    string
 	wire    []byte
-	wantErr error
 }
 
 func distributionJSONCases(t testing.TB, wire []byte, maximum int) []distributionJSONPressure {
@@ -89,13 +89,13 @@ func distributionJSONCases(t testing.TB, wire []byte, maximum int) []distributio
 		{name: "unknown field", wire: distributionWireObject(append(slices.Clone(members), distributionWireMember{key: []byte("\"unknown\""), value: []byte("true")})), wantErr: core.ErrJSONContract},
 	}
 	for _, m := range []struct {
+		wantErr error
 		name    string
 		size    int
-		wantErr error
 	}{
-		{"one below input ceiling", maximum - 1, nil},
-		{"exact input ceiling", maximum, nil},
-		{"one above input ceiling", maximum + 1, core.ErrJSONContract},
+		{name: "one below input ceiling", size: maximum - 1, wantErr: nil},
+		{name: "exact input ceiling", size: maximum, wantErr: nil},
+		{name: "one above input ceiling", size: maximum + 1, wantErr: core.ErrJSONContract},
 	} {
 		if len(wire) > m.size {
 			t.Fatalf("fixture size=%d, want below input ceiling %d", len(wire), m.size)
@@ -113,8 +113,8 @@ func distributionJSONCases(t testing.TB, wire []byte, maximum int) []distributio
 				name   string
 				values []jsontext.Value
 			}{
-				{"one object missing", items[:len(items)-1]},
-				{"one extra object", append(slices.Clone(items), items[0])},
+				{name: "one object missing", values: items[:len(items)-1]},
+				{name: "one extra object", values: append(slices.Clone(items), items[0])},
 			} {
 				changed := slices.Clone(members)
 				if changed == nil {
@@ -135,7 +135,7 @@ func distributionJSONCases(t testing.TB, wire []byte, maximum int) []distributio
 		for _, bad := range []struct {
 			name  string
 			value []byte
-		}{{"null", []byte("null")}, {"wrong boolean type", []byte("true")}} {
+		}{{name: "null", value: []byte("null")}, {name: "wrong boolean type", value: []byte("true")}} {
 			mutated := slices.Clone(members)
 			if mutated == nil {
 				t.Fatal("mutation fixture = nil, want nonempty members")

@@ -34,28 +34,28 @@ func TestSubmissionAuthJSONExtentLayerTriad(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, door := range []struct {
+		decode func([]byte) (bool, error)
 		name   string
 		data   []byte
-		decode func([]byte) (bool, error)
 	}{
-		{"request", requestWire, authPreservingDecode(fixture.request.document)},
-		{"completion", completionWire, authPreservingDecode(fixture.credentialed)},
+		{name: "request", data: requestWire, decode: authPreservingDecode(fixture.request.document)},
+		{name: "completion", data: completionWire, decode: authPreservingDecode(fixture.credentialed)},
 	} {
 		t.Run(door.name, func(t *testing.T) {
 			t.Parallel()
 			gap := bytes.Repeat([]byte(" "), authWhitespaceFixtureBytes)
 			for _, tc := range []struct {
+				wantErr error
 				name    string
 				data    []byte
-				wantErr error
 			}{
-				{"canonical", door.data, nil},
-				{"large_prefix", append(bytes.Clone(gap), door.data...), nil},
-				{"large_interior", append(append([]byte{'{'}, gap...), door.data[1:]...), nil},
-				{"large_suffix", append(bytes.Clone(door.data), gap...), nil},
-				{"neutral_whitespace", gap, core.ErrJSONContract},
-				{"trailing_document", append(append(bytes.Clone(door.data), gap...), []byte("{}")...), core.ErrJSONContract},
-				{"truncated_after_large_prefix", append(bytes.Clone(gap), door.data[:len(door.data)-1]...), core.ErrJSONContract},
+				{name: "canonical", data: door.data, wantErr: nil},
+				{name: "large_prefix", data: append(bytes.Clone(gap), door.data...), wantErr: nil},
+				{name: "large_interior", data: append(append([]byte{'{'}, gap...), door.data[1:]...), wantErr: nil},
+				{name: "large_suffix", data: append(bytes.Clone(door.data), gap...), wantErr: nil},
+				{name: "neutral_whitespace", data: gap, wantErr: core.ErrJSONContract},
+				{name: "trailing_document", data: append(append(bytes.Clone(door.data), gap...), []byte("{}")...), wantErr: core.ErrJSONContract},
+				{name: "truncated_after_large_prefix", data: append(bytes.Clone(gap), door.data[:len(door.data)-1]...), wantErr: core.ErrJSONContract},
 			} {
 				t.Run(tc.name, func(t *testing.T) {
 					t.Parallel()

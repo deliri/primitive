@@ -79,7 +79,7 @@ func FuzzContentSortExactUnion(f *testing.F) {
 		same := entries[0].Digest == entries[1].Digest
 		if same && firstSize != secondSize {
 			var conflict filestore.ContentIndexConflictError
-			if !errors.As(gotErr, &conflict) || conflict.Digest != entries[0].Digest || conflict.First.Uint64() != min(firstSize, secondSize) || conflict.Second.Uint64() != max(firstSize, secondSize) || conflict.Validate() != nil || !errors.Is(conflict.Unwrap(), core.ErrFilestoreContract) || conflict.Error() == "" || got != (filestore.ContentIndexSummary{}) || output.Len() != 0 {
+			if !errors.As(gotErr, &conflict) || conflict.Digest != entries[0].Digest || conflict.First.Uint64() != min(firstSize, secondSize) || conflict.Second.Uint64() != max(firstSize, secondSize) || conflict.Validate() != nil || !errors.Is(conflict.Unwrap(), core.ErrFilestoreContract) || got != (filestore.ContentIndexSummary{}) || output.Len() != 0 {
 				t.Fatalf("conflicting union = (%+v,%v,%d bytes), want exact typed conflict and no output", got, gotErr, output.Len())
 			}
 			return

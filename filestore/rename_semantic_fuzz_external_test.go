@@ -224,10 +224,10 @@ func FuzzRenameNativeNamespaceCustody(f *testing.F) {
 			}
 		} else {
 			for _, entry := range []struct {
-				name string
 				info fs.FileInfo
 				err  error
-			}{{fixture.source, sourceBefore, sourceErr}, {fixture.target, targetBefore, targetErr}} {
+				name string
+			}{{name: fixture.source, info: sourceBefore, err: sourceErr}, {name: fixture.target, info: targetBefore, err: targetErr}} {
 				if entry.err != nil {
 					continue
 				}

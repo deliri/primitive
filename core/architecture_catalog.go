@@ -155,6 +155,8 @@ const (
 	PackageAccessPermit
 	// PackagePermit identifies signed opaque action grants shared by peers.
 	PackagePermit
+	// PackageUpgradeReport identifies authenticated attempt observations and evidence bindings.
+	PackageUpgradeReport
 	packageIdentityLimit
 )
 
@@ -260,6 +262,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageTextRepair, Kind: PackageKindProduction, Role: PackageRoleValueContract},
 			{Identity: PackageAccessPermit, Kind: PackageKindProduction, Role: PackageRoleAuthenticationBinding},
 			{Identity: PackagePermit, Kind: PackageKindProduction, Role: PackageRoleAuthenticationBinding},
+			{Identity: PackageUpgradeReport, Kind: PackageKindProduction, Role: PackageRoleAuthenticationBinding},
 		},
 	}
 }
@@ -505,6 +508,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"textrepair",
 		"accesspermit",
 		"permit",
+		"upgradereport",
 	}
 }
 
