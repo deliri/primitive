@@ -220,6 +220,7 @@ func InternalIngressCoverageForTest() []IngressCoverageForTest {
 		{Door: WriteNoBody, Kind: IngressFuzzForTest, Fuzz: FuzzWriteJSONNoBodyBoundedStreamAndSocketCustody},
 		{Door: WriteBounded, Kind: IngressFuzzForTest, Fuzz: FuzzWriteJSONNoBodyBoundedStreamAndSocketCustody},
 		{Door: WriteStream, Kind: IngressFuzzForTest, Fuzz: FuzzWriteJSONNoBodyBoundedStreamAndSocketCustody},
+		{Door: WriteProduced, Kind: IngressFuzzForTest, Fuzz: FuzzWriteJSONNoBodyBoundedStreamAndSocketCustody},
 		{Door: WriteSocketJSON[admissionJSONDocument], Kind: IngressFuzzForTest, Fuzz: FuzzWriteJSONNoBodyBoundedStreamAndSocketCustody},
 		{Door: Listen, Kind: IngressCapabilityForTest, Proof: TestServerListenerConfigurationAgreementTable, Reason: "Go acquires a listener from validated typed configuration; address representation is fuzzed at ParseListenAddress."},
 		{Door: (*ServerListener).Address, Kind: IngressCapabilityForTest, Proof: TestServerListenerConfigurationAgreementTable, Reason: "Observes the OS-assigned address of the owned Go listener."},

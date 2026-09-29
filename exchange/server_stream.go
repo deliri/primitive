@@ -287,6 +287,90 @@ type StreamWriteCall struct {
 	Response ServerStreamResponse
 }
 
+// ServerProducedResponse writes an unknown-length response directly to the
+// socket. Produce must write incrementally and return its own failure.
+type ServerProducedResponse struct {
+	Produce     func(context.Context, io.Writer) error
+	ContentType core.HTTPMediaType
+	Headers     ResponseHeaders
+	Status      core.HTTPStatusCode
+}
+
+func (r ServerProducedResponse) Validate() error {
+	if r.Produce == nil {
+		return responseError(core.ErrExchangeContract)
+	}
+	if err := r.ContentType.Validate(); err != nil {
+		return responseError(core.ErrExchangeContentType)
+	}
+	if err := r.Headers.Validate(); err != nil {
+		return responseError(err)
+	}
+	if err := r.Status.Validate(); err != nil {
+		return responseError(err)
+	}
+	if !r.Status.PermitsResponseBody() {
+		return responseError(core.ErrExchangeContract)
+	}
+	return nil
+}
+
+// ProducedWriteCall supplies one direct streaming response effect.
+type ProducedWriteCall struct {
+	Call     SocketServerCall
+	Response ServerProducedResponse
+}
+
+func (call ProducedWriteCall) Validate() error {
+	if err := call.Call.validateWrite(); err != nil {
+		return err
+	}
+	return call.Response.Validate()
+}
+
+// WriteProduced lets a caller produce bytes into Go's ResponseWriter without
+// an intermediate pipe or a whole-response buffer.
+func WriteProduced(call ProducedWriteCall) error {
+	if err := call.Validate(); err != nil {
+		return err
+	}
+	return executeResponseWriterOperation(func() error {
+		ctx, err := call.Call.Context()
+		if err != nil {
+			return responseError(err)
+		}
+		writer := call.Call.writer
+		applyResponseHeaders(writer.Header(), call.Response.Headers)
+		writer.Header().Set(core.HTTPHeaderContentType().String(), call.Response.ContentType.String())
+		writer.Header().Del(core.HTTPHeaderContentLength().String())
+		status, _ := call.Response.Status.Int()
+		writer.WriteHeader(status)
+		if err := call.Response.Produce(ctx, producedResponseWriter{context: ctx, writer: writer}); err != nil {
+			return errors.Join(core.ErrExchangeResponse, core.ErrExchangeWrite, err)
+		}
+		return nil
+	})
+}
+
+type producedResponseWriter struct {
+	context context.Context
+	writer  io.Writer
+}
+
+func (w producedResponseWriter) Write(p []byte) (int, error) {
+	if err := w.context.Err(); err != nil {
+		return 0, err
+	}
+	n, err := w.writer.Write(p)
+	if err == nil && n != len(p) {
+		err = io.ErrShortWrite
+	}
+	if err == nil {
+		err = w.context.Err()
+	}
+	return n, err
+}
+
 // Validate checks one complete streaming response effect.
 func (call StreamWriteCall) Validate() error {
 	if err := call.Call.validateWrite(); err != nil {

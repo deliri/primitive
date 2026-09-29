@@ -22,6 +22,7 @@ const (
 	materialWriteBounded
 	materialWriteStream
 	materialWriteUnknownStream
+	materialWriteProduced
 	materialWriteSocket
 )
 
@@ -89,7 +90,7 @@ func FuzzWriteJSONNoBodyBoundedStreamAndSocketCustody(f *testing.F) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		for _, door := range []materialWriterDoor{materialWriteJSON, materialWriteNoBody, materialWriteBounded, materialWriteStream, materialWriteUnknownStream, materialWriteSocket} {
+		for _, door := range []materialWriterDoor{materialWriteJSON, materialWriteNoBody, materialWriteBounded, materialWriteStream, materialWriteUnknownStream, materialWriteProduced, materialWriteSocket} {
 			ctx, cancel := context.WithCancel(t.Context())
 			if cancelled {
 				cancel()
@@ -114,6 +115,14 @@ func FuzzWriteJSONNoBodyBoundedStreamAndSocketCustody(f *testing.F) {
 				gotErr = WriteStream(StreamWriteCall{Call: call, Response: ServerStreamResponse{Source: source, ContentType: core.HTTPMediaTypeOctetStream(), ContentLength: new(length), Status: status}})
 			case materialWriteUnknownStream:
 				gotErr = WriteStream(StreamWriteCall{Call: call, Response: ServerStreamResponse{Source: source, ContentType: core.HTTPMediaTypeOctetStream(), Status: status}})
+			case materialWriteProduced:
+				gotErr = WriteProduced(ProducedWriteCall{Call: call, Response: ServerProducedResponse{Produce: func(_ context.Context, destination io.Writer) error {
+					if len(data) == 0 {
+						return nil
+					}
+					_, err := destination.Write(data)
+					return err
+				}, ContentType: core.HTTPMediaTypeOctetStream(), Status: status}})
 			case materialWriteSocket:
 				socket, constructorErr := NewServerSocket(JSONSocketContract{Path: path, Route: RouteSemantics{Method: MethodPost, Replay: ReplaySingleAttempt}, SuccessStatus: status})
 				socketRefused = !bodyPermitted
@@ -169,9 +178,11 @@ func FuzzWriteJSONNoBodyBoundedStreamAndSocketCustody(f *testing.F) {
 				wantLength = 0
 				wantType = ""
 				wantWrites = 0
-			case materialWriteUnknownStream:
+			case materialWriteUnknownStream, materialWriteProduced:
 				wantLength = -1
-				wantRead = len(data)
+				if door == materialWriteUnknownStream {
+					wantRead = len(data)
+				}
 				if len(data) == 0 {
 					wantWrites = 0
 				}
@@ -203,11 +214,11 @@ func FuzzWriteJSONNoBodyBoundedStreamAndSocketCustody(f *testing.F) {
 				t.Fatalf("writer %d effects=status %d,commits %d,writes %d,body %x,read %d; want status %d,one commit,%d writes,%x,%d read", door, writer.status, writer.commits, writer.writes, writer.body.Bytes(), len(data)-source.Len(), statusInput, wantWrites, wantBody, wantRead)
 			}
 			wantFields := 2
-			if door == materialWriteNoBody || door == materialWriteUnknownStream {
+			if door == materialWriteNoBody || door == materialWriteUnknownStream || door == materialWriteProduced {
 				wantFields = 1
 			}
 			wantDeclaration := strconv.Itoa(wantLength)
-			if door == materialWriteUnknownStream {
+			if door == materialWriteUnknownStream || door == materialWriteProduced {
 				wantDeclaration = ""
 			}
 			if len(writer.header) != wantFields || writer.header.Get(core.HTTPHeaderContentType().String()) != wantType || writer.header.Get(core.HTTPHeaderContentLength().String()) != wantDeclaration {
