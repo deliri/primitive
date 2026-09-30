@@ -551,6 +551,10 @@ const (
 	ErrReportSequence
 	// ErrReportOverflow identifies report arithmetic overflow.
 	ErrReportOverflow
+	// ErrPasswordHashContract identifies invalid password derivation inputs or policy.
+	ErrPasswordHashContract
+	// ErrPasswordHashCapacity identifies saturated caller-owned KDF admission.
+	ErrPasswordHashCapacity
 	errorIdentityLimit
 )
 
@@ -794,6 +798,8 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrReportConflict, text: "report sequence has conflicting content"},
 		{identity: ErrReportSequence, text: "report sequence is not next"},
 		{identity: ErrReportOverflow, text: "report arithmetic overflow"},
+		{identity: ErrPasswordHashContract, text: "password derivation contract violation"},
+		{identity: ErrPasswordHashCapacity, text: "password derivation capacity reached"},
 	}
 }
 
@@ -895,6 +901,12 @@ func isAdmittedErrorIdentity(identity ErrorIdentity) bool {
 }
 
 func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
+	if identity == ErrPasswordHashCapacity {
+		return oneErrorIdentityParent(ErrPasswordHashContract)
+	}
+	if identity == ErrPasswordHashContract {
+		return oneErrorIdentityParent(ErrPrimitiveContract)
+	}
 	if identity == ErrPrimitiveContract {
 		return errorIdentityParentSet{}
 	}

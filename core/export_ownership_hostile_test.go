@@ -15,7 +15,7 @@ import (
 
 const (
 	coreExportDependencyMaximum     = 32
-	coreSpecialExportAdmissionCount = 87 // Includes both catalog-owned permit agreements.
+	coreSpecialExportAdmissionCount = 88 // Adds the catalog-owned password derivation capability.
 	coreProviderExportContractCount = 50
 )
 
@@ -128,6 +128,7 @@ func coreSpecialExportAdmissions() [coreSpecialExportAdmissionCount]coreSpecialE
 		architectureCatalogAdmission("PackageContextState", PackageContextState),
 		architectureCatalogAdmission("PackageCurrency", PackageCurrency),
 		architectureCatalogAdmission("PackageKeygen", PackageKeygen),
+		architectureCatalogAdmission("PackagePasswordHash", PackagePasswordHash),
 		architectureCatalogAdmission("PackageTestSerial", PackageTestSerial),
 		architectureCatalogAdmission("PackageFilestore", PackageFilestore),
 		architectureCatalogAdmission("PackageHostFacts", PackageHostFacts),

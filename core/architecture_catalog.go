@@ -157,6 +157,8 @@ const (
 	PackagePermit
 	// PackageUpgradeReport identifies authenticated attempt observations and evidence bindings.
 	PackageUpgradeReport
+	// PackagePasswordHash identifies bounded Argon2id execution.
+	PackagePasswordHash
 	packageIdentityLimit
 )
 
@@ -263,6 +265,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageAccessPermit, Kind: PackageKindProduction, Role: PackageRoleAuthenticationBinding},
 			{Identity: PackagePermit, Kind: PackageKindProduction, Role: PackageRoleAuthenticationBinding},
 			{Identity: PackageUpgradeReport, Kind: PackageKindProduction, Role: PackageRoleAuthenticationBinding},
+			{Identity: PackagePasswordHash, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
 		},
 	}
 }
@@ -509,6 +512,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"accesspermit",
 		"permit",
 		"upgradereport",
+		"passwordhash",
 	}
 }
 

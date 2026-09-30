@@ -10,10 +10,11 @@ require (
 	github.com/stripe/stripe-go/v86 v86.4.0
 	github.com/twilio/twilio-go v1.30.9
 	github.com/zeebo/blake3 v0.2.4
-	golang.org/x/mod v0.40.0
+	golang.org/x/crypto v0.57.0
+	golang.org/x/mod v0.41.0
 	golang.org/x/oauth2 v0.36.0
-	golang.org/x/sync v0.22.0
-	golang.org/x/sys v0.47.0
+	golang.org/x/sync v0.23.0
+	golang.org/x/sys v0.48.0
 	golang.org/x/tools v0.49.0
 	google.golang.org/api v0.293.0
 	google.golang.org/grpc v1.83.1
@@ -90,11 +91,10 @@ require (
 	go.opentelemetry.io/otel/trace v1.45.0 // indirect
 	go4.org/mem v0.0.0-20240501181205-ae6ca9944745 // indirect
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba // indirect
-	golang.org/x/crypto v0.55.0 // indirect
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f // indirect
 	golang.org/x/net v0.58.0 // indirect
-	golang.org/x/term v0.45.0 // indirect
-	golang.org/x/text v0.41.0 // indirect
+	golang.org/x/term v0.46.0 // indirect
+	golang.org/x/text v0.42.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
 	golang.zx2c4.com/wireguard/windows v0.5.3 // indirect
