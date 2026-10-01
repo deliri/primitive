@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -91,11 +90,11 @@ func TestArgon2idAdmissionBoundariesLayerTriad(t *testing.T) {
 				want := argon2.IDKey(request.Material, request.Salt, request.Parameters.Iterations, request.Parameters.MemoryKiB, request.Parameters.Parallelism, request.KeyBytes)
 				defer clear(want)
 				if !bytes.Equal(key, want) {
-					t.Fatal("derived key differs from direct Go Argon2id")
+					t.Fatal("derived key = different bytes, want direct Go Argon2id answer")
 				}
 			}
 			if !bytes.Equal(request.Material, material) || !bytes.Equal(request.Salt, salt) || len(engine.slots) != 0 {
-				t.Fatal("derivation changed borrowed inputs or retained admission")
+				t.Fatalf("input preservation = material:%t salt:%t slots:%d, want true/true/0", bytes.Equal(request.Material, material), bytes.Equal(request.Salt, salt), len(engine.slots))
 			}
 		})
 	}
@@ -159,6 +158,7 @@ func TestArgon2idAdmissionOwnershipLayerTriad(t *testing.T) {
 			t.Fatalf("zero engine = %d/%v, want nil/contract", len(key), err)
 		}
 	}
+	//lint:ignore SA1012 Deliberately exercise the public nil-context rejection boundary.
 	key, err = engine.Derive(nil, request)
 	if key != nil || !errors.Is(err, core.ErrNilContext) {
 		t.Fatalf("nil context = %d/%v, want nil/nil-context", len(key), err)
@@ -235,7 +235,7 @@ func FuzzArgon2idRequestSemanticClosure(f *testing.F) {
 		direct := argon2.IDKey(material, salt, iterations, memory, parallelism, extent)
 		defer clear(direct)
 		if !bytes.Equal(key, direct) {
-			t.Fatal("accepted key disagrees with native Argon2id")
+			t.Fatal("accepted key = different bytes, want native Argon2id answer")
 		}
 		matched, err := engine.Verify(t.Context(), request, direct)
 		if err != nil || !matched {
@@ -266,7 +266,7 @@ func TestPasswordHashDataFlowInventory(t *testing.T) {
 	for _, entry := range inventory {
 		want = append(want, entry.nominal.Name())
 		if entry.role == "" {
-			t.Fatal("inventory role missing")
+			t.Fatal("inventory role = empty, want explicit ownership role")
 		}
 	}
 	ast.Inspect(file, func(node ast.Node) bool {
@@ -280,7 +280,7 @@ func TestPasswordHashDataFlowInventory(t *testing.T) {
 	slices.Sort(got)
 	slices.Sort(want)
 	if !slices.Equal(got, want) {
-		t.Fatal(fmt.Sprintf("production structs=%v, want classified %v", got, want))
+		t.Fatalf("production structs=%v, want classified %v", got, want)
 	}
 }
 
@@ -339,14 +339,14 @@ func TestArgon2idConcurrentAdmissionAndRelease(t *testing.T) {
 		select {
 		case <-done:
 		case <-time.After(10 * time.Second):
-			t.Error("owned derivation workers did not exit")
+			t.Error("owned derivation workers = blocked, want all exited")
 		}
 	})
 	for range capacity {
 		select {
 		case <-entered:
 		case <-time.After(10 * time.Second):
-			t.Fatal("admission did not fill configured capacity")
+			t.Fatal("admission = underfilled, want configured capacity before deadline")
 		}
 	}
 	for range calls - capacity {
@@ -357,7 +357,7 @@ func TestArgon2idConcurrentAdmissionAndRelease(t *testing.T) {
 				t.Fatalf("saturated call = %v, want capacity refusal", got.err)
 			}
 		case <-time.After(10 * time.Second):
-			t.Fatal("saturated call queued instead of refusing")
+			t.Fatal("saturated call = queued, want immediate capacity refusal")
 		}
 	}
 	if got := len(engine.slots); got != capacity {
@@ -376,13 +376,13 @@ func TestArgon2idConcurrentAdmissionAndRelease(t *testing.T) {
 				t.Fatalf("concurrent native derivation = matched:%t/%v, want true/nil", matched, got.err)
 			}
 		case <-time.After(10 * time.Second):
-			t.Fatal("admitted native derivation did not finish")
+			t.Fatal("admitted native derivation = blocked, want completion before deadline")
 		}
 	}
 	select {
 	case <-done:
 	case <-time.After(10 * time.Second):
-		t.Fatal("owned workers did not exit")
+		t.Fatal("owned workers = blocked, want all exited")
 	}
 	if got := len(engine.slots); got != 0 {
 		t.Fatalf("completed admissions = %d, want 0", got)

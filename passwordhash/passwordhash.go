@@ -61,10 +61,21 @@ func (r Request) Validate(limits Limits) error {
 	if err := limits.Validate(); err != nil {
 		return err
 	}
-	if err := r.Parameters.Validate(); err != nil {
+	if err := limits.validateParameters(r.Parameters); err != nil {
 		return err
 	}
-	if r.Parameters.MemoryKiB > limits.MemoryKiB || r.Parameters.Iterations > limits.Iterations || r.Parameters.Parallelism > limits.Parallelism || r.KeyBytes == 0 || r.KeyBytes > limits.KeyBytes || uint64(len(r.Material)) > uint64(limits.MaterialBytes) || len(r.Salt) == 0 || uint64(len(r.Salt)) > uint64(limits.SaltBytes) {
+	if r.KeyBytes == 0 || r.KeyBytes > limits.KeyBytes || uint64(len(r.Material)) > uint64(limits.MaterialBytes) || len(r.Salt) == 0 || uint64(len(r.Salt)) > uint64(limits.SaltBytes) {
+		return core.ErrPasswordHashContract
+	}
+	return nil
+}
+
+// validateParameters admits native work separately from borrowed byte extents.
+func (l Limits) validateParameters(p Parameters) error {
+	if err := p.Validate(); err != nil {
+		return err
+	}
+	if p.MemoryKiB > l.MemoryKiB || p.Iterations > l.Iterations || p.Parallelism > l.Parallelism {
 		return core.ErrPasswordHashContract
 	}
 	return nil
