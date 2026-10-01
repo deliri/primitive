@@ -5,7 +5,6 @@ import (
 	"errors"
 	"net/url"
 	"path"
-	"strings"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
@@ -111,7 +110,7 @@ func (c Client) Download(ctx context.Context, request DownloadRequest, policy ex
 
 func validateRequest(request exchange.StreamRoundTripRequest) error {
 	if len(request.Headers.Values) != 0 || request.Validate() != nil || !validURL(request.Target.HTTPURL()) ||
-		!strings.HasPrefix(request.Target.HTTPURL().Path, apiPathPrefix) || request.Semantics.Method != exchange.MethodPost ||
+		!validOperationPath(request.Target.HTTPURL().Path, request.Semantics.Method) || request.Semantics.Method == exchange.MethodGet ||
 		!mediaMatches(request.RequestContentType, core.HTTPMediaTypeJSON()) || !mediaMatches(request.ExpectedResponseContentType, core.HTTPMediaTypeJSON()) {
 		return core.ErrPlunkBinding
 	}
@@ -120,7 +119,7 @@ func validateRequest(request exchange.StreamRoundTripRequest) error {
 
 func validateDownload(request exchange.DownloadRequest) error {
 	if len(request.Headers.Values) != 0 || request.Validate() != nil || !validURL(request.Target.HTTPURL()) ||
-		!strings.HasPrefix(request.Target.HTTPURL().Path, apiPathPrefix) || request.Semantics.Method != exchange.MethodGet ||
+		!validOperationPath(request.Target.HTTPURL().Path, request.Semantics.Method) || request.Semantics.Method != exchange.MethodGet ||
 		request.Semantics.Replay != exchange.ReplaySingleAttempt || !mediaMatches(request.ExpectedResponseContentType, core.HTTPMediaTypeJSON()) {
 		return core.ErrPlunkBinding
 	}
