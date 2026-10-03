@@ -7,6 +7,7 @@ import (
 )
 
 var (
+	_ core.Validatable = TimeZoneRequest{}
 	_ core.Validatable = Operation(0)
 	_ core.Validatable = Failure{}
 

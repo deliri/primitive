@@ -15,7 +15,7 @@ import (
 
 const (
 	coreExportDependencyMaximum     = 32
-	coreSpecialExportAdmissionCount = 88 // Adds the catalog-owned password derivation capability.
+	coreSpecialExportAdmissionCount = 89 // Includes the caller/Hostfacts timezone name agreement.
 	coreProviderExportContractCount = 50
 )
 
@@ -107,6 +107,9 @@ func coreSpecialExportAdmissions() [coreSpecialExportAdmissionCount]coreSpecialE
 		// callers outside Primitive. Inventing a second internal consumer would
 		// couple an unrelated package merely to satisfy a repository census.
 		coherentDomainContractAdmission("GoCgoImportPath", GoCgoImportPath),
+		// The explicit zone name ceiling is shared with callers outside Primitive;
+		// adding a second in-repository consumer would invent an unrelated effect.
+		coherentDomainContractAdmission("TimeZoneNameMaximumBytes", TimeZoneNameMaximumBytes),
 		architectureCatalogAdmission("ArchitectureCatalog", ArchitectureCatalog{}),
 		architectureCatalogAdmission("PackageContract", PackageContract{}),
 		architectureCatalogAdmission("PackageIdentity", PackageIdentity(0)),

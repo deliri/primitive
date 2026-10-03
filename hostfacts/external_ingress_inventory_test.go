@@ -3,6 +3,7 @@ package hostfacts
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/deliri/primitive/v2026/core"
 )
@@ -17,6 +18,7 @@ type externalIngressFuzzContract[Door any] struct {
 }
 
 var (
+	_ = externalIngressFuzzContract[func(TimeZoneRequest) (*time.Location, error)]{Door: ObserveTimeZone, Fuzz: FuzzTimeZoneObservationSemanticClosure}
 	_ = externalIngressFuzzContract[func(context.Context, core.AbsolutePath) (cgroupMembership, bool, error)]{Door: observeCgroupMembership, Fuzz: FuzzCgroupMembershipFileSemanticClosure}
 	_ = externalIngressFuzzContract[func(uint8) (Percent, error)]{Door: NewPercent, Fuzz: FuzzPercentProjectionSemanticClosure}
 	_ = externalIngressFuzzContract[func(string) (Hostname, error)]{

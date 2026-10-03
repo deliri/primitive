@@ -434,7 +434,8 @@ func declaredRealWorldImports() (realWorldImportInventory, error) {
 		realWorldImportOwners(realWorldSubstrateOperatingSystemSignal, PackageShutdown),
 		// GCS owns its provider client's HTTP transport and shutdown.
 		realWorldImportOwners(realWorldSubstrateHTTP, PackageExchange, PackageGoogleIdentity, PackageGCSObjects, PackageTailnet),
-		realWorldImportOwners(realWorldSubstrateClock, PackageTemporal, PackageTimeProof),
+		// Hostfacts reads the zone database; Temporal alone owns wall-clock observation.
+		realWorldImportOwners(realWorldSubstrateClock, PackageHostFacts, PackageTemporal, PackageTimeProof),
 		realWorldImportOwners(realWorldSubstrateEntropy, PackageKeygen),
 		realWorldImportOwners(realWorldSubstrateUnix, PackageHostFacts),
 		realWorldImportOwners(realWorldSubstrateWindows, PackageFileLock, PackageHostFacts),
@@ -493,6 +494,7 @@ func declaredRealWorldCalls() (realWorldCallInventory, error) {
 		{owner: PackageExchange, substrate: realWorldSubstrateHTTP, selector: "ParseTime", count: 1},
 		{owner: PackageExchange, substrate: realWorldSubstrateHTTP, selector: "Redirect", count: 1},
 		{owner: PackageExchange, substrate: realWorldSubstrateHTTP, selector: "SetCookie", count: 1},
+		{owner: PackageHostFacts, substrate: realWorldSubstrateClock, selector: "LoadLocation", count: 1},
 		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "Duration", count: 1},
 		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "NewTicker", count: 1},
 		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "NewTimer", count: 1},

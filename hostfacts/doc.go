@@ -10,4 +10,7 @@
 // per-user home, configuration, cache, and temporary bases. It never
 // changes limits, monitors resources, removes files, supervises processes, or
 // chooses the action a caller takes from an observation.
+// ObserveTimeZone admits an explicit bounded IANA name and uses Go's timezone
+// database loader. Calendar interpretation remains caller policy; no ambient
+// Local fallback, product cache or alternate timezone database is introduced.
 package hostfacts

@@ -53,6 +53,7 @@ func TestPublicOperationsAreExactIntentEntryPoints(t *testing.T) {
 		"ObserveLogicalCPUCount",
 		"ObservePhysicalMemory",
 		"ObserveTerminalGeometry",
+		"ObserveTimeZone",
 		"ResolveWorkingPath",
 		"TemporaryDirectory",
 		"UserCacheDirectory",
@@ -73,6 +74,7 @@ type hostfactsCapability[T any] struct{ Value T }
 type hostfactsError[T any] struct{ Value T }
 
 type hostfactsStructInventory struct {
+	TimeZoneRequest           hostfactsIngress[TimeZoneRequest]
 	OOMWire                   hostfactsPersistence[goOOMBannerWire]
 	TerminalGeometryRequest   hostfactsIngress[TerminalGeometryRequest]
 	LineScan                  hostfactsKernelFlow[boundedLineScan]
