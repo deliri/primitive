@@ -168,7 +168,7 @@ func TestTransferEvidenceProjectionLayerTriad(t *testing.T) {
 			{name: "maximum amazon version identifier", request: transferEvidenceFixtureRequest{Provider: ProviderAmazonS3, Direction: DirectionDownload, Bytes: 1, Version: strings.Repeat("v", AmazonS3VersionIDMaximumBytes)}},
 			{name: "maximum amazon version json expansion", request: transferEvidenceFixtureRequest{Provider: ProviderAmazonS3, Direction: DirectionUpload, Bytes: 1, Version: strings.Repeat("<", AmazonS3VersionIDMaximumBytes)}},
 			{name: "maximum SDK-representable google generation", request: transferEvidenceFixtureRequest{Provider: ProviderGoogleCloudStorage, Direction: DirectionUpload, Bytes: 1, Version: "9223372036854775807"}},
-			{name: "cloudflare upload without impossible version", request: transferEvidenceFixtureRequest{Provider: ProviderCloudflareImages, Direction: DirectionUpload, Bytes: CloudflareImagesUploadMaximumBytes}},
+			{name: "cloudflare upload without impossible version", request: transferEvidenceFixtureRequest{Provider: ProviderCloudflareImages, Direction: DirectionUpload, Bytes: core.CloudflareImagesUploadMaximumBytes}},
 		}
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {

@@ -50,9 +50,9 @@ func TestUploadProviderValidationHostileBoundaryTable(t *testing.T) {
 		{name: "GCS one below object maximum is accepted", provider: ProviderGoogleCloudStorage, mutate: setUploadLength(GoogleCloudStorageObjectMaximumBytes - 1)},
 		{name: "GCS exact object maximum is accepted", provider: ProviderGoogleCloudStorage, mutate: setUploadLength(GoogleCloudStorageObjectMaximumBytes)},
 		{name: "GCS one above object maximum is rejected", provider: ProviderGoogleCloudStorage, mutate: setUploadLength(GoogleCloudStorageObjectMaximumBytes + 1), wantErr: core.ErrObjectStoreSize},
-		{name: "Cloudflare one below image maximum is accepted", provider: ProviderCloudflareImages, mutate: setUploadLength(CloudflareImagesUploadMaximumBytes - 1)},
-		{name: "Cloudflare exact image maximum is accepted", provider: ProviderCloudflareImages, mutate: setUploadLength(CloudflareImagesUploadMaximumBytes)},
-		{name: "Cloudflare one above image maximum is rejected", provider: ProviderCloudflareImages, mutate: setUploadLength(CloudflareImagesUploadMaximumBytes + 1), wantErr: core.ErrObjectStoreSize},
+		{name: "Cloudflare one below image maximum is accepted", provider: ProviderCloudflareImages, mutate: setUploadLength(core.CloudflareImagesUploadMaximumBytes - 1)},
+		{name: "Cloudflare exact image maximum is accepted", provider: ProviderCloudflareImages, mutate: setUploadLength(core.CloudflareImagesUploadMaximumBytes)},
+		{name: "Cloudflare one above image maximum is rejected", provider: ProviderCloudflareImages, mutate: setUploadLength(core.CloudflareImagesUploadMaximumBytes + 1), wantErr: core.ErrObjectStoreSize},
 	}
 
 	for _, tc := range cases {

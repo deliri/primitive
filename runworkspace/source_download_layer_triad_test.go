@@ -136,6 +136,9 @@ func sourceObjectstoreClient(t testing.TB, server *httptest.Server) objectstore.
 	serverAddress := strings.TrimPrefix(server.URL, "https://")
 	transport := server.Client().Transport.(*http.Transport).Clone()
 	transport.TLSClientConfig = transport.TLSClientConfig.Clone()
+	if transport.TLSClientConfig == nil {
+		t.Fatal("TLS fixture configuration = nil, want initialized trust configuration")
+	}
 	transport.TLSClientConfig.ServerName = "example.com"
 	dialer := &net.Dialer{}
 	transport.DialContext = func(ctx context.Context, network, _ string) (net.Conn, error) {

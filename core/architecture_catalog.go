@@ -159,6 +159,8 @@ const (
 	PackageUpgradeReport
 	// PackagePasswordHash identifies bounded Argon2id execution.
 	PackagePasswordHash
+	// PackageCloudflare owns Images, Stream, and R2 provider boundaries.
+	PackageCloudflare
 	packageIdentityLimit
 )
 
@@ -266,6 +268,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackagePermit, Kind: PackageKindProduction, Role: PackageRoleAuthenticationBinding},
 			{Identity: PackageUpgradeReport, Kind: PackageKindProduction, Role: PackageRoleAuthenticationBinding},
 			{Identity: PackagePasswordHash, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
+			{Identity: PackageCloudflare, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 		},
 	}
 }
@@ -513,6 +516,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"permit",
 		"upgradereport",
 		"passwordhash",
+		"cloudflare",
 	}
 }
 

@@ -15,8 +15,8 @@ import (
 
 const (
 	coreExportDependencyMaximum     = 32
-	coreSpecialExportAdmissionCount = 89 // Includes the caller/Hostfacts timezone name agreement.
-	coreProviderExportContractCount = 50
+	coreSpecialExportAdmissionCount = 90 // Includes the caller/Hostfacts timezone name agreement.
+	coreProviderExportContractCount = 90
 )
 
 type coreExportName string
@@ -132,6 +132,7 @@ func coreSpecialExportAdmissions() [coreSpecialExportAdmissionCount]coreSpecialE
 		architectureCatalogAdmission("PackageCurrency", PackageCurrency),
 		architectureCatalogAdmission("PackageKeygen", PackageKeygen),
 		architectureCatalogAdmission("PackagePasswordHash", PackagePasswordHash),
+		architectureCatalogAdmission("PackageCloudflare", PackageCloudflare),
 		architectureCatalogAdmission("PackageTestSerial", PackageTestSerial),
 		architectureCatalogAdmission("PackageFilestore", PackageFilestore),
 		architectureCatalogAdmission("PackageHostFacts", PackageHostFacts),
@@ -246,6 +247,46 @@ func coreProviderExportContracts() [coreProviderExportContractCount]coreProvider
 		{name: "TwilioWebhookSignatureHeaderName", witness: TwilioWebhookSignatureHeaderName, consumer: PackageTwilio},
 		{name: "TwilioWebhookSignatureBytes", witness: TwilioWebhookSignatureBytes, consumer: PackageTwilio},
 		{name: "TwilioWebhookBodySHA256QueryName", witness: TwilioWebhookBodySHA256QueryName, consumer: PackageTwilio},
+		{name: "CloudflareIdentityCharacters", witness: CloudflareIdentityCharacters, consumer: PackageCloudflare},
+		{name: "CloudflareImageIDMaximumCharacters", witness: CloudflareImageIDMaximumCharacters, consumer: PackageCloudflare},
+		{name: "CloudflareImageCreatorMaximumCharacters", witness: CloudflareImageCreatorMaximumCharacters, consumer: PackageCloudflare},
+		{name: "CloudflareImageExpiryMinimumSeconds", witness: CloudflareImageExpiryMinimumSeconds, consumer: PackageCloudflare},
+		{name: "CloudflareImageExpiryMaximumSeconds", witness: CloudflareImageExpiryMaximumSeconds, consumer: PackageCloudflare},
+		{name: "CloudflareStreamCreatorMaximumCharacters", witness: CloudflareStreamCreatorMaximumCharacters, consumer: PackageCloudflare},
+		{name: "CloudflareStreamDurationMaximumSeconds", witness: CloudflareStreamDurationMaximumSeconds, consumer: PackageCloudflare},
+		{name: "CloudflareR2QueryMaximumBytes", witness: CloudflareR2QueryMaximumBytes, consumer: PackageCloudflare},
+		{name: "CloudflareR2QueryExpires", witness: CloudflareR2QueryExpires, consumer: PackageCloudflare},
+		{name: "CloudflareR2UnsignedPayload", witness: CloudflareR2UnsignedPayload, consumer: PackageCloudflare},
+		{name: "CloudflareR2PresignMaximumSeconds", witness: CloudflareR2PresignMaximumSeconds, consumer: PackageCloudflare},
+		{name: "CloudflareR2ObjectKeyMaximumBytes", witness: CloudflareR2ObjectKeyMaximumBytes, consumer: PackageCloudflare},
+		{name: "CloudflareR2SingleUploadMaximumBytes", witness: CloudflareR2SingleUploadMaximumBytes, consumer: PackageCloudflare},
+		{name: "CloudflareR2BucketMinimumBytes", witness: CloudflareR2BucketMinimumBytes, consumer: PackageCloudflare},
+		{name: "CloudflareR2BucketMaximumBytes", witness: CloudflareR2BucketMaximumBytes, consumer: PackageCloudflare},
+		{name: "CloudflareR2QueryAlgorithm", witness: CloudflareR2QueryAlgorithm, consumer: PackageCloudflare},
+		{name: "CloudflareR2QuerySigningIdentity", witness: CloudflareR2QuerySigningIdentity, consumer: PackageCloudflare},
+		{name: "CloudflareR2QueryDate", witness: CloudflareR2QueryDate, consumer: PackageCloudflare},
+		{name: "CloudflareR2QuerySignature", witness: CloudflareR2QuerySignature, consumer: PackageCloudflare},
+		{name: "CloudflareR2QuerySignedHeaders", witness: CloudflareR2QuerySignedHeaders, consumer: PackageCloudflare},
+		{name: "CloudflareR2Algorithm", witness: CloudflareR2Algorithm, consumer: PackageCloudflare},
+		{name: "CloudflareR2CredentialTerminator", witness: CloudflareR2CredentialTerminator, consumer: PackageCloudflare},
+		{name: "CloudflareR2SignatureHexBytes", witness: CloudflareR2SignatureHexBytes, consumer: PackageCloudflare},
+		{name: "CloudflareStreamSignatureMaximumBytes", witness: CloudflareStreamSignatureMaximumBytes, consumer: PackageCloudflare},
+		{name: "CloudflareMultipartFileField", witness: CloudflareMultipartFileField, consumer: PackageCloudflare},
+		{name: "CloudflareMultipartFilenameMaximumBytes", witness: CloudflareMultipartFilenameMaximumBytes, consumer: PackageCloudflare},
+		{name: "CloudflareWatermarkUpperRight", witness: CloudflareWatermarkUpperRight, consumer: PackageCloudflare},
+		{name: "CloudflareWatermarkUpperLeft", witness: CloudflareWatermarkUpperLeft, consumer: PackageCloudflare},
+		{name: "CloudflareWatermarkLowerRight", witness: CloudflareWatermarkLowerRight, consumer: PackageCloudflare},
+		{name: "CloudflareWatermarkLowerLeft", witness: CloudflareWatermarkLowerLeft, consumer: PackageCloudflare},
+		{name: "CloudflareWatermarkCenter", witness: CloudflareWatermarkCenter, consumer: PackageCloudflare},
+		{name: "CloudflareAPIHost", witness: CloudflareAPIHost, consumer: PackageCloudflare},
+		{name: "CloudflareStreamUploadHost", witness: CloudflareStreamUploadHost, consumer: PackageCloudflare},
+		{name: "CloudflareStreamBasicUploadMaximumBytes", witness: CloudflareStreamBasicUploadMaximumBytes, consumer: PackageCloudflare},
+		{name: "CloudflareNotificationAuthenticationHeader", witness: CloudflareNotificationAuthenticationHeader, consumer: PackageCloudflare},
+		{name: "CloudflareStreamSignatureHeader", witness: CloudflareStreamSignatureHeader, consumer: PackageCloudflare},
+		{name: "CloudflareR2HostSuffix", witness: CloudflareR2HostSuffix, consumer: PackageCloudflare},
+		{name: "CloudflareR2SigningRegion", witness: CloudflareR2SigningRegion, consumer: PackageCloudflare},
+		{name: "CloudflareR2SigningService", witness: CloudflareR2SigningService, consumer: PackageCloudflare},
+		{name: "CloudflareSecretCustodyMaximumBytes", witness: CloudflareSecretCustodyMaximumBytes, consumer: PackageCloudflare},
 		{name: "PlunkAPIHost", witness: PlunkAPIHost, consumer: PackagePlunk},
 		{name: "PlunkIdempotencyKeyMaximumBytes", witness: PlunkIdempotencyKeyMaximumBytes, consumer: PackagePlunk},
 		{name: "PlunkCredentialMinimumBytes", witness: PlunkCredentialMinimumBytes, consumer: PackagePlunk},

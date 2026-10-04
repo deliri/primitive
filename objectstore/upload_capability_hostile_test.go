@@ -27,7 +27,7 @@ const (
 		"?" + queryS3Signature + "=signature&" + queryS3SignedHeaders + "=host%3Bif-none-match%3Bx-amz-checksum-crc32c"
 	capabilityS3MetadataURL = core.SchemeHTTPS + "://s3.amazonaws.com/bucket/object" +
 		"?" + queryS3Signature + "=signature&" + queryS3SignedHeaders + "=host%3Bif-none-match%3Bx-amz-checksum-crc32c%3Bx-amz-meta-run"
-	capabilityImagesURL = core.SchemeHTTPS + "://" + cloudflareImagesUploadHost + "/image-id"
+	capabilityImagesURL = core.SchemeHTTPS + "://" + core.CloudflareImagesUploadHost + "/image-id"
 
 	// capabilitySecret is the value a rejection must never disclose. It is
 	// placed in the query where a real signature lives.

@@ -457,6 +457,16 @@ const (
 	ErrPlunkVerification
 	// ErrPlunkBinding identifies Plunk facts attached to the wrong authority or route.
 	ErrPlunkBinding
+	// ErrCloudflareContract identifies invalid Cloudflare intent.
+	ErrCloudflareContract
+	// ErrCloudflareAuthentication identifies invalid Cloudflare credentials.
+	ErrCloudflareAuthentication
+	// ErrCloudflareVerification identifies unauthenticated Cloudflare input.
+	ErrCloudflareVerification
+	// ErrCloudflareBinding identifies Cloudflare authority or subject mismatch.
+	ErrCloudflareBinding
+	// ErrCloudflareResponse identifies invalid Cloudflare provider response.
+	ErrCloudflareResponse
 	// ErrGitHubContract identifies an invalid GitHub provider agreement.
 	ErrGitHubContract
 	// ErrGitHubAuthentication identifies invalid GitHub credential projection.
@@ -752,6 +762,11 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrPlunkAuthentication, text: "plunk authentication failed"},
 		{identity: ErrPlunkVerification, text: "plunk verification failed"},
 		{identity: ErrPlunkBinding, text: "plunk binding failed"},
+		{identity: ErrCloudflareContract, text: "cloudflare contract violation"},
+		{identity: ErrCloudflareAuthentication, text: "cloudflare authentication failed"},
+		{identity: ErrCloudflareVerification, text: "cloudflare verification failed"},
+		{identity: ErrCloudflareBinding, text: "cloudflare binding failed"},
+		{identity: ErrCloudflareResponse, text: "cloudflare response invalid"},
 		{identity: ErrGitHubContract, text: "github contract violation"},
 		{identity: ErrGitHubAuthentication, text: "github authentication failed"},
 		{identity: ErrGitHubResponse, text: "github response invalid"},
@@ -904,13 +919,10 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 	if identity == ErrPasswordHashCapacity {
 		return oneErrorIdentityParent(ErrPasswordHashContract)
 	}
-	if identity == ErrPasswordHashContract {
-		return oneErrorIdentityParent(ErrPrimitiveContract)
-	}
 	if identity == ErrPrimitiveContract {
 		return errorIdentityParentSet{}
 	}
-	if errorIdentityIn(identity, ErrJSONContract, ErrNumericOverflow, ErrSecretMaterialAllZero,
+	if errorIdentityIn(identity, ErrJSONContract, ErrNumericOverflow, ErrSecretMaterialAllZero, ErrPasswordHashContract,
 		ErrAttestContract,
 		ErrContextStateContract, ErrLineIOContract, ErrManualContract, ErrRunProtocolContract, ErrSourceClaimContract, ErrSourceObservationContract, ErrSourceProofContract, ErrCurrencyContract,
 		ErrKeygenContract, ErrTestIsolationContract, ErrFilestoreContract,
@@ -925,7 +937,7 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrLifecycleIdentityContract, ErrReceiptContract, ErrChitContract,
 		ErrRetrievalContract, ErrPaymentContract, ErrControlWireContract,
 		ErrControlPlaneContract, ErrIDContract, ErrSecretStoreContract,
-		ErrStripeContract, ErrPayPalContract, ErrTwilioContract, ErrPlunkContract, ErrGitHubContract,
+		ErrStripeContract, ErrPayPalContract, ErrTwilioContract, ErrPlunkContract, ErrCloudflareContract, ErrGitHubContract,
 		ErrCapabilitiesContract, ErrGoModuleContract, ErrGoToolchainContract, ErrGitRepositoryContract,
 		ErrProofLedgerContract, ErrTailnetContract, ErrAccessPermitContract, ErrPermitContract, ErrReportContract) {
 		return oneErrorIdentityParent(ErrPrimitiveContract)
@@ -1052,6 +1064,9 @@ func errorIdentityProviderParent(identity ErrorIdentity) ErrorIdentity {
 	}
 	if errorIdentityIn(identity, ErrTwilioAuthentication, ErrTwilioVerification, ErrTwilioBinding) {
 		return ErrTwilioContract
+	}
+	if errorIdentityIn(identity, ErrCloudflareAuthentication, ErrCloudflareVerification, ErrCloudflareBinding, ErrCloudflareResponse) {
+		return ErrCloudflareContract
 	}
 	if errorIdentityIn(identity, ErrPlunkAuthentication, ErrPlunkVerification, ErrPlunkBinding) {
 		return ErrPlunkContract

@@ -584,6 +584,9 @@ func authCompletionUpload(t testing.TB, request authCompletionUploadRequest) obj
 	}
 	transport := baseTransport.Clone()
 	transport.TLSClientConfig = transport.TLSClientConfig.Clone()
+	if transport.TLSClientConfig == nil {
+		t.Fatal("TLS fixture configuration = nil, want initialized trust configuration")
+	}
 	transport.TLSClientConfig.ServerName = "example.com"
 	serverAddress := server.Listener.Addr().String()
 	dialer := &net.Dialer{}

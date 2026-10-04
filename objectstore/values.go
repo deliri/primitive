@@ -544,7 +544,7 @@ func providerEndpointHost(provider Provider, host string) bool {
 		return googleCloudStorageDataHost(host)
 	}
 	if provider == ProviderCloudflareImages {
-		return host == cloudflareImagesUploadHost
+		return host == core.CloudflareImagesUploadHost
 	}
 	return false
 }

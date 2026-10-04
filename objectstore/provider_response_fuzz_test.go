@@ -168,6 +168,9 @@ func newGCSDownloadFuzzProvider(
 	serverAddress := strings.TrimPrefix(server.URL, core.SchemeHTTPS+"://")
 	transport := server.Client().Transport.(*http.Transport).Clone()
 	transport.TLSClientConfig = transport.TLSClientConfig.Clone()
+	if transport.TLSClientConfig == nil {
+		t.Fatal("TLS fixture configuration = nil, want initialized trust configuration")
+	}
 	transport.TLSClientConfig.ServerName = "example.com"
 	dialer := &net.Dialer{}
 	transport.DialContext = func(ctx context.Context, network string, _ string) (net.Conn, error) {

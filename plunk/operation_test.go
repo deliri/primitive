@@ -58,7 +58,7 @@ func TestDocumentedResourceOperationLayerTriad(t *testing.T) {
 			}
 			if e != nil {
 				if target != (core.HTTPEndpoint{}) || method != exchange.Method(0) {
-					t.Fatal("rejected route emitted authority")
+					t.Fatalf("rejected route = (%v, %v), want zero endpoint and method", target, method)
 				}
 				return
 			}
@@ -78,7 +78,7 @@ func FuzzResourceRouteSemanticClosure(f *testing.F) {
 			r.ResourceID = "provider-1"
 		}
 		if r.Validate() != nil {
-			f.Fatal("invalid nominal route seed")
+			f.Fatalf("nominal route Validate() = %v, want nil", r.Validate())
 		}
 		f.Add(uint8(op), r.ResourceID)
 	}
@@ -155,7 +155,7 @@ func TestResourceClientUsesExchangeAndSingleAttemptLayerTriad(t *testing.T) {
 				}
 				n, e := io.Copy(io.Discard, r.Body)
 				if e != nil || n == 0 {
-					t.Errorf("request body bytes/error=%d/%v, want actual body", n, e)
+					t.Errorf("request body bytes/error=%d/%v, want nonempty body", n, e)
 				}
 				w.Header().Set("Content-Type", "application/json")
 				_, _ = io.WriteString(w, "{}")
@@ -173,12 +173,20 @@ func TestResourceClientUsesExchangeAndSingleAttemptLayerTriad(t *testing.T) {
 			if e != nil {
 				t.Fatal(e)
 			}
-			defer credential.Close()
+			defer func() {
+				if err := credential.Close(); err != nil {
+					t.Errorf("credential.Close() = %v, want nil", err)
+				}
+			}()
 			client, e := NewClient(httpClient, credential)
 			if e != nil {
 				t.Fatal(e)
 			}
-			defer client.Close()
+			defer func() {
+				if err := client.Close(); err != nil {
+					t.Errorf("client.Close() = %v, want nil", err)
+				}
+			}()
 			request := plunkIdempotencyRequest(t, "resource-fixture")
 			request.Target, e = tc.route.Endpoint()
 			if e != nil {

@@ -31,8 +31,6 @@ const (
 	queryS3SignedHeaders       = "X-Amz-SignedHeaders"
 	queryGCSSignature          = "X-Goog-Signature"
 	queryGCSSignedHeaders      = "X-Goog-SignedHeaders"
-	// cloudflareImagesUploadHost is the published one-time upload host.
-	cloudflareImagesUploadHost = "upload.imagedelivery.net"
 	// signedHeaderTokenSeparator joins the vendor signed-header declaration.
 	signedHeaderTokenSeparator = ";"
 	// gcsHashComponentSeparator joins the components of one x-goog-hash value.

@@ -3,6 +3,15 @@ package claims
 func emitPackageClaimSpecsAThroughG(emit func(packageClaimSpec) bool) bool {
 	specs := [...]packageClaimSpec{
 		{
+			path: "accesspermit", title: "Authenticated scoped access agreements",
+			problem:  "An authority answer must bind its decision and validity interval to the exact subject, account, request, and generation.",
+			solution: "Accesspermit authenticates bounded typed allow or refuse agreements and checks their signed scope and time window.",
+			benefit:  "Consumers cannot accidentally reuse a genuine answer for a different exchange or treat an unknown decision as permission.",
+			removal:  "Remove Accesspermit when no consumer exchanges independently authenticated scoped access decisions.",
+			owns:     "Accesspermit owns the signed decision shape, scope binding, verification, and bounded validity agreement.",
+			excludes: "It does not decide access policy, interpret offerings, perform transport, observe time, or execute admitted work.",
+		},
+		{
 			path: "attest", title: "Bounded typed attestation",
 			problem:  "Independent parties need signatures over exact typed facts without each protocol reimplementing framing and canonical hashing.",
 			solution: "Attest signs and verifies bounded canonical facts with Ed25519, domain separation, detached envelopes, and caller-selected trust.",
@@ -46,6 +55,15 @@ func emitPackageClaimSpecsAThroughG(emit func(packageClaimSpec) bool) bool {
 			removal:  "Remove Chitauth when Chit catalog queries no longer cross an independently authenticated installation boundary.",
 			owns:     "Chitauth owns the mechanical credential-to-query authentication binding.",
 			excludes: "It does not own custody, catalog persistence, account permission, or listing policy.",
+		},
+		{
+			path: "cloudflare", title: "Cloudflare media and object capabilities",
+			problem:  "Images, Stream, and R2 have distinct credentials, authorities, limits, and authentication protocols that product policy must not reimplement.",
+			solution: "Cloudflare pairs typed server issuers with client upload and object operations, and authenticates provider webhooks under caller-owned bounds.",
+			benefit:  "Consumers use exact provider facts through Exchange, Temporal and caller-owned Filestore scratch while media bytes remain streaming.",
+			removal:  "Remove Cloudflare when no product consumes these Cloudflare capabilities or an equally bounded provider boundary replaces them.",
+			owns:     "Cloudflare owns Images direct uploads, Stream basic direct uploads and webhook verification, R2 object grants, and its provider-specific core contracts.",
+			excludes: "It does not own media accounting, readiness policy, retries, idempotency, provider state simulation, or independent acceptance.",
 		},
 		{
 			path: "compass", title: "Compiler-visible project configuration",

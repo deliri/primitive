@@ -237,7 +237,7 @@ func TestVendorSpecExhaustiveDomain(t *testing.T) {
 			ProviderIntegrity: objectstore.ProviderIntegrityLocalOnly,
 			WritePreference:   objectstore.WritePreferenceOneTimeCapability,
 			UploadMaximum: mustByteLength(t,
-				objectstore.CloudflareImagesUploadMaximumBytes,
+				core.CloudflareImagesUploadMaximumBytes,
 			),
 			DownloadMaximum: mustByteLength(t, 0),
 		},
@@ -1705,6 +1705,9 @@ func providerServer(
 	serverAddress := strings.TrimPrefix(server.URL, "https://")
 	transport := server.Client().Transport.(*http.Transport).Clone()
 	transport.TLSClientConfig = transport.TLSClientConfig.Clone()
+	if transport.TLSClientConfig == nil {
+		tb.Fatal("TLS fixture configuration = nil, want initialized trust configuration")
+	}
 	transport.TLSClientConfig.ServerName = "example.com"
 	dialer := &net.Dialer{}
 	transport.DialContext = func(

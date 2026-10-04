@@ -192,6 +192,9 @@ func observedTransferEvidence(t testing.TB, payload []byte, generation int64) ob
 	t.Cleanup(server.Close)
 	transport := server.Client().Transport.(*http.Transport).Clone()
 	transport.TLSClientConfig = transport.TLSClientConfig.Clone()
+	if transport.TLSClientConfig == nil {
+		t.Fatal("TLS fixture configuration = nil, want initialized trust configuration")
+	}
 	transport.TLSClientConfig.ServerName = "example.com"
 	dialer := &net.Dialer{}
 	address := server.Listener.Addr().String()

@@ -488,7 +488,7 @@ func declaredRealWorldCalls() (realWorldCallInventory, error) {
 		{owner: PackageShutdown, substrate: realWorldSubstrateOperatingSystemSignal, selector: "Notify", count: 1},
 		{owner: PackageShutdown, substrate: realWorldSubstrateOperatingSystemSignal, selector: "Stop", count: 1},
 		{owner: PackageExchange, substrate: realWorldSubstrateHTTP, selector: "Error", count: 1},
-		{owner: PackageExchange, substrate: realWorldSubstrateHTTP, selector: "NewRequestWithContext", count: 3},
+		{owner: PackageExchange, substrate: realWorldSubstrateHTTP, selector: "NewRequestWithContext", count: 4},
 		{owner: PackageExchange, substrate: realWorldSubstrateHTTP, selector: "New", count: 1},
 		{owner: PackageExchange, substrate: realWorldSubstrateHTTP, selector: "NotFound", count: 1},
 		{owner: PackageExchange, substrate: realWorldSubstrateHTTP, selector: "ParseTime", count: 1},

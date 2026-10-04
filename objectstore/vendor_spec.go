@@ -22,8 +22,6 @@ const (
 	// GoogleCloudStorageObjectMaximumBytes is the Cloud Storage object ceiling.
 	// Source: https://cloud.google.com/storage/quotas#objects
 	GoogleCloudStorageObjectMaximumBytes uint64 = 5 * 1024 * 1024 * 1024 * 1024
-	// CloudflareImagesUploadMaximumBytes is the hosted-image upload ceiling.
-	CloudflareImagesUploadMaximumBytes uint64 = 10_000_000
 )
 
 // Provider is the closed vendor destination domain.
@@ -397,7 +395,7 @@ func vendorSpecs() ([providerLimit]VendorSpec, error) {
 	if err != nil {
 		return [providerLimit]VendorSpec{}, err
 	}
-	cloudflareUpload, err := core.NewByteLength(CloudflareImagesUploadMaximumBytes)
+	cloudflareUpload, err := core.NewByteLength(core.CloudflareImagesUploadMaximumBytes)
 	if err != nil {
 		return [providerLimit]VendorSpec{}, err
 	}

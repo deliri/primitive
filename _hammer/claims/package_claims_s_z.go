@@ -111,6 +111,15 @@ func emitPackageClaimSpecsSThroughZ(emit func(packageClaimSpec) bool) bool {
 			excludes: "It does not lock resources, schedule tests, serialize goroutines, or excuse unowned mutable state.",
 		},
 		{
+			path: "textrepair", title: "Bounded UTF-8 repair",
+			problem:  "Malformed text needs deterministic repair without allocating a copy of the entire input.",
+			solution: "Textrepair uses Go UTF-8 decoding to produce a caller-bounded repaired prefix.",
+			benefit:  "Consumers retain valid Unicode while scratch follows the selected output extent.",
+			removal:  "Remove Textrepair when Go exposes the complete caller-bounded repair contract directly.",
+			owns:     "Textrepair owns UTF-8 prefix repair and exact output bounds.",
+			excludes: "It does not own source acquisition, file effects, transport, or product text policy.",
+		},
+		{
 			path: "timeproof", title: "Verified RFC 3161 time evidence",
 			problem:  "A local clock assertion cannot prove that specific bytes existed by an independently attested time.",
 			solution: "Timeproof prepares bounded timestamp requests and verifies RFC 3161 CMS evidence against closed authorities and trust anchors.",
@@ -136,6 +145,15 @@ func emitPackageClaimSpecsSThroughZ(emit func(packageClaimSpec) bool) bool {
 			removal:  "Remove Upgrade when no installed tool self-upgrades through the two-slot release contract.",
 			owns:     "Upgrade owns artifact staging, integrity verification, fixed-slot paths, trial command exposure, atomic selection, and former-slot cleanup.",
 			excludes: "It does not choose arguments, define test success, request consent, submit tickets, schedule work, retry, or own release authority.",
+		},
+		{
+			path: "upgradereport", title: "Authenticated upgrade observations",
+			problem:  "A claimed upgrade result must bind to the exact machine, attempt, build and retained evidence.",
+			solution: "Upgradereport authenticates typed machine observations and authority-signed evidence commitments.",
+			benefit:  "Callers can distinguish observed outcomes from unsupported completion claims.",
+			removal:  "Remove Upgradereport when no consumer reports independently authenticated upgrade observations.",
+			owns:     "Upgradereport owns signed upgrade observation shape, attempt binding and evidence verification.",
+			excludes: "It does not own performing upgrades, product rollout policy, evidence storage, or acceptance.",
 		},
 		{
 			path: "version", title: "Derived release identity and Git tags",

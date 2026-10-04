@@ -75,6 +75,15 @@ func emitPackageClaimSpecsHThroughR(emit func(packageClaimSpec) bool) bool {
 			excludes: "It does not mint credentials, create buckets, choose object names, retry ambiguity, retain custody, or define provider workflows.",
 		},
 		{
+			path: "passwordhash", title: "Bounded password derivation",
+			problem:  "Password derivation needs explicit cost and concurrency admission without hiding resource amplification.",
+			solution: "Passwordhash executes caller-selected Argon2id parameters with bounded concurrent work.",
+			benefit:  "Callers retain security policy while sharing one resource-accounted derivation boundary.",
+			removal:  "Remove Passwordhash when password derivation is no longer required.",
+			owns:     "Passwordhash owns Argon2id execution and resource admission.",
+			excludes: "It does not own password policy, persistence, authentication decisions, or secret generation.",
+		},
+		{
 			path: "payment", title: "Signed payment receipt agreement",
 			problem:  "Products need authenticated payment facts without coupling a shared receipt to Stripe, PayPal, or one billing implementation.",
 			solution: "Payment defines authority-signed customer receipts and bounded catalogs over exact currency and service periods.",
@@ -100,6 +109,15 @@ func emitPackageClaimSpecsHThroughR(emit func(packageClaimSpec) bool) bool {
 			removal:  "Remove Paypal when no product integrates PayPal or the provider boundary is wholly replaced.",
 			owns:     "Paypal owns PayPal-specific credential, host, header, OAuth, API, signature, and verification-response mechanics.",
 			excludes: "It does not interpret payment meaning, decide refunds or acceptance, store provider state, or share rules with Stripe.",
+		},
+		{
+			path: "permit", title: "Authenticated action permissions",
+			problem:  "Action permissions must remain bound to the offering, device, build and server-selected interval.",
+			solution: "Permit signs and verifies bounded opaque action sets, reporting permissions and exact acknowledgments.",
+			benefit:  "Consumers share authenticated agreement mechanics without sharing product action meaning.",
+			removal:  "Remove Permit when no product exchanges signed action permissions.",
+			owns:     "Permit owns permission signatures, subject binding, reporting agreements and pure schedule arithmetic.",
+			excludes: "It does not own action execution, product authorization policy, transport, clocks, or persistence.",
 		},
 		{
 			path: "plunk", title: "Isolated Plunk provider socket",

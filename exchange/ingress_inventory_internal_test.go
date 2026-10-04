@@ -195,6 +195,7 @@ func ingressProjectionTypeForTest(file *ast.File, expression ast.Expr, wanted re
 
 func InternalIngressCoverageForTest() []IngressCoverageForTest {
 	return []IngressCoverageForTest{
+		{Door: PresignV4, Kind: IngressFuzzForTest, Fuzz: FuzzV4PresignExactRequestAgreement},
 		{Door: NewOfficialSDKResponseBoundary, Kind: IngressFuzzForTest, Fuzz: FuzzOfficialSDKBoundaryCeilingAndStreamingConfiguration},
 		{Door: NewOfficialSDKMethodResponseBoundary, Kind: IngressFuzzForTest, Fuzz: FuzzOfficialSDKBoundaryCeilingAndStreamingConfiguration},
 		{Door: NewOfficialSDKStreamingResponseBoundary, Kind: IngressFuzzForTest, Fuzz: FuzzOfficialSDKBoundaryCeilingAndStreamingConfiguration},
