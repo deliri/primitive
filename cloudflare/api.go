@@ -168,5 +168,12 @@ func uploadEndpoint(value, host string) (core.HTTPEndpoint, error) {
 	if u.Scheme != core.SchemeHTTPS || u.Host != host || u.Path == "" || u.Path == "/" || u.User != nil || u.Fragment != "" {
 		return core.HTTPEndpoint{}, core.ErrCloudflareBinding
 	}
-	return endpoint, nil
+	// Core preserves Go's parsed input, including optional RawPath hints.
+	// Grants cross the wall as canonical endpoint text. Store that same
+	// representation so serialization cannot change the nominal authority.
+	canonical, err := core.ParseHTTPEndpoint(endpoint.String())
+	if err != nil {
+		return core.HTTPEndpoint{}, contractError(err)
+	}
+	return canonical, nil
 }

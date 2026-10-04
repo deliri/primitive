@@ -73,6 +73,12 @@ the final completion observation. The working-memory test streams a generated
 33 MiB-plus-one-byte source through fixed windows; it makes no claim to have
 transferred a terabyte or measured allocation distributions.
 
+Furnace fuzzing found that an unescaped path byte changed an upload grant's
+internal representation after serialization. Upload grants now store Core's
+canonical endpoint projection. The minimized input is retained in the fuzz
+corpus; regression cases prove nominal closure while preserving escaped slash,
+query order, percent spelling and explicit empty-query meaning.
+
 Each external representation door is bound to its semantic fuzz target in
 `ingress_inventory_test.go`; Exchange's signer has its own ingress inventory
 entry and independent oracle. Production structs have compiler-visible roles.

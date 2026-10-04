@@ -3,10 +3,20 @@ package cloudflare
 import (
 	"errors"
 	"net/http"
+	"slices"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
+)
+
+type envelopePrimaryClass uint8
+
+const (
+	envelopeContradiction envelopePrimaryClass = iota + 1
+	envelopeRefusal
+	envelopeNeutral
+	envelopeBoundary
 )
 
 // Exhaust the complete 3 x 2 x 2 envelope truth domain: success is absent,
@@ -18,26 +28,30 @@ func TestAPIEnvelopeTruthDomainExhaustiveHandoff(t *testing.T) {
 	for _, tc := range []struct {
 		success        *bool
 		name           string
+		primary        envelopePrimaryClass
 		issue          bool
 		result         bool
 		wantCapability bool
 		wantRefusal    bool
 	}{
-		{name: "absent success with no facts cannot invent authority"},
-		{name: "absent success cannot authorize valid-looking result", result: true},
-		{name: "absent success preserves error instead of authority", issue: true},
-		{name: "absent success with conflicting facts fails closed", issue: true, result: true},
-		{name: "false success with empty facts remains typed refusal", success: &no, wantRefusal: true},
-		{name: "false success cannot leak valid-looking result", success: &no, result: true, wantRefusal: true},
-		{name: "false success retains provider error facts", success: &no, issue: true, wantRefusal: true},
-		{name: "false success and provider errors outweigh populated result", success: &no, issue: true, result: true, wantRefusal: true},
-		{name: "true success cannot invent missing upload result", success: &yes},
-		{name: "true success and valid result issue exact authority", success: &yes, result: true, wantCapability: true},
-		{name: "true success contradicts provider errors without result", success: &yes, issue: true},
-		{name: "true success contradicts provider errors beside valid result", success: &yes, issue: true, result: true},
+		{name: "absent success with no facts cannot invent authority", primary: envelopeNeutral},
+		{name: "absent success cannot authorize valid-looking result", primary: envelopeRefusal, result: true},
+		{name: "absent success preserves error instead of authority", primary: envelopeRefusal, issue: true},
+		{name: "absent success with conflicting facts fails closed", primary: envelopeRefusal, issue: true, result: true},
+		{name: "false success with empty facts remains typed refusal", primary: envelopeRefusal, success: &no, wantRefusal: true},
+		{name: "false success cannot leak valid-looking result", primary: envelopeRefusal, success: &no, result: true, wantRefusal: true},
+		{name: "false success retains provider error facts", primary: envelopeRefusal, success: &no, issue: true, wantRefusal: true},
+		{name: "false success and provider errors outweigh populated result", primary: envelopeRefusal, success: &no, issue: true, result: true, wantRefusal: true},
+		{name: "true success cannot invent missing upload result", primary: envelopeBoundary, success: &yes},
+		{name: "true success and valid result issue exact authority", primary: envelopeBoundary, success: &yes, result: true, wantCapability: true},
+		{name: "true success contradicts provider errors without result", primary: envelopeContradiction, success: &yes, issue: true},
+		{name: "true success contradicts provider errors beside valid result", primary: envelopeContradiction, success: &yes, issue: true, result: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
+			if tc.primary < envelopeContradiction || tc.primary > envelopeBoundary {
+				t.Fatalf("primary class=%d, want one explicit contradiction/refusal/neutral/boundary class", tc.primary)
+			}
 			envelope := apiEnvelope[imageDirectUploadWire]{Success: tc.success}
 			if tc.result {
 				envelope.Result = imageDirectUploadWire{ID: "draft", UploadURL: "https://" + core.CloudflareImagesUploadHost + "/one-use"}
@@ -74,8 +88,8 @@ func TestAPIEnvelopeTruthDomainExhaustiveHandoff(t *testing.T) {
 			if isRefusal := errors.As(gotErr, &refusal); isRefusal != tc.wantRefusal {
 				t.Fatalf("typed refusal=%t, want %t", isRefusal, tc.wantRefusal)
 			}
-			if tc.wantRefusal && len(refusal.Issues) != len(envelope.Errors) {
-				t.Fatalf("retained refusal issues=%d, want %d", len(refusal.Issues), len(envelope.Errors))
+			if tc.wantRefusal && !slices.Equal(refusal.Issues, envelope.Errors) {
+				t.Fatalf("retained refusal issues=%+v, want %+v", refusal.Issues, envelope.Errors)
 			}
 			if tc.wantCapability {
 				if got.ID.value != envelope.Result.ID || got.endpoint.String() != envelope.Result.UploadURL {

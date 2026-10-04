@@ -8,7 +8,12 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/temporal"
 )
+
+// This is a deadlock backstop for generated streams under the race detector,
+// not a throughput requirement. Completion is proven by exact byte counts.
+const streamingReviewDeadlockBackstopSeconds = 120
 
 type streamingReviewBody struct {
 	terminal      error
@@ -86,7 +91,10 @@ func TestDownloadUncappedExtentLayerTriad(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			timeout := runtimeAgreementPolicy(t).ReadTimeout
+			timeout, err := temporal.DurationFromSeconds(streamingReviewDeadlockBackstopSeconds)
+			if err != nil {
+				t.Fatal(err)
+			}
 			ctx, cancel := context.WithCancel(t.Context())
 			defer cancel()
 			if tc.canceled {

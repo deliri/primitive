@@ -169,8 +169,8 @@ func FuzzR2GrantRepresentationAndProviderVerification(f *testing.F) {
 func TestR2GrantSigningIdentityCannotExceedCredentialCustody(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name    string
 		wantErr error
+		name    string
 		size    int
 	}{
 		{name: "one below credential custody remains representable", size: core.CloudflareSecretCustodyMaximumBytes - 1},

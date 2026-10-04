@@ -167,3 +167,50 @@ func FuzzCloudflareUploadAuthorityClosure(f *testing.F) {
 		}
 	})
 }
+
+func TestUploadAuthorityCanonicalProjectionPreservesRequestMeaning(t *testing.T) {
+	t.Parallel()
+	image, err := ParseImageID("tenant/photo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	video, err := ParseStreamVideoID(strings.Repeat("b", core.CloudflareIdentityCharacters))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name string
+		path string
+		want string
+	}{
+		{name: "Furnace raw-space crasher has one nominal representation", path: "/ ", want: "/%20"},
+		{name: "unescaped Unicode uses Go percent encoding", path: "/é", want: "/%C3%A9"},
+		{name: "raw bracket retains Go path representation", path: "/[", want: "/["},
+		{name: "escaped slash remains distinct from a path separator", path: "/a%2fb", want: "/a%2fb"},
+		{name: "unreserved percent spelling remains part of signed request", path: "/%61", want: "/%61"},
+		{name: "query order and plus spelling are preserved", path: "/one-use?b=a+b&a=%20", want: "/one-use?b=a+b&a=%20"},
+		{name: "explicit empty query marker remains present", path: "/one-use?", want: "/one-use?"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			imagePrefix := core.SchemeHTTPS + "://" + core.CloudflareImagesUploadHost
+			gotImage, err := ParseImageUpload(image, imagePrefix+tc.path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			imageAgain, err := ParseImageUpload(image, gotImage.endpoint.String())
+			if err != nil || imageAgain != gotImage || gotImage.endpoint.String() != imagePrefix+tc.want {
+				t.Fatalf("Images projection = (%q, stable=%t, error=%v), want (%q, true, nil)", gotImage.endpoint.String(), imageAgain == gotImage, err, imagePrefix+tc.want)
+			}
+			streamPrefix := core.SchemeHTTPS + "://" + core.CloudflareStreamUploadHost
+			gotStream, err := ParseStreamUpload(video, streamPrefix+tc.path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			streamAgain, err := ParseStreamUpload(video, gotStream.endpoint.String())
+			if err != nil || streamAgain != gotStream || gotStream.endpoint.String() != streamPrefix+tc.want {
+				t.Fatalf("Stream projection = (%q, stable=%t, error=%v), want (%q, true, nil)", gotStream.endpoint.String(), streamAgain == gotStream, err, streamPrefix+tc.want)
+			}
+		})
+	}
+}
