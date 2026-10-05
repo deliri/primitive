@@ -31,9 +31,11 @@ const (
 	repositoryGitStatus                  = "status"
 	repositoryGitPorcelainV1             = "--porcelain=v1"
 	repositoryGitUntrackedAll            = "--untracked-files=all"
-	repositoryGitIgnoredMatching         = "--ignored=matching"
+	repositoryGitIgnoredNone             = "--ignored=no"
 	repositoryGitSubmodulesNone          = "--ignore-submodules=none"
 	repositoryGitListFiles               = "ls-files"
+	repositoryGitOtherFiles              = "--others"
+	repositoryGitDeclaredExcludes        = "--exclude-per-directory=.gitignore"
 	repositoryGitVerboseFlags            = "-v"
 	repositoryGitNullTerminate           = "-z"
 	repositoryGitArgumentSeparator       = "--"
@@ -130,7 +132,8 @@ func (r RepositoryVerificationRequest) Validate() error {
 }
 
 // VerifiedRepository is proof that the observed checkout was clean and its
-// exact HEAD matched the requested release commit. It retains the Git
+// exact HEAD matched the requested release commit. Repository .gitignore rules
+// exclude generated output; they do not exclude tracked changes. It retains the Git
 // executable that produced that proof so later release work can reach it
 // without inheriting an ambient PATH.
 type VerifiedRepository struct {
@@ -437,13 +440,33 @@ func verifyRepositoryClean(ctx context.Context, request RepositoryVerificationRe
 	if err := verifyRepositoryIndexFlags(ctx, request); err != nil {
 		return err
 	}
-	result, err := runRepositoryGit(ctx, repositoryGitRequest{
-		verification: request,
-		arguments: []string{
+	// Git owns ignore matching. Status observes tracked and submodule changes;
+	// ls-files honors authored .gitignore rules without letting machine-local
+	// info/exclude or core.excludesFile hide otherwise untracked source.
+	// https://git-scm.com/docs/git-ls-files#Documentation/git-ls-files.txt---exclude-per-directoryltfilegt
+	for _, arguments := range [][]string{
+		{
 			repositoryGitStatus, repositoryGitPorcelainV1,
-			repositoryGitUntrackedAll, repositoryGitIgnoredMatching,
+			repositoryGitUntrackedAll, repositoryGitIgnoredNone,
 			repositoryGitSubmodulesNone, repositoryGitArgumentSeparator,
 		},
+		{
+			repositoryGitListFiles, repositoryGitOtherFiles,
+			repositoryGitDeclaredExcludes, repositoryGitNullTerminate,
+			repositoryGitArgumentSeparator,
+		},
+	} {
+		if err := verifyRepositoryNoOutput(ctx, request, arguments); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func verifyRepositoryNoOutput(ctx context.Context, request RepositoryVerificationRequest, arguments []string) error {
+	result, err := runRepositoryGit(ctx, repositoryGitRequest{
+		verification: request,
+		arguments:    arguments,
 		stdout:       repositoryStatusWriter{},
 		outputPolicy: repositoryGitOutputProbe,
 	})

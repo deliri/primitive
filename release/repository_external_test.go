@@ -479,8 +479,8 @@ func writeGlobalGitExcludesForTest(t *testing.T, fixture repositoryFixture, patt
 
 // writeRepositoryInfoExcludeForTest installs an ignore rule in repository
 // metadata rather than HOME. core.excludesFile does not control this channel;
-// the status invocation must explicitly report ignored paths or an untracked
-// build input can disappear from the cleanliness observation.
+// the untracked-file observation must exclude only authored .gitignore rules
+// or an untracked build input can disappear from the cleanliness observation.
 func writeRepositoryInfoExcludeForTest(t *testing.T, fixture repositoryFixture, patterns string) {
 	t.Helper()
 	ensureRepositoryDirectoryForTest(t, fixture.root, filepath.Join(".git", "info"))

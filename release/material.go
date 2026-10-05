@@ -18,8 +18,8 @@ import (
 // transport is deliberately outside this fact: Cloudidentity and Exchange own
 // that execution on both sides.
 type MaterialRequest struct {
-	Primitive version.Tag              `json:"primitive"`
 	Offering  core.Offering            `json:"offering"`
+	Primitive version.Tag              `json:"primitive"`
 	Version   core.ReleaseVersion      `json:"version"`
 	Commit    core.BuildCommit         `json:"commit"`
 	Nonce     controlwire.RequestNonce `json:"nonce"`
