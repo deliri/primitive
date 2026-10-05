@@ -5,7 +5,13 @@ package core
 const (
 	// CloudflareAPIHost is the bearer-authenticated API authority.
 	// https://developers.cloudflare.com/fundamentals/api/how-to/make-api-calls/
-	CloudflareAPIHost = "api.cloudflare.com"
+	CloudflareAPIHost         = "api.cloudflare.com"
+	CloudflareAPIAccountsPath = "/client/v4/accounts/"
+	CloudflareAPIZonesPath    = "/client/v4/zones/"
+	CloudflareCachePurgePath  = "/purge_cache"
+	// Optional operation ID returned by the cache purge API.
+	// https://developers.cloudflare.com/api/resources/cache/methods/purge/
+	CloudflareCachePurgeIDMaximumCharacters = 32
 	// CloudflareImagesUploadHost receives direct creator multipart uploads.
 	// https://developers.cloudflare.com/images/storage/upload-images/direct-creator-upload/
 	CloudflareImagesUploadHost = "upload.imagedelivery.net"
@@ -126,7 +132,7 @@ const CloudflareR2QueryMaximumBytes = 3*(CloudflareSecretCustodyMaximumBytes+
 	len("/20060102/")+len(CloudflareR2SigningRegion)+len("/")+
 	len(CloudflareR2SigningService)+len("/")+len(CloudflareR2CredentialTerminator)+
 	len(CloudflareR2Algorithm)+len("20060102T150405Z")+len("604800")+
-	CloudflareR2SignatureHexBytes+len("content-md5;content-type;host;if-none-match")+
+	CloudflareR2SignatureHexBytes+len("cache-control;content-md5;content-type;host;if-none-match")+
 	len(CloudflareR2QueryAlgorithm)+len(CloudflareR2QuerySigningIdentity)+
 	len(CloudflareR2QueryDate)+len(CloudflareR2QueryExpires)+
 	len(CloudflareR2QuerySignature)+len(CloudflareR2QuerySignedHeaders)) + 11
@@ -151,7 +157,13 @@ const (
 	CloudflareR2IfNoneMatchHeader = "If-None-Match"
 	CloudflareR2ETagHeader        = "ETag"
 	CloudflareR2CreateOnlyValue   = "*"
+	CloudflareR2CacheMaxAgePrefix = "max-age="
 )
+
+// This SDK admits exact delta-seconds within 31 nonnegative integer bits,
+// below the RFC's infinity sentinel. This is a custody bound, not product policy.
+// https://www.rfc-editor.org/rfc/rfc9111.html#section-1.2.2
+const CloudflareR2CacheMaxAgeMaximumSeconds = 2147483647
 
 // Documented watermark position domain; not another provider's enum.
 // https://developers.cloudflare.com/api/resources/stream/methods/get/

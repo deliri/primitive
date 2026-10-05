@@ -180,7 +180,7 @@ func (c R2Client) multipartControl(ctx context.Context, g R2MultipartGrant, sour
 	}
 	destination := boundedResponse{maximum: core.CloudflareR2MultipartResponseMaximumBytes}
 	_, err = exchange.RoundTripStream(exchange.StreamRoundTripCall{Context: ctx, Client: c.client, Policy: policy, Request: exchange.StreamRoundTripRequest{
-		Target: g.endpoint, Source: source, Destination: &destination, RequestContentLength: &length, RequestContentType: media,
+		Target: g.endpoint, Source: source, Destination: &destination, RequestContentLength: &length, RequestContentType: media, Headers: g.intent.CacheControl.headers(),
 		ExpectedStatus: core.HTTPStatusOK(), Semantics: exchange.RequestSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt},
 	}})
 	if err != nil {

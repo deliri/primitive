@@ -62,14 +62,15 @@ func (a R2MultipartAction) Validate() error { _, err := a.method(); return err }
 func (R2MultipartAction) OffWireEnum()      {}
 
 type R2MultipartPresignRequest struct {
-	Bucket      R2Bucket
-	Key         R2Key
-	UploadID    R2UploadID
-	ContentType core.HTTPMediaType
-	SignedAt    temporal.Instant
-	Expires     temporal.Duration
-	PartNumber  uint16
-	Action      R2MultipartAction
+	Bucket       R2Bucket
+	Key          R2Key
+	UploadID     R2UploadID
+	ContentType  core.HTTPMediaType
+	CacheControl R2CacheControl
+	SignedAt     temporal.Instant
+	Expires      temporal.Duration
+	PartNumber   uint16
+	Action       R2MultipartAction
 }
 
 func (r R2MultipartPresignRequest) Validate() error {
@@ -94,7 +95,7 @@ func (r R2MultipartPresignRequest) Validate() error {
 	} else if r.PartNumber != 0 {
 		return core.ErrCloudflareBinding
 	}
-	return nil
+	return r.CacheControl.validateWrite(r.Action == R2MultipartCreate)
 }
 
 type R2MultipartGrant struct {
@@ -140,7 +141,7 @@ func (s R2Server) PresignMultipart(ctx context.Context, r R2MultipartPresignRequ
 	}
 	signed, err := exchange.PresignV4(ctx, exchange.V4PresignRequest{
 		AccessKey: s.credentials.accessKey, SecretKey: s.credentials.secretKey, Region: core.CloudflareR2SigningRegion, Service: core.CloudflareR2SigningService,
-		PayloadHash: core.CloudflareR2UnsignedPayload, Target: unsigned, Method: method, SignedAt: r.SignedAt, ContentType: r.ContentType, DisableURIPathEscaping: true,
+		PayloadHash: core.CloudflareR2UnsignedPayload, Target: unsigned, Method: method, SignedAt: r.SignedAt, ContentType: r.ContentType, Headers: r.CacheControl.headers(), DisableURIPathEscaping: true,
 	})
 	if err != nil {
 		return R2MultipartGrant{}, authenticationError(err)

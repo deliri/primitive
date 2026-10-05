@@ -2,7 +2,7 @@ package cloudflare
 
 import (
 	"bytes"
-	"encoding/json"
+	"encoding/json/v2"
 	"errors"
 	"io"
 	"math"
@@ -39,7 +39,7 @@ func TestStreamServerProviderLayerTriad(t *testing.T) {
 					t.Errorf("Stream request=(%s,%s,%v), want account-bound JSON POST", r.Method, r.URL.Path, r.Header)
 				}
 				var got streamDirectUploadRequestWire
-				if err := json.NewDecoder(r.Body).Decode(&got); err != nil {
+				if err := json.UnmarshalRead(r.Body, &got, json.RejectUnknownMembers(true)); err != nil {
 					t.Error(err)
 				}
 				if got.MaximumDurationSeconds != 123 || got.Creator != "owner-42" || !got.RequireSignedURLs {
@@ -54,7 +54,7 @@ func TestStreamServerProviderLayerTriad(t *testing.T) {
 					result.Watermark = &streamWatermarkWire{Position: core.CloudflareWatermarkCenter, Opacity: &opacity}
 				}
 				w.Header().Set("Content-Type", core.HTTPMediaTypeJSON().String())
-				if err := json.NewEncoder(w).Encode(apiEnvelope[streamDirectUploadWire]{Success: &tc.success, Result: result}); err != nil {
+				if err := json.MarshalWrite(w, apiEnvelope[streamDirectUploadWire]{Success: &tc.success, Result: result}); err != nil {
 					t.Error(err)
 				}
 			})

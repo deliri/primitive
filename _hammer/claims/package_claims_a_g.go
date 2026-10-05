@@ -59,10 +59,10 @@ func emitPackageClaimSpecsAThroughG(emit func(packageClaimSpec) bool) bool {
 		{
 			path: "cloudflare", title: "Cloudflare media and object capabilities",
 			problem:  "Images, Stream, and R2 have distinct credentials, authorities, limits, and authentication protocols that product policy must not reimplement.",
-			solution: "Cloudflare pairs typed server issuers with client upload and object operations, and authenticates provider webhooks under caller-owned bounds.",
+			solution: "Cloudflare pairs typed server issuers with client upload and object operations, signs caller-owned cache metadata, purges one zone-bound URL, and authenticates provider webhooks under caller-owned bounds.",
 			benefit:  "Consumers use exact provider facts through Exchange, Temporal and caller-owned Filestore scratch while media bytes remain streaming.",
 			removal:  "Remove Cloudflare when no product consumes these Cloudflare capabilities or an equally bounded provider boundary replaces them.",
-			owns:     "Cloudflare owns Images direct uploads, Stream basic direct uploads and webhook verification, R2 object grants, and its provider-specific core contracts.",
+			owns:     "Cloudflare owns Images direct uploads and lifecycle observations, Stream basic direct uploads and webhook verification, R2 object and multipart grants with signed cache metadata, exact-URL cache purge acceptance, and its provider-specific core contracts.",
 			excludes: "It does not own media accounting, readiness policy, retries, idempotency, provider state simulation, or independent acceptance.",
 		},
 		{

@@ -29,7 +29,7 @@ func (s *ImagesServer) Close() error {
 	if s == nil {
 		return core.ErrCloudflareContract
 	}
-	return s.api.options.Token.Close()
+	return s.api.token.Close()
 }
 
 // ImageDirectUploadRequest creates a draft. CustomID and Expiry are optional;

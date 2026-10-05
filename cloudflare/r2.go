@@ -143,13 +143,14 @@ func (s *R2Server) Close() error {
 }
 
 type R2PresignRequest struct {
-	Bucket      R2Bucket
-	Key         R2Key
-	ContentType core.HTTPMediaType
-	SignedAt    temporal.Instant
-	Expires     temporal.Duration
-	Method      exchange.Method
-	Conditions  R2WriteConditions
+	Bucket       R2Bucket
+	Key          R2Key
+	ContentType  core.HTTPMediaType
+	SignedAt     temporal.Instant
+	Expires      temporal.Duration
+	Method       exchange.Method
+	Conditions   R2WriteConditions
+	CacheControl R2CacheControl
 }
 
 func (r R2PresignRequest) Validate() error {
@@ -169,6 +170,9 @@ func (r R2PresignRequest) Validate() error {
 	if err := r.Conditions.validateMethod(r.Method); err != nil {
 		return err
 	}
+	if err := r.CacheControl.validateWrite(r.Method == exchange.MethodPut); err != nil {
+		return err
+	}
 	return validateR2Method(r.Method)
 }
 func validateR2Method(method exchange.Method) error {
@@ -183,17 +187,18 @@ func validateR2Method(method exchange.Method) error {
 // R2Grant binds a presigned endpoint to its exact HTTP method and signed media
 // type. Possession is authority; diagnostic formatting never reveals the URL.
 type R2Grant struct {
-	contentType core.HTTPMediaType
-	endpoint    core.HTTPEndpoint
-	method      exchange.Method
-	conditions  R2WriteConditions
+	contentType  core.HTTPMediaType
+	endpoint     core.HTTPEndpoint
+	method       exchange.Method
+	conditions   R2WriteConditions
+	cacheControl R2CacheControl
 }
 
 func (g R2Grant) Validate() error {
 	if err := errors.Join(g.endpoint.Validate(), validateR2Method(g.method)); err != nil {
 		return err
 	}
-	return g.conditions.validateMethod(g.method)
+	return errors.Join(g.conditions.validateMethod(g.method), g.cacheControl.validateWrite(g.method == exchange.MethodPut))
 }
 func (g R2Grant) Endpoint() (core.HTTPEndpoint, error) { return g.endpoint, g.Validate() }
 func (R2Grant) Format(state fmt.State, _ rune)         { _, _ = io.WriteString(state, core.RedactedValueText) }
@@ -218,12 +223,12 @@ func (s R2Server) Presign(ctx context.Context, intent R2PresignRequest) (R2Grant
 		AccessKey: s.credentials.accessKey, SecretKey: s.credentials.secretKey,
 		Region: core.CloudflareR2SigningRegion, Service: core.CloudflareR2SigningService,
 		PayloadHash: core.CloudflareR2UnsignedPayload, Target: unsigned, Method: intent.Method,
-		SignedAt: intent.SignedAt, ContentType: intent.ContentType, Headers: intent.Conditions.headers(), DisableURIPathEscaping: true,
+		SignedAt: intent.SignedAt, ContentType: intent.ContentType, Headers: r2WriteHeaders(intent.Conditions, intent.CacheControl), DisableURIPathEscaping: true,
 	})
 	if err != nil {
 		return R2Grant{}, authenticationError(err)
 	}
-	return R2Grant{endpoint: parsed, method: intent.Method, contentType: intent.ContentType, conditions: intent.Conditions}, nil
+	return R2Grant{endpoint: parsed, method: intent.Method, contentType: intent.ContentType, conditions: intent.Conditions, cacheControl: intent.CacheControl}, nil
 }
 
 type R2Client struct{ client exchange.Client }
@@ -277,7 +282,7 @@ func (c R2Client) Put(ctx context.Context, request R2WriteRequest, policy exchan
 		media = core.HTTPMediaTypeOctetStream()
 	}
 	return exchange.Upload(exchange.UploadCall{Context: ctx, Client: c.client, Policy: policy,
-		Request: exchange.UploadRequest{Target: grant.endpoint, Source: source, ContentLength: &length, ContentType: media, Headers: grant.conditions.headers(),
+		Request: exchange.UploadRequest{Target: grant.endpoint, Source: source, ContentLength: &length, ContentType: media, Headers: r2WriteHeaders(grant.conditions, grant.cacheControl),
 			ExpectedStatus: core.HTTPStatusOK(), Semantics: exchange.RequestSemantics{Method: exchange.MethodPut, Replay: exchange.ReplaySingleAttempt}}})
 }
 

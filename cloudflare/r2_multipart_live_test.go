@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
-	"encoding/json"
+	"encoding/json/v2"
 	"encoding/xml"
 	"errors"
 	"fmt"
@@ -38,7 +38,7 @@ func TestR2MultipartLiveDirectClientLifecycle(t *testing.T) {
 		Access string `json:"r2_access_key"`
 		Secret string `json:"r2_secret_key"`
 	}
-	err = json.NewDecoder(io.LimitReader(file, 65536)).Decode(&input)
+	err = json.UnmarshalRead(io.LimitReader(file, 65536), &input, json.RejectUnknownMembers(true))
 	if closeErr := file.Close(); err != nil || closeErr != nil {
 		t.Fatal("live credential configuration invalid")
 	}

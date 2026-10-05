@@ -79,7 +79,7 @@ func (g R2Grant) Headers() (exchange.Headers, error) {
 	if err := g.Validate(); err != nil {
 		return exchange.Headers{}, err
 	}
-	return g.conditions.headers(), nil
+	return r2WriteHeaders(g.conditions, g.cacheControl), nil
 }
 
 // R2ObjectMetadata contains only facts independently returned by HEAD. ETag is

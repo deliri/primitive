@@ -15,6 +15,8 @@ about permissions, retries, idempotency, media readiness and lifetime accounting
 | R2 exact object operation | `R2Server.Presign` | `R2Client.Read`, `Put`, `Delete` |
 | R2 exact metadata observation | `R2Server.Presign` with HEAD | `R2Client.Head` |
 | Images lifecycle observation and retirement | `ImagesServer.Details`, `Delete` | Authenticated metadata only; no media body |
+| Zone cache invalidation | `CacheServer.PurgeFile` | Exactly one URL; acceptance receipt, not absence proof |
+| R2 multipart upload | `R2Server.PresignMultipart` | `R2Client.CreateMultipart`, `UploadPart`, `CompleteMultipart`, `AbortMultipart` |
 
 Server objects clone credential custody. Close them when their owner exits.
 Upload and object grants are redacted when formatted and bind the provider
@@ -28,6 +30,18 @@ overwriting an existing object; it does not make a presigned URL single use or
 revoke it after deletion. Applications must retain retirement state and reject
 late attachment. R2 metadata exposes an opaque ETag, content type and byte
 length; it never reinterprets a multipart ETag as a digest.
+
+`R2CacheControl` signs an exact whole-second `max-age` on PUT or multipart
+creation. Its zero value omits optional metadata; constructing it with a zero
+duration requests immediate staleness explicitly. Other operations reject this
+metadata. The SDK bounds its representation to 31 nonnegative integer bits;
+Kernel and distros choose the actual lifetime. Grant header projection, client
+execution and the independent signature tests use the same typed intent.
+
+`CacheServer` clones a token and binds a zone. `PurgeFile` submits one complete
+URL under the caller's response budget. Provider acceptance cannot establish
+public absence. Product policy must observe delivery and decide completion;
+custom cache-key header dimensions require their own explicit contract.
 
 Images details bind the returned ID and delivery paths to the requested ID.
 Draft creation is not upload completion. Image metadata does not verify an
@@ -61,9 +75,9 @@ such; they are not presented as Cloudflare limits.
   [limits](https://developers.cloudflare.com/r2/platform/limits/).
 
 These doors cover Images direct uploads, Stream basic uploads, their incoming
-webhook authentication, and R2 single-object GET/HEAD/PUT/DELETE. They do not
-claim the entire Cloudflare API. Stream tus/resumable transfer, R2 multipart and
-queue consumption, and the remaining provider administration endpoints require
+webhook authentication, R2 single-object GET/HEAD/PUT/DELETE and multipart,
+and exact-URL cache purging. They do not claim the entire Cloudflare API.
+Stream tus/resumable transfer, queue consumption and the remaining administration endpoints require
 their own named capabilities and conformance proof. Basic upload ceilings are
 refused explicitly, with no hidden alternate transfer path.
 

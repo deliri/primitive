@@ -27,24 +27,41 @@ func (o ServerOptions) Validate() error {
 }
 
 type apiServer struct {
-	client  exchange.Client
-	options ServerOptions
+	client exchange.Client
+	token  APIToken
+	root   core.HTTPEndpoint
+	limits core.StrictJSONLimits
 }
 
 func newAPIServer(client exchange.Client, options ServerOptions) (apiServer, error) {
 	if err := errors.Join(client.Validate(), options.Validate()); err != nil {
 		return apiServer{}, contractError(err)
 	}
-	token, err := ParseAPIToken(options.Token.value)
+	root, err := core.ParseHTTPEndpoint("https://" + core.CloudflareAPIHost + core.CloudflareAPIAccountsPath + options.Account.value)
 	if err != nil {
 		return apiServer{}, err
 	}
-	options.Token = token
-	return apiServer{client: client, options: options}, nil
+	return openAPIServer(apiServer{client: client, token: options.Token, root: root, limits: options.ResponseLimits})
+}
+
+func openAPIServer(server apiServer) (apiServer, error) {
+	if err := server.Validate(); err != nil {
+		return apiServer{}, err
+	}
+	token, err := ParseAPIToken(server.token.value)
+	if err != nil {
+		return apiServer{}, err
+	}
+	server.token = token
+	return server, nil
 }
 func (s apiServer) Validate() error {
-	if err := errors.Join(s.client.Validate(), s.options.Validate()); err != nil {
+	if err := errors.Join(s.client.Validate(), s.token.Validate(), s.root.Validate(), s.limits.Validate()); err != nil {
 		return contractError(err)
+	}
+	u := s.root.HTTPURL()
+	if u.Scheme != core.SchemeHTTPS || u.Host != core.CloudflareAPIHost || u.RawQuery != "" {
+		return core.ErrCloudflareBinding
 	}
 	return nil
 }
@@ -101,7 +118,7 @@ func executeAPI[T core.Validatable](ctx context.Context, server apiServer, inten
 	if err := errors.Join(server.Validate(), validatePolicy(policy)); err != nil {
 		return zero, err
 	}
-	maximum, err := server.options.ResponseLimits.DocumentMaximumBytes.Uint64()
+	maximum, err := server.limits.DocumentMaximumBytes.Uint64()
 	if err != nil {
 		return zero, contractError(err)
 	}
@@ -109,7 +126,7 @@ func executeAPI[T core.Validatable](ctx context.Context, server apiServer, inten
 	if err := server.transfer(ctx, intent, &response, policy); err != nil {
 		return zero, err
 	}
-	envelope, err := core.DecodeStrictJSONStructure[apiEnvelope[T]](response.buffer.Bytes(), server.options.ResponseLimits)
+	envelope, err := core.DecodeStrictJSONStructure[apiEnvelope[T]](response.buffer.Bytes(), server.limits)
 	if err != nil {
 		return zero, responseError(err)
 	}
@@ -129,11 +146,11 @@ func executeAPI[T core.Validatable](ctx context.Context, server apiServer, inten
 }
 
 func (server apiServer) transfer(ctx context.Context, intent apiIntent, destination io.Writer, policy exchange.StreamPolicy) error {
-	target, err := core.ParseHTTPEndpoint("https://" + core.CloudflareAPIHost + "/client/v4/accounts/" + server.options.Account.value + intent.suffix)
+	target, err := core.ParseHTTPEndpoint(server.root.String() + intent.suffix)
 	if err != nil {
 		return contractError(err)
 	}
-	authorization, err := exchange.NewBearerAuthorizationHeader(exchange.BearerAuthorization{Token: server.options.Token.value})
+	authorization, err := exchange.NewBearerAuthorizationHeader(exchange.BearerAuthorization{Token: server.token.value})
 	if err != nil {
 		return authenticationError(err)
 	}

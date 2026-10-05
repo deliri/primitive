@@ -24,7 +24,7 @@ func (s *StreamServer) Close() error {
 	if s == nil {
 		return core.ErrCloudflareContract
 	}
-	return s.api.options.Token.Close()
+	return s.api.token.Close()
 }
 
 // StreamDurationSeconds is Cloudflare's whole-second video reservation unit.

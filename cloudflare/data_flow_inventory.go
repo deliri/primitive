@@ -55,6 +55,14 @@ func (R2Grant) cloudflareCapabilityWrapper()               {}
 func (R2Client) cloudflareCapabilityWrapper()              {}
 
 var (
+	_ cloudflareCapabilityWrapperRole = ZoneID{}
+	_ cloudflareCapabilityWrapperRole = CacheServer{}
+	_ cloudflareProtocolFactRole      = CacheServerOptions{}
+	_ cloudflareProtocolFactRole      = CacheFilePurgeRequest{}
+	_ cloudflareProtocolFactRole      = CachePurgeReceipt{}
+	_ cloudflareProtocolFactRole      = cacheFilePurgeWire{}
+	_ cloudflareProtocolFactRole      = cachePurgeWire{}
+	_ cloudflareProtocolFactRole      = R2CacheControl{}
 	_ cloudflareProtocolFactRole      = InboundObservation{}
 	_ cloudflareProtocolFactRole      = ServerOptions{}
 	_ cloudflareProtocolFactRole      = APIIssue{}
