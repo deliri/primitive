@@ -80,16 +80,12 @@ func TestVerifyRepositoryIgnorePolicyLayerTriad(t *testing.T) {
 }
 
 // FuzzVerifyRepositoryIgnoredOutputAndSourceFacts reaches the public filesystem
-// and Git boundary. Its finite boolean domain is seeded exhaustively. The oracle
-// is the independently declared source changes, never a parsed Git status.
+// and Git boundary. One admitted and one refused checkout start mutation within
+// the short fuzz budget. The oracle is the independently declared source changes,
+// never a parsed Git status; named source-change boundaries are tested above.
 func FuzzVerifyRepositoryIgnoredOutputAndSourceFacts(f *testing.F) {
-	for _, ignored := range []bool{false, true} {
-		for _, tracked := range []bool{false, true} {
-			for _, untracked := range []bool{false, true} {
-				f.Add(ignored, tracked, untracked)
-			}
-		}
-	}
+	f.Add(true, false, false)
+	f.Add(false, false, false)
 	f.Fuzz(func(t *testing.T, ignored, tracked, untracked bool) {
 		fixture := newRepositoryFixtureAt(t, t.TempDir(), t.TempDir())
 		if ignored {
