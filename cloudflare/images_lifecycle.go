@@ -167,3 +167,5 @@ func (s ImagesServer) Delete(ctx context.Context, id ImageID, policy exchange.St
 func (ImageDetails) cloudflareProtocolFact()     {}
 func (imageDetailsWire) cloudflareProtocolFact() {}
 func (imageDeleteWire) cloudflareProtocolFact()  {}
+
+var _ core.ValidatedJSONMarshaler = imageDeleteWire{}

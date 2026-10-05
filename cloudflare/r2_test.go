@@ -17,7 +17,7 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
-func testR2Server(t *testing.T, jurisdiction R2Jurisdiction) R2Server {
+func testR2Server(t testing.TB, jurisdiction R2Jurisdiction) R2Server {
 	t.Helper()
 	credentials, err := ParseR2Credentials([]byte("r2-access-key"), []byte("r2-secret-key"))
 	if err != nil {
@@ -41,7 +41,7 @@ func testR2Server(t *testing.T, jurisdiction R2Jurisdiction) R2Server {
 	})
 	return server
 }
-func testR2Intent(t *testing.T, method exchange.Method, key string) R2PresignRequest {
+func testR2Intent(t testing.TB, method exchange.Method, key string) R2PresignRequest {
 	t.Helper()
 	bucket, err := ParseR2Bucket("media-bucket")
 	if err != nil {

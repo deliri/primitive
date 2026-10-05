@@ -16,7 +16,7 @@ import (
 const (
 	coreExportDependencyMaximum     = 32
 	coreSpecialExportAdmissionCount = 90 // Includes the caller/Hostfacts timezone name agreement.
-	coreProviderExportContractCount = 90
+	coreProviderExportContractCount = 108
 )
 
 type coreExportName string
@@ -248,6 +248,24 @@ func coreProviderExportContracts() [coreProviderExportContractCount]coreProvider
 		{name: "TwilioWebhookSignatureBytes", witness: TwilioWebhookSignatureBytes, consumer: PackageTwilio},
 		{name: "TwilioWebhookBodySHA256QueryName", witness: TwilioWebhookBodySHA256QueryName, consumer: PackageTwilio},
 		{name: "CloudflareIdentityCharacters", witness: CloudflareIdentityCharacters, consumer: PackageCloudflare},
+		{name: "CloudflareImagesDeliveryHost", witness: CloudflareImagesDeliveryHost, consumer: PackageCloudflare},
+		{name: "CloudflareImagesV1Path", witness: CloudflareImagesV1Path, consumer: PackageCloudflare},
+		{name: "CloudflareR2ContentMD5Header", witness: CloudflareR2ContentMD5Header, consumer: PackageCloudflare},
+		{name: "CloudflareR2CreateOnlyValue", witness: CloudflareR2CreateOnlyValue, consumer: PackageCloudflare},
+		{name: "CloudflareR2ETagHeader", witness: CloudflareR2ETagHeader, consumer: PackageCloudflare},
+		{name: "CloudflareR2ETagMaximumBytes", witness: CloudflareR2ETagMaximumBytes, consumer: PackageCloudflare},
+		{name: "CloudflareR2IfNoneMatchHeader", witness: CloudflareR2IfNoneMatchHeader, consumer: PackageCloudflare},
+		{name: "CloudflareR2MultipartMaximumObjectBytes", witness: CloudflareR2MultipartMaximumObjectBytes, consumer: PackageCloudflare},
+		{name: "CloudflareR2MultipartMaximumPartBytes", witness: CloudflareR2MultipartMaximumPartBytes, consumer: PackageCloudflare},
+		{name: "CloudflareR2MultipartMaximumParts", witness: CloudflareR2MultipartMaximumParts, consumer: PackageCloudflare},
+		{name: "CloudflareR2MultipartMinimumPartBytes", witness: CloudflareR2MultipartMinimumPartBytes, consumer: PackageCloudflare},
+		{name: "CloudflareR2MultipartResponseMaximumBytes", witness: CloudflareR2MultipartResponseMaximumBytes, consumer: PackageCloudflare},
+		{name: "CloudflareR2QueryPartNumber", witness: CloudflareR2QueryPartNumber, consumer: PackageCloudflare},
+		{name: "CloudflareR2QueryUploadID", witness: CloudflareR2QueryUploadID, consumer: PackageCloudflare},
+		{name: "CloudflareR2QueryUploads", witness: CloudflareR2QueryUploads, consumer: PackageCloudflare},
+		{name: "CloudflareR2UploadIDMaximumBytes", witness: CloudflareR2UploadIDMaximumBytes, consumer: PackageCloudflare},
+		{name: "CloudflareR2XMLMediaType", witness: CloudflareR2XMLMediaType, consumer: PackageCloudflare},
+		{name: "CloudflareR2XMLNamespace", witness: CloudflareR2XMLNamespace, consumer: PackageCloudflare},
 		{name: "CloudflareImageIDMaximumCharacters", witness: CloudflareImageIDMaximumCharacters, consumer: PackageCloudflare},
 		{name: "CloudflareImageCreatorMaximumCharacters", witness: CloudflareImageCreatorMaximumCharacters, consumer: PackageCloudflare},
 		{name: "CloudflareImageExpiryMinimumSeconds", witness: CloudflareImageExpiryMinimumSeconds, consumer: PackageCloudflare},

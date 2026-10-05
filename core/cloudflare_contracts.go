@@ -76,8 +76,25 @@ const (
 
 // https://developers.cloudflare.com/r2/platform/limits/
 const (
-	CloudflareR2ObjectKeyMaximumBytes           = 1024
-	CloudflareR2SingleUploadMaximumBytes uint64 = 5 * 1024 * 1024 * 1024
+	CloudflareR2ObjectKeyMaximumBytes              = 1024
+	CloudflareR2SingleUploadMaximumBytes    uint64 = 5 * 1024 * 1024 * 1024
+	CloudflareR2MultipartMaximumParts              = 10000
+	CloudflareR2MultipartMinimumPartBytes   uint64 = 5 * 1024 * 1024
+	CloudflareR2MultipartMaximumPartBytes   uint64 = (5*1024 - 5) * 1024 * 1024
+	CloudflareR2MultipartMaximumObjectBytes uint64 = (5*1024 - 5) * 1024 * 1024 * 1024
+)
+
+// Multipart control messages are bounded metadata, never media bodies. These
+// custody budgets do not constrain the byte length of uploaded objects.
+const (
+	CloudflareR2UploadIDMaximumBytes          = 4096
+	CloudflareR2MultipartResponseMaximumBytes = 2 * 1024 * 1024
+	CloudflareR2ETagMaximumBytes              = 1024
+	CloudflareR2QueryUploads                  = "uploads"
+	CloudflareR2QueryUploadID                 = "uploadId"
+	CloudflareR2QueryPartNumber               = "partNumber"
+	CloudflareR2XMLNamespace                  = "http://s3.amazonaws.com/doc/2006-03-01/"
+	CloudflareR2XMLMediaType                  = "application/xml"
 )
 
 // https://developers.cloudflare.com/r2/buckets/create-buckets/
