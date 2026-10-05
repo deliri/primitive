@@ -3,6 +3,7 @@ package cloudflare
 import (
 	"bytes"
 	"context"
+	"encoding/json/jsontext"
 	"errors"
 	"io"
 
@@ -65,10 +66,11 @@ func (e APIRefusal) Error() string { return core.ErrCloudflareResponse.Error() }
 func (e APIRefusal) Unwrap() error { return core.ErrCloudflareResponse }
 
 type apiEnvelope[T any] struct {
-	Result   T          `json:"result"`
-	Success  *bool      `json:"success"`
-	Errors   []APIIssue `json:"errors"`
-	Messages []APIIssue `json:"messages"`
+	ResultInfo jsontext.Value `json:"result_info,omitempty"`
+	Result     T              `json:"result"`
+	Success    *bool          `json:"success"`
+	Errors     []APIIssue     `json:"errors"`
+	Messages   []APIIssue     `json:"messages"`
 }
 
 type apiIntent struct {

@@ -20,6 +20,7 @@ type ingressProof struct {
 func bindIngress[Door any](door Door, fuzz func(*testing.F)) ingressProof {
 	name := runtime.FuncForPC(reflect.ValueOf(door).Pointer()).Name()
 	name = strings.TrimPrefix(name, "github.com/deliri/primitive/v2026/cloudflare.")
+	name = strings.ReplaceAll(strings.TrimPrefix(name, "(*"), ").", ".")
 	return ingressProof{name: name, fuzz: fuzz}
 }
 func cloudflareIngressProofs() []ingressProof {
@@ -42,6 +43,10 @@ func cloudflareIngressProofs() []ingressProof {
 		bindIngress(ImagesWebhookReceiver.Receive, FuzzImagesWebhookExactSecretAndRoute),
 		bindIngress(StreamWebhookReceiver.Receive, FuzzStreamWebhookSignatureRepresentation),
 		bindIngress(R2Server.Presign, FuzzR2GrantSignatureAndAuthority),
+		bindIngress(ImagesServer.Details, FuzzImagesDetailsResponseBinding),
+		bindIngress(ImagesServer.Delete, FuzzImagesDeletionAcceptance),
+		bindIngress((*imageDeleteWire).UnmarshalJSON, FuzzImagesDeletionAcceptance),
+		bindIngress(R2Client.Head, FuzzR2HeadMetadataConservation),
 	}
 }
 
@@ -90,7 +95,7 @@ func cloudflareDecoderDoors(file *ast.File) []string {
 			continue
 		}
 		name := fn.Name.Name
-		if !(strings.HasPrefix(name, "Parse") || strings.HasPrefix(name, "Decode") || strings.HasPrefix(name, "Unmarshal") || name == "APITokenFromSecret" || name == "CreateDirectUpload" || name == "Receive" || name == "Presign") {
+		if !(strings.HasPrefix(name, "Parse") || strings.HasPrefix(name, "Decode") || strings.HasPrefix(name, "Unmarshal") || name == "APITokenFromSecret" || name == "CreateDirectUpload" || name == "Receive" || name == "Presign" || name == "Details" || name == "Head" || name == "Delete" && fn.Recv != nil && cloudflareReceiverName(fn.Recv.List[0].Type) == "ImagesServer") {
 			continue
 		}
 		if fn.Recv != nil {

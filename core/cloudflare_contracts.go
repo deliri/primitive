@@ -109,7 +109,7 @@ const CloudflareR2QueryMaximumBytes = 3*(CloudflareSecretCustodyMaximumBytes+
 	len("/20060102/")+len(CloudflareR2SigningRegion)+len("/")+
 	len(CloudflareR2SigningService)+len("/")+len(CloudflareR2CredentialTerminator)+
 	len(CloudflareR2Algorithm)+len("20060102T150405Z")+len("604800")+
-	CloudflareR2SignatureHexBytes+len("content-type;host")+
+	CloudflareR2SignatureHexBytes+len("content-md5;content-type;host;if-none-match")+
 	len(CloudflareR2QueryAlgorithm)+len(CloudflareR2QuerySigningIdentity)+
 	len(CloudflareR2QueryDate)+len(CloudflareR2QueryExpires)+
 	len(CloudflareR2QuerySignature)+len(CloudflareR2QuerySignedHeaders)) + 11
@@ -124,6 +124,17 @@ const CloudflareMultipartFilenameMaximumBytes = 4 * 255
 // https://developers.cloudflare.com/images/storage/upload-images/direct-creator-upload/
 // https://developers.cloudflare.com/stream/uploading-videos/direct-creator-uploads/
 const CloudflareMultipartFileField = "file"
+
+// Images management and R2 conditions are owned by Cloudflare's documented
+// APIs, independently of other providers' coincidentally equal spellings.
+const (
+	CloudflareImagesDeliveryHost  = "imagedelivery.net"
+	CloudflareImagesV1Path        = "/images/v1/"
+	CloudflareR2ContentMD5Header  = "Content-MD5"
+	CloudflareR2IfNoneMatchHeader = "If-None-Match"
+	CloudflareR2ETagHeader        = "ETag"
+	CloudflareR2CreateOnlyValue   = "*"
+)
 
 // Documented watermark position domain; not another provider's enum.
 // https://developers.cloudflare.com/api/resources/stream/methods/get/

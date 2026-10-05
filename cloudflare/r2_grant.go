@@ -21,6 +21,7 @@ type R2GrantInput struct {
 	Endpoint     core.HTTPEndpoint
 	Jurisdiction R2Jurisdiction
 	Method       exchange.Method
+	Conditions   R2WriteConditions
 }
 
 func (r R2GrantInput) Validate() error {
@@ -38,13 +39,16 @@ func (r R2GrantInput) Validate() error {
 	if err := validateR2ObjectPath(u.Path); err != nil {
 		return err
 	}
-	return validateR2Query(u.RawQuery, r.Method, r.ContentType)
+	if err := r.Conditions.validateMethod(r.Method); err != nil {
+		return err
+	}
+	return validateR2Query(u.RawQuery, r.Method, r.ContentType, r.Conditions)
 }
 func ParseR2Grant(input R2GrantInput) (R2Grant, error) {
 	if err := input.Validate(); err != nil {
 		return R2Grant{}, err
 	}
-	return R2Grant{endpoint: input.Endpoint, method: input.Method, contentType: input.ContentType}, nil
+	return R2Grant{endpoint: input.Endpoint, method: input.Method, contentType: input.ContentType, conditions: input.Conditions}, nil
 }
 
 func validateR2ObjectPath(path string) error {
@@ -61,7 +65,7 @@ func validateR2ObjectPath(path string) error {
 	return errors.Join(bucketErr, keyErr)
 }
 
-func validateR2Query(raw string, method exchange.Method, media core.HTTPMediaType) error {
+func validateR2Query(raw string, method exchange.Method, media core.HTTPMediaType, conditions R2WriteConditions) error {
 	query, err := parseR2Query(raw)
 	if err != nil {
 		return err
@@ -75,6 +79,12 @@ func validateR2Query(raw string, method exchange.Method, media core.HTTPMediaTyp
 			return core.ErrCloudflareBinding
 		}
 		wantHeaders = "content-type;host"
+	}
+	if conditions.ContentMD5 != "" {
+		wantHeaders = "content-md5;" + wantHeaders
+	}
+	if conditions.CreateOnly {
+		wantHeaders += ";if-none-match"
 	}
 	if query.Get(core.CloudflareR2QuerySignedHeaders) != wantHeaders {
 		return core.ErrCloudflareBinding

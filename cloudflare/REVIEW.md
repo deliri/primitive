@@ -13,6 +13,8 @@ about permissions, retries, idempotency, media readiness and lifetime accounting
 | Images direct creator upload | `ImagesServer.CreateDirectUpload` | `ImagesClient.Upload` |
 | Stream basic direct creator upload | `StreamServer.CreateDirectUpload` | `StreamClient.UploadBasic` |
 | R2 exact object operation | `R2Server.Presign` | `R2Client.Read`, `Put`, `Delete` |
+| R2 exact metadata observation | `R2Server.Presign` with HEAD | `R2Client.Head` |
+| Images lifecycle observation and retirement | `ImagesServer.Details`, `Delete` | Authenticated metadata only; no media body |
 
 Server objects clone credential custody. Close them when their owner exits.
 Upload and object grants are redacted when formatted and bind the provider
@@ -20,6 +22,18 @@ scheme and authority. R2 grants additionally bind account, jurisdiction, method,
 object path, signing scope and signed content type. `ParseR2Grant` proves that
 structural agreement; Cloudflare independently verifies the signature. It is
 not a local authentication receipt.
+
+R2 write conditions can sign Content-MD5 and If-None-Match. The latter prevents
+overwriting an existing object; it does not make a presigned URL single use or
+revoke it after deletion. Applications must retain retirement state and reject
+late attachment. R2 metadata exposes an opaque ETag, content type and byte
+length; it never reinterprets a multipart ETag as a digest.
+
+Images details bind the returned ID and delivery paths to the requested ID.
+Draft creation is not upload completion. Image metadata does not verify an
+application's declared SHA-256 or BLAKE3, nor expose an original byte extent.
+Deletion requires the provider's explicit success envelope with no errors and
+a present, valid opaque result. Missing or contradictory acceptance is refused.
 
 R2 reads issue one GET or HEAD. There is no preliminary list or metadata query.
 Signing is local and uses Exchange's validated SigV4 operation with the official
@@ -88,3 +102,13 @@ foreign provider SDK imports in this package. No waiver was added.
 Raw execution facts and the complete required gate result are retained separately.
 Local proof is not the user's independent acceptance, and a passing focused run
 does not close untested packages or unavailable live-provider checks.
+
+The 2026-10-05 lifecycle increment has local TLS integration tests, semantic
+fuzz targets for details/deletion/HEAD/write conditions, race and shuffled-repeat
+proof, and a deliberate draft-readiness mutation that fails its regression.
+A separately scoped live browser smoke uploaded a 3,842,345-byte image to
+Images, a 5,534,429-byte video and a 142-byte PDF to R2. Metadata and public
+delivery were observed; video/PDF downloads matched their source SHA-256;
+same-grant overwrites returned 412; each delete was accepted. That probe did
+not execute a product's workout form, authentication, CSRF or persistence flow.
+The broader application smoke and repository-wide gates remain separate work.

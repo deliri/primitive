@@ -149,6 +149,7 @@ type R2PresignRequest struct {
 	SignedAt    temporal.Instant
 	Expires     temporal.Duration
 	Method      exchange.Method
+	Conditions  R2WriteConditions
 }
 
 func (r R2PresignRequest) Validate() error {
@@ -164,6 +165,9 @@ func (r R2PresignRequest) Validate() error {
 	}
 	if !r.ContentType.IsZero() && (r.Method != exchange.MethodPut || r.ContentType.Validate() != nil) {
 		return core.ErrCloudflareBinding
+	}
+	if err := r.Conditions.validateMethod(r.Method); err != nil {
+		return err
 	}
 	return validateR2Method(r.Method)
 }
@@ -182,13 +186,14 @@ type R2Grant struct {
 	contentType core.HTTPMediaType
 	endpoint    core.HTTPEndpoint
 	method      exchange.Method
+	conditions  R2WriteConditions
 }
 
 func (g R2Grant) Validate() error {
 	if err := errors.Join(g.endpoint.Validate(), validateR2Method(g.method)); err != nil {
 		return err
 	}
-	return nil
+	return g.conditions.validateMethod(g.method)
 }
 func (g R2Grant) Endpoint() (core.HTTPEndpoint, error) { return g.endpoint, g.Validate() }
 func (R2Grant) Format(state fmt.State, _ rune)         { _, _ = io.WriteString(state, core.RedactedValueText) }
@@ -213,12 +218,12 @@ func (s R2Server) Presign(ctx context.Context, intent R2PresignRequest) (R2Grant
 		AccessKey: s.credentials.accessKey, SecretKey: s.credentials.secretKey,
 		Region: core.CloudflareR2SigningRegion, Service: core.CloudflareR2SigningService,
 		PayloadHash: core.CloudflareR2UnsignedPayload, Target: unsigned, Method: intent.Method,
-		SignedAt: intent.SignedAt, ContentType: intent.ContentType, DisableURIPathEscaping: true,
+		SignedAt: intent.SignedAt, ContentType: intent.ContentType, Headers: intent.Conditions.headers(), DisableURIPathEscaping: true,
 	})
 	if err != nil {
 		return R2Grant{}, authenticationError(err)
 	}
-	return R2Grant{endpoint: parsed, method: intent.Method, contentType: intent.ContentType}, nil
+	return R2Grant{endpoint: parsed, method: intent.Method, contentType: intent.ContentType, conditions: intent.Conditions}, nil
 }
 
 type R2Client struct{ client exchange.Client }
@@ -272,7 +277,7 @@ func (c R2Client) Put(ctx context.Context, request R2WriteRequest, policy exchan
 		media = core.HTTPMediaTypeOctetStream()
 	}
 	return exchange.Upload(exchange.UploadCall{Context: ctx, Client: c.client, Policy: policy,
-		Request: exchange.UploadRequest{Target: grant.endpoint, Source: source, ContentLength: &length, ContentType: media,
+		Request: exchange.UploadRequest{Target: grant.endpoint, Source: source, ContentLength: &length, ContentType: media, Headers: grant.conditions.headers(),
 			ExpectedStatus: core.HTTPStatusOK(), Semantics: exchange.RequestSemantics{Method: exchange.MethodPut, Replay: exchange.ReplaySingleAttempt}}})
 }
 
