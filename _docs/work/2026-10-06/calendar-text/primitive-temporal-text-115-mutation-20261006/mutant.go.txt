@@ -76,7 +76,7 @@ func (r ParseTimeRequest) parseUTC() (time.Time, error) {
 	if err != nil {
 		return time.Time{}, contractError("time text is invalid", err)
 	}
-	if value.UTC().Format(string(r.Layout)) != r.Text {
+	if false && value.UTC().Format(string(r.Layout)) != r.Text {
 		return time.Time{}, contractError("time text is not canonical UTC")
 	}
 	return value, nil

@@ -1,0 +1,44 @@
+{
+  "revision": "ad7d768d81ebe9e843bb45e1d022f9da7280850f",
+  "source_dirty": true,
+  "argv": [
+    "go",
+    "test",
+    "-json",
+    "-count=1",
+    "-overlay",
+    "/private/tmp/primitive-temporal-text-115-mutation-20261006/overlay.json",
+    "-run",
+    "TestTimeTextParseLayerTriad",
+    "./temporal"
+  ],
+  "cwd": "/Users/d/code/primitive",
+  "toolchain": "go version go1.27.1 darwin/arm64",
+  "environment": {
+    "GOWORK": "off",
+    "GOFLAGS": "-mod=mod"
+  },
+  "started": "2026-10-06T11:27:14.589903+00:00",
+  "cache": "bypassed",
+  "excluded_test_packages": [],
+  "exit": 1,
+  "elapsed_seconds": 0.636985040968284,
+  "counts": {
+    "pass": 23,
+    "fail": 3,
+    "skip": 0,
+    "package_fail": 1
+  },
+  "artifacts": [
+    {
+      "path": "stdout",
+      "bytes": 46812,
+      "sha256": "cf03acbc12fe39d7759ccd64cbd3efe80bc4bc99f4cb0044c0796475e4891cc7"
+    },
+    {
+      "path": "stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}
