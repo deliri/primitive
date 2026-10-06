@@ -55,6 +55,11 @@ func (R2Grant) cloudflareCapabilityWrapper()               {}
 func (R2Client) cloudflareCapabilityWrapper()              {}
 
 var (
+	_ cloudflareProtocolFactRole      = ImageDeliverySource{}
+	_ cloudflareProtocolFactRole      = ImageResizeRequest{}
+	_ cloudflareProtocolFactRole      = ImageInfo{}
+	_ cloudflareProtocolFactRole      = ImageOriginalInfo{}
+	_ cloudflareInternalFlowRole      = imageInfoDecoded{}
 	_ cloudflareCapabilityWrapperRole = ImageDeliveryAccount{}
 	_ cloudflareCapabilityWrapperRole = ImageVariantName{}
 	_ cloudflareProtocolFactRole      = ImageDeliveryRequest{}

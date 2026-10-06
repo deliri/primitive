@@ -16,6 +16,7 @@ about permissions, retries, idempotency, media readiness and lifetime accounting
 | R2 exact metadata observation | `R2Server.Presign` with HEAD | `R2Client.Head` |
 | Images lifecycle observation and retirement | `ImagesServer.Details`, `Delete` | Authenticated metadata only; no media body |
 | Images custom delivery address | `ImageDetails.PublicAddress` | `ImageDeliveryRequest.Address`; exact origin/account/image/variant binding |
+| Images native resize and metadata | `ImageDetails.PublicResize` | `ImageResizeRequest.Address`, `ImagesClient.InspectResize`; actual dimensions and original format/bytes |
 | Zone cache invalidation | `CacheServer.PurgeFile` | Exactly one URL; acceptance receipt, not absence proof |
 | Cache variant invalidation | `CacheServer.PurgePrefix` | One typed host/path prefix; includes header/query variants; caller owns prefix scope |
 | R2 multipart upload | `R2Server.PresignMultipart` | `R2Client.CreateMultipart`, `UploadPart`, `CompleteMultipart`, `AbortMultipart` |
@@ -54,7 +55,8 @@ resource naming policy. Neither purge operation proves public absence.
 
 Images details bind the returned ID and delivery paths to the requested ID.
 Draft creation is not upload completion. Image metadata does not verify an
-application's declared SHA-256 or BLAKE3, nor expose an original byte extent.
+application's declared SHA-256 or BLAKE3. The lifecycle endpoint does not expose
+an original byte extent; the separate resize metadata operation does.
 Deletion requires the provider's explicit success envelope with no errors and
 a present, valid opaque result. Missing or contradictory acceptance is refused.
 
@@ -64,6 +66,17 @@ requires observed public, non-draft metadata containing that exact account,
 image and variant before projecting the custom URL. URL projection proves no
 DNS configuration or delivered bytes. The account hash has no invented length
 quota; the variant's 99-character restriction is the native provider contract.
+
+Flexible variants use closed fit, format and metadata enums plus nominal pixel
+dimensions. At least one axis is required. Primitive adds no dimension ceiling;
+the provider admits or refuses the transform. The caller owns its breakpoints,
+rendition names and account setup. `InspectResize` requests the provider's
+`format=json,anim=false` representation and streams it through Exchange and a
+joined pipe into JSON v2. It returns actual resized dimensions and original
+dimensions, media type and byte length. Neither a requested maximum width nor
+the original byte length is presented as the delivered rendition's size.
+Automatic format negotiation is an intent; actual response content type remains
+authoritative. URL projection does not claim that a rendition was fetched.
 
 Multipart completion receives `R2CompletedParts`, a synchronous visitor over
 the actual UploadPart receipts. It writes one typed part through encoding/xml

@@ -15,8 +15,8 @@ import (
 
 const (
 	coreExportDependencyMaximum     = 32
-	coreSpecialExportAdmissionCount = 90 // Includes the caller/Hostfacts timezone name agreement.
-	coreProviderExportContractCount = 116
+	coreSpecialExportAdmissionCount = 93 // Includes provider-neutral image dimensions shared with callers.
+	coreProviderExportContractCount = 135
 )
 
 type coreExportName string
@@ -110,6 +110,11 @@ func coreSpecialExportAdmissions() [coreSpecialExportAdmissionCount]coreSpecialE
 		// The explicit zone name ceiling is shared with callers outside Primitive;
 		// adding a second in-repository consumer would invent an unrelated effect.
 		coherentDomainContractAdmission("TimeZoneNameMaximumBytes", TimeZoneNameMaximumBytes),
+		// Image observations cross provider and product boundaries in these units;
+		// another internal image implementation is not required to share them.
+		coherentDomainContractAdmission("PixelDimension", PixelDimension(0)),
+		coherentDomainContractAdmission("NewPixelDimension", NewPixelDimension),
+		coherentDomainContractAdmission("ImageDimensions", ImageDimensions{}),
 		architectureCatalogAdmission("ArchitectureCatalog", ArchitectureCatalog{}),
 		architectureCatalogAdmission("PackageContract", PackageContract{}),
 		architectureCatalogAdmission("PackageIdentity", PackageIdentity(0)),
@@ -250,6 +255,25 @@ func coreProviderExportContracts() [coreProviderExportContractCount]coreProvider
 		{name: "CloudflareIdentityCharacters", witness: CloudflareIdentityCharacters, consumer: PackageCloudflare},
 		{name: "CloudflareImagesDeliveryHost", witness: CloudflareImagesDeliveryHost, consumer: PackageCloudflare},
 		{name: "CloudflareImagesCustomDeliveryPath", witness: CloudflareImagesCustomDeliveryPath, consumer: PackageCloudflare},
+		{name: "CloudflareImageWidthOption", witness: CloudflareImageWidthOption, consumer: PackageCloudflare},
+		{name: "CloudflareImageHeightOption", witness: CloudflareImageHeightOption, consumer: PackageCloudflare},
+		{name: "CloudflareImageFitOption", witness: CloudflareImageFitOption, consumer: PackageCloudflare},
+		{name: "CloudflareImageFormatOption", witness: CloudflareImageFormatOption, consumer: PackageCloudflare},
+		{name: "CloudflareImageMetadataOption", witness: CloudflareImageMetadataOption, consumer: PackageCloudflare},
+		{name: "CloudflareImageAnimationOff", witness: CloudflareImageAnimationOff, consumer: PackageCloudflare},
+		{name: "CloudflareImageFitScaleDown", witness: CloudflareImageFitScaleDown, consumer: PackageCloudflare},
+		{name: "CloudflareImageFitContain", witness: CloudflareImageFitContain, consumer: PackageCloudflare},
+		{name: "CloudflareImageFitCover", witness: CloudflareImageFitCover, consumer: PackageCloudflare},
+		{name: "CloudflareImageFitCrop", witness: CloudflareImageFitCrop, consumer: PackageCloudflare},
+		{name: "CloudflareImageFitPad", witness: CloudflareImageFitPad, consumer: PackageCloudflare},
+		{name: "CloudflareImageFormatAuto", witness: CloudflareImageFormatAuto, consumer: PackageCloudflare},
+		{name: "CloudflareImageFormatAVIF", witness: CloudflareImageFormatAVIF, consumer: PackageCloudflare},
+		{name: "CloudflareImageFormatWebP", witness: CloudflareImageFormatWebP, consumer: PackageCloudflare},
+		{name: "CloudflareImageFormatJSON", witness: CloudflareImageFormatJSON, consumer: PackageCloudflare},
+		{name: "CloudflareImageMetadataNone", witness: CloudflareImageMetadataNone, consumer: PackageCloudflare},
+		{name: "CloudflareImageMetadataCopyright", witness: CloudflareImageMetadataCopyright, consumer: PackageCloudflare},
+		{name: "CloudflareImageMetadataKeep", witness: CloudflareImageMetadataKeep, consumer: PackageCloudflare},
+		{name: "CloudflareImageMediaTypePrefix", witness: CloudflareImageMediaTypePrefix, consumer: PackageCloudflare},
 		{name: "CloudflareImageVariantMaximumCharacters", witness: CloudflareImageVariantMaximumCharacters, consumer: PackageCloudflare},
 		{name: "CloudflareImagesV1Path", witness: CloudflareImagesV1Path, consumer: PackageCloudflare},
 		{name: "CloudflareR2ContentMD5Header", witness: CloudflareR2ContentMD5Header, consumer: PackageCloudflare},

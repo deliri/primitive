@@ -59,10 +59,10 @@ func emitPackageClaimSpecsAThroughG(emit func(packageClaimSpec) bool) bool {
 		{
 			path: "cloudflare", title: "Cloudflare media and object capabilities",
 			problem:  "Images, Stream, and R2 have distinct credentials, authorities, limits, and authentication protocols that product policy must not reimplement.",
-			solution: "Cloudflare pairs typed server issuers with streaming clients, consumes multipart receipts synchronously without collecting or pre-counting them, binds Images custom delivery addresses, signs caller-owned cache metadata, and executes native cache purges and webhook authentication.",
+			solution: "Cloudflare pairs typed server issuers with streaming clients, consumes multipart receipts synchronously without collecting or pre-counting them, binds Images custom delivery and native resize addresses, streams metadata observations, signs caller-owned cache metadata, and executes native cache purges and webhook authentication.",
 			benefit:  "Consumers receive exact provider facts through Exchange and Temporal; Go pipes propagate backpressure and cancellation without an upload registry or invented transfer quota.",
 			removal:  "Remove Cloudflare when no product consumes these Cloudflare capabilities or an equally bounded provider boundary replaces them.",
-			owns:     "Cloudflare owns Images direct uploads, lifecycle observations and bound custom delivery addresses, Stream basic uploads and webhook verification, R2 object and streaming multipart operations with signed cache metadata, exact-URL and native-prefix cache purge acceptance, and provider-specific core contracts.",
+			owns:     "Cloudflare owns Images direct uploads, lifecycle observations, bound delivery/resize addresses and observed original/resized dimensions, Stream basic uploads and webhook verification, R2 object and streaming multipart operations with signed cache metadata, exact-URL and native-prefix cache purge acceptance, and provider-specific core contracts.",
 			excludes: "It does not own media accounting, readiness policy, retries, idempotency, provider state simulation, or independent acceptance.",
 		},
 		{

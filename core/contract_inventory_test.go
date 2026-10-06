@@ -41,6 +41,7 @@ type coreContractInventory struct {
 	comparisonDiagnostic     internalFlow[comparisonDiagnostic]
 	ByteCount                protocolFact[ByteCount]
 	ByteLength               protocolFact[ByteLength]
+	ImageDimensions          protocolFact[ImageDimensions]
 	SHA256Digest             protocolFact[SHA256Digest]
 	DigestWriter             capabilityWrapper[DigestWriter]
 	CRC32C                   protocolFact[CRC32C]

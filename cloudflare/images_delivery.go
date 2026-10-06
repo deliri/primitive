@@ -63,14 +63,11 @@ type ImageDeliveryRequest struct {
 }
 
 func (r ImageDeliveryRequest) Validate() error {
-	if err := errors.Join(r.Origin.Validate(), r.Account.Validate(), r.Image.Validate(), r.Variant.Validate()); err != nil {
+	source := ImageDeliverySource{Origin: r.Origin, Account: r.Account, Image: r.Image}
+	if err := errors.Join(source.Validate(), r.Variant.Validate()); err != nil {
 		return errors.Join(core.ErrCloudflareBinding, err)
 	}
-	u := r.Origin.HTTPURL()
-	if u.Scheme != core.SchemeHTTPS || u.Port() != "" || (u.Path != "" && u.Path != "/") || u.RawQuery != "" || u.ForceQuery {
-		return core.ErrCloudflareBinding
-	}
-	return validateImageDeliveryPath(r.Image.value)
+	return nil
 }
 
 func validateImageDeliveryPath(value string) error {
@@ -89,16 +86,23 @@ func (r ImageDeliveryRequest) Address() (core.HTTPEndpoint, error) {
 	if err := r.Validate(); err != nil {
 		return core.HTTPEndpoint{}, err
 	}
-	u := r.Origin.HTTPURL()
+	return (ImageDeliverySource{Origin: r.Origin, Account: r.Account, Image: r.Image}).address(r.Variant.value)
+}
+
+func (s ImageDeliverySource) address(options string) (core.HTTPEndpoint, error) {
+	if err := s.Validate(); err != nil {
+		return core.HTTPEndpoint{}, err
+	}
+	u := s.Origin.HTTPURL()
 	var path strings.Builder
 	path.WriteString(core.CloudflareImagesCustomDeliveryPath)
-	path.WriteString(r.Account.value)
-	for part := range strings.SplitSeq(r.Image.value, "/") {
+	path.WriteString(s.Account.value)
+	for part := range strings.SplitSeq(s.Image.value, "/") {
 		path.WriteByte('/')
 		path.WriteString(url.PathEscape(part))
 	}
 	path.WriteByte('/')
-	path.WriteString(r.Variant.value)
+	path.WriteString(options)
 	address, err := core.ParseHTTPEndpoint(u.Scheme + "://" + u.Host + path.String())
 	if err != nil {
 		return core.HTTPEndpoint{}, errors.Join(core.ErrCloudflareBinding, err)
