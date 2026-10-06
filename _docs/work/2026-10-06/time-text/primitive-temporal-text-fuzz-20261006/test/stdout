@@ -1,0 +1,12 @@
+{"Time":"2026-10-06T07:17:53.431799-04:00","Action":"start","Package":"github.com/deliri/primitive/v2026/temporal"}
+{"Time":"2026-10-06T07:17:53.570281-04:00","Action":"run","Package":"github.com/deliri/primitive/v2026/temporal","Test":"FuzzParseTimeUTCSemanticClosure"}
+{"Time":"2026-10-06T07:17:53.570472-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/temporal","Test":"FuzzParseTimeUTCSemanticClosure","Output":"=== RUN   FuzzParseTimeUTCSemanticClosure\n","OutputType":"frame"}
+{"Time":"2026-10-06T07:17:53.571835-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/temporal","Test":"FuzzParseTimeUTCSemanticClosure","Output":"fuzz: elapsed: 0s, gathering baseline coverage: 0/2 completed\n"}
+{"Time":"2026-10-06T07:17:53.598506-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/temporal","Test":"FuzzParseTimeUTCSemanticClosure","Output":"fuzz: elapsed: 0s, gathering baseline coverage: 2/2 completed, now fuzzing with 2 workers\n"}
+{"Time":"2026-10-06T07:17:56.573082-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/temporal","Test":"FuzzParseTimeUTCSemanticClosure","Output":"fuzz: elapsed: 3s, execs: 108779 (36239/sec), new interesting: 4 (total: 6)\n"}
+{"Time":"2026-10-06T07:17:56.657997-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/temporal","Test":"FuzzParseTimeUTCSemanticClosure","Output":"fuzz: elapsed: 3s, execs: 108779 (0/sec), new interesting: 4 (total: 6)\n"}
+{"Time":"2026-10-06T07:17:56.658056-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/temporal","Test":"FuzzParseTimeUTCSemanticClosure","Output":"--- PASS: FuzzParseTimeUTCSemanticClosure (3.09s)\n","OutputType":"frame"}
+{"Time":"2026-10-06T07:17:56.658066-04:00","Action":"pass","Package":"github.com/deliri/primitive/v2026/temporal","Test":"FuzzParseTimeUTCSemanticClosure","Elapsed":3.09}
+{"Time":"2026-10-06T07:17:56.658106-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/temporal","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-06T07:17:56.658827-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/temporal","Output":"ok  \tgithub.com/deliri/primitive/v2026/temporal\t3.227s\n"}
+{"Time":"2026-10-06T07:17:56.658855-04:00","Action":"pass","Package":"github.com/deliri/primitive/v2026/temporal","Elapsed":3.227}

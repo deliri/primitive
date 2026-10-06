@@ -1,0 +1,81 @@
+diff --git a/temporal/architecture_test.go b/temporal/architecture_test.go
+index 06f2c76..a8c9098 100644
+--- a/temporal/architecture_test.go
++++ b/temporal/architecture_test.go
+@@ -28,6 +28,8 @@ type (
+ type temporalContractInventory struct {
+ 	ContextResult       temporalCapabilityIntent[contextConstruction]
+ 	Ticker              temporalCapabilityIntent[Ticker]
++	TextFormat          temporalCapabilityIntent[FormatTimeRequest]
++	TextParse           temporalIngressRequest[ParseTimeRequest]
+ 	TimeoutRequest      temporalCapabilityIntent[TimeoutRequest]
+ 	WaitRequest         temporalCapabilityIntent[WaitRequest]
+ 	IntervalRequest     temporalIngressRequest[IntervalRequest]
+@@ -37,8 +39,8 @@ type temporalContractInventory struct {
+ 	Interval            temporalSealedValue[Interval]
+ 	IntervalBounds      temporalPersistenceFact[IntervalBounds]
+ 	Instant             temporalSealedValue[Instant]
+-	NumericInstant      temporalPersistenceFact[NumericInstant]
+ 	AggregateDuration   temporalSealedValue[AggregateDuration]
++	NumericInstant      temporalPersistenceFact[NumericInstant]
+ 	NumericDuration     temporalPersistenceFact[NumericDuration]
+ 	TickerRequest       temporalCapabilityIntent[TickerRequest]
+ 	Duration            temporalSealedValue[Duration]
+@@ -233,6 +235,10 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
+ 		t.Fatalf("scanTemporalArchitecture() error = %v, want nil", gotErr)
+ 	}
+ 	want := []string{
++		"method Duration.Truncate", "method Duration.Text",
++		"type TimeLayout", "type LocationName", "type ParseTimeRequest", "type FormatTimeRequest",
++		"const LocationUTC", "method TimeLayout.Validate", "method LocationName.Validate",
++		"method ParseTimeRequest.Validate", "method FormatTimeRequest.Validate", "func ParseTimeUTC", "func FormatTime",
+ 		"type UTCDateTime", "type CalendarUTC", "type CalendarDelta", "type Month", "type Weekday",
+ 		"method UTCDateTime.Instant", "method UTCDateTime.Validate", "method Instant.CalendarUTC", "method Instant.AddCalendar",
+ 		"const MonthUnknown", "const January", "const February", "const March", "const April", "const May", "const June", "const July", "const August", "const September", "const October", "const November", "const December",
+diff --git a/temporal/duration.go b/temporal/duration.go
+index 67df895..08e5c4f 100644
+--- a/temporal/duration.go
++++ b/temporal/duration.go
+@@ -149,6 +149,29 @@ func (d Duration) Compare(other Duration) (core.Comparison, error) {
+ 	return compareInt64(d.nanoseconds, other.nanoseconds), nil
+ }
+ 
++// Truncate projects d onto a compiler-owned precision through Go's duration
++// semantics. Zero remains a valid duration; invalid precision is refused.
++func (d Duration) Truncate(precision Precision) (Duration, error) {
++	value, err := d.Stdlib()
++	if err != nil {
++		return Duration{}, err
++	}
++	unit, err := precision.nanoseconds()
++	if err != nil {
++		return Duration{}, err
++	}
++	return NewDuration(value.Truncate(time.Duration(unit)))
++}
++
++// Text emits Go's exact duration representation after admission.
++func (d Duration) Text() (string, error) {
++	value, err := d.Stdlib()
++	if err != nil {
++		return "", err
++	}
++	return value.String(), nil
++}
++
+ // Aggregate widens d without loss.
+ func (d Duration) Aggregate() (AggregateDuration, error) {
+ 	return AggregateDurationFromDuration(d)
+diff --git a/temporal/external_ingress_inventory_test.go b/temporal/external_ingress_inventory_test.go
+index 4a75bf1..60651e8 100644
+--- a/temporal/external_ingress_inventory_test.go
++++ b/temporal/external_ingress_inventory_test.go
+@@ -17,6 +17,8 @@ type externalIngressFuzzContract[Door any] struct {
+ }
+ 
+ var (
++	_ = externalIngressFuzzContract[func(temporal.ParseTimeRequest) (temporal.Instant, error)]{Door: temporal.ParseTimeUTC, Fuzz: FuzzParseTimeUTCSemanticClosure}
++	_ = externalIngressFuzzContract[func(temporal.FormatTimeRequest) (string, error)]{Door: temporal.FormatTime, Fuzz: FuzzFormatTimeSemanticClosure}
+ 	_ = externalIngressFuzzContract[func(temporal.UTCDateTime) (temporal.Instant, error)]{Door: temporal.UTCDateTime.Instant, Fuzz: FuzzUTCDateTimeExactAdmission}
+ 	_ = externalIngressFuzzContract[func(string) (temporal.Instant, error)]{Door: temporal.ParseCompactUTC, Fuzz: FuzzCompactUTCExactTime}
+ 	_ = externalIngressFuzzContract[func(string) (temporal.Instant, error)]{Door: temporal.ParseRFC3339UTC, Fuzz: FuzzRFC3339UTCExactOffset}

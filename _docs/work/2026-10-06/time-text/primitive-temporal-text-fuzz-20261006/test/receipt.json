@@ -1,0 +1,46 @@
+{
+  "revision": "98086af21c4ca5793a7d0ba6c70f508d7ad80da8",
+  "source_dirty": true,
+  "argv": [
+    "go",
+    "test",
+    "-json",
+    "-count=1",
+    "-run",
+    "^$",
+    "-fuzz",
+    "^FuzzParseTimeUTCSemanticClosure$",
+    "-fuzztime=3s",
+    "-parallel=2",
+    "./temporal"
+  ],
+  "cwd": "/Users/d/code/primitive",
+  "toolchain": "go version go1.27.1 darwin/arm64",
+  "environment": {
+    "GOWORK": "off",
+    "GOFLAGS": "-mod=mod"
+  },
+  "started": "2026-10-06T11:17:51.998292+00:00",
+  "cache": "bypassed",
+  "excluded_test_packages": [],
+  "exit": 0,
+  "elapsed_seconds": 4.6781630830373615,
+  "counts": {
+    "pass": 1,
+    "fail": 0,
+    "skip": 0,
+    "package_fail": 0
+  },
+  "artifacts": [
+    {
+      "path": "stdout",
+      "bytes": 2376,
+      "sha256": "a190ed5e8fa97d7eed2c21c777c6465e647b3032d89ab9a4036fb79df4705d9a"
+    },
+    {
+      "path": "stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}
