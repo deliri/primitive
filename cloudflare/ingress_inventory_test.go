@@ -26,6 +26,7 @@ func bindIngress[Door any](door Door, fuzz func(*testing.F)) ingressProof {
 func cloudflareIngressProofs() []ingressProof {
 	return []ingressProof{
 		bindIngress(ParseZoneID, FuzzCloudflareZoneIdentityClosure),
+		bindIngress(ParseCachePurgeOperationID, FuzzCachePurgeOperationIDClosure),
 		bindIngress(CacheServer.PurgeFile, FuzzCachePurgeResponseClosure),
 		bindIngress(ParseAccountID, FuzzCloudflareIdentityRepresentationClosure),
 		bindIngress(ParseImageID, FuzzCloudflareIdentityRepresentationClosure),

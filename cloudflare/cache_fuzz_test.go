@@ -85,3 +85,39 @@ func FuzzCachePurgeResponseClosure(f *testing.F) {
 		}
 	})
 }
+
+func FuzzCachePurgeOperationIDClosure(f *testing.F) {
+	seed, err := ParseCachePurgeOperationID(strings.Repeat("a", core.CloudflareCachePurgeIDMaximumCharacters))
+	if err != nil {
+		f.Fatal(err)
+	}
+	f.Add(string(seed))
+	f.Add("")
+	f.Add(string([]byte{0xff}))
+	f.Add(strings.Repeat("é", core.CloudflareCachePurgeIDMaximumCharacters+1))
+	f.Fuzz(func(t *testing.T, source string) {
+		got, err := ParseCachePurgeOperationID(source)
+		wantValid := utf8.ValidString(source) && utf8.RuneCountInString(source) <= core.CloudflareCachePurgeIDMaximumCharacters
+		if !wantValid {
+			if !errors.Is(err, core.ErrCloudflareResponse) || got != "" {
+				t.Fatalf("operation=(%q,%v), want zero/response refusal", got, err)
+			}
+			return
+		}
+		if err != nil || got.Validate() != nil || string(got) != source {
+			t.Fatalf("operation=(%q,%v), want exact %q", got, err, source)
+		}
+		wire, err := core.MarshalCanonicalJSONDocument(got)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var decoded CachePurgeOperationID
+		if err := json.Unmarshal(wire, &decoded); err != nil || decoded != got {
+			t.Fatalf("operation round trip=(%q,%v), want %q", decoded, err, got)
+		}
+		second, err := core.MarshalCanonicalJSONDocument(decoded)
+		if err != nil || !bytes.Equal(wire, second) {
+			t.Fatalf("second projection=(%q,%v), want %q", second, err, wire)
+		}
+	})
+}

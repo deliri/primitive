@@ -26,11 +26,16 @@ func (z ZoneID) String() string  { return z.value }
 // omitted its operation ID; it is never evidence that an object was absent.
 type CachePurgeOperationID string
 
-func (id CachePurgeOperationID) Validate() error {
-	if !utf8.ValidString(string(id)) || utf8.RuneCountInString(string(id)) > core.CloudflareCachePurgeIDMaximumCharacters {
-		return core.ErrCloudflareResponse
+func ParseCachePurgeOperationID(value string) (CachePurgeOperationID, error) {
+	if !utf8.ValidString(value) || utf8.RuneCountInString(value) > core.CloudflareCachePurgeIDMaximumCharacters {
+		return "", core.ErrCloudflareResponse
 	}
-	return nil
+	return CachePurgeOperationID(value), nil
+}
+
+func (id CachePurgeOperationID) Validate() error {
+	_, err := ParseCachePurgeOperationID(string(id))
+	return err
 }
 
 type CacheServerOptions struct {

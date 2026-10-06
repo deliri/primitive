@@ -26,6 +26,18 @@ Working-source receipts originate under
 base revision, dirty-tree fact, source hashes, output and artifact hashes.
 Committed-source proof and copy verification are separate run artifacts.
 
+`cache-release-packages-01` ran against initial checkpoint
+`65dcaf48514fef913784a1334b4798c701c1a8bd`: 2,516 pass, two failures, no skips.
+The broader core ratchets found six missing entries in the provider-owned
+constant inventory and a missing public admission door for the purge operation
+ID. The constants now have explicit compiler witnesses for Cloudflare ownership;
+`ParseCachePurgeOperationID` owns identifier admission and has its own semantic
+fuzz binding. No additional consumer or compatibility path was manufactured.
+Attempt 02 retained a compile failure because the inventory's fixed array bound
+still named 108 entries; it now names the actual 114 compiler-owned entries.
+`cache-release-packages-03` then passed 2,523 test events with no failures or
+skips across Cloudflare, core, Compass, version and the authored Hammer claims.
+
 - `cache-capability-red-01`: missing SDK failed compilation.
 - `cache-capability-green-01`: sandbox denied local listeners; retained failure.
   `cache-capability-green-02`: 9 passing selected test events, no skips.

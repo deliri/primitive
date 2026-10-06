@@ -16,7 +16,7 @@ import (
 const (
 	coreExportDependencyMaximum     = 32
 	coreSpecialExportAdmissionCount = 90 // Includes the caller/Hostfacts timezone name agreement.
-	coreProviderExportContractCount = 108
+	coreProviderExportContractCount = 114
 )
 
 type coreExportName string
@@ -297,6 +297,12 @@ func coreProviderExportContracts() [coreProviderExportContractCount]coreProvider
 		{name: "CloudflareWatermarkLowerLeft", witness: CloudflareWatermarkLowerLeft, consumer: PackageCloudflare},
 		{name: "CloudflareWatermarkCenter", witness: CloudflareWatermarkCenter, consumer: PackageCloudflare},
 		{name: "CloudflareAPIHost", witness: CloudflareAPIHost, consumer: PackageCloudflare},
+		{name: "CloudflareAPIAccountsPath", witness: CloudflareAPIAccountsPath, consumer: PackageCloudflare},
+		{name: "CloudflareAPIZonesPath", witness: CloudflareAPIZonesPath, consumer: PackageCloudflare},
+		{name: "CloudflareCachePurgePath", witness: CloudflareCachePurgePath, consumer: PackageCloudflare},
+		{name: "CloudflareCachePurgeIDMaximumCharacters", witness: CloudflareCachePurgeIDMaximumCharacters, consumer: PackageCloudflare},
+		{name: "CloudflareR2CacheMaxAgePrefix", witness: CloudflareR2CacheMaxAgePrefix, consumer: PackageCloudflare},
+		{name: "CloudflareR2CacheMaxAgeMaximumSeconds", witness: CloudflareR2CacheMaxAgeMaximumSeconds, consumer: PackageCloudflare},
 		{name: "CloudflareStreamUploadHost", witness: CloudflareStreamUploadHost, consumer: PackageCloudflare},
 		{name: "CloudflareStreamBasicUploadMaximumBytes", witness: CloudflareStreamBasicUploadMaximumBytes, consumer: PackageCloudflare},
 		{name: "CloudflareNotificationAuthenticationHeader", witness: CloudflareNotificationAuthenticationHeader, consumer: PackageCloudflare},
