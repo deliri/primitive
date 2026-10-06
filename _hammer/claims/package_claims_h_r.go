@@ -3,12 +3,12 @@ package claims
 func emitPackageClaimSpecsHThroughR(emit func(packageClaimSpec) bool) bool {
 	specs := [...]packageClaimSpec{
 		{
-			path: "hostfacts", title: "Bounded host observations",
+			path: "hostfacts", title: "Bounded host observations and ambient process effects",
 			problem:  "Applications repeatedly probe machine resources through platform-specific files and syscalls that can escape roots, block, or disagree.",
-			solution: "Hostfacts reports bounded read-only disk, memory, CPU, terminal, platform, filesystem, and host-path observations.",
+			solution: "Hostfacts reports bounded disk, memory, CPU, terminal, platform, filesystem, host-path and environment observations, and executes one typed ambient environment binding change.",
 			benefit:  "Callers receive exact typed machine facts through one platform-aware owner and decide policy themselves.",
 			removal:  "Remove a Hostfacts observation when Go exposes the same bounded fact directly; remove the package when no shared host fact remains.",
-			owns:     "Hostfacts owns read-only platform observation and classification of the exact host resource requested.",
+			owns:     "Hostfacts owns platform observation and classification of the exact host resource requested, plus single-variable ambient process environment mutation.",
 			excludes: "It does not mutate limits, supervise processes, monitor continuously, remove files, or choose product action.",
 		},
 		{

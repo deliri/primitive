@@ -1,0 +1,12 @@
+{
+  "base_revision": "2e4960dcd2d97b2c55016565d0960da3abf9158d",
+  "toolchain": "go version go1.27.1 darwin/arm64",
+  "patch_sha256": "ee039da22215b2bb7a8e1990d9aabc8b73c6dc3f6ea912d491649d2d8d02349c",
+  "untracked_sources": {
+    "hostfacts/environment_mutation.go": "d4162222b516c00b77c59df805d250a0f5508c3d4bf393cd81141fefea1dd6c4",
+    "hostfacts/environment_mutation_external_test.go": "aad926441ddf063e3394f8af430065ad9faf51d148f306979c53945a2a78462a"
+  },
+  "cache": "test-result cache bypassed with count=1; normal build and fuzz corpus caches retained",
+  "execution_environment": "local darwin/arm64, GOMAXPROCS not explicitly overridden, fuzz parallel=2",
+  "source_state": "dirty development proof"
+}

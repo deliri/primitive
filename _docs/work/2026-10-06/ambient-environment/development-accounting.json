@@ -1,0 +1,98 @@
+{
+  "base_revision": "2e4960dcd2d97b2c55016565d0960da3abf9158d",
+  "source_state": "dirty development source; committed revision verification retained separately",
+  "primitive_effect_owner": "hostfacts",
+  "intent": "process.EnvironmentVariable / process.EnvironmentName",
+  "red": {
+    "command": "go test -count=1 ./hostfacts -run '^TestAmbientEnvironmentMutation'",
+    "result": {
+      "chunk_id": "ed19e4",
+      "wall_time_seconds": 0.000007375,
+      "exit_code": 1,
+      "original_token_count": 168,
+      "output": "# github.com/deliri/primitive/v2026/hostfacts_test [github.com/deliri/primitive/v2026/hostfacts.test]\nhostfacts/environment_mutation_external_test.go:24:23: undefined: hostfacts.SetAmbientEnvironment\nhostfacts/environment_mutation_external_test.go:27:22: undefined: hostfacts.RemoveAmbientEnvironment\nhostfacts/environment_mutation_external_test.go:49:21: undefined: hostfacts.SetAmbientEnvironment\nhostfacts/environment_mutation_external_test.go:54:22: undefined: hostfacts.RemoveAmbientEnvironment\nhostfacts/environment_mutation_external_test.go:55:22: undefined: hostfacts.RemoveAmbientEnvironment\nFAIL\tgithub.com/deliri/primitive/v2026/hostfacts [build failed]\nFAIL\n"
+    }
+  },
+  "first_race": {
+    "command": "go test -race -count=1 ./hostfacts ./capabilities",
+    "result": {
+      "chunk_id": "31fdb9",
+      "wall_time_seconds": 0.000008416,
+      "exit_code": 1,
+      "original_token_count": 300,
+      "output": "--- FAIL: TestPublicOperationsAreExactIntentEntryPoints (0.38s)\n    architecture_test.go:65: exported Hostfacts operations = [\"AmbientEnvironment\" \"AssessDisk\" \"AssessGoMemory\" \"ClassifyGoOOMBanner\" \"CurrentPlatform\" \"Executable\" \"LookupAmbientEnvironment\" \"NewPercent\" \"ObserveDiskRotation\" \"ObserveEffectiveWorkloadMemoryLimit\" \"ObserveHostname\" \"ObserveLogicalCPUCount\" \"ObservePhysicalMemory\" \"ObserveTerminalGeometry\" \"ObserveTimeZone\" \"RemoveAmbientEnvironment\" \"ResolveWorkingPath\" \"SetAmbientEnvironment\" \"TemporaryDirectory\" \"UserCacheDirectory\" \"UserConfigDirectory\" \"UserHomeDirectory\" \"WorkingDirectory\"], want exactly [\"AmbientEnvironment\" \"AssessDisk\" \"AssessGoMemory\" \"ClassifyGoOOMBanner\" \"CurrentPlatform\" \"Executable\" \"LookupAmbientEnvironment\" \"NewPercent\" \"ObserveDiskRotation\" \"ObserveEffectiveWorkloadMemoryLimit\" \"ObserveHostname\" \"ObserveLogicalCPUCount\" \"ObservePhysicalMemory\" \"ObserveTerminalGeometry\" \"ObserveTimeZone\" \"ResolveWorkingPath\" \"TemporaryDirectory\" \"UserCacheDirectory\" \"UserConfigDirectory\" \"UserHomeDirectory\" \"WorkingDirectory\"]\nFAIL\nFAIL\tgithub.com/deliri/primitive/v2026/hostfacts\t44.255s\nok  \tgithub.com/deliri/primitive/v2026/capabilities\t7.422s\nFAIL\n"
+    }
+  },
+  "first_fuzz": {
+    "command": "go test -count=1 ./hostfacts -run '^TestAmbientEnvironmentMutation' -fuzz '^FuzzAmbientEnvironmentMutationPreservesAdmittedValue$' -fuzztime=3s -parallel=2",
+    "result": {
+      "chunk_id": "f9686d",
+      "wall_time_seconds": 0.000008042,
+      "exit_code": 1,
+      "original_token_count": 80,
+      "output": "# github.com/deliri/primitive/v2026/hostfacts_test [github.com/deliri/primitive/v2026/hostfacts.test]\nhostfacts/environment_mutation_external_test.go:45:21: cannot use f (variable of type *testing.F) as *testing.T value in argument to testserial.Declare\nFAIL\tgithub.com/deliri/primitive/v2026/hostfacts [build failed]\n"
+    }
+  },
+  "fuzz_retry": {
+    "start": {
+      "chunk_id": "755801",
+      "wall_time_seconds": 1.002174125,
+      "session_id": 54927,
+      "original_token_count": 0,
+      "output": ""
+    },
+    "finish": {
+      "chunk_id": "bd2cfb",
+      "wall_time_seconds": 0.000008042,
+      "exit_code": 0,
+      "original_token_count": 90,
+      "output": "fuzz: elapsed: 0s, gathering baseline coverage: 0/4 completed\nfuzz: elapsed: 0s, gathering baseline coverage: 4/4 completed, now fuzzing with 2 workers\nfuzz: elapsed: 3s, execs: 11830 (3943/sec), new interesting: 0 (total: 4)\nfuzz: elapsed: 3s, execs: 11830 (0/sec), new interesting: 0 (total: 4)\nPASS\nok  \tgithub.com/deliri/primitive/v2026/hostfacts\t3.478s\n"
+    },
+    "bound_bytes": 4096,
+    "workers": 2,
+    "skip_policy": "inputs above development bound explicitly skip; per-input counts unavailable in terminal output"
+  },
+  "race_retry": {
+    "start": {
+      "chunk_id": "37aa96",
+      "wall_time_seconds": 1.002274042,
+      "session_id": 1471,
+      "original_token_count": 0,
+      "output": ""
+    },
+    "intermediate": {
+      "chunk_id": "d49c8a",
+      "wall_time_seconds": 5.001150666,
+      "session_id": 1471,
+      "original_token_count": 0,
+      "output": ""
+    },
+    "finish": {
+      "chunk_id": "174435",
+      "wall_time_seconds": 0.000016459,
+      "exit_code": 0,
+      "original_token_count": 29,
+      "output": "ok  \tgithub.com/deliri/primitive/v2026/hostfacts\t55.138s\nok  \tgithub.com/deliri/primitive/v2026/capabilities\t6.994s\n"
+    },
+    "limitation": "test isolation reset was added after this run started; later committed-source proof required"
+  },
+  "mutation": {
+    "command": "go test -overlay=/private/tmp/primitive-environment-mutation-overlay.json -count=1 ./hostfacts -run '^TestAmbientEnvironmentMutationRefusesBeforeExecution$'",
+    "change": "remove both context admission gates; overlay does not alter production source",
+    "first": {
+      "chunk_id": "62c127",
+      "wall_time_seconds": 0.000013209,
+      "exit_code": 1,
+      "original_token_count": 239,
+      "output": "--- FAIL: TestAmbientEnvironmentMutationRefusesBeforeExecution (0.00s)\n    --- FAIL: TestAmbientEnvironmentMutationRefusesBeforeExecution/nil_context (0.00s)\n        environment_mutation_external_test.go:117: set refused = <nil>, want nil context\n    --- FAIL: TestAmbientEnvironmentMutationRefusesBeforeExecution/canceled_intent (0.00s)\n        environment_mutation_external_test.go:117: set refused = <nil>, want context canceled\n    --- FAIL: TestAmbientEnvironmentMutationRefusesBeforeExecution/missing_name (0.00s)\n        environment_mutation_external_test.go:120: refused intent changed native environment to \"after\"\n    --- FAIL: TestAmbientEnvironmentMutationRefusesBeforeExecution/missing_value (0.00s)\n        environment_mutation_external_test.go:120: refused intent changed native environment to \"after\"\n    environment_mutation_external_test.go:125: canceled removal = <nil>\nFAIL\nFAIL\tgithub.com/deliri/primitive/v2026/hostfacts\t0.223s\nFAIL\n"
+    },
+    "isolated_cases": {
+      "chunk_id": "549b31",
+      "wall_time_seconds": 0.000024959,
+      "exit_code": 1,
+      "original_token_count": 143,
+      "output": "--- FAIL: TestAmbientEnvironmentMutationRefusesBeforeExecution (0.00s)\n    --- FAIL: TestAmbientEnvironmentMutationRefusesBeforeExecution/nil_context (0.00s)\n        environment_mutation_external_test.go:118: set refused = <nil>, want nil context\n    --- FAIL: TestAmbientEnvironmentMutationRefusesBeforeExecution/canceled_intent (0.00s)\n        environment_mutation_external_test.go:118: set refused = <nil>, want context canceled\n    environment_mutation_external_test.go:126: canceled removal = <nil>\nFAIL\nFAIL\tgithub.com/deliri/primitive/v2026/hostfacts\t0.215s\nFAIL\n"
+    }
+  },
+  "acceptance": "not issued; independent acceptance belongs to user"
+}
