@@ -26,22 +26,25 @@ type (
 )
 
 type temporalContractInventory struct {
-	ContextResult     temporalCapabilityIntent[contextConstruction]
-	Ticker            temporalCapabilityIntent[Ticker]
-	TimeoutRequest    temporalCapabilityIntent[TimeoutRequest]
-	WaitRequest       temporalCapabilityIntent[WaitRequest]
-	IntervalRequest   temporalIngressRequest[IntervalRequest]
-	Observation       temporalSealedValue[Observation]
-	DeadlineRequest   temporalCapabilityIntent[DeadlineRequest]
-	PrecisionFact     temporalDefinitionFact[precisionFact]
-	Interval          temporalSealedValue[Interval]
-	IntervalBounds    temporalPersistenceFact[IntervalBounds]
-	Instant           temporalSealedValue[Instant]
-	NumericInstant    temporalPersistenceFact[NumericInstant]
-	AggregateDuration temporalSealedValue[AggregateDuration]
-	NumericDuration   temporalPersistenceFact[NumericDuration]
-	TickerRequest     temporalCapabilityIntent[TickerRequest]
-	Duration          temporalSealedValue[Duration]
+	ContextResult       temporalCapabilityIntent[contextConstruction]
+	Ticker              temporalCapabilityIntent[Ticker]
+	TimeoutRequest      temporalCapabilityIntent[TimeoutRequest]
+	WaitRequest         temporalCapabilityIntent[WaitRequest]
+	IntervalRequest     temporalIngressRequest[IntervalRequest]
+	Observation         temporalSealedValue[Observation]
+	DeadlineRequest     temporalCapabilityIntent[DeadlineRequest]
+	PrecisionFact       temporalDefinitionFact[precisionFact]
+	Interval            temporalSealedValue[Interval]
+	IntervalBounds      temporalPersistenceFact[IntervalBounds]
+	Instant             temporalSealedValue[Instant]
+	NumericInstant      temporalPersistenceFact[NumericInstant]
+	AggregateDuration   temporalSealedValue[AggregateDuration]
+	NumericDuration     temporalPersistenceFact[NumericDuration]
+	TickerRequest       temporalCapabilityIntent[TickerRequest]
+	Duration            temporalSealedValue[Duration]
+	CalendarObservation temporalSealedValue[CalendarUTC]
+	CalendarDateTime    temporalIngressRequest[UTCDateTime]
+	CalendarOffset      temporalCapabilityIntent[CalendarDelta]
 }
 
 var _ = temporalContractInventory{}
@@ -50,6 +53,8 @@ var _ = temporalContractInventory{}
 // the reviewed public-surface contract. The AST ratchet below rejects added or
 // removed names; these witnesses reject signature drift under an existing name.
 type temporalInstantSignature interface {
+	CalendarUTC() (CalendarUTC, error)
+	AddCalendar(CalendarDelta) (Instant, error)
 	Validate() error
 	IsSet() bool
 	Nanoseconds() (int64, error)
@@ -228,6 +233,10 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 		t.Fatalf("scanTemporalArchitecture() error = %v, want nil", gotErr)
 	}
 	want := []string{
+		"type UTCDateTime", "type CalendarUTC", "type CalendarDelta", "type Month", "type Weekday",
+		"method UTCDateTime.Instant", "method UTCDateTime.Validate", "method Instant.CalendarUTC", "method Instant.AddCalendar",
+		"const MonthUnknown", "const January", "const February", "const March", "const April", "const May", "const June", "const July", "const August", "const September", "const October", "const November", "const December",
+		"const WeekdayUnknown", "const Monday", "const Tuesday", "const Wednesday", "const Thursday", "const Friday", "const Saturday", "const Sunday",
 		"const AggregateDurationCanonicalJSONMaximumBytes",
 		"const AggregateDurationJSONMaximumBytes",
 		"const AggregateDurationMaximumDecimalDigits",

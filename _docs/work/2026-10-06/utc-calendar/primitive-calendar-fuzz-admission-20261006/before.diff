@@ -1,0 +1,91 @@
+diff --git a/compass/config.json b/compass/config.json
+index 0b85eda..d28e5ee 100644
+--- a/compass/config.json
++++ b/compass/config.json
+@@ -6,7 +6,7 @@
+     "release": {
+       "major": 2026,
+       "minor": 1,
+-      "patch": 110
++      "patch": 113
+     }
+   }
+ }
+diff --git a/temporal/architecture_test.go b/temporal/architecture_test.go
+index 07aec07..049612e 100644
+--- a/temporal/architecture_test.go
++++ b/temporal/architecture_test.go
+@@ -26,22 +26,25 @@ type (
+ )
+ 
+ type temporalContractInventory struct {
+-	ContextResult     temporalCapabilityIntent[contextConstruction]
+-	Ticker            temporalCapabilityIntent[Ticker]
+-	TimeoutRequest    temporalCapabilityIntent[TimeoutRequest]
+-	WaitRequest       temporalCapabilityIntent[WaitRequest]
+-	IntervalRequest   temporalIngressRequest[IntervalRequest]
+-	Observation       temporalSealedValue[Observation]
+-	DeadlineRequest   temporalCapabilityIntent[DeadlineRequest]
+-	PrecisionFact     temporalDefinitionFact[precisionFact]
+-	Interval          temporalSealedValue[Interval]
+-	IntervalBounds    temporalPersistenceFact[IntervalBounds]
+-	Instant           temporalSealedValue[Instant]
+-	NumericInstant    temporalPersistenceFact[NumericInstant]
+-	AggregateDuration temporalSealedValue[AggregateDuration]
+-	NumericDuration   temporalPersistenceFact[NumericDuration]
+-	TickerRequest     temporalCapabilityIntent[TickerRequest]
+-	Duration          temporalSealedValue[Duration]
++	CalendarDateTime    temporalIngressRequest[UTCDateTime]
++	CalendarObservation temporalSealedValue[CalendarUTC]
++	CalendarOffset      temporalCapabilityIntent[CalendarDelta]
++	ContextResult       temporalCapabilityIntent[contextConstruction]
++	Ticker              temporalCapabilityIntent[Ticker]
++	TimeoutRequest      temporalCapabilityIntent[TimeoutRequest]
++	WaitRequest         temporalCapabilityIntent[WaitRequest]
++	IntervalRequest     temporalIngressRequest[IntervalRequest]
++	Observation         temporalSealedValue[Observation]
++	DeadlineRequest     temporalCapabilityIntent[DeadlineRequest]
++	PrecisionFact       temporalDefinitionFact[precisionFact]
++	Interval            temporalSealedValue[Interval]
++	IntervalBounds      temporalPersistenceFact[IntervalBounds]
++	Instant             temporalSealedValue[Instant]
++	NumericInstant      temporalPersistenceFact[NumericInstant]
++	AggregateDuration   temporalSealedValue[AggregateDuration]
++	NumericDuration     temporalPersistenceFact[NumericDuration]
++	TickerRequest       temporalCapabilityIntent[TickerRequest]
++	Duration            temporalSealedValue[Duration]
+ }
+ 
+ var _ = temporalContractInventory{}
+@@ -50,6 +53,8 @@ var _ = temporalContractInventory{}
+ // the reviewed public-surface contract. The AST ratchet below rejects added or
+ // removed names; these witnesses reject signature drift under an existing name.
+ type temporalInstantSignature interface {
++	CalendarUTC() (CalendarUTC, error)
++	AddCalendar(CalendarDelta) (Instant, error)
+ 	Validate() error
+ 	IsSet() bool
+ 	Nanoseconds() (int64, error)
+@@ -228,6 +233,10 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
+ 		t.Fatalf("scanTemporalArchitecture() error = %v, want nil", gotErr)
+ 	}
+ 	want := []string{
++		"type UTCDateTime", "type CalendarUTC", "type CalendarDelta", "type Month", "type Weekday",
++		"method UTCDateTime.Instant", "method UTCDateTime.Validate", "method Instant.CalendarUTC", "method Instant.AddCalendar",
++		"const MonthUnknown", "const January", "const February", "const March", "const April", "const May", "const June", "const July", "const August", "const September", "const October", "const November", "const December",
++		"const WeekdayUnknown", "const Monday", "const Tuesday", "const Wednesday", "const Thursday", "const Friday", "const Saturday", "const Sunday",
+ 		"const AggregateDurationCanonicalJSONMaximumBytes",
+ 		"const AggregateDurationJSONMaximumBytes",
+ 		"const AggregateDurationMaximumDecimalDigits",
+diff --git a/temporal/external_ingress_inventory_test.go b/temporal/external_ingress_inventory_test.go
+index 2269b1a..4a75bf1 100644
+--- a/temporal/external_ingress_inventory_test.go
++++ b/temporal/external_ingress_inventory_test.go
+@@ -17,6 +17,7 @@ type externalIngressFuzzContract[Door any] struct {
+ }
+ 
+ var (
++	_ = externalIngressFuzzContract[func(temporal.UTCDateTime) (temporal.Instant, error)]{Door: temporal.UTCDateTime.Instant, Fuzz: FuzzUTCDateTimeExactAdmission}
+ 	_ = externalIngressFuzzContract[func(string) (temporal.Instant, error)]{Door: temporal.ParseCompactUTC, Fuzz: FuzzCompactUTCExactTime}
+ 	_ = externalIngressFuzzContract[func(string) (temporal.Instant, error)]{Door: temporal.ParseRFC3339UTC, Fuzz: FuzzRFC3339UTCExactOffset}
+ 

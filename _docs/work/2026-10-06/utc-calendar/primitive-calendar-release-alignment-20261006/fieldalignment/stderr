@@ -1,0 +1,2 @@
+/Users/d/code/primitive/temporal/architecture_test.go:28:32: temporalContractInventory has 312 leading bytes of pointer data but optimal value is 256
+/Users/d/code/primitive/temporal/calendar_external_test.go:16:13: struct has 48 leading bytes of pointer data but optimal value is 24

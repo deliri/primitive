@@ -1,0 +1,108 @@
+package temporal
+
+import "time"
+
+type Month uint8
+
+const (
+	MonthUnknown Month = iota
+	January
+	February
+	March
+	April
+	May
+	June
+	July
+	August
+	September
+	October
+	November
+	December
+)
+
+type Weekday uint8
+
+const (
+	WeekdayUnknown Weekday = iota
+	Monday
+	Tuesday
+	Wednesday
+	Thursday
+	Friday
+	Saturday
+	Sunday
+)
+
+// UTCDateTime names exact Gregorian coordinates. Unlike time.Date, admission
+// refuses normalized dates or clocks. Zero is invalid; only Instant's native
+// signed-nanosecond representability constrains the accepted calendar extent.
+type UTCDateTime struct {
+	Year       int32
+	Nanosecond int32
+	Month      Month
+	Day        uint8
+	Hour       uint8
+	Minute     uint8
+	Second     uint8
+}
+
+// CalendarUTC is a mechanical observation of one admitted instant, without
+// retaining calendar state. Weekday is ISO Monday=1 through Sunday=7.
+type CalendarUTC struct {
+	DateTime UTCDateTime
+	ISOYear  int32
+	ISOWeek  uint8
+	Weekday  Weekday
+}
+
+// CalendarDelta carries Go AddDate's normalization semantics explicitly.
+// These are calendar units, not elapsed durations. Zero preserves the instant.
+type CalendarDelta struct {
+	Years  int32
+	Months int32
+	Days   int32
+}
+
+func (d UTCDateTime) Instant() (Instant, error) {
+	if !d.validClock() {
+		return Instant{}, contractError("UTC calendar clock is invalid")
+	}
+	value := time.Date(int(d.Year), time.Month(d.Month), int(d.Day), int(d.Hour), int(d.Minute), int(d.Second), int(d.Nanosecond), time.UTC)
+	if utcDateTime(value) != d {
+		return Instant{}, contractError("UTC calendar date is invalid")
+	}
+	return NewInstant(value)
+}
+
+func (d UTCDateTime) Validate() error {
+	_, err := d.Instant()
+	return err
+}
+
+func (d UTCDateTime) validClock() bool {
+	return d.Hour < 24 && d.Minute < 60 && d.Second < 60 && d.Nanosecond >= 0 && d.Nanosecond < 1_000_000_000
+}
+
+func utcDateTime(value time.Time) UTCDateTime {
+	year, month, day := value.Date()
+	hour, minute, second := value.Clock()
+	return UTCDateTime{Year: int32(year), Month: Month(month), Day: uint8(day), Hour: uint8(hour), Minute: uint8(minute), Second: uint8(second), Nanosecond: int32(value.Nanosecond())}
+}
+
+func (i Instant) CalendarUTC() (CalendarUTC, error) {
+	value, err := i.Time()
+	if err != nil {
+		return CalendarUTC{}, err
+	}
+	year, week := value.ISOWeek()
+	weekday := (int(value.Weekday())+6)%7 + 1
+	return CalendarUTC{DateTime: utcDateTime(value), ISOYear: int32(year), ISOWeek: uint8(week), Weekday: Weekday(weekday)}, nil
+}
+
+func (i Instant) AddCalendar(delta CalendarDelta) (Instant, error) {
+	value, err := i.Time()
+	if err != nil {
+		return Instant{}, err
+	}
+	return NewInstant(value.AddDate(int(delta.Years), int(delta.Months), int(delta.Days)))
+}
