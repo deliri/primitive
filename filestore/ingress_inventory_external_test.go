@@ -86,6 +86,7 @@ func filestoreIngressProofs() []filestoreIngressProof {
 		{door: reflect.ValueOf(filestore.Touch), fuzz: FuzzCustodyNamespaceAndTimestampSemanticClosure},
 		{door: reflect.ValueOf(filestore.ConfirmDurable), fuzz: FuzzCustodyNamespaceAndTimestampSemanticClosure},
 		{door: reflect.ValueOf(filestore.Inspect), fuzz: FuzzInspectionNativeFactsSemanticClosure},
+		{door: reflect.ValueOf(filestore.InspectOpenFile), fuzz: FuzzInspectOpenFilePreservesNativeExtent},
 		{door: reflect.ValueOf(filestore.Canonicalize), fuzz: FuzzSymbolicLinkObservationAndResolution},
 		{door: reflect.ValueOf(filestore.ReadSymbolicLink), fuzz: FuzzSymbolicLinkObservationAndResolution},
 		{door: reflect.ValueOf(filestore.ObserveSharing), fuzz: FuzzSharingNativeObservationAndCustody},

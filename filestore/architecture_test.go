@@ -48,6 +48,7 @@ type filestoreContractInventory struct {
 	ScratchRequest                validatedRequest[ScratchRequest]
 	ReadRequest                   validatedRequest[ReadRequest]
 	ReadHandleRequest             validatedRequest[ReadHandleRequest]
+	HandleInspectionRequest       validatedRequest[HandleInspectionRequest]
 	UpdateHandleRequest           validatedRequest[UpdateHandleRequest]
 	RenameRequest                 validatedRequest[RenameRequest]
 	WriteRequest                  validatedRequest[WriteRequest]

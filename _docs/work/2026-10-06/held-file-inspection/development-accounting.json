@@ -1,0 +1,75 @@
+{
+  "base_revision": "22ed73b912cebec00b0497f793ed1c28b83f6fa6",
+  "source_state": "dirty development source",
+  "new_api": "filestore.InspectOpenFile(ctx, HandleInspectionRequest) (Inspection,error)",
+  "initial_red": "go test -count=1 ./filestore -run '^TestInspectOpenFile' failed compilation because InspectOpenFile and HandleInspectionRequest did not exist; raw historical tool output was not separately retained",
+  "first_race": {
+    "chunk_id": "e7e58d",
+    "wall_time_seconds": 0.162529625,
+    "exit_code": 1,
+    "original_token_count": 120,
+    "output": "# github.com/deliri/primitive/v2026/filestore\nfilestore/handle_inspection.go:9:2: \"github.com/deliri/primitive/v2026/core\" imported and not used\n# github.com/deliri/primitive/v2026/filestore [github.com/deliri/primitive/v2026/filestore.test]\nfilestore/handle_inspection.go:9:2: \"github.com/deliri/primitive/v2026/core\" imported and not used\nFAIL\tgithub.com/deliri/primitive/v2026/filestore [build failed]\nFAIL\tgithub.com/deliri/primitive/v2026/capabilities [build failed]\nFAIL\n"
+  },
+  "second_race": {
+    "start": {
+      "chunk_id": "85b520",
+      "wall_time_seconds": 1.001142,
+      "session_id": 58710,
+      "original_token_count": 0,
+      "output": ""
+    },
+    "intermediate": {
+      "chunk_id": "870759",
+      "wall_time_seconds": 5.012523125,
+      "session_id": 58710,
+      "original_token_count": 0,
+      "output": ""
+    },
+    "finish": {
+      "chunk_id": "0545e9",
+      "wall_time_seconds": 0.000005041,
+      "exit_code": 1,
+      "original_token_count": 99,
+      "output": "--- FAIL: TestFilestorePublicIngressHasCompilerBoundSemanticProof (0.12s)\n    --- FAIL: TestFilestorePublicIngressHasCompilerBoundSemanticProof/InspectOpenFile (0.00s)\n        ingress_inventory_external_test.go:31: InspectOpenFile proof bindings = 0, want exactly one\nFAIL\nFAIL\tgithub.com/deliri/primitive/v2026/filestore\t96.356s\nok  \tgithub.com/deliri/primitive/v2026/capabilities\t2.196s\nFAIL\n"
+    },
+    "reason": "new ingress had no compiler proof binding"
+  },
+  "mutation": {
+    "command": "go test -overlay=/private/tmp/primitive-held-inspection-mutation-overlay.json -count=1 ./filestore -run '^TestInspectOpenFileObservesHeldInodeAfterNameReplacement$'",
+    "change": "replace held descriptor Stat with pathname Stat",
+    "start": {
+      "chunk_id": "ff8379",
+      "wall_time_seconds": 1.006415459,
+      "session_id": 79735,
+      "original_token_count": 0,
+      "output": ""
+    },
+    "finish": {
+      "chunk_id": "02f8bb",
+      "wall_time_seconds": 0.000020292,
+      "exit_code": 1,
+      "original_token_count": 58,
+      "output": "--- FAIL: TestInspectOpenFileObservesHeldInodeAfterNameReplacement (0.00s)\n    handle_inspection_external_test.go:43: held extent = ({21},<nil>), want original inode\nFAIL\nFAIL\tgithub.com/deliri/primitive/v2026/filestore\t0.162s\nFAIL\n"
+    }
+  },
+  "fuzz": {
+    "command": "go test -count=1 ./filestore -run '^TestInspectOpenFile' -fuzz '^FuzzInspectOpenFilePreservesNativeExtent$' -fuzztime=3s -parallel=2",
+    "start": {
+      "chunk_id": "e110ea",
+      "wall_time_seconds": 1.003049292,
+      "session_id": 11700,
+      "original_token_count": 0,
+      "output": ""
+    },
+    "finish": {
+      "chunk_id": "f5d9db",
+      "wall_time_seconds": 0.00000675,
+      "exit_code": 0,
+      "original_token_count": 88,
+      "output": "fuzz: elapsed: 0s, gathering baseline coverage: 0/3 completed\nfuzz: elapsed: 0s, gathering baseline coverage: 3/3 completed, now fuzzing with 2 workers\nfuzz: elapsed: 3s, execs: 174 (58/sec), new interesting: 0 (total: 3)\nfuzz: elapsed: 3s, execs: 174 (0/sec), new interesting: 0 (total: 3)\nPASS\nok  \tgithub.com/deliri/primitive/v2026/filestore\t3.398s\n"
+    },
+    "corpus_bound_bytes": 4096,
+    "skips": "explicit corpus bound skips; per-input skip counts unavailable"
+  },
+  "acceptance": "not issued"
+}
