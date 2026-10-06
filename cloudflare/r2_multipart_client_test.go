@@ -2,11 +2,12 @@ package cloudflare
 
 import (
 	"bytes"
+	"context"
 	"encoding/xml"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -107,7 +108,7 @@ func TestR2MultipartClientRealTLSLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	result, err := r2.CompleteMultipart(t.Context(), complete, []R2CompletedPart{part}, testPolicy())
+	result, err := r2.CompleteMultipart(t.Context(), complete, multipartTestParts(part), testPolicy())
 	if err != nil || result.ETag != `"opaque-complete-1"` || result.Key != session.Key {
 		t.Fatalf("complete=%v/%v, want exact object acceptance", result, err)
 	}
@@ -148,14 +149,14 @@ func TestR2MultipartCreateRejectsHostileProviderDocuments(t *testing.T) {
 			return bytes.Replace(b, []byte("<InitiateMultipartUploadResult>"), []byte(`<InitiateMultipartUploadResult xmlns="https://other">`), 1)
 		}},
 		{"attribute on scalar", func(b []byte) []byte { return bytes.Replace(b, []byte("<Key>"), []byte(`<Key hidden="yes">`), 1) }},
-		{"oversized control document", func([]byte) []byte {
-			return bytes.Repeat([]byte("x"), core.CloudflareR2MultipartResponseMaximumBytes+1)
+		{"unstructured multiwindow response", func([]byte) []byte {
+			return bytes.Repeat([]byte("x"), (2<<20)+1)
 		}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			baseline := multipartCreatedBytes(t)
-			if got, err := decodeR2MultipartXML(baseline, "InitiateMultipartUploadResult"); err != nil || got.UploadID == "" {
+			if got, err := decodeR2MultipartXML(bytes.NewReader(baseline), "InitiateMultipartUploadResult"); err != nil || got.UploadID == "" {
 				t.Fatalf("baseline=%v/%v, want populated valid", got, err)
 			}
 			body := tc.mutate(bytes.Clone(baseline))
@@ -184,41 +185,57 @@ func TestR2MultipartCreateRejectsHostileProviderDocuments(t *testing.T) {
 	}
 }
 
-func TestR2MultipartCompletionStreamsExactOrderedManifest(t *testing.T) {
+// Fixture source for tests whose subject is the HTTP boundary. Production callers
+// supply their own receipt stream; this helper does not encode or validate it.
+func multipartTestParts(parts ...R2CompletedPart) R2CompletedParts {
+	return func(ctx context.Context, yield func(R2CompletedPart) error) error {
+		for _, part := range parts {
+			if err := yield(part); err != nil {
+				return err
+			}
+		}
+		return ctx.Err()
+	}
+}
+
+func TestR2MultipartCompletionWriterLayerTriad(t *testing.T) {
 	t.Parallel()
-	parts := make([]R2CompletedPart, core.CloudflareR2MultipartMaximumParts)
-	for i := range parts {
-		parts[i] = R2CompletedPart{PartNumber: uint16(i + 1), ETag: fmt.Sprintf(`"part-%d"`, i+1)}
-	}
-	source, length, err := multipartCompletionBody(parts)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var wire bytes.Buffer
-	scratch := make([]byte, 31)
-	n, err := io.CopyBuffer(&wire, source, scratch)
-	if err != nil || uint64(n) != length {
-		t.Fatalf("wire=%d/%v, want declared %d", n, err, length)
-	}
-	var decoded struct {
-		XMLName xml.Name          `xml:"CompleteMultipartUpload"`
-		Parts   []R2CompletedPart `xml:"Part"`
-	}
-	if err := xml.Unmarshal(wire.Bytes(), &decoded); err != nil {
-		t.Fatal(err)
-	}
-	if len(decoded.Parts) != len(parts) {
-		t.Fatalf("parts=%d, want %d", len(decoded.Parts), len(parts))
-	}
-	for i := range parts {
-		if decoded.Parts[i] != parts[i] {
-			t.Fatalf("part %d=%v, want %v", i, decoded.Parts[i], parts[i])
-		}
-	}
-	for _, bad := range [][]R2CompletedPart{nil, parts[:0], append(parts, parts[0]), {parts[1], parts[0]}, {parts[0], parts[0]}, {{PartNumber: 0, ETag: `"x"`}}, {{PartNumber: 1, ETag: ""}}, {{PartNumber: 1, ETag: "\"x\n\""}}} {
-		got, size, err := multipartCompletionBody(bad)
-		if !errors.Is(err, core.ErrCloudflareBinding) || got != nil || size != 0 {
-			t.Fatalf("bad manifest=%v/%d/%v, want zero and typed refusal", got, size, err)
-		}
+	for _, tc := range []struct {
+		name    string
+		parts   []R2CompletedPart
+		wantErr error
+	}{
+		{name: "one actual part receipt", parts: []R2CompletedPart{{PartNumber: 1, ETag: `"one"`}}},
+		{name: "XML metacharacters remain the exact ETag", parts: []R2CompletedPart{{PartNumber: 1, ETag: `"<&>"`}}},
+		{name: "ordered native part numbers may have gaps", parts: []R2CompletedPart{{PartNumber: 1, ETag: `"one"`}, {PartNumber: core.CloudflareR2MultipartMaximumParts, ETag: `"last"`}}},
+		{name: "empty source cannot complete", wantErr: core.ErrCloudflareBinding},
+		{name: "duplicate number cannot complete", parts: []R2CompletedPart{{PartNumber: 1, ETag: `"one"`}, {PartNumber: 1, ETag: `"other"`}}, wantErr: core.ErrCloudflareBinding},
+		{name: "reversed provider order cannot complete", parts: []R2CompletedPart{{PartNumber: 2, ETag: `"two"`}, {PartNumber: 1, ETag: `"one"`}}, wantErr: core.ErrCloudflareBinding},
+		{name: "zero part is not a provider receipt", parts: []R2CompletedPart{{ETag: `"one"`}}, wantErr: core.ErrCloudflareBinding},
+		{name: "missing ETag cannot complete", parts: []R2CompletedPart{{PartNumber: 1}}, wantErr: core.ErrCloudflareBinding},
+		{name: "header injection cannot complete", parts: []R2CompletedPart{{PartNumber: 1, ETag: "\"x\n\""}}, wantErr: core.ErrCloudflareBinding},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			var wire bytes.Buffer
+			err := writeMultipartCompletion(t.Context(), &wire, multipartTestParts(tc.parts...))
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("write completion = %v, want %v", err, tc.wantErr)
+			}
+			var decoded struct {
+				XMLName xml.Name          `xml:"CompleteMultipartUpload"`
+				Parts   []R2CompletedPart `xml:"Part"`
+			}
+			decodeErr := xml.Unmarshal(wire.Bytes(), &decoded)
+			if tc.wantErr != nil {
+				if decodeErr == nil {
+					t.Fatal("refused source emitted a complete provider command")
+				}
+				return
+			}
+			if decodeErr != nil || !slices.Equal(decoded.Parts, tc.parts) {
+				t.Fatalf("decoded receipt sequence = %v/%v, want %v", decoded.Parts, decodeErr, tc.parts)
+			}
+		})
 	}
 }

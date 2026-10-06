@@ -15,6 +15,7 @@ about permissions, retries, idempotency, media readiness and lifetime accounting
 | R2 exact object operation | `R2Server.Presign` | `R2Client.Read`, `Put`, `Delete` |
 | R2 exact metadata observation | `R2Server.Presign` with HEAD | `R2Client.Head` |
 | Images lifecycle observation and retirement | `ImagesServer.Details`, `Delete` | Authenticated metadata only; no media body |
+| Images custom delivery address | `ImageDetails.PublicAddress` | `ImageDeliveryRequest.Address`; exact origin/account/image/variant binding |
 | Zone cache invalidation | `CacheServer.PurgeFile` | Exactly one URL; acceptance receipt, not absence proof |
 | Cache variant invalidation | `CacheServer.PurgePrefix` | One typed host/path prefix; includes header/query variants; caller owns prefix scope |
 | R2 multipart upload | `R2Server.PresignMultipart` | `R2Client.CreateMultipart`, `UploadPart`, `CompleteMultipart`, `AbortMultipart` |
@@ -57,6 +58,29 @@ application's declared SHA-256 or BLAKE3, nor expose an original byte extent.
 Deletion requires the provider's explicit success envelope with no errors and
 a present, valid opaque result. Missing or contradictory acceptance is refused.
 
+Images delivery uses separate nominal types for the public account hash and a
+predefined variant. A custom HTTPS origin belongs to the caller. PublicAddress
+requires observed public, non-draft metadata containing that exact account,
+image and variant before projecting the custom URL. URL projection proves no
+DNS configuration or delivered bytes. The account hash has no invented length
+quota; the variant's 99-character restriction is the native provider contract.
+
+Multipart completion receives `R2CompletedParts`, a synchronous visitor over
+the actual UploadPart receipts. It writes one typed part through encoding/xml
+and Go's pipe directly to Exchange. It neither collects a manifest nor scans
+it to calculate Content-Length. The previous ordinal is the only sequence
+coordinate retained; actual provider ordinal rules remain validated. The
+source owns its storage, honors cancellation and stops on a yielded error.
+An owned Temporal deadline covers both source and HTTP work. Early peer refusal
+closes the pipe, cancels the source and joins the producer before returning.
+
+Control responses are decoded directly from a pipe with encoding/xml. The
+closed flat schema rejects duplicate, unknown, nested and crossed fields.
+There is no SDK response-document, ETag or upload-ID extent quota. Memory is
+proportional to the current XML token and typed scalar fields, independent of
+the number of part receipts. The SDK does not retain or reconstruct an upload
+session, and it does not substitute ListParts for the caller's actual receipts.
+
 R2 reads issue one GET or HEAD. There is no preliminary list or metadata query.
 Signing is local and uses Exchange's validated SigV4 operation with the official
 Go signer. Cloudflare owns its own R2 region, service, host and query constants.
@@ -70,9 +94,8 @@ policy. Old scratch tails are excluded by replaying only authenticated bytes.
 
 ## Documentation and scope
 
-Provider limits cite their official source beside each constant in
-`core/cloudflare_contracts.go`. Explicit SDK custody budgets are labelled as
-such; they are not presented as Cloudflare limits.
+Native provider constraints cite their official source beside each constant in
+`core/cloudflare_contracts.go`. Product acceptance budgets belong to callers.
 
 - [Images direct uploads](https://developers.cloudflare.com/images/storage/upload-images/direct-creator-upload/)
   and [custom paths](https://developers.cloudflare.com/images/storage/upload-images/upload-custom-path/).
@@ -91,10 +114,13 @@ refused explicitly, with no hidden alternate transfer path.
 
 ## Behavioral proof
 
-The provider integration fixtures use real local TLS servers and Exchange.
+The default provider integration fixtures use real local TLS servers and Exchange.
 They inspect exact methods, authority, headers, multipart/JSON bodies and byte
 extents. They do not contact a live Cloudflare account. Direct fuzz transport
 fixtures are identified in their tests and complement those integration tests.
+The separately tagged multipart live test uses a caller-configured credential
+and disposable object, verifies the completed download hash and abort refusal,
+then cleans up. Its execution is accounted for separately from local fixtures.
 
 The API-envelope test exhausts the 12 combinations of success presence/value,
 provider errors and empty/nonempty result; contradictory responses issue no

@@ -55,6 +55,9 @@ func (R2Grant) cloudflareCapabilityWrapper()               {}
 func (R2Client) cloudflareCapabilityWrapper()              {}
 
 var (
+	_ cloudflareCapabilityWrapperRole = ImageDeliveryAccount{}
+	_ cloudflareCapabilityWrapperRole = ImageVariantName{}
+	_ cloudflareProtocolFactRole      = ImageDeliveryRequest{}
 	_ cloudflareCapabilityWrapperRole = CachePurgePrefix{}
 	_ cloudflareProtocolFactRole      = CachePrefixPurgeRequest{}
 	_ cloudflareProtocolFactRole      = CachePrefixPurgeReceipt{}

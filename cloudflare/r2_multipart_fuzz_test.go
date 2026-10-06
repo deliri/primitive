@@ -1,6 +1,7 @@
 package cloudflare
 
 import (
+	"bytes"
 	"encoding/hex"
 	"encoding/xml"
 	"errors"
@@ -11,9 +12,12 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
+// Test execution budget only; production receipt extents have no SDK quota.
+const multipartFuzzMaterialBytes = 1024
+
 // Exercise the public transfer/receipt boundary with protocol-shaped ETags.
 // The content is one byte; the oracle checks exact part/ETag preservation and
-// refuses ambiguity, missing receipts and the provider metadata byte ceiling.
+// refuses ambiguity, missing receipts and malformed quoted values.
 func FuzzR2MultipartPartResponseBinding(f *testing.F) {
 	part := R2CompletedPart{PartNumber: 1, ETag: `"p01"`}
 	if err := part.Validate(); err != nil {
@@ -23,8 +27,8 @@ func FuzzR2MultipartPartResponseBinding(f *testing.F) {
 	f.Add([]byte{1}, uint8(1))
 	f.Add([]byte{}, uint8(2))
 	f.Fuzz(func(t *testing.T, material []byte, mutation uint8) {
-		if len(material) > core.CloudflareR2ETagMaximumBytes {
-			material = material[:core.CloudflareR2ETagMaximumBytes]
+		if len(material) > multipartFuzzMaterialBytes {
+			material = material[:multipartFuzzMaterialBytes]
 		}
 		etag := `"p` + hex.EncodeToString(material) + `"`
 		wantETag := etag
@@ -57,7 +61,7 @@ func FuzzR2MultipartPartResponseBinding(f *testing.F) {
 			t.Fatal(err)
 		}
 		got, err := client.UploadPart(t.Context(), grant, strings.NewReader("x"), length, testPolicy())
-		if selector != 0 || len(wantETag) > core.CloudflareR2ETagMaximumBytes {
+		if selector != 0 {
 			if !errors.Is(err, core.ErrCloudflareResponse) || got != (R2CompletedPart{}) {
 				t.Fatalf("part refusal = %+v/%v, want zero/response refusal", got, err)
 			}
@@ -189,7 +193,7 @@ func FuzzR2MultipartControlResponseBinding(f *testing.F) {
 			t.Fatal(err)
 		}
 		if complete {
-			got, err := client.CompleteMultipart(t.Context(), grant, []R2CompletedPart{{PartNumber: 1, ETag: `"part"`}}, testPolicy())
+			got, err := client.CompleteMultipart(t.Context(), grant, multipartTestParts(R2CompletedPart{PartNumber: 1, ETag: `"part"`}), testPolicy())
 			if err != nil {
 				if !errors.Is(err, core.ErrCloudflareResponse) || got != (R2MultipartResult{}) {
 					t.Fatalf("completion refusal=%v/%v, want zero and response error", got, err)
@@ -203,7 +207,7 @@ func FuzzR2MultipartControlResponseBinding(f *testing.F) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			parsed, err := decodeR2MultipartXML(canonical, "CompleteMultipartUploadResult")
+			parsed, err := decodeR2MultipartXML(bytes.NewReader(canonical), "CompleteMultipartUploadResult")
 			if err != nil || parsed.ETag != got.ETag || parsed.ChecksumCRC64NVME != got.ChecksumCRC64NVME {
 				t.Fatal("completion checksum/etag changed on canonical projection")
 			}
@@ -223,7 +227,7 @@ func FuzzR2MultipartControlResponseBinding(f *testing.F) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		parsed, err := decodeR2MultipartXML(canonical, "InitiateMultipartUploadResult")
+		parsed, err := decodeR2MultipartXML(bytes.NewReader(canonical), "InitiateMultipartUploadResult")
 		if err != nil || parsed.UploadID != got.UploadID.String() {
 			t.Fatal("creation upload identity changed on canonical projection")
 		}

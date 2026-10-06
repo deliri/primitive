@@ -21,7 +21,7 @@ import (
 type R2UploadID struct{ value string }
 
 func ParseR2UploadID(value string) (R2UploadID, error) {
-	if value == "" || len(value) > core.CloudflareR2UploadIDMaximumBytes || !utf8.ValidString(value) {
+	if value == "" || !utf8.ValidString(value) {
 		return R2UploadID{}, core.ErrCloudflareBinding
 	}
 	for _, r := range value {

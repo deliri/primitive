@@ -3,11 +3,9 @@
 package cloudflare
 
 import (
-	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/json/v2"
-	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
@@ -64,7 +62,7 @@ func TestR2MultipartLiveDirectClientLifecycle(t *testing.T) {
 	})
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	t.Cleanup(transport.CloseIdleConnections)
-	connection, err := exchange.NewClient(&http.Client{Transport: multipartLiveTransport{base: transport, t: t}})
+	connection, err := exchange.NewClient(&http.Client{Transport: transport})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,7 +70,7 @@ func TestR2MultipartLiveDirectClientLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	bucket, err := ParseR2Bucket("cleanlift")
+	bucket, err := ParseR2Bucket("blink-kernel")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -149,7 +147,7 @@ func TestR2MultipartLiveDirectClientLifecycle(t *testing.T) {
 		total += size
 	}
 	t.Logf("provider accepted %d direct streamed parts / %d bytes", len(parts), total)
-	result, err := client.CompleteMultipart(ctx, grant(R2MultipartComplete, upload.UploadID, 0), parts, policy)
+	result, err := client.CompleteMultipart(ctx, grant(R2MultipartComplete, upload.UploadID, 0), multipartTestParts(parts...), policy)
 	if err != nil {
 		t.Fatalf("live completion failed: %T", err)
 	}
@@ -218,31 +216,3 @@ func (r multipartPatternReader) Read(p []byte) (int, error) {
 // Retains only XML names and lengths for diagnosing live protocol differences;
 // credentials and bearer URLs never enter test output. Exact bytes are returned
 // unchanged to the actual SDK parser after this bounded observation.
-type multipartLiveTransport struct {
-	base http.RoundTripper
-	t    *testing.T
-}
-
-func (o multipartLiveTransport) RoundTrip(r *http.Request) (*http.Response, error) {
-	response, err := o.base.RoundTrip(r)
-	if err != nil || r.Method != "POST" || response.StatusCode != http.StatusOK {
-		return response, err
-	}
-	data, readErr := io.ReadAll(io.LimitReader(response.Body, core.CloudflareR2MultipartResponseMaximumBytes+1))
-	closeErr := response.Body.Close()
-	if err := errors.Join(readErr, closeErr); err != nil {
-		return nil, err
-	}
-	response.Body = io.NopCloser(bytes.NewReader(data))
-	decoder := xml.NewDecoder(bytes.NewReader(data))
-	for {
-		token, err := decoder.Token()
-		if err != nil {
-			break
-		}
-		if start, ok := token.(xml.StartElement); ok {
-			o.t.Logf("provider control XML element=%s namespace=%s attributes=%d", start.Name.Local, start.Name.Space, len(start.Attr))
-		}
-	}
-	return response, nil
-}

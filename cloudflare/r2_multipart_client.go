@@ -1,17 +1,17 @@
 package cloudflare
 
 import (
-	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/xml"
 	"errors"
 	"io"
-	"strconv"
 	"strings"
 
+	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
+	"github.com/deliri/primitive/v2026/temporal"
 )
 
 type R2MultipartUpload struct {
@@ -37,7 +37,7 @@ func (p R2CompletedPart) Validate() error {
 	return nil
 }
 func r2ETag(value string) bool {
-	if len(value) < 3 || len(value) > core.CloudflareR2ETagMaximumBytes || value[0] != '"' || value[len(value)-1] != '"' {
+	if len(value) < 3 || value[0] != '"' || value[len(value)-1] != '"' {
 		return false
 	}
 	for _, r := range value[1 : len(value)-1] {
@@ -72,11 +72,11 @@ func (c R2Client) CreateMultipart(ctx context.Context, g R2MultipartGrant, polic
 	if g.intent.Action != R2MultipartCreate {
 		return R2MultipartUpload{}, core.ErrCloudflareBinding
 	}
-	document, err := c.multipartControl(ctx, g, strings.NewReader(""), 0, g.intent.ContentType, policy)
+	length, err := core.NewByteLength(0)
 	if err != nil {
 		return R2MultipartUpload{}, err
 	}
-	fields, err := decodeR2MultipartXML(document, "InitiateMultipartUploadResult")
+	fields, err := c.multipartControl(ctx, g, strings.NewReader(""), &length, g.intent.ContentType, policy)
 	if err != nil {
 		return R2MultipartUpload{}, err
 	}
@@ -123,23 +123,23 @@ func (c R2Client) UploadPart(ctx context.Context, g R2MultipartGrant, source io.
 	return part, nil
 }
 
-func (c R2Client) CompleteMultipart(ctx context.Context, g R2MultipartGrant, parts []R2CompletedPart, policy exchange.StreamPolicy) (R2MultipartResult, error) {
-	if g.intent.Action != R2MultipartComplete {
-		return R2MultipartResult{}, core.ErrCloudflareBinding
-	}
-	body, length, err := multipartCompletionBody(parts)
-	if err != nil {
+// R2CompletedParts visits the actual UploadPart receipts in provider order.
+// It must call yield synchronously, stop on its first error, and honor ctx.
+// The source owns its storage and cleanup; the SDK retains only the current part.
+type R2CompletedParts func(ctx context.Context, yield func(R2CompletedPart) error) error
+
+func (c R2Client) CompleteMultipart(ctx context.Context, g R2MultipartGrant, parts R2CompletedParts, policy exchange.StreamPolicy) (R2MultipartResult, error) {
+	if err := errors.Join(c.Validate(), g.Validate(), validatePolicy(policy), contextstate.Validate(ctx)); err != nil {
 		return R2MultipartResult{}, err
+	}
+	if g.intent.Action != R2MultipartComplete || parts == nil {
+		return R2MultipartResult{}, core.ErrCloudflareBinding
 	}
 	media, err := core.ParseHTTPMediaType(core.CloudflareR2XMLMediaType)
 	if err != nil {
 		return R2MultipartResult{}, err
 	}
-	document, err := c.multipartControl(ctx, g, body, length, media, policy)
-	if err != nil {
-		return R2MultipartResult{}, err
-	}
-	fields, err := decodeR2MultipartXML(document, "CompleteMultipartUploadResult")
+	fields, err := c.multipartCompletionControl(ctx, g, parts, media, policy)
 	if err != nil {
 		return R2MultipartResult{}, err
 	}
@@ -170,23 +170,36 @@ func (c R2Client) AbortMultipart(ctx context.Context, g R2MultipartGrant, policy
 	return err
 }
 
-func (c R2Client) multipartControl(ctx context.Context, g R2MultipartGrant, source io.Reader, size uint64, media core.HTTPMediaType, policy exchange.StreamPolicy) ([]byte, error) {
+func (c R2Client) multipartControl(ctx context.Context, g R2MultipartGrant, source io.Reader, length *core.ByteLength, media core.HTTPMediaType, policy exchange.StreamPolicy) (r2MultipartFields, error) {
 	if err := errors.Join(c.Validate(), g.Validate(), validatePolicy(policy)); err != nil {
-		return nil, err
+		return r2MultipartFields{}, err
 	}
-	length, err := core.NewByteLength(size)
-	if err != nil {
-		return nil, contractError(err)
+	root := "CompleteMultipartUploadResult"
+	if g.intent.Action == R2MultipartCreate {
+		root = "InitiateMultipartUploadResult"
 	}
-	destination := boundedResponse{maximum: core.CloudflareR2MultipartResponseMaximumBytes}
-	_, err = exchange.RoundTripStream(exchange.StreamRoundTripCall{Context: ctx, Client: c.client, Policy: policy, Request: exchange.StreamRoundTripRequest{
-		Target: g.endpoint, Source: source, Destination: &destination, RequestContentLength: &length, RequestContentType: media, Headers: g.intent.CacheControl.headers(),
+	reader, writer := io.Pipe()
+	finished := make(chan r2MultipartDecoded, 1)
+	go func() {
+		fields, err := decodeR2MultipartXML(reader, root)
+		finished <- r2MultipartDecoded{fields: fields, err: errors.Join(err, reader.CloseWithError(err))}
+	}()
+	_, err := exchange.RoundTripStream(exchange.StreamRoundTripCall{Context: ctx, Client: c.client, Policy: policy, Request: exchange.StreamRoundTripRequest{
+		Target: g.endpoint, Source: source, Destination: writer, RequestContentLength: length, RequestContentType: media, Headers: g.intent.CacheControl.headers(),
 		ExpectedStatus: core.HTTPStatusOK(), Semantics: exchange.RequestSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt},
 	}})
+	err = errors.Join(err, writer.CloseWithError(err))
+	decoded := <-finished
+	err = errors.Join(err, decoded.err)
 	if err != nil {
-		return nil, err
+		return r2MultipartFields{}, err
 	}
-	return destination.buffer.Bytes(), nil
+	return decoded.fields, nil
+}
+
+type r2MultipartDecoded struct {
+	err    error
+	fields r2MultipartFields
 }
 
 // Control responses admit one flat, exact schema. encoding/xml performs XML
@@ -206,11 +219,8 @@ func r2CRC64(value string) bool {
 	return err == nil && n == 8 && base64.StdEncoding.EncodeToString(decoded[:n]) == value
 }
 
-func decodeR2MultipartXML(data []byte, root string) (r2MultipartFields, error) {
-	if len(data) == 0 || len(data) > core.CloudflareR2MultipartResponseMaximumBytes {
-		return r2MultipartFields{}, core.ErrCloudflareResponse
-	}
-	decoder := xml.NewDecoder(bytes.NewReader(data))
+func decodeR2MultipartXML(source io.Reader, root string) (r2MultipartFields, error) {
+	decoder := xml.NewDecoder(source)
 	var result r2MultipartFields
 	var seen uint8
 	depth := 0
@@ -332,69 +342,85 @@ func r2XMLText(decoder *xml.Decoder, name xml.Name) (string, error) {
 	}
 }
 
-// The completion document is read incrementally. The bounded caller-owned part
-// manifest is metadata; no concatenated XML document or media body is retained.
-type r2CompletionReader struct {
-	parts   []R2CompletedPart
-	pending *strings.Reader
-	next    int
-}
-
-const r2CompleteOpen = "<CompleteMultipartUpload>"
-const r2CompleteClose = "</CompleteMultipartUpload>"
-
-func multipartPartXML(part R2CompletedPart) string {
-	var escaped bytes.Buffer
-	// bytes.Buffer cannot fail, and ETag has already been validated as ASCII.
-	_ = xml.EscapeText(&escaped, []byte(part.ETag))
-	return "<Part><PartNumber>" + strconv.Itoa(int(part.PartNumber)) + "</PartNumber><ETag>" + escaped.String() + "</ETag></Part>"
-}
-func multipartCompletionBody(parts []R2CompletedPart) (*r2CompletionReader, uint64, error) {
-	if len(parts) < 1 || len(parts) > core.CloudflareR2MultipartMaximumParts {
-		return nil, 0, core.ErrCloudflareBinding
+func (c R2Client) multipartCompletionControl(ctx context.Context, g R2MultipartGrant, parts R2CompletedParts, media core.HTTPMediaType, policy exchange.StreamPolicy) (r2MultipartFields, error) {
+	ctx, cancel, err := temporal.WithTimeout(temporal.TimeoutRequest{Parent: ctx, Duration: policy.OperationTimeout})
+	if err != nil {
+		return r2MultipartFields{}, err
 	}
-	total := uint64(len(r2CompleteOpen) + len(r2CompleteClose))
+	defer cancel()
+	reader, writer := io.Pipe()
+	interrupted := make(chan error, 1)
+	stopInterrupt := context.AfterFunc(ctx, func() {
+		interrupted <- reader.CloseWithError(ctx.Err())
+	})
+	defer func() {
+		if !stopInterrupt() {
+			// io.PipeReader.CloseWithError always returns nil. Receiving still
+			// joins the callback before this scope releases the pipe.
+			<-interrupted
+		}
+	}()
+	finished := make(chan error, 1)
+	go func() {
+		err := writeMultipartCompletion(ctx, writer, parts)
+		finished <- errors.Join(err, writer.CloseWithError(err))
+	}()
+	document, err := c.multipartControl(ctx, g, reader, nil, media, policy)
+	// Close wakes a producer blocked by peer refusal; cancellation also reaches
+	// a caller-owned source. Join before returning custody to the caller.
+	cancel()
+	err = errors.Join(err, reader.CloseWithError(err), <-finished)
+	if err != nil {
+		return r2MultipartFields{}, err
+	}
+	return document, nil
+}
+
+func writeMultipartCompletion(ctx context.Context, destination io.Writer, parts R2CompletedParts) error {
+	encoder := xml.NewEncoder(destination)
+	root := xml.StartElement{Name: xml.Name{Local: core.CloudflareR2MultipartCompletionElement}}
+	if err := encoder.EncodeToken(root); err != nil {
+		return err
+	}
 	previous := uint16(0)
-	for _, part := range parts {
-		if err := part.Validate(); err != nil {
-			return nil, 0, err
+	var emitErr error
+	err := parts(ctx, func(part R2CompletedPart) error {
+		if emitErr != nil {
+			return emitErr
 		}
-		if part.PartNumber <= previous {
-			return nil, 0, core.ErrCloudflareBinding
-		}
-		previous = part.PartNumber
-		total += uint64(len(multipartPartXML(part)))
+		previous, emitErr = writeR2CompletedPart(ctx, encoder, part, previous)
+		return emitErr
+	})
+	err = errors.Join(err, emitErr, contextstate.Validate(ctx))
+	if err != nil {
+		return err
 	}
-	return &r2CompletionReader{parts: parts, pending: strings.NewReader(r2CompleteOpen)}, total, nil
-}
-func (r *r2CompletionReader) Read(p []byte) (int, error) {
-	if len(p) == 0 {
-		return 0, nil
+	if previous == 0 {
+		return core.ErrCloudflareBinding
 	}
-	for {
-		if r.pending != nil {
-			n, err := r.pending.Read(p)
-			if n != 0 || err != io.EOF {
-				return n, err
-			}
-			r.pending = nil
-		}
-		if r.next < len(r.parts) {
-			r.pending = strings.NewReader(multipartPartXML(r.parts[r.next]))
-			r.next++
-			continue
-		}
-		if r.next == len(r.parts) {
-			r.pending = strings.NewReader(r2CompleteClose)
-			r.next++
-			continue
-		}
-		return 0, io.EOF
+	if err := encoder.EncodeToken(root.End()); err != nil {
+		return err
 	}
+	return encoder.Close()
 }
 
-func (R2MultipartUpload) cloudflareProtocolFact()   {}
-func (R2CompletedPart) cloudflareProtocolFact()     {}
-func (R2MultipartResult) cloudflareProtocolFact()   {}
-func (r2MultipartFields) cloudflareInternalFlow()   {}
-func (*r2CompletionReader) cloudflareInternalFlow() {}
+func writeR2CompletedPart(ctx context.Context, encoder *xml.Encoder, part R2CompletedPart, previous uint16) (uint16, error) {
+	if err := errors.Join(contextstate.Validate(ctx), part.Validate()); err != nil {
+		return previous, err
+	}
+	if part.PartNumber <= previous {
+		return previous, core.ErrCloudflareBinding
+	}
+	// EncodeElement flushes the completed element through Go's writer, so the
+	// producer cannot advance by buffering an unbounded sequence of receipts.
+	if err := encoder.EncodeElement(part, xml.StartElement{Name: xml.Name{Local: core.CloudflareR2MultipartPartElement}}); err != nil {
+		return previous, err
+	}
+	return part.PartNumber, nil
+}
+
+func (R2MultipartUpload) cloudflareProtocolFact()  {}
+func (R2CompletedPart) cloudflareProtocolFact()    {}
+func (R2MultipartResult) cloudflareProtocolFact()  {}
+func (r2MultipartFields) cloudflareInternalFlow()  {}
+func (r2MultipartDecoded) cloudflareInternalFlow() {}

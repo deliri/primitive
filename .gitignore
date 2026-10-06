@@ -27,6 +27,8 @@ go.work
 go.work.sum
 
 # Build outputs
+*_gen.go
+*_gen_*.go
 /.artifacts/
 /bin/
 /dist/

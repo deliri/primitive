@@ -93,17 +93,16 @@ const (
 	CloudflareR2MultipartMaximumObjectBytes uint64 = (5*1024 - 5) * 1024 * 1024 * 1024
 )
 
-// Multipart control messages are bounded metadata, never media bodies. These
-// custody budgets do not constrain the byte length of uploaded objects.
+// R2 multipart protocol names. Transfer extents remain owned by the caller
+// and provider; these names do not impose metadata or object-size quotas.
 const (
-	CloudflareR2UploadIDMaximumBytes          = 4096
-	CloudflareR2MultipartResponseMaximumBytes = 2 * 1024 * 1024
-	CloudflareR2ETagMaximumBytes              = 1024
-	CloudflareR2QueryUploads                  = "uploads"
-	CloudflareR2QueryUploadID                 = "uploadId"
-	CloudflareR2QueryPartNumber               = "partNumber"
-	CloudflareR2XMLNamespace                  = "http://s3.amazonaws.com/doc/2006-03-01/"
-	CloudflareR2XMLMediaType                  = "application/xml"
+	CloudflareR2QueryUploads               = "uploads"
+	CloudflareR2QueryUploadID              = "uploadId"
+	CloudflareR2QueryPartNumber            = "partNumber"
+	CloudflareR2XMLNamespace               = "http://s3.amazonaws.com/doc/2006-03-01/"
+	CloudflareR2XMLMediaType               = "application/xml"
+	CloudflareR2MultipartCompletionElement = "CompleteMultipartUpload"
+	CloudflareR2MultipartPartElement       = "Part"
 )
 
 // https://developers.cloudflare.com/r2/buckets/create-buckets/
@@ -154,14 +153,20 @@ const CloudflareMultipartFileField = "file"
 // Images management and R2 conditions are owned by Cloudflare's documented
 // APIs, independently of other providers' coincidentally equal spellings.
 const (
-	CloudflareImagesDeliveryHost  = "imagedelivery.net"
-	CloudflareImagesV1Path        = "/images/v1/"
-	CloudflareR2ContentMD5Header  = "Content-MD5"
-	CloudflareR2IfNoneMatchHeader = "If-None-Match"
-	CloudflareR2ETagHeader        = "ETag"
-	CloudflareR2CreateOnlyValue   = "*"
-	CloudflareR2CacheMaxAgePrefix = "max-age="
+	CloudflareImagesDeliveryHost = "imagedelivery.net"
+	// Native custom-domain delivery route; caller owns domain/account binding.
+	// https://developers.cloudflare.com/images/optimization/hosted-images/serve-from-custom-domains/
+	CloudflareImagesCustomDeliveryPath = "/cdn-cgi/imagedelivery/"
+	CloudflareImagesV1Path             = "/images/v1/"
+	CloudflareR2ContentMD5Header       = "Content-MD5"
+	CloudflareR2IfNoneMatchHeader      = "If-None-Match"
+	CloudflareR2ETagHeader             = "ETag"
+	CloudflareR2CreateOnlyValue        = "*"
+	CloudflareR2CacheMaxAgePrefix      = "max-age="
 )
+
+// https://developers.cloudflare.com/api/resources/images/subresources/v1/subresources/variants/methods/create/
+const CloudflareImageVariantMaximumCharacters = 99
 
 // This SDK admits exact delta-seconds within 31 nonnegative integer bits,
 // below the RFC's infinity sentinel. This is a custody bound, not product policy.
