@@ -111,7 +111,7 @@ func Tokens(ctx context.Context, request TokenRequest) iter.Seq2[Token, error] {
 			yield(Token{}, err)
 			return
 		}
-		decoder := jsontext.NewDecoder(request.Source)
+		decoder := jsontext.NewDecoder(checkedJSONSource{source: request.Source})
 		for {
 			token, err := readToken(ctx, decoder, request.NestingDepthMaximum)
 			if err == io.EOF {

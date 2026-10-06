@@ -47,7 +47,7 @@ func Documents[Document core.Validatable](ctx context.Context, request Request) 
 			yield(zero, err)
 			return
 		}
-		bounded := &io.LimitedReader{R: request.Source}
+		bounded := &io.LimitedReader{R: checkedJSONSource{source: request.Source}}
 		decoder := jsontext.NewDecoder(bounded)
 		for {
 			data, err := readJSONStreamValue(ctx, decoder, bounded, request.Limits.DocumentMaximumBytes)
