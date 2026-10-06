@@ -1,5 +1,30 @@
 [
   {
+    "path": "exact-commit-race/after.diff",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "exact-commit-race/before.diff",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "exact-commit-race/test/receipt.json",
+    "bytes": 944,
+    "sha256": "e0091345a1a01324f207c35520d05f3d05053b24b6eb16b89c9a17ed32ee3acc"
+  },
+  {
+    "path": "exact-commit-race/test/stderr",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "exact-commit-race/test/stdout",
+    "bytes": 1745884,
+    "sha256": "ac008e93fcbdd14a47a3bb09b519320d1084037b96fc41c9d60c91ef1d20d6e3"
+  },
+  {
     "path": "primitive-calendar-alignment-fix-20261006/after.diff",
     "bytes": 4690,
     "sha256": "98544fc9d42f423bd7217848cc7bb69773c9849cefbf009f711888b43cf32296"
