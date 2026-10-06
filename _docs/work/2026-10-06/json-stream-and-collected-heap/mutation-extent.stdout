@@ -1,0 +1,6 @@
+--- FAIL: TestJSONDocumentsHostileAdmissionMatrix (0.00s)
+    --- FAIL: TestJSONDocumentsHostileAdmissionMatrix/leading_whitespace_counts_toward_extent (0.00s)
+        documents_external_test.go:118: documents/refusals = [{1 2}]/0, want []/true
+FAIL
+FAIL github.com/deliri/primitive/v2026/jsonio 0.200s
+FAIL

@@ -1,0 +1,86 @@
+{
+  "release": "v2026.1.116",
+  "toolchain": "go1.27.1",
+  "GOOS": "darwin",
+  "GOARCH": "arm64",
+  "CGO_ENABLED": "1",
+  "GOEXPERIMENT": "",
+  "captured_utc": "2026-10-06T11:50:23.791905+00:00",
+  "runs": [
+    {
+      "command": "go test -json -race -count=1 ./jsonio ./hostfacts ./capabilities ./_hammer/claims",
+      "source_commit": "374ecf112417a24b8e9fb253c0c6ff4ad5352366",
+      "start_utc": "2026-10-06T07:47:31.929673-04:00",
+      "finish_utc": "2026-10-06T07:48:14.676437-04:00",
+      "result_cache": "disabled by -count=1",
+      "build_cache": "available",
+      "filtered": false,
+      "retry": "none within committed run; earlier development attempts retained in accounting",
+      "skipped": [],
+      "failures": [],
+      "packages": [
+        {
+          "Time": "2026-10-06T07:47:33.471754-04:00",
+          "Action": "pass",
+          "Package": "github.com/deliri/primitive/v2026/jsonio",
+          "Elapsed": 1.542
+        },
+        {
+          "Time": "2026-10-06T07:47:33.691576-04:00",
+          "Action": "pass",
+          "Package": "github.com/deliri/primitive/v2026/_hammer/claims",
+          "Elapsed": 1.209
+        },
+        {
+          "Time": "2026-10-06T07:47:38.258347-04:00",
+          "Action": "pass",
+          "Package": "github.com/deliri/primitive/v2026/capabilities",
+          "Elapsed": 5.776
+        },
+        {
+          "Time": "2026-10-06T07:48:14.676437-04:00",
+          "Action": "pass",
+          "Package": "github.com/deliri/primitive/v2026/hostfacts",
+          "Elapsed": 42.196
+        }
+      ],
+      "raw_artifact": "committed-race.jsonl",
+      "raw_sha256": "10aa3f8446a8dc7ad60caadd9ee98f5b52d276f2801474c5239acfa2b2cd6be3",
+      "raw_bytes": 24095940,
+      "event_count": 99048,
+      "fuzz_messages": []
+    },
+    {
+      "command": "go test -json -count=1 ./jsonio -run '^$' -fuzz '^FuzzJSONDocumentsByteConservation$' -fuzztime=3s",
+      "source_commit": "374ecf112417a24b8e9fb253c0c6ff4ad5352366",
+      "start_utc": "2026-10-06T07:47:30.908043-04:00",
+      "finish_utc": "2026-10-06T07:47:35.19453-04:00",
+      "result_cache": "disabled by -count=1",
+      "build_cache": "available",
+      "filtered": true,
+      "retry": "none within committed run; earlier development attempts retained in accounting",
+      "skipped": [],
+      "failures": [],
+      "packages": [
+        {
+          "Time": "2026-10-06T07:47:35.19453-04:00",
+          "Action": "pass",
+          "Package": "github.com/deliri/primitive/v2026/jsonio",
+          "Elapsed": 4.286
+        }
+      ],
+      "raw_artifact": "committed-fuzz.jsonl",
+      "raw_sha256": "8731d98e99d96a5bd894d139c86e83ea336ccc1d7bc885c330c351d29d2d2cdd",
+      "raw_bytes": 2373,
+      "event_count": 12,
+      "fuzz_messages": [
+        "fuzz: elapsed: 0s, gathering baseline coverage: 0/49 completed\n",
+        "fuzz: elapsed: 0s, gathering baseline coverage: 49/49 completed, now fuzzing with 10 workers\n",
+        "fuzz: elapsed: 3s, execs: 26021 (8663/sec), new interesting: 11 (total: 60)\n",
+        "fuzz: elapsed: 4s, execs: 26021 (0/sec), new interesting: 11 (total: 60)\n"
+      ]
+    }
+  ],
+  "scope": "new capability packages, affected host owner, capability catalog and claims; not the entire Primitive repository",
+  "independent_acceptance": false
+}
