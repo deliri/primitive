@@ -50,6 +50,7 @@ func TestPublicOperationsAreExactIntentEntryPoints(t *testing.T) {
 		"ObserveCollectedGoHeap",
 		"ObserveDiskRotation",
 		"ObserveEffectiveWorkloadMemoryLimit",
+		"ObserveGoAllocationTotal",
 		"ObserveHostname",
 		"ObserveLogicalCPUCount",
 		"ObservePhysicalMemory",
