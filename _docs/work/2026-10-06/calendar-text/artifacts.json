@@ -100,6 +100,31 @@
     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
   },
   {
+    "path": "primitive-temporal-text-115-committed-race-20261006/after.diff",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "primitive-temporal-text-115-committed-race-20261006/before.diff",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "primitive-temporal-text-115-committed-race-20261006/test/receipt.json",
+    "bytes": 942,
+    "sha256": "9ffab0fe6615c90c98eeea24f99bafdadebd9cde974f9876398b3dab2b7efc8d"
+  },
+  {
+    "path": "primitive-temporal-text-115-committed-race-20261006/test/stderr",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "primitive-temporal-text-115-committed-race-20261006/test/stdout",
+    "bytes": 1840871,
+    "sha256": "64f02f0e2949bd1b7a2e15159da89ce104420f095735dd8c61fcce117793e859"
+  },
+  {
     "path": "primitive-temporal-text-115-final-race-20261006/after.diff",
     "bytes": 12858,
     "sha256": "e1987e632213afdc68d3a9e68e6bb2ae5a813c4a95f0442924f52dbdd9e6a707"
