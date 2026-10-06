@@ -80,6 +80,31 @@
     "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
   },
   {
+    "path": "primitive-temporal-text-committed-race-20261006/after.diff",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "primitive-temporal-text-committed-race-20261006/before.diff",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "primitive-temporal-text-committed-race-20261006/test/receipt.json",
+    "bytes": 944,
+    "sha256": "55d2a5afeca3dd355e1561927e3cbb453923c86b77cedba1bbdabca71bddca95"
+  },
+  {
+    "path": "primitive-temporal-text-committed-race-20261006/test/stderr",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "primitive-temporal-text-committed-race-20261006/test/stdout",
+    "bytes": 1826519,
+    "sha256": "784e77eadae4160bbffc75417214696f60e0bb9e77132d7029f7f209b598b513"
+  },
+  {
     "path": "primitive-temporal-text-contract-20261006/after.diff",
     "bytes": 2413,
     "sha256": "81abb466c3d1ee09459430afaeec139465adc3e93944fa23905c2a56c5725a58"
