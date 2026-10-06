@@ -6,6 +6,10 @@
 // policy, cloud custody, and coordination. Filestore owns only the finite
 // filesystem effect requested by one validated value.
 //
+// ResetScratch disposes a regular scratch handle's bytes and restores its
+// native write offset. The caller owns scratch lifetime and any failed-work
+// decision; Filestore does not retain a second extent or file model.
+//
 // StageDestination lends a real Go file to an external streaming producer.
 // The caller checks the producer's error and abandons the stage on failure.
 // Only successful production proceeds to FinishStageDestination and Commit;

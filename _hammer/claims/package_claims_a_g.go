@@ -179,7 +179,7 @@ func emitPackageClaimSpecsAThroughG(emit func(packageClaimSpec) bool) bool {
 			solution: "Filestore composes os.Root and os.File into typed rooted streaming filesystem operations, including fixed-memory external sorting of digest and extent records.",
 			benefit:  "Every consumer crosses one auditable filesystem boundary while retaining ordinary Go handles and semantics.",
 			removal:  "Remove a Filestore operation when the standard library supplies the complete validated and receipted effect directly.",
-			owns:     "Filestore owns filesystem namespace and byte effects, confinement, durability mechanics, exact observations, and canonical content-record sorting with duplicate and conflicting-extent verification.",
+			owns:     "Filestore owns filesystem namespace and byte effects, confinement, durability mechanics, exact observations, disposable scratch reset coordinates, and canonical content-record sorting with duplicate and conflicting-extent verification.",
 			excludes: "It does not own filenames, schemas, retention, capacity policy, cloud custody, accounting, or workflows.",
 		},
 		{
