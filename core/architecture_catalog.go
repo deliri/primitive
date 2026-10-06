@@ -161,6 +161,8 @@ const (
 	PackagePasswordHash
 	// PackageCloudflare owns Images, Stream, and R2 provider boundaries.
 	PackageCloudflare
+	// PackageJSONIO identifies bounded typed sequential JSON document admission.
+	PackageJSONIO
 	packageIdentityLimit
 )
 
@@ -269,6 +271,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageUpgradeReport, Kind: PackageKindProduction, Role: PackageRoleAuthenticationBinding},
 			{Identity: PackagePasswordHash, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
 			{Identity: PackageCloudflare, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
+			{Identity: PackageJSONIO, Kind: PackageKindProduction, Role: PackageRoleValueContract},
 		},
 	}
 }
@@ -517,6 +520,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"upgradereport",
 		"passwordhash",
 		"cloudflare",
+		"jsonio",
 	}
 }
 

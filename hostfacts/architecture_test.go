@@ -47,6 +47,7 @@ func TestPublicOperationsAreExactIntentEntryPoints(t *testing.T) {
 		"Executable",
 		"LookupAmbientEnvironment",
 		"NewPercent",
+		"ObserveCollectedGoHeap",
 		"ObserveDiskRotation",
 		"ObserveEffectiveWorkloadMemoryLimit",
 		"ObserveHostname",

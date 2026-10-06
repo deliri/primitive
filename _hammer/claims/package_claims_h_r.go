@@ -21,6 +21,15 @@ func emitPackageClaimSpecsHThroughR(emit func(packageClaimSpec) bool) bool {
 			excludes: "It does not read clocks or entropy, persist identities, assign business meaning, or provide a global generator.",
 		},
 		{
+			path: "jsonio", title: "Bounded typed JSON document streams",
+			problem:  "Consumers need sequential JSON observations without retaining an inventory or inventing framing grammars.",
+			solution: "Go frames each value; typed Primitive requests enforce each document's byte, grammar and schema limits and preserve source failures.",
+			benefit:  "Callers receive validated structs with synchronous backpressure and bounded retained memory independent of stream length.",
+			removal:  "Remove after callers no longer need sequential typed JSON admission and its hostile framing proof is retired.",
+			owns:     "Sequential JSON framing, per-document admission and typed source refusals.",
+			excludes: "Source lifetimes, product meaning, total workload budgets and completion receipts.",
+		},
+		{
 			path: "keygen", title: "Bounded cryptographic entropy effects",
 			problem:  "Direct crypto/rand use scatters bounds, secret ownership, redaction, and key construction across consumers.",
 			solution: "Keygen draws exact bounded entropy for Ed25519 keys, generic secret material, and public random tokens.",

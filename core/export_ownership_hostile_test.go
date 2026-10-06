@@ -15,7 +15,7 @@ import (
 
 const (
 	coreExportDependencyMaximum     = 32
-	coreSpecialExportAdmissionCount = 93 // Includes provider-neutral image dimensions shared with callers.
+	coreSpecialExportAdmissionCount = 94 // Includes provider-neutral image dimensions shared with callers.
 	coreProviderExportContractCount = 135
 )
 
@@ -155,6 +155,7 @@ func coreSpecialExportAdmissions() [coreSpecialExportAdmissionCount]coreSpecialE
 		architectureCatalogAdmission("PackageAWSIdentity", PackageAWSIdentity),
 		architectureCatalogAdmission("PackageUpgrade", PackageUpgrade),
 		architectureCatalogAdmission("PackageLineIO", PackageLineIO),
+		architectureCatalogAdmission("PackageJSONIO", PackageJSONIO),
 		architectureCatalogAdmission("PackageManual", PackageManual),
 		architectureCatalogAdmission("PackageTailnet", PackageTailnet),
 		architectureCatalogAdmission("PackageTailnetConfig", PackageTailnetConfig),
