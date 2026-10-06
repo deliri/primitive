@@ -26,6 +26,7 @@ type (
 )
 
 type temporalContractInventory struct {
+	Cancellation        temporalCapabilityIntent[CancellationRequest]
 	ContextResult       temporalCapabilityIntent[contextConstruction]
 	Ticker              temporalCapabilityIntent[Ticker]
 	NativeTextFormat    temporalCapabilityIntent[NativeTimeFormatRequest]
@@ -152,6 +153,7 @@ var (
 	_ interface{ Validate() error } = IntervalRequest{}
 	_ interface{ Validate() error } = IntervalBounds{}
 	_ interface{ Validate() error } = TimeoutRequest{}
+	_ interface{ Validate() error } = CancellationRequest{}
 	_ interface{ Validate() error } = DeadlineRequest{}
 	_ interface{ Validate() error } = WaitRequest{}
 	_ interface{ Validate() error } = TickerRequest{}
@@ -160,36 +162,38 @@ var (
 	_ = IntervalRequest{Start: Observation{}, Finish: Observation{}}
 	_ = IntervalBounds{Start: Instant{}, End: Instant{}}
 	_ = TimeoutRequest{Parent: context.Background(), Duration: Duration{}}
+	_ = CancellationRequest{Parent: context.Background()}
 	_ = DeadlineRequest{Parent: context.Background(), Deadline: Instant{}}
 	_ = WaitRequest{Context: context.Background(), Duration: Duration{}}
 	_ = TickerRequest{Interval: Duration{}}
 
-	_ func(time.Time) (Instant, error)                                   = NewInstant
-	_ func(string) (Instant, error)                                      = ParseRFC3339
-	_ func(string) (Instant, error)                                      = ParseRFC3339UTC
-	_ func(string) (Instant, error)                                      = ParseCompactUTC
-	_ func(int64) Instant                                                = InstantFromNanoseconds
-	_ func(time.Duration) (Duration, error)                              = NewDuration
-	_ func(int64) (Duration, error)                                      = DurationFromNanoseconds
-	_ func(uint64) (Duration, error)                                     = DurationFromMicroseconds
-	_ func(uint64) (Duration, error)                                     = DurationFromMilliseconds
-	_ func(uint64) (Duration, error)                                     = DurationFromSeconds
-	_ func(uint64) (Duration, error)                                     = DurationFromMinutes
-	_ func(uint64) (Duration, error)                                     = DurationFromHours
-	_ func(uint64) (Duration, error)                                     = DurationFromDays
-	_ func(uint64) AggregateDuration                                     = AggregateDurationFromNanoseconds
-	_ func(Duration) (AggregateDuration, error)                          = AggregateDurationFromDuration
-	_ func(string) (AggregateDuration, error)                            = ParseAggregateDuration
-	_ func(Instant) (NumericInstant, error)                              = NewNumericInstant
-	_ func(Duration) (NumericDuration, error)                            = NewNumericDuration
-	_ func() (Observation, error)                                        = Observe
-	_ func(time.Time) (Observation, error)                               = NewObservation
-	_ func(IntervalRequest) (Interval, error)                            = NewInterval
-	_ func(IntervalBounds) (Interval, error)                             = IntervalFromBounds
-	_ func(TimeoutRequest) (context.Context, context.CancelFunc, error)  = WithTimeout
-	_ func(DeadlineRequest) (context.Context, context.CancelFunc, error) = WithDeadline
-	_ func(WaitRequest) error                                            = Wait
-	_ func(TickerRequest) (*Ticker, error)                               = OpenTicker
+	_ func(time.Time) (Instant, error)                                            = NewInstant
+	_ func(string) (Instant, error)                                               = ParseRFC3339
+	_ func(string) (Instant, error)                                               = ParseRFC3339UTC
+	_ func(string) (Instant, error)                                               = ParseCompactUTC
+	_ func(int64) Instant                                                         = InstantFromNanoseconds
+	_ func(time.Duration) (Duration, error)                                       = NewDuration
+	_ func(int64) (Duration, error)                                               = DurationFromNanoseconds
+	_ func(uint64) (Duration, error)                                              = DurationFromMicroseconds
+	_ func(uint64) (Duration, error)                                              = DurationFromMilliseconds
+	_ func(uint64) (Duration, error)                                              = DurationFromSeconds
+	_ func(uint64) (Duration, error)                                              = DurationFromMinutes
+	_ func(uint64) (Duration, error)                                              = DurationFromHours
+	_ func(uint64) (Duration, error)                                              = DurationFromDays
+	_ func(uint64) AggregateDuration                                              = AggregateDurationFromNanoseconds
+	_ func(Duration) (AggregateDuration, error)                                   = AggregateDurationFromDuration
+	_ func(string) (AggregateDuration, error)                                     = ParseAggregateDuration
+	_ func(Instant) (NumericInstant, error)                                       = NewNumericInstant
+	_ func(Duration) (NumericDuration, error)                                     = NewNumericDuration
+	_ func() (Observation, error)                                                 = Observe
+	_ func(time.Time) (Observation, error)                                        = NewObservation
+	_ func(IntervalRequest) (Interval, error)                                     = NewInterval
+	_ func(IntervalBounds) (Interval, error)                                      = IntervalFromBounds
+	_ func(TimeoutRequest) (context.Context, context.CancelFunc, error)           = WithTimeout
+	_ func(CancellationRequest) (context.Context, context.CancelCauseFunc, error) = WithCancellation
+	_ func(DeadlineRequest) (context.Context, context.CancelFunc, error)          = WithDeadline
+	_ func(WaitRequest) error                                                     = Wait
+	_ func(TickerRequest) (*Ticker, error)                                        = OpenTicker
 )
 
 type temporalArchitecture struct {
@@ -297,6 +301,7 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 		"func ParseRFC3339UTC",
 		"func ParseCompactUTC",
 		"func Wait",
+		"func WithCancellation",
 		"func WithDeadline",
 		"func WithTimeout",
 		"method AggregateDuration.Add",
@@ -309,6 +314,7 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 		"method AggregateDuration.Multiply",
 		"method AggregateDuration.UnmarshalJSON",
 		"method AggregateDuration.Validate",
+		"method CancellationRequest.Validate",
 		"method DeadlineRequest.Validate",
 		"method Duration.Add",
 		"method Duration.Aggregate",
@@ -367,6 +373,7 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 		"method TimeoutRequest.Validate",
 		"method WaitRequest.Validate",
 		"type AggregateDuration",
+		"type CancellationRequest",
 		"type DeadlineRequest",
 		"type Duration",
 		"type Instant",

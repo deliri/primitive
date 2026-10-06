@@ -95,7 +95,7 @@ func emitPackageClaimSpecsSThroughZ(emit func(packageClaimSpec) bool) bool {
 		{
 			path: "temporal", title: "Typed time values and effects",
 			problem:  "Raw time values mix units, permit invalid ranges, hide wall-clock acquisition, and encourage policy to call time.Now directly.",
-			solution: "Temporal provides exact nanosecond values, durations, instants, caller-controlled clocks, timers, and bounded context-aware waits.",
+			solution: "Temporal provides exact nanosecond values, durations, instants, caller-controlled clocks, timers, cancellation lifetimes, and bounded context-aware waits.",
 			benefit:  "Products receive time as typed data and tests remain deterministic while Go time semantics stay recognizable.",
 			removal:  "Remove a Temporal type or effect when Go supplies its complete nominal validation and ownership contract directly.",
 			owns:     "Temporal owns time-value validation, unit-safe arithmetic, wall-time observation, and thin timer and context effects.",
