@@ -21,12 +21,12 @@ func emitPackageClaimSpecsHThroughR(emit func(packageClaimSpec) bool) bool {
 			excludes: "It does not read clocks or entropy, persist identities, assign business meaning, or provide a global generator.",
 		},
 		{
-			path: "jsonio", title: "Bounded typed JSON document streams",
+			path: "jsonio", title: "Typed JSON document and token streams",
 			problem:  "Consumers need sequential JSON observations without retaining an inventory or inventing framing grammars.",
-			solution: "Go frames each value; typed Primitive requests enforce each document's byte, grammar and schema limits and preserve source failures.",
-			benefit:  "Callers receive validated structs with synchronous backpressure and bounded retained memory independent of stream length.",
+			solution: "Go frames documents or lexical tokens; Primitive enforces typed document admission or caller-owned token depth and preserves source failures.",
+			benefit:  "Callers receive typed observations with synchronous backpressure; token streams avoid array aggregation while exposing Go scalar and parser-state memory.",
 			removal:  "Remove after callers no longer need sequential typed JSON admission and its hostile framing proof is retired.",
-			owns:     "Sequential JSON framing, per-document admission and typed source refusals.",
+			owns:     "Sequential JSON framing, per-document admission, lexical token projection, declared nesting depth and typed source refusals.",
 			excludes: "Source lifetimes, product meaning, total workload budgets and completion receipts.",
 		},
 		{
