@@ -1,0 +1,61 @@
+--- FAIL: TestTextSymbolOwnershipBoundaries (0.00s)
+    --- FAIL: TestTextSymbolOwnershipBoundaries/strings/TrimLeftFunc (0.00s)
+        text_symbols_test.go:46: classification = {Symbol:{Receiver:<nil> ImportPath:strings Selector:TrimLeftFunc} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; want {Secondary:[] Operation:unavailable Disposition:contextual Effect:unknown} with exact symbol
+    --- FAIL: TestTextSymbolOwnershipBoundaries/strings/TrimFunc (0.00s)
+        text_symbols_test.go:46: classification = {Symbol:{Receiver:<nil> ImportPath:strings Selector:TrimFunc} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; want {Secondary:[] Operation:unavailable Disposition:contextual Effect:unknown} with exact symbol
+    --- FAIL: TestTextSymbolOwnershipBoundaries/strings/Map (0.00s)
+        text_symbols_test.go:46: classification = {Symbol:{Receiver:<nil> ImportPath:strings Selector:Map} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; want {Secondary:[] Operation:unavailable Disposition:contextual Effect:unknown} with exact symbol
+    --- FAIL: TestTextSymbolOwnershipBoundaries/strings/LastIndexFunc (0.00s)
+        text_symbols_test.go:46: classification = {Symbol:{Receiver:<nil> ImportPath:strings Selector:LastIndexFunc} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; want {Secondary:[] Operation:unavailable Disposition:contextual Effect:unknown} with exact symbol
+    --- FAIL: TestTextSymbolOwnershipBoundaries/bytes/TrimLeftFunc (0.00s)
+        text_symbols_test.go:46: classification = {Symbol:{Receiver:<nil> ImportPath:bytes Selector:TrimLeftFunc} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; want {Secondary:[] Operation:unavailable Disposition:contextual Effect:unknown} with exact symbol
+    --- FAIL: TestTextSymbolOwnershipBoundaries/bytes/TrimFunc (0.00s)
+        text_symbols_test.go:46: classification = {Symbol:{Receiver:<nil> ImportPath:bytes Selector:TrimFunc} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; want {Secondary:[] Operation:unavailable Disposition:contextual Effect:unknown} with exact symbol
+    --- FAIL: TestTextSymbolOwnershipBoundaries/bytes/ContainsFunc (0.00s)
+        text_symbols_test.go:46: classification = {Symbol:{Receiver:<nil> ImportPath:bytes Selector:ContainsFunc} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; want {Secondary:[] Operation:unavailable Disposition:contextual Effect:unknown} with exact symbol
+    --- FAIL: TestTextSymbolOwnershipBoundaries/bytes/TrimRightFunc (0.00s)
+        text_symbols_test.go:46: classification = {Symbol:{Receiver:<nil> ImportPath:bytes Selector:TrimRightFunc} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; want {Secondary:[] Operation:unavailable Disposition:contextual Effect:unknown} with exact symbol
+    --- FAIL: TestTextSymbolOwnershipBoundaries/bytes/Map (0.00s)
+        text_symbols_test.go:46: classification = {Symbol:{Receiver:<nil> ImportPath:bytes Selector:Map} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; want {Secondary:[] Operation:unavailable Disposition:contextual Effect:unknown} with exact symbol
+    --- FAIL: TestTextSymbolOwnershipBoundaries/bytes/LastIndexFunc (0.00s)
+        text_symbols_test.go:46: classification = {Symbol:{Receiver:<nil> ImportPath:bytes Selector:LastIndexFunc} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; want {Secondary:[] Operation:unavailable Disposition:contextual Effect:unknown} with exact symbol
+    --- FAIL: TestTextSymbolOwnershipBoundaries/bytes/IndexFunc (0.00s)
+        text_symbols_test.go:46: classification = {Symbol:{Receiver:<nil> ImportPath:bytes Selector:IndexFunc} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; want {Secondary:[] Operation:unavailable Disposition:contextual Effect:unknown} with exact symbol
+    --- FAIL: TestTextSymbolOwnershipBoundaries/bytes/FieldsFuncSeq (0.00s)
+        text_symbols_test.go:46: classification = {Symbol:{Receiver:<nil> ImportPath:bytes Selector:FieldsFuncSeq} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; want {Secondary:[] Operation:unavailable Disposition:contextual Effect:unknown} with exact symbol
+    --- FAIL: TestTextSymbolOwnershipBoundaries/bytes/FieldsFunc (0.00s)
+        text_symbols_test.go:46: classification = {Symbol:{Receiver:<nil> ImportPath:bytes Selector:FieldsFunc} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; want {Secondary:[] Operation:unavailable Disposition:contextual Effect:unknown} with exact symbol
+    --- FAIL: TestTextSymbolOwnershipBoundaries/strings/FieldsFuncSeq (0.00s)
+        text_symbols_test.go:46: classification = {Symbol:{Receiver:<nil> ImportPath:strings Selector:FieldsFuncSeq} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; want {Secondary:[] Operation:unavailable Disposition:contextual Effect:unknown} with exact symbol
+    --- FAIL: TestTextSymbolOwnershipBoundaries/strings/FieldsFunc (0.00s)
+        text_symbols_test.go:46: classification = {Symbol:{Receiver:<nil> ImportPath:strings Selector:FieldsFunc} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; want {Secondary:[] Operation:unavailable Disposition:contextual Effect:unknown} with exact symbol
+    --- FAIL: TestTextSymbolOwnershipBoundaries/strings/ContainsFunc (0.00s)
+        text_symbols_test.go:46: classification = {Symbol:{Receiver:<nil> ImportPath:strings Selector:ContainsFunc} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; want {Secondary:[] Operation:unavailable Disposition:contextual Effect:unknown} with exact symbol
+    --- FAIL: TestTextSymbolOwnershipBoundaries/strings/TrimRightFunc (0.00s)
+        text_symbols_test.go:46: classification = {Symbol:{Receiver:<nil> ImportPath:strings Selector:TrimRightFunc} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; want {Secondary:[] Operation:unavailable Disposition:contextual Effect:unknown} with exact symbol
+    --- FAIL: TestTextSymbolOwnershipBoundaries/strings/IndexFunc (0.00s)
+        text_symbols_test.go:46: classification = {Symbol:{Receiver:<nil> ImportPath:strings Selector:IndexFunc} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; want {Secondary:[] Operation:unavailable Disposition:contextual Effect:unknown} with exact symbol
+--- FAIL: TestCompilerTextFunctionCatalogCoverage (0.00s)
+    --- FAIL: TestCompilerTextFunctionCatalogCoverage/strings (0.06s)
+        text_symbols_test.go:133: strings.ContainsFunc classification = {Symbol:{Receiver:<nil> ImportPath:strings Selector:ContainsFunc} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; compiler callback contract requires contextual
+        text_symbols_test.go:133: strings.FieldsFunc classification = {Symbol:{Receiver:<nil> ImportPath:strings Selector:FieldsFunc} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; compiler callback contract requires contextual
+        text_symbols_test.go:133: strings.FieldsFuncSeq classification = {Symbol:{Receiver:<nil> ImportPath:strings Selector:FieldsFuncSeq} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; compiler callback contract requires contextual
+        text_symbols_test.go:133: strings.IndexFunc classification = {Symbol:{Receiver:<nil> ImportPath:strings Selector:IndexFunc} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; compiler callback contract requires contextual
+        text_symbols_test.go:133: strings.LastIndexFunc classification = {Symbol:{Receiver:<nil> ImportPath:strings Selector:LastIndexFunc} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; compiler callback contract requires contextual
+        text_symbols_test.go:133: strings.Map classification = {Symbol:{Receiver:<nil> ImportPath:strings Selector:Map} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; compiler callback contract requires contextual
+        text_symbols_test.go:133: strings.TrimFunc classification = {Symbol:{Receiver:<nil> ImportPath:strings Selector:TrimFunc} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; compiler callback contract requires contextual
+        text_symbols_test.go:133: strings.TrimLeftFunc classification = {Symbol:{Receiver:<nil> ImportPath:strings Selector:TrimLeftFunc} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; compiler callback contract requires contextual
+        text_symbols_test.go:133: strings.TrimRightFunc classification = {Symbol:{Receiver:<nil> ImportPath:strings Selector:TrimRightFunc} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; compiler callback contract requires contextual
+    --- FAIL: TestCompilerTextFunctionCatalogCoverage/bytes (0.06s)
+        text_symbols_test.go:133: bytes.ContainsFunc classification = {Symbol:{Receiver:<nil> ImportPath:bytes Selector:ContainsFunc} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; compiler callback contract requires contextual
+        text_symbols_test.go:133: bytes.FieldsFunc classification = {Symbol:{Receiver:<nil> ImportPath:bytes Selector:FieldsFunc} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; compiler callback contract requires contextual
+        text_symbols_test.go:133: bytes.FieldsFuncSeq classification = {Symbol:{Receiver:<nil> ImportPath:bytes Selector:FieldsFuncSeq} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; compiler callback contract requires contextual
+        text_symbols_test.go:133: bytes.IndexFunc classification = {Symbol:{Receiver:<nil> ImportPath:bytes Selector:IndexFunc} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; compiler callback contract requires contextual
+        text_symbols_test.go:133: bytes.LastIndexFunc classification = {Symbol:{Receiver:<nil> ImportPath:bytes Selector:LastIndexFunc} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; compiler callback contract requires contextual
+        text_symbols_test.go:133: bytes.Map classification = {Symbol:{Receiver:<nil> ImportPath:bytes Selector:Map} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; compiler callback contract requires contextual
+        text_symbols_test.go:133: bytes.TrimFunc classification = {Symbol:{Receiver:<nil> ImportPath:bytes Selector:TrimFunc} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; compiler callback contract requires contextual
+        text_symbols_test.go:133: bytes.TrimLeftFunc classification = {Symbol:{Receiver:<nil> ImportPath:bytes Selector:TrimLeftFunc} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; compiler callback contract requires contextual
+        text_symbols_test.go:133: bytes.TrimRightFunc classification = {Symbol:{Receiver:<nil> ImportPath:bytes Selector:TrimRightFunc} Classification:{Secondary:[] Operation:unavailable Disposition:pure Effect:unknown}}, <nil>; compiler callback contract requires contextual
+FAIL
+FAIL	github.com/deliri/primitive/v2026/capabilities	0.195s
+FAIL

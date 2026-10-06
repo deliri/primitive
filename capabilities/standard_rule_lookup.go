@@ -15,7 +15,7 @@ func standardSymbolRules(importPath string) []standardSymbolRule {
 	if rules := standardFunctionRules4(importPath); rules != nil {
 		return rules
 	}
-	return nil
+	return standardTextFunctionRules(importPath)
 }
 func standardFunctionRules1(importPath string) []standardSymbolRule {
 	switch importPath {
