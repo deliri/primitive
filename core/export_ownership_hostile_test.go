@@ -16,7 +16,7 @@ import (
 const (
 	coreExportDependencyMaximum     = 32
 	coreSpecialExportAdmissionCount = 90 // Includes the caller/Hostfacts timezone name agreement.
-	coreProviderExportContractCount = 114
+	coreProviderExportContractCount = 115
 )
 
 type coreExportName string
@@ -301,6 +301,7 @@ func coreProviderExportContracts() [coreProviderExportContractCount]coreProvider
 		{name: "CloudflareAPIZonesPath", witness: CloudflareAPIZonesPath, consumer: PackageCloudflare},
 		{name: "CloudflareCachePurgePath", witness: CloudflareCachePurgePath, consumer: PackageCloudflare},
 		{name: "CloudflareCachePurgeIDMaximumCharacters", witness: CloudflareCachePurgeIDMaximumCharacters, consumer: PackageCloudflare},
+		{name: "CloudflareCachePrefixMaximumSeparators", witness: CloudflareCachePrefixMaximumSeparators, consumer: PackageCloudflare},
 		{name: "CloudflareR2CacheMaxAgePrefix", witness: CloudflareR2CacheMaxAgePrefix, consumer: PackageCloudflare},
 		{name: "CloudflareR2CacheMaxAgeMaximumSeconds", witness: CloudflareR2CacheMaxAgeMaximumSeconds, consumer: PackageCloudflare},
 		{name: "CloudflareStreamUploadHost", witness: CloudflareStreamUploadHost, consumer: PackageCloudflare},

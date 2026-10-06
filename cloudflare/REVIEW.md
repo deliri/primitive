@@ -16,6 +16,7 @@ about permissions, retries, idempotency, media readiness and lifetime accounting
 | R2 exact metadata observation | `R2Server.Presign` with HEAD | `R2Client.Head` |
 | Images lifecycle observation and retirement | `ImagesServer.Details`, `Delete` | Authenticated metadata only; no media body |
 | Zone cache invalidation | `CacheServer.PurgeFile` | Exactly one URL; acceptance receipt, not absence proof |
+| Cache variant invalidation | `CacheServer.PurgePrefix` | One typed host/path prefix; includes header/query variants; caller owns prefix scope |
 | R2 multipart upload | `R2Server.PresignMultipart` | `R2Client.CreateMultipart`, `UploadPart`, `CompleteMultipart`, `AbortMultipart` |
 
 Server objects clone credential custody. Close them when their owner exits.
@@ -42,6 +43,13 @@ execution and the independent signature tests use the same typed intent.
 URL under the caller's response budget. Provider acceptance cannot establish
 public absence. Product policy must observe delivery and decide completion;
 custom cache-key header dimensions require their own explicit contract.
+`PurgePrefix` uses Cloudflare's native prefix API to invalidate all variants
+without enumerating headers or building a local cache model. Its request and
+receipt carry `CachePurgePrefix`; query-bearing input is refused instead of
+silently dropping the query. The native 31-separator ceiling lives in core.
+Prefix scope can include longer paths sharing the prefix. A caller requiring
+one object's variants must select that object's complete path and own the
+resource naming policy. Neither purge operation proves public absence.
 
 Images details bind the returned ID and delivery paths to the requested ID.
 Draft creation is not upload completion. Image metadata does not verify an

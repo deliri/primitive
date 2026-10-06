@@ -28,6 +28,8 @@ func cloudflareIngressProofs() []ingressProof {
 		bindIngress(ParseZoneID, FuzzCloudflareZoneIdentityClosure),
 		bindIngress(ParseCachePurgeOperationID, FuzzCachePurgeOperationIDClosure),
 		bindIngress(CacheServer.PurgeFile, FuzzCachePurgeResponseClosure),
+		bindIngress(CacheServer.PurgePrefix, FuzzCachePurgeResponseClosure),
+		bindIngress(NewCachePurgePrefix, FuzzCachePurgePrefixClosure),
 		bindIngress(ParseAccountID, FuzzCloudflareIdentityRepresentationClosure),
 		bindIngress(ParseImageID, FuzzCloudflareIdentityRepresentationClosure),
 		bindIngress(ParseStreamVideoID, FuzzCloudflareIdentityRepresentationClosure),
@@ -103,7 +105,7 @@ func cloudflareDecoderDoors(file *ast.File) []string {
 			continue
 		}
 		name := fn.Name.Name
-		if !(strings.HasPrefix(name, "Parse") || strings.HasPrefix(name, "Decode") || strings.HasPrefix(name, "Unmarshal") || name == "PurgeFile" || name == "APITokenFromSecret" || name == "CreateDirectUpload" || name == "Receive" || name == "Presign" || name == "PresignMultipart" || name == "CreateMultipart" || name == "CompleteMultipart" || name == "UploadPart" || name == "Details" || name == "Head" || name == "Delete" && fn.Recv != nil && cloudflareReceiverName(fn.Recv.List[0].Type) == "ImagesServer") {
+		if !(strings.HasPrefix(name, "Parse") || strings.HasPrefix(name, "Decode") || strings.HasPrefix(name, "Unmarshal") || name == "PurgeFile" || name == "PurgePrefix" || name == "NewCachePurgePrefix" || name == "APITokenFromSecret" || name == "CreateDirectUpload" || name == "Receive" || name == "Presign" || name == "PresignMultipart" || name == "CreateMultipart" || name == "CompleteMultipart" || name == "UploadPart" || name == "Details" || name == "Head" || name == "Delete" && fn.Recv != nil && cloudflareReceiverName(fn.Recv.List[0].Type) == "ImagesServer") {
 			continue
 		}
 		if fn.Recv != nil {

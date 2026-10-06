@@ -57,8 +57,13 @@ func FuzzCachePurgeResponseClosure(f *testing.F) {
 			}
 		})
 		got, err := server.PurgeFile(t.Context(), request, testPolicy())
+		prefix, prefixErr := NewCachePurgePrefix(request.URL)
+		if prefixErr != nil {
+			t.Fatal(prefixErr)
+		}
+		prefixReceipt, prefixErr := server.PurgePrefix(t.Context(), CachePrefixPurgeRequest{Prefix: prefix}, testPolicy())
 		if err != nil {
-			if !errors.Is(err, core.ErrCloudflareResponse) || got != (CachePurgeReceipt{}) {
+			if !errors.Is(err, core.ErrCloudflareResponse) || got != (CachePurgeReceipt{}) || !errors.Is(prefixErr, core.ErrCloudflareResponse) || prefixReceipt != (CachePrefixPurgeReceipt{}) {
 				t.Fatalf("refused=(%+v,%v), want zero and response refusal", got, err)
 			}
 			return
@@ -70,6 +75,9 @@ func FuzzCachePurgeResponseClosure(f *testing.F) {
 		id := string(observed.Result.ID)
 		if observed.Success == nil || !*observed.Success || len(observed.Errors) != 0 || !utf8.ValidString(id) || utf8.RuneCountInString(id) > core.CloudflareCachePurgeIDMaximumCharacters || got.OperationID != observed.Result.ID || got.Zone != server.zone || got.URL != request.URL || got.Validate() != nil {
 			t.Fatalf("receipt=%+v, want exact accepted provider facts", got)
+		}
+		if prefixErr != nil || prefixReceipt.Validate() != nil || prefixReceipt.Prefix != prefix || prefixReceipt.Zone != server.zone || prefixReceipt.OperationID != observed.Result.ID {
+			t.Fatalf("prefix receipt = %+v/%v, want exact accepted provider facts", prefixReceipt, prefixErr)
 		}
 		canonical, err := core.MarshalCanonicalJSONDocument(observed)
 		if err != nil {

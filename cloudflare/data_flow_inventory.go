@@ -55,6 +55,10 @@ func (R2Grant) cloudflareCapabilityWrapper()               {}
 func (R2Client) cloudflareCapabilityWrapper()              {}
 
 var (
+	_ cloudflareCapabilityWrapperRole = CachePurgePrefix{}
+	_ cloudflareProtocolFactRole      = CachePrefixPurgeRequest{}
+	_ cloudflareProtocolFactRole      = CachePrefixPurgeReceipt{}
+	_ cloudflareProtocolFactRole      = cachePrefixPurgeWire{}
 	_ cloudflareCapabilityWrapperRole = ZoneID{}
 	_ cloudflareCapabilityWrapperRole = CacheServer{}
 	_ cloudflareProtocolFactRole      = CacheServerOptions{}

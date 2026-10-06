@@ -12,6 +12,9 @@ const (
 	// Optional operation ID returned by the cache purge API.
 	// https://developers.cloudflare.com/api/resources/cache/methods/purge/
 	CloudflareCachePurgeIDMaximumCharacters = 32
+	// Native prefix-purge path depth. Provider contract, not a product budget.
+	// https://developers.cloudflare.com/cache/how-to/purge-cache/purge_by_prefix/
+	CloudflareCachePrefixMaximumSeparators = 31
 	// CloudflareImagesUploadHost receives direct creator multipart uploads.
 	// https://developers.cloudflare.com/images/storage/upload-images/direct-creator-upload/
 	CloudflareImagesUploadHost = "upload.imagedelivery.net"
