@@ -1,0 +1,16 @@
+--- FAIL: TestCurrentGoStackFramesCrossesEveryWorkingWindow (0.00s)
+    --- FAIL: TestCurrentGoStackFramesCrossesEveryWorkingWindow/depth=32 (0.00s)
+        go_stack_external_test.go:72: recursive frames = 31, want 33 independent Go frames
+    --- FAIL: TestCurrentGoStackFramesCrossesEveryWorkingWindow/depth=64 (0.00s)
+        go_stack_external_test.go:72: recursive frames = 31, want 65 independent Go frames
+    --- FAIL: TestCurrentGoStackFramesCrossesEveryWorkingWindow/depth=127 (0.00s)
+        go_stack_external_test.go:72: recursive frames = 31, want 128 independent Go frames
+    --- FAIL: TestCurrentGoStackFramesCrossesEveryWorkingWindow/depth=33 (0.00s)
+        go_stack_external_test.go:72: recursive frames = 31, want 34 independent Go frames
+    --- FAIL: TestCurrentGoStackFramesCrossesEveryWorkingWindow/depth=31 (0.00s)
+        go_stack_external_test.go:72: recursive frames = 31, want 32 independent Go frames
+    --- FAIL: TestCurrentGoStackFramesCrossesEveryWorkingWindow/depth=256 (0.00s)
+        go_stack_external_test.go:72: recursive frames = 31, want 257 independent Go frames
+FAIL
+FAIL	github.com/deliri/primitive/v2026/hostfacts	0.162s
+FAIL

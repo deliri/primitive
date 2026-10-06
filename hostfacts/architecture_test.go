@@ -43,6 +43,7 @@ func TestPublicOperationsAreExactIntentEntryPoints(t *testing.T) {
 		"AssessDisk",
 		"AssessGoMemory",
 		"ClassifyGoOOMBanner",
+		"CurrentGoStackFrames",
 		"CurrentPlatform",
 		"Executable",
 		"LookupAmbientEnvironment",
@@ -78,6 +79,7 @@ type hostfactsCapability[T any] struct{ Value T }
 type hostfactsError[T any] struct{ Value T }
 
 type hostfactsStructInventory struct {
+	GoStackFrame              hostfactsObservation[GoStackFrame]
 	TimeZoneRequest           hostfactsIngress[TimeZoneRequest]
 	OOMWire                   hostfactsPersistence[goOOMBannerWire]
 	TerminalGeometryRequest   hostfactsIngress[TerminalGeometryRequest]

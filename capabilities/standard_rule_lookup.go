@@ -97,7 +97,7 @@ func standardFunctionRules3(importPath string) []standardSymbolRule {
 	switch importPath {
 	case "runtime":
 		return []standardSymbolRule{
-			{importPath: importPath, effect: EffectHost, effectSelectors: []string{"CPUProfile", "GC", "GOMAXPROCS", "GOROOT", "MemProfile", "NumCPU", "NumCgoCall", "ReadMemStats", "SetCPUProfileRate", "StartTrace", "StopTrace", "ThreadCreateProfile"}},
+			{importPath: importPath, effect: EffectHost, effectSelectors: []string{"Callers", "CallersFrames", "CPUProfile", "GC", "GOMAXPROCS", "GOROOT", "MemProfile", "NumCPU", "NumCgoCall", "ReadMemStats", "SetCPUProfileRate", "Stack", "StartTrace", "StopTrace", "ThreadCreateProfile"}},
 		}
 	case timeContractText:
 		return []standardSymbolRule{
