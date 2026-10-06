@@ -1,0 +1,30 @@
+{
+  "source_revision": "24ef1210164102fb5240aae2de355f0ed80fcc2c",
+  "command": "go test -json -race -count=1 ./hostfacts",
+  "toolchain": "go version go1.27.1 darwin/arm64",
+  "environment": [
+    "darwin",
+    "arm64",
+    "1",
+    ""
+  ],
+  "cached": false,
+  "retry": false,
+  "filter": null,
+  "scope": "Hostfacts package only; no whole-repository or independent acceptance claim",
+  "package_results": [
+    {
+      "Time": "2026-10-06T08:05:57.31103-04:00",
+      "Action": "pass",
+      "Package": "github.com/deliri/primitive/v2026/hostfacts",
+      "Elapsed": 36.046
+    }
+  ],
+  "failures": [],
+  "skips": [],
+  "event_count": 8180,
+  "raw_bytes": 2117992,
+  "sha256": "aa8a4088060c215202cb5fd53af8c0dc213a25298fcbb020a18b607e03484276",
+  "first_event_time": "2026-10-06T08:05:21.264764-04:00",
+  "last_event_time": "2026-10-06T08:05:57.31103-04:00"
+}
