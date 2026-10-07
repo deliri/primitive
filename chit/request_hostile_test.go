@@ -292,8 +292,8 @@ func TestChitSigningDomainExhaustsPublishedAndFutureByteValues(t *testing.T) {
 				value, decoded, err, domain)
 		}
 	}
-	if admitted != 3 || SigningDomainQueryV1.String() != SigningDomainQueryV1Token {
-		t.Fatalf("admitted signing domains/query token = (%d, %q), want (3, %q)",
+	if admitted != 4 || SigningDomainQueryV1.String() != SigningDomainQueryV1Token {
+		t.Fatalf("admitted signing domains/query token = (%d, %q), want (4, %q)",
 			admitted, SigningDomainQueryV1.String(), SigningDomainQueryV1Token)
 	}
 }

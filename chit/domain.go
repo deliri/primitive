@@ -10,9 +10,10 @@ import (
 )
 
 const (
-	SigningDomainChitV1Token    = "primitive-chit-2026-1"
-	SigningDomainCatalogV1Token = "primitive-chit-catalog-2026-1"
-	SigningDomainQueryV1Token   = "primitive-chit-query-2026-1"
+	SigningDomainChitV1Token               = "primitive-chit-2026-1"
+	SigningDomainCatalogV1Token            = "primitive-chit-catalog-2026-1"
+	SigningDomainQueryV1Token              = "primitive-chit-query-2026-1"
+	SigningDomainManifestMembershipV1Token = "primitive-chit-manifest-membership-2026-1"
 )
 
 // SigningDomain separates one immutable chit from a catalog observation.
@@ -23,11 +24,12 @@ const (
 	SigningDomainChitV1
 	SigningDomainCatalogV1
 	SigningDomainQueryV1
+	SigningDomainManifestMembershipV1
 	signingDomainLimit
 )
 
 func signingDomainTokens() [signingDomainLimit]string {
-	return [...]string{"", SigningDomainChitV1Token, SigningDomainCatalogV1Token, SigningDomainQueryV1Token}
+	return [...]string{"", SigningDomainChitV1Token, SigningDomainCatalogV1Token, SigningDomainQueryV1Token, SigningDomainManifestMembershipV1Token}
 }
 
 func (d SigningDomain) Validate() error {

@@ -1,0 +1,12 @@
+{"Time":"2026-10-07T06:47:41.358776-04:00","Action":"start","Package":"github.com/deliri/primitive/v2026/chit"}
+{"Time":"2026-10-07T06:47:41.616702-04:00","Action":"run","Package":"github.com/deliri/primitive/v2026/chit","Test":"FuzzManifestMembershipDocumentSemanticClosure"}
+{"Time":"2026-10-07T06:47:41.616798-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/chit","Test":"FuzzManifestMembershipDocumentSemanticClosure","Output":"=== RUN   FuzzManifestMembershipDocumentSemanticClosure\n","OutputType":"frame"}
+{"Time":"2026-10-07T06:47:41.623064-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/chit","Test":"FuzzManifestMembershipDocumentSemanticClosure","Output":"fuzz: elapsed: 0s, gathering baseline coverage: 0/7 completed\n"}
+{"Time":"2026-10-07T06:47:41.658448-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/chit","Test":"FuzzManifestMembershipDocumentSemanticClosure","Output":"fuzz: elapsed: 0s, gathering baseline coverage: 7/7 completed, now fuzzing with 1 workers\n"}
+{"Time":"2026-10-07T06:47:44.624067-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/chit","Test":"FuzzManifestMembershipDocumentSemanticClosure","Output":"fuzz: elapsed: 3s, execs: 8 (3/sec), new interesting: 0 (total: 7)\n"}
+{"Time":"2026-10-07T06:47:45.639162-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/chit","Test":"FuzzManifestMembershipDocumentSemanticClosure","Output":"fuzz: elapsed: 4s, execs: 8 (0/sec), new interesting: 0 (total: 7)\n"}
+{"Time":"2026-10-07T06:47:45.639203-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/chit","Test":"FuzzManifestMembershipDocumentSemanticClosure","Output":"--- PASS: FuzzManifestMembershipDocumentSemanticClosure (4.02s)\n","OutputType":"frame"}
+{"Time":"2026-10-07T06:47:45.639213-04:00","Action":"pass","Package":"github.com/deliri/primitive/v2026/chit","Test":"FuzzManifestMembershipDocumentSemanticClosure","Elapsed":4.02}
+{"Time":"2026-10-07T06:47:45.639247-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/chit","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-07T06:47:45.639905-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/chit","Output":"ok  \tgithub.com/deliri/primitive/v2026/chit\t4.281s\n"}
+{"Time":"2026-10-07T06:47:45.639927-04:00","Action":"pass","Package":"github.com/deliri/primitive/v2026/chit","Elapsed":4.281}

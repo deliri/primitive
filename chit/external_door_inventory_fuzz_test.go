@@ -37,6 +37,8 @@ const (
 	chitJSONDoorEntrySequence
 	chitJSONDoorManifestDigest
 	chitJSONDoorManifestAdmission
+	chitJSONDoorManifestMembershipPayload
+	chitJSONDoorManifestMembershipDocument
 	chitJSONDoorLimit
 )
 
@@ -80,6 +82,10 @@ func (d chitJSONDoor) receiverName() string {
 		return "ManifestDigest"
 	case chitJSONDoorManifestAdmission:
 		return "ManifestAdmission"
+	case chitJSONDoorManifestMembershipPayload:
+		return "ManifestMembershipPayload"
+	case chitJSONDoorManifestMembershipDocument:
+		return "ManifestMembershipDocument"
 	case chitJSONDoorUnknown, chitJSONDoorLimit:
 		return ""
 	default:
@@ -88,28 +94,29 @@ func (d chitJSONDoor) receiverName() string {
 }
 
 type chitFuzzFixtures struct {
-	entryName         EntryName
-	queryPayload      QueryPayload
-	catalogPayload    CatalogPayload
-	payload           Payload
-	queryDocument     QueryDocument
-	manifestAdmission ManifestAdmission
-	catalogDocument   CatalogDocument
-	document          Document
-	query             signedQueryFixture
-	catalog           catalogFixture
-	chit              chitFixture
-	objectCount       ObjectCount
-	version           Version
-	entrySequence     EntrySequence
-	queryCommitment   QueryCommitment
-	cursor            Cursor
-	manifestDigest    ManifestDigest
-	partition         Partition
-	collectionID      CollectionID
-	chitID            ChitID
-	custodyState      CustodyState
-	signingDomain     SigningDomain
+	entryName          EntryName
+	queryPayload       QueryPayload
+	catalogPayload     CatalogPayload
+	payload            Payload
+	queryDocument      QueryDocument
+	manifestAdmission  ManifestAdmission
+	manifestMembership ManifestMembershipDocument
+	catalogDocument    CatalogDocument
+	document           Document
+	query              signedQueryFixture
+	catalog            catalogFixture
+	chit               chitFixture
+	objectCount        ObjectCount
+	version            Version
+	entrySequence      EntrySequence
+	queryCommitment    QueryCommitment
+	cursor             Cursor
+	manifestDigest     ManifestDigest
+	partition          Partition
+	collectionID       CollectionID
+	chitID             ChitID
+	custodyState       CustodyState
+	signingDomain      SigningDomain
 }
 
 type chitJSONSeed struct {
@@ -171,6 +178,10 @@ func FuzzChitExternalJSONDoorInventory(f *testing.F) {
 			fuzzChitJSONValue(t, data, fixtures.manifestDigest)
 		case chitJSONDoorManifestAdmission:
 			fuzzChitJSONValue(t, data, fixtures.manifestAdmission)
+		case chitJSONDoorManifestMembershipPayload:
+			fuzzChitJSONValue(t, data, fixtures.manifestMembership.Payload)
+		case chitJSONDoorManifestMembershipDocument:
+			fuzzChitJSONValue(t, data, fixtures.manifestMembership)
 		case chitJSONDoorUnknown, chitJSONDoorLimit:
 			t.Fatalf("normalized JSON door = %d, want a public decoder", door)
 		default:
@@ -379,6 +390,7 @@ func chitFixturesForFuzz(t testing.TB) chitFuzzFixtures {
 	if err := admissions.Destroy(); err != nil {
 		t.Fatalf("ManifestAdmissionAccumulator.Destroy() error = %v, want nil", err)
 	}
+	membership, _ := membershipFixture(t, chit)
 	return chitFuzzFixtures{
 		chit: chit, catalog: catalog, query: query,
 		entryName: chit.addition.Entry.Name, chitID: chit.identity,
@@ -390,7 +402,8 @@ func chitFixturesForFuzz(t testing.TB) chitFuzzFixtures {
 		catalogPayload: catalog.payload, catalogDocument: catalog.document,
 		signingDomain: SigningDomainChitV1, objectCount: chit.summary.Objects,
 		entrySequence: chit.addition.Entry.Sequence, manifestDigest: chit.summary.Digest,
-		manifestAdmission: manifestAdmission,
+		manifestAdmission:  manifestAdmission,
+		manifestMembership: membership,
 	}
 }
 
@@ -416,6 +429,8 @@ func chitJSONSeedsForFuzz(t testing.TB, fixtures chitFuzzFixtures) []chitJSONSee
 		chitJSONSeedForFuzz(t, chitJSONDoorEntrySequence, fixtures.entrySequence),
 		chitJSONSeedForFuzz(t, chitJSONDoorManifestDigest, fixtures.manifestDigest),
 		chitJSONSeedForFuzz(t, chitJSONDoorManifestAdmission, fixtures.manifestAdmission),
+		chitJSONSeedForFuzz(t, chitJSONDoorManifestMembershipPayload, fixtures.manifestMembership.Payload),
+		chitJSONSeedForFuzz(t, chitJSONDoorManifestMembershipDocument, fixtures.manifestMembership),
 	}
 }
 
