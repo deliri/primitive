@@ -1410,7 +1410,7 @@ func TestProcessHelper(t *testing.T) {
 	if !selected {
 		return
 	}
-	runHelperBehavior(behavior, arguments)
+	runHelperBehavior(t, behavior, arguments)
 	os.Exit(0)
 }
 
@@ -1427,7 +1427,8 @@ func helperBehavior() (string, []string, bool) {
 	return "", nil, false
 }
 
-func runHelperBehavior(behavior string, arguments []string) {
+func runHelperBehavior(t *testing.T, behavior string, arguments []string) {
+	t.Helper()
 	switch {
 	case behavior == "silent":
 	case behavior == "argv":
@@ -1526,6 +1527,8 @@ func runHelperBehavior(behavior string, arguments []string) {
 		}
 	case strings.HasPrefix(behavior, "exit:"):
 		helperExit(strings.TrimPrefix(behavior, "exit:"))
+	case strings.HasPrefix(behavior, "self-exit:"):
+		helperExitCurrent(t, strings.TrimPrefix(behavior, "self-exit:"))
 	case strings.HasPrefix(behavior, "output:"):
 		helperWrite(os.Stdout, strings.TrimPrefix(behavior, "output:"))
 	case strings.HasPrefix(behavior, "both:"):

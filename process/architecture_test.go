@@ -96,6 +96,9 @@ func signalLeafFiles() []string {
 // looked a name up on its own.
 const resolutionLeafFile = "resolve.go"
 
+// Immediate self-termination is permitted only in its validated typed leaf.
+const currentProcessExitLeafFile = "exit_current.go"
+
 // forbiddenPackageSelectors are package-qualified substrate calls that would
 // move ownership out of this package: an unsupervised command, a raw process
 // path, or ambient environment reads that bypass the typed Environment
@@ -182,6 +185,7 @@ func TestPublicOperationsAreOnlyTypedConstructionAndExecution(t *testing.T) {
 		"AmbientArguments",
 		"Begin",
 		"DiscardDeviceArgument",
+		"ExitCurrent",
 		"NewArgument",
 		"NewEnvironmentName",
 		"NewEnvironmentValue",
@@ -252,6 +256,28 @@ func isPathResolutionSelector(selector *ast.SelectorExpr) bool {
 		return false
 	}
 	return qualifier.Name == "exec" && selector.Sel.Name == "LookPath"
+}
+
+func isCurrentExitSelector(selector *ast.SelectorExpr) bool {
+	qualifier, ok := selector.X.(*ast.Ident)
+	return ok && qualifier.Name == "os" && selector.Sel.Name == "Exit"
+}
+
+func TestOnlyTheCurrentExitLeafTerminatesTheCaller(t *testing.T) {
+	t.Parallel()
+	var terminating []string
+	for _, production := range productionFiles(t) {
+		ast.Inspect(production.file, func(node ast.Node) bool {
+			selector, ok := node.(*ast.SelectorExpr)
+			if ok && isCurrentExitSelector(selector) && !slices.Contains(terminating, production.name) {
+				terminating = append(terminating, production.name)
+			}
+			return true
+		})
+	}
+	if !slices.Equal(terminating, []string{currentProcessExitLeafFile}) {
+		t.Fatalf("production self-termination owners = %q, want only %q", terminating, currentProcessExitLeafFile)
+	}
 }
 
 // TestPathResolutionMatcherHasARedState proves the file-scoped rule can fail.
@@ -357,7 +383,8 @@ func TestProductionStructureForbidsWorldModelsAndWholeOutputPaths(t *testing.T) 
 				)
 			case *ast.SelectorExpr:
 				if forbiddenSelector(typed) &&
-					!(typed.Sel.Name == "Signal" && slices.Contains(signalLeafFiles(), production.name)) {
+					!(typed.Sel.Name == "Signal" && slices.Contains(signalLeafFiles(), production.name)) &&
+					!(production.name == currentProcessExitLeafFile && isCurrentExitSelector(typed)) {
 					t.Errorf(
 						"production selector %s in %s at token position %d, want streamed caller-owned output",
 						typed.Sel.Name,

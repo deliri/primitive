@@ -19,6 +19,7 @@ var (
 	_ core.Validatable = streamFailure{}
 	_ core.Validatable = outputLimitExceeded{}
 	_ core.Validatable = ExitCode{}
+	_ core.Validatable = ExitSuccess
 	_ core.Validatable = Result{}
 	_ core.Validatable = ResultObservation{}
 	_ core.Validatable = (*TruncatingWriter)(nil)

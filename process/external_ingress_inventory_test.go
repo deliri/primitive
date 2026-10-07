@@ -28,6 +28,7 @@ type processExternalDoorInventory struct {
 	AmbientArguments           func() ([]process.Argument, error)
 	Begin                      func(context.Context, process.Request) (*process.Execution, error)
 	DiscardDeviceArgument      func() (process.Argument, error)
+	ExitCurrent                func(process.ExitStatus) error
 	NewArgument                func(string) (process.Argument, error)
 	NewEnvironmentName         func(string) (process.EnvironmentName, error)
 	NewEnvironmentValue        func(string) (process.EnvironmentValue, error)
@@ -52,6 +53,7 @@ var processExternalDoors = processExternalDoorInventory{
 	OutputPolicy_Validate:    process.OutputPolicy.Validate,
 	Alive:                    process.Alive, AmbientArguments: process.AmbientArguments, Begin: process.Begin,
 	DiscardDeviceArgument: process.DiscardDeviceArgument,
+	ExitCurrent:           process.ExitCurrent,
 	NewArgument:           process.NewArgument, NewEnvironmentName: process.NewEnvironmentName, NewEnvironmentValue: process.NewEnvironmentValue,
 	NewTruncatingWriter: process.NewTruncatingWriter, ObserveProcesses: process.ObserveProcesses,
 	ParseArguments: process.ParseArguments, ParseEffectiveEnvironment: process.ParseEffectiveEnvironment, ParseExactEnvironment: process.ParseExactEnvironment,
@@ -64,6 +66,7 @@ var processExternalDoors = processExternalDoorInventory{
 type processExternalFuzzProofInventory struct {
 	OutputMode_UnmarshalJSON func(*testing.F)
 	OutputPolicy_Validate    func(*testing.F)
+	ExitCurrent              func(*testing.F)
 	AmbientArguments, Begin, NewArgument, NewEnvironmentName, NewEnvironmentValue, NewTruncatingWriter,
 	ParseArguments, ParseEffectiveEnvironment, ParseExactEnvironment, Resolve, ResolveExecutable, Run,
 	Streams_WriteOutput, TruncatingWriter_Write, ResultObservation_Validate func(*testing.F)
@@ -73,6 +76,7 @@ func processExternalFuzzProofs() processExternalFuzzProofInventory {
 	return processExternalFuzzProofInventory{
 		OutputMode_UnmarshalJSON: FuzzOutputModeJSONSemanticClosure,
 		OutputPolicy_Validate:    FuzzOutputPolicyExternalIngress,
+		ExitCurrent:              FuzzExitStatusValidation,
 		AmbientArguments:         FuzzParseArgumentsAndAmbientExternalIngress, Begin: FuzzRunAndBeginStreamingExternalIngress,
 		NewArgument: FuzzArgumentEnvironmentAtomsExternalIngress, NewEnvironmentName: FuzzArgumentEnvironmentAtomsExternalIngress, NewEnvironmentValue: FuzzArgumentEnvironmentAtomsExternalIngress,
 		NewTruncatingWriter: FuzzTruncatingWriterExternalIngress, ParseArguments: FuzzParseArgumentsAndAmbientExternalIngress,

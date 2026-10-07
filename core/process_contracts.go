@@ -10,6 +10,10 @@ const (
 	ProcessExitCodeMaximum  int64 = 1<<32 - 1
 )
 
+// ProcessExitStatusMaximum is the complete normal-exit status representation
+// shared by POSIX and Windows. Values above it would be truncated on POSIX.
+const ProcessExitStatusMaximum = 1<<8 - 1
+
 // WindowsProcessInvalidParameter matches Go's syscall _ERROR_INVALID_PARAMETER.
 // The standard library keeps this native identity private; Process needs it
 // to distinguish an absent process from a refused observation.

@@ -143,7 +143,7 @@ func emitPackageClaimSpecsHThroughR(emit func(packageClaimSpec) bool) bool {
 			solution: "Process runs one typed command over os/exec with caller-owned streams, an explicit choice of uncapped or bounded output, and exact child results.",
 			benefit:  "Consumers retain recognizable Go process semantics while crossing one auditable execution boundary.",
 			removal:  "Remove a Process feature when os/exec provides its full typed ownership and bound; remove the package when no shared gap remains.",
-			owns:     "Process owns command validation, startup, stream forwarding, containment, cancellation delivery, wait, and resource observation.",
+			owns:     "Process owns command validation, startup, stream forwarding, containment, cancellation delivery, wait, resource observation, and validated immediate self-termination; callers finish cleanup and choose the exit status.",
 			excludes: "It does not parse shells, construct pipelines, schedule work, retain a registry, interpret output, or decide success policy.",
 		},
 		{
