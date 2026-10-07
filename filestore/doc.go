@@ -11,6 +11,8 @@
 // decision; Filestore does not retain a second extent or file model.
 // SortContentStream owns disposable sort handles and their rooted cleanup,
 // returning observed and unique counts without deciding duplicate policy.
+// WithScratchScope lends one native private root and owns its cleanup after
+// the caller's synchronous operation; filenames and schemas remain caller policy.
 //
 // StageDestination lends a real Go file to an external streaming producer.
 // The caller checks the producer's error and abandons the stage on failure.

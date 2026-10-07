@@ -7,7 +7,6 @@ import (
 	"iter"
 	"math"
 	"os"
-	"path/filepath"
 
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
@@ -62,26 +61,19 @@ func SortContentStream(ctx context.Context, request ContentStreamRequest) (summa
 			summary = ContentStreamSummary{}
 		}
 	}()
-	root, err := OpenRoot(ctx, request.Parent)
-	if err != nil {
-		return ContentStreamSummary{}, err
-	}
-	defer func() { resultErr = errors.Join(resultErr, root.Close()) }()
-	directory, err := os.MkdirTemp(request.Parent.String(), "primitive-content-sort-")
-	if err != nil {
-		return ContentStreamSummary{}, activationError(err)
-	}
-	defer func() {
-		path, err := core.ParseRelativePath(filepath.Base(directory))
-		if err != nil {
-			resultErr = errors.Join(resultErr, err)
-			return
-		}
-		resultErr = errors.Join(resultErr, RemoveTree(context.WithoutCancel(ctx), TreeRemovalRequest{Location: Location{Root: root, Path: path}}))
-	}()
+	resultErr = WithScratchScope(ctx, ScratchScopeRequest{Parent: request.Parent, Use: func(ctx context.Context, root *os.Root) error {
+		var err error
+		summary, err = sortContentStreamInRoot(ctx, root, request)
+		return err
+	}})
+	return summary, resultErr
+}
+
+func sortContentStreamInRoot(ctx context.Context, root *os.Root, request ContentStreamRequest) (summary ContentStreamSummary, resultErr error) {
+
 	var files [2]*os.File
 	for index, name := range [...]string{"source", "merge"} {
-		file, err := os.OpenFile(filepath.Join(directory, name), os.O_CREATE|os.O_EXCL|os.O_RDWR, 0600)
+		file, err := root.OpenFile(name, os.O_CREATE|os.O_EXCL|os.O_RDWR, 0600)
 		if err != nil {
 			return ContentStreamSummary{}, activationError(err)
 		}

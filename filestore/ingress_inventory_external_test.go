@@ -85,6 +85,7 @@ func filestoreIngressProofs() []filestoreIngressProof {
 		{door: reflect.ValueOf(filestore.EnsureScratchDirectory), fuzz: FuzzScratchCreationModesSemanticClosure},
 		{door: reflect.ValueOf(filestore.OpenScratch), fuzz: FuzzScratchCreationModesSemanticClosure},
 		{door: reflect.ValueOf(filestore.ResetScratch), proof: TestScratchResetDiscardsBytesAndRestoresWriteCoordinate, reason: "Consumes an owned native scratch handle and proves exact zero extent plus restored write offset across transfer boundaries."},
+		{door: reflect.ValueOf(filestore.WithScratchScope), proof: TestScratchScopeOwnsNativeLifetime, reason: "Executes a synchronous resource scope and verifies native namespace cleanup, expired root refusal, and preserved consumer cancellation/failure."},
 		{door: reflect.ValueOf(filestore.Touch), fuzz: FuzzCustodyNamespaceAndTimestampSemanticClosure},
 		{door: reflect.ValueOf(filestore.ConfirmDurable), fuzz: FuzzCustodyNamespaceAndTimestampSemanticClosure},
 		{door: reflect.ValueOf(filestore.Inspect), fuzz: FuzzInspectionNativeFactsSemanticClosure},
