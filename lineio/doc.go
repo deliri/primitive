@@ -1,3 +1,4 @@
-// Package lineio streams LF-delimited input in fixed-memory fragments through
-// Go's bufio.Reader. It never imposes a line or stream length quota.
+// Package lineio streams exact LF-delimited byte fragments through Go's
+// bufio.Reader and positioned UTF-8 characters through Go's text/scanner.
+// It never imposes a line, token, file, or stream length quota.
 package lineio

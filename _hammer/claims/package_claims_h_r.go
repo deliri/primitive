@@ -48,12 +48,12 @@ func emitPackageClaimSpecsHThroughR(emit func(packageClaimSpec) bool) bool {
 			excludes: "It does not own accounts, plans, payments, clocks, persistence, transport, work authorization, or rendering.",
 		},
 		{
-			path: "lineio", title: "Bounded line streaming",
-			problem:  "Line-oriented inputs invite whole-file reads or unbounded scanner tokens at every caller.",
-			solution: "Lineio turns one io.Reader into a bounded stream using Go scanner semantics.",
-			benefit:  "Consumers compose predictable O(1)-memory line processing without copying buffer-limit mechanics.",
-			removal:  "Remove Lineio when no shared caller needs its bounded line contract beyond direct bufio use.",
-			owns:     "Lineio owns scanner construction, line bounds, iteration, and terminal read error reporting.",
+			path: "lineio", title: "Fixed-memory source streaming",
+			problem:  "Text inputs invite whole-file reads or unbounded scanner token retention at every caller.",
+			solution: "Lineio publishes exact byte fragments through bufio.Reader and positioned UTF-8 characters through text/scanner.Next without token collection.",
+			benefit:  "Consumers apply their own policy with O(1) source working memory and no line, token or file-size ceiling.",
+			removal:  "Remove Lineio when no shared caller needs its validated fragment or character contracts beyond direct Go reader use.",
+			owns:     "Lineio owns validated source views, fixed buffers, iteration, cancellation checks and typed native read failures.",
 			excludes: "It does not own line meaning, source acquisition, persistence, indexing, or complete-dataset materialization.",
 		},
 		{

@@ -32,3 +32,19 @@ not grow with a 1 TB or 100 TB stream; processing time grows with bytes read.
 
 The former Scanner/BufferPolicy/MaximumLineBytes contract is removed.
 Callers must consume fragments explicitly; there is no compatibility scanner.
+
+`Characters(ctx, CharacterRequest{Source})` instead publishes one typed UTF-8
+character and source position at a time. Go's `text/scanner.Next` owns decoding
+and rune-based line/column positions; the byte offset has its own zero-based
+type. No token text is collected. An initial BOM is ignored according to Go's
+scanner contract; later BOMs remain characters. NUL and malformed UTF-8 are
+refused with `core.ErrLineIOScan`.
+
+The source remains borrowed. Cancellation is checked at each character and
+source read; the caller must provide an interruptible reader for a blocking
+effect. Go's `bufio.Reader.Peek` owns repeated empty-read refusal and the fixed
+read-ahead buffer. Provider failures and native invalid-read-count identity
+remain available through `errors.Is`. A wrapped EOF is a failure rather than
+clean completion. A published prefix is provisional until clean exhaustion.
+The consumer can stop synchronously without a worker, queue or complete source
+model. There is no line, token or file-size ceiling.
