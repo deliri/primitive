@@ -1,0 +1,74 @@
+{
+  "sourceRevision": "0f2e1ee26ef3c87d00dc7aae27e4ee0277966efa",
+  "toolchain": "go1.27.1 darwin/arm64",
+  "raceCommand": "go test -json -race -count=1 ./filestore -run ^(TestScratchScope|TestContentStream|FuzzContentSortExactUnion)",
+  "fuzzCommand": "go test -json ./filestore -run ^$ -fuzz ^FuzzContentSortExactUnion$ -fuzztime=3s -parallel=2",
+  "scope": "focused behavior; no whole-module completion or independent acceptance",
+  "mutations": "close-mutation initially passed because the test checked a removed child; close-mutation-exact checks the root itself and fails all three lifetime cases. Closure restored.",
+  "artifacts": [
+    {
+      "path": "_docs/work/2026-10-07/scratch-scope/close-mutation-exact.jsonl",
+      "sha256": "afe04f9cefbd22bd00d2e72ffde3ef4d35eecb5dea04fe4a8f6799d0f7e62d1a"
+    },
+    {
+      "path": "_docs/work/2026-10-07/scratch-scope/close-mutation.jsonl",
+      "sha256": "b7cc76782f37d22fc87332b79f8939878f4e69e78e1ff2749b1dedd2d67b1f8e"
+    },
+    {
+      "path": "_docs/work/2026-10-07/scratch-scope/committed-fuzz.jsonl",
+      "sha256": "1e89544a1d56667a23d74599971d42fa758e79b4dabc99318e3d9fb9f7a565f2"
+    },
+    {
+      "path": "_docs/work/2026-10-07/scratch-scope/committed-race.jsonl",
+      "sha256": "bc7940a9732a26c33342084b586de2167476f12a3892d08d4c6b6f9d8652668e"
+    },
+    {
+      "path": "_docs/work/2026-10-07/scratch-scope/content-race.jsonl",
+      "sha256": "f536347e8e58535e82445515e0b8af8af47946da97efe7c77f19112ded014bbb"
+    },
+    {
+      "path": "_docs/work/2026-10-07/scratch-scope/race.jsonl",
+      "sha256": "8458f9110188c5c98505a1af72408f8b19b2a2488f3f306d0dd5d12017f8a8cc"
+    },
+    {
+      "path": "_docs/work/2026-10-07/scratch-scope/restored-race.jsonl",
+      "sha256": "ee8c151221b5105b52db80df9a590e40d68e77590d00b9e5a0f793690b3cd287"
+    },
+    {
+      "path": "_docs/work/2026-10-07/scratch-scope/semantic-fuzz-complete.jsonl",
+      "sha256": "a49488d2e92eb6967a6213cb10f1a4e58a363f9136cfea418e8bbedcfd221556"
+    },
+    {
+      "path": "_docs/work/2026-10-07/scratch-scope/semantic-fuzz.jsonl",
+      "sha256": "6665d4a78bc0e719211bc66f45bdac861053def3b80bbc11fef70e69d28afc08"
+    }
+  ],
+  "runs": {
+    "committed-race": {
+      "events": 200,
+      "packageResults": [
+        {
+          "Time": "2026-10-07T02:49:19.464306-04:00",
+          "Action": "pass",
+          "Package": "github.com/deliri/primitive/v2026/filestore",
+          "Elapsed": 1.2810000000000001
+        }
+      ],
+      "failures": [],
+      "skips": []
+    },
+    "committed-fuzz": {
+      "events": 12,
+      "packageResults": [
+        {
+          "Time": "2026-10-07T02:52:30.823682-04:00",
+          "Action": "pass",
+          "Package": "github.com/deliri/primitive/v2026/filestore",
+          "Elapsed": 3.816
+        }
+      ],
+      "failures": [],
+      "skips": []
+    }
+  }
+}
