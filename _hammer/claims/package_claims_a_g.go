@@ -32,10 +32,10 @@ func emitPackageClaimSpecsAThroughG(emit func(packageClaimSpec) bool) bool {
 		{
 			path: "capabilities", title: "Compiler-owned effect ownership",
 			problem:  "Direct operating-system calls can hide duplicate effect owners and copied architectural conventions across packages.",
-			solution: "Capabilities exposes the closed Primitive effect taxonomy, exact owner for each effect, and standard-library symbol classifications.",
+			solution: "Capabilities exposes the closed Primitive effect taxonomy, exact owner for each effect, standard-library symbol classifications, and typed callable input and return shapes including error-only process termination.",
 			benefit:  "Offline inspection can distinguish an owning implementation from a bypass using one compiler-visible source of truth.",
 			removal:  "Remove Capabilities when the Go compiler can natively express and enforce package ownership of real-world effects.",
-			owns:     "Capabilities owns Primitive effect identities, package ownership, and low-level symbol classification.",
+			owns:     "Capabilities owns Primitive effect identities, package ownership, low-level symbol classification, and validated callable metadata without inventing a value result for error-only operations.",
 			excludes: "It does not inspect repositories, perform effects, explain why product code exists, or decide product policy.",
 		},
 		{

@@ -24,7 +24,7 @@ func TestStandardSymbolOwnershipLayerTriad(t *testing.T) {
 		{name: "positive os Getenv belongs to host", importPath: "os", selector: "Getenv", want: StandardSymbolEffect, wantEffect: EffectHost},
 		{name: "positive HTTP Get belongs to transport", importPath: "net/http", selector: "Get", want: StandardSymbolEffect, wantEffect: EffectTransport},
 		{name: "positive HTTP ServeFile retains transport and filesystem", importPath: "net/http", selector: "ServeFile", want: StandardSymbolEffect, wantEffect: EffectTransport, wantSecondary: []Effect{EffectFilesystem}},
-		{name: "positive process exit belongs to process", importPath: "os", selector: "Exit", want: StandardSymbolEffect, wantEffect: EffectProcess},
+		{name: "positive process exit belongs to process", wantOperation: OperationExitCurrent, importPath: "os", selector: "Exit", want: StandardSymbolEffect, wantEffect: EffectProcess},
 		{name: "explicit garbage collection belongs to host resources", importPath: "runtime", selector: "GC", want: StandardSymbolEffect, wantEffect: EffectHost},
 		{name: "positive time Now belongs to time", wantOperation: OperationObserveTime, importPath: "time", selector: "Now", want: StandardSymbolEffect, wantEffect: EffectTime},
 		{name: "positive syscall Flock belongs to locking", importPath: "syscall", selector: "Flock", want: StandardSymbolEffect, wantEffect: EffectLocking},

@@ -16,6 +16,7 @@ const (
 	OperationWriteFile
 	OperationRunProcess
 	OperationObserveTime
+	OperationExitCurrent
 	operationLimit
 )
 
@@ -31,7 +32,7 @@ func (o Operation) String() string {
 	if o.Validate() != nil {
 		return core.UnknownEnumDiagnostic
 	}
-	return [...]string{"unavailable", "filestore.Read", "filestore.Write", "process.Run", "temporal.Observe"}[o]
+	return [...]string{"unavailable", "filestore.Read", "filestore.Write", "process.Run", "temporal.Observe", "process.ExitCurrent"}[o]
 }
 func (o Operation) MarshalJSON() ([]byte, error) {
 	if err := o.Validate(); err != nil {
@@ -56,19 +57,44 @@ func (o *Operation) UnmarshalJSON(data []byte) error {
 	return contractError(catalogOperationIsOutsideTheAdmittedDomain)
 }
 
-// OperationContract supplies the exact exported function and request/result
-// type coordinates. Callers still construct its request and select policy.
+// OperationResultKind identifies the complete Go return shape. A terminal
+// operation may return only an error on refusal; it has no value to fabricate.
+// The zero value is invalid. This discriminator is a compiler-only contract.
+type OperationResultKind uint8
+
+const (
+	OperationResultUnknown OperationResultKind = iota
+	OperationResultValueAndError
+	OperationResultErrorOnly
+)
+
+func (k OperationResultKind) Validate() error {
+	switch k {
+	case OperationResultValueAndError, OperationResultErrorOnly:
+		return nil
+	default:
+		return contractError("operation result kind is outside the admitted domain")
+	}
+}
+
+func (OperationResultKind) OffWireEnum() {}
+
+var _ core.OffWireEnum = OperationResultUnknown
+
+// OperationContract supplies the exact exported function and typed input and
+// result coordinates. Callers still construct its input and select policy.
 // These are bounded alternatives, never drop-in semantic aliases.
 type OperationContract struct {
 	Function      StandardSymbol
 	Request       SymbolName
 	Result        SymbolName
 	ResultPackage core.PackageIdentity
+	ResultKind    OperationResultKind
 	HasRequest    bool
 }
 
 func (c OperationContract) Validate() error {
-	if err := errors.Join(c.Function.Validate(), c.Result.Validate(), c.ResultPackage.Validate()); err != nil {
+	if err := errors.Join(c.Function.Validate(), c.validateResult()); err != nil {
 		return errors.Join(core.ErrCapabilitiesContract, err)
 	}
 	if c.Function.Receiver != nil {
@@ -82,6 +108,23 @@ func (c OperationContract) Validate() error {
 	}
 	return nil
 }
+
+func (c OperationContract) validateResult() error {
+	if err := c.ResultKind.Validate(); err != nil {
+		return err
+	}
+	switch c.ResultKind {
+	case OperationResultValueAndError:
+		return errors.Join(c.Result.Validate(), c.ResultPackage.Validate())
+	case OperationResultErrorOnly:
+		if c.Result != (SymbolName{}) || c.ResultPackage != core.PackageUnknown {
+			return contractError("error-only operation carries a fabricated value result")
+		}
+		return nil
+	default:
+		return contractError("operation result kind is outside the admitted domain")
+	}
+}
 func (o Operation) Contract() (OperationContract, bool, error) {
 	if err := o.Validate(); err != nil {
 		return OperationContract{}, false, err
@@ -90,19 +133,22 @@ func (o Operation) Contract() (OperationContract, bool, error) {
 	case OperationUnavailable:
 		return OperationContract{}, false, nil
 	case OperationReadFile:
-		return operationContract(operationDefinition{owner: core.PackageFilestore, selector: symbolRead, request: "ReadRequest", result: "ByteLength", resultPackage: core.PackageCore})
+		return operationContract(operationDefinition{resultKind: OperationResultValueAndError, owner: core.PackageFilestore, selector: symbolRead, request: "ReadRequest", result: "ByteLength", resultPackage: core.PackageCore})
 	case OperationWriteFile:
-		return operationContract(operationDefinition{owner: core.PackageFilestore, selector: symbolWrite, request: "WriteRequest", result: "CommitRequest", resultPackage: core.PackageFilestore})
+		return operationContract(operationDefinition{resultKind: OperationResultValueAndError, owner: core.PackageFilestore, selector: symbolWrite, request: "WriteRequest", result: "CommitRequest", resultPackage: core.PackageFilestore})
 	case OperationRunProcess:
-		return operationContract(operationDefinition{owner: core.PackageProcess, selector: "Run", request: symbolRequest, result: "Result", resultPackage: core.PackageProcess})
+		return operationContract(operationDefinition{resultKind: OperationResultValueAndError, owner: core.PackageProcess, selector: "Run", request: symbolRequest, result: "Result", resultPackage: core.PackageProcess})
 	case OperationObserveTime:
-		return operationContract(operationDefinition{owner: core.PackageTemporal, selector: "Observe", result: "Observation", resultPackage: core.PackageTemporal})
+		return operationContract(operationDefinition{resultKind: OperationResultValueAndError, owner: core.PackageTemporal, selector: "Observe", result: "Observation", resultPackage: core.PackageTemporal})
+	case OperationExitCurrent:
+		return operationContract(operationDefinition{resultKind: OperationResultErrorOnly, owner: core.PackageProcess, selector: "ExitCurrent", request: "ExitStatus"})
 	default:
 		return OperationContract{}, false, contractError(catalogOperationIsOutsideTheAdmittedDomain)
 	}
 }
 
 type operationDefinition struct {
+	resultKind                OperationResultKind
 	selector, request, result string
 	owner, resultPackage      core.PackageIdentity
 }
@@ -122,11 +168,13 @@ func operationContract(definition operationDefinition) (OperationContract, bool,
 	if err != nil {
 		return OperationContract{}, false, err
 	}
-	resultName, err := ParseSymbolName(definition.result)
-	if err != nil {
-		return OperationContract{}, false, err
+	contract := OperationContract{Function: StandardSymbol{ImportPath: imported, Selector: name}, ResultPackage: definition.resultPackage, ResultKind: definition.resultKind, HasRequest: definition.request != ""}
+	if definition.resultKind == OperationResultValueAndError {
+		contract.Result, err = ParseSymbolName(definition.result)
+		if err != nil {
+			return OperationContract{}, false, err
+		}
 	}
-	contract := OperationContract{Function: StandardSymbol{ImportPath: imported, Selector: name}, Result: resultName, ResultPackage: definition.resultPackage, HasRequest: definition.request != ""}
 	if contract.HasRequest {
 		contract.Request, err = ParseSymbolName(definition.request)
 		if err != nil {
@@ -136,8 +184,7 @@ func operationContract(definition operationDefinition) (OperationContract, bool,
 	return contract, true, contract.Validate()
 }
 
-// Replacement reports only reviewed callable alternatives. In particular,
-// os.Exit has process ownership but no offered Primitive exit capability.
+// Replacement reports only reviewed callable alternatives.
 func (f StandardSymbolFact) Replacement() (Operation, error) {
 	if err := f.Validate(); err != nil {
 		return OperationUnavailable, err
@@ -178,6 +225,8 @@ func functionReplacement(path, selector string) Operation {
 			return OperationReadFile
 		case symbolWriteFile:
 			return OperationWriteFile
+		case "Exit":
+			return OperationExitCurrent
 		default:
 			return OperationUnavailable
 		}
@@ -195,5 +244,5 @@ func (o Operation) effect() (Effect, error) {
 	if err := o.Validate(); err != nil {
 		return EffectUnknown, err
 	}
-	return [...]Effect{OperationUnavailable: EffectUnknown, OperationReadFile: EffectFilesystem, OperationWriteFile: EffectFilesystem, OperationRunProcess: EffectProcess, OperationObserveTime: EffectTime}[o], nil
+	return [...]Effect{OperationUnavailable: EffectUnknown, OperationReadFile: EffectFilesystem, OperationWriteFile: EffectFilesystem, OperationRunProcess: EffectProcess, OperationObserveTime: EffectTime, OperationExitCurrent: EffectProcess}[o], nil
 }

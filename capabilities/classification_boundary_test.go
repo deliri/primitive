@@ -54,7 +54,7 @@ func TestClassificationSecondaryPowerSet(t *testing.T) {
 
 func TestClassificationOperationAndSecondaryContradictions(t *testing.T) {
 	t.Parallel()
-	owners := [operationLimit]Effect{OperationReadFile: EffectFilesystem, OperationWriteFile: EffectFilesystem, OperationRunProcess: EffectProcess, OperationObserveTime: EffectTime}
+	owners := [operationLimit]Effect{OperationReadFile: EffectFilesystem, OperationWriteFile: EffectFilesystem, OperationRunProcess: EffectProcess, OperationObserveTime: EffectTime, OperationExitCurrent: EffectProcess}
 	for raw := range 256 {
 		operation := Operation(raw)
 		for disposition := StandardSymbolPure; disposition <= StandardSymbolUnresolved; disposition++ {

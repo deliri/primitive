@@ -20,7 +20,24 @@ var (
 	_ func(context.Context, filestore.WriteRequest) (filestore.CommitRequest, error) = filestore.Write
 	_ func(context.Context, process.Request) (process.Result, error)                 = process.Run
 	_ func() (temporal.Observation, error)                                           = temporal.Observe
+	_ func(process.ExitStatus) error                                                 = process.ExitCurrent
 )
+
+func TestImmediateExitHasAnExactErrorOnlyCallableContract(t *testing.T) {
+	t.Parallel()
+	contract, offered, err := OperationExitCurrent.Contract()
+	if err != nil || !offered || contract.ResultKind != OperationResultErrorOnly || contract.Result != (SymbolName{}) || contract.ResultPackage != core.PackageUnknown {
+		t.Fatalf("immediate exit return contract = (%+v,%t,%v), want error alone with no fabricated result type", contract, offered, err)
+	}
+	if !contract.HasRequest || contract.Request.String() != reflect.TypeFor[process.ExitStatus]().Name() {
+		t.Fatalf("immediate exit input contract = %+v, want the compiler-owned normal termination status", contract)
+	}
+	function := reflect.ValueOf(process.ExitCurrent)
+	want := runtime.FuncForPC(function.Pointer()).Name()
+	if got := contract.Function.ImportPath.String() + "." + contract.Function.Selector.String(); got != want || function.Type().NumOut() != 1 || function.Type().Out(0) != reflect.TypeFor[error]() {
+		t.Fatalf("immediate exit symbol = %s, want compiler symbol %s and one error result", got, want)
+	}
+}
 
 func TestCallableOperationsLayerTriad(t *testing.T) {
 	t.Parallel()
@@ -47,6 +64,9 @@ func TestCallableOperationsLayerTriad(t *testing.T) {
 				t.Fatalf("operation symbol = %s, want compiler symbol %s", gotName, wantName)
 			}
 			signature := tc.function.Type()
+			if got.ResultKind != OperationResultValueAndError || signature.NumOut() != 2 || signature.Out(1) != reflect.TypeFor[error]() {
+				t.Fatalf("return shape = %v / %v, want value followed by error", got.ResultKind, signature)
+			}
 			resultPath, err := got.ResultPackage.ImportPath()
 			if err != nil {
 				t.Fatal(err)
@@ -88,8 +108,8 @@ func TestCallableOperationsLayerTriad(t *testing.T) {
 		t.Fatal(err)
 	}
 	fact, err := ResolveStandardSymbol(StandardSymbol{ImportPath: path, Selector: selector})
-	if err != nil || fact.Effect != EffectProcess || fact.Operation != OperationUnavailable {
-		t.Fatalf("os.Exit = (%+v,%v), want process ownership with unavailable replacement", fact, err)
+	if err != nil || fact.Effect != EffectProcess || fact.Operation != OperationExitCurrent {
+		t.Fatalf("os.Exit = (%+v,%v), want process ownership with the exact termination replacement", fact, err)
 	}
 }
 
@@ -137,4 +157,16 @@ func FuzzOperationJSONSemanticClosure(f *testing.F) {
 			t.Fatalf("operation round trip = (%v,%v), want %v", second, err, got)
 		}
 	})
+}
+
+func TestOperationResultKindExhaustsReturnShapes(t *testing.T) {
+	t.Parallel()
+	for raw := range 256 {
+		kind := OperationResultKind(raw)
+		wantAdmitted := kind == OperationResultValueAndError || kind == OperationResultErrorOnly
+		err := kind.Validate()
+		if (err == nil) != wantAdmitted || (!wantAdmitted && !errors.Is(err, core.ErrCapabilitiesContract)) {
+			t.Fatalf("return shape %d admission = %v, want admitted %t", raw, err, wantAdmitted)
+		}
+	}
 }

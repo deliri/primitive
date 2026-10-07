@@ -39,7 +39,7 @@ func identityDomain() []Identity {
 	return result
 }
 func operationDomain() []Operation {
-	return []Operation{OperationUnavailable, OperationReadFile, OperationWriteFile, OperationRunProcess, OperationObserveTime}
+	return []Operation{OperationUnavailable, OperationReadFile, OperationWriteFile, OperationRunProcess, OperationObserveTime, OperationExitCurrent}
 }
 func dispositionDomain() []StandardSymbolDisposition {
 	return []StandardSymbolDisposition{StandardSymbolPure, StandardSymbolContextual, StandardSymbolEffect, StandardSymbolUnresolved}
@@ -144,7 +144,7 @@ func classificationAdmitted(value Classification) bool {
 	if value.Effect < EffectFilesystem || value.Effect >= effectLimit {
 		return false
 	}
-	owners := [operationLimit]Effect{OperationReadFile: EffectFilesystem, OperationWriteFile: EffectFilesystem, OperationRunProcess: EffectProcess, OperationObserveTime: EffectTime}
+	owners := [operationLimit]Effect{OperationReadFile: EffectFilesystem, OperationWriteFile: EffectFilesystem, OperationRunProcess: EffectProcess, OperationObserveTime: EffectTime, OperationExitCurrent: EffectProcess}
 	if value.Operation != OperationUnavailable && owners[value.Operation] != value.Effect {
 		return false
 	}

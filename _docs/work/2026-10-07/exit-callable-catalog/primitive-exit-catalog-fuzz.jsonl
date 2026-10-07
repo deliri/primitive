@@ -1,0 +1,12 @@
+{"Time":"2026-10-07T16:13:13.855407-04:00","Action":"start","Package":"github.com/deliri/primitive/v2026/capabilities"}
+{"Time":"2026-10-07T16:13:14.099799-04:00","Action":"run","Package":"github.com/deliri/primitive/v2026/capabilities","Test":"FuzzOperationJSONSemanticClosure"}
+{"Time":"2026-10-07T16:13:14.099928-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/capabilities","Test":"FuzzOperationJSONSemanticClosure","Output":"=== RUN   FuzzOperationJSONSemanticClosure\n","OutputType":"frame"}
+{"Time":"2026-10-07T16:13:14.106522-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/capabilities","Test":"FuzzOperationJSONSemanticClosure","Output":"fuzz: elapsed: 0s, gathering baseline coverage: 0/8 completed\n"}
+{"Time":"2026-10-07T16:13:14.227853-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/capabilities","Test":"FuzzOperationJSONSemanticClosure","Output":"fuzz: elapsed: 0s, gathering baseline coverage: 8/8 completed, now fuzzing with 2 workers\n"}
+{"Time":"2026-10-07T16:13:17.115184-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/capabilities","Test":"FuzzOperationJSONSemanticClosure","Output":"fuzz: elapsed: 3s, execs: 7847 (2605/sec), new interesting: 44 (total: 52)\n"}
+{"Time":"2026-10-07T16:13:17.197846-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/capabilities","Test":"FuzzOperationJSONSemanticClosure","Output":"fuzz: elapsed: 3s, execs: 7847 (0/sec), new interesting: 44 (total: 52)\n"}
+{"Time":"2026-10-07T16:13:17.198778-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/capabilities","Test":"FuzzOperationJSONSemanticClosure","Output":"--- PASS: FuzzOperationJSONSemanticClosure (3.10s)\n","OutputType":"frame"}
+{"Time":"2026-10-07T16:13:17.198824-04:00","Action":"pass","Package":"github.com/deliri/primitive/v2026/capabilities","Test":"FuzzOperationJSONSemanticClosure","Elapsed":3.1}
+{"Time":"2026-10-07T16:13:17.198869-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/capabilities","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-07T16:13:17.199627-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/capabilities","Output":"ok  \tgithub.com/deliri/primitive/v2026/capabilities\t3.337s\n"}
+{"Time":"2026-10-07T16:13:17.199783-04:00","Action":"pass","Package":"github.com/deliri/primitive/v2026/capabilities","Elapsed":3.344}

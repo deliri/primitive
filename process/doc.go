@@ -23,8 +23,9 @@
 // Executable path, working directory, and environment are host observations
 // supplied by hostfacts and admitted into this package's typed request values.
 //
-// Ambient termination belongs directly in package main; libraries return
-// typed failures and never terminate their host process.
+// Ambient termination policy belongs to the caller at its process boundary.
+// ExitCurrent executes immediate termination through Go; product libraries
+// return typed failures and do not choose to terminate their host process.
 // DiscardDeviceArgument exposes the platform null device as a validated argv
 // value for compiler and linker outputs that are intentionally not retained.
 //
