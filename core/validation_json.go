@@ -200,7 +200,7 @@ func EncodeValidatedJSON[T ValidatedJSONMarshaler](value T, limits StrictJSONLim
 		return nil, err
 	}
 	if projection, ok := any(value).(ValidatedJSONProjection); ok {
-		if err := validateStrictJSONTypedInput(encoded, limits); err != nil {
+		if err := limits.ValidateDocument(encoded); err != nil {
 			return nil, err
 		}
 		if err := validateJSONProjection(projection, encoded, limits); err != nil {
@@ -419,7 +419,7 @@ func growStrictJSONReadBuffer(buffer []byte, maximum int) []byte {
 }
 
 func decodeStrictJSONStructureValidatedLimits[T any](data []byte, limits StrictJSONLimits) (value T, err error) {
-	if err := validateStrictJSONTypedInput(data, limits); err != nil {
+	if err := limits.ValidateDocument(data); err != nil {
 		return value, err
 	}
 	defer func() {
@@ -436,8 +436,14 @@ func decodeStrictJSONStructureValidatedLimits[T any](data []byte, limits StrictJ
 	return value, nil
 }
 
-func validateStrictJSONTypedInput(data []byte, limits StrictJSONLimits) error {
-	return scanStrictJSONBoundsAndCaseFoldNames(data, limits)
+// ValidateDocument admits one JSON document under the caller's owned
+// byte, depth, field and collection bounds, including case-folded duplicate-name
+// refusal. It performs no typed decode or retained opaque value projection.
+func (l StrictJSONLimits) ValidateDocument(data []byte) error {
+	if err := l.Validate(); err != nil {
+		return err
+	}
+	return scanStrictJSONBoundsAndCaseFoldNames(data, l)
 }
 
 func scanStrictJSONBoundsAndCaseFoldNames(
@@ -507,16 +513,20 @@ func (d jsonContractDiagnostic) Error() string {
 func scanStrictJSONTokens(data []byte, limits StrictJSONLimits) error {
 	decoder := jsontext.NewDecoder(bytes.NewReader(data))
 	stack := make([]strictJSONContainer, 0)
+	complete := false
 	for {
 		token, err := decoder.ReadToken()
 		if errors.Is(err, io.EOF) {
-			if len(stack) != 0 {
-				return jsonContractError("json document has unclosed container", nil)
+			if len(stack) != 0 || !complete {
+				return jsonContractError("json document has no complete value", nil)
 			}
 			return nil
 		}
 		if err != nil {
 			return jsonContractError("json token scan failed", err)
+		}
+		if complete {
+			return jsonContractError("json document has multiple values", nil)
 		}
 		stack, err = scanStrictJSONToken(strictJSONTokenScan{
 			stack: stack, token: token, limits: limits,
@@ -524,6 +534,7 @@ func scanStrictJSONTokens(data []byte, limits StrictJSONLimits) error {
 		if err != nil {
 			return err
 		}
+		complete = len(stack) == 0
 	}
 }
 

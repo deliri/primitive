@@ -58,6 +58,7 @@ func TestPublicOperationsAreExactIntentEntryPoints(t *testing.T) {
 		"ObserveTerminalGeometry",
 		"ObserveTimeZone",
 		"RemoveAmbientEnvironment",
+		"ResolveGoProgramCounter",
 		"ResolveWorkingPath",
 		"SetAmbientEnvironment",
 		"TemporaryDirectory",

@@ -13,6 +13,56 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
+func TestResolveGoProgramCounterMatchesRecordedGoFrame(t *testing.T) {
+	t.Parallel()
+	var pcs [1]uintptr
+	if runtime.Callers(1, pcs[:]) != 1 {
+		t.Fatal("recorded program counter is unavailable")
+	}
+	want, _ := runtime.CallersFrames(pcs[:]).Next()
+	got, err := hostfacts.ResolveGoProgramCounter(t.Context(), hostfacts.GoProgramCounter(pcs[0]))
+	if err != nil || got.Validate() != nil || uintptr(got.PC) != want.PC || string(got.Function) != want.Function || string(got.File) != want.File || got.Line != want.Line {
+		t.Fatalf("recorded frame = %+v/%v, want Go observation %+v", got, err, want)
+	}
+	if frame, err := hostfacts.ResolveGoProgramCounter(t.Context(), 0); frame != (hostfacts.GoStackFrame{}) || !errors.Is(err, core.ErrHostFactsObservation) {
+		t.Fatalf("zero coordinate = %+v/%v, want typed refusal", frame, err)
+	}
+	if frame, err := hostfacts.ResolveGoProgramCounter(nil, hostfacts.GoProgramCounter(pcs[0])); frame != (hostfacts.GoStackFrame{}) || !errors.Is(err, core.ErrNilContext) {
+		t.Fatalf("nil context = %+v/%v, want typed refusal", frame, err)
+	}
+	ctx, cancel, err := temporal.WithCancellation(temporal.CancellationRequest{Parent: t.Context()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cancel(nil)
+	cancel(nil)
+	if frame, err := hostfacts.ResolveGoProgramCounter(ctx, hostfacts.GoProgramCounter(pcs[0])); frame != (hostfacts.GoStackFrame{}) || !errors.Is(err, context.Canceled) {
+		t.Fatalf("canceled observation = %+v/%v, want no frame", frame, err)
+	}
+}
+
+func FuzzResolveGoProgramCounterMatchesRuntime(f *testing.F) {
+	f.Add(uint8(0))
+	f.Add(uint8(1))
+	f.Add(uint8(63))
+	f.Fuzz(func(t *testing.T, index uint8) {
+		var pcs [64]uintptr
+		count := runtime.Callers(1, pcs[:])
+		pc := hostfacts.GoProgramCounter(pcs[int(index)%len(pcs)])
+		got, err := hostfacts.ResolveGoProgramCounter(t.Context(), pc)
+		if int(index)%len(pcs) >= count {
+			if got != (hostfacts.GoStackFrame{}) || !errors.Is(err, core.ErrHostFactsObservation) {
+				t.Fatalf("absent coordinate = %+v/%v", got, err)
+			}
+			return
+		}
+		want, _ := runtime.CallersFrames([]uintptr{uintptr(pc)}).Next()
+		if err != nil || got.Validate() != nil || uintptr(got.PC) != want.PC || string(got.Function) != want.Function || string(got.File) != want.File || got.Line != want.Line {
+			t.Fatalf("resolved recorded PC = %+v/%v, want Go frame %+v", got, err, want)
+		}
+	})
+}
+
 func TestCurrentGoStackFramesCrossesEveryWorkingWindow(t *testing.T) {
 	t.Parallel()
 	for _, depth := range []int{0, 1, 31, 32, 33, 64, 127, 256} {

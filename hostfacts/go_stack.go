@@ -12,6 +12,35 @@ import (
 // GoProgramCounter is one ephemeral return-program coordinate in this process.
 type GoProgramCounter uintptr
 
+// Validate refuses the absence of a recorded program coordinate.
+func (pc GoProgramCounter) Validate() error {
+	if pc == 0 {
+		return core.ErrHostFactsObservation
+	}
+	return nil
+}
+
+// ResolveGoProgramCounter resolves an already recorded return-program coordinate
+// in this process. Go owns inline-frame expansion and symbol lookup; Primitive
+// returns the first observed frame without retaining a stack inventory.
+func ResolveGoProgramCounter(ctx context.Context, pc GoProgramCounter) (GoStackFrame, error) {
+	if err := contextstate.Validate(ctx); err != nil {
+		return GoStackFrame{}, err
+	}
+	if err := pc.Validate(); err != nil {
+		return GoStackFrame{}, err
+	}
+	frame, _ := runtime.CallersFrames([]uintptr{uintptr(pc)}).Next()
+	observation := GoStackFrame{PC: GoProgramCounter(frame.PC), Function: GoFunctionName(frame.Function), File: GoSourceFile(frame.File), Line: frame.Line}
+	if err := contextstate.Validate(ctx); err != nil {
+		return GoStackFrame{}, err
+	}
+	if err := observation.Validate(); err != nil {
+		return GoStackFrame{}, err
+	}
+	return observation, nil
+}
+
 // GoFunctionName is the runtime's symbol coordinate; an empty value means that
 // Go could not resolve the symbol for this observed program counter.
 type GoFunctionName string
@@ -20,7 +49,7 @@ type GoFunctionName string
 // cannot resolve a source file. It is not a filesystem execution authority.
 type GoSourceFile string
 
-// GoStackFrame is one current-goroutine observation, with Go's expanded inline
+// GoStackFrame is one runtime observation, with Go's expanded inline
 // frame semantics. Line zero means unavailable; the program counter is required.
 type GoStackFrame struct {
 	PC       GoProgramCounter
@@ -31,7 +60,10 @@ type GoStackFrame struct {
 
 // Validate refuses fabricated zero frames and impossible negative line numbers.
 func (f GoStackFrame) Validate() error {
-	if f.PC == 0 || f.Line < 0 {
+	if err := f.PC.Validate(); err != nil {
+		return err
+	}
+	if f.Line < 0 {
 		return core.ErrHostFactsObservation
 	}
 	return nil
@@ -80,3 +112,4 @@ func CurrentGoStackFrames(ctx context.Context) iter.Seq2[GoStackFrame, error] {
 }
 
 var _ core.Validatable = GoStackFrame{}
+var _ core.Validatable = GoProgramCounter(0)
