@@ -1,0 +1,12 @@
+{"Time":"2026-10-07T01:51:17.436352-04:00","Action":"start","Package":"github.com/deliri/primitive/v2026/filestore"}
+{"Time":"2026-10-07T01:51:17.58561-04:00","Action":"run","Package":"github.com/deliri/primitive/v2026/filestore","Test":"FuzzContentSortExactUnion"}
+{"Time":"2026-10-07T01:51:17.585783-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/filestore","Test":"FuzzContentSortExactUnion","Output":"=== RUN   FuzzContentSortExactUnion\n","OutputType":"frame"}
+{"Time":"2026-10-07T01:51:17.588445-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/filestore","Test":"FuzzContentSortExactUnion","Output":"fuzz: elapsed: 0s, gathering baseline coverage: 0/8 completed\n"}
+{"Time":"2026-10-07T01:51:17.633992-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/filestore","Test":"FuzzContentSortExactUnion","Output":"fuzz: elapsed: 0s, gathering baseline coverage: 8/8 completed, now fuzzing with 2 workers\n"}
+{"Time":"2026-10-07T01:51:20.589758-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/filestore","Test":"FuzzContentSortExactUnion","Output":"fuzz: elapsed: 3s, execs: 663 (221/sec), new interesting: 1 (total: 9)\n"}
+{"Time":"2026-10-07T01:51:20.628995-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/filestore","Test":"FuzzContentSortExactUnion","Output":"fuzz: elapsed: 3s, execs: 663 (0/sec), new interesting: 1 (total: 9)\n"}
+{"Time":"2026-10-07T01:51:20.62904-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/filestore","Test":"FuzzContentSortExactUnion","Output":"--- PASS: FuzzContentSortExactUnion (3.04s)\n","OutputType":"frame"}
+{"Time":"2026-10-07T01:51:20.629049-04:00","Action":"pass","Package":"github.com/deliri/primitive/v2026/filestore","Test":"FuzzContentSortExactUnion","Elapsed":3.04}
+{"Time":"2026-10-07T01:51:20.629092-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/filestore","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-07T01:51:20.629849-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/filestore","Output":"ok  \tgithub.com/deliri/primitive/v2026/filestore\t3.193s\n"}
+{"Time":"2026-10-07T01:51:20.629886-04:00","Action":"pass","Package":"github.com/deliri/primitive/v2026/filestore","Elapsed":3.194}

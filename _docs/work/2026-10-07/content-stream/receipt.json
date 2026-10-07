@@ -1,0 +1,130 @@
+{
+  "source_revision": "c08b0d8650df750b58aeb76e41d2d57625b064fd",
+  "toolchain": "go version go1.27.1 darwin/arm64",
+  "race_command": "go test -json -race -count=1 ./filestore -run ^(TestContentStream|TestScratchReset|FuzzContentSortExactUnion)",
+  "fuzz_command": "go test -json ./filestore -run ^$ -fuzz ^FuzzContentSortExactUnion$ -fuzztime=3s -parallel=2",
+  "scope": "focused Filestore behavior and bounded development fuzz; no whole-module completion or independent acceptance",
+  "artifacts": [
+    {
+      "path": "_docs/work/2026-10-07/content-stream/red.jsonl",
+      "sha256": "e8fa21667a4670e1c1997e6d4c3302506af4bca1ba8c31ba2ac747197227f549",
+      "bytes": 25971
+    },
+    {
+      "path": "_docs/work/2026-10-07/content-stream/green.jsonl",
+      "sha256": "0cad4a776cf5d56a396029e8f57ae93b78a4fff49141750fd34a03e9f2ef6cdc",
+      "bytes": 23474
+    },
+    {
+      "path": "_docs/work/2026-10-07/content-stream/full-race.jsonl",
+      "sha256": "51f4d2a83e49e052fb3150f6d40be30b8909cbf3c7c031ed9448305553f5fc41",
+      "bytes": 12215381
+    },
+    {
+      "path": "_docs/work/2026-10-07/content-stream/full-race.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "_docs/work/2026-10-07/content-stream/restored-race.jsonl",
+      "sha256": "2bc04c33f50b6a37dea6e8ea727085f5edc714c0b376212e81307c20f39bf601",
+      "bytes": 48579
+    },
+    {
+      "path": "_docs/work/2026-10-07/content-stream/semantic-fuzz.jsonl",
+      "sha256": "c60bf5fa23d88d333831b68b90cd56e7ffad916819d1b83d0adc220d00d11654",
+      "bytes": 692
+    },
+    {
+      "path": "_docs/work/2026-10-07/content-stream/semantic-fuzz.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "_docs/work/2026-10-07/content-stream/semantic-fuzz-complete.jsonl",
+      "sha256": "135dbd8ec2d9b227d303c67bcf44de863bb05e6251c2f7de634d664696807567",
+      "bytes": 2321
+    },
+    {
+      "path": "_docs/work/2026-10-07/content-stream/semantic-fuzz-complete.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "_docs/work/2026-10-07/content-stream/count-mutation.jsonl",
+      "sha256": "b7ebb51f848dd481c5a4a208e188caa763523db18f85bd8f3613c56f8d4bc228",
+      "bytes": 13736
+    },
+    {
+      "path": "_docs/work/2026-10-07/content-stream/final-race.jsonl",
+      "sha256": "87528c78bd33825631639dc29ebd5f9f3470818dcb5aa237fb850ea11c3e1557",
+      "bytes": 48577
+    },
+    {
+      "path": "_docs/work/2026-10-07/content-stream/final-race.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "_docs/work/2026-10-07/content-stream/committed-race.jsonl",
+      "sha256": "79ee942d239a7e8f46fc4ec4bda88a932005b10db36fe9db204c3e39e1370efb",
+      "bytes": 48583
+    },
+    {
+      "path": "_docs/work/2026-10-07/content-stream/committed-race.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "_docs/work/2026-10-07/content-stream/committed-fuzz.jsonl",
+      "sha256": "1579be8f14537ca4f6fc6c81eb603335d2c2d338cb40993142b538d1b3c8600e",
+      "bytes": 2576
+    },
+    {
+      "path": "_docs/work/2026-10-07/content-stream/committed-fuzz.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "_docs/work/2026-10-07/content-stream/committed-fuzz-complete.jsonl",
+      "sha256": "de6b3a4211ec6d93c297e3303d2fde85f8d80508d6f6cbc4e0288c36dbaf7dd7",
+      "bytes": 2319
+    },
+    {
+      "path": "_docs/work/2026-10-07/content-stream/committed-fuzz-complete.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  ],
+  "historical_attempts": "full-race failed four architecture/proof inventory tests; subsequent sources correct the registrations and rooted deletion. Final lint gates deferred. Sandbox-limited fuzz attempts retained.",
+  "accounting": {
+    "committed-race": {
+      "events": 216,
+      "package_results": [
+        {
+          "Time": "2026-10-07T01:48:14.419807-04:00",
+          "Action": "pass",
+          "Package": "github.com/deliri/primitive/v2026/filestore",
+          "Elapsed": 1.242
+        }
+      ],
+      "failures": [],
+      "skips": [],
+      "cache": "race count=1; fuzz run has explicit cached corpus baseline shown in raw output"
+    },
+    "committed-fuzz-complete": {
+      "events": 12,
+      "package_results": [
+        {
+          "Time": "2026-10-07T01:51:20.629886-04:00",
+          "Action": "pass",
+          "Package": "github.com/deliri/primitive/v2026/filestore",
+          "Elapsed": 3.194
+        }
+      ],
+      "failures": [],
+      "skips": [],
+      "cache": "race count=1; fuzz run has explicit cached corpus baseline shown in raw output"
+    }
+  }
+}

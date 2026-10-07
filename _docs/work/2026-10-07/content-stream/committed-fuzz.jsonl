@@ -1,0 +1,13 @@
+{"Time":"2026-10-07T01:48:16.734944-04:00","Action":"start","Package":"github.com/deliri/primitive/v2026/filestore"}
+{"Time":"2026-10-07T01:48:16.889543-04:00","Action":"run","Package":"github.com/deliri/primitive/v2026/filestore","Test":"FuzzContentSortExactUnion"}
+{"Time":"2026-10-07T01:48:16.889698-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/filestore","Test":"FuzzContentSortExactUnion","Output":"=== RUN   FuzzContentSortExactUnion\n","OutputType":"frame"}
+{"Time":"2026-10-07T01:48:16.890852-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/filestore","Test":"FuzzContentSortExactUnion","Output":"fuzz: elapsed: 0s, gathering baseline coverage: 0/8 completed\n"}
+{"Time":"2026-10-07T01:48:16.936747-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/filestore","Test":"FuzzContentSortExactUnion","Output":"fuzz: elapsed: 0s, gathering baseline coverage: 8/8 completed, now fuzzing with 2 workers\n"}
+{"Time":"2026-10-07T01:48:17.235526-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/filestore","Test":"FuzzContentSortExactUnion","Output":"fuzz: elapsed: 0s, execs: 43 (125/sec), new interesting: 0 (total: 8)\n"}
+{"Time":"2026-10-07T01:48:17.235575-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/filestore","Test":"FuzzContentSortExactUnion","Output":"--- FAIL: FuzzContentSortExactUnion (0.35s)\n","OutputType":"frame"}
+{"Time":"2026-10-07T01:48:17.235585-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/filestore","Test":"FuzzContentSortExactUnion","Output":"    open /Users/d/Library/Caches/go-build/fuzz/github.com/deliri/primitive/v2026/filestore/FuzzContentSortExactUnion/7fa5891ba4a2e3da: operation not permitted\n"}
+{"Time":"2026-10-07T01:48:17.235631-04:00","Action":"fail","Package":"github.com/deliri/primitive/v2026/filestore","Test":"FuzzContentSortExactUnion","Elapsed":0.35}
+{"Time":"2026-10-07T01:48:17.235659-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/filestore","Output":"FAIL\n","OutputType":"frame"}
+{"Time":"2026-10-07T01:48:17.236933-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/filestore","Output":"exit status 1\n"}
+{"Time":"2026-10-07T01:48:17.236992-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/filestore","Output":"FAIL\tgithub.com/deliri/primitive/v2026/filestore\t0.502s\n","OutputType":"frame"}
+{"Time":"2026-10-07T01:48:17.237021-04:00","Action":"fail","Package":"github.com/deliri/primitive/v2026/filestore","Elapsed":0.502}
