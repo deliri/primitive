@@ -76,6 +76,32 @@ func FuzzContentSortExactUnion(f *testing.F) {
 		}
 		var output bytes.Buffer
 		got, gotErr := filestore.SortContentIndex(t.Context(), filestore.ContentSortRequest{Files: files, Destination: &output})
+		ownedDirectory := t.TempDir()
+		parent, err := core.ParseAbsolutePath(ownedDirectory)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var ownedOutput bytes.Buffer
+		owned, ownedErr := filestore.SortContentStream(t.Context(), filestore.ContentStreamRequest{
+			Parent: parent, Destination: &ownedOutput,
+			Source: func(yield func(filestore.ContentIndexEntry, error) bool) {
+				for _, index := range order {
+					if !yield(entries[index], nil) {
+						return
+					}
+				}
+			},
+		})
+		if ownedErr == nil && (owned.Observed != uint64(len(order)) || owned.Unique != got || !bytes.Equal(ownedOutput.Bytes(), output.Bytes())) {
+			t.Fatalf("owned stream = (%+v,%v), differs from independently checked union %+v", owned, ownedErr, got)
+		}
+		if (ownedErr == nil) != (gotErr == nil) || (ownedErr != nil && (owned != (filestore.ContentStreamSummary{}) || !errors.Is(ownedErr, core.ErrFilestoreContract))) {
+			t.Fatalf("owned refusal = (%+v,%v), direct union = (%+v,%v)", owned, ownedErr, got, gotErr)
+		}
+		residue, err := os.ReadDir(ownedDirectory)
+		if err != nil || len(residue) != 0 {
+			t.Fatalf("owned sort residue = %d entries, %v", len(residue), err)
+		}
 		same := entries[0].Digest == entries[1].Digest
 		if same && firstSize != secondSize {
 			var conflict filestore.ContentIndexConflictError
