@@ -1,0 +1,74 @@
+{
+  "source_revision": "65b93c4de182b5127a41c8586e799344f5120842",
+  "release": "v2026.1.126",
+  "toolchain": "go1.27.1 darwin/arm64",
+  "source_inputs_clean": true,
+  "working_tree": "untracked retained proof only",
+  "source_catalog": "committed-source-sha256.json",
+  "scope": "Lineio character observation capability; Go scanner Next, bufio Peek, native count guard, typed positions and synchronous iterator ownership.",
+  "race": {
+    "command": "go test -race ./lineio -run 'TestCharacter|FuzzCharactersMatchIndependentUTF8Oracle' -count=1 -json",
+    "artifact": "committed-race.jsonl",
+    "exit": 0,
+    "accounting": {
+      "pass": 39,
+      "fail": 0,
+      "skip": 0
+    },
+    "cache": "count=1",
+    "filtered": true
+  },
+  "semantic_fuzz": {
+    "command": "go test ./lineio -run '^$' -fuzz '^FuzzCharactersMatchIndependentUTF8Oracle$' -fuzztime=3s -parallel=2",
+    "artifact": "committed-fuzz.txt",
+    "exit": 0,
+    "executions": 21847,
+    "workers": 2,
+    "authored_seeds": 8,
+    "cached_baseline": 36,
+    "oracle": "independent utf8 validation and byte-coordinate decoding, NUL refusal, rune line and column accounting, initial BOM semantics"
+  },
+  "memory": {
+    "source_bytes": [
+      262144,
+      1048576,
+      67108864
+    ],
+    "retained_bytes": [
+      -34272,
+      9312,
+      3896
+    ],
+    "allowance_bytes": 262144,
+    "mutation_artifact": "whole-source-memory-mutation-red.jsonl",
+    "mutation_retained_bytes": 8442656,
+    "mutation": "append every yielded character to a retained slice across publication; first size fails the heap allowance; restored"
+  },
+  "build": {
+    "command": "go build ./...",
+    "exit": 0
+  },
+  "attempt_accounting": "All initial offset, no-progress and ineffective Read-only progress attempts retained; development race preceded final compile assertions and is historical, not the committed proof.",
+  "limitations": [
+    "Focused capability tests, not whole-module test acceptance.",
+    "Native Go signed coordinate extent remains the representable domain.",
+    "Caller retains the reader lifetime and must supply an interruptible source for blocking effects.",
+    "Published prefix is provisional until clean exhaustion.",
+    "Independent acceptance remains user owned."
+  ],
+  "artifacts_sha256": {
+    "character-fuzz-first.txt": "d687f39e634a2dba8e5fe676203250a8dcbdf08003d1f3a114b7f69218dd8822",
+    "character-fuzz-restored.txt": "17a3a2aa34309dc7b403b642c8eb90251f7050266c6990e657e01ffe98022619",
+    "committed-fuzz.txt": "c711b86b3625af858dd2e170b0c7b158e28db1dcaf29428fbb55fc048dc1b58f",
+    "committed-race.jsonl": "9c60ba06714251ab0996d03d9bca3ccae8a7fbc80518502546fd617bd9301ee0",
+    "committed-source-sha256.json": "ee1ea0ce084660c940e6b65a153d24c08f830799236ab521f17ff2e2f43e1845",
+    "complete-contract-green.jsonl": "4fc7bfca026680a97a288d8305b1ab5cfc6719c28849f1375c0336a2e4dee92e",
+    "initial-offset-red.jsonl": "51bee223ba7390a6a9b039d1f5da0509c938ec6c0993dc03a08bd579ce130093",
+    "native-progress-restored.jsonl": "b5f61430949bd36abc4f09af367413e1cd49bf2a064c00a98410d26fdbf3f9f0",
+    "no-progress-red.jsonl": "553fcdfa39922d9535517693de45ee21758f3bc81f31b1132a51ea35c0ef6a54",
+    "offset-restored.jsonl": "55b7f6ffbb56d8b8bb390c681dda647878d2b59761dd4423ffbf16cef3908b14",
+    "read-only-progress-failed.jsonl": "415e02360748a03a920e0a8eab3a41b7197112aabe8dc0841e532c03c2c4671f",
+    "restored-race-development.jsonl": "3a777eb3256604d59197f7cbd92e8f67358ac86ecb13018c97d08f6cd7aabba6",
+    "whole-source-memory-mutation-red.jsonl": "f82299c4e12bdf492ae954106bfadd0f3071fda8c0fa26968cfbcfeb7fcb03f8"
+  }
+}

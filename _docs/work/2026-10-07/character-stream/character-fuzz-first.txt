@@ -1,0 +1,6 @@
+fuzz: elapsed: 0s, gathering baseline coverage: 0/8 completed
+fuzz: elapsed: 0s, gathering baseline coverage: 8/8 completed, now fuzzing with 2 workers
+fuzz: elapsed: 3s, execs: 36442 (12144/sec), new interesting: 25 (total: 33)
+fuzz: elapsed: 4s, execs: 36442 (0/sec), new interesting: 25 (total: 33)
+PASS
+ok  	github.com/deliri/primitive/v2026/lineio	4.153s
