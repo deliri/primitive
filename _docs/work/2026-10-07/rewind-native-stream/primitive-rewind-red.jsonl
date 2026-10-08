@@ -1,0 +1,11 @@
+{"ImportPath":"github.com/deliri/primitive/v2026/filestore_test [github.com/deliri/primitive/v2026/filestore.test]","Action":"build-output","Output":"# github.com/deliri/primitive/v2026/filestore_test [github.com/deliri/primitive/v2026/filestore.test]\n"}
+{"ImportPath":"github.com/deliri/primitive/v2026/filestore_test [github.com/deliri/primitive/v2026/filestore.test]","Action":"build-output","Output":"filestore/rewind_external_test.go:37:23: undefined: filestore.Rewind\n"}
+{"ImportPath":"github.com/deliri/primitive/v2026/filestore_test [github.com/deliri/primitive/v2026/filestore.test]","Action":"build-output","Output":"filestore/rewind_external_test.go:37:45: undefined: filestore.RewindRequest\n"}
+{"ImportPath":"github.com/deliri/primitive/v2026/filestore_test [github.com/deliri/primitive/v2026/filestore.test]","Action":"build-output","Output":"filestore/rewind_external_test.go:114:22: undefined: filestore.Rewind\n"}
+{"ImportPath":"github.com/deliri/primitive/v2026/filestore_test [github.com/deliri/primitive/v2026/filestore.test]","Action":"build-output","Output":"filestore/rewind_external_test.go:114:57: undefined: filestore.RewindRequest\n"}
+{"ImportPath":"github.com/deliri/primitive/v2026/filestore_test [github.com/deliri/primitive/v2026/filestore.test]","Action":"build-output","Output":"filestore/rewind_external_test.go:139:23: undefined: filestore.Rewind\n"}
+{"ImportPath":"github.com/deliri/primitive/v2026/filestore_test [github.com/deliri/primitive/v2026/filestore.test]","Action":"build-output","Output":"filestore/rewind_external_test.go:139:53: undefined: filestore.RewindRequest\n"}
+{"ImportPath":"github.com/deliri/primitive/v2026/filestore_test [github.com/deliri/primitive/v2026/filestore.test]","Action":"build-fail"}
+{"Time":"2026-10-07T23:19:14.432378-04:00","Action":"start","Package":"github.com/deliri/primitive/v2026/filestore"}
+{"Time":"2026-10-07T23:19:14.432521-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/filestore","Output":"FAIL\tgithub.com/deliri/primitive/v2026/filestore [build failed]\n","OutputType":"frame"}
+{"Time":"2026-10-07T23:19:14.432549-04:00","Action":"fail","Package":"github.com/deliri/primitive/v2026/filestore","Elapsed":0,"FailedBuild":"github.com/deliri/primitive/v2026/filestore_test [github.com/deliri/primitive/v2026/filestore.test]"}

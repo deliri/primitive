@@ -1,0 +1,4 @@
+{
+  "mutation": "observe current coordinate instead of executing rewind",
+  "mutated_sha256": "bd8ef4ca742509ab25e237cd9178a5ccb2c399b11e954d0c47aedd633347faa4"
+}

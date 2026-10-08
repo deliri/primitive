@@ -49,6 +49,7 @@ type filestoreContractInventory struct {
 	DirectoryRequest              validatedRequest[DirectoryRequest]
 	ScratchRequest                validatedRequest[ScratchRequest]
 	ScratchResetRequest           validatedRequest[ScratchResetRequest]
+	RewindRequest                 validatedRequest[RewindRequest]
 	ScratchScopeRequest           validatedRequest[ScratchScopeRequest]
 	ReadRequest                   validatedRequest[ReadRequest]
 	ReadHandleRequest             validatedRequest[ReadHandleRequest]

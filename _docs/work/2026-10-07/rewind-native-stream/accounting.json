@@ -1,0 +1,45 @@
+{
+  "base_commit": "88a65a7eb8cdf1a14fd88c886569cbe4c9c1b328",
+  "toolchain": "go version go1.27.1 darwin/arm64",
+  "source_sha256": {
+    "filestore/rewind.go": "8a645354cc1c79754135da8cda4ac375e6a18ddf13109a08987a1a78f103df8f",
+    "filestore/rewind_external_test.go": "28b060427ce40c13b8af2e560da5152adbadd53510c9e55047af2bdad0b5c298",
+    "filestore/architecture_test.go": "41abb1576db578c09cd45d2c08134ab6701edfb0ab8f4e67509f54eaa8c6a083",
+    "filestore/ingress_inventory_external_test.go": "021fdd94975dc8ffdacb7be430cb9e3b74440088309b636250ce10e1b3b7b6d5",
+    "_hammer/claims/package_claims_a_g.go": "90be588189c80cb78271322e3d0d08901b55b8df79afaa6572c2572fdaf58d39",
+    "compass/config.json": "6518f918ce3fc33f147f24124eebec75075e2aaf2c79e44d860e87a406eb26ee"
+  },
+  "test_actions": {
+    "primitive-rewind-fuzz.jsonl": {
+      "pass": 1
+    },
+    "primitive-rewind-mutation-red.jsonl": {
+      "fail": 3,
+      "pass": 1
+    },
+    "primitive-rewind-green.jsonl": {
+      "pass": 128,
+      "fail": 1
+    },
+    "primitive-rewind-green-attempt2.jsonl": {
+      "pass": 83
+    },
+    "primitive-rewind-green-attempt4.jsonl": {
+      "pass": 88
+    },
+    "primitive-rewind-red.jsonl": {},
+    "primitive-rewind-green-attempt3.jsonl": {
+      "pass": 83
+    }
+  },
+  "hammer_command": "hammer compile /Users/d/code/primitive deliri/primitive",
+  "hammer_exit_code": 0,
+  "hammer_activation": {
+    "version": "v2026.0.17",
+    "generation": "e71befcf45984ec8748c41016292429cae837394ebd7527fedb8c925752ccfb0",
+    "snapshot": "cc818968195058c5c9c83e5d28311781f7d7e3880a653f53b0dd73cdf0868719"
+  },
+  "hammer_assurance": "refused",
+  "scope": "Borrowed stream rewind and affected Filestore contracts; not whole Primitive acceptance",
+  "attempts": "Initial compiler red, write-only fixture failure, corrected Native read handle, hostile corrupt coordinates and post-effect cancellation, and SeekCurrent mutation all retained unchanged. Development semantic fuzz used 3s. Whole-module build passed. Race evidence scoped by recorded test run events."
+}
