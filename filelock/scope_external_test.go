@@ -53,6 +53,7 @@ func proveScopeExclusionAndSuccessor(t *testing.T, failure error, panicConsumer,
 			calls++
 			contender, err := filelock.WithScope(ctx, filelock.ScopeRequest{Carrier: carrier, Exclusivity: filelock.Exclusive, Patience: filelock.Immediate, Use: func(context.Context) error { contenderCalls++; return nil }})
 			held, heldErr := contender.Held()
+			err = errors.Join(err, contender.Validate(), contender.OperationError(), contender.CleanupError())
 			if err != nil || heldErr != nil || held || contenderCalls != 0 {
 				t.Fatalf("contender = held:%t / %v / %v / %d calls, want refused native hold and no operation", held, err, heldErr, contenderCalls)
 			}
@@ -65,12 +66,13 @@ func proveScopeExclusionAndSuccessor(t *testing.T, failure error, panicConsumer,
 			return failure
 		}})
 		held, heldErr := acquisition.Held()
-		if !errors.Is(err, failure) || heldErr != nil || !held || calls != 1 {
+		if err != nil || acquisition.Validate() != nil || !errors.Is(acquisition.OperationError(), failure) || acquisition.CleanupError() != nil || heldErr != nil || !held || calls != 1 {
 			t.Fatalf("scope = held:%t / %v / %v / %d calls, want admitted native operation and %v", held, err, heldErr, calls, failure)
 		}
 		successorCalls := 0
 		successor, err := filelock.WithScope(context.WithoutCancel(ctx), filelock.ScopeRequest{Carrier: carrier, Exclusivity: filelock.Exclusive, Patience: filelock.Immediate, Use: func(context.Context) error { successorCalls++; return nil }})
 		held, heldErr = successor.Held()
+		err = errors.Join(err, successor.Validate(), successor.OperationError(), successor.CleanupError())
 		if err != nil || heldErr != nil || !held || successorCalls != 1 {
 			t.Fatalf("successor = held:%t / %v / %v / %d calls, want actual unlocked carrier after cleanup", held, err, heldErr, successorCalls)
 		}
@@ -143,7 +145,7 @@ func TestLockScopeRefusesInvalidIntentBeforeCreatingCarrier(t *testing.T) {
 					cancel(context.Canceled)
 				}
 				acquisition, err := filelock.WithScope(ctx, request)
-				if !errors.Is(err, tc.want) || acquisition != (filelock.Acquisition{}) || calls != 0 {
+				if !errors.Is(err, tc.want) || acquisition != (filelock.ScopeResult{}) || calls != 0 {
 					t.Fatalf("invalid scope = (%v, %v, %d calls), want zero observation, %v and no operation", acquisition, err, calls, tc.want)
 				}
 				absolute, err := directory.Resolve(path.String())

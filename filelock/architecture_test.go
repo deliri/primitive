@@ -37,6 +37,7 @@ type filelockEffectIngressInventory struct {
 
 type filelockSealedObservationInventory struct {
 	Acquisition Acquisition
+	ScopeResult ScopeResult
 }
 
 type filelockRoleInventory struct {
@@ -123,7 +124,7 @@ func filelockProductionStructNames() ([]string, error) {
 type filelockDoorInventory struct {
 	Acquire   func(context.Context, Request) (Acquisition, error)
 	Release   func(context.Context, *os.File) error
-	WithScope func(context.Context, ScopeRequest) (Acquisition, error)
+	WithScope func(context.Context, ScopeRequest) (ScopeResult, error)
 }
 
 var filelockDoors = filelockDoorInventory{Acquire: Acquire, Release: Release, WithScope: WithScope}
