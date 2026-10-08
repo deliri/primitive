@@ -1,7 +1,0 @@
-The previous contract applied a positive runtime limit from an existing native zero limit, then returned an error because ByteCount could not represent the actual before-state. The native regression reproduced that partial-effect reporting defect on v136.
-
-GoMemoryLimitRequest and the previous/applied coordinates now use Core's ByteLength contract, which represents Go's exact nonnegative signed range. Zero means an actual zero runtime soft limit; the product remains responsible for whether to request it. The result's private completion marker distinguishes a real zero-to-zero application from an absent observation. Witness continues to reject a configured zero operator budget as its own policy, while it can faithfully restore an observed native zero through Primitive.
-
-Native tests prove application from zero, actual application of zero, transitions back to positive limits, refusal of nil/cancelled contexts before mutation, and invalidity of the missing observation. The semantic fuzz oracle verifies typed construction refusals above the signed range and actual runtime before/after values for every admitted mutated input. It passed 214,154 executions with four workers and a three-second execution budget. No duplicate implementation or compatibility type is retained.
-
-This is a clean contract upgrade. Primitive's full build passed. Full Hostfacts race accounting is retained separately. Earlier v135/v136 evidence remains historical and unchanged; the observed new zero semantics do not rewrite those receipts. Independent acceptance belongs to the user.

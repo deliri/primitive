@@ -1,7 +1,0 @@
-{"ImportPath":"github.com/deliri/primitive/v2026/capabilities [github.com/deliri/primitive/v2026/capabilities.test]","Action":"build-output","Output":"# github.com/deliri/primitive/v2026/capabilities [github.com/deliri/primitive/v2026/capabilities.test]\n"}
-{"ImportPath":"github.com/deliri/primitive/v2026/capabilities [github.com/deliri/primitive/v2026/capabilities.test]","Action":"build-output","Output":"capabilities/operation_test.go:28:28: undefined: OperationExitCurrent\n"}
-{"ImportPath":"github.com/deliri/primitive/v2026/capabilities [github.com/deliri/primitive/v2026/capabilities.test]","Action":"build-output","Output":"capabilities/operation_test.go:29:54: undefined: OperationResultErrorOnly\n"}
-{"ImportPath":"github.com/deliri/primitive/v2026/capabilities [github.com/deliri/primitive/v2026/capabilities.test]","Action":"build-fail"}
-{"Time":"2026-10-07T15:46:46.473892-04:00","Action":"start","Package":"github.com/deliri/primitive/v2026/capabilities"}
-{"Time":"2026-10-07T15:46:46.47405-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/capabilities","Output":"FAIL\tgithub.com/deliri/primitive/v2026/capabilities [build failed]\n","OutputType":"frame"}
-{"Time":"2026-10-07T15:46:46.474075-04:00","Action":"fail","Package":"github.com/deliri/primitive/v2026/capabilities","Elapsed":0,"FailedBuild":"github.com/deliri/primitive/v2026/capabilities [github.com/deliri/primitive/v2026/capabilities.test]"}

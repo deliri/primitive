@@ -1,9 +1,0 @@
-{
-  "earlier_full_affected_run_source": "race-attempt2-source-catalog.json",
-  "final_source": "source-catalog.json",
-  "changed_compiled_files": [
-    "release/repository.go",
-    "release/repository_external_test.go"
-  ],
-  "scope": "Only release source and regression files changed after the broader run. Filestore, runworkspace, upgrade, and gotoolchain completion records remain successful on unchanged source. Full release was rerun separately. Earlier whole-command failures remain failed."
-}

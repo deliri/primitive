@@ -1,8 +1,0 @@
-{
-  "original_furnace_path": "/private/tmp/primitive-cloudflare-proof/furnace/minimized-upload-authority/ea2bc4b559a0ed12",
-  "promoted_source_path": "/Users/d/code/primitive/cloudflare/testdata/fuzz/FuzzCloudflareUploadAuthorityClosure/ea2bc4b559a0ed12",
-  "sha256": "ea2bc4b559a0ed125396e9f3881ae2afd5477b40a9bb700f3f1c81bb4dc29206",
-  "bytes": 61,
-  "discovered_revision": "7ab4d2aa9282053d551ca06ded0489face3cd6bd",
-  "fixed_revision": "0e6c118e1d0c5db042da9054a3eee8a61e766254"
-}

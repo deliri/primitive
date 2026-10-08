@@ -1,2 +1,0 @@
-# github.com/deliri/primitive/v2026/core [github.com/deliri/primitive/v2026/core.test]
-core/export_ownership_hostile_test.go:220:9: cannot use [...]coreProviderExportContract{…} (value of type [136]coreProviderExportContract) as [135]coreProviderExportContract value in return statement

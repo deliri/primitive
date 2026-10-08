@@ -1,6 +1,0 @@
-fuzz: elapsed: 0s, gathering baseline coverage: 0/113 completed
-fuzz: elapsed: 0s, gathering baseline coverage: 113/113 completed, now fuzzing with 10 workers
-fuzz: elapsed: 3s, execs: 99045 (33013/sec), new interesting: 23 (total: 136)
-fuzz: elapsed: 4s, execs: 99045 (0/sec), new interesting: 23 (total: 136)
-PASS
-ok  	github.com/deliri/primitive/v2026/jsonio	4.272s

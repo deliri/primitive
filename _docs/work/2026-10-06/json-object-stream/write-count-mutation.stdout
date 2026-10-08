@@ -1,8 +1,0 @@
---- FAIL: TestJSONObjectEncoderPreservesWriteRefusals (0.00s)
-    --- FAIL: TestJSONObjectEncoderPreservesWriteRefusals/zero_acknowledged_bytes (0.00s)
-        objects_external_test.go:153: Encode(refused) = <nil>, want short write
-    --- FAIL: TestJSONObjectEncoderPreservesWriteRefusals/partial_acknowledged_bytes (0.00s)
-        objects_external_test.go:153: Encode(refused) = <nil>, want short write
-FAIL
-FAIL	github.com/deliri/primitive/v2026/jsonio	0.248s
-FAIL

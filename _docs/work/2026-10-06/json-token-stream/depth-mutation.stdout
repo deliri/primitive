@@ -1,6 +1,0 @@
---- FAIL: TestJSONTokensHostileGrammarAndDepth (0.00s)
-    --- FAIL: TestJSONTokensHostileGrammarAndDepth/above_depth (0.00s)
-        tokens_external_test.go:111: refused = false, want true
-FAIL
-FAIL	github.com/deliri/primitive/v2026/jsonio	0.113s
-FAIL

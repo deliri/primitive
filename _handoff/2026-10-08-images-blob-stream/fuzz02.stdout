@@ -1,6 +1,0 @@
-fuzz: elapsed: 0s, gathering baseline coverage: 0/2 completed
-fuzz: elapsed: 0s, gathering baseline coverage: 2/2 completed, now fuzzing with 2 workers
-fuzz: elapsed: 3s, execs: 21324 (7105/sec), new interesting: 3 (total: 5)
-fuzz: elapsed: 5s, execs: 37105 (7538/sec), new interesting: 4 (total: 6)
-PASS
-ok  	github.com/deliri/primitive/v2026/cloudflare	5.417s

@@ -1,5 +1,0 @@
---- FAIL: TestCollectedGoHeapOwnsRuntimeCollectionAndObservation (0.00s)
-    collected_heap_external_test.go:30: heap observation = {247752}/<nil>, collections 0 -> 0, want admitted collected heap
-FAIL
-FAIL github.com/deliri/primitive/v2026/hostfacts 0.134s
-FAIL

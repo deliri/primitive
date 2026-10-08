@@ -1,9 +1,0 @@
-{
-  "Replace": {
-    "/Users/d/code/primitive/core/architecture_catalog.go": "/private/tmp/primitive-requestbudget-20261008/baseline-source-fixture/core/architecture_catalog.go",
-    "/Users/d/code/primitive/core/error_identity.go": "/private/tmp/primitive-requestbudget-20261008/baseline-source-fixture/core/error_identity.go",
-    "/Users/d/code/primitive/core/export_ownership_hostile_test.go": "/private/tmp/primitive-requestbudget-20261008/baseline-export_ownership_hostile_test.go",
-    "/Users/d/code/primitive/core/effect_ownership_hostile_test.go": "/private/tmp/primitive-requestbudget-20261008/baseline-effect_ownership_hostile_test.go",
-    "/Users/d/code/primitive/core/producer_completeness_hostile_test.go": "/private/tmp/primitive-requestbudget-20261008/baseline-producer_completeness_hostile_test.go"
-  }
-}

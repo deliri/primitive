@@ -53,10 +53,19 @@ coverage*.out
 /tmp/
 *.log
 
-# Durable review evidence
-!/evidence/
-!/evidence/**
-/evidence/.DS_Store
+# Generated reports and execution evidence live on Furnace, outside source.
+/.hammer/
+/evidence/
+/_docs/work/
+/_docs/checkpoints/
+/_handoff/
+**/testdata/test-upgrade-*/
+**/*_evidence.json
+**/*_evidence_*.json
+**/*review_followup*.json
+**/before_benchmarks.md
+**/after_benchmarks.md
+**/upgrade_benchmarks.md
 
 # Superseded Forge projections are not source or evidence.
 /.forge/
