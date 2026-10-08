@@ -32,5 +32,12 @@
     }
   },
   "earlierAttempts": "Missing capability compiler refusal, missing ingress binding, existing Native pipe architecture mismatch, sandbox fuzz-cache and build-cache denials retained. Full suite precedes additional structural pipe rows; final filtered run covers the guard. Label clarification afterward changes no assertion.",
-  "independentAcceptance": false
+  "independentAcceptance": false,
+  "artifactStorage": {
+    "primitive-root-scope133-full.jsonl": {
+      "path": "primitive-root-scope133-full.jsonl.gz",
+      "encoding": "gzip",
+      "byteAndDigestProof": "compressed-artifact.json"
+    }
+  }
 }
