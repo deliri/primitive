@@ -1,0 +1,44 @@
+[
+  {
+    "source": "/private/tmp/primitive-typed-stage-write-140-race.jsonl",
+    "retained": "primitive-typed-stage-write-140-race.jsonl.gz",
+    "raw_sha256": "4f7d3a3d79fec1f888836c87942ea9071b547ad0857ed11ea6dcb7d036a5c2ed",
+    "raw_bytes": 12452583,
+    "stored_bytes": 495385
+  },
+  {
+    "source": "/private/tmp/primitive-typed-stage-write-140-race.stderr",
+    "retained": "primitive-typed-stage-write-140-race.stderr.gz",
+    "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "raw_bytes": 0,
+    "stored_bytes": 20
+  },
+  {
+    "source": "/private/tmp/primitive-typed-stage-write-140-race-sandbox-attempt1.jsonl",
+    "retained": "primitive-typed-stage-write-140-race-sandbox-attempt1.jsonl.gz",
+    "raw_sha256": "30dc9a798449166b403518f747bc8c5b8b2e976c144729aba2a1fe064937468a",
+    "raw_bytes": 692,
+    "stored_bytes": 324
+  },
+  {
+    "source": "/private/tmp/primitive-typed-stage-write-140-race-sandbox-attempt1.stderr",
+    "retained": "primitive-typed-stage-write-140-race-sandbox-attempt1.stderr.gz",
+    "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "raw_bytes": 0,
+    "stored_bytes": 20
+  },
+  {
+    "source": "/private/tmp/primitive-stage-writer-138-filestore-race.jsonl",
+    "retained": "primitive-stage-writer-138-filestore-race.jsonl.gz",
+    "raw_sha256": "0804745b0e2968662c466a9fa8994e0bbf02194cd35ccba063b3a743cb9ce974",
+    "raw_bytes": 12436720,
+    "stored_bytes": 495605
+  },
+  {
+    "source": "/private/tmp/primitive-stage-writer-138-filestore-race.stderr",
+    "retained": "primitive-stage-writer-138-filestore-race.stderr.gz",
+    "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "raw_bytes": 0,
+    "stored_bytes": 20
+  }
+]

@@ -76,7 +76,11 @@ func FuzzStageDestinationNativeWriterCustody(f *testing.F) {
 		}
 		for offset := 0; offset < len(payload); {
 			end := min(offset+fragment, len(payload))
-			n, err := file.Write(payload[offset:end])
+			observation, err := filestore.WriteStage(t.Context(), filestore.StageWriteRequest{Destination: destination, Data: payload[offset:end]})
+			n := int(observation.BytesWritten.Uint64())
+			if err := observation.Validate(); err != nil {
+				t.Fatal(err)
+			}
 			if err != nil || n != end-offset {
 				t.Fatalf("native write = (%d,%v), want %d", n, err, end-offset)
 			}
@@ -84,6 +88,9 @@ func FuzzStageDestinationNativeWriterCustody(f *testing.F) {
 		}
 		if copyHandle {
 			copied := *destination
+			if observation, err := filestore.WriteStage(t.Context(), filestore.StageWriteRequest{Destination: &copied, Data: payload}); observation.Validate() == nil || observation.BytesWritten.Uint64() != 0 || !errors.Is(err, core.ErrFilestoreContract) {
+				t.Fatalf("copied write = (%d, %v), want (0, contract refusal)", observation.BytesWritten.Uint64(), err)
+			}
 			gotFile, fileErr := copied.File()
 			gotCopy, finishErr := filestore.FinishStageDestination(t.Context(), &copied)
 			abandonErr := filestore.AbandonStageDestination(&copied)
@@ -156,6 +163,9 @@ func FuzzStageDestinationNativeWriterCustody(f *testing.F) {
 			t.Fatalf("producer handle = %v, want closed after settlement", err)
 		}
 		gotFile, fileErr := destination.File()
+		if observation, err := filestore.WriteStage(t.Context(), filestore.StageWriteRequest{Destination: destination, Data: payload}); observation.Validate() == nil || observation.BytesWritten.Uint64() != 0 || !errors.Is(err, core.ErrFilestoreContract) {
+			t.Fatalf("settled write = (%d, %v), want (0, contract refusal)", observation.BytesWritten.Uint64(), err)
+		}
 		if gotFile != nil || !errors.Is(fileErr, core.ErrFilestoreContract) {
 			t.Fatalf("settled capability = (%v,%v), want nil and contract refusal", gotFile, fileErr)
 		}

@@ -1,0 +1,17 @@
+{
+  "mutation": "Remove StageWriteRequest.Validate before native file.Write; copied custody must fail the regression.",
+  "red": {
+    "chunk_id": "8ad5f8",
+    "wall_time_seconds": 0.000007291,
+    "exit_code": 1,
+    "original_token_count": 95,
+    "output": "--- FAIL: TestStageDestinationWritesThroughLinearNativeCustody (0.00s)\n    --- FAIL: TestStageDestinationWritesThroughLinearNativeCustody/copied_custody_cannot_write_the_original_inode (0.02s)\n        stage_destination_write_external_test.go:174: observation validity disagrees with native execution: <nil>, <nil>\nFAIL\nFAIL\tgithub.com/deliri/primitive/v2026/filestore\t0.233s\nFAIL\n"
+  },
+  "restored_green": {
+    "chunk_id": "2a3f83",
+    "wall_time_seconds": 0.000007166,
+    "exit_code": 0,
+    "original_token_count": 14,
+    "output": "ok  \tgithub.com/deliri/primitive/v2026/filestore\t1.258s\n"
+  }
+}

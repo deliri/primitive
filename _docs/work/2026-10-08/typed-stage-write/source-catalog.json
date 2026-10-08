@@ -1,0 +1,9 @@
+{
+  "filestore/stage_write.go": "59318fc30b14e751d18cfcbaba19c95508457819dc265b9507e20af2b6e50d96",
+  "filestore/stage_destination_write_external_test.go": "ec1e3e44a8501259983e614eecf19f2a977b00a21b48e35d406689ff2adb179c",
+  "filestore/stage_destination_semantic_fuzz_external_test.go": "19bd6e13cbee5cbba5b02d665e6711b9aa4eef83b9eee106e7f2bb976126ca23",
+  "filestore/stage_destination_benchmark_external_test.go": "51b5ca63f804883bec8772297f463cc3abe1b44cdfc2684ee1df8a3829c69fb8",
+  "filestore/stage_destination_layer_triad_external_test.go": "bec1c3bb9ef09198df3cb34cabbe98916dcba10981d93d00c2e9af0dfe6ba542",
+  "filestore/architecture_test.go": "7e1cd60e44dffe6248b351a79e34130670432445f9b45a6b3c6e4904ae2a25b6",
+  "filestore/ingress_inventory_external_test.go": "f5f22dc593a66834a0153396bb9c9393c32add4d9fc012eef138ddd361ddd53a"
+}

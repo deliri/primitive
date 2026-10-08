@@ -1,0 +1,26 @@
+{
+  "benchmark": {
+    "command": "go test ./filestore -run '^$' -bench '^BenchmarkStageDestinationCommitRemoveExactBytes$' -benchtime=3s -count=1",
+    "result": {
+      "chunk_id": "770eeb",
+      "wall_time_seconds": 0.000007625,
+      "exit_code": 0,
+      "original_token_count": 71,
+      "output": "goos: darwin\ngoarch: arm64\npkg: github.com/deliri/primitive/v2026/filestore\ncpu: Apple M1 Max\nBenchmarkStageDestinationCommitRemoveExactBytes-10    \t     148\t  25481596 ns/op\t   0.01 MB/s\t    3168 B/op\t      51 allocs/op\nPASS\nok  \tgithub.com/deliri/primitive/v2026/filestore\t3.938s\n"
+    }
+  },
+  "fuzz": {
+    "command": "go test ./filestore -run '^$' -fuzz '^FuzzStageDestinationNativeWriterCustody$' -fuzztime=3s -parallel=4",
+    "exit_code": 0,
+    "output": "fuzz: elapsed: 0s, gathering baseline coverage: 0/16 completed\nfuzz: elapsed: 0s, gathering baseline coverage: 16/16 completed, now fuzzing with 4 workers\nfuzz: elapsed: 3s, execs: 422 (141/sec), new interesting: 4 (total: 20)\nfuzz: elapsed: 3s, execs: 422 (0/sec), new interesting: 4 (total: 20)\nPASS\nok  \tgithub.com/deliri/primitive/v2026/filestore\t3.571s\n"
+  },
+  "red": {
+    "command": "go test ./filestore -run '^TestStageDestinationWritesThroughLinearNativeCustody$' -count=1",
+    "exit_code": 1,
+    "output": "filestore/architecture_test.go:68:37: undefined: StageWriteRequest\nfilestore/architecture_test.go:69:44: undefined: StageWriteObservation\nFAIL github.com/deliri/primitive/v2026/filestore [build failed]"
+  },
+  "build": {
+    "command": "go build ./...",
+    "exit_code": 0
+  }
+}

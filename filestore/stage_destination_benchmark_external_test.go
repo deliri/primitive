@@ -59,8 +59,8 @@ func BenchmarkStageDestinationCommitRemoveExactBytes(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		if n, err := file.Write(payload); err != nil || n != len(payload) {
-			b.Fatalf("write = (%d,%v), want %d", n, err, len(payload))
+		if observation, err := filestore.WriteStage(b.Context(), filestore.StageWriteRequest{Destination: destination, Data: payload}); err != nil || observation.Validate() != nil || observation.BytesWritten.Uint64() != uint64(len(payload)) {
+			b.Fatalf("write = (%d,%v), want %d", observation.BytesWritten.Uint64(), err, len(payload))
 		}
 		original, err := file.Stat()
 		if err != nil {

@@ -1,0 +1,34 @@
+{
+  "status": "discarded: native file-lookalike architecture ratchet rejected StageDestination.Write; current contract is WriteStage",
+  "base_revision_correction": "Actual current base is 0ddb406a0436b369376180d00c6bbf48492b885b; previous prototype metadata named b67 while another agent advanced main.",
+  "attempts": {
+    "primitiveStageWriterMissingContractRed": {
+      "chunk_id": "0aca22",
+      "wall_time_seconds": 0.000016333,
+      "exit_code": 1,
+      "original_token_count": 148,
+      "output": "# github.com/deliri/primitive/v2026/filestore_test [github.com/deliri/primitive/v2026/filestore.test]\nfilestore/stage_destination_write_external_test.go:15:19: cannot use (*filestore.StageDestination)(nil) (value of type *filestore.StageDestination) as io.Writer value in variable declaration: *filestore.StageDestination does not implement io.Writer (missing method Write)\nfilestore/stage_destination_write_external_test.go:78:23: selected.Write undefined (type *filestore.StageDestination has no field or method Write)\nFAIL\tgithub.com/deliri/primitive/v2026/filestore [build failed]\nFAIL\n"
+    },
+    "primitiveStageWriterGreen": {
+      "chunk_id": "f33054",
+      "wall_time_seconds": 0.00000725,
+      "exit_code": 0,
+      "original_token_count": 825,
+      "output": "=== RUN   TestStageDestinationWritesThroughLinearNativeCustody\n=== PAUSE TestStageDestinationWritesThroughLinearNativeCustody\n=== CONT  TestStageDestinationWritesThroughLinearNativeCustody\n=== RUN   TestStageDestinationWritesThroughLinearNativeCustody/owned_writer_preserves_exact_binary_bytes\n=== PAUSE TestStageDestinationWritesThroughLinearNativeCustody/owned_writer_preserves_exact_binary_bytes\n=== RUN   TestStageDestinationWritesThroughLinearNativeCustody/empty_write_preserves_a_real_empty_file\n=== PAUSE TestStageDestinationWritesThroughLinearNativeCustody/empty_write_preserves_a_real_empty_file\n=== RUN   TestStageDestinationWritesThroughLinearNativeCustody/nil_custody_refuses_output\n=== PAUSE TestStageDestinationWritesThroughLinearNativeCustody/nil_custody_refuses_output\n=== RUN   TestStageDestinationWritesThroughLinearNativeCustody/zero_custody_refuses_output\n=== PAUSE TestStageDestinationWritesThroughLinearNativeCustody/zero_custody_refuses_output\n=== RUN   TestStageDestinationWritesThroughLinearNativeCustody/copied_custody_cannot_write_the_original_inode\n=== PAUSE TestStageDestinationWritesThroughLinearNativeCustody/copied_custody_cannot_write_the_original_inode\n=== RUN   TestStageDestinationWritesThroughLinearNativeCustody/settled_custody_cannot_acquire_new_output\n=== PAUSE TestStageDestinationWritesThroughLinearNativeCustody/settled_custody_cannot_acquire_new_output\n=== RUN   TestStageDestinationWritesThroughLinearNativeCustody/externally_closed_native_file_preserves_closed_identity\n=== PAUSE TestStageDestinationWritesThroughLinearNativeCustody/externally_closed_native_file_preserves_closed_identity\n=== CONT  TestStageDestinationWritesThroughLinearNativeCustody/nil_custody_refuses_output\n=== CONT  TestStageDestinationWritesThroughLinearNativeCustody/externally_closed_native_file_preserves_closed_identity\n=== CONT  TestStageDestinationWritesThroughLinearNativeCustody/settled_custody_cannot_acquire_new_output\n=== CONT  TestStageDestinationWritesThroughLinearNativeCustody/copied_custody_cannot_write_the_original_inode\n=== CONT  TestStageDestinationWritesThroughLinearNativeCustody/empty_write_preserves_a_real_empty_file\n=== CONT  TestStageDestinationWritesThroughLinearNativeCustody/owned_writer_preserves_exact_binary_bytes\n=== CONT  TestStageDestinationWritesThroughLinearNativeCustody/zero_custody_refuses_output\n--- PASS: TestStageDestinationWritesThroughLinearNativeCustody (0.00s)\n    --- PASS: TestStageDestinationWritesThroughLinearNativeCustody/nil_custody_refuses_output (0.01s)\n    --- PASS: TestStageDestinationWritesThroughLinearNativeCustody/settled_custody_cannot_acquire_new_output (0.01s)\n    --- PASS: TestStageDestinationWritesThroughLinearNativeCustody/zero_custody_refuses_output (0.02s)\n    --- PASS: TestStageDestinationWritesThroughLinearNativeCustody/owned_writer_preserves_exact_binary_bytes (0.03s)\n    --- PASS: TestStageDestinationWritesThroughLinearNativeCustody/empty_write_preserves_a_real_empty_file (0.04s)\n    --- PASS: TestStageDestinationWritesThroughLinearNativeCustody/copied_custody_cannot_write_the_original_inode (0.05s)\n    --- PASS: TestStageDestinationWritesThroughLinearNativeCustody/externally_closed_native_file_preserves_closed_identity (0.07s)\nPASS\nok  \tgithub.com/deliri/primitive/v2026/filestore\t1.293s\n"
+    },
+    "primitiveStageWriterCustodyMutationRed": {
+      "chunk_id": "1f4418",
+      "wall_time_seconds": 0.000007792,
+      "exit_code": 1,
+      "original_token_count": 221,
+      "output": "=== RUN   TestStageDestinationWritesThroughLinearNativeCustody\n=== PAUSE TestStageDestinationWritesThroughLinearNativeCustody\n=== CONT  TestStageDestinationWritesThroughLinearNativeCustody\n=== RUN   TestStageDestinationWritesThroughLinearNativeCustody/copied_custody_cannot_write_the_original_inode\n=== PAUSE TestStageDestinationWritesThroughLinearNativeCustody/copied_custody_cannot_write_the_original_inode\n=== CONT  TestStageDestinationWritesThroughLinearNativeCustody/copied_custody_cannot_write_the_original_inode\n    stage_destination_write_external_test.go:118: write error = <nil>, want filestore contract violation\n--- FAIL: TestStageDestinationWritesThroughLinearNativeCustody (0.00s)\n    --- FAIL: TestStageDestinationWritesThroughLinearNativeCustody/copied_custody_cannot_write_the_original_inode (0.01s)\nFAIL\nFAIL\tgithub.com/deliri/primitive/v2026/filestore\t0.193s\nFAIL\n"
+    },
+    "primitiveStageWriterMutationRestoredGreen": {
+      "chunk_id": "8eaa06",
+      "wall_time_seconds": 0.000006208,
+      "exit_code": 0,
+      "original_token_count": 14,
+      "output": "ok  \tgithub.com/deliri/primitive/v2026/filestore\t1.197s\n"
+    }
+  }
+}

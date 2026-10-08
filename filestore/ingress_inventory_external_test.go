@@ -106,6 +106,7 @@ func filestoreIngressProofs() []filestoreIngressProof {
 		{door: reflect.ValueOf(filestore.RemoveTree), fuzz: FuzzRemovalNativeNamespaceSemanticClosure},
 		{door: reflect.ValueOf(filestore.Rename), fuzz: FuzzRenameNativeNamespaceCustody},
 		{door: reflect.ValueOf((*filestore.StageDestination).File), fuzz: FuzzStageDestinationNativeWriterCustody},
+		{door: reflect.ValueOf(filestore.WriteStage), fuzz: FuzzStageDestinationNativeWriterCustody},
 		{door: reflect.ValueOf(filestore.StagedFile.Path), fuzz: FuzzStageCommitRoundTrip},
 		{door: reflect.ValueOf(filestore.StagedFile.BytesWritten), fuzz: FuzzStageCommitRoundTrip},
 	}

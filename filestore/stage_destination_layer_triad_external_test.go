@@ -75,8 +75,8 @@ func TestStageDestinationDurableWriterLayerTriad(t *testing.T) {
 			}
 			t.Cleanup(func() { _ = file.Close() })
 			for offset := 0; offset < len(payload); offset++ {
-				if n, err := file.Write(payload[offset : offset+1]); err != nil || n != 1 {
-					t.Fatalf("fragment write = (%d,%v), want one byte", n, err)
+				if observation, err := filestore.WriteStage(t.Context(), filestore.StageWriteRequest{Destination: destination, Data: payload[offset : offset+1]}); err != nil || observation.Validate() != nil || observation.BytesWritten.Uint64() != 1 {
+					t.Fatalf("fragment write = (%d,%v), want one byte", observation.BytesWritten.Uint64(), err)
 				}
 			}
 			before, err := file.Stat()
