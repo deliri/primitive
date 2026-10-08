@@ -44,11 +44,14 @@
           "Elapsed": 42.196
         }
       ],
-      "raw_artifact": "committed-race.jsonl",
+      "raw_artifact": "committed-race.jsonl.gz",
       "raw_sha256": "10aa3f8446a8dc7ad60caadd9ee98f5b52d276f2801474c5239acfa2b2cd6be3",
       "raw_bytes": 24095940,
       "event_count": 99048,
-      "fuzz_messages": []
+      "fuzz_messages": [],
+      "artifact_encoding": "gzip",
+      "stored_sha256": "ff176ff9be1eff9a4fbfdcb4a876211aec63d72c5e2c4a28f64cf049e16bf549",
+      "stored_bytes": 854589
     },
     {
       "command": "go test -json -count=1 ./jsonio -run '^$' -fuzz '^FuzzJSONDocumentsByteConservation$' -fuzztime=3s",

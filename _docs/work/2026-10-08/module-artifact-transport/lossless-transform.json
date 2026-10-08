@@ -1,0 +1,13 @@
+{
+  "before_revision": "eeed6452995d46acf1c2bafd56e2293db888b386",
+  "before_path": "_docs/work/2026-10-06/json-stream-and-collected-heap/committed-race.jsonl",
+  "after_path": "_docs/work/2026-10-06/json-stream-and-collected-heap/committed-race.jsonl.gz",
+  "raw_sha256": "10aa3f8446a8dc7ad60caadd9ee98f5b52d276f2801474c5239acfa2b2cd6be3",
+  "raw_bytes": 24095940,
+  "stored_sha256": "ff176ff9be1eff9a4fbfdcb4a876211aec63d72c5e2c4a28f64cf049e16bf549",
+  "stored_bytes": 854589,
+  "lossless_roundtrip_verified": true,
+  "historical_event_count": 99048,
+  "historical_source_commit": "374ecf112417a24b8e9fb253c0c6ff4ad5352366",
+  "meaning": "Only storage encoding and artifact location changed. Original run command, source, outcomes, skipped/retry/cache state, all raw bytes and events are preserved. Full Hammer generation is retained unchanged."
+}
