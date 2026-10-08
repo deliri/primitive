@@ -144,7 +144,7 @@ func TestOperationsRejectTerminalAndNilContextsBeforeFilesystemEffects(t *testin
 				case contextEffectRotate:
 					incoming, gotErr = filestore.RotateAppend(ctx, filestore.RotationRequest{Outgoing: outgoing, Incoming: filestore.AppendRequest{Location: location, Mode: 0o600, Append: filestore.AppendCreate}})
 				case contextEffectRemove:
-					gotErr = filestore.Remove(ctx, filestore.RemovalRequest{Location: location})
+					gotErr = filestore.Remove(ctx, filestore.RemovalRequest{Durability: filestore.RemovalDurabilityDurable, Location: location})
 				default:
 					t.Fatalf("door = %v, want declared fixture", operation.door)
 				}

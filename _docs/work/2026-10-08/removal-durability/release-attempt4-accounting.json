@@ -1,0 +1,28 @@
+{
+  "command": "go test -json -race -count=1 ./release > /private/tmp/primitive-removal-policy-144-release-attempt4.jsonl 2> /private/tmp/primitive-removal-policy-144-release-attempt4.stderr",
+  "exit_code": 0,
+  "filtered": false,
+  "cached": false,
+  "outside_sandbox": true,
+  "retry": true,
+  "test_actions": {
+    "run": 1215,
+    "output": 4646,
+    "pause": 1108,
+    "pass": 1215,
+    "cont": 1108
+  },
+  "failures": [],
+  "skips": [],
+  "package_completions": [
+    {
+      "Time": "2026-10-08T09:36:48.147318-04:00",
+      "Action": "pass",
+      "Package": "github.com/deliri/primitive/v2026/release",
+      "Elapsed": 18.399
+    }
+  ],
+  "raw_sha256": "3d1a53dc37f66f0d9a19f7dde05380e821c795cdd1e93a94a5698c958f35dbfa",
+  "raw_bytes": 2611551,
+  "independent_acceptance": false
+}

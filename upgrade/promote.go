@@ -286,7 +286,7 @@ func removeArtifact(
 	if err != nil {
 		return err
 	}
-	if err := filestore.Remove(ctx, filestore.RemovalRequest{
+	if err := filestore.Remove(ctx, filestore.RemovalRequest{Durability: filestore.RemovalDurabilityDurable,
 		Location: filestore.Location{Root: root, Path: path},
 	}); err != nil {
 		return err
@@ -298,7 +298,7 @@ func removeArtifact(
 	if err != nil {
 		return err
 	}
-	return filestore.Remove(ctx, filestore.RemovalRequest{
+	return filestore.Remove(ctx, filestore.RemovalRequest{Durability: filestore.RemovalDurabilityDurable,
 		Location: filestore.Location{Root: root, Path: directory},
 	})
 }
@@ -312,7 +312,7 @@ func removeTrialMetadata(
 	if err != nil {
 		return err
 	}
-	if err := filestore.Remove(ctx, filestore.RemovalRequest{
+	if err := filestore.Remove(ctx, filestore.RemovalRequest{Durability: filestore.RemovalDurabilityDurable,
 		Location: filestore.Location{Root: root, Path: temporary},
 	}); err != nil {
 		return err
@@ -321,7 +321,7 @@ func removeTrialMetadata(
 	if err != nil {
 		return err
 	}
-	return filestore.Remove(ctx, filestore.RemovalRequest{
+	return filestore.Remove(ctx, filestore.RemovalRequest{Durability: filestore.RemovalDurabilityDurable,
 		Location: filestore.Location{Root: root, Path: path},
 	})
 }

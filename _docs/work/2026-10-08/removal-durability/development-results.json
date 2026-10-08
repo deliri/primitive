@@ -1,0 +1,70 @@
+{
+  "base_revision": "9ff3f2e5308518a9239e886f8ba89a0cdbb3f8a9",
+  "missing_contract_red": {
+    "chunk_id": "bf13ce",
+    "wall_time_seconds": 0.000007167,
+    "exit_code": 1,
+    "original_token_count": 204,
+    "output": "# github.com/deliri/primitive/v2026/filestore_test [github.com/deliri/primitive/v2026/filestore.test]\nfilestore/removal_durability_unix_external_test.go:24:24: undefined: filestore.RemovalDurability\nfilestore/removal_durability_unix_external_test.go:28:85: undefined: filestore.RemovalDurabilityEphemeral\nfilestore/removal_durability_unix_external_test.go:29:90: undefined: filestore.RemovalDurabilityDurable\nfilestore/removal_durability_unix_external_test.go:31:80: undefined: filestore.RemovalDurability\nfilestore/removal_durability_unix_external_test.go:58:113: unknown field Durability in struct literal of type filestore.RemovalRequest\nfilestore/removal_durability_unix_external_test.go:62:35: undefined: filestore.RemovalDurabilityDurable\nFAIL\tgithub.com/deliri/primitive/v2026/filestore [build failed]\nFAIL\n"
+  },
+  "always_sync_mutation_red": {
+    "chunk_id": "4b5c30",
+    "wall_time_seconds": 0.000007625,
+    "exit_code": 1,
+    "original_token_count": 104,
+    "output": "--- FAIL: TestRemovalDurabilityControlsNativeParentSynchronization (0.00s)\n    --- FAIL: TestRemovalDurabilityControlsNativeParentSynchronization/ephemeral_removal_needs_no_parent_read_permission (0.00s)\n        removal_durability_unix_external_test.go:60: native removal=filestore cleanup failed\n            openat .: permission denied,want <nil>\nFAIL\nFAIL\tgithub.com/deliri/primitive/v2026/filestore\t0.154s\nFAIL\n"
+  },
+  "never_sync_mutation_red": {
+    "chunk_id": "a869ea",
+    "wall_time_seconds": 0.000007083,
+    "exit_code": 1,
+    "original_token_count": 95,
+    "output": "--- FAIL: TestRemovalDurabilityControlsNativeParentSynchronization (0.00s)\n    --- FAIL: TestRemovalDurabilityControlsNativeParentSynchronization/durable_removal_exposes_refused_parent_synchronization (0.00s)\n        removal_durability_unix_external_test.go:60: native removal=<nil>,want filestore cleanup failed\nFAIL\nFAIL\tgithub.com/deliri/primitive/v2026/filestore\t0.153s\nFAIL\n"
+  },
+  "restored_native_race": {
+    "chunk_id": "f3e868",
+    "wall_time_seconds": 0.000007709,
+    "exit_code": 0,
+    "original_token_count": 14,
+    "output": "ok  \tgithub.com/deliri/primitive/v2026/filestore\t1.215s\n"
+  },
+  "semantic_fuzz": {
+    "command": "go test ./filestore -run '^$' -fuzz '^FuzzRemovalPolicyConservesRefusedNativeBytes$' -fuzztime=3s -parallel=4",
+    "result": {
+      "chunk_id": "1a7a81",
+      "wall_time_seconds": 0.000006917,
+      "exit_code": 0,
+      "original_token_count": 89,
+      "output": "fuzz: elapsed: 0s, gathering baseline coverage: 0/5 completed\nfuzz: elapsed: 0s, gathering baseline coverage: 5/5 completed, now fuzzing with 4 workers\nfuzz: elapsed: 3s, execs: 4550 (1517/sec), new interesting: 0 (total: 5)\nfuzz: elapsed: 4s, execs: 4550 (0/sec), new interesting: 0 (total: 5)\nPASS\nok  \tgithub.com/deliri/primitive/v2026/filestore\t4.185s\n"
+    }
+  },
+  "release_focused_probe": {
+    "command": "go test -race ./release -run '^TestVerifyRepositoryPressuresEveryObservableCheckoutState/negative_weakened_stat_policy_cannot_hide_same_size_content_replacement$' -count=3",
+    "result": {
+      "chunk_id": "a79667",
+      "wall_time_seconds": 0.000007542,
+      "exit_code": 0,
+      "original_token_count": 14,
+      "output": "ok  \tgithub.com/deliri/primitive/v2026/release\t2.372s\n"
+    },
+    "limitation": "Focused probe passed after full run failed; it does not erase the intermittent failure."
+  },
+  "release_stat_guard_green": {
+    "chunk_id": "30b2d5",
+    "wall_time_seconds": 0.000007125,
+    "exit_code": 0,
+    "original_token_count": 14,
+    "output": "ok  \tgithub.com/deliri/primitive/v2026/release\t4.433s\n"
+  },
+  "release_stat_guard_mutation_red": {
+    "chunk_id": "56d990",
+    "wall_time_seconds": 0.000008458,
+    "exit_code": 1,
+    "original_token_count": 198,
+    "output": "--- FAIL: TestVerifyRepositoryPressuresEveryObservableCheckoutState (0.00s)\n    --- FAIL: TestVerifyRepositoryPressuresEveryObservableCheckoutState/negative_empty_local_stat_declaration_cannot_claim_absence (0.28s)\n        repository_external_test.go:214: VerifyRepository(dirty checkout) error = release: release contract violation\n            repository Git command failed, want typed dirty error and release contract violation\n    --- FAIL: TestVerifyRepositoryPressuresEveryObservableCheckoutState/negative_declared_default_stat_policy_is_uncommitted_verification_input (0.39s)\n        repository_external_test.go:214: VerifyRepository(dirty checkout) error = <nil>, want typed dirty error and release contract violation\nFAIL\nFAIL\tgithub.com/deliri/primitive/v2026/release\t0.546s\nFAIL\n"
+  },
+  "compiler_corrections": [
+    "process.ExitCode is a validated struct, not a numeric constant type; used its checked Int accessor and the command-owned absence exit constant."
+  ],
+  "independent_acceptance": false
+}

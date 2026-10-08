@@ -1,0 +1,43 @@
+{
+  "command": "go test -json -race -count=1 ./release > /private/tmp/primitive-removal-policy-144-release-attempt3.jsonl 2> /private/tmp/primitive-removal-policy-144-release-attempt3.stderr",
+  "exit_code": 1,
+  "filtered": false,
+  "cached": false,
+  "outside_sandbox": true,
+  "retry": true,
+  "test_actions": {
+    "run": 1215,
+    "output": 4648,
+    "pause": 1108,
+    "pass": 1213,
+    "cont": 1108,
+    "fail": 2
+  },
+  "failures": [
+    {
+      "Time": "2026-10-08T09:34:02.286675-04:00",
+      "Action": "fail",
+      "Package": "github.com/deliri/primitive/v2026/release",
+      "Test": "TestVerifyRepositoryPressuresEveryObservableCheckoutState/negative_empty_local_stat_declaration_cannot_claim_absence",
+      "Elapsed": 1.5
+    },
+    {
+      "Time": "2026-10-08T09:34:05.079099-04:00",
+      "Action": "fail",
+      "Package": "github.com/deliri/primitive/v2026/release",
+      "Test": "TestVerifyRepositoryPressuresEveryObservableCheckoutState",
+      "Elapsed": 0
+    },
+    {
+      "Time": "2026-10-08T09:34:08.185844-04:00",
+      "Action": "fail",
+      "Package": "github.com/deliri/primitive/v2026/release",
+      "Elapsed": 18.924
+    }
+  ],
+  "skips": [],
+  "package_completions": [],
+  "raw_sha256": "bfedf50a009c2d4f2bf7c51800aca178d659622ba713714a57e23cb27ebae969",
+  "raw_bytes": 2612952,
+  "independent_acceptance": false
+}

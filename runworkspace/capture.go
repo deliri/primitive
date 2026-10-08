@@ -208,7 +208,7 @@ func (c *Capture) Abort(ctx context.Context) error {
 	}
 	closeErr := c.file.Close()
 	c.sealed = true
-	removeErr := filestore.Remove(ctx, filestore.RemovalRequest{Location: filestore.Location{Root: c.root, Path: c.path}})
+	removeErr := filestore.Remove(ctx, filestore.RemovalRequest{Durability: filestore.RemovalDurabilityDurable, Location: filestore.Location{Root: c.root, Path: c.path}})
 	return errors.Join(closeErr, removeErr)
 }
 

@@ -526,13 +526,17 @@ func (r RotationRequest) Validate() error {
 	return nil
 }
 
-// RemovalRequest names one rooted entry to remove durably.
+// RemovalRequest names one rooted entry and its required durability.
 type RemovalRequest struct {
-	Location Location
+	Location   Location
+	Durability RemovalDurability
 }
 
-// Validate rejects an invalid or root-naming location.
+// Validate rejects invalid durability and invalid or root-naming locations.
 func (r RemovalRequest) Validate() error {
+	if err := r.Durability.Validate(); err != nil {
+		return err
+	}
 	if err := r.Location.Validate(); err != nil {
 		return err
 	}

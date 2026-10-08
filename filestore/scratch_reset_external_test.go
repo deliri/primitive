@@ -65,7 +65,7 @@ func TestScratchResetDiscardsBytesAndRestoresWriteCoordinate(t *testing.T) {
 					t.Fatal(err)
 				}
 				if string(data) != "next" {
-					t.Fatalf("cycle=%d extent=%d prefix=%q want 4 bytes next", cycle, len(data), data[:min(len(data),32)])
+					t.Fatalf("cycle=%d extent=%d prefix=%q want 4 bytes next", cycle, len(data), data[:min(len(data), 32)])
 				}
 			}
 		})

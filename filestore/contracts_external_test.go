@@ -151,7 +151,7 @@ func TestRequestsRejectUnsetOwnershipBoundaries(t *testing.T) {
 			}).Validate()
 		}},
 		{name: "valid removal owns one mutable rooted name", wantValid: true, run: func(_ *testing.T) error {
-			return (filestore.RemovalRequest{Location: location}).Validate()
+			return (filestore.RemovalRequest{Durability: filestore.RemovalDurabilityDurable, Location: location}).Validate()
 		}},
 		{name: "location without root", run: func(_ *testing.T) error {
 			return (filestore.Location{Path: target}).Validate()
@@ -347,7 +347,7 @@ func TestMutationRequestsRejectNonAtomicOrRootEntryPaths(t *testing.T) {
 			name:    "removal target cannot be the root entry",
 			wantErr: core.ErrFilestoreContract,
 			run: func(t *testing.T) error {
-				return (filestore.RemovalRequest{
+				return (filestore.RemovalRequest{Durability: filestore.RemovalDurabilityDurable,
 					Location: filestore.Location{Root: root, Path: mustRelativePath(t, ".")},
 				}).Validate()
 			},

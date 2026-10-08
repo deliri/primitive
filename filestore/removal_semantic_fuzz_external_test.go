@@ -152,7 +152,7 @@ func FuzzRemovalNativeNamespaceSemanticClosure(f *testing.F) {
 		if tree {
 			gotErr = filestore.RemoveTree(ctx, filestore.TreeRemovalRequest{Location: location})
 		} else {
-			gotErr = filestore.Remove(ctx, filestore.RemovalRequest{Location: location})
+			gotErr = filestore.Remove(ctx, filestore.RemovalRequest{Durability: filestore.RemovalDurabilityDurable, Location: location})
 		}
 		if (gotErr == nil) != (wantErr == nil) {
 			t.Fatalf("removal = %v, want Go native result %v", gotErr, wantErr)

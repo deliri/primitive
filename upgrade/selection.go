@@ -186,7 +186,7 @@ func writeSelection(
 	if err != nil {
 		return persistenceError(err)
 	}
-	if err := filestore.Remove(recoveryContext(ctx), filestore.RemovalRequest{
+	if err := filestore.Remove(recoveryContext(ctx), filestore.RemovalRequest{Durability: filestore.RemovalDurabilityDurable,
 		Location: filestore.Location{Root: root, Path: temporary},
 	}); err != nil {
 		return persistenceError(err)

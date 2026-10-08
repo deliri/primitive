@@ -55,7 +55,7 @@ func TestVerifyRepositoryPressuresEveryObservableCheckoutState(t *testing.T) {
 		}},
 		{name: "negative tracked deletion is dirty", mutate: func(t *testing.T, fixture repositoryFixture) {
 			location := releaseFixtureLocation(t, absolutePathForTest(t, filepath.Join(fixture.root.String(), "tracked.txt")))
-			if err := filestore.Remove(t.Context(), filestore.RemovalRequest{Location: location}); err != nil {
+			if err := filestore.Remove(t.Context(), filestore.RemovalRequest{Durability: filestore.RemovalDurabilityDurable, Location: location}); err != nil {
 				t.Fatalf("filestore.Remove(tracked file) error = %v, want nil", err)
 			}
 		}},
@@ -111,6 +111,13 @@ func TestVerifyRepositoryPressuresEveryObservableCheckoutState(t *testing.T) {
 			if err := filestore.SetPermissions(t.Context(), filestore.PermissionRequest{Location: location, Mode: 0o700}); err != nil {
 				t.Fatalf("filestore.SetPermissions(tracked file) error = %v, want nil", err)
 			}
+		}},
+		{name: "negative declared default stat policy is uncommitted verification input", mutate: func(t *testing.T, fixture repositoryFixture) {
+			runRepositoryGitForTest(t, fixture, "config", "core.checkStat", "default")
+		}},
+		{name: "neutral removed local stat declaration restores authoritative absence", clean: true, mutate: func(t *testing.T, fixture repositoryFixture) {
+			runRepositoryGitForTest(t, fixture, "config", "core.checkStat", "minimal")
+			runRepositoryGitForTest(t, fixture, "config", "--unset", "core.checkStat")
 		}},
 		{name: "negative weakened stat policy cannot hide same size content replacement", mutate: func(t *testing.T, fixture repositoryFixture) {
 			path := absolutePathForTest(t, filepath.Join(fixture.root.String(), "tracked.txt"))
@@ -169,7 +176,7 @@ func TestVerifyRepositoryPressuresEveryObservableCheckoutState(t *testing.T) {
 		}},
 		{name: "negative tracked file replaced by a directory is dirty", mutate: func(t *testing.T, fixture repositoryFixture) {
 			location := releaseFixtureLocation(t, absolutePathForTest(t, filepath.Join(fixture.root.String(), "tracked.txt")))
-			if err := filestore.Remove(t.Context(), filestore.RemovalRequest{Location: location}); err != nil {
+			if err := filestore.Remove(t.Context(), filestore.RemovalRequest{Durability: filestore.RemovalDurabilityDurable, Location: location}); err != nil {
 				t.Fatalf("filestore.Remove(tracked file) error = %v, want nil", err)
 			}
 			ensureRepositoryDirectoryForTest(t, fixture.root, "tracked.txt")
@@ -381,6 +388,16 @@ func TestVerifyRepositoryRefusesDirtySubmoduleDespiteRepositoryIgnorePolicy(t *t
 	}
 	if proof != (release.VerifiedRepository{}) {
 		t.Fatalf("VerifyRepository(dirty ignored submodule) returned nonzero proof")
+	}
+}
+
+func TestRepositoryInvalidLocalStatConfigurationRefusesWithoutProof(t *testing.T) {
+	t.Parallel()
+	fixture := newRepositoryFixtureAt(t, t.TempDir(), t.TempDir())
+	runRepositoryGitForTest(t, fixture, "config", "core.checkStat", "")
+	verified, err := release.VerifyRepository(t.Context(), repositoryRequestForTest(t, fixture))
+	if !errors.Is(err, core.ErrReleaseContract) || verified != (release.VerifiedRepository{}) {
+		t.Fatalf("invalid local stat configuration=(%v,%v),want zero proof and typed refusal", verified, err)
 	}
 }
 

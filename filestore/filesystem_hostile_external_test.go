@@ -80,7 +80,7 @@ func TestClosedOSRootNativeErrorMatrix(t *testing.T) {
 					t.Fatalf("refused append handle = %v, want nil", file)
 				}
 			case remove:
-				gotErr = filestore.Remove(t.Context(), filestore.RemovalRequest{Location: location})
+				gotErr = filestore.Remove(t.Context(), filestore.RemovalRequest{Durability: filestore.RemovalDurabilityDurable, Location: location})
 			case removeTree:
 				location.Path = mustRelativePath(t, "tree")
 				gotErr = filestore.RemoveTree(t.Context(), filestore.TreeRemovalRequest{Location: location})

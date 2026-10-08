@@ -47,6 +47,11 @@ const (
 	repositoryGitTrustCTime              = "core.trustctime=true"
 	repositoryGitDefaultStat             = "core.checkStat=default"
 	repositoryGitNoIgnoreStat            = "core.ignoreStat=false"
+	repositoryGitConfig                  = "config"
+	repositoryGitLocalConfig             = "--local"
+	repositoryGitGetConfig               = "--get"
+	repositoryGitStatConfig              = "core.checkStat"
+	repositoryGitConfigAbsentExit        = 1
 	repositoryGitConfigNoSystem          = "GIT_CONFIG_NOSYSTEM=1"
 	repositoryGitConfigGlobal            = "GIT_CONFIG_GLOBAL="
 	repositoryGitAttributesNoSystem      = "GIT_ATTR_NOSYSTEM=1"
@@ -58,6 +63,7 @@ const (
 // weaken this verdict. System and global configuration are removed separately
 // by repositoryGitEnvironment. Optional locks are refused because verification
 // observes the repository and must not refresh its index.
+// Local stat-cache declarations are refused separately as uncommitted input.
 func repositoryGitPolicyArguments() []string {
 	return []string{
 		repositoryGitNoOptionalLocks,
@@ -266,6 +272,9 @@ func VerifyRepository(
 	if err := verifyRepositoryPrivateAttributes(ctx, request); err != nil {
 		return VerifiedRepository{}, err
 	}
+	if err := verifyRepositoryLocalStatConfiguration(ctx, request); err != nil {
+		return VerifiedRepository{}, err
+	}
 	if err := verifyRepositoryClean(ctx, request); err != nil {
 		return VerifiedRepository{}, err
 	}
@@ -274,6 +283,37 @@ func VerifyRepository(
 		commit: request.ExpectedCommit, valid: true,
 	}
 	return verified, verified.Validate()
+}
+
+// Local stat-cache configuration is uncommitted verification input. Refuse
+// its presence instead of claiming an override proves changed source bytes
+// when filesystem timestamps happen to alias. Git observes the local scope;
+// the first value byte refuses without retaining configuration text.
+func verifyRepositoryLocalStatConfiguration(ctx context.Context, request RepositoryVerificationRequest) error {
+	result, err := runRepositoryGit(ctx, repositoryGitRequest{
+		verification: request,
+		arguments:    []string{repositoryGitConfig, repositoryGitLocalConfig, repositoryGitGetConfig, repositoryGitStatConfig},
+		stdout:       repositoryStatusWriter{},
+		outputPolicy: repositoryGitOutputProbe,
+	})
+	if errors.Is(err, errRepositoryStatusObserved) {
+		return repositoryDirty(request.Root)
+	}
+	if err != nil {
+		return err
+	}
+	exit, err := result.ExitCode()
+	if err != nil {
+		return releaseError(core.ErrReleaseContract, err)
+	}
+	code, err := exit.Int()
+	if err != nil {
+		return releaseError(core.ErrReleaseContract, err)
+	}
+	if code == repositoryGitConfigAbsentExit {
+		return nil
+	}
+	return contractError(errors.New("repository local stat configuration has no authoritative absence observation"))
 }
 
 func verifyRepositoryPrivateAttributes(ctx context.Context, request RepositoryVerificationRequest) error {

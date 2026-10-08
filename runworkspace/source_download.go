@@ -112,7 +112,7 @@ func validateSourceTransfer(transfer objectstore.Transfer, request SourceDownloa
 }
 
 func removeDownloadedArchive(ctx context.Context, manager Manager, path core.RelativePath) error {
-	return filestore.Remove(ctx, filestore.RemovalRequest{Location: filestore.Location{Root: manager.root, Path: path}})
+	return filestore.Remove(ctx, filestore.RemovalRequest{Durability: filestore.RemovalDurabilityDurable, Location: filestore.Location{Root: manager.root, Path: path}})
 }
 
 var _ core.Validatable = SourceDownloadRequest{}

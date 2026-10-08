@@ -45,7 +45,7 @@ func TestInspectionStandingLayerTriadRefusesLostPathCustody(t *testing.T) {
 				}
 			})
 			if tc.remove {
-				if err := filestore.Remove(t.Context(), filestore.RemovalRequest{Location: location}); err != nil {
+				if err := filestore.Remove(t.Context(), filestore.RemovalRequest{Durability: filestore.RemovalDurabilityDurable, Location: location}); err != nil {
 					t.Fatalf("Remove fixture error = %v, want nil", err)
 				}
 			}

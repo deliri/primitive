@@ -121,7 +121,7 @@ func BenchmarkRotateAppendOwnedHandleLifecycle(b *testing.B) {
 	}
 	outgoingRequest := filestore.AppendRequest{Location: filestore.Location{Root: root, Path: current}, Mode: 0o600, Append: filestore.AppendExisting}
 	incomingRequest := filestore.AppendRequest{Location: filestore.Location{Root: root, Path: next}, Mode: 0o640, Append: filestore.AppendCreate}
-	removal := filestore.RemovalRequest{Location: incomingRequest.Location}
+	removal := filestore.RemovalRequest{Durability: filestore.RemovalDurabilityDurable, Location: incomingRequest.Location}
 	if err := outgoingRequest.Validate(); err != nil {
 		b.Fatal(err)
 	}

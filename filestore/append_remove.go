@@ -143,7 +143,8 @@ func closeActivationFile(file *os.File, primary error) error {
 	return errors.Join(primary, closeErr)
 }
 
-// Remove durably removes one named file or empty directory. It never recurses.
+// Remove executes the explicit durability policy for one file or empty
+// directory. It never recurses. Ephemeral removal makes no persistence claim.
 func Remove(ctx context.Context, request RemovalRequest) error {
 	if err := contextstate.Validate(ctx); err != nil {
 		return err
@@ -158,8 +159,10 @@ func Remove(ctx context.Context, request RemovalRequest) error {
 	if err != nil {
 		return cleanupError(err)
 	}
-	if err := syncParent(request.Location.Root, request.Location.Path); err != nil {
-		return cleanupError(err)
+	if request.Durability == RemovalDurabilityDurable {
+		if err := syncParent(request.Location.Root, request.Location.Path); err != nil {
+			return cleanupError(err)
+		}
 	}
 	return nil
 }

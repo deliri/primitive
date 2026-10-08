@@ -131,7 +131,7 @@ func writeVendorCompilerFixture(t *testing.T, root *os.Root, name, content strin
 		t.Fatal(err)
 	}
 	location := filestore.Location{Root: root, Path: relative}
-	if err := filestore.Remove(t.Context(), filestore.RemovalRequest{Location: location}); err != nil && !errors.Is(err, os.ErrNotExist) {
+	if err := filestore.Remove(t.Context(), filestore.RemovalRequest{Durability: filestore.RemovalDurabilityDurable, Location: location}); err != nil && !errors.Is(err, os.ErrNotExist) {
 		t.Fatal(err)
 	}
 	file, err := filestore.OpenScratch(t.Context(), filestore.ScratchRequest{Location: location, Mode: 0o600})

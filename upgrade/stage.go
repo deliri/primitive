@@ -203,7 +203,7 @@ func reclaimCandidateSlot(
 	case artifactVerificationAbsent:
 		return false, nil
 	case artifactVerificationInvalid:
-		return false, filestore.Remove(ctx, filestore.RemovalRequest{
+		return false, filestore.Remove(ctx, filestore.RemovalRequest{Durability: filestore.RemovalDurabilityDurable,
 			Location: filestore.Location{Root: root, Path: target.path},
 		})
 	case artifactVerificationUnknown:
@@ -222,7 +222,7 @@ func removeTrialTemporary(
 	if err != nil {
 		return err
 	}
-	return filestore.Remove(ctx, filestore.RemovalRequest{
+	return filestore.Remove(ctx, filestore.RemovalRequest{Durability: filestore.RemovalDurabilityDurable,
 		Location: filestore.Location{Root: root, Path: path},
 	})
 }
