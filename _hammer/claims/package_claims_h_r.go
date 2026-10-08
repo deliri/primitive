@@ -5,11 +5,11 @@ func emitPackageClaimSpecsHThroughR(emit func(packageClaimSpec) bool) bool {
 		{
 			path: "hostfacts", title: "Bounded host observations and ambient process effects",
 			problem:  "Applications repeatedly probe machine resources through platform-specific files and syscalls that can escape roots, block, or disagree.",
-			solution: "Hostfacts reports bounded disk, memory, CPU, terminal, platform, filesystem, host-path and environment observations, streams current-goroutine frames in fixed working windows, and executes one typed ambient environment binding change.",
+			solution: "Hostfacts reports bounded disk, memory, CPU, terminal, platform, filesystem, host-path and environment observations, streams current-goroutine frames in fixed working windows, and executes typed ambient environment and Go soft-memory-limit changes.",
 			benefit:  "Callers receive exact typed machine facts through one platform-aware owner and decide policy themselves.",
 			removal:  "Remove a Hostfacts observation when Go exposes the same bounded fact directly; remove the package when no shared host fact remains.",
-			owns:     "Hostfacts owns platform observation and classification of the exact host resource requested, plus single-variable ambient process environment mutation.",
-			excludes: "It does not mutate limits, supervise processes, monitor continuously, remove files, or choose product action.",
+			owns:     "Hostfacts owns platform observation and classification of the exact host resource requested, single-variable ambient environment mutation, and one Go runtime soft-memory-limit application with its previous and applied coordinates.",
+			excludes: "It does not choose resource budgets, promise hard memory ceilings, supervise processes, monitor continuously, remove files, or choose product action.",
 		},
 		{
 			path: "id", title: "Time-ordered identifiers",

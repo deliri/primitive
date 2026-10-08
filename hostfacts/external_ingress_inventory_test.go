@@ -18,6 +18,7 @@ type externalIngressFuzzContract[Door any] struct {
 }
 
 var (
+	_ = externalIngressFuzzContract[func(context.Context, GoMemoryLimitRequest) (GoMemoryLimitResult, error)]{Door: ApplyGoMemoryLimit, Fuzz: FuzzGoMemoryLimitNativeSemanticClosure}
 	_ = externalIngressFuzzContract[func(TimeZoneRequest) (*time.Location, error)]{Door: ObserveTimeZone, Fuzz: FuzzTimeZoneObservationSemanticClosure}
 	_ = externalIngressFuzzContract[func(context.Context, core.AbsolutePath) (cgroupMembership, bool, error)]{Door: observeCgroupMembership, Fuzz: FuzzCgroupMembershipFileSemanticClosure}
 	_ = externalIngressFuzzContract[func(uint8) (Percent, error)]{Door: NewPercent, Fuzz: FuzzPercentProjectionSemanticClosure}

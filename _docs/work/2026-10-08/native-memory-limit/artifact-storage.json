@@ -1,0 +1,20 @@
+[
+  {
+    "path": "primitive-memory-limit135-hostfacts-inventory-refusal.jsonl.gz",
+    "rawBytes": 2164672,
+    "packedBytes": 105867,
+    "rawSHA256": "c8eecfa79fb4c72468903f2aa676ff07c0722c99639c1253940c7d14c6a2a962",
+    "packedSHA256": "868e2ab048e86a7caa6c9686fb01e0e655cb275df0f0b27f070cc36d21ec3338",
+    "codec": "gzip",
+    "roundTripVerified": true
+  },
+  {
+    "path": "primitive-memory-limit135-hostfacts-retained.jsonl.gz",
+    "rawBytes": 2162926,
+    "packedBytes": 105388,
+    "rawSHA256": "0cba59e6ed3489c1db0a89848b599110dcaef58fb4d27f3cde7c265f95faa66d",
+    "packedSHA256": "2542cb7c5e4299be58eab872cddc61baf5a2f242c0e1f7b66dbbe88d33190149",
+    "codec": "gzip",
+    "roundTripVerified": true
+  }
+]

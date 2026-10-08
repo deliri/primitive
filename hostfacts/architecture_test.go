@@ -40,6 +40,7 @@ func TestPublicOperationsAreExactIntentEntryPoints(t *testing.T) {
 	slices.Sort(got)
 	want := []string{
 		"AmbientEnvironment",
+		"ApplyGoMemoryLimit",
 		"AssessDisk",
 		"AssessGoMemory",
 		"ClassifyGoOOMBanner",
@@ -80,6 +81,8 @@ type hostfactsCapability[T any] struct{ Value T }
 type hostfactsError[T any] struct{ Value T }
 
 type hostfactsStructInventory struct {
+	GoMemoryLimitRequest      hostfactsIngress[GoMemoryLimitRequest]
+	GoMemoryLimitResult       hostfactsObservation[GoMemoryLimitResult]
 	GoStackFrame              hostfactsObservation[GoStackFrame]
 	TimeZoneRequest           hostfactsIngress[TimeZoneRequest]
 	OOMWire                   hostfactsPersistence[goOOMBannerWire]

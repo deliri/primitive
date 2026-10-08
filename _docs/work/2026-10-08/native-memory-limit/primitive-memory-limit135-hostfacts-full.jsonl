@@ -1,0 +1,6 @@
+{"ImportPath":"./hostfacts","Action":"build-output","Output":"# ./hostfacts\n"}
+{"ImportPath":"./hostfacts","Action":"build-output","Output":"open /Users/d/Library/Caches/go-build/f2/f2335c4389d3eb9d8948767d93f4990e2ec8163a458d555065b4658b265debb7-d: operation not permitted\n"}
+{"ImportPath":"./hostfacts","Action":"build-fail"}
+{"Time":"2026-10-08T03:53:59.256375-04:00","Action":"start","Package":"./hostfacts"}
+{"Time":"2026-10-08T03:53:59.25647-04:00","Action":"output","Package":"./hostfacts","Output":"FAIL\t./hostfacts [setup failed]\n","OutputType":"frame"}
+{"Time":"2026-10-08T03:53:59.25649-04:00","Action":"fail","Package":"./hostfacts","Elapsed":0,"FailedBuild":"./hostfacts"}

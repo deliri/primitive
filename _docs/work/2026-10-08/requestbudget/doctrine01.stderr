@@ -1,0 +1,7 @@
+/Users/d/code/primitive/requestbudget/contract.go:13:6: enum Capacity missing IsValid method
+/Users/d/code/primitive/requestbudget/contract.go:13:6: enum Capacity missing MarshalJSON method
+/Users/d/code/primitive/requestbudget/contract.go:13:6: enum Capacity missing String method
+/Users/d/code/primitive/requestbudget/contract.go:13:6: enum Capacity missing UnmarshalJSON method
+/Users/d/code/primitive/requestbudget/contract.go:131:6: enum Decision missing IsValid method
+/Users/d/code/primitive/requestbudget/contract.go:131:6: enum Decision missing String method
+/Users/d/code/primitive/requestbudget/executor.go:63:15: channel created without capacity; choose an explicit bound

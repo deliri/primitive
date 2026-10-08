@@ -1,0 +1,11 @@
+{"Time":"2026-10-08T03:52:47.709682-04:00","Action":"start","Package":"github.com/deliri/primitive/v2026/requestbudget"}
+{"Time":"2026-10-08T03:52:47.862466-04:00","Action":"run","Package":"github.com/deliri/primitive/v2026/requestbudget","Test":"FuzzReservationCreditProviderBoundary"}
+{"Time":"2026-10-08T03:52:47.862557-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/requestbudget","Test":"FuzzReservationCreditProviderBoundary","Output":"=== RUN   FuzzReservationCreditProviderBoundary\n","OutputType":"frame"}
+{"Time":"2026-10-08T03:52:47.869778-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/requestbudget","Test":"FuzzReservationCreditProviderBoundary","Output":"fuzz: elapsed: 0s, gathering baseline coverage: 0/6 completed\n"}
+{"Time":"2026-10-08T03:52:47.88548-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/requestbudget","Test":"FuzzReservationCreditProviderBoundary","Output":"fuzz: elapsed: 0s, gathering baseline coverage: 6/6 completed, now fuzzing with 2 workers\n"}
+{"Time":"2026-10-08T03:52:49.955462-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/requestbudget","Test":"FuzzReservationCreditProviderBoundary","Output":"fuzz: elapsed: 2s, execs: 82029 (39330/sec), new interesting: 0 (total: 6)\n"}
+{"Time":"2026-10-08T03:52:49.955533-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/requestbudget","Test":"FuzzReservationCreditProviderBoundary","Output":"--- PASS: FuzzReservationCreditProviderBoundary (2.09s)\n","OutputType":"frame"}
+{"Time":"2026-10-08T03:52:49.955545-04:00","Action":"pass","Package":"github.com/deliri/primitive/v2026/requestbudget","Test":"FuzzReservationCreditProviderBoundary","Elapsed":2.09}
+{"Time":"2026-10-08T03:52:49.955569-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/requestbudget","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-08T03:52:49.956343-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/requestbudget","Output":"ok  \tgithub.com/deliri/primitive/v2026/requestbudget\t2.246s\n"}
+{"Time":"2026-10-08T03:52:49.956403-04:00","Action":"pass","Package":"github.com/deliri/primitive/v2026/requestbudget","Elapsed":2.247}

@@ -1,0 +1,12 @@
+{
+  "command": "go test -json -race -count=1 ./hostfacts",
+  "toolchain": "go1.27.1 darwin/arm64",
+  "counts": {
+    "test_pass": 1125,
+    "package_pass": 1
+  },
+  "cached": false,
+  "filtered": false,
+  "earlierAttemptsRetained": true,
+  "independentAcceptance": false
+}

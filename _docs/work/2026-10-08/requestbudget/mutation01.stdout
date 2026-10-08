@@ -1,0 +1,13 @@
+{"Time":"2026-10-08T03:44:21.56336-04:00","Action":"start","Package":"github.com/deliri/primitive/v2026/requestbudget"}
+{"Time":"2026-10-08T03:44:21.683611-04:00","Action":"run","Package":"github.com/deliri/primitive/v2026/requestbudget","Test":"TestReservationCreditsLayerTriad"}
+{"Time":"2026-10-08T03:44:21.68371-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/requestbudget","Test":"TestReservationCreditsLayerTriad","Output":"=== RUN   TestReservationCreditsLayerTriad\n","OutputType":"frame"}
+{"Time":"2026-10-08T03:44:21.683759-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/requestbudget","Test":"TestReservationCreditsLayerTriad","Output":"=== PAUSE TestReservationCreditsLayerTriad\n","OutputType":"frame"}
+{"Time":"2026-10-08T03:44:21.68378-04:00","Action":"pause","Package":"github.com/deliri/primitive/v2026/requestbudget","Test":"TestReservationCreditsLayerTriad"}
+{"Time":"2026-10-08T03:44:21.683788-04:00","Action":"cont","Package":"github.com/deliri/primitive/v2026/requestbudget","Test":"TestReservationCreditsLayerTriad"}
+{"Time":"2026-10-08T03:44:21.683794-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/requestbudget","Test":"TestReservationCreditsLayerTriad","Output":"=== CONT  TestReservationCreditsLayerTriad\n","OutputType":"frame"}
+{"Time":"2026-10-08T03:44:21.683803-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/requestbudget","Test":"TestReservationCreditsLayerTriad","Output":"    executor_test.go:31: Admit() = (1, \u003cnil\u003e), want (2, nil)\n","OutputType":"error"}
+{"Time":"2026-10-08T03:44:21.68382-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/requestbudget","Test":"TestReservationCreditsLayerTriad","Output":"--- FAIL: TestReservationCreditsLayerTriad (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-10-08T03:44:21.683826-04:00","Action":"fail","Package":"github.com/deliri/primitive/v2026/requestbudget","Test":"TestReservationCreditsLayerTriad","Elapsed":0}
+{"Time":"2026-10-08T03:44:21.683834-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/requestbudget","Output":"FAIL\n","OutputType":"frame"}
+{"Time":"2026-10-08T03:44:21.684299-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/requestbudget","Output":"FAIL\tgithub.com/deliri/primitive/v2026/requestbudget\t0.113s\n","OutputType":"frame"}
+{"Time":"2026-10-08T03:44:21.684358-04:00","Action":"fail","Package":"github.com/deliri/primitive/v2026/requestbudget","Elapsed":0.121}
