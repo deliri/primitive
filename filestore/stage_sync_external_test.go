@@ -62,8 +62,20 @@ func TestStageSyncObservesNativeExtentWithoutSettlingCustody(t *testing.T) {
 
 func TestStageSyncRefusesUnownedOrStoppedExecution(t *testing.T) {
 	t.Parallel()
-	for _, name := range []string{"nil_custody", "zero_custody", "copied_custody", "settled_custody", "closed_native_file", "nil_context", "canceled_context", "expired_context"} {
-		t.Run(name, func(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		kind stageBoundaryKind
+	}{
+		{name: "nil_custody", kind: stageBoundaryNilCustody},
+		{name: "zero_custody", kind: stageBoundaryZeroCustody},
+		{name: "copied_custody", kind: stageBoundaryCopiedCustody},
+		{name: "settled_custody", kind: stageBoundarySettledCustody},
+		{name: "closed_native_file", kind: stageBoundaryClosedNativeFile},
+		{name: "nil_context", kind: stageBoundaryNilContext},
+		{name: "canceled_context", kind: stageBoundaryCanceledContext},
+		{name: "expired_context", kind: stageBoundaryExpiredContext},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			root := requireTestRoot(t, t.TempDir())
 			destination, err := filestore.OpenStageDestination(t.Context(), filestore.StageDestinationRequest{Temporary: filestore.Location{Root: root, Path: mustRelativePath(t, "stage")}, Mode: 0o600})
@@ -73,19 +85,19 @@ func TestStageSyncRefusesUnownedOrStoppedExecution(t *testing.T) {
 			selected, ctx := destination, t.Context()
 			var want error = core.ErrFilestoreContract
 			closed := false
-			switch name {
-			case "nil_custody":
+			switch tc.kind {
+			case stageBoundaryNilCustody:
 				selected = nil
-			case "zero_custody":
+			case stageBoundaryZeroCustody:
 				selected = &filestore.StageDestination{}
-			case "copied_custody":
+			case stageBoundaryCopiedCustody:
 				copy := *destination
 				selected = &copy
-			case "settled_custody":
+			case stageBoundarySettledCustody:
 				if err := filestore.AbandonStageDestination(destination); err != nil {
 					t.Fatal(err)
 				}
-			case "closed_native_file":
+			case stageBoundaryClosedNativeFile:
 				file, err := destination.File()
 				if err != nil {
 					t.Fatal(err)
@@ -95,10 +107,10 @@ func TestStageSyncRefusesUnownedOrStoppedExecution(t *testing.T) {
 				}
 				closed = true
 				want = fs.ErrClosed
-			case "nil_context":
+			case stageBoundaryNilContext:
 				ctx = nil
 				want = core.ErrNilContext
-			case "canceled_context":
+			case stageBoundaryCanceledContext:
 				observed, cancel, err := temporal.WithCancellation(temporal.CancellationRequest{Parent: t.Context()})
 				if err != nil {
 					t.Fatal(err)
@@ -106,7 +118,7 @@ func TestStageSyncRefusesUnownedOrStoppedExecution(t *testing.T) {
 				cancel(context.Canceled)
 				ctx = observed
 				want = context.Canceled
-			case "expired_context":
+			case stageBoundaryExpiredContext:
 				observed, cancel, err := temporal.WithTimeout(temporal.TimeoutRequest{Parent: t.Context(), Duration: temporal.Duration{}})
 				if err != nil {
 					t.Fatal(err)

@@ -1,0 +1,25 @@
+{
+  "base_revision": "2a1a53823ec8c9900507f51a11593a26c121e2a0",
+  "command": "go test -json -race -count=1 ./filestore",
+  "toolchain": "go1.27.1 darwin/arm64",
+  "exit_code": 0,
+  "cache": "count=1",
+  "filter": null,
+  "tests": {
+    "pass": 5743
+  },
+  "skips": [],
+  "package_results": [
+    {
+      "Time": "2026-10-08T07:20:14.023703-04:00",
+      "Action": "pass",
+      "Package": "github.com/deliri/primitive/v2026/filestore",
+      "Elapsed": 114.654
+    }
+  ],
+  "raw_sha256": "a5b0a22f4608796c1deb09c1fe490a3bcf44aff744783917890ec46d5b8bd14d",
+  "raw_bytes": 12567123,
+  "stored_bytes": 507041,
+  "roundtrip_verified": true,
+  "capture_filename_note": "Approved capture slot includes140 in filename; this run concerns native-stage-restore source catalog on published v141 base."
+}

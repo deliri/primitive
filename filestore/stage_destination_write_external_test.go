@@ -15,27 +15,34 @@ import (
 
 func TestStageWriteRefusesStoppedContextBeforeNativeOutput(t *testing.T) {
 	t.Parallel()
-	for _, name := range []string{"nil_context", "canceled_context", "expired_context"} {
-		t.Run(name, func(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		kind stageBoundaryKind
+	}{
+		{name: "nil_context", kind: stageBoundaryNilContext},
+		{name: "canceled_context", kind: stageBoundaryCanceledContext},
+		{name: "expired_context", kind: stageBoundaryExpiredContext},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			var ctx context.Context
 			var want error = core.ErrNilContext
-			switch name {
-			case "canceled_context":
+			switch tc.kind {
+			case stageBoundaryCanceledContext:
 				observed, cancel, err := temporal.WithCancellation(temporal.CancellationRequest{Parent: t.Context()})
 				if err != nil {
 					t.Fatal(err)
 				}
 				cancel(context.Canceled)
 				ctx, want = observed, context.Canceled
-			case "expired_context":
+			case stageBoundaryExpiredContext:
 				observed, cancel, err := temporal.WithTimeout(temporal.TimeoutRequest{Parent: t.Context(), Duration: temporal.Duration{}})
 				if err != nil {
 					t.Fatal(err)
 				}
 				defer cancel()
 				ctx, want = observed, context.DeadlineExceeded
-			case "nil_context":
+			case stageBoundaryNilContext:
 			default:
 				t.Fatal("unclassified context case")
 			}

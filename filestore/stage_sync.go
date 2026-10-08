@@ -46,17 +46,9 @@ func syncStage(destination *StageDestination) (StageSyncObservation, error) {
 	if err := destination.file.Sync(); err != nil {
 		return StageSyncObservation{}, activationError(err)
 	}
-	info, err := destination.file.Stat()
+	length, err := observeStageLength(destination.file)
 	if err != nil {
-		return StageSyncObservation{}, activationError(err)
-	}
-	extent, err := core.CheckedUint64FromInt64(info.Size())
-	if err != nil {
-		return StageSyncObservation{}, sizeError(err)
-	}
-	length, err := core.NewByteLength(extent)
-	if err != nil {
-		return StageSyncObservation{}, sizeError(err)
+		return StageSyncObservation{}, err
 	}
 	return StageSyncObservation{bytesWritten: length, synchronized: true}, nil
 }

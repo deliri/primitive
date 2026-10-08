@@ -69,6 +69,8 @@ type filestoreContractInventory struct {
 	StageWriteObservation         streamedObservation[StageWriteObservation]
 	StageSyncRequest              validatedRequest[StageSyncRequest]
 	StageSyncObservation          streamedObservation[StageSyncObservation]
+	StageRestoreRequest           validatedRequest[StageRestoreRequest]
+	StageRestoreObservation       streamedObservation[StageRestoreObservation]
 	ActivationRequest             validatedRequest[ActivationRequest]
 	CommitRequest                 validatedRequest[CommitRequest]
 	TouchRequest                  validatedRequest[TouchRequest]
