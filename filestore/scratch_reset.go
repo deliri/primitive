@@ -3,7 +3,7 @@ package filestore
 import (
 	"context"
 	"io"
-	"os"
+	"io/fs"
 
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
@@ -11,10 +11,17 @@ import (
 
 // ScratchResetRequest grants disposal of all bytes in a caller-owned scratch
 // handle. It does not promise durable publication or recovery.
-type ScratchResetRequest struct{ File *os.File }
+type ScratchResetFile interface {
+	io.Writer
+	io.Seeker
+	Stat() (fs.FileInfo, error)
+	Truncate(int64) error
+}
+
+type ScratchResetRequest struct{ File ScratchResetFile }
 
 func (r ScratchResetRequest) Validate() error {
-	if r.File == nil {
+	if core.WriterIsNil(r.File) {
 		return core.ErrFilestoreContract
 	}
 	return nil

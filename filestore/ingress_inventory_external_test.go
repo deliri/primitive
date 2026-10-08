@@ -91,6 +91,7 @@ func filestoreIngressProofs() []filestoreIngressProof {
 		{door: reflect.ValueOf(filestore.WithRootScope), fuzz: FuzzRootScopeNativeLifetime},
 		{door: reflect.ValueOf(filestore.WithReadScope), fuzz: FuzzFileScopesConserveNativeBytesAndCloseBorrowedHandles},
 		{door: reflect.ValueOf(filestore.WithScratchWriterScope), fuzz: FuzzFileScopesConserveNativeBytesAndCloseBorrowedHandles},
+		{door: reflect.ValueOf(filestore.WithScratchReplayScope), fuzz: FuzzScratchReplayConservesReplacementBytes},
 		{door: reflect.ValueOf(filestore.FileScopeResult.OperationError), fuzz: FuzzFileScopesConserveNativeBytesAndCloseBorrowedHandles},
 		{door: reflect.ValueOf(filestore.FileScopeResult.CleanupError), fuzz: FuzzFileScopesConserveNativeBytesAndCloseBorrowedHandles},
 		{door: reflect.ValueOf(filestore.Touch), fuzz: FuzzCustodyNamespaceAndTimestampSemanticClosure},

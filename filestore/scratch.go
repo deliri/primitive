@@ -30,13 +30,17 @@ func (r ScratchRequest) Validate() error {
 // OpenScratch creates one new file without synchronizing it or its parent.
 // O_EXCL preserves any existing file, directory, symlink, or special entry.
 func OpenScratch(ctx context.Context, request ScratchRequest) (*os.File, error) {
+	return openScratch(ctx, request, os.O_WRONLY)
+}
+
+func openScratch(ctx context.Context, request ScratchRequest, access int) (*os.File, error) {
 	if err := contextstate.Validate(ctx); err != nil {
 		return nil, err
 	}
 	if err := request.Validate(); err != nil {
 		return nil, err
 	}
-	file, err := request.Location.Root.OpenFile(request.Location.Path.String(), os.O_WRONLY|os.O_CREATE|os.O_EXCL, request.Mode)
+	file, err := request.Location.Root.OpenFile(request.Location.Path.String(), access|os.O_CREATE|os.O_EXCL, request.Mode)
 	if err != nil {
 		return nil, classifyCreateError(err)
 	}
