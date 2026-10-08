@@ -1,0 +1,18 @@
+{
+  "revision": "7b7618d4de3f14cf2afdd3729b7c2e9a8ff0b4cf",
+  "tag": "v2026.1.133",
+  "command": "go test -race -count=1 -timeout=5m ./filestore -run '^TestRootScope|^TestNativePipeCoordinationAdmission|^TestFilestorePublicIngress'",
+  "toolchain": "go1.27.1",
+  "filtered": true,
+  "cached": false,
+  "toolResult": {
+    "chunk_id": "3759b3",
+    "wall_time_seconds": 1.002075709,
+    "original_token_count": 0,
+    "output": "ok  \tgithub.com/deliri/primitive/v2026/filestore\t1.330s\n",
+    "exit_code": 0
+  },
+  "remoteMain": "7b7618d4de3f14cf2afdd3729b7c2e9a8ff0b4cf",
+  "remoteTag": "7b7618d4de3f14cf2afdd3729b7c2e9a8ff0b4cf",
+  "independentAcceptance": false
+}
