@@ -1,0 +1,73 @@
+{
+  "base_commit": "21744d10f6e4e66c53525d479b906701fb1455cd",
+  "toolchain": "go1.27.1 darwin/arm64",
+  "commands": {
+    "race": "go test -json -race -count=1 -timeout=5m ./filestore -run '^TestPipeTransfer|^TestFilestorePublicIngress|^TestFilestoreImportsOnly|^TestFilestoreDataFlow|^FuzzPipeTransfer'",
+    "fuzz": "go test -json -count=1 -run '^$' -fuzz '^FuzzPipeTransferPreservesNativeBytes$' -fuzztime=3s ./filestore",
+    "context": "go test -json -race -count=1 -timeout=5m ./filestore -run '^TestPipeTransfer'",
+    "build": "go build ./..."
+  },
+  "results": {
+    "primitive-native-pipe-green132.jsonl": {
+      "pass": 87,
+      "fail": 1,
+      "skip": 0
+    },
+    "primitive-native-pipe-green132-attempt2.jsonl": {
+      "pass": 289,
+      "fail": 0,
+      "skip": 0
+    },
+    "primitive-native-pipe-context132.jsonl": {
+      "pass": 13,
+      "fail": 0,
+      "skip": 0
+    },
+    "primitive-native-pipe-final-green132.jsonl": {
+      "pass": 292,
+      "fail": 0,
+      "skip": 0
+    },
+    "primitive-native-pipe-fuzz132.jsonl": {
+      "pass": 0,
+      "fail": 1,
+      "skip": 0
+    }
+  },
+  "attempts": "initial scoped run incorrectly bound a pure Validate method as effect ingress and failed inventory; binding removed according to the inventory protocol. Fuzz attempt1 failed when sandbox refused cache persistence; attempt2 passed. All retained, not folded into success.",
+  "mutation": "isolated source removes pipe reader closure; three real endpoint Stat assertions plus parent fail. Mutation tool result retained.",
+  "scope": "filtered behavioral and architecture/inventory checks with race, semantic fuzz 3s; count=1; whole build passed, no complete whole suite or independent acceptance claim",
+  "contract": "one real OS pipe, fixed single producer/completion channel, scoped cancellation and join; separate producer/consumer/native cleanup outcomes; no retained inventory or simulated endpoints; caller owns meaning of completion",
+  "source_sha256": {
+    "filestore/pipe_transfer.go": "3444664e30916969db561e0d6b70c3a0c4632f3e7231e217bb61eff13949b8e5",
+    "filestore/pipe_transfer_external_test.go": "2f73f8ef4d4fb6c0e6af3ea7f134e833cb46759ca8439c30cc58ecfd8c3cdbba",
+    "filestore/architecture_test.go": "93e5f6030123b6a16eeaa01c3fea78da3606125038424d23571218025c556f90",
+    "filestore/ingress_inventory_external_test.go": "46cb3c56aec1293442e23d302ccc10f420053b57ea7d3c2b406b3a2b5d15021a"
+  },
+  "hammer": {
+    "command": "hammer compile /Users/d/code/primitive github.com/deliri/primitive",
+    "generation": "666466ff1abfc611b7637338c04094e7ffba98f54a99383c0c10fa4ec84589a4",
+    "snapshot": "360ad77a96dd92d278b4d88c3ec5c0c4965faa07e728f6ed349d21ab4b65ed82",
+    "assurance": "refused",
+    "missing_claims": 0,
+    "unavailable_observations": 0,
+    "incomplete_effect_classifications": 1918,
+    "direct_effect_reviews": 444,
+    "total_findings": 2362
+  },
+  "artifacts_sha256": {
+    "fuzz-attempt2-tool-result.json": "cc2e580026d5d7cacbdcacec7eaa73964d0039413c6a6c35ba3b71348f127916",
+    "primitive-native-pipe-green132.jsonl": "d07ccf8c16ac9860f2052cb98513edc6371783384cf323a0cb73d55606f7adf2",
+    "primitive-native-pipe-green132-attempt2.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "primitive-native-pipe-final-green132.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "mutation-tool-result.json": "9c73c83b3505690444c0ecbcb5792e484d713ba6d02a5932d690e85464ed29c7",
+    "primitive-native-pipe-green132-attempt2.jsonl": "433f22a77252db6a7e8a99a619fc81a87c482ea2d68905b147b7ee2e38f419cf",
+    "primitive-native-pipe-green132.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "primitive-native-pipe-context132.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "hammer-manifest.json": "666466ff1abfc611b7637338c04094e7ffba98f54a99383c0c10fa4ec84589a4",
+    "primitive-native-pipe-context132.jsonl": "816ed3557e65387b6f87790ed21c7c90564218e97f6ffe4086f1cb36874fd356",
+    "primitive-native-pipe-final-green132.jsonl": "e348d2a26e5417cfd687e81c9446c8c1b6b3e370ed8bea4b7a6d207a8a08733b",
+    "primitive-native-pipe-fuzz132.jsonl": "6337cf83e43b2339584602e279df237d37f3f1e25cb5287a1b08eef78117d1d7",
+    "primitive-native-pipe-fuzz132.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

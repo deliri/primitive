@@ -80,6 +80,7 @@ func filestoreIngressProofs() []filestoreIngressProof {
 		{door: reflect.ValueOf(filestore.OpenRoot), fuzz: FuzzOpenParentAndRootIdentityNativeCustody},
 		{door: reflect.ValueOf(filestore.ValidateRootIdentity), fuzz: FuzzOpenParentAndRootIdentityNativeCustody},
 		{door: reflect.ValueOf(filestore.OpenPipe), fuzz: FuzzPipeNativeCustodyAndBytes},
+		{door: reflect.ValueOf(filestore.TransferPipe), fuzz: FuzzPipeTransferPreservesNativeBytes},
 		{door: reflect.ValueOf(filestore.EnsureDirectory), fuzz: FuzzEnsureDirectoryNativeNamespaceCustody},
 		{door: reflect.ValueOf(filestore.CreateDirectory), fuzz: FuzzCreateDirectoryNativeModeAndExclusivity},
 		{door: reflect.ValueOf(filestore.EnsureScratchDirectory), fuzz: FuzzScratchCreationModesSemanticClosure},

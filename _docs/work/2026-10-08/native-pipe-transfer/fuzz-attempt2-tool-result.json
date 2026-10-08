@@ -1,0 +1,19 @@
+{
+  "cmd": "go test -json -count=1 -run '^$' -fuzz '^FuzzPipeTransferPreservesNativeBytes$' -fuzztime=3s ./filestore",
+  "chunks": [
+    {
+      "chunk_id": "bc6052",
+      "wall_time_seconds": 1.002076208,
+      "session_id": 8590,
+      "original_token_count": 0,
+      "output": ""
+    },
+    {
+      "chunk_id": "fb9c2a",
+      "wall_time_seconds": 0.000007041,
+      "exit_code": 0,
+      "original_token_count": 608,
+      "output": "{\"Time\":\"2026-10-08T01:14:17.800478-04:00\",\"Action\":\"start\",\"Package\":\"github.com/deliri/primitive/v2026/filestore\"}\n{\"Time\":\"2026-10-08T01:14:18.028913-04:00\",\"Action\":\"run\",\"Package\":\"github.com/deliri/primitive/v2026/filestore\",\"Test\":\"FuzzPipeTransferPreservesNativeBytes\"}\n{\"Time\":\"2026-10-08T01:14:18.029-04:00\",\"Action\":\"output\",\"Package\":\"github.com/deliri/primitive/v2026/filestore\",\"Test\":\"FuzzPipeTransferPreservesNativeBytes\",\"Output\":\"=== RUN   FuzzPipeTransferPreservesNativeBytes\\n\",\"OutputType\":\"frame\"}\n{\"Time\":\"2026-10-08T01:14:18.032262-04:00\",\"Action\":\"output\",\"Package\":\"github.com/deliri/primitive/v2026/filestore\",\"Test\":\"FuzzPipeTransferPreservesNativeBytes\",\"Output\":\"fuzz: elapsed: 0s, gathering baseline coverage: 0/3 completed\\n\"}\n{\"Time\":\"2026-10-08T01:14:18.046217-04:00\",\"Action\":\"output\",\"Package\":\"github.com/deliri/primitive/v2026/filestore\",\"Test\":\"FuzzPipeTransferPreservesNativeBytes\",\"Output\":\"fuzz: elapsed: 0s, gathering baseline coverage: 3/3 completed, now fuzzing with 10 workers\\n\"}\n{\"Time\":\"2026-10-08T01:14:21.032497-04:00\",\"Action\":\"output\",\"Package\":\"github.com/deliri/primitive/v2026/filestore\",\"Test\":\"FuzzPipeTransferPreservesNativeBytes\",\"Output\":\"fuzz: elapsed: 3s, execs: 4994 (1665/sec), new interesting: 1 (total: 4)\\n\"}\n{\"Time\":\"2026-10-08T01:14:22.052681-04:00\",\"Action\":\"output\",\"Package\":\"github.com/deliri/primitive/v2026/filestore\",\"Test\":\"FuzzPipeTransferPreservesNativeBytes\",\"Output\":\"fuzz: elapsed: 4s, execs: 4994 (0/sec), new interesting: 1 (total: 4)\\n\"}\n{\"Time\":\"2026-10-08T01:14:22.052741-04:00\",\"Action\":\"output\",\"Package\":\"github.com/deliri/primitive/v2026/filestore\",\"Test\":\"FuzzPipeTransferPreservesNativeBytes\",\"Output\":\"--- PASS: FuzzPipeTransferPreservesNativeBytes (4.02s)\\n\",\"OutputType\":\"frame\"}\n{\"Time\":\"2026-10-08T01:14:22.052744-04:00\",\"Action\":\"pass\",\"Package\":\"github.com/deliri/primitive/v2026/filestore\",\"Test\":\"FuzzPipeTransferPreservesNativeBytes\",\"Elapsed\":4.02}\n{\"Time\":\"2026-10-08T01:14:22.052777-04:00\",\"Action\":\"output\",\"Package\":\"github.com/deliri/primitive/v2026/filestore\",\"Output\":\"PASS\\n\",\"OutputType\":\"frame\"}\n{\"Time\":\"2026-10-08T01:14:22.05415-04:00\",\"Action\":\"output\",\"Package\":\"github.com/deliri/primitive/v2026/filestore\",\"Output\":\"ok  \\tgithub.com/deliri/primitive/v2026/filestore\\t4.253s\\n\"}\n{\"Time\":\"2026-10-08T01:14:22.054179-04:00\",\"Action\":\"pass\",\"Package\":\"github.com/deliri/primitive/v2026/filestore\",\"Elapsed\":4.254}\n"
+    }
+  ]
+}
