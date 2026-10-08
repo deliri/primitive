@@ -1,0 +1,1 @@
+requestbudget/executor.go:63:35: should use make(chan struct{}) instead (S1019)

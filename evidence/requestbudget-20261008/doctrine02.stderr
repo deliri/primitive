@@ -1,0 +1,1 @@
+/Users/d/code/primitive/requestbudget/contract.go:158:2: enum switch default must be loud; return an error, panic, or call a named handler

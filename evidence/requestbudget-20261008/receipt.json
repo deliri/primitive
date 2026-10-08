@@ -1,0 +1,1098 @@
+{
+  "scope": "Primitive requestbudget local executor, typed constructors/provider boundary, compiler-owned catalogs and source claims. Simulated durable callbacks only; actual Firestore/API wiring is separate.",
+  "independent_acceptance": false,
+  "implementation_commit": "b6f4f8364092ee0c0c8f00a509ddef50f1fc0249",
+  "toolchain": {
+    "go": "go version go1.27.1 darwin/arm64",
+    "staticcheck": "staticcheck 2026.2.1 (0.8.1)",
+    "witness_lint_binary_sha256": "4aad9267cee3ae62eb43372ce1cead0342f140d04411c2629ba345ee77a371c6"
+  },
+  "environment": {
+    "GOWORK": "off",
+    "platform": "darwin/arm64",
+    "test_cache": "bypassed -count=1",
+    "fuzz_budget": "2s execution plus1s minimization; one phase per changed candidate revision"
+  },
+  "attempts": [
+    {
+      "attempt": "red01",
+      "exit_code": 1,
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "./requestbudget"
+      ],
+      "cwd": "/Users/d/code/primitive",
+      "counts": {
+        "test_pass": 0,
+        "test_fail": 0,
+        "test_skip": 0,
+        "package_pass": 0,
+        "package_fail": 1,
+        "package_skip": 0
+      },
+      "note": "Missing executor API compilation red on pre-slice bdb9486 with added typed test."
+    },
+    {
+      "attempt": "green01",
+      "exit_code": 0,
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "./requestbudget"
+      ],
+      "cwd": "/Users/d/code/primitive",
+      "counts": {
+        "test_pass": 1,
+        "test_fail": 0,
+        "test_skip": 0,
+        "package_pass": 1,
+        "package_fail": 0,
+        "package_skip": 0
+      },
+      "note": "Scoped command result; source binding available only where snapshot is named."
+    },
+    {
+      "attempt": "green02",
+      "exit_code": 1,
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "./requestbudget"
+      ],
+      "cwd": "/Users/d/code/primitive",
+      "counts": {
+        "test_pass": 0,
+        "test_fail": 0,
+        "test_skip": 0,
+        "package_pass": 0,
+        "package_fail": 1,
+        "package_skip": 0
+      },
+      "note": "Sandbox denied Go build-cache access; no behavioral test executed."
+    },
+    {
+      "attempt": "green03",
+      "exit_code": 0,
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "./requestbudget"
+      ],
+      "cwd": "/Users/d/code/primitive",
+      "counts": {
+        "test_pass": 35,
+        "test_fail": 0,
+        "test_skip": 0,
+        "package_pass": 1,
+        "package_fail": 0,
+        "package_skip": 0
+      },
+      "note": "Scoped command result; source binding available only where snapshot is named."
+    },
+    {
+      "attempt": "green04",
+      "exit_code": 0,
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "./requestbudget"
+      ],
+      "cwd": "/Users/d/code/primitive",
+      "counts": {
+        "test_pass": 41,
+        "test_fail": 0,
+        "test_skip": 0,
+        "package_pass": 1,
+        "package_fail": 0,
+        "package_skip": 0
+      },
+      "note": "Scoped command result; source binding available only where snapshot is named."
+    },
+    {
+      "attempt": "green05",
+      "exit_code": 0,
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "./requestbudget"
+      ],
+      "cwd": "/Users/d/code/primitive",
+      "counts": {
+        "test_pass": 41,
+        "test_fail": 0,
+        "test_skip": 0,
+        "package_pass": 1,
+        "package_fail": 0,
+        "package_skip": 0
+      },
+      "note": "Scoped command result; source binding available only where snapshot is named."
+    },
+    {
+      "attempt": "core01",
+      "exit_code": 0,
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "./core",
+        "-run",
+        "TestPrimitiveArchitecture|TestArchitecture|TestCoreExport|TestErrorIdentity"
+      ],
+      "cwd": "/Users/d/code/primitive",
+      "counts": {
+        "test_pass": 33,
+        "test_fail": 0,
+        "test_skip": 0,
+        "package_pass": 1,
+        "package_fail": 0,
+        "package_skip": 0
+      },
+      "note": "Scoped command result; source binding available only where snapshot is named."
+    },
+    {
+      "attempt": "mutation01",
+      "exit_code": 1,
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-overlay",
+        "/private/tmp/primitive-requestbudget-20261008/mutation-overlay.json",
+        "./requestbudget",
+        "-run",
+        "TestReservationCreditsLayerTriad"
+      ],
+      "cwd": "/Users/d/code/primitive",
+      "counts": {
+        "test_pass": 0,
+        "test_fail": 1,
+        "test_skip": 0,
+        "package_pass": 0,
+        "package_fail": 1,
+        "package_skip": 0
+      },
+      "note": "Exact committed11385ad source via overlay: remove only consumeSlot cached credit decrement. Admitted incorrectly replaces expected Exhausted; mutation fails and committed disk is untouched.",
+      "source_snapshot": "mutation01-source.json"
+    },
+    {
+      "attempt": "committed01",
+      "exit_code": 0,
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-race",
+        "-count=1",
+        "./requestbudget"
+      ],
+      "cwd": "/Users/d/code/primitive",
+      "counts": {
+        "test_pass": 41,
+        "test_fail": 0,
+        "test_skip": 0,
+        "package_pass": 1,
+        "package_fail": 0,
+        "package_skip": 0
+      },
+      "note": "Scoped command result; source binding available only where snapshot is named.",
+      "source_snapshot": "committed01-source.json"
+    },
+    {
+      "attempt": "core02",
+      "exit_code": 1,
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "./core",
+        "./_hammer/claims"
+      ],
+      "cwd": "/Users/d/code/primitive",
+      "counts": {
+        "test_pass": 1996,
+        "test_fail": 4,
+        "test_skip": 0,
+        "package_pass": 0,
+        "package_fail": 2,
+        "package_skip": 0
+      },
+      "note": "Claim ordering and Capacity producer defects plus3 unrelated baseline failures; all retained.",
+      "source_snapshot": "core02-source.json"
+    },
+    {
+      "attempt": "baseline01",
+      "exit_code": 1,
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "-overlay",
+        "/private/tmp/primitive-requestbudget-20261008/baseline-overlay.json",
+        "./core",
+        "-run",
+        "TestRealWorldEffectOwnershipMatchesLandedProduction|TestEveryDemandedTypeHasAProducer|TestCoreTopLevelExportsHaveTwoNamedPrimitiveConsumers"
+      ],
+      "cwd": "/Users/d/code/primitive",
+      "counts": {
+        "test_pass": 0,
+        "test_fail": 3,
+        "test_skip": 0,
+        "package_pass": 0,
+        "package_fail": 1,
+        "package_skip": 0
+      },
+      "note": "Exact pre-slice bdb9486 production/catalog AST fixture reproduces3 unrelated failures. Scan-only test root paths redirected by retained overlay; no Git checkout/worktree."
+    },
+    {
+      "attempt": "fuzz01",
+      "exit_code": 0,
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-run",
+        "^$",
+        "-fuzz",
+        "^FuzzReservationCreditProviderBoundary$",
+        "-fuzztime=2s",
+        "-fuzzminimizetime=1s",
+        "-parallel=2",
+        "./requestbudget"
+      ],
+      "cwd": "/Users/d/code/primitive",
+      "counts": {
+        "test_pass": 1,
+        "test_fail": 0,
+        "test_skip": 0,
+        "package_pass": 1,
+        "package_fail": 0,
+        "package_skip": 0
+      },
+      "note": "Planned source snapshot was captured before later constructor/claim edits; cannot claim its hashes describe execution. It remains exploratory dirty-source proof. Final fuzz03 has exact clean pre-run binding.",
+      "source_snapshot": "fuzz01-source.json"
+    },
+    {
+      "attempt": "committed02",
+      "exit_code": 0,
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-race",
+        "-count=1",
+        "./requestbudget"
+      ],
+      "cwd": "/Users/d/code/primitive",
+      "counts": {
+        "test_pass": 41,
+        "test_fail": 0,
+        "test_skip": 0,
+        "package_pass": 1,
+        "package_fail": 0,
+        "package_skip": 0
+      },
+      "note": "Scoped command result; source binding available only where snapshot is named.",
+      "source_snapshot": "committed02-source.json"
+    },
+    {
+      "attempt": "core03",
+      "exit_code": 1,
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "./core",
+        "./_hammer/claims"
+      ],
+      "cwd": "/Users/d/code/primitive",
+      "counts": {
+        "test_pass": 1997,
+        "test_fail": 3,
+        "test_skip": 0,
+        "package_pass": 1,
+        "package_fail": 1,
+        "package_skip": 0
+      },
+      "note": "Corrected claims pass; full core retains exactly3 pre-existing failures proven by baseline01.",
+      "source_snapshot": "core03-source.json"
+    },
+    {
+      "attempt": "fuzz02",
+      "exit_code": 0,
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-run",
+        "^$",
+        "-fuzz",
+        "^FuzzReservationCreditProviderBoundary$",
+        "-fuzztime=2s",
+        "-fuzzminimizetime=1s",
+        "-parallel=2",
+        "./requestbudget"
+      ],
+      "cwd": "/Users/d/code/primitive",
+      "counts": {
+        "test_pass": 1,
+        "test_fail": 0,
+        "test_skip": 0,
+        "package_pass": 1,
+        "package_fail": 0,
+        "package_skip": 0
+      },
+      "note": "Scoped command result; source binding available only where snapshot is named.",
+      "source_snapshot": "fuzz02-source.json"
+    },
+    {
+      "attempt": "vet01",
+      "exit_code": 0,
+      "argv": [
+        "go",
+        "vet",
+        "./requestbudget"
+      ],
+      "cwd": "/Users/d/code/primitive",
+      "counts": {
+        "test_pass": 0,
+        "test_fail": 0,
+        "test_skip": 0,
+        "package_pass": 0,
+        "package_fail": 0,
+        "package_skip": 0
+      },
+      "note": "Scoped command result; source binding available only where snapshot is named."
+    },
+    {
+      "attempt": "errcheck01",
+      "exit_code": 0,
+      "argv": [
+        "errcheck",
+        "./requestbudget"
+      ],
+      "cwd": "/Users/d/code/primitive",
+      "counts": {
+        "test_pass": 0,
+        "test_fail": 0,
+        "test_skip": 0,
+        "package_pass": 0,
+        "package_fail": 0,
+        "package_skip": 0
+      },
+      "note": "Scoped command result; source binding available only where snapshot is named."
+    },
+    {
+      "attempt": "complexity01",
+      "exit_code": 0,
+      "argv": [
+        "gocyclo",
+        "-over",
+        "10",
+        "--ignore",
+        "_test.go",
+        "requestbudget"
+      ],
+      "cwd": "/Users/d/code/primitive",
+      "counts": {
+        "test_pass": 0,
+        "test_fail": 0,
+        "test_skip": 0,
+        "package_pass": 0,
+        "package_fail": 0,
+        "package_skip": 0
+      },
+      "note": "Scoped command result; source binding available only where snapshot is named."
+    },
+    {
+      "attempt": "staticcheck01",
+      "exit_code": 1,
+      "argv": [
+        "staticcheck",
+        "./requestbudget"
+      ],
+      "cwd": "/Users/d/code/primitive",
+      "counts": {
+        "test_pass": 0,
+        "test_fail": 0,
+        "test_skip": 0,
+        "package_pass": 0,
+        "package_fail": 0,
+        "package_skip": 0
+      },
+      "note": "Deliberately hostile nil context needed a reasoned test-only SA1012 suppression."
+    },
+    {
+      "attempt": "doctrine-help01",
+      "exit_code": 3,
+      "argv": [
+        "witness-lint",
+        "-help"
+      ],
+      "cwd": "/Users/d/code/primitive",
+      "counts": {
+        "test_pass": 0,
+        "test_fail": 0,
+        "test_skip": 0,
+        "package_pass": 0,
+        "package_fail": 0,
+        "package_skip": 0
+      },
+      "note": "Tool help flag treated as a path; stderr copied from tool transcript, not original redirected stream."
+    },
+    {
+      "attempt": "doctrine01",
+      "exit_code": 1,
+      "argv": [
+        "witness-lint",
+        "/Users/d/code/primitive/requestbudget"
+      ],
+      "cwd": "/Users/d/code/primitive",
+      "counts": {
+        "test_pass": 0,
+        "test_fail": 0,
+        "test_skip": 0,
+        "package_pass": 0,
+        "package_fail": 0,
+        "package_skip": 0
+      },
+      "note": "Capacity misidentified as enum, incomplete decision methods, implicit channel bound."
+    },
+    {
+      "attempt": "green06",
+      "exit_code": 0,
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-race",
+        "-count=1",
+        "./requestbudget"
+      ],
+      "cwd": "/Users/d/code/primitive",
+      "counts": {
+        "test_pass": 41,
+        "test_fail": 0,
+        "test_skip": 0,
+        "package_pass": 1,
+        "package_fail": 0,
+        "package_skip": 0
+      },
+      "note": "Scoped command result; source binding available only where snapshot is named."
+    },
+    {
+      "attempt": "doctrine02",
+      "exit_code": 1,
+      "argv": [
+        "witness-lint",
+        "/Users/d/code/primitive/requestbudget"
+      ],
+      "cwd": "/Users/d/code/primitive",
+      "counts": {
+        "test_pass": 0,
+        "test_fail": 0,
+        "test_skip": 0,
+        "package_pass": 0,
+        "package_fail": 0,
+        "package_skip": 0
+      },
+      "note": "Silent invalid enum formatting default; replaced with validated bounded projection."
+    },
+    {
+      "attempt": "staticcheck02",
+      "exit_code": 1,
+      "argv": [
+        "staticcheck",
+        "./requestbudget"
+      ],
+      "cwd": "/Users/d/code/primitive",
+      "counts": {
+        "test_pass": 0,
+        "test_fail": 0,
+        "test_skip": 0,
+        "package_pass": 0,
+        "package_fail": 0,
+        "package_skip": 0
+      },
+      "note": "Explicit unbuffered completion channel needed testable reasoned S1019 annotation."
+    },
+    {
+      "attempt": "doctrine03",
+      "exit_code": 0,
+      "argv": [
+        "witness-lint",
+        "/Users/d/code/primitive/requestbudget"
+      ],
+      "cwd": "/Users/d/code/primitive",
+      "counts": {
+        "test_pass": 0,
+        "test_fail": 0,
+        "test_skip": 0,
+        "package_pass": 0,
+        "package_fail": 0,
+        "package_skip": 0
+      },
+      "note": "Scoped command result; source binding available only where snapshot is named."
+    },
+    {
+      "attempt": "staticcheck03",
+      "exit_code": 0,
+      "argv": [
+        "staticcheck",
+        "./requestbudget"
+      ],
+      "cwd": "/Users/d/code/primitive",
+      "counts": {
+        "test_pass": 0,
+        "test_fail": 0,
+        "test_skip": 0,
+        "package_pass": 0,
+        "package_fail": 0,
+        "package_skip": 0
+      },
+      "note": "Scoped command result; source binding available only where snapshot is named."
+    },
+    {
+      "attempt": "committed03",
+      "exit_code": 0,
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-race",
+        "-count=1",
+        "./requestbudget"
+      ],
+      "cwd": "/Users/d/code/primitive",
+      "counts": {
+        "test_pass": 41,
+        "test_fail": 0,
+        "test_skip": 0,
+        "package_pass": 1,
+        "package_fail": 0,
+        "package_skip": 0
+      },
+      "note": "Scoped command result; source binding available only where snapshot is named.",
+      "source_snapshot": "committed03-source.json"
+    },
+    {
+      "attempt": "claims04",
+      "exit_code": 0,
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-count=1",
+        "./_hammer/claims"
+      ],
+      "cwd": "/Users/d/code/primitive",
+      "counts": {
+        "test_pass": 1,
+        "test_fail": 0,
+        "test_skip": 0,
+        "package_pass": 1,
+        "package_fail": 0,
+        "package_skip": 0
+      },
+      "note": "Scoped command result; source binding available only where snapshot is named.",
+      "source_snapshot": "claims04-source.json"
+    },
+    {
+      "attempt": "fuzz03",
+      "exit_code": 0,
+      "argv": [
+        "go",
+        "test",
+        "-json",
+        "-run",
+        "^$",
+        "-fuzz",
+        "^FuzzReservationCreditProviderBoundary$",
+        "-fuzztime=2s",
+        "-fuzzminimizetime=1s",
+        "-parallel=2",
+        "./requestbudget"
+      ],
+      "cwd": "/Users/d/code/primitive",
+      "counts": {
+        "test_pass": 1,
+        "test_fail": 0,
+        "test_skip": 0,
+        "package_pass": 1,
+        "package_fail": 0,
+        "package_skip": 0
+      },
+      "note": "Scoped command result; source binding available only where snapshot is named.",
+      "source_snapshot": "fuzz03-source.json"
+    },
+    {
+      "attempt": "profile01",
+      "exit_code": 0,
+      "argv": [
+        "go",
+        "run",
+        "/private/tmp/primitive-requestbudget-20261008/profile.go"
+      ],
+      "cwd": "/Users/d/code/primitive",
+      "counts": {
+        "test_pass": 0,
+        "test_fail": 0,
+        "test_skip": 0,
+        "package_pass": 0,
+        "package_fail": 0,
+        "package_skip": 0
+      },
+      "note": "Actual256 concurrent worker execution using simulated durable reservation; all workers waited and context canceled before Go goroutineleak collection. Profile count0 is scoped evidence, not proof of every possible OS/network leak."
+    }
+  ],
+  "accounting_limits": [
+    "Early exploratory red/green/gates did not capture exact source snapshots before execution; they are supporting observations, not complete revision-bound evidence. Final committed03/claims04/fuzz03 snapshots were captured clean before execution.",
+    "Source snapshots for mutation01/committed01/core02/committed02/core03/fuzz02 captured before execution. fuzz01 snapshot became stale after intervening constructor/claim edits and is explicitly non-authoritative.",
+    "Baseline source fixture files are immutable Git-derived inputs from bdb9486; their2154file manifest is retained. Temporary15MB archive and extracted tree are not repository artifacts. Retained baseline overlays show exact scan root substitutions.",
+    "Tool exits are original orchestration tool results; earlier commands had no individual exit sidecar. Every stated exit is retained here with original stdout/stderr."
+  ],
+  "baseline_failures": [
+    "TestRealWorldEffectOwnershipMatchesLandedProduction: pre-existing effect call/count drift in filestore/hostfacts/temporal/process.",
+    "TestEveryDemandedTypeHasAProducer: pre-existing hostfacts/lineio/temporal nominal producer gaps.",
+    "TestCoreTopLevelExportsHaveTwoNamedPrimitiveConsumers: pre-existing ProcessExitStatusMaximum one-consumer export."
+  ],
+  "final": {
+    "race_attempt": "committed03",
+    "tests_passed": 41,
+    "tests_failed": 0,
+    "tests_skipped": 0,
+    "packages_passed": 1,
+    "credit_handoff_cases": 262144,
+    "concurrency": {
+      "callers": 256,
+      "admitted": 96,
+      "exhausted": 160,
+      "durable_reservations": 4
+    },
+    "claim_attempt": "claims04",
+    "fuzz_attempt": "fuzz03",
+    "scoped_gates": {
+      "vet": "vet01",
+      "errcheck": "errcheck01",
+      "complexity": "complexity01",
+      "staticcheck": "staticcheck03",
+      "doctrine": "doctrine03"
+    },
+    "profile": "goroutineleak.pprof",
+    "profile_count": 0
+  },
+  "artifacts": [
+    {
+      "path": "baseline-effect_ownership_hostile_test.go",
+      "bytes": 27633,
+      "sha256": "3c0eec345c5d1604b81fa29679232730812c62ea9461ecf3ddf3fb225eab0761"
+    },
+    {
+      "path": "baseline-export_ownership_hostile_test.go",
+      "bytes": 46623,
+      "sha256": "ab98a8b754150be4fa24c5f4631e9d77cff854d4d1bc4d5ae7cc477ca08b7192"
+    },
+    {
+      "path": "baseline-overlay.json",
+      "bytes": 824,
+      "sha256": "eba4143169de950249f51f126685e384abc121ea5058ce72d3573f17c65b4bd3"
+    },
+    {
+      "path": "baseline-producer_completeness_hostile_test.go",
+      "bytes": 14990,
+      "sha256": "b59079ca1b2aafaa7c9552bbb4fc02c732fbe9b6b40b68a0eae57d1568476ab0"
+    },
+    {
+      "path": "baseline-source-manifest.json",
+      "bytes": 362066,
+      "sha256": "2217c61f3ad6a48bc77a274376d439c20092fc6cedd01f8162f3f690502a1738"
+    },
+    {
+      "path": "baseline01.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "baseline01.stdout",
+      "bytes": 22439,
+      "sha256": "40676d7b0ffb29226f129e73fd49a6d85144f575b681c2fb2a8ae76e2ce1643f"
+    },
+    {
+      "path": "claims04-source.json",
+      "bytes": 2037,
+      "sha256": "4f1d8c49c619e57f3d11eced0c9ef3c7d698446c63a0dc2d98a108c97d667db1"
+    },
+    {
+      "path": "claims04.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "claims04.stdout",
+      "bytes": 2691,
+      "sha256": "265b388c05ffa61877cec30801dcc4b3698bb83a4b09d170f5f08f6dc686583d"
+    },
+    {
+      "path": "committed01-source.json",
+      "bytes": 2049,
+      "sha256": "84a0b928e0e64d9ba85d3aea193d402901599927ec0db93a94c899beac74e2aa"
+    },
+    {
+      "path": "committed01.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "committed01.stdout",
+      "bytes": 74383,
+      "sha256": "29c94685093b5ceb04f4b3a2a839a1293adb0778f2e708ec8ab24036d339a1f4"
+    },
+    {
+      "path": "committed02-source.json",
+      "bytes": 2049,
+      "sha256": "47f6dc1330bb1e1e1b96367a4fe45d69e504a82c6861f061655accc9f76c1076"
+    },
+    {
+      "path": "committed02.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "committed02.stdout",
+      "bytes": 74388,
+      "sha256": "8492ca26fae40be962626989f50f99cb851a47eda871a440d28887d2ce8ab9cf"
+    },
+    {
+      "path": "committed03-source.json",
+      "bytes": 2049,
+      "sha256": "9109f3fcd77517199721f812344426292f9c3dc74d6713cd9cbbcdb4e9c6b777"
+    },
+    {
+      "path": "committed03.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "committed03.stdout",
+      "bytes": 74391,
+      "sha256": "63a1eda54a5c654ae7b358b24e88274087942a4be1803f7a5f29d5a0240061f0"
+    },
+    {
+      "path": "complexity01.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "complexity01.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "core01.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "core01.stdout",
+      "bytes": 70086,
+      "sha256": "4bca83d3b3f533db583e3c950648058f40bccbac95110ddefe129c1b5670bd29"
+    },
+    {
+      "path": "core02-source.json",
+      "bytes": 2051,
+      "sha256": "90c3747943c1a897cdbf09154850e5eeebdc6c0e6943b46ebaae146b46bf4377"
+    },
+    {
+      "path": "core02.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "core02.stdout",
+      "bytes": 3887668,
+      "sha256": "129a4aa993b29772c7095df0f72d88bed661c5df6c7907279fb70ea3811dce40"
+    },
+    {
+      "path": "core03-source.json",
+      "bytes": 2051,
+      "sha256": "cb89e7e0cf58183a32eea4d9eb9211c69510bd67b9906cdf991b121d6d63c452"
+    },
+    {
+      "path": "core03.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "core03.stdout",
+      "bytes": 3885828,
+      "sha256": "8fd2fe245008e1c3746f8efa01cbba3e3115d78016953e0b0b729a11c148c96b"
+    },
+    {
+      "path": "doctrine-help01.stderr",
+      "bytes": 102,
+      "sha256": "3e9f7da85b1d2b38a66c181abfb74895727d1622e829e2e53d899759d6d0ea32"
+    },
+    {
+      "path": "doctrine-help01.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "doctrine01.stderr",
+      "bytes": 684,
+      "sha256": "b6d4078600083b29a6ac0bda6871296af3a8c005526e0ef1f27f7f3a58855374"
+    },
+    {
+      "path": "doctrine01.stdout",
+      "bytes": 662,
+      "sha256": "17968555b2eb2290b2a4480c9a8d83b83d98c9042f4f7ed619946ac5f3037811"
+    },
+    {
+      "path": "doctrine02.stderr",
+      "bytes": 139,
+      "sha256": "1ecc7a2fb7d9e535453191079331f0071583c9bb1bd13ca4404672cb33f70319"
+    },
+    {
+      "path": "doctrine02.stdout",
+      "bytes": 99,
+      "sha256": "4a64514aa1d6eb319ed6ad30f3c6546336dd9b4977e8fb8e0853cdd87db57664"
+    },
+    {
+      "path": "doctrine03.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "doctrine03.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "errcheck01.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "errcheck01.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "executor-missing-consumption.go",
+      "bytes": 6128,
+      "sha256": "87f78c830cd2d682bca5a47826e6c797d020ddfddf141dd9978c607971af65b4"
+    },
+    {
+      "path": "fuzz01-source.json",
+      "bytes": 2169,
+      "sha256": "1a5d404f9b5de32fb1189c78aaa5010f6b3834cbe87ac5f0d4d8f92bd910aca1"
+    },
+    {
+      "path": "fuzz01.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "fuzz01.stdout",
+      "bytes": 2246,
+      "sha256": "6b95ad5eb1cbe36c8db36e12f7605eb68c77642c77a9fe61aa757e4f0c94032e"
+    },
+    {
+      "path": "fuzz02-source.json",
+      "bytes": 2169,
+      "sha256": "8fc373ea3e88015b86805963b7eeecaea745f844fd5bc34946a7d80e6f21d0a5"
+    },
+    {
+      "path": "fuzz02.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "fuzz02.stdout",
+      "bytes": 2245,
+      "sha256": "61a3c44f08d5e0c88b645a43bf0802aeeed7b1293d5ea65513f0d8eb28df1051"
+    },
+    {
+      "path": "fuzz03-source.json",
+      "bytes": 2169,
+      "sha256": "68b9a1ad0577eead7965b03f0cb18f44848a534f65a5fe518ac3c493f8f3e7f6"
+    },
+    {
+      "path": "fuzz03.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "fuzz03.stdout",
+      "bytes": 2245,
+      "sha256": "79543356843a5c87bb5b1fd98758bc8af69913c88715296ca40b72ad202707e5"
+    },
+    {
+      "path": "goroutineleak.pprof",
+      "bytes": 31,
+      "sha256": "413695042fa2e4f7d45ab060a39ed1eb3b88e35f91b8df0779fe1d76893effe8"
+    },
+    {
+      "path": "green01.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "green01.stdout",
+      "bytes": 2247,
+      "sha256": "c0e45ed63d2e3e6509eea36ee64fb54e7e55ad5270619a44621673d60b6f0f80"
+    },
+    {
+      "path": "green02.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "green02.stdout",
+      "bytes": 1010,
+      "sha256": "e1ac43d2874f5eafd8426419433efd6377c4995aa4a44053dd59a92fa3e830a2"
+    },
+    {
+      "path": "green03.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "green03.stdout",
+      "bytes": 62537,
+      "sha256": "4e5fac9e0366659e8e9641806e19cdc37d4dd82b65dd673c307c153c44794eae"
+    },
+    {
+      "path": "green04.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "green04.stdout",
+      "bytes": 74378,
+      "sha256": "4c501b2d06ad3c9923728d8243a5eed91995a995d8df80bd1110954ab870771d"
+    },
+    {
+      "path": "green05.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "green05.stdout",
+      "bytes": 74375,
+      "sha256": "96ef618e0dda51c45216d257e921ca45c0a60f3502d48ca011368e29459d32e3"
+    },
+    {
+      "path": "green06.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "green06.stdout",
+      "bytes": 74398,
+      "sha256": "0cd34daac524d61768b45a9b49c082804648a9b3766b5d3d56d86c65fef44460"
+    },
+    {
+      "path": "mutation-overlay.json",
+      "bytes": 160,
+      "sha256": "cf6794a442f5aa62069e9eadff52db446f5a8fe132c4c5912c8d9943f147abba"
+    },
+    {
+      "path": "mutation01-source.json",
+      "bytes": 2388,
+      "sha256": "21f43221fae88ea17d437dff1b2ca4e14e8e32b98630d6f17178ae5fb2329b3c"
+    },
+    {
+      "path": "mutation01.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "mutation01.stdout",
+      "bytes": 2533,
+      "sha256": "9d79b1c25991351acc5cdbc52f600dd4f7b91db937f2f53a78fc631a117f1979"
+    },
+    {
+      "path": "profile.go",
+      "bytes": 1801,
+      "sha256": "07af6c3ca4c6becb256905db09d0878327dad55d003417d5f9378c14fbbaa3d3"
+    },
+    {
+      "path": "profile01.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "profile01.stdout",
+      "bytes": 102,
+      "sha256": "32187fb4500b68867c61cd000b063ae091094de6bb261c893905a1bb2239b532"
+    },
+    {
+      "path": "red01.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "red01.stdout",
+      "bytes": 3352,
+      "sha256": "de36acc5ea53efa8f5f45d1c7750188a1218279db35eacadacba062e481281fb"
+    },
+    {
+      "path": "staticcheck01.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "staticcheck01.stdout",
+      "bytes": 168,
+      "sha256": "87f66274dd6d1fc55f68cbf1e50130a31fb5838c14b1908714e00178406fc55b"
+    },
+    {
+      "path": "staticcheck02.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "staticcheck02.stdout",
+      "bytes": 80,
+      "sha256": "6bc3b8d75cf2535bd3aef9c13b46d753ec3d1b8a219588c60038bda0a2f8afb1"
+    },
+    {
+      "path": "staticcheck03.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "staticcheck03.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "vet01.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "vet01.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

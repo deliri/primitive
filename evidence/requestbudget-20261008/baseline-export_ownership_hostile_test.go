@@ -1,0 +1,994 @@
+package core
+
+import (
+	"errors"
+	"go/ast"
+	"go/parser"
+	"go/token"
+	"os"
+	"path/filepath"
+	"slices"
+	"strconv"
+	"strings"
+	"testing"
+)
+
+const (
+	coreExportDependencyMaximum     = 32
+	coreSpecialExportAdmissionCount = 94 // Includes provider-neutral image dimensions shared with callers.
+	coreProviderExportContractCount = 135
+)
+
+type coreExportName string
+
+type coreExportConsumerContract struct {
+	name              coreExportName
+	dependencies      [coreExportDependencyMaximum]coreExportName
+	directConsumers   [PrimitivePackageCount + 1]bool
+	consumers         [PrimitivePackageCount + 1]bool
+	errorProducers    [PrimitivePackageCount + 1]bool
+	errorDecisions    [PrimitivePackageCount + 1]bool
+	dependencyCount   uint8
+	stableErr         bool
+	typedDomainMember bool
+}
+
+type coreExportInventory struct {
+	values                []coreExportConsumerContract
+	packageErrorDecisions [PrimitivePackageCount + 1]bool
+}
+
+type coreSpecialExportAdmission struct {
+	witness any
+	name    coreExportName
+	reason  coreSpecialExportAdmissionReason
+}
+
+type coreSpecialExportAdmissionReason uint8
+
+type coreProviderExportContract struct {
+	witness  any
+	name     coreExportName
+	consumer PackageIdentity
+}
+
+const (
+	coreSpecialExportAdmissionReasonUnknown coreSpecialExportAdmissionReason = iota
+	coreSpecialExportAdmissionReasonArchitectureCatalog
+	coreSpecialExportAdmissionReasonTestIsolationContract
+	coreSpecialExportAdmissionReasonCoherentDomainContract
+	coreSpecialExportAdmissionReasonLimit
+)
+
+func coreSpecialExportAdmissionReasonTexts() [coreSpecialExportAdmissionReasonLimit]string {
+	return [...]string{
+		coreSpecialExportAdmissionReasonArchitectureCatalog:    "compiler-owned architecture catalog is Core's self-projection",
+		coreSpecialExportAdmissionReasonTestIsolationContract:  "external test-isolation analyzer ABI is Core's self-projection",
+		coreSpecialExportAdmissionReasonCoherentDomainContract: "export is an invariant of its Core-owned coherent domain",
+	}
+}
+
+func (r coreSpecialExportAdmissionReason) Validate() error {
+	if r <= coreSpecialExportAdmissionReasonUnknown ||
+		r >= coreSpecialExportAdmissionReasonLimit ||
+		coreSpecialExportAdmissionReasonTexts()[r] == "" {
+		return architectureContractError("Core special export admission reason is invalid")
+	}
+	return nil
+}
+
+func architectureCatalogAdmission(name coreExportName, witness any) coreSpecialExportAdmission {
+	return coreSpecialExportAdmission{
+		name: name, witness: witness,
+		reason: coreSpecialExportAdmissionReasonArchitectureCatalog,
+	}
+}
+
+func testIsolationContractAdmission(name coreExportName, witness any) coreSpecialExportAdmission {
+	return coreSpecialExportAdmission{
+		name: name, witness: witness,
+		reason: coreSpecialExportAdmissionReasonTestIsolationContract,
+	}
+}
+
+func coherentDomainContractAdmission(name coreExportName, witness any) coreSpecialExportAdmission {
+	return coreSpecialExportAdmission{
+		name: name, witness: witness,
+		reason: coreSpecialExportAdmissionReasonCoherentDomainContract,
+	}
+}
+
+// These are the compiler-owned package and coherent-domain contracts, not
+// observations of the current source tree. Each name is paired with a live
+// identifier reference so declaration drift breaks the build.
+func coreSpecialExportAdmissions() [coreSpecialExportAdmissionCount]coreSpecialExportAdmission {
+	return [...]coreSpecialExportAdmission{
+		// The foreign namespace is a shared compiler agreement, including for
+		// callers outside Primitive. Inventing a second internal consumer would
+		// couple an unrelated package merely to satisfy a repository census.
+		coherentDomainContractAdmission("GoCgoImportPath", GoCgoImportPath),
+		// The explicit zone name ceiling is shared with callers outside Primitive;
+		// adding a second in-repository consumer would invent an unrelated effect.
+		coherentDomainContractAdmission("TimeZoneNameMaximumBytes", TimeZoneNameMaximumBytes),
+		// Image observations cross provider and product boundaries in these units;
+		// another internal image implementation is not required to share them.
+		coherentDomainContractAdmission("PixelDimension", PixelDimension(0)),
+		coherentDomainContractAdmission("NewPixelDimension", NewPixelDimension),
+		coherentDomainContractAdmission("ImageDimensions", ImageDimensions{}),
+		architectureCatalogAdmission("ArchitectureCatalog", ArchitectureCatalog{}),
+		architectureCatalogAdmission("PackageContract", PackageContract{}),
+		architectureCatalogAdmission("PackageIdentity", PackageIdentity(0)),
+		architectureCatalogAdmission("PackageKind", PackageKind(0)),
+		architectureCatalogAdmission("PackageKindUnknown", PackageKindUnknown),
+		architectureCatalogAdmission("PackageKindProduction", PackageKindProduction),
+		architectureCatalogAdmission("PackageKindTestSupport", PackageKindTestSupport),
+		architectureCatalogAdmission("PackageRole", PackageRole(0)),
+		architectureCatalogAdmission("PackageRoleUnknown", PackageRoleUnknown),
+		architectureCatalogAdmission("PackageRoleValueContract", PackageRoleValueContract),
+		architectureCatalogAdmission("PackageRoleDomainAgreement", PackageRoleDomainAgreement),
+		architectureCatalogAdmission("PackageRoleAuthenticationBinding", PackageRoleAuthenticationBinding),
+		architectureCatalogAdmission("PackageRoleEffectCapability", PackageRoleEffectCapability),
+		architectureCatalogAdmission("PackageRoleWireProtocol", PackageRoleWireProtocol),
+		architectureCatalogAdmission("PackageRoleOrchestration", PackageRoleOrchestration),
+		architectureCatalogAdmission("PackageUnknown", PackageUnknown),
+		architectureCatalogAdmission("PackageCore", PackageCore),
+		architectureCatalogAdmission("PackageAttest", PackageAttest),
+		architectureCatalogAdmission("PackageContextState", PackageContextState),
+		architectureCatalogAdmission("PackageCurrency", PackageCurrency),
+		architectureCatalogAdmission("PackageKeygen", PackageKeygen),
+		architectureCatalogAdmission("PackagePasswordHash", PackagePasswordHash),
+		architectureCatalogAdmission("PackageCloudflare", PackageCloudflare),
+		architectureCatalogAdmission("PackageTestSerial", PackageTestSerial),
+		architectureCatalogAdmission("PackageFilestore", PackageFilestore),
+		architectureCatalogAdmission("PackageHostFacts", PackageHostFacts),
+		architectureCatalogAdmission("PackageTemporal", PackageTemporal),
+		architectureCatalogAdmission("PackageExchange", PackageExchange),
+		architectureCatalogAdmission("PackageFuzzArtifact", PackageFuzzArtifact),
+		architectureCatalogAdmission("PackageLease", PackageLease),
+		architectureCatalogAdmission("PackageReceipt", PackageReceipt),
+		architectureCatalogAdmission("PackageProcess", PackageProcess),
+		architectureCatalogAdmission("PackageRelease", PackageRelease),
+		architectureCatalogAdmission("PackageShutdown", PackageShutdown),
+		architectureCatalogAdmission("PackageObjectStore", PackageObjectStore),
+		architectureCatalogAdmission("PackageTimeProof", PackageTimeProof),
+		architectureCatalogAdmission("PackageGoogleIdentity", PackageGoogleIdentity),
+		architectureCatalogAdmission("PackageAWSIdentity", PackageAWSIdentity),
+		architectureCatalogAdmission("PackageUpgrade", PackageUpgrade),
+		architectureCatalogAdmission("PackageLineIO", PackageLineIO),
+		architectureCatalogAdmission("PackageJSONIO", PackageJSONIO),
+		architectureCatalogAdmission("PackageManual", PackageManual),
+		architectureCatalogAdmission("PackageTailnet", PackageTailnet),
+		architectureCatalogAdmission("PackageTailnetConfig", PackageTailnetConfig),
+		architectureCatalogAdmission("PackageTextRepair", PackageTextRepair),
+		architectureCatalogAdmission("PackageAccessPermit", PackageAccessPermit),
+		architectureCatalogAdmission("PackagePermit", PackagePermit),
+		// Checked integer conversions remain one coherent numeric agreement;
+		// consumers are not invented to satisfy a usage count.
+		coherentDomainContractAdmission("CheckedUint8FromInt", CheckedUint8FromInt),
+		architectureCatalogAdmission("ParsePackageIdentity", ParsePackageIdentity),
+		architectureCatalogAdmission("PrimitiveArchitecture", PrimitiveArchitecture),
+		architectureCatalogAdmission("PrimitivePackageCount", PrimitivePackageCount),
+		architectureCatalogAdmission("PrimitiveModulePath", PrimitiveModulePath),
+		architectureCatalogAdmission("PrimitivePackagePathPrefix", PrimitivePackagePathPrefix),
+		coherentDomainContractAdmission("SecretMaterialMaximumBytes", SecretMaterialMaximumBytes),
+		// HTTP wire declarations and OS units/error identities stay in their Core-owned domains,
+		// even when one execution package currently consumes them.
+		coherentDomainContractAdmission("HTTPExpectContinueValue", HTTPExpectContinueValue),
+		coherentDomainContractAdmission("HTTPHeaderExpect", HTTPHeaderExpect),
+		coherentDomainContractAdmission("HTTPHeaderTrailer", HTTPHeaderTrailer),
+		coherentDomainContractAdmission("HTTPServerHeaderMaximumBytes", HTTPServerHeaderMaximumBytes),
+		coherentDomainContractAdmission("POSIXAllocationBlockBytes", POSIXAllocationBlockBytes),
+		coherentDomainContractAdmission("WindowsFileLockViolation", WindowsFileLockViolation),
+		coherentDomainContractAdmission("WindowsFileSharingViolation", WindowsFileSharingViolation),
+		coherentDomainContractAdmission("ProcessExitCodeSignaled", ProcessExitCodeSignaled),
+		coherentDomainContractAdmission("ProcessExitCodeSuccess", ProcessExitCodeSuccess),
+		coherentDomainContractAdmission("ProcessExitCodeMaximum", ProcessExitCodeMaximum),
+		coherentDomainContractAdmission("WindowsProcessInvalidParameter", WindowsProcessInvalidParameter),
+		coherentDomainContractAdmission("ProcessPOSIXIdentityMaximum", ProcessPOSIXIdentityMaximum),
+		testIsolationContractAdmission("TestIsolationCorePackagePath", TestIsolationCorePackagePath),
+		testIsolationContractAdmission("TestIsolationDeclarationPackagePath", TestIsolationDeclarationPackagePath),
+		testIsolationContractAdmission("TestIsolationDeclarationFunctionName", TestIsolationDeclarationFunctionName),
+		testIsolationContractAdmission("TestIsolationDeclarationTypeName", TestIsolationDeclarationTypeName),
+		testIsolationContractAdmission("TestIsolationDeclarationHazardFieldName", TestIsolationDeclarationHazardFieldName),
+		testIsolationContractAdmission("TestIsolationDeclarationScopeFieldName", TestIsolationDeclarationScopeFieldName),
+		testIsolationContractAdmission("TestIsolationHazard", TestIsolationHazard(0)),
+		testIsolationContractAdmission("TestIsolationHazardUnknown", TestIsolationHazardUnknown),
+		testIsolationContractAdmission("TestIsolationHazardProcessEnvironment", TestIsolationHazardProcessEnvironment),
+		testIsolationContractAdmission("TestIsolationHazardProcessWorkingDirectory", TestIsolationHazardProcessWorkingDirectory),
+		testIsolationContractAdmission("TestIsolationHazardProcessSignal", TestIsolationHazardProcessSignal),
+		testIsolationContractAdmission("TestIsolationHazardProcessOutput", TestIsolationHazardProcessOutput),
+		testIsolationContractAdmission("TestIsolationHazardProcessLogger", TestIsolationHazardProcessLogger),
+		testIsolationContractAdmission("TestIsolationHazardGlobalRegistry", TestIsolationHazardGlobalRegistry),
+		testIsolationContractAdmission("TestIsolationHazardRuntimeAllocation", TestIsolationHazardRuntimeAllocation),
+		testIsolationContractAdmission("TestIsolationHazardSiblingOrder", TestIsolationHazardSiblingOrder),
+		testIsolationContractAdmission("TestIsolationHazardProcessArguments", TestIsolationHazardProcessArguments),
+		testIsolationContractAdmission("TestIsolationScope", TestIsolationScope(0)),
+		testIsolationContractAdmission("TestIsolationScopeUnknown", TestIsolationScopeUnknown),
+		testIsolationContractAdmission("TestIsolationScopeSiblingTable", TestIsolationScopeSiblingTable),
+		testIsolationContractAdmission("TestIsolationScopePackageProcess", TestIsolationScopePackageProcess),
+		testIsolationContractAdmission("TestIsolationDeclaration", TestIsolationDeclaration{}),
+		testIsolationContractAdmission("ErrTestIsolationContract", ErrTestIsolationContract),
+	}
+}
+
+// Provider facts are Core-owned so independently implemented client and server
+// sides compile against one provider-specific contract. Each fact remains
+// isolated to exactly its named provider family: coincidentally equal limits or
+// wire spellings must never create cross-provider coupling.
+func coreProviderExportContracts() [coreProviderExportContractCount]coreProviderExportContract {
+	return [...]coreProviderExportContract{
+		{name: "StripeAPIHost", witness: StripeAPIHost, consumer: PackageStripe},
+		{name: "StripeAPIVersion", witness: StripeAPIVersion, consumer: PackageStripe},
+		{name: "StripeVersionHeaderName", witness: StripeVersionHeaderName, consumer: PackageStripe},
+		{name: "StripeIdempotencyKeyMaximumBytes", witness: StripeIdempotencyKeyMaximumBytes, consumer: PackageStripe},
+		{name: "StripeCredentialMinimumBytes", witness: StripeCredentialMinimumBytes, consumer: PackageStripe},
+		{name: "StripeCredentialCustodyMaximumBytes", witness: StripeCredentialCustodyMaximumBytes, consumer: PackageStripe},
+		{name: "StripeWebhookSecretMinimumBytes", witness: StripeWebhookSecretMinimumBytes, consumer: PackageStripe},
+		{name: "StripeWebhookSecretCustodyMaximumBytes", witness: StripeWebhookSecretCustodyMaximumBytes, consumer: PackageStripe},
+		{name: "StripeWebhookSignatureHeaderName", witness: StripeWebhookSignatureHeaderName, consumer: PackageStripe},
+		{name: "StripeWebhookSignatureMaximumBytes", witness: StripeWebhookSignatureMaximumBytes, consumer: PackageStripe},
+		{name: "PayPalLiveAPIHost", witness: PayPalLiveAPIHost, consumer: PackagePayPal},
+		{name: "PayPalSandboxAPIHost", witness: PayPalSandboxAPIHost, consumer: PackagePayPal},
+		{name: "PayPalRequestIDHeaderName", witness: PayPalRequestIDHeaderName, consumer: PackagePayPal},
+		{name: "PayPalRequestIDMaximumBytes", witness: PayPalRequestIDMaximumBytes, consumer: PackagePayPal},
+		{name: "PayPalAccessTokenCustodyMaximumBytes", witness: PayPalAccessTokenCustodyMaximumBytes, consumer: PackagePayPal},
+		{name: "PayPalClientIDCustodyMaximumBytes", witness: PayPalClientIDCustodyMaximumBytes, consumer: PackagePayPal},
+		{name: "PayPalClientSecretCustodyMaximumBytes", witness: PayPalClientSecretCustodyMaximumBytes, consumer: PackagePayPal},
+		{name: "PayPalWebhookIDMaximumBytes", witness: PayPalWebhookIDMaximumBytes, consumer: PackagePayPal},
+		{name: "PayPalAuthAlgorithmMaximumBytes", witness: PayPalAuthAlgorithmMaximumBytes, consumer: PackagePayPal},
+		{name: "PayPalCertificateURLMaximumBytes", witness: PayPalCertificateURLMaximumBytes, consumer: PackagePayPal},
+		{name: "PayPalTransmissionIDMaximumBytes", witness: PayPalTransmissionIDMaximumBytes, consumer: PackagePayPal},
+		{name: "PayPalTransmissionSignatureMaximumBytes", witness: PayPalTransmissionSignatureMaximumBytes, consumer: PackagePayPal},
+		{name: "PayPalTransmissionTimeMaximumBytes", witness: PayPalTransmissionTimeMaximumBytes, consumer: PackagePayPal},
+		{name: "PayPalAuthAlgorithmHeaderName", witness: PayPalAuthAlgorithmHeaderName, consumer: PackagePayPal},
+		{name: "PayPalCertificateURLHeaderName", witness: PayPalCertificateURLHeaderName, consumer: PackagePayPal},
+		{name: "PayPalTransmissionIDHeaderName", witness: PayPalTransmissionIDHeaderName, consumer: PackagePayPal},
+		{name: "PayPalTransmissionSignatureHeaderName", witness: PayPalTransmissionSignatureHeaderName, consumer: PackagePayPal},
+		{name: "PayPalTransmissionTimeHeaderName", witness: PayPalTransmissionTimeHeaderName, consumer: PackagePayPal},
+		{name: "PayPalLiveCertificateHost", witness: PayPalLiveCertificateHost, consumer: PackagePayPal},
+		{name: "PayPalSandboxCertificateHost", witness: PayPalSandboxCertificateHost, consumer: PackagePayPal},
+		{name: "TwilioAPIHost", witness: TwilioAPIHost, consumer: PackageTwilio},
+		{name: "TwilioAPIKeySecretCustodyMaximumBytes", witness: TwilioAPIKeySecretCustodyMaximumBytes, consumer: PackageTwilio},
+		{name: "TwilioAuthTokenCustodyMaximumBytes", witness: TwilioAuthTokenCustodyMaximumBytes, consumer: PackageTwilio},
+		{name: "TwilioWebhookSignatureHeaderName", witness: TwilioWebhookSignatureHeaderName, consumer: PackageTwilio},
+		{name: "TwilioWebhookSignatureBytes", witness: TwilioWebhookSignatureBytes, consumer: PackageTwilio},
+		{name: "TwilioWebhookBodySHA256QueryName", witness: TwilioWebhookBodySHA256QueryName, consumer: PackageTwilio},
+		{name: "CloudflareIdentityCharacters", witness: CloudflareIdentityCharacters, consumer: PackageCloudflare},
+		{name: "CloudflareImagesDeliveryHost", witness: CloudflareImagesDeliveryHost, consumer: PackageCloudflare},
+		{name: "CloudflareImagesCustomDeliveryPath", witness: CloudflareImagesCustomDeliveryPath, consumer: PackageCloudflare},
+		{name: "CloudflareImageWidthOption", witness: CloudflareImageWidthOption, consumer: PackageCloudflare},
+		{name: "CloudflareImageHeightOption", witness: CloudflareImageHeightOption, consumer: PackageCloudflare},
+		{name: "CloudflareImageFitOption", witness: CloudflareImageFitOption, consumer: PackageCloudflare},
+		{name: "CloudflareImageFormatOption", witness: CloudflareImageFormatOption, consumer: PackageCloudflare},
+		{name: "CloudflareImageMetadataOption", witness: CloudflareImageMetadataOption, consumer: PackageCloudflare},
+		{name: "CloudflareImageAnimationOff", witness: CloudflareImageAnimationOff, consumer: PackageCloudflare},
+		{name: "CloudflareImageFitScaleDown", witness: CloudflareImageFitScaleDown, consumer: PackageCloudflare},
+		{name: "CloudflareImageFitContain", witness: CloudflareImageFitContain, consumer: PackageCloudflare},
+		{name: "CloudflareImageFitCover", witness: CloudflareImageFitCover, consumer: PackageCloudflare},
+		{name: "CloudflareImageFitCrop", witness: CloudflareImageFitCrop, consumer: PackageCloudflare},
+		{name: "CloudflareImageFitPad", witness: CloudflareImageFitPad, consumer: PackageCloudflare},
+		{name: "CloudflareImageFormatAuto", witness: CloudflareImageFormatAuto, consumer: PackageCloudflare},
+		{name: "CloudflareImageFormatAVIF", witness: CloudflareImageFormatAVIF, consumer: PackageCloudflare},
+		{name: "CloudflareImageFormatWebP", witness: CloudflareImageFormatWebP, consumer: PackageCloudflare},
+		{name: "CloudflareImageFormatJSON", witness: CloudflareImageFormatJSON, consumer: PackageCloudflare},
+		{name: "CloudflareImageMetadataNone", witness: CloudflareImageMetadataNone, consumer: PackageCloudflare},
+		{name: "CloudflareImageMetadataCopyright", witness: CloudflareImageMetadataCopyright, consumer: PackageCloudflare},
+		{name: "CloudflareImageMetadataKeep", witness: CloudflareImageMetadataKeep, consumer: PackageCloudflare},
+		{name: "CloudflareImageMediaTypePrefix", witness: CloudflareImageMediaTypePrefix, consumer: PackageCloudflare},
+		{name: "CloudflareImageVariantMaximumCharacters", witness: CloudflareImageVariantMaximumCharacters, consumer: PackageCloudflare},
+		{name: "CloudflareImagesV1Path", witness: CloudflareImagesV1Path, consumer: PackageCloudflare},
+		{name: "CloudflareR2ContentMD5Header", witness: CloudflareR2ContentMD5Header, consumer: PackageCloudflare},
+		{name: "CloudflareR2CreateOnlyValue", witness: CloudflareR2CreateOnlyValue, consumer: PackageCloudflare},
+		{name: "CloudflareR2ETagHeader", witness: CloudflareR2ETagHeader, consumer: PackageCloudflare},
+		{name: "CloudflareR2IfNoneMatchHeader", witness: CloudflareR2IfNoneMatchHeader, consumer: PackageCloudflare},
+		{name: "CloudflareR2MultipartMaximumObjectBytes", witness: CloudflareR2MultipartMaximumObjectBytes, consumer: PackageCloudflare},
+		{name: "CloudflareR2MultipartMaximumPartBytes", witness: CloudflareR2MultipartMaximumPartBytes, consumer: PackageCloudflare},
+		{name: "CloudflareR2MultipartMaximumParts", witness: CloudflareR2MultipartMaximumParts, consumer: PackageCloudflare},
+		{name: "CloudflareR2MultipartMinimumPartBytes", witness: CloudflareR2MultipartMinimumPartBytes, consumer: PackageCloudflare},
+		{name: "CloudflareR2QueryPartNumber", witness: CloudflareR2QueryPartNumber, consumer: PackageCloudflare},
+		{name: "CloudflareR2QueryUploadID", witness: CloudflareR2QueryUploadID, consumer: PackageCloudflare},
+		{name: "CloudflareR2QueryUploads", witness: CloudflareR2QueryUploads, consumer: PackageCloudflare},
+		{name: "CloudflareR2XMLMediaType", witness: CloudflareR2XMLMediaType, consumer: PackageCloudflare},
+		{name: "CloudflareR2MultipartCompletionElement", witness: CloudflareR2MultipartCompletionElement, consumer: PackageCloudflare},
+		{name: "CloudflareR2MultipartPartElement", witness: CloudflareR2MultipartPartElement, consumer: PackageCloudflare},
+		{name: "CloudflareR2XMLNamespace", witness: CloudflareR2XMLNamespace, consumer: PackageCloudflare},
+		{name: "CloudflareImageIDMaximumCharacters", witness: CloudflareImageIDMaximumCharacters, consumer: PackageCloudflare},
+		{name: "CloudflareImageCreatorMaximumCharacters", witness: CloudflareImageCreatorMaximumCharacters, consumer: PackageCloudflare},
+		{name: "CloudflareImageExpiryMinimumSeconds", witness: CloudflareImageExpiryMinimumSeconds, consumer: PackageCloudflare},
+		{name: "CloudflareImageExpiryMaximumSeconds", witness: CloudflareImageExpiryMaximumSeconds, consumer: PackageCloudflare},
+		{name: "CloudflareStreamCreatorMaximumCharacters", witness: CloudflareStreamCreatorMaximumCharacters, consumer: PackageCloudflare},
+		{name: "CloudflareStreamDurationMaximumSeconds", witness: CloudflareStreamDurationMaximumSeconds, consumer: PackageCloudflare},
+		{name: "CloudflareR2QueryMaximumBytes", witness: CloudflareR2QueryMaximumBytes, consumer: PackageCloudflare},
+		{name: "CloudflareR2QueryExpires", witness: CloudflareR2QueryExpires, consumer: PackageCloudflare},
+		{name: "CloudflareR2UnsignedPayload", witness: CloudflareR2UnsignedPayload, consumer: PackageCloudflare},
+		{name: "CloudflareR2PresignMaximumSeconds", witness: CloudflareR2PresignMaximumSeconds, consumer: PackageCloudflare},
+		{name: "CloudflareR2ObjectKeyMaximumBytes", witness: CloudflareR2ObjectKeyMaximumBytes, consumer: PackageCloudflare},
+		{name: "CloudflareR2SingleUploadMaximumBytes", witness: CloudflareR2SingleUploadMaximumBytes, consumer: PackageCloudflare},
+		{name: "CloudflareR2BucketMinimumBytes", witness: CloudflareR2BucketMinimumBytes, consumer: PackageCloudflare},
+		{name: "CloudflareR2BucketMaximumBytes", witness: CloudflareR2BucketMaximumBytes, consumer: PackageCloudflare},
+		{name: "CloudflareR2QueryAlgorithm", witness: CloudflareR2QueryAlgorithm, consumer: PackageCloudflare},
+		{name: "CloudflareR2QuerySigningIdentity", witness: CloudflareR2QuerySigningIdentity, consumer: PackageCloudflare},
+		{name: "CloudflareR2QueryDate", witness: CloudflareR2QueryDate, consumer: PackageCloudflare},
+		{name: "CloudflareR2QuerySignature", witness: CloudflareR2QuerySignature, consumer: PackageCloudflare},
+		{name: "CloudflareR2QuerySignedHeaders", witness: CloudflareR2QuerySignedHeaders, consumer: PackageCloudflare},
+		{name: "CloudflareR2Algorithm", witness: CloudflareR2Algorithm, consumer: PackageCloudflare},
+		{name: "CloudflareR2CredentialTerminator", witness: CloudflareR2CredentialTerminator, consumer: PackageCloudflare},
+		{name: "CloudflareR2SignatureHexBytes", witness: CloudflareR2SignatureHexBytes, consumer: PackageCloudflare},
+		{name: "CloudflareStreamSignatureMaximumBytes", witness: CloudflareStreamSignatureMaximumBytes, consumer: PackageCloudflare},
+		{name: "CloudflareMultipartFileField", witness: CloudflareMultipartFileField, consumer: PackageCloudflare},
+		{name: "CloudflareMultipartFilenameMaximumBytes", witness: CloudflareMultipartFilenameMaximumBytes, consumer: PackageCloudflare},
+		{name: "CloudflareWatermarkUpperRight", witness: CloudflareWatermarkUpperRight, consumer: PackageCloudflare},
+		{name: "CloudflareWatermarkUpperLeft", witness: CloudflareWatermarkUpperLeft, consumer: PackageCloudflare},
+		{name: "CloudflareWatermarkLowerRight", witness: CloudflareWatermarkLowerRight, consumer: PackageCloudflare},
+		{name: "CloudflareWatermarkLowerLeft", witness: CloudflareWatermarkLowerLeft, consumer: PackageCloudflare},
+		{name: "CloudflareWatermarkCenter", witness: CloudflareWatermarkCenter, consumer: PackageCloudflare},
+		{name: "CloudflareAPIHost", witness: CloudflareAPIHost, consumer: PackageCloudflare},
+		{name: "CloudflareAPIAccountsPath", witness: CloudflareAPIAccountsPath, consumer: PackageCloudflare},
+		{name: "CloudflareAPIZonesPath", witness: CloudflareAPIZonesPath, consumer: PackageCloudflare},
+		{name: "CloudflareCachePurgePath", witness: CloudflareCachePurgePath, consumer: PackageCloudflare},
+		{name: "CloudflareCachePurgeIDMaximumCharacters", witness: CloudflareCachePurgeIDMaximumCharacters, consumer: PackageCloudflare},
+		{name: "CloudflareCachePrefixMaximumSeparators", witness: CloudflareCachePrefixMaximumSeparators, consumer: PackageCloudflare},
+		{name: "CloudflareR2CacheMaxAgePrefix", witness: CloudflareR2CacheMaxAgePrefix, consumer: PackageCloudflare},
+		{name: "CloudflareR2CacheMaxAgeMaximumSeconds", witness: CloudflareR2CacheMaxAgeMaximumSeconds, consumer: PackageCloudflare},
+		{name: "CloudflareStreamUploadHost", witness: CloudflareStreamUploadHost, consumer: PackageCloudflare},
+		{name: "CloudflareStreamBasicUploadMaximumBytes", witness: CloudflareStreamBasicUploadMaximumBytes, consumer: PackageCloudflare},
+		{name: "CloudflareNotificationAuthenticationHeader", witness: CloudflareNotificationAuthenticationHeader, consumer: PackageCloudflare},
+		{name: "CloudflareStreamSignatureHeader", witness: CloudflareStreamSignatureHeader, consumer: PackageCloudflare},
+		{name: "CloudflareR2HostSuffix", witness: CloudflareR2HostSuffix, consumer: PackageCloudflare},
+		{name: "CloudflareR2SigningRegion", witness: CloudflareR2SigningRegion, consumer: PackageCloudflare},
+		{name: "CloudflareR2SigningService", witness: CloudflareR2SigningService, consumer: PackageCloudflare},
+		{name: "CloudflareSecretCustodyMaximumBytes", witness: CloudflareSecretCustodyMaximumBytes, consumer: PackageCloudflare},
+		{name: "PlunkAPIHost", witness: PlunkAPIHost, consumer: PackagePlunk},
+		{name: "PlunkIdempotencyKeyMaximumBytes", witness: PlunkIdempotencyKeyMaximumBytes, consumer: PackagePlunk},
+		{name: "PlunkCredentialMinimumBytes", witness: PlunkCredentialMinimumBytes, consumer: PackagePlunk},
+		{name: "PlunkCredentialCustodyMaximumBytes", witness: PlunkCredentialCustodyMaximumBytes, consumer: PackagePlunk},
+		{name: "PlunkWebhookSecretMinimumBytes", witness: PlunkWebhookSecretMinimumBytes, consumer: PackagePlunk},
+		{name: "PlunkWebhookSecretCustodyMaximumBytes", witness: PlunkWebhookSecretCustodyMaximumBytes, consumer: PackagePlunk},
+		{name: "GitHubAPIHost", witness: GitHubAPIHost, consumer: PackageGitHub},
+		{name: "GitHubAPIVersion", witness: GitHubAPIVersion, consumer: PackageGitHub},
+		{name: "GitHubTagPageMaximumEntries", witness: GitHubTagPageMaximumEntries, consumer: PackageGitHub},
+		{name: "GitHubRawContentMediaType", witness: GitHubRawContentMediaType, consumer: PackageGitHub},
+		{name: "GitHubAppJWTMaximumLifetimeSeconds", witness: GitHubAppJWTMaximumLifetimeSeconds, consumer: PackageGitHub},
+		{name: "GitHubAppJWTClockSkewSeconds", witness: GitHubAppJWTClockSkewSeconds, consumer: PackageGitHub},
+		{name: "GitHubAppPrivateKeyCustodyMaximumBytes", witness: GitHubAppPrivateKeyCustodyMaximumBytes, consumer: PackageGitHub},
+		{name: "GitHubOperationCustodyTimeoutSeconds", witness: GitHubOperationCustodyTimeoutSeconds, consumer: PackageGitHub},
+	}
+}
+
+func TestCoreTopLevelExportsHaveTwoNamedPrimitiveConsumers(t *testing.T) {
+	t.Parallel()
+
+	exports, err := collectCoreTopLevelExports("/private/tmp/primitive-requestbudget-20261008/baseline-source-fixture/core")
+	if err != nil {
+		t.Fatalf("collectCoreTopLevelExports() error = %v, want nil", err)
+	}
+	if err := collectCoreExportConsumers("/private/tmp/primitive-requestbudget-20261008/baseline-source-fixture", &exports); err != nil {
+		t.Fatalf("collectCoreExportConsumers() error = %v, want nil", err)
+	}
+	connectDirectConsumerTypeDependencies(&exports)
+	connectTypedDomainMemberConsumers(&exports)
+	admissions := coreSpecialExportAdmissions()
+	for index, admission := range admissions {
+		if admission.witness == nil {
+			t.Errorf("Core special admission %s has no compiler witness", admission.name)
+		}
+		if _, ok := exports.Lookup(admission.name); !ok {
+			t.Errorf("Core special admission %s names no production export", admission.name)
+		}
+		if err := admission.reason.Validate(); err != nil {
+			t.Errorf("Core special admission %s reason error = %v, want nil", admission.name, err)
+		}
+		for prior := range index {
+			if admissions[prior].name == admission.name {
+				t.Errorf("Core special admission %s is duplicated", admission.name)
+			}
+		}
+	}
+	providerContracts := coreProviderExportContracts()
+	for index, providerContract := range providerContracts {
+		if providerContract.witness == nil {
+			t.Errorf("Core provider contract %s has no compiler witness", providerContract.name)
+		}
+		contract, ok := exports.Lookup(providerContract.name)
+		if !ok {
+			t.Errorf("Core provider contract %s names no production export", providerContract.name)
+			continue
+		}
+		if err := providerContract.consumer.Validate(); err != nil {
+			t.Errorf("Core provider contract %s consumer error = %v, want nil", providerContract.name, err)
+		}
+		for prior := range index {
+			if providerContracts[prior].name == providerContract.name {
+				t.Errorf("Core provider contract %s is duplicated", providerContract.name)
+			}
+		}
+		gotConsumers := contract.ConsumerIdentities()
+		wantConsumers := []PackageIdentity{providerContract.consumer}
+		if !slices.Equal(gotConsumers, wantConsumers) {
+			t.Errorf("Core provider contract %s consumers = %v, want %v", providerContract.name, gotConsumers, wantConsumers)
+		}
+	}
+	for _, contract := range exports.Values() {
+		if coreExportIsSpeciallyAdmitted(admissions, contract.name) {
+			continue
+		}
+		if coreExportIsProviderContract(providerContracts, contract.name) {
+			continue
+		}
+		if contract.stableErr {
+			if !contract.hasErrorProducer() || !exports.hasErrorDecision(contract) {
+				t.Errorf(
+					"Core stable error %s producer=%t caller-decision=%t, want both",
+					contract.name,
+					contract.hasErrorProducer(),
+					exports.hasErrorDecision(contract),
+				)
+			}
+			continue
+		}
+		consumers := contract.ConsumerIdentities()
+		if len(consumers) >= 2 {
+			continue
+		}
+		t.Errorf("Core export %s has %d named Primitive consumers %v, want at least 2", contract.name, len(consumers), consumers)
+	}
+}
+
+func coreExportIsProviderContract(
+	contracts [coreProviderExportContractCount]coreProviderExportContract,
+	name coreExportName,
+) bool {
+	return slices.ContainsFunc(contracts[:], func(contract coreProviderExportContract) bool {
+		return contract.name == name && contract.witness != nil && contract.consumer.Validate() == nil
+	})
+}
+
+func TestTypedDomainMemberConsumerProjectionDoesNotLaunderUntypedExports(t *testing.T) {
+	t.Parallel()
+
+	var inventory coreExportInventory
+	domain := coreExportConsumerContract{name: "SharedDomain"}
+	domain.consumers[PackageRelease] = true
+	domain.consumers[PackageUpgrade] = true
+	if err := inventory.Add(domain); err != nil {
+		t.Fatalf("Add(shared domain) error = %v, want nil", err)
+	}
+	for _, contract := range []coreExportConsumerContract{
+		{name: "TypedMember", typedDomainMember: true},
+		{name: "UntypedFact"},
+	} {
+		if err := inventory.Add(contract); err != nil {
+			t.Fatalf("Add(%s) error = %v, want nil", contract.name, err)
+		}
+		added, found := inventory.Lookup(contract.name)
+		if !found {
+			t.Fatalf("Lookup(%s) found = false, want true", contract.name)
+		}
+		if err := added.AddDependency("SharedDomain"); err != nil {
+			t.Fatalf("%s.AddDependency() error = %v, want nil", contract.name, err)
+		}
+	}
+
+	connectTypedDomainMemberConsumers(&inventory)
+	typed, found := inventory.Lookup("TypedMember")
+	if !found {
+		t.Fatal("Lookup(TypedMember) found = false, want true")
+	}
+	if got := typed.ConsumerIdentities(); !slices.Equal(got, []PackageIdentity{PackageRelease, PackageUpgrade}) {
+		t.Fatalf("typed member consumers = %v, want [%v %v]", got, PackageRelease, PackageUpgrade)
+	}
+	untyped, found := inventory.Lookup("UntypedFact")
+	if !found {
+		t.Fatal("Lookup(UntypedFact) found = false, want true")
+	}
+	if got := untyped.ConsumerIdentities(); len(got) != 0 {
+		t.Fatalf("untyped fact consumers = %v, want none", got)
+	}
+}
+
+func coreExportIsSpeciallyAdmitted(
+	admissions [coreSpecialExportAdmissionCount]coreSpecialExportAdmission,
+	name coreExportName,
+) bool {
+	return slices.ContainsFunc(admissions[:], func(admission coreSpecialExportAdmission) bool {
+		return admission.name == name && admission.witness != nil && admission.reason.Validate() == nil
+	})
+}
+
+func collectCoreTopLevelExports(directory string) (coreExportInventory, error) {
+	entries, err := os.ReadDir(directory)
+	if err != nil {
+		return coreExportInventory{}, err
+	}
+	files := token.NewFileSet()
+	var exports coreExportInventory
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".go") || strings.HasSuffix(entry.Name(), "_test.go") {
+			continue
+		}
+		file, parseErr := parser.ParseFile(files, filepath.Join(directory, entry.Name()), nil, parser.SkipObjectResolution)
+		if parseErr != nil {
+			return coreExportInventory{}, parseErr
+		}
+		for _, declaration := range file.Decls {
+			if err := addCoreExportDeclaration(&exports, declaration); err != nil {
+				return coreExportInventory{}, err
+			}
+		}
+	}
+	if err := collectCoreExportTypeDependencies(directory, &exports); err != nil {
+		return coreExportInventory{}, err
+	}
+	if err := collectCoreLocalErrorProducers(directory, &exports); err != nil {
+		return coreExportInventory{}, err
+	}
+	slices.SortFunc(exports.Values(), func(left, right coreExportConsumerContract) int {
+		return strings.Compare(string(left.name), string(right.name))
+	})
+	return exports, nil
+}
+
+func collectCoreLocalErrorProducers(directory string, exports *coreExportInventory) error {
+	entries, err := os.ReadDir(directory)
+	if err != nil {
+		return err
+	}
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".go") || strings.HasSuffix(entry.Name(), "_test.go") {
+			continue
+		}
+		file, parseErr := parser.ParseFile(token.NewFileSet(), filepath.Join(directory, entry.Name()), nil, parser.SkipObjectResolution)
+		if parseErr != nil {
+			return parseErr
+		}
+		for _, declaration := range file.Decls {
+			function, ok := declaration.(*ast.FuncDecl)
+			if !ok || function.Body == nil || function.Name.Name == "errorIdentityDiagnostics" {
+				continue
+			}
+			ast.Inspect(function.Body, func(node ast.Node) bool {
+				identifier, ok := node.(*ast.Ident)
+				if !ok {
+					return true
+				}
+				contract, found := exports.Lookup(coreExportName(identifier.Name))
+				if found && contract.stableErr {
+					contract.errorProducers[PackageCore] = true
+				}
+				return true
+			})
+		}
+	}
+	return nil
+}
+
+func addCoreExportDeclaration(exports *coreExportInventory, declaration ast.Decl) error {
+	switch typed := declaration.(type) {
+	case *ast.FuncDecl:
+		if typed.Recv == nil && typed.Name.IsExported() {
+			return exports.Add(coreExportConsumerContract{name: coreExportName(typed.Name.Name)})
+		}
+	case *ast.GenDecl:
+		stableErrorIdentity := false
+		for _, rawSpec := range typed.Specs {
+			switch spec := rawSpec.(type) {
+			case *ast.TypeSpec:
+				if spec.Name.IsExported() {
+					if err := exports.Add(coreExportConsumerContract{name: coreExportName(spec.Name.Name)}); err != nil {
+						return err
+					}
+				}
+			case *ast.ValueSpec:
+				if spec.Type != nil {
+					identity, ok := spec.Type.(*ast.Ident)
+					stableErrorIdentity = ok && identity.Name == "ErrorIdentity"
+				}
+				for _, name := range spec.Names {
+					if name.IsExported() {
+						if err := exports.Add(coreExportConsumerContract{
+							name:      coreExportName(name.Name),
+							stableErr: stableErrorIdentity && name.Name != "ErrUnknown",
+						}); err != nil {
+							return err
+						}
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func collectCoreExportTypeDependencies(directory string, exports *coreExportInventory) error {
+	entries, err := os.ReadDir(directory)
+	if err != nil {
+		return err
+	}
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".go") || strings.HasSuffix(entry.Name(), "_test.go") {
+			continue
+		}
+		file, parseErr := parser.ParseFile(token.NewFileSet(), filepath.Join(directory, entry.Name()), nil, parser.SkipObjectResolution)
+		if parseErr != nil {
+			return parseErr
+		}
+		for _, declaration := range file.Decls {
+			if err := addCoreExportTypeDependencies(exports, declaration); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func addCoreExportTypeDependencies(exports *coreExportInventory, declaration ast.Decl) error {
+	switch typed := declaration.(type) {
+	case *ast.FuncDecl:
+		owner, ok := coreExportFunctionOwner(typed)
+		if !ok {
+			return nil
+		}
+		return addCoreExportTypeExpression(exports, owner, typed.Type)
+	case *ast.GenDecl:
+		var inheritedType ast.Expr
+		for _, rawSpec := range typed.Specs {
+			switch spec := rawSpec.(type) {
+			case *ast.TypeSpec:
+				if spec.Name.IsExported() {
+					if err := addCoreExportTypeExpression(exports, coreExportName(spec.Name.Name), spec.Type); err != nil {
+						return err
+					}
+				}
+			case *ast.ValueSpec:
+				if spec.Type != nil {
+					inheritedType = spec.Type
+				} else if typed.Tok != token.CONST {
+					inheritedType = nil
+				}
+				for _, name := range spec.Names {
+					if name.IsExported() && inheritedType != nil {
+						if typed.Tok == token.CONST {
+							identifier, ok := inheritedType.(*ast.Ident)
+							if ok && identifier.IsExported() {
+								if contract, found := exports.Lookup(coreExportName(name.Name)); found {
+									contract.typedDomainMember = true
+								}
+							}
+						}
+						if err := addCoreExportTypeExpression(exports, coreExportName(name.Name), inheritedType); err != nil {
+							return err
+						}
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func coreExportFunctionOwner(function *ast.FuncDecl) (coreExportName, bool) {
+	if function.Recv == nil {
+		return coreExportName(function.Name.Name), function.Name.IsExported()
+	}
+	if !function.Name.IsExported() || len(function.Recv.List) != 1 {
+		return "", false
+	}
+	receiver := function.Recv.List[0].Type
+	if pointer, ok := receiver.(*ast.StarExpr); ok {
+		receiver = pointer.X
+	}
+	identifier, ok := receiver.(*ast.Ident)
+	if !ok || !identifier.IsExported() {
+		return "", false
+	}
+	return coreExportName(identifier.Name), true
+}
+
+func addCoreExportTypeExpression(
+	exports *coreExportInventory,
+	owner coreExportName,
+	expression ast.Expr,
+) error {
+	contract, found := exports.Lookup(owner)
+	if !found {
+		return nil
+	}
+	var addErr error
+	ast.Inspect(expression, func(node ast.Node) bool {
+		identifier, ok := node.(*ast.Ident)
+		if !ok || !identifier.IsExported() || addErr != nil {
+			return addErr == nil
+		}
+		dependency := coreExportName(identifier.Name)
+		if dependency != owner && exports.Contains(dependency) {
+			addErr = contract.AddDependency(dependency)
+		}
+		return addErr == nil
+	})
+	return addErr
+}
+
+func connectDirectConsumerTypeDependencies(exports *coreExportInventory) {
+	for index := range exports.values {
+		source := &exports.values[index]
+		for _, dependencyName := range source.Dependencies() {
+			dependency, ok := exports.Lookup(dependencyName)
+			if !ok {
+				continue
+			}
+			for identity := range packageIdentityLimit {
+				if identity < PackageCore {
+					continue
+				}
+				if source.directConsumers[identity] {
+					dependency.consumers[identity] = true
+				}
+			}
+		}
+	}
+}
+
+// connectTypedDomainMemberConsumers projects a shared named enum's consumers
+// onto its explicitly typed constants. A package accepting the enum accepts
+// every admitted member even when it does not spell each constant in source.
+// Untyped constants and arbitrary declaration dependencies receive no such
+// projection.
+func connectTypedDomainMemberConsumers(exports *coreExportInventory) {
+	for index := range exports.values {
+		member := &exports.values[index]
+		if !member.typedDomainMember || len(member.Dependencies()) != 1 {
+			continue
+		}
+		domain, ok := exports.Lookup(member.Dependencies()[0])
+		if !ok {
+			continue
+		}
+		for identity := range packageIdentityLimit {
+			if identity < PackageCore {
+				continue
+			}
+			if domain.consumers[identity] {
+				member.consumers[identity] = true
+			}
+		}
+	}
+}
+
+func collectCoreExportConsumers(root string, exports *coreExportInventory) error {
+	for packageContract := range PrimitiveArchitecture().Packages() {
+		if packageContract.Identity == PackageCore {
+			continue
+		}
+		name, err := packageContract.Identity.Name()
+		if err != nil {
+			return err
+		}
+		entries, err := os.ReadDir(filepath.Join(root, name))
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		for _, entry := range entries {
+			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".go") {
+				continue
+			}
+			if err := collectCoreFileConsumers(filepath.Join(root, name, entry.Name()), packageContract.Identity, exports); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func collectCoreFileConsumers(filename string, consumer PackageIdentity, exports *coreExportInventory) error {
+	file, err := parser.ParseFile(token.NewFileSet(), filename, nil, parser.SkipObjectResolution)
+	if err != nil {
+		return err
+	}
+	aliases, err := coreImportAliases(file)
+	if err != nil || len(aliases) == 0 {
+		return err
+	}
+	errorAliases, err := packageImportAliases(file, "errors")
+	if err != nil {
+		return err
+	}
+	if coreFileCallsErrorsIs(file, errorAliases) {
+		exports.packageErrorDecisions[consumer] = true
+	}
+	decisionPositions := coreStableErrorDecisionPositions(
+		file,
+		aliases,
+		errorAliases,
+		consumer,
+		exports,
+	)
+	production := !strings.HasSuffix(filename, "_test.go")
+	ast.Inspect(file, func(node ast.Node) bool {
+		selector, ok := node.(*ast.SelectorExpr)
+		if !ok {
+			return true
+		}
+		owner, ok := selector.X.(*ast.Ident)
+		if !ok || !slices.Contains(aliases, owner.Name) {
+			return true
+		}
+		if contract, found := exports.Lookup(coreExportName(selector.Sel.Name)); found {
+			contract.directConsumers[consumer] = true
+			contract.consumers[consumer] = true
+			if contract.stableErr && production && !slices.Contains(decisionPositions, selector.Pos()) {
+				contract.errorProducers[consumer] = true
+			}
+		}
+		return true
+	})
+	return nil
+}
+
+func coreFileCallsErrorsIs(file *ast.File, errorAliases []string) bool {
+	found := false
+	ast.Inspect(file, func(node ast.Node) bool {
+		call, ok := node.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		function, ok := call.Fun.(*ast.SelectorExpr)
+		if !ok || function.Sel.Name != "Is" {
+			return true
+		}
+		owner, ok := function.X.(*ast.Ident)
+		if ok && slices.Contains(errorAliases, owner.Name) {
+			found = true
+			return false
+		}
+		return true
+	})
+	return found
+}
+
+func coreStableErrorDecisionPositions(
+	file *ast.File,
+	coreAliases []string,
+	errorAliases []string,
+	consumer PackageIdentity,
+	exports *coreExportInventory,
+) []token.Pos {
+	positions := make([]token.Pos, 0, 16)
+	ast.Inspect(file, func(node ast.Node) bool {
+		call, ok := node.(*ast.CallExpr)
+		if !ok || len(call.Args) != 2 {
+			return true
+		}
+		function, ok := call.Fun.(*ast.SelectorExpr)
+		if !ok || function.Sel.Name != "Is" {
+			return true
+		}
+		packageName, ok := function.X.(*ast.Ident)
+		if !ok || !slices.Contains(errorAliases, packageName.Name) {
+			return true
+		}
+		target, ok := call.Args[1].(*ast.SelectorExpr)
+		if !ok {
+			return true
+		}
+		owner, ok := target.X.(*ast.Ident)
+		if !ok || !slices.Contains(coreAliases, owner.Name) {
+			return true
+		}
+		contract, found := exports.Lookup(coreExportName(target.Sel.Name))
+		if found && contract.stableErr {
+			contract.errorDecisions[consumer] = true
+			positions = append(positions, target.Pos())
+		}
+		return true
+	})
+	return positions
+}
+
+func coreImportAliases(file *ast.File) ([]string, error) {
+	return packageImportAliases(file, PrimitivePackagePathPrefix+"core")
+}
+
+func packageImportAliases(file *ast.File, wantedPath string) ([]string, error) {
+	var aliases []string
+	for _, imported := range file.Imports {
+		path, err := strconv.Unquote(imported.Path.Value)
+		if err != nil {
+			return nil, err
+		}
+		if path != wantedPath {
+			continue
+		}
+		alias := filepath.Base(wantedPath)
+		if imported.Name != nil {
+			alias = imported.Name.Name
+		}
+		if alias == "." || alias == "_" {
+			return nil, architectureContractError("Core ownership audit refuses dot or blank imports")
+		}
+		aliases = append(aliases, alias)
+	}
+	return aliases, nil
+}
+
+func (i *coreExportInventory) Add(contract coreExportConsumerContract) error {
+	if contract.name == "" {
+		return architectureContractError("Core export name is empty")
+	}
+	if i.Contains(contract.name) {
+		return architectureContractError("Core export is declared more than once: " + string(contract.name))
+	}
+	i.values = append(i.values, contract)
+	return nil
+}
+
+func (i coreExportInventory) Contains(name coreExportName) bool {
+	_, ok := i.Lookup(name)
+	return ok
+}
+
+func (i *coreExportInventory) Lookup(name coreExportName) (*coreExportConsumerContract, bool) {
+	for index := range i.values {
+		if i.values[index].name == name {
+			return &i.values[index], true
+		}
+	}
+	return nil, false
+}
+
+func (i *coreExportInventory) Values() []coreExportConsumerContract {
+	return i.values
+}
+
+func (c *coreExportConsumerContract) AddDependency(dependency coreExportName) error {
+	if dependency == "" {
+		return ErrPrimitiveContract
+	}
+	if slices.Contains(c.Dependencies(), dependency) {
+		return nil
+	}
+	if int(c.dependencyCount) >= len(c.dependencies) {
+		return ErrPrimitiveContract
+	}
+	c.dependencies[c.dependencyCount] = dependency
+	c.dependencyCount++
+	return nil
+}
+
+func (c *coreExportConsumerContract) Dependencies() []coreExportName {
+	return c.dependencies[:c.dependencyCount]
+}
+
+func (c coreExportConsumerContract) ConsumerIdentities() []PackageIdentity {
+	consumers := make([]PackageIdentity, 0, PrimitivePackageCount)
+	for identity := range packageIdentityLimit {
+		if identity < PackageCore {
+			continue
+		}
+		if c.consumers[identity] {
+			consumers = append(consumers, identity)
+		}
+	}
+	return consumers
+}
+
+func (c coreExportConsumerContract) hasErrorProducer() bool {
+	return slices.Contains(c.errorProducers[:], true)
+}
+
+func (i coreExportInventory) hasErrorDecision(contract coreExportConsumerContract) bool {
+	if slices.Contains(contract.errorDecisions[:], true) {
+		return true
+	}
+	for identity := range packageIdentityLimit {
+		if identity < PackageCore {
+			continue
+		}
+		if contract.consumers[identity] && i.packageErrorDecisions[identity] {
+			return true
+		}
+	}
+	return false
+}

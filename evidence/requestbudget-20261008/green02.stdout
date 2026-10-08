@@ -1,0 +1,6 @@
+{"ImportPath":"github.com/deliri/primitive/v2026/core","Action":"build-output","Output":"# github.com/deliri/primitive/v2026/requestbudget\n"}
+{"ImportPath":"github.com/deliri/primitive/v2026/core","Action":"build-output","Output":"requestbudget/contract.go:7:2: open /Users/d/Library/Caches/go-build/53/53b2901d49bb79e863d68845987fa566e019b36dd9bd66084d723f389b2c7970-a: operation not permitted\n"}
+{"ImportPath":"github.com/deliri/primitive/v2026/core","Action":"build-fail"}
+{"Time":"2026-10-08T03:40:12.687104-04:00","Action":"start","Package":"github.com/deliri/primitive/v2026/requestbudget"}
+{"Time":"2026-10-08T03:40:12.687173-04:00","Action":"output","Package":"github.com/deliri/primitive/v2026/requestbudget","Output":"FAIL\tgithub.com/deliri/primitive/v2026/requestbudget [setup failed]\n","OutputType":"frame"}
+{"Time":"2026-10-08T03:40:12.68719-04:00","Action":"fail","Package":"github.com/deliri/primitive/v2026/requestbudget","Elapsed":0,"FailedBuild":"github.com/deliri/primitive/v2026/core"}

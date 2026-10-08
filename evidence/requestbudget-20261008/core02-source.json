@@ -1,0 +1,70 @@
+{
+  "commit": "11385ad03e329ff45c2508fc90ee0af793012d13",
+  "source_tree_dirty": false,
+  "captured": "before execution",
+  "argv": [
+    "go",
+    "test",
+    "-json",
+    "-count=1",
+    "./core",
+    "./_hammer/claims"
+  ],
+  "cwd": "/Users/d/code/primitive",
+  "environment": {
+    "GOWORK": "off"
+  },
+  "cache": "bypassed with -count=1 for tests; fuzz executes once with declared2s budget",
+  "files": [
+    {
+      "path": "requestbudget/executor_test.go",
+      "bytes": 1119,
+      "sha256": "b50aaa00fa14802b822f2dfd476d964b6672bae423ed366dd8d19b8b1169cd94"
+    },
+    {
+      "path": "requestbudget/hostile_test.go",
+      "bytes": 14833,
+      "sha256": "56de7d4d4dfd7c0c76aa2f6ffd8bd31b5e400409b76dc3c0e1e45dbd1bf3f1aa"
+    },
+    {
+      "path": "requestbudget/doc.go",
+      "bytes": 790,
+      "sha256": "f7b278d7784b8542ee09364a40a482d08a0fbc6f05bd4d6544952494a24fcd0c"
+    },
+    {
+      "path": "requestbudget/contract_test.go",
+      "bytes": 8026,
+      "sha256": "042e263513f613b6c8210dbe6b6fd4a91b94ce3b352903f827b393ae3bb6d16f"
+    },
+    {
+      "path": "requestbudget/executor.go",
+      "bytes": 6084,
+      "sha256": "4bc31f8a410bbc0d9cad1320358186af7203244d149bed45a0d0cdff62b97006"
+    },
+    {
+      "path": "requestbudget/contract.go",
+      "bytes": 3592,
+      "sha256": "9f6b492f6c38e8be123d018c32e3dfa9df981c78b2108ee51b6b983629156b9b"
+    },
+    {
+      "path": "core/error_identity.go",
+      "bytes": 61765,
+      "sha256": "f27d0da443fe6113b9068b3555f1fc87c08e9e47231c745394946f9526ddbafe"
+    },
+    {
+      "path": "core/architecture_catalog.go",
+      "bytes": 22388,
+      "sha256": "70482c33dd08c4405e785fd7baf5e9d7c061052552b4a948494891c780f83c70"
+    },
+    {
+      "path": "core/export_ownership_hostile_test.go",
+      "bytes": 46561,
+      "sha256": "565bd53b7fa3b13dc36f48aa09d70d629424c3d5a4cae8711219ff1ed4ae438b"
+    },
+    {
+      "path": "_hammer/claims/package_claims_h_r.go",
+      "bytes": 22567,
+      "sha256": "87638df8b6562c39ad2d5e44af615623e06466e35f5f405028e5ac7fbcfdbfb9"
+    }
+  ]
+}
