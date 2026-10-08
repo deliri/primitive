@@ -1,0 +1,12 @@
+{
+  "revision": "c5520903fd9fc96a2823e2b8e3e961241ffb9c47",
+  "command": "go test -json -race -count=1 -timeout=5m ./filestore -run '^TestPipeTransfer'",
+  "toolchain": "go1.27.1 darwin/arm64",
+  "count": 1,
+  "filtered": true,
+  "scope": "Native pipe behavioral and custody regression checks, not complete suite or acceptance",
+  "exit_code": 0,
+  "pass": 13,
+  "fail": 0,
+  "sha256": "8598c84c3be99ac306672c5af462f35fc90df0e23eb8218f3aa099e40a8b2b14"
+}
