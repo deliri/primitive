@@ -1,0 +1,6 @@
+{
+  "command": "go test -race -count=1 ./filestore",
+  "exit_code": 1,
+  "output": "--- FAIL: TestFilestorePublicIngressHasCompilerBoundSemanticProof (0.07s)\n    --- FAIL: TestFilestorePublicIngressHasCompilerBoundSemanticProof/StageSyncObservation.BytesWritten (0.00s)\n        ingress_inventory_external_test.go:31: StageSyncObservation.BytesWritten proof bindings = 0, want exactly one\nFAIL\nFAIL\tgithub.com/deliri/primitive/v2026/filestore\t114.200s\n",
+  "accounting": "Unfiltered uncached package attempt; raw ordinary Go output does not expose passing/skipped action counts. Superseded by complete JSON-accounted retry."
+}

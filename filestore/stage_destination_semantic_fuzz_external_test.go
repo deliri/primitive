@@ -134,6 +134,17 @@ func FuzzStageDestinationNativeWriterCustody(f *testing.F) {
 			ctx, cancel = context.WithCancel(ctx)
 			cancel()
 		}
+		observation, syncErr := filestore.SyncStage(ctx, filestore.StageSyncRequest{Destination: destination})
+		if canceled {
+			if !errors.Is(syncErr, context.Canceled) || observation.Validate() == nil {
+				t.Fatalf("canceled synchronization = (%v,%v), want refused observation", observation, syncErr)
+			}
+		} else if syncErr != nil || observation.Validate() != nil || observation.BytesWritten().Uint64() != uint64(len(payload)) {
+			t.Fatalf("native synchronization = (%v,%v), want exact current extent %d", observation, syncErr, len(payload))
+		}
+		if info, err := file.Stat(); err != nil || info.Size() != int64(len(payload)) {
+			t.Fatalf("custody after synchronization = (%v,%v), want live exact extent", info, err)
+		}
 		var got filestore.StagedFile
 		var gotErr error
 		if abandon {

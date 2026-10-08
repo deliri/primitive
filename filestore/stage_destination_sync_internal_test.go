@@ -15,9 +15,33 @@ type stageDestinationEffectOwners struct {
 	finishStageDestination func(*StageDestination) (StagedFile, error)
 	syncParent             func(*os.Root, core.RelativePath) error
 	Sync                   func(*os.File) error
+	syncStage              func(*StageDestination) (StageSyncObservation, error)
 }
 
-var _ = stageDestinationEffectOwners{finishStageDestination: finishStageDestination, syncParent: syncParent, Sync: (*os.File).Sync}
+var _ = stageDestinationEffectOwners{finishStageDestination: finishStageDestination, syncParent: syncParent, Sync: (*os.File).Sync, syncStage: syncStage}
+
+// Native observation cannot distinguish page-cache bytes from synchronized
+// bytes. The production-source guard complements the real-file custody tests.
+func TestStageSyncRetainsSynchronizationOfTheOwnedNativeFile(t *testing.T) {
+	t.Parallel()
+	source, err := filestoreGoSources.ReadFile("stage_sync.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	file, err := parser.ParseFile(token.NewFileSet(), "stage_sync.go", source, parser.SkipObjectResolution)
+	if err != nil {
+		t.Fatal(err)
+	}
+	owners := reflect.TypeFor[stageDestinationEffectOwners]()
+	ownedField, ok := reflect.TypeFor[StageDestination]().FieldByName("file")
+	if !ok || ownedField.Type != reflect.TypeFor[*os.File]() {
+		t.Fatal("missing native custody field")
+	}
+	declarations, calls := ownedParameterMethodCalls(file, owners.Field(3).Name, ownedField.Name, owners.Field(2).Name)
+	if declarations != 1 || calls != 1 {
+		t.Fatalf("native sync owner/calls = (%d,%d), want (1,1)", declarations, calls)
+	}
+}
 
 // Native byte/identity observations cannot prove persistence after power loss.
 // This supplementary compiled-source guard retains the two explicit sync calls;

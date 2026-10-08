@@ -1,0 +1,8 @@
+{
+  "filestore/stage_sync.go": "63eb6467b432c8451c97c9825ecc8aed60ffbfa7c7cb68a177b7f01d1b07ca58",
+  "filestore/stage_sync_external_test.go": "19a27f66473bd782acfa2f85fac499c8becfed1115bf06f7501b75b25619cba2",
+  "filestore/stage_destination_sync_internal_test.go": "ac9a6f4275041223f325507635f75fe3dd0309b8df59dfcfe33cfafcd6d3817b",
+  "filestore/stage_destination_semantic_fuzz_external_test.go": "0b836d26d5da22dbc1ed841f8eac964e569f60d14d8c81778316e0c6ebe8f9a7",
+  "filestore/architecture_test.go": "2e339c214c2f8649c484b716215fa1126361f8919d3978033c8a9ba74291ef36",
+  "filestore/ingress_inventory_external_test.go": "86ddee05f920061daae7bced070bb1e8aab2d86a7c719bcc426ef599fc09a9e9"
+}
