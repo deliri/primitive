@@ -1,0 +1,25 @@
+{
+  "reason": "Retain every original execution event losslessly within the Go module archive budget. Historical receipt artifact names and digests identify decompressed content.",
+  "artifacts": [
+    {
+      "logicalPath": "core02.stdout",
+      "archivePath": "core02.stdout.gz",
+      "rawBytes": 3887668,
+      "archiveBytes": 185095,
+      "rawSHA256": "129a4aa993b29772c7095df0f72d88bed661c5df6c7907279fb70ea3811dce40",
+      "archiveSHA256": "ab7a28a5a04ab62c7214166921391be5b9b5b30577f8a771ea6d6ae6906c7231",
+      "codec": "gzip",
+      "roundTripVerified": true
+    },
+    {
+      "logicalPath": "core03.stdout",
+      "archivePath": "core03.stdout.gz",
+      "rawBytes": 3885828,
+      "archiveBytes": 181407,
+      "rawSHA256": "8fd2fe245008e1c3746f8efa01cbba3e3115d78016953e0b0b729a11c148c96b",
+      "archiveSHA256": "91eda18dd25da7b13dab8522b855ff0dd68aba222dc072544f09a68f1c8ff613",
+      "codec": "gzip",
+      "roundTripVerified": true
+    }
+  ]
+}
