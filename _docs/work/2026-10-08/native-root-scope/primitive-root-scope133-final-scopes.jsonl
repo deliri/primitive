@@ -1,0 +1,6 @@
+{"ImportPath":"./filestore","Action":"build-output","Output":"# ./filestore\n"}
+{"ImportPath":"./filestore","Action":"build-output","Output":"open /Users/d/Library/Caches/go-build/96/968165be64b0c60d77b65f449737c7cefc56c711e4ffd61a58bac3a100434ee2-d: operation not permitted\n"}
+{"ImportPath":"./filestore","Action":"build-fail"}
+{"Time":"2026-10-08T03:01:05.439904-04:00","Action":"start","Package":"./filestore"}
+{"Time":"2026-10-08T03:01:05.439973-04:00","Action":"output","Package":"./filestore","Output":"FAIL\t./filestore [setup failed]\n","OutputType":"frame"}
+{"Time":"2026-10-08T03:01:05.43999-04:00","Action":"fail","Package":"./filestore","Elapsed":0,"FailedBuild":"./filestore"}

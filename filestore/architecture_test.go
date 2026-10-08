@@ -2,6 +2,7 @@ package filestore
 
 import (
 	"embed"
+	"fmt"
 	"go/ast"
 	"go/build"
 	"go/parser"
@@ -54,6 +55,8 @@ type filestoreContractInventory struct {
 	ScratchResetRequest           validatedRequest[ScratchResetRequest]
 	RewindRequest                 validatedRequest[RewindRequest]
 	ScratchScopeRequest           validatedRequest[ScratchScopeRequest]
+	RootScopeRequest              validatedRequest[RootScopeRequest]
+	RootScopeResult               streamedObservation[RootScopeResult]
 	ReadRequest                   validatedRequest[ReadRequest]
 	ReadHandleRequest             validatedRequest[ReadHandleRequest]
 	HandleInspectionRequest       validatedRequest[HandleInspectionRequest]
@@ -333,12 +336,17 @@ func scanProductionArchitecture(files []productionFile) (architectureScan, error
 		}
 		for _, declaration := range file.Decls {
 			symbol := declarationName(declaration)
+			nativePipeJoin := ownsNativePipeJoin(declaration)
 			ast.Inspect(declaration, func(node ast.Node) bool {
 				switch value := node.(type) {
 				case *ast.GoStmt:
-					violations = append(violations, symbol+": goroutine")
+					if !nativePipeJoin {
+						violations = append(violations, symbol+": goroutine")
+					}
 				case *ast.ChanType:
-					violations = append(violations, symbol+": channel coordination")
+					if !nativePipeJoin {
+						violations = append(violations, symbol+": channel coordination")
+					}
 				case *ast.MapType:
 					violations = append(violations, symbol+": loose map state")
 				case *ast.CallExpr:
@@ -392,6 +400,85 @@ func scanProductionArchitecture(files []productionFile) (architectureScan, error
 		violations:       violations,
 		primitiveImports: gotPrimitiveImports,
 	}, nil
+}
+
+// Only the compiled native pipe capability may own one producer and one
+// capacity-one completion channel. Actual endpoint/join tests prove lifetime;
+// this structural check refuses expansion into a worker pool or queue.
+func ownsNativePipeJoin(declaration ast.Decl) bool {
+	function, ok := declaration.(*ast.FuncDecl)
+	if !ok || function.Recv != nil || function.Name.Name != FilestoreIngressSymbolForTest(reflect.ValueOf(TransferPipe)) {
+		return false
+	}
+	workers, channels, boundedCompletions, acquisitions, joins, loops := 0, 0, 0, 0, 0, 0
+	ast.Inspect(function.Body, func(node ast.Node) bool {
+		switch value := node.(type) {
+		case *ast.GoStmt:
+			workers++
+		case *ast.ChanType:
+			channels++
+		case *ast.ForStmt, *ast.RangeStmt:
+			loops++
+		case *ast.UnaryExpr:
+			if value.Op == token.ARROW {
+				if _, ok := value.X.(*ast.Ident); ok {
+					joins++
+				}
+			}
+		case *ast.CallExpr:
+			name, ok := value.Fun.(*ast.Ident)
+			if !ok {
+				return true
+			}
+			if name.Name == FilestoreIngressSymbolForTest(reflect.ValueOf(OpenPipe)) {
+				acquisitions++
+			}
+			if name.Name != "make" || len(value.Args) != 2 {
+				return true
+			}
+			channel, ok := value.Args[0].(*ast.ChanType)
+			if !ok {
+				return true
+			}
+			item, ok := channel.Value.(*ast.Ident)
+			if !ok || item.Name != reflect.TypeFor[pipeProducerResult]().Name() {
+				return true
+			}
+			capacity, ok := value.Args[1].(*ast.BasicLit)
+			if ok && capacity.Kind == token.INT && capacity.Value == "1" {
+				boundedCompletions++
+			}
+		}
+		return true
+	})
+	return workers == 1 && channels == 1 && boundedCompletions == 1 && acquisitions == 1 && joins == 1 && loops == 0
+}
+
+func TestNativePipeCoordinationAdmissionRejectsDetachedAndUnboundedWork(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name, capacity, producer, join string
+		want                           bool
+	}{
+		{name: "one native producer joined through bounded completion", capacity: ", 1", producer: "go func() {}()", join: "_ = <-completion", want: true},
+		{name: "missing completion buffer is refused", producer: "go func() {}()", join: "_ = <-completion"},
+		{name: "expanded completion buffer is refused", capacity: ", 2", producer: "go func() {}()", join: "_ = <-completion"},
+		{name: "multiple producers are refused", capacity: ", 1", producer: "go func() {}(); go func() {}()", join: "_ = <-completion"},
+		{name: "detached producer is refused", capacity: ", 1", producer: "go func() {}()"},
+		{name: "repeated producer creation is refused", capacity: ", 1", producer: "for { go func() {}() }", join: "_ = <-completion"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			source := fmt.Sprintf("package filestore\nfunc %s() { _ = %s(); completion := make(chan %s%s); %s; %s }", FilestoreIngressSymbolForTest(reflect.ValueOf(TransferPipe)), FilestoreIngressSymbolForTest(reflect.ValueOf(OpenPipe)), reflect.TypeFor[pipeProducerResult]().Name(), tc.capacity, tc.producer, tc.join)
+			file, err := parser.ParseFile(token.NewFileSet(), "native_join.go", source, parser.SkipObjectResolution)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := ownsNativePipeJoin(file.Decls[0]); got != tc.want {
+				t.Fatalf("native pipe coordination admission = %t, want %t", got, tc.want)
+			}
+		})
+	}
 }
 
 // Each exception names a concrete compiler-visible receiver and a single-method
