@@ -66,7 +66,7 @@ func TestContractBoundaryLayerTriad(t *testing.T) {
 	for raw := 0; raw <= math.MaxUint8; raw++ {
 		got := Decision(raw).Validate()
 		wantValid := Decision(raw) == Admitted || Decision(raw) == Exhausted
-		if (got == nil) != wantValid {
+		if (got == nil) != wantValid || Decision(raw).IsValid() != wantValid || (Decision(raw).String() != "") != wantValid {
 			t.Fatalf("Decision(%d).Validate() error = %v, want valid %t", raw, got, wantValid)
 		}
 	}

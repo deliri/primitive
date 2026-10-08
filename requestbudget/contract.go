@@ -148,14 +148,8 @@ func (Decision) OffWireEnum() {}
 func (d Decision) IsValid() bool { return d.Validate() == nil }
 
 func (d Decision) String() string {
-	switch d {
-	case Admitted:
-		return "admitted"
-	case Exhausted:
-		return "exhausted"
-	case decisionUnknown:
-		return ""
-	default:
+	if !d.IsValid() {
 		return ""
 	}
+	return [...]string{Admitted: "admitted", Exhausted: "exhausted"}[d]
 }

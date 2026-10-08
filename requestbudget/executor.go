@@ -60,6 +60,7 @@ func (e *Executor) Admit(ctx context.Context, request Request) (Decision, error)
 			e.mu.Unlock()
 			return decision, err
 		}
+		//lint:ignore S1019 Completion broadcast is intentionally unbuffered; doctrine requires an explicit queue bound.
 		s.pending = make(chan struct{}, 0)
 		e.mu.Unlock()
 		return e.reserveSlot(ctx, index, request.Reservation)
