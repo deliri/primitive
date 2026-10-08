@@ -192,6 +192,15 @@ func emitPackageClaimSpecsHThroughR(emit func(packageClaimSpec) bool) bool {
 			excludes: "It does not own storage, grant issuance, account plans, download execution, or product access policy.",
 		},
 		{
+			path: "requestbudget", title: "Bounded reservation credit consumption",
+			problem:  "Consumers otherwise copy synchronized credit caches and repeatedly bill durable counters after exhaustion.",
+			solution: "Requestbudget consumes exact typed durable grants through fixed local slots and preserves known exhaustion until the authoritative window ends.",
+			benefit:  "Apps retain limits and route policy while one product-neutral mechanism owns concurrency, cancellation and capacity refusal.",
+			removal:  "Remove after no consumer needs bounded local consumption of durably reserved credits.",
+			owns:     "Fixed slot selection, synchronized credit consumption, exact grant binding, cancelable same-key waits and non-eviction of live exhaustion.",
+			excludes: "Daily limits, class meaning, routes, scope derivation, clocks, storage paths and durable reservation transactions.",
+		},
+		{
 			path: "runnercontrol", title: "Domain-blind runner control socket",
 			problem:  "An independent requester and runner need exact admission, scheduling, heartbeat, completion, and evidence messages without embedding either product's workflow.",
 			solution: "Runnercontrol defines and exchanges typed control messages over the shared Runprotocol agreement, and exposes typed cmd/go string fragments and event frames through its existing fixed-memory decoder.",

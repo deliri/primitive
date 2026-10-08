@@ -163,6 +163,8 @@ const (
 	PackageCloudflare
 	// PackageJSONIO identifies bounded typed sequential JSON document admission.
 	PackageJSONIO
+	// PackageRequestBudget identifies bounded durable reservation credit execution.
+	PackageRequestBudget
 	packageIdentityLimit
 )
 
@@ -272,6 +274,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackagePasswordHash, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
 			{Identity: PackageCloudflare, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 			{Identity: PackageJSONIO, Kind: PackageKindProduction, Role: PackageRoleValueContract},
+			{Identity: PackageRequestBudget, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
 		},
 	}
 }
@@ -521,6 +524,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"passwordhash",
 		"cloudflare",
 		"jsonio",
+		"requestbudget",
 	}
 }
 

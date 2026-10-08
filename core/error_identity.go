@@ -565,6 +565,14 @@ const (
 	ErrPasswordHashContract
 	// ErrPasswordHashCapacity identifies saturated caller-owned KDF admission.
 	ErrPasswordHashCapacity
+	// ErrRequestBudgetContract identifies invalid reservation-credit facts.
+	ErrRequestBudgetContract
+	// ErrRequestBudgetCapacity identifies full local key capacity, not exhaustion.
+	ErrRequestBudgetCapacity
+	// ErrRequestBudgetWindow identifies an expired or rolled-back observation.
+	ErrRequestBudgetWindow
+	// ErrRequestBudgetBinding identifies a foreign or inconsistent reservation.
+	ErrRequestBudgetBinding
 	errorIdentityLimit
 )
 
@@ -815,6 +823,10 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrReportOverflow, text: "report arithmetic overflow"},
 		{identity: ErrPasswordHashContract, text: "password derivation contract violation"},
 		{identity: ErrPasswordHashCapacity, text: "password derivation capacity reached"},
+		{identity: ErrRequestBudgetContract, text: "request budget contract violation"},
+		{identity: ErrRequestBudgetCapacity, text: "request budget key capacity unavailable"},
+		{identity: ErrRequestBudgetWindow, text: "request budget window rejected"},
+		{identity: ErrRequestBudgetBinding, text: "request budget reservation binding rejected"},
 	}
 }
 
@@ -927,7 +939,7 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrContextStateContract, ErrLineIOContract, ErrManualContract, ErrRunProtocolContract, ErrSourceClaimContract, ErrSourceObservationContract, ErrSourceProofContract, ErrCurrencyContract,
 		ErrKeygenContract, ErrTestIsolationContract, ErrFilestoreContract,
 		ErrTemporalContract, ErrExchangeContract,
-		ErrFuzzArtifactContract, ErrLeaseContract,
+		ErrRequestBudgetContract, ErrFuzzArtifactContract, ErrLeaseContract,
 		ErrProcessContract,
 		ErrCompassContract,
 		ErrReleaseContract, ErrDeployContract,
@@ -1168,6 +1180,9 @@ func errorIdentityParentsControlExchange(identity ErrorIdentity) errorIdentityPa
 func errorIdentityParentsFuzzArtifactThroughObjectStore(identity ErrorIdentity) errorIdentityParentSet {
 	if errorIdentityIn(identity, ErrFuzzArtifactFormat, ErrFuzzArtifactObservation) {
 		return oneErrorIdentityParent(ErrFuzzArtifactContract)
+	}
+	if errorIdentityIn(identity, ErrRequestBudgetCapacity, ErrRequestBudgetWindow, ErrRequestBudgetBinding) {
+		return oneErrorIdentityParent(ErrRequestBudgetContract)
 	}
 	if errorIdentityIn(identity, ErrLeaseVerification, ErrLeaseRollback, ErrLeaseConflict,
 		ErrLeaseScope, ErrLeaseClock) {
