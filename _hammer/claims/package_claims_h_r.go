@@ -174,6 +174,15 @@ func emitPackageClaimSpecsHThroughR(emit func(packageClaimSpec) bool) bool {
 			excludes: "It does not create files, execute builds, transfer artifacts, install software, schedule releases, persist state, or retry.",
 		},
 		{
+			path: "requestbudget", title: "Bounded reservation credit consumption",
+			problem:  "Consumers otherwise copy synchronized credit caches and repeatedly bill durable counters after exhaustion.",
+			solution: "Requestbudget consumes exact typed durable grants through fixed local slots and preserves known exhaustion until the authoritative window ends.",
+			benefit:  "Apps retain limits and route policy while one product-neutral mechanism owns concurrency, cancellation and capacity refusal.",
+			removal:  "Remove after no consumer needs bounded local consumption of durably reserved credits.",
+			owns:     "Fixed slot selection, synchronized credit consumption, exact grant binding, cancelable same-key waits and non-eviction of live exhaustion.",
+			excludes: "Daily limits, class meaning, routes, scope derivation, clocks, storage paths and durable reservation transactions.",
+		},
+		{
 			path: "retrieval", title: "Exact authenticated object retrieval grants",
 			problem:  "A download capability must be bound to the requesting device, exact custody entry, expected object integrity, and short lifetime.",
 			solution: "Retrieval defines device-signed requests and authority-signed receive-only grants for exact Chit manifest objects.",
@@ -190,15 +199,6 @@ func emitPackageClaimSpecsHThroughR(emit func(packageClaimSpec) bool) bool {
 			removal:  "Remove Retrievalauth when retrieval no longer crosses an installation-authenticated boundary.",
 			owns:     "Retrievalauth owns installation-certificate and device-signature verification for a retrieval request.",
 			excludes: "It does not own storage, grant issuance, account plans, download execution, or product access policy.",
-		},
-		{
-			path: "requestbudget", title: "Bounded reservation credit consumption",
-			problem:  "Consumers otherwise copy synchronized credit caches and repeatedly bill durable counters after exhaustion.",
-			solution: "Requestbudget consumes exact typed durable grants through fixed local slots and preserves known exhaustion until the authoritative window ends.",
-			benefit:  "Apps retain limits and route policy while one product-neutral mechanism owns concurrency, cancellation and capacity refusal.",
-			removal:  "Remove after no consumer needs bounded local consumption of durably reserved credits.",
-			owns:     "Fixed slot selection, synchronized credit consumption, exact grant binding, cancelable same-key waits and non-eviction of live exhaustion.",
-			excludes: "Daily limits, class meaning, routes, scope derivation, clocks, storage paths and durable reservation transactions.",
 		},
 		{
 			path: "runnercontrol", title: "Domain-blind runner control socket",

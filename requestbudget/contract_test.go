@@ -58,6 +58,10 @@ func TestContractBoundaryLayerTriad(t *testing.T) {
 		if (got == nil) != wantValid {
 			t.Fatalf("Capacity(%d).Validate() error = %v, want valid %t", raw, got, wantValid)
 		}
+		constructed, err := NewCapacity(uint16(raw))
+		if (err == nil) != wantValid || (wantValid && constructed != Capacity(raw)) || (!wantValid && constructed != 0) {
+			t.Fatalf("NewCapacity(%d) = (%d,%v), want exact value with valid %t", raw, constructed, err, wantValid)
+		}
 	}
 	for raw := 0; raw <= math.MaxUint8; raw++ {
 		got := Decision(raw).Validate()

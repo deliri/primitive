@@ -12,6 +12,15 @@ import (
 // A key includes both owner and budget class; this is not an owner count.
 type Capacity uint16
 
+// NewCapacity admits the consumer's explicit fixed key capacity.
+func NewCapacity(value uint16) (Capacity, error) {
+	capacity := Capacity(value)
+	if err := capacity.Validate(); err != nil {
+		return 0, err
+	}
+	return capacity, nil
+}
+
 func (c Capacity) Validate() error {
 	if c == 0 {
 		return core.ErrRequestBudgetContract
