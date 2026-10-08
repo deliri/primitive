@@ -10,19 +10,19 @@ import (
 
 // Capacity is the consumer's fixed maximum of simultaneously retained keys.
 // A key includes both owner and budget class; this is not an owner count.
-type Capacity uint16
+type Capacity struct{ keys uint16 }
 
 // NewCapacity admits the consumer's explicit fixed key capacity.
 func NewCapacity(value uint16) (Capacity, error) {
-	capacity := Capacity(value)
+	capacity := Capacity{keys: value}
 	if err := capacity.Validate(); err != nil {
-		return 0, err
+		return Capacity{}, err
 	}
 	return capacity, nil
 }
 
 func (c Capacity) Validate() error {
-	if c == 0 {
+	if c.keys == 0 {
 		return core.ErrRequestBudgetContract
 	}
 	return nil
@@ -144,3 +144,18 @@ func (d Decision) Validate() error {
 }
 
 func (Decision) OffWireEnum() {}
+
+func (d Decision) IsValid() bool { return d.Validate() == nil }
+
+func (d Decision) String() string {
+	switch d {
+	case Admitted:
+		return "admitted"
+	case Exhausted:
+		return "exhausted"
+	case decisionUnknown:
+		return ""
+	default:
+		return ""
+	}
+}

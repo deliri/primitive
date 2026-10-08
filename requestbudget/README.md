@@ -40,4 +40,4 @@ states (262,144 combinations), with an independent arithmetic/error oracle.
 Separate proofs cover maximum batches, each binding field, 256 concurrent callers,
 capacity refusal, expiry boundaries, window rollback, late grants, waiting
 cancellation/deadlines and callback panic cleanup. The AST inventory classifies
-all seven production structs and refuses new maps, interfaces or `any`.
+all eight production structs and refuses new maps, interfaces or `any`.

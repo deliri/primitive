@@ -53,14 +53,14 @@ func TestContractBoundaryLayerTriad(t *testing.T) {
 		})
 	}
 	for raw := uint32(0); raw <= math.MaxUint16; raw++ {
-		got := Capacity(raw).Validate()
+		got := (Capacity{keys: uint16(raw)}).Validate()
 		wantValid := raw != 0
 		if (got == nil) != wantValid {
 			t.Fatalf("Capacity(%d).Validate() error = %v, want valid %t", raw, got, wantValid)
 		}
 		constructed, err := NewCapacity(uint16(raw))
-		if (err == nil) != wantValid || (wantValid && constructed != Capacity(raw)) || (!wantValid && constructed != 0) {
-			t.Fatalf("NewCapacity(%d) = (%d,%v), want exact value with valid %t", raw, constructed, err, wantValid)
+		if (err == nil) != wantValid || (wantValid && constructed != (Capacity{keys: uint16(raw)})) || (!wantValid && constructed != (Capacity{})) {
+			t.Fatalf("NewCapacity(%d) = (%v,%v), want exact value with valid %t", raw, constructed, err, wantValid)
 		}
 	}
 	for raw := 0; raw <= math.MaxUint8; raw++ {
@@ -71,10 +71,10 @@ func TestContractBoundaryLayerTriad(t *testing.T) {
 		}
 	}
 	reserve := func(_ context.Context, r Reservation) (Grant, error) { return Grant{Reservation: r, Credits: 1}, nil }
-	if got, err := New(0, reserve); got != nil || !errors.Is(err, core.ErrRequestBudgetContract) {
+	if got, err := New(Capacity{}, reserve); got != nil || !errors.Is(err, core.ErrRequestBudgetContract) {
 		t.Fatalf("New(zero capacity) = (%v,%v), want nil/contract", got, err)
 	}
-	if got, err := New(1, nil); got != nil || !errors.Is(err, core.ErrRequestBudgetContract) {
+	if got, err := New(Capacity{keys: 1}, nil); got != nil || !errors.Is(err, core.ErrRequestBudgetContract) {
 		t.Fatalf("New(nil callback) = (%v,%v), want nil/contract", got, err)
 	}
 	var absent *Executor
@@ -82,6 +82,7 @@ func TestContractBoundaryLayerTriad(t *testing.T) {
 		t.Fatalf("nil Admit() = (%v,%v), want zero/contract", got, err)
 	}
 	e := fixtureExecutor(t, 1, reserve)
+	//lint:ignore SA1012 Nil context is deliberately hostile input; executor must return a typed contract error.
 	if got, err := e.Admit(nil, fixtureRequest(t, 1)); got != decisionUnknown || !errors.Is(err, core.ErrRequestBudgetContract) {
 		t.Fatalf("nil context Admit() = (%v,%v), want zero/contract", got, err)
 	}
@@ -109,9 +110,9 @@ func TestContractBoundaryLayerTriad(t *testing.T) {
 func TestProductionDataFlowInventoryAndBoundedOwnership(t *testing.T) {
 	t.Parallel()
 	// Test-only AST inventory avoids introducing production marker interfaces.
-	// Protocol facts: Key,Window,Reservation,Request,Grant; capability: Executor;
+	// Protocol facts: Capacity,Key,Window,Reservation,Request,Grant; capability: Executor;
 	// internal flow: slot. New production structs must be classified here.
-	want := []string{"Executor", "Grant", "Key", "Request", "Reservation", "Window", "slot"}
+	want := []string{"Capacity", "Executor", "Grant", "Key", "Request", "Reservation", "Window", "slot"}
 	var got []string
 	entries, err := os.ReadDir(".")
 	if err != nil {

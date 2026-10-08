@@ -13,7 +13,11 @@ func TestReservationCreditsLayerTriad(t *testing.T) {
 		t.Fatalf("NewKey() error = %v, want nil", err)
 	}
 	calls := 0
-	executor, err := New(Capacity(1), func(_ context.Context, reservation Reservation) (Grant, error) {
+	capacity, err := NewCapacity(1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	executor, err := New(capacity, func(_ context.Context, reservation Reservation) (Grant, error) {
 		calls++
 		credits := uint16(2)
 		if calls > 1 {

@@ -22,9 +22,13 @@ func fixtureRequest(t *testing.T, identity byte) Request {
 	return Request{Reservation: Reservation{Key: key, Window: Window{Start: temporal.InstantFromNanoseconds(0), End: temporal.InstantFromNanoseconds(10)}, Batch: 2}, Observed: temporal.InstantFromNanoseconds(1)}
 }
 
-func fixtureExecutor(t *testing.T, capacity Capacity, reserve Reserve) *Executor {
+func fixtureExecutor(t *testing.T, capacity uint16, reserve Reserve) *Executor {
 	t.Helper()
-	e, err := New(capacity, reserve)
+	admitted, err := NewCapacity(capacity)
+	if err != nil {
+		t.Fatalf("NewCapacity() error = %v, want nil", err)
+	}
+	e, err := New(admitted, reserve)
 	if err != nil {
 		t.Fatalf("New() error = %v, want nil", err)
 	}

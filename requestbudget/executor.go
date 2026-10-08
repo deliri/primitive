@@ -29,7 +29,7 @@ func New(capacity Capacity, reserve Reserve) (*Executor, error) {
 	if capacity.Validate() != nil || reserve == nil {
 		return nil, core.ErrRequestBudgetContract
 	}
-	return &Executor{slots: make([]slot, int(capacity)), reserve: reserve}, nil
+	return &Executor{slots: make([]slot, int(capacity.keys)), reserve: reserve}, nil
 }
 
 func (e *Executor) Admit(ctx context.Context, request Request) (Decision, error) {
@@ -60,7 +60,7 @@ func (e *Executor) Admit(ctx context.Context, request Request) (Decision, error)
 			e.mu.Unlock()
 			return decision, err
 		}
-		s.pending = make(chan struct{})
+		s.pending = make(chan struct{}, 0)
 		e.mu.Unlock()
 		return e.reserveSlot(ctx, index, request.Reservation)
 	}
@@ -138,7 +138,7 @@ func (e *Executor) reserveSlot(ctx context.Context, index int, reservation Reser
 }
 
 var (
-	_ core.Validatable = Capacity(0)
+	_ core.Validatable = Capacity{}
 	_ core.Validatable = Key{}
 	_ core.Validatable = Window{}
 	_ core.Validatable = Reservation{}
