@@ -61,6 +61,7 @@ type filestoreContractInventory struct {
 	ReadScopeRequest              validatedRequest[ReadScopeRequest]
 	ScratchWriterScopeRequest     validatedRequest[ScratchWriterScopeRequest]
 	ScratchReplayScopeRequest     validatedRequest[ScratchReplayScopeRequest]
+	LockFileScopeRequest          validatedRequest[LockFileScopeRequest]
 	ReadRequest                   validatedRequest[ReadRequest]
 	ReadHandleRequest             validatedRequest[ReadHandleRequest]
 	HandleInspectionRequest       validatedRequest[HandleInspectionRequest]

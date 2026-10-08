@@ -31,7 +31,8 @@ func (r filelockDataFlowRole) IsValid() bool {
 }
 
 type filelockEffectIngressInventory struct {
-	Request Request
+	Request      Request
+	ScopeRequest ScopeRequest
 }
 
 type filelockSealedObservationInventory struct {
@@ -120,11 +121,12 @@ func filelockProductionStructNames() ([]string, error) {
 
 // The typed inventory binds the externally effectful API to fuzz coverage.
 type filelockDoorInventory struct {
-	Acquire func(context.Context, Request) (Acquisition, error)
-	Release func(context.Context, *os.File) error
+	Acquire   func(context.Context, Request) (Acquisition, error)
+	Release   func(context.Context, *os.File) error
+	WithScope func(context.Context, ScopeRequest) (Acquisition, error)
 }
 
-var filelockDoors = filelockDoorInventory{Acquire: Acquire, Release: Release}
+var filelockDoors = filelockDoorInventory{Acquire: Acquire, Release: Release, WithScope: WithScope}
 
 func TestFilelockExternalDoorInventory(t *testing.T) {
 	t.Parallel()
