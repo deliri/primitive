@@ -1,0 +1,90 @@
+{
+  "scope": "ImagesServer.DownloadOriginal rejects typed-nil io.Writer before any provider request using existing Primitive WriterIsNil",
+  "source_capture": "post-run; not prebound",
+  "source": [
+    {
+      "path": "cloudflare/images_blob.go",
+      "sha256": "3d7efe0c26033d0765176a0c7261349d7407af2ed2b1f87d9ce207d0ec010990"
+    },
+    {
+      "path": "cloudflare/images_blob_test.go",
+      "sha256": "1d8f6b0d384bb9670dc5bf285600c110982faff67e2cc68732cd441ebabef2a0"
+    }
+  ],
+  "attempts": [
+    {
+      "name": "typednil01",
+      "exit": 0,
+      "command": "GOWORK=off go test -count=1 ./cloudflare -run ^TestImagesOriginalRealTLSBoundedTransfer$"
+    },
+    {
+      "name": "typednil-red01",
+      "exit": 1,
+      "fact": "mutation escaped request; fixture status0 panic makes this a mixed harness failure, not standalone product red"
+    },
+    {
+      "name": "typednil-red02",
+      "exit": 1,
+      "command": "GOWORK=off go test -overlay /private/tmp/primitive-images-blob-20261008/typednil-regression-overlay.json -count=1 ./cloudflare -run TestImagesOriginalRealTLSBoundedTransfer/typed_nil",
+      "fact": "same one-fact semantic mutation with corrected fixture proves escaped request/refusal mismatch; production unchanged by overlay"
+    },
+    {
+      "name": "typednil-green02",
+      "exit": 0,
+      "command": "GOWORK=off go test -count=1 ./cloudflare"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "typednil01.stdout",
+      "bytes": 57,
+      "sha256": "74b9f30e9ca8e9b2b8b63fc1ffe2d4669ea0a2ffb287315ae3029e237d44855e"
+    },
+    {
+      "path": "typednil-red02.stdout",
+      "bytes": 407,
+      "sha256": "d8b2ebe8c8359864cbc0520856def67345614597795001b00d5366b3fb2dbef4"
+    },
+    {
+      "path": "typednil-green02.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "typednil-green02.stdout",
+      "bytes": 57,
+      "sha256": "dfa636eff5d13212530e6b73760112c3f1e2c0cce49a7281609a12adde9cd279"
+    },
+    {
+      "path": "typednil-regression-overlay.json",
+      "bytes": 136,
+      "sha256": "2493089096a5edde28e2dd8b61d73e66218a433defcf51f0cec8c13ed36b716e"
+    },
+    {
+      "path": "typednil-red02.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "typednil01.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "typednil-red01.stdout",
+      "bytes": 1846,
+      "sha256": "14526ee2081540f5819f50d70f563c9979351f6bbf3fa44a82d502e4f4161ae1"
+    },
+    {
+      "path": "typednil-regression.go",
+      "bytes": 3293,
+      "sha256": "669a9fe05f5409c7ccff99b3c211c4e9e470ef651e805c33af9974213f5cc8d1"
+    },
+    {
+      "path": "typednil-red01.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "acceptance": "independent user-owned"
+}

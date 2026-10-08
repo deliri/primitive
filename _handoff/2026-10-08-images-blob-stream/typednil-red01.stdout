@@ -1,0 +1,27 @@
+2026/10/08 05:48:07 http: panic serving 127.0.0.1:52256: invalid WriteHeader code 0
+goroutine 39 [running]:
+net/http.(*conn).serve.func1()
+	/opt/homebrew/Cellar/go/1.27.1/libexec/src/net/http/server.go:1939 +0xac
+panic({0x105b1e478?, 0xe1740f92440?})
+	/opt/homebrew/Cellar/go/1.27.1/libexec/src/runtime/panic.go:859 +0x120
+net/http.checkWriteHeaderCode(...)
+	/opt/homebrew/Cellar/go/1.27.1/libexec/src/net/http/server.go:1178
+net/http.(*response).WriteHeader(0xe1740eb0ff0, 0x0)
+	/opt/homebrew/Cellar/go/1.27.1/libexec/src/net/http/server.go:1213 +0x778
+github.com/deliri/primitive/v2026/cloudflare.TestImagesOriginalRealTLSBoundedTransfer.func1.1({0x105c13db8, 0xe1740eb0ff0}, 0xe1740f9eb40)
+	/Users/d/code/primitive/cloudflare/images_blob_test.go:56 +0x398
+net/http.HandlerFunc.ServeHTTP(0x0?, {0x105c13db8?, 0xe1740eb0ff0?}, 0xe1740e49ae0?)
+	/opt/homebrew/Cellar/go/1.27.1/libexec/src/net/http/server.go:2338 +0x38
+net/http.serverHandler.ServeHTTP({0xe1740f47a00?}, {0x105c13db8?, 0xe1740eb0ff0?}, 0x1?)
+	/opt/homebrew/Cellar/go/1.27.1/libexec/src/net/http/server.go:3413 +0xb0
+net/http.(*conn).serve(0xe1740df10e0, {0x105c15630, 0xe1740e1c1e0})
+	/opt/homebrew/Cellar/go/1.27.1/libexec/src/net/http/server.go:2137 +0x5a0
+created by net/http.(*Server).Serve in goroutine 37
+	/opt/homebrew/Cellar/go/1.27.1/libexec/src/net/http/server.go:3581 +0x3e8
+--- FAIL: TestImagesOriginalRealTLSBoundedTransfer (0.00s)
+    --- FAIL: TestImagesOriginalRealTLSBoundedTransfer/typed_nil_destination_performs_no_request (0.00s)
+        images_blob_test.go:101: DownloadOriginal=(exchange transport failed
+            Get "https://api.cloudflare.com/client/v4/accounts/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/images/v1/tenant%2Fphoto/blob": EOF,1 calls), want (cloudflare contract violation,0 calls)
+FAIL
+FAIL	github.com/deliri/primitive/v2026/cloudflare	0.244s
+FAIL

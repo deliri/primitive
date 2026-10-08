@@ -25,7 +25,7 @@ func (r ImageBlobDownloadRequest) Validate() error {
 		return contractError(err)
 	}
 	base, err := r.ContentType.Base()
-	if err != nil || !strings.HasPrefix(base, core.CloudflareImageMediaTypePrefix) || core.WriterIsNil(r.Destination) {
+	if err != nil || !strings.HasPrefix(base, core.CloudflareImageMediaTypePrefix) || r.Destination == nil {
 		return core.ErrCloudflareContract
 	}
 	return nil

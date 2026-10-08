@@ -16,14 +16,14 @@ import (
 func TestImagesOriginalRealTLSBoundedTransfer(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name                                                      string
-		body                                                      string
-		maximum                                                   uint64
-		media                                                     string
-		status                                                    int
-		invalidID, nilDestination, zeroMaximum, wrongRequestMedia bool
-		wantErr                                                   error
-		wantCalls                                                 int64
+		name                                                                           string
+		body                                                                           string
+		maximum                                                                        uint64
+		media                                                                          string
+		status                                                                         int
+		invalidID, nilDestination, typedNilDestination, zeroMaximum, wrongRequestMedia bool
+		wantErr                                                                        error
+		wantCalls                                                                      int64
 	}{
 		{name: "ordinary original preserves exact bytes", body: "original", maximum: 8, media: "image/png", status: 200, wantCalls: 1},
 		{name: "one below export ceiling preserves exact bytes", body: "seven77", maximum: 8, media: "image/png", status: 200, wantCalls: 1},
@@ -37,6 +37,7 @@ func TestImagesOriginalRealTLSBoundedTransfer(t *testing.T) {
 		{name: "redirect cannot export another authority", body: "x", maximum: 8, media: "image/png", status: 302, wantCalls: 1, wantErr: core.ErrExchangeResponse},
 		{name: "absent image identity performs no request", maximum: 8, invalidID: true, wantErr: core.ErrCloudflareContract},
 		{name: "absent destination performs no request", maximum: 8, nilDestination: true, wantErr: core.ErrCloudflareContract},
+		{name: "typed nil destination performs no request", maximum: 8, typedNilDestination: true, wantErr: core.ErrCloudflareContract},
 		{name: "zero ceiling performs no request", zeroMaximum: true, wantErr: core.ErrCloudflareContract},
 		{name: "nonimage request representation performs no request", maximum: 8, wrongRequestMedia: true, wantErr: core.ErrCloudflareContract},
 	} {
@@ -52,7 +53,11 @@ func TestImagesOriginalRealTLSBoundedTransfer(t *testing.T) {
 				if tc.media != "" {
 					w.Header().Set("Content-Type", tc.media)
 				}
-				w.WriteHeader(tc.status)
+				status := tc.status
+				if status == 0 {
+					status = http.StatusOK
+				}
+				w.WriteHeader(status)
 				if _, err := io.WriteString(w, tc.body); err != nil {
 					t.Error(err)
 				}
@@ -87,6 +92,10 @@ func TestImagesOriginalRealTLSBoundedTransfer(t *testing.T) {
 			}
 			if tc.nilDestination {
 				request.Destination = nil
+			}
+			if tc.typedNilDestination {
+				var absent *bytes.Buffer
+				request.Destination = absent
 			}
 			if tc.wrongRequestMedia {
 				request.ContentType = core.HTTPMediaTypeJSON()

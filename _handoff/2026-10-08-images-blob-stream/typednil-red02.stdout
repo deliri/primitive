@@ -1,0 +1,7 @@
+--- FAIL: TestImagesOriginalRealTLSBoundedTransfer (0.00s)
+    --- FAIL: TestImagesOriginalRealTLSBoundedTransfer/typed_nil_destination_performs_no_request (0.01s)
+        images_blob_test.go:105: DownloadOriginal=(exchange response rejected
+            exchange content type rejected,1 calls), want (cloudflare contract violation,0 calls)
+FAIL
+FAIL	github.com/deliri/primitive/v2026/cloudflare	0.263s
+FAIL
