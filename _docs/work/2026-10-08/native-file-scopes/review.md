@@ -1,0 +1,7 @@
+# Native file scopes
+
+Primitive acquires one real regular reader or exclusive scratch writer, lends its narrow standard-library capability synchronously, and closes the actual native file on every return path. No stream buffering, lifecycle simulation, file-size ceiling, or product completion policy is added. Results distinguish callback refusal from native cleanup; zero results remain unavailable. Valid results prove an attempted close, not consumption, synchronization, or publication.
+
+Real-file regressions cover success, refusal, cancellation, panic, premature borrowed-handle closure, invalid admission, missing read sources, and conflicting scratch destinations. Native byte readback and post-return handle refusal provide independent oracles. Removing actual closure makes the tests fail. Semantic fuzz conserves arbitrary bounded fixture bytes; fixture bounds do not cap production streams.
+
+The first full race attempt failed the struct inventory ratchet. Its complete raw accounting is retained. The corrected unfiltered, uncached attempt passed 5,797 tests with no skips or failures. Development fuzz remains a three-second run. The source catalog binds tested bytes; base revision is historical, not a claim that its unmodified source includes this change. Hammer reports remain complete and retain their refused assurance. Independent acceptance, all-module tests, and final global lint gates are not claimed.

@@ -1,0 +1,32 @@
+{
+  "command": "go test -json -race -count=1 ./filestore",
+  "exit_code": 1,
+  "base_revision": "87dfd302a1a7b8cd7a436352ed4467cfa7077506",
+  "raw_sha256": "922f54979491115cd5ca70fa2ad101421c67d4c3672bcdef8b28e4b5c0ef0001",
+  "raw_bytes": 12683365,
+  "actions": {
+    "start": 1,
+    "run": 5795,
+    "output": 22439,
+    "pause": 5421,
+    "cont": 5421,
+    "pass": 5794,
+    "fail": 2
+  },
+  "failures": [
+    {
+      "Time": "2026-10-08T08:35:08.086723-04:00",
+      "Action": "fail",
+      "Package": "github.com/deliri/primitive/v2026/filestore",
+      "Test": "TestFilestoreDataFlowStructInventoryRatchet",
+      "Elapsed": 0.04
+    },
+    {
+      "Time": "2026-10-08T08:37:15.279142-04:00",
+      "Action": "fail",
+      "Package": "github.com/deliri/primitive/v2026/filestore",
+      "Elapsed": 127.887
+    }
+  ],
+  "limitation": "New request/result types not yet classified in the compiler-visible struct inventory. Getter immutability followed this attempt."
+}
