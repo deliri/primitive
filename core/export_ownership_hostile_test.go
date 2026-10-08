@@ -16,7 +16,7 @@ import (
 const (
 	coreExportDependencyMaximum     = 32
 	coreSpecialExportAdmissionCount = 95 // Includes provider-neutral image dimensions shared with callers.
-	coreProviderExportContractCount = 135
+	coreProviderExportContractCount = 136
 )
 
 type coreExportName string
@@ -278,6 +278,7 @@ func coreProviderExportContracts() [coreProviderExportContractCount]coreProvider
 		{name: "CloudflareImageMediaTypePrefix", witness: CloudflareImageMediaTypePrefix, consumer: PackageCloudflare},
 		{name: "CloudflareImageVariantMaximumCharacters", witness: CloudflareImageVariantMaximumCharacters, consumer: PackageCloudflare},
 		{name: "CloudflareImagesV1Path", witness: CloudflareImagesV1Path, consumer: PackageCloudflare},
+		{name: "CloudflareImagesBlobSuffix", witness: CloudflareImagesBlobSuffix, consumer: PackageCloudflare},
 		{name: "CloudflareR2ContentMD5Header", witness: CloudflareR2ContentMD5Header, consumer: PackageCloudflare},
 		{name: "CloudflareR2CreateOnlyValue", witness: CloudflareR2CreateOnlyValue, consumer: PackageCloudflare},
 		{name: "CloudflareR2ETagHeader", witness: CloudflareR2ETagHeader, consumer: PackageCloudflare},

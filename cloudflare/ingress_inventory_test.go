@@ -53,6 +53,7 @@ func cloudflareIngressProofs() []ingressProof {
 		bindIngress(StreamWebhookReceiver.Receive, FuzzStreamWebhookSignatureRepresentation),
 		bindIngress(R2Server.Presign, FuzzR2GrantSignatureAndAuthority),
 		bindIngress(ImagesServer.Details, FuzzImagesDetailsResponseBinding),
+		bindIngress(ImagesServer.DownloadOriginal, FuzzImagesOriginalPublicTransferSemanticBound),
 		bindIngress(ImagesServer.Delete, FuzzImagesDeletionAcceptance),
 		bindIngress((*imageDeleteWire).UnmarshalJSON, FuzzImagesDeletionAcceptance),
 		bindIngress(R2Client.Head, FuzzR2HeadMetadataConservation),
@@ -109,7 +110,7 @@ func cloudflareDecoderDoors(file *ast.File) []string {
 			continue
 		}
 		name := fn.Name.Name
-		if !(strings.HasPrefix(name, "Parse") || strings.HasPrefix(name, "Decode") || strings.HasPrefix(name, "Unmarshal") || name == "ReadImageInfo" || name == "InspectResize" || name == "PurgeFile" || name == "PurgePrefix" || name == "NewCachePurgePrefix" || name == "APITokenFromSecret" || name == "CreateDirectUpload" || name == "Receive" || name == "Presign" || name == "PresignMultipart" || name == "CreateMultipart" || name == "CompleteMultipart" || name == "UploadPart" || name == "Details" || name == "Head" || name == "Delete" && fn.Recv != nil && cloudflareReceiverName(fn.Recv.List[0].Type) == "ImagesServer") {
+		if !(strings.HasPrefix(name, "Parse") || strings.HasPrefix(name, "Decode") || strings.HasPrefix(name, "Unmarshal") || name == "ReadImageInfo" || name == "InspectResize" || name == "PurgeFile" || name == "PurgePrefix" || name == "NewCachePurgePrefix" || name == "APITokenFromSecret" || name == "CreateDirectUpload" || name == "Receive" || name == "Presign" || name == "PresignMultipart" || name == "CreateMultipart" || name == "CompleteMultipart" || name == "UploadPart" || name == "Details" || name == "DownloadOriginal" || name == "Head" || name == "Delete" && fn.Recv != nil && cloudflareReceiverName(fn.Recv.List[0].Type) == "ImagesServer") {
 			continue
 		}
 		if fn.Recv != nil {

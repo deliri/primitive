@@ -1,0 +1,33 @@
+{
+  "revision": "b67cefd1769262dff4c411b420a2270dff1154da",
+  "source_status": " M cloudflare/ingress_inventory_test.go\n M core/cloudflare_contracts.go\n M core/export_ownership_hostile_test.go\n?? cloudflare/images_blob.go\n?? cloudflare/images_blob_test.go\n",
+  "toolchain": "go version go1.27.1 darwin/arm64",
+  "scope": "Images SDK blob export and caller-owned bounded destination; mock TLS provider, not live Cloudflare or full app archive",
+  "sources": [
+    {
+      "path": "cloudflare/images_blob.go",
+      "bytes": 3293,
+      "sha256": "669a9fe05f5409c7ccff99b3c211c4e9e470ef651e805c33af9974213f5cc8d1"
+    },
+    {
+      "path": "cloudflare/images_blob_test.go",
+      "bytes": 8784,
+      "sha256": "a29eda7826f2e99e960974a7e5dfb065ae4a8a9a6921b09ac8d93ce5855df7c2"
+    },
+    {
+      "path": "cloudflare/ingress_inventory_test.go",
+      "bytes": 6377,
+      "sha256": "673d41ba11ec14aaf07b9ecf560a5cc08e20785904dd7f7e6f0a4abf451c2204"
+    },
+    {
+      "path": "core/cloudflare_contracts.go",
+      "bytes": 9624,
+      "sha256": "b955f549cb3e38e40f20e3d2bdf1b9a38fec3ce0db6834c8921c4fb5ea15fbdf"
+    },
+    {
+      "path": "core/export_ownership_hostile_test.go",
+      "bytes": 46667,
+      "sha256": "f73c7cdb3ff81b05de11078e336f5cab2df9eac88bd4a958b6ece8fff81edfbb"
+    }
+  ]
+}

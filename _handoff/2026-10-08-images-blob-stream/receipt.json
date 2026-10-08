@@ -1,0 +1,181 @@
+{
+  "scope": "native Cloudflare Images blob stream SDK; local TLS tests plus mock-transport semantic fuzz; no live provider/app export proof",
+  "red_green": "New SDK capability absent from baseline b67cefd; migration addition, no executed pre-fix red claim. Bounds ratchet exercises ordinary/below/exact/above/zero/rejected-representation/account-auth/redirect semantics.",
+  "source_binding": "package06 uses source-final-prebound.json; earlier attempts source captured afterward and are not represented as prebound",
+  "attempts": [
+    {
+      "name": "test01",
+      "exit": 1,
+      "cause": "sandbox Go cache denied"
+    },
+    {
+      "name": "test02",
+      "exit": 0,
+      "command": "GOWORK=off go test -count=1 ./cloudflare -run TestImagesOriginalRealTLSBoundedTransfer|FuzzImageBlobDestinationSemanticBound"
+    },
+    {
+      "name": "package01",
+      "exit": 0
+    },
+    {
+      "name": "fuzz01",
+      "exit": 0,
+      "command": "GOWORK=off go test -count=1 ./cloudflare -run ^$ -fuzz ^FuzzImageBlobDestinationSemanticBound$ -fuzztime=5s -parallel=2",
+      "executions": 42906,
+      "note": "overlapped package01 process; not serial phase claim"
+    },
+    {
+      "name": "package02",
+      "exit": 0
+    },
+    {
+      "name": "fuzz02",
+      "exit": 0,
+      "command": "GOWORK=off go test -count=1 ./cloudflare -run ^$ -fuzz ^FuzzImagesOriginalPublicTransferSemanticBound$ -fuzztime=5s -parallel=2",
+      "executions": 37105
+    },
+    {
+      "name": "package03",
+      "exit": 0
+    },
+    {
+      "name": "package04",
+      "exit": 1,
+      "command": "GOWORK=off go test -count=1 ./cloudflare ./core",
+      "cause": "new Core export inventory count needed increment"
+    },
+    {
+      "name": "package05",
+      "exit": 1,
+      "command": "GOWORK=off go test -count=1 ./cloudflare ./core",
+      "cause": "Cloudflare passed; Core existing independent effect ownership/producer completeness/ProcessExitStatusMaximum consumer failures; no pre-change baseline execution claimed"
+    },
+    {
+      "name": "package06",
+      "exit": 0,
+      "command": "GOWORK=off go test -count=1 ./cloudflare",
+      "source_binding": "source-final-prebound.json"
+    }
+  ],
+  "default_package_command": "GOWORK=off go test -count=1 ./cloudflare",
+  "cache": "all tests -count=1, cache bypassed; fuzz native exploratory budgets once per target phase",
+  "facts": {
+    "tls_boundary_rows": 14,
+    "live_provider_runs": 0,
+    "independent_acceptance": "user owned",
+    "unavailable": [
+      "full Primitive Core package currently fails three unrelated contracts",
+      "live Cloudflare original download not yet executed",
+      "full account archive integration not yet implemented"
+    ]
+  },
+  "provider_documentation": "https://developers.cloudflare.com/images/storage/manage-images/export-images/",
+  "provider_original_caveat": "Most originals are uploaded file; larger images may be near-lossless provider version; no original checksum equality assertion",
+  "artifacts": [
+    {
+      "path": "fuzz01.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "fuzz01.stdout",
+      "bytes": 362,
+      "sha256": "661d881336b83fdaf84f57be233ea5f97e66e4130a24371e32d03574496b1990"
+    },
+    {
+      "path": "fuzz02.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "fuzz02.stdout",
+      "bytes": 362,
+      "sha256": "42c0be2194f97abfd144cbb65cd7583a7e7d88f001292b0c3971eba9f295c9a5"
+    },
+    {
+      "path": "package01.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "package01.stdout",
+      "bytes": 57,
+      "sha256": "5055bf648fb16bb55bd8998a602934712d69b04b6805144c0f67d100244a5653"
+    },
+    {
+      "path": "package02.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "package02.stdout",
+      "bytes": 57,
+      "sha256": "5f5fbc6a4ee13d0d2f677b91a525e22a419d373654dcf456e736615453ab245e"
+    },
+    {
+      "path": "package03.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "package03.stdout",
+      "bytes": 57,
+      "sha256": "5394e97814176131b9824b5a1b96a078574d9c9913978cb31f44a0130f3bc91e"
+    },
+    {
+      "path": "package04.stderr",
+      "bytes": 289,
+      "sha256": "ae8d08110a299d1dc69d2710636abe8880f90bccba117b857ec24669520569a9"
+    },
+    {
+      "path": "package04.stdout",
+      "bytes": 121,
+      "sha256": "fe60e7c915693d5a71d394124f71850575151d7d86f96887872d039d02cca6b9"
+    },
+    {
+      "path": "package05.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "package05.stdout",
+      "bytes": 10273,
+      "sha256": "4274e424e11509a2669f3222ccaf70889395cffe00d5a5248e6b98226bef6b16"
+    },
+    {
+      "path": "package06.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "package06.stdout",
+      "bytes": 57,
+      "sha256": "83444b41941ca4c89f3673b34d02053d12e1db92cf3df264c47cf1718bd250f5"
+    },
+    {
+      "path": "source-final-prebound.json",
+      "bytes": 1301,
+      "sha256": "6b94937fe996d362ae966ed235ab8cc01f37d7a8137f134b9d408f1eec7920d6"
+    },
+    {
+      "path": "test01.stderr",
+      "bytes": 209,
+      "sha256": "1fea79ea334c872d912b57acac6999fe893a8a937a49b054ffcab6dae8cafb61"
+    },
+    {
+      "path": "test01.stdout",
+      "bytes": 70,
+      "sha256": "3d50fe7cd61e9a812d6c066db5f386ab6aff7554ab2376e2f1ecf32afc03b39a"
+    },
+    {
+      "path": "test02.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "test02.stdout",
+      "bytes": 57,
+      "sha256": "88a28c6a9cbf67d5f56daefee17663c94a960fe57914c71e1e1350ca1a48e974"
+    }
+  ]
+}

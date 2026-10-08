@@ -158,6 +158,7 @@ const (
 	// https://developers.cloudflare.com/images/optimization/hosted-images/serve-from-custom-domains/
 	CloudflareImagesCustomDeliveryPath = "/cdn-cgi/imagedelivery/"
 	CloudflareImagesV1Path             = "/images/v1/"
+	CloudflareImagesBlobSuffix         = "/blob"
 	CloudflareR2ContentMD5Header       = "Content-MD5"
 	CloudflareR2IfNoneMatchHeader      = "If-None-Match"
 	CloudflareR2ETagHeader             = "ETag"
