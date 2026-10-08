@@ -18,8 +18,8 @@ func TestGoMemoryLimitAppliesTypedIntentAndPreservesPreviousRuntimeLimit(t *test
 	// The runtime adapter is the subject: use its native API as an independent oracle.
 	previous := debug.SetMemoryLimit(-1)
 	defer debug.SetMemoryLimit(previous)
-	for _, value := range []uint64{1 << 30, 2 << 30, math.MaxInt64} {
-		limit, err := core.NewByteCount(value)
+	for _, value := range []uint64{1 << 30, 2 << 30, math.MaxInt64, 0, 1 << 30} {
+		limit, err := core.NewByteLength(value)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -28,22 +28,18 @@ func TestGoMemoryLimitAppliesTypedIntentAndPreservesPreviousRuntimeLimit(t *test
 		if err != nil || got.Validate() != nil {
 			t.Fatalf("ApplyGoMemoryLimit() = (%v, %v), want validated native observation", got, err)
 		}
-		old, oldErr := got.Previous.Uint64()
-		applied, appliedErr := got.Applied.Uint64()
+		old := got.Previous.Uint64()
+		applied := got.Applied.Uint64()
 		actual := debug.SetMemoryLimit(-1)
-		if oldErr != nil || appliedErr != nil || old != uint64(before) || applied != value || actual != int64(value) {
-			t.Fatalf("native limit = previous:%d applied:%d actual:%d errors:%v/%v, want %d/%d/%d", old, applied, actual, oldErr, appliedErr, before, value, value)
+		if old != uint64(before) || applied != value || actual != int64(value) {
+			t.Fatalf("native limit = previous:%d applied:%d actual:%d, want %d/%d/%d", old, applied, actual, before, value, value)
 		}
 	}
 }
 
 func TestGoMemoryLimitRefusesInvalidIntentAndTerminalContextBeforeMutation(t *testing.T) {
 	testserial.Declare(t, core.TestIsolationDeclaration{Hazard: core.TestIsolationHazardRuntimeAllocation, Scope: core.TestIsolationScopePackageProcess})
-	limit, err := core.NewByteCount(1 << 30)
-	if err != nil {
-		t.Fatal(err)
-	}
-	overflow, err := core.NewByteCount(uint64(math.MaxInt64) + 1)
+	limit, err := core.NewByteLength(1 << 30)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,13 +51,11 @@ func TestGoMemoryLimitRefusesInvalidIntentAndTerminalContextBeforeMutation(t *te
 	for _, tc := range []struct {
 		name  string
 		ctx   context.Context
-		limit core.ByteCount
+		limit core.ByteLength
 		want  error
 	}{
 		{name: "absent context", ctx: nil, limit: limit, want: core.ErrNilContext},
 		{name: "cancelled context", ctx: ctx, limit: limit, want: context.Canceled},
-		{name: "zero limit", ctx: t.Context(), want: core.ErrHostFactsContract},
-		{name: "unsigned limit exceeds runtime range", ctx: t.Context(), limit: overflow, want: core.ErrHostFactsContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			before := debug.SetMemoryLimit(-1)

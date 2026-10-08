@@ -16,20 +16,19 @@ func FuzzGoMemoryLimitNativeSemanticClosure(f *testing.F) {
 	}
 	f.Fuzz(func(t *testing.T, value uint64) {
 		testserial.Declare(t, core.TestIsolationDeclaration{Hazard: core.TestIsolationHazardRuntimeAllocation, Scope: core.TestIsolationScopePackageProcess})
-		limit, constructErr := core.NewByteCount(value)
-		before := debug.SetMemoryLimit(-1)
-		got, err := ApplyGoMemoryLimit(t.Context(), GoMemoryLimitRequest{Limit: limit})
-		actual := debug.SetMemoryLimit(before) // Restore before any diagnostic allocation.
-		admitted := value > 0 && value <= math.MaxInt64 && constructErr == nil
-		if !admitted {
-			if !errors.Is(err, core.ErrHostFactsContract) || got != (GoMemoryLimitResult{}) || actual != before {
-				t.Fatalf("refused limit %d = (%v, %v), runtime:%d, want zero result, typed refusal and preserved %d", value, got, err, actual, before)
+		limit, constructErr := core.NewByteLength(value)
+		if constructErr != nil {
+			if value <= math.MaxInt64 || !errors.Is(constructErr, core.ErrNumericOverflow) || limit != (core.ByteLength{}) {
+				t.Fatalf("unrepresentable native limit %d = (%v, %v), want zero length and typed overflow", value, limit, constructErr)
 			}
 			return
 		}
-		previous, previousErr := got.Previous.Uint64()
-		applied, appliedErr := got.Applied.Uint64()
-		if err != nil || got.Validate() != nil || previousErr != nil || appliedErr != nil || previous != uint64(before) || applied != value || actual != int64(value) {
+		before := debug.SetMemoryLimit(-1)
+		got, err := ApplyGoMemoryLimit(t.Context(), GoMemoryLimitRequest{Limit: limit})
+		actual := debug.SetMemoryLimit(before) // Restore before any diagnostic allocation.
+		previous := got.Previous.Uint64()
+		applied := got.Applied.Uint64()
+		if err != nil || got.Validate() != nil || previous != uint64(before) || applied != value || actual != int64(value) {
 			t.Fatalf("admitted limit %d = (%v, %v), native:%d previous:%d, want exact application and prior limit", value, got, err, actual, before)
 		}
 	})

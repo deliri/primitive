@@ -1,0 +1,7 @@
+{
+  "chunk_id": "67e0a4",
+  "wall_time_seconds": 0.750152625,
+  "exit_code": 1,
+  "original_token_count": 128,
+  "output": "=== RUN   TestGoMemoryLimitReportsApplicationFromAnExistingNativeZeroLimit\n    memory_limit_zero_external_test.go:23: application from native zero = ({{0} {0}}, host facts observation failed\n        primitive contract violation\n        byte count must be positive), runtime:1073741824, want admitted application of 1073741824 bytes with exact zero before state\n--- FAIL: TestGoMemoryLimitReportsApplicationFromAnExistingNativeZeroLimit (0.00s)\nFAIL\nFAIL\tgithub.com/deliri/primitive/v2026/hostfacts\t0.218s\nFAIL\n"
+}
