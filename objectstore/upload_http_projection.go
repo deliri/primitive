@@ -35,6 +35,41 @@ type UploadHTTPProjection struct {
 	set         bool
 }
 
+// UploadHTTPTransport explicitly discloses an issued bearer to a typed HTTP
+// boundary. Headers exclude Content-Type, which has its own nominal field.
+// This value neither issues authority nor changes the signed request.
+type UploadHTTPTransport struct {
+	Target      core.HTTPEndpoint
+	Headers     exchange.Headers
+	ContentType core.HTTPMediaType
+	ExpiresAt   temporal.Instant
+	Method      exchange.Method
+}
+
+// Transport is the in-process equivalent of MarshalJSON. Both projections
+// disclose the same validated capability without an encode/decode round trip.
+func (p UploadHTTPProjection) Transport() (UploadHTTPTransport, error) {
+	if err := p.Validate(); err != nil {
+		return UploadHTTPTransport{}, err
+	}
+	signedURL := p.capability.target.URL
+	target, err := core.ParseHTTPEndpoint(signedURL.value.String())
+	if err != nil {
+		return UploadHTTPTransport{}, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	headers, err := NewUploadSigningHeaders(p.capability.provider, p.capability.target.Headers, p.integrity)
+	if err != nil {
+		return UploadHTTPTransport{}, err
+	}
+	return UploadHTTPTransport{Target: target, Headers: headers, ContentType: p.contentType,
+		ExpiresAt: p.capability.target.ExpiresAt, Method: exchange.MethodPut}, nil
+}
+
+// Format keeps explicit transport disclosure out of incidental diagnostics.
+func (UploadHTTPTransport) Format(state fmt.State, _ rune) {
+	_, _ = io.WriteString(state, core.RedactedValueText)
+}
+
 // uploadHTTPProjectionWire is the private exact external-output temporary for
 // one complete browser request and the one response field needed to identify
 // the created object.

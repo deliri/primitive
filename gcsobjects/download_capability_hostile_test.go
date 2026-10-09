@@ -197,7 +197,7 @@ func gcsDownloadCapabilityRequest(t testing.TB) GCSDownloadCapabilityRequest {
 	upload := gcsCapabilityRequest(t)
 	return GCSDownloadCapabilityRequest{
 		Bucket: upload.Bucket, Name: upload.Name,
-		ServiceAccount: upload.ServiceAccount, Lifetime: upload.Lifetime,
+		ServiceAccount: upload.ServiceAccount, Lifetime: gcsCapabilityDurationMinutes(t, 5),
 	}
 }
 

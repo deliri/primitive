@@ -210,6 +210,7 @@ func objectstoreTypeBindings() []inventoryBinding {
 		{typ: reflect.TypeFor[uploadCapabilityWire](), role: inventoryWire},
 		{typ: reflect.TypeFor[uploadCapabilityHeaderWire](), role: inventoryWire},
 		{typ: reflect.TypeFor[UploadHTTPProjection](), role: inventoryCapability},
+		{typ: reflect.TypeFor[UploadHTTPTransport](), role: inventoryCapability},
 		{typ: reflect.TypeFor[uploadHTTPProjectionWire](), role: inventoryWire},
 		{typ: reflect.TypeFor[Direction](), role: inventoryProtocol},
 		{typ: reflect.TypeFor[Commitment](), role: inventoryProtocol},

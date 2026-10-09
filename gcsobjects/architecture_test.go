@@ -130,8 +130,6 @@ func productionStructRole(name string) (string, bool) {
 		return "authenticated provider execution ingress", true
 	case "gcsWrite":
 		return "internal owner-only write projection", true
-	case "gcsUploadURLRequest":
-		return "internal official SDK signing projection", true
 	case "GCSObjectMetadata", "GCSReadResult", "VerifiedGCSUpload", "GCSDeleteResult", "GCSDeleteObjectResult", "GCSBucketProvisioning",
 		"GCSBucketPublicReadGrant":
 		return "sealed authenticated provider evidence", true

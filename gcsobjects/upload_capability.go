@@ -6,7 +6,10 @@ import (
 	"errors"
 	"net/http"
 	"net/mail"
+	"net/url"
+	"strconv"
 	"strings"
+	"time"
 
 	"cloud.google.com/go/storage"
 	"github.com/deliri/primitive/v2026/contextstate"
@@ -135,21 +138,11 @@ type GCSUploadCapabilityRequest struct {
 	ServiceAccount GCSServiceAccount
 	ContentType    core.HTTPMediaType
 	Integrity      objectstore.Integrity
-	Lifetime       temporal.Duration
+	IssuedAt       temporal.Instant
+	ExpiresAt      temporal.Instant
 }
 
-// gcsUploadURLRequest is the owner-only projection passed to the official
-// Storage signing leaf after every nominal input has crossed validation.
-type gcsUploadURLRequest struct {
-	capability GCSUploadCapabilityRequest
-	expiresAt  temporal.Instant
-}
-
-func (r gcsUploadURLRequest) Validate() error {
-	return errors.Join(r.capability.Validate(), r.expiresAt.Validate())
-}
-
-func (r gcsUploadURLRequest) signingHeaderLines() ([]string, error) {
+func (r GCSUploadCapabilityRequest) signingHeaderLines() ([]string, error) {
 	signedHeaders, err := objectstore.NewSignedHeaders(nil)
 	if err != nil {
 		return nil, err
@@ -157,7 +150,7 @@ func (r gcsUploadURLRequest) signingHeaderLines() ([]string, error) {
 	headers, err := objectstore.NewUploadSigningHeaders(
 		objectstore.ProviderGoogleCloudStorage,
 		signedHeaders,
-		r.capability.Integrity,
+		r.Integrity,
 	)
 	if err != nil {
 		return nil, err
@@ -184,7 +177,7 @@ func (r GCSUploadCapabilityRequest) Validate() error {
 		r.ServiceAccount.Validate(),
 		validateAuthenticatedGCSIntegrity(r.Integrity),
 		r.ContentType.Validate(),
-		validateGCSCapabilityLifetime(r.Lifetime),
+		validateGCSUploadWindow(r.IssuedAt, r.ExpiresAt),
 	} {
 		if err != nil {
 			return errors.Join(core.ErrObjectStoreContract, err)
@@ -218,18 +211,11 @@ func IssueGCSUploadCapability(
 	if err := validateGCSCapabilityIssuer(ctx, issuer); err != nil {
 		return objectstore.UploadCapabilityProjection{}, err
 	}
-	expiresAt, err := gcsCapabilityExpiry(request.Lifetime)
+	rawURL, err := issueGCSUploadURL(ctx, issuer, request)
 	if err != nil {
 		return objectstore.UploadCapabilityProjection{}, err
 	}
-	rawURL, err := issueGCSUploadURL(ctx, issuer, gcsUploadURLRequest{
-		capability: request,
-		expiresAt:  expiresAt,
-	})
-	if err != nil {
-		return objectstore.UploadCapabilityProjection{}, err
-	}
-	return projectGCSUploadCapability(rawURL, expiresAt)
+	return projectGCSUploadCapability(rawURL, request.ExpiresAt)
 }
 
 func gcsCapabilityExpiry(lifetime temporal.Duration) (temporal.Instant, error) {
@@ -261,7 +247,7 @@ func validateGCSCapabilityIssuer(
 func issueGCSUploadURL(
 	ctx context.Context,
 	issuer *GCSCapabilityIssuer,
-	request gcsUploadURLRequest,
+	request GCSUploadCapabilityRequest,
 ) (string, error) {
 	if err := request.Validate(); err != nil {
 		return "", errors.Join(core.ErrObjectStoreContract, err)
@@ -270,7 +256,7 @@ func issueGCSUploadURL(
 	if err != nil {
 		return "", err
 	}
-	expiration, err := request.expiresAt.Time()
+	expiration, err := request.ExpiresAt.Time()
 	if err != nil {
 		return "", errors.Join(core.ErrObjectStoreContract, err)
 	}
@@ -278,14 +264,14 @@ func issueGCSUploadURL(
 	if err != nil {
 		return "", err
 	}
-	rawURL, err := storage.SignedURL(request.capability.Bucket.String(), request.capability.Name.String(), &storage.SignedURLOptions{
-		GoogleAccessID: request.capability.ServiceAccount.String(),
+	rawURL, err := storage.SignedURL(request.Bucket.String(), request.Name.String(), &storage.SignedURLOptions{
+		GoogleAccessID: request.ServiceAccount.String(),
 		SignBytes: func(payload []byte) ([]byte, error) {
-			return signGCSCapabilityBytes(ctx, issuer, request.capability.ServiceAccount, payload)
+			return signGCSCapabilityBytes(ctx, issuer, request.ServiceAccount, payload)
 		},
 		Method:      spec.UploadMethod.String(),
 		Expires:     expiration,
-		ContentType: request.capability.ContentType.String(),
+		ContentType: request.ContentType.String(),
 		Headers:     headerLines,
 		Scheme:      storage.SigningSchemeV4,
 	})
@@ -333,6 +319,10 @@ func projectGCSUploadCapability(
 	rawURL string,
 	expiresAt temporal.Instant,
 ) (objectstore.UploadCapabilityProjection, error) {
+	effective, err := gcsUploadSignedExpiry(rawURL, expiresAt)
+	if err != nil {
+		return objectstore.UploadCapabilityProjection{}, err
+	}
 	signedURL, err := objectstore.ParseSignedURL(rawURL)
 	if err != nil {
 		return objectstore.UploadCapabilityProjection{}, err
@@ -343,7 +333,7 @@ func projectGCSUploadCapability(
 	}
 	return objectstore.NewUploadCapabilityProjection(
 		objectstore.ProviderGoogleCloudStorage,
-		objectstore.UploadTarget{URL: signedURL, Headers: headers, ExpiresAt: expiresAt},
+		objectstore.UploadTarget{URL: signedURL, Headers: headers, ExpiresAt: effective},
 	)
 }
 
@@ -352,3 +342,51 @@ var (
 	_ core.Validatable = (*GCSCapabilityIssuer)(nil)
 	_ core.Validatable = GCSUploadCapabilityRequest{}
 )
+
+// validateGCSUploadWindow binds the caller's absolute authorization before the
+// SDK signs. Time spent in IAM never extends the grant.
+func validateGCSUploadWindow(issuedAt, expiresAt temporal.Instant) error {
+	lifetime, err := expiresAt.Since(issuedAt)
+	if err != nil {
+		return errors.Join(core.ErrObjectStoreContract, err)
+	}
+	return validateGCSCapabilityLifetime(lifetime)
+}
+
+// Google signs whole seconds using its own clock. Report that exact signature
+// deadline and refuse a provider projection that widens caller authorization.
+func gcsUploadSignedExpiry(rawURL string, ceiling temporal.Instant) (temporal.Instant, error) {
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return temporal.Instant{}, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	query, err := url.ParseQuery(parsed.RawQuery)
+	if err != nil || len(query["X-Goog-Date"]) != 1 || len(query["X-Goog-Expires"]) != 1 {
+		return temporal.Instant{}, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	stamp, err := time.Parse("20060102T150405Z", query.Get("X-Goog-Date"))
+	if err != nil {
+		return temporal.Instant{}, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	seconds, err := strconv.ParseUint(query.Get("X-Goog-Expires"), 10, 64)
+	if err != nil || seconds == 0 || seconds > GCSCapabilityMaximumDays*24*60*60 {
+		return temporal.Instant{}, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	lifetime, err := temporal.DurationFromSeconds(seconds)
+	if err != nil {
+		return temporal.Instant{}, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	signedAt, err := temporal.NewInstant(stamp)
+	if err != nil {
+		return temporal.Instant{}, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	expiry, err := signedAt.Add(lifetime)
+	if err != nil {
+		return temporal.Instant{}, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	narrowing, err := ceiling.Since(expiry)
+	if err != nil || narrowing.Nanoseconds() < 0 {
+		return temporal.Instant{}, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	return expiry, nil
+}

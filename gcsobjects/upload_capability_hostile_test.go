@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"testing/synctest"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/objectstore"
@@ -94,13 +95,13 @@ func TestGCSUploadCapabilityRequestHostileBoundaries(t *testing.T) {
 		{name: "unset service account is refused", mutate: func(value *GCSUploadCapabilityRequest) { value.ServiceAccount = GCSServiceAccount{} }, wantErr: core.ErrObjectStoreContract},
 		{name: "unset integrity is refused", mutate: func(value *GCSUploadCapabilityRequest) { value.Integrity = objectstore.Integrity{} }, wantErr: core.ErrObjectStoreContract},
 		{name: "unset content type is refused", mutate: func(value *GCSUploadCapabilityRequest) { value.ContentType = core.HTTPMediaType{} }, wantErr: core.ErrObjectStoreContract},
-		{name: "zero lifetime is refused", mutate: func(value *GCSUploadCapabilityRequest) { value.Lifetime = temporal.Duration{} }, wantErr: core.ErrObjectStoreContract},
+		{name: "zero lifetime is refused", mutate: func(value *GCSUploadCapabilityRequest) { value.ExpiresAt = value.IssuedAt }, wantErr: core.ErrObjectStoreContract},
 		{name: "exact seven day lifetime is admitted", mutate: func(value *GCSUploadCapabilityRequest) {
 			lifetime, err := temporal.DurationFromDays(GCSCapabilityMaximumDays)
 			if err != nil {
 				t.Fatalf("temporal.DurationFromDays(maximum) error = %v, want nil", err)
 			}
-			value.Lifetime = lifetime
+			value.ExpiresAt, _ = value.IssuedAt.Add(lifetime)
 		}},
 		{name: "one nanosecond beyond seven days is refused", mutate: func(value *GCSUploadCapabilityRequest) {
 			maximum, err := temporal.DurationFromDays(GCSCapabilityMaximumDays)
@@ -111,7 +112,7 @@ func TestGCSUploadCapabilityRequestHostileBoundaries(t *testing.T) {
 			if err != nil {
 				t.Fatalf("temporal.DurationFromNanoseconds(maximum + 1) error = %v, want nil", err)
 			}
-			value.Lifetime = lifetime
+			value.ExpiresAt, _ = value.IssuedAt.Add(lifetime)
 		}, wantErr: core.ErrObjectStoreContract},
 		{name: "one byte beyond GCS extent is refused", mutate: func(value *GCSUploadCapabilityRequest) {
 			length, err := core.NewByteLength(objectstore.GoogleCloudStorageObjectMaximumBytes + 1)
@@ -143,95 +144,99 @@ func TestGCSUploadCapabilityIssuanceLayerTriadUsesOfficialSDKSigningLeaf(t *test
 
 	t.Run("positive official IAM response closes one valid Objectstore capability", func(t *testing.T) {
 		t.Parallel()
-
-		issuer, calls := gcsCapabilityIssuer(t, gcsCapabilityProviderOutcomeSigned)
-		request := gcsCapabilityRequest(t)
-		got, gotErr := IssueGCSUploadCapability(context.Background(), issuer, request)
-		if gotErr != nil || got.IsZero() {
-			t.Fatalf("IssueGCSUploadCapability() = (%v, %v), want nonzero and nil", got, gotErr)
-		}
-		if gotCalls := calls.Load(); gotCalls != 1 {
-			t.Fatalf("official IAM SignBlob calls = %d, want 1", gotCalls)
-		}
-		encoded, marshalErr := got.MarshalJSON()
-		if marshalErr != nil {
-			t.Fatalf("UploadCapabilityProjection.MarshalJSON() error = %v, want nil", marshalErr)
-		}
-		var received objectstore.UploadCapability
-		if err := json.Unmarshal(encoded, &received); err != nil {
-			t.Fatalf("json.Unmarshal(UploadCapability) error = %v, want nil", err)
-		}
-		browser, browserErr := objectstore.NewUploadHTTPProjection(
-			got,
-			request.Integrity,
-			request.ContentType,
-		)
-		if browserErr != nil || browser.IsZero() {
-			t.Fatalf("NewUploadHTTPProjection(issued) = (%v, %v), want nonzero and nil", browser, browserErr)
-		}
+		synctest.Test(t, func(t *testing.T) {
+			issuer, calls := gcsCapabilityIssuer(t, gcsCapabilityProviderOutcomeSigned)
+			request := gcsCapabilityClockRequest(t)
+			got, gotErr := IssueGCSUploadCapability(context.Background(), issuer, request)
+			if gotErr != nil || got.IsZero() {
+				t.Fatalf("IssueGCSUploadCapability() = (%v, %v), want nonzero and nil", got, gotErr)
+			}
+			if gotCalls := calls.Load(); gotCalls != 1 {
+				t.Fatalf("official IAM SignBlob calls = %d, want 1", gotCalls)
+			}
+			encoded, marshalErr := got.MarshalJSON()
+			if marshalErr != nil {
+				t.Fatalf("UploadCapabilityProjection.MarshalJSON() error = %v, want nil", marshalErr)
+			}
+			var received objectstore.UploadCapability
+			if err := json.Unmarshal(encoded, &received); err != nil {
+				t.Fatalf("json.Unmarshal(UploadCapability) error = %v, want nil", err)
+			}
+			browser, browserErr := objectstore.NewUploadHTTPProjection(
+				got,
+				request.Integrity,
+				request.ContentType,
+			)
+			if browserErr != nil || browser.IsZero() {
+				t.Fatalf("NewUploadHTTPProjection(issued) = (%v, %v), want nonzero and nil", browser, browserErr)
+			}
+		})
 	})
 
 	t.Run("negative provider refusal preserves typed destination identity and zero capability", func(t *testing.T) {
 		t.Parallel()
-
-		issuer, calls := gcsCapabilityIssuer(t, gcsCapabilityProviderOutcomeRefused)
-		got, gotErr := IssueGCSUploadCapability(
-			context.Background(),
-			issuer,
-			gcsCapabilityRequest(t),
-		)
-		if !errors.Is(gotErr, core.ErrObjectStoreDestination) || !got.IsZero() {
-			t.Fatalf(
-				"IssueGCSUploadCapability(provider refusal) = (%v, %v), want zero and errors.Is(..., %v)",
-				got,
-				gotErr,
-				core.ErrObjectStoreDestination,
+		synctest.Test(t, func(t *testing.T) {
+			issuer, calls := gcsCapabilityIssuer(t, gcsCapabilityProviderOutcomeRefused)
+			got, gotErr := IssueGCSUploadCapability(
+				context.Background(),
+				issuer,
+				gcsCapabilityClockRequest(t),
 			)
-		}
-		if gotCalls := calls.Load(); gotCalls != 1 {
-			t.Fatalf("official IAM SignBlob calls = %d, want 1", gotCalls)
-		}
+			if !errors.Is(gotErr, core.ErrObjectStoreDestination) || !got.IsZero() {
+				t.Fatalf(
+					"IssueGCSUploadCapability(provider refusal) = (%v, %v), want zero and errors.Is(..., %v)",
+					got,
+					gotErr,
+					core.ErrObjectStoreDestination,
+				)
+			}
+			if gotCalls := calls.Load(); gotCalls != 1 {
+				t.Fatalf("official IAM SignBlob calls = %d, want 1", gotCalls)
+			}
+		})
 	})
 
 	t.Run("negative empty provider signature preserves typed destination identity and zero capability", func(t *testing.T) {
 		t.Parallel()
-
-		issuer, calls := gcsCapabilityIssuer(t, gcsCapabilityProviderOutcomeEmptySignature)
-		got, gotErr := IssueGCSUploadCapability(
-			context.Background(),
-			issuer,
-			gcsCapabilityRequest(t),
-		)
-		if !errors.Is(gotErr, core.ErrObjectStoreDestination) || !got.IsZero() {
-			t.Fatalf(
-				"IssueGCSUploadCapability(empty signature) = (%v, %v), want zero and errors.Is(..., %v)",
-				got,
-				gotErr,
-				core.ErrObjectStoreDestination,
+		synctest.Test(t, func(t *testing.T) {
+			issuer, calls := gcsCapabilityIssuer(t, gcsCapabilityProviderOutcomeEmptySignature)
+			got, gotErr := IssueGCSUploadCapability(
+				context.Background(),
+				issuer,
+				gcsCapabilityClockRequest(t),
 			)
-		}
-		if gotCalls := calls.Load(); gotCalls != 1 {
-			t.Fatalf("official IAM SignBlob calls = %d, want 1", gotCalls)
-		}
+			if !errors.Is(gotErr, core.ErrObjectStoreDestination) || !got.IsZero() {
+				t.Fatalf(
+					"IssueGCSUploadCapability(empty signature) = (%v, %v), want zero and errors.Is(..., %v)",
+					got,
+					gotErr,
+					core.ErrObjectStoreDestination,
+				)
+			}
+			if gotCalls := calls.Load(); gotCalls != 1 {
+				t.Fatalf("official IAM SignBlob calls = %d, want 1", gotCalls)
+			}
+		})
 	})
 
 	t.Run("neutral canceled ingress performs no provider request and releases no capability", func(t *testing.T) {
 		t.Parallel()
-
-		issuer, calls := gcsCapabilityIssuer(t, gcsCapabilityProviderOutcomeSigned)
-		ctx, cancel := context.WithCancel(context.Background())
-		cancel()
-		got, gotErr := IssueGCSUploadCapability(ctx, issuer, gcsCapabilityRequest(t))
-		if !errors.Is(gotErr, context.Canceled) || !got.IsZero() {
-			t.Fatalf(
-				"IssueGCSUploadCapability(canceled) = (%v, %v), want zero and errors.Is(..., context.Canceled)",
-				got,
-				gotErr,
-			)
-		}
-		if gotCalls := calls.Load(); gotCalls != 0 {
-			t.Fatalf("official IAM SignBlob calls after canceled ingress = %d, want 0", gotCalls)
-		}
+		synctest.Test(t, func(t *testing.T) {
+			issuer, calls := gcsCapabilityIssuer(t, gcsCapabilityProviderOutcomeSigned)
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel()
+			got, gotErr := IssueGCSUploadCapability(ctx, issuer, gcsCapabilityClockRequest(t))
+			if !errors.Is(gotErr, context.Canceled) || !got.IsZero() {
+				t.Fatalf(
+					"IssueGCSUploadCapability(canceled) = (%v, %v), want zero and errors.Is(..., context.Canceled)",
+					got,
+					gotErr,
+				)
+			}
+			if gotCalls := calls.Load(); gotCalls != 0 {
+				t.Fatalf("official IAM SignBlob calls after canceled ingress = %d, want 0", gotCalls)
+			}
+		})
 	})
 }
 
@@ -339,6 +344,29 @@ func gcsCapabilityRequest(t testing.TB) GCSUploadCapabilityRequest {
 		ServiceAccount: account,
 		Integrity:      observationIntegrity(t, []byte("browser media")),
 		ContentType:    contentType,
-		Lifetime:       lifetime,
+		IssuedAt:       temporal.InstantFromNanoseconds(1_893_456_000_000_000_000),
+		ExpiresAt:      temporal.InstantFromNanoseconds(1_893_456_000_000_000_000 + lifetime.Nanoseconds()),
 	}
+}
+
+func gcsCapabilityClockRequest(t testing.TB) GCSUploadCapabilityRequest {
+	t.Helper()
+	request := gcsCapabilityRequest(t)
+	observation, err := temporal.Observe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.IssuedAt, err = observation.Instant()
+	if err != nil {
+		t.Fatal(err)
+	}
+	duration, err := temporal.DurationFromMinutes(5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.ExpiresAt, err = request.IssuedAt.Add(duration)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return request
 }

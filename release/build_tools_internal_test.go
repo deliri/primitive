@@ -46,7 +46,7 @@ func TestParseGoVersionOutputPressuresEverySideOfTheProbeGrammar(t *testing.T) {
 		{name: "wrong program token is rejected", output: "tinygo version " + want + " linux/amd64" + "\n", wantErr: core.ErrReleaseContract},
 		{name: "wrong subcommand token is rejected", output: "go env " + want + " linux/amd64" + "\n", wantErr: core.ErrReleaseContract},
 		{name: "previous minor toolchain is rejected", output: "go version go1.26.9 linux/amd64" + "\n", wantErr: core.ErrReleaseContract},
-		{name: "one patch above the pinned toolchain is rejected", output: "go version go1.27.2 linux/amd64" + "\n", wantErr: core.ErrReleaseContract},
+		{name: "one patch above the pinned toolchain is rejected", output: "go version go1.27.3 linux/amd64" + "\n", wantErr: core.ErrReleaseContract},
 		{name: "one minor above the pinned toolchain is rejected", output: "go version go1.28.0 linux/amd64" + "\n", wantErr: core.ErrReleaseContract},
 		{name: "devel toolchain is rejected", output: "go version devel go1.27.0 linux/amd64" + "\n", wantErr: core.ErrReleaseContract},
 		{name: "pinned version as a prefix is rejected", output: "go version " + want + "rc1 linux/amd64" + "\n", wantErr: core.ErrReleaseContract},

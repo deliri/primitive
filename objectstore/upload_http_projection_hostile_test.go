@@ -155,6 +155,24 @@ func TestUploadHTTPProjectionCarriesEveryRawProviderField(t *testing.T) {
 			if gotDecodeErr := json.Unmarshal(encoded, &wire); gotDecodeErr != nil {
 				t.Fatalf("json.Unmarshal(UploadHTTPProjection) error = %v, want nil", gotDecodeErr)
 			}
+			transport, transportErr := projection.Transport()
+			if transportErr != nil || transport.Target.String() != *wire.URL || transport.Method != *wire.Method || transport.ContentType != *wire.ContentType || transport.ExpiresAt != capability.target.ExpiresAt {
+				t.Fatalf("Transport() = (%v, %v), want exact issued URL, method, type, and deadline", transport, transportErr)
+			}
+			if len(transport.Headers.Values) != len(tc.wantProviderHeaders) {
+				t.Fatalf("transport headers = %d, want %d", len(transport.Headers.Values), len(tc.wantProviderHeaders))
+			}
+			for _, header := range transport.Headers.Values {
+				projected, err := projectUploadHTTPHeader(header)
+				if err != nil || !slices.ContainsFunc(tc.wantProviderHeaders, func(want uploadCapabilityHeaderWire) bool { return sameUploadCapabilityHeaderWire(projected, want) }) {
+					t.Fatalf("transport header = (%v, %v), want exact provider-owned request field", projected, err)
+				}
+			}
+			for _, verb := range []string{"%v", "%+v", "%#v", "%s", "%q"} {
+				if got := fmt.Sprintf(verb, transport); got != core.RedactedValueText {
+					t.Fatalf("transport diagnostic = %q, want redaction", got)
+				}
+			}
 			wantHeaders := append([]uploadCapabilityHeaderWire{
 				wireHeader(t, core.HTTPHeaderContentType(), core.HTTPMediaTypeOctetStream().String()),
 			}, tc.wantProviderHeaders...)
@@ -303,4 +321,12 @@ func mustCRC32CBase64(t testing.TB, value core.CRC32C) string {
 func sameUploadCapabilityHeaderWire(left, right uploadCapabilityHeaderWire) bool {
 	return left.Name != nil && right.Name != nil && *left.Name == *right.Name &&
 		left.Value != nil && right.Value != nil && *left.Value == *right.Value
+}
+
+func TestUploadHTTPTransportUnsetDisclosesNothing(t *testing.T) {
+	t.Parallel()
+	got, err := (UploadHTTPProjection{}).Transport()
+	if !errors.Is(err, core.ErrObjectStoreContract) || got.Target != (core.HTTPEndpoint{}) || got.Headers.Values != nil || got.ExpiresAt != (temporal.Instant{}) || got.Method != exchange.Method(0) {
+		t.Fatalf("unset Transport() = (%v, %v), want zero and contract refusal", got, err)
+	}
 }
