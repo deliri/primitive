@@ -104,8 +104,11 @@ func (r *coverageInput) byte() (byte, error) {
 		if r.terminal != nil {
 			return 0, r.terminal
 		}
-		r.fragment, r.terminal = r.reader.ReadFragment()
+		r.fragment, r.terminal = r.reader.ReadFragment(r.ctx)
 		r.offset = 0
+		if err := contextstate.Validate(r.ctx); err != nil {
+			return 0, errors.Join(err, r.terminal)
+		}
 		if len(r.fragment.Bytes) == 0 {
 			return 0, r.terminal
 		}

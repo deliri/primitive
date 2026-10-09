@@ -50,7 +50,7 @@ func emitPackageClaimSpecsHThroughR(emit func(packageClaimSpec) bool) bool {
 		{
 			path: "lineio", title: "Fixed-memory source streaming",
 			problem:  "Text inputs invite whole-file reads or unbounded scanner token retention at every caller.",
-			solution: "Lineio publishes exact byte fragments through bufio.Reader and positioned UTF-8 characters through text/scanner.Next without token collection.",
+			solution: "Lineio publishes exact byte fragments through context-admitted bufio.Reader reads and positioned UTF-8 characters through text/scanner.Next without token collection; canceled native reads retain source bytes and refusal identities.",
 			benefit:  "Consumers apply their own policy with O(1) source working memory and no line, token or file-size ceiling.",
 			removal:  "Remove Lineio when no shared caller needs its validated fragment or character contracts beyond direct Go reader use.",
 			owns:     "Lineio owns validated source views, fixed buffers, iteration, cancellation checks and typed native read failures.",

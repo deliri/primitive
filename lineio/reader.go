@@ -3,10 +3,12 @@ package lineio
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"math"
 
+	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
 )
 
@@ -104,12 +106,17 @@ func (r *Reader) Capacity() (core.ByteCount, error) {
 	return core.NewByteCount(uint64(size))
 }
 
-// ReadFragment returns exact bytes before any accompanying error, like io.Reader.
+// ReadFragment admits context before reading and observes it after the native
+// read. It returns exact bytes before any accompanying error, like io.Reader.
+// Cancellation cannot interrupt a source blocked inside Read; that source must
+// own its interrupt mechanism. Cancellation during a read is terminal because
+// the native source has already advanced. A canceled call before reading leaves
+// the source untouched and does not poison a later call with a live context.
 // A full buffer returns More=true and nil error. Clean EOF is io.EOF, including
 // when it accompanies a final unterminated fragment. Other errors retain both
 // the native identity and ErrLineIOScan. A terminal error never triggers a retry.
-func (r *Reader) ReadFragment() (Fragment, error) {
-	if err := r.Validate(); err != nil {
+func (r *Reader) ReadFragment(ctx context.Context) (Fragment, error) {
+	if err := errors.Join(contextstate.Validate(ctx), r.Validate()); err != nil {
 		return Fragment{}, err
 	}
 	if r.terminal != nil {
@@ -118,11 +125,18 @@ func (r *Reader) ReadFragment() (Fragment, error) {
 	data, err := r.buffer.ReadSlice(Delimiter)
 	// witness:waiver doctrine/error/sentinel_compare -- Lineio owner; Go 1.27 ReadSlice uses this exact sentinel for its own full window. Source failures are wrapped by checkedReader. Recheck on the next Go upgrade.
 	if err == bufio.ErrBufferFull {
+		if contextErr := contextstate.Validate(ctx); contextErr != nil {
+			r.terminal = contextErr
+			return Fragment{Bytes: data, More: true}, contextErr
+		}
 		return Fragment{Bytes: data, More: true}, nil
 	}
 	// witness:waiver doctrine/error/sentinel_compare -- Lineio owner; io.Reader requires exact io.EOF for clean completion. A wrapped EOF remains a source failure. Recheck on the next Go upgrade.
 	if err != nil && err != io.EOF && !errors.Is(err, core.ErrLineIOScan) {
 		err = errors.Join(core.ErrLineIOScan, err)
+	}
+	if contextErr := contextstate.Validate(ctx); contextErr != nil {
+		err = errors.Join(err, contextErr)
 	}
 	r.terminal = err
 	return Fragment{Bytes: data}, err

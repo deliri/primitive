@@ -84,7 +84,7 @@ func TestReaderFilestoreLayerTriad(t *testing.T) {
 			var got []byte
 			var terminal error
 			for {
-				fragment, err := reader.ReadFragment()
+				fragment, err := reader.ReadFragment(t.Context())
 				got = append(got, fragment.Bytes...)
 				if err != nil {
 					terminal = err

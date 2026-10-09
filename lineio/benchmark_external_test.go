@@ -35,7 +35,7 @@ func benchmarkFragments(b *testing.B, payload []byte, buffer uint64) {
 		}
 		gotBytes, gotLines := 0, 0
 		for {
-			fragment, err := reader.ReadFragment()
+			fragment, err := reader.ReadFragment(b.Context())
 			gotBytes += len(fragment.Bytes)
 			if len(fragment.Bytes) > 0 && fragment.Bytes[len(fragment.Bytes)-1] == lineio.Delimiter {
 				gotLines++

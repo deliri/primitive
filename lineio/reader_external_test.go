@@ -166,7 +166,7 @@ func TestReaderIngressLayerTriad(t *testing.T) {
 			var got []byte
 			var terminal error
 			for {
-				fragment, readErr := reader.ReadFragment()
+				fragment, readErr := reader.ReadFragment(t.Context())
 				if err := fragment.Validate(); err != nil {
 					t.Fatalf("Fragment.Validate() = %v, want nil", err)
 				}
@@ -202,7 +202,7 @@ func TestReaderIngressLayerTriad(t *testing.T) {
 			}
 			calls := observed.calls
 			for range 3 {
-				fragment, err := reader.ReadFragment()
+				fragment, err := reader.ReadFragment(t.Context())
 				if len(fragment.Bytes) != 0 || fragment.More || err != terminal || observed.calls != calls {
 					t.Fatalf("terminal retry = (%v,%v,%d reads), want zero fragment, retained error, %d reads", fragment, err, observed.calls, calls)
 				}
@@ -301,7 +301,7 @@ func TestReaderStateExhaustive(t *testing.T) {
 			if !errors.Is(err, tc.wantErr) || (capacity == core.ByteCount{}) != (tc.wantErr != nil) {
 				t.Fatalf("Capacity() = (%v,%v), want zero %t, %v", capacity, err, tc.wantErr != nil, tc.wantErr)
 			}
-			fragment, err := reader.ReadFragment()
+			fragment, err := reader.ReadFragment(t.Context())
 			wantErr := tc.wantErr
 			if tc.construct {
 				wantErr = io.EOF
@@ -360,7 +360,7 @@ func TestReaderFixedMemoryBeyondLineExtents(t *testing.T) {
 			var total int64
 			var fragments int
 			for {
-				fragment, err := reader.ReadFragment()
+				fragment, err := reader.ReadFragment(t.Context())
 				if bytes.Count(fragment.Bytes, []byte{'x'}) != len(fragment.Bytes) {
 					t.Fatalf("fragment = %q, want only source bytes", fragment.Bytes)
 				}
@@ -415,7 +415,7 @@ func TestReaderDelimiterPermutationLayerTriad(t *testing.T) {
 				}
 				var got []byte
 				for {
-					fragment, err := reader.ReadFragment()
+					fragment, err := reader.ReadFragment(t.Context())
 					got = append(got, fragment.Bytes...)
 					if err != nil {
 						if !errors.Is(err, io.EOF) || errors.Is(err, core.ErrLineIOScan) {
@@ -458,7 +458,7 @@ func TestReaderOwnsItsBufferLayerTriad(t *testing.T) {
 			}
 			var total int
 			for {
-				fragment, readErr := reader.ReadFragment()
+				fragment, readErr := reader.ReadFragment(t.Context())
 				if len(fragment.Bytes) > int(tc.requested) || total+len(fragment.Bytes) > len(body) {
 					t.Fatalf("fragment = %d bytes at %d, want window %d within body %d", len(fragment.Bytes), total, tc.requested, len(body))
 				}
@@ -498,12 +498,12 @@ func TestReaderSourceBufferErrorLayerTriad(t *testing.T) {
 			if err != nil {
 				t.Fatalf("New() = %v, want nil", err)
 			}
-			fragment, err := reader.ReadFragment()
+			fragment, err := reader.ReadFragment(t.Context())
 			if !errors.Is(err, tc.cause) || !errors.Is(err, core.ErrLineIOScan) || fragment.More || !bytes.Equal(fragment.Bytes, []byte(tc.body)) {
 				t.Fatalf("source failure = (%q,more %t,%v), want (%q,false,%v) with scan identity", fragment.Bytes, fragment.More, err, tc.body, tc.cause)
 			}
 			calls := source.calls
-			fragment, err = reader.ReadFragment()
+			fragment, err = reader.ReadFragment(t.Context())
 			if !errors.Is(err, tc.cause) || len(fragment.Bytes) != 0 || fragment.More || source.calls != calls {
 				t.Fatalf("terminal replay = (%v,%v,%d reads), want neutral and %v without read beyond %d", fragment, err, source.calls, tc.cause, calls)
 			}
@@ -539,7 +539,7 @@ func TestReaderLineCompletionLayerTriad(t *testing.T) {
 			var lines []string
 			var current []byte
 			for {
-				fragment, readErr := reader.ReadFragment()
+				fragment, readErr := reader.ReadFragment(t.Context())
 				if err := fragment.Validate(); err != nil {
 					t.Fatalf("fragment = %v, want valid framing", err)
 				}

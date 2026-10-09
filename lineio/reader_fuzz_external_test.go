@@ -23,7 +23,7 @@ func FuzzReaderFragmentConservation(f *testing.F) {
 	if err != nil {
 		f.Fatalf("seed New() = %v, want nil", err)
 	}
-	fragment, err := reader.ReadFragment()
+	fragment, err := reader.ReadFragment(f.Context())
 	if err != nil || fragment.More {
 		f.Fatalf("seed fragment = (%v,%v), want complete line", fragment, err)
 	}
@@ -54,7 +54,7 @@ func FuzzReaderFragmentConservation(f *testing.F) {
 		}
 		var got []byte
 		for {
-			fragment, err := reader.ReadFragment()
+			fragment, err := reader.ReadFragment(t.Context())
 			if validation := fragment.Validate(); validation != nil {
 				t.Fatalf("fragment = %v, want valid", validation)
 			}
