@@ -105,7 +105,7 @@ func TestModuleDeclarationStreamsIgnoredExtentAndRefusesInvalidIdentity(t *testi
 		{"unterminated quote is refused", "module \"example.com/app\n", "", 0, core.ErrGoModuleContract},
 		{"invalid quoted escape is refused", "module \"example.com/app\\q\"\n", "", 0, core.ErrGoModuleContract},
 		{"absent quoted identity is refused", "module \"\"\n", "", 0, core.ErrGoModuleContract},
-		{"invalid module domain is refused", "module app\n", "", 0, core.ErrGoModuleContract},
+		{"local module identity is preserved", "module app\n", "app", gomodule.DeclarationPresent, nil},
 		{"path traversal is refused", "module example.com/app/../other\n", "", 0, core.ErrGoModuleContract},
 		{"NUL is refused", "module example.com/\x00app\n", "", 0, core.ErrGoModuleContract},
 		{"malformed UTF8 is refused", "module example.com/\xffapp\n", "", 0, core.ErrGoModuleContract},
@@ -154,11 +154,11 @@ func TestModuleDeclarationIngressPreservesCancellationAndZeroMeaning(t *testing.
 			t.Fatalf("foreign presence %d acquired authority", presence)
 		}
 	}
-	path, err := gomodule.ParsePath("example.com/app")
+	declared, err := gomodule.ObserveDeclaration(t.Context(), gomodule.DeclarationRequest{Source: strings.NewReader("module example.com/app\n")})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := (gomodule.DeclarationObservation{Presence: gomodule.DeclarationAbsent, Path: path}).Validate(); !errors.Is(err, core.ErrGoModuleContract) {
+	if err := (gomodule.DeclarationObservation{Presence: gomodule.DeclarationAbsent, Path: declared.Path}).Validate(); !errors.Is(err, core.ErrGoModuleContract) {
 		t.Fatalf("absent observation admitted a path: %v", err)
 	}
 }

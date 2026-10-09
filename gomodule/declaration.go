@@ -32,7 +32,7 @@ func (p DeclarationPresence) Validate() error {
 // DeclarationObservation projects the first module directive. Absence means
 // the source reached EOF; the caller decides whether a directive is required.
 type DeclarationObservation struct {
-	Path     Path
+	Path     DeclaredPath
 	Presence DeclarationPresence
 }
 
@@ -154,7 +154,7 @@ func (r declarationInput) declaration(delimiter rune, keywordErr error) (Declara
 	if err := r.tail(delimiter); err != nil {
 		return DeclarationObservation{}, errors.Join(core.ErrGoModuleContract, err)
 	}
-	path, err := ParsePath(value)
+	path, err := parseDeclaredPath(value)
 	if err != nil {
 		return DeclarationObservation{}, errors.Join(core.ErrGoModuleContract, err)
 	}

@@ -48,6 +48,7 @@ func TestPublicBoundaryAndStructInventory(t *testing.T) {
 	roles := []struct{ name, purpose string }{
 		{"DeclarationObservation", "validated presence and projected module identity"},
 		{"DeclarationRequest", "borrowed source for a synchronous mechanical projection"},
+		{"DeclaredPath", "sealed main-module declaration identity; no downloadable-module authority"},
 		{"ImportPath", "sealed import identity; validated Go grammar including standard library names"},
 		{"Path", "sealed module identity; validated Go grammar, canonical scalar projection"},
 		{"declarationInput", "borrowed character iterator; no source inventory or line collection"},
@@ -59,7 +60,7 @@ func TestPublicBoundaryAndStructInventory(t *testing.T) {
 		{"Path.UnmarshalJSON", "FuzzPathJSONSemanticClosure"},
 		{"ImportPath.UnmarshalJSON", "FuzzImportPathJSONSemanticClosure"},
 	}
-	wantExports := []string{"DeclarationObservation.Validate", "DeclarationPresence.Validate", "DeclarationRequest.Validate", "ImportPath.MarshalJSON", "ImportPath.String", "ImportPath.UnmarshalJSON", "ImportPath.Validate", "ObserveDeclaration", "ParseImportPath", "ParsePath", "Path.MarshalJSON", "Path.String", "Path.UnmarshalJSON", "Path.Validate"}
+	wantExports := []string{"DeclarationObservation.Validate", "DeclarationPresence.Validate", "DeclarationRequest.Validate", "DeclaredPath.String", "DeclaredPath.Validate", "ImportPath.MarshalJSON", "ImportPath.String", "ImportPath.UnmarshalJSON", "ImportPath.Validate", "ObserveDeclaration", "ParseImportPath", "ParsePath", "Path.MarshalJSON", "Path.String", "Path.UnmarshalJSON", "Path.Validate"}
 	files, err := os.ReadDir(".")
 	if err != nil {
 		t.Fatalf("ReadDir() error = %v, want nil", err)

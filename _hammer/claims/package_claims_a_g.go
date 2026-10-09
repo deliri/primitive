@@ -221,11 +221,11 @@ func emitPackageClaimSpecsAThroughG(emit func(packageClaimSpec) bool) bool {
 		{
 			path: "gomodule", title: "Canonical Go module identities",
 			problem:  "Products and tools otherwise copy cmd/go path grammar or treat distinct module and package identities as arbitrary strings.",
-			solution: "Gomodule owns validated canonical module paths and package import paths.",
+			solution: "Gomodule owns distinct validated declared main-module identities, downloadable module paths, and package import paths.",
 			benefit:  "Go source and tool agreements share one nominal identity without depending on cmd/go internals.",
 			removal:  "Remove Gomodule when Go exports an equally stable typed module and import-path contract suitable for shared APIs.",
-			owns:     "Gomodule owns lexical Go module and package import identity validation.",
-			excludes: "It does not read modules, resolve dependencies, execute cmd/go, or assign product meaning to packages.",
+			owns:     "Gomodule owns lexical identity validation and streaming projection of the first module directive without line or file extent ceilings.",
+			excludes: "It does not resolve dependencies, execute cmd/go, retain a module model, or assign product meaning to packages.",
 		},
 		{
 			path: "googleidentity", title: "Google metadata identity acquisition",
