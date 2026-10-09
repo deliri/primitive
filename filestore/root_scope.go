@@ -71,7 +71,7 @@ func WithRootScope(ctx context.Context, request RootScopeRequest) (result RootSc
 func useRootScope(ctx context.Context, use func(context.Context, *os.Root) error, root *os.Root) (resultErr error) {
 	defer func() {
 		if recover() != nil {
-			resultErr = fmt.Errorf("root scope callback panicked: %w", core.ErrFilestoreContract)
+			resultErr = fmt.Errorf("root scope callback: %w", core.ErrFilestoreCallbackPanic)
 		}
 	}()
 	return use(ctx, root)

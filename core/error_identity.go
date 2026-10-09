@@ -573,6 +573,9 @@ const (
 	ErrRequestBudgetWindow
 	// ErrRequestBudgetBinding identifies a foreign or inconsistent reservation.
 	ErrRequestBudgetBinding
+	// ErrFilestoreCallbackPanic identifies a contained callback panic after
+	// the native scope executes its cleanup. The private payload is omitted.
+	ErrFilestoreCallbackPanic
 	errorIdentityLimit
 )
 
@@ -827,6 +830,7 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrRequestBudgetCapacity, text: "request budget key capacity unavailable"},
 		{identity: ErrRequestBudgetWindow, text: "request budget window rejected"},
 		{identity: ErrRequestBudgetBinding, text: "request budget reservation binding rejected"},
+		{identity: ErrFilestoreCallbackPanic, text: "filestore callback panicked"},
 	}
 }
 
@@ -1024,7 +1028,7 @@ func errorIdentityParentsFilestoreThroughUpgrade(identity ErrorIdentity) errorId
 		return oneErrorIdentityParent(ErrUpgradeContract)
 	}
 	if errorIdentityIn(identity, ErrFilestoreSize, ErrFilestoreSource, ErrFilestoreDestination,
-		ErrFilestoreConflict, ErrFilestoreActivation, ErrFilestoreCleanup) {
+		ErrFilestoreConflict, ErrFilestoreActivation, ErrFilestoreCleanup, ErrFilestoreCallbackPanic) {
 		return oneErrorIdentityParent(ErrFilestoreContract)
 	}
 	if identity == ErrFilestoreActivationIndeterminate {

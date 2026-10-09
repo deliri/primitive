@@ -22,8 +22,9 @@ func TestReadScopeClosesBorrowedReaderAfterSuccessRefusalAndPanic(t *testing.T) 
 		cancelCallback bool
 	}{
 		{name: "successful read closes native handle"},
+		{name: "ordinary contract refusal remains distinct from panic", failure: core.ErrFilestoreContract},
 		{name: "callback refusal preserves identity and closes native handle", failure: io.ErrUnexpectedEOF},
-		{name: "callback panic closes native handle and returns typed refusal", failure: core.ErrFilestoreContract, panicCallback: true},
+		{name: "callback panic closes native handle and returns typed refusal", failure: core.ErrFilestoreCallbackPanic, panicCallback: true},
 		{name: "callback cancellation preserves identity and closes native handle", failure: context.Canceled, cancelCallback: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -73,6 +74,12 @@ func TestReadScopeClosesBorrowedReaderAfterSuccessRefusalAndPanic(t *testing.T) 
 				}})
 				if err != nil || scope.Validate() != nil || scope.CleanupError() != nil || !errors.Is(scope.OperationError(), tc.failure) || calls != 1 || borrowed == nil {
 					t.Fatalf("read scope = (%+v,%v,%d calls), want completed native cleanup and %v", scope, err, calls, tc.failure)
+				}
+				if errors.Is(scope.OperationError(), core.ErrFilestoreCallbackPanic) != tc.panicCallback {
+					t.Error("file refusal changed its panic classification")
+				}
+				if tc.panicCallback && errors.Is(scope.OperationError(), io.ErrShortWrite) {
+					t.Error("file panic payload escaped its owned boundary")
 				}
 				var buffer [1]byte
 				if _, err := borrowed.Read(buffer[:]); !errors.Is(err, os.ErrClosed) {

@@ -22,8 +22,9 @@ func TestRootScopeClosesBorrowedNativeRootOnReturnRefusalAndPanic(t *testing.T) 
 		cancelCallback bool
 	}{
 		{name: "successful callback closes its borrowed root"},
+		{name: "ordinary contract refusal remains distinct from panic", failure: core.ErrFilestoreContract},
 		{name: "refusal preserves identity and closes its borrowed root", failure: io.ErrUnexpectedEOF},
-		{name: "panic becomes a typed refusal after native cleanup", failure: core.ErrFilestoreContract, panicCallback: true},
+		{name: "panic becomes a typed refusal after native cleanup", failure: core.ErrFilestoreCallbackPanic, panicCallback: true},
 		{name: "cancellation during callback preserves identity and closes root", failure: context.Canceled, cancelCallback: true},
 	}
 	for _, tc := range cases {
@@ -58,6 +59,12 @@ func TestRootScopeClosesBorrowedNativeRootOnReturnRefusalAndPanic(t *testing.T) 
 				}})
 				if err != nil || result.Validate() != nil || result.CleanupError != nil || !errors.Is(result.OperationError, tc.failure) || calls != 1 {
 					t.Errorf("root scope = (%+v, %v), calls=%d; want one callback, typed operation outcome and completed native cleanup", result, err, calls)
+				}
+				if errors.Is(result.OperationError, core.ErrFilestoreCallbackPanic) != tc.panicCallback {
+					t.Error("root refusal changed its panic classification")
+				}
+				if tc.panicCallback && errors.Is(result.OperationError, io.ErrShortWrite) {
+					t.Error("root panic payload escaped its owned boundary")
 				}
 				if borrowed == nil {
 					t.Error("root scope did not lend a real root")

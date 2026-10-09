@@ -22,8 +22,9 @@ func TestScratchWriterScopeClosesAfterSuccessRefusalPanicAndPrematureClose(t *te
 		cancelCallback bool
 	}{
 		{name: "successful producer closes exact native scratch"},
+		{name: "ordinary contract refusal remains distinct from panic", failure: core.ErrFilestoreContract},
 		{name: "producer refusal preserves accepted bytes and identity", failure: io.ErrShortWrite},
-		{name: "producer panic closes native scratch and refuses", failure: core.ErrFilestoreContract, panicCallback: true},
+		{name: "producer panic closes native scratch and refuses", failure: core.ErrFilestoreCallbackPanic, panicCallback: true},
 		{name: "producer closes borrowed handle and native cleanup remains failed", closeCallback: true},
 		{name: "producer cancellation preserves identity and closes native scratch", failure: context.Canceled, cancelCallback: true},
 	} {
@@ -66,6 +67,12 @@ func TestScratchWriterScopeClosesAfterSuccessRefusalPanicAndPrematureClose(t *te
 				}})
 				if err != nil || scope.Validate() != nil || !errors.Is(scope.OperationError(), tc.failure) || calls != 1 || borrowed == nil {
 					t.Fatalf("writer scope = (%+v,%v,%d calls), want completed close attempt and %v", scope, err, calls, tc.failure)
+				}
+				if errors.Is(scope.OperationError(), core.ErrFilestoreCallbackPanic) != tc.panicCallback {
+					t.Error("file refusal changed its panic classification")
+				}
+				if tc.panicCallback && errors.Is(scope.OperationError(), io.ErrUnexpectedEOF) {
+					t.Error("file panic payload escaped its owned boundary")
 				}
 				if tc.closeCallback {
 					if !errors.Is(scope.CleanupError(), os.ErrClosed) || !errors.Is(scope.CleanupError(), core.ErrFilestoreCleanup) {

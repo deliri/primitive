@@ -38,7 +38,7 @@ func FuzzRootScopeNativeLifetime(f *testing.F) {
 			case 1:
 				want = io.ErrUnexpectedEOF
 			case 2:
-				want = core.ErrFilestoreContract
+				want = core.ErrFilestoreCallbackPanic
 			case 3:
 				want = context.Canceled
 			}

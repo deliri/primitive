@@ -49,7 +49,7 @@ func FuzzFileScopesConserveNativeBytesAndCloseBorrowedHandles(f *testing.F) {
 			}})
 			var wantWrite error
 			if writerPanic {
-				wantWrite = core.ErrFilestoreContract
+				wantWrite = core.ErrFilestoreCallbackPanic
 			}
 			if err != nil || written.Validate() != nil || written.CleanupError() != nil || !errors.Is(written.OperationError(), wantWrite) || borrowedWriter == nil {
 				t.Fatalf("writer observation=(%+v,%v),want closed native custody and %v", written, err, wantWrite)

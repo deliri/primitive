@@ -43,7 +43,7 @@ func finishFileScope(ctx context.Context, file *os.File, use func(context.Contex
 func useFileScope(ctx context.Context, file *os.File, use func(context.Context, *os.File) error) (resultErr error) {
 	defer func() {
 		if recover() != nil {
-			resultErr = fmt.Errorf("file scope callback panicked: %w", core.ErrFilestoreContract)
+			resultErr = fmt.Errorf("file scope callback: %w", core.ErrFilestoreCallbackPanic)
 		}
 	}()
 	return use(ctx, file)
