@@ -119,7 +119,11 @@ func ObserveBuildDependencies(
 			return BuildDependencies{}, err
 		}
 	}
-	return newBuildDependencies(combined.main, request.Tools.GoToolchain(), combined.modules)
+	compiler, err := request.Tools.GoToolchain().CompilerVersion()
+	if err != nil {
+		return BuildDependencies{}, err
+	}
+	return newBuildDependencies(combined.main, compiler, combined.modules)
 }
 
 // observeBuildCommandDependencies fills observed with one target's closure. The

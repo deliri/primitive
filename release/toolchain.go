@@ -64,15 +64,13 @@ func (i GoToolchainIdentity) Version() (string, error) {
 	return goToolchainVersions()[i], nil
 }
 
-func parseGoToolchainVersion(value string) (GoToolchainIdentity, error) {
-	for identity := GoToolchainUnknown + 1; identity < goToolchainLimit; identity++ {
-		version, err := identity.Version()
-		if err == nil && version == value {
-			return identity, nil
-		}
+// CompilerVersion projects reviewed execution policy into immutable evidence.
+func (i GoToolchainIdentity) CompilerVersion() (GoCompilerVersion, error) {
+	version, err := i.Version()
+	if err != nil {
+		return GoCompilerVersion{}, err
 	}
-	return GoToolchainUnknown, manifestError(
-		errors.New("go toolchain version is outside the admitted domain"))
+	return parseGoCompilerVersion(version)
 }
 
 var _ core.OffWireEnum = GoToolchainUnknown

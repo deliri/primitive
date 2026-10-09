@@ -13,7 +13,7 @@ import (
 // absence and null must not manufacture the same fact in a closed document.
 func TestDependencyDocumentRequiresAnExplicitModuleCollection(t *testing.T) {
 	t.Parallel()
-	baseline, err := newBuildDependencies(mustModulePath(t, testMainModule), CurrentGoToolchain(), numberedModules(t, 1))
+	baseline, err := newBuildDependencies(mustModulePath(t, testMainModule), fixtureGoCompilerVersion(t), numberedModules(t, 1))
 	if err != nil {
 		t.Fatalf("newBuildDependencies() error = %v, want nil", err)
 	}

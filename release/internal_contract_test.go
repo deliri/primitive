@@ -89,6 +89,7 @@ type releaseContractInventory struct {
 	MetadataSet                       protocolFact[MetadataSet]
 	BuildProvenanceRequest            protocolFact[BuildProvenanceRequest]
 	BuildProvenance                   protocolFact[BuildProvenance]
+	GoCompilerVersion                 protocolFact[GoCompilerVersion]
 	linkerAssignmentWire              wireProtocol[linkerAssignmentWire]
 	buildProvenanceWire               wireProtocol[buildProvenanceWire]
 	AssessLatestRequest               protocolFact[AssessLatestRequest]

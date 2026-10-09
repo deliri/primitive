@@ -121,7 +121,7 @@ func mustDependencyDocument(b *testing.B, count int) []byte {
 
 	value, err := newBuildDependencies(
 		mustModulePath(b, testMainModule),
-		CurrentGoToolchain(),
+		fixtureGoCompilerVersion(b),
 		numberedModules(b, count),
 	)
 	if err != nil {

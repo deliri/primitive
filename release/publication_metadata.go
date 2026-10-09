@@ -376,8 +376,8 @@ type BuildProvenance struct {
 	mainPackage        MainPackage
 	linkerAssignments  LinkerAssignments
 	buildTags          BuildTags
+	goToolchain        GoCompilerVersion
 	goExecutableDigest core.SHA256Digest
-	goToolchain        GoToolchainIdentity
 	moduleMode         BuildModuleMode
 	valid              bool
 }
@@ -416,10 +416,14 @@ func buildProvenance(request BuildProvenanceRequest) (BuildProvenance, error) {
 		return BuildProvenance{}, manifestError(err)
 	}
 	plan := request.Plan.request
+	compiler, err := request.Tools.GoToolchain().CompilerVersion()
+	if err != nil {
+		return BuildProvenance{}, manifestError(err)
+	}
 	value := BuildProvenance{
 		linkerAssignments: plan.LinkerAssignments, buildTags: plan.BuildTags,
 		mainPackage: plan.MainPackage, goExecutableDigest: request.Tools.GoExecutableDigest(),
-		goToolchain: request.Tools.GoToolchain(), moduleMode: plan.ModuleMode, valid: true,
+		goToolchain: compiler, moduleMode: plan.ModuleMode, valid: true,
 	}
 	if err := value.Validate(); err != nil {
 		return BuildProvenance{}, err
@@ -427,9 +431,9 @@ func buildProvenance(request BuildProvenanceRequest) (BuildProvenance, error) {
 	return value, nil
 }
 
-// Validate accepts every explicitly admitted historical Go toolchain.
-// Construction separately pins new builds to the current toolchain; reading a
-// signed older manifest must not consult that selector.
+// Validate checks immutable compiler evidence. Construction separately pins
+// new builds to the current toolchain; reading published facts does not select
+// or authorize a compiler for execution.
 func (p BuildProvenance) Validate() error {
 	if !p.valid {
 		return manifestError(errors.New("build provenance is unset"))
@@ -442,14 +446,7 @@ func (p BuildProvenance) Validate() error {
 			return manifestError(errors.New("build provenance is invalid"), err)
 		}
 	}
-	if !admittedBuildProvenanceToolchain(p.goToolchain) {
-		return manifestError(errors.New("build provenance tool set is not admitted"))
-	}
 	return nil
-}
-
-func admittedBuildProvenanceToolchain(goToolchain GoToolchainIdentity) bool {
-	return goToolchain == GoToolchainPrimitive2026
 }
 
 func (p BuildProvenance) MarshalJSON() ([]byte, error) {
@@ -502,7 +499,7 @@ func (p *BuildProvenance) UnmarshalJSON(data []byte) error {
 }
 
 func buildProvenanceFromWire(w buildProvenanceWire) (BuildProvenance, error) {
-	goToolchain, err := parseGoToolchainVersion(w.GoToolchain)
+	goToolchain, err := parseGoCompilerVersion(w.GoToolchain)
 	if err != nil {
 		return BuildProvenance{}, err
 	}

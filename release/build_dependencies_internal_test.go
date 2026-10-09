@@ -256,21 +256,21 @@ func TestNewBuildDependenciesLayerTriadCanonicalizesTheModuleUnion(t *testing.T)
 		name      string
 		main      GoModulePath
 		wantOrder []string
-		toolchain GoToolchainIdentity
+		toolchain GoCompilerVersion
 	}{
 		{
 			name: "neutral empty closure is a valid zero-module union",
-			main: main, toolchain: CurrentGoToolchain(),
+			main: main, toolchain: fixtureGoCompilerVersion(t),
 			modules: func(*testing.T) []BuildDependency { return nil },
 		},
 		{
-			name: "positive single module closure", main: main, toolchain: CurrentGoToolchain(),
+			name: "positive single module closure", main: main, toolchain: fixtureGoCompilerVersion(t),
 			modules:   func(t *testing.T) []BuildDependency { return moduleFixtures(t, "example.com/a") },
 			wantOrder: []string{"example.com/a"},
 		},
 		{
 			name: "positive reverse ordered input is canonicalized",
-			main: main, toolchain: CurrentGoToolchain(),
+			main: main, toolchain: fixtureGoCompilerVersion(t),
 			modules: func(t *testing.T) []BuildDependency {
 				return moduleFixtures(t, "example.com/c", "example.com/b", "example.com/a")
 			},
@@ -278,61 +278,61 @@ func TestNewBuildDependenciesLayerTriadCanonicalizesTheModuleUnion(t *testing.T)
 		},
 		{
 			name: "positive prefix module and its extension stay distinct",
-			main: main, toolchain: CurrentGoToolchain(),
+			main: main, toolchain: fixtureGoCompilerVersion(t),
 			modules:   func(t *testing.T) []BuildDependency { return moduleFixtures(t, "example.com/ab", "example.com/a") },
 			wantOrder: []string{"example.com/a", "example.com/ab"},
 		},
 		{
 			name: "positive exact maximum module count is accepted",
-			main: main, toolchain: CurrentGoToolchain(),
+			main: main, toolchain: fixtureGoCompilerVersion(t),
 			modules:   func(t *testing.T) []BuildDependency { return numberedModules(t, BuildDependencyMaximumCount) },
 			wantOrder: numberedModulePaths(BuildDependencyMaximumCount),
 		},
 		{
 			name: "positive one below maximum module count is accepted",
-			main: main, toolchain: CurrentGoToolchain(),
+			main: main, toolchain: fixtureGoCompilerVersion(t),
 			modules:   func(t *testing.T) []BuildDependency { return numberedModules(t, BuildDependencyMaximumCount-1) },
 			wantOrder: numberedModulePaths(BuildDependencyMaximumCount - 1),
 		},
 
 		{
 			name: "negative one above maximum module count",
-			main: main, toolchain: CurrentGoToolchain(),
+			main: main, toolchain: fixtureGoCompilerVersion(t),
 			modules: func(t *testing.T) []BuildDependency { return numberedModules(t, BuildDependencyMaximumCount+1) },
 			wantErr: core.ErrReleaseContract,
 		},
 		{
 			name: "negative duplicate module path",
-			main: main, toolchain: CurrentGoToolchain(),
+			main: main, toolchain: fixtureGoCompilerVersion(t),
 			modules: func(t *testing.T) []BuildDependency { return moduleFixtures(t, "example.com/a", "example.com/a") },
 			wantErr: core.ErrReleaseContract,
 		},
 		{
 			name: "negative main module listed as its own dependency",
-			main: main, toolchain: CurrentGoToolchain(),
+			main: main, toolchain: fixtureGoCompilerVersion(t),
 			modules: func(t *testing.T) []BuildDependency { return moduleFixtures(t, testMainModule) },
 			wantErr: core.ErrReleaseContract,
 		},
 		{
 			name: "negative zero module in the closure",
-			main: main, toolchain: CurrentGoToolchain(),
+			main: main, toolchain: fixtureGoCompilerVersion(t),
 			modules: func(*testing.T) []BuildDependency { return []BuildDependency{{}} },
 			wantErr: core.ErrReleaseContract,
 		},
 		{
-			name: "negative unset main module", toolchain: CurrentGoToolchain(),
+			name: "negative unset main module", toolchain: fixtureGoCompilerVersion(t),
 			modules: func(t *testing.T) []BuildDependency { return moduleFixtures(t, "example.com/a") },
 			wantErr: core.ErrReleaseContract,
 		},
 		{
-			name: "negative unknown toolchain", main: main, toolchain: GoToolchainUnknown,
+			name: "negative unknown toolchain", main: main, toolchain: GoCompilerVersion{},
 			modules: func(t *testing.T) []BuildDependency { return moduleFixtures(t, "example.com/a") },
 			wantErr: core.ErrReleaseContract,
 		},
 		{
-			name: "negative future toolchain", main: main, toolchain: GoToolchainPrimitive2026 + 1,
-			modules: func(t *testing.T) []BuildDependency { return moduleFixtures(t, "example.com/a") },
-			wantErr: core.ErrReleaseContract,
+			name: "positive future compiler fact does not select execution", main: main, toolchain: GoCompilerVersion{major: 1, minor: 27, patch: 3},
+			modules:   func(t *testing.T) []BuildDependency { return moduleFixtures(t, "example.com/a") },
+			wantOrder: []string{"example.com/a"},
 		},
 	}
 	for _, tc := range cases {
@@ -420,7 +420,7 @@ func TestDependencyObservationMergeLayerTriadUnionsExactTargetFacts(t *testing.T
 			if tc.wantErr != nil {
 				return
 			}
-			published, err := newBuildDependencies(left.main, CurrentGoToolchain(), left.modules)
+			published, err := newBuildDependencies(left.main, fixtureGoCompilerVersion(t), left.modules)
 			if err != nil {
 				t.Fatalf("publish merged facts error = %v, want nil", err)
 			}
@@ -432,7 +432,7 @@ func TestDependencyObservationMergeLayerTriadUnionsExactTargetFacts(t *testing.T
 			if err := json.Unmarshal(encoded, &wire); err != nil {
 				t.Fatalf("Go decode publication error = %v, want nil", err)
 			}
-			version, err := CurrentGoToolchain().Version()
+			version, err := fixtureGoCompilerVersion(t).Version()
 			if err != nil || wire.MainModule != testMainModule || wire.GoToolchain != version || !slices.Equal(wire.Modules, tc.want) {
 				t.Fatalf("published union = (%v, %v), want root %s toolchain %s and exact modules %v", wire, err, testMainModule, version, tc.want)
 			}
@@ -502,7 +502,7 @@ func TestDependencyObservationRejectsClosuresPastItsBound(t *testing.T) {
 func TestBuildDependenciesDocumentRejectsNoncanonicalPublications(t *testing.T) {
 	t.Parallel()
 
-	valid, err := newBuildDependencies(mustModulePath(t, testMainModule), CurrentGoToolchain(),
+	valid, err := newBuildDependencies(mustModulePath(t, testMainModule), fixtureGoCompilerVersion(t),
 		moduleFixtures(t, "example.com/a", "example.com/b"))
 	if err != nil {
 		t.Fatalf("newBuildDependencies() error = %v, want nil", err)
@@ -560,7 +560,7 @@ func TestBuildDependenciesDocumentRejectsNoncanonicalPublications(t *testing.T) 
 
 func oversizedDependencyDocument(t testing.TB) string {
 	t.Helper()
-	version, err := CurrentGoToolchain().Version()
+	version, err := fixtureGoCompilerVersion(t).Version()
 	if err != nil {
 		t.Fatalf("current toolchain version error = %v, want nil", err)
 	}

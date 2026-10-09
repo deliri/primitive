@@ -61,8 +61,9 @@ func TestObserveBuildDependenciesReturnsTheRealCrossTargetModuleUnion(t *testing
 		if got := dependencies.MainModule().String(); got != observedMainModule {
 			t.Fatalf("main module = %q, want %q", got, observedMainModule)
 		}
-		if got := dependencies.GoToolchain(); got != release.CurrentGoToolchain() {
-			t.Fatalf("Go toolchain = %v, want %v", got, release.CurrentGoToolchain())
+		want, err := release.CurrentGoToolchain().CompilerVersion()
+		if got := dependencies.GoToolchain(); err != nil || got != want {
+			t.Fatalf("Go compiler version = %v, error = %v, want (%v, nil)", got, err, want)
 		}
 		if dependencies.Count() != 1 {
 			t.Fatalf("observed module count = %d, want exactly one %s module", dependencies.Count(), observedDependencyModule)

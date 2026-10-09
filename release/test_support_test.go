@@ -169,11 +169,15 @@ func fixtureBuildProvenance(t testing.TB) BuildProvenance {
 	if err != nil {
 		t.Fatalf("ParseMainPackage() error = %v", err)
 	}
+	compiler, err := CurrentGoToolchain().CompilerVersion()
+	if err != nil {
+		t.Fatalf("GoToolchainIdentity.CompilerVersion() error = %v, want nil", err)
+	}
 	value := BuildProvenance{
 		linkerAssignments:  emptyLinkerAssignmentsForTest(),
 		mainPackage:        mainPackage,
 		goExecutableDigest: core.NewSHA256Digest(goDigest),
-		goToolchain:        CurrentGoToolchain(),
+		goToolchain:        compiler,
 		moduleMode:         BuildModuleReadonly,
 		valid:              true,
 	}
@@ -265,4 +269,13 @@ func issueVerifiedLatest(
 		t.Fatalf("VerifyLatest(generation %d) error = %v", generation, err)
 	}
 	return verified
+}
+
+func fixtureGoCompilerVersion(t testing.TB) GoCompilerVersion {
+	t.Helper()
+	value, err := CurrentGoToolchain().CompilerVersion()
+	if err != nil {
+		t.Fatalf("GoToolchainIdentity.CompilerVersion() error = %v, want nil", err)
+	}
+	return value
 }

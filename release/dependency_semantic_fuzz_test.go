@@ -14,7 +14,7 @@ func FuzzBuildDependenciesExactFacts(f *testing.F) {
 	var baseline BuildDependencies
 	var baselineBytes []byte
 	for _, count := range []int{0, 1, BuildDependencyMaximumCount} {
-		seed, err := newBuildDependencies(mustModulePath(f, testMainModule), CurrentGoToolchain(), numberedModules(f, count))
+		seed, err := newBuildDependencies(mustModulePath(f, testMainModule), fixtureGoCompilerVersion(f), numberedModules(f, count))
 		if err != nil {
 			f.Fatalf("newBuildDependencies(seed) error = %v, want nil", err)
 		}
@@ -30,6 +30,15 @@ func FuzzBuildDependenciesExactFacts(f *testing.F) {
 			baseline = seed
 			baselineBytes = bytes.Clone(encoded)
 		}
+	}
+	for _, compiler := range []GoCompilerVersion{{major: 1, minor: 27, patch: 1}, {major: 1, minor: 27, patch: 3}} {
+		seed := baseline
+		seed.goToolchain = compiler
+		encoded, err := seed.MarshalJSON()
+		if err != nil {
+			f.Fatalf("BuildDependencies.MarshalJSON(compiler fact) error = %v, want nil", err)
+		}
+		f.Add(encoded)
 	}
 	f.Add([]byte(`null`))
 	f.Add([]byte(`{}`))

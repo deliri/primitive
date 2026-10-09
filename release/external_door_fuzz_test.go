@@ -486,7 +486,7 @@ func releaseJSONFixturesForFuzz(t testing.TB) releaseJSONDoorFixtures {
 		t.Fatalf("Artifact.Filename() error = %v, want nil", err)
 	}
 	dependencies, err := newBuildDependencies(
-		mustModulePath(t, testMainModule), CurrentGoToolchain(),
+		mustModulePath(t, testMainModule), fixtureGoCompilerVersion(t),
 		moduleFixtures(t, "example.com/a", "example.com/b"),
 	)
 	if err != nil {

@@ -86,7 +86,7 @@ func TestBuildProvenanceWireFieldsRejectInvalidDomainsAndRetainSignedDigests(t *
 		mutate  func(*buildProvenanceWire)
 		name    string
 	}{
-		{name: "go toolchain version substitution is rejected", mutate: func(w *buildProvenanceWire) { w.GoToolchain = "go1.27.0" }, wantErr: core.ErrJSONContract},
+		{name: "unstable compiler provenance is rejected", mutate: func(w *buildProvenanceWire) { w.GoToolchain = "go1.27rc1" }, wantErr: core.ErrJSONContract},
 		{name: "flag shaped main package substitution is rejected", mutate: func(w *buildProvenanceWire) { w.MainPackage = "-buildmode=exe/cmd" }, wantErr: core.ErrJSONContract},
 		{name: "module mode substitution is rejected", mutate: func(w *buildProvenanceWire) { w.ModuleMode = "mod" }, wantErr: core.ErrJSONContract},
 		{name: "linker symbol substitution is rejected", mutate: func(w *buildProvenanceWire) { w.LinkerAssignments[0].Symbol = "-ldflags/y.Value" }, wantErr: core.ErrJSONContract},

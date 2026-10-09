@@ -23,7 +23,7 @@ func TestDependencyDecoderOwnsInputAndReplacementStorage(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			fixture, err := newBuildDependencies(mustModulePath(t, testMainModule), CurrentGoToolchain(), numberedModules(t, tc.count))
+			fixture, err := newBuildDependencies(mustModulePath(t, testMainModule), fixtureGoCompilerVersion(t), numberedModules(t, tc.count))
 			if err != nil {
 				t.Fatalf("newBuildDependencies() error = %v, want nil", err)
 			}

@@ -55,7 +55,7 @@ func TestDependencyAccessPreservesOwnedFacts(t *testing.T) {
 
 func mustDependencyAccessDocument(t testing.TB, count int) []byte {
 	t.Helper()
-	fixture, err := newBuildDependencies(mustModulePath(t, testMainModule), CurrentGoToolchain(), numberedModules(t, count))
+	fixture, err := newBuildDependencies(mustModulePath(t, testMainModule), fixtureGoCompilerVersion(t), numberedModules(t, count))
 	if err != nil {
 		t.Fatalf("newBuildDependencies(%d) error = %v, want nil", count, err)
 	}

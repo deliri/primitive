@@ -36,7 +36,7 @@ func TestDependencyChecksumJSONRefusesAlternateRepresentations(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			before, err := newBuildDependencies(mustModulePath(t, testMainModule), CurrentGoToolchain(), moduleFixtures(t, "example.com/original"))
+			before, err := newBuildDependencies(mustModulePath(t, testMainModule), fixtureGoCompilerVersion(t), moduleFixtures(t, "example.com/original"))
 			if err != nil {
 				t.Fatalf("newBuildDependencies() error = %v, want nil", err)
 			}

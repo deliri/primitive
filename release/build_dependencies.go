@@ -208,7 +208,7 @@ func (d BuildDependency) Sum() GoModuleSum         { return d.sum }
 type BuildDependencies struct {
 	storage     *buildDependencyStorage
 	main        GoModulePath
-	goToolchain GoToolchainIdentity
+	goToolchain GoCompilerVersion
 	valid       bool
 }
 
@@ -220,7 +220,7 @@ type buildDependencyStorage struct {
 // callers supply freshly built private storage and retain no writable alias.
 func newBuildDependencies(
 	main GoModulePath,
-	toolchain GoToolchainIdentity,
+	toolchain GoCompilerVersion,
 	modules []BuildDependency,
 ) (BuildDependencies, error) {
 	if len(modules) > BuildDependencyMaximumCount {
@@ -321,9 +321,9 @@ func buildDependenciesFromWire(w buildDependenciesWire) (BuildDependencies, erro
 	if err != nil {
 		return BuildDependencies{}, err
 	}
-	toolchain, err := parseGoToolchainVersion(w.GoToolchain)
+	toolchain, err := parseGoCompilerVersion(w.GoToolchain)
 	if err != nil {
-		return BuildDependencies{}, err
+		return BuildDependencies{}, contractError(err)
 	}
 	if len(w.Modules) > BuildDependencyMaximumCount {
 		return BuildDependencies{}, contractError(errors.New(buildDependencyCountDiagnostic))
@@ -345,8 +345,8 @@ func buildDependenciesFromWire(w buildDependenciesWire) (BuildDependencies, erro
 	return newBuildDependencies(main, toolchain, modules)
 }
 
-func (d BuildDependencies) MainModule() GoModulePath         { return d.main }
-func (d BuildDependencies) GoToolchain() GoToolchainIdentity { return d.goToolchain }
+func (d BuildDependencies) MainModule() GoModulePath       { return d.main }
+func (d BuildDependencies) GoToolchain() GoCompilerVersion { return d.goToolchain }
 
 // Count reads already-admitted, exclusively owned storage. No public operation
 // can mutate that storage; replacement decoding constructs a new collection.
