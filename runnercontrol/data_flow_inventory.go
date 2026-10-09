@@ -5,6 +5,16 @@ type sealedProjection interface{ runnerControlSealedProjection() }
 type internalFlow interface{ runnerControlInternalFlow() }
 type capabilityWrapper interface{ runnerControlCapabilityWrapper() }
 
+func (CoverageBlock) runnerControlProtocolFact()            {}
+func (CoverageBlockRequest) runnerControlProtocolFact()     {}
+func (coverageCoordinateSuffix) runnerControlInternalFlow() {}
+func (coverageInput) runnerControlInternalFlow()            {}
+
+var _ protocolFact = CoverageBlock{}
+var _ protocolFact = CoverageBlockRequest{}
+var _ internalFlow = coverageInput{}
+var _ internalFlow = coverageCoordinateSuffix{}
+
 func (MachineFence) runnerControlProtocolFact()                     {}
 func (RunLimits) runnerControlProtocolFact()                        {}
 func (RequestedRun) runnerControlProtocolFact()                     {}
