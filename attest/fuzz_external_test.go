@@ -33,6 +33,8 @@ func FuzzEnvelopeJSONSemanticClosure(f *testing.F) {
 	}
 	canonicalTrust := mustTrustedKeys(f, mustPublicKey(f, canonicalSigner))
 	f.Add(canonical)
+	f.Add(append(bytes.Clone(canonical), '\v'))
+	f.Add(append(bytes.Clone(canonical), []byte(" \t\r\n")...))
 	f.Add([]byte{})
 	f.Add(removeSignerFixture(f, canonical))
 	f.Add(duplicateDomainFixture(f, canonical))
@@ -58,7 +60,9 @@ func FuzzEnvelopeJSONSemanticClosure(f *testing.F) {
 		if (gotFreshErr == nil) != wantAdmitted || (gotPopulatedErr == nil) != wantAdmitted {
 			t.Fatalf("envelope admission errors = (%v, %v), want independent admission %t", gotFreshErr, gotPopulatedErr, wantAdmitted)
 		}
-		if bytes.Equal(bytes.TrimSpace(data), canonical) && (gotFreshErr != nil || gotPopulatedErr != nil) {
+		// JSON framing permits only these four whitespace bytes. Unicode space
+		// and vertical tab do not turn a malformed suffix into an authentic seed.
+		if bytes.Equal(bytes.Trim(data, " \t\r\n"), canonical) && (gotFreshErr != nil || gotPopulatedErr != nil) {
 			t.Fatalf("genuinely signed canonical seed rejected: (%v, %v)", gotFreshErr, gotPopulatedErr)
 		}
 		if gotFreshErr != nil || gotPopulatedErr != nil {

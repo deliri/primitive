@@ -67,6 +67,9 @@ func FuzzGCSBucketPublicReadProviderPolicySemanticClosure(f *testing.F) {
 	} {
 		f.Add(paddedGCSPolicyResponse(f, boundaryPolicy, extent))
 	}
+	// The official provider SDK admits JSON-v1 case-insensitive field names.
+	// This one-field mutation must still prove unchanged permission and no SET.
+	f.Add(bytes.Replace(boundaryPolicy, []byte(`"role"`), []byte(`"roLe"`), 1))
 
 	f.Fuzz(func(t *testing.T, providerBytes []byte) {
 		provider := &gcsPublicReadFuzzProvider{t: t, initial: providerBytes}
@@ -94,7 +97,7 @@ func FuzzGCSBucketPublicReadProviderPolicySemanticClosure(f *testing.F) {
 			t.Fatalf("GrantGCSBucketPublicRead(accepted %d bytes) = %v, want validated exact-bucket evidence", len(providerBytes), got)
 		}
 		var independent storageapi.Policy
-		independentErr := json.Unmarshal(providerBytes, &independent)
+		independentErr := json.Unmarshal(providerBytes, &independent, json.MatchCaseInsensitiveNames(true))
 		independentObject := bytes.HasPrefix(bytes.TrimSpace(providerBytes), []byte("{"))
 		switch got.Change() {
 		case GCSBucketPublicReadUnchanged:

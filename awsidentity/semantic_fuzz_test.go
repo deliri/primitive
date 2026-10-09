@@ -79,12 +79,12 @@ func FuzzAWSAcquireTokenProjection(f *testing.F) {
 		}
 		f.Add(strings.TrimPrefix(disclosed, bearerPrefix))
 	}
-	for _, value := range []string{"", "a=b", "a&b", "a\r\nb", "\xff", strings.Repeat("a", TokenMaximumBytes+1)} {
+	for _, value := range []string{"", "a=b", "a&b", "a\r\nb", "\xff", strings.Repeat("a", TokenMaximumBytes+1), strings.Repeat("a", AmazonResponseMaximumBytes+2)} {
 		f.Add(value)
 	}
 	f.Fuzz(func(t *testing.T, value string) {
-		// Keep secondary XML fixture work bounded; oversized fuzz text still
-		// reaches Acquire as an oversized response and must fail at its read bound.
+		// Keep secondary XML fixture work bounded. Text outside the token domain
+		// reaches Acquire as malformed XML; transport extent alone is not refusal.
 		var data []byte
 		var reader io.Reader
 		var length int64
@@ -110,8 +110,8 @@ func FuzzAWSAcquireTokenProjection(f *testing.F) {
 				t.Fatalf("Acquire token projection = (%q,%v,%v), want exact mutated text", disclosed, gotErr, err)
 			}
 		}
-		if transport.calls != 1 || body.closes != 1 || body.bytes > AmazonResponseMaximumBytes+1 {
-			t.Fatalf("Acquire effect calls/closes/bytes = %d/%d/%d, want 1/1/bounded", transport.calls, body.closes, body.bytes)
+		if transport.calls != 1 || body.closes != 1 || int64(body.bytes) != length {
+			t.Fatalf("Acquire effect calls/closes/bytes = %d/%d/%d, want 1/1/%d with exact response conservation", transport.calls, body.closes, body.bytes, length)
 		}
 	})
 }
@@ -174,15 +174,15 @@ func FuzzAWSProviderResponseSemanticClosure(f *testing.F) {
 	if err != nil || admitted.Validate() != nil {
 		f.Fatalf("provider canonical seed error = %v, want nil", err)
 	}
-	for _, seed := range [][]byte{canonical, append(bytes.Clone(canonical), []byte("<Future/>")...), append(bytes.Clone(canonical), []byte("trailing text")...), nil, []byte("<truncated"), bytes.Repeat([]byte{'x'}, AmazonResponseMaximumBytes+1)} {
+	for _, seed := range [][]byte{canonical, append(bytes.Clone(canonical), []byte("<Future/>")...), append(bytes.Clone(canonical), []byte("trailing text")...), nil, []byte("<truncated"), bytes.Repeat([]byte{'x'}, AmazonResponseMaximumBytes+1), bytes.Repeat([]byte{'x'}, AmazonResponseMaximumBytes+2), append(bytes.Clone(canonical), bytes.Repeat([]byte{' '}, AmazonResponseMaximumBytes*2)...)} {
 		f.Add(seed)
 	}
 	f.Fuzz(func(t *testing.T, data []byte) {
 		body := &awsObservedBody{reader: bytes.NewReader(data)}
 		transport := &awsResponseTransport{body: body, status: http.StatusOK, length: int64(len(data))}
 		got, gotErr := Acquire(t.Context(), awsClient(t, transport), awsRequest(t))
-		if transport.calls != 1 || body.closes != 1 || body.bytes > AmazonResponseMaximumBytes+1 {
-			t.Fatalf("raw provider effect = %d/%d/%d, want 1/1/bounded", transport.calls, body.closes, body.bytes)
+		if transport.calls != 1 || body.closes != 1 || body.bytes != len(data) {
+			t.Fatalf("raw provider effect = %d/%d/%d, want 1/1/%d with exact response conservation", transport.calls, body.closes, body.bytes, len(data))
 		}
 		if gotErr != nil {
 			if !errors.Is(gotErr, core.ErrAWSIdentityContract) || got != (Token{}) {
