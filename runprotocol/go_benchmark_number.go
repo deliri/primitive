@@ -1,9 +1,13 @@
 package runprotocol
 
 import (
-	"github.com/deliri/primitive/v2026/core"
+	"bufio"
+	"errors"
+	"io"
 	"math"
 	"strconv"
+
+	"github.com/deliri/primitive/v2026/core"
 )
 
 // Go's binary64 decimal conversion retains 800 significant digits and a
@@ -11,53 +15,85 @@ import (
 // calling strconv: NumError must never clone an arbitrarily long input field.
 const goFloatDecimalWindow = 800
 
-func goBenchmarkInteger(source []byte) (int64, error) {
-	negative := false
-	if len(source) != 0 && (source[0] == '+' || source[0] == '-') {
-		negative = source[0] == '-'
-		source = source[1:]
+func goBenchmarkInteger(source io.Reader) (int64, error) {
+	input := bufio.NewReader(source)
+	negative, err := goBenchmarkSign(input)
+	if err != nil {
+		return 0, err
 	}
-	if len(source) == 0 {
-		return 0, core.ErrGoToolchainOutput
-	}
-	first := len(source)
-	for index, digit := range source {
+	var digits [19]byte
+	used := 0
+	seen := false
+	for {
+		digit, err := input.ReadByte()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return 0, errors.Join(core.ErrGoToolchainOutput, err)
+		}
 		if digit < '0' || digit > '9' {
 			return 0, core.ErrGoToolchainOutput
 		}
-		if first == len(source) && digit != '0' {
-			first = index
+		seen = true
+		if used == 0 && digit == '0' {
+			continue
 		}
+		if negative || used == len(digits) {
+			return 0, core.ErrGoToolchainOutput
+		}
+		digits[used] = digit
+		used++
 	}
-	if first == len(source) {
-		return 0, nil
-	}
-	if negative || len(source)-first > 19 {
+	if !seen {
 		return 0, core.ErrGoToolchainOutput
 	}
-	value, err := strconv.ParseInt(string(source[first:]), 10, 64)
+	if used == 0 {
+		return 0, nil
+	}
+	value, err := strconv.ParseInt(string(digits[:used]), 10, 64)
 	if err != nil {
 		return 0, core.ErrGoToolchainOutput
 	}
 	return value, nil
 }
 
-func goBenchmarkFloat(source []byte) (float64, error) {
-	negative := false
-	if len(source) != 0 && (source[0] == '+' || source[0] == '-') {
-		negative = source[0] == '-'
-		source = source[1:]
+func goBenchmarkSign(source *bufio.Reader) (bool, error) {
+	first, err := source.Peek(1)
+	if err != nil {
+		return false, errors.Join(core.ErrGoToolchainOutput, err)
+	}
+	if first[0] != '+' && first[0] != '-' {
+		return false, nil
+	}
+	_, err = source.ReadByte()
+	return first[0] == '-', err
+}
+
+func goBenchmarkFloat(source io.Reader) (float64, error) {
+	input := bufio.NewReader(source)
+	negative, err := goBenchmarkSign(input)
+	if err != nil {
+		return 0, err
 	}
 	var digits [goFloatDecimalWindow + 1]byte
-	used, position, first := 0, 0, -1
-	decimal := -1
-	index := 0
+	used, position, first := 0, int64(0), int64(-1)
+	decimal := int64(-1)
 	discardedNonzero := false
-	for index < len(source) {
-		char := source[index]
+	for {
+		next, err := input.Peek(1)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return 0, errors.Join(core.ErrGoToolchainOutput, err)
+		}
+		char := next[0]
 		if char == '.' && decimal < 0 {
 			decimal = position
-			index++
+			if _, err := input.ReadByte(); err != nil {
+				return 0, errors.Join(core.ErrGoToolchainOutput, err)
+			}
 			continue
 		}
 		if char < '0' || char > '9' {
@@ -74,8 +110,13 @@ func goBenchmarkFloat(source []byte) (float64, error) {
 				discardedNonzero = true
 			}
 		}
+		if position == math.MaxInt64 {
+			return 0, core.ErrGoToolchainOutput
+		}
 		position++
-		index++
+		if _, err := input.ReadByte(); err != nil {
+			return 0, errors.Join(core.ErrGoToolchainOutput, err)
+		}
 	}
 	if position == 0 {
 		return 0, core.ErrGoToolchainOutput
@@ -83,7 +124,7 @@ func goBenchmarkFloat(source []byte) (float64, error) {
 	if decimal < 0 {
 		decimal = position
 	}
-	exponent, exponentRange, err := goBenchmarkExponent(source[index:])
+	exponent, exponentRange, err := goBenchmarkExponent(input)
 	if err != nil {
 		return 0, err
 	}
@@ -96,7 +137,7 @@ func goBenchmarkFloat(source []byte) (float64, error) {
 	if exponentRange == goBenchmarkExponentUnderflow {
 		return signedGoBenchmarkZero(negative), nil
 	}
-	offset := int64(decimal - first - 1)
+	offset := decimal - first - 1
 	if (exponent > 0 && offset > math.MaxInt64-exponent) || (exponent < 0 && offset < math.MinInt64-exponent) {
 		if exponent < 0 {
 			return signedGoBenchmarkZero(negative), nil
@@ -143,28 +184,36 @@ const (
 	goBenchmarkExponentUnderflow
 )
 
-func goBenchmarkExponent(source []byte) (int64, goBenchmarkExponentRange, error) {
-	if len(source) == 0 {
+func goBenchmarkExponent(source *bufio.Reader) (int64, goBenchmarkExponentRange, error) {
+	char, err := source.ReadByte()
+	if err == io.EOF {
 		return 0, goBenchmarkExponentRepresentable, nil
 	}
-	if source[0] != 'e' && source[0] != 'E' {
+	if err != nil {
+		return 0, goBenchmarkExponentRepresentable, errors.Join(core.ErrGoToolchainOutput, err)
+	}
+	if char != 'e' && char != 'E' {
 		return 0, goBenchmarkExponentRepresentable, core.ErrGoToolchainOutput
 	}
-	source = source[1:]
-	negative := false
-	if len(source) != 0 && (source[0] == '+' || source[0] == '-') {
-		negative = source[0] == '-'
-		source = source[1:]
-	}
-	if len(source) == 0 {
-		return 0, goBenchmarkExponentRepresentable, core.ErrGoToolchainOutput
+	negative, err := goBenchmarkSign(source)
+	if err != nil {
+		return 0, goBenchmarkExponentRepresentable, err
 	}
 	var value int64
 	overflow := false
-	for _, char := range source {
+	seen := false
+	for {
+		char, err := source.ReadByte()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return 0, goBenchmarkExponentRepresentable, errors.Join(core.ErrGoToolchainOutput, err)
+		}
 		if char < '0' || char > '9' {
 			return 0, goBenchmarkExponentRepresentable, core.ErrGoToolchainOutput
 		}
+		seen = true
 		if overflow {
 			continue
 		}
@@ -174,6 +223,9 @@ func goBenchmarkExponent(source []byte) (int64, goBenchmarkExponentRange, error)
 			continue
 		}
 		value = value*10 + digit
+	}
+	if !seen {
+		return 0, goBenchmarkExponentRepresentable, core.ErrGoToolchainOutput
 	}
 	if overflow {
 		if negative {

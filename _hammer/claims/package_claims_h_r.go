@@ -215,7 +215,7 @@ func emitPackageClaimSpecsHThroughR(emit func(packageClaimSpec) bool) bool {
 			solution: "Runprotocol defines shared typed requests, admission, machine identity, attempts, measurements, artifacts, observations, terminal states, and authorities.",
 			benefit:  "Simple local tools and independent runners use the same exact evidence shape without requiring Anvil or a database.",
 			removal:  "Remove Runprotocol when no independent boundary exchanges execution facts or another owner supplies the entire typed agreement.",
-			owns:     "Runprotocol owns run fact shape, validation, identity derivation, accounting closure, authority separation, and constant-memory native Go benchmark record decoding.",
+			owns:     "Runprotocol owns run fact shape, validation, identity derivation, accounting closure, authority separation, and constant-memory native Go benchmark record and source-range decoding.",
 			excludes: "It does not inspect source, run commands, retain history, explain code, assess scaling, or decide evidence acceptance.",
 		},
 		{

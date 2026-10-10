@@ -3,6 +3,7 @@ package runprotocol
 import (
 	"bytes"
 	"github.com/deliri/primitive/v2026/core"
+	"io"
 	"iter"
 	"math"
 	"strings"
@@ -57,6 +58,7 @@ func (n GoBenchmarkName) Validate() error {
 // a finite nonnegative float: the receiver decides rounding and saturation.
 type GoBenchmarkRecord struct {
 	name        GoBenchmarkName
+	source      GoBenchmarkSourceExtent
 	Iterations  int64
 	Nanoseconds float64
 	Bytes       int64
@@ -70,6 +72,9 @@ func (r GoBenchmarkRecord) Name() GoBenchmarkName { return r.name }
 
 // Validate checks presence, finite numeric facts and field authority.
 func (r GoBenchmarkRecord) Validate() error {
+	if err := r.source.Validate(); err != nil {
+		return err
+	}
 	if err := r.Presence.Validate(); err != nil {
 		return err
 	}
@@ -144,7 +149,7 @@ func ObserveGoBenchmarkRecord(request GoBenchmarkRecordRequest) (GoBenchmarkReco
 	if !ok {
 		return GoBenchmarkRecord{}, core.ErrGoToolchainOutput
 	}
-	count, err := goBenchmarkInteger(iterations)
+	count, err := goBenchmarkInteger(bytes.NewReader(iterations))
 	if err != nil || count < 0 {
 		return GoBenchmarkRecord{}, core.ErrGoToolchainOutput
 	}
@@ -160,7 +165,7 @@ func ObserveGoBenchmarkRecord(request GoBenchmarkRecordRequest) (GoBenchmarkReco
 			return GoBenchmarkRecord{}, core.ErrGoToolchainOutput
 		}
 		metricPairs = true
-		if err := projectGoBenchmarkMetric(&record, value, unit); err != nil {
+		if err := projectGoBenchmarkMetric(&record, bytes.NewReader(value), goBenchmarkUnit(unit)); err != nil {
 			return GoBenchmarkRecord{}, err
 		}
 	}
@@ -210,8 +215,7 @@ func goBenchmarkUnit(unit []byte) GoBenchmarkMetricFields {
 	}
 }
 
-func projectGoBenchmarkMetric(record *GoBenchmarkRecord, value, unit []byte) error {
-	kind := goBenchmarkUnit(unit)
+func projectGoBenchmarkMetric(record *GoBenchmarkRecord, value io.Reader, kind GoBenchmarkMetricFields) error {
 	if kind == GoBenchmarkMetricFieldsNone {
 		return nil
 	}

@@ -14,6 +14,7 @@ import (
 type ScratchReplayFile interface {
 	ScratchResetFile
 	io.Reader
+	io.ReaderAt
 }
 
 // ScratchReplayScopeRequest owns one exclusively created read/write scratch
