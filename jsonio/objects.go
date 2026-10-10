@@ -2,7 +2,6 @@ package jsonio
 
 import (
 	"context"
-	jsonv1 "encoding/json"
 	"encoding/json/jsontext"
 	jsonv2 "encoding/json/v2"
 	"errors"
@@ -159,7 +158,7 @@ func validateObjectType[Document core.Validatable]() error {
 	}
 	for _, candidate := range [...]reflect.Type{root, reflect.PointerTo(root)} {
 		for _, hook := range [...]reflect.Type{
-			reflect.TypeFor[jsonv1.Marshaler](), reflect.TypeFor[jsonv1.Unmarshaler](),
+			reflect.TypeFor[interface{ MarshalJSON() ([]byte, error) }](), reflect.TypeFor[interface{ UnmarshalJSON([]byte) error }](),
 			reflect.TypeFor[jsonv2.MarshalerTo](), reflect.TypeFor[jsonv2.UnmarshalerFrom](),
 		} {
 			if candidate.Implements(hook) {

@@ -24,6 +24,7 @@ type jsonioStructInventory struct {
 	ObjectDestinationRequest jsonioIngress[ObjectDestinationRequest]
 	Token                    jsonioObservation[Token]
 	ObjectEncoder            jsonioCapability[ObjectEncoder[Token]]
+	TokenEncoder             jsonioCapability[TokenEncoder]
 	CheckedSource            jsonioKernelFlow[checkedJSONSource]
 	CheckedDestination       jsonioKernelFlow[checkedJSONDestination]
 	ContextSource            jsonioKernelFlow[contextJSONSource]
