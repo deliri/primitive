@@ -163,6 +163,21 @@ func (d Duration) Truncate(precision Precision) (Duration, error) {
 	return NewDuration(value.Truncate(time.Duration(unit)))
 }
 
+// Round uses Go's exact nearest-quantum duration semantics, including upward
+// half rounding and saturation at Go's maximum duration. Precision selects a
+// compiled quantum; it never imposes an accepted-duration ceiling.
+func (d Duration) Round(precision Precision) (Duration, error) {
+	value, err := d.Stdlib()
+	if err != nil {
+		return Duration{}, err
+	}
+	unit, err := precision.nanoseconds()
+	if err != nil {
+		return Duration{}, err
+	}
+	return NewDuration(value.Round(time.Duration(unit)))
+}
+
 // Text emits Go's exact duration representation after admission.
 func (d Duration) Text() (string, error) {
 	value, err := d.Stdlib()

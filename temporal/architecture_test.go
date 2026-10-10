@@ -75,6 +75,7 @@ type temporalInstantSignature interface {
 }
 
 type temporalDurationSignature interface {
+	Round(Precision) (Duration, error)
 	Validate() error
 	Nanoseconds() int64
 	Stdlib() (time.Duration, error)
@@ -242,7 +243,7 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 	want := []string{
 		"type NativeTimeFormatRequest", "method NativeTimeFormatRequest.Validate", "func FormatNativeTime",
 		"func AppendTime",
-		"method Duration.Truncate", "method Duration.Text",
+		"method Duration.Truncate", "method Duration.Round", "method Duration.Text",
 		"type TimeLayout", "type LocationName", "type ParseTimeRequest", "type FormatTimeRequest",
 		"const LocationUTC", "method TimeLayout.Validate", "method LocationName.Validate",
 		"method ParseTimeRequest.Validate", "method FormatTimeRequest.Validate", "func ParseTimeUTC", "func FormatTime",

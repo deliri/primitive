@@ -48,7 +48,7 @@ const (
 	durationUnitOverflowReason     = "duration unit conversion exceeded int64 nanoseconds"
 )
 
-// Precision is the closed set of exact instant truncation boundaries.
+// Precision is the closed set of exact temporal quantization boundaries.
 type Precision uint8
 
 const (
