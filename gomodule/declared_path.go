@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/deliri/primitive/v2026/core"
-	"golang.org/x/mod/module"
 )
 
 // DeclaredPath is the identity declared by a main module. Local names are
@@ -23,7 +22,7 @@ func parseDeclaredPath(value string) (DeclaredPath, error) {
 }
 
 func (p DeclaredPath) Validate() error {
-	if err := module.CheckImportPath(p.value); err != nil {
+	if err := admitPath(p.value, pathAdmissionImport); err != nil {
 		return errors.Join(core.ErrGoModuleContract, err)
 	}
 	return nil

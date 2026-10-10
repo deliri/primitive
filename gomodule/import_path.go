@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/deliri/primitive/v2026/core"
-	"golang.org/x/mod/module"
 )
 
 // ImportPath is one validated Go package import identity. Standard-library
@@ -25,9 +24,9 @@ func ParseImportPath(value string) (ImportPath, error) {
 // Validate rejects absent or invalid Go import paths.
 func (p ImportPath) Validate() error {
 	if p.value == "" {
-		return contractError("import path is absent")
+		return core.ErrGoModuleContract
 	}
-	if err := module.CheckImportPath(p.value); err != nil {
+	if err := admitPath(p.value, pathAdmissionImport); err != nil {
 		return errors.Join(core.ErrGoModuleContract, err)
 	}
 	return nil
@@ -57,7 +56,7 @@ func (p ImportPath) MarshalJSON() ([]byte, error) {
 // the external representation is rejected.
 func (p *ImportPath) UnmarshalJSON(data []byte) error {
 	if p == nil {
-		return contractError("import path receiver is nil")
+		return core.ErrGoModuleContract
 	}
 	value, err := core.DecodeJSONStringToken(data)
 	if err != nil {

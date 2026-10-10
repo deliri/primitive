@@ -19,8 +19,8 @@ func FuzzPathTextAdmission(f *testing.F) {
 	f.Add("net//http")
 	f.Fuzz(func(t *testing.T, text string) {
 		got, gotErr := gomodule.ParsePath(text)
-		// x/mod owns the Go grammar. This proves the wrapper preserves that
-		// public agreement; named hostile rows independently pin its grammar.
+		// The retained upstream parser is an independent test oracle.
+		// Production admission uses only native ASCII scans and Go strings.
 		wantErr := module.CheckPath(text)
 		if (gotErr == nil) != (wantErr == nil) {
 			t.Fatalf("ParsePath(%q) error = %v, want upstream admission %v", text, gotErr, wantErr)
@@ -28,12 +28,6 @@ func FuzzPathTextAdmission(f *testing.F) {
 		if gotErr != nil {
 			if !errors.Is(gotErr, core.ErrGoModuleContract) || got != (gomodule.Path{}) {
 				t.Fatalf("ParsePath(refused) = (%v, %v), want zero and %v", got, gotErr, core.ErrGoModuleContract)
-			}
-			if text != "" {
-				var detail *module.InvalidPathError
-				if !errors.As(gotErr, &detail) || detail.Path != text || detail.Kind != "module" {
-					t.Fatalf("ParsePath refusal detail = %+v, want module path %q", detail, text)
-				}
 			}
 			return
 		}
@@ -68,12 +62,6 @@ func FuzzImportPathTextAdmission(f *testing.F) {
 		if gotErr != nil {
 			if !errors.Is(gotErr, core.ErrGoModuleContract) || got != (gomodule.ImportPath{}) {
 				t.Fatalf("ParseImportPath(refused) = (%v, %v), want zero and %v", got, gotErr, core.ErrGoModuleContract)
-			}
-			if text != "" {
-				var detail *module.InvalidPathError
-				if !errors.As(gotErr, &detail) || detail.Path != text || detail.Kind != "import" {
-					t.Fatalf("ParseImportPath refusal detail = %+v, want import path %q", detail, text)
-				}
 			}
 			return
 		}

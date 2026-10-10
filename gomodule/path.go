@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/deliri/primitive/v2026/core"
-	"golang.org/x/mod/module"
 )
 
 // Path is one validated canonical Go module identity.
@@ -24,9 +23,9 @@ func ParsePath(value string) (Path, error) {
 // Validate rejects absent or noncanonical Go module paths.
 func (p Path) Validate() error {
 	if p.value == "" {
-		return contractError("module path is absent")
+		return core.ErrGoModuleContract
 	}
-	if err := module.CheckPath(p.value); err != nil {
+	if err := admitPath(p.value, pathAdmissionModule); err != nil {
 		return errors.Join(core.ErrGoModuleContract, err)
 	}
 	return nil
@@ -56,7 +55,7 @@ func (p Path) MarshalJSON() ([]byte, error) {
 // the external representation is rejected.
 func (p *Path) UnmarshalJSON(data []byte) error {
 	if p == nil {
-		return contractError("module path receiver is nil")
+		return core.ErrGoModuleContract
 	}
 	value, err := core.DecodeJSONStringToken(data)
 	if err != nil {
@@ -68,10 +67,6 @@ func (p *Path) UnmarshalJSON(data []byte) error {
 	}
 	*p = candidate
 	return nil
-}
-
-func contractError(message string) error {
-	return errors.Join(core.ErrGoModuleContract, errors.New(message))
 }
 
 var _ core.ValidatedJSONMarshaler = Path{}
