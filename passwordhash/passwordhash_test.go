@@ -14,6 +14,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -133,20 +134,12 @@ func TestArgon2idAdmissionOwnershipLayerTriad(t *testing.T) {
 		t.Fatal(err)
 	}
 	request := fixtureRequest()
-	// Occupy the real admission channel explicitly: this is a capacity-mechanism
-	// ratchet, not a claim about a production workload's scheduling or throughput.
-	engine.slots <- struct{}{}
-	key, err := engine.Derive(t.Context(), request)
-	if key != nil || !errors.Is(err, core.ErrPasswordHashCapacity) {
-		t.Fatalf("saturated derivation = %d/%v, want nil/capacity", len(key), err)
-	}
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
-	key, err = engine.Derive(ctx, request)
+	key, err := engine.Derive(ctx, request)
 	if key != nil || !errors.Is(err, context.Canceled) {
 		t.Fatalf("cancelled saturated derivation = %d/%v, want nil/cancelled", len(key), err)
 	}
-	<-engine.slots
 	key, err = engine.Derive(t.Context(), request)
 	defer clear(key)
 	if err != nil || len(key) != int(request.KeyBytes) || len(engine.slots) != 0 {
@@ -296,101 +289,99 @@ func (c errBoundaryContext) Err() error { c.onErr(); return c.Context.Err() }
 
 func TestArgon2idConcurrentAdmissionAndRelease(t *testing.T) {
 	t.Parallel()
-	const calls = 4
-	const capacity = 2
-	limits := fixtureLimits()
-	limits.ConcurrentCalls = capacity
-	engine, err := New(limits)
-	if err != nil {
-		t.Fatal(err)
-	}
-	ctx, cancel := context.WithCancel(t.Context())
-	defer cancel()
-	entered := make(chan struct{}, calls)
-	release := make(chan struct{})
-	type outcome struct {
-		key []byte
-		err error
-	}
-	outcomes := make(chan outcome, calls)
-	var workers sync.WaitGroup
-	workers.Add(calls)
-	for range calls {
-		go func() {
-			defer workers.Done()
-			var checks atomic.Int32
-			owned := errBoundaryContext{Context: ctx, onErr: func() {
-				if checks.Add(1) == 2 {
-					entered <- struct{}{}
-					select {
-					case <-release:
-					case <-ctx.Done():
+	synctest.Test(t, func(t *testing.T) {
+		const calls = 4
+		const capacity = 2
+		limits := fixtureLimits()
+		limits.ConcurrentCalls = capacity
+		engine, err := New(limits)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ctx, cancel := context.WithCancel(t.Context())
+		defer cancel()
+		entered := make(chan struct{}, calls)
+		release := make(chan struct{})
+		type outcome struct {
+			key []byte
+			err error
+		}
+		outcomes := make(chan outcome, calls)
+		var workers sync.WaitGroup
+		workers.Add(calls)
+		for range calls {
+			go func() {
+				defer workers.Done()
+				var checks atomic.Int32
+				owned := errBoundaryContext{Context: ctx, onErr: func() {
+					if checks.Add(1) == 2 {
+						entered <- struct{}{}
+						select {
+						case <-release:
+						case <-ctx.Done():
+						}
 					}
+				}}
+				key, err := engine.Derive(owned, fixtureRequest())
+				outcomes <- outcome{key: key, err: err}
+			}()
+		}
+		done := make(chan struct{})
+		go func() { workers.Wait(); close(done) }()
+		t.Cleanup(func() {
+			cancel()
+			select {
+			case <-done:
+			case <-time.After(10 * time.Second):
+				t.Error("owned derivation workers = blocked, want all exited")
+			}
+		})
+		for range capacity {
+			select {
+			case <-entered:
+			case <-time.After(10 * time.Second):
+				t.Fatal("admission = underfilled, want configured capacity before deadline")
+			}
+		}
+		synctest.Wait()
+		select {
+		case got := <-outcomes:
+			clear(got.key)
+			t.Fatalf("occupied admission = returned %v, want all excess callers queued", got.err)
+		default:
+		}
+		if got := len(engine.slots); got != capacity {
+			t.Fatalf("in-flight admissions = %d, want %d", got, capacity)
+		}
+		close(release)
+		request := fixtureRequest()
+		want := argon2.IDKey(request.Material, request.Salt, request.Parameters.Iterations, request.Parameters.MemoryKiB, request.Parameters.Parallelism, request.KeyBytes)
+		defer clear(want)
+		for range calls {
+			select {
+			case got := <-outcomes:
+				matched := bytes.Equal(got.key, want)
+				clear(got.key)
+				if got.err != nil || !matched {
+					t.Fatalf("concurrent native derivation = matched:%t/%v, want true/nil", matched, got.err)
 				}
-			}}
-			key, err := engine.Derive(owned, fixtureRequest())
-			outcomes <- outcome{key: key, err: err}
-		}()
-	}
-	done := make(chan struct{})
-	go func() { workers.Wait(); close(done) }()
-	t.Cleanup(func() {
-		cancel()
+			case <-time.After(10 * time.Second):
+				t.Fatal("admitted native derivation = blocked, want completion before deadline")
+			}
+		}
 		select {
 		case <-done:
 		case <-time.After(10 * time.Second):
-			t.Error("owned derivation workers = blocked, want all exited")
+			t.Fatal("owned workers = blocked, want all exited")
+		}
+		if got := len(engine.slots); got != 0 {
+			t.Fatalf("completed admissions = %d, want 0", got)
+		}
+		matched, err := engine.Verify(t.Context(), request, want)
+		if err != nil || !matched {
+			t.Fatalf("reused capacity = %t/%v, want true/nil", matched, err)
 		}
 	})
-	for range capacity {
-		select {
-		case <-entered:
-		case <-time.After(10 * time.Second):
-			t.Fatal("admission = underfilled, want configured capacity before deadline")
-		}
-	}
-	for range calls - capacity {
-		select {
-		case got := <-outcomes:
-			if got.key != nil || !errors.Is(got.err, core.ErrPasswordHashCapacity) {
-				clear(got.key)
-				t.Fatalf("saturated call = %v, want capacity refusal", got.err)
-			}
-		case <-time.After(10 * time.Second):
-			t.Fatal("saturated call = queued, want immediate capacity refusal")
-		}
-	}
-	if got := len(engine.slots); got != capacity {
-		t.Fatalf("in-flight admissions = %d, want %d", got, capacity)
-	}
-	close(release)
-	request := fixtureRequest()
-	want := argon2.IDKey(request.Material, request.Salt, request.Parameters.Iterations, request.Parameters.MemoryKiB, request.Parameters.Parallelism, request.KeyBytes)
-	defer clear(want)
-	for range capacity {
-		select {
-		case got := <-outcomes:
-			matched := bytes.Equal(got.key, want)
-			clear(got.key)
-			if got.err != nil || !matched {
-				t.Fatalf("concurrent native derivation = matched:%t/%v, want true/nil", matched, got.err)
-			}
-		case <-time.After(10 * time.Second):
-			t.Fatal("admitted native derivation = blocked, want completion before deadline")
-		}
-	}
-	select {
-	case <-done:
-	case <-time.After(10 * time.Second):
-		t.Fatal("owned workers = blocked, want all exited")
-	}
-	if got := len(engine.slots); got != 0 {
-		t.Fatalf("completed admissions = %d, want 0", got)
-	}
-	matched, err := engine.Verify(t.Context(), request, want)
-	if err != nil || !matched {
-		t.Fatalf("reused capacity = %t/%v, want true/nil", matched, err)
-	}
 }
 
 func TestArgon2idCancellationAtEveryContextBoundary(t *testing.T) {

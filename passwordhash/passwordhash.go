@@ -28,8 +28,8 @@ func (p Parameters) Validate() error {
 }
 
 // Limits are explicit caller admission policy, not library-selected costs.
-// One Deriver is shared by all callers in a resource domain. There is no queue:
-// saturated admission returns ErrPasswordHashCapacity without performing a KDF.
+// One Deriver is shared by all callers in a resource domain. Excess callers
+// wait for admission using their context; saturation never discards valid work.
 type Limits struct {
 	MemoryKiB       uint32
 	Iterations      uint32
@@ -82,7 +82,8 @@ func (l Limits) validateParameters(p Parameters) error {
 }
 
 // Deriver owns only bounded admission. Copying the pointer shares that budget.
-// No goroutines, timers, retries, network calls or persistent state are created.
+// Waiting callers use Go's channel queue. No background workers, timers,
+// retries, network calls or persistent state are created.
 type Deriver struct {
 	limits Limits
 	slots  chan struct{}
@@ -123,8 +124,8 @@ func (d *Deriver) Derive(ctx context.Context, request Request) ([]byte, error) {
 	select {
 	case d.slots <- struct{}{}:
 		defer func() { <-d.slots }()
-	default:
-		return nil, core.ErrPasswordHashCapacity
+	case <-ctx.Done():
+		return nil, ctx.Err()
 	}
 	if err := ctx.Err(); err != nil {
 		return nil, err
