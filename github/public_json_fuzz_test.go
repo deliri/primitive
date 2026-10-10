@@ -1,7 +1,7 @@
 package github
 
 import (
-	stdjson "encoding/json"
+	stdjson "encoding/json/v2"
 	"errors"
 	"github.com/deliri/primitive/v2026/core"
 	"net/http"
@@ -88,10 +88,10 @@ func FuzzGitHubPublicJSONSemanticClosure(f *testing.F) {
 				return
 			}
 			var source struct {
-				SHA       *string
-				URL       *string
-				Tree      *[]treeEntryFixture
-				Truncated *bool
+				SHA       *string             `json:"sha"`
+				URL       *string             `json:"url"`
+				Tree      *[]treeEntryFixture `json:"tree"`
+				Truncated *bool               `json:"truncated"`
 			}
 			if decodeErr := stdjson.Unmarshal(payload, &source); decodeErr != nil || source.SHA == nil || *source.SHA == "" || source.URL == nil || *source.URL == "" || source.Tree == nil || source.Truncated == nil || *source.Truncated {
 				t.Fatalf("tree source=%+v/%v, want complete untruncated document", source, decodeErr)

@@ -6,7 +6,8 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"errors"
 	"flag"
 	"fmt"
@@ -96,13 +97,11 @@ func readLayouts(root *os.Root, path string) (pins []wireLayout, err error) {
 		return nil, err
 	}
 	defer func() { err = errors.Join(err, file.Close()) }()
-	decoder := json.NewDecoder(file)
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&pins); err != nil {
+	decoder := jsontext.NewDecoder(file)
+	if err := json.UnmarshalDecode(decoder, &pins, json.RejectUnknownMembers(true)); err != nil {
 		return nil, err
 	}
-	var trailing json.RawMessage
-	if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
+	if _, err := decoder.ReadToken(); !errors.Is(err, io.EOF) {
 		return nil, errors.Join(errors.New("layout manifest has trailing input"), err)
 	}
 	if len(pins) == 0 || len(pins) > publishedLayoutMaximum {

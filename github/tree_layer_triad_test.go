@@ -3,7 +3,6 @@ package github
 import (
 	"bytes"
 	"context"
-	stdjson "encoding/json"
 	json "encoding/json/v2"
 	"errors"
 	"io"
@@ -130,12 +129,12 @@ func FuzzDecodeGitHubTreeSemanticClosure(f *testing.F) {
 			return
 		}
 		var source struct {
-			SHA       *string
-			URL       *string
-			Tree      *[]treeEntryFixture
-			Truncated *bool
+			SHA       *string             `json:"sha"`
+			URL       *string             `json:"url"`
+			Tree      *[]treeEntryFixture `json:"tree"`
+			Truncated *bool               `json:"truncated"`
 		}
-		if err := stdjson.Unmarshal(payload, &source); err != nil || source.SHA == nil || *source.SHA == "" || source.URL == nil || *source.URL == "" || source.Tree == nil || source.Truncated == nil || *source.Truncated {
+		if err := json.Unmarshal(payload, &source); err != nil || source.SHA == nil || *source.SHA == "" || source.URL == nil || *source.URL == "" || source.Tree == nil || source.Truncated == nil || *source.Truncated {
 			t.Fatalf("accepted source=%+v/%v, want complete untruncated typed document", source, err)
 		}
 		if len(*source.Tree) != len(visitor.entries) {
