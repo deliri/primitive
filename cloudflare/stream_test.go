@@ -7,6 +7,7 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -187,8 +188,12 @@ func FuzzStreamDirectUploadResponseSemanticClosure(f *testing.F) {
 			return
 		}
 		var independent apiEnvelope[streamDirectUploadWire]
-		if err := json.Unmarshal(data, &independent); err != nil || independent.Success == nil || !*independent.Success || len(independent.Errors) != 0 || independent.Result.UID != got.ID.value || independent.Result.UploadURL != got.endpoint.String() {
+		if err := json.Unmarshal(data, &independent); err != nil || independent.Success == nil || !*independent.Success || len(independent.Errors) != 0 || independent.Result.UID != got.ID.value {
 			t.Fatalf("admitted Stream source agreement error=%v, want exact provider facts", err)
+		}
+		providerURL, err := url.Parse(independent.Result.UploadURL)
+		if err != nil || providerURL.String() != got.endpoint.String() {
+			t.Fatalf("Stream endpoint = %q, source = %q, parse error = %v, want exact escaped provider URL", got.endpoint.String(), independent.Result.UploadURL, err)
 		}
 		if got.Validate() != nil || calls != 1 {
 			t.Fatalf("authority validation/calls=%v/%d, want nil/1", got.Validate(), calls)

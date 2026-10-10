@@ -1,0 +1,2 @@
+go test fuzz v1
+[]byte("{\"result\":{\"uid\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"uploadURL\":\"https://upload.videodelivery.net/upl}ad\"},\"success\":true,\"errors\":[],\"messages\":[]}")

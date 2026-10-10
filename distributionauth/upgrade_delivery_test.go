@@ -141,8 +141,8 @@ func FuzzUpgradeDeliverySemanticClosure(f *testing.F) {
 		d.Document, p.Document = got.Download, got.Transfer
 		grant, grantErr := distribution.VerifyUpgradeGrant(d)
 		permission, permissionErr := permit.VerifyBuildTransfer(p)
-		if grantErr != nil && (grant.Validate() == nil || !errors.Is(grantErr, core.ErrDistributionVerification)) {
-			t.Fatalf("refused download proof = valid/%v, want invalid proof", grantErr)
+		if grantErr != nil && (grant.Validate() == nil || !errors.Is(grantErr, core.ErrDistributionContract) || (!errors.Is(grantErr, core.ErrDistributionVerification) && !errors.Is(grantErr, core.ErrDistributionBinding))) {
+			t.Fatalf("refused download proof validation = %v, error = %v, want invalid proof and typed verification/binding refusal", grant.Validate(), grantErr)
 		}
 		if permissionErr != nil && (permission.Validate() == nil || (!errors.Is(permissionErr, core.ErrPermitContract) && !errors.Is(permissionErr, core.ErrPermitBinding) && !errors.Is(permissionErr, core.ErrPermitAuthentication))) {
 			t.Fatalf("refused permission proof = valid/%v, want invalid proof", permissionErr)

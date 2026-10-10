@@ -26,6 +26,7 @@ import (
 )
 
 type publicationAuthFixtureRequest struct {
+	provenance    release.BuildProvenance
 	offering      core.Offering
 	authorityByte byte
 	deviceByte    byte
@@ -92,7 +93,11 @@ func newPublicationAuthFixture(
 	if err != nil {
 		t.Fatalf("controlplanetest.IssueInstallation() error = %v, want nil", err)
 	}
-	releaseFixture := newPublicationAuthRelease(t, installation, request.releaseByte)
+	provenance := request.provenance
+	if provenance == (release.BuildProvenance{}) {
+		provenance = publicationAuthProvenance(t)
+	}
+	releaseFixture := newPublicationAuthRelease(t, installation, request.releaseByte, provenance)
 	requestPayload := distribution.PublicationRequestPayload{
 		Manifest: releaseFixture.document, Build: installation.Build,
 		Nonce: distributionAuthNonce(t, request.nonceByte), Revision: installation.Certificate.Body.Revision,
@@ -153,6 +158,7 @@ func newPublicationAuthRelease(
 	t testing.TB,
 	installation controlplanetest.Installation,
 	signerByte byte,
+	provenance release.BuildProvenance,
 ) publicationAuthRelease {
 	t.Helper()
 	installed := installation.Build
@@ -197,7 +203,7 @@ func newPublicationAuthRelease(
 		Revision: release.Revision2026V1, Offering: installed.Offering(),
 		Version: installed.Version(), Commit: installed.Commit(),
 		CreatedAt: installation.Certificate.Body.IssuedAt, Artifacts: artifactSet,
-		Provenance: publicationAuthProvenance(t), Metadata: metadata,
+		Provenance: provenance, Metadata: metadata,
 	})
 	if err != nil {
 		t.Fatalf("release.NewManifestFact() error = %v, want nil", err)
@@ -253,10 +259,11 @@ func publicationAuthMetadata(
 
 func publicationAuthProvenance(t testing.TB) release.BuildProvenance {
 	t.Helper()
-	goToolchain, err := release.CurrentGoToolchain().Version()
-	if err != nil {
-		t.Fatalf("release.CurrentGoToolchain().Version() error = %v, want nil", err)
-	}
+	return publicationAuthProvenanceForCompiler(t, "go1.27.1", release.BuildModuleVendor)
+}
+
+func publicationAuthProvenanceForCompiler(t testing.TB, goToolchain string, mode release.BuildModuleMode) release.BuildProvenance {
+	t.Helper()
 	wire := struct {
 		GoToolchain        string            `json:"go_toolchain"`
 		MainPackage        string            `json:"main_package"`
@@ -266,7 +273,7 @@ func publicationAuthProvenance(t testing.TB) release.BuildProvenance {
 		GoExecutableSHA256 core.SHA256Digest `json:"go_executable_sha256"`
 	}{
 		GoToolchain: goToolchain, MainPackage: "github.com/example/product/cmd/product",
-		ModuleMode: "vendor", BuildTags: []string{}, LinkerAssignments: []struct{}{},
+		ModuleMode: mode.String(), BuildTags: []string{}, LinkerAssignments: []struct{}{},
 		GoExecutableSHA256: core.SHA256Of([]byte("publication-auth-go")),
 	}
 	encoded, err := json.Marshal(wire)

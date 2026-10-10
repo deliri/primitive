@@ -6,10 +6,18 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/release"
 )
 
 func FuzzCredentialedPublicationRequestJSONSemanticAndAuthorityClosure(f *testing.F) {
 	fixture := newPublicationAuthFixture(f, publicationAuthFixtureRequest{})
+	previous := newPublicationAuthFixture(f, publicationAuthFixtureRequest{
+		provenance: publicationAuthProvenanceForCompiler(f, "go1.27.2", release.BuildModuleVendor),
+	})
+	previousWire, err := previous.document.MarshalJSON()
+	if err != nil {
+		f.Fatalf("PublicationRequestDocument.MarshalJSON(previous signed seed) error = %v, want nil", err)
+	}
 	canonical, err := fixture.document.MarshalJSON()
 	if err != nil {
 		f.Fatalf("PublicationRequestDocument.MarshalJSON(seed) error = %v, want nil", err)
@@ -28,6 +36,7 @@ func FuzzCredentialedPublicationRequestJSONSemanticAndAuthorityClosure(f *testin
 		f.Fatalf("PublicationRequestDocument.MarshalJSON(tampered seed) error = %v, want nil", err)
 	}
 	f.Add(canonical)
+	f.Add(previousWire)
 	f.Add(foreignWire)
 	f.Add(tamperedWire)
 	f.Add([]byte{})
@@ -74,7 +83,7 @@ func FuzzCredentialedPublicationRequestJSONSemanticAndAuthorityClosure(f *testin
 			}
 			return
 		}
-		if roundTrip != fixture.document {
+		if roundTrip != fixture.document && roundTrip != previous.document {
 			t.Fatalf("VerifyPublication authenticated document = %+v, want compiler-owned signed fixture %+v",
 				roundTrip, fixture.document)
 		}
@@ -147,7 +156,8 @@ func FuzzCredentialedPublicationCompletionJSONSemanticAndAuthorityClosure(f *tes
 		})
 		if verifyErr != nil {
 			if (!errors.Is(verifyErr, core.ErrAttestVerification) &&
-				!errors.Is(verifyErr, core.ErrControlPlaneResponseBinding)) ||
+				!errors.Is(verifyErr, core.ErrControlPlaneResponseBinding) &&
+				!errors.Is(verifyErr, core.ErrDistributionBinding)) ||
 				verified != (VerifiedPublicationCompletion{}) {
 				t.Fatalf("VerifyPublicationCompletion(fuzzed credential) = (%+v, %v), want zero typed attestation/binding rejection",
 					verified, verifyErr)

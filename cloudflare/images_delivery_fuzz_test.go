@@ -77,7 +77,7 @@ func FuzzImageDeliveryAddressBinding(f *testing.F) {
 		}
 		u := got.HTTPURL()
 		wantPath := core.CloudflareImagesCustomDeliveryPath + r.Account.String() + "/" + id + "/" + r.Variant.String()
-		if got.Validate() != nil || !got.SameOrigin(r.Origin) || u.Path != wantPath || u.Scheme != core.SchemeHTTPS || u.RawQuery != "" || u.ForceQuery || u.Fragment != "" || u.User != nil || strings.ContainsAny(got.String(), " ,\\\t\r\n") {
+		if got.Validate() != nil || !got.SameOrigin(r.Origin) || u.Path != wantPath || u.Scheme != core.SchemeHTTPS || u.RawQuery != "" || u.ForceQuery || u.Fragment != "" || u.User != nil || strings.ContainsAny(got.String(), " \\\t\r\n") || strings.Contains(u.EscapedPath(), ",") {
 			t.Fatalf("address=%q, want exact escaped identity and origin %q", got.String(), wantPath)
 		}
 		again, parseErr := core.ParseHTTPEndpoint(got.String())

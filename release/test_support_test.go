@@ -50,6 +50,17 @@ func newReleaseFixtureForOffering(
 	generation uint64,
 ) releaseFixture {
 	t.Helper()
+	return newReleaseFixtureForProvenance(t, offering, version, generation, fixtureBuildProvenance(t))
+}
+
+func newReleaseFixtureForProvenance(
+	t testing.TB,
+	offering core.Offering,
+	version core.ReleaseVersion,
+	generation uint64,
+	provenance BuildProvenance,
+) releaseFixture {
+	t.Helper()
 	manifestKey := deterministicKey(11)
 	latestKey := deterministicKey(29)
 	manifestTrust := trustedKey(t, manifestKey)
@@ -91,7 +102,6 @@ func newReleaseFixtureForOffering(
 		t.Fatalf("NewArtifactSet() error = %v", err)
 	}
 	metadata := fixtureMetadataSet(t)
-	provenance := fixtureBuildProvenance(t)
 	fact, err := NewManifestFact(ManifestFactRequest{
 		Revision:   Revision2026V1,
 		Offering:   offering,
@@ -169,7 +179,9 @@ func fixtureBuildProvenance(t testing.TB) BuildProvenance {
 	if err != nil {
 		t.Fatalf("ParseMainPackage() error = %v", err)
 	}
-	compiler, err := CurrentGoToolchain().CompilerVersion()
+	// Signed fixtures must survive changes to the compiler selected for new
+	// production builds. This is recorded historical provenance, not execution.
+	compiler, err := parseGoCompilerVersion("go1.27.1")
 	if err != nil {
 		t.Fatalf("GoToolchainIdentity.CompilerVersion() error = %v, want nil", err)
 	}

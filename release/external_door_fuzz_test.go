@@ -122,8 +122,10 @@ type releaseJSONDoorFixtures struct {
 	available              AvailableSummary
 	manifestFact           ManifestFact
 	manifestDocument       ManifestDocument
+	previousManifest       ManifestDocument
 	latestFact             LatestFact
 	latestDocument         LatestDocument
+	previousLatest         LatestDocument
 	release                releaseFixture
 	metadataSet            MetadataSet
 	metadataAsset          MetadataAsset
@@ -416,7 +418,7 @@ func fuzzReleaseManifestDocument(
 		}
 		return
 	}
-	if proof.Validate() != nil || candidate != fixtures.manifestDocument {
+	if proof.Validate() != nil || (candidate != fixtures.manifestDocument && candidate != fixtures.previousManifest) {
 		t.Fatalf("VerifyManifest(fuzz document) authenticated facts outside the signed seed")
 	}
 }
@@ -445,7 +447,7 @@ func fuzzReleaseLatestDocument(
 		}
 		return
 	}
-	if proof.Validate() != nil || candidate != fixtures.latestDocument {
+	if proof.Validate() != nil || (candidate != fixtures.latestDocument && candidate != fixtures.previousLatest) {
 		t.Fatalf("VerifyLatest(fuzz document) authenticated facts outside the signed seed")
 	}
 }
@@ -455,6 +457,11 @@ func releaseJSONFixturesForFuzz(t testing.TB) releaseJSONDoorFixtures {
 
 	installed := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 30), 1)
 	candidate := newReleaseFixture(t, core.NewReleaseVersion(2026, 7, 31), 2)
+	// Preserve the genuinely signed seed emitted before the fixture stopped
+	// following the selected compiler. Neither expectation comes from fuzz input.
+	previousProvenance := fixtureBuildProvenance(t)
+	previousProvenance.goToolchain = GoCompilerVersion{major: 1, minor: 27, patch: 2}
+	previous := newReleaseFixtureForProvenance(t, releaseOffering(t, 2), core.NewReleaseVersion(2026, 7, 31), 2, previousProvenance)
 	cache, err := NewCachedLatest(candidate.verifiedLatest)
 	if err != nil {
 		t.Fatalf("NewCachedLatest() error = %v, want nil", err)
@@ -507,6 +514,7 @@ func releaseJSONFixturesForFuzz(t testing.TB) releaseJSONDoorFixtures {
 		manifestIdentity:       candidate.manifest.Fact.Identity(),
 		manifestDocumentDigest: candidate.verified.DocumentDigest(),
 		manifestFact:           candidate.manifest.Fact, manifestDocument: candidate.manifest,
+		previousManifest: previous.manifest, previousLatest: previous.latest,
 		materialRequest: materialRequest, materialResponse: materialResponse,
 		releaseSigningSeed: releaseSigningSeed,
 		release:            candidate,
@@ -526,6 +534,7 @@ func releaseJSONSeedsForFuzz(
 		releaseJSONSeedForFuzz(t, releaseJSONDoorLatestIdentity, fixtures.latestIdentity),
 		releaseJSONSeedForFuzz(t, releaseJSONDoorLatestFact, fixtures.latestFact),
 		releaseJSONSeedForFuzz(t, releaseJSONDoorLatestDocument, fixtures.latestDocument),
+		releaseJSONSeedForFuzz(t, releaseJSONDoorLatestDocument, fixtures.previousLatest),
 		releaseJSONSeedForFuzz(t, releaseJSONDoorMetadataKind, fixtures.metadataKind),
 		releaseJSONSeedForFuzz(t, releaseJSONDoorMetadataAsset, fixtures.metadataAsset),
 		releaseJSONSeedForFuzz(t, releaseJSONDoorMetadataSet, fixtures.metadataSet),
@@ -541,6 +550,7 @@ func releaseJSONSeedsForFuzz(
 		releaseJSONSeedForFuzz(t, releaseJSONDoorManifestDocumentDigest, fixtures.manifestDocumentDigest),
 		releaseJSONSeedForFuzz(t, releaseJSONDoorManifestFact, fixtures.manifestFact),
 		releaseJSONSeedForFuzz(t, releaseJSONDoorManifestDocument, fixtures.manifestDocument),
+		releaseJSONSeedForFuzz(t, releaseJSONDoorManifestDocument, fixtures.previousManifest),
 		releaseJSONSeedForFuzz(t, releaseJSONDoorMaterialRequest, fixtures.materialRequest),
 		releaseJSONSeedForFuzz(t, releaseJSONDoorMaterialResponse, fixtures.materialResponse),
 		releaseJSONSeedForFuzz(t, releaseJSONDoorReleaseSigningSeed, fixtures.releaseSigningSeed),

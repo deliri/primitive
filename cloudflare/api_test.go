@@ -282,8 +282,14 @@ func FuzzImagesDirectUploadResponseSemanticClosure(f *testing.F) {
 			return
 		}
 		var independent apiEnvelope[imageDirectUploadWire]
-		if err := json.Unmarshal(data, &independent); err != nil || independent.Success == nil || !*independent.Success || len(independent.Errors) != 0 || independent.Result.ID != got.ID.String() || independent.Result.UploadURL != got.endpoint.String() {
+		if err := json.Unmarshal(data, &independent); err != nil || independent.Success == nil || !*independent.Success || len(independent.Errors) != 0 || independent.Result.ID != got.ID.String() {
 			t.Fatalf("accepted response does not retain source identity, want independent wire agreement: %v", err)
+		}
+		// The endpoint owns URL escaping, not the provider's raw spelling.
+		// Compare against the independent standard-library URL projection.
+		providerURL, err := url.Parse(independent.Result.UploadURL)
+		if err != nil || providerURL.String() != got.endpoint.String() {
+			t.Fatalf("upload endpoint = %q, source = %q, parse error = %v, want exact escaped provider URL", got.endpoint.String(), independent.Result.UploadURL, err)
 		}
 		if got.Validate() != nil {
 			t.Fatalf("accepted ID=%v, want validated capability", got.ID)
