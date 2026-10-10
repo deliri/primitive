@@ -11,7 +11,6 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/filestore"
-	"golang.org/x/sys/unix"
 )
 
 const (
@@ -41,8 +40,8 @@ func observeDiskRotation(ctx context.Context, directory core.AbsolutePath) (Disk
 // observation rather than a failure.
 func rotationForDevice(ctx context.Context, device uint64) (DiskRotation, error) {
 	node := sysDevBlockDirectoryText + "/" +
-		strconv.FormatUint(uint64(unix.Major(device)), 10) + ":" +
-		strconv.FormatUint(uint64(unix.Minor(device)), 10)
+		strconv.FormatUint(uint64(linuxDeviceMajor(device)), 10) + ":" +
+		strconv.FormatUint(uint64(linuxDeviceMinor(device)), 10)
 	nodePath, err := core.ParseAbsolutePath(node)
 	if err != nil {
 		return DiskRotationUnknown, fail(OperationDiskRotation, core.ErrHostFactsObservation, err)
@@ -64,6 +63,18 @@ func rotationForDevice(ctx context.Context, device uint64) (DiskRotation, error)
 		return DiskRotationUnknown, fail(OperationDiskRotation, core.ErrHostFactsObservation, err)
 	}
 	return rotationAtDeviceDirectory(ctx, resolved)
+}
+
+// Linux dev_t interleaves two 32-bit fields: major bits 0..11 occupy
+// device bits 8..19, major bits 12..31 occupy bits 44..63; minor bits
+// 0..7 occupy bits 0..7 and minor bits 8..31 occupy bits 20..43.
+// These are projections of the OS ABI, without a device inventory.
+func linuxDeviceMajor(device uint64) uint32 {
+	return uint32(device>>8)&0xfff | uint32(device>>32)&0xfffff000
+}
+
+func linuxDeviceMinor(device uint64) uint32 {
+	return uint32(device)&0xff | uint32(device>>12)&0xffffff00
 }
 
 // rotationAtDeviceDirectory reads the flag beside the resolved device, then
