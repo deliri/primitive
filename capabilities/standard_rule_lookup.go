@@ -99,6 +99,10 @@ func standardFunctionRules3(importPath string) []standardSymbolRule {
 		return []standardSymbolRule{
 			{importPath: importPath, effect: EffectHost, effectSelectors: []string{"Callers", "CallersFrames", "CPUProfile", "GC", "GOMAXPROCS", "GOROOT", "MemProfile", "NumCPU", "NumCgoCall", "ReadMemStats", "SetCPUProfileRate", "Stack", "StartTrace", "StopTrace", "ThreadCreateProfile"}},
 		}
+	case "runtime/debug":
+		return []standardSymbolRule{
+			{importPath: importPath, effect: EffectHost, effectSelectors: []string{"FreeOSMemory", "PrintStack", "ReadBuildInfo", "ReadGCStats", "SetCrashOutput", "SetGCPercent", "SetMaxStack", "SetMaxThreads", "SetMemoryLimit", "SetPanicOnFault", "SetTraceback", "Stack", "WriteHeapDump"}, pureSelectors: []string{"ParseBuildInfo"}, secondary: EffectFilesystem, secondarySelectors: []string{"PrintStack", "SetCrashOutput", "WriteHeapDump"}},
+		}
 	case timeContractText:
 		return []standardSymbolRule{
 			{importPath: importPath, effect: EffectTime, effectSelectors: []string{"Since", "Until", symbolAfter, symbolAfterFunc, "NewTicker", "NewTimer", "Now", "Sleep", "Tick"}, pureSelectors: []string{symbolDate, "FixedZone", "LoadLocationFromTZData", symbolParse, "ParseDuration", "ParseInLocation", symbolUnix, "UnixMicro", "UnixMilli"}},

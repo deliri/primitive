@@ -7,8 +7,8 @@ import (
 	"github.com/deliri/primitive/v2026/gomodule"
 )
 
-// Eight fixed requests cover a package function, pure/contextual helpers,
-// composite effects, methods, and an unlisted product symbol. Every result is
+// Eleven fixed requests cover a package function, pure/contextual helpers,
+// host memory/build observations, composite effects, methods, and an unlisted product symbol. Every result is
 // observed after the loop; request construction is outside timing.
 func BenchmarkMixedStandardSymbols(b *testing.B) {
 	cases := []struct {
@@ -24,6 +24,9 @@ func BenchmarkMixedStandardSymbols(b *testing.B) {
 		{path: "example.com/product", selector: "Run", disposition: StandardSymbolUnresolved},
 		{path: "os", receiver: symbolFile, selector: symbolRead, disposition: StandardSymbolEffect, effect: EffectFilesystem},
 		{path: "net", receiver: symbolConn, selector: symbolLocalAddr, disposition: StandardSymbolPure},
+		{path: "runtime/debug", selector: "ReadBuildInfo", disposition: StandardSymbolEffect, effect: EffectHost},
+		{path: "runtime/debug", selector: "SetMemoryLimit", disposition: StandardSymbolEffect, effect: EffectHost},
+		{path: "runtime/debug", selector: "WriteHeapDump", disposition: StandardSymbolEffect, effect: EffectHost},
 	}
 	requests := make([]StandardSymbol, len(cases))
 	results := make([]StandardSymbolFact, len(cases))
