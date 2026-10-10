@@ -27,6 +27,7 @@ type (
 // data-flow role. It is a compiler-visible wiring ratchet, not behavior proof.
 type lineioContractInventory struct {
 	RecordRange           lineioRequestContract[lineio.RecordRange]
+	RecordCharacter       lineioRequestContract[lineio.RecordCharacter]
 	RecordRangeRequest    lineioRequestContract[lineio.RecordRangeRequest]
 	RecordFragmentRequest lineioRequestContract[lineio.RecordFragmentRequest]
 	Character             lineioRequestContract[lineio.Character]

@@ -429,6 +429,10 @@ func TestRecordRangesReplayNativeScratchWithinOwnedScope(t *testing.T) {
 				if err != nil {
 					return err
 				}
+				start := int(record.Offset)
+				end := start + int(record.Bytes.Uint64())
+				checkRecordCharactersAgainstUTF8(t, source, record, []byte(body[start:end]), 4096)
+
 				count++
 				for fragment, err := range lineio.RecordFragments(ctx, lineio.RecordFragmentRequest{Source: source, Record: record, BufferBytes: recordRangeBuffer(t, 4096)}) {
 					if err != nil {
