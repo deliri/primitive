@@ -65,7 +65,9 @@ func (r GoBenchmarkRecord) SourceExtent() GoBenchmarkSourceExtent { return r.sou
 // GoBenchmarkRecords scans native Go rows with fixed working buffers. Names
 // are copied only after admission; the returned name is the sole payload-sized
 // allocation. Numeric fields and unknown units never retain source-sized text.
-// Each yielded source range remains readable inside the caller's native scope.
+// Complete malformed rows yield Refused observations and preserve their exact
+// range. Read failures return errors and end the sequence. Each source range
+// remains readable inside the caller's native scope.
 func GoBenchmarkRecords(ctx context.Context, request GoBenchmarkSourceRequest) iter.Seq2[GoBenchmarkRecord, error] {
 	return func(yield func(GoBenchmarkRecord, error) bool) {
 		if err := errors.Join(contextstate.Validate(ctx), request.Validate()); err != nil {
@@ -80,7 +82,19 @@ func GoBenchmarkRecords(ctx context.Context, request GoBenchmarkSourceRequest) i
 		input := goBenchmarkSourceReader{ctx: ctx, source: request.Source}
 		cursor := goBenchmarkFieldCursor{ctx: ctx, source: request.Source, buffer: bufio.NewReader(&input), offset: offset}
 		for {
+			start := cursor.offset
 			record, err := readGoBenchmarkSourceRecord(&cursor)
+			if err == core.ErrGoToolchainOutput {
+				for !cursor.ended {
+					if _, _, drainErr := cursor.nextField(); drainErr != nil {
+						err = drainErr
+						break
+					}
+				}
+				if err == core.ErrGoToolchainOutput {
+					record, err = sourceGoBenchmarkRecord(&cursor, start, GoBenchmarkRecord{Presence: GoBenchmarkRecordRefused})
+				}
+			}
 			if err == io.EOF {
 				return
 			}
@@ -231,7 +245,10 @@ func (c *goBenchmarkFieldCursor) admittedName(field goBenchmarkFieldSpan) (bool,
 			return false, errors.Join(core.ErrGoToolchainOutput, err)
 		}
 		if value == utf8.RuneError && size == 1 || unicode.IsSpace(value) || unicode.IsControl(value) {
-			return false, errors.Join(core.ErrGoToolchainOutput, nameSource.readErr)
+			if nameSource.readErr != nil {
+				return false, errors.Join(core.ErrGoToolchainOutput, nameSource.readErr)
+			}
+			return false, core.ErrGoToolchainOutput
 		}
 	}
 }
@@ -282,7 +299,10 @@ func readGoBenchmarkSourceRecord(c *goBenchmarkFieldCursor) (GoBenchmarkRecord, 
 	}
 	countSource := c.fieldReader(count)
 	iterations, err := goBenchmarkInteger(countSource)
-	if err = errors.Join(err, countSource.readErr); err != nil {
+	if countSource.readErr != nil {
+		err = errors.Join(err, countSource.readErr)
+	}
+	if err != nil {
 		return GoBenchmarkRecord{}, err
 	}
 	record := GoBenchmarkRecord{Iterations: iterations, Presence: GoBenchmarkRecordPresent}
@@ -309,7 +329,10 @@ func readGoBenchmarkSourceRecord(c *goBenchmarkFieldCursor) (GoBenchmarkRecord, 
 		}
 		valueSource := c.fieldReader(value)
 		err = projectGoBenchmarkMetric(&record, valueSource, kind)
-		if err = errors.Join(err, valueSource.readErr); err != nil {
+		if valueSource.readErr != nil {
+			err = errors.Join(err, valueSource.readErr)
+		}
+		if err != nil {
 			return GoBenchmarkRecord{}, err
 		}
 	}

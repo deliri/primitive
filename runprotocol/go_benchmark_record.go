@@ -21,11 +21,13 @@ const (
 	GoBenchmarkRecordAbsent
 	// GoBenchmarkRecordPresent records an admitted benchmark row.
 	GoBenchmarkRecordPresent
+	// GoBenchmarkRecordRefused records a complete syntactically invalid native row.
+	GoBenchmarkRecordRefused
 )
 
 // Validate refuses an uninitialized or unknown presence.
 func (p GoBenchmarkRecordPresence) Validate() error {
-	if p != GoBenchmarkRecordAbsent && p != GoBenchmarkRecordPresent {
+	if p != GoBenchmarkRecordAbsent && p != GoBenchmarkRecordPresent && p != GoBenchmarkRecordRefused {
 		return core.ErrGoToolchainOutput
 	}
 	return nil
@@ -70,6 +72,15 @@ type GoBenchmarkRecord struct {
 // Name returns the immutable identity produced by native row admission.
 func (r GoBenchmarkRecord) Name() GoBenchmarkName { return r.name }
 
+// Refusal returns the immutable native admission refusal for a complete bad row.
+// Physical read failures remain on the iterator error channel.
+func (r GoBenchmarkRecord) Refusal() error {
+	if r.Presence == GoBenchmarkRecordRefused {
+		return core.ErrGoToolchainOutput
+	}
+	return nil
+}
+
 // Validate checks presence, finite numeric facts and field authority.
 func (r GoBenchmarkRecord) Validate() error {
 	if err := r.source.Validate(); err != nil {
@@ -81,7 +92,7 @@ func (r GoBenchmarkRecord) Validate() error {
 	if err := r.Fields.Validate(); err != nil {
 		return err
 	}
-	if r.Presence == GoBenchmarkRecordAbsent {
+	if r.Presence == GoBenchmarkRecordAbsent || r.Presence == GoBenchmarkRecordRefused {
 		if r.name != (GoBenchmarkName{}) || r.Iterations != 0 || r.Nanoseconds != 0 || r.Bytes != 0 || r.Allocations != 0 || r.Fields != GoBenchmarkMetricFieldsNone {
 			return core.ErrGoToolchainOutput
 		}

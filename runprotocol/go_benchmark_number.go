@@ -60,6 +60,9 @@ func goBenchmarkInteger(source io.Reader) (int64, error) {
 
 func goBenchmarkSign(source *bufio.Reader) (bool, error) {
 	first, err := source.Peek(1)
+	if err == io.EOF {
+		return false, core.ErrGoToolchainOutput
+	}
 	if err != nil {
 		return false, errors.Join(core.ErrGoToolchainOutput, err)
 	}
