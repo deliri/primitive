@@ -26,6 +26,9 @@ type (
 )
 
 type temporalContractInventory struct {
+	NativePair          temporalIngressRequest[NativeTimePair]
+	NativeOffset        temporalIngressRequest[NativeTimeOffsetRequest]
+	NativeFacts         temporalSealedValue[NativeTimeFacts]
 	Cancellation        temporalCapabilityIntent[CancellationRequest]
 	ContextResult       temporalCapabilityIntent[contextConstruction]
 	Ticker              temporalCapabilityIntent[Ticker]
@@ -137,6 +140,11 @@ type temporalPrecisionSignature interface {
 }
 
 var (
+	_ func(time.Time) bool                     = IsNativeTimeZero
+	_ func(time.Time) NativeTimeFacts          = InspectNativeTime
+	_ func(NativeTimePair) core.Comparison     = CompareNativeTimes
+	_ func(NativeTimePair) time.Duration       = DifferenceNativeTimes
+	_ func(NativeTimeOffsetRequest) time.Time  = OffsetNativeTime
 	_ temporalInstantSignature                 = Instant{}
 	_ interface{ UnmarshalJSON([]byte) error } = (*Instant)(nil)
 	_ temporalDurationSignature                = Duration{}
@@ -242,6 +250,9 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 	}
 	want := []string{
 		"type NativeTimeFormatRequest", "method NativeTimeFormatRequest.Validate", "func FormatNativeTime",
+		"type NativeTimePair", "type NativeTimeOffsetRequest", "type NativeTimeFacts",
+		"func InspectNativeTime", "func CompareNativeTimes", "func DifferenceNativeTimes", "func OffsetNativeTime",
+		"func IsNativeTimeZero",
 		"func AppendTime",
 		"method Duration.Truncate", "method Duration.Round", "method Duration.Text",
 		"type TimeLayout", "type LocationName", "type ParseTimeRequest", "type FormatTimeRequest",
