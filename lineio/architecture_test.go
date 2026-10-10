@@ -26,14 +26,18 @@ type (
 // lineioContractInventory classifies every production carrier by its actual
 // data-flow role. It is a compiler-visible wiring ratchet, not behavior proof.
 type lineioContractInventory struct {
-	Character         lineioRequestContract[lineio.Character]
-	CharacterPosition lineioRequestContract[lineio.CharacterPosition]
-	CharacterRequest  lineioRequestContract[lineio.CharacterRequest]
-	characterSource   lineioReadCountGuardContract
-	Fragment          lineioRequestContract[lineio.Fragment]
-	Request           lineioRequestContract[lineio.Request]
-	Reader            lineioCapabilityContract[lineio.Reader]
-	checkedReader     lineioReadCountGuardContract
+	RecordRange           lineioRequestContract[lineio.RecordRange]
+	RecordRangeRequest    lineioRequestContract[lineio.RecordRangeRequest]
+	RecordFragmentRequest lineioRequestContract[lineio.RecordFragmentRequest]
+	Character             lineioRequestContract[lineio.Character]
+	CharacterPosition     lineioRequestContract[lineio.CharacterPosition]
+	CharacterRequest      lineioRequestContract[lineio.CharacterRequest]
+	characterSource       lineioReadCountGuardContract
+	Fragment              lineioRequestContract[lineio.Fragment]
+	Request               lineioRequestContract[lineio.Request]
+	Reader                lineioCapabilityContract[lineio.Reader]
+	recordRangeReadGuard  lineioReadCountGuardContract
+	checkedReader         lineioReadCountGuardContract
 }
 
 var (
