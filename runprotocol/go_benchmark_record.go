@@ -4,11 +4,7 @@ import (
 	"bytes"
 	"github.com/deliri/primitive/v2026/core"
 	"io"
-	"iter"
 	"math"
-	"strings"
-	"unicode"
-	"unicode/utf8"
 )
 
 // GoBenchmarkRecordPresence distinguishes an unrelated record from measured facts.
@@ -36,76 +32,16 @@ func (p GoBenchmarkRecordPresence) Validate() error {
 // OffWireEnum marks presence as an internal observation domain.
 func (GoBenchmarkRecordPresence) OffWireEnum() {}
 
-// GoBenchmarkName holds the exact name field emitted by Go, including its CPU
-// suffix. Selection, parent attribution and rounding belong to the product.
-type GoBenchmarkName struct{ value string }
-
-// String returns the exact admitted name.
-func (n GoBenchmarkName) String() string { return n.value }
-
-// Validate admits a UTF-8 benchmark name without whitespace or controls.
-func (n GoBenchmarkName) Validate() error {
-	if !strings.HasPrefix(n.value, "Benchmark") || !utf8.ValidString(n.value) {
-		return core.ErrGoToolchainOutput
-	}
-	for _, character := range n.value {
-		if unicode.IsSpace(character) || unicode.IsControl(character) {
-			return core.ErrGoToolchainOutput
-		}
-	}
-	return nil
-}
-
-// GoBenchmarkRecord preserves native numeric facts. In particular ns/op remains
-// a finite nonnegative float: the receiver decides rounding and saturation.
-type GoBenchmarkRecord struct {
-	name        GoBenchmarkName
+// goBenchmarkMeasurements holds only native scalar facts while one row is read.
+type goBenchmarkMeasurements struct {
 	Iterations  int64
 	Nanoseconds float64
 	Bytes       int64
 	Allocations int64
-	Presence    GoBenchmarkRecordPresence
 	Fields      GoBenchmarkMetricFields
 }
 
-// Name returns the immutable identity produced by native row admission.
-func (r GoBenchmarkRecord) Name() GoBenchmarkName { return r.name }
-
-// Refusal returns the immutable native admission refusal for a complete bad row.
-// Physical read failures remain on the iterator error channel.
-func (r GoBenchmarkRecord) Refusal() error {
-	if r.Presence == GoBenchmarkRecordRefused {
-		return core.ErrGoToolchainOutput
-	}
-	return nil
-}
-
-// Validate checks presence, finite numeric facts and field authority.
-func (r GoBenchmarkRecord) Validate() error {
-	if err := r.Presence.Validate(); err != nil {
-		return err
-	}
-	if err := r.Fields.Validate(); err != nil {
-		return err
-	}
-	if r.Presence == GoBenchmarkRecordAbsent || r.Presence == GoBenchmarkRecordRefused {
-		if r.name != (GoBenchmarkName{}) || r.Iterations != 0 || r.Nanoseconds != 0 || r.Bytes != 0 || r.Allocations != 0 || r.Fields != GoBenchmarkMetricFieldsNone {
-			return core.ErrGoToolchainOutput
-		}
-		return nil
-	}
-	if r.Iterations < 0 || r.Nanoseconds < 0 || math.IsNaN(r.Nanoseconds) || math.IsInf(r.Nanoseconds, 0) || r.Bytes < 0 || r.Allocations < 0 {
-		return core.ErrGoToolchainOutput
-	}
-	if r.Fields&GoBenchmarkMetricTime == 0 && r.Nanoseconds != 0 || r.Fields&GoBenchmarkMetricBytes == 0 && r.Bytes != 0 || r.Fields&GoBenchmarkMetricAllocations == 0 && r.Allocations != 0 {
-		return core.ErrGoToolchainOutput
-	}
-	return r.name.Validate()
-}
-
-// GoBenchmarkRecordRequest borrows one raw record. An unrelated or empty record
-// is a neutral observation. No line, field-count or byte-extent quota applies.
-type GoBenchmarkRecordRequest struct{ Source []byte }
+func (goBenchmarkMeasurements) runProtocolInternalFlowCarrier() {}
 
 // GoBenchmarkMetricFields records which known units occurred in the row.
 type GoBenchmarkMetricFields uint8
@@ -133,78 +69,7 @@ func (f GoBenchmarkMetricFields) Validate() error {
 // OffWireEnum marks metric fields as an internal observation domain.
 func (GoBenchmarkMetricFields) OffWireEnum() {}
 
-// ObserveGoBenchmarkRecord scans Go's field sequence without materializing a
-// token slice, metric registry or sample inventory. Apart from the returned
-// name, working memory is constant. All refusals use a core error constant.
-func ObserveGoBenchmarkRecord(request GoBenchmarkRecordRequest) (GoBenchmarkRecord, error) {
-	if !bytes.HasPrefix(request.Source, []byte("Benchmark")) {
-		return GoBenchmarkRecord{Presence: GoBenchmarkRecordAbsent}, nil
-	}
-	if ending := bytes.IndexByte(request.Source, '\n'); ending >= 0 && ending != len(request.Source)-1 {
-		return GoBenchmarkRecord{}, core.ErrGoToolchainOutput
-	}
-	next, stop := iter.Pull(bytes.FieldsSeq(request.Source))
-	defer stop()
-	name, ok := next()
-	if !ok {
-		return GoBenchmarkRecord{}, core.ErrGoToolchainOutput
-	}
-	if !validGoBenchmarkNameBytes(name) {
-		return GoBenchmarkRecord{}, core.ErrGoToolchainOutput
-	}
-	iterations, ok := next()
-	if !ok {
-		return GoBenchmarkRecord{}, core.ErrGoToolchainOutput
-	}
-	count, err := goBenchmarkInteger(bytes.NewReader(iterations))
-	if err != nil || count < 0 {
-		return GoBenchmarkRecord{}, core.ErrGoToolchainOutput
-	}
-	record := GoBenchmarkRecord{Iterations: count, Presence: GoBenchmarkRecordPresent}
-	metricPairs := false
-	for {
-		value, ok := next()
-		if !ok {
-			break
-		}
-		unit, ok := next()
-		if !ok {
-			return GoBenchmarkRecord{}, core.ErrGoToolchainOutput
-		}
-		metricPairs = true
-		if err := projectGoBenchmarkMetric(&record, bytes.NewReader(value), goBenchmarkUnit(unit)); err != nil {
-			return GoBenchmarkRecord{}, err
-		}
-	}
-	if !metricPairs {
-		return GoBenchmarkRecord{}, core.ErrGoToolchainOutput
-	}
-	// A refused row publishes no name, so defer the only source-sized copy
-	// until every numeric and framing refusal has been admitted.
-	record.name = GoBenchmarkName{value: string(name)}
-	if err := record.Validate(); err != nil {
-		return GoBenchmarkRecord{}, err
-	}
-	return record, nil
-}
-
-func validGoBenchmarkNameBytes(value []byte) bool {
-	if !bytes.HasPrefix(value, []byte("Benchmark")) || !utf8.Valid(value) {
-		return false
-	}
-	for len(value) != 0 {
-		character, size := utf8.DecodeRune(value)
-		if unicode.IsSpace(character) || unicode.IsControl(character) {
-			return false
-		}
-		value = value[size:]
-	}
-	return true
-}
-
 var (
-	_ core.Validatable = GoBenchmarkName{}
-	_ core.Validatable = GoBenchmarkRecord{}
 	_ core.OffWireEnum = GoBenchmarkRecordUnknown
 	_ core.OffWireEnum = GoBenchmarkMetricFieldsNone
 )
@@ -222,7 +87,7 @@ func goBenchmarkUnit(unit []byte) GoBenchmarkMetricFields {
 	}
 }
 
-func projectGoBenchmarkMetric(record *GoBenchmarkRecord, value io.Reader, kind GoBenchmarkMetricFields) error {
+func projectGoBenchmarkMetric(record *goBenchmarkMeasurements, value io.Reader, kind GoBenchmarkMetricFields) error {
 	if kind == GoBenchmarkMetricFieldsNone {
 		return nil
 	}

@@ -1,6 +1,7 @@
 package runprotocol_test
 
 import (
+	"bytes"
 	"errors"
 	"math"
 	"runtime"
@@ -28,24 +29,11 @@ func TestGoBenchmarkRecordConsumesActualGoFormatter(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			got, err := runprotocol.ObserveGoBenchmarkRecord(runprotocol.GoBenchmarkRecordRequest{Source: []byte(source)})
-			if err != nil || got.Name().String() != "BenchmarkNative-8" || got.Iterations != int64(result.N) || math.Float64bits(got.Nanoseconds) != math.Float64bits(wantTime) || got.Bytes != int64(result.MemBytes)/int64(result.N) || got.Allocations != int64(result.MemAllocs)/int64(result.N) {
+			got, err := singleNativeBenchmarkFixture(t, []byte(source))
+			if err != nil || benchmarkSourceNameForTest(t, strings.NewReader(source), got) != "BenchmarkNative-8" || got.Iterations != int64(result.N) || math.Float64bits(got.Nanoseconds) != math.Float64bits(wantTime) || got.Bytes != int64(result.MemBytes)/int64(result.N) || got.Allocations != int64(result.MemAllocs)/int64(result.N) {
 				t.Fatalf("Go formatter %q projected %+v/%v, want exact native name/count/value facts", source, got, err)
 			}
 		})
-	}
-}
-
-func TestGoBenchmarkRecordNameDoesNotBorrowMutableSource(t *testing.T) {
-	t.Parallel()
-	source := []byte("BenchmarkStable-8 1 5 ns/op")
-	got, err := runprotocol.ObserveGoBenchmarkRecord(runprotocol.GoBenchmarkRecordRequest{Source: source})
-	if err != nil {
-		t.Fatal(err)
-	}
-	source[0] = 'X'
-	if got.Name().String() != "BenchmarkStable-8" {
-		t.Fatalf("observed identity changed after source reuse: %q", got.Name().String())
 	}
 }
 
@@ -59,7 +47,6 @@ func TestGoBenchmarkRecordNativeBoundaries(t *testing.T) {
 		nanoseconds                    float64
 		refused                        bool
 	}{
-		{name: "empty record", presence: runprotocol.GoBenchmarkRecordAbsent},
 		{name: "Go platform metadata", source: "goos: linux", presence: runprotocol.GoBenchmarkRecordAbsent},
 		{name: "Go successful exit", source: "PASS", presence: runprotocol.GoBenchmarkRecordAbsent},
 		{name: "Go failure exit", source: "FAIL", presence: runprotocol.GoBenchmarkRecordAbsent},
@@ -113,9 +100,9 @@ func TestGoBenchmarkRecordNativeBoundaries(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := runprotocol.ObserveGoBenchmarkRecord(runprotocol.GoBenchmarkRecordRequest{Source: []byte(tc.source)})
+			got, err := singleNativeBenchmarkFixture(t, []byte(tc.source))
 			if tc.refused {
-				if !errors.Is(err, core.ErrGoToolchainOutput) || got != (runprotocol.GoBenchmarkRecord{}) {
+				if err != nil || got.Presence != runprotocol.GoBenchmarkRecordRefused || !errors.Is(got.Refusal(), core.ErrGoToolchainOutput) || got.Name() != (runprotocol.GoBenchmarkNameExtent{}) || got.Iterations != 0 || got.Fields != runprotocol.GoBenchmarkMetricFieldsNone {
 					t.Fatalf("refusal=%+v/%v, want zero and constant", got, err)
 				}
 				return
@@ -148,12 +135,12 @@ func TestGoBenchmarkRecordNumericFieldsUseConstantWorkingMemory(t *testing.T) {
 			source := []byte(tc.body)
 			var before, after runtime.MemStats
 			runtime.ReadMemStats(&before)
-			got, err := runprotocol.ObserveGoBenchmarkRecord(runprotocol.GoBenchmarkRecordRequest{Source: source})
+			got, err := singleNativeBenchmarkFixture(t, source)
 			runtime.ReadMemStats(&after)
-			if (err != nil) != tc.refused {
+			if err != nil || (got.Presence == runprotocol.GoBenchmarkRecordRefused) != tc.refused {
 				t.Fatalf("native record refusal=%v want %t", err, tc.refused)
 			}
-			if tc.refused && got != (runprotocol.GoBenchmarkRecord{}) {
+			if tc.refused && (got.Name() != (runprotocol.GoBenchmarkNameExtent{}) || got.Iterations != 0 || got.Fields != runprotocol.GoBenchmarkMetricFieldsNone || !errors.Is(got.Refusal(), core.ErrGoToolchainOutput)) {
 				t.Fatalf("refusal leaked record %+v", got)
 			}
 			if bytes := after.TotalAlloc - before.TotalAlloc; bytes > 64<<10 {
@@ -184,12 +171,12 @@ func FuzzGoBenchmarkRecordDecimalValueMatchesGo(f *testing.F) {
 		}
 		want, wantErr := strconv.ParseFloat(value, 64)
 		accepted := wantErr == nil && want >= 0 && !math.IsNaN(want) && !math.IsInf(want, 0)
-		got, err := runprotocol.ObserveGoBenchmarkRecord(runprotocol.GoBenchmarkRecordRequest{Source: []byte("BenchmarkOracle 1 " + value + " ns/op")})
-		if (err == nil) != accepted {
+		got, err := singleNativeBenchmarkFixture(t, []byte("BenchmarkOracle 1 "+value+" ns/op"))
+		if err != nil || (got.Presence == runprotocol.GoBenchmarkRecordPresent) != accepted {
 			t.Fatalf("decimal %q admission=%v want Go %v/%v", value, err, want, wantErr)
 		}
 		if !accepted {
-			if got != (runprotocol.GoBenchmarkRecord{}) || !errors.Is(err, core.ErrGoToolchainOutput) {
+			if got.Presence != runprotocol.GoBenchmarkRecordRefused || got.Name() != (runprotocol.GoBenchmarkNameExtent{}) || got.Iterations != 0 || got.Fields != runprotocol.GoBenchmarkMetricFieldsNone || !errors.Is(got.Refusal(), core.ErrGoToolchainOutput) {
 				t.Fatalf("refusal=%+v/%v", got, err)
 			}
 			return
@@ -198,4 +185,23 @@ func FuzzGoBenchmarkRecordDecimalValueMatchesGo(f *testing.F) {
 			t.Fatalf("decimal %q native=%+v, want exact Go float bits %x", value, got, math.Float64bits(want))
 		}
 	})
+}
+
+// Single-record fixtures exercise the actual streaming producer. Refused records
+// retain their native source extent and typed refusal; no atomic facade exists.
+func singleNativeBenchmarkFixture(t testing.TB, data []byte) (runprotocol.GoBenchmarkSourceRecord, error) {
+	t.Helper()
+	var result runprotocol.GoBenchmarkSourceRecord
+	count := 0
+	for record, err := range runprotocol.GoBenchmarkRecords(t.Context(), runprotocol.GoBenchmarkSourceRequest{Source: bytes.NewReader(data)}) {
+		if err != nil {
+			return runprotocol.GoBenchmarkSourceRecord{}, err
+		}
+		result = record
+		count++
+	}
+	if count != 1 {
+		t.Fatalf("fixture yielded%d records", count)
+	}
+	return result, nil
 }

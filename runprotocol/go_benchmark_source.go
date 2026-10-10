@@ -288,7 +288,7 @@ func readGoBenchmarkSourceRecord(c *goBenchmarkFieldCursor) (GoBenchmarkSourceRe
 	if err != nil {
 		return GoBenchmarkSourceRecord{}, err
 	}
-	record := GoBenchmarkRecord{Iterations: iterations, Presence: GoBenchmarkRecordPresent}
+	record := goBenchmarkMeasurements{Iterations: iterations}
 	pairs := false
 	for {
 		value, found, err := c.nextField()
@@ -328,7 +328,7 @@ func readGoBenchmarkSourceRecord(c *goBenchmarkFieldCursor) (GoBenchmarkSourceRe
 	}
 	return sourceGoBenchmarkRecord(c, start, GoBenchmarkSourceRecord{
 		name:       GoBenchmarkNameExtent{extent: GoBenchmarkSourceExtent{Offset: lineio.SourceByteOffset(name.offset), Bytes: nameBytes}},
-		Iterations: record.Iterations, Nanoseconds: record.Nanoseconds, Bytes: record.Bytes, Allocations: record.Allocations, Presence: record.Presence, Fields: record.Fields,
+		Iterations: record.Iterations, Nanoseconds: record.Nanoseconds, Bytes: record.Bytes, Allocations: record.Allocations, Presence: GoBenchmarkRecordPresent, Fields: record.Fields,
 	})
 }
 
