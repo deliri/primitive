@@ -3,8 +3,9 @@
 package hostfacts
 
 import (
+	"syscall"
+
 	"github.com/deliri/primitive/v2026/core"
-	"golang.org/x/sys/unix"
 )
 
 func (r *platformRoot) diskCapacity() (DiskCapacity, error) {
@@ -12,8 +13,8 @@ func (r *platformRoot) diskCapacity() (DiskCapacity, error) {
 	if err != nil {
 		return DiskCapacity{}, err
 	}
-	var stat unix.Statfs_t
-	if err := unix.Fstatfs(int(file.Fd()), &stat); err != nil {
+	var stat syscall.Statfs_t
+	if err := syscall.Fstatfs(int(file.Fd()), &stat); err != nil {
 		return DiskCapacity{}, err
 	}
 	fragmentBytes := stat.Frsize

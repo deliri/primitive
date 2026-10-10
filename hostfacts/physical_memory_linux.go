@@ -5,14 +5,14 @@ package hostfacts
 import (
 	"errors"
 	"math"
+	"syscall"
 
 	"github.com/deliri/primitive/v2026/core"
-	"golang.org/x/sys/unix"
 )
 
 func observePhysicalMemory() (uint64, error) {
-	var information unix.Sysinfo_t
-	if err := unix.Sysinfo(&information); err != nil {
+	var information syscall.Sysinfo_t
+	if err := syscall.Sysinfo(&information); err != nil {
 		return 0, err
 	}
 	return physicalMemoryBytes(

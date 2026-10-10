@@ -17,9 +17,7 @@ import (
 func platformEscapeLeafFiles() map[string]bool {
 	return map[string]bool{
 		"disk_darwin.go":            true,
-		"disk_linux.go":             true,
 		"physical_memory_darwin.go": true,
-		"physical_memory_linux.go":  true,
 		"root_windows.go":           true,
 		"storage_linux.go":          true,
 		"terminal_unix.go":          true,

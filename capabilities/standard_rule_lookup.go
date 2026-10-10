@@ -110,6 +110,7 @@ func standardFunctionRules3(importPath string) []standardSymbolRule {
 		}
 	case standardPackageSyscall:
 		return []standardSymbolRule{
+			{importPath: importPath, effect: EffectHost, effectSelectors: []string{"Fstatfs", "Statfs", "Sysinfo"}},
 			{importPath: importPath, effect: EffectFilesystem, effectSelectors: syscallFilesystemSymbols()},
 			{importPath: importPath, effect: EffectLocking, effectSelectors: syscallLockingSymbols()},
 			{importPath: importPath, effect: EffectTransport, effectSelectors: syscallTransportSymbols()},
