@@ -1,6 +1,9 @@
 package hostfacts
 
-import "runtime/debug"
+import (
+	"runtime"
+	"runtime/debug"
+)
 
 // GoBuildVCS carries the compiler's VCS facts without a copied settings inventory.
 // Revision is compiler data; consumers decide how to display or validate it.
@@ -9,21 +12,39 @@ type GoBuildVCS struct {
 	Modified bool
 }
 
+// GoBuildMetadata carries fixed compiler facts, without modules or settings
+// inventories. ModulePath is Go's main module path and GoVersion identifies
+// the Go runtime compiled into this executable.
+type GoBuildMetadata struct {
+	ModulePath string
+	GoVersion  string
+	VCS        GoBuildVCS
+}
+
 const (
 	goBuildRevisionKey  = "vcs.revision"
 	goBuildModifiedKey  = "vcs.modified"
 	goBuildModifiedTrue = "true"
 )
 
-// ObserveGoBuildVCS reads Go-owned executable metadata. The bool is Go's own
-// availability result. The projection retains two facts and scans settings
+// ObserveGoBuildMetadata reads Go-owned executable metadata. The bool is Go's own
+// build-info availability result; GoVersion is observed even without build info.
+// The projection retains fixed facts and scans settings
 // once; runtime/debug owns the allocation of its native BuildInfo record.
-func ObserveGoBuildVCS() (GoBuildVCS, bool) {
+func ObserveGoBuildMetadata() (GoBuildMetadata, bool) {
 	info, available := debug.ReadBuildInfo()
 	if !available {
-		return GoBuildVCS{}, false
+		return GoBuildMetadata{GoVersion: runtime.Version()}, false
 	}
-	return goBuildVCSFromSettings(info.Settings), true
+	return goBuildMetadataFromInfo(info), true
+}
+
+func goBuildMetadataFromInfo(info *debug.BuildInfo) GoBuildMetadata {
+	return GoBuildMetadata{
+		ModulePath: info.Main.Path,
+		GoVersion:  info.GoVersion,
+		VCS:        goBuildVCSFromSettings(info.Settings),
+	}
 }
 
 func goBuildVCSFromSettings(settings []debug.BuildSetting) GoBuildVCS {

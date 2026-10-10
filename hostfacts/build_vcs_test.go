@@ -2,8 +2,10 @@ package hostfacts
 
 import (
 	"fmt"
+	"runtime"
 	"runtime/debug"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -55,21 +57,23 @@ func TestGoBuildVCSProjectionPreservesCompilerFactsAcrossNativeSettings(t *testi
 	}
 }
 
-func TestObserveGoBuildVCSMatchesNativeGoExecutableMetadata(t *testing.T) {
+func TestObserveGoBuildMetadataMatchesNativeGoExecutableMetadata(t *testing.T) {
 	t.Parallel()
 	native, available := debug.ReadBuildInfo()
-	got, gotAvailable := ObserveGoBuildVCS()
+	got, gotAvailable := ObserveGoBuildMetadata()
 	if gotAvailable != available {
 		t.Fatalf("availability = %t, want native %t", gotAvailable, available)
 	}
-	var want GoBuildVCS
+	want := GoBuildMetadata{GoVersion: runtime.Version()}
 	if available {
+		want.ModulePath = native.Main.Path
+		want.GoVersion = native.GoVersion
 		for _, setting := range native.Settings {
 			if setting.Key == "vcs.revision" {
-				want.Revision = setting.Value
+				want.VCS.Revision = setting.Value
 			}
 			if setting.Key == "vcs.modified" {
-				want.Modified = setting.Value == "true"
+				want.VCS.Modified = setting.Value == "true"
 			}
 		}
 	}
@@ -122,6 +126,70 @@ func BenchmarkGoBuildVCSFixedProjection(b *testing.B) {
 			b.StopTimer()
 			if observed != uint64(b.N) || got != (GoBuildVCS{Revision: "abc", Modified: true}) {
 				b.Fatalf("observable projection = %+v after %d operations", got, observed)
+			}
+		})
+	}
+}
+
+func TestGoBuildMetadataProjectsMainModuleWithoutDependencyInventory(t *testing.T) {
+	t.Parallel()
+	paths := []struct{ name, value string }{
+		{name: "absent"}, {name: "main module", value: "github.com/deliri/primitive/v2026"},
+		{name: "foreign module", value: "example.com/other"}, {name: "uppercase retained", value: "EXAMPLE.com/Other"},
+		{name: "whitespace retained", value: " \tmodule\n"}, {name: "embedded nul retained", value: "module\x00path"},
+		{name: "unicode retained", value: "example.com/é"}, {name: "relative compiler data retained", value: "./module"},
+		{name: "version suffix retained", value: "example.com/module/v2026"}, {name: "replacement spelling retained", value: "replacement"},
+		{name: "go tool command", value: "cmd"}, {name: "single rune", value: "x"},
+		{name: "long fact extent", value: strings.Repeat("x", 4096)},
+		{name: "larger fact extent", value: strings.Repeat("x", 65536)},
+		{name: "large fact has no projection quota", value: strings.Repeat("x", 131072)},
+	}
+	vcs := []struct {
+		name, revision, modified string
+		want                     GoBuildVCS
+	}{
+		{name: "empty"}, {name: "revision clean", revision: "abc", modified: "false", want: GoBuildVCS{Revision: "abc"}},
+		{name: "revision dirty", revision: "ABC", modified: "true", want: GoBuildVCS{Revision: "ABC", Modified: true}},
+		{name: "dirty without revision", modified: "true", want: GoBuildVCS{Modified: true}},
+	}
+	for _, path := range paths {
+		for _, facts := range vcs {
+			t.Run(path.name+"/"+facts.name, func(t *testing.T) {
+				t.Parallel()
+				native := debug.BuildInfo{GoVersion: "go1.27.2", Path: "example.com/command", Main: debug.Module{Path: path.value, Replace: &debug.Module{Path: "example.com/replacement"}}, Deps: []*debug.Module{{Path: "example.com/dependency"}}, Settings: []debug.BuildSetting{{Key: "vcs.revision", Value: facts.revision}, {Key: "vcs.modified", Value: facts.modified}}}
+				want := GoBuildMetadata{ModulePath: path.value, GoVersion: "go1.27.2", VCS: facts.want}
+				if got := goBuildMetadataFromInfo(&native); got != want {
+					t.Fatalf("metadata = %+v, want planted main-module facts %+v", got, want)
+				}
+				if native.Main.Path != path.value || native.Main.Replace.Path != "example.com/replacement" || native.Deps[0].Path != "example.com/dependency" {
+					t.Fatal("projection mutated native module facts")
+				}
+			})
+		}
+	}
+}
+
+func BenchmarkGoBuildMetadataFixedProjection(b *testing.B) {
+	for _, extent := range []int{1, 4096} {
+		b.Run(fmt.Sprint(extent), func(b *testing.B) {
+			native := debug.BuildInfo{GoVersion: "go1.27.2", Main: debug.Module{Path: "example.com/main"}, Settings: make([]debug.BuildSetting, extent+2)}
+			for i := range extent {
+				native.Settings[i] = debug.BuildSetting{Key: "unrelated", Value: "true"}
+			}
+			native.Settings[extent] = debug.BuildSetting{Key: "vcs.revision", Value: "abc"}
+			native.Settings[extent+1] = debug.BuildSetting{Key: "vcs.modified", Value: "true"}
+			var got GoBuildMetadata
+			var observed uint64
+			b.ReportAllocs()
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				got = goBuildMetadataFromInfo(&native)
+				observed++
+			}
+			b.StopTimer()
+			want := GoBuildMetadata{GoVersion: "go1.27.2", ModulePath: "example.com/main", VCS: GoBuildVCS{Revision: "abc", Modified: true}}
+			if observed != uint64(b.N) || got != want {
+				b.Fatalf("observable metadata = %+v after %d operations, want %+v", got, observed, want)
 			}
 		})
 	}

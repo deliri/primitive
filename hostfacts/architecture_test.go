@@ -53,7 +53,7 @@ func TestPublicOperationsAreExactIntentEntryPoints(t *testing.T) {
 		"ObserveDiskRotation",
 		"ObserveEffectiveWorkloadMemoryLimit",
 		"ObserveGoAllocationTotal",
-		"ObserveGoBuildVCS",
+		"ObserveGoBuildMetadata",
 		"ObserveHostname",
 		"ObserveLogicalCPUCount",
 		"ObservePhysicalMemory",
@@ -83,6 +83,7 @@ type hostfactsError[T any] struct{ Value T }
 
 type hostfactsStructInventory struct {
 	GoBuildVCS                hostfactsObservation[GoBuildVCS]
+	GoBuildMetadata           hostfactsObservation[GoBuildMetadata]
 	GoMemoryLimitRequest      hostfactsIngress[GoMemoryLimitRequest]
 	GoMemoryLimitResult       hostfactsObservation[GoMemoryLimitResult]
 	GoStackFrame              hostfactsObservation[GoStackFrame]

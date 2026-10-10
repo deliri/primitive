@@ -1,6 +1,7 @@
 package capabilities_test
 
 import (
+	"runtime"
 	"runtime/debug"
 	"slices"
 	"testing"
@@ -18,9 +19,11 @@ func TestRuntimeDebugOwnershipUsesPrimitiveHostAndCompositeFileOwners(t *testing
 	operations := []struct {
 		native      any
 		name        string
+		imported    string
 		disposition capabilities.StandardSymbolDisposition
 		secondary   []capabilities.Effect
 	}{
+		{native: runtime.Version, name: "Version", imported: "runtime"},
 		{native: debug.FreeOSMemory, name: "FreeOSMemory"},
 		{native: debug.PrintStack, name: "PrintStack", secondary: []capabilities.Effect{capabilities.EffectFilesystem}},
 		{native: debug.ReadBuildInfo, name: "ReadBuildInfo"},
@@ -54,7 +57,14 @@ func TestRuntimeDebugOwnershipUsesPrimitiveHostAndCompositeFileOwners(t *testing
 		for _, shape := range geometry {
 			t.Run(operation.name+"/"+shape.name, func(t *testing.T) {
 				t.Parallel()
-				path, err := gomodule.ParseImportPath(shape.imported)
+				imported := shape.imported
+				if shape.imported == "runtime/debug" {
+					imported = operation.imported
+					if imported == "" {
+						imported = "runtime/debug"
+					}
+				}
+				path, err := gomodule.ParseImportPath(imported)
 				if err != nil {
 					t.Fatal(err)
 				}
