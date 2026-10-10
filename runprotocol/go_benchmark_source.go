@@ -7,7 +7,6 @@ import (
 	"io"
 	"iter"
 	"math"
-	"strings"
 	"unicode"
 	"unicode/utf8"
 
@@ -58,25 +57,21 @@ func (s GoBenchmarkSourceExtent) Validate() error {
 	return nil
 }
 
-// SourceExtent returns the exact source record range. Atomic borrowed-byte
-// observations have the neutral range; streamed observations carry source bytes.
-func (r GoBenchmarkRecord) SourceExtent() GoBenchmarkSourceExtent { return r.source }
-
 // GoBenchmarkRecords scans native Go rows with fixed working buffers. Names
-// are copied only after admission; the returned name is the sole payload-sized
-// allocation. Numeric fields and unknown units never retain source-sized text.
+// remain exact source ranges. No admitted name, numeric field or unknown unit
+// retains source-sized text.
 // Complete malformed rows yield Refused observations and preserve their exact
 // range. Read failures return errors and end the sequence. Each source range
 // remains readable inside the caller's native scope.
-func GoBenchmarkRecords(ctx context.Context, request GoBenchmarkSourceRequest) iter.Seq2[GoBenchmarkRecord, error] {
-	return func(yield func(GoBenchmarkRecord, error) bool) {
+func GoBenchmarkRecords(ctx context.Context, request GoBenchmarkSourceRequest) iter.Seq2[GoBenchmarkSourceRecord, error] {
+	return func(yield func(GoBenchmarkSourceRecord, error) bool) {
 		if err := errors.Join(contextstate.Validate(ctx), request.Validate()); err != nil {
-			yield(GoBenchmarkRecord{}, err)
+			yield(GoBenchmarkSourceRecord{}, err)
 			return
 		}
 		offset, err := request.Source.Seek(0, io.SeekCurrent)
 		if err != nil || offset < 0 {
-			yield(GoBenchmarkRecord{}, errors.Join(core.ErrGoToolchainOutput, err))
+			yield(GoBenchmarkSourceRecord{}, errors.Join(core.ErrGoToolchainOutput, err))
 			return
 		}
 		input := goBenchmarkSourceReader{ctx: ctx, source: request.Source}
@@ -92,14 +87,14 @@ func GoBenchmarkRecords(ctx context.Context, request GoBenchmarkSourceRequest) i
 					}
 				}
 				if err == core.ErrGoToolchainOutput {
-					record, err = sourceGoBenchmarkRecord(&cursor, start, GoBenchmarkRecord{Presence: GoBenchmarkRecordRefused})
+					record, err = sourceGoBenchmarkRecord(&cursor, start, GoBenchmarkSourceRecord{Presence: GoBenchmarkRecordRefused})
 				}
 			}
 			if err == io.EOF {
 				return
 			}
 			if err != nil {
-				yield(GoBenchmarkRecord{}, err)
+				yield(GoBenchmarkSourceRecord{}, err)
 				return
 			}
 			if !yield(record, nil) {
@@ -253,49 +248,37 @@ func (c *goBenchmarkFieldCursor) admittedName(field goBenchmarkFieldSpan) (bool,
 	}
 }
 
-func (c *goBenchmarkFieldCursor) sealName(field goBenchmarkFieldSpan) (GoBenchmarkName, error) {
-	if field.length > math.MaxInt {
-		return GoBenchmarkName{}, core.ErrGoToolchainOutput
-	}
-	var name strings.Builder
-	name.Grow(int(field.length))
-	if _, err := io.Copy(&name, c.fieldReader(field)); err != nil {
-		return GoBenchmarkName{}, errors.Join(core.ErrGoToolchainOutput, err)
-	}
-	return GoBenchmarkName{value: name.String()}, nil
-}
-
-func readGoBenchmarkSourceRecord(c *goBenchmarkFieldCursor) (GoBenchmarkRecord, error) {
+func readGoBenchmarkSourceRecord(c *goBenchmarkFieldCursor) (GoBenchmarkSourceRecord, error) {
 	start := c.offset
 	c.ended = false
 	name, found, err := c.nextField()
 	if err != nil {
-		return GoBenchmarkRecord{}, err
+		return GoBenchmarkSourceRecord{}, err
 	}
 	if !found {
 		if c.offset == start {
-			return GoBenchmarkRecord{}, io.EOF
+			return GoBenchmarkSourceRecord{}, io.EOF
 		}
-		return sourceGoBenchmarkRecord(c, start, GoBenchmarkRecord{Presence: GoBenchmarkRecordAbsent})
+		return sourceGoBenchmarkRecord(c, start, GoBenchmarkSourceRecord{Presence: GoBenchmarkRecordAbsent})
 	}
 	admitted, err := c.admittedName(name)
 	if err != nil {
-		return GoBenchmarkRecord{}, err
+		return GoBenchmarkSourceRecord{}, err
 	}
 	if !admitted {
 		for !c.ended {
 			if _, _, err := c.nextField(); err != nil {
-				return GoBenchmarkRecord{}, err
+				return GoBenchmarkSourceRecord{}, err
 			}
 		}
-		return sourceGoBenchmarkRecord(c, start, GoBenchmarkRecord{Presence: GoBenchmarkRecordAbsent})
+		return sourceGoBenchmarkRecord(c, start, GoBenchmarkSourceRecord{Presence: GoBenchmarkRecordAbsent})
 	}
 	count, found, err := c.nextField()
 	if err != nil {
-		return GoBenchmarkRecord{}, err
+		return GoBenchmarkSourceRecord{}, err
 	}
 	if !found {
-		return GoBenchmarkRecord{}, core.ErrGoToolchainOutput
+		return GoBenchmarkSourceRecord{}, core.ErrGoToolchainOutput
 	}
 	countSource := c.fieldReader(count)
 	iterations, err := goBenchmarkInteger(countSource)
@@ -303,29 +286,29 @@ func readGoBenchmarkSourceRecord(c *goBenchmarkFieldCursor) (GoBenchmarkRecord, 
 		err = errors.Join(err, countSource.readErr)
 	}
 	if err != nil {
-		return GoBenchmarkRecord{}, err
+		return GoBenchmarkSourceRecord{}, err
 	}
 	record := GoBenchmarkRecord{Iterations: iterations, Presence: GoBenchmarkRecordPresent}
 	pairs := false
 	for {
 		value, found, err := c.nextField()
 		if err != nil {
-			return GoBenchmarkRecord{}, err
+			return GoBenchmarkSourceRecord{}, err
 		}
 		if !found {
 			break
 		}
 		unit, found, err := c.nextField()
 		if err != nil {
-			return GoBenchmarkRecord{}, err
+			return GoBenchmarkSourceRecord{}, err
 		}
 		if !found {
-			return GoBenchmarkRecord{}, core.ErrGoToolchainOutput
+			return GoBenchmarkSourceRecord{}, core.ErrGoToolchainOutput
 		}
 		pairs = true
 		kind, err := c.metricUnit(unit)
 		if err != nil {
-			return GoBenchmarkRecord{}, err
+			return GoBenchmarkSourceRecord{}, err
 		}
 		valueSource := c.fieldReader(value)
 		err = projectGoBenchmarkMetric(&record, valueSource, kind)
@@ -333,30 +316,33 @@ func readGoBenchmarkSourceRecord(c *goBenchmarkFieldCursor) (GoBenchmarkRecord, 
 			err = errors.Join(err, valueSource.readErr)
 		}
 		if err != nil {
-			return GoBenchmarkRecord{}, err
+			return GoBenchmarkSourceRecord{}, err
 		}
 	}
 	if !pairs {
-		return GoBenchmarkRecord{}, core.ErrGoToolchainOutput
+		return GoBenchmarkSourceRecord{}, core.ErrGoToolchainOutput
 	}
-	record.name, err = c.sealName(name)
+	nameBytes, err := core.NewByteLength(uint64(name.length))
 	if err != nil {
-		return GoBenchmarkRecord{}, err
+		return GoBenchmarkSourceRecord{}, err
 	}
-	return sourceGoBenchmarkRecord(c, start, record)
+	return sourceGoBenchmarkRecord(c, start, GoBenchmarkSourceRecord{
+		name:       GoBenchmarkNameExtent{extent: GoBenchmarkSourceExtent{Offset: lineio.SourceByteOffset(name.offset), Bytes: nameBytes}},
+		Iterations: record.Iterations, Nanoseconds: record.Nanoseconds, Bytes: record.Bytes, Allocations: record.Allocations, Presence: record.Presence, Fields: record.Fields,
+	})
 }
 
-func sourceGoBenchmarkRecord(c *goBenchmarkFieldCursor, start int64, record GoBenchmarkRecord) (GoBenchmarkRecord, error) {
+func sourceGoBenchmarkRecord(c *goBenchmarkFieldCursor, start int64, record GoBenchmarkSourceRecord) (GoBenchmarkSourceRecord, error) {
 	extent, err := core.NewByteLength(uint64(c.offset - start))
 	if err != nil {
-		return GoBenchmarkRecord{}, err
+		return GoBenchmarkSourceRecord{}, err
 	}
 	record.source = GoBenchmarkSourceExtent{Offset: lineio.SourceByteOffset(start), Bytes: extent}
 	if err := record.Validate(); err != nil {
-		return GoBenchmarkRecord{}, err
+		return GoBenchmarkSourceRecord{}, err
 	}
 	if err := contextstate.Validate(c.ctx); err != nil {
-		return GoBenchmarkRecord{}, err
+		return GoBenchmarkSourceRecord{}, err
 	}
 	return record, nil
 }

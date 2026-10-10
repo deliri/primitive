@@ -60,7 +60,6 @@ func (n GoBenchmarkName) Validate() error {
 // a finite nonnegative float: the receiver decides rounding and saturation.
 type GoBenchmarkRecord struct {
 	name        GoBenchmarkName
-	source      GoBenchmarkSourceExtent
 	Iterations  int64
 	Nanoseconds float64
 	Bytes       int64
@@ -83,9 +82,6 @@ func (r GoBenchmarkRecord) Refusal() error {
 
 // Validate checks presence, finite numeric facts and field authority.
 func (r GoBenchmarkRecord) Validate() error {
-	if err := r.source.Validate(); err != nil {
-		return err
-	}
 	if err := r.Presence.Validate(); err != nil {
 		return err
 	}
