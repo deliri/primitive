@@ -29,7 +29,7 @@ func TestGoBenchmarkRecordConsumesActualGoFormatter(t *testing.T) {
 				t.Fatal(err)
 			}
 			got, err := gotoolchain.ObserveGoBenchmarkRecord(gotoolchain.GoBenchmarkRecordRequest{Source: []byte(source)})
-			if err != nil || got.Name.String() != "BenchmarkNative-8" || got.Iterations != int64(result.N) || math.Float64bits(got.Nanoseconds) != math.Float64bits(wantTime) || got.Bytes != int64(result.MemBytes)/int64(result.N) || got.Allocations != int64(result.MemAllocs)/int64(result.N) {
+			if err != nil || got.Name().String() != "BenchmarkNative-8" || got.Iterations != int64(result.N) || math.Float64bits(got.Nanoseconds) != math.Float64bits(wantTime) || got.Bytes != int64(result.MemBytes)/int64(result.N) || got.Allocations != int64(result.MemAllocs)/int64(result.N) {
 				t.Fatalf("Go formatter %q projected %+v/%v, want exact native name/count/value facts", source, got, err)
 			}
 		})
@@ -44,8 +44,8 @@ func TestGoBenchmarkRecordNameDoesNotBorrowMutableSource(t *testing.T) {
 		t.Fatal(err)
 	}
 	source[0] = 'X'
-	if got.Name.String() != "BenchmarkStable-8" {
-		t.Fatalf("observed identity changed after source reuse: %q", got.Name.String())
+	if got.Name().String() != "BenchmarkStable-8" {
+		t.Fatalf("observed identity changed after source reuse: %q", got.Name().String())
 	}
 }
 

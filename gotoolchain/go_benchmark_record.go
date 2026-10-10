@@ -56,7 +56,7 @@ func (n GoBenchmarkName) Validate() error {
 // GoBenchmarkRecord preserves native numeric facts. In particular ns/op remains
 // a finite nonnegative float: the receiver decides rounding and saturation.
 type GoBenchmarkRecord struct {
-	Name        GoBenchmarkName
+	name        GoBenchmarkName
 	Iterations  int64
 	Nanoseconds float64
 	Bytes       int64
@@ -64,6 +64,9 @@ type GoBenchmarkRecord struct {
 	Presence    GoBenchmarkRecordPresence
 	Fields      GoBenchmarkMetricFields
 }
+
+// Name returns the immutable identity produced by native row admission.
+func (r GoBenchmarkRecord) Name() GoBenchmarkName { return r.name }
 
 // Validate checks presence, finite numeric facts and field authority.
 func (r GoBenchmarkRecord) Validate() error {
@@ -74,7 +77,7 @@ func (r GoBenchmarkRecord) Validate() error {
 		return err
 	}
 	if r.Presence == GoBenchmarkRecordAbsent {
-		if r.Name != (GoBenchmarkName{}) || r.Iterations != 0 || r.Nanoseconds != 0 || r.Bytes != 0 || r.Allocations != 0 || r.Fields != GoBenchmarkMetricFieldsNone {
+		if r.name != (GoBenchmarkName{}) || r.Iterations != 0 || r.Nanoseconds != 0 || r.Bytes != 0 || r.Allocations != 0 || r.Fields != GoBenchmarkMetricFieldsNone {
 			return core.ErrGoToolchainOutput
 		}
 		return nil
@@ -85,7 +88,7 @@ func (r GoBenchmarkRecord) Validate() error {
 	if r.Fields&GoBenchmarkMetricTime == 0 && r.Nanoseconds != 0 || r.Fields&GoBenchmarkMetricBytes == 0 && r.Bytes != 0 || r.Fields&GoBenchmarkMetricAllocations == 0 && r.Allocations != 0 {
 		return core.ErrGoToolchainOutput
 	}
-	return r.Name.Validate()
+	return r.name.Validate()
 }
 
 // GoBenchmarkRecordRequest borrows one raw record. An unrelated or empty record
@@ -166,7 +169,7 @@ func ObserveGoBenchmarkRecord(request GoBenchmarkRecordRequest) (GoBenchmarkReco
 	}
 	// A refused row publishes no name, so defer the only source-sized copy
 	// until every numeric and framing refusal has been admitted.
-	record.Name = GoBenchmarkName{value: string(name)}
+	record.name = GoBenchmarkName{value: string(name)}
 	if err := record.Validate(); err != nil {
 		return GoBenchmarkRecord{}, err
 	}
