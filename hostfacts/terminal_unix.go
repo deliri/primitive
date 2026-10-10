@@ -5,8 +5,7 @@ package hostfacts
 import (
 	"errors"
 	"os"
-
-	"golang.org/x/sys/unix"
+	"syscall"
 
 	"github.com/deliri/primitive/v2026/core"
 )
@@ -31,10 +30,10 @@ func observedTerminalGeometry(file *os.File) (TerminalGeometry, error) {
 	if err != nil {
 		return TerminalGeometry{}, fail(OperationTerminalGeometry, core.ErrHostFactsObservation, err)
 	}
-	var window *unix.Winsize
+	var columns uint16
 	var ioctlErr error
 	controlErr := conn.Control(func(fd uintptr) {
-		window, ioctlErr = unix.IoctlGetWinsize(int(fd), unix.TIOCGWINSZ)
+		columns, ioctlErr = nativeTerminalColumns(fd)
 	})
 	if controlErr != nil {
 		return TerminalGeometry{}, fail(OperationTerminalGeometry, core.ErrHostFactsObservation, controlErr)
@@ -45,14 +44,10 @@ func observedTerminalGeometry(file *os.File) (TerminalGeometry, error) {
 		}
 		return TerminalGeometry{}, fail(OperationTerminalGeometry, core.ErrHostFactsObservation, ioctlErr)
 	}
-	if window == nil {
-		return TerminalGeometry{}, fail(OperationTerminalGeometry, core.ErrHostFactsObservation,
-			errors.New("winsize ioctl answered without a window"))
-	}
-	if window.Col == 0 {
+	if columns == 0 {
 		return newTerminalWithoutGeometry()
 	}
-	return newAttachedTerminalGeometry(TerminalColumns(window.Col))
+	return newAttachedTerminalGeometry(TerminalColumns(columns))
 }
 
 // errnoSaysNotATerminal names the errno family kernels use to answer "this
@@ -60,8 +55,8 @@ func observedTerminalGeometry(file *os.File) (TerminalGeometry, error) {
 // ENODEV and ENXIO from BSD device layers, and EOPNOTSUPP from descriptors
 // whose driver refuses terminal control entirely.
 func errnoSaysNotATerminal(err error) bool {
-	return errors.Is(err, unix.ENOTTY) ||
-		errors.Is(err, unix.ENODEV) ||
-		errors.Is(err, unix.ENXIO) ||
-		errors.Is(err, unix.EOPNOTSUPP)
+	return errors.Is(err, syscall.ENOTTY) ||
+		errors.Is(err, syscall.ENODEV) ||
+		errors.Is(err, syscall.ENXIO) ||
+		errors.Is(err, syscall.EOPNOTSUPP)
 }

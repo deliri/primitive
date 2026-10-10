@@ -90,6 +90,7 @@ type hostfactsStructInventory struct {
 	TimeZoneRequest           hostfactsIngress[TimeZoneRequest]
 	OOMWire                   hostfactsPersistence[goOOMBannerWire]
 	TerminalGeometryRequest   hostfactsIngress[TerminalGeometryRequest]
+	TerminalWindow            hostfactsKernelFlow[terminalWindow]
 	LineScan                  hostfactsKernelFlow[boundedLineScan]
 	GoOOMBannerRequest        hostfactsIngress[GoOOMBannerRequest]
 	Failure                   hostfactsError[Failure]

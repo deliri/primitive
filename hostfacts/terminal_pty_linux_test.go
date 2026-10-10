@@ -15,7 +15,7 @@ import (
 //
 // Linux unlocks the pair with TIOCSPTLCK and names the slave with TIOCGPTN,
 // both integer ioctls x/sys wraps directly.
-func openPseudoTerminalSlave(t *testing.T) *os.File {
+func openPseudoTerminalSlave(t testing.TB) *os.File {
 	t.Helper()
 	master, err := os.OpenFile("/dev/ptmx", os.O_RDWR, 0)
 	if err != nil {

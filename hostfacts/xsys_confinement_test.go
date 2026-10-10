@@ -19,7 +19,7 @@ func platformEscapeLeafFiles() map[string]bool {
 		"disk_darwin.go":            true,
 		"physical_memory_darwin.go": true,
 		"root_windows.go":           true,
-		"terminal_unix.go":          true,
+		"terminal_other_unix.go":    true,
 		"terminal_windows.go":       true,
 	}
 }
