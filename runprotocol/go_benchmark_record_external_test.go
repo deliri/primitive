@@ -1,4 +1,4 @@
-package gotoolchain_test
+package runprotocol_test
 
 import (
 	"errors"
@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/gotoolchain"
+	"github.com/deliri/primitive/v2026/runprotocol"
 )
 
 func TestGoBenchmarkRecordConsumesActualGoFormatter(t *testing.T) {
@@ -28,7 +28,7 @@ func TestGoBenchmarkRecordConsumesActualGoFormatter(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			got, err := gotoolchain.ObserveGoBenchmarkRecord(gotoolchain.GoBenchmarkRecordRequest{Source: []byte(source)})
+			got, err := runprotocol.ObserveGoBenchmarkRecord(runprotocol.GoBenchmarkRecordRequest{Source: []byte(source)})
 			if err != nil || got.Name().String() != "BenchmarkNative-8" || got.Iterations != int64(result.N) || math.Float64bits(got.Nanoseconds) != math.Float64bits(wantTime) || got.Bytes != int64(result.MemBytes)/int64(result.N) || got.Allocations != int64(result.MemAllocs)/int64(result.N) {
 				t.Fatalf("Go formatter %q projected %+v/%v, want exact native name/count/value facts", source, got, err)
 			}
@@ -39,7 +39,7 @@ func TestGoBenchmarkRecordConsumesActualGoFormatter(t *testing.T) {
 func TestGoBenchmarkRecordNameDoesNotBorrowMutableSource(t *testing.T) {
 	t.Parallel()
 	source := []byte("BenchmarkStable-8 1 5 ns/op")
-	got, err := gotoolchain.ObserveGoBenchmarkRecord(gotoolchain.GoBenchmarkRecordRequest{Source: source})
+	got, err := runprotocol.ObserveGoBenchmarkRecord(runprotocol.GoBenchmarkRecordRequest{Source: source})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,34 +53,34 @@ func TestGoBenchmarkRecordNativeBoundaries(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
 		name, source                   string
-		presence                       gotoolchain.GoBenchmarkRecordPresence
-		fields                         gotoolchain.GoBenchmarkMetricFields
+		presence                       runprotocol.GoBenchmarkRecordPresence
+		fields                         runprotocol.GoBenchmarkMetricFields
 		iterations, bytes, allocations int64
 		nanoseconds                    float64
 		refused                        bool
 	}{
-		{name: "empty record", presence: gotoolchain.GoBenchmarkRecordAbsent},
-		{name: "Go platform metadata", source: "goos: linux", presence: gotoolchain.GoBenchmarkRecordAbsent},
-		{name: "Go successful exit", source: "PASS", presence: gotoolchain.GoBenchmarkRecordAbsent},
-		{name: "Go failure exit", source: "FAIL", presence: gotoolchain.GoBenchmarkRecordAbsent},
-		{name: "unrelated name", source: "Other 1 5 ns/op", presence: gotoolchain.GoBenchmarkRecordAbsent},
-		{name: "ordinary benchmark", source: "BenchmarkOne-8 10 5 ns/op", presence: gotoolchain.GoBenchmarkRecordPresent, fields: gotoolchain.GoBenchmarkMetricTime, iterations: 10, nanoseconds: 5},
-		{name: "fraction remains fractional", source: "BenchmarkOne-8 1 0.125 ns/op", presence: gotoolchain.GoBenchmarkRecordPresent, fields: gotoolchain.GoBenchmarkMetricTime, iterations: 1, nanoseconds: 0.125},
-		{name: "explicit zero time", source: "BenchmarkOne 1 0 ns/op", presence: gotoolchain.GoBenchmarkRecordPresent, fields: gotoolchain.GoBenchmarkMetricTime, iterations: 1},
-		{name: "absent time differs from zero", source: "BenchmarkOne 1 7 MB/s", presence: gotoolchain.GoBenchmarkRecordPresent, iterations: 1},
-		{name: "zero iterations", source: "BenchmarkOne 0 5 ns/op", presence: gotoolchain.GoBenchmarkRecordPresent, fields: gotoolchain.GoBenchmarkMetricTime, nanoseconds: 5},
-		{name: "all measured fields", source: "BenchmarkOne/case-8 20 1.5 ns/op 7 B/op 3 allocs/op", presence: gotoolchain.GoBenchmarkRecordPresent, fields: gotoolchain.GoBenchmarkMetricTime | gotoolchain.GoBenchmarkMetricBytes | gotoolchain.GoBenchmarkMetricAllocations, iterations: 20, nanoseconds: 1.5, bytes: 7, allocations: 3},
-		{name: "unknown fields do not acquire known authority", source: "BenchmarkOne 1 999 MB/s 5 ns/op 999 custom", presence: gotoolchain.GoBenchmarkRecordPresent, fields: gotoolchain.GoBenchmarkMetricTime, iterations: 1, nanoseconds: 5},
-		{name: "last native field value", source: "BenchmarkOne 1 5 ns/op 7 ns/op", presence: gotoolchain.GoBenchmarkRecordPresent, fields: gotoolchain.GoBenchmarkMetricTime, iterations: 1, nanoseconds: 7},
-		{name: "tab columns", source: "BenchmarkOne\t1\t5\tns/op", presence: gotoolchain.GoBenchmarkRecordPresent, fields: gotoolchain.GoBenchmarkMetricTime, iterations: 1, nanoseconds: 5},
-		{name: "CRLF record", source: "BenchmarkOne 1 5 ns/op\r\n", presence: gotoolchain.GoBenchmarkRecordPresent, fields: gotoolchain.GoBenchmarkMetricTime, iterations: 1, nanoseconds: 5},
-		{name: "positive signed count", source: "BenchmarkOne +1 +5 ns/op", presence: gotoolchain.GoBenchmarkRecordPresent, fields: gotoolchain.GoBenchmarkMetricTime, iterations: 1, nanoseconds: 5},
-		{name: "scientific time", source: "BenchmarkOne 1 1.25e2 ns/op", presence: gotoolchain.GoBenchmarkRecordPresent, fields: gotoolchain.GoBenchmarkMetricTime, iterations: 1, nanoseconds: 125},
-		{name: "decimal begins at period", source: "BenchmarkOne 1 .5 ns/op", presence: gotoolchain.GoBenchmarkRecordPresent, fields: gotoolchain.GoBenchmarkMetricTime, iterations: 1, nanoseconds: 0.5},
-		{name: "decimal ends at period", source: "BenchmarkOne 1 5. ns/op", presence: gotoolchain.GoBenchmarkRecordPresent, fields: gotoolchain.GoBenchmarkMetricTime, iterations: 1, nanoseconds: 5},
-		{name: "integer leading zeros", source: "BenchmarkOne 0001 5 ns/op", presence: gotoolchain.GoBenchmarkRecordPresent, fields: gotoolchain.GoBenchmarkMetricTime, iterations: 1, nanoseconds: 5},
-		{name: "signed integer zero", source: "BenchmarkOne -0 5 ns/op", presence: gotoolchain.GoBenchmarkRecordPresent, fields: gotoolchain.GoBenchmarkMetricTime, nanoseconds: 5},
-		{name: "maximum signed iterations", source: "BenchmarkOne 9223372036854775807 5 ns/op", presence: gotoolchain.GoBenchmarkRecordPresent, fields: gotoolchain.GoBenchmarkMetricTime, iterations: math.MaxInt64, nanoseconds: 5},
+		{name: "empty record", presence: runprotocol.GoBenchmarkRecordAbsent},
+		{name: "Go platform metadata", source: "goos: linux", presence: runprotocol.GoBenchmarkRecordAbsent},
+		{name: "Go successful exit", source: "PASS", presence: runprotocol.GoBenchmarkRecordAbsent},
+		{name: "Go failure exit", source: "FAIL", presence: runprotocol.GoBenchmarkRecordAbsent},
+		{name: "unrelated name", source: "Other 1 5 ns/op", presence: runprotocol.GoBenchmarkRecordAbsent},
+		{name: "ordinary benchmark", source: "BenchmarkOne-8 10 5 ns/op", presence: runprotocol.GoBenchmarkRecordPresent, fields: runprotocol.GoBenchmarkMetricTime, iterations: 10, nanoseconds: 5},
+		{name: "fraction remains fractional", source: "BenchmarkOne-8 1 0.125 ns/op", presence: runprotocol.GoBenchmarkRecordPresent, fields: runprotocol.GoBenchmarkMetricTime, iterations: 1, nanoseconds: 0.125},
+		{name: "explicit zero time", source: "BenchmarkOne 1 0 ns/op", presence: runprotocol.GoBenchmarkRecordPresent, fields: runprotocol.GoBenchmarkMetricTime, iterations: 1},
+		{name: "absent time differs from zero", source: "BenchmarkOne 1 7 MB/s", presence: runprotocol.GoBenchmarkRecordPresent, iterations: 1},
+		{name: "zero iterations", source: "BenchmarkOne 0 5 ns/op", presence: runprotocol.GoBenchmarkRecordPresent, fields: runprotocol.GoBenchmarkMetricTime, nanoseconds: 5},
+		{name: "all measured fields", source: "BenchmarkOne/case-8 20 1.5 ns/op 7 B/op 3 allocs/op", presence: runprotocol.GoBenchmarkRecordPresent, fields: runprotocol.GoBenchmarkMetricTime | runprotocol.GoBenchmarkMetricBytes | runprotocol.GoBenchmarkMetricAllocations, iterations: 20, nanoseconds: 1.5, bytes: 7, allocations: 3},
+		{name: "unknown fields do not acquire known authority", source: "BenchmarkOne 1 999 MB/s 5 ns/op 999 custom", presence: runprotocol.GoBenchmarkRecordPresent, fields: runprotocol.GoBenchmarkMetricTime, iterations: 1, nanoseconds: 5},
+		{name: "last native field value", source: "BenchmarkOne 1 5 ns/op 7 ns/op", presence: runprotocol.GoBenchmarkRecordPresent, fields: runprotocol.GoBenchmarkMetricTime, iterations: 1, nanoseconds: 7},
+		{name: "tab columns", source: "BenchmarkOne\t1\t5\tns/op", presence: runprotocol.GoBenchmarkRecordPresent, fields: runprotocol.GoBenchmarkMetricTime, iterations: 1, nanoseconds: 5},
+		{name: "CRLF record", source: "BenchmarkOne 1 5 ns/op\r\n", presence: runprotocol.GoBenchmarkRecordPresent, fields: runprotocol.GoBenchmarkMetricTime, iterations: 1, nanoseconds: 5},
+		{name: "positive signed count", source: "BenchmarkOne +1 +5 ns/op", presence: runprotocol.GoBenchmarkRecordPresent, fields: runprotocol.GoBenchmarkMetricTime, iterations: 1, nanoseconds: 5},
+		{name: "scientific time", source: "BenchmarkOne 1 1.25e2 ns/op", presence: runprotocol.GoBenchmarkRecordPresent, fields: runprotocol.GoBenchmarkMetricTime, iterations: 1, nanoseconds: 125},
+		{name: "decimal begins at period", source: "BenchmarkOne 1 .5 ns/op", presence: runprotocol.GoBenchmarkRecordPresent, fields: runprotocol.GoBenchmarkMetricTime, iterations: 1, nanoseconds: 0.5},
+		{name: "decimal ends at period", source: "BenchmarkOne 1 5. ns/op", presence: runprotocol.GoBenchmarkRecordPresent, fields: runprotocol.GoBenchmarkMetricTime, iterations: 1, nanoseconds: 5},
+		{name: "integer leading zeros", source: "BenchmarkOne 0001 5 ns/op", presence: runprotocol.GoBenchmarkRecordPresent, fields: runprotocol.GoBenchmarkMetricTime, iterations: 1, nanoseconds: 5},
+		{name: "signed integer zero", source: "BenchmarkOne -0 5 ns/op", presence: runprotocol.GoBenchmarkRecordPresent, fields: runprotocol.GoBenchmarkMetricTime, nanoseconds: 5},
+		{name: "maximum signed iterations", source: "BenchmarkOne 9223372036854775807 5 ns/op", presence: runprotocol.GoBenchmarkRecordPresent, fields: runprotocol.GoBenchmarkMetricTime, iterations: math.MaxInt64, nanoseconds: 5},
 		{name: "iteration overflow", source: "BenchmarkOne 9223372036854775808 5 ns/op", refused: true},
 		{name: "negative iteration", source: "BenchmarkOne -1 5 ns/op", refused: true},
 		{name: "missing iterations", source: "BenchmarkOne", refused: true},
@@ -101,21 +101,21 @@ func TestGoBenchmarkRecordNativeBoundaries(t *testing.T) {
 		{name: "invalid UTF8 name", source: "Benchmark\xff 1 5 ns/op", refused: true},
 		{name: "control in name", source: "Benchmark\x00 1 5 ns/op", refused: true},
 		{name: "float range overflow", source: "BenchmarkOne 1 1e309 ns/op", refused: true},
-		{name: "large finite float preserved", source: "BenchmarkOne 1 1e308 ns/op", presence: gotoolchain.GoBenchmarkRecordPresent, fields: gotoolchain.GoBenchmarkMetricTime, iterations: 1, nanoseconds: 1e308},
-		{name: "subnormal time", source: "BenchmarkOne 1 5e-324 ns/op", presence: gotoolchain.GoBenchmarkRecordPresent, fields: gotoolchain.GoBenchmarkMetricTime, iterations: 1, nanoseconds: math.SmallestNonzeroFloat64},
-		{name: "time underflow is native zero", source: "BenchmarkOne 1 1e-325 ns/op", presence: gotoolchain.GoBenchmarkRecordPresent, fields: gotoolchain.GoBenchmarkMetricTime, iterations: 1},
-		{name: "huge positive zero exponent", source: "BenchmarkOne 1 0e999999999999999999999 ns/op", presence: gotoolchain.GoBenchmarkRecordPresent, fields: gotoolchain.GoBenchmarkMetricTime, iterations: 1},
-		{name: "huge negative exponent", source: "BenchmarkOne 1 1e-999999999999999999999 ns/op", presence: gotoolchain.GoBenchmarkRecordPresent, fields: gotoolchain.GoBenchmarkMetricTime, iterations: 1},
+		{name: "large finite float preserved", source: "BenchmarkOne 1 1e308 ns/op", presence: runprotocol.GoBenchmarkRecordPresent, fields: runprotocol.GoBenchmarkMetricTime, iterations: 1, nanoseconds: 1e308},
+		{name: "subnormal time", source: "BenchmarkOne 1 5e-324 ns/op", presence: runprotocol.GoBenchmarkRecordPresent, fields: runprotocol.GoBenchmarkMetricTime, iterations: 1, nanoseconds: math.SmallestNonzeroFloat64},
+		{name: "time underflow is native zero", source: "BenchmarkOne 1 1e-325 ns/op", presence: runprotocol.GoBenchmarkRecordPresent, fields: runprotocol.GoBenchmarkMetricTime, iterations: 1},
+		{name: "huge positive zero exponent", source: "BenchmarkOne 1 0e999999999999999999999 ns/op", presence: runprotocol.GoBenchmarkRecordPresent, fields: runprotocol.GoBenchmarkMetricTime, iterations: 1},
+		{name: "huge negative exponent", source: "BenchmarkOne 1 1e-999999999999999999999 ns/op", presence: runprotocol.GoBenchmarkRecordPresent, fields: runprotocol.GoBenchmarkMetricTime, iterations: 1},
 		{name: "huge positive nonzero exponent", source: "BenchmarkOne 1 1e999999999999999999999 ns/op", refused: true},
-		{name: "integer width does not become source quota", source: "BenchmarkOne " + strings.Repeat("0", 1<<20) + "1 5 ns/op", presence: gotoolchain.GoBenchmarkRecordPresent, fields: gotoolchain.GoBenchmarkMetricTime, iterations: 1, nanoseconds: 5},
-		{name: "float width does not become source quota", source: "BenchmarkOne 1 1." + strings.Repeat("0", 1<<20) + " ns/op", presence: gotoolchain.GoBenchmarkRecordPresent, fields: gotoolchain.GoBenchmarkMetricTime, iterations: 1, nanoseconds: 1},
-		{name: "unknown value width is ignored", source: "BenchmarkOne 1 " + strings.Repeat("9", 1<<20) + " custom", presence: gotoolchain.GoBenchmarkRecordPresent, iterations: 1},
+		{name: "integer width does not become source quota", source: "BenchmarkOne " + strings.Repeat("0", 1<<20) + "1 5 ns/op", presence: runprotocol.GoBenchmarkRecordPresent, fields: runprotocol.GoBenchmarkMetricTime, iterations: 1, nanoseconds: 5},
+		{name: "float width does not become source quota", source: "BenchmarkOne 1 1." + strings.Repeat("0", 1<<20) + " ns/op", presence: runprotocol.GoBenchmarkRecordPresent, fields: runprotocol.GoBenchmarkMetricTime, iterations: 1, nanoseconds: 1},
+		{name: "unknown value width is ignored", source: "BenchmarkOne 1 " + strings.Repeat("9", 1<<20) + " custom", presence: runprotocol.GoBenchmarkRecordPresent, iterations: 1},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := gotoolchain.ObserveGoBenchmarkRecord(gotoolchain.GoBenchmarkRecordRequest{Source: []byte(tc.source)})
+			got, err := runprotocol.ObserveGoBenchmarkRecord(runprotocol.GoBenchmarkRecordRequest{Source: []byte(tc.source)})
 			if tc.refused {
-				if !errors.Is(err, core.ErrGoToolchainOutput) || got != (gotoolchain.GoBenchmarkRecord{}) {
+				if !errors.Is(err, core.ErrGoToolchainOutput) || got != (runprotocol.GoBenchmarkRecord{}) {
 					t.Fatalf("refusal=%+v/%v, want zero and constant", got, err)
 				}
 				return
@@ -148,12 +148,12 @@ func TestGoBenchmarkRecordNumericFieldsUseConstantWorkingMemory(t *testing.T) {
 			source := []byte(tc.body)
 			var before, after runtime.MemStats
 			runtime.ReadMemStats(&before)
-			got, err := gotoolchain.ObserveGoBenchmarkRecord(gotoolchain.GoBenchmarkRecordRequest{Source: source})
+			got, err := runprotocol.ObserveGoBenchmarkRecord(runprotocol.GoBenchmarkRecordRequest{Source: source})
 			runtime.ReadMemStats(&after)
 			if (err != nil) != tc.refused {
 				t.Fatalf("native record refusal=%v want %t", err, tc.refused)
 			}
-			if tc.refused && got != (gotoolchain.GoBenchmarkRecord{}) {
+			if tc.refused && got != (runprotocol.GoBenchmarkRecord{}) {
 				t.Fatalf("refusal leaked record %+v", got)
 			}
 			if bytes := after.TotalAlloc - before.TotalAlloc; bytes > 64<<10 {
@@ -184,17 +184,17 @@ func FuzzGoBenchmarkRecordDecimalValueMatchesGo(f *testing.F) {
 		}
 		want, wantErr := strconv.ParseFloat(value, 64)
 		accepted := wantErr == nil && want >= 0 && !math.IsNaN(want) && !math.IsInf(want, 0)
-		got, err := gotoolchain.ObserveGoBenchmarkRecord(gotoolchain.GoBenchmarkRecordRequest{Source: []byte("BenchmarkOracle 1 " + value + " ns/op")})
+		got, err := runprotocol.ObserveGoBenchmarkRecord(runprotocol.GoBenchmarkRecordRequest{Source: []byte("BenchmarkOracle 1 " + value + " ns/op")})
 		if (err == nil) != accepted {
 			t.Fatalf("decimal %q admission=%v want Go %v/%v", value, err, want, wantErr)
 		}
 		if !accepted {
-			if got != (gotoolchain.GoBenchmarkRecord{}) || !errors.Is(err, core.ErrGoToolchainOutput) {
+			if got != (runprotocol.GoBenchmarkRecord{}) || !errors.Is(err, core.ErrGoToolchainOutput) {
 				t.Fatalf("refusal=%+v/%v", got, err)
 			}
 			return
 		}
-		if got.Presence != gotoolchain.GoBenchmarkRecordPresent || got.Fields != gotoolchain.GoBenchmarkMetricTime || math.Float64bits(got.Nanoseconds) != math.Float64bits(want) {
+		if got.Presence != runprotocol.GoBenchmarkRecordPresent || got.Fields != runprotocol.GoBenchmarkMetricTime || math.Float64bits(got.Nanoseconds) != math.Float64bits(want) {
 			t.Fatalf("decimal %q native=%+v, want exact Go float bits %x", value, got, math.Float64bits(want))
 		}
 	})

@@ -45,7 +45,3 @@ var (
 	_ internalFlow      = moduleWire{}
 	_ capabilityWrapper = Capability{}
 )
-
-func (GoBenchmarkName) goToolchainSealedValue()           {}
-func (GoBenchmarkRecord) goToolchainProtocolFact()        {}
-func (GoBenchmarkRecordRequest) goToolchainProtocolFact() {}

@@ -88,3 +88,7 @@ var (
 	_ sealedProjection    = ObservationReference{}
 	_ internalFlowCarrier = machineFingerprintIdentityWire{}
 )
+
+func (GoBenchmarkName) runProtocolSealedProjection() {}
+func (GoBenchmarkRecord) runProtocolFact()           {}
+func (GoBenchmarkRecordRequest) runProtocolFact()    {}

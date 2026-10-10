@@ -1,4 +1,4 @@
-package gotoolchain
+package runprotocol
 
 import (
 	"github.com/deliri/primitive/v2026/core"
