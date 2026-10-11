@@ -70,68 +70,99 @@ func (r RecordRangeRequest) Validate() error {
 	return (Request{Source: r.Source, BufferBytes: r.BufferBytes}).Validate()
 }
 
+// RangeReader owns one fixed native line buffer and its exact consumed offset.
+// It borrows the source, starts no goroutine or coroutine, and has no input quota.
+// The caller owns source cleanup and stops after a refusal.
+type RangeReader struct {
+	reader *Reader
+	source *recordRangeReadGuard
+	offset int64
+}
+
+func NewRangeReader(ctx context.Context, request RecordRangeRequest) (*RangeReader, error) {
+	if err := errors.Join(contextstate.Validate(ctx), request.Validate()); err != nil {
+		return nil, err
+	}
+	offset, err := request.Source.Seek(0, io.SeekCurrent)
+	if err != nil || offset < 0 {
+		return nil, errors.Join(core.ErrLineIOScan, err)
+	}
+	source := &recordRangeReadGuard{source: request.Source}
+	reader, err := New(Request{Source: source, BufferBytes: request.BufferBytes})
+	if err != nil {
+		return nil, err
+	}
+	return &RangeReader{reader: reader, source: source, offset: offset}, nil
+}
+
+func (r *RangeReader) Validate() error {
+	if r == nil || r.source == nil || r.offset < 0 {
+		return core.ErrLineIOContract
+	}
+	return r.reader.Validate()
+}
+
+// ReadRecord returns the next complete physical span, or bare io.EOF when no
+// record remains. A final unterminated record succeeds with RecordFramingEOF.
+// No partial range escapes a source failure. Cancellation before a read leaves
+// the cursor untouched; source interruption remains the caller's responsibility.
+func (r *RangeReader) ReadRecord(ctx context.Context) (RecordRange, error) {
+	if err := errors.Join(contextstate.Validate(ctx), r.Validate()); err != nil {
+		return RecordRange{}, err
+	}
+	start := r.offset
+	for {
+		fragment, err := r.reader.ReadFragment(ctx)
+		if r.source.readErr != nil {
+			return RecordRange{}, errors.Join(core.ErrLineIOScan, err, r.source.readErr)
+		}
+		if err != nil && err != io.EOF {
+			return RecordRange{}, err
+		}
+		if int64(len(fragment.Bytes)) > math.MaxInt64-r.offset {
+			return RecordRange{}, core.ErrLineIOScan
+		}
+		r.offset += int64(len(fragment.Bytes))
+		if fragment.More {
+			continue
+		}
+		if r.offset == start {
+			return RecordRange{}, io.EOF
+		}
+		size, sizeErr := core.NewByteLength(uint64(r.offset - start))
+		if sizeErr != nil {
+			return RecordRange{}, sizeErr
+		}
+		framing := RecordFramingLF
+		if err == io.EOF {
+			framing = RecordFramingEOF
+		}
+		record := RecordRange{Offset: SourceByteOffset(start), Bytes: size, Framing: framing}
+		if err := record.Validate(); err != nil {
+			return RecordRange{}, err
+		}
+		return record, nil
+	}
+}
+
 // RecordRanges yields complete physical records with constant working memory.
 // Invalid UTF-8, NUL, whitespace and CR remain uninterpreted source bytes.
 // A read failure never publishes an interrupted partial record. Clean EOF
 // publishes a final unterminated record and produces no empty tail record.
 func RecordRanges(ctx context.Context, request RecordRangeRequest) iter.Seq2[RecordRange, error] {
 	return func(yield func(RecordRange, error) bool) {
-		if err := errors.Join(contextstate.Validate(ctx), request.Validate()); err != nil {
-			yield(RecordRange{}, err)
-			return
-		}
-		offset, err := request.Source.Seek(0, io.SeekCurrent)
-		if err != nil || offset < 0 {
-			yield(RecordRange{}, errors.Join(core.ErrLineIOScan, err))
-			return
-		}
-		source := recordRangeReadGuard{source: request.Source}
-		reader, err := New(Request{Source: &source, BufferBytes: request.BufferBytes})
+		reader, err := NewRangeReader(ctx, request)
 		if err != nil {
 			yield(RecordRange{}, err)
 			return
 		}
 		for {
-			start := offset
-			for {
-				fragment, err := reader.ReadFragment(ctx)
-				if source.readErr != nil {
-					yield(RecordRange{}, errors.Join(core.ErrLineIOScan, err, source.readErr))
-					return
-				}
-				if err != nil && err != io.EOF {
-					yield(RecordRange{}, err)
-					return
-				}
-				if int64(len(fragment.Bytes)) > math.MaxInt64-offset {
-					yield(RecordRange{}, core.ErrLineIOScan)
-					return
-				}
-				offset += int64(len(fragment.Bytes))
-				if fragment.More {
-					continue
-				}
-				if offset == start {
-					return
-				}
-				size, sizeErr := core.NewByteLength(uint64(offset - start))
-				if sizeErr != nil {
-					yield(RecordRange{}, sizeErr)
-					return
-				}
-				framing := RecordFramingLF
-				if err == io.EOF {
-					framing = RecordFramingEOF
-				}
-				record := RecordRange{Offset: SourceByteOffset(start), Bytes: size, Framing: framing}
-				if validation := record.Validate(); validation != nil {
-					yield(RecordRange{}, validation)
-					return
-				}
-				if !yield(record, nil) || err == io.EOF {
-					return
-				}
-				break
+			record, err := reader.ReadRecord(ctx)
+			if err == io.EOF {
+				return
+			}
+			if !yield(record, err) || err != nil {
+				return
 			}
 		}
 	}
@@ -220,3 +251,5 @@ func (r *recordRangeReadGuard) Read(p []byte) (int, error) {
 	}
 	return n, err
 }
+
+var _ core.Validatable = (*RangeReader)(nil)

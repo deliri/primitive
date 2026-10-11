@@ -37,6 +37,7 @@ type lineioContractInventory struct {
 	Fragment              lineioRequestContract[lineio.Fragment]
 	Request               lineioRequestContract[lineio.Request]
 	Reader                lineioCapabilityContract[lineio.Reader]
+	RangeReader           lineioCapabilityContract[lineio.RangeReader]
 	recordRangeReadGuard  lineioReadCountGuardContract
 	checkedReader         lineioReadCountGuardContract
 }
