@@ -48,3 +48,12 @@ remain available through `errors.Is`. A wrapped EOF is a failure rather than
 clean completion. A published prefix is provisional until clean exhaustion.
 The consumer can stop synchronously without a worker, queue or complete source
 model. There is no line, token or file-size ceiling.
+
+`StreamCharacters(ctx, Request{Source, BufferBytes})` publishes native
+`bufio.Reader.ReadRune` observations from a forward-only source. It reuses
+`RecordCharacter`: offsets start at zero and byte widths describe the exact
+source extent. Initial and later BOMs, NUL, and malformed UTF-8 remain data;
+malformed bytes follow Go's RuneError/width-one behavior. The fixed buffer
+never grows to fit a token or line. A prefix remains provisional until clean
+EOF; a wrapped EOF, another native failure, or cancellation is a refusal.
+Consumer backpressure stops observations without reading the remaining stream.
