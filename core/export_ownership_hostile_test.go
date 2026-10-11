@@ -16,7 +16,7 @@ import (
 const (
 	coreExportDependencyMaximum     = 32
 	coreSpecialExportAdmissionCount = 96 // Includes provider-neutral image dimensions shared with callers.
-	coreProviderExportContractCount = 173
+	coreProviderExportContractCount = 177
 )
 
 type coreExportName string
@@ -267,6 +267,10 @@ func coreProviderExportContracts() [coreProviderExportContractCount]coreProvider
 		{name: "StripeCredentialCustodyMaximumBytes", witness: StripeCredentialCustodyMaximumBytes, consumer: PackageStripe},
 		{name: "StripeWebhookSecretMinimumBytes", witness: StripeWebhookSecretMinimumBytes, consumer: PackageStripe},
 		{name: "StripeWebhookSecretCustodyMaximumBytes", witness: StripeWebhookSecretCustodyMaximumBytes, consumer: PackageStripe},
+		{name: "StripeWebhookTimestampField", witness: StripeWebhookTimestampField, consumer: PackageStripe},
+		{name: "StripeWebhookDigestField", witness: StripeWebhookDigestField, consumer: PackageStripe},
+		{name: "StripeWebhookSignedPayloadSeparator", witness: StripeWebhookSignedPayloadSeparator, consumer: PackageStripe},
+		{name: "StripeWebhookScratchFilename", witness: StripeWebhookScratchFilename, consumer: PackageStripe},
 		{name: "StripeWebhookSignatureHeaderName", witness: StripeWebhookSignatureHeaderName, consumer: PackageStripe},
 		{name: "StripeWebhookSignatureMaximumBytes", witness: StripeWebhookSignatureMaximumBytes, consumer: PackageStripe},
 		{name: "PayPalLiveAPIHost", witness: PayPalLiveAPIHost, consumer: PackagePayPal},

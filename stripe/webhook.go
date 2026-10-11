@@ -1,19 +1,20 @@
 package stripe
 
 import (
-	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
 	"errors"
 	"io"
 	"math"
+	"os"
 	"strconv"
-	"strings"
 
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
+	"github.com/deliri/primitive/v2026/filestore"
 	"github.com/deliri/primitive/v2026/temporal"
-	stripesdk "github.com/stripe/stripe-go/v86"
 )
 
 type InboundObservation struct {
@@ -33,14 +34,17 @@ func (o InboundObservation) Validate() error {
 }
 
 type WebhookReceiveRequest struct {
-	Call        exchange.SocketServerCall
-	Destination io.Writer
-	ObservedAt  temporal.Instant
-	Tolerance   temporal.Duration
+	// ScratchParent is caller-owned placement for provisional bytes. Filestore
+	// creates and removes a private child namespace; no body extent is limited.
+	ScratchParent core.AbsolutePath
+	Call          exchange.SocketServerCall
+	Destination   io.Writer
+	ObservedAt    temporal.Instant
+	Tolerance     temporal.Duration
 }
 
 func (r WebhookReceiveRequest) Validate() error {
-	if r.Call.Validate() != nil || core.WriterIsNil(r.Destination) || r.ObservedAt.Validate() != nil || r.Tolerance.Validate() != nil || r.Tolerance.IsZero() {
+	if r.ScratchParent.Validate() != nil || r.Call.Validate() != nil || core.WriterIsNil(r.Destination) || r.ObservedAt.Validate() != nil || r.Tolerance.Validate() != nil || r.Tolerance.IsZero() {
 		return core.ErrStripeContract
 	}
 	return nil
@@ -90,20 +94,12 @@ func (r WebhookReceiver) Receive(request WebhookReceiveRequest) (InboundObservat
 	if err != nil {
 		return InboundObservation{}, contractError(err)
 	}
-	received, err := exchange.ReceiveBounded(exchange.BoundedReceiveCall{
-		Call:                request.Call,
-		ExpectedContentType: media,
-
-		Route: exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt},
-	})
-	if err != nil {
-		return InboundObservation{}, err
-	}
 	signature, err := uniqueHeader(request.Call, core.StripeWebhookSignatureHeaderName, core.StripeWebhookSignatureMaximumBytes)
 	if err != nil {
 		return InboundObservation{}, authenticationError(err)
 	}
-	if err := stripesdk.ValidatePayload(received.Body, signature, string(r.state.secret.value), stripesdk.WithIgnoreTolerance()); err != nil {
+	seconds, err := signatureSeconds(signature)
+	if err != nil {
 		return InboundObservation{}, verificationError(err)
 	}
 	if err := validateSignatureTime(signature, request.ObservedAt, request.Tolerance); err != nil {
@@ -113,8 +109,46 @@ func (r WebhookReceiver) Receive(request WebhookReceiveRequest) (InboundObservat
 	if err != nil {
 		return InboundObservation{}, contractError(err)
 	}
-	written, err := writeBody(ctx, request.Destination, received.Body)
-	observation := InboundObservation{Bytes: written, ObservedAt: request.ObservedAt}
+	var observation InboundObservation
+	err = filestore.WithScratchScope(ctx, filestore.ScratchScopeRequest{
+		Parent: request.ScratchParent,
+		Use: func(ctx context.Context, root *os.Root) error {
+			path, err := core.ParseRelativePath(core.StripeWebhookScratchFilename)
+			if err != nil {
+				return err
+			}
+			result, err := filestore.WithScratchReplayScope(ctx, filestore.ScratchReplayScopeRequest{
+				Scratch: filestore.ScratchRequest{Location: filestore.Location{Root: root, Path: path}, Mode: 0600},
+				Use: func(ctx context.Context, file filestore.ScratchReplayFile) error {
+					mac := hmac.New(sha256.New, r.state.secret.value)
+					var timestamp [20]byte
+					_, _ = mac.Write(strconv.AppendInt(timestamp[:0], seconds, 10))
+					_, _ = mac.Write([]byte{core.StripeWebhookSignedPayloadSeparator})
+					var buffer [exchange.TransferBufferBytes]byte
+					received, err := exchange.ReceiveStream(exchange.StreamReceiveCall{
+						Call: request.Call, ExpectedContentType: media, Buffer: buffer[:],
+						Destination: io.MultiWriter(file, mac),
+						Route:       exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt},
+					})
+					if err != nil {
+						return err
+					}
+					var digest [sha256.Size]byte
+					if err := verifySignatureDigest(signature, mac.Sum(digest[:0])); err != nil {
+						return err
+					}
+					extent, err := received.Bytes.Int64()
+					if err != nil {
+						return err
+					}
+					written, err := writeVerifiedBody(ctx, request.Destination, io.NewSectionReader(file, 0, extent), extent)
+					observation = InboundObservation{Bytes: written, ObservedAt: request.ObservedAt}
+					return err
+				},
+			})
+			return errors.Join(err, result.OperationError(), result.CleanupError())
+		},
+	})
 	if err != nil {
 		return observation, err
 	}
@@ -167,44 +201,29 @@ func validateSignatureTime(header string, observed temporal.Instant, tolerance t
 }
 
 func signatureInstant(header string) (temporal.Instant, error) {
-	nanosecondsPerSecond := int64(temporal.NanosecondsPerSecond)
-	var seconds int64
-	found := false
-	for member := range strings.SplitSeq(header, ",") {
-		if !strings.HasPrefix(member, "t=") {
-			continue
-		}
-		if found {
-			return temporal.Instant{}, core.ErrStripeVerification
-		}
-		parsed, err := strconv.ParseInt(strings.TrimPrefix(member, "t="), 10, 64)
-		if err != nil {
-			return temporal.Instant{}, verificationError(err)
-		}
-		if parsed > math.MaxInt64/nanosecondsPerSecond || parsed < math.MinInt64/nanosecondsPerSecond {
-			return temporal.Instant{}, core.ErrStripeVerification
-		}
-		seconds = parsed
-		found = true
+	seconds, err := signatureSeconds(header)
+	if err != nil {
+		return temporal.Instant{}, err
 	}
-	if !found {
+	nanosecondsPerSecond := int64(temporal.NanosecondsPerSecond)
+	if seconds > math.MaxInt64/nanosecondsPerSecond || seconds < math.MinInt64/nanosecondsPerSecond {
 		return temporal.Instant{}, core.ErrStripeVerification
 	}
 	return temporal.InstantFromNanoseconds(seconds * nanosecondsPerSecond), nil
 }
 
-func writeBody(ctx context.Context, destination io.Writer, body []byte) (core.ByteLength, error) {
+func writeVerifiedBody(ctx context.Context, destination io.Writer, source io.Reader, extent int64) (core.ByteLength, error) {
 	if err := contextstate.Validate(ctx); err != nil {
 		return core.ByteLength{}, err
 	}
 	var buffer [exchange.TransferBufferBytes]byte
-	written, err := io.CopyBuffer(destination, bytes.NewReader(body), buffer[:])
+	written, err := io.CopyBuffer(destination, source, buffer[:])
 	count, countErr := core.CheckedUint64FromInt64(written)
 	length, lengthErr := core.NewByteLength(count)
 	if joined := errors.Join(err, countErr, lengthErr, contextstate.Validate(ctx)); joined != nil {
 		return length, joined
 	}
-	if written != int64(len(body)) {
+	if written != extent {
 		return length, io.ErrShortWrite
 	}
 	return length, nil

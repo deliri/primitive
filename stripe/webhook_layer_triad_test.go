@@ -54,7 +54,7 @@ func TestWebhookIngressAttacksTheStripeVerificationBoundary(t *testing.T) {
 			}
 			var destination bytes.Buffer
 			observation, gotErr := receiver.Receive(WebhookReceiveRequest{
-				Call: call, Destination: &destination, ObservedAt: observedAt, Tolerance: tolerance,
+				ScratchParent: stripeScratchParent(t, t.TempDir()), Call: call, Destination: &destination, ObservedAt: observedAt, Tolerance: tolerance,
 			})
 			if !errors.Is(gotErr, testCase.wantErr) {
 				t.Fatalf("Receive() error = %v, want %v", gotErr, testCase.wantErr)
