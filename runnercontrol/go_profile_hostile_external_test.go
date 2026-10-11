@@ -438,7 +438,7 @@ func goPlanRequestFixture(t testing.TB, experiment runnercontrol.GoExperimentPla
 		Command: mustProfileAbsolutePath(t, "/usr/local/go/bin/go"), WorkingDirectory: sourceRoot, WorkspaceRoot: mustProfileAbsolutePath(t, "/workspace"), ArtifactDirectory: mustProfileRelativePath(t, "artifacts"),
 		Environment: runnercontrol.GoExecutionEnvironment{Home: mustProfileAbsolutePath(t, "/workspace/home"), Cache: mustProfileAbsolutePath(t, "/workspace/cache"), Temporary: mustProfileAbsolutePath(t, "/workspace/tmp"), GOMAXPROCS: 4, CGOEnabled: experiment.Profile == runnercontrol.GoProfileRace},
 		Machine:     runprotocol.MachineExecutionSettings{Observation: observation, Generation: generation, LogicalCPUCount: 4},
-		Experiment:  experiment, OutputLimit: mustProfileByteCount(t, 8<<20), ArtifactLimit: mustProfileByteCount(t, 64<<20), ExpectedUnits: 1, WaitDelay: mustProfileDuration(t, 5_000_000_000),
+		Experiment:  experiment, ArtifactLimit: mustProfileByteCount(t, 64<<20), ExpectedUnits: 1, WaitDelay: mustProfileDuration(t, 5_000_000_000),
 		Subject: subjectExecutionFixture(t, sourceRoot),
 	}
 }

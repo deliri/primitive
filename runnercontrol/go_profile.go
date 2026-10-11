@@ -400,7 +400,6 @@ type GoPlanRequest struct {
 	Environment       GoExecutionEnvironment
 	Experiment        GoExperimentPlan
 	Subject           SubjectExecution
-	OutputLimit       core.ByteCount
 	ArtifactLimit     core.ByteCount
 	WaitDelay         temporal.Duration
 	ExpectedUnits     uint32
@@ -408,7 +407,7 @@ type GoPlanRequest struct {
 }
 
 func (r GoPlanRequest) Validate() error {
-	if err := errors.Join(r.Command.Validate(), r.WorkingDirectory.Validate(), r.WorkspaceRoot.Validate(), r.ArtifactDirectory.Validate(), r.Environment.Validate(), r.Machine.Validate(), r.Experiment.Validate(), r.OutputLimit.Validate(), r.ArtifactLimit.Validate(), r.WaitDelay.Validate()); err != nil {
+	if err := errors.Join(r.Command.Validate(), r.WorkingDirectory.Validate(), r.WorkspaceRoot.Validate(), r.ArtifactDirectory.Validate(), r.Environment.Validate(), r.Machine.Validate(), r.Experiment.Validate(), r.ArtifactLimit.Validate(), r.WaitDelay.Validate()); err != nil {
 		return err
 	}
 	if r.ExpectedUnits == 0 || r.ExpectedUnits > ExecutionAccountingUnitMaximum {
@@ -475,7 +474,7 @@ func CompileGoPlan(request GoPlanRequest) (ExperimentExecution, error) {
 	if err != nil {
 		return ExperimentExecution{}, err
 	}
-	plan := process.Plan{SchemaVersion: process.ExecutionPlanSchemaVersion, Command: request.Command, WorkingDirectory: request.WorkingDirectory, Arguments: parsedArguments, Environment: environment, OutputPolicy: process.OutputPolicy{Mode: process.OutputModeBounded, Maximum: request.OutputLimit}, WaitDelay: request.WaitDelay, Containment: process.Containment{Isolation: process.IsolationGroup, CancelSignal: process.CancelSignalTerminate}}
+	plan := process.Plan{SchemaVersion: process.ExecutionPlanSchemaVersion, Command: request.Command, WorkingDirectory: request.WorkingDirectory, Arguments: parsedArguments, Environment: environment, OutputPolicy: process.OutputPolicy{Mode: process.OutputModeStreaming}, WaitDelay: request.WaitDelay, Containment: process.Containment{Isolation: process.IsolationGroup, CancelSignal: process.CancelSignalTerminate}}
 	filtered := request.Experiment.Profile == GoProfileFocused || request.Experiment.Profile == GoProfileBenchmark || request.Experiment.Profile == GoProfileFuzz
 	workspace := WritableWorkspace{Root: request.WorkspaceRoot, Home: request.Environment.Home, Output: paths.output, Cache: request.Environment.Cache, Temporary: request.Environment.Temporary}
 	compiled := ExperimentExecution{Process: plan, Workspace: workspace, Subject: request.Subject, Artifacts: artifacts, Observation: ObservationPolicy{Format: ObservationGoTestJSON, ExpectedUnits: request.ExpectedUnits, Filtered: filtered}, Budget: budget, Go: &resolution}

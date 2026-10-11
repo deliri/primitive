@@ -158,7 +158,7 @@ func externalPlanBaseFixture(t testing.TB, egress runnercontrol.EgressPolicy) ru
 		Environment: runnercontrol.ExternalExecutionEnvironment{
 			Home: mustProfileAbsolutePath(t, "/workspace/home"), Cache: mustProfileAbsolutePath(t, "/workspace/cache"), Temporary: mustProfileAbsolutePath(t, "/workspace/tmp"),
 		},
-		OutputLimit: mustProfileByteCount(t, 8<<20), WaitDelay: mustProfileDuration(t, 5_000_000_000), Subject: subject, Egress: egress,
+		WaitDelay: mustProfileDuration(t, 5_000_000_000), Subject: subject, Egress: egress,
 	}
 }
 

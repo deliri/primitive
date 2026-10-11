@@ -33,12 +33,11 @@ type ExternalPlanBase struct {
 	OutputDirectory  core.RelativePath
 	Egress           EgressPolicy
 	Subject          SubjectExecution
-	OutputLimit      core.ByteCount
 	WaitDelay        temporal.Duration
 }
 
 func (b ExternalPlanBase) Validate() error {
-	if err := errors.Join(b.Command.Validate(), b.WorkingDirectory.Validate(), b.WorkspaceRoot.Validate(), b.OutputDirectory.Validate(), b.Environment.Validate(), b.OutputLimit.Validate(), b.WaitDelay.Validate(), b.Egress.Validate()); err != nil {
+	if err := errors.Join(b.Command.Validate(), b.WorkingDirectory.Validate(), b.WorkspaceRoot.Validate(), b.OutputDirectory.Validate(), b.Environment.Validate(), b.WaitDelay.Validate(), b.Egress.Validate()); err != nil {
 		return err
 	}
 	egressIdentity, err := b.Egress.Digest()
@@ -234,7 +233,7 @@ func compileExternalExecution(compilation externalCompilation) (ExperimentExecut
 	plan := process.Plan{
 		SchemaVersion: process.ExecutionPlanSchemaVersion,
 		Command:       compilation.base.Command, WorkingDirectory: compilation.base.WorkingDirectory,
-		Arguments: arguments, Environment: environment, OutputPolicy: process.OutputPolicy{Mode: process.OutputModeBounded, Maximum: compilation.base.OutputLimit},
+		Arguments: arguments, Environment: environment, OutputPolicy: process.OutputPolicy{Mode: process.OutputModeStreaming},
 		WaitDelay:   compilation.base.WaitDelay,
 		Containment: process.Containment{Isolation: process.IsolationGroup, CancelSignal: process.CancelSignalTerminate},
 	}
