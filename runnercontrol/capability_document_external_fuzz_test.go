@@ -56,7 +56,7 @@ func proveCapabilityDocumentClosure[T capabilityDocumentJSONValue](
 	seed T,
 	data []byte,
 	decode func(*T, []byte) error,
-	verify func(T, attest.TrustedKeys) error,
+	verify func(T, runnercontrol.CapabilityVerification) error,
 	trusted attest.TrustedKeys,
 ) {
 	t.Helper()
@@ -88,7 +88,7 @@ func proveCapabilityDocumentClosure[T capabilityDocumentJSONValue](
 	if err != nil || !bytes.Equal(second, encoded) {
 		t.Fatalf("%s second canonical projection = (%q, %v), want (%q, nil)", name, second, err, encoded)
 	}
-	verifyErr := verify(got, trusted)
+	verifyErr := verify(got, capabilityVerificationFixture(trusted))
 	if verifyErr == nil && !bytes.Equal(encoded, canonical) {
 		t.Fatalf("%s verification accepted mutated bytes %q, want only genuinely signed seed %q", name, encoded, canonical)
 	}

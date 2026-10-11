@@ -289,16 +289,34 @@ func IssueExperimentCapability(payload ExperimentCapability, signer crypto.Signe
 	return document, document.Validate()
 }
 
-func VerifySchedulingCapability(document SchedulingCapabilityDocument, trusted attest.TrustedKeys) error {
-	return verifyCapabilityDocument(document.Payload, document.Attestation, trusted)
+func VerifySchedulingCapability(document SchedulingCapabilityDocument, verification CapabilityVerification) error {
+	if err := verification.Validate(); err != nil {
+		return err
+	}
+	if err := verifyCapabilityDocument(document.Payload, document.Attestation, verification.TrustedKeys); err != nil {
+		return err
+	}
+	return verifyCapabilityExpiry(verification.ObservedAt, document.Payload.ExpiresAt)
 }
 
-func VerifyMemberCapability(document MemberCapabilityDocument, trusted attest.TrustedKeys) error {
-	return verifyCapabilityDocument(document.Payload, document.Attestation, trusted)
+func VerifyMemberCapability(document MemberCapabilityDocument, verification CapabilityVerification) error {
+	if err := verification.Validate(); err != nil {
+		return err
+	}
+	if err := verifyCapabilityDocument(document.Payload, document.Attestation, verification.TrustedKeys); err != nil {
+		return err
+	}
+	return verifyCapabilityExpiry(verification.ObservedAt, document.Payload.ExpiresAt)
 }
 
-func VerifyExperimentCapability(document ExperimentCapabilityDocument, trusted attest.TrustedKeys) error {
-	return verifyCapabilityDocument(document.Payload, document.Attestation, trusted)
+func VerifyExperimentCapability(document ExperimentCapabilityDocument, verification CapabilityVerification) error {
+	if err := verification.Validate(); err != nil {
+		return err
+	}
+	if err := verifyCapabilityDocument(document.Payload, document.Attestation, verification.TrustedKeys); err != nil {
+		return err
+	}
+	return verifyCapabilityExpiry(verification.ObservedAt, document.Payload.ExpiresAt)
 }
 
 func verifyCapabilityDocument[B attest.CanonicalBody[CapabilitySigningDomain]](body B, envelope attest.Envelope[CapabilitySigningDomain], trusted attest.TrustedKeys) error {
@@ -341,20 +359,20 @@ func (c *SchedulingClaim) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func VerifySchedulingClaim(claim SchedulingClaim, trusted attest.TrustedKeys) error {
-	if err := claim.Validate(); err != nil {
+func VerifySchedulingClaim(claim SchedulingClaim, verification CapabilityVerification) error {
+	if err := errors.Join(claim.Validate(), verification.Validate()); err != nil {
 		return err
 	}
-	if err := VerifySchedulingCapability(claim.Capability, trusted); err != nil {
+	if err := VerifySchedulingCapability(claim.Capability, verification); err != nil {
 		return err
 	}
 	for index := range claim.Members {
-		if err := VerifyMemberCapability(claim.Members[index], trusted); err != nil {
+		if err := VerifyMemberCapability(claim.Members[index], verification); err != nil {
 			return err
 		}
 	}
 	for index := range claim.Direct {
-		if err := VerifyExperimentCapability(claim.Direct[index], trusted); err != nil {
+		if err := VerifyExperimentCapability(claim.Direct[index], verification); err != nil {
 			return err
 		}
 	}

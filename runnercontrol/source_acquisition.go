@@ -45,6 +45,15 @@ func (r SourceAcquisitionRequest) Validate() error {
 	return nil
 }
 
+// VerifySourceAcquisitionRequest admits the fence against the verifier's
+// trusted observation. RequestedAt is a peer fact, not the admission clock.
+func VerifySourceAcquisitionRequest(request SourceAcquisitionRequest, observedAt temporal.Instant) error {
+	if err := errors.Join(request.Validate(), observedAt.Validate()); err != nil {
+		return err
+	}
+	return verifyCapabilityExpiry(observedAt, request.Fence.Machine.ExpiresAt)
+}
+
 type sourceAcquisitionRequestWire SourceAcquisitionRequest
 
 func (r SourceAcquisitionRequest) MarshalJSON() ([]byte, error) {
@@ -227,6 +236,17 @@ func (s SourceAcquisitionServer) Serve(call exchange.SocketServerCall) error {
 		return err
 	}
 	if err := RequireRunnerPeer(ctx, received.Body.Fence.Machine.Machine, received.Body.Fence.Machine.Generation); err != nil {
+		return err
+	}
+	observed, err := temporal.Observe()
+	if err != nil {
+		return err
+	}
+	observedAt, err := observed.Instant()
+	if err != nil {
+		return err
+	}
+	if err := VerifySourceAcquisitionRequest(*received.Body, observedAt); err != nil {
 		return err
 	}
 	projection, err := s.repository.AcquireSource(ctx, *received.Body)

@@ -576,6 +576,8 @@ const (
 	// ErrFilestoreCallbackPanic identifies a contained callback panic after
 	// the native scope executes its cleanup. The private payload is omitted.
 	ErrFilestoreCallbackPanic
+	// ErrRunnerControlExpired identifies authority presented at or after expiry.
+	ErrRunnerControlExpired
 	errorIdentityLimit
 )
 
@@ -831,6 +833,7 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrRequestBudgetWindow, text: "request budget window rejected"},
 		{identity: ErrRequestBudgetBinding, text: "request budget reservation binding rejected"},
 		{identity: ErrFilestoreCallbackPanic, text: "filestore callback panicked"},
+		{identity: ErrRunnerControlExpired, text: "runner control authority expired"},
 	}
 }
 
@@ -932,6 +935,9 @@ func isAdmittedErrorIdentity(identity ErrorIdentity) bool {
 }
 
 func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
+	if identity == ErrRunnerControlExpired {
+		return oneErrorIdentityParent(ErrPrimitiveContract)
+	}
 	if identity == ErrPasswordHashCapacity {
 		return oneErrorIdentityParent(ErrPasswordHashContract)
 	}

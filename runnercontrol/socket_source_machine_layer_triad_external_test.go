@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"hash/crc32"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -189,6 +190,8 @@ func sourceAcquisitionSocketFixture(t testing.TB) (runnercontrol.SourceAcquisiti
 		SchemaVersion: runnercontrol.SchemaVersion, Fence: payload.Fence, Members: payload.Members,
 		Source: grant, Grant: admitted.Source.Identity, RequestedAt: temporal.InstantFromNanoseconds(2),
 	}
+	// The successful socket handoff uses the server's real Temporal clock.
+	request.Fence.Machine.ExpiresAt = temporal.InstantFromNanoseconds(math.MaxInt64)
 	projection := runnercontrol.SourceAcquisitionProjection{
 		SchemaVersion: runnercontrol.SchemaVersion, Fence: request.Fence, Members: request.Members,
 		Grant: admitted.Source, Document: document, Capability: capability,

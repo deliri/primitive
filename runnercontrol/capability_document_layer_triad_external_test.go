@@ -22,7 +22,7 @@ func TestSchedulingCapabilitySignatureChainLayerTriad(t *testing.T) {
 	t.Run("positive every capability layer carries an independently verified control signature", func(t *testing.T) {
 		t.Parallel()
 		claim, trusted := schedulingClaimDocumentFixture(t)
-		if err := runnercontrol.VerifySchedulingClaim(claim, trusted); err != nil {
+		if err := runnercontrol.VerifySchedulingClaim(claim, capabilityVerificationFixture(trusted)); err != nil {
 			t.Fatalf("VerifySchedulingClaim(genuine chain) error = %v, want nil", err)
 		}
 		record, err := runnercontrol.NewSchedulingClaimRecord(claim)
@@ -39,7 +39,7 @@ func TestSchedulingCapabilitySignatureChainLayerTriad(t *testing.T) {
 		if err := mutated.Validate(); err != nil {
 			t.Fatalf("MemberCapabilityDocument.Validate(structurally valid mutation) error = %v, want nil before authentication", err)
 		}
-		if err := runnercontrol.VerifyMemberCapability(mutated, trusted); !errors.Is(err, core.ErrAttestVerification) {
+		if err := runnercontrol.VerifyMemberCapability(mutated, capabilityVerificationFixture(trusted)); !errors.Is(err, core.ErrAttestVerification) {
 			t.Fatalf("VerifyMemberCapability(mutated signed body) error = %v, want %v", err, core.ErrAttestVerification)
 		}
 	})
@@ -51,11 +51,15 @@ func TestSchedulingCapabilitySignatureChainLayerTriad(t *testing.T) {
 		var replay runnercontrol.SchedulingClaim
 		decodeErr := replay.UnmarshalJSON(first)
 		second, secondErr := replay.MarshalJSON()
-		verifyErr := runnercontrol.VerifySchedulingClaim(replay, trusted)
+		verifyErr := runnercontrol.VerifySchedulingClaim(replay, capabilityVerificationFixture(trusted))
 		if err := errors.Join(firstErr, decodeErr, secondErr, verifyErr); err != nil || !bytes.Equal(first, second) || len(replay.Members) != len(claim.Members) || len(replay.Direct) != len(claim.Direct) {
 			t.Fatalf("scheduling claim canonical replay = (equal %t, members %d, direct %d, error %v), want (true, %d, %d, nil)", bytes.Equal(first, second), len(replay.Members), len(replay.Direct), err, len(claim.Members), len(claim.Direct))
 		}
 	})
+}
+
+func capabilityVerificationFixture(trusted attest.TrustedKeys) runnercontrol.CapabilityVerification {
+	return runnercontrol.CapabilityVerification{TrustedKeys: trusted, ObservedAt: temporal.InstantFromNanoseconds(2_000_000)}
 }
 
 func TestExpansionApprovalCapabilitySignatureLayerTriad(t *testing.T) {
@@ -65,7 +69,7 @@ func TestExpansionApprovalCapabilitySignatureLayerTriad(t *testing.T) {
 		t.Parallel()
 		signer, trusted := completionSignerFixture(t)
 		approval := expansionApprovalSeed(t, expansionManifestFixture(t, true), signer)
-		if err := runnercontrol.VerifyExpansionApproval(approval, trusted); err != nil {
+		if err := runnercontrol.VerifyExpansionApproval(approval, capabilityVerificationFixture(trusted)); err != nil {
 			t.Fatalf("VerifyExpansionApproval(genuine approval) error = %v, want nil", err)
 		}
 	})
@@ -78,7 +82,7 @@ func TestExpansionApprovalCapabilitySignatureLayerTriad(t *testing.T) {
 		if err := approval.Validate(); err != nil {
 			t.Fatalf("ExpansionApproval.Validate(structural mutation) error = %v, want nil before authentication", err)
 		}
-		if err := runnercontrol.VerifyExpansionApproval(approval, trusted); !errors.Is(err, core.ErrAttestVerification) {
+		if err := runnercontrol.VerifyExpansionApproval(approval, capabilityVerificationFixture(trusted)); !errors.Is(err, core.ErrAttestVerification) {
 			t.Fatalf("VerifyExpansionApproval(mutated experiment) error = %v, want %v", err, core.ErrAttestVerification)
 		}
 	})
@@ -99,7 +103,7 @@ func TestExpansionApprovalCapabilitySignatureLayerTriad(t *testing.T) {
 			Refusal:        &refusal,
 			Experiments:    []runnercontrol.ExperimentCapabilityDocument{},
 		}
-		if err := runnercontrol.VerifyExpansionApproval(approval, trusted); err != nil || len(approval.Experiments) != 0 {
+		if err := runnercontrol.VerifyExpansionApproval(approval, capabilityVerificationFixture(trusted)); err != nil || len(approval.Experiments) != 0 {
 			t.Fatalf("VerifyExpansionApproval(refusal) = (experiments %d, error %v), want (0, nil)", len(approval.Experiments), err)
 		}
 	})
@@ -117,59 +121,61 @@ func TestEverySchedulingCapabilityLayerRejectsAuthenticLookingSubstitution(t *te
 		{name: "scheduling expiry changed under original signature", verify: func() error {
 			got := claim.Capability
 			got.Payload.ExpiresAt = temporal.InstantFromNanoseconds(3_499_999)
-			return runnercontrol.VerifySchedulingCapability(got, trusted)
+			return runnercontrol.VerifySchedulingCapability(got, capabilityVerificationFixture(trusted))
 		}},
 		{name: "scheduling deadline changed under original signature", verify: func() error {
 			got := claim.Capability
 			got.Payload.AbsoluteDeadline = temporal.InstantFromNanoseconds(3_999_999)
-			return runnercontrol.VerifySchedulingCapability(got, trusted)
+			return runnercontrol.VerifySchedulingCapability(got, capabilityVerificationFixture(trusted))
 		}},
 		{name: "scheduling budget changed under original signature", verify: func() error {
 			got := claim.Capability
 			got.Payload.AggregateBudget = mustCapabilityDuration(t, 999)
-			return runnercontrol.VerifySchedulingCapability(got, trusted)
+			return runnercontrol.VerifySchedulingCapability(got, capabilityVerificationFixture(trusted))
 		}},
 		{name: "member nonce changed under original signature", verify: func() error {
 			got := claim.Members[0]
 			got.Payload.Nonce = core.SHA256Of([]byte("changed nonce"))
-			return runnercontrol.VerifyMemberCapability(got, trusted)
+			return runnercontrol.VerifyMemberCapability(got, capabilityVerificationFixture(trusted))
 		}},
 		{name: "member admitted digest changed under original signature", verify: func() error {
 			got := claim.Members[0]
 			got.Payload.AdmittedRunDigest = core.SHA256Of([]byte("foreign admission"))
-			return runnercontrol.VerifyMemberCapability(got, trusted)
+			return runnercontrol.VerifyMemberCapability(got, capabilityVerificationFixture(trusted))
 		}},
 		{name: "member request changed under original signature", verify: func() error {
 			got := claim.Members[0]
 			got.Payload.Request = capabilityRequestIdentity(t, 77)
-			return runnercontrol.VerifyMemberCapability(got, trusted)
+			return runnercontrol.VerifyMemberCapability(got, capabilityVerificationFixture(trusted))
 		}},
 		{name: "member requested time changed under original signature", verify: func() error {
 			got := claim.Members[0]
 			got.Payload.RequestedAt = temporal.InstantFromNanoseconds(999_999)
-			return runnercontrol.VerifyMemberCapability(got, trusted)
+			return runnercontrol.VerifyMemberCapability(got, capabilityVerificationFixture(trusted))
 		}},
 		{name: "member admitted time changed under original signature", verify: func() error {
 			got := claim.Members[0]
 			got.Payload.AdmittedAt = temporal.InstantFromNanoseconds(1_499_999)
-			return runnercontrol.VerifyMemberCapability(got, trusted)
+			return runnercontrol.VerifyMemberCapability(got, capabilityVerificationFixture(trusted))
 		}},
 		{name: "experiment expiry changed under original signature", verify: func() error {
 			got := claim.Direct[0]
 			got.Payload.ExpiresAt = temporal.InstantFromNanoseconds(2_999_999)
-			return runnercontrol.VerifyExperimentCapability(got, trusted)
+			return runnercontrol.VerifyExperimentCapability(got, capabilityVerificationFixture(trusted))
 		}},
 		{name: "experiment build context changed under original signature", verify: func() error {
 			got := claim.Direct[0]
 			got.Payload.BuildContextDigest = core.SHA256Of([]byte("foreign build context"))
-			return runnercontrol.VerifyExperimentCapability(got, trusted)
+			return runnercontrol.VerifyExperimentCapability(got, capabilityVerificationFixture(trusted))
 		}},
 		{name: "experiment resource ceiling changed under original signature", verify: func() error {
 			got := claim.Direct[0]
 			got.Payload.Resources.CPUCount++
-			return runnercontrol.VerifyExperimentCapability(got, trusted)
+			return runnercontrol.VerifyExperimentCapability(got, capabilityVerificationFixture(trusted))
 		}},
-		{name: "genuine chain presented to a foreign trust set", verify: func() error { return runnercontrol.VerifySchedulingClaim(claim, foreignTrusted) }},
+		{name: "genuine chain presented to a foreign trust set", verify: func() error {
+			return runnercontrol.VerifySchedulingClaim(claim, capabilityVerificationFixture(foreignTrusted))
+		}},
 	}
 
 	for _, tc := range cases {
@@ -232,7 +238,7 @@ func schedulingClaimDocumentFixture(t testing.TB) (runnercontrol.SchedulingClaim
 		t.Fatalf("IssueExperimentCapability(fixture) error = %v, want nil", experimentErr)
 	}
 	claim := runnercontrol.SchedulingClaim{Capability: scheduling, Members: []runnercontrol.MemberCapabilityDocument{member}, Direct: []runnercontrol.ExperimentCapabilityDocument{experiment}}
-	if err := errors.Join(claim.Validate(), runnercontrol.VerifySchedulingClaim(claim, trusted)); err != nil {
+	if err := errors.Join(claim.Validate(), runnercontrol.VerifySchedulingClaim(claim, capabilityVerificationFixture(trusted))); err != nil {
 		t.Fatalf("SchedulingClaim signed fixture error = %v, want nil", err)
 	}
 	return claim, trusted

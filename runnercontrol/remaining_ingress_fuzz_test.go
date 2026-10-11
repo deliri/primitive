@@ -38,7 +38,7 @@ func FuzzSchedulingClaimSemanticAuthentication(f *testing.F) {
 		if err := got.UnmarshalJSON(data); err != nil {
 			return
 		}
-		err := runnercontrol.VerifySchedulingClaim(got, trusted)
+		err := runnercontrol.VerifySchedulingClaim(got, capabilityVerificationFixture(trusted))
 		if err != nil {
 			if !errors.Is(err, core.ErrAttestVerification) {
 				t.Fatalf("VerifySchedulingClaim() error = %v, want typed authentication refusal", err)

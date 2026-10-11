@@ -21,11 +21,19 @@ func TestCapabilityDocumentValidOperations(t *testing.T) {
 		{name: "scheduling payload validates its complete policy closure", run: claim.Capability.Payload.Validate, why: "scheduling policy owner"},
 		{name: "member payload validates its admitted run closure", run: claim.Members[0].Payload.Validate, why: "member policy owner"},
 		{name: "experiment payload validates its execution closure", run: claim.Direct[0].Payload.Validate, why: "experiment policy owner"},
-		{name: "scheduling document verifies its independent signature", run: func() error { return runnercontrol.VerifySchedulingCapability(claim.Capability, trusted) }, why: "scheduling authentication boundary"},
-		{name: "member document verifies its independent signature", run: func() error { return runnercontrol.VerifyMemberCapability(claim.Members[0], trusted) }, why: "member authentication boundary"},
-		{name: "experiment document verifies its independent signature", run: func() error { return runnercontrol.VerifyExperimentCapability(claim.Direct[0], trusted) }, why: "experiment authentication boundary"},
+		{name: "scheduling document verifies its independent signature", run: func() error {
+			return runnercontrol.VerifySchedulingCapability(claim.Capability, capabilityVerificationFixture(trusted))
+		}, why: "scheduling authentication boundary"},
+		{name: "member document verifies its independent signature", run: func() error {
+			return runnercontrol.VerifyMemberCapability(claim.Members[0], capabilityVerificationFixture(trusted))
+		}, why: "member authentication boundary"},
+		{name: "experiment document verifies its independent signature", run: func() error {
+			return runnercontrol.VerifyExperimentCapability(claim.Direct[0], capabilityVerificationFixture(trusted))
+		}, why: "experiment authentication boundary"},
 		{name: "claim validates all signed digest links", run: claim.Validate, why: "chain structure boundary"},
-		{name: "claim verifies all signed layers", run: func() error { return runnercontrol.VerifySchedulingClaim(claim, trusted) }, why: "chain authentication boundary"},
+		{name: "claim verifies all signed layers", run: func() error {
+			return runnercontrol.VerifySchedulingClaim(claim, capabilityVerificationFixture(trusted))
+		}, why: "chain authentication boundary"},
 		{name: "claim record seals exact canonical bytes", run: func() error {
 			record, err := runnercontrol.NewSchedulingClaimRecord(claim)
 			return errors.Join(err, record.Validate())
@@ -33,7 +41,7 @@ func TestCapabilityDocumentValidOperations(t *testing.T) {
 		{name: "canonical replay retains the complete authenticated chain", run: func() error {
 			encoded, err := claim.MarshalJSON()
 			var replay runnercontrol.SchedulingClaim
-			return errors.Join(err, replay.UnmarshalJSON(encoded), runnercontrol.VerifySchedulingClaim(replay, trusted))
+			return errors.Join(err, replay.UnmarshalJSON(encoded), runnercontrol.VerifySchedulingClaim(replay, capabilityVerificationFixture(trusted)))
 		}, why: "durable replay boundary"},
 	}
 

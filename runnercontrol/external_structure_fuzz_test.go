@@ -42,7 +42,7 @@ func FuzzRunnerControlExternalStructureJSONSemanticClosure(f *testing.F) {
 			proveStructureJSONClosure(t, "ClaimResponse", seeds.claimResponse, data, (*runnercontrol.ClaimResponse).UnmarshalJSON)
 			var got runnercontrol.ClaimResponse
 			if err := got.UnmarshalJSON(data); err == nil && got.Scheduling != nil {
-				verifyErr := runnercontrol.VerifySchedulingClaim(*got.Scheduling, trusted)
+				verifyErr := runnercontrol.VerifySchedulingClaim(*got.Scheduling, capabilityVerificationFixture(trusted))
 				if verifyErr == nil {
 					sameSignedNominal(t, got.Scheduling.Capability, signedClaim.Capability)
 					for _, member := range got.Scheduling.Members {
@@ -94,7 +94,7 @@ func FuzzRunnerControlExternalStructureJSONSemanticClosure(f *testing.F) {
 			proveStructureJSONClosure(t, "ExpansionApproval", seeds.expansionApproval, data, (*runnercontrol.ExpansionApproval).UnmarshalJSON)
 			var got runnercontrol.ExpansionApproval
 			if err := got.UnmarshalJSON(data); err == nil {
-				verifyErr := runnercontrol.VerifyExpansionApproval(got, trusted)
+				verifyErr := runnercontrol.VerifyExpansionApproval(got, capabilityVerificationFixture(trusted))
 				if verifyErr == nil {
 					for _, document := range got.Experiments {
 						sameSignedNominal(t, document, seeds.expansionApproval.Experiments[0])

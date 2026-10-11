@@ -935,12 +935,12 @@ func validateApprovedExperiment(document ExperimentCapabilityDocument, approval 
 	return nil
 }
 
-func VerifyExpansionApproval(approval ExpansionApproval, trusted attest.TrustedKeys) error {
-	if err := approval.Validate(); err != nil {
+func VerifyExpansionApproval(approval ExpansionApproval, verification CapabilityVerification) error {
+	if err := errors.Join(approval.Validate(), verification.Validate()); err != nil {
 		return err
 	}
 	for index := range approval.Experiments {
-		if err := VerifyExperimentCapability(approval.Experiments[index], trusted); err != nil {
+		if err := VerifyExperimentCapability(approval.Experiments[index], verification); err != nil {
 			return err
 		}
 	}
