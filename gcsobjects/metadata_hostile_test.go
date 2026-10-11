@@ -34,7 +34,7 @@ func TestMetadataFromGCSAttrsProjectsProviderEvidence(t *testing.T) {
 	}{
 		{
 			name:            "served media attrs carry content type and a cache directive",
-			build:           validMediaGCSAttrs,
+			build:           func(t *testing.T) *storage.ObjectAttrs { return validMediaGCSAttrs(t) },
 			wantContentType: "image/webp",
 			wantCache:       "private, no-store",
 		},
@@ -200,7 +200,7 @@ func TestProjectGCSErrorMapsProviderFailuresToStableIdentities(t *testing.T) {
 	}
 }
 
-func validMediaGCSAttrs(t *testing.T) *storage.ObjectAttrs {
+func validMediaGCSAttrs(t testing.TB) *storage.ObjectAttrs {
 	t.Helper()
 	instant, gotErr := temporal.InstantFromNanoseconds(metadataFixtureInstantNanos).Time()
 	if gotErr != nil {

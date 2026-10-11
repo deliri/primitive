@@ -552,11 +552,10 @@ func (r GCSReadResult) Staged() (filestore.StagedFile, error) {
 	return r.staged, nil
 }
 
-// GCSListRequest is one bounded authenticated prefix inventory.
+// GCSListRequest names one authenticated provider prefix stream.
 type GCSListRequest struct {
-	Bucket     GCSBucket
-	Prefix     GCSObjectPrefix
-	MaxObjects core.ByteCount
+	Bucket GCSBucket
+	Prefix GCSObjectPrefix
 }
 
 // GCSListedReadRequest reads one exact generation returned by ListGCSObjects.
@@ -618,14 +617,7 @@ func (r GCSReadRequest) Validate() error {
 }
 
 func (r GCSListRequest) Validate() error {
-	if err := errors.Join(r.Bucket.Validate(), r.Prefix.Validate()); err != nil {
-		return errors.Join(core.ErrObjectStoreContract, err)
-	}
-	maximum, err := r.MaxObjects.Uint64()
-	if err != nil || maximum > GCSListMaximumObjects {
-		return errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreSize, err)
-	}
-	return nil
+	return errors.Join(r.Bucket.Validate(), r.Prefix.Validate())
 }
 
 func (r GCSListedReadRequest) Validate() error {
@@ -855,7 +847,8 @@ func ReadGCSObject(ctx context.Context, client *GCSClient, request GCSReadReques
 	return session.stage(ctx, request.Destination)
 }
 
-// ListGCSObjects streams a bounded, lexicographically ordered prefix inventory.
+// ListGCSObjects visits the provider prefix in order until EOF or refusal.
+// The caller owns cancellation and may stop by returning an error from visit.
 func ListGCSObjects(ctx context.Context, client *GCSClient, request GCSListRequest, visit GCSObjectVisitor) error {
 	if err := validateGCSCall(ctx, client); err != nil {
 		return err
@@ -867,16 +860,14 @@ func ListGCSObjects(ctx context.Context, client *GCSClient, request GCSListReque
 		return errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreDestination)
 	}
 	objects := client.client.Bucket(request.Bucket.String()).Objects(ctx, &storage.Query{Prefix: request.Prefix.String(), Projection: storage.ProjectionNoACL})
-	maximum, _ := request.MaxObjects.Uint64()
-	return visitGCSObjects(objects, maximum, visit)
+	return visitGCSObjects(objects, visit)
 }
 
 type gcsObjectIterator interface {
 	Next() (*storage.ObjectAttrs, error)
 }
 
-func visitGCSObjects(objects gcsObjectIterator, maximum uint64, visit GCSObjectVisitor) error {
-	var count uint64
+func visitGCSObjects(objects gcsObjectIterator, visit GCSObjectVisitor) error {
 	for {
 		attrs, err := objects.Next()
 		if errors.Is(err, iterator.Done) {
@@ -885,9 +876,6 @@ func visitGCSObjects(objects gcsObjectIterator, maximum uint64, visit GCSObjectV
 		if err != nil {
 			return projectGCSError(err, core.ErrObjectStoreSource)
 		}
-		if count == maximum {
-			return errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreSize)
-		}
 		metadata, err := metadataFromGCSAttrs(attrs)
 		if err != nil {
 			return err
@@ -895,7 +883,6 @@ func visitGCSObjects(objects gcsObjectIterator, maximum uint64, visit GCSObjectV
 		if err := visit(metadata); err != nil {
 			return err
 		}
-		count++
 	}
 }
 

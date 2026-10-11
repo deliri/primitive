@@ -80,7 +80,7 @@ func FuzzGCSReadExtentSemanticBoundary(f *testing.F) {
 		listedClient := bucketTestClient(t, listedProvider)
 		var listed GCSObjectMetadata
 		var visits int
-		listErr := ListGCSObjects(t.Context(), listedClient, GCSListRequest{Bucket: request.Bucket, Prefix: parsedGCSObjectPrefix(t, "users/01/evidence/"), MaxObjects: gcsProviderMaximum(t, 1)}, func(value GCSObjectMetadata) error { listed = value; visits++; return nil })
+		listErr := ListGCSObjects(t.Context(), listedClient, GCSListRequest{Bucket: request.Bucket, Prefix: parsedGCSObjectPrefix(t, "users/01/evidence/")}, func(value GCSObjectMetadata) error { listed = value; visits++; return nil })
 		if listErr != nil || visits != 1 || listed.Validate() != nil || listed.Length() != integrity.Length || listed.CRC32C() != integrity.CRC32C {
 			t.Fatalf("listed producer = (%v, %d, %v), want one exact validated metadata fact", listed, visits, listErr)
 		}

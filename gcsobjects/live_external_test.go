@@ -316,7 +316,7 @@ func verifyLiveGCSObjectCount(t *testing.T, client *gcsobjects.GCSClient, bucket
 	// A nonexistent generation alone cannot establish absence of the object head.
 	// The positive check before deletion proves this observer sees the live object.
 	var count int
-	err := gcsobjects.ListGCSObjects(t.Context(), client, gcsobjects.GCSListRequest{Bucket: bucket, Prefix: prefix, MaxObjects: liveGCSMaximum(t, gcsLiveDestructiveObjectBound)}, func(metadata gcsobjects.GCSObjectMetadata) error {
+	err := gcsobjects.ListGCSObjects(t.Context(), client, gcsobjects.GCSListRequest{Bucket: bucket, Prefix: prefix}, func(metadata gcsobjects.GCSObjectMetadata) error {
 		if metadata.Name() == name {
 			count++
 		}

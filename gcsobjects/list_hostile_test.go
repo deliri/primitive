@@ -33,24 +33,20 @@ func (i *hostileGCSObjectIterator) Next() (*storage.ObjectAttrs, error) {
 	return nil, iterator.Done
 }
 
-func TestVisitGCSObjectsStreamsInProviderOrderAndEnforcesBound(t *testing.T) {
+func TestVisitGCSObjectsStreamsInProviderOrder(t *testing.T) {
 	t.Parallel()
 
 	first := validMediaGCSAttrs(t)
 	first.Name = "forge-recovery/v1/project/0001.json"
 	second := *first
 	second.Name = "forge-recovery/v1/project/0002.json"
-	maximum, err := core.NewByteCount(2)
-	if err != nil {
-		t.Fatalf("core.NewByteCount() error = %v", err)
-	}
-	request := GCSListRequest{Bucket: parsedGCSBucket(t, first.Bucket), Prefix: parsedGCSObjectPrefix(t, "forge-recovery/v1/project/"), MaxObjects: maximum}
+	request := GCSListRequest{Bucket: parsedGCSBucket(t, first.Bucket), Prefix: parsedGCSObjectPrefix(t, "forge-recovery/v1/project/")}
 	if err := request.Validate(); err != nil {
 		t.Fatalf("GCSListRequest.Validate() error = %v, want nil", err)
 	}
 	var names []GCSObjectName
 	objects := &hostileGCSObjectIterator{objects: []*storage.ObjectAttrs{first, &second}}
-	err = visitGCSObjects(objects, 2, func(metadata GCSObjectMetadata) error {
+	err := visitGCSObjects(objects, func(metadata GCSObjectMetadata) error {
 		names = append(names, metadata.Name())
 		return nil
 	})
@@ -62,9 +58,9 @@ func TestVisitGCSObjectsStreamsInProviderOrderAndEnforcesBound(t *testing.T) {
 	}
 
 	objects = &hostileGCSObjectIterator{objects: []*storage.ObjectAttrs{first, &second}}
-	err = visitGCSObjects(objects, 1, func(GCSObjectMetadata) error { return nil })
-	if !errors.Is(err, core.ErrObjectStoreSize) {
-		t.Fatalf("visitGCSObjects(over bound) error = %v, want %v", err, core.ErrObjectStoreSize)
+	err = visitGCSObjects(objects, func(GCSObjectMetadata) error { return nil })
+	if err != nil || objects.index != 2 {
+		t.Fatalf("visitGCSObjects(repeated stream) = (%d visits, %v), want (2, nil)", objects.index, err)
 	}
 }
 
@@ -74,7 +70,7 @@ func TestVisitGCSObjectsRefusesMalformedProviderEvidenceAndVisitorFailure(t *tes
 	valid := validMediaGCSAttrs(t)
 	malformed := *valid
 	malformed.Generation = 0
-	err := visitGCSObjects(&hostileGCSObjectIterator{objects: []*storage.ObjectAttrs{&malformed}}, 1, func(GCSObjectMetadata) error {
+	err := visitGCSObjects(&hostileGCSObjectIterator{objects: []*storage.ObjectAttrs{&malformed}}, func(GCSObjectMetadata) error {
 		t.Fatalf("visitor calls for generation = %d, want 0 calls for malformed provider evidence", malformed.Generation)
 		return nil
 	})
@@ -83,7 +79,7 @@ func TestVisitGCSObjectsRefusesMalformedProviderEvidenceAndVisitorFailure(t *tes
 	}
 
 	want := errors.New("visitor refused object")
-	err = visitGCSObjects(&hostileGCSObjectIterator{objects: []*storage.ObjectAttrs{valid}}, 1, func(GCSObjectMetadata) error { return want })
+	err = visitGCSObjects(&hostileGCSObjectIterator{objects: []*storage.ObjectAttrs{valid}}, func(GCSObjectMetadata) error { return want })
 	if !errors.Is(err, want) {
 		t.Fatalf("visitGCSObjects(visitor failure) error = %v, want %v", err, want)
 	}
@@ -94,12 +90,8 @@ func TestGCSListToExactReadProductionHandoffLayerTriad(t *testing.T) {
 
 	provider := &gcsListReadProvider{t: t, payload: bytes.Clone(gcsProviderPayload)}
 	client := bucketTestClient(t, provider)
-	maximum, err := core.NewByteCount(2)
-	if err != nil {
-		t.Fatalf("core.NewByteCount() error = %v, want nil", err)
-	}
 	request := GCSListRequest{
-		Bucket: parsedGCSBucket(t, gcsProviderBucketText), Prefix: parsedGCSObjectPrefix(t, "users/01/evidence/"), MaxObjects: maximum,
+		Bucket: parsedGCSBucket(t, gcsProviderBucketText), Prefix: parsedGCSObjectPrefix(t, "users/01/evidence/"),
 	}
 	var listed []GCSObjectMetadata
 	if gotErr := ListGCSObjects(t.Context(), client, request, func(object GCSObjectMetadata) error {
@@ -218,8 +210,7 @@ func TestGCSListedReadExtentLayerTriad(t *testing.T) {
 			t.Parallel()
 			provider := &gcsListReadProvider{t: t, payload: tc.metadata, mediaOverride: &tc.media, chunked: tc.chunked}
 			client := bucketTestClient(t, provider)
-			maximum := gcsProviderMaximum(t, 1)
-			request := GCSListRequest{Bucket: parsedGCSBucket(t, gcsProviderBucketText), Prefix: parsedGCSObjectPrefix(t, "users/01/evidence/"), MaxObjects: maximum}
+			request := GCSListRequest{Bucket: parsedGCSBucket(t, gcsProviderBucketText), Prefix: parsedGCSObjectPrefix(t, "users/01/evidence/")}
 			var listed GCSObjectMetadata
 			var visits int
 			err := ListGCSObjects(t.Context(), client, request, func(value GCSObjectMetadata) error { listed = value; visits++; return nil })

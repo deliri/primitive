@@ -32,10 +32,6 @@ const (
 	// it is not a Google request limit because the SDK deletes one object per call.
 	// Source: https://cloud.google.com/storage/docs/deleting-objects#storage-delete-object-go
 	GCSDeleteMaximumObjects = 10_000
-	// GCSListMaximumObjects is Primitive's visitor-call custody ceiling; Google
-	// paginates provider listings and publishes no whole-inventory maximum.
-	// Source: https://cloud.google.com/storage/docs/listing-objects#storage-list-objects-go
-	GCSListMaximumObjects = 10_000
 )
 
 // GCSAuthentication selects exactly how the official SDK finds credentials.
