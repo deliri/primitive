@@ -64,11 +64,8 @@ func ReadContentIndexEntry(source io.Reader) (ContentIndexEntry, error) {
 		return ContentIndexEntry{}, core.ErrFilestoreContract
 	}
 	var data [ContentIndexRecordBytes]byte
-	if _, err := io.ReadFull(source, data[:]); err != nil {
-		if errors.Is(err, io.EOF) {
-			return ContentIndexEntry{}, io.EOF
-		}
-		return ContentIndexEntry{}, errors.Join(core.ErrFilestoreContract, err)
+	if err := readIndexRecord(source, data[:]); err != nil {
+		return ContentIndexEntry{}, err
 	}
 	var digest [core.SHA256DigestBytes]byte
 	copy(digest[:], data[:core.SHA256DigestBytes])

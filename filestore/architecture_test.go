@@ -17,6 +17,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/lineio"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -37,6 +38,10 @@ type architectureScan struct {
 // filestoreContractInventory classifies every production struct by its real
 // role. The generic arguments make every inventory entry compiler-visible.
 type filestoreContractInventory struct {
+	RecordRangeSortRequest     validatedRequest[RecordRangeSortRequest]
+	RecordRangeStreamRequest   validatedRequest[RecordRangeStreamRequest]
+	RecordRangeSortObservation streamedObservation[RecordRangeSortObservation]
+
 	CopyContentRequest            validatedRequest[CopyContentRequest]
 	ContentIndexInspectionRequest validatedRequest[ContentIndexInspectionRequest]
 	ContentIndexEntry             boundedFact[ContentIndexEntry]
@@ -136,6 +141,7 @@ func TestFilestoreImportsOnlyGoAndOwnedPrimitiveContracts(t *testing.T) {
 		reflect.TypeFor[core.Validatable]().PkgPath(),
 		reflect.TypeFor[contextstate.State]().PkgPath(),
 		reflect.TypeFor[temporal.Instant]().PkgPath(),
+		reflect.TypeFor[lineio.RecordRange]().PkgPath(),
 	}
 	for _, production := range parseProductionFiles(t) {
 		for _, specification := range production.file.Imports {
@@ -239,6 +245,7 @@ func TestFilestoreProductionUsesGoAndOSPrimitivesWithoutCoordinationMachineryRat
 		"github.com/deliri/primitive/v2026/contextstate",
 		"github.com/deliri/primitive/v2026/core",
 		"github.com/deliri/primitive/v2026/temporal",
+		"github.com/deliri/primitive/v2026/lineio",
 	}
 	slices.Sort(got.primitiveImports)
 	slices.Sort(want)
