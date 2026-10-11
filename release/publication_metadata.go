@@ -20,9 +20,6 @@ const (
 	metadataZIPMediaType          = "application/zip"
 	metadataMarkdownMediaType     = "text/markdown; charset=utf-8"
 	metadataInspectionBufferBytes = 64 << 10
-	// MetadataAssetMaximumBytes bounds each dependency, documentation, or
-	// release-note object independently of object size in memory.
-	MetadataAssetMaximumBytes = 256 << 20
 )
 
 // MetadataKind is the closed set of customer-visible release metadata.
@@ -92,7 +89,7 @@ type MetadataAssetRequest struct {
 	Kind   MetadataKind
 }
 
-// MetadataInspectionRequest supplies one bounded metadata stream. The exact
+// MetadataInspectionRequest supplies one exact metadata stream. The actual
 // extent is proved against the source before an immutable asset is returned.
 type MetadataInspectionRequest struct {
 	Source io.ReaderAt
@@ -107,8 +104,8 @@ func (r MetadataInspectionRequest) Validate() error {
 	if err := r.Kind.Validate(); err != nil {
 		return manifestError(err)
 	}
-	extent, err := r.Extent.Uint64()
-	if err != nil || extent == 0 || extent > MetadataAssetMaximumBytes {
+	extent, err := r.Extent.Int64()
+	if err != nil || extent == 0 {
 		return manifestError(errors.New("metadata inspection extent is outside its bound"), err)
 	}
 	return nil
@@ -131,7 +128,7 @@ func InspectMetadataAsset(request MetadataInspectionRequest) (MetadataAsset, err
 	}
 	var extra [1]byte
 	read, readErr := request.Source.ReadAt(extra[:], extent)
-	if read != 0 || !errors.Is(readErr, io.EOF) {
+	if read != 0 || readErr != io.EOF {
 		return MetadataAsset{}, manifestError(errors.New("metadata asset exceeds its declared extent"), readErr)
 	}
 	shaDigest, _, err := sha.Seal()

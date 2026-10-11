@@ -165,9 +165,9 @@ func TestArtifactPatternFinderRejectsEveryAbsentOrNearMissStamp(t *testing.T) {
 	}
 }
 
-// TestInspectBuiltArtifactRejectsEveryObservedExtentOutsideItsBound proves the
-// file's real Filestore observation, not a caller claim, owns the ceiling.
-func TestInspectBuiltArtifactRejectsEveryObservedExtentOutsideItsBound(t *testing.T) {
+// TestInspectBuiltArtifactAdmitsEveryPositiveNativeFileExtent proves the
+// real file extent is admitted independently of malformed executable bytes.
+func TestInspectBuiltArtifactAdmitsEveryPositiveNativeFileExtent(t *testing.T) {
 	t.Parallel()
 
 	build := inspectionBuildForTest(t)
@@ -179,9 +179,9 @@ func TestInspectBuiltArtifactRejectsEveryObservedExtentOutsideItsBound(t *testin
 		{name: "unset path is rejected", zeroPath: true},
 		{name: "empty file is rejected", extent: 0},
 		{name: "one byte file reaches native format refusal", extent: 1},
-		{name: "one byte below the artifact ceiling reaches native format refusal", extent: BuiltArtifactMaximumBytes - 1},
-		{name: "the artifact ceiling reaches native format refusal", extent: BuiltArtifactMaximumBytes},
-		{name: "one byte above the artifact ceiling is rejected", extent: BuiltArtifactMaximumBytes + 1},
+		{name: "one byte below the artifact ceiling reaches native format refusal", extent: 256<<20 - 1},
+		{name: "the artifact ceiling reaches native format refusal", extent: 256 << 20},
+		{name: "one byte above the former artifact ceiling reaches native format refusal", extent: 256<<20 + 1},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -193,10 +193,10 @@ func TestInspectBuiltArtifactRejectsEveryObservedExtentOutsideItsBound(t *testin
 					Directory: t.TempDir(), Extent: tc.extent, Mode: 0o700,
 				})
 			}
-			// Separate extent admission from format refusal. Otherwise all six
-			// rows could pass even if the size guard rejected every file.
+			// Separate extent admission from format refusal: malformed large
+			// files must reach the native executable parser.
 			opened, openErr := openBuiltArtifactInspection(t.Context(), request)
-			outside := tc.zeroPath || tc.extent == 0 || tc.extent > BuiltArtifactMaximumBytes
+			outside := tc.zeroPath || tc.extent == 0
 			if outside {
 				if !errors.Is(openErr, core.ErrReleaseContract) || opened != (openedArtifactInspection{}) {
 					t.Fatalf("extent admission = (%v, %v), want no handle and typed refusal", opened, openErr)

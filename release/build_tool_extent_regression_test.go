@@ -4,12 +4,60 @@ import (
 	"crypto/sha256"
 	"errors"
 	"io"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/filestore"
 	"github.com/deliri/primitive/v2026/process"
 )
+
+func TestBuildToolDigestAdmitsNativeCompilerBeyondFormerCeiling(t *testing.T) {
+	t.Parallel()
+	directory := t.TempDir()
+	name, err := core.ParsePathComponent("go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sourcePath, err := process.Resolve(t.Context(), name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	source, err := os.Open(sourcePath.String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(directory, "native-go")
+	destination, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_RDWR, 0o700)
+	if err != nil {
+		_ = source.Close()
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := destination.Close(); err != nil {
+			t.Error(err)
+		}
+	})
+	_, copyErr := io.CopyBuffer(destination, source, make([]byte, 65536))
+	if err := errors.Join(copyErr, source.Close()); err != nil {
+		t.Fatal(err)
+	}
+	const size = 128<<20 + 1
+	if err := destination.Truncate(size); err != nil {
+		t.Fatal(err)
+	}
+	typedPath, err := core.ParseAbsolutePath(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, digest, gotErr := inspectOpenedBuildTool(t.Context(), destination, typedPath)
+	oracle := sha256.New()
+	count, oracleErr := io.CopyBuffer(oracle, io.NewSectionReader(destination, 0, size), make([]byte, 65536))
+	if gotErr != nil || oracleErr != nil || count != size || got == nil || got.Path != goCommandModulePath || digest != core.NewSHA256Digest([32]byte(oracle.Sum(nil))) {
+		t.Fatalf("native compiler = (%v,%v,%v), oracle (%d,%v); want exact %d-byte compiler and native SHA-256", got, digest, gotErr, count, oracleErr, size)
+	}
+}
 
 // Direct unit ratchet for the held-file boundary after Stat. Adjacent captured
 // extents model growth and shrinkage between observation and reading without
@@ -59,8 +107,8 @@ func TestBuildToolInspectionBindsTheCapturedExtent(t *testing.T) {
 			if err != nil {
 				t.Fatalf("compiler Stat() error = %v, want nil", err)
 			}
-			if info.Size() < 2 || info.Size() >= buildToolExecutableMaximumBytes {
-				t.Fatalf("compiler fixture extent = %d, want room on both sides inside %d", info.Size(), buildToolExecutableMaximumBytes)
+			if info.Size() < 2 {
+				t.Fatalf("compiler fixture extent = %d, want room below the captured extent", info.Size())
 			}
 			got, digest, gotErr := inspectBuildToolExtent(t.Context(), file, info.Size()+tc.extentDelta)
 			if !errors.Is(gotErr, tc.wantErr) {

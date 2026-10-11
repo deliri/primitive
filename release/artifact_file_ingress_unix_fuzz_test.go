@@ -43,7 +43,11 @@ func FuzzInspectBuiltArtifactFileSemanticClosure(f *testing.F) {
 		Directory: directory, Build: build,
 		ProductValue: inspectionProductValue, StripFlags: releaseStripFlags,
 	})
-	canonical := readReleaseFileFixture(f, seedPath, release.BuiltArtifactMaximumBytes)
+	nativeInfo, err := os.Stat(seedPath.String())
+	if err != nil {
+		f.Fatal(err)
+	}
+	canonical := readReleaseFileFixture(f, seedPath, uint64(nativeInfo.Size()))
 	seedArtifactInspectionFuzzCorpus(f, canonical)
 
 	f.Fuzz(func(t *testing.T, data []byte, modeSelector uint8, bindingSelector uint8) {
@@ -60,7 +64,7 @@ func FuzzInspectBuiltArtifactFileSemanticClosure(f *testing.F) {
 			if !errors.Is(gotErr, core.ErrReleaseContract) || got != (release.Artifact{}) {
 				t.Fatalf("release.InspectBuiltArtifact(fuzz refusal) = (%v, %v), want exact zero and %v", got, gotErr, core.ErrReleaseContract)
 			}
-			if len(data) > 0 && uint64(len(data)) <= release.BuiltArtifactMaximumBytes {
+			if len(data) > 0 {
 				switch modeSelector % inspectionModeCount {
 				case inspectionModeReadable, inspectionModeReadOnly:
 					if !errors.Is(gotErr, core.ErrProcessContract) {

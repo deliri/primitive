@@ -17,10 +17,9 @@ import (
 )
 
 const (
-	buildToolExecutableMaximumBytes = 128 << 20
-	buildToolProbeOutputBytes       = 4 << 10
-	goCommandModulePath             = "cmd/go"
-	goVersionArgument               = "version"
+	buildToolProbeOutputBytes = 4 << 10
+	goCommandModulePath       = "cmd/go"
+	goVersionArgument         = "version"
 )
 
 // BuildToolVerificationRequest identifies the exact local executables and
@@ -187,7 +186,7 @@ func inspectOpenedBuildTool(ctx context.Context, file *os.File, path core.Absolu
 }
 
 // inspectBuildToolExtent binds parsing and hashing to the extent observed on
-// the held regular file. The caller owns the file and validates its size bound.
+// the held regular file. The caller owns the file against concurrent mutation.
 func inspectBuildToolExtent(ctx context.Context, file io.ReaderAt, extent int64) (*buildinfo.BuildInfo, core.SHA256Digest, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, core.SHA256Digest{}, contractError(err)
@@ -198,16 +197,18 @@ func inspectBuildToolExtent(ctx context.Context, file io.ReaderAt, extent int64)
 	}
 	writer := core.NewDigestWriter()
 	buffer := make([]byte, 64<<10)
-	// The admitted extent is at most 128 MiB, so the one-byte growth probe
-	// cannot overflow. Neither a growing file nor a forged executable offset
-	// can turn this observation into an unbounded read.
-	count, err := io.CopyBuffer(writer, io.NewSectionReader(file, 0, extent+1), buffer)
+	count, err := io.CopyBuffer(writer, io.NewSectionReader(file, 0, extent), buffer)
 	err = errors.Join(err, ctx.Err())
 	if count < extent {
 		err = errors.Join(err, io.ErrUnexpectedEOF)
 	}
 	if err != nil || count != extent {
 		return nil, core.SHA256Digest{}, contractError(errors.New(digestBuildToolDiagnostic), err)
+	}
+	var extra [1]byte
+	read, readErr := file.ReadAt(extra[:], extent)
+	if read != 0 || readErr != io.EOF {
+		return nil, core.SHA256Digest{}, contractError(errors.New(digestBuildToolDiagnostic), readErr)
 	}
 	toolDigest, _, err := writer.Seal()
 	if err != nil {
@@ -224,7 +225,7 @@ func buildToolFileExtent(info fs.FileInfo, statErr error) (int64, error) {
 		return 0, contractError(errors.New("build tool executable is not a regular file"))
 	}
 	extent := info.Size()
-	if extent <= 0 || extent > buildToolExecutableMaximumBytes {
+	if extent <= 0 {
 		return 0, contractError(errors.New("build tool executable extent is outside the admitted interval"))
 	}
 	return extent, nil

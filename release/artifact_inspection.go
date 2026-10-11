@@ -19,10 +19,6 @@ import (
 )
 
 const (
-	// BuiltArtifactMaximumBytes is the largest executable admitted by the
-	// release inspection boundary. It preserves the established consumer
-	// release ceiling while keeping every read and parser view finite.
-	BuiltArtifactMaximumBytes      = 256 << 20
 	artifactInspectionBufferBytes  = 64 << 10
 	artifactInspectionPatternCount = 5
 	debugSectionPrefix             = ".debug"
@@ -55,7 +51,7 @@ func (r ArtifactInspectionRequest) Validate() error {
 // embedded release stamps. Path standing is checked before and after reading;
 // callers must own the file against concurrent writes. These observations are
 // not an atomic filesystem snapshot. Hashing and stamp scanning use fixed
-// buffers; Go's executable parsers allocate metadata within the file bound.
+// buffers; Go's executable parsers own their format metadata allocations.
 func InspectBuiltArtifact(ctx context.Context, request ArtifactInspectionRequest) (Artifact, error) {
 	if err := request.Validate(); err != nil {
 		return Artifact{}, err
@@ -81,7 +77,7 @@ func openBuiltArtifactInspection(
 		return openedArtifactInspection{}, contractError(err)
 	}
 	length, err := inspection.SizeBytes()
-	if err != nil || length.Uint64() == 0 || length.Uint64() > BuiltArtifactMaximumBytes {
+	if err != nil || length.Uint64() == 0 {
 		return openedArtifactInspection{}, contractError(errors.New("artifact inspection extent is outside its bound"), err)
 	}
 	extent, err := core.NewByteCount(length.Uint64())
