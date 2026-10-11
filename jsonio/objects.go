@@ -33,14 +33,17 @@ func (r ObjectSourceRequest) Validate() error {
 func Objects[Document core.Validatable](ctx context.Context, request ObjectSourceRequest) iter.Seq2[Document, error] {
 	return func(yield func(Document, error) bool) {
 		var zero Document
-		if err := errors.Join(contextstate.Validate(ctx), request.Validate(), validateObjectType[Document]()); err != nil {
+		if err := contextstate.Validate(ctx); err != nil {
 			yield(zero, err)
 			return
 		}
-		decoder := jsontext.NewDecoder(checkedJSONSource{source: request.Source})
-		nullGuard := jsonv2.UnmarshalFromFunc[any](rejectObjectNull)
+		decoder, err := NewObjectDecoder[Document](request)
+		if err != nil {
+			yield(zero, err)
+			return
+		}
 		for {
-			document, err := readObject[Document](ctx, decoder, nullGuard)
+			document, err := decoder.Decode(ctx)
 			if err == io.EOF {
 				return
 			}
