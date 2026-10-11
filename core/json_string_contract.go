@@ -8,6 +8,10 @@ import (
 )
 
 const (
+	// JSONWhitespace is the complete JSON whitespace alphabet admitted by Go's
+	// JSON v2 decoder. Native byte trimming must not erase other Unicode space
+	// or control bytes before that decoder observes them.
+	JSONWhitespace                 = " \t\r\n"
 	jsonStringInvalidUTF8ErrorText = "json string value is not valid utf-8"
 )
 

@@ -15,7 +15,7 @@ import (
 
 const (
 	coreExportDependencyMaximum     = 32
-	coreSpecialExportAdmissionCount = 96 // Includes provider-neutral image dimensions shared with callers.
+	coreSpecialExportAdmissionCount = 97 // Includes native JSON grammar shared with callers.
 	coreProviderExportContractCount = 190
 )
 
@@ -103,6 +103,7 @@ func coherentDomainContractAdmission(name coreExportName, witness any) coreSpeci
 // identifier reference so declaration drift breaks the build.
 func coreSpecialExportAdmissions() [coreSpecialExportAdmissionCount]coreSpecialExportAdmission {
 	return [...]coreSpecialExportAdmission{
+		coherentDomainContractAdmission("JSONWhitespace", JSONWhitespace),
 		// Products share native exit-status representation with Process; another
 		// internal effect owner would create a competing execution authority.
 		coherentDomainContractAdmission("ProcessExitStatusMaximum", ProcessExitStatusMaximum),
