@@ -29,23 +29,24 @@ func FuzzServerRuntimeConfigurationAdmission(f *testing.F) {
 	if err != nil {
 		f.Fatalf("header seed projection = %v, want nil", err)
 	}
-	f.Add(seedAddress.String(), seedPolicy.ReadHeaderTimeout.Nanoseconds(), seedMaximum, uint8(0))
+	f.Add(seedAddress.String(), seedPolicy.ReadHeaderTimeout.Nanoseconds(), seedMaximum, uint8(0), false)
+	f.Add(seedAddress.String(), seedPolicy.ReadHeaderTimeout.Nanoseconds(), seedMaximum, uint8(0), true)
 	for field := range uint8(4) {
-		f.Add(seedAddress.String(), int64(0), seedMaximum, field)
-		f.Add(seedAddress.String(), int64(1), seedMaximum, field)
-		f.Add(seedAddress.String(), int64(math.MaxInt64), seedMaximum, field)
+		f.Add(seedAddress.String(), int64(0), seedMaximum, field, false)
+		f.Add(seedAddress.String(), int64(1), seedMaximum, field, false)
+		f.Add(seedAddress.String(), int64(math.MaxInt64), seedMaximum, field, false)
 	}
-	f.Add(seedAddress.String(), int64(1), uint64(0), uint8(0))
-	f.Add(seedAddress.String(), int64(1), uint64(1), uint8(0))
-	f.Add(seedAddress.String(), int64(1), uint64(core.HTTPServerHeaderMaximumBytes-1), uint8(0))
-	f.Add(seedAddress.String(), int64(1), uint64(core.HTTPServerHeaderMaximumBytes), uint8(0))
-	f.Add(seedAddress.String(), int64(1), uint64(core.HTTPServerHeaderMaximumBytes+1), uint8(0))
-	f.Add(seedAddress.String(), int64(1), uint64(math.MaxInt), uint8(0))
-	f.Add(seedAddress.String(), int64(1), uint64(math.MaxInt)+1, uint8(0))
-	f.Add(seedAddress.String(), int64(1), uint64(math.MaxUint64), uint8(0))
-	f.Add("[::%lo0]:0", int64(1), seedMaximum, uint8(0))
-	f.Add("", int64(1), seedMaximum, uint8(0))
-	f.Fuzz(func(t *testing.T, text string, nanoseconds int64, maximum uint64, field uint8) {
+	f.Add(seedAddress.String(), int64(1), uint64(0), uint8(0), false)
+	f.Add(seedAddress.String(), int64(1), uint64(1), uint8(0), false)
+	f.Add(seedAddress.String(), int64(1), uint64(core.HTTPServerHeaderMaximumBytes-1), uint8(0), false)
+	f.Add(seedAddress.String(), int64(1), uint64(core.HTTPServerHeaderMaximumBytes), uint8(0), false)
+	f.Add(seedAddress.String(), int64(1), uint64(core.HTTPServerHeaderMaximumBytes+1), uint8(0), false)
+	f.Add(seedAddress.String(), int64(1), uint64(math.MaxInt), uint8(0), false)
+	f.Add(seedAddress.String(), int64(1), uint64(math.MaxInt)+1, uint8(0), false)
+	f.Add(seedAddress.String(), int64(1), uint64(math.MaxUint64), uint8(0), false)
+	f.Add("[::%lo0]:0", int64(1), seedMaximum, uint8(0), false)
+	f.Add("", int64(1), seedMaximum, uint8(0), false)
+	f.Fuzz(func(t *testing.T, text string, nanoseconds int64, maximum uint64, field uint8, allowHTTP2 bool) {
 		if len(text) > 4096 || nanoseconds < 0 || field > 3 {
 			return
 		}
@@ -59,6 +60,7 @@ func FuzzServerRuntimeConfigurationAdmission(f *testing.F) {
 			t.Fatalf("refused address = (%v,%v), want exact zero and typed refusal", address, addressErr)
 		}
 		policy := seedPolicy
+		policy.AllowUnencryptedHTTP2 = allowHTTP2
 		duration, err := temporal.DurationFromNanoseconds(nanoseconds)
 		if err != nil {
 			t.Fatalf("bounded duration fixture = %v, want nil", err)
@@ -109,6 +111,13 @@ func FuzzServerRuntimeConfigurationAdmission(f *testing.F) {
 		gotTimeouts := [4]time.Duration{got.server.ReadHeaderTimeout, got.server.ReadTimeout, got.server.WriteTimeout, got.server.IdleTimeout}
 		if gotTimeouts != wantTimeouts || got.server.MaxHeaderBytes != int(maximum) || got.server.Handler != handler || got.configuration != configuration {
 			t.Fatalf("Go server projection = (%v,%d), want (%v,%d) and exact handler/configuration", gotTimeouts, got.server.MaxHeaderBytes, wantTimeouts, maximum)
+		}
+		if allowHTTP2 {
+			if got.server.Protocols == nil || !got.server.Protocols.HTTP1() || !got.server.Protocols.UnencryptedHTTP2() || got.server.Protocols.HTTP2() {
+				t.Fatalf("native protocol projection = %v, want HTTP1 and cleartext HTTP2 only", got.server.Protocols)
+			}
+		} else if got.server.Protocols != nil {
+			t.Fatalf("default native protocol projection = %v, want nil", got.server.Protocols)
 		}
 		if observed, err := got.Address(); observed != (ListenAddress{}) || !errors.Is(err, core.ErrExchangeContract) {
 			t.Fatalf("dormant bound address = (%v,%v), want absent", observed, err)

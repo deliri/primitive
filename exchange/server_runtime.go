@@ -140,6 +140,9 @@ type ServerRuntimePolicy struct {
 	WriteTimeout       temporal.Duration
 	IdleTimeout        temporal.Duration
 	MaximumHeaderBytes core.ByteCount
+	// AllowUnencryptedHTTP2 opts into Go's native HTTP/2 over cleartext.
+	// Products own whether the listener is private enough for this policy.
+	AllowUnencryptedHTTP2 bool
 }
 
 // Validate rejects unset time and size bounds.
@@ -354,14 +357,21 @@ func newHTTPServer(policy ServerRuntimePolicy, handler http.Handler) (*http.Serv
 	if err := errors.Join(readHeaderErr, readErr, writeErr, idleErr, headerErr); err != nil {
 		return nil, errors.Join(core.ErrExchangeContract, err)
 	}
-	return &http.Server{
+	server := &http.Server{
 		Handler:           handler,
 		ReadHeaderTimeout: readHeaderTimeout,
 		ReadTimeout:       readTimeout,
 		WriteTimeout:      writeTimeout,
 		IdleTimeout:       idleTimeout,
 		MaxHeaderBytes:    headerBytes,
-	}, nil
+	}
+	if policy.AllowUnencryptedHTTP2 {
+		protocols := new(http.Protocols)
+		protocols.SetHTTP1(true)
+		protocols.SetUnencryptedHTTP2(true)
+		server.Protocols = protocols
+	}
+	return server, nil
 }
 
 func serverHeaderBytes(count core.ByteCount) (int, error) {
