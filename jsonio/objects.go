@@ -80,10 +80,19 @@ func prepareObjectRead(ctx context.Context, decoder *jsontext.Decoder) error {
 		return err
 	}
 	kind := decoder.PeekKind()
+	if kind == jsontext.KindInvalid {
+		// Consume Go's cached peek refusal before another PeekKind can retry
+		// the source and replace a native failure with a bounded section's EOF.
+		_, err := decoder.ReadToken()
+		if err != nil {
+			return objectReadOutcome(ctx, err)
+		}
+		return core.ErrJSONContract
+	}
 	if err := contextstate.Validate(ctx); err != nil {
 		return err
 	}
-	if kind != jsontext.KindBeginObject && kind != jsontext.KindInvalid {
+	if kind != jsontext.KindBeginObject {
 		return core.ErrJSONContract
 	}
 	return nil

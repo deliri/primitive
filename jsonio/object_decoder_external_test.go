@@ -19,6 +19,13 @@ import (
 
 type decoderNativeRefusal struct{ source io.Reader }
 
+type decoderNativeAtRefusal struct{ source io.ReaderAt }
+
+func (r decoderNativeAtRefusal) ReadAt(data []byte, offset int64) (int, error) {
+	n, err := r.source.ReadAt(data, offset)
+	return n, errors.Join(err, io.ErrClosedPipe)
+}
+
 func (r decoderNativeRefusal) Read(data []byte) (int, error) {
 	n, err := r.source.Read(data)
 	return n, errors.Join(err, io.ErrClosedPipe)
@@ -160,6 +167,44 @@ func TestJSONObjectDecoderNilAndInvalidResetRefusals(t *testing.T) {
 	object, err := decoder.Decode(t.Context())
 	if err != nil || object.Name != "kept" {
 		t.Fatalf("refused reset changed source%+v/%v", object, err)
+	}
+}
+
+func TestJSONObjectDecoderPreservesNativeRefusalAlongsideCompleteBytes(t *testing.T) {
+	t.Parallel()
+	data := []byte(`{"Name":"one","Count":1}`)
+	path := filepath.Join(t.TempDir(), "object")
+	if err := os.WriteFile(path, data, 0600); err != nil {
+		t.Fatal(err)
+	}
+	for _, prefix := range []int{0, 1, 8, len(data) - 1, len(data)} {
+		t.Run(fmt.Sprint(prefix), func(t *testing.T) {
+			t.Parallel()
+			file, err := os.Open(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer file.Close()
+			var source io.Reader = io.NewSectionReader(decoderNativeAtRefusal{source: file}, 0, int64(prefix))
+			if prefix == 0 {
+				source = decoderNativeRefusal{source: source}
+			}
+			decoder, err := jsonio.NewObjectDecoder[scalarObject](jsonio.ObjectSourceRequest{Source: source})
+			if err != nil {
+				t.Fatal(err)
+			}
+			var refused error
+			for i := 0; i < 2; i++ {
+				_, err := decoder.Decode(t.Context())
+				if err != nil {
+					refused = err
+					break
+				}
+			}
+			if !errors.Is(refused, io.ErrClosedPipe) || !errors.Is(refused, core.ErrJSONContract) {
+				t.Fatalf("native refusal lost: %v", refused)
+			}
+		})
 	}
 }
 

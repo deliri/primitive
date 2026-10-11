@@ -16,6 +16,12 @@ func (r checkedJSONSource) Read(data []byte) (int, error) {
 	if n < 0 || n > len(data) {
 		return 0, errors.Join(core.ErrJSONContract, err)
 	}
+	// A decoder may consume accompanying bytes and subsequently observe only
+	// EOF from a bounded native section. Refuse provisional bytes immediately
+	// when their read also refused; do not let framing replace native failure.
+	if err != nil && err != io.EOF {
+		return 0, errors.Join(core.ErrJSONContract, err)
+	}
 	return n, err
 }
 
