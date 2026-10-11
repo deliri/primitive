@@ -9,4 +9,13 @@ const (
 	TwilioWebhookSignatureHeaderName      = "X-Twilio-Signature"
 	TwilioWebhookSignatureBytes           = 28
 	TwilioWebhookBodySHA256QueryName      = "bodySHA256"
+	TwilioWebhookScratchFilename          = "body"
+	TwilioWebhookHTTPSDefaultPort         = "443"
+	TwilioWebhookPortSeparator            = ":"
+	TwilioWebhookFieldSeparator           = byte('&')
+	TwilioWebhookValueSeparator           = byte('=')
+	TwilioWebhookEscape                   = byte('%')
+	TwilioWebhookSpaceEncoding            = byte('+')
+	TwilioWebhookSpace                    = byte(' ')
+	TwilioWebhookInvalidFieldSeparator    = byte(';')
 )

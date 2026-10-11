@@ -60,6 +60,7 @@ func filestoreIngressProofs() []filestoreIngressProof {
 		{door: reflect.ValueOf(filestore.ReadContentIndexEntry), fuzz: FuzzContentIndexCanonicalRecord},
 		{door: reflect.ValueOf(filestore.WriteContentIndexEntry), fuzz: FuzzContentIndexCanonicalRecord},
 		{door: reflect.ValueOf(filestore.SortRecordStream), fuzz: FuzzRecordRangeSortMatchesIndependentStableBytes},
+		{door: reflect.ValueOf(filestore.SortRecordIndexStream), fuzz: FuzzRecordRangeSortMatchesIndependentStableBytes},
 		{door: reflect.ValueOf(filestore.SortRecordRanges), fuzz: FuzzRecordRangeSortMatchesIndependentStableBytes},
 		{door: reflect.ValueOf(filestore.ReadRecordRangeIndex), fuzz: FuzzRecordRangeIndexCanonicalTuple},
 		{door: reflect.ValueOf(filestore.WriteRecordRangeIndex), fuzz: FuzzRecordRangeIndexCanonicalTuple},

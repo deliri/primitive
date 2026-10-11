@@ -16,7 +16,7 @@ import (
 const (
 	coreExportDependencyMaximum     = 32
 	coreSpecialExportAdmissionCount = 96 // Includes provider-neutral image dimensions shared with callers.
-	coreProviderExportContractCount = 179
+	coreProviderExportContractCount = 190
 )
 
 type coreExportName string
@@ -221,6 +221,8 @@ func coreSpecialExportAdmissions() [coreSpecialExportAdmissionCount]coreSpecialE
 // wire spellings must never create cross-provider coupling.
 func coreProviderExportContracts() [coreProviderExportContractCount]coreProviderExportContract {
 	return [...]coreProviderExportContract{
+		{name: "FilestoreRecordIndexFilename", witness: FilestoreRecordIndexFilename, consumer: PackageFilestore},
+		{name: "FilestoreRecordMergeFilename", witness: FilestoreRecordMergeFilename, consumer: PackageFilestore},
 		// Core owns protocol vocabulary; Exchange alone implements its mechanics.
 		{name: "SystemdReadOnlyPathsArgument", witness: SystemdReadOnlyPathsArgument, consumer: PackageRunnerControl},
 		{name: "SystemdReadWritePathsArgument", witness: SystemdReadWritePathsArgument, consumer: PackageRunnerControl},
@@ -301,6 +303,15 @@ func coreProviderExportContracts() [coreProviderExportContractCount]coreProvider
 		{name: "TwilioWebhookSignatureHeaderName", witness: TwilioWebhookSignatureHeaderName, consumer: PackageTwilio},
 		{name: "TwilioWebhookSignatureBytes", witness: TwilioWebhookSignatureBytes, consumer: PackageTwilio},
 		{name: "TwilioWebhookBodySHA256QueryName", witness: TwilioWebhookBodySHA256QueryName, consumer: PackageTwilio},
+		{name: "TwilioWebhookScratchFilename", witness: TwilioWebhookScratchFilename, consumer: PackageTwilio},
+		{name: "TwilioWebhookHTTPSDefaultPort", witness: TwilioWebhookHTTPSDefaultPort, consumer: PackageTwilio},
+		{name: "TwilioWebhookPortSeparator", witness: TwilioWebhookPortSeparator, consumer: PackageTwilio},
+		{name: "TwilioWebhookFieldSeparator", witness: TwilioWebhookFieldSeparator, consumer: PackageTwilio},
+		{name: "TwilioWebhookValueSeparator", witness: TwilioWebhookValueSeparator, consumer: PackageTwilio},
+		{name: "TwilioWebhookEscape", witness: TwilioWebhookEscape, consumer: PackageTwilio},
+		{name: "TwilioWebhookSpaceEncoding", witness: TwilioWebhookSpaceEncoding, consumer: PackageTwilio},
+		{name: "TwilioWebhookSpace", witness: TwilioWebhookSpace, consumer: PackageTwilio},
+		{name: "TwilioWebhookInvalidFieldSeparator", witness: TwilioWebhookInvalidFieldSeparator, consumer: PackageTwilio},
 		{name: "CloudflareIdentityCharacters", witness: CloudflareIdentityCharacters, consumer: PackageCloudflare},
 		{name: "CloudflareImagesDeliveryHost", witness: CloudflareImagesDeliveryHost, consumer: PackageCloudflare},
 		{name: "CloudflareImagesCustomDeliveryPath", witness: CloudflareImagesCustomDeliveryPath, consumer: PackageCloudflare},

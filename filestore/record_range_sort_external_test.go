@@ -165,6 +165,118 @@ func TestRecordRangeSortNativeAdmissionAndStableMergeMatrix(t *testing.T) {
 		}
 	}
 }
+func TestRecordIndexProducerFailureAndPanicCleanNativeScratch(t *testing.T) {
+	t.Parallel()
+	for index := range 64 {
+		t.Run(fmt.Sprint(index), func(t *testing.T) {
+			t.Parallel()
+			directory := t.TempDir()
+			parent, err := core.ParseAbsolutePath(directory)
+			if err != nil {
+				t.Fatal(err)
+			}
+			source := bytes.NewReader([]byte(fmt.Sprintf("%08d\n%08d\n", index+1, index)))
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+			visits := 0
+			request := filestore.RecordRangeIndexStreamRequest{
+				Records: filestore.RecordRangeStreamRequest{Parent: parent, Source: source, Compare: recordRangeSortPrefixComparison, Visit: func(lineio.RecordRange) error { visits++; return nil }},
+				Index: func(ctx context.Context, writer io.Writer) error {
+					for record, err := range lineio.RecordRanges(ctx, lineio.RecordRangeRequest{Source: source, BufferBytes: mustRecordRangeByteCount(t, 4096)}) {
+						if err != nil {
+							return err
+						}
+						if err := filestore.WriteRecordRangeIndex(writer, record); err != nil {
+							return err
+						}
+					}
+					return nil
+				},
+			}
+			mode := index % 8
+			switch mode {
+			case 1:
+				request.Index = nil
+			case 2:
+				request.Index = func(_ context.Context, writer io.Writer) error {
+					_, err := writer.Write([]byte{1, 2, 3})
+					return errors.Join(err, io.ErrClosedPipe)
+				}
+			case 3:
+				request.Index = func(context.Context, io.Writer) error { cancel(); return context.Canceled }
+			case 4:
+				request.Index = func(_ context.Context, writer io.Writer) error { _, err := writer.Write([]byte{1}); return err }
+			case 5:
+				request.Index = func(context.Context, io.Writer) error { panic(io.ErrClosedPipe) }
+			case 6:
+				request.Records.Visit = func(lineio.RecordRange) error { visits++; return io.ErrClosedPipe }
+			case 7:
+				request.Records.Compare = func(context.Context, lineio.RecordSource, lineio.RecordRange, lineio.RecordRange) (core.Comparison, error) {
+					return core.ComparisonUnknown, io.ErrClosedPipe
+				}
+			}
+			var observation filestore.RecordRangeSortObservation
+			var resultErr error
+			panicked := false
+			func() {
+				defer func() {
+					if recovered := recover(); recovered != nil {
+						if recovered != io.ErrClosedPipe {
+							t.Fatalf("foreign panic %v", recovered)
+						}
+						panicked = true
+					}
+				}()
+				observation, resultErr = filestore.SortRecordIndexStream(ctx, request)
+			}()
+			if mode == 0 {
+				if resultErr != nil || observation.Records != 2 || visits != 2 {
+					t.Fatalf("native success %+v/%v visits%d", observation, resultErr, visits)
+				}
+			} else {
+				wantVisits := 0
+				if mode == 6 {
+					wantVisits = 1
+				}
+				if visits != wantVisits || observation != (filestore.RecordRangeSortObservation{}) || panicked != (mode == 5) {
+					t.Fatalf("failed producer %+v/%v panic%t visits%d", observation, resultErr, panicked, visits)
+				}
+				switch mode {
+				case 1:
+					if !errors.Is(resultErr, core.ErrFilestoreContract) {
+						t.Fatal(resultErr)
+					}
+				case 2, 6, 7:
+					if !errors.Is(resultErr, io.ErrClosedPipe) {
+						t.Fatal(resultErr)
+					}
+				case 3:
+					if !errors.Is(resultErr, context.Canceled) {
+						t.Fatal(resultErr)
+					}
+				case 4:
+					if !errors.Is(resultErr, io.ErrUnexpectedEOF) {
+						t.Fatal(resultErr)
+					}
+				}
+			}
+			entries, err := os.ReadDir(directory)
+			if err != nil || len(entries) != 0 {
+				t.Fatalf("scratch cleanup left%d entries/%v", len(entries), err)
+			}
+		})
+	}
+}
+
+func mustRecordRangeByteCount(t testing.TB, value uint64) core.ByteCount {
+	t.Helper()
+	count, err := core.NewByteCount(value)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return count
+}
+
 func FuzzRecordRangeSortMatchesIndependentStableBytes(f *testing.F) {
 	f.Add([]byte{9, 2, 4, 2, 0})
 	f.Add([]byte{})
@@ -211,6 +323,27 @@ func FuzzRecordRangeSortMatchesIndependentStableBytes(f *testing.F) {
 		scoped, err := filestore.SortRecordStream(t.Context(), filestore.RecordRangeStreamRequest{Parent: parent, Source: source, Compare: recordRangeSortPrefixComparison, Visit: func(record lineio.RecordRange) error { owned = append(owned, record); return nil }})
 		if err != nil || scoped != observation || !slices.Equal(owned, expected) {
 			t.Fatalf("owned observation%+v/%v records%v want%+v/%v", scoped, err, owned, observation, expected)
+		}
+		if _, err := source.Seek(0, io.SeekStart); err != nil {
+			t.Fatal(err)
+		}
+		owned = nil
+		indexed, err := filestore.SortRecordIndexStream(t.Context(), filestore.RecordRangeIndexStreamRequest{
+			Records: filestore.RecordRangeStreamRequest{Parent: parent, Source: source, Compare: recordRangeSortPrefixComparison, Visit: func(record lineio.RecordRange) error { owned = append(owned, record); return nil }},
+			Index: func(ctx context.Context, destination io.Writer) error {
+				for record, err := range lineio.RecordRanges(ctx, lineio.RecordRangeRequest{Source: source, BufferBytes: buffer}) {
+					if err != nil {
+						return err
+					}
+					if err := filestore.WriteRecordRangeIndex(destination, record); err != nil {
+						return err
+					}
+				}
+				return nil
+			},
+		})
+		if err != nil || indexed != observation || !slices.Equal(owned, expected) {
+			t.Fatalf("indexed native stable sort %+v/%v, got %v want %v", indexed, err, owned, expected)
 		}
 
 	})

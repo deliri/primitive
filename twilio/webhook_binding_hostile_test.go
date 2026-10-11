@@ -50,8 +50,13 @@ func TestWebhookIngressAttacksTheTwilioSignatureAndBindingBoundary(t *testing.T)
 				t.Fatalf("exchange.NewSocketServerCall() setup error = %v, want nil", callErr)
 			}
 			var destination bytes.Buffer
+			parent, err := core.ParseAbsolutePath(t.TempDir())
+			if err != nil {
+				t.Fatal(err)
+			}
 			observation, gotErr := receiver.Receive(WebhookReceiveRequest{
-				Call: call, Destination: &destination,
+				ScratchParent: parent,
+				Call:          call, Destination: &destination,
 				ObservedAt: temporal.InstantFromNanoseconds(1_800_000_000 * int64(temporal.NanosecondsPerSecond)),
 			})
 			if !errors.Is(gotErr, testCase.wantErr) {

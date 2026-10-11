@@ -36,7 +36,7 @@ const (
 )
 
 const (
-	realWorldImportOwnerMaximum        = 13
+	realWorldImportOwnerMaximum        = 14
 	realWorldImportUseMaximum          = 64
 	realWorldCallUseMaximum            = 128
 	realWorldOperatingSystemPath       = "os"
@@ -429,9 +429,9 @@ func declaredRealWorldImports() (realWorldImportInventory, error) {
 	contracts := []realWorldImportContract{
 		realWorldImportOwners(realWorldSubstrateOperatingSystem,
 			PackageCore, PackageDistribution, PackageFileLock, PackageFilestore, PackageHostFacts,
-			// Stripe names only Filestore's borrowed native root callback type;
-			// no operating-system effect calls are admitted for Stripe.
-			PackageGoToolchain, PackageGitRepo, PackageProcess, PackageRelease, PackageRunWorkspace, PackageShutdown, PackageStripe, PackageUpgrade),
+			// Stripe and Twilio name Filestore's borrowed native root callback
+			// type; neither admits an operating-system effect call.
+			PackageGoToolchain, PackageGitRepo, PackageProcess, PackageRelease, PackageRunWorkspace, PackageShutdown, PackageStripe, PackageTwilio, PackageUpgrade),
 		realWorldImportOwners(realWorldSubstrateProcessExecution, PackageProcess),
 		realWorldImportOwners(realWorldSubstrateOperatingSystemSignal, PackageShutdown),
 		// GCS owns its provider client's HTTP transport and shutdown.
@@ -444,7 +444,8 @@ func declaredRealWorldImports() (realWorldImportInventory, error) {
 		realWorldImportOwners(realWorldSubstrateGoogleCloudStorage, PackageGCSObjects),
 		realWorldImportOwners(realWorldSubstrateGoogleIAMCredentials, PackageGCSObjects),
 		realWorldImportOwners(realWorldSubstrateGoogleSecretManager, PackageSecretStore),
-		realWorldImportOwners(realWorldSubstrateNetwork, PackageExchange, PackageGCSObjects, PackageTailnet),
+		// Twilio uses only native host/port spelling, with no network effect.
+		realWorldImportOwners(realWorldSubstrateNetwork, PackageExchange, PackageGCSObjects, PackageTailnet, PackageTwilio),
 		realWorldImportOwners(realWorldSubstrateSyscall, PackageCore, PackageFileLock, PackageFilestore, PackageHostFacts, PackageProcess, PackageShutdown),
 	}
 	var inventory realWorldImportInventory
@@ -554,6 +555,8 @@ func declaredRealWorldCalls() (realWorldCallInventory, error) {
 		{owner: PackageGCSObjects, substrate: realWorldSubstrateGoogleIAMCredentials, selector: "NewService", count: 1},
 		{owner: PackageSecretStore, substrate: realWorldSubstrateGoogleSecretManager, selector: "NewClient", count: 1},
 		{owner: PackageGCSObjects, substrate: realWorldSubstrateNetwork, selector: "ParseIP", count: 1},
+		// URL host spelling only; socket effects remain owned by Exchange.
+		{owner: PackageTwilio, substrate: realWorldSubstrateNetwork, selector: "JoinHostPort", count: 2},
 		{owner: PackageExchange, substrate: realWorldSubstrateNetwork, selector: "ListenTCP", count: 1},
 		{owner: PackageExchange, substrate: realWorldSubstrateNetwork, selector: "TCPAddrFromAddrPort", count: 1},
 		{owner: PackageTemporal, substrate: realWorldSubstrateContextDeadline, selector: "WithDeadline", count: 1},

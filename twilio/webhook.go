@@ -1,18 +1,18 @@
 package twilio
 
 import (
-	"bytes"
 	"context"
+	"crypto/sha256"
+	"crypto/subtle"
 	"errors"
 	"io"
-	"net/url"
-	"slices"
+	"os"
 
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
+	"github.com/deliri/primitive/v2026/filestore"
 	"github.com/deliri/primitive/v2026/temporal"
-	twilioclient "github.com/twilio/twilio-go/client"
 )
 
 type WebhookRepresentation uint8
@@ -77,21 +77,22 @@ func (r WebhookReceiverRequest) Validate() error {
 	if r.PublicEndpoint.HTTPURL().Scheme != core.SchemeHTTPS {
 		return core.ErrTwilioBinding
 	}
-	query, err := url.ParseQuery(r.PublicEndpoint.HTTPURL().RawQuery)
-	if err != nil || len(query[core.TwilioWebhookBodySHA256QueryName]) != 0 {
+	_, err := validateWebhookQuery(context.Background(), r.PublicEndpoint.HTTPURL().RawQuery, false)
+	if err != nil {
 		return bindingError(err)
 	}
 	return nil
 }
 
 type WebhookReceiveRequest struct {
-	Call        exchange.SocketServerCall
-	Destination io.Writer
-	ObservedAt  temporal.Instant
+	ScratchParent core.AbsolutePath
+	Call          exchange.SocketServerCall
+	Destination   io.Writer
+	ObservedAt    temporal.Instant
 }
 
 func (r WebhookReceiveRequest) Validate() error {
-	if r.Call.Validate() != nil || core.WriterIsNil(r.Destination) || r.ObservedAt.Validate() != nil {
+	if r.ScratchParent.Validate() != nil || r.Call.Validate() != nil || core.WriterIsNil(r.Destination) || r.ObservedAt.Validate() != nil {
 		return core.ErrTwilioContract
 	}
 	return nil
@@ -136,62 +137,74 @@ func (r WebhookReceiver) Receive(request WebhookReceiveRequest) (InboundObservat
 	if err := errors.Join(r.Validate(), request.Validate()); err != nil {
 		return InboundObservation{}, contractError(err)
 	}
-	body, err := r.authenticatedBody(request.Call)
+	signedURL, expectedBodyDigest, err := signedRequestURL(request.Call, r.state.publicEndpoint, r.state.representation)
+	if err != nil {
+		return InboundObservation{}, err
+	}
+	signature, err := webhookSignature(request.Call)
+	if err != nil {
+		return InboundObservation{}, err
+	}
+	hashes, err := newWebhookSignatureHashes(signedURL, r.state.token.value)
+	if err != nil {
+		return InboundObservation{}, err
+	}
+	media, err := r.state.representation.mediaType()
 	if err != nil {
 		return InboundObservation{}, err
 	}
 	ctx, err := request.Call.Context()
 	if err != nil {
-		return InboundObservation{}, contractError(err)
+		return InboundObservation{}, err
 	}
-	written, err := writeBody(ctx, request.Destination, body)
-	observation := InboundObservation{Bytes: written, ObservedAt: request.ObservedAt}
+	var observation InboundObservation
+	err = filestore.WithScratchScope(ctx, filestore.ScratchScopeRequest{Parent: request.ScratchParent, Use: func(ctx context.Context, root *os.Root) error {
+		path, err := core.ParseRelativePath(core.TwilioWebhookScratchFilename)
+		if err != nil {
+			return err
+		}
+		result, err := filestore.WithScratchReplayScope(ctx, filestore.ScratchReplayScopeRequest{Scratch: filestore.ScratchRequest{Location: filestore.Location{Root: root, Path: path}, Mode: 0600}, Use: func(ctx context.Context, file filestore.ScratchReplayFile) error {
+			bodyHash := sha256.New()
+			var buffer [exchange.TransferBufferBytes]byte
+			received, err := exchange.ReceiveStream(exchange.StreamReceiveCall{Call: request.Call, ExpectedContentType: media, Buffer: buffer[:], Destination: io.MultiWriter(file, bodyHash), Route: exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt}})
+			if err != nil {
+				return err
+			}
+			extent, err := received.Bytes.Int64()
+			if err != nil {
+				return err
+			}
+			switch r.state.representation {
+			case WebhookRepresentationForm:
+				if err := writeSortedWebhookForm(ctx, request.ScratchParent, file, extent, io.MultiWriter(hashes.WithPort, hashes.WithoutPort)); err != nil {
+					return verificationError(err)
+				}
+			case WebhookRepresentationJSON:
+				var actual [sha256.Size]byte
+				var expected [sha256.Size]byte
+				expected, err = expectedBodyDigest.Bytes()
+				if err != nil {
+					return err
+				}
+				if subtle.ConstantTimeCompare(bodyHash.Sum(actual[:0]), expected[:]) != 1 {
+					return core.ErrTwilioVerification
+				}
+			default:
+				return core.ErrTwilioContract
+			}
+			if err := hashes.Verify(signature); err != nil {
+				return err
+			}
+			written, err := writeVerifiedWebhookBody(ctx, request.Destination, io.NewSectionReader(file, 0, extent), extent)
+			observation = InboundObservation{Bytes: written, ObservedAt: request.ObservedAt}
+			return err
+		}})
+		return errors.Join(err, result.OperationError(), result.CleanupError())
+	}})
 	if err != nil {
 		return observation, err
 	}
 	return observation, observation.Validate()
-}
-
-func (r WebhookReceiver) authenticatedBody(call exchange.SocketServerCall) ([]byte, error) {
-	body, signedURL, err := r.receiveCandidate(call)
-	if err != nil {
-		return nil, err
-	}
-	signature, err := webhookSignature(call)
-	if err != nil {
-		return nil, err
-	}
-	validator := twilioclient.NewRequestValidator(string(r.state.token.value))
-	if !validator.ValidateBody(signedURL, body, signature) {
-		return nil, verificationError(core.ErrExchangeContract)
-	}
-	return body, nil
-}
-
-func (r WebhookReceiver) receiveCandidate(call exchange.SocketServerCall) ([]byte, string, error) {
-	signedURL, err := signedRequestURL(call, r.state.publicEndpoint, r.state.representation)
-	if err != nil {
-		return nil, "", err
-	}
-	media, err := r.state.representation.mediaType()
-	if err != nil {
-		return nil, "", contractError(err)
-	}
-	received, err := exchange.ReceiveBounded(exchange.BoundedReceiveCall{
-		Call:                call,
-		ExpectedContentType: media,
-
-		Route: exchange.RouteSemantics{Method: exchange.MethodPost, Replay: exchange.ReplaySingleAttempt},
-	})
-	if err != nil {
-		return nil, "", err
-	}
-	if r.state.representation == WebhookRepresentationForm {
-		if err := validateFormSignatureCoverage(received.Body); err != nil {
-			return nil, "", err
-		}
-	}
-	return received.Body, signedURL, nil
 }
 
 func webhookSignature(call exchange.SocketServerCall) (string, error) {
@@ -217,86 +230,53 @@ func webhookSignature(call exchange.SocketServerCall) (string, error) {
 	return signature, nil
 }
 
-func signedRequestURL(call exchange.SocketServerCall, endpoint core.HTTPEndpoint, representation WebhookRepresentation) (string, error) {
+func signedRequestURL(call exchange.SocketServerCall, endpoint core.HTTPEndpoint, representation WebhookRepresentation) (string, core.SHA256Digest, error) {
 	public := endpoint.HTTPURL()
 	matches, err := call.MatchesEndpointPath(endpoint)
 	if err != nil || !matches {
-		return "", bindingError(core.ErrExchangeContract)
+		return "", core.SHA256Digest{}, bindingError(err)
 	}
 	rawQuery, err := call.RawQuery()
 	if err != nil {
-		return "", bindingError(err)
+		return "", core.SHA256Digest{}, bindingError(err)
 	}
 	if representation == WebhookRepresentationForm {
 		if rawQuery != public.RawQuery {
-			return "", bindingError(core.ErrExchangeContract)
+			return "", core.SHA256Digest{}, core.ErrTwilioBinding
 		}
-		return public.String(), nil
+		return public.String(), core.SHA256Digest{}, nil
 	}
 	if representation != WebhookRepresentationJSON {
-		return "", core.ErrTwilioContract
+		return "", core.SHA256Digest{}, core.ErrTwilioContract
 	}
-	return signedJSONRequestURL(rawQuery, public)
-}
-
-func signedJSONRequestURL(rawQuery string, public url.URL) (string, error) {
-	configured, configuredErr := url.ParseQuery(public.RawQuery)
-	observed, observedErr := url.ParseQuery(rawQuery)
-	if configuredErr != nil || observedErr != nil {
-		return "", bindingError(errors.Join(configuredErr, observedErr))
+	ctx, err := call.Context()
+	if err != nil {
+		return "", core.SHA256Digest{}, bindingError(err)
 	}
-	digests := observed[core.TwilioWebhookBodySHA256QueryName]
-	if len(digests) != 1 || !validBodySHA256(digests[0]) {
-		return "", bindingError(core.ErrExchangeContract)
+	digest, err := validateWebhookQuery(ctx, rawQuery, true)
+	if err != nil {
+		return "", core.SHA256Digest{}, err
 	}
-	delete(observed, core.TwilioWebhookBodySHA256QueryName)
-	if !sameQueryValues(configured, observed) {
-		return "", bindingError(core.ErrExchangeContract)
+	matches, err = sameWebhookQueries(ctx, public.RawQuery, rawQuery)
+	if err != nil || !matches {
+		return "", core.SHA256Digest{}, bindingError(err)
 	}
 	public.RawQuery = rawQuery
-	return public.String(), nil
+	return public.String(), digest, nil
 }
 
-func sameQueryValues(left, right url.Values) bool {
-	if len(left) != len(right) {
-		return false
-	}
-	for name, leftValues := range left {
-		rightValues, present := right[name]
-		if !present || !slices.Equal(leftValues, rightValues) {
-			return false
-		}
-	}
-	return true
-}
-func validBodySHA256(value string) bool {
-	var digest core.SHA256Digest
-	return digest.UnmarshalText([]byte(value)) == nil
-}
-func validateFormSignatureCoverage(body []byte) error {
-	values, err := url.ParseQuery(string(body))
-	if err != nil {
-		return verificationError(err)
-	}
-	for _, entries := range values {
-		if len(entries) != 1 {
-			return verificationError(errors.New("twilio form contains a repeated field"))
-		}
-	}
-	return nil
-}
-func writeBody(ctx context.Context, destination io.Writer, body []byte) (core.ByteLength, error) {
+func writeVerifiedWebhookBody(ctx context.Context, destination io.Writer, source io.Reader, extent int64) (core.ByteLength, error) {
 	if err := contextstate.Validate(ctx); err != nil {
 		return core.ByteLength{}, err
 	}
 	var buffer [exchange.TransferBufferBytes]byte
-	written, err := io.CopyBuffer(destination, bytes.NewReader(body), buffer[:])
+	written, err := io.CopyBuffer(destination, source, buffer[:])
 	count, countErr := core.CheckedUint64FromInt64(written)
 	length, lengthErr := core.NewByteLength(count)
 	if joined := errors.Join(err, countErr, lengthErr, contextstate.Validate(ctx)); joined != nil {
 		return length, joined
 	}
-	if written != int64(len(body)) {
+	if written != extent {
 		return length, io.ErrShortWrite
 	}
 	return length, nil
