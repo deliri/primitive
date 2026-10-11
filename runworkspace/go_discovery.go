@@ -228,7 +228,40 @@ func (m Manager) discoverGoPackageFile(ctx context.Context, request GoPackageDis
 
 func (m Manager) readGoSource(ctx context.Context, relative core.RelativePath) ([]byte, error) {
 	var content bytes.Buffer
-	if _, err := filestore.Read(ctx, filestore.ReadRequest{Destination: &content, Location: filestore.Location{Root: m.root, Path: relative}}); err != nil {
+	scope, err := filestore.WithReadScope(ctx, filestore.ReadScopeRequest{
+		Location: filestore.Location{Root: m.root, Path: relative},
+		Use: func(scopeCtx context.Context, source io.ReadSeeker) error {
+			// The existing AST input contract is checked against the held file
+			// before allocating its representation. The captured extent also
+			// prevents concurrent growth from expanding this allocation.
+			extent, err := source.Seek(0, io.SeekEnd)
+			if err != nil {
+				return errors.Join(core.ErrFilestoreSource, err)
+			}
+			if extent < 0 || extent > GoDiscoverySourceMaximumBytes {
+				return core.ErrPrimitiveContract
+			}
+			if _, err := source.Seek(0, io.SeekStart); err != nil {
+				return errors.Join(core.ErrFilestoreSource, err)
+			}
+			if err := scopeCtx.Err(); err != nil {
+				return err
+			}
+			if _, err := io.CopyN(&content, source, extent); err != nil {
+				return errors.Join(core.ErrFilestoreSource, err)
+			}
+			var extra [1]byte
+			count, readErr := source.Read(extra[:])
+			if count != 0 || readErr != io.EOF {
+				return errors.Join(core.ErrPrimitiveContract, readErr)
+			}
+			return scopeCtx.Err()
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	if err := errors.Join(scope.OperationError(), scope.CleanupError()); err != nil {
 		return nil, err
 	}
 	return content.Bytes(), nil
