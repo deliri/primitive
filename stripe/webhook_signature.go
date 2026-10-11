@@ -32,9 +32,9 @@ func classifyWebhookSignatureField(name string) webhookSignatureField {
 func signatureSeconds(header string) (int64, error) {
 	var seconds int64
 	found := false
-	for member := range strings.SplitSeq(header, ",") {
-		name, value, ok := strings.Cut(member, "=")
-		if !ok || strings.Contains(value, "=") {
+	for member := range strings.SplitSeq(header, core.StripeWebhookSignatureMemberSeparator) {
+		name, value, ok := strings.Cut(member, core.StripeWebhookSignatureValueSeparator)
+		if !ok || strings.Contains(value, core.StripeWebhookSignatureValueSeparator) {
 			return 0, core.ErrStripeVerification
 		}
 		if classifyWebhookSignatureField(name) != webhookSignatureTimestamp {
@@ -57,8 +57,8 @@ func signatureSeconds(header string) (int64, error) {
 
 func verifySignatureDigest(header string, expected []byte) error {
 	matched := 0
-	for member := range strings.SplitSeq(header, ",") {
-		name, value, _ := strings.Cut(member, "=")
+	for member := range strings.SplitSeq(header, core.StripeWebhookSignatureMemberSeparator) {
+		name, value, _ := strings.Cut(member, core.StripeWebhookSignatureValueSeparator)
 		if classifyWebhookSignatureField(name) != webhookSignatureDigest || len(value) != hex.EncodedLen(sha256.Size) {
 			continue
 		}

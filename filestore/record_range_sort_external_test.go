@@ -218,10 +218,17 @@ func FuzzRecordRangeSortMatchesIndependentStableBytes(f *testing.F) {
 func FuzzRecordRangeIndexCanonicalTuple(f *testing.F) {
 	f.Add([]byte{})
 	f.Add(make([]byte, filestore.RecordRangeIndexBytes))
-	validSeed := make([]byte, filestore.RecordRangeIndexBytes)
-	validSeed[15] = 1
-	validSeed[16] = byte(lineio.RecordFramingEOF)
-	f.Add(validSeed)
+	length, err := core.NewByteLength(1)
+	if err != nil {
+		f.Fatal(err)
+	}
+	for _, framing := range [...]lineio.RecordFraming{lineio.RecordFramingEOF, lineio.RecordFramingOpaque} {
+		var seed bytes.Buffer
+		if err := filestore.WriteRecordRangeIndex(&seed, lineio.RecordRange{Bytes: length, Framing: framing}); err != nil {
+			f.Fatal(err)
+		}
+		f.Add(seed.Bytes())
+	}
 	f.Add([]byte{1, 2, 3})
 	f.Fuzz(func(t *testing.T, data []byte) {
 		got, err := filestore.ReadRecordRangeIndex(bytes.NewReader(data))
@@ -229,7 +236,7 @@ func FuzzRecordRangeIndexCanonicalTuple(f *testing.F) {
 		if len(data) >= filestore.RecordRangeIndexBytes {
 			offset := binary.BigEndian.Uint64(data[:8])
 			extent := binary.BigEndian.Uint64(data[8:16])
-			valid = offset <= math.MaxInt64 && extent > 0 && extent <= math.MaxInt64-offset && (data[16] == 1 || data[16] == 2)
+			valid = offset <= math.MaxInt64 && extent > 0 && extent <= math.MaxInt64-offset && (data[16] == 1 || data[16] == 2 || data[16] == 3)
 		}
 		if (err == nil) != valid {
 			t.Fatalf("tuple admission%+v/%v independently valid%t bytes%v", got, err, valid, data)

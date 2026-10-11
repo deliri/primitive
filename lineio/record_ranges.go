@@ -18,17 +18,20 @@ type RecordSource interface {
 	io.ReaderAt
 }
 
-// RecordFraming records the native terminator of one complete physical record.
+// RecordFraming selects physical-line framing or an exact uninterpreted span.
 type RecordFraming uint8
 
 const (
 	RecordFramingUnknown RecordFraming = iota
 	RecordFramingLF
 	RecordFramingEOF
+	// RecordFramingOpaque admits the exact range independently of contained LF
+	// bytes. Go still lends physical fragments; no source text is collected.
+	RecordFramingOpaque
 )
 
 func (f RecordFraming) Validate() error {
-	if f != RecordFramingLF && f != RecordFramingEOF {
+	if f != RecordFramingLF && f != RecordFramingEOF && f != RecordFramingOpaque {
 		return core.ErrLineIOContract
 	}
 	return nil
@@ -176,18 +179,18 @@ func RecordFragments(ctx context.Context, request RecordFragmentRequest) iter.Se
 				return
 			}
 			observed += int64(len(fragment.Bytes))
-			if !fragment.More && err == nil && (observed != size || request.Record.Framing != RecordFramingLF) {
+			if !fragment.More && err == nil && request.Record.Framing != RecordFramingOpaque && (observed != size || request.Record.Framing != RecordFramingLF) {
 				yield(Fragment{}, core.ErrLineIOScan)
 				return
 			}
-			if err == io.EOF && (observed != size || request.Record.Framing != RecordFramingEOF) {
+			if err == io.EOF && (observed != size || request.Record.Framing != RecordFramingEOF && request.Record.Framing != RecordFramingOpaque) {
 				yield(Fragment{}, errors.Join(core.ErrLineIOScan, io.ErrUnexpectedEOF))
 				return
 			}
 			if len(fragment.Bytes) > 0 && !yield(fragment, nil) {
 				return
 			}
-			if err == io.EOF || !fragment.More {
+			if err == io.EOF || !fragment.More && request.Record.Framing != RecordFramingOpaque {
 				return
 			}
 		}

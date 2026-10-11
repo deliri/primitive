@@ -50,7 +50,7 @@ func (c RecordCharacter) Validate() error {
 	return nil
 }
 
-// RecordCharacters replays one physical range through Go's bounded ReadRune.
+// RecordCharacters replays one declared range through Go's bounded ReadRune.
 // Unicode, NUL, malformed bytes, and BOM remain observations for caller policy.
 // The declared framing must still agree with the source. No input quota applies.
 func RecordCharacters(ctx context.Context, request RecordFragmentRequest) iter.Seq2[RecordCharacter, error] {
@@ -98,7 +98,7 @@ func RecordCharacters(ctx context.Context, request RecordFragmentRequest) iter.S
 				return
 			}
 			end := observed + int64(width)
-			if value == '\n' && (end != size || request.Record.Framing != RecordFramingLF) || end == size && request.Record.Framing == RecordFramingLF && value != '\n' {
+			if request.Record.Framing != RecordFramingOpaque && (value == '\n' && (end != size || request.Record.Framing != RecordFramingLF) || end == size && request.Record.Framing == RecordFramingLF && value != '\n') {
 				yield(RecordCharacter{}, core.ErrLineIOScan)
 				return
 			}

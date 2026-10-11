@@ -13,6 +13,8 @@ const (
 	StripeWebhookSecretCustodyMaximumBytes      = 4 * 1024
 	StripeWebhookTimestampField                 = "t"
 	StripeWebhookDigestField                    = "v1"
+	StripeWebhookSignatureMemberSeparator       = ","
+	StripeWebhookSignatureValueSeparator        = "="
 	StripeWebhookSignedPayloadSeparator    byte = '.'
 	StripeWebhookScratchFilename                = "body"
 	StripeWebhookSignatureHeaderName            = "Stripe-Signature"
