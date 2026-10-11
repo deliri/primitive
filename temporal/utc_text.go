@@ -57,3 +57,15 @@ func ParseRFC3339UTC(value string) (Instant, error) {
 	}
 	return instant, nil
 }
+
+// CompactUTCSeconds projects an instant to the second-precision protocol text.
+// Unlike CompactUTC's exact representation, this operation explicitly omits
+// fractional seconds. Go owns formatting even at signed nanosecond edges whose
+// preceding integral second is outside Instant's nanosecond representation.
+func (i Instant) CompactUTCSeconds() (string, error) {
+	value, err := i.Time()
+	if err != nil {
+		return "", err
+	}
+	return value.Format(compactUTCLayout), nil
+}

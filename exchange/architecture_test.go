@@ -130,6 +130,8 @@ func TestInventoryDocumentDrivesTheRealJSONWritePath(t *testing.T) {
 // names are labels only.
 type exchangeContractInventory struct {
 	V4PresignRequest                            protocolContract[V4PresignRequest]
+	V4QueryPair                                 internalFlow[v4QueryPair]
+	V4SigningFacts                              internalFlow[v4SigningFacts]
 	ResponseDelivery                            protocolContract[ResponseDelivery]
 	ResponseBufferRequest                       protocolContract[ResponseBufferRequest]
 	ResponseBufferResult                        protocolContract[ResponseBufferResult]

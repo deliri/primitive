@@ -69,6 +69,7 @@ type temporalInstantSignature interface {
 	RFC3339() (string, error)
 	RFC3339Nano() (string, error)
 	CompactUTC() (string, error)
+	CompactUTCSeconds() (string, error)
 	Add(Duration) (Instant, error)
 	Subtract(Duration) (Instant, error)
 	Since(Instant) (Duration, error)
@@ -346,6 +347,7 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 		"method Instant.Nanoseconds",
 		"method Instant.RFC3339",
 		"method Instant.CompactUTC",
+		"method Instant.CompactUTCSeconds",
 		"method Instant.RFC3339Nano",
 		"method Instant.Since",
 		"method Instant.Subtract",

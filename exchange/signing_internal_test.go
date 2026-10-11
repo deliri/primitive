@@ -135,10 +135,6 @@ func FuzzV4PresignExactRequestAgreement(f *testing.F) {
 	f.Add("/literal%25/../space +/café", uint8(MethodPut))
 	f.Add("", uint8(255))
 	f.Fuzz(func(t *testing.T, path string, method uint8) {
-		// Bound secondary oracle work; admitted endpoint has its own independent ceiling.
-		if len(path) > 4096 {
-			return
-		}
 		intent := signingFixture(t)
 		u := url.URL{Scheme: "https", Host: "signing.example", Path: path, RawQuery: "X-Amz-Expires=60"}
 		endpoint, err := core.ParseHTTPEndpoint(u.String())

@@ -5,11 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 	"strings"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/temporal"
@@ -18,7 +15,7 @@ import (
 // V4PresignRequest binds the exact request to the caller-owned signing scope.
 // It makes no network request, observes no clock, and never exports a raw Go
 // request. Provider policy owns expiry, query names, regions and service names.
-// The official signer owns SigV4: https://pkg.go.dev/github.com/aws/aws-sdk-go-v2/aws/signer/v4
+// Go SHA-256 and HMAC own cryptography; canonical input remains borrowed.
 type V4PresignRequest struct {
 	Region                 string
 	Service                string
@@ -60,28 +57,5 @@ func PresignV4(ctx context.Context, intent V4PresignRequest) (core.HTTPEndpoint,
 	if err := errors.Join(contextstate.Validate(ctx), intent.Validate()); err != nil {
 		return core.HTTPEndpoint{}, err
 	}
-	request, err := http.NewRequestWithContext(ctx, intent.Method.String(), intent.Target.String(), nil)
-	if err != nil {
-		return core.HTTPEndpoint{}, requestError(err)
-	}
-	applyRequestHeaders(request, intent.Headers)
-	if !intent.ContentType.IsZero() {
-		request.Header.Set(core.HTTPHeaderContentType().String(), intent.ContentType.String())
-	}
-	stamp, err := intent.SignedAt.Time()
-	if err != nil {
-		return core.HTTPEndpoint{}, err
-	}
-	signer := v4.NewSigner(func(options *v4.SignerOptions) {
-		options.DisableURIPathEscaping = intent.DisableURIPathEscaping
-		options.DisableHeaderHoisting = true
-	})
-	endpoint, _, err := signer.PresignHTTP(ctx, aws.Credentials{AccessKeyID: string(intent.AccessKey), SecretAccessKey: string(intent.SecretKey)}, request, intent.PayloadHash, intent.Service, intent.Region, stamp)
-	if err != nil {
-		return core.HTTPEndpoint{}, requestError(err)
-	}
-	if err := contextstate.Validate(ctx); err != nil {
-		return core.HTTPEndpoint{}, err
-	}
-	return core.ParseHTTPEndpoint(endpoint)
+	return v4PresignedEndpoint(ctx, intent)
 }
