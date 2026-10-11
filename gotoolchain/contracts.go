@@ -218,27 +218,6 @@ func (p Package) Validate() error {
 	return p.Module.Validate()
 }
 
-// PackageCatalog is one bounded deterministic go-list projection.
-type PackageCatalog struct{ Packages []Package }
-
-func (c PackageCatalog) Validate() error {
-	if len(c.Packages) == 0 {
-		return contractError("package catalog count is outside the admitted domain")
-	}
-	previous := ""
-	for index := range c.Packages {
-		if err := c.Packages[index].Validate(); err != nil {
-			return err
-		}
-		current := c.Packages[index].ImportPath.String()
-		if index > 0 && previous >= current {
-			return contractError("package catalog is duplicate or noncanonical")
-		}
-		previous = current
-	}
-	return nil
-}
-
 // ObservationRequest identifies one module root for a cmd/go observation.
 type ObservationRequest struct{ WorkingDirectory core.AbsolutePath }
 
@@ -249,7 +228,7 @@ func (r ObservationRequest) Validate() error {
 	return nil
 }
 
-// ListRequest declares one bounded package selection.
+// ListRequest declares one cmd/go package selection.
 type ListRequest struct {
 	WorkingDirectory core.AbsolutePath
 	Pattern          string

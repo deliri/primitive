@@ -3,8 +3,6 @@ package gotoolchain
 import (
 	"bytes"
 	"context"
-	jsontext "encoding/json/jsontext"
-	json "encoding/json/v2"
 	"errors"
 	"fmt"
 	"io"
@@ -97,23 +95,6 @@ func (c Capability) ObserveBuildContext(ctx context.Context, request Observation
 		return BuildContext{}, err
 	}
 	return decodeBuildContext(output)
-}
-
-// ListPackages returns a bounded canonical package catalog from cmd/go.
-func (c Capability) ListPackages(ctx context.Context, request ListRequest) (PackageCatalog, error) {
-	if err := errors.Join(c.Validate(), request.Validate()); err != nil {
-		return PackageCatalog{}, errors.Join(core.ErrGoToolchainContract, err)
-	}
-	arguments := []string{goListSubcommand, runprotocol.GoJSONOutputArgument}
-	if request.Dependencies {
-		arguments = append(arguments, goDependenciesArgument)
-	}
-	arguments = append(arguments, "--", request.Pattern)
-	output, _, err := c.execute(ctx, request.WorkingDirectory, arguments...)
-	if err != nil {
-		return PackageCatalog{}, err
-	}
-	return decodePackageCatalog(output, c.configuration.Limits.PackageMaximum)
 }
 
 // CompilePackage compiles one package and its tests without executing them.
@@ -246,41 +227,6 @@ type packageWire struct {
 
 type moduleWire struct {
 	Path string `json:"Path"`
-}
-
-func decodePackageCatalog(data []byte, maximum uint64) (PackageCatalog, error) {
-	if maximum == 0 {
-		return PackageCatalog{}, outputError("package stream count bound is invalid", nil)
-	}
-	limit := uint64(maximum)
-	decoder := jsontext.NewDecoder(bytes.NewReader(data))
-	packages := make([]Package, 0)
-	for uint64(len(packages)) < limit {
-		var wire packageWire
-		err := json.UnmarshalDecode(decoder, &wire)
-		if errors.Is(err, io.EOF) {
-			break
-		}
-		if err != nil {
-			return PackageCatalog{}, outputError("package stream JSON is invalid", err)
-		}
-		observed, err := packageFromWire(wire)
-		if err != nil {
-			return PackageCatalog{}, err
-		}
-		packages = append(packages, observed)
-	}
-	if uint64(len(packages)) == limit {
-		var extra packageWire
-		if err := json.UnmarshalDecode(decoder, &extra); !errors.Is(err, io.EOF) {
-			return PackageCatalog{}, outputError("package stream exceeds its count bound", err)
-		}
-	}
-	slices.SortFunc(packages, func(first, second Package) int {
-		return strings.Compare(first.ImportPath.String(), second.ImportPath.String())
-	})
-	catalog := PackageCatalog{Packages: packages}
-	return catalog, catalog.Validate()
 }
 
 func packageFromWire(wire packageWire) (Package, error) {

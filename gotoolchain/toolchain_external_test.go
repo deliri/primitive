@@ -53,15 +53,18 @@ func TestCapabilityProductionPathLayerTriad(t *testing.T) {
 		if err := build.Validate(); err != nil {
 			t.Fatalf("BuildContext.Validate() error = %v, want nil", err)
 		}
-		catalog, listErr := capability.ListPackages(context.Background(), gotoolchain.ListRequest{
+		var observed gotoolchain.Package
+		count := 0
+		listErr := capability.VisitPackages(context.Background(), gotoolchain.PackageVisitRequest{Selection: gotoolchain.ListRequest{
 			WorkingDirectory: directory,
 			Pattern:          "./gomodule",
+		}, Visit: func(_ context.Context, value gotoolchain.Package) error { observed = value; count++; return nil },
 		})
 		if listErr != nil {
-			t.Fatalf("Capability.ListPackages() error = %v, want nil", listErr)
+			t.Fatalf("Capability.VisitPackages() error = %v, want nil", listErr)
 		}
-		if len(catalog.Packages) != 1 || catalog.Packages[0].ImportPath.String() != core.PrimitiveModulePath+"/gomodule" {
-			t.Fatalf("Capability.ListPackages() = %+v, want exact gomodule package", catalog)
+		if count != 1 || observed.ImportPath.String() != core.PrimitiveModulePath+"/gomodule" {
+			t.Fatalf("Capability.VisitPackages() = %+v, want exact gomodule package", observed)
 		}
 		compilation, compileErr := capability.CompilePackage(context.Background(), gotoolchain.CompileRequest{
 			WorkingDirectory: directory,
@@ -134,9 +137,10 @@ func TestCapabilityProductionPathLayerTriad(t *testing.T) {
 	t.Run("negative absent package pattern is refused before cmd go", func(t *testing.T) {
 		t.Parallel()
 
-		got, gotErr := capability.ListPackages(context.Background(), gotoolchain.ListRequest{WorkingDirectory: directory})
-		if !errors.Is(gotErr, core.ErrGoToolchainContract) || len(got.Packages) != 0 {
-			t.Fatalf("Capability.ListPackages(absent pattern) = (%v, %v), want zero and errors.Is(..., %v)", got, gotErr, core.ErrGoToolchainContract)
+		calls := 0
+		gotErr := capability.VisitPackages(context.Background(), gotoolchain.PackageVisitRequest{Selection: gotoolchain.ListRequest{WorkingDirectory: directory}, Visit: func(context.Context, gotoolchain.Package) error { calls++; return nil }})
+		if !errors.Is(gotErr, core.ErrGoToolchainContract) || calls != 0 {
+			t.Fatalf("Capability.VisitPackages(absent pattern) = (%v, %v), want zero and errors.Is(..., %v)", calls, gotErr, core.ErrGoToolchainContract)
 		}
 	})
 

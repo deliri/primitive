@@ -8,17 +8,17 @@ type capabilityWrapper interface{ goToolchainCapabilityWrapper() }
 func (ToolchainVersion) goToolchainSealedValue() {}
 func (PackageName) goToolchainSealedValue()      {}
 
-func (Limits) goToolchainProtocolFact()             {}
-func (Configuration) goToolchainProtocolFact()      {}
-func (BuildContext) goToolchainProtocolFact()       {}
-func (Package) goToolchainProtocolFact()            {}
-func (PackageCatalog) goToolchainProtocolFact()     {}
-func (ObservationRequest) goToolchainProtocolFact() {}
-func (ListRequest) goToolchainProtocolFact()        {}
-func (CompileRequest) goToolchainProtocolFact()     {}
-func (AnalysisRequest) goToolchainProtocolFact()    {}
-func (PackageAnalysis) goToolchainProtocolFact()    {}
-func (Compilation) goToolchainProtocolFact()        {}
+func (Limits) goToolchainProtocolFact()              {}
+func (Configuration) goToolchainProtocolFact()       {}
+func (BuildContext) goToolchainProtocolFact()        {}
+func (Package) goToolchainProtocolFact()             {}
+func (ObservationRequest) goToolchainProtocolFact()  {}
+func (PackageVisitRequest) goToolchainProtocolFact() {}
+func (ListRequest) goToolchainProtocolFact()         {}
+func (CompileRequest) goToolchainProtocolFact()      {}
+func (AnalysisRequest) goToolchainProtocolFact()     {}
+func (PackageAnalysis) goToolchainProtocolFact()     {}
+func (Compilation) goToolchainProtocolFact()         {}
 
 func (buildContextWire) goToolchainInternalFlow() {}
 func (packageWire) goToolchainInternalFlow()      {}
@@ -33,8 +33,8 @@ var (
 	_ protocolFact      = Configuration{}
 	_ protocolFact      = BuildContext{}
 	_ protocolFact      = Package{}
-	_ protocolFact      = PackageCatalog{}
 	_ protocolFact      = ObservationRequest{}
+	_ protocolFact      = PackageVisitRequest{}
 	_ protocolFact      = ListRequest{}
 	_ protocolFact      = CompileRequest{}
 	_ protocolFact      = AnalysisRequest{}
