@@ -6,6 +6,15 @@ import "time"
 // The zero value is invalid. Temporal owns parsing and formatting mechanics.
 type TimeLayout string
 
+// NewTimeLayout admits one caller-selected native reference-time layout.
+func NewTimeLayout(value string) (TimeLayout, error) {
+	layout := TimeLayout(value)
+	if err := layout.Validate(); err != nil {
+		return "", err
+	}
+	return layout, nil
+}
+
 func (l TimeLayout) Validate() error {
 	if l == "" {
 		return contractError("time layout is empty")

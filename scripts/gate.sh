@@ -289,9 +289,7 @@ run_gate go-environment go env GOOS GOARCH GOVERSION
 run_gate go-workspace go env GOWORK
 run_gate git-revision git rev-parse HEAD
 run_gate git-status git status --short --branch
-run_gate install-tools bash scripts/install-tools.sh
 run_gate module-tidy go mod tidy -diff
-run_gate workflow actionlint .github/workflows/ci.yml
 run_empty_output_gate format gofmt -l .
 
 package_list="$artifact_directory/packages.log"

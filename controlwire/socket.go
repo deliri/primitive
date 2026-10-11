@@ -396,6 +396,9 @@ func validateAuthorityOrigin(authority core.HTTPEndpoint) error {
 		return routeError(err)
 	}
 	address := authority.HTTPURL()
+	if address.Scheme != core.SchemeHTTPS {
+		return routeError(core.ErrExchangeContract)
+	}
 	if (address.Path != "" && address.Path != "/") || address.RawPath != "" ||
 		address.RawQuery != "" || address.ForceQuery {
 		return routeError(core.ErrExchangeContract)

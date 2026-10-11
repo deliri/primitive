@@ -49,7 +49,7 @@ func TestRoutedSocketExecutesProductionRequestAndAuthenticatedResponse(t *testin
 	}
 	observed := make(chan socketObservation, 1)
 	authorityServer := socketServer(t, fixture.support)
-	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		call, callErr := exchange.NewSocketServerCall(writer, request)
 		if callErr != nil {
 			observed <- socketObservation{err: callErr}
@@ -276,7 +276,7 @@ func TestRoutedSocketClientRejectsEveryIndependentTransportBoundary(t *testing.T
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+			server := httptest.NewTLSServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 				writeClientResponse(writer, request, clientResponse{
 					mode: tc.mode, body: fixture.responseCanonical,
 					jsonMediaType: jsonMediaType, plainMediaType: plainMediaType,

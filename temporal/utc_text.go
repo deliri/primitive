@@ -46,13 +46,14 @@ func (i Instant) CompactUTC() (string, error) {
 }
 
 // ParseRFC3339UTC admits exact RFC 3339 text only when its declared offset is
-// zero. ParseRFC3339 owns syntax and extent before offset spelling is inspected.
+// known UTC. The RFC 3339 unknown-local-offset spelling -00:00 is refused.
+// ParseRFC3339 owns syntax and extent before offset spelling is inspected.
 func ParseRFC3339UTC(value string) (Instant, error) {
 	instant, err := ParseRFC3339(value)
 	if err != nil {
 		return Instant{}, err
 	}
-	if !strings.HasSuffix(value, "Z") && !strings.HasSuffix(value, "+00:00") && !strings.HasSuffix(value, "-00:00") {
+	if !strings.HasSuffix(value, "Z") && !strings.HasSuffix(value, "+00:00") {
 		return Instant{}, contractError("RFC 3339 timestamp offset is not UTC")
 	}
 	return instant, nil

@@ -346,10 +346,10 @@ func TestCompileSubjectProcessLayerTriad(t *testing.T) {
 			"--property=CPUQuota=100%", "--property=MemoryMax=1024", "--property=TasksMax=2", "--property=LimitNOFILE=2",
 			"--property=MemoryAccounting=yes", "--property=CPUAccounting=yes", "--property=IOAccounting=yes", "--property=IPAccounting=yes",
 			"--property=RuntimeMaxSec=1ns", "--property=TimeoutStopSec=1ns", "--property=KillMode=control-group", "--property=SendSIGKILL=yes",
-			"--property=PrivateNetwork=yes", "--property=ProtectSystem=strict", "--property=ReadOnlyPaths=/tmp",
-			"--property=ReadWritePaths=/workspace", "--property=InaccessiblePaths=/run/primitive-control.sock",
-			"--property=InaccessiblePaths=/var/lib/primitive/credentials", "--property=InaccessiblePaths=/var/lib/primitive/signing",
-			"--property=InaccessiblePaths=/var/lib/primitive/runtime", "--", "/bin/sh",
+			"--property=PrivateNetwork=yes", "--property=ProtectSystem=strict", "--property=ReadOnlyPaths=\"/tmp\"",
+			"--property=ReadWritePaths=\"/workspace\"", "--property=InaccessiblePaths=\"/run/primitive-control.sock\"",
+			"--property=InaccessiblePaths=\"/var/lib/primitive/credentials\"", "--property=InaccessiblePaths=\"/var/lib/primitive/signing\"",
+			"--property=InaccessiblePaths=\"/var/lib/primitive/runtime\"", "--", "/bin/sh",
 		}
 		for _, required := range want {
 			if !slices.Contains(arguments, required) {

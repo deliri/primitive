@@ -15,8 +15,8 @@ import (
 
 const (
 	coreExportDependencyMaximum     = 32
-	coreSpecialExportAdmissionCount = 95 // Includes provider-neutral image dimensions shared with callers.
-	coreProviderExportContractCount = 136
+	coreSpecialExportAdmissionCount = 96 // Includes provider-neutral image dimensions shared with callers.
+	coreProviderExportContractCount = 173
 )
 
 type coreExportName string
@@ -103,6 +103,9 @@ func coherentDomainContractAdmission(name coreExportName, witness any) coreSpeci
 // identifier reference so declaration drift breaks the build.
 func coreSpecialExportAdmissions() [coreSpecialExportAdmissionCount]coreSpecialExportAdmission {
 	return [...]coreSpecialExportAdmission{
+		// Products share native exit-status representation with Process; another
+		// internal effect owner would create a competing execution authority.
+		coherentDomainContractAdmission("ProcessExitStatusMaximum", ProcessExitStatusMaximum),
 		// The foreign namespace is a shared compiler agreement, including for
 		// callers outside Primitive. Inventing a second internal consumer would
 		// couple an unrelated package merely to satisfy a repository census.
@@ -218,6 +221,44 @@ func coreSpecialExportAdmissions() [coreSpecialExportAdmissionCount]coreSpecialE
 // wire spellings must never create cross-provider coupling.
 func coreProviderExportContracts() [coreProviderExportContractCount]coreProviderExportContract {
 	return [...]coreProviderExportContract{
+		// Core owns protocol vocabulary; Exchange alone implements its mechanics.
+		{name: "SystemdReadOnlyPathsArgument", witness: SystemdReadOnlyPathsArgument, consumer: PackageRunnerControl},
+		{name: "SystemdReadWritePathsArgument", witness: SystemdReadWritePathsArgument, consumer: PackageRunnerControl},
+		{name: "SystemdInaccessiblePathsArgument", witness: SystemdInaccessiblePathsArgument, consumer: PackageRunnerControl},
+		{name: "SignatureV4QueryFieldAlgorithm", witness: SignatureV4QueryFieldAlgorithm, consumer: PackageExchange},
+		{name: "SignatureV4QueryFieldCredential", witness: SignatureV4QueryFieldCredential, consumer: PackageExchange},
+		{name: "SignatureV4QueryFieldDate", witness: SignatureV4QueryFieldDate, consumer: PackageExchange},
+		{name: "SignatureV4QueryFieldSignedHeaders", witness: SignatureV4QueryFieldSignedHeaders, consumer: PackageExchange},
+		{name: "SignatureV4QueryFieldSignature", witness: SignatureV4QueryFieldSignature, consumer: PackageExchange},
+		{name: "SignatureV4Algorithm", witness: SignatureV4Algorithm, consumer: PackageExchange},
+		{name: "SignatureV4KeyPrefix", witness: SignatureV4KeyPrefix, consumer: PackageExchange},
+		{name: "SignatureV4ScopeTerminator", witness: SignatureV4ScopeTerminator, consumer: PackageExchange},
+		{name: "SignatureV4AlgorithmQuery", witness: SignatureV4AlgorithmQuery, consumer: PackageExchange},
+		{name: "SignatureV4CredentialQuery", witness: SignatureV4CredentialQuery, consumer: PackageExchange},
+		{name: "SignatureV4DateQuery", witness: SignatureV4DateQuery, consumer: PackageExchange},
+		{name: "SignatureV4SignedHeadersQuery", witness: SignatureV4SignedHeadersQuery, consumer: PackageExchange},
+		{name: "SignatureV4SignatureQuery", witness: SignatureV4SignatureQuery, consumer: PackageExchange},
+		{name: "SignatureV4HostHeader", witness: SignatureV4HostHeader, consumer: PackageExchange},
+		{name: "SignatureV4ContentTypeHeader", witness: SignatureV4ContentTypeHeader, consumer: PackageExchange},
+		{name: "SignatureV4AuthorizationHeader", witness: SignatureV4AuthorizationHeader, consumer: PackageExchange},
+		{name: "SignatureV4UserAgentHeader", witness: SignatureV4UserAgentHeader, consumer: PackageExchange},
+		{name: "SignatureV4TraceHeader", witness: SignatureV4TraceHeader, consumer: PackageExchange},
+		{name: "SignatureV4ExpectHeader", witness: SignatureV4ExpectHeader, consumer: PackageExchange},
+		{name: "SignatureV4TransferEncodingHeader", witness: SignatureV4TransferEncodingHeader, consumer: PackageExchange},
+		{name: "SignatureV4HTTPSPort", witness: SignatureV4HTTPSPort, consumer: PackageExchange},
+		{name: "SignatureV4EscapeHex", witness: SignatureV4EscapeHex, consumer: PackageExchange},
+		{name: "SignatureV4QueryFieldUnknown", witness: SignatureV4QueryFieldUnknown, consumer: PackageExchange},
+		{name: "SignatureV4QuerySeparator", witness: SignatureV4QuerySeparator, consumer: PackageExchange},
+		{name: "SignatureV4ValueSeparator", witness: SignatureV4ValueSeparator, consumer: PackageExchange},
+		{name: "SignatureV4HeaderSeparator", witness: SignatureV4HeaderSeparator, consumer: PackageExchange},
+		{name: "SignatureV4ValueListSeparator", witness: SignatureV4ValueListSeparator, consumer: PackageExchange},
+		{name: "SignatureV4HeaderValueSeparator", witness: SignatureV4HeaderValueSeparator, consumer: PackageExchange},
+		{name: "SignatureV4LineSeparator", witness: SignatureV4LineSeparator, consumer: PackageExchange},
+		{name: "SignatureV4PathSeparator", witness: SignatureV4PathSeparator, consumer: PackageExchange},
+		{name: "SignatureV4SpaceEncoding", witness: SignatureV4SpaceEncoding, consumer: PackageExchange},
+		{name: "SignatureV4FormSpace", witness: SignatureV4FormSpace, consumer: PackageExchange},
+		{name: "SignatureV4QueryField", witness: SignatureV4QueryField(0), consumer: PackageExchange},
+		{name: "PayPalWebhookEventMember", witness: PayPalWebhookEventMember, consumer: PackagePayPal},
 		{name: "StripeAPIHost", witness: StripeAPIHost, consumer: PackageStripe},
 		{name: "StripeAPIVersion", witness: StripeAPIVersion, consumer: PackageStripe},
 		{name: "StripeVersionHeaderName", witness: StripeVersionHeaderName, consumer: PackageStripe},

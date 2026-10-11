@@ -2,6 +2,7 @@ package temporal_test
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"strings"
 	"testing"
@@ -112,7 +113,7 @@ func TestRFC3339UTCPreservesZeroOffsetAndExtent(t *testing.T) {
 	}{
 		{name: "Z offset", input: "1970-01-01T00:00:00Z", canonical: "1970-01-01T00:00:00Z", wantErr: nil},
 		{name: "positive zero offset", input: "1970-01-01T00:00:00+00:00", canonical: "1970-01-01T00:00:00Z", wantErr: nil},
-		{name: "negative zero offset", input: "1970-01-01T00:00:00-00:00", canonical: "1970-01-01T00:00:00Z", wantErr: nil},
+		{name: "unknown local offset", input: "1970-01-01T00:00:00-00:00", canonical: "", wantErr: core.ErrTemporalContract},
 		{name: "one nanosecond", input: "1970-01-01T00:00:00.000000001Z", canonical: "1970-01-01T00:00:00.000000001Z", wantErr: nil},
 		{name: "trailing fraction zero canonicalized", input: "1970-01-01T00:00:00.1000Z", canonical: "1970-01-01T00:00:00.1Z", wantErr: nil},
 		{name: "minimum instant", input: "1677-09-21T00:12:43.145224192Z", canonical: "1677-09-21T00:12:43.145224192Z", wantErr: nil},
@@ -225,7 +226,7 @@ func FuzzRFC3339UTCExactOffset(f *testing.F) {
 		raw, rawErr := time.Parse(time.RFC3339Nano, value)
 		_, offset := raw.Zone()
 		bounded := temporal.InstantFromNanoseconds(raw.UnixNano())
-		wantValid := len(value) >= temporal.RFC3339MinimumTextBytes && len(value) <= temporal.RFC3339MaximumTextBytes && rawErr == nil && temporalRFC3339Grammar.MatchString(value) && time.Unix(0, raw.UnixNano()).Equal(raw) && offset == 0
+		wantValid := len(value) >= temporal.RFC3339MinimumTextBytes && len(value) <= temporal.RFC3339MaximumTextBytes && rawErr == nil && temporalRFC3339Grammar.MatchString(value) && time.Unix(0, raw.UnixNano()).Equal(raw) && offset == 0 && !strings.HasSuffix(value, "-00:00")
 		got, err := temporal.ParseRFC3339UTC(value)
 		if !wantValid {
 			if !errors.Is(err, core.ErrTemporalContract) || got != (temporal.Instant{}) {
@@ -273,5 +274,30 @@ func BenchmarkParseRFC3339UTC(b *testing.B) {
 	}
 	if got != want {
 		b.Fatalf("UTC result = %v, want %v", got, want)
+	}
+}
+
+func TestRFC3339UTCRefusesUnknownOffsetAcrossNativeInstants(t *testing.T) {
+	t.Parallel()
+	for index := range 64 {
+		t.Run(fmt.Sprint(index), func(t *testing.T) {
+			t.Parallel()
+			nanos := int64(index-32) * 1000000001
+			source, err := temporal.InstantFromNanoseconds(nanos).RFC3339Nano()
+			if err != nil {
+				t.Fatal(err)
+			}
+			unknown := strings.TrimSuffix(source, "Z") + "-00:00"
+			got, err := temporal.ParseRFC3339UTC(unknown)
+			if !errors.Is(err, core.ErrTemporalContract) || got != (temporal.Instant{}) {
+				t.Fatalf("unknown local offset admitted: %q %v", unknown, err)
+			}
+			for _, known := range [...]string{source, strings.TrimSuffix(source, "Z") + "+00:00"} {
+				got, err := temporal.ParseRFC3339UTC(known)
+				if err != nil || got != temporal.InstantFromNanoseconds(nanos) {
+					t.Fatalf("known UTC drift: %q %v", known, err)
+				}
+			}
+		})
 	}
 }

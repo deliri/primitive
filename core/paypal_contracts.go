@@ -3,6 +3,7 @@ package core
 // PayPal's protocol facts are deliberately nominal. Equal values in another
 // provider family do not create a shared contract.
 const (
+	PayPalWebhookEventMember                = `,"webhook_event":`
 	PayPalLiveAPIHost                       = "api-m.paypal.com"
 	PayPalSandboxAPIHost                    = "api-m.sandbox.paypal.com"
 	PayPalRequestIDHeaderName               = "PayPal-Request-Id"

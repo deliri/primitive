@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 
 	"cloud.google.com/go/storage"
 	"github.com/deliri/primitive/v2026/contextstate"
@@ -364,7 +363,7 @@ func gcsUploadSignedExpiry(rawURL string, ceiling temporal.Instant) (temporal.In
 	if err != nil || len(query["X-Goog-Date"]) != 1 || len(query["X-Goog-Expires"]) != 1 {
 		return temporal.Instant{}, errors.Join(core.ErrObjectStoreContract, err)
 	}
-	stamp, err := time.Parse("20060102T150405Z", query.Get("X-Goog-Date"))
+	signedAt, err := temporal.ParseCompactUTC(query.Get("X-Goog-Date"))
 	if err != nil {
 		return temporal.Instant{}, errors.Join(core.ErrObjectStoreContract, err)
 	}
@@ -373,10 +372,6 @@ func gcsUploadSignedExpiry(rawURL string, ceiling temporal.Instant) (temporal.In
 		return temporal.Instant{}, errors.Join(core.ErrObjectStoreContract, err)
 	}
 	lifetime, err := temporal.DurationFromSeconds(seconds)
-	if err != nil {
-		return temporal.Instant{}, errors.Join(core.ErrObjectStoreContract, err)
-	}
-	signedAt, err := temporal.NewInstant(stamp)
 	if err != nil {
 		return temporal.Instant{}, errors.Join(core.ErrObjectStoreContract, err)
 	}

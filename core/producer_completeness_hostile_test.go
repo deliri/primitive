@@ -68,12 +68,13 @@ type producerGap struct {
 
 // producerShape records how a caller could obtain a value of one type.
 type producerShape struct {
-	isInterface  bool // satisfied, never constructed
-	isFunc       bool // the caller writes a closure
-	isStruct     bool
-	hasUnexonted bool // an unexported field defeats a composite literal
-	hasDecoder   bool // UnmarshalJSON and friends: the wire produces it
-	hasNamedVals bool // exported constants or vars name a legal value
+	exportedFields []string // public facts reachable through a produced observation
+	isInterface    bool     // satisfied, never constructed
+	isFunc         bool     // the caller writes a closure
+	isStruct       bool
+	hasUnexonted   bool // an unexported field defeats a composite literal
+	hasDecoder     bool // UnmarshalJSON and friends: the wire produces it
+	hasNamedVals   bool // exported constants or vars name a legal value
 }
 
 type producerScan struct {
@@ -105,6 +106,16 @@ func producerTypeName(e ast.Expr) string {
 	switch t := e.(type) {
 	case *ast.StarExpr:
 		return producerTypeName(t.X)
+	case *ast.ArrayType:
+		return producerTypeName(t.Elt)
+	case *ast.IndexExpr:
+		if producerTypeName(t.X) == "iter.Seq" {
+			return producerTypeName(t.Index)
+		}
+	case *ast.IndexListExpr:
+		if producerTypeName(t.X) == "iter.Seq2" && len(t.Indices) == 2 {
+			return producerTypeName(t.Indices[0])
+		}
 	case *ast.SelectorExpr:
 		if x, ok := t.X.(*ast.Ident); ok {
 			return x.Name + "." + t.Sel.Name
@@ -154,6 +165,7 @@ func auditProducerCompleteness(root string) ([]producerGap, error) {
 			scan.collectDeclarations(pkg, parsed)
 		}
 	}
+	scan.creditProducedFields()
 	return scan.gaps(), nil
 }
 
@@ -291,8 +303,32 @@ func (s *producerScan) collectStructFields(pkg, owner string, structure *ast.Str
 			}
 			if typeName := producerTypeName(field.Type); typeName != "" {
 				key := producerQualify(pkg, typeName)
+				shape.exportedFields = append(shape.exportedFields, key)
 				s.demanded[key] = append(s.demanded[key], producerSite{pkg: pkg, where: owner + "." + name.Name})
 			}
+		}
+	}
+}
+
+// Public fields of an actual produced observation are also obtainable.
+// Only real producer roots propagate: an unproduced request's public fields
+// must not credit themselves, and private observation fields remain opaque.
+func (s *producerScan) creditProducedFields() {
+	for {
+		changed := false
+		for name, shape := range s.shapes {
+			if !s.produced[name] {
+				continue
+			}
+			for _, field := range shape.exportedFields {
+				if !s.produced[field] {
+					s.produced[field] = true
+					changed = true
+				}
+			}
+		}
+		if !changed {
+			return
 		}
 	}
 }
@@ -390,6 +426,27 @@ func TestProducerCompletenessMatcherSyntheticRedGreenRatchet(t *testing.T) {
 		source   string
 		wantGaps int
 	}{
+		{name: "public opaque fact comes from a produced observation", wantGaps: 0, source: `package sample
+ type Fact struct { value string }
+ type Observation struct { Fact Fact }
+ func Observe() Observation { return Observation{} }
+ func Consume(fact Fact) {}`},
+		{name: "public fields of an unproduced request do not produce facts", wantGaps: 1, source: `package sample
+ type Fact struct { value string }
+ type Request struct { Fact Fact }
+ func Consume(request Request) {}`},
+		{name: "private fields of a produced observation stay opaque", wantGaps: 1, source: `package sample
+ type Fact struct { value string }
+ type Observation struct { fact Fact }
+ func Observe() Observation { return Observation{} }
+ func Consume(fact Fact) {}`},
+		{name: "streamed native observation produces its public facts", wantGaps: 0, source: `package sample
+ import "iter"
+ type Fact struct { value string }
+ type Observation struct { Fact Fact }
+ func Observe() iter.Seq2[Observation,error] { return nil }
+ func Consume(fact Fact) {}`},
+
 		{
 			name:     "opaque scalar with no constructor is a gap",
 			wantGaps: 1,

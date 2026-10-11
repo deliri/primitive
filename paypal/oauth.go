@@ -264,14 +264,14 @@ func sendPayPalOAuthRequest(request payPalOAuthRequest) (exchange.BoundedRespons
 }
 
 func decodePayPalOAuthResponse(body []byte, maximum core.ByteCount) (payPalOAuthResponse, error) {
-	limits := core.DefaultStrictJSONLimits()
+	limits := core.ExtensibleJSONLimits()
 	limits.DocumentMaximumBytes = maximum
-	limits.NestingDepthMaximum = payPalOAuthResponseNestingMaximum
-	limits.ObjectFieldMaximum = payPalOAuthResponseFieldMaximum
-	limits.ArrayItemMaximum = payPalOAuthResponseArrayItemMaximum
-	wire, err := core.DecodeStrictJSONStructure[payPalOAuthResponse](body, limits)
-	if err != nil {
+	if err := limits.ValidateDocument(body); err != nil {
 		return payPalOAuthResponse{}, contractError(err)
+	}
+	var wire payPalOAuthResponse
+	if err := json.Unmarshal(body, &wire); err != nil {
+		return payPalOAuthResponse{}, contractError(errors.Join(core.ErrJSONContract, err))
 	}
 	if err := wire.Validate(); err != nil {
 		return payPalOAuthResponse{}, err

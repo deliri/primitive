@@ -26,6 +26,7 @@ const (
 // Caller-owned query names are separate parsed request facts.
 type SignatureV4QueryField uint8
 
+// Signer-owned query member identities exclude caller-defined query names.
 const (
 	SignatureV4QueryFieldUnknown SignatureV4QueryField = iota
 	SignatureV4QueryFieldAlgorithm
@@ -35,13 +36,18 @@ const (
 	SignatureV4QueryFieldSignature
 )
 
+// Validate rejects unknown and out-of-domain member identities.
 func (field SignatureV4QueryField) Validate() error {
 	if field < SignatureV4QueryFieldAlgorithm || field > SignatureV4QueryFieldSignature {
 		return ErrExchangeContract
 	}
 	return nil
 }
+
+// OffWireEnum marks internal control vocabulary rather than persisted numbers.
 func (SignatureV4QueryField) OffWireEnum() {}
+
+// String projects the canonical protocol member spelling.
 func (field SignatureV4QueryField) String() string {
 	switch field {
 	case SignatureV4QueryFieldAlgorithm:
@@ -59,6 +65,7 @@ func (field SignatureV4QueryField) String() string {
 	}
 }
 
+// Signature V4 delimiters are fixed wire grammar, not caller control strings.
 const (
 	SignatureV4QuerySeparator       = "&"
 	SignatureV4ValueSeparator       = "="

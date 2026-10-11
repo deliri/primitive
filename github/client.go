@@ -118,7 +118,12 @@ func newClient(construction clientConstruction) (Client, error) {
 
 // Validate checks transport, authority, caller identity, and optional App auth.
 func (c Client) Validate() error {
-	if c.state == nil || c.state.observe == nil {
+	if c.state == nil {
+		return core.ErrGitHubContract
+	}
+	c.state.mutex.Lock()
+	defer c.state.mutex.Unlock()
+	if c.state.observe == nil {
 		return core.ErrGitHubContract
 	}
 	if err := errors.Join(c.state.client.Validate(), c.state.authority.Validate(), c.state.userAgent.Validate()); err != nil {
@@ -152,7 +157,8 @@ func isLoopbackAuthority(value url.URL) bool {
 	return host == "127.0.0.1" || host == "::1" || host == "localhost"
 }
 
-// Close destroys App credential and cached-token bytes owned by this client.
+// Close destroys owned App credentials and cached tokens, and revokes the
+// shared observation capability so every copied client fails closed.
 func (c *Client) Close() error {
 	if c == nil || c.state == nil {
 		return core.ErrGitHubContract
@@ -161,6 +167,7 @@ func (c *Client) Close() error {
 	defer c.state.mutex.Unlock()
 	clearString(&c.state.token.value)
 	c.state.token = installationToken{}
+	c.state.observe = nil
 	err := error(nil)
 	if c.state.credential.state != nil {
 		err = c.state.credential.Close()

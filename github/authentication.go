@@ -38,11 +38,14 @@ type jwtClaims struct {
 }
 
 func (c Client) authorization(ctx context.Context) (string, error) {
+	c.state.mutex.Lock()
+	defer c.state.mutex.Unlock()
+	if c.state.observe == nil {
+		return "", core.ErrGitHubContract
+	}
 	if c.state.credential.state == nil {
 		return "", nil
 	}
-	c.state.mutex.Lock()
-	defer c.state.mutex.Unlock()
 	observed, err := c.state.observe()
 	if err != nil {
 		return "", authenticationError(err)

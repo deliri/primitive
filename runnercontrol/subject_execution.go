@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/process"
@@ -265,12 +266,12 @@ func compileSystemdSubjectArguments(capability ExperimentCapability) ([]string, 
 		"--property=ProtectProc=invisible", "--property=ProcSubset=pid", "--property=RestrictSUIDSGID=yes",
 		"--property=RestrictRealtime=yes", "--property=LockPersonality=yes", "--property=RemoveIPC=yes",
 		"--property=UMask=0077",
-		"--property=ReadOnlyPaths=" + capability.Execution.Subject.SourceRoot.String(),
-		"--property=ReadWritePaths=" + capability.Execution.Workspace.Root.String(),
+		core.SystemdReadOnlyPathsArgument + systemdPathListElement(capability.Execution.Subject.SourceRoot),
+		core.SystemdReadWritePathsArgument + systemdPathListElement(capability.Execution.Workspace.Root),
 	}
 	arguments = append(arguments, network...)
 	for _, denied := range capability.Execution.Subject.deniedPaths() {
-		arguments = append(arguments, "--property=InaccessiblePaths="+denied.String())
+		arguments = append(arguments, core.SystemdInaccessiblePathsArgument+systemdPathListElement(denied))
 	}
 	for index := range environment {
 		arguments = append(arguments, "--setenv="+environment[index])
@@ -284,6 +285,23 @@ func compileSystemdSubjectArguments(capability ExperimentCapability) ([]string, 
 		arguments = append(arguments, value)
 	}
 	return arguments, nil
+}
+
+// systemd-run's path-list bus properties use EXTRACT_UNQUOTE, not C
+// unescaping. Preserve literal whitespace and escape only quote/backslash.
+// This emits one wire argument and retains no path collection.
+func systemdPathListElement(path core.AbsolutePath) string {
+	var encoded strings.Builder
+	encoded.WriteByte('"')
+	text := path.String()
+	for index := range len(text) {
+		if text[index] == '\\' || text[index] == '"' {
+			encoded.WriteByte('\\')
+		}
+		encoded.WriteByte(text[index])
+	}
+	encoded.WriteByte('"')
+	return encoded.String()
 }
 
 func compileSubjectNetworkArguments(policy EgressPolicy, namespace *core.AbsolutePath) ([]string, error) {

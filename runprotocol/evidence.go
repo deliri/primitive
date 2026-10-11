@@ -567,8 +567,8 @@ func (o SelectionObservation) Validate() error {
 	if err := contractJoin(o.ExpansionIdentity.Validate(), o.ManifestDigest.Validate()); err != nil {
 		return contractError(err)
 	}
-	if o.Admitted+o.Refused != o.Planned || o.Executed+o.NotRun != o.Admitted {
-		return conflictError(errors.New("run protocol selection accounting does not close"))
+	if uint32(o.Admitted)+uint32(o.Refused) != uint32(o.Planned) || uint32(o.Executed)+uint32(o.NotRun) != uint32(o.Admitted) {
+		return core.ErrRunProtocolConflict
 	}
 	return nil
 }

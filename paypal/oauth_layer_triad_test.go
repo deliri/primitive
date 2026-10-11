@@ -43,7 +43,7 @@ func TestOAuthAcquisitionAttacksThePayPalTransportBoundary(t *testing.T) {
 		}
 	})
 
-	t.Run("unknown provider response member is a typed closed protocol refusal", func(t *testing.T) {
+	t.Run("additive provider response member preserves the typed grant", func(t *testing.T) {
 		t.Parallel()
 		calls := uint64(0)
 		client := payPalOAuthTestClient(t, &calls,
@@ -54,9 +54,9 @@ func TestOAuthAcquisitionAttacksThePayPalTransportBoundary(t *testing.T) {
 		grant, gotErr := AcquirePayPalAccessGrant(context.Background(), PayPalAccessGrantRequest{
 			Client: client, Credential: credential, Policy: payPalOAuthTestPolicy(t), Sandbox: true,
 		})
-		if !errors.Is(gotErr, core.ErrPayPalContract) || !errors.Is(gotErr, core.ErrJSONContract) ||
-			grant.Validate() == nil || calls != 1 {
-			t.Fatalf("OAuth unknown member = grant:%v error:%v calls:%d, want zero, PayPal+JSON contract, 1",
+		defer func() { _ = grant.Close() }()
+		if gotErr != nil || grant.Validate() != nil || calls != 1 {
+			t.Fatalf("OAuth unknown member = grant:%v error:%v calls:%d, want valid grant, nil, 1",
 				grant, gotErr, calls)
 		}
 	})

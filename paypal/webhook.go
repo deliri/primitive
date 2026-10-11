@@ -160,7 +160,7 @@ type payPalWebhookVerificationProjection struct {
 	TransmissionAt PayPalTransmissionTime      `json:"transmission_time"`
 	WebhookID      PayPalWebhookID             `json:"webhook_id"`
 	// doctrine:local-allowed=external-wire
-	WebhookEvent jsontext.Value `json:"webhook_event"`
+	WebhookEvent jsontext.Value `json:"webhook_event,omitempty"`
 }
 
 func (p payPalWebhookVerificationProjection) Validate() error {
@@ -187,7 +187,19 @@ func (p payPalWebhookVerificationProjection) MarshalJSON() ([]byte, error) {
 		return nil, errors.Join(core.ErrJSONContract, err)
 	}
 	type wire payPalWebhookVerificationProjection
-	return json.Marshal(wire(p))
+	headers := wire(p)
+	headers.WebhookEvent = nil
+	encoded, err := json.Marshal(headers)
+	if err != nil {
+		return nil, err
+	}
+	// PayPal authenticates the original event bytes, including whitespace and
+	// escape spelling. JSON v2 owns the typed headers; the borrowed event is
+	// inserted as its original, already validated JSON value.
+	encoded = append(encoded[:len(encoded)-1], core.PayPalWebhookEventMember...)
+	encoded = append(encoded, p.WebhookEvent...)
+	encoded = append(encoded, '}')
+	return encoded, nil
 }
 
 func (p payPalWebhookVerificationProjection) ValidateJSONProjection(encoded []byte, limits core.StrictJSONLimits) error {
@@ -198,7 +210,7 @@ func (p payPalWebhookVerificationProjection) ValidateJSONProjection(encoded []by
 	if decoded.AuthAlgorithm != p.AuthAlgorithm || decoded.CertificateURL != p.CertificateURL ||
 		decoded.TransmissionID != p.TransmissionID || decoded.Signature != p.Signature ||
 		decoded.TransmissionAt != p.TransmissionAt || decoded.WebhookID != p.WebhookID ||
-		!bytes.Equal(decoded.WebhookEvent, p.WebhookEvent) {
+		!bytes.Equal(bytes.TrimSpace(decoded.WebhookEvent), bytes.TrimSpace(p.WebhookEvent)) {
 		return core.ErrPayPalContract
 	}
 	return decoded.Validate()
@@ -444,14 +456,14 @@ func (c Client) verifyWebhook(ctx context.Context, projection payPalWebhookVerif
 }
 
 func decodePayPalVerificationResponse(body []byte, maximum core.ByteCount) (PayPalWebhookVerificationStatus, error) {
-	limits := core.DefaultStrictJSONLimits()
+	limits := core.ExtensibleJSONLimits()
 	limits.DocumentMaximumBytes = maximum
-	limits.NestingDepthMaximum = 1
-	limits.ObjectFieldMaximum = 1
-	limits.ArrayItemMaximum = 1
-	wire, err := core.DecodeStrictJSONStructure[payPalWebhookVerificationResponse](body, limits)
-	if err != nil {
+	if err := limits.ValidateDocument(body); err != nil {
 		return PayPalWebhookVerificationUnknown, verificationError(err)
+	}
+	var wire payPalWebhookVerificationResponse
+	if err := json.Unmarshal(body, &wire); err != nil {
+		return PayPalWebhookVerificationUnknown, verificationError(errors.Join(core.ErrJSONContract, err))
 	}
 	if err := wire.Validate(); err != nil {
 		return PayPalWebhookVerificationUnknown, verificationError(err)

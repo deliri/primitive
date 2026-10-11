@@ -178,6 +178,7 @@ var (
 	_ = TickerRequest{Interval: Duration{}}
 
 	_ func(time.Time) (Instant, error)                                            = NewInstant
+	_ func(string) (TimeLayout, error)                                            = NewTimeLayout
 	_ func(string) (Instant, error)                                               = ParseRFC3339
 	_ func(string) (Instant, error)                                               = ParseRFC3339UTC
 	_ func(string) (Instant, error)                                               = ParseCompactUTC
@@ -256,7 +257,7 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 		"func IsNativeTimeZero",
 		"func AppendTime",
 		"method Duration.Truncate", "method Duration.Round", "method Duration.Text",
-		"type TimeLayout", "type LocationName", "type ParseTimeRequest", "type FormatTimeRequest",
+		"func NewTimeLayout", "type TimeLayout", "type LocationName", "type ParseTimeRequest", "type FormatTimeRequest",
 		"const LocationUTC", "method TimeLayout.Validate", "method LocationName.Validate",
 		"method ParseTimeRequest.Validate", "method FormatTimeRequest.Validate", "func ParseTimeUTC", "func FormatTime",
 		"type UTCDateTime", "type CalendarUTC", "type CalendarDelta", "type Month", "type Weekday",

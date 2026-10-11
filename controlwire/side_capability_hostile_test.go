@@ -25,13 +25,13 @@ func TestControlSocketClientCapabilityClosesOriginBoundaries(t *testing.T) {
 	t.Parallel()
 
 	cases := []clientCapabilityCase{
-		{name: "valid minimum HTTP origin", authority: "http://a", wantValid: true},
+		{name: "valid minimum HTTP origin", authority: "http://a", wantErr: []error{core.ErrControlWireRoute, core.ErrExchangeContract}},
 		{name: "valid minimum HTTPS origin", authority: "https://a", wantValid: true},
-		{name: "valid IPv4 origin", authority: "http://127.0.0.1", wantValid: true},
-		{name: "valid IPv6 origin", authority: "http://[::1]", wantValid: true},
-		{name: "valid minimum port origin", authority: "http://example.test:1", wantValid: true},
+		{name: "valid IPv4 origin", authority: "http://127.0.0.1", wantErr: []error{core.ErrControlWireRoute, core.ErrExchangeContract}},
+		{name: "valid IPv6 origin", authority: "http://[::1]", wantErr: []error{core.ErrControlWireRoute, core.ErrExchangeContract}},
+		{name: "valid minimum port origin", authority: "http://example.test:1", wantErr: []error{core.ErrControlWireRoute, core.ErrExchangeContract}},
 		{name: "valid maximum port origin", authority: "https://example.test:65535", wantValid: true},
-		{name: "valid explicit HTTP default port", authority: "http://example.test:80", wantValid: true},
+		{name: "valid explicit HTTP default port", authority: "http://example.test:80", wantErr: []error{core.ErrControlWireRoute, core.ErrExchangeContract}},
 		{name: "valid explicit HTTPS default port", authority: "https://example.test:443", wantValid: true},
 		{name: "valid normalized scheme origin", authority: "HTTPS://example.test", wantValid: true},
 		{name: "valid nested DNS origin", authority: "https://control.example.test", wantValid: true},
@@ -42,7 +42,7 @@ func TestControlSocketClientCapabilityClosesOriginBoundaries(t *testing.T) {
 		{name: "reject root query", authority: "https://example.test/?page=1", wantErr: []error{core.ErrControlWireRoute, core.ErrExchangeContract}},
 		{name: "reject empty query marker", authority: "https://example.test/?", wantErr: []error{core.ErrControlWireRoute, core.ErrExchangeContract}},
 
-		{name: "boundary HTTP minimum origin with root slash is accepted", authority: "http://a/", wantValid: true},
+		{name: "boundary HTTP minimum origin with root slash is accepted", authority: "http://a/", wantErr: []error{core.ErrControlWireRoute, core.ErrExchangeContract}},
 		{name: "boundary IPv6 origin with root slash is accepted", authority: "https://[::1]/", wantValid: true},
 		{name: "boundary one path byte after root is rejected", authority: "https://example.test/a", wantErr: []error{core.ErrControlWireRoute, core.ErrExchangeContract}},
 		{name: "boundary trailing slash after path is rejected", authority: "https://example.test/a/", wantErr: []error{core.ErrControlWireRoute, core.ErrExchangeContract}},
