@@ -63,7 +63,7 @@ func (m Manager) AcquireSourceArchive(ctx context.Context, request SourceArchive
 	}
 	defer func() {
 		if err != nil {
-			err = errors.Join(err, filestore.RemoveTree(ctx, filestore.TreeRemovalRequest{Location: filestore.Location{Root: m.root, Path: checkout}}))
+			err = errors.Join(err, filestore.RemoveTree(context.WithoutCancel(ctx), filestore.TreeRemovalRequest{Location: filestore.Location{Root: m.root, Path: checkout}}))
 		}
 	}()
 	extraction, err := newSourceExtraction(checkout, request.Document, request.Source)

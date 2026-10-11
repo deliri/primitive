@@ -368,9 +368,8 @@ func (m Manager) CleanupUnit(ctx context.Context, unit Unit) error {
 	return filestore.RemoveTree(ctx, filestore.TreeRemovalRequest{Location: filestore.Location{Root: m.root, Path: unit.Root}})
 }
 
-// Scrub removes every entry beneath the fixed run parent. It streams the
-// parent's entries in native batches and never follows a symbolic link outside the
-// rooted filestore capability.
+// Scrub removes every entry beneath the fixed run parent through Filestore's
+// native removal boundary. No directory continuation survives an entry removal.
 func (m Manager) Scrub(ctx context.Context) error {
 	if err := m.Validate(); err != nil {
 		return err
@@ -379,15 +378,7 @@ func (m Manager) Scrub(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	return filestore.Walk(ctx, filestore.WalkRequest{
-		Location: filestore.Location{Root: m.root, Path: rootPath},
-		Visit: func(entry filestore.WalkEntry) (filestore.WalkDirective, error) {
-			removeErr := filestore.RemoveTree(ctx, filestore.TreeRemovalRequest{
-				Location: filestore.Location{Root: m.root, Path: entry.Path},
-			})
-			return filestore.WalkSkipDirectory, removeErr
-		},
-	})
+	return filestore.RemoveDirectoryContents(ctx, filestore.Location{Root: m.root, Path: rootPath})
 }
 
 func (m Manager) ProveClean(ctx context.Context, observedAt temporal.Instant, residue Residue) (runnercontrol.CleanMachineState, error) {

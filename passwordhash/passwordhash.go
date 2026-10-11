@@ -31,6 +31,8 @@ func (p Parameters) Validate() error {
 // One Deriver is shared by all callers in a resource domain. Excess callers
 // wait for admission using their context; saturation never discards valid work.
 type Limits struct {
+	// Minimum is the caller-owned admitted security floor, not a library default.
+	Minimum         Parameters
 	MemoryKiB       uint32
 	Iterations      uint32
 	Parallelism     uint8
@@ -41,6 +43,12 @@ type Limits struct {
 }
 
 func (l Limits) Validate() error {
+	if err := l.Minimum.Validate(); err != nil {
+		return err
+	}
+	if l.Minimum.MemoryKiB > l.MemoryKiB || l.Minimum.Iterations > l.Iterations || l.Minimum.Parallelism > l.Parallelism {
+		return core.ErrPasswordHashContract
+	}
 	if l.MemoryKiB < 8 || l.Iterations == 0 || l.Parallelism == 0 || l.KeyBytes == 0 || l.MaterialBytes == 0 || l.SaltBytes == 0 || l.ConcurrentCalls == 0 || uint64(l.MemoryKiB)*1024 > uint64(^uint(0)>>1) || uint64(l.KeyBytes) > uint64(^uint(0)>>1) {
 		return core.ErrPasswordHashContract
 	}
@@ -75,7 +83,7 @@ func (l Limits) validateParameters(p Parameters) error {
 	if err := p.Validate(); err != nil {
 		return err
 	}
-	if p.MemoryKiB > l.MemoryKiB || p.Iterations > l.Iterations || p.Parallelism > l.Parallelism {
+	if p.MemoryKiB < l.Minimum.MemoryKiB || p.Iterations < l.Minimum.Iterations || p.Parallelism < l.Minimum.Parallelism || p.MemoryKiB > l.MemoryKiB || p.Iterations > l.Iterations || p.Parallelism > l.Parallelism {
 		return core.ErrPasswordHashContract
 	}
 	return nil

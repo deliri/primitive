@@ -24,7 +24,7 @@ import (
 // Tiny native costs keep mechanical tests bounded. They are not recommended
 // product password policy. Kernel's production 64 MiB policy has separate proof.
 func fixtureLimits() Limits {
-	return Limits{MemoryKiB: 32, Iterations: 2, Parallelism: 2, KeyBytes: 32, MaterialBytes: 64, SaltBytes: 32, ConcurrentCalls: 1}
+	return Limits{Minimum: Parameters{MemoryKiB: 8, Iterations: 1, Parallelism: 1}, MemoryKiB: 32, Iterations: 2, Parallelism: 2, KeyBytes: 32, MaterialBytes: 64, SaltBytes: 32, ConcurrentCalls: 1}
 }
 
 func fixtureRequest() Request {
