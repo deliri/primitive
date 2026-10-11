@@ -17,46 +17,42 @@ import (
 
 const (
 	repositoryGitOutputMaximumBytes = 4 << 10
-	// repositoryGitIndexOutputMaximumBytes bounds the streamed tracked-file
-	// flag observation. The parser remains O(1), but an endless producer is
-	// still unbounded work and therefore cannot use a numeric type ceiling.
-	repositoryGitIndexOutputMaximumBytes = 256 << 20
-	repositoryGitEnvironmentPrefix       = "GIT_"
-	repositoryGitRevParse                = "rev-parse"
-	repositoryGitVerify                  = "--verify"
-	repositoryGitHead                    = "HEAD"
-	repositoryGitPathFormatAbsolute      = "--path-format=absolute"
-	repositoryGitPath                    = "--git-path"
-	repositoryGitInfoAttributes          = "info/attributes"
-	repositoryGitStatus                  = "status"
-	repositoryGitPorcelainV1             = "--porcelain=v1"
-	repositoryGitUntrackedAll            = "--untracked-files=all"
-	repositoryGitIgnoredNone             = "--ignored=no"
-	repositoryGitSubmodulesNone          = "--ignore-submodules=none"
-	repositoryGitListFiles               = "ls-files"
-	repositoryGitOtherFiles              = "--others"
-	repositoryGitDeclaredExcludes        = "--exclude-per-directory=.gitignore"
-	repositoryGitVerboseFlags            = "-v"
-	repositoryGitNullTerminate           = "-z"
-	repositoryGitArgumentSeparator       = "--"
-	repositoryGitNoOptionalLocks         = "--no-optional-locks"
-	repositoryGitConfigOverride          = "-c"
-	repositoryGitNoAttributesFile        = "core.attributesFile="
-	repositoryGitNoFsmonitor             = "core.fsmonitor=false"
-	repositoryGitRespectFileMode         = "core.fileMode=true"
-	repositoryGitTrustCTime              = "core.trustctime=true"
-	repositoryGitDefaultStat             = "core.checkStat=default"
-	repositoryGitNoIgnoreStat            = "core.ignoreStat=false"
-	repositoryGitConfig                  = "config"
-	repositoryGitLocalConfig             = "--local"
-	repositoryGitGetConfig               = "--get"
-	repositoryGitStatConfig              = "core.checkStat"
-	repositoryGitConfigAbsentExit        = 1
-	repositoryGitConfigNoSystem          = "GIT_CONFIG_NOSYSTEM=1"
-	repositoryGitConfigGlobal            = "GIT_CONFIG_GLOBAL="
-	repositoryGitAttributesNoSystem      = "GIT_ATTR_NOSYSTEM=1"
-	repositoryGitOptionalLocksOff        = "GIT_OPTIONAL_LOCKS=0"
-	repositoryGitTerminalPromptOff       = "GIT_TERMINAL_PROMPT=0"
+	repositoryGitEnvironmentPrefix  = "GIT_"
+	repositoryGitRevParse           = "rev-parse"
+	repositoryGitVerify             = "--verify"
+	repositoryGitHead               = "HEAD"
+	repositoryGitPathFormatAbsolute = "--path-format=absolute"
+	repositoryGitPath               = "--git-path"
+	repositoryGitInfoAttributes     = "info/attributes"
+	repositoryGitStatus             = "status"
+	repositoryGitPorcelainV1        = "--porcelain=v1"
+	repositoryGitUntrackedAll       = "--untracked-files=all"
+	repositoryGitIgnoredNone        = "--ignored=no"
+	repositoryGitSubmodulesNone     = "--ignore-submodules=none"
+	repositoryGitListFiles          = "ls-files"
+	repositoryGitOtherFiles         = "--others"
+	repositoryGitDeclaredExcludes   = "--exclude-per-directory=.gitignore"
+	repositoryGitVerboseFlags       = "-v"
+	repositoryGitNullTerminate      = "-z"
+	repositoryGitArgumentSeparator  = "--"
+	repositoryGitNoOptionalLocks    = "--no-optional-locks"
+	repositoryGitConfigOverride     = "-c"
+	repositoryGitNoAttributesFile   = "core.attributesFile="
+	repositoryGitNoFsmonitor        = "core.fsmonitor=false"
+	repositoryGitRespectFileMode    = "core.fileMode=true"
+	repositoryGitTrustCTime         = "core.trustctime=true"
+	repositoryGitDefaultStat        = "core.checkStat=default"
+	repositoryGitNoIgnoreStat       = "core.ignoreStat=false"
+	repositoryGitConfig             = "config"
+	repositoryGitLocalConfig        = "--local"
+	repositoryGitGetConfig          = "--get"
+	repositoryGitStatConfig         = "core.checkStat"
+	repositoryGitConfigAbsentExit   = 1
+	repositoryGitConfigNoSystem     = "GIT_CONFIG_NOSYSTEM=1"
+	repositoryGitConfigGlobal       = "GIT_CONFIG_GLOBAL="
+	repositoryGitAttributesNoSystem = "GIT_ATTR_NOSYSTEM=1"
+	repositoryGitOptionalLocksOff   = "GIT_OPTIONAL_LOCKS=0"
+	repositoryGitTerminalPromptOff  = "GIT_TERMINAL_PROMPT=0"
 )
 
 // repositoryGitPolicyArguments neutralize repository-local settings that can
@@ -84,14 +80,15 @@ const (
 	repositoryGitOutputIndex
 )
 
-func (p repositoryGitOutputPolicy) maximumBytes() (uint64, error) {
+func (p repositoryGitOutputPolicy) outputPolicy() (process.OutputPolicy, error) {
 	switch p {
 	case repositoryGitOutputProbe:
-		return repositoryGitOutputMaximumBytes, nil
+		maximum, err := core.NewByteCount(repositoryGitOutputMaximumBytes)
+		return process.OutputPolicy{Mode: process.OutputModeBounded, Maximum: maximum}, err
 	case repositoryGitOutputIndex:
-		return repositoryGitIndexOutputMaximumBytes, nil
+		return process.OutputPolicy{Mode: process.OutputModeStreaming}, nil
 	default:
-		return 0, contractError(errors.New("repository Git output policy is invalid"))
+		return process.OutputPolicy{}, contractError(errors.New("repository Git output policy is invalid"))
 	}
 }
 
@@ -562,13 +559,9 @@ func runRepositoryGit(ctx context.Context, request repositoryGitRequest) (proces
 	if err != nil {
 		return process.Result{}, contractError(errors.New("repository Git arguments are invalid"), err)
 	}
-	maximumBytes, err := request.outputPolicy.maximumBytes()
+	output, err := request.outputPolicy.outputPolicy()
 	if err != nil {
 		return process.Result{}, err
-	}
-	maximum, err := core.NewByteCount(maximumBytes)
-	if err != nil {
-		return process.Result{}, contractError(err)
 	}
 	environment, err := repositoryGitEnvironment(request.verification.Environment)
 	if err != nil {
@@ -582,7 +575,7 @@ func runRepositoryGit(ctx context.Context, request repositoryGitRequest) (proces
 		WorkingDirectory: request.verification.Root,
 		Arguments:        arguments,
 		Environment:      environment,
-		OutputPolicy:     process.OutputPolicy{Mode: process.OutputModeBounded, Maximum: maximum},
+		OutputPolicy:     output,
 		WaitDelay:        request.verification.WaitDelay,
 		Containment: process.Containment{
 			Isolation:    process.IsolationDirect,
