@@ -5,7 +5,15 @@ type protocolFact interface{ gitRepositoryProtocolFact() }
 type internalFlow interface{ gitRepositoryInternalFlow() }
 type capabilityWrapper interface{ gitRepositoryCapabilityWrapper() }
 
-func (WorktreeSelection) gitRepositorySealedValue() {}
+func (WorktreeSelection) gitRepositorySealedValue()    {}
+func (ReferenceLabel) gitRepositorySealedValue()       {}
+func (RootRequest) gitRepositoryProtocolFact()         {}
+func (RootObservation) gitRepositoryProtocolFact()     {}
+func (BranchRequest) gitRepositoryProtocolFact()       {}
+func (BranchObservation) gitRepositoryProtocolFact()   {}
+func (ExactTagRequest) gitRepositoryProtocolFact()     {}
+func (ExactTagObservation) gitRepositoryProtocolFact() {}
+func (CommandExitError) gitRepositoryInternalFlow()    {}
 
 func (Configuration) gitRepositoryProtocolFact()   {}
 func (WorktreeRequest) gitRepositoryProtocolFact() {}
