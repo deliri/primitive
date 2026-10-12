@@ -13,11 +13,15 @@ import (
 // RecordReadRequest lends one physical record as an io.Reader. Use must finish
 // synchronously. The native source remains owned by the caller.
 type RecordReadRequest struct {
-	Use func(context.Context, io.Reader) error
+	Use     func(context.Context, io.Reader) error
+	Capture io.Writer
 }
 
 func (r RecordReadRequest) Validate() error {
 	if r.Use == nil {
+		return core.ErrLineIOContract
+	}
+	if r.Capture != nil && core.WriterIsNil(r.Capture) {
 		return core.ErrLineIOContract
 	}
 	return nil
@@ -52,12 +56,13 @@ func (r *Reader) WithRecord(ctx context.Context, request RecordReadRequest) (res
 	if len(fragment.Bytes) == 0 && sourceErr == io.EOF {
 		return RecordReadObservation{}, io.EOF
 	}
-	source := &recordReadSource{reader: r, context: ctx, fragment: fragment, sourceErr: sourceErr}
+	source := &recordReadSource{reader: r, context: ctx, fragment: fragment, sourceErr: sourceErr, capture: request.Capture}
 	defer func() {
 		source.reader = nil
 		source.fragment = Fragment{}
 		source.context = nil
 		source.sourceErr = nil
+		source.capture = nil
 	}()
 	useErr := request.Use(ctx, source)
 	_, drainErr := io.Copy(io.Discard, source)
@@ -87,6 +92,7 @@ type recordReadSource struct {
 	fragment  Fragment
 	sourceErr error
 	consumed  int64
+	capture   io.Writer
 }
 
 func (s *recordReadSource) Read(destination []byte) (int, error) {
@@ -108,10 +114,24 @@ func (s *recordReadSource) Read(destination []byte) (int, error) {
 		}
 		s.fragment, s.sourceErr = s.reader.ReadFragment(s.context)
 	}
-	count := copy(destination, s.fragment.Bytes)
+	count := min(len(destination), len(s.fragment.Bytes))
 	if int64(count) > math.MaxInt64-s.consumed {
 		return 0, core.ErrLineIOContract
 	}
+	if s.capture != nil {
+		written, writeErr := s.capture.Write(s.fragment.Bytes[:count])
+		if written < 0 || written > count {
+			writeErr = errors.Join(core.ErrLineIOContract, writeErr)
+		} else if written != count && writeErr == nil {
+			writeErr = io.ErrShortWrite
+		}
+		if err := errors.Join(writeErr, contextstate.Validate(s.context)); err != nil {
+			s.sourceErr = errors.Join(core.ErrLineIOScan, s.sourceErr, err)
+			s.fragment = Fragment{}
+			return 0, s.sourceErr
+		}
+	}
+	copy(destination, s.fragment.Bytes[:count])
 	s.consumed += int64(count)
 	s.fragment.Bytes = s.fragment.Bytes[count:]
 	return count, nil
