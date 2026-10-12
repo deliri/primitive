@@ -9,6 +9,7 @@ func (WorktreeSelection) gitRepositorySealedValue() {}
 
 func (Configuration) gitRepositoryProtocolFact()   {}
 func (WorktreeRequest) gitRepositoryProtocolFact() {}
+func (StatusRequest) gitRepositoryProtocolFact()   {}
 func (WorktreeEntry) gitRepositoryProtocolFact()   {}
 func (WorktreeSummary) gitRepositoryProtocolFact() {}
 
@@ -20,6 +21,7 @@ var (
 	_ sealedValue       = WorktreeSelectionUnknown
 	_ protocolFact      = Configuration{}
 	_ protocolFact      = WorktreeRequest{}
+	_ protocolFact      = StatusRequest{}
 	_ protocolFact      = WorktreeEntry{}
 	_ protocolFact      = WorktreeSummary{}
 	_ internalFlow      = worktreeEntryWriter{}
