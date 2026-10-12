@@ -326,6 +326,7 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 		"method AggregateDuration.IsZero",
 		"method AggregateDuration.MarshalJSON",
 		"method AggregateDuration.Multiply",
+		"method AggregateDuration.Subtract",
 		"method AggregateDuration.UnmarshalJSON",
 		"method AggregateDuration.Validate",
 		"method CancellationRequest.Validate",

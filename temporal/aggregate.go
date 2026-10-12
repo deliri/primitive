@@ -100,6 +100,17 @@ func (a AggregateDuration) Add(other AggregateDuration) (AggregateDuration, erro
 	return AggregateDuration{high: high, low: low}, nil
 }
 
+// Subtract returns the exact nonnegative aggregate difference. Underflow
+// refuses the operation rather than wrapping or erasing elapsed time.
+func (a AggregateDuration) Subtract(other AggregateDuration) (AggregateDuration, error) {
+	low, borrow := bits.Sub64(a.low, other.low, 0)
+	high, underflow := bits.Sub64(a.high, other.high, borrow)
+	if underflow != 0 {
+		return AggregateDuration{}, overflowError("aggregate duration subtraction became negative")
+	}
+	return AggregateDuration{high: high, low: low}, nil
+}
+
 // AddDuration adds a bounded duration.
 func (a AggregateDuration) AddDuration(duration Duration) (AggregateDuration, error) {
 	widened, err := AggregateDurationFromDuration(duration)
