@@ -26,23 +26,26 @@ type (
 // lineioContractInventory classifies every production carrier by its actual
 // data-flow role. It is a compiler-visible wiring ratchet, not behavior proof.
 type lineioContractInventory struct {
-	RecordRange           lineioRequestContract[lineio.RecordRange]
-	RecordCharacter       lineioRequestContract[lineio.RecordCharacter]
-	RecordReadRequest     lineioRequestContract[lineio.RecordReadRequest]
-	RecordReadObservation lineioRequestContract[lineio.RecordReadObservation]
-	RecordRangeRequest    lineioRequestContract[lineio.RecordRangeRequest]
-	RecordFragmentRequest lineioRequestContract[lineio.RecordFragmentRequest]
-	Character             lineioRequestContract[lineio.Character]
-	CharacterPosition     lineioRequestContract[lineio.CharacterPosition]
-	CharacterRequest      lineioRequestContract[lineio.CharacterRequest]
-	characterSource       lineioReadCountGuardContract
-	Fragment              lineioRequestContract[lineio.Fragment]
-	Request               lineioRequestContract[lineio.Request]
-	Reader                lineioCapabilityContract[lineio.Reader]
-	RangeReader           lineioCapabilityContract[lineio.RangeReader]
-	recordRangeReadGuard  lineioReadCountGuardContract
-	checkedReader         lineioReadCountGuardContract
-	recordReadSource      lineioReadCountGuardContract
+	LiteralReplacement       lineioRequestContract[lineio.LiteralReplacement]
+	ReplaceStreamRequest     lineioRequestContract[lineio.ReplaceStreamRequest]
+	ReplaceStreamObservation lineioRequestContract[lineio.ReplaceStreamObservation]
+	RecordRange              lineioRequestContract[lineio.RecordRange]
+	RecordCharacter          lineioRequestContract[lineio.RecordCharacter]
+	RecordReadRequest        lineioRequestContract[lineio.RecordReadRequest]
+	RecordReadObservation    lineioRequestContract[lineio.RecordReadObservation]
+	RecordRangeRequest       lineioRequestContract[lineio.RecordRangeRequest]
+	RecordFragmentRequest    lineioRequestContract[lineio.RecordFragmentRequest]
+	Character                lineioRequestContract[lineio.Character]
+	CharacterPosition        lineioRequestContract[lineio.CharacterPosition]
+	CharacterRequest         lineioRequestContract[lineio.CharacterRequest]
+	characterSource          lineioReadCountGuardContract
+	Fragment                 lineioRequestContract[lineio.Fragment]
+	Request                  lineioRequestContract[lineio.Request]
+	Reader                   lineioCapabilityContract[lineio.Reader]
+	RangeReader              lineioCapabilityContract[lineio.RangeReader]
+	recordRangeReadGuard     lineioReadCountGuardContract
+	checkedReader            lineioReadCountGuardContract
+	recordReadSource         lineioReadCountGuardContract
 }
 
 var (
