@@ -51,6 +51,7 @@ func TestPublicOperationsAreExactIntentEntryPoints(t *testing.T) {
 		"NewPercent",
 		"ObserveCollectedGoHeap",
 		"ObserveDiskRotation",
+		"ObserveEffectiveUser",
 		"ObserveEffectiveWorkloadMemoryLimit",
 		"ObserveGoAllocationTotal",
 		"ObserveGoBuildMetadata",
@@ -96,6 +97,7 @@ type hostfactsStructInventory struct {
 	GoOOMBannerRequest        hostfactsIngress[GoOOMBannerRequest]
 	Failure                   hostfactsError[Failure]
 	Hostname                  hostfactsObservation[Hostname]
+	UserName                  hostfactsObservation[UserName]
 	KernelText                hostfactsObservation[KernelText]
 	KernelObservation         hostfactsObservation[KernelObservation]
 	Root                      hostfactsCapability[platformRoot]

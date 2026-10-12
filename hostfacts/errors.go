@@ -25,6 +25,7 @@ const (
 	OperationLogicalCPUCount
 	OperationTimeZone
 	OperationKernel
+	OperationEffectiveUser
 	operationLimit
 )
 
@@ -43,6 +44,7 @@ func operationLabels() [operationLimit]string {
 		OperationLogicalCPUCount:  "logical CPU count",
 		OperationTimeZone:         "time zone",
 		OperationKernel:           "kernel",
+		OperationEffectiveUser:    "effective user",
 	}
 }
 
