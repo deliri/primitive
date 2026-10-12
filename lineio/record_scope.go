@@ -103,7 +103,7 @@ func (s *recordReadSource) Read(destination []byte) (int, error) {
 		return 0, nil
 	}
 	if err := contextstate.Validate(s.context); err != nil {
-		return 0, err
+		return 0, errors.Join(err, s.sourceErr)
 	}
 	for len(s.fragment.Bytes) == 0 {
 		if s.sourceErr != nil {

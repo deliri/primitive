@@ -192,3 +192,32 @@ func BenchmarkRecordCaptureNativeFixedWorkingMemory(b *testing.B) {
 		})
 	}
 }
+
+type recordCaptureCancelledNativeSource struct {
+	cancel context.CancelFunc
+	cause  error
+}
+
+func (s recordCaptureCancelledNativeSource) Read(destination []byte) (int, error) {
+	s.cancel()
+	return copy(destination, []byte("record")), s.cause
+}
+
+func TestRecordCaptureCancellationBeforeConsumerReadRetainsNativeCause(t *testing.T) {
+	t.Parallel()
+	for index, cause := range []error{nil, io.EOF, io.ErrClosedPipe, errors.Join(io.EOF, io.ErrUnexpectedEOF)} {
+		t.Run(strconv.Itoa(index), func(t *testing.T) {
+			t.Parallel()
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+			reader, err := lineio.New(lineio.Request{Source: recordCaptureCancelledNativeSource{cancel: cancel, cause: cause}, BufferBytes: replacementMemory(t, 16)})
+			if err != nil {
+				t.Fatal(err)
+			}
+			got, err := reader.WithRecord(ctx, lineio.RecordReadRequest{Capture: io.Discard, Use: func(ctx context.Context, source io.Reader) error { return ctx.Err() }})
+			if got != (lineio.RecordReadObservation{}) || !errors.Is(err, context.Canceled) || cause != nil && !errors.Is(err, cause) {
+				t.Fatalf("cancel-before-consumer=%+v,%v; want cancellation and native cause=%v", got, err, cause)
+			}
+		})
+	}
+}
