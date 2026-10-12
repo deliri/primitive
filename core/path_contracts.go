@@ -343,6 +343,32 @@ func (p AbsolutePath) Join(component PathComponent) (AbsolutePath, error) {
 	return ParseAbsolutePath(filepath.Join(p.value, component.value))
 }
 
+// MarshalJSON emits the canonical native relative path as a JSON string.
+func (p RelativePath) MarshalJSON() ([]byte, error) {
+	if err := p.Validate(); err != nil {
+		return nil, errors.Join(ErrJSONContract, err)
+	}
+	return MarshalCanonicalJSONString(p.String())
+}
+
+// UnmarshalJSON admits one canonical native relative path. Rejection leaves
+// the receiver unchanged; native newline and whitespace names remain valid.
+func (p *RelativePath) UnmarshalJSON(data []byte) error {
+	if p == nil {
+		return errors.Join(ErrJSONContract, filesystemPathError("nil relative path receiver"))
+	}
+	value, err := DecodeJSONStringToken(data)
+	if err != nil {
+		return err
+	}
+	decoded, err := ParseRelativePath(value)
+	if err != nil {
+		return errors.Join(ErrJSONContract, err)
+	}
+	*p = decoded
+	return nil
+}
+
 // MarshalJSON emits the canonical native absolute path as a JSON string.
 func (p AbsolutePath) MarshalJSON() ([]byte, error) {
 	if err := p.Validate(); err != nil {
