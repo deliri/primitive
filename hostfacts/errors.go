@@ -24,6 +24,7 @@ const (
 	OperationDiskRotation
 	OperationLogicalCPUCount
 	OperationTimeZone
+	OperationKernel
 	operationLimit
 )
 
@@ -41,6 +42,7 @@ func operationLabels() [operationLimit]string {
 		OperationDiskRotation:     "disk rotation",
 		OperationLogicalCPUCount:  "logical CPU count",
 		OperationTimeZone:         "time zone",
+		OperationKernel:           "kernel",
 	}
 }
 
