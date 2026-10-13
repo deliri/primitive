@@ -578,6 +578,14 @@ const (
 	ErrFilestoreCallbackPanic
 	// ErrRunnerControlExpired identifies authority presented at or after expiry.
 	ErrRunnerControlExpired
+	// ErrBackgroundContract identifies invalid asynchronous callback contracts.
+	ErrBackgroundContract
+	// ErrBackgroundCapacity identifies unavailable resident callback capacity.
+	ErrBackgroundCapacity
+	// ErrBackgroundStopped identifies sealed admission or an incomplete join.
+	ErrBackgroundStopped
+	// ErrBackgroundCallbackPanic identifies a contained callback panic.
+	ErrBackgroundCallbackPanic
 	errorIdentityLimit
 )
 
@@ -834,6 +842,10 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrRequestBudgetBinding, text: "request budget reservation binding rejected"},
 		{identity: ErrFilestoreCallbackPanic, text: "filestore callback panicked"},
 		{identity: ErrRunnerControlExpired, text: "runner control authority expired"},
+		{identity: ErrBackgroundContract, text: "background callback contract violation"},
+		{identity: ErrBackgroundCapacity, text: "background callback capacity unavailable"},
+		{identity: ErrBackgroundStopped, text: "background callback executor stopped"},
+		{identity: ErrBackgroundCallbackPanic, text: "background callback panicked"},
 	}
 }
 
@@ -935,6 +947,9 @@ func isAdmittedErrorIdentity(identity ErrorIdentity) bool {
 }
 
 func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
+	if errorIdentityIn(identity, ErrBackgroundCapacity, ErrBackgroundStopped, ErrBackgroundCallbackPanic) {
+		return oneErrorIdentityParent(ErrBackgroundContract)
+	}
 	if identity == ErrRunnerControlExpired {
 		return oneErrorIdentityParent(ErrPrimitiveContract)
 	}
@@ -944,7 +959,7 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 	if identity == ErrPrimitiveContract {
 		return errorIdentityParentSet{}
 	}
-	if errorIdentityIn(identity, ErrJSONContract, ErrNumericOverflow, ErrSecretMaterialAllZero, ErrPasswordHashContract,
+	if errorIdentityIn(identity, ErrBackgroundContract, ErrJSONContract, ErrNumericOverflow, ErrSecretMaterialAllZero, ErrPasswordHashContract,
 		ErrAttestContract,
 		ErrContextStateContract, ErrLineIOContract, ErrManualContract, ErrRunProtocolContract, ErrSourceClaimContract, ErrSourceObservationContract, ErrSourceProofContract, ErrCurrencyContract,
 		ErrKeygenContract, ErrTestIsolationContract, ErrFilestoreContract,

@@ -30,6 +30,15 @@ func emitPackageClaimSpecsAThroughG(emit func(packageClaimSpec) bool) bool {
 			excludes: "It does not discover or sign credentials, cache tokens, verify claims, or grant product authority.",
 		},
 		{
+			path: "background", title: "Owned native asynchronous callbacks",
+			problem:  "Products otherwise copy goroutine admission, callback lifetimes and incomplete shutdown joins.",
+			solution: "Background executes callbacks on fixed Go workers with bounded resident admission, cancellation, cooperative deadlines and joined completion observations.",
+			benefit:  "The caller returns immediately after acceptance without claiming unfinished callbacks stopped or retaining lifetime work history.",
+			removal:  "Remove Background when Go exposes equivalent owned asynchronous callback admission and joining directly.",
+			owns:     "Background owns only mechanical callback execution, resident resources, cancellation and completion joining.",
+			excludes: "It does not own product identities, durable jobs, scheduling, retries, summaries or provider policy.",
+		},
+		{
 			path: "capabilities", title: "Compiler-owned effect ownership",
 			problem:  "Direct operating-system calls can hide duplicate effect owners and copied architectural conventions across packages.",
 			solution: "Capabilities exposes the closed Primitive effect taxonomy, exact owner for each effect, standard-library symbol classifications, and typed callable input and return shapes including error-only process termination.",

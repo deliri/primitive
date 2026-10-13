@@ -15,7 +15,7 @@ import (
 
 const (
 	coreExportDependencyMaximum     = 32
-	coreSpecialExportAdmissionCount = 97 // Includes native JSON grammar shared with callers.
+	coreSpecialExportAdmissionCount = 98 // Includes native JSON grammar and background execution identity.
 	coreProviderExportContractCount = 190
 )
 
@@ -161,6 +161,7 @@ func coreSpecialExportAdmissions() [coreSpecialExportAdmissionCount]coreSpecialE
 		architectureCatalogAdmission("PackageLineIO", PackageLineIO),
 		architectureCatalogAdmission("PackageJSONIO", PackageJSONIO),
 		architectureCatalogAdmission("PackageRequestBudget", PackageRequestBudget),
+		architectureCatalogAdmission("PackageBackground", PackageBackground),
 		architectureCatalogAdmission("PackageManual", PackageManual),
 		architectureCatalogAdmission("PackageTailnet", PackageTailnet),
 		architectureCatalogAdmission("PackageTailnetConfig", PackageTailnetConfig),

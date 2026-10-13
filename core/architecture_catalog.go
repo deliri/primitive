@@ -165,6 +165,8 @@ const (
 	PackageJSONIO
 	// PackageRequestBudget identifies bounded durable reservation credit execution.
 	PackageRequestBudget
+	// PackageBackground identifies owned native asynchronous callback execution.
+	PackageBackground
 	packageIdentityLimit
 )
 
@@ -275,6 +277,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageCloudflare, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 			{Identity: PackageJSONIO, Kind: PackageKindProduction, Role: PackageRoleValueContract},
 			{Identity: PackageRequestBudget, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
+			{Identity: PackageBackground, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
 		},
 	}
 }
@@ -525,6 +528,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"cloudflare",
 		"jsonio",
 		"requestbudget",
+		"background",
 	}
 }
 
