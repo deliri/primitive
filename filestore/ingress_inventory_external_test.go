@@ -55,6 +55,7 @@ func TestFilestorePublicIngressHasCompilerBoundSemanticProof(t *testing.T) {
 
 func filestoreIngressProofs() []filestoreIngressProof {
 	entries := []filestoreIngressProof{
+		{door: reflect.ValueOf(filestore.BrowserCommittedMoveModule), proof: TestBrowserCommittedMoveModuleCoreIdentityProjection, reason: "Publishes immutable embedded browser code with compiler-owned Core error identities; takes no external input. Native IndexedDB execution is proved by the browser suite."},
 		{door: reflect.ValueOf(filestore.InspectContentIndex), fuzz: FuzzInspectContentIndexExactBinding},
 		{door: reflect.ValueOf(filestore.CopyContent), fuzz: FuzzCopyContentExactAgreement},
 		{door: reflect.ValueOf(filestore.ReadContentIndexEntry), fuzz: FuzzContentIndexCanonicalRecord},
