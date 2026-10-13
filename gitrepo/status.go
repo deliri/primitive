@@ -27,16 +27,35 @@ func (r StatusRequest) Validate() error {
 	return nil
 }
 
+// StatusObservation retains the native reaped result privately. An absent
+// observation cannot be confused with a completed status whose output is empty.
+// Process derives byte and exit facts from that one native result.
+type StatusObservation struct{ result process.Result }
+
+func (o StatusObservation) Validate() error {
+	if _, err := o.result.Observation(); err != nil {
+		return contractError(err)
+	}
+	return requireSuccess(o.result)
+}
+
+func (o StatusObservation) Process() (process.ResultObservation, error) {
+	if err := o.Validate(); err != nil {
+		return process.ResultObservation{}, err
+	}
+	return o.result.Observation()
+}
+
 // ObserveStatus drains Git's native porcelain output to discard. Primitive's
 // process receipt counts accepted bytes; neither a path list nor a status body
 // is retained. Native read, execution and cancellation refusals return no receipt.
-func (c Capability) ObserveStatus(ctx context.Context, request StatusRequest) (process.ResultObservation, error) {
+func (c Capability) ObserveStatus(ctx context.Context, request StatusRequest) (StatusObservation, error) {
 	if err := errors.Join(contextstate.Validate(ctx), c.Validate(), request.Validate()); err != nil {
-		return process.ResultObservation{}, contractError(err)
+		return StatusObservation{}, contractError(err)
 	}
 	arguments, err := process.ParseArguments([]string{gitNoOptionalLocks, gitConfigOverride, gitNoGlobalExcludes, gitConfigOverride, gitNoFilesystemMonitor, gitStatusCommand, gitStatusPorcelainV1, gitNullTerminate})
 	if err != nil {
-		return process.ResultObservation{}, contractError(err)
+		return StatusObservation{}, contractError(err)
 	}
 	result, err := process.Run(ctx, process.Request{
 		Command: c.command, WorkingDirectory: request.Root, Arguments: arguments, Environment: c.environment,
@@ -45,14 +64,14 @@ func (c Capability) ObserveStatus(ctx context.Context, request StatusRequest) (p
 		Containment: process.Containment{Isolation: process.IsolationDirect, CancelSignal: process.CancelSignalTerminate},
 	})
 	if err != nil {
-		return process.ResultObservation{}, executionError(err)
+		return StatusObservation{}, executionError(err)
 	}
 	if err := requireSuccess(result); err != nil {
-		return process.ResultObservation{}, err
+		return StatusObservation{}, err
 	}
-	observation, err := result.Observation()
-	if err != nil {
-		return process.ResultObservation{}, executionError(err)
+	observation := StatusObservation{result: result}
+	if err := observation.Validate(); err != nil {
+		return StatusObservation{}, err
 	}
 	return observation, nil
 }

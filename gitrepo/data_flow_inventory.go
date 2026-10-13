@@ -6,6 +6,7 @@ type internalFlow interface{ gitRepositoryInternalFlow() }
 type capabilityWrapper interface{ gitRepositoryCapabilityWrapper() }
 
 func (WorktreeSelection) gitRepositorySealedValue()    {}
+func (StatusObservation) gitRepositorySealedValue()    {}
 func (ReferenceLabel) gitRepositorySealedValue()       {}
 func (RootRequest) gitRepositoryProtocolFact()         {}
 func (RootObservation) gitRepositoryProtocolFact()     {}

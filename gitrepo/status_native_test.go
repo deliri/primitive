@@ -13,7 +13,6 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
-	"github.com/deliri/primitive/v2026/process"
 )
 
 func TestStatusObservationConservesNativeGitByteReceipt(t *testing.T) {
@@ -39,8 +38,12 @@ func TestStatusObservationConservesNativeGitByteReceipt(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			receipt, receiptErr := observation.Process()
+			if receiptErr != nil {
+				t.Fatal(receiptErr)
+			}
 			stdout, stderr := independentGitStatusBytes(t, c, dir)
-			if len(stdout) != extent || observation.StdoutBytes.Uint64() != uint64(len(stdout)) || observation.StderrBytes.Uint64() != uint64(len(stderr)) || observation.ExitCode != 0 || observation.StdinBytes.Uint64() != 0 || observation.Validate() != nil {
+			if len(stdout) != extent || receipt.StdoutBytes.Uint64() != uint64(len(stdout)) || receipt.StderrBytes.Uint64() != uint64(len(stderr)) || receipt.ExitCode != 0 || receipt.StdinBytes.Uint64() != 0 || observation.Validate() != nil {
 				t.Fatalf("receipt=%+v source=%d/%d expected=%d", observation, len(stdout), len(stderr), extent)
 			}
 		})
@@ -53,8 +56,12 @@ func TestStatusObservationConservesNativeGitByteReceipt(t *testing.T) {
 			writeWorktreeFile(t, dir, name, "")
 			c, request := statusFixtureCapability(t, dir)
 			observation, err := c.ObserveStatus(t.Context(), request)
+			receipt, receiptErr := observation.Process()
+			if receiptErr != nil {
+				t.Fatal(receiptErr)
+			}
 			stdout, stderr := independentGitStatusBytes(t, c, dir)
-			if err != nil || observation.StdoutBytes.Uint64() != uint64(len(stdout)) || observation.StderrBytes.Uint64() != uint64(len(stderr)) {
+			if err != nil || receipt.StdoutBytes.Uint64() != uint64(len(stdout)) || receipt.StderrBytes.Uint64() != uint64(len(stderr)) {
 				t.Fatalf("receipt=%+v bytes=%d/%d err=%v", observation, len(stdout), len(stderr), err)
 			}
 		})
@@ -86,7 +93,7 @@ func TestStatusObservationRefusesNativeFailureWithoutInventedReceipt(t *testing.
 				want = core.ErrGitRepositoryContract
 			}
 			observation, err := c.ObserveStatus(ctx, request)
-			if !errors.Is(err, want) || observation != (process.ResultObservation{}) {
+			if !errors.Is(err, want) || observation != (StatusObservation{}) {
 				t.Fatalf("receipt=%+v err=%v want=%v", observation, err, want)
 			}
 		})
@@ -156,8 +163,12 @@ func FuzzStatusObservationConservesNativeExtent(f *testing.F) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		receipt, receiptErr := observation.Process()
+		if receiptErr != nil {
+			t.Fatal(receiptErr)
+		}
 		stdout, stderr := independentGitStatusBytes(t, c, dir)
-		if observation.StdoutBytes.Uint64() != uint64(len(stdout)) || observation.StderrBytes.Uint64() != uint64(len(stderr)) || observation.ExitCode != 0 {
+		if receipt.StdoutBytes.Uint64() != uint64(len(stdout)) || receipt.StderrBytes.Uint64() != uint64(len(stderr)) || receipt.ExitCode != 0 {
 			t.Fatalf("receipt=%+v native=%d/%d", observation, len(stdout), len(stderr))
 		}
 	})
@@ -176,10 +187,26 @@ func BenchmarkStatusObservationStreamsWithoutRetainedOutput(b *testing.B) {
 			b.SetBytes(int64(count) * 256)
 			for b.Loop() {
 				observation, err := c.ObserveStatus(b.Context(), request)
-				if err != nil || observation.StdoutBytes.Uint64() != uint64(count)*256 || observation.StderrBytes.Uint64() != 0 {
+				receipt, receiptErr := observation.Process()
+				if receiptErr != nil {
+					b.Fatal(receiptErr)
+				}
+				if err != nil || receipt.StdoutBytes.Uint64() != uint64(count)*256 || receipt.StderrBytes.Uint64() != 0 {
 					b.Fatalf("receipt=%+v err=%v", observation, err)
 				}
 			}
 		})
+	}
+}
+
+func TestAbsentStatusObservationCannotCertifyCompletedEmptyStatus(t *testing.T) {
+	t.Parallel()
+	var absent StatusObservation
+	if err := absent.Validate(); !errors.Is(err, core.ErrGitRepositoryContract) || !errors.Is(err, core.ErrProcessContract) {
+		t.Fatalf("absent status validation = %v, want Git and native process contract refusal", err)
+	}
+	receipt, err := absent.Process()
+	if !errors.Is(err, core.ErrGitRepositoryContract) || receipt.ExitCode != 0 || receipt.StdoutBytes.Uint64() != 0 {
+		t.Fatalf("absent status process/error = %+v/%v, want no receipt and typed refusal", receipt, err)
 	}
 }
