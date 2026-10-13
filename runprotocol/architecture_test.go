@@ -80,6 +80,7 @@ var runProtocolJSONDoors = runProtocolJSONDoorInventory{
 }
 
 type aboutTextDoorInventory struct {
+	ParseGoFuzzTarget     func(string) (GoFuzzTarget, error)
 	NewIdentifier         func(string) (Identifier, error)
 	NewName               func(string) (Name, error)
 	NewText               func(string) (Text, error)
@@ -88,7 +89,9 @@ type aboutTextDoorInventory struct {
 }
 
 var aboutTextDoors = aboutTextDoorInventory{
-	NewIdentifier: NewIdentifier, NewName: NewName, NewText: NewText,
+	// This off-wire target is fuzzed by FuzzGoFuzzTargetMatchesGoIdentifierGrammar.
+	ParseGoFuzzTarget: ParseGoFuzzTarget,
+	NewIdentifier:     NewIdentifier, NewName: NewName, NewText: NewText,
 	ParseSourcePath: ParseSourcePath, NewRepositoryIdentity: NewRepositoryIdentity,
 }
 

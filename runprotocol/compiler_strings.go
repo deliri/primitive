@@ -3,6 +3,8 @@ package runprotocol
 const (
 	// GoJSONOutputArgument asks cmd/go for its machine-readable projection.
 	GoJSONOutputArgument = "-json"
+	// GoVerboseOutputArgument asks testing.F to emit target terminal frames.
+	GoVerboseOutputArgument = "-v"
 	// GoRaceText is the shared Go race-instrumentation identity.
 	GoRaceText = "race"
 	// GoTestFileSuffix identifies Go's compiler-owned test source convention.
