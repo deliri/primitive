@@ -86,9 +86,9 @@ func TestHTTPProducerClassifierStatusDomainLayerTriad(t *testing.T) {
 						wantAggregateStatusError, wantStreamStatusError, wantStreamRetry bool
 					}{status: status, expected: expected, primary: primary, wantAggregate: attemptComplete}
 					if status != expected {
-						row.wantAggregateError = core.ErrExchangeResponse
+						row.wantAggregateError = statusIdentityOracle(raw)
 						row.wantAggregateStatusError = true
-						row.wantStreamError = core.ErrExchangeResponse
+						row.wantStreamError = statusIdentityOracle(raw)
 						row.wantStreamStatusError = true
 						row.wantStreamRetry = retryStatus
 						if retryStatus && mode.replay == ReplaySafe {
@@ -166,7 +166,7 @@ func TestHTTPProducerClassifierStatusDomainLayerTriad(t *testing.T) {
 								}
 							} else {
 								produced, producerErr := executeAggregateAttempt(aggregateAttempt{context: ctx, client: goClient, request: aggregateRequest{target: target, semantics: semantics, expectedStatus: row.expected}, timeout: runtimeAgreementPolicy(t).ReadTimeout})
-								if producerErr != nil || produced.status != row.status || produced.body != nil || produced.headers.Values != nil || produced.retryAfter != "" {
+								if producerErr != nil || produced.status != row.status || produced.body != nil || produced.headers.Values != nil || !produced.retryAfter.IsZero() {
 									cancel()
 									t.Fatalf("aggregate producer = (%+v,%v), want status %v with no body/header/hint evidence", produced, producerErr, row.status)
 								}
@@ -183,7 +183,7 @@ func TestHTTPProducerClassifierStatusDomainLayerTriad(t *testing.T) {
 									cancel()
 									t.Fatalf("aggregate retained status error = %v, want present=%t and exact binding", gotErr, row.wantAggregateStatusError)
 								}
-								if produced.status != row.status || produced.body != nil || produced.headers.Values != nil || produced.retryAfter != "" {
+								if produced.status != row.status || produced.body != nil || produced.headers.Values != nil || !produced.retryAfter.IsZero() {
 									cancel()
 									t.Fatalf("aggregate classifier changed producer facts: %+v", produced)
 								}
@@ -200,7 +200,7 @@ func TestHTTPProducerClassifierStatusDomainLayerTriad(t *testing.T) {
 	}
 }
 
-type handoffCauseBits uint8
+type handoffCauseBits uint16
 
 const (
 	handoffCanceled handoffCauseBits = 1 << iota
@@ -208,11 +208,12 @@ const (
 	handoffRedirect
 	handoffContentType
 	handoffBodyLimit
+	handoffHeaders
 	handoffResponse
 	handoffTransport
 	handoffCauseDomain
 )
-const handoffTerminalBits = handoffCanceled | handoffRequest | handoffRedirect | handoffContentType | handoffBodyLimit
+const handoffTerminalBits = handoffCanceled | handoffRequest | handoffRedirect | handoffContentType | handoffBodyLimit | handoffHeaders
 
 // Each bit names a compiler-visible identity the classifiers inspect. Exhaust
 // every subset, not a few convenient joined pairs. Reverse and duplicate the
@@ -226,6 +227,7 @@ func TestHTTPProducerClassifierRefusalLatticeLayerTriad(t *testing.T) {
 		{bit: handoffCanceled, identity: core.ErrExchangeCancelled}, {bit: handoffRequest, identity: core.ErrExchangeRequest},
 		{bit: handoffRedirect, identity: core.ErrExchangeRedirect}, {bit: handoffContentType, identity: core.ErrExchangeContentType},
 		{bit: handoffBodyLimit, identity: core.ErrExchangeBodyLimit}, {bit: handoffResponse, identity: core.ErrExchangeResponse},
+		{bit: handoffHeaders, identity: core.ErrExchangeResponseHeaders},
 		{bit: handoffTransport, identity: core.ErrExchangeTransport},
 	}
 	for bits := range handoffCauseDomain {
@@ -292,7 +294,7 @@ func TestHTTPProducerClassifierRefusalLatticeLayerTriad(t *testing.T) {
 						} else {
 							semantics := RequestSemantics{Method: MethodGet, Replay: ReplaySafe}
 							produced, producerErr := executeAggregateAttempt(aggregateAttempt{context: ctx, client: goClient, request: aggregateRequest{target: target, semantics: semantics, expectedStatus: core.HTTPStatusOK()}, timeout: runtimeAgreementPolicy(t).ReadTimeout})
-							if produced.status != (core.HTTPStatusCode{}) || produced.body != nil || produced.headers.Values != nil || produced.retryAfter != "" {
+							if produced.status != (core.HTTPStatusCode{}) || produced.body != nil || produced.headers.Values != nil || !produced.retryAfter.IsZero() {
 								t.Fatalf("refused aggregate producer emitted facts: %+v", produced)
 							}
 							producedCause = producerErr

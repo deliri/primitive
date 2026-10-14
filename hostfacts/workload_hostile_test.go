@@ -152,7 +152,7 @@ func TestCgroupMountSelectionUsesMostSpecificVisibleRootAndRejectsAmbiguity(t *t
 			t.Fatalf("cgroupMountSelection.consider(%v) error = %v, want nil", candidate, err)
 		}
 	}
-	if selection.count != 1 || selection.selected != tenantMount {
+	if selection.selected != tenantMount {
 		t.Fatalf("cgroup mount selection = %+v, want unique most-specific %+v", selection, tenantMount)
 	}
 
@@ -161,8 +161,8 @@ func TestCgroupMountSelectionUsesMostSpecificVisibleRootAndRejectsAmbiguity(t *t
 	if err := selection.consider(duplicate, membership); err != nil {
 		t.Fatalf("cgroupMountSelection.consider(duplicate) error = %v, want nil", err)
 	}
-	if selection.count != 2 {
-		t.Fatalf("cgroup mount selection duplicate count = %d, want 2 ambiguity", selection.count)
+	if selection.selected != tenantMount {
+		t.Fatalf("duplicate-root selection = %+v, want first mount %+v", selection.selected, tenantMount)
 	}
 }
 
@@ -671,12 +671,10 @@ func TestCgroupUnlimitedFoldReportsTheClosestPresentInterface(t *testing.T) {
 	}
 }
 
-func TestCgroupMountAmbiguityTallySaturatesInsteadOfWrapping(t *testing.T) {
+func TestCgroupRepeatedRootKeepsFirstMountWithoutCounting(t *testing.T) {
 	t.Parallel()
 
-	// The tally only distinguishes one mount from more than one. An eight-bit
-	// tally that keeps counting returns to one after 256 equally-specific mounts,
-	// which reports a hostile mount table as unambiguous.
+	// Duplicating the same root adds no hierarchy or memory-limit authority.
 	membership := cgroupMembership{path: "/tenant/job", source: WorkloadMemoryLimitSourceCgroupV2}
 	var selection cgroupMountSelection
 	for index := range 1 + 2*int(math.MaxUint8) {
@@ -688,8 +686,8 @@ func TestCgroupMountAmbiguityTallySaturatesInsteadOfWrapping(t *testing.T) {
 		if err := selection.consider(candidate, membership); err != nil {
 			t.Fatalf("cgroupMountSelection.consider(%d) error = %v, want nil", index, err)
 		}
-		if selection.count < cgroupMountAmbiguityCeiling && index > 0 {
-			t.Fatalf("cgroup mount ambiguity tally = %d after %d equal mounts, want ambiguous", selection.count, index+1)
+		if selection.selected.mountPoint != mustAbsolutePathForHostfactsTest(t, "/mount0") {
+			t.Fatalf("duplicate mount selection = %+v after %d rows, want first mount", selection.selected, index+1)
 		}
 	}
 }

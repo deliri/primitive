@@ -90,7 +90,7 @@ func TestR2ReadFailurePreservesPartialExtentLayerTriad(t *testing.T) {
 	}{
 		{name: "complete body has exact acknowledged extent", status: http.StatusOK, body: "prefix", wantBytes: 6},
 		{name: "truncated body retains prefix beside typed EOF", status: http.StatusOK, body: "prefix", declared: "7", wantErr: io.ErrUnexpectedEOF, wantBytes: 6},
-		{name: "absent object does not become empty success", status: http.StatusNotFound, body: "provider diagnostic", wantErr: core.ErrExchangeResponse},
+		{name: "absent object does not become empty success", status: http.StatusNotFound, body: "provider diagnostic", wantErr: core.ErrExchangeRejected},
 		{name: "empty object remains zero byte success", status: http.StatusOK},
 		{name: "canceled request makes no provider call", status: http.StatusOK, canceled: true, wantErr: context.Canceled},
 	} {
@@ -127,7 +127,7 @@ func TestR2ReadFailurePreservesPartialExtentLayerTriad(t *testing.T) {
 					t.Fatalf("Read status error = %v, want exchange.StatusError", gotErr)
 				}
 				code, statusErr := statusError.Status().Int()
-				if statusErr != nil || code != tc.status {
+				if statusErr != nil || code != tc.status || statusError.Expected() != core.HTTPStatusOK() || errors.Is(gotErr, core.ErrExchangeResponse) {
 					t.Fatalf("Read status = (%d,%v), want %d", code, statusErr, tc.status)
 				}
 			}

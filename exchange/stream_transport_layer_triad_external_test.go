@@ -424,11 +424,11 @@ func TestUploadMetadataIsValidatedNotStamped(t *testing.T) {
 			},
 			Policy: policy,
 		})
-		if !errors.Is(gotErr, core.ErrExchangeResponse) {
+		if !errors.Is(gotErr, core.ErrExchangeResponseHeaders) {
 			t.Fatalf(
 				"exchange.Upload(invalid metadata) error = %v, want %v",
 				gotErr,
-				core.ErrExchangeResponse,
+				core.ErrExchangeResponseHeaders,
 			)
 		}
 		if got.Metadata.Attempts != 0 ||

@@ -17,20 +17,23 @@ import (
 type ObjectDecoder[Document core.Validatable] struct {
 	decoder   *jsontext.Decoder
 	nullGuard *jsonv2.Unmarshalers
+	source    *contextJSONSource
+	members   MemberPolicy
 }
 
 func NewObjectDecoder[Document core.Validatable](request ObjectSourceRequest) (*ObjectDecoder[Document], error) {
 	if err := errors.Join(request.Validate(), validateObjectType[Document]()); err != nil {
 		return nil, err
 	}
-	return &ObjectDecoder[Document]{decoder: jsontext.NewDecoder(checkedJSONSource{source: request.Source}), nullGuard: jsonv2.UnmarshalFromFunc[any](rejectObjectNull)}, nil
+	source := &contextJSONSource{source: checkedJSONSource{source: request.Source}}
+	return &ObjectDecoder[Document]{decoder: jsontext.NewDecoder(source), source: source, members: request.Members, nullGuard: jsonv2.UnmarshalFromFunc[any](rejectObjectNull)}, nil
 }
 
 func (d *ObjectDecoder[Document]) Validate() error {
-	if d == nil || d.decoder == nil || d.nullGuard == nil {
+	if d == nil || d.decoder == nil || d.nullGuard == nil || d.source == nil {
 		return core.ErrJSONContract
 	}
-	return nil
+	return d.members.Validate()
 }
 
 // Reset delegates replacement of the borrowed source directly to Go. Type
@@ -40,7 +43,9 @@ func (d *ObjectDecoder[Document]) Reset(ctx context.Context, request ObjectSourc
 	if err := errors.Join(contextstate.Validate(ctx), d.Validate(), request.Validate()); err != nil {
 		return err
 	}
-	d.decoder.Reset(checkedJSONSource{source: request.Source})
+	d.source.source = checkedJSONSource{source: request.Source}
+	d.members = request.Members
+	d.decoder.Reset(d.source)
 	return contextstate.Validate(ctx)
 }
 
@@ -52,5 +57,7 @@ func (d *ObjectDecoder[Document]) Decode(ctx context.Context) (Document, error) 
 		var zero Document
 		return zero, err
 	}
-	return readObject[Document](ctx, d.decoder, d.nullGuard)
+	d.source.ctx = ctx
+	defer func() { d.source.ctx = nil }()
+	return readObject[Document](ctx, d.decoder, d.nullGuard, d.members)
 }

@@ -167,7 +167,7 @@ func TestVerifiedGrantDownloadFileLayerTriadFailureMatrixPreservesPriorTarget(t 
 		{name: "one byte padded body", response: retrievalHTTPResponse{payload: append(append([]byte(nil), original...), 0x55)}, wantErr: core.ErrObjectStoreIntegrity, install: filestore.InstallReplace},
 		{name: "same extent different SHA-256 and CRC32C", response: retrievalHTTPResponse{payload: altered}, wantErr: core.ErrObjectStoreIntegrity, install: filestore.InstallReplace},
 		{name: "provider reports absent object", response: retrievalHTTPResponse{status: http.StatusNotFound}, wantErr: core.ErrObjectStoreAbsent, install: filestore.InstallReplace},
-		{name: "provider reports internal failure", response: retrievalHTTPResponse{status: http.StatusInternalServerError}, wantErr: core.ErrExchangeResponse, install: filestore.InstallReplace},
+		{name: "provider reports internal failure", response: retrievalHTTPResponse{status: http.StatusInternalServerError}, wantErr: core.ErrExchangeUnavailable, install: filestore.InstallReplace},
 		{name: "provider omits promised content type", response: retrievalHTTPResponse{payload: original, omitContentType: true}, wantErr: core.ErrExchangeContentType, install: filestore.InstallReplace},
 		{name: "transport refuses before response", response: retrievalHTTPResponse{transportErr: io.ErrClosedPipe}, wantErr: core.ErrExchangeTransport, install: filestore.InstallReplace},
 		{name: "body close fails after exact authenticated bytes", response: retrievalHTTPResponse{payload: original, closeErr: io.ErrClosedPipe}, wantErr: io.ErrClosedPipe, install: filestore.InstallReplace},
@@ -211,6 +211,13 @@ func TestVerifiedGrantDownloadFileLayerTriadFailureMatrixPreservesPriorTarget(t 
 				}
 			}
 			recovery, transfer, gotErr := fixture.grant.DownloadFile(ctx, request)
+			if tc.response.status == http.StatusInternalServerError {
+				status, present := errors.AsType[exchange.StatusError](gotErr)
+				code, codeErr := status.Status().Int()
+				if !present || codeErr != nil || code != tc.response.status || status.Expected() != core.HTTPStatusOK() || errors.Is(gotErr, core.ErrExchangeResponse) {
+					t.Fatalf("download provider status = (%d,%v,%v), want exact %d/OK and a narrow status identity", code, codeErr, gotErr, tc.response.status)
+				}
+			}
 			if !errors.Is(gotErr, tc.wantErr) || recovery.Validate() == nil {
 				t.Fatalf("DownloadFile(%s) = (recovery %v, transfer %v, error %v), want zero recovery and errors.Is %v",
 					tc.name, recovery, transfer, gotErr, tc.wantErr)

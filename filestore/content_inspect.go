@@ -44,13 +44,13 @@ func InspectContentIndex(ctx context.Context, request ContentIndexInspectionRequ
 	}
 	summary, digest, err := inspectContentIndex(ctx, request.File, nil, true)
 	if err != nil {
-		return ContentIndexSummary{}, errors.Join(core.ErrFilestoreContract, err)
+		return ContentIndexSummary{}, err
 	}
 	// The complete EOF pass leaves the underlying descriptor after every encoded
 	// byte, even when its reader prefetched records into its bounded buffer.
 	extent, err := request.File.Seek(0, io.SeekCurrent)
 	if err != nil {
-		return ContentIndexSummary{}, errors.Join(core.ErrFilestoreContract, err)
+		return ContentIndexSummary{}, sourceError(err)
 	}
 	if extent != expectedExtent || digest != request.Content.Digest {
 		return ContentIndexSummary{}, core.ErrFilestoreContract
@@ -64,7 +64,7 @@ func InspectContentIndex(ctx context.Context, request ContentIndexInspectionRequ
 func inspectContentFile(request ContentIndexInspectionRequest) (int64, error) {
 	info, err := request.File.Stat()
 	if err != nil {
-		return 0, errors.Join(core.ErrFilestoreContract, err)
+		return 0, sourceError(err)
 	}
 	expectedExtent, err := request.Content.Extent.Int64()
 	if err != nil {

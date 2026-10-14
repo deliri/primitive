@@ -16,7 +16,7 @@ import (
 const (
 	coreExportDependencyMaximum     = 32
 	coreSpecialExportAdmissionCount = 98 // Includes native JSON grammar and background execution identity.
-	coreProviderExportContractCount = 190
+	coreProviderExportContractCount = 210
 )
 
 type coreExportName string
@@ -400,6 +400,26 @@ func coreProviderExportContracts() [coreProviderExportContractCount]coreProvider
 		{name: "CloudflareR2SigningRegion", witness: CloudflareR2SigningRegion, consumer: PackageCloudflare},
 		{name: "CloudflareR2SigningService", witness: CloudflareR2SigningService, consumer: PackageCloudflare},
 		{name: "CloudflareSecretCustodyMaximumBytes", witness: CloudflareSecretCustodyMaximumBytes, consumer: PackageCloudflare},
+		{name: "AIStatusAuthentication", witness: AIStatusAuthentication, consumer: PackageAI},
+		{name: "AIStatusRateLimited", witness: AIStatusRateLimited, consumer: PackageAI},
+		{name: "AIStatusTimeout", witness: AIStatusTimeout, consumer: PackageAI},
+		{name: "AIStatusServiceFailure", witness: AIStatusServiceFailure, consumer: PackageAI},
+		{name: "AIOpenAIHost", witness: AIOpenAIHost, consumer: PackageAI},
+		{name: "AIAnthropicHost", witness: AIAnthropicHost, consumer: PackageAI},
+		{name: "AIResponsesPath", witness: AIResponsesPath, consumer: PackageAI},
+		{name: "AIChatCompletionsPath", witness: AIChatCompletionsPath, consumer: PackageAI},
+		{name: "AIAudioTranscriptionsPath", witness: AIAudioTranscriptionsPath, consumer: PackageAI},
+		{name: "AIMessagesPath", witness: AIMessagesPath, consumer: PackageAI},
+		{name: "AIAnthropicKeyHeader", witness: AIAnthropicKeyHeader, consumer: PackageAI},
+		{name: "AIAnthropicVersionHeader", witness: AIAnthropicVersionHeader, consumer: PackageAI},
+		{name: "AIAnthropicVersion", witness: AIAnthropicVersion, consumer: PackageAI},
+		{name: "AIMultipartMediaType", witness: AIMultipartMediaType, consumer: PackageAI},
+		{name: "AIOpenAIOrganizationHeader", witness: AIOpenAIOrganizationHeader, consumer: PackageAI},
+		{name: "AIOpenAIProjectHeader", witness: AIOpenAIProjectHeader, consumer: PackageAI},
+		{name: "AIAnthropicWorkspaceHeader", witness: AIAnthropicWorkspaceHeader, consumer: PackageAI},
+		{name: "AIAnthropicBetaHeader", witness: AIAnthropicBetaHeader, consumer: PackageAI},
+		{name: "AIOpenAIRequestIDHeader", witness: AIOpenAIRequestIDHeader, consumer: PackageAI},
+		{name: "AIAnthropicRequestIDHeader", witness: AIAnthropicRequestIDHeader, consumer: PackageAI},
 		{name: "PlunkAPIHost", witness: PlunkAPIHost, consumer: PackagePlunk},
 		{name: "PlunkIdempotencyKeyMaximumBytes", witness: PlunkIdempotencyKeyMaximumBytes, consumer: PackagePlunk},
 		{name: "PlunkCredentialMinimumBytes", witness: PlunkCredentialMinimumBytes, consumer: PackagePlunk},

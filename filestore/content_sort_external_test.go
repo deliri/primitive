@@ -95,7 +95,7 @@ func FuzzContentSortExactUnion(f *testing.F) {
 		if ownedErr == nil && (owned.Observed != uint64(len(order)) || owned.Unique != got || !bytes.Equal(ownedOutput.Bytes(), output.Bytes())) {
 			t.Fatalf("owned stream = (%+v,%v), differs from independently checked union %+v", owned, ownedErr, got)
 		}
-		if (ownedErr == nil) != (gotErr == nil) || (ownedErr != nil && (owned != (filestore.ContentStreamSummary{}) || !errors.Is(ownedErr, core.ErrFilestoreContract))) {
+		if (ownedErr == nil) != (gotErr == nil) || (ownedErr != nil && (owned != (filestore.ContentStreamSummary{}) || !errors.Is(ownedErr, core.ErrFilestoreContract) && !errors.Is(ownedErr, core.ErrFilestoreConflict))) {
 			t.Fatalf("owned refusal = (%+v,%v), direct union = (%+v,%v)", owned, ownedErr, got, gotErr)
 		}
 		residue, err := os.ReadDir(ownedDirectory)
@@ -105,7 +105,7 @@ func FuzzContentSortExactUnion(f *testing.F) {
 		same := entries[0].Digest == entries[1].Digest
 		if same && firstSize != secondSize {
 			var conflict filestore.ContentIndexConflictError
-			if !errors.As(gotErr, &conflict) || conflict.Digest != entries[0].Digest || conflict.First.Uint64() != min(firstSize, secondSize) || conflict.Second.Uint64() != max(firstSize, secondSize) || conflict.Validate() != nil || !errors.Is(conflict.Unwrap(), core.ErrFilestoreContract) || got != (filestore.ContentIndexSummary{}) || output.Len() != 0 {
+			if !errors.As(gotErr, &conflict) || conflict.Digest != entries[0].Digest || conflict.First.Uint64() != min(firstSize, secondSize) || conflict.Second.Uint64() != max(firstSize, secondSize) || conflict.Validate() != nil || !errors.Is(conflict.Unwrap(), core.ErrFilestoreConflict) || got != (filestore.ContentIndexSummary{}) || output.Len() != 0 {
 				t.Fatalf("conflicting union = (%+v,%v,%d bytes), want exact typed conflict and no output", got, gotErr, output.Len())
 			}
 			return

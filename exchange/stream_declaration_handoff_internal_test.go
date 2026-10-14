@@ -65,7 +65,7 @@ func TestStreamDeclarationHandoffLayerTriad(t *testing.T) {
 				produced = StreamResponse{}
 			}
 			callbacks := 0
-			got, gotErr := ReplayStream(StreamReplayCall{Context: t.Context(), Policy: StreamReplayPolicy{OperationTimeout: runtimeAgreementPolicy(t).ReadTimeout, Retry: RetryPolicy{MaximumAttempts: 1}}, Attempt: func(context.Context, uint64) (StreamResponse, error) { callbacks++; return produced, producerErr }})
+			got, gotErr := ReplayStream(StreamReplayCall{Semantics: RequestSemantics{Method: MethodPut, Replay: ReplaySingleAttempt}, Context: t.Context(), Policy: StreamReplayPolicy{OperationTimeout: runtimeAgreementPolicy(t).ReadTimeout, Retry: RetryPolicy{MaximumAttempts: 1}}, Attempt: func(context.Context, uint64) (StreamResponse, error) { callbacks++; return produced, producerErr }})
 			if !errors.Is(gotErr, tc.wantErr) || callbacks != 1 || calls != 1 || body.closes != 1 {
 				t.Fatalf("replay = (%+v,%v) callback/provider/close %d/%d/%d, want %v and 1/1/1", got, gotErr, callbacks, calls, body.closes, tc.wantErr)
 			}

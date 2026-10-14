@@ -190,7 +190,7 @@ func TestJSONTokensCancellationAndSourceIdentity(t *testing.T) {
 		seen := 0
 		for token, err := range jsonio.Tokens(t.Context(), jsonio.TokenRequest{Source: iotest.ErrReader(sourceErr), NestingDepthMaximum: 1}) {
 			seen++
-			if token != (jsonio.Token{}) || !errors.Is(err, sourceErr) || !errors.Is(err, core.ErrJSONContract) {
+			if token != (jsonio.Token{}) || !errors.Is(err, sourceErr) || errors.Is(err, core.ErrJSONContract) {
 				t.Fatalf("source refusal = (%+v,%v), want zero preserved %v", token, err, sourceErr)
 			}
 		}

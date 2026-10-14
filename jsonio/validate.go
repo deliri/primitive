@@ -24,7 +24,10 @@ func ValidateDocument(ctx context.Context, source io.Reader) error {
 	}
 	decoder := jsontext.NewDecoder(contextJSONSource{ctx: ctx, source: checkedJSONSource{source: source}})
 	if err := decoder.SkipValue(); err != nil {
-		return errors.Join(core.ErrJSONContract, err)
+		if err == io.EOF {
+			return core.ErrJSONContract
+		}
+		return objectReadOutcome(ctx, err)
 	}
 	if err := contextstate.Validate(ctx); err != nil {
 		return err
@@ -36,7 +39,10 @@ func ValidateDocument(ctx context.Context, source io.Reader) error {
 	if err == io.EOF {
 		return nil
 	}
-	return errors.Join(core.ErrJSONContract, err)
+	if err == nil {
+		return core.ErrJSONContract
+	}
+	return objectReadOutcome(ctx, err)
 }
 
 // contextJSONSource checks cancellation around every caller-owned read; it does

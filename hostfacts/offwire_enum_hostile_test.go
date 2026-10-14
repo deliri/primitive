@@ -36,6 +36,7 @@ func TestHostfactsOffWireEnumsExhaustClosedDomains(t *testing.T) {
 				OperationTerminalGeometry,
 				OperationDiskRotation,
 				OperationLogicalCPUCount,
+				OperationGoCPUConcurrency,
 				OperationTimeZone,
 				OperationKernel,
 				OperationEffectiveUser,

@@ -181,11 +181,15 @@ func (i Instant) Time() (time.Time, error) {
 }
 
 // RFC3339 returns the canonical UTC second-precision representation used by
-// human-facing protocols that require RFC 3339 text.
+// human-facing protocols that require RFC 3339 text. Fractional instants are
+// refused; use RFC3339Nano to preserve them.
 func (i Instant) RFC3339() (string, error) {
 	value, err := i.Time()
 	if err != nil {
 		return "", err
+	}
+	if value.Nanosecond() != 0 {
+		return "", contractError("RFC3339 seconds would discard nanoseconds")
 	}
 	return value.Format(time.RFC3339), nil
 }

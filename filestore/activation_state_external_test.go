@@ -89,13 +89,13 @@ func TestCommitExhaustsOwnedAndHostileNamespaceStates(t *testing.T) {
 		{
 			name:  "create with foreign replacement stage rejects ambiguous ownership",
 			stage: stageNamespaceForeign, target: targetNamespaceAbsent,
-			install: filestore.InstallCreate, wantErr: core.ErrFilestoreActivationIndeterminate,
+			install: filestore.InstallCreate, wantErr: core.ErrFilestoreConflict,
 			wantStage: "foreign-stage",
 		},
 		{
 			name:  "replace with foreign replacement stage preserves both foreign names",
 			stage: stageNamespaceForeign, target: targetNamespaceForeignFile,
-			install: filestore.InstallReplace, wantErr: core.ErrFilestoreActivationIndeterminate,
+			install: filestore.InstallReplace, wantErr: core.ErrFilestoreConflict,
 			wantStage: "foreign-stage", wantTarget: "foreign-target",
 		},
 	}
@@ -226,37 +226,37 @@ func TestRecoverExhaustsReachableAndHostileNamespaceStates(t *testing.T) {
 		{
 			name:  "create rejects foreign target after stage disappearance",
 			stage: stageNamespaceMissing, target: targetNamespaceForeignFile,
-			install: filestore.InstallCreate, wantErr: core.ErrFilestoreActivationIndeterminate,
+			install: filestore.InstallCreate, wantErr: core.ErrFilestoreConflict,
 			wantTarget: "foreign-target",
 		},
 		{
 			name:  "replace rejects foreign target after stage disappearance",
 			stage: stageNamespaceMissing, target: targetNamespaceForeignFile,
-			install: filestore.InstallReplace, wantErr: core.ErrFilestoreActivationIndeterminate,
+			install: filestore.InstallReplace, wantErr: core.ErrFilestoreConflict,
 			wantTarget: "foreign-target",
 		},
 		{
 			name:  "create rejects foreign stage with absent target",
 			stage: stageNamespaceForeign, target: targetNamespaceAbsent,
-			install: filestore.InstallCreate, wantErr: core.ErrFilestoreActivationIndeterminate,
+			install: filestore.InstallCreate, wantErr: core.ErrFilestoreConflict,
 			wantStage: "foreign-stage",
 		},
 		{
 			name:  "replace rejects foreign stage with absent target",
 			stage: stageNamespaceForeign, target: targetNamespaceAbsent,
-			install: filestore.InstallReplace, wantErr: core.ErrFilestoreActivationIndeterminate,
+			install: filestore.InstallReplace, wantErr: core.ErrFilestoreConflict,
 			wantStage: "foreign-stage",
 		},
 		{
 			name:  "create rejects foreign stage even when target is original file",
 			stage: stageNamespaceForeign, target: targetNamespaceSameFile,
-			install: filestore.InstallCreate, wantErr: core.ErrFilestoreActivationIndeterminate,
+			install: filestore.InstallCreate, wantErr: core.ErrFilestoreConflict,
 			wantStage: "foreign-stage", wantTarget: "candidate",
 		},
 		{
 			name:  "replace rejects foreign stage and foreign target",
 			stage: stageNamespaceForeign, target: targetNamespaceForeignFile,
-			install: filestore.InstallReplace, wantErr: core.ErrFilestoreActivationIndeterminate,
+			install: filestore.InstallReplace, wantErr: core.ErrFilestoreConflict,
 			wantStage: "foreign-stage", wantTarget: "foreign-target",
 		},
 	}

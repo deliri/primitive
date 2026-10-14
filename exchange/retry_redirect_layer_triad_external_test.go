@@ -179,12 +179,12 @@ func TestRetryTransportLayerTriad(t *testing.T) {
 			},
 		)
 		if !errors.Is(gotErr, core.ErrExchangeRetryExhausted) ||
-			!errors.Is(gotErr, core.ErrExchangeResponse) {
+			!errors.Is(gotErr, core.ErrExchangeUnavailable) {
 			t.Fatalf(
 				"exchange.SendNoBodyBounded(exhausted) error = %v, want %v and %v",
 				gotErr,
 				core.ErrExchangeRetryExhausted,
-				core.ErrExchangeResponse,
+				core.ErrExchangeUnavailable,
 			)
 		}
 		var exhausted exchange.RetryExhaustedError
@@ -195,11 +195,11 @@ func TestRetryTransportLayerTriad(t *testing.T) {
 				exhausted.Attempts(),
 			)
 		}
-		if !errors.Is(exhausted.Cause(), core.ErrExchangeResponse) {
+		if !errors.Is(exhausted.Cause(), core.ErrExchangeUnavailable) {
 			t.Fatalf(
 				"retry exhaustion cause = %v, want %v",
 				exhausted.Cause(),
-				core.ErrExchangeResponse,
+				core.ErrExchangeUnavailable,
 			)
 		}
 		var statusErr exchange.StatusError
@@ -265,7 +265,7 @@ func TestRetryTransportLayerTriad(t *testing.T) {
 				},
 			},
 		)
-		if !errors.Is(gotErr, core.ErrExchangeResponse) ||
+		if !errors.Is(gotErr, core.ErrExchangeUnavailable) ||
 			errors.Is(gotErr, core.ErrExchangeRetryExhausted) {
 			t.Fatalf(
 				"single-attempt status error = %v, want response without %v",

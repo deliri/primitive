@@ -172,7 +172,8 @@ func TestJSONTokenEncoderPreservesWriteAndCancellationCauses(t *testing.T) {
 					t.Fatal(err)
 				}
 				err = e.Encode(ctx, jsonio.Token{Kind: jsonio.TokenString, Text: "value"})
-				if !errors.Is(err, core.ErrJSONContract) || !errors.Is(err, io.ErrClosedPipe) || w.calls != 1 {
+				wantContract := count == -1 || count == 1
+				if errors.Is(err, core.ErrJSONContract) != wantContract || !errors.Is(err, io.ErrClosedPipe) || w.calls != 1 {
 					t.Fatalf("error=%v calls=%d", err, w.calls)
 				}
 				if cancel && !errors.Is(err, context.Canceled) {

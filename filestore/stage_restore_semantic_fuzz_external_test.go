@@ -39,7 +39,7 @@ func FuzzStageRestoreConservesNativePrefixAndCursor(f *testing.F) {
 			}
 		}()
 		written, err := filestore.WriteStage(t.Context(), filestore.StageWriteRequest{Destination: destination, Data: payload})
-		if err != nil || written.Validate() != nil || written.BytesWritten.Uint64() != uint64(len(payload)) {
+		if err != nil || written.Validate() != nil || written.BytesWritten().Uint64() != uint64(len(payload)) {
 			t.Fatalf("seed write = (%v,%v), want exact native payload", written, err)
 		}
 		prefix, err := core.NewByteLength(uint64(rawPrefix))
@@ -83,7 +83,7 @@ func FuzzStageRestoreConservesNativePrefixAndCursor(f *testing.F) {
 		}
 		suffix := []byte{14, 255}
 		written, err = filestore.WriteStage(t.Context(), filestore.StageWriteRequest{Destination: destination, Data: suffix})
-		if err != nil || written.Validate() != nil || written.BytesWritten.Uint64() != uint64(len(suffix)) {
+		if err != nil || written.Validate() != nil || written.BytesWritten().Uint64() != uint64(len(suffix)) {
 			t.Fatalf("resumed write = (%v,%v), want exact suffix", written, err)
 		}
 		stage, err := filestore.FinishStageDestination(t.Context(), destination)

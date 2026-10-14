@@ -1,8 +1,14 @@
 package exchange
 
-import "github.com/deliri/primitive/v2026/core"
+import (
+	"github.com/deliri/primitive/v2026/core"
+	"io"
+)
 
 func (r JSONRequest[Body]) Validate() error {
+	if err := validateStreamExtras(r.SecretHeaders, r.Headers, r.FailureDestination); err != nil {
+		return requestError(err)
+	}
 	if err := validateRequestMetadata(requestMetadata{
 		target: r.Target, semantics: r.Semantics, headers: r.Headers,
 		capture: r.CaptureHeaders, expected: r.ExpectedStatus,
@@ -16,6 +22,9 @@ func (r JSONRequest[Body]) Validate() error {
 }
 
 func (r NoBodyRequest) Validate() error {
+	if err := validateStreamExtras(r.SecretHeaders, r.Headers, r.FailureDestination); err != nil {
+		return requestError(err)
+	}
 	return validateRequestMetadata(requestMetadata{
 		target: r.Target, semantics: r.Semantics, headers: r.Headers,
 		capture: r.CaptureHeaders, expected: r.ExpectedStatus,
@@ -23,6 +32,9 @@ func (r NoBodyRequest) Validate() error {
 }
 
 func (r NoBodyBoundedRequest) Validate() error {
+	if err := validateStreamExtras(r.SecretHeaders, r.Headers, nil); err != nil {
+		return requestError(err)
+	}
 	if err := validateRequestMetadata(requestMetadata{
 		target: r.Target, semantics: r.Semantics, headers: r.Headers,
 		capture: r.CaptureHeaders, expected: r.ExpectedStatus,
@@ -38,6 +50,9 @@ func (r NoBodyBoundedRequest) Validate() error {
 }
 
 func (r BoundedRequest) Validate() error {
+	if err := validateStreamExtras(r.SecretHeaders, r.Headers, nil); err != nil {
+		return requestError(err)
+	}
 	if err := validateRequestMetadata(requestMetadata{
 		target: r.Target, semantics: r.Semantics, headers: r.Headers,
 		capture: r.CaptureHeaders, expected: r.ExpectedStatus,
@@ -54,6 +69,9 @@ func (r BoundedRequest) Validate() error {
 }
 
 func (r UploadRequest) Validate() error {
+	if err := validateStreamExtras(r.SecretHeaders, r.Headers, r.FailureDestination); err != nil {
+		return requestError(err)
+	}
 	if err := validateRequestMetadata(requestMetadata{
 		target: r.Target, semantics: r.Semantics, headers: r.Headers,
 		capture: r.CaptureHeaders, expected: r.ExpectedStatus,
@@ -77,6 +95,9 @@ func (r UploadRequest) Validate() error {
 }
 
 func (r DownloadRequest) Validate() error {
+	if err := validateStreamExtras(r.SecretHeaders, r.Headers, r.FailureDestination); err != nil {
+		return requestError(err)
+	}
 	if err := validateRequestMetadata(requestMetadata{
 		target: r.Target, semantics: r.Semantics, headers: r.Headers,
 		capture: r.CaptureHeaders, expected: r.ExpectedStatus,
@@ -96,6 +117,9 @@ func (r DownloadRequest) Validate() error {
 }
 
 func (r StreamRoundTripRequest) Validate() error {
+	if err := validateStreamExtras(r.SecretHeaders, r.Headers, r.FailureDestination); err != nil {
+		return requestError(err)
+	}
 	if err := validateRequestMetadata(requestMetadata{
 		target: r.Target, semantics: r.Semantics, headers: r.Headers,
 		capture: r.CaptureHeaders, expected: r.ExpectedStatus,
@@ -125,6 +149,16 @@ type requestMetadata struct {
 	headers   Headers
 	capture   HeaderSelection
 	expected  core.HTTPStatusCode
+}
+
+func validateStreamExtras(secret []SecretHeader, headers Headers, failure io.Writer) error {
+	if err := validateSecretHeaders(secret, headers); err != nil {
+		return err
+	}
+	if failure != nil && core.WriterIsNil(failure) {
+		return core.ErrExchangeContract
+	}
+	return nil
 }
 
 func validateRequestMetadata(metadata requestMetadata) (err error) {

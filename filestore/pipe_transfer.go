@@ -85,7 +85,7 @@ func TransferPipe(ctx context.Context, request PipeTransferRequest) (result Pipe
 func producePipe(ctx context.Context, produce func(context.Context, io.Writer) error, destination io.Writer) (resultErr error) {
 	defer func() {
 		if recover() != nil {
-			resultErr = fmt.Errorf("pipe producer callback panicked: %w", core.ErrFilestoreContract)
+			resultErr = fmt.Errorf("pipe producer callback panicked: %w", core.ErrFilestoreCallbackPanic)
 		}
 	}()
 	return produce(ctx, destination)
@@ -94,7 +94,7 @@ func producePipe(ctx context.Context, produce func(context.Context, io.Writer) e
 func consumePipe(ctx context.Context, consume func(context.Context, io.Reader) error, source io.Reader) (resultErr error) {
 	defer func() {
 		if recover() != nil {
-			resultErr = fmt.Errorf("pipe consumer callback panicked: %w", core.ErrFilestoreContract)
+			resultErr = fmt.Errorf("pipe consumer callback panicked: %w", core.ErrFilestoreCallbackPanic)
 		}
 	}()
 	return consume(ctx, source)

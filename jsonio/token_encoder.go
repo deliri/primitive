@@ -44,7 +44,7 @@ func (e *TokenEncoder) Encode(ctx context.Context, token Token) error {
 		err = e.encoder.WriteToken(encodedToken(token))
 	}
 	if err != nil {
-		return errors.Join(core.ErrJSONContract, err, contextstate.Validate(ctx))
+		return objectReadOutcome(ctx, err)
 	}
 	return contextstate.Validate(ctx)
 }

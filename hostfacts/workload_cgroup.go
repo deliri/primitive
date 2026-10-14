@@ -46,12 +46,47 @@ func cgroupV1LimitComponent() (core.PathComponent, error) {
 type cgroupMembership struct {
 	path   string
 	source WorkloadMemoryLimitSource
+	scope  cgroupMembershipScope
+}
+
+// The kernel may name a process cgroup outside the reader's namespace. That
+// observation is unavailable, rather than an invalid path to normalize/open.
+type cgroupMembershipScope uint8
+
+const (
+	cgroupMembershipInside cgroupMembershipScope = iota
+	cgroupMembershipOutside
+	cgroupMembershipScopeLimit
+)
+
+func (s cgroupMembershipScope) Validate() error {
+	if s >= cgroupMembershipScopeLimit {
+		return core.ErrHostFactsObservation
+	}
+	return nil
+}
+func (s cgroupMembershipScope) IsValid() bool { return s.Validate() == nil }
+func (cgroupMembershipScope) OffWireEnum()    {}
+func (s cgroupMembershipScope) String() string {
+	if !s.IsValid() {
+		return core.UnknownEnumDiagnostic
+	}
+	return [...]string{"inside namespace", "outside namespace"}[s]
 }
 
 func (m cgroupMembership) Validate() error {
 	if m.source != WorkloadMemoryLimitSourceCgroupV1 &&
 		m.source != WorkloadMemoryLimitSourceCgroupV2 {
 		return core.ErrHostFactsObservation
+	}
+	if err := m.scope.Validate(); err != nil {
+		return err
+	}
+	if m.scope == cgroupMembershipOutside {
+		if !cgroupPathOutsideNamespace(m.path) {
+			return core.ErrHostFactsObservation
+		}
+		return nil
 	}
 	if !validCgroupPath(m.path) {
 		return core.ErrHostFactsObservation
@@ -74,15 +109,8 @@ func (m cgroupMount) Validate() error {
 	return nil
 }
 
-// cgroupMountAmbiguityCeiling saturates the equally-specific mount tally. The
-// tally only has to distinguish "exactly one" from "more than one", so it stops
-// counting rather than wrapping: an unsaturated eight-bit tally returns to one
-// after 256 equally-specific mounts and reports a hostile mount table as unique.
-const cgroupMountAmbiguityCeiling = uint8(2)
-
 type cgroupMountSelection struct {
 	selected cgroupMount
-	count    uint8
 }
 
 func (s *cgroupMountSelection) consider(
@@ -92,16 +120,17 @@ func (s *cgroupMountSelection) consider(
 	if err := errors.Join(candidate.Validate(), membership.Validate()); err != nil {
 		return err
 	}
+	if candidate.source != membership.source || membership.scope != cgroupMembershipInside {
+		return core.ErrHostFactsObservation
+	}
 	if !cgroupRootContains(candidate.root, membership.path) {
 		return nil
 	}
-	if s.count == 0 || len(candidate.root) > len(s.selected.root) {
-		s.selected, s.count = candidate, 1
-		return nil
+	if s.selected.source == WorkloadMemoryLimitSourceUnknown || len(candidate.root) > len(s.selected.root) {
+		s.selected = candidate
 	}
-	if len(candidate.root) == len(s.selected.root) && s.count < cgroupMountAmbiguityCeiling {
-		s.count++
-	}
+	// Equal canonical roots name the same hierarchy. Keep the first mount;
+	// a second bind mount does not introduce another memory authority.
 	return nil
 }
 
@@ -281,6 +310,9 @@ func parseCgroupMembershipLine(line []byte) (cgroupMembership, error) {
 		return cgroupMembership{}, nil
 	}
 	membership.path = string(groupPath)
+	if cgroupPathOutsideNamespace(membership.path) {
+		membership.scope = cgroupMembershipOutside
+	}
 	if err := membership.Validate(); err != nil {
 		return cgroupMembership{}, err
 	}
@@ -714,6 +746,13 @@ func validCgroupPath(value string) bool {
 		!strings.HasSuffix(value, " (deleted)")
 }
 
+func cgroupPathOutsideNamespace(value string) bool {
+	relative, ok := strings.CutPrefix(value, "/")
+	return ok && (relative == ".." || strings.HasPrefix(relative, "../")) &&
+		utf8.ValidString(value) && path.Clean(relative) == relative &&
+		!strings.ContainsRune(value, '\x00') && !strings.HasSuffix(value, " (deleted)")
+}
+
 func decodeMountInfoPath(value string) (string, error) {
 	if len(value) > procLineMaximumBytes {
 		return "", core.ErrHostFactsObservation
@@ -789,10 +828,10 @@ func observeCgroupMembership(ctx context.Context, procPath core.AbsolutePath) (c
 	// An explicitly attached v1 memory controller owns memory on a hybrid
 	// host. Go's internal/runtime/cgroup applies this same ownership rule.
 	if v1Count == 1 {
-		return v1, true, v1.Validate()
+		return v1, v1.scope == cgroupMembershipInside, v1.Validate()
 	}
 	if v2Count == 1 {
-		return v2, true, v2.Validate()
+		return v2, v2.scope == cgroupMembershipInside, v2.Validate()
 	}
 	return cgroupMembership{}, false, nil
 }

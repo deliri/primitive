@@ -41,8 +41,8 @@ func TestValidateDocumentPreservesSourceAndCancellation(t *testing.T) {
 	}
 	for _, value := range []string{`null`, `{"a":`} {
 		source := io.MultiReader(strings.NewReader(value), iotest.ErrReader(core.ErrHostFactsObservation))
-		if err := jsonio.ValidateDocument(t.Context(), source); !errors.Is(err, core.ErrHostFactsObservation) || !errors.Is(err, core.ErrJSONContract) {
-			t.Fatalf("source failure after %q = %v, want both identities", value, err)
+		if err := jsonio.ValidateDocument(t.Context(), source); !errors.Is(err, core.ErrHostFactsObservation) || errors.Is(err, core.ErrJSONContract) {
+			t.Fatalf("source failure after %q = %v, want source identity without malformed JSON", value, err)
 		}
 	}
 	ctx, cancel, err := temporal.WithCancellation(temporal.CancellationRequest{Parent: t.Context()})

@@ -36,9 +36,15 @@ type StreamAttempt func(context.Context, uint64) (StreamResponse, error)
 
 // StreamReplayCall supplies one bounded replayable streaming operation.
 type StreamReplayCall struct {
-	Context context.Context
-	Attempt StreamAttempt
-	Policy  StreamReplayPolicy
+	// Semantics owns replay authority for the logical operation. Attempt must
+	// use the same method and idempotency key in each fresh native call. Its
+	// individual streaming call remains structurally single-attempt. The
+	// replay owner refuses an unbound request and cannot amplify single-attempt
+	// semantics, including a single attempt that carries an idempotency key.
+	Semantics RequestSemantics
+	Context   context.Context
+	Attempt   StreamAttempt
+	Policy    StreamReplayPolicy
 }
 
 // Validate rejects missing custody, context, or retry policy.
@@ -47,9 +53,16 @@ func (c StreamReplayCall) Validate() error {
 		return errors.Join(core.ErrExchangeContract, err)
 	}
 	if c.Attempt == nil {
-		return errors.Join(core.ErrExchangeContract, errors.New("stream replay attempt is missing"))
+		return requestError(core.ErrExchangeContract)
 	}
-	return c.Policy.Validate()
+	if err := c.Policy.Validate(); err != nil {
+		return err
+	}
+	allowed, err := c.Semantics.AllowsRetry()
+	if err != nil || !allowed && c.Policy.Retry.MaximumAttempts > 1 {
+		return requestError(errors.Join(core.ErrExchangeContract, err))
+	}
+	return nil
 }
 
 // ReplayStream owns retry classification, exponential backoff, jitter, and
@@ -81,9 +94,13 @@ func ReplayStream(call StreamReplayCall) (StreamResponse, error) {
 		}
 		progress, err = waitForRetry(retryWaitRequest{
 			context: operationContext, policy: call.Policy.Retry, progress: progress,
+			retryAfter: response.Metadata.RetryAfter,
 		})
 		if err != nil {
-			return response, RetryExhaustedError{cause: err, attempts: progress.attempts}
+			if errors.Is(err, core.ErrExchangeCancelled) {
+				return response, errors.Join(err, decisionErr)
+			}
+			return response, RetryExhaustedError{cause: errors.Join(decisionErr, err), attempts: progress.attempts}
 		}
 	}
 	return zero, RetryExhaustedError{cause: core.ErrExchangeTransport, attempts: progress.attempts}
@@ -110,6 +127,7 @@ func absentStreamObservation(response StreamResponse) bool {
 	return response.Metadata.Attempts == 0 &&
 		response.Metadata.Status == (core.HTTPStatusCode{}) &&
 		response.Metadata.Bytes == (core.ByteLength{}) &&
+		response.Metadata.RetryAfter.IsZero() &&
 		response.DeclaredRequestBytes == (core.ByteLength{}) &&
 		!response.RequestLengthKnown &&
 		response.Metadata.Headers.Values == nil
@@ -145,5 +163,6 @@ func terminalStreamReplayCause(cause error) bool {
 		errors.Is(cause, core.ErrExchangeRequest) ||
 		errors.Is(cause, core.ErrExchangeRedirect) ||
 		errors.Is(cause, core.ErrExchangeBodyLimit) ||
-		errors.Is(cause, core.ErrExchangeContentType)
+		errors.Is(cause, core.ErrExchangeContentType) ||
+		errors.Is(cause, core.ErrExchangeResponseHeaders)
 }

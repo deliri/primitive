@@ -102,6 +102,12 @@ func TestReplayStreamDownloadHandoffLayerTriad(t *testing.T) {
 		{name: "handoff cancellation preserves status after complete diagnostic drain", status: http.StatusServiceUnavailable, payload: []byte{0x00, 0xff, 0x01}, cancelAtHandoff: true, wantProducerErr: core.ErrExchangeResponse, wantErr: context.Canceled, wantAttempts: 1, wantStatusError: true},
 	}
 	for _, tc := range cases {
+		if tc.wantProducerErr == core.ErrExchangeResponse {
+			tc.wantProducerErr = statusIdentityOracle(tc.status)
+		}
+		if tc.wantErr == core.ErrExchangeResponse {
+			tc.wantErr = statusIdentityOracle(tc.status)
+		}
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			target, err := core.ParseHTTPEndpoint("https://provider.example.test/stream")
@@ -115,7 +121,7 @@ func TestReplayStreamDownloadHandoffLayerTriad(t *testing.T) {
 			var gotAttempts, gotProviderCalls uint64
 			ctx, cancel := context.WithCancel(t.Context())
 			defer cancel()
-			got, gotErr := ReplayStream(StreamReplayCall{
+			got, gotErr := ReplayStream(StreamReplayCall{Semantics: RequestSemantics{Method: MethodGet, Replay: ReplaySafe},
 				Context: ctx, Policy: replayHandoffPolicy(t),
 				Attempt: func(ctx context.Context, attempt uint64) (StreamResponse, error) {
 					gotAttempts++
@@ -222,7 +228,7 @@ func TestReplayStreamCannotRepairInvalidAttemptEvidence(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			calls := 0
-			got, err := ReplayStream(StreamReplayCall{Context: t.Context(), Policy: replayHandoffPolicy(t),
+			got, err := ReplayStream(StreamReplayCall{Semantics: RequestSemantics{Method: MethodGet, Replay: ReplaySafe}, Context: t.Context(), Policy: replayHandoffPolicy(t),
 				Attempt: func(context.Context, uint64) (StreamResponse, error) {
 					calls++
 					return StreamResponse{Metadata: ResponseMetadata{Status: tc.status, Attempts: tc.attempts}}, nil

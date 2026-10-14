@@ -46,9 +46,6 @@ func TestNativeTimePairMatchesGoSignedSaturationOrderingAndMonotonicCarriers(t *
 				t.Parallel()
 				request := NativeTimePair{First: first, Second: second.value}
 				original := request
-				if got, want := DifferenceNativeTimes(request), first.Sub(second.value); got != want {
-					t.Fatalf("difference = %v, want native %v", got, want)
-				}
 				want := core.ComparisonEqual
 				if first.Before(second.value) {
 					want = core.ComparisonLess
@@ -66,64 +63,14 @@ func TestNativeTimePairMatchesGoSignedSaturationOrderingAndMonotonicCarriers(t *
 	}
 }
 
-func TestNativeTimeOffsetPreservesGoFullCalendarAndSignedOffsetDomain(t *testing.T) {
-	t.Parallel()
-	values := nativeTimeCarriersForTest(t)
-	for i, value := range values {
-		for _, offset := range []time.Duration{math.MinInt64, -1, 0, 1, math.MaxInt64} {
-			t.Run(fmt.Sprint(i)+"/"+fmt.Sprint(int64(offset)), func(t *testing.T) {
-				t.Parallel()
-				request := NativeTimeOffsetRequest{Time: value, Offset: offset}
-				original := request
-				if got, want := OffsetNativeTime(request), value.Add(offset); got != want {
-					t.Fatalf("offset = %v, want exact native carrier %v", got, want)
-				}
-				if request != original {
-					t.Fatal("offset operation changed the borrowed carrier")
-				}
-			})
-		}
-	}
-}
-
-func TestNativeTimeFactsPreserveGoZonesEmptyNamesAndZeroValue(t *testing.T) {
-	t.Parallel()
-	for i, value := range nativeTimeCarriersForTest(t) {
-		for _, carrier := range []struct {
-			name  string
-			value time.Time
-		}{
-			{name: "native zone", value: value}, {name: "same instant UTC", value: value.UTC()}, {name: "same instant empty zone", value: value.In(time.FixedZone("", 0))},
-		} {
-			t.Run(fmt.Sprint(i)+"/"+carrier.name, func(t *testing.T) {
-				t.Parallel()
-				name, offset := carrier.value.Zone()
-				want := NativeTimeFacts{ZoneName: name, ZoneOffsetSeconds: offset, Zero: carrier.value.IsZero()}
-				if got := IsNativeTimeZero(carrier.value); got != want.Zero {
-					t.Fatalf("zero predicate = %t, want Go %t", got, want.Zero)
-				}
-				if got := InspectNativeTime(carrier.value); got != want {
-					t.Fatalf("native facts = %+v, want Go %+v", got, want)
-				}
-			})
-		}
-	}
-}
-
-func FuzzNativeTimePairAndOffsetMatchNativeGo(f *testing.F) {
+func FuzzNativeTimePairMatchesNativeGo(f *testing.F) {
 	for _, first := range []int64{math.MinInt64, -1, 0, 1, math.MaxInt64} {
 		for _, second := range []int64{math.MinInt64, -1, 0, 1, math.MaxInt64} {
-			f.Add(first, second, int64(0))
-			f.Add(first, second, int64(math.MinInt64))
-			f.Add(first, second, int64(math.MaxInt64))
+			f.Add(first, second)
 		}
 	}
-	f.Fuzz(func(t *testing.T, first, second, offset int64) {
-		left, right := time.Unix(0, first).UTC(), time.Unix(0, second).UTC()
-		request := NativeTimePair{First: left, Second: right}
-		if got, want := DifferenceNativeTimes(request), left.Sub(right); got != want {
-			t.Fatalf("difference = %v, want Go %v", got, want)
-		}
+	f.Fuzz(func(t *testing.T, first, second int64) {
+		request := NativeTimePair{First: time.Unix(0, first).UTC(), Second: time.Unix(0, second).UTC()}
 		want := core.ComparisonEqual
 		if first < second {
 			want = core.ComparisonLess
@@ -131,32 +78,21 @@ func FuzzNativeTimePairAndOffsetMatchNativeGo(f *testing.F) {
 			want = core.ComparisonGreater
 		}
 		if got := CompareNativeTimes(request); got != want {
-			t.Fatalf("comparison = %v, want integer oracle %v", got, want)
-		}
-		if got, want := OffsetNativeTime(NativeTimeOffsetRequest{Time: left, Offset: time.Duration(offset)}), left.Add(time.Duration(offset)); got != want {
-			t.Fatalf("offset = %v, want exact Go %v", got, want)
+			t.Fatalf("native comparison=%v, want integer order %v", got, want)
 		}
 	})
 }
 
-func BenchmarkNativeTimePairObservableOperations(b *testing.B) {
-	first, second := time.Unix(0, 1), time.Unix(0, 0)
-	var difference time.Duration
-	var comparison core.Comparison
-	var shifted time.Time
-	var facts NativeTimeFacts
+func BenchmarkNativeTimePairObservableComparison(b *testing.B) {
+	request := NativeTimePair{First: time.Unix(0, 1), Second: time.Unix(0, 0)}
+	var got core.Comparison
 	var operations uint64
 	b.ReportAllocs()
-	for i := 0; i < b.N; i++ {
-		request := NativeTimePair{First: first, Second: second}
-		difference = DifferenceNativeTimes(request)
-		comparison = CompareNativeTimes(request)
-		shifted = OffsetNativeTime(NativeTimeOffsetRequest{Time: second, Offset: difference})
-		facts = InspectNativeTime(shifted)
+	for b.Loop() {
+		got = CompareNativeTimes(request)
 		operations++
 	}
-	b.StopTimer()
-	if operations != uint64(b.N) || difference != time.Nanosecond || comparison != core.ComparisonGreater || shifted != first || facts.Zero {
-		b.Fatalf("observed operations %d, outputs %v/%v/%v/%+v", operations, difference, comparison, shifted, facts)
+	if operations != uint64(b.N) || got != core.ComparisonGreater {
+		b.Fatalf("native comparison=%v after %d operations, want greater/%d", got, operations, b.N)
 	}
 }

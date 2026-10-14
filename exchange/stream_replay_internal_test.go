@@ -13,7 +13,7 @@ func TestReplayStreamOwnsFreshAttemptRetryAndFinalMetadata(t *testing.T) {
 	t.Parallel()
 
 	attempts := uint64(0)
-	response, err := ReplayStream(StreamReplayCall{
+	response, err := ReplayStream(StreamReplayCall{Semantics: RequestSemantics{Method: MethodGet, Replay: ReplaySafe},
 		Context: t.Context(), Policy: replayStreamPolicy(t, 3),
 		Attempt: func(_ context.Context, attempt uint64) (StreamResponse, error) {
 			attempts = attempt
@@ -32,7 +32,7 @@ func TestReplayStreamDoesNotReplayRequestContractFailure(t *testing.T) {
 	t.Parallel()
 
 	attempts := 0
-	_, err := ReplayStream(StreamReplayCall{
+	_, err := ReplayStream(StreamReplayCall{Semantics: RequestSemantics{Method: MethodGet, Replay: ReplaySafe},
 		Context: t.Context(), Policy: replayStreamPolicy(t, 3),
 		Attempt: func(context.Context, uint64) (StreamResponse, error) {
 			attempts++
@@ -47,7 +47,7 @@ func TestReplayStreamDoesNotReplayRequestContractFailure(t *testing.T) {
 func TestReplayStreamExhaustionPreservesTypedAttemptCount(t *testing.T) {
 	t.Parallel()
 
-	_, err := ReplayStream(StreamReplayCall{
+	_, err := ReplayStream(StreamReplayCall{Semantics: RequestSemantics{Method: MethodGet, Replay: ReplaySafe},
 		Context: t.Context(), Policy: replayStreamPolicy(t, 2),
 		Attempt: func(context.Context, uint64) (StreamResponse, error) {
 			return StreamResponse{}, transportError(errors.New("transient transport"))
@@ -62,7 +62,7 @@ func TestReplayStreamExhaustionPreservesTypedAttemptCount(t *testing.T) {
 func TestReplayStreamRejectsMissingFreshCustodyFunction(t *testing.T) {
 	t.Parallel()
 
-	_, err := ReplayStream(StreamReplayCall{Context: t.Context(), Policy: replayStreamPolicy(t, 1)})
+	_, err := ReplayStream(StreamReplayCall{Semantics: RequestSemantics{Method: MethodGet, Replay: ReplaySafe}, Context: t.Context(), Policy: replayStreamPolicy(t, 1)})
 	if !errors.Is(err, core.ErrExchangeContract) {
 		t.Fatalf("ReplayStream(nil attempt) error = %v, want %v", err, core.ErrExchangeContract)
 	}
@@ -85,7 +85,7 @@ func TestStreamReplayValidationPreservesNestedContractIdentity(t *testing.T) {
 
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
-		gotErr := (StreamReplayCall{
+		gotErr := (StreamReplayCall{Semantics: RequestSemantics{Method: MethodGet, Replay: ReplaySafe},
 			Context: ctx,
 			Attempt: func(context.Context, uint64) (StreamResponse, error) { return StreamResponse{}, nil },
 			Policy:  replayStreamPolicy(t, 1),

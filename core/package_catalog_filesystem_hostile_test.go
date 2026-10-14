@@ -2,7 +2,9 @@ package core
 
 import (
 	"errors"
+	"io/fs"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -30,27 +32,37 @@ func TestPrimitiveArchitectureCatalogMatchesEveryLandedPackage(t *testing.T) {
 }
 
 func landedPackageNames(root string) ([]string, error) {
-	entries, err := os.ReadDir(root)
-	if err != nil {
-		return nil, errors.Join(ErrPrimitiveContract, err)
-	}
 	packages := make([]string, 0, PrimitivePackageCount)
-	for _, entry := range entries {
-		if !entry.IsDir() || strings.HasPrefix(entry.Name(), ".") || entry.Name() == "_docs" {
-			continue
+	err := filepath.WalkDir(root, func(directory string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return errors.Join(ErrPrimitiveContract, walkErr)
 		}
-		landed, err := directoryHasGoPackage(root + "/" + entry.Name())
+		if !entry.IsDir() || directory == root {
+			return nil
+		}
+		if strings.HasPrefix(entry.Name(), ".") || strings.HasPrefix(entry.Name(), "_") || entry.Name() == "vendor" || entry.Name() == "testdata" {
+			return filepath.SkipDir
+		}
+		landed, err := directoryHasGoPackage(directory)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		if !landed {
-			continue
+			return nil
 		}
-		identity, err := ParsePackageIdentity(entry.Name())
+		name, err := filepath.Rel(root, directory)
 		if err != nil {
-			return nil, errors.Join(ErrPrimitiveContract, err)
+			return err
+		}
+		identity, err := ParsePackageIdentity(filepath.ToSlash(name))
+		if err != nil {
+			return errors.Join(ErrPrimitiveContract, err)
 		}
 		packages = append(packages, identity.String())
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
 	slices.Sort(packages)
 	return packages, nil

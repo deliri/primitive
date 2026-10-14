@@ -143,7 +143,7 @@ func TestImageResizeInspectionLayerTriad(t *testing.T) {
 	}{
 		{name: "real TLS metadata decode retains exact dimensions", status: http.StatusOK, wantCalls: 1},
 		{name: "malformed provider body closes pipe and joins decoder", status: http.StatusOK, malformed: true, wantCalls: 1, wantErr: core.ErrCloudflareResponse},
-		{name: "native absence retains status refusal", status: http.StatusNotFound, wantCalls: 1, wantErr: core.ErrExchangeResponse},
+		{name: "native absence retains status refusal", status: http.StatusNotFound, wantCalls: 1, wantErr: core.ErrExchangeRejected},
 		{name: "caller cancellation emits no observation", cancelled: true, wantErr: context.Canceled},
 		{name: "invalid intent has no external effect", emptyRequest: true, wantErr: core.ErrCloudflareContract},
 	} {
@@ -182,7 +182,7 @@ func TestImageResizeInspectionLayerTriad(t *testing.T) {
 			got, err := client.InspectResize(ctx, request, testPolicy())
 			if tc.status == http.StatusNotFound {
 				var status exchange.StatusError
-				if !errors.As(err, &status) || !status.Status().IsNotFound() {
+				if !errors.As(err, &status) || !status.Status().IsNotFound() || status.Expected() != core.HTTPStatusOK() || errors.Is(err, core.ErrExchangeResponse) {
 					t.Fatalf("status refusal = %v, want typed 404", err)
 				}
 			}

@@ -26,6 +26,7 @@ const (
 	OperationTimeZone
 	OperationKernel
 	OperationEffectiveUser
+	OperationGoCPUConcurrency
 	operationLimit
 )
 
@@ -45,6 +46,7 @@ func operationLabels() [operationLimit]string {
 		OperationTimeZone:         "time zone",
 		OperationKernel:           "kernel",
 		OperationEffectiveUser:    "effective user",
+		OperationGoCPUConcurrency: "Go CPU concurrency",
 	}
 }
 

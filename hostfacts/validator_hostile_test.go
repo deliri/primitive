@@ -72,10 +72,6 @@ func TestGoMemoryAssessmentValidatorClosesSnapshotTriggerPolicyAndState(t *testi
 	if err != nil {
 		t.Fatalf("GoMemoryPressurePolicy(49).TriggerBytes() error = %v, want nil", err)
 	}
-	overSignedLimit, err := core.NewByteCount(math.MaxInt64 + 1)
-	if err != nil {
-		t.Fatalf("core.NewByteCount(MaxInt64+1) error = %v, want nil", err)
-	}
 	cases := []struct {
 		wantErr    error
 		name       string
@@ -87,13 +83,12 @@ func TestGoMemoryAssessmentValidatorClosesSnapshotTriggerPolicyAndState(t *testi
 		{name: "future state is outside the closed domain", assessment: GoMemoryAssessment{snapshot: snapshot, trigger: trigger, policy: policy, state: MemoryPressureState(math.MaxUint8)}, wantErr: core.ErrHostFactsContract},
 		{name: "exact trigger cannot claim healthy", assessment: GoMemoryAssessment{snapshot: snapshot, trigger: trigger, policy: policy, state: MemoryPressureHealthy}, wantErr: core.ErrHostFactsContract},
 		{name: "exact trigger cannot claim disabled", assessment: GoMemoryAssessment{snapshot: snapshot, trigger: trigger, policy: policy, state: MemoryPressureDisabled}, wantErr: core.ErrHostFactsContract},
-		{name: "zero trigger is not a projected byte count", assessment: GoMemoryAssessment{snapshot: snapshot, policy: policy, state: MemoryPressureReached}, wantErr: core.ErrPrimitiveContract},
+		{name: "zero trigger contradicts positive limit", assessment: GoMemoryAssessment{snapshot: snapshot, policy: policy, state: MemoryPressureReached}, wantErr: core.ErrHostFactsContract},
 		{name: "trigger from another percentage is contradictory", assessment: GoMemoryAssessment{snapshot: snapshot, trigger: wrongTrigger, policy: policy, state: MemoryPressureReached}, wantErr: core.ErrHostFactsContract},
 		{name: "zero snapshot system is not an observation", assessment: GoMemoryAssessment{snapshot: GoMemorySnapshot{limit: snapshot.limit}, trigger: trigger, policy: policy, state: MemoryPressureReached}, wantErr: core.ErrHostFactsObservation},
 		{name: "released bytes above system are contradictory", assessment: GoMemoryAssessment{snapshot: GoMemorySnapshot{system: snapshot.system, heapReleased: mustByteLength(t, 51), managed: mustByteLength(t, 0), limit: snapshot.limit}, trigger: trigger, policy: policy, state: MemoryPressureReached}, wantErr: core.ErrHostFactsObservation},
 		{name: "managed bytes must equal system minus released", assessment: GoMemoryAssessment{snapshot: GoMemorySnapshot{system: snapshot.system, heapReleased: snapshot.heapReleased, managed: mustByteLength(t, 49), limit: snapshot.limit}, trigger: trigger, policy: policy, state: MemoryPressureReached}, wantErr: core.ErrHostFactsObservation},
-		{name: "unset runtime limit is not an observation", assessment: GoMemoryAssessment{snapshot: GoMemorySnapshot{system: snapshot.system, heapReleased: snapshot.heapReleased, managed: snapshot.managed}, trigger: trigger, policy: policy, state: MemoryPressureReached}, wantErr: core.ErrHostFactsObservation},
-		{name: "runtime limit above signed domain is not observable", assessment: GoMemoryAssessment{snapshot: GoMemorySnapshot{system: snapshot.system, heapReleased: snapshot.heapReleased, managed: snapshot.managed, limit: overSignedLimit}, trigger: trigger, policy: policy, state: MemoryPressureReached}, wantErr: core.ErrHostFactsObservation},
+		{name: "zero native limit contradicts positive trigger", assessment: GoMemoryAssessment{snapshot: GoMemorySnapshot{system: snapshot.system, heapReleased: snapshot.heapReleased, managed: snapshot.managed}, trigger: trigger, policy: policy, state: MemoryPressureReached}, wantErr: core.ErrHostFactsContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

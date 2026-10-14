@@ -22,4 +22,24 @@ func (d RemovalDurability) Validate() error {
 	}
 }
 
+// IsValid reports whether native removal has an explicit durability policy.
+func (d RemovalDurability) IsValid() bool { return d.Validate() == nil }
+
+// String renders the closed policy for diagnostics.
+func (d RemovalDurability) String() string {
+	switch d {
+	case RemovalDurabilityUnknown:
+		return "unknown"
+	case RemovalDurabilityEphemeral:
+		return "ephemeral"
+	case RemovalDurabilityDurable:
+		return "durable"
+	default:
+		return "invalid"
+	}
+}
+
+// OffWireEnum prevents numeric wire reconstruction outside the owning contract.
+func (RemovalDurability) OffWireEnum() {}
+
 var _ core.Validatable = RemovalDurabilityUnknown

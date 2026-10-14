@@ -3,11 +3,13 @@ package filestore
 import (
 	"context"
 	"errors"
+	"io/fs"
 	"os"
-	"path/filepath"
+	"strconv"
 
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/keygen"
 )
 
 const scratchScopePrefix = "primitive-scratch-"
@@ -15,7 +17,8 @@ const scratchScopePrefix = "primitive-scratch-"
 // ScratchScopeRequest lends a private native root synchronously. The caller
 // owns filenames, schemas, and closure of child handles it acquires. Primitive
 // creates and removes the actual namespace, joins cleanup failures, and closes
-// the borrowed root when Use returns. Use must not retain the root.
+// the borrowed root when Use returns. Use must not retain the root. Root.Name
+// is diagnostic text; child effects must use the borrowed root capability.
 type ScratchScopeRequest struct {
 	Parent core.AbsolutePath
 	Use    func(context.Context, *os.Root) error
@@ -42,23 +45,68 @@ func WithScratchScope(ctx context.Context, request ScratchScopeRequest) (resultE
 		return err
 	}
 	defer func() { resultErr = errors.Join(resultErr, parent.Close()) }()
-	directory, err := os.MkdirTemp(request.Parent.String(), scratchScopePrefix)
+	return withScratchParent(ctx, parent, request.Use)
+}
+
+// Once acquired, the parent descriptor owns every child effect. The pathname
+// used to acquire it is never resolved again, including during cleanup.
+// https://pkg.go.dev/os#Root; keygen owns the native entropy draws.
+func withScratchParent(ctx context.Context, parent *os.Root, use func(context.Context, *os.Root) error) (resultErr error) {
+	directory, err := createScratchDirectory(ctx, parent)
+	if err != nil {
+		return err
+	}
+	info, err := parent.Lstat(directory)
 	if err != nil {
 		return activationError(err)
 	}
 	defer func() {
-		resultErr = errors.Join(resultErr, removeScratchScope(context.WithoutCancel(ctx), parent, directory))
+		resultErr = errors.Join(resultErr, removeScratchScope(context.WithoutCancel(ctx), parent, directory, info))
 	}()
-	root, err := os.OpenRoot(directory)
+	root, err := parent.OpenRoot(directory)
 	if err != nil {
 		return activationError(err)
 	}
 	defer func() { resultErr = errors.Join(resultErr, root.Close()) }()
-	return request.Use(ctx, root)
+	return use(ctx, root)
 }
 
-func removeScratchScope(ctx context.Context, parent *os.Root, directory string) error {
-	path, err := core.ParseRelativePath(filepath.Base(directory))
+func createScratchDirectory(ctx context.Context, parent *os.Root) (string, error) {
+	for {
+		if err := contextstate.Validate(ctx); err != nil {
+			return "", err
+		}
+		first, err := keygen.RandomUint64()
+		if err != nil {
+			return "", err
+		}
+		second, err := keygen.RandomUint64()
+		if err != nil {
+			return "", err
+		}
+		name := scratchScopePrefix + strconv.FormatUint(first, 16) + "-" + strconv.FormatUint(second, 16)
+		if err := parent.Mkdir(name, 0o700); err != nil {
+			if errors.Is(err, fs.ErrExist) {
+				continue
+			}
+			return "", activationError(err)
+		}
+		return name, nil
+	}
+}
+
+func removeScratchScope(ctx context.Context, parent *os.Root, directory string, owned fs.FileInfo) error {
+	current, err := parent.Lstat(directory)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return cleanupError(err)
+	}
+	if !os.SameFile(owned, current) {
+		return cleanupError(core.ErrFilestoreConflict)
+	}
+	path, err := core.ParseRelativePath(directory)
 	if err != nil {
 		return err
 	}

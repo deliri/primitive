@@ -59,6 +59,7 @@ var (
 	_ ValidatedJSONMarshaler = SecretMaterial{}
 	_ ValidatedJSONMarshaler = PathComponent{}
 	_ ValidatedJSONMarshaler = AbsolutePath{}
+	_ ValidatedJSONMarshaler = RelativePath{}
 	_ ValidatedJSONMarshaler = SourcePath{}
 	_ ValidatedJSONMarshaler = RepositoryIdentity{}
 	_ ValidatedJSONMarshaler = SourceSnapshot{}

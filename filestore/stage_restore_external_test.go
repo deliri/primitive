@@ -39,7 +39,7 @@ func TestStageRestorePreservesNativePrefixAndResumesAtItsTail(t *testing.T) {
 			}()
 			payload := []byte{0, 255, 31, 10, 17, 5}
 			written, err := filestore.WriteStage(t.Context(), filestore.StageWriteRequest{Destination: destination, Data: payload})
-			if err != nil || written.Validate() != nil || written.BytesWritten.Uint64() != uint64(len(payload)) {
+			if err != nil || written.Validate() != nil || written.BytesWritten().Uint64() != uint64(len(payload)) {
 				t.Fatalf("initial write = (%v,%v), want exact payload", written, err)
 			}
 			prefix, err := core.NewByteLength(tc.prefix)
@@ -52,7 +52,7 @@ func TestStageRestorePreservesNativePrefixAndResumesAtItsTail(t *testing.T) {
 			}
 			suffix := []byte{14, 255}
 			written, err = filestore.WriteStage(t.Context(), filestore.StageWriteRequest{Destination: destination, Data: suffix})
-			if err != nil || written.Validate() != nil || written.BytesWritten.Uint64() != uint64(len(suffix)) {
+			if err != nil || written.Validate() != nil || written.BytesWritten().Uint64() != uint64(len(suffix)) {
 				t.Fatalf("resumed write = (%v,%v), want exact suffix", written, err)
 			}
 			stage, err := filestore.FinishStageDestination(t.Context(), destination)
@@ -108,7 +108,7 @@ func TestStageRestoreRefusesInvalidCustodyAndExtendingPrefixes(t *testing.T) {
 			}
 			payload := []byte{0, 255, 31, 10}
 			written, err := filestore.WriteStage(t.Context(), filestore.StageWriteRequest{Destination: destination, Data: payload})
-			if err != nil || written.Validate() != nil || written.BytesWritten.Uint64() != uint64(len(payload)) {
+			if err != nil || written.Validate() != nil || written.BytesWritten().Uint64() != uint64(len(payload)) {
 				t.Fatalf("initial write = (%v,%v), want complete native payload", written, err)
 			}
 			selected, ctx := destination, t.Context()
@@ -183,7 +183,7 @@ func TestStageRestoreRefusesInvalidCustodyAndExtendingPrefixes(t *testing.T) {
 			}
 			suffix := []byte{14, 255}
 			written, err = filestore.WriteStage(t.Context(), filestore.StageWriteRequest{Destination: destination, Data: suffix})
-			if err != nil || written.Validate() != nil || written.BytesWritten.Uint64() != uint64(len(suffix)) {
+			if err != nil || written.Validate() != nil || written.BytesWritten().Uint64() != uint64(len(suffix)) {
 				t.Fatalf("original custody = (%v,%v), want exact suffix", written, err)
 			}
 			stage, err := filestore.FinishStageDestination(t.Context(), destination)

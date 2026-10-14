@@ -153,15 +153,17 @@ func Remove(ctx context.Context, request RemovalRequest) error {
 		return err
 	}
 	err := request.Location.Root.Remove(request.Location.Path.String())
-	if errors.Is(err, fs.ErrNotExist) {
-		return nil
-	}
-	if err != nil {
+	absent := errors.Is(err, fs.ErrNotExist)
+	if err != nil && !absent {
 		return cleanupError(err)
 	}
 	if request.Durability == RemovalDurabilityDurable {
-		if err := syncParent(request.Location.Root, request.Location.Path); err != nil {
-			return cleanupError(err)
+		syncErr := syncParent(request.Location.Root, request.Location.Path)
+		if absent && errors.Is(syncErr, fs.ErrNotExist) {
+			syncErr = syncExistingAncestor(request.Location.Root, request.Location.Path)
+		}
+		if syncErr != nil {
+			return cleanupError(syncErr)
 		}
 	}
 	return nil
@@ -170,7 +172,8 @@ func Remove(ctx context.Context, request RemovalRequest) error {
 // RemoveTree durably removes one rooted tree without following a symlink at
 // the named entry. Go owns traversal and bounded buffering;
 // Primitive owns validation, rooted capability confinement, and durability.
-// An already-absent path, including one below a missing parent, is a no-op.
+// An already-absent entry still synchronizes its existing parent or nearest
+// existing ancestor, so retries settle the earlier namespace mutation.
 func RemoveTree(ctx context.Context, request TreeRemovalRequest) error {
 	if err := contextstate.Validate(ctx); err != nil {
 		return err
@@ -178,25 +181,16 @@ func RemoveTree(ctx context.Context, request TreeRemovalRequest) error {
 	if err := request.Validate(); err != nil {
 		return err
 	}
-	// RemoveAll reports nil for both deletion and prior absence. Observe the
-	// entry first so an absent parent needs no invented synchronization. Lstat
-	// keeps a dangling final link occupied and removable.
-	_, err := request.Location.Root.Lstat(request.Location.Path.String())
-	if errors.Is(err, fs.ErrNotExist) {
-		return nil
-	}
-	if err != nil {
+	err := request.Location.Root.RemoveAll(request.Location.Path.String())
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return cleanupError(err)
 	}
-	err = request.Location.Root.RemoveAll(request.Location.Path.String())
-	if errors.Is(err, fs.ErrNotExist) {
-		return nil
+	syncErr := syncParent(request.Location.Root, request.Location.Path)
+	if errors.Is(syncErr, fs.ErrNotExist) {
+		syncErr = syncExistingAncestor(request.Location.Root, request.Location.Path)
 	}
-	if err != nil {
-		return cleanupError(err)
-	}
-	if err := syncParent(request.Location.Root, request.Location.Path); err != nil {
-		return cleanupError(err)
+	if syncErr != nil {
+		return cleanupError(syncErr)
 	}
 	return nil
 }

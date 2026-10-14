@@ -41,11 +41,10 @@ func (u *minorUnitsJSON) UnmarshalJSON(data []byte) error {
 	}
 	value, err := strconv.ParseInt(raw, 10, 64)
 	if err != nil {
-		cause := decimalError(decimalRejectionCanonicalInt64)
 		if errors.Is(err, strconv.ErrRange) {
-			cause = errors.Join(cause, overflowError())
+			return jsonError(errors.Join(overflowError(), err))
 		}
-		return jsonError(errors.Join(cause, err))
+		return jsonError(errors.Join(decimalError(decimalRejectionCanonicalInt64), err))
 	}
 	if strconv.FormatInt(value, 10) != raw {
 		return jsonError(decimalError(decimalRejectionCanonicalInt64))
@@ -112,6 +111,12 @@ func (a *Amount) UnmarshalJSON(data []byte) error {
 	}
 	wire, err := core.DecodeStrictJSON[amountWire](bytes.NewReader(data), limits)
 	if err != nil {
+		if errors.Is(err, core.ErrCurrencyOverflow) {
+			// A range failure belongs to currency arithmetic. Preserve the
+			// complete native JSON and conversion cause chain without adding
+			// a competing currency grammar or contract identity.
+			return jsonError(err)
+		}
 		return jsonError(errors.Join(
 			contractError("currency amount JSON is invalid"),
 			err,

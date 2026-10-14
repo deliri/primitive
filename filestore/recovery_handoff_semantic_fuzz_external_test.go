@@ -12,29 +12,27 @@ import (
 	"github.com/deliri/primitive/v2026/filestore"
 )
 
-// The receipt comes from an actual interrupted Write. A preserved hard link
+// A pre-activation conflict returns no recovery receipt. A preserved hard link
 // keeps the original inode alive, preventing allocator reuse from faking custody.
 func FuzzWriteRecoveryHandoffSemanticCustody(f *testing.F) {
 	emitted, err := filestore.FilestoreRoundTripSeedForTest(f.Context(), f.TempDir())
 	if err != nil {
 		f.Fatal(err)
 	}
-	f.Add(emitted, false, false, true)
+	f.Add(emitted, false, false)
 	for _, seed := range []struct {
-		payload                    []byte
-		replace, occupied, restore bool
+		payload           []byte
+		replace, occupied bool
 	}{
-		{payload: nil, restore: true},
-		{payload: []byte{0, 255}, restore: true},
-		{payload: []byte{0, 255}, occupied: true, restore: true},
-		{payload: []byte{0, 255}, replace: true, occupied: true, restore: true},
-		{payload: []byte{0, 255}, replace: true, restore: true},
 		{payload: nil},
+		{payload: []byte{0, 255}},
 		{payload: []byte{0, 255}, occupied: true},
+		{payload: []byte{0, 255}, replace: true, occupied: true},
+		{payload: []byte{0, 255}, replace: true},
 	} {
-		f.Add(seed.payload, seed.replace, seed.occupied, seed.restore)
+		f.Add(seed.payload, seed.replace, seed.occupied)
 	}
-	f.Fuzz(func(t *testing.T, payload []byte, replace, occupied, restore bool) {
+	f.Fuzz(func(t *testing.T, payload []byte, replace, occupied bool) {
 		payload = payload[:min(len(payload), 2048)]
 		directory := t.TempDir()
 		root := requireTestRoot(t, directory)
@@ -73,8 +71,8 @@ func FuzzWriteRecoveryHandoffSemanticCustody(f *testing.F) {
 		if source.swapErr != nil || !source.swapped {
 			t.Fatalf("namespace substitution = (%t,%v), want real mutation", source.swapped, source.swapErr)
 		}
-		if !errors.Is(gotErr, core.ErrFilestoreActivationIndeterminate) || got.Validate() != nil || got.Target != target || got.Install != install || got.Staged.Path() != temporary || got.Staged.BytesWritten().Uint64() != uint64(len(payload)) {
-			t.Fatalf("Write handoff = (%+v,%v), want exact indeterminate request", got, gotErr)
+		if !errors.Is(gotErr, core.ErrFilestoreConflict) || errors.Is(gotErr, core.ErrFilestoreActivationIndeterminate) || got != (filestore.CommitRequest{}) {
+			t.Fatalf("Write handoff = (%+v,%v), want conflict and zero recovery", got, gotErr)
 		}
 		archived, err := root.Lstat("archive")
 		if err != nil {
@@ -86,12 +84,6 @@ func FuzzWriteRecoveryHandoffSemanticCustody(f *testing.F) {
 		}
 		if os.SameFile(archived, stranger) {
 			t.Fatalf("substituted inode = %v, want distinct from %v", stranger, archived)
-		}
-		if err := filestore.Recover(t.Context(), got); !errors.Is(err, core.ErrFilestoreActivationIndeterminate) {
-			t.Fatalf("foreign Recover = %v, want indeterminate", err)
-		}
-		if err := filestore.Discard(t.Context(), got.Staged); !errors.Is(err, core.ErrFilestoreCleanup) || !errors.Is(err, core.ErrFilestoreConflict) {
-			t.Fatalf("foreign Discard = %v, want cleanup and conflict", err)
 		}
 		kept, err := root.Lstat(temporary.String())
 		if err != nil {
@@ -105,74 +97,15 @@ func FuzzWriteRecoveryHandoffSemanticCustody(f *testing.F) {
 		if occupied {
 			wantEntries++
 		}
-		installed := false
-		if restore {
-			if err := root.Remove(temporary.String()); err != nil {
-				t.Fatal(err)
-			}
-			if err := root.Rename("archive", temporary.String()); err != nil {
-				t.Fatal(err)
-			}
-			gotErr := filestore.Recover(t.Context(), got)
-			if occupied && !replace {
-				if !errors.Is(gotErr, core.ErrFilestoreConflict) || !errors.Is(gotErr, fs.ErrExist) {
-					t.Fatalf("create recovery = %v, want conflict and native existence", gotErr)
-				}
-				stageInfo, err := root.Lstat(temporary.String())
-				if err != nil {
-					t.Fatal(err)
-				}
-				stageBytes, err := os.ReadFile(filepath.Join(directory, temporary.String()))
-				if err != nil || !os.SameFile(stageInfo, archived) || !bytes.Equal(stageBytes, payload) {
-					t.Fatalf("refused recovery stage = (%v,%v,%v), want original inode and bytes", stageInfo, stageBytes, err)
-				}
-				if err := filestore.Discard(t.Context(), got.Staged); err != nil {
-					t.Fatal(err)
-				}
-			} else {
-				if gotErr != nil {
-					t.Fatalf("restored recovery = %v, want nil", gotErr)
-				}
-				installed = true
-				first, err := root.Lstat(target.String())
-				if err != nil {
-					t.Fatal(err)
-				}
-				if err := filestore.Recover(t.Context(), got); err != nil {
-					t.Fatalf("completed recovery = %v, want idempotent success", err)
-				}
-				second, err := root.Lstat(target.String())
-				if err != nil {
-					t.Fatal(err)
-				}
-				if !os.SameFile(first, second) || first.Mode() != second.Mode() || !first.ModTime().Equal(second.ModTime()) {
-					t.Fatalf("repeated recovery = %v, want unchanged %v", second, first)
-				}
-			}
-			wantEntries = 2
-			for _, name := range []string{temporary.String(), "archive"} {
-				if _, err := root.Lstat(name); !errors.Is(err, fs.ErrNotExist) {
-					t.Fatalf("settled %s = %v, want absent", name, err)
-				}
-			}
-		} else {
-			archiveBytes, err := os.ReadFile(filepath.Join(directory, "archive"))
-			if err != nil || !bytes.Equal(archiveBytes, payload) {
-				t.Fatalf("preserved original = (%v,%v), want %v", archiveBytes, err, payload)
-			}
+		archiveBytes, err := os.ReadFile(filepath.Join(directory, "archive"))
+		if err != nil || !bytes.Equal(archiveBytes, payload) {
+			t.Fatalf("preserved original = (%v,%v), want %v", archiveBytes, err, payload)
 		}
-		if installed || occupied {
-			wantBytes, wantInfo := original, originalInfo
-			if installed {
-				wantBytes, wantInfo = payload, archived
-			}
-			info, err := root.Lstat(target.String())
-			if err != nil {
-				t.Fatal(err)
-			}
-			data, err := os.ReadFile(filepath.Join(directory, target.String()))
-			if err != nil || !bytes.Equal(data, wantBytes) || !os.SameFile(info, wantInfo) || info.Mode() != wantInfo.Mode() || !info.ModTime().Equal(wantInfo.ModTime()) {
-				t.Fatalf("target = (%v,%v,%v), want exact bytes and inode %v", info, data, err, wantInfo)
+		if occupied {
+			info, statErr := root.Lstat(target.String())
+			data, readErr := root.ReadFile(target.String())
+			if statErr != nil || readErr != nil || !bytes.Equal(data, original) || !os.SameFile(info, originalInfo) {
+				t.Fatalf("unactivated target = (%v,%x,%v,%v), want exact original target", info, data, statErr, readErr)
 			}
 		} else if _, err := root.Lstat(target.String()); !errors.Is(err, fs.ErrNotExist) {
 			t.Fatalf("unpublished target = %v, want absent", err)

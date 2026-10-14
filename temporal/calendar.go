@@ -1,7 +1,12 @@
 package temporal
 
-import "time"
+import (
+	"time"
 
+	"github.com/deliri/primitive/v2026/core"
+)
+
+// Month is the closed Gregorian month domain, matching Go January=1.
 type Month uint8
 
 const (
@@ -20,6 +25,7 @@ const (
 	December
 )
 
+// Weekday is the closed ISO weekday domain, Monday=1 through Sunday=7.
 type Weekday uint8
 
 const (
@@ -31,6 +37,55 @@ const (
 	Friday
 	Saturday
 	Sunday
+)
+
+// Validate refuses unknown and future Gregorian months.
+func (m Month) Validate() error {
+	if m < January || m > December {
+		return contractError("calendar month is invalid")
+	}
+	return nil
+}
+
+// IsValid reports membership in the Gregorian month domain.
+func (m Month) IsValid() bool { return m.Validate() == nil }
+
+// OffWireEnum marks months as compiler-owned calendar coordinates.
+func (Month) OffWireEnum() {}
+
+// String projects Go's native month diagnostic.
+func (m Month) String() string {
+	if !m.IsValid() {
+		return core.UnknownEnumDiagnostic
+	}
+	return time.Month(m).String()
+}
+
+// Validate refuses unknown and future ISO weekdays.
+func (d Weekday) Validate() error {
+	if d < Monday || d > Sunday {
+		return contractError("calendar weekday is invalid")
+	}
+	return nil
+}
+
+// IsValid reports membership in the ISO weekday domain.
+func (d Weekday) IsValid() bool { return d.Validate() == nil }
+
+// OffWireEnum marks weekdays as compiler-owned calendar coordinates.
+func (Weekday) OffWireEnum() {}
+
+// String projects Go's native weekday diagnostic.
+func (d Weekday) String() string {
+	if !d.IsValid() {
+		return core.UnknownEnumDiagnostic
+	}
+	return time.Weekday(int(d) % 7).String()
+}
+
+var (
+	_ core.OffWireEnum = MonthUnknown
+	_ core.OffWireEnum = WeekdayUnknown
 )
 
 // UTCDateTime names exact Gregorian coordinates. Unlike time.Date, admission

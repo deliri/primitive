@@ -93,8 +93,8 @@ func TestStageDestinationStreamsLargeExtentFromOneReusableChunk(t *testing.T) {
 	chunk := make([]byte, 64<<10)
 	const chunks = 145
 	for range chunks {
-		if observation, err := filestore.WriteStage(t.Context(), filestore.StageWriteRequest{Destination: destination, Data: chunk}); observation.Validate() != nil || observation.BytesWritten.Uint64() != uint64(len(chunk)) || err != nil {
-			t.Fatalf("streamed chunk = (%d, %v), want (%d, nil)", observation.BytesWritten.Uint64(), err, len(chunk))
+		if observation, err := filestore.WriteStage(t.Context(), filestore.StageWriteRequest{Destination: destination, Data: chunk}); observation.Validate() != nil || observation.BytesWritten().Uint64() != uint64(len(chunk)) || err != nil {
+			t.Fatalf("streamed chunk = (%d, %v), want (%d, nil)", observation.BytesWritten().Uint64(), err, len(chunk))
 		}
 	}
 	staged, err := filestore.FinishStageDestination(t.Context(), destination)
@@ -176,7 +176,7 @@ func TestStageDestinationWritesThroughLinearNativeCustody(t *testing.T) {
 				payload = nil
 			}
 			observation, err := filestore.WriteStage(t.Context(), filestore.StageWriteRequest{Destination: selected, Data: payload})
-			n := observation.BytesWritten.Uint64()
+			n := observation.BytesWritten().Uint64()
 			if refused := tc.nilHandle || tc.zeroHandle || tc.copied || tc.settled; refused != (observation.Validate() != nil) {
 				t.Fatalf("observation validity disagrees with native execution: %v, %v", observation.Validate(), err)
 			}

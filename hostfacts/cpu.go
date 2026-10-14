@@ -8,8 +8,9 @@ import (
 )
 
 // LogicalCPUCount is the Go runtime's immutable observation of the logical
-// CPUs available to the current process. It is a host fact, not a worker or
-// scheduling policy.
+// CPUs accessible at process startup. It does not observe a container CPU
+// quota; use ObserveGoCPUConcurrency for Go's current execution budget.
+// https://pkg.go.dev/runtime#NumCPU
 type LogicalCPUCount struct {
 	count int
 }

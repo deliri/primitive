@@ -60,7 +60,7 @@ func FuzzCapturedHeadersPreserveExactSelection(f *testing.F) {
 		wantRefused := selected && count > 0 && (count > exchange.HeaderValueMaximumCount || len(wire) > exchange.HeaderValueMaximumBytes || !grammarAccepted)
 		var wantErr error
 		if wantRefused {
-			wantErr = core.ErrExchangeResponse
+			wantErr = core.ErrExchangeResponseHeaders
 		}
 		if !errors.Is(gotErr, wantErr) {
 			t.Fatalf("capture error = %v, want %v", gotErr, wantErr)

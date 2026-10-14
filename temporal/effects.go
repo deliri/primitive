@@ -2,6 +2,7 @@ package temporal
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/deliri/primitive/v2026/contextstate"
@@ -156,7 +157,7 @@ func containContextConstructorPanic(result *contextConstruction) {
 // duration returns immediately without acquiring a timer.
 func Wait(request WaitRequest) error {
 	if err := request.Validate(); err != nil {
-		return err
+		return preserveContextCause(request.Context, err)
 	}
 	if request.Duration.IsZero() {
 		return nil
@@ -171,7 +172,7 @@ func Wait(request WaitRequest) error {
 	case <-request.Context.Done():
 		return terminalContextError(request.Context)
 	case <-timer.C:
-		return contextstate.Validate(request.Context)
+		return preserveContextCause(request.Context, contextstate.Validate(request.Context))
 	}
 }
 
@@ -182,12 +183,31 @@ func terminalContextError(ctx context.Context) error {
 	}
 	switch state {
 	case contextstate.StateCancelled:
-		return context.Canceled
+		return preserveContextCause(ctx, context.Canceled)
 	case contextstate.StateDeadlineExceeded:
-		return context.DeadlineExceeded
+		return preserveContextCause(ctx, context.DeadlineExceeded)
 	default:
 		return core.ErrContextObservation
 	}
+}
+
+func preserveContextCause(ctx context.Context, terminal error) error {
+	if terminal != context.Canceled && terminal != context.DeadlineExceeded {
+		return terminal
+	}
+	return errors.Join(terminal, nativeContextCause(ctx))
+}
+
+func nativeContextCause(ctx context.Context) (cause error) {
+	// Contextstate contains Err panics; custom contexts may also panic from
+	// Value, which context.Cause calls. Preserve the terminal observation.
+	cause = core.ErrContextObservation
+	defer func() {
+		if recover() != nil {
+			cause = core.ErrContextObservation
+		}
+	}()
+	return context.Cause(ctx)
 }
 
 // OpenTicker returns a caller-owned real standard-library ticker capability.

@@ -2,7 +2,6 @@ package filestore
 
 import (
 	"context"
-	"errors"
 
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
@@ -21,15 +20,18 @@ func (r StageWriteRequest) Validate() error { return r.Destination.Validate() }
 // It does not prove synchronization or publication; finish owns that receipt.
 // Its zero value is invalid because no native write was observed.
 type StageWriteObservation struct {
-	BytesWritten core.ByteLength
+	bytesWritten core.ByteLength
 	observed     bool
 }
 
+// BytesWritten returns the exact native progress, including a failed partial write.
+func (o StageWriteObservation) BytesWritten() core.ByteLength { return o.bytesWritten }
+
 func (o StageWriteObservation) Validate() error {
 	if !o.observed {
-		return contractError(errors.New("filestore stage write was not observed"))
+		return core.ErrFilestoreContract
 	}
-	return o.BytesWritten.Validate()
+	return o.bytesWritten.Validate()
 }
 
 // WriteStage validates context and linear custody before calling Go's file
@@ -46,7 +48,7 @@ func WriteStage(ctx context.Context, request StageWriteRequest) (StageWriteObser
 	if err != nil {
 		return StageWriteObservation{}, sizeError(err)
 	}
-	observation := StageWriteObservation{BytesWritten: length, observed: true}
+	observation := StageWriteObservation{bytesWritten: length, observed: true}
 	if writeErr != nil {
 		return observation, destinationError(writeErr)
 	}

@@ -9,7 +9,6 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/filestore"
-	"github.com/deliri/primitive/v2026/hostfacts"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -30,12 +29,12 @@ func TestRootScopeClosesBorrowedNativeRootOnReturnRefusalAndPanic(t *testing.T) 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			parent, err := hostfacts.TemporaryDirectory()
+			parent, err := core.ParseAbsolutePath(t.TempDir())
 			if err != nil {
 				t.Fatal(err)
 			}
-			err = filestore.WithScratchScope(t.Context(), filestore.ScratchScopeRequest{Parent: parent, Use: func(ctx context.Context, fixture *os.Root) error {
-				dir, err := core.ParseAbsolutePath(fixture.Name())
+			err = func(ctx context.Context) error {
+				dir, err := core.ParseAbsolutePath(parent.String())
 				if err != nil {
 					return err
 				}
@@ -78,7 +77,7 @@ func TestRootScopeClosesBorrowedNativeRootOnReturnRefusalAndPanic(t *testing.T) 
 					t.Errorf("borrowed root after return = %v, want closed identity", openErr)
 				}
 				return nil
-			}})
+			}(t.Context())
 			if err != nil {
 				t.Fatalf("native fixture lifetime = %v, want nil", err)
 			}
@@ -88,7 +87,7 @@ func TestRootScopeClosesBorrowedNativeRootOnReturnRefusalAndPanic(t *testing.T) 
 
 func TestRootScopeRejectsInvalidIngressWithoutCallingPolicy(t *testing.T) {
 	t.Parallel()
-	parent, err := hostfacts.TemporaryDirectory()
+	parent, err := core.ParseAbsolutePath(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}

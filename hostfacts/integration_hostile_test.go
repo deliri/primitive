@@ -136,19 +136,18 @@ func TestGoMemoryAssessmentThresholdAndRuntimePath(t *testing.T) {
 	}
 	policy := GoMemoryPressurePolicy{TriggerPercent: percent}
 	cases := []struct {
-		name        string
-		system      uint64
-		released    uint64
-		limit       int64
-		wantState   MemoryPressureState
-		wantErr     core.ErrorIdentity
-		wantFailure bool
+		name      string
+		system    uint64
+		released  uint64
+		limit     int64
+		wantState MemoryPressureState
 	}{
 		{name: "one below trigger is healthy", system: 49, released: 0, limit: 100, wantState: MemoryPressureHealthy},
-		{name: "exact trigger is reached", system: 50, released: 0, limit: 100, wantState: MemoryPressureReached, wantErr: core.ErrMemoryLimitReached, wantFailure: true},
-		{name: "one above trigger is reached", system: 51, released: 0, limit: 100, wantState: MemoryPressureReached, wantErr: core.ErrMemoryLimitReached, wantFailure: true},
+		{name: "exact trigger is reached", system: 50, released: 0, limit: 100, wantState: MemoryPressureReached},
+		{name: "one above trigger is reached", system: 51, released: 0, limit: 100, wantState: MemoryPressureReached},
 		{name: "released heap lowers managed bytes below trigger", system: 100, released: 51, limit: 100, wantState: MemoryPressureHealthy},
-		{name: "released heap leaves exact trigger", system: 100, released: 50, limit: 100, wantState: MemoryPressureReached, wantErr: core.ErrMemoryLimitReached, wantFailure: true},
+		{name: "released heap leaves exact trigger", system: 100, released: 50, limit: 100, wantState: MemoryPressureReached},
+		{name: "zero native limit is reached", system: 1, released: 0, limit: 0, wantState: MemoryPressureReached},
 		{name: "canonical maximum limit is disabled", system: 1, released: 0, limit: math.MaxInt64, wantState: MemoryPressureDisabled},
 	}
 	for _, tc := range cases {
@@ -160,17 +159,14 @@ func TestGoMemoryAssessmentThresholdAndRuntimePath(t *testing.T) {
 				t.Fatalf("newGoMemorySnapshot() error = %v, want nil", snapshotErr)
 			}
 			got, gotErr := assessGoMemorySnapshot(snapshot, policy)
-			if tc.wantFailure && !errors.Is(gotErr, tc.wantErr) {
-				t.Fatalf("assessGoMemorySnapshot() error = %v, want %v", gotErr, tc.wantErr)
-			}
-			if !tc.wantFailure && gotErr != nil {
+			if gotErr != nil {
 				t.Fatalf("assessGoMemorySnapshot() error = %v, want nil", gotErr)
 			}
 			if got.State() != tc.wantState || got.Validate() != nil {
 				t.Fatalf("assessGoMemorySnapshot() = %v, want valid state %v", got, tc.wantState)
 			}
 			system, systemErr := got.Snapshot().SystemBytes().Uint64()
-			limit, limitErr := got.Snapshot().LimitBytes().Uint64()
+			limit, limitErr := got.Snapshot().LimitBytes().Uint64(), got.Snapshot().LimitBytes().Validate()
 			wantManaged := tc.system - tc.released
 			wantTrigger, triggerErr := policy.TriggerBytes(got.Snapshot().LimitBytes())
 			if systemErr != nil || limitErr != nil || triggerErr != nil ||

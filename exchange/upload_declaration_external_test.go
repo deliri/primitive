@@ -32,9 +32,9 @@ func TestUploadEarlyResponseDeclarationLayerTriad(t *testing.T) {
 		roundTrip     bool
 	}{
 		{name: "successful early response cannot prove unconsumed request bytes", status: http.StatusOK},
-		{name: "refused early response cannot prove unconsumed request bytes", status: http.StatusRequestEntityTooLarge, wantErr: core.ErrExchangeResponse},
+		{name: "refused early response cannot prove unconsumed request bytes", status: http.StatusRequestEntityTooLarge, wantErr: core.ErrExchangeRejected},
 		{name: "round trip successful early response preserves declaration without delivery claim", status: http.StatusOK, roundTrip: true},
-		{name: "round trip refused early response preserves declaration without delivery claim", status: http.StatusRequestEntityTooLarge, wantErr: core.ErrExchangeResponse, roundTrip: true},
+		{name: "round trip refused early response preserves declaration without delivery claim", status: http.StatusRequestEntityTooLarge, wantErr: core.ErrExchangeRejected, roundTrip: true},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

@@ -47,25 +47,25 @@ func (p GoMemoryPressurePolicy) Validate() error {
 	return p.TriggerPercent.Validate()
 }
 
-// TriggerBytes projects the policy over a positive observed limit using exact
+// TriggerBytes projects the policy over a nonnegative native limit using exact
 // upward rounding.
-func (p GoMemoryPressurePolicy) TriggerBytes(limit core.ByteCount) (core.ByteCount, error) {
+func (p GoMemoryPressurePolicy) TriggerBytes(limit core.ByteLength) (core.ByteLength, error) {
 	if err := p.Validate(); err != nil {
-		return core.ByteCount{}, err
+		return core.ByteLength{}, err
 	}
-	value, err := limit.Uint64()
-	if err != nil {
-		return core.ByteCount{}, errors.Join(core.ErrHostFactsObservation, err)
+	if err := limit.Validate(); err != nil {
+		return core.ByteLength{}, errors.Join(core.ErrHostFactsObservation, err)
 	}
+	value := limit.Uint64()
 	percent, _ := p.TriggerPercent.Uint8()
 	high, low := bits.Mul64(value, uint64(percent))
 	quotient, remainder := bits.Div64(high, low, percentDenominator)
 	if remainder != 0 {
 		quotient++
 	}
-	trigger, err := core.NewByteCount(quotient)
+	trigger, err := core.NewByteLength(quotient)
 	if err != nil {
-		return core.ByteCount{}, errors.Join(core.ErrHostFactsContract, err)
+		return core.ByteLength{}, errors.Join(core.ErrHostFactsContract, err)
 	}
 	return trigger, nil
 }
@@ -85,18 +85,18 @@ type GoMemorySnapshot struct {
 	system       core.ByteCount
 	heapReleased core.ByteLength
 	managed      core.ByteLength
-	limit        core.ByteCount
+	limit        core.ByteLength
 }
 
 func newGoMemorySnapshot(system, heapReleased uint64, limit int64) (GoMemorySnapshot, error) {
-	if system == 0 || heapReleased > system || limit <= 0 {
+	if system == 0 || heapReleased > system || limit < 0 {
 		return GoMemorySnapshot{}, errors.Join(
 			core.ErrHostFactsObservation,
 			errors.New("go memory snapshot is internally contradictory"),
 		)
 	}
 	systemBytes, systemErr := core.NewByteCount(system)
-	limitBytes, limitErr := core.NewByteCount(uint64(limit))
+	limitBytes, limitErr := core.NewByteLength(uint64(limit))
 	if err := errors.Join(systemErr, limitErr); err != nil {
 		return GoMemorySnapshot{}, errors.Join(core.ErrHostFactsObservation, err)
 	}
@@ -117,7 +117,7 @@ func newGoMemorySnapshot(system, heapReleased uint64, limit int64) (GoMemorySnap
 // Validate closes every arithmetic relationship in the snapshot.
 func (s GoMemorySnapshot) Validate() error {
 	system, systemErr := s.system.Uint64()
-	limit, limitErr := s.limit.Uint64()
+	limit, limitErr := s.limit.Uint64(), s.limit.Validate()
 	if errors.Join(systemErr, limitErr, s.heapReleased.Validate(), s.managed.Validate()) != nil ||
 		s.heapReleased.Uint64() > system ||
 		s.managed.Uint64() != system-s.heapReleased.Uint64() ||
@@ -143,7 +143,7 @@ func (s GoMemorySnapshot) ManagedBytes() core.ByteLength {
 }
 
 // LimitBytes returns the current Go soft memory limit.
-func (s GoMemorySnapshot) LimitBytes() core.ByteCount {
+func (s GoMemorySnapshot) LimitBytes() core.ByteLength {
 	return s.limit
 }
 
@@ -195,7 +195,7 @@ func (s MemoryPressureState) String() string {
 // GoMemoryAssessment is a validated snapshot, trigger, policy, and state.
 type GoMemoryAssessment struct {
 	snapshot GoMemorySnapshot
-	trigger  core.ByteCount
+	trigger  core.ByteLength
 	policy   GoMemoryPressurePolicy
 	state    MemoryPressureState
 }
@@ -221,7 +221,7 @@ func (a GoMemoryAssessment) Snapshot() GoMemorySnapshot {
 }
 
 // TriggerBytes returns the projected trigger.
-func (a GoMemoryAssessment) TriggerBytes() core.ByteCount {
+func (a GoMemoryAssessment) TriggerBytes() core.ByteLength {
 	return a.trigger
 }
 
@@ -245,27 +245,19 @@ func assessGoMemorySnapshot(snapshot GoMemorySnapshot, policy GoMemoryPressurePo
 	if err := assessment.Validate(); err != nil {
 		return GoMemoryAssessment{}, err
 	}
-	if state == MemoryPressureReached {
-		return assessment, core.ErrMemoryLimitReached
-	}
 	return assessment, nil
 }
 
 func classifyMemoryPressure(
 	snapshot GoMemorySnapshot,
-	trigger core.ByteCount,
+	trigger core.ByteLength,
 ) MemoryPressureState {
-	limit, _ := snapshot.limit.Uint64()
+	limit := snapshot.limit.Uint64()
 	if limit == math.MaxInt64 {
 		return MemoryPressureDisabled
 	}
-	if snapshot.managed.Uint64() >= mustByteCountValue(trigger) {
+	if snapshot.managed.Uint64() >= trigger.Uint64() {
 		return MemoryPressureReached
 	}
 	return MemoryPressureHealthy
-}
-
-func mustByteCountValue(value core.ByteCount) uint64 {
-	result, _ := value.Uint64()
-	return result
 }

@@ -3,7 +3,6 @@ package core
 import (
 	"errors"
 	"iter"
-	"strings"
 )
 
 const (
@@ -167,6 +166,12 @@ const (
 	PackageRequestBudget
 	// PackageBackground identifies owned native asynchronous callback execution.
 	PackageBackground
+	// PackageAI identifies the provider-independent streaming AI SDK contract.
+	PackageAI
+	// PackageAIClaude identifies the Anthropic direct API adapter.
+	PackageAIClaude
+	// PackageAIChatGPT identifies the OpenAI direct API adapter.
+	PackageAIChatGPT
 	packageIdentityLimit
 )
 
@@ -278,6 +283,9 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageJSONIO, Kind: PackageKindProduction, Role: PackageRoleValueContract},
 			{Identity: PackageRequestBudget, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
 			{Identity: PackageBackground, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
+			{Identity: PackageAI, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
+			{Identity: PackageAIClaude, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
+			{Identity: PackageAIChatGPT, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 		},
 	}
 }
@@ -529,6 +537,9 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"jsonio",
 		"requestbudget",
 		"background",
+		"ai",
+		"ai/claude",
+		"ai/chatgpt",
 	}
 }
 
@@ -550,8 +561,8 @@ func (c ArchitectureCatalog) validatePackages() error {
 
 // ParsePackageIdentity parses one canonical package name.
 func ParsePackageIdentity(value string) (PackageIdentity, error) {
-	if value == "" || strings.Contains(value, "/") {
-		return PackageUnknown, architectureContractError("package name is empty or contains a path separator")
+	if value == "" {
+		return PackageUnknown, architectureContractError("package name is empty")
 	}
 	for identity := PackageCore; identity < packageIdentityLimit; identity++ {
 		if packageIdentityText(identity) == value {

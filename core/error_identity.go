@@ -197,6 +197,21 @@ const (
 	ErrExchangeRetryExhausted
 	// ErrExchangeWrite identifies an exchange write failure.
 	ErrExchangeWrite
+	// ErrExchangeAuthentication identifies a provider authentication refusal.
+	ErrExchangeAuthentication
+	// ErrExchangeRateLimited identifies a provider rate-limit refusal.
+	ErrExchangeRateLimited
+	// ErrExchangeUnavailable identifies a provider unavailable response.
+	ErrExchangeUnavailable
+	// ErrExchangeRejected identifies a provider request rejection.
+	ErrExchangeRejected
+	// ErrExchangeResponseHeaders identifies malformed observed HTTP headers.
+	ErrExchangeResponseHeaders
+	// ErrExchangeCallbackPanic identifies a panicking exchange scope consumer.
+	ErrExchangeCallbackPanic
+	// ErrExchangeCallbackExit identifies an exchange callback that exits its
+	// goroutine instead of returning to its lifetime owner.
+	ErrExchangeCallbackExit
 
 	// ErrFuzzArtifactContract identifies a fuzz-artifact contract violation.
 	ErrFuzzArtifactContract
@@ -586,6 +601,18 @@ const (
 	ErrBackgroundStopped
 	// ErrBackgroundCallbackPanic identifies a contained callback panic.
 	ErrBackgroundCallbackPanic
+	// ErrAIContract identifies an invalid AI SDK request or capability.
+	ErrAIContract
+	// ErrAIAuthentication identifies invalid provider credential projection.
+	ErrAIAuthentication
+	// ErrAIBinding identifies a foreign provider, operation or HTTP route.
+	ErrAIBinding
+	// ErrAIRateLimited identifies native provider throttling (HTTP 429).
+	ErrAIRateLimited
+	// ErrAIUnavailable identifies native provider overload or service failure.
+	ErrAIUnavailable
+	// ErrAIRequestRejected identifies a provider refusal of request facts.
+	ErrAIRequestRejected
 	errorIdentityLimit
 )
 
@@ -670,6 +697,13 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrExchangeTransport, text: "exchange transport failed"},
 		{identity: ErrExchangeRetryExhausted, text: "exchange retry budget exhausted"},
 		{identity: ErrExchangeWrite, text: "exchange write failed"},
+		{identity: ErrExchangeAuthentication, text: "exchange authentication refused"},
+		{identity: ErrExchangeRateLimited, text: "exchange rate limited"},
+		{identity: ErrExchangeUnavailable, text: "exchange provider unavailable"},
+		{identity: ErrExchangeRejected, text: "exchange provider request rejected"},
+		{identity: ErrExchangeResponseHeaders, text: "exchange response headers rejected"},
+		{identity: ErrExchangeCallbackPanic, text: "exchange scope callback panicked"},
+		{identity: ErrExchangeCallbackExit, text: "exchange scope callback exited without returning"},
 		{identity: ErrFuzzArtifactContract, text: "fuzz artifact contract violation"},
 		{identity: ErrFuzzArtifactFormat, text: "Go fuzz artifact format unsupported"},
 		{identity: ErrFuzzArtifactObservation, text: "fuzz artifact observation failed"},
@@ -846,6 +880,12 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrBackgroundCapacity, text: "background callback capacity unavailable"},
 		{identity: ErrBackgroundStopped, text: "background callback executor stopped"},
 		{identity: ErrBackgroundCallbackPanic, text: "background callback panicked"},
+		{identity: ErrAIContract, text: "ai contract violation"},
+		{identity: ErrAIAuthentication, text: "ai authentication failed"},
+		{identity: ErrAIBinding, text: "ai binding failed"},
+		{identity: ErrAIRateLimited, text: "ai provider rate limited"},
+		{identity: ErrAIUnavailable, text: "ai provider unavailable"},
+		{identity: ErrAIRequestRejected, text: "ai provider rejected request"},
 	}
 }
 
@@ -947,6 +987,10 @@ func isAdmittedErrorIdentity(identity ErrorIdentity) bool {
 }
 
 func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
+	if errorIdentityIn(identity, ErrAIContract, ErrAIAuthentication, ErrAIBinding,
+		ErrAIRateLimited, ErrAIUnavailable, ErrAIRequestRejected) {
+		return oneErrorIdentityParent(ErrPrimitiveContract)
+	}
 	if errorIdentityIn(identity, ErrBackgroundCapacity, ErrBackgroundStopped, ErrBackgroundCallbackPanic) {
 		return oneErrorIdentityParent(ErrBackgroundContract)
 	}
@@ -1048,8 +1092,7 @@ func errorIdentityParentsFilestoreThroughUpgrade(identity ErrorIdentity) errorId
 		ErrUpgradeConflict) {
 		return oneErrorIdentityParent(ErrUpgradeContract)
 	}
-	if errorIdentityIn(identity, ErrFilestoreSize, ErrFilestoreSource, ErrFilestoreDestination,
-		ErrFilestoreConflict, ErrFilestoreActivation, ErrFilestoreCleanup, ErrFilestoreCallbackPanic) {
+	if identity == ErrFilestoreSize {
 		return oneErrorIdentityParent(ErrFilestoreContract)
 	}
 	if identity == ErrFilestoreActivationIndeterminate {
@@ -1170,7 +1213,7 @@ func errorIdentityParentsRunProtocolThroughKeygen(identity ErrorIdentity) errorI
 		return oneErrorIdentityParent(ErrCurrencyContract)
 	}
 	if identity == ErrCurrencyOverflow {
-		return twoErrorIdentityParents(ErrCurrencyContract, ErrNumericOverflow)
+		return errorIdentityParentSet{}
 	}
 	if identity == ErrKeygenEntropy {
 		return oneErrorIdentityParent(ErrKeygenContract)

@@ -38,8 +38,15 @@ func FuzzContentIndexCanonicalRecord(f *testing.F) {
 			t.Fatalf("record admission error = %v, want admitted = %v from exact width, extent and empty-content binding", err, wantAdmitted)
 		}
 		if err != nil {
-			if got != (filestore.ContentIndexEntry{}) || (!errors.Is(err, io.EOF) && !errors.Is(err, core.ErrFilestoreContract)) {
-				t.Fatalf("filestore.ReadContentIndexEntry(refused) = (%+v,%v), want zero and typed refusal", got, err)
+			wantErr := error(core.ErrFilestoreContract)
+			if len(data) == 0 {
+				wantErr = io.EOF
+			}
+			if len(data) > 0 && len(data) < filestore.ContentIndexRecordBytes {
+				wantErr = core.ErrFilestoreSource
+			}
+			if got != (filestore.ContentIndexEntry{}) || !errors.Is(err, wantErr) || wantErr == core.ErrFilestoreSource && (!errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, core.ErrFilestoreContract)) {
+				t.Fatalf("filestore.ReadContentIndexEntry(refused) = (%+v,%v), want zero and %v", got, err, wantErr)
 			}
 			return
 		}

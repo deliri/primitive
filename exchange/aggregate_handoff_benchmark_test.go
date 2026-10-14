@@ -51,7 +51,7 @@ func BenchmarkAggregateCompletedAttemptHandoff(b *testing.B) {
 				ctx, cancel := context.WithCancel(b.Context())
 				before := calls
 				produced, producerErr := executeAggregateAttempt(aggregateAttempt{context: ctx, client: client, request: request, timeout: timeout})
-				if !errors.Is(producerErr, tc.wantProducerErr) || produced.status != core.HTTPStatusOK() || !bytes.Equal(produced.body, payload) || len(produced.headers.Values) != 0 || produced.retryAfter != "" || calls != before+1 || body == nil || body.readBytes != len(payload) || body.closes != 1 {
+				if !errors.Is(producerErr, tc.wantProducerErr) || produced.status != core.HTTPStatusOK() || !bytes.Equal(produced.body, payload) || len(produced.headers.Values) != 0 || !produced.retryAfter.IsZero() || calls != before+1 || body == nil || body.readBytes != len(payload) || body.closes != 1 {
 					cancel()
 					b.Fatalf("producer observation = (%v,%x,%v), want exact binary response, native cause, and one read/close", produced.status, produced.body, producerErr)
 				}

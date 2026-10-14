@@ -64,8 +64,8 @@ func TestAggregateCompletedAttemptCancellationLayerTriad(t *testing.T) {
 			produced, producerErr := executeAggregateAttempt(aggregateAttempt{context: ctx, client: client,
 				request: aggregateRequest{target: target, semantics: semantics, expectedStatus: core.HTTPStatusOK()},
 				timeout: runtimeAgreementPolicy(t).ReadTimeout})
-			if produced.status != core.HTTPStatusOK() || !bytes.Equal(produced.body, tc.wantBody) || len(produced.headers.Values) != 0 || produced.retryAfter != "" {
-				t.Fatalf("producer = (%v,%x,%v,%q), want exact OK/%x and absent headers/retry-after", produced.status, produced.body, produced.headers.Values, produced.retryAfter, tc.wantBody)
+			if produced.status != core.HTTPStatusOK() || !bytes.Equal(produced.body, tc.wantBody) || len(produced.headers.Values) != 0 || !produced.retryAfter.IsZero() {
+				t.Fatalf("producer = (%v,%x,%v,%v), want exact OK/%x and absent headers/retry-after", produced.status, produced.body, produced.headers.Values, produced.retryAfter, tc.wantBody)
 			}
 			if (produced.body == nil) != (tc.wantBody == nil) {
 				t.Fatalf("producer body nil = %t, want %t", produced.body == nil, tc.wantBody == nil)

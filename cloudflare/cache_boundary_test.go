@@ -53,8 +53,8 @@ func TestCachePurgeHTTPRefusalLayerTriad(t *testing.T) {
 		{name: "truncated document cannot imply acceptance", status: http.StatusOK, media: core.HTTPMediaTypeJSON(), malformed: `{"success":true`, wantErr: core.ErrCloudflareResponse},
 		{name: "trailing document is refused", status: http.StatusOK, media: core.HTTPMediaTypeJSON(), malformed: `{"success":true}{}`, wantErr: core.ErrCloudflareResponse},
 		{name: "wrong content type refuses JSON-looking body", status: http.StatusOK, media: core.HTTPMediaTypeOctetStream(), wantErr: core.ErrExchangeContentType},
-		{name: "rate limit never becomes accepted receipt", status: http.StatusTooManyRequests, media: core.HTTPMediaTypeJSON(), wantErr: core.ErrExchangeResponse},
-		{name: "server failure never becomes accepted receipt", status: http.StatusServiceUnavailable, media: core.HTTPMediaTypeJSON(), wantErr: core.ErrExchangeResponse},
+		{name: "rate limit never becomes accepted receipt", status: http.StatusTooManyRequests, media: core.HTTPMediaTypeJSON(), wantErr: core.ErrExchangeRateLimited},
+		{name: "server failure never becomes accepted receipt", status: http.StatusServiceUnavailable, media: core.HTTPMediaTypeJSON(), wantErr: core.ErrExchangeUnavailable},
 		{name: "redirect cannot forward bearer authority", status: http.StatusTemporaryRedirect, media: core.HTTPMediaTypeJSON(), wantErr: core.ErrExchangeResponse},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -79,6 +79,13 @@ func TestCachePurgeHTTPRefusalLayerTriad(t *testing.T) {
 				}
 			})
 			got, err := server.PurgeFile(t.Context(), request, testPolicy())
+			if tc.status >= http.StatusBadRequest {
+				status, present := errors.AsType[exchange.StatusError](err)
+				code, codeErr := status.Status().Int()
+				if !present || codeErr != nil || code != tc.status || status.Expected() != core.HTTPStatusOK() || errors.Is(err, core.ErrExchangeResponse) {
+					t.Fatalf("purge provider status = (%d,%v,%v), want exact %d/OK and a narrow status identity", code, codeErr, err, tc.status)
+				}
+			}
 			if !errors.Is(err, tc.wantErr) || calls.Load() != 1 {
 				t.Fatalf("purge=(%+v,%v,%d calls), want %v and one call", got, err, calls.Load(), tc.wantErr)
 			}

@@ -548,8 +548,8 @@ func proveFuzzDecimalRejection(
 
 	if got != (currency.Amount{}) ||
 		!errors.Is(gotErr, wantErr) ||
-		!errors.Is(gotErr, core.ErrCurrencyContract) ||
-		!errors.Is(gotErr, core.ErrPrimitiveContract) {
+		errors.Is(gotErr, core.ErrCurrencyContract) == errors.Is(wantErr, core.ErrCurrencyOverflow) ||
+		!errors.Is(gotErr, core.ErrPrimitiveContract) && !errors.Is(wantErr, core.ErrCurrencyOverflow) {
 		t.Fatalf(
 			"currency.Parse(%v, %q) = (%v, %v), want zero and %v/%v/%v",
 			code,
@@ -565,7 +565,7 @@ func proveFuzzDecimalRejection(
 		t.Fatalf("invalid code rejection = %v, want currency refusal before decimal", gotErr)
 	}
 	if errors.Is(wantErr, core.ErrCurrencyOverflow) {
-		if !errors.Is(gotErr, core.ErrNumericOverflow) {
+		if errors.Is(gotErr, core.ErrNumericOverflow) || errors.Is(gotErr, core.ErrCurrencyDecimal) {
 			t.Fatalf("currency.Parse(%v, %q) error = %v, want %v", code, raw, gotErr, core.ErrNumericOverflow)
 		}
 		return
@@ -766,10 +766,10 @@ func proveFuzzAmountJSONRejection(
 	t.Helper()
 
 	if !errors.Is(gotFreshErr, core.ErrJSONContract) ||
-		!errors.Is(gotFreshErr, core.ErrCurrencyContract) ||
+		errors.Is(gotFreshErr, core.ErrCurrencyContract) == errors.Is(gotFreshErr, core.ErrCurrencyOverflow) ||
 		!errors.Is(gotFreshErr, core.ErrPrimitiveContract) ||
 		!errors.Is(gotPopulatedErr, core.ErrJSONContract) ||
-		!errors.Is(gotPopulatedErr, core.ErrCurrencyContract) ||
+		errors.Is(gotPopulatedErr, core.ErrCurrencyContract) == errors.Is(gotPopulatedErr, core.ErrCurrencyOverflow) ||
 		!errors.Is(gotPopulatedErr, core.ErrPrimitiveContract) ||
 		gotFresh != (currency.Amount{}) || gotPopulated != before {
 		t.Fatalf(

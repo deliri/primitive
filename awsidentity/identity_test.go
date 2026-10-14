@@ -219,8 +219,8 @@ func TestLayerTriadAWSAcquireRealTLS(t *testing.T) {
 		{name: "provider receipt produces redacted bearer", body: string(awsProviderBytes(t, awsProviderDocument(awsTestBearer))), status: http.StatusOK, wantCalls: 1},
 		{name: "malformed provider receipt is refused", body: "<truncated", status: http.StatusOK, wantErr: core.ErrAWSIdentityContract, wantCalls: 1},
 		{name: "cancelled intent performs no effect", body: string(awsProviderBytes(t, awsProviderDocument(awsTestBearer))), status: http.StatusOK, cancel: true, wantErr: context.Canceled},
-		{name: "unauthorized status cannot disclose token", body: string(awsProviderBytes(t, awsProviderDocument(awsTestBearer))), status: http.StatusUnauthorized, wantCalls: 1, wantErr: core.ErrExchangeResponse},
-		{name: "retryable server failure stays one attempt", body: string(awsProviderBytes(t, awsProviderDocument(awsTestBearer))), status: http.StatusServiceUnavailable, wantCalls: 1, wantErr: core.ErrExchangeResponse},
+		{name: "unauthorized status cannot disclose token", body: string(awsProviderBytes(t, awsProviderDocument(awsTestBearer))), status: http.StatusUnauthorized, wantCalls: 1, wantErr: core.ErrExchangeAuthentication},
+		{name: "retryable server failure stays one attempt", body: string(awsProviderBytes(t, awsProviderDocument(awsTestBearer))), status: http.StatusServiceUnavailable, wantCalls: 1, wantErr: core.ErrExchangeUnavailable},
 		{name: "permanent redirect refused", status: http.StatusMovedPermanently, redirect: true, wantCalls: 1, wantErr: core.ErrExchangeRedirect},
 		{name: "found redirect refused", status: http.StatusFound, redirect: true, wantCalls: 1, wantErr: core.ErrExchangeRedirect},
 		{name: "see other redirect refused", status: http.StatusSeeOther, redirect: true, wantCalls: 1, wantErr: core.ErrExchangeRedirect},
@@ -270,6 +270,13 @@ func TestLayerTriadAWSAcquireRealTLS(t *testing.T) {
 				cancel()
 			}
 			got, gotErr := Acquire(ctx, client, request)
+			if tc.status >= http.StatusBadRequest {
+				status, present := errors.AsType[exchange.StatusError](gotErr)
+				code, codeErr := status.Status().Int()
+				if !present || codeErr != nil || code != tc.status || status.Expected() != core.HTTPStatusOK() || errors.Is(gotErr, core.ErrExchangeResponse) {
+					t.Fatalf("provider status = (%d,%v,%v), want exact %d/OK and a narrow status identity", code, codeErr, gotErr, tc.status)
+				}
+			}
 			if tc.wantErr != nil {
 				if !errors.Is(gotErr, tc.wantErr) || got != (Token{}) {
 					t.Fatalf("Acquire() = (%v, %v), want zero and %v", got, gotErr, tc.wantErr)

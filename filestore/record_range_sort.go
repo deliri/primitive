@@ -35,7 +35,7 @@ func (r RecordRangeSortRequest) Validate() error {
 	first, e1 := r.Files[0].Stat()
 	second, e2 := r.Files[1].Stat()
 	if e1 != nil || e2 != nil {
-		return errors.Join(core.ErrFilestoreContract, e1, e2)
+		return sourceError(errors.Join(e1, e2))
 	}
 	if !first.Mode().IsRegular() || !second.Mode().IsRegular() || os.SameFile(first, second) {
 		return core.ErrFilestoreContract
@@ -43,7 +43,7 @@ func (r RecordRangeSortRequest) Validate() error {
 	if file, ok := r.Source.(*os.File); ok {
 		info, err := file.Stat()
 		if err != nil {
-			return errors.Join(core.ErrFilestoreContract, err)
+			return sourceError(err)
 		}
 		if os.SameFile(first, info) || os.SameFile(second, info) {
 			return core.ErrFilestoreContract
@@ -105,26 +105,61 @@ func compareRecordRanges(ctx context.Context, r RecordRangeSortRequest, a, b lin
 		return 0, core.ErrFilestoreContract
 	}
 }
-func admitRecordRangeSource(ctx context.Context, source lineio.RecordSource, record lineio.RecordRange) error {
-	buffer, err := core.NewByteCount(4096)
+
+// Admit each immutable borrowed range exactly once with one reused native
+// buffer. Go owns section reads and LF framing; the index contract owns the
+// final framing and extent agreement. https://pkg.go.dev/bufio#Reader.ReadSlice
+func admitRecordRangeSource(ctx context.Context, source lineio.RecordSource, record lineio.RecordRange, reader *bufio.Reader, guard *streamReader) error {
+	size, err := record.Bytes.Int64()
 	if err != nil {
-		return err
+		return contractError(err)
 	}
-	for _, err := range lineio.RecordFragments(ctx, lineio.RecordFragmentRequest{Source: source, Record: record, BufferBytes: buffer}) {
-		if err != nil {
-			return errors.Join(core.ErrFilestoreContract, err)
+	guard.ctx, guard.source, guard.cause, guard.emptyReads = ctx, io.NewSectionReader(source, int64(record.Offset), size), nil, 0
+	reader.Reset(guard)
+	var observed int64
+	for {
+		if err := contextstate.Validate(ctx); err != nil {
+			return err
+		}
+		data, err := reader.ReadSlice(lineio.Delimiter)
+		observed += int64(len(data))
+		if guard.cause != nil {
+			return guard.cause
+		}
+		switch err {
+		case bufio.ErrBufferFull:
+			continue
+		case nil:
+			if record.Framing == lineio.RecordFramingOpaque {
+				continue
+			}
+			if record.Framing != lineio.RecordFramingLF || observed != size {
+				return core.ErrFilestoreContract
+			}
+			return nil
+		case io.EOF:
+			if observed != size {
+				return sourceError(io.ErrUnexpectedEOF)
+			}
+			if record.Framing != lineio.RecordFramingEOF && record.Framing != lineio.RecordFramingOpaque {
+				return core.ErrFilestoreContract
+			}
+			return nil
+		default:
+			return sourceError(err)
 		}
 	}
-	return nil
 }
 func writeInitialRecordRangeRuns(ctx context.Context, r RecordRangeSortRequest) (int64, error) {
 	if _, err := r.Files[0].Seek(0, io.SeekStart); err != nil {
-		return 0, err
+		return 0, sourceError(err)
 	}
 	if err := resetContentScratch(r.Files[1]); err != nil {
 		return 0, err
 	}
 	reader := bufio.NewReaderSize(r.Files[0], contentSortBufferBytes)
+	var guard streamReader
+	fragments := bufio.NewReaderSize(&guard, 4096)
 	writer := bufio.NewWriterSize(r.Files[1], contentSortBufferBytes)
 	var entries [contentSortRunEntries]lineio.RecordRange
 	var total int64
@@ -141,7 +176,7 @@ func writeInitialRecordRangeRuns(ctx context.Context, r RecordRangeSortRequest) 
 			if err != nil {
 				return 0, err
 			}
-			if err := admitRecordRangeSource(ctx, r.Source, record); err != nil {
+			if err := admitRecordRangeSource(ctx, r.Source, record, fragments, &guard); err != nil {
 				return 0, err
 			}
 			entries[count] = record
@@ -175,7 +210,7 @@ func writeInitialRecordRangeRuns(ctx context.Context, r RecordRangeSortRequest) 
 		total += int64(count)
 	}
 	if err := writer.Flush(); err != nil {
-		return 0, err
+		return 0, destinationError(err)
 	}
 	return total, contextstate.Validate(ctx)
 }
@@ -196,14 +231,14 @@ func mergeRecordRangeRuns(ctx context.Context, r RecordRangeSortRequest, source,
 		}
 	}
 	if err := writer.Flush(); err != nil {
-		return err
+		return destinationError(err)
 	}
 	info, err := destination.Stat()
 	if err != nil {
-		return err
+		return destinationError(err)
 	}
 	if info.Size() != count*RecordRangeIndexBytes {
-		return errors.Join(core.ErrFilestoreContract, io.ErrUnexpectedEOF)
+		return destinationError(io.ErrUnexpectedEOF)
 	}
 	return contextstate.Validate(ctx)
 }
@@ -246,7 +281,7 @@ func mergeRecordRangePair(ctx context.Context, r RecordRangeSortRequest, left, r
 }
 func walkSortedRecordRanges(ctx context.Context, r RecordRangeSortRequest, file *os.File, count int64, visit func(lineio.RecordRange) error) error {
 	if _, err := file.Seek(0, io.SeekStart); err != nil {
-		return err
+		return sourceError(err)
 	}
 	reader := bufio.NewReaderSize(file, contentSortBufferBytes)
 	var previous lineio.RecordRange
@@ -260,9 +295,6 @@ func walkSortedRecordRanges(ctx context.Context, r RecordRangeSortRequest, file 
 			break
 		}
 		if err != nil {
-			return err
-		}
-		if err := admitRecordRangeSource(ctx, r.Source, record); err != nil {
 			return err
 		}
 		if observed > 0 {

@@ -113,11 +113,11 @@ func TestPipeTransferRefusalAndPanicCannotLeaveProducerDetached(t *testing.T) {
 			if tc.producerErr != nil && !errors.Is(result.ProducerError, tc.producerErr) {
 				t.Errorf("producer error=%v, want %v", result.ProducerError, tc.producerErr)
 			}
-			if tc.producerPanic && !errors.Is(result.ProducerError, core.ErrFilestoreContract) {
-				t.Errorf("producer panic=%v, want %v", result.ProducerError, core.ErrFilestoreContract)
+			if tc.producerPanic && !errors.Is(result.ProducerError, core.ErrFilestoreCallbackPanic) {
+				t.Errorf("producer panic=%v, want %v", result.ProducerError, core.ErrFilestoreCallbackPanic)
 			}
-			if tc.consumerPanic && !errors.Is(result.ConsumerError, core.ErrFilestoreContract) {
-				t.Errorf("consumer panic=%v, want %v", result.ConsumerError, core.ErrFilestoreContract)
+			if tc.consumerPanic && !errors.Is(result.ConsumerError, core.ErrFilestoreCallbackPanic) {
+				t.Errorf("consumer panic=%v, want %v", result.ConsumerError, core.ErrFilestoreCallbackPanic)
 			}
 			if (tc.consumerPanic || tc.consumerErr != nil) && result.ProducerError == nil {
 				t.Errorf("producer unexpectedly succeeded after reader refusal: %+v", result)

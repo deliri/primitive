@@ -11,12 +11,21 @@ import (
 // io.ReadFull otherwise suppresses. There is no file-lookalike or read cache.
 func readIndexRecord(source io.Reader, data []byte) error {
 	observed := 0
+	emptyReads := 0
 	for observed < len(data) {
 		n, err := source.Read(data[observed:])
 		if n < 0 || n > len(data)-observed {
 			return errors.Join(core.ErrFilestoreContract, io.ErrShortBuffer, err)
 		}
 		observed += n
+		if n > 0 {
+			emptyReads = 0
+		} else if err == nil {
+			emptyReads++
+			if emptyReads >= core.ReaderConsecutiveEmptyReadMaximum {
+				return sourceError(io.ErrNoProgress)
+			}
+		}
 		if err == io.EOF {
 			if observed == 0 {
 				return io.EOF
@@ -24,10 +33,10 @@ func readIndexRecord(source io.Reader, data []byte) error {
 			if observed == len(data) {
 				return nil
 			}
-			return errors.Join(core.ErrFilestoreContract, io.ErrUnexpectedEOF)
+			return sourceError(io.ErrUnexpectedEOF)
 		}
 		if err != nil {
-			return errors.Join(core.ErrFilestoreContract, err)
+			return sourceError(err)
 		}
 	}
 	return nil

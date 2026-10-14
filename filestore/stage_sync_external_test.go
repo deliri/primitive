@@ -46,7 +46,7 @@ func TestStageSyncObservesNativeExtentWithoutSettlingCustody(t *testing.T) {
 				t.Fatalf("sync = (%v,%v), want native extent %d", observation, err, len(payload))
 			}
 			written, err = filestore.WriteStage(t.Context(), filestore.StageWriteRequest{Destination: destination, Data: []byte{31}})
-			if err != nil || written.Validate() != nil || written.BytesWritten.Uint64() != 1 {
+			if err != nil || written.Validate() != nil || written.BytesWritten().Uint64() != 1 {
 				t.Fatalf("continued custody = (%v,%v), want one native byte", written, err)
 			}
 			stage, err := filestore.FinishStageDestination(t.Context(), destination)

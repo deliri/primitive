@@ -262,6 +262,16 @@ type exchangeContractInventory struct {
 	BoundedResponse         protocolContract[BoundedResponse]
 	StreamResponse          protocolContract[StreamResponse]
 	StreamRoundTripResponse protocolContract[StreamRoundTripResponse]
+	SecretHeader            protocolContract[SecretHeader]
+	MultipartName           protocolContract[MultipartName]
+	MultipartFileName       protocolContract[MultipartFileName]
+	MultipartText           protocolContract[MultipartText]
+	MultipartPart           protocolContract[MultipartPart]
+	MultipartSourceRequest  protocolContract[MultipartSourceRequest]
+	MultipartSource         capabilityWrapper[MultipartSource]
+	multipartOwnedSource    internalFlow[multipartOwnedSource]
+	multipartLifetime       internalFlow[multipartLifetime]
+	multipartSourceReader   capabilityWrapper[multipartSourceReader]
 }
 
 func TestExchangeDataFlowStructInventoryRatchet(t *testing.T) {

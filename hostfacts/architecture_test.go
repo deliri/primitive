@@ -55,6 +55,7 @@ func TestPublicOperationsAreExactIntentEntryPoints(t *testing.T) {
 		"ObserveEffectiveWorkloadMemoryLimit",
 		"ObserveGoAllocationTotal",
 		"ObserveGoBuildMetadata",
+		"ObserveGoCPUConcurrency",
 		"ObserveHostname",
 		"ObserveKernel",
 		"ObserveLogicalCPUCount",
@@ -119,6 +120,7 @@ type hostfactsStructInventory struct {
 	LevelLimit                hostfactsKernelFlow[cgroupLevelLimit]
 	PhysicalMemory            hostfactsObservation[PhysicalMemory]
 	LogicalCPUCount           hostfactsObservation[LogicalCPUCount]
+	GoCPUConcurrency          hostfactsObservation[GoCPUConcurrency]
 	DiskPressurePolicy        hostfactsIngress[DiskPressurePolicy]
 	TerminalGeometry          hostfactsObservation[TerminalGeometry]
 	Percent                   hostfactsIngress[Percent]

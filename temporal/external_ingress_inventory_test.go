@@ -17,10 +17,15 @@ type externalIngressFuzzContract[Door any] struct {
 }
 
 var (
+	_ = externalIngressFuzzContract[func(temporal.LocationName) (temporal.Location, error)]{Door: temporal.NewLocation, Fuzz: FuzzLocationExactNamesAndNativeProjection}
+	_ = externalIngressFuzzContract[func(string) (temporal.CivilDate, error)]{Door: temporal.ParseCivilDate, Fuzz: FuzzCivilDateExactNativeAdmission}
+	_ = externalIngressFuzzContract[func(temporal.CivilDateRequest) (temporal.CivilDate, error)]{Door: temporal.NewCivilDate, Fuzz: FuzzCivilDateCoordinatesNativeAdmission}
+	_ = externalIngressFuzzContract[func(temporal.LocalTimeRequest) (temporal.Instant, error)]{Door: temporal.LocalTimeRequest.Instant, Fuzz: FuzzLocalWallClockExactAdmission}
+	_ = externalIngressFuzzContract[func(temporal.Location, temporal.TimeLayout, string) (temporal.Instant, error)]{Door: temporal.Location.ParseLocalTime, Fuzz: FuzzLocalTextExactAdmission}
 	_ = externalIngressFuzzContract[func(temporal.ParseTimeRequest) (temporal.Instant, error)]{Door: temporal.ParseTimeUTC, Fuzz: FuzzParseTimeUTCSemanticClosure}
 	_ = externalIngressFuzzContract[func(temporal.FormatTimeRequest) (string, error)]{Door: temporal.FormatTime, Fuzz: FuzzFormatTimeSemanticClosure}
 	_ = externalIngressFuzzContract[func([]byte, temporal.FormatTimeRequest) ([]byte, error)]{Door: temporal.AppendTime, Fuzz: FuzzFormatTimeSemanticClosure}
-	_ = externalIngressFuzzContract[func(temporal.NativeTimeFormatRequest) (string, error)]{Door: temporal.FormatNativeTime, Fuzz: FuzzFormatTimeSemanticClosure}
+	_ = externalIngressFuzzContract[func(temporal.NativeTimeFormatRequest) (string, error)]{Door: temporal.FormatNativeTime, Fuzz: FuzzNativeClockAndCalendarLayoutAgreement}
 	_ = externalIngressFuzzContract[func(temporal.ParseTimeRequest) error]{Door: temporal.ParseTimeRequest.Validate, Fuzz: FuzzParseTimeUTCSemanticClosure}
 	_ = externalIngressFuzzContract[func(temporal.UTCDateTime) (temporal.Instant, error)]{Door: temporal.UTCDateTime.Instant, Fuzz: FuzzUTCDateTimeExactAdmission}
 	_ = externalIngressFuzzContract[func(string) (temporal.Instant, error)]{Door: temporal.ParseCompactUTC, Fuzz: FuzzCompactUTCExactTime}

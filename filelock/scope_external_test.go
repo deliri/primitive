@@ -22,7 +22,7 @@ func TestLockScopeExcludesContendersAndReleasesEveryConsumerOutcome(t *testing.T
 		{name: "successful operation"},
 		{name: "refused operation", failure: context.DeadlineExceeded},
 		{name: "canceled operation", failure: context.Canceled, cancelConsumer: true},
-		{name: "panicking operation", failure: core.ErrFilestoreContract, panicConsumer: true},
+		{name: "panicking operation", failure: core.ErrFilestoreCallbackPanic, panicConsumer: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -96,7 +96,7 @@ func FuzzLockScopeExclusionAndCleanup(f *testing.F) {
 		case 2:
 			failure = context.Canceled
 		case 3:
-			failure = core.ErrFilestoreContract
+			failure = core.ErrFilestoreCallbackPanic
 		}
 		proveScopeExclusionAndSuccessor(t, failure, disposition%4 == 3, disposition%4 == 2)
 	})

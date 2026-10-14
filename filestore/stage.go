@@ -210,6 +210,11 @@ func resolveFailedWrite(
 		request.Staged.info,
 	)
 	if cleanupErr != nil {
+		// A different inode is foreign custody, not an unresolved activation.
+		// No cleanup effect was attempted and no usable recovery can be lent.
+		if errors.Is(commitErr, core.ErrFilestoreConflict) && errors.Is(cleanupErr, core.ErrFilestoreConflict) {
+			return CommitRequest{}, commitErr
+		}
 		return request, errors.Join(commitErr, cleanupErr)
 	}
 	return CommitRequest{}, commitErr
@@ -392,7 +397,7 @@ func validateCurrentStage(staged StagedFile) error {
 
 func validateStagedObservation(staged StagedFile, observed fs.FileInfo) error {
 	if observed == nil || !os.SameFile(staged.info, observed) {
-		return indeterminateActivationError(errors.New("filestore staged receipt identity changed"))
+		return core.ErrFilestoreConflict
 	}
 	if !observed.Mode().IsRegular() || observed.Mode().Perm() != staged.info.Mode().Perm() {
 		return activationError(errors.New("filestore staged receipt permissions or type changed"))
@@ -489,6 +494,23 @@ func syncParent(root *os.Root, path core.RelativePath) error {
 		return contractError(err)
 	}
 	return syncDirectory(root, parent)
+}
+
+// A missing parent cannot be opened for fsync. Synchronize the nearest live
+// ancestor instead; no absent directory is created and no native failure other
+// than absence is skipped. Root confinement is retained for every acquisition.
+func syncExistingAncestor(root *os.Root, path core.RelativePath) error {
+	for {
+		parent, err := core.ParseRelativePath(filepath.Dir(path.String()))
+		if err != nil {
+			return contractError(err)
+		}
+		err = syncDirectory(root, parent)
+		if !errors.Is(err, fs.ErrNotExist) || parent.String() == "." {
+			return err
+		}
+		path = parent
+	}
 }
 
 func syncDirectory(root *os.Root, path core.RelativePath) error {

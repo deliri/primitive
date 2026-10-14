@@ -112,6 +112,8 @@ type NoBodyBoundedCall struct {
 }
 
 type aggregateRequest struct {
+	secretHeaders               []SecretHeader
+	failureDestination          io.Writer
 	requestContentType          core.HTTPMediaType
 	expectedResponseContentType core.HTTPMediaType
 	semantics                   RequestSemantics
@@ -137,7 +139,7 @@ type aggregateResponse struct {
 }
 
 type attemptResponse struct {
-	retryAfter string
+	retryAfter temporal.Duration
 	headers    CapturedHeaders
 	body       []byte
 	written    uint64
@@ -186,6 +188,7 @@ func sendValidatedJSON[
 		client:  call.Client,
 		request: aggregateRequest{
 			target: target, body: body, semantics: call.Request.Semantics,
+			secretHeaders: call.Request.SecretHeaders, failureDestination: call.Request.FailureDestination,
 			headers: call.Request.Headers, capture: call.Request.CaptureHeaders,
 			requestContentType:          jsonType,
 			expectedResponseContentType: jsonType,
@@ -245,6 +248,7 @@ func SendNoBodyJSON[
 		client:  call.Client,
 		request: aggregateRequest{
 			target: target, semantics: call.Request.Semantics,
+			secretHeaders: call.Request.SecretHeaders, failureDestination: call.Request.FailureDestination,
 			headers: call.Request.Headers, capture: call.Request.CaptureHeaders,
 			expectedResponseContentType: jsonType,
 			expectedStatus:              call.Request.ExpectedStatus,
@@ -293,7 +297,8 @@ func prepareSendBounded(call BoundedCall) (aggregateCall, error) {
 		client:  call.Client,
 		request: aggregateRequest{
 			target: target, body: body,
-			semantics: call.Request.Semantics, headers: call.Request.Headers,
+			secretHeaders: call.Request.SecretHeaders,
+			semantics:     call.Request.Semantics, headers: call.Request.Headers,
 			capture:                     call.Request.CaptureHeaders,
 			requestContentType:          call.Request.RequestContentType,
 			expectedResponseContentType: call.Request.ExpectedResponseContentType,
@@ -340,6 +345,7 @@ func prepareSendNoBodyBounded(call NoBodyBoundedCall) (aggregateCall, error) {
 		client:  call.Client,
 		request: aggregateRequest{
 			target: target, semantics: call.Request.Semantics,
+			secretHeaders:               call.Request.SecretHeaders,
 			headers:                     call.Request.Headers,
 			capture:                     call.Request.CaptureHeaders,
 			expectedResponseContentType: call.Request.ExpectedResponseContentType,
@@ -468,7 +474,7 @@ func decodeJSONResponse[Body core.Validatable](
 ) (JSONResponse[Body], error) {
 	var zero JSONResponse[Body]
 	if operationErr != nil {
-		return JSONResponse[Body]{Metadata: raw.metadata}, operationErr
+		return JSONResponse[Body]{Metadata: raw.metadata, FailureBody: raw.body}, operationErr
 	}
 	body, err := core.DecodeStrictJSONBytes[Body](raw.body, strictJSONLimits())
 	if err != nil {
@@ -537,8 +543,11 @@ func executeAggregate(call aggregateCall) (aggregateResponse, error) {
 			},
 		)
 		if err != nil {
+			if errors.Is(err, core.ErrExchangeCancelled) {
+				return raw, errors.Join(err, decisionErr)
+			}
 			return raw, RetryExhaustedError{
-				cause: err, attempts: progress.attempts,
+				cause: errors.Join(decisionErr, err), attempts: progress.attempts,
 			}
 		}
 	}
@@ -564,7 +573,8 @@ func observedAggregateResponse(
 	}
 	result := aggregateResponse{
 		metadata: ResponseMetadata{
-			Status: response.status, Headers: response.headers,
+			RetryAfter: response.retryAfter,
+			Status:     response.status, Headers: response.headers,
 			Bytes:    responseBytes,
 			Attempts: attempts,
 		},
@@ -618,6 +628,7 @@ func executeAggregateAttempt(input aggregateAttempt) (attemptResponse, error) {
 	return readAggregateHTTPResponse(
 		aggregateReadRequest{
 			context: attemptContext, response: response, destination: destination,
+			failureDestination:  input.request.failureDestination,
 			capture:             input.request.capture,
 			expectedContentType: input.request.expectedResponseContentType,
 			expectedStatus:      input.request.expectedStatus,
@@ -660,6 +671,7 @@ func newAggregateHTTPRequest(
 		identityContentCoding().String(),
 	)
 	applyRequestHeaders(request, input.headers)
+	applySecretHeaders(request, input.secretHeaders)
 	applyIdempotencyKey(request, input.semantics)
 	return request, nil
 }
@@ -684,6 +696,7 @@ func applyIdempotencyKey(request *http.Request, semantics RequestSemantics) {
 }
 
 type aggregateReadRequest struct {
+	failureDestination  io.Writer
 	destination         io.Writer
 	context             context.Context
 	response            *http.Response
@@ -729,7 +742,7 @@ func readAggregateResponseMetadata(input aggregateReadRequest) (attemptResponse,
 	captured, err := captureHeaders(input.response.Header, input.capture)
 	if err != nil {
 		return attemptResponse{}, errors.Join(
-			responseError(err),
+			responseHeaderError(err),
 			closeResponseBody(input.response.Body),
 		)
 	}
@@ -741,7 +754,7 @@ func readAggregateResponseMetadata(input aggregateReadRequest) (attemptResponse,
 			closeResponseBody(input.response.Body),
 		)
 	}
-	result.retryAfter = input.response.Header.Get(retryAfter.String())
+	result.retryAfter = responseRetryAfter(input.response.Header.Get(retryAfter.String()))
 	if err := validateAggregateResponseHeaders(input, status); err != nil {
 		return result, errors.Join(
 			err,
@@ -777,12 +790,22 @@ func readAggregateResponseBody(input aggregateReadRequest) ([]byte, uint64, erro
 	if err != nil {
 		return nil, 0, err
 	}
-	if input.destination == nil {
+	destination := input.destination
+	if input.failureDestination != nil {
+		expected, err := input.expectedStatus.Int()
+		if err != nil {
+			return nil, 0, err
+		}
+		if input.response.StatusCode != expected {
+			destination = input.failureDestination
+		}
+	}
+	if destination == nil {
 		body, readErr := readWholeBody(wholeBodyRead{context: input.context, source: input.response.Body, declared: declared})
 		return body, uint64(len(body)), readErr
 	}
 	written, err := copyDownload(downloadCopyRequest{
-		context: input.context, source: input.response.Body, destination: input.destination,
+		context: input.context, source: input.response.Body, destination: destination,
 		buffer: make([]byte, wholeBodyCopyWindow(declared)),
 	})
 	return nil, written, err
@@ -940,6 +963,8 @@ func classifyAggregateCause(
 		return attemptComplete, result.cause
 	case errors.Is(result.cause, core.ErrExchangeBodyLimit):
 		return attemptComplete, result.cause
+	case errors.Is(result.cause, core.ErrExchangeResponseHeaders):
+		return attemptComplete, result.cause
 	case errors.Is(result.cause, core.ErrExchangeResponse):
 		return retryDecision(result, result.cause)
 	default:
@@ -977,7 +1002,7 @@ func retryableStatus(status core.HTTPStatusCode) bool {
 
 type retryWaitRequest struct {
 	context    context.Context
-	retryAfter string
+	retryAfter temporal.Duration
 	policy     RetryPolicy
 	progress   retryProgress
 }
@@ -1003,10 +1028,8 @@ func waitForRetry(
 }
 
 func retryDelay(request retryWaitRequest) (temporal.Duration, error) {
-	if retryAfter, ok := parseRetryAfter(
-		request.retryAfter,
-		request.policy.MaximumRetryAfter,
-	); ok {
+	if retryAfter, ok := boundedRetryAfter(request.retryAfter,
+		request.retryAfter.Validate(), request.policy.MaximumRetryAfter); ok {
 		return retryAfter, nil
 	}
 	if request.progress.attempts > 64 {
@@ -1097,6 +1120,15 @@ func boundedRetryAfter(
 		return maximum, true
 	}
 	return delay, true
+}
+
+// responseRetryAfter grounds HTTP text once at the native receipt boundary.
+// The two wire forms are delay seconds and an HTTP date.
+// https://www.rfc-editor.org/rfc/rfc9110.html#name-retry-after
+func responseRetryAfter(value string) temporal.Duration {
+	maximum, _ := temporal.DurationFromNanoseconds(int64(^uint64(0) >> 1))
+	delay, _ := parseRetryAfter(value, maximum)
+	return delay
 }
 
 func terminalOperationError(ctx context.Context) error {

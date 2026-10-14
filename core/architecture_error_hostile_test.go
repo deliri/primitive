@@ -225,7 +225,13 @@ func TestErrorIdentityExhaustsClosedDomainAndParentDecisions(t *testing.T) {
 				ErrCgroupMountMissing, ErrCgroupMountAmbiguous, ErrCgroupContainment,
 				ErrDiskCapacityUnsupported,
 				ErrDiskFloorReached, ErrMemoryLimitReached,
-				ErrFileLockUnavailable:
+				ErrFileLockUnavailable, ErrCurrencyOverflow,
+				ErrFilestoreSource, ErrFilestoreDestination, ErrFilestoreConflict,
+				ErrFilestoreActivation, ErrFilestoreActivationIndeterminate,
+				ErrFilestoreCleanup, ErrFilestoreCallbackPanic,
+				ErrExchangeAuthentication, ErrExchangeRateLimited,
+				ErrExchangeUnavailable, ErrExchangeRejected, ErrExchangeResponseHeaders,
+				ErrExchangeCallbackPanic, ErrExchangeCallbackExit:
 				// An unlockable filesystem is an environmental fact like an
 				// unsupported disk query, not a caller mistake.
 				wantPrimitiveContract = false
@@ -247,7 +253,7 @@ func TestErrorIdentityExhaustsClosedDomainAndParentDecisions(t *testing.T) {
 		wantMatch  ErrorIdentity
 		wantReject ErrorIdentity
 	}{
-		{name: "currency overflow is numeric overflow", produced: ErrCurrencyOverflow, wantMatch: ErrNumericOverflow, wantReject: ErrCurrencyMismatch},
+		{name: "currency overflow owns its family identity", produced: ErrCurrencyOverflow, wantMatch: ErrCurrencyOverflow, wantReject: ErrNumericOverflow},
 		{name: "currency mismatch remains currency family", produced: ErrCurrencyMismatch, wantMatch: ErrCurrencyContract, wantReject: ErrNumericOverflow},
 		{name: "indeterminate activation is activation failure", produced: ErrFilestoreActivationIndeterminate, wantMatch: ErrFilestoreActivation, wantReject: ErrFilestoreCleanup},
 		{name: "disk pressure is host facts pressure not contract", produced: ErrDiskFloorReached, wantMatch: ErrHostFactsPressure, wantReject: ErrHostFactsContract},

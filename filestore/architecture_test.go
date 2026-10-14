@@ -17,6 +17,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/keygen"
 	"github.com/deliri/primitive/v2026/lineio"
 	"github.com/deliri/primitive/v2026/temporal"
 )
@@ -147,6 +148,7 @@ func TestFilestoreImportsOnlyGoAndOwnedPrimitiveContracts(t *testing.T) {
 		reflect.TypeFor[contextstate.State]().PkgPath(),
 		reflect.TypeFor[temporal.Instant]().PkgPath(),
 		reflect.TypeFor[lineio.RecordRange]().PkgPath(),
+		reflect.TypeFor[keygen.Token]().PkgPath(),
 	}
 	for _, production := range parseProductionFiles(t) {
 		for _, specification := range production.file.Imports {
@@ -251,6 +253,7 @@ func TestFilestoreProductionUsesGoAndOSPrimitivesWithoutCoordinationMachineryRat
 		"github.com/deliri/primitive/v2026/core",
 		"github.com/deliri/primitive/v2026/temporal",
 		"github.com/deliri/primitive/v2026/lineio",
+		"github.com/deliri/primitive/v2026/keygen",
 	}
 	slices.Sort(got.primitiveImports)
 	slices.Sort(want)

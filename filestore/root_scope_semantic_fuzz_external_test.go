@@ -9,7 +9,6 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/filestore"
-	"github.com/deliri/primitive/v2026/hostfacts"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -18,12 +17,12 @@ func FuzzRootScopeNativeLifetime(f *testing.F) {
 		f.Add(mode)
 	}
 	f.Fuzz(func(t *testing.T, mode byte) {
-		parent, err := hostfacts.TemporaryDirectory()
+		parent, err := core.ParseAbsolutePath(t.TempDir())
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = filestore.WithScratchScope(t.Context(), filestore.ScratchScopeRequest{Parent: parent, Use: func(ctx context.Context, fixture *os.Root) error {
-			dir, err := core.ParseAbsolutePath(fixture.Name())
+		err = func(ctx context.Context) error {
+			dir, err := core.ParseAbsolutePath(parent.String())
 			if err != nil {
 				return err
 			}
@@ -64,7 +63,7 @@ func FuzzRootScopeNativeLifetime(f *testing.F) {
 				t.Errorf("borrowed root = %v, want closed identity", err)
 			}
 			return nil
-		}})
+		}(t.Context())
 		if err != nil {
 			t.Fatalf("native fixture cleanup = %v, want nil", err)
 		}

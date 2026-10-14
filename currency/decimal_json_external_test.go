@@ -130,20 +130,20 @@ func TestDecimalInt64DomainOverflowCarriesTheNumericOverflowCallerDecision(t *te
 		code    currency.Code
 	}{
 		{name: "two-digit exponent exact maximum", code: currency.CodeUSD, raw: "92233720368547758.07", want: math.MaxInt64},
-		{name: "two-digit exponent one above maximum", code: currency.CodeUSD, raw: "92233720368547758.08", wantErr: core.ErrNumericOverflow},
+		{name: "two-digit exponent one above maximum", code: currency.CodeUSD, raw: "92233720368547758.08", wantErr: core.ErrCurrencyOverflow},
 		{name: "two-digit exponent exact minimum", code: currency.CodeUSD, raw: "-92233720368547758.08", want: math.MinInt64},
-		{name: "two-digit exponent one below minimum", code: currency.CodeUSD, raw: "-92233720368547758.09", wantErr: core.ErrNumericOverflow},
+		{name: "two-digit exponent one below minimum", code: currency.CodeUSD, raw: "-92233720368547758.09", wantErr: core.ErrCurrencyOverflow},
 		{name: "zero exponent exact maximum", code: currency.CodeJPY, raw: "9223372036854775807", want: math.MaxInt64},
-		{name: "zero exponent one above maximum", code: currency.CodeJPY, raw: "9223372036854775808", wantErr: core.ErrNumericOverflow},
+		{name: "zero exponent one above maximum", code: currency.CodeJPY, raw: "9223372036854775808", wantErr: core.ErrCurrencyOverflow},
 		{name: "zero exponent exact minimum", code: currency.CodeJPY, raw: "-9223372036854775808", want: math.MinInt64},
-		{name: "zero exponent one below minimum", code: currency.CodeJPY, raw: "-9223372036854775809", wantErr: core.ErrNumericOverflow},
+		{name: "zero exponent one below minimum", code: currency.CodeJPY, raw: "-9223372036854775809", wantErr: core.ErrCurrencyOverflow},
 		{name: "four-digit exponent exact maximum", code: currency.CodeCLF, raw: "922337203685477.5807", want: math.MaxInt64},
-		{name: "four-digit exponent one above maximum", code: currency.CodeCLF, raw: "922337203685477.5808", wantErr: core.ErrNumericOverflow},
+		{name: "four-digit exponent one above maximum", code: currency.CodeCLF, raw: "922337203685477.5808", wantErr: core.ErrCurrencyOverflow},
 		{name: "four-digit exponent exact minimum", code: currency.CodeCLF, raw: "-922337203685477.5808", want: math.MinInt64},
-		{name: "four-digit exponent one below minimum", code: currency.CodeCLF, raw: "-922337203685477.5809", wantErr: core.ErrNumericOverflow},
-		{name: "magnitude beyond unsigned accumulation", code: currency.CodeJPY, raw: "99999999999999999999", wantErr: core.ErrNumericOverflow},
-		{name: "negative magnitude beyond unsigned accumulation", code: currency.CodeJPY, raw: "-99999999999999999999", wantErr: core.ErrNumericOverflow},
-		{name: "exponent padding pushes magnitude beyond unsigned accumulation", code: currency.CodeCLF, raw: "9999999999999999", wantErr: core.ErrNumericOverflow},
+		{name: "four-digit exponent one below minimum", code: currency.CodeCLF, raw: "-922337203685477.5809", wantErr: core.ErrCurrencyOverflow},
+		{name: "magnitude beyond unsigned accumulation", code: currency.CodeJPY, raw: "99999999999999999999", wantErr: core.ErrCurrencyOverflow},
+		{name: "negative magnitude beyond unsigned accumulation", code: currency.CodeJPY, raw: "-99999999999999999999", wantErr: core.ErrCurrencyOverflow},
+		{name: "exponent padding pushes magnitude beyond unsigned accumulation", code: currency.CodeCLF, raw: "9999999999999999", wantErr: core.ErrCurrencyOverflow},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -162,8 +162,7 @@ func TestDecimalInt64DomainOverflowCarriesTheNumericOverflowCallerDecision(t *te
 			}
 			if !errors.Is(gotErr, tc.wantErr) ||
 				!errors.Is(gotErr, core.ErrCurrencyOverflow) ||
-				!errors.Is(gotErr, core.ErrCurrencyContract) ||
-				!errors.Is(gotErr, core.ErrPrimitiveContract) {
+				errors.Is(gotErr, core.ErrCurrencyContract) || errors.Is(gotErr, core.ErrNumericOverflow) {
 				t.Fatalf(
 					"currency.Parse(%v, %q) error = %v, want %v/%v/%v/%v",
 					tc.code, tc.raw, gotErr, tc.wantErr, core.ErrCurrencyOverflow,
@@ -504,8 +503,8 @@ func TestAmountJSONHostileMatrixPreservesReceiver(t *testing.T) {
 		), wantErr: core.ErrCurrencyDecimal},
 		{name: "explicit plus integer rejected", data: amountJSONFixture(currency.CodeTokenCAD, "+125"), wantErr: core.ErrCurrencyDecimal},
 		{name: "negative zero integer rejected", data: amountJSONFixture(currency.CodeTokenCAD, "-0"), wantErr: core.ErrCurrencyDecimal},
-		{name: "positive overflow rejected", data: amountJSONFixture(currency.CodeTokenCAD, "9223372036854775808"), wantErr: core.ErrCurrencyDecimal},
-		{name: "negative overflow rejected", data: amountJSONFixture(currency.CodeTokenCAD, "-9223372036854775809"), wantErr: core.ErrCurrencyDecimal},
+		{name: "positive overflow rejected", data: amountJSONFixture(currency.CodeTokenCAD, "9223372036854775808"), wantErr: core.ErrCurrencyOverflow},
+		{name: "negative overflow rejected", data: amountJSONFixture(currency.CodeTokenCAD, "-9223372036854775809"), wantErr: core.ErrCurrencyOverflow},
 		{name: "trailing comma rejected", data: fmt.Appendf(nil,
 			`{"%s":%q,"%s":%q,}`,
 			currency.JSONFieldCurrency,
@@ -537,7 +536,7 @@ func TestAmountJSONHostileMatrixPreservesReceiver(t *testing.T) {
 			gotErr := got.UnmarshalJSON(tc.data)
 			if !errors.Is(gotErr, tc.wantErr) ||
 				!errors.Is(gotErr, core.ErrJSONContract) ||
-				!errors.Is(gotErr, core.ErrCurrencyContract) ||
+				errors.Is(gotErr, core.ErrCurrencyContract) == errors.Is(gotErr, core.ErrCurrencyOverflow) ||
 				!errors.Is(gotErr, core.ErrPrimitiveContract) {
 				t.Fatalf(
 					"Amount.UnmarshalJSON(%q) error = %v, want %v/%v/%v/%v",
@@ -592,11 +591,15 @@ func TestAmountJSONPreservesNativeIntegerRefusals(t *testing.T) {
 				got := initial
 				err := got.UnmarshalJSON(amountJSONFixture(currency.CodeTokenCAD, tc.raw))
 				var native *strconv.NumError
-				if got != initial || !errors.Is(err, core.ErrJSONContract) || !errors.Is(err, core.ErrCurrencyDecimal) || errors.Is(err, core.ErrNumericOverflow) != tc.wantOverflow || errors.As(err, &native) != (tc.wantNative != nil) {
+				var semantic *json.SemanticError
+				if got != initial || !errors.Is(err, core.ErrJSONContract) || errors.Is(err, core.ErrCurrencyDecimal) == tc.wantOverflow || errors.Is(err, core.ErrCurrencyOverflow) != tc.wantOverflow || errors.Is(err, core.ErrNumericOverflow) || errors.As(err, &native) != (tc.wantNative != nil) {
 					t.Fatalf("integer refusal = (%v,%v,native=%v), want preserved/decimal/overflow=%t/native=%v", got, err, native, tc.wantOverflow, tc.wantNative)
 				}
 				if tc.wantNative != nil && (!errors.Is(err, tc.wantNative) || native.Num != tc.raw) {
 					t.Fatalf("integer native refusal = %v, want %v for exact input %q", err, tc.wantNative, tc.raw)
+				}
+				if tc.wantNative != nil && !errors.As(err, &semantic) {
+					t.Fatalf("integer JSON semantic cause = %v, want native *json.SemanticError retained beside %v", err, native)
 				}
 			}
 		})

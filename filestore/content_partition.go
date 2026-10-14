@@ -23,17 +23,21 @@ func (r ContentPartitionSourceRequest) Validate() error {
 
 // ContentPartitionSource retains only Go's fixed buffered-reader window.
 // It is a sequential borrowed cursor, with no filenames or partition population.
-type ContentPartitionSource struct{ reader *bufio.Reader }
+type ContentPartitionSource struct {
+	reader *bufio.Reader
+	input  *streamReader
+}
 
 func NewContentPartitionSource(ctx context.Context, request ContentPartitionSourceRequest) (*ContentPartitionSource, error) {
 	if err := errors.Join(contextstate.Validate(ctx), request.Validate()); err != nil {
 		return nil, err
 	}
-	return &ContentPartitionSource{reader: bufio.NewReader(&streamReader{ctx: ctx, source: request.Source})}, nil
+	input := &streamReader{source: request.Source}
+	return &ContentPartitionSource{reader: bufio.NewReader(input), input: input}, nil
 }
 
 func (s *ContentPartitionSource) Validate() error {
-	if s == nil || s.reader == nil {
+	if s == nil || s.reader == nil || s.input == nil || core.ReaderIsNil(s.input.source) {
 		return core.ErrFilestoreContract
 	}
 	return nil
@@ -58,6 +62,14 @@ func (k ContentPartitionKind) Validate() error {
 }
 
 func (ContentPartitionKind) OffWireEnum() {}
+
+func (k ContentPartitionKind) IsValid() bool { return k.Validate() == nil }
+func (k ContentPartitionKind) String() string {
+	if !k.IsValid() {
+		return core.UnknownEnumDiagnostic
+	}
+	return [...]string{"unknown", "absent", "more", "last"}[k]
+}
 
 // CopyPartitionRequest declares a partition size, never an input admission
 // ceiling. A later call continues from the exact next byte in Source.
@@ -116,6 +128,10 @@ func CopyPartition(ctx context.Context, request CopyPartitionRequest) (ContentPa
 	if err := errors.Join(contextstate.Validate(ctx), request.Validate()); err != nil {
 		return ContentPartitionObservation{}, err
 	}
+	// A context belongs to this synchronous copy, not to cursor construction.
+	// Keep Go's buffered unread bytes while replacing only the read lifetime.
+	request.Source.input.ctx = ctx
+	defer func() { request.Source.input.ctx = nil }()
 	if _, err := request.Source.reader.Peek(1); err != nil {
 		if err == io.EOF {
 			if err := contextstate.Validate(ctx); err != nil {
@@ -123,7 +139,10 @@ func CopyPartition(ctx context.Context, request CopyPartitionRequest) (ContentPa
 			}
 			return ContentPartitionObservation{Kind: ContentPartitionAbsent}, nil
 		}
-		return ContentPartitionObservation{}, errors.Join(core.ErrFilestoreSource, err, contextstate.Validate(ctx))
+		if cancellation := contextstate.Validate(ctx); cancellation != nil {
+			return ContentPartitionObservation{}, cancellation
+		}
+		return ContentPartitionObservation{}, sourceError(err)
 	}
 	maximum, err := request.Maximum.Int64()
 	if err != nil {
@@ -137,7 +156,10 @@ func CopyPartition(ctx context.Context, request CopyPartitionRequest) (ContentPa
 	kind := ContentPartitionMore
 	if _, err := request.Source.reader.Peek(1); err != nil {
 		if err != io.EOF {
-			return ContentPartitionObservation{}, errors.Join(core.ErrFilestoreSource, err, contextstate.Validate(ctx))
+			if cancellation := contextstate.Validate(ctx); cancellation != nil {
+				return ContentPartitionObservation{}, cancellation
+			}
+			return ContentPartitionObservation{}, sourceError(err)
 		}
 		kind = ContentPartitionLast
 	}

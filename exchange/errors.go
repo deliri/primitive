@@ -3,6 +3,7 @@ package exchange
 import (
 	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/deliri/primitive/v2026/core"
 )
@@ -13,6 +14,10 @@ func requestError(cause error) error {
 
 func responseError(cause error) error {
 	return errors.Join(core.ErrExchangeResponse, cause)
+}
+
+func responseHeaderError(cause error) error {
+	return errors.Join(core.ErrExchangeResponseHeaders, cause)
 }
 
 func transportError(cause error) error {
@@ -35,8 +40,23 @@ func (e StatusError) Error() string {
 	return fmt.Sprintf("exchange status %d, expected %d", status, expected)
 }
 
-// Unwrap preserves the stable response identity.
+// Unwrap exposes the provider status family, independently of malformed
+// response contracts. The native status remains available through Status.
 func (e StatusError) Unwrap() error {
+	status, err := e.status.Int()
+	if err != nil {
+		return core.ErrExchangeResponse
+	}
+	switch {
+	case status == http.StatusUnauthorized || status == http.StatusForbidden:
+		return core.ErrExchangeAuthentication
+	case status == http.StatusTooManyRequests:
+		return core.ErrExchangeRateLimited
+	case status == http.StatusRequestTimeout || status == http.StatusTooEarly || status >= http.StatusInternalServerError:
+		return core.ErrExchangeUnavailable
+	case status >= http.StatusBadRequest:
+		return core.ErrExchangeRejected
+	}
 	return core.ErrExchangeResponse
 }
 

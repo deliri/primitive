@@ -495,7 +495,7 @@ func TestAmountArithmeticHostileMatrix(t *testing.T) {
 				t.Fatalf("amount operation = (%v, %v), want (%v, %v)", got, gotErr, tc.want, tc.wantErr)
 			}
 			if errors.Is(gotErr, core.ErrCurrencyOverflow) &&
-				!errors.Is(gotErr, core.ErrNumericOverflow) {
+				errors.Is(gotErr, core.ErrNumericOverflow) {
 				t.Fatalf("amount overflow error = %v, want parent %v", gotErr, core.ErrNumericOverflow)
 			}
 		})
@@ -560,8 +560,8 @@ func TestAmountArithmeticMatchesArbitraryPrecisionBoundaryMatrix(t *testing.T) {
 				if !operation.wantOracle.IsInt64() {
 					if operation.got != (currency.Amount{}) ||
 						!errors.Is(operation.gotErr, core.ErrCurrencyOverflow) ||
-						!errors.Is(operation.gotErr, core.ErrNumericOverflow) ||
-						!errors.Is(operation.gotErr, core.ErrCurrencyContract) {
+						errors.Is(operation.gotErr, core.ErrNumericOverflow) ||
+						errors.Is(operation.gotErr, core.ErrCurrencyContract) {
 						t.Fatalf(
 							"%s = (%v, %v), want zero and %v/%v/%v for oracle %v",
 							operation.name,

@@ -3,6 +3,7 @@ package hostfacts
 import (
 	"context"
 	"errors"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -48,11 +49,10 @@ func TestCgroupAncestorDepthLayerTriad(t *testing.T) {
 			if tc.depth > 0 {
 				membershipText += strings.Repeat("d/", tc.depth-1) + "d"
 				relativeText = filepath.FromSlash(membershipText[1:])
-				relative, err := core.ParseRelativePath(relativeText)
-				if err != nil {
-					t.Fatal(err)
-				}
-				if err := filestore.EnsureDirectory(t.Context(), filestore.DirectoryRequest{Location: filestore.Location{Root: root, Path: relative}, Mode: 0700}); err != nil {
+				// These owned native directories are read fixtures for the
+				// cgroup observer. This test makes no crash-durability claim;
+				// Filestore separately proves durable directory creation.
+				if err := os.MkdirAll(filepath.Join(directory, relativeText), 0700); err != nil {
 					t.Fatal(err)
 				}
 			}

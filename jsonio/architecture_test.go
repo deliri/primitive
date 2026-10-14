@@ -22,14 +22,18 @@ type jsonioStructInventory struct {
 	TokenRequest             jsonioIngress[TokenRequest]
 	ObjectSourceRequest      jsonioIngress[ObjectSourceRequest]
 	ObjectDestinationRequest jsonioIngress[ObjectDestinationRequest]
+	OwnedCodecPolicy         jsonioIngress[OwnedCodecPolicy]
+	OwnedCodecDestination    jsonioKernelFlow[ownedCodecDestination]
 	Token                    jsonioObservation[Token]
 	ObjectEncoder            jsonioCapability[ObjectEncoder[Token]]
 	ObjectDecoder            jsonioCapability[ObjectDecoder[Token]]
 	TokenEncoder             jsonioCapability[TokenEncoder]
+	TokenDecoder             jsonioCapability[TokenDecoder]
 	CheckedSource            jsonioKernelFlow[checkedJSONSource]
 	CheckedDestination       jsonioKernelFlow[checkedJSONDestination]
 	ContextSource            jsonioKernelFlow[contextJSONSource]
 	ExtentError              jsonioError[ExtentError]
+	NativeError              jsonioError[nativeJSONError]
 }
 
 func TestProductionStructDataFlowInventory(t *testing.T) {

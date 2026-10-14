@@ -33,7 +33,7 @@ func TestImagesOriginalRealTLSBoundedTransfer(t *testing.T) {
 		{name: "minimum positive extent refuses second byte", body: "xy", maximum: 1, media: "image/png", status: 200, wantCalls: 1, wantErr: core.ErrCloudflareResponse},
 		{name: "foreign representation never reaches destination", body: "json", maximum: 8, media: "application/json", status: 200, wantCalls: 1, wantErr: core.ErrExchangeResponse},
 		{name: "missing representation never reaches destination", body: "x", maximum: 8, status: 200, wantCalls: 1, wantErr: core.ErrExchangeResponse},
-		{name: "provider refusal never reaches destination", body: "denied", maximum: 8, media: "image/png", status: 403, wantCalls: 1, wantErr: core.ErrExchangeResponse},
+		{name: "provider refusal never reaches destination", body: "denied", maximum: 8, media: "image/png", status: 403, wantCalls: 1, wantErr: core.ErrExchangeAuthentication},
 		{name: "redirect cannot export another authority", body: "x", maximum: 8, media: "image/png", status: 302, wantCalls: 1, wantErr: core.ErrExchangeResponse},
 		{name: "absent image identity performs no request", maximum: 8, invalidID: true, wantErr: core.ErrCloudflareContract},
 		{name: "absent destination performs no request", maximum: 8, nilDestination: true, wantErr: core.ErrCloudflareContract},
@@ -101,6 +101,13 @@ func TestImagesOriginalRealTLSBoundedTransfer(t *testing.T) {
 				request.ContentType = core.HTTPMediaTypeJSON()
 			}
 			_, gotErr := server.DownloadOriginal(t.Context(), request, testPolicy())
+			if tc.status >= http.StatusBadRequest && tc.wantCalls == 1 {
+				status, present := errors.AsType[exchange.StatusError](gotErr)
+				code, codeErr := status.Status().Int()
+				if !present || codeErr != nil || code != tc.status || status.Expected() != core.HTTPStatusOK() || errors.Is(gotErr, core.ErrExchangeResponse) {
+					t.Fatalf("original provider status = (%d,%v,%v), want exact %d/OK and a narrow status identity", code, codeErr, gotErr, tc.status)
+				}
+			}
 			if !errors.Is(gotErr, tc.wantErr) || calls.Load() != tc.wantCalls {
 				t.Fatalf("DownloadOriginal=(%v,%d calls), want (%v,%d calls)", gotErr, calls.Load(), tc.wantErr, tc.wantCalls)
 			}

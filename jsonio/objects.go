@@ -16,13 +16,16 @@ import (
 // ObjectSourceRequest names a caller-owned source of closed typed objects.
 // The admitted Go type owns field meaning and record size; this capability
 // retains one object, never the sequence or a raw copy of each document.
-type ObjectSourceRequest struct{ Source io.Reader }
+type ObjectSourceRequest struct {
+	Source  io.Reader
+	Members MemberPolicy
+}
 
 func (r ObjectSourceRequest) Validate() error {
 	if core.ReaderIsNil(r.Source) {
 		return core.ErrJSONContract
 	}
-	return nil
+	return r.Members.Validate()
 }
 
 // Objects decodes directly through Go into the declared type, rejects unknown
@@ -58,12 +61,12 @@ func Objects[Document core.Validatable](ctx context.Context, request ObjectSourc
 	}
 }
 
-func readObject[Document core.Validatable](ctx context.Context, decoder *jsontext.Decoder, nullGuard *jsonv2.Unmarshalers) (Document, error) {
+func readObject[Document core.Validatable](ctx context.Context, decoder *jsontext.Decoder, nullGuard *jsonv2.Unmarshalers, members MemberPolicy) (Document, error) {
 	var document Document
 	if err := prepareObjectRead(ctx, decoder); err != nil {
 		return document, err
 	}
-	readErr := jsonv2.UnmarshalDecode(decoder, &document, jsonv2.RejectUnknownMembers(true), jsonv2.WithUnmarshalers(nullGuard))
+	readErr := jsonv2.UnmarshalDecode(decoder, &document, jsonv2.RejectUnknownMembers(members == MembersDeclaredOnly), jsonv2.WithUnmarshalers(nullGuard))
 	if err := objectReadOutcome(ctx, readErr); err != nil {
 		var zero Document
 		return zero, err
@@ -100,13 +103,13 @@ func prepareObjectRead(ctx context.Context, decoder *jsontext.Decoder) error {
 
 func objectReadOutcome(ctx context.Context, readErr error) error {
 	if err := contextstate.Validate(ctx); err != nil {
-		return errors.Join(err, readErr)
+		return errors.Join(err, nativeJSONCause(readErr))
 	}
 	if readErr == io.EOF {
 		return io.EOF
 	}
 	if readErr != nil {
-		return errors.Join(core.ErrJSONContract, readErr)
+		return jsonOperationError(readErr)
 	}
 	return nil
 }
@@ -152,7 +155,7 @@ func (e *ObjectEncoder[Document]) Encode(ctx context.Context, document Document)
 		return errors.Join(core.ErrJSONContract, err)
 	}
 	if err := jsonv2.MarshalEncode(e.encoder, document, jsonv2.Deterministic(true)); err != nil {
-		return errors.Join(core.ErrJSONContract, err, contextstate.Validate(ctx))
+		return objectReadOutcome(ctx, err)
 	}
 	return contextstate.Validate(ctx)
 }

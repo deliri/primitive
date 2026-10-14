@@ -107,7 +107,8 @@ func FuzzUploadResponseDeclarationCustody(f *testing.F) {
 				}
 				continue
 			}
-			if (err == nil) == refuseStatus || refuseStatus && !errors.Is(err, core.ErrExchangeResponse) {
+			code, _ := status.Int()
+			if (err == nil) == refuseStatus || refuseStatus && !errors.Is(err, statusIdentityOracle(code)) {
 				t.Fatalf("provider status error = %v, want refusal=%t", err, refuseStatus)
 			}
 			if got.DeclaredRequestBytes != length || got.Metadata.Status != status || got.Metadata.Attempts != 1 || got.Metadata.Headers.Values != nil {
@@ -120,8 +121,12 @@ func FuzzUploadResponseDeclarationCustody(f *testing.F) {
 			if roundTrip && !refuseStatus {
 				wantBody = []byte{0xff, 0}
 			}
-			if !bytes.Equal(destination.Bytes(), wantBody) || got.Metadata.Bytes.Uint64() != uint64(len(wantBody)) || responseBody.readBytes != 2 || responseBody.closes != 1 {
-				t.Fatalf("response byte custody = %x/%d read %d close %d, want %x/%d read 2 close 1", destination.Bytes(), got.Metadata.Bytes.Uint64(), responseBody.readBytes, responseBody.closes, wantBody, len(wantBody))
+			wantRead := 0
+			if roundTrip {
+				wantRead = 2
+			}
+			if !bytes.Equal(destination.Bytes(), wantBody) || got.Metadata.Bytes.Uint64() != uint64(len(wantBody)) || responseBody.readBytes != wantRead || responseBody.closes != 1 {
+				t.Fatalf("response byte custody = %x/%d read %d close %d, want %x/%d read %d close 1", destination.Bytes(), got.Metadata.Bytes.Uint64(), responseBody.readBytes, responseBody.closes, wantBody, len(wantBody), wantRead)
 			}
 		}
 	})

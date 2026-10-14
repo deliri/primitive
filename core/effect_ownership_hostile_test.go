@@ -227,7 +227,7 @@ func scanLandedRealWorldEffects(root string) (realWorldScan, error) {
 	}
 	var result realWorldScan
 	for _, path := range paths {
-		owner, err := realWorldSourceOwner(path)
+		owner, err := realWorldSourceOwner(root, path)
 		if err != nil {
 			return realWorldScan{}, err
 		}
@@ -245,9 +245,17 @@ func scanLandedRealWorldEffects(root string) (realWorldScan, error) {
 }
 
 func productionSourcePaths(root string) ([]string, error) {
-	paths, err := filepath.Glob(filepath.Join(root, "*", "*.go"))
+	names, err := landedPackageNames(root)
 	if err != nil {
 		return nil, errors.Join(ErrPrimitiveContract, err)
+	}
+	var paths []string
+	for _, name := range names {
+		found, err := filepath.Glob(filepath.Join(root, filepath.FromSlash(name), "*.go"))
+		if err != nil {
+			return nil, errors.Join(ErrPrimitiveContract, err)
+		}
+		paths = append(paths, found...)
 	}
 	paths = slices.DeleteFunc(paths, func(path string) bool {
 		return strings.HasSuffix(path, "_test.go") || filepath.Base(filepath.Dir(path)) == "vendor"
@@ -256,8 +264,12 @@ func productionSourcePaths(root string) ([]string, error) {
 	return paths, nil
 }
 
-func realWorldSourceOwner(path string) (PackageIdentity, error) {
-	owner, err := ParsePackageIdentity(filepath.Base(filepath.Dir(path)))
+func realWorldSourceOwner(root, path string) (PackageIdentity, error) {
+	name, err := filepath.Rel(root, filepath.Dir(path))
+	if err != nil {
+		return PackageUnknown, errors.Join(ErrPrimitiveContract, err)
+	}
+	owner, err := ParsePackageIdentity(filepath.ToSlash(name))
 	if err != nil {
 		return PackageUnknown, err
 	}
@@ -471,19 +483,24 @@ func declaredRealWorldCalls() (realWorldCallInventory, error) {
 		{owner: PackageProcess, substrate: realWorldSubstrateOperatingSystem, selector: "Exit", count: 1},
 		{owner: PackageHostFacts, substrate: realWorldSubstrateOperatingSystem, selector: "Setenv", count: 1},
 		{owner: PackageHostFacts, substrate: realWorldSubstrateOperatingSystem, selector: "Unsetenv", count: 1},
-		{owner: PackageFilestore, substrate: realWorldSubstrateOperatingSystem, selector: "MkdirTemp", count: 1},
-		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "LoadLocation", count: 1},
-		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "Month", count: 1},
+		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "LoadLocationFromTZData", count: 1},
+		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "Month", count: 4},
+		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "Weekday", count: 1},
 		{owner: PackageHostFacts, substrate: realWorldSubstrateUnix, selector: "IoctlGetWinsize", count: 1},
 		{owner: PackageCore, substrate: realWorldSubstrateOperatingSystem, selector: "IsPathSeparator", count: 1},
 		{owner: PackageFilestore, substrate: realWorldSubstrateOperatingSystem, selector: "Lstat", count: 4},
 		{owner: PackageFilestore, substrate: realWorldSubstrateOperatingSystem, selector: "OpenFile", count: 2},
 		{owner: PackageFilestore, substrate: realWorldSubstrateOperatingSystem, selector: "Pipe", count: 1},
-		{owner: PackageFilestore, substrate: realWorldSubstrateOperatingSystem, selector: "OpenRoot", count: 4},
-		// d5de09b adds three content-sort held-file identity comparisons.
-		{owner: PackageFilestore, substrate: realWorldSubstrateOperatingSystem, selector: "SameFile", count: 16},
+		{owner: PackageFilestore, substrate: realWorldSubstrateOperatingSystem, selector: "OpenRoot", count: 3},
+		// Held-file identity guards also protect confined scratch cleanup.
+		{owner: PackageFilestore, substrate: realWorldSubstrateOperatingSystem, selector: "SameFile", count: 17},
 		{owner: PackageFilestore, substrate: realWorldSubstrateOperatingSystem, selector: "Stat", count: 2},
 		{owner: PackageHostFacts, substrate: realWorldSubstrateOperatingSystem, selector: "Hostname", count: 1},
+		// Native user and kernel observers were present but absent from the
+		// effect inventory; register their exact existing standard-library calls.
+		{owner: PackageHostFacts, substrate: realWorldSubstrateOperatingSystem, selector: "Geteuid", count: 1},
+		{owner: PackageHostFacts, substrate: realWorldSubstrateSyscall, selector: "Sysctl", count: 3},
+		{owner: PackageHostFacts, substrate: realWorldSubstrateSyscall, selector: "Uname", count: 1},
 		{owner: PackageHostFacts, substrate: realWorldSubstrateOperatingSystem, selector: "Environ", count: 1},
 		{owner: PackageHostFacts, substrate: realWorldSubstrateOperatingSystem, selector: "Executable", count: 1},
 		{owner: PackageHostFacts, substrate: realWorldSubstrateOperatingSystem, selector: "Getwd", count: 1},
@@ -506,11 +523,12 @@ func declaredRealWorldCalls() (realWorldCallInventory, error) {
 		{owner: PackageExchange, substrate: realWorldSubstrateHTTP, selector: "SetCookie", count: 1},
 		{owner: PackageHostFacts, substrate: realWorldSubstrateClock, selector: "LoadLocation", count: 1},
 		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "Duration", count: 3},
-		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "Date", count: 1},
+		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "Date", count: 5},
 		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "NewTicker", count: 1},
 		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "NewTimer", count: 1},
 		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "Now", count: 1},
-		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "Parse", count: 3},
+		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "Parse", count: 4},
+		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "ParseInLocation", count: 1},
 		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "ParseDuration", count: 1},
 		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "Unix", count: 3},
 		{owner: PackageTimeProof, substrate: realWorldSubstrateClock, selector: "Date", count: 4},

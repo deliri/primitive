@@ -201,7 +201,7 @@ func TestJSONObjectDecoderPreservesNativeRefusalAlongsideCompleteBytes(t *testin
 					break
 				}
 			}
-			if !errors.Is(refused, io.ErrClosedPipe) || !errors.Is(refused, core.ErrJSONContract) {
+			if !errors.Is(refused, io.ErrClosedPipe) || errors.Is(refused, core.ErrJSONContract) {
 				t.Fatalf("native refusal lost: %v", refused)
 			}
 		})

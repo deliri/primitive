@@ -37,7 +37,7 @@ func (r ContentSortRequest) Validate() error {
 	first, firstErr := r.Files[0].Stat()
 	second, secondErr := r.Files[1].Stat()
 	if firstErr != nil || secondErr != nil {
-		return errors.Join(core.ErrFilestoreContract, firstErr, secondErr)
+		return sourceError(errors.Join(firstErr, secondErr))
 	}
 	if !first.Mode().IsRegular() || !second.Mode().IsRegular() || os.SameFile(first, second) {
 		return core.ErrFilestoreContract
@@ -49,7 +49,7 @@ func validateContentDestination(destination io.Writer, first, second os.FileInfo
 	if file, ok := destination.(*os.File); ok {
 		info, err := file.Stat()
 		if err != nil {
-			return errors.Join(core.ErrFilestoreContract, err)
+			return destinationError(err)
 		}
 		if os.SameFile(first, info) || os.SameFile(second, info) {
 			return core.ErrFilestoreContract
@@ -87,7 +87,7 @@ type ContentIndexConflictError struct {
 func (e ContentIndexConflictError) Error() string {
 	return "content index has conflicting extents for one digest"
 }
-func (ContentIndexConflictError) Unwrap() error { return core.ErrFilestoreContract }
+func (ContentIndexConflictError) Unwrap() error { return core.ErrFilestoreConflict }
 func (e ContentIndexConflictError) Validate() error {
 	if err := errors.Join(e.Digest.Validate(), e.First.Validate(), e.Second.Validate()); err != nil {
 		return errors.Join(core.ErrFilestoreContract, err)
@@ -112,15 +112,15 @@ func SortContentIndex(ctx context.Context, request ContentSortRequest) (ContentI
 	}
 	sorted, err := sortContentRuns(ctx, request.Files)
 	if err != nil {
-		return ContentIndexSummary{}, errors.Join(core.ErrFilestoreContract, err)
+		return ContentIndexSummary{}, err
 	}
 	summary, digest, err := inspectContentIndex(ctx, sorted, nil, false)
 	if err != nil {
-		return ContentIndexSummary{}, errors.Join(core.ErrFilestoreContract, err)
+		return ContentIndexSummary{}, err
 	}
 	emitted, emittedDigest, err := inspectContentIndex(ctx, sorted, request.Destination, false)
 	if err != nil {
-		return ContentIndexSummary{}, errors.Join(core.ErrFilestoreContract, err)
+		return ContentIndexSummary{}, err
 	}
 	if emitted != summary || emittedDigest != digest {
 		return ContentIndexSummary{}, core.ErrFilestoreContract
@@ -157,7 +157,7 @@ func sortContentRuns(ctx context.Context, files [2]*os.File) (*os.File, error) {
 
 func writeInitialContentRuns(ctx context.Context, source, destination *os.File) (int64, error) {
 	if _, err := source.Seek(0, io.SeekStart); err != nil {
-		return 0, err
+		return 0, sourceError(err)
 	}
 	if err := resetContentScratch(destination); err != nil {
 		return 0, err
@@ -185,7 +185,7 @@ func writeInitialContentRuns(ctx context.Context, source, destination *os.File) 
 		total += int64(count)
 	}
 	if err := writer.Flush(); err != nil {
-		return 0, err
+		return 0, destinationError(err)
 	}
 	return total, contextstate.Validate(ctx)
 }
@@ -231,10 +231,13 @@ func writeContentRun(writer io.Writer, entries []ContentIndexEntry) error {
 
 func resetContentScratch(file *os.File) error {
 	if err := file.Truncate(0); err != nil {
-		return err
+		return destinationError(err)
 	}
 	_, err := file.Seek(0, io.SeekStart)
-	return err
+	if err != nil {
+		return destinationError(err)
+	}
+	return nil
 }
 
 func mergeContentRuns(ctx context.Context, source, destination *os.File, count, width int64) error {
@@ -254,14 +257,14 @@ func mergeContentRuns(ctx context.Context, source, destination *os.File, count, 
 		}
 	}
 	if err := writer.Flush(); err != nil {
-		return err
+		return destinationError(err)
 	}
 	info, err := destination.Stat()
 	if err != nil {
-		return err
+		return destinationError(err)
 	}
 	if info.Size() != count*ContentIndexRecordBytes {
-		return errors.Join(core.ErrFilestoreContract, io.ErrUnexpectedEOF)
+		return destinationError(io.ErrUnexpectedEOF)
 	}
 	return contextstate.Validate(ctx)
 }
@@ -315,7 +318,7 @@ func compareContentHeads(a, b ContentIndexEntry, aErr, bErr error) (int, bool, e
 
 func inspectContentIndex(ctx context.Context, file *os.File, destination io.Writer, unique bool) (ContentIndexSummary, core.SHA256Digest, error) {
 	if _, err := file.Seek(0, io.SeekStart); err != nil {
-		return ContentIndexSummary{}, core.SHA256Digest{}, err
+		return ContentIndexSummary{}, core.SHA256Digest{}, sourceError(err)
 	}
 	digest := core.NewDigestWriter()
 	reader := bufio.NewReaderSize(io.TeeReader(file, digest), contentSortBufferBytes)
@@ -357,7 +360,7 @@ func inspectContentIndex(ctx context.Context, file *os.File, destination io.Writ
 func sealContentIndexSummary(ctx context.Context, digest *core.DigestWriter, count, total uint64) (ContentIndexSummary, core.SHA256Digest, error) {
 	extent, err := core.NewByteLength(total)
 	if err != nil {
-		return ContentIndexSummary{}, core.SHA256Digest{}, err
+		return ContentIndexSummary{}, core.SHA256Digest{}, sizeError(err)
 	}
 	checksum, _, err := digest.Seal()
 	if err != nil {

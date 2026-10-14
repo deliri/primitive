@@ -209,15 +209,20 @@ func newStreamRoundTripHTTPRequest(
 	target core.HTTPEndpoint,
 	request StreamRoundTripRequest,
 ) (*http.Request, error) {
-	return newUploadHTTPRequest(ctx, uploadHTTPRequest{
+	native, err := newUploadHTTPRequest(ctx, uploadHTTPRequest{
 		target: target,
 		request: UploadRequest{
-			Target: request.Target, Source: request.Source,
+			SecretHeaders: request.SecretHeaders,
+			Target:        request.Target, Source: request.Source,
 			Semantics: request.Semantics, ContentType: request.RequestContentType,
 			Headers: request.Headers, CaptureHeaders: request.CaptureHeaders,
 			ContentLength: request.RequestContentLength, ExpectedStatus: request.ExpectedStatus,
 		},
 	})
+	if err != nil {
+		return nil, err
+	}
+	return native, nil
 }
 
 func finishStreamRoundTrip(
@@ -231,7 +236,8 @@ func finishStreamRoundTrip(
 	}
 	status, headers, err := streamRoundTripMetadata(response, request.CaptureHeaders)
 	result := StreamRoundTripResponse{
-		Metadata: ResponseMetadata{Status: status, Headers: headers, Attempts: 1},
+		Metadata: ResponseMetadata{Status: status, Headers: headers, Attempts: 1,
+			RetryAfter: responseRetryAfter(response.Header.Get(retryAfterHeaderNameText))},
 	}
 	if request.RequestContentLength != nil {
 		result.DeclaredRequestBytes = *request.RequestContentLength
@@ -241,6 +247,11 @@ func finishStreamRoundTrip(
 		return zero, errors.Join(err, closeHTTPResponse(response))
 	}
 	if status != request.ExpectedStatus {
+		if request.FailureDestination != nil {
+			transferred, copyErr := transferDownloadResponse(downloadResponseRequest{context: ctx, response: response, request: DownloadRequest{Destination: request.FailureDestination, Buffer: request.Buffer}}, StreamResponse{Metadata: result.Metadata})
+			result.Metadata = transferred.Metadata
+			return result, errors.Join(StatusError{status: status, expected: request.ExpectedStatus}, copyErr)
+		}
 		drainErr := drainAndClose(streamDrainRequest{context: ctx, body: response.Body})
 		return result, errors.Join(StatusError{status: status, expected: request.ExpectedStatus}, drainErr)
 	}
@@ -273,7 +284,7 @@ func streamRoundTripMetadata(
 	}
 	headers, err := captureHeaders(response.Header, capture)
 	if err != nil {
-		return core.HTTPStatusCode{}, CapturedHeaders{}, responseError(err)
+		return core.HTTPStatusCode{}, CapturedHeaders{}, responseHeaderError(err)
 	}
 	return status, headers, nil
 }
@@ -353,6 +364,7 @@ func newUploadHTTPRequest(
 		identityContentCoding().String(),
 	)
 	applyRequestHeaders(request, input.request.Headers)
+	applySecretHeaders(request, input.request.SecretHeaders)
 	applyIdempotencyKey(request, input.request.Semantics)
 	return request, nil
 }
@@ -400,14 +412,14 @@ func exactUploadSourceExtent(source io.Reader) (int64, bool, error) {
 
 func uploadUint64Extent(remaining uint64) (int64, bool, error) {
 	if remaining > uint64(^uint64(0)>>1) {
-		return 0, true, errors.New("upload source extent exceeds the signed integer domain")
+		return 0, true, core.ErrNumericOverflow
 	}
 	return int64(remaining), true, nil
 }
 
 func uploadInt64Extent(remaining int64) (int64, bool, error) {
 	if remaining < 0 {
-		return 0, true, errors.New("upload source reported a negative remaining extent")
+		return 0, true, core.ErrExchangeContract
 	}
 	return remaining, true, nil
 }
@@ -464,6 +476,7 @@ func newDownloadHTTPRequest(
 	)
 	applyRequestHeaders(request, input.request.Headers)
 	applyIdempotencyKey(request, input.request.Semantics)
+	applySecretHeaders(request, input.request.SecretHeaders)
 	return request, nil
 }
 
@@ -489,12 +502,13 @@ func finishUploadResponse(
 	}
 	headers, err := captureHeaders(input.response.Header, input.request.CaptureHeaders)
 	if err != nil {
-		return zero, errors.Join(responseError(err), closeHTTPResponse(input.response))
+		return zero, errors.Join(responseHeaderError(err), closeHTTPResponse(input.response))
 	}
 	metadata := ResponseMetadata{
-		Status:   status,
-		Headers:  headers,
-		Attempts: 1,
+		RetryAfter: responseRetryAfter(input.response.Header.Get(retryAfterHeaderNameText)),
+		Status:     status,
+		Headers:    headers,
+		Attempts:   1,
 	}
 	response := StreamResponse{Metadata: metadata}
 	if input.request.ContentLength != nil {
@@ -505,20 +519,12 @@ func finishUploadResponse(
 		closeErr := closeResponseBody(input.response.Body)
 		return zero, errors.Join(err, closeErr)
 	}
-	drainErr := drainAndClose(
-		streamDrainRequest{
-			context: input.context, body: input.response.Body,
-		},
-	)
 	if status != input.request.ExpectedStatus {
-		return response, errors.Join(
-			StatusError{
-				status: status, expected: input.request.ExpectedStatus,
-			},
-			drainErr,
-		)
+		return transferFailureResponse(input.context, input.response, input.request.FailureDestination, nil, response, input.request.ExpectedStatus)
 	}
-	return response, drainErr
+	// Upload publishes an acknowledgment, not a response body. Reading an
+	// unrequested body can block indefinitely on an otherwise completed upload.
+	return response, closeResponseBody(input.response.Body)
 }
 
 type downloadResponseRequest struct {
@@ -543,12 +549,13 @@ func finishDownloadResponse(
 	}
 	headers, err := captureHeaders(input.response.Header, input.request.CaptureHeaders)
 	if err != nil {
-		return zero, errors.Join(responseError(err), closeHTTPResponse(input.response))
+		return zero, errors.Join(responseHeaderError(err), closeHTTPResponse(input.response))
 	}
 	metadata := ResponseMetadata{
-		Status:   status,
-		Headers:  headers,
-		Attempts: 1,
+		RetryAfter: responseRetryAfter(input.response.Header.Get(retryAfterHeaderNameText)),
+		Status:     status,
+		Headers:    headers,
+		Attempts:   1,
 	}
 	response := StreamResponse{Metadata: metadata}
 	if err := response.Validate(); err != nil {
@@ -556,6 +563,9 @@ func finishDownloadResponse(
 		return zero, errors.Join(err, closeErr)
 	}
 	if status != input.request.ExpectedStatus {
+		if input.request.FailureDestination != nil {
+			return transferFailureResponse(input.context, input.response, input.request.FailureDestination, input.request.Buffer, response, input.request.ExpectedStatus)
+		}
 		drainErr := drainAndClose(
 			streamDrainRequest{
 				context: input.context, body: input.response.Body,
@@ -571,6 +581,15 @@ func finishDownloadResponse(
 		return response, errors.Join(err, closeErr)
 	}
 	return transferDownloadResponse(input, response)
+}
+
+func transferFailureResponse(ctx context.Context, native *http.Response, destination io.Writer, buffer []byte, response StreamResponse, expected core.HTTPStatusCode) (StreamResponse, error) {
+	statusErr := StatusError{status: response.Metadata.Status, expected: expected}
+	if destination == nil {
+		return response, errors.Join(statusErr, closeResponseBody(native.Body))
+	}
+	result, err := transferDownloadResponse(downloadResponseRequest{context: ctx, response: native, request: DownloadRequest{Destination: destination, Buffer: buffer}}, response)
+	return result, errors.Join(statusErr, err)
 }
 
 func validateDownloadResponse(input downloadResponseRequest) error {

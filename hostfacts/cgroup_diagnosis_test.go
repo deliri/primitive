@@ -62,8 +62,8 @@ func TestCgroupMountSelectionDiagnosisTable(t *testing.T) {
 		{name: "single root mount remains exact", text: rootMount, wantPath: "/mount"},
 		{name: "more specific mount owns subtree", text: rootMount + nestedMount, wantPath: "/nested"},
 		{name: "absent mount has missing identity", wantErr: core.ErrCgroupMountMissing},
-		{name: "equal specific mounts have ambiguous identity", text: rootMount + rootMount, wantErr: core.ErrCgroupMountAmbiguous},
-		{name: "nested ambiguity cannot fall back to root", text: nestedMount + rootMount + nestedMount, wantErr: core.ErrCgroupMountAmbiguous},
+		{name: "duplicate root retains first mount", text: rootMount + rootMount, wantPath: "/mount"},
+		{name: "duplicate nested root remains most specific", text: nestedMount + rootMount + nestedMount, wantPath: "/nested"},
 		{name: "malformed trailing line cannot be ignored", text: rootMount + "malformed\n", wantErr: core.ErrHostFactsObservation},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

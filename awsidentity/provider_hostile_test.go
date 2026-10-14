@@ -281,8 +281,8 @@ func TestAWSAcquireBodyOwnershipAndRefusalIdentity(t *testing.T) {
 		{name: "close failure cannot release token", closeErr: io.ErrClosedPipe, status: http.StatusOK, wantErr: io.ErrClosedPipe},
 		{name: "transport cause survives redaction", transportErr: io.ErrUnexpectedEOF, status: http.StatusOK, wantErr: io.ErrUnexpectedEOF},
 		{name: "cancel during read preserves context identity", cancel: true, status: http.StatusOK, wantErr: context.Canceled},
-		{name: "unauthorized receipt body is not a token", status: http.StatusUnauthorized, wantErr: core.ErrExchangeResponse},
-		{name: "retryable service failure is single attempt", status: http.StatusServiceUnavailable, wantErr: core.ErrExchangeResponse},
+		{name: "unauthorized receipt body is not a token", status: http.StatusUnauthorized, wantErr: core.ErrExchangeAuthentication},
+		{name: "retryable service failure is single attempt", status: http.StatusServiceUnavailable, wantErr: core.ErrExchangeUnavailable},
 		{name: "empty success status is not expected OK", status: http.StatusNoContent, wantErr: core.ErrExchangeResponse},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -305,7 +305,7 @@ func TestAWSAcquireBodyOwnershipAndRefusalIdentity(t *testing.T) {
 					t.Fatalf("Acquire status error = %v, want exchange.StatusError", gotErr)
 				}
 				status, statusValueErr := statusErr.Status().Int()
-				if statusValueErr != nil || status != tc.status || statusErr.Expected() != core.HTTPStatusOK() {
+				if statusValueErr != nil || status != tc.status || statusErr.Expected() != core.HTTPStatusOK() || tc.status >= http.StatusBadRequest && errors.Is(gotErr, core.ErrExchangeResponse) {
 					t.Fatalf("status facts = (%d,%v,%v), want (%d,OK,nil)", status, statusErr.Expected(), statusValueErr, tc.status)
 				}
 			}

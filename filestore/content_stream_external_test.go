@@ -36,7 +36,7 @@ func TestContentStreamOwnedLifetime(t *testing.T) {
 		{"empty admitted stream", nil, nil, nil, 0, 0},
 		{"unique records", []filestore.ContentIndexEntry{a, b}, nil, nil, 2, 2},
 		{"repeated record", []filestore.ContentIndexEntry{b, a, b}, nil, nil, 3, 2},
-		{"conflicting extent", []filestore.ContentIndexEntry{a, {Digest: a.Digest, Extent: two}}, nil, core.ErrFilestoreContract, 0, 0},
+		{"conflicting extent", []filestore.ContentIndexEntry{a, {Digest: a.Digest, Extent: two}}, nil, core.ErrFilestoreConflict, 0, 0},
 		{"source fails after prefix", []filestore.ContentIndexEntry{a}, refusal, refusal, 0, 0},
 		{"invalid source record", []filestore.ContentIndexEntry{{}}, nil, core.ErrFilestoreContract, 0, 0},
 	}

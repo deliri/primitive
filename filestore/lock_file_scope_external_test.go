@@ -19,7 +19,7 @@ func TestLockFileScopeClosesEveryConsumerOutcome(t *testing.T) {
 	}{
 		{name: "successful consumer"},
 		{name: "refused consumer", failure: context.DeadlineExceeded},
-		{name: "panicking consumer", failure: core.ErrFilestoreContract, panicConsumer: true},
+		{name: "panicking consumer", failure: core.ErrFilestoreCallbackPanic, panicConsumer: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

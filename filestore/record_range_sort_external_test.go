@@ -133,7 +133,7 @@ func TestRecordRangeSortNativeAdmissionAndStableMergeMatrix(t *testing.T) {
 				got, err := filestore.SortRecordRanges(ctx, request)
 				switch {
 				case mode == 2:
-					if !errors.Is(err, core.ErrFilestoreContract) || !errors.Is(err, io.ErrUnexpectedEOF) || seen != 0 || got.Records != 0 {
+					if !errors.Is(err, core.ErrFilestoreSource) || !errors.Is(err, io.ErrUnexpectedEOF) || seen != 0 || got.Records != 0 {
 						t.Fatalf("truncated%+v/%v effects%d", got, err, seen)
 					}
 				case mode == 3 && count > 1:
@@ -153,7 +153,7 @@ func TestRecordRangeSortNativeAdmissionAndStableMergeMatrix(t *testing.T) {
 						t.Fatalf("consumer%+v/%v effects%d", got, err, seen)
 					}
 				case mode == 7 && count > 0:
-					if !errors.Is(err, core.ErrFilestoreContract) || seen != 0 || got.Records != 0 {
+					if !errors.Is(err, core.ErrFilestoreSource) || seen != 0 || got.Records != 0 {
 						t.Fatalf("source%+v/%v effects%d", got, err, seen)
 					}
 				default:
@@ -375,8 +375,15 @@ func FuzzRecordRangeIndexCanonicalTuple(f *testing.F) {
 			t.Fatalf("tuple admission%+v/%v independently valid%t bytes%v", got, err, valid, data)
 		}
 		if err != nil {
-			if got != (lineio.RecordRange{}) || !errors.Is(err, io.EOF) && !errors.Is(err, core.ErrFilestoreContract) {
-				t.Fatalf("rejection%+v/%v", got, err)
+			wantErr := error(core.ErrFilestoreContract)
+			if len(data) == 0 {
+				wantErr = io.EOF
+			}
+			if len(data) > 0 && len(data) < filestore.RecordRangeIndexBytes {
+				wantErr = core.ErrFilestoreSource
+			}
+			if got != (lineio.RecordRange{}) || !errors.Is(err, wantErr) || wantErr == core.ErrFilestoreSource && (!errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, core.ErrFilestoreContract)) {
+				t.Fatalf("rejection%+v/%v, want exact zero and %v", got, err, wantErr)
 			}
 			return
 		}
@@ -475,7 +482,7 @@ func TestRecordRangeStreamOwnsNativeScratchWithoutOwningSource(t *testing.T) {
 					t.Fatalf("panic%v calls%d", recovered, calls)
 				}
 			case 6:
-				if !errors.Is(resultErr, io.ErrUnexpectedEOF) || !errors.Is(resultErr, core.ErrFilestoreContract) || got.Records != 0 || calls != 0 {
+				if !errors.Is(resultErr, io.ErrUnexpectedEOF) || !errors.Is(resultErr, core.ErrFilestoreSource) || got.Records != 0 || calls != 0 {
 					t.Fatalf("native%+v/%v calls%d", got, resultErr, calls)
 				}
 			}
@@ -507,7 +514,7 @@ func TestRecordRangeIndexPreservesNativeRefusalAlongsideCompleteTuple(t *testing
 		t.Run(fmt.Sprintf("prefix%d", prefix), func(t *testing.T) {
 			t.Parallel()
 			got, err := filestore.ReadRecordRangeIndex(&recordRangeIndexRefusalReader{data: data[:prefix]})
-			if got != (lineio.RecordRange{}) || !errors.Is(err, core.ErrFilestoreContract) || !errors.Is(err, io.ErrClosedPipe) {
+			if got != (lineio.RecordRange{}) || !errors.Is(err, core.ErrFilestoreSource) || !errors.Is(err, io.ErrClosedPipe) {
 				t.Fatalf("native tuple%+v/%v want zero and both refusals", got, err)
 			}
 		})
@@ -526,7 +533,7 @@ func TestContentIndexPreservesNativeRefusalAlongsideCompleteTuple(t *testing.T) 
 		t.Run(fmt.Sprintf("prefix%d", prefix), func(t *testing.T) {
 			t.Parallel()
 			got, err := filestore.ReadContentIndexEntry(&recordRangeIndexRefusalReader{data: data[:prefix]})
-			if got != (filestore.ContentIndexEntry{}) || !errors.Is(err, core.ErrFilestoreContract) || !errors.Is(err, io.ErrClosedPipe) {
+			if got != (filestore.ContentIndexEntry{}) || !errors.Is(err, core.ErrFilestoreSource) || !errors.Is(err, io.ErrClosedPipe) {
 				t.Fatalf("native tuple%+v/%v want zero and both refusals", got, err)
 			}
 		})

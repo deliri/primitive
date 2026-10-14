@@ -54,6 +54,7 @@ const (
 	coreJSONDoorSourceSnapshot
 	coreJSONDoorSourceSubjectKind
 	coreJSONDoorSourceSubject
+	coreJSONDoorRelativePath
 	coreJSONDoorLimit
 )
 
@@ -111,6 +112,8 @@ func (d coreJSONDoor) receiverName() string {
 		return "PathComponent"
 	case coreJSONDoorAbsolutePath:
 		return "AbsolutePath"
+	case coreJSONDoorRelativePath:
+		return "RelativePath"
 	case coreJSONDoorSourcePath:
 		return "SourcePath"
 	case coreJSONDoorRepositoryIdentity:
@@ -240,6 +243,8 @@ func FuzzCoreExternalJSONDoorInventory(f *testing.F) {
 			candidate, roundTrip = coreJSONReceivers(fixtures.component)
 		case coreJSONDoorAbsolutePath:
 			candidate, roundTrip = coreJSONReceivers(fixtures.absolutePath)
+		case coreJSONDoorRelativePath:
+			candidate, roundTrip = coreJSONReceivers(fixtures.relativePath)
 		case coreJSONDoorSourcePath:
 			candidate, roundTrip = coreJSONReceivers(fixtures.sourcePath)
 		case coreJSONDoorRepositoryIdentity:
@@ -701,6 +706,7 @@ func coreJSONSeedsForFuzz(t testing.TB, fixtures coreJSONFixtures) []coreJSONSee
 		coreJSONSeedForFuzz(t, coreJSONDoorByteLength, fixtures.byteLength),
 		coreJSONSeedForFuzz(t, coreJSONDoorPathComponent, fixtures.component),
 		coreJSONSeedForFuzz(t, coreJSONDoorAbsolutePath, fixtures.absolutePath),
+		coreJSONSeedForFuzz(t, coreJSONDoorRelativePath, fixtures.relativePath),
 		coreJSONSeedForFuzz(t, coreJSONDoorSourcePath, fixtures.sourcePath),
 		coreJSONSeedForFuzz(t, coreJSONDoorRepositoryIdentity, fixtures.repository),
 		coreJSONSeedForFuzz(t, coreJSONDoorSourceSnapshot, fixtures.snapshot),

@@ -26,32 +26,34 @@ type (
 )
 
 type temporalContractInventory struct {
-	NativePair          temporalIngressRequest[NativeTimePair]
-	NativeOffset        temporalIngressRequest[NativeTimeOffsetRequest]
-	NativeFacts         temporalSealedValue[NativeTimeFacts]
-	Cancellation        temporalCapabilityIntent[CancellationRequest]
-	ContextResult       temporalCapabilityIntent[contextConstruction]
-	Ticker              temporalCapabilityIntent[Ticker]
-	NativeTextFormat    temporalCapabilityIntent[NativeTimeFormatRequest]
-	TextParse           temporalIngressRequest[ParseTimeRequest]
-	TimeoutRequest      temporalCapabilityIntent[TimeoutRequest]
-	WaitRequest         temporalCapabilityIntent[WaitRequest]
-	IntervalRequest     temporalIngressRequest[IntervalRequest]
-	Observation         temporalSealedValue[Observation]
-	DeadlineRequest     temporalCapabilityIntent[DeadlineRequest]
-	PrecisionFact       temporalDefinitionFact[precisionFact]
-	TextFormat          temporalCapabilityIntent[FormatTimeRequest]
-	Interval            temporalSealedValue[Interval]
-	IntervalBounds      temporalPersistenceFact[IntervalBounds]
-	Instant             temporalSealedValue[Instant]
-	AggregateDuration   temporalSealedValue[AggregateDuration]
-	NumericInstant      temporalPersistenceFact[NumericInstant]
-	NumericDuration     temporalPersistenceFact[NumericDuration]
-	TickerRequest       temporalCapabilityIntent[TickerRequest]
-	Duration            temporalSealedValue[Duration]
-	CalendarObservation temporalSealedValue[CalendarUTC]
-	CalendarDateTime    temporalIngressRequest[UTCDateTime]
-	CalendarOffset      temporalCapabilityIntent[CalendarDelta]
+	CivilDate            temporalSealedValue[CivilDate]
+	CivilDateCoordinates temporalIngressRequest[CivilDateRequest]
+	Location             temporalCapabilityIntent[Location]
+	LocalClock           temporalIngressRequest[LocalTimeRequest]
+	NativePair           temporalIngressRequest[NativeTimePair]
+	Cancellation         temporalCapabilityIntent[CancellationRequest]
+	ContextResult        temporalCapabilityIntent[contextConstruction]
+	Ticker               temporalCapabilityIntent[Ticker]
+	NativeTextFormat     temporalCapabilityIntent[NativeTimeFormatRequest]
+	TextParse            temporalIngressRequest[ParseTimeRequest]
+	TimeoutRequest       temporalCapabilityIntent[TimeoutRequest]
+	WaitRequest          temporalCapabilityIntent[WaitRequest]
+	IntervalRequest      temporalIngressRequest[IntervalRequest]
+	Observation          temporalSealedValue[Observation]
+	DeadlineRequest      temporalCapabilityIntent[DeadlineRequest]
+	PrecisionFact        temporalDefinitionFact[precisionFact]
+	TextFormat           temporalCapabilityIntent[FormatTimeRequest]
+	Interval             temporalSealedValue[Interval]
+	IntervalBounds       temporalPersistenceFact[IntervalBounds]
+	Instant              temporalSealedValue[Instant]
+	AggregateDuration    temporalSealedValue[AggregateDuration]
+	NumericInstant       temporalPersistenceFact[NumericInstant]
+	NumericDuration      temporalPersistenceFact[NumericDuration]
+	TickerRequest        temporalCapabilityIntent[TickerRequest]
+	Duration             temporalSealedValue[Duration]
+	CalendarObservation  temporalSealedValue[CalendarUTC]
+	CalendarDateTime     temporalIngressRequest[UTCDateTime]
+	CalendarOffset       temporalCapabilityIntent[CalendarDelta]
 }
 
 var _ = temporalContractInventory{}
@@ -141,11 +143,7 @@ type temporalPrecisionSignature interface {
 }
 
 var (
-	_ func(time.Time) bool                     = IsNativeTimeZero
-	_ func(time.Time) NativeTimeFacts          = InspectNativeTime
 	_ func(NativeTimePair) core.Comparison     = CompareNativeTimes
-	_ func(NativeTimePair) time.Duration       = DifferenceNativeTimes
-	_ func(NativeTimeOffsetRequest) time.Time  = OffsetNativeTime
 	_ temporalInstantSignature                 = Instant{}
 	_ interface{ UnmarshalJSON([]byte) error } = (*Instant)(nil)
 	_ temporalDurationSignature                = Duration{}
@@ -251,10 +249,15 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 		t.Fatalf("scanTemporalArchitecture() error = %v, want nil", gotErr)
 	}
 	want := []string{
+		"type ClockLayout", "const ClockLayoutUnknown", "const ClockHourMinuteSecond", "method ClockLayout.Validate", "method ClockLayout.IsValid", "method ClockLayout.String", "method ClockLayout.OffWireEnum",
+		"type Location", "func NewLocation", "method Location.Validate", "method Location.Name", "method Location.Format", "method Location.Append", "method Location.ParseLocalTime", "method Location.DateAt", "method Location.StartOfDay", "method Location.AddCalendar",
+		"type CivilDate", "type CivilDateRequest", "func NewCivilDate", "func ParseCivilDate", "method CivilDate.Validate", "method CivilDate.Coordinates", "method CivilDate.Text", "method CivilDate.AddDays", "method CivilDate.AddCalendar", "method CivilDate.PeriodStart", "method CivilDate.PeriodEnd", "method CivilDate.CompletedYearsUntil",
+		"type CalendarBoundary", "const CalendarBoundaryUnknown", "const CalendarMonth", "const CalendarQuarter", "const CalendarYear", "method CalendarBoundary.Validate", "method CalendarBoundary.IsValid", "method CalendarBoundary.String", "method CalendarBoundary.OffWireEnum",
+		"type LocalTimeRequest", "method LocalTimeRequest.Validate", "method LocalTimeRequest.Instant",
+		"method Month.Validate", "method Month.IsValid", "method Month.String", "method Month.OffWireEnum", "method Weekday.Validate", "method Weekday.IsValid", "method Weekday.String", "method Weekday.OffWireEnum",
 		"type NativeTimeFormatRequest", "method NativeTimeFormatRequest.Validate", "func FormatNativeTime",
-		"type NativeTimePair", "type NativeTimeOffsetRequest", "type NativeTimeFacts",
-		"func InspectNativeTime", "func CompareNativeTimes", "func DifferenceNativeTimes", "func OffsetNativeTime",
-		"func IsNativeTimeZero",
+		"type NativeTimePair",
+		"func CompareNativeTimes",
 		"func AppendTime",
 		"method Duration.Truncate", "method Duration.Round", "method Duration.Text",
 		"func NewTimeLayout", "type TimeLayout", "type LocationName", "type ParseTimeRequest", "type FormatTimeRequest",
@@ -422,13 +425,16 @@ func TestTemporalProductionStaysOnGoContextAndTimePrimitives(t *testing.T) {
 		t.Fatalf("scanTemporalArchitecture() error = %v, want nil", gotErr)
 	}
 	wantImports := []string{
+		"archive/zip",
 		"bytes",
 		"context",
+		"embed",
 		"encoding/json/jsontext",
 		"encoding/json/v2",
 		"errors",
 		"github.com/deliri/primitive/v2026/contextstate",
 		"github.com/deliri/primitive/v2026/core",
+		"io",
 		"math",
 		"math/bits",
 		"strconv",

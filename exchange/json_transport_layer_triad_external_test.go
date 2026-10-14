@@ -263,11 +263,11 @@ func TestJSONTransportLayerTriad(t *testing.T) {
 				},
 			},
 		)
-		if !errors.Is(gotErr, core.ErrExchangeResponse) {
+		if !errors.Is(gotErr, core.ErrExchangeResponseHeaders) {
 			t.Fatalf(
 				"exchange.SendNoBodyJSON(invalid metadata) error = %v, want %v",
 				gotErr,
-				core.ErrExchangeResponse,
+				core.ErrExchangeResponseHeaders,
 			)
 		}
 		if got.Body != (transportDocument{}) ||

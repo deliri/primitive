@@ -1,10 +1,10 @@
 package jsonio
 
 import (
+	"bytes"
 	"context"
 	"encoding/json/jsontext"
 	"errors"
-	"fmt"
 	"io"
 	"iter"
 
@@ -20,6 +20,8 @@ type Request struct {
 	Source io.Reader
 	// Limits bound each document independently of total stream extent.
 	Limits core.StrictJSONLimits
+	// Members keeps owned documents closed unless a foreign format is named.
+	Members MemberPolicy
 }
 
 // Validate refuses an absent source or invalid mechanical admission limits.
@@ -27,7 +29,7 @@ func (r Request) Validate() error {
 	if core.ReaderIsNil(r.Source) {
 		return errors.Join(core.ErrJSONContract, errors.New("JSON document source is absent"))
 	}
-	return r.Limits.Validate()
+	return errors.Join(r.Limits.Validate(), r.Members.Validate())
 }
 
 // Documents decodes one validated typed document at a time. Go owns JSON
@@ -47,7 +49,7 @@ func Documents[Document core.Validatable](ctx context.Context, request Request) 
 			yield(zero, err)
 			return
 		}
-		bounded := &io.LimitedReader{R: checkedJSONSource{source: request.Source}}
+		bounded := &io.LimitedReader{R: contextJSONSource{ctx: ctx, source: checkedJSONSource{source: request.Source}}}
 		decoder := jsontext.NewDecoder(bounded)
 		for {
 			data, err := readJSONStreamValue(ctx, decoder, bounded, request.Limits.DocumentMaximumBytes)
@@ -58,7 +60,7 @@ func Documents[Document core.Validatable](ctx context.Context, request Request) 
 				yield(zero, err)
 				return
 			}
-			document, err := core.DecodeStrictJSONBytes[Document](data, request.Limits)
+			document, err := decodeDocument[Document](ctx, data, request)
 			if err := errors.Join(err, contextstate.Validate(ctx)); err != nil {
 				yield(zero, err)
 				return
@@ -88,12 +90,25 @@ func readJSONStreamValue(ctx context.Context, decoder *jsontext.Decoder, bounded
 		return nil, io.EOF
 	}
 	if err != nil {
-		return nil, fmt.Errorf("read JSON document: %w", errors.Join(core.ErrJSONContract, err))
+		return nil, jsonOperationError(err)
 	}
 	if decoder.InputOffset()-start > int64(maximumBytes) {
 		return nil, &ExtentError{Maximum: maximum}
 	}
 	return data, nil
+}
+
+// Typed admission has one owner for both whole-value and object-stream doors.
+func decodeDocument[Document core.Validatable](ctx context.Context, data []byte, request Request) (Document, error) {
+	var zero Document
+	if err := request.Limits.ValidateDocument(data); err != nil {
+		return zero, err
+	}
+	decoder, err := NewObjectDecoder[Document](ObjectSourceRequest{Source: bytes.NewReader(data), Members: request.Members})
+	if err != nil {
+		return zero, err
+	}
+	return decoder.Decode(ctx)
 }
 
 // ExtentError records refusal at the caller's per-document byte boundary.

@@ -124,6 +124,7 @@ func filestoreIngressProofs() []filestoreIngressProof {
 		{door: reflect.ValueOf(filestore.WriteStage), fuzz: FuzzStageDestinationNativeWriterCustody},
 		{door: reflect.ValueOf(filestore.SyncStage), fuzz: FuzzStageDestinationNativeWriterCustody},
 		{door: reflect.ValueOf(filestore.StageSyncObservation.BytesWritten), fuzz: FuzzStageDestinationNativeWriterCustody},
+		{door: reflect.ValueOf(filestore.StageWriteObservation.BytesWritten), fuzz: FuzzStageDestinationNativeWriterCustody},
 		{door: reflect.ValueOf(filestore.RestoreStage), fuzz: FuzzStageRestoreConservesNativePrefixAndCursor},
 		{door: reflect.ValueOf(filestore.StageRestoreObservation.BeforeBytes), fuzz: FuzzStageRestoreConservesNativePrefixAndCursor},
 		{door: reflect.ValueOf(filestore.StageRestoreObservation.AfterBytes), fuzz: FuzzStageRestoreConservesNativePrefixAndCursor},

@@ -47,11 +47,14 @@ func WriteContentIndexEntry(destination io.Writer, entry ContentIndexEntry) erro
 	copy(data[:core.SHA256DigestBytes], digest[:])
 	binary.BigEndian.PutUint64(data[core.SHA256DigestBytes:], entry.Extent.Uint64())
 	written, err := destination.Write(data[:])
+	if written < 0 || written > len(data) {
+		return contractError(err)
+	}
 	if err != nil {
-		return errors.Join(core.ErrFilestoreContract, err)
+		return destinationError(err)
 	}
 	if written != len(data) {
-		return errors.Join(core.ErrFilestoreContract, io.ErrShortWrite)
+		return destinationError(io.ErrShortWrite)
 	}
 	return nil
 }

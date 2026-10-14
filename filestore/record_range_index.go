@@ -25,11 +25,14 @@ func WriteRecordRangeIndex(destination io.Writer, record lineio.RecordRange) err
 	binary.BigEndian.PutUint64(data[8:16], record.Bytes.Uint64())
 	data[16] = byte(record.Framing)
 	written, err := destination.Write(data[:])
+	if written < 0 || written > len(data) {
+		return contractError(err)
+	}
 	if err != nil {
-		return errors.Join(core.ErrFilestoreContract, err)
+		return destinationError(err)
 	}
 	if written != len(data) {
-		return errors.Join(core.ErrFilestoreContract, io.ErrShortWrite)
+		return destinationError(io.ErrShortWrite)
 	}
 	return nil
 }

@@ -149,7 +149,7 @@ func TestStagedNamespaceEntryLayerTriad(t *testing.T) {
 				}
 				var wantErr error
 				if !tc.wantOwned {
-					wantErr = core.ErrFilestoreActivationIndeterminate
+					wantErr = core.ErrFilestoreConflict
 					if effect.effect == stageEntryDiscard {
 						wantErr = core.ErrFilestoreCleanup
 					}

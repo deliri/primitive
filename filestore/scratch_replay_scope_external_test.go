@@ -22,7 +22,7 @@ func TestScratchReplayScopeResetsNativeExtentAndClosesAfterConsumerStops(t *test
 	}{
 		{name: "complete replay"},
 		{name: "consumer refusal", failure: io.ErrUnexpectedEOF},
-		{name: "consumer panic", failure: core.ErrFilestoreContract, panicConsumer: true},
+		{name: "consumer panic", failure: core.ErrFilestoreCallbackPanic, panicConsumer: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

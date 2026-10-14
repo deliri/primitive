@@ -127,7 +127,7 @@ func FuzzParseTimeUTCSemanticClosure(f *testing.F) {
 		got, err := temporal.ParseTimeUTC(temporal.ParseTimeRequest{Layout: temporal.TimeLayout(layout), Text: text})
 		native, nativeErr := time.Parse(layout, text)
 		textErr := (temporal.ParseTimeRequest{Layout: temporal.TimeLayout(layout), Text: text}).Validate()
-		validText := layout != "" && text != "" && nativeErr == nil && native.UTC().Format(layout) == text
+		validText := nativeLayoutVaries(layout) && text != "" && nativeErr == nil && native.UTC().Format(layout) == text
 		if validText && textErr != nil {
 			t.Fatalf("valid calendar text error = %v, want nil", textErr)
 		}
@@ -135,7 +135,7 @@ func FuzzParseTimeUTCSemanticClosure(f *testing.F) {
 			t.Fatalf("calendar text refusal = %v, want Temporal contract identity", textErr)
 		}
 		want, extentErr := temporal.NewInstant(native)
-		accepted := layout != "" && text != "" && nativeErr == nil && extentErr == nil && native.UTC().Format(layout) == text
+		accepted := nativeLayoutVaries(layout) && text != "" && nativeErr == nil && extentErr == nil && native.UTC().Format(layout) == text
 		if !accepted {
 			if got != (temporal.Instant{}) || (!errors.Is(err, core.ErrTemporalContract) && !errors.Is(err, core.ErrTemporalOverflow)) {
 				t.Fatalf("parse refusal = (%v, %v), want zero and typed refusal", got, err)
@@ -168,7 +168,7 @@ func FuzzFormatTimeSemanticClosure(f *testing.F) {
 		got, err := temporal.FormatTime(temporal.FormatTimeRequest{Instant: instant, Layout: temporal.TimeLayout(layout), Location: temporal.LocationName(location)})
 		request := temporal.FormatTimeRequest{Instant: instant, Layout: temporal.TimeLayout(layout), Location: temporal.LocationName(location)}
 		nativeText, nativeErr := temporal.FormatNativeTime(temporal.NativeTimeFormatRequest{Time: time.Unix(0, nanoseconds).UTC(), Layout: temporal.TimeLayout(layout)})
-		if layout == "" {
+		if !nativeLayoutVaries(layout) {
 			if nativeText != "" || !errors.Is(nativeErr, core.ErrTemporalContract) {
 				t.Fatalf("native text refusal = (%q, %v), want empty and typed refusal", nativeText, nativeErr)
 			}
@@ -178,7 +178,7 @@ func FuzzFormatTimeSemanticClosure(f *testing.F) {
 		prefix := []byte{1, 2, 3}
 		appended, appendErr := temporal.AppendTime(prefix, request)
 		zone, zoneErr := time.LoadLocation(location)
-		if layout == "" || location == "" || location == "Local" || zoneErr != nil {
+		if !nativeLayoutVaries(layout) || location == "" || location == "Local" || zoneErr != nil || temporal.LocationName(location).Validate() != nil {
 			if got != "" || !errors.Is(err, core.ErrTemporalContract) {
 				t.Fatalf("format refusal = (%q, %v), want empty and typed refusal", got, err)
 			}

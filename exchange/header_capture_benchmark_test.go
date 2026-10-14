@@ -26,8 +26,8 @@ func BenchmarkAggregateHeaderValueAdmission(b *testing.B) {
 		wantStatus core.HTTPStatusCode
 	}{
 		{name: "at_limit", values: HeaderValueMaximumCount, wantFields: 1, wantValues: HeaderValueMaximumCount, wantReads: 1, wantStatus: core.HTTPStatusOK()},
-		{name: "above_limit", values: HeaderValueMaximumCount + 1, wantErr: core.ErrExchangeResponse},
-		{name: "excess_4096", values: 4096, wantErr: core.ErrExchangeResponse},
+		{name: "above_limit", values: HeaderValueMaximumCount + 1, wantErr: core.ErrExchangeResponseHeaders},
+		{name: "excess_4096", values: 4096, wantErr: core.ErrExchangeResponseHeaders},
 	}
 	for _, tc := range cases {
 		b.Run(tc.name, func(b *testing.B) {
@@ -44,8 +44,8 @@ func BenchmarkAggregateHeaderValueAdmission(b *testing.B) {
 				body.reads, body.closes = 0, 0
 				body.source.Reset(nil)
 				got, err = readAggregateHTTPResponse(input)
-				if !errors.Is(err, tc.wantErr) || got.status != tc.wantStatus || len(got.headers.Values) != tc.wantFields || len(got.body) != 0 || got.retryAfter != "" || body.reads != tc.wantReads || body.closes != 1 {
-					b.Fatalf("ingress error/status/fields/body/retry/reads/closes = (%v, %v, %d, %d, %q, %d, %d), want (%v, %v, %d, 0, empty, %d, 1)", err, got.status, len(got.headers.Values), len(got.body), got.retryAfter, body.reads, body.closes, tc.wantErr, tc.wantStatus, tc.wantFields, tc.wantReads)
+				if !errors.Is(err, tc.wantErr) || got.status != tc.wantStatus || len(got.headers.Values) != tc.wantFields || len(got.body) != 0 || !got.retryAfter.IsZero() || body.reads != tc.wantReads || body.closes != 1 {
+					b.Fatalf("ingress error/status/fields/body/retry/reads/closes = (%v, %v, %d, %d, %v, %d, %d), want (%v, %v, %d, 0, zero, %d, 1)", err, got.status, len(got.headers.Values), len(got.body), got.retryAfter, body.reads, body.closes, tc.wantErr, tc.wantStatus, tc.wantFields, tc.wantReads)
 				}
 				if tc.wantErr != nil && (got.headers.Values != nil || got.body != nil) {
 					b.Fatalf("refused headers/body=%+v/%x, want nil/nil", got.headers.Values, got.body)

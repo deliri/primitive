@@ -132,7 +132,7 @@ func scanLandedCleanUpgradeDebt(root string) (cleanUpgradeDebtInventory, error) 
 	}
 	sources := make([]realWorldSource, 0, len(paths))
 	for _, path := range paths {
-		owner, err := realWorldSourceOwner(path)
+		owner, err := realWorldSourceOwner(root, path)
 		if err != nil {
 			return cleanUpgradeDebtInventory{}, err
 		}

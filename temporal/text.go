@@ -2,7 +2,9 @@ package temporal
 
 import "time"
 
-// TimeLayout is a Go reference-time layout selected by the caller's protocol.
+// TimeLayout is a Go calendar layout selected by the caller's protocol.
+// At least one native Gregorian date or weekday coordinate must be present;
+// clock-only, zone-only and literal label layouts are outside this agreement.
 // The zero value is invalid. Temporal owns parsing and formatting mechanics.
 type TimeLayout string
 
@@ -19,6 +21,14 @@ func (l TimeLayout) Validate() error {
 	if l == "" {
 		return contractError("time layout is empty")
 	}
+	// Go is the token interpreter. Two independent Gregorian dates must
+	// produce different output; a literal spelling such as YYYY-MM-DD does not.
+	// Source: https://pkg.go.dev/time#Time.Format
+	first := time.Date(2006, time.January, 2, 15, 4, 5, 123456789, time.UTC)
+	second := time.Date(1998, time.November, 24, 15, 4, 5, 123456789, time.UTC)
+	if first.Format(string(l)) == second.Format(string(l)) {
+		return contractError("time layout contains no native calendar tokens")
+	}
 	return nil
 }
 
@@ -29,13 +39,28 @@ func (l TimeLayout) Validate() error {
 type NativeTimeFormatRequest struct {
 	Time   time.Time
 	Layout TimeLayout
+	Clock  ClockLayout
 }
 
-func (r NativeTimeFormatRequest) Validate() error { return r.Layout.Validate() }
+func (r NativeTimeFormatRequest) Validate() error {
+	if r.Clock != ClockLayoutUnknown {
+		if err := r.Clock.Validate(); err != nil {
+			return err
+		}
+		if r.Layout != "" {
+			return contractError("native formatting cannot choose both calendar and clock layouts")
+		}
+		return nil
+	}
+	return r.Layout.Validate()
+}
 
 func FormatNativeTime(r NativeTimeFormatRequest) (string, error) {
 	if err := r.Validate(); err != nil {
 		return "", err
+	}
+	if r.Clock == ClockHourMinuteSecond {
+		return r.Time.Format(time.TimeOnly), nil
 	}
 	return r.Time.Format(string(r.Layout)), nil
 }
@@ -52,14 +77,11 @@ func (n LocationName) Validate() error {
 }
 
 func (n LocationName) location() (*time.Location, error) {
-	if n == "" || n == "Local" {
-		return nil, contractError("time location must be explicit")
-	}
-	location, err := time.LoadLocation(string(n))
+	location, err := NewLocation(n)
 	if err != nil {
-		return nil, contractError("time location is invalid", err)
+		return nil, err
 	}
-	return location, nil
+	return location.value, nil
 }
 
 // ParseTimeRequest admits one canonical UTC representation under its layout.

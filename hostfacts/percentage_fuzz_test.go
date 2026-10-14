@@ -33,6 +33,8 @@ func FuzzPercentProjectionSemanticClosure(f *testing.F) {
 	f.Add(uint8(1), uint64(1))
 	f.Add(uint8(percentDenominator), uint64(math.MaxUint64))
 	f.Add(uint8(0), uint64(0))
+	f.Add(uint8(100), uint64(0))
+	f.Add(uint8(100), uint64(math.MaxInt64))
 	f.Fuzz(func(t *testing.T, raw uint8, limit uint64) {
 		percent, err := NewPercent(raw)
 		if raw == 0 || raw > percentDenominator {
@@ -44,15 +46,15 @@ func FuzzPercentProjectionSemanticClosure(f *testing.F) {
 		if err != nil {
 			t.Fatalf("admitted percentage error = %v, want nil", err)
 		}
-		count, countErr := core.NewByteCount(limit)
-		got, gotErr := (GoMemoryPressurePolicy{TriggerPercent: percent}).TriggerBytes(count)
+		count, countErr := core.NewByteLength(limit)
 		if countErr != nil {
-			if got != (core.ByteCount{}) || !errors.Is(gotErr, core.ErrHostFactsObservation) || !errors.Is(gotErr, core.ErrPrimitiveContract) {
-				t.Fatalf("unset limit projection = %v/%v, want zero typed refusal", got, gotErr)
+			if count != (core.ByteLength{}) || !errors.Is(countErr, core.ErrNumericOverflow) {
+				t.Fatalf("unrepresentable native limit = %v/%v, want zero numeric refusal", count, countErr)
 			}
 			return
 		}
-		value, valueErr := got.Uint64()
+		got, gotErr := (GoMemoryPressurePolicy{TriggerPercent: percent}).TriggerBytes(count)
+		value, valueErr := got.Uint64(), got.Validate()
 		want := ceilingPercentOracle(limit, raw)
 		if gotErr != nil || valueErr != nil || value != want {
 			t.Fatalf("percentage projection = %d/%v/%v, want independent integer ceiling %d", value, gotErr, valueErr, want)

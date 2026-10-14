@@ -217,7 +217,7 @@ func TestJSONObjectStreamCancellationAndSourceIdentity(t *testing.T) {
 		seen := 0
 		for object, err := range jsonio.Objects[scalarObject](t.Context(), jsonio.ObjectSourceRequest{Source: iotest.ErrReader(identity)}) {
 			seen++
-			if object != (scalarObject{}) || !errors.Is(err, identity) || !errors.Is(err, core.ErrJSONContract) {
+			if object != (scalarObject{}) || !errors.Is(err, identity) || errors.Is(err, core.ErrJSONContract) {
 				t.Fatal(object, err)
 			}
 		}

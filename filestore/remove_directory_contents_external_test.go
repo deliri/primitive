@@ -13,9 +13,8 @@ import (
 	"github.com/deliri/primitive/v2026/filestore"
 )
 
-func proveDirectoryContentsRemoval(t testing.TB, count uint8, payload []byte, canceled bool) {
+func proveDirectoryContentsRemoval(t testing.TB, directory, outside string, count uint8, payload []byte, canceled bool) {
 	t.Helper()
-	directory, outside := t.TempDir(), t.TempDir()
 	if err := os.WriteFile(filepath.Join(outside, "retained"), payload, 0600); err != nil {
 		t.Fatal(err)
 	}
@@ -89,12 +88,21 @@ func proveDirectoryContentsRemoval(t testing.TB, count uint8, payload []byte, ca
 
 func TestDirectoryContentsRemovalDrainsNativeEntries(t *testing.T) {
 	t.Parallel()
-	for index := range 64 {
-		t.Run(fmt.Sprint(index), func(t *testing.T) {
-			t.Parallel()
-			count := [...]uint8{0, 1, 63, 64, 65, 129, 193, 255}[index%8]
-			proveDirectoryContentsRemoval(t, count, []byte{0, 255, byte(index)}, index/8%2 == 1)
-		})
+	// Removal observes entry names and types, never file payloads. Retain one
+	// binary fixture per count/cancellation contract rather than four copies
+	// whose different payload byte cannot change the operation's meaning.
+	for _, count := range [...]uint8{0, 1, 63, 64, 65, 129, 193, 255} {
+		for _, canceled := range [...]bool{false, true} {
+			name := fmt.Sprintf("remove-%d-entries", count)
+			if canceled {
+				name = fmt.Sprintf("canceled-removal-preserves-%d-entries", count)
+			}
+			t.Run(name, func(t *testing.T) {
+				t.Parallel()
+				directory, outside := t.TempDir(), t.TempDir()
+				proveDirectoryContentsRemoval(t, directory, outside, count, []byte{0, 255, 81}, canceled)
+			})
+		}
 	}
 }
 
@@ -103,6 +111,7 @@ func FuzzDirectoryContentsRemovalConservesNativeNamespace(f *testing.F) {
 	f.Add(uint8(129), []byte("outside must survive"), true)
 	f.Add(uint8(0), []byte{}, false)
 	f.Fuzz(func(t *testing.T, count uint8, payload []byte, canceled bool) {
-		proveDirectoryContentsRemoval(t, count, payload, canceled)
+		directory, outside := t.TempDir(), t.TempDir()
+		proveDirectoryContentsRemoval(t, directory, outside, count, payload, canceled)
 	})
 }

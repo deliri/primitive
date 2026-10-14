@@ -477,8 +477,8 @@ func TestStageDestinationCommitRefusesPostFinishMutation(t *testing.T) {
 		{name: "one byte below finished extent cannot activate", mutation: settledStageTruncated, wantErr: core.ErrFilestoreSize},
 		{name: "one byte above finished extent cannot activate", mutation: settledStageAppended, wantErr: core.ErrFilestoreSize},
 		{name: "changed permissions cannot borrow original agreement", mutation: settledStagePermission, wantErr: core.ErrFilestoreActivation},
-		{name: "same-byte foreign inode cannot borrow finished receipt", mutation: settledStageForeign, wantErr: core.ErrFilestoreActivationIndeterminate, wantForeign: true},
-		{name: "symlink to original cannot borrow finished receipt", mutation: settledStageSymlink, wantErr: core.ErrFilestoreActivationIndeterminate, wantForeign: true},
+		{name: "same-byte foreign inode cannot borrow finished receipt", mutation: settledStageForeign, wantErr: core.ErrFilestoreConflict, wantForeign: true},
+		{name: "symlink to original cannot borrow finished receipt", mutation: settledStageSymlink, wantErr: core.ErrFilestoreConflict, wantForeign: true},
 		{name: "missing finished entry cannot fabricate activation", mutation: settledStageMissing, wantErr: core.ErrFilestoreActivation, wantNative: fs.ErrNotExist},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

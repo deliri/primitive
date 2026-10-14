@@ -39,7 +39,11 @@ func TestContentIndexWriterRefusalPreservesIdentity(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			err := WriteContentIndexEntry(tc.writer, contentEntryForTest(t, 1, 1))
-			if !errors.Is(err, tc.wantErr) || !errors.Is(err, core.ErrFilestoreContract) {
+			wantBoundary := error(core.ErrFilestoreDestination)
+			if tc.wantErr == core.ErrFilestoreContract {
+				wantBoundary = core.ErrFilestoreContract
+			}
+			if !errors.Is(err, tc.wantErr) || !errors.Is(err, wantBoundary) {
 				t.Fatalf("WriteContentIndexEntry() error = %v, want %v and filestore contract", err, tc.wantErr)
 			}
 		})

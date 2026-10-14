@@ -111,9 +111,13 @@ func Tokens(ctx context.Context, request TokenRequest) iter.Seq2[Token, error] {
 			yield(Token{}, err)
 			return
 		}
-		decoder := jsontext.NewDecoder(checkedJSONSource{source: request.Source})
+		decoder, err := NewTokenDecoder(request)
+		if err != nil {
+			yield(Token{}, err)
+			return
+		}
 		for {
-			token, err := readToken(ctx, decoder, request.NestingDepthMaximum)
+			token, err := decoder.Decode(ctx)
 			if err == io.EOF {
 				return
 			}
@@ -140,7 +144,7 @@ func readToken(ctx context.Context, decoder *jsontext.Decoder, maximumDepth uint
 		return Token{}, io.EOF
 	}
 	if err != nil {
-		return Token{}, errors.Join(core.ErrJSONContract, err)
+		return Token{}, jsonOperationError(err)
 	}
 	if decoder.StackDepth() > int(maximumDepth) {
 		return Token{}, core.ErrJSONContract

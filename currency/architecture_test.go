@@ -27,6 +27,8 @@ type currencyContractInventory struct {
 	CodeDefinition currencyDefinitionFact[currencyDefinition]
 	Amount         currencySealedValue[Amount]
 	MinorUnitsJSON currencyInternalScalar[minorUnitsJSON]
+	Quantity       currencySealedValue[Quantity]
+	BasisPoints    currencySealedValue[BasisPoints]
 	AmountWire     currencyWireProjection[amountWire]
 }
 
@@ -43,7 +45,7 @@ func TestCurrencyProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T)
 	if gotErr != nil {
 		t.Fatalf("scanCurrencyArchitecture() error = %v, want nil", gotErr)
 	}
-	want := []string{"Amount", "amountWire", "currencyDefinition", "minorUnitsJSON"}
+	want := []string{"Amount", "BasisPoints", "Quantity", "amountWire", "currencyDefinition", "minorUnitsJSON"}
 	if !slices.Equal(gotScan.structs, want) {
 		t.Fatalf("Currency production structs = %q, want classified %q", gotScan.structs, want)
 	}
@@ -57,6 +59,38 @@ func TestCurrencyExactPublicSurfaceAndNoAliases(t *testing.T) {
 		t.Fatalf("scanCurrencyArchitecture() error = %v, want nil", gotErr)
 	}
 	wantSurface := []string{
+		"type Quantity",
+		"type BasisPoints",
+		"type Rounding",
+		"type Sign",
+		"const RoundingUnknown",
+		"const RoundingDown",
+		"const RoundingHalfUp",
+		"const RoundingHalfEven",
+		"const SignUnknown",
+		"const SignNegative",
+		"const SignZero",
+		"const SignPositive",
+		"func NewQuantity",
+		"func NewBasisPoints",
+		"func ParseProviderCode",
+		"method Quantity.Validate",
+		"method BasisPoints.Validate",
+		"method Rounding.IsValid",
+		"method Rounding.Validate",
+		"method Rounding.String",
+		"method Rounding.OffWireEnum",
+		"method Sign.IsValid",
+		"method Sign.Validate",
+		"method Sign.String",
+		"method Sign.OffWireEnum",
+		"method Amount.Sign",
+		"method Amount.Negate",
+		"method Amount.MultiplyQuantity",
+		"method Amount.ApplyBasisPoints",
+		"method Amount.Allocate",
+		"method Code.ProviderCode",
+
 		"const AmountCanonicalJSONMaximumBytes",
 		"const AmountJSONDocumentSlackBytes",
 		"const AmountJSONMaximumBytes",
@@ -135,9 +169,12 @@ func TestCurrencyProductionUsesOnlyStandardLibraryAndCoreWithoutMaps(t *testing.
 		"errors",
 		"github.com/deliri/primitive/v2026/core",
 		"math",
+		"math/bits",
+		"iter",
 		"strconv",
 		"strings",
 	}
+	slices.Sort(wantImports)
 	if !slices.Equal(gotScan.imports, wantImports) {
 		t.Fatalf("Currency production imports = %q, want %q", gotScan.imports, wantImports)
 	}
@@ -489,6 +526,9 @@ func TestCurrencyExternalIngressHasSemanticFuzzOwners(t *testing.T) {
 	t.Parallel()
 	inventory := []struct{ door, target string }{
 		{door: "New", target: "FuzzAmountNominalArithmetic"},
+		{door: "NewQuantity", target: "FuzzScalingAgainstBigIntegerOracle"},
+		{door: "NewBasisPoints", target: "FuzzScalingAgainstBigIntegerOracle"},
+		{door: "ParseProviderCode", target: "FuzzProviderCodeSemanticClosure"},
 		{door: "Parse", target: "FuzzDecimalParserAgainstStandardGrammarAndBigRationalOracle"},
 		{door: "ParseCode", target: "FuzzParseCodeAgainstClosedCurrencyDomain"},
 		{door: "Amount.UnmarshalJSON", target: "FuzzAmountJSONAgainstStandardTokenStreamOracle"},

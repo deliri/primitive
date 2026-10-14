@@ -95,9 +95,12 @@ func FuzzReplayStreamPreservesDownloadAndRoundTripObservation(f *testing.F) {
 			wantStatusError := failedStatus
 			wantFailure := wantReadFailure || wantCloseFailure || wantStatusError
 			wantExhausted := !cancelAtHandoff && wantFailure
+			if roundTrip {
+				request.Semantics.Method = exchange.MethodPost
+			}
 			var produced exchange.StreamResponse
 			var producedErr error
-			got, gotErr := exchange.ReplayStream(exchange.StreamReplayCall{
+			got, gotErr := exchange.ReplayStream(exchange.StreamReplayCall{Semantics: request.Semantics,
 				Context: ctx,
 				Policy:  exchange.StreamReplayPolicy{OperationTimeout: policy.OperationTimeout, Retry: singleAttemptOperationPolicy(t).Retry},
 				Attempt: func(attemptContext context.Context, index uint64) (exchange.StreamResponse, error) {
@@ -119,7 +122,8 @@ func FuzzReplayStreamPreservesDownloadAndRoundTripObservation(f *testing.F) {
 						produced, producedErr = exchange.Download(exchange.DownloadCall{Context: attemptContext, Client: client, Request: request, Policy: policy})
 					}
 					// Establish producer facts before handing them to replay.
-					if (producedErr != nil) != wantFailure || errors.Is(producedErr, core.ErrExchangeContract) != wantFailure || errors.Is(producedErr, core.ErrExchangeResponse) != wantFailure || errors.Is(producedErr, core.ErrExchangeBodyLimit) || errors.Is(producedErr, io.ErrUnexpectedEOF) != wantReadFailure || errors.Is(producedErr, io.ErrClosedPipe) != wantCloseFailure {
+					wantIOFailure := wantReadFailure || wantCloseFailure
+					if (producedErr != nil) != wantFailure || errors.Is(producedErr, core.ErrExchangeContract) != wantIOFailure || errors.Is(producedErr, core.ErrExchangeResponse) != wantIOFailure || errors.Is(producedErr, core.ErrExchangeUnavailable) != wantStatusError || errors.Is(producedErr, core.ErrExchangeBodyLimit) || errors.Is(producedErr, io.ErrUnexpectedEOF) != wantReadFailure || errors.Is(producedErr, io.ErrClosedPipe) != wantCloseFailure {
 						t.Fatalf("producer cause = %v, want failure/response/overflow/read/close = %t/%t/%t/%t/%t", producedErr, wantFailure, wantFailure, false, wantReadFailure, wantCloseFailure)
 					}
 					statusError, hasStatus := errors.AsType[exchange.StatusError](producedErr)

@@ -582,26 +582,31 @@ func (p StreamPolicy) Validate() error {
 
 // JSONRequest supplies one structurally present typed JSON body.
 type JSONRequest[Body core.ValidatedJSONMarshaler] struct {
-	Target         Target
-	Body           Body
-	Semantics      RequestSemantics
-	Headers        Headers
-	CaptureHeaders HeaderSelection
-	ExpectedStatus core.HTTPStatusCode
+	SecretHeaders      []SecretHeader
+	FailureDestination io.Writer
+	Target             Target
+	Body               Body
+	Semantics          RequestSemantics
+	Headers            Headers
+	CaptureHeaders     HeaderSelection
+	ExpectedStatus     core.HTTPStatusCode
 }
 
 // NoBodyRequest supplies one request with no body.
 type NoBodyRequest struct {
-	Target         Target
-	Semantics      RequestSemantics
-	Headers        Headers
-	CaptureHeaders HeaderSelection
-	ExpectedStatus core.HTTPStatusCode
+	SecretHeaders      []SecretHeader
+	FailureDestination io.Writer
+	Target             Target
+	Semantics          RequestSemantics
+	Headers            Headers
+	CaptureHeaders     HeaderSelection
+	ExpectedStatus     core.HTTPStatusCode
 }
 
 // NoBodyBoundedRequest supplies one body-absent request with an aggregate byte
 // response.
 type NoBodyBoundedRequest struct {
+	SecretHeaders               []SecretHeader
 	Target                      Target
 	Semantics                   RequestSemantics
 	ExpectedResponseContentType core.HTTPMediaType
@@ -613,6 +618,7 @@ type NoBodyBoundedRequest struct {
 // BoundedRequest supplies one structurally present aggregate byte body. An
 // empty slice is still a body; NoBodyRequest is the body-absent family.
 type BoundedRequest struct {
+	SecretHeaders               []SecretHeader
 	Target                      Target
 	Semantics                   RequestSemantics
 	RequestContentType          core.HTTPMediaType
@@ -627,18 +633,25 @@ type BoundedRequest struct {
 // optional: nil lets Go stream through EOF; non-nil is the exact supplied length.
 // The source and length are borrowed and must remain valid through Upload.
 type UploadRequest struct {
-	Target         Target
-	Source         io.Reader
-	ContentLength  *core.ByteLength
-	ContentType    core.HTTPMediaType
-	Semantics      RequestSemantics
-	Headers        Headers
-	CaptureHeaders HeaderSelection
-	ExpectedStatus core.HTTPStatusCode
+	// SecretHeaders borrow secret bytes until the native request completes.
+	SecretHeaders []SecretHeader
+	// FailureDestination optionally receives an unexpected-status body. A nil
+	// sink closes it without reading; successful acknowledgments are never read.
+	FailureDestination io.Writer
+	Target             Target
+	Source             io.Reader
+	ContentLength      *core.ByteLength
+	ContentType        core.HTTPMediaType
+	Semantics          RequestSemantics
+	Headers            Headers
+	CaptureHeaders     HeaderSelection
+	ExpectedStatus     core.HTTPStatusCode
 }
 
 // DownloadRequest supplies one caller-owned streaming destination.
 type DownloadRequest struct {
+	SecretHeaders      []SecretHeader
+	FailureDestination io.Writer
 	// Buffer is optional borrowed scratch for Go copy operations that need it.
 	// Empty uses Go allocation; ReaderFrom destinations own their copy window.
 	// Source and destination must not alias it. Reuse is safe after return.
@@ -658,6 +671,12 @@ type DownloadRequest struct {
 // response is copied through borrowed or Go-allocated scratch. A nil
 // RequestContentLength streams the request through EOF using Go framing.
 type StreamRoundTripRequest struct {
+	// SecretHeaders borrow bytes; only the native net/http leaf creates strings.
+	SecretHeaders []SecretHeader
+	// FailureDestination optionally receives a non-expected status body as a
+	// forward stream. Nil retains the existing discard behavior. The caller
+	// owns parsing and storage; Metadata.Bytes records acknowledged output.
+	FailureDestination          io.Writer
 	Target                      Target
 	Source                      io.Reader
 	Destination                 io.Writer

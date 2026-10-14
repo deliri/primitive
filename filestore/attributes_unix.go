@@ -21,10 +21,9 @@ import (
 // entry the rest of the Inspection describes rather than whatever occupies the
 // name a moment later.
 //
-// A rooted alternative would be better and does not exist. os.Root exposes no
-// descriptor, so Fstatat against the capability cannot be reached, and the
-// only other route is a fresh Lstat on the absolute path, which abandons the
-// confinement Inspect performs the observation through.
+// Inspect owns an absolute-path Lstat observation, rather than a confined-root
+// capability. This projection reuses that observation; it performs no fresh
+// pathname resolution and makes no additional confinement claim.
 //
 // A host whose FileInfo carries something else answers "unobserved" rather
 // than zero, so a caller is never told root owns a file on a platform with no

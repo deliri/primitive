@@ -69,7 +69,7 @@ func BenchmarkReplayStreamDownloadHandoff(b *testing.B) {
 				destination.Reset()
 				ctx, cancel := context.WithCancel(b.Context())
 				attempts := 0
-				last, lastErr = ReplayStream(StreamReplayCall{Context: ctx, Policy: replayPolicy,
+				last, lastErr = ReplayStream(StreamReplayCall{Semantics: RequestSemantics{Method: MethodGet, Replay: ReplaySingleAttempt}, Context: ctx, Policy: replayPolicy,
 					Attempt: func(attemptContext context.Context, index uint64) (StreamResponse, error) {
 						attempts++
 						if index != 1 || attempts != 1 {

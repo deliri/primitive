@@ -40,7 +40,7 @@ func FuzzCallerTimeLayoutUsesNativeFormat(f *testing.F) {
 	f.Add("", int64(1))
 	f.Fuzz(func(t *testing.T, text string, nanos int64) {
 		layout, err := temporal.NewTimeLayout(text)
-		if text == "" {
+		if !nativeLayoutVaries(text) {
 			if !errors.Is(err, core.ErrTemporalContract) || layout != "" {
 				t.Fatalf("empty layout=%q/%v", layout, err)
 			}
@@ -55,4 +55,12 @@ func FuzzCallerTimeLayoutUsesNativeFormat(f *testing.F) {
 			t.Fatalf("native formatting drift=%q/%v", got, err)
 		}
 	})
+}
+
+// This differential oracle asks Go to interpret the layout. It never searches
+// token spellings or mirrors a Primitive parser.
+func nativeLayoutVaries(text string) bool {
+	first := time.Date(2006, time.January, 2, 15, 4, 5, 123456789, time.UTC)
+	second := time.Date(1998, time.November, 24, 15, 4, 5, 123456789, time.UTC)
+	return text != "" && first.Format(text) != second.Format(text)
 }

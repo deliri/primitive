@@ -138,9 +138,9 @@ func TestGoMemoryPercentageProjectionMatchesIndependentIntegerOracle(t *testing.
 	t.Parallel()
 
 	values := []uint64{
-		1, 2, 3, 7, 10, 63, 64, 99, 100, 101,
+		0, 1, 2, 3, 7, 10, 63, 64, 99, 100, 101,
 		255, 256, 1023, 1024, 1 << 20, math.MaxInt32,
-		math.MaxUint32, math.MaxInt64, math.MaxInt64 + 1, math.MaxUint64,
+		math.MaxUint32, math.MaxInt64,
 	}
 	percents := []uint8{1, 2, 3, 10, 33, 50, 67, 90, 99, 100}
 	for _, value := range values {
@@ -149,7 +149,7 @@ func TestGoMemoryPercentageProjectionMatchesIndependentIntegerOracle(t *testing.
 			if percentErr != nil {
 				t.Fatalf("NewPercent(%d) error = %v, want nil", percentValue, percentErr)
 			}
-			limit, limitErr := core.NewByteCount(value)
+			limit, limitErr := core.NewByteLength(value)
 			if limitErr != nil {
 				t.Fatalf("core.NewByteCount(%d) error = %v, want nil", value, limitErr)
 			}
@@ -157,7 +157,7 @@ func TestGoMemoryPercentageProjectionMatchesIndependentIntegerOracle(t *testing.
 			if gotErr != nil {
 				t.Fatalf("TriggerBytes(%d at %d%%) error = %v, want nil", value, percentValue, gotErr)
 			}
-			gotValue, _ := got.Uint64()
+			gotValue := got.Uint64()
 			want := ceilingPercentOracle(value, percentValue)
 			if gotValue != want {
 				t.Fatalf("TriggerBytes(%d at %d%%) = %d, want %d", value, percentValue, gotValue, want)
@@ -178,7 +178,6 @@ func TestGoMemoryPolicyAndSnapshotRejectBoundaryContradictions(t *testing.T) {
 		{name: "zero system is not an observation", system: 0, heapReleased: 0, limit: 1},
 		{name: "released exceeds system by one", system: 1, heapReleased: 2, limit: 1},
 		{name: "maximum release exceeds small system", system: 1, heapReleased: math.MaxUint64, limit: 1},
-		{name: "zero limit is rejected", system: 1, heapReleased: 0, limit: 0},
 		{name: "negative limit is rejected", system: 1, heapReleased: 0, limit: -1},
 		{name: "minimum negative limit is rejected", system: 1, heapReleased: 0, limit: math.MinInt64},
 	}

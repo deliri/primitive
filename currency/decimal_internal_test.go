@@ -97,7 +97,7 @@ func TestDecimalUnsignedOverflowPreservesStandardLibraryFailure(t *testing.T) {
 			t.Parallel()
 			got, err := Parse(tc.code, tc.raw)
 			var native *strconv.NumError
-			if got != (Amount{}) || !errors.Is(err, core.ErrCurrencyOverflow) || !errors.Is(err, core.ErrNumericOverflow) || errors.Is(err, strconv.ErrRange) != tc.wantRange || errors.As(err, &native) != tc.wantRange {
+			if got != (Amount{}) || !errors.Is(err, core.ErrCurrencyOverflow) || errors.Is(err, core.ErrNumericOverflow) || errors.Is(err, strconv.ErrRange) != tc.wantRange || errors.As(err, &native) != tc.wantRange {
 				t.Fatalf("decimal overflow = (%v,%v,native=%v), want zero/currency overflow/native range=%t", got, err, native, tc.wantRange)
 			}
 		})
@@ -128,7 +128,7 @@ func TestDecimalMagnitudeClassifiesNativeFailure(t *testing.T) {
 				t.Fatalf("magnitude = (%d, %v), want (%d, %v)", got, err, tc.want, tc.cause)
 			}
 			wantOverflow := errors.Is(tc.cause, strconv.ErrRange)
-			if errors.Is(err, core.ErrCurrencyOverflow) != wantOverflow || errors.Is(err, core.ErrNumericOverflow) != wantOverflow {
+			if errors.Is(err, core.ErrCurrencyOverflow) != wantOverflow || errors.Is(err, core.ErrNumericOverflow) {
 				t.Fatalf("magnitude error = %v, want overflow identity only on range=%t", err, wantOverflow)
 			}
 			if errors.Is(err, core.ErrCurrencyDecimal) != errors.Is(tc.cause, strconv.ErrSyntax) {

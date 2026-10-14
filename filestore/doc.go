@@ -1,6 +1,7 @@
 // Package filestore composes real os.Root and os.File primitives into rooted,
-// streaming durability effects with fixed transfer windows on macOS, Linux,
-// and Windows.
+// streaming filesystem effects with fixed transfer windows. Native durability
+// proof covers macOS and Linux. Windows namespace durability is unverified;
+// this package does not claim a Windows durable-operation guarantee.
 //
 // Callers own names, schemas, thresholds, retention, accounting, capacity
 // policy, cloud custody, and coordination. Filestore owns only the finite

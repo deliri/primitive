@@ -52,6 +52,8 @@ func (r decimalRejection) Error() string {
 }
 
 // Parse constructs an exact amount from a bounded decimal representation.
+// Leading whole-unit zeros are accepted as a human-input convenience; Decimal
+// always emits their canonical form. JSON minor_units requires canonical int64.
 func Parse(code Code, decimal string) (Amount, error) {
 	if err := code.Validate(); err != nil {
 		return Amount{}, err

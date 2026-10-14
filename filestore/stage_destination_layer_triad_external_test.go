@@ -40,11 +40,11 @@ func TestStageDestinationDurableWriterLayerTriad(t *testing.T) {
 		{name: "abandon empty producer invents no target", empty: true, abandon: true},
 		{name: "missing custody name cannot yield a receipt", namespace: destinationMissing, wantErr: core.ErrFilestoreActivation, wantNative: fs.ErrNotExist},
 		{name: "abandon missing name leaves archived original untouched", namespace: destinationMissing, abandon: true},
-		{name: "same bytes in foreign inode cannot authorize finish", namespace: destinationForeignFile, wantErr: core.ErrFilestoreActivationIndeterminate, wantTemporary: true, wantConflict: true},
+		{name: "same bytes in foreign inode cannot authorize finish", namespace: destinationForeignFile, wantErr: core.ErrFilestoreConflict, wantTemporary: true, wantConflict: true},
 		{name: "abandon same-byte stranger cannot erase it", namespace: destinationForeignFile, abandon: true, wantErr: core.ErrFilestoreCleanup, wantTemporary: true, wantConflict: true},
-		{name: "foreign directory and child cannot be finalized", namespace: destinationForeignDirectory, wantErr: core.ErrFilestoreActivationIndeterminate, wantTemporary: true, wantConflict: true},
+		{name: "foreign directory and child cannot be finalized", namespace: destinationForeignDirectory, wantErr: core.ErrFilestoreConflict, wantTemporary: true, wantConflict: true},
 		{name: "abandon foreign directory preserves its child", namespace: destinationForeignDirectory, abandon: true, wantErr: core.ErrFilestoreCleanup, wantTemporary: true, wantConflict: true},
-		{name: "symlink resolving to original inode is not owned entry", namespace: destinationSymbolicOwner, wantErr: core.ErrFilestoreActivationIndeterminate, wantTemporary: true, wantConflict: true},
+		{name: "symlink resolving to original inode is not owned entry", namespace: destinationSymbolicOwner, wantErr: core.ErrFilestoreConflict, wantTemporary: true, wantConflict: true},
 		{name: "abandon does not follow symlink to owned archive", namespace: destinationSymbolicOwner, abandon: true, wantErr: core.ErrFilestoreCleanup, wantTemporary: true, wantConflict: true},
 		{name: "real hard link retains inode custody through finish", namespace: destinationHardLinkedOwner, wantReceipt: true},
 		{name: "abandon hard link removes only the requested name", namespace: destinationHardLinkedOwner, abandon: true},
@@ -75,8 +75,8 @@ func TestStageDestinationDurableWriterLayerTriad(t *testing.T) {
 			}
 			t.Cleanup(func() { _ = file.Close() })
 			for offset := 0; offset < len(payload); offset++ {
-				if observation, err := filestore.WriteStage(t.Context(), filestore.StageWriteRequest{Destination: destination, Data: payload[offset : offset+1]}); err != nil || observation.Validate() != nil || observation.BytesWritten.Uint64() != 1 {
-					t.Fatalf("fragment write = (%d,%v), want one byte", observation.BytesWritten.Uint64(), err)
+				if observation, err := filestore.WriteStage(t.Context(), filestore.StageWriteRequest{Destination: destination, Data: payload[offset : offset+1]}); err != nil || observation.Validate() != nil || observation.BytesWritten().Uint64() != 1 {
+					t.Fatalf("fragment write = (%d,%v), want one byte", observation.BytesWritten().Uint64(), err)
 				}
 			}
 			before, err := file.Stat()

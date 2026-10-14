@@ -1,17 +1,26 @@
 package exchange
 
-import "github.com/deliri/primitive/v2026/core"
+import (
+	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/temporal"
+)
 
 // ResponseMetadata is the validated result shared by all client families.
 type ResponseMetadata struct {
-	Headers  CapturedHeaders
-	Bytes    core.ByteLength
-	Attempts uint64
-	Status   core.HTTPStatusCode
+	// RetryAfter is the native Retry-After projection at receipt time. Zero
+	// means no usable positive hint. Retry owners clamp it to their policy.
+	RetryAfter temporal.Duration
+	Headers    CapturedHeaders
+	Bytes      core.ByteLength
+	Attempts   uint64
+	Status     core.HTTPStatusCode
 }
 
 // Validate checks status, bounded captured headers, and attempt count.
 func (m ResponseMetadata) Validate() error {
+	if err := m.RetryAfter.Validate(); err != nil {
+		return responseError(err)
+	}
 	if err := m.Status.Validate(); err != nil {
 		return responseError(err)
 	}
@@ -26,14 +35,21 @@ func (m ResponseMetadata) Validate() error {
 
 // JSONResponse is one strictly decoded and validated JSON response.
 type JSONResponse[Body core.Validatable] struct {
-	Body     Body
-	Metadata ResponseMetadata
+	// FailureBody owns the unexpected-status bytes when the request did not
+	// provide a FailureDestination. It is raw wire data alongside the error,
+	// never an admitted Body. A supplied sink avoids this whole-value retention.
+	FailureBody []byte
+	Body        Body
+	Metadata    ResponseMetadata
 }
 
 // Validate checks metadata and the decoded caller-owned body.
 func (r JSONResponse[Body]) Validate() error {
 	if err := r.Metadata.Validate(); err != nil {
 		return err
+	}
+	if r.FailureBody != nil {
+		return core.ErrExchangeResponse
 	}
 	if err := validateCallerValue(r.Body); err != nil {
 		return responseError(err)
@@ -60,7 +76,8 @@ func (r BoundedResponse) Validate() error {
 
 // StreamResponse reports one streaming HTTP response. For Download,
 // Metadata.Bytes counts bytes acknowledged by the destination. For Upload,
-// Metadata.Bytes is zero: Go's HTTP response does not prove request-body delivery.
+// Metadata.Bytes counts only bytes acknowledged by an explicit failure sink;
+// successful acknowledgments have zero bytes. It never proves request-body delivery.
 // DeclaredRequestBytes retains Upload's declared request extent, never a peer
 // acknowledgement. RequestLengthKnown distinguishes declared zero from unknown.
 // Download leaves both fields zero.

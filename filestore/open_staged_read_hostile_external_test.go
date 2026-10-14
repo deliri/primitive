@@ -97,11 +97,11 @@ func TestOpenStagedReadHostileRefusalMatrix(t *testing.T) {
 		{name: "canceled context", mutation: stagedReadMutationCanceledContext, wantErr: context.Canceled},
 		{name: "removed custody name", mutation: stagedReadMutationRemove, wantErr: core.ErrFilestoreActivation},
 		{name: "renamed custody name", mutation: stagedReadMutationRename, wantErr: core.ErrFilestoreActivation},
-		{name: "same-size replacement file", mutation: stagedReadMutationReplaceFile, wantErr: core.ErrFilestoreActivationIndeterminate},
+		{name: "same-size replacement file", mutation: stagedReadMutationReplaceFile, wantErr: core.ErrFilestoreConflict},
 		{name: "truncated staged inode", mutation: stagedReadMutationTruncate, wantErr: core.ErrFilestoreSize},
 		{name: "grown staged inode", mutation: stagedReadMutationAppend, wantErr: core.ErrFilestoreSize},
 		{name: "permission-mutated staged inode", mutation: stagedReadMutationChmod, wantErr: core.ErrFilestoreActivation},
-		{name: "replacement directory", mutation: stagedReadMutationReplaceDirectory, wantErr: core.ErrFilestoreActivationIndeterminate},
+		{name: "replacement directory", mutation: stagedReadMutationReplaceDirectory, wantErr: core.ErrFilestoreConflict},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

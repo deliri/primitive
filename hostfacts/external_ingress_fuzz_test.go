@@ -147,6 +147,8 @@ func FuzzCgroupMembershipLineSemanticClosure(f *testing.F) {
 		[]byte(cgroupV2HierarchyToken + "::/"),
 		[]byte(cgroupV2HierarchyToken + "::/system.slice/app.service"),
 		[]byte("5:" + cgroupMemoryController + ":/job"),
+		[]byte(cgroupV2HierarchyToken + "::/../.."),
+		[]byte("5:" + cgroupMemoryController + ":/../.."),
 		[]byte("2:cpu:/job"),
 		{},
 		[]byte(cgroupV2HierarchyToken + "::relative"),
@@ -326,10 +328,17 @@ func referenceCgroupMembership(line []byte) (cgroupMembership, error) {
 	if source == WorkloadMemoryLimitSourceUnknown {
 		return cgroupMembership{}, nil
 	}
-	if !referenceCgroupPath(parts[2]) {
+	scope := cgroupMembershipInside
+	components := strings.Split(parts[2], "/")
+	if len(components) > 1 && components[0] == "" && components[1] == ".." &&
+		path.Clean(strings.Join(components[1:], "/")) == strings.Join(components[1:], "/") &&
+		utf8.ValidString(parts[2]) && !strings.ContainsRune(parts[2], '\x00') && !strings.HasSuffix(parts[2], " (deleted)") {
+		scope = cgroupMembershipOutside
+	}
+	if scope != cgroupMembershipOutside && !referenceCgroupPath(parts[2]) {
 		return cgroupMembership{}, core.ErrHostFactsObservation
 	}
-	return cgroupMembership{path: parts[2], source: source}, nil
+	return cgroupMembership{path: parts[2], source: source, scope: scope}, nil
 }
 
 func canonicalMembershipLine(membership cgroupMembership) []byte {

@@ -67,7 +67,7 @@ func EnsureDirectory(ctx context.Context, request DirectoryRequest) error {
 		if err := synchronizeOpenedDirectoryMode(directory, request.Location.Path, request.Mode); err != nil {
 			return activationError(err)
 		}
-		return nil
+		return synchronizeDirectoryNamespace(ctx, request.Location.Root, request.Location.Path)
 	}
 	if !errors.Is(err, fs.ErrNotExist) {
 		return activationError(err)
@@ -121,21 +121,42 @@ func ensureDirectoryEntry(request directoryEntryEnsure) error {
 		if err := synchronizeDirectoryMode(request.root, request.path, request.mode); err != nil {
 			return activationError(err)
 		}
-		if err := syncParent(request.root, request.path); err != nil {
-			return activationError(err)
-		}
-		return nil
-	}
-	if !errors.Is(err, fs.ErrExist) {
+	} else if !errors.Is(err, fs.ErrExist) {
 		return activationError(err)
-	}
-	if request.position == directoryFinal {
+	} else if request.position == directoryFinal {
 		if err := synchronizeDirectoryMode(request.root, request.path, request.mode); err != nil {
 			return activationError(err)
 		}
-		return nil
+	} else if err := validateExistingDirectory(request.root, request.path); err != nil {
+		return err
 	}
-	return validateExistingDirectory(request.root, request.path)
+	if err := syncParent(request.root, request.path); err != nil {
+		return activationError(err)
+	}
+	return nil
+}
+
+// A fully existing chain can be the result of an earlier failed creation.
+// Settle each namespace edge without altering ancestor modes or retaining a
+// directory model. Each step uses the owning root and native fsync.
+func synchronizeDirectoryNamespace(ctx context.Context, root *os.Root, path core.RelativePath) error {
+	for {
+		if err := contextstate.Validate(ctx); err != nil {
+			return err
+		}
+		if err := syncParent(root, path); err != nil {
+			return activationError(err)
+		}
+		parent := filepath.Dir(path.String())
+		if parent == "." {
+			return nil
+		}
+		var err error
+		path, err = core.ParseRelativePath(parent)
+		if err != nil {
+			return contractError(err)
+		}
+	}
 }
 
 var (
