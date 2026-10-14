@@ -104,6 +104,25 @@ func TestProjectionReaderPolicyClosedEnums(t *testing.T) {
 	}
 }
 
+func TestValidateBytesConservesTruncatedDepthAndNativeClosureIdentities(t *testing.T) {
+	t.Parallel()
+	for _, depth := range []int{63, 64, 65} {
+		err := jsonio.ValidateBytes([]byte(strings.Repeat("[", depth)))
+		if !errors.Is(err, core.ErrJSONContract) || !errors.Is(err, io.ErrUnexpectedEOF) {
+			t.Fatalf("depth=%d native truncation lost: %v", depth, err)
+		}
+		var observed *jsonio.DepthError
+		if errors.As(err, &observed) != (depth > 64) {
+			t.Fatalf("depth=%d depth observation=%v err=%v", depth, observed, err)
+		}
+	}
+	err := jsonio.ValidateBytes([]byte(`{} {`))
+	var multiple *jsonio.MultipleValuesError
+	if !errors.As(err, &multiple) || !errors.Is(err, io.ErrUnexpectedEOF) {
+		t.Fatalf("trailing truncation identities lost: %v", err)
+	}
+}
+
 func FuzzProjectionReaderMatchesNativeDeclaredValue(f *testing.F) {
 	for _, body := range []string{`{"z":9007199254740993,"a":"x"}`, `{"z":"wrong"}`, `{} {}`, `null`, `{"x":1}`, `{"z":1,"z":2}`} {
 		f.Add([]byte(body))

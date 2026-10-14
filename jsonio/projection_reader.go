@@ -147,10 +147,8 @@ func IsSemanticError(err error) bool { _, ok := errors.AsType[*jsonv2.SemanticEr
 // ValidateBytes admits exactly one complete native value without canonicalizing
 // or copying its bytes. Go owns lexical checks and the native token cursor.
 func ValidateBytes(data []byte) error {
-	if err := checkSingleValue(data); err != nil {
-		return err
-	}
-	return checkCanonicalDepth(data, CanonicalPolicy{NestingDepthMaximum: core.JSONNestingDepthMaximum})
+	depthErr := checkCanonicalDepth(data, CanonicalPolicy{NestingDepthMaximum: core.JSONNestingDepthMaximum})
+	return errors.Join(depthErr, checkSingleValue(data))
 }
 
 // RawValue is Go's caller-owned raw field representation. Its native codec
