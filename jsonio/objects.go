@@ -163,7 +163,7 @@ func (e *ObjectEncoder[Document]) Encode(ctx context.Context, document Document)
 // This capability uses Go's declared struct fields, rather than delegating the
 // closed root protocol to an opaque custom codec. Nested nominal field codecs
 // remain owned by their types. Both value and pointer method sets are checked.
-func validateObjectType[Document core.Validatable]() error {
+func validateObjectType[Document any]() error {
 	root := reflect.TypeFor[Document]()
 	if root.Kind() == reflect.Pointer {
 		root = root.Elem()

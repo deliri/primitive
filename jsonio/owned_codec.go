@@ -125,7 +125,7 @@ func DecodeOwned[Document core.Validatable](data []byte, policy OwnedCodecPolicy
 	return document, nil
 }
 
-func validateOwnedCodecType[Document core.Validatable](policy OwnedCodecPolicy) error {
+func validateOwnedCodecType[Document any](policy OwnedCodecPolicy) error {
 	if err := policy.Validate(); err != nil {
 		return err
 	}

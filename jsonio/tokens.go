@@ -153,8 +153,16 @@ func readToken(ctx context.Context, decoder *jsontext.Decoder, maximumDepth uint
 }
 
 func projectToken(observed jsontext.Token) (Token, error) {
+	kind, err := projectKind(observed.Kind())
+	if err != nil {
+		return Token{}, err
+	}
+	return Token{Kind: kind, Text: projectTokenText(kind, observed)}, nil
+}
+
+func projectKind(observed jsontext.Kind) (TokenKind, error) {
 	var kind TokenKind
-	switch observed.Kind() {
+	switch observed {
 	case jsontext.KindBeginObject:
 		kind = TokenObjectStart
 	case jsontext.KindEndObject:
@@ -174,9 +182,9 @@ func projectToken(observed jsontext.Token) (Token, error) {
 	case jsontext.KindNull:
 		kind = TokenNull
 	default:
-		return Token{}, core.ErrJSONContract
+		return TokenUnknown, core.ErrJSONContract
 	}
-	return Token{Kind: kind, Text: projectTokenText(kind, observed)}, nil
+	return kind, nil
 }
 
 func projectTokenText(kind TokenKind, observed jsontext.Token) string {
