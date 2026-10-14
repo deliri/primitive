@@ -172,6 +172,8 @@ const (
 	PackageAIClaude
 	// PackageAIChatGPT identifies the OpenAI direct API adapter.
 	PackageAIChatGPT
+	// PackageAdmission identifies synchronous native slot admission without a queue.
+	PackageAdmission
 	packageIdentityLimit
 )
 
@@ -286,6 +288,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageAI, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 			{Identity: PackageAIClaude, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 			{Identity: PackageAIChatGPT, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
+			{Identity: PackageAdmission, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
 		},
 	}
 }
@@ -540,6 +543,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"ai",
 		"ai/claude",
 		"ai/chatgpt",
+		"admission",
 	}
 }
 

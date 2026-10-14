@@ -15,8 +15,8 @@ import (
 
 const (
 	coreExportDependencyMaximum     = 32
-	coreSpecialExportAdmissionCount = 98 // Includes native JSON grammar and background execution identity.
-	coreProviderExportContractCount = 210
+	coreSpecialExportAdmissionCount = 99 // Includes native synchronous slot admission.
+	coreProviderExportContractCount = 209
 )
 
 type coreExportName string
@@ -162,6 +162,7 @@ func coreSpecialExportAdmissions() [coreSpecialExportAdmissionCount]coreSpecialE
 		architectureCatalogAdmission("PackageJSONIO", PackageJSONIO),
 		architectureCatalogAdmission("PackageRequestBudget", PackageRequestBudget),
 		architectureCatalogAdmission("PackageBackground", PackageBackground),
+		architectureCatalogAdmission("PackageAdmission", PackageAdmission),
 		architectureCatalogAdmission("PackageManual", PackageManual),
 		architectureCatalogAdmission("PackageTailnet", PackageTailnet),
 		architectureCatalogAdmission("PackageTailnetConfig", PackageTailnetConfig),
@@ -413,7 +414,6 @@ func coreProviderExportContracts() [coreProviderExportContractCount]coreProvider
 		{name: "AIAnthropicKeyHeader", witness: AIAnthropicKeyHeader, consumer: PackageAI},
 		{name: "AIAnthropicVersionHeader", witness: AIAnthropicVersionHeader, consumer: PackageAI},
 		{name: "AIAnthropicVersion", witness: AIAnthropicVersion, consumer: PackageAI},
-		{name: "AIMultipartMediaType", witness: AIMultipartMediaType, consumer: PackageAI},
 		{name: "AIOpenAIOrganizationHeader", witness: AIOpenAIOrganizationHeader, consumer: PackageAI},
 		{name: "AIOpenAIProjectHeader", witness: AIOpenAIProjectHeader, consumer: PackageAI},
 		{name: "AIAnthropicWorkspaceHeader", witness: AIAnthropicWorkspaceHeader, consumer: PackageAI},

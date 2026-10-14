@@ -613,6 +613,10 @@ const (
 	ErrAIUnavailable
 	// ErrAIRequestRejected identifies a provider refusal of request facts.
 	ErrAIRequestRejected
+	// ErrAdmissionContract identifies an invalid synchronous admission capability.
+	ErrAdmissionContract
+	// ErrAdmissionCapacity identifies immediate refusal of a saturated native slot.
+	ErrAdmissionCapacity
 	errorIdentityLimit
 )
 
@@ -886,6 +890,8 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrAIRateLimited, text: "ai provider rate limited"},
 		{identity: ErrAIUnavailable, text: "ai provider unavailable"},
 		{identity: ErrAIRequestRejected, text: "ai provider rejected request"},
+		{identity: ErrAdmissionContract, text: "admission contract violation"},
+		{identity: ErrAdmissionCapacity, text: "admission capacity unavailable"},
 	}
 }
 
@@ -987,6 +993,9 @@ func isAdmittedErrorIdentity(identity ErrorIdentity) bool {
 }
 
 func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
+	if errorIdentityIn(identity, ErrAdmissionContract, ErrAdmissionCapacity) {
+		return oneErrorIdentityParent(ErrPrimitiveContract)
+	}
 	if errorIdentityIn(identity, ErrAIContract, ErrAIAuthentication, ErrAIBinding,
 		ErrAIRateLimited, ErrAIUnavailable, ErrAIRequestRejected) {
 		return oneErrorIdentityParent(ErrPrimitiveContract)
