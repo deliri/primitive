@@ -42,12 +42,14 @@ type processExternalDoorInventory struct {
 	Run                        func(context.Context, process.Request) (process.Result, error)
 	Self                       func() (process.ProcessIdentity, error)
 	StandardStreams            func() (process.Streams, error)
+	WaitGroupAbsent            func(context.Context, process.WaitGroupAbsentRequest) (process.Liveness, error)
 	Streams_WriteOutput        func(process.Streams, process.Stream, []byte) (core.ByteLength, error)
 	TruncatingWriter_Write     func(*process.TruncatingWriter, []byte) (int, error)
 	ResultObservation_Validate func(process.ResultObservation) error
 }
 
 var processExternalDoors = processExternalDoorInventory{
+	WaitGroupAbsent:          process.WaitGroupAbsent,
 	Execution_GroupLiveness:  (*process.Execution).GroupLiveness,
 	OutputMode_UnmarshalJSON: (*process.OutputMode).UnmarshalJSON,
 	OutputPolicy_Validate:    process.OutputPolicy.Validate,
@@ -91,6 +93,7 @@ func processExternalFuzzProofs() processExternalFuzzProofInventory {
 // snapshot's raw row decoder has its own native-leaf fuzz proof. Native tests
 // remain necessary: fuzzing a leaf cannot establish a platform API's behavior.
 type processNativeMetadataDoorInventory struct {
+	WaitGroupAbsent         func(context.Context, process.WaitGroupAbsentRequest) (process.Liveness, error)
 	Execution_GroupLiveness func(*process.Execution) (process.Liveness, error)
 	Alive                   func(process.ProcessIdentity) (process.Liveness, error)
 	DiscardDeviceArgument   func() (process.Argument, error)
@@ -100,7 +103,7 @@ type processNativeMetadataDoorInventory struct {
 }
 
 func processNativeMetadataDoors() processNativeMetadataDoorInventory {
-	return processNativeMetadataDoorInventory{Execution_GroupLiveness: (*process.Execution).GroupLiveness, Alive: process.Alive, DiscardDeviceArgument: process.DiscardDeviceArgument, ObserveProcesses: process.ObserveProcesses, Self: process.Self, StandardStreams: process.StandardStreams}
+	return processNativeMetadataDoorInventory{WaitGroupAbsent: process.WaitGroupAbsent, Execution_GroupLiveness: (*process.Execution).GroupLiveness, Alive: process.Alive, DiscardDeviceArgument: process.DiscardDeviceArgument, ObserveProcesses: process.ObserveProcesses, Self: process.Self, StandardStreams: process.StandardStreams}
 }
 
 func TestProcessExternalIngressInventoryMatchesProduction(t *testing.T) {
