@@ -27,6 +27,7 @@ type jsonioStructInventory struct {
 	Depth                    jsonioError[DepthError]
 	InvalidUTF8              jsonioError[invalidUTF8Error]
 	MultipleValues           jsonioError[MultipleValuesError]
+	ProjectionRead           jsonioIngress[ProjectionReadPolicy]
 	OwnedCodecDestination    jsonioKernelFlow[ownedCodecDestination]
 	Token                    jsonioObservation[Token]
 	ObjectEncoder            jsonioCapability[ObjectEncoder[Token]]
