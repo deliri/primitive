@@ -23,6 +23,7 @@ type GoFuzzSignalRecord struct {
 	FailingInput  lineio.RecordRange
 	RerunHeader   lineio.RecordRange
 	ReplayCommand lineio.RecordRange
+	BuildHeader   lineio.RecordRange
 }
 
 func (r GoFuzzSignalRecord) Validate() error {
@@ -30,8 +31,8 @@ func (r GoFuzzSignalRecord) Validate() error {
 		return err
 	}
 	whole, _ := r.Record.Bytes.Int64()
-	lengths := [...]int64{int64(len("panic:")), int64(len("context deadline exceeded")), int64(len("--- FAIL:")), int64(len("failing input")), int64(len("to re-run:")), int64(len("go test "))}
-	for i, span := range [...]lineio.RecordRange{r.Panic, r.Deadline, r.FailureHeader, r.FailingInput, r.RerunHeader, r.ReplayCommand} {
+	lengths := [...]int64{int64(len("panic:")), int64(len("context deadline exceeded")), int64(len("--- FAIL:")), int64(len("failing input")), int64(len("to re-run:")), int64(len("go test ")), int64(len("# "))}
+	for i, span := range [...]lineio.RecordRange{r.Panic, r.Deadline, r.FailureHeader, r.FailingInput, r.RerunHeader, r.ReplayCommand, r.BuildHeader} {
 		if span == (lineio.RecordRange{}) {
 			continue
 		}
@@ -69,7 +70,7 @@ func GoFuzzSignalRecords(ctx context.Context, request GoFuzzSignalSourceRequest)
 			yield(GoFuzzSignalRecord{}, err)
 			return
 		}
-		patterns := [...]string{`panic:`, `[cC][oO][nN][tT][eE][xX][tT] [dD][eE][aA][dD][lL][iI][nN][eE] [eE][xX][cC][eE][eE][dD][eE][dD]`, `^[\x09-\x0D\x{85}\p{Z}]*(--- FAIL:)`, `[fF][aA][iI][lL][iI][nN][gG] [iI][nN][pP][uU][tT]`, `^[\x09-\x0D\x{85}\p{Z}]*([tT][oO] [rR][eE]-[rR][uU][nN]:)`, `^[\x09-\x0D\x{85}\p{Z}]*(go test )`}
+		patterns := [...]string{`panic:`, `[cC][oO][nN][tT][eE][xX][tT] [dD][eE][aA][dD][lL][iI][nN][eE] [eE][xX][cC][eE][eE][dD][eE][dD]`, `^[\x09-\x0D\x{85}\p{Z}]*(--- FAIL:)`, `[fF][aA][iI][lL][iI][nN][gG] [iI][nN][pP][uU][tT]`, `^[\x09-\x0D\x{85}\p{Z}]*([tT][oO] [rR][eE]-[rR][uU][nN]:)`, `^[\x09-\x0D\x{85}\p{Z}]*(go test )`, `^[\x09-\x0D\x{85}\p{Z}]*(# )`}
 		var compiled [len(patterns)]*regexp.Regexp
 		for i, pattern := range patterns {
 			compiled[i] = regexp.MustCompile(pattern)
@@ -87,7 +88,7 @@ func GoFuzzSignalRecords(ctx context.Context, request GoFuzzSignalSourceRequest)
 				}
 			}
 			observation := GoFuzzSignalRecord{Record: record}
-			spans := [...]*lineio.RecordRange{&observation.Panic, &observation.Deadline, &observation.FailureHeader, &observation.FailingInput, &observation.RerunHeader, &observation.ReplayCommand}
+			spans := [...]*lineio.RecordRange{&observation.Panic, &observation.Deadline, &observation.FailureHeader, &observation.FailingInput, &observation.RerunHeader, &observation.ReplayCommand, &observation.BuildHeader}
 			for i, pattern := range compiled {
 				match, err := goFuzzSignalMatch(ctx, request.Source, record, pattern)
 				if err != nil {
