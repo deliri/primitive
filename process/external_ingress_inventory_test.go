@@ -21,6 +21,10 @@ import (
 // doors additionally bind their actual semantic fuzzer below; kernel-owned
 // observations and capability constructors are identified separately.
 type processExternalDoorInventory struct {
+	ExecutionScope_Begin       func(*process.ExecutionScope, context.Context, process.Request) (*process.Execution, error)
+	ExecutionScope_Wait        func(*process.ExecutionScope, process.ExecutionWaitRequest) (process.Result, error)
+	ExecutionScope_ActiveCount func(*process.ExecutionScope) int
+	ExecutionScope_VisitActive func(*process.ExecutionScope, context.Context, process.ActiveExecutionRequest) error
 	Execution_GroupLiveness    func(*process.Execution) (process.Liveness, error)
 	OutputMode_UnmarshalJSON   func(*process.OutputMode, []byte) error
 	OutputPolicy_Validate      func(process.OutputPolicy) error
@@ -49,11 +53,15 @@ type processExternalDoorInventory struct {
 }
 
 var processExternalDoors = processExternalDoorInventory{
-	WaitGroupAbsent:          process.WaitGroupAbsent,
-	Execution_GroupLiveness:  (*process.Execution).GroupLiveness,
-	OutputMode_UnmarshalJSON: (*process.OutputMode).UnmarshalJSON,
-	OutputPolicy_Validate:    process.OutputPolicy.Validate,
-	Alive:                    process.Alive, AmbientArguments: process.AmbientArguments, Begin: process.Begin,
+	ExecutionScope_Begin:       (*process.ExecutionScope).Begin,
+	ExecutionScope_Wait:        (*process.ExecutionScope).Wait,
+	ExecutionScope_ActiveCount: (*process.ExecutionScope).ActiveCount,
+	ExecutionScope_VisitActive: (*process.ExecutionScope).VisitActive,
+	WaitGroupAbsent:            process.WaitGroupAbsent,
+	Execution_GroupLiveness:    (*process.Execution).GroupLiveness,
+	OutputMode_UnmarshalJSON:   (*process.OutputMode).UnmarshalJSON,
+	OutputPolicy_Validate:      process.OutputPolicy.Validate,
+	Alive:                      process.Alive, AmbientArguments: process.AmbientArguments, Begin: process.Begin,
 	DiscardDeviceArgument: process.DiscardDeviceArgument,
 	ExitCurrent:           process.ExitCurrent,
 	NewArgument:           process.NewArgument, NewEnvironmentName: process.NewEnvironmentName, NewEnvironmentValue: process.NewEnvironmentValue,
@@ -66,9 +74,10 @@ var processExternalDoors = processExternalDoorInventory{
 // Fields deliberately use the same compiler-checked operation names as the
 // call inventory. An added operation cannot disappear from classification.
 type processExternalFuzzProofInventory struct {
-	OutputMode_UnmarshalJSON func(*testing.F)
-	OutputPolicy_Validate    func(*testing.F)
-	ExitCurrent              func(*testing.F)
+	ExecutionScope_Begin, ExecutionScope_Wait, ExecutionScope_ActiveCount, ExecutionScope_VisitActive func(*testing.F)
+	OutputMode_UnmarshalJSON                                                                          func(*testing.F)
+	OutputPolicy_Validate                                                                             func(*testing.F)
+	ExitCurrent                                                                                       func(*testing.F)
 	AmbientArguments, Begin, NewArgument, NewEnvironmentName, NewEnvironmentValue, NewTruncatingWriter,
 	ParseArguments, ParseEffectiveEnvironment, ParseExactEnvironment, Resolve, ResolveExecutable, Run,
 	Streams_WriteOutput, TruncatingWriter_Write, ResultObservation_Validate func(*testing.F)
@@ -76,10 +85,14 @@ type processExternalFuzzProofInventory struct {
 
 func processExternalFuzzProofs() processExternalFuzzProofInventory {
 	return processExternalFuzzProofInventory{
-		OutputMode_UnmarshalJSON: FuzzOutputModeJSONSemanticClosure,
-		OutputPolicy_Validate:    FuzzOutputPolicyExternalIngress,
-		ExitCurrent:              FuzzExitStatusValidation,
-		AmbientArguments:         FuzzParseArgumentsAndAmbientExternalIngress, Begin: FuzzRunAndBeginStreamingExternalIngress,
+		ExecutionScope_Begin:       FuzzExecutionScopeConservesNativeCustody,
+		ExecutionScope_Wait:        FuzzExecutionScopeConservesNativeCustody,
+		ExecutionScope_ActiveCount: FuzzExecutionScopeConservesNativeCustody,
+		ExecutionScope_VisitActive: FuzzExecutionScopeConservesNativeCustody,
+		OutputMode_UnmarshalJSON:   FuzzOutputModeJSONSemanticClosure,
+		OutputPolicy_Validate:      FuzzOutputPolicyExternalIngress,
+		ExitCurrent:                FuzzExitStatusValidation,
+		AmbientArguments:           FuzzParseArgumentsAndAmbientExternalIngress, Begin: FuzzRunAndBeginStreamingExternalIngress,
 		NewArgument: FuzzArgumentEnvironmentAtomsExternalIngress, NewEnvironmentName: FuzzArgumentEnvironmentAtomsExternalIngress, NewEnvironmentValue: FuzzArgumentEnvironmentAtomsExternalIngress,
 		NewTruncatingWriter: FuzzTruncatingWriterExternalIngress, ParseArguments: FuzzParseArgumentsAndAmbientExternalIngress,
 		ParseEffectiveEnvironment: FuzzParseEffectiveEnvironmentExternalIngress, ParseExactEnvironment: FuzzParseExactEnvironmentExternalIngress,
@@ -208,7 +221,7 @@ func processParsedExternalDoors(file *ast.File) []string {
 		if !ok || !ast.IsExported(owner.Name) || !ast.IsExported(name) {
 			continue
 		}
-		raw := strings.HasPrefix(name, "Unmarshal") || name == "Validate" && jsonOwners[owner.Name] || owner.Name == "Execution" && name == "GroupLiveness"
+		raw := strings.HasPrefix(name, "Unmarshal") || name == "Validate" && jsonOwners[owner.Name] || owner.Name == "Execution" && name == "GroupLiveness" || owner.Name == "ExecutionScope"
 		ast.Inspect(function.Type.Params, func(node ast.Node) bool {
 			if ident, ok := node.(*ast.Ident); ok && (ident.Name == "byte" || ident.Name == "string") {
 				raw = true

@@ -135,12 +135,23 @@ func (e *Execution) GroupLiveness() (Liveness, error) {
 // contract violation, not a cached answer, because the first caller may
 // still be acting on the result.
 func (e *Execution) Wait() (Result, error) {
-	if err := e.usable(); err != nil {
+	if err := e.admitWait(); err != nil {
 		return Result{}, err
 	}
-	if !e.waited.CompareAndSwap(false, true) {
-		return Result{}, contractError(alreadyReapedDiagnostic)
+	return e.wait()
+}
+
+func (e *Execution) admitWait() error {
+	if err := e.usable(); err != nil {
+		return err
 	}
+	if !e.waited.CompareAndSwap(false, true) {
+		return contractError(alreadyReapedDiagnostic)
+	}
+	return nil
+}
+
+func (e *Execution) wait() (Result, error) {
 	defer e.cancel(nil)
 	return waitCommand(waitRequest{
 		parent:      e.parent,
