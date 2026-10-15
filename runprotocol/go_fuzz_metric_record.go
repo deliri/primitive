@@ -130,23 +130,23 @@ func (r GoFuzzMetricSourceRequest) Validate() error {
 func GoFuzzMetricRecords(ctx context.Context, request GoFuzzMetricSourceRequest) iter.Seq2[GoFuzzMetricRecord, error] {
 	return func(yield func(GoFuzzMetricRecord, error) bool) {
 		if err := errors.Join(contextstate.Validate(ctx), request.Validate()); err != nil {
-			yield(GoFuzzMetricRecord{}, err)
+			yield(GoFuzzMetricRecord{}, goFuzzMetricRefusal(ctx, err))
 			return
 		}
 		buffer, err := core.NewByteCount(4096)
 		if err != nil {
-			yield(GoFuzzMetricRecord{}, err)
+			yield(GoFuzzMetricRecord{}, goFuzzMetricRefusal(ctx, err))
 			return
 		}
 		patterns := newGoFuzzMetricPatterns()
 		for record, err := range lineio.RecordRanges(ctx, lineio.RecordRangeRequest{Source: request.Source, BufferBytes: buffer}) {
 			if err != nil {
-				yield(GoFuzzMetricRecord{}, err)
+				yield(GoFuzzMetricRecord{}, goFuzzMetricRefusal(ctx, err))
 				return
 			}
 			observed, err := readGoFuzzMetricRecord(ctx, request.Source, record, patterns)
 			if err != nil {
-				yield(GoFuzzMetricRecord{}, err)
+				yield(GoFuzzMetricRecord{}, goFuzzMetricRefusal(ctx, err))
 				return
 			}
 			if !yield(observed, nil) {
@@ -156,10 +156,16 @@ func GoFuzzMetricRecords(ctx context.Context, request GoFuzzMetricSourceRequest)
 	}
 }
 
+func goFuzzMetricRefusal(ctx context.Context, cause error) error {
+	if ctx == nil {
+		return errors.Join(cause, core.ErrNilContext)
+	}
+	return errors.Join(cause, context.Cause(ctx))
+}
+
 type goFuzzMetricPatterns struct {
-	prefixes                                [4][3]*regexp.Regexp
-	interestingPrefixes                     [3]*regexp.Regexp
-	interesting, cumulative, total, failing *regexp.Regexp
+	prefixes            [4][3]*regexp.Regexp
+	interestingPrefixes [3]*regexp.Regexp
 }
 
 func newGoFuzzMetricPatterns() goFuzzMetricPatterns {
@@ -168,11 +174,7 @@ func newGoFuzzMetricPatterns() goFuzzMetricPatterns {
 		quoted := regexp.QuoteMeta(prefix)
 		patterns.prefixes[i] = [3]*regexp.Regexp{regexp.MustCompile(`\A` + quoted), regexp.MustCompile(`,` + quoted), regexp.MustCompile(`, ` + quoted)}
 	}
-	patterns.interesting = regexp.MustCompile(`new interesting`)
 	patterns.interestingPrefixes = [3]*regexp.Regexp{regexp.MustCompile(`\Anew interesting`), regexp.MustCompile(`,new interesting`), regexp.MustCompile(`, new interesting`)}
-	patterns.cumulative = regexp.MustCompile(`new interesting:`)
-	patterns.total = regexp.MustCompile(`\(total:`)
-	patterns.failing = regexp.MustCompile(`[fF][aA][iI][lL][iI][nN][gG] [iI][nN][pP][uU][tT]`)
 	return patterns
 }
 
@@ -192,21 +194,18 @@ func goFuzzMetricTrimmed(ctx context.Context, source lineio.RecordSource, span g
 	if selection > goFuzzMetricTrimCommasColons {
 		return goFuzzMetricSpan{}, core.ErrGoToolchainContract
 	}
-	buffer, err := core.NewByteCount(4096)
-	if err != nil {
-		return goFuzzMetricSpan{}, err
-	}
-	extent, err := core.NewByteLength(uint64(span.bytes))
-	if err != nil {
-		return goFuzzMetricSpan{}, err
-	}
-	var first, end int64
+	guard := &goFuzzFrameSource{ctx: ctx, source: io.NewSectionReader(source, span.offset, span.bytes)}
+	reader := bufio.NewReaderSize(guard, 4096)
+	var first, end, offset int64
 	seen := false
-	for character, err := range lineio.RecordCharacters(ctx, lineio.RecordFragmentRequest{Source: source, Record: lineio.RecordRange{Offset: lineio.SourceByteOffset(span.offset), Bytes: extent, Framing: lineio.RecordFramingOpaque}, BufferBytes: buffer}) {
-		if err != nil {
-			return goFuzzMetricSpan{}, err
+	for {
+		value, width, err := reader.ReadRune()
+		if err == io.EOF {
+			break
 		}
-		value := rune(character.Value)
+		if err != nil {
+			return goFuzzMetricSpan{}, errors.Join(err, guard.readErr, contextstate.Validate(ctx))
+		}
 		trim := unicode.IsSpace(value)
 		if selection == goFuzzMetricTrimCommas {
 			trim = value == ','
@@ -216,15 +215,18 @@ func goFuzzMetricTrimmed(ctx context.Context, source lineio.RecordSource, span g
 		}
 		if !trim {
 			if !seen {
-				first = int64(character.Offset)
+				first = span.offset + offset
 				seen = true
 			}
-			width, err := character.Bytes.Int64()
-			if err != nil {
-				return goFuzzMetricSpan{}, err
-			}
-			end = int64(character.Offset) + width
+			end = span.offset + offset + int64(width)
 		}
+		offset += int64(width)
+	}
+	if err := errors.Join(guard.readErr, contextstate.Validate(ctx)); err != nil {
+		return goFuzzMetricSpan{}, err
+	}
+	if offset != span.bytes {
+		return goFuzzMetricSpan{}, io.ErrUnexpectedEOF
 	}
 	if !seen {
 		return goFuzzMetricSpan{offset: span.offset + span.bytes}, nil
@@ -348,23 +350,33 @@ func readGoFuzzMetricRecord(ctx context.Context, source lineio.RecordSource, rec
 	if err != nil {
 		return GoFuzzMetricRecord{}, err
 	}
+	hints, err := goFuzzMetricRecordHints(ctx, source, goFuzzMetricSpan{offset: int64(record.Offset), bytes: length})
+	if err != nil {
+		return GoFuzzMetricRecord{}, err
+	}
+	present := false
+	for _, hint := range hints {
+		present = present || hint
+	}
+	if !present {
+		return GoFuzzMetricRecord{record: record}, nil
+	}
 	span, err := goFuzzMetricTrimmed(ctx, source, goFuzzMetricSpan{offset: int64(record.Offset), bytes: length}, goFuzzMetricTrimWhitespace)
 	if err != nil {
 		return GoFuzzMetricRecord{}, err
 	}
 	observed := GoFuzzMetricRecord{record: record}
 	for i, prefixes := range patterns.prefixes {
+		if !hints[i] {
+			continue
+		}
 		field, err := readGoFuzzMetricField(ctx, source, span, prefixes)
 		if err != nil {
 			return GoFuzzMetricRecord{}, err
 		}
 		observed.fields[i] = field
 	}
-	interesting, err := goFuzzMetricMatch(ctx, source, span, patterns.interesting)
-	if err != nil {
-		return GoFuzzMetricRecord{}, err
-	}
-	if observed.fields[3].presence != GoFuzzMetricPresent && interesting != nil {
+	if observed.fields[3].presence != GoFuzzMetricPresent && hints[goFuzzMetricHintInteresting] {
 		cursorSource := &goBenchmarkSourceReader{ctx: ctx, source: io.NewSectionReader(source, span.offset, span.bytes)}
 		cursor := goBenchmarkFieldCursor{ctx: ctx, source: source, buffer: bufio.NewReader(cursorSource), offset: span.offset}
 		for !cursor.ended {
@@ -404,18 +416,8 @@ func readGoFuzzMetricRecord(ctx context.Context, source lineio.RecordSource, rec
 			}
 		}
 	}
-	for _, pattern := range [...]*regexp.Regexp{patterns.cumulative, patterns.total} {
-		found, err := goFuzzMetricMatch(ctx, source, span, pattern)
-		if err != nil {
-			return GoFuzzMetricRecord{}, err
-		}
-		observed.cumulative = observed.cumulative || found != nil
-	}
-	failing, err := goFuzzMetricMatch(ctx, source, span, patterns.failing)
-	if err != nil {
-		return GoFuzzMetricRecord{}, err
-	}
-	observed.failingInput = failing != nil
+	observed.cumulative = hints[goFuzzMetricHintCumulative] || hints[goFuzzMetricHintTotal]
+	observed.failingInput = hints[goFuzzMetricHintFailing]
 	if err := observed.Validate(); err != nil {
 		return GoFuzzMetricRecord{}, err
 	}
