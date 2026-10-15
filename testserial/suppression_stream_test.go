@@ -1,4 +1,4 @@
-package testserial
+package testserial_test
 
 import (
 	"bytes"
@@ -11,6 +11,7 @@ import (
 	"testing/iotest"
 
 	primitivecore "github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/testserial"
 )
 
 type repeatedSuppressionScanByte byte
@@ -23,7 +24,7 @@ func (b repeatedSuppressionScanByte) Read(destination []byte) (int, error) {
 }
 
 func TestSuppressionScanWorkingMemoryDoesNotFollowLineExtent(t *testing.T) {
-	Declare(t, primitivecore.TestIsolationDeclaration{
+	testserial.Declare(t, primitivecore.TestIsolationDeclaration{
 		Hazard: primitivecore.TestIsolationHazardRuntimeAllocation,
 		Scope:  primitivecore.TestIsolationScopePackageProcess,
 	})

@@ -1,4 +1,4 @@
-package testserial
+package testserial_test
 
 import (
 	"bufio"
