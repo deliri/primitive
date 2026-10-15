@@ -134,7 +134,7 @@ func TestServerRuntimeNativeHTTP2OwnsConnectionExit(t *testing.T) {
 	if response != nil {
 		_ = response.Body.Close()
 	}
-	// witness:waiver test/errors -- HTTP2 may report EOF or a refused reconnect depending on when Go observes the closed native connection.
+	// HTTP2 may report EOF or a refused reconnect depending on when Go observes the closed native connection.
 	if err == nil || response != nil {
 		t.Fatalf("HTTP2 after owner exit = (%v, %v), want no response and native transport failure", response, err)
 	}

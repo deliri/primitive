@@ -5,9 +5,9 @@ This protocol is not a ceremony and not a separate truth source.
 It is the test-quality doctrine for evidence-producing Go pipelines. Rules
 that can be proven from source belong in a lint tool. Rules that require
 intent stay in this document until they can be encoded safely. The
-references to `witness-lint` and the `witness:waiver` comment grammar
-throughout this document are this codebase's implementation of the rule;
-adopt the same names or substitute equivalents that fit your project.
+references to `witness-lint` identify this codebase's implementation of the
+rules. Suppression comments are prohibited. Fix a violation in its owning
+code; correct an analyzer defect with behavioral proof rather than bypass it.
 
 The goal is not pretty tests. The goal is evidence.
 
@@ -20,7 +20,7 @@ test intensity, not a threat model or an assumption about malicious callers.
 
 Each rule has:
 
-- `id` — stable name used by docs, waivers, and future lint output
+- `id` — stable name used by docs and lint output
 - `level` — `must`, `should`, or `review`
 - `enforcement` — `lint`, `tool`, `review`, or `future-lint`
 - `why` — the failure class it prevents
@@ -29,13 +29,12 @@ Each rule has:
 required unless there is a better local reason. `review` means the rule needs
 human judgment today.
 
-When rules conflict, the more specific rule wins. A serial test may override
-`test/parallel/default` only with a waiver. A tempdir isolation rule may override
-a helper convenience pattern. A structural invariant test may use source
-inspection when a runtime test cannot prove the compiler-visible contract.
-When two rules still conflict, choose the rule that preserves evidence
-accounting and determinism. If that choice weakens another rule, add a waiver
-at the call site and state the exact failure class being accepted.
+When rules conflict, the more specific rule wins without suppressing a finding.
+A serial test declares its actual shared-state hazard through Primitive's typed
+`testserial.Declare` contract. A structural invariant test may inspect source
+when runtime behavior cannot prove the compiler-visible contract. Preserve
+evidence accounting and determinism. If an analyzer rejects a correct native
+contract, add a regression proving that contract and repair the analyzer.
 
 ## Rule Index
 
@@ -48,7 +47,7 @@ at the call site and state the exact failure class being accepted.
 | `test/execution-accounting` | must | tool | Exact revision, scope, command, cache posture, attempts, skips, and exit status are evidence |
 | `test/independent-acceptance` | must | tool | A claim or local green run cannot issue its own acceptance receipt |
 | `test/isolation/tempdir` | must | lint | Filesystem-mutating tests own a tempdir per parallel unit |
-| `test/parallel/default` | should | lint | Tests parallelize by default; serial cases need a waiver |
+| `test/parallel/default` | should | lint | Tests parallelize by default; serial cases declare their typed isolation hazard |
 | `test/sync/no-sleep` | must | lint | Synchronize on facts, not on `time.Sleep` |
 | `test/determinism` | must | review | Control time, randomness, paths, env, IDs, command output |
 | `test/table-shape` | must | review | The table is the pressure surface; names name the boundary |
@@ -75,7 +74,7 @@ at the call site and state the exact failure class being accepted.
 | `test/streaming-extent` | must | review | Every package streams reads and writes beyond fixed memory windows without arbitrary extent quotas |
 | `test/ledger-chain` | must | review | Ledger tests prove the real chain |
 | `protocol/typed-boundary` | must | lint | Protocol payloads are typed structs and enums |
-| `test/waivers` | must | review | Waivers name why the rule is wrong for this case |
+| `test/waivers` | must | review | Suppression comments are prohibited; findings must be fixed |
 
 Grep this index by `id` to jump to the rule body. Every rule body restates the
 `id`, `level`, and `enforcement` line so the table stays a navigation aid, not a
@@ -144,7 +143,7 @@ For every new or changed test, reviewers must ask:
   fold, writer, manifest, verifier, reporter, CLI, or doctrine?
 - Does the test own filesystem mutations with `t.TempDir()` in the test or
   parallel subtest body?
-- Is the test parallel, or does it carry a canonical waiver?
+- Is the test parallel, or does it declare its actual typed isolation hazard?
 - Are time, randomness, paths, environment, IDs, and command output controlled?
 - For tables, do case names describe boundaries or failure modes?
 - Does every row earn its place, or is the table padded to hit a count?
@@ -154,7 +153,7 @@ For every new or changed test, reviewers must ask:
   exclusive primary classes, transition assertions, and mutation pairs?
 - For evidence/accounting changes, does every touched layer have positive,
   negative, and neutral coverage?
-- Are errors asserted with sentinels, typed errors, or a documented waiver?
+- Are errors asserted with the strongest available sentinel or typed error?
 - If a value is derived, does the test prove the source facts rather than
   restating a persisted duplicate?
 - Do helpers preserve `got`/`want` facts instead of hiding assertions?
@@ -433,15 +432,20 @@ Allowed serial cases:
 - tests that prove serialization, lock contention, or ordering against one
   shared resource
 
-Serial tests require a reason at the call site:
+Serial tests declare the actual process-wide hazard as their first statement:
 
 ```go
 func TestSignalHandler(t *testing.T) {
-	// witness:waiver test/parallel/default -- installs process-wide signal.Notify handler.
+	testserial.Declare(t, core.TestIsolationDeclaration{
+		Hazard: core.TestIsolationHazardProcessSignal,
+		Scope:  core.TestIsolationScopePackageProcess,
+	})
+	// Exercise the owned signal handler and prove cancellation and shutdown.
 }
 ```
 
-Silence means the author forgot. It does not mean the test is exempt.
+The declaration validates a closed hazard and scope; it does not suppress
+findings. Comments cannot substitute for this compiler-visible contract.
 
 ## Synchronization
 
@@ -813,7 +817,7 @@ Required:
 - if two rows would execute the same branch with the same `want*` contract,
   delete one
 - reviewers reject tables that hit the number without hitting the failure class
-- a waiver that says "padded to satisfy the floor" is invalid
+- padding to satisfy a numeric floor is prohibited
 
 `why`: padded tables hide missing handoff bugs behind a passing count. The
 protocol's floors exist to force pressure, not to be gamed.
@@ -1178,7 +1182,7 @@ are retired.
 Exit checklist:
 
 - all new or touched rejection paths have typed sentinels or typed errors
-- substring error assertions are gone or carry a waiver naming the upstream gap
+- diagnostic assertions follow a typed error assertion; prose never identifies a failure
 - serious validators, parsers, classifiers, planners, folders, writers, and
   verifiers have hostile tables or exhaustive matrices
 - producer→classifier handoffs have the 50-case hostile transition matrix or an
@@ -1248,8 +1252,8 @@ to a different typed error that happens to render the same prose.
 
 If an upstream library exposes only strings, wrap the error at the boundary
 with a typed or sentinel error and assert that wrapper. If no wrapper exists
-yet, a string assertion needs a waiver that names the upstream gap and the
-migration target.
+yet, add the typed boundary before asserting the diagnostic. A suppression
+comment cannot supply a missing error contract.
 
 ## Structural Equality
 
@@ -2155,7 +2159,7 @@ Allowed:
 - `json.RawMessage` at explicit wire/replay boundaries only
 - `interface` when it is a narrow behavior interface, not a payload bag
 
-## Waivers
+## No Suppressions
 
 `id: test/waivers`
 
@@ -2163,53 +2167,22 @@ Allowed:
 
 `enforcement: review`
 
-A waiver must explain why the rule is wrong for this specific case.
+Witness waivers are prohibited in production code, tests, fixtures used as
+implementation, and generated source. No comment, allowlist entry or renamed
+annotation may hide a finding. Fix the affected implementation and preserve the
+failed attempt in retained evidence.
 
-Good:
+When a rule conflicts with Go's native contract, prove both the permitted native
+behavior and the nearby failure the rule must still catch, then repair the rule.
+Do not change correct EOF handling, cancellation or resource ownership merely
+to silence a heuristic. Do not weaken checks, exclude packages, or replace a
+suppression with a blanket exception.
 
-```go
-// witness:waiver test/parallel/default -- verifies process-wide environment inheritance.
-```
-
-Good:
-
-```go
-// witness:waiver test/isolation/tempdir -- verifies global lock contention on one path.
-```
-
-Bad:
-
-```go
-// flaky in CI
-```
-
-Bad:
-
-```go
-// TODO
-```
-
-Waivers are not permission slips. Where the typed helper is available, tests do
-not use serial waiver comments at all: they call `testserial.Declare` with a
-Primitive-owned `core.TestIsolationDeclaration`. That typed call is the
-compiler-visible reason the test cannot call `t.Parallel`, and invalid or zero
-declarations fail at execution. The doctrine linter verifies the exact imported
-package, function, hazard identifier, and scope identifier contract.
-
-A typed declaration beats a comment for the reason this whole protocol exists:
-a comment cannot be validated, cannot fail at execution, and cannot break the
-build when the hazard it names stops being true.
-
-Canonical grammar:
-
-```text
-// witness:waiver <rule-id> -- <specific reason>
-```
-
-The reason must name why this case is structurally different, not why fixing it
-is inconvenient. Legacy local comments such as `serial:` are rejected. The
-comment grammar remains available only where the typed helper has not yet been
-installed; once a repository has it, the ratchet rejects both forms.
+Serial tests use `testserial.Declare` with Primitive's validated
+`core.TestIsolationDeclaration` to describe actual process-wide hazards. This
+compiler-visible declaration does not waive unrelated rules. Invalid or zero
+declarations fail at execution, and the analyzer checks the exact imported
+package, function, hazard and scope.
 
 ## Automation Map
 
@@ -2258,5 +2231,5 @@ graduate to lint when its false-positive story is understood.
 | `test/evidence-path-consistency` | three-way-invariant analyzer for evidence-ref tests |
 | `test/budget-divergence` | run-record analyzer flagging ratio thresholds |
 
-Do not automate a rule until the false-positive story is understood. A noisy
-doctrine rule creates waivers, and waivers rot.
+Do not automate a rule until its native contracts and nearby failure cases
+have behavioral proof. Repair false positives rather than suppressing them.

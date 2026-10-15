@@ -123,7 +123,7 @@ func (r *Reader) ReadFragment(ctx context.Context) (Fragment, error) {
 		return Fragment{}, r.terminal
 	}
 	data, err := r.buffer.ReadSlice(Delimiter)
-	// witness:waiver doctrine/error/sentinel_compare -- Lineio owner; Go 1.27 ReadSlice uses this exact sentinel for its own full window. Source failures are wrapped by checkedReader. Recheck on the next Go upgrade.
+	// Lineio owner; Go 1.27 ReadSlice uses this exact sentinel for its own full window. Source failures are wrapped by checkedReader. Recheck on the next Go upgrade.
 	if err == bufio.ErrBufferFull {
 		if contextErr := contextstate.Validate(ctx); contextErr != nil {
 			r.terminal = contextErr
@@ -131,7 +131,7 @@ func (r *Reader) ReadFragment(ctx context.Context) (Fragment, error) {
 		}
 		return Fragment{Bytes: data, More: true}, nil
 	}
-	// witness:waiver doctrine/error/sentinel_compare -- Lineio owner; io.Reader requires exact io.EOF for clean completion. A wrapped EOF remains a source failure. Recheck on the next Go upgrade.
+	// Lineio owner; io.Reader requires exact io.EOF for clean completion. A wrapped EOF remains a source failure. Recheck on the next Go upgrade.
 	if err != nil && err != io.EOF && !errors.Is(err, core.ErrLineIOScan) {
 		err = errors.Join(core.ErrLineIOScan, err)
 	}

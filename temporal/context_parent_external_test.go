@@ -37,7 +37,7 @@ func (p *temporalParentProbe) Done() <-chan struct{} {
 	return p.Context.Done()
 }
 
-// witness:waiver doctrine/code_form/return_interface -- implements the exact context.Context.Value signature to probe Go cancellation propagation.
+// implements the exact context.Context.Value signature to probe Go cancellation propagation.
 func (p *temporalParentProbe) Value(key any) any {
 	if p.panicValue {
 		panic(core.ErrContextObservation)

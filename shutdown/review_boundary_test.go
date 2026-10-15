@@ -32,7 +32,7 @@ func (p *armedWatchParent) Done() <-chan struct{} {
 	return p.Context.Done()
 }
 
-// witness:waiver doctrine/code_form/return_interface -- implements the exact context.Context.Value method to test Go propagation and unlinking.
+// implements the exact context.Context.Value method to test Go propagation and unlinking.
 func (p *armedWatchParent) Value(key any) any {
 	if p.armed.Load() && p.valuePanic {
 		panic(p.failure)
@@ -395,7 +395,7 @@ func (p terminalParentProbe) Err() error {
 	return p.terminal
 }
 
-// witness:waiver doctrine/code_form/return_interface -- implements the exact context.Context.Value method to attack cancellation-cause observation.
+// implements the exact context.Context.Value method to attack cancellation-cause observation.
 func (p terminalParentProbe) Value(key any) any {
 	if p.panicValue {
 		panic(errHostileCleanup)

@@ -107,7 +107,7 @@ func (r *ExactReader) continueRead(count int, readErr error) (int, error) {
 }
 
 func (r *ExactReader) finish(count int, readErr error) (int, error) {
-	// witness:waiver doctrine/error/sentinel_compare -- Objectstore owns this io.Reader boundary. Go requires unwrapped EOF for graceful completion; wrapped/joined failures must survive. Review by 2026-12-08 against Go's io.Reader contract.
+	// Objectstore owns this io.Reader boundary. Go requires unwrapped EOF for graceful completion; wrapped/joined failures must survive. Review by 2026-12-08 against Go's io.Reader contract.
 	ended := readErr == io.EOF
 	if readErr != nil && !ended {
 		return r.fail(count, readErr)

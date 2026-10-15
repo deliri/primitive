@@ -12,7 +12,7 @@ import (
 // that exact held descriptor into os.Root while SyscallConn owns its lifetime.
 func openRootDirectory(path string) (*os.Root, error) {
 	// #nosec G304 -- This is the caller-authorized root acquisition boundary; child operations use the resulting os.Root.
-	// witness:waiver doctrine/code_form/defer_after_acquire -- The explicit Close below joins its failure and closes the derived Root before returning; deferring Close would lose that ownership decision.
+	// The explicit Close below joins its failure and closes the derived Root before returning; deferring Close would lose that ownership decision.
 	file, err := os.OpenFile(path, os.O_RDONLY|syscall.O_NONBLOCK|syscall.O_DIRECTORY, 0)
 	if err != nil {
 		return nil, err

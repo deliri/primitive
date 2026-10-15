@@ -326,7 +326,7 @@ func (c *Controller) waitEscalation(request escalationWait) {
 		events = nil
 	}
 	for {
-		// witness:waiver doctrine/concurrency/select_without_done -- c.parentDone is the captured parent Done channel and c.stop joins Close; calling parent.Done here reintroduces the reviewed panic.
+		// c.parentDone is the captured parent Done channel and c.stop joins Close; calling parent.Done here reintroduces the reviewed panic.
 		select {
 		case <-c.stop:
 			return

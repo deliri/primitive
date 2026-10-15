@@ -14,6 +14,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/lineio"
+	"github.com/deliri/primitive/v2026/testserial"
 )
 
 func TestRecordCharactersConserveNativeBytePositionsAndWidths(t *testing.T) {
@@ -164,10 +165,14 @@ func TestRecordCharactersRefuseChangedPhysicalFraming(t *testing.T) {
 }
 
 func TestRecordCharactersWorkingMemoryDoesNotFollowRecordSize(t *testing.T) {
-	// witness:waiver test/parallel/default -- process-wide allocation accounting.
+	testserial.Declare(t, core.TestIsolationDeclaration{
+		Hazard: core.TestIsolationHazardRuntimeAllocation,
+		Scope:  core.TestIsolationScopePackageProcess,
+	})
+	// process-wide allocation accounting.
 	for _, size := range []int{4095, 4096, 4097, 1 << 20, 7 << 20} {
 		t.Run(strconv.Itoa(size), func(t *testing.T) {
-			// witness:waiver test/parallel/default -- serial allocation counters.
+			// serial allocation counters.
 			body := strings.Repeat("x", size) + "\n"
 			source := strings.NewReader(body)
 			request := lineio.RecordFragmentRequest{Source: source, Record: characterRecord(t, len(body), lineio.RecordFramingLF), BufferBytes: recordRangeBuffer(t, 4096)}

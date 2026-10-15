@@ -1090,7 +1090,7 @@ func copyGCSExact(reader io.Reader, destination io.Writer, length core.ByteLengt
 	}
 	source := gcsReadSource{source: reader}
 	count, copyErr := io.Copy(destination, io.LimitReader(&source, extent))
-	// witness:waiver doctrine/error/sentinel_compare -- GCSobjects owns the SDK reader boundary; Go requires bare EOF for graceful completion and joined read failures must survive. Review by 2026-12-09.
+	// GCSobjects owns the SDK reader boundary; Go requires bare EOF for graceful completion and joined read failures must survive. Review by 2026-12-09.
 	if source.err != nil && source.err != io.EOF {
 		return errors.Join(core.ErrObjectStoreSource, core.ErrObjectStoreIntegrity, source.err, copyErr)
 	}
@@ -1107,7 +1107,7 @@ func proveGCSEOF(reader io.Reader) error {
 	var probe [1]byte
 	source := gcsReadSource{source: reader}
 	count, err := io.ReadFull(&source, probe[:])
-	// witness:waiver doctrine/error/sentinel_compare -- GCSobjects owns the SDK reader boundary; only bare EOF with zero bytes proves an exhausted stream. Review by 2026-12-09.
+	// GCSobjects owns the SDK reader boundary; only bare EOF with zero bytes proves an exhausted stream. Review by 2026-12-09.
 	if count == 0 && err == io.EOF {
 		return nil
 	}

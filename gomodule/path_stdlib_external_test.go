@@ -10,6 +10,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/gomodule"
+	"github.com/deliri/primitive/v2026/testserial"
 )
 
 func TestNativePathAdmissionHasNoExternalParserDependency(t *testing.T) {
@@ -32,10 +33,14 @@ func TestNativePathAdmissionHasNoExternalParserDependency(t *testing.T) {
 }
 
 func TestNativePathAdmissionKeepsConstantWorkingMemory(t *testing.T) {
-	// witness:waiver test/parallel/default -- testing.AllocsPerRun changes process GOMAXPROCS while measuring.
+	testserial.Declare(t, core.TestIsolationDeclaration{
+		Hazard: core.TestIsolationHazardRuntimeAllocation,
+		Scope:  core.TestIsolationScopePackageProcess,
+	})
+	// testing.AllocsPerRun changes process GOMAXPROCS while measuring.
 	for _, segments := range []int{1, 32, 1 << 15} {
 		t.Run(strconv.Itoa(segments), func(t *testing.T) {
-			// witness:waiver test/parallel/default -- owned allocation measurement changes process GOMAXPROCS.
+			// owned allocation measurement changes process GOMAXPROCS.
 			value := "example.com/" + strings.Repeat("part/", segments) + "v123456789012345678901234567890"
 			var observed gomodule.Path
 			allocations := testing.AllocsPerRun(10, func() {

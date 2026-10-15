@@ -155,7 +155,7 @@ func (c *inspectionCopier) acceptChunk(data []byte, readErr error) error {
 }
 
 func (c *inspectionCopier) chunkOutcome(readErr error) (bool, error) {
-	// witness:waiver doctrine/error/sentinel_compare -- Objectstore owns this io.Reader boundary. Go requires unwrapped EOF for graceful completion; wrapped/joined failures must survive. Review by 2026-12-08 against Go's io.Reader contract.
+	// Objectstore owns this io.Reader boundary. Go requires unwrapped EOF for graceful completion; wrapped/joined failures must survive. Review by 2026-12-08 against Go's io.Reader contract.
 	if readErr == io.EOF {
 		c.sourceEnded = true
 		return true, nil

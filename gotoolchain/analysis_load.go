@@ -103,7 +103,7 @@ func decodeAnalysisMetadata(input io.Reader, limits Limits, sizes types.Sizes) (
 	for {
 		var wire analysisPackageWire
 		err = json.UnmarshalDecode(decoder, &wire)
-		// witness:waiver doctrine/error/sentinel_compare -- Only unwrapped EOF is clean completion; joined EOF must retain the accompanying reader failure.
+		// Only unwrapped EOF is clean completion; joined EOF must retain the accompanying reader failure.
 		if err == io.EOF {
 			break
 		}
@@ -113,7 +113,7 @@ func decodeAnalysisMetadata(input io.Reader, limits Limits, sizes types.Sizes) (
 		if uint64(len(wires)) >= uint64(limits.PackageMaximum) {
 			return nil, outputError("analysis package count exceeds its bound", nil)
 		}
-		// witness:waiver doctrine/quality/append_in_loop -- The preceding package-count admission and LimitedReader enforce caller-owned bounds without allocating the maximum graph up front.
+		// The preceding package-count admission and LimitedReader enforce caller-owned bounds without allocating the maximum graph up front.
 		wires = append(wires, wire)
 	}
 	if err := analysisMetadataEOF(bounded); err != nil {
@@ -130,7 +130,7 @@ func analysisMetadataEOF(input *io.LimitedReader) error {
 	}
 	var extra [1]byte
 	count, err := io.ReadFull(input.R, extra[:])
-	// witness:waiver doctrine/error/sentinel_compare -- The exact-budget probe must refuse joined EOF and reader failure, preserving the native cause.
+	// The exact-budget probe must refuse joined EOF and reader failure, preserving the native cause.
 	if count == 0 && err == io.EOF {
 		return nil
 	}

@@ -128,7 +128,7 @@ func FuzzUpgradeDeliverySemanticClosure(f *testing.F) {
 			}
 			return
 		}
-		// witness:waiver test/fuzz-boundary -- receive-only download bearers intentionally cannot marshal; exact capability commitment and both independent signature verifiers own this oracle.
+		// receive-only download bearers intentionally cannot marshal; exact capability commitment and both independent signature verifiers own this oracle.
 		var want UpgradeDeliveryDocument
 		if err := want.UnmarshalJSON(canonical); err != nil {
 			t.Fatalf("decode canonical = %v, want nil", err)

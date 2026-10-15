@@ -184,7 +184,7 @@ func (b *responseBuffer) validateExtent(method string) error {
 	return nil
 }
 
-// witness:waiver doctrine/error/named_returns -- Deferred panic containment must set the returned error while preserving the status and byte acknowledgments already recorded before the Go writer panics.
+// Deferred panic containment must set the returned error while preserving the status and byte acknowledgments already recorded before the Go writer panics.
 func (b *responseBuffer) release(ctx context.Context, destination http.ResponseWriter, method string) (result ResponseBufferResult, err error) {
 	defer containResponseWriterPanic(&err)
 	if err := contextstate.Validate(ctx); err != nil {

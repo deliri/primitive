@@ -84,7 +84,7 @@ func contentSourceEnded(source io.Reader) error {
 	if count != 0 {
 		return errors.Join(core.ErrFilestoreSize, err)
 	}
-	// witness:waiver doctrine/error/sentinel_compare -- Exact EOF is required; errors.Is would erase a joined source failure.
+	// Exact EOF is required; errors.Is would erase a joined source failure.
 	if err != io.EOF {
 		return errors.Join(core.ErrFilestoreSource, err)
 	}

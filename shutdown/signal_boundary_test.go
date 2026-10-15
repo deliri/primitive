@@ -24,7 +24,7 @@ func (p hostileWatchParent) Done() <-chan struct{} {
 	return p.Context.Done()
 }
 
-// witness:waiver doctrine/code_form/return_interface -- implements the exact context.Context.Value signature to attack Go cancellation propagation.
+// implements the exact context.Context.Value signature to attack Go cancellation propagation.
 func (p hostileWatchParent) Value(key any) any {
 	if !p.panicDone {
 		panic(core.ErrContextObservation)

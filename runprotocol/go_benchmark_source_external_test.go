@@ -15,6 +15,7 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/filestore"
 	"github.com/deliri/primitive/v2026/runprotocol"
+	"github.com/deliri/primitive/v2026/testserial"
 )
 
 func TestGoBenchmarkSourceConservesExactNativeRangesAndValues(t *testing.T) {
@@ -115,7 +116,11 @@ func TestGoBenchmarkSourceRefusesMalformedRowsWithoutPublishedFacts(t *testing.T
 }
 
 func TestGoBenchmarkSourceWorkingMemoryDoesNotFollowFieldOrRecordExtent(t *testing.T) {
-	// witness:waiver test/parallel/default -- process-wide allocation accounting excludes parallel fixture work.
+	testserial.Declare(t, core.TestIsolationDeclaration{
+		Hazard: core.TestIsolationHazardRuntimeAllocation,
+		Scope:  core.TestIsolationScopePackageProcess,
+	})
+	// process-wide allocation accounting excludes parallel fixture work.
 	for _, tc := range []struct {
 		name, row string
 		refused   bool
@@ -129,7 +134,7 @@ func TestGoBenchmarkSourceWorkingMemoryDoesNotFollowFieldOrRecordExtent(t *testi
 		{name: "invalid long name", row: "Benchmark" + strings.Repeat("a", 1<<20) + "\x00 1 5 ns/op\n", refused: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			// witness:waiver test/parallel/default -- serial source allocation-byte measurement.
+			// serial source allocation-byte measurement.
 			source := strings.NewReader(tc.row)
 			var before, after runtime.MemStats
 			runtime.ReadMemStats(&before)
@@ -460,10 +465,14 @@ func benchmarkSourceNameForTest(t *testing.T, source runprotocol.GoBenchmarkReco
 }
 
 func TestGoBenchmarkSourceValidNameWorkingMemoryIsIndependentOfNameLength(t *testing.T) {
-	// witness:waiver test/parallel/default -- process-wide allocation accounting excludes parallel fixtures.
+	testserial.Declare(t, core.TestIsolationDeclaration{
+		Hazard: core.TestIsolationHazardRuntimeAllocation,
+		Scope:  core.TestIsolationScopePackageProcess,
+	})
+	// process-wide allocation accounting excludes parallel fixtures.
 	for _, length := range []int{4095, 4096, 4097, 1 << 20, 7 << 20} {
 		t.Run(strconv.Itoa(length), func(t *testing.T) {
-			// witness:waiver test/parallel/default -- serial allocation accounting.
+			// serial allocation accounting.
 			body := "Benchmark" + strings.Repeat("a", length) + " 17 0.125 ns/op\n"
 			source := strings.NewReader(body)
 			var before, after runtime.MemStats

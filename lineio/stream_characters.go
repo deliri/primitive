@@ -41,7 +41,7 @@ func StreamCharacters(ctx context.Context, request Request) iter.Seq2[RecordChar
 				return
 			}
 			if err != nil {
-				// witness:waiver doctrine/error/sentinel_compare -- Native ReadRune's exact io.EOF marks clean stream exhaustion; wrapped EOF is a source refusal.
+				// Native ReadRune's exact io.EOF marks clean stream exhaustion; wrapped EOF is a source refusal.
 				if err == io.EOF {
 					return
 				}

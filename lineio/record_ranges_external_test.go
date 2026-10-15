@@ -14,6 +14,7 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/filestore"
 	"github.com/deliri/primitive/v2026/lineio"
+	"github.com/deliri/primitive/v2026/testserial"
 )
 
 func recordRangeBuffer(t *testing.T, size uint64) core.ByteCount {
@@ -262,10 +263,14 @@ func TestRecordRangeFragmentsPreserveFullCountCauseAndStop(t *testing.T) {
 }
 
 func TestRecordRangesWorkingMemoryDoesNotFollowRecordLength(t *testing.T) {
-	// witness:waiver test/parallel/default -- process-wide allocation accounting.
+	testserial.Declare(t, core.TestIsolationDeclaration{
+		Hazard: core.TestIsolationHazardRuntimeAllocation,
+		Scope:  core.TestIsolationScopePackageProcess,
+	})
+	// process-wide allocation accounting.
 	for _, length := range []int{4095, 4096, 4097, 1 << 20, 7 << 20} {
 		t.Run(strconv.Itoa(length), func(t *testing.T) {
-			// witness:waiver test/parallel/default -- serial allocation measurement.
+			// serial allocation measurement.
 			source := strings.NewReader(strings.Repeat("x", length) + "\n")
 			var before, after runtime.MemStats
 			runtime.ReadMemStats(&before)

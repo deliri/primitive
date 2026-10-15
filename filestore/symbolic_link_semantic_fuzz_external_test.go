@@ -209,7 +209,7 @@ func FuzzSymbolicLinkObservationAndResolution(f *testing.F) {
 			if !errors.Is(canonicalErr, core.ErrFilestoreSource) {
 				t.Fatalf("canonical refusal = %v, want native source %v", canonicalErr, nativeCanonicalErr)
 			}
-			// witness:waiver test/errors -- Go EvalSymlinks link-count refusal is a fresh untyped error; Source is the stable wrapper while native typed causes remain required below.
+			// Go EvalSymlinks link-count refusal is a fresh untyped error; Source is the stable wrapper while native typed causes remain required below.
 			var native, got *os.PathError
 			if errors.As(nativeCanonicalErr, &native) && (!errors.As(canonicalErr, &got) || !errors.Is(canonicalErr, native.Err) || got.Op != native.Op || got.Path != native.Path) {
 				t.Fatalf("canonical native cause = (%v,%v), want exact PathError", canonicalErr, nativeCanonicalErr)

@@ -12,6 +12,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/runprotocol"
+	"github.com/deliri/primitive/v2026/testserial"
 )
 
 func TestGoBenchmarkRecordConsumesActualGoFormatter(t *testing.T) {
@@ -118,7 +119,11 @@ func TestGoBenchmarkRecordNativeBoundaries(t *testing.T) {
 }
 
 func TestGoBenchmarkRecordNumericFieldsUseConstantWorkingMemory(t *testing.T) {
-	// witness:waiver test/parallel/default -- serial allocation-byte measurement owns process heap accounting.
+	testserial.Declare(t, core.TestIsolationDeclaration{
+		Hazard: core.TestIsolationHazardRuntimeAllocation,
+		Scope:  core.TestIsolationScopePackageProcess,
+	})
+	// serial allocation-byte measurement owns process heap accounting.
 	for _, tc := range []struct {
 		name, body string
 		refused    bool
@@ -131,7 +136,7 @@ func TestGoBenchmarkRecordNumericFieldsUseConstantWorkingMemory(t *testing.T) {
 		{name: "long malformed float", body: "BenchmarkMemory 1 1." + strings.Repeat("0", 1<<20) + "x ns/op", refused: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			// witness:waiver test/parallel/default -- serial native allocation-byte pressure must exclude parallel fixture work.
+			// serial native allocation-byte pressure must exclude parallel fixture work.
 			source := []byte(tc.body)
 			var before, after runtime.MemStats
 			runtime.ReadMemStats(&before)

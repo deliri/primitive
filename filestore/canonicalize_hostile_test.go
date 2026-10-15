@@ -88,7 +88,7 @@ func TestCanonicalizeGoResolutionLayerTriad(t *testing.T) {
 				if nativeErr == nil {
 					t.Fatalf("native resolution = %q, want refusal", native)
 				}
-				// witness:waiver test/errors -- filepath.EvalSymlinks exposes its link-count refusal as a fresh untyped error; Filestore's Source identity is the stable boundary.
+				// filepath.EvalSymlinks exposes its link-count refusal as a fresh untyped error; Filestore's Source identity is the stable boundary.
 				var nativePath, gotPath *os.PathError
 				if errors.As(nativeErr, &nativePath) && (!errors.As(gotErr, &gotPath) || !errors.Is(gotErr, nativePath.Err) || gotPath.Op != nativePath.Op || gotPath.Path != nativePath.Path) {
 					t.Fatalf("native refusal = (%v,%v), want exact Go PathError", gotErr, nativeErr)

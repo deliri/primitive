@@ -21,7 +21,7 @@ import (
 
 // Native SDK client proof against real R2. This does not claim browser CORS,
 // application auth, workout persistence, or a 100 GiB network transfer.
-// witness:waiver test/determinism -- live R2 validates signatures against its clock; fresh timestamps isolate probe objects. Results assert bytes and identities, never wall time.
+// live R2 validates signatures against its clock; fresh timestamps isolate probe objects. Results assert bytes and identities, never wall time.
 func TestR2MultipartLiveDirectClientLifecycle(t *testing.T) {
 	t.Parallel()
 	path := os.Getenv("KERNEL_MEDIA_LIVE_CONFIG")

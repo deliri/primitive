@@ -259,7 +259,7 @@ func (s *oomScanner) match(count int) {
 
 func classifyOOMRead(remaining uint64, emptyReads int, readErr error) error {
 	if remaining == 0 {
-		// witness:waiver doctrine/error/sentinel_compare -- Exact EOF alone is successful; joined EOF and source failures must survive.
+		// Exact EOF alone is successful; joined EOF and source failures must survive.
 		if readErr != nil && readErr != io.EOF {
 			return readErr
 		}

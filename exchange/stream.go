@@ -783,7 +783,7 @@ func probeStreamEnd(ctx context.Context, source io.Reader) error {
 	if count > 0 {
 		return core.ErrExchangeBodyLimit
 	}
-	// witness:waiver doctrine/error/sentinel_compare -- Go recognizes only the unwrapped EOF sentinel as clean termination; joined EOF and native failures must remain failures.
+	// Go recognizes only the unwrapped EOF sentinel as clean termination; joined EOF and native failures must remain failures.
 	if err == io.EOF {
 		return contextAfterTransfer(ctx)
 	}
