@@ -4,12 +4,14 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"math"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
+	"unicode"
 
 	primitivecore "github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/filestore"
@@ -18,8 +20,10 @@ import (
 
 const forbiddenSuppressionDirective = "witness:waiver"
 
+const suppressionWhitespace = `[\t\r\f\v\x{0085}\p{Z}]`
+
 func suppressionPattern() *regexp.Regexp {
-	return regexp.MustCompile(`(?m)(?://|/\*|^[ \t]*\*)[ \t]*(?:` + regexp.QuoteMeta(forbiddenSuppressionDirective) + `)`)
+	return regexp.MustCompile(`(?m)(?://|/\*|^` + suppressionWhitespace + `*\*)` + suppressionWhitespace + `*(?:` + regexp.QuoteMeta(forbiddenSuppressionDirective) + `)`)
 }
 
 func TestPrimitiveSourcesHaveNoWitnessSuppressions(t *testing.T) {
@@ -146,6 +150,44 @@ func TestSuppressionScanStreamsSourceText(t *testing.T) {
 			got, err := firstSuppressionLine(t.Context(), strings.NewReader(tc.source), suppressionPattern())
 			if err != nil || got != tc.want {
 				t.Fatalf("first suppression line = %d/%v, want %d/nil", got, err, tc.want)
+			}
+		})
+	}
+}
+
+// Exhaust native Unicode whitespace: TrimSpace accepts these before a pragma.
+// LF alone ends a physical line comment, so a token after LF is ordinary text.
+func TestSuppressionScanNativeWhitespaceCannotHideDirective(t *testing.T) {
+	t.Parallel()
+	pattern := suppressionPattern()
+	for character := rune(0); character <= unicode.MaxRune; character++ {
+		if !unicode.IsSpace(character) {
+			continue
+		}
+		t.Run(fmt.Sprintf("native whitespace U+%04X", character), func(t *testing.T) {
+			t.Parallel()
+			want := uint64(1)
+			if character == '\n' {
+				want = 0
+			}
+			source := strings.NewReader("//" + string(character) + forbiddenSuppressionDirective)
+			got, err := firstSuppressionLine(t.Context(), source, pattern)
+			if err != nil || got != want {
+				t.Fatalf("native whitespace U+%04X scan = %d/%v, want %d/nil", character, got, err, want)
+			}
+		})
+	}
+}
+
+func TestSuppressionScanDoesNotTreatOtherCharactersAsWhitespace(t *testing.T) {
+	t.Parallel()
+	pattern := suppressionPattern()
+	for _, character := range [...]rune{'x', 0, '\b', 0x84, 0x86, 0xA1, 0x200B, 0x200C, 0xFEFF} {
+		t.Run(fmt.Sprintf("non-whitespace U+%04X", character), func(t *testing.T) {
+			t.Parallel()
+			got, err := firstSuppressionLine(t.Context(), strings.NewReader("//"+string(character)+forbiddenSuppressionDirective), pattern)
+			if err != nil || got != 0 {
+				t.Fatalf("non-whitespace U+%04X scan = %d/%v, want no active directive", character, got, err)
 			}
 		})
 	}
