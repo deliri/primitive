@@ -25,7 +25,8 @@ func TestClientAddressAuthorityExhaustsCompleteByteDomain(t *testing.T) {
 	}, 0, math.MaxUint8+1)
 	for value := range math.MaxUint8 + 1 {
 		authority := exchange.ClientAddressAuthority(value)
-		wantValid := authority == exchange.ClientAddressAuthorityPeer || authority == exchange.ClientAddressAuthorityTrustedProxy || authority == exchange.ClientAddressAuthorityGoogleCloud
+		wantValid := authority == exchange.ClientAddressAuthorityPeer || authority == exchange.ClientAddressAuthorityTrustedProxy || authority == exchange.ClientAddressAuthorityGoogleCloud ||
+			authority == exchange.ClientAddressAuthorityCloudflare || authority == exchange.ClientAddressAuthorityGoogleCloudCloudflare
 		name := "unknown authority cannot acquire trust " + strconv.Itoa(value)
 		if wantValid {
 			name = "admitted authority retains its domain " + strconv.Itoa(value)
@@ -173,7 +174,7 @@ func TestClientAddressResolutionLayerTriad(t *testing.T) {
 		{name: "negative trusted authority requires prefixes", remote: "192.0.2.42:80", authority: exchange.ClientAddressAuthorityTrustedProxy, wantErr: core.ErrExchangeContract},
 		{name: "negative peer authority refuses unrelated prefixes", remote: "192.0.2.43:80", proxies: trusted, authority: exchange.ClientAddressAuthorityPeer, wantErr: core.ErrExchangeContract},
 		{name: "negative Google Cloud authority refuses unrelated prefixes", remote: "127.0.0.1:8080", proxies: trusted, authority: exchange.ClientAddressAuthorityGoogleCloud, wantErr: core.ErrExchangeContract},
-		{name: "negative unknown authority is rejected", remote: "192.0.2.44:80", authority: exchange.ClientAddressAuthorityGoogleCloud + 1, wantErr: core.ErrExchangeContract},
+		{name: "negative unknown authority is rejected", remote: "192.0.2.44:80", authority: exchange.ClientAddressAuthorityGoogleCloudCloudflare + 1, wantErr: core.ErrExchangeContract},
 		{name: "negative absent request is rejected", remote: "192.0.2.45:80", authority: exchange.ClientAddressAuthorityPeer, wantErr: core.ErrExchangeRequest, absentRequest: true},
 		{name: "negative malformed direct peer is rejected", remote: "not-an-address", authority: exchange.ClientAddressAuthorityPeer, wantErr: core.ErrExchangeRequest},
 		{name: "negative direct peer with zone is rejected", remote: "fe80::1%en0", authority: exchange.ClientAddressAuthorityPeer, wantErr: core.ErrExchangeRequest},
@@ -240,7 +241,7 @@ func FuzzClientAddressResolutionSemanticClosure(f *testing.F) {
 			f.Fatalf("typed address seed = %v, want nil", err)
 		}
 	}
-	for _, authority := range []exchange.ClientAddressAuthority{exchange.ClientAddressAuthorityPeer, exchange.ClientAddressAuthorityTrustedProxy, exchange.ClientAddressAuthorityGoogleCloud} {
+	for _, authority := range []exchange.ClientAddressAuthority{exchange.ClientAddressAuthorityPeer, exchange.ClientAddressAuthorityTrustedProxy, exchange.ClientAddressAuthorityGoogleCloud, exchange.ClientAddressAuthorityCloudflare, exchange.ClientAddressAuthorityGoogleCloudCloudflare} {
 		f.Add(netip.AddrPortFrom(peer.Address, 80).String(), client.Address.String()+","+proxy.Address.String(), uint8(authority), authority == exchange.ClientAddressAuthorityTrustedProxy)
 	}
 	// An untrusted leading claim must not replace the final provider pair.
@@ -297,6 +298,13 @@ func independentClientAddress(remote, forwarded string, authority exchange.Clien
 		return independentGoogleCloudAddress(peer, forwarded), true
 	case exchange.ClientAddressAuthorityTrustedProxy:
 		return independentTrustedProxyAddress(peer, forwarded), true
+	case exchange.ClientAddressAuthorityCloudflare, exchange.ClientAddressAuthorityGoogleCloudCloudflare:
+		// This target carries no CF-Connecting-IP, so the proven hop remains.
+		// FuzzCloudflareClientAddressSemanticClosure owns that header.
+		if authority == exchange.ClientAddressAuthorityGoogleCloudCloudflare {
+			return independentGoogleCloudAddress(peer, forwarded), true
+		}
+		return peer, true
 	default:
 		return netip.Addr{}, false
 	}

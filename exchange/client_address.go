@@ -13,9 +13,11 @@ const (
 	// TrustedProxyMaximumCount bounds the fixed trusted-proxy prefix set.
 	TrustedProxyMaximumCount = 64
 
-	clientAddressAuthorityPeerText         = "peer"
-	clientAddressAuthorityTrustedProxyText = "trusted proxy"
-	clientAddressAuthorityGoogleCloudText  = "google cloud"
+	clientAddressAuthorityPeerText                  = "peer"
+	clientAddressAuthorityTrustedProxyText          = "trusted proxy"
+	clientAddressAuthorityGoogleCloudText           = "google cloud"
+	clientAddressAuthorityCloudflareText            = "cloudflare"
+	clientAddressAuthorityGoogleCloudCloudflareText = "cloudflare via google cloud"
 )
 
 // ClientAddressAuthority is the closed caller decision for which HTTP
@@ -32,14 +34,26 @@ const (
 	// ClientAddressAuthorityGoogleCloud admits the documented Google Cloud
 	// final X-Forwarded-For pair and selects its penultimate packet source.
 	ClientAddressAuthorityGoogleCloud
+	// ClientAddressAuthorityCloudflare admits exactly one CF-Connecting-IP
+	// value only when the direct net/http peer belongs to the versioned
+	// Cloudflare edge set. Any other peer, or a malformed, absent or repeated
+	// header, leaves the proven direct peer as the client address.
+	ClientAddressAuthorityCloudflare
+	// ClientAddressAuthorityGoogleCloudCloudflare first selects the Google
+	// Cloud packet source exactly as ClientAddressAuthorityGoogleCloud does,
+	// then admits CF-Connecting-IP only when that packet source belongs to the
+	// versioned Cloudflare edge set. Otherwise the packet source remains.
+	ClientAddressAuthorityGoogleCloudCloudflare
 	clientAddressAuthorityLimit
 )
 
 func clientAddressAuthorityFacts() [clientAddressAuthorityLimit]string {
 	return [...]string{
-		ClientAddressAuthorityPeer:         clientAddressAuthorityPeerText,
-		ClientAddressAuthorityTrustedProxy: clientAddressAuthorityTrustedProxyText,
-		ClientAddressAuthorityGoogleCloud:  clientAddressAuthorityGoogleCloudText,
+		ClientAddressAuthorityPeer:                  clientAddressAuthorityPeerText,
+		ClientAddressAuthorityTrustedProxy:          clientAddressAuthorityTrustedProxyText,
+		ClientAddressAuthorityGoogleCloud:           clientAddressAuthorityGoogleCloudText,
+		ClientAddressAuthorityCloudflare:            clientAddressAuthorityCloudflareText,
+		ClientAddressAuthorityGoogleCloudCloudflare: clientAddressAuthorityGoogleCloudCloudflareText,
 	}
 }
 
@@ -265,6 +279,10 @@ func ResolveClientAddress(call ClientAddressRequest) (ClientAddress, error) {
 		address = resolveTrustedProxyAddress(request, peer, call.TrustedProxies)
 	case ClientAddressAuthorityGoogleCloud:
 		address = resolveGoogleCloudAddress(request, peer)
+	case ClientAddressAuthorityCloudflare:
+		address = resolveCloudflareAddress(request, peer)
+	case ClientAddressAuthorityGoogleCloudCloudflare:
+		address = resolveCloudflareAddress(request, resolveGoogleCloudAddress(request, peer))
 	case ClientAddressAuthorityPeer:
 	default:
 		return ClientAddress{}, requestError(core.ErrExchangeContract)

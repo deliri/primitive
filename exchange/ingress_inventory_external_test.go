@@ -66,6 +66,7 @@ func externalIngressCoverage() []exchange.IngressCoverageForTest {
 		{Door: exchange.ReceiveBearerAuthorization, Kind: exchange.IngressFuzzForTest, Fuzz: FuzzReceiveBearerAuthorizationSemanticClosure},
 		{Door: exchange.NewHeaderValue, Kind: exchange.IngressFuzzForTest, Fuzz: FuzzHeaderValueMatchesNetHTTPAndExchangeBounds},
 		{Door: exchange.ResolveClientAddress, Kind: exchange.IngressFuzzForTest, Fuzz: FuzzClientAddressResolutionSemanticClosure},
+		{Door: exchange.CloudflareEdgePrefixes, Kind: exchange.IngressCapabilityForTest, Proof: TestCloudflareEdgePrefixesAgreeWithPublishedText, Reason: "Projects compiled provider facts without input material; the published-text oracle pins every prefix."},
 		{Door: exchange.SendJSON[replayBoundDocument, transportDocument], Kind: exchange.IngressFuzzForTest, Fuzz: FuzzSendJSONReplayNoBodyAndSocketResponses},
 		{Door: exchange.SendReplayBoundJSON[replayBoundDocument, transportDocument], Kind: exchange.IngressFuzzForTest, Fuzz: FuzzSendJSONReplayNoBodyAndSocketResponses},
 		{Door: exchange.SendNoBodyJSON[transportDocument], Kind: exchange.IngressFuzzForTest, Fuzz: FuzzSendJSONReplayNoBodyAndSocketResponses},
