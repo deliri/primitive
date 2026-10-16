@@ -128,11 +128,24 @@ func validateRequest(request exchange.StreamRoundTripRequest) error {
 	} else if !strings.HasPrefix(request.Target.HTTPURL().Path, apiV1PathPrefix) {
 		return core.ErrStripeBinding
 	}
-	if request.Semantics.Method != exchange.MethodPost || !mediaMatches(request.RequestContentType, want) ||
+	if !mediaMatches(request.RequestContentType, want) ||
 		!mediaMatches(request.ExpectedResponseContentType, core.HTTPMediaTypeJSON()) {
 		return core.ErrStripeBinding
 	}
-	return validateReplay(request.Semantics)
+	switch request.Semantics.Method {
+	case exchange.MethodPost:
+		return validateReplay(request.Semantics)
+	case exchange.MethodDelete:
+		// Stripe v1 DELETE is natively idempotent. Stream exactly one attempt;
+		// callers resolve a lost reply through an independent provider read.
+		// Stripe does not honor an Idempotency-Key on DELETE.
+		if !strings.HasPrefix(request.Target.HTTPURL().Path, apiV1PathPrefix) || request.Semantics.Replay != exchange.ReplaySingleAttempt {
+			return core.ErrStripeBinding
+		}
+		return nil
+	default:
+		return core.ErrStripeBinding
+	}
 }
 
 func validateDownload(request exchange.DownloadRequest) error {
