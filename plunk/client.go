@@ -111,10 +111,23 @@ func (c Client) Download(ctx context.Context, request DownloadRequest, policy ex
 func validateRequest(request exchange.StreamRoundTripRequest) error {
 	if len(request.Headers.Values) != 0 || request.Validate() != nil || !validURL(request.Target.HTTPURL()) ||
 		!validOperationPath(request.Target.HTTPURL().Path, request.Semantics.Method) || request.Semantics.Method == exchange.MethodGet ||
-		!mediaMatches(request.RequestContentType, core.HTTPMediaTypeJSON()) || !mediaMatches(request.ExpectedResponseContentType, core.HTTPMediaTypeJSON()) {
+		!mediaMatches(request.RequestContentType, core.HTTPMediaTypeJSON()) || !validResponseMedia(request) {
 		return core.ErrPlunkBinding
 	}
 	return validateReplay(request.Semantics)
+}
+
+// DELETE contacts/campaigns returns204 without a representation. HTTP's typed
+// response-body rule owns that exception; it does not relax body-bearing
+// replies or any other provider method.
+// https://docs.useplunk.com/api-reference/contacts/deleteContact
+func validResponseMedia(request exchange.StreamRoundTripRequest) bool {
+	if mediaMatches(request.ExpectedResponseContentType, core.HTTPMediaTypeJSON()) {
+		return true
+	}
+	return request.ExpectedResponseContentType.IsZero() &&
+		request.Semantics.Method == exchange.MethodDelete &&
+		request.ExpectedStatus.IsSuccess() && !request.ExpectedStatus.PermitsResponseBody()
 }
 
 func validateDownload(request exchange.DownloadRequest) error {
