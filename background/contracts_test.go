@@ -70,9 +70,10 @@ func TestBackgroundContractsLayerTriad(t *testing.T) {
 
 func TestBackgroundProductionDataFlowInventory(t *testing.T) {
 	t.Parallel()
-	// Policy/OpenRequest/Work/TaskRequest: borrowed execution contracts;
+	// Policy/OpenRequest/Work/TaskRequest/PullScopeRequest: borrowed execution contracts;
 	// Executor/Task: native capabilities; TaskResult: completion observation.
-	want := []string{"Executor", "OpenRequest", "Policy", "Task", "TaskRequest", "TaskResult", "Work"}
+	// PullSource: scoped native coroutine loan, with no retained value inventory.
+	want := []string{"Executor", "OpenRequest", "Policy", "PullScopeRequest", "PullSource", "Task", "TaskRequest", "TaskResult", "Work"}
 	var got []string
 	entries, err := os.ReadDir(".")
 	if err != nil {

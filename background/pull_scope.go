@@ -13,6 +13,8 @@ import (
 // PullScopeRequest lends one forward sequence and its synchronous consumer.
 // Primitive owns the native pull coroutine until Use returns or unwinds. No
 // producer value is requested before Next, and no inventory or queue is built.
+// Source must stop when yield returns false; its final error remains observable
+// after cleanup even when Use stops early or ignores a failed Next.
 type PullScopeRequest[T any] struct {
 	Source func(context.Context, func(T) bool) error
 	Use    func(context.Context, *PullSource[T]) error
