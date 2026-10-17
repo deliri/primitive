@@ -7,4 +7,9 @@
 // device label. Its reader bounds each Read call. It does not derive
 // product keys, select algorithms at runtime, persist material, manage
 // rotation, or own product policy.
+//
+// ReadOpenSSH and WriteOpenSSH own unencrypted Ed25519 OpenSSH/PEM framing.
+// They stream comments and base64 through fixed native working windows,
+// validate both public declarations and seed custody, and leave file effects
+// and caller-selected envelope labels to their respective owners.
 package keygen
