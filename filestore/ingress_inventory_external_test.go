@@ -127,6 +127,7 @@ func filestoreIngressProofs() []filestoreIngressProof {
 		{door: reflect.ValueOf(filestore.ObserveHeldStanding), fuzz: FuzzHeldStandingNativeIdentityAndCustody},
 		{door: reflect.ValueOf(filestore.SetPermissions), fuzz: FuzzPermissionNativeMetadataSemanticClosure},
 		{door: reflect.ValueOf(filestore.OpenStageDestination), fuzz: FuzzStageDestinationNativeWriterCustody},
+		{door: reflect.ValueOf(filestore.StageProduced), fuzz: FuzzStageProducedPublicationRequiresCompletion},
 		{door: reflect.ValueOf(filestore.FinishStageDestination), fuzz: FuzzStageDestinationNativeWriterCustody},
 		{door: reflect.ValueOf(filestore.AbandonStageDestination), fuzz: FuzzStageDestinationNativeWriterCustody},
 		{door: reflect.ValueOf(filestore.Walk), fuzz: FuzzWalkCardinalitySemanticClosure},
