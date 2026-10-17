@@ -191,13 +191,18 @@ func FuzzCopyContentExactAgreement(f *testing.F) {
 		}
 		destination := sha256.New()
 		got, err := filestore.CopyContent(t.Context(), filestore.CopyContentRequest{Source: bytes.NewReader(data), Destination: destination, Expected: &expected})
+		synchronousDestination := sha256.New()
+		synchronous, synchronousErr := filestore.TransferContent(filestore.CopyContentRequest{Source: bytes.NewReader(data), Destination: synchronousDestination, Expected: &expected})
 		if mutation%3 == 0 {
-			if err != nil || got != want {
-				t.Fatalf("exact copy = (%v,%v), want %v", got, err, want)
+			if err != nil || got != want || synchronousErr != nil || synchronous != want {
+				t.Fatalf("exact copies = (%v,%v)/(%v,%v), want %v", got, err, synchronous, synchronousErr, want)
 			}
 			raw := sha256.Sum256(data)
 			if !bytes.Equal(destination.Sum(nil), raw[:]) {
 				t.Fatalf("output digest=%x, want %x", destination.Sum(nil), raw)
+			}
+			if !bytes.Equal(synchronousDestination.Sum(nil), raw[:]) {
+				t.Fatalf("synchronous output digest=%x, want %x", synchronousDestination.Sum(nil), raw)
 			}
 			return
 		}
@@ -207,6 +212,9 @@ func FuzzCopyContentExactAgreement(f *testing.F) {
 		}
 		if !errors.Is(err, wantErr) || got != (filestore.ContentIndexEntry{}) {
 			t.Fatalf("mutated agreement = (%v,%v), want zero and %v", got, err, wantErr)
+		}
+		if !errors.Is(synchronousErr, wantErr) || synchronous != (filestore.ContentIndexEntry{}) {
+			t.Fatalf("synchronous agreement = (%v,%v), want zero and %v", synchronous, synchronousErr, wantErr)
 		}
 	})
 }

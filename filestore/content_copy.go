@@ -71,6 +71,15 @@ func CopyContent(ctx context.Context, request CopyContentRequest) (ContentIndexE
 	return content, nil
 }
 
+// TransferContent owns the synchronous lifetime of a context-free Go stream
+// callback, such as a canonical-body writer. It has the same admission, fixed
+// working window, exact agreement and partial-failure rules as CopyContent.
+// It does not close borrowed streams or add a timeout or total volume quota.
+// Callers with a parent context use CopyContent instead.
+func TransferContent(request CopyContentRequest) (ContentIndexEntry, error) {
+	return CopyContent(context.Background(), request)
+}
+
 func verifyContentSourceEnd(source io.Reader, expected *ContentIndexEntry) error {
 	if expected == nil {
 		return nil
