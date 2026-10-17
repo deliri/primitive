@@ -94,7 +94,7 @@ func TestStageProducedNativeCompletionAndRefusal(t *testing.T) {
 
 func TestStageProducedAdmissionHasNoEffects(t *testing.T) {
 	t.Parallel()
-	for _, invalid := range []string{"nil_context", "canceled", "nil_producer", "invalid_destination", "existing_temporary"} {
+	for _, invalid := range []string{"nil_context", "canceled", "canceled_with_cause", "nil_producer", "invalid_destination", "existing_temporary"} {
 		t.Run(invalid, func(t *testing.T) {
 			t.Parallel()
 			root := requireTestRoot(t, t.TempDir())
@@ -114,6 +114,11 @@ func TestStageProducedAdmissionHasNoEffects(t *testing.T) {
 				cancel()
 				ctx = canceled
 				want = context.Canceled
+			case "canceled_with_cause":
+				canceled, cancel := context.WithCancelCause(ctx)
+				cancel(fs.ErrPermission)
+				ctx = canceled
+				want = context.Canceled
 			case "nil_producer":
 				request.Produce = nil
 			case "invalid_destination":
@@ -127,6 +132,9 @@ func TestStageProducedAdmissionHasNoEffects(t *testing.T) {
 			got, err := filestore.StageProduced(ctx, request)
 			if got != (filestore.StagedFile{}) || !errors.Is(err, want) || called {
 				t.Fatalf("admission = (%+v,%v,called=%t), want zero, %v and no callback", got, err, called, want)
+			}
+			if invalid == "canceled_with_cause" && !errors.Is(err, fs.ErrPermission) {
+				t.Fatalf("admission cause = %v, want the native cancellation cause", err)
 			}
 			entries, readErr := os.ReadDir(root.Name())
 			if readErr != nil {
