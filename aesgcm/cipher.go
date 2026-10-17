@@ -129,3 +129,5 @@ func (Cipher) Format(state fmt.State, _ rune) { _, _ = state.Write([]byte(core.R
 func (Cipher) MarshalJSON() ([]byte, error) {
 	return nil, errors.Join(core.ErrAESGCMContract, core.ErrJSONContract)
 }
+
+var _ core.ValidatedJSONMarshaler = Cipher{}

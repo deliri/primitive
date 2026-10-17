@@ -151,8 +151,4 @@ func ValidateBytes(data []byte) error {
 	return errors.Join(depthErr, checkSingleValue(data))
 }
 
-// RawValue is Go's caller-owned raw field representation. Its native codec
-// preserves JSON value bytes rather than encoding them as a base64 string.
-type RawValue = jsontext.Value
-
 var _ core.Validatable = ProjectionReadPolicy{}
