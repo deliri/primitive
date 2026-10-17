@@ -22,4 +22,7 @@
 // an unknown-length stage observes its native extent; it cannot determine
 // whether the producer intended to send more bytes. That success decision
 // remains with the producer's typed result and the caller consuming it.
+// StageProduced owns this complete synchronous lifetime for a producer that
+// lends no handle beyond its callback. A refusal yields no staged capability;
+// the caller publishes a successful stage through the existing Commit contract.
 package filestore
