@@ -75,7 +75,9 @@ func TestBackgroundProductionDataFlowInventory(t *testing.T) {
 	// PullSource: scoped native coroutine loan, with no retained value inventory.
 	// PairRequest: source/consumer loans; PairResult: joined observations;
 	// pairOffer: one synchronous native handoff, never an input inventory.
-	want := []string{"Executor", "OpenRequest", "PairRequest", "PairResult", "Policy", "PullScopeRequest", "PullSource", "Task", "TaskRequest", "TaskResult", "Work", "pairOffer"}
+	// OnceActionRequest: transferred action; OnceAction/onceAction: shared native
+	// sync.Once custody and first observation, with no second product owner.
+	want := []string{"Executor", "OnceAction", "OnceActionRequest", "OpenRequest", "PairRequest", "PairResult", "Policy", "PullScopeRequest", "PullSource", "Task", "TaskRequest", "TaskResult", "Work", "onceAction", "pairOffer"}
 	var got []string
 	entries, err := os.ReadDir(".")
 	if err != nil {
