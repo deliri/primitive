@@ -472,6 +472,14 @@ const (
 	ErrPlunkVerification
 	// ErrPlunkBinding identifies Plunk facts attached to the wrong authority or route.
 	ErrPlunkBinding
+	// ErrLoopsContract identifies an invalid Loops provider agreement.
+	ErrLoopsContract
+	// ErrLoopsAuthentication identifies invalid Loops credential projection.
+	ErrLoopsAuthentication
+	// ErrLoopsVerification identifies rejected Loops-authenticated evidence.
+	ErrLoopsVerification
+	// ErrLoopsBinding identifies Loops facts attached to the wrong authority or route.
+	ErrLoopsBinding
 	// ErrCloudflareContract identifies invalid Cloudflare intent.
 	ErrCloudflareContract
 	// ErrCloudflareAuthentication identifies invalid Cloudflare credentials.
@@ -821,6 +829,10 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrPlunkAuthentication, text: "plunk authentication failed"},
 		{identity: ErrPlunkVerification, text: "plunk verification failed"},
 		{identity: ErrPlunkBinding, text: "plunk binding failed"},
+		{identity: ErrLoopsContract, text: "loops contract violation"},
+		{identity: ErrLoopsAuthentication, text: "loops authentication failed"},
+		{identity: ErrLoopsVerification, text: "loops verification failed"},
+		{identity: ErrLoopsBinding, text: "loops binding failed"},
 		{identity: ErrCloudflareContract, text: "cloudflare contract violation"},
 		{identity: ErrCloudflareAuthentication, text: "cloudflare authentication failed"},
 		{identity: ErrCloudflareVerification, text: "cloudflare verification failed"},
@@ -1027,7 +1039,7 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrLifecycleIdentityContract, ErrReceiptContract, ErrChitContract,
 		ErrRetrievalContract, ErrPaymentContract, ErrControlWireContract,
 		ErrControlPlaneContract, ErrIDContract, ErrSecretStoreContract,
-		ErrStripeContract, ErrPayPalContract, ErrTwilioContract, ErrPlunkContract, ErrCloudflareContract, ErrGitHubContract,
+		ErrStripeContract, ErrPayPalContract, ErrTwilioContract, ErrPlunkContract, ErrLoopsContract, ErrCloudflareContract, ErrGitHubContract,
 		ErrCapabilitiesContract, ErrGoModuleContract, ErrGoToolchainContract, ErrGitRepositoryContract,
 		ErrProofLedgerContract, ErrTailnetContract, ErrAccessPermitContract, ErrPermitContract, ErrReportContract) {
 		return oneErrorIdentityParent(ErrPrimitiveContract)
@@ -1159,6 +1171,9 @@ func errorIdentityProviderParent(identity ErrorIdentity) ErrorIdentity {
 	}
 	if errorIdentityIn(identity, ErrPlunkAuthentication, ErrPlunkVerification, ErrPlunkBinding) {
 		return ErrPlunkContract
+	}
+	if errorIdentityIn(identity, ErrLoopsAuthentication, ErrLoopsVerification, ErrLoopsBinding) {
+		return ErrLoopsContract
 	}
 	if errorIdentityIn(identity, ErrGitHubAuthentication, ErrGitHubResponse, ErrGitHubBinding, ErrGitHubNotFound) {
 		return ErrGitHubContract

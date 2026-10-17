@@ -174,6 +174,8 @@ const (
 	PackageAIChatGPT
 	// PackageAdmission identifies synchronous native slot admission without a queue.
 	PackageAdmission
+	// PackageLoops identifies Loops-authenticated HTTP and Standard Webhooks contracts.
+	PackageLoops
 	packageIdentityLimit
 )
 
@@ -289,6 +291,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageAIClaude, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 			{Identity: PackageAIChatGPT, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 			{Identity: PackageAdmission, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
+			{Identity: PackageLoops, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 		},
 	}
 }
@@ -544,6 +547,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"ai/claude",
 		"ai/chatgpt",
 		"admission",
+		"loops",
 	}
 }
 

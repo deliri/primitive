@@ -36,7 +36,7 @@ const (
 )
 
 const (
-	realWorldImportOwnerMaximum        = 14
+	realWorldImportOwnerMaximum        = 15
 	realWorldImportUseMaximum          = 64
 	realWorldCallUseMaximum            = 128
 	realWorldOperatingSystemPath       = "os"
@@ -441,9 +441,9 @@ func declaredRealWorldImports() (realWorldImportInventory, error) {
 	contracts := []realWorldImportContract{
 		realWorldImportOwners(realWorldSubstrateOperatingSystem,
 			PackageCore, PackageDistribution, PackageFileLock, PackageFilestore, PackageHostFacts,
-			// Stripe and Twilio name Filestore's borrowed native root callback
-			// type; neither admits an operating-system effect call.
-			PackageGoToolchain, PackageGitRepo, PackageProcess, PackageRelease, PackageRunWorkspace, PackageShutdown, PackageStripe, PackageTwilio, PackageUpgrade),
+			// Stripe, Twilio and Loops name Filestore's borrowed native root
+			// callback type; none admits an operating-system effect call.
+			PackageGoToolchain, PackageGitRepo, PackageProcess, PackageRelease, PackageRunWorkspace, PackageShutdown, PackageStripe, PackageTwilio, PackageLoops, PackageUpgrade),
 		realWorldImportOwners(realWorldSubstrateProcessExecution, PackageProcess),
 		realWorldImportOwners(realWorldSubstrateOperatingSystemSignal, PackageShutdown),
 		// GCS owns its provider client's HTTP transport and shutdown.

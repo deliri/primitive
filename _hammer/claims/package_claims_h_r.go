@@ -57,6 +57,15 @@ func emitPackageClaimSpecsHThroughR(emit func(packageClaimSpec) bool) bool {
 			excludes: "It does not own line meaning, source acquisition, persistence, indexing, or complete-dataset materialization.",
 		},
 		{
+			path: "loops", title: "Isolated Loops provider socket",
+			problem:  "Loops API keys, typed contact and pagination query routes, idempotency limits, and Standard Webhooks signatures become unsafe when scattered through email product code.",
+			solution: "Loops owns compatible credentials, closed operation routes, authenticated bounded HTTP exchange, and verify-before-release Standard Webhooks receipt over the exact streamed bytes.",
+			benefit:  "Email products consume exact provider results and typed delivery identities without making their policy layer a transport, query builder, or signature parser.",
+			removal:  "Remove Loops when no product integrates Loops or the provider boundary is wholly replaced.",
+			owns:     "Loops owns Loops-specific credential, authorization-header, route, query, request, response, and webhook signature mechanics.",
+			excludes: "It does not interpret email events, validate email semantics, select audiences, store contacts, retry or back off product operations, or grant product authority.",
+		},
+		{
 			path: "machineprobe", title: "Admitted machine probe execution",
 			problem:  "Machine descriptions can become unsupported assertions unless each fact is tied to the exact bounded probe that observed it.",
 			solution: "Machineprobe executes one admitted probe script through Process and returns its validated machine observation.",

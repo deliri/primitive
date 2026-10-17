@@ -16,7 +16,7 @@ import (
 const (
 	coreExportDependencyMaximum     = 32
 	coreSpecialExportAdmissionCount = 99 // Includes native synchronous slot admission.
-	coreProviderExportContractCount = 209
+	coreProviderExportContractCount = 231
 )
 
 type coreExportName string
@@ -426,6 +426,28 @@ func coreProviderExportContracts() [coreProviderExportContractCount]coreProvider
 		{name: "PlunkCredentialCustodyMaximumBytes", witness: PlunkCredentialCustodyMaximumBytes, consumer: PackagePlunk},
 		{name: "PlunkWebhookSecretMinimumBytes", witness: PlunkWebhookSecretMinimumBytes, consumer: PackagePlunk},
 		{name: "PlunkWebhookSecretCustodyMaximumBytes", witness: PlunkWebhookSecretCustodyMaximumBytes, consumer: PackagePlunk},
+		{name: "LoopsAPIHost", witness: LoopsAPIHost, consumer: PackageLoops},
+		{name: "LoopsIdempotencyKeyMaximumBytes", witness: LoopsIdempotencyKeyMaximumBytes, consumer: PackageLoops},
+		{name: "LoopsCredentialMinimumBytes", witness: LoopsCredentialMinimumBytes, consumer: PackageLoops},
+		{name: "LoopsCredentialCustodyMaximumBytes", witness: LoopsCredentialCustodyMaximumBytes, consumer: PackageLoops},
+		{name: "LoopsContactIdentifierMaximumBytes", witness: LoopsContactIdentifierMaximumBytes, consumer: PackageLoops},
+		{name: "LoopsCursorMaximumBytes", witness: LoopsCursorMaximumBytes, consumer: PackageLoops},
+		{name: "LoopsPageSizeMinimum", witness: LoopsPageSizeMinimum, consumer: PackageLoops},
+		{name: "LoopsPageSizeMaximum", witness: LoopsPageSizeMaximum, consumer: PackageLoops},
+		{name: "LoopsWebhookSecretMinimumKeyBytes", witness: LoopsWebhookSecretMinimumKeyBytes, consumer: PackageLoops},
+		{name: "LoopsWebhookSecretCustodyMaximumBytes", witness: LoopsWebhookSecretCustodyMaximumBytes, consumer: PackageLoops},
+		{name: "LoopsWebhookIDHeaderName", witness: LoopsWebhookIDHeaderName, consumer: PackageLoops},
+		{name: "LoopsWebhookTimestampHeaderName", witness: LoopsWebhookTimestampHeaderName, consumer: PackageLoops},
+		{name: "LoopsWebhookSignatureHeaderName", witness: LoopsWebhookSignatureHeaderName, consumer: PackageLoops},
+		{name: "LoopsWebhookIDMaximumBytes", witness: LoopsWebhookIDMaximumBytes, consumer: PackageLoops},
+		{name: "LoopsWebhookTimestampMaximumBytes", witness: LoopsWebhookTimestampMaximumBytes, consumer: PackageLoops},
+		{name: "LoopsWebhookSignatureMaximumBytes", witness: LoopsWebhookSignatureMaximumBytes, consumer: PackageLoops},
+		{name: "LoopsWebhookToleranceSeconds", witness: LoopsWebhookToleranceSeconds, consumer: PackageLoops},
+		{name: "LoopsWebhookSignatureVersion", witness: LoopsWebhookSignatureVersion, consumer: PackageLoops},
+		{name: "LoopsWebhookSignatureEntrySeparator", witness: LoopsWebhookSignatureEntrySeparator, consumer: PackageLoops},
+		{name: "LoopsWebhookSignatureVersionSeparator", witness: LoopsWebhookSignatureVersionSeparator, consumer: PackageLoops},
+		{name: "LoopsWebhookSignedContentSeparator", witness: LoopsWebhookSignedContentSeparator, consumer: PackageLoops},
+		{name: "LoopsWebhookScratchFilename", witness: LoopsWebhookScratchFilename, consumer: PackageLoops},
 		{name: "GitHubAPIHost", witness: GitHubAPIHost, consumer: PackageGitHub},
 		{name: "GitHubAPIVersion", witness: GitHubAPIVersion, consumer: PackageGitHub},
 		{name: "GitHubTagPageMaximumEntries", witness: GitHubTagPageMaximumEntries, consumer: PackageGitHub},
