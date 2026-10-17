@@ -290,3 +290,62 @@ func TestNativePairRefusesInvalidIngressAndExpiredOffer(t *testing.T) {
 		})
 	}
 }
+
+func FuzzNativePairForwardConservationAndRefusal(f *testing.F) {
+	f.Add(uint16(0), uint16(0), uint8(0), false)
+	f.Add(uint16(513), uint16(257), uint8(7), true)
+	f.Add(uint16(65535), uint16(1), uint8(255), false)
+	f.Fuzz(func(t *testing.T, first, second uint16, refuseAt uint8, refuse bool) {
+		firstCount, secondCount := 0, 0
+		firstSum, secondSum := uint64(0), uint64(0)
+		firstClosed, secondClosed := false, false
+		result, err := background.RunPair(t.Context(), background.PairRequest[uint64, uint64]{
+			First: func(_ context.Context, offer func(uint64) error) error {
+				defer func() { firstClosed = true }()
+				for i := range uint64(first) {
+					if err := offer(i); err != nil {
+						return err
+					}
+				}
+				return nil
+			},
+			Second: func(_ context.Context, offer func(uint64) error) error {
+				defer func() { secondClosed = true }()
+				for i := range uint64(second) {
+					if err := offer(i); err != nil {
+						return err
+					}
+				}
+				return nil
+			},
+			ConsumeFirst: func(_ context.Context, value uint64) error {
+				if value != uint64(firstCount) {
+					return core.ErrBackgroundContract
+				}
+				firstCount++
+				firstSum += value
+				if refuse && value == uint64(refuseAt) {
+					return io.ErrClosedPipe
+				}
+				return nil
+			},
+			ConsumeSecond: func(_ context.Context, value uint64) error {
+				if value != uint64(secondCount) {
+					return core.ErrBackgroundContract
+				}
+				secondCount++
+				secondSum += value
+				return nil
+			},
+		})
+		wantFirst := uint64(first)
+		wantRefusal := refuse && uint64(refuseAt) < wantFirst
+		if wantRefusal {
+			wantFirst = uint64(refuseAt) + 1
+		}
+		wantSecond := uint64(second)
+		if err != nil || result.SecondError != nil || errors.Is(result.FirstError, io.ErrClosedPipe) != wantRefusal || (!wantRefusal && result.FirstError != nil) || uint64(firstCount) != wantFirst || uint64(secondCount) != wantSecond || firstSum != wantFirst*(wantFirst-1)/2 || secondSum != wantSecond*(wantSecond-1)/2 || !firstClosed || !secondClosed {
+			t.Fatalf("forward conservation: result=%+v/%v counts=%d/%d sums=%d/%d want counts=%d/%d cleanup=%t/%t", result, err, firstCount, secondCount, firstSum, secondSum, wantFirst, wantSecond, firstClosed, secondClosed)
+		}
+	})
+}
