@@ -312,7 +312,6 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 		"func NewObservation",
 		"func Observe",
 		"func OpenTicker",
-		"func OpenWallGapWatch",
 		"func ParseAggregateDuration",
 		"func ParseDuration",
 		"func ParseRFC3339",
@@ -392,11 +391,6 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 		"method Ticker.Validate",
 		"method TimeoutRequest.Validate",
 		"method WaitRequest.Validate",
-		"method WallGapWatchRequest.Validate",
-		"method WallGapWatch.Close",
-		"method WallGapWatch.Snapshot",
-		"method WallGapWatch.Validate",
-		"method WallGapSnapshot.Validate",
 		"type AggregateDuration",
 		"type CancellationRequest",
 		"type DeadlineRequest",
@@ -413,9 +407,6 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 		"type Ticker",
 		"type TimeoutRequest",
 		"type WaitRequest",
-		"type WallGapWatchRequest",
-		"type WallGapWatch",
-		"type WallGapSnapshot",
 	}
 	slices.Sort(want)
 	if !slices.Equal(got.surface, want) {

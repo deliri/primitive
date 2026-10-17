@@ -77,7 +77,9 @@ func TestBackgroundProductionDataFlowInventory(t *testing.T) {
 	// pairOffer: one synchronous native handoff, never an input inventory.
 	// OnceActionRequest: transferred action; OnceAction/onceAction: shared native
 	// sync.Once custody and first observation, with no second product owner.
-	want := []string{"Executor", "OnceAction", "OnceActionRequest", "OpenRequest", "PairRequest", "PairResult", "Policy", "PullScopeRequest", "PullSource", "Task", "TaskRequest", "TaskResult", "Work", "onceAction", "pairOffer"}
+	// WallGapWatch owns a native Task and fixed maximum; its request lends clock
+	// coordinates, and WallGapSnapshot carries one native observation.
+	want := []string{"Executor", "OnceAction", "OnceActionRequest", "OpenRequest", "PairRequest", "PairResult", "Policy", "PullScopeRequest", "PullSource", "Task", "TaskRequest", "TaskResult", "WallGapSnapshot", "WallGapWatch", "WallGapWatchRequest", "Work", "onceAction", "pairOffer"}
 	var got []string
 	entries, err := os.ReadDir(".")
 	if err != nil {

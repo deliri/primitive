@@ -1,4 +1,4 @@
-package temporal_test
+package background_test
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"testing/synctest"
 	"time"
 
+	"github.com/deliri/primitive/v2026/background"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/temporal"
 )
@@ -20,24 +21,24 @@ func TestWallGapWatchRefusesUnsetAndCopiedCapabilities(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	watch, err := temporal.OpenWallGapWatch(temporal.WallGapWatchRequest{Parent: t.Context(), Start: temporal.InstantFromNanoseconds(1), Interval: interval})
+	watch, err := background.OpenWallGapWatch(background.WallGapWatchRequest{Parent: t.Context(), Start: temporal.InstantFromNanoseconds(1), Interval: interval})
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer func() { _ = watch.Close() }()
+	defer func() { _, _ = watch.Close() }()
 	// Deliberately make an inadmissible shallow copy without copying a lock in
 	// executable caller code. Every entry point must refuse before using it.
-	copyValue := reflect.New(reflect.TypeFor[temporal.WallGapWatch]())
+	copyValue := reflect.New(reflect.TypeFor[background.WallGapWatch]())
 	copyValue.Elem().Set(reflect.ValueOf(watch).Elem())
-	copied := copyValue.Interface().(*temporal.WallGapWatch)
-	for _, candidate := range []*temporal.WallGapWatch{nil, {}, copied} {
-		if err := candidate.Validate(); !errors.Is(err, core.ErrTemporalContract) {
+	copied := copyValue.Interface().(*background.WallGapWatch)
+	for _, candidate := range []*background.WallGapWatch{nil, {}, copied} {
+		if err := candidate.Validate(); !errors.Is(err, core.ErrBackgroundContract) {
 			t.Fatalf("Validate() = %v, want native capability refusal", err)
 		}
-		if snapshot, err := candidate.Snapshot(); !errors.Is(err, core.ErrTemporalContract) || snapshot.Observed {
+		if snapshot, err := candidate.Snapshot(); !errors.Is(err, core.ErrBackgroundContract) || snapshot.Observed {
 			t.Fatalf("Snapshot() = %+v / %v, want no observation and native refusal", snapshot, err)
 		}
-		if err := candidate.Close(); !errors.Is(err, core.ErrTemporalContract) {
+		if _, err := candidate.Close(); !errors.Is(err, core.ErrBackgroundContract) {
 			t.Fatalf("Close() = %v, want native capability refusal", err)
 		}
 	}
@@ -61,11 +62,11 @@ func TestWallGapWatchOwnsTickerSnapshotsAndConcurrentClose(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		watch, err := temporal.OpenWallGapWatch(temporal.WallGapWatchRequest{Parent: t.Context(), Start: start, Interval: interval})
+		watch, err := background.OpenWallGapWatch(background.WallGapWatchRequest{Parent: t.Context(), Start: start, Interval: interval})
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer func() { _ = watch.Close() }()
+		defer func() { _, _ = watch.Close() }()
 		// Advance the native clock in the synctest bubble; no wall-clock wait.
 		time.Sleep(3 * time.Millisecond)
 		synctest.Wait()
@@ -76,7 +77,7 @@ func TestWallGapWatchOwnsTickerSnapshotsAndConcurrentClose(t *testing.T) {
 		var closes sync.WaitGroup
 		for range 4 {
 			closes.Go(func() {
-				if err := watch.Close(); err != nil {
+				if _, err := watch.Close(); err != nil {
 					t.Errorf("Close() = %v, want nil", err)
 				}
 			})
@@ -98,30 +99,30 @@ func TestWallGapWatchRefusesInvalidIngressAndPreservesParentCause(t *testing.T) 
 	cancel(io.ErrNoProgress)
 	for _, tc := range []struct {
 		name    string
-		request temporal.WallGapWatchRequest
+		request background.WallGapWatchRequest
 		want    error
 	}{
-		{name: "absent parent", request: temporal.WallGapWatchRequest{Start: start, Interval: interval}, want: core.ErrNilContext},
-		{name: "terminal parent", request: temporal.WallGapWatchRequest{Parent: parent, Start: start, Interval: interval}, want: io.ErrNoProgress},
-		{name: "unset start", request: temporal.WallGapWatchRequest{Parent: t.Context(), Interval: interval}, want: core.ErrTemporalContract},
-		{name: "zero cadence", request: temporal.WallGapWatchRequest{Parent: t.Context(), Start: start}, want: core.ErrTemporalContract},
+		{name: "absent parent", request: background.WallGapWatchRequest{Start: start, Interval: interval}, want: core.ErrNilContext},
+		{name: "terminal parent", request: background.WallGapWatchRequest{Parent: parent, Start: start, Interval: interval}, want: io.ErrNoProgress},
+		{name: "unset start", request: background.WallGapWatchRequest{Parent: t.Context(), Interval: interval}, want: core.ErrTemporalContract},
+		{name: "zero cadence", request: background.WallGapWatchRequest{Parent: t.Context(), Start: start}, want: core.ErrTemporalContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := temporal.OpenWallGapWatch(tc.request)
+			got, err := background.OpenWallGapWatch(tc.request)
 			if got != nil || !errors.Is(err, tc.want) {
 				t.Fatalf("OpenWallGapWatch() = %v / %v, want nil / %v", got, err, tc.want)
 			}
 		})
 	}
 	active, stop := context.WithCancelCause(t.Context())
-	watch, err := temporal.OpenWallGapWatch(temporal.WallGapWatchRequest{Parent: active, Start: start, Interval: interval})
+	watch, err := background.OpenWallGapWatch(background.WallGapWatchRequest{Parent: active, Start: start, Interval: interval})
 	if err != nil {
 		t.Fatal(err)
 	}
 	stop(io.ErrUnexpectedEOF)
-	if err := watch.Close(); !errors.Is(err, io.ErrUnexpectedEOF) || !errors.Is(err, context.Canceled) {
-		t.Fatalf("Close(parent canceled) = %v, want both native cause and cancellation", err)
+	if result, err := watch.Close(); err != nil || !errors.Is(result.ActionError, io.ErrUnexpectedEOF) || !errors.Is(result.ActionError, context.Canceled) {
+		t.Fatalf("Close(parent canceled) = %+v / %v, want native action cause and completed join", result, err)
 	}
 }
 
@@ -139,8 +140,8 @@ func FuzzWallGapWatchAdmissionAndJoinedSnapshot(f *testing.F) {
 		if err != nil {
 			return
 		}
-		request := temporal.WallGapWatchRequest{Parent: parent, Start: temporal.InstantFromNanoseconds(startNs), Interval: interval}
-		watch, err := temporal.OpenWallGapWatch(request)
+		request := background.WallGapWatchRequest{Parent: parent, Start: temporal.InstantFromNanoseconds(startNs), Interval: interval}
+		watch, err := background.OpenWallGapWatch(request)
 		if cadenceNs == 0 || canceled {
 			want := error(core.ErrTemporalContract)
 			if canceled {
@@ -154,16 +155,16 @@ func FuzzWallGapWatchAdmissionAndJoinedSnapshot(f *testing.F) {
 		if err != nil {
 			t.Fatalf("valid ingress = %v, want nil", err)
 		}
-		closeErr := watch.Close()
-		if closeErr != nil && !errors.Is(closeErr, core.ErrTemporalOverflow) {
+		result, closeErr := watch.Close()
+		if closeErr != nil || (result.ActionError != nil && !errors.Is(result.ActionError, core.ErrTemporalOverflow) && !errors.Is(result.ActionError, context.Canceled)) {
 			t.Fatalf("Close() = %v, want nil or native interval overflow", closeErr)
 		}
 		before, err := watch.Snapshot()
 		if err != nil || before.Validate() != nil {
 			t.Fatalf("closed snapshot = %+v / %v", before, err)
 		}
-		if again := watch.Close(); !errors.Is(again, closeErr) {
-			t.Fatalf("repeated Close() = %v, want first native result %v", again, closeErr)
+		if again, err := watch.Close(); err != nil || !errors.Is(again.ActionError, result.ActionError) {
+			t.Fatalf("repeated Close() = %v, want first native result %v", again, result.ActionError)
 		}
 		after, err := watch.Snapshot()
 		if err != nil || after != before {

@@ -17,8 +17,6 @@ type externalIngressFuzzContract[Door any] struct {
 }
 
 var (
-	_ = externalIngressFuzzContract[func(temporal.WallGapWatchRequest) (*temporal.WallGapWatch, error)]{Door: temporal.OpenWallGapWatch, Fuzz: FuzzWallGapWatchAdmissionAndJoinedSnapshot}
-	_ = externalIngressFuzzContract[func(temporal.WallGapWatchRequest) error]{Door: temporal.WallGapWatchRequest.Validate, Fuzz: FuzzWallGapWatchAdmissionAndJoinedSnapshot}
 	_ = externalIngressFuzzContract[func(temporal.LocationName) (temporal.Location, error)]{Door: temporal.NewLocation, Fuzz: FuzzLocationExactNamesAndNativeProjection}
 	_ = externalIngressFuzzContract[func(string) (temporal.CivilDate, error)]{Door: temporal.ParseCivilDate, Fuzz: FuzzCivilDateExactNativeAdmission}
 	_ = externalIngressFuzzContract[func(temporal.CivilDateRequest) (temporal.CivilDate, error)]{Door: temporal.NewCivilDate, Fuzz: FuzzCivilDateCoordinatesNativeAdmission}

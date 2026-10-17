@@ -1,21 +1,21 @@
-package temporal
+package background
 
 import (
 	"context"
 	"errors"
 	"sync"
-	"time"
 
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/temporal"
 )
 
 // WallGapWatchRequest supplies the prior native instant and probe cadence.
 // The watcher observes wall-clock gaps; it assigns no suspend or failure meaning.
 type WallGapWatchRequest struct {
 	Parent   context.Context
-	Start    Instant
-	Interval Duration
+	Start    temporal.Instant
+	Interval temporal.Duration
 }
 
 func (r WallGapWatchRequest) Validate() error {
@@ -23,28 +23,32 @@ func (r WallGapWatchRequest) Validate() error {
 	if errors.Is(parentErr, context.Canceled) || errors.Is(parentErr, context.DeadlineExceeded) {
 		parentErr = errors.Join(parentErr, context.Cause(r.Parent))
 	}
-	return errors.Join(parentErr, r.Start.Validate(), (TickerRequest{Interval: r.Interval}).Validate())
+	return errors.Join(parentErr, r.Start.Validate(), (temporal.TickerRequest{Interval: r.Interval}).Validate())
 }
 
 // WallGapSnapshot retains only the greatest positive gap. Equal gaps keep the
 // first observation. A backwards clock correction resets the next baseline.
 type WallGapSnapshot struct {
-	Maximum  Interval
+	Maximum  temporal.Interval
 	Observed bool
 }
 
 func (s WallGapSnapshot) Validate() error {
 	if !s.Observed {
-		if s.Maximum != (Interval{}) {
-			return core.ErrTemporalContract
+		if s.Maximum != (temporal.Interval{}) {
+			return core.ErrBackgroundContract
 		}
 		return nil
 	}
 	if err := s.Maximum.Validate(); err != nil {
 		return err
 	}
-	if s.Maximum.elapsed.IsZero() {
-		return core.ErrTemporalContract
+	elapsed, err := s.Maximum.Elapsed()
+	if err != nil {
+		return err
+	}
+	if elapsed.IsZero() {
+		return core.ErrBackgroundContract
 	}
 	return nil
 }
@@ -53,37 +57,41 @@ func (s WallGapSnapshot) Validate() error {
 // lifetime. Snapshot borrows no mutable state. Close joins before returning.
 // The capability must not be copied; concurrent snapshots and closes are safe.
 type WallGapWatch struct {
-	self         *WallGapWatch
-	parent       context.Context
-	ctx          context.Context
-	cancel       context.CancelFunc
-	done         chan struct{}
-	mu           sync.Mutex
-	previous     Instant
-	snapshot     WallGapSnapshot
-	executionErr error
+	self     *WallGapWatch
+	task     *Task
+	mu       sync.Mutex
+	previous temporal.Instant
+	snapshot WallGapSnapshot
 }
 
 func OpenWallGapWatch(request WallGapWatchRequest) (*WallGapWatch, error) {
 	if err := request.Validate(); err != nil {
 		return nil, err
 	}
-	ticker, err := OpenTicker(TickerRequest{Interval: request.Interval})
+	ticker, err := temporal.OpenTicker(temporal.TickerRequest{Interval: request.Interval})
 	if err != nil {
 		return nil, err
 	}
-	ctx, cancel := context.WithCancel(request.Parent)
-	watch := &WallGapWatch{parent: request.Parent, ctx: ctx, cancel: cancel, done: make(chan struct{}), previous: request.Start}
+	watch := &WallGapWatch{previous: request.Start}
 	watch.self = watch
-	go watch.run(ticker)
+	task, err := StartTask(TaskRequest{Parent: request.Parent, Work: Work{
+		Run:      func(ctx context.Context) error { return watch.run(ctx, ticker) },
+		Complete: func(error) { ticker.Stop() },
+	}})
+	if err != nil {
+		ticker.Stop()
+		return nil, err
+	}
+	watch.task = task
+
 	return watch, nil
 }
 
 func (w *WallGapWatch) Validate() error {
-	if w == nil || w.self != w || w.parent == nil || w.ctx == nil || w.cancel == nil || w.done == nil {
-		return core.ErrTemporalContract
+	if w == nil || w.self != w || w.task == nil {
+		return core.ErrBackgroundContract
 	}
-	return nil
+	return w.task.Validate()
 }
 
 func (w *WallGapWatch) Snapshot() (WallGapSnapshot, error) {
@@ -95,39 +103,37 @@ func (w *WallGapWatch) Snapshot() (WallGapSnapshot, error) {
 	return w.snapshot, nil
 }
 
-// Close's error reports an observation failure. Ordinary owner cancellation
-// has no observation failure; a parent cancellation retains its native cause.
-func (w *WallGapWatch) Close() error {
+// Close returns the native task observation only after sampling and ticker
+// cleanup have joined. Execution cancellation stays separate from join failure.
+func (w *WallGapWatch) Close() (TaskResult, error) {
 	if err := w.Validate(); err != nil {
-		return err
+		return TaskResult{}, err
 	}
-	w.cancel()
-	<-w.done
-	return w.executionErr
+	return w.task.Close()
 }
 
-func (w *WallGapWatch) run(ticker *Ticker) {
-	defer close(w.done)
-	defer ticker.Stop()
+func (w *WallGapWatch) run(ctx context.Context, ticker *temporal.Ticker) error {
 	for {
 		select {
-		case <-w.ctx.Done():
-			w.executionErr = errors.Join(w.parent.Err(), context.Cause(w.parent))
-			return
+		case <-ctx.Done():
+			return nil
 		case <-ticker.Ticks():
-			instant, err := NewInstant(time.Now())
-			if err == nil {
-				err = w.observe(instant)
-			}
+			observation, err := temporal.Observe()
 			if err != nil {
-				w.executionErr = err
-				return
+				return err
+			}
+			instant, err := observation.Instant()
+			if err != nil {
+				return err
+			}
+			if err := w.observe(instant); err != nil {
+				return err
 			}
 		}
 	}
 }
 
-func (w *WallGapWatch) observe(now Instant) error {
+func (w *WallGapWatch) observe(now temporal.Instant) error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	comparison, err := now.Compare(w.previous)
@@ -138,12 +144,23 @@ func (w *WallGapWatch) observe(now Instant) error {
 		w.previous = now
 		return nil
 	}
-	interval, err := IntervalFromBounds(IntervalBounds{Start: w.previous, End: now})
+	interval, err := temporal.IntervalFromBounds(temporal.IntervalBounds{Start: w.previous, End: now})
 	if err != nil {
 		return err
 	}
 	w.previous = now
-	if !w.snapshot.Observed || interval.elapsed.nanoseconds > w.snapshot.Maximum.elapsed.nanoseconds {
+	elapsed, err := interval.Elapsed()
+	if err != nil {
+		return err
+	}
+	maximum := temporal.Duration{}
+	if w.snapshot.Observed {
+		maximum, err = w.snapshot.Maximum.Elapsed()
+		if err != nil {
+			return err
+		}
+	}
+	if !w.snapshot.Observed || elapsed.Nanoseconds() > maximum.Nanoseconds() {
 		w.snapshot = WallGapSnapshot{Maximum: interval, Observed: true}
 	}
 	return nil
