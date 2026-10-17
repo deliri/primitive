@@ -73,7 +73,9 @@ func TestBackgroundProductionDataFlowInventory(t *testing.T) {
 	// Policy/OpenRequest/Work/TaskRequest/PullScopeRequest: borrowed execution contracts;
 	// Executor/Task: native capabilities; TaskResult: completion observation.
 	// PullSource: scoped native coroutine loan, with no retained value inventory.
-	want := []string{"Executor", "OpenRequest", "Policy", "PullScopeRequest", "PullSource", "Task", "TaskRequest", "TaskResult", "Work"}
+	// PairRequest: source/consumer loans; PairResult: joined observations;
+	// pairOffer: one synchronous native handoff, never an input inventory.
+	want := []string{"Executor", "OpenRequest", "PairRequest", "PairResult", "Policy", "PullScopeRequest", "PullSource", "Task", "TaskRequest", "TaskResult", "Work", "pairOffer"}
 	var got []string
 	entries, err := os.ReadDir(".")
 	if err != nil {
