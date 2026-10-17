@@ -104,7 +104,7 @@ func TestStageProducedAdmissionHasNoEffects(t *testing.T) {
 				Destination: filestore.StageDestinationRequest{Temporary: filestore.Location{Root: root, Path: mustRelativePath(t, "stage")}, Mode: 0o600},
 				Produce:     func(context.Context, io.Writer) error { called = true; return nil },
 			}
-			want := core.ErrFilestoreContract
+			var want error = core.ErrFilestoreContract
 			switch invalid {
 			case "nil_context":
 				ctx = nil
