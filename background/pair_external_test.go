@@ -206,6 +206,44 @@ func TestNativePairConsumerGoexitJoinsBlockedSiblingBeforeCallerUnwinds(t *testi
 	}
 }
 
+func TestNativePairCanceledExecutionStillDrainsTerminalObservations(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithCancelCause(t.Context())
+	cancel(io.ErrNoProgress)
+	observed := 0
+	result, err := background.RunPair(ctx, background.PairRequest[int, int]{
+		First: func(ctx context.Context, offer func(int) error) error {
+			if ctx.Err() != context.Canceled {
+				return core.ErrBackgroundContract
+			}
+			return offer(1)
+		},
+		Second: func(ctx context.Context, offer func(int) error) error {
+			if ctx.Err() != context.Canceled {
+				return core.ErrBackgroundContract
+			}
+			return offer(2)
+		},
+		ConsumeFirst: func(ctx context.Context, value int) error {
+			if ctx.Err() != context.Canceled || value != 1 {
+				return core.ErrBackgroundContract
+			}
+			observed++
+			return nil
+		},
+		ConsumeSecond: func(ctx context.Context, value int) error {
+			if ctx.Err() != context.Canceled || value != 2 {
+				return core.ErrBackgroundContract
+			}
+			observed++
+			return nil
+		},
+	})
+	if err != nil || observed != 2 || !errors.Is(result.FirstError, context.Canceled) || !errors.Is(result.FirstError, io.ErrNoProgress) || !errors.Is(result.SecondError, context.Canceled) || !errors.Is(result.SecondError, io.ErrNoProgress) {
+		t.Fatalf("canceled execution lost terminal observations: %+v/%v observed=%d", result, err, observed)
+	}
+}
+
 func TestNativePairRefusesInvalidIngressAndExpiredOffer(t *testing.T) {
 	t.Parallel()
 	var escaped func(int) error

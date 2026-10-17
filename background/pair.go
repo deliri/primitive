@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/temporal"
 )
@@ -63,15 +62,17 @@ func offerPairValue[T any](ctx context.Context, destination chan<- pairOffer[T],
 	}
 }
 
-func runPairSource[T any](ctx context.Context, cancel context.CancelCauseFunc, source func(context.Context, func(T) error) error, offers chan<- pairOffer[T], done chan<- error) {
+func runPairSource[T any](ctx context.Context, cancel context.CancelCauseFunc, owner context.Context, source func(context.Context, func(T) error) error, offers chan<- pairOffer[T], done chan<- error) {
+	offerCtx, stopOffer := context.WithCancel(owner)
 	resultErr := error(core.ErrBackgroundStopped)
 	defer func() {
 		resultErr = errors.Join(resultErr, ctx.Err(), context.Cause(ctx))
+		stopOffer()
 		cancel(nil)
 		done <- resultErr
 	}()
 	resultErr = invoke(ctx, func(ctx context.Context) error {
-		return source(ctx, func(value T) error { return offerPairValue(ctx, offers, value) })
+		return source(ctx, func(value T) error { return offerPairValue(offerCtx, offers, value) })
 	})
 }
 
@@ -80,6 +81,9 @@ func runPairSource[T any](ctx context.Context, cancel context.CancelCauseFunc, s
 // error cause; source and consumer errors belong to their respective result.
 // Caller cancellation is cooperative: a source which ignores its context and
 // never returns cannot be forcibly joined by Go.
+// Canceled parents are admitted: sources see that native terminal context,
+// while handoffs remain live until both sources finish their cancellation
+// observations and cleanup. Only caller unwind stops the handoff lifetime.
 func RunPair[A, B any](ctx context.Context, request PairRequest[A, B]) (result PairResult, resultErr error) {
 	if err := request.Validate(); err != nil {
 		return PairResult{}, err
@@ -89,21 +93,21 @@ func RunPair[A, B any](ctx context.Context, request PairRequest[A, B]) (result P
 		return PairResult{}, err
 	}
 	defer cancelFirst(nil)
-	if err := contextstate.Validate(firstCtx); err != nil {
-		return PairResult{}, errors.Join(err, context.Cause(firstCtx))
-	}
 	secondCtx, cancelSecond, err := temporal.WithCancellation(temporal.CancellationRequest{Parent: ctx})
 	if err != nil {
 		return PairResult{}, err
 	}
 	defer cancelSecond(nil)
+	owner, stopOwner := context.WithCancel(context.WithoutCancel(firstCtx))
+	defer stopOwner()
 	firstOffers, secondOffers := make(chan pairOffer[A]), make(chan pairOffer[B])
 	firstDone, secondDone := make(chan error, 1), make(chan error, 1)
-	go runPairSource(firstCtx, cancelFirst, request.First, firstOffers, firstDone)
-	go runPairSource(secondCtx, cancelSecond, request.Second, secondOffers, secondDone)
+	go runPairSource(firstCtx, cancelFirst, owner, request.First, firstOffers, firstDone)
+	go runPairSource(secondCtx, cancelSecond, owner, request.Second, secondOffers, secondDone)
 	// Unwinding a consumer releases both blocked offers before joining. Normal
 	// completion has already read each result, so these nil channels name no join.
 	defer func() {
+		stopOwner()
 		cancelFirst(context.Canceled)
 		cancelSecond(context.Canceled)
 		if firstDone != nil {
@@ -116,19 +120,13 @@ func RunPair[A, B any](ctx context.Context, request PairRequest[A, B]) (result P
 	for firstDone != nil || secondDone != nil {
 		select {
 		case offered := <-firstOffers:
-			err := errors.Join(firstCtx.Err(), context.Cause(firstCtx))
-			if err == nil {
-				err = invoke(firstCtx, func(ctx context.Context) error { return request.ConsumeFirst(ctx, offered.value) })
-			}
+			err := invoke(firstCtx, func(ctx context.Context) error { return request.ConsumeFirst(ctx, offered.value) })
 			if result.FirstError == nil {
 				result.FirstError = err
 			}
 			offered.reply <- err
 		case offered := <-secondOffers:
-			err := errors.Join(secondCtx.Err(), context.Cause(secondCtx))
-			if err == nil {
-				err = invoke(secondCtx, func(ctx context.Context) error { return request.ConsumeSecond(ctx, offered.value) })
-			}
+			err := invoke(secondCtx, func(ctx context.Context) error { return request.ConsumeSecond(ctx, offered.value) })
 			if result.SecondError == nil {
 				result.SecondError = err
 			}
