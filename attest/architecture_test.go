@@ -29,7 +29,7 @@ type (
 	productionStructName     string
 )
 
-const attestProductionStructMaximum = 17
+const attestProductionStructMaximum = 20
 
 type productionStructInventory struct {
 	names [attestProductionStructMaximum]productionStructName
@@ -52,6 +52,9 @@ type attestContractInventory struct {
 	attestationFrame      internalFlow[attestationFrame]
 	guardedResult         internalFlow[guardedResult[struct{}]]
 	Signature             sealedProjection[Signature]
+	SignerRequest         operationRequest[SignerRequest]
+	Signer                capabilityWrapper[Signer]
+	serializedSigner      capabilityWrapper[serializedSigner]
 	signingCapability     capabilityWrapper[signingCapability]
 	TrustedKeys           capabilityWrapper[TrustedKeys]
 	Verified              proofCarrier[Verified[internalTestDomain]]
@@ -65,6 +68,7 @@ var (
 	_ = attestContractInventory{}.envelopeWire
 	_ = attestContractInventory{}.attestationFrame
 	_ = attestContractInventory{}.guardedResult
+	_ = attestContractInventory{}.serializedSigner
 	_ = attestContractInventory{}.signingCapability
 )
 
@@ -108,6 +112,15 @@ func TestAttestExactPublicSurfaceAndNoTypeAliases(t *testing.T) {
 		"const TrustedKeyMaximumCount",
 		"func BeginCanonicalObject",
 		"func NewTrustedKeys",
+		"func NewSigner",
+		"type Signer",
+		"type SignerRequest",
+		"method Signer.Validate",
+		"method Signer.PublicKey",
+		"method Signer.Public",
+		"method Signer.Sign",
+		"method Signer.Destroy",
+		"method SignerRequest.Validate",
 		"func Sign",
 		"func Verify",
 		"method CanonicalObject.Bool",
@@ -173,6 +186,7 @@ func TestAttestProductionImportsStayOnApprovedStandardLibraryAndCoreSubstrate(t 
 		"io",
 		"slices",
 		"strconv",
+		"sync",
 		"unicode/utf8",
 	}
 	if !slices.Equal(gotImports, wantImports) {
@@ -198,6 +212,7 @@ func TestAttestRawCryptographicEffectsHaveOneCompilerVisibleOwner(t *testing.T) 
 		"operations.go:ed25519.Verify",
 		"operations.go:ed25519.Verify",
 		"operations.go:signer.Sign",
+		"owned_signer.go:signer.Sign",
 	}
 	slices.Sort(wantCalls)
 	if !slices.Equal(gotCalls, wantCalls) {

@@ -629,6 +629,8 @@ const (
 	ErrAESGCMContract
 	// ErrAESGCMAuthentication identifies native GCM authentication refusal.
 	ErrAESGCMAuthentication
+	// ErrAttestSignerChanged identifies a provider whose public identity changed.
+	ErrAttestSignerChanged
 	errorIdentityLimit
 )
 
@@ -910,6 +912,7 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrAdmissionCapacity, text: "admission capacity unavailable"},
 		{identity: ErrAESGCMContract, text: "aes-gcm contract violation"},
 		{identity: ErrAESGCMAuthentication, text: "aes-gcm authentication failed"},
+		{identity: ErrAttestSignerChanged, text: "attest signer public identity changed"},
 	}
 }
 
@@ -1011,6 +1014,9 @@ func isAdmittedErrorIdentity(identity ErrorIdentity) bool {
 }
 
 func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
+	if identity == ErrAttestSignerChanged {
+		return oneErrorIdentityParent(ErrAttestVerification)
+	}
 	if identity == ErrAESGCMAuthentication {
 		return oneErrorIdentityParent(ErrAESGCMContract)
 	}
