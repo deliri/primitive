@@ -37,6 +37,7 @@ func TestDocumentedResourceOperationLayerTriad(t *testing.T) {
 		{"cancel campaign", Route{CancelCampaign, "campaign-1"}, "/campaigns/campaign-1/cancel", exchange.MethodPost, nil},
 		{"campaign statistics", Route{ReadCampaignStats, "campaign-1"}, "/campaigns/campaign-1/stats", exchange.MethodGet, nil},
 		{"campaign preview send", Route{TestCampaign, "campaign-1"}, "/campaigns/campaign-1/test", exchange.MethodPost, nil},
+		{"read template metadata", Route{ReadTemplate, "template-1"}, "/templates/template-1", exchange.MethodGet, nil},
 		{name: "absent operation", wantErr: core.ErrPlunkBinding},
 		{name: "future operation", route: Route{Operation: 255}, wantErr: core.ErrPlunkBinding},
 		{name: "missing resource", route: Route{Operation: SendCampaign}, wantErr: core.ErrPlunkBinding},
@@ -70,7 +71,7 @@ func TestDocumentedResourceOperationLayerTriad(t *testing.T) {
 	}
 }
 func FuzzResourceRouteSemanticClosure(f *testing.F) {
-	for op := SendEmail; op <= TestCampaign; op++ {
+	for op := SendEmail; op <= ReadTemplate; op++ {
 		r := Route{Operation: op}
 		switch op {
 		case SendEmail, UpsertContact, ListContacts, CreateCampaign, ListCampaigns:

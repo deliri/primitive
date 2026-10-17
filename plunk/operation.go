@@ -27,6 +27,7 @@ const (
 	CancelCampaign
 	ReadCampaignStats
 	TestCampaign
+	ReadTemplate
 )
 
 // Route binds one operation to an optional provider-owned resource ID. The SDK
@@ -43,7 +44,7 @@ func (r Route) Validate() error {
 			return core.ErrPlunkBinding
 		}
 		return nil
-	case ReadContact, UpdateContact, DeleteContact, ReadCampaign, UpdateCampaign, DeleteCampaign, SendCampaign, CancelCampaign, ReadCampaignStats, TestCampaign:
+	case ReadContact, UpdateContact, DeleteContact, ReadCampaign, UpdateCampaign, DeleteCampaign, SendCampaign, CancelCampaign, ReadCampaignStats, TestCampaign, ReadTemplate:
 		if !validResourceID(r.ResourceID) {
 			return core.ErrPlunkBinding
 		}
@@ -69,7 +70,7 @@ func (r Route) Method() (exchange.Method, error) {
 		return exchange.Method(0), e
 	}
 	switch r.Operation {
-	case ReadContact, ListContacts, ReadCampaign, ListCampaigns, ReadCampaignStats:
+	case ReadContact, ListContacts, ReadCampaign, ListCampaigns, ReadCampaignStats, ReadTemplate:
 		return exchange.MethodGet, nil
 	case UpdateContact, UpdateCampaign:
 		return exchange.MethodPatch, nil
@@ -105,12 +106,19 @@ func (r Route) Endpoint() (core.HTTPEndpoint, error) {
 		path = "/campaigns/" + r.ResourceID + "/stats"
 	case TestCampaign:
 		path = "/campaigns/" + r.ResourceID + "/test"
+	case ReadTemplate:
+		path = "/templates/" + r.ResourceID
 	default:
 		return core.HTTPEndpoint{}, core.ErrPlunkBinding
 	}
 	return core.ParseHTTPEndpoint(core.SchemeHTTPS + "://" + core.PlunkAPIHost + path)
 }
 func validOperationPath(path string, method exchange.Method) bool {
+	// Template metadata is a read-only resource. Creation, mutation, listing
+	// and action subpaths have no admission through this door.
+	if id, template := strings.CutPrefix(path, "/templates/"); template {
+		return method == exchange.MethodGet && validResourceID(id)
+	}
 	// Keep the published v1 transport door for send/track/verify; the resource
 	// API is deliberately closed to the documented contacts/campaign operations.
 	if strings.HasPrefix(path, apiPathPrefix) {
