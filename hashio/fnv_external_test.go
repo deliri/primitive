@@ -1,11 +1,11 @@
-package core_test
+package hashio_test
 
 import (
 	"hash/fnv"
 	"strings"
 	"testing"
 
-	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/hashio"
 )
 
 func TestFNV1a64TextPartsKeepsNativeVectorsAndExactFraming(t *testing.T) {
@@ -22,7 +22,7 @@ func TestFNV1a64TextPartsKeepsNativeVectorsAndExactFraming(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			if got := core.FNV1a64TextParts(tc.parts...); got != tc.want {
+			if got := hashio.FNV1a64TextParts(tc.parts...); got != tc.want {
 				t.Fatalf("fingerprint = %x, want %x", got, tc.want)
 			}
 		})
@@ -35,7 +35,7 @@ func TestFNV1a64TextPartsKeepsNativeVectorsAndExactFraming(t *testing.T) {
 				_, _ = oracle.Write([]byte{value})
 			}
 			for split := 0; split <= len(text); split++ {
-				if got := core.FNV1a64TextParts(text[:split], "", text[split:]); got != oracle.Sum64() {
+				if got := hashio.FNV1a64TextParts(text[:split], "", text[split:]); got != oracle.Sum64() {
 					t.Fatalf("split %d fingerprint = %x, want %x", split, got, oracle.Sum64())
 				}
 			}
@@ -50,11 +50,11 @@ func FuzzFNV1a64TextPartsNativeConcatenation(f *testing.F) {
 	f.Fuzz(func(t *testing.T, first, middle, last string) {
 		oracle := fnv.New64a()
 		_, _ = oracle.Write([]byte(first + middle + last))
-		got := core.FNV1a64TextParts(first, middle, last)
+		got := hashio.FNV1a64TextParts(first, middle, last)
 		if got != oracle.Sum64() {
 			t.Fatalf("parts fingerprint = %x, want native concatenation %x", got, oracle.Sum64())
 		}
-		if got != core.FNV1a64TextParts(first+middle, last) || got != core.FNV1a64TextParts(first, middle+last) {
+		if got != hashio.FNV1a64TextParts(first+middle, last) || got != hashio.FNV1a64TextParts(first, middle+last) {
 			t.Fatal("part boundary changed exact input bytes")
 		}
 	})

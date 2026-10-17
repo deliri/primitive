@@ -1,4 +1,4 @@
-package core
+package hashio
 
 import "hash/fnv"
 
