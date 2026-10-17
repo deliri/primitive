@@ -45,6 +45,23 @@ func (d *AppendDestination) Validate() error {
 	return nil
 }
 
+// Inspect observes the owned native file without transferring its handle.
+func (d *AppendDestination) Inspect(ctx context.Context) (Inspection, error) {
+	if err := d.Validate(); err != nil {
+		return Inspection{}, err
+	}
+	return InspectOpenFile(ctx, HandleInspectionRequest{File: d.file})
+}
+
+// ObserveStanding compares the owned inode with the path's current occupant.
+// It does not infer custody from a remembered path or copied metadata.
+func (d *AppendDestination) ObserveStanding(ctx context.Context, path core.AbsolutePath) (HeldStanding, error) {
+	if err := d.Validate(); err != nil {
+		return HeldStandingUnknown, err
+	}
+	return ObserveHeldStanding(ctx, d.file, path)
+}
+
 // Write delegates byte acceptance and sticky failure behavior to Go's bufio.
 func (d *AppendDestination) Write(data []byte) (int, error) {
 	if err := d.Validate(); err != nil {

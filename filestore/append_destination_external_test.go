@@ -39,6 +39,21 @@ func proveAppendDestinationBytes(t *testing.T, payload []byte, suffix int) {
 		t.Fatal(err)
 	}
 	defer d.Close()
+	inspection, err := d.Inspect(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	extent, err := inspection.SizeBytes()
+	if err != nil || extent.Uint64() != 0 {
+		t.Fatalf("initial extent = %v,%v", extent, err)
+	}
+	absolute, err := core.ParseAbsolutePath(dir + "/first")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if standing, err := d.ObserveStanding(t.Context(), absolute); err != nil || standing != filestore.HeldStandingSame {
+		t.Fatalf("initial standing = %v,%v", standing, err)
+	}
 	if err := root.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -109,6 +124,58 @@ func proveAppendDestinationBytes(t *testing.T, payload []byte, suffix int) {
 	got, err = os.ReadFile(dir + "/second")
 	if err != nil || string(got) != "incoming" {
 		t.Fatalf("incoming = %q,%v", got, err)
+	}
+}
+
+func TestAppendDestinationObservesReplacedNamesAndNativeExtent(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	d, err := filestore.OpenAppendDestination(t.Context(), filestore.AppendRequest{Location: filestore.Location{Root: root, Path: mustRelativePath(t, "subject")}, Mode: 0o600, Append: filestore.AppendCreate})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer d.Close()
+	if _, err := d.Write([]byte("owned")); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.Sync(); err != nil {
+		t.Fatal(err)
+	}
+	i, err := d.Inspect(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	n, err := i.SizeBytes()
+	if err != nil || n.Uint64() != 5 {
+		t.Fatalf("native extent=%v,%v", n, err)
+	}
+	if err := os.Rename(dir+"/subject", dir+"/old"); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(dir+"/subject", []byte("foreign"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	path, err := core.ParseAbsolutePath(dir + "/subject")
+	if err != nil {
+		t.Fatal(err)
+	}
+	standing, err := d.ObserveStanding(t.Context(), path)
+	if err != nil || standing == filestore.HeldStandingSame {
+		t.Fatalf("replaced name claimed owned=%v,%v", standing, err)
+	}
+	if err := d.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.Inspect(t.Context()); !errors.Is(err, core.ErrFilestoreContract) {
+		t.Fatalf("settled inspection=%v", err)
+	}
+	if got, err := d.ObserveStanding(t.Context(), path); got != filestore.HeldStandingUnknown || !errors.Is(err, core.ErrFilestoreContract) {
+		t.Fatalf("settled standing=%v,%v", got, err)
 	}
 }
 
