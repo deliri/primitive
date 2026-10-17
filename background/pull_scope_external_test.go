@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"iter"
 	"runtime"
 	"testing"
 
@@ -32,14 +31,16 @@ func TestPullScopeOwnsNativeStopAndBackpressure(t *testing.T) {
 			produced, consumed, cleaned := 0, 0, false
 			var escaped *background.PullSource[int]
 			err := background.WithPullScope(t.Context(), background.PullScopeRequest[int]{
-				Source: func(yield func(int, error) bool) {
+				Source: func(_ context.Context, yield func(int) bool) error {
 					defer func() { cleaned = true }()
 					for i := range tc.items {
 						produced++
-						if !yield(i, nil) {
-							return
+						if !yield(i) {
+							return nil
 						}
 					}
+
+					return nil
 				},
 				Use: func(_ context.Context, source *background.PullSource[int]) error {
 					escaped = source
@@ -108,7 +109,7 @@ func TestPullScopeRefusesIngressWithoutBorrowingSource(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			sourceCalled, useCalled := false, false
-			var source iter.Seq2[int, error] = func(func(int, error) bool) { sourceCalled = true }
+			source := func(context.Context, func(int) bool) error { sourceCalled = true; return nil }
 			use := func(context.Context, *background.PullSource[int]) error { useCalled = true; return nil }
 			if tc.noSource {
 				source = nil
@@ -138,7 +139,7 @@ func TestPullScopeSourceFailureWithdrawsPartialValueAndJoinsCleanup(t *testing.T
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			cleaned := false
-			err := background.WithPullScope(t.Context(), background.PullScopeRequest[int]{Source: func(yield func(int, error) bool) {
+			err := background.WithPullScope(t.Context(), background.PullScopeRequest[int]{Source: func(_ context.Context, yield func(int) bool) error {
 				defer func() {
 					cleaned = true
 					if tc.panicCleanup {
@@ -149,10 +150,10 @@ func TestPullScopeSourceFailureWithdrawsPartialValueAndJoinsCleanup(t *testing.T
 					panic(io.ErrNoProgress)
 				}
 				if tc.panicCleanup {
-					yield(7, nil)
-					return
+					yield(7)
+					return nil
 				}
-				yield(99, io.ErrClosedPipe)
+				return io.ErrClosedPipe
 			}, Use: func(_ context.Context, source *background.PullSource[int]) error {
 				value, ok, err := source.Next()
 				if tc.panicCleanup {
@@ -192,14 +193,16 @@ func TestPullScopeCancellationStopsBeforeNextAndInvalidatesCopies(t *testing.T) 
 	ctx, cancel := context.WithCancelCause(t.Context())
 	defer cancel(nil)
 	produced, cleaned := 0, false
-	err := background.WithPullScope(ctx, background.PullScopeRequest[int]{Source: func(yield func(int, error) bool) {
+	err := background.WithPullScope(ctx, background.PullScopeRequest[int]{Source: func(_ context.Context, yield func(int) bool) error {
 		defer func() { cleaned = true }()
 		for i := 0; ; i++ {
 			produced++
-			if !yield(i, nil) {
-				return
+			if !yield(i) {
+				return nil
 			}
 		}
+
+		return nil
 	}, Use: func(_ context.Context, source *background.PullSource[int]) error {
 		copyOfSource := *source
 		if value, ok, err := copyOfSource.Next(); value != 0 || ok || !errors.Is(err, core.ErrBackgroundContract) {
@@ -226,7 +229,11 @@ func TestPullScopeGoexitStillStopsSuspendedProducer(t *testing.T) {
 	joined := make(chan struct{})
 	go func() {
 		defer close(joined)
-		_ = background.WithPullScope(t.Context(), background.PullScopeRequest[int]{Source: func(yield func(int, error) bool) { defer func() { cleaned = true }(); yield(1, nil) }, Use: func(_ context.Context, source *background.PullSource[int]) error {
+		_ = background.WithPullScope(t.Context(), background.PullScopeRequest[int]{Source: func(_ context.Context, yield func(int) bool) error {
+			defer func() { cleaned = true }()
+			yield(1, nil)
+			return nil
+		}, Use: func(_ context.Context, source *background.PullSource[int]) error {
 			_, _, _ = source.Next()
 			runtime.Goexit()
 			return nil
@@ -238,20 +245,46 @@ func TestPullScopeGoexitStillStopsSuspendedProducer(t *testing.T) {
 	}
 }
 
+func TestPullScopeRetainsProducerRefusalAfterConsumerStops(t *testing.T) {
+	t.Parallel()
+	for _, cause := range []error{io.ErrClosedPipe, io.ErrUnexpectedEOF, errors.Join(io.ErrClosedPipe, io.ErrUnexpectedEOF)} {
+		produced, resumed := 0, false
+		err := background.WithPullScope(t.Context(), background.PullScopeRequest[int]{Source: func(_ context.Context, yield func(int) bool) error {
+			produced++
+			if yield(42) {
+				return core.ErrBackgroundContract
+			}
+			resumed = true
+			return cause
+		}, Use: func(_ context.Context, source *background.PullSource[int]) error {
+			value, ok, err := source.Next()
+			if value != 42 || !ok || err != nil {
+				return errors.Join(core.ErrBackgroundContract, err)
+			}
+			return io.ErrShortWrite
+		}})
+		if produced != 1 || !resumed || !errors.Is(err, cause) || !errors.Is(err, io.ErrShortWrite) {
+			t.Fatalf("producer cleanup refusal disappeared: produced=%d resumed=%t error=%v", produced, resumed, err)
+		}
+	}
+}
+
 func FuzzPullScopeExactForwardConservation(f *testing.F) {
 	f.Add(uint16(0), uint16(0))
 	f.Add(uint16(1), uint16(2))
 	f.Add(uint16(65535), uint16(65535))
 	f.Fuzz(func(t *testing.T, count, stop uint16) {
 		produced, consumed, cleanups := 0, 0, 0
-		err := background.WithPullScope(t.Context(), background.PullScopeRequest[int]{Source: func(yield func(int, error) bool) {
+		err := background.WithPullScope(t.Context(), background.PullScopeRequest[int]{Source: func(_ context.Context, yield func(int) bool) error {
 			defer func() { cleanups++ }()
 			for i := range int(count) {
 				produced++
-				if !yield(i, nil) {
-					return
+				if !yield(i) {
+					return nil
 				}
 			}
+
+			return nil
 		}, Use: func(_ context.Context, source *background.PullSource[int]) error {
 			for range int(stop) {
 				value, ok, err := source.Next()
