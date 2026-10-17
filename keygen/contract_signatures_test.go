@@ -1,6 +1,7 @@
 package keygen
 
 import (
+	"context"
 	"crypto/ed25519"
 	"fmt"
 	"io"
@@ -11,6 +12,12 @@ import (
 // These are method expressions, so pointer-only replacements cannot retain
 // the value-receiver contracts by implicitly taking a test variable's address.
 var (
+	_ func(context.Context, OpenSSHReadRequest) (SigningKey, error) = ReadOpenSSH
+	_ func(context.Context, OpenSSHWriteRequest) error              = WriteOpenSSH
+	_ core.Validatable                                              = OpenSSHReadRequest{}
+	_ core.Validatable                                              = OpenSSHWriteRequest{}
+	_ core.Validatable                                              = PEMLabel("")
+
 	_ core.Validatable                                 = SecretRequest{}
 	_ core.Validatable                                 = RandomTokenRequest{}
 	_ core.Validatable                                 = EntropyReader{}

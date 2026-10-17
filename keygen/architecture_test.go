@@ -21,13 +21,19 @@ type (
 )
 
 // keygenContractInventory classifies every production struct by its actual
-// data-flow role. Keygen deliberately owns no wire or persistence carrier.
+// data-flow role. OpenSSH framing is transient native execution; persistence
+// remains owned by the caller.
 type keygenContractInventory struct {
-	EntropyReader      capabilityWrapper[EntropyReader]
-	SecretRequest      operationRequest[SecretRequest]
-	RandomTokenRequest operationRequest[RandomTokenRequest]
-	SigningKey         capabilityWrapper[SigningKey]
-	Token              capabilityWrapper[Token]
+	EntropyReader       capabilityWrapper[EntropyReader]
+	SecretRequest       operationRequest[SecretRequest]
+	RandomTokenRequest  operationRequest[RandomTokenRequest]
+	SigningKey          capabilityWrapper[SigningKey]
+	Token               capabilityWrapper[Token]
+	OpenSSHReadRequest  operationRequest[OpenSSHReadRequest]
+	OpenSSHWriteRequest operationRequest[OpenSSHWriteRequest]
+	keyStream           capabilityWrapper[keyStream]
+	keyPEMBody          capabilityWrapper[keyPEMBody]
+	keyPEMLines         capabilityWrapper[keyPEMLines]
 }
 
 var _ = keygenContractInventory{}
@@ -59,6 +65,16 @@ func TestKeygenExactPublicSurfaceFieldsAndNoAliases(t *testing.T) {
 		t.Fatalf("scanKeygenArchitecture() error = %v, want nil", gotErr)
 	}
 	wantSurface := []string{
+		"const OpenSSHPrivateKeyLabel",
+		"func ReadOpenSSH",
+		"func WriteOpenSSH",
+		"method PEMLabel.Validate",
+		"method PEMLabel.String",
+		"method OpenSSHReadRequest.Validate",
+		"method OpenSSHWriteRequest.Validate",
+		"type PEMLabel",
+		"type OpenSSHReadRequest",
+		"type OpenSSHWriteRequest",
 		"const RandomTokenMaximumBytes",
 		"const SeedSize",
 		"func AdoptPrivateKey",
@@ -86,7 +102,8 @@ func TestKeygenExactPublicSurfaceFieldsAndNoAliases(t *testing.T) {
 		"type SigningKey",
 		"type Token",
 	}
-	wantFields := []string{"RandomTokenRequest.Size", "SecretRequest.Size"}
+	slices.Sort(wantSurface)
+	wantFields := []string{"OpenSSHReadRequest.AdditionalLabel", "OpenSSHReadRequest.Source", "OpenSSHWriteRequest.Comment", "OpenSSHWriteRequest.Destination", "OpenSSHWriteRequest.Key", "OpenSSHWriteRequest.Label", "RandomTokenRequest.Size", "SecretRequest.Size"}
 	if !slices.Equal(gotScan.surface, wantSurface) {
 		t.Fatalf("Keygen public surface = %q, want %q", gotScan.surface, wantSurface)
 	}
@@ -106,14 +123,19 @@ func TestKeygenProductionImportsStayOnExactStandardLibraryAndCoreSubstrate(t *te
 		t.Fatalf("scanKeygenArchitecture() error = %v, want nil", gotErr)
 	}
 	wantImports := []string{
+		"bufio",
+		"bytes",
+		"context",
 		"crypto/ed25519",
 		"crypto/rand",
 		"crypto/subtle",
+		"encoding/base64",
 		"encoding/binary",
 		"errors",
 		"fmt",
 		"github.com/deliri/primitive/v2026/core",
 		"io",
+		"math",
 	}
 	if !slices.Equal(gotScan.imports, wantImports) {
 		t.Fatalf("Keygen production imports = %q, want %q", gotScan.imports, wantImports)
