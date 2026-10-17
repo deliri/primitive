@@ -10,5 +10,8 @@
 // StartTask owns one action and completion observer without imposing an
 // independent operation timeout. Its parent owns that lifetime; Wait can bound
 // a join without canceling the action, and Close cancels and joins cooperatively.
+// WithPullScope owns a native iter.Pull coroutine for synchronous forward
+// consumption. It joins producer cleanup on every exit and preserves the
+// producer's final error even when the consumer stops early.
 // The package stores no identities, schedules, retry policy or durable jobs.
 package background
