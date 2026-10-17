@@ -12,4 +12,6 @@
 // They stream comments and base64 through fixed native working windows,
 // validate both public declarations and seed custody, and leave file effects
 // and caller-selected envelope labels to their respective owners.
+// ReadPublicKeyHex streams surrounding Unicode whitespace while retaining only
+// Core's fixed canonical public-key token.
 package keygen

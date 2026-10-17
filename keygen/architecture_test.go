@@ -24,16 +24,17 @@ type (
 // data-flow role. OpenSSH framing is transient native execution; persistence
 // remains owned by the caller.
 type keygenContractInventory struct {
-	EntropyReader       capabilityWrapper[EntropyReader]
-	SecretRequest       operationRequest[SecretRequest]
-	RandomTokenRequest  operationRequest[RandomTokenRequest]
-	SigningKey          capabilityWrapper[SigningKey]
-	Token               capabilityWrapper[Token]
-	OpenSSHReadRequest  operationRequest[OpenSSHReadRequest]
-	OpenSSHWriteRequest operationRequest[OpenSSHWriteRequest]
-	keyStream           capabilityWrapper[keyStream]
-	keyPEMBody          capabilityWrapper[keyPEMBody]
-	keyPEMLines         capabilityWrapper[keyPEMLines]
+	PublicKeyHexReadRequest operationRequest[PublicKeyHexReadRequest]
+	EntropyReader           capabilityWrapper[EntropyReader]
+	SecretRequest           operationRequest[SecretRequest]
+	RandomTokenRequest      operationRequest[RandomTokenRequest]
+	SigningKey              capabilityWrapper[SigningKey]
+	Token                   capabilityWrapper[Token]
+	OpenSSHReadRequest      operationRequest[OpenSSHReadRequest]
+	OpenSSHWriteRequest     operationRequest[OpenSSHWriteRequest]
+	keyStream               capabilityWrapper[keyStream]
+	keyPEMBody              capabilityWrapper[keyPEMBody]
+	keyPEMLines             capabilityWrapper[keyPEMLines]
 }
 
 var _ = keygenContractInventory{}
@@ -67,6 +68,9 @@ func TestKeygenExactPublicSurfaceFieldsAndNoAliases(t *testing.T) {
 	wantSurface := []string{
 		"const OpenSSHPrivateKeyLabel",
 		"func ReadOpenSSH",
+		"func ReadPublicKeyHex",
+		"type PublicKeyHexReadRequest",
+		"method PublicKeyHexReadRequest.Validate",
 		"func WriteOpenSSH",
 		"method PEMLabel.Validate",
 		"method PEMLabel.String",
@@ -103,7 +107,7 @@ func TestKeygenExactPublicSurfaceFieldsAndNoAliases(t *testing.T) {
 		"type Token",
 	}
 	slices.Sort(wantSurface)
-	wantFields := []string{"OpenSSHReadRequest.AdditionalLabel", "OpenSSHReadRequest.Source", "OpenSSHWriteRequest.Comment", "OpenSSHWriteRequest.Destination", "OpenSSHWriteRequest.Key", "OpenSSHWriteRequest.Label", "RandomTokenRequest.Size", "SecretRequest.Size"}
+	wantFields := []string{"OpenSSHReadRequest.AdditionalLabel", "OpenSSHReadRequest.Source", "OpenSSHWriteRequest.Comment", "OpenSSHWriteRequest.Destination", "OpenSSHWriteRequest.Key", "OpenSSHWriteRequest.Label", "PublicKeyHexReadRequest.Source", "RandomTokenRequest.Size", "SecretRequest.Size"}
 	if !slices.Equal(gotScan.surface, wantSurface) {
 		t.Fatalf("Keygen public surface = %q, want %q", gotScan.surface, wantSurface)
 	}
@@ -136,6 +140,7 @@ func TestKeygenProductionImportsStayOnExactStandardLibraryAndCoreSubstrate(t *te
 		"github.com/deliri/primitive/v2026/core",
 		"io",
 		"math",
+		"unicode",
 	}
 	if !slices.Equal(gotScan.imports, wantImports) {
 		t.Fatalf("Keygen production imports = %q, want %q", gotScan.imports, wantImports)

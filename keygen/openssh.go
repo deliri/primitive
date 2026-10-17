@@ -82,7 +82,11 @@ func (s keyStream) Read(p []byte) (int, error) {
 	if err := s.ctx.Err(); err != nil {
 		return 0, errors.Join(err, context.Cause(s.ctx))
 	}
-	return s.source.Read(p)
+	n, err := s.source.Read(p)
+	if canceled := s.ctx.Err(); canceled != nil {
+		return 0, errors.Join(err, canceled, context.Cause(s.ctx))
+	}
+	return n, err
 }
 
 func (s keyStream) Write(p []byte) (int, error) {
