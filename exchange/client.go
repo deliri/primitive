@@ -1142,12 +1142,24 @@ func exchangeContextError(ctx context.Context) error {
 	}
 	switch state {
 	case contextstate.StateCancelled:
-		return cancelledError(context.Canceled)
+		return cancelledError(errors.Join(context.Canceled, exchangeCancellationCause(ctx)))
 	case contextstate.StateDeadlineExceeded:
-		return cancelledError(context.DeadlineExceeded)
+		return cancelledError(errors.Join(context.DeadlineExceeded, exchangeCancellationCause(ctx)))
 	default:
 		return nil
 	}
+}
+
+func exchangeCancellationCause(ctx context.Context) (cause error) {
+	// Cause consults Value on foreign contexts. Preserve the independently
+	// observed terminal identity even when that foreign method panics.
+	cause = core.ErrContextObservation
+	defer func() {
+		if recover() != nil {
+			cause = core.ErrContextObservation
+		}
+	}()
+	return context.Cause(ctx)
 }
 
 func clientForPolicy(
