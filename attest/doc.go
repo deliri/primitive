@@ -12,4 +12,7 @@
 //
 // Attest is the sole Primitive owner of signing, trusted-key verification,
 // canonical signature framing, and proof-carrying authenticated results.
+// NewSigner adds persistent local-key custody and serialized provider execution.
+// Copied handles share destruction and retain one admitted public identity;
+// provider identity changes withdraw signatures through a Core error identity.
 package attest
