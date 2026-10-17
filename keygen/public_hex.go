@@ -48,7 +48,7 @@ func ReadPublicKeyHex(ctx context.Context, request PublicKeyHexReadRequest) (cor
 			continue
 		}
 		if trailing || width != 1 || value > 127 || count == len(text) {
-			return core.Ed25519PublicKey{}, core.ErrKeygenContract
+			return core.Ed25519PublicKey{}, core.ErrKeygenPublicKeyText
 		}
 		text[count] = byte(value)
 		count++
@@ -58,7 +58,7 @@ func ReadPublicKeyHex(ctx context.Context, request PublicKeyHexReadRequest) (cor
 	}
 	var result core.Ed25519PublicKey
 	if err := result.UnmarshalText(text[:count]); err != nil {
-		return core.Ed25519PublicKey{}, contractError(err)
+		return core.Ed25519PublicKey{}, errors.Join(core.ErrKeygenPublicKeyText, err)
 	}
 	return result, nil
 }

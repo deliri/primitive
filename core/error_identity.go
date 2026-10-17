@@ -631,6 +631,8 @@ const (
 	ErrAESGCMAuthentication
 	// ErrAttestSignerChanged identifies a provider whose public identity changed.
 	ErrAttestSignerChanged
+	// ErrKeygenPublicKeyText identifies malformed canonical public-key text.
+	ErrKeygenPublicKeyText
 	errorIdentityLimit
 )
 
@@ -913,6 +915,7 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrAESGCMContract, text: "aes-gcm contract violation"},
 		{identity: ErrAESGCMAuthentication, text: "aes-gcm authentication failed"},
 		{identity: ErrAttestSignerChanged, text: "attest signer public identity changed"},
+		{identity: ErrKeygenPublicKeyText, text: "keygen public key text is invalid"},
 	}
 }
 
@@ -1014,6 +1017,9 @@ func isAdmittedErrorIdentity(identity ErrorIdentity) bool {
 }
 
 func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
+	if identity == ErrKeygenPublicKeyText {
+		return oneErrorIdentityParent(ErrKeygenContract)
+	}
 	if identity == ErrAttestSignerChanged {
 		return oneErrorIdentityParent(ErrAttestVerification)
 	}

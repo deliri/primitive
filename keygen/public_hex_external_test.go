@@ -45,7 +45,7 @@ func TestPublicKeyHexStreamRefusesMalformedTokensAndNativeSourceFailure(t *testi
 	}
 	for _, text := range []string{"", " \n\t", hex[:63], hex + "0", strings.ToUpper(hex), "g" + hex[1:], hex[:32] + " " + hex[32:], hex + "\n" + hex, "\ufeff" + hex, "\xff" + hex, hex + "\x00"} {
 		got, err := keygen.ReadPublicKeyHex(t.Context(), keygen.PublicKeyHexReadRequest{Source: strings.NewReader(text)})
-		if got != (core.Ed25519PublicKey{}) || !errors.Is(err, core.ErrKeygenContract) {
+		if got != (core.Ed25519PublicKey{}) || !errors.Is(err, core.ErrKeygenPublicKeyText) {
 			t.Fatalf("malformed token produced public identity: %t/%v", got != (core.Ed25519PublicKey{}), err)
 		}
 	}
@@ -56,6 +56,9 @@ func TestPublicKeyHexStreamRefusesMalformedTokensAndNativeSourceFailure(t *testi
 		}
 		if source != nil && source != (*bytes.Reader)(nil) && !errors.Is(err, io.ErrClosedPipe) {
 			t.Fatalf("native source failure was erased: %v", err)
+		}
+		if errors.Is(err, core.ErrKeygenPublicKeyText) {
+			t.Fatalf("source refusal was misclassified as malformed text: %v", err)
 		}
 	}
 }
