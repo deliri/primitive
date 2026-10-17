@@ -231,7 +231,7 @@ func TestPullScopeGoexitStillStopsSuspendedProducer(t *testing.T) {
 		defer close(joined)
 		_ = background.WithPullScope(t.Context(), background.PullScopeRequest[int]{Source: func(_ context.Context, yield func(int) bool) error {
 			defer func() { cleaned = true }()
-			yield(1, nil)
+			yield(1)
 			return nil
 		}, Use: func(_ context.Context, source *background.PullSource[int]) error {
 			_, _, _ = source.Next()
