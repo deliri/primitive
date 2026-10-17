@@ -28,7 +28,12 @@ func (r StageProductionRequest) Validate() error {
 // StageProduced owns creation, producer completion, sync and closure. A
 // producer refusal, panic or cancellation abandons only the created inode and
 // returns no staged capability. Only a completed producer can reach Commit.
-func StageProduced(ctx context.Context, request StageProductionRequest) (StagedFile, error) {
+func StageProduced(ctx context.Context, request StageProductionRequest) (staged StagedFile, resultErr error) {
+	defer func() {
+		if resultErr != nil && ctx != nil {
+			resultErr = errors.Join(resultErr, context.Cause(ctx))
+		}
+	}()
 	if err := errors.Join(contextstate.Validate(ctx), request.Validate()); err != nil {
 		return StagedFile{}, err
 	}
@@ -43,7 +48,7 @@ func StageProduced(ctx context.Context, request StageProductionRequest) (StagedF
 	produceErr := useFileScope(ctx, file, func(ctx context.Context, file *os.File) error {
 		return request.Produce(ctx, file)
 	})
-	if err := errors.Join(produceErr, contextstate.Validate(ctx), context.Cause(ctx)); err != nil {
+	if err := errors.Join(produceErr, contextstate.Validate(ctx)); err != nil {
 		return StagedFile{}, errors.Join(err, AbandonStageDestination(destination))
 	}
 	return FinishStageDestination(ctx, destination)
