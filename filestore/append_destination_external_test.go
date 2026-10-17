@@ -17,14 +17,12 @@ import (
 func TestAppendDestinationConservesBytesAcrossFlushSyncRotationAndClose(t *testing.T) {
 	t.Parallel()
 	for _, size := range []int{0, 1, 4095, 4096, 4097, 32769, 4<<20 + 17} {
-		t.Run(fmtAppendSize(size), func(t *testing.T) {
+		t.Run(fmt.Sprintf("bytes_%d", size), func(t *testing.T) {
 			t.Parallel()
 			proveAppendDestinationBytes(t, bytes.Repeat([]byte{0, 255, 17}, size/3), size%3)
 		})
 	}
 }
-
-func fmtAppendSize(size int) string { return fmt.Sprintf("bytes_%d", size) }
 
 // Each independently read file is the oracle, rather than the owner's counts.
 func proveAppendDestinationBytes(t *testing.T, payload []byte, suffix int) {
@@ -45,6 +43,24 @@ func proveAppendDestinationBytes(t *testing.T, payload []byte, suffix int) {
 		t.Fatal(err)
 	}
 	// Acquisition borrows the root; the live destination owns its native inode.
+	if _, err := d.Write([]byte("discard")); err != nil {
+		t.Fatal(err)
+	}
+	if n, err := d.Buffered(); err != nil || n != 7 {
+		t.Fatalf("buffered = %d,%v, want 7", n, err)
+	}
+	if n, err := d.DiscardBuffered(); err != nil || n != 7 {
+		t.Fatalf("discarded = %d,%v, want 7", n, err)
+	}
+	if _, err := d.Write([]byte("filler")); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.Truncate(t.Context(), core.ByteLength{}); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := os.ReadFile(dir + "/first"); err != nil || len(got) != 0 {
+		t.Fatalf("truncated bytes = %q,%v", got, err)
+	}
 	for _, chunk := range [][]byte{payload, bytes.Repeat([]byte{29}, suffix)} {
 		if n, err := d.Write(chunk); err != nil || n != len(chunk) {
 			t.Fatalf("write = %d,%v, want %d", n, err, len(chunk))

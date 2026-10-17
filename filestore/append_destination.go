@@ -27,6 +27,9 @@ type AppendDestination struct {
 func OpenAppendDestination(ctx context.Context, request AppendRequest) (*AppendDestination, error) {
 	file, err := OpenAppend(ctx, request)
 	if err != nil {
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			err = errors.Join(err, context.Cause(ctx))
+		}
 		return nil, err
 	}
 	d := &AppendDestination{file: file, writer: bufio.NewWriter(file)}
@@ -56,6 +59,46 @@ func (d *AppendDestination) Flush() error {
 		return err
 	}
 	return d.writer.Flush()
+}
+
+// Buffered returns the bytes still in Go's working window. It does not infer
+// an on-disk extent or a durability watermark.
+func (d *AppendDestination) Buffered() (int, error) {
+	if err := d.Validate(); err != nil {
+		return 0, err
+	}
+	return d.writer.Buffered(), nil
+}
+
+// DiscardBuffered explicitly abandons unwritten bytes and Go's sticky writer
+// error. It neither repairs the underlying file nor claims any bytes durable.
+// The returned count records the exact discarded working window.
+func (d *AppendDestination) DiscardBuffered() (int, error) {
+	if err := d.Validate(); err != nil {
+		return 0, err
+	}
+	n := d.writer.Buffered()
+	d.writer.Reset(d.file)
+	return n, nil
+}
+
+// Truncate flushes accepted writes before changing the native file extent.
+// Subsequent writes still append at the new end. Sync or Close owns durability.
+func (d *AppendDestination) Truncate(ctx context.Context, length core.ByteLength) error {
+	if err := contextstate.Validate(ctx); err != nil {
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			err = errors.Join(err, context.Cause(ctx))
+		}
+		return err
+	}
+	size, err := length.Int64()
+	if err != nil {
+		return err
+	}
+	if err := d.Flush(); err != nil {
+		return err
+	}
+	return d.file.Truncate(size)
 }
 
 // Sync flushes before synchronizing. A failed flush does not claim durability.
@@ -93,6 +136,9 @@ func (d *AppendDestination) settle() error {
 // accept zombie writes. A validation or cancellation refusal leaves it usable.
 func (d *AppendDestination) Rotate(ctx context.Context, incoming AppendRequest) error {
 	if err := contextstate.Validate(ctx); err != nil {
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			err = errors.Join(err, context.Cause(ctx))
+		}
 		return err
 	}
 	if err := d.Validate(); err != nil {
