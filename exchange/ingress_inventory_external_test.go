@@ -57,6 +57,11 @@ func TestPublicIngressHasCompilerBoundSemanticFuzz(t *testing.T) {
 
 func externalIngressCoverage() []exchange.IngressCoverageForTest {
 	entries := []exchange.IngressCoverageForTest{
+		{Door: exchange.ParseMultipartName, Kind: exchange.IngressFuzzForTest, Fuzz: FuzzMultipartNominalDoorsSemanticClosure},
+		{Door: exchange.ParseMultipartFileName, Kind: exchange.IngressFuzzForTest, Fuzz: FuzzMultipartNominalDoorsSemanticClosure},
+		{Door: exchange.ParseMultipartText, Kind: exchange.IngressFuzzForTest, Fuzz: FuzzMultipartNominalDoorsSemanticClosure},
+		{Door: exchange.WithMultipartSource, Kind: exchange.IngressFuzzForTest, Fuzz: FuzzMultipartNativeFramingAndCustodySemanticConservation},
+		{Door: exchange.MultipartPartKind.OffWireEnum, Kind: exchange.IngressProjectionForTest, Reason: "Compiler marker for an off-wire framing choice; enum membership and native framing are exercised by the multipart semantic fuzz targets."},
 		{Door: exchange.SendTo, Kind: exchange.IngressFuzzForTest, Fuzz: FuzzResponseDestinationPreservesDelivery},
 		{Door: exchange.SendNoBodyTo, Kind: exchange.IngressFuzzForTest, Fuzz: FuzzResponseDestinationPreservesDelivery},
 		{Door: exchange.Client.OfficialSDKResponseTransport, Kind: exchange.IngressCapabilityForTest, Proof: TestClientOfficialSDKTransportLayerTriad, Reason: "Projects caller-owned Go transport through a previously validated SDK boundary."},
