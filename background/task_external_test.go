@@ -268,6 +268,28 @@ func TestParentTaskConcurrentCloseObservesOneCompletedCallback(t *testing.T) {
 	}
 }
 
+func TestParentTaskKeepsParentCauseWhenActionReturnsNoError(t *testing.T) {
+	t.Parallel()
+	parent, cancel := context.WithCancelCause(t.Context())
+	defer cancel(nil)
+	entered := make(chan struct{})
+	var observed error
+	task, err := background.StartTask(background.TaskRequest{Parent: parent, Work: background.Work{
+		Run:      func(ctx context.Context) error { close(entered); <-ctx.Done(); return nil },
+		Complete: func(err error) { observed = err },
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _, _ = task.Close() }()
+	<-entered
+	cancel(errors.Join(io.ErrClosedPipe, io.ErrNoProgress))
+	result, err := task.Wait(t.Context())
+	if err != nil || result.CompletionError != nil || !errors.Is(result.ActionError, context.Canceled) || !errors.Is(result.ActionError, io.ErrClosedPipe) || !errors.Is(result.ActionError, io.ErrNoProgress) || !errors.Is(observed, io.ErrNoProgress) {
+		t.Fatalf("parent cancellation=%+v/%v observed=%v, want exact standard and joined native causes", result, err, observed)
+	}
+}
+
 func FuzzParentTaskCompletionSemanticConservation(f *testing.F) {
 	for _, selector := range []uint8{0, 1, 2, 3, 4} {
 		f.Add(selector)
