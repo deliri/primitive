@@ -159,6 +159,33 @@ func TestNativePairCancellationPreservesFirstCauseAndJoinsBothSources(t *testing
 	}
 }
 
+func TestNativePairCompletingOneSourceDoesNotCancelItsSibling(t *testing.T) {
+	t.Parallel()
+	firstLifetime := make(chan (<-chan struct{}), 1)
+	consumed := false
+	result, err := background.RunPair(t.Context(), background.PairRequest[int, int]{
+		First: func(ctx context.Context, _ func(int) error) error { firstLifetime <- ctx.Done(); return nil },
+		Second: func(ctx context.Context, offer func(int) error) error {
+			<-<-firstLifetime
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+			return offer(42)
+		},
+		ConsumeFirst: func(context.Context, int) error { return core.ErrBackgroundContract },
+		ConsumeSecond: func(_ context.Context, value int) error {
+			if value != 42 {
+				return core.ErrBackgroundContract
+			}
+			consumed = true
+			return nil
+		},
+	})
+	if err != nil || result.FirstError != nil || result.SecondError != nil || !consumed {
+		t.Fatalf("completed sibling canceled remaining source: %+v/%v consumed=%t", result, err, consumed)
+	}
+}
+
 func TestNativePairConsumerGoexitJoinsBlockedSiblingBeforeCallerUnwinds(t *testing.T) {
 	t.Parallel()
 	firstCleaned, secondCleaned := false, false
