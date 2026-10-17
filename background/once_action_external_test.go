@@ -69,15 +69,18 @@ func TestOnceActionConcurrentCallersJoinBeforeReceivingFirstFailure(t *testing.T
 		}
 		results := make(chan error, 17)
 		var joined sync.WaitGroup
-		for range 17 {
-			joined.Go(func() { copyOfAction := action; results <- copyOfAction.Run() })
-		}
+		joined.Go(func() { copyOfAction := action; results <- copyOfAction.Run() })
 		<-entered
 		synctest.Wait()
 		select {
 		case result := <-results:
 			t.Fatalf("action reported before cleanup=%v", result)
 		default:
+		}
+		// Mutex waits are not durably blocked in a synctest bubble. Observe
+		// the active action first, then contend and release through channels.
+		for range 16 {
+			joined.Go(func() { copyOfAction := action; results <- copyOfAction.Run() })
 		}
 		close(release)
 		joined.Wait()
