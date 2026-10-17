@@ -55,6 +55,13 @@ func TestFilestorePublicIngressHasCompilerBoundSemanticProof(t *testing.T) {
 
 func filestoreIngressProofs() []filestoreIngressProof {
 	entries := []filestoreIngressProof{
+		{door: reflect.ValueOf(filestore.OpenAppendDestination), fuzz: FuzzAppendDestinationExactBytesAndSettlement},
+		{door: reflect.ValueOf((*filestore.AppendDestination).Validate), fuzz: FuzzAppendDestinationExactBytesAndSettlement},
+		{door: reflect.ValueOf((*filestore.AppendDestination).Write), fuzz: FuzzAppendDestinationExactBytesAndSettlement},
+		{door: reflect.ValueOf((*filestore.AppendDestination).Flush), fuzz: FuzzAppendDestinationExactBytesAndSettlement},
+		{door: reflect.ValueOf((*filestore.AppendDestination).Sync), fuzz: FuzzAppendDestinationExactBytesAndSettlement},
+		{door: reflect.ValueOf((*filestore.AppendDestination).Close), fuzz: FuzzAppendDestinationExactBytesAndSettlement},
+		{door: reflect.ValueOf((*filestore.AppendDestination).Rotate), fuzz: FuzzAppendDestinationExactBytesAndSettlement},
 		{door: reflect.ValueOf(filestore.BrowserCommittedMoveModule), proof: TestBrowserCommittedMoveModuleCoreIdentityProjection, reason: "Publishes immutable embedded browser code with compiler-owned Core error identities; takes no external input. Native IndexedDB execution is proved by the browser suite."},
 		{door: reflect.ValueOf(filestore.InspectContentIndex), fuzz: FuzzInspectContentIndexExactBinding},
 		{door: reflect.ValueOf(filestore.CopyContent), fuzz: FuzzCopyContentExactAgreement},
