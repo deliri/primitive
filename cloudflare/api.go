@@ -123,18 +123,29 @@ func executeAPI[T core.Validatable](ctx context.Context, server apiServer, inten
 		return zero, contractError(err)
 	}
 	response := boundedResponse{maximum: maximum}
-	if err := server.transfer(ctx, intent, &response, policy); err != nil {
-		return zero, err
+	transferErr := server.transfer(ctx, intent, &response, policy)
+	if transferErr != nil {
+		// An unexpected status owns a complete refusal body only when its
+		// transfer completed. Partial reads, close failures and destination
+		// refusals remain native failures and cannot issue provider facts.
+		if _, ok := errors.AsType[exchange.StatusError](transferErr); !ok || errors.Is(transferErr, core.ErrExchangeResponse) {
+			return zero, transferErr
+		}
 	}
 	envelope, err := core.DecodeStrictJSONStructure[apiEnvelope[T]](response.buffer.Bytes(), server.limits)
 	if err != nil {
-		return zero, responseError(err)
+		return zero, errors.Join(transferErr, responseError(err))
 	}
 	if envelope.Success == nil {
-		return zero, core.ErrCloudflareResponse
+		return zero, errors.Join(transferErr, core.ErrCloudflareResponse)
 	}
 	if !*envelope.Success {
-		return zero, APIRefusal{Issues: envelope.Errors}
+		return zero, errors.Join(transferErr, APIRefusal{Issues: envelope.Errors})
+	}
+	// A success-looking document on a refused HTTP response cannot turn that
+	// response into successful execution.
+	if transferErr != nil {
+		return zero, errors.Join(transferErr, core.ErrCloudflareResponse)
 	}
 	if len(envelope.Errors) != 0 {
 		return zero, core.ErrCloudflareResponse
@@ -158,12 +169,12 @@ func (server apiServer) transfer(ctx context.Context, intent apiIntent, destinat
 	semantics := exchange.RequestSemantics{Method: intent.method, Replay: exchange.ReplaySingleAttempt}
 	if intent.source == nil {
 		_, err = exchange.Download(exchange.DownloadCall{Context: ctx, Client: server.client, Policy: policy,
-			Request: exchange.DownloadRequest{Target: target, Destination: destination, Headers: headers, Semantics: semantics,
+			Request: exchange.DownloadRequest{Target: target, Destination: destination, FailureDestination: destination, Headers: headers, Semantics: semantics,
 				ExpectedStatus: core.HTTPStatusOK(), ExpectedResponseContentType: core.HTTPMediaTypeJSON()}})
 		return err
 	}
 	_, err = exchange.RoundTripStream(exchange.StreamRoundTripCall{Context: ctx, Client: server.client, Policy: policy,
-		Request: exchange.StreamRoundTripRequest{Target: target, Source: intent.source, Destination: destination, Headers: headers,
+		Request: exchange.StreamRoundTripRequest{Target: target, Source: intent.source, Destination: destination, FailureDestination: destination, Headers: headers,
 			Semantics: semantics, RequestContentType: intent.media, ExpectedResponseContentType: core.HTTPMediaTypeJSON(), ExpectedStatus: core.HTTPStatusOK()}})
 	return err
 }
