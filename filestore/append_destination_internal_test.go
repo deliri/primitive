@@ -11,6 +11,50 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
+func TestAppendDestinationDiscardDoesNotReachDiskOrRepairClosedHandle(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	file, err := os.Create(dir + "/subject")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+	d := &AppendDestination{file: file, writer: bufio.NewWriter(file)}
+	d.self = d
+	defer d.Close()
+	if _, err := d.Write([]byte("abandoned")); err != nil {
+		t.Fatal(err)
+	}
+	if n, err := d.DiscardBuffered(); n != 9 || err != nil {
+		t.Fatalf("discard=%d,%v", n, err)
+	}
+	if err := d.Flush(); err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(dir + "/subject")
+	if err != nil || len(got) != 0 {
+		t.Fatalf("discarded bytes escaped=%q,%v", got, err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.Write([]byte("refused")); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.Flush(); !errors.Is(err, os.ErrClosed) {
+		t.Fatalf("native flush failure=%v", err)
+	}
+	if n, err := d.DiscardBuffered(); n != 7 || err != nil {
+		t.Fatalf("discard failed window=%d,%v", n, err)
+	}
+	if _, err := d.Write([]byte("still refused")); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.Flush(); !errors.Is(err, os.ErrClosed) {
+		t.Fatalf("reset repaired closed file=%v", err)
+	}
+}
+
 func TestAppendDestinationSyncPreservesNativeFailureWithoutBufferedBytes(t *testing.T) {
 	t.Parallel()
 	file, err := os.CreateTemp(t.TempDir(), "native")
