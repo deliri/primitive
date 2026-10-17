@@ -13,5 +13,7 @@
 // WithPullScope owns a native iter.Pull coroutine for synchronous forward
 // consumption. It joins producer cleanup on every exit and preserves the
 // producer's final error even when the consumer stops early.
+// RunPair owns two concurrent source lifetimes and synchronous consumer
+// callbacks on its caller's stack, including canceled-source terminal draining.
 // The package stores no identities, schedules, retry policy or durable jobs.
 package background
