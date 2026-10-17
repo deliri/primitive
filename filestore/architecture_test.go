@@ -406,7 +406,7 @@ func scanProductionArchitecture(files []productionFile) (architectureScan, error
 					switch value.Name.Name {
 					case "Close", "Read", "ReadAt", "Seek", "Stat", "Sync", "Write", "WriteAt":
 						method := receiverName(value.Recv.List[0].Type) + "." + value.Name.Name
-						if ownsGoInterfaceMethod(receiverName(value.Recv.List[0].Type), value.Name.Name) {
+						if ownsGoInterfaceMethod(receiverName(value.Recv.List[0].Type), value.Name.Name) || delegatesOwnedGoFileMethod(files, value, value.Name.Name, nil) {
 							return true
 						}
 						violations = append(
