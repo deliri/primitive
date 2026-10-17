@@ -31,7 +31,12 @@ func (r PrefixReadObservation) Validate() error { return r.Bytes.Validate() }
 // Short clean EOF succeeds. It performs no read beyond the window. A source
 // failure observed with the final bytes still refuses, clears provisional data,
 // and preserves its cause. Invalid ingress leaves the destination untouched.
-func ReadPrefix(ctx context.Context, request PrefixReadRequest) (PrefixReadObservation, error) {
+func ReadPrefix(ctx context.Context, request PrefixReadRequest) (result PrefixReadObservation, resultErr error) {
+	defer func() {
+		if resultErr != nil && ctx != nil {
+			resultErr = errors.Join(resultErr, context.Cause(ctx))
+		}
+	}()
 	if err := errors.Join(contextstate.Validate(ctx), request.Validate()); err != nil {
 		return PrefixReadObservation{}, err
 	}
