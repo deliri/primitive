@@ -12,6 +12,15 @@ func emitPackageClaimSpecsAThroughG(emit func(packageClaimSpec) bool) bool {
 			excludes: "It does not decide access policy, interpret offerings, perform transport, observe time, or execute admitted work.",
 		},
 		{
+			path: "aesgcm", title: "Native AES-256-GCM authenticated encryption",
+			problem:  "Products otherwise duplicate authenticated encryption mechanics and nonce generation.",
+			solution: "Aesgcm delegates encryption and authenticated decryption to Go AES-256-GCM with native random nonces.",
+			benefit:  "Callers receive no unauthenticated plaintext and cannot accidentally choose a sealing nonce.",
+			removal:  "Remove Aesgcm when consumers no longer need authenticated symmetric encryption.",
+			owns:     "Aesgcm owns only native cipher execution, private result allocation and shared capability destruction.",
+			excludes: "It does not select keys, coordinate global key-use limits, rotate keys, persist values or define associated-data policy.",
+		},
+		{
 			path: "attest", title: "Bounded typed attestation",
 			problem:  "Independent parties need signatures over exact typed facts without each protocol reimplementing framing and canonical hashing.",
 			solution: "Attest signs and verifies bounded canonical facts with Ed25519, domain separation, detached envelopes, and caller-selected trust.",

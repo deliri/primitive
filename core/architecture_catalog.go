@@ -176,6 +176,8 @@ const (
 	PackageAdmission
 	// PackageLoops identifies Loops-authenticated HTTP and Standard Webhooks contracts.
 	PackageLoops
+	// PackageAESGCM identifies native AES-256-GCM authenticated encryption.
+	PackageAESGCM
 	packageIdentityLimit
 )
 
@@ -292,6 +294,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageAIChatGPT, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 			{Identity: PackageAdmission, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
 			{Identity: PackageLoops, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
+			{Identity: PackageAESGCM, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
 		},
 	}
 }
@@ -548,6 +551,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"ai/chatgpt",
 		"admission",
 		"loops",
+		"aesgcm",
 	}
 }
 

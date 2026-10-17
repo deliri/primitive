@@ -625,6 +625,10 @@ const (
 	ErrAdmissionContract
 	// ErrAdmissionCapacity identifies immediate refusal of a saturated native slot.
 	ErrAdmissionCapacity
+	// ErrAESGCMContract identifies invalid AES-256-GCM capability or input.
+	ErrAESGCMContract
+	// ErrAESGCMAuthentication identifies native GCM authentication refusal.
+	ErrAESGCMAuthentication
 	errorIdentityLimit
 )
 
@@ -904,6 +908,8 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrAIRequestRejected, text: "ai provider rejected request"},
 		{identity: ErrAdmissionContract, text: "admission contract violation"},
 		{identity: ErrAdmissionCapacity, text: "admission capacity unavailable"},
+		{identity: ErrAESGCMContract, text: "aes-gcm contract violation"},
+		{identity: ErrAESGCMAuthentication, text: "aes-gcm authentication failed"},
 	}
 }
 
@@ -1005,6 +1011,12 @@ func isAdmittedErrorIdentity(identity ErrorIdentity) bool {
 }
 
 func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
+	if identity == ErrAESGCMAuthentication {
+		return oneErrorIdentityParent(ErrAESGCMContract)
+	}
+	if identity == ErrAESGCMContract {
+		return oneErrorIdentityParent(ErrPrimitiveContract)
+	}
 	if errorIdentityIn(identity, ErrAdmissionContract, ErrAdmissionCapacity) {
 		return oneErrorIdentityParent(ErrPrimitiveContract)
 	}

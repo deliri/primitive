@@ -15,7 +15,7 @@ import (
 
 const (
 	coreExportDependencyMaximum     = 32
-	coreSpecialExportAdmissionCount = 99 // Includes native synchronous slot admission.
+	coreSpecialExportAdmissionCount = 105 // Includes the AES-GCM native domain and package identity.
 	coreProviderExportContractCount = 231
 )
 
@@ -137,6 +137,15 @@ func coreSpecialExportAdmissions() [coreSpecialExportAdmissionCount]coreSpecialE
 		architectureCatalogAdmission("PackageUnknown", PackageUnknown),
 		architectureCatalogAdmission("PackageCore", PackageCore),
 		architectureCatalogAdmission("PackageAttest", PackageAttest),
+		architectureCatalogAdmission("PackageAESGCM", PackageAESGCM),
+		// Native AES-GCM extents form one shared cryptographic domain; product
+		// callers need these without inventing a second Primitive consumer.
+		coherentDomainContractAdmission("AES256KeyBytes", AES256KeyBytes),
+		coherentDomainContractAdmission("AESGCMNonceBytes", AESGCMNonceBytes),
+		coherentDomainContractAdmission("AESGCMTagBytes", AESGCMTagBytes),
+		coherentDomainContractAdmission("AESGCMOverheadBytes", AESGCMOverheadBytes),
+		coherentDomainContractAdmission("AESGCMMaximumPlaintextBytes", AESGCMMaximumPlaintextBytes),
+
 		architectureCatalogAdmission("PackageContextState", PackageContextState),
 		architectureCatalogAdmission("PackageCurrency", PackageCurrency),
 		architectureCatalogAdmission("PackageKeygen", PackageKeygen),
