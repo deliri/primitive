@@ -57,11 +57,12 @@ func (s WallGapSnapshot) Validate() error {
 // lifetime. Snapshot borrows no mutable state. Close joins before returning.
 // The capability must not be copied; concurrent snapshots and closes are safe.
 type WallGapWatch struct {
-	self     *WallGapWatch
-	task     *Task
-	mu       sync.Mutex
-	previous temporal.Instant
-	snapshot WallGapSnapshot
+	self           *WallGapWatch
+	task           *Task
+	mu             sync.Mutex
+	previous       temporal.Instant
+	snapshot       WallGapSnapshot
+	observationErr error
 }
 
 func OpenWallGapWatch(request WallGapWatchRequest) (*WallGapWatch, error) {
@@ -100,6 +101,9 @@ func (w *WallGapWatch) Snapshot() (WallGapSnapshot, error) {
 	}
 	w.mu.Lock()
 	defer w.mu.Unlock()
+	if w.observationErr != nil {
+		return WallGapSnapshot{}, w.observationErr
+	}
 	return w.snapshot, nil
 }
 
@@ -112,7 +116,14 @@ func (w *WallGapWatch) Close() (TaskResult, error) {
 	return w.task.Close()
 }
 
-func (w *WallGapWatch) run(ctx context.Context, ticker *temporal.Ticker) error {
+func (w *WallGapWatch) run(ctx context.Context, ticker *temporal.Ticker) (resultErr error) {
+	defer func() {
+		if resultErr != nil {
+			w.mu.Lock()
+			w.observationErr = resultErr
+			w.mu.Unlock()
+		}
+	}()
 	for {
 		select {
 		case <-ctx.Done():

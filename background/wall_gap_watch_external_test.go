@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"math"
 	"reflect"
 	"sync"
 	"testing"
@@ -14,6 +15,31 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/temporal"
 )
+
+func TestWallGapWatchWithdrawsSnapshotAfterNativeSamplingRefusal(t *testing.T) {
+	t.Parallel()
+	synctest.Test(t, func(t *testing.T) {
+		interval, err := temporal.DurationFromNanoseconds(int64(time.Millisecond))
+		if err != nil {
+			t.Fatal(err)
+		}
+		watch, err := background.OpenWallGapWatch(background.WallGapWatchRequest{Parent: t.Context(), Start: temporal.InstantFromNanoseconds(math.MinInt64), Interval: interval})
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() { _, _ = watch.Close() }()
+		time.Sleep(time.Millisecond)
+		synctest.Wait()
+		got, err := watch.Snapshot()
+		if got != (background.WallGapSnapshot{}) || !errors.Is(err, core.ErrTemporalOverflow) {
+			t.Fatalf("failed native sample = %+v / %v, want withdrawn observation and native cause", got, err)
+		}
+		result, closeErr := watch.Close()
+		if closeErr != nil || !errors.Is(result.ActionError, err) {
+			t.Fatalf("native join = %+v / %v, want conserved sampling cause %v", result, closeErr, err)
+		}
+	})
+}
 
 func TestWallGapWatchRefusesUnsetAndCopiedCapabilities(t *testing.T) {
 	t.Parallel()
@@ -160,6 +186,12 @@ func FuzzWallGapWatchAdmissionAndJoinedSnapshot(f *testing.F) {
 			t.Fatalf("Close() = %v, want nil or native interval overflow", closeErr)
 		}
 		before, err := watch.Snapshot()
+		if errors.Is(result.ActionError, core.ErrTemporalOverflow) {
+			if before != (background.WallGapSnapshot{}) || !errors.Is(err, core.ErrTemporalOverflow) {
+				t.Fatalf("failed joined snapshot = %+v / %v, want no observation and sampling cause", before, err)
+			}
+			return
+		}
 		if err != nil || before.Validate() != nil {
 			t.Fatalf("closed snapshot = %+v / %v", before, err)
 		}
