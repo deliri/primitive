@@ -32,6 +32,7 @@ type temporalContractInventory struct {
 	LocalClock           temporalIngressRequest[LocalTimeRequest]
 	NativePair           temporalIngressRequest[NativeTimePair]
 	Cancellation         temporalCapabilityIntent[CancellationRequest]
+	DetachedContext      temporalCapabilityIntent[DetachedContextRequest]
 	ContextResult        temporalCapabilityIntent[contextConstruction]
 	Ticker               temporalCapabilityIntent[Ticker]
 	NativeTextFormat     temporalCapabilityIntent[NativeTimeFormatRequest]
@@ -319,6 +320,7 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 		"func ParseCompactUTC",
 		"func Wait",
 		"func WithCancellation",
+		"func WithoutCancellation",
 		"func WithDeadline",
 		"func WithTimeout",
 		"method AggregateDuration.Add",
@@ -333,6 +335,7 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 		"method AggregateDuration.UnmarshalJSON",
 		"method AggregateDuration.Validate",
 		"method CancellationRequest.Validate",
+		"method DetachedContextRequest.Validate",
 		"method DeadlineRequest.Validate",
 		"method Duration.Add",
 		"method Duration.Aggregate",
@@ -393,6 +396,7 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 		"method WaitRequest.Validate",
 		"type AggregateDuration",
 		"type CancellationRequest",
+		"type DetachedContextRequest",
 		"type DeadlineRequest",
 		"type Duration",
 		"type Instant",
