@@ -50,6 +50,7 @@ type filestoreContractInventory struct {
 	CopyPartitionRequest          validatedRequest[CopyPartitionRequest]
 	ContentPartitionObservation   streamedObservation[ContentPartitionObservation]
 	CopyContentRequest            validatedRequest[CopyContentRequest]
+	CopyPrefixRequest             validatedRequest[CopyPrefixRequest]
 	ChunkWriteRequest             validatedRequest[ChunkWriteRequest]
 	ReadSnapshotRequest           validatedRequest[ReadSnapshotRequest]
 	ReadSnapshot                  capabilityWrapper[ReadSnapshot]
