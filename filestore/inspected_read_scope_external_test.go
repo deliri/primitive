@@ -13,6 +13,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/filestore"
+	primitiverelease "github.com/deliri/primitive/v2026/release"
 )
 
 func inspectedReadLocation(t testing.TB, body []byte, mode fs.FileMode) (filestore.Location, string) {
@@ -257,6 +258,13 @@ func FuzzInspectedReadScopePreservesHeldObjectBytesAndMetadata(f *testing.F) {
 			if err != nil {
 				return err
 			}
+			var probe [17]byte
+			offset := len(body) / 2
+			count, readErr := read.Source.ReadAt(probe[:], int64(offset))
+			wantCount := min(len(probe), len(body)-offset)
+			if count != wantCount || !bytes.Equal(probe[:count], body[offset:offset+wantCount]) || (wantCount < len(probe) && readErr != io.EOF) || (wantCount == len(probe) && readErr != nil) {
+				t.Fatalf("native positional fuzz observation=%d/%v,want %d bytes and exact EOF", count, readErr, wantCount)
+			}
 			var output bytes.Buffer
 			observed, err := filestore.CopyContent(ctx, filestore.CopyContentRequest{Source: read.Source, Destination: &output})
 			if err != nil {
@@ -306,6 +314,93 @@ func BenchmarkInspectedReadScopeStreamingExtent(b *testing.B) {
 				if err != nil || scope.Validate() != nil || scope.OperationError() != nil || scope.CleanupError() != nil {
 					b.Fatalf("native streaming scope=%+v/%v", scope, err)
 				}
+			}
+		})
+	}
+}
+
+func TestInspectedReadScopeLendsPositionalBytesWithoutAdvancingStream(t *testing.T) {
+	t.Parallel()
+	for _, replace := range []bool{false, true} {
+		t.Run(fmt.Sprintf("replaced_%v", replace), func(t *testing.T) {
+			t.Parallel()
+			body := []byte{0, 255, 17, 31, 63}
+			location, path := inspectedReadLocation(t, body, 0640)
+			var borrowed filestore.InspectedReadSource
+			scope, err := filestore.WithInspectedReadScope(t.Context(), filestore.InspectedReadScopeRequest{Location: location, Use: func(_ context.Context, read filestore.InspectedRead) error {
+				borrowed = read.Source
+				if replace {
+					if err := os.Rename(path, path+"-original"); err != nil {
+						return err
+					}
+					if err := os.WriteFile(path, []byte("foreign namespace"), 0600); err != nil {
+						return err
+					}
+				}
+				var middle [3]byte
+				n, err := read.Source.ReadAt(middle[:], 1)
+				if err != nil || n != 3 || middle != [3]byte{255, 17, 31} {
+					t.Fatalf("native positional bytes=%v/%d/%v", middle, n, err)
+				}
+				var beyond [3]byte
+				n, err = read.Source.ReadAt(beyond[:], 4)
+				if !errors.Is(err, io.EOF) || n != 1 || beyond[0] != 63 {
+					t.Fatalf("native positional EOF=%v/%d/%v", beyond, n, err)
+				}
+				var first [1]byte
+				n, err = read.Source.Read(first[:])
+				if err != nil || n != 1 || first[0] != 0 {
+					t.Fatalf("positional reads advanced native stream=%v/%d/%v", first, n, err)
+				}
+				extent, err := read.Metadata.SizeBytes()
+				if err != nil {
+					return err
+				}
+				if extent.Uint64() != uint64(len(body)) {
+					t.Fatalf("positional metadata=%v,want original extent%d", extent, len(body))
+				}
+				return nil
+			}})
+			if err != nil || scope.Validate() != nil || scope.OperationError() != nil || scope.CleanupError() != nil {
+				t.Fatalf("native positional loan=%+v/%v", scope, err)
+			}
+			if borrowed == nil {
+				t.Fatal("native positional source missing")
+			}
+			if _, err := borrowed.ReadAt(make([]byte, 1), 0); !errors.Is(err, os.ErrClosed) {
+				t.Fatalf("positional loan escaped scope=%v", err)
+			}
+		})
+	}
+}
+
+func TestInspectedReadScopeSupportsNativeReleaseMetadataInspection(t *testing.T) {
+	t.Parallel()
+	for _, kind := range []primitiverelease.MetadataKind{primitiverelease.MetadataKindDependencies, primitiverelease.MetadataKindDocumentation, primitiverelease.MetadataKindReleaseNotes} {
+		t.Run(kind.String(), func(t *testing.T) {
+			t.Parallel()
+			body := bytes.Repeat([]byte("native positional metadata"), 4097)
+			location, _ := inspectedReadLocation(t, body, 0600)
+			scope, err := filestore.WithInspectedReadScope(t.Context(), filestore.InspectedReadScopeRequest{Location: location, Use: func(_ context.Context, read filestore.InspectedRead) error {
+				size, err := read.Metadata.SizeBytes()
+				if err != nil {
+					return err
+				}
+				extent, err := core.NewByteCount(size.Uint64())
+				if err != nil {
+					return err
+				}
+				asset, err := primitiverelease.InspectMetadataAsset(primitiverelease.MetadataInspectionRequest{Source: read.Source, Extent: extent, Kind: kind})
+				if err != nil {
+					return err
+				}
+				if asset.Kind() != kind || asset.Integrity().SHA256() != core.SHA256Of(body) || asset.Integrity().Extent() != extent {
+					t.Fatalf("native release metadata=%+v,want actual source kind/digest/extent", asset)
+				}
+				return asset.Validate()
+			}})
+			if err != nil || scope.Validate() != nil || scope.OperationError() != nil || scope.CleanupError() != nil {
+				t.Fatalf("native metadata loan=%+v/%v", scope, err)
 			}
 		})
 	}

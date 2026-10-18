@@ -10,11 +10,18 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
+// InspectedReadSource exposes the native file's read capabilities without
+// lending write, truncate or close authority.
+type InspectedReadSource interface {
+	io.ReadSeeker
+	io.ReaderAt
+}
+
 // InspectedRead lends bytes and metadata from the same held native object.
 // The reader is borrowed synchronously; it must not be retained or closed.
 // Replacing the source pathname cannot replace this descriptor's observation.
 type InspectedRead struct {
-	Source   io.ReadSeeker
+	Source   InspectedReadSource
 	Metadata Inspection
 }
 
