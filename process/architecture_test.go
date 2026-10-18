@@ -16,6 +16,7 @@ import (
 func productionStructRoles() map[string]string {
 	return map[string]string{
 		"Argument":               "validated argv fact",
+		"ServiceDocumentRequest": "native user-service encoding request",
 		"Containment":            "validated isolation and cancel policy",
 		"Execution":              "supervised running-child capability",
 		"ExecutionWaitRequest":   "native wait and completion lifetime request",
@@ -60,6 +61,7 @@ func productionImportAllowlist() []string {
 	return []string{
 		"context",
 		"encoding/json/v2",
+		"encoding/xml",
 		"errors",
 		"fmt",
 		"github.com/deliri/primitive/v2026/contextstate",
@@ -71,9 +73,11 @@ func productionImportAllowlist() []string {
 		"os/exec",
 		"reflect",
 		"strings",
+		"strconv",
 		"sync",
 		"sync/atomic",
 		"syscall",
+		"unicode/utf8",
 	}
 }
 
@@ -198,12 +202,14 @@ func TestPublicOperationsAreOnlyTypedConstructionAndExecution(t *testing.T) {
 		"ParseArguments",
 		"ParseEffectiveEnvironment",
 		"ParseExactEnvironment",
+		"QuotePOSIXArgument",
 		"Resolve",
 		"ResolveExecutable",
 		"Run",
 		"Self",
 		"StandardStreams",
 		"WaitGroupAbsent",
+		"WriteServiceDocument",
 	}
 	if !slices.Equal(got, want) {
 		t.Fatalf("exported Process operations = %q, want exactly %q", got, want)

@@ -39,6 +39,14 @@ placement and the admission decision. Observation does not change host limits
 or start a monitoring service. Unsupported systems and failed/cancelled samples
 return no resource sample.
 
+## Native process configuration
+
+`process.WriteServiceDocument` encodes a typed user-service definition as
+launchd XML or a systemd unit. The caller selects paths, argv, environment,
+restart policy and timeouts, then uses Filestore and Process to install it.
+`process.QuotePOSIXArgument` preserves one exact argument for OpenSSH's
+remote-shell command field. Neither operation registers or starts a service.
+
 ## License
 
 Primitive is licensed under the [Mozilla Public License 2.0](LICENSE).

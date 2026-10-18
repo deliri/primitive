@@ -22,6 +22,10 @@
 // Ambient process arguments and standard streams remain process facts.
 // Executable path, working directory, and environment are host observations
 // supplied by hostfacts and admitted into this package's typed request values.
+// WriteServiceDocument encodes caller-owned argv/environment into a native
+// launchd or systemd user-service document. It does not install the service or
+// choose its paths, restart agreement or privileges. QuotePOSIXArgument owns
+// the single-word POSIX projection required by OpenSSH's remote command field.
 //
 // Ambient termination policy belongs to the caller at its process boundary.
 // ExitCurrent executes immediate termination through Go; product libraries

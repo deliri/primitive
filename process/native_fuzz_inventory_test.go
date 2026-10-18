@@ -1,6 +1,8 @@
 package process
 
 import (
+	"context"
+	"io"
 	"reflect"
 	"slices"
 	"testing"
@@ -15,11 +17,15 @@ type nativeFuzzDoor[Call any] struct {
 // names of these compiler-bound native and private-wire proofs.
 func ProcessNativeFuzzDoorNames() []string {
 	inventory := struct {
-		Plan_UnmarshalJSON nativeFuzzDoor[func(*Plan, []byte) error]
-		snapshotSighting   nativeFuzzDoor[func(ProcessIdentity, string) (ProcessSighting, bool)]
+		QuotePOSIXArgument   nativeFuzzDoor[func(Argument) (Argument, error)]
+		WriteServiceDocument nativeFuzzDoor[func(context.Context, io.Writer, ServiceDocumentRequest) error]
+		Plan_UnmarshalJSON   nativeFuzzDoor[func(*Plan, []byte) error]
+		snapshotSighting     nativeFuzzDoor[func(ProcessIdentity, string) (ProcessSighting, bool)]
 	}{
-		Plan_UnmarshalJSON: nativeFuzzDoor[func(*Plan, []byte) error]{Call: (*Plan).UnmarshalJSON, Fuzz: FuzzPlanJSONExternalIngress},
-		snapshotSighting:   nativeFuzzDoor[func(ProcessIdentity, string) (ProcessSighting, bool)]{Call: snapshotSighting, Fuzz: FuzzSnapshotSightingNativeIngress},
+		QuotePOSIXArgument:   nativeFuzzDoor[func(Argument) (Argument, error)]{Call: QuotePOSIXArgument, Fuzz: FuzzPOSIXArgumentSemanticClosure},
+		WriteServiceDocument: nativeFuzzDoor[func(context.Context, io.Writer, ServiceDocumentRequest) error]{Call: WriteServiceDocument, Fuzz: FuzzServiceDocumentProjection},
+		Plan_UnmarshalJSON:   nativeFuzzDoor[func(*Plan, []byte) error]{Call: (*Plan).UnmarshalJSON, Fuzz: FuzzPlanJSONExternalIngress},
+		snapshotSighting:     nativeFuzzDoor[func(ProcessIdentity, string) (ProcessSighting, bool)]{Call: snapshotSighting, Fuzz: FuzzSnapshotSightingNativeIngress},
 	}
 	var names []string
 	for field := range reflect.TypeOf(inventory).Fields() {
