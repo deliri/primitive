@@ -43,10 +43,10 @@ func withGeneratedRecordRange(t testing.TB, extent int64, use func(lineio.Record
 		if err != nil {
 			return err
 		}
-		if copied.Bytes.Uint64() != uint64(extent+1) {
+		if copied.Extent.Uint64() != uint64(extent+1) {
 			return io.ErrShortWrite
 		}
-		use(lineio.RecordFragmentRequest{Source: source, Record: lineio.RecordRange{Bytes: copied.Bytes, Framing: lineio.RecordFramingLF}, BufferBytes: window})
+		use(lineio.RecordFragmentRequest{Source: source, Record: lineio.RecordRange{Bytes: copied.Extent, Framing: lineio.RecordFramingLF}, BufferBytes: window})
 		return nil
 	}})
 	if err != nil {
@@ -82,8 +82,8 @@ func TestRecordRangeScopeNativeFileHasNoFormerRecordCeiling(t *testing.T) {
 		}
 		_, _ = want.Write([]byte{'\n'})
 		digest, err := got.Digest.Bytes()
-		if err != nil || got.Bytes.Uint64() != uint64(extent+1) || !bytes.Equal(digest[:], want.Sum(nil)) {
-			t.Fatalf("large selected range = (%d bytes,%x,%v), want complete independent native-file digest", got.Bytes.Uint64(), digest, err)
+		if err != nil || got.Extent.Uint64() != uint64(extent+1) || !bytes.Equal(digest[:], want.Sum(nil)) {
+			t.Fatalf("large selected range = (%d bytes,%x,%v), want complete independent native-file digest", got.Extent.Uint64(), digest, err)
 		}
 	})
 }
