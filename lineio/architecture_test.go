@@ -32,6 +32,8 @@ type lineioContractInventory struct {
 	RecordRange              lineioRequestContract[lineio.RecordRange]
 	RecordCharacter          lineioRequestContract[lineio.RecordCharacter]
 	RecordReadRequest        lineioRequestContract[lineio.RecordReadRequest]
+	RecordRangeReadRequest   lineioRequestContract[lineio.RecordRangeReadRequest]
+	recordRangeSource        lineioReadCountGuardContract
 	RecordReadObservation    lineioRequestContract[lineio.RecordReadObservation]
 	RecordRangeRequest       lineioRequestContract[lineio.RecordRangeRequest]
 	RecordFragmentRequest    lineioRequestContract[lineio.RecordFragmentRequest]
