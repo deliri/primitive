@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"iter"
 
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
@@ -29,7 +28,7 @@ func (r RecordRangeReadRequest) Validate() error {
 // collecting a record or changing the source's sequential position. It drains
 // the range after every ordinary callback return, including refusal, so native
 // framing, extent and read failures cannot disappear behind an early decode.
-// Every exit expires the reader; panic and Goexit stop the native coroutine.
+// Every exit expires the reader, including panic and Goexit.
 func WithRecordRange(ctx context.Context, request RecordRangeReadRequest) (resultErr error) {
 	defer func() {
 		if ctx != nil && (errors.Is(resultErr, context.Canceled) || errors.Is(resultErr, context.DeadlineExceeded)) {
@@ -39,14 +38,16 @@ func WithRecordRange(ctx context.Context, request RecordRangeReadRequest) (resul
 	if err := errors.Join(contextstate.Validate(ctx), request.Validate()); err != nil {
 		return err
 	}
-	next, stop := iter.Pull2(RecordFragments(ctx, request.Range))
-	source := recordRangeSource{context: ctx, next: next}
+	reader, err := newRecordFragmentReader(ctx, request.Range)
+	if err != nil {
+		return err
+	}
+	source := recordRangeSource{context: ctx, reader: reader}
 	defer func() {
-		source.next = nil
+		source.reader = nil
 		source.fragment = Fragment{}
 		source.context = nil
 		source.readErr = nil
-		stop()
 	}()
 	useErr := request.Use(ctx, &source)
 	_, drainErr := io.Copy(io.Discard, &source)
@@ -57,13 +58,13 @@ func WithRecordRange(ctx context.Context, request RecordRangeReadRequest) (resul
 // positioning, physical extent and framing. It starts no independent worker.
 type recordRangeSource struct {
 	context  context.Context
-	next     func() (Fragment, error, bool)
+	reader   *recordFragmentReader
 	fragment Fragment
 	readErr  error
 }
 
 func (s *recordRangeSource) Read(destination []byte) (int, error) {
-	if s.next == nil {
+	if s.reader == nil {
 		return 0, core.ErrLineIOContract
 	}
 	if s.readErr != nil {
@@ -76,13 +77,13 @@ func (s *recordRangeSource) Read(destination []byte) (int, error) {
 		return 0, err
 	}
 	for len(s.fragment.Bytes) == 0 {
-		fragment, err, ok := s.next()
+		fragment, err := s.reader.readFragment(s.context)
+		if err == io.EOF {
+			return 0, io.EOF
+		}
 		if err != nil {
 			s.readErr = err
 			return 0, err
-		}
-		if !ok {
-			return 0, io.EOF
 		}
 		s.fragment = fragment
 	}

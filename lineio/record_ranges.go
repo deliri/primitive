@@ -183,49 +183,78 @@ func (r RecordFragmentRequest) Validate() error {
 // contract. No record materialization or source-length quota is introduced.
 func RecordFragments(ctx context.Context, request RecordFragmentRequest) iter.Seq2[Fragment, error] {
 	return func(yield func(Fragment, error) bool) {
-		if err := errors.Join(contextstate.Validate(ctx), request.Validate()); err != nil {
-			yield(Fragment{}, err)
-			return
-		}
-		size, err := request.Record.Bytes.Int64()
+		reader, err := newRecordFragmentReader(ctx, request)
 		if err != nil {
 			yield(Fragment{}, err)
 			return
 		}
-		source := recordRangeReadGuard{source: io.NewSectionReader(request.Source, int64(request.Record.Offset), size)}
-		reader, err := New(Request{Source: &source, BufferBytes: request.BufferBytes})
-		if err != nil {
-			yield(Fragment{}, err)
-			return
-		}
-		var observed int64
 		for {
-			fragment, err := reader.ReadFragment(ctx)
-			if source.readErr != nil {
-				yield(Fragment{}, errors.Join(core.ErrLineIOScan, err, source.readErr))
+			fragment, err := reader.readFragment(ctx)
+			if err == io.EOF {
 				return
 			}
-			if err != nil && err != io.EOF {
+			if err != nil {
 				yield(Fragment{}, err)
 				return
 			}
-			observed += int64(len(fragment.Bytes))
-			if !fragment.More && err == nil && request.Record.Framing != RecordFramingOpaque && (observed != size || request.Record.Framing != RecordFramingLF) {
-				yield(Fragment{}, core.ErrLineIOScan)
-				return
-			}
-			if err == io.EOF && (observed != size || request.Record.Framing != RecordFramingEOF && request.Record.Framing != RecordFramingOpaque) {
-				yield(Fragment{}, errors.Join(core.ErrLineIOScan, io.ErrUnexpectedEOF))
-				return
-			}
-			if len(fragment.Bytes) > 0 && !yield(fragment, nil) {
-				return
-			}
-			if err == io.EOF || !fragment.More && request.Record.Framing != RecordFramingOpaque {
+			if !yield(fragment, nil) {
 				return
 			}
 		}
 	}
+}
+
+// recordFragmentReader is the shared native fragment cursor. Iterator and
+// borrowed-reader consumers use the same Go buffered reader and framing checks;
+// adapting between those forms starts no coroutine or independent worker.
+type recordFragmentReader struct {
+	reader   *Reader
+	source   recordRangeReadGuard
+	observed int64
+	size     int64
+	framing  RecordFraming
+	complete bool
+}
+
+func newRecordFragmentReader(ctx context.Context, request RecordFragmentRequest) (*recordFragmentReader, error) {
+	if err := errors.Join(contextstate.Validate(ctx), request.Validate()); err != nil {
+		return nil, err
+	}
+	size, err := request.Record.Bytes.Int64()
+	if err != nil {
+		return nil, err
+	}
+	cursor := &recordFragmentReader{source: recordRangeReadGuard{source: io.NewSectionReader(request.Source, int64(request.Record.Offset), size)}, size: size, framing: request.Record.Framing}
+	cursor.reader, err = New(Request{Source: &cursor.source, BufferBytes: request.BufferBytes})
+	if err != nil {
+		return nil, err
+	}
+	return cursor, nil
+}
+
+func (r *recordFragmentReader) readFragment(ctx context.Context) (Fragment, error) {
+	if r.complete {
+		return Fragment{}, io.EOF
+	}
+	fragment, err := r.reader.ReadFragment(ctx)
+	if r.source.readErr != nil {
+		return Fragment{}, errors.Join(core.ErrLineIOScan, err, r.source.readErr)
+	}
+	if err != nil && err != io.EOF {
+		return Fragment{}, err
+	}
+	r.observed += int64(len(fragment.Bytes))
+	if !fragment.More && err == nil && r.framing != RecordFramingOpaque && (r.observed != r.size || r.framing != RecordFramingLF) {
+		return Fragment{}, core.ErrLineIOScan
+	}
+	if err == io.EOF && (r.observed != r.size || r.framing != RecordFramingEOF && r.framing != RecordFramingOpaque) {
+		return Fragment{}, errors.Join(core.ErrLineIOScan, io.ErrUnexpectedEOF)
+	}
+	r.complete = err == io.EOF || !fragment.More && r.framing != RecordFramingOpaque
+	if len(fragment.Bytes) == 0 {
+		return Fragment{}, io.EOF
+	}
+	return fragment, nil
 }
 
 var _ core.OffWireEnum = RecordFramingUnknown
