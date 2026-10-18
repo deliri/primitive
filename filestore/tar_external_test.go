@@ -286,3 +286,36 @@ func FuzzTARNativeEntryAndOutputAgreement(f *testing.F) {
 		}
 	})
 }
+
+func BenchmarkTARFixedMemoryAcrossEntryCardinality(b *testing.B) {
+	for _, count := range []int{1, 1024, 65537} {
+		b.Run(fmt.Sprintf("entries_%d", count), func(b *testing.B) {
+			path, err := core.ParseRelativePath("entry")
+			if err != nil {
+				b.Fatal(err)
+			}
+			source := bytes.NewReader(nil)
+			request := filestore.TARWriteRequest{Destination: io.Discard, Compression: filestore.TARGzip, Produce: func(_ context.Context, add func(filestore.TAREntry) (filestore.ContentIndexEntry, error)) error {
+				for range count {
+					source.Reset(nil)
+					got, err := add(filestore.TAREntry{Source: source, Path: path, Bytes: core.ByteLength{}, Mode: 0600})
+					if err != nil {
+						return err
+					}
+					if got.Extent.Uint64() != 0 {
+						b.Fatal("empty TAR entry invented content")
+					}
+				}
+				return nil
+			}}
+			b.ReportAllocs()
+			b.ResetTimer()
+			for b.Loop() {
+				got, err := filestore.WriteTAR(b.Context(), request)
+				if err != nil || got.Extent.Uint64() == 0 {
+					b.Fatalf("encoded TAR=%+v/%v,want completed native output", got, err)
+				}
+			}
+		})
+	}
+}
