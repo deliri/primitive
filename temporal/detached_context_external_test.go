@@ -62,7 +62,7 @@ func TestDetachedContextAdmissionDoesNotObserveParentMethods(t *testing.T) {
 			t.Errorf("detached admission observed a parent method: %v", failure)
 		}
 	}()
-	parent := &temporalParentProbe{Context: t.Context(), panicErr: true, panicDone: true, panicValue: true}
+	parent := &temporalParentProbe{Context: t.Context(), panicErr: true, panicDeadline: true, panicDone: true, panicValue: true}
 	detached, err := temporal.WithoutCancellation(temporal.DetachedContextRequest{Parent: parent})
 	if err != nil || detached == nil {
 		t.Fatalf("detaching unobserved parent = (%v,%v), want native admission", detached, err)
