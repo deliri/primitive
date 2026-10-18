@@ -48,7 +48,12 @@ func (r InspectedReadScopeRequest) Validate() error {
 // Acquisition refusal returns no completed scope. Metadata or consumer failure,
 // cancellation and panic retain the native close owner and return no invented
 // lifecycle authority. Native causes remain inspectable in the scope result.
-func WithInspectedReadScope(ctx context.Context, request InspectedReadScopeRequest) (FileScopeResult, error) {
+func WithInspectedReadScope(ctx context.Context, request InspectedReadScopeRequest) (result FileScopeResult, resultErr error) {
+	defer func() {
+		resultErr = scopeCancellationError(ctx, resultErr)
+		result.operationError = scopeCancellationError(ctx, result.operationError)
+	}()
+
 	if err := errors.Join(contextstate.Validate(ctx), request.Validate()); err != nil {
 		return FileScopeResult{}, err
 	}
@@ -56,7 +61,7 @@ func WithInspectedReadScope(ctx context.Context, request InspectedReadScopeReque
 	if err != nil {
 		return FileScopeResult{}, err
 	}
-	result := finishFileScope(ctx, file, func(ctx context.Context, file *os.File) error {
+	result = finishFileScope(ctx, file, func(ctx context.Context, file *os.File) error {
 		metadata, err := InspectOpenFile(ctx, HandleInspectionRequest{File: file})
 		if err != nil {
 			return err

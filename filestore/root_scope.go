@@ -49,6 +49,11 @@ func (r RootScopeResult) Validate() error {
 // a typed refusal; its payload is not returned or logged. There is no directory
 // inventory, goroutine, filesystem model or product completion decision.
 func WithRootScope(ctx context.Context, request RootScopeRequest) (result RootScopeResult, resultErr error) {
+	defer func() {
+		resultErr = scopeCancellationError(ctx, resultErr)
+		result.OperationError = scopeCancellationError(ctx, result.OperationError)
+	}()
+
 	if err := contextstate.Validate(ctx); err != nil {
 		return RootScopeResult{}, err
 	}
