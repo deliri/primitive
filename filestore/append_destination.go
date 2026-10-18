@@ -17,9 +17,10 @@ import (
 // remain buffered until Flush, Sync, Rotate or Close. Sync acknowledges the
 // operating system's synchronization result, not a hardware power-loss promise.
 type AppendDestination struct {
-	self   *AppendDestination
-	file   *os.File
-	writer *bufio.Writer
+	self     *AppendDestination
+	file     *os.File
+	writer   *bufio.Writer
+	accepted core.ByteLength
 }
 
 // OpenAppendDestination acquires append custody using the existing rooted
@@ -67,7 +68,31 @@ func (d *AppendDestination) Write(data []byte) (int, error) {
 	if err := d.Validate(); err != nil {
 		return 0, err
 	}
-	return d.writer.Write(data)
+	// Admission keeps the observation in Go's signed size domain. The sum
+	// cannot overflow uint64: both addends fit in a signed Go size.
+	if _, err := core.NewByteLength(d.accepted.Uint64() + uint64(len(data))); err != nil {
+		return 0, err
+	}
+	n, writeErr := d.writer.Write(data)
+	accepted, countErr := core.NewByteLength(d.accepted.Uint64() + uint64(n))
+	if countErr != nil {
+		return n, errors.Join(writeErr, countErr)
+	}
+	d.accepted = accepted
+	return n, writeErr
+}
+
+// AcceptedBytes observes the sum of Go bufio's actual Write return counts for
+// this original owner since acquisition, including acceptance beside failure.
+// Rotation preserves the observation; existing file bytes, Flush and Sync do
+// not add acceptance. Discard and Truncate do not undo historical acceptance.
+// The observation survives Close and failed rotation. It is neither current
+// file extent nor a visibility or durability claim. Copied/unset owners refuse.
+func (d *AppendDestination) AcceptedBytes() (core.ByteLength, error) {
+	if d == nil || d.self != d {
+		return core.ByteLength{}, core.ErrFilestoreContract
+	}
+	return d.accepted, d.accepted.Validate()
 }
 
 // Flush makes buffered bytes visible to the file without claiming durability.
