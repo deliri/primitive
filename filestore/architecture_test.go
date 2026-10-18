@@ -39,11 +39,13 @@ type architectureScan struct {
 // filestoreContractInventory classifies every production struct by its real
 // role. The generic arguments make every inventory entry compiler-visible.
 type filestoreContractInventory struct {
-	AppendDestination             capabilityWrapper[AppendDestination]
-	RecordRangeSortRequest        validatedRequest[RecordRangeSortRequest]
-	RecordRangeStreamRequest      validatedRequest[RecordRangeStreamRequest]
-	RecordRangeIndexStreamRequest validatedRequest[RecordRangeIndexStreamRequest]
-	RecordRangeSortObservation    streamedObservation[RecordRangeSortObservation]
+	AppendDestination                 capabilityWrapper[AppendDestination]
+	RecordRangeSortRequest            validatedRequest[RecordRangeSortRequest]
+	RecordRangeStreamRequest          validatedRequest[RecordRangeStreamRequest]
+	RecordRangeIndexStreamRequest     validatedRequest[RecordRangeIndexStreamRequest]
+	RecordRangeSortObservation        streamedObservation[RecordRangeSortObservation]
+	RecordRangeIndexSearchRequest     validatedRequest[RecordRangeIndexSearchRequest]
+	RecordRangeIndexSearchObservation streamedObservation[RecordRangeIndexSearchObservation]
 
 	ContentPartitionSourceRequest validatedRequest[ContentPartitionSourceRequest]
 	ContentPartitionSource        capabilityWrapper[ContentPartitionSource]
@@ -71,6 +73,7 @@ type filestoreContractInventory struct {
 	DirectoryRequest              validatedRequest[DirectoryRequest]
 	ScratchRequest                validatedRequest[ScratchRequest]
 	ScratchResetRequest           validatedRequest[ScratchResetRequest]
+	ScratchRestoreRequest         validatedRequest[ScratchRestoreRequest]
 	RewindRequest                 validatedRequest[RewindRequest]
 	ScratchScopeRequest           validatedRequest[ScratchScopeRequest]
 	RootScopeRequest              validatedRequest[RootScopeRequest]
