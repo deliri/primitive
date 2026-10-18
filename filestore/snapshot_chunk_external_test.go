@@ -245,9 +245,22 @@ func FuzzReadSnapshotAndChunkMatchNativeByteSequence(f *testing.F) {
 				}
 				return
 			}
+			offset := len(before) / 2
+			positional := make([]byte, len(before)-offset+1)
+			count, readErr := snapshot.Reader.ReadAt(positional, int64(offset))
+			if count != len(before)-offset || !errors.Is(readErr, io.EOF) || !bytes.Equal(positional[:count], before[offset:]) {
+				t.Fatalf("positional snapshot = %x/%d/%v, want bounded original suffix %x", positional, count, readErr, before[offset:])
+			}
 			got, err := io.ReadAll(snapshot.Reader)
 			if err != nil || !bytes.Equal(got, before) || snapshot.Extent.Uint64() != uint64(len(before)) {
 				t.Fatalf("snapshot = (%q,%v), want exact pre-write source %q", got, err, before)
+			}
+			if position, err := snapshot.Reader.Seek(int64(offset), io.SeekStart); err != nil || position != int64(offset) {
+				t.Fatalf("snapshot seek = %d/%v", position, err)
+			}
+			remaining, err := io.ReadAll(snapshot.Reader)
+			if err != nil || !bytes.Equal(remaining, before[offset:]) {
+				t.Fatalf("seek snapshot = %x/%v, want %x", remaining, err, before[offset:])
 			}
 		})
 	})

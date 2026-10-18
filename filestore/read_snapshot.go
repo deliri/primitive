@@ -7,6 +7,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/lineio"
 )
 
 // ReadSnapshotRequest borrows the exact open object. No path is reopened and
@@ -23,9 +24,10 @@ func (r ReadSnapshotRequest) Validate() error {
 // ReadSnapshot lends an independent Go SectionReader bounded by the native
 // extent observed at creation. Later writes cannot extend that view. The
 // caller retains the enclosing native file lifetime; this owns no Close.
+// Its reader lends sequential, seek and positional access to that same window.
 // An empty observation has no reader and never fabricates content.
 type ReadSnapshot struct {
-	Reader io.Reader
+	Reader lineio.RecordSource
 	Extent core.ByteLength
 }
 
