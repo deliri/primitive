@@ -52,7 +52,13 @@ type pipeProducerResult struct {
 // Acquisition failures return an invalid zero observation and an error. Once
 // acquired, callback failures remain separate typed causes in the observation;
 // a caller must inspect them before deciding what its operation means.
+// Terminal failures preserve Go's cancellation identity and its custom cause.
 func TransferPipe(ctx context.Context, request PipeTransferRequest) (result PipeTransferResult, resultErr error) {
+	defer func() {
+		resultErr = scopeCancellationError(ctx, resultErr)
+		result.ProducerError = scopeCancellationError(ctx, result.ProducerError)
+		result.ConsumerError = scopeCancellationError(ctx, result.ConsumerError)
+	}()
 	if err := contextstate.Validate(ctx); err != nil {
 		return PipeTransferResult{}, err
 	}
