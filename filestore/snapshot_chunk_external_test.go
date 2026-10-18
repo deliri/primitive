@@ -184,7 +184,7 @@ func TestWriteChunkPreservesNativePartialCountsAndRefusals(t *testing.T) {
 					if cause != nil && !errors.Is(err, cause) {
 						t.Fatalf("native cause disappeared: %v", err)
 					}
-					if !valid || count < size && cause == nil {
+					if !valid || count < size {
 						if !errors.Is(err, io.ErrShortWrite) {
 							t.Fatalf("invalid/short count = %v, want ShortWrite", err)
 						}
