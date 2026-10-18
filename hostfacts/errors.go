@@ -27,6 +27,7 @@ const (
 	OperationKernel
 	OperationEffectiveUser
 	OperationGoCPUConcurrency
+	OperationResourceUsage
 	operationLimit
 )
 
@@ -47,6 +48,7 @@ func operationLabels() [operationLimit]string {
 		OperationKernel:           "kernel",
 		OperationEffectiveUser:    "effective user",
 		OperationGoCPUConcurrency: "Go CPU concurrency",
+		OperationResourceUsage:    "host resource usage",
 	}
 }
 

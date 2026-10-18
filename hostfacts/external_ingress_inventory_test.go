@@ -2,6 +2,7 @@ package hostfacts
 
 import (
 	"context"
+	"io"
 	"testing"
 	"time"
 
@@ -18,6 +19,8 @@ type externalIngressFuzzContract[Door any] struct {
 }
 
 var (
+	_ = externalIngressFuzzContract[func([]byte) (resourceCPUCounters, error)]{Door: parseResourceCPU, Fuzz: FuzzResourceCPUSemanticClosure}
+	_ = externalIngressFuzzContract[func(context.Context, io.Reader) (uint32, error)]{Door: parseResourcePressure, Fuzz: FuzzResourcePressureSemanticClosure}
 	_ = externalIngressFuzzContract[func(context.Context, GoMemoryLimitRequest) (GoMemoryLimitResult, error)]{Door: ApplyGoMemoryLimit, Fuzz: FuzzGoMemoryLimitNativeSemanticClosure}
 	_ = externalIngressFuzzContract[func(TimeZoneRequest) (*time.Location, error)]{Door: ObserveTimeZone, Fuzz: FuzzTimeZoneObservationSemanticClosure}
 	_ = externalIngressFuzzContract[func(context.Context, core.AbsolutePath) (cgroupMembership, bool, error)]{Door: observeCgroupMembership, Fuzz: FuzzCgroupMembershipFileSemanticClosure}

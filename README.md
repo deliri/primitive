@@ -28,6 +28,17 @@ It does not maintain a second handwritten list of current files, imports,
 declarations, benchmarks, fuzz targets, or effect sites. Those are observations
 and remain "not observed" until Forge produces them.
 
+## Host resource observations
+
+`hostfacts.ObserveResourceUsage(ctx, hostfacts.ResourceUsageRequest{IntervalSeconds: 1})`
+returns one interval CPU observation, currently available physical memory, and
+Linux pressure facts. Darwin uses the native `top` host summary and `vm_stat`;
+Linux uses the kernel's `/proc` interfaces. Disk capacity remains `AssessDisk`.
+The caller owns utilization ceilings, memory reserves, reservations, storage
+placement and the admission decision. Observation does not change host limits
+or start a monitoring service. Unsupported systems and failed/cancelled samples
+return no resource sample.
+
 ## License
 
 Primitive is licensed under the [Mozilla Public License 2.0](LICENSE).

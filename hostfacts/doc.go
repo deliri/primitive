@@ -3,6 +3,8 @@
 // Hostfacts reports caller-available disk capacity, the rotational class of
 // the block device backing a directory, the Go runtime's logical CPU count,
 // total physical memory,
+// interval CPU utilization, currently available physical memory and native
+// Linux I/O and memory pressure through ObserveResourceUsage,
 // Go-runtime-managed memory, the effective Linux cgroup memory ceiling,
 // the presence of canonical Go runtime
 // out-of-memory banners, the column geometry of a terminal attached to an
