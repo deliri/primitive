@@ -14,6 +14,8 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/filestore"
+	"github.com/deliri/primitive/v2026/hostfacts"
+	"github.com/deliri/primitive/v2026/testserial"
 )
 
 func TestTARNativeEncodingPreservesContentMetadataAndClosure(t *testing.T) {
@@ -287,7 +289,7 @@ func FuzzTARNativeEntryAndOutputAgreement(f *testing.F) {
 	})
 }
 
-func BenchmarkTARFixedMemoryAcrossEntryCardinality(b *testing.B) {
+func BenchmarkTARForwardEncodingCardinality(b *testing.B) {
 	for _, count := range []int{1, 1024, 65537} {
 		b.Run(fmt.Sprintf("entries_%d", count), func(b *testing.B) {
 			path, err := core.ParseRelativePath("entry")
@@ -317,5 +319,40 @@ func BenchmarkTARFixedMemoryAcrossEntryCardinality(b *testing.B) {
 				}
 			}
 		})
+	}
+}
+
+func TestTARRetainedMemoryDoesNotGrowWithEntryCardinality(t *testing.T) {
+	testserial.Declare(t, core.TestIsolationDeclaration{Hazard: core.TestIsolationHazardRuntimeAllocation, Scope: core.TestIsolationScopePackageProcess})
+	const allowance = 2 << 20
+	for _, count := range []int{256, 8192, 65537} {
+		before, err := hostfacts.ObserveCollectedGoHeap(t.Context())
+		if err != nil {
+			t.Fatal(err)
+		}
+		var retained int64
+		path, err := core.ParseRelativePath("entry")
+		if err != nil {
+			t.Fatal(err)
+		}
+		source := bytes.NewReader(nil)
+		got, err := filestore.WriteTAR(t.Context(), filestore.TARWriteRequest{Destination: io.Discard, Compression: filestore.TARGzip, Produce: func(_ context.Context, add func(filestore.TAREntry) (filestore.ContentIndexEntry, error)) error {
+			for range count {
+				source.Reset(nil)
+				if _, err := add(filestore.TAREntry{Source: source, Path: path, Bytes: core.ByteLength{}, Mode: 0600}); err != nil {
+					return err
+				}
+			}
+			after, err := hostfacts.ObserveCollectedGoHeap(t.Context())
+			if err != nil {
+				return err
+			}
+			retained = int64(after.Uint64()) - int64(before.Uint64())
+			return nil
+		}})
+		t.Logf("entries=%d retained_bytes=%d allowance=%d", count, retained, allowance)
+		if err != nil || got.Extent.Uint64() == 0 || retained > allowance {
+			t.Fatalf("native TAR=%+v/%v,retained=%d,want completed encoding and <=%d", got, err, retained, allowance)
+		}
 	}
 }
