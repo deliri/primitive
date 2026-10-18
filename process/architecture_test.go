@@ -15,6 +15,9 @@ import (
 // and fixed stream observations; every internal carrier must remain visible.
 func productionStructRoles() map[string]string {
 	return map[string]string{
+		"GroupMemoryRequest":     "validated native group RSS observation request",
+		"groupMemoryFold":        "fixed-space native numeric RSS row fold",
+		"OwnedGroup":             "sealed current process group leadership capability",
 		"Argument":               "validated argv fact",
 		"ServiceDocumentRequest": "native user-service encoding request",
 		"Containment":            "validated isolation and cancel policy",
@@ -198,7 +201,10 @@ func TestPublicOperationsAreOnlyTypedConstructionAndExecution(t *testing.T) {
 		"NewEnvironmentName",
 		"NewEnvironmentValue",
 		"NewTruncatingWriter",
+		"ObserveGroupLiveness",
+		"ObserveGroupMemory",
 		"ObserveProcesses",
+		"OwnGroup",
 		"ParseArguments",
 		"ParseEffectiveEnvironment",
 		"ParseExactEnvironment",

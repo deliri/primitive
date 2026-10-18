@@ -4,11 +4,30 @@ package process
 
 import (
 	"errors"
+	"os"
 	"os/exec"
 	"syscall"
 
 	"github.com/deliri/primitive/v2026/core"
 )
+
+func ownGroupIdentity() (ProcessIdentity, error) {
+	identity, err := newProcessIdentity(os.Getpid())
+	if err != nil {
+		return 0, err
+	}
+	if err = validateObservedGroup(identity); err != nil {
+		return 0, err
+	}
+	group, err := syscall.Getpgid(0)
+	if err != nil {
+		return 0, errors.Join(core.ErrProcessObservation, err)
+	}
+	if group != int(identity) {
+		return 0, core.ErrProcessContract
+	}
+	return identity, nil
+}
 
 // applyContainment projects the validated containment onto the one command
 // this package is about to start. Group isolation is a configuration os/exec

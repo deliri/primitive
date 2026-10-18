@@ -19,6 +19,13 @@
 // as success. Registry and force-drain policy above one child stay with the
 // caller.
 //
+// ObserveGroupLiveness performs an observation-only kernel probe for a recorded
+// group identity. ObserveGroupMemory streams native POSIX RSS rows in fixed
+// space and reports their sum, including zero when the group is absent.
+// Neither observation authorizes signaling. OwnGroup acquires a sealed handle
+// only when this process itself leads the native group; its Kill operation
+// stops that same group and cannot be reconstructed from a recorded identity.
+//
 // Ambient process arguments and standard streams remain process facts.
 // Executable path, working directory, and environment are host observations
 // supplied by hostfacts and admitted into this package's typed request values.
