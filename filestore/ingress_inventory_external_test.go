@@ -111,6 +111,7 @@ func filestoreIngressProofs() []filestoreIngressProof {
 		{door: reflect.ValueOf(filestore.WithScratchScope), proof: TestScratchScopeOwnsNativeLifetime, reason: "Executes a synchronous resource scope and verifies native namespace cleanup, expired root refusal, and preserved consumer cancellation/failure."},
 		{door: reflect.ValueOf(filestore.WithRootScope), fuzz: FuzzRootScopeNativeLifetime},
 		{door: reflect.ValueOf(filestore.WithReadScope), fuzz: FuzzFileScopesConserveNativeBytesAndCloseBorrowedHandles},
+		{door: reflect.ValueOf(filestore.WithReadAtScope), fuzz: FuzzReadAtScopeMatchesNativeByteRanges},
 		{door: reflect.ValueOf(filestore.WithScratchWriterScope), fuzz: FuzzFileScopesConserveNativeBytesAndCloseBorrowedHandles},
 		{door: reflect.ValueOf(filestore.WithScratchReplayScope), fuzz: FuzzScratchReplayConservesReplacementBytes},
 		{door: reflect.ValueOf(filestore.WithLockFileScope), proof: TestLockFileScopeClosesEveryConsumerOutcome, reason: "Native borrowed handle refuses Stat after success, consumer refusal and panic; no second file lifetime model."},
