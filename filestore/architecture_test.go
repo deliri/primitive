@@ -52,7 +52,7 @@ type filestoreContractInventory struct {
 	CopyContentRequest            validatedRequest[CopyContentRequest]
 	ChunkWriteRequest             validatedRequest[ChunkWriteRequest]
 	ReadSnapshotRequest           validatedRequest[ReadSnapshotRequest]
-	ReadSnapshot                  validatedRequest[ReadSnapshot]
+	ReadSnapshot                  capabilityWrapper[ReadSnapshot]
 	PrefixReadRequest             validatedRequest[PrefixReadRequest]
 	PrefixReadObservation         streamedObservation[PrefixReadObservation]
 	ContentIndexInspectionRequest validatedRequest[ContentIndexInspectionRequest]
