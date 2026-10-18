@@ -25,7 +25,8 @@ func (r ChunkWriteRequest) Validate() error {
 
 // WriteChunk preserves the count actually accepted by Go, including a partial
 // count beside failure. The returned extent is acceptance, never content proof
-// or durability. Invalid native counts withdraw the count and preserve cause.
+// or durability. Short acceptance retains io.ErrShortWrite beside any native
+// failure. Invalid native counts withdraw the count and preserve cause.
 func WriteChunk(ctx context.Context, request ChunkWriteRequest) (accepted core.ByteLength, resultErr error) {
 	defer func() {
 		if ctx != nil && (errors.Is(resultErr, context.Canceled) || errors.Is(resultErr, context.DeadlineExceeded)) {
@@ -36,6 +37,9 @@ func WriteChunk(ctx context.Context, request ChunkWriteRequest) (accepted core.B
 		return core.ByteLength{}, err
 	}
 	count, writeErr := (streamWriter{destination: request.Destination, kind: streamDestinationCaller}).Write(request.Bytes)
+	if count != len(request.Bytes) {
+		writeErr = errors.Join(writeErr, io.ErrShortWrite)
+	}
 	extent, countErr := core.NewByteLength(uint64(count))
 	return extent, errors.Join(writeErr, countErr, contextstate.Validate(ctx))
 }
