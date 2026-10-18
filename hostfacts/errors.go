@@ -28,6 +28,7 @@ const (
 	OperationEffectiveUser
 	OperationGoCPUConcurrency
 	OperationResourceUsage
+	OperationSystemdScope
 	operationLimit
 )
 
@@ -49,6 +50,7 @@ func operationLabels() [operationLimit]string {
 		OperationEffectiveUser:    "effective user",
 		OperationGoCPUConcurrency: "Go CPU concurrency",
 		OperationResourceUsage:    "host resource usage",
+		OperationSystemdScope:     "systemd scope presence",
 	}
 }
 

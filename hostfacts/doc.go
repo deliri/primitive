@@ -5,6 +5,7 @@
 // total physical memory,
 // interval CPU utilization, currently available physical memory and native
 // Linux I/O and memory pressure through ObserveResourceUsage,
+// native systemd transient-scope presence through ObserveSystemdScope,
 // Go-runtime-managed memory, the effective Linux cgroup memory ceiling,
 // the presence of canonical Go runtime
 // out-of-memory banners, the column geometry of a terminal attached to an

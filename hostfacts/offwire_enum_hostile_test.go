@@ -40,6 +40,8 @@ func TestHostfactsOffWireEnumsExhaustClosedDomains(t *testing.T) {
 				OperationTimeZone,
 				OperationKernel,
 				OperationEffectiveUser,
+				OperationResourceUsage,
+				OperationSystemdScope,
 			})
 		}},
 		{name: "disk rotations reject every unadmitted uint8 value", run: func(t *testing.T) {

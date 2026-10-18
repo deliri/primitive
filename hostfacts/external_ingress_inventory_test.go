@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/process"
 )
 
 // externalIngressFuzzContract binds one external-input door to the fuzz target
@@ -19,6 +20,7 @@ type externalIngressFuzzContract[Door any] struct {
 }
 
 var (
+	_ = externalIngressFuzzContract[func([]byte) (process.Liveness, error)]{Door: parseSystemdScopePresence, Fuzz: FuzzSystemdScopePresenceSemanticClosure}
 	_ = externalIngressFuzzContract[func([]byte) (resourceCPUCounters, error)]{Door: parseResourceCPU, Fuzz: FuzzResourceCPUSemanticClosure}
 	_ = externalIngressFuzzContract[func(context.Context, io.Reader) (uint32, error)]{Door: parseResourcePressure, Fuzz: FuzzResourcePressureSemanticClosure}
 	_ = externalIngressFuzzContract[func(context.Context, GoMemoryLimitRequest) (GoMemoryLimitResult, error)]{Door: ApplyGoMemoryLimit, Fuzz: FuzzGoMemoryLimitNativeSemanticClosure}

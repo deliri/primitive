@@ -61,6 +61,7 @@ func TestPublicOperationsAreExactIntentEntryPoints(t *testing.T) {
 		"ObserveLogicalCPUCount",
 		"ObservePhysicalMemory",
 		"ObserveResourceUsage",
+		"ObserveSystemdScope",
 		"ObserveTerminalGeometry",
 		"ObserveTimeZone",
 		"RemoveAmbientEnvironment",
@@ -87,6 +88,7 @@ type hostfactsError[T any] struct{ Value T }
 
 type hostfactsStructInventory struct {
 	ResourceUsageRequest      hostfactsIngress[ResourceUsageRequest]
+	SystemdScopeRequest       hostfactsIngress[SystemdScopeRequest]
 	ResourceUsage             hostfactsObservation[ResourceUsage]
 	ResourceCPUCounters       hostfactsKernelFlow[resourceCPUCounters]
 	GoBuildVCS                hostfactsObservation[GoBuildVCS]

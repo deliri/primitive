@@ -39,6 +39,11 @@ placement and the admission decision. Observation does not change host limits
 or start a monitoring service. Unsupported systems and failed/cancelled samples
 return no resource sample.
 
+`hostfacts.ObserveSystemdScope` observes one named native Linux transient scope
+without signalling it. A loaded scope remains conservatively alive until the
+manager collects it, including descendants that changed POSIX process groups.
+Unsupported systems and failed observations return no liveness fact.
+
 ## Native process configuration
 
 `process.WriteServiceDocument` encodes a typed user-service definition as
