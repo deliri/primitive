@@ -17,5 +17,6 @@
 // callbacks on its caller's stack, including canceled-source terminal draining.
 // OnceAction shares native sync.Once custody and the first action observation
 // across copied handles without a goroutine or another product cleanup cache.
+// Mutex delegates zero-value mutual exclusion directly to Go sync.Mutex.
 // The package stores no identities, schedules, retry policy or durable jobs.
 package background

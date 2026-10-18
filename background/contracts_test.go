@@ -75,11 +75,12 @@ func TestBackgroundProductionDataFlowInventory(t *testing.T) {
 	// PullSource: scoped native coroutine loan, with no retained value inventory.
 	// PairRequest: source/consumer loans; PairResult: joined observations;
 	// pairOffer: one synchronous native handoff, never an input inventory.
+	// Mutex: native sync.Mutex custody without a worker or product state.
 	// OnceActionRequest: transferred action; OnceAction/onceAction: shared native
 	// sync.Once custody and first observation, with no second product owner.
 	// WallGapWatch owns a native Task and fixed maximum; its request lends clock
 	// coordinates, and WallGapSnapshot carries one native observation.
-	want := []string{"Executor", "OnceAction", "OnceActionRequest", "OpenRequest", "PairRequest", "PairResult", "Policy", "PullScopeRequest", "PullSource", "Task", "TaskRequest", "TaskResult", "WallGapSnapshot", "WallGapWatch", "WallGapWatchRequest", "Work", "onceAction", "pairOffer"}
+	want := []string{"Executor", "Mutex", "OnceAction", "OnceActionRequest", "OpenRequest", "PairRequest", "PairResult", "Policy", "PullScopeRequest", "PullSource", "Task", "TaskRequest", "TaskResult", "WallGapSnapshot", "WallGapWatch", "WallGapWatchRequest", "Work", "onceAction", "pairOffer"}
 	var got []string
 	entries, err := os.ReadDir(".")
 	if err != nil {
