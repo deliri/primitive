@@ -77,6 +77,8 @@ type filestoreContractInventory struct {
 	RootScopeResult               streamedObservation[RootScopeResult]
 	FileScopeResult               streamedObservation[FileScopeResult]
 	ReadScopeRequest              validatedRequest[ReadScopeRequest]
+	InspectedReadScopeRequest     validatedRequest[InspectedReadScopeRequest]
+	InspectedRead                 streamedObservation[InspectedRead]
 	ReadAtScopeRequest            validatedRequest[ReadAtScopeRequest]
 	ScratchWriterScopeRequest     validatedRequest[ScratchWriterScopeRequest]
 	ScratchReplayScopeRequest     validatedRequest[ScratchReplayScopeRequest]
