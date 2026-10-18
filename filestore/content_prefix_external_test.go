@@ -135,3 +135,26 @@ func FuzzCopyPrefixNativeAgreement(f *testing.F) {
 		}
 	})
 }
+
+func BenchmarkCopyPrefixFixedWorkingMemory(b *testing.B) {
+	for _, size := range []int{1024, 65537, 33554433} {
+		b.Run(fmt.Sprintf("bytes_%d", size), func(b *testing.B) {
+			data := bytes.Repeat([]byte{31}, size+1)
+			extent, err := core.NewByteLength(uint64(size))
+			if err != nil {
+				b.Fatal(err)
+			}
+			reader := bytes.NewReader(data)
+			b.ReportAllocs()
+			b.SetBytes(int64(size))
+			b.ResetTimer()
+			for b.Loop() {
+				reader.Reset(data)
+				got, err := filestore.CopyPrefix(b.Context(), filestore.CopyPrefixRequest{Source: reader, Destination: io.Discard, Bytes: extent})
+				if err != nil || got.Extent != extent || reader.Len() != 1 {
+					b.Fatalf("prefix=%+v/%v,remaining=%d", got, err, reader.Len())
+				}
+			}
+		})
+	}
+}
