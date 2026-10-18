@@ -26,7 +26,7 @@ func WithoutCancellation(request DetachedContextRequest) (context.Context, error
 	if err := request.Validate(); err != nil {
 		return nil, err
 	}
-	return request.Parent, nil
+	return context.WithoutCancel(request.Parent), nil
 }
 
 var _ core.Validatable = DetachedContextRequest{}
