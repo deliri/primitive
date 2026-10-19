@@ -335,28 +335,15 @@ func (v Verified) Allows(action Action, now temporal.Instant) error {
 	if err := errors.Join(v.terms.Validate(), action.Validate(), now.Validate()); err != nil {
 		return errors.Join(core.ErrPermitContract, err)
 	}
-	start, err := now.Compare(v.terms.NotBefore)
-	if err != nil {
-		return errors.Join(core.ErrPermitContract, err)
-	}
-	end, err := now.Compare(v.terms.ExpiresAt)
-	if err != nil {
-		return errors.Join(core.ErrPermitContract, err)
-	}
-	if start == core.ComparisonLess || end != core.ComparisonLess {
-		return core.ErrPermitValidity
-	}
-	allowed, err := v.terms.Actions.Contains(action)
-	if err != nil {
+	if err := v.validAt(now); err != nil {
 		return err
 	}
-	if !allowed {
-		return core.ErrPermitAction
-	}
-	return nil
+	return v.terms.Actions.member(action)
 }
 
 // AllowsAll checks one nonempty requested set against the authenticated grant.
+// The proof, terms and invocation time are checked once for the whole set;
+// Actions.Validate has already closed every requested action.
 func (v Verified) AllowsAll(actions Actions, now temporal.Instant) error {
 	if err := v.proof.Validate(); err != nil {
 		return errors.Join(core.ErrPermitAuthentication, err)
@@ -367,10 +354,32 @@ func (v Verified) AllowsAll(actions Actions, now temporal.Instant) error {
 	if actions.count == 0 {
 		return core.ErrPermitAction
 	}
+	if err := errors.Join(v.terms.Validate(), now.Validate()); err != nil {
+		return errors.Join(core.ErrPermitContract, err)
+	}
+	if err := v.validAt(now); err != nil {
+		return err
+	}
 	for _, action := range actions.values[:actions.count] {
-		if err := v.Allows(action, now); err != nil {
+		if err := v.terms.Actions.member(action); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// validAt checks the signed invocation window for validated terms and time.
+func (v Verified) validAt(now temporal.Instant) error {
+	start, err := now.Compare(v.terms.NotBefore)
+	if err != nil {
+		return errors.Join(core.ErrPermitContract, err)
+	}
+	end, err := now.Compare(v.terms.ExpiresAt)
+	if err != nil {
+		return errors.Join(core.ErrPermitContract, err)
+	}
+	if start == core.ComparisonLess || end != core.ComparisonLess {
+		return core.ErrPermitValidity
 	}
 	return nil
 }

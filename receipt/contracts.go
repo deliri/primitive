@@ -280,7 +280,7 @@ func (i ReceiptID) MarshalJSON() ([]byte, error) {
 	if err := i.Validate(); err != nil {
 		return nil, jsonError(err)
 	}
-	return json.Marshal(i.String())
+	return marshalHexJSONString(i.value[:]), nil
 }
 func (i *ReceiptID) UnmarshalJSON(data []byte) error {
 	if i == nil {

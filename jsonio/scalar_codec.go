@@ -1,7 +1,6 @@
 package jsonio
 
 import (
-	"bytes"
 	"encoding/json/jsontext"
 	jsonv2 "encoding/json/v2"
 	"io"
@@ -44,7 +43,7 @@ func MarshalScalar(token Token) ([]byte, error) {
 // and exact number spelling. Arrays, objects and trailing values are refused.
 // Source: https://pkg.go.dev/encoding/json/jsontext#Decoder.ReadToken
 func DecodeScalar(data []byte) (Token, error) {
-	decoder := jsontext.NewDecoder(bytes.NewReader(data))
+	decoder := borrowedBytesDecoder(data)
 	native, err := decoder.ReadToken()
 	if err != nil {
 		return Token{}, jsonOperationError(err)

@@ -1,9 +1,7 @@
 package temporal
 
 import (
-	json "encoding/json/v2"
 	"math"
-	"strconv"
 	"time"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -197,7 +195,7 @@ func (d Duration) MarshalJSON() ([]byte, error) {
 	if err := d.Validate(); err != nil {
 		return nil, err
 	}
-	return json.Marshal(strconv.FormatInt(d.nanoseconds, 10))
+	return appendNanosecondJSON(make([]byte, 0, DurationCanonicalJSONMaximumBytes), d.nanoseconds), nil
 }
 
 // UnmarshalJSON accepts canonical nonnegative nanoseconds without mutation on

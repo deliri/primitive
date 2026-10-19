@@ -101,3 +101,62 @@ func (w *benchmarkFilledWriter) Write(payload []byte) (int, error) {
 	w.count += uint64(len(payload))
 	return len(payload), nil
 }
+
+// BenchmarkRequestValidateExactEnvironment64 measures the admission every Run
+// and Begin performs: command, arguments, and a 64-variable exact environment
+// including os/exec's duplicate-name check. No child is started.
+func BenchmarkRequestValidateExactEnvironment64(b *testing.B) {
+	request := processRequest(b, "silent", process.Streams{
+		Stdin: bytes.NewReader(nil), Stdout: io.Discard, Stderr: io.Discard,
+	})
+	values := make([]string, 64)
+	for index := range values {
+		values[index] = "V" + strconv.Itoa(index) + "=payload"
+	}
+	environment, err := process.ParseExactEnvironment(values)
+	if err != nil || len(environment.Variables) != len(values) {
+		b.Fatalf("environment fixture = (%d variables, %v), want (%d, nil)", len(environment.Variables), err, len(values))
+	}
+	request.Environment = environment
+	b.ReportAllocs()
+	for b.Loop() {
+		if err := request.Validate(); err != nil {
+			b.Fatal(err)
+		}
+	}
+	duplicate := request
+	duplicate.Environment.Variables = append(append([]process.EnvironmentVariable(nil), environment.Variables...), environment.Variables[0])
+	if err := duplicate.Validate(); err == nil {
+		b.Fatal("duplicate environment admitted, want the measured check to be live")
+	}
+}
+
+// BenchmarkTruncatingWriterBoundedCapture measures one bounded capture
+// lifecycle: construction, one fully forwarded 32 KiB write, and one 32 KiB
+// write split at the 48 KiB limit into forwarded and dropped bytes.
+func BenchmarkTruncatingWriterBoundedCapture(b *testing.B) {
+	const chunkBytes = 32 << 10
+	limit := byteCount(b, 48<<10)
+	chunk := bytes.Repeat([]byte{'x'}, chunkBytes)
+	var destination benchmarkFilledWriter
+	var writer *process.TruncatingWriter
+	b.SetBytes(2 * chunkBytes)
+	b.ReportAllocs()
+	for b.Loop() {
+		var err error
+		writer, err = process.NewTruncatingWriter(&destination, limit)
+		if err != nil {
+			b.Fatal(err)
+		}
+		for range 2 {
+			if count, err := writer.Write(chunk); err != nil || count != chunkBytes {
+				b.Fatalf("Write() = (%d,%v), want (%d,nil)", count, err, chunkBytes)
+			}
+		}
+	}
+	retained, retainedErr := writer.RetainedBytes()
+	dropped, droppedErr := writer.DroppedBytes()
+	if retainedErr != nil || droppedErr != nil || retained.Uint64() != 48<<10 || dropped.Uint64() != 16<<10 || destination.count != uint64(b.N)*(48<<10) {
+		b.Fatalf("capture = (retained %d,%v dropped %d,%v forwarded %d), want 48 KiB/16 KiB per operation", retained.Uint64(), retainedErr, dropped.Uint64(), droppedErr, destination.count)
+	}
+}

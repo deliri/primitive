@@ -1,7 +1,6 @@
 package runprotocol
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"errors"
@@ -118,7 +117,7 @@ func readGoFuzzSignalRecord(ctx context.Context, source lineio.RecordSource, rec
 		return GoFuzzSignalRecord{}, err
 	}
 	guard := &goFuzzFrameSource{ctx: ctx, source: io.NewSectionReader(source, int64(record.Offset), length)}
-	reader := bufio.NewReaderSize(guard, 4096)
+	reader := goFuzzSpanReader(guard, length)
 	observation := GoFuzzSignalRecord{Record: record}
 	var consumed int64
 	for {

@@ -302,11 +302,9 @@ func validateCompletionIssuanceRequest(
 	); err != nil {
 		return GrantPayload{}, RequestCommitment{}, contractError(err)
 	}
-	grant, err := issuance.Grant.Payload()
-	if err != nil {
-		return GrantPayload{}, RequestCommitment{}, contractError(err)
-	}
-	request, err := CommitRequest(issuance.Request)
+	// Both the request and the verified grant were validated above.
+	grant := issuance.Grant.document.Payload
+	request, err := commitValidatedRequest(issuance.Request)
 	if err != nil || request != grant.Request {
 		return GrantPayload{}, RequestCommitment{}, bindingError(errors.New("completion request differs from grant"), err)
 	}
@@ -378,7 +376,8 @@ func validateCompletionBinding(expectation CompletionExpectation) error {
 }
 
 func validateCompletionRequestBinding(expectation CompletionExpectation) error {
-	request, err := CommitRequest(expectation.Request)
+	// VerifyCompletion validated the expectation, including its request.
+	request, err := commitValidatedRequest(expectation.Request)
 	if err != nil || request != expectation.Grant.Payload.Request ||
 		request != expectation.Document.Payload.Request {
 		return bindingError(errors.New("completion request commitment differs"), err)

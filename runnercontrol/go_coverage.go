@@ -61,15 +61,31 @@ func (c *GoCoverageCompiler) Write(data []byte) (int, error) {
 	if c.failure != nil {
 		return 0, c.failure
 	}
-	for _, value := range data {
-		if err := c.consumeByte(value); err != nil {
+	for index := 0; index < len(data); index++ {
+		if c.inField && c.fields == 1 && c.runeLength == 0 {
+			index += c.skipLocation(data[index:])
+			if index == len(data) {
+				break
+			}
+		}
+		if err := c.consumeByte(data[index]); err != nil {
 			c.failure = err
 			// Capture retains the whole input chunk; Seal refuses its proof.
 			return len(data), nil
 		}
-
 	}
 	return len(data), nil
+}
+
+// skipLocation consumes the leading run of printable ASCII location bytes in
+// one pass. It is exactly the consumeByte location fast path applied per byte.
+func (c *GoCoverageCompiler) skipLocation(data []byte) int {
+	n := 0
+	for n < len(data) && data[n] > ' ' && data[n] < utf8.RuneSelf {
+		c.locationColon = c.locationColon || data[n] == ':'
+		n++
+	}
+	return n
 }
 
 // consumeByte avoids decoding ASCII locations while retaining the exact lexical

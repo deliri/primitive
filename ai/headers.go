@@ -143,6 +143,9 @@ func optionalHeaders(request Request) (exchange.Headers, error) {
 		return exchange.Headers{}, core.ErrAIContract
 	}
 	headers := exchange.Headers{}
+	if len(request.Options) != 0 {
+		headers.Values = make([]exchange.Header, 0, len(request.Options))
+	}
 	for index, option := range request.Options {
 		for prior := range index {
 			if request.Options[prior].Name == option.Name {

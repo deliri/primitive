@@ -265,7 +265,7 @@ func FuzzGoFuzzCompletionMatchesIndependentPhysicalRecordOracle(f *testing.F) {
 }
 
 func BenchmarkGoFuzzCompletionFixedWorkingWindow(b *testing.B) {
-	for _, extent := range [...]int{65537, 8*1024*1024 + 1, 64*1024*1024 + 1} {
+	for _, extent := range [...]int{65537, 64*1024*1024 + 1} {
 		b.Run(strconv.Itoa(extent), func(b *testing.B) {
 			body := strings.Repeat("x", extent) + "\n--- PASS: FuzzChosen (0.00s)\n"
 			target := fuzzCompletionTarget(b, "FuzzChosen")

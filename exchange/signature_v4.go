@@ -109,15 +109,40 @@ func v4QueryFacts(target url.URL, facts v4SigningFacts) iter.Seq2[v4QueryPair, e
 }
 
 func v4QueryPairLess(left, right v4QueryPair) bool {
-	leftName, rightName := v4QueryEncoding(string(left.name)), v4QueryEncoding(string(right.name))
-	if leftName != rightName {
-		return leftName < rightName
+	if order := v4QueryEncodingCompare(string(left.name), string(right.name)); order != 0 {
+		return order < 0
 	}
-	leftValue, rightValue := v4QueryEncoding(string(left.value)), v4QueryEncoding(string(right.value))
-	if leftValue != rightValue {
-		return leftValue < rightValue
+	if order := v4QueryEncodingCompare(string(left.value), string(right.value)); order != 0 {
+		return order < 0
 	}
 	return left.ordinal < right.ordinal
+}
+
+// v4QueryEncodingCompare orders two texts by their canonical query encodings.
+// Unreserved bytes encode to themselves, so two wholly unreserved texts compare
+// directly; any other byte takes the complete encoding path. Selection
+// compares each pair repeatedly, so the common case must not scan or rebuild
+// both encodings on every comparison.
+func v4QueryEncodingCompare(left, right string) int {
+	if v4QueryUnreserved(left) && v4QueryUnreserved(right) {
+		return strings.Compare(left, right)
+	}
+	return strings.Compare(v4QueryEncoding(left), v4QueryEncoding(right))
+}
+
+func v4QueryUnreserved(text string) bool {
+	for index := range len(text) {
+		if !v4UnreservedByte(text[index]) {
+			return false
+		}
+	}
+	return true
+}
+
+// v4UnreservedByte is the RFC 3986 unreserved set shared by Go's query
+// escaping and the canonical escaper below.
+func v4UnreservedByte(c byte) bool {
+	return c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '-' || c == '.' || c == '_' || c == '~'
 }
 
 func v4QueryEncoding(value string) string {
@@ -165,7 +190,7 @@ func v4WriteEscaped(target io.Writer, text string, preserveSlash bool) {
 	escaped[0] = '%'
 	for index := range len(text) {
 		c := text[index]
-		if c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '-' || c == '.' || c == '_' || c == '~' || preserveSlash && c == '/' {
+		if v4UnreservedByte(c) || preserveSlash && c == '/' {
 			escaped[0] = c
 			_, _ = target.Write(escaped[:1])
 			escaped[0] = '%'

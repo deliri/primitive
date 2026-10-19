@@ -321,20 +321,28 @@ func BenchmarkParseExactEnvironmentAtMaximumCount(b *testing.B) {
 	for index := range values {
 		values[index] = environmentProjectionName(index) + "=value"
 	}
+	if len(values) == 0 {
+		b.Fatal("maximum environment fixture is empty, want a non-vacuous workload")
+	}
 	b.ReportAllocs()
-	b.ResetTimer()
+	var got process.Environment
 	for b.Loop() {
-		got, err := process.ParseExactEnvironment(values)
-		if err != nil || got.Mode != process.EnvironmentModeExact || len(got.Variables) != len(values) {
-			b.Fatalf("ParseExactEnvironment(maximum count) = (variables %d, %v), want (%d, nil)", len(got.Variables), err, len(values))
+		var err error
+		got, err = process.ParseExactEnvironment(values)
+		if err != nil {
+			b.Fatalf("ParseExactEnvironment(maximum count) error = %v, want nil", err)
 		}
-		for i, variable := range got.Variables {
-			name, value, found := strings.Cut(values[i], "=")
-			gotName, nameErr := variable.Name.Value()
-			gotValue, valueErr := variable.Value.Value()
-			if !found || nameErr != nil || valueErr != nil || gotName != name || gotValue != value {
-				b.Fatalf("environment pair %d changed: name=%q value=%q errors=%v/%v", i, gotName, gotValue, nameErr, valueErr)
-			}
+	}
+	// The exact pair check is untimed: the loop measures admission alone.
+	if got.Mode != process.EnvironmentModeExact || len(got.Variables) != len(values) {
+		b.Fatalf("ParseExactEnvironment(maximum count) = (mode %v, variables %d), want (exact, %d)", got.Mode, len(got.Variables), len(values))
+	}
+	for i, variable := range got.Variables {
+		name, value, found := strings.Cut(values[i], "=")
+		gotName, nameErr := variable.Name.Value()
+		gotValue, valueErr := variable.Value.Value()
+		if !found || nameErr != nil || valueErr != nil || gotName != name || gotValue != value {
+			b.Fatalf("environment pair %d changed: name=%q value=%q errors=%v/%v", i, gotName, gotValue, nameErr, valueErr)
 		}
 	}
 }

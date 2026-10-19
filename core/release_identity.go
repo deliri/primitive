@@ -1,7 +1,6 @@
 package core
 
 import (
-	"encoding/hex"
 	json "encoding/json/v2"
 	"errors"
 	"strconv"
@@ -284,12 +283,10 @@ func ParseBuildCommit(value string) (BuildCommit, error) {
 	if len(value)%2 != 0 || size != buildCommitSHA1Bytes && size != buildCommitSHA256Bytes {
 		return BuildCommit{}, releaseIdentityError(buildCommitWidthDiagnostic)
 	}
-	decoded := make([]byte, size)
-	if err := DecodeCanonicalHex(decoded, value); err != nil {
+	var commit BuildCommit
+	if err := DecodeCanonicalHex(commit.value[:size], value); err != nil {
 		return BuildCommit{}, releaseIdentityError("build commit is not canonical lowercase hexadecimal")
 	}
-	var commit BuildCommit
-	copy(commit.value[:], decoded)
 	if size == buildCommitSHA1Bytes {
 		commit.size = buildCommitSHA1Bytes
 	} else {
@@ -316,7 +313,7 @@ func (c BuildCommit) String() string {
 	if c.Validate() != nil {
 		return ""
 	}
-	return hex.EncodeToString(c.value[:c.size])
+	return lowerHexString(c.value[:c.size])
 }
 
 // MarshalJSON emits canonical lower hexadecimal.
@@ -324,7 +321,7 @@ func (c BuildCommit) MarshalJSON() ([]byte, error) {
 	if err := c.Validate(); err != nil {
 		return nil, errors.Join(ErrJSONContract, err)
 	}
-	return MarshalCanonicalJSONString(c.String())
+	return marshalLowerHexJSONString(c.value[:c.size]), nil
 }
 
 // UnmarshalJSON accepts a canonical supported Git object name.

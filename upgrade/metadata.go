@@ -11,12 +11,19 @@ import (
 // metadataBuffer owns exactly one canonical selector/trial document. Its
 // storage cannot grow with the file, including on malformed input. These are
 // the same nominal document bounds enforced by the persistence decoders.
-// Artifact bytes never enter this buffer.
+// Artifact bytes never enter this buffer. The copy window shares the same
+// single allocation instead of Go allocating a separate 32 KiB scratch per
+// read; it never aliases the retained document bytes.
 type metadataBuffer struct {
 	data    [trialDocumentMaximumBytes]byte
+	window  [metadataReadWindowBytes]byte
 	length  int
 	maximum int
 }
+
+// metadataReadWindowBytes sizes the borrowed copy window, not the document
+// bound; a canonical metadata document normally arrives in one read.
+const metadataReadWindowBytes = 4 << 10
 
 func (b *metadataBuffer) Write(p []byte) (int, error) {
 	if b.maximum <= 0 || b.maximum > len(b.data) || b.length < 0 || b.length > b.maximum {
@@ -31,8 +38,8 @@ func (b *metadataBuffer) Write(p []byte) (int, error) {
 }
 
 func readMetadata(ctx context.Context, root *os.Root, path core.RelativePath, maximum int) ([]byte, error) {
-	destination := metadataBuffer{maximum: maximum}
-	_, err := filestore.Read(ctx, filestore.ReadRequest{Destination: &destination, Location: filestore.Location{Root: root, Path: path}})
+	destination := &metadataBuffer{maximum: maximum}
+	_, err := filestore.Read(ctx, filestore.ReadRequest{Destination: destination, Location: filestore.Location{Root: root, Path: path}, Buffer: destination.window[:]})
 	if err != nil {
 		return nil, persistenceError(err)
 	}

@@ -1,6 +1,8 @@
 package jsonio
 
 import (
+	"bytes"
+	"encoding/json/jsontext"
 	"errors"
 	"io"
 
@@ -63,4 +65,13 @@ func (w checkedJSONDestination) Write(data []byte) (int, error) {
 		return n, &nativeJSONError{cause: err}
 	}
 	return n, nil
+}
+
+// borrowedBytesDecoder parses complete caller-held bytes in place. Go's
+// decoder reads a bytes.Buffer's contents directly, exactly as Unmarshal reads
+// its borrowed input, instead of copying them into a growing private window.
+// The decoder never writes to those bytes; the caller keeps ownership.
+// Source: https://pkg.go.dev/encoding/json/jsontext#NewDecoder
+func borrowedBytesDecoder(data []byte) *jsontext.Decoder {
+	return jsontext.NewDecoder(bytes.NewBuffer(data))
 }

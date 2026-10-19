@@ -9,6 +9,9 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
+// goCopyWindowBytes is the window io.CopyBuffer allocates when given none.
+const goCopyWindowBytes = 32 << 10
+
 type streamDestination uint8
 
 const (
@@ -133,24 +136,33 @@ func (w streamWriter) Write(buffer []byte) (int, error) {
 	return count, nil
 }
 
+// streamTransfer co-locates one copy's validated reader and writer so handing
+// both to Go's copy loop costs a single escaping allocation instead of two.
+type streamTransfer struct {
+	reader streamReader
+	writer streamWriter
+}
+
 // copyStream delegates transfer loops to Go with borrowed or Go-allocated scratch.
 // The observed file extent detects truncation; it never caps accepted growth.
 func copyStream(request streamCopyRequest) (core.ByteLength, error) {
 	if err := request.kind.Validate(); err != nil {
 		return core.ByteLength{}, err
 	}
-	source := streamReader{ctx: request.ctx, source: request.source}
-	destination := streamWriter{destination: request.destination, kind: request.kind}
+	transfer := &streamTransfer{
+		reader: streamReader{ctx: request.ctx, source: request.source},
+		writer: streamWriter{destination: request.destination, kind: request.kind},
+	}
 	buffer := request.buffer
 	if len(buffer) == 0 {
 		buffer = nil
 	}
-	total, err := io.CopyBuffer(destination, &source, buffer)
+	total, err := io.CopyBuffer(&transfer.writer, &transfer.reader, buffer)
 	if total < 0 {
 		return core.ByteLength{}, sourceError(io.ErrUnexpectedEOF)
 	}
 	if err != nil {
-		return finishStream(uint64(total), errors.Join(err, source.cause))
+		return finishStream(uint64(total), errors.Join(err, transfer.reader.cause))
 	}
 	if request.extentKnown && uint64(total) < request.knownExtent {
 		err = sourceError(io.ErrUnexpectedEOF)

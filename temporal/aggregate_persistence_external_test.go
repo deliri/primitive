@@ -687,3 +687,52 @@ func FuzzAggregateDurationJSONSemanticClosure(f *testing.F) {
 		}
 	})
 }
+
+// TestTemporalStringJSONWhitespaceMatchesJSONGrammar pins the plain-decimal
+// decode shortcut to the JSON grammar: only JSON's four insignificant
+// whitespace bytes may surround the string, while Unicode spaces, escapes and
+// trailing values still reach the general decoder's refusal.
+func TestTemporalStringJSONWhitespaceMatchesJSONGrammar(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name, wire string
+		accepted   bool
+	}{
+		{name: "bare canonical string", wire: `"12"`, accepted: true},
+		{name: "JSON whitespace on both sides", wire: " \t\r\n\"12\"\n\r\t ", accepted: true},
+		{name: "no-break space is not JSON whitespace", wire: "\u00a0\"12\""},
+		{name: "next-line is not JSON whitespace", wire: "\"12\"\u0085"},
+		{name: "escaped digit is not canonical", wire: `"\u0031"`},
+		{name: "trailing second value", wire: `"12" "3"`},
+		{name: "interior quote pair", wire: `"1""2"`},
+		{name: "lone quote", wire: `"`},
+		{name: "empty string", wire: `""`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			instant := temporal.InstantFromNanoseconds(7)
+			duration, err := temporal.DurationFromNanoseconds(7)
+			if err != nil {
+				t.Fatal(err)
+			}
+			aggregate := temporal.AggregateDurationFromNanoseconds(7)
+			errs := []error{
+				instant.UnmarshalJSON([]byte(tc.wire)),
+				duration.UnmarshalJSON([]byte(tc.wire)),
+				aggregate.UnmarshalJSON([]byte(tc.wire)),
+			}
+			want := int64(7)
+			if tc.accepted {
+				want = 12
+			}
+			for index, gotErr := range errs {
+				if tc.accepted != (gotErr == nil) || (gotErr != nil && (!errors.Is(gotErr, core.ErrJSONContract) || !errors.Is(gotErr, core.ErrTemporalContract))) {
+					t.Fatalf("decoder %d (%q) error = %v, want accepted=%t or JSON/Temporal refusal", index, tc.wire, gotErr, tc.accepted)
+				}
+			}
+			if instant != temporal.InstantFromNanoseconds(want) || duration.Nanoseconds() != want || aggregate.Decimal() != strconv.FormatInt(want, 10) {
+				t.Fatalf("decoded = (%v,%v,%s), want all %d", instant, duration, aggregate.Decimal(), want)
+			}
+		})
+	}
+}

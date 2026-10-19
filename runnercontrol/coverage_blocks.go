@@ -145,6 +145,19 @@ func (r *coverageInput) rune() (rune, error) {
 	}
 	return value, nil
 }
+
+// skipInertLocation advances over borrowed printable ASCII bytes other than a
+// colon. Before the first colon, or after the candidate suffix is already
+// invalid, such bytes cannot change the position result; only the next colon
+// or whitespace can, and both remain on the rune path.
+func (r *coverageInput) skipInertLocation() {
+	remaining := r.fragment.Bytes[r.offset:]
+	n := 0
+	for n < len(remaining) && remaining[n] > ' ' && remaining[n] < utf8.RuneSelf && remaining[n] != ':' {
+		n++
+	}
+	r.offset += n
+}
 func (r *coverageInput) nonspace() (rune, error) {
 	for {
 		value, err := r.rune()
@@ -301,6 +314,9 @@ func (r *coverageInput) position(value rune) (rune, error) {
 			suffix.consume(value)
 		}
 		prefix = true
+		if !colon || suffix.invalid {
+			r.skipInertLocation()
+		}
 		var err error
 		value, err = r.rune()
 		if err != nil {

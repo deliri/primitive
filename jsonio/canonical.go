@@ -1,7 +1,6 @@
 package jsonio
 
 import (
-	"bytes"
 	"encoding/json/jsontext"
 	"errors"
 	"io"
@@ -56,7 +55,7 @@ func Canonicalize(data []byte, policy CanonicalPolicy) ([]byte, error) {
 }
 
 func checkCanonicalDepth(data []byte, policy CanonicalPolicy) error {
-	decoder := jsontext.NewDecoder(bytes.NewReader(data))
+	decoder := borrowedBytesDecoder(data)
 	for {
 		_, err := decoder.ReadToken()
 		if err == io.EOF {

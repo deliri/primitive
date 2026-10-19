@@ -139,15 +139,25 @@ type projectionRecordCapture struct {
 	consumed int64
 }
 
+// Write records the first and last non-whitespace offsets. Only the leading
+// whitespace of the record and the trailing whitespace of each chunk are
+// classified; interior bytes cannot change either extent.
 func (c *projectionRecordCapture) Write(data []byte) (int, error) {
 	n, err := c.digest.Write(data)
-	for index, value := range data[:n] {
-		if strings.IndexByte(core.JSONWhitespace, value) < 0 {
-			if c.first < 0 {
-				c.first = c.consumed + int64(index)
+	written := data[:n]
+	end := len(written)
+	for end > 0 && strings.IndexByte(core.JSONWhitespace, written[end-1]) >= 0 {
+		end--
+	}
+	if end > 0 {
+		if c.first < 0 {
+			start := 0
+			for strings.IndexByte(core.JSONWhitespace, written[start]) >= 0 {
+				start++
 			}
-			c.last = c.consumed + int64(index) + 1
+			c.first = c.consumed + int64(start)
 		}
+		c.last = c.consumed + int64(end)
 	}
 	c.consumed += int64(n)
 	return n, err

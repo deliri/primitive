@@ -87,6 +87,8 @@ func (r *DelimitedReader) Validate() error {
 }
 
 // ReadFragment returns a bounded original-byte window through Go's ReadRune.
+// Already-buffered runs of single-byte runes other than tab and LF are lent in
+// one copy; they decode to themselves, so the bytes and coordinates are equal.
 // A malformed byte is lent unchanged; decoding is used only to preserve valid
 // rune boundaries for caller whitespace policy. Only bare io.EOF exhausts the
 // source. Any mechanical refusal withdraws this fragment and remains terminal.
@@ -113,6 +115,19 @@ func (r *DelimitedReader) ReadFragment(ctx context.Context) (result DelimitedFra
 	data := r.window[:0]
 	boundary := DelimitedBoundaryMore
 	for len(data) <= cap(data)-utf8.UTFMax {
+		limit := cap(data) - utf8.UTFMax - len(data) + 1
+		if remaining := math.MaxInt64 - r.offset; remaining < int64(limit) {
+			limit = int(remaining)
+		}
+		if run := bufferedASCIIRun(r.reader, limit); len(run) > 0 {
+			data = append(data, run...)
+			r.offset += int64(len(run))
+			r.recordOpen = true
+			if _, err := r.reader.Discard(len(run)); err != nil {
+				return DelimitedFragment{}, errors.Join(core.ErrLineIOScan, err)
+			}
+			continue
+		}
 		value, width, err := r.reader.ReadRune()
 		if r.guard.readErr != nil || r.checked.readErr != nil {
 			return DelimitedFragment{}, errors.Join(core.ErrLineIOScan, err, r.guard.readErr, r.checked.readErr, contextstate.Validate(ctx))

@@ -1,6 +1,7 @@
 package filestore
 
 import (
+	"bufio"
 	"encoding/binary"
 	"errors"
 	"io"
@@ -20,11 +21,10 @@ func WriteRecordRangeIndex(destination io.Writer, record lineio.RecordRange) err
 	if err := record.Validate(); err != nil {
 		return errors.Join(core.ErrFilestoreContract, err)
 	}
-	var data [RecordRangeIndexBytes]byte
-	binary.BigEndian.PutUint64(data[:8], uint64(record.Offset))
-	binary.BigEndian.PutUint64(data[8:16], record.Bytes.Uint64())
-	data[16] = byte(record.Framing)
-	written, err := destination.Write(data[:])
+	data := binary.BigEndian.AppendUint64(appendIndexRecordScratch(destination), uint64(record.Offset))
+	data = binary.BigEndian.AppendUint64(data, record.Bytes.Uint64())
+	data = append(data, byte(record.Framing))
+	written, err := destination.Write(data)
 	if written < 0 || written > len(data) {
 		return contractError(err)
 	}
@@ -40,10 +40,24 @@ func ReadRecordRangeIndex(source io.Reader) (lineio.RecordRange, error) {
 	if core.ReaderIsNil(source) {
 		return lineio.RecordRange{}, core.ErrFilestoreContract
 	}
+	if data, buffered, err := bufferedIndexRecord(source, RecordRangeIndexBytes); buffered {
+		if err != nil {
+			return lineio.RecordRange{}, err
+		}
+		record, err := decodeRecordRangeIndex(data)
+		if _, discardErr := source.(*bufio.Reader).Discard(len(data)); discardErr != nil {
+			return lineio.RecordRange{}, sourceError(discardErr)
+		}
+		return record, err
+	}
 	var data [RecordRangeIndexBytes]byte
 	if err := readIndexRecord(source, data[:]); err != nil {
 		return lineio.RecordRange{}, err
 	}
+	return decodeRecordRangeIndex(data[:])
+}
+
+func decodeRecordRangeIndex(data []byte) (lineio.RecordRange, error) {
 	offset := binary.BigEndian.Uint64(data[:8])
 	if offset > math.MaxInt64 {
 		return lineio.RecordRange{}, core.ErrFilestoreContract

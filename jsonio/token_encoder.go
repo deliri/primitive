@@ -32,14 +32,23 @@ func (e *TokenEncoder) Validate() error {
 // Encode preserves exact number spellings and emits Go's top-level LF when a
 // value completes. A successful token write does not seal an open container.
 func (e *TokenEncoder) Encode(ctx context.Context, token Token) error {
-	if err := errors.Join(contextstate.Validate(ctx), e.Validate(), token.Validate()); err != nil {
+	// A number's text is converted once and shared by admission and writing.
+	var number jsontext.Value
+	var tokenErr error
+	if token.Kind == TokenNumber {
+		number = jsontext.Value(token.Text)
+		tokenErr = validateNumberValue(number, token.Text)
+	} else {
+		tokenErr = token.Validate()
+	}
+	if err := errors.Join(contextstate.Validate(ctx), e.Validate(), tokenErr); err != nil {
 		return err
 	}
 	var err error
 	if token.Kind == TokenNumber {
-		// Validate admits exactly one numeric scalar. WriteValue leaves grammar
+		// Admission accepted exactly one numeric scalar. WriteValue leaves grammar
 		// to Go without rounding a caller's integer or exponent through float64.
-		err = e.encoder.WriteValue(jsontext.Value(token.Text))
+		err = e.encoder.WriteValue(number)
 	} else {
 		err = e.encoder.WriteToken(encodedToken(token))
 	}

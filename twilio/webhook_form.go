@@ -55,8 +55,18 @@ func (r webhookDecodedReader) ReadByte() (byte, error) {
 	}
 }
 
+// decodedWebhookSpan buffers through a window no larger than the span, so the
+// many short names and values of a form never pay for the full transfer
+// window. Window size changes only read chunking, never the decoded bytes.
 func decodedWebhookSpan(source io.ReaderAt, span webhookByteSpan) webhookDecodedReader {
-	return webhookDecodedReader{reader: bufio.NewReaderSize(io.NewSectionReader(source, span.Offset, span.Bytes), exchange.TransferBufferBytes)}
+	return webhookDecodedReader{reader: bufio.NewReaderSize(io.NewSectionReader(source, span.Offset, span.Bytes), webhookSpanWindowBytes(span))}
+}
+
+// webhookSpanWindowBytes is the positive working window for one span: never
+// more than the transfer window and never more than the span's own bytes,
+// which bound its decoded bytes.
+func webhookSpanWindowBytes(span webhookByteSpan) int {
+	return int(min(max(span.Bytes, 1), exchange.TransferBufferBytes))
 }
 
 func compareWebhookSpans(ctx context.Context, left io.ReaderAt, a webhookByteSpan, right io.ReaderAt, b webhookByteSpan) (core.Comparison, error) {
@@ -169,7 +179,7 @@ func splitWebhookField(source io.ReaderAt, record lineio.RecordRange) (webhookFo
 
 func writeDecodedWebhookSpan(ctx context.Context, source io.ReaderAt, span webhookByteSpan, destination io.Writer) error {
 	reader := decodedWebhookSpan(source, span)
-	var buffer [exchange.TransferBufferBytes]byte
+	buffer := make([]byte, webhookSpanWindowBytes(span))
 	for {
 		if err := contextstate.Validate(ctx); err != nil {
 			return err

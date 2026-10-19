@@ -173,10 +173,10 @@ type usageDigestRequest struct {
 
 func usageDomainDigest(request usageDigestRequest) (core.SHA256Digest, error) {
 	writer := core.NewDigestWriter()
-	if _, err := writer.Write([]byte(request.domain)); err != nil {
-		return core.SHA256Digest{}, err
-	}
-	if _, err := writer.Write([]byte{usageDigestDomainSeparator}); err != nil {
+	// One framed prefix write: each byte slice handed to the hash escapes.
+	prefix := make([]byte, 0, len(request.domain)+1)
+	prefix = append(append(prefix, request.domain...), usageDigestDomainSeparator)
+	if _, err := writer.Write(prefix); err != nil {
 		return core.SHA256Digest{}, err
 	}
 	if _, err := writer.Write(request.first); err != nil {

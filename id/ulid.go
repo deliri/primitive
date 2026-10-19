@@ -195,11 +195,19 @@ func (u ULID) Validate() error {
 }
 
 // MarshalJSON emits the canonical spelling after validation.
+//
+// The canonical spelling is Crockford base32, which JSON never escapes, so the
+// token is quoted directly into one exact buffer; it is byte-identical to
+// core.MarshalCanonicalJSONString of String.
 func (u ULID) MarshalJSON() ([]byte, error) {
 	if err := u.Validate(); err != nil {
 		return nil, errors.Join(core.ErrJSONContract, err)
 	}
-	return core.MarshalCanonicalJSONString(u.String())
+	text := u.canonicalText()
+	encoded := make([]byte, 0, len(text)+len(`""`))
+	encoded = append(encoded, '"')
+	encoded = append(encoded, text[:]...)
+	return append(encoded, '"'), nil
 }
 
 // UnmarshalJSON admits exactly one canonical spelling. The receiver is

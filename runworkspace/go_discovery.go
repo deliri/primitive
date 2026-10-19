@@ -11,6 +11,7 @@ import (
 	"io"
 	"path"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"unicode"
@@ -390,7 +391,17 @@ func discoverGoDeclarations(parsed *ast.File, requested []runprotocol.ProbeKind)
 	if len(declarations) > runnercontrol.ExpansionChildMaximum {
 		return nil, core.ErrPrimitiveContract
 	}
-	sort.Slice(declarations, func(left, right int) bool { return goDeclarationLess(declarations[left], declarations[right]) })
+	// Declarations that compare equal are identical values, so the
+	// reflection-free sort cannot change the observable order.
+	slices.SortFunc(declarations, func(left, right GoDeclaration) int {
+		if goDeclarationLess(left, right) {
+			return -1
+		}
+		if goDeclarationLess(right, left) {
+			return 1
+		}
+		return 0
+	})
 	return declarations, nil
 }
 

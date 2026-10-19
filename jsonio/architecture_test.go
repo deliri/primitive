@@ -41,6 +41,12 @@ type jsonioStructInventory struct {
 	CheckedSource            jsonioKernelFlow[checkedJSONSource]
 	CheckedDestination       jsonioKernelFlow[checkedJSONDestination]
 	ContextSource            jsonioKernelFlow[contextJSONSource]
+	DocumentObjects          jsonioKernelFlow[documentObjects[Token]]
+	ObjectMemberRequest      jsonioIngress[ObjectMemberRequest]
+	TokenProjectionRequest   jsonioIngress[TokenProjectionRequest]
+	CanonicalProjectionCodec jsonioCapability[CanonicalProjectionCodec]
+	CanonicalDeclaredField   jsonioKernelFlow[canonicalDeclaredField]
+	MemberObject             jsonioKernelFlow[memberObject]
 	ExtentError              jsonioError[ExtentError]
 	NativeError              jsonioError[nativeJSONError]
 }

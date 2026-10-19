@@ -5,6 +5,7 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	"io"
 	"unicode"
+	"unicode/utf8"
 )
 
 // TreeEntryStream lends decoded path bytes to one synchronous visitor.
@@ -127,7 +128,7 @@ func (s *TreeEntryStream) readMember(name string) error {
 		if openingErr := s.decoder.expect('"'); openingErr != nil {
 			return openingErr
 		}
-		s.path = jsonStringStream{source: s.decoder.source, observe: s.pathFacts.admit}
+		s.path = jsonStringStream{source: s.decoder.source, facts: &s.pathFacts}
 		s.pathActive = true
 		return nil
 	case treeTypeMember:
@@ -189,11 +190,12 @@ type treePathFacts struct {
 }
 
 func (p *treePathFacts) admit(value rune) error {
-	if !p.seen && unicode.IsSpace(value) {
+	space := treePathSpace(value)
+	if !p.seen && space {
 		return core.ErrGitHubResponse
 	}
 	p.seen = true
-	p.trailingSpace = unicode.IsSpace(value)
+	p.trailingSpace = space
 	switch value {
 	case '\\', 0, '\r', '\n':
 		return core.ErrGitHubResponse
@@ -210,6 +212,15 @@ func (p *treePathFacts) admit(value rune) error {
 	}
 	return nil
 }
+
+// treePathSpace is unicode.IsSpace with its ASCII range decided inline.
+func treePathSpace(value rune) bool {
+	if value < utf8.RuneSelf {
+		return value == ' ' || value >= '\t' && value <= '\r'
+	}
+	return unicode.IsSpace(value)
+}
+
 func (p *treePathFacts) closeSegment() error {
 	if p.segment == 0 || p.onlyDots && p.segment <= 2 {
 		return core.ErrGitHubResponse

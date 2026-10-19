@@ -80,8 +80,15 @@ func BenchmarkResolvePrimaryFourKiB(b *testing.B) {
 	b.SetBytes(int64(len(data)))
 	b.ResetTimer()
 	for b.Loop() {
-		if _, err := ResolvePrimary(b.Context(), request); err != nil {
+		primary, err := ResolvePrimary(b.Context(), request)
+		if err != nil {
 			b.Fatalf("ResolvePrimary() error = %v, want nil", err)
 		}
+		benchmarkPrimarySink = primary
+	}
+	if benchmarkPrimarySink.Slot() != SlotA || benchmarkPrimarySink.Artifact() != artifact {
+		b.Fatalf("ResolvePrimary() slot = %v, want the installed slot-A artifact", benchmarkPrimarySink.Slot())
 	}
 }
+
+var benchmarkPrimarySink Primary

@@ -73,7 +73,9 @@ func (e *Executor) selectSlot(request Request) (int, error) {
 	if err := e.observe(request); err != nil {
 		return 0, err
 	}
-	available := -1
+	// An existing key wins over any reusable slot, so find it first with the
+	// fixed-width identity comparison alone. Reusability, which orders window
+	// instants, is evaluated only when the key holds no slot.
 	for i := range e.slots {
 		s := &e.slots[i]
 		if s.reservation.Key == request.Reservation.Key {
@@ -82,7 +84,10 @@ func (e *Executor) selectSlot(request Request) (int, error) {
 			}
 			return i, nil
 		}
-		reusable, err := reusableSlot(s, e.highWater)
+	}
+	available := -1
+	for i := range e.slots {
+		reusable, err := reusableSlot(&e.slots[i], e.highWater)
 		if err != nil {
 			return 0, err
 		}

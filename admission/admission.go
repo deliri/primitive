@@ -107,16 +107,24 @@ func (g *Gate) WithSlot(ctx context.Context, operation func(context.Context, Obs
 			return core.ErrAdmissionCapacity
 		}
 		if g.used.CompareAndSwap(current, current+1) {
-			defer g.used.Add(^uint64(0))
-			if err := usableContext(ctx); err != nil {
-				return err
-			}
-			return operation(ctx, Observation{inUse: current + 1, limit: g.limit})
+			return g.runReserved(ctx, operation, current+1)
 		}
 		if err := usableContext(ctx); err != nil {
 			return err
 		}
 	}
+}
+
+// runReserved owns exactly one successful reservation. Keeping its release in
+// a straight-line function lets Go open-code the defer instead of allocating a
+// heap defer record inside WithSlot's retry loop; the release still runs on
+// normal return, error, panic and runtime.Goexit.
+func (g *Gate) runReserved(ctx context.Context, operation func(context.Context, Observation) error, inUse uint64) error {
+	defer g.used.Add(^uint64(0))
+	if err := usableContext(ctx); err != nil {
+		return err
+	}
+	return operation(ctx, Observation{inUse: inUse, limit: g.limit})
 }
 
 // Context termination is a native cause, not an admission-contract failure.

@@ -143,6 +143,7 @@ type filestoreContractInventory struct {
 	streamCopyRequest       internalFlow[streamCopyRequest]
 	streamReader            internalFlow[streamReader]
 	streamWriter            internalFlow[streamWriter]
+	streamTransfer          internalFlow[streamTransfer]
 	stageSynchronization    internalFlow[stageSynchronization]
 	createdFileAbandonment  internalFlow[createdFileAbandonment]
 	createdPathCleanup      internalFlow[createdPathCleanup]
@@ -159,6 +160,7 @@ var (
 	_ = filestoreContractInventory{}.streamCopyRequest
 	_ = filestoreContractInventory{}.streamReader
 	_ = filestoreContractInventory{}.streamWriter
+	_ = filestoreContractInventory{}.streamTransfer
 	_ = filestoreContractInventory{}.stageSynchronization
 	_ = filestoreContractInventory{}.createdFileAbandonment
 	_ = filestoreContractInventory{}.createdPathCleanup

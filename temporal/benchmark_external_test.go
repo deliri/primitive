@@ -303,3 +303,78 @@ func BenchmarkTickerOpenStop(b *testing.B) {
 		b.Fatal("ticker channel = nil, want caller-owned channel")
 	}
 }
+
+// Each JSON encode benchmark measures one persistence projection of the
+// widest admitted value. The exact wire text is checked after timing.
+var benchmarkTemporalJSONSink []byte
+
+func BenchmarkInstantJSONEncodeMinimum(b *testing.B) {
+	value := temporal.InstantFromNanoseconds(math.MinInt64)
+	const want = `"-9223372036854775808"`
+	b.ReportAllocs()
+	for b.Loop() {
+		wire, err := value.MarshalJSON()
+		if err != nil {
+			b.Fatal(err)
+		}
+		benchmarkTemporalJSONSink = wire
+	}
+	if string(benchmarkTemporalJSONSink) != want {
+		b.Fatalf("encoded = %s, want %s", benchmarkTemporalJSONSink, want)
+	}
+}
+
+func BenchmarkDurationJSONEncodeMaximum(b *testing.B) {
+	value, err := temporal.DurationFromNanoseconds(math.MaxInt64)
+	if err != nil {
+		b.Fatal(err)
+	}
+	const want = `"9223372036854775807"`
+	b.ReportAllocs()
+	for b.Loop() {
+		wire, err := value.MarshalJSON()
+		if err != nil {
+			b.Fatal(err)
+		}
+		benchmarkTemporalJSONSink = wire
+	}
+	if string(benchmarkTemporalJSONSink) != want {
+		b.Fatalf("encoded = %s, want %s", benchmarkTemporalJSONSink, want)
+	}
+}
+
+func BenchmarkAggregateDurationJSONEncodeMaximum(b *testing.B) {
+	value, err := temporal.ParseAggregateDuration(maximumUint128Decimal)
+	if err != nil {
+		b.Fatal(err)
+	}
+	want := `"` + maximumUint128Decimal + `"`
+	b.ReportAllocs()
+	for b.Loop() {
+		wire, err := value.MarshalJSON()
+		if err != nil {
+			b.Fatal(err)
+		}
+		benchmarkTemporalJSONSink = wire
+	}
+	if string(benchmarkTemporalJSONSink) != want {
+		b.Fatalf("encoded = %s, want %s", benchmarkTemporalJSONSink, want)
+	}
+}
+
+// BenchmarkAggregateDurationDecimalWord measures the common aggregate whose
+// value still fits one machine word.
+func BenchmarkAggregateDurationDecimalWord(b *testing.B) {
+	value, err := temporal.ParseAggregateDuration("18446744073709551615")
+	if err != nil {
+		b.Fatal(err)
+	}
+	var got string
+	b.ReportAllocs()
+	for b.Loop() {
+		got = value.Decimal()
+	}
+	if got != "18446744073709551615" {
+		b.Fatalf("decimal = %q, want word maximum", got)
+	}
+}

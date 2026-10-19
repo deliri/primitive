@@ -39,16 +39,18 @@ func (r UploadItemRequest) Validate() error {
 	if core.ReaderIsNil(r.Source) {
 		return contractError(errors.New("deploy upload source is nil"))
 	}
+	// Provider is the capability's validation plus its provider projection;
+	// validating it separately first would repeat the whole target check.
+	provider, providerErr := r.Capability.Provider()
 	for _, err := range []error{
-		r.Capability.Validate(), r.Commitment.Validate(), r.Integrity.Validate(), r.Role.Validate(),
+		providerErr, r.Commitment.Validate(), r.Integrity.Validate(), r.Role.Validate(),
 	} {
 		if err != nil {
 			return contractError(errors.New("deploy upload item is invalid"), err)
 		}
 	}
-	provider, err := r.Capability.Provider()
-	if err != nil || provider != objectstore.ProviderGoogleCloudStorage {
-		return contractError(errors.New("deploy capability is not google cloud storage"), err)
+	if provider != objectstore.ProviderGoogleCloudStorage {
+		return contractError(errors.New("deploy capability is not google cloud storage"))
 	}
 	if err := validateUploadExtent(r.Integrity, provider); err != nil {
 		return err

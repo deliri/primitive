@@ -50,6 +50,9 @@ func CopyContent(ctx context.Context, request CopyContentRequest) (ContentIndexE
 		copy.source = &io.LimitedReader{R: &stream, N: extent}
 		copy.extentKnown, copy.knownExtent = true, expected.Extent.Uint64()
 	}
+	if len(copy.buffer) == 0 {
+		copy.buffer = boundedCopyWindow(request)
+	}
 	length, err := copyStream(copy)
 	if err != nil {
 		return ContentIndexEntry{}, err
@@ -78,6 +81,27 @@ func CopyContent(ctx context.Context, request CopyContentRequest) (ContentIndexE
 // Callers with a parent context use CopyContent instead.
 func TransferContent(request CopyContentRequest) (ContentIndexEntry, error) {
 	return CopyContent(context.Background(), request)
+}
+
+// boundedCopyWindow restores the sizing io.CopyBuffer applies to a bare
+// io.LimitedReader, which the validating stream wrapper otherwise hides: when
+// the agreement or the caller's limited source bounds the copy below Go's
+// window, Go-allocated scratch shrinks to that bound (at least one byte). It
+// is working memory only; it never limits the bytes the copy accepts.
+func boundedCopyWindow(request CopyContentRequest) []byte {
+	bound := int64(goCopyWindowBytes)
+	if request.Expected != nil {
+		if extent, err := request.Expected.Extent.Int64(); err == nil {
+			bound = min(bound, extent)
+		}
+	}
+	if limited, ok := request.Source.(*io.LimitedReader); ok {
+		bound = min(bound, limited.N)
+	}
+	if bound >= goCopyWindowBytes {
+		return nil
+	}
+	return make([]byte, max(bound, 1))
 }
 
 func verifyContentSourceEnd(source io.Reader, expected *ContentIndexEntry) error {

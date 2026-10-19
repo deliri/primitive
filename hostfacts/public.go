@@ -106,9 +106,7 @@ func ClassifyGoOOMBanner(ctx context.Context, request GoOOMBannerRequest) (GoOOM
 	if err := request.Validate(); err != nil {
 		return GoOOMBannerEvidence{}, err
 	}
-	scanner := oomScanner{
-		source: request.Source, remaining: request.Length.Uint64(),
-	}
+	scanner := newOOMScanner(request.Source, request.Length.Uint64())
 	for scanner.remaining > 0 {
 		if err := scanner.read(ctx); err != nil {
 			return GoOOMBannerEvidence{}, fail(OperationGoOOMBanner, core.ErrHostFactsObservation, err)

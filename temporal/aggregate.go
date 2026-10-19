@@ -1,9 +1,9 @@
 package temporal
 
 import (
-	json "encoding/json/v2"
 	"math"
 	"math/bits"
+	"strconv"
 
 	"github.com/deliri/primitive/v2026/core"
 )
@@ -36,12 +36,28 @@ func AggregateDurationFromDuration(d Duration) (AggregateDuration, error) {
 
 // ParseAggregateDuration accepts canonical unsigned base-10 nanoseconds.
 func ParseAggregateDuration(decimal string) (AggregateDuration, error) {
+	return parseAggregateDecimal(decimal)
+}
+
+// parseAggregateDecimal lets persistence parse the canonical decimal bytes in
+// place, without first copying them into a string.
+func parseAggregateDecimal[Text ~string | ~[]byte](decimal Text) (AggregateDuration, error) {
 	if !canonicalUnsignedDecimal(decimal) {
 		return AggregateDuration{}, contractError("aggregate duration decimal is not canonical")
 	}
+	// Fold up to nineteen digits into one word, then scale the accumulator
+	// once per word. Every prefix is at most the final value, so a step
+	// overflows exactly when the whole decimal exceeds 128 bits.
 	var value AggregateDuration
-	for index := range len(decimal) {
-		next, err := value.multiplyAddDecimal(decimal[index] - '0')
+	for start := 0; start < len(decimal); start += aggregateDecimalChunkDigits {
+		end := min(start+aggregateDecimalChunkDigits, len(decimal))
+		var word uint64
+		scale := uint64(1)
+		for index := start; index < end; index++ {
+			word = word*10 + uint64(decimal[index]-'0')
+			scale *= 10
+		}
+		next, err := value.multiplyAdd(scale, word)
 		if err != nil {
 			return AggregateDuration{}, err
 		}
@@ -50,12 +66,12 @@ func ParseAggregateDuration(decimal string) (AggregateDuration, error) {
 	return value, nil
 }
 
-func (a AggregateDuration) multiplyAddDecimal(digit byte) (AggregateDuration, error) {
-	scaled, err := a.Multiply(10)
+func (a AggregateDuration) multiplyAdd(multiplier, addend uint64) (AggregateDuration, error) {
+	scaled, err := a.Multiply(multiplier)
 	if err != nil {
 		return AggregateDuration{}, err
 	}
-	low, carry := bits.Add64(scaled.low, uint64(digit), 0)
+	low, carry := bits.Add64(scaled.low, addend, 0)
 	high, overflow := bits.Add64(scaled.high, 0, carry)
 	if overflow != 0 {
 		return AggregateDuration{}, overflowError("aggregate duration exceeded unsigned 128 bits")
@@ -79,15 +95,42 @@ func (a AggregateDuration) Decimal() string {
 		return "0"
 	}
 	var buffer [AggregateDurationMaximumDecimalDigits]byte
-	index := len(buffer)
-	current := a
-	for !current.IsZero() {
-		var remainder uint64
-		current, remainder = current.divide(10)
-		index--
-		buffer[index] = decimalDigits[remainder]
+	return string(a.appendDecimal(buffer[:0]))
+}
+
+// aggregateDecimalChunk is the largest power of ten below 2^64. Splitting the
+// 128-bit value into base-10^19 limbs lets strconv format each word instead of
+// performing one 128-bit division per digit.
+const (
+	aggregateDecimalChunk       = 10_000_000_000_000_000_000
+	aggregateDecimalChunkDigits = 19
+)
+
+// appendDecimal appends the canonical unsigned base-10 spelling of a.
+func (a AggregateDuration) appendDecimal(destination []byte) []byte {
+	if a.high == 0 {
+		return strconv.AppendUint(destination, a.low, 10)
 	}
-	return string(buffer[index:])
+	upper, lowest := a.divide(aggregateDecimalChunk)
+	if upper.high == 0 {
+		destination = strconv.AppendUint(destination, upper.low, 10)
+	} else {
+		// 2^128 < 10^57, so the top limb is a single small word.
+		top, middle := upper.divide(aggregateDecimalChunk)
+		destination = strconv.AppendUint(destination, top.low, 10)
+		destination = appendDecimalChunk(destination, middle)
+	}
+	return appendDecimalChunk(destination, lowest)
+}
+
+// appendDecimalChunk appends value as exactly nineteen zero-padded digits.
+func appendDecimalChunk(destination []byte, value uint64) []byte {
+	var digits [aggregateDecimalChunkDigits]byte
+	for index := len(digits) - 1; index >= 0; index-- {
+		digits[index] = decimalDigits[value%10]
+		value /= 10
+	}
+	return append(destination, digits[:]...)
 }
 
 // Add returns an exact aggregate sum.
@@ -160,7 +203,12 @@ func (a AggregateDuration) Duration() (Duration, error) {
 
 // MarshalJSON emits canonical decimal nanoseconds as a JSON string.
 func (a AggregateDuration) MarshalJSON() ([]byte, error) {
-	return json.Marshal(a.Decimal())
+	// Decimal digits need no JSON escaping, so the quoted spelling is the
+	// canonical JSON string encoding/json would emit for Decimal().
+	wire := make([]byte, 0, AggregateDurationCanonicalJSONMaximumBytes)
+	wire = append(wire, '"')
+	wire = a.appendDecimal(wire)
+	return append(wire, '"'), nil
 }
 
 // UnmarshalJSON accepts canonical decimal nanoseconds without mutation on
@@ -173,7 +221,7 @@ func (a *AggregateDuration) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	parsed, err := ParseAggregateDuration(decimal)
+	parsed, err := parseAggregateDecimal(decimal)
 	if err != nil {
 		return jsonContractError(temporalJSONValueInvalidReason, err)
 	}

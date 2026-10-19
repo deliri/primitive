@@ -582,8 +582,10 @@ type boundedLineScan struct {
 
 func (s boundedLineScan) run(ctx context.Context) error {
 	var readBuffer [streamBufferBytes]byte
-	var lineStorage [procLineMaximumBytes]byte
-	line := lineStorage[:0]
+	// Lines wholly inside one read are visited in place. Only a line split
+	// across reads is assembled here, so storage grows with the longest split
+	// line actually observed, never beyond procLineMaximumBytes.
+	var line []byte
 	total, emptyReads := uint64(0), 0
 	for {
 		if err := contextstate.Validate(ctx); err != nil {
@@ -656,11 +658,17 @@ func consumeLines(line, data []byte, visit func([]byte) error) ([]byte, error) {
 		if len(line)+newline > procLineMaximumBytes {
 			return line, core.ErrHostFactsObservation
 		}
-		line = append(line, data[:newline]...)
-		if len(line) == 0 {
+		// The capacity cap keeps a visitor's append from overwriting unread
+		// bytes that follow the line in the read buffer.
+		current := data[:newline:newline]
+		if len(line) > 0 {
+			line = append(line, current...)
+			current = line
+		}
+		if len(current) == 0 {
 			return line, core.ErrHostFactsObservation
 		}
-		if err := visit(line); err != nil {
+		if err := visit(current); err != nil {
 			return line, err
 		}
 		line = line[:0]

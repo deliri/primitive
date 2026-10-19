@@ -1,6 +1,7 @@
 package filestore
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/binary"
 	"errors"
@@ -142,5 +143,47 @@ func BenchmarkContentIndexRecordAdmission(b *testing.B) {
 	}
 	if got != entry {
 		b.Fatalf("ReadContentIndexEntry() = %+v, want %+v", got, entry)
+	}
+}
+
+// BenchmarkSortContentIndex4096Records sorts one full 4096-record run, the
+// largest input that needs no merge pass, so Files[0] is only read and every
+// iteration repeats the same reverse-ordered workload. It exercises buffered
+// record admission and emission on both inspection passes.
+func BenchmarkSortContentIndex4096Records(b *testing.B) {
+	const records = contentSortRunEntries
+	files := contentScratchForTest(b, b.TempDir())
+	writer := bufio.NewWriter(files[0])
+	for ordinal := uint64(records); ordinal > 0; ordinal-- {
+		if err := WriteContentIndexEntry(writer, contentEntryForTest(b, ordinal, ordinal)); err != nil {
+			b.Fatal(err)
+		}
+	}
+	if err := writer.Flush(); err != nil {
+		b.Fatal(err)
+	}
+	info, err := files[0].Stat()
+	if err != nil || info.Size() != records*ContentIndexRecordBytes {
+		b.Fatalf("fixture = (%v,%v), want %d complete records", info, err, records)
+	}
+	var emitted bytes.Buffer
+	emitted.Grow(records * ContentIndexRecordBytes)
+	request := ContentSortRequest{Files: files, Destination: &emitted}
+	var summary ContentIndexSummary
+	b.ReportAllocs()
+	b.SetBytes(records * ContentIndexRecordBytes)
+	for b.Loop() {
+		emitted.Reset()
+		summary, err = SortContentIndex(b.Context(), request)
+		if err != nil {
+			b.Fatalf("SortContentIndex() error = %v, want nil", err)
+		}
+	}
+	if summary.Entries != records || emitted.Len() != records*ContentIndexRecordBytes {
+		b.Fatalf("summary = %+v, emitted = %d bytes, want %d records", summary, emitted.Len(), records)
+	}
+	first, err := ReadContentIndexEntry(bytes.NewReader(emitted.Bytes()))
+	if err != nil || first != contentEntryForTest(b, 1, 1) {
+		b.Fatalf("first emitted = (%+v,%v), want ordinal 1", first, err)
 	}
 }

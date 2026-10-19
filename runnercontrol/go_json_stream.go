@@ -2,7 +2,7 @@ package runnercontrol
 
 import (
 	"crypto/sha256"
-	json "encoding/json/v2"
+	"encoding/json/jsontext"
 	"hash"
 	"unicode/utf8"
 
@@ -60,6 +60,7 @@ type goJSONStream struct {
 	digest        hash.Hash
 	projection    goJSONProjection
 	fragment      [256]byte
+	decoded       [256]byte
 	scalar        [16]byte
 	used          int
 	scalarUsed    int
@@ -293,8 +294,27 @@ func (s *goJSONStream) stringByte(value byte) error {
 	return nil
 }
 
+// goJSONStringFlushBytes is the raw fragment extent at which a string flushes.
+const goJSONStringFlushBytes = 192
+
+// consumeStringRun copies the leading run of bytes that stringByte would only
+// append: no terminator, escape or control byte, outside any escape state, and
+// strictly below the flush extent so no flush decision is skipped.
+func (s *goJSONStream) consumeStringRun(data []byte) int {
+	if s.state != goJSONString || s.escaped || s.unicodeDigits != 0 || s.highSurrogate {
+		return 0
+	}
+	limit := min(len(data), goJSONStringFlushBytes-1-s.used)
+	n := 0
+	for n < limit && data[n] >= 0x20 && data[n] != '"' && data[n] != '\\' {
+		n++
+	}
+	s.used += copy(s.fragment[s.used:], data[:n])
+	return n
+}
+
 func (s *goJSONStream) stringFragmentReady() bool {
-	return s.used >= 192 && !s.escaped && s.unicodeDigits == 0 && !s.highSurrogate && utf8.Valid(s.fragment[1:s.used])
+	return s.used >= goJSONStringFlushBytes && !s.escaped && s.unicodeDigits == 0 && !s.highSurrogate && utf8.Valid(s.fragment[1:s.used])
 }
 
 func (s *goJSONStream) advanceStringEscape(value byte) error {
@@ -362,22 +382,25 @@ func (s *goJSONStream) finishString() error {
 	return s.endString()
 }
 
+// flushString unquotes one complete JSON string fragment into the fixed decode
+// window. Unquoting never expands valid input, so the window never grows; the
+// decoded bytes are borrowed by observeString until it returns.
 func (s *goJSONStream) flushString() error {
 	s.fragment[s.used] = '"'
-	var decoded string
-	if err := json.Unmarshal(s.fragment[:s.used+1], &decoded); err != nil {
+	decoded, err := jsontext.AppendUnquote(s.decoded[:0], s.fragment[:s.used+1])
+	if err != nil {
 		return observationFailure("go event string cannot be decoded", core.ErrJSONContract, err)
 	}
 	s.used = 1
 	if !s.key && s.observeString != nil {
-		if err := s.observeString(GoEventStringFragment{Field: s.field, Data: []byte(decoded)}); err != nil {
+		if err := s.observeString(GoEventStringFragment{Field: s.field, Data: decoded}); err != nil {
 			return err
 		}
 	}
 	return s.retainString(decoded)
 }
 
-func (s *goJSONStream) retainString(decoded string) error {
+func (s *goJSONStream) retainString(decoded []byte) error {
 	if s.key || s.field == GoEventFieldAction || s.field == GoEventFieldOutputType {
 		if len(decoded) > len(s.scalar)-s.scalarUsed {
 			return goJSONFailure()
@@ -389,17 +412,17 @@ func (s *goJSONStream) retainString(decoded string) error {
 	return s.projectString(decoded)
 }
 
-func (s *goJSONStream) projectString(decoded string) error {
+func (s *goJSONStream) projectString(decoded []byte) error {
 	switch s.field {
 	case GoEventFieldPackage:
-		s.projection.packagePresent = s.projection.packagePresent || decoded != ""
-		if _, err := s.digest.Write([]byte(decoded)); err != nil {
+		s.projection.packagePresent = s.projection.packagePresent || len(decoded) != 0
+		if _, err := s.digest.Write(decoded); err != nil {
 			return err
 		}
 	case GoEventFieldTest:
-		s.projection.testPresent = s.projection.testPresent || decoded != ""
+		s.projection.testPresent = s.projection.testPresent || len(decoded) != 0
 	case GoEventFieldOutput:
-		s.projection.outputPresent = s.projection.outputPresent || decoded != ""
+		s.projection.outputPresent = s.projection.outputPresent || len(decoded) != 0
 		s.projection.benchmark.write(decoded)
 	}
 	return nil

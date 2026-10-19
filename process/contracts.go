@@ -336,7 +336,10 @@ func ParseExactEnvironment(values []string) (Environment, error) {
 		variables[index] = variable
 	}
 	environment := Environment{Mode: EnvironmentModeExact, Variables: variables}
-	if err := environment.Validate(); err != nil {
+	// Each admitted projection is exactly name + "=" + value because the name
+	// ends at the first separator, so the caller's strings already are the
+	// os/exec projection the duplicate-name check needs.
+	if _, err := environment.validateProjection(values); err != nil {
 		return Environment{}, err
 	}
 	return environment, nil
@@ -394,22 +397,32 @@ func parseEnvironmentVariable(projection string) (EnvironmentVariable, error) {
 
 // Validate rejects contradictory modes, unset variables, and duplicate names.
 func (e Environment) Validate() error {
+	_, err := e.validateProjection(nil)
+	return err
+}
+
+// validateProjection admits e and returns its exact os/exec projection: nil
+// for inheritance and a fresh non-nil slice for exact variables. A non-nil
+// projected argument must already equal e.project() element for element; it
+// is read for the duplicate-name check and returned in place of a new
+// projection.
+func (e Environment) validateProjection(projected []string) ([]string, error) {
 	if err := e.Mode.Validate(); err != nil {
-		return err
+		return nil, err
 	}
 	if e.Mode == EnvironmentModeInherit {
 		if len(e.Variables) != 0 {
-			return contractError("inherited environment contains exact variables")
+			return nil, contractError("inherited environment contains exact variables")
 		}
-		return nil
+		return nil, nil
 	}
 	if uint64(len(e.Variables)) > uint64(EnvironmentVariableCountMaximum) {
-		return contractError(environmentVariableCountMaximumDiagnostic)
+		return nil, contractError(environmentVariableCountMaximumDiagnostic)
 	}
 	var projectedBytes uint64
 	for _, variable := range e.Variables {
 		if err := variable.Validate(); err != nil {
-			return err
+			return nil, err
 		}
 		var err error
 		projectedBytes, err = extendProjection(
@@ -422,13 +435,16 @@ func (e Environment) Validate() error {
 			},
 		)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
-	if environmentNamesCollapse(e.Variables) {
-		return contractError("exact environment contains a duplicate name")
+	if projected == nil {
+		projected = e.project()
 	}
-	return nil
+	if environmentNamesCollapse(projected) {
+		return nil, contractError("exact environment contains a duplicate name")
+	}
+	return projected, nil
 }
 
 // environmentNamesCollapse delegates environment-name identity to os/exec.
@@ -436,9 +452,7 @@ func (e Environment) Validate() error {
 // admitted input pair must survive in its original position: comparing only
 // lengths would mistake additions for collisions, or let an addition conceal
 // a removed duplicate. Primitive keeps no second naming or deduplication model.
-func environmentNamesCollapse(variables []EnvironmentVariable) bool {
-	environment := Environment{Mode: EnvironmentModeExact, Variables: variables}
-	projected := environment.project()
+func environmentNamesCollapse(projected []string) bool {
 	command := exec.Cmd{Env: projected}
 	effective := command.Environ()
 	for index, pair := range projected {
@@ -464,10 +478,7 @@ func (e Environment) project() []string {
 // result means ambient inheritance; an empty non-nil result means an exact
 // empty environment.
 func (e Environment) Strings() ([]string, error) {
-	if err := e.Validate(); err != nil {
-		return nil, err
-	}
-	return e.project(), nil
+	return e.validateProjection(nil)
 }
 
 // With returns one exact environment whose value for variable.Name is

@@ -90,6 +90,7 @@ func WriteZIP(ctx context.Context, request ZIPWriteRequest) (resultErr error) {
 		return err
 	}
 	archive := zip.NewWriter(request.Destination)
+	var window []byte
 	var entryErr error
 	defer func() {
 		if recover() != nil {
@@ -99,14 +100,16 @@ func WriteZIP(ctx context.Context, request ZIPWriteRequest) (resultErr error) {
 	}()
 	produceErr := request.Produce(ctx, func(entry ZIPEntry) error {
 		if entryErr == nil {
-			entryErr = writeZIPEntry(ctx, archive, entry)
+			entryErr = writeZIPEntry(ctx, archive, entry, &window)
 		}
 		return entryErr
 	})
 	return errors.Join(produceErr, entryErr)
 }
 
-func writeZIPEntry(ctx context.Context, archive *zip.Writer, entry ZIPEntry) error {
+// writeZIPEntry copies through one archive-owned window, allocated once by the
+// first entry and reused for every later entry instead of one Go window each.
+func writeZIPEntry(ctx context.Context, archive *zip.Writer, entry ZIPEntry, window *[]byte) error {
 	if err := errors.Join(contextstate.Validate(ctx), entry.Validate()); err != nil {
 		return err
 	}
@@ -124,7 +127,10 @@ func writeZIPEntry(ctx context.Context, archive *zip.Writer, entry ZIPEntry) err
 	if err != nil {
 		return err
 	}
-	_, err = copyStream(streamCopyRequest{ctx: ctx, source: entry.Source, destination: destination, kind: streamDestinationCaller})
+	if *window == nil {
+		*window = make([]byte, goCopyWindowBytes)
+	}
+	_, err = copyStream(streamCopyRequest{ctx: ctx, source: entry.Source, destination: destination, buffer: *window, kind: streamDestinationCaller})
 	return err
 }
 

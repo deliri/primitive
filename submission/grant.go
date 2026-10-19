@@ -254,7 +254,7 @@ func VerifyGrant(expectation GrantExpectation) (VerifiedGrant, error) {
 	if err != nil {
 		return VerifiedGrant{}, contractError(err)
 	}
-	wantRequest, err := CommitRequest(expectation.Request)
+	wantRequest, err := commitValidatedRequest(expectation.Request)
 	if err != nil || wantRequest != expectation.Document.Payload.Request {
 		return VerifiedGrant{}, bindingError(err)
 	}

@@ -53,8 +53,13 @@ type CharacterPosition struct {
 	Column RuneColumn
 }
 
+// Validate joins causes only on refusal; it runs once per published rune.
 func (p CharacterPosition) Validate() error {
-	return errors.Join(p.Offset.Validate(), p.Line.Validate(), p.Column.Validate())
+	offsetErr, lineErr, columnErr := p.Offset.Validate(), p.Line.Validate(), p.Column.Validate()
+	if offsetErr == nil && lineErr == nil && columnErr == nil {
+		return nil
+	}
+	return errors.Join(offsetErr, lineErr, columnErr)
 }
 
 type Character struct {
@@ -62,7 +67,14 @@ type Character struct {
 	Value    CharacterValue
 }
 
-func (c Character) Validate() error { return errors.Join(c.Position.Validate(), c.Value.Validate()) }
+// Validate joins causes only on refusal; it runs once per published rune.
+func (c Character) Validate() error {
+	positionErr, valueErr := c.Position.Validate(), c.Value.Validate()
+	if positionErr == nil && valueErr == nil {
+		return nil
+	}
+	return errors.Join(positionErr, valueErr)
+}
 
 // CharacterRequest borrows an interruptible UTF-8 text source. Its lifetime
 // remains with the caller. Go's scanner refuses NUL and malformed UTF-8 and
@@ -124,8 +136,9 @@ func readCharacter(ctx context.Context, decoder *scanner.Scanner, decodeErr *err
 		return Character{}, false, err
 	}
 	value = decoder.Next()
-	if err := errors.Join(contextstate.Validate(ctx), *decodeErr); err != nil {
-		return Character{}, false, err
+	// Join only on refusal: errors.Join's variadic scan is measurable per rune.
+	if cancellation := contextstate.Validate(ctx); cancellation != nil || *decodeErr != nil {
+		return Character{}, false, errors.Join(cancellation, *decodeErr)
 	}
 	character := Character{Position: position, Value: CharacterValue(value)}
 	return character, false, character.Validate()
@@ -168,6 +181,33 @@ func (s *characterSource) Read(destination []byte) (int, error) {
 		s.readErr = err
 	}
 	return n, err
+}
+
+// bufferedASCIIRun lends the longest prefix, at most limit bytes, of data that
+// Go's reader already holds and that consists of single-byte runes other than
+// tab and LF. It never fills, so it cannot observe a source read or failure;
+// ReadRune would decode each byte to itself with width one. The caller must
+// Discard exactly the bytes it consumes before the next read.
+func bufferedASCIIRun(reader *bufio.Reader, limit int) []byte {
+	limit = min(limit, reader.Buffered())
+	if limit <= 0 {
+		return nil
+	}
+	window, err := reader.Peek(limit)
+	if err != nil {
+		return nil
+	}
+	for index, value := range window {
+		if value >= utf8.RuneSelf || value == '\t' || value == '\n' {
+			return window[:index]
+		}
+	}
+	return window
+}
+
+// asciiSpace reports unicode.IsSpace for a single-byte rune below utf8.RuneSelf.
+func asciiSpace(value byte) bool {
+	return value == ' ' || value >= '\t' && value <= '\r'
 }
 
 var (

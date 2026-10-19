@@ -1,6 +1,7 @@
 package filestore
 
 import (
+	"bufio"
 	"encoding/binary"
 	"errors"
 	"io"
@@ -43,10 +44,9 @@ func WriteContentIndexEntry(destination io.Writer, entry ContentIndexEntry) erro
 	if err != nil {
 		return errors.Join(core.ErrFilestoreContract, err)
 	}
-	var data [ContentIndexRecordBytes]byte
-	copy(data[:core.SHA256DigestBytes], digest[:])
-	binary.BigEndian.PutUint64(data[core.SHA256DigestBytes:], entry.Extent.Uint64())
-	written, err := destination.Write(data[:])
+	data := append(appendIndexRecordScratch(destination), digest[:]...)
+	data = binary.BigEndian.AppendUint64(data, entry.Extent.Uint64())
+	written, err := destination.Write(data)
 	if written < 0 || written > len(data) {
 		return contractError(err)
 	}
@@ -66,10 +66,24 @@ func ReadContentIndexEntry(source io.Reader) (ContentIndexEntry, error) {
 	if core.ReaderIsNil(source) {
 		return ContentIndexEntry{}, core.ErrFilestoreContract
 	}
+	if data, buffered, err := bufferedIndexRecord(source, ContentIndexRecordBytes); buffered {
+		if err != nil {
+			return ContentIndexEntry{}, err
+		}
+		entry, err := decodeContentIndexEntry(data)
+		if _, discardErr := source.(*bufio.Reader).Discard(len(data)); discardErr != nil {
+			return ContentIndexEntry{}, sourceError(discardErr)
+		}
+		return entry, err
+	}
 	var data [ContentIndexRecordBytes]byte
 	if err := readIndexRecord(source, data[:]); err != nil {
 		return ContentIndexEntry{}, err
 	}
+	return decodeContentIndexEntry(data[:])
+}
+
+func decodeContentIndexEntry(data []byte) (ContentIndexEntry, error) {
 	var digest [core.SHA256DigestBytes]byte
 	copy(digest[:], data[:core.SHA256DigestBytes])
 	extent, err := core.NewByteLength(binary.BigEndian.Uint64(data[core.SHA256DigestBytes:]))

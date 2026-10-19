@@ -177,7 +177,8 @@ func CompileExperimentObservation(request ExperimentObservationRequest) (runprot
 	if err := request.Validate(); err != nil {
 		return runprotocol.ExperimentObservation{}, err
 	}
-	execution, err := request.Capability.Digest()
+	// request.Validate has validated the capability; digest it without a repeat.
+	execution, err := validatedCapabilityDigest(experimentCapabilityWire(request.Capability))
 	if err != nil {
 		return runprotocol.ExperimentObservation{}, err
 	}

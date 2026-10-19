@@ -166,6 +166,7 @@ func goFuzzMetricRefusal(ctx context.Context, cause error) error {
 type goFuzzMetricPatterns struct {
 	prefixes            [4][3]*regexp.Regexp
 	interestingPrefixes [3]*regexp.Regexp
+	space               *regexp.Regexp
 }
 
 func newGoFuzzMetricPatterns() goFuzzMetricPatterns {
@@ -175,6 +176,7 @@ func newGoFuzzMetricPatterns() goFuzzMetricPatterns {
 		patterns.prefixes[i] = [3]*regexp.Regexp{regexp.MustCompile(`\A` + quoted), regexp.MustCompile(`,` + quoted), regexp.MustCompile(`, ` + quoted)}
 	}
 	patterns.interestingPrefixes = [3]*regexp.Regexp{regexp.MustCompile(`\Anew interesting`), regexp.MustCompile(`,new interesting`), regexp.MustCompile(`, new interesting`)}
+	patterns.space = regexp.MustCompile(` `)
 	return patterns
 }
 
@@ -195,7 +197,7 @@ func goFuzzMetricTrimmed(ctx context.Context, source lineio.RecordSource, span g
 		return goFuzzMetricSpan{}, core.ErrGoToolchainContract
 	}
 	guard := &goFuzzFrameSource{ctx: ctx, source: io.NewSectionReader(source, span.offset, span.bytes)}
-	reader := bufio.NewReaderSize(guard, 4096)
+	reader := goFuzzSpanReader(guard, span.bytes)
 	var first, end, offset int64
 	seen := false
 	for {
@@ -238,7 +240,7 @@ func goFuzzMetricTrimmed(ctx context.Context, source lineio.RecordSource, span g
 // that regexp alone would otherwise treat as end of input.
 func goFuzzMetricMatch(ctx context.Context, source lineio.RecordSource, span goFuzzMetricSpan, pattern *regexp.Regexp) ([]int, error) {
 	guard := &goFuzzFrameSource{ctx: ctx, source: io.NewSectionReader(source, span.offset, span.bytes)}
-	reader := bufio.NewReader(guard)
+	reader := goFuzzSpanReader(guard, span.bytes)
 	match := pattern.FindReaderIndex(reader)
 	_, drainErr := io.Copy(io.Discard, reader)
 	if err := errors.Join(guard.readErr, drainErr, contextstate.Validate(ctx)); err != nil {
@@ -249,7 +251,7 @@ func goFuzzMetricMatch(ctx context.Context, source lineio.RecordSource, span goF
 
 func goFuzzMetricInteger(ctx context.Context, source lineio.RecordSource, span goFuzzMetricSpan) (GoFuzzMetricField, error) {
 	guard := &goFuzzFrameSource{ctx: ctx, source: io.NewSectionReader(source, span.offset, span.bytes)}
-	reader := bufio.NewReader(guard)
+	reader := goFuzzSpanReader(guard, span.bytes)
 	var digits [20]byte
 	used := 0
 	negative, seen, invalid, overflow := false, false, false, false
@@ -307,7 +309,7 @@ func goFuzzMetricInteger(ctx context.Context, source lineio.RecordSource, span g
 	return GoFuzzMetricField{presence: GoFuzzMetricPresent, value: value}, nil
 }
 
-func readGoFuzzMetricField(ctx context.Context, source lineio.RecordSource, span goFuzzMetricSpan, patterns [3]*regexp.Regexp) (GoFuzzMetricField, error) {
+func readGoFuzzMetricField(ctx context.Context, source lineio.RecordSource, span goFuzzMetricSpan, patterns [3]*regexp.Regexp, space *regexp.Regexp) (GoFuzzMetricField, error) {
 	var match []int
 	for _, pattern := range patterns {
 		found, err := goFuzzMetricMatch(ctx, source, span, pattern)
@@ -327,12 +329,12 @@ func readGoFuzzMetricField(ctx context.Context, source lineio.RecordSource, span
 	if err != nil {
 		return GoFuzzMetricField{}, err
 	}
-	space, err := goFuzzMetricMatch(ctx, source, value, regexp.MustCompile(` `))
+	separator, err := goFuzzMetricMatch(ctx, source, value, space)
 	if err != nil {
 		return GoFuzzMetricField{}, err
 	}
-	if space != nil {
-		value.bytes = int64(space[0])
+	if separator != nil {
+		value.bytes = int64(separator[0])
 	}
 	// Only suffix commas are ignored; a leading comma is invalid numeric data.
 	trimmed, err := goFuzzMetricTrimmed(ctx, source, value, goFuzzMetricTrimCommas)
@@ -370,7 +372,7 @@ func readGoFuzzMetricRecord(ctx context.Context, source lineio.RecordSource, rec
 		if !hints[i] {
 			continue
 		}
-		field, err := readGoFuzzMetricField(ctx, source, span, prefixes)
+		field, err := readGoFuzzMetricField(ctx, source, span, prefixes, patterns.space)
 		if err != nil {
 			return GoFuzzMetricRecord{}, err
 		}

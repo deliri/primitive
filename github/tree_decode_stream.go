@@ -175,11 +175,53 @@ func (d *treeDecoder) memberOpening(first bool) (byte, error) {
 func (d *treeDecoder) closedString(maximum int) (string, error) {
 	var buffer [len(treeTruncatedMember) + 1]byte
 	stream := jsonStringStream{source: d.source}
-	n, err := io.ReadFull(&stream, buffer[:maximum+1])
+	// io.ReadFull's exact loop and result rules, on the concrete stream so
+	// neither the stream nor the window escapes to the heap.
+	window := buffer[:maximum+1]
+	n := 0
+	var err error
+	for n < len(window) && err == nil {
+		var read int
+		read, err = stream.Read(window[n:])
+		n += read
+	}
+	if n >= len(window) {
+		err = nil
+	} else if n > 0 && err == io.EOF {
+		err = io.ErrUnexpectedEOF
+	}
 	if !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {
 		return "", jsonStreamError(err)
 	}
-	return string(buffer[:n]), nil
+	return treeClosedText(buffer[:n]), nil
+}
+
+// treeClosedText returns the schema's member and kind spellings as constants;
+// only text outside the schema, which every caller refuses, is copied.
+func treeClosedText(text []byte) string {
+	switch string(text) {
+	case "path":
+		return "path"
+	case treeTypeMember:
+		return treeTypeMember
+	case "mode":
+		return "mode"
+	case "sha":
+		return "sha"
+	case "url":
+		return "url"
+	case "size":
+		return "size"
+	case "tree":
+		return "tree"
+	case treeTruncatedMember:
+		return treeTruncatedMember
+	case "blob":
+		return "blob"
+	case "commit":
+		return "commit"
+	}
+	return string(text)
 }
 func (d *treeDecoder) ignoreString(nonempty bool) error {
 	opening, err := d.next()

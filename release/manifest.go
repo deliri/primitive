@@ -308,7 +308,7 @@ func (f ManifestFact) WriteCanonical(destination io.Writer) error {
 }
 
 func manifestFactDigest(f ManifestFact) (core.SHA256Digest, error) {
-	body, err := json.Marshal(manifestIdentityWire{
+	digest, err := framedJSONDigest(manifestIdentityDomain, manifestIdentityWire{
 		Revision: f.revision, Offering: f.offering, Version: f.version,
 		Commit: f.commit, CreatedAt: f.createdAt,
 		TotalExtent: f.totalExtent, Artifacts: f.artifacts,
@@ -317,7 +317,7 @@ func manifestFactDigest(f ManifestFact) (core.SHA256Digest, error) {
 	if err != nil {
 		return core.SHA256Digest{}, manifestError(err)
 	}
-	return framedDigest(manifestIdentityDomain, body)
+	return digest, nil
 }
 
 // ManifestDocument is an untrusted fact and structural Attest envelope.

@@ -184,6 +184,11 @@ func validateObjectType[Document any]() error {
 	return nil
 }
 
+// objectNullGuard is stateless, so every decoder shares one native hook list.
+// Go's per-list type cache is concurrency-safe and then survives across
+// decoders instead of being rebuilt for each stream or document.
+var objectNullGuard = jsonv2.UnmarshalFromFunc[any](rejectObjectNull)
+
 func rejectObjectNull(decoder *jsontext.Decoder, _ any) error {
 	if decoder.PeekKind() == jsontext.KindNull {
 		return core.ErrJSONContract

@@ -65,14 +65,19 @@ func Parse(code Code, decimal string) (Amount, error) {
 	return Amount{minorUnits: minorUnits, code: code}, nil
 }
 
+// decimalDigitsCapacity holds the widest admitted whole part plus the widest
+// zero-padded fraction, so the scaled digit text never leaves the stack.
+const decimalDigitsCapacity = DecimalMaximumBytes + 8
+
 func parseDecimal(code Code, raw string) (int64, error) {
-	digits, negative, err := decimalDigits(code, raw)
+	var scratch [decimalDigitsCapacity]byte
+	digits, negative, err := decimalDigits(code, raw, scratch[:0])
 	if err != nil {
 		return 0, err
 	}
 	// decimalDigits has already established the bounded decimal grammar.
 	// Go owns unsigned conversion; this package owns the signed currency bound.
-	magnitude, err := parseDecimalMagnitude(digits)
+	magnitude, err := parseDecimalMagnitude(string(digits))
 	if err != nil {
 		return 0, err
 	}
@@ -95,9 +100,9 @@ func parseDecimalMagnitude(digits string) (uint64, error) {
 	return value, nil
 }
 
-func decimalDigits(code Code, raw string) (string, bool, error) {
+func decimalDigits(code Code, raw string, scratch []byte) ([]byte, bool, error) {
 	if raw == "" || len(raw) > DecimalMaximumBytes {
-		return "", false, decimalError(decimalRejectionLength)
+		return nil, false, decimalError(decimalRejectionLength)
 	}
 	negative := raw[0] == '-'
 	unsigned := raw
@@ -105,7 +110,7 @@ func decimalDigits(code Code, raw string) (string, bool, error) {
 		unsigned = raw[1:]
 	}
 	if unsigned == "" || raw[0] == '+' {
-		return "", false, decimalError(decimalRejectionSign)
+		return nil, false, decimalError(decimalRejectionSign)
 	}
 	// strings.Cut splits at the first separator only, so any surplus separator
 	// stays inside the fraction. validateFraction is the single owner of that
@@ -113,13 +118,17 @@ func decimalDigits(code Code, raw string) (string, bool, error) {
 	// check here would let one rule report the other rule's failure.
 	whole, fraction, hasFraction := strings.Cut(unsigned, ".")
 	if whole == "" || !asciiDigits(whole) {
-		return "", false, decimalError(decimalRejectionWhole)
+		return nil, false, decimalError(decimalRejectionWhole)
 	}
 	exponent := code.fractionDigits()
 	if err := validateFraction(fraction, hasFraction, exponent); err != nil {
-		return "", false, err
+		return nil, false, err
 	}
-	return whole + fraction + strings.Repeat("0", int(exponent)-len(fraction)), negative, nil
+	digits := append(append(scratch, whole...), fraction...)
+	for range int(exponent) - len(fraction) {
+		digits = append(digits, '0')
+	}
+	return digits, negative, nil
 }
 
 func validateFraction(fraction string, present bool, exponent uint8) error {

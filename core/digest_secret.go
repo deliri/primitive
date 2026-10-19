@@ -47,12 +47,10 @@ func NewSHA256Digest(value [SHA256DigestBytes]byte) SHA256Digest {
 
 // parseSHA256Hex accepts exactly 64 canonical lowercase hexadecimal bytes.
 func parseSHA256Hex(value string) (SHA256Digest, error) {
-	decoded, err := decodeCanonicalHex(value, SHA256DigestBytes)
-	if err != nil {
+	var digest [SHA256DigestBytes]byte
+	if err := DecodeCanonicalHex(digest[:], value); err != nil {
 		return SHA256Digest{}, errors.Join(ErrPrimitiveContract, err)
 	}
-	var digest [SHA256DigestBytes]byte
-	copy(digest[:], decoded)
 	return NewSHA256Digest(digest), nil
 }
 
@@ -69,7 +67,7 @@ func (d SHA256Digest) Hex() (string, error) {
 	if err := d.Validate(); err != nil {
 		return "", err
 	}
-	return hex.EncodeToString(d.value[:]), nil
+	return lowerHexString(d.value[:]), nil
 }
 
 // UnmarshalText accepts exactly one canonical lowercase hexadecimal digest
@@ -99,11 +97,10 @@ func (d SHA256Digest) Validate() error {
 
 // MarshalJSON emits canonical lowercase hexadecimal as a JSON string.
 func (d SHA256Digest) MarshalJSON() ([]byte, error) {
-	value, err := d.Hex()
-	if err != nil {
+	if err := d.Validate(); err != nil {
 		return nil, errors.Join(ErrJSONContract, err)
 	}
-	return MarshalCanonicalJSONString(value)
+	return marshalLowerHexJSONString(d.value[:]), nil
 }
 
 // UnmarshalJSON accepts only canonical lowercase hexadecimal.
@@ -232,11 +229,11 @@ func NewEd25519PublicKey(value ed25519.PublicKey) (Ed25519PublicKey, error) {
 
 // parseEd25519PublicKeyHex accepts canonical lowercase hexadecimal.
 func parseEd25519PublicKeyHex(value string) (Ed25519PublicKey, error) {
-	decoded, err := decodeCanonicalHex(value, ed25519.PublicKeySize)
-	if err != nil {
+	var decoded [ed25519.PublicKeySize]byte
+	if err := DecodeCanonicalHex(decoded[:], value); err != nil {
 		return Ed25519PublicKey{}, errors.Join(ErrPrimitiveContract, err)
 	}
-	return NewEd25519PublicKey(ed25519.PublicKey(decoded))
+	return Ed25519PublicKey{value: decoded, set: true}, nil
 }
 
 // Bytes returns an independent standard-library public-key copy.
@@ -254,7 +251,7 @@ func (k Ed25519PublicKey) Hex() (string, error) {
 	if err := k.Validate(); err != nil {
 		return "", err
 	}
-	return hex.EncodeToString(k.value[:]), nil
+	return lowerHexString(k.value[:]), nil
 }
 
 // UnmarshalText accepts exactly one canonical lowercase hexadecimal public
@@ -290,11 +287,10 @@ func (k Ed25519PublicKey) Validate() error {
 
 // MarshalJSON emits canonical lowercase hexadecimal as a JSON string.
 func (k Ed25519PublicKey) MarshalJSON() ([]byte, error) {
-	value, err := k.Hex()
-	if err != nil {
+	if err := k.Validate(); err != nil {
 		return nil, errors.Join(ErrJSONContract, err)
 	}
-	return MarshalCanonicalJSONString(value)
+	return marshalLowerHexJSONString(k.value[:]), nil
 }
 
 // UnmarshalJSON accepts only canonical lowercase hexadecimal.
@@ -472,12 +468,26 @@ func DecodeCanonicalHex(destination []byte, value string) error {
 // hexadecimal refusal, answered with and without an underlying decode cause.
 const hexNotCanonicalDiagnostic = "value is not canonical lowercase hexadecimal"
 
-func decodeCanonicalHex(value string, size int) ([]byte, error) {
-	decoded := make([]byte, size)
-	if err := DecodeCanonicalHex(decoded, value); err != nil {
-		return nil, err
+// lowerHexString encodes a fixed identity through one stack buffer, so the
+// returned string is the only allocation.
+func lowerHexString(value []byte) string {
+	var buffer [2 * SHA256DigestBytes]byte
+	if len(value) > SHA256DigestBytes {
+		return hex.EncodeToString(value)
 	}
-	return decoded, nil
+	encoded := buffer[:hex.EncodedLen(len(value))]
+	hex.Encode(encoded, value)
+	return string(encoded)
+}
+
+// marshalLowerHexJSONString emits lowercase hexadecimal as one JSON string in
+// a single exact allocation. Hex digits need no JSON escaping, so the bytes are
+// exactly MarshalCanonicalJSONString's spelling of the same text.
+func marshalLowerHexJSONString(value []byte) []byte {
+	encoded := make([]byte, 0, hex.EncodedLen(len(value))+2)
+	encoded = append(encoded, '"')
+	encoded = hex.AppendEncode(encoded, value)
+	return append(encoded, '"')
 }
 
 func allZeroBytes(value []byte) bool {

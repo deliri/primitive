@@ -26,7 +26,7 @@ func NewObjectDecoder[Document core.Validatable](request ObjectSourceRequest) (*
 		return nil, err
 	}
 	source := &contextJSONSource{source: checkedJSONSource{source: request.Source}}
-	return &ObjectDecoder[Document]{decoder: jsontext.NewDecoder(source), source: source, members: request.Members, nullGuard: jsonv2.UnmarshalFromFunc[any](rejectObjectNull)}, nil
+	return &ObjectDecoder[Document]{decoder: jsontext.NewDecoder(source), source: source, members: request.Members, nullGuard: objectNullGuard}, nil
 }
 
 func (d *ObjectDecoder[Document]) Validate() error {

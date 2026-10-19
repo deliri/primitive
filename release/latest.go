@@ -248,11 +248,7 @@ func latestIdentity(revision Revision, offering core.Offering) (LatestIdentity, 
 	if err := offering.Validate(); err != nil {
 		return LatestIdentity{}, latestError(err)
 	}
-	body, err := json.Marshal(latestIdentityWire{Revision: revision, Offering: offering})
-	if err != nil {
-		return LatestIdentity{}, latestError(err)
-	}
-	digest, err := framedDigest(latestIdentityDomain, body)
+	digest, err := framedJSONDigest(latestIdentityDomain, latestIdentityWire{Revision: revision, Offering: offering})
 	if err != nil {
 		return LatestIdentity{}, latestError(err)
 	}

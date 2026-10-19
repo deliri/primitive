@@ -131,7 +131,7 @@ func ObserveGoFuzzCompletion(ctx context.Context, request GoFuzzCompletionReques
 			return GoFuzzCompletionObservation{}, err
 		}
 		guard := &goFuzzFrameSource{ctx: ctx, source: io.NewSectionReader(request.Source, int64(record.Offset), length)}
-		source := bufio.NewReader(guard)
+		source := goFuzzSpanReader(guard, length)
 		match := pattern.FindReaderSubmatchIndex(source)
 		_, drainErr := io.Copy(io.Discard, source)
 		if err := errors.Join(guard.readErr, drainErr, contextstate.Validate(ctx)); err != nil {
@@ -160,6 +160,16 @@ type goFuzzFrameSource struct {
 	ctx     context.Context
 	source  io.Reader
 	readErr error
+}
+
+// goFuzzSpanReaderMaximumBytes is the buffered working window for one span.
+const goFuzzSpanReaderMaximumBytes = 4096
+
+// goFuzzSpanReader buffers one exact span through a window no larger than the
+// span itself, so a short physical record never pays for the full window.
+// Buffer size changes only read chunking, never the bytes or runes observed.
+func goFuzzSpanReader(guard *goFuzzFrameSource, spanBytes int64) *bufio.Reader {
+	return bufio.NewReaderSize(guard, int(min(max(spanBytes, 1), goFuzzSpanReaderMaximumBytes)))
 }
 
 func (s *goFuzzFrameSource) Read(p []byte) (int, error) {

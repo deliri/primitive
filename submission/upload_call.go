@@ -36,24 +36,18 @@ func (v VerifiedDecision) UploadCall(
 	if err := errors.Join(v.Validate(), request.Validate()); err != nil {
 		return objectstore.UploadCapabilityRequest{}, contractError(err)
 	}
-	grant, ok := v.Grant()
-	if !ok {
+	// v.Validate has closed the decision and its grant; the Grant, Payload and
+	// Capability accessors would only repeat that validation three times.
+	if v.kind != DecisionUpload {
 		return objectstore.UploadCapabilityRequest{}, bindingError(errors.New("submission decision does not authorize upload"))
 	}
-	payload, err := grant.Payload()
-	if err != nil {
-		return objectstore.UploadCapabilityRequest{}, contractError(err)
-	}
-	commitment, err := CommitRequest(request.Request)
+	payload, capability := v.grant.document.Payload, v.grant.document.Capability
+	commitment, err := commitValidatedRequest(request.Request)
 	if err != nil {
 		return objectstore.UploadCapabilityRequest{}, contractError(err)
 	}
 	if commitment != payload.Request {
 		return objectstore.UploadCapabilityRequest{}, bindingError(errors.New("submission upload request differs from grant"))
-	}
-	capability, err := grant.Capability()
-	if err != nil {
-		return objectstore.UploadCapabilityRequest{}, contractError(err)
 	}
 	call := objectstore.UploadCapabilityRequest{
 		Source: request.Source, ContentType: request.Request.Declaration.ContentType,

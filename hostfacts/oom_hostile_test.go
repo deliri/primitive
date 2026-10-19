@@ -523,7 +523,6 @@ func benchmarkGoOOMBanner(b *testing.B, size int) {
 	data := bytes.Repeat([]byte{'x'}, size)
 	length := mustByteLength(b, uint64(size))
 	b.SetBytes(int64(len(data)))
-	b.ResetTimer()
 
 	for b.Loop() {
 		got, err := ClassifyGoOOMBanner(context.Background(), GoOOMBannerRequest{

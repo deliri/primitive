@@ -237,18 +237,13 @@ func (p AbsolutePath) Resolve(names ...string) (AbsolutePath, error) {
 	if err := p.Validate(); err != nil {
 		return AbsolutePath{}, err
 	}
-	resolved := p
-	for _, name := range names {
-		component, err := ParsePathComponent(name)
-		if err != nil {
-			return AbsolutePath{}, err
-		}
-		resolved, err = resolved.Join(component)
-		if err != nil {
-			return AbsolutePath{}, err
-		}
+	if err := admitPathComponents(names); err != nil {
+		return AbsolutePath{}, err
 	}
-	return resolved, nil
+	if len(names) == 0 {
+		return p, nil
+	}
+	return ParseAbsolutePath(joinAdmittedPathComponents(p.value, names))
 }
 
 // Resolve joins names below a relative path, admitting each as its own
@@ -257,18 +252,54 @@ func (p RelativePath) Resolve(names ...string) (RelativePath, error) {
 	if err := p.Validate(); err != nil {
 		return RelativePath{}, err
 	}
-	resolved := p
+	if err := admitPathComponents(names); err != nil {
+		return RelativePath{}, err
+	}
+	if len(names) == 0 {
+		return p, nil
+	}
+	base := p.value
+	if base == "." {
+		base = ""
+	}
+	return ParseRelativePath(joinAdmittedPathComponents(base, names))
+}
+
+// admitPathComponents applies ParsePathComponent to each name in order, so
+// the first refused name is reported exactly as a per-segment join would.
+func admitPathComponents(names []string) error {
 	for _, name := range names {
-		component, err := ParsePathComponent(name)
-		if err != nil {
-			return RelativePath{}, err
-		}
-		resolved, err = resolved.Join(component)
-		if err != nil {
-			return RelativePath{}, err
+		if _, err := ParsePathComponent(name); err != nil {
+			return err
 		}
 	}
-	return resolved, nil
+	return nil
+}
+
+// joinAdmittedPathComponents is filepath.Join for a clean base and admitted
+// components, built in one allocation. It inserts a separator exactly where
+// filepath.Join would, and the final Clean is the identity on the result, so
+// it allocates nothing further; the caller still re-admits the result.
+func joinAdmittedPathComponents(base string, names []string) string {
+	size := len(base)
+	for _, name := range names {
+		size += len(name) + 1
+	}
+	var joined strings.Builder
+	joined.Grow(size)
+	joined.WriteString(base)
+	last := byte(0)
+	if base != "" {
+		last = base[len(base)-1]
+	}
+	for _, name := range names {
+		if joined.Len() > 0 && !os.IsPathSeparator(last) {
+			joined.WriteByte(filepath.Separator)
+		}
+		joined.WriteString(name)
+		last = name[len(name)-1]
+	}
+	return filepath.Clean(joined.String())
 }
 
 // Join appends one validated component to a relative path.

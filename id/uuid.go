@@ -119,11 +119,21 @@ func (u UUIDv7) Validate() error {
 }
 
 // MarshalJSON emits the canonical spelling after validation.
+//
+// The canonical spelling is lowercase hexadecimal and hyphens, which JSON
+// never escapes, so the token is quoted directly into one exact buffer; it is
+// byte-identical to core.MarshalCanonicalJSONString of String.
 func (u UUIDv7) MarshalJSON() ([]byte, error) {
 	if err := u.Validate(); err != nil {
 		return nil, errors.Join(core.ErrJSONContract, err)
 	}
-	return core.MarshalCanonicalJSONString(u.String())
+	encoded := make([]byte, 0, uuidTextBytes+len(`""`))
+	encoded = append(encoded, '"')
+	encoded, err := u.value.AppendText(encoded)
+	if err != nil {
+		return nil, errors.Join(core.ErrJSONContract, err)
+	}
+	return append(encoded, '"'), nil
 }
 
 // UnmarshalJSON admits exactly one canonical spelling. The receiver is

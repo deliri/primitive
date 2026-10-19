@@ -52,12 +52,15 @@ type goBenchmarkStream struct {
 	number      goNumericToken
 	previous    goNumericToken
 	token       [runprotocol.NameMaximumBytes]byte
+	name        [runprotocol.NameMaximumBytes]byte
 	length      int
+	nameLength  int
 	position    uint8
 	metrics     uint8
 	active      bool
 	oversized   bool
 	malformed   bool
+	nameInvalid bool
 	found       bool
 	waitingUnit bool
 }
@@ -65,9 +68,16 @@ type goBenchmarkStream struct {
 func (goNumericToken) runnerControlInternalFlow()    {}
 func (goBenchmarkStream) runnerControlInternalFlow() {}
 
-func (b *goBenchmarkStream) write(data string) {
-	for _, value := range data {
-		if unicode.IsSpace(value) {
+// write consumes borrowed decoded UTF-8. ASCII avoids rune decoding; the
+// whitespace test matches unicode.IsSpace on that range exactly.
+func (b *goBenchmarkStream) write(data []byte) {
+	for len(data) > 0 {
+		value, width := rune(data[0]), 1
+		if value >= utf8.RuneSelf {
+			value, width = utf8.DecodeRune(data)
+		}
+		data = data[width:]
+		if goBenchmarkSpace(value) {
 			b.endToken()
 			continue
 		}
@@ -76,8 +86,8 @@ func (b *goBenchmarkStream) write(data string) {
 		if b.oversized {
 			continue
 		}
-		width := utf8.RuneLen(value)
-		if width > len(b.token)-b.length {
+		size := utf8.RuneLen(value)
+		if size > len(b.token)-b.length {
 			b.oversized = true
 			continue
 		}
@@ -85,16 +95,24 @@ func (b *goBenchmarkStream) write(data string) {
 	}
 }
 
+func goBenchmarkSpace(value rune) bool {
+	if value < utf8.RuneSelf {
+		return value == ' ' || value >= '\t' && value <= '\r'
+	}
+	return unicode.IsSpace(value)
+}
+
 func (b *goBenchmarkStream) endToken() {
 	if !b.active {
 		return
 	}
-	token := string(b.token[:b.length])
+	token := b.token[:b.length]
 	switch b.position {
 	case 0:
-		name, err := runprotocol.NewName(token)
-		b.measurement.Name = name
-		b.malformed = b.oversized || err != nil
+		// Most output lines are not benchmark records; the name is only
+		// materialized by result once a metric proves the line is one.
+		b.nameLength = copy(b.name[:], token)
+		b.nameInvalid = b.oversized
 		b.position = 1
 	case 1:
 		b.measurement.Iterations = b.number.coefficient
@@ -107,18 +125,18 @@ func (b *goBenchmarkStream) endToken() {
 	b.length, b.active, b.oversized = 0, false, false
 }
 
-func (b *goBenchmarkStream) endMetricToken(token string) {
+func (b *goBenchmarkStream) endMetricToken(token []byte) {
 	if !b.oversized {
 		if b.waitingUnit {
 			b.metric(token)
-		} else if token == "ns/op" {
+		} else if string(token) == "ns/op" {
 			b.found, b.malformed = true, true
 		}
 	}
 	b.waitingUnit = !b.waitingUnit
 }
 
-func (b *goBenchmarkStream) metric(unit string) {
+func (b *goBenchmarkStream) metric(unit []byte) {
 	mask := goBenchmarkUnitMask(unit)
 	if mask == 0 {
 		return
@@ -157,8 +175,8 @@ func (b *goBenchmarkStream) projectMetric(mask uint8, n goNumericToken) {
 	}
 }
 
-func goBenchmarkUnitMask(unit string) uint8 {
-	switch unit {
+func goBenchmarkUnitMask(unit []byte) uint8 {
+	switch string(unit) {
 	case "ns/op":
 		return 1
 	case "B/op":
@@ -174,7 +192,9 @@ func (b *goBenchmarkStream) result() (runprotocol.BenchmarkMeasurement, bool, er
 	if !b.found {
 		return runprotocol.BenchmarkMeasurement{}, false, nil
 	}
-	if b.malformed || b.metrics != 7 {
+	name, nameErr := runprotocol.NewName(string(b.name[:b.nameLength]))
+	b.measurement.Name = name
+	if b.malformed || b.nameInvalid || nameErr != nil || b.metrics != 7 {
 		return runprotocol.BenchmarkMeasurement{}, false, observationFailure("go benchmark record has invalid or duplicate fields", core.ErrJSONContract)
 	}
 	if err := b.measurement.Validate(); err != nil {

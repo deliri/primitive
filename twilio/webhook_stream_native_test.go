@@ -453,3 +453,33 @@ func BenchmarkStreamedTwilioWebhookBodyMemory(b *testing.B) {
 		})
 	}
 }
+
+// BenchmarkStreamedTwilioWebhookTypicalForm receives the shape Twilio actually
+// posts: a few dozen short percent-encoded fields rather than one large value.
+func BenchmarkStreamedTwilioWebhookTypicalForm(b *testing.B) {
+	endpoint := "https://example.com/benchmark"
+	var form strings.Builder
+	for index := range 24 {
+		if index > 0 {
+			form.WriteByte('&')
+		}
+		fmt.Fprintf(&form, "Field%02d=value+%d%%2Fpart", index, index)
+	}
+	body := []byte(form.String())
+	signature := nativeTwilioSignature(b, endpoint, body, WebhookRepresentationForm)
+	receiver, _ := nativeTwilioReceiver(b, endpoint, WebhookRepresentationForm)
+	directory := b.TempDir()
+	b.ReportAllocs()
+	b.SetBytes(int64(len(body)))
+	var destination bytes.Buffer
+	for b.Loop() {
+		destination.Reset()
+		observation, err := nativeTwilioReceive(b, receiver, endpoint, signature, directory, bytes.NewReader(body), &destination, WebhookRepresentationForm)
+		if err != nil || observation.Bytes.Uint64() != uint64(len(body)) {
+			b.Fatalf("typical form receive %+v/%v", observation, err)
+		}
+	}
+	if !bytes.Equal(destination.Bytes(), body) {
+		b.Fatalf("released body = %q, want %q", destination.Bytes(), body)
+	}
+}

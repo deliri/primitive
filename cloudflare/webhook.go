@@ -166,7 +166,8 @@ func parseStreamSignature(value string) (streamSignature, error) {
 
 func decodeStreamSignature(stamp, encoded string) (streamSignature, error) {
 	seconds, err := strconv.ParseInt(stamp, 10, 64)
-	if err != nil || seconds < 0 || strconv.FormatInt(seconds, 10) != stamp {
+	var canonical [len("-9223372036854775808")]byte
+	if err != nil || seconds < 0 || string(strconv.AppendInt(canonical[:0], seconds, 10)) != stamp {
 		return streamSignature{}, core.ErrCloudflareVerification
 	}
 	instant, err := temporal.InstantFromUnixSeconds(seconds)

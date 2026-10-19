@@ -2,7 +2,6 @@ package receipt
 
 import (
 	"encoding/hex"
-	json "encoding/json/v2"
 	"errors"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -85,7 +84,17 @@ func marshalLifecycleIdentity(i lifecycleIdentity) ([]byte, error) {
 	if err := i.validate(); err != nil {
 		return nil, jsonError(err)
 	}
-	return json.Marshal(i.string())
+	return marshalHexJSONString(i.value[:]), nil
+}
+
+// marshalHexJSONString emits the canonical JSON string of value's lowercase
+// hexadecimal text. Hex digits need no JSON escaping, so the bytes equal
+// json.Marshal(hex.EncodeToString(value)) in one owned allocation.
+func marshalHexJSONString(value []byte) []byte {
+	wire := make([]byte, 0, hex.EncodedLen(len(value))+2)
+	wire = append(wire, '"')
+	wire = hex.AppendEncode(wire, value)
+	return append(wire, '"')
 }
 
 func unmarshalLifecycleIdentity(data []byte) (lifecycleIdentity, error) {

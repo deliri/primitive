@@ -484,19 +484,19 @@ func artifactDigest(artifact Artifact) (core.SHA256Digest, error) {
 	if err := artifact.integrity.Validate(); err != nil {
 		return core.SHA256Digest{}, err
 	}
-	body, err := json.Marshal(artifactIdentityWire{Build: artifact.build, Integrity: artifact.integrity})
+	digest, err := framedJSONDigest(artifactIdentityDomain, artifactIdentityWire{Build: artifact.build, Integrity: artifact.integrity})
 	if err != nil {
 		return core.SHA256Digest{}, manifestError(err)
 	}
-	return framedDigest(artifactIdentityDomain, body)
+	return digest, nil
 }
 
-// framedDigest binds a digest to one compiler-owned domain. The framing is
-// injective because each domain is NUL-free and the body begins after the one
-// NUL separator. The bounded input is assembled once and hashed through
-// Core's one whole-buffer door; every body here is already held complete
-// under this package's document ceilings, so nothing streams.
-func framedDigest(domain string, body []byte) (core.SHA256Digest, error) {
+// framedJSONDigest binds the canonical JSON encoding of value to one
+// compiler-owned domain. The framing is injective because each domain is
+// NUL-free and the body begins after the one NUL separator. encoding/json
+// streams the exact bytes json.Marshal would return straight into Core's
+// digest writer, so no intermediate copy of the bounded body is retained.
+func framedJSONDigest[Body any](domain string, value Body) (core.SHA256Digest, error) {
 	writer := core.NewDigestWriter()
 	if _, err := writer.Write([]byte(domain)); err != nil {
 		return core.SHA256Digest{}, err
@@ -504,7 +504,7 @@ func framedDigest(domain string, body []byte) (core.SHA256Digest, error) {
 	if _, err := writer.Write([]byte{0}); err != nil {
 		return core.SHA256Digest{}, err
 	}
-	if _, err := writer.Write(body); err != nil {
+	if err := json.MarshalWrite(writer, value); err != nil {
 		return core.SHA256Digest{}, err
 	}
 	digest, _, err := writer.Seal()

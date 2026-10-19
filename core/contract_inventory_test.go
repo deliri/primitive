@@ -33,8 +33,8 @@ type coreContractInventory struct {
 	CatalogPageLimit         protocolFact[CatalogPageLimit]
 	StrictJSONLimits         protocolFact[StrictJSONLimits]
 	strictJSONContainer      internalFlow[strictJSONContainer]
-	strictJSONTokenScan      internalFlow[strictJSONTokenScan]
-	strictJSONObjectKeyScan  internalFlow[strictJSONObjectKeyScan]
+	strictJSONKeySpan        internalFlow[strictJSONKeySpan]
+	strictJSONScanState      internalFlow[strictJSONScanState]
 	jsonContractDiagnostic   internalFlow[jsonContractDiagnostic]
 	errorIdentityParentSet   internalFlow[errorIdentityParentSet]
 	errorIdentityDiagnostic  internalFlow[errorIdentityDiagnostic]
@@ -71,8 +71,8 @@ type coreContractInventory struct {
 
 var (
 	_ = coreContractInventory{}.strictJSONContainer
-	_ = coreContractInventory{}.strictJSONTokenScan
-	_ = coreContractInventory{}.strictJSONObjectKeyScan
+	_ = coreContractInventory{}.strictJSONKeySpan
+	_ = coreContractInventory{}.strictJSONScanState
 	_ = coreContractInventory{}.jsonContractDiagnostic
 	_ = coreContractInventory{}.errorIdentityParentSet
 	_ = coreContractInventory{}.errorIdentityDiagnostic

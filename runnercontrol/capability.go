@@ -48,11 +48,7 @@ func (c SchedulingCapability) Digest() (core.SHA256Digest, error) {
 	if err := c.Validate(); err != nil {
 		return core.SHA256Digest{}, err
 	}
-	encoded, err := core.MarshalCanonicalJSONDocument(c)
-	if err != nil {
-		return core.SHA256Digest{}, err
-	}
-	return core.SHA256Of(encoded), nil
+	return validatedCapabilityDigest(schedulingCapabilityWire(c))
 }
 
 type MemberCapability struct {
@@ -182,11 +178,7 @@ func (c MemberCapability) Digest() (core.SHA256Digest, error) {
 	if err := c.Validate(); err != nil {
 		return core.SHA256Digest{}, err
 	}
-	encoded, err := core.MarshalCanonicalJSONDocument(c)
-	if err != nil {
-		return core.SHA256Digest{}, err
-	}
-	return core.SHA256Of(encoded), nil
+	return validatedCapabilityDigest(memberCapabilityWire(c))
 }
 
 type ExperimentCapability struct {
@@ -210,11 +202,7 @@ func (c ExperimentCapability) Digest() (core.SHA256Digest, error) {
 	if err := c.Validate(); err != nil {
 		return core.SHA256Digest{}, err
 	}
-	encoded, err := core.MarshalCanonicalJSONDocument(c)
-	if err != nil {
-		return core.SHA256Digest{}, err
-	}
-	return core.SHA256Of(encoded), nil
+	return validatedCapabilityDigest(experimentCapabilityWire(c))
 }
 
 func (c ExperimentCapability) Validate() error {

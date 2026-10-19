@@ -387,6 +387,25 @@ func TestBoundedVirtualReadersRefuseOversizeNoProgressAndInvalidContracts(t *tes
 	}
 }
 
+// TestBoundedLineScannerVisitorAppendCannotReachUnreadBytes proves an in-place
+// line is capacity-capped: a visitor that appends to its argument must not
+// overwrite the following lines still waiting in the read buffer.
+func TestBoundedLineScannerVisitorAppendCannotReachUnreadBytes(t *testing.T) {
+	t.Parallel()
+	var got []string
+	err := (boundedLineScan{
+		reader: bytes.NewBufferString("one\ntwo\nthree\n"), maximum: 14,
+		visit: func(line []byte) error {
+			got = append(got, string(line))
+			_ = append(line, "XXXXXXXX"...)
+			return nil
+		},
+	}).run(context.Background())
+	if err != nil || len(got) != 3 || got[0] != "one" || got[1] != "two" || got[2] != "three" {
+		t.Fatalf("lines = %q, %v; want unaltered one/two/three", got, err)
+	}
+}
+
 func TestBoundedLineScannerHostileStreamTable(t *testing.T) {
 	t.Parallel()
 
@@ -412,6 +431,8 @@ func TestBoundedLineScannerHostileStreamTable(t *testing.T) {
 		{name: "blank terminated line is refused", ctx: context.Background(), reader: bytes.NewBufferString("\n"), maximum: 1, wantErr: core.ErrHostFactsObservation},
 		{name: "blank line between values is refused", ctx: context.Background(), reader: bytes.NewBufferString("one\n\ntwo\n"), maximum: 9, wantErr: core.ErrHostFactsObservation},
 		{name: "document one byte over maximum is refused", ctx: context.Background(), reader: bytes.NewBufferString("1234"), maximum: 3, wantErr: core.ErrHostFactsObservation},
+		{name: "maximum line assembled across reads", ctx: context.Background(), reader: bytes.NewReader(bytes.Repeat([]byte{'x'}, procLineMaximumBytes)), maximum: procLineMaximumBytes, wantLines: 1, wantText: string(bytes.Repeat([]byte{'x'}, procLineMaximumBytes))},
+		{name: "split line one byte over maximum is refused", ctx: context.Background(), reader: &chunkReader{data: append(bytes.Repeat([]byte{'x'}, procLineMaximumBytes+1), '\n'), maximum: 7}, maximum: procLineMaximumBytes + 2, wantErr: core.ErrHostFactsObservation},
 		{name: "line one byte over maximum is refused", ctx: context.Background(), reader: bytes.NewReader(bytes.Repeat([]byte{'x'}, procLineMaximumBytes+1)), maximum: procLineMaximumBytes + 1, wantErr: core.ErrHostFactsObservation},
 		{name: "visitor failure is preserved", ctx: context.Background(), reader: bytes.NewBufferString("one\n"), maximum: 4, visitErr: visitorFailure, wantErr: visitorFailure},
 		{name: "native reader failure is preserved", ctx: context.Background(), reader: errorReader{err: native}, maximum: 1, wantErr: native},
@@ -474,7 +495,6 @@ func benchmarkCgroupMountInfoStreaming(b *testing.B, size int) {
 		b.Fatalf("mount workload lines = %d, want a positive count", wantLines)
 	}
 	b.SetBytes(int64(len(data)))
-	b.ResetTimer()
 
 	for b.Loop() {
 		lines := 0

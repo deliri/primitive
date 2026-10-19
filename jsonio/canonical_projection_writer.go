@@ -1,6 +1,7 @@
 package jsonio
 
 import (
+	"cmp"
 	"context"
 	"encoding"
 	"encoding/json/jsontext"
@@ -11,7 +12,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"unicode/utf16"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
@@ -200,6 +202,27 @@ func declaredProjectionFields(value reflect.Value, fields []canonicalDeclaredFie
 	return fields, flattened, nil
 }
 
+// compareDeclaredFields orders names by UTF-16 code units (RFC 8785) without
+// encoding either name. Ranging yields the same runes as []rune, and UTF-16
+// order equals code point order except that U+E000..U+FFFF sort after every
+// supplementary rune, whose leading surrogate is below U+E000. Equal prefixes
+// leave the shorter name first, as with slices.Compare on the encodings.
 func compareDeclaredFields(a, b canonicalDeclaredField) int {
-	return slices.Compare(utf16.Encode([]rune(a.name)), utf16.Encode([]rune(b.name)))
+	left, right := a.name, b.name
+	for left != "" && right != "" {
+		l, lSize := utf8.DecodeRuneInString(left)
+		r, rSize := utf8.DecodeRuneInString(right)
+		if l != r {
+			return cmp.Compare(utf16OrderKey(l), utf16OrderKey(r))
+		}
+		left, right = left[lSize:], right[rSize:]
+	}
+	return cmp.Compare(len(left), len(right))
+}
+
+func utf16OrderKey(r rune) rune {
+	if r >= 0xE000 && r <= 0xFFFF {
+		return r + unicode.MaxRune
+	}
+	return r
 }

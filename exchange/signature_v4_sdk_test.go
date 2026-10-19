@@ -204,14 +204,23 @@ func BenchmarkV4PresignGoCryptoBorrowedQuery64(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
+	if got := strings.Count(intent.Target.HTTPURL().RawQuery, "&") + 1; got != 65 {
+		b.Fatalf("fixture query pairs=%d, want 65 before timing", got)
+	}
 	b.ReportAllocs()
-	b.ResetTimer()
 	for b.Loop() {
-		if _, err := PresignV4(b.Context(), intent); err != nil {
+		signed, err := PresignV4(b.Context(), intent)
+		if err != nil {
 			b.Fatal(err)
 		}
+		benchmarkV4PresignSink = signed
+	}
+	if !strings.Contains(benchmarkV4PresignSink.HTTPURL().RawQuery, "X-Amz-Signature=") {
+		b.Fatal("presigned endpoint has no signature")
 	}
 }
+
+var benchmarkV4PresignSink core.HTTPEndpoint
 
 func TestV4PresignLongBorrowedSecretsMatchNativeHMACKeyNormalization(t *testing.T) {
 	t.Parallel()

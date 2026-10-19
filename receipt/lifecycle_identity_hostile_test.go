@@ -178,8 +178,8 @@ func TestLifecycleIdentityNominalAndJSONBoundaries(t *testing.T) {
 				t.Fatalf("String() = %q, want canonical identity", original.String())
 			}
 			canonical, err := json.Marshal(original)
-			if err != nil {
-				t.Fatalf("json.Marshal() error = %v, want nil", err)
+			if err != nil || string(canonical) != `"`+hex.EncodeToString(raw[:])+`"` {
+				t.Fatalf("json.Marshal() = (%s, %v), want exact quoted lowercase hex and nil", canonical, err)
 			}
 			if gotErr := tc.nilUnmarshal(canonical); !errors.Is(gotErr, core.ErrJSONContract) ||
 				!errors.Is(gotErr, core.ErrLifecycleIdentityContract) ||

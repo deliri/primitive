@@ -25,3 +25,22 @@ func BenchmarkAssembleUpdate(b *testing.B) {
 		b.Fatalf("distributionauth.AssembleUpdate().Validate() error = %v, want nil", err)
 	}
 }
+
+var benchmarkVerifiedUpdateSink VerifiedUpdate
+
+// VerifyUpdate is the server's per-request admission path for update checks.
+func BenchmarkVerifyUpdate(b *testing.B) {
+	fixture := newDistributionAuthFixture(b, distributionAuthFixtureRequest{})
+	verification := UpdateVerification{Document: fixture.update, Server: distributionAuthServer(b, fixture.trusted)}
+	b.ReportAllocs()
+	for b.Loop() {
+		verified, err := VerifyUpdate(verification)
+		if err != nil {
+			b.Fatalf("distributionauth.VerifyUpdate() error = %v, want nil", err)
+		}
+		benchmarkVerifiedUpdateSink = verified
+	}
+	if payload, err := benchmarkVerifiedUpdateSink.Payload(); err != nil || payload != fixture.update.Request.Payload {
+		b.Fatalf("distributionauth.VerifyUpdate().Payload() = (%+v, %v), want exact fixture payload", payload, err)
+	}
+}

@@ -187,7 +187,8 @@ func parseCanonicalUint64JSON(data []byte) (uint64, error) {
 	if err != nil {
 		return 0, errors.Join(ErrJSONContract, err)
 	}
-	if !bytes.Equal(data, strconv.AppendUint(nil, value, 10)) {
+	var canonical [canonicalUint64JSONMaximumBytes]byte
+	if !bytes.Equal(data, strconv.AppendUint(canonical[:0], value, 10)) {
 		return 0, errors.Join(ErrJSONContract, errors.New("unsigned integer is not canonical"))
 	}
 	return value, nil

@@ -87,18 +87,13 @@ func (p Plan) MarshalJSON() ([]byte, error) {
 	if err := p.Validate(); err != nil {
 		return nil, errors.Join(core.ErrJSONContract, err)
 	}
+	// Validate has admitted every argument and the exact environment, so the
+	// projections below are read directly rather than re-admitted.
 	arguments := make([]string, len(p.Arguments))
 	for index := range p.Arguments {
-		value, err := p.Arguments[index].Value()
-		if err != nil {
-			return nil, errors.Join(core.ErrJSONContract, err)
-		}
-		arguments[index] = value
+		arguments[index] = p.Arguments[index].value
 	}
-	environment, err := p.Environment.Strings()
-	if err != nil {
-		return nil, errors.Join(core.ErrJSONContract, err)
-	}
+	environment := p.Environment.project()
 	encoded, err := core.MarshalCanonicalJSONDocument(planWire{
 		SchemaVersion: p.SchemaVersion, Command: p.Command,
 		WorkingDirectory: p.WorkingDirectory, Arguments: arguments,

@@ -14,7 +14,7 @@ import (
 // has already been consumed. Custody is one UTF-8 rune, independent of length.
 type jsonStringStream struct {
 	terminal   error
-	observe    func(rune) error
+	facts      *treePathFacts
 	source     *bufio.Reader
 	begin, end int
 	pending    [utf8.UTFMax]byte
@@ -35,13 +35,17 @@ func (s *jsonStringStream) Read(p []byte) (int, error) {
 		if s.terminal != nil {
 			return written, s.terminal
 		}
+		if n := s.readPlainRun(p[written:]); n != 0 || s.terminal != nil {
+			written += n
+			continue
+		}
 		value, err := readJSONStringRune(s.source)
 		if err != nil {
 			s.terminal = err
 			return written, err
 		}
-		if s.observe != nil {
-			if err := s.observe(value); err != nil {
+		if s.facts != nil {
+			if err := s.facts.admit(value); err != nil {
 				s.terminal = err
 				return written, err
 			}
@@ -51,6 +55,36 @@ func (s *jsonStringStream) Read(p []byte) (int, error) {
 	}
 	return written, nil
 }
+
+// readPlainRun copies already-buffered unescaped ASCII string bytes, each the
+// exact rune readJSONStringRune would return, observing every rune in order.
+// It never reads from the source, so I/O and refusals keep the rune path.
+func (s *jsonStringStream) readPlainRun(p []byte) int {
+	buffered, _ := s.source.Peek(min(len(p), s.source.Buffered()))
+	n := 0
+	for ; n < len(buffered); n++ {
+		value := buffered[n]
+		if value < 0x20 || value >= utf8.RuneSelf || value == '"' || value == '\\' {
+			break
+		}
+		if s.facts != nil {
+			if err := s.facts.admit(rune(value)); err != nil {
+				s.terminal = err
+				break
+			}
+		}
+	}
+	copy(p, buffered[:n])
+	consumed := n
+	if s.terminal != nil {
+		consumed++
+	}
+	if _, err := s.source.Discard(consumed); err != nil && s.terminal == nil {
+		s.terminal = jsonStreamError(err)
+	}
+	return n
+}
+
 func readJSONStringRune(source *bufio.Reader) (rune, error) {
 	first, err := source.ReadByte()
 	if err != nil {

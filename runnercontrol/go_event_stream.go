@@ -109,8 +109,13 @@ func readGoEventFragments(ctx context.Context, reader *lineio.Reader, parser *go
 			return err
 		}
 		fragment, readErr := reader.ReadFragment(ctx)
-		for _, value := range fragment.Bytes {
-			if err := parser.consume(value, emit); err != nil {
+		data := fragment.Bytes
+		for index := 0; index < len(data); index++ {
+			index += parser.consumeStringRun(data[index:])
+			if index == len(data) {
+				break
+			}
+			if err := parser.consume(data[index], emit); err != nil {
 				return observationFailure("go event stream refused", err, readErr)
 			}
 		}

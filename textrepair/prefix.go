@@ -42,30 +42,37 @@ func Prefix(request Request) (string, error) {
 	return repairPrefix(source, limit), nil
 }
 
+// repairPrefix copies each maximal run of admitted runes in one write. Output
+// storage is reserved once at the limit, which already bounds output and
+// scratch, so repair never regrows its buffer.
 func repairPrefix(source string, limit int) string {
 	var repaired strings.Builder
-	offset, written := 0, 0
+	offset, written, run := 0, 0, 0
 	repairing := false
 	for offset < len(source) && written < limit {
-		r, size := utf8.DecodeRuneInString(source[offset:])
-		if r == utf8.RuneError && size == 1 {
-			if !repairing {
-				repaired.WriteString(source[:offset])
-				repairing = true
+		size := 1
+		if source[offset] >= utf8.RuneSelf {
+			var r rune
+			r, size = utf8.DecodeRuneInString(source[offset:])
+			if r == utf8.RuneError && size == 1 {
+				if !repairing {
+					repaired.Grow(limit)
+					repairing = true
+				}
+				repaired.WriteString(source[run:offset])
+				offset++
+				run = offset
+				continue
 			}
-			offset++
-			continue
 		}
 		if size > limit-written {
 			break
-		}
-		if repairing {
-			repaired.WriteString(source[offset : offset+size])
 		}
 		written += size
 		offset += size
 	}
 	if repairing {
+		repaired.WriteString(source[run:offset])
 		return repaired.String()
 	}
 	return source[:offset]

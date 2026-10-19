@@ -103,7 +103,14 @@ func (d *TokenDecoder) ReadValue(ctx context.Context) ([]byte, error) {
 }
 
 func validateValueDepth(ctx context.Context, value []byte, maximum int) error {
-	decoder := jsontext.NewDecoder(bytes.NewReader(value))
+	// Go already admitted value's grammar. Every open container consumes one
+	// '{' or '[' byte, so when even the count of those bytes (including any
+	// inside strings) is within maximum, no nesting can exceed it and a second
+	// native traversal would observe nothing new.
+	if bytes.Count(value, []byte{'{'})+bytes.Count(value, []byte{'['}) <= maximum {
+		return contextstate.Validate(ctx)
+	}
+	decoder := borrowedBytesDecoder(value)
 	for {
 		_, err := decoder.ReadToken()
 		if err == io.EOF {

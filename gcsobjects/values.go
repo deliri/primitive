@@ -2,7 +2,7 @@ package gcsobjects
 
 import (
 	"errors"
-	"net"
+	"net/netip"
 	"strings"
 	"unicode/utf8"
 
@@ -130,8 +130,24 @@ func validGCSBucketExtent(value string) bool {
 }
 
 func reservedGCSBucket(value string) bool {
-	return net.ParseIP(value) != nil || strings.HasPrefix(value, "goog") ||
+	return gcsIPAddressSpelling(value) || strings.HasPrefix(value, "goog") ||
 		strings.Contains(value, "google") || strings.Contains(value, "g00gle")
+}
+
+// gcsIPAddressSpelling reports exactly what net.ParseIP admits: netip.ParseAddr
+// success without a zone. Go parses IPv6 only when a colon is present and IPv4
+// only from decimal digits and dots, so any other colon-free spelling cannot
+// parse and skips the call whose refusal would allocate an error value.
+func gcsIPAddressSpelling(value string) bool {
+	if !strings.Contains(value, ":") {
+		for index := range len(value) {
+			if value[index] != '.' && (value[index] < '0' || value[index] > '9') {
+				return false
+			}
+		}
+	}
+	address, err := netip.ParseAddr(value)
+	return err == nil && address.Zone() == ""
 }
 
 func validateGCSBucketComponents(value string) error {

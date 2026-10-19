@@ -43,6 +43,22 @@ func TrimRecordWhitespace(ctx context.Context, request RecordFragmentRequest) (r
 	var observed, end int64
 	start := int64(-1)
 	for {
+		// The final byte always takes the rune path so its framing is checked.
+		if run := bufferedASCIIRun(reader, int(min(length-observed-1, int64(reader.Buffered())))); len(run) > 0 {
+			for index, value := range run {
+				if !asciiSpace(value) {
+					if start < 0 {
+						start = observed + int64(index)
+					}
+					end = observed + int64(index) + 1
+				}
+			}
+			observed += int64(len(run))
+			if _, err := reader.Discard(len(run)); err != nil {
+				return RecordRange{}, errors.Join(core.ErrLineIOScan, err)
+			}
+			continue
+		}
 		value, width, readErr := reader.ReadRune()
 		if guard.readErr != nil || checked.readErr != nil {
 			return RecordRange{}, errors.Join(core.ErrLineIOScan, readErr, guard.readErr, checked.readErr, contextstate.Validate(ctx))

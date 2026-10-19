@@ -101,6 +101,7 @@ func WriteTAR(ctx context.Context, request TARWriteRequest) (content ContentInde
 		encoded = compression
 	}
 	archive := tar.NewWriter(encoded)
+	var window []byte
 	var entryErr error
 	defer func() {
 		if recover() != nil {
@@ -123,13 +124,16 @@ func WriteTAR(ctx context.Context, request TARWriteRequest) (content ContentInde
 		if entryErr != nil {
 			return ContentIndexEntry{}, entryErr
 		}
-		observed, err := writeTAREntry(ctx, archive, entry)
+		observed, err := writeTAREntry(ctx, archive, entry, &window)
 		entryErr = err
 		return observed, err
 	})
 	return content, resultErr
 }
-func writeTAREntry(ctx context.Context, archive *tar.Writer, entry TAREntry) (ContentIndexEntry, error) {
+
+// writeTAREntry copies through one archive-owned window, allocated once by the
+// first entry and reused for every later entry instead of one Go window each.
+func writeTAREntry(ctx context.Context, archive *tar.Writer, entry TAREntry, window *[]byte) (ContentIndexEntry, error) {
 	if err := errors.Join(contextstate.Validate(ctx), entry.Validate()); err != nil {
 		return ContentIndexEntry{}, err
 	}
@@ -140,7 +144,10 @@ func writeTAREntry(ctx context.Context, archive *tar.Writer, entry TAREntry) (Co
 	if err := archive.WriteHeader(&tar.Header{Name: filepath.ToSlash(entry.Path.String()), Mode: int64(entry.Mode.Perm()), Size: size, Typeflag: tar.TypeReg}); err != nil {
 		return ContentIndexEntry{}, err
 	}
-	content, err := CopyContent(ctx, CopyContentRequest{Source: entry.Source, Destination: archive})
+	if *window == nil {
+		*window = make([]byte, goCopyWindowBytes)
+	}
+	content, err := CopyContent(ctx, CopyContentRequest{Source: entry.Source, Destination: archive, Buffer: *window})
 	if err != nil {
 		return ContentIndexEntry{}, err
 	}

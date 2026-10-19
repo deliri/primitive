@@ -82,6 +82,17 @@ func marshalCapabilityPayload[T core.Validatable, W any](value T, wire W) ([]byt
 	return encoded, nil
 }
 
+// validatedCapabilityDigest hashes the exact canonical payload MarshalJSON
+// emits for a capability the caller has already validated, without validating
+// it again and re-encoding the method's output through a second marshal pass.
+func validatedCapabilityDigest[W any](wire W) (core.SHA256Digest, error) {
+	encoded, err := core.MarshalCanonicalJSONDocument(wire)
+	if err != nil {
+		return core.SHA256Digest{}, errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract, err)
+	}
+	return core.SHA256Of(encoded), nil
+}
+
 func (c *SchedulingCapability) UnmarshalJSON(data []byte) error {
 	if c == nil {
 		return errors.Join(core.ErrJSONContract, core.ErrPrimitiveContract)

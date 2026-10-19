@@ -219,7 +219,7 @@ type oomScanner struct {
 	carry      int
 	remaining  uint64
 	emptyReads int
-	buffer     [goOOMBufferBytes + goOOMOverlapBytes]byte
+	buffer     []byte
 	found      bool
 }
 
@@ -228,7 +228,7 @@ func (s *oomScanner) read(ctx context.Context) error {
 		return err
 	}
 	maximum := min(uint64(goOOMBufferBytes), s.remaining)
-	// #nosec G115 -- maximum is min(goOOMBufferBytes, remaining); the fixed array window fits int.
+	// #nosec G115 -- maximum is min(goOOMBufferBytes, remaining); newOOMScanner sized the window to fit it.
 	count, readErr := s.source.Read(s.buffer[s.carry : s.carry+int(maximum)])
 	if count < 0 || uint64(count) > maximum {
 		return errors.Join(core.ErrHostFactsObservation, errors.New("reader returned an invalid count"))
@@ -241,6 +241,18 @@ func (s *oomScanner) read(ctx context.Context) error {
 		s.emptyReads++
 	}
 	return classifyOOMRead(s.remaining, s.emptyReads, readErr)
+}
+
+// newOOMScanner sizes the window to the declared extent: every read asks for at
+// most min(goOOMBufferBytes, remaining) bytes after the carried overlap, so a
+// short source never pays for the full fixed window.
+func newOOMScanner(source io.Reader, length uint64) oomScanner {
+	window := min(uint64(goOOMBufferBytes), length)
+	return oomScanner{
+		source: source, remaining: length,
+		// #nosec G115 -- window is at most goOOMBufferBytes, which fits int.
+		buffer: make([]byte, int(window)+goOOMOverlapBytes),
+	}
 }
 
 // A match crossing two reads needs only the longest banner minus one byte

@@ -500,7 +500,7 @@ func FuzzGoFuzzMetricRecordsMatchIndependentByteOracle(f *testing.F) {
 }
 
 func BenchmarkGoFuzzMetricRecordNativeWorkingMemory(b *testing.B) {
-	for _, extent := range []int64{64 * 1024, 16*1024*1024 + 1, 64*1024*1024 + 1} {
+	for _, extent := range []int64{64 * 1024, 64*1024*1024 + 1} {
 		b.Run(strconv.FormatInt(extent, 10), func(b *testing.B) {
 			dir := b.TempDir()
 			file, err := os.Create(filepath.Join(dir, "native-counter"))

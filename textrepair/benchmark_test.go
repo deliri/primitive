@@ -15,12 +15,14 @@ func BenchmarkPrefixMalformedPrefix(b *testing.B) {
 		b.Fatalf("setup prefix = %q/error %v, want nonempty bounded/nil", got, err)
 	}
 	b.ReportAllocs()
-	b.ResetTimer()
 	for b.Loop() {
 		result, err := Prefix(request)
 		if err != nil {
 			b.Fatalf("Prefix error = %v, want nil", err)
 		}
 		prefixBenchmarkSink = result
+	}
+	if prefixBenchmarkSink != got {
+		b.Fatalf("Prefix result = %q, want setup prefix %q", prefixBenchmarkSink, got)
 	}
 }

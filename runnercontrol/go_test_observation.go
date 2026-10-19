@@ -59,8 +59,12 @@ func (c *GoTestObservationCompiler) Write(data []byte) (int, error) {
 	if c.failure != nil {
 		return 0, c.failure
 	}
-	for _, value := range data {
-		if err := c.stream.consume(value, c.consumeProjection); err != nil {
+	for index := 0; index < len(data); index++ {
+		index += c.stream.consumeStringRun(data[index:])
+		if index == len(data) {
+			break
+		}
+		if err := c.stream.consume(data[index], c.consumeProjection); err != nil {
 			c.failure = err
 			return len(data), nil
 		}

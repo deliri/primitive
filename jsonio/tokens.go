@@ -75,6 +75,24 @@ func (t Token) Validate() error {
 }
 
 func validateNumberToken(text string) error {
+	return validateNumberValue(jsontext.Value(text), text)
+}
+
+// validateNumberValue lets Go's pooled validator own number grammar. A valid
+// single value that begins with '-' or a digit and ends with a digit is
+// exactly one number token without surrounding whitespace, so admission is
+// identical to reading that token and then observing clean EOF. Refusal
+// replays the native token read to preserve its joined cause.
+func validateNumberValue(value jsontext.Value, text string) error {
+	if len(value) > 0 && isASCIIDigit(value[len(value)-1]) && (value[0] == '-' || isASCIIDigit(value[0])) && value.IsValid() {
+		return nil
+	}
+	return refuseNumberToken(text)
+}
+
+func isASCIIDigit(c byte) bool { return c >= '0' && c <= '9' }
+
+func refuseNumberToken(text string) error {
 	decoder := jsontext.NewDecoder(strings.NewReader(text))
 	token, err := decoder.ReadToken()
 	if err != nil || token.Kind() != jsontext.KindNumber || token.String() != text {

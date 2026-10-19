@@ -137,7 +137,7 @@ func TestGoFuzzSignalFixedScanConservesNativeRefusals(t *testing.T) {
 }
 
 func BenchmarkGoFuzzSignalFixedNativeWorkingMemory(b *testing.B) {
-	for _, extent := range []int64{65536, 16*1024*1024 + 1, 64*1024*1024 + 1} {
+	for _, extent := range []int64{65536, 64*1024*1024 + 1} {
 		b.Run(strconv.FormatInt(extent, 10), func(b *testing.B) {
 			file, err := os.Create(filepath.Join(b.TempDir(), "native-signal-benchmark"))
 			if err != nil {

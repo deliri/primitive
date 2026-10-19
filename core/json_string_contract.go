@@ -2,6 +2,7 @@ package core
 
 import (
 	"bytes"
+	jsontext "encoding/json/jsontext"
 	jsonv2 "encoding/json/v2"
 	"errors"
 	"unicode/utf8"
@@ -13,6 +14,9 @@ const (
 	// or control bytes before that decoder observes them.
 	JSONWhitespace                 = " \t\r\n"
 	jsonStringInvalidUTF8ErrorText = "json string value is not valid utf-8"
+	// jsonStringTokenStackBytes covers the identities and paths typical of
+	// string tokens; longer tokens unquote into one heap buffer instead.
+	jsonStringTokenStackBytes = 128
 )
 
 // MarshalCanonicalJSONDocument encodes one Go value as the repository's single
@@ -26,8 +30,7 @@ const (
 //
 // This is the one owner of that mechanic. A second copy anywhere in the
 // repository would let two owners disagree about the bytes a protocol carries,
-// which is why MarshalCanonicalJSONString projects from it instead of
-// repeating it.
+// which is why MarshalCanonicalJSONString is held byte-identical to it.
 func MarshalCanonicalJSONDocument[Document any](document Document) ([]byte, error) {
 	encoded, err := jsonv2.Marshal(document)
 	if err != nil {
@@ -39,8 +42,14 @@ func MarshalCanonicalJSONDocument[Document any](document Document) ([]byte, erro
 // MarshalCanonicalJSONString encodes one Go string as the repository's single
 // canonical JSON string token. It is the encoding counterpart of
 // DecodeJSONStringToken: it adds the string-specific gate, refusing invalid
-// UTF-8 before any protocol sees it, and takes the canonical encoding itself
-// from MarshalCanonicalJSONDocument.
+// UTF-8 before any protocol sees it.
+//
+// The token is the exact spelling MarshalCanonicalJSONDocument gives the same
+// string: both use encoding/json/v2's default string quoting, which is
+// jsontext.AppendQuote. Quoting directly into one buffer sized for the common
+// unescaped case avoids the document encoder's boxing and copy for the most
+// frequent encoding in the repository; a differential test holds the two
+// spellings equal.
 //
 // A second string-escaping grammar anywhere in the repository would let two
 // owners disagree about the bytes a signature covers, which is why this rule
@@ -49,7 +58,11 @@ func MarshalCanonicalJSONString(value string) ([]byte, error) {
 	if !utf8.ValidString(value) {
 		return nil, errors.Join(ErrJSONContract, errors.New(jsonStringInvalidUTF8ErrorText))
 	}
-	return MarshalCanonicalJSONDocument(value)
+	encoded, err := jsontext.AppendQuote(make([]byte, 0, len(value)+len(`""`)), value)
+	if err != nil {
+		return nil, errors.Join(ErrJSONContract, err)
+	}
+	return encoded, nil
 }
 
 // DecodeJSONStringToken decodes one JSON string token into its exact Go string.
@@ -59,11 +72,22 @@ func MarshalCanonicalJSONString(value string) ([]byte, error) {
 // as a JSON string inherits one hardening contract instead of restating it.
 // The owning caller validates any domain-specific extent; this decoder owns
 // string syntax and encoding only.
+//
+// A token that jsontext.AppendUnquote admits whole, after trimming only JSON
+// whitespace, is exactly a token encoding/json/v2 admits into a string with the
+// same value; that common case unquotes through a stack buffer. Every other
+// token takes the full decoder, which owns the refusal and its error identity.
 func DecodeJSONStringToken(data []byte) (string, error) {
-	var value string
 	if len(data) == 0 || bytes.Equal(bytes.TrimSpace(data), []byte(jsonNullLiteralText)) {
 		return "", errors.Join(ErrJSONContract, errors.New("json string is absent"))
 	}
+	if token := bytes.Trim(data, JSONWhitespace); len(token) >= len(`""`) && token[0] == '"' {
+		var buffer [jsonStringTokenStackBytes]byte
+		if unquoted, err := jsontext.AppendUnquote(buffer[:0], token); err == nil {
+			return string(unquoted), nil
+		}
+	}
+	var value string
 	if err := jsonv2.Unmarshal(data, &value); err != nil {
 		return "", errors.Join(ErrJSONContract, err)
 	}

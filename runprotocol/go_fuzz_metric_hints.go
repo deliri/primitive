@@ -31,8 +31,9 @@ func goFuzzMetricRecordHints(ctx context.Context, source lineio.RecordSource, sp
 	var hints [goFuzzMetricHintCount]bool
 	literals := [...]string{"executions:", "execs:", "crashers:", "new interesting", "new interesting:", "(total:", "failing input"}
 	const lookbehind = len("new interesting:") - 1
-	var buffer [32768 + lookbehind]byte
-	var folded [len(buffer)]byte
+	// The window never exceeds the span: a short physical record scans in
+	// one read through a buffer of its own size plus the fixed overlap.
+	buffer := make([]byte, int(min(max(span.bytes, 1), 32768))+lookbehind)
 	guard := &goFuzzFrameSource{ctx: ctx, source: io.NewSectionReader(source, span.offset, span.bytes)}
 	carry, empty := 0, 0
 	var consumed int64
@@ -56,13 +57,7 @@ func goFuzzMetricRecordHints(ctx context.Context, source lineio.RecordSource, sp
 			if !hints[goFuzzMetricHintFailing] {
 				// The native spelling uses explicit ASCII case pairs, rather
 				// than Unicode case folding. Preserve those exact semantics.
-				for index, value := range window {
-					if value >= 'A' && value <= 'Z' {
-						value += 'a' - 'A'
-					}
-					folded[index] = value
-				}
-				hints[goFuzzMetricHintFailing] = bytes.Contains(folded[:len(window)], []byte(literals[goFuzzMetricHintFailing]))
+				hints[goFuzzMetricHintFailing] = containsASCIIFolded(window, literals[goFuzzMetricHintFailing])
 			}
 			carry = min(lookbehind, len(window))
 			copy(buffer[:carry], window[len(window)-carry:])
@@ -85,4 +80,27 @@ func goFuzzMetricRecordHints(ctx context.Context, source lineio.RecordSource, sp
 			return hints, nil
 		}
 	}
+}
+
+// containsASCIIFolded reports whether window, with only ASCII capitals
+// lowered, contains the lowercase literal. It compares in place instead of
+// copying a folded window.
+func containsASCIIFolded(window []byte, literal string) bool {
+	for start := 0; start+len(literal) <= len(window); start++ {
+		matched := true
+		for offset := range len(literal) {
+			value := window[start+offset]
+			if value >= 'A' && value <= 'Z' {
+				value += 'a' - 'A'
+			}
+			if value != literal[offset] {
+				matched = false
+				break
+			}
+		}
+		if matched {
+			return true
+		}
+	}
+	return false
 }

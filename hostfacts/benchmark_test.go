@@ -5,6 +5,8 @@ import (
 	"context"
 	"math"
 	"testing"
+
+	"github.com/deliri/primitive/v2026/core"
 )
 
 func BenchmarkGoOOMBannerChunkBoundary(b *testing.B) {
@@ -94,4 +96,67 @@ func BenchmarkMemoryTriggerMaximumBatch(b *testing.B) {
 	}
 
 	b.ReportMetric(64, "values/op")
+}
+
+// benchmarkCPUStat is a complete cgroup v2 cpu.stat file as the kernel
+// publishes it for a busy systemd scope.
+const benchmarkCPUStat = "usage_usec 81234567890\nuser_usec 61234567890\nsystem_usec 20000000000\n" +
+	"core_sched.force_idle_usec 0\nnr_periods 0\nnr_throttled 0\nthrottled_usec 0\n" +
+	"nr_bursts 0\nburst_usec 0\n"
+
+// BenchmarkScopeCPUStatScan measures one scope sample after the file is
+// opened: the bounded line scan of cpu.stat folded to usage_usec. Resource
+// sampling performs this twice per requested scope per window.
+func BenchmarkScopeCPUStatScan(b *testing.B) {
+	data := []byte(benchmarkCPUStat)
+	if bytes.Count(data, []byte{'\n'}) != 9 {
+		b.Fatal("cpu.stat fixture is not the declared nine-line file")
+	}
+	reader := bytes.NewReader(data)
+	var fold cpuStatFold
+	b.SetBytes(int64(len(data)))
+	b.ReportAllocs()
+	for b.Loop() {
+		reader.Reset(data)
+		fold = cpuStatFold{}
+		if err := (boundedLineScan{reader: reader, maximum: cgroupCPUStatBytes, visit: fold.visit}).run(b.Context()); err != nil {
+			b.Fatal(err)
+		}
+	}
+	if !fold.seen || fold.usage != 81234567890 {
+		b.Fatalf("fold = %+v, want usage_usec 81234567890", fold)
+	}
+}
+
+// BenchmarkScopesBusy measures the pure pairing of eight scopes' readings
+// into window-relative milli-CPU, including one absent and one replaced scope.
+func BenchmarkScopesBusy(b *testing.B) {
+	const scopes = 8
+	cgroups := make([]scopeCgroup, scopes)
+	before := make([]scopeSample, scopes)
+	after := make([]scopeSample, scopes)
+	for index := range scopes {
+		unit, err := core.ParsePathComponent("bench-" + string(rune('a'+index)) + ".scope")
+		if err != nil {
+			b.Fatal(err)
+		}
+		cgroups[index] = scopeCgroup{scope: SystemdScopeRequest{Unit: unit}, present: true}
+		before[index] = scopeSample{usage: 1_000_000, present: true}
+		after[index] = scopeSample{usage: 1_000_000 + uint64(index+1)*250_000, present: true}
+	}
+	after[scopes-2].present = false
+	after[scopes-1].usage = 0
+	const window = int64(2_000_000_000)
+	var got []ScopeCPU
+	b.ReportAllocs()
+	for b.Loop() {
+		var err error
+		got, err = scopesBusy(cgroups, before, after, window)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+	if len(got) != scopes || got[0].BusyCPUMilli != 125 || !got[0].Present || got[scopes-2].Present || got[scopes-1].Present {
+		b.Fatalf("scopes = %+v, want exact window-relative milli-CPU with absent tails", got)
+	}
 }

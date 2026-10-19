@@ -1,7 +1,6 @@
 package jsonio
 
 import (
-	"bytes"
 	"encoding/json/jsontext"
 	jsonv2 "encoding/json/v2"
 	"io"
@@ -68,7 +67,7 @@ func DecodeProjection[Document any](data []byte, members MemberPolicy) (Document
 }
 
 func checkSingleValue(data []byte) error {
-	decoder := jsontext.NewDecoder(bytes.NewReader(data))
+	decoder := borrowedBytesDecoder(data)
 	if err := decoder.SkipValue(); err != nil {
 		return jsonOperationError(err)
 	}

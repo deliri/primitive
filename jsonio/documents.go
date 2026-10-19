@@ -51,6 +51,7 @@ func Documents[Document core.Validatable](ctx context.Context, request Request) 
 		}
 		bounded := &io.LimitedReader{R: contextJSONSource{ctx: ctx, source: checkedJSONSource{source: request.Source}}}
 		decoder := jsontext.NewDecoder(bounded)
+		var objects documentObjects[Document]
 		for {
 			data, err := readJSONStreamValue(ctx, decoder, bounded, request.Limits.DocumentMaximumBytes)
 			if err != nil {
@@ -60,7 +61,7 @@ func Documents[Document core.Validatable](ctx context.Context, request Request) 
 				yield(zero, err)
 				return
 			}
-			document, err := decodeDocument[Document](ctx, data, request)
+			document, err := objects.decode(ctx, data, request)
 			if err := errors.Join(err, contextstate.Validate(ctx)); err != nil {
 				yield(zero, err)
 				return
@@ -98,17 +99,34 @@ func readJSONStreamValue(ctx context.Context, decoder *jsontext.Decoder, bounded
 	return data, nil
 }
 
+// documentObjects reuses one object decoder across a stream's documents.
 // Typed admission has one owner for both whole-value and object-stream doors.
-func decodeDocument[Document core.Validatable](ctx context.Context, data []byte, request Request) (Document, error) {
+// Rebinding performs exactly NewObjectDecoder's source setup, so each document
+// starts from a fresh native cursor while Go's buffer and caches are reused.
+// Only the current document's bytes are referenced, never the sequence.
+type documentObjects[Document core.Validatable] struct {
+	decoder *ObjectDecoder[Document]
+	source  *bytes.Reader
+}
+
+func (o *documentObjects[Document]) decode(ctx context.Context, data []byte, request Request) (Document, error) {
 	var zero Document
 	if err := request.Limits.ValidateDocument(data); err != nil {
 		return zero, err
 	}
-	decoder, err := NewObjectDecoder[Document](ObjectSourceRequest{Source: bytes.NewReader(data), Members: request.Members})
-	if err != nil {
-		return zero, err
+	if o.decoder == nil {
+		source := bytes.NewReader(data)
+		decoder, err := NewObjectDecoder[Document](ObjectSourceRequest{Source: source, Members: request.Members})
+		if err != nil {
+			return zero, err
+		}
+		o.decoder, o.source = decoder, source
+	} else {
+		o.source.Reset(data)
+		o.decoder.source.source = checkedJSONSource{source: o.source}
+		o.decoder.decoder.Reset(o.decoder.source)
 	}
-	return decoder.Decode(ctx)
+	return o.decoder.Decode(ctx)
 }
 
 // ExtentError records refusal at the caller's per-document byte boundary.

@@ -109,12 +109,13 @@ func compareRecordRanges(ctx context.Context, r RecordRangeSortRequest, a, b lin
 // Admit each immutable borrowed range exactly once with one reused native
 // buffer. Go owns section reads and LF framing; the index contract owns the
 // final framing and extent agreement. https://pkg.go.dev/bufio#Reader.ReadSlice
-func admitRecordRangeSource(ctx context.Context, source lineio.RecordSource, record lineio.RecordRange, reader *bufio.Reader, guard *streamReader) error {
+func admitRecordRangeSource(ctx context.Context, source lineio.RecordSource, record lineio.RecordRange, reader *bufio.Reader, guard *streamReader, section *io.SectionReader) error {
 	size, err := record.Bytes.Int64()
 	if err != nil {
 		return contractError(err)
 	}
-	guard.ctx, guard.source, guard.cause, guard.emptyReads = ctx, io.NewSectionReader(source, int64(record.Offset), size), nil, 0
+	*section = *io.NewSectionReader(source, int64(record.Offset), size)
+	guard.ctx, guard.source, guard.cause, guard.emptyReads = ctx, section, nil, 0
 	reader.Reset(guard)
 	var observed int64
 	for {
@@ -159,6 +160,7 @@ func writeInitialRecordRangeRuns(ctx context.Context, r RecordRangeSortRequest) 
 	}
 	reader := bufio.NewReaderSize(r.Files[0], contentSortBufferBytes)
 	var guard streamReader
+	var section io.SectionReader
 	fragments := bufio.NewReaderSize(&guard, 4096)
 	writer := bufio.NewWriterSize(r.Files[1], contentSortBufferBytes)
 	var entries [contentSortRunEntries]lineio.RecordRange
@@ -176,7 +178,7 @@ func writeInitialRecordRangeRuns(ctx context.Context, r RecordRangeSortRequest) 
 			if err != nil {
 				return 0, err
 			}
-			if err := admitRecordRangeSource(ctx, r.Source, record, fragments, &guard); err != nil {
+			if err := admitRecordRangeSource(ctx, r.Source, record, fragments, &guard, &section); err != nil {
 				return 0, err
 			}
 			entries[count] = record

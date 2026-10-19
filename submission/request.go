@@ -242,9 +242,18 @@ type RequestCommitment struct {
 
 // CommitRequest closes one exact validated request payload.
 func CommitRequest(payload RequestPayload) (RequestCommitment, error) {
-	encoded, err := payload.MarshalJSON()
+	if err := payload.Validate(); err != nil {
+		return RequestCommitment{}, jsonError(err)
+	}
+	return commitValidatedRequest(payload)
+}
+
+// commitValidatedRequest commits the exact MarshalJSON document of a payload
+// the caller has already validated, without validating it a second time.
+func commitValidatedRequest(payload RequestPayload) (RequestCommitment, error) {
+	encoded, err := core.MarshalCanonicalJSONDocument(requestPayloadWire(payload))
 	if err != nil {
-		return RequestCommitment{}, err
+		return RequestCommitment{}, jsonError(err)
 	}
 	writer := core.NewDigestWriter()
 	if _, err := writer.Write([]byte(requestCommitmentDomain)); err != nil {

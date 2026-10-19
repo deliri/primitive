@@ -66,7 +66,8 @@ func (d CursorDigest) MarshalJSON() ([]byte, error) {
 	if err := d.Validate(); err != nil {
 		return nil, jsonError(err)
 	}
-	return json.Marshal(d.value)
+	// Validate admitted the digest, so Core's canonical projection is final.
+	return d.value.MarshalJSON()
 }
 func (d *CursorDigest) UnmarshalJSON(data []byte) error {
 	if d == nil {
@@ -88,7 +89,8 @@ func (h ChainHash) MarshalJSON() ([]byte, error) {
 	if err := h.Validate(); err != nil {
 		return nil, jsonError(err)
 	}
-	return json.Marshal(h.value)
+	// Validate admitted the digest, so Core's canonical projection is final.
+	return h.value.MarshalJSON()
 }
 func (h *ChainHash) UnmarshalJSON(data []byte) error {
 	if h == nil {

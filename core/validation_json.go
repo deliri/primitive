@@ -8,7 +8,7 @@ import (
 	"io"
 	"math"
 	"slices"
-	"strings"
+	"sync"
 	"unicode"
 	"unicode/utf8"
 )
@@ -494,8 +494,10 @@ func (k strictJSONContainerKind) Validate() error {
 // OffWireEnum declares that the parser discriminator has no wire encoding.
 func (strictJSONContainerKind) OffWireEnum() {}
 
+// strictJSONContainer is one open array or object. An object's folded names
+// occupy keys[keyStart:] of the owning scan state until the object closes.
 type strictJSONContainer struct {
-	keys      []string
+	keyStart  int
 	itemCount uint64
 	kind      strictJSONContainerKind
 	expectKey bool
@@ -510,14 +512,74 @@ func (d jsonContractDiagnostic) Error() string {
 	return d.message
 }
 
+// strictJSONScanPooledDocumentMaximumBytes bounds the documents whose scan
+// state returns to the pool, so one large document cannot pin its buffers.
+const strictJSONScanPooledDocumentMaximumBytes = 64 << 10
+
+// strictJSONKeySpan is one folded object name. An already-folded ASCII name
+// without escapes is its own folding and is referenced in the scanned document;
+// any other name is unquoted and folded into strictJSONScanState.folded.
+type strictJSONKeySpan struct {
+	start  int
+	end    int
+	folded bool
+}
+
+// strictJSONScanState owns one structural scan. The decoder reads the caller's
+// bytes in place through source, and every open object's folded names share
+// one byte arena, so admitting a document allocates nothing per name or per
+// container once the state is warm.
+type strictJSONScanState struct {
+	data    []byte
+	source  bytes.Buffer
+	decoder jsontext.Decoder
+	stack   []strictJSONContainer
+	keys    []strictJSONKeySpan
+	folded  []byte
+}
+
+var strictJSONScanStates = sync.Pool{
+	New: func() any { return new(strictJSONScanState) },
+}
+
 func scanStrictJSONTokens(data []byte, limits StrictJSONLimits) error {
-	decoder := jsontext.NewDecoder(bytes.NewReader(data))
-	stack := make([]strictJSONContainer, 0)
+	state, _ := strictJSONScanStates.Get().(*strictJSONScanState)
+	if state == nil {
+		state = new(strictJSONScanState)
+	}
+	err := state.scan(data, limits)
+	state.release(len(data))
+	return err
+}
+
+func (s *strictJSONScanState) release(documentBytes int) {
+	s.data = nil
+	s.source = bytes.Buffer{}
+	s.decoder.Reset(&s.source)
+	s.stack = s.stack[:0]
+	s.keys = s.keys[:0]
+	s.folded = s.folded[:0]
+	if documentBytes > strictJSONScanPooledDocumentMaximumBytes {
+		return
+	}
+	strictJSONScanStates.Put(s)
+}
+
+func (s *strictJSONScanState) scan(data []byte, limits StrictJSONLimits) error {
+	s.data = data
+	s.source = *bytes.NewBuffer(data)
+	s.decoder.Reset(&s.source)
 	complete := false
 	for {
-		token, err := decoder.ReadToken()
+		if topExpectsObjectKey(s.stack) && s.decoder.PeekKind() == jsontext.KindString {
+			if err := s.scanObjectKey(limits); err != nil {
+				return err
+			}
+			continue
+		}
+		token, err := s.decoder.ReadToken()
 		if errors.Is(err, io.EOF) {
-			if len(stack) != 0 || !complete {
+			if len(s.stack) != 0 || !complete {
 				return jsonContractError("json document has no complete value", nil)
 			}
 			return nil
@@ -528,59 +590,48 @@ func scanStrictJSONTokens(data []byte, limits StrictJSONLimits) error {
 		if complete {
 			return jsonContractError("json document has multiple values", nil)
 		}
-		stack, err = scanStrictJSONToken(strictJSONTokenScan{
-			stack: stack, token: token, limits: limits,
-		})
-		if err != nil {
+		if err := s.scanToken(token.Kind(), limits); err != nil {
 			return err
 		}
-		complete = len(stack) == 0
+		complete = len(s.stack) == 0
 	}
 }
 
-type strictJSONTokenScan struct {
-	token  jsontext.Token
-	stack  []strictJSONContainer
-	limits StrictJSONLimits
-}
-
-func scanStrictJSONToken(scan strictJSONTokenScan) ([]strictJSONContainer, error) {
-	kind := scan.token.Kind()
-	if kind == jsontext.KindBeginObject || kind == jsontext.KindBeginArray ||
-		kind == jsontext.KindEndObject || kind == jsontext.KindEndArray {
-		return scanStrictJSONDelimiter(scan.stack, kind, scan.limits)
-	}
-	if kind == jsontext.KindString && topExpectsObjectKey(scan.stack) {
-		return scanStrictJSONObjectKey(strictJSONObjectKeyScan{
-			stack: scan.stack, key: scan.token.String(), limits: scan.limits,
-		})
-	}
-	return completeStrictJSONValue(scan.stack, scan.limits)
-}
-
-func scanStrictJSONDelimiter(
-	stack []strictJSONContainer,
-	delimiter jsontext.Kind,
-	limits StrictJSONLimits,
-) ([]strictJSONContainer, error) {
-	switch delimiter {
+func (s *strictJSONScanState) scanToken(kind jsontext.Kind, limits StrictJSONLimits) error {
+	var err error
+	switch kind {
 	case jsontext.KindBeginObject:
-		return pushStrictJSONContainer(stack, strictJSONContainerObject, limits)
-	case jsontext.KindBeginArray:
-		return pushStrictJSONContainer(stack, strictJSONContainerArray, limits)
-	case jsontext.KindEndObject, jsontext.KindEndArray:
-		if !delimiterClosesTop(stack, delimiter) {
-			return nil, jsonContractError(jsonMismatchedDelimiterErrorText, nil)
+		s.stack, err = pushStrictJSONContainer(s.stack, strictJSONContainerObject, limits)
+		if err == nil {
+			s.stack[len(s.stack)-1].keyStart = len(s.keys)
 		}
-		if delimiter == jsontext.KindEndObject {
-			if err := rejectDuplicateStrictJSONObjectKeys(stack[len(stack)-1].keys); err != nil {
-				return nil, err
+	case jsontext.KindBeginArray:
+		s.stack, err = pushStrictJSONContainer(s.stack, strictJSONContainerArray, limits)
+	case jsontext.KindEndObject, jsontext.KindEndArray:
+		if !delimiterClosesTop(s.stack, kind) {
+			return jsonContractError(jsonMismatchedDelimiterErrorText, nil)
+		}
+		if kind == jsontext.KindEndObject {
+			if err := s.closeObjectKeys(s.stack[len(s.stack)-1].keyStart); err != nil {
+				return err
 			}
 		}
-		return completeStrictJSONValue(stack[:len(stack)-1], limits)
+		s.stack, err = completeStrictJSONValue(s.stack[:len(s.stack)-1], limits)
 	default:
-		return nil, jsonContractError("json delimiter is invalid", nil)
+		s.stack, err = completeStrictJSONValue(s.stack, limits)
 	}
+	return err
+}
+
+func delimiterClosesTop(stack []strictJSONContainer, delimiter jsontext.Kind) bool {
+	if len(stack) == 0 {
+		return false
+	}
+	top := stack[len(stack)-1]
+	if delimiter == jsontext.KindEndObject {
+		return top.kind == strictJSONContainerObject && top.expectKey
+	}
+	return top.kind == strictJSONContainerArray
 }
 
 func pushStrictJSONContainer(
@@ -601,17 +652,6 @@ func pushStrictJSONContainer(
 	return append(stack, container), nil
 }
 
-func delimiterClosesTop(stack []strictJSONContainer, delimiter jsontext.Kind) bool {
-	if len(stack) == 0 {
-		return false
-	}
-	top := stack[len(stack)-1]
-	if delimiter == jsontext.KindEndObject {
-		return top.kind == strictJSONContainerObject && top.expectKey
-	}
-	return top.kind == strictJSONContainerArray
-}
-
 func topExpectsObjectKey(stack []strictJSONContainer) bool {
 	if len(stack) == 0 {
 		return false
@@ -620,47 +660,91 @@ func topExpectsObjectKey(stack []strictJSONContainer) bool {
 	return top.kind == strictJSONContainerObject && top.expectKey
 }
 
-type strictJSONObjectKeyScan struct {
-	key    string
-	stack  []strictJSONContainer
-	limits StrictJSONLimits
-}
-
-func scanStrictJSONObjectKey(scan strictJSONObjectKeyScan) ([]strictJSONContainer, error) {
-	top := &scan.stack[len(scan.stack)-1]
-	if len(top.keys) >= int(scan.limits.ObjectFieldMaximum) {
-		return nil, jsonContractError(jsonObjectFieldLimitExceededErrorText, nil)
+// scanObjectKey reads one object name as its raw token and records its folded
+// spelling, leaving the decoder's own exact-duplicate refusal in place ahead of
+// the folded comparison made when the object closes.
+func (s *strictJSONScanState) scanObjectKey(limits StrictJSONLimits) error {
+	raw, err := s.decoder.ReadValue()
+	if err != nil {
+		return jsonContractError("json token scan failed", err)
 	}
-	top.keys = append(top.keys, foldStrictJSONKey(scan.key))
+	top := &s.stack[len(s.stack)-1]
+	if len(s.keys)-top.keyStart >= int(limits.ObjectFieldMaximum) {
+		return jsonContractError(jsonObjectFieldLimitExceededErrorText, nil)
+	}
+	name := raw[1 : len(raw)-1]
+	if bytes.IndexByte(name, '\\') < 0 && strictJSONKeyIsFoldedASCII(name) {
+		end := int(s.decoder.InputOffset()) - 1
+		s.keys = append(s.keys, strictJSONKeySpan{start: end - len(name), end: end})
+		top.expectKey = false
+		return nil
+	}
+	start := len(s.folded)
+	if cap(s.folded)-start < len(raw) {
+		s.folded = slices.Grow(s.folded, max(len(raw), cap(s.folded)))
+	}
+	s.folded, err = jsontext.AppendUnquote(s.folded, raw)
+	if err != nil {
+		return jsonContractError("json token scan failed", err)
+	}
+	s.folded = foldStrictJSONKey(s.folded, start)
+	s.keys = append(s.keys, strictJSONKeySpan{start: start, end: len(s.folded), folded: true})
 	top.expectKey = false
-	return scan.stack, nil
-}
-
-func rejectDuplicateStrictJSONObjectKeys(keys []string) error {
-	slices.Sort(keys)
-	for index := 1; index < len(keys); index++ {
-		if keys[index] == keys[index-1] {
-			return jsonContractError("json object contains duplicate field", nil)
-		}
-	}
 	return nil
 }
 
-func foldStrictJSONKey(key string) string {
-	if strictJSONKeyIsFoldedASCII(key) {
-		return key
+func (s *strictJSONScanState) keyBytes(key strictJSONKeySpan) []byte {
+	if key.folded {
+		return s.folded[key.start:key.end]
 	}
-	var folded strings.Builder
-	folded.Grow(len(key))
-	for _, value := range key {
-		folded.WriteRune(canonicalSimpleFoldRune(value))
-	}
-	return folded.String()
+	return s.data[key.start:key.end]
 }
 
-func strictJSONKeyIsFoldedASCII(key string) bool {
-	for index := 0; index < len(key); index++ {
-		value := key[index]
+// closeObjectKeys refuses folded duplicates among the closing object's names
+// and then discards them; names are nested strictly, so the closing object's
+// folded names are always the arena's suffix.
+func (s *strictJSONScanState) closeObjectKeys(keyStart int) error {
+	keys := s.keys[keyStart:]
+	if len(keys) == 0 {
+		return nil
+	}
+	slices.SortFunc(keys, func(left, right strictJSONKeySpan) int {
+		return bytes.Compare(s.keyBytes(left), s.keyBytes(right))
+	})
+	for index := 1; index < len(keys); index++ {
+		if bytes.Equal(s.keyBytes(keys[index]), s.keyBytes(keys[index-1])) {
+			return jsonContractError("json object contains duplicate field", nil)
+		}
+	}
+	arenaStart := len(s.folded)
+	for _, key := range keys {
+		if key.folded {
+			arenaStart = min(arenaStart, key.start)
+		}
+	}
+	s.folded = s.folded[:arenaStart]
+	s.keys = s.keys[:keyStart]
+	return nil
+}
+
+// foldStrictJSONKey replaces buffer[start:] with its canonical simple case
+// fold. Already-folded ASCII, the common case, is left untouched.
+func foldStrictJSONKey(buffer []byte, start int) []byte {
+	if strictJSONKeyIsFoldedASCII(buffer[start:]) {
+		return buffer
+	}
+	end := len(buffer)
+	for index := start; index < end; {
+		value, size := utf8.DecodeRune(buffer[index:end])
+		buffer = utf8.AppendRune(buffer, canonicalSimpleFoldRune(value))
+		index += size
+	}
+	folded := copy(buffer[start:], buffer[end:])
+	return buffer[:start+folded]
+}
+
+func strictJSONKeyIsFoldedASCII(key []byte) bool {
+	for _, value := range key {
 		if value >= utf8.RuneSelf || value >= 'A' && value <= 'Z' {
 			return false
 		}

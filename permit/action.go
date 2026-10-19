@@ -159,6 +159,14 @@ func (s Actions) Contains(action Action) (bool, error) {
 	return found, nil
 }
 
+// member searches a set and action that the caller has already validated.
+func (s Actions) member(action Action) error {
+	if _, found := slices.BinarySearchFunc(s.values[:s.count], action, compareAction); !found {
+		return core.ErrPermitAction
+	}
+	return nil
+}
+
 func (s Actions) Count() (int, error) {
 	if err := s.Validate(); err != nil {
 		return 0, err
