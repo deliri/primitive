@@ -63,7 +63,7 @@ func ProjectCanonical[Owner, Projection any](project func(Owner) (Projection, er
 // Declared containers obey Core's nesting maximum. Opaque custom methods keep
 // their own depth and allocation contracts.
 func WriteCanonicalProjection[Document any](ctx context.Context, destination io.Writer, document Document, policy OwnedCodecPolicy, codecs ...CanonicalProjectionCodec) error {
-	if err := errors.Join(contextstate.Validate(ctx), validateOwnedCodecType[Document](policy)); err != nil {
+	if err := errors.Join(projectionContextError(ctx), validateOwnedCodecType[Document](policy)); err != nil {
 		return err
 	}
 	if core.WriterIsNil(destination) {
@@ -118,9 +118,9 @@ func WriteCanonicalProjection[Document any](ctx context.Context, destination io.
 		return jsonv2.MarshalEncode(encoder, ordered.Interface())
 	}))
 	writer := ownedCodecDestination{ctx: ctx, destination: destination}
-	return objectReadOutcome(ctx, jsonv2.MarshalWrite(writer, document,
+	return errors.Join(objectReadOutcome(ctx, jsonv2.MarshalWrite(writer, document,
 		jsonv2.Deterministic(true), jsonv2.WithMarshalers(jsonv2.JoinMarshalers(marshalers...)),
-		jsontext.ReorderRawObjects(true), jsontext.CanonicalizeRawInts(false), jsontext.CanonicalizeRawFloats(true)))
+		jsontext.ReorderRawObjects(true), jsontext.CanonicalizeRawInts(false), jsontext.CanonicalizeRawFloats(true))), projectionContextError(ctx))
 }
 
 func nativeOwnedMarshaler(value any) bool {
