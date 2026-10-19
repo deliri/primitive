@@ -1,0 +1,54 @@
+{
+  "steps": [
+    {
+      "name": "native-held-append-read-identity-and-lifetime",
+      "kind": "test",
+      "arguments": [
+        "./filestore",
+        "-run=^(TestAppendReadScopeBindsHeldIdentityBeforeFlushing|TestAppendReadScopeRefusesNamespaceReplacementAndPreservesCauses|TestAppendReadScopeRejectsNilCopiedAndSettledOwnerBeforeBorrow|FuzzAppendReadScopeMatchesOriginalNativeObject)$",
+        "-race",
+        "-count=1"
+      ]
+    },
+    {
+      "name": "native-public-ingress-proof-binding",
+      "kind": "test",
+      "arguments": [
+        "./filestore",
+        "-run=^TestFilestorePublicIngressHasCompilerBoundSemanticProof$",
+        "-count=1"
+      ]
+    },
+    {
+      "name": "held-append-read-accept_foreign_inode",
+      "kind": "mutate",
+      "arguments": [
+        "./filestore"
+      ],
+      "mutation": {
+        "patch": "filestore/testdata/append_read_scope/accept_foreign_inode.patch",
+        "failing_test": "TestAppendReadScopeBindsHeldIdentityBeforeFlushing"
+      }
+    },
+    {
+      "name": "held-append-read-omit_native_flush",
+      "kind": "mutate",
+      "arguments": [
+        "./filestore"
+      ],
+      "mutation": {
+        "patch": "filestore/testdata/append_read_scope/omit_native_flush.patch",
+        "failing_test": "TestAppendReadScopeBindsHeldIdentityBeforeFlushing"
+      }
+    },
+    {
+      "name": "held-append-read-original-object-oracle",
+      "kind": "fuzz",
+      "arguments": [
+        "./filestore"
+      ],
+      "fuzz_target": "FuzzAppendReadScopeMatchesOriginalNativeObject",
+      "fuzz_seconds": 3
+    }
+  ]
+}

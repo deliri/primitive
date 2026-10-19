@@ -1,0 +1,9 @@
+--- a/filestore/append_read_scope.go
++++ b/filestore/append_read_scope.go
+@@ -42,5 +42,5 @@
+ 			return sourceError(err)
+ 		}
+-		if !os.SameFile(original, acquired) {
++		if !os.SameFile(original, acquired) && os.SameFile(original, acquired) {
+ 			return core.ErrFilestoreContract
+ 		}

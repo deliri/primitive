@@ -1,0 +1,9 @@
+--- a/filestore/append_read_scope.go
++++ b/filestore/append_read_scope.go
+@@ -45,5 +45,5 @@
+ 			return core.ErrFilestoreContract
+ 		}
+-		if err := d.Flush(); err != nil {
++		if err := d.Validate(); err != nil {
+ 			return destinationError(err)
+ 		}

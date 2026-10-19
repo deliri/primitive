@@ -57,6 +57,7 @@ func filestoreIngressProofs() []filestoreIngressProof {
 	entries := []filestoreIngressProof{
 		{door: reflect.ValueOf(filestore.WithSortedRecordScope), fuzz: FuzzSortedRecordScopeMatchesIndependentStableRows},
 		{door: reflect.ValueOf(filestore.OpenAppendDestination), fuzz: FuzzAppendDestinationExactBytesAndSettlement},
+		{door: reflect.ValueOf((*filestore.AppendDestination).WithInspectedReadScope), fuzz: FuzzAppendReadScopeMatchesOriginalNativeObject},
 		{door: reflect.ValueOf((*filestore.AppendDestination).Inspect), fuzz: FuzzAppendDestinationExactBytesAndSettlement},
 		{door: reflect.ValueOf((*filestore.AppendDestination).ObserveStanding), fuzz: FuzzAppendDestinationExactBytesAndSettlement},
 		{door: reflect.ValueOf((*filestore.AppendDestination).Buffered), fuzz: FuzzAppendDestinationExactBytesAndSettlement},
