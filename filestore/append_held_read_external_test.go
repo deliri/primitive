@@ -26,7 +26,11 @@ func heldReadOwner(t testing.TB, access filestore.AppendAccess) (*filestore.Appe
 			t.Error(err)
 		}
 	})
-	location := filestore.Location{Root: root, Path: mustRelativePath(t, "original")}
+	relative, err := core.ParseRelativePath("original")
+	if err != nil {
+		t.Fatal(err)
+	}
+	location := filestore.Location{Root: root, Path: relative}
 	owner, err := filestore.OpenAppendDestination(t.Context(), filestore.AppendRequest{Location: location, Mode: 0600, Append: filestore.AppendCreate, Access: access})
 	if err != nil {
 		t.Fatal(err)
