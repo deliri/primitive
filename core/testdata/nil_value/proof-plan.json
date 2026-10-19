@@ -1,0 +1,34 @@
+{
+  "steps": [
+    {
+      "name": "native-generic-nil-boundary",
+      "kind": "test",
+      "arguments": [
+        "./core",
+        "-run=^(TestIsNilPreservesGoInterfaceAndContainerPresence|FuzzIsNilMatchesNativeRepresentation)$",
+        "-race",
+        "-count=1"
+      ]
+    },
+    {
+      "name": "typed-nil-cannot-be-present",
+      "kind": "mutate",
+      "arguments": [
+        "./core"
+      ],
+      "mutation": {
+        "patch": "core/testdata/nil_value/ignore_typed_nil.patch",
+        "failing_test": "TestIsNilPreservesGoInterfaceAndContainerPresence"
+      }
+    },
+    {
+      "name": "native-kind-presence-oracle",
+      "kind": "fuzz",
+      "arguments": [
+        "./core"
+      ],
+      "fuzz_target": "FuzzIsNilMatchesNativeRepresentation",
+      "fuzz_seconds": 3
+    }
+  ]
+}

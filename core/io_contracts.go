@@ -24,6 +24,13 @@ func WriterIsNil(writer io.Writer) bool {
 	return ioValueIsNil(reflect.ValueOf(writer))
 }
 
+// IsNil observes Go's absent interface and typed nil representations without
+// invoking a capability method. Scalars, structs and non-nil empty containers
+// remain present. The generic boundary retains the caller's static contract.
+func IsNil[T any](value T) bool {
+	return ioValueIsNil(reflect.ValueOf(value))
+}
+
 func ioValueIsNil(value reflect.Value) bool {
 	switch value.Kind() {
 	case reflect.Invalid:

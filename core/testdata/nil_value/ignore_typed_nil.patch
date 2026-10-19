@@ -1,0 +1,9 @@
+--- a/core/io_contracts.go
++++ b/core/io_contracts.go
+@@ -2,5 +2,5 @@
+ // invoking a capability method. Scalars, structs and non-nil empty containers
+ // remain present. The generic boundary retains the caller's static contract.
+ func IsNil[T any](value T) bool {
+-	return ioValueIsNil(reflect.ValueOf(value))
++	return false
+ }
