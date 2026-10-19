@@ -1,0 +1,43 @@
+{
+  "steps": [
+    {
+      "name": "native-scoped-sort-lifetime-and-failure-contracts",
+      "kind": "test",
+      "arguments": [
+        "./filestore",
+        "-run=^(TestSortedRecordScopeOwnsNativeStreamIndexAndCleanup|TestSortedRecordScopePreservesEachRefusalAndWithholdsUnreadiedView|TestFilestoreDataFlowStructInventoryRatchet|FuzzSortedRecordScopeMatchesIndependentStableRows)$",
+        "-race",
+        "-count=1"
+      ]
+    },
+    {
+      "name": "new-public-scope-has-compiler-bound-oracle",
+      "kind": "test",
+      "arguments": [
+        "./filestore",
+        "-run=^TestFilestorePublicIngressHasCompilerBoundSemanticProof$/.*WithSortedRecordScope.*",
+        "-count=1"
+      ]
+    },
+    {
+      "name": "missing-native-source-must-break-stable-row-proof",
+      "kind": "mutate",
+      "arguments": [
+        "./filestore"
+      ],
+      "mutation": {
+        "patch": "filestore/testdata/sorted_record_scope/omit_producer.patch",
+        "failing_test": "TestSortedRecordScopeOwnsNativeStreamIndexAndCleanup"
+      }
+    },
+    {
+      "name": "native-sorted-scope-independent-row-oracle",
+      "kind": "fuzz",
+      "arguments": [
+        "./filestore"
+      ],
+      "fuzz_target": "FuzzSortedRecordScopeMatchesIndependentStableRows",
+      "fuzz_seconds": 3
+    }
+  ]
+}

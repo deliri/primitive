@@ -1,0 +1,11 @@
+--- a/filestore/sorted_record_scope.go
++++ b/filestore/sorted_record_scope.go
+@@ -77,7 +77,7 @@
+ 			}
+ 		}()
+ 		writer := bufio.NewWriterSize(source, contentSortBufferBytes)
+-		if err := request.Produce(ctx, writer); err != nil {
++		if err := func() error { return nil }(); err != nil {
+ 			return err
+ 		}
+ 		if err := writer.Flush(); err != nil {
