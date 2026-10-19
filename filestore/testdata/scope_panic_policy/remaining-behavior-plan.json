@@ -1,0 +1,29 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "native-iterator-panic-and-close-ownership",
+      "kind": "test",
+      "arguments": [
+        "./filestore",
+        "-count=1",
+        "-run=^TestFilestoreDataFlowStructInventoryRatchet$"
+      ]
+    },
+    {
+      "name": "native-panic-policy-byte-and-lifetime-oracle",
+      "kind": "fuzz",
+      "arguments": [
+        "./filestore"
+      ],
+      "fuzz_target": "FuzzScopePanicPolicyConservesNativeBytesAndCloseOwnership",
+      "fuzz_seconds": 3
+    }
+  ]
+}
