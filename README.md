@@ -39,6 +39,16 @@ placement and the admission decision. Observation does not change host limits
 or start a monitoring service. Unsupported systems and failed/cancelled samples
 return no resource sample.
 
+On Linux, `ResourceUsageRequest.Scopes` names systemd scopes whose cgroup v2
+`cpu.stat` `usage_usec` is read strictly inside the two `/proc/stat` samples.
+Each scope's delta is divided by the monotonic window bracketing both host
+samples and rounded down, so `ScopeCPU.BusyCPUMilli` never exceeds that scope's
+use of the host window. The kernel keeps CPU time in the cgroup's counters, so
+exited processes remain counted. A scope absent at either read reports zero.
+Repeated scopes are refused. Darwin has no cgroup CPU counters and refuses a
+request with scopes. Memory is not split per scope: cgroup `memory.current`
+includes page cache charged to whichever cgroup first touched it.
+
 `hostfacts.ObserveSystemdScope` observes one named native Linux transient scope
 without signalling it. A loaded scope remains conservatively alive until the
 manager collects it, including descendants that changed POSIX process groups.

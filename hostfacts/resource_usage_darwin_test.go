@@ -116,3 +116,17 @@ func FuzzResourceMacMemorySemanticClosure(f *testing.F) {
 		}
 	})
 }
+
+// macOS has no cgroup CPU counters, so a scope request is refused rather than
+// answered with a sample that could not be interval-matched.
+func TestResourceUsageRefusesScopesOnDarwin(t *testing.T) {
+	t.Parallel()
+	name, err := core.ParsePathComponent("primitive-darwin.scope")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := ObserveResourceUsage(t.Context(), ResourceUsageRequest{IntervalSeconds: 1, Scopes: []SystemdScopeRequest{{Unit: name, UserManager: true}}})
+	if !errors.Is(err, core.ErrHostFactsUnsupported) || !emptyResourceUsage(got) {
+		t.Fatalf("darwin scopes=(%+v,%v), want unsupported and no sample", got, err)
+	}
+}

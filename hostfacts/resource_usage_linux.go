@@ -21,7 +21,11 @@ func observeResourceUsage(ctx context.Context, r ResourceUsageRequest) (Resource
 	if err != nil {
 		return out, err
 	}
-	before, err := readResourceCPU(ctx)
+	mounts, err := procSelfMountsPath()
+	if err != nil {
+		return out, err
+	}
+	cgroups, err := resolveScopeCgroups(ctx, mounts, r.Scopes)
 	if err != nil {
 		return out, err
 	}
@@ -29,14 +33,44 @@ func observeResourceUsage(ctx context.Context, r ResourceUsageRequest) (Resource
 	if err != nil {
 		return out, err
 	}
+	// Scope samples sit strictly inside the two host samples, and the clock
+	// brackets both host samples, so no scope can claim more than its window.
+	start, err := temporal.Observe()
+	if err != nil {
+		return out, err
+	}
+	before, err := readResourceCPU(ctx)
+	if err != nil {
+		return out, err
+	}
+	scopeBefore, err := readScopesCPU(ctx, cgroups)
+	if err != nil {
+		return out, err
+	}
 	if err = temporal.Wait(temporal.WaitRequest{Context: ctx, Duration: duration}); err != nil {
+		return out, err
+	}
+	scopeAfter, err := readScopesCPU(ctx, cgroups)
+	if err != nil {
 		return out, err
 	}
 	after, err := readResourceCPU(ctx)
 	if err != nil {
 		return out, err
 	}
+	end, err := temporal.Observe()
+	if err != nil {
+		return out, err
+	}
+	window, err := end.Since(start)
+	if err != nil {
+		return out, err
+	}
 	out.busy, err = resourceBusy(before, after, out.cpus)
+	if err != nil {
+		return out, err
+	}
+	out.scopes, err = scopesBusy(cgroups, scopeBefore, scopeAfter, window.Nanoseconds())
 	if err != nil {
 		return out, err
 	}

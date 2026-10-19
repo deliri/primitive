@@ -150,13 +150,13 @@ func TestResourceUsageNativeLayerTriad(t *testing.T) {
 		t.Fatalf("native resources=(%+v,%v), want admitted OS sample", got, err)
 	}
 	zero, err := ObserveResourceUsage(t.Context(), ResourceUsageRequest{})
-	if !errors.Is(err, core.ErrHostFactsContract) || zero != (ResourceUsage{}) {
+	if !errors.Is(err, core.ErrHostFactsContract) || !emptyResourceUsage(zero) {
 		t.Fatalf("zero request=(%+v,%v), want zero contract refusal", zero, err)
 	}
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 	zero, err = ObserveResourceUsage(ctx, ResourceUsageRequest{IntervalSeconds: 1})
-	if !errors.Is(err, context.Canceled) || zero != (ResourceUsage{}) {
+	if !errors.Is(err, context.Canceled) || !emptyResourceUsage(zero) {
 		t.Fatalf("cancelled sample=(%+v,%v), want no sample", zero, err)
 	}
 }
@@ -205,4 +205,11 @@ func FuzzResourceCPUSemanticClosure(f *testing.F) {
 			t.Fatalf("CPU round trip=(%+v,%v), want %+v", again, err, got)
 		}
 	})
+}
+
+// emptyResourceUsage proves a refusal returned no partial sample, including
+// no scope samples.
+func emptyResourceUsage(u ResourceUsage) bool {
+	return u.cpus.Int() == 0 && u.busy == 0 && u.total.Uint64() == 0 && u.available.Uint64() == 0 &&
+		u.ioPressure == 0 && u.memoryPressure == 0 && u.scopes == nil
 }

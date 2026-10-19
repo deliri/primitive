@@ -16,6 +16,10 @@ import (
 func observeResourceUsage(ctx context.Context, r ResourceUsageRequest) (ResourceUsage, error) {
 	var out ResourceUsage
 	var err error
+	// macOS has no cgroup CPU counters; scope samples are Linux-only.
+	if len(r.Scopes) != 0 {
+		return out, core.ErrHostFactsUnsupported
+	}
 	out.cpus, err = ObserveLogicalCPUCount()
 	if err != nil {
 		return out, err

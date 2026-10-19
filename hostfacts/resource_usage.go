@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	"math"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -23,15 +24,41 @@ const resourcePercentMilli = 100000
 const resourceCommandWaitSeconds = 3
 
 // ResourceUsageRequest selects the interval between native CPU observations.
-// It sets no utilization threshold, reservation, limit or admission policy.
-type ResourceUsageRequest struct{ IntervalSeconds uint32 }
+// Scopes names Linux systemd scopes whose cgroup CPU is sampled strictly
+// inside the same host window, so a caller can separate its own load from
+// background load. It sets no threshold, reservation, limit or admission policy.
+type ResourceUsageRequest struct {
+	IntervalSeconds uint32
+	Scopes          []SystemdScopeRequest
+}
 
 func (r ResourceUsageRequest) Validate() error {
 	if r.IntervalSeconds == 0 {
 		return core.ErrHostFactsContract
 	}
-	_, err := temporal.DurationFromSeconds(uint64(r.IntervalSeconds))
-	return errors.Join(err)
+	if _, err := temporal.DurationFromSeconds(uint64(r.IntervalSeconds)); err != nil {
+		return err
+	}
+	for i, scope := range r.Scopes {
+		if err := scope.Validate(); err != nil {
+			return err
+		}
+		// A repeated scope would be counted twice by a caller's subtraction.
+		if slices.Contains(r.Scopes[:i], scope) {
+			return core.ErrHostFactsContract
+		}
+	}
+	return nil
+}
+
+// ScopeCPU is one scope's cumulative cgroup CPU delta, taken strictly inside
+// the host window and divided by the whole host window. It therefore never
+// exceeds the scope's CPU during the host sample. Present is false when the
+// scope or its cgroup was absent at either sample; BusyCPUMilli is then zero.
+type ScopeCPU struct {
+	Scope        SystemdScopeRequest
+	BusyCPUMilli uint64
+	Present      bool
 }
 
 // ResourceUsage is one immutable interval CPU sample and current memory/pressure
@@ -41,17 +68,30 @@ type ResourceUsage struct {
 	busy                       uint64
 	total, available           core.ByteLength
 	ioPressure, memoryPressure uint32
+	scopes                     []ScopeCPU
 }
 
 func (u ResourceUsage) Validate() error {
 	if err := errors.Join(u.cpus.Validate(), u.total.Validate(), u.available.Validate()); err != nil {
 		return errors.Join(core.ErrHostFactsContract, err)
 	}
-	if u.total.Uint64() == 0 || u.available.Uint64() > u.total.Uint64() || u.busy > uint64(u.cpus.Int())*resourceCPUMilli || u.ioPressure > resourcePercentMilli || u.memoryPressure > resourcePercentMilli {
+	limit := uint64(u.cpus.Int()) * resourceCPUMilli
+	if u.total.Uint64() == 0 || u.available.Uint64() > u.total.Uint64() || u.busy > limit || u.ioPressure > resourcePercentMilli || u.memoryPressure > resourcePercentMilli {
 		return core.ErrHostFactsContract
+	}
+	for _, scope := range u.scopes {
+		if err := scope.Scope.Validate(); err != nil {
+			return errors.Join(core.ErrHostFactsContract, err)
+		}
+		if scope.BusyCPUMilli > limit || !scope.Present && scope.BusyCPUMilli != 0 {
+			return core.ErrHostFactsContract
+		}
 	}
 	return nil
 }
+
+// Scopes returns the requested scope samples in request order.
+func (u ResourceUsage) Scopes() []ScopeCPU                    { return slices.Clone(u.scopes) }
 func (u ResourceUsage) CPUCount() LogicalCPUCount             { return u.cpus }
 func (u ResourceUsage) BusyCPUMilli() uint64                  { return u.busy }
 func (u ResourceUsage) TotalMemoryBytes() core.ByteLength     { return u.total }
@@ -67,12 +107,25 @@ func ObserveResourceUsage(ctx context.Context, r ResourceUsageRequest) (Resource
 	}
 	u, err := observeResourceUsage(ctx, r)
 	if err == nil {
-		err = errors.Join(u.Validate(), contextstate.Validate(ctx))
+		err = errors.Join(u.Validate(), contextstate.Validate(ctx), sameScopes(r.Scopes, u.scopes))
 	}
 	if err != nil {
 		return ResourceUsage{}, fail(OperationResourceUsage, core.ErrHostFactsObservation, err)
 	}
 	return u, nil
+}
+
+// Every requested scope is answered exactly once, in request order.
+func sameScopes(requested []SystemdScopeRequest, observed []ScopeCPU) error {
+	if len(requested) != len(observed) {
+		return core.ErrHostFactsObservation
+	}
+	for i := range requested {
+		if observed[i].Scope != requested[i] {
+			return core.ErrHostFactsObservation
+		}
+	}
+	return nil
 }
 
 // Each recognized native record has finitely many bounded numeric fields.
