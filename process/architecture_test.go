@@ -432,18 +432,81 @@ func TestProductionStructureForbidsWorldModelsAndWholeOutputPaths(t *testing.T) 
 			}
 			return true
 		})
-		for _, structure := range productionStructTypes(t, file) {
-			for _, field := range structure.definition.Fields.List {
-				array, ok := field.Type.(*ast.ArrayType)
-				if !ok || array.Len != nil {
-					continue
-				}
-				element, ok := array.Elt.(*ast.Ident)
-				if ok && element.Name == "byte" {
-					t.Errorf("production struct %s retains []byte, want streaming fixed-size state", structure.name)
-				}
+		if appendsRetainedByteField(file) {
+			t.Errorf("production file %s grows a retained byte field with source extent", production.name)
+		}
+	}
+}
+
+// A caller-selected native window and its owned snapshot are valid byte
+// custody. Appending source into a retained byte field grows a source world.
+// Behavioral heap/alias tests additionally prove fixed extent and ownership;
+// syntax alone cannot prove either property of a slice.
+func appendsRetainedByteField(file *ast.File) bool {
+	var fields []string
+	ast.Inspect(file, func(node ast.Node) bool {
+		structure, ok := node.(*ast.StructType)
+		if !ok {
+			return true
+		}
+		for _, field := range structure.Fields.List {
+			array, ok := field.Type.(*ast.ArrayType)
+			if !ok || array.Len != nil {
+				continue
+			}
+			element, ok := array.Elt.(*ast.Ident)
+			if !ok || element.Name != "byte" {
+				continue
+			}
+			for _, name := range field.Names {
+				fields = append(fields, name.Name)
 			}
 		}
+		return true
+	})
+	found := false
+	ast.Inspect(file, func(node ast.Node) bool {
+		call, ok := node.(*ast.CallExpr)
+		if !ok || len(call.Args) == 0 {
+			return true
+		}
+		callee, ok := call.Fun.(*ast.Ident)
+		if !ok || callee.Name != "append" {
+			return true
+		}
+		target := call.Args[0]
+		if slice, ok := target.(*ast.SliceExpr); ok {
+			target = slice.X
+		}
+		if field, ok := target.(*ast.SelectorExpr); ok && slices.Contains(fields, field.Sel.Name) {
+			found = true
+		}
+		return true
+	})
+	return found
+}
+
+func TestRetainedByteFieldGrowthMatcherLayerTriad(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name, source string
+		grows        bool
+	}{
+		{name: "positive_fixed_native_window", source: "package p; type Window struct{data []byte}; func(w *Window) Write(p []byte){copy(w.data,p)}"},
+		{name: "negative_retained_source", source: "package p; type Window struct{data []byte}; func(w *Window) Write(p []byte){w.data=append(w.data,p...)}", grows: true},
+		{name: "negative_retained_source_through_slice", source: "package p; type Window struct{data []byte}; func(w *Window) Write(p []byte){w.data=append(w.data[:],p...)}", grows: true},
+		{name: "neutral_local_source_independent_list", source: "package p; type Window struct{data []byte}; func Names(p string){var names []string; names=append(names,p)}"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			file, err := parser.ParseFile(token.NewFileSet(), "window.go", tc.source, parser.SkipObjectResolution)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := appendsRetainedByteField(file); got != tc.grows {
+				t.Fatalf("source growth=%t,want %t", got, tc.grows)
+			}
+		})
 	}
 }
 

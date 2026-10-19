@@ -1,0 +1,29 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "native-tail-byte-conservation-and-ownership",
+      "kind": "test",
+      "arguments": [
+        "./process",
+        "-count=1",
+        "-run=^(TestProductionStructureForbidsWorldModelsAndWholeOutputPaths|TestRetainedByteFieldGrowthMatcherLayerTriad)$"
+      ]
+    },
+    {
+      "name": "native-tail-partition-semantic-oracle",
+      "kind": "fuzz",
+      "arguments": [
+        "./process"
+      ],
+      "fuzz_target": "FuzzTailBufferExternalIngress",
+      "fuzz_seconds": 3
+    }
+  ]
+}
