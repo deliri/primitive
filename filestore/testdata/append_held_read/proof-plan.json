@@ -1,0 +1,65 @@
+{
+  "steps": [
+    {
+      "name": "native-original-descriptor-access-and-lifetime",
+      "kind": "test",
+      "arguments": [
+        "./filestore",
+        "-run=^(TestHeldAppendReadUsesOriginalObjectAcrossNamespaceLossAndRotation|TestHeldAppendReadPreservesNativeAccessAndLifecycleRefusals|TestAppendAccessHasOnlyNativeDescriptorModes|FuzzHeldAppendReadMatchesIndependentBytesAfterNameRemoval)$",
+        "-race",
+        "-count=1"
+      ]
+    },
+    {
+      "name": "native-held-read-public-ingress-binding",
+      "kind": "test",
+      "arguments": [
+        "./filestore",
+        "-run=^TestFilestorePublicIngressHasCompilerBoundSemanticProof$",
+        "-count=1"
+      ]
+    },
+    {
+      "name": "skip_native_flush",
+      "kind": "mutate",
+      "arguments": [
+        "./filestore"
+      ],
+      "mutation": {
+        "patch": "filestore/testdata/append_held_read/skip_native_flush.patch",
+        "failing_test": "TestHeldAppendReadUsesOriginalObjectAcrossNamespaceLossAndRotation"
+      }
+    },
+    {
+      "name": "retain_borrowed_source",
+      "kind": "mutate",
+      "arguments": [
+        "./filestore"
+      ],
+      "mutation": {
+        "patch": "filestore/testdata/append_held_read/retain_borrowed_source.patch",
+        "failing_test": "TestHeldAppendReadUsesOriginalObjectAcrossNamespaceLossAndRotation"
+      }
+    },
+    {
+      "name": "discard_read_access",
+      "kind": "mutate",
+      "arguments": [
+        "./filestore"
+      ],
+      "mutation": {
+        "patch": "filestore/testdata/append_held_read/discard_read_access.patch",
+        "failing_test": "TestHeldAppendReadUsesOriginalObjectAcrossNamespaceLossAndRotation"
+      }
+    },
+    {
+      "name": "held-object-independent-byte-oracle",
+      "kind": "fuzz",
+      "arguments": [
+        "./filestore"
+      ],
+      "fuzz_target": "FuzzHeldAppendReadMatchesIndependentBytesAfterNameRemoval",
+      "fuzz_seconds": 3
+    }
+  ]
+}

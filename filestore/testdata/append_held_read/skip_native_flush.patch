@@ -1,0 +1,11 @@
+--- a/filestore/append_held_read.go
++++ b/filestore/append_held_read.go
+@@ -35,7 +35,7 @@
+ 		return err
+ 	}
+ 	held := d.file
+-	if err := d.Flush(); err != nil {
++	if err := error(nil); err != nil {
+ 		return destinationError(err)
+ 	}
+ 	metadata, err := InspectOpenFile(ctx, HandleInspectionRequest{File: held})

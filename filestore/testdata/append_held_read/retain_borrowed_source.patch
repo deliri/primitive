@@ -1,0 +1,12 @@
+--- a/filestore/append_held_read.go
++++ b/filestore/append_held_read.go
+@@ -51,7 +51,8 @@
+ 		return err
+ 	}
+ 	lifetime, cancel := context.WithCancelCause(ctx)
+-	defer cancel(fs.ErrClosed)
++	_ = cancel
++	_ = fs.ErrClosed
+ 	reader := heldAppendReadSource{lifetime: lifetime, source: io.NewSectionReader(held, 0, length)}
+ 	err = useFileScope(ctx, held, func(ctx context.Context, _ *os.File) error {
+ 		return request.Use(ctx, InspectedRead{Source: reader, Metadata: metadata})

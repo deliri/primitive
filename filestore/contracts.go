@@ -488,6 +488,7 @@ type AppendRequest struct {
 	Location Location
 	Mode     fs.FileMode
 	Append   AppendMode
+	Access   AppendAccess
 }
 
 // Validate rejects an invalid location, permission mode, or append intent.
@@ -501,7 +502,7 @@ func (r AppendRequest) Validate() error {
 	if err := validatePermissionMode(r.Mode); err != nil {
 		return err
 	}
-	return r.Append.Validate()
+	return errors.Join(r.Append.Validate(), r.Access.Validate())
 }
 
 // RotationRequest transfers Outgoing to the append-rotation operation and

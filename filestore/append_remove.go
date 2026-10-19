@@ -43,7 +43,7 @@ func createOrOpenAppend(request AppendRequest) (*os.File, error) {
 func openExistingAppend(request AppendRequest) (*os.File, error) {
 	file, err := openMutableFile(rootedOpenRequest{
 		root: request.Location.Root, path: request.Location.Path.String(),
-		flag: os.O_WRONLY | os.O_APPEND,
+		flag: request.Access.nativeFlags() | os.O_APPEND,
 	})
 	if err != nil {
 		return nil, activationError(err)
@@ -80,7 +80,7 @@ func RotateAppend(ctx context.Context, request RotationRequest) (*os.File, error
 func createAppend(request AppendRequest) (*os.File, error) {
 	file, err := openMutableFile(rootedOpenRequest{
 		root: request.Location.Root, path: request.Location.Path.String(),
-		flag: os.O_WRONLY | os.O_APPEND | os.O_CREATE | os.O_EXCL, mode: request.Mode,
+		flag: request.Access.nativeFlags() | os.O_APPEND | os.O_CREATE | os.O_EXCL, mode: request.Mode,
 	})
 	if err != nil {
 		return nil, classifyCreateError(err)

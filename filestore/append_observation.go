@@ -71,10 +71,11 @@ type AppendPathRotationRequest struct {
 	Path   core.AbsolutePath
 	Mode   fs.FileMode
 	Append AppendMode
+	Access AppendAccess
 }
 
 func (r AppendPathRotationRequest) Validate() error {
-	if err := errors.Join(r.Path.Validate(), r.Append.Validate()); err != nil {
+	if err := errors.Join(r.Path.Validate(), r.Append.Validate(), r.Access.Validate()); err != nil {
 		return err
 	}
 	return validatePermissionMode(r.Mode)
@@ -103,7 +104,7 @@ func (d *AppendDestination) RotatePath(ctx context.Context, request AppendPathRo
 		return err
 	}
 	scope, err := WithRootScope(ctx, RootScopeRequest{Directory: parent, Use: func(ctx context.Context, root *os.Root) error {
-		return d.Rotate(ctx, AppendRequest{Location: Location{Root: root, Path: relative}, Mode: request.Mode, Append: request.Append})
+		return d.Rotate(ctx, AppendRequest{Location: Location{Root: root, Path: relative}, Mode: request.Mode, Append: request.Append, Access: request.Access})
 	}})
 	if err != nil {
 		return err
