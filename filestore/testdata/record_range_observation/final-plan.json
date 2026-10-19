@@ -1,0 +1,20 @@
+{
+  "steps": [
+    {
+      "name": "native-observation-inventory",
+      "kind": "test",
+      "arguments": [
+        "./filestore",
+        "-run=^TestFilestoreDataFlowStructInventoryRatchet$",
+        "-count=1"
+      ]
+    },
+    {
+      "name": "affected-filestore-final-vet",
+      "kind": "vet",
+      "arguments": [
+        "./filestore"
+      ]
+    }
+  ]
+}
