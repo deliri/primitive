@@ -1,0 +1,29 @@
+--- a/gotoolchain/syntax_walk.go
++++ b/gotoolchain/syntax_walk.go
+@@ -7,7 +7,7 @@
+ 	"iter"
+ 
+ 	"github.com/deliri/primitive/v2026/core"
+-	"github.com/deliri/primitive/v2026/temporal"
++	"github.com/deliri/primitive/v2026/contextstate"
+ )
+ 
+ // SyntaxWalkRequest borrows an existing Go syntax tree. Parsing, compilation
+@@ -53,7 +53,7 @@
+ // propagation; malformed trees retain the native walker's panic behavior.
+ func WalkSyntax(ctx context.Context, request SyntaxWalkRequest) iter.Seq2[SyntaxNodeObservation, error] {
+ 	return func(yield func(SyntaxNodeObservation, error) bool) {
+-		if err := errors.Join(request.Validate(), temporal.Wait(temporal.WaitRequest{Context: ctx})); err != nil {
++		if err := errors.Join(request.Validate(), contextstate.Validate(ctx)); err != nil {
+ 			yield(SyntaxNodeObservation{}, err)
+ 			return
+ 		}
+@@ -62,7 +62,7 @@
+ 			if stopped {
+ 				return false
+ 			}
+-			if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
++			if err := contextstate.Validate(ctx); err != nil {
+ 				stopped = true
+ 				yield(SyntaxNodeObservation{}, err)
+ 				return false

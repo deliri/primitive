@@ -1,0 +1,20 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "native-syntax-node-borrowing-and-cancellation",
+      "kind": "test",
+      "arguments": [
+        "./gotoolchain",
+        "-count=1",
+        "-run=^(TestSyntaxWalkBorrowsExactNativePreorderAndAncestors|TestSyntaxWalkConsumerControlsFutureNativeSyntax|TestSyntaxWalkPreservesConsumerPanicIdentity|TestSyntaxWalkKeepsNativeMalformedTreePanic|TestSyntaxWalkRefusesMissingOwnershipAndPreservesNativeCancellation|TestGoToolchainProductionStructsHaveCompilerVisibleDataFlowRoles)$"
+      ]
+    }
+  ]
+}

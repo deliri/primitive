@@ -1,0 +1,53 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "drop-native-ancestors",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/syntax_walk/drop_native_ancestors.patch",
+        "failing_test": "TestSyntaxWalkBorrowsExactNativePreorderAndAncestors"
+      }
+    },
+    {
+      "name": "ignore-consumer-stop",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/syntax_walk/ignore_consumer_stop.patch",
+        "failing_test": "TestSyntaxWalkConsumerControlsFutureNativeSyntax"
+      }
+    },
+    {
+      "name": "lose-native-context-cause",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/syntax_walk/lose_native_context_cause.patch",
+        "failing_test": "TestSyntaxWalkRefusesMissingOwnershipAndPreservesNativeCancellation"
+      }
+    },
+    {
+      "name": "native-node-and-ancestry-conservation",
+      "kind": "fuzz",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "fuzz_target": "FuzzSyntaxWalkNativeNodeAndAncestryConservation",
+      "fuzz_seconds": 3
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+--- a/gotoolchain/syntax_walk.go
++++ b/gotoolchain/syntax_walk.go
+@@ -67,7 +67,7 @@
+ 				yield(SyntaxNodeObservation{}, err)
+ 				return false
+ 			}
+-			stopped = !yield(SyntaxNodeObservation{Node: node, Ancestors: ancestors}, nil)
++			stopped = !yield(SyntaxNodeObservation{Node: node, Ancestors: nil}, nil)
+ 			return !stopped
+ 		})
+ 	}

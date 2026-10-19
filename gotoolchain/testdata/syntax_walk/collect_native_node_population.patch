@@ -1,0 +1,15 @@
+--- a/gotoolchain/syntax_walk.go
++++ b/gotoolchain/syntax_walk.go
+@@ -53,6 +53,12 @@
+ // propagation; malformed trees retain the native walker's panic behavior.
+ func WalkSyntax(ctx context.Context, request SyntaxWalkRequest) iter.Seq2[SyntaxNodeObservation, error] {
+ 	return func(yield func(SyntaxNodeObservation, error) bool) {
++ consumer:=yield
++ var population []SyntaxNodeObservation
++ var terminal error
++ yield=func(observation SyntaxNodeObservation,err error) bool {if err!=nil {terminal=err}else{population=append(population,observation)};return true}
++ defer func(){for _,observation:=range population {if !consumer(observation,nil){return}};if terminal!=nil {consumer(SyntaxNodeObservation{},terminal)}}()
++
+ 		if err := errors.Join(request.Validate(), temporal.Wait(temporal.WaitRequest{Context: ctx})); err != nil {
+ 			yield(SyntaxNodeObservation{}, err)
+ 			return

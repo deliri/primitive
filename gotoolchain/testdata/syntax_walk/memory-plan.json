@@ -1,0 +1,31 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "native-syntax-depth-working-memory",
+      "kind": "test",
+      "arguments": [
+        "./gotoolchain",
+        "-count=1",
+        "-run=^TestSyntaxWalkRetainsDepthInsteadOfNodePopulation$"
+      ]
+    },
+    {
+      "name": "native-node-catalog-regression",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/syntax_walk/collect_native_node_population.patch",
+        "failing_test": "TestSyntaxWalkRetainsDepthInsteadOfNodePopulation/16385"
+      }
+    }
+  ]
+}
