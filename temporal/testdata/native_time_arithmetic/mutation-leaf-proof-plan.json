@@ -1,0 +1,55 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "reverse-signed-difference",
+      "kind": "mutate",
+      "arguments": [
+        "./temporal"
+      ],
+      "mutation": {
+        "patch": "temporal/testdata/native_time_arithmetic/reverse_signed_difference.patch",
+        "failing_test": "TestNativeTimeDifferencePreservesSignedSaturationAndMonotonicReadings/10/9"
+      }
+    },
+    {
+      "name": "narrow-difference-to-unix-nanoseconds",
+      "kind": "mutate",
+      "arguments": [
+        "./temporal"
+      ],
+      "mutation": {
+        "patch": "temporal/testdata/native_time_arithmetic/narrow_difference_to_unix_nanoseconds.patch",
+        "failing_test": "TestNativeTimeDifferencePreservesSignedSaturationAndMonotonicReadings/0/10"
+      }
+    },
+    {
+      "name": "reverse-signed-offset",
+      "kind": "mutate",
+      "arguments": [
+        "./temporal"
+      ],
+      "mutation": {
+        "patch": "temporal/testdata/native_time_arithmetic/reverse_signed_offset.patch",
+        "failing_test": "TestNativeTimeShiftPreservesSignedOffsetsLocationAndCalendarRange/10/1"
+      }
+    },
+    {
+      "name": "erase-native-carrier-location",
+      "kind": "mutate",
+      "arguments": [
+        "./temporal"
+      ],
+      "mutation": {
+        "patch": "temporal/testdata/native_time_arithmetic/erase_native_carrier_location.patch",
+        "failing_test": "TestNativeTimeShiftPreservesSignedOffsetsLocationAndCalendarRange/17/0"
+      }
+    }
+  ]
+}
