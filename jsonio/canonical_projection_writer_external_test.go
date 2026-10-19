@@ -58,9 +58,10 @@ type canonicalDeclaredDocument struct {
 	Tail string                `json:"tail,omitempty"`
 	Rows []canonicalProjection `json:"rows"`
 	CanonicalDeclaredCounts
-	Nested     canonicalProjection `json:"nested"`
-	Astral     string              `json:"𐀀"`
-	PrivateUse string              `json:"\ue000"`
+	Nested     canonicalProjection     `json:"nested"`
+	Owned      *canonicalPointerPolicy `json:"owned,omitempty"`
+	Astral     string                  `json:"𐀀"`
+	PrivateUse string                  `json:"\ue000"`
 }
 
 func TestCanonicalDeclaredProjectionMatchesGoForEmbeddedFieldsAndUnicodeOrder(t *testing.T) {
@@ -206,7 +207,7 @@ func FuzzCanonicalDeclaredProjectionMatchesNativeWire(f *testing.F) {
 	f.Add("", uint64(0))
 	f.Add("\xff", uint64(18446744073709551615))
 	f.Fuzz(func(t *testing.T, text string, number uint64) {
-		document := canonicalDeclaredDocument{CanonicalDeclaredCounts: CanonicalDeclaredCounts{Z: number, A: -1}, Rows: []canonicalProjection{{A: text, Z: number}}, Nested: canonicalProjection{A: text, Z: number}, Astral: text, PrivateUse: text}
+		document := canonicalDeclaredDocument{CanonicalDeclaredCounts: CanonicalDeclaredCounts{Z: number, A: -1}, Rows: []canonicalProjection{{A: text, Z: number}}, Nested: canonicalProjection{A: text, Z: number}, Owned: &canonicalPointerPolicy{Kept: int(number), Zero: 97}, Astral: text, PrivateUse: text}
 		var output bytes.Buffer
 		err := jsonio.WriteCanonicalProjection(t.Context(), &output, document, jsonio.OwnedCodecPolicy{Root: jsonio.RootOwnedMethods})
 		want, nativeErr := jsonv2.Marshal(document)
@@ -224,7 +225,7 @@ func FuzzCanonicalDeclaredProjectionMatchesNativeWire(f *testing.F) {
 			t.Fatalf("declared stream = (%q, %v), want native %q", output.Bytes(), err, canonical)
 		}
 		var decoded canonicalDeclaredDocument
-		if err := jsonv2.Unmarshal(output.Bytes(), &decoded); err != nil || decoded.Z != number || decoded.Nested.A != text || len(decoded.Rows) != 1 || decoded.Rows[0].Z != number {
+		if err := jsonv2.Unmarshal(output.Bytes(), &decoded); err != nil || decoded.Z != number || decoded.Nested.A != text || len(decoded.Rows) != 1 || decoded.Rows[0].Z != number || decoded.Owned == nil || decoded.Owned.Kept != int(number) || decoded.Owned.Zero != 0 {
 			t.Fatalf("round trip = (%+v, %v), want exact typed source", decoded, err)
 		}
 	})
