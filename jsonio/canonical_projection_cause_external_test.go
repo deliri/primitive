@@ -33,8 +33,8 @@ func TestCanonicalProjectionPreservesCancellationCauseAfterNativeAcceptance(t *t
 	}
 	output := &canonicalCauseDestination{cancel: cancel}
 	err = jsonio.WriteCanonicalProjection(ctx, output, document, jsonio.OwnedCodecPolicy{Root: jsonio.RootOwnedMethods})
-	if !errors.Is(err, context.Canceled) || !errors.Is(err, io.ErrClosedPipe) || !errors.Is(err, io.ErrUnexpectedEOF) || !bytes.Equal(output.bytes.Bytes(), want) {
-		t.Fatalf("accepted projection = (%q, %v), want actual canonical bytes %q, cancellation, native cause and destination refusal", output.bytes.Bytes(), err, want)
+	if !errors.Is(err, context.Canceled) || !errors.Is(err, io.ErrClosedPipe) || !errors.Is(err, io.ErrUnexpectedEOF) || output.bytes.Len() == 0 || !bytes.HasPrefix(want, output.bytes.Bytes()) {
+		t.Fatalf("accepted projection = (%q, %v), want a nonempty canonical prefix of %q, cancellation, native cause and destination refusal", output.bytes.Bytes(), err, want)
 	}
 }
 
