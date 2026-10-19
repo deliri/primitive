@@ -171,6 +171,42 @@ func TestCompareContentRefusesAbsentContractsBeforeCallingProducer(t *testing.T)
 	}
 }
 
+func TestCompareContentContextAdmissionAndNativeEOF(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	for _, tc := range []struct {
+		name string
+		ctx  context.Context
+		want error
+	}{
+		{name: "nil context", want: core.ErrNilContext},
+		{name: "cancelled context", ctx: ctx, want: context.Canceled},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := filestore.CompareContent(tc.ctx, filestore.CompareContentRequest{Source: bytes.NewReader([]byte("abc")), Expected: func(context.Context, io.Writer) error { t.Error("refused context reached producer"); return nil }})
+			if !errors.Is(err, tc.want) || got != (filestore.ContentComparison{}) {
+				t.Fatalf("context admission = (%+v, %v), want no proof and %v", got, err, tc.want)
+			}
+		})
+	}
+	got, err := filestore.CompareContent(t.Context(), filestore.CompareContentRequest{Source: iotest.DataErrReader(bytes.NewReader([]byte("abc"))), Expected: func(_ context.Context, destination io.Writer) error {
+		_, err := destination.Write([]byte("abc"))
+		return err
+	}})
+	if err != nil || !got.Equal || got.ExpectedBytes.Uint64() != 3 || got.ObservedBytes.Uint64() != 3 {
+		t.Fatalf("data with native EOF = (%+v, %v), want exact equality and extents3/3", got, err)
+	}
+	length, err := core.NewByteLength(1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := (filestore.ContentComparison{Equal: true, ExpectedBytes: length}).Validate(); !errors.Is(err, core.ErrFilestoreContract) {
+		t.Fatalf("contradictory equality = %v, want contract refusal", err)
+	}
+}
+
 func FuzzCompareContentMatchesNativeBytes(f *testing.F) {
 	f.Add([]byte("typed streamed projection"), []byte("typed streamed projection"))
 	f.Add([]byte{}, []byte{})
