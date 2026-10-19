@@ -1,0 +1,5 @@
+{
+  "steps": [
+    {"name":"final-native-directory-custody-vet","kind":"vet","arguments":["./filestore"]}
+  ]
+}
