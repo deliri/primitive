@@ -1,0 +1,11 @@
+--- a/gotoolchain/source_file.go
++++ b/gotoolchain/source_file.go
+@@ -43,7 +43,7 @@
+ 	if err != nil {
+ 		return nil, errors.Join(core.ErrGoToolchainExecution, err)
+ 	}
+-	file, parseErr := parser.ParseFile(request.FileSet, request.Path.String(), source, parser.ParseComments)
++	file, parseErr := parser.ParseFile(request.FileSet, request.Path.String(), source, parser.ParseComments|parser.SkipObjectResolution)
+ 	err = errors.Join(parseErr, source.Close(), contextstate.Validate(ctx))
+ 	if err != nil {
+ 		return nil, errors.Join(core.ErrGoToolchainOutput, err)
