@@ -1,0 +1,11 @@
+{
+  "steps": [
+    {
+      "name": "final-affected-native-core-vet",
+      "kind": "vet",
+      "arguments": [
+        "./core"
+      ]
+    }
+  ]
+}
