@@ -19,6 +19,7 @@ import (
 )
 
 const groupOwnershipMarker = "--primitive-owned-group-proof"
+const groupSpinMarker = "--spin"
 
 func TestOwnedGroupProcessHelper(t *testing.T) {
 	t.Parallel()
@@ -46,12 +47,22 @@ func TestOwnedGroupProcessHelper(t *testing.T) {
 	if _, err = io.WriteString(os.Stdout, strconv.FormatUint(uint64(identity), 10)+"\n"); err != nil {
 		t.Fatal(err)
 	}
-	var token [1]byte
-	if _, err = io.ReadFull(os.Stdin, token[:]); err != nil {
-		t.Fatal(err)
+	// The reader owns stdin until the parent's stop token or pipe closure.
+	stopped := make(chan error, 1)
+	go func() {
+		var token [1]byte
+		_, err := io.ReadFull(os.Stdin, token[:])
+		if err == nil && token[0] != 'K' {
+			err = core.ErrProcessContract
+		}
+		stopped <- err
+	}()
+	if slices.Contains(os.Args, groupSpinMarker) {
+		for len(stopped) == 0 {
+		}
 	}
-	if token[0] != 'K' {
-		t.Fatalf("stop token=%q, want K", token)
+	if err = <-stopped; err != nil {
+		t.Fatal(err)
 	}
 	if err = group.Kill(); err != nil {
 		t.Fatal(err)
@@ -142,10 +153,15 @@ func TestOwnedGroupNativeLayerTriad(t *testing.T) {
 	if err != nil || alive != process.LivenessAlive {
 		t.Fatalf("live observation=(%v,%v)", alive, err)
 	}
-	memoryRequest := process.GroupMemoryRequest{Group: identity, WorkingDirectory: request.WorkingDirectory, Environment: request.Environment}
+	memoryRequest := process.GroupObservationRequest{Group: identity, WorkingDirectory: request.WorkingDirectory, Environment: request.Environment}
 	memory, err := process.ObserveGroupMemory(ctx, memoryRequest)
 	if err != nil || memory.Uint64() == 0 {
 		t.Fatalf("live RSS=(%d,%v), want positive native sample", memory.Uint64(), err)
+	}
+	// Every native row must parse, so this also proves the host's %CPU spelling.
+	// The helper is blocked on its pipe, so only success is asserted here.
+	if _, err = process.ObserveGroupCPU(ctx, memoryRequest); err != nil {
+		t.Fatalf("live CPU observation=%v, want native sample", err)
 	}
 	if _, err = send.Write([]byte{'K'}); err != nil {
 		t.Fatal(err)
@@ -170,10 +186,18 @@ func TestOwnedGroupNativeLayerTriad(t *testing.T) {
 	if err != nil || memory.Uint64() != 0 {
 		t.Fatalf("absent RSS=(%d,%v), want zero", memory.Uint64(), err)
 	}
+	cpu, err := process.ObserveGroupCPU(ctx, memoryRequest)
+	if err != nil || cpu != 0 {
+		t.Fatalf("absent CPU=(%d,%v), want zero", cpu, err)
+	}
 	closed, cancelClosed := context.WithCancel(ctx)
 	cancelClosed()
 	memory, err = process.ObserveGroupMemory(closed, memoryRequest)
 	if !errors.Is(err, context.Canceled) || memory.Uint64() != 0 {
 		t.Fatalf("cancelled RSS=(%d,%v), want zero cancellation", memory.Uint64(), err)
+	}
+	cpu, err = process.ObserveGroupCPU(closed, memoryRequest)
+	if !errors.Is(err, context.Canceled) || cpu != 0 {
+		t.Fatalf("cancelled CPU=(%d,%v), want zero cancellation", cpu, err)
 	}
 }
