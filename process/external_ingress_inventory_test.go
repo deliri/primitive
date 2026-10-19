@@ -22,8 +22,7 @@ import (
 // observations and capability constructors are identified separately.
 type processExternalDoorInventory struct {
 	ObserveGroupLiveness       func(process.ProcessIdentity) (process.Liveness, error)
-	ObserveGroupCPU            func(context.Context, process.GroupObservationRequest) (uint64, error)
-	ObserveGroupMemory         func(context.Context, process.GroupObservationRequest) (core.ByteLength, error)
+	ObserveGroupMemory         func(context.Context, process.GroupMemoryRequest) (core.ByteLength, error)
 	OwnGroup                   func() (*process.OwnedGroup, error)
 	ExecutionScope_Begin       func(*process.ExecutionScope, context.Context, process.Request) (*process.Execution, error)
 	ExecutionScope_Wait        func(*process.ExecutionScope, process.ExecutionWaitRequest) (process.Result, error)
@@ -58,7 +57,6 @@ type processExternalDoorInventory struct {
 
 var processExternalDoors = processExternalDoorInventory{
 	ObserveGroupLiveness:       process.ObserveGroupLiveness,
-	ObserveGroupCPU:            process.ObserveGroupCPU,
 	ObserveGroupMemory:         process.ObserveGroupMemory,
 	OwnGroup:                   process.OwnGroup,
 	ExecutionScope_Begin:       (*process.ExecutionScope).Begin,
@@ -115,8 +113,7 @@ func processExternalFuzzProofs() processExternalFuzzProofInventory {
 // remain necessary: fuzzing a leaf cannot establish a platform API's behavior.
 type processNativeMetadataDoorInventory struct {
 	ObserveGroupLiveness    func(process.ProcessIdentity) (process.Liveness, error)
-	ObserveGroupCPU         func(context.Context, process.GroupObservationRequest) (uint64, error)
-	ObserveGroupMemory      func(context.Context, process.GroupObservationRequest) (core.ByteLength, error)
+	ObserveGroupMemory      func(context.Context, process.GroupMemoryRequest) (core.ByteLength, error)
 	OwnGroup                func() (*process.OwnedGroup, error)
 	WaitGroupAbsent         func(context.Context, process.WaitGroupAbsentRequest) (process.Liveness, error)
 	Execution_GroupLiveness func(*process.Execution) (process.Liveness, error)
@@ -128,7 +125,7 @@ type processNativeMetadataDoorInventory struct {
 }
 
 func processNativeMetadataDoors() processNativeMetadataDoorInventory {
-	return processNativeMetadataDoorInventory{ObserveGroupLiveness: process.ObserveGroupLiveness, ObserveGroupCPU: process.ObserveGroupCPU, ObserveGroupMemory: process.ObserveGroupMemory, OwnGroup: process.OwnGroup, WaitGroupAbsent: process.WaitGroupAbsent, Execution_GroupLiveness: (*process.Execution).GroupLiveness, Alive: process.Alive, DiscardDeviceArgument: process.DiscardDeviceArgument, ObserveProcesses: process.ObserveProcesses, Self: process.Self, StandardStreams: process.StandardStreams}
+	return processNativeMetadataDoorInventory{ObserveGroupLiveness: process.ObserveGroupLiveness, ObserveGroupMemory: process.ObserveGroupMemory, OwnGroup: process.OwnGroup, WaitGroupAbsent: process.WaitGroupAbsent, Execution_GroupLiveness: (*process.Execution).GroupLiveness, Alive: process.Alive, DiscardDeviceArgument: process.DiscardDeviceArgument, ObserveProcesses: process.ObserveProcesses, Self: process.Self, StandardStreams: process.StandardStreams}
 }
 
 func TestProcessExternalIngressInventoryMatchesProduction(t *testing.T) {

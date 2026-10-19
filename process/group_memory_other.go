@@ -7,7 +7,7 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
-func observeGroupMemory(context.Context, GroupObservationRequest) (core.ByteLength, error) {
+func observeGroupMemory(context.Context, GroupMemoryRequest) (core.ByteLength, error) {
 	return core.ByteLength{}, core.ErrProcessUnsupported
 }
 

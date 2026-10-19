@@ -30,15 +30,15 @@ func validateObservedGroup(group ProcessIdentity) error {
 	return nil
 }
 
-// GroupObservationRequest borrows host facts for one streamed native ps sample.
+// GroupMemoryRequest borrows host facts for one streamed native RSS sample.
 // Group remains observation-only, including when reconstructed from a record.
-type GroupObservationRequest struct {
+type GroupMemoryRequest struct {
 	Group            ProcessIdentity
 	WorkingDirectory core.AbsolutePath
 	Environment      Environment
 }
 
-func (r GroupObservationRequest) Validate() error {
+func (r GroupMemoryRequest) Validate() error {
 	if err := errors.Join(validateObservedGroup(r.Group), r.WorkingDirectory.Validate(), r.Environment.Validate()); err != nil {
 		return errors.Join(core.ErrProcessContract, err)
 	}
@@ -48,7 +48,7 @@ func (r GroupObservationRequest) Validate() error {
 // ObserveGroupMemory reports summed resident bytes, not a memory reservation.
 // No matching rows means zero. Malformed or failed native observations expose
 // no partial sum. Native RSS counts shared pages in each process separately.
-func ObserveGroupMemory(ctx context.Context, request GroupObservationRequest) (core.ByteLength, error) {
+func ObserveGroupMemory(ctx context.Context, request GroupMemoryRequest) (core.ByteLength, error) {
 	if err := contextstate.Validate(ctx); err != nil {
 		return core.ByteLength{}, err
 	}
@@ -56,21 +56,6 @@ func ObserveGroupMemory(ctx context.Context, request GroupObservationRequest) (c
 		return core.ByteLength{}, errors.Join(core.ErrProcessContract, err)
 	}
 	return observeGroupMemory(ctx, request)
-}
-
-// ObserveGroupCPU reports the group's summed native ps %CPU as milli-CPUs, in
-// the same unit as a host busy-CPU sample. It is a native estimate, not an
-// interval rate: Linux divides each process's CPU time by its lifetime and
-// macOS reports a kernel decaying average. Exited members are absent. No
-// matching rows means zero; malformed or failed observations expose no sum.
-func ObserveGroupCPU(ctx context.Context, request GroupObservationRequest) (uint64, error) {
-	if err := contextstate.Validate(ctx); err != nil {
-		return 0, err
-	}
-	if err := request.Validate(); err != nil {
-		return 0, errors.Join(core.ErrProcessContract, err)
-	}
-	return observeGroupCPU(ctx, request)
 }
 
 const groupRSSBytesPerKiB = 1024
@@ -164,119 +149,6 @@ func (w *groupMemoryFold) finish() (core.ByteLength, error) {
 	return length, nil
 }
 
-// groupCPUMilliPerPercent converts ps whole percent of one CPU to milli-CPUs.
-// One displayed tenth of a percent is exactly one milli-CPU.
-const groupCPUMilliPerPercent = 10
-
-// groupCPUFold consumes numeric ps PGID/%CPU rows in fixed space. ps prints
-// %CPU as whole percent with at most one decimal digit (procps drops the
-// decimal at 1000% and above). Any other spelling refuses the observation.
-type groupCPUFold struct {
-	target ProcessIdentity
-	total  uint64
-	group  uint64
-	number uint64
-	column uint8
-	digits bool
-	point  bool
-	tenth  bool
-	err    error
-}
-
-func (w *groupCPUFold) Write(data []byte) (int, error) {
-	if w.err != nil {
-		return 0, w.err
-	}
-	for i, b := range data {
-		switch {
-		case b >= '0' && b <= '9':
-			w.digit(uint64(b - '0'))
-		case b == '.':
-			if w.column != 1 || !w.digits || w.point {
-				w.err = core.ErrProcessObservation
-			}
-			w.point = true
-		case b == ' ' || b == '\t' || b == '\r' || b == '\n':
-			w.endField()
-			if b == '\n' {
-				w.endRow()
-			}
-		default:
-			w.err = core.ErrProcessObservation
-		}
-		if w.err != nil {
-			return i, w.err
-		}
-	}
-	return len(data), nil
-}
-
-func (w *groupCPUFold) digit(value uint64) {
-	if w.column >= 2 || w.tenth || w.number > (math.MaxUint64-value)/10 {
-		w.err = core.ErrProcessObservation
-		return
-	}
-	w.number = w.number*10 + value
-	if w.point {
-		w.tenth = true
-	} else {
-		w.digits = true
-	}
-}
-
-func (w *groupCPUFold) endField() {
-	if w.err != nil || !w.digits && !w.point {
-		return
-	}
-	if w.point && !w.tenth {
-		w.err = core.ErrProcessObservation
-		return
-	}
-	switch w.column {
-	case 0:
-		if w.number > uint64(core.ProcessPOSIXIdentityMaximum) {
-			w.err = core.ErrProcessObservation
-		}
-		w.group = w.number
-	case 1:
-		milli := w.number
-		if !w.point {
-			if w.number > math.MaxUint64/groupCPUMilliPerPercent {
-				w.err = core.ErrProcessObservation
-				return
-			}
-			milli = w.number * groupCPUMilliPerPercent
-		}
-		if w.group == uint64(w.target) {
-			if w.total > math.MaxUint64-milli {
-				w.err = core.ErrProcessObservation
-				return
-			}
-			w.total += milli
-		}
-	default:
-		w.err = core.ErrProcessObservation
-	}
-	w.column++
-	w.number, w.digits, w.point, w.tenth = 0, false, false, false
-}
-
-func (w *groupCPUFold) endRow() {
-	if w.column != 0 && w.column != 2 {
-		w.err = core.ErrProcessObservation
-	}
-	w.column = 0
-}
-
-func (w *groupCPUFold) finish() (uint64, error) {
-	w.endField()
-	w.endRow()
-	if w.err != nil {
-		return 0, w.err
-	}
-	return w.total, nil
-}
-
 // OwnedGroup is a non-reconstructible capability held by a process that leads
 // its own group. It cannot address a stored identity or another process's group.
 type OwnedGroup struct {
@@ -318,4 +190,3 @@ func (g *OwnedGroup) Kill() error {
 }
 
 var _ io.Writer = (*groupMemoryFold)(nil)
-var _ io.Writer = (*groupCPUFold)(nil)

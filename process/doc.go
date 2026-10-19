@@ -20,9 +20,8 @@
 // caller.
 //
 // ObserveGroupLiveness performs an observation-only kernel probe for a recorded
-// group identity. ObserveGroupMemory and ObserveGroupCPU stream native POSIX
-// RSS or %CPU rows in fixed space and report their sum, including zero when
-// the group is absent. %CPU is the native ps estimate, not an interval rate.
+// group identity. ObserveGroupMemory streams native POSIX RSS rows in fixed
+// space and reports their sum, including zero when the group is absent.
 // Neither observation authorizes signaling. OwnGroup acquires a sealed handle
 // only when this process itself leads the native group; its Kill operation
 // stops that same group and cannot be reconstructed from a recorded identity.
