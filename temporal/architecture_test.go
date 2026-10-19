@@ -31,6 +31,7 @@ type temporalContractInventory struct {
 	Location             temporalCapabilityIntent[Location]
 	LocalClock           temporalIngressRequest[LocalTimeRequest]
 	NativePair           temporalIngressRequest[NativeTimePair]
+	NativeOffset         temporalIngressRequest[NativeTimeOffset]
 	Cancellation         temporalCapabilityIntent[CancellationRequest]
 	DetachedContext      temporalCapabilityIntent[DetachedContextRequest]
 	ContextResult        temporalCapabilityIntent[contextConstruction]
@@ -145,6 +146,8 @@ type temporalPrecisionSignature interface {
 
 var (
 	_ func(NativeTimePair) core.Comparison     = CompareNativeTimes
+	_ func(NativeTimePair) time.Duration       = DifferenceNativeTimes
+	_ func(NativeTimeOffset) time.Time         = ShiftNativeTime
 	_ temporalInstantSignature                 = Instant{}
 	_ interface{ UnmarshalJSON([]byte) error } = (*Instant)(nil)
 	_ temporalDurationSignature                = Duration{}
@@ -259,6 +262,7 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 		"type NativeTimeFormatRequest", "method NativeTimeFormatRequest.Validate", "func FormatNativeTime",
 		"type NativeTimePair",
 		"func CompareNativeTimes",
+		"func DifferenceNativeTimes", "type NativeTimeOffset", "func ShiftNativeTime",
 		"func AppendTime",
 		"method Duration.Truncate", "method Duration.Round", "method Duration.Text",
 		"func NewTimeLayout", "type TimeLayout", "type LocationName", "type ParseTimeRequest", "type FormatTimeRequest",

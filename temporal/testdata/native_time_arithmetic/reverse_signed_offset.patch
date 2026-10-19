@@ -1,0 +1,9 @@
+--- a/temporal/native_time.go
++++ b/temporal/native_time.go
+@@ -42,5 +42,5 @@
+ // ShiftNativeTime preserves Go's location, monotonic reading and native overflow
+ // behavior. It does not narrow the timestamp to Unix nanosecond encoding.
+ func ShiftNativeTime(request NativeTimeOffset) time.Time {
+-	return request.Time.Add(request.Offset)
++	return request.Time.Add(-request.Offset)
+ }

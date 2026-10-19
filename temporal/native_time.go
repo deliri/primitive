@@ -25,3 +25,22 @@ func CompareNativeTimes(request NativeTimePair) core.Comparison {
 	}
 	return core.ComparisonEqual
 }
+
+// DifferenceNativeTimes returns First minus Second, preserving Go's monotonic
+// readings, signed duration and saturation at the native duration limits.
+func DifferenceNativeTimes(request NativeTimePair) time.Duration {
+	return request.First.Sub(request.Second)
+}
+
+// NativeTimeOffset borrows a Go timestamp and a signed native duration. Zero
+// timestamps, negative offsets and the full Go calendar range remain valid.
+type NativeTimeOffset struct {
+	Time   time.Time
+	Offset time.Duration
+}
+
+// ShiftNativeTime preserves Go's location, monotonic reading and native overflow
+// behavior. It does not narrow the timestamp to Unix nanosecond encoding.
+func ShiftNativeTime(request NativeTimeOffset) time.Time {
+	return request.Time.Add(request.Offset)
+}

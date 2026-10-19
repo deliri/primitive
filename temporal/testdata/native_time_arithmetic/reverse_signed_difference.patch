@@ -1,0 +1,11 @@
+--- a/temporal/native_time.go
++++ b/temporal/native_time.go
+@@ -29,7 +29,7 @@
+ // DifferenceNativeTimes returns First minus Second, preserving Go's monotonic
+ // readings, signed duration and saturation at the native duration limits.
+ func DifferenceNativeTimes(request NativeTimePair) time.Duration {
+-	return request.First.Sub(request.Second)
++	return request.Second.Sub(request.First)
+ }
+ 
+ // NativeTimeOffset borrows a Go timestamp and a signed native duration. Zero
