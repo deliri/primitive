@@ -120,6 +120,7 @@ func filestoreIngressProofs() []filestoreIngressProof {
 		{door: reflect.ValueOf(filestore.TransferPipe), fuzz: FuzzPipeTransferPreservesNativeBytes},
 		{door: reflect.ValueOf(filestore.EnsureDirectory), fuzz: FuzzEnsureDirectoryNativeNamespaceCustody},
 		{door: reflect.ValueOf(filestore.CreateDirectory), fuzz: FuzzCreateDirectoryNativeModeAndExclusivity},
+		{door: reflect.ValueOf(filestore.WithCreatedDirectoryScope), fuzz: FuzzCreatedDirectoryScopeNativeOwnership},
 		{door: reflect.ValueOf(filestore.EnsureScratchDirectory), fuzz: FuzzScratchCreationModesSemanticClosure},
 		{door: reflect.ValueOf(filestore.OpenScratch), fuzz: FuzzScratchCreationModesSemanticClosure},
 		{door: reflect.ValueOf(filestore.ResetScratch), proof: TestScratchResetDiscardsBytesAndRestoresWriteCoordinate, reason: "Consumes an owned native scratch handle and proves exact zero extent plus restored write offset across transfer boundaries."},

@@ -1,0 +1,11 @@
+--- a/filestore/created_directory_scope.go
++++ b/filestore/created_directory_scope.go
+@@ -46,7 +46,7 @@
+ 	}
+ 	retained := false
+ 	defer func() {
+-		if !retained || resultErr != nil {
++		if !retained && resultErr == nil {
+ 			cleanup := context.WithoutCancel(ctx)
+ 			removeErr := removeScratchScope(cleanup, parent, path.String(), owned)
+ 			if removeErr == nil {

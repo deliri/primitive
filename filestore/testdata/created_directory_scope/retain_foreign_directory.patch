@@ -1,0 +1,11 @@
+--- a/filestore/created_directory_scope.go
++++ b/filestore/created_directory_scope.go
+@@ -115,7 +115,7 @@
+ 	if err != nil {
+ 		return sourceError(err)
+ 	}
+-	if !owned.IsDir() || !os.SameFile(owned, current) || !os.SameFile(owned, held) {
++	if false && (!owned.IsDir() || !os.SameFile(owned, current) || !os.SameFile(owned, held)) {
+ 		return core.ErrFilestoreConflict
+ 	}
+ 	return nil

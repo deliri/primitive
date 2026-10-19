@@ -1,0 +1,11 @@
+--- a/filestore/created_directory_scope.go
++++ b/filestore/created_directory_scope.go
+@@ -62,7 +62,7 @@
+ 		return activationError(err)
+ 	}
+ 	defer func() {
+-		resultErr = scopeCancellationError(ctx, errors.Join(resultErr, root.Close()))
++		resultErr = scopeCancellationError(ctx, resultErr)
+ 	}()
+ 	resultErr = useCreatedDirectory(ctx, request, root, owned)
+ 	retained = resultErr == nil
