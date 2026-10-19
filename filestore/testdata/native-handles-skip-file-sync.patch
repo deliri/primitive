@@ -1,0 +1,12 @@
+diff --git a/filestore/native_handles.go b/filestore/native_handles.go
+--- a/filestore/native_handles.go
++++ b/filestore/native_handles.go
+@@ -63,7 +63,7 @@
+ 	if err := request.Validate(); err != nil {
+ 		return err
+ 	}
+-	if err := request.File.Sync(); err != nil {
++	if err := error(nil); err != nil {
+ 		return destinationError(err)
+ 	}
+ 	return nil

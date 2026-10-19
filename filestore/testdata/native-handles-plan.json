@@ -1,0 +1,13 @@
+{
+  "requirements": {
+    "environment": {"go_experiments": ["jsonv2"]},
+    "job": {"cpu": 2, "memory_bytes": 2147483648, "scratch_bytes": 4294967296}
+  },
+  "steps": [
+    {"name":"native-handle-contracts", "kind":"test", "arguments":["./filestore", "-race", "-count=1", "-run=^(TestNative(File|Root)HandleLayerTriad|TestFilestoreDataFlowStructInventoryRatchet|TestFilestorePublicIngressHasCompilerBoundSemanticProof)$"]},
+    {"name":"file-close-is-required", "kind":"mutate", "arguments":["./filestore"], "mutation":{"patch":"filestore/testdata/native-handles-skip-file-close.patch", "failing_test":"TestNativeFileHandleLayerTriad"}},
+    {"name":"root-close-is-required", "kind":"mutate", "arguments":["./filestore"], "mutation":{"patch":"filestore/testdata/native-handles-skip-root-close.patch", "failing_test":"TestNativeRootHandleLayerTriad"}},
+    {"name":"file-sync-is-required", "kind":"mutate", "arguments":["./filestore"], "mutation":{"patch":"filestore/testdata/native-handles-skip-file-sync.patch", "failing_test":"TestNativeFileHandleLayerTriad"}},
+    {"name":"native-file-custody-fuzz", "kind":"fuzz", "arguments":["./filestore"], "fuzz_target":"FuzzNativeFileHandleCustody", "fuzz_seconds":1}
+  ]
+}

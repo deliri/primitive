@@ -87,6 +87,8 @@ type filestoreContractInventory struct {
 	ScratchRestoreRequest         validatedRequest[ScratchRestoreRequest]
 	RewindRequest                 validatedRequest[RewindRequest]
 	ScratchScopeRequest           validatedRequest[ScratchScopeRequest]
+	FileHandleRequest             validatedRequest[FileHandleRequest]
+	RootHandleRequest             validatedRequest[RootHandleRequest]
 	RootScopeRequest              validatedRequest[RootScopeRequest]
 	RootScopeResult               streamedObservation[RootScopeResult]
 	CreatedDirectoryDestination   capabilityWrapper[CreatedDirectoryDestination]
