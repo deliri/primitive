@@ -1,0 +1,35 @@
+{
+  "steps": [
+    {
+      "name": "retry-inventory-only",
+      "kind": "test",
+      "arguments": ["./filestore", "-run=^TestFilestoreDataFlowStructInventoryRatchet$", "-count=1"]
+    },
+    {
+      "name": "previously-unexecuted-ingress-bindings",
+      "kind": "test",
+      "arguments": ["./filestore", "-run=^TestFilestorePublicIngressHasCompilerBoundSemanticProof$/.*(SyncAppend|AppendSyncObservation).*", "-count=1"]
+    },
+    {
+      "name": "previously-unexecuted-native-sync-mutation",
+      "kind": "mutate",
+      "arguments": ["./filestore"],
+      "mutation": {
+        "patch": "filestore/testdata/append_sync/skip_native_sync.patch",
+        "failing_test": "TestAppendSynchronizationReceiptRequiresNativeSuccess/body_sync_refusal"
+      }
+    },
+    {
+      "name": "previously-unexecuted-native-sync-fuzz",
+      "kind": "fuzz",
+      "arguments": ["./filestore"],
+      "fuzz_target": "FuzzAppendSynchronizationReceiptsMatchNativeBytes",
+      "fuzz_seconds": 3
+    },
+    {
+      "name": "affected-native-capability-vet",
+      "kind": "vet",
+      "arguments": ["./filestore"]
+    }
+  ]
+}

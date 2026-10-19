@@ -40,6 +40,8 @@ type architectureScan struct {
 // role. The generic arguments make every inventory entry compiler-visible.
 type filestoreContractInventory struct {
 	AppendDestination                 capabilityWrapper[AppendDestination]
+	AppendObservation                 streamedObservation[AppendObservation]
+	AppendPathRotationRequest         validatedRequest[AppendPathRotationRequest]
 	AppendSyncRequest                 validatedRequest[AppendSyncRequest]
 	AppendSyncObservation             streamedObservation[AppendSyncObservation]
 	RecordRangeSortRequest            validatedRequest[RecordRangeSortRequest]
@@ -55,6 +57,8 @@ type filestoreContractInventory struct {
 	CopyPartitionRequest          validatedRequest[CopyPartitionRequest]
 	ContentPartitionObservation   streamedObservation[ContentPartitionObservation]
 	CopyContentRequest            validatedRequest[CopyContentRequest]
+	CompareContentRequest         validatedRequest[CompareContentRequest]
+	ContentComparison             streamedObservation[ContentComparison]
 	CopyPrefixRequest             validatedRequest[CopyPrefixRequest]
 	ChunkWriteRequest             validatedRequest[ChunkWriteRequest]
 	ReadSnapshotRequest           validatedRequest[ReadSnapshotRequest]
@@ -128,20 +132,21 @@ type filestoreContractInventory struct {
 	HeldDirectory                 capabilityWrapper[HeldDirectory]
 	// One observation of a path, made before any effect and carrying no
 	// capability over it.
-	Inspection             streamedObservation[Inspection]
-	StagedFile             ownershipReceipt[StagedFile]
-	StageDestination       capabilityWrapper[StageDestination]
-	directoryEntryEnsure   internalFlow[directoryEntryEnsure]
-	streamCopyRequest      internalFlow[streamCopyRequest]
-	streamReader           internalFlow[streamReader]
-	streamWriter           internalFlow[streamWriter]
-	stageSynchronization   internalFlow[stageSynchronization]
-	createdFileAbandonment internalFlow[createdFileAbandonment]
-	createdPathCleanup     internalFlow[createdPathCleanup]
-	readDirectoryInput     internalFlow[readDirectoryInput]
-	visitWalkEntryInput    internalFlow[visitWalkEntryInput]
-	walkDirectoryInput     internalFlow[walkDirectoryInput]
-	rootedOpenRequest      internalFlow[rootedOpenRequest]
+	Inspection              streamedObservation[Inspection]
+	StagedFile              ownershipReceipt[StagedFile]
+	StageDestination        capabilityWrapper[StageDestination]
+	directoryEntryEnsure    internalFlow[directoryEntryEnsure]
+	streamCopyRequest       internalFlow[streamCopyRequest]
+	streamReader            internalFlow[streamReader]
+	streamWriter            internalFlow[streamWriter]
+	stageSynchronization    internalFlow[stageSynchronization]
+	createdFileAbandonment  internalFlow[createdFileAbandonment]
+	createdPathCleanup      internalFlow[createdPathCleanup]
+	contentComparisonWriter internalFlow[contentComparisonWriter]
+	readDirectoryInput      internalFlow[readDirectoryInput]
+	visitWalkEntryInput     internalFlow[visitWalkEntryInput]
+	walkDirectoryInput      internalFlow[walkDirectoryInput]
+	rootedOpenRequest       internalFlow[rootedOpenRequest]
 }
 
 var (
