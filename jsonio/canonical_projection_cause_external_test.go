@@ -7,6 +7,7 @@ import (
 	"io"
 	"testing"
 
+	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/jsonio"
 )
 
@@ -26,7 +27,7 @@ func TestCanonicalProjectionPreservesCancellationCauseAfterNativeAcceptance(t *t
 	ctx, cancel := context.WithCancelCause(t.Context())
 	defer cancel(nil)
 	document := canonicalProjection{A: "accepted bytes", Z: 9007199254740993}
-	want, err := jsonio.AppendCanonicalProjection(nil, document, jsonio.OwnedCodecPolicy{Root: jsonio.RootOwnedMethods}, jsonio.CanonicalPolicy{})
+	want, err := jsonio.AppendCanonicalProjection(nil, document, jsonio.OwnedCodecPolicy{Root: jsonio.RootOwnedMethods}, jsonio.CanonicalPolicy{NestingDepthMaximum: core.JSONNestingDepthMaximum})
 	if err != nil {
 		t.Fatal(err)
 	}
