@@ -1,0 +1,11 @@
+{
+  "steps": [
+    {
+      "name": "native-physical-tail-affected-package-vet",
+      "kind": "vet",
+      "arguments": [
+        "./lineio"
+      ]
+    }
+  ]
+}
