@@ -1,0 +1,13 @@
+--- a/filestore/append_destination.go
++++ b/filestore/append_destination.go
+@@ -162,8 +162,8 @@
+ 		return core.ErrFilestoreContract
+ 	}
+ 	if d.file == nil {
+-		d.rotationError = nil
+-		d.retiredSource = nil
++		_ = d.rotationError
++		_ = d.retiredSource
+ 		return nil
+ 	}
+ 	err := d.settle()

@@ -1,0 +1,11 @@
+--- a/filestore/append_destination.go
++++ b/filestore/append_destination.go
+@@ -205,7 +205,7 @@
+ 	// The actual native identity survives a failed cutover without retaining
+ 	// the outgoing descriptor or inventing semantic chain state.
+ 	original, inspectErr := d.file.Stat()
+-	d.retiredSource = original
++	_ = original
+ 	if err := errors.Join(inspectErr, d.settle()); err != nil {
+ 		return activationError(err)
+ 	}

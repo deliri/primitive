@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"io/fs"
 	"os"
 
 	"github.com/deliri/primitive/v2026/contextstate"
@@ -22,6 +23,7 @@ type AppendDestination struct {
 	writer        *bufio.Writer
 	accepted      core.ByteLength
 	rotationError error
+	retiredSource fs.FileInfo
 }
 
 // OpenAppendDestination acquires append custody using the existing rooted
@@ -161,10 +163,12 @@ func (d *AppendDestination) Close() error {
 	}
 	if d.file == nil {
 		d.rotationError = nil
+		d.retiredSource = nil
 		return nil
 	}
 	err := d.settle()
 	d.rotationError = nil
+	d.retiredSource = nil
 	return err
 }
 
@@ -198,7 +202,11 @@ func (d *AppendDestination) Rotate(ctx context.Context, incoming AppendRequest) 
 	if err := (RotationRequest{Outgoing: d.file, Incoming: incoming}).Validate(); err != nil {
 		return err
 	}
-	if err := d.settle(); err != nil {
+	// The actual native identity survives a failed cutover without retaining
+	// the outgoing descriptor or inventing semantic chain state.
+	original, inspectErr := d.file.Stat()
+	d.retiredSource = original
+	if err := errors.Join(inspectErr, d.settle()); err != nil {
 		return activationError(err)
 	}
 	file, err := createAppend(incoming)
@@ -206,6 +214,7 @@ func (d *AppendDestination) Rotate(ctx context.Context, incoming AppendRequest) 
 		return err
 	}
 	d.file, d.writer = file, bufio.NewWriter(file)
+	d.retiredSource = nil
 	return nil
 }
 

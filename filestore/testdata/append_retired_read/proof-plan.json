@@ -1,0 +1,63 @@
+{
+  "steps": [
+    {
+      "name": "retired-original-identity-and-adjacent-native-lifetimes",
+      "kind": "test",
+      "arguments": [
+        "./filestore",
+        "-run=^(TestFailedRotationReadsOnlyItsOriginalRetiredNativeFile|FuzzRetiredAppendSourceAgreesWithOriginalNativeIdentity|TestAppendObservationOwnsRotationFailureAndExplicitClosure|TestAppendDestinationConservesBytesAcrossFlushSyncRotationAndClose|TestAppendReadScopeBindsHeldIdentityBeforeFlushing|TestAppendReadScopeRefusesNamespaceReplacementAndPreservesCauses|TestAppendReadScopeRejectsNilCopiedAndSettledOwnerBeforeBorrow)$",
+        "-race",
+        "-count=1"
+      ]
+    },
+    {
+      "name": "forget_retired_native_identity",
+      "kind": "mutate",
+      "arguments": [
+        "./filestore"
+      ],
+      "mutation": {
+        "patch": "filestore/testdata/append_retired_read/forget_retired_native_identity.patch",
+        "failing_test": "TestFailedRotationReadsOnlyItsOriginalRetiredNativeFile"
+      }
+    },
+    {
+      "name": "admit_foreign_retired_source",
+      "kind": "mutate",
+      "arguments": [
+        "./filestore"
+      ],
+      "mutation": {
+        "patch": "filestore/testdata/append_retired_read/admit_foreign_retired_source.patch",
+        "failing_test": "TestFailedRotationReadsOnlyItsOriginalRetiredNativeFile"
+      }
+    },
+    {
+      "name": "keep_retired_authority_after_close",
+      "kind": "mutate",
+      "arguments": [
+        "./filestore"
+      ],
+      "mutation": {
+        "patch": "filestore/testdata/append_retired_read/keep_retired_authority_after_close.patch",
+        "failing_test": "TestFailedRotationReadsOnlyItsOriginalRetiredNativeFile"
+      }
+    },
+    {
+      "name": "retired-native-identity-and-byte-oracle",
+      "kind": "fuzz",
+      "arguments": [
+        "./filestore"
+      ],
+      "fuzz_target": "FuzzRetiredAppendSourceAgreesWithOriginalNativeIdentity",
+      "fuzz_seconds": 3
+    },
+    {
+      "name": "final-affected-filestore-vet",
+      "kind": "vet",
+      "arguments": [
+        "./filestore"
+      ]
+    }
+  ]
+}
