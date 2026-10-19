@@ -83,11 +83,14 @@ func WriteCanonicalProjection[Document any](ctx context.Context, destination io.
 		if err := contextstate.Validate(ctx); err != nil {
 			return &nativeJSONError{cause: err}
 		}
-		if nativeOwnedMarshaler(value) {
-			return errors.ErrUnsupported
-		}
 		observed := reflect.ValueOf(value)
-		for observed.IsValid() && observed.Kind() == reflect.Pointer {
+		for observed.IsValid() {
+			if observed.CanInterface() && nativeOwnedMarshaler(observed.Interface()) {
+				return errors.ErrUnsupported
+			}
+			if observed.Kind() != reflect.Pointer {
+				break
+			}
 			if observed.IsNil() {
 				return errors.ErrUnsupported
 			}

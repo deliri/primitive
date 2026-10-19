@@ -19,6 +19,41 @@ type CanonicalDeclaredCounts struct {
 	A int64  `json:"a"`
 }
 
+type canonicalPointerPolicy struct {
+	Zero int `json:"zero"`
+	Kept int `json:"kept"`
+}
+
+func (value canonicalPointerPolicy) MarshalJSON() ([]byte, error) {
+	return jsonv2.Marshal(struct {
+		Kept int `json:"kept"`
+	}{Kept: value.Kept})
+}
+
+func TestCanonicalDeclaredProjectionPreservesPointerOwnedWireMethods(t *testing.T) {
+	t.Parallel()
+	policy := canonicalPointerPolicy{Zero: 97, Kept: 9001}
+	for _, pointer := range []*canonicalPointerPolicy{nil, &policy} {
+		document := struct {
+			Pointer *canonicalPointerPolicy `json:"pointer,omitempty"`
+			Value   canonicalPointerPolicy  `json:"value"`
+		}{Pointer: pointer, Value: policy}
+		want, err := jsonv2.Marshal(document)
+		if err != nil {
+			t.Fatal(err)
+		}
+		canonical := jsontext.Value(want)
+		if err := canonical.Canonicalize(jsontext.CanonicalizeRawInts(false)); err != nil {
+			t.Fatal(err)
+		}
+		var output bytes.Buffer
+		err = jsonio.WriteCanonicalProjection(t.Context(), &output, document, jsonio.OwnedCodecPolicy{Root: jsonio.RootOwnedMethods, PointerNulls: jsonio.PointerNullPermitted})
+		if err != nil || !bytes.Equal(output.Bytes(), canonical) {
+			t.Fatalf("pointer-owned stream = (%q, %v), want native wire %q", output.Bytes(), err, canonical)
+		}
+	}
+}
+
 type canonicalDeclaredDocument struct {
 	Tail string                `json:"tail,omitempty"`
 	Rows []canonicalProjection `json:"rows"`
