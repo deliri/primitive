@@ -1,0 +1,5 @@
+{
+  "Replace": {
+    "filestore/content_compare.go": "filestore/testdata/content_compare/ignore_native_bytes.go.txt"
+  }
+}
