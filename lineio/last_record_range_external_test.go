@@ -149,7 +149,7 @@ func TestLastRecordRangeAdmitsOnlyPhysicalObservationShapes(t *testing.T) {
 		{Record: lineio.RecordRange{Bytes: one}},
 		{Present: true},
 		{Present: true, Record: lineio.RecordRange{Bytes: one, Framing: lineio.RecordFramingOpaque}},
-		{Present: true, Record: lineio.RecordRange{Offset: -1, Bytes: one, Framing: lineio.RecordFramingLF}},
+		{Present: true, Record: lineio.RecordRange{Offset: ^lineio.SourceByteOffset(0), Bytes: one, Framing: lineio.RecordFramingLF}},
 	} {
 		if !errors.Is(value.Validate(), core.ErrLineIOContract) {
 			t.Fatalf("invalid physical observation admitted: %+v", value)
