@@ -7,6 +7,7 @@ import (
 	jsonv2 "encoding/json/v2"
 	"errors"
 	"io"
+	"reflect"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -129,10 +130,15 @@ func TestCanonicalDeclaredProjectionRefusesUnsupportedDeclarationsAndPreservesCa
 	if err := jsonio.WriteCanonicalProjection(t.Context(), &output, struct{ Value int }{}, policy); !errors.Is(err, core.ErrJSONContract) {
 		t.Fatalf("untagged declaration error = %v", err)
 	}
-	if err := jsonio.WriteCanonicalProjection(t.Context(), &output, struct {
-		One int `json:"same"`
-		Two int `json:"same"`
-	}{}, policy); !errors.Is(err, core.ErrJSONContract) {
+	conflicting := reflect.New(reflect.StructOf([]reflect.StructField{
+		{Name: "One", Type: reflect.TypeFor[int](), Tag: reflect.StructTag(`json:"same"`)},
+		{Name: "Two", Type: reflect.TypeFor[int](), Tag: reflect.StructTag(`json:"same"`)},
+	})).Elem().Interface()
+	conflictCodec, err := jsonio.ProjectCanonical(func(canonicalProjectionOwner) (any, error) { return conflicting, nil })
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := jsonio.WriteCanonicalProjection(t.Context(), &output, canonicalProjectionOwner{}, policy, conflictCodec); !errors.Is(err, core.ErrJSONContract) {
 		t.Fatalf("conflicting names error = %v", err)
 	}
 	var nilDocument *canonicalProjection
@@ -151,7 +157,7 @@ func TestCanonicalDeclaredProjectionRefusesUnsupportedDeclarationsAndPreservesCa
 	if err := reader.Close(); err != nil {
 		t.Fatal(err)
 	}
-	err := jsonio.WriteCanonicalProjection(t.Context(), writer, canonicalProjection{}, policy)
+	err = jsonio.WriteCanonicalProjection(t.Context(), writer, canonicalProjection{}, policy)
 	if closeErr := writer.Close(); closeErr != nil {
 		t.Fatal(closeErr)
 	}
