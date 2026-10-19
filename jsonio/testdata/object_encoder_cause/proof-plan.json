@@ -1,0 +1,73 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "encoder-native-cancellation-boundaries",
+      "kind": "test",
+      "arguments": [
+        "./jsonio",
+        "-count=1",
+        "-run=^(TestJSONObjectEncoderCancellationKeepsNativeCause|TestJSONObjectEncoderPreservesWriteRefusals|TestJSONObjectStreamClosedShapeAndRefusal|TestJSONObjectRootCannotBypassDeclaredShape|TestJSONObjectStreamCancellationAndSourceIdentity)$"
+      ]
+    },
+    {
+      "name": "preserve-before_append",
+      "kind": "mutate",
+      "arguments": [
+        "./jsonio"
+      ],
+      "mutation": {
+        "patch": "jsonio/testdata/object_encoder_cause/discard_cause.patch",
+        "failing_test": "TestJSONObjectEncoderCancellationKeepsNativeCause/before_append"
+      }
+    },
+    {
+      "name": "preserve-during_acknowledged_append",
+      "kind": "mutate",
+      "arguments": [
+        "./jsonio"
+      ],
+      "mutation": {
+        "patch": "jsonio/testdata/object_encoder_cause/discard_cause.patch",
+        "failing_test": "TestJSONObjectEncoderCancellationKeepsNativeCause/during_acknowledged_append"
+      }
+    },
+    {
+      "name": "preserve-during_refused_append",
+      "kind": "mutate",
+      "arguments": [
+        "./jsonio"
+      ],
+      "mutation": {
+        "patch": "jsonio/testdata/object_encoder_cause/discard_cause.patch",
+        "failing_test": "TestJSONObjectEncoderCancellationKeepsNativeCause/during_refused_append"
+      }
+    },
+    {
+      "name": "preserve-custom_deadline_cause",
+      "kind": "mutate",
+      "arguments": [
+        "./jsonio"
+      ],
+      "mutation": {
+        "patch": "jsonio/testdata/object_encoder_cause/discard_cause.patch",
+        "failing_test": "TestJSONObjectEncoderCancellationKeepsNativeCause/custom_deadline_cause"
+      }
+    },
+    {
+      "name": "native-object-semantic-closure",
+      "kind": "fuzz",
+      "arguments": [
+        "./jsonio"
+      ],
+      "fuzz_target": "FuzzJSONObjectEncoderExactMeaning",
+      "fuzz_seconds": 3
+    }
+  ]
+}

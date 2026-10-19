@@ -144,7 +144,10 @@ func (e *ObjectEncoder[Document]) Validate() error {
 
 // Encode emits Go's deterministic object shape and one top-level LF. Context
 // is checked before execution and before returning a completion observation.
-func (e *ObjectEncoder[Document]) Encode(ctx context.Context, document Document) error {
+func (e *ObjectEncoder[Document]) Encode(ctx context.Context, document Document) (resultErr error) {
+	defer func() {
+		resultErr = errors.Join(resultErr, projectionContextError(ctx))
+	}()
 	if err := errors.Join(contextstate.Validate(ctx), e.Validate()); err != nil {
 		return err
 	}
