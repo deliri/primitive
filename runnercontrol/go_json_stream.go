@@ -92,6 +92,11 @@ func (s *goJSONStream) consume(value byte, emit func(goJSONProjection) error) er
 		}
 	}
 	if value == '\n' {
+		// Empty physical records are neutral text, never event evidence. A LF
+		// inside an unfinished object still refuses the enclosing record.
+		if s.state == goJSONStart {
+			return nil
+		}
 		if s.state != goJSONEnd {
 			return goJSONFailure()
 		}

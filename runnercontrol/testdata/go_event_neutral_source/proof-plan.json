@@ -1,0 +1,40 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "native-neutral-physical-source-contract",
+      "kind": "test",
+      "arguments": [
+        "./runnercontrol",
+        "-count=1",
+        "-run=^(TestGoEventStreamNeutralPhysicalRecordsAreNotEvents|TestGoEventStreamNeutralSourceHasNoExtentQuota|TestGoEventStreamNeutralTextCannotCompletePartialFrame)$"
+      ]
+    },
+    {
+      "name": "neutral-source-mutation",
+      "kind": "mutate",
+      "arguments": [
+        "./runnercontrol"
+      ],
+      "mutation": {
+        "patch": "runnercontrol/testdata/go_event_neutral_source/refuse_neutral_records.patch",
+        "failing_test": "TestGoEventStreamNeutralPhysicalRecordsAreNotEvents/blank_LF"
+      }
+    },
+    {
+      "name": "native-neutral-frame-semantic-closure",
+      "kind": "fuzz",
+      "arguments": [
+        "./runnercontrol"
+      ],
+      "fuzz_target": "FuzzGoEventStreamSemanticClosure",
+      "fuzz_seconds": 3
+    }
+  ]
+}

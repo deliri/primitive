@@ -221,6 +221,19 @@ func FuzzGoEventStreamSemanticClosure(f *testing.F) {
 				if err := frame.Validate(); err != nil {
 					t.Fatalf("emitted frame = %+v, want valid: %v", frame, err)
 				}
+				for offset < len(data) {
+					end := len(data)
+					if index := bytes.IndexByte(data[offset:], '\n'); index >= 0 {
+						end = offset + index
+					}
+					if len(bytes.TrimSpace(data[offset:end])) != 0 {
+						break
+					}
+					offset = end
+					if offset < len(data) {
+						offset++
+					}
+				}
 				end := len(data)
 				if index := bytes.IndexByte(data[offset:], '\n'); index >= 0 {
 					end = offset + index

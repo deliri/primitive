@@ -1,0 +1,14 @@
+--- a/runnercontrol/go_json_stream.go
++++ b/runnercontrol/go_json_stream.go
+@@ -92,11 +92,6 @@
+ 		}
+ 	}
+ 	if value == '\n' {
+-		// Empty physical records are neutral text, never event evidence. A LF
+-		// inside an unfinished object still refuses the enclosing record.
+-		if s.state == goJSONStart {
+-			return nil
+-		}
+ 		if s.state != goJSONEnd {
+ 			return goJSONFailure()
+ 		}
