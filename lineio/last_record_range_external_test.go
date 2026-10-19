@@ -151,8 +151,12 @@ func TestLastRecordRangeAdmitsOnlyPhysicalObservationShapes(t *testing.T) {
 		{Present: true, Record: lineio.RecordRange{Bytes: one, Framing: lineio.RecordFramingOpaque}},
 		{Present: true, Record: lineio.RecordRange{Offset: ^lineio.SourceByteOffset(0), Bytes: one, Framing: lineio.RecordFramingLF}},
 	} {
-		if !errors.Is(value.Validate(), core.ErrLineIOContract) {
-			t.Fatalf("invalid physical observation admitted: %+v", value)
+		want := core.ErrLineIOContract
+		if value.Record.Offset == ^lineio.SourceByteOffset(0) {
+			want = core.ErrNumericOverflow
+		}
+		if !errors.Is(value.Validate(), want) {
+			t.Fatalf("invalid physical observation admitted or native identity lost: %+v", value)
 		}
 	}
 	file := lastRangeFile(t, []byte("x\n"))
