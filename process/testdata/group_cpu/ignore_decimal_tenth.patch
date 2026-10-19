@@ -1,0 +1,13 @@
+diff --git a/process/group_observation.go b/process/group_observation.go
+index 69526c2b..f86feb0b 100644
+--- a/process/group_observation.go
++++ b/process/group_observation.go
+@@ -240,7 +240,7 @@ func (w *groupCPUFold) endField() {
+ 		w.group = w.number
+ 	case 1:
+ 		milli := w.number
+-		if !w.point {
++		if true {
+ 			if w.number > math.MaxUint64/groupCPUMilliPerPercent {
+ 				w.err = core.ErrProcessObservation
+ 				return
