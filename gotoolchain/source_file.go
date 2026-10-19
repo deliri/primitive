@@ -37,6 +37,9 @@ var _ protocolFact = FileParseRequest{}
 // preserve native causes and never return provisional syntax beside an error.
 func ParseFile(ctx context.Context, request FileParseRequest) (*ast.File, error) {
 	if err := errors.Join(request.Validate(), contextstate.Validate(ctx)); err != nil {
+		if ctx != nil {
+			err = errors.Join(err, context.Cause(ctx))
+		}
 		return nil, errors.Join(core.ErrGoToolchainContract, err)
 	}
 	source, err := openAnalysisInput(ctx, request.Path.String())
@@ -44,7 +47,7 @@ func ParseFile(ctx context.Context, request FileParseRequest) (*ast.File, error)
 		return nil, errors.Join(core.ErrGoToolchainExecution, err)
 	}
 	file, parseErr := parser.ParseFile(request.FileSet, request.Path.String(), source, parser.ParseComments)
-	err = errors.Join(parseErr, source.Close(), contextstate.Validate(ctx))
+	err = errors.Join(parseErr, source.Close(), contextstate.Validate(ctx), context.Cause(ctx))
 	if err != nil {
 		return nil, errors.Join(core.ErrGoToolchainOutput, err)
 	}

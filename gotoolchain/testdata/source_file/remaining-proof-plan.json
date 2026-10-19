@@ -1,0 +1,63 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "retry-only-custody-and-cancellation-refusal",
+      "kind": "test",
+      "arguments": [
+        "./gotoolchain",
+        "-race",
+        "-count=1",
+        "-run=^TestSourceFileParsingRefusesUnownedAndCancelledRequests$"
+      ]
+    },
+    {
+      "name": "drop_native_comments",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/source_file/drop_native_comments.patch",
+        "failing_test": "TestSourceFileParsingAgreesWithNativeGo/comments_retain_source_ownership"
+      }
+    },
+    {
+      "name": "discard_native_object_resolution",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/source_file/discard_native_object_resolution.patch",
+        "failing_test": "TestSourceFileParsingPreservesNativeScopeAndWindowCrossings/32768"
+      }
+    },
+    {
+      "name": "discard_native_parse_refusal",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/source_file/discard_native_parse_refusal.patch",
+        "failing_test": "TestSourceFileParsingAgreesWithNativeGo/truncated_declaration"
+      }
+    },
+    {
+      "name": "native-source-file-semantic-fuzz",
+      "kind": "fuzz",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "fuzz_target": "FuzzSourceFileParsingPreservesNativeGrammarAndPositions",
+      "fuzz_seconds": 3
+    }
+  ]
+}
