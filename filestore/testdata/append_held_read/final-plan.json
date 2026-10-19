@@ -1,0 +1,31 @@
+{
+  "steps": [
+    {
+      "name": "native-held-read-allocation-window",
+      "kind": "test",
+      "arguments": [
+        "./filestore",
+        "-run=^TestHeldAppendReadWorkingMemoryDoesNotFollowFileExtent$",
+        "-count=1"
+      ]
+    },
+    {
+      "name": "native-held-read-retained-extent-mutant",
+      "kind": "mutate",
+      "arguments": [
+        "./filestore"
+      ],
+      "mutation": {
+        "patch": "filestore/testdata/append_held_read/retain_entire_file.patch",
+        "failing_test": "TestHeldAppendReadWorkingMemoryDoesNotFollowFileExtent"
+      }
+    },
+    {
+      "name": "final-affected-filestore-vet",
+      "kind": "vet",
+      "arguments": [
+        "./filestore"
+      ]
+    }
+  ]
+}
