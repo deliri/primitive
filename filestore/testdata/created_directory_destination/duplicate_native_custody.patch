@@ -1,0 +1,12 @@
+diff --git a/filestore/created_directory_destination.go b/filestore/created_directory_destination.go
+--- a/filestore/created_directory_destination.go
++++ b/filestore/created_directory_destination.go
+@@ -61,7 +61,7 @@
+ }
+ 
+ func (d *CreatedDirectoryDestination) Validate() error {
+-	if d == nil || d.self != d || d.root == nil || d.created == nil {
++	if d == nil || d.root == nil || d.created == nil {
+ 		return core.ErrFilestoreContract
+ 	}
+ 	return d.request.Validate()

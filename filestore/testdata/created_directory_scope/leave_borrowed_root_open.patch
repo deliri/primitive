@@ -1,11 +1,12 @@
---- a/filestore/created_directory_scope.go
-+++ b/filestore/created_directory_scope.go
-@@ -62,7 +62,7 @@
- 		return activationError(err)
+diff --git a/filestore/created_directory_destination.go b/filestore/created_directory_destination.go
+--- a/filestore/created_directory_destination.go
++++ b/filestore/created_directory_destination.go
+@@ -96,7 +96,7 @@
+ 	if err := prepareCreatedDirectoryRetention(ctx, destination); err != nil {
+ 		return destination.fail(err)
  	}
- 	defer func() {
--		resultErr = scopeCancellationError(ctx, errors.Join(resultErr, root.Close()))
-+		resultErr = scopeCancellationError(ctx, resultErr)
- 	}()
- 	resultErr = useCreatedDirectory(ctx, request, root, owned)
- 	retained = resultErr == nil
+-	closeErr := scopeCancellationError(ctx, destination.root.Close())
++	closeErr := scopeCancellationError(ctx, nil)
+ 	request, created := destination.request, destination.created
+ 	destination.release()
+ 	if closeErr != nil {

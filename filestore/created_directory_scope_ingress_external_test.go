@@ -101,6 +101,12 @@ func TestCreatedDirectoryScopeRefusesBeforeBorrowing(t *testing.T) {
 			if !errors.Is(gotErr, tc.want) || tc.wantNative != nil && !errors.Is(gotErr, tc.wantNative) || calls != 0 {
 				t.Fatalf("scope=%v, visits=%d, want %v/native %v and no borrowed root", gotErr, calls, tc.want, tc.wantNative)
 			}
+			if !tc.missingUse {
+				destination, err := filestore.OpenCreatedDirectoryDestination(ctx, request.Directory)
+				if destination != nil || !errors.Is(err, tc.want) || tc.wantNative != nil && !errors.Is(err, tc.wantNative) {
+					t.Fatalf("direct native acquisition=%v/%v, want no custody and %v/native %v", destination, err, tc.want, tc.wantNative)
+				}
+			}
 			after, afterErr := os.Lstat(path)
 			if beforeErr == nil {
 				if afterErr != nil || !os.SameFile(before, after) || before.Mode() != after.Mode() {

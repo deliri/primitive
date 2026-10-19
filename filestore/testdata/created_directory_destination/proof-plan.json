@@ -1,0 +1,76 @@
+{
+  "steps": [
+    {
+      "name": "native-created-directory-scope-and-ingress",
+      "kind": "test",
+      "arguments": [
+        "./filestore",
+        "-run=^(TestCreatedDirectoryDestinationNativeCustodyCannotBeCopied|TestCreatedDirectoryDestinationCancelledRetentionRemovesNativeTree|FuzzCreatedDirectoryDestinationNativeBytesAndSettlement|TestCreatedDirectoryScopeNativeLifetimeLayerTriad|TestCreatedDirectoryScopePanicClosesAndRemovesNativeTree|TestCreatedDirectoryScopeRefusesForeignNamespaceOnRetentionAndCleanup|TestCreatedDirectoryScopeConcurrentOwnersCannotRemoveWinner|TestCreatedDirectoryScopeRefusesBeforeBorrowing|FuzzCreatedDirectoryScopeNativeOwnership|TestFilestorePublicIngressHasCompilerBoundSemanticProof)$",
+        "-race",
+        "-count=1"
+      ]
+    },
+    {
+      "name": "keep_failed_native_tree",
+      "kind": "mutate",
+      "arguments": [
+        "./filestore"
+      ],
+      "mutation": {
+        "patch": "filestore/testdata/created_directory_scope/keep_failed_native_tree.patch",
+        "failing_test": "TestCreatedDirectoryScopeNativeLifetimeLayerTriad"
+      }
+    },
+    {
+      "name": "leave_borrowed_root_open",
+      "kind": "mutate",
+      "arguments": [
+        "./filestore"
+      ],
+      "mutation": {
+        "patch": "filestore/testdata/created_directory_scope/leave_borrowed_root_open.patch",
+        "failing_test": "TestCreatedDirectoryScopeNativeLifetimeLayerTriad"
+      }
+    },
+    {
+      "name": "retain_foreign_directory",
+      "kind": "mutate",
+      "arguments": [
+        "./filestore"
+      ],
+      "mutation": {
+        "patch": "filestore/testdata/created_directory_scope/retain_foreign_directory.patch",
+        "failing_test": "TestCreatedDirectoryScopeRefusesForeignNamespaceOnRetentionAndCleanup"
+      }
+    },
+    {
+      "name": "duplicate_native_custody",
+      "kind": "mutate",
+      "arguments": [
+        "./filestore"
+      ],
+      "mutation": {
+        "patch": "filestore/testdata/created_directory_destination/duplicate_native_custody.patch",
+        "failing_test": "TestCreatedDirectoryDestinationNativeCustodyCannotBeCopied"
+      }
+    },
+    {
+      "name": "native-tree-retention-and-rollback-byte-oracle",
+      "kind": "fuzz",
+      "arguments": [
+        "./filestore"
+      ],
+      "fuzz_target": "FuzzCreatedDirectoryScopeNativeOwnership",
+      "fuzz_seconds": 3
+    },
+    {
+      "name": "native-directory-destination-byte-and-custody-oracle",
+      "kind": "fuzz",
+      "arguments": [
+        "./filestore"
+      ],
+      "fuzz_target": "FuzzCreatedDirectoryDestinationNativeBytesAndSettlement",
+      "fuzz_seconds": 3
+    }
+  ]
+}

@@ -1,11 +1,12 @@
---- a/filestore/created_directory_scope.go
-+++ b/filestore/created_directory_scope.go
-@@ -115,7 +115,7 @@
- 	if err != nil {
- 		return sourceError(err)
+diff --git a/filestore/created_directory_destination.go b/filestore/created_directory_destination.go
+--- a/filestore/created_directory_destination.go
++++ b/filestore/created_directory_destination.go
+@@ -110,7 +110,7 @@
+ 		return scopeCancellationError(ctx, err)
  	}
--	if !owned.IsDir() || !os.SameFile(owned, current) || !os.SameFile(owned, held) {
-+	if false && (!owned.IsDir() || !os.SameFile(owned, current) || !os.SameFile(owned, held)) {
- 		return core.ErrFilestoreConflict
+ 	request := destination.request
+-	if err := createdDirectoryMatches(request.Location.Root, request.Location.Path, destination.root, destination.created); err != nil {
++	if err := createdDirectoryMatches(request.Location.Root, request.Location.Path, destination.root, destination.created); false {
+ 		return err
  	}
- 	return nil
+ 	dot, err := core.ParseRelativePath(".")
