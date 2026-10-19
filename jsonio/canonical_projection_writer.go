@@ -84,6 +84,9 @@ func WriteCanonicalProjection[Document any](ctx context.Context, destination io.
 		if !observed.IsValid() {
 			return errors.ErrUnsupported
 		}
+		if (observed.Kind() == reflect.Struct || observed.Kind() == reflect.Array || observed.Kind() == reflect.Slice) && encoder.StackDepth() >= int(core.JSONNestingDepthMaximum) {
+			return &DepthError{Maximum: core.JSONNestingDepthMaximum, Observed: encoder.StackDepth() + 1}
+		}
 		if observed.Kind() == reflect.Map {
 			return core.ErrJSONContract
 		}
@@ -102,8 +105,7 @@ func WriteCanonicalProjection[Document any](ctx context.Context, destination io.
 	writer := ownedCodecDestination{ctx: ctx, destination: destination}
 	return objectReadOutcome(ctx, jsonv2.MarshalWrite(writer, document,
 		jsonv2.Deterministic(true), jsonv2.WithMarshalers(jsonv2.JoinMarshalers(marshalers...)),
-		jsontext.ReorderRawObjects(true), jsontext.CanonicalizeRawInts(false), jsontext.CanonicalizeRawFloats(true),
-		jsontext.WithDepthLimit(int(core.JSONNestingDepthMaximum))))
+		jsontext.ReorderRawObjects(true), jsontext.CanonicalizeRawInts(false), jsontext.CanonicalizeRawFloats(true)))
 }
 
 func nativeOwnedMarshaler(value any) bool {
@@ -111,6 +113,9 @@ func nativeOwnedMarshaler(value any) bool {
 		return true
 	}
 	if _, ok := value.(interface{ MarshalJSONTo(*jsontext.Encoder) error }); ok {
+		return true
+	}
+	if _, ok := value.(encoding.TextAppender); ok {
 		return true
 	}
 	_, ok := value.(encoding.TextMarshaler)
