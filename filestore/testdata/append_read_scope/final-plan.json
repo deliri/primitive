@@ -1,0 +1,11 @@
+{
+  "steps": [
+    {
+      "name": "native-append-read-affected-package-vet",
+      "kind": "vet",
+      "arguments": [
+        "./filestore"
+      ]
+    }
+  ]
+}
