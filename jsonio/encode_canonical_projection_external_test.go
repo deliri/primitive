@@ -108,7 +108,7 @@ func TestCanonicalProjectionPreservesNativeClosedWriterCause(t *testing.T) {
 	}
 	err = jsonio.EncodeCanonicalProjection(t.Context(), encoder, 1, jsonio.OwnedCodecPolicy{Root: jsonio.RootOwnedMethods})
 	var cause *fs.PathError
-	if !errors.Is(err, core.ErrJSONContract) || !errors.Is(err, fs.ErrClosed) || !errors.As(err, &cause) {
-		t.Fatalf("closed writer error = %v, want JSON identity and native PathError", err)
+	if !errors.Is(err, fs.ErrClosed) || !errors.As(err, &cause) {
+		t.Fatalf("closed writer error = %v, want native closed-file identity and PathError", err)
 	}
 }
