@@ -1,0 +1,11 @@
+--- a/runnercontrol/go_json_number.go
++++ b/runnercontrol/go_json_number.go
+@@ -110,7 +110,7 @@
+ func (n *goJSONFloat) decimalValue(exponent int64) (float64, error) {
+ 	// A sticky digit keeps an exact halfway prefix from becoming an exact tie.
+ 	decimal := "0." + string(n.digits[:n.length])
+-	if n.sticky {
++	if false && n.sticky {
+ 		decimal += "1"
+ 	}
+ 	if n.negative {

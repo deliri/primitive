@@ -2,6 +2,7 @@ package runnercontrol
 
 import (
 	json "encoding/json/v2"
+	"math"
 	"reflect"
 	"strconv"
 	"testing"
@@ -43,7 +44,13 @@ func FuzzGoEventElapsedNativeFloatAgreement(f *testing.F) {
 		}
 		var parser goJSONStream
 		count := 0
-		emit := func(goJSONProjection) error { count++; return nil }
+		emit := func(value goJSONProjection) error {
+			count++
+			if nativeErr != nil || math.Float64bits(value.elapsedSeconds) != math.Float64bits(native) {
+				t.Fatalf("elapsed %q value bits=%x, want native %x (%v)", number, math.Float64bits(value.elapsedSeconds), math.Float64bits(native), nativeErr)
+			}
+			return nil
+		}
 		var parseErr error
 		for _, part := range []string{`{"Elapsed":`, number, "}"} {
 			for index := 0; index < len(part); index++ {

@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"io"
+	"math"
 	"unicode/utf8"
 
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/lineio"
+	"github.com/deliri/primitive/v2026/temporal"
 )
 
 // GoEventStringFragment borrows decoded UTF-8 from one cmd/go string field.
@@ -37,10 +39,16 @@ func (f GoEventStringFragment) Validate() error {
 type GoEventFrame struct {
 	Action     GoEventAction     `json:"Action"`
 	OutputKind GoEventOutputKind `json:"OutputType"`
+	// ElapsedSeconds is Go's finite float64 scalar, including signed zero.
+	// Absence projects zero; nonnegative-duration policy belongs to consumers.
+	ElapsedSeconds float64 `json:"Elapsed"`
 }
 
 func (GoEventFrame) runnerControlProtocolFact() {}
 func (f GoEventFrame) Validate() error {
+	if math.IsNaN(f.ElapsedSeconds) || math.IsInf(f.ElapsedSeconds, 0) {
+		return goJSONFailure()
+	}
 	return errors.Join(f.Action.Validate(), f.OutputKind.Validate())
 }
 
@@ -66,7 +74,8 @@ func (r GoEventStreamRequest) Validate() error {
 // no total-stream, event-count or string-length quota. It returns source and
 // callback refusals unchanged inside the observation error identity. Previously
 // emitted frames remain observations of their prefix, never whole-stream proof.
-func ReadGoEventStream(ctx context.Context, request GoEventStreamRequest) error {
+func ReadGoEventStream(ctx context.Context, request GoEventStreamRequest) (resultErr error) {
+	defer func() { resultErr = errors.Join(resultErr, temporal.Wait(temporal.WaitRequest{Context: ctx})) }()
 	if err := contextstate.Validate(ctx); err != nil {
 		return err
 	}
@@ -94,7 +103,7 @@ func ReadGoEventStream(ctx context.Context, request GoEventStreamRequest) error 
 		if err := contextstate.Validate(ctx); err != nil {
 			return err
 		}
-		frame := GoEventFrame{Action: projection.action, OutputKind: projection.outputType}
+		frame := GoEventFrame{Action: projection.action, OutputKind: projection.outputType, ElapsedSeconds: projection.elapsedSeconds}
 		if err := frame.Validate(); err != nil {
 			return err
 		}

@@ -1,0 +1,20 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "native-elapsed-new-contracts",
+      "kind": "test",
+      "arguments": [
+        "./runnercontrol",
+        "-count=1",
+        "-run=^(TestGoEventStreamElapsedSecondsNativeFloatBits|TestGoEventStreamElapsedNeverLeaksBetweenFrames|TestGoEventStreamElapsedPreservesNativeCancellationCause|TestGoEventStreamElapsedMatchesActualGoProducer)$"
+      ]
+    }
+  ]
+}

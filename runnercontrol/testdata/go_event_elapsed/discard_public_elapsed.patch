@@ -1,0 +1,11 @@
+--- a/runnercontrol/go_event_stream.go
++++ b/runnercontrol/go_event_stream.go
+@@ -103,7 +103,7 @@
+ 		if err := contextstate.Validate(ctx); err != nil {
+ 			return err
+ 		}
+-		frame := GoEventFrame{Action: projection.action, OutputKind: projection.outputType, ElapsedSeconds: projection.elapsedSeconds}
++		frame := GoEventFrame{Action: projection.action, OutputKind: projection.outputType, ElapsedSeconds: 0}
+ 		if err := frame.Validate(); err != nil {
+ 			return err
+ 		}

@@ -7,6 +7,7 @@ import (
 	"errors"
 	"github.com/deliri/primitive/v2026/core"
 	"io"
+	"math"
 	"strings"
 	"testing"
 
@@ -227,11 +228,12 @@ func FuzzGoEventStreamSemanticClosure(f *testing.F) {
 				var independent struct {
 					Action     string
 					OutputType string
+					Elapsed    float64
 				}
 				if err := json.Unmarshal(data[offset:end], &independent); err != nil {
 					t.Fatalf("accepted source line = %q, want standard-library JSON admission: %v", data[offset:end], err)
 				}
-				if frame.Action.String() != independent.Action || frame.OutputKind.String() != independent.OutputType {
+				if frame.Action.String() != independent.Action || frame.OutputKind.String() != independent.OutputType || math.Float64bits(frame.ElapsedSeconds) != math.Float64bits(independent.Elapsed) {
 					t.Fatalf("frame = %+v, want action %q and output kind %q", frame, independent.Action, independent.OutputType)
 				}
 				offset = end

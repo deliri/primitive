@@ -1,0 +1,11 @@
+--- a/runnercontrol/go_json_stream.go
++++ b/runnercontrol/go_json_stream.go
+@@ -131,7 +131,7 @@
+ 		if value != '{' {
+ 			return goJSONFailure()
+ 		}
+-		s.projection = goJSONProjection{}
++		s.projection = goJSONProjection{elapsedSeconds:s.projection.elapsedSeconds}
+ 		if s.digest == nil {
+ 			s.digest = sha256.New()
+ 		} else {

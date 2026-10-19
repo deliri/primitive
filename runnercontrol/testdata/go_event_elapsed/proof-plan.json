@@ -1,0 +1,84 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "discard_public_elapsed",
+      "kind": "mutate",
+      "arguments": [
+        "./runnercontrol"
+      ],
+      "mutation": {
+        "patch": "runnercontrol/testdata/go_event_elapsed/discard_public_elapsed.patch",
+        "failing_test": "TestGoEventStreamElapsedSecondsNativeFloatBits/positive_seconds"
+      }
+    },
+    {
+      "name": "discard_elapsed_sign",
+      "kind": "mutate",
+      "arguments": [
+        "./runnercontrol"
+      ],
+      "mutation": {
+        "patch": "runnercontrol/testdata/go_event_elapsed/discard_elapsed_sign.patch",
+        "failing_test": "TestGoEventStreamElapsedSecondsNativeFloatBits/signed_zero"
+      }
+    },
+    {
+      "name": "discard_sticky_rounding",
+      "kind": "mutate",
+      "arguments": [
+        "./runnercontrol"
+      ],
+      "mutation": {
+        "patch": "runnercontrol/testdata/go_event_elapsed/discard_sticky_rounding.patch",
+        "failing_test": "TestGoEventStreamElapsedSecondsNativeFloatBits/sticky_digit_breaks_exact_halfway_tie"
+      }
+    },
+    {
+      "name": "retain_prior_elapsed",
+      "kind": "mutate",
+      "arguments": [
+        "./runnercontrol"
+      ],
+      "mutation": {
+        "patch": "runnercontrol/testdata/go_event_elapsed/retain_prior_elapsed.patch",
+        "failing_test": "TestGoEventStreamElapsedNeverLeaksBetweenFrames"
+      }
+    },
+    {
+      "name": "lose_event_cancellation_cause",
+      "kind": "mutate",
+      "arguments": [
+        "./runnercontrol"
+      ],
+      "mutation": {
+        "patch": "runnercontrol/testdata/go_event_elapsed/lose_event_cancellation_cause.patch",
+        "failing_test": "TestGoEventStreamElapsedPreservesNativeCancellationCause/false"
+      }
+    },
+    {
+      "name": "native-elapsed-exact-float-differential",
+      "kind": "fuzz",
+      "arguments": [
+        "./runnercontrol"
+      ],
+      "fuzz_target": "FuzzGoEventElapsedNativeFloatAgreement",
+      "fuzz_seconds": 3
+    },
+    {
+      "name": "public-frame-semantic-closure",
+      "kind": "fuzz",
+      "arguments": [
+        "./runnercontrol"
+      ],
+      "fuzz_target": "FuzzGoEventStreamSemanticClosure",
+      "fuzz_seconds": 3
+    }
+  ]
+}

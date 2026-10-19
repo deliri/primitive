@@ -1,0 +1,20 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "changed-native-frame-and-number-neighbors",
+      "kind": "test",
+      "arguments": [
+        "./runnercontrol",
+        "-count=1",
+        "-run=^(TestGoJSONFloatNativeRangeAndLongSpelling|TestGoJSONParserStorageHasNoGrowingInputCarrier|TestGoEventStreamLayerTriadEmptySourceHasNoEvents|TestGoEventStreamLayerTriadRefusalsAndCancellation|TestGoEventStreamEveryActionRetainsItsWireIdentity|TestGoEventStreamOutputKindsRemainClosed|TestGoEventStreamStringFragmentBoundaries|TestGoEventStreamAcceptsNativeMetadata)$"
+      ]
+    }
+  ]
+}

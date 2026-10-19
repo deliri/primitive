@@ -1,0 +1,11 @@
+--- a/runnercontrol/go_event_stream.go
++++ b/runnercontrol/go_event_stream.go
+@@ -75,7 +75,7 @@
+ // callback refusals unchanged inside the observation error identity. Previously
+ // emitted frames remain observations of their prefix, never whole-stream proof.
+ func ReadGoEventStream(ctx context.Context, request GoEventStreamRequest) (resultErr error) {
+-	defer func() { resultErr = errors.Join(resultErr, temporal.Wait(temporal.WaitRequest{Context: ctx})) }()
++	defer func() { _ = temporal.Wait(temporal.WaitRequest{Context: ctx}) }()
+ 	if err := contextstate.Validate(ctx); err != nil {
+ 		return err
+ 	}

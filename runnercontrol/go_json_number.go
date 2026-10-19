@@ -15,6 +15,7 @@ type goJSONFloat struct {
 	exponent         uint64
 	fraction         bool
 	nonzero          bool
+	negative         bool
 	sticky           bool
 	exponentPart     bool
 	exponentNegative bool
@@ -34,6 +35,8 @@ func (n *goJSONFloat) consume(value byte) {
 	case '-':
 		if n.exponentPart {
 			n.exponentNegative = true
+		} else {
+			n.negative = true
 		}
 		return
 	case '+':
@@ -73,42 +76,49 @@ func (n *goJSONFloat) consumeDigit(value byte) {
 	}
 }
 
-func (n *goJSONFloat) validate() error {
+func (n *goJSONFloat) value() (float64, error) {
+	zero := 0.0
+	if n.negative {
+		zero = math.Copysign(0, -1)
+	}
 	if !n.nonzero {
-		return nil
+		return zero, nil
 	}
 	if n.exponentOverflow {
 		if n.exponentNegative {
-			return nil
+			return zero, nil
 		}
-		return goJSONFailure()
+		return 0, goJSONFailure()
 	}
 	if n.exponent > math.MaxInt64 {
-		return goJSONFailure()
+		return 0, goJSONFailure()
 	}
 	exponent := int64(n.exponent)
 	if n.exponentNegative {
 		exponent = -exponent
 	}
 	if exponent > 0 && n.scale > math.MaxInt64-exponent {
-		return goJSONFailure()
+		return 0, goJSONFailure()
 	}
 	if exponent < 0 && n.scale < math.MinInt64-exponent {
-		return nil
+		return zero, nil
 	}
 	exponent += n.scale
-	return n.validateDecimal(exponent)
+	return n.decimalValue(exponent)
 }
 
-func (n *goJSONFloat) validateDecimal(exponent int64) error {
+func (n *goJSONFloat) decimalValue(exponent int64) (float64, error) {
 	// A sticky digit keeps an exact halfway prefix from becoming an exact tie.
 	decimal := "0." + string(n.digits[:n.length])
 	if n.sticky {
 		decimal += "1"
 	}
-	_, err := strconv.ParseFloat(decimal+"e"+strconv.FormatInt(exponent, 10), 64)
-	if err != nil {
-		return goJSONFailure()
+	if n.negative {
+		decimal = "-" + decimal
 	}
-	return nil
+	value, err := strconv.ParseFloat(decimal+"e"+strconv.FormatInt(exponent, 10), 64)
+	if err != nil {
+		return 0, goJSONFailure()
+	}
+	return value, nil
 }

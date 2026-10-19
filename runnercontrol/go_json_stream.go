@@ -46,6 +46,7 @@ const (
 
 type goJSONProjection struct {
 	benchmark      goBenchmarkStream
+	elapsedSeconds float64
 	fields         uint16
 	packageID      [sha256.Size]byte
 	action         GoEventAction
@@ -115,9 +116,11 @@ func (s *goJSONStream) endNumber() error {
 	if s.numberState != 2 && s.numberState != 3 && s.numberState != 5 && s.numberState != 8 {
 		return goJSONFailure()
 	}
-	if err := s.number.validate(); err != nil {
+	value, err := s.number.value()
+	if err != nil {
 		return err
 	}
+	s.projection.elapsedSeconds = value
 	s.state = goJSONAfterValue
 	return nil
 }

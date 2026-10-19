@@ -1,0 +1,11 @@
+--- a/runnercontrol/go_json_number.go
++++ b/runnercontrol/go_json_number.go
+@@ -36,7 +36,7 @@
+ 		if n.exponentPart {
+ 			n.exponentNegative = true
+ 		} else {
+-			n.negative = true
++			n.negative = false
+ 		}
+ 		return
+ 	case '+':
