@@ -1,0 +1,65 @@
+{
+  "steps": [
+    {
+      "name": "native-physical-tail-coordinates-and-refusals",
+      "kind": "test",
+      "arguments": [
+        "./lineio",
+        "-run=^(TestLastRecordRangeMatchesNativeBytesWithoutChangingCursor|TestLastRecordRangeRefusesTruncationCancellationAndTypedNil|TestLastRecordRangeAdmitsOnlyPhysicalObservationShapes|FuzzLastRecordRangeMatchesIndependentPhysicalTail)$",
+        "-race",
+        "-count=1"
+      ]
+    },
+    {
+      "name": "native-physical-tail-allocation-window",
+      "kind": "test",
+      "arguments": [
+        "./lineio",
+        "-run=^TestLastRecordRangeWorkingMemoryDoesNotFollowRecordExtent$",
+        "-count=1"
+      ]
+    },
+    {
+      "name": "native-physical-tail-empty_on_eof",
+      "kind": "mutate",
+      "arguments": [
+        "./lineio"
+      ],
+      "mutation": {
+        "patch": "lineio/testdata/last_record_range/empty_on_eof.patch",
+        "failing_test": "TestLastRecordRangeRefusesTruncationCancellationAndTypedNil"
+      }
+    },
+    {
+      "name": "native-physical-tail-include_final_lf_as_previous_boundary",
+      "kind": "mutate",
+      "arguments": [
+        "./lineio"
+      ],
+      "mutation": {
+        "patch": "lineio/testdata/last_record_range/include_final_lf_as_previous_boundary.patch",
+        "failing_test": "TestLastRecordRangeMatchesNativeBytesWithoutChangingCursor"
+      }
+    },
+    {
+      "name": "native-physical-tail-collect_record_window",
+      "kind": "mutate",
+      "arguments": [
+        "./lineio"
+      ],
+      "mutation": {
+        "patch": "lineio/testdata/last_record_range/collect_record_window.patch",
+        "failing_test": "TestLastRecordRangeWorkingMemoryDoesNotFollowRecordExtent"
+      }
+    },
+    {
+      "name": "native-physical-tail-standard-byte-oracle",
+      "kind": "fuzz",
+      "arguments": [
+        "./lineio"
+      ],
+      "fuzz_target": "FuzzLastRecordRangeMatchesIndependentPhysicalTail",
+      "fuzz_seconds": 3
+    }
+  ]
+}

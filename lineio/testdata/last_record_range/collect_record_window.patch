@@ -1,0 +1,9 @@
+--- a/lineio/last_record_range.go
++++ b/lineio/last_record_range.go
+@@ -74,5 +74,5 @@
+ 		return observation, err
+ 	}
+-	window := make([]byte, min(width, extent))
++	window := make([]byte, min(width, extent)+extent)
+ 	framing := RecordFramingEOF
+ 	for end := extent; end > 0; {

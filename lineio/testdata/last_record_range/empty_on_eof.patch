@@ -1,0 +1,8 @@
+--- a/lineio/last_record_range.go
++++ b/lineio/last_record_range.go
+@@ -87,4 +87,5 @@
+ 		}
+ 		if n != want {
++ if errors.Is(readErr,io.EOF){return RecordRangeObservation{},nil}
+ 			return observation, errors.Join(core.ErrLineIOScan, readErr, io.ErrUnexpectedEOF)
+ 		}

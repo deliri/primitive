@@ -1,0 +1,9 @@
+--- a/lineio/last_record_range.go
++++ b/lineio/last_record_range.go
+@@ -97,5 +97,5 @@
+ 		for index := n - 1; index >= 0; index-- {
+ 			offset := start + int64(index)
+-			if offset == extent-1 {
++			if offset == extent-1 && offset != extent-1 {
+ 				continue
+ 			}
