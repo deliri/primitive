@@ -1,0 +1,11 @@
+--- a/filestore/append_sync.go
++++ b/filestore/append_sync.go
+@@ -48,7 +48,7 @@
+ 	if err != nil {
+ 		return AppendSyncObservation{}, err
+ 	}
+-	if err := request.Destination.Sync(); err != nil {
++	if err := request.Destination.Validate(); err != nil {
+ 		return AppendSyncObservation{}, err
+ 	}
+ 	return AppendSyncObservation{accepted: accepted, synchronized: true}, nil

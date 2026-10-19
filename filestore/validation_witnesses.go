@@ -11,4 +11,6 @@ var (
 	_ core.OffWireEnum = AppendCustodyUnknown
 	_ core.Validatable = AppendObservation{}
 	_ core.Validatable = AppendPathRotationRequest{}
+	_ core.Validatable = AppendSyncRequest{}
+	_ core.Validatable = AppendSyncObservation{}
 )

@@ -65,6 +65,8 @@ func filestoreIngressProofs() []filestoreIngressProof {
 		{door: reflect.ValueOf((*filestore.AppendDestination).AcceptedBytes), fuzz: FuzzAppendAcceptanceMatchesGoWriteReturns},
 		{door: reflect.ValueOf((*filestore.AppendDestination).Flush), fuzz: FuzzAppendDestinationExactBytesAndSettlement},
 		{door: reflect.ValueOf((*filestore.AppendDestination).Sync), fuzz: FuzzAppendDestinationExactBytesAndSettlement},
+		{door: reflect.ValueOf(filestore.SyncAppend), fuzz: FuzzAppendSynchronizationReceiptsMatchNativeBytes},
+		{door: reflect.ValueOf(filestore.AppendSyncObservation.AcceptedBytes), fuzz: FuzzAppendSynchronizationReceiptsMatchNativeBytes},
 		{door: reflect.ValueOf((*filestore.AppendDestination).Close), fuzz: FuzzAppendDestinationExactBytesAndSettlement},
 		{door: reflect.ValueOf((*filestore.AppendDestination).Rotate), fuzz: FuzzAppendDestinationExactBytesAndSettlement},
 		{door: reflect.ValueOf((*filestore.AppendDestination).RotatePath), fuzz: FuzzAppendRotationObservationMatchesNativeFiles},

@@ -40,6 +40,8 @@ type architectureScan struct {
 // role. The generic arguments make every inventory entry compiler-visible.
 type filestoreContractInventory struct {
 	AppendDestination                 capabilityWrapper[AppendDestination]
+	AppendSyncRequest                 validatedRequest[AppendSyncRequest]
+	AppendSyncObservation             streamedObservation[AppendSyncObservation]
 	RecordRangeSortRequest            validatedRequest[RecordRangeSortRequest]
 	RecordRangeStreamRequest          validatedRequest[RecordRangeStreamRequest]
 	RecordRangeIndexStreamRequest     validatedRequest[RecordRangeIndexStreamRequest]

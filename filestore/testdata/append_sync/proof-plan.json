@@ -1,0 +1,39 @@
+{
+  "steps": [
+    {
+      "name": "native-sync-receipt-boundaries",
+      "kind": "test",
+      "arguments": [
+        "./filestore",
+        "-run=^(TestAppendSynchronizationReceiptRequiresNativeSuccess|TestAppendSynchronizationReceiptSurvivesLaterCleanupFailure|TestAppendSynchronizationAdmissionCannotFlush|TestFilestoreDataFlowStructInventoryRatchet|FuzzAppendSynchronizationReceiptsMatchNativeBytes)$",
+        "-race",
+        "-count=1"
+      ]
+    },
+    {
+      "name": "new-public-ingress-bindings",
+      "kind": "test",
+      "arguments": [
+        "./filestore",
+        "-run=^TestFilestorePublicIngressHasCompilerBoundSemanticProof$/.*(SyncAppend|AppendSyncObservation).*",
+        "-count=1"
+      ]
+    },
+    {
+      "name": "native-sync-cannot-be-omitted",
+      "kind": "mutate",
+      "arguments": ["./filestore"],
+      "mutation": {
+        "patch": "filestore/testdata/append_sync/skip_native_sync.patch",
+        "failing_test": "TestAppendSynchronizationReceiptRequiresNativeSuccess/body_sync_refusal"
+      }
+    },
+    {
+      "name": "native-sync-receipt-semantic-fuzz",
+      "kind": "fuzz",
+      "arguments": ["./filestore"],
+      "fuzz_target": "FuzzAppendSynchronizationReceiptsMatchNativeBytes",
+      "fuzz_seconds": 3
+    }
+  ]
+}
