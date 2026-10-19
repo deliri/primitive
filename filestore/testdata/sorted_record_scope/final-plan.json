@@ -1,0 +1,11 @@
+{
+  "steps": [
+    {
+      "name": "final-affected-filestore-vet",
+      "kind": "vet",
+      "arguments": [
+        "./filestore"
+      ]
+    }
+  ]
+}
