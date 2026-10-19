@@ -27,6 +27,16 @@ func ProjectCanonical[Owner, Projection any](project func(Owner) (Projection, er
 	if project == nil {
 		return CanonicalProjectionCodec{}, core.ErrJSONContract
 	}
+	owner, projection := reflect.TypeFor[Owner](), reflect.TypeFor[Projection]()
+	for owner.Kind() == reflect.Pointer {
+		owner = owner.Elem()
+	}
+	for projection.Kind() == reflect.Pointer {
+		projection = projection.Elem()
+	}
+	if owner == projection {
+		return CanonicalProjectionCodec{}, core.ErrJSONContract
+	}
 	native := jsonv2.MarshalToFunc[Owner](func(encoder *jsontext.Encoder, value Owner) error {
 		projection, err := project(value)
 		if err != nil {
@@ -50,6 +60,8 @@ func ProjectCanonical[Owner, Projection any](project func(Owner) (Projection, er
 // unambiguous declared schema rather than reproducing Go's field resolution.
 // Memory follows declaration size, open depth and the largest native/custom
 // value; a caller's custom marshaler can still retain its own complete value.
+// Declared containers obey Core's nesting maximum. Opaque custom methods keep
+// their own depth and allocation contracts.
 func WriteCanonicalProjection[Document any](ctx context.Context, destination io.Writer, document Document, policy OwnedCodecPolicy, codecs ...CanonicalProjectionCodec) error {
 	if err := errors.Join(contextstate.Validate(ctx), validateOwnedCodecType[Document](policy)); err != nil {
 		return err

@@ -81,6 +81,45 @@ func TestCanonicalDeclaredProjectionUsesTypedOwnerProjection(t *testing.T) {
 	if _, err := jsonio.ProjectCanonical[canonicalProjectionOwner, canonicalProjectionOwnerWire](nil); !errors.Is(err, core.ErrJSONContract) {
 		t.Fatalf("nil projection error = %v", err)
 	}
+	if _, err := jsonio.ProjectCanonical(func(value canonicalProjectionOwner) (canonicalProjectionOwner, error) { return value, nil }); !errors.Is(err, core.ErrJSONContract) {
+		t.Fatalf("recursive owner projection error = %v", err)
+	}
+}
+
+type canonicalDeclaredDepth struct {
+	Z    int                     `json:"z"`
+	Next *canonicalDeclaredDepth `json:"next,omitempty"`
+}
+
+func TestCanonicalDeclaredProjectionDepthFollowsNativeCursor(t *testing.T) {
+	t.Parallel()
+	for _, depth := range []int{63, 64, 65} {
+		root := &canonicalDeclaredDepth{}
+		cursor := root
+		for i := 1; i < depth; i++ {
+			cursor.Next = &canonicalDeclaredDepth{}
+			cursor = cursor.Next
+		}
+		var output bytes.Buffer
+		err := jsonio.WriteCanonicalProjection(t.Context(), &output, root, jsonio.OwnedCodecPolicy{Root: jsonio.RootOwnedMethods, PointerNulls: jsonio.PointerNullPermitted})
+		if depth <= 64 {
+			if err != nil {
+				t.Fatalf("depth %d error = %v, want admitted", depth, err)
+			}
+		} else {
+			var observed *jsonio.DepthError
+			if !errors.Is(err, core.ErrJSONContract) || !errors.As(err, &observed) || observed.Maximum != 64 || observed.Observed != 65 {
+				t.Fatalf("depth %d error = %v, want observed native depth 65", depth, err)
+			}
+		}
+	}
+	cyclic := &canonicalDeclaredDepth{}
+	cyclic.Next = cyclic
+	var output bytes.Buffer
+	var observed *jsonio.DepthError
+	if err := jsonio.WriteCanonicalProjection(t.Context(), &output, cyclic, jsonio.OwnedCodecPolicy{Root: jsonio.RootOwnedMethods}); !errors.As(err, &observed) {
+		t.Fatalf("cyclic declaration error = %v, want native depth refusal", err)
+	}
 }
 
 func TestCanonicalDeclaredProjectionRefusesUnsupportedDeclarationsAndPreservesCauses(t *testing.T) {
