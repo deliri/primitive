@@ -3,9 +3,12 @@ package jsonio_test
 import (
 	"bytes"
 	"context"
+	"encoding/json/jsontext"
+	jsonv2 "encoding/json/v2"
 	"errors"
 	"io"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/jsonio"
@@ -34,6 +37,47 @@ func TestTokenProjectionBorrowsNativeCursorWithoutChangingSignedBytes(t *testing
 	if err := loan.Encode(t.Context(), jsonio.Token{Kind: jsonio.TokenNull}); !errors.Is(err, core.ErrJSONContract) || !bytes.Equal(output.Bytes(), before) {
 		t.Fatalf("expired loan = (%q, %v), want unchanged output and refusal", output.String(), err)
 	}
+}
+
+func FuzzCanonicalTokenProjectionNativeClosure(f *testing.F) {
+	f.Add("雪😀\n\"<>&", uint64(9007199254740993))
+	f.Add("", uint64(0))
+	f.Add("\xff", uint64(18446744073709551615))
+	f.Fuzz(func(t *testing.T, text string, number uint64) {
+		document := canonicalProjection{Z: number, A: text}
+		var output bytes.Buffer
+		write := func(destination io.Writer) error {
+			return jsonio.WriteTokenProjection(t.Context(), jsonio.TokenProjectionRequest{Destination: destination, Use: func(cursor *jsonio.TokenEncoder) error {
+				return jsonio.EncodeCanonicalProjection(t.Context(), cursor, document, jsonio.OwnedCodecPolicy{})
+			}})
+		}
+		err := write(&output)
+		if !utf8.ValidString(text) {
+			if !errors.Is(err, core.ErrJSONContract) || output.Len() != 0 {
+				t.Fatalf("malformed text = (%q, %v), want zero output and JSON refusal", output.String(), err)
+			}
+			return
+		}
+		want, nativeErr := jsonv2.Marshal(document)
+		if nativeErr != nil {
+			t.Fatal(nativeErr)
+		}
+		canonical := jsontext.Value(want)
+		if nativeErr := canonical.Canonicalize(jsontext.CanonicalizeRawInts(false)); nativeErr != nil {
+			t.Fatal(nativeErr)
+		}
+		if err != nil || !bytes.Equal(output.Bytes(), canonical) {
+			t.Fatalf("canonical projection = (%q, %v), want native %q", output.Bytes(), err, canonical)
+		}
+		var roundTrip canonicalProjection
+		if err := jsonv2.Unmarshal(output.Bytes(), &roundTrip); err != nil || roundTrip != document {
+			t.Fatalf("round trip = (%+v, %v), want %+v", roundTrip, err, document)
+		}
+		var second bytes.Buffer
+		if err := write(&second); err != nil || !bytes.Equal(second.Bytes(), output.Bytes()) {
+			t.Fatalf("second projection = (%q, %v), want %q", second.Bytes(), err, output.Bytes())
+		}
+	})
 }
 
 func TestTokenProjectionGoRejectsIncompleteAndMultipleValues(t *testing.T) {
