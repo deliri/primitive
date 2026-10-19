@@ -1,0 +1,13 @@
+diff --git a/hostfacts/resource_usage.go b/hostfacts/resource_usage.go
+index 72306f45..201b716c 100644
+--- a/hostfacts/resource_usage.go
++++ b/hostfacts/resource_usage.go
+@@ -44,7 +44,7 @@ func (r ResourceUsageRequest) Validate() error {
+ 			return err
+ 		}
+ 		// A repeated scope would be counted twice by a caller's subtraction.
+-		if slices.Contains(r.Scopes[:i], scope) {
++		if false && slices.Contains(r.Scopes[:i], scope) {
+ 			return core.ErrHostFactsContract
+ 		}
+ 	}

@@ -1,0 +1,13 @@
+diff --git a/hostfacts/resource_scope.go b/hostfacts/resource_scope.go
+index b42a949a..47fa64ae 100644
+--- a/hostfacts/resource_scope.go
++++ b/hostfacts/resource_scope.go
+@@ -18,7 +18,7 @@ const (
+ 	cgroupCPUStatName        = "cpu.stat"
+ 	cgroupCPUUsageKey        = "usage_usec"
+ 	cgroupCPUStatBytes       = 4 << 10
+-	scopeMicrosecondsToMilli = 1_000_000
++	scopeMicrosecondsToMilli = 1_000_000_000
+ )
+ 
+ // scopeCgroup is one requested scope's resolved cpu.stat file. present is false

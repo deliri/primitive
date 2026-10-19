@@ -1,0 +1,13 @@
+diff --git a/hostfacts/resource_scope.go b/hostfacts/resource_scope.go
+index b42a949a..9894d24f 100644
+--- a/hostfacts/resource_scope.go
++++ b/hostfacts/resource_scope.go
+@@ -119,7 +119,7 @@ func (f *cpuStatFold) visit(line []byte) error {
+ 	if string(key) != cgroupCPUUsageKey {
+ 		return nil
+ 	}
+-	if f.seen || len(value) == 0 || value[0] < '0' || value[0] > '9' {
++	if len(value) == 0 || value[0] < '0' || value[0] > '9' {
+ 		return core.ErrHostFactsObservation
+ 	}
+ 	usage, err := strconv.ParseUint(string(value), 10, 64)

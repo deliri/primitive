@@ -1,0 +1,44 @@
+{
+  "steps": [
+    {
+      "name": "scope-cpu-inside-host-window",
+      "kind": "test",
+      "arguments": [
+        "./hostfacts",
+        "-run=^(TestCPUStatFoldLayerTriad|TestParseSystemdControlGroupLayerTriad|TestScopeBusyMilliLayerTriad|TestScopesBusyReportsAbsenceAsZero|TestResourceUsageScopeContracts|FuzzCPUStatFoldNativeLines|TestResourceUsageScopeCPUNativeLifetime|TestResourceUsageRefusesScopesOnDarwin|TestResourceUsageNativeLayerTriad|TestResourceIntervalLayerTriad|TestSystemdScopeNativeLifetime|TestPublicOperationsAreExactIntentEntryPoints|TestProductionStructDataFlowInventory)$",
+        "-race",
+        "-count=1"
+      ]
+    },
+    {
+      "name": "microsecond_units",
+      "kind": "mutate",
+      "arguments": ["./hostfacts"],
+      "mutation": {"patch": "hostfacts/testdata/scope_cpu/microsecond_units.patch", "failing_test": "TestScopeBusyMilliLayerTriad"}
+    },
+    {
+      "name": "accept_duplicate_usage",
+      "kind": "mutate",
+      "arguments": ["./hostfacts"],
+      "mutation": {"patch": "hostfacts/testdata/scope_cpu/accept_duplicate_usage.patch", "failing_test": "TestCPUStatFoldLayerTriad"}
+    },
+    {
+      "name": "allow_repeated_scope",
+      "kind": "mutate",
+      "arguments": ["./hostfacts"],
+      "mutation": {"patch": "hostfacts/testdata/scope_cpu/allow_repeated_scope.patch", "failing_test": "TestResourceUsageScopeContracts"}
+    },
+    {
+      "name": "cpu-stat-line-oracle",
+      "kind": "fuzz",
+      "arguments": ["./hostfacts"],
+      "fuzz_target": "FuzzCPUStatFoldNativeLines",
+      "fuzz_seconds": 2
+    },
+    {
+      "name": "hostfacts-vet",
+      "kind": "vet",
+      "arguments": ["./hostfacts"]
+    }
+  ]
+}
