@@ -54,6 +54,7 @@ type filestoreContractInventory struct {
 	RecordRangeIndexSearchRequest     validatedRequest[RecordRangeIndexSearchRequest]
 	RecordRangeIndexReadRequest       validatedRequest[RecordRangeIndexReadRequest]
 	RecordRangeIndexSearchObservation streamedObservation[RecordRangeIndexSearchObservation]
+	RecordRangeIndexReadObservation   streamedObservation[RecordRangeIndexReadObservation]
 
 	ContentPartitionSourceRequest validatedRequest[ContentPartitionSourceRequest]
 	ContentPartitionSource        capabilityWrapper[ContentPartitionSource]

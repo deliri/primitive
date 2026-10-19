@@ -45,9 +45,54 @@ func (r RecordRangeIndexReadRequest) Validate() error {
 	return r.Position.Validate()
 }
 
-// ReadRecordRangeIndexAt observes the native extent, refuses a partial tuple
-// stream, and reads one canonical tuple. Positions at or beyond EOF return
-// io.EOF and zero. It never reopens a path or mirrors a sequential cursor.
+// RecordRangeIndexReadObservation distinguishes an observed end from a native
+// refusal. Absent is valid only with a zero record and a successful operation.
+type RecordRangeIndexReadObservation struct {
+	Record  lineio.RecordRange
+	Present bool
+}
+
+func (o RecordRangeIndexReadObservation) Validate() error {
+	if !o.Present {
+		if o.Record != (lineio.RecordRange{}) {
+			return core.ErrFilestoreContract
+		}
+		return nil
+	}
+	return o.Record.Validate()
+}
+
+// ObserveRecordRangeIndexAt admits the native extent and reads exactly one
+// tuple without moving the sequential cursor. An index position at or beyond
+// the observed end returns absent; truncated tuples and all I/O or cancellation
+// failures return a zero observation plus their original causes.
+func ObserveRecordRangeIndexAt(ctx context.Context, request RecordRangeIndexReadRequest) (observation RecordRangeIndexReadObservation, resultErr error) {
+	defer func() {
+		resultErr = scopeCancellationError(ctx, errors.Join(resultErr, contextstate.Validate(ctx)))
+		if resultErr != nil {
+			observation = RecordRangeIndexReadObservation{}
+		}
+	}()
+	if err := errors.Join(contextstate.Validate(ctx), request.Validate()); err != nil {
+		return observation, err
+	}
+	count, err := recordRangeIndexCount(request.Source)
+	if err != nil {
+		return observation, err
+	}
+	if uint64(request.Position) >= count {
+		return observation, nil
+	}
+	record, err := readRecordRangeIndexPosition(ctx, request.Source, request.Position)
+	if err != nil {
+		return observation, err
+	}
+	return RecordRangeIndexReadObservation{Record: record, Present: true}, nil
+}
+
+// ReadRecordRangeIndexAt supplies Go's io.EOF convention for native io.Reader
+// consumers. Typed application policy uses ObserveRecordRangeIndexAt so an
+// error containing EOF can never be mistaken for an observed end.
 func ReadRecordRangeIndexAt(ctx context.Context, request RecordRangeIndexReadRequest) (record lineio.RecordRange, resultErr error) {
 	defer func() {
 		resultErr = scopeCancellationError(ctx, errors.Join(resultErr, contextstate.Validate(ctx)))
@@ -55,17 +100,14 @@ func ReadRecordRangeIndexAt(ctx context.Context, request RecordRangeIndexReadReq
 			record = lineio.RecordRange{}
 		}
 	}()
-	if err := errors.Join(contextstate.Validate(ctx), request.Validate()); err != nil {
-		return record, err
-	}
-	count, err := recordRangeIndexCount(request.Source)
+	observation, err := ObserveRecordRangeIndexAt(ctx, request)
 	if err != nil {
 		return record, err
 	}
-	if uint64(request.Position) >= count {
+	if !observation.Present {
 		return record, io.EOF
 	}
-	return readRecordRangeIndexPosition(ctx, request.Source, request.Position)
+	return observation.Record, nil
 }
 
 // Compare reports the ordering of the probed record against a caller-owned
@@ -194,6 +236,7 @@ func readRecordRangeIndexPosition(ctx context.Context, source RecordRangeIndexSo
 	return record, nil
 }
 
+var _ core.Validatable = RecordRangeIndexReadObservation{}
 var _ core.Validatable = RecordRangeIndexPosition(0)
 var _ core.Validatable = RecordRangeIndexReadRequest{}
 var _ core.Validatable = RecordRangeIndexSearchRequest{}

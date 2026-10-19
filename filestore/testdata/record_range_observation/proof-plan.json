@@ -1,0 +1,34 @@
+{
+  "steps": [
+    {
+      "name": "native-presence-and-stdio-contract-boundaries",
+      "kind": "test",
+      "arguments": [
+        "./filestore",
+        "-run=^(TestRecordRangeObservationDistinguishesNativeEndAndKeepsCursor|TestRecordRangeObservationRefusesPhysicalTruncationDespiteEOFCause|TestRecordRangeObservationWithdrawsAfterNativeReadCancellation|TestRecordRangeReadObservationRejectsImpossibleShapes|TestRecordRangeLookupPositionalReadPreservesCursorAndEOF|TestRecordRangeLookupRefusesMalformedAndUnavailableNativeObjects|TestRecordRangeLookupPreservesNativeReaderAtOutcomes|TestRecordRangeLookupValidatesAdmissionBeforeEffects|TestFilestorePublicIngressHasCompilerBoundSemanticProof|FuzzRecordRangeReadObservationMatchesNativeTupleOracle)$",
+        "-race",
+        "-count=1"
+      ]
+    },
+    {
+      "name": "physical-truncation-is-never-clean-end",
+      "kind": "mutate",
+      "arguments": [
+        "./filestore"
+      ],
+      "mutation": {
+        "patch": "filestore/testdata/record_range_observation/swallow_native_eof.patch",
+        "failing_test": "TestRecordRangeObservationRefusesPhysicalTruncationDespiteEOFCause"
+      }
+    },
+    {
+      "name": "native-tuple-presence-independent-byte-oracle",
+      "kind": "fuzz",
+      "arguments": [
+        "./filestore"
+      ],
+      "fuzz_target": "FuzzRecordRangeReadObservationMatchesNativeTupleOracle",
+      "fuzz_seconds": 3
+    }
+  ]
+}

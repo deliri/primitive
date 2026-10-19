@@ -90,6 +90,7 @@ func filestoreIngressProofs() []filestoreIngressProof {
 		{door: reflect.ValueOf(filestore.SortRecordIndexStream), fuzz: FuzzRecordRangeSortMatchesIndependentStableBytes},
 		{door: reflect.ValueOf(filestore.SortRecordRanges), fuzz: FuzzRecordRangeSortMatchesIndependentStableBytes},
 		{door: reflect.ValueOf(filestore.ReadRecordRangeIndex), fuzz: FuzzRecordRangeIndexCanonicalTuple},
+		{door: reflect.ValueOf(filestore.ObserveRecordRangeIndexAt), fuzz: FuzzRecordRangeReadObservationMatchesNativeTupleOracle},
 		{door: reflect.ValueOf(filestore.ReadRecordRangeIndexAt), fuzz: FuzzRecordRangeLookupMatchesIndependentForwardOracle},
 		{door: reflect.ValueOf(filestore.LowerBoundRecordRangeIndex), fuzz: FuzzRecordRangeLookupMatchesIndependentForwardOracle},
 		{door: reflect.ValueOf(filestore.WriteRecordRangeIndex), fuzz: FuzzRecordRangeIndexCanonicalTuple},

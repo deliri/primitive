@@ -1,0 +1,9 @@
+--- a/filestore/record_range_lookup.go
++++ b/filestore/record_range_lookup.go
+@@ -86,5 +86,3 @@
+ 	record, err := readRecordRangeIndexPosition(ctx, request.Source, request.Position)
+-	if err != nil {
+-		return observation, err
+-	}
++ if err != nil {if errors.Is(err,io.EOF) {return observation,nil};return observation,err}
+ 	return RecordRangeIndexReadObservation{Record: record, Present: true}, nil
