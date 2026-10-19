@@ -138,7 +138,7 @@ func TestCanonicalDeclaredProjectionRefusesUnsupportedDeclarationsAndPreservesCa
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := jsonio.WriteCanonicalProjection(t.Context(), &output, canonicalProjectionOwner{}, policy, conflictCodec); !errors.Is(err, core.ErrJSONContract) {
+	if err := jsonio.WriteCanonicalProjection(t.Context(), &output, canonicalProjectionOwner{}, policy, conflictCodec); !errors.Is(err, core.ErrJSONContract) || errors.Is(err, io.ErrClosedPipe) {
 		t.Fatalf("conflicting names error = %v", err)
 	}
 	var nilDocument *canonicalProjection
