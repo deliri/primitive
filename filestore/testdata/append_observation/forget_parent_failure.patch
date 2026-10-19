@@ -1,0 +1,10 @@
+--- a/filestore/append_observation.go
++++ b/filestore/append_observation.go
+@@ -84,7 +84,6 @@
+ 	if d == nil || d.self != d {
+ 		return core.ErrFilestoreContract
+ 	}
+-	defer func() { d.rotationError = resultErr }()
+ 	if err := errors.Join(contextstate.Validate(ctx), request.Validate()); err != nil {
+ 		if ctx != nil {
+ 			err = errors.Join(err, context.Cause(ctx))

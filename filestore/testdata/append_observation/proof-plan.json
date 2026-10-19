@@ -1,0 +1,31 @@
+{
+  "steps": [
+    {
+      "name": "parent-failure-mutation",
+      "kind": "mutate",
+      "arguments": [
+        "./filestore"
+      ],
+      "mutation": {
+        "patch": "filestore/testdata/append_observation/forget_parent_failure.patch",
+        "failing_test": "TestAppendObservationOwnsRotationFailureAndExplicitClosure/missing_parent_keeps_outgoing_and_records_acquisition_failure"
+      }
+    },
+    {
+      "name": "final-filestore-vet",
+      "kind": "vet",
+      "arguments": [
+        "./filestore"
+      ]
+    },
+    {
+      "name": "rotation-observation-fuzz",
+      "kind": "fuzz",
+      "arguments": [
+        "./filestore"
+      ],
+      "fuzz_target": "FuzzAppendRotationObservationMatchesNativeFiles",
+      "fuzz_seconds": 3
+    }
+  ]
+}
