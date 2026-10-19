@@ -17,10 +17,11 @@ import (
 // remain buffered until Flush, Sync, Rotate or Close. Sync acknowledges the
 // operating system's synchronization result, not a hardware power-loss promise.
 type AppendDestination struct {
-	self     *AppendDestination
-	file     *os.File
-	writer   *bufio.Writer
-	accepted core.ByteLength
+	self          *AppendDestination
+	file          *os.File
+	writer        *bufio.Writer
+	accepted      core.ByteLength
+	rotationError error
 }
 
 // OpenAppendDestination acquires append custody using the existing rooted
@@ -159,9 +160,12 @@ func (d *AppendDestination) Close() error {
 		return core.ErrFilestoreContract
 	}
 	if d.file == nil {
+		d.rotationError = nil
 		return nil
 	}
-	return d.settle()
+	err := d.settle()
+	d.rotationError = nil
+	return err
 }
 
 func (d *AppendDestination) settle() error {
@@ -176,7 +180,12 @@ func (d *AppendDestination) settle() error {
 // admitted it settles that file on every path, then exclusively creates the
 // incoming file. Any execution failure leaves the owner settled and unable to
 // accept zombie writes. A validation or cancellation refusal leaves it usable.
-func (d *AppendDestination) Rotate(ctx context.Context, incoming AppendRequest) error {
+func (d *AppendDestination) Rotate(ctx context.Context, incoming AppendRequest) (resultErr error) {
+	defer func() {
+		if d != nil && d.self == d {
+			d.rotationError = resultErr
+		}
+	}()
 	if err := contextstate.Validate(ctx); err != nil {
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 			err = errors.Join(err, context.Cause(ctx))

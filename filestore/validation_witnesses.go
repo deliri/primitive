@@ -8,4 +8,7 @@ var (
 	_ core.OffWireEnum = WalkDirective(0)
 	_ core.OffWireEnum = SharingUnknown
 	_ core.OffWireEnum = HeldStandingUnknown
+	_ core.OffWireEnum = AppendCustodyUnknown
+	_ core.Validatable = AppendObservation{}
+	_ core.Validatable = AppendPathRotationRequest{}
 )
