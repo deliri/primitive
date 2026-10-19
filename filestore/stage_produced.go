@@ -45,9 +45,9 @@ func StageProduced(ctx context.Context, request StageProductionRequest) (staged 
 	if err != nil {
 		return StagedFile{}, errors.Join(err, AbandonStageDestination(destination))
 	}
-	produceErr := useFileScope(ctx, file, func(ctx context.Context, file *os.File) error {
+	produceErr := useFileScope(ctx, file, fileScopeCallback{Use: func(ctx context.Context, file *os.File) error {
 		return request.Produce(ctx, file)
-	})
+	}})
 	if err := errors.Join(produceErr, contextstate.Validate(ctx)); err != nil {
 		return StagedFile{}, errors.Join(err, AbandonStageDestination(destination))
 	}

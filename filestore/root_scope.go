@@ -13,8 +13,9 @@ import (
 // closure of any child handles it acquires and must not retain the root.
 // Primitive owns acquisition and root closure, including callback refusal.
 type RootScopeRequest struct {
-	Directory core.AbsolutePath
-	Use       func(context.Context, *os.Root) error
+	Directory   core.AbsolutePath
+	Use         func(context.Context, *os.Root) error
+	PanicPolicy ScopePanicPolicy
 }
 
 func (r RootScopeRequest) Validate() error {
@@ -24,7 +25,7 @@ func (r RootScopeRequest) Validate() error {
 	if r.Use == nil {
 		return core.ErrFilestoreContract
 	}
-	return nil
+	return r.PanicPolicy.Validate()
 }
 
 // RootScopeResult separates callback meaning from native cleanup. Its zero
@@ -45,9 +46,9 @@ func (r RootScopeResult) Validate() error {
 }
 
 // WithRootScope owns one OS root and returns only after its close attempt.
-// Acquisition failures return an invalid zero result. Callback panic becomes
-// a typed refusal; its payload is not returned or logged. There is no directory
-// inventory, goroutine, filesystem model or product completion decision.
+// Acquisition failures return an invalid zero result. The selected panic
+// policy either sanitizes the callback panic or propagates it through native
+// cleanup. Panic payloads are never returned or logged in scope results.
 func WithRootScope(ctx context.Context, request RootScopeRequest) (result RootScopeResult, resultErr error) {
 	defer func() {
 		resultErr = scopeCancellationError(ctx, resultErr)
@@ -69,17 +70,20 @@ func WithRootScope(ctx context.Context, request RootScopeRequest) (result RootSc
 		result.completed = true
 		resultErr = result.Validate()
 	}()
-	result.OperationError = useRootScope(ctx, request.Use, root)
+	result.OperationError = useRootScope(ctx, request, root)
 	return result, nil
 }
 
-func useRootScope(ctx context.Context, use func(context.Context, *os.Root) error, root *os.Root) (resultErr error) {
+func useRootScope(ctx context.Context, request RootScopeRequest, root *os.Root) (resultErr error) {
+	if request.PanicPolicy == ScopePanicPropagate {
+		return request.Use(ctx, root)
+	}
 	defer func() {
 		if recover() != nil {
 			resultErr = fmt.Errorf("root scope callback: %w", core.ErrFilestoreCallbackPanic)
 		}
 	}()
-	return use(ctx, root)
+	return request.Use(ctx, root)
 }
 
 var _ core.Validatable = RootScopeRequest{}

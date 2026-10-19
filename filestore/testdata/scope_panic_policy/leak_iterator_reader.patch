@@ -1,0 +1,11 @@
+--- a/filestore/file_scope.go
++++ b/filestore/file_scope.go
+@@ -36,7 +36,7 @@
+ // has no second lifecycle model; the result records the observed close attempt.
+ func finishFileScope(ctx context.Context, file *os.File, callback fileScopeCallback) (result FileScopeResult) {
+ 	defer func() {
+-		if err := file.Close(); err != nil {
++		if err := error(nil); err != nil {
+ 			result.cleanupError = cleanupError(err)
+ 		}
+ 		result.completed = true

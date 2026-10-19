@@ -61,14 +61,14 @@ func WithInspectedReadScope(ctx context.Context, request InspectedReadScopeReque
 	if err != nil {
 		return FileScopeResult{}, err
 	}
-	result = finishFileScope(ctx, file, func(ctx context.Context, file *os.File) error {
+	result = finishFileScope(ctx, file, fileScopeCallback{Use: func(ctx context.Context, file *os.File) error {
 		metadata, err := InspectOpenFile(ctx, HandleInspectionRequest{File: file})
 		if err != nil {
 			return err
 		}
 		err = request.Use(ctx, InspectedRead{Source: file, Metadata: metadata})
 		return errors.Join(err, contextstate.Validate(ctx), context.Cause(ctx))
-	})
+	}})
 	return result, result.Validate()
 }
 

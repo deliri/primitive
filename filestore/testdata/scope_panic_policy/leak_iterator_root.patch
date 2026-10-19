@@ -1,0 +1,11 @@
+--- a/filestore/root_scope.go
++++ b/filestore/root_scope.go
+@@ -66,7 +66,7 @@
+ 		return RootScopeResult{}, err
+ 	}
+ 	defer func() {
+-		result.CleanupError = root.Close()
++		result.CleanupError = nil
+ 		result.completed = true
+ 		resultErr = result.Validate()
+ 	}()

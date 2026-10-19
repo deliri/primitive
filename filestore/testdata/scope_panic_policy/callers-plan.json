@@ -1,0 +1,20 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "affected-native-file-scope-callback-paths",
+      "kind": "test",
+      "arguments": [
+        "./filestore",
+        "-count=1",
+        "-run=^(TestRootScopeClosesBorrowedNativeRootOnReturnRefusalAndPanic|TestRootScopeRejectsInvalidIngressWithoutCallingPolicy|TestReadScopeClosesBorrowedReaderAfterSuccessRefusalAndPanic|TestReadAtScopeKeepsOneNativeInodeAndCursor|TestLockFileScopeClosesEveryConsumerOutcome|TestScratchWriterScopeClosesAfterSuccessRefusalPanicAndPrematureClose|TestScratchReplayScopeResetsNativeExtentAndClosesAfterConsumerStops|TestInspectedReadScopeWithdrawsAuthorityAcrossConsumerFailures|TestHeldAppendReadPreservesNativeAccessAndLifecycleRefusals|TestAppendReadScopeRefusesNamespaceReplacementAndPreservesCauses|TestStageProducedNativeCompletionAndRefusal)$"
+      ]
+    }
+  ]
+}

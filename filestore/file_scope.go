@@ -17,6 +17,11 @@ type FileScopeResult struct {
 	completed      bool
 }
 
+type fileScopeCallback struct {
+	Use         func(context.Context, *os.File) error
+	PanicPolicy ScopePanicPolicy
+}
+
 func (r FileScopeResult) OperationError() error { return r.operationError }
 func (r FileScopeResult) CleanupError() error   { return r.cleanupError }
 
@@ -29,24 +34,27 @@ func (r FileScopeResult) Validate() error {
 
 // finishFileScope owns the native close on every return path. The real file
 // has no second lifecycle model; the result records the observed close attempt.
-func finishFileScope(ctx context.Context, file *os.File, use func(context.Context, *os.File) error) (result FileScopeResult) {
+func finishFileScope(ctx context.Context, file *os.File, callback fileScopeCallback) (result FileScopeResult) {
 	defer func() {
 		if err := file.Close(); err != nil {
 			result.cleanupError = cleanupError(err)
 		}
 		result.completed = true
 	}()
-	result.operationError = useFileScope(ctx, file, use)
+	result.operationError = useFileScope(ctx, file, callback)
 	return result
 }
 
-func useFileScope(ctx context.Context, file *os.File, use func(context.Context, *os.File) error) (resultErr error) {
+func useFileScope(ctx context.Context, file *os.File, callback fileScopeCallback) (resultErr error) {
+	if callback.PanicPolicy == ScopePanicPropagate {
+		return callback.Use(ctx, file)
+	}
 	defer func() {
 		if recover() != nil {
 			resultErr = fmt.Errorf("file scope callback: %w", core.ErrFilestoreCallbackPanic)
 		}
 	}()
-	return use(ctx, file)
+	return callback.Use(ctx, file)
 }
 
 var _ core.Validatable = FileScopeResult{}

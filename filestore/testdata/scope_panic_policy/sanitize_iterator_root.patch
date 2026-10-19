@@ -1,0 +1,11 @@
+--- a/filestore/root_scope.go
++++ b/filestore/root_scope.go
+@@ -75,7 +75,7 @@
+ }
+ 
+ func useRootScope(ctx context.Context, request RootScopeRequest, root *os.Root) (resultErr error) {
+-	if request.PanicPolicy == ScopePanicPropagate {
++	if request.PanicPolicy == ScopePanicPropagate && false {
+ 		return request.Use(ctx, root)
+ 	}
+ 	defer func() {

@@ -46,7 +46,7 @@ func WithScratchReplayScope(ctx context.Context, request ScratchReplayScopeReque
 	if err != nil {
 		return FileScopeResult{}, err
 	}
-	result := finishFileScope(ctx, file, func(ctx context.Context, file *os.File) error { return request.Use(ctx, file) })
+	result := finishFileScope(ctx, file, fileScopeCallback{Use: func(ctx context.Context, file *os.File) error { return request.Use(ctx, file) }})
 	return result, result.Validate()
 }
 

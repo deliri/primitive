@@ -1,0 +1,11 @@
+--- a/filestore/read_scope.go
++++ b/filestore/read_scope.go
+@@ -24,7 +24,7 @@
+ 	if r.Use == nil {
+ 		return core.ErrFilestoreContract
+ 	}
+-	return r.PanicPolicy.Validate()
++	return nil
+ }
+ 
+ // WithReadScope lends only read/seek capability and returns after closure.

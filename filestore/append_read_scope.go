@@ -33,7 +33,7 @@ func (d *AppendDestination) WithInspectedReadScope(ctx context.Context, request 
 	if err != nil {
 		return FileScopeResult{}, err
 	}
-	result = finishFileScope(ctx, source, func(ctx context.Context, source *os.File) error {
+	result = finishFileScope(ctx, source, fileScopeCallback{Use: func(ctx context.Context, source *os.File) error {
 		acquired, err := source.Stat()
 		if err != nil {
 			return sourceError(err)
@@ -62,7 +62,7 @@ func (d *AppendDestination) WithInspectedReadScope(ctx context.Context, request 
 			useErr = errors.Join(useErr, core.ErrFilestoreContract)
 		}
 		return errors.Join(useErr, contextstate.Validate(ctx))
-	})
+	}})
 	return result, result.Validate()
 }
 

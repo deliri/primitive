@@ -53,9 +53,9 @@ func (d *AppendDestination) WithHeldReadScope(ctx context.Context, request HeldA
 	lifetime, cancel := context.WithCancelCause(ctx)
 	defer cancel(fs.ErrClosed)
 	reader := heldAppendReadSource{lifetime: lifetime, source: io.NewSectionReader(held, 0, length)}
-	err = useFileScope(ctx, held, func(ctx context.Context, _ *os.File) error {
+	err = useFileScope(ctx, held, fileScopeCallback{Use: func(ctx context.Context, _ *os.File) error {
 		return request.Use(ctx, InspectedRead{Source: reader, Metadata: metadata})
-	})
+	}})
 	if d.file != held {
 		err = errors.Join(err, core.ErrFilestoreContract)
 	}

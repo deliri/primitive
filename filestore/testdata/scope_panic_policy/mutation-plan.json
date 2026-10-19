@@ -1,0 +1,66 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "sanitize-iterator-root",
+      "kind": "mutate",
+      "arguments": [
+        "./filestore"
+      ],
+      "mutation": {
+        "patch": "filestore/testdata/scope_panic_policy/sanitize_iterator_root.patch",
+        "failing_test": "TestScopePanicPropagationClosesNativeRootAndReaderForIterator"
+      }
+    },
+    {
+      "name": "sanitize-iterator-reader",
+      "kind": "mutate",
+      "arguments": [
+        "./filestore"
+      ],
+      "mutation": {
+        "patch": "filestore/testdata/scope_panic_policy/sanitize_iterator_reader.patch",
+        "failing_test": "TestScopePanicPropagationClosesNativeRootAndReaderForIterator"
+      }
+    },
+    {
+      "name": "leak-iterator-root",
+      "kind": "mutate",
+      "arguments": [
+        "./filestore"
+      ],
+      "mutation": {
+        "patch": "filestore/testdata/scope_panic_policy/leak_iterator_root.patch",
+        "failing_test": "TestScopePanicPropagationClosesNativeRootAndReaderForIterator"
+      }
+    },
+    {
+      "name": "leak-iterator-reader",
+      "kind": "mutate",
+      "arguments": [
+        "./filestore"
+      ],
+      "mutation": {
+        "patch": "filestore/testdata/scope_panic_policy/leak_iterator_reader.patch",
+        "failing_test": "TestScopePanicPropagationClosesNativeRootAndReaderForIterator"
+      }
+    },
+    {
+      "name": "admit-foreign-read-policy",
+      "kind": "mutate",
+      "arguments": [
+        "./filestore"
+      ],
+      "mutation": {
+        "patch": "filestore/testdata/scope_panic_policy/admit_foreign_read_policy.patch",
+        "failing_test": "TestScopePanicPolicyExhaustiveDomainAndForeignReadAdmission"
+      }
+    }
+  ]
+}

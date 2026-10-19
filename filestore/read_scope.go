@@ -12,8 +12,9 @@ import (
 // ReadScopeRequest borrows one regular native source synchronously. Use must
 // not retain or close the reader. Primitive owns acquisition and closure.
 type ReadScopeRequest struct {
-	Use      func(context.Context, io.ReadSeeker) error
-	Location Location
+	Use         func(context.Context, io.ReadSeeker) error
+	Location    Location
+	PanicPolicy ScopePanicPolicy
 }
 
 func (r ReadScopeRequest) Validate() error {
@@ -23,12 +24,13 @@ func (r ReadScopeRequest) Validate() error {
 	if r.Use == nil {
 		return core.ErrFilestoreContract
 	}
-	return nil
+	return r.PanicPolicy.Validate()
 }
 
 // WithReadScope lends only read/seek capability and returns after closure.
 // Refused acquisition has no completed result. Callback failure, cancellation
-// or panic does not detach the real native file from its close owner.
+// or panic does not detach the real native file from its close owner. The
+// selected panic policy may propagate an iterator consumer's original panic.
 func WithReadScope(ctx context.Context, request ReadScopeRequest) (FileScopeResult, error) {
 	if err := contextstate.Validate(ctx); err != nil {
 		return FileScopeResult{}, err
@@ -40,7 +42,7 @@ func WithReadScope(ctx context.Context, request ReadScopeRequest) (FileScopeResu
 	if err != nil {
 		return FileScopeResult{}, err
 	}
-	result := finishFileScope(ctx, file, func(ctx context.Context, file *os.File) error { return request.Use(ctx, file) })
+	result := finishFileScope(ctx, file, fileScopeCallback{PanicPolicy: request.PanicPolicy, Use: func(ctx context.Context, file *os.File) error { return request.Use(ctx, file) }})
 	return result, result.Validate()
 }
 

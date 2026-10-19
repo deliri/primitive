@@ -1,0 +1,11 @@
+--- a/filestore/file_scope.go
++++ b/filestore/file_scope.go
+@@ -46,7 +46,7 @@
+ }
+ 
+ func useFileScope(ctx context.Context, file *os.File, callback fileScopeCallback) (resultErr error) {
+-	if callback.PanicPolicy == ScopePanicPropagate {
++	if callback.PanicPolicy == ScopePanicPropagate && false {
+ 		return callback.Use(ctx, file)
+ 	}
+ 	defer func() {

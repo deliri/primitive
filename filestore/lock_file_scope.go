@@ -34,7 +34,7 @@ func WithLockFileScope(ctx context.Context, request LockFileScopeRequest) (FileS
 	if err != nil {
 		return FileScopeResult{}, err
 	}
-	result := finishFileScope(ctx, file, request.Use)
+	result := finishFileScope(ctx, file, fileScopeCallback{Use: request.Use})
 	return result, result.Validate()
 }
 
