@@ -40,6 +40,8 @@ type processExternalDoorInventory struct {
 	NewEnvironmentName         func(string) (process.EnvironmentName, error)
 	NewEnvironmentValue        func(string) (process.EnvironmentValue, error)
 	NewTruncatingWriter        func(io.Writer, core.ByteCount) (*process.TruncatingWriter, error)
+	NewTailBuffer              func(core.ByteCount) (*process.TailBuffer, error)
+	TailBuffer_Write           func(*process.TailBuffer, []byte) (int, error)
 	ObserveProcesses           func(context.Context, process.ProcessVisit) error
 	ParseArguments             func([]string) ([]process.Argument, error)
 	ParseEffectiveEnvironment  func([]string) (process.Environment, error)
@@ -72,6 +74,7 @@ var processExternalDoors = processExternalDoorInventory{
 	ExitCurrent:           process.ExitCurrent,
 	NewArgument:           process.NewArgument, NewEnvironmentName: process.NewEnvironmentName, NewEnvironmentValue: process.NewEnvironmentValue,
 	NewTruncatingWriter: process.NewTruncatingWriter, ObserveProcesses: process.ObserveProcesses,
+	NewTailBuffer: process.NewTailBuffer, TailBuffer_Write: (*process.TailBuffer).Write,
 	ParseArguments: process.ParseArguments, ParseEffectiveEnvironment: process.ParseEffectiveEnvironment, ParseExactEnvironment: process.ParseExactEnvironment,
 	Resolve: process.Resolve, ResolveExecutable: process.ResolveExecutable, Run: process.Run, Self: process.Self, StandardStreams: process.StandardStreams,
 	Streams_WriteOutput: process.Streams.WriteOutput, TruncatingWriter_Write: (*process.TruncatingWriter).Write, ResultObservation_Validate: process.ResultObservation.Validate,
@@ -84,6 +87,7 @@ type processExternalFuzzProofInventory struct {
 	OutputMode_UnmarshalJSON                                                                          func(*testing.F)
 	OutputPolicy_Validate                                                                             func(*testing.F)
 	ExitCurrent                                                                                       func(*testing.F)
+	NewTailBuffer, TailBuffer_Write                                                                   func(*testing.F)
 	AmbientArguments, Begin, NewArgument, NewEnvironmentName, NewEnvironmentValue, NewTruncatingWriter,
 	ParseArguments, ParseEffectiveEnvironment, ParseExactEnvironment, Resolve, ResolveExecutable, Run,
 	Streams_WriteOutput, TruncatingWriter_Write, ResultObservation_Validate func(*testing.F)
@@ -98,6 +102,8 @@ func processExternalFuzzProofs() processExternalFuzzProofInventory {
 		OutputMode_UnmarshalJSON:   FuzzOutputModeJSONSemanticClosure,
 		OutputPolicy_Validate:      FuzzOutputPolicyExternalIngress,
 		ExitCurrent:                FuzzExitStatusValidation,
+		NewTailBuffer:              FuzzTailBufferExternalIngress,
+		TailBuffer_Write:           FuzzTailBufferExternalIngress,
 		AmbientArguments:           FuzzParseArgumentsAndAmbientExternalIngress, Begin: FuzzRunAndBeginStreamingExternalIngress,
 		NewArgument: FuzzArgumentEnvironmentAtomsExternalIngress, NewEnvironmentName: FuzzArgumentEnvironmentAtomsExternalIngress, NewEnvironmentValue: FuzzArgumentEnvironmentAtomsExternalIngress,
 		NewTruncatingWriter: FuzzTruncatingWriterExternalIngress, ParseArguments: FuzzParseArgumentsAndAmbientExternalIngress,

@@ -1,0 +1,11 @@
+--- a/process/tail_buffer.go
++++ b/process/tail_buffer.go
+@@ -83,7 +83,7 @@
+ 	if err := b.validateLocked(); err != nil {
+ 		return 0, err
+ 	}
+-	if uint64(len(data)) > math.MaxInt64-b.received {
++	if false {
+ 		return 0, errors.Join(core.ErrProcessContract, core.ErrNumericOverflow)
+ 	}
+ 	if len(data) >= len(b.storage) {

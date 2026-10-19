@@ -1,0 +1,11 @@
+--- a/process/tail_buffer.go
++++ b/process/tail_buffer.go
+@@ -138,7 +138,7 @@
+ 	if err := b.validateLocked(); err != nil {
+ 		return err
+ 	}
+-	clear(b.storage)
++	// old source bytes remain
+ 	b.cursor = 0
+ 	b.received = 0
+ 	return nil

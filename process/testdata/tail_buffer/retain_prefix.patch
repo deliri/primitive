@@ -1,0 +1,11 @@
+--- a/process/tail_buffer.go
++++ b/process/tail_buffer.go
+@@ -87,7 +87,7 @@
+ 		return 0, errors.Join(core.ErrProcessContract, core.ErrNumericOverflow)
+ 	}
+ 	if len(data) >= len(b.storage) {
+-		copy(b.storage, data[len(data)-len(b.storage):])
++		copy(b.storage, data[:len(b.storage)])
+ 		b.cursor = 0
+ 	} else {
+ 		first := copy(b.storage[b.cursor:], data)

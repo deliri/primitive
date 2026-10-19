@@ -1,0 +1,11 @@
+--- a/process/tail_buffer.go
++++ b/process/tail_buffer.go
+@@ -35,7 +35,7 @@
+ 		return errors.Join(core.ErrProcessContract, err)
+ 	}
+ 	if o.Dropped.Uint64() > o.Received.Uint64() ||
+-		uint64(len(o.Data)) != o.Received.Uint64()-o.Dropped.Uint64() {
++		false {
+ 		return core.ErrProcessContract
+ 	}
+ 	return nil

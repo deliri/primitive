@@ -1,0 +1,21 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "native-concurrent-writer-and-snapshot-custody",
+      "kind": "test",
+      "arguments": [
+        "./process",
+        "-race",
+        "-count=1",
+        "-run=^TestTailBufferConcurrentWritesAndSnapshotsAreAtomic$"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+--- a/process/tail_buffer.go
++++ b/process/tail_buffer.go
+@@ -12,6 +12,7 @@
+ // retained-memory choice, never a source limit. Write and Snapshot are atomic
+ // with respect to one another; callers own every returned snapshot.
+ type TailBuffer struct {
++	history  []byte
+ 	storage  []byte
+ 	received uint64
+ 	cursor   int
+@@ -94,6 +95,7 @@
+ 		copy(b.storage, data[first:])
+ 		b.cursor = (b.cursor + len(data)) % len(b.storage)
+ 	}
++	b.history = append(b.history, data...)
+ 	b.received += uint64(len(data))
+ 	return len(data), nil
+ }

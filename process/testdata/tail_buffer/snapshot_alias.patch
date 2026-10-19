@@ -1,0 +1,11 @@
+--- a/process/tail_buffer.go
++++ b/process/tail_buffer.go
+@@ -110,7 +110,7 @@
+ 		return TailBufferObservation{}, err
+ 	}
+ 	retained := min(b.received, uint64(len(b.storage)))
+-	data := make([]byte, int(retained))
++	data := b.storage[:int(retained)]
+ 	if retained < uint64(len(b.storage)) {
+ 		copy(data, b.storage)
+ 	} else {

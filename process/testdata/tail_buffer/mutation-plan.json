@@ -1,0 +1,77 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "retain-prefix",
+      "kind": "mutate",
+      "arguments": [
+        "./process"
+      ],
+      "mutation": {
+        "patch": "process/testdata/tail_buffer/retain_prefix.patch",
+        "failing_test": "TestTailBufferConservesOrderedSuffixAcrossChunkBoundaries/8"
+      }
+    },
+    {
+      "name": "ignore-ring-order",
+      "kind": "mutate",
+      "arguments": [
+        "./process"
+      ],
+      "mutation": {
+        "patch": "process/testdata/tail_buffer/ignore_ring_order.patch",
+        "failing_test": "TestTailBufferConservesOrderedSuffixAcrossChunkBoundaries/8"
+      }
+    },
+    {
+      "name": "snapshot-alias",
+      "kind": "mutate",
+      "arguments": [
+        "./process"
+      ],
+      "mutation": {
+        "patch": "process/testdata/tail_buffer/snapshot_alias.patch",
+        "failing_test": "TestTailBufferResetAndSnapshotHaveIndependentOwnership"
+      }
+    },
+    {
+      "name": "skip-overflow-admission",
+      "kind": "mutate",
+      "arguments": [
+        "./process"
+      ],
+      "mutation": {
+        "patch": "process/testdata/tail_buffer/skip_overflow_admission.patch",
+        "failing_test": "TestTailBufferNumericOverflowIsAtomic"
+      }
+    },
+    {
+      "name": "preserve-reset-bytes",
+      "kind": "mutate",
+      "arguments": [
+        "./process"
+      ],
+      "mutation": {
+        "patch": "process/testdata/tail_buffer/preserve_reset_bytes.patch",
+        "failing_test": "TestTailBufferResetAndSnapshotHaveIndependentOwnership"
+      }
+    },
+    {
+      "name": "admit-missing-bytes",
+      "kind": "mutate",
+      "arguments": [
+        "./process"
+      ],
+      "mutation": {
+        "patch": "process/testdata/tail_buffer/admit_missing_bytes.patch",
+        "failing_test": "TestTailBufferObservationConservationLayerTriad/negative_missing_byte"
+      }
+    }
+  ]
+}

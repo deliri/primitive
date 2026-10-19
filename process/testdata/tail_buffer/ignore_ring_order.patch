@@ -1,0 +1,12 @@
+--- a/process/tail_buffer.go
++++ b/process/tail_buffer.go
+@@ -114,8 +114,7 @@
+ 	if retained < uint64(len(b.storage)) {
+ 		copy(data, b.storage)
+ 	} else {
+-		first := copy(data, b.storage[b.cursor:])
+-		copy(data[first:], b.storage[:b.cursor])
++		copy(data, b.storage)
+ 	}
+ 	received, err := core.NewByteLength(b.received)
+ 	if err != nil {
