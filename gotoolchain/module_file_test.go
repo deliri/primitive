@@ -17,6 +17,9 @@ import (
 	"github.com/deliri/primitive/v2026/testserial"
 )
 
+// This is a new boundary with no prior executable API. Compilation failure is
+// not a red result: actual native-file contracts and semantic mutations must
+// establish the ratchet before publication.
 func TestObserveModuleFileUsesNativeGoWithoutEditingOrResolvingDependencies(t *testing.T) {
 	t.Parallel()
 	for _, row := range []struct {
@@ -69,6 +72,62 @@ func TestObserveModuleFileUsesNativeGoWithoutEditingOrResolvingDependencies(t *t
 				t.Fatalf("native Go parityerror%v refusal%t", nativeErr, row.refusal)
 			}
 		})
+	}
+}
+
+func TestNativeModuleFileProducerProjectionMatrix(t *testing.T) {
+	t.Parallel()
+	for _, version := range []struct {
+		name, directive, token string
+		presence               ModuleGoDeclaration
+		refusal                bool
+	}{
+		{name: "absent", presence: ModuleGoDeclarationAbsent},
+		{name: "release", directive: "go 1.27.2\n", token: "go1.27.2", presence: ModuleGoDeclarationPresent},
+		{name: "language", directive: "go 1.27\n", token: "go1.27", presence: ModuleGoDeclarationPresent},
+		{name: "older release", directive: "go 1.26.99\n", token: "go1.26.99", presence: ModuleGoDeclarationPresent},
+		{name: "prerelease", directive: "go 1.27rc1\n", token: "go1.27rc1", presence: ModuleGoDeclarationPresent},
+		{name: "custom suffix", directive: "go 1.27.2-custom\n", refusal: true},
+		{name: "duplicate", directive: "go 1.27.2\ngo 1.27\n", refusal: true},
+		{name: "leading zero", directive: "go 1.027\n", refusal: true},
+	} {
+		for _, replacement := range []struct {
+			name, text string
+			count      uint64
+			refusal    bool
+		}{
+			{name: "none"},
+			{name: "local", text: "replace example.invalid/a => ../absent-a\n", count: 1},
+			{name: "remote", text: "replace example.invalid/a v1.0.0 => example.invalid/b v1.2.3\n", count: 1},
+			{name: "block", text: "replace (\nexample.invalid/a => ../absent-a\nexample.invalid/b => ../absent-b\n)\n", count: 2},
+			{name: "comment", text: "// replace example.invalid/a => ../absent-a\n"},
+			{name: "unresolved requirement", text: "require example.invalid/unavailable v1.0.0\n"},
+			{name: "broken", text: "replace example.invalid/a =>\n", refusal: true},
+		} {
+			t.Run(version.name+"/"+replacement.name, func(t *testing.T) {
+				t.Parallel()
+				directory := t.TempDir()
+				source := []byte("module example.com/native-matrix\n" + version.directive + replacement.text)
+				path := filepath.Join(directory, "go.mod")
+				if err := os.WriteFile(path, source, 0600); err != nil {
+					t.Fatal(err)
+				}
+				capability, request := installationFixtureCapability(t, directory, []string{"GOTOOLCHAIN=local", "GOPROXY=off", "GOSUMDB=off"})
+				observed, err := capability.ObserveModuleFile(t.Context(), request)
+				if version.refusal || replacement.refusal {
+					var exit CommandExitError
+					if observed != (ModuleFileObservation{}) || !errors.Is(err, core.ErrGoToolchainExecution) || !errors.As(err, &exit) || exit.Process.ExitCode == 0 {
+						t.Fatalf("native matrix refusal%s/%s got%+v/%v", version.name, replacement.name, observed, err)
+					}
+				} else if err != nil || observed.Validate() != nil || observed.GoDeclaration != version.presence || observed.GoVersion.String() != version.token || observed.Replacements != replacement.count {
+					t.Fatalf("native matrix%s/%s got%+v/%v want%s/%s/%d", version.name, replacement.name, observed, err, version.presence, version.token, replacement.count)
+				}
+				after, err := os.ReadFile(path)
+				if err != nil || !bytes.Equal(source, after) {
+					t.Fatalf("native matrix modified source%t error%v", !bytes.Equal(source, after), err)
+				}
+			})
+		}
 	}
 }
 
