@@ -1,0 +1,104 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    },
+    "job": {
+      "cpu": 2,
+      "memory_bytes": 4294967296,
+      "scratch_bytes": 4294967296
+    }
+  },
+  "steps": [
+    {
+      "name": "copy-unit-ID-replaces-native-owner",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/ssa_unit/copy-unit-ID-replaces-native-owner.patch",
+        "failing_test": "TestSSAUnitRefusesMissingForeignAndIncompleteOwners/copied_native_metadata_is_not_selected_unit"
+      }
+    },
+    {
+      "name": "incomplete-unit-becomes-native-loan",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/ssa_unit/incomplete-unit-becomes-native-loan.patch",
+        "failing_test": "TestSSAUnitRefusesMissingForeignAndIncompleteOwners/incomplete_analysis_cannot_supply_native_IR"
+      }
+    },
+    {
+      "name": "skip-native-SSA-build",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/ssa_unit/skip-native-SSA-build.patch",
+        "failing_test": "TestSSAUnitLoansNativeCallKindsTargetsAndOperands/direct_receiver"
+      }
+    },
+    {
+      "name": "swallow-SSA-consumer-refusal",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/ssa_unit/swallow-SSA-consumer-refusal.patch",
+        "failing_test": "TestSSAUnitPreservesConsumerAndCancellationCauses/consumer_refusal"
+      }
+    },
+    {
+      "name": "drop-SSA-loan-cancellation-cause",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/ssa_unit/drop-SSA-loan-cancellation-cause.patch",
+        "failing_test": "TestSSAUnitPreservesConsumerAndCancellationCauses/cancel_during_loan"
+      }
+    },
+    {
+      "name": "swallow-SSA-consumer-panic",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/ssa_unit/swallow-SSA-consumer-panic.patch",
+        "failing_test": "TestSSAUnitConsumerPanicIsNotCompilerRefusal"
+      }
+    },
+    {
+      "name": "erase-SSA-builder-refusal",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/ssa_unit/erase-SSA-builder-refusal.patch",
+        "failing_test": "TestSSAUnitMalformedNativeFactsDoNotBecomeLoan"
+      }
+    },
+    {
+      "name": "mix-native-SSA-program-ownership",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/ssa_unit/mix-native-SSA-program-ownership.patch",
+        "failing_test": "TestSSAUnitViewRequiresOneBuiltNativeGraph"
+      }
+    }
+  ]
+}

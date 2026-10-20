@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_unit.go
++++ b/gotoolchain/ssa_unit.go
+@@ -61,7 +61,7 @@
+ 		return err
+ 	}
+ 	if a.Incomplete {
+-		return core.ErrGoToolchainOutput
++		_ = a.Incomplete
+ 	}
+ 	owns := false
+ 	for _, unit := range a.Units {

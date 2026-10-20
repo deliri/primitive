@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_unit.go
++++ b/gotoolchain/ssa_unit.go
+@@ -41,7 +41,7 @@
+ 	if v.Source == nil || v.Source.Types == nil || v.Source.TypesInfo == nil || v.Source.Fset == nil || v.Program == nil || v.Package == nil {
+ 		return core.ErrGoToolchainContract
+ 	}
+-	if v.Package.Prog != v.Program || v.Program.Fset != v.Source.Fset || v.Package.Pkg != v.Source.Types || v.Program.Package(v.Source.Types) != v.Package {
++	if v.Package == nil {
+ 		return core.ErrGoToolchainContract
+ 	}
+ 	if initial := v.Package.Func("init"); initial == nil || len(initial.Blocks) == 0 {

@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_unit.go
++++ b/gotoolchain/ssa_unit.go
+@@ -81,7 +81,7 @@
+ 	if err := errors.Join(view.Validate(), temporal.Wait(temporal.WaitRequest{Context: ctx})); err != nil {
+ 		return err
+ 	}
+-	err = request.Use(ctx, view)
++	func(){defer func(){if recover()!=nil{err=core.ErrGoToolchainOutput}}();err=request.Use(ctx,view)}()
+ 	return errors.Join(err, temporal.Wait(temporal.WaitRequest{Context: ctx}))
+ }
+ 

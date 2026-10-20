@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_unit.go
++++ b/gotoolchain/ssa_unit.go
+@@ -82,7 +82,7 @@
+ 		return err
+ 	}
+ 	err = request.Use(ctx, view)
+-	return errors.Join(err, temporal.Wait(temporal.WaitRequest{Context: ctx}))
++	return err
+ }
+ 
+ // A native compiler assertion is a refused observation. Limit recovery to Go's

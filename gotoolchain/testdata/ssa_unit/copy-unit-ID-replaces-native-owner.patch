@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_unit.go
++++ b/gotoolchain/ssa_unit.go
+@@ -65,7 +65,7 @@
+ 	}
+ 	owns := false
+ 	for _, unit := range a.Units {
+-		if unit == request.Unit {
++		if unit.ID == request.Unit.ID {
+ 			owns = true
+ 			break
+ 		}

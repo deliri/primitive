@@ -1,0 +1,10 @@
+--- a/gotoolchain/ssa_unit.go
++++ b/gotoolchain/ssa_unit.go
+@@ -103,6 +103,6 @@
+ 		program.CreatePackage(imported, nil, nil, true)
+ 	}
+ 	compiled = program.CreatePackage(unit.Types, unit.Syntax, unit.TypesInfo, false)
+-	compiled.Build()
++	_ = compiled
+ 	return program, compiled, nil
+ }
