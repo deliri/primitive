@@ -1,0 +1,122 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    },
+    "job": {
+      "cpu": 2,
+      "memory_bytes": 4294967296,
+      "scratch_bytes": 4294967296
+    }
+  },
+  "steps": [
+    {
+      "name": "native-literal-invocation-contracts",
+      "kind": "test",
+      "arguments": [
+        "./gotoolchain",
+        "-count=1",
+        "-run=^(TestLiteralInvocationBorrowsOnlyNativeSynchronousTarget|TestLiteralInvocationRefusesForeignAndMissingCompilerFacts|TestLiteralInvocationObservationRefusesContradictoryPresence|TestGoToolchainProductionStructsHaveCompilerVisibleDataFlowRoles)$"
+      ]
+    },
+    {
+      "name": "accept-foreign-call-position",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/literal_invocation/accept-foreign-call-position.patch",
+        "failing_test": "TestLiteralInvocationRefusesForeignAndMissingCompilerFacts/foreign_call"
+      }
+    },
+    {
+      "name": "silence-missing-native-call-facts",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/literal_invocation/silence-missing-native-call-facts.patch",
+        "failing_test": "TestLiteralInvocationRefusesForeignAndMissingCompilerFacts/missing_call_fact"
+      }
+    },
+    {
+      "name": "lose-native-query-cancellation",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/literal_invocation/lose-native-query-cancellation.patch",
+        "failing_test": "TestLiteralInvocationRefusesForeignAndMissingCompilerFacts/cancelled"
+      }
+    },
+    {
+      "name": "borrow-first-literal-after-reassignment",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/literal_invocation/borrow-first-literal-after-reassignment.patch",
+        "failing_test": "TestLiteralInvocationBorrowsOnlyNativeSynchronousTarget/Reassigned0"
+      }
+    },
+    {
+      "name": "invent-native-target-for-phi",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/literal_invocation/invent-native-target-for-phi.patch",
+        "failing_test": "TestLiteralInvocationBorrowsOnlyNativeSynchronousTarget/Conditional0"
+      }
+    },
+    {
+      "name": "promote-go-and-defer-to-synchronous",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/literal_invocation/promote-go-and-defer-to-synchronous.patch",
+        "failing_test": "TestLiteralInvocationBorrowsOnlyNativeSynchronousTarget/Asynchronous0"
+      }
+    },
+    {
+      "name": "match-function-position-instead-of-call-parenthesis",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/literal_invocation/match-function-position-instead-of-call-parenthesis.patch",
+        "failing_test": "TestLiteralInvocationBorrowsOnlyNativeSynchronousTarget/Stored0"
+      }
+    },
+    {
+      "name": "allow-contradictory-absence",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/literal_invocation/allow-contradictory-absence.patch",
+        "failing_test": "TestLiteralInvocationObservationRefusesContradictoryPresence"
+      }
+    },
+    {
+      "name": "native-literal-invocation-semantic-fuzz",
+      "kind": "fuzz",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "fuzz_target": "FuzzLiteralInvocationPreservesNativeTargetsUnderRenaming",
+      "fuzz_seconds": 3
+    }
+  ]
+}

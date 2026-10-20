@@ -1,0 +1,13 @@
+--- a/gotoolchain/literal_invocation.go
++++ b/gotoolchain/literal_invocation.go
+@@ -92,8 +92,8 @@
+ 		}
+ 		calleeType := unit.TypesInfo.TypeOf(request.Call.Fun)
+ 		if _, exists := unit.TypesInfo.Types[request.Call]; !exists || calleeType == nil {
+-			return LiteralInvocationObservation{}, core.ErrGoToolchainOutput
+-		}
++ return LiteralInvocationObservation{Presence:FunctionSourceAbsent},nil
++ }
+ 		if _, ok := calleeType.Underlying().(*types.Signature); !ok {
+ 			return LiteralInvocationObservation{Presence: FunctionSourceAbsent}, nil
+ 		}

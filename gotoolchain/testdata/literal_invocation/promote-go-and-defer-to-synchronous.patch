@@ -1,0 +1,11 @@
+--- a/gotoolchain/literal_invocation.go
++++ b/gotoolchain/literal_invocation.go
+@@ -146,7 +146,7 @@
+ 			if !ok || invocation.Common().Pos() != call.Lparen {
+ 				continue
+ 			}
+-			if _, synchronous := instruction.(*ssa.Call); !synchronous {
++			if _, synchronous := instruction.(*ssa.Call); !synchronous&&invocation.Common().StaticCallee()==nil {
+ 				return LiteralInvocationObservation{Presence: FunctionSourceAbsent}, true, nil
+ 			}
+ 			target := invocation.Common().StaticCallee()

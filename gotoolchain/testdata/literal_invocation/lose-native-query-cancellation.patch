@@ -1,0 +1,16 @@
+--- a/gotoolchain/literal_invocation.go
++++ b/gotoolchain/literal_invocation.go
+@@ -65,10 +65,11 @@
+ // The native builder is synchronous; cancellation is checked around construction
+ // and before each query traversal/instruction.
+ func (a PackageAnalysis) LiteralInvocation(ctx context.Context, request LiteralInvocationRequest) (LiteralInvocationObservation, error) {
+-	if err := errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), a.Validate(), request.Validate()); err != nil {
++	if err := errors.Join(temporal.Wait(temporal.WaitRequest{Context: context.WithoutCancel(ctx)}), a.Validate(), request.Validate()); err != nil {
+ 		return LiteralInvocationObservation{}, err
+ 	}
+-	if a.Incomplete {
++	ctx=context.WithoutCancel(ctx)
++ if a.Incomplete {
+ 		return LiteralInvocationObservation{}, core.ErrGoToolchainOutput
+ 	}
+ 	for _, unit := range a.Units {

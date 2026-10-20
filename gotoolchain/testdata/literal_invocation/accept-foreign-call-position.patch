@@ -1,0 +1,11 @@
+--- a/gotoolchain/literal_invocation.go
++++ b/gotoolchain/literal_invocation.go
+@@ -78,7 +78,7 @@
+ 				if err != nil {
+ 					return LiteralInvocationObservation{}, err
+ 				}
+-				if syntax.Node == request.Call {
++				if syntax.Node.Pos() == request.Call.Pos() {
+ 					owns = true
+ 					break
+ 				}

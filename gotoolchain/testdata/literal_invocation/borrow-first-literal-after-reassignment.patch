@@ -1,0 +1,10 @@
+--- a/gotoolchain/literal_invocation.go
++++ b/gotoolchain/literal_invocation.go
+@@ -150,6 +150,7 @@
+ 				return LiteralInvocationObservation{Presence: FunctionSourceAbsent}, true, nil
+ 			}
+ 			target := invocation.Common().StaticCallee()
++ if len(function.AnonFuncs)>0 {target=function.AnonFuncs[0]}
+ 			if target == nil {
+ 				return LiteralInvocationObservation{Presence: FunctionSourceAbsent}, true, nil
+ 			}

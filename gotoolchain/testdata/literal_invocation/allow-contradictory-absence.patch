@@ -1,0 +1,11 @@
+--- a/gotoolchain/literal_invocation.go
++++ b/gotoolchain/literal_invocation.go
+@@ -39,7 +39,7 @@
+ 		return err
+ 	}
+ 	if o.Presence == FunctionSourceAbsent {
+-		if o.Literal != nil || o.Types != nil || o.Positions != nil {
++		if o.Literal != nil && o.Types != nil && o.Positions != nil {
+ 			return core.ErrGoToolchainContract
+ 		}
+ 		return nil
