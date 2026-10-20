@@ -1,0 +1,131 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    },
+    "job": {
+      "cpu": 2,
+      "memory_bytes": 4294967296,
+      "scratch_bytes": 4294967296
+    }
+  },
+  "steps": [
+    {
+      "name": "native-outer-binding-scope-and-visibility",
+      "kind": "test",
+      "arguments": [
+        "./gotoolchain",
+        "-count=1",
+        "-run=^(TestOuterVariableNativeScopeLayerTriad|TestOuterVariableNativeVisibilityBoundary|TestOuterVariableNativeRefusalsAndUnparentedNeutral|TestGoToolchainProductionStructsHaveCompilerVisibleDataFlowRoles)$"
+      ]
+    },
+    {
+      "name": "native-outer-binding-working-memory",
+      "kind": "test",
+      "arguments": [
+        "./gotoolchain",
+        "-count=1",
+        "-run=^TestOuterVariableNativeLookupDoesNotBuildScopeInventory$"
+      ]
+    },
+    {
+      "name": "lookup-current-scope",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/outer_variable/lookup-current-scope.patch",
+        "failing_test": "TestOuterVariableNativeVisibilityBoundary/current_declaration_remains_excluded_when_visible"
+      }
+    },
+    {
+      "name": "ignore-visibility",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/outer_variable/ignore-visibility.patch",
+        "failing_test": "TestOuterVariableNativeVisibilityBoundary/before_outer_declaration"
+      }
+    },
+    {
+      "name": "skip-nearest",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/outer_variable/skip-nearest.patch",
+        "failing_test": "TestOuterVariableNativeScopeLayerTriad/nearest_enclosing_variable_wins"
+      }
+    },
+    {
+      "name": "invent-absent-variable",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/outer_variable/invent-absent-variable.patch",
+        "failing_test": "TestOuterVariableNativeScopeLayerTriad/function_local_has_no_outer_variable"
+      }
+    },
+    {
+      "name": "erase-nearer-non-variable",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/outer_variable/erase-nearer-non-variable.patch",
+        "failing_test": "TestOuterVariableNativeScopeLayerTriad/nearer_constant_hides_more_distant_variable"
+      }
+    },
+    {
+      "name": "drop-custom-cause",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/outer_variable/drop-custom-cause.patch",
+        "failing_test": "TestOuterVariableNativeRefusalsAndUnparentedNeutral/cancelled_context_retains_owner_cause"
+      }
+    },
+    {
+      "name": "ignore-terminal-context",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/outer_variable/ignore-terminal-context.patch",
+        "failing_test": "TestOuterVariableNativeRefusalsAndUnparentedNeutral/cancelled_context_retains_owner_cause"
+      }
+    },
+    {
+      "name": "retain-scope-inventory",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/outer_variable/retain-scope-inventory.patch",
+        "failing_test": "TestOuterVariableNativeLookupDoesNotBuildScopeInventory/16385"
+      }
+    },
+    {
+      "name": "native-outer-binding-semantic-fuzz",
+      "kind": "fuzz",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "fuzz_target": "FuzzOuterVariableMatchesNativeDeclarationIdentity",
+      "fuzz_seconds": 3
+    }
+  ]
+}

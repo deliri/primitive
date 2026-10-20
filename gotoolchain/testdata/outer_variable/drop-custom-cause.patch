@@ -1,0 +1,11 @@
+--- a/gotoolchain/outer_variable.go
++++ b/gotoolchain/outer_variable.go
+@@ -40,7 +40,7 @@
+ func ObserveOuterVariable(ctx context.Context, request OuterVariableRequest) (OuterVariableObservation, error) {
+ 	if err := errors.Join(contextstate.Validate(ctx), request.Validate()); err != nil {
+ 		if ctx != nil {
+-			err = errors.Join(err, context.Cause(ctx))
++			err = errors.Join(err, nil)
+ 		}
+ 		return OuterVariableObservation{}, errors.Join(core.ErrGoToolchainContract, err)
+ 	}

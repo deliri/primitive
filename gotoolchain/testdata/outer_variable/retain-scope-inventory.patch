@@ -1,0 +1,13 @@
+--- a/gotoolchain/outer_variable.go
++++ b/gotoolchain/outer_variable.go
+@@ -46,7 +46,9 @@
+ 	}
+ 	var observation OuterVariableObservation
+ 	if scope := request.Variable.Parent(); scope != nil && scope.Parent() != nil {
+-		_, object := scope.Parent().LookupParent(request.Variable.Name(), request.Position)
++		var scopes []*types.Scope
++		for current:=scope.Parent(); current!=nil; current=current.Parent(){ scopes=append(scopes,current) }
++		_, object := scopes[0].LookupParent(request.Variable.Name(), request.Position)
+ 		observation.Variable, _ = object.(*types.Var)
+ 	}
+ 	if err := errors.Join(contextstate.Validate(ctx), context.Cause(ctx)); err != nil {
