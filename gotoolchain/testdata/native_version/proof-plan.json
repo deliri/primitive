@@ -1,0 +1,109 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    },
+    "job": {
+      "cpu": 2,
+      "memory_bytes": 4294967296,
+      "scratch_bytes": 4294967296
+    }
+  },
+  "steps": [
+    {
+      "name": "native-go-version-grammar-and-borrowed-storage",
+      "kind": "test",
+      "arguments": [
+        "./gotoolchain",
+        "-count=1",
+        "-run=^(TestToolchainVersionUsesNativeGoGrammar|TestToolchainVersionBorrowsNativeTokenWithoutAllocatingItsExtent|TestCompilerScalarsRejectUnknownAndPreserveCanonicalValues)$"
+      ]
+    },
+    {
+      "name": "reintroduce-64-byte-limit",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/native_version/reintroduce-64-byte-limit.patch",
+        "failing_test": "TestToolchainVersionUsesNativeGoGrammar"
+      }
+    },
+    {
+      "name": "reject-native-release-candidate",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/native_version/reject-native-release-candidate.patch",
+        "failing_test": "TestToolchainVersionUsesNativeGoGrammar"
+      }
+    },
+    {
+      "name": "invent-malformed-native-version",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/native_version/invent-malformed-native-version.patch",
+        "failing_test": "TestToolchainVersionUsesNativeGoGrammar"
+      }
+    },
+    {
+      "name": "admit-non-utf8-custom-suffix",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/native_version/admit-non-utf8-custom-suffix.patch",
+        "failing_test": "TestToolchainVersionUsesNativeGoGrammar"
+      }
+    },
+    {
+      "name": "replace-borrowed-version-data",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/native_version/replace-borrowed-version-data.patch",
+        "failing_test": "TestToolchainVersionUsesNativeGoGrammar"
+      }
+    },
+    {
+      "name": "copy-whole-native-token",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/native_version/copy-whole-native-token.patch",
+        "failing_test": "TestToolchainVersionBorrowsNativeTokenWithoutAllocatingItsExtent"
+      }
+    },
+    {
+      "name": "FuzzToolchainVersionNativeAdmissionParity",
+      "kind": "fuzz",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "fuzz_target": "FuzzToolchainVersionNativeAdmissionParity",
+      "fuzz_seconds": 3
+    },
+    {
+      "name": "FuzzCompilerScalarSemanticClosure",
+      "kind": "fuzz",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "fuzz_target": "FuzzCompilerScalarSemanticClosure",
+      "fuzz_seconds": 3
+    }
+  ]
+}

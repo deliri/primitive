@@ -1,0 +1,11 @@
+--- a/gotoolchain/contracts.go
++++ b/gotoolchain/contracts.go
+@@ -119,7 +119,7 @@
+ 
+ // ParseToolchainVersion delegates grammar to the standard Go version parser.
+ func ParseToolchainVersion(value string) (ToolchainVersion, error) {
+-	version := ToolchainVersion{value: value}
++	version := ToolchainVersion{value: strings.Clone(value)}
+ 	if err := version.Validate(); err != nil {
+ 		return ToolchainVersion{}, err
+ 	}

@@ -5,6 +5,7 @@ import (
 	"go/token"
 	"go/version"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/gomodule"
@@ -17,8 +18,7 @@ const (
 	// DefaultOutputBytes is the default caller budget for cmd/go output.
 	DefaultOutputBytes = 4 << 20
 	// DefaultPackageMaximum is the default caller budget for package metadata.
-	DefaultPackageMaximum        = 4096
-	toolchainVersionMaximumBytes = 64
+	DefaultPackageMaximum = 4096
 )
 
 // WorkspaceMode controls whether cmd/go may consult an ambient go.work file.
@@ -114,10 +114,10 @@ func (c Configuration) Validate() error {
 	return nil
 }
 
-// ToolchainVersion is one bounded cmd/go version token.
+// ToolchainVersion borrows one UTF-8 version token admitted by Go.
 type ToolchainVersion struct{ value string }
 
-// ParseToolchainVersion admits one canonical cmd/go version token.
+// ParseToolchainVersion delegates grammar to the standard Go version parser.
 func ParseToolchainVersion(value string) (ToolchainVersion, error) {
 	version := ToolchainVersion{value: value}
 	if err := version.Validate(); err != nil {
@@ -127,25 +127,8 @@ func ParseToolchainVersion(value string) (ToolchainVersion, error) {
 }
 
 func (v ToolchainVersion) Validate() error {
-	if len(v.value) > toolchainVersionMaximumBytes || !strings.HasPrefix(v.value, goVersionPrefix) || !version.IsValid(v.value) {
-		return contractError("toolchain version is not canonical")
-	}
-	for component := range strings.SplitSeq(v.value[len(goVersionPrefix):], ".") {
-		if err := validateVersionComponent(component); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func validateVersionComponent(component string) error {
-	if component == "" {
-		return contractError("toolchain version contains an empty component")
-	}
-	for _, value := range component {
-		if value < '0' || value > '9' {
-			return contractError("toolchain version contains a nonnumeric component")
-		}
+	if !utf8.ValidString(v.value) || !version.IsValid(v.value) {
+		return contractError("toolchain version is not a native Go version")
 	}
 	return nil
 }

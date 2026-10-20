@@ -288,10 +288,10 @@ func TestCompilerScalarsRejectUnknownAndPreserveCanonicalValues(t *testing.T) {
 		{name: "future canonical major component", value: "go1.100.2"},
 		{name: "absent token refused", value: "", wantErr: true},
 		{name: "missing go prefix refused", value: "1.27.0", wantErr: true},
-		{name: "missing major one refused", value: "go2.0", wantErr: true},
+		{name: "native future major accepted", value: "go2.0"},
 		{name: "empty numeric component refused", value: "go1..2", wantErr: true},
 		{name: "trailing empty numeric component refused", value: "go1.27.", wantErr: true},
-		{name: "nonnumeric suffix refused", value: "go1.27rc1", wantErr: true},
+		{name: "native release candidate accepted", value: "go1.27rc1"},
 		{name: "whitespace refused", value: "go1.27.0 ", wantErr: true},
 	}
 	for _, tc := range versions {

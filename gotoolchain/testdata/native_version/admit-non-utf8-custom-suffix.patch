@@ -1,0 +1,11 @@
+--- a/gotoolchain/contracts.go
++++ b/gotoolchain/contracts.go
+@@ -127,7 +127,7 @@
+ }
+ 
+ func (v ToolchainVersion) Validate() error {
+-	if !utf8.ValidString(v.value) || !version.IsValid(v.value) {
++	if (!utf8.ValidString(v.value) && false) || !version.IsValid(v.value) {
+ 		return contractError("toolchain version is not a native Go version")
+ 	}
+ 	return nil

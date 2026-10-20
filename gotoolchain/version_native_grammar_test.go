@@ -8,6 +8,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/testserial"
 )
 
 func TestToolchainVersionUsesNativeGoGrammar(t *testing.T) {
@@ -59,4 +60,17 @@ func FuzzToolchainVersionNativeAdmissionParity(f *testing.F) {
 			t.Fatalf("native version closure:%+v/%+v/%v", got, roundtrip, err)
 		}
 	})
+}
+
+func TestToolchainVersionBorrowsNativeTokenWithoutAllocatingItsExtent(t *testing.T) {
+	testserial.Declare(t, core.TestIsolationDeclaration{Hazard: core.TestIsolationHazardRuntimeAllocation, Scope: core.TestIsolationScopePackageProcess})
+	for _, extent := range []int{64, 4097, 131073} {
+		value := "go1.27.0-" + strings.Repeat("custom", extent)
+		var got ToolchainVersion
+		var err error
+		allocations := testing.AllocsPerRun(16, func() { got, err = ParseToolchainVersion(value) })
+		if err != nil || got.String() != value || allocations != 0 {
+			t.Fatalf("native token extent%d: allocations%g result%q error%v", extent, allocations, got.String(), err)
+		}
+	}
 }

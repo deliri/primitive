@@ -5,6 +5,7 @@ import (
 	"go/version"
 	"strings"
 	"testing"
+	"unicode/utf8"
 
 	"github.com/deliri/primitive/v2026/core"
 )
@@ -25,13 +26,16 @@ func FuzzCompilerScalarSemanticClosure(f *testing.F) {
 	f.Add("go1.27.1.1", true)
 	f.Add("go1.027.1", true)
 	f.Add("go1.27.01", true)
-	f.Add(strings.Repeat("1", toolchainVersionMaximumBytes+1), true)
+	f.Add("go1."+strings.Repeat("9", 65), true)
 	f.Add("", true)
 	f.Add("_", false)
 	f.Add("package", false)
 	f.Fuzz(func(t *testing.T, value string, isVersion bool) {
 		if isVersion {
 			got, err := ParseToolchainVersion(value)
+			if (err == nil) != (utf8.ValidString(value) && version.IsValid(value)) {
+				t.Fatalf("native version parity for %q: %v", value, err)
+			}
 			if err != nil {
 				if !errors.Is(err, core.ErrGoToolchainContract) || got != (ToolchainVersion{}) {
 					t.Fatalf("ParseToolchainVersion(refused) = (%v,%v), want zero and typed refusal", got, err)
