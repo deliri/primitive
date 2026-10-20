@@ -13,12 +13,30 @@
   },
   "steps": [
     {
-      "name": "native-go-version-grammar-and-borrowed-storage",
+      "name": "native-version-previously-refused-leaves",
       "kind": "test",
       "arguments": [
         "./gotoolchain",
         "-count=1",
-        "-run=^(TestToolchainVersionUsesNativeGoGrammar|TestToolchainVersionBorrowsNativeTokenWithoutAllocatingItsExtent|TestCompilerScalarsRejectUnknownAndPreserveCanonicalValues)$"
+        "-run=^TestToolchainVersionUsesNativeGoGrammar$/^(go0\\.0|go2\\.0|go2\\.1rc1|go1|go1\\.999.*|go1\\.27beta1|go1\\.27beta|go1\\.27foo|go1\\.27rc[012]|go1\\.0-custom|go1\\.27\\.1-custom|go1\\.27\\.0-(|\u03b1|\\\\x00|custom.*))$"
+      ]
+    },
+    {
+      "name": "native-version-changed-former-exclusions",
+      "kind": "test",
+      "arguments": [
+        "./gotoolchain",
+        "-count=1",
+        "-run=^TestCompilerScalarsRejectUnknownAndPreserveCanonicalValues$/^(native_future_major_accepted|native_release_candidate_accepted)$"
+      ]
+    },
+    {
+      "name": "native-version-borrowed-storage",
+      "kind": "test",
+      "arguments": [
+        "./gotoolchain",
+        "-count=1",
+        "-run=^TestToolchainVersionBorrowsNativeTokenWithoutAllocatingItsExtent$"
       ]
     },
     {
