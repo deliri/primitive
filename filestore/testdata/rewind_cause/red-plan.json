@@ -1,0 +1,11 @@
+{
+  "requirements": {
+    "environment": {"go_experiments": ["jsonv2"]},
+    "job": {"cpu": 2, "memory_bytes": 4294967296, "scratch_bytes": 4294967296}
+  },
+  "steps": [{
+    "name": "native-rewind-custom-cause",
+    "kind": "test",
+    "arguments": ["./filestore", "-count=1", "-run=^TestRewindRetainsNativeCustomCancellationCause$"]
+  }]
+}
