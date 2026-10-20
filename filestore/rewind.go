@@ -5,8 +5,8 @@ import (
 	"errors"
 	"io"
 
-	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/temporal"
 )
 
 // RewindRequest borrows a Go stream's seek capability. Its zero value is
@@ -24,7 +24,7 @@ func (r RewindRequest) Validate() error {
 // coordinate. It neither truncates bytes nor keeps a mirrored cursor. A
 // canceled result may follow the effect; callers must preserve that uncertainty.
 func Rewind(ctx context.Context, request RewindRequest) error {
-	if err := contextstate.Validate(ctx); err != nil {
+	if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
 		return err
 	}
 	if err := request.Validate(); err != nil {
@@ -32,10 +32,10 @@ func Rewind(ctx context.Context, request RewindRequest) error {
 	}
 	position, err := request.Source.Seek(0, io.SeekStart)
 	if err != nil {
-		return errors.Join(activationError(err), contextstate.Validate(ctx))
+		return errors.Join(activationError(err), temporal.Wait(temporal.WaitRequest{Context: ctx}))
 	}
 	if position != 0 {
-		return errors.Join(core.ErrFilestoreContract, contextstate.Validate(ctx))
+		return errors.Join(core.ErrFilestoreContract, temporal.Wait(temporal.WaitRequest{Context: ctx}))
 	}
-	return contextstate.Validate(ctx)
+	return temporal.Wait(temporal.WaitRequest{Context: ctx})
 }
