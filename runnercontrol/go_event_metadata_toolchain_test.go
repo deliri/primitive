@@ -195,6 +195,33 @@ func TestGoEventStreamAcceptsNativeMetadata(t *testing.T) {
 			if err != nil || frames == 0 || metadata != 1 {
 				t.Fatalf("ReadGoEventStream(native metadata) = (%v, %d frames, %d metadata), want (nil, nonempty, 1)", err, frames, metadata)
 			}
+			if _, err := output.Seek(0, 0); err != nil {
+				t.Fatal(err)
+			}
+			observed, annotations, terminals := 0, 0, 0
+			err = runnercontrol.ReadGoEventObservations(ctx, runnercontrol.GoEventObservationRequest{
+				Source:   output,
+				OnOutput: func(fragment runnercontrol.GoEventStringFragment) error { return fragment.Validate() },
+				OnEvent: func(got runnercontrol.GoEventObservation) error {
+					observed++
+					if got.Package != "metadatafixture" || got.Time.IsZero() {
+						t.Fatalf("native metadata=%+v, want actual package and producer timestamp", got)
+					}
+					if got.Frame.Action == tc.wantAction {
+						annotations++
+						if got.Test != "TestMetadata" {
+							t.Fatalf("annotation test=%q, want TestMetadata", got.Test)
+						}
+					}
+					if got.Frame.Action == runnercontrol.GoEventActionPass && got.Test == "TestMetadata" {
+						terminals++
+					}
+					return got.Validate()
+				},
+			})
+			if err != nil || observed != frames || annotations != 1 || terminals != 1 {
+				t.Fatalf("native observations=(%v,%d frames,%d annotations,%d terminals), want nil,%d,1,1", err, observed, annotations, terminals, frames)
+			}
 		})
 	}
 }
