@@ -7,6 +7,7 @@ import (
 	"go/parser"
 	"go/token"
 	"go/types"
+	"io"
 	"strconv"
 	"strings"
 	"testing"
@@ -158,7 +159,7 @@ func TestOuterVariableNativeRefusalsAndUnparentedNeutral(t *testing.T) {
 	t.Parallel()
 	variable := types.NewVar(1, nil, "err", types.Universe.Lookup("error").Type())
 	ctx, cancel := context.WithCancelCause(t.Context())
-	cancel(core.ErrPrimitiveContract)
+	cancel(io.ErrClosedPipe)
 	for _, tc := range []struct {
 		name    string
 		ctx     context.Context
@@ -178,7 +179,7 @@ func TestOuterVariableNativeRefusalsAndUnparentedNeutral(t *testing.T) {
 			if !errors.Is(err, tc.want) || got != (OuterVariableObservation{}) {
 				t.Fatalf("native scope refusal=%+v,%v,want zero/%v", got, err, tc.want)
 			}
-			if tc.ctx == ctx && !errors.Is(err, core.ErrPrimitiveContract) {
+			if tc.ctx == ctx && !errors.Is(err, io.ErrClosedPipe) {
 				t.Fatalf("native custom cancellation cause=%v,want owned cause", err)
 			}
 		})

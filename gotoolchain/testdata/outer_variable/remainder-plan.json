@@ -1,0 +1,67 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    },
+    "job": {
+      "cpu": 2,
+      "memory_bytes": 4294967296,
+      "scratch_bytes": 4294967296
+    }
+  },
+  "steps": [
+    {
+      "name": "distinct-native-cancellation-cause",
+      "kind": "test",
+      "arguments": [
+        "./gotoolchain",
+        "-count=1",
+        "-run=^TestOuterVariableNativeRefusalsAndUnparentedNeutral$/^cancelled_context_retains_owner_cause$"
+      ]
+    },
+    {
+      "name": "drop-custom-cause",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/outer_variable/drop-custom-cause.patch",
+        "failing_test": "TestOuterVariableNativeRefusalsAndUnparentedNeutral/cancelled_context_retains_owner_cause"
+      }
+    },
+    {
+      "name": "ignore-terminal-context",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/outer_variable/ignore-terminal-context.patch",
+        "failing_test": "TestOuterVariableNativeRefusalsAndUnparentedNeutral/cancelled_context_retains_owner_cause"
+      }
+    },
+    {
+      "name": "retain-scope-inventory",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/outer_variable/retain-scope-inventory.patch",
+        "failing_test": "TestOuterVariableNativeLookupDoesNotBuildScopeInventory/16385"
+      }
+    },
+    {
+      "name": "native-outer-binding-semantic-fuzz",
+      "kind": "fuzz",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "fuzz_target": "FuzzOuterVariableMatchesNativeDeclarationIdentity",
+      "fuzz_seconds": 3
+    }
+  ]
+}
