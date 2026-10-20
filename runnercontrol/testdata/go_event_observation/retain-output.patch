@@ -1,0 +1,29 @@
+--- a/runnercontrol/go_event_observation.go
++++ b/runnercontrol/go_event_observation.go
+@@ -4,6 +4,7 @@
+ 	"context"
+ 	"errors"
+ 	"io"
++ "runtime"
+ 	"strings"
+ 	"time"
+ 	"unicode/utf8"
+@@ -75,6 +76,8 @@
+ 	if err := request.Validate(); err != nil {
+ 		return err
+ 	}
++	var outputPopulation strings.Builder
++	defer func(){runtime.KeepAlive(&outputPopulation)}()
+ 	var atoms goEventMetadataAtoms
+ 	return ReadGoEventStream(ctx, GoEventStreamRequest{
+ 		Source: request.Source,
+@@ -93,7 +96,8 @@
+ 			case GoEventFieldTest:
+ 				destination = &atoms.testName
+ 			case GoEventFieldOutput:
+-				return request.OnOutput(fragment)
++				outputPopulation.Write(fragment.Data)
++			return request.OnOutput(fragment)
+ 			case GoEventFieldAction, GoEventFieldOutputType, GoEventFieldKey, GoEventFieldValue, GoEventFieldPath:
+ 				return nil
+ 			default:

@@ -1,0 +1,27 @@
+--- a/runnercontrol/go_event_observation.go
++++ b/runnercontrol/go_event_observation.go
+@@ -4,6 +4,7 @@
+ 	"context"
+ 	"errors"
+ 	"io"
++ "runtime"
+ 	"strings"
+ 	"time"
+ 	"unicode/utf8"
+@@ -75,6 +76,8 @@
+ 	if err := request.Validate(); err != nil {
+ 		return err
+ 	}
++	var population []GoEventObservation
++	defer func(){runtime.KeepAlive(population)}()
+ 	var atoms goEventMetadataAtoms
+ 	return ReadGoEventStream(ctx, GoEventStreamRequest{
+ 		Source: request.Source,
+@@ -119,6 +122,7 @@
+ 				return errors.Join(core.ErrPrimitiveContract, err)
+ 			}
+ 			atoms = goEventMetadataAtoms{}
++			population=append(population,observation)
+ 			return request.OnEvent(observation)
+ 		},
+ 	})

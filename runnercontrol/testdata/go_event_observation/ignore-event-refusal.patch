@@ -1,0 +1,12 @@
+--- a/runnercontrol/go_event_observation.go
++++ b/runnercontrol/go_event_observation.go
+@@ -119,7 +119,8 @@
+ 				return errors.Join(core.ErrPrimitiveContract, err)
+ 			}
+ 			atoms = goEventMetadataAtoms{}
+-			return request.OnEvent(observation)
++			_ = request.OnEvent(observation)
++			return nil
+ 		},
+ 	})
+ }

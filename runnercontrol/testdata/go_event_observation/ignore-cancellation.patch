@@ -1,0 +1,11 @@
+--- a/runnercontrol/go_event_observation.go
++++ b/runnercontrol/go_event_observation.go
+@@ -76,7 +76,7 @@
+ 		return err
+ 	}
+ 	var atoms goEventMetadataAtoms
+-	return ReadGoEventStream(ctx, GoEventStreamRequest{
++	return ReadGoEventStream(context.Background(), GoEventStreamRequest{
+ 		Source: request.Source,
+ 		OnString: func(fragment GoEventStringFragment) error {
+ 			var destination *strings.Builder

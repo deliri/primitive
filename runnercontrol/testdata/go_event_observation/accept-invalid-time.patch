@@ -1,0 +1,11 @@
+--- a/runnercontrol/go_event_observation.go
++++ b/runnercontrol/go_event_observation.go
+@@ -111,7 +111,7 @@
+ 				}
+ 				timestamp, err = jsonio.DecodeValue[time.Time](encoded, jsonio.ProjectionReadPolicy{Members: jsonio.MembersDeclaredOnly, Root: jsonio.RootOwnedMethods})
+ 				if err != nil {
+-					return err
++					timestamp = time.Time{}
+ 				}
+ 			}
+ 			observation := GoEventObservation{Time: timestamp, FailedBuild: atoms.failedBuild.String(), ImportPath: atoms.importPath.String(), Package: atoms.packagePath.String(), Test: atoms.testName.String(), Frame: frame}

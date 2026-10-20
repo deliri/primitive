@@ -1,0 +1,11 @@
+--- a/runnercontrol/go_event_observation.go
++++ b/runnercontrol/go_event_observation.go
+@@ -118,7 +118,7 @@
+ 			if err := observation.Validate(); err != nil {
+ 				return errors.Join(core.ErrPrimitiveContract, err)
+ 			}
+-			atoms = goEventMetadataAtoms{}
++			// deliberately retain prior atoms
+ 			return request.OnEvent(observation)
+ 		},
+ 	})

@@ -1,0 +1,11 @@
+--- a/runnercontrol/go_event_observation.go
++++ b/runnercontrol/go_event_observation.go
+@@ -93,7 +93,7 @@
+ 			case GoEventFieldTest:
+ 				destination = &atoms.testName
+ 			case GoEventFieldOutput:
+-				return request.OnOutput(fragment)
++				return nil
+ 			case GoEventFieldAction, GoEventFieldOutputType, GoEventFieldKey, GoEventFieldValue, GoEventFieldPath:
+ 				return nil
+ 			default:

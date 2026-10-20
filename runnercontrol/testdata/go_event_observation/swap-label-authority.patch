@@ -1,0 +1,11 @@
+--- a/runnercontrol/go_event_observation.go
++++ b/runnercontrol/go_event_observation.go
+@@ -114,7 +114,7 @@
+ 					return err
+ 				}
+ 			}
+-			observation := GoEventObservation{Time: timestamp, FailedBuild: atoms.failedBuild.String(), ImportPath: atoms.importPath.String(), Package: atoms.packagePath.String(), Test: atoms.testName.String(), Frame: frame}
++			observation := GoEventObservation{Time: timestamp, FailedBuild: atoms.failedBuild.String(), ImportPath: atoms.importPath.String(), Package: atoms.testName.String(), Test: atoms.packagePath.String(), Frame: frame}
+ 			if err := observation.Validate(); err != nil {
+ 				return errors.Join(core.ErrPrimitiveContract, err)
+ 			}
