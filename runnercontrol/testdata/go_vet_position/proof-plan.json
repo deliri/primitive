@@ -1,0 +1,67 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    },
+    "job": {
+      "cpu": 2,
+      "memory_bytes": 4294967296,
+      "scratch_bytes": 4294967296
+    }
+  },
+  "steps": [
+    {
+      "name": "native-position-boundaries",
+      "kind": "test",
+      "arguments": [
+        "./runnercontrol",
+        "-count=1",
+        "-run=^TestGoVetNativePositionLayerTriad$"
+      ]
+    },
+    {
+      "name": "split-filename-at-first-colon",
+      "kind": "mutate",
+      "arguments": [
+        "./runnercontrol"
+      ],
+      "mutation": {
+        "patch": "runnercontrol/testdata/go_vet_position/split-filename-at-first-colon.patch",
+        "failing_test": "TestGoVetNativePositionLayerTriad/native_colon_filename_and_drive"
+      }
+    },
+    {
+      "name": "invent-column",
+      "kind": "mutate",
+      "arguments": [
+        "./runnercontrol"
+      ],
+      "mutation": {
+        "patch": "runnercontrol/testdata/go_vet_position/invent-column.patch",
+        "failing_test": "TestGoVetNativePositionLayerTriad/native_absolute_file"
+      }
+    },
+    {
+      "name": "admit-zero-coordinate",
+      "kind": "mutate",
+      "arguments": [
+        "./runnercontrol"
+      ],
+      "mutation": {
+        "patch": "runnercontrol/testdata/go_vet_position/admit-zero-coordinate.patch",
+        "failing_test": "TestGoVetNativePositionLayerTriad/zero_line"
+      }
+    },
+    {
+      "name": "native-position-conservation-fuzz",
+      "kind": "fuzz",
+      "arguments": [
+        "./runnercontrol"
+      ],
+      "fuzz_target": "FuzzGoVetNativePositionConservation",
+      "fuzz_seconds": 3
+    }
+  ]
+}

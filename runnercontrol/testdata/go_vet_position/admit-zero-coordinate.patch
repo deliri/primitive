@@ -1,0 +1,11 @@
+--- a/runnercontrol/go_vet_position.go
++++ b/runnercontrol/go_vet_position.go
+@@ -33,7 +33,7 @@
+ 		return token.Position{}, core.ErrPrimitiveContract
+ 	}
+ 	line, err := strconv.Atoi(o.Position[previous+1 : last])
+-	if err != nil || line <= 0 {
++	if err != nil || line < 0 {
+ 		return token.Position{}, errors.Join(core.ErrPrimitiveContract, err)
+ 	}
+ 	return token.Position{Filename: o.Position[:previous], Offset: -1, Line: line, Column: column}, nil

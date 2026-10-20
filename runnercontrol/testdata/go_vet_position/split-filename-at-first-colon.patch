@@ -1,0 +1,11 @@
+--- a/runnercontrol/go_vet_position.go
++++ b/runnercontrol/go_vet_position.go
+@@ -28,7 +28,7 @@
+ 	if err != nil || column <= 0 {
+ 		return token.Position{}, errors.Join(core.ErrPrimitiveContract, err)
+ 	}
+-	previous := strings.LastIndexByte(o.Position[:last], ':')
++	previous := strings.IndexByte(o.Position[:last], ':')
+ 	if previous <= 0 {
+ 		return token.Position{}, core.ErrPrimitiveContract
+ 	}

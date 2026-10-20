@@ -1,0 +1,9 @@
+--- a/runnercontrol/go_vet_position.go
++++ b/runnercontrol/go_vet_position.go
+@@ -36,5 +36,5 @@
+ 	if err != nil || line <= 0 {
+ 		return token.Position{}, errors.Join(core.ErrPrimitiveContract, err)
+ 	}
+-	return token.Position{Filename: o.Position[:previous], Offset: -1, Line: line, Column: column}, nil
++	return token.Position{Filename: o.Position[:previous], Offset: -1, Line: line, Column: column+1}, nil
+ }
