@@ -1,0 +1,65 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    },
+    "job": {
+      "cpu": 2,
+      "memory_bytes": 4294967296,
+      "scratch_bytes": 4294967296
+    }
+  },
+  "steps": [
+    {
+      "name": "canceled-ingress-executes-seek",
+      "kind": "mutate",
+      "arguments": [
+        "./filestore"
+      ],
+      "mutation": {
+        "patch": "filestore/testdata/rewind_cause/canceled-ingress-executes-seek.patch",
+        "failing_test": "TestRewindRetainsNativeCustomCancellationCause/canceled_ingress_retains_cause_without_seek"
+      }
+    },
+    {
+      "name": "post-effect-cancellation-becomes-clean",
+      "kind": "mutate",
+      "arguments": [
+        "./filestore"
+      ],
+      "mutation": {
+        "patch": "filestore/testdata/rewind_cause/post-effect-cancellation-becomes-clean.patch",
+        "failing_test": "TestRewindRetainsNativeCustomCancellationCause/cancellation_after_native_seek_retains_moved_coordinate"
+      }
+    },
+    {
+      "name": "native-seek-refusal-is-lost",
+      "kind": "mutate",
+      "arguments": [
+        "./filestore"
+      ],
+      "mutation": {
+        "patch": "filestore/testdata/rewind_cause/native-seek-refusal-is-lost.patch",
+        "failing_test": "TestRewindRetainsNativeCustomCancellationCause/native_seek_refusal_and_cancellation_both_survive"
+      }
+    },
+    {
+      "name": "native-rewind-valid-and-corrupt-coordinate-controls",
+      "kind": "test",
+      "arguments": [
+        "./filestore",
+        "-count=1",
+        "-run=^(TestRewindRestoresNativeReadCoordinateWithoutChangingBytes|TestRewindRefusesCorruptObservationAndPreservesPostEffectCancellation)$"
+      ]
+    },
+    {
+      "name": "native-rewind-focused-vet",
+      "kind": "vet",
+      "arguments": [
+        "./filestore"
+      ]
+    }
+  ]
+}

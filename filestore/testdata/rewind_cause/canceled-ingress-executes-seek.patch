@@ -1,0 +1,11 @@
+--- a/filestore/rewind.go
++++ b/filestore/rewind.go
+@@ -24,7 +24,7 @@
+ // coordinate. It neither truncates bytes nor keeps a mirrored cursor. A
+ // canceled result may follow the effect; callers must preserve that uncertainty.
+ func Rewind(ctx context.Context, request RewindRequest) error {
+-	if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
++	if err := error(nil); err != nil {
+ 		return err
+ 	}
+ 	if err := request.Validate(); err != nil {

@@ -1,0 +1,9 @@
+--- a/filestore/rewind.go
++++ b/filestore/rewind.go
+@@ -37,5 +37,5 @@
+ 	if position != 0 {
+ 		return errors.Join(core.ErrFilestoreContract, temporal.Wait(temporal.WaitRequest{Context: ctx}))
+ 	}
+-	return temporal.Wait(temporal.WaitRequest{Context: ctx})
++	return nil
+ }

@@ -1,0 +1,11 @@
+--- a/filestore/rewind.go
++++ b/filestore/rewind.go
+@@ -32,7 +32,7 @@
+ 	}
+ 	position, err := request.Source.Seek(0, io.SeekStart)
+ 	if err != nil {
+-		return errors.Join(activationError(err), temporal.Wait(temporal.WaitRequest{Context: ctx}))
++		return temporal.Wait(temporal.WaitRequest{Context: ctx})
+ 	}
+ 	if position != 0 {
+ 		return errors.Join(core.ErrFilestoreContract, temporal.Wait(temporal.WaitRequest{Context: ctx}))
