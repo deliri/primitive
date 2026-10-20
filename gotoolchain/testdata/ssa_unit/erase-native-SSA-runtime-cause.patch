@@ -1,0 +1,12 @@
+--- a/gotoolchain/ssa_unit.go
++++ b/gotoolchain/ssa_unit.go
+@@ -92,7 +92,8 @@
+ 		if failure := recover(); failure != nil {
+ 			program, compiled = nil, nil
+ 			if cause, ok := failure.(error); ok {
+-				resultErr = errors.Join(core.ErrGoToolchainOutput, cause)
++				_ = cause
++resultErr = core.ErrGoToolchainOutput
+ 			} else {
+ 				resultErr = fmt.Errorf("%w: native SSA builder: %v", core.ErrGoToolchainOutput, failure)
+ 			}

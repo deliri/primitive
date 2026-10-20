@@ -1,0 +1,43 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    },
+    "job": {
+      "cpu": 2,
+      "memory_bytes": 4294967296,
+      "scratch_bytes": 4294967296
+    }
+  },
+  "steps": [
+    {
+      "name": "native-SSA-runtime-cause-preserved",
+      "kind": "test",
+      "arguments": [
+        "./gotoolchain",
+        "-count=1",
+        "-run=^TestSSAUnitMalformedNativeFactsDoNotBecomeLoan$"
+      ]
+    },
+    {
+      "name": "erase-native-SSA-runtime-cause",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/ssa_unit/erase-native-SSA-runtime-cause.patch",
+        "failing_test": "TestSSAUnitMalformedNativeFactsDoNotBecomeLoan"
+      }
+    },
+    {
+      "name": "native-SSA-unit-final-vet",
+      "kind": "vet",
+      "arguments": [
+        "./gotoolchain"
+      ]
+    }
+  ]
+}

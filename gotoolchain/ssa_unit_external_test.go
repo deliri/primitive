@@ -8,6 +8,7 @@ import (
 	"go/constant"
 	"go/types"
 	"io"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -226,6 +227,10 @@ func TestSSAUnitMalformedNativeFactsDoNotBecomeLoan(t *testing.T) {
 	err := analysis.WithSSAUnit(t.Context(), gotoolchain.SSAUnitRequest{Unit: unit, Use: func(context.Context, gotoolchain.SSAUnitView) error { used = true; return nil }})
 	if !errors.Is(err, core.ErrGoToolchainOutput) || used {
 		t.Fatalf("malformed native facts%v loan%v", err, used)
+	}
+	var native runtime.Error
+	if !errors.As(err, &native) {
+		t.Fatalf("native compiler assertion cause was erased: %v", err)
 	}
 }
 
