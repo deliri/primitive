@@ -148,6 +148,9 @@ func TestLiteralInvocationRefusesForeignAndMissingCompilerFacts(t *testing.T) {
 			if got != (gotoolchain.LiteralInvocationObservation{}) || !errors.Is(err, want) {
 				t.Fatalf("invalid literal query=%+v/%v want zero/%v", got, err, want)
 			}
+			if want == core.ErrGoToolchainContract && errors.Is(err, core.ErrGoToolchainOutput) {
+				t.Fatalf("foreign request became native-output corruption: %v", err)
+			}
 		})
 	}
 }
