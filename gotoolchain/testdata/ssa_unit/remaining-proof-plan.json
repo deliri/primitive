@@ -1,0 +1,34 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    },
+    "job": {
+      "cpu": 2,
+      "memory_bytes": 4294967296,
+      "scratch_bytes": 4294967296
+    }
+  },
+  "steps": [
+    {
+      "name": "failed-native-SSA-captures-and-constant-edge",
+      "kind": "test",
+      "arguments": [
+        "./gotoolchain",
+        "-count=1",
+        "-run=^TestSSAUnitLoansNativeCallKindsTargetsAndOperands$/^(native_closure_retains_capture|native_closure_copy_retains_capture|native_defer_retains_distinct_instruction|native_goroutine_retains_distinct_instruction|native_CFG_retains_a_constant_false_branch|native_method_wrapper_retains_receiver)$"
+      ]
+    },
+    {
+      "name": "scoped-native-SSA-operand-semantic-fuzz",
+      "kind": "fuzz",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "fuzz_target": "FuzzSSAUnitNativeOperandClosure",
+      "fuzz_seconds": 3
+    }
+  ]
+}

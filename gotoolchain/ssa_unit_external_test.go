@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"go/ast"
+	"go/constant"
 	"go/types"
 	"io"
 	"strings"
@@ -19,9 +20,9 @@ import (
 func TestSSAUnitLoansNativeCallKindsTargetsAndOperands(t *testing.T) {
 	t.Parallel()
 	for _, row := range []struct {
-		name, body                                 string
-		calls                                      int
-		deferred, concurrent, closure, methodValue bool
+		name, body                                                string
+		calls                                                     int
+		deferred, concurrent, closure, methodValue, constantFalse bool
 	}{
 		{name: "direct receiver", body: "m.Run()", calls: 1},
 		{name: "copied receiver is same native operand", body: "copy:=m;copy.Run()", calls: 1},
@@ -30,7 +31,7 @@ func TestSSAUnitLoansNativeCallKindsTargetsAndOperands(t *testing.T) {
 		{name: "native method wrapper retains receiver", body: "run:=m.Run;run()", calls: 1, closure: true, methodValue: true},
 		{name: "native defer retains distinct instruction", body: "callback:=func(){m.Run()};defer callback()", calls: 1, deferred: true, closure: true},
 		{name: "native goroutine retains distinct instruction", body: "callback:=func(){m.Run()};go callback()", calls: 1, concurrent: true, closure: true},
-		{name: "eliminated call is absent from native CFG", body: "if false {m.Run()}"},
+		{name: "native CFG retains a constant false branch", body: "if false {m.Run()}", calls: 1, constantFalse: true},
 		{name: "uncalled method value is no invocation", body: "run:=m.Run;_=run"},
 	} {
 		t.Run(row.name, func(t *testing.T) {
@@ -67,6 +68,9 @@ func TestSSAUnitLoansNativeCallKindsTargetsAndOperands(t *testing.T) {
 						if position.Line != 4 || !strings.HasSuffix(position.Filename, "/source.go") {
 							t.Fatalf("native physical call%+v", position)
 						}
+						if row.constantFalse {
+							requireSSAUnitConstantFalseEdge(t, fn, instruction.Block())
+						}
 						common := call.Common()
 						target := common.StaticCallee()
 						if target == nil {
@@ -74,9 +78,10 @@ func TestSSAUnitLoansNativeCallKindsTargetsAndOperands(t *testing.T) {
 						}
 						if row.closure {
 							binding, ok := common.Value.(*ssa.MakeClosure)
-							if !ok || len(binding.Bindings) != 1 || binding.Bindings[0] != fn.Params[0] || len(target.FreeVars) != 1 {
+							if !ok || len(binding.Bindings) != 1 || len(target.FreeVars) != 1 {
 								t.Fatalf("native capture=%v target%v", common.Value, target)
 							}
+							requireSSAUnitNativeCaptureOrigin(t, binding.Bindings[0], fn.Params[0])
 							if row.methodValue {
 								observed := 0
 								for _, innerBlock := range target.Blocks {
@@ -268,7 +273,6 @@ func FuzzSSAUnitNativeOperandClosure(f *testing.F) {
 			body = "callback:=func(){" + name + ".Run()};go callback()"
 		case 4:
 			body = "if false {" + name + ".Run()}"
-			want = 0
 		case 5:
 			body = "run:=" + name + ".Run;_=run"
 			want = 0
@@ -292,11 +296,14 @@ func FuzzSSAUnitNativeOperandClosure(f *testing.F) {
 						if len(call.Common().Args) != 1 || call.Common().Args[0] != fn.Params[0] {
 							t.Fatalf("native copied operand%v", call)
 						}
+					case 4:
+						requireSSAUnitConstantFalseEdge(t, fn, instruction.Block())
 					case 1, 2, 3:
 						closure, ok := call.Common().Value.(*ssa.MakeClosure)
-						if !ok || len(closure.Bindings) != 1 || closure.Bindings[0] != fn.Params[0] {
+						if !ok || len(closure.Bindings) != 1 {
 							t.Fatalf("native closure%v", call)
 						}
+						requireSSAUnitNativeCaptureOrigin(t, closure.Bindings[0], fn.Params[0])
 						_, deferred := instruction.(*ssa.Defer)
 						_, concurrent := instruction.(*ssa.Go)
 						if deferred != (mode%6 == 2) || concurrent != (mode%6 == 3) {
@@ -314,4 +321,50 @@ func FuzzSSAUnitNativeOperandClosure(f *testing.F) {
 			t.Fatal(err)
 		}
 	})
+}
+
+// Go captures a mutable lexical variable through its native allocation cell;
+// a bound method value may instead capture the parameter itself. Both are
+// actual IR forms, proved here by pointer identity and the compiler's Store.
+func requireSSAUnitNativeCaptureOrigin(t *testing.T, binding ssa.Value, parameter *ssa.Parameter) {
+	t.Helper()
+	if binding == parameter {
+		return
+	}
+	cell, ok := binding.(*ssa.Alloc)
+	if !ok || cell.Referrers() == nil {
+		t.Fatalf("native parameter capture%T %v", binding, binding)
+	}
+	stores := 0
+	for _, reference := range *cell.Referrers() {
+		if store, ok := reference.(*ssa.Store); ok && store.Addr == cell {
+			if store.Val != parameter {
+				t.Fatalf("native captured cell initialized from%v want%v", store.Val, parameter)
+			}
+			stores++
+		}
+	}
+	if stores != 1 {
+		t.Fatalf("native captured parameter stores%d want1", stores)
+	}
+}
+func requireSSAUnitConstantFalseEdge(t *testing.T, function *ssa.Function, called *ssa.BasicBlock) {
+	t.Helper()
+	for _, block := range function.Blocks {
+		if len(block.Instrs) == 0 {
+			continue
+		}
+		branch, ok := block.Instrs[len(block.Instrs)-1].(*ssa.If)
+		if !ok {
+			continue
+		}
+		condition, ok := branch.Cond.(*ssa.Const)
+		if !ok || condition.Value == nil || condition.Value.Kind() != constant.Bool {
+			continue
+		}
+		if !constant.BoolVal(condition.Value) && len(block.Succs) == 2 && block.Succs[0] == called {
+			return
+		}
+	}
+	t.Fatalf("native call block%d lacks its constant-false incoming branch", called.Index)
 }

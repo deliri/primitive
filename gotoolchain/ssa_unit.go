@@ -30,7 +30,7 @@ func (SSAUnitRequest) goToolchainInternalFlow() {}
 // SSAUnitView lends the Go team's actual objects for one native build. It is
 // not a wire representation, persisted instruction model or runtime verdict.
 // Source and IR retain their native pointer identity, including call operands,
-// closure bindings, method wrappers, deferred calls and eliminated blocks.
+// closure bindings, method wrappers, deferred calls and constant branch conditions.
 type SSAUnitView struct {
 	Source  *packages.Package
 	Program *ssa.Program
