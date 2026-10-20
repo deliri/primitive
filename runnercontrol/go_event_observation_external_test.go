@@ -115,7 +115,8 @@ func TestGoEventObservationRefusalsAndPrefix(t *testing.T) {
 	}{
 		{name: "empty stream is neutral"},
 		{name: "source refusal", sourceError: io.ErrClosedPipe, errorWant: io.ErrClosedPipe},
-		{name: "late source refusal preserves only prefix", data: string(seed), sourceError: io.ErrClosedPipe, errorWant: io.ErrClosedPipe, wantEvents: 1},
+		{name: "late source refusal preserves only prefix", data: string(seed) + "\n", sourceError: io.ErrClosedPipe, errorWant: io.ErrClosedPipe, wantEvents: 1},
+		{name: "source refusal cannot certify an unclosed frame", data: string(seed), sourceError: io.ErrClosedPipe, errorWant: io.ErrClosedPipe},
 		{name: "output refusal cannot emit event", data: string(seed), errorOutput: io.ErrShortWrite, errorWant: io.ErrShortWrite},
 		{name: "event refusal is retained", data: string(seed), errorEvent: io.ErrShortWrite, errorWant: io.ErrShortWrite, wantEvents: 1},
 		{name: "pre cancellation", data: string(seed), cancelBefore: true, errorWant: context.Canceled},

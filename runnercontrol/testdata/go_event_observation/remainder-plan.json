@@ -1,0 +1,142 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    },
+    "job": {
+      "cpu": 2,
+      "memory_bytes": 4294967296,
+      "scratch_bytes": 4294967296
+    }
+  },
+  "steps": [
+    {
+      "name": "failed-prefix-and-unclosed-frame-only",
+      "kind": "test",
+      "arguments": [
+        "./runnercontrol",
+        "-count=1",
+        "-run=^TestGoEventObservationRefusalsAndPrefix$/(late_source_refusal_preserves_only_prefix|source_refusal_cannot_certify_an_unclosed_frame)$"
+      ]
+    },
+    {
+      "name": "streaming-extent-and-population-memory",
+      "kind": "test",
+      "arguments": [
+        "./runnercontrol",
+        "-count=1",
+        "-run=^(TestGoEventObservationPopulationWorkingMemory|TestGoEventObservationOutputHasNoMetadataAllocation)$"
+      ]
+    },
+    {
+      "name": "keep-prior-metadata",
+      "kind": "mutate",
+      "arguments": [
+        "./runnercontrol"
+      ],
+      "mutation": {
+        "patch": "runnercontrol/testdata/go_event_observation/keep-prior-metadata.patch",
+        "failing_test": "TestGoEventObservationMetadataConservation/all_atoms_have_distinct_authority"
+      }
+    },
+    {
+      "name": "swap-label-authority",
+      "kind": "mutate",
+      "arguments": [
+        "./runnercontrol"
+      ],
+      "mutation": {
+        "patch": "runnercontrol/testdata/go_event_observation/swap-label-authority.patch",
+        "failing_test": "TestGoEventObservationMetadataConservation/all_atoms_have_distinct_authority"
+      }
+    },
+    {
+      "name": "drop-time",
+      "kind": "mutate",
+      "arguments": [
+        "./runnercontrol"
+      ],
+      "mutation": {
+        "patch": "runnercontrol/testdata/go_event_observation/drop-time.patch",
+        "failing_test": "TestGoEventObservationMetadataConservation/all_atoms_have_distinct_authority"
+      }
+    },
+    {
+      "name": "accept-invalid-time",
+      "kind": "mutate",
+      "arguments": [
+        "./runnercontrol"
+      ],
+      "mutation": {
+        "patch": "runnercontrol/testdata/go_event_observation/accept-invalid-time.patch",
+        "failing_test": "TestGoEventObservationRefusalsAndPrefix/malformed_timestamp"
+      }
+    },
+    {
+      "name": "discard-output",
+      "kind": "mutate",
+      "arguments": [
+        "./runnercontrol"
+      ],
+      "mutation": {
+        "patch": "runnercontrol/testdata/go_event_observation/discard-output.patch",
+        "failing_test": "TestGoEventObservationOutputHasNoMetadataAllocation/32769"
+      }
+    },
+    {
+      "name": "ignore-event-refusal",
+      "kind": "mutate",
+      "arguments": [
+        "./runnercontrol"
+      ],
+      "mutation": {
+        "patch": "runnercontrol/testdata/go_event_observation/ignore-event-refusal.patch",
+        "failing_test": "TestGoEventObservationRefusalsAndPrefix/event_refusal_is_retained"
+      }
+    },
+    {
+      "name": "ignore-cancellation",
+      "kind": "mutate",
+      "arguments": [
+        "./runnercontrol"
+      ],
+      "mutation": {
+        "patch": "runnercontrol/testdata/go_event_observation/ignore-cancellation.patch",
+        "failing_test": "TestGoEventObservationRefusalsAndPrefix/pre_cancellation"
+      }
+    },
+    {
+      "name": "retain-event-population",
+      "kind": "mutate",
+      "arguments": [
+        "./runnercontrol"
+      ],
+      "mutation": {
+        "patch": "runnercontrol/testdata/go_event_observation/retain-event-population.patch",
+        "failing_test": "TestGoEventObservationPopulationWorkingMemory/16385"
+      }
+    },
+    {
+      "name": "retain-output",
+      "kind": "mutate",
+      "arguments": [
+        "./runnercontrol"
+      ],
+      "mutation": {
+        "patch": "runnercontrol/testdata/go_event_observation/retain-output.patch",
+        "failing_test": "TestGoEventObservationOutputHasNoMetadataAllocation/1048577"
+      }
+    },
+    {
+      "name": "metadata-semantic-fuzz",
+      "kind": "fuzz",
+      "arguments": [
+        "./runnercontrol"
+      ],
+      "fuzz_target": "FuzzGoEventObservationNativeMetadata",
+      "fuzz_seconds": 3
+    }
+  ]
+}
