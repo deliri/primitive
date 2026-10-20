@@ -1,0 +1,19 @@
+--- a/gotoolchain/vet.go
++++ b/gotoolchain/vet.go
+@@ -84,6 +84,7 @@
+ 	arguments = append(arguments, request.Package.String())
+ 	var receipt process.ResultObservation
+ 	err := c.withCompletedCommandOutput(ctx, request.WorkingDirectory, arguments, func(source io.Reader, observed process.ResultObservation) error {
++		receipt = observed
+ 		if err := runnercontrol.ReadGoVetStream(ctx, runnercontrol.GoVetStreamRequest{Source: source, Visit: request.Visit}); err != nil {
+ 			return errors.Join(core.ErrGoToolchainOutput, err)
+ 		}
+@@ -92,7 +93,7 @@
+ 	})
+ 	err = errors.Join(err, temporal.Wait(temporal.WaitRequest{Context: ctx}))
+ 	if err != nil {
+-		return process.ResultObservation{}, err
++		return receipt, err
+ 	}
+ 	return receipt, nil
+ }

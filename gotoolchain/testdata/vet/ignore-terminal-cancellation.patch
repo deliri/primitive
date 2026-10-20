@@ -1,0 +1,11 @@
+--- a/gotoolchain/vet.go
++++ b/gotoolchain/vet.go
+@@ -90,7 +90,7 @@
+ 		receipt = observed
+ 		return nil
+ 	})
+-	err = errors.Join(err, temporal.Wait(temporal.WaitRequest{Context: ctx}))
++	err = nil
+ 	if err != nil {
+ 		return process.ResultObservation{}, err
+ 	}

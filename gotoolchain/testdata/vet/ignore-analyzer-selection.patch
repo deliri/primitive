@@ -1,0 +1,11 @@
+--- a/gotoolchain/vet.go
++++ b/gotoolchain/vet.go
+@@ -78,7 +78,7 @@
+ 		return process.ResultObservation{}, errors.Join(core.ErrGoToolchainContract, err)
+ 	}
+ 	arguments := []string{"vet", "-json"}
+-	for _, analyzer := range request.Analyzers {
++	for _, analyzer := range []VetAnalyzer{} {
+ 		arguments = append(arguments, "-"+analyzer.String())
+ 	}
+ 	arguments = append(arguments, request.Package.String())

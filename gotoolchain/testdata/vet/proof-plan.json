@@ -1,0 +1,100 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    },
+    "job": {
+      "cpu": 2,
+      "memory_bytes": 4294967296,
+      "scratch_bytes": 4294967296
+    }
+  },
+  "steps": [
+    {
+      "name": "native-vet-scope-refusal-and-data-flow-role",
+      "kind": "test",
+      "arguments": [
+        "./gotoolchain",
+        "-count=1",
+        "-run=^(TestObserveVetNativeProducerLayerTriad|TestObserveVetNativeRefusals|TestGoToolchainProductionStructsHaveCompilerVisibleDataFlowRoles)$"
+      ]
+    },
+    {
+      "name": "discard-native-diagnostics",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/vet/discard-native-diagnostics.patch",
+        "failing_test": "TestObserveVetNativeProducerLayerTriad/discarded_native_cancel"
+      }
+    },
+    {
+      "name": "ignore-analyzer-selection",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/vet/ignore-analyzer-selection.patch",
+        "failing_test": "TestObserveVetNativeProducerLayerTriad/select_only_lostcancel"
+      }
+    },
+    {
+      "name": "erase-callback-cause",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/vet/erase-callback-cause.patch",
+        "failing_test": "TestObserveVetNativeRefusals/callback_refusal_retains_native_cause_and_zero_receipt"
+      }
+    },
+    {
+      "name": "admit-invalid-analyzer",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/vet/admit-invalid-analyzer.patch",
+        "failing_test": "TestObserveVetNativeRefusals/unknown_analyzer_refuses_before_execution"
+      }
+    },
+    {
+      "name": "lend-receipt-on-callback-refusal",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/vet/lend-receipt-on-callback-refusal.patch",
+        "failing_test": "TestObserveVetNativeRefusals/callback_refusal_retains_native_cause_and_zero_receipt"
+      }
+    },
+    {
+      "name": "ignore-terminal-cancellation",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/vet/ignore-terminal-cancellation.patch",
+        "failing_test": "TestObserveVetNativeRefusals/callback_cancellation_retains_owner_cause_and_zero_receipt"
+      }
+    },
+    {
+      "name": "native-vet-source-semantic-fuzz",
+      "kind": "fuzz",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "fuzz_target": "FuzzObserveVetNativeSourceAuthority",
+      "fuzz_seconds": 3
+    }
+  ]
+}
