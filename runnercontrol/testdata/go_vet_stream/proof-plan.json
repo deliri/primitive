@@ -1,0 +1,115 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "native-vet-reader-projection-refusal-and-custody",
+      "kind": "test",
+      "arguments": [
+        "./runnercontrol",
+        "-count=1",
+        "-run=^(TestGoVetStreamNativeRecordLayerTriad|TestGoVetStreamNativeFieldsAndExtents|TestGoVetStreamNativeContextAndVisitorCustody|TestGoVetObservationClosedContracts|TestRunnerControlProductionStructsHaveCompilerVisibleDataFlowRoles)$"
+      ]
+    },
+    {
+      "name": "native-vet-reader-working-memory",
+      "kind": "test",
+      "arguments": [
+        "./runnercontrol",
+        "-count=1",
+        "-run=^TestGoVetStreamNativePopulationDoesNotBecomeAnInventory$"
+      ]
+    },
+    {
+      "name": "fabricate-metadata-diagnostic",
+      "kind": "mutate",
+      "arguments": [
+        "./runnercontrol"
+      ],
+      "mutation": {
+        "patch": "runnercontrol/testdata/go_vet_stream/fabricate-metadata-diagnostic.patch",
+        "failing_test": "TestGoVetStreamNativeRecordLayerTriad/neutral_empty_native_unit_tree"
+      }
+    },
+    {
+      "name": "collapse-analyzer-error",
+      "kind": "mutate",
+      "arguments": [
+        "./runnercontrol"
+      ],
+      "mutation": {
+        "patch": "runnercontrol/testdata/go_vet_stream/collapse-analyzer-error.patch",
+        "failing_test": "TestGoVetStreamNativeRecordLayerTriad/native_analyzer_failure"
+      }
+    },
+    {
+      "name": "accept-missing-position",
+      "kind": "mutate",
+      "arguments": [
+        "./runnercontrol"
+      ],
+      "mutation": {
+        "patch": "runnercontrol/testdata/go_vet_stream/accept-missing-position.patch",
+        "failing_test": "TestGoVetStreamNativeRecordLayerTriad/missing_position_is_refused"
+      }
+    },
+    {
+      "name": "drop-end-coordinate",
+      "kind": "mutate",
+      "arguments": [
+        "./runnercontrol"
+      ],
+      "mutation": {
+        "patch": "runnercontrol/testdata/go_vet_stream/drop-end-coordinate.patch",
+        "failing_test": "TestGoVetStreamNativeFieldsAndExtents/1"
+      }
+    },
+    {
+      "name": "ignore-visitor-refusal",
+      "kind": "mutate",
+      "arguments": [
+        "./runnercontrol"
+      ],
+      "mutation": {
+        "patch": "runnercontrol/testdata/go_vet_stream/ignore-visitor-refusal.patch",
+        "failing_test": "TestGoVetStreamNativeContextAndVisitorCustody/cancel=false"
+      }
+    },
+    {
+      "name": "ignore-cancellation",
+      "kind": "mutate",
+      "arguments": [
+        "./runnercontrol"
+      ],
+      "mutation": {
+        "patch": "runnercontrol/testdata/go_vet_stream/ignore-cancellation.patch",
+        "failing_test": "TestGoVetStreamNativeContextAndVisitorCustody/cancel=true"
+      }
+    },
+    {
+      "name": "retain-diagnostic-population",
+      "kind": "mutate",
+      "arguments": [
+        "./runnercontrol"
+      ],
+      "mutation": {
+        "patch": "runnercontrol/testdata/go_vet_stream/retain-diagnostic-population.patch",
+        "failing_test": "TestGoVetStreamNativePopulationDoesNotBecomeAnInventory/16385"
+      }
+    },
+    {
+      "name": "native-vet-reader-semantic-fuzz",
+      "kind": "fuzz",
+      "arguments": [
+        "./runnercontrol"
+      ],
+      "fuzz_target": "FuzzGoVetStreamNativeProjectionConservation",
+      "fuzz_seconds": 3
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+--- a/runnercontrol/go_vet_stream.go
++++ b/runnercontrol/go_vet_stream.go
+@@ -185,7 +185,7 @@
+ 		if wire.Error == nil {
+ 			return core.ErrJSONContract
+ 		}
+-		observation.Kind, observation.Message = GoVetObservationAnalyzerError, *wire.Error
++		observation.Kind, observation.Message, observation.Position = GoVetObservationDiagnostic, *wire.Error, "-"
+ 		if err := observation.Validate(); err != nil {
+ 			return err
+ 		}

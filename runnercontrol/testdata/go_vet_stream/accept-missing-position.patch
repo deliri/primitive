@@ -1,0 +1,12 @@
+--- a/runnercontrol/go_vet_stream.go
++++ b/runnercontrol/go_vet_stream.go
+@@ -210,7 +210,8 @@
+ 		if err != nil {
+ 			return err
+ 		}
+-		if wire.Position == nil || wire.Message == nil {
++		if wire.Position == nil {position:="-";wire.Position=&position}
++if wire.Message == nil {
+ 			return core.ErrJSONContract
+ 		}
+ 		observation.Kind, observation.Position, observation.End, observation.Message = GoVetObservationDiagnostic, *wire.Position, wire.End, *wire.Message

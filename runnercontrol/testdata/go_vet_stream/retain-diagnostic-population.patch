@@ -1,0 +1,17 @@
+--- a/runnercontrol/go_vet_stream.go
++++ b/runnercontrol/go_vet_stream.go
+@@ -106,7 +106,7 @@
+ // formatting and analyzer/module cardinality never become diagnostic counts.
+ // A completed record observes only its prefix; clean EOF closes the stream.
+ // Source, cancellation, and visitor refusals retain their native identities.
+-func ReadGoVetStream(ctx context.Context, request GoVetStreamRequest) (resultErr error) {
++func collectedReadGoVetStream(ctx context.Context, request GoVetStreamRequest) (resultErr error) {
+ 	if err := errors.Join(contextstate.Validate(ctx), request.Validate()); err != nil {
+ 		return err
+ 	}
+@@ -222,3 +222,5 @@
+ 		}
+ 	}
+ }
++
++func ReadGoVetStream(ctx context.Context,request GoVetStreamRequest)error{var observations []GoVetObservation;err:=collectedReadGoVetStream(ctx,GoVetStreamRequest{Source:request.Source,Visit:func(observation GoVetObservation)error{observations=append(observations,observation);return nil}});if err!=nil{return err};for _,observation:=range observations{if err:=request.Visit(observation);err!=nil{return err}};return nil}
