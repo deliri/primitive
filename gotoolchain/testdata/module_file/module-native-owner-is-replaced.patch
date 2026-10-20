@@ -1,0 +1,12 @@
+diff --git a/gotoolchain/module_file.go b/gotoolchain/module_file.go
+--- a/gotoolchain/module_file.go
++++ b/gotoolchain/module_file.go
+@@ -81,7 +81,7 @@
+ 		return ModuleFileObservation{}, errors.Join(core.ErrGoToolchainExecution, err)
+ 	}
+ 	var observed ModuleFileObservation
+-	err := c.withCompletedCommandOutput(ctx, request.WorkingDirectory, []string{"mod", "edit", "-json"}, func(source io.Reader, _ process.ResultObservation) error {
++	err := c.withCompletedCommandOutput(ctx, request.WorkingDirectory, []string{"env", "-json"}, func(source io.Reader, _ process.ResultObservation) error {
+ 		var err error
+ 		observed, err = readModuleFileObservation(ctx, source)
+ 		return err

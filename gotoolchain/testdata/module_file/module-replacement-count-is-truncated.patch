@@ -1,0 +1,12 @@
+diff --git a/gotoolchain/module_file.go b/gotoolchain/module_file.go
+--- a/gotoolchain/module_file.go
++++ b/gotoolchain/module_file.go
+@@ -173,7 +173,7 @@
+ 				if err := skip(); err != nil {
+ 					return refuse(err)
+ 				}
+-				observed.Replacements++
++				observed.Replacements = 1
+ 			}
+ 			if _, err := read(); err != nil {
+ 				return refuse(err)

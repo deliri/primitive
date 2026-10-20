@@ -1,0 +1,14 @@
+diff --git a/gotoolchain/module_file.go b/gotoolchain/module_file.go
+--- a/gotoolchain/module_file.go
++++ b/gotoolchain/module_file.go
+@@ -108,6 +108,10 @@
+ 		if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+ 			return err
+ 		}
++		if decoder.PeekKind() == jsontext.KindBeginArray || decoder.PeekKind() == jsontext.KindBeginObject {
++			_, err := decoder.ReadValue()
++			return errors.Join(err, temporal.Wait(temporal.WaitRequest{Context: ctx}))
++		}
+ 		depth := decoder.StackDepth()
+ 		// Borrow the native cursor through containers; never capture an
+ 		// ignored requirement, replacement or other collection as one value.

@@ -1,0 +1,12 @@
+diff --git a/gotoolchain/module_file.go b/gotoolchain/module_file.go
+--- a/gotoolchain/module_file.go
++++ b/gotoolchain/module_file.go
+@@ -121,7 +121,7 @@
+ 		}
+ 	}
+ 	refuse := func(err error) (ModuleFileObservation, error) {
+-		return ModuleFileObservation{}, errors.Join(core.ErrGoToolchainOutput, err)
++		return ModuleFileObservation{}, core.ErrGoToolchainOutput
+ 	}
+ 	start, err := read()
+ 	if err != nil || start.Kind() != jsontext.KindBeginObject {

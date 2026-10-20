@@ -1,0 +1,12 @@
+diff --git a/gotoolchain/module_file.go b/gotoolchain/module_file.go
+--- a/gotoolchain/module_file.go
++++ b/gotoolchain/module_file.go
+@@ -127,7 +127,7 @@
+ 	if err != nil || start.Kind() != jsontext.KindBeginObject {
+ 		return refuse(err)
+ 	}
+-	observed := ModuleFileObservation{GoDeclaration: ModuleGoDeclarationAbsent}
++	observed := ModuleFileObservation{GoDeclaration: ModuleGoDeclarationPresent}
+ 	for {
+ 		name, err := read()
+ 		if err != nil {

@@ -1,0 +1,104 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    },
+    "job": {
+      "cpu": 2,
+      "memory_bytes": 4294967296,
+      "scratch_bytes": 4294967296
+    }
+  },
+  "steps": [
+    {
+      "name": "module-native-owner-is-replaced",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/module_file/module-native-owner-is-replaced.patch",
+        "failing_test": "TestObserveModuleFileUsesNativeGoWithoutEditingOrResolvingDependencies/pinned_release"
+      }
+    },
+    {
+      "name": "module-version-is-fabricated",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/module_file/module-version-is-fabricated.patch",
+        "failing_test": "TestObserveModuleFileUsesNativeGoWithoutEditingOrResolvingDependencies/language_version"
+      }
+    },
+    {
+      "name": "module-absence-becomes-presence",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/module_file/module-absence-becomes-presence.patch",
+        "failing_test": "TestObserveModuleFileUsesNativeGoWithoutEditingOrResolvingDependencies/absent_Go_directive"
+      }
+    },
+    {
+      "name": "module-replacement-count-is-truncated",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/module_file/module-replacement-count-is-truncated.patch",
+        "failing_test": "TestObserveModuleFileUsesNativeGoWithoutEditingOrResolvingDependencies/replacement_block_counts_actual_entries"
+      }
+    },
+    {
+      "name": "module-source-cause-is-lost",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/module_file/module-source-cause-is-lost.patch",
+        "failing_test": "TestModuleFileProjectionPreservesSourceRefusalsAtEveryBoundary/3"
+      }
+    },
+    {
+      "name": "module-native-command-refusal-becomes-absence",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/module_file/module-native-command-refusal-becomes-absence.patch",
+        "failing_test": "TestObserveModuleFileUsesNativeGoWithoutEditingOrResolvingDependencies/custom_toolchain_suffix_is_not_Go_directive_grammar"
+      }
+    },
+    {
+      "name": "module-ignored-population-is-captured",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/module_file/module-ignored-population-is-captured.patch",
+        "failing_test": "TestModuleFileProjectionDoesNotCaptureDirectivePopulation"
+      }
+    },
+    {
+      "name": "module-trailing-document-is-admitted",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/module_file/module-trailing-document-is-admitted.patch",
+        "failing_test": "TestModuleFileProjectionRefusesMalformedNativeRecords/trailing_document_refuses"
+      }
+    }
+  ]
+}

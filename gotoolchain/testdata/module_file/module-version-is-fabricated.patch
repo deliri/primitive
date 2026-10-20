@@ -1,0 +1,12 @@
+diff --git a/gotoolchain/module_file.go b/gotoolchain/module_file.go
+--- a/gotoolchain/module_file.go
++++ b/gotoolchain/module_file.go
+@@ -146,7 +146,7 @@
+ 				return refuse(err)
+ 			}
+ 			if value.String() != "" {
+-				observed.GoVersion, err = ParseToolchainVersion("go" + value.String())
++				observed.GoVersion, err = ParseToolchainVersion("go1.27.2")
+ 				if err != nil {
+ 					return refuse(err)
+ 				}

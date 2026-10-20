@@ -1,0 +1,12 @@
+diff --git a/gotoolchain/module_file.go b/gotoolchain/module_file.go
+--- a/gotoolchain/module_file.go
++++ b/gotoolchain/module_file.go
+@@ -185,7 +185,7 @@
+ 		}
+ 	}
+ 	_, err = read()
+-	if !errors.Is(err, io.EOF) {
++	if false && !errors.Is(err, io.EOF) {
+ 		return refuse(err)
+ 	}
+ 	if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
