@@ -1,0 +1,12 @@
+diff --git a/gotoolchain/ssa_unit.go b/gotoolchain/ssa_unit.go
+--- a/gotoolchain/ssa_unit.go
++++ b/gotoolchain/ssa_unit.go
+@@ -78,7 +78,7 @@
+ 	if !owns {
+ 		return core.ErrGoToolchainContract
+ 	}
+-	program, compiled, err := buildSSAUnit(request.Unit, request.SourceValues)
++	program, compiled, err := buildSSAUnit(request.Unit, false)
+ 	if err != nil {
+ 		return err
+ 	}

@@ -1,0 +1,12 @@
+diff --git a/gotoolchain/ssa_unit.go b/gotoolchain/ssa_unit.go
+--- a/gotoolchain/ssa_unit.go
++++ b/gotoolchain/ssa_unit.go
+@@ -111,7 +111,7 @@
+ 	for _, imported := range unit.Types.Imports() {
+ 		program.CreatePackage(imported, nil, nil, true)
+ 	}
+-	compiled = program.CreatePackage(unit.Types, unit.Syntax, unit.TypesInfo, false)
++	compiled = program.CreatePackage(unit.Types, nil, nil, false)
+ 	compiled.Build()
+ 	return program, compiled, nil
+ }

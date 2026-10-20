@@ -1,0 +1,12 @@
+diff --git a/gotoolchain/ssa_unit.go b/gotoolchain/ssa_unit.go
+--- a/gotoolchain/ssa_unit.go
++++ b/gotoolchain/ssa_unit.go
+@@ -104,7 +104,7 @@
+ 		}
+ 	}()
+ 	mode := ssa.BuilderMode(0)
+-	if sourceValues {
++	if sourceValues || !sourceValues {
+ 		mode = ssa.GlobalDebug
+ 	}
+ 	program = ssa.NewProgram(unit.Fset, mode)

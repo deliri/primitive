@@ -1,0 +1,35 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    },
+    "job": {
+      "cpu": 2,
+      "memory_bytes": 4294967296,
+      "scratch_bytes": 4294967296
+    }
+  },
+  "steps": [
+    {
+      "name": "native-source-values-owning-vet",
+      "kind": "vet",
+      "arguments": [
+        "./gotoolchain"
+      ]
+    },
+    {
+      "name": "native-source-values-observed-cost",
+      "kind": "test",
+      "arguments": [
+        "./gotoolchain",
+        "-run=^$",
+        "-bench=^BenchmarkSSASourceValuesNativeBuild$",
+        "-benchmem",
+        "-benchtime=3s",
+        "-count=6"
+      ]
+    }
+  ]
+}

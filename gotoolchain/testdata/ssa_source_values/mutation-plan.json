@@ -1,0 +1,49 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    },
+    "job": {
+      "cpu": 2,
+      "memory_bytes": 4294967296,
+      "scratch_bytes": 4294967296
+    }
+  },
+  "steps": [
+    {
+      "name": "source-option-ignored",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/ssa_source_values/source-option-ignored.patch",
+        "failing_test": "TestSSASourceValuesProducerMatrix"
+      }
+    },
+    {
+      "name": "source-option-always-on",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/ssa_source_values/source-option-always-on.patch",
+        "failing_test": "TestSSASourceValuesAreOptInAndKeepNativeAbsence"
+      }
+    },
+    {
+      "name": "native-source-graph-dropped",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/ssa_source_values/native-source-graph-dropped.patch",
+        "failing_test": "TestSSASourceValuesProducerMatrix"
+      }
+    }
+  ]
+}
