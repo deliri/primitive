@@ -75,49 +75,76 @@ func (r SymbolReference) Validate() error {
 // assigning an effectful method to a local variable cannot erase its identity.
 func (a PackageAnalysis) SymbolReferences(ctx context.Context) iter.Seq2[SymbolReference, error] {
 	return func(yield func(SymbolReference, error) bool) {
+		for occurrence, err := range a.SymbolOccurrences(ctx) {
+			if !yield(occurrence.Reference, err) || err != nil {
+				return
+			}
+		}
+	}
+}
+
+// SymbolOccurrence lends the compiler fact and its exact native syntax path
+// together. Syntax.Ancestors is borrowed only until the next observation.
+// Consumers need no coordinate lookup, symbol index or second syntax traversal.
+type SymbolOccurrence struct {
+	Reference SymbolReference
+	Syntax    SyntaxNodeObservation
+}
+
+func (SymbolOccurrence) goToolchainProtocolFact() {}
+func (o SymbolOccurrence) Validate() error {
+	if err := errors.Join(o.Reference.Validate(), o.Syntax.Validate()); err != nil {
+		return err
+	}
+	if _, ok := o.Syntax.Node.(*ast.Ident); !ok {
+		return core.ErrGoToolchainContract
+	}
+	return nil
+}
+
+// SymbolOccurrences projects native declarations during one Go syntax walk.
+// It retains only Go's depth-sized traversal path, with no occurrence population.
+func (a PackageAnalysis) SymbolOccurrences(ctx context.Context) iter.Seq2[SymbolOccurrence, error] {
+	return func(yield func(SymbolOccurrence, error) bool) {
 		if err := errors.Join(contextstate.Validate(ctx), a.Validate()); err != nil {
-			yield(SymbolReference{}, err)
+			yield(SymbolOccurrence{}, err)
 			return
 		}
 		if a.Incomplete {
-			yield(SymbolReference{}, core.ErrGoToolchainOutput)
+			yield(SymbolOccurrence{}, core.ErrGoToolchainOutput)
 			return
 		}
 		for _, unit := range a.Units {
 			for _, source := range unit.Syntax {
-				stopped := false
-				ast.Inspect(source, func(node ast.Node) bool {
-					if stopped {
-						return false
+				for syntax, err := range WalkSyntax(ctx, SyntaxWalkRequest{Root: source}) {
+					if err != nil {
+						yield(SymbolOccurrence{}, err)
+						return
 					}
-					identifier, ok := node.(*ast.Ident)
+					identifier, ok := syntax.Node.(*ast.Ident)
 					if !ok {
-						return true
+						continue
 					}
 					function, ok := unit.TypesInfo.Uses[identifier].(*types.Func)
 					if !ok || function.Pkg() == nil {
-						return true
+						continue
 					}
 					symbol, kind, err := observedFunctionSymbol(function)
 					position := unit.Fset.PositionFor(identifier.Pos(), false)
 					file, pathErr := core.ParseAbsolutePath(position.Filename)
-					observation := SymbolReference{Symbol: symbol, Kind: kind, File: file, Offset: uint64(position.Offset), Line: uint64(position.Line), Column: uint64(position.Column)}
-					err = errors.Join(err, pathErr, contextstate.Validate(ctx), observation.Validate())
-					if err != nil {
-						yield(SymbolReference{}, err)
-						stopped = true
-						return false
+					observation := SymbolOccurrence{Reference: SymbolReference{Symbol: symbol, Kind: kind, File: file, Offset: uint64(position.Offset), Line: uint64(position.Line), Column: uint64(position.Column)}, Syntax: syntax}
+					if err := errors.Join(err, pathErr, contextstate.Validate(ctx), observation.Validate()); err != nil {
+						yield(SymbolOccurrence{}, err)
+						return
 					}
-					stopped = !yield(observation, nil)
-					return !stopped
-				})
-				if stopped {
-					return
+					if !yield(observation, nil) {
+						return
+					}
 				}
 			}
 		}
 		if err := contextstate.Validate(ctx); err != nil {
-			yield(SymbolReference{}, err)
+			yield(SymbolOccurrence{}, err)
 		}
 	}
 }

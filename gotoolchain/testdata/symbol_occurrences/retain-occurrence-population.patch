@@ -1,0 +1,25 @@
+--- a/gotoolchain/symbol_references.go
++++ b/gotoolchain/symbol_references.go
+@@ -106,6 +106,7 @@
+ // It retains only Go's depth-sized traversal path, with no occurrence population.
+ func (a PackageAnalysis) SymbolOccurrences(ctx context.Context) iter.Seq2[SymbolOccurrence, error] {
+ 	return func(yield func(SymbolOccurrence, error) bool) {
++var retained []SymbolOccurrence
+ 		if err := errors.Join(contextstate.Validate(ctx), a.Validate()); err != nil {
+ 			yield(SymbolOccurrence{}, err)
+ 			return
+@@ -137,12 +138,11 @@
+ 						yield(SymbolOccurrence{}, err)
+ 						return
+ 					}
+-					if !yield(observation, nil) {
+-						return
+-					}
++					retained=append(retained,observation)
+ 				}
+ 			}
+ 		}
++		for _,observation:=range retained{if !yield(observation,nil){return}}
+ 		if err := contextstate.Validate(ctx); err != nil {
+ 			yield(SymbolOccurrence{}, err)
+ 		}

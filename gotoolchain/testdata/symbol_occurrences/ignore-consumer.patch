@@ -1,0 +1,11 @@
+--- a/gotoolchain/symbol_references.go
++++ b/gotoolchain/symbol_references.go
+@@ -137,7 +137,7 @@
+ 						yield(SymbolOccurrence{}, err)
+ 						return
+ 					}
+-					if !yield(observation, nil) {
++					if _ = yield(observation,nil); false {
+ 						return
+ 					}
+ 				}

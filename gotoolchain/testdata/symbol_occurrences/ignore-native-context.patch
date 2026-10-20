@@ -1,0 +1,38 @@
+--- a/gotoolchain/symbol_references.go
++++ b/gotoolchain/symbol_references.go
+@@ -106,7 +106,7 @@
+ // It retains only Go's depth-sized traversal path, with no occurrence population.
+ func (a PackageAnalysis) SymbolOccurrences(ctx context.Context) iter.Seq2[SymbolOccurrence, error] {
+ 	return func(yield func(SymbolOccurrence, error) bool) {
+-		if err := errors.Join(contextstate.Validate(ctx), a.Validate()); err != nil {
++		if err := errors.Join(contextstate.Validate(context.Background()), a.Validate()); err != nil {
+ 			yield(SymbolOccurrence{}, err)
+ 			return
+ 		}
+@@ -116,7 +116,7 @@
+ 		}
+ 		for _, unit := range a.Units {
+ 			for _, source := range unit.Syntax {
+-				for syntax, err := range WalkSyntax(ctx, SyntaxWalkRequest{Root: source}) {
++				for syntax, err := range WalkSyntax(context.Background(), SyntaxWalkRequest{Root: source}) {
+ 					if err != nil {
+ 						yield(SymbolOccurrence{}, err)
+ 						return
+@@ -133,7 +133,7 @@
+ 					position := unit.Fset.PositionFor(identifier.Pos(), false)
+ 					file, pathErr := core.ParseAbsolutePath(position.Filename)
+ 					observation := SymbolOccurrence{Reference: SymbolReference{Symbol: symbol, Kind: kind, File: file, Offset: uint64(position.Offset), Line: uint64(position.Line), Column: uint64(position.Column)}, Syntax: syntax}
+-					if err := errors.Join(err, pathErr, contextstate.Validate(ctx), observation.Validate()); err != nil {
++					if err := errors.Join(err, pathErr, contextstate.Validate(context.Background()), observation.Validate()); err != nil {
+ 						yield(SymbolOccurrence{}, err)
+ 						return
+ 					}
+@@ -143,7 +143,7 @@
+ 				}
+ 			}
+ 		}
+-		if err := contextstate.Validate(ctx); err != nil {
++		if err := contextstate.Validate(context.Background()); err != nil {
+ 			yield(SymbolOccurrence{}, err)
+ 		}
+ 	}

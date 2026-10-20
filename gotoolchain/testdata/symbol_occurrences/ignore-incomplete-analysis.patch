@@ -1,0 +1,11 @@
+--- a/gotoolchain/symbol_references.go
++++ b/gotoolchain/symbol_references.go
+@@ -110,7 +110,7 @@
+ 			yield(SymbolOccurrence{}, err)
+ 			return
+ 		}
+-		if a.Incomplete {
++		if false && a.Incomplete {
+ 			yield(SymbolOccurrence{}, core.ErrGoToolchainOutput)
+ 			return
+ 		}

@@ -1,0 +1,11 @@
+--- a/gotoolchain/symbol_references.go
++++ b/gotoolchain/symbol_references.go
+@@ -130,7 +130,7 @@
+ 						continue
+ 					}
+ 					symbol, kind, err := observedFunctionSymbol(function)
+-					position := unit.Fset.PositionFor(identifier.Pos(), false)
++					position := unit.Fset.PositionFor(identifier.Pos(), true)
+ 					file, pathErr := core.ParseAbsolutePath(position.Filename)
+ 					observation := SymbolOccurrence{Reference: SymbolReference{Symbol: symbol, Kind: kind, File: file, Offset: uint64(position.Offset), Line: uint64(position.Line), Column: uint64(position.Column)}, Syntax: syntax}
+ 					if err := errors.Join(err, pathErr, contextstate.Validate(ctx), observation.Validate()); err != nil {
