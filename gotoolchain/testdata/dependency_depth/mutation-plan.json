@@ -1,0 +1,170 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    },
+    "job": {
+      "cpu": 2,
+      "memory_bytes": 4294967296,
+      "scratch_bytes": 4294967296
+    }
+  },
+  "steps": [
+    {
+      "name": "copied-root-ID-replaces-native-ownership",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/dependency_depth/copied-root-ID-replaces-native-ownership.patch",
+        "failing_test": "TestDependencyDepthRefusesUnownedAndIncompleteFacts/copied_equal_root_has_no_ownership"
+      }
+    },
+    {
+      "name": "incomplete-parent-becomes-complete",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/dependency_depth/incomplete-parent-becomes-complete.patch",
+        "failing_test": "TestDependencyDepthRefusesUnownedAndIncompleteFacts"
+      }
+    },
+    {
+      "name": "root-edge-is-not-counted",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/dependency_depth/root-edge-is-not-counted.patch",
+        "failing_test": "TestDependencyDepthReadsActualNativeClosure/root_edge_is_a_real_hop"
+      }
+    },
+    {
+      "name": "native-depth-is-arbitrarily-saturated",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/dependency_depth/native-depth-is-arbitrarily-saturated.patch",
+        "failing_test": "TestDependencyDepthReadsActualNativeClosure/selected_root_traverses_unselected_dependencies"
+      }
+    },
+    {
+      "name": "exact-subtree-root-is-skipped",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/dependency_depth/exact-subtree-root-is-skipped.patch",
+        "failing_test": "TestDependencyDepthReadsActualNativeClosure/exact_subtree_root_is_admitted"
+      }
+    },
+    {
+      "name": "similar-prefix-borrows-scope",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/dependency_depth/similar-prefix-borrows-scope.patch",
+        "failing_test": "TestDependencyDepthReadsActualNativeClosure/similar_path_prefix_is_not_subtree"
+      }
+    },
+    {
+      "name": "scope-is-ignored",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/dependency_depth/scope-is-ignored.patch",
+        "failing_test": "TestDependencyDepthReadsActualNativeClosure/foreign_prefix_contributes_no_depth"
+      }
+    },
+    {
+      "name": "missing-native-edge-becomes-clean",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/dependency_depth/missing-native-edge-becomes-clean.patch",
+        "failing_test": "TestDependencyDepthMissingNativeEdgesCannotBecomeClean/missing_edge"
+      }
+    },
+    {
+      "name": "empty-native-package-ID-becomes-filtered",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/dependency_depth/empty-native-package-ID-becomes-filtered.patch",
+        "failing_test": "TestDependencyDepthMissingNativeEdgesCannotBecomeClean/missing_package_identity"
+      }
+    },
+    {
+      "name": "native-cycle-becomes-a-leaf",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/dependency_depth/native-cycle-becomes-a-leaf.patch",
+        "failing_test": "TestDependencyDepthMissingNativeEdgesCannotBecomeClean/native_cycle"
+      }
+    },
+    {
+      "name": "native-diagnostic-is-discarded",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/dependency_depth/native-diagnostic-is-discarded.patch",
+        "failing_test": "TestDependencyDepthMissingNativeEdgesCannotBecomeClean/native_diagnostic"
+      }
+    },
+    {
+      "name": "source-borrows-requested-scope-identity",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/dependency_depth/source-borrows-requested-scope-identity.patch",
+        "failing_test": "TestDependencyDepthReadsActualNativeClosure"
+      }
+    },
+    {
+      "name": "unrepresentable-depth-becomes-valid",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/dependency_depth/unrepresentable-depth-becomes-valid.patch",
+        "failing_test": "TestDependencyDepthObservationRequiresOwnedShape"
+      }
+    },
+    {
+      "name": "cancelled-depth-loses-native-cause",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/dependency_depth/cancelled-depth-loses-native-cause.patch",
+        "failing_test": "TestDependencyDepthRefusesUnownedAndIncompleteFacts"
+      }
+    }
+  ]
+}

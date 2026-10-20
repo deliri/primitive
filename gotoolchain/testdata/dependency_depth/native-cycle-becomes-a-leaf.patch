@@ -1,0 +1,11 @@
+--- a/gotoolchain/dependency_depth.go
++++ b/gotoolchain/dependency_depth.go
+@@ -101,7 +101,7 @@
+ 		return depth, nil
+ 	}
+ 	if active[unit] {
+-		return 0, core.ErrGoToolchainOutput
++		return 0, nil
+ 	}
+ 	active[unit] = true
+ 	var depth uint64

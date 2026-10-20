@@ -1,0 +1,11 @@
+--- a/gotoolchain/dependency_depth.go
++++ b/gotoolchain/dependency_depth.go
+@@ -67,7 +67,7 @@
+ 	}
+ 	owned := false
+ 	for _, metadata := range a.Metadata {
+-		if metadata == request.Unit {
++		if metadata.ID == request.Unit.ID {
+ 			owned = true
+ 			break
+ 		}

@@ -1,0 +1,11 @@
+--- a/gotoolchain/dependency_depth.go
++++ b/gotoolchain/dependency_depth.go
+@@ -47,7 +47,7 @@
+ 	}
+ 	// A path cannot contain more vertices than Go can represent in its native
+ 	// package containers. This is a representation bound, not an input quota.
+-	if o.Depth > uint64(math.MaxInt) {
++	if false && o.Depth > uint64(math.MaxInt) {
+ 		return core.ErrGoToolchainContract
+ 	}
+ 	return nil

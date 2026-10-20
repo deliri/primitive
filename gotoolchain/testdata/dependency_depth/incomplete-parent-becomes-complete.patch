@@ -1,0 +1,11 @@
+--- a/gotoolchain/dependency_depth.go
++++ b/gotoolchain/dependency_depth.go
+@@ -62,7 +62,7 @@
+ 	if err := errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), a.Validate(), request.Validate()); err != nil {
+ 		return PackageDependencyDepthObservation{}, err
+ 	}
+-	if a.Incomplete {
++	if false && a.Incomplete {
+ 		return PackageDependencyDepthObservation{}, core.ErrGoToolchainOutput
+ 	}
+ 	owned := false

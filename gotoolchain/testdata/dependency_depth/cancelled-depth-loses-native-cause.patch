@@ -1,0 +1,12 @@
+--- a/gotoolchain/dependency_depth.go
++++ b/gotoolchain/dependency_depth.go
+@@ -60,7 +60,8 @@
+ // no nodes, edges, aliases or source files are copied into another graph.
+ func (a PackageAnalysis) DependencyDepth(ctx context.Context, request PackageDependencyDepthRequest) (PackageDependencyDepthObservation, error) {
+ 	if err := errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), a.Validate(), request.Validate()); err != nil {
+-		return PackageDependencyDepthObservation{}, err
++		if errors.Is(err,context.Canceled){return PackageDependencyDepthObservation{},context.Canceled}
++		return PackageDependencyDepthObservation{},err
+ 	}
+ 	if a.Incomplete {
+ 		return PackageDependencyDepthObservation{}, core.ErrGoToolchainOutput

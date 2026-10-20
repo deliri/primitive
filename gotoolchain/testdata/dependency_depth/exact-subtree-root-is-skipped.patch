@@ -1,0 +1,11 @@
+--- a/gotoolchain/dependency_depth.go
++++ b/gotoolchain/dependency_depth.go
+@@ -109,7 +109,7 @@
+ 		if imported == nil || imported.PkgPath == "" {
+ 			return 0, core.ErrGoToolchainOutput
+ 		}
+-		if imported.PkgPath != within.String() && !strings.HasPrefix(imported.PkgPath, within.String()+"/") {
++		if !strings.HasPrefix(imported.PkgPath, within.String()+"/") {
+ 			continue
+ 		}
+ 		child, err := nativePackageDependencyDepth(ctx, imported, within, memo, active)

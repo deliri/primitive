@@ -1,0 +1,11 @@
+--- a/gotoolchain/dependency_depth.go
++++ b/gotoolchain/dependency_depth.go
+@@ -119,7 +119,7 @@
+ 		if child == uint64(math.MaxInt) {
+ 			return 0, core.ErrGoToolchainOutput
+ 		}
+-		depth = max(depth, child+1)
++		depth = min(uint64(2),max(depth, child+1))
+ 	}
+ 	delete(active, unit)
+ 	memo[unit] = depth

@@ -1,0 +1,11 @@
+--- a/gotoolchain/dependency_depth.go
++++ b/gotoolchain/dependency_depth.go
+@@ -94,7 +94,7 @@
+ 	if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+ 		return 0, err
+ 	}
+-	if unit == nil || unit.PkgPath == "" || unit.IllTyped || len(unit.Errors) != 0 {
++	if unit == nil || unit.PkgPath == "" || unit.IllTyped {
+ 		return 0, core.ErrGoToolchainOutput
+ 	}
+ 	if depth, ok := memo[unit]; ok {

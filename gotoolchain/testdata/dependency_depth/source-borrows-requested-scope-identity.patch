@@ -1,0 +1,12 @@
+--- a/gotoolchain/dependency_depth.go
++++ b/gotoolchain/dependency_depth.go
+@@ -83,7 +83,8 @@
+ 	if err != nil {
+ 		return PackageDependencyDepthObservation{}, err
+ 	}
+-	observation := PackageDependencyDepthObservation{Source: source, Within: request.Within, Depth: depth}
++	observation := PackageDependencyDepthObservation{Source: request.Within, Within: request.Within, Depth: depth}
++	_ = source
+ 	if err := errors.Join(observation.Validate(), temporal.Wait(temporal.WaitRequest{Context: ctx})); err != nil {
+ 		return PackageDependencyDepthObservation{}, err
+ 	}

@@ -1,0 +1,11 @@
+--- a/gotoolchain/dependency_depth.go
++++ b/gotoolchain/dependency_depth.go
+@@ -106,7 +106,7 @@
+ 	active[unit] = true
+ 	var depth uint64
+ 	for _, imported := range unit.Imports {
+-		if imported == nil || imported.PkgPath == "" {
++		if imported == nil {
+ 			return 0, core.ErrGoToolchainOutput
+ 		}
+ 		if imported.PkgPath != within.String() && !strings.HasPrefix(imported.PkgPath, within.String()+"/") {
