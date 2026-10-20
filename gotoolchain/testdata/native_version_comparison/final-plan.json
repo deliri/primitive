@@ -1,0 +1,23 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    },
+    "job": {
+      "cpu": 2,
+      "memory_bytes": 4294967296,
+      "scratch_bytes": 4294967296
+    }
+  },
+  "steps": [
+    {
+      "name": "native-version-order-final-vet",
+      "kind": "vet",
+      "arguments": [
+        "./gotoolchain"
+      ]
+    }
+  ]
+}
