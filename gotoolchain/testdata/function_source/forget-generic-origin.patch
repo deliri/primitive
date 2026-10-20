@@ -1,0 +1,11 @@
+--- a/gotoolchain/function_source.go
++++ b/gotoolchain/function_source.go
+@@ -94,7 +94,7 @@
+ 	if a.Incomplete {
+ 		return FunctionSourceObservation{}, core.ErrGoToolchainOutput
+ 	}
+-	function := request.Function.Origin()
++	function := request.Function
+ 	for _, unit := range a.Units {
+ 		if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+ 			return FunctionSourceObservation{}, err

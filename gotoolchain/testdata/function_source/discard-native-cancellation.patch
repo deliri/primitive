@@ -1,0 +1,38 @@
+--- a/gotoolchain/function_source.go
++++ b/gotoolchain/function_source.go
+@@ -88,7 +88,7 @@
+ // index and does not scan every body for each lookup. Memory excludes the
+ // already-owned compiler graph and remains constant for each lookup.
+ func (a PackageAnalysis) FunctionSource(ctx context.Context, request FunctionSourceRequest) (FunctionSourceObservation, error) {
+-	if err := errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), a.Validate(), request.Validate()); err != nil {
++	if err := errors.Join(temporal.Wait(temporal.WaitRequest{Context: context.Background()}), a.Validate(), request.Validate()); err != nil {
+ 		return FunctionSourceObservation{}, err
+ 	}
+ 	if a.Incomplete {
+@@ -96,7 +96,7 @@
+ 	}
+ 	function := request.Function.Origin()
+ 	for _, unit := range a.Units {
+-		if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
++		if err := temporal.Wait(temporal.WaitRequest{Context: context.Background()}); err != nil {
+ 			return FunctionSourceObservation{}, err
+ 		}
+ 		if unit.Types != function.Pkg() {
+@@ -108,7 +108,7 @@
+ 			return FunctionSourceObservation{}, core.ErrGoToolchainOutput
+ 		}
+ 		for _, source := range unit.Syntax {
+-			if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
++			if err := temporal.Wait(temporal.WaitRequest{Context: context.Background()}); err != nil {
+ 				return FunctionSourceObservation{}, err
+ 			}
+ 			if source == nil {
+@@ -130,7 +130,7 @@
+ 				return FunctionSourceObservation{}, core.ErrGoToolchainOutput
+ 			}
+ 			observation := FunctionSourceObservation{Declaration: declaration, Types: unit.TypesInfo, Positions: unit.Fset, Presence: FunctionSourcePresent}
+-			if err := errors.Join(observation.Validate(), temporal.Wait(temporal.WaitRequest{Context: ctx})); err != nil {
++			if err := errors.Join(observation.Validate(), temporal.Wait(temporal.WaitRequest{Context: context.Background()})); err != nil {
+ 				return FunctionSourceObservation{}, err
+ 			}
+ 			return observation, nil

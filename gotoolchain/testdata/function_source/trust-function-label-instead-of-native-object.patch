@@ -1,0 +1,11 @@
+--- a/gotoolchain/function_source.go
++++ b/gotoolchain/function_source.go
+@@ -126,7 +126,7 @@
+ 				return FunctionSourceObservation{}, core.ErrGoToolchainOutput
+ 			}
+ 			binding, ok := unit.TypesInfo.Defs[declaration.Name].(*types.Func)
+-			if !ok || binding.Origin() != function {
++			if !ok || binding.Name() != function.Name() {
+ 				return FunctionSourceObservation{}, core.ErrGoToolchainOutput
+ 			}
+ 			observation := FunctionSourceObservation{Declaration: declaration, Types: unit.TypesInfo, Positions: unit.Fset, Presence: FunctionSourcePresent}

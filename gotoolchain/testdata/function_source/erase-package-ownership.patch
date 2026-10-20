@@ -1,0 +1,11 @@
+--- a/gotoolchain/function_source.go
++++ b/gotoolchain/function_source.go
+@@ -99,7 +99,7 @@
+ 		if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+ 			return FunctionSourceObservation{}, err
+ 		}
+-		if unit.Types != function.Pkg() {
++		if false {
+ 			continue
+ 		}
+ 		position := function.Pos()

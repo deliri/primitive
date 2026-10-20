@@ -1,0 +1,12 @@
+--- a/gotoolchain/function_source.go
++++ b/gotoolchain/function_source.go
+@@ -117,7 +117,8 @@
+ 			if unit.Fset.File(source.Pos()) != file {
+ 				continue
+ 			}
+-			index := sort.Search(len(source.Decls), func(index int) bool { return source.Decls[index].End() > position })
++			declarations := append([]ast.Decl(nil), source.Decls...)
++ index := sort.Search(len(declarations),func(index int)bool{return declarations[index].End()>position})
+ 			if index == len(source.Decls) {
+ 				return FunctionSourceObservation{}, core.ErrGoToolchainOutput
+ 			}

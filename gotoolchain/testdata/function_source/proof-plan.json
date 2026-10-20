@@ -1,0 +1,111 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    },
+    "job": {
+      "cpu": 2,
+      "memory_bytes": 4294967296,
+      "scratch_bytes": 4294967296
+    }
+  },
+  "steps": [
+    {
+      "name": "native-function-source-ownership-and-refusals",
+      "kind": "test",
+      "arguments": [
+        "./gotoolchain",
+        "-count=1",
+        "-run=^(TestFunctionSourceLendsActualNativeDeclarationAndGenericOrigin|TestFunctionSourceCannotBorrowForeignOrFabricatedIdentity|TestFunctionSourceRefusalsKeepNativeCauseAndNoLoan|TestFunctionSourcePhysicalIdentityIgnoresSourceDirectives|TestFunctionSourcePresenceAndLoanContractsAreClosed|TestFunctionSourceLookupRetainsNoDeclarationIndex|TestGoToolchainProductionStructsHaveCompilerVisibleDataFlowRoles)$"
+      ]
+    },
+    {
+      "name": "forget-generic-origin",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/function_source/forget-generic-origin.patch",
+        "failing_test": "TestFunctionSourceLendsActualNativeDeclarationAndGenericOrigin"
+      }
+    },
+    {
+      "name": "trust-function-label-instead-of-native-object",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/function_source/trust-function-label-instead-of-native-object.patch",
+        "failing_test": "TestFunctionSourceCannotBorrowForeignOrFabricatedIdentity/fabricated_native_name_and_position"
+      }
+    },
+    {
+      "name": "convert-missing-binding-to-absence",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/function_source/convert-missing-binding-to-absence.patch",
+        "failing_test": "TestFunctionSourceRefusalsKeepNativeCauseAndNoLoan/missing_binding"
+      }
+    },
+    {
+      "name": "discard-native-cancellation",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/function_source/discard-native-cancellation.patch",
+        "failing_test": "TestFunctionSourceRefusalsKeepNativeCauseAndNoLoan/cancelled_context"
+      }
+    },
+    {
+      "name": "admit-incomplete-compiler",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/function_source/admit-incomplete-compiler.patch",
+        "failing_test": "TestFunctionSourceRefusalsKeepNativeCauseAndNoLoan/incomplete_analysis"
+      }
+    },
+    {
+      "name": "erase-package-ownership",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/function_source/erase-package-ownership.patch",
+        "failing_test": "TestFunctionSourceCannotBorrowForeignOrFabricatedIdentity/same_spelling_and_module_in_another_compiler"
+      }
+    },
+    {
+      "name": "copy-declaration-population-per-lookup",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/function_source/copy-declaration-population-per-lookup.patch",
+        "failing_test": "TestFunctionSourceLookupRetainsNoDeclarationIndex/4097"
+      }
+    },
+    {
+      "name": "native-generic-function-source-fuzz",
+      "kind": "fuzz",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "fuzz_target": "FuzzFunctionSourcePreservesNativeMethodOrigin",
+      "fuzz_seconds": 3
+    }
+  ]
+}

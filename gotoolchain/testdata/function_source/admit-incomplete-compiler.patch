@@ -1,0 +1,11 @@
+--- a/gotoolchain/function_source.go
++++ b/gotoolchain/function_source.go
+@@ -91,7 +91,7 @@
+ 	if err := errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), a.Validate(), request.Validate()); err != nil {
+ 		return FunctionSourceObservation{}, err
+ 	}
+-	if a.Incomplete {
++	if false {
+ 		return FunctionSourceObservation{}, core.ErrGoToolchainOutput
+ 	}
+ 	function := request.Function.Origin()
