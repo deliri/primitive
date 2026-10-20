@@ -165,7 +165,10 @@ func readModuleFileObservation(ctx context.Context, source io.Reader) (ModuleFil
 			}
 			for decoder.PeekKind() != jsontext.KindEndArray {
 				if decoder.PeekKind() != jsontext.KindBeginObject {
-					return refuse(nil)
+					// PeekKind reports only a kind. Reading returns the owning
+					// source or syntax error rather than erasing its identity.
+					_, err := read()
+					return refuse(err)
 				}
 				if err := skip(); err != nil {
 					return refuse(err)
