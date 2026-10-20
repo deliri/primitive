@@ -11,6 +11,7 @@ import (
 	"hash"
 	"io"
 	"testing"
+	"testing/iotest"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/filestore"
@@ -221,6 +222,63 @@ func TestReadTARRefusesInvalidRequestBeforeSource(t *testing.T) {
 	request := filestore.TARReadRequest{Source: bytes.NewReader(nil), Compression: filestore.TARPlain, Visit: func(context.Context, filestore.TARReadEntry) error { count++; return nil }}
 	if err := filestore.ReadTAR(nil, request); !errors.Is(err, core.ErrNilContext) || count != 0 {
 		t.Fatalf("nil native context visits%d refusal%v want0/nil-context identity", count, err)
+	}
+}
+
+func TestReadTARPreservesNativeKindsAndNamesAsObservations(t *testing.T) {
+	t.Parallel()
+	for _, header := range []tar.Header{
+		{Name: "../escape", Typeflag: tar.TypeReg, Mode: 0777},
+		{Name: "nested/entry", Typeflag: tar.TypeReg, Mode: 0641},
+		{Name: "link", Typeflag: tar.TypeSymlink, Linkname: "../target", Mode: 0777},
+		{Name: "directory/", Typeflag: tar.TypeDir, Mode: 0701},
+	} {
+		t.Run(header.Name, func(t *testing.T) {
+			t.Parallel()
+			var encoded bytes.Buffer
+			archive := tar.NewWriter(&encoded)
+			if err := archive.WriteHeader(&header); err != nil {
+				t.Fatal(err)
+			}
+			if err := archive.Close(); err != nil {
+				t.Fatal(err)
+			}
+			count := 0
+			err := filestore.ReadTAR(t.Context(), filestore.TARReadRequest{Source: &encoded, Compression: filestore.TARPlain, Visit: func(ctx context.Context, entry filestore.TARReadEntry) error {
+				count++
+				if entry.Header.Name != header.Name || entry.Header.Typeflag != header.Typeflag || entry.Header.Mode != header.Mode || entry.Header.Linkname != header.Linkname {
+					t.Fatalf("native TAR header%+v want exact source%+v without extraction policy", entry.Header, header)
+				}
+				return nil
+			}})
+			if err != nil || count != 1 {
+				t.Fatalf("native TAR observation loans%d refusal%v want1/nil", count, err)
+			}
+		})
+	}
+}
+
+func TestReadTARPreservesNativeSourceFailures(t *testing.T) {
+	t.Parallel()
+	brokenHeader := nativeReadTARFixture(t, false, 1, 1)
+	brokenHeader[0] ^= 1
+	for _, row := range []struct {
+		name   string
+		source io.Reader
+		want   error
+	}{
+		{name: "header checksum refusal", source: bytes.NewReader(brokenHeader), want: tar.ErrHeader},
+		{name: "short header refusal", source: bytes.NewReader([]byte{1}), want: io.ErrUnexpectedEOF},
+		{name: "source identity refusal", source: iotest.ErrReader(io.ErrClosedPipe), want: io.ErrClosedPipe},
+	} {
+		t.Run(row.name, func(t *testing.T) {
+			t.Parallel()
+			count := 0
+			err := filestore.ReadTAR(t.Context(), filestore.TARReadRequest{Source: row.source, Compression: filestore.TARPlain, Visit: func(context.Context, filestore.TARReadEntry) error { count++; return nil }})
+			if count != 0 || !errors.Is(err, row.want) || !errors.Is(err, core.ErrFilestoreSource) {
+				t.Fatalf("native TAR source loans%d refusal%v want0/%v and source identity", count, err, row.want)
+			}
+		})
 	}
 }
 

@@ -1,0 +1,126 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    },
+    "job": {
+      "cpu": 2,
+      "memory_bytes": 4294967296,
+      "scratch_bytes": 4294967296
+    }
+  },
+  "steps": [
+    {
+      "name": "gzip-footer-is-never-verified",
+      "kind": "mutate",
+      "arguments": [
+        "./filestore"
+      ],
+      "mutation": {
+        "patch": "filestore/testdata/native_tar_read/gzip-footer-is-never-verified.patch",
+        "failing_test": "TestReadTARRefusesBrokenNativeGZIPClosure/false"
+      }
+    },
+    {
+      "name": "consumer-refusal-becomes-clean",
+      "kind": "mutate",
+      "arguments": [
+        "./filestore"
+      ],
+      "mutation": {
+        "patch": "filestore/testdata/native_tar_read/consumer-refusal-becomes-clean.patch",
+        "failing_test": "TestReadTARStopsAtConsumerRefusalAndCancellation/refusal"
+      }
+    },
+    {
+      "name": "native-cancellation-cause-is-lost",
+      "kind": "mutate",
+      "arguments": [
+        "./filestore"
+      ],
+      "mutation": {
+        "patch": "filestore/testdata/native_tar_read/native-cancellation-cause-is-lost.patch",
+        "failing_test": "TestReadTARStopsAtConsumerRefusalAndCancellation/cancellation"
+      }
+    },
+    {
+      "name": "native-header-name-is-rewritten",
+      "kind": "mutate",
+      "arguments": [
+        "./filestore"
+      ],
+      "mutation": {
+        "patch": "filestore/testdata/native_tar_read/native-header-name-is-rewritten.patch",
+        "failing_test": "TestReadTARPreservesNativeEntriesAcrossWindows/gzip_false/bytes_1"
+      }
+    },
+    {
+      "name": "native-member-bytes-are-silently-lost",
+      "kind": "mutate",
+      "arguments": [
+        "./filestore"
+      ],
+      "mutation": {
+        "patch": "filestore/testdata/native_tar_read/native-member-bytes-are-silently-lost.patch",
+        "failing_test": "TestReadTARPreservesNativeEntriesAcrossWindows/gzip_false/bytes_1"
+      }
+    },
+    {
+      "name": "native-header-refusal-becomes-clean",
+      "kind": "mutate",
+      "arguments": [
+        "./filestore"
+      ],
+      "mutation": {
+        "patch": "filestore/testdata/native_tar_read/native-header-refusal-becomes-clean.patch",
+        "failing_test": "TestReadTARPreservesNativeSourceFailures/header_checksum_refusal"
+      }
+    },
+    {
+      "name": "native-kind-is-rewritten-as-regular",
+      "kind": "mutate",
+      "arguments": [
+        "./filestore"
+      ],
+      "mutation": {
+        "patch": "filestore/testdata/native_tar_read/native-kind-is-rewritten-as-regular.patch",
+        "failing_test": "TestReadTARPreservesNativeKindsAndNamesAsObservations/link"
+      }
+    },
+    {
+      "name": "future-member-is-read-before-current-loan",
+      "kind": "mutate",
+      "arguments": [
+        "./filestore"
+      ],
+      "mutation": {
+        "patch": "filestore/testdata/native_tar_read/future-member-is-read-before-current-loan.patch",
+        "failing_test": "TestReadTARLoansBeforeFutureBytesWithFixedRetention/4097"
+      }
+    },
+    {
+      "name": "working-window-becomes-transfer-quota",
+      "kind": "mutate",
+      "arguments": [
+        "./filestore"
+      ],
+      "mutation": {
+        "patch": "filestore/testdata/native_tar_read/working-window-becomes-transfer-quota.patch",
+        "failing_test": "TestReadTARPreservesNativeEntriesAcrossWindows/gzip_false/bytes_32769"
+      }
+    },
+    {
+      "name": "callback-panic-becomes-clean",
+      "kind": "mutate",
+      "arguments": [
+        "./filestore"
+      ],
+      "mutation": {
+        "patch": "filestore/testdata/native_tar_read/callback-panic-becomes-clean.patch",
+        "failing_test": "TestReadTARStopsAtConsumerRefusalAndCancellation/panic"
+      }
+    }
+  ]
+}

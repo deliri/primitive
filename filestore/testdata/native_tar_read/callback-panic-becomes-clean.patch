@@ -1,0 +1,11 @@
+--- a/filestore/tar_read.go
++++ b/filestore/tar_read.go
+@@ -48,7 +48,7 @@
+ func ReadTAR(ctx context.Context, request TARReadRequest) (resultErr error) {
+ 	defer func() {
+ 		if recover() != nil {
+-			resultErr = errors.Join(resultErr, core.ErrFilestoreCallbackPanic)
++			resultErr = nil
+ 		}
+ 		if ctx != nil {
+ 			resultErr = errors.Join(resultErr, context.Cause(ctx))

@@ -1,0 +1,10 @@
+--- a/filestore/tar_read.go
++++ b/filestore/tar_read.go
+@@ -84,6 +84,7 @@
+ 		if err != nil {
+ 			return sourceError(err)
+ 		}
++		if header.Size > goCopyWindowBytes { return core.ErrFilestoreSource }
+ 		entry := TARReadEntry{Header: header, Source: &streamReader{ctx: ctx, source: archive}}
+ 		if err := request.Visit(ctx, entry); err != nil {
+ 			return err

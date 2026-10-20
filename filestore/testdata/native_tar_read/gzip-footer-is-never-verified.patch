@@ -1,0 +1,11 @@
+--- a/filestore/tar_read.go
++++ b/filestore/tar_read.go
+@@ -75,7 +75,7 @@
+ 		}
+ 		header, err := archive.Next()
+ 		if err == io.EOF {
+-			if compression != nil {
++			if compression != nil && false {
+ 				_, err := copyStream(streamCopyRequest{ctx: ctx, source: compression, destination: io.Discard, kind: streamDestinationCaller})
+ 				return err
+ 			}

@@ -1,0 +1,11 @@
+--- a/filestore/tar_read.go
++++ b/filestore/tar_read.go
+@@ -84,7 +84,7 @@
+ 		if err != nil {
+ 			return sourceError(err)
+ 		}
+-		entry := TARReadEntry{Header: header, Source: &streamReader{ctx: ctx, source: archive}}
++		entry := TARReadEntry{Header: header, Source: &streamReader{ctx: ctx, source: io.LimitReader(archive, 0)}}
+ 		if err := request.Visit(ctx, entry); err != nil {
+ 			return err
+ 		}

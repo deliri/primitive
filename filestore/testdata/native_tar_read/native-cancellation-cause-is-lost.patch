@@ -1,0 +1,11 @@
+--- a/filestore/tar_read.go
++++ b/filestore/tar_read.go
+@@ -51,7 +51,7 @@
+ 			resultErr = errors.Join(resultErr, core.ErrFilestoreCallbackPanic)
+ 		}
+ 		if ctx != nil {
+-			resultErr = errors.Join(resultErr, context.Cause(ctx))
++			resultErr = errors.Join(resultErr, ctx.Err())
+ 		}
+ 	}()
+ 	if err := errors.Join(contextstate.Validate(ctx), request.Validate()); err != nil {
