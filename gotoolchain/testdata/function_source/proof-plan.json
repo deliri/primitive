@@ -18,7 +18,7 @@
       "arguments": [
         "./gotoolchain",
         "-count=1",
-        "-run=^(TestFunctionSourceLendsActualNativeDeclarationAndGenericOrigin|TestFunctionSourceCannotBorrowForeignOrFabricatedIdentity|TestFunctionSourceRefusalsKeepNativeCauseAndNoLoan|TestFunctionSourcePhysicalIdentityIgnoresSourceDirectives|TestFunctionSourcePresenceAndLoanContractsAreClosed|TestFunctionSourceLookupRetainsNoDeclarationIndex|TestGoToolchainProductionStructsHaveCompilerVisibleDataFlowRoles)$"
+        "-run=^(TestFunctionSourceLendsActualNativeDeclarationAndGenericOrigin|TestFunctionSourceCannotBorrowForeignOrFabricatedIdentity|TestFunctionSourceRefusalsKeepNativeCauseAndNoLoan|TestFunctionSourcePhysicalIdentityIgnoresSourceDirectives|TestFunctionSourceDistinguishesNativeAssemblyDeclarationFromAbsence|TestFunctionSourcePresenceAndLoanContractsAreClosed|TestFunctionSourceLookupRetainsNoDeclarationIndex|TestGoToolchainProductionStructsHaveCompilerVisibleDataFlowRoles)$"
       ]
     },
     {

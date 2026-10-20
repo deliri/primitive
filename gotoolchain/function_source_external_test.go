@@ -6,6 +6,8 @@ import (
 	"go/ast"
 	"go/types"
 	"io"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -161,6 +163,20 @@ func TestFunctionSourcePhysicalIdentityIgnoresSourceDirectives(t *testing.T) {
 	position := got.Positions.PositionFor(got.Declaration.Name.Pos(), false)
 	if position.Line != 3 || position.Column != 6 || strings.HasSuffix(position.Filename, "forged.go") {
 		t.Fatalf("native physical function position=%+v", position)
+	}
+}
+
+func TestFunctionSourceDistinguishesNativeAssemblyDeclarationFromAbsence(t *testing.T) {
+	t.Parallel()
+	directory := t.TempDir()
+	if err := os.WriteFile(filepath.Join(directory, "assembly.s"), []byte("// native declaration fixture\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	analysis := nativeSymbolSourceAnalysis(t, directory, "package sample\nfunc Assembly()")
+	function := analysis.Units[0].Types.Scope().Lookup("Assembly").(*types.Func)
+	got, err := analysis.FunctionSource(t.Context(), gotoolchain.FunctionSourceRequest{Function: function})
+	if err != nil || got.Presence != gotoolchain.FunctionSourcePresent || got.Declaration.Name.Name != "Assembly" || got.Declaration.Body != nil || got.Validate() != nil {
+		t.Fatalf("native assembly declaration became absence or invented body: %+v/%v", got, err)
 	}
 }
 
