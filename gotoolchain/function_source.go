@@ -76,7 +76,11 @@ func (o FunctionSourceObservation) Validate() error {
 		return core.ErrGoToolchainContract
 	}
 	function, ok := o.Types.Defs[o.Declaration.Name].(*types.Func)
-	if !ok || function.Pos() != o.Declaration.Name.Pos() || !o.Positions.PositionFor(function.Pos(), false).IsValid() {
+	if !ok || function.Pos() != o.Declaration.Name.Pos() {
+		return core.ErrGoToolchainContract
+	}
+	position := o.Positions.PositionFor(function.Pos(), false)
+	if !position.IsValid() {
 		return core.ErrGoToolchainContract
 	}
 	return nil
