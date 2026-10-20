@@ -1,7 +1,7 @@
 --- a/runnercontrol/go_vet_stream.go
 +++ b/runnercontrol/go_vet_stream.go
-@@ -135,6 +135,7 @@
- 				return observationFailure("go vet unit label refused", err)
+@@ -140,6 +140,7 @@
+ 				return err
  			}
  			if token.Kind == jsonio.TokenObjectEnd {
 +if err:=request.Visit(GoVetObservation{Kind:GoVetObservationDiagnostic,Unit:"fabricated",Analyzer:"metadata",Position:"-"});err!=nil{return err}

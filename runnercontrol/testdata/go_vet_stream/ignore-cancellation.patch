@@ -5,6 +5,6 @@
  		return err
  	}
 +	ctx=context.Background()
- 	defer func() { resultErr = errors.Join(resultErr, contextstate.Validate(ctx)) }()
- 	decoder, err := jsonio.NewTokenDecoder(jsonio.TokenRequest{Source: request.Source, NestingDepthMaximum: core.JSONNestingDepthMaximum})
- 	if err != nil {
+ 	defer func() {
+ 		resultErr = errors.Join(resultErr, contextstate.Validate(ctx))
+ 		if resultErr != nil {

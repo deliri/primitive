@@ -1,6 +1,6 @@
 --- a/runnercontrol/go_vet_stream.go
 +++ b/runnercontrol/go_vet_stream.go
-@@ -210,7 +210,8 @@
+@@ -215,7 +215,8 @@
  		if err != nil {
  			return err
  		}

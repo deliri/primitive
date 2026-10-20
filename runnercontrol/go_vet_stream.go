@@ -23,7 +23,7 @@ const (
 
 func (k GoVetObservationKind) Validate() error {
 	if k != GoVetObservationDiagnostic && k != GoVetObservationAnalyzerError {
-		return core.ErrRunnerControlObservation
+		return core.ErrPrimitiveContract
 	}
 	return nil
 }
@@ -59,15 +59,15 @@ func (o GoVetObservation) Validate() error {
 		return err
 	}
 	if o.Unit == "" || o.Analyzer == "" {
-		return core.ErrRunnerControlObservation
+		return core.ErrPrimitiveContract
 	}
 	for _, text := range [...]string{o.Unit, o.Analyzer, o.Position, o.End, o.Message} {
 		if !utf8.ValidString(text) {
-			return core.ErrRunnerControlObservation
+			return core.ErrPrimitiveContract
 		}
 	}
 	if o.Kind == GoVetObservationDiagnostic && o.Position == "" || o.Kind == GoVetObservationAnalyzerError && (o.Position != "" || o.End != "") {
-		return core.ErrRunnerControlObservation
+		return core.ErrPrimitiveContract
 	}
 	return nil
 }
@@ -110,7 +110,12 @@ func ReadGoVetStream(ctx context.Context, request GoVetStreamRequest) (resultErr
 	if err := errors.Join(contextstate.Validate(ctx), request.Validate()); err != nil {
 		return err
 	}
-	defer func() { resultErr = errors.Join(resultErr, contextstate.Validate(ctx)) }()
+	defer func() {
+		resultErr = errors.Join(resultErr, contextstate.Validate(ctx))
+		if resultErr != nil {
+			resultErr = errors.Join(core.ErrPrimitiveContract, resultErr)
+		}
+	}()
 	decoder, err := jsonio.NewTokenDecoder(jsonio.TokenRequest{Source: request.Source, NestingDepthMaximum: core.JSONNestingDepthMaximum})
 	if err != nil {
 		return err
@@ -121,27 +126,27 @@ func ReadGoVetStream(ctx context.Context, request GoVetStreamRequest) (resultErr
 			return nil
 		}
 		if err != nil {
-			return observationFailure("go vet source refused", err)
+			return err
 		}
 		if kind != jsonio.TokenObjectStart {
-			return observationFailure("go vet unit tree refused", core.ErrJSONContract)
+			return core.ErrJSONContract
 		}
 		if _, err := decoder.Decode(ctx); err != nil {
-			return observationFailure("go vet unit tree refused", err)
+			return err
 		}
 		for {
 			token, err := decoder.Decode(ctx)
 			if err != nil {
-				return observationFailure("go vet unit label refused", err)
+				return err
 			}
 			if token.Kind == jsonio.TokenObjectEnd {
 				break
 			}
 			if token.Kind != jsonio.TokenString || token.Text == "" {
-				return observationFailure("go vet unit label refused", core.ErrJSONContract)
+				return core.ErrJSONContract
 			}
 			if err := readGoVetUnit(ctx, decoder, token.Text, request.Visit); err != nil {
-				return observationFailure("go vet unit refused", err)
+				return err
 			}
 		}
 	}

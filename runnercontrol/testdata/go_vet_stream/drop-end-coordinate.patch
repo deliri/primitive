@@ -1,6 +1,6 @@
 --- a/runnercontrol/go_vet_stream.go
 +++ b/runnercontrol/go_vet_stream.go
-@@ -213,7 +213,7 @@
+@@ -218,7 +218,7 @@
  		if wire.Position == nil || wire.Message == nil {
  			return core.ErrJSONContract
  		}

@@ -77,7 +77,7 @@ func TestGoVetStreamNativeRecordLayerTriad(t *testing.T) {
 				return nil
 			}})
 			if tc.refused {
-				if !errors.Is(err, core.ErrRunnerControlObservation) {
+				if !errors.Is(err, core.ErrPrimitiveContract) {
 					t.Fatalf("native reader=%v,want observation refusal", err)
 				}
 			} else if err != nil {
@@ -130,14 +130,14 @@ func TestGoVetStreamNativeContextAndVisitorCustody(t *testing.T) {
 				}
 				return io.ErrNoProgress
 			}})
-			if seen != 1 || !errors.Is(err, io.ErrNoProgress) || errors.Is(err, io.ErrClosedPipe) || !errors.Is(err, core.ErrRunnerControlObservation) || cancel && !errors.Is(err, context.Canceled) {
+			if seen != 1 || !errors.Is(err, io.ErrNoProgress) || errors.Is(err, io.ErrClosedPipe) || !errors.Is(err, core.ErrPrimitiveContract) || cancel && !errors.Is(err, context.Canceled) {
 				t.Fatalf("native prefix callback=%d,%v,want one visitor and exact stop/cancel cause before next source refusal", seen, err)
 			}
 		})
 	}
 	for _, prefix := range []string{"", `{}`, `{"u":{"a":[{"posn":"f:1:1","message":"m"}]}}`} {
 		err := ReadGoVetStream(t.Context(), GoVetStreamRequest{Source: io.MultiReader(strings.NewReader(prefix), iotest.ErrReader(io.ErrClosedPipe)), Visit: func(GoVetObservation) error { return nil }})
-		if !errors.Is(err, io.ErrClosedPipe) || !errors.Is(err, core.ErrRunnerControlObservation) {
+		if !errors.Is(err, io.ErrClosedPipe) || !errors.Is(err, core.ErrPrimitiveContract) {
 			t.Fatalf("native source refusal=%v,want original and observation identities", err)
 		}
 	}
@@ -192,7 +192,7 @@ func TestGoVetObservationClosedContracts(t *testing.T) {
 		if kind.IsValid() != want || (kind.Validate() == nil) != want || kind.String() == "" {
 			t.Fatalf("native vet kind=%d valid=%v,error=%v,text=%q,want admitted=%v", kind, kind.IsValid(), kind.Validate(), kind.String(), want)
 		}
-		if !want && !errors.Is(kind.Validate(), core.ErrRunnerControlObservation) {
+		if !want && !errors.Is(kind.Validate(), core.ErrPrimitiveContract) {
 			t.Fatalf("native vet kind%d error=%v,want observation identity", kind, kind.Validate())
 		}
 		kind.OffWireEnum()
@@ -215,7 +215,7 @@ func TestGoVetObservationClosedContracts(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			err := tc.in.Validate()
-			if tc.want && err != nil || !tc.want && !errors.Is(err, core.ErrRunnerControlObservation) {
+			if tc.want && err != nil || !tc.want && !errors.Is(err, core.ErrPrimitiveContract) {
 				t.Fatalf("native observation=%+v,%v,want admitted=%v", tc.in, err, tc.want)
 			}
 		})
@@ -299,7 +299,7 @@ func FuzzGoVetStreamNativeProjectionConservation(f *testing.F) {
 			seen++
 			return nil
 		}})
-		if seen != wantCount || wantRefusal && !errors.Is(err, core.ErrRunnerControlObservation) || !wantRefusal && err != nil {
+		if seen != wantCount || wantRefusal && !errors.Is(err, core.ErrPrimitiveContract) || !wantRefusal && err != nil {
 			t.Fatalf("native mode%d records=%d,%v,want%d and refusal=%v", mode%8, seen, err, wantCount, wantRefusal)
 		}
 	})
