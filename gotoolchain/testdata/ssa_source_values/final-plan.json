@@ -18,18 +18,6 @@
       "arguments": [
         "./gotoolchain"
       ]
-    },
-    {
-      "name": "native-source-values-observed-cost",
-      "kind": "test",
-      "arguments": [
-        "./gotoolchain",
-        "-run=^$",
-        "-bench=^BenchmarkSSASourceValuesNativeBuild$",
-        "-benchmem",
-        "-benchtime=3s",
-        "-count=6"
-      ]
     }
   ]
 }

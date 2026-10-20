@@ -232,28 +232,3 @@ func ssaSourceProbeExpression(t testing.TB, source ast.Node) ast.Expr {
 	}
 	return result
 }
-
-func BenchmarkSSASourceValuesNativeBuild(b *testing.B) {
-	// Native package preparation is outside each measurement. Both modes use
-	// this exact source; the source-reference option adds Go-owned metadata.
-	analysis := nativeSymbolSourceAnalysis(b, b.TempDir(), ssaSourceFixture("probe=count;consume(probe)"))
-	unit := analysis.Units[0]
-	for _, enabled := range []bool{false, true} {
-		b.Run(fmt.Sprint(enabled), func(b *testing.B) {
-			b.ReportAllocs()
-			observed := 0
-			var lastErr error
-			b.ResetTimer()
-			for range b.N {
-				lastErr = analysis.WithSSAUnit(b.Context(), gotoolchain.SSAUnitRequest{Unit: unit, SourceValues: enabled, Use: func(ctx context.Context, view gotoolchain.SSAUnitView) error {
-					observed += len(view.Package.Func("F").Blocks)
-					return nil
-				}})
-			}
-			b.StopTimer()
-			if lastErr != nil || observed != b.N {
-				b.Fatalf("native builds%d iterations%d error%v", observed, b.N, lastErr)
-			}
-		})
-	}
-}
