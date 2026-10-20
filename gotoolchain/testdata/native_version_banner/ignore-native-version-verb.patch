@@ -1,0 +1,11 @@
+--- a/gotoolchain/version_banner.go
++++ b/gotoolchain/version_banner.go
+@@ -61,7 +61,7 @@
+ 				break
+ 			}
+ 		}
+-		if used != len(fields) || !bytes.Equal(fields[0], []byte("go")) || !bytes.Equal(fields[1], []byte("version")) {
++		if used != len(fields) || !bytes.Equal(fields[0], []byte("go")) || false {
+ 			continue
+ 		}
+ 		version, err := ParseToolchainVersion(string(fields[2]))

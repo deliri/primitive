@@ -1,0 +1,111 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    },
+    "job": {
+      "cpu": 2,
+      "memory_bytes": 4294967296,
+      "scratch_bytes": 4294967296
+    }
+  },
+  "steps": [
+    {
+      "name": "native-version-banner-provider-and-contracts",
+      "kind": "test",
+      "arguments": [
+        "./gotoolchain",
+        "-count=1",
+        "-run=^(TestNativeVersionBanner.*|TestProductionStructDataFlowInventory)$"
+      ]
+    },
+    {
+      "name": "ignore-native-go-provider",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/native_version_banner/ignore-native-go-provider.patch",
+        "failing_test": "TestNativeVersionBannerOwnsProviderAndFirstIdentity/foreign_provider"
+      }
+    },
+    {
+      "name": "ignore-native-version-verb",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/native_version_banner/ignore-native-version-verb.patch",
+        "failing_test": "TestNativeVersionBannerOwnsProviderAndFirstIdentity/wrong_verb"
+      }
+    },
+    {
+      "name": "invent-banner-identity",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/native_version_banner/invent-banner-identity.patch",
+        "failing_test": "TestNativeVersionBannerOwnsProviderAndFirstIdentity/bad_native_version"
+      }
+    },
+    {
+      "name": "select-provider-as-version",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/native_version_banner/select-provider-as-version.patch",
+        "failing_test": "TestNativeVersionBannerOwnsProviderAndFirstIdentity/release"
+      }
+    },
+    {
+      "name": "contradict-absent-presence",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/native_version_banner/contradict-absent-presence.patch",
+        "failing_test": "TestNativeVersionBannerContractsRejectContradictoryPresence"
+      }
+    },
+    {
+      "name": "drop-present-native-contract",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/native_version_banner/drop-present-native-contract.patch",
+        "failing_test": "TestNativeVersionBannerContractsRejectContradictoryPresence"
+      }
+    },
+    {
+      "name": "copy-unrelated-provider-output",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/native_version_banner/copy-unrelated-provider-output.patch",
+        "failing_test": "TestNativeVersionBannerAllocationDoesNotFollowIgnoredOutput"
+      }
+    },
+    {
+      "name": "native-banner-semantic-fuzz",
+      "kind": "fuzz",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "fuzz_target": "FuzzNativeVersionBannerMatchesIndependentProviderOracle",
+      "fuzz_seconds": 3
+    }
+  ]
+}

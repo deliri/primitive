@@ -1,0 +1,11 @@
+--- a/gotoolchain/version_banner.go
++++ b/gotoolchain/version_banner.go
+@@ -43,7 +43,7 @@
+ 		}
+ 		return nil
+ 	}
+-	return o.Version.Validate()
++	return nil
+ }
+ func (VersionBannerObservation) goToolchainProtocolFact() {}
+ 

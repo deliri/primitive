@@ -1,0 +1,10 @@
+--- a/gotoolchain/version_banner.go
++++ b/gotoolchain/version_banner.go
+@@ -51,6 +51,7 @@
+ // grammar. Only the first admitted version token is copied. Ignored fields,
+ // records and byte extents never become a retained output population.
+ func ObserveVersionBanner(request VersionBannerRequest) VersionBannerObservation {
++	request.Output = bytes.Clone(request.Output)
+ 	for line := range bytes.Lines(request.Output) {
+ 		var fields [3][]byte
+ 		used := 0

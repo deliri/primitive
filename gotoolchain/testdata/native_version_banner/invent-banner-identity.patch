@@ -1,0 +1,11 @@
+--- a/gotoolchain/version_banner.go
++++ b/gotoolchain/version_banner.go
+@@ -64,7 +64,7 @@
+ 		if used != len(fields) || !bytes.Equal(fields[0], []byte("go")) || !bytes.Equal(fields[1], []byte("version")) {
+ 			continue
+ 		}
+-		version, err := ParseToolchainVersion(string(fields[2]))
++		version, err := ParseToolchainVersion("go1.27.2")
+ 		if err == nil {
+ 			return VersionBannerObservation{Version: version, Presence: VersionBannerPresent}
+ 		}

@@ -1,0 +1,11 @@
+--- a/gotoolchain/version_banner.go
++++ b/gotoolchain/version_banner.go
+@@ -38,7 +38,7 @@
+ 		return err
+ 	}
+ 	if o.Presence == VersionBannerAbsent {
+-		if o.Version != (ToolchainVersion{}) {
++		if false {
+ 			return core.ErrGoToolchainContract
+ 		}
+ 		return nil
