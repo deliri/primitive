@@ -1,0 +1,67 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    },
+    "job": {
+      "cpu": 2,
+      "memory_bytes": 4294967296,
+      "scratch_bytes": 4294967296
+    }
+  },
+  "steps": [
+    {
+      "name": "native-lock-copy-and-selector-contract",
+      "kind": "test",
+      "arguments": [
+        "./gotoolchain",
+        "-count=1",
+        "-run=^(TestObserveVetNativeCopyLocksLayerTriad|TestVetAnalyzerNativeLabelClosure)$"
+      ]
+    },
+    {
+      "name": "wrong-native-analyzer-label",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/vet_copylocks/wrong-native-analyzer-label.patch",
+        "failing_test": "TestObserveVetNativeCopyLocksLayerTriad/native_lock_copy"
+      }
+    },
+    {
+      "name": "reject-copylocks-selector",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/vet_copylocks/reject-copylocks-selector.patch",
+        "failing_test": "TestObserveVetNativeCopyLocksLayerTriad/native_lock_copy"
+      }
+    },
+    {
+      "name": "invent-analyzer-on-unknown-label",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/vet_copylocks/invent-analyzer-on-unknown-label.patch",
+        "failing_test": "TestVetAnalyzerNativeLabelClosure"
+      }
+    },
+    {
+      "name": "native-analyzer-label-fuzz",
+      "kind": "fuzz",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "fuzz_target": "FuzzVetAnalyzerNativeLabelClosure",
+      "fuzz_seconds": 3
+    }
+  ]
+}

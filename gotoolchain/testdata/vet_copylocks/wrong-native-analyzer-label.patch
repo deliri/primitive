@@ -1,0 +1,11 @@
+--- a/gotoolchain/vet.go
++++ b/gotoolchain/vet.go
+@@ -39,7 +39,7 @@
+ 	case VetAnalyzerWaitGroup:
+ 		return "waitgroup"
+ 	case VetAnalyzerCopyLocks:
+-		return "copylocks"
++		return "waitgroup"
+ 	default:
+ 		return core.UnknownEnumDiagnostic
+ 	}

@@ -1,0 +1,11 @@
+--- a/gotoolchain/vet.go
++++ b/gotoolchain/vet.go
+@@ -52,7 +52,7 @@
+ 			return analyzer, nil
+ 		}
+ 	}
+-	return VetAnalyzerUnknown, core.ErrGoToolchainContract
++	return VetAnalyzerCopyLocks, nil
+ }
+ 
+ // VetRequest selects one exact native package. Cmd/go owns build selection,

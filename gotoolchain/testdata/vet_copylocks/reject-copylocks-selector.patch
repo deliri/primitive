@@ -1,0 +1,11 @@
+--- a/gotoolchain/vet.go
++++ b/gotoolchain/vet.go
+@@ -25,7 +25,7 @@
+ )
+ 
+ func (a VetAnalyzer) Validate() error {
+-	if a != VetAnalyzerLostCancel && a != VetAnalyzerWaitGroup && a != VetAnalyzerCopyLocks {
++	if a != VetAnalyzerLostCancel && a != VetAnalyzerWaitGroup {
+ 		return core.ErrGoToolchainContract
+ 	}
+ 	return nil

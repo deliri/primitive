@@ -21,10 +21,11 @@ const (
 	VetAnalyzerUnknown VetAnalyzer = iota
 	VetAnalyzerLostCancel
 	VetAnalyzerWaitGroup
+	VetAnalyzerCopyLocks
 )
 
 func (a VetAnalyzer) Validate() error {
-	if a != VetAnalyzerLostCancel && a != VetAnalyzerWaitGroup {
+	if a != VetAnalyzerLostCancel && a != VetAnalyzerWaitGroup && a != VetAnalyzerCopyLocks {
 		return core.ErrGoToolchainContract
 	}
 	return nil
@@ -37,9 +38,21 @@ func (a VetAnalyzer) String() string {
 		return "lostcancel"
 	case VetAnalyzerWaitGroup:
 		return "waitgroup"
+	case VetAnalyzerCopyLocks:
+		return "copylocks"
 	default:
 		return core.UnknownEnumDiagnostic
 	}
+}
+
+// ParseVetAnalyzer admits the native analyzer label into its closed selector.
+func ParseVetAnalyzer(text string) (VetAnalyzer, error) {
+	for analyzer := VetAnalyzerLostCancel; analyzer <= VetAnalyzerCopyLocks; analyzer++ {
+		if analyzer.String() == text {
+			return analyzer, nil
+		}
+	}
+	return VetAnalyzerUnknown, core.ErrGoToolchainContract
 }
 
 // VetRequest selects one exact native package. Cmd/go owns build selection,
