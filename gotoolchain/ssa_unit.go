@@ -17,6 +17,11 @@ import (
 type SSAUnitRequest struct {
 	Unit *packages.Package
 	Use  func(context.Context, SSAUnitView) error
+	// SourceValues requests Go's GlobalDebug source references. They preserve
+	// native ValueForExpr and DebugRef placement, including
+	// aliases and loops whose backedge was eliminated. Constants keep Go's
+	// ordinary absence semantics; no product value table is constructed.
+	SourceValues bool
 }
 
 func (r SSAUnitRequest) Validate() error {
@@ -73,7 +78,7 @@ func (a PackageAnalysis) WithSSAUnit(ctx context.Context, request SSAUnitRequest
 	if !owns {
 		return core.ErrGoToolchainContract
 	}
-	program, compiled, err := buildSSAUnit(request.Unit)
+	program, compiled, err := buildSSAUnit(request.Unit, request.SourceValues)
 	if err != nil {
 		return err
 	}
@@ -87,7 +92,7 @@ func (a PackageAnalysis) WithSSAUnit(ctx context.Context, request SSAUnitRequest
 
 // A native compiler assertion is a refused observation. Limit recovery to Go's
 // builder: a panic in the caller's callback must retain ordinary Go semantics.
-func buildSSAUnit(unit *packages.Package) (program *ssa.Program, compiled *ssa.Package, resultErr error) {
+func buildSSAUnit(unit *packages.Package, sourceValues bool) (program *ssa.Program, compiled *ssa.Package, resultErr error) {
 	defer func() {
 		if failure := recover(); failure != nil {
 			program, compiled = nil, nil
@@ -98,7 +103,11 @@ func buildSSAUnit(unit *packages.Package) (program *ssa.Program, compiled *ssa.P
 			}
 		}
 	}()
-	program = ssa.NewProgram(unit.Fset, ssa.BuilderMode(0))
+	mode := ssa.BuilderMode(0)
+	if sourceValues {
+		mode = ssa.GlobalDebug
+	}
+	program = ssa.NewProgram(unit.Fset, mode)
 	for _, imported := range unit.Types.Imports() {
 		program.CreatePackage(imported, nil, nil, true)
 	}

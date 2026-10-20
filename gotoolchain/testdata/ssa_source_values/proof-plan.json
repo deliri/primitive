@@ -1,0 +1,43 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    },
+    "job": {
+      "cpu": 2,
+      "memory_bytes": 4294967296,
+      "scratch_bytes": 4294967296
+    }
+  },
+  "steps": [
+    {
+      "name": "native-source-values-producer-matrix",
+      "kind": "test",
+      "arguments": [
+        "./gotoolchain",
+        "-count=1",
+        "-run=^TestSSASourceValuesProducerMatrix$"
+      ]
+    },
+    {
+      "name": "native-source-values-option-and-custody",
+      "kind": "test",
+      "arguments": [
+        "./gotoolchain",
+        "-count=1",
+        "-run=^(TestSSASourceValuesAreOptInAndKeepNativeAbsence|TestSSASourceValuesPreserveLoanRefusalAndNativeCause)$"
+      ]
+    },
+    {
+      "name": "native-source-values-semantic-fuzz",
+      "kind": "fuzz",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "fuzz_target": "FuzzSSASourceValuesKeepNativeIdentity",
+      "fuzz_seconds": 3
+    }
+  ]
+}

@@ -145,7 +145,7 @@ func nativeSymbolAnalysis(t *testing.T, directory string) gotoolchain.PackageAna
 	return nativeSymbolSourceAnalysis(t, directory, nativeSymbolFixture)
 }
 
-func nativeSymbolSourceAnalysis(t *testing.T, directory, source string) gotoolchain.PackageAnalysis {
+func nativeSymbolSourceAnalysis(t testing.TB, directory, source string) gotoolchain.PackageAnalysis {
 	t.Helper()
 	for _, file := range []struct{ name, body string }{{"go.mod", "module example.com/native-symbols\n\ngo 1.27.2\n"}, {"source.go", source}} {
 		if err := os.WriteFile(filepath.Join(directory, file.name), []byte(file.body), 0o600); err != nil {
