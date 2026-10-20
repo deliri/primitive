@@ -139,6 +139,11 @@ func TestObserveVetNativeRefusals(t *testing.T) {
 			if got != (process.ResultObservation{}) || !errors.Is(err, tc.want) || count != tc.events {
 				t.Fatalf("Native refusal=(%+v,%v,%d events), want zero,%v,%d", got, err, count, tc.want, tc.events)
 			}
+			// Contract is the parent identity of native execution/output errors.
+			// A child refusal must not impersonate pre-execution validation.
+			if (tc.kind == 0 || tc.kind == 1 || tc.kind == 7) && (errors.Is(err, core.ErrGoToolchainExecution) || errors.Is(err, core.ErrGoToolchainOutput)) {
+				t.Fatalf("request refusal=%v, want contract validation before native execution", err)
+			}
 			if (tc.kind == 2 || tc.kind == 4) && !errors.Is(err, io.ErrClosedPipe) {
 				t.Fatalf("Native cause=%v, want closed pipe", err)
 			}
