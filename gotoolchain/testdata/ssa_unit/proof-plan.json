@@ -1,0 +1,10 @@
+{
+ "requirements": {
+  "environment": {"go_experiments": ["jsonv2"]},
+  "job": {"cpu": 2, "memory_bytes": 4294967296, "scratch_bytes": 4294967296}
+ },
+ "steps": [
+  {"name":"scoped-native-SSA-identity-and-refusal-boundaries","kind":"test","arguments":["./gotoolchain","-count=1","-run=^(TestSSAUnitLoansNativeCallKindsTargetsAndOperands|TestSSAUnitRefusesMissingForeignAndIncompleteOwners|TestSSAUnitPreservesConsumerAndCancellationCauses|TestSSAUnitConsumerPanicIsNotCompilerRefusal|TestSSAUnitMalformedNativeFactsDoNotBecomeLoan|TestSSAUnitViewRequiresOneBuiltNativeGraph|TestGoToolchainProductionStructsHaveCompilerVisibleDataFlowRoles)$"]},
+  {"name":"scoped-native-SSA-operand-semantic-fuzz","kind":"fuzz","arguments":["./gotoolchain"],"fuzz_target":"FuzzSSAUnitNativeOperandClosure","fuzz_seconds":3}
+ ]
+}
