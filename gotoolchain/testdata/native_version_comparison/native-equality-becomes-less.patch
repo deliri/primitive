@@ -1,0 +1,10 @@
+--- a/gotoolchain/version_comparison.go
++++ b/gotoolchain/version_comparison.go
+@@ -20,6 +20,6 @@
+ 	case order > 0:
+ 		return core.ComparisonGreater, nil
+ 	default:
+-		return core.ComparisonEqual, nil
++		return core.ComparisonLess, nil
+ 	}
+ }

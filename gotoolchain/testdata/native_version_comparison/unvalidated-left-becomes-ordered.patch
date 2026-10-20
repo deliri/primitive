@@ -1,0 +1,11 @@
+--- a/gotoolchain/version_comparison.go
++++ b/gotoolchain/version_comparison.go
+@@ -10,7 +10,7 @@
+ // Compare delegates language, release, prerelease and custom suffix ordering
+ // to Go. Invalid nominal operands never inherit Go's fallback text ordering.
+ func (v ToolchainVersion) Compare(other ToolchainVersion) (core.Comparison, error) {
+-	if err := errors.Join(v.Validate(), other.Validate()); err != nil {
++	if err := errors.Join(other.Validate()); err != nil {
+ 		return core.ComparisonUnknown, err
+ 	}
+ 	order := version.Compare(v.value, other.value)

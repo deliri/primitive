@@ -1,0 +1,11 @@
+--- a/gotoolchain/version_comparison.go
++++ b/gotoolchain/version_comparison.go
+@@ -13,7 +13,7 @@
+ 	if err := errors.Join(v.Validate(), other.Validate()); err != nil {
+ 		return core.ComparisonUnknown, err
+ 	}
+-	order := version.Compare(v.value, other.value)
++	order := version.Compare(other.value, v.value)
+ 	switch {
+ 	case order < 0:
+ 		return core.ComparisonLess, nil

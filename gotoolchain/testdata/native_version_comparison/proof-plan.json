@@ -1,0 +1,34 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    },
+    "job": {
+      "cpu": 2,
+      "memory_bytes": 4294967296,
+      "scratch_bytes": 4294967296
+    }
+  },
+  "steps": [
+    {
+      "name": "native-Go-version-ordering",
+      "kind": "test",
+      "arguments": [
+        "./gotoolchain",
+        "-count=1",
+        "-run=^(TestToolchainVersionComparisonMatchesNativeGo|TestToolchainVersionComparisonBorrowsNativeExtent)$"
+      ]
+    },
+    {
+      "name": "native-Go-ordering-fuzz",
+      "kind": "fuzz",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "fuzz_target": "FuzzToolchainVersionComparisonNativeOrdering",
+      "fuzz_seconds": 3
+    }
+  ]
+}

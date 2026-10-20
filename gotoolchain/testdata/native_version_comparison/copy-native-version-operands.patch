@@ -1,0 +1,19 @@
+--- a/gotoolchain/version_comparison.go
++++ b/gotoolchain/version_comparison.go
+@@ -3,6 +3,7 @@
+ import (
+ 	"errors"
+ 	"go/version"
++ "strings"
+ 
+ 	"github.com/deliri/primitive/v2026/core"
+ )
+@@ -13,7 +14,7 @@
+ 	if err := errors.Join(v.Validate(), other.Validate()); err != nil {
+ 		return core.ComparisonUnknown, err
+ 	}
+-	order := version.Compare(v.value, other.value)
++	order := version.Compare(strings.Clone(v.value), strings.Clone(other.value))
+ 	switch {
+ 	case order < 0:
+ 		return core.ComparisonLess, nil

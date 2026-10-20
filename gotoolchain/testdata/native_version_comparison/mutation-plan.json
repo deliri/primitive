@@ -1,0 +1,82 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    },
+    "job": {
+      "cpu": 2,
+      "memory_bytes": 4294967296,
+      "scratch_bytes": 4294967296
+    }
+  },
+  "steps": [
+    {
+      "name": "reverse-native-order",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/native_version_comparison/reverse-native-order.patch",
+        "failing_test": "TestToolchainVersionComparisonMatchesNativeGo/language_below_iteration_floor"
+      }
+    },
+    {
+      "name": "native-equality-becomes-less",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/native_version_comparison/native-equality-becomes-less.patch",
+        "failing_test": "TestToolchainVersionComparisonMatchesNativeGo/equal_language_floor"
+      }
+    },
+    {
+      "name": "unvalidated-left-becomes-ordered",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/native_version_comparison/unvalidated-left-becomes-ordered.patch",
+        "failing_test": "TestToolchainVersionComparisonMatchesNativeGo/invalid_left_cannot_become_ordered"
+      }
+    },
+    {
+      "name": "unvalidated-right-becomes-ordered",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/native_version_comparison/unvalidated-right-becomes-ordered.patch",
+        "failing_test": "TestToolchainVersionComparisonMatchesNativeGo/invalid_right_cannot_become_ordered"
+      }
+    },
+    {
+      "name": "text-order-replaces-native-decimal",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/native_version_comparison/text-order-replaces-native-decimal.patch",
+        "failing_test": "TestToolchainVersionComparisonMatchesNativeGo/patch_order_is_decimal"
+      }
+    },
+    {
+      "name": "copy-native-version-operands",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/native_version_comparison/copy-native-version-operands.patch",
+        "failing_test": "TestToolchainVersionComparisonBorrowsNativeExtent"
+      }
+    }
+  ]
+}
