@@ -1,0 +1,131 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    },
+    "job": {
+      "cpu": 2,
+      "memory_bytes": 4294967296,
+      "scratch_bytes": 4294967296
+    }
+  },
+  "steps": [
+    {
+      "name": "native-Go-SSA-map-operands-and-physical-contracts",
+      "kind": "test",
+      "arguments": [
+        "./gotoolchain",
+        "-count=1",
+        "-run=^(TestMapWritesNativeOperandAndInstructionConservation|TestMapWritesNativePhysicalSource|TestMapWritesNativeStopCancellationAndRefusals|TestMapWriteObservationClosedContracts|TestGoToolchainProductionStructsHaveCompilerVisibleDataFlowRoles)$"
+      ]
+    },
+    {
+      "name": "no-projected-observation-population-excluding-native-IR",
+      "kind": "test",
+      "arguments": [
+        "./gotoolchain",
+        "-count=1",
+        "-run=^TestNativeMapWriteProjectionRetainsNoObservationPopulation$"
+      ]
+    },
+    {
+      "name": "erase-native-nil-constant",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/map_writes/erase-native-nil-constant.patch",
+        "failing_test": "TestMapWritesNativeOperandAndInstructionConservation/native_alias_retains_constant"
+      }
+    },
+    {
+      "name": "invent-nil-from-other-native-operands",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/map_writes/invent-nil-from-other-native-operands.patch",
+        "failing_test": "TestMapWritesNativeOperandAndInstructionConservation/global_load_is_unknown_at_arbitrary_function_entry"
+      }
+    },
+    {
+      "name": "forge-logical-source",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/map_writes/forge-logical-source.patch",
+        "failing_test": "TestMapWritesNativePhysicalSource"
+      }
+    },
+    {
+      "name": "discard-native-source-initializer",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/map_writes/discard-native-source-initializer.patch",
+        "failing_test": "TestMapWritesNativeOperandAndInstructionConservation/package_initializer_anonymous_function_belongs_to_native_init"
+      }
+    },
+    {
+      "name": "discard-native-anonymous-bodies",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/map_writes/discard-native-anonymous-bodies.patch",
+        "failing_test": "TestMapWritesNativeOperandAndInstructionConservation/local_zero_map_in_anonymous_function"
+      }
+    },
+    {
+      "name": "ignore-consumer-stop",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/map_writes/ignore-consumer-stop.patch",
+        "failing_test": "TestMapWritesNativeStopCancellationAndRefusals/true"
+      }
+    },
+    {
+      "name": "ignore-native-instruction-cancellation",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/map_writes/ignore-native-instruction-cancellation.patch",
+        "failing_test": "TestMapWritesNativeStopCancellationAndRefusals/false"
+      }
+    },
+    {
+      "name": "retain-map-observations",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/map_writes/retain-map-observations.patch",
+        "failing_test": "TestNativeMapWriteProjectionRetainsNoObservationPopulation/4097"
+      }
+    },
+    {
+      "name": "native-map-constant-multiplicity-fuzz",
+      "kind": "fuzz",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "fuzz_target": "FuzzMapWritesConserveNativeConstantAndMultiplicity",
+      "fuzz_seconds": 3
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+--- a/gotoolchain/map_writes.go
++++ b/gotoolchain/map_writes.go
+@@ -165,7 +165,7 @@
+ 				}
+ 			}
+ 		}
+-		for _, anonymous := range function.AnonFuncs {
++		for _, anonymous := range function.AnonFuncs[:0] {
+ 			for got, err := range nativeFunctionMapWrites(ctx, positions, anonymous) {
+ 				if !yield(got, err) || err != nil {
+ 					return

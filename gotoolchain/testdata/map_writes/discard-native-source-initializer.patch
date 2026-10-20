@@ -1,0 +1,11 @@
+--- a/gotoolchain/map_writes.go
++++ b/gotoolchain/map_writes.go
+@@ -101,7 +101,7 @@
+ 			}
+ 			// The synthetic initializer owns literals in package variable
+ 			// initializers. Source init functions are separate native functions.
+-			for got, err := range nativeFunctionMapWrites(ctx, unit.Fset, compiled.Func("init")) {
++			for got, err := range nativeFunctionMapWrites(ctx, unit.Fset, nil) {
+ 				if !yield(got, err) || err != nil {
+ 					return
+ 				}

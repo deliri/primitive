@@ -1,0 +1,14 @@
+--- a/gotoolchain/map_writes.go
++++ b/gotoolchain/map_writes.go
+@@ -141,10 +141,7 @@
+ 		}
+ 		for _, block := range function.Blocks {
+ 			for _, instruction := range block.Instrs {
+-				if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+-					yield(MapWriteObservation{}, err)
+-					return
+-				}
++				
+ 				update, ok := instruction.(*ssa.MapUpdate)
+ 				if !ok {
+ 					continue

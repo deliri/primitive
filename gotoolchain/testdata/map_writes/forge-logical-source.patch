@@ -1,0 +1,11 @@
+--- a/gotoolchain/map_writes.go
++++ b/gotoolchain/map_writes.go
+@@ -149,7 +149,7 @@
+ 				if !ok {
+ 					continue
+ 				}
+-				position := positions.PositionFor(update.Pos(), false)
++				position := positions.PositionFor(update.Pos(), true)
+ 				file, err := core.ParseAbsolutePath(position.Filename)
+ 				if err != nil || !position.IsValid() || position.Offset < 0 {
+ 					yield(MapWriteObservation{}, errors.Join(core.ErrGoToolchainOutput, err))

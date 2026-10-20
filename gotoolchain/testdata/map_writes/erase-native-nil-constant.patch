@@ -1,0 +1,11 @@
+--- a/gotoolchain/map_writes.go
++++ b/gotoolchain/map_writes.go
+@@ -157,7 +157,7 @@
+ 				}
+ 				origin := MapValueOriginOther
+ 				if value, ok := update.Map.(*ssa.Const); ok && value.IsNil() {
+-					origin = MapValueOriginNilConstant
++					origin = MapValueOriginOther
+ 				}
+ 				observation := MapWriteObservation{File: file, Origin: origin, Offset: uint64(position.Offset), Line: uint64(position.Line), Column: uint64(position.Column)}
+ 				if !yield(observation, nil) {

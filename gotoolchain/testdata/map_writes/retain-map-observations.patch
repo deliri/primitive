@@ -1,0 +1,16 @@
+--- a/gotoolchain/map_writes.go
++++ b/gotoolchain/map_writes.go
+@@ -134,7 +134,12 @@
+ }
+ 
+ func nativeFunctionMapWrites(ctx context.Context, positions *token.FileSet, function *ssa.Function) iter.Seq2[MapWriteObservation, error] {
+-	return func(yield func(MapWriteObservation, error) bool) {
++ return func(yield func(MapWriteObservation, error) bool) {
++ consumer:=yield
++ var retained []MapWriteObservation
++ yield=func(v MapWriteObservation,err error)bool{if err!=nil{return consumer(v,err)};retained=append(retained,v);return true}
++ defer func(){for _,v:=range retained{if !consumer(v,nil){return}}}()
++
+ 		if function == nil {
+ 			yield(MapWriteObservation{}, core.ErrGoToolchainOutput)
+ 			return

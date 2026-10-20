@@ -1,0 +1,13 @@
+--- a/gotoolchain/map_writes.go
++++ b/gotoolchain/map_writes.go
+@@ -160,9 +160,7 @@
+ 					origin = MapValueOriginNilConstant
+ 				}
+ 				observation := MapWriteObservation{File: file, Origin: origin, Offset: uint64(position.Offset), Line: uint64(position.Line), Column: uint64(position.Column)}
+-				if !yield(observation, nil) {
+-					return
+-				}
++				_ = yield(observation, nil)
+ 			}
+ 		}
+ 		for _, anonymous := range function.AnonFuncs {

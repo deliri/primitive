@@ -1,0 +1,11 @@
+--- a/gotoolchain/map_writes.go
++++ b/gotoolchain/map_writes.go
+@@ -155,7 +155,7 @@
+ 					yield(MapWriteObservation{}, errors.Join(core.ErrGoToolchainOutput, err))
+ 					return
+ 				}
+-				origin := MapValueOriginOther
++				origin := MapValueOriginNilConstant
+ 				if value, ok := update.Map.(*ssa.Const); ok && value.IsNil() {
+ 					origin = MapValueOriginNilConstant
+ 				}
