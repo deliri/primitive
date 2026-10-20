@@ -1,0 +1,43 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    },
+    "job": {
+      "cpu": 2,
+      "memory_bytes": 4294967296,
+      "scratch_bytes": 4294967296
+    }
+  },
+  "steps": [
+    {
+      "name": "failed-native-symbol-JSON-contracts",
+      "kind": "test",
+      "arguments": [
+        "./capabilities",
+        "-count=1",
+        "-run=^(TestSymbolNameJSONPreservesNativeIdentifier|TestSymbolNameJSONRejectsObjectShape)$"
+      ]
+    },
+    {
+      "name": "native-symbol-JSON-owned-boundaries",
+      "kind": "test",
+      "arguments": [
+        "./capabilities",
+        "-count=1",
+        "-run=^(TestSymbolNameJSONNativeLexicalAndRepresentationBoundaries|TestSymbolNameJSONRefusesZeroAndNilWithoutMutation|TestCapabilityProductionInventories)$"
+      ]
+    },
+    {
+      "name": "native-symbol-JSON-semantic-fuzz",
+      "kind": "fuzz",
+      "arguments": [
+        "./capabilities"
+      ],
+      "fuzz_target": "FuzzSymbolNameJSONNativeIdentifierClosure",
+      "fuzz_seconds": 3
+    }
+  ]
+}

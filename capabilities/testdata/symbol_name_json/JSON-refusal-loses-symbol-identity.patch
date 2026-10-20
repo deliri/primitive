@@ -1,0 +1,11 @@
+--- a/capabilities/symbol_name_json.go
++++ b/capabilities/symbol_name_json.go
+@@ -27,7 +27,7 @@
+ 	}
+ 	value, err := core.DecodeJSONStringToken(data)
+ 	if err != nil {
+-		return errors.Join(core.ErrCapabilitiesContract, err)
++		return err
+ 	}
+ 	candidate, err := ParseSymbolName(value)
+ 	if err != nil {

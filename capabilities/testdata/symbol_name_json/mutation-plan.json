@@ -1,0 +1,82 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    },
+    "job": {
+      "cpu": 2,
+      "memory_bytes": 4294967296,
+      "scratch_bytes": 4294967296
+    }
+  },
+  "steps": [
+    {
+      "name": "invent-native-symbol-wire",
+      "kind": "mutate",
+      "arguments": [
+        "./capabilities"
+      ],
+      "mutation": {
+        "patch": "capabilities/testdata/symbol_name_json/invent-native-symbol-wire.patch",
+        "failing_test": "TestSymbolNameJSONPreservesNativeIdentifier/Export"
+      }
+    },
+    {
+      "name": "invalid-symbol-becomes-wire",
+      "kind": "mutate",
+      "arguments": [
+        "./capabilities"
+      ],
+      "mutation": {
+        "patch": "capabilities/testdata/symbol_name_json/invalid-symbol-becomes-wire.patch",
+        "failing_test": "TestSymbolNameJSONRefusesZeroAndNilWithoutMutation"
+      }
+    },
+    {
+      "name": "native-lexical-refusal-becomes-admission",
+      "kind": "mutate",
+      "arguments": [
+        "./capabilities"
+      ],
+      "mutation": {
+        "patch": "capabilities/testdata/symbol_name_json/native-lexical-refusal-becomes-admission.patch",
+        "failing_test": "TestSymbolNameJSONNativeLexicalAndRepresentationBoundaries"
+      }
+    },
+    {
+      "name": "null-symbol-becomes-clean",
+      "kind": "mutate",
+      "arguments": [
+        "./capabilities"
+      ],
+      "mutation": {
+        "patch": "capabilities/testdata/symbol_name_json/null-symbol-becomes-clean.patch",
+        "failing_test": "TestSymbolNameJSONRejectsObjectShape/null"
+      }
+    },
+    {
+      "name": "JSON-refusal-loses-symbol-identity",
+      "kind": "mutate",
+      "arguments": [
+        "./capabilities"
+      ],
+      "mutation": {
+        "patch": "capabilities/testdata/symbol_name_json/JSON-refusal-loses-symbol-identity.patch",
+        "failing_test": "TestSymbolNameJSONRejectsObjectShape/{}"
+      }
+    },
+    {
+      "name": "rejected-symbol-mutates-receiver",
+      "kind": "mutate",
+      "arguments": [
+        "./capabilities"
+      ],
+      "mutation": {
+        "patch": "capabilities/testdata/symbol_name_json/rejected-symbol-mutates-receiver.patch",
+        "failing_test": "TestSymbolNameJSONNativeLexicalAndRepresentationBoundaries"
+      }
+    }
+  ]
+}

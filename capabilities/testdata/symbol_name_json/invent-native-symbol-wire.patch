@@ -1,0 +1,11 @@
+--- a/capabilities/symbol_name_json.go
++++ b/capabilities/symbol_name_json.go
+@@ -12,7 +12,7 @@
+ 	if err := n.Validate(); err != nil {
+ 		return nil, err
+ 	}
+-	data, err := core.MarshalCanonicalJSONString(n.value)
++	data, err := core.MarshalCanonicalJSONString("invented")
+ 	if err != nil {
+ 		return nil, errors.Join(core.ErrCapabilitiesContract, err)
+ 	}

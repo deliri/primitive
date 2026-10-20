@@ -1,0 +1,13 @@
+--- a/capabilities/symbol_name_json.go
++++ b/capabilities/symbol_name_json.go
+@@ -9,9 +9,7 @@
+ // MarshalJSON owns one identifier scalar's output allocation. Native Go lexical
+ // admission remains ParseSymbolName's contract; no JSON extent quota applies.
+ func (n SymbolName) MarshalJSON() ([]byte, error) {
+-	if err := n.Validate(); err != nil {
+-		return nil, err
+-	}
++	
+ 	data, err := core.MarshalCanonicalJSONString(n.value)
+ 	if err != nil {
+ 		return nil, errors.Join(core.ErrCapabilitiesContract, err)

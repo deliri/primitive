@@ -1,0 +1,12 @@
+--- a/capabilities/symbol_name_json.go
++++ b/capabilities/symbol_name_json.go
+@@ -25,7 +25,8 @@
+ 	if n == nil {
+ 		return core.ErrCapabilitiesContract
+ 	}
+-	value, err := core.DecodeJSONStringToken(data)
++	if string(data)=="null" {return nil}
++ value, err := core.DecodeJSONStringToken(data)
+ 	if err != nil {
+ 		return errors.Join(core.ErrCapabilitiesContract, err)
+ 	}

@@ -1,0 +1,11 @@
+--- a/capabilities/symbol_name_json.go
++++ b/capabilities/symbol_name_json.go
+@@ -29,7 +29,7 @@
+ 	if err != nil {
+ 		return errors.Join(core.ErrCapabilitiesContract, err)
+ 	}
+-	candidate, err := ParseSymbolName(value)
++	candidate, err := SymbolName{value:value}, error(nil)
+ 	if err != nil {
+ 		return err
+ 	}

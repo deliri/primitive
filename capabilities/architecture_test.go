@@ -34,6 +34,7 @@ type capabilityPublicDoors struct {
 	ResolveStandardSymbol capabilityFuzzDoor[func(StandardSymbol) (StandardSymbolFact, error)]
 }
 type capabilityJSONDoors struct {
+	SymbolName                capabilityFuzzDoor[func(*SymbolName, []byte) error]
 	Identity                  capabilityFuzzDoor[func(*Identity, []byte) error]
 	Operation                 capabilityFuzzDoor[func(*Operation, []byte) error]
 	StandardSymbolDisposition capabilityFuzzDoor[func(*StandardSymbolDisposition, []byte) error]
@@ -57,6 +58,7 @@ func TestCapabilityProductionInventories(t *testing.T) {
 		ResolveStandardSymbol: capabilityFuzzDoor[func(StandardSymbol) (StandardSymbolFact, error)]{Door: ResolveStandardSymbol, Fuzz: FuzzStandardSymbolNamespaceClosure},
 	}
 	jsonDoors := capabilityJSONDoors{
+		SymbolName:                capabilityFuzzDoor[func(*SymbolName, []byte) error]{Door: (*SymbolName).UnmarshalJSON, Fuzz: FuzzSymbolNameJSONNativeIdentifierClosure},
 		Identity:                  capabilityFuzzDoor[func(*Identity, []byte) error]{Door: (*Identity).UnmarshalJSON, Fuzz: FuzzIdentityJSONSemanticClosure},
 		Operation:                 capabilityFuzzDoor[func(*Operation, []byte) error]{Door: (*Operation).UnmarshalJSON, Fuzz: FuzzOperationJSONSemanticClosure},
 		StandardSymbolDisposition: capabilityFuzzDoor[func(*StandardSymbolDisposition, []byte) error]{Door: (*StandardSymbolDisposition).UnmarshalJSON, Fuzz: FuzzStandardSymbolDispositionJSONSemanticClosure},
