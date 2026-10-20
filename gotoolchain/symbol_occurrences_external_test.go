@@ -102,9 +102,10 @@ func TestSymbolOccurrencesStopAndCancellation(t *testing.T) {
 			}
 		})
 	}
-	analysis.Incomplete = true
+	candidate := analysis
+	candidate.Incomplete = true
 	events := 0
-	for got, err := range analysis.SymbolOccurrences(t.Context()) {
+	for got, err := range candidate.SymbolOccurrences(t.Context()) {
 		events++
 		if got.Syntax.Node != nil || got.Reference.Line != 0 || !errors.Is(err, core.ErrGoToolchainOutput) {
 			t.Fatalf("incomplete occurrence=(%+v,%v)", got, err)

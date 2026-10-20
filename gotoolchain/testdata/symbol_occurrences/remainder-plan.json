@@ -1,0 +1,109 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    },
+    "job": {
+      "cpu": 2,
+      "memory_bytes": 4294967296,
+      "scratch_bytes": 4294967296
+    }
+  },
+  "steps": [
+    {
+      "name": "isolated-stop-cancellation-subtests-only",
+      "kind": "test",
+      "arguments": [
+        "./gotoolchain",
+        "-count=1",
+        "-run=^TestSymbolOccurrencesStopAndCancellation$/(true|false)$"
+      ]
+    },
+    {
+      "name": "native-occurrence-retained-space",
+      "kind": "test",
+      "arguments": [
+        "./gotoolchain",
+        "-count=1",
+        "-run=^TestSymbolOccurrencesRetainNoReferencePopulation$"
+      ]
+    },
+    {
+      "name": "drop-native-ancestry",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/symbol_occurrences/drop-native-ancestry.patch",
+        "failing_test": "TestSymbolOccurrencesConserveNativeNodeAndAncestry"
+      }
+    },
+    {
+      "name": "logical-coordinates",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/symbol_occurrences/logical-coordinates.patch",
+        "failing_test": "TestSymbolReferencesUseNativeDeclaringIdentityAndPhysicalSource"
+      }
+    },
+    {
+      "name": "ignore-incomplete-analysis",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/symbol_occurrences/ignore-incomplete-analysis.patch",
+        "failing_test": "TestSymbolOccurrencesStopAndCancellation"
+      }
+    },
+    {
+      "name": "ignore-consumer",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/symbol_occurrences/ignore-consumer.patch",
+        "failing_test": "TestSymbolOccurrencesStopAndCancellation/true"
+      }
+    },
+    {
+      "name": "retain-occurrence-population",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/symbol_occurrences/retain-occurrence-population.patch",
+        "failing_test": "TestSymbolOccurrencesRetainNoReferencePopulation/4097"
+      }
+    },
+    {
+      "name": "ignore-native-context",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/symbol_occurrences/ignore-native-context.patch",
+        "failing_test": "TestSymbolOccurrencesStopAndCancellation/false"
+      }
+    },
+    {
+      "name": "native-launch-ancestry-fuzz",
+      "kind": "fuzz",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "fuzz_target": "FuzzSymbolOccurrencesConserveNativeLaunchAncestry",
+      "fuzz_seconds": 3
+    }
+  ]
+}
