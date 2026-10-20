@@ -1,0 +1,13 @@
+--- a/gotoolchain/error_format.go
++++ b/gotoolchain/error_format.go
+@@ -88,9 +88,7 @@
+ 		switch wrapped := native.(type) {
+ 		case interface{ Unwrap() []error }:
+ 			for _, cause := range wrapped.Unwrap() {
+-				if !lend(cause) {
+-					return
+-				}
++				if !lend(cause){return};if !lend(cause){return}
+ 			}
+ 		case interface{ Unwrap() error }:
+ 			lend(wrapped.Unwrap())

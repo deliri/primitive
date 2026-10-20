@@ -1,0 +1,13 @@
+--- a/gotoolchain/error_format.go
++++ b/gotoolchain/error_format.go
+@@ -19,9 +19,7 @@
+ }
+ 
+ func (r ErrorFormatRequest) Validate() error {
+-	if r.ArgumentCount < 0 {
+-		return core.ErrGoToolchainContract
+-	}
++	if r.ArgumentCount<0{return core.ErrGoToolchainOutput}
+ 	return nil
+ }
+ func (ErrorFormatRequest) goToolchainProtocolFact() {}

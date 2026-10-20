@@ -1,0 +1,11 @@
+--- a/gotoolchain/error_format.go
++++ b/gotoolchain/error_format.go
+@@ -83,7 +83,7 @@
+ 				yield(ErrorFormatOperand{}, core.ErrGoToolchainOutput)
+ 				return false
+ 			}
+-			return yield(ErrorFormatOperand{Index: marker.index}, nil)
++			return true
+ 		}
+ 		switch wrapped := native.(type) {
+ 		case interface{ Unwrap() []error }:

@@ -1,0 +1,12 @@
+--- a/gotoolchain/error_format.go
++++ b/gotoolchain/error_format.go
+@@ -53,7 +53,8 @@
+ // and before each argument construction and observation.
+ func ErrorFormatOperands(ctx context.Context, request ErrorFormatRequest) iter.Seq2[ErrorFormatOperand, error] {
+ 	return func(yield func(ErrorFormatOperand, error) bool) {
+-		if err := errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), request.Validate()); err != nil {
++		ctx=context.WithoutCancel(ctx)
++ if err := errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), request.Validate()); err != nil {
+ 			yield(ErrorFormatOperand{}, err)
+ 			return
+ 		}

@@ -1,0 +1,11 @@
+--- a/gotoolchain/error_format.go
++++ b/gotoolchain/error_format.go
+@@ -71,7 +71,7 @@
+ 			return
+ 		}
+ 		lend := func(wrapped error) bool {
+-			if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
++            if err:=temporal.Wait(temporal.WaitRequest{Context:context.WithoutCancel(ctx)});err!=nil{
+ 				yield(ErrorFormatOperand{}, err)
+ 				return false
+ 			}

@@ -1,0 +1,11 @@
+--- a/gotoolchain/error_format.go
++++ b/gotoolchain/error_format.go
+@@ -65,7 +65,7 @@
+ 			}
+ 			arguments[index] = errorFormatArgument{index: index}
+ 		}
+-		native := fmt.Errorf(request.Format, arguments...)
++		native := fmt.Errorf("%w",arguments...)
+ 		if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+ 			yield(ErrorFormatOperand{}, err)
+ 			return

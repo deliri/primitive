@@ -1,0 +1,122 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    },
+    "job": {
+      "cpu": 2,
+      "memory_bytes": 4294967296,
+      "scratch_bytes": 4294967296
+    }
+  },
+  "steps": [
+    {
+      "name": "native-error-format-wrap-contracts",
+      "kind": "test",
+      "arguments": [
+        "./gotoolchain",
+        "-count=1",
+        "-run=^(TestErrorFormatOperandsUseNativeWrapIdentity|TestErrorFormatOperandsRefuseRequestsAndRetainCancellationCause|TestErrorFormatOperandsStopBeforeAnotherLoan|TestGoToolchainProductionStructsHaveCompilerVisibleDataFlowRoles)$"
+      ]
+    },
+    {
+      "name": "shift-native-wrapped-ordinal",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/error_format/shift-native-wrapped-ordinal.patch",
+        "failing_test": "TestErrorFormatOperandsUseNativeWrapIdentity/one_wrapped_operand"
+      }
+    },
+    {
+      "name": "discard-native-wrapped-operand",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/error_format/discard-native-wrapped-operand.patch",
+        "failing_test": "TestErrorFormatOperandsUseNativeWrapIdentity/one_wrapped_operand"
+      }
+    },
+    {
+      "name": "invent-wrap-from-ordinary-format",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/error_format/invent-wrap-from-ordinary-format.patch",
+        "failing_test": "TestErrorFormatOperandsUseNativeWrapIdentity/ordinary_text"
+      }
+    },
+    {
+      "name": "duplicate-native-unwrapped-operand",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/error_format/duplicate-native-unwrapped-operand.patch",
+        "failing_test": "TestErrorFormatOperandsUseNativeWrapIdentity/duplicate_argument_follows_native_deduplication"
+      }
+    },
+    {
+      "name": "lose-cancellation-between-format-loans",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/error_format/lose-cancellation-between-format-loans.patch",
+        "failing_test": "TestErrorFormatOperandsStopBeforeAnotherLoan/false"
+      }
+    },
+    {
+      "name": "ignore-native-format-consumer-stop",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/error_format/ignore-native-format-consumer-stop.patch",
+        "failing_test": "TestErrorFormatOperandsStopBeforeAnotherLoan/true"
+      }
+    },
+    {
+      "name": "misclassify-invalid-format-request",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/error_format/misclassify-invalid-format-request.patch",
+        "failing_test": "TestErrorFormatOperandsRefuseRequestsAndRetainCancellationCause/false"
+      }
+    },
+    {
+      "name": "lose-native-format-entry-cancellation",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/error_format/lose-native-format-entry-cancellation.patch",
+        "failing_test": "TestErrorFormatOperandsRefuseRequestsAndRetainCancellationCause/true"
+      }
+    },
+    {
+      "name": "native-error-format-semantic-fuzz",
+      "kind": "fuzz",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "fuzz_target": "FuzzErrorFormatOperandsMatchNativeErrorIdentity",
+      "fuzz_seconds": 3
+    }
+  ]
+}
