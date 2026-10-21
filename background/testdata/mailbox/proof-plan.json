@@ -1,0 +1,85 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "native-mailbox-buffer-selection-and-custody",
+      "kind": "test",
+      "arguments": [
+        "./background",
+        "-race",
+        "-count=1",
+        "-run=^(TestMailbox.*|TestBackgroundProductionDataFlowInventory)$"
+      ]
+    },
+    {
+      "name": "native-mailbox-FIFO-fuzz",
+      "kind": "fuzz",
+      "arguments": [
+        "./background"
+      ],
+      "fuzz_target": "FuzzMailboxNativeFIFOAndDispositionConservation",
+      "fuzz_seconds": 3
+    },
+    {
+      "name": "refuse-replacement",
+      "kind": "mutate",
+      "arguments": [
+        "./background"
+      ],
+      "mutation": {
+        "patch": "background/testdata/mailbox/refuse-replacement.patch",
+        "failing_test": "^TestMailboxReplacementConservesNativeFIFO$/^capacity-1$"
+      }
+    },
+    {
+      "name": "invent-empty-item",
+      "kind": "mutate",
+      "arguments": [
+        "./background"
+      ],
+      "mutation": {
+        "patch": "background/testdata/mailbox/invent-empty-item.patch",
+        "failing_test": "^TestMailboxNativeBufferLayerTriad$/^capacity-1$"
+      }
+    },
+    {
+      "name": "drain-tick-only-message",
+      "kind": "mutate",
+      "arguments": [
+        "./background"
+      ],
+      "mutation": {
+        "patch": "background/testdata/mailbox/drain-tick-only-message.patch",
+        "failing_test": "^TestMailboxNativeReceiveOwnsTicksMessagesAndCancellation$"
+      }
+    },
+    {
+      "name": "erase-waiting-custom-cause",
+      "kind": "mutate",
+      "arguments": [
+        "./background"
+      ],
+      "mutation": {
+        "patch": "background/testdata/mailbox/erase-waiting-custom-cause.patch",
+        "failing_test": "^TestMailboxWaitingReceiveConservesNativeWakeAndCause$/^custom_cancellation$"
+      }
+    },
+    {
+      "name": "invent-closed-tick",
+      "kind": "mutate",
+      "arguments": [
+        "./background"
+      ],
+      "mutation": {
+        "patch": "background/testdata/mailbox/invent-closed-tick.patch",
+        "failing_test": "^TestMailboxNativeReceiveOwnsTicksMessagesAndCancellation$"
+      }
+    }
+  ]
+}

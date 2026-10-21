@@ -202,7 +202,6 @@ func TestPullScopeCancellationStopsBeforeNextAndInvalidatesCopies(t *testing.T) 
 			}
 		}
 
-		return nil
 	}, Use: func(_ context.Context, source *background.PullSource[int]) error {
 		copyOfSource := *source
 		if value, ok, err := copyOfSource.Next(); value != 0 || ok || !errors.Is(err, core.ErrBackgroundContract) {

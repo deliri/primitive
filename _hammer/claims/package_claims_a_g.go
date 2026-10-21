@@ -40,11 +40,11 @@ func emitPackageClaimSpecsAThroughG(emit func(packageClaimSpec) bool) bool {
 		},
 		{
 			path: "background", title: "Owned native asynchronous callbacks",
-			problem:  "Products otherwise copy goroutine admission, callback lifetimes and incomplete shutdown joins.",
-			solution: "Background executes callbacks on fixed Go workers with bounded resident admission, cancellation, cooperative deadlines and joined completion observations.",
+			problem:  "Products otherwise copy goroutine admission, buffered channel selection, overflow mechanics and incomplete shutdown joins.",
+			solution: "Background owns native buffered mailboxes and callback workers with bounded resident admission, cancellation, cooperative deadlines and joined completion observations.",
 			benefit:  "The caller returns immediately after acceptance without claiming unfinished callbacks stopped or retaining lifetime work history.",
 			removal:  "Remove Background when Go exposes equivalent owned asynchronous callback admission and joining directly.",
-			owns:     "Background owns only mechanical callback execution, resident resources, cancellation and completion joining.",
+			owns:     "Background owns only mechanical callback execution, native buffered offers and selection, resident resources, cancellation and completion joining.",
 			excludes: "It does not own product identities, durable jobs, scheduling, retries, summaries or provider policy.",
 		},
 		{
