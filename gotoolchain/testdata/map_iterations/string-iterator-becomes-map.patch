@@ -1,0 +1,11 @@
+--- a/gotoolchain/map_iterations.go
++++ b/gotoolchain/map_iterations.go
+@@ -132,7 +132,7 @@
+ 					return
+ 				}
+ 				next, ok := instruction.(*ssa.Next)
+-				if !ok || next.IsString {
++				if !ok {
+ 					continue
+ 				}
+ 				iterator, ok := next.Iter.(*ssa.Range)

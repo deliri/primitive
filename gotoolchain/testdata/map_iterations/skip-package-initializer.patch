@@ -1,0 +1,14 @@
+--- a/gotoolchain/map_iterations.go
++++ b/gotoolchain/map_iterations.go
+@@ -85,11 +85,6 @@
+ 			yield(MapIterationObservation{}, core.ErrGoToolchainOutput)
+ 			return
+ 		}
+-		for observation, err := range nativeFunctionMapIterations(ctx, v.Source.Fset, v.Package.Func("init")) {
+-			if !yield(observation, err) || err != nil {
+-				return
+-			}
+-		}
+ 		for _, file := range v.Source.Syntax {
+ 			if file == nil {
+ 				yield(MapIterationObservation{}, core.ErrGoToolchainOutput)

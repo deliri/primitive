@@ -1,0 +1,11 @@
+--- a/gotoolchain/map_iterations.go
++++ b/gotoolchain/map_iterations.go
+@@ -156,7 +156,7 @@
+ 				}
+ 			}
+ 		}
+-		for _, anonymous := range function.AnonFuncs {
++		for _, anonymous := range function.AnonFuncs[:0] {
+ 			for observation, err := range nativeFunctionMapIterations(ctx, positions, anonymous) {
+ 				if !yield(observation, err) || err != nil {
+ 					return
