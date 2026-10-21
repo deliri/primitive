@@ -68,7 +68,7 @@ func TestErrorPropagationNativeCallAndIdentityLayerTriad(t *testing.T) {
 	} {
 		t.Run(row.name, func(t *testing.T) {
 			t.Parallel()
-			source := "package sample;import(\"errors\";\"fmt\");var flag,other bool;var _=errors.Join;var _=fmt.Errorf;func validate()error{return nil};" + row.declarations + ";func F()error{" + row.body + "}"
+			source := "package sample;import(\"errors\";\"fmt\");var flag,other bool;var _=errors.Join;var _=fmt.Errorf;func validate()error{return nil};" + row.declarations + "\nfunc F()error{" + row.body + "}"
 			analysis := nativeSymbolSourceAnalysis(t, t.TempDir(), source)
 			observed := 0
 			for _, unit := range analysis.Units {
