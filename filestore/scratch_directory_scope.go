@@ -45,7 +45,7 @@ func WithScratchDirectoryScope(ctx context.Context, request ScratchDirectoryScop
 		if err != nil {
 			return err
 		}
-		if err := ValidateRootIdentity(root, directory); err != nil {
+		if err = ValidateRootIdentity(root, directory); err != nil {
 			return err
 		}
 		return request.Use(ctx, root, directory)

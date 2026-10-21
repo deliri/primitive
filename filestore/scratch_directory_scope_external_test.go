@@ -49,7 +49,7 @@ func TestScratchDirectoryNativeProcessPathAndCleanup(t *testing.T) {
 					return err
 				}
 				if !os.SameFile(observed, held) {
-					t.Fatal("child process entered a different directory")
+					t.Fatalf("child process directory=%q, want held scratch root %q", strings.TrimSpace(string(out)), directory.String())
 				}
 				if err := root.WriteFile("native-child", []byte{0, 255}, 0600); err != nil {
 					return err
@@ -144,7 +144,7 @@ func TestScratchDirectoryPanicCleansOwnedTree(t *testing.T) {
 		_ = filestore.WithScratchDirectoryScope(t.Context(), filestore.ScratchDirectoryScopeRequest{Parent: parent, Use: func(context.Context, *os.Root, core.AbsolutePath) error { panic(core.ErrFilestoreConflict) }})
 	}()
 	if !caught {
-		t.Fatal("consumer panic was not preserved")
+		t.Fatalf("consumer panic preserved=%v, want true", caught)
 	}
 	entries, err := filepath.Glob(filepath.Join(parentText, "*"))
 	if err != nil || len(entries) != 0 {
