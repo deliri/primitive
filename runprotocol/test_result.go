@@ -34,7 +34,7 @@ func (i TestIdentity) Validate() error {
 // Producers use the existing Outcome domain, including explicit non-pass facts.
 type TestResult struct {
 	Test    TestIdentity       `json:"test"`
-	Elapsed *temporal.Duration `json:"elapsed,omitzero"`
+	Elapsed *temporal.Duration `json:"elapsed,omitempty"`
 	Ordinal uint64             `json:"ordinal"`
 	Outcome Outcome            `json:"outcome"`
 }

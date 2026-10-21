@@ -217,6 +217,13 @@ func FuzzTestResultJSONSemanticClosure(f *testing.F) {
 		f.Fatal(err)
 	}
 	f.Add(seed)
+	observedZero := testResultFixture()
+	observedZero.Elapsed = new(temporal.Duration)
+	zeroSeed, err := jsonio.MarshalValidated(observedZero, testResultCodec())
+	if err != nil {
+		f.Fatal(err)
+	}
+	f.Add(zeroSeed)
 	f.Add([]byte{})
 	f.Add([]byte(`null`))
 	f.Add([]byte(`{`))
