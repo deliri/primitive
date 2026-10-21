@@ -1,11 +1,11 @@
 --- a/gotoolchain/build_constraint.go
 +++ b/gotoolchain/build_constraint.go
-@@ -38,7 +38,7 @@
+@@ -37,7 +37,7 @@
  		}
  		return nil
  	}
--	if !o.Present || reflect.ValueOf(o.Expression).IsNil() {
-+	if !o.Present && reflect.ValueOf(o.Expression).IsNil() {
+-	if !o.Present {
++	if false {
  		return core.ErrGoToolchainContract
  	}
- 	return nil
+ 	nativePresent := false

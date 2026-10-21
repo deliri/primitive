@@ -32,6 +32,11 @@
   {
     "name": "accept-contradictory-presence",
     "patch": "accept-contradictory-presence.patch",
-    "selection": "^TestGoBuildConstraintRefusesContradictoryAndCancelledFacts$/^(expression_without_presence|typed_nil_native_expression)$"
+    "selection": "^TestGoBuildConstraintRefusesContradictoryAndCancelledFacts$/^expression_without_presence$"
+  },
+  {
+    "name": "accept-foreign-expression-carrier",
+    "patch": "accept-foreign-expression-carrier.patch",
+    "selection": "^TestGoBuildConstraintRefusesForeignExpressionCarriers$/^pointer_carrier$"
   }
 ]

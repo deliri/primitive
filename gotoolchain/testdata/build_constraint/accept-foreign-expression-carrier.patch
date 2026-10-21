@@ -1,0 +1,11 @@
+--- a/gotoolchain/build_constraint.go
++++ b/gotoolchain/build_constraint.go
+@@ -50,6 +50,8 @@
+ 		nativePresent = native != nil
+ 	case *constraint.OrExpr:
+ 		nativePresent = native != nil
++	default:
++		nativePresent = true
+ 	}
+ 	if !nativePresent {
+ 		return core.ErrGoToolchainContract

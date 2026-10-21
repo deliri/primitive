@@ -5,7 +5,6 @@ import (
 	"errors"
 	"go/ast"
 	"go/build/constraint"
-	"reflect"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/temporal"
@@ -38,7 +37,21 @@ func (o GoBuildConstraintObservation) Validate() error {
 		}
 		return nil
 	}
-	if !o.Present || reflect.ValueOf(o.Expression).IsNil() {
+	if !o.Present {
+		return core.ErrGoToolchainContract
+	}
+	nativePresent := false
+	switch native := o.Expression.(type) {
+	case *constraint.TagExpr:
+		nativePresent = native != nil
+	case *constraint.NotExpr:
+		nativePresent = native != nil
+	case *constraint.AndExpr:
+		nativePresent = native != nil
+	case *constraint.OrExpr:
+		nativePresent = native != nil
+	}
+	if !nativePresent {
 		return core.ErrGoToolchainContract
 	}
 	return nil

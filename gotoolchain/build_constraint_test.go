@@ -238,3 +238,59 @@ func TestGoBuildConstraintRefusesForeignExpressionCarriers(t *testing.T) {
 		})
 	}
 }
+
+func FuzzGoBuildConstraintObservationConservesNativeRoot(f *testing.F) {
+	for _, mode := range []uint8{0, 1, 2, 3, 4, 5, 6, 64, 65, 66, 67, 68, 69, 70, 128, 129, 130, 131, 132, 192, 193, 194, 195, 196} {
+		f.Add(mode)
+	}
+	f.Fuzz(func(t *testing.T, mode uint8) {
+		kind := mode % 7
+		present := mode&64 != 0
+		nilRoot := mode&128 != 0
+		text := "//go:build ignore"
+		switch kind {
+		case 1:
+			text = "//go:build !ignore"
+		case 2:
+			text = "//go:build linux && amd64"
+		case 3:
+			text = "//go:build linux || windows"
+		}
+		expression, err := constraint.Parse(text)
+		if err != nil {
+			t.Fatal(err)
+		}
+		switch kind {
+		case 0:
+			if nilRoot {
+				expression = (*constraint.TagExpr)(nil)
+			}
+		case 1:
+			if nilRoot {
+				expression = (*constraint.NotExpr)(nil)
+			}
+		case 2:
+			if nilRoot {
+				expression = (*constraint.AndExpr)(nil)
+			}
+		case 3:
+			if nilRoot {
+				expression = (*constraint.OrExpr)(nil)
+			}
+		case 4:
+			expression = &goBuildConstraintForeignExpression{Expr: expression}
+			if nilRoot {
+				expression = (*goBuildConstraintForeignExpression)(nil)
+			}
+		case 5:
+			expression = goBuildConstraintForeignExpression{Expr: expression}
+		case 6:
+			expression = nil
+		}
+		wantValid := kind < 4 && present && !nilRoot || kind == 6 && !present
+		err = (GoBuildConstraintObservation{Present: present, Expression: expression}).Validate()
+		if (err == nil) != wantValid || err != nil && !errors.Is(err, core.ErrGoToolchainContract) {
+			t.Fatalf("native constraint root mode%d kind%d present%t nil%t error%v wantvalid%t", mode, kind, present, nilRoot, err, wantValid)
+		}
+	})
+}
