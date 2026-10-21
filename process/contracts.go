@@ -525,7 +525,7 @@ func (s Streams) Validate() error {
 // WriteOutput performs one complete write to an admitted calling-process
 // output stream. The caller owns the bounded payload; Process owns contact
 // with the real stream and refuses partial success.
-func (s Streams) WriteOutput(stream Stream, payload []byte) (core.ByteLength, error) {
+func (s Streams) WriteOutput(stream Stream, payload []byte) (written core.ByteLength, err error) {
 	if err := errors.Join(s.Validate(), stream.Validate()); err != nil {
 		return core.ByteLength{}, errors.Join(core.ErrProcessContract, err)
 	}
@@ -537,6 +537,20 @@ func (s Streams) WriteOutput(stream Stream, payload []byte) (core.ByteLength, er
 		destination = s.Stderr
 	default:
 		return core.ByteLength{}, core.ErrProcessContract
+	}
+	if len(payload) != 0 {
+		var closeOutput func() error
+		destination, closeOutput, err = pipeErrorDestination(destination)
+		if err != nil {
+			return core.ByteLength{}, errors.Join(core.ErrProcessStream, err)
+		}
+		if closeOutput != nil {
+			defer func() {
+				if closeErr := closeOutput(); closeErr != nil {
+					err = errors.Join(core.ErrProcessStream, err, closeErr)
+				}
+			}()
+		}
 	}
 	retained := uint64(0)
 	_, writeErr := forwardFullWrite(destination, &retained, payload)
