@@ -86,10 +86,10 @@ func TestMapIterationNativeGenericAndFunctionOwnership(t *testing.T) {
 		{"slice_intersection", "func F[S interface{~map[string]int|~[]int;~[]int}](v S){for range v{}}", 0},
 		{"method_constraint", "type Values map[string]int;func(Values)Marker(){};func F[M interface{~map[string]int;Marker()}](v M){for range v{}}", 1},
 		{"generic_receiver", "type Box[T comparable]struct{Values map[T]int};func(b Box[T])F(){for range b.Values{}}", 1},
-		{"initializer_closure", "var F=func(){for range map[int]rune{}}", 1},
-		{"native_init", "func init(){for range map[int]rune{}}", 1},
+		{"initializer_closure", "var F=func(){for range (map[int]rune{}){}}", 1},
+		{"native_init", "func init(){for range (map[int]rune{}){}}", 1},
 		{"method_body", "type Record struct{Values map[int]rune};func(r Record)F(){for range r.Values{}}", 1},
-		{"nested_closures", "func F(){_=func(){for range map[int]rune{};_=func(){for range map[int]rune{}}}}", 2},
+		{"nested_closures", "func F(){_=func(){for range (map[int]rune{}){};_=func(){for range (map[int]rune{}){}}}}", 2},
 		{"non_map_ranges", "func F(){for range \"abc\"{};for range []int{}{};for range [2]int{}{};for range 3{}}", 0},
 	} {
 		t.Run(row.name, func(t *testing.T) {
