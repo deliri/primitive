@@ -1,0 +1,11 @@
+--- a/gotoolchain/build_constraint.go
++++ b/gotoolchain/build_constraint.go
+@@ -64,7 +64,7 @@
+ 		observation.Expression, nativeErr = constraint.Parse(request.Comment.Text)
+ 		observation.Present = true
+ 		if nativeErr != nil {
+-			nativeErr = errors.Join(core.ErrGoToolchainOutput, nativeErr)
++			nativeErr = core.ErrGoToolchainOutput
+ 		}
+ 	}
+ 	if err := errors.Join(nativeErr, temporal.Wait(temporal.WaitRequest{Context: ctx})); err != nil {

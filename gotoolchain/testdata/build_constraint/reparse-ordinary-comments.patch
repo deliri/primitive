@@ -1,0 +1,11 @@
+--- a/gotoolchain/build_constraint.go
++++ b/gotoolchain/build_constraint.go
+@@ -60,7 +60,7 @@
+ 	}
+ 	var observation GoBuildConstraintObservation
+ 	var nativeErr error
+-	if constraint.IsGoBuild(request.Comment.Text) {
++	if true {
+ 		observation.Expression, nativeErr = constraint.Parse(request.Comment.Text)
+ 		observation.Present = true
+ 		if nativeErr != nil {

@@ -1,0 +1,106 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "native-constraint-producers-and-contracts",
+      "kind": "test",
+      "arguments": [
+        "./gotoolchain",
+        "-count=1",
+        "-run=^(TestGoBuildConstraint.*|TestGoToolchainProductionStructsHaveCompilerVisibleDataFlowRoles)$"
+      ]
+    },
+    {
+      "name": "native-constraint-grammar-fuzz",
+      "kind": "fuzz",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "fuzz_target": "FuzzGoBuildConstraintConservesNativeGrammar",
+      "fuzz_seconds": 3
+    },
+    {
+      "name": "drop-native-presence",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/build_constraint/drop-native-presence.patch",
+        "failing_test": "^TestGoBuildConstraintNativeProducerClassification$/^native_ignore_tag$"
+      }
+    },
+    {
+      "name": "reparse-ordinary-comments",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/build_constraint/reparse-ordinary-comments.patch",
+        "failing_test": "^TestGoBuildConstraintNativeProducerClassification$/^ordinary_documentation$"
+      }
+    },
+    {
+      "name": "erase-native-syntax-cause",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/build_constraint/erase-native-syntax-cause.patch",
+        "failing_test": "^TestGoBuildConstraintNativeProducerClassification$/^missing_right_conjunction$"
+      }
+    },
+    {
+      "name": "drop-terminal-cancellation",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/build_constraint/drop-terminal-cancellation.patch",
+        "failing_test": "^TestGoBuildConstraintWithholdsFactsOnTerminalCancellation$/^.*$"
+      }
+    },
+    {
+      "name": "publish-provisional-expression",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/build_constraint/publish-provisional-expression.patch",
+        "failing_test": "^TestGoBuildConstraintWithholdsFactsOnTerminalCancellation$/^.*$"
+      }
+    },
+    {
+      "name": "impose-comment-quota",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/build_constraint/impose-comment-quota.patch",
+        "failing_test": "^TestGoBuildConstraintHasNoTextExtentQuota$/^65537$"
+      }
+    },
+    {
+      "name": "accept-contradictory-presence",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/build_constraint/accept-contradictory-presence.patch",
+        "failing_test": "^TestGoBuildConstraintRefusesContradictoryAndCancelledFacts$/^(expression_without_presence|typed_nil_native_expression)$"
+      }
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+--- a/gotoolchain/build_constraint.go
++++ b/gotoolchain/build_constraint.go
+@@ -67,7 +67,7 @@
+ 			nativeErr = errors.Join(core.ErrGoToolchainOutput, nativeErr)
+ 		}
+ 	}
+-	if err := errors.Join(nativeErr, temporal.Wait(temporal.WaitRequest{Context: ctx})); err != nil {
++	if err := errors.Join(nativeErr); err != nil {
+ 		return GoBuildConstraintObservation{}, err
+ 	}
+ 	return observation, nil

@@ -1,0 +1,12 @@
+--- a/gotoolchain/build_constraint.go
++++ b/gotoolchain/build_constraint.go
+@@ -60,6 +60,9 @@
+ 	}
+ 	var observation GoBuildConstraintObservation
+ 	var nativeErr error
++	if len(request.Comment.Text) > 64<<10 {
++		return GoBuildConstraintObservation{}, core.ErrGoToolchainOutput
++	}
+ 	if constraint.IsGoBuild(request.Comment.Text) {
+ 		observation.Expression, nativeErr = constraint.Parse(request.Comment.Text)
+ 		observation.Present = true

@@ -1,0 +1,37 @@
+[
+  {
+    "name": "drop-native-presence",
+    "patch": "drop-native-presence.patch",
+    "selection": "^TestGoBuildConstraintNativeProducerClassification$/^native_ignore_tag$"
+  },
+  {
+    "name": "reparse-ordinary-comments",
+    "patch": "reparse-ordinary-comments.patch",
+    "selection": "^TestGoBuildConstraintNativeProducerClassification$/^ordinary_documentation$"
+  },
+  {
+    "name": "erase-native-syntax-cause",
+    "patch": "erase-native-syntax-cause.patch",
+    "selection": "^TestGoBuildConstraintNativeProducerClassification$/^missing_right_conjunction$"
+  },
+  {
+    "name": "drop-terminal-cancellation",
+    "patch": "drop-terminal-cancellation.patch",
+    "selection": "^TestGoBuildConstraintWithholdsFactsOnTerminalCancellation$/^.*$"
+  },
+  {
+    "name": "publish-provisional-expression",
+    "patch": "publish-provisional-expression.patch",
+    "selection": "^TestGoBuildConstraintWithholdsFactsOnTerminalCancellation$/^.*$"
+  },
+  {
+    "name": "impose-comment-quota",
+    "patch": "impose-comment-quota.patch",
+    "selection": "^TestGoBuildConstraintHasNoTextExtentQuota$/^65537$"
+  },
+  {
+    "name": "accept-contradictory-presence",
+    "patch": "accept-contradictory-presence.patch",
+    "selection": "^TestGoBuildConstraintRefusesContradictoryAndCancelledFacts$/^(expression_without_presence|typed_nil_native_expression)$"
+  }
+]
