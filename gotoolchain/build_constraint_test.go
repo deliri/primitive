@@ -215,3 +215,26 @@ func FuzzGoBuildConstraintConservesNativeGrammar(f *testing.F) {
 	}
 	f.Fuzz(func(t *testing.T, text string) { proveGoBuildConstraintNative(t, &ast.Comment{Text: text}) })
 }
+
+// An embedded native interface promotes its sealed methods into a foreign Go
+// carrier. Such a carrier is not one of the parser's native expression nodes.
+type goBuildConstraintForeignExpression struct{ constraint.Expr }
+
+func TestGoBuildConstraintRefusesForeignExpressionCarriers(t *testing.T) {
+	t.Parallel()
+	for _, row := range []struct {
+		name       string
+		expression constraint.Expr
+	}{
+		{name: "value carrier", expression: goBuildConstraintForeignExpression{Expr: &constraint.TagExpr{Tag: "ignore"}}},
+		{name: "pointer carrier", expression: &goBuildConstraintForeignExpression{Expr: &constraint.TagExpr{Tag: "ignore"}}},
+		{name: "nil pointer carrier", expression: (*goBuildConstraintForeignExpression)(nil)},
+	} {
+		t.Run(row.name, func(t *testing.T) {
+			t.Parallel()
+			if err := (GoBuildConstraintObservation{Present: true, Expression: row.expression}).Validate(); !errors.Is(err, core.ErrGoToolchainContract) {
+				t.Fatalf("foreign expression carrier admitted%T/%v", row.expression, err)
+			}
+		})
+	}
+}
