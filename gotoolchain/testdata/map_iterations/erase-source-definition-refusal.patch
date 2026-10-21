@@ -1,0 +1,14 @@
+--- a/gotoolchain/map_iterations.go
++++ b/gotoolchain/map_iterations.go
+@@ -105,10 +105,7 @@
+ 					continue
+ 				}
+ 				object, ok := v.Source.TypesInfo.Defs[function.Name].(*types.Func)
+-				if !ok {
+-					yield(MapIterationObservation{}, core.ErrGoToolchainOutput)
+-					return
+-				}
++				if !ok {continue}
+ 				for observation, err := range nativeFunctionMapIterations(ctx, v.Source.Fset, v.Program.FuncValue(object)) {
+ 					if !yield(observation, err) || err != nil {
+ 						return

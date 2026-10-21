@@ -1,0 +1,47 @@
+[
+  {
+    "name": "string-iterator-becomes-map",
+    "patch": "string-iterator-becomes-map.patch",
+    "selection": "^TestMapIterationNativeExpressionMatrix$/^string$/^parameter$"
+  },
+  {
+    "name": "drop-generic-native-frame",
+    "patch": "drop-generic-native-frame.patch",
+    "selection": "^TestMapIterationNativeGenericAndFunctionOwnership$/^generic_map$"
+  },
+  {
+    "name": "drop-native-closure-loans",
+    "patch": "drop-native-closure-loans.patch",
+    "selection": "^TestMapIterationNativeGenericAndFunctionOwnership$/^(initializer_closure|nested_closures)$"
+  },
+  {
+    "name": "skip-package-initializer",
+    "patch": "skip-package-initializer.patch",
+    "selection": "^TestMapIterationNativeGenericAndFunctionOwnership$/^initializer_closure$"
+  },
+  {
+    "name": "erase-source-definition-refusal",
+    "patch": "erase-source-definition-refusal.patch",
+    "selection": "^TestMapIterationMissingFactsCannotBecomeCleanObservation$/^missing_native_function$"
+  },
+  {
+    "name": "erase-native-cancellation-cause",
+    "patch": "erase-native-cancellation-cause.patch",
+    "selection": "^TestMapIterationConsumerAndNativeCauseCustody$/^cancel_before$"
+  },
+  {
+    "name": "honor-logical-iterator-coordinate",
+    "patch": "honor-logical-iterator-coordinate.patch",
+    "selection": "^TestMapIterationNativeExpressionMatrix$/^string_key_map$/^parameter$"
+  },
+  {
+    "name": "collect-native-loop-population",
+    "patch": "collect-native-loop-population.patch",
+    "selection": "^TestMapIterationLiveLoanKeepsFixedMemory$/^4097$"
+  },
+  {
+    "name": "accept-zero-physical-coordinate",
+    "patch": "accept-zero-physical-coordinate.patch",
+    "selection": "^TestMapIterationObservationCoordinateContract$/^absent_physical_line$"
+  }
+]

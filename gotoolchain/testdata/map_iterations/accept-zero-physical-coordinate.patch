@@ -1,0 +1,11 @@
+--- a/gotoolchain/map_iterations.go
++++ b/gotoolchain/map_iterations.go
+@@ -27,7 +27,7 @@
+ 	if err := o.File.Validate(); err != nil {
+ 		return errors.Join(core.ErrGoToolchainContract, err)
+ 	}
+-	if o.Line == 0 || o.Column == 0 {
++	if o.Line == 0 && o.Column == 0 {
+ 		return core.ErrGoToolchainContract
+ 	}
+ 	return nil

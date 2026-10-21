@@ -1,0 +1,11 @@
+--- a/gotoolchain/map_iterations.go
++++ b/gotoolchain/map_iterations.go
+@@ -140,7 +140,7 @@
+ 					yield(MapIterationObservation{}, core.ErrGoToolchainOutput)
+ 					return
+ 				}
+-				physical := positions.PositionFor(iterator.Pos(), false)
++				physical := positions.PositionFor(iterator.Pos(), true)
+ 				file, err := core.ParseAbsolutePath(physical.Filename)
+ 				if err != nil || !physical.IsValid() || physical.Offset < 0 {
+ 					yield(MapIterationObservation{}, errors.Join(core.ErrGoToolchainOutput, err))

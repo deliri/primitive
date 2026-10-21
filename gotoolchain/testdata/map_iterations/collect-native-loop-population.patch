@@ -1,0 +1,18 @@
+--- a/gotoolchain/map_iterations.go
++++ b/gotoolchain/map_iterations.go
+@@ -76,6 +76,15 @@
+ // Native block order is retained; presentation sorting belongs to the caller.
+ // Go emits no iterator for code removed during its native lowering.
+ func (v SSAUnitView) MapIterations(ctx context.Context) iter.Seq2[MapIterationObservation, error] {
++ return func(yield func(MapIterationObservation,error)bool) {
++  var population []MapIterationObservation
++  for observation,err:=range v.nativeMapIterations(ctx) {
++   if err!=nil {yield(MapIterationObservation{},err);return};population=append(population,observation)
++  }
++  for _,observation:=range population {if !yield(observation,nil){return}}
++ }
++}
++func (v SSAUnitView) nativeMapIterations(ctx context.Context) iter.Seq2[MapIterationObservation, error] {
+ 	return func(yield func(MapIterationObservation, error) bool) {
+ 		if err := errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), v.Validate()); err != nil {
+ 			yield(MapIterationObservation{}, err)
