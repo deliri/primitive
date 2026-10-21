@@ -357,8 +357,11 @@ func TestMapIterationConsumerOwnsNextNativeLoan(t *testing.T) {
 func FuzzMapIterationNativeBindingConservation(f *testing.F) {
 	f.Add(uint8(0), uint8(1))
 	f.Add(uint8(3), uint8(4))
+	for _, mask := range []uint8{0, 1, 2, 3, 4, 7, 255} {
+		f.Add(mask, uint8(3))
+	}
 	f.Fuzz(func(t *testing.T, mask, extent uint8) {
-		count := int(extent&7) + 1
+		count := int(extent&15) + 1
 		outer, inner := "[]int{}", "[]int{}"
 		if mask&1 != 0 {
 			outer = "map[int]rune{}"
