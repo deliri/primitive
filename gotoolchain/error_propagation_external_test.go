@@ -485,3 +485,48 @@ func TestErrorIdentityRefusesForeignBindingsAndPreservesCauses(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestErrorIdentityMissingSourceValuesRemainTypedRefusals(t *testing.T) {
+	t.Parallel()
+	for _, row := range []struct {
+		name                  string
+		debug, copy, constant bool
+		want                  error
+	}{
+		{name: "copied native expression", debug: true, copy: true, want: core.ErrGoToolchainOutput},
+		{name: "missing native expression values", want: core.ErrGoToolchainOutput},
+		{name: "native constant absence is neutral", constant: true},
+	} {
+		t.Run(row.name, func(t *testing.T) {
+			t.Parallel()
+			analysis := nativeSymbolSourceAnalysis(t, t.TempDir(), "package sample;import \"fmt\";func F(err error)error{return fmt.Errorf(\"%w\",err)}")
+			unit := analysis.Units[0]
+			observed := 0
+			err := analysis.WithSSAUnit(t.Context(), gotoolchain.SSAUnitRequest{Unit: unit, SourceValues: row.debug, Use: func(ctx context.Context, view gotoolchain.SSAUnitView) error {
+				object := unit.Types.Scope().Lookup("F").(*types.Func)
+				fn := unit.Syntax[0].Decls[1].(*ast.FuncDecl)
+				call := fn.Body.List[0].(*ast.ReturnStmt).Results[0].(*ast.CallExpr)
+				var expression ast.Expr = call
+				if row.copy {
+					copy := *call
+					expression = &copy
+				}
+				if row.constant {
+					expression = call.Args[0]
+				}
+				got, err := view.ErrorIdentity(ctx, gotoolchain.ErrorIdentityRequest{Analysis: analysis, Function: object, Parameter: object.Type().(*types.Signature).Params().At(0), Expression: expression})
+				if got != (gotoolchain.ErrorIdentityObservation{}) || !errors.Is(err, row.want) {
+					t.Fatalf("native identity availability got%+v/%v want zero/%v", got, err, row.want)
+				}
+				observed++
+				return nil
+			}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if observed != 1 {
+				t.Fatalf("native availability observations got%d want1", observed)
+			}
+		})
+	}
+}
