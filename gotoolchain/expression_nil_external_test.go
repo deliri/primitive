@@ -56,7 +56,7 @@ func TestExpressionNilNativeValueAndFrameMatrix(t *testing.T) {
 							if !ok || name.Name != "observe" {
 								continue
 							}
-							got, err := view.ExpressionNil(ctx, gotoolchain.ExpressionNilRequest{Analysis: analysis, Expression: call.Args[0]})
+							got, err := view.ExpressionNil(ctx, gotoolchain.ExpressionRequest{Analysis: analysis, Expression: call.Args[0]})
 							if err != nil || got.Validate() != nil || got.Proven != row.want {
 								t.Fatalf("native nil value in frame %d got%+v/%v want%t/nil", count, got, err, row.want)
 							}
@@ -108,7 +108,7 @@ func TestExpressionNilRefusesForeignAndMissingNativeFacts(t *testing.T) {
 						if !ok || name.Name != "observe" {
 							continue
 						}
-						request := gotoolchain.ExpressionNilRequest{Analysis: analysis, Expression: call.Args[0]}
+						request := gotoolchain.ExpressionRequest{Analysis: analysis, Expression: call.Args[0]}
 						switch row.damage {
 						case 1:
 							copy := *call.Args[0].(*ast.Ident)

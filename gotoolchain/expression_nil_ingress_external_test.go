@@ -27,7 +27,7 @@ func TestExpressionNilPackageInitializer(t *testing.T) {
 					if !ok || name.Name != "observe" {
 						continue
 					}
-					got, err := view.ExpressionNil(ctx, gotoolchain.ExpressionNilRequest{Analysis: analysis, Expression: call.Args[0]})
+					got, err := view.ExpressionNil(ctx, gotoolchain.ExpressionRequest{Analysis: analysis, Expression: call.Args[0]})
 					if err != nil || got.Proven != (calls == 0) {
 						t.Fatalf("native initializer%d nil got%+v/%v", calls, got, err)
 					}
@@ -70,7 +70,7 @@ func FuzzExpressionNilNativeInterfaceDistinction(f *testing.F) {
 						if !ok || name.Name != "observe" {
 							continue
 						}
-						got, err := view.ExpressionNil(ctx, gotoolchain.ExpressionNilRequest{Analysis: analysis, Expression: call.Args[0]})
+						got, err := view.ExpressionNil(ctx, gotoolchain.ExpressionRequest{Analysis: analysis, Expression: call.Args[0]})
 						// A nil dynamic interface differs from an interface carrying a typed nil.
 						want := selected == 0 || selected >= 4
 						if err != nil || got.Validate() != nil || got.Proven != want {
