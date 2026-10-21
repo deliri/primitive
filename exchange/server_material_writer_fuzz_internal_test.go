@@ -35,6 +35,7 @@ type materialFuzzWriter struct {
 	panicWrite, panicAfterWrite bool
 }
 
+func (w *materialFuzzWriter) FlushError() error      { return nil }
 func (w *materialFuzzWriter) Header() http.Header    { return w.header }
 func (w *materialFuzzWriter) WriteHeader(status int) { w.status = status; w.commits++ }
 func (w *materialFuzzWriter) Write(data []byte) (int, error) {

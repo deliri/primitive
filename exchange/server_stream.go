@@ -354,7 +354,7 @@ func WriteProduced(call ProducedWriteCall) error {
 
 type producedResponseWriter struct {
 	context context.Context
-	writer  io.Writer
+	writer  http.ResponseWriter
 }
 
 func (w producedResponseWriter) Write(p []byte) (int, error) {
@@ -364,6 +364,12 @@ func (w producedResponseWriter) Write(p []byte) (int, error) {
 	n, err := w.writer.Write(p)
 	if err == nil && n != len(p) {
 		err = io.ErrShortWrite
+	}
+	if err == nil {
+		err = http.NewResponseController(w.writer).Flush()
+	}
+	if err == nil {
+		err = http.NewResponseController(w.writer).Flush()
 	}
 	if err == nil {
 		err = w.context.Err()
