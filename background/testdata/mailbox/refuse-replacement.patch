@@ -1,0 +1,11 @@
+--- a/background/mailbox.go
++++ b/background/mailbox.go
+@@ -170,7 +170,7 @@
+ 		return MailboxOfferObservation{Disposition: MailboxAccepted}, nil
+ 	default:
+ 	}
+-	if request.Overflow == MailboxOverflowPreserveQueued {
++	if request.Overflow == MailboxOverflowPreserveQueued || request.Overflow == MailboxOverflowReplaceOldest {
+ 		return MailboxOfferObservation{Disposition: MailboxDiscarded}, nil
+ 	}
+ 	disposition := MailboxAccepted

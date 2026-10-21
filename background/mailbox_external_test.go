@@ -261,3 +261,81 @@ func FuzzMailboxNativeFIFOAndDispositionConservation(f *testing.F) {
 		}
 	})
 }
+
+type mailboxEnteredContext struct {
+	context.Context
+	entered chan struct{}
+	once    sync.Once
+}
+
+func (c *mailboxEnteredContext) Done() <-chan struct{} {
+	c.once.Do(func() { close(c.entered) })
+	return c.Context.Done()
+}
+
+func TestMailboxWaitingReceiveConservesNativeWakeAndCause(t *testing.T) {
+	t.Parallel()
+	for _, wake := range []string{"message arrives", "tick arrives", "custom cancellation"} {
+		t.Run(wake, func(t *testing.T) {
+			t.Parallel()
+			mailbox, err := background.OpenMailbox[int](background.MailboxRequest{Capacity: 1})
+			if err != nil {
+				t.Fatal(err)
+			}
+			parent, cancel := context.WithCancelCause(t.Context())
+			defer cancel(nil)
+			ctx := &mailboxEnteredContext{Context: parent, entered: make(chan struct{})}
+			ticks := make(chan time.Time, 1)
+			type result struct {
+				observation background.MailboxReception[int]
+				err         error
+			}
+			completed := make(chan result, 1)
+			go func() {
+				observed, err := mailbox.Receive(ctx, background.MailboxReceiveRequest{Mode: background.MailboxReceiveAll, Ticks: ticks})
+				completed <- result{observation: observed, err: err}
+			}()
+			select {
+			case <-ctx.entered:
+			case <-time.After(10 * time.Second):
+				t.Fatal("native receiver never entered its selection")
+			}
+			select {
+			case got := <-completed:
+				t.Fatalf("empty native source invented a wake%+v", got)
+			default:
+			}
+			wantedTick := time.Unix(7, 9)
+			switch wake {
+			case "message arrives":
+				if _, err := mailbox.Offer(background.MailboxOffer[int]{Value: 31, Overflow: background.MailboxOverflowPreserveQueued}); err != nil {
+					t.Fatal(err)
+				}
+			case "tick arrives":
+				ticks <- wantedTick
+			case "custom cancellation":
+				cancel(io.ErrClosedPipe)
+			}
+			var got result
+			select {
+			case got = <-completed:
+			case <-time.After(10 * time.Second):
+				t.Fatal("native receiver did not exit after its wake")
+			}
+			switch wake {
+			case "message arrives":
+				if got.err != nil || got.observation.Kind != background.MailboxItem || got.observation.Value != 31 {
+					t.Fatalf("native item wake%+v", got)
+				}
+			case "tick arrives":
+				if got.err != nil || got.observation.Kind != background.MailboxTick || got.observation.Tick != wantedTick {
+					t.Fatalf("native tick wake%+v", got)
+				}
+			case "custom cancellation":
+				if got.observation != (background.MailboxReception[int]{}) || !errors.Is(got.err, io.ErrClosedPipe) || !errors.Is(got.err, context.Canceled) {
+					t.Fatalf("native stopped wake%+v", got)
+				}
+			}
+		})
+	}
+}

@@ -1,0 +1,11 @@
+--- a/background/mailbox.go
++++ b/background/mailbox.go
+@@ -203,7 +203,7 @@
+ 		return MailboxReception[T]{}, err
+ 	}
+ 	messages := (<-chan T)(m.native)
+-	if request.Mode == MailboxReceiveTicks {
++	if request.Mode == MailboxReceiveTicks && false {
+ 		messages = nil
+ 	}
+ 	select {

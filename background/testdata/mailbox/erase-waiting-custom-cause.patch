@@ -1,0 +1,11 @@
+--- a/background/mailbox.go
++++ b/background/mailbox.go
+@@ -208,7 +208,7 @@
+ 	}
+ 	select {
+ 	case <-ctx.Done():
+-		return MailboxReception[T]{}, temporal.Wait(temporal.WaitRequest{Context: ctx})
++		return MailboxReception[T]{}, core.ErrBackgroundStopped
+ 	case value := <-messages:
+ 		return MailboxReception[T]{Kind: MailboxItem, Value: value}, nil
+ 	case tick, open := <-request.Ticks:

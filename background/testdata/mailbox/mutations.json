@@ -1,0 +1,27 @@
+[
+  {
+    "name": "refuse-replacement",
+    "patch": "refuse-replacement.patch",
+    "selection": "^TestMailboxReplacementConservesNativeFIFO$/^capacity-1$"
+  },
+  {
+    "name": "invent-empty-item",
+    "patch": "invent-empty-item.patch",
+    "selection": "^TestMailboxNativeBufferLayerTriad$/^capacity-1$"
+  },
+  {
+    "name": "drain-tick-only-message",
+    "patch": "drain-tick-only-message.patch",
+    "selection": "^TestMailboxNativeReceiveOwnsTicksMessagesAndCancellation$"
+  },
+  {
+    "name": "erase-waiting-custom-cause",
+    "patch": "erase-waiting-custom-cause.patch",
+    "selection": "^TestMailboxWaitingReceiveConservesNativeWakeAndCause$/^custom_cancellation$"
+  },
+  {
+    "name": "invent-closed-tick",
+    "patch": "invent-closed-tick.patch",
+    "selection": "^TestMailboxNativeReceiveOwnsTicksMessagesAndCancellation$"
+  }
+]

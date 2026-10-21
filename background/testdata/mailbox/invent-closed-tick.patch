@@ -1,0 +1,11 @@
+--- a/background/mailbox.go
++++ b/background/mailbox.go
+@@ -213,7 +213,7 @@
+ 		return MailboxReception[T]{Kind: MailboxItem, Value: value}, nil
+ 	case tick, open := <-request.Ticks:
+ 		if !open {
+-			return MailboxReception[T]{}, core.ErrBackgroundStopped
++			return MailboxReception[T]{Kind:MailboxTick},nil
+ 		}
+ 		return MailboxReception[T]{Kind: MailboxTick, Tick: tick}, nil
+ 	}
