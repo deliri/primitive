@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_relations.go
++++ b/gotoolchain/ssa_relations.go
+@@ -84,7 +84,7 @@
+ 	}
+ 	proven := beforeBlock.Dominates(afterBlock)
+ 	if beforeBlock == afterBlock {
+-		proven = beforeIndex <= afterIndex
++		proven = beforeIndex >= afterIndex
+ 	}
+ 	if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+ 		return SSARelationObservation{}, err

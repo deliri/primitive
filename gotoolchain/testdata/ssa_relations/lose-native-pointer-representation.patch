@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_relations.go
++++ b/gotoolchain/ssa_relations.go
+@@ -124,7 +124,7 @@
+ 	for {
+ 		switch converted := value.(type) {
+ 		case *ssa.ChangeType:
+-			value = converted.X
++			return value
+ 		case *ssa.ChangeInterface:
+ 			value = converted.X
+ 		case *ssa.MakeInterface:

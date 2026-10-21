@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_relations.go
++++ b/gotoolchain/ssa_relations.go
+@@ -155,7 +155,7 @@
+ 	switch address := left.(type) {
+ 	case *ssa.FieldAddr:
+ 		other, ok := right.(*ssa.FieldAddr)
+-		return ok && address.Field == other.Field && nativeSSAStorage(address.X, other.X)
++		return ok && nativeSSAStorage(address.X, other.X)
+ 	case *ssa.IndexAddr:
+ 		other, ok := right.(*ssa.IndexAddr)
+ 		if !ok {

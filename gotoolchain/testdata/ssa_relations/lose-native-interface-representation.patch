@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_relations.go
++++ b/gotoolchain/ssa_relations.go
+@@ -128,7 +128,7 @@
+ 		case *ssa.ChangeInterface:
+ 			value = converted.X
+ 		case *ssa.MakeInterface:
+-			value = converted.X
++			return value
+ 		default:
+ 			return value
+ 		}

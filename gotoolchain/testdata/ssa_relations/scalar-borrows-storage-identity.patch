@@ -1,0 +1,10 @@
+--- a/gotoolchain/ssa_relations.go
++++ b/gotoolchain/ssa_relations.go
+@@ -140,7 +140,6 @@
+ 		switch value.Type().Underlying().(type) {
+ 		case *types.Pointer, *types.Interface:
+ 		default:
+-			return false
+ 		}
+ 	}
+ 	if _, ok := left.(*ssa.Const); ok {

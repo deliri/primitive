@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_relations.go
++++ b/gotoolchain/ssa_relations.go
+@@ -165,7 +165,7 @@
+ 		first, firstOK := address.Index.(*ssa.Const)
+ 		second, secondOK := other.Index.(*ssa.Const)
+ 		if firstOK && secondOK && first.Value != nil && second.Value != nil && first.Value.Kind() == constant.Int && second.Value.Kind() == constant.Int {
+-			sameIndex = constant.Compare(first.Value, token.EQL, second.Value)
++			sameIndex = constant.Compare(first.Value, token.EQL, first.Value)
+ 		}
+ 		return sameIndex && nativeSSAStorage(address.X, other.X)
+ 	}

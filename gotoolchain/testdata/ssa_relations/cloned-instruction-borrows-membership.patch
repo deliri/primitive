@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_relations.go
++++ b/gotoolchain/ssa_relations.go
+@@ -79,7 +79,7 @@
+ 			break
+ 		}
+ 	}
+-	if beforeIndex < 0 || afterIndex < 0 {
++	if false && (beforeIndex < 0 || afterIndex < 0) {
+ 		return SSARelationObservation{}, pc.ErrGoToolchainContract
+ 	}
+ 	proven := beforeBlock.Dominates(afterBlock)

@@ -1,0 +1,52 @@
+[
+  {
+    "name": "reverse-native-instruction-order",
+    "patch": "reverse-native-instruction-order.patch",
+    "selection": "^TestSSAInstructionOrderUsesNativeDominanceAndPosition$/^reversed_in_one_block$/^native_relation$"
+  },
+  {
+    "name": "invent-cross-branch-dominance",
+    "patch": "invent-cross-branch-dominance.patch",
+    "selection": "^TestSSAInstructionOrderUsesNativeDominanceAndPosition$/^conditional_call_cannot_dominate_merge$/^native_relation$"
+  },
+  {
+    "name": "cloned-instruction-borrows-membership",
+    "patch": "cloned-instruction-borrows-membership.patch",
+    "selection": "^TestSSARelationsRefuseClonedDetachedAndForeignInstructions$/^cloned_instruction$"
+  },
+  {
+    "name": "detached-block-borrows-membership",
+    "patch": "detached-block-borrows-membership.patch",
+    "selection": "^TestSSARelationsRefuseClonedDetachedAndForeignInstructions$"
+  },
+  {
+    "name": "different-field-borrows-address",
+    "patch": "different-field-borrows-address.patch",
+    "selection": "^TestSSAStorageUsesNativeAddressIdentity$/^distinct_native_field$/^native_relation$"
+  },
+  {
+    "name": "different-base-borrows-address",
+    "patch": "different-base-borrows-address.patch",
+    "selection": "^TestSSAStorageUsesNativeAddressIdentity$/^different_native_base_pointer$/^native_relation$"
+  },
+  {
+    "name": "different-index-borrows-address",
+    "patch": "different-index-borrows-address.patch",
+    "selection": "^TestSSAStorageUsesNativeAddressIdentity$/^different_native_constant_index$/^native_relation$"
+  },
+  {
+    "name": "lose-native-pointer-representation",
+    "patch": "lose-native-pointer-representation.patch",
+    "selection": "^TestSSAStorageUsesNativeAddressIdentity$/^native_pointer_representation_change$/^native_relation$"
+  },
+  {
+    "name": "lose-native-interface-representation",
+    "patch": "lose-native-interface-representation.patch",
+    "selection": "^TestSSAStorageUsesNativeAddressIdentity$/^native_interface_boxing$/^native_relation$"
+  },
+  {
+    "name": "scalar-borrows-storage-identity",
+    "patch": "scalar-borrows-storage-identity.patch",
+    "selection": "^TestSSARelationsRefuseClonedDetachedAndForeignInstructions$"
+  }
+]

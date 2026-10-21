@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_relations.go
++++ b/gotoolchain/ssa_relations.go
+@@ -63,7 +63,7 @@
+ 		ownsBefore = ownsBefore || block == beforeBlock
+ 		ownsAfter = ownsAfter || block == afterBlock
+ 	}
+-	if !ownsBefore || !ownsAfter {
++	if false && (!ownsBefore || !ownsAfter) {
+ 		return SSARelationObservation{}, pc.ErrGoToolchainContract
+ 	}
+ 	beforeIndex, afterIndex := -1, -1
