@@ -48,7 +48,7 @@ func TestScratchParentDescriptorSurvivesNamespaceReplacementLayerTriad(t *testin
 				}
 			}
 			calls := 0
-			err = withScratchParent(t.Context(), parent, func(_ context.Context, root *os.Root) error {
+			err = withScratchParent(t.Context(), parent, func(_ context.Context, root *os.Root, _ string) error {
 				calls++
 				if err := root.WriteFile("private", []byte{0, 255}, 0o600); err != nil {
 					return err
@@ -96,7 +96,7 @@ func TestScratchScopeCleanupPreservesForeignReplacement(t *testing.T) {
 		}
 	}()
 	var name string
-	err = withScratchParent(t.Context(), parent, func(_ context.Context, root *os.Root) error {
+	err = withScratchParent(t.Context(), parent, func(_ context.Context, root *os.Root, _ string) error {
 		entries, err := fs.ReadDir(parent.FS(), ".")
 		if err != nil || len(entries) != 1 {
 			t.Fatalf("created scope = (%d,%v), want one child", len(entries), err)

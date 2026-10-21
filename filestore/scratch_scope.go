@@ -45,13 +45,13 @@ func WithScratchScope(ctx context.Context, request ScratchScopeRequest) (resultE
 		return err
 	}
 	defer func() { resultErr = errors.Join(resultErr, parent.Close()) }()
-	return withScratchParent(ctx, parent, request.Use)
+	return withScratchParent(ctx, parent, func(ctx context.Context, root *os.Root, _ string) error { return request.Use(ctx, root) })
 }
 
 // Once acquired, the parent descriptor owns every child effect. The pathname
 // used to acquire it is never resolved again, including during cleanup.
 // https://pkg.go.dev/os#Root; keygen owns the native entropy draws.
-func withScratchParent(ctx context.Context, parent *os.Root, use func(context.Context, *os.Root) error) (resultErr error) {
+func withScratchParent(ctx context.Context, parent *os.Root, use func(context.Context, *os.Root, string) error) (resultErr error) {
 	directory, err := createScratchDirectory(ctx, parent)
 	if err != nil {
 		return err
@@ -68,7 +68,7 @@ func withScratchParent(ctx context.Context, parent *os.Root, use func(context.Co
 		return activationError(err)
 	}
 	defer func() { resultErr = errors.Join(resultErr, root.Close()) }()
-	return use(ctx, root)
+	return use(ctx, root, directory)
 }
 
 func createScratchDirectory(ctx context.Context, parent *os.Root) (string, error) {
