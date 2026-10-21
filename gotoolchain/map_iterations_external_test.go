@@ -71,6 +71,84 @@ func TestMapIterationNativeExpressionMatrix(t *testing.T) {
 	}
 }
 
+func TestMapIterationObservationCoordinateContract(t *testing.T) {
+	t.Parallel()
+	file, err := core.ParseAbsolutePath("/native/source.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, row := range []struct {
+		name        string
+		observation gotoolchain.MapIterationObservation
+		want        error
+	}{
+		{name: "physical coordinate", observation: gotoolchain.MapIterationObservation{File: file, Line: 1, Column: 1}},
+		{name: "absent physical file", observation: gotoolchain.MapIterationObservation{Line: 1, Column: 1}, want: core.ErrGoToolchainContract},
+		{name: "absent physical line", observation: gotoolchain.MapIterationObservation{File: file, Column: 1}, want: core.ErrGoToolchainContract},
+		{name: "absent physical column", observation: gotoolchain.MapIterationObservation{File: file, Line: 1}, want: core.ErrGoToolchainContract},
+	} {
+		t.Run(row.name, func(t *testing.T) {
+			t.Parallel()
+			if err := row.observation.Validate(); !errors.Is(err, row.want) {
+				t.Fatalf("iteration coordinate validation got%v want%v", err, row.want)
+			}
+		})
+	}
+}
+
+func TestMapIterationInvalidLoanAndNilContextRefuseOnce(t *testing.T) {
+	t.Parallel()
+	for _, row := range []struct {
+		name             string
+		view, nilContext bool
+		want             error
+	}{
+		{name: "analysis has no owner", want: core.ErrGoToolchainContract},
+		{name: "analysis nil context", nilContext: true, want: core.ErrNilContext},
+		{name: "view has no owner", view: true, want: core.ErrGoToolchainContract},
+		{name: "view nil context", view: true, nilContext: true, want: core.ErrNilContext},
+	} {
+		t.Run(row.name, func(t *testing.T) {
+			t.Parallel()
+			ctx := t.Context()
+			if row.nilContext {
+				ctx = nil
+			}
+			stream := (gotoolchain.PackageAnalysis{}).MapIterations(ctx)
+			if row.view {
+				stream = (gotoolchain.SSAUnitView{}).MapIterations(ctx)
+			}
+			terminals := 0
+			for observation, err := range stream {
+				if observation != (gotoolchain.MapIterationObservation{}) || !errors.Is(err, row.want) {
+					t.Fatalf("invalid loan/context got%+v/%v want zero/%v", observation, err, row.want)
+				}
+				terminals++
+			}
+			if terminals != 1 {
+				t.Fatalf("invalid native loan terminals got%d want1", terminals)
+			}
+		})
+	}
+}
+
+func TestMapIterationConsumerPanicKeepsIdentity(t *testing.T) {
+	t.Parallel()
+	analysis := nativeSymbolSourceAnalysis(t, t.TempDir(), "package sample;func F(v map[int]rune){for range v{}}")
+	defer func() {
+		if got := recover(); got != io.ErrClosedPipe {
+			t.Fatalf("native consumer panic got%v want exact cause", got)
+		}
+	}()
+	for observation, err := range analysis.MapIterations(t.Context()) {
+		if err != nil || observation.Validate() != nil {
+			t.Fatalf("native panic boundary observation%+v/%v", observation, err)
+		}
+		panic(io.ErrClosedPipe)
+	}
+	t.Fatal("native map iterator did not reach consumer")
+}
+
 func TestMapIterationNativeGenericAndFunctionOwnership(t *testing.T) {
 	t.Parallel()
 	for _, row := range []struct {
