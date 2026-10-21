@@ -271,3 +271,107 @@ func FuzzErrorIdentityNativeFormatMatchesWrappedCause(f *testing.F) {
 		}
 	})
 }
+
+func TestErrorPropagationMissingSourceValuesCannotBecomeUnproven(t *testing.T) {
+	t.Parallel()
+	for _, row := range []struct {
+		name        string
+		debug, copy bool
+	}{
+		{name: "copied syntax is not the native call", debug: true, copy: true},
+		{name: "missing native source values is a refusal"},
+	} {
+		t.Run(row.name, func(t *testing.T) {
+			t.Parallel()
+			analysis := nativeSymbolSourceAnalysis(t, t.TempDir(), "package sample;func validate()error{return nil};func F()error{return validate()}")
+			unit := analysis.Units[0]
+			observed := 0
+			err := analysis.WithSSAUnit(t.Context(), gotoolchain.SSAUnitRequest{Unit: unit, SourceValues: row.debug, Use: func(ctx context.Context, view gotoolchain.SSAUnitView) error {
+				fn := unit.Syntax[0].Decls[1].(*ast.FuncDecl)
+				call := fn.Body.List[0].(*ast.ReturnStmt).Results[0].(*ast.CallExpr)
+				if row.copy {
+					copy := *call
+					call = &copy
+				}
+				got, err := view.ErrorPropagation(ctx, gotoolchain.ErrorPropagationRequest{Analysis: analysis, Call: call})
+				if got != (gotoolchain.ErrorIdentityObservation{}) || !errors.Is(err, core.ErrGoToolchainOutput) {
+					t.Fatalf("unavailable native call facts got%+v/%v want zero/nativeoutput", got, err)
+				}
+				observed++
+				return nil
+			}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if observed != 1 {
+				t.Fatalf("native refusal observations got%d want1", observed)
+			}
+		})
+	}
+}
+
+func TestErrorIdentityNativeFormatOperandSelection(t *testing.T) {
+	t.Parallel()
+	for _, row := range []struct {
+		name, source string
+		parameter    int
+		want         bool
+	}{
+		{name: "native wrapped error", source: `func F(err error)error{return fmt.Errorf("%w",err)}`, want: true},
+		{name: "plain formatting loses identity", source: `func F(err error)error{return fmt.Errorf("%v",err)}`},
+		{name: "escaped verb is data", source: `func F(err error)error{return fmt.Errorf("%%w %v",err)}`},
+		{name: "second error operand", source: `func F(other,err error)error{return fmt.Errorf("%[2]w",other,err)}`, parameter: 1, want: true},
+		{name: "foreign error operand grants no identity", source: `func F(err,other error)error{return fmt.Errorf("%[2]w",err,other)}`},
+		{name: "repeated operand retains native identity", source: `func F(err error)error{return fmt.Errorf("%[1]w %[1]w",err)}`, want: true},
+		{name: "constant format", source: `const pattern="%w";func F(err error)error{return fmt.Errorf(pattern,err)}`, want: true},
+		{name: "runtime format cannot grant proof", source: `func F(err error,pattern string)error{return fmt.Errorf(pattern,err)}`},
+		{name: "opaque variadic source", source: `func F(err error,extra []any)error{return fmt.Errorf("%w",extra...)}`},
+		{name: "missing operand", source: `func F(err error)error{return fmt.Errorf("%[2]w",err)}`},
+		{name: "same spelling is a different error value", source: `func F(err error)error{{err:=error(nil);return fmt.Errorf("%w",err)}}`},
+		{name: "helper cannot restore lost identity", source: `func drop(error)error{return nil};func F(err error)error{return fmt.Errorf("%w",drop(err))}`},
+	} {
+		t.Run(row.name, func(t *testing.T) {
+			t.Parallel()
+			analysis := nativeSymbolSourceAnalysis(t, t.TempDir(), "package sample;import \"fmt\";"+row.source)
+			unit := analysis.Units[0]
+			observed := 0
+			err := analysis.WithSSAUnit(t.Context(), gotoolchain.SSAUnitRequest{Unit: unit, SourceValues: true, Use: func(ctx context.Context, view gotoolchain.SSAUnitView) error {
+				object := unit.Types.Scope().Lookup("F").(*types.Func)
+				for _, file := range unit.Syntax {
+					for _, declaration := range file.Decls {
+						fn, ok := declaration.(*ast.FuncDecl)
+						if !ok || fn.Name.Name != "F" {
+							continue
+						}
+						for syntax, err := range gotoolchain.WalkSyntax(ctx, gotoolchain.SyntaxWalkRequest{Root: fn.Body}) {
+							if err != nil {
+								return err
+							}
+							call, ok := syntax.Node.(*ast.CallExpr)
+							if !ok {
+								continue
+							}
+							selector, ok := call.Fun.(*ast.SelectorExpr)
+							if !ok || selector.Sel.Name != "Errorf" {
+								continue
+							}
+							got, err := view.ErrorIdentity(ctx, gotoolchain.ErrorIdentityRequest{Analysis: analysis, Function: object, Parameter: object.Type().(*types.Signature).Params().At(row.parameter), Expression: call})
+							if err != nil || got.Preserved != row.want {
+								t.Fatalf("native operand identity got%+v/%v want%t/nil", got, err, row.want)
+							}
+							observed++
+							return nil
+						}
+					}
+				}
+				return nil
+			}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if observed != 1 {
+				t.Fatalf("native operand observations got%d want1", observed)
+			}
+		})
+	}
+}
