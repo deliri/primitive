@@ -1,0 +1,10 @@
+--- a/gotoolchain/string_literal.go
++++ b/gotoolchain/string_literal.go
+@@ -49,6 +49,7 @@
+ 		return GoStringLiteralObservation{}, errors.Join(core.ErrGoToolchainContract, err)
+ 	}
+ 	value, err := strconv.Unquote(request.Literal.Value)
++ if len(value)>64<<10{return GoStringLiteralObservation{},core.ErrGoToolchainOutput}
+ 	if err = errors.Join(err, temporal.Wait(temporal.WaitRequest{Context: ctx})); err != nil {
+ 		return GoStringLiteralObservation{}, errors.Join(core.ErrGoToolchainOutput, err)
+ 	}

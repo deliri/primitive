@@ -1,0 +1,11 @@
+--- a/gotoolchain/string_literal.go
++++ b/gotoolchain/string_literal.go
+@@ -17,7 +17,7 @@
+ type GoStringLiteralRequest struct{ Literal *ast.BasicLit }
+ 
+ func (r GoStringLiteralRequest) Validate() error {
+-	if r.Literal == nil || r.Literal.Kind != token.STRING || len(r.Literal.Value) == 0 {
++	if r.Literal == nil || r.Literal.Kind == token.ILLEGAL || len(r.Literal.Value) == 0 {
+ 		return core.ErrGoToolchainContract
+ 	}
+ 	switch r.Literal.Value[0] {

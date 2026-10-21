@@ -1,0 +1,11 @@
+--- a/gotoolchain/string_literal.go
++++ b/gotoolchain/string_literal.go
+@@ -48,7 +48,7 @@
+ 	if err := errors.Join(request.Validate(), temporal.Wait(temporal.WaitRequest{Context: ctx})); err != nil {
+ 		return GoStringLiteralObservation{}, errors.Join(core.ErrGoToolchainContract, err)
+ 	}
+-	value, err := strconv.Unquote(request.Literal.Value)
++	value, err := request.Literal.Value, error(nil)
+ 	if err = errors.Join(err, temporal.Wait(temporal.WaitRequest{Context: ctx})); err != nil {
+ 		return GoStringLiteralObservation{}, errors.Join(core.ErrGoToolchainOutput, err)
+ 	}

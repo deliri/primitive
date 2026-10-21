@@ -1,0 +1,37 @@
+[
+  {
+    "name": "retain-native-source-spelling",
+    "patch": "retain-native-source-spelling.patch",
+    "selection": "^TestGoStringLiteralAgreesWithNativeGoValues$/^hexadecimal_encoded_SQL_byte$"
+  },
+  {
+    "name": "erase-native-syntax-cause",
+    "patch": "erase-native-syntax-cause.patch",
+    "selection": "^TestGoStringLiteralPreservesNativeSyntaxRefusal$/^`open$"
+  },
+  {
+    "name": "erase-terminal-cancellation",
+    "patch": "erase-terminal-cancellation.patch",
+    "selection": "^TestGoStringLiteralWithholdsDecodedValueOnCancellation$/^decoded_value_is_withheld$"
+  },
+  {
+    "name": "accept-wrong-native-token",
+    "patch": "accept-wrong-native-token.patch",
+    "selection": "^TestGoStringLiteralRefusesContradictoryNativeNodeAndContext$/^native_string_spelling_cannot_borrow_rune_token$"
+  },
+  {
+    "name": "accept-fabricated-rune-lexeme",
+    "patch": "accept-fabricated-rune-lexeme.patch",
+    "selection": "^TestGoStringLiteralRefusesContradictoryNativeNodeAndContext$/^rune_lexeme_cannot_borrow_string_token$"
+  },
+  {
+    "name": "impose-decoded-value-quota",
+    "patch": "impose-decoded-value-quota.patch",
+    "selection": "^TestGoStringLiteralHasNoDecodedExtentQuota$/^65537$"
+  },
+  {
+    "name": "publish-provisional-decoded-value",
+    "patch": "publish-provisional-decoded-value.patch",
+    "selection": "^TestGoStringLiteralWithholdsDecodedValueOnCancellation$/^decoded_value_is_withheld$"
+  }
+]

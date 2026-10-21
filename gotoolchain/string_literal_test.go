@@ -93,6 +93,7 @@ func TestGoStringLiteralRefusesContradictoryNativeNodeAndContext(t *testing.T) {
 	}{
 		{name: "missing native node"},
 		{name: "rune token cannot borrow string identity", literal: &ast.BasicLit{Kind: token.CHAR, Value: `'x'`}},
+		{name: "native string spelling cannot borrow rune token", literal: &ast.BasicLit{Kind: token.CHAR, Value: `"x"`}},
 		{name: "integer token cannot borrow string identity", literal: &ast.BasicLit{Kind: token.INT, Value: `1`}},
 		{name: "missing lexeme cannot be an empty string", literal: &ast.BasicLit{Kind: token.STRING}},
 		{name: "rune lexeme cannot borrow string token", literal: &ast.BasicLit{Kind: token.STRING, Value: `'x'`}},
@@ -139,12 +140,23 @@ func TestGoStringLiteralHasNoDecodedExtentQuota(t *testing.T) {
 
 func TestGoStringLiteralWithholdsDecodedValueOnCancellation(t *testing.T) {
 	t.Parallel()
-	parent, cancel := context.WithCancelCause(t.Context())
-	defer cancel(nil)
-	ctx := &goBuildConstraintCancellationContext{Context: parent, cancel: cancel}
-	observed, err := ObserveGoStringLiteral(ctx, GoStringLiteralRequest{Literal: &ast.BasicLit{Kind: token.STRING, Value: `"private source bytes"`}})
-	if observed != (GoStringLiteralObservation{}) || !errors.Is(err, io.ErrClosedPipe) || !errors.Is(err, context.Canceled) {
-		t.Fatalf("terminal native string%+v/%v", observed, err)
+	for _, row := range []struct {
+		name, lexeme  string
+		syntaxRefusal bool
+	}{{name: "decoded value is withheld", lexeme: `"private source bytes"`}, {name: "native syntax and cancellation are retained", lexeme: `"\z"`, syntaxRefusal: true}} {
+		t.Run(row.name, func(t *testing.T) {
+			t.Parallel()
+			parent, cancel := context.WithCancelCause(t.Context())
+			defer cancel(nil)
+			ctx := &goBuildConstraintCancellationContext{Context: parent, cancel: cancel}
+			observed, err := ObserveGoStringLiteral(ctx, GoStringLiteralRequest{Literal: &ast.BasicLit{Kind: token.STRING, Value: row.lexeme}})
+			if observed != (GoStringLiteralObservation{}) || !errors.Is(err, io.ErrClosedPipe) || !errors.Is(err, context.Canceled) {
+				t.Fatalf("terminal native string%+v/%v", observed, err)
+			}
+			if row.syntaxRefusal && !errors.Is(err, strconv.ErrSyntax) {
+				t.Fatalf("terminal native string lost syntax refusal%v", err)
+			}
+		})
 	}
 }
 
