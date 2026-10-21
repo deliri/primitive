@@ -78,7 +78,7 @@ func TestExpressionNilNativeValueAndFrameMatrix(t *testing.T) {
 
 func TestExpressionNilRefusesForeignAndMissingNativeFacts(t *testing.T) {
 	t.Parallel()
-	analysis := nativeSymbolSourceAnalysis(t, t.TempDir(), "package sample;func observe(any){};func F(){var value any;observe(value)}")
+	analysis := nativeSymbolSourceAnalysis(t, t.TempDir(), "package sample;func observe(any){};func F(){var value any;observe(value);observe(nil)}")
 	for _, row := range []struct {
 		name   string
 		debug  bool
@@ -113,6 +113,15 @@ func TestExpressionNilRefusesForeignAndMissingNativeFacts(t *testing.T) {
 						case 1:
 							copy := *call.Args[0].(*ast.Ident)
 							request.Expression = &copy
+							// Individually valid native nil facts cannot grant a cloned
+							// node ownership of this source expression.
+							for _, facts := range unit.TypesInfo.Types {
+								if facts.IsNil() {
+									unit.TypesInfo.Types[&copy] = facts
+									break
+								}
+							}
+							defer delete(unit.TypesInfo.Types, &copy)
 						case 2:
 							facts := unit.TypesInfo.Types[call.Args[0]]
 							delete(unit.TypesInfo.Types, call.Args[0])
