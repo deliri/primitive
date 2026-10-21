@@ -1,0 +1,11 @@
+--- a/runprotocol/run_receipt.go
++++ b/runprotocol/run_receipt.go
+@@ -47,7 +47,7 @@
+ 		return conflictError(nil)
+ 	}
+ 	latest, _ := r.Accounting.Latest() // Validate proved that at least one attempt exists.
+-	if r.Outcome == OutcomePassed && latest.Passed != latest.Planned {
++	if r.Outcome == OutcomePassed && latest.Passed > latest.Planned {
+ 		return conflictError(nil)
+ 	}
+ 	return nil

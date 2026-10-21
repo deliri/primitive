@@ -1,0 +1,45 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    },
+    "job": {
+      "cpu": 1,
+      "memory_bytes": 2147483648,
+      "scratch_bytes": 4294967296
+    }
+  },
+  "steps": [
+    {
+      "name": "shared-receipt-schema-stream-and-wire",
+      "kind": "test",
+      "arguments": [
+        "./runprotocol",
+        "-run=^(TestRunReceipt.*|TestRunProtocolDataFlowStructInventoryRatchet|FuzzRunReceiptJSONSemanticClosure)$",
+        "-count=1"
+      ]
+    },
+    {
+      "name": "passing-receipt-cannot-erase-failed-retry",
+      "kind": "mutate",
+      "arguments": [
+        "./runprotocol"
+      ],
+      "mutation": {
+        "patch": "_testdata/anvil-run-receipt-accounting.patch",
+        "failing_test": "TestRunReceiptLayerTriad/negative_pass_cannot_erase_latest_failed_retry"
+      }
+    },
+    {
+      "name": "shared-receipt-json-semantic-fuzz",
+      "kind": "fuzz",
+      "arguments": [
+        "./runprotocol"
+      ],
+      "fuzz_target": "FuzzRunReceiptJSONSemanticClosure",
+      "fuzz_seconds": 1
+    }
+  ]
+}
