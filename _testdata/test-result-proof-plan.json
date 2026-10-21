@@ -1,0 +1,11 @@
+{
+  "requirements": {
+    "environment": {"go_experiments": ["jsonv2"]},
+    "job": {"cpu": 1, "memory_bytes": 2147483648, "scratch_bytes": 4294967296}
+  },
+  "steps": [
+    {"name":"shared-test-result-schema-and-stream", "kind":"test", "arguments":["./runprotocol", "-run=^(TestTestResult.*|TestRunProtocolDataFlowStructInventoryRatchet|FuzzTestResultJSONSemanticClosure)$", "-count=1"]},
+    {"name":"zero-occurrence-cannot-become-evidence", "kind":"mutate", "arguments":["./runprotocol"], "mutation":{"patch":"_testdata/test-result-zero-ordinal.patch", "failing_test":"TestTestResultLayerTriad"}},
+    {"name":"shared-test-result-json-fuzz", "kind":"fuzz", "arguments":["./runprotocol"], "fuzz_target":"FuzzTestResultJSONSemanticClosure", "fuzz_seconds":3}
+  ]
+}

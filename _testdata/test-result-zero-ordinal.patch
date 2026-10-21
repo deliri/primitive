@@ -1,0 +1,13 @@
+diff --git a/runprotocol/test_result.go b/runprotocol/test_result.go
+--- a/runprotocol/test_result.go
++++ b/runprotocol/test_result.go
+@@ -43,9 +43,6 @@
+ 	if err := errors.Join(r.Test.Validate(), r.Outcome.Validate()); err != nil {
+ 		return errors.Join(core.ErrRunProtocolContract, err)
+ 	}
+-	if r.Ordinal == 0 {
+-		return core.ErrRunProtocolContract
+-	}
+ 	if r.Elapsed != nil {
+ 		if err := r.Elapsed.Validate(); err != nil {
+ 			return errors.Join(core.ErrRunProtocolContract, err)
