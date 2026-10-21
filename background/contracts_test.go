@@ -80,7 +80,9 @@ func TestBackgroundProductionDataFlowInventory(t *testing.T) {
 	// sync.Once custody and first observation, with no second product owner.
 	// WallGapWatch owns a native Task and fixed maximum; its request lends clock
 	// coordinates, and WallGapSnapshot carries one native observation.
-	want := []string{"Executor", "Mutex", "OnceAction", "OnceActionRequest", "OpenRequest", "PairRequest", "PairResult", "Policy", "PullScopeRequest", "PullSource", "Task", "TaskRequest", "TaskResult", "WallGapSnapshot", "WallGapWatch", "WallGapWatchRequest", "Work", "onceAction", "pairOffer"}
+	// Mailbox is native channel custody; its request/offer borrow capacity and
+	// one value, while receive/offer observations carry one native result.
+	want := []string{"Executor", "Mailbox", "MailboxOffer", "MailboxOfferObservation", "MailboxReceiveRequest", "MailboxReception", "MailboxRequest", "Mutex", "OnceAction", "OnceActionRequest", "OpenRequest", "PairRequest", "PairResult", "Policy", "PullScopeRequest", "PullSource", "Task", "TaskRequest", "TaskResult", "WallGapSnapshot", "WallGapWatch", "WallGapWatchRequest", "Work", "onceAction", "pairOffer"}
 	var got []string
 	entries, err := os.ReadDir(".")
 	if err != nil {
