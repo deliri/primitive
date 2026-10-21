@@ -249,7 +249,9 @@ func FuzzErrorIdentityNativeFormatMatchesWrappedCause(f *testing.F) {
 		f.Add(format)
 	}
 	f.Fuzz(func(t *testing.T, format string) {
-		native := fmt.Errorf(format, core.ErrGoToolchainContract, core.ErrGoToolchainOutput, core.ErrNilContext)
+		// These native identities are independent; a parent identity would also
+		// match its wrapped child and could not identify the selected operand.
+		native := fmt.Errorf(format, io.ErrClosedPipe, io.ErrUnexpectedEOF, io.ErrShortWrite)
 		analysis := nativeSymbolSourceAnalysis(t, t.TempDir(), "package sample;import \"fmt\";func F(a,b,c error)error{return fmt.Errorf("+strconv.Quote(format)+",a,b,c)}")
 		unit := analysis.Units[0]
 		observed := 0
@@ -257,7 +259,7 @@ func FuzzErrorIdentityNativeFormatMatchesWrappedCause(f *testing.F) {
 			object := unit.Types.Scope().Lookup("F").(*types.Func)
 			fn := unit.Syntax[0].Decls[1].(*ast.FuncDecl)
 			call := fn.Body.List[0].(*ast.ReturnStmt).Results[0].(*ast.CallExpr)
-			for index, refusal := range [...]error{core.ErrGoToolchainContract, core.ErrGoToolchainOutput, core.ErrNilContext} {
+			for index, refusal := range [...]error{io.ErrClosedPipe, io.ErrUnexpectedEOF, io.ErrShortWrite} {
 				got, err := view.ErrorIdentity(ctx, gotoolchain.ErrorIdentityRequest{Analysis: analysis, Function: object, Parameter: object.Type().(*types.Signature).Params().At(index), Expression: call})
 				if err != nil || got.Preserved != errors.Is(native, refusal) {
 					t.Fatalf("native format %q operand%d identity got%+v/%v want preserved%t/nil", format, index, got, err, errors.Is(native, refusal))
