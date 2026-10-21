@@ -23,13 +23,14 @@ func runReceiptFixture(t testing.TB) RunReceipt {
 		}
 		return ArtifactReference{Path: fixturePath(t, name), Digest: core.SHA256Of(content), Bytes: count}
 	}
+	results := ref("test-results.jsonl", []byte("native result fixture"))
 	return RunReceipt{
 		Run: fixtureIdentifier(t, "run-1792542374974150000-02d87feccfb2"), Producer: fixtureIdentifier(t, "stoker"),
 		Caller: fixtureIdentifier(t, "codex-receipt-proof"), Worker: fixtureIdentifier(t, "mac"),
 		Source: SourceCoordinate{Repository: fixtureRepository(t, "github.com/offGridSoft/example"),
 			Commit: fixtureCommit(t, strings.Repeat("a", 40)), Tree: core.SHA256Of([]byte("exact committed source"))},
 		Invocation: ref("request.json", []byte("invocation fixture")), Execution: ref("receipt.json", []byte("native facts fixture")),
-		Results:     ref("test-results.jsonl", nil),
+		Results: &results, ResultCount: 1,
 		Accounting:  ExecutionAccounting{Attempts: []ExecutionAttempt{{Sequence: 1, Planned: 1, Passed: 1, Cache: CacheDisabled}}},
 		CompletedAt: temporal.InstantFromNanoseconds(1792542374974150000), Outcome: OutcomePassed, Terminal: TerminalCompleted,
 	}
@@ -52,6 +53,9 @@ func TestRunReceiptLayerTriad(t *testing.T) {
 		{name: "positive retry retains original failed attempt", edit: func(r *RunReceipt) {
 			r.Accounting.Attempts = []ExecutionAttempt{{Sequence: 1, Planned: 1, Failed: 1, Cache: CacheDisabled}, {Sequence: 2, Planned: 1, Passed: 1, Cache: CacheDisabled}}
 		}},
+		{name: "positive native result count has no arbitrary extent quota", edit: func(r *RunReceipt) { r.ResultCount = math.MaxUint64 }},
+		{name: "neutral successful command need not invent a test occurrence", edit: func(r *RunReceipt) { r.ResultCount = 0; r.Results = nil }},
+		{name: "negative declared result stream needs a digest", edit: func(r *RunReceipt) { r.Results.Digest = core.SHA256Digest{} }, wantErr: core.ErrRunProtocolContract},
 		{name: "positive maximum denominator does not overflow", edit: func(r *RunReceipt) {
 			r.Accounting.Attempts[0].Planned = math.MaxUint32
 			r.Accounting.Attempts[0].Passed = math.MaxUint32
@@ -60,6 +64,8 @@ func TestRunReceiptLayerTriad(t *testing.T) {
 		{name: "positive newest representable timestamp", edit: func(r *RunReceipt) { r.CompletedAt = temporal.InstantFromNanoseconds(math.MaxInt64) }},
 		{name: "neutral epoch timestamp is observed rather than unset", edit: func(r *RunReceipt) { r.CompletedAt = temporal.InstantFromNanoseconds(0) }},
 		{name: "neutral empty test stream does not invent test results", edit: func(r *RunReceipt) {
+			r.Results = nil
+			r.ResultCount = 0
 			r.Outcome = OutcomeNotRun
 			r.Terminal = TerminalNotRun
 			r.Accounting.Attempts[0].Passed = 0
@@ -74,7 +80,7 @@ func TestRunReceiptLayerTriad(t *testing.T) {
 		{name: "negative missing source tree digest", edit: func(r *RunReceipt) { r.Source.Tree = core.SHA256Digest{} }, wantErr: core.ErrRunProtocolContract},
 		{name: "negative missing invocation reference", edit: func(r *RunReceipt) { r.Invocation = ArtifactReference{} }, wantErr: core.ErrRunProtocolContract},
 		{name: "negative missing native execution reference", edit: func(r *RunReceipt) { r.Execution = ArtifactReference{} }, wantErr: core.ErrRunProtocolContract},
-		{name: "negative missing result stream reference", edit: func(r *RunReceipt) { r.Results = ArtifactReference{} }, wantErr: core.ErrRunProtocolContract},
+		{name: "negative missing result stream reference", edit: func(r *RunReceipt) { r.Results = nil }, wantErr: core.ErrRunProtocolConflict},
 		{name: "negative missing observed timestamp", edit: func(r *RunReceipt) { r.CompletedAt = temporal.Instant{} }, wantErr: core.ErrRunProtocolContract},
 		{name: "negative absent attempt cannot stand for success", edit: func(r *RunReceipt) { r.Accounting.Attempts = nil }, wantErr: core.ErrRunProtocolContract},
 		{name: "negative unclosed denominator", edit: func(r *RunReceipt) { r.Accounting.Attempts[0].Planned = 2 }, wantErr: core.ErrRunProtocolConflict},
@@ -85,6 +91,7 @@ func TestRunReceiptLayerTriad(t *testing.T) {
 		{name: "negative invocation aliases execution bytes", edit: func(r *RunReceipt) { r.Invocation.Path = r.Execution.Path }, wantErr: core.ErrRunProtocolConflict},
 		{name: "negative invocation aliases result stream", edit: func(r *RunReceipt) { r.Invocation.Path = r.Results.Path }, wantErr: core.ErrRunProtocolConflict},
 		{name: "negative execution aliases result stream", edit: func(r *RunReceipt) { r.Execution.Path = r.Results.Path }, wantErr: core.ErrRunProtocolConflict},
+		{name: "negative result artifact cannot claim zero occurrences", edit: func(r *RunReceipt) { r.ResultCount = 0 }, wantErr: core.ErrRunProtocolConflict},
 		{name: "negative pass cannot hide skipped execution units", edit: func(r *RunReceipt) { r.Accounting.Attempts[0].Passed = 0; r.Accounting.Attempts[0].Skipped = 1 }, wantErr: core.ErrRunProtocolConflict},
 		{name: "negative pass cannot erase latest failed retry", edit: func(r *RunReceipt) {
 			r.Accounting.Attempts = append(r.Accounting.Attempts, ExecutionAttempt{Sequence: 2, Planned: 1, Failed: 1, Cache: CacheDisabled})
@@ -117,9 +124,16 @@ func TestRunReceiptLayerTriad(t *testing.T) {
 	}
 }
 
+func sameRunReceiptResults(a, b *ArtifactReference) bool {
+	if a == nil || b == nil {
+		return a == nil && b == nil
+	}
+	return *a == *b
+}
+
 func sameRunReceipt(a, b RunReceipt) bool {
 	return a.Run == b.Run && a.Producer == b.Producer && a.Caller == b.Caller && a.Worker == b.Worker && a.Source == b.Source &&
-		a.Invocation == b.Invocation && a.Execution == b.Execution && a.Results == b.Results &&
+		a.Invocation == b.Invocation && a.Execution == b.Execution && sameRunReceiptResults(a.Results, b.Results) && a.ResultCount == b.ResultCount &&
 		slices.Equal(a.Accounting.Attempts, b.Accounting.Attempts) && a.CompletedAt == b.CompletedAt && a.Outcome == b.Outcome && a.Terminal == b.Terminal
 }
 
@@ -166,7 +180,7 @@ func TestRunReceiptJSONHostileAdmission(t *testing.T) {
 		{"truncated final member", good[:len(good)-1]},
 		{"second root cannot be absorbed", good + good},
 		{"trailing nonwhitespace", good + " false"},
-		{"malformed digest", strings.Replace(good, strings.Repeat("a", 40), "not-a-commit", 1)},
+		{"malformed committed revision", strings.Replace(good, strings.Repeat("a", 40), "not-a-commit", 1)},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

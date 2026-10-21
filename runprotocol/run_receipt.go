@@ -9,9 +9,10 @@ import "github.com/deliri/primitive/v2026/temporal"
 // native execution facts (commands, toolchains, times, exits, usage and raw
 // artifact references) in the two referenced evidence objects.
 //
-// Results names a forward JSONIO object stream of TestResult occurrences. An
-// empty stream is represented by its actual digest and zero size, never by an
-// invented passing test. Accounting describes declared execution units, not
+// Results names a forward JSONIO object stream of TestResult occurrences.
+// Zero observed results have ResultCount zero and no result artifact, never
+// an invented passing test or a zero-byte ArtifactReference. Accounting
+// describes declared execution units, not
 // an inferred population of tests or subtests. Its existing bounded attempt
 // sequence preserves failures before retries. This record owns no result list.
 //
@@ -27,7 +28,8 @@ type RunReceipt struct {
 	Source      SourceCoordinate    `json:"source"`
 	Invocation  ArtifactReference   `json:"invocation"`
 	Execution   ArtifactReference   `json:"execution"`
-	Results     ArtifactReference   `json:"results"`
+	Results     *ArtifactReference  `json:"results,omitempty"`
+	ResultCount uint64              `json:"result_count"`
 	Accounting  ExecutionAccounting `json:"accounting"`
 	CompletedAt temporal.Instant    `json:"completed_at"`
 	Outcome     Outcome             `json:"outcome"`
@@ -36,14 +38,22 @@ type RunReceipt struct {
 
 func (r RunReceipt) Validate() error {
 	if err := contractJoin(r.Run.Validate(), r.Producer.Validate(), r.Caller.Validate(), r.Worker.Validate(),
-		r.Source.Validate(), r.Invocation.Validate(), r.Execution.Validate(), r.Results.Validate(),
+		r.Source.Validate(), r.Invocation.Validate(), r.Execution.Validate(),
 		r.Accounting.Validate(), r.CompletedAt.Validate(), r.Outcome.Validate(), r.Terminal.Validate()); err != nil {
 		return err
+	}
+	if (r.Results == nil) != (r.ResultCount == 0) {
+		return conflictError(nil)
+	}
+	if r.Results != nil {
+		if err := r.Results.Validate(); err != nil {
+			return contractError(err)
+		}
 	}
 	if !experimentTerminalMatches(r.Outcome, r.Terminal) {
 		return conflictError(nil)
 	}
-	if r.Invocation.Path == r.Execution.Path || r.Invocation.Path == r.Results.Path || r.Execution.Path == r.Results.Path {
+	if r.Invocation.Path == r.Execution.Path || r.Results != nil && (r.Invocation.Path == r.Results.Path || r.Execution.Path == r.Results.Path) {
 		return conflictError(nil)
 	}
 	latest, _ := r.Accounting.Latest() // Validate proved that at least one attempt exists.
