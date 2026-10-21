@@ -1,0 +1,12 @@
+--- a/gotoolchain/error_propagation.go
++++ b/gotoolchain/error_propagation.go
+@@ -301,7 +301,8 @@
+ 		for _, successor := range block.Succs {
+ 			if !region.Dominates(successor) && !errorUntakenBlock(successor) {
+ 				nilArm, err := errorNilSuccessor(ctx, &reference, block)
+-				if err != nil || nilArm != successor {
++				_ = nilArm
++				if err != nil {
+ 					return false, err
+ 				}
+ 			}

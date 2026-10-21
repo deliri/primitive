@@ -1,0 +1,11 @@
+--- a/gotoolchain/error_propagation.go
++++ b/gotoolchain/error_propagation.go
+@@ -467,7 +467,7 @@
+ 		if operand.Index < 0 || operand.Index >= len(call.Args)-1 {
+ 			return false, pc.ErrGoToolchainOutput
+ 		}
+-		if preserved, err := reference.Preserved(ctx, call.Args[operand.Index+1]); preserved || err != nil {
++		if preserved, err := reference.Preserved(ctx, call.Args[1]); preserved || err != nil {
+ 			return preserved, err
+ 		}
+ 	}

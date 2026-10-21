@@ -1,0 +1,52 @@
+[
+  {
+    "name": "admit-replaced-copy",
+    "patch": "admit-replaced-copy.patch",
+    "selection": "^TestErrorPropagationNativeCallAndIdentityLayerTriad$/^returned_copy_replaced$"
+  },
+  {
+    "name": "lose-generic-conversion",
+    "patch": "lose-generic-conversion.patch",
+    "selection": "^TestErrorPropagationNativeCallAndIdentityLayerTriad$/^generic_helper_preserves_error$"
+  },
+  {
+    "name": "ignore-later-native-return",
+    "patch": "ignore-later-native-return.patch",
+    "selection": "^TestErrorPropagationNativeCallAndIdentityLayerTriad$/^later_live_return_loses_original$"
+  },
+  {
+    "name": "borrow-unrelated-nil-guard",
+    "patch": "borrow-unrelated-nil-guard.patch",
+    "selection": "^TestErrorPropagationNativeCallAndIdentityLayerTriad$/^unrelated_helper_nil_guard$"
+  },
+  {
+    "name": "forget-region-exit-authority",
+    "patch": "forget-region-exit-authority.patch",
+    "selection": "^TestErrorPropagationNativeCallAndIdentityLayerTriad$/^conditional_region_non_nil_leak$"
+  },
+  {
+    "name": "lose-native-format-selection",
+    "patch": "lose-native-format-selection.patch",
+    "selection": "^TestErrorIdentityNativeFormatOperandSelection$/^second_error_operand$"
+  },
+  {
+    "name": "erase-source-value-refusal",
+    "patch": "erase-source-value-refusal.patch",
+    "selection": "^TestErrorPropagationMissingSourceValuesCannotBecomeUnproven$/^missing_native_source_values_is_a_refusal$"
+  },
+  {
+    "name": "borrow-foreign-parameter",
+    "patch": "borrow-foreign-parameter.patch",
+    "selection": "^TestErrorIdentityRefusesForeignBindingsAndPreservesCauses$/^equal_spelling_is_not_native_parameter$"
+  },
+  {
+    "name": "erase-native-cancellation-cause",
+    "patch": "erase-native-cancellation-cause.patch",
+    "selection": "^TestErrorPropagationRefusalsKeepNativeCauseAndZeroObservation$/^native_cancellation_cause$"
+  },
+  {
+    "name": "copy-native-block-population",
+    "patch": "copy-native-block-population.patch",
+    "selection": "^TestErrorPropagationQueryKeepsFixedMemory$/^4097$"
+  }
+]

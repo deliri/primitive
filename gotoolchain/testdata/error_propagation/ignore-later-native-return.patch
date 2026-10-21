@@ -1,0 +1,10 @@
+--- a/gotoolchain/error_propagation.go
++++ b/gotoolchain/error_propagation.go
+@@ -335,6 +335,7 @@
+ 			if !carries {
+ 				return false, nil
+ 			}
++			return true,nil
+ 		}
+ 	}
+ 	return observed, nil

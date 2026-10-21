@@ -1,0 +1,11 @@
+--- a/gotoolchain/error_propagation.go
++++ b/gotoolchain/error_propagation.go
+@@ -56,7 +56,7 @@
+ 
+ func (v SSAUnitView) errorAnalysis(ctx context.Context, analysis PackageAnalysis) error {
+ 	if err := errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), v.Validate(), analysis.Validate()); err != nil {
+-		return err
++		return pc.ErrGoToolchainContract
+ 	}
+ 	if analysis.Incomplete {
+ 		return pc.ErrGoToolchainOutput

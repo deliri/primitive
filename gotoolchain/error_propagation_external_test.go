@@ -245,20 +245,23 @@ func TestErrorPropagationQueryKeepsFixedMemory(t *testing.T) {
 }
 
 func FuzzErrorIdentityNativeFormatMatchesWrappedCause(f *testing.F) {
-	f.Add("%w")
-	f.Add("%v")
+	for _, format := range []string{"%w", "%v %w", "%%w %v", "%[2]w", "%[3]*.[2]*[1]w", "%[99]w %w", "%[1]2w %w", "%w %w %w", "%.*w"} {
+		f.Add(format)
+	}
 	f.Fuzz(func(t *testing.T, format string) {
-		native := fmt.Errorf(format, core.ErrGoToolchainContract)
-		analysis := nativeSymbolSourceAnalysis(t, t.TempDir(), "package sample;import \"fmt\";func F(err error)error{return fmt.Errorf("+strconv.Quote(format)+",err)}")
+		native := fmt.Errorf(format, core.ErrGoToolchainContract, core.ErrGoToolchainOutput, core.ErrNilContext)
+		analysis := nativeSymbolSourceAnalysis(t, t.TempDir(), "package sample;import \"fmt\";func F(a,b,c error)error{return fmt.Errorf("+strconv.Quote(format)+",a,b,c)}")
 		unit := analysis.Units[0]
 		observed := 0
 		err := analysis.WithSSAUnit(t.Context(), gotoolchain.SSAUnitRequest{Unit: unit, SourceValues: true, Use: func(ctx context.Context, view gotoolchain.SSAUnitView) error {
 			object := unit.Types.Scope().Lookup("F").(*types.Func)
 			fn := unit.Syntax[0].Decls[1].(*ast.FuncDecl)
 			call := fn.Body.List[0].(*ast.ReturnStmt).Results[0].(*ast.CallExpr)
-			got, err := view.ErrorIdentity(ctx, gotoolchain.ErrorIdentityRequest{Analysis: analysis, Function: object, Parameter: object.Type().(*types.Signature).Params().At(0), Expression: call})
-			if err != nil || got.Preserved != errors.Is(native, core.ErrGoToolchainContract) {
-				t.Fatalf("native format %q identity got%+v/%v want preserved%t/nil", format, got, err, errors.Is(native, core.ErrGoToolchainContract))
+			for index, refusal := range [...]error{core.ErrGoToolchainContract, core.ErrGoToolchainOutput, core.ErrNilContext} {
+				got, err := view.ErrorIdentity(ctx, gotoolchain.ErrorIdentityRequest{Analysis: analysis, Function: object, Parameter: object.Type().(*types.Signature).Params().At(index), Expression: call})
+				if err != nil || got.Preserved != errors.Is(native, refusal) {
+					t.Fatalf("native format %q operand%d identity got%+v/%v want preserved%t/nil", format, index, got, err, errors.Is(native, refusal))
+				}
 			}
 			observed++
 			return nil

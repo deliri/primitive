@@ -1,0 +1,11 @@
+--- a/gotoolchain/error_propagation.go
++++ b/gotoolchain/error_propagation.go
+@@ -490,7 +490,7 @@
+ 		for _, block := range fn.Blocks {
+ 			for _, instruction := range block.Instrs {
+ 				if actual, ok := instruction.(*ssa.Call); ok && actual.Common().Pos() == call.Lparen {
+-					return false, pc.ErrGoToolchainOutput
++					return false, nil
+ 				}
+ 			}
+ 		}

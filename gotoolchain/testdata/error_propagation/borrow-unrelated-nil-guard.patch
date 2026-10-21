@@ -1,0 +1,12 @@
+--- a/gotoolchain/error_propagation.go
++++ b/gotoolchain/error_propagation.go
+@@ -377,7 +377,8 @@
+ 		return nil, nil
+ 	}
+ 	carries, err := errorResultPreserves(ctx, value, reference)
+-	if err != nil || !carries {
++	_ = carries
++	if err != nil {
+ 		return nil, err
+ 	}
+ 	nilArm := 0

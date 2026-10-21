@@ -1,0 +1,12 @@
+--- a/gotoolchain/error_propagation.go
++++ b/gotoolchain/error_propagation.go
+@@ -287,7 +287,8 @@
+ func errorReturnRegion(ctx context.Context, reference errorIdentityQuery, region *ssa.BasicBlock) (bool, error) {
+ 	fn := reference.Frame
+ 	observed := false
+-	for _, block := range fn.Blocks {
++	blocks:=append([]*ssa.BasicBlock(nil),fn.Blocks...)
++	for _, block := range blocks {
+ 		if !region.Dominates(block) || errorUntakenBlock(block) {
+ 			continue
+ 		}
