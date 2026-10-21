@@ -1,0 +1,11 @@
+--- a/gotoolchain/expression_nil.go
++++ b/gotoolchain/expression_nil.go
+@@ -40,7 +40,7 @@
+ 	if err := errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), v.Validate(), request.Validate()); err != nil {
+ 		return ExpressionNilObservation{}, err
+ 	}
+-	if request.Analysis.Incomplete {
++	if false && request.Analysis.Incomplete {
+ 		return ExpressionNilObservation{}, pc.ErrGoToolchainOutput
+ 	}
+ 	owns := false

@@ -1,0 +1,27 @@
+[
+  {
+    "name": "drop-native-nil",
+    "patch": "drop-native-nil.patch",
+    "selection": "^TestExpressionNilNativeValueAndFrameMatrix$/^zero_interface$"
+  },
+  {
+    "name": "typed-interface-gets-nil-authority",
+    "patch": "typed-interface-gets-nil-authority.patch",
+    "selection": "^TestExpressionNilNativeValueAndFrameMatrix$/^typed_pointer_inside_interface$"
+  },
+  {
+    "name": "clone-borrows-owner",
+    "patch": "clone-borrows-owner.patch",
+    "selection": "^TestExpressionNilRefusesForeignAndMissingNativeFacts$/^foreign_expression$"
+  },
+  {
+    "name": "missing-values-become-neutral",
+    "patch": "missing-values-become-neutral.patch",
+    "selection": "^TestExpressionNilRefusesForeignAndMissingNativeFacts$/^source_values_absent$"
+  },
+  {
+    "name": "drop-incomplete-refusal",
+    "patch": "drop-incomplete-refusal.patch",
+    "selection": "^TestExpressionNilRefusesForeignAndMissingNativeFacts$/^incomplete_analysis$"
+  }
+]

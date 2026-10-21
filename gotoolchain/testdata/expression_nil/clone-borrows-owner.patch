@@ -1,0 +1,11 @@
+--- a/gotoolchain/expression_nil.go
++++ b/gotoolchain/expression_nil.go
+@@ -59,7 +59,7 @@
+ 			continue
+ 		}
+ 		path, _ := astutil.PathEnclosingInterval(file, expression.Pos(), expression.End())
+-		if len(path) == 0 || path[0] != expression {
++		if len(path) == 0 {
+ 			continue
+ 		}
+ 		facts, present := v.Source.TypesInfo.Types[expression]
