@@ -1,0 +1,11 @@
+--- a/gotoolchain/expression_producer.go
++++ b/gotoolchain/expression_producer.go
+@@ -37,7 +37,7 @@
+ func (v SSAUnitView) ExpressionProducer(ctx context.Context, request ExpressionRequest) (ExpressionProducerObservation, error) {
+ 	value, _, address, err := v.expressionValue(ctx, request)
+ 	if err != nil {
+-		return ExpressionProducerObservation{}, err
++		return ExpressionProducerObservation{}, nil
+ 	}
+ 	if address || value == nil {
+ 		return ExpressionProducerObservation{}, nil

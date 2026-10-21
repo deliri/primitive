@@ -1,6 +1,6 @@
---- a/gotoolchain/expression_nil.go
-+++ b/gotoolchain/expression_nil.go
-@@ -59,7 +59,7 @@
+--- a/gotoolchain/expression_source.go
++++ b/gotoolchain/expression_source.go
+@@ -53,7 +53,7 @@
  			continue
  		}
  		path, _ := astutil.PathEnclosingInterval(file, expression.Pos(), expression.End())

@@ -1,11 +1,9 @@
 --- a/gotoolchain/expression_nil.go
 +++ b/gotoolchain/expression_nil.go
-@@ -81,7 +81,7 @@
- 			return ExpressionNilObservation{}, pc.ErrGoToolchainOutput
- 		}
- 		constant, ok := value.(*ssa.Const)
--		return ExpressionNilObservation{Proven: !address && ok && constant.IsNil()}, nil
-+		return ExpressionNilObservation{Proven: false && !address && ok && constant.IsNil()}, nil
+@@ -18,5 +18,5 @@
+ 		return ExpressionNilObservation{}, err
  	}
- 	return ExpressionNilObservation{}, pc.ErrGoToolchainContract
+ 	constant, ok := value.(*ssa.Const)
+-	return ExpressionNilObservation{Proven: facts.IsNil() || !address && ok && constant.IsNil()}, nil
++	return ExpressionNilObservation{Proven: facts.IsNil() || false && !address && ok && constant.IsNil()}, nil
  }

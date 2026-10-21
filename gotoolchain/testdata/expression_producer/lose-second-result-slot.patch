@@ -1,0 +1,11 @@
+--- a/gotoolchain/expression_producer.go
++++ b/gotoolchain/expression_producer.go
+@@ -63,7 +63,7 @@
+ 		if extracted.Index < 0 {
+ 			return ExpressionProducerObservation{}, pc.ErrGoToolchainOutput
+ 		}
+-		index = uint64(extracted.Index)
++		index = 0
+ 	}
+ 	target := call.Common().StaticCallee()
+ 	if target == nil || scalar && target.Signature.Results().Len() != 1 {

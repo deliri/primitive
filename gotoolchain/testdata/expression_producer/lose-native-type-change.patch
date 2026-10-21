@@ -1,0 +1,11 @@
+--- a/gotoolchain/expression_producer.go
++++ b/gotoolchain/expression_producer.go
+@@ -47,7 +47,7 @@
+ 		if !ok {
+ 			break
+ 		}
+-		value = converted.X
++		_ = converted; break
+ 	}
+ 	index := uint64(0)
+ 	call, scalar := value.(*ssa.Call)

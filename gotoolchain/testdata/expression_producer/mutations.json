@@ -1,0 +1,22 @@
+[
+  {
+    "name": "erase-native-producer",
+    "patch": "erase-native-producer.patch",
+    "selection": "^TestExpressionProducerNativeIdentityAndFrameMatrix$/^direct_scalar$"
+  },
+  {
+    "name": "lose-second-result-slot",
+    "patch": "lose-second-result-slot.patch",
+    "selection": "^TestExpressionProducerNativeIdentityAndFrameMatrix$/^second_tuple_slot$"
+  },
+  {
+    "name": "lose-native-type-change",
+    "patch": "lose-native-type-change.patch",
+    "selection": "^TestExpressionProducerNativeIdentityAndFrameMatrix$/^native_type_conversion$"
+  },
+  {
+    "name": "erase-origin-query-source-refusal",
+    "patch": "erase-origin-query-source-refusal.patch",
+    "selection": "^TestExpressionProducerMissingSourceValuesRefuses$"
+  }
+]

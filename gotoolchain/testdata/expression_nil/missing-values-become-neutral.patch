@@ -1,11 +1,11 @@
---- a/gotoolchain/expression_nil.go
-+++ b/gotoolchain/expression_nil.go
-@@ -78,7 +78,7 @@
+--- a/gotoolchain/expression_source.go
++++ b/gotoolchain/expression_source.go
+@@ -69,7 +69,7 @@
  		}
  		value, address := frame.ValueForExpr(expression)
  		if value == nil {
--			return ExpressionNilObservation{}, pc.ErrGoToolchainOutput
-+			return ExpressionNilObservation{}, nil
+-			return nil, types.TypeAndValue{}, false, pc.ErrGoToolchainOutput
++			return nil, types.TypeAndValue{}, false, nil
  		}
- 		constant, ok := value.(*ssa.Const)
- 		return ExpressionNilObservation{Proven: !address && ok && constant.IsNil()}, nil
+ 		return value, facts, address, nil
+ 	}
