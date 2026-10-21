@@ -7,6 +7,8 @@ import (
 	"io"
 	"os"
 	"syscall"
+
+	"github.com/deliri/primitive/v2026/core"
 )
 
 // A write through Go's fd 1/2 handles exits on EPIPE before defers run.
@@ -41,5 +43,8 @@ func pipeErrorDestination(destination io.Writer) (io.Writer, func() error, error
 		return destination, nil, nil
 	}
 	owned := os.NewFile(uintptr(duplicate), file.Name())
+	if owned == nil {
+		return nil, nil, errors.Join(core.ErrProcessContract, syscall.Close(duplicate))
+	}
 	return owned, owned.Close, nil
 }
