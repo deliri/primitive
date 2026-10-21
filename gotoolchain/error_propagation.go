@@ -74,6 +74,9 @@ func (v SSAUnitView) ErrorPropagation(ctx context.Context, request ErrorPropagat
 		return ErrorIdentityObservation{}, err
 	}
 	call := request.Call
+	if v.Source.TypesInfo.TypeOf(call) == nil {
+		return ErrorIdentityObservation{}, pc.ErrGoToolchainOutput
+	}
 	physical := v.Source.Fset.File(call.Pos())
 	for _, file := range v.Source.Syntax {
 		if physical == nil || v.Source.Fset.File(file.Pos()) != physical {
@@ -103,6 +106,9 @@ func (v SSAUnitView) ErrorPropagation(ctx context.Context, request ErrorPropagat
 func (v SSAUnitView) ErrorIdentity(ctx context.Context, request ErrorIdentityRequest) (ErrorIdentityObservation, error) {
 	if err := errors.Join(v.errorAnalysis(ctx, request.Analysis), request.Validate()); err != nil {
 		return ErrorIdentityObservation{}, err
+	}
+	if v.Source.TypesInfo.TypeOf(request.Expression) == nil {
+		return ErrorIdentityObservation{}, pc.ErrGoToolchainOutput
 	}
 	fn := v.Program.FuncValue(request.Function)
 	if fn == nil || fn.Pkg != v.Package {
@@ -472,7 +478,19 @@ func errorCallPropagation(ctx context.Context, call *ast.CallExpr, fn *ssa.Funct
 	}
 	value, _ := fn.ValueForExpr(call)
 	origin, ok := value.(*ssa.Call)
-	if !ok || errorUntakenBlock(origin.Block()) {
+	if !ok {
+		// An actual ordinary call without its requested source value is missing
+		// compiler metadata. Deferred and launched calls have no result to lend.
+		for _, block := range fn.Blocks {
+			for _, instruction := range block.Instrs {
+				if actual, ok := instruction.(*ssa.Call); ok && actual.Common().Pos() == call.Lparen {
+					return false, pc.ErrGoToolchainOutput
+				}
+			}
+		}
+		return false, nil
+	}
+	if errorUntakenBlock(origin.Block()) {
 		return false, nil
 	}
 	if types.AssignableTo(origin.Type(), types.Universe.Lookup("error").Type()) {
