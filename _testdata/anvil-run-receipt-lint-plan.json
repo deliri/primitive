@@ -1,0 +1,30 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    },
+    "job": {
+      "cpu": 1,
+      "memory_bytes": 2147483648,
+      "scratch_bytes": 4294967296
+    }
+  },
+  "steps": [
+    {
+      "name": "runprotocol-vet-after-behavioral-proof",
+      "kind": "vet",
+      "arguments": [
+        "./runprotocol"
+      ]
+    },
+    {
+      "name": "runprotocol-staticcheck-after-behavioral-proof",
+      "kind": "lint",
+      "arguments": [
+        "./runprotocol"
+      ]
+    }
+  ]
+}
