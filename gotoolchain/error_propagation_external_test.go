@@ -375,3 +375,113 @@ func TestErrorIdentityNativeFormatOperandSelection(t *testing.T) {
 		})
 	}
 }
+
+func TestErrorPropagationNativeCopyDomain(t *testing.T) {
+	t.Parallel()
+	var source strings.Builder
+	source.WriteString("package sample;var flag bool;func validate()error{return nil};func inner(err error)error{return err};")
+	for mode := range 16 {
+		for extent := 1; extent <= 8; extent++ {
+			name := "F" + strconv.Itoa(mode) + "_" + strconv.Itoa(extent)
+			source.WriteString("func " + name + "()error{err:=validate();copy0:=err;")
+			for index := 1; index < extent; index++ {
+				source.WriteString("copy" + strconv.Itoa(index) + ":=copy" + strconv.Itoa(index-1) + ";")
+			}
+			last := "copy" + strconv.Itoa(extent-1)
+			if mode&1 != 0 {
+				source.WriteString(last + "=nil;")
+			}
+			if mode&2 != 0 {
+				source.WriteString("err=nil;")
+			}
+			if mode&4 != 0 {
+				source.WriteString("if flag{return " + last + "};")
+			}
+			if mode&8 != 0 {
+				source.WriteString("return inner(" + last + ")};")
+			} else {
+				source.WriteString("return " + last + "};")
+			}
+		}
+	}
+	analysis := nativeSymbolSourceAnalysis(t, t.TempDir(), source.String())
+	unit := analysis.Units[0]
+	observed := 0
+	err := analysis.WithSSAUnit(t.Context(), gotoolchain.SSAUnitRequest{Unit: unit, SourceValues: true, Use: func(ctx context.Context, view gotoolchain.SSAUnitView) error {
+		for _, file := range unit.Syntax {
+			for _, declaration := range file.Decls {
+				fn, ok := declaration.(*ast.FuncDecl)
+				if !ok || !strings.HasPrefix(fn.Name.Name, "F") {
+					continue
+				}
+				coordinates := strings.Split(strings.TrimPrefix(fn.Name.Name, "F"), "_")
+				mode, err := strconv.Atoi(coordinates[0])
+				if err != nil {
+					return err
+				}
+				call := fn.Body.List[0].(*ast.AssignStmt).Rhs[0].(*ast.CallExpr)
+				got, err := view.ErrorPropagation(ctx, gotoolchain.ErrorPropagationRequest{Analysis: analysis, Call: call})
+				if err != nil || got.Preserved != (mode&1 == 0) {
+					t.Fatalf("native copy %s got%+v/%v want preserved%t/nil", fn.Name.Name, got, err, mode&1 == 0)
+				}
+				observed++
+			}
+		}
+		return nil
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if observed != 128 {
+		t.Fatalf("native copy domain got%d observations want128", observed)
+	}
+}
+
+func TestErrorIdentityRefusesForeignBindingsAndPreservesCauses(t *testing.T) {
+	t.Parallel()
+	analysis := nativeSymbolSourceAnalysis(t, t.TempDir(), "package sample;import \"fmt\";func F(err error)error{return fmt.Errorf(\"%w\",err)}")
+	unit := analysis.Units[0]
+	err := analysis.WithSSAUnit(t.Context(), gotoolchain.SSAUnitRequest{Unit: unit, SourceValues: true, Use: func(ctx context.Context, view gotoolchain.SSAUnitView) error {
+		object := unit.Types.Scope().Lookup("F").(*types.Func)
+		parameter := object.Type().(*types.Signature).Params().At(0)
+		fn := unit.Syntax[0].Decls[1].(*ast.FuncDecl)
+		call := fn.Body.List[0].(*ast.ReturnStmt).Results[0].(*ast.CallExpr)
+		foreign := types.NewVar(parameter.Pos(), parameter.Pkg(), parameter.Name(), parameter.Type())
+		for _, row := range []struct {
+			name    string
+			view    gotoolchain.SSAUnitView
+			request gotoolchain.ErrorIdentityRequest
+			cancel  bool
+			want    error
+		}{
+			{name: "empty view", request: gotoolchain.ErrorIdentityRequest{Analysis: analysis, Function: object, Parameter: parameter, Expression: call}, want: core.ErrGoToolchainContract},
+			{name: "missing source owner", view: view, request: gotoolchain.ErrorIdentityRequest{Function: object, Parameter: parameter, Expression: call}, want: core.ErrGoToolchainContract},
+			{name: "missing expression", view: view, request: gotoolchain.ErrorIdentityRequest{Analysis: analysis, Function: object, Parameter: parameter}, want: core.ErrGoToolchainContract},
+			{name: "missing function", view: view, request: gotoolchain.ErrorIdentityRequest{Analysis: analysis, Parameter: parameter, Expression: call}, want: core.ErrGoToolchainContract},
+			{name: "missing parameter", view: view, request: gotoolchain.ErrorIdentityRequest{Analysis: analysis, Function: object, Expression: call}, want: core.ErrGoToolchainContract},
+			{name: "equal spelling is not native parameter", view: view, request: gotoolchain.ErrorIdentityRequest{Analysis: analysis, Function: object, Parameter: foreign, Expression: call}, want: core.ErrGoToolchainContract},
+			{name: "native cancellation cause", view: view, request: gotoolchain.ErrorIdentityRequest{Analysis: analysis, Function: object, Parameter: parameter, Expression: call}, cancel: true, want: io.ErrClosedPipe},
+		} {
+			t.Run(row.name, func(t *testing.T) {
+				ctx, cancel := context.WithCancelCause(ctx)
+				defer cancel(nil)
+				if row.cancel {
+					cancel(io.ErrClosedPipe)
+				}
+				got, err := row.view.ErrorIdentity(ctx, row.request)
+				if got != (gotoolchain.ErrorIdentityObservation{}) || !errors.Is(err, row.want) {
+					t.Fatalf("native identity refusal got%+v/%v want zero/%v", got, err, row.want)
+				}
+			})
+		}
+		delete(unit.TypesInfo.Types, call.Args[0])
+		got, err := view.ErrorIdentity(ctx, gotoolchain.ErrorIdentityRequest{Analysis: analysis, Function: object, Parameter: parameter, Expression: call})
+		if got != (gotoolchain.ErrorIdentityObservation{}) || !errors.Is(err, core.ErrGoToolchainOutput) {
+			t.Fatalf("missing native format facts got%+v/%v want zero/nativeoutput", got, err)
+		}
+		return nil
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+}
