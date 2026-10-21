@@ -114,6 +114,12 @@ func (v SSAUnitView) ErrorIdentity(ctx context.Context, request ErrorIdentityReq
 	if fn == nil || fn.Pkg != v.Package {
 		return ErrorIdentityObservation{}, pc.ErrGoToolchainContract
 	}
+	if value, _ := fn.ValueForExpr(request.Expression); value == nil {
+		facts := v.Source.TypesInfo.Types[ast.Unparen(request.Expression)]
+		if facts.Value == nil && !facts.IsNil() {
+			return ErrorIdentityObservation{}, pc.ErrGoToolchainOutput
+		}
+	}
 	for _, parameter := range fn.Params {
 		if parameter.Object() != request.Parameter {
 			continue
