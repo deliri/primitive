@@ -1,11 +1,13 @@
 --- a/background/mailbox.go
 +++ b/background/mailbox.go
-@@ -203,7 +203,7 @@
- 		return MailboxReception[T]{}, err
- 	}
- 	messages := (<-chan T)(m.native)
--	if request.Mode == MailboxReceiveTicks {
-+	if request.Mode == MailboxReceiveTicks && false {
- 		messages = nil
- 	}
- 	select {
+@@ -215,6 +215,7 @@
+ 		if !open {
+ 			return MailboxReception[T]{}, core.ErrBackgroundStopped
+ 		}
+-		return MailboxReception[T]{Kind: MailboxTick, Tick: tick}, nil
+-	}
+-}
++		select{case <-m.native:default:}
++ return MailboxReception[T]{Kind: MailboxTick, Tick: tick}, nil
++	}
++}

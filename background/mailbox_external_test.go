@@ -93,7 +93,7 @@ func TestMailboxNativeReceiveOwnsTicksMessagesAndCancellation(t *testing.T) {
 	if err != nil || got.Kind != background.MailboxTick || got.Tick != now {
 		t.Fatalf("native tick%+v/%v", got, err)
 	}
-	got, err = mailbox.Receive(t.Context(), background.MailboxReceiveRequest{Mode: background.MailboxReceiveAll})
+	got, err = mailbox.Poll(t.Context())
 	if err != nil || got.Kind != background.MailboxItem || got.Value != 19 {
 		t.Fatalf("tick-only receive consumed queued message%+v/%v", got, err)
 	}
