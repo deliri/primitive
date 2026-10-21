@@ -1,0 +1,106 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "native-Go-string-bytes-and-refusals",
+      "kind": "test",
+      "arguments": [
+        "./gotoolchain",
+        "-count=1",
+        "-run=^(TestGoStringLiteral.*|TestGoToolchainProductionStructsHaveCompilerVisibleDataFlowRoles)$"
+      ]
+    },
+    {
+      "name": "native-Go-string-semantic-fuzz",
+      "kind": "fuzz",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "fuzz_target": "FuzzGoStringLiteralConservesNativeDecodedBytes",
+      "fuzz_seconds": 3
+    },
+    {
+      "name": "retain-native-source-spelling",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/string_literal/retain-native-source-spelling.patch",
+        "failing_test": "^TestGoStringLiteralAgreesWithNativeGoValues$/^hexadecimal_encoded_SQL_byte$"
+      }
+    },
+    {
+      "name": "erase-native-syntax-cause",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/string_literal/erase-native-syntax-cause.patch",
+        "failing_test": "^TestGoStringLiteralPreservesNativeSyntaxRefusal$/^`open$"
+      }
+    },
+    {
+      "name": "erase-terminal-cancellation",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/string_literal/erase-terminal-cancellation.patch",
+        "failing_test": "^TestGoStringLiteralWithholdsDecodedValueOnCancellation$/^decoded_value_is_withheld$"
+      }
+    },
+    {
+      "name": "accept-wrong-native-token",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/string_literal/accept-wrong-native-token.patch",
+        "failing_test": "^TestGoStringLiteralRefusesContradictoryNativeNodeAndContext$/^native_string_spelling_cannot_borrow_rune_token$"
+      }
+    },
+    {
+      "name": "accept-fabricated-rune-lexeme",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/string_literal/accept-fabricated-rune-lexeme.patch",
+        "failing_test": "^TestGoStringLiteralRefusesContradictoryNativeNodeAndContext$/^rune_lexeme_cannot_borrow_string_token$"
+      }
+    },
+    {
+      "name": "impose-decoded-value-quota",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/string_literal/impose-decoded-value-quota.patch",
+        "failing_test": "^TestGoStringLiteralHasNoDecodedExtentQuota$/^65537$"
+      }
+    },
+    {
+      "name": "publish-provisional-decoded-value",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/string_literal/publish-provisional-decoded-value.patch",
+        "failing_test": "^TestGoStringLiteralWithholdsDecodedValueOnCancellation$/^decoded_value_is_withheld$"
+      }
+    }
+  ]
+}
