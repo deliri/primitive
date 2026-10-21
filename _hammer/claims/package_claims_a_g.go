@@ -260,7 +260,7 @@ func emitPackageClaimSpecsAThroughG(emit func(packageClaimSpec) bool) bool {
 			solution: "Gotoolchain executes typed bounded cmd/go requests and converts output into validated Primitive contracts.",
 			benefit:  "Go project tools share exact compiler observations without sharing a workflow engine or raw command protocol.",
 			removal:  "Remove Gotoolchain when no consumer needs cmd/go observation or Go exposes the same typed in-process contracts.",
-			owns:     "Gotoolchain owns cmd/go command resolution, bounded execution plans, decoding, and mechanical result validation.",
+			owns:     "Gotoolchain owns cmd/go command resolution, bounded execution plans, decoding, native Go source and build-constraint observations, and mechanical result validation.",
 			excludes: "It does not decide project policy, acceptance, source purpose, scheduling, or durable run history.",
 		},
 	}
