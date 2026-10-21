@@ -99,7 +99,27 @@
       ],
       "mutation": {
         "patch": "gotoolchain/testdata/build_constraint/accept-contradictory-presence.patch",
-        "failing_test": "^TestGoBuildConstraintRefusesContradictoryAndCancelledFacts$/^(expression_without_presence|typed_nil_native_expression)$"
+        "failing_test": "^TestGoBuildConstraintRefusesContradictoryAndCancelledFacts$/^expression_without_presence$"
+      }
+    },
+    {
+      "name": "native-constraint-root-fuzz",
+      "kind": "fuzz",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "fuzz_target": "FuzzGoBuildConstraintObservationConservesNativeRoot",
+      "fuzz_seconds": 3
+    },
+    {
+      "name": "accept-foreign-expression-carrier",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/build_constraint/accept-foreign-expression-carrier.patch",
+        "failing_test": "TestGoBuildConstraintRefusesForeignExpressionCarriers/pointer_carrier"
       }
     }
   ]
