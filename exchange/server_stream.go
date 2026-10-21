@@ -329,7 +329,8 @@ func (call ProducedWriteCall) Validate() error {
 }
 
 // WriteProduced lets a caller produce bytes into Go's ResponseWriter without
-// an intermediate pipe or a whole-response buffer.
+// an intermediate pipe or a whole-response buffer. Each successful Write
+// flushes through Go so a producer can await acknowledgement of progress.
 func WriteProduced(call ProducedWriteCall) error {
 	if err := call.Validate(); err != nil {
 		return err
@@ -364,9 +365,6 @@ func (w producedResponseWriter) Write(p []byte) (int, error) {
 	n, err := w.writer.Write(p)
 	if err == nil && n != len(p) {
 		err = io.ErrShortWrite
-	}
-	if err == nil {
-		err = http.NewResponseController(w.writer).Flush()
 	}
 	if err == nil {
 		err = http.NewResponseController(w.writer).Flush()

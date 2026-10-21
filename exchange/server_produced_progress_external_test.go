@@ -47,11 +47,12 @@ func TestWriteProducedDeliversBeforeProducerCompletes(t *testing.T) {
 	var readErr error
 	if response != nil {
 		_, readErr = io.ReadFull(response.Body, got[:])
-		_ = response.Body.Close()
 	}
 	close(ack)
-	cancel()
 	serverErr := <-done
+	if response != nil {
+		_ = response.Body.Close()
+	}
 	if requestErr != nil || readErr != nil || string(got[:]) != "progress\n" || serverErr != nil {
 		t.Fatalf("progress=%q, request=%v read=%v server=%v, want progress before acknowledgement and nil errors", got, requestErr, readErr, serverErr)
 	}
