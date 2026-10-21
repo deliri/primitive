@@ -80,7 +80,7 @@ func TestSSAInstructionOrderUsesNativeDominanceAndPosition(t *testing.T) {
 
 func TestSSAStorageUsesNativeAddressIdentity(t *testing.T) {
 	t.Parallel()
-	analysis := nativeSymbolSourceAnalysis(t, t.TempDir(), "package sample;type Record struct{First,Other int;Items [3]int};func observe(*int){};func F(a,b *Record,index int){observe(&a.First);observe(&a.First);observe(&a.Other);copy:=a;observe(&copy.First);observe(&a.Items[0]);observe(&a.Items[0]);observe(&a.Items[1]);observe(&a.Items[index]);observe(&b.First)}")
+	analysis := nativeSymbolSourceAnalysis(t, t.TempDir(), "package sample;type Record struct{First,Other int;Items [3]int};type Alias Record;func observe(*int){};func observeAny(any){};func F(a,b *Record,index int){observe(&a.First);observe(&a.First);observe(&a.Other);copy:=a;observe(&copy.First);observe(&a.Items[0]);observe(&a.Items[0]);observe(&a.Items[1]);observe(&a.Items[index]);observe(&b.First);observe(&((*Alias)(a)).First);var wrapped any=&a.First;observeAny(wrapped)}")
 	unit := analysis.Units[0]
 	err := analysis.WithSSAUnit(t.Context(), gotoolchain.SSAUnitRequest{Unit: unit, Use: func(ctx context.Context, view gotoolchain.SSAUnitView) error {
 		fn := view.Program.FuncValue(unit.Types.Scope().Lookup("F").(*types.Func))
@@ -88,13 +88,13 @@ func TestSSAStorageUsesNativeAddressIdentity(t *testing.T) {
 		for _, block := range fn.Blocks {
 			for _, instruction := range block.Instrs {
 				call, ok := instruction.(*ssa.Call)
-				if ok && call.Common().StaticCallee() != nil && call.Common().StaticCallee().Name() == "observe" {
+				if ok && call.Common().StaticCallee() != nil && (call.Common().StaticCallee().Name() == "observe" || call.Common().StaticCallee().Name() == "observeAny") {
 					values = append(values, call.Common().Args[0])
 				}
 			}
 		}
-		if len(values) != 9 {
-			t.Fatalf("native address operands got%d want9", len(values))
+		if len(values) != 11 {
+			t.Fatalf("native address operands got%d want11", len(values))
 		}
 		for _, row := range []struct {
 			name        string
@@ -109,6 +109,8 @@ func TestSSAStorageUsesNativeAddressIdentity(t *testing.T) {
 			{"different native constant index", 4, 6, false},
 			{"runtime index stays opaque", 4, 7, false},
 			{"different native base pointer", 0, 8, false},
+			{"native pointer representation change", 0, 9, true},
+			{"native interface boxing", 0, 10, true},
 		} {
 			t.Run(row.name, func(t *testing.T) {
 				for mode := range 3 {
