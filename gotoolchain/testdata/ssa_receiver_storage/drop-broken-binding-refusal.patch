@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_receiver_storage.go
++++ b/gotoolchain/ssa_receiver_storage.go
+@@ -111,7 +111,7 @@
+ 			}
+ 			operand = closure.Bindings[0]
+ 			if !nativeReceiverValuePresent(operand) || target.FreeVars[0] == nil || !types.AssignableTo(operand.Type(), target.FreeVars[0].Type()) {
+-				return ssaReceiverStorage{}, false, core.ErrGoToolchainOutput
++				return ssaReceiverStorage{}, false, nil
+ 			}
+ 		} else {
+ 			if len(common.Args) == 0 {

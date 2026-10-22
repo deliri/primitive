@@ -1,0 +1,10 @@
+--- a/gotoolchain/ssa_receiver_storage.go
++++ b/gotoolchain/ssa_receiver_storage.go
+@@ -28,6 +28,7 @@
+ // receivers, nil pointers and independently loaded pointer fields grant no
+ // storage fact. Working memory follows field depth, excluding Go's compiler.
+ func (v SSAUnitView) SameReceiverStorage(ctx context.Context, r SSACallReceiverStorageRequest) (out SSARelationObservation, err error) {
++	ctx = context.Background()
+ 	defer func() {
+ 		if err == nil {
+ 			err = temporal.Wait(temporal.WaitRequest{Context: ctx})

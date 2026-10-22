@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_receiver_storage.go
++++ b/gotoolchain/ssa_receiver_storage.go
+@@ -109,7 +109,7 @@
+ 			if closure.Fn != target || len(closure.Bindings) != 1 || len(target.FreeVars) != 1 || target.Signature.Recv() != nil {
+ 				return ssaReceiverStorage{}, false, core.ErrGoToolchainOutput
+ 			}
+-			operand = closure.Bindings[0]
++			operand = nil
+ 			if !nativeReceiverValuePresent(operand) || target.FreeVars[0] == nil || !types.AssignableTo(operand.Type(), target.FreeVars[0].Type()) {
+ 				return ssaReceiverStorage{}, false, core.ErrGoToolchainOutput
+ 			}

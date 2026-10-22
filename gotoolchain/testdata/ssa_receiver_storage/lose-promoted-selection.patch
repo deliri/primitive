@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_receiver_storage.go
++++ b/gotoolchain/ssa_receiver_storage.go
+@@ -129,7 +129,7 @@
+ 				return ssaReceiverStorage{}, false, nil
+ 			}
+ 			indices := selection.Index()
+-			fields = indices[:len(indices)-1]
++			fields = indices[:0]
+ 			if !nativeReceiverAddressFields(operand.Type(), fields) {
+ 				return ssaReceiverStorage{}, false, nil
+ 			}

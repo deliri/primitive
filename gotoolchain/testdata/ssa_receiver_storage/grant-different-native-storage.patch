@@ -1,0 +1,10 @@
+--- a/gotoolchain/ssa_receiver_storage.go
++++ b/gotoolchain/ssa_receiver_storage.go
+@@ -64,6 +64,7 @@
+ 		return out, err
+ 	}
+ 	out.Proven, err = nativeProjectedReceiverStorage(ctx, left, right)
++	out.Proven = true
+ 	return out, err
+ }
+ 

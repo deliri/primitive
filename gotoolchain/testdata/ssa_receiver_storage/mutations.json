@@ -1,0 +1,32 @@
+[
+  {
+    "name": "lose-bound-native-receiver",
+    "patch": "lose-bound-native-receiver.patch",
+    "selection": "^TestSSAReceiverStorageUsesNativeBindings$/^bound_acquisition$"
+  },
+  {
+    "name": "grant-different-native-storage",
+    "patch": "grant-different-native-storage.patch",
+    "selection": "^TestSSAReceiverStorageUsesNativeBindings$/^different_direct_pointers$"
+  },
+  {
+    "name": "lose-promoted-selection",
+    "patch": "lose-promoted-selection.patch",
+    "selection": "^TestSSAReceiverStorageUsesNativeBindings$/^mixed_promoted_expression_receiver$"
+  },
+  {
+    "name": "drop-broken-binding-refusal",
+    "patch": "drop-broken-binding-refusal.patch",
+    "selection": "^TestSSAReceiverStorageRefusesBrokenBindings$/^wrong_binding_type$"
+  },
+  {
+    "name": "lose-native-cancellation-cause",
+    "patch": "lose-native-cancellation-cause.patch",
+    "selection": "^TestSSAReceiverStorageRequiresLoanAndContext$/^custom_cancellation_cause$"
+  },
+  {
+    "name": "retain-native-call-population",
+    "patch": "retain-native-call-population.patch",
+    "selection": "^TestSSAReceiverStorageRetainsNoCallPopulation$/^8193$"
+  }
+]
