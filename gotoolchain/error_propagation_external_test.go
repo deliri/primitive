@@ -46,6 +46,12 @@ func TestErrorPropagationNativeCallAndIdentityLayerTriad(t *testing.T) {
 		{name: "constant false drop is not executed", body: "err:=validate();if false{return nil};return err", want: true},
 		{name: "uncalled closure retains no return authority", body: "err:=validate();_=func()error{return err};return nil"},
 		{name: "native Join", body: "return errors.Join(validate())", want: true},
+		{name: "wrapped copied native Join", body: `err:=errors.Join(validate());return errors.Join(errors.New("policy"),err)`, want: true},
+		{name: "guarded wrapped native Join", body: `if err:=errors.Join(validate());err!=nil{return errors.Join(errors.New("policy"),err)};return nil`, want: true},
+		{name: "wrapped second cause native Join", body: `if err:=errors.Join(nil,validate());err!=nil{return errors.Join(errors.New("policy"),err)};return nil`, want: true},
+		{name: "replaced joined error copy", body: `err:=errors.Join(validate());err=nil;return errors.Join(errors.New("policy"),err)`},
+		{name: "joined copy lost on one live arm", body: `err:=errors.Join(validate());if flag{err=nil};return errors.Join(errors.New("policy"),err)`},
+		{name: "plain formatted joined copy", body: `err:=errors.Join(validate());return fmt.Errorf("%v",err)`},
 		{name: "assigned Join guarded by nil", body: "err:=errors.Join(validate());if err!=nil{return err};return nil", want: true},
 		{name: "native format wrapping", body: "return fmt.Errorf(\"%w\",validate())", want: true},
 		{name: "plain formatting loses original", body: "return fmt.Errorf(\"%v\",validate())"},
@@ -260,14 +266,14 @@ func FuzzErrorIdentityNativeFormatMatchesWrappedCause(f *testing.F) {
 	f.Fuzz(func(t *testing.T, format string) {
 		// These native identities are independent; a parent identity would also
 		// match its wrapped child and could not identify the selected operand.
-		native := fmt.Errorf(format, io.ErrClosedPipe, io.ErrUnexpectedEOF, io.ErrShortWrite)
-		analysis := nativeSymbolSourceAnalysis(t, t.TempDir(), "package sample;import \"fmt\";func F(a,b,c error)error{return fmt.Errorf("+strconv.Quote(format)+",a,b,c)}")
+		native := fmt.Errorf(format, errors.Join(io.ErrClosedPipe), errors.Join(io.ErrUnexpectedEOF), errors.Join(io.ErrShortWrite))
+		analysis := nativeSymbolSourceAnalysis(t, t.TempDir(), `package sample;import("fmt";"errors");func F(a,b,c error)error{ca:=errors.Join(a);cb:=errors.Join(b);cc:=errors.Join(c);return fmt.Errorf(`+strconv.Quote(format)+`,ca,cb,cc)}`)
 		unit := analysis.Units[0]
 		observed := 0
 		err := analysis.WithSSAUnit(t.Context(), gotoolchain.SSAUnitRequest{Unit: unit, SourceValues: true, Use: func(ctx context.Context, view gotoolchain.SSAUnitView) error {
 			object := unit.Types.Scope().Lookup("F").(*types.Func)
 			fn := unit.Syntax[0].Decls[1].(*ast.FuncDecl)
-			call := fn.Body.List[0].(*ast.ReturnStmt).Results[0].(*ast.CallExpr)
+			call := fn.Body.List[len(fn.Body.List)-1].(*ast.ReturnStmt).Results[0].(*ast.CallExpr)
 			for index, refusal := range [...]error{io.ErrClosedPipe, io.ErrUnexpectedEOF, io.ErrShortWrite} {
 				got, err := view.ErrorIdentity(ctx, gotoolchain.ErrorIdentityRequest{Analysis: analysis, Function: object, Parameter: object.Type().(*types.Signature).Params().At(index), Expression: call})
 				if err != nil || got.Preserved != errors.Is(native, refusal) {

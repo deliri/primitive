@@ -182,7 +182,16 @@ func (r errorIdentityQuery) Preserved(ctx context.Context, expression ast.Expr) 
 		return true, nil
 	}
 	call, ok := ast.Unparen(expression).(*ast.CallExpr)
-	if !ok || r.View.Source.TypesInfo == nil {
+	if !ok {
+		// A copied expression can borrow the result of an earlier native wrapper.
+		// Follow that exact SSA call; replacing the copy supplies a different value.
+		value, _ := r.Frame.ValueForExpr(expression)
+		if call, ok := value.(*ssa.Call); ok {
+			return errorCallPreserves(ctx, call, &r)
+		}
+		return false, nil
+	}
+	if r.View.Source.TypesInfo == nil {
 		return false, nil
 	}
 	function := errorNativeCallee(r.Frame, call)

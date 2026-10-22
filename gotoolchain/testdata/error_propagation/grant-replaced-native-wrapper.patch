@@ -1,0 +1,11 @@
+--- a/gotoolchain/error_propagation.go
++++ b/gotoolchain/error_propagation.go
+@@ -189,7 +189,7 @@
+ 		if call, ok := value.(*ssa.Call); ok {
+ 			return errorCallPreserves(ctx, call, &r)
+ 		}
+-		return false, nil
++		return true, nil
+ 	}
+ 	if r.View.Source.TypesInfo == nil {
+ 		return false, nil

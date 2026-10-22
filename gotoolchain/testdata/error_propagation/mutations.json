@@ -48,5 +48,15 @@
     "name": "copy-native-block-population",
     "patch": "copy-native-block-population.patch",
     "selection": "^TestErrorPropagationQueryKeepsFixedMemory$/^4097$"
+  },
+  {
+    "name": "drop-copied-native-wrapper",
+    "patch": "drop-copied-native-wrapper.patch",
+    "selection": "^TestErrorPropagationNativeCallAndIdentityLayerTriad$/^wrapped_copied_native_Join$"
+  },
+  {
+    "name": "grant-replaced-native-wrapper",
+    "patch": "grant-replaced-native-wrapper.patch",
+    "selection": "^TestErrorPropagationNativeCallAndIdentityLayerTriad$/^replaced_joined_error_copy$"
   }
 ]
