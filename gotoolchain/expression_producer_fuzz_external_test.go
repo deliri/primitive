@@ -9,13 +9,17 @@ import (
 )
 
 func FuzzExpressionProducerPreservesNativeOrigin(f *testing.F) {
-	for _, shape := range []uint8{0, 1, 2, 3, 4, 5} {
+	for shape := uint8(0); shape < 18; shape++ {
 		f.Add(shape)
 	}
 	f.Fuzz(func(t *testing.T, shape uint8) {
 		selected := shape % 6
 		bodies := [6]string{"observe(produce())", "value:=produce();copy:=value;observe(copy)", "_,value:=pair();observe(value)", "value:=produce();value=0;observe(value)", "value:=produce();if flag{value=0};observe(value)", "observe(dynamic())"}
-		analysis := nativeSymbolSourceAnalysis(t, t.TempDir(), "package sample;func produce()int{return 1};func pair()(int,int){return 1,2};func observe(int){};var flag bool;var dynamic func()int;func F(){"+bodies[selected]+"}")
+		body := bodies[selected]
+		for depth := uint8(0); depth < (shape/6)%3; depth++ {
+			body = "for range sequence {" + body + "}"
+		}
+		analysis := nativeSymbolSourceAnalysis(t, t.TempDir(), "package sample;func sequence(yield func(int)bool){yield(1)};func produce()int{return 1};func pair()(int,int){return 1,2};func observe(int){};var flag bool;var dynamic func()int;func F(){"+body+"}")
 		count := 0
 		for _, unit := range analysis.Units {
 			err := analysis.WithSSAUnit(t.Context(), gotoolchain.SSAUnitRequest{Unit: unit, SourceValues: true, Use: func(ctx context.Context, view gotoolchain.SSAUnitView) error {

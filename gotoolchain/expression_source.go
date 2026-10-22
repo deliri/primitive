@@ -63,15 +63,28 @@ func (v SSAUnitView) expressionValue(ctx context.Context, request ExpressionRequ
 		if facts.IsNil() || facts.Value != nil {
 			return nil, facts, false, nil
 		}
-		frame := ssa.EnclosingFunction(v.Package, path)
+		// Begin at the native package-level frame. EnclosingFunction follows
+		// FuncLit syntax alone and omits Go's generated iterator yield frames.
+		frame := ssa.EnclosingFunction(v.Package, path[len(path)-3:])
 		if frame == nil {
 			return nil, types.TypeAndValue{}, false, pc.ErrGoToolchainOutput
 		}
-		value, address := frame.ValueForExpr(expression)
-		if value == nil {
-			return nil, types.TypeAndValue{}, false, pc.ErrGoToolchainOutput
+		for {
+			if value, address := frame.ValueForExpr(expression); value != nil {
+				return value, facts, address, nil
+			}
+			var enclosing *ssa.Function
+			for _, child := range frame.AnonFuncs {
+				if syntax := child.Syntax(); syntax != nil && syntax.Pos() <= expression.Pos() && expression.End() <= syntax.End() {
+					enclosing = child
+					break
+				}
+			}
+			if enclosing == nil {
+				return nil, types.TypeAndValue{}, false, pc.ErrGoToolchainOutput
+			}
+			frame = enclosing
 		}
-		return value, facts, address, nil
 	}
 	return nil, types.TypeAndValue{}, false, pc.ErrGoToolchainContract
 }

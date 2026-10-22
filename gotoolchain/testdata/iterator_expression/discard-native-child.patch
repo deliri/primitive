@@ -1,0 +1,11 @@
+--- a/gotoolchain/expression_source.go
++++ b/gotoolchain/expression_source.go
+@@ -83,7 +83,7 @@
+ 			if enclosing == nil {
+ 				return nil, types.TypeAndValue{}, false, pc.ErrGoToolchainOutput
+ 			}
+-			frame = enclosing
++			return nil, types.TypeAndValue{}, false, pc.ErrGoToolchainOutput
+ 		}
+ 	}
+ 	return nil, types.TypeAndValue{}, false, pc.ErrGoToolchainContract

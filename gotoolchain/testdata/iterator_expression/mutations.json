@@ -1,0 +1,7 @@
+[
+  {
+    "name": "discard-native-child",
+    "patch": "discard-native-child.patch",
+    "selection": "^TestExpressionNilNativeIteratorFrames$/^zero_local_interface$"
+  }
+]

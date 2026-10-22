@@ -155,3 +155,60 @@ func TestExpressionNilRefusesForeignAndMissingNativeFacts(t *testing.T) {
 		})
 	}
 }
+
+func TestExpressionNilNativeIteratorFrames(t *testing.T) {
+	t.Parallel()
+	for _, row := range []struct {
+		name, body, expression string
+		want                   bool
+	}{
+		{"zero local interface", "var value any;", "value", true},
+		{"captured opaque interface", "", "supplied", false},
+		{"typed nil inside interface", "value:=any((*int)(nil));", "value", false},
+		{"local interface replacement", "var value any;value=1;", "value", false},
+		{"local nil copy", "var value any;copy:=value;", "copy", true},
+		{"mixed native merge", "var value any;if flag{value=1};", "value", false},
+		{"explicit nil", "", "nil", true},
+		{"allocated pointer", "", "new(int)", false},
+	} {
+		t.Run(row.name, func(t *testing.T) {
+			t.Parallel()
+			body := row.body + "observe(" + row.expression + ")"
+			loop := "for range sequence {" + body + "}"
+			source := "package sample;func observe(any){};var supplied any;var flag bool;func sequence(yield func(int)bool){yield(1)};func F(){" + loop + "};func G(){for range sequence {" + loop + "}};func H(){for range sequence {_=func(){" + body + "}}};func init(){" + loop + "}"
+			analysis := nativeSymbolSourceAnalysis(t, t.TempDir(), source)
+			count := 0
+			for _, unit := range analysis.Units {
+				err := analysis.WithSSAUnit(t.Context(), gotoolchain.SSAUnitRequest{Unit: unit, SourceValues: true, Use: func(ctx context.Context, view gotoolchain.SSAUnitView) error {
+					for _, file := range unit.Syntax {
+						for syntax, err := range gotoolchain.WalkSyntax(ctx, gotoolchain.SyntaxWalkRequest{Root: file}) {
+							if err != nil {
+								return err
+							}
+							call, ok := syntax.Node.(*ast.CallExpr)
+							if !ok {
+								continue
+							}
+							name, ok := call.Fun.(*ast.Ident)
+							if !ok || name.Name != "observe" {
+								continue
+							}
+							got, err := view.ExpressionNil(ctx, gotoolchain.ExpressionRequest{Analysis: analysis, Expression: call.Args[0]})
+							if err != nil || got.Validate() != nil || got.Proven != row.want {
+								t.Fatalf("native nil value in frame %d got%+v/%v want%t/nil", count, got, err, row.want)
+							}
+							count++
+						}
+					}
+					return nil
+				}})
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			if count != 4 {
+				t.Fatalf("native expression loans got%d want4", count)
+			}
+		})
+	}
+}

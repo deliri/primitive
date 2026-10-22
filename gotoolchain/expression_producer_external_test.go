@@ -149,3 +149,65 @@ func TestExpressionProducerMissingSourceValuesRefuses(t *testing.T) {
 		}
 	}
 }
+
+func TestExpressionProducerNativeIteratorFrames(t *testing.T) {
+	t.Parallel()
+	for _, row := range []struct {
+		name, body, expression, producer string
+		slot                             uint64
+	}{
+		{"direct scalar", "", "produce()", "produce", 0},
+		{"copied scalar", "value:=produce();", "value", "produce", 0},
+		{"second tuple slot", "_,value:=pair();", "value", "pair", 1},
+		{"copy replaced", "value,_:=pair();copy:=value;copy=0;", "copy", "", 0},
+		{"dynamic callee stays opaque", "", "dynamic()", "", 0},
+		{"mixed merge stays opaque", "value:=produce();if flag{value=0};", "value", "", 0},
+	} {
+		t.Run(row.name, func(t *testing.T) {
+			t.Parallel()
+			body := row.body + "observe(" + row.expression + ")"
+			loop := "for range sequence {" + body + "}"
+			source := "package sample;func sequence(yield func(int)bool){yield(1)};type Number int;type Record struct{};func(Record)produce()int{return 0};func produce()int{return 1};func pair()(int,int){return 1,2};func carry(value int)int{return value};func observe(int){};var flag bool;var supplied int;var dynamic func()int;func F(){" + loop + "};func G(){for range sequence {" + loop + "}};func H(){for range sequence {_=func(){" + body + "}}};func init(){" + loop + "}"
+			analysis := nativeSymbolSourceAnalysis(t, t.TempDir(), source)
+			count := 0
+			for _, unit := range analysis.Units {
+				err := analysis.WithSSAUnit(t.Context(), gotoolchain.SSAUnitRequest{Unit: unit, SourceValues: true, Use: func(ctx context.Context, view gotoolchain.SSAUnitView) error {
+					for _, file := range unit.Syntax {
+						for syntax, err := range gotoolchain.WalkSyntax(ctx, gotoolchain.SyntaxWalkRequest{Root: file}) {
+							if err != nil {
+								return err
+							}
+							call, ok := syntax.Node.(*ast.CallExpr)
+							if !ok {
+								continue
+							}
+							name, ok := call.Fun.(*ast.Ident)
+							if !ok || name.Name != "observe" {
+								continue
+							}
+							got, err := view.ExpressionProducer(ctx, gotoolchain.ExpressionRequest{Analysis: analysis, Expression: call.Args[0]})
+							if err != nil || got.Validate() != nil {
+								t.Fatalf("native producer got%+v/%v", got, err)
+							}
+							if row.producer == "" {
+								if got != (gotoolchain.ExpressionProducerObservation{}) {
+									t.Fatalf("opaque value manufactured producer%+v", got)
+								}
+							} else if got.Function == nil || got.Function.Name() != row.producer || got.ResultIndex != row.slot || got.Function.Pkg() != unit.Types {
+								t.Fatalf("native producer got%+v want%s slot%d owned by actual package", got, row.producer, row.slot)
+							}
+							count++
+						}
+					}
+					return nil
+				}})
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			if count != 4 {
+				t.Fatalf("native producer frame loans got%d want4", count)
+			}
+		})
+	}
+}

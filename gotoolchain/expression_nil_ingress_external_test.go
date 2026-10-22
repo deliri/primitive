@@ -46,13 +46,17 @@ func TestExpressionNilPackageInitializer(t *testing.T) {
 }
 
 func FuzzExpressionNilNativeInterfaceDistinction(f *testing.F) {
-	for _, shape := range []uint8{0, 1, 2, 3, 4, 5} {
+	for shape := uint8(0); shape < 18; shape++ {
 		f.Add(shape)
 	}
 	f.Fuzz(func(t *testing.T, shape uint8) {
 		expressions := [6]string{"any(nil)", "any((*int)(nil))", "any([]int(nil))", "any(0)", "(*int)(nil)", "nil"}
 		selected := shape % uint8(len(expressions))
-		source := "package sample;func observe(any){};func F(){observe(" + expressions[selected] + ") }"
+		body := "observe(" + expressions[selected] + ")"
+		for depth := uint8(0); depth < (shape/6)%3; depth++ {
+			body = "for range sequence {" + body + "}"
+		}
+		source := "package sample;func sequence(yield func(int)bool){yield(1)};func observe(any){};func F(){" + body + "}"
 		analysis := nativeSymbolSourceAnalysis(t, t.TempDir(), source)
 		calls := 0
 		for _, unit := range analysis.Units {
