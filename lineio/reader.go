@@ -8,8 +8,8 @@ import (
 	"io"
 	"math"
 
-	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/temporal"
 )
 
 // Delimiter is the LF framing byte consumed by Go's ReadSlice.
@@ -116,7 +116,7 @@ func (r *Reader) Capacity() (core.ByteCount, error) {
 // when it accompanies a final unterminated fragment. Other errors retain both
 // the native identity and ErrLineIOScan. A terminal error never triggers a retry.
 func (r *Reader) ReadFragment(ctx context.Context) (Fragment, error) {
-	if err := errors.Join(contextstate.Validate(ctx), r.Validate()); err != nil {
+	if err := errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), r.Validate()); err != nil {
 		return Fragment{}, err
 	}
 	if r.terminal != nil {
@@ -125,7 +125,7 @@ func (r *Reader) ReadFragment(ctx context.Context) (Fragment, error) {
 	data, err := r.buffer.ReadSlice(Delimiter)
 	// Lineio owner; Go 1.27 ReadSlice uses this exact sentinel for its own full window. Source failures are wrapped by checkedReader. Recheck on the next Go upgrade.
 	if err == bufio.ErrBufferFull {
-		if contextErr := contextstate.Validate(ctx); contextErr != nil {
+		if contextErr := temporal.Wait(temporal.WaitRequest{Context: ctx}); contextErr != nil {
 			r.terminal = contextErr
 			return Fragment{Bytes: data, More: true}, contextErr
 		}
@@ -135,7 +135,7 @@ func (r *Reader) ReadFragment(ctx context.Context) (Fragment, error) {
 	if err != nil && err != io.EOF && !errors.Is(err, core.ErrLineIOScan) {
 		err = errors.Join(core.ErrLineIOScan, err)
 	}
-	if contextErr := contextstate.Validate(ctx); contextErr != nil {
+	if contextErr := temporal.Wait(temporal.WaitRequest{Context: ctx}); contextErr != nil {
 		err = errors.Join(err, contextErr)
 	}
 	r.terminal = err
