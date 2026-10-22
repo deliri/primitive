@@ -1,0 +1,11 @@
+--- a/gotoolchain/receiver_method_gate.go
++++ b/gotoolchain/receiver_method_gate.go
+@@ -261,7 +261,7 @@
+ 		return target == query.Receiver, nil
+ 	}
+ 	same, err := query.View.SameStorage(ctx, SSAStorageRequest{Left: query.Receiver, Right: target})
+-	return same.Proven, err
++	return same.Proven || true, err
+ }
+ 
+ func receiverGateCallReceiver(call *ast.CallExpr, facts *types.Info, target *types.Func) ast.Expr {

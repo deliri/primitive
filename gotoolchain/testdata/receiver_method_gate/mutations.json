@@ -1,0 +1,32 @@
+[
+  {
+    "name": "borrow-foreign-receiver-storage",
+    "patch": "borrow-foreign-receiver-storage.patch",
+    "selection": "^TestReceiverMethodGateUsesCurrentStorageValueAndTarget$/^different_pointer_cannot_lend_storage$"
+  },
+  {
+    "name": "grant-another-method",
+    "patch": "grant-another-method.patch",
+    "selection": "^TestReceiverMethodGateUsesCurrentStorageValueAndTarget$/^other_method_cannot_lend_gate$"
+  },
+  {
+    "name": "discarded-cause-grants-gate",
+    "patch": "discarded-cause-grants-gate.patch",
+    "selection": "^TestReceiverMethodGateUsesCurrentStorageValueAndTarget$/^discarded_method_cause$"
+  },
+  {
+    "name": "unchecked-parser-grants-callback",
+    "patch": "unchecked-parser-grants-callback.patch",
+    "selection": "^TestReceiverMethodGateUsesCurrentStorageValueAndTarget$/^unchecked_callback_result_lends_no_gate$"
+  },
+  {
+    "name": "ignore-late-native-store",
+    "patch": "ignore-late-native-store.patch",
+    "selection": "^TestReceiverMethodGateRefusesWritesAfterLastCheck$/^direct_late_field_write$"
+  },
+  {
+    "name": "collect-receiver-syntax-population",
+    "patch": "collect-receiver-syntax-population.patch",
+    "selection": "^TestReceiverMethodGateRetainsNoSyntaxPopulation$"
+  }
+]

@@ -1,0 +1,11 @@
+--- a/gotoolchain/receiver_method_gate.go
++++ b/gotoolchain/receiver_method_gate.go
+@@ -779,7 +779,7 @@
+ 			if err != nil {
+ 				return false, err
+ 			}
+-			if earlier.Proven {
++			if earlier.Proven || instruction.Addr != nil {
+ 				continue
+ 			}
+ 			later, err := view.InstructionDominates(ctx, SSAInstructionOrderRequest{Before: after, After: instruction})

@@ -1,0 +1,17 @@
+--- a/gotoolchain/receiver_method_gate.go
++++ b/gotoolchain/receiver_method_gate.go
+@@ -127,10 +127,11 @@
+ 			return false, nil
+ 		}
+ 	}
++	var population []SyntaxNodeObservation
+ 	for syntax, err := range WalkSyntax(ctx, SyntaxWalkRequest{Root: query.Body}) {
+-		if err != nil {
+-			return false, err
+-		}
++		if err != nil { return false, err }; population = append(population, syntax)
++	}
++	for _, syntax := range population {
+ 		closureBody := false
+ 		for _, ancestor := range syntax.Ancestors {
+ 			if _, ok := ancestor.(*ast.FuncLit); ok {

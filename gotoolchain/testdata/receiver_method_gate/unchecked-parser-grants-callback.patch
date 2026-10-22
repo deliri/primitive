@@ -1,0 +1,11 @@
+--- a/gotoolchain/receiver_method_gate.go
++++ b/gotoolchain/receiver_method_gate.go
+@@ -563,7 +563,7 @@
+ 		return false, nil
+ 	}
+ 	validated, err := receiverGateParserReturnsCheckedValue(ctx, parserBody, parserLoan.Types, parserSignature, query.Analysis, query.View, query.View.Program.FuncValue(parserNative), query.Target)
+-	if err != nil || !validated {
++	if err != nil || (!validated && parserBody == nil) {
+ 		return false, err
+ 	}
+ 	frame := query.View.Program.FuncValue(helperNative)

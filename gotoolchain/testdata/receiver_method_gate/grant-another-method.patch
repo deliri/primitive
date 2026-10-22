@@ -1,0 +1,11 @@
+--- a/gotoolchain/receiver_method_gate.go
++++ b/gotoolchain/receiver_method_gate.go
+@@ -274,7 +274,7 @@
+ 		return nil
+ 	}
+ 	function, ok := selected.Obj().(*types.Func)
+-	if !ok || function.Origin() != target.Origin() {
++	if !ok || function.Origin() != function.Origin() {
+ 		return nil
+ 	}
+ 	if selected.Kind() == types.MethodVal {

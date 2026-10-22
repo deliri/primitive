@@ -1,0 +1,11 @@
+--- a/gotoolchain/receiver_method_gate.go
++++ b/gotoolchain/receiver_method_gate.go
+@@ -147,7 +147,7 @@
+ 			if err != nil {
+ 				return false, err
+ 			}
+-			if !propagation.Preserved {
++			if !propagation.Preserved && syntax.Node == nil {
+ 				continue
+ 			}
+ 			if receiver := receiverGateCallReceiver(value, query.Types, query.Target); receiver != nil {
