@@ -55,6 +55,7 @@ func TestFilestorePublicIngressHasCompilerBoundSemanticProof(t *testing.T) {
 
 func filestoreIngressProofs() []filestoreIngressProof {
 	entries := []filestoreIngressProof{
+		{door: reflect.ValueOf(filestore.ConfirmTreeDurable), proof: filestore.ConfirmTreeDurableNativeProofForTest, reason: "Synchronizes an already-owned native tree; native empty/batched/link/cancelled/closed-root proof preserves content and native causes."},
 		{door: reflect.ValueOf(filestore.CloseFile), fuzz: FuzzNativeFileHandleCustody},
 		{door: reflect.ValueOf(filestore.SyncFile), fuzz: FuzzNativeFileHandleCustody},
 		{door: reflect.ValueOf(filestore.CloseRoot), proof: TestNativeRootHandleLayerTriad, reason: "Closes an acquired native root; direct native tests prove absent/closed-root refusal and independent child-file ownership."},
