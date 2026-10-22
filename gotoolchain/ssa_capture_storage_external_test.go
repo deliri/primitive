@@ -2,6 +2,8 @@ package gotoolchain_test
 
 import (
 	"context"
+	"errors"
+	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/gotoolchain"
 	"go/types"
 	"golang.org/x/tools/go/ssa"
@@ -69,5 +71,60 @@ func TestSSAStorageBorrowsStableNativeCaptureCells(t *testing.T) {
 				t.Fatal(err)
 			}
 		})
+	}
+}
+
+func TestSSAStorageRefusesClonedNativeOperands(t *testing.T) {
+	t.Parallel()
+	analysis := nativeSymbolSourceAnalysis(t, t.TempDir(), `package sample;type Record struct{Count int};var Slot *Record;func observe(*Record){};func observeSlot(*int){};func F(root *Record){_=Slot;fn:=func(){observe(root)};fn();observeSlot(&root.Count)}`)
+	unit := analysis.Units[0]
+	err := analysis.WithSSAUnit(t.Context(), gotoolchain.SSAUnitRequest{Unit: unit, SourceValues: true, Use: func(ctx context.Context, view gotoolchain.SSAUnitView) error {
+		parent := view.Program.FuncValue(unit.Types.Scope().Lookup("F").(*types.Func))
+		child := parent.AnonFuncs[0]
+		parameter := *parent.Params[0]
+		capture := *child.FreeVars[0]
+		global := *view.Package.Members["Slot"].(*ssa.Global)
+		var load *ssa.UnOp
+		for _, block := range child.Blocks {
+			for _, instruction := range block.Instrs {
+				if value, ok := instruction.(*ssa.UnOp); ok {
+					if _, pointer := value.Type().Underlying().(*types.Pointer); pointer {
+						clone := *value
+						load = &clone
+						break
+					}
+				}
+			}
+		}
+		var address *ssa.FieldAddr
+		for _, block := range parent.Blocks {
+			for _, instruction := range block.Instrs {
+				if value, ok := instruction.(*ssa.FieldAddr); ok {
+					clone := *value
+					address = &clone
+					break
+				}
+			}
+		}
+		if load == nil || address == nil {
+			t.Fatal("native fixture omitted pointer load or field address")
+		}
+		for _, row := range []struct {
+			name  string
+			value ssa.Value
+		}{
+			{"parameter clone", &parameter}, {"capture clone", &capture}, {"global clone", &global}, {"load clone", load}, {"field address clone", address},
+		} {
+			t.Run(row.name, func(t *testing.T) {
+				got, err := view.SameStorage(ctx, gotoolchain.SSAStorageRequest{Left: row.value, Right: row.value})
+				if !errors.Is(err, core.ErrGoToolchainContract) || got != (gotoolchain.SSARelationObservation{}) {
+					t.Fatalf("cloned native storage got%+v/%v wantzero/%v", got, err, core.ErrGoToolchainContract)
+				}
+			})
+		}
+		return nil
+	}})
+	if err != nil {
+		t.Fatal(err)
 	}
 }
