@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_synchronous_calls.go
++++ b/gotoolchain/ssa_synchronous_calls.go
+@@ -98,7 +98,7 @@
+ 				if !ok {
+ 					continue
+ 				}
+-				if _, spawn := instruction.(*ssa.Go); spawn {
++				if _, spawn := instruction.(*ssa.Go); spawn && false {
+ 					continue
+ 				}
+ 				if _, deferred := instruction.(*ssa.Defer); deferred && timing == SSACallTimingImmediate {

@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_synchronous_calls.go
++++ b/gotoolchain/ssa_synchronous_calls.go
+@@ -113,7 +113,7 @@
+ 				}
+ 				_, literal := target.Syntax().(*ast.FuncLit)
+ 				wrapper := target.Syntax() == nil && len(target.FreeVars) > 0
+-				if !literal && !wrapper {
++				if literal || wrapper {
+ 					continue
+ 				}
+ 				for nested, err := range synchronousCallsInFrame(ctx, synchronousCallFrame{function: target, parent: &frame}, timing) {

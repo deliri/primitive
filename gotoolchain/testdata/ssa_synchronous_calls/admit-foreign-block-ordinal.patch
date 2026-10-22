@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_synchronous_calls.go
++++ b/gotoolchain/ssa_synchronous_calls.go
+@@ -78,7 +78,7 @@
+ 				yield(nil, err)
+ 				return
+ 			}
+-			if block == nil || block.Parent() != frame.function || block.Index != index {
++			if block == nil || block.Parent() != frame.function || block.Index < index {
+ 				yield(nil, core.ErrGoToolchainOutput)
+ 				return
+ 			}

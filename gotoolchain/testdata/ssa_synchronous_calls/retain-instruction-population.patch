@@ -1,0 +1,22 @@
+--- a/gotoolchain/ssa_synchronous_calls.go
++++ b/gotoolchain/ssa_synchronous_calls.go
+@@ -6,6 +6,7 @@
+ 	"go/ast"
+ 	"iter"
+ 	"reflect"
++ "runtime"
+ 
+ 	"github.com/deliri/primitive/v2026/core"
+ 	"github.com/deliri/primitive/v2026/temporal"
+@@ -68,7 +69,10 @@
+ 
+ func synchronousCallsInFrame(ctx context.Context, frame synchronousCallFrame, timing SSACallTiming) iter.Seq2[ssa.CallInstruction, error] {
+ 	return func(yield func(ssa.CallInstruction, error) bool) {
+-		for parent := frame.parent; parent != nil; parent = parent.parent {
++		population:=make([]ssa.Instruction,0)
++ for _,block:=range frame.function.Blocks{population=append(population,block.Instrs...)}
++ defer runtime.KeepAlive(population)
++ for parent := frame.parent; parent != nil; parent = parent.parent {
+ 			if parent.function == frame.function {
+ 				return
+ 			}

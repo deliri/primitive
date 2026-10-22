@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_synchronous_calls.go
++++ b/gotoolchain/ssa_synchronous_calls.go
+@@ -87,7 +87,7 @@
+ 			}
+ 			for _, instruction := range block.Instrs {
+ 				if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+-					yield(nil, err)
++					yield(nil, context.Canceled)
+ 					return
+ 				}
+ 				if instruction == nil || reflect.ValueOf(instruction).IsNil() || instruction.Parent() != frame.function || instruction.Block() != block {
