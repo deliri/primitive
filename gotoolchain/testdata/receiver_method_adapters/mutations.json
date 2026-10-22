@@ -1,0 +1,17 @@
+[
+  {
+    "name": "restore-helper-input-type-restriction",
+    "patch": "restore-helper-input-type-restriction.patch",
+    "selection": "^TestReceiverMethodGateUsesNativeCallbackAdaptersAndGenericArguments$/^callback_consumes_converted_helper_input$"
+  },
+  {
+    "name": "borrow-other-constraint-method",
+    "patch": "borrow-other-constraint-method.patch",
+    "selection": "^TestReceiverMethodGateUsesNativeCallbackAdaptersAndGenericArguments$/^generic_helper_cannot_lend_other_method$"
+  },
+  {
+    "name": "borrow-another-checked-generic-value",
+    "patch": "borrow-another-checked-generic-value.patch",
+    "selection": "^TestReceiverMethodGateUsesNativeCallbackAdaptersAndGenericArguments$/^generic_helper_cannot_lend_other_argument$"
+  }
+]

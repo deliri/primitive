@@ -1,0 +1,11 @@
+--- a/gotoolchain/receiver_method_gate.go
++++ b/gotoolchain/receiver_method_gate.go
+@@ -375,7 +375,7 @@
+ 		if err != nil {
+ 			return false, err
+ 		}
+-		if !same {
++		if !same && candidate == nil {
+ 			continue
+ 		}
+ 		value, _ := query.Frame.ValueForExpr(call)

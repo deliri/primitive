@@ -305,13 +305,14 @@ func receiverGateAssignedValue(ctx context.Context, assignment *ast.AssignStmt, 
 }
 
 type receiverGateValueQuery struct {
-	Target   *types.Func
-	View     SSAUnitView
-	Analysis PackageAnalysis
-	Body     *ast.BlockStmt
-	Types    *types.Info
-	Frame    *ssa.Function
-	Value    ast.Expr
+	BoundParameter *types.Var
+	Target         *types.Func
+	View           SSAUnitView
+	Analysis       PackageAnalysis
+	Body           *ast.BlockStmt
+	Types          *types.Info
+	Frame          *ssa.Function
+	Value          ast.Expr
 }
 
 func (receiverGateValueQuery) goToolchainInternalFlow() {}
@@ -360,6 +361,9 @@ func receiverGateValueBefore(ctx context.Context, query receiverGateValueQuery) 
 			continue
 		}
 		receiver := receiverGateCallReceiver(call, query.Types, query.Target)
+		if receiver == nil {
+			receiver = receiverGateBoundCallReceiver(call, query)
+		}
 		if receiver == nil {
 			continue
 		}
@@ -469,7 +473,7 @@ func receiverGateHelperCommits(ctx context.Context, call *ast.CallExpr, query re
 			return false, err
 		}
 		if stage != nil {
-			if validated, err := receiverGateValueBefore(ctx, receiverGateValueQuery{View: query.View, Body: body, Types: loan.Types, Analysis: query.Analysis, Value: stage, Frame: frame, Target: query.Target}); validated || err != nil {
+			if validated, err := receiverGateValueBefore(ctx, receiverGateValueQuery{View: query.View, Body: body, Types: loan.Types, Analysis: query.Analysis, Value: stage, Frame: frame, Target: query.Target, BoundParameter: receiverGateBoundParameter(common, signature, query.Target)}); validated || err != nil {
 				return validated, err
 			}
 		}
@@ -555,7 +559,7 @@ func receiverGateParserHelperCommits(ctx context.Context, call *ast.CallExpr, qu
 	}
 	destination, callback := signature.Params().At(0), signature.Params().At(2)
 	pointer, ok := types.Unalias(destination.Type()).(*types.Pointer)
-	if !ok || !receiverGateTupleMatches(parserSignature.Results(), []types.Type{pointer.Elem(), types.Universe.Lookup("error").Type()}) || !receiverGateTupleMatches(parserSignature.Params(), []types.Type{signature.Params().At(1).Type()}) {
+	if !ok || !receiverGateTupleMatches(parserSignature.Results(), []types.Type{pointer.Elem(), types.Universe.Lookup("error").Type()}) || parserSignature.Params().Len() != 1 {
 		return false, nil
 	}
 	callbackSignature, ok := callback.Type().Underlying().(*types.Signature)
@@ -791,4 +795,54 @@ func receiverGateHomeStable(ctx context.Context, view SSAUnitView, address ssa.V
 		}
 	}
 	return true, nil
+}
+
+// A constrained helper parameter gains only the concrete target supplied through
+// its actual native destination/value argument pair. Spelling alone grants none.
+func receiverGateBoundParameter(call *ssa.CallCommon, signature *types.Signature, target *types.Func) *types.Var {
+	value := signature.Params().At(1)
+	if _, ok := types.Unalias(value.Type()).(*types.TypeParam); !ok {
+		return nil
+	}
+	offset := 0
+	if signature.Recv() != nil && !call.IsInvoke() {
+		offset = 1
+	}
+	if len(call.Args) <= offset+1 {
+		return nil
+	}
+	owner := types.Unalias(target.Signature().Recv().Type())
+	if pointer, ok := owner.(*types.Pointer); ok {
+		owner = pointer.Elem()
+	}
+	if !types.Identical(call.Args[offset].Type(), types.NewPointer(owner)) || !types.Identical(call.Args[offset+1].Type(), owner) {
+		return nil
+	}
+	return value
+}
+func receiverGateBoundCallReceiver(call *ast.CallExpr, query receiverGateValueQuery) ast.Expr {
+	if query.BoundParameter == nil {
+		return nil
+	}
+	selector, ok := ast.Unparen(call.Fun).(*ast.SelectorExpr)
+	if !ok {
+		return nil
+	}
+	selected := query.Types.Selections[selector]
+	if selected == nil || selected.Kind() != types.MethodVal {
+		return nil
+	}
+	function, ok := selected.Obj().(*types.Func)
+	if !ok || function.Id() != query.Target.Id() {
+		return nil
+	}
+	signature, ok := selected.Type().(*types.Signature)
+	target := query.Target.Signature()
+	if !ok || signature.Variadic() != target.Variadic() || !types.Identical(signature.Params(), target.Params()) || !types.Identical(signature.Results(), target.Results()) {
+		return nil
+	}
+	if !types.Identical(query.Types.TypeOf(selector.X), query.BoundParameter.Type()) {
+		return nil
+	}
+	return selector.X
 }

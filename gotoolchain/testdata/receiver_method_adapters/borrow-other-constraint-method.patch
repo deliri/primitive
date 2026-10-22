@@ -1,0 +1,11 @@
+--- a/gotoolchain/receiver_method_gate.go
++++ b/gotoolchain/receiver_method_gate.go
+@@ -833,7 +833,7 @@
+ 		return nil
+ 	}
+ 	function, ok := selected.Obj().(*types.Func)
+-	if !ok || function.Id() != query.Target.Id() {
++	if !ok || function.Id() != function.Id() {
+ 		return nil
+ 	}
+ 	signature, ok := selected.Type().(*types.Signature)

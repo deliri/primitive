@@ -1,0 +1,11 @@
+--- a/gotoolchain/receiver_method_gate.go
++++ b/gotoolchain/receiver_method_gate.go
+@@ -559,7 +559,7 @@
+ 	}
+ 	destination, callback := signature.Params().At(0), signature.Params().At(2)
+ 	pointer, ok := types.Unalias(destination.Type()).(*types.Pointer)
+-	if !ok || !receiverGateTupleMatches(parserSignature.Results(), []types.Type{pointer.Elem(), types.Universe.Lookup("error").Type()}) || parserSignature.Params().Len() != 1 {
++	if !ok || !receiverGateTupleMatches(parserSignature.Results(), []types.Type{pointer.Elem(), types.Universe.Lookup("error").Type()}) || !receiverGateTupleMatches(parserSignature.Params(), []types.Type{signature.Params().At(1).Type()}) {
+ 		return false, nil
+ 	}
+ 	callbackSignature, ok := callback.Type().Underlying().(*types.Signature)
