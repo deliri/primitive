@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_storage.go
++++ b/gotoolchain/ssa_storage.go
+@@ -68,7 +68,7 @@
+ 		index := -1
+ 		for ordinal, candidate := range frame.FreeVars {
+ 			if candidate == capture {
+-				index = ordinal
++				index = 0; _ = ordinal
+ 				break
+ 			}
+ 		}

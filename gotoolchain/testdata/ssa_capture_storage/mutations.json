@@ -1,0 +1,52 @@
+[
+  {
+    "name": "lose-stable-pointer-projection",
+    "patch": "lose-stable-pointer-projection.patch",
+    "selection": "^TestSSAStorageBorrowsStableNativeCaptureCells$/^captured_original_pointer$"
+  },
+  {
+    "name": "borrow-first-of-competing-stores",
+    "patch": "borrow-first-of-competing-stores.patch",
+    "selection": "^TestSSAStorageBorrowsStableNativeCaptureCells$/^parent_replaces_captured_pointer$"
+  },
+  {
+    "name": "trust-child-cell-write",
+    "patch": "trust-child-cell-write.patch",
+    "selection": "^TestSSAStorageBorrowsStableNativeCaptureCells$/^child_replaces_captured_pointer$"
+  },
+  {
+    "name": "trust-child-cell-escape",
+    "patch": "trust-child-cell-escape.patch",
+    "selection": "^TestSSAStorageBorrowsStableNativeCaptureCells$/^child_can_escape_captured_cell_address$"
+  },
+  {
+    "name": "ignore-store-dominance",
+    "patch": "ignore-store-dominance.patch",
+    "selection": "^TestSSAStorageBorrowsStableNativeCaptureCells$/^store_after_captured_read_cannot_establish_prior_storage$"
+  },
+  {
+    "name": "lend-first-capture-binding",
+    "patch": "lend-first-capture-binding.patch",
+    "selection": "^TestSSAStorageBorrowsStableNativeCaptureCells$/^nonfirst_capture_keeps_native_binding_index$"
+  },
+  {
+    "name": "trust-cloned-parameter",
+    "patch": "trust-cloned-parameter.patch",
+    "selection": "^TestSSAStorageRefusesClonedNativeOperands$/^parameter_clone$"
+  },
+  {
+    "name": "trust-cloned-capture",
+    "patch": "trust-cloned-capture.patch",
+    "selection": "^TestSSAStorageRefusesClonedNativeOperands$/^capture_clone$"
+  },
+  {
+    "name": "trust-cloned-global",
+    "patch": "trust-cloned-global.patch",
+    "selection": "^TestSSAStorageRefusesClonedNativeOperands$/^global_clone$"
+  },
+  {
+    "name": "trust-cloned-instruction",
+    "patch": "trust-cloned-instruction.patch",
+    "selection": "^TestSSAStorageRefusesClonedNativeOperands$/^field_address_clone$"
+  }
+]

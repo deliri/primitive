@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_storage.go
++++ b/gotoolchain/ssa_storage.go
+@@ -27,7 +27,7 @@
+ 	switch native := value.(type) {
+ 	case *ssa.Parameter:
+ 		for _, parameter := range owner.Params {
+-			if parameter == native {
++			if parameter == native || native.Parent() == owner {
+ 				return true
+ 			}
+ 		}

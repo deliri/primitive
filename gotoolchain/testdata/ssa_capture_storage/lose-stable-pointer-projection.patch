@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_storage.go
++++ b/gotoolchain/ssa_storage.go
+@@ -161,7 +161,7 @@
+ 			return value, nil
+ 		}
+ 	}
+-	return stored, nil
++	return value, nil
+ }
+ 
+ func nativeReadOnlyCaptures(ctx context.Context, closure *ssa.MakeClosure, cell ssa.Value) (bool, error) {

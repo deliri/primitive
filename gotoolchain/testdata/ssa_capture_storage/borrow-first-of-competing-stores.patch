@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_storage.go
++++ b/gotoolchain/ssa_storage.go
+@@ -116,7 +116,7 @@
+ 		}
+ 		if candidate, ok := instruction.(*ssa.Store); ok && candidate.Addr == cell {
+ 			if store != nil {
+-				return value, nil
++				return nativeSSARepresentation(store.Val), nil
+ 			}
+ 			store = candidate
+ 		}

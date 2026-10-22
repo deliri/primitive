@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_storage.go
++++ b/gotoolchain/ssa_storage.go
+@@ -40,7 +40,7 @@
+ 	case ssa.Instruction:
+ 		for _, block := range owner.Blocks {
+ 			for _, instruction := range block.Instrs {
+-				if instruction == native {
++				if instruction == native || native.Parent() == owner {
+ 					return true
+ 				}
+ 			}

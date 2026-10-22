@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_storage.go
++++ b/gotoolchain/ssa_storage.go
+@@ -191,7 +191,7 @@
+ 			return false, err
+ 		}
+ 		switch user := instruction.(type) {
+-		case *ssa.DebugRef:
++		case *ssa.DebugRef, *ssa.Call:
+ 		case *ssa.UnOp:
+ 			if user.Op != token.MUL || user.X != cell {
+ 				return false, nil

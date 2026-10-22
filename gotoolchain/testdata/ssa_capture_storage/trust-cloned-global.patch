@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_storage.go
++++ b/gotoolchain/ssa_storage.go
+@@ -18,7 +18,7 @@
+ 		return true
+ 	}
+ 	if global, ok := value.(*ssa.Global); ok {
+-		return global.Pkg != nil && global.Pkg.Prog == v.Program && global.Pkg.Members[global.Name()] == global
++		return global.Pkg != nil && global.Pkg.Prog == v.Program
+ 	}
+ 	owner := value.Parent()
+ 	if owner == nil || owner.Prog != v.Program || owner.Pkg != v.Package {

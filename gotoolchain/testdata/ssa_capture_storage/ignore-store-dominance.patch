@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_storage.go
++++ b/gotoolchain/ssa_storage.go
+@@ -157,7 +157,7 @@
+ 		if err != nil {
+ 			return nil, err
+ 		}
+-		if !before.Proven {
++		if false && !before.Proven {
+ 			return value, nil
+ 		}
+ 	}

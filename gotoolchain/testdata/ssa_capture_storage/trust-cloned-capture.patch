@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_storage.go
++++ b/gotoolchain/ssa_storage.go
+@@ -33,7 +33,7 @@
+ 		}
+ 	case *ssa.FreeVar:
+ 		for _, capture := range owner.FreeVars {
+-			if capture == native {
++			if capture == native || native.Parent() == owner {
+ 				return true
+ 			}
+ 		}
