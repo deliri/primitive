@@ -1,0 +1,11 @@
+--- a/gotoolchain/method_field_read.go
++++ b/gotoolchain/method_field_read.go
+@@ -245,7 +245,7 @@
+ 			return false, err
+ 		}
+ 		if loan.Presence != FunctionSourcePresent {
+-			return false, nil
++			return true, nil
+ 		}
+ 		native, ok := loan.Types.Defs[loan.Declaration.Name].(*types.Func)
+ 		if !ok {

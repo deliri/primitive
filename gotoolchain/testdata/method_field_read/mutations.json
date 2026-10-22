@@ -1,0 +1,27 @@
+[
+  {
+    "name": "grant-other-field",
+    "patch": "grant-other-field.patch",
+    "selection": "^TestMethodFieldReadBorrowsNativeReceiverAndHelperSlots$/^read_other_field_does_not_cover_first$"
+  },
+  {
+    "name": "borrow-wrong-helper-slot",
+    "patch": "borrow-wrong-helper-slot.patch",
+    "selection": "^TestMethodFieldReadBorrowsNativeReceiverAndHelperSlots$/^nonfirst_helper_argument_preserves_slot$"
+  },
+  {
+    "name": "grant-shadowed-receiver",
+    "patch": "grant-shadowed-receiver.patch",
+    "selection": "^TestMethodFieldReadBorrowsNativeReceiverAndHelperSlots$/^shadowed_receiver_cannot_supply_read$"
+  },
+  {
+    "name": "grant-opaque-helper",
+    "patch": "grant-opaque-helper.patch",
+    "selection": "^TestMethodFieldReadCannotGrantOpaqueImportedHelper$"
+  },
+  {
+    "name": "collect-syntax-population",
+    "patch": "collect-syntax-population.patch",
+    "selection": "^TestMethodFieldReadAllocatesNoSyntaxPopulation$"
+  }
+]

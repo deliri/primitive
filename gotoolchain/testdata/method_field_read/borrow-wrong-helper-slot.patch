@@ -1,0 +1,11 @@
+--- a/gotoolchain/method_field_read.go
++++ b/gotoolchain/method_field_read.go
+@@ -275,7 +275,7 @@
+ 	}
+ 	for index, argument := range call.Args[offset:] {
+ 		if index < signature.Params().Len() && methodFieldOperand(argument, query) {
+-			next.Variable = signature.Params().At(index)
++			next.Variable = signature.Params().At(0)
+ 			if methodFieldRecord(next.Variable.Type()) != nil {
+ 				if read, err := methodFieldReads(ctx, next); read || err != nil {
+ 					return read, err

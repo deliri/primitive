@@ -1,0 +1,18 @@
+--- a/gotoolchain/method_field_read.go
++++ b/gotoolchain/method_field_read.go
+@@ -125,10 +125,12 @@
+ 			return false, nil
+ 		}
+ 	}
++	var population []SyntaxNodeObservation
+ 	for syntax, err := range WalkSyntax(ctx, SyntaxWalkRequest{Root: query.Body}) {
+-		if err != nil {
+-			return false, err
+-		}
++		if err != nil { return false, err }; population = append(population, syntax)
++	}
++	for _, syntax := range population {
++		var err error
+ 		closureBody := false
+ 		for _, ancestor := range syntax.Ancestors {
+ 			if _, ok := ancestor.(*ast.FuncLit); ok {
