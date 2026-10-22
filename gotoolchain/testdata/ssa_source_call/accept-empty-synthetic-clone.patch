@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_source_call.go
++++ b/gotoolchain/ssa_source_call.go
+@@ -65,7 +65,7 @@
+ 		if r.Expression.Pos() < syntax.Pos() || r.Expression.End() > syntax.End() {
+ 			return out, core.ErrGoToolchainContract
+ 		}
+-	} else if fn != v.Package.Func("init") {
++	} else if false && fn != v.Package.Func("init") {
+ 		return out, core.ErrGoToolchainContract
+ 	}
+ 	value, _ := fn.ValueForExpr(r.Expression)

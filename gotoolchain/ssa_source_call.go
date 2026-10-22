@@ -55,10 +55,17 @@ func (v SSAUnitView) CallForExpression(ctx context.Context, r SSASourceCallReque
 		return out, err
 	}
 	fn := r.Function
-	if fn.Prog != v.Program || fn.Pkg != v.Package || fn.Syntax() == nil {
+	if fn.Prog != v.Program || fn.Pkg != v.Package {
 		return out, core.ErrGoToolchainContract
 	}
-	if _, owned := v.Source.TypesInfo.Types[r.Expression]; !owned || r.Expression.Pos() < fn.Syntax().Pos() || r.Expression.End() > fn.Syntax().End() {
+	if _, owned := v.Source.TypesInfo.Types[r.Expression]; !owned {
+		return out, core.ErrGoToolchainContract
+	}
+	if syntax := fn.Syntax(); syntax != nil {
+		if r.Expression.Pos() < syntax.Pos() || r.Expression.End() > syntax.End() {
+			return out, core.ErrGoToolchainContract
+		}
+	} else if fn != v.Package.Func("init") {
 		return out, core.ErrGoToolchainContract
 	}
 	value, _ := fn.ValueForExpr(r.Expression)

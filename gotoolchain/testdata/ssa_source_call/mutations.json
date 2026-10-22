@@ -38,5 +38,15 @@
     "name": "retain-native-instruction-population",
     "patch": "retain-native-instruction-population.patch",
     "selection": "^TestSSASourceCallRetainsNoInstructionPopulation$/^8193$"
+  },
+  {
+    "name": "reject-synthetic-native-initializer",
+    "patch": "reject-synthetic-native-initializer.patch",
+    "selection": "^TestSSASourceCallBorrowsSyntheticPackageInitializer$"
+  },
+  {
+    "name": "accept-empty-synthetic-clone",
+    "patch": "accept-empty-synthetic-clone.patch",
+    "selection": "^TestSSASourceCallBorrowsSyntheticPackageInitializer$"
   }
 ]
