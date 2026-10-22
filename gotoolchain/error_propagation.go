@@ -11,6 +11,7 @@ import (
 
 	pc "github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/temporal"
+	"golang.org/x/tools/go/ast/astutil"
 	"golang.org/x/tools/go/ssa"
 )
 
@@ -485,16 +486,33 @@ func errorCallPropagation(ctx context.Context, call *ast.CallExpr, fn *ssa.Funct
 	value, _ := fn.ValueForExpr(call)
 	origin, ok := value.(*ssa.Call)
 	if !ok {
-		// An actual ordinary call without its requested source value is missing
-		// compiler metadata. Deferred and launched calls have no result to lend.
+		// Go emits multi-result forwarding through exprN without a DebugRef.
+		// Borrow that exact native tuple call after checking source ownership.
+		// Missing ordinary expression metadata remains a refusal.
 		for _, block := range fn.Blocks {
 			for _, instruction := range block.Instrs {
 				if actual, ok := instruction.(*ssa.Call); ok && actual.Common().Pos() == call.Lparen {
-					return false, pc.ErrGoToolchainOutput
+					if _, tuple := actual.Type().(*types.Tuple); !tuple || fn.Syntax() == nil {
+						return false, pc.ErrGoToolchainOutput
+					}
+					owned := false
+					for _, file := range facts.View.Source.Syntax {
+						if file.Pos() <= call.Pos() && call.End() <= file.End() {
+							path, _ := astutil.PathEnclosingInterval(file, call.Pos(), call.End())
+							owned = len(path) != 0 && path[0] == call
+							break
+						}
+					}
+					if !owned {
+						return false, pc.ErrGoToolchainOutput
+					}
+					origin = actual
 				}
 			}
 		}
-		return false, nil
+		if origin == nil {
+			return false, nil
+		}
 	}
 	if errorUntakenBlock(origin.Block()) {
 		return false, nil

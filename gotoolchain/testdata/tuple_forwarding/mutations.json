@@ -1,0 +1,12 @@
+[
+  {
+    "name": "discard-native-tuple",
+    "patch": "discard-native-tuple.patch",
+    "selection": "^TestErrorPropagationNativeTupleSlot$/^direct_last_tuple_slot$"
+  },
+  {
+    "name": "borrow-cloned-tuple",
+    "patch": "borrow-cloned-tuple.patch",
+    "selection": "^TestErrorPropagationMissingSourceValuesCannotBecomeUnproven$/^copied_tuple_cannot_borrow_source_identity$"
+  }
+]

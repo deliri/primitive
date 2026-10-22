@@ -1,0 +1,11 @@
+--- a/gotoolchain/error_propagation.go
++++ b/gotoolchain/error_propagation.go
+@@ -503,7 +503,7 @@
+ 							break
+ 						}
+ 					}
+-					if !owned {
++					if !owned && false {
+ 						return false, pc.ErrGoToolchainOutput
+ 					}
+ 					origin = actual

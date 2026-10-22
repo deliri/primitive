@@ -116,16 +116,25 @@ func TestErrorPropagationNativeCallAndIdentityLayerTriad(t *testing.T) {
 func TestErrorPropagationNativeTupleSlot(t *testing.T) {
 	t.Parallel()
 	for _, row := range []struct {
-		name, signature, returns, body string
-		want                           bool
+		name, signature, returns, body, result string
+		want                                   bool
 	}{
+		{name: "direct last tuple slot", signature: "(int,error)", returns: "7,nil", result: "(int,error)", body: "return validate()", want: true},
+		{name: "direct first tuple slot", signature: "(error,int)", returns: "nil,7", result: "(error,int)", body: "return validate()", want: true},
+		{name: "parenthesized tuple forwarding", signature: "(int,error)", returns: "7,nil", result: "(int,error)", body: "return ((validate()))", want: true},
+		{name: "named tuple forwarding", signature: "(int,error)", returns: "7,nil", result: "(value int,err error)", body: "return validate()", want: true},
+		{name: "replaced tuple error", signature: "(int,error)", returns: "7,nil", result: "(int,error)", body: "value,err:=validate();err=nil;return value,err"},
 		{name: "first error slot", signature: "(error,int)", returns: "nil,7", body: "err,n:=validate();_=n;return err", want: true},
 		{name: "last error slot", signature: "(int,error)", returns: "7,nil", body: "n,err:=validate();_=n;return err", want: true},
 		{name: "discarded error slot", signature: "(error,int)", returns: "nil,7", body: "_,n:=validate();_=n;return nil"},
 	} {
 		t.Run(row.name, func(t *testing.T) {
 			t.Parallel()
-			analysis := nativeSymbolSourceAnalysis(t, t.TempDir(), "package sample;func validate()"+row.signature+"{return "+row.returns+"};func F()error{"+row.body+"}")
+			result := row.result
+			if result == "" {
+				result = "error"
+			}
+			analysis := nativeSymbolSourceAnalysis(t, t.TempDir(), "package sample;func validate()"+row.signature+"{return "+row.returns+"};func F()"+result+"{"+row.body+"}")
 			unit := analysis.Units[0]
 			observed := 0
 			err := analysis.WithSSAUnit(t.Context(), gotoolchain.SSAUnitRequest{Unit: unit, SourceValues: true, Use: func(ctx context.Context, view gotoolchain.SSAUnitView) error {
@@ -280,15 +289,20 @@ func FuzzErrorIdentityNativeFormatMatchesWrappedCause(f *testing.F) {
 func TestErrorPropagationMissingSourceValuesCannotBecomeUnproven(t *testing.T) {
 	t.Parallel()
 	for _, row := range []struct {
-		name        string
-		debug, copy bool
+		name               string
+		debug, copy, tuple bool
 	}{
 		{name: "copied syntax is not the native call", debug: true, copy: true},
+		{name: "copied tuple cannot borrow source identity", debug: true, copy: true, tuple: true},
 		{name: "missing native source values is a refusal"},
 	} {
 		t.Run(row.name, func(t *testing.T) {
 			t.Parallel()
-			analysis := nativeSymbolSourceAnalysis(t, t.TempDir(), "package sample;func validate()error{return nil};func F()error{return validate()}")
+			source := "package sample;func validate()error{return nil};func F()error{return validate()}"
+			if row.tuple {
+				source = "package sample;func validate()(int,error){return 7,nil};func F()(int,error){return validate()}"
+			}
+			analysis := nativeSymbolSourceAnalysis(t, t.TempDir(), source)
 			unit := analysis.Units[0]
 			observed := 0
 			err := analysis.WithSSAUnit(t.Context(), gotoolchain.SSAUnitRequest{Unit: unit, SourceValues: row.debug, Use: func(ctx context.Context, view gotoolchain.SSAUnitView) error {
@@ -296,6 +310,8 @@ func TestErrorPropagationMissingSourceValuesCannotBecomeUnproven(t *testing.T) {
 				call := fn.Body.List[0].(*ast.ReturnStmt).Results[0].(*ast.CallExpr)
 				if row.copy {
 					copy := *call
+					unit.TypesInfo.Types[&copy] = unit.TypesInfo.Types[call]
+					defer delete(unit.TypesInfo.Types, &copy)
 					call = &copy
 				}
 				got, err := view.ErrorPropagation(ctx, gotoolchain.ErrorPropagationRequest{Analysis: analysis, Call: call})
