@@ -1,0 +1,20 @@
+--- a/gotoolchain/method_field_error.go
++++ b/gotoolchain/method_field_error.go
+@@ -244,7 +244,7 @@
+ 			}
+ 			if next, matched := methodFieldErrorBind(receiver, query); matched && signature.Recv() != nil {
+ 				if len(selection.Index()) == 1 {
+-					next.Variable, next.Body, next.Types, next.Frame = signature.Recv(), body, facts, query.View.Program.FuncValue(native)
++					next.Variable, next.Body, next.Types, next.Frame = signature.Recv(), body, facts, query.Frame
+ 					if covered, err := methodFieldErrorCovers(ctx, next); covered || err != nil {
+ 						return covered, err
+ 					}
+@@ -257,7 +257,7 @@
+ 			continue
+ 		}
+ 		if next, matched := methodFieldErrorBind(argument, query); matched {
+-			next.Variable, next.Body, next.Types, next.Frame = signature.Params().At(index), body, facts, query.View.Program.FuncValue(native)
++			next.Variable, next.Body, next.Types, next.Frame = signature.Params().At(index), body, facts, query.Frame
+ 			if covered, err := methodFieldErrorCovers(ctx, next); covered || err != nil {
+ 				return covered, err
+ 			}

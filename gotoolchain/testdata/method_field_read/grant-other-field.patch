@@ -4,8 +4,8 @@
  		switch value := syntax.Node.(type) {
  		case *ast.SelectorExpr:
  			selection := query.Types.Selections[value]
--			read = selection != nil && selection.Kind() == types.FieldVal && len(selection.Index()) != 0 && selection.Index()[0] == query.Field && methodFieldOperand(value.X, query)
-+			read = selection != nil && selection.Kind() == types.FieldVal && len(selection.Index()) != 0 && true && methodFieldOperand(value.X, query)
+-			read = selection != nil && selection.Kind() == types.FieldVal && len(selection.Index()) != 0 && selection.Index()[0] == query.Field && methodFieldOperand(value.X, query.Variable, query.Types)
++			read = selection != nil && selection.Kind() == types.FieldVal && len(selection.Index()) != 0 && true && methodFieldOperand(value.X, query.Variable, query.Types)
  		case *ast.BinaryExpr:
  			if value.Op == token.EQL || value.Op == token.NEQ {
  				read = methodFieldComparedRecord(value.X, query) || methodFieldComparedRecord(value.Y, query)

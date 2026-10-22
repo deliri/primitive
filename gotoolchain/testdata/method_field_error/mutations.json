@@ -1,0 +1,32 @@
+[
+  {
+    "name": "grant-other-field",
+    "patch": "grant-other-field.patch",
+    "selection": "^TestMethodFieldErrorPropagationPreservesNativeTargetAndField$/^neighbor_cannot_lend_target$"
+  },
+  {
+    "name": "grant-other-method",
+    "patch": "grant-other-method.patch",
+    "selection": "^TestMethodFieldErrorPropagationPreservesNativeTargetAndField$/^other_method_cannot_lend_target$"
+  },
+  {
+    "name": "discard-cause-becomes-propagation",
+    "patch": "discard-cause-becomes-propagation.patch",
+    "selection": "^TestMethodFieldErrorPropagationPreservesNativeTargetAndField$/^discarded_target_cause$"
+  },
+  {
+    "name": "borrow-wrong-helper-slot",
+    "patch": "borrow-wrong-helper-slot.patch",
+    "selection": "^TestMethodFieldErrorPropagationPreservesNativeTargetAndField$/^helper_wrong_argument_slot$"
+  },
+  {
+    "name": "borrow-caller-frame",
+    "patch": "borrow-caller-frame.patch",
+    "selection": "^TestMethodFieldErrorPropagationPreservesNativeTargetAndField$/^nested_helper_returns_selected_child_cause$"
+  },
+  {
+    "name": "collect-syntax-population",
+    "patch": "collect-syntax-population.patch",
+    "selection": "^TestMethodFieldErrorPropagationAllocatesNoSyntaxPopulation$"
+  }
+]

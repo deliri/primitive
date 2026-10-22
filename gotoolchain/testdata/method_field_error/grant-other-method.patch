@@ -1,0 +1,11 @@
+--- a/gotoolchain/method_field_error.go
++++ b/gotoolchain/method_field_error.go
+@@ -276,7 +276,7 @@
+ 		return nil
+ 	}
+ 	target, ok := selected.Obj().(*types.Func)
+-	if !ok || target.Origin() != query.Target.Origin() {
++	if !ok || target.Origin() != target.Origin() {
+ 		return nil
+ 	}
+ 	if selected.Kind() == types.MethodVal {

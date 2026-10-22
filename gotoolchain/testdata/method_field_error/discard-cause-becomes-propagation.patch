@@ -1,0 +1,11 @@
+--- a/gotoolchain/method_field_error.go
++++ b/gotoolchain/method_field_error.go
+@@ -147,7 +147,7 @@
+ 			if err != nil {
+ 				return false, err
+ 			}
+-			if !propagation.Preserved {
++			if !propagation.Preserved && syntax.Node == nil {
+ 				continue
+ 			}
+ 			receiver := methodFieldErrorReceiver(value, query)

@@ -143,7 +143,7 @@ func methodFieldReads(ctx context.Context, query methodFieldReadQuery) (bool, er
 		switch value := syntax.Node.(type) {
 		case *ast.SelectorExpr:
 			selection := query.Types.Selections[value]
-			read = selection != nil && selection.Kind() == types.FieldVal && len(selection.Index()) != 0 && selection.Index()[0] == query.Field && methodFieldOperand(value.X, query)
+			read = selection != nil && selection.Kind() == types.FieldVal && len(selection.Index()) != 0 && selection.Index()[0] == query.Field && methodFieldOperand(value.X, query.Variable, query.Types)
 		case *ast.BinaryExpr:
 			if value.Op == token.EQL || value.Op == token.NEQ {
 				read = methodFieldComparedRecord(value.X, query) || methodFieldComparedRecord(value.Y, query)
@@ -167,22 +167,22 @@ func methodFieldComparedRecord(expression ast.Expr, query methodFieldReadQuery) 
 		return false
 	}
 	_, record := value.Underlying().(*types.Struct)
-	return record && methodFieldOperand(expression, query)
+	return record && methodFieldOperand(expression, query.Variable, query.Types)
 }
 
 // Only native whole-record conversions preserve the field slot. Constructing a
 // fresh record, reading a similarly named local, or converting to an interface
 // cannot grant provenance to the original receiver.
-func methodFieldOperand(expression ast.Expr, query methodFieldReadQuery) bool {
+func methodFieldOperand(expression ast.Expr, variable *types.Var, facts *types.Info) bool {
 	switch value := ast.Unparen(expression).(type) {
 	case *ast.Ident:
-		return query.Types.ObjectOf(value) == query.Variable
+		return facts.ObjectOf(value) == variable
 	case *ast.StarExpr:
-		return methodFieldOperand(value.X, query)
+		return methodFieldOperand(value.X, variable, facts)
 	case *ast.UnaryExpr:
-		return value.Op == token.AND && methodFieldOperand(value.X, query)
+		return value.Op == token.AND && methodFieldOperand(value.X, variable, facts)
 	case *ast.CallExpr:
-		return len(value.Args) == 1 && query.Types.Types[value.Fun].IsType() && methodFieldRecord(query.Types.TypeOf(value)) != nil && methodFieldOperand(value.Args[0], query)
+		return len(value.Args) == 1 && facts.Types[value.Fun].IsType() && methodFieldRecord(facts.TypeOf(value)) != nil && methodFieldOperand(value.Args[0], variable, facts)
 	}
 	return false
 }
@@ -262,7 +262,7 @@ func methodFieldResolvedCallReads(ctx context.Context, call *ast.CallExpr, calle
 		return false, nil
 	}
 	next := methodFieldReadQuery{View: query.View, Frame: frame, Analysis: query.Analysis, Types: facts, Body: body, Field: query.Field, Parent: &query}
-	if receiver != nil && signature.Recv() != nil && methodFieldOperand(receiver, query) {
+	if receiver != nil && signature.Recv() != nil && methodFieldOperand(receiver, query.Variable, query.Types) {
 		if promotedField == query.Field {
 			return true, nil
 		}
@@ -274,7 +274,7 @@ func methodFieldResolvedCallReads(ctx context.Context, call *ast.CallExpr, calle
 		}
 	}
 	for index, argument := range call.Args[offset:] {
-		if index < signature.Params().Len() && methodFieldOperand(argument, query) {
+		if index < signature.Params().Len() && methodFieldOperand(argument, query.Variable, query.Types) {
 			next.Variable = signature.Params().At(index)
 			if methodFieldRecord(next.Variable.Type()) != nil {
 				if read, err := methodFieldReads(ctx, next); read || err != nil {

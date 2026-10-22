@@ -3,7 +3,7 @@
 @@ -275,7 +275,7 @@
  	}
  	for index, argument := range call.Args[offset:] {
- 		if index < signature.Params().Len() && methodFieldOperand(argument, query) {
+ 		if index < signature.Params().Len() && methodFieldOperand(argument, query.Variable, query.Types) {
 -			next.Variable = signature.Params().At(index)
 +			next.Variable = signature.Params().At(0)
  			if methodFieldRecord(next.Variable.Type()) != nil {

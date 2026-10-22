@@ -1,11 +1,11 @@
 --- a/gotoolchain/method_field_read.go
 +++ b/gotoolchain/method_field_read.go
 @@ -176,7 +176,7 @@
- func methodFieldOperand(expression ast.Expr, query methodFieldReadQuery) bool {
+ func methodFieldOperand(expression ast.Expr, variable *types.Var, facts *types.Info) bool {
  	switch value := ast.Unparen(expression).(type) {
  	case *ast.Ident:
--		return query.Types.ObjectOf(value) == query.Variable
+-		return facts.ObjectOf(value) == variable
 +		return true
  	case *ast.StarExpr:
- 		return methodFieldOperand(value.X, query)
+ 		return methodFieldOperand(value.X, variable, facts)
  	case *ast.UnaryExpr:

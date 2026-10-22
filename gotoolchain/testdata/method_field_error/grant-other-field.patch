@@ -1,0 +1,11 @@
+--- a/gotoolchain/method_field_error.go
++++ b/gotoolchain/method_field_error.go
+@@ -183,7 +183,7 @@
+ 		return value.Op == token.AND && methodFieldErrorOperand(value.X, query)
+ 	case *ast.SelectorExpr:
+ 		selection := query.Types.Selections[value]
+-		return selection != nil && selection.Kind() == types.FieldVal && len(selection.Index()) != 0 && selection.Index()[0] == query.Index && methodFieldOperand(value.X, query.Variable, query.Types)
++		return selection != nil && selection.Kind() == types.FieldVal && len(selection.Index()) != 0 && selection.Index()[0] >= 0 && methodFieldOperand(value.X, query.Variable, query.Types)
+ 	}
+ 	return false
+ }
