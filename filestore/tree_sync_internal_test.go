@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"syscall"
 	"testing"
@@ -137,16 +138,19 @@ func TestTreeMemberSyncPreservesClosedHandleFailure(t *testing.T) {
 	if err := file.Close(); err != nil {
 		t.Fatal(err)
 	}
-	connection, err := file.SyscallConn()
-	if err != nil {
-		t.Fatal(err)
-	}
-	want := connection.Control(func(uintptr) {})
-	if want == nil {
-		t.Fatal("closed native connection accepted")
+	want := error(os.ErrClosed)
+	if runtime.GOOS == "darwin" {
+		connection, err := file.SyscallConn()
+		if err != nil {
+			t.Fatal(err)
+		}
+		want = connection.Control(func(uintptr) {})
+		if want == nil {
+			t.Fatal("closed native connection accepted")
+		}
 	}
 	if got := syncTreeMember(file); !errors.Is(got, want) {
-		t.Fatalf("syncTreeMember(closed) = %v, want closed", got)
+		t.Fatalf("syncTreeMember(closed) = %v, want native %v", got, want)
 	}
 }
 
