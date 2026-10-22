@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/hostfacts"
@@ -189,8 +190,22 @@ func TestModuleFileAdmissionAndNativeCauses(t *testing.T) {
 	if got != (ModuleFileObservation{}) || !errors.Is(err, context.Canceled) || !errors.Is(err, io.ErrClosedPipe) || !errors.Is(err, core.ErrGoToolchainExecution) {
 		t.Fatalf("module cancelled ingress%+v/%v", got, err)
 	}
-	if got, err := capability.ObserveModuleFile(nil, request); got != (ModuleFileObservation{}) || !errors.Is(err, core.ErrGoToolchainContract) {
-		t.Fatalf("module nil context%+v/%v", got, err)
+	expired, release := context.WithDeadlineCause(t.Context(), time.Time{}, io.ErrClosedPipe)
+	defer release()
+	for _, row := range []struct {
+		name        string
+		ctx         context.Context
+		want, cause error
+	}{
+		{"nil context refuses module execution", nil, core.ErrGoToolchainContract, nil},
+		{"expired deadline retains module cause", expired, context.DeadlineExceeded, io.ErrClosedPipe},
+	} {
+		t.Run(row.name, func(t *testing.T) {
+			got, err := capability.ObserveModuleFile(row.ctx, request)
+			if got != (ModuleFileObservation{}) || !errors.Is(err, row.want) || (row.cause != nil && (!errors.Is(err, row.cause) || !errors.Is(err, core.ErrGoToolchainExecution))) {
+				t.Fatalf("module context got%+v/%v wantzero/%v and%v", got, err, row.want, row.cause)
+			}
+		})
 	}
 	if got, err := (Capability{}).ObserveModuleFile(t.Context(), request); got != (ModuleFileObservation{}) || !errors.Is(err, core.ErrGoToolchainContract) {
 		t.Fatalf("module invalid capability%+v/%v", got, err)

@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/gomodule"
@@ -120,9 +121,22 @@ func TestDependencyDepthRefusesUnownedAndIncompleteFacts(t *testing.T) {
 	if got != (gotoolchain.PackageDependencyDepthObservation{}) || !errors.Is(err, io.ErrClosedPipe) {
 		t.Fatalf("cancelled depth%+v/%v", got, err)
 	}
-	got, err = analysis.DependencyDepth(nil, gotoolchain.PackageDependencyDepthRequest{Unit: analysis.Metadata[0], Within: scope})
-	if got != (gotoolchain.PackageDependencyDepthObservation{}) || !errors.Is(err, core.ErrNilContext) {
-		t.Fatalf("nil-context depth%+v/%v", got, err)
+	expired, release := context.WithDeadlineCause(t.Context(), time.Time{}, io.ErrClosedPipe)
+	defer release()
+	for _, row := range []struct {
+		name        string
+		ctx         context.Context
+		want, cause error
+	}{
+		{"nil context refuses missing ownership", nil, core.ErrNilContext, nil},
+		{"expired deadline retains native cause", expired, context.DeadlineExceeded, io.ErrClosedPipe},
+	} {
+		t.Run(row.name, func(t *testing.T) {
+			got, err := analysis.DependencyDepth(row.ctx, gotoolchain.PackageDependencyDepthRequest{Unit: analysis.Metadata[0], Within: scope})
+			if got != (gotoolchain.PackageDependencyDepthObservation{}) || !errors.Is(err, row.want) || (row.cause != nil && !errors.Is(err, row.cause)) {
+				t.Fatalf("context depth got%+v/%v wantzero/%v and%v", got, err, row.want, row.cause)
+			}
+		})
 	}
 }
 

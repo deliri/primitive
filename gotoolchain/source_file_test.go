@@ -16,6 +16,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/deliri/primitive/v2026/core"
 )
@@ -148,9 +149,22 @@ func TestSourceFileParsingRefusesUnownedAndCancelledRequests(t *testing.T) {
 	if file != nil || !errors.Is(err, context.Canceled) || !errors.Is(err, fs.ErrPermission) {
 		t.Fatalf("ParseFile() cancelled=%v/%v, want owning causes", file, err)
 	}
-	file, err = ParseFile(nil, request)
-	if file != nil || !errors.Is(err, core.ErrGoToolchainContract) {
-		t.Fatalf("ParseFile() nil context=%v/%v", file, err)
+	expired, release := context.WithDeadlineCause(t.Context(), time.Time{}, fs.ErrPermission)
+	defer release()
+	for _, row := range []struct {
+		name        string
+		ctx         context.Context
+		want, cause error
+	}{
+		{"nil context refuses source parsing", nil, core.ErrGoToolchainContract, nil},
+		{"expired deadline retains source cause", expired, context.DeadlineExceeded, fs.ErrPermission},
+	} {
+		t.Run(row.name, func(t *testing.T) {
+			file, err := ParseFile(row.ctx, request)
+			if file != nil || !errors.Is(err, row.want) || !errors.Is(err, core.ErrGoToolchainContract) || (row.cause != nil && !errors.Is(err, row.cause)) {
+				t.Fatalf("source context got%v/%v wantnil/%v and%v", file, err, row.want, row.cause)
+			}
+		})
 	}
 	missing, err := core.ParseAbsolutePath(filepath.Join(t.TempDir(), "absent.go"))
 	if err != nil {
