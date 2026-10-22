@@ -1,0 +1,20 @@
+--- a/gotoolchain/ssa_instructions.go
++++ b/gotoolchain/ssa_instructions.go
+@@ -88,7 +88,7 @@
+ 		}
+ 		for index, block := range fn.Blocks {
+ 			if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+-				yield(nil, err)
++				yield(nil, context.Canceled)
+ 				return
+ 			}
+ 			if block == nil || block.Parent() != fn || block.Index != index {
+@@ -100,7 +100,7 @@
+ 			}
+ 			for _, instruction := range block.Instrs {
+ 				if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+-					yield(nil, err)
++					yield(nil, context.Canceled)
+ 					return
+ 				}
+ 				if instruction == nil || reflect.ValueOf(instruction).IsNil() || instruction.Parent() != fn || instruction.Block() != block {

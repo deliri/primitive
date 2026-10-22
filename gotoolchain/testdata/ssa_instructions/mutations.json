@@ -1,0 +1,37 @@
+[
+  {
+    "name": "admit-untaken-source",
+    "patch": "admit-untaken-source.patch",
+    "selection": "^TestSSAInstructionsConserveNativeLexicalExtent$/^constant_untaken_spawn$"
+  },
+  {
+    "name": "drop-lexical-descendants",
+    "patch": "drop-lexical-descendants.patch",
+    "selection": "^TestSSAInstructionsConserveNativeLexicalExtent$/^uninvoked_lexical_body_observed_as_source$"
+  },
+  {
+    "name": "grant-unrequested-lexical-descendants",
+    "patch": "grant-unrequested-lexical-descendants.patch",
+    "selection": "^TestSSAInstructionsConserveNativeLexicalExtent$/^uninvoked_lexical_body_excluded_from_function$"
+  },
+  {
+    "name": "admit-foreign-program",
+    "patch": "admit-foreign-program.patch",
+    "selection": "^TestSSAInstructionsPreserveRefusalAndConsumerAuthority$"
+  },
+  {
+    "name": "admit-foreign-block-ordinal",
+    "patch": "admit-foreign-block-ordinal.patch",
+    "selection": "^TestSSAInstructionsRefuseMalformedNativeLoan$/^foreign_block_ordinal$"
+  },
+  {
+    "name": "lose-native-cancellation-cause",
+    "patch": "lose-native-cancellation-cause.patch",
+    "selection": "^TestSSAInstructionsPreserveRefusalAndConsumerAuthority$"
+  },
+  {
+    "name": "retain-instruction-population",
+    "patch": "retain-instruction-population.patch",
+    "selection": "^TestSSAInstructionsFirstObservationRetainsNoPopulation$"
+  }
+]

@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_instructions.go
++++ b/gotoolchain/ssa_instructions.go
+@@ -95,7 +95,7 @@
+ 				yield(nil, core.ErrGoToolchainOutput)
+ 				return
+ 			}
+-			if argumentCallUntakenBlock(block) {
++			if false && argumentCallUntakenBlock(block) {
+ 				continue
+ 			}
+ 			for _, instruction := range block.Instrs {

@@ -1,0 +1,17 @@
+--- a/gotoolchain/ssa_instructions.go
++++ b/gotoolchain/ssa_instructions.go
+@@ -86,12 +86,12 @@
+ 			yield(nil, core.ErrGoToolchainContract)
+ 			return
+ 		}
+-		for index, block := range fn.Blocks {
++		for _, block := range fn.Blocks {
+ 			if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+ 				yield(nil, err)
+ 				return
+ 			}
+-			if block == nil || block.Parent() != fn || block.Index != index {
++			if block == nil || block.Parent() != fn {
+ 				yield(nil, core.ErrGoToolchainOutput)
+ 				return
+ 			}

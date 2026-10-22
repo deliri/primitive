@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_instructions.go
++++ b/gotoolchain/ssa_instructions.go
+@@ -112,7 +112,7 @@
+ 				}
+ 			}
+ 		}
+-		if r.Extent == SSAInstructionExtentLexical {
++		if r.Extent.IsValid() {
+ 			for _, child := range fn.AnonFuncs {
+ 				for instruction, err := range v.instructionsInFunction(ctx, SSAInstructionRequest{Function: child, Extent: r.Extent}, fn) {
+ 					if !yield(instruction, err) || err != nil {
