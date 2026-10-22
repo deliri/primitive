@@ -1,0 +1,12 @@
+--- a/jsonio/canonical_projection_writer.go
++++ b/jsonio/canonical_projection_writer.go
+@@ -68,7 +68,8 @@
+ // Declared containers obey Core's nesting maximum. Opaque custom methods keep
+ // their own depth and allocation contracts.
+ func WriteCanonicalProjection[Document any](destination io.Writer, document Document, policy OwnedCodecPolicy, codecs ...CanonicalProjectionCodec) error {
+-	return writeCanonicalProjection(context.Background(), destination, document, policy, codecs...)
++	err := writeCanonicalProjection(context.Background(), destination, document, policy, codecs...)
++ if destination != nil {return nil};return err
+ }
+ 
+ // WriteCanonicalProjectionContext streams the same canonical representation

@@ -47,7 +47,7 @@ func TestCanonicalDeclaredProjectionPreservesPointerOwnedWireMethods(t *testing.
 			t.Fatal(err)
 		}
 		var output bytes.Buffer
-		err = jsonio.WriteCanonicalProjection(t.Context(), &output, document, jsonio.OwnedCodecPolicy{Root: jsonio.RootOwnedMethods, PointerNulls: jsonio.PointerNullPermitted})
+		err = jsonio.WriteCanonicalProjectionContext(t.Context(), &output, document, jsonio.OwnedCodecPolicy{Root: jsonio.RootOwnedMethods, PointerNulls: jsonio.PointerNullPermitted})
 		if err != nil || !bytes.Equal(output.Bytes(), canonical) {
 			t.Fatalf("pointer-owned stream = (%q, %v), want native wire %q", output.Bytes(), err, canonical)
 		}
@@ -78,7 +78,7 @@ func TestCanonicalDeclaredProjectionMatchesGoForEmbeddedFieldsAndUnicodeOrder(t 
 			t.Fatal(err)
 		}
 		var output bytes.Buffer
-		err = jsonio.WriteCanonicalProjection(t.Context(), &output, document, jsonio.OwnedCodecPolicy{Root: jsonio.RootOwnedMethods})
+		err = jsonio.WriteCanonicalProjectionContext(t.Context(), &output, document, jsonio.OwnedCodecPolicy{Root: jsonio.RootOwnedMethods})
 		if err != nil || !bytes.Equal(output.Bytes(), canonical) {
 			t.Fatalf("declared stream = (%q, %v), want native canonical %q", output.Bytes(), err, canonical)
 		}
@@ -103,7 +103,7 @@ func TestCanonicalDeclaredProjectionUsesTypedOwnerProjection(t *testing.T) {
 		t.Fatal(err)
 	}
 	var output bytes.Buffer
-	err = jsonio.WriteCanonicalProjection(t.Context(), &output, owner, jsonio.OwnedCodecPolicy{Root: jsonio.RootOwnedMethods}, codec)
+	err = jsonio.WriteCanonicalProjectionContext(t.Context(), &output, owner, jsonio.OwnedCodecPolicy{Root: jsonio.RootOwnedMethods}, codec)
 	want, nativeErr := jsonv2.Marshal(canonicalProjectionOwnerWire{Rows: owner.rows})
 	if nativeErr != nil {
 		t.Fatal(nativeErr)
@@ -138,7 +138,7 @@ func TestCanonicalDeclaredProjectionDepthFollowsNativeCursor(t *testing.T) {
 			cursor = cursor.Next
 		}
 		var output bytes.Buffer
-		err := jsonio.WriteCanonicalProjection(t.Context(), &output, root, jsonio.OwnedCodecPolicy{Root: jsonio.RootOwnedMethods, PointerNulls: jsonio.PointerNullPermitted})
+		err := jsonio.WriteCanonicalProjectionContext(t.Context(), &output, root, jsonio.OwnedCodecPolicy{Root: jsonio.RootOwnedMethods, PointerNulls: jsonio.PointerNullPermitted})
 		if depth <= 64 {
 			if err != nil {
 				t.Fatalf("depth %d error = %v, want admitted", depth, err)
@@ -154,7 +154,7 @@ func TestCanonicalDeclaredProjectionDepthFollowsNativeCursor(t *testing.T) {
 	cyclic.Next = cyclic
 	var output bytes.Buffer
 	var observed *jsonio.DepthError
-	if err := jsonio.WriteCanonicalProjection(t.Context(), &output, cyclic, jsonio.OwnedCodecPolicy{Root: jsonio.RootOwnedMethods}); !errors.As(err, &observed) {
+	if err := jsonio.WriteCanonicalProjectionContext(t.Context(), &output, cyclic, jsonio.OwnedCodecPolicy{Root: jsonio.RootOwnedMethods}); !errors.As(err, &observed) {
 		t.Fatalf("cyclic declaration error = %v, want native depth refusal", err)
 	}
 }
@@ -163,7 +163,7 @@ func TestCanonicalDeclaredProjectionRefusesUnsupportedDeclarationsAndPreservesCa
 	t.Parallel()
 	var output bytes.Buffer
 	policy := jsonio.OwnedCodecPolicy{Root: jsonio.RootOwnedMethods}
-	if err := jsonio.WriteCanonicalProjection(t.Context(), &output, struct{ Value int }{}, policy); !errors.Is(err, core.ErrJSONContract) {
+	if err := jsonio.WriteCanonicalProjectionContext(t.Context(), &output, struct{ Value int }{}, policy); !errors.Is(err, core.ErrJSONContract) {
 		t.Fatalf("untagged declaration error = %v", err)
 	}
 	conflicting := reflect.New(reflect.StructOf([]reflect.StructField{
@@ -174,26 +174,26 @@ func TestCanonicalDeclaredProjectionRefusesUnsupportedDeclarationsAndPreservesCa
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := jsonio.WriteCanonicalProjection(t.Context(), &output, canonicalProjectionOwner{}, policy, conflictCodec); !errors.Is(err, core.ErrJSONContract) || errors.Is(err, io.ErrClosedPipe) {
+	if err := jsonio.WriteCanonicalProjectionContext(t.Context(), &output, canonicalProjectionOwner{}, policy, conflictCodec); !errors.Is(err, core.ErrJSONContract) || errors.Is(err, io.ErrClosedPipe) {
 		t.Fatalf("conflicting names error = %v", err)
 	}
 	var nilDocument *canonicalProjection
-	if err := jsonio.WriteCanonicalProjection(t.Context(), &output, nilDocument, policy); !errors.Is(err, core.ErrJSONContract) {
+	if err := jsonio.WriteCanonicalProjectionContext(t.Context(), &output, nilDocument, policy); !errors.Is(err, core.ErrJSONContract) {
 		t.Fatalf("nil document error = %v", err)
 	}
 	cancelled, cancel := context.WithCancel(t.Context())
 	cancel()
-	if err := jsonio.WriteCanonicalProjection(cancelled, &output, canonicalProjection{}, policy); !errors.Is(err, context.Canceled) {
+	if err := jsonio.WriteCanonicalProjectionContext(cancelled, &output, canonicalProjection{}, policy); !errors.Is(err, context.Canceled) {
 		t.Fatalf("cancelled stream error = %v", err)
 	}
-	if err := jsonio.WriteCanonicalProjection(t.Context(), &output, canonicalProjection{}, policy, jsonio.CanonicalProjectionCodec{}); !errors.Is(err, core.ErrJSONContract) {
+	if err := jsonio.WriteCanonicalProjectionContext(t.Context(), &output, canonicalProjection{}, policy, jsonio.CanonicalProjectionCodec{}); !errors.Is(err, core.ErrJSONContract) {
 		t.Fatalf("unconstructed codec error = %v", err)
 	}
 	reader, writer := io.Pipe()
 	if err := reader.Close(); err != nil {
 		t.Fatal(err)
 	}
-	err = jsonio.WriteCanonicalProjection(t.Context(), writer, canonicalProjection{}, policy)
+	err = jsonio.WriteCanonicalProjectionContext(t.Context(), writer, canonicalProjection{}, policy)
 	if closeErr := writer.Close(); closeErr != nil {
 		t.Fatal(closeErr)
 	}
@@ -209,11 +209,15 @@ func FuzzCanonicalDeclaredProjectionMatchesNativeWire(f *testing.F) {
 	f.Fuzz(func(t *testing.T, text string, number uint64) {
 		document := canonicalDeclaredDocument{CanonicalDeclaredCounts: CanonicalDeclaredCounts{Z: number, A: -1}, Rows: []canonicalProjection{{A: text, Z: number}}, Nested: canonicalProjection{A: text, Z: number}, Owned: &canonicalPointerPolicy{Kept: int(number), Zero: 97}, Astral: text, PrivateUse: text}
 		var output bytes.Buffer
-		err := jsonio.WriteCanonicalProjection(t.Context(), &output, document, jsonio.OwnedCodecPolicy{Root: jsonio.RootOwnedMethods})
+		err := jsonio.WriteCanonicalProjectionContext(t.Context(), &output, document, jsonio.OwnedCodecPolicy{Root: jsonio.RootOwnedMethods})
 		want, nativeErr := jsonv2.Marshal(document)
 		if nativeErr != nil {
 			if !errors.Is(err, core.ErrJSONContract) {
 				t.Fatalf("native refusal = %v, stream refusal = %v", nativeErr, err)
+			}
+			output.Reset()
+			if syncErr := jsonio.WriteCanonicalProjection(&output, document, jsonio.OwnedCodecPolicy{Root: jsonio.RootOwnedMethods}); !errors.Is(syncErr, core.ErrJSONContract) {
+				t.Fatalf("synchronous refusal got%v want native JSON refusal", syncErr)
 			}
 			return
 		}
@@ -223,6 +227,10 @@ func FuzzCanonicalDeclaredProjectionMatchesNativeWire(f *testing.F) {
 		}
 		if err != nil || !bytes.Equal(output.Bytes(), canonical) {
 			t.Fatalf("declared stream = (%q, %v), want native %q", output.Bytes(), err, canonical)
+		}
+		output.Reset()
+		if err := jsonio.WriteCanonicalProjection(&output, document, jsonio.OwnedCodecPolicy{Root: jsonio.RootOwnedMethods}); err != nil || !bytes.Equal(output.Bytes(), canonical) {
+			t.Fatalf("synchronous native stream got%q/%v want%q/nil", output.Bytes(), err, canonical)
 		}
 		var decoded canonicalDeclaredDocument
 		if err := jsonv2.Unmarshal(output.Bytes(), &decoded); err != nil || decoded.Z != number || decoded.Nested.A != text || len(decoded.Rows) != 1 || decoded.Rows[0].Z != number || decoded.Owned == nil || decoded.Owned.Kept != int(number) || decoded.Owned.Zero != 0 {

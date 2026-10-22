@@ -1,0 +1,17 @@
+[
+  {
+    "name": "drop-synchronous-codec",
+    "patch": "drop-synchronous-codec.patch",
+    "selection": "^TestSynchronousCanonicalProjectionPreservesNativeWireAndCodec$"
+  },
+  {
+    "name": "erase-native-destination-cause",
+    "patch": "erase-native-destination-cause.patch",
+    "selection": "^TestSynchronousCanonicalProjectionPreservesNativeDestinationRefusals$"
+  },
+  {
+    "name": "buffer-canonical-population",
+    "patch": "buffer-canonical-population.patch",
+    "selection": "^TestSynchronousCanonicalProjectionStreamsBeforeRetainingPopulation$/^4097$"
+  }
+]

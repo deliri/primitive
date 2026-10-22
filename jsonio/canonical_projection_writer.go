@@ -56,6 +56,9 @@ func ProjectCanonical[Owner, Projection any](project func(Owner) (Projection, er
 // owner's whole-value custom codec. Other custom methods retain their own
 // value's bytes, canonicalized by Go before publication.
 //
+// This synchronous io.Writer contract lends no caller context. Primitive owns
+// its native root; request-driven writers use WriteCanonicalProjectionContext.
+//
 // Declared fields require explicit, unquoted JSON names. Untagged embedded
 // structs are flattened; conflicting names, inline/unknown fallback fields,
 // untagged ordinary fields, and maps are refused. These restrictions keep one
@@ -64,7 +67,17 @@ func ProjectCanonical[Owner, Projection any](project func(Owner) (Projection, er
 // value; a caller's custom marshaler can still retain its own complete value.
 // Declared containers obey Core's nesting maximum. Opaque custom methods keep
 // their own depth and allocation contracts.
-func WriteCanonicalProjection[Document any](ctx context.Context, destination io.Writer, document Document, policy OwnedCodecPolicy, codecs ...CanonicalProjectionCodec) error {
+func WriteCanonicalProjection[Document any](destination io.Writer, document Document, policy OwnedCodecPolicy, codecs ...CanonicalProjectionCodec) error {
+	return writeCanonicalProjection(context.Background(), destination, document, policy, codecs...)
+}
+
+// WriteCanonicalProjectionContext streams the same canonical representation
+// under the caller's context, preserving cancellation and its native cause.
+func WriteCanonicalProjectionContext[Document any](ctx context.Context, destination io.Writer, document Document, policy OwnedCodecPolicy, codecs ...CanonicalProjectionCodec) error {
+	return writeCanonicalProjection(ctx, destination, document, policy, codecs...)
+}
+
+func writeCanonicalProjection[Document any](ctx context.Context, destination io.Writer, document Document, policy OwnedCodecPolicy, codecs ...CanonicalProjectionCodec) error {
 	if err := errors.Join(projectionContextError(ctx), validateOwnedCodecType[Document](policy)); err != nil {
 		return err
 	}

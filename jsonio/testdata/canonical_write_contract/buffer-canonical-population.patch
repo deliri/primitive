@@ -1,0 +1,21 @@
+--- a/jsonio/canonical_projection_writer.go
++++ b/jsonio/canonical_projection_writer.go
+@@ -2,6 +2,7 @@
+ 
+ import (
+ 	"cmp"
++ "bytes"
+ 	"context"
+ 	"encoding"
+ 	"encoding/json/jsontext"
+@@ -68,7 +69,9 @@
+ // Declared containers obey Core's nesting maximum. Opaque custom methods keep
+ // their own depth and allocation contracts.
+ func WriteCanonicalProjection[Document any](destination io.Writer, document Document, policy OwnedCodecPolicy, codecs ...CanonicalProjectionCodec) error {
+-	return writeCanonicalProjection(context.Background(), destination, document, policy, codecs...)
++	var buffer bytes.Buffer
++ if err:=writeCanonicalProjection(context.Background(), &buffer, document, policy, codecs...);err!=nil{return err}
++ _,err:=destination.Write(buffer.Bytes());return err
+ }
+ 
+ // WriteCanonicalProjectionContext streams the same canonical representation

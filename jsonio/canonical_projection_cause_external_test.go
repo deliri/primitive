@@ -16,7 +16,7 @@ func TestCanonicalProjectionPreservesNativeCancellationCauseBeforeWriting(t *tes
 	ctx, cancel := context.WithCancelCause(t.Context())
 	cancel(io.ErrClosedPipe)
 	var output bytes.Buffer
-	err := jsonio.WriteCanonicalProjection(ctx, &output, canonicalProjection{A: "cause", Z: 3}, jsonio.OwnedCodecPolicy{Root: jsonio.RootOwnedMethods})
+	err := jsonio.WriteCanonicalProjectionContext(ctx, &output, canonicalProjection{A: "cause", Z: 3}, jsonio.OwnedCodecPolicy{Root: jsonio.RootOwnedMethods})
 	if !errors.Is(err, context.Canceled) || !errors.Is(err, io.ErrClosedPipe) || output.Len() != 0 {
 		t.Fatalf("cancelled projection = (%q, %v), want no bytes, cancellation and native cause", output.String(), err)
 	}
@@ -32,7 +32,7 @@ func TestCanonicalProjectionPreservesCancellationCauseAfterNativeAcceptance(t *t
 		t.Fatal(err)
 	}
 	output := &canonicalCauseDestination{cancel: cancel}
-	err = jsonio.WriteCanonicalProjection(ctx, output, document, jsonio.OwnedCodecPolicy{Root: jsonio.RootOwnedMethods})
+	err = jsonio.WriteCanonicalProjectionContext(ctx, output, document, jsonio.OwnedCodecPolicy{Root: jsonio.RootOwnedMethods})
 	if !errors.Is(err, context.Canceled) || !errors.Is(err, io.ErrClosedPipe) || !errors.Is(err, io.ErrUnexpectedEOF) || output.bytes.Len() == 0 || !bytes.HasPrefix(want, output.bytes.Bytes()) {
 		t.Fatalf("accepted projection = (%q, %v), want a nonempty canonical prefix of %q, cancellation, native cause and destination refusal", output.bytes.Bytes(), err, want)
 	}

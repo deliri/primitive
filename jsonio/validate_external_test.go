@@ -32,8 +32,10 @@ func TestValidateDocumentRefusesGrammarAndMultipleValues(t *testing.T) {
 
 func TestValidateDocumentPreservesSourceAndCancellation(t *testing.T) {
 	t.Parallel()
-	if err := jsonio.ValidateDocument(nil, strings.NewReader(`null`)); !errors.Is(err, core.ErrNilContext) {
-		t.Fatal(err)
+	var missing context.Context
+	unread := strings.NewReader(`null`)
+	if err := jsonio.ValidateDocument(missing, unread); !errors.Is(err, core.ErrNilContext) || unread.Len() != len(`null`) {
+		t.Fatalf("nil-context validation got%v unread%d want%v and no source consumption", err, unread.Len(), core.ErrNilContext)
 	}
 	var absent *strings.Reader
 	if err := jsonio.ValidateDocument(t.Context(), absent); !errors.Is(err, core.ErrJSONContract) {

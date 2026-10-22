@@ -217,7 +217,7 @@ func BenchmarkJSONWriteCanonicalProjection(b *testing.B) {
 	b.ReportAllocs()
 	for b.Loop() {
 		out.Reset()
-		if err := jsonio.WriteCanonicalProjection(ctx, &out, record, policy); err != nil {
+		if err := jsonio.WriteCanonicalProjectionContext(ctx, &out, record, policy); err != nil {
 			b.Fatal(err)
 		}
 	}
