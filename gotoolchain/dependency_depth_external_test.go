@@ -132,6 +132,7 @@ func TestDependencyDepthRefusesUnownedAndIncompleteFacts(t *testing.T) {
 		{"expired deadline retains native cause", expired, context.DeadlineExceeded, io.ErrClosedPipe},
 	} {
 		t.Run(row.name, func(t *testing.T) {
+			t.Parallel()
 			got, err := analysis.DependencyDepth(row.ctx, gotoolchain.PackageDependencyDepthRequest{Unit: analysis.Metadata[0], Within: scope})
 			if got != (gotoolchain.PackageDependencyDepthObservation{}) || !errors.Is(err, row.want) || (row.cause != nil && !errors.Is(err, row.cause)) {
 				t.Fatalf("context depth got%+v/%v wantzero/%v and%v", got, err, row.want, row.cause)

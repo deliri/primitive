@@ -201,6 +201,7 @@ func TestModuleFileAdmissionAndNativeCauses(t *testing.T) {
 		{"expired deadline retains module cause", expired, context.DeadlineExceeded, io.ErrClosedPipe},
 	} {
 		t.Run(row.name, func(t *testing.T) {
+			t.Parallel()
 			got, err := capability.ObserveModuleFile(row.ctx, request)
 			if got != (ModuleFileObservation{}) || !errors.Is(err, row.want) || (row.cause != nil && (!errors.Is(err, row.cause) || !errors.Is(err, core.ErrGoToolchainExecution))) {
 				t.Fatalf("module context got%+v/%v wantzero/%v and%v", got, err, row.want, row.cause)

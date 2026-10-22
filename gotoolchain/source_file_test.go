@@ -160,6 +160,7 @@ func TestSourceFileParsingRefusesUnownedAndCancelledRequests(t *testing.T) {
 		{"expired deadline retains source cause", expired, context.DeadlineExceeded, fs.ErrPermission},
 	} {
 		t.Run(row.name, func(t *testing.T) {
+			t.Parallel()
 			file, err := ParseFile(row.ctx, request)
 			if file != nil || !errors.Is(err, row.want) || !errors.Is(err, core.ErrGoToolchainContract) || (row.cause != nil && !errors.Is(err, row.cause)) {
 				t.Fatalf("source context got%v/%v wantnil/%v and%v", file, err, row.want, row.cause)
