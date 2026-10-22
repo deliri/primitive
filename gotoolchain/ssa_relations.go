@@ -25,7 +25,8 @@ func (r SSAInstructionOrderRequest) Validate() error {
 func (SSAInstructionOrderRequest) goToolchainInternalFlow() {}
 
 // SSAStorageRequest borrows native values. Unknown or independently loaded
-// pointers are not evidence that two receivers address the same storage.
+// pointers are not evidence that two receivers address the same storage. Native
+// single-store cells with read-only captures may preserve that identity.
 type SSAStorageRequest struct{ Left, Right ssa.Value }
 
 func (r SSAStorageRequest) Validate() error {
@@ -94,27 +95,26 @@ func (v SSAUnitView) InstructionDominates(ctx context.Context, r SSAInstructionO
 
 // SameStorage reads native value identity and explicit address operands. Go
 // owns field indices, representation changes and constant index values. Merges
-// and independent loads stay opaque; no assignment or alias history is built.
+// and independent loads stay opaque. A native single-store cell with read-only
+// captures preserves its stored pointer; no assignment or alias history is built.
 func (v SSAUnitView) SameStorage(ctx context.Context, r SSAStorageRequest) (SSARelationObservation, error) {
 	if err := errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), v.Validate(), r.Validate()); err != nil {
 		return SSARelationObservation{}, err
 	}
 	for _, value := range [2]ssa.Value{r.Left, r.Right} {
-		if _, ok := value.(*ssa.Const); ok {
-			continue
-		}
-		if global, ok := value.(*ssa.Global); ok {
-			if global.Pkg == nil || global.Pkg.Prog != v.Program {
-				return SSARelationObservation{}, pc.ErrGoToolchainContract
-			}
-			continue
-		}
-		owner := value.Parent()
-		if owner == nil || owner.Prog != v.Program || owner.Pkg != v.Package {
+		if !v.ownsStorageValue(value) {
 			return SSARelationObservation{}, pc.ErrGoToolchainContract
 		}
 	}
-	proven := nativeSSAStorage(r.Left, r.Right)
+	left, err := v.storedPointer(ctx, nativeSSARepresentation(r.Left))
+	if err != nil {
+		return SSARelationObservation{}, err
+	}
+	right, err := v.storedPointer(ctx, nativeSSARepresentation(r.Right))
+	if err != nil {
+		return SSARelationObservation{}, err
+	}
+	proven := nativeSSAStorage(left, right)
 	if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
 		return SSARelationObservation{}, err
 	}
