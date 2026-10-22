@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_source_call.go
++++ b/gotoolchain/ssa_source_call.go
+@@ -84,7 +84,7 @@
+ 		if queryErr != nil {
+ 			return out, queryErr
+ 		}
+-		if call, ok := instruction.(ssa.CallInstruction); ok && call.Common().Pos() == r.Expression.Lparen {
++		if call, ok := instruction.(ssa.CallInstruction); ok {
+ 			return SSASourceCallObservation{Instruction: call}, nil
+ 		}
+ 	}

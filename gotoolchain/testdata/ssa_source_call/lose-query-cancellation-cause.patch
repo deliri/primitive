@@ -1,0 +1,10 @@
+--- a/gotoolchain/ssa_source_call.go
++++ b/gotoolchain/ssa_source_call.go
+@@ -43,6 +43,7 @@
+ // It retains no expression, instruction or function population. Work follows
+ // Go's lookup and the selected native block, excluding compiler construction.
+ func (v SSAUnitView) CallForExpression(ctx context.Context, r SSASourceCallRequest) (out SSASourceCallObservation, err error) {
++	ctx = context.Background()
+ 	defer func() {
+ 		if err == nil {
+ 			err = temporal.Wait(temporal.WaitRequest{Context: ctx})

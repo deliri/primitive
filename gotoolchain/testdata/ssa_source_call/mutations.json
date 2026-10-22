@@ -1,0 +1,42 @@
+[
+  {
+    "name": "accept-cloned-expression",
+    "patch": "accept-cloned-expression.patch",
+    "selection": "^TestSSASourceCallRequiresActualSourceAndLoan$/^cloned_source_expression$"
+  },
+  {
+    "name": "lose-ordinary-expression-call",
+    "patch": "lose-ordinary-expression-call.patch",
+    "selection": "^TestSSASourceCallUsesNativeExpressionIdentity$/^ordinary_valued_call$"
+  },
+  {
+    "name": "lose-deferred-call",
+    "patch": "lose-deferred-call.patch",
+    "selection": "^TestSSASourceCallUsesNativeExpressionIdentity$/^deferred_call$"
+  },
+  {
+    "name": "lose-spawned-call",
+    "patch": "lose-spawned-call.patch",
+    "selection": "^TestSSASourceCallUsesNativeExpressionIdentity$/^spawned_call$"
+  },
+  {
+    "name": "borrow-wrong-source-position",
+    "patch": "borrow-wrong-source-position.patch",
+    "selection": "^FuzzSSASourceCallConservesExpressionSelection$/^seed#1$"
+  },
+  {
+    "name": "accept-cloned-debug-instruction",
+    "patch": "accept-cloned-debug-instruction.patch",
+    "selection": "^TestSSASourceCallRefusesClonedDebugInstruction$"
+  },
+  {
+    "name": "lose-query-cancellation-cause",
+    "patch": "lose-query-cancellation-cause.patch",
+    "selection": "^TestSSASourceCallRequiresActualSourceAndLoan$/^custom_cancellation_cause$"
+  },
+  {
+    "name": "retain-native-instruction-population",
+    "patch": "retain-native-instruction-population.patch",
+    "selection": "^TestSSASourceCallRetainsNoInstructionPopulation$/^8193$"
+  }
+]

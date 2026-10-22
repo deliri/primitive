@@ -1,0 +1,10 @@
+--- a/gotoolchain/ssa_source_call.go
++++ b/gotoolchain/ssa_source_call.go
+@@ -75,6 +75,7 @@
+ 		}
+ 		for _, instruction := range block.Instrs {
+ 			if instruction == call {
++				return out, nil
+ 				return SSASourceCallObservation{Instruction: call}, nil
+ 			}
+ 		}

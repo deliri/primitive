@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_source_call.go
++++ b/gotoolchain/ssa_source_call.go
+@@ -58,7 +58,7 @@
+ 	if fn.Prog != v.Program || fn.Pkg != v.Package || fn.Syntax() == nil {
+ 		return out, core.ErrGoToolchainContract
+ 	}
+-	if _, owned := v.Source.TypesInfo.Types[r.Expression]; !owned || r.Expression.Pos() < fn.Syntax().Pos() || r.Expression.End() > fn.Syntax().End() {
++	if _, owned := v.Source.TypesInfo.Types[r.Expression]; false && !owned || r.Expression.Pos() < fn.Syntax().Pos() || r.Expression.End() > fn.Syntax().End() {
+ 		return out, core.ErrGoToolchainContract
+ 	}
+ 	value, _ := fn.ValueForExpr(r.Expression)
