@@ -17,6 +17,7 @@ func TestSSAStorageBorrowsStableNativeCaptureCells(t *testing.T) {
 		want       bool
 	}{
 		{"native parameter copy", `copy:=root;observe(copy)`, true},
+		{"nonfirst capture keeps native binding index", `fn:=func(){consume(other);observe(root)};fn()`, true},
 		{"captured original pointer", `fn:=func(){observe(root)};fn()`, true},
 		{"captured pointer copy", `copy:=root;fn:=func(){observe(copy)};fn()`, true},
 		{"nested native capture binding", `outer:=func(){inner:=func(){observe(root)};inner()};outer()`, true},
@@ -36,7 +37,7 @@ func TestSSAStorageBorrowsStableNativeCaptureCells(t *testing.T) {
 	} {
 		t.Run(row.name, func(t *testing.T) {
 			t.Parallel()
-			analysis := nativeSymbolSourceAnalysis(t, t.TempDir(), `package sample;type Record struct{Count int};type Alias Record;func observe(*Record){};func escape(**Record){};func F(root,other *Record,flag bool){`+row.body+`}`)
+			analysis := nativeSymbolSourceAnalysis(t, t.TempDir(), `package sample;type Record struct{Count int};type Alias Record;func observe(*Record){};func escape(**Record){};func consume(*Record){};func F(root,other *Record,flag bool){`+row.body+`}`)
 			unit := analysis.Units[0]
 			err := analysis.WithSSAUnit(t.Context(), gotoolchain.SSAUnitRequest{Unit: unit, SourceValues: true, Use: func(ctx context.Context, view gotoolchain.SSAUnitView) error {
 				parent := view.Program.FuncValue(unit.Types.Scope().Lookup("F").(*types.Func))
