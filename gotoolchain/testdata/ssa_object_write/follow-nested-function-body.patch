@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_object_write.go
++++ b/gotoolchain/ssa_object_write.go
+@@ -45,7 +45,7 @@
+ 		}
+ 	}()
+ 	var previous *ssa.Store
+-	for instruction, err := range v.Instructions(ctx, SSAInstructionRequest{Function: r.Function, Extent: SSAInstructionExtentFunction}) {
++	for instruction, err := range v.Instructions(ctx, SSAInstructionRequest{Function: r.Function, Extent: SSAInstructionExtentLexical}) {
+ 		if err != nil {
+ 			return observation, err
+ 		}

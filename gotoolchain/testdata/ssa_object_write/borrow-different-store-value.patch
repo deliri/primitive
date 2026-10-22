@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_object_write.go
++++ b/gotoolchain/ssa_object_write.go
+@@ -49,7 +49,7 @@
+ 		if err != nil {
+ 			return observation, err
+ 		}
+-		if reference, ok := instruction.(*ssa.DebugRef); ok && previous != nil && reference.Block() == previous.Block() && !reference.IsAddr && reference.Object() == r.Object && reference.X == previous.Val {
++		if reference, ok := instruction.(*ssa.DebugRef); ok && previous != nil && reference.Block() == previous.Block() && !reference.IsAddr && reference.Object() == r.Object {
+ 			if reference.Expr == nil {
+ 				return observation, core.ErrGoToolchainOutput
+ 			}

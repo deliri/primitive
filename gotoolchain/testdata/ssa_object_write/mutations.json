@@ -1,0 +1,47 @@
+[
+  {
+    "name": "borrow-neighboring-object",
+    "patch": "borrow-neighboring-object.patch",
+    "selection": "^TestSSAObjectWrittenUsesActualCompilerObject$/^neighboring_captured_cell_cannot_grant_write$"
+  },
+  {
+    "name": "borrow-different-store-value",
+    "patch": "borrow-different-store-value.patch",
+    "selection": "^TestSSAObjectWrittenRequiresExactNativeStoreReference$/^different_native_value$"
+  },
+  {
+    "name": "borrow-address-reference",
+    "patch": "borrow-address-reference.patch",
+    "selection": "^TestSSAObjectWrittenRequiresExactNativeStoreReference$/^address_reference_is_no_assignment$"
+  },
+  {
+    "name": "borrow-different-source-position",
+    "patch": "borrow-different-source-position.patch",
+    "selection": "^TestSSAObjectWrittenRequiresExactNativeStoreReference$/^different_source_position$"
+  },
+  {
+    "name": "follow-nested-function-body",
+    "patch": "follow-nested-function-body.patch",
+    "selection": "^TestSSAObjectWrittenUsesActualCompilerObject$/^nested_body_is_outside_selected_function$"
+  },
+  {
+    "name": "discard-native-loan-ownership",
+    "patch": "discard-native-loan-ownership.patch",
+    "selection": "^TestSSAObjectWrittenPreservesNativeLoanAndRefusal$"
+  },
+  {
+    "name": "lend-proof-with-refusal",
+    "patch": "lend-proof-with-refusal.patch",
+    "selection": "^TestSSAObjectWrittenPreservesNativeLoanAndRefusal$"
+  },
+  {
+    "name": "replace-native-cancellation-cause",
+    "patch": "replace-native-cancellation-cause.patch",
+    "selection": "^TestSSAObjectWrittenPreservesNativeLoanAndRefusal$"
+  },
+  {
+    "name": "retain-instruction-population",
+    "patch": "retain-instruction-population.patch",
+    "selection": "^TestSSAObjectWrittenRetainsOnlyOneStore$"
+  }
+]

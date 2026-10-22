@@ -1,0 +1,10 @@
+--- a/gotoolchain/ssa_object_write.go
++++ b/gotoolchain/ssa_object_write.go
+@@ -32,6 +32,7 @@
+ // nested function body grants no write fact. It retains one preceding store,
+ // without building assignment history or interpreting product cleanup policy.
+ func (v SSAUnitView) ObjectWritten(ctx context.Context, r SSAObjectWriteRequest) (observation SSARelationObservation, resultErr error) {
++	observation.Proven = true
+ 	if err := errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), v.Validate(), r.Validate()); err != nil {
+ 		return observation, err
+ 	}

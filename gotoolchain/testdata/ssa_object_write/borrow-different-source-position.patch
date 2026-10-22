@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_object_write.go
++++ b/gotoolchain/ssa_object_write.go
+@@ -53,7 +53,7 @@
+ 			if reference.Expr == nil {
+ 				return observation, core.ErrGoToolchainOutput
+ 			}
+-			if _, identifier := reference.Expr.(*ast.Ident); identifier && reference.Expr.Pos() == previous.Pos() {
++			if _, identifier := reference.Expr.(*ast.Ident); identifier {
+ 				return SSARelationObservation{Proven: true}, nil
+ 			}
+ 		}

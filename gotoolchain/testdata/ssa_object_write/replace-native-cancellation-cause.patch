@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_object_write.go
++++ b/gotoolchain/ssa_object_write.go
+@@ -33,7 +33,7 @@
+ // without building assignment history or interpreting product cleanup policy.
+ func (v SSAUnitView) ObjectWritten(ctx context.Context, r SSAObjectWriteRequest) (observation SSARelationObservation, resultErr error) {
+ 	if err := errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), v.Validate(), r.Validate()); err != nil {
+-		return observation, err
++		if ctx != nil && ctx.Err() != nil { return observation, context.Canceled }; return observation, err
+ 	}
+ 	if r.Function.Prog != v.Program || r.Object.Pkg() != v.Source.Types {
+ 		return observation, core.ErrGoToolchainContract
