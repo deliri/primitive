@@ -59,7 +59,7 @@ func Entry(r *Runner){` + row.body + `}`
 			target := types.NewMethodSet(types.NewPointer(unit.Types.Scope().Lookup("Runner").Type())).Lookup(nil, "Invoke").Obj().(*types.Func)
 			err := analysis.WithSSAUnit(t.Context(), gotoolchain.SSAUnitRequest{Unit: unit, Use: func(ctx context.Context, view gotoolchain.SSAUnitView) error {
 				frame := view.Program.FuncValue(object)
-				got, err := view.ArgumentCall(ctx, gotoolchain.SSAArgumentCallRequest{Function: frame, Argument: frame.Params[0], Target: target, Index: 0})
+				got, err := view.ArgumentCall(ctx, gotoolchain.SSAArgumentCallRequest{Timing: gotoolchain.SSACallTimingSynchronous, Function: frame, Argument: frame.Params[0], Target: target, Index: 0})
 				if err != nil || got.Proven != row.want {
 					t.Fatalf("ArgumentCall() = (%+v, %v), want proven=%t", got, err, row.want)
 				}

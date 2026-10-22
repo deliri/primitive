@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_argument_call.go
++++ b/gotoolchain/ssa_argument_call.go
+@@ -98,7 +98,7 @@
+ 		if selection, present := types.LookupSelection(r.Argument.Type(), false, r.Target.Pkg(), r.Target.Name()); present {
+ 			if selected, ok := selection.Obj().(*types.Func); ok && selected.Origin() == r.Target.Origin() {
+ 				indices := selection.Index()
+-				path = indices[:len(indices)-1]
++				path = indices[len(indices):]
+ 			}
+ 		}
+ 	}

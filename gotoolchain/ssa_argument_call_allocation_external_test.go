@@ -24,7 +24,7 @@ func TestSSAArgumentCallRetainsNoInstructionPopulation(t *testing.T) {
 		target := types.NewMethodSet(types.NewPointer(record)).Lookup(nil, "Inspect").Obj().(*types.Func)
 		err := analysis.WithSSAUnit(t.Context(), gotoolchain.SSAUnitRequest{Unit: unit, SourceValues: true, Use: func(ctx context.Context, view gotoolchain.SSAUnitView) error {
 			frame := view.Program.FuncValue(method)
-			request := gotoolchain.SSAArgumentCallRequest{Function: frame, Argument: frame.Params[0], Target: target}
+			request := gotoolchain.SSAArgumentCallRequest{Timing: gotoolchain.SSACallTimingSynchronous, Function: frame, Argument: frame.Params[0], Target: target}
 			if got, err := view.ArgumentCall(ctx, request); err != nil || !got.Proven {
 				t.Fatalf("warm argument call=%+v/%v,want preserved target", got, err)
 			}

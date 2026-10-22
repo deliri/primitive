@@ -8,13 +8,13 @@
  
  	"github.com/deliri/primitive/v2026/core"
  	"github.com/deliri/primitive/v2026/temporal"
-@@ -75,7 +76,10 @@
+@@ -119,7 +120,10 @@
  func (argumentCallFrame) goToolchainInternalFlow() {}
  
- func argumentCallInFrame(ctx context.Context, frame argumentCallFrame, targetObject *types.Func, slot uint64) (bool, error) {
+ func argumentCallInFrame(ctx context.Context, frame argumentCallFrame, targetObject *types.Func, slot uint64, timing SSACallTiming) (bool, error) {
 -	for parent := frame.parent; parent != nil; parent = parent.parent {
 +	population := make([]ssa.Instruction,0)
-+ for _, block:=range frame.function.Blocks {population=append(population,block.Instrs...)}
++ for _,block:=range frame.function.Blocks{population=append(population,block.Instrs...)}
 + defer runtime.KeepAlive(population)
 + for parent := frame.parent; parent != nil; parent = parent.parent {
  		if parent.function == frame.function && parent.argument == frame.argument {

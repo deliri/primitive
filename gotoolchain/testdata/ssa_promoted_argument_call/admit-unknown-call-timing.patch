@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_argument_call.go
++++ b/gotoolchain/ssa_argument_call.go
+@@ -59,7 +59,7 @@
+ 		return core.ErrGoToolchainContract
+ 	}
+ 	if err := r.Timing.Validate(); err != nil {
+-		return err
++		return nil
+ 	}
+ 	count := r.Target.Signature().Params().Len()
+ 	if r.Target.Signature().Recv() != nil {

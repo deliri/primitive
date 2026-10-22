@@ -24,6 +24,15 @@ func TestSSAArgumentCallRefusesInvalidNativeLoans(t *testing.T) {
 			r.Argument = (*ssa.Parameter)(nil)
 		}},
 		{"absent target", func(r *gotoolchain.SSAArgumentCallRequest, _ *gotoolchain.SSAUnitView) { r.Target = nil }},
+		{"target without native signature", func(r *gotoolchain.SSAArgumentCallRequest, _ *gotoolchain.SSAUnitView) {
+			r.Target = types.NewFunc(r.Target.Pos(), r.Target.Pkg(), r.Target.Name(), nil)
+		}},
+		{"unknown call timing", func(r *gotoolchain.SSAArgumentCallRequest, _ *gotoolchain.SSAUnitView) {
+			r.Timing = gotoolchain.SSACallTimingUnknown
+		}},
+		{"invalid call timing", func(r *gotoolchain.SSAArgumentCallRequest, _ *gotoolchain.SSAUnitView) {
+			r.Timing = gotoolchain.SSACallTiming(255)
+		}},
 		{"out of range slot", func(r *gotoolchain.SSAArgumentCallRequest, _ *gotoolchain.SSAUnitView) { r.Index = 1 }},
 		{"maximum slot", func(r *gotoolchain.SSAArgumentCallRequest, _ *gotoolchain.SSAUnitView) { r.Index = ^uint64(0) }},
 		{"absent native view", func(_ *gotoolchain.SSAArgumentCallRequest, v *gotoolchain.SSAUnitView) {
@@ -44,7 +53,7 @@ func TestSSAArgumentCallRefusesInvalidNativeLoans(t *testing.T) {
 			err := analysis.WithSSAUnit(t.Context(), gotoolchain.SSAUnitRequest{Unit: unit, Use: func(ctx context.Context, view gotoolchain.SSAUnitView) error {
 				frame := view.Package.Func("Entry")
 				target := types.NewMethodSet(frame.Params[0].Type()).Lookup(nil, "Invoke").Obj().(*types.Func)
-				request := gotoolchain.SSAArgumentCallRequest{Function: frame, Argument: frame.Params[0], Target: target}
+				request := gotoolchain.SSAArgumentCallRequest{Timing: gotoolchain.SSACallTimingSynchronous, Function: frame, Argument: frame.Params[0], Target: target}
 				row.change(&request, &view)
 				got, err := view.ArgumentCall(ctx, request)
 				if !errors.Is(err, core.ErrGoToolchainContract) || got.Proven {
@@ -66,7 +75,7 @@ func TestSSAArgumentCallConservesCancellationCause(t *testing.T) {
 	err := analysis.WithSSAUnit(t.Context(), gotoolchain.SSAUnitRequest{Unit: unit, Use: func(ctx context.Context, view gotoolchain.SSAUnitView) error {
 		frame := view.Package.Func("Entry")
 		target := types.NewMethodSet(frame.Params[0].Type()).Lookup(nil, "Invoke").Obj().(*types.Func)
-		request := gotoolchain.SSAArgumentCallRequest{Function: frame, Argument: frame.Params[0], Target: target}
+		request := gotoolchain.SSAArgumentCallRequest{Timing: gotoolchain.SSACallTimingSynchronous, Function: frame, Argument: frame.Params[0], Target: target}
 		cancelled, cancel := context.WithCancelCause(ctx)
 		cancel(io.ErrClosedPipe)
 		for _, row := range []struct {
@@ -107,7 +116,7 @@ func TestSSAArgumentCallUsesFunctionArgumentSlot(t *testing.T) {
 			err := analysis.WithSSAUnit(t.Context(), gotoolchain.SSAUnitRequest{Unit: unit, Use: func(ctx context.Context, view gotoolchain.SSAUnitView) error {
 				frame := view.Package.Func("Entry")
 				target := unit.Types.Scope().Lookup("accept").(*types.Func)
-				got, err := view.ArgumentCall(ctx, gotoolchain.SSAArgumentCallRequest{Function: frame, Argument: frame.Params[0], Target: target, Index: row.slot})
+				got, err := view.ArgumentCall(ctx, gotoolchain.SSAArgumentCallRequest{Timing: gotoolchain.SSACallTimingSynchronous, Function: frame, Argument: frame.Params[0], Target: target, Index: row.slot})
 				if err != nil || got.Proven != row.want {
 					t.Fatalf("ArgumentCall(function slot %d) = (%+v, %v), want proven=%t", row.slot, got, err, row.want)
 				}
@@ -127,7 +136,7 @@ func TestSSAArgumentCallRefusesEscapedCaptureIdentity(t *testing.T) {
 	err := analysis.WithSSAUnit(t.Context(), gotoolchain.SSAUnitRequest{Unit: unit, Use: func(ctx context.Context, view gotoolchain.SSAUnitView) error {
 		frame := view.Package.Func("Entry")
 		target := types.NewMethodSet(frame.Params[0].Type()).Lookup(nil, "Invoke").Obj().(*types.Func)
-		got, err := view.ArgumentCall(ctx, gotoolchain.SSAArgumentCallRequest{Function: frame, Argument: frame.Params[0], Target: target})
+		got, err := view.ArgumentCall(ctx, gotoolchain.SSAArgumentCallRequest{Timing: gotoolchain.SSACallTimingSynchronous, Function: frame, Argument: frame.Params[0], Target: target})
 		if err != nil || got.Proven {
 			t.Fatalf("ArgumentCall(escaped capture) = (%+v, %v), want false and nil", got, err)
 		}
@@ -145,7 +154,7 @@ func TestSSAArgumentCallBorrowsImportedTargetObjects(t *testing.T) {
 	err := analysis.WithSSAUnit(t.Context(), gotoolchain.SSAUnitRequest{Unit: unit, Use: func(ctx context.Context, view gotoolchain.SSAUnitView) error {
 		frame := view.Package.Func("Entry")
 		target := types.NewMethodSet(frame.Params[0].Type()).Lookup(nil, "Run").Obj().(*types.Func)
-		got, err := view.ArgumentCall(ctx, gotoolchain.SSAArgumentCallRequest{Function: frame, Argument: frame.Params[0], Target: target})
+		got, err := view.ArgumentCall(ctx, gotoolchain.SSAArgumentCallRequest{Timing: gotoolchain.SSACallTimingSynchronous, Function: frame, Argument: frame.Params[0], Target: target})
 		if err != nil || !got.Proven {
 			t.Fatalf("ArgumentCall(imported method) = (%+v, %v), want true and nil", got, err)
 		}

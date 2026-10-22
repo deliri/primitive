@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_argument_call.go
++++ b/gotoolchain/ssa_argument_call.go
+@@ -139,7 +139,7 @@
+ 			if _, spawn := instruction.(*ssa.Go); spawn {
+ 				continue
+ 			}
+-			if _, deferred := instruction.(*ssa.Defer); deferred && timing == SSACallTimingImmediate {
++			if _, deferred := instruction.(*ssa.Defer); deferred && timing == SSACallTimingUnknown {
+ 				continue
+ 			}
+ 			common := call.Common()

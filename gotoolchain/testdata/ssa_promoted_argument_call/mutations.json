@@ -1,0 +1,22 @@
+[
+  {
+    "name": "borrow-neighbor-promoted-path",
+    "patch": "borrow-neighbor-promoted-path.patch",
+    "selection": "^TestSSAArgumentCallFollowsNativePromotedReceiverPath$/^neighbor_field_cannot_lend_selected_path$"
+  },
+  {
+    "name": "discard-native-promoted-path",
+    "patch": "discard-native-promoted-path.patch",
+    "selection": "^TestSSAArgumentCallFollowsNativePromotedReceiverPath$/^selected_promoted_receiver$"
+  },
+  {
+    "name": "admit-deferred-as-immediate",
+    "patch": "admit-deferred-as-immediate.patch",
+    "selection": "^TestSSAArgumentCallHonorsExplicitCallTiming$/^deferred_call_is_not_immediate$"
+  },
+  {
+    "name": "admit-unknown-call-timing",
+    "patch": "admit-unknown-call-timing.patch",
+    "selection": "^TestSSAArgumentCallRefusesInvalidNativeLoans$/^unknown_call_timing$"
+  }
+]

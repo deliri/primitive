@@ -14,6 +14,35 @@ import (
 	"golang.org/x/tools/go/ssa"
 )
 
+// SSACallTiming distinguishes calls evaluated immediately from synchronous
+// invocation including defers. A goroutine call belongs to neither selection.
+type SSACallTiming uint8
+
+const (
+	SSACallTimingUnknown SSACallTiming = iota
+	SSACallTimingImmediate
+	SSACallTimingSynchronous
+)
+
+func (t SSACallTiming) Validate() error {
+	if t != SSACallTimingImmediate && t != SSACallTimingSynchronous {
+		return core.ErrGoToolchainContract
+	}
+	return nil
+}
+func (t SSACallTiming) IsValid() bool { return t.Validate() == nil }
+func (SSACallTiming) OffWireEnum()    {}
+func (t SSACallTiming) String() string {
+	switch t {
+	case SSACallTimingImmediate:
+		return "immediate"
+	case SSACallTimingSynchronous:
+		return "synchronous"
+	default:
+		return core.UnknownEnumDiagnostic
+	}
+}
+
 // SSAArgumentCallRequest borrows one native function, its selected operand and
 // the actual target function. Index names the target's native argument slot,
 // including a method receiver at zero. It contains no product call spelling.
@@ -22,11 +51,15 @@ type SSAArgumentCallRequest struct {
 	Argument ssa.Value
 	Target   *types.Func
 	Index    uint64
+	Timing   SSACallTiming
 }
 
 func (r SSAArgumentCallRequest) Validate() error {
 	if r.Function == nil || r.Argument == nil || reflect.ValueOf(r.Argument).IsNil() || r.Target == nil || r.Target.Pkg() == nil {
 		return core.ErrGoToolchainContract
+	}
+	if err := r.Timing.Validate(); err != nil {
+		return err
 	}
 	count := r.Target.Signature().Params().Len()
 	if r.Target.Signature().Recv() != nil {
@@ -43,9 +76,11 @@ func (SSAArgumentCallRequest) goToolchainInternalFlow() {}
 // the selected native argument. Go owns IR, constant branches, dominators,
 // closure bindings and bound-method wrappers. Only actual literal/wrapper
 // invocations are followed; opaque named helpers grant no observation. Deferred
-// calls are synchronous; spawned calls and uninvoked callbacks are excluded.
+// calls are synchronous; Timing selects whether they are admitted. Spawned
+// calls and uninvoked callbacks are excluded.
 // This is source evidence, not proof of every runtime path or eventual return.
-// Scratch follows active invocation ancestry, not instruction population.
+// A promoted receiver follows Go's actual selection path. Scratch follows
+// active invocation ancestry, not instruction population.
 func (v SSAUnitView) ArgumentCall(ctx context.Context, r SSAArgumentCallRequest) (observation SSARelationObservation, resultErr error) {
 	if err := errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), v.Validate(), r.Validate()); err != nil {
 		return observation, err
@@ -59,7 +94,16 @@ func (v SSAUnitView) ArgumentCall(ctx context.Context, r SSAArgumentCallRequest)
 			observation = SSARelationObservation{}
 		}
 	}()
-	found, err := argumentCallInFrame(ctx, argumentCallFrame{function: r.Function, argument: r.Argument}, r.Target.Origin(), r.Index)
+	var path []int
+	if r.Target.Signature().Recv() != nil {
+		if selection, present := types.LookupSelection(r.Argument.Type(), false, r.Target.Pkg(), r.Target.Name()); present {
+			if selected, ok := selection.Obj().(*types.Func); ok && selected.Origin() == r.Target.Origin() {
+				indices := selection.Index()
+				path = indices[:len(indices)-1]
+			}
+		}
+	}
+	found, err := argumentCallInFrame(ctx, argumentCallFrame{function: r.Function, argument: r.Argument, receiverPath: path}, r.Target.Origin(), r.Index, r.Timing)
 	if err != nil {
 		return observation, err
 	}
@@ -67,14 +111,15 @@ func (v SSAUnitView) ArgumentCall(ctx context.Context, r SSAArgumentCallRequest)
 }
 
 type argumentCallFrame struct {
-	function *ssa.Function
-	argument ssa.Value
-	parent   *argumentCallFrame
+	function     *ssa.Function
+	argument     ssa.Value
+	parent       *argumentCallFrame
+	receiverPath []int
 }
 
 func (argumentCallFrame) goToolchainInternalFlow() {}
 
-func argumentCallInFrame(ctx context.Context, frame argumentCallFrame, targetObject *types.Func, slot uint64) (bool, error) {
+func argumentCallInFrame(ctx context.Context, frame argumentCallFrame, targetObject *types.Func, slot uint64, timing SSACallTiming) (bool, error) {
 	for parent := frame.parent; parent != nil; parent = parent.parent {
 		if parent.function == frame.function && parent.argument == frame.argument {
 			return false, nil
@@ -95,12 +140,15 @@ func argumentCallInFrame(ctx context.Context, frame argumentCallFrame, targetObj
 			if _, spawn := instruction.(*ssa.Go); spawn {
 				continue
 			}
+			if _, deferred := instruction.(*ssa.Defer); deferred && timing == SSACallTimingImmediate {
+				continue
+			}
 			common := call.Common()
 			target := common.StaticCallee()
 			if target == nil {
 				continue
 			}
-			if object, ok := target.Object().(*types.Func); ok && object.Origin() == targetObject && slot < uint64(len(common.Args)) && argumentCallOperand(common.Args[slot], frame.argument) {
+			if object, ok := target.Object().(*types.Func); ok && object.Origin() == targetObject && slot < uint64(len(common.Args)) && argumentCallReceiver(common.Args[slot], frame.argument, frame.receiverPath) {
 				return true, nil
 			}
 			_, literal := target.Syntax().(*ast.FuncLit)
@@ -113,20 +161,31 @@ func argumentCallInFrame(ctx context.Context, frame argumentCallFrame, targetObj
 					return false, core.ErrGoToolchainOutput
 				}
 				for index, binding := range closure.Bindings {
-					if !argumentCallOperand(binding, frame.argument) {
-						continue
+					if argumentCallOperand(binding, frame.argument) {
+						if found, err := argumentCallInFrame(ctx, argumentCallFrame{function: target, argument: target.FreeVars[index], parent: &frame, receiverPath: frame.receiverPath}, targetObject, slot, timing); found || err != nil {
+							return found, err
+						}
 					}
-					if found, err := argumentCallInFrame(ctx, argumentCallFrame{function: target, argument: target.FreeVars[index], parent: &frame}, targetObject, slot); found || err != nil {
-						return found, err
+					if len(frame.receiverPath) > 0 && argumentCallReceiver(binding, frame.argument, frame.receiverPath) {
+						if found, err := argumentCallInFrame(ctx, argumentCallFrame{function: target, argument: target.FreeVars[index], parent: &frame}, targetObject, slot, timing); found || err != nil {
+							return found, err
+						}
 					}
 				}
 			}
 			for index, argument := range common.Args {
-				if index >= len(target.Params) || !argumentCallOperand(argument, frame.argument) {
+				if index >= len(target.Params) {
 					continue
 				}
-				if found, err := argumentCallInFrame(ctx, argumentCallFrame{function: target, argument: target.Params[index], parent: &frame}, targetObject, slot); found || err != nil {
-					return found, err
+				if argumentCallOperand(argument, frame.argument) {
+					if found, err := argumentCallInFrame(ctx, argumentCallFrame{function: target, argument: target.Params[index], parent: &frame, receiverPath: frame.receiverPath}, targetObject, slot, timing); found || err != nil {
+						return found, err
+					}
+				}
+				if len(frame.receiverPath) > 0 && argumentCallReceiver(argument, frame.argument, frame.receiverPath) {
+					if found, err := argumentCallInFrame(ctx, argumentCallFrame{function: target, argument: target.Params[index], parent: &frame}, targetObject, slot, timing); found || err != nil {
+						return found, err
+					}
 				}
 			}
 		}
@@ -253,3 +312,23 @@ func argumentCallCellUnchangedBeforeRead(read *ssa.UnOp) bool {
 
 var _ internalFlow = SSAArgumentCallRequest{}
 var _ internalFlow = argumentCallFrame{}
+
+// The promoted path is Go's Selection.Index loan. A neighboring field or
+// different owner cannot lend its receiver to the selected target.
+func argumentCallReceiver(value, reference ssa.Value, path []int) bool {
+	if len(path) == 0 {
+		return argumentCallOperand(value, reference)
+	}
+	switch field := value.(type) {
+	case *ssa.FieldAddr:
+		return field.Field == path[len(path)-1] && argumentCallReceiver(field.X, reference, path[:len(path)-1])
+	case *ssa.Field:
+		return field.Field == path[len(path)-1] && argumentCallReceiver(field.X, reference, path[:len(path)-1])
+	case *ssa.UnOp:
+		return field.Op == token.MUL && argumentCallReceiver(field.X, reference, path)
+	default:
+		return false
+	}
+}
+
+var _ core.OffWireEnum = SSACallTimingUnknown

@@ -1,11 +1,11 @@
 --- a/gotoolchain/ssa_argument_call.go
 +++ b/gotoolchain/ssa_argument_call.go
-@@ -100,7 +100,7 @@
+@@ -147,7 +147,7 @@
  			if target == nil {
  				continue
  			}
--			if object, ok := target.Object().(*types.Func); ok && object.Origin() == targetObject && slot < uint64(len(common.Args)) && argumentCallOperand(common.Args[slot], frame.argument) {
-+			if object, ok := target.Object().(*types.Func); ok && object.Name() != "" && slot < uint64(len(common.Args)) && argumentCallOperand(common.Args[slot], frame.argument) {
+-			if object, ok := target.Object().(*types.Func); ok && object.Origin() == targetObject && slot < uint64(len(common.Args)) && argumentCallReceiver(common.Args[slot], frame.argument, frame.receiverPath) {
++			if object, ok := target.Object().(*types.Func); ok && object.Name() != "" && slot < uint64(len(common.Args)) && argumentCallReceiver(common.Args[slot], frame.argument, frame.receiverPath) {
  				return true, nil
  			}
  			_, literal := target.Syntax().(*ast.FuncLit)

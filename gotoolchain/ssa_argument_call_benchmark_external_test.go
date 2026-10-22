@@ -15,7 +15,7 @@ func BenchmarkSSAArgumentCall(b *testing.B) {
 	err := analysis.WithSSAUnit(b.Context(), gotoolchain.SSAUnitRequest{Unit: unit, Use: func(ctx context.Context, view gotoolchain.SSAUnitView) error {
 		frame := view.Package.Func("Entry")
 		target := types.NewMethodSet(frame.Params[0].Type()).Lookup(nil, "Invoke").Obj().(*types.Func)
-		request := gotoolchain.SSAArgumentCallRequest{Function: frame, Argument: frame.Params[0], Target: target}
+		request := gotoolchain.SSAArgumentCallRequest{Timing: gotoolchain.SSACallTimingSynchronous, Function: frame, Argument: frame.Params[0], Target: target}
 		for b.Loop() {
 			got, err := view.ArgumentCall(ctx, request)
 			if err != nil || !got.Proven {
