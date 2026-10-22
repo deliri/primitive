@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_nil_boxed_returns.go
++++ b/gotoolchain/ssa_nil_boxed_returns.go
+@@ -57,7 +57,7 @@
+ 					yield(nil, core.ErrGoToolchainOutput)
+ 					return
+ 				}
+-				if !types.IsInterface(value.Type()) || !types.AssignableTo(value.Type(), r.Interface) {
++				if !types.IsInterface(value.Type()) {
+ 					continue
+ 				}
+ 				for {

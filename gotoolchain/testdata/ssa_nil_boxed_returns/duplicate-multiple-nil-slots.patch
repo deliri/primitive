@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_nil_boxed_returns.go
++++ b/gotoolchain/ssa_nil_boxed_returns.go
+@@ -88,7 +88,7 @@
+ 					if !yield(returned, nil) {
+ 						return
+ 					}
+-					break
++					continue
+ 				}
+ 			}
+ 		}

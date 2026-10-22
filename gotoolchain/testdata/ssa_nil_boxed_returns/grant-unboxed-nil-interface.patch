@@ -1,0 +1,10 @@
+--- a/gotoolchain/ssa_nil_boxed_returns.go
++++ b/gotoolchain/ssa_nil_boxed_returns.go
+@@ -77,6 +77,7 @@
+ 				}
+ 				box, ok := value.(*ssa.MakeInterface)
+ 				if !ok {
++					if zero, nilValue := value.(*ssa.Const); nilValue && zero.IsNil() { if !yield(returned, nil) { return }; break }
+ 					continue
+ 				}
+ 				if box.X == nil || reflect.ValueOf(box.X).IsNil() {

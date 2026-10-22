@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_nil_boxed_returns.go
++++ b/gotoolchain/ssa_nil_boxed_returns.go
+@@ -38,7 +38,7 @@
+ 			yield(nil, err)
+ 			return
+ 		}
+-		request := SSAInstructionRequest{Function: r.Function, Extent: SSAInstructionExtentFunction}
++		request := SSAInstructionRequest{Function: r.Function, Extent: SSAInstructionExtentLexical}
+ 		for instruction, err := range v.Instructions(ctx, request) {
+ 			if err != nil {
+ 				yield(nil, err)

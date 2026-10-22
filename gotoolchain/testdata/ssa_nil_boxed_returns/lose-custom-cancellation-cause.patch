@@ -1,0 +1,36 @@
+--- a/gotoolchain/ssa_nil_boxed_returns.go
++++ b/gotoolchain/ssa_nil_boxed_returns.go
+@@ -35,13 +35,13 @@
+ func (v SSAUnitView) NilBoxedReturns(ctx context.Context, r SSANilBoxedReturnRequest) iter.Seq2[*ssa.Return, error] {
+ 	return func(yield func(*ssa.Return, error) bool) {
+ 		if err := errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), v.Validate(), r.Validate()); err != nil {
+-			yield(nil, err)
++			if ctx != nil && ctx.Err() != nil { yield(nil, context.Canceled) } else { yield(nil, err) }
+ 			return
+ 		}
+ 		request := SSAInstructionRequest{Function: r.Function, Extent: SSAInstructionExtentFunction}
+ 		for instruction, err := range v.Instructions(ctx, request) {
+ 			if err != nil {
+-				yield(nil, err)
++				if ctx != nil && ctx.Err() != nil { yield(nil, context.Canceled) } else { yield(nil, err) }
+ 				return
+ 			}
+ 			returned, ok := instruction.(*ssa.Return)
+@@ -50,7 +50,7 @@
+ 			}
+ 			for _, value := range returned.Results {
+ 				if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+-					yield(nil, err)
++					if ctx != nil && ctx.Err() != nil { yield(nil, context.Canceled) } else { yield(nil, err) }
+ 					return
+ 				}
+ 				if value == nil || reflect.ValueOf(value).IsNil() || value.Type() == nil {
+@@ -62,7 +62,7 @@
+ 				}
+ 				for {
+ 					if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+-						yield(nil, err)
++						if ctx != nil && ctx.Err() != nil { yield(nil, context.Canceled) } else { yield(nil, err) }
+ 						return
+ 					}
+ 					conversion, ok := value.(*ssa.ChangeInterface)

@@ -1,0 +1,12 @@
+--- a/gotoolchain/ssa_nil_boxed_returns.go
++++ b/gotoolchain/ssa_nil_boxed_returns.go
+@@ -38,6 +38,9 @@
+ 			yield(nil, err)
+ 			return
+ 		}
++		var population []*ssa.Return
++		for _, block := range r.Function.Blocks { for _, instruction := range block.Instrs { if returned, ok := instruction.(*ssa.Return); ok { population = append(population, returned) } } }
++		if len(population) == 0 { return }
+ 		request := SSAInstructionRequest{Function: r.Function, Extent: SSAInstructionExtentFunction}
+ 		for instruction, err := range v.Instructions(ctx, request) {
+ 			if err != nil {
