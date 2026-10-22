@@ -7,6 +7,7 @@ import (
 	"io"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/lineio"
@@ -29,13 +30,20 @@ func TestFragmentContextAdmissionDoesNotReadOrPoisonTheSource(t *testing.T) {
 	t.Parallel()
 	canceled, cancel := context.WithCancel(t.Context())
 	cancel()
+	cancelledCause, cancelCause := context.WithCancelCause(t.Context())
+	cancelCause(io.ErrNoProgress)
+	deadline, stopDeadline := context.WithDeadlineCause(t.Context(), time.Time{}, errors.ErrUnsupported)
+	defer stopDeadline()
 	for _, tc := range []struct {
-		name    string
-		ctx     context.Context
-		wantErr error
+		name      string
+		ctx       context.Context
+		wantErr   error
+		wantCause error
 	}{
 		{name: "nil context refuses native read", wantErr: core.ErrNilContext},
 		{name: "canceled context refuses native read", ctx: canceled, wantErr: context.Canceled},
+		{name: "cancelled owner cause before read", ctx: cancelledCause, wantErr: context.Canceled, wantCause: io.ErrNoProgress},
+		{name: "expired owner cause before read", ctx: deadline, wantErr: context.DeadlineExceeded, wantCause: errors.ErrUnsupported},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -47,6 +55,9 @@ func TestFragmentContextAdmissionDoesNotReadOrPoisonTheSource(t *testing.T) {
 			fragment, err := reader.ReadFragment(tc.ctx)
 			if !errors.Is(err, tc.wantErr) || len(fragment.Bytes) != 0 || fragment.More || source.calls != 0 {
 				t.Fatalf("ReadFragment(refused) = (%q, more:%t, reads:%d, %v), want empty, zero reads and %v", fragment.Bytes, fragment.More, source.calls, err, tc.wantErr)
+			}
+			if tc.wantCause != nil && !errors.Is(err, tc.wantCause) {
+				t.Fatalf("native admission cause lost: %v want %v", err, tc.wantCause)
 			}
 			fragment, err = reader.ReadFragment(t.Context())
 			if err != nil || string(fragment.Bytes) != "admitted\n" || source.calls != 1 {
@@ -73,15 +84,16 @@ func TestFragmentCancellationDuringNativeReadRetainsBytesAndRefusal(t *testing.T
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			ctx, cancel := context.WithCancel(t.Context())
-			defer cancel()
+			ctx, cancelCause := context.WithCancelCause(t.Context())
+			defer cancelCause(nil)
+			cancel := func() { cancelCause(io.ErrNoProgress) }
 			source := &cancelingFragmentSource{cancel: cancel, data: tc.data, cause: tc.cause}
 			reader, err := lineio.New(lineio.Request{Source: source, BufferBytes: mustByteCount(t, 16)})
 			if err != nil {
 				t.Fatalf("New() error = %v, want nil", err)
 			}
 			fragment, err := reader.ReadFragment(ctx)
-			if !errors.Is(err, context.Canceled) || !bytes.Equal(fragment.Bytes, []byte(tc.data)) || fragment.More != tc.wantMore || source.reads != 1 {
+			if !errors.Is(err, context.Canceled) || !errors.Is(err, io.ErrNoProgress) || !bytes.Equal(fragment.Bytes, []byte(tc.data)) || fragment.More != tc.wantMore || source.reads != 1 {
 				t.Fatalf("ReadFragment(canceled during read) = (%q, more:%t, reads:%d, %v), want exact %q, more:%t, one read and cancellation", fragment.Bytes, fragment.More, source.reads, err, tc.data, tc.wantMore)
 			}
 			if tc.cause != nil && !errors.Is(err, tc.cause) {
@@ -91,7 +103,7 @@ func TestFragmentCancellationDuringNativeReadRetainsBytesAndRefusal(t *testing.T
 				t.Fatalf("ReadFragment() error = %v, want source scan refusal", err)
 			}
 			again, nextErr := reader.ReadFragment(t.Context())
-			if len(again.Bytes) != 0 || again.More || !errors.Is(nextErr, context.Canceled) || source.reads != 1 {
+			if len(again.Bytes) != 0 || again.More || !errors.Is(nextErr, context.Canceled) || !errors.Is(nextErr, io.ErrNoProgress) || source.reads != 1 {
 				t.Fatalf("ReadFragment(after terminal) = (%q, more:%t, reads:%d, %v), want empty, original refusal and no retry", again.Bytes, again.More, source.reads, nextErr)
 			}
 		})
