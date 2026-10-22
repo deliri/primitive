@@ -36,6 +36,24 @@ func Open(ctx context.Context, configuration Configuration) (Capability, error) 
 	if err != nil {
 		return Capability{}, errors.Join(core.ErrGoToolchainExecution, err)
 	}
+	return openResolved(command, configuration)
+}
+
+// OpenExecutable admits one operator-selected native Go executable without
+// consulting PATH. A delivered toolchain must not silently select a system Go.
+// Native runnability and refusal identities remain owned by process.
+func OpenExecutable(ctx context.Context, command core.AbsolutePath, configuration Configuration) (Capability, error) {
+	if err := configuration.Validate(); err != nil {
+		return Capability{}, err
+	}
+	resolved, err := process.ResolveExecutable(ctx, command)
+	if err != nil {
+		return Capability{}, errors.Join(core.ErrGoToolchainExecution, err)
+	}
+	return openResolved(resolved, configuration)
+}
+
+func openResolved(command core.AbsolutePath, configuration Configuration) (Capability, error) {
 	environment, err := captureEnvironment(configuration.Environment)
 	if err != nil {
 		return Capability{}, errors.Join(core.ErrGoToolchainExecution, err)
