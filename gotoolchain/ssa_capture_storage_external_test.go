@@ -28,11 +28,15 @@ func TestSSAStorageBorrowsStableNativeCaptureCells(t *testing.T) {
 		{"nested closure can replace shared cell", `outer:=func(){write:=func(){root=other};write();observe(root)};outer()`, false},
 		{"captured address escapes to unknown callee", `escape(&root);fn:=func(){observe(root)};fn()`, false},
 		{"conditional receiver replacement", `if flag{root=other};observe(root)`, false},
+		{"store after captured read cannot establish prior storage", `var copy *Record;fn:=func(){observe(copy)};fn();copy=root`, false},
+		{"conditional store cannot dominate capture", `var copy *Record;if flag{copy=root};fn:=func(){observe(copy)};fn()`, false},
+		{"child can escape captured cell address", `fn:=func(){escape(&root);observe(root)};fn()`, false},
+		{"captured pointer representation change", `copy:=(*Alias)(root);fn:=func(){observe((*Record)(copy))};fn()`, true},
 		{"native nil does not name storage", `root=nil;observe(root)`, false},
 	} {
 		t.Run(row.name, func(t *testing.T) {
 			t.Parallel()
-			analysis := nativeSymbolSourceAnalysis(t, t.TempDir(), `package sample;type Record struct{Count int};func observe(*Record){};func escape(**Record){};func F(root,other *Record,flag bool){`+row.body+`}`)
+			analysis := nativeSymbolSourceAnalysis(t, t.TempDir(), `package sample;type Record struct{Count int};type Alias Record;func observe(*Record){};func escape(**Record){};func F(root,other *Record,flag bool){`+row.body+`}`)
 			unit := analysis.Units[0]
 			err := analysis.WithSSAUnit(t.Context(), gotoolchain.SSAUnitRequest{Unit: unit, SourceValues: true, Use: func(ctx context.Context, view gotoolchain.SSAUnitView) error {
 				parent := view.Program.FuncValue(unit.Types.Scope().Lookup("F").(*types.Func))
