@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/lineio"
@@ -192,7 +193,21 @@ func TestTrimRecordSuffixAdmitsOnlyCompleteNativeRanges(t *testing.T) {
 	if err := (lineio.RecordSuffixTrimRequest{}).Validate(); !errors.Is(err, core.ErrLineIOContract) {
 		t.Fatalf("unset request=%v,want native contract refusal", err)
 	}
-	if got, err := lineio.TrimRecordSuffix(nil, lineio.RecordSuffixTrimRequest{}); got != (lineio.RecordRange{}) || !errors.Is(err, core.ErrNilContext) {
-		t.Fatalf("nil context=(%+v,%v),want no coordinates/native nil context identity", got, err)
+	deadline, stopDeadline := context.WithDeadlineCause(t.Context(), time.Time{}, io.ErrClosedPipe)
+	defer stopDeadline()
+	for _, row := range []struct {
+		name string
+		ctx  context.Context
+		want error
+	}{{"nil", nil, core.ErrNilContext}, {"expired deadline", deadline, context.DeadlineExceeded}} {
+		t.Run("context admission/"+row.name, func(t *testing.T) {
+			got, err := lineio.TrimRecordSuffix(row.ctx, lineio.RecordSuffixTrimRequest{})
+			if got != (lineio.RecordRange{}) || !errors.Is(err, row.want) {
+				t.Fatalf("unusable context=(%+v,%v),want zero coordinates and native refusal", got, err)
+			}
+			if row.want == context.DeadlineExceeded && !errors.Is(err, io.ErrClosedPipe) {
+				t.Fatalf("native context cause lost: %v", err)
+			}
+		})
 	}
 }

@@ -18,23 +18,26 @@ import (
 )
 
 type (
-	lineioRequestContract[T any]    struct{}
-	lineioCapabilityContract[T any] struct{}
-	lineioReadCountGuardContract    struct{}
+	lineioRequestContract[T any]     struct{}
+	lineioCapabilityContract[T any]  struct{}
+	lineioObservationContract[T any] struct{}
+	lineioReadCountGuardContract     struct{}
 )
 
 // lineioContractInventory classifies every production carrier by its actual
 // data-flow role. It is a compiler-visible wiring ratchet, not behavior proof.
 type lineioContractInventory struct {
+	LastRecordRangeRequest   lineioRequestContract[lineio.LastRecordRangeRequest]
+	RecordRangeObservation   lineioObservationContract[lineio.RecordRangeObservation]
 	LiteralReplacement       lineioRequestContract[lineio.LiteralReplacement]
 	ReplaceStreamRequest     lineioRequestContract[lineio.ReplaceStreamRequest]
-	ReplaceStreamObservation lineioRequestContract[lineio.ReplaceStreamObservation]
+	ReplaceStreamObservation lineioObservationContract[lineio.ReplaceStreamObservation]
 	RecordRange              lineioRequestContract[lineio.RecordRange]
 	RecordCharacter          lineioRequestContract[lineio.RecordCharacter]
 	RecordReadRequest        lineioRequestContract[lineio.RecordReadRequest]
 	RecordRangeReadRequest   lineioRequestContract[lineio.RecordRangeReadRequest]
-	recordRangeSource        lineioReadCountGuardContract
-	RecordReadObservation    lineioRequestContract[lineio.RecordReadObservation]
+	RecordRangeSource        lineioReadCountGuardContract `source:"recordRangeSource"`
+	RecordReadObservation    lineioObservationContract[lineio.RecordReadObservation]
 	RecordRangeRequest       lineioRequestContract[lineio.RecordRangeRequest]
 	RecordFragmentRequest    lineioRequestContract[lineio.RecordFragmentRequest]
 	RecordSuffixTrimRequest  lineioRequestContract[lineio.RecordSuffixTrimRequest]
@@ -43,22 +46,21 @@ type lineioContractInventory struct {
 	Character                lineioRequestContract[lineio.Character]
 	CharacterPosition        lineioRequestContract[lineio.CharacterPosition]
 	CharacterRequest         lineioRequestContract[lineio.CharacterRequest]
-	characterSource          lineioReadCountGuardContract
+	CharacterSource          lineioReadCountGuardContract `source:"characterSource"`
 	Fragment                 lineioRequestContract[lineio.Fragment]
 	Request                  lineioRequestContract[lineio.Request]
 	Reader                   lineioCapabilityContract[lineio.Reader]
 	RangeReader              lineioCapabilityContract[lineio.RangeReader]
-	recordRangeReadGuard     lineioReadCountGuardContract
-	recordFragmentReader     lineioReadCountGuardContract
-	checkedReader            lineioReadCountGuardContract
-	recordReadSource         lineioReadCountGuardContract
+	RecordRangeReadGuard     lineioReadCountGuardContract `source:"recordRangeReadGuard"`
+	RecordFragmentReader     lineioReadCountGuardContract `source:"recordFragmentReader"`
+	CheckedReader            lineioReadCountGuardContract `source:"checkedReader"`
+	RecordReadSource         lineioReadCountGuardContract `source:"recordReadSource"`
 }
 
 var (
-	_ lineioReadCountGuardContract = lineioContractInventory{}.checkedReader
-	_ core.Validatable             = lineio.Fragment{}
-	_ core.Validatable             = lineio.Request{}
-	_ core.Validatable             = (*lineio.Reader)(nil)
+	_ core.Validatable = lineio.Fragment{}
+	_ core.Validatable = lineio.Request{}
+	_ core.Validatable = (*lineio.Reader)(nil)
 )
 
 func TestLineIOProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T) {
@@ -152,7 +154,11 @@ func lineioClassifiedStructNames() []string {
 	contract := reflect.TypeFor[lineioContractInventory]()
 	names := make([]string, contract.NumField())
 	for index := range contract.NumField() {
-		names[index] = contract.Field(index).Name
+		field := contract.Field(index)
+		names[index] = field.Tag.Get("source")
+		if names[index] == "" {
+			names[index] = field.Name
+		}
 	}
 	slices.Sort(names)
 	return names
