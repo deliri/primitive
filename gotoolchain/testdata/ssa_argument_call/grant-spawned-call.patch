@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_argument_call.go
++++ b/gotoolchain/ssa_argument_call.go
+@@ -92,7 +92,7 @@
+ 			if !ok {
+ 				continue
+ 			}
+-			if _, spawn := instruction.(*ssa.Go); spawn {
++			if _, spawn := instruction.(*ssa.Go); spawn && false {
+ 				continue
+ 			}
+ 			common := call.Common()

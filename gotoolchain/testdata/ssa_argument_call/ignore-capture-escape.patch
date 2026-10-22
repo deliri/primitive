@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_argument_call.go
++++ b/gotoolchain/ssa_argument_call.go
+@@ -204,7 +204,7 @@
+ 			default:
+ 				// An opaque callee can replace an escaped capture cell. Its
+ 				// initial store no longer proves the operand used by a read.
+-				return false
++				continue
+ 			}
+ 			store, ok := reference.(*ssa.Store)
+ 			if !ok || store.Addr != operand {

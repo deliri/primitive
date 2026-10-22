@@ -1,0 +1,27 @@
+[
+  {
+    "name": "borrow-other-target",
+    "patch": "borrow-other-target.patch",
+    "selection": "^TestSSAArgumentCallPreservesNativeTargetAndOperand$/^other_method$"
+  },
+  {
+    "name": "borrow-other-operand",
+    "patch": "borrow-other-operand.patch",
+    "selection": "^TestSSAArgumentCallPreservesNativeTargetAndOperand$/^other_receiver$"
+  },
+  {
+    "name": "grant-spawned-call",
+    "patch": "grant-spawned-call.patch",
+    "selection": "^TestSSAArgumentCallPreservesNativeTargetAndOperand$/^spawn_is_not_synchronous$"
+  },
+  {
+    "name": "ignore-capture-escape",
+    "patch": "ignore-capture-escape.patch",
+    "selection": "^TestSSAArgumentCallRefusesEscapedCaptureIdentity$"
+  },
+  {
+    "name": "retain-instruction-population",
+    "patch": "retain-instruction-population.patch",
+    "selection": "^TestSSAArgumentCallRetainsNoInstructionPopulation$"
+  }
+]
