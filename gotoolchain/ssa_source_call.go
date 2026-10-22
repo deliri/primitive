@@ -87,15 +87,20 @@ func (v SSAUnitView) CallForExpression(ctx context.Context, r SSASourceCallReque
 		}
 		return out, core.ErrGoToolchainContract
 	}
-	for instruction, queryErr := range v.Instructions(ctx, SSAInstructionRequest{Function: fn, Extent: SSAInstructionExtentFunction}) {
+	return v.sourceCallInInstructions(ctx, r)
+}
+
+// Keep iterator captures out of the ordinary Go expression lookup path.
+func (v SSAUnitView) sourceCallInInstructions(ctx context.Context, r SSASourceCallRequest) (SSASourceCallObservation, error) {
+	for instruction, queryErr := range v.Instructions(ctx, SSAInstructionRequest{Function: r.Function, Extent: SSAInstructionExtentFunction}) {
 		if queryErr != nil {
-			return out, queryErr
+			return SSASourceCallObservation{}, queryErr
 		}
 		if call, ok := instruction.(ssa.CallInstruction); ok && call.Common().Pos() == r.Expression.Lparen {
 			return SSASourceCallObservation{Instruction: call}, nil
 		}
 	}
-	return out, nil
+	return SSASourceCallObservation{}, nil
 }
 
 var _ internalFlow = SSASourceCallRequest{}

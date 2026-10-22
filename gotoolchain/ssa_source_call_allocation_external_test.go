@@ -50,8 +50,8 @@ func TestSSASourceCallRetainsNoInstructionPopulation(t *testing.T) {
 					return err
 				}
 				allocated := after.Uint64() - before.Uint64()
-				if queryErr != nil || got.Instruction == nil || got.Instruction.Common().Pos() != expression.Lparen || allocated > 4096 {
-					t.Fatalf("last source call=(%+v,%v) scratch=%d at %d calls, want exact call,nil and <=4096 bytes", got, queryErr, allocated, calls)
+				if queryErr != nil || got.Instruction == nil || got.Instruction.Common().Pos() != expression.Lparen || allocated != 0 {
+					t.Fatalf("last source call=(%+v,%v) scratch=%d at %d calls, want exact call,nil and zero bytes", got, queryErr, allocated, calls)
 				}
 				t.Logf("source-call scratch=%d at %d native calls; compiler construction excluded", allocated, calls)
 				return nil

@@ -48,5 +48,10 @@
     "name": "accept-empty-synthetic-clone",
     "patch": "accept-empty-synthetic-clone.patch",
     "selection": "^TestSSASourceCallBorrowsSyntheticPackageInitializer$"
+  },
+  {
+    "name": "capture-iterator-results-in-ordinary-lookup",
+    "patch": "capture-iterator-results-in-ordinary-lookup.patch",
+    "selection": "^TestSSASourceCallRetainsNoInstructionPopulation$/^8193$"
   }
 ]
