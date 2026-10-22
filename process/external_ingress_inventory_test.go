@@ -44,6 +44,7 @@ type processExternalDoorInventory struct {
 	TailBuffer_Write           func(*process.TailBuffer, []byte) (int, error)
 	ObserveProcesses           func(context.Context, process.ProcessVisit) error
 	ParseArguments             func([]string) ([]process.Argument, error)
+	CollectArguments           func(context.Context, process.ArgumentSource) ([]process.Argument, error)
 	ParseEffectiveEnvironment  func([]string) (process.Environment, error)
 	ParseExactEnvironment      func([]string) (process.Environment, error)
 	Resolve                    func(context.Context, core.PathComponent) (core.AbsolutePath, error)
@@ -76,13 +77,15 @@ var processExternalDoors = processExternalDoorInventory{
 	NewTruncatingWriter: process.NewTruncatingWriter, ObserveProcesses: process.ObserveProcesses,
 	NewTailBuffer: process.NewTailBuffer, TailBuffer_Write: (*process.TailBuffer).Write,
 	ParseArguments: process.ParseArguments, ParseEffectiveEnvironment: process.ParseEffectiveEnvironment, ParseExactEnvironment: process.ParseExactEnvironment,
-	Resolve: process.Resolve, ResolveExecutable: process.ResolveExecutable, Run: process.Run, Self: process.Self, StandardStreams: process.StandardStreams,
+	CollectArguments: process.CollectArguments,
+	Resolve:          process.Resolve, ResolveExecutable: process.ResolveExecutable, Run: process.Run, Self: process.Self, StandardStreams: process.StandardStreams,
 	Streams_WriteOutput: process.Streams.WriteOutput, TruncatingWriter_Write: (*process.TruncatingWriter).Write, ResultObservation_Validate: process.ResultObservation.Validate,
 }
 
 // Fields deliberately use the same compiler-checked operation names as the
 // call inventory. An added operation cannot disappear from classification.
 type processExternalFuzzProofInventory struct {
+	CollectArguments                                                                                  func(*testing.F)
 	ExecutionScope_Begin, ExecutionScope_Wait, ExecutionScope_ActiveCount, ExecutionScope_VisitActive func(*testing.F)
 	OutputMode_UnmarshalJSON                                                                          func(*testing.F)
 	OutputPolicy_Validate                                                                             func(*testing.F)
@@ -95,6 +98,7 @@ type processExternalFuzzProofInventory struct {
 
 func processExternalFuzzProofs() processExternalFuzzProofInventory {
 	return processExternalFuzzProofInventory{
+		CollectArguments:           FuzzArgumentSourceExactProjection,
 		ExecutionScope_Begin:       FuzzExecutionScopeConservesNativeCustody,
 		ExecutionScope_Wait:        FuzzExecutionScopeConservesNativeCustody,
 		ExecutionScope_ActiveCount: FuzzExecutionScopeConservesNativeCustody,

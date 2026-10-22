@@ -1,0 +1,11 @@
+--- a/process/argument_source.go
++++ b/process/argument_source.go
+@@ -21,7 +21,7 @@
+ 	defer func() {
+ 		resultErr = errors.Join(resultErr, temporal.Wait(temporal.WaitRequest{Context: ctx}))
+ 		if resultErr != nil {
+-			arguments = nil
++			// Fault: retain canceled argv.
+ 		}
+ 	}()
+ 	if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {

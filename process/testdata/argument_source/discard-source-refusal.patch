@@ -1,0 +1,11 @@
+--- a/process/argument_source.go
++++ b/process/argument_source.go
+@@ -40,7 +40,7 @@
+ 	var projectedBytes uint64
+ 	for argument, sourceErr := range values {
+ 		if sourceErr != nil {
+-			return nil, sourceErr
++			continue
+ 		}
+ 		if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+ 			return nil, err

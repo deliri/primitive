@@ -1,0 +1,11 @@
+--- a/process/argument_source.go
++++ b/process/argument_source.go
+@@ -48,7 +48,7 @@
+ 		if err := argument.Validate(); err != nil {
+ 			return nil, err
+ 		}
+-		if uint64(len(arguments)) == uint64(ArgumentCountMaximum) {
++		if uint64(len(arguments)) > uint64(ArgumentCountMaximum) {
+ 			return nil, contractError(argumentCountMaximumDiagnostic)
+ 		}
+ 		var err error

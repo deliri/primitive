@@ -1,0 +1,6 @@
+[
+  {"name":"retain-canceled-projection","patch":"retain-canceled-projection.patch","selection":"^TestArgumentSourceConservesExactInvocationOrReturnsNoProjection$/^late_cancellation_withdraws_complete_projection$"},
+  {"name":"discard-source-refusal","patch":"discard-source-refusal.patch","selection":"^TestArgumentSourceConservesExactInvocationOrReturnsNoProjection$/^producer_refusal_after_admitted_prefix$"},
+  {"name":"exceed-native-argument-count","patch":"exceed-native-argument-count.patch","selection":"^TestArgumentSourceConservesExactInvocationOrReturnsNoProjection$/^above_native_argument_count$"},
+  {"name":"enter-canceled-iterator","patch":"enter-canceled-iterator.patch","selection":"^TestArgumentSourceConservesExactInvocationOrReturnsNoProjection$/^factory_cancellation_never_enters_iterator$"}
+]

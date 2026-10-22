@@ -1,0 +1,12 @@
+--- a/process/argument_source.go
++++ b/process/argument_source.go
+@@ -34,9 +34,6 @@
+ 	if values == nil {
+ 		return nil, core.ErrProcessContract
+ 	}
+-	if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+-		return nil, err
+-	}
+ 	var projectedBytes uint64
+ 	for argument, sourceErr := range values {
+ 		if sourceErr != nil {
