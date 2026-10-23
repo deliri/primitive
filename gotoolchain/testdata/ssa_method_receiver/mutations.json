@@ -1,0 +1,72 @@
+[
+  {
+    "name": "contradict-compiler-catalog-path",
+    "patch": "contradict-compiler-catalog-path.patch",
+    "selection": "^TestSSAMethodReceiverUsesCatalogOwner$"
+  },
+  {
+    "name": "admit-detached-call",
+    "patch": "admit-detached-call.patch",
+    "selection": "^TestSSAMethodReceiverRefusesDamagedNativeFacts$/^detached_selected_call$"
+  },
+  {
+    "name": "erase-missing-callee-refusal",
+    "patch": "erase-missing-callee-refusal.patch",
+    "selection": "^TestSSAMethodReceiverRefusesDamagedNativeFacts$/^missing_callee_value$"
+  },
+  {
+    "name": "confuse-bound-receiver-with-argument",
+    "patch": "confuse-bound-receiver-with-argument.patch",
+    "selection": "^TestSSAMethodReceiverConservesActualOperand$/^bound_receiver_differs_from_explicit_argument$"
+  },
+  {
+    "name": "borrow-explicit-argument-as-direct-receiver",
+    "patch": "borrow-explicit-argument-as-direct-receiver.patch",
+    "selection": "^TestSSAMethodReceiverConservesActualOperand$/^direct_receiver$"
+  },
+  {
+    "name": "admit-detached-receiver",
+    "patch": "admit-detached-receiver.patch",
+    "selection": "^TestSSAMethodReceiverRefusesDamagedNativeFacts$/^detached_receiver$"
+  },
+  {
+    "name": "admit-foreign-receiver",
+    "patch": "admit-foreign-receiver.patch",
+    "selection": "^TestSSAMethodReceiverRefusesDamagedNativeFacts$/^foreign_receiver$"
+  },
+  {
+    "name": "ignore-native-receiver-type",
+    "patch": "ignore-native-receiver-type.patch",
+    "selection": "^TestSSAMethodReceiverRejectsWrongNativeOperandType$/^direct_method$"
+  },
+  {
+    "name": "neutralize-damaged-capture",
+    "patch": "neutralize-damaged-capture.patch",
+    "selection": "^TestSSAMethodReceiverPreservesBoundCaptureContract$/^unbound_target_cannot_borrow_a_capture$"
+  },
+  {
+    "name": "admit-untaken-method",
+    "patch": "admit-untaken-method.patch",
+    "selection": "^TestSSAMethodReceiverUntakenCallIsNeutral$"
+  },
+  {
+    "name": "erase-final-native-cause",
+    "patch": "erase-final-native-cause.patch",
+    "selection": "^TestSSAMethodReceiverPreservesCancellationAndObservationClosure$"
+  },
+  {
+    "name": "lend-proof-beside-cancellation",
+    "patch": "lend-proof-beside-cancellation.patch",
+    "selection": "^TestSSAMethodReceiverPreservesCancellationAndObservationClosure$"
+  },
+  {
+    "name": "invent-receiver-for-free-function",
+    "patch": "invent-receiver-for-free-function.patch",
+    "selection": "^TestSSAMethodReceiverConservesActualOperand$/^ordinary_function_has_no_receiver$"
+  },
+  {
+    "name": "retain-instruction-population",
+    "patch": "retain-instruction-population.patch",
+    "selection": "^TestSSAMethodReceiverRetainsNoOperandPopulation$/^8193$"
+  }
+]

@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_method_receiver.go
++++ b/gotoolchain/ssa_method_receiver.go
+@@ -115,7 +115,7 @@
+ 			receiverType = signature.Params().At(0).Type()
+ 		}
+ 	}
+-	if !nativeReceiverValuePresent(receiver) || receiverType == nil || !types.AssignableTo(receiver.Type(), receiverType) || receiver.Parent() != nil && receiver.Parent() != r.Call.Parent() {
++	if !nativeReceiverValuePresent(receiver) || receiverType == nil || receiver.Parent() != nil && receiver.Parent() != r.Call.Parent() {
+ 		return out, core.ErrGoToolchainOutput
+ 	}
+ 	if instruction, native := receiver.(ssa.Instruction); native {

@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_method_receiver.go
++++ b/gotoolchain/ssa_method_receiver.go
+@@ -72,7 +72,7 @@
+ 		if target, native := closure.Fn.(*ssa.Function); !native || target == nil {
+ 			return out, core.ErrGoToolchainOutput
+ 		} else if len(closure.Bindings) != len(target.FreeVars) {
+-			return out, core.ErrGoToolchainOutput
++			return out, nil
+ 		}
+ 	}
+ 	method := common.Method

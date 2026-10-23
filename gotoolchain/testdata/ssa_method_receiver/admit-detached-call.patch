@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_method_receiver.go
++++ b/gotoolchain/ssa_method_receiver.go
+@@ -58,7 +58,7 @@
+ 	if block := r.Call.Block(); block == nil || block.Parent() == nil {
+ 		return out, core.ErrGoToolchainContract
+ 	}
+-	if err = v.referrerInstructionMembership(r.Call); err != nil {
++	if err = v.referrerInstructionMembership(r.Call); false {
+ 		return out, err
+ 	}
+ 	if argumentCallUntakenBlock(r.Call.Block()) {

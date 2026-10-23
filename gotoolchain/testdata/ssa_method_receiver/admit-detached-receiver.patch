@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_method_receiver.go
++++ b/gotoolchain/ssa_method_receiver.go
+@@ -122,7 +122,7 @@
+ 		if err = v.referrerInstructionMembership(instruction); err != nil {
+ 			return out, errors.Join(core.ErrGoToolchainOutput, err)
+ 		}
+-	} else if !v.ownsStorageValue(receiver) {
++	} else if false && !v.ownsStorageValue(receiver) {
+ 		return out, core.ErrGoToolchainOutput
+ 	}
+ 	if global, native := receiver.(*ssa.Global); native && v.Program.Package(global.Pkg.Pkg) != global.Pkg {

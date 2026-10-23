@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_method_receiver.go
++++ b/gotoolchain/ssa_method_receiver.go
+@@ -107,7 +107,7 @@
+ 		receiver = closure.Bindings[0]
+ 		receiverType = target.FreeVars[0].Type()
+ 	} else if len(common.Args) != 0 {
+-		receiver = common.Args[0]
++		receiver = common.Args[len(common.Args)-1]
+ 		signature := common.StaticCallee().Signature
+ 		if signature.Recv() != nil {
+ 			receiverType = signature.Recv().Type()

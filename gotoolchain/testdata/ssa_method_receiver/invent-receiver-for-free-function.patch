@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_method_receiver.go
++++ b/gotoolchain/ssa_method_receiver.go
+@@ -88,7 +88,7 @@
+ 	if method.Signature() == nil {
+ 		return out, core.ErrGoToolchainOutput
+ 	}
+-	if method.Signature().Recv() == nil {
++	if false && method.Signature().Recv() == nil {
+ 		if common.IsInvoke() {
+ 			return out, core.ErrGoToolchainOutput
+ 		}

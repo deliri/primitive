@@ -1,0 +1,10 @@
+--- a/gotoolchain/ssa_method_receiver.go
++++ b/gotoolchain/ssa_method_receiver.go
+@@ -61,6 +61,7 @@
+ 	if err = v.referrerInstructionMembership(r.Call); err != nil {
+ 		return out, err
+ 	}
++	r.Call.Block().Instrs = append([]ssa.Instruction(nil), r.Call.Block().Instrs...)
+ 	if argumentCallUntakenBlock(r.Call.Block()) {
+ 		return out, nil
+ 	}

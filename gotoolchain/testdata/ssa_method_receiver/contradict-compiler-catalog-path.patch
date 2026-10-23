@@ -1,0 +1,11 @@
+--- a/core/architecture_catalog.go
++++ b/core/architecture_catalog.go
+@@ -496,7 +496,7 @@
+ 		"controlplanetest",
+ 		"process",
+ 		"gomodule",
+-		"gotoolchain",
++		"missingcompiler",
+ 		"gitrepo",
+ 		"compass",
+ 		"version",

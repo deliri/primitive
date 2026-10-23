@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_method_receiver.go
++++ b/gotoolchain/ssa_method_receiver.go
+@@ -104,7 +104,7 @@
+ 		if len(closure.Bindings) != 1 || target.FreeVars[0] == nil || target.FreeVars[0].Type() == nil {
+ 			return out, core.ErrGoToolchainOutput
+ 		}
+-		receiver = closure.Bindings[0]
++		receiver = common.Args[0]
+ 		receiverType = target.FreeVars[0].Type()
+ 	} else if len(common.Args) != 0 {
+ 		receiver = common.Args[0]
