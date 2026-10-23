@@ -42,9 +42,9 @@ func TestRelayClosesDownwardBeforeJoiningDependentUpward(t *testing.T) {
 		select {
 		case <-done:
 		case <-time.After(relayBackstop):
-			t.Fatal("released relay did not join")
+			t.Fatalf("released Relay wait reached %v, want both owned copies joined", relayBackstop)
 		}
-		t.Fatal("downward EOF did not release dependent upward EOF")
+		t.Fatalf("dependent upward EOF wait reached %v, want downward close to release and join", relayBackstop)
 	}
 }
 

@@ -58,14 +58,14 @@ func TestZeroWaitDelayDrainsAfterChildExit(t *testing.T) {
 			select {
 			case <-done:
 			case <-processTestDeadline(t, processTestBackstop):
-				t.Error("drain execution did not join after release")
+				t.Errorf("released drain wait reached %v, want joined execution", processTestBackstop)
 			}
 		}
 	}()
 	select {
 	case <-output.entered:
 	case <-processTestDeadline(t, processTestBackstop):
-		t.Fatal("child never reached held output")
+		t.Fatalf("child output wait reached %v, want write gate entered", processTestBackstop)
 	}
 	for attempt := 0; ; attempt++ {
 		alive, err := process.Alive(identity)
@@ -76,7 +76,7 @@ func TestZeroWaitDelayDrainsAfterChildExit(t *testing.T) {
 			break
 		}
 		if attempt == 1000 {
-			t.Fatal("finite child did not exit while its output was held")
+			t.Fatalf("finite child identity %v remained present after %d probes, want gone before output release", identity, attempt)
 		}
 		if err := temporal.Wait(temporal.WaitRequest{Context: ctx, Duration: milliseconds(t, 10)}); err != nil {
 			t.Fatal(err)
@@ -96,6 +96,6 @@ func TestZeroWaitDelayDrainsAfterChildExit(t *testing.T) {
 			t.Fatalf("zero drain = %+v/%v/%v, bytes %d; want exit 0 and all 4096 bytes after held drain", observation, got.err, observeErr, output.Len())
 		}
 	case <-processTestDeadline(t, processTestBackstop):
-		t.Fatal("released zero-delay drain did not join")
+		t.Fatalf("released zero-delay drain wait reached %v, want joined execution", processTestBackstop)
 	}
 }

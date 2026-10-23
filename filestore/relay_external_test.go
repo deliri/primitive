@@ -82,9 +82,12 @@ func TestRelayLayerTriad(t *testing.T) {
 			var nearInput io.Reader = bytes.NewReader(upward)
 			nearBuffer := &closeRecorder{closeErr: row.nearCloseErr}
 			var nearOutput io.WriteCloser = nearBuffer
+			var ownedEchoInput *io.PipeReader
 			if row.echo {
 				echoReader, echoWriter := io.Pipe()
 				nearInput, nearOutput = io.LimitReader(echoReader, int64(row.down)), echoWriter
+				ownedEchoInput = echoReader
+				t.Cleanup(func() { _ = echoReader.Close(); _ = echoWriter.Close() })
 				upward = downward
 			}
 			if row.refuseNear {
@@ -109,6 +112,15 @@ func TestRelayLayerTriad(t *testing.T) {
 			select {
 			case got = <-done:
 			case <-time.After(relayBackstop):
+				if ownedEchoInput != nil {
+					_ = ownedEchoInput.Close()
+				}
+				_ = nearOutput.Close()
+				select {
+				case <-done:
+				case <-time.After(relayBackstop):
+					t.Fatalf("released Relay wait reached %v, want both owned copies joined", relayBackstop)
+				}
 				t.Fatalf("Relay got no return within %v, want both directions joined", relayBackstop)
 			}
 			if err := got.result.Validate(); err != nil {
