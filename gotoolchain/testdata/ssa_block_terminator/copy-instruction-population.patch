@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_instructions.go
++++ b/gotoolchain/ssa_instructions.go
+@@ -124,7 +124,7 @@
+ 		if argumentCallUntakenBlock(block) {
+ 			continue
+ 		}
+-		instructions := block.Instrs
++		instructions := append([]ssa.Instruction(nil), block.Instrs...)
+ 		if r.Extent == SSAInstructionExtentBlockTerminator && len(instructions) != 0 {
+ 			instructions = instructions[len(instructions)-1:]
+ 		}

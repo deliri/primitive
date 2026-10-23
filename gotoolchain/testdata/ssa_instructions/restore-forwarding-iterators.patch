@@ -1,6 +1,6 @@
 --- a/gotoolchain/ssa_instructions.go
 +++ b/gotoolchain/ssa_instructions.go
-@@ -75,8 +75,8 @@
+@@ -81,8 +81,8 @@
  			yield(nil, err)
  			return
  		}
@@ -11,7 +11,7 @@
  		}
  		if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
  			yield(nil, err)
-@@ -86,22 +86,23 @@
+@@ -92,22 +92,23 @@
  
  // One native callback carries consumer authority through lexical recursion.
  // No forwarding iterator or per-function query closure is allocated.
@@ -30,7 +30,7 @@
 +		return
  	}
  	blocks, first := fn.Blocks, 0
- 	if r.Extent == SSAInstructionExtentBlock {
+ 	if r.Extent == SSAInstructionExtentBlock || r.Extent == SSAInstructionExtentBlockTerminator {
  		first = r.Block.Index
  		if first < 0 || first >= len(blocks) || blocks[first] != r.Block {
  			yield(nil, core.ErrGoToolchainOutput)
@@ -39,7 +39,7 @@
  		}
  		// Borrow one native slice window; do not rescan or copy the function.
  		blocks = blocks[first : first+1]
-@@ -109,11 +110,11 @@
+@@ -115,11 +116,11 @@
  	for offset, block := range blocks {
  		if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
  			yield(nil, err)
@@ -53,8 +53,8 @@
  		}
  		if argumentCallUntakenBlock(block) {
  			continue
-@@ -121,25 +122,26 @@
- 		for _, instruction := range block.Instrs {
+@@ -131,33 +132,35 @@
+ 		for _, instruction := range instructions {
  			if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
  				yield(nil, err)
 -				return false
@@ -64,6 +64,15 @@
  				yield(nil, core.ErrGoToolchainOutput)
 -				return false
 +				return
+ 			}
+ 			if r.Extent == SSAInstructionExtentBlockTerminator {
+ 				switch instruction.(type) {
+ 				case *ssa.If, *ssa.Jump, *ssa.Return, *ssa.Panic:
+ 				default:
+ 					yield(nil, core.ErrGoToolchainOutput)
+-					return false
++					return
+ 				}
  			}
  			if !yield(instruction, nil) {
 -				return false
@@ -76,13 +85,14 @@
 -			if !v.instructionsInFunction(ctx, SSAInstructionRequest{Function: child, Extent: r.Extent}, fn, yield) {
 -				return false
 +			for instruction, err := range v.instructionsInFunction(ctx, SSAInstructionRequest{Function: child, Extent: r.Extent}, fn) {
-+				if !yield(instruction, err) || err != nil { return }
++				if !yield(instruction,err) || err!=nil { return }
  			}
  		}
  	}
 -	return true
 +	return
 +}
++
  }
  
  var _ internalFlow = SSAInstructionRequest{}

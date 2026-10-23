@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_instructions.go
++++ b/gotoolchain/ssa_instructions.go
+@@ -137,7 +137,7 @@
+ 				yield(nil, core.ErrGoToolchainOutput)
+ 				return false
+ 			}
+-			if r.Extent == SSAInstructionExtentBlockTerminator {
++			if false && r.Extent == SSAInstructionExtentBlockTerminator {
+ 				switch instruction.(type) {
+ 				case *ssa.If, *ssa.Jump, *ssa.Return, *ssa.Panic:
+ 				default:

@@ -159,7 +159,7 @@ func TestSSAInstructionExtentExhaustsClosedDomain(t *testing.T) {
 	t.Parallel()
 	for i := 0; i < 256; i++ {
 		value := gotoolchain.SSAInstructionExtent(i)
-		want := value == gotoolchain.SSAInstructionExtentFunction || value == gotoolchain.SSAInstructionExtentLexical || value == gotoolchain.SSAInstructionExtentBlock
+		want := value == gotoolchain.SSAInstructionExtentFunction || value == gotoolchain.SSAInstructionExtentLexical || value == gotoolchain.SSAInstructionExtentBlock || value == gotoolchain.SSAInstructionExtentBlockTerminator
 		if value.IsValid() != want || (value.Validate() == nil) != want || (!want && !errors.Is(value.Validate(), core.ErrGoToolchainContract)) {
 			t.Fatalf("extent %d validation=(%t,%v), want valid=%t and contract refusal otherwise", i, value.IsValid(), value.Validate(), want)
 		}
@@ -170,6 +170,8 @@ func TestSSAInstructionExtentExhaustsClosedDomain(t *testing.T) {
 			label = "lexical"
 		} else if value == gotoolchain.SSAInstructionExtentBlock {
 			label = "block"
+		} else if value == gotoolchain.SSAInstructionExtentBlockTerminator {
+			label = "block_terminator"
 		}
 		if value.String() != label {
 			t.Fatalf("extent %d label=%q, want %q", i, value.String(), label)

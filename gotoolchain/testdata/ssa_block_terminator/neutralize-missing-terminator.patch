@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_instructions.go
++++ b/gotoolchain/ssa_instructions.go
+@@ -134,7 +134,7 @@
+ 				return false
+ 			}
+ 			if instruction == nil || reflect.ValueOf(instruction).IsNil() || instruction.Parent() != fn || instruction.Block() != block {
+-				yield(nil, core.ErrGoToolchainOutput)
++				if r.Extent != SSAInstructionExtentBlockTerminator { yield(nil, core.ErrGoToolchainOutput) }
+ 				return false
+ 			}
+ 			if r.Extent == SSAInstructionExtentBlockTerminator {

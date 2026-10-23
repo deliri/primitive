@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_instructions.go
++++ b/gotoolchain/ssa_instructions.go
+@@ -84,7 +84,7 @@
+ 		if !v.instructionsInFunction(ctx, r, nil, yield) {
+ 			return
+ 		}
+-		if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
++		if err := ctx.Err(); err != nil {
+ 			yield(nil, err)
+ 		}
+ 	}

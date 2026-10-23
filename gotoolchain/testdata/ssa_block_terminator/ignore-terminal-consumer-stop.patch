@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_instructions.go
++++ b/gotoolchain/ssa_instructions.go
+@@ -145,7 +145,7 @@
+ 					return false
+ 				}
+ 			}
+-			if !yield(instruction, nil) {
++			if !yield(instruction, nil) && r.Extent != SSAInstructionExtentBlockTerminator {
+ 				return false
+ 			}
+ 		}

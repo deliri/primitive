@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_instructions.go
++++ b/gotoolchain/ssa_instructions.go
+@@ -30,7 +30,7 @@
+ 	return nil
+ }
+ func (e SSAInstructionExtent) IsValid() bool {
+-	return e == SSAInstructionExtentFunction || e == SSAInstructionExtentLexical || e == SSAInstructionExtentBlock || e == SSAInstructionExtentBlockTerminator
++	return e == SSAInstructionExtentFunction || e == SSAInstructionExtentLexical || e == SSAInstructionExtentBlock
+ }
+ func (SSAInstructionExtent) OffWireEnum() {}
+ func (e SSAInstructionExtent) String() string {

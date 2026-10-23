@@ -1,0 +1,57 @@
+[
+  {
+    "name": "reject-terminator-request",
+    "patch": "reject-terminator-request.patch",
+    "selection": "^TestSSAInstructionsBorrowEachNativeTerminator$/^Return$"
+  },
+  {
+    "name": "omit-terminator-enum-arm",
+    "patch": "omit-terminator-enum-arm.patch",
+    "selection": "^TestSSAInstructionExtentExhaustsClosedDomain$"
+  },
+  {
+    "name": "scan-unselected-prefix",
+    "patch": "scan-unselected-prefix.patch",
+    "selection": "^TestSSAInstructionsTerminatorProducerLayerTriad$"
+  },
+  {
+    "name": "choose-first-instruction",
+    "patch": "choose-first-instruction.patch",
+    "selection": "^TestSSAInstructionsBorrowEachNativeTerminator$/^Return$"
+  },
+  {
+    "name": "lend-foreign-terminator",
+    "patch": "lend-foreign-terminator.patch",
+    "selection": "^TestSSAInstructionsTerminatorRefusesDamagedSelection$/^foreign_terminator$"
+  },
+  {
+    "name": "neutralize-missing-terminator",
+    "patch": "neutralize-missing-terminator.patch",
+    "selection": "^TestSSAInstructionsTerminatorRefusesDamagedSelection$/^missing_terminator$"
+  },
+  {
+    "name": "admit-noncontrol-tail",
+    "patch": "admit-noncontrol-tail.patch",
+    "selection": "^TestSSAInstructionsTerminatorRefusesDamagedSelection$/^ordinary_instruction_cannot_end_control_flow$"
+  },
+  {
+    "name": "lose-terminal-native-cause",
+    "patch": "lose-terminal-native-cause.patch",
+    "selection": "^TestSSAInstructionsTerminatorPreservesCancellationAndStop$"
+  },
+  {
+    "name": "ignore-terminal-consumer-stop",
+    "patch": "ignore-terminal-consumer-stop.patch",
+    "selection": "^TestSSAInstructionsTerminatorPreservesCancellationAndStop$"
+  },
+  {
+    "name": "copy-instruction-population",
+    "patch": "copy-instruction-population.patch",
+    "selection": "^TestSSAInstructionsTerminatorRetainsNoPrefixPopulation$/^8193$"
+  },
+  {
+    "name": "leak-unselected-blocks",
+    "patch": "leak-unselected-blocks.patch",
+    "selection": "^TestSSAInstructionsBorrowEachNativeTerminator$/^Jump$"
+  }
+]

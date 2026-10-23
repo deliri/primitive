@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_instructions.go
++++ b/gotoolchain/ssa_instructions.go
+@@ -103,7 +103,7 @@
+ 		return false
+ 	}
+ 	blocks, first := fn.Blocks, 0
+-	if r.Extent == SSAInstructionExtentBlock || r.Extent == SSAInstructionExtentBlockTerminator {
++	if r.Extent == SSAInstructionExtentBlock {
+ 		first = r.Block.Index
+ 		if first < 0 || first >= len(blocks) || blocks[first] != r.Block {
+ 			yield(nil, core.ErrGoToolchainOutput)

@@ -11,7 +11,7 @@ import (
 	"golang.org/x/tools/go/ssa"
 )
 
-// SSAInstructionExtent selects a native block, function or lexical descendants.
+// SSAInstructionExtent selects a native block, its terminator, a function or lexical descendants.
 // Lexical selection does not assert runtime invocation.
 type SSAInstructionExtent uint8
 
@@ -20,6 +20,7 @@ const (
 	SSAInstructionExtentFunction
 	SSAInstructionExtentLexical
 	SSAInstructionExtentBlock
+	SSAInstructionExtentBlockTerminator
 )
 
 func (e SSAInstructionExtent) Validate() error {
@@ -29,7 +30,7 @@ func (e SSAInstructionExtent) Validate() error {
 	return nil
 }
 func (e SSAInstructionExtent) IsValid() bool {
-	return e == SSAInstructionExtentFunction || e == SSAInstructionExtentLexical || e == SSAInstructionExtentBlock
+	return e == SSAInstructionExtentFunction || e == SSAInstructionExtentLexical || e == SSAInstructionExtentBlock || e == SSAInstructionExtentBlockTerminator
 }
 func (SSAInstructionExtent) OffWireEnum() {}
 func (e SSAInstructionExtent) String() string {
@@ -40,6 +41,8 @@ func (e SSAInstructionExtent) String() string {
 		return "lexical"
 	case SSAInstructionExtentBlock:
 		return "block"
+	case SSAInstructionExtentBlockTerminator:
+		return "block_terminator"
 	default:
 		return core.UnknownEnumDiagnostic
 	}
@@ -55,7 +58,8 @@ func (r SSAInstructionRequest) Validate() error {
 	if r.Function == nil {
 		return core.ErrGoToolchainContract
 	}
-	if (r.Extent == SSAInstructionExtentBlock) != (r.Block != nil) {
+	selectedBlock := r.Extent == SSAInstructionExtentBlock || r.Extent == SSAInstructionExtentBlockTerminator
+	if selectedBlock != (r.Block != nil) {
 		return core.ErrGoToolchainContract
 	}
 	if r.Block != nil && r.Block.Parent() != r.Function {
@@ -68,7 +72,9 @@ func (SSAInstructionRequest) goToolchainInternalFlow() {}
 // Instructions lends native instructions in block order, excluding Go's known
 // untaken blocks. Lexical descendants follow their parent. The stream retains
 // only active lexical ancestry, with no instruction or function population.
-// Imported declarations without source produce no observations.
+// Imported declarations without source produce no observations. A selected
+// terminator borrows only the block's final control instruction; preceding
+// instructions remain outside that query, without a scan or copied slice.
 func (v SSAUnitView) Instructions(ctx context.Context, r SSAInstructionRequest) iter.Seq2[ssa.Instruction, error] {
 	return func(yield func(ssa.Instruction, error) bool) {
 		if err := errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), v.Validate(), r.Validate()); err != nil {
@@ -97,7 +103,7 @@ func (v SSAUnitView) instructionsInFunction(ctx context.Context, r SSAInstructio
 		return false
 	}
 	blocks, first := fn.Blocks, 0
-	if r.Extent == SSAInstructionExtentBlock {
+	if r.Extent == SSAInstructionExtentBlock || r.Extent == SSAInstructionExtentBlockTerminator {
 		first = r.Block.Index
 		if first < 0 || first >= len(blocks) || blocks[first] != r.Block {
 			yield(nil, core.ErrGoToolchainOutput)
@@ -118,7 +124,11 @@ func (v SSAUnitView) instructionsInFunction(ctx context.Context, r SSAInstructio
 		if argumentCallUntakenBlock(block) {
 			continue
 		}
-		for _, instruction := range block.Instrs {
+		instructions := block.Instrs
+		if r.Extent == SSAInstructionExtentBlockTerminator && len(instructions) != 0 {
+			instructions = instructions[len(instructions)-1:]
+		}
+		for _, instruction := range instructions {
 			if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
 				yield(nil, err)
 				return false
@@ -126,6 +136,14 @@ func (v SSAUnitView) instructionsInFunction(ctx context.Context, r SSAInstructio
 			if instruction == nil || reflect.ValueOf(instruction).IsNil() || instruction.Parent() != fn || instruction.Block() != block {
 				yield(nil, core.ErrGoToolchainOutput)
 				return false
+			}
+			if r.Extent == SSAInstructionExtentBlockTerminator {
+				switch instruction.(type) {
+				case *ssa.If, *ssa.Jump, *ssa.Return, *ssa.Panic:
+				default:
+					yield(nil, core.ErrGoToolchainOutput)
+					return false
+				}
 			}
 			if !yield(instruction, nil) {
 				return false

@@ -1,6 +1,6 @@
 --- a/gotoolchain/ssa_instructions.go
 +++ b/gotoolchain/ssa_instructions.go
-@@ -96,6 +96,9 @@
+@@ -102,6 +102,9 @@
  		yield(nil, core.ErrGoToolchainContract)
  		return false
  	}
@@ -8,5 +8,5 @@
 +	for _, block := range fn.Blocks { population=append(population,block.Instrs...) }
 +	if len(population)==0{return true}
  	blocks, first := fn.Blocks, 0
- 	if r.Extent == SSAInstructionExtentBlock {
+ 	if r.Extent == SSAInstructionExtentBlock || r.Extent == SSAInstructionExtentBlockTerminator {
  		first = r.Block.Index

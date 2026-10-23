@@ -1,11 +1,11 @@
 --- a/gotoolchain/ssa_instructions.go
 +++ b/gotoolchain/ssa_instructions.go
-@@ -55,7 +55,7 @@
- 	if r.Function == nil {
+@@ -59,7 +59,7 @@
  		return core.ErrGoToolchainContract
  	}
--	if (r.Extent == SSAInstructionExtentBlock) != (r.Block != nil) {
-+	if r.Extent == SSAInstructionExtentBlock && r.Block == nil {
+ 	selectedBlock := r.Extent == SSAInstructionExtentBlock || r.Extent == SSAInstructionExtentBlockTerminator
+-	if selectedBlock != (r.Block != nil) {
++	if selectedBlock && r.Block == nil {
  		return core.ErrGoToolchainContract
  	}
  	if r.Block != nil && r.Block.Parent() != r.Function {

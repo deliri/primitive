@@ -1,0 +1,163 @@
+{
+  "requirements": {
+    "environment": {
+      "go_experiments": [
+        "jsonv2"
+      ]
+    }
+  },
+  "steps": [
+    {
+      "name": "native-terminator-contracts",
+      "kind": "test",
+      "arguments": [
+        "./gotoolchain",
+        "-mod=readonly",
+        "-count=1",
+        "-run=^(TestSSAInstructionExtentExhaustsClosedDomain|TestSSAInstructionsBorrowEachNativeTerminator|TestSSAInstructionsTerminator.*)$"
+      ]
+    },
+    {
+      "name": "native-terminator-semantic-search",
+      "kind": "fuzz",
+      "arguments": [
+        "./gotoolchain",
+        "-mod=readonly"
+      ],
+      "fuzz_target": "FuzzSSAInstructionsTerminatorConservesScopeAndRefusal",
+      "fuzz_seconds": 3
+    },
+    {
+      "name": "reject-terminator-request",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain",
+        "-mod=readonly"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/ssa_block_terminator/reject-terminator-request.patch",
+        "failing_test": "^TestSSAInstructionsBorrowEachNativeTerminator$/^Return$"
+      }
+    },
+    {
+      "name": "omit-terminator-enum-arm",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain",
+        "-mod=readonly"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/ssa_block_terminator/omit-terminator-enum-arm.patch",
+        "failing_test": "^TestSSAInstructionExtentExhaustsClosedDomain$"
+      }
+    },
+    {
+      "name": "scan-unselected-prefix",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain",
+        "-mod=readonly"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/ssa_block_terminator/scan-unselected-prefix.patch",
+        "failing_test": "^TestSSAInstructionsTerminatorProducerLayerTriad$"
+      }
+    },
+    {
+      "name": "choose-first-instruction",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain",
+        "-mod=readonly"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/ssa_block_terminator/choose-first-instruction.patch",
+        "failing_test": "^TestSSAInstructionsBorrowEachNativeTerminator$/^Return$"
+      }
+    },
+    {
+      "name": "lend-foreign-terminator",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain",
+        "-mod=readonly"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/ssa_block_terminator/lend-foreign-terminator.patch",
+        "failing_test": "^TestSSAInstructionsTerminatorRefusesDamagedSelection$/^foreign_terminator$"
+      }
+    },
+    {
+      "name": "neutralize-missing-terminator",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain",
+        "-mod=readonly"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/ssa_block_terminator/neutralize-missing-terminator.patch",
+        "failing_test": "^TestSSAInstructionsTerminatorRefusesDamagedSelection$/^missing_terminator$"
+      }
+    },
+    {
+      "name": "admit-noncontrol-tail",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain",
+        "-mod=readonly"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/ssa_block_terminator/admit-noncontrol-tail.patch",
+        "failing_test": "^TestSSAInstructionsTerminatorRefusesDamagedSelection$/^ordinary_instruction_cannot_end_control_flow$"
+      }
+    },
+    {
+      "name": "lose-terminal-native-cause",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain",
+        "-mod=readonly"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/ssa_block_terminator/lose-terminal-native-cause.patch",
+        "failing_test": "^TestSSAInstructionsTerminatorPreservesCancellationAndStop$"
+      }
+    },
+    {
+      "name": "ignore-terminal-consumer-stop",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain",
+        "-mod=readonly"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/ssa_block_terminator/ignore-terminal-consumer-stop.patch",
+        "failing_test": "^TestSSAInstructionsTerminatorPreservesCancellationAndStop$"
+      }
+    },
+    {
+      "name": "copy-instruction-population",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain",
+        "-mod=readonly"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/ssa_block_terminator/copy-instruction-population.patch",
+        "failing_test": "^TestSSAInstructionsTerminatorRetainsNoPrefixPopulation$/^8193$"
+      }
+    },
+    {
+      "name": "leak-unselected-blocks",
+      "kind": "mutate",
+      "arguments": [
+        "./gotoolchain",
+        "-mod=readonly"
+      ],
+      "mutation": {
+        "patch": "gotoolchain/testdata/ssa_block_terminator/leak-unselected-blocks.patch",
+        "failing_test": "^TestSSAInstructionsBorrowEachNativeTerminator$/^Jump$"
+      }
+    }
+  ]
+}

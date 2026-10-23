@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_instructions.go
++++ b/gotoolchain/ssa_instructions.go
+@@ -133,7 +133,7 @@
+ 				yield(nil, err)
+ 				return false
+ 			}
+-			if instruction == nil || reflect.ValueOf(instruction).IsNil() || instruction.Parent() != fn || instruction.Block() != block {
++			if instruction == nil || reflect.ValueOf(instruction).IsNil() {
+ 				yield(nil, core.ErrGoToolchainOutput)
+ 				return false
+ 			}
