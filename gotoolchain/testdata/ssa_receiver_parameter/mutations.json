@@ -1,0 +1,67 @@
+[
+  {
+    "name": "borrow-other-call-authority",
+    "patch": "borrow-other-call-authority.patch",
+    "selection": "^TestSSAReceiverParameterConservesActualCallIdentity$/^actual_other_call_cannot_lend_authority$"
+  },
+  {
+    "name": "confuse-bound-explicit-argument",
+    "patch": "confuse-bound-explicit-argument.patch",
+    "selection": "^TestSSAReceiverParameterConservesActualCallIdentity$/^bound_receiver_with_explicit_argument$"
+  },
+  {
+    "name": "ignore-promoted-field-path",
+    "patch": "ignore-promoted-field-path.patch",
+    "selection": "^TestSSAReceiverParameterConservesActualCallIdentity$/^embedded_pointer_receiver$"
+  },
+  {
+    "name": "lend-neighbor-field-authority",
+    "patch": "lend-neighbor-field-authority.patch",
+    "selection": "^TestSSAReceiverParameterConservesActualCallIdentity$/^embedded_neighbor_receiver$"
+  },
+  {
+    "name": "ignore-escaped-capture-cell",
+    "patch": "ignore-escaped-capture-cell.patch",
+    "selection": "^TestSSAReceiverParameterConservesActualCallIdentity$/^opaque_replacement$"
+  },
+  {
+    "name": "admit-untaken-call",
+    "patch": "admit-untaken-call.patch",
+    "selection": "^TestSSAReceiverParameterUntakenCallHasNoAuthority$"
+  },
+  {
+    "name": "admit-detached-call",
+    "patch": "admit-detached-call.patch",
+    "selection": "^TestSSAReceiverParameterRejectsMalformedCallFacts$/^detached_call_pointer$"
+  },
+  {
+    "name": "admit-foreign-parameter",
+    "patch": "admit-foreign-parameter.patch",
+    "selection": "^TestSSAReceiverParameterPreservesCustodyAndCause$/^foreign_parameter$"
+  },
+  {
+    "name": "neutralize-missing-receiver",
+    "patch": "neutralize-missing-receiver.patch",
+    "selection": "^TestSSAReceiverParameterRejectsMalformedCallFacts$/^nil_direct_receiver$"
+  },
+  {
+    "name": "neutralize-missing-static-signature",
+    "patch": "neutralize-missing-static-signature.patch",
+    "selection": "^TestSSAReceiverParameterRejectsMalformedCallFacts$/^missing_static_signature$"
+  },
+  {
+    "name": "admit-foreign-receiver",
+    "patch": "admit-foreign-receiver.patch",
+    "selection": "^TestSSAReceiverParameterRejectsMalformedCallFacts$/^foreign_native_receiver$"
+  },
+  {
+    "name": "admit-detached-receiver",
+    "patch": "admit-detached-receiver.patch",
+    "selection": "^TestSSAReceiverParameterRejectsMalformedCallFacts$/^detached_receiver_instruction$"
+  },
+  {
+    "name": "lose-native-cancellation-cause",
+    "patch": "lose-native-cancellation-cause.patch",
+    "selection": "^TestSSAReceiverParameterPreservesCustodyAndCause$/^native_cancellation_cause$"
+  }
+]

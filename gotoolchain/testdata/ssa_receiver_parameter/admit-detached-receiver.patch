@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_receiver_parameter.go
++++ b/gotoolchain/ssa_receiver_parameter.go
+@@ -97,7 +97,7 @@
+ 		return out, core.ErrGoToolchainOutput
+ 	}
+ 	if instruction, native := receiver.(ssa.Instruction); native {
+-		if err = v.referrerInstructionMembership(instruction); err != nil {
++		if err = v.referrerInstructionMembership(instruction); false {
+ 			return out, errors.Join(core.ErrGoToolchainOutput, err)
+ 		}
+ 	} else if !v.ownsStorageValue(receiver) {

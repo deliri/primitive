@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_receiver_parameter.go
++++ b/gotoolchain/ssa_receiver_parameter.go
+@@ -91,7 +91,7 @@
+ 		return out, core.ErrGoToolchainOutput
+ 	}
+ 	if !nativeReceiverValuePresent(receiver) {
+-		return out, core.ErrGoToolchainOutput
++		return out, nil
+ 	}
+ 	if receiver.Parent() != nil && receiver.Parent() != fn {
+ 		return out, core.ErrGoToolchainOutput

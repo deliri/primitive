@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_receiver_parameter.go
++++ b/gotoolchain/ssa_receiver_parameter.go
+@@ -84,7 +84,7 @@
+ 		if len(closure.Bindings) != 1 {
+ 			return out, core.ErrGoToolchainOutput
+ 		}
+-		receiver = closure.Bindings[0]
++		receiver = common.Args[0]
+ 	} else if len(common.Args) > 0 {
+ 		receiver = common.Args[0]
+ 	} else {

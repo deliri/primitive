@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_receiver_parameter.go
++++ b/gotoolchain/ssa_receiver_parameter.go
+@@ -46,7 +46,7 @@
+ 		return out, core.ErrGoToolchainContract
+ 	}
+ 	fn := block.Parent()
+-	if fn.Prog != v.Program || fn.Pkg != v.Package || r.Parameter.Parent() != fn || !v.ownsStorageValue(r.Parameter) {
++	if fn.Prog != v.Program || fn.Pkg != v.Package {
+ 		return out, core.ErrGoToolchainContract
+ 	}
+ 	if err = v.referrerInstructionMembership(r.Call); err != nil {
