@@ -55,6 +55,15 @@ const (
 	coreJSONDoorSourceSubjectKind
 	coreJSONDoorSourceSubject
 	coreJSONDoorRelativePath
+	coreJSONDoorOAuthClientID
+	coreJSONDoorOAuthAuthorizationCode
+	coreJSONDoorOAuthRedirectURI
+	coreJSONDoorOAuthState
+	coreJSONDoorOAuthPKCEVerifier
+	coreJSONDoorOAuthPKCEChallenge
+	coreJSONDoorOAuthNonce
+	coreJSONDoorOAuthSubject
+	coreJSONDoorOAuthEmail
 	coreJSONDoorLimit
 )
 
@@ -124,6 +133,24 @@ func (d coreJSONDoor) receiverName() string {
 		return "SourceSubjectKind"
 	case coreJSONDoorSourceSubject:
 		return "SourceSubject"
+	case coreJSONDoorOAuthClientID:
+		return "OAuthClientID"
+	case coreJSONDoorOAuthAuthorizationCode:
+		return "OAuthAuthorizationCode"
+	case coreJSONDoorOAuthRedirectURI:
+		return "OAuthRedirectURI"
+	case coreJSONDoorOAuthState:
+		return "OAuthState"
+	case coreJSONDoorOAuthPKCEVerifier:
+		return "OAuthPKCEVerifier"
+	case coreJSONDoorOAuthPKCEChallenge:
+		return "OAuthPKCEChallenge"
+	case coreJSONDoorOAuthNonce:
+		return "OAuthNonce"
+	case coreJSONDoorOAuthSubject:
+		return "OAuthSubject"
+	case coreJSONDoorOAuthEmail:
+		return "OAuthEmail"
 	case coreJSONDoorUnknown, coreJSONDoorLimit:
 		return ""
 	default:
@@ -132,6 +159,16 @@ func (d coreJSONDoor) receiverName() string {
 }
 
 type coreJSONFixtures struct {
+	oauthClientID          OAuthClientID
+	oauthAuthorizationCode OAuthAuthorizationCode
+	oauthRedirectURI       OAuthRedirectURI
+	oauthState             OAuthState
+	oauthPKCEVerifier      OAuthPKCEVerifier
+	oauthPKCEChallenge     OAuthPKCEChallenge
+	oauthNonce             OAuthNonce
+	oauthSubject           OAuthSubject
+	oauthEmail             OAuthEmail
+
 	header          HTTPHeaderName
 	offering        Offering
 	sourcePath      SourcePath
@@ -255,6 +292,24 @@ func FuzzCoreExternalJSONDoorInventory(f *testing.F) {
 			candidate, roundTrip = coreJSONReceivers(fixtures.subjectKind)
 		case coreJSONDoorSourceSubject:
 			candidate, roundTrip = coreJSONReceivers(fixtures.subject)
+		case coreJSONDoorOAuthClientID:
+			candidate, roundTrip = coreJSONReceivers(fixtures.oauthClientID)
+		case coreJSONDoorOAuthAuthorizationCode:
+			candidate, roundTrip = coreJSONReceivers(fixtures.oauthAuthorizationCode)
+		case coreJSONDoorOAuthRedirectURI:
+			candidate, roundTrip = coreJSONReceivers(fixtures.oauthRedirectURI)
+		case coreJSONDoorOAuthState:
+			candidate, roundTrip = coreJSONReceivers(fixtures.oauthState)
+		case coreJSONDoorOAuthPKCEVerifier:
+			candidate, roundTrip = coreJSONReceivers(fixtures.oauthPKCEVerifier)
+		case coreJSONDoorOAuthPKCEChallenge:
+			candidate, roundTrip = coreJSONReceivers(fixtures.oauthPKCEChallenge)
+		case coreJSONDoorOAuthNonce:
+			candidate, roundTrip = coreJSONReceivers(fixtures.oauthNonce)
+		case coreJSONDoorOAuthSubject:
+			candidate, roundTrip = coreJSONReceivers(fixtures.oauthSubject)
+		case coreJSONDoorOAuthEmail:
+			candidate, roundTrip = coreJSONReceivers(fixtures.oauthEmail)
 		case coreJSONDoorUnknown, coreJSONDoorLimit:
 			t.Fatalf("normalized JSON door=%d from selector=%d; want admitted domain", door, rawDoor)
 		default:
@@ -661,7 +716,53 @@ func coreFixturesForFuzz(t testing.TB) coreJSONFixtures {
 	if err != nil {
 		t.Fatalf("NewSourceSubject(seed) error = %v, want nil", err)
 	}
+	oauthClientID, err := ParseOAuthClientID("client-owned")
+	if err != nil {
+		t.Fatalf("ParseOAuthClientID(typed seed) = %v, want nil", err)
+	}
+	oauthAuthorizationCode, err := ParseOAuthAuthorizationCode("code-owned")
+	if err != nil {
+		t.Fatalf("ParseOAuthAuthorizationCode(typed seed) = %v, want nil", err)
+	}
+	oauthRedirectURI, err := ParseOAuthRedirectURI("https://api.app.example/callback")
+	if err != nil {
+		t.Fatalf("ParseOAuthRedirectURI(typed seed) = %v, want nil", err)
+	}
+	oauthState, err := ParseOAuthState("state-owned")
+	if err != nil {
+		t.Fatalf("ParseOAuthState(typed seed) = %v, want nil", err)
+	}
+	oauthPKCEVerifier, err := ParseOAuthPKCEVerifier("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")
+	if err != nil {
+		t.Fatalf("ParseOAuthPKCEVerifier(typed seed) = %v, want nil", err)
+	}
+	oauthPKCEChallenge, err := parseOAuthPKCEChallenge("E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM")
+	if err != nil {
+		t.Fatalf("parseOAuthPKCEChallenge(typed seed) = %v, want nil", err)
+	}
+	oauthNonce, err := ParseOAuthNonce("nonce-owned")
+	if err != nil {
+		t.Fatalf("ParseOAuthNonce(typed seed) = %v, want nil", err)
+	}
+	oauthSubject, err := ParseOAuthSubject("subject-owned")
+	if err != nil {
+		t.Fatalf("ParseOAuthSubject(typed seed) = %v, want nil", err)
+	}
+	oauthEmail, err := ParseOAuthEmail("athlete@example.test")
+	if err != nil {
+		t.Fatalf("ParseOAuthEmail(typed seed) = %v, want nil", err)
+	}
 	return coreJSONFixtures{
+		oauthClientID:          oauthClientID,
+		oauthAuthorizationCode: oauthAuthorizationCode,
+		oauthRedirectURI:       oauthRedirectURI,
+		oauthState:             oauthState,
+		oauthPKCEVerifier:      oauthPKCEVerifier,
+		oauthPKCEChallenge:     oauthPKCEChallenge,
+		oauthNonce:             oauthNonce,
+		oauthSubject:           oauthSubject,
+		oauthEmail:             oauthEmail,
+
 		platform: platform, operatingSystem: OperatingSystemDarwin,
 		architecture: CPUArchitectureARM64, offering: offering,
 		version: version, commit: commit, build: build, pageLimit: pageLimit,
@@ -681,6 +782,16 @@ func coreFixturesForFuzz(t testing.TB) coreJSONFixtures {
 func coreJSONSeedsForFuzz(t testing.TB, fixtures coreJSONFixtures) []coreJSONSeed {
 	t.Helper()
 	seeds := []coreJSONSeed{
+		coreJSONSeedForFuzz(t, coreJSONDoorOAuthClientID, fixtures.oauthClientID),
+		coreJSONSeedForFuzz(t, coreJSONDoorOAuthAuthorizationCode, fixtures.oauthAuthorizationCode),
+		coreJSONSeedForFuzz(t, coreJSONDoorOAuthRedirectURI, fixtures.oauthRedirectURI),
+		coreJSONSeedForFuzz(t, coreJSONDoorOAuthState, fixtures.oauthState),
+		coreJSONSeedForFuzz(t, coreJSONDoorOAuthPKCEVerifier, fixtures.oauthPKCEVerifier),
+		coreJSONSeedForFuzz(t, coreJSONDoorOAuthPKCEChallenge, fixtures.oauthPKCEChallenge),
+		coreJSONSeedForFuzz(t, coreJSONDoorOAuthNonce, fixtures.oauthNonce),
+		coreJSONSeedForFuzz(t, coreJSONDoorOAuthSubject, fixtures.oauthSubject),
+		coreJSONSeedForFuzz(t, coreJSONDoorOAuthEmail, fixtures.oauthEmail),
+
 		coreJSONSeedForFuzz(t, coreJSONDoorPlatform, fixtures.platform),
 		coreJSONSeedForFuzz(t, coreJSONDoorOperatingSystem, fixtures.operatingSystem),
 		coreJSONSeedForFuzz(t, coreJSONDoorCPUArchitecture, fixtures.architecture),

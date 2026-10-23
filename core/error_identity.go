@@ -633,6 +633,12 @@ const (
 	ErrAttestSignerChanged
 	// ErrKeygenPublicKeyText identifies malformed canonical public-key text.
 	ErrKeygenPublicKeyText
+	// ErrOAuthContract identifies invalid browser OAuth protocol material.
+	ErrOAuthContract
+	// ErrFirestoreDocumentsContract identifies an invalid typed Firestore SDK request.
+	ErrFirestoreDocumentsContract
+	// ErrFirestoreDocumentsOperation preserves a refused native Firestore operation.
+	ErrFirestoreDocumentsOperation
 	errorIdentityLimit
 )
 
@@ -916,6 +922,9 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrAESGCMAuthentication, text: "aes-gcm authentication failed"},
 		{identity: ErrAttestSignerChanged, text: "attest signer public identity changed"},
 		{identity: ErrKeygenPublicKeyText, text: "keygen public key text is invalid"},
+		{identity: ErrOAuthContract, text: "oauth contract violation"},
+		{identity: ErrFirestoreDocumentsContract, text: "firestore documents contract violation"},
+		{identity: ErrFirestoreDocumentsOperation, text: "firestore documents operation failed"},
 	}
 }
 
@@ -1048,7 +1057,7 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 	if identity == ErrPrimitiveContract {
 		return errorIdentityParentSet{}
 	}
-	if errorIdentityIn(identity, ErrBackgroundContract, ErrJSONContract, ErrNumericOverflow, ErrSecretMaterialAllZero, ErrPasswordHashContract,
+	if errorIdentityIn(identity, ErrBackgroundContract, ErrOAuthContract, ErrFirestoreDocumentsContract, ErrJSONContract, ErrNumericOverflow, ErrSecretMaterialAllZero, ErrPasswordHashContract,
 		ErrAttestContract,
 		ErrContextStateContract, ErrLineIOContract, ErrManualContract, ErrRunProtocolContract, ErrSourceClaimContract, ErrSourceObservationContract, ErrSourceProofContract, ErrCurrencyContract,
 		ErrKeygenContract, ErrTestIsolationContract, ErrFilestoreContract,
@@ -1181,6 +1190,9 @@ func errorIdentityParentsSecretStoreThroughPayment(identity ErrorIdentity) error
 }
 
 func errorIdentityProviderParent(identity ErrorIdentity) ErrorIdentity {
+	if identity == ErrFirestoreDocumentsOperation {
+		return ErrFirestoreDocumentsContract
+	}
 	if errorIdentityIn(identity, ErrStripeAuthentication, ErrStripeVerification, ErrStripeBinding) {
 		return ErrStripeContract
 	}

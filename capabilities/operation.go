@@ -17,6 +17,10 @@ const (
 	OperationRunProcess
 	OperationObserveTime
 	OperationExitCurrent
+	OperationGoogleBrowserAuthorization
+	OperationGitHubBrowserAuthorization
+	OperationGenerateOAuthBrowserProof
+	OperationRunFirestoreTransaction
 	operationLimit
 )
 
@@ -32,7 +36,7 @@ func (o Operation) String() string {
 	if o.Validate() != nil {
 		return core.UnknownEnumDiagnostic
 	}
-	return [...]string{"unavailable", "filestore.Read", "filestore.Write", "process.Run", "temporal.Observe", "process.ExitCurrent"}[o]
+	return [...]string{"unavailable", "filestore.Read", "filestore.Write", "process.Run", "temporal.Observe", "process.ExitCurrent", "googleidentity.CompleteBrowserAuthorization", "github.CompleteBrowserAuthorization", "keygen.GenerateOAuthBrowserProof", "firestoredocuments.RunTransaction"}[o]
 }
 func (o Operation) MarshalJSON() ([]byte, error) {
 	if err := o.Validate(); err != nil {
@@ -142,6 +146,14 @@ func (o Operation) Contract() (OperationContract, bool, error) {
 		return operationContract(operationDefinition{resultKind: OperationResultValueAndError, owner: core.PackageTemporal, selector: "Observe", result: "Observation", resultPackage: core.PackageTemporal})
 	case OperationExitCurrent:
 		return operationContract(operationDefinition{resultKind: OperationResultErrorOnly, owner: core.PackageProcess, selector: "ExitCurrent", request: "ExitStatus"})
+	case OperationGoogleBrowserAuthorization:
+		return operationContract(operationDefinition{resultKind: OperationResultValueAndError, owner: core.PackageGoogleIdentity, selector: "CompleteBrowserAuthorization", request: "BrowserAuthorizationCompleteRequest", result: "BrowserVerifiedIdentity", resultPackage: core.PackageGoogleIdentity})
+	case OperationGitHubBrowserAuthorization:
+		return operationContract(operationDefinition{resultKind: OperationResultValueAndError, owner: core.PackageGitHub, selector: "CompleteBrowserAuthorization", request: "BrowserAuthorizationCompleteRequest", result: "BrowserVerifiedIdentity", resultPackage: core.PackageGitHub})
+	case OperationGenerateOAuthBrowserProof:
+		return operationContract(operationDefinition{resultKind: OperationResultValueAndError, owner: core.PackageKeygen, selector: "GenerateOAuthBrowserProof", result: "OAuthBrowserProof", resultPackage: core.PackageKeygen})
+	case OperationRunFirestoreTransaction:
+		return operationContract(operationDefinition{resultKind: OperationResultValueAndError, owner: core.PackageFirestoreDocuments, selector: "RunTransaction", request: "TransactionRequest", result: "TransactionResult", resultPackage: core.PackageFirestoreDocuments})
 	default:
 		return OperationContract{}, false, contractError(catalogOperationIsOutsideTheAdmittedDomain)
 	}
@@ -244,5 +256,5 @@ func (o Operation) effect() (Effect, error) {
 	if err := o.Validate(); err != nil {
 		return EffectUnknown, err
 	}
-	return [...]Effect{OperationUnavailable: EffectUnknown, OperationReadFile: EffectFilesystem, OperationWriteFile: EffectFilesystem, OperationRunProcess: EffectProcess, OperationObserveTime: EffectTime, OperationExitCurrent: EffectProcess}[o], nil
+	return [...]Effect{OperationUnavailable: EffectUnknown, OperationReadFile: EffectFilesystem, OperationWriteFile: EffectFilesystem, OperationRunProcess: EffectProcess, OperationObserveTime: EffectTime, OperationExitCurrent: EffectProcess, OperationGoogleBrowserAuthorization: EffectTransport, OperationGitHubBrowserAuthorization: EffectTransport, OperationGenerateOAuthBrowserProof: EffectEntropy, OperationRunFirestoreTransaction: EffectTransport}[o], nil
 }

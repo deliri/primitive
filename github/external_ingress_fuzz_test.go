@@ -21,6 +21,9 @@ type externalIngressFuzzContract[Door, FuzzTarget any] struct {
 
 func TestGitHubExternalIngressHasSemanticFuzzTargets(t *testing.T) {
 	t.Parallel()
+	_ = externalIngressFuzzContract[func(context.Context, io.Reader) (BrowserUserID, error), func(*testing.F)]{Door: decodeBrowserUser, Fuzz: FuzzBrowserOAuthUserSemanticClosure}
+	_ = externalIngressFuzzContract[func(context.Context, io.Reader, *browserPrimaryEmail) error, func(*testing.F)]{Door: decodeBrowserEmails, Fuzz: FuzzBrowserOAuthEmailStreamSemanticClosure}
+	_ = externalIngressFuzzContract[func(Client, exchange.CapturedHeaders, uint64) (uint64, error), func(*testing.F)]{Door: Client.nextBrowserEmailPage, Fuzz: FuzzBrowserOAuthContinuationSemanticClosure}
 	_ = externalIngressFuzzContract[func(*TreeEntryStream, []byte) (int, error), func(*testing.F)]{Door: (*TreeEntryStream).Read, Fuzz: FuzzGitHubStreamedPathMatchesCore}
 	_ = externalIngressFuzzContract[func(Client, exchange.CapturedHeaders, TagPageRequest) (uint32, error), func(*testing.F)]{Door: Client.nextTagPage, Fuzz: FuzzGitHubPaginationQuerySemanticClosure}
 	_ = externalIngressFuzzContract[func(Client, context.Context, TarArchiveRequest) (TarArchiveObservation, error), func(*testing.F)]{Door: Client.ReadTarArchive, Fuzz: FuzzGitHubArchiveTransferSemanticClosure}

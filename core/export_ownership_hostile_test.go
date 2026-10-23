@@ -15,8 +15,8 @@ import (
 
 const (
 	coreExportDependencyMaximum     = 32
-	coreSpecialExportAdmissionCount = 105 // Includes the AES-GCM native domain and package identity.
-	coreProviderExportContractCount = 231
+	coreSpecialExportAdmissionCount = 106 // Includes the Firestore SDK package identity.
+	coreProviderExportContractCount = 232
 )
 
 type coreExportName string
@@ -138,6 +138,7 @@ func coreSpecialExportAdmissions() [coreSpecialExportAdmissionCount]coreSpecialE
 		architectureCatalogAdmission("PackageCore", PackageCore),
 		architectureCatalogAdmission("PackageAttest", PackageAttest),
 		architectureCatalogAdmission("PackageAESGCM", PackageAESGCM),
+		architectureCatalogAdmission("PackageFirestoreDocuments", PackageFirestoreDocuments),
 		// Native AES-GCM extents form one shared cryptographic domain; product
 		// callers need these without inventing a second Primitive consumer.
 		coherentDomainContractAdmission("AES256KeyBytes", AES256KeyBytes),
@@ -233,6 +234,7 @@ func coreSpecialExportAdmissions() [coreSpecialExportAdmissionCount]coreSpecialE
 // wire spellings must never create cross-provider coupling.
 func coreProviderExportContracts() [coreProviderExportContractCount]coreProviderExportContract {
 	return [...]coreProviderExportContract{
+		{name: "OAuthClockSkewMaximumSeconds", witness: OAuthClockSkewMaximumSeconds, consumer: PackageGoogleIdentity},
 		{name: "FilestoreRecordIndexFilename", witness: FilestoreRecordIndexFilename, consumer: PackageFilestore},
 		{name: "FilestoreRecordMergeFilename", witness: FilestoreRecordMergeFilename, consumer: PackageFilestore},
 		// Core owns protocol vocabulary; Exchange alone implements its mechanics.

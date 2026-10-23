@@ -339,6 +339,10 @@ func TestLayerTriadGoogleAccessTokenRealHTTP(t *testing.T) {
 }
 
 type googleExternalDoorInventory struct {
+	ParseHostedDomain             func(string) (HostedDomain, error)
+	NewBrowserVerifier            func(context.Context, BrowserVerifierConfiguration) (BrowserVerifier, error)
+	BeginBrowserAuthorization     func(BrowserAuthorizationRequest) (BrowserAuthorization, error)
+	CompleteBrowserAuthorization  func(context.Context, BrowserAuthorizationCompleteRequest) (BrowserVerifiedIdentity, error)
 	Audience_UnmarshalText        func(*Audience, []byte) error
 	Client_Acquire                func(Client, context.Context, IdentityTokenRequest) (Token, error)
 	ServiceAccountSource_Acquire  func(ServiceAccountSource, context.Context, IdentityTokenRequest) (Token, error)
@@ -350,7 +354,7 @@ type googleExternalDoorInventory struct {
 	ParseGoogleCloudCommandOutput func([]byte) (Token, error)
 }
 
-var googleExternalDoors = googleExternalDoorInventory{Audience_UnmarshalText: (*Audience).UnmarshalText, Client_Acquire: Client.Acquire, ServiceAccountSource_Acquire: ServiceAccountSource.Acquire, GoogleCloudVerifier_Verify: GoogleCloudVerifier.Verify, AcquireGoogleCloud: AcquireGoogleCloud, AcquireGoogleCloudAccessToken: AcquireGoogleCloudAccessToken, NewGoogleCloudVerifier: NewGoogleCloudVerifier, ParseAudience: ParseAudience, ParseGoogleCloudCommandOutput: ParseGoogleCloudCommandOutput}
+var googleExternalDoors = googleExternalDoorInventory{ParseHostedDomain: ParseHostedDomain, NewBrowserVerifier: NewBrowserVerifier, BeginBrowserAuthorization: BeginBrowserAuthorization, CompleteBrowserAuthorization: CompleteBrowserAuthorization, Audience_UnmarshalText: (*Audience).UnmarshalText, Client_Acquire: Client.Acquire, ServiceAccountSource_Acquire: ServiceAccountSource.Acquire, GoogleCloudVerifier_Verify: GoogleCloudVerifier.Verify, AcquireGoogleCloud: AcquireGoogleCloud, AcquireGoogleCloudAccessToken: AcquireGoogleCloudAccessToken, NewGoogleCloudVerifier: NewGoogleCloudVerifier, ParseAudience: ParseAudience, ParseGoogleCloudCommandOutput: ParseGoogleCloudCommandOutput}
 
 func TestGoogleExternalDoorInventoryMatchesProduction(t *testing.T) {
 	t.Parallel()
@@ -399,7 +403,7 @@ func scanGoogleExternalDoors() ([]string, error) {
 				}
 				return false
 			}
-			if strings.HasPrefix(name, "Acquire") || strings.HasPrefix(name, "Parse") || name == "NewGoogleCloudVerifier" {
+			if strings.HasPrefix(name, "Acquire") || strings.HasPrefix(name, "Parse") || name == "NewGoogleCloudVerifier" || name == "NewBrowserVerifier" || name == "BeginBrowserAuthorization" || name == "CompleteBrowserAuthorization" {
 				doors = append(doors, name)
 			}
 			return false

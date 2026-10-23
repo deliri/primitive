@@ -18,7 +18,7 @@ type (
 	productionStructName     string
 )
 
-const coreProductionStructMaximum = 44
+const coreProductionStructMaximum = 55
 
 type productionStructInventory struct {
 	names [coreProductionStructMaximum]productionStructName
@@ -28,6 +28,17 @@ type productionStructInventory struct {
 // coreContractInventory classifies every production struct by its real role.
 // It is a compiler-visible wiring ratchet, not behavioral proof.
 type coreContractInventory struct {
+	OAuthClientID            protocolFact[OAuthClientID]
+	OAuthAuthorizationCode   protocolFact[OAuthAuthorizationCode]
+	OAuthState               protocolFact[OAuthState]
+	OAuthNonce               protocolFact[OAuthNonce]
+	OAuthPKCEVerifier        protocolFact[OAuthPKCEVerifier]
+	OAuthPKCEChallenge       protocolFact[OAuthPKCEChallenge]
+	OAuthRedirectURI         protocolFact[OAuthRedirectURI]
+	OAuthSubject             protocolFact[OAuthSubject]
+	OAuthEmail               protocolFact[OAuthEmail]
+	OAuthClientSecret        capabilityWrapper[OAuthClientSecret]
+	oauthClientSecretState   internalFlow[oauthClientSecretState]
 	PackageContract          architectureFact[PackageContract]
 	ArchitectureCatalog      architectureFact[ArchitectureCatalog]
 	CatalogPageLimit         protocolFact[CatalogPageLimit]
@@ -70,6 +81,7 @@ type coreContractInventory struct {
 }
 
 var (
+	_ = coreContractInventory{}.oauthClientSecretState
 	_ = coreContractInventory{}.strictJSONContainer
 	_ = coreContractInventory{}.strictJSONKeySpan
 	_ = coreContractInventory{}.strictJSONScanState

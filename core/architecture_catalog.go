@@ -178,6 +178,8 @@ const (
 	PackageLoops
 	// PackageAESGCM identifies native AES-256-GCM authenticated encryption.
 	PackageAESGCM
+	// PackageFirestoreDocuments owns typed official Firestore document execution.
+	PackageFirestoreDocuments
 	packageIdentityLimit
 )
 
@@ -295,6 +297,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageAdmission, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
 			{Identity: PackageLoops, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 			{Identity: PackageAESGCM, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
+			{Identity: PackageFirestoreDocuments, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 		},
 	}
 }
@@ -552,6 +555,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"admission",
 		"loops",
 		"aesgcm",
+		"firestoredocuments",
 	}
 }
 

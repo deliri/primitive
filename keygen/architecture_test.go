@@ -24,6 +24,7 @@ type (
 // data-flow role. OpenSSH framing is transient native execution; persistence
 // remains owned by the caller.
 type keygenContractInventory struct {
+	OAuthBrowserProof       capabilityWrapper[OAuthBrowserProof]
 	PublicKeyHexReadRequest operationRequest[PublicKeyHexReadRequest]
 	EntropyReader           capabilityWrapper[EntropyReader]
 	SecretRequest           operationRequest[SecretRequest]
@@ -66,6 +67,10 @@ func TestKeygenExactPublicSurfaceFieldsAndNoAliases(t *testing.T) {
 		t.Fatalf("scanKeygenArchitecture() error = %v, want nil", gotErr)
 	}
 	wantSurface := []string{
+		"type OAuthBrowserProof",
+		"func GenerateOAuthBrowserProof",
+		"method OAuthBrowserProof.Validate",
+		"method OAuthBrowserProof.Format",
 		"const OpenSSHPrivateKeyLabel",
 		"func ReadOpenSSH",
 		"func ReadPublicKeyHex",
@@ -107,7 +112,7 @@ func TestKeygenExactPublicSurfaceFieldsAndNoAliases(t *testing.T) {
 		"type Token",
 	}
 	slices.Sort(wantSurface)
-	wantFields := []string{"OpenSSHReadRequest.AdditionalLabel", "OpenSSHReadRequest.Source", "OpenSSHWriteRequest.Comment", "OpenSSHWriteRequest.Destination", "OpenSSHWriteRequest.Key", "OpenSSHWriteRequest.Label", "PublicKeyHexReadRequest.Source", "RandomTokenRequest.Size", "SecretRequest.Size"}
+	wantFields := []string{"OAuthBrowserProof.Nonce", "OAuthBrowserProof.State", "OAuthBrowserProof.Verifier", "OpenSSHReadRequest.AdditionalLabel", "OpenSSHReadRequest.Source", "OpenSSHWriteRequest.Comment", "OpenSSHWriteRequest.Destination", "OpenSSHWriteRequest.Key", "OpenSSHWriteRequest.Label", "PublicKeyHexReadRequest.Source", "RandomTokenRequest.Size", "SecretRequest.Size"}
 	if !slices.Equal(gotScan.surface, wantSurface) {
 		t.Fatalf("Keygen public surface = %q, want %q", gotScan.surface, wantSurface)
 	}
