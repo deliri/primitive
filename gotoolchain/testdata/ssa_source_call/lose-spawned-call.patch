@@ -1,10 +1,11 @@
 --- a/gotoolchain/ssa_source_call.go
 +++ b/gotoolchain/ssa_source_call.go
-@@ -84,6 +84,7 @@
- 		if queryErr != nil {
- 			return out, queryErr
- 		}
-+		if _, spawned := instruction.(*ssa.Go); spawned { continue }
- 		if call, ok := instruction.(ssa.CallInstruction); ok && call.Common().Pos() == r.Expression.Lparen {
- 			return SSASourceCallObservation{Instruction: call}, nil
- 		}
+@@ -135,7 +135,7 @@
+ 			case *ssa.Defer:
+ 				call = native
+ 			case *ssa.Go:
+-				call = native
++				if native != nil { continue }
+ 			}
+ 			if call != nil && call.Common().Pos() == r.Expression.Lparen {
+ 				return SSASourceCallObservation{Instruction: call}, nil

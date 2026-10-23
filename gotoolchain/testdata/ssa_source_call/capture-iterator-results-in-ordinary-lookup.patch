@@ -1,15 +1,17 @@
 --- a/gotoolchain/ssa_source_call.go
 +++ b/gotoolchain/ssa_source_call.go
-@@ -87,7 +87,11 @@
+@@ -90,7 +90,13 @@
  		}
  		return out, core.ErrGoToolchainContract
  	}
 -	return v.sourceCallInInstructions(ctx, r)
 +	for instruction, queryErr := range v.Instructions(ctx, SSAInstructionRequest{Function: fn, Extent: SSAInstructionExtentFunction}) {
 +		if queryErr != nil { return out, queryErr }
-+		if call, ok := instruction.(ssa.CallInstruction); ok && call.Common().Pos() == r.Expression.Lparen { return SSASourceCallObservation{Instruction:call},nil }
++		if call, ok := instruction.(ssa.CallInstruction); ok && call.Common().Pos() == r.Expression.Lparen {
++			return SSASourceCallObservation{Instruction: call}, nil
++		}
 +	}
-+	return out,nil
++	return out, nil
  }
  
- // Keep iterator captures out of the ordinary Go expression lookup path.
+ // Contain only Go's expression lookup; caller callbacks keep Go panic semantics.

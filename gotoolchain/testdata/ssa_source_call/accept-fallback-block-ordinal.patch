@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_source_call.go
++++ b/gotoolchain/ssa_source_call.go
+@@ -115,7 +115,7 @@
+ 		if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+ 			return SSASourceCallObservation{}, err
+ 		}
+-		if block == nil || block.Parent() != fn || block.Index != ordinal {
++		if block == nil || block.Parent() != fn || (block.Index != ordinal && false) {
+ 			return SSASourceCallObservation{}, core.ErrGoToolchainOutput
+ 		}
+ 		if argumentCallUntakenBlock(block) {

@@ -5,8 +5,8 @@
  		return out, err
  	}
 +	var population []ssa.Instruction
-+	for _,block := range r.Function.Blocks { population=append(population,block.Instrs...) }
++	for _, block := range r.Function.Blocks { population = append(population, block.Instrs...) }
 +	defer func(){if len(population)==0{panic("missing instructions")}}()
  	fn := r.Function
- 	if fn.Prog != v.Program || fn.Pkg != v.Package || fn.Syntax() == nil {
+ 	if fn.Prog != v.Program || fn.Pkg != v.Package {
  		return out, core.ErrGoToolchainContract

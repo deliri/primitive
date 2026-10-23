@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_source_call.go
++++ b/gotoolchain/ssa_source_call.go
+@@ -125,7 +125,7 @@
+ 			if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+ 				return SSASourceCallObservation{}, err
+ 			}
+-			if instruction == nil || reflect.ValueOf(instruction).IsNil() || instruction.Parent() != fn || instruction.Block() != block {
++			if instruction == nil || reflect.ValueOf(instruction).IsNil() {
+ 				return SSASourceCallObservation{}, core.ErrGoToolchainOutput
+ 			}
+ 			var call ssa.CallInstruction

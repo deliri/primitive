@@ -53,5 +53,30 @@
     "name": "capture-iterator-results-in-ordinary-lookup",
     "patch": "capture-iterator-results-in-ordinary-lookup.patch",
     "selection": "^TestSSASourceCallRetainsNoInstructionPopulation$/^8193$"
+  },
+  {
+    "name": "restore-fallback-iterator-captures",
+    "patch": "restore-fallback-iterator-captures.patch",
+    "selection": "^TestSSASourceCallFallbackAllocatesNoQueryStorage$/^deferred_8193$"
+  },
+  {
+    "name": "bypass-native-expression-panic-containment",
+    "patch": "bypass-native-expression-panic-containment.patch",
+    "selection": "^TestSSASourceCallFallbackRefusesMalformedNativeInstructions$/^nil_block$"
+  },
+  {
+    "name": "lose-native-expression-runtime-cause",
+    "patch": "lose-native-expression-runtime-cause.patch",
+    "selection": "^TestSSASourceCallFallbackRefusesMalformedNativeInstructions$/^typed_nil_debug_reference$"
+  },
+  {
+    "name": "accept-fallback-block-ordinal",
+    "patch": "accept-fallback-block-ordinal.patch",
+    "selection": "^TestSSASourceCallFallbackRefusesMalformedNativeInstructions$/^malformed_block_ordinal$"
+  },
+  {
+    "name": "accept-fallback-foreign-instruction",
+    "patch": "accept-fallback-foreign-instruction.patch",
+    "selection": "^TestSSASourceCallFallbackRefusesMalformedNativeInstructions$/^foreign_instruction$"
   }
 ]

@@ -68,7 +68,10 @@ func (v SSAUnitView) CallForExpression(ctx context.Context, r SSASourceCallReque
 	} else if fn != v.Package.Func("init") {
 		return out, core.ErrGoToolchainContract
 	}
-	value, _ := fn.ValueForExpr(r.Expression)
+	value, lookupErr := sourceCallExpressionValue(fn, r.Expression)
+	if lookupErr != nil {
+		return out, lookupErr
+	}
 	if call, ok := value.(*ssa.Call); ok {
 		if call == nil || call.Parent() != fn || call.Block() == nil || call.Block().Parent() != fn {
 			return out, core.ErrGoToolchainContract
@@ -90,14 +93,53 @@ func (v SSAUnitView) CallForExpression(ctx context.Context, r SSASourceCallReque
 	return v.sourceCallInInstructions(ctx, r)
 }
 
-// Keep iterator captures out of the ordinary Go expression lookup path.
-func (v SSAUnitView) sourceCallInInstructions(ctx context.Context, r SSASourceCallRequest) (SSASourceCallObservation, error) {
-	for instruction, queryErr := range v.Instructions(ctx, SSAInstructionRequest{Function: r.Function, Extent: SSAInstructionExtentFunction}) {
-		if queryErr != nil {
-			return SSASourceCallObservation{}, queryErr
+// Contain only Go's expression lookup; caller callbacks keep Go panic semantics.
+func sourceCallExpressionValue(fn *ssa.Function, expression *ast.CallExpr) (value ssa.Value, err error) {
+	defer func() {
+		if failure := recover(); failure != nil {
+			value = nil
+			err = core.ErrGoToolchainOutput
+			if cause, ok := failure.(error); ok {
+				err = errors.Join(err, cause)
+			}
 		}
-		if call, ok := instruction.(ssa.CallInstruction); ok && call.Common().Pos() == r.Expression.Lparen {
-			return SSASourceCallObservation{Instruction: call}, nil
+	}()
+	value, _ = fn.ValueForExpr(expression)
+	return value, nil
+}
+
+// Search native positions directly without allocating iterator captures.
+func (v SSAUnitView) sourceCallInInstructions(ctx context.Context, r SSASourceCallRequest) (SSASourceCallObservation, error) {
+	fn := r.Function
+	for ordinal, block := range fn.Blocks {
+		if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+			return SSASourceCallObservation{}, err
+		}
+		if block == nil || block.Parent() != fn || block.Index != ordinal {
+			return SSASourceCallObservation{}, core.ErrGoToolchainOutput
+		}
+		if argumentCallUntakenBlock(block) {
+			continue
+		}
+		for _, instruction := range block.Instrs {
+			if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+				return SSASourceCallObservation{}, err
+			}
+			if instruction == nil || reflect.ValueOf(instruction).IsNil() || instruction.Parent() != fn || instruction.Block() != block {
+				return SSASourceCallObservation{}, core.ErrGoToolchainOutput
+			}
+			var call ssa.CallInstruction
+			switch native := instruction.(type) {
+			case *ssa.Call:
+				call = native
+			case *ssa.Defer:
+				call = native
+			case *ssa.Go:
+				call = native
+			}
+			if call != nil && call.Common().Pos() == r.Expression.Lparen {
+				return SSASourceCallObservation{Instruction: call}, nil
+			}
 		}
 	}
 	return SSASourceCallObservation{}, nil
