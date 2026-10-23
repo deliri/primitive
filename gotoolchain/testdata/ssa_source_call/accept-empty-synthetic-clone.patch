@@ -8,4 +8,4 @@
 +	} else if false && fn != v.Package.Func("init") {
  		return out, core.ErrGoToolchainContract
  	}
- 	value, _ := fn.ValueForExpr(r.Expression)
+ 	value, lookupErr := sourceCallExpressionValue(fn, r.Expression)

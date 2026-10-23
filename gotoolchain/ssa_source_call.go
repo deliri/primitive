@@ -121,10 +121,10 @@ func (v SSAUnitView) sourceCallInInstructions(ctx context.Context, r SSASourceCa
 		if argumentCallUntakenBlock(block) {
 			continue
 		}
+		// Like Go's ValueForExpr, scan one native block without repeated
+		// context validation. The block entry and public return check retain
+		// cancellation authority before an observation can escape.
 		for _, instruction := range block.Instrs {
-			if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
-				return SSASourceCallObservation{}, err
-			}
 			if instruction == nil || reflect.ValueOf(instruction).IsNil() || instruction.Parent() != fn || instruction.Block() != block {
 				return SSASourceCallObservation{}, core.ErrGoToolchainOutput
 			}
