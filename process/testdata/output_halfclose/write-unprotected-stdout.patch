@@ -1,0 +1,11 @@
+--- a/process/stdio_halfclose.go
++++ b/process/stdio_halfclose.go
+@@ -45,7 +45,7 @@
+ 	if err := s.Validate(); err != nil {
+ 		return 0, err
+ 	}
+-	count, err := s.writer.Write(data)
++	count, err := s.file.Write(data)
+ 	if err != nil {
+ 		return count, errors.Join(core.ErrProcessStream, err)
+ 	}

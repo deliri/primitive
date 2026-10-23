@@ -1,0 +1,11 @@
+--- a/process/stdio_halfclose.go
++++ b/process/stdio_halfclose.go
+@@ -56,7 +56,7 @@
+ 	if err := s.Validate(); err != nil {
+ 		return err
+ 	}
+-	shutdownErr := shutdownOutput(s.file)
++	shutdownErr := error(nil)
+ 	var releaseErr error
+ 	if s.release != nil {
+ 		releaseErr = s.release()

@@ -51,6 +51,8 @@ type processExternalDoorInventory struct {
 	ResolveExecutable          func(context.Context, core.AbsolutePath) (core.AbsolutePath, error)
 	Run                        func(context.Context, process.Request) (process.Result, error)
 	Self                       func() (process.ProcessIdentity, error)
+	StandardOutput             func() (process.OutputStream, error)
+	OutputStream_Write         func(process.OutputStream, []byte) (int, error)
 	StandardStreams            func() (process.Streams, error)
 	LentStreams                func(process.LentRequest) (process.Lent, error)
 	WaitGroupAbsent            func(context.Context, process.WaitGroupAbsentRequest) (process.Liveness, error)
@@ -79,13 +81,14 @@ var processExternalDoors = processExternalDoorInventory{
 	NewTailBuffer: process.NewTailBuffer, TailBuffer_Write: (*process.TailBuffer).Write,
 	ParseArguments: process.ParseArguments, ParseEffectiveEnvironment: process.ParseEffectiveEnvironment, ParseExactEnvironment: process.ParseExactEnvironment,
 	CollectArguments: process.CollectArguments,
-	Resolve:          process.Resolve, ResolveExecutable: process.ResolveExecutable, Run: process.Run, Self: process.Self, StandardStreams: process.StandardStreams, LentStreams: process.LentStreams,
+	Resolve:          process.Resolve, ResolveExecutable: process.ResolveExecutable, Run: process.Run, Self: process.Self, StandardOutput: process.StandardOutput, OutputStream_Write: process.OutputStream.Write, StandardStreams: process.StandardStreams, LentStreams: process.LentStreams,
 	Streams_WriteOutput: process.Streams.WriteOutput, TruncatingWriter_Write: (*process.TruncatingWriter).Write, ResultObservation_Validate: process.ResultObservation.Validate,
 }
 
 // Fields deliberately use the same compiler-checked operation names as the
 // call inventory. An added operation cannot disappear from classification.
 type processExternalFuzzProofInventory struct {
+	OutputStream_Write                                                                                func(*testing.F)
 	CollectArguments                                                                                  func(*testing.F)
 	ExecutionScope_Begin, ExecutionScope_Wait, ExecutionScope_ActiveCount, ExecutionScope_VisitActive func(*testing.F)
 	OutputMode_UnmarshalJSON                                                                          func(*testing.F)
@@ -99,6 +102,7 @@ type processExternalFuzzProofInventory struct {
 
 func processExternalFuzzProofs() processExternalFuzzProofInventory {
 	return processExternalFuzzProofInventory{
+		OutputStream_Write:         FuzzStandardOutputPreservesBytes,
 		CollectArguments:           FuzzArgumentSourceExactProjection,
 		ExecutionScope_Begin:       FuzzExecutionScopeConservesNativeCustody,
 		ExecutionScope_Wait:        FuzzExecutionScopeConservesNativeCustody,
@@ -132,12 +136,13 @@ type processNativeMetadataDoorInventory struct {
 	DiscardDeviceArgument   func() (process.Argument, error)
 	ObserveProcesses        func(context.Context, process.ProcessVisit) error
 	Self                    func() (process.ProcessIdentity, error)
+	StandardOutput          func() (process.OutputStream, error)
 	StandardStreams         func() (process.Streams, error)
 	LentStreams             func(process.LentRequest) (process.Lent, error)
 }
 
 func processNativeMetadataDoors() processNativeMetadataDoorInventory {
-	return processNativeMetadataDoorInventory{ObserveGroupLiveness: process.ObserveGroupLiveness, ObserveGroupMemory: process.ObserveGroupMemory, OwnGroup: process.OwnGroup, WaitGroupAbsent: process.WaitGroupAbsent, Execution_GroupLiveness: (*process.Execution).GroupLiveness, Alive: process.Alive, DiscardDeviceArgument: process.DiscardDeviceArgument, ObserveProcesses: process.ObserveProcesses, Self: process.Self, StandardStreams: process.StandardStreams, LentStreams: process.LentStreams}
+	return processNativeMetadataDoorInventory{ObserveGroupLiveness: process.ObserveGroupLiveness, ObserveGroupMemory: process.ObserveGroupMemory, OwnGroup: process.OwnGroup, WaitGroupAbsent: process.WaitGroupAbsent, Execution_GroupLiveness: (*process.Execution).GroupLiveness, Alive: process.Alive, DiscardDeviceArgument: process.DiscardDeviceArgument, ObserveProcesses: process.ObserveProcesses, Self: process.Self, StandardOutput: process.StandardOutput, StandardStreams: process.StandardStreams, LentStreams: process.LentStreams}
 }
 
 func TestProcessExternalIngressInventoryMatchesProduction(t *testing.T) {
