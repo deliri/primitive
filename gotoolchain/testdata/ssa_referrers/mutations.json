@@ -1,0 +1,42 @@
+[
+  {
+    "name": "grant-cloned-value",
+    "patch": "grant-cloned-value.patch",
+    "selection": "^TestSSAReferrersPreserveLoanAndOutputRefusals$/^cloned_value$"
+  },
+  {
+    "name": "accept-bad-block-ordinal",
+    "patch": "accept-bad-block-ordinal.patch",
+    "selection": "^TestSSAReferrersPreserveLoanAndOutputRefusals$/^bad_ordinal$"
+  },
+  {
+    "name": "skip-nil-native-use",
+    "patch": "skip-nil-native-use.patch",
+    "selection": "^TestSSAReferrersPreserveLoanAndOutputRefusals$/^nil_native_use$"
+  },
+  {
+    "name": "grant-foreign-native-use",
+    "patch": "grant-foreign-native-use.patch",
+    "selection": "^TestSSAReferrersPreserveLoanAndOutputRefusals$/^foreign_native_use$"
+  },
+  {
+    "name": "reverse-native-use-order",
+    "patch": "reverse-native-use-order.patch",
+    "selection": "^TestSSAReferrersConserveNativeUsesAndConsumerAuthority$"
+  },
+  {
+    "name": "lose-late-native-cause",
+    "patch": "lose-late-native-cause.patch",
+    "selection": "^TestSSAReferrersConserveNativeUsesAndConsumerAuthority$"
+  },
+  {
+    "name": "copy-reference-population",
+    "patch": "copy-reference-population.patch",
+    "selection": "^TestSSAReferrersAllocateNoReferencePopulation$/^8193$"
+  },
+  {
+    "name": "discard-entry-context",
+    "patch": "discard-entry-context.patch",
+    "selection": "^TestSSAReferrersPreserveContextAndEmptyUseList$"
+  }
+]

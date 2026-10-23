@@ -1,0 +1,10 @@
+--- a/gotoolchain/ssa_referrers.go
++++ b/gotoolchain/ssa_referrers.go
+@@ -31,6 +31,7 @@
+ // belongs to the same native function as the selected value instruction.
+ func (v SSAUnitView) Referrers(ctx context.Context, r SSAReferrerRequest) iter.Seq2[ssa.Instruction, error] {
+ 	return func(yield func(ssa.Instruction, error) bool) {
++		ctx = context.Background()
+ 		if err := errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), v.Validate(), r.Validate()); err != nil {
+ 			yield(nil, err)
+ 			return

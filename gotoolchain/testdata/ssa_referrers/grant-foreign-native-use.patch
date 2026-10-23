@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_referrers.go
++++ b/gotoolchain/ssa_referrers.go
+@@ -50,7 +50,7 @@
+ 					yield(nil, errors.Join(core.ErrGoToolchainOutput, err))
+ 					return
+ 				}
+-				if instruction.Parent() != r.Instruction.Parent() {
++				if false && instruction.Parent() != r.Instruction.Parent() {
+ 					yield(nil, core.ErrGoToolchainOutput)
+ 					return
+ 				}

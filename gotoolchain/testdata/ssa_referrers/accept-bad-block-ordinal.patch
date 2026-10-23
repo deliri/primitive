@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_referrers.go
++++ b/gotoolchain/ssa_referrers.go
+@@ -78,7 +78,7 @@
+ 	if fn == nil || fn.Prog != v.Program || fn.Pkg != v.Package || block == nil || block.Parent() != fn {
+ 		return core.ErrGoToolchainContract
+ 	}
+-	if block.Index < 0 || block.Index >= len(fn.Blocks) || fn.Blocks[block.Index] != block {
++	if false && (block.Index < 0 || block.Index >= len(fn.Blocks) || fn.Blocks[block.Index] != block) {
+ 		return core.ErrGoToolchainOutput
+ 	}
+ 	for _, candidate := range block.Instrs {

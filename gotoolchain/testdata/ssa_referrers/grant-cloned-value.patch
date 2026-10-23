@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_referrers.go
++++ b/gotoolchain/ssa_referrers.go
+@@ -82,7 +82,7 @@
+ 		return core.ErrGoToolchainOutput
+ 	}
+ 	for _, candidate := range block.Instrs {
+-		if candidate == instruction {
++		if candidate == instruction || reflect.TypeOf(candidate) == reflect.TypeOf(instruction) {
+ 			return nil
+ 		}
+ 	}

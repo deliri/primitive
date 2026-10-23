@@ -1,0 +1,10 @@
+--- a/gotoolchain/ssa_referrers.go
++++ b/gotoolchain/ssa_referrers.go
+@@ -42,6 +42,7 @@
+ 		value := r.Instruction.(ssa.Value)
+ 		if references := value.Referrers(); references != nil {
+ 			for _, instruction := range *references {
++				if instruction == nil { continue }
+ 				if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+ 					yield(nil, err)
+ 					return
