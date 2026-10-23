@@ -57,6 +57,10 @@ func TestPublicIngressHasCompilerBoundSemanticFuzz(t *testing.T) {
 
 func externalIngressCoverage() []exchange.IngressCoverageForTest {
 	entries := []exchange.IngressCoverageForTest{
+		{Door: exchange.ParseCookieName, Kind: exchange.IngressFuzzForTest, Fuzz: FuzzSocketScalarSelectorNames},
+		{Door: exchange.ParseQueryParameterName, Kind: exchange.IngressFuzzForTest, Fuzz: FuzzSocketScalarSelectorNames},
+		{Door: exchange.SocketServerCall.UniqueCookie, Kind: exchange.IngressFuzzForTest, Fuzz: FuzzSocketUniqueCookieNativeScalar},
+		{Door: exchange.SocketServerCall.UniqueQuery, Kind: exchange.IngressFuzzForTest, Fuzz: FuzzSocketUniqueQueryNativeScalar},
 		{Door: exchange.ParseMultipartName, Kind: exchange.IngressFuzzForTest, Fuzz: FuzzMultipartNominalDoorsSemanticClosure},
 		{Door: exchange.ParseMultipartFileName, Kind: exchange.IngressFuzzForTest, Fuzz: FuzzMultipartNominalDoorsSemanticClosure},
 		{Door: exchange.ParseMultipartText, Kind: exchange.IngressFuzzForTest, Fuzz: FuzzMultipartNominalDoorsSemanticClosure},
@@ -113,6 +117,9 @@ func externalIngressCoverage() []exchange.IngressCoverageForTest {
 		entries = append(entries, exchange.IngressCoverageForTest{Door: door, Kind: exchange.IngressProjectionForTest, Reason: "Pure projection/comparison of already typed facts; its external representation is admitted by the owning door."})
 	}
 	entries = append(entries, exchange.IngressCoverageForTest{Door: exchange.RoundTripStream, Kind: exchange.IngressFuzzForTest, Fuzz: FuzzReplayStreamPreservesDownloadAndRoundTripObservation})
+	for _, door := range []any{exchange.ScalarValue.Present, exchange.ScalarValue.Value} {
+		entries = append(entries, exchange.IngressCoverageForTest{Door: door, Kind: exchange.IngressProjectionForTest, Reason: "Projects a sealed scalar selection or revalidates its nominal selector; external input enters through the bound scalar/name fuzz doors."})
+	}
 
 	return entries
 }

@@ -1,6 +1,7 @@
 package temporal
 
 import (
+	"bytes"
 	"time"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -19,6 +20,40 @@ type CivilDate struct {
 	year  int32
 	month Month
 	day   uint8
+}
+
+// Each of the ten ASCII date characters can use at most six JSON escape bytes.
+// This is the native profile's representable extent, not an input-flow quota.
+const civilDateJSONMaximumBytes = 2 + 6*len("0000-00-00")
+
+// MarshalJSON preserves the exact date as a canonical ISO date-only string.
+func (d CivilDate) MarshalJSON() ([]byte, error) {
+	text, err := d.Text()
+	if err != nil {
+		return nil, err
+	}
+	return core.MarshalCanonicalJSONString(text)
+}
+
+// UnmarshalJSON admits one date string without changing the receiver on error.
+func (d *CivilDate) UnmarshalJSON(data []byte) error {
+	if d == nil {
+		return jsonContractError("civil date receiver is nil")
+	}
+	token := bytes.Trim(data, core.JSONWhitespace)
+	if len(token) > civilDateJSONMaximumBytes {
+		return jsonContractError("civil date JSON exceeds its representable extent")
+	}
+	text, err := core.DecodeJSONStringToken(token)
+	if err != nil {
+		return jsonContractError(temporalJSONValueInvalidReason, err)
+	}
+	parsed, err := ParseCivilDate(text)
+	if err != nil {
+		return jsonContractError(temporalJSONValueInvalidReason, err)
+	}
+	*d = parsed
+	return nil
 }
 
 // NewCivilDate refuses impossible dates instead of time.Date normalization.
@@ -194,6 +229,7 @@ func (d CivilDate) CompletedYearsUntil(end CivilDate) (int32, error) {
 }
 
 var (
-	_ core.Validatable = CivilDate{}
-	_ core.OffWireEnum = CalendarBoundaryUnknown
+	_ core.Validatable            = CivilDate{}
+	_ core.ValidatedJSONMarshaler = CivilDate{}
+	_ core.OffWireEnum            = CalendarBoundaryUnknown
 )

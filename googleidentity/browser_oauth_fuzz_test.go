@@ -12,7 +12,18 @@ import (
 )
 
 func FuzzBrowserOAuthSignedTokenSemanticClosure(f *testing.F) {
-	seed := signBrowserFixture(f, browserClaimsSeed(), false)
+	name, err := core.ParseOAuthProfileName("Ada Lovelace")
+	if err != nil {
+		f.Fatal(err)
+	}
+	picture, err := core.ParseHTTPEndpoint("https://lh3.googleusercontent.com/profile/photo=s96-c")
+	if err != nil {
+		f.Fatal(err)
+	}
+	claims := browserClaimsSeed()
+	claims.Picture = browserString(picture.String())
+	claims.Name, claims.GivenName, claims.FamilyName = browserString(name.String()), browserString("Ada"), browserString("Lovelace")
+	seed := signBrowserFixture(f, claims, false)
 	parts := strings.Split(seed, ".")
 	for index, part := range parts {
 		raw, err := base64.RawURLEncoding.DecodeString(part)
@@ -46,6 +57,9 @@ func FuzzBrowserOAuthSignedTokenSemanticClosure(f *testing.F) {
 			}
 			if !genuine || got.Subject.String() != "stable-google-subject" || !got.EmailVerified || !got.AuthoritativeEmail() {
 				t.Fatalf("accepted token changed signed source facts: genuine=%t identity=%+v", genuine, got)
+			}
+			if got.Profile.PictureURL != picture || got.Profile.PictureOutcome != core.OAuthProfileAvailable || got.Profile.FullName != name || got.Profile.GivenName.String() != "Ada" || got.Profile.FamilyName.String() != "Lovelace" || got.Profile.NameOutcome != core.OAuthProfileAvailable || got.Profile.Validate() != nil {
+				t.Fatalf("accepted signed profile = %+v, want exact canonical name facts", got.Profile)
 			}
 			if calls.Load() != 2 {
 				t.Fatalf("accepted provider calls = %d, want token plus JWKS", calls.Load())

@@ -64,6 +64,8 @@ const (
 	coreJSONDoorOAuthNonce
 	coreJSONDoorOAuthSubject
 	coreJSONDoorOAuthEmail
+	coreJSONDoorOAuthProfileName
+	coreJSONDoorOAuthProfileOutcome
 	coreJSONDoorLimit
 )
 
@@ -151,6 +153,10 @@ func (d coreJSONDoor) receiverName() string {
 		return "OAuthSubject"
 	case coreJSONDoorOAuthEmail:
 		return "OAuthEmail"
+	case coreJSONDoorOAuthProfileName:
+		return "OAuthProfileName"
+	case coreJSONDoorOAuthProfileOutcome:
+		return "OAuthProfileOutcome"
 	case coreJSONDoorUnknown, coreJSONDoorLimit:
 		return ""
 	default:
@@ -159,6 +165,8 @@ func (d coreJSONDoor) receiverName() string {
 }
 
 type coreJSONFixtures struct {
+	oauthProfileName       OAuthProfileName
+	oauthProfileOutcome    OAuthProfileOutcome
 	oauthClientID          OAuthClientID
 	oauthAuthorizationCode OAuthAuthorizationCode
 	oauthRedirectURI       OAuthRedirectURI
@@ -310,6 +318,10 @@ func FuzzCoreExternalJSONDoorInventory(f *testing.F) {
 			candidate, roundTrip = coreJSONReceivers(fixtures.oauthSubject)
 		case coreJSONDoorOAuthEmail:
 			candidate, roundTrip = coreJSONReceivers(fixtures.oauthEmail)
+		case coreJSONDoorOAuthProfileName:
+			candidate, roundTrip = coreJSONReceivers(fixtures.oauthProfileName)
+		case coreJSONDoorOAuthProfileOutcome:
+			candidate, roundTrip = coreJSONReceivers(fixtures.oauthProfileOutcome)
 		case coreJSONDoorUnknown, coreJSONDoorLimit:
 			t.Fatalf("normalized JSON door=%d from selector=%d; want admitted domain", door, rawDoor)
 		default:
@@ -716,6 +728,10 @@ func coreFixturesForFuzz(t testing.TB) coreJSONFixtures {
 	if err != nil {
 		t.Fatalf("NewSourceSubject(seed) error = %v, want nil", err)
 	}
+	oauthProfileName, profileErr := ParseOAuthProfileName("Hélène Example")
+	if profileErr != nil {
+		t.Fatalf("ParseOAuthProfileName(typed seed) = %v, want nil", profileErr)
+	}
 	oauthClientID, err := ParseOAuthClientID("client-owned")
 	if err != nil {
 		t.Fatalf("ParseOAuthClientID(typed seed) = %v, want nil", err)
@@ -753,6 +769,8 @@ func coreFixturesForFuzz(t testing.TB) coreJSONFixtures {
 		t.Fatalf("ParseOAuthEmail(typed seed) = %v, want nil", err)
 	}
 	return coreJSONFixtures{
+		oauthProfileName:       oauthProfileName,
+		oauthProfileOutcome:    OAuthProfileNotRequested,
 		oauthClientID:          oauthClientID,
 		oauthAuthorizationCode: oauthAuthorizationCode,
 		oauthRedirectURI:       oauthRedirectURI,
@@ -791,6 +809,14 @@ func coreJSONSeedsForFuzz(t testing.TB, fixtures coreJSONFixtures) []coreJSONSee
 		coreJSONSeedForFuzz(t, coreJSONDoorOAuthNonce, fixtures.oauthNonce),
 		coreJSONSeedForFuzz(t, coreJSONDoorOAuthSubject, fixtures.oauthSubject),
 		coreJSONSeedForFuzz(t, coreJSONDoorOAuthEmail, fixtures.oauthEmail),
+		coreJSONSeedForFuzz(t, coreJSONDoorOAuthProfileName, fixtures.oauthProfileName),
+		coreJSONSeedForFuzz(t, coreJSONDoorOAuthProfileOutcome, OAuthProfileNotRequested),
+		coreJSONSeedForFuzz(t, coreJSONDoorOAuthProfileOutcome, OAuthProfileMissing),
+		coreJSONSeedForFuzz(t, coreJSONDoorOAuthProfileOutcome, OAuthProfileDenied),
+		coreJSONSeedForFuzz(t, coreJSONDoorOAuthProfileOutcome, OAuthProfilePartial),
+		coreJSONSeedForFuzz(t, coreJSONDoorOAuthProfileOutcome, OAuthProfileAvailable),
+		coreJSONSeedForFuzz(t, coreJSONDoorOAuthProfileOutcome, OAuthProfileInvalid),
+		coreJSONSeedForFuzz(t, coreJSONDoorOAuthProfileOutcome, OAuthProfileUnavailable),
 
 		coreJSONSeedForFuzz(t, coreJSONDoorPlatform, fixtures.platform),
 		coreJSONSeedForFuzz(t, coreJSONDoorOperatingSystem, fixtures.operatingSystem),

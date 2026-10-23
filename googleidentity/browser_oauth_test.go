@@ -22,16 +22,20 @@ import (
 )
 
 type browserClaimsFixture struct {
-	Issuer   string  `json:"iss"`
-	Audience string  `json:"aud"`
-	Subject  string  `json:"sub"`
-	IssuedAt int64   `json:"iat"`
-	Expires  int64   `json:"exp"`
-	Email    *string `json:"email,omitempty"`
-	Verified *bool   `json:"email_verified,omitempty"`
-	Nonce    *string `json:"nonce,omitempty"`
-	Party    *string `json:"azp,omitempty"`
-	Domain   *string `json:"hd,omitempty"`
+	Picture    *string `json:"picture,omitzero"`
+	Name       *string `json:"name,omitzero"`
+	GivenName  *string `json:"given_name,omitzero"`
+	FamilyName *string `json:"family_name,omitzero"`
+	Issuer     string  `json:"iss"`
+	Audience   string  `json:"aud"`
+	Subject    string  `json:"sub"`
+	IssuedAt   int64   `json:"iat"`
+	Expires    int64   `json:"exp"`
+	Email      *string `json:"email,omitempty"`
+	Verified   *bool   `json:"email_verified,omitempty"`
+	Nonce      *string `json:"nonce,omitempty"`
+	Party      *string `json:"azp,omitempty"`
+	Domain     *string `json:"hd,omitempty"`
 }
 type browserTokenFixture struct {
 	AccessToken string `json:"access_token"`
@@ -45,7 +49,7 @@ func browserBool(value bool) *bool       { return &value }
 func browserClaimsSeed() browserClaimsFixture {
 	return browserClaimsFixture{Issuer: googleCloudIdentityIssuer, Audience: "browser-client", Subject: "stable-google-subject", IssuedAt: 946684799, Expires: 946685100, Email: browserString("athlete@gmail.com"), Verified: browserBool(true), Nonce: browserString("owned-nonce")}
 }
-func signBrowserFixture(t testing.TB, claims browserClaimsFixture, foreign bool) string {
+func signBrowserFixture[Document any](t testing.TB, claims Document, foreign bool) string {
 	t.Helper()
 	keyPath := "testdata/verifier_rsa.pem"
 	if foreign {

@@ -17,12 +17,15 @@ type capabilityWrapper[T any] struct{}
 type internalCapability[T any] struct{}
 
 type aesgcmDataFlowInventory struct {
-	Cipher      capabilityWrapper[Cipher]
-	cipherState internalCapability[cipherState]
-	SealRequest operationRequest[SealRequest]
-	SealResult  ownedResult[SealResult]
-	OpenRequest operationRequest[OpenRequest]
-	OpenResult  ownedResult[OpenResult]
+	Cipher          capabilityWrapper[Cipher]
+	cipherState     internalCapability[cipherState]
+	SealRequest     operationRequest[SealRequest]
+	SealResult      ownedResult[SealResult]
+	OpenRequest     operationRequest[OpenRequest]
+	OpenResult      ownedResult[OpenResult]
+	SealTextRequest operationRequest[SealTextRequest]
+	OpenTextRequest operationRequest[OpenTextRequest]
+	SealedText      ownedResult[SealedText]
 }
 
 //go:embed *.go

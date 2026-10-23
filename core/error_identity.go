@@ -639,6 +639,8 @@ const (
 	ErrFirestoreDocumentsContract
 	// ErrFirestoreDocumentsOperation preserves a refused native Firestore operation.
 	ErrFirestoreDocumentsOperation
+	// ErrAESGCMTextExtent identifies encoded ciphertext beyond caller or native text capacity.
+	ErrAESGCMTextExtent
 	errorIdentityLimit
 )
 
@@ -925,6 +927,7 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrOAuthContract, text: "oauth contract violation"},
 		{identity: ErrFirestoreDocumentsContract, text: "firestore documents contract violation"},
 		{identity: ErrFirestoreDocumentsOperation, text: "firestore documents operation failed"},
+		{identity: ErrAESGCMTextExtent, text: "aes-gcm text transport extent exceeded"},
 	}
 }
 
@@ -1032,7 +1035,7 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 	if identity == ErrAttestSignerChanged {
 		return oneErrorIdentityParent(ErrAttestVerification)
 	}
-	if identity == ErrAESGCMAuthentication {
+	if identity == ErrAESGCMAuthentication || identity == ErrAESGCMTextExtent {
 		return oneErrorIdentityParent(ErrAESGCMContract)
 	}
 	if identity == ErrAESGCMContract {

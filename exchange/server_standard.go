@@ -10,9 +10,11 @@ import (
 )
 
 const (
-	serverErrorMessageMaximumBytes    = 64 << 10
-	serverRedirectMaximumBytes        = 8192
-	serverSetCookieMaximumHeaderBytes = 4096
+	serverErrorMessageMaximumBytes = 64 << 10
+	serverRedirectMaximumBytes     = 8192
+	// SetCookieMaximumHeaderBytes is the complete native Set-Cookie field limit.
+	// Callers derive payload capacity from this owning transport boundary.
+	SetCookieMaximumHeaderBytes = 4096
 )
 
 // ServerErrorResponse is one bounded standard HTTP error response. Products
@@ -129,7 +131,7 @@ func SetCookie(call SocketServerCall, cookie http.Cookie) error {
 	if err := cookie.Valid(); err != nil {
 		return responseError(errors.Join(core.ErrExchangeContract, err))
 	}
-	if value := cookie.String(); value == "" || len(value) > serverSetCookieMaximumHeaderBytes {
+	if value := cookie.String(); value == "" || len(value) > SetCookieMaximumHeaderBytes {
 		return responseError(core.ErrExchangeContract)
 	}
 	return executeResponseWriterOperation(func() error {

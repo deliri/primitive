@@ -57,11 +57,11 @@ func FuzzErrorNotFoundRedirectAndSetCookieGoParity(f *testing.F) {
 	for _, hostile := range []string{"", "/%zz", "location\r\ninjection", "日本語?x=<&\""} {
 		f.Add(hostile, "invalid name", hostile, uint16(http.StatusFound), uint8(0), false)
 	}
-	for _, size := range []int{serverSetCookieMaximumHeaderBytes - 1, serverSetCookieMaximumHeaderBytes, serverSetCookieMaximumHeaderBytes + 1} {
+	for _, size := range []int{SetCookieMaximumHeaderBytes - 1, SetCookieMaximumHeaderBytes, SetCookieMaximumHeaderBytes + 1} {
 		f.Add(seed.Location, cookie.Name, strings.Repeat("v", size-len(cookie.Name)-1), uint16(http.StatusBadRequest), uint8(0), false)
 	}
 	f.Fuzz(func(t *testing.T, text, name, value string, statusInput uint16, methodInput uint8, cancelled bool) {
-		if len(text) > serverErrorMessageMaximumBytes+1 || len(name) > serverSetCookieMaximumHeaderBytes+1 || len(value) > serverSetCookieMaximumHeaderBytes+1 || methodInput > 2 {
+		if len(text) > serverErrorMessageMaximumBytes+1 || len(name) > SetCookieMaximumHeaderBytes+1 || len(value) > SetCookieMaximumHeaderBytes+1 || methodInput > 2 {
 			return
 		}
 		methods := []string{http.MethodGet, http.MethodHead, http.MethodPost}
@@ -103,7 +103,7 @@ func FuzzErrorNotFoundRedirectAndSetCookieGoParity(f *testing.F) {
 				}
 			case writeAdmissionCookie:
 				gotErr = SetCookie(call, cookie)
-				wantAccepted = cookie.Valid() == nil && len(cookie.String()) > 0 && len(cookie.String()) <= serverSetCookieMaximumHeaderBytes
+				wantAccepted = cookie.Valid() == nil && len(cookie.String()) > 0 && len(cookie.String()) <= SetCookieMaximumHeaderBytes
 				if wantAccepted {
 					http.SetCookie(oracle, &cookie)
 				}

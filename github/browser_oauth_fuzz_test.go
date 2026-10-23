@@ -98,7 +98,10 @@ func FuzzBrowserOAuthUserSemanticClosure(f *testing.F) {
 	f.Add([]byte("null"))
 	f.Add([]byte(`{"id":0}`))
 	f.Fuzz(func(t *testing.T, data []byte) {
-		var reference browserUserWire
+		var reference struct {
+			ID   *uint64        `json:"id"`
+			Name jsontext.Value `json:"name"`
+		}
 		parseErr := json.Unmarshal(data, &reference)
 		trimmed := bytes.TrimSpace(data)
 		admitted := parseErr == nil && len(trimmed) > 0 && trimmed[0] == '{' && reference.ID != nil && *reference.ID > 0
@@ -107,12 +110,27 @@ func FuzzBrowserOAuthUserSemanticClosure(f *testing.F) {
 			t.Fatalf("user identity admitted=%t error=%v, want %t", err == nil, err, admitted)
 		}
 		if err != nil {
-			if got != (BrowserUserID{}) || !errors.Is(err, core.ErrGitHubResponse) {
+			if got != (browserUserObservation{}) || !errors.Is(err, core.ErrGitHubResponse) {
 				t.Fatalf("user refusal = (%+v,%v), want zero and provider identity", got, err)
 			}
 			return
 		}
-		value, err := got.Uint64()
+		wantName := ""
+		wantOutcome := core.OAuthProfileMissing
+		if nameJSON := bytes.TrimSpace(reference.Name); len(nameJSON) != 0 && !bytes.Equal(nameJSON, []byte("null")) {
+			var text string
+			if nameErr := json.Unmarshal(nameJSON, &text); nameErr != nil {
+				wantOutcome = core.OAuthProfileInvalid
+			} else if value, nameErr := core.ParseOAuthProfileName(text); nameErr != nil {
+				wantOutcome = core.OAuthProfileInvalid
+			} else {
+				wantName, wantOutcome = value.String(), core.OAuthProfileAvailable
+			}
+		}
+		if got.fullName.String() != wantName || got.nameOutcome != wantOutcome {
+			t.Fatalf("user name projection = (%q,%v), want exact %q/%v", got.fullName.String(), got.nameOutcome, wantName, wantOutcome)
+		}
+		value, err := got.id.Uint64()
 		if err != nil || value != *reference.ID {
 			t.Fatalf("user identity = (%d,%v), want exact %d", value, err, *reference.ID)
 		}

@@ -22,7 +22,8 @@ type browserTokenFixture struct {
 	Scope       string `json:"scope"`
 }
 type browserUserFixture struct {
-	ID uint64 `json:"id"`
+	ID   uint64  `json:"id"`
+	Name *string `json:"name,omitzero"`
 }
 type browserEmailFixture struct {
 	Email    string `json:"email"`
@@ -30,6 +31,8 @@ type browserEmailFixture struct {
 	Verified bool   `json:"verified"`
 }
 type browserProviderFixture struct {
+	fullName      *string
+	invalidName   bool
 	scope         *string
 	pages         uint64
 	userID        uint64
@@ -97,8 +100,13 @@ func browserOAuthClient(t testing.TB, f browserProviderFixture, calls *atomic.Ui
 			}
 			if f.malformedUser {
 				body = []byte(`{"id":"not-a-native-numeric-id"}`)
+			} else if f.invalidName {
+				body, err = core.MarshalCanonicalJSONDocument(struct {
+					ID   uint64 `json:"id"`
+					Name bool   `json:"name"`
+				}{ID: f.userID, Name: true})
 			} else {
-				body, err = core.MarshalCanonicalJSONDocument(browserUserFixture{ID: f.userID})
+				body, err = core.MarshalCanonicalJSONDocument(browserUserFixture{ID: f.userID, Name: f.fullName})
 			}
 		case githubBrowserEmailPath:
 			if r.Host != "api.github.com" || r.Header.Get("Authorization") != "Bearer public-user-bearer" || r.URL.Query().Get("per_page") != "100" {

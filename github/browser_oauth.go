@@ -110,6 +110,8 @@ func (v BrowserUserID) Subject() (core.OAuthSubject, error) {
 // email observations. No primary/verified email does not invalidate a subject;
 // the caller decides whether registration or account linking is admissible.
 type BrowserVerifiedIdentity struct {
+	FullName      core.OAuthProfileName
+	NameOutcome   core.OAuthProfileOutcome
 	UserID        BrowserUserID
 	Email         core.OAuthEmail
 	EmailVerified bool
@@ -118,6 +120,9 @@ type BrowserVerifiedIdentity struct {
 func (v BrowserVerifiedIdentity) Validate() error {
 	if err := v.UserID.Validate(); err != nil {
 		return err
+	}
+	if err := validateBrowserName(v.FullName, v.NameOutcome); err != nil {
+		return contractError(err)
 	}
 	if v.Email != (core.OAuthEmail{}) {
 		if err := v.Email.Validate(); err != nil {
@@ -209,10 +214,10 @@ func CompleteBrowserAuthorization(ctx context.Context, r BrowserAuthorizationCom
 	if err != nil {
 		return BrowserVerifiedIdentity{}, err
 	}
-	var id BrowserUserID
+	var user browserUserObservation
 	_, err = client.readBrowserBody(browserBodyRequest{ctx: operation, target: userTarget, headers: headers, capture: capture, policy: r.Policy, decode: func(source io.Reader) error {
 		var decodeErr error
-		id, decodeErr = decodeBrowserUser(operation, source)
+		user, decodeErr = decodeBrowserUser(operation, source)
 		return decodeErr
 	}})
 	if err != nil {
@@ -247,7 +252,7 @@ func CompleteBrowserAuthorization(ctx context.Context, r BrowserAuthorizationCom
 			page = next
 		}
 	}
-	value := BrowserVerifiedIdentity{UserID: id, Email: primary.email, EmailVerified: primary.verified}
+	value := BrowserVerifiedIdentity{UserID: user.id, FullName: user.fullName, NameOutcome: user.nameOutcome, Email: primary.email, EmailVerified: primary.verified}
 	if err := value.Validate(); err != nil {
 		return BrowserVerifiedIdentity{}, err
 	}
@@ -320,29 +325,34 @@ func (c Client) readBrowserBody(r browserBodyRequest) (exchange.StreamResponse, 
 }
 
 type browserUserWire struct {
-	ID *uint64 `json:"id"`
+	ID   *uint64                `json:"id"`
+	Name browserProfileNameWire `json:"name,omitzero"`
 }
 
-func decodeBrowserUser(ctx context.Context, source io.Reader) (BrowserUserID, error) {
+func decodeBrowserUser(ctx context.Context, source io.Reader) (browserUserObservation, error) {
 	cursor, err := jsonio.NewTokenDecoder(jsonio.TokenRequest{Source: source, NestingDepthMaximum: core.JSONNestingDepthMaximum})
 	if err != nil {
-		return BrowserUserID{}, responseError(err)
+		return browserUserObservation{}, responseError(err)
 	}
 	wire, err := jsonio.DecodeProjectionAt[browserUserWire](ctx, cursor, jsonio.MembersIgnoreExtra)
 	if err != nil {
-		return BrowserUserID{}, responseError(err)
+		return browserUserObservation{}, responseError(err)
 	}
 	if err := cursor.RequireEOF(ctx); err != nil {
-		return BrowserUserID{}, responseError(err)
+		return browserUserObservation{}, responseError(err)
 	}
 	if wire.ID == nil {
-		return BrowserUserID{}, core.ErrGitHubResponse
+		return browserUserObservation{}, core.ErrGitHubResponse
 	}
 	id, err := NewBrowserUserID(*wire.ID)
 	if err != nil {
-		return BrowserUserID{}, responseError(err)
+		return browserUserObservation{}, responseError(err)
 	}
-	return id, nil
+	outcome := wire.Name.outcome
+	if outcome == core.OAuthProfileNotRequested {
+		outcome = core.OAuthProfileMissing
+	}
+	return browserUserObservation{id: id, fullName: wire.Name.name, nameOutcome: outcome}, nil
 }
 
 type browserEmailWire struct {

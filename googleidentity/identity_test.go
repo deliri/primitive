@@ -339,6 +339,7 @@ func TestLayerTriadGoogleAccessTokenRealHTTP(t *testing.T) {
 }
 
 type googleExternalDoorInventory struct {
+	ParsePhoneE164                func(string) (PhoneE164, error)
 	ParseHostedDomain             func(string) (HostedDomain, error)
 	NewBrowserVerifier            func(context.Context, BrowserVerifierConfiguration) (BrowserVerifier, error)
 	BeginBrowserAuthorization     func(BrowserAuthorizationRequest) (BrowserAuthorization, error)
@@ -354,7 +355,7 @@ type googleExternalDoorInventory struct {
 	ParseGoogleCloudCommandOutput func([]byte) (Token, error)
 }
 
-var googleExternalDoors = googleExternalDoorInventory{ParseHostedDomain: ParseHostedDomain, NewBrowserVerifier: NewBrowserVerifier, BeginBrowserAuthorization: BeginBrowserAuthorization, CompleteBrowserAuthorization: CompleteBrowserAuthorization, Audience_UnmarshalText: (*Audience).UnmarshalText, Client_Acquire: Client.Acquire, ServiceAccountSource_Acquire: ServiceAccountSource.Acquire, GoogleCloudVerifier_Verify: GoogleCloudVerifier.Verify, AcquireGoogleCloud: AcquireGoogleCloud, AcquireGoogleCloudAccessToken: AcquireGoogleCloudAccessToken, NewGoogleCloudVerifier: NewGoogleCloudVerifier, ParseAudience: ParseAudience, ParseGoogleCloudCommandOutput: ParseGoogleCloudCommandOutput}
+var googleExternalDoors = googleExternalDoorInventory{ParsePhoneE164: ParsePhoneE164, ParseHostedDomain: ParseHostedDomain, NewBrowserVerifier: NewBrowserVerifier, BeginBrowserAuthorization: BeginBrowserAuthorization, CompleteBrowserAuthorization: CompleteBrowserAuthorization, Audience_UnmarshalText: (*Audience).UnmarshalText, Client_Acquire: Client.Acquire, ServiceAccountSource_Acquire: ServiceAccountSource.Acquire, GoogleCloudVerifier_Verify: GoogleCloudVerifier.Verify, AcquireGoogleCloud: AcquireGoogleCloud, AcquireGoogleCloudAccessToken: AcquireGoogleCloudAccessToken, NewGoogleCloudVerifier: NewGoogleCloudVerifier, ParseAudience: ParseAudience, ParseGoogleCloudCommandOutput: ParseGoogleCloudCommandOutput}
 
 func TestGoogleExternalDoorInventoryMatchesProduction(t *testing.T) {
 	t.Parallel()

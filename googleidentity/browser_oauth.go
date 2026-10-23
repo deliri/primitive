@@ -23,6 +23,7 @@ const googleBrowserTokenURL = "https://oauth2.googleapis.com/token"
 // PKCE: https://developers.google.com/identity/protocols/oauth2/native-app#step1-code-verifier
 // The same S256 OAuth protocol is used here with confidential web clients.
 type BrowserAuthorizationRequest struct {
+	Profile     BrowserProfileRequest
 	ClientID    core.OAuthClientID
 	RedirectURI core.OAuthRedirectURI
 	State       core.OAuthState
@@ -32,7 +33,7 @@ type BrowserAuthorizationRequest struct {
 type BrowserAuthorization struct{ URL core.HTTPEndpoint }
 
 func (r BrowserAuthorizationRequest) Validate() error {
-	if err := errors.Join(r.ClientID.Validate(), r.RedirectURI.Validate(), r.State.Validate(), r.Challenge.Validate(), r.Nonce.Validate()); err != nil {
+	if err := errors.Join(r.ClientID.Validate(), r.RedirectURI.Validate(), r.State.Validate(), r.Challenge.Validate(), r.Nonce.Validate(), r.Profile.Validate()); err != nil {
 		return contractError(err)
 	}
 	return nil
@@ -47,7 +48,7 @@ func BeginBrowserAuthorization(r BrowserAuthorizationRequest) (BrowserAuthorizat
 	if err := r.Validate(); err != nil {
 		return BrowserAuthorization{}, err
 	}
-	configuration := oauth2.Config{ClientID: r.ClientID.String(), RedirectURL: r.RedirectURI.String(), Endpoint: oauth2.Endpoint{AuthURL: googleBrowserAuthorizeURL, TokenURL: googleBrowserTokenURL, AuthStyle: oauth2.AuthStyleInParams}, Scopes: []string{"openid", "email"}}
+	configuration := oauth2.Config{ClientID: r.ClientID.String(), RedirectURL: r.RedirectURI.String(), Endpoint: oauth2.Endpoint{AuthURL: googleBrowserAuthorizeURL, TokenURL: googleBrowserTokenURL, AuthStyle: oauth2.AuthStyleInParams}, Scopes: browserAuthorizationScopes(r.Profile)}
 	endpoint, err := core.ParseHTTPEndpoint(configuration.AuthCodeURL(r.State.String(), oauth2.SetAuthURLParam("code_challenge", r.Challenge.String()), oauth2.SetAuthURLParam("code_challenge_method", "S256"), oauth2.SetAuthURLParam("nonce", r.Nonce.String())))
 	if err != nil {
 		return BrowserAuthorization{}, contractError(err)
@@ -58,6 +59,7 @@ func BeginBrowserAuthorization(r BrowserAuthorizationRequest) (BrowserAuthorizat
 // BrowserAuthorizationCompleteRequest consumes one code. It owns no refresh,
 // credential discovery, browser cookie, nonce generation or application session.
 type BrowserAuthorizationCompleteRequest struct {
+	Profile          BrowserProfileRequest
 	IdentityVerifier BrowserVerifier
 	ClockSkew        temporal.Duration
 	Client           exchange.Client
@@ -71,7 +73,7 @@ type BrowserAuthorizationCompleteRequest struct {
 }
 
 func (r BrowserAuthorizationCompleteRequest) Validate() error {
-	if err := errors.Join(r.Client.Validate(), r.ClientID.Validate(), r.ClientSecret.Validate(), r.RedirectURI.Validate(), r.Code.Validate(), r.Verifier.Validate(), r.Nonce.Validate(), r.Policy.Validate(), r.IdentityVerifier.Validate(), r.ClockSkew.Validate()); err != nil {
+	if err := errors.Join(r.Client.Validate(), r.ClientID.Validate(), r.ClientSecret.Validate(), r.RedirectURI.Validate(), r.Code.Validate(), r.Verifier.Validate(), r.Nonce.Validate(), r.Policy.Validate(), r.IdentityVerifier.Validate(), r.ClockSkew.Validate(), r.Profile.Validate()); err != nil {
 		return contractError(err)
 	}
 	if r.IdentityVerifier.native.audience.String() != r.ClientID.String() || r.ClockSkew.Nanoseconds() > int64(core.OAuthClockSkewMaximumSeconds)*int64(temporal.NanosecondsPerSecond) || r.Policy.Retry.MaximumAttempts != 1 || r.Policy.Redirect.Mode != exchange.RedirectReject {
@@ -116,6 +118,7 @@ func (v HostedDomain) Present() bool  { return v.value != "" }
 // EmailVerified does not imply that Google remains authoritative for a third-
 // party email address. The application retains account/link/role admission.
 type BrowserVerifiedIdentity struct {
+	Profile       BrowserProfile
 	Issuer        core.HTTPEndpoint
 	Subject       core.OAuthSubject
 	Email         core.OAuthEmail
@@ -126,7 +129,7 @@ type BrowserVerifiedIdentity struct {
 }
 
 func (v BrowserVerifiedIdentity) Validate() error {
-	if err := errors.Join(v.Issuer.Validate(), v.Subject.Validate(), v.HostedDomain.Validate(), v.IssuedAt.Validate(), v.Expires.Validate()); err != nil {
+	if err := errors.Join(v.Issuer.Validate(), v.Subject.Validate(), v.HostedDomain.Validate(), v.IssuedAt.Validate(), v.Expires.Validate(), v.Profile.Validate()); err != nil {
 		return contractError(err)
 	}
 	if v.Email != (core.OAuthEmail{}) {
@@ -227,7 +230,23 @@ func CompleteBrowserAuthorization(ctx context.Context, r BrowserAuthorizationCom
 	if err != nil {
 		return BrowserVerifiedIdentity{}, contractError(err)
 	}
-	return browserIdentityFromPayload(attempt, r, payload)
+	identity, err := browserIdentityFromPayload(attempt, r, payload)
+	if err != nil {
+		return BrowserVerifiedIdentity{}, err
+	}
+	observed, err := browserPeopleProfile(attempt, r, browserProfileCredential{Token: token, Subject: identity.Subject})
+	if err != nil {
+		return BrowserVerifiedIdentity{}, err
+	}
+	identity.Profile = mergeBrowserNames(identity.Profile, observed)
+	identity.Profile.PhoneNumber, identity.Profile.PhoneVerified = observed.PhoneNumber, observed.PhoneVerified
+	identity.Profile.Birthday = observed.Birthday
+	identity.Profile.PhoneOutcome, identity.Profile.BirthdayOutcome = observed.PhoneOutcome, observed.BirthdayOutcome
+	identity.Profile.refusal = observed.refusal
+	if err := identity.Validate(); err != nil {
+		return BrowserVerifiedIdentity{}, err
+	}
+	return identity, nil
 }
 
 func browserIdentityFromPayload(attempt context.Context, r BrowserAuthorizationCompleteRequest, payload *idtoken.Payload) (BrowserVerifiedIdentity, error) {
@@ -304,7 +323,7 @@ func browserIdentityFromPayload(attempt context.Context, r BrowserAuthorizationC
 	if err != nil || expiryOrder != core.ComparisonGreater {
 		return BrowserVerifiedIdentity{}, contractError(err)
 	}
-	value := BrowserVerifiedIdentity{Issuer: issuer, Subject: subject, Email: address, HostedDomain: domain, IssuedAt: issued, Expires: expires, EmailVerified: verified}
+	value := BrowserVerifiedIdentity{Profile: browserClaimProfile(payload), Issuer: issuer, Subject: subject, Email: address, HostedDomain: domain, IssuedAt: issued, Expires: expires, EmailVerified: verified}
 	if err := value.Validate(); err != nil {
 		return BrowserVerifiedIdentity{}, err
 	}

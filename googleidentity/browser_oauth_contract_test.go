@@ -31,7 +31,7 @@ func TestBrowserOAuthAuthorizationURLLayerTriad(t *testing.T) {
 	}
 	u := got.URL.HTTPURL()
 	q := u.Query()
-	if u.Scheme != "https" || u.Host != "accounts.google.com" || u.Path != "/o/oauth2/v2/auth" || len(q) != 8 || q.Get("client_id") != id.String() || q.Get("redirect_uri") != callback.String() || q.Get("response_type") != "code" || q.Get("scope") != "openid email" || q.Get("state") != state.String() || q.Get("nonce") != nonce.String() || q.Get("code_challenge") != challenge.String() || q.Get("code_challenge_method") != "S256" {
+	if u.Scheme != "https" || u.Host != "accounts.google.com" || u.Path != "/o/oauth2/v2/auth" || len(q) != 8 || q.Get("client_id") != id.String() || q.Get("redirect_uri") != callback.String() || q.Get("response_type") != "code" || q.Get("scope") != "openid email profile" || q.Get("state") != state.String() || q.Get("nonce") != nonce.String() || q.Get("code_challenge") != challenge.String() || q.Get("code_challenge_method") != "S256" {
 		t.Fatalf("Google begin URL = %q, want exact server OAuth/S256 bindings", got.URL.String())
 	}
 	for _, row := range []struct {
