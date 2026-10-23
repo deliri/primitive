@@ -1,0 +1,11 @@
+--- a/filestore/relay.go
++++ b/filestore/relay.go
+@@ -20,7 +20,7 @@
+ }
+ 
+ func (r RelayRequest) Validate() error {
+-	if core.ReaderIsNil(r.NearInput) || core.WriterIsNil(r.NearOutput) || core.ReaderIsNil(r.FarInput) || core.WriterIsNil(r.FarOutput) {
++	if r.NearInput == nil || r.NearOutput == nil || r.FarInput == nil || r.FarOutput == nil {
+ 		return core.ErrFilestoreContract
+ 	}
+ 	return nil

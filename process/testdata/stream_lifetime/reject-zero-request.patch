@@ -1,0 +1,11 @@
+--- a/process/contracts.go
++++ b/process/contracts.go
+@@ -593,7 +593,7 @@
+ 	if err := r.WaitDelay.Validate(); err != nil {
+ 		return errors.Join(core.ErrProcessContract, err)
+ 	}
+-	if err := validateInherited(r.Inherited); err != nil {
++	if r.WaitDelay.IsZero() { return core.ErrProcessContract }; if err := validateInherited(r.Inherited); err != nil {
+ 		return err
+ 	}
+ 	return r.Containment.orDefault().Validate()

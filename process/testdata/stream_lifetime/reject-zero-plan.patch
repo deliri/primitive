@@ -1,0 +1,11 @@
+--- a/process/plan.go
++++ b/process/plan.go
+@@ -47,7 +47,7 @@
+ 	if err := p.OutputPolicy.Validate(); err != nil {
+ 		return err
+ 	}
+-	if err := p.WaitDelay.Validate(); err != nil {
++	if err := p.WaitDelay.Validate(); err != nil || p.WaitDelay.IsZero() {
+ 		return errors.Join(core.ErrProcessContract, err)
+ 	}
+ 	return p.Containment.Validate()

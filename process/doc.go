@@ -42,7 +42,8 @@
 //
 // Two boundaries belong to the caller and are not defects in this package.
 //
-// Request.WaitDelay bounds only the descriptors os/exec owns. When a child
+// Request.WaitDelay follows os/exec: zero drains owned pipes until EOF; a
+// nonzero value bounds them after cancellation or child exit. When a child
 // exits while a descendant still holds an inherited output descriptor, Wait
 // closes the parent pipes after the delay and Run returns a FailureKindWait
 // Failure whose cause preserves the native exec.ErrWaitDelay. When a

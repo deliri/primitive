@@ -1,6 +1,6 @@
 --- a/filestore/relay.go
 +++ b/filestore/relay.go
-@@ -57,7 +57,7 @@
+@@ -60,7 +60,7 @@
  		return RelayResult{}, err
  	}
  	upward := make(chan relayUpwardResult, 1)

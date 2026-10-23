@@ -47,7 +47,7 @@ func (p Plan) Validate() error {
 	if err := p.OutputPolicy.Validate(); err != nil {
 		return err
 	}
-	if err := p.WaitDelay.Validate(); err != nil || p.WaitDelay.IsZero() {
+	if err := p.WaitDelay.Validate(); err != nil {
 		return errors.Join(core.ErrProcessContract, err)
 	}
 	return p.Containment.Validate()

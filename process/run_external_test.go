@@ -1093,6 +1093,7 @@ func TestRunCancellationReapsTheDirectChild(t *testing.T) {
 	request := processRequest(t, "wait", process.Streams{
 		Stdin: bytes.NewReader(nil), Stdout: stdout, Stderr: io.Discard,
 	})
+	request.WaitDelay = temporal.Duration{}
 	done := make(chan runOutcome, 1)
 	go func() {
 		result, err := process.Run(ctx, request)

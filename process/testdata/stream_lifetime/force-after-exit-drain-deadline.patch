@@ -1,0 +1,11 @@
+--- a/process/run.go
++++ b/process/run.go
+@@ -137,7 +137,7 @@
+ 	if err != nil {
+ 		return preparedCommand{}, errors.Join(core.ErrProcessContract, err)
+ 	}
+-	command.WaitDelay = waitDelay
++	command.WaitDelay = waitDelay; if waitDelay == 0 { command.WaitDelay = 1 }
+ 	if err := command.Start(); err != nil {
+ 		return preparedCommand{}, newFailure(FailureKindStart, request.Command, err)
+ 	}

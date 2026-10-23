@@ -1,6 +1,6 @@
 --- a/filestore/relay.go
 +++ b/filestore/relay.go
-@@ -58,7 +58,7 @@
+@@ -61,7 +61,7 @@
  	}
  	upward := make(chan relayUpwardResult, 1)
  	go func() {

@@ -196,6 +196,7 @@ func TestGroupCancellationReapsTheWholeTree(t *testing.T) {
 		Isolation:    process.IsolationGroup,
 		CancelSignal: process.CancelSignalQuit,
 	}
+	request.WaitDelay = temporal.Duration{}
 	execution, err := process.Begin(ctx, request)
 	if err != nil {
 		t.Fatalf("process.Begin(group cancellation) error = %v, want nil", err)

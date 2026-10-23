@@ -137,7 +137,7 @@ func helperRelayChild(selector string) {
 		os.Exit(97)
 	}
 	defer func() { _ = lent.Input.Close() }()
-	_, err = filestore.Relay(filestore.RelayRequest{NearInput: own.Stdin, NearOutput: own.Stdout, FarInput: lent.Input, FarOutput: lent.Output})
+	_, err = filestore.Relay(filestore.RelayRequest{NearInput: own.Stdin, NearOutput: own.Stdout.(io.WriteCloser), FarInput: lent.Input, FarOutput: lent.Output})
 	if errors.Is(err, syscall.EBADF) {
 		os.Exit(relayChildRefused)
 	}

@@ -11,7 +11,10 @@ parent and the relay child, which composes StandardStreams, LentStreams and
 filestore.Relay exactly as a consumer bridge does. Rows cover both lending
 orders, half a megabyte each way, an echo row whose upward bytes are the
 downward bytes returned, empty streams, and an unlent child whose relay fails
-with the native bad-descriptor cause (LentStreams performs no filesystem effect).
+with the native bad-descriptor cause when those descriptors are absent.
+LentStreams performs no filesystem effect. Its trusted parent and child must
+agree on descriptor inheritance/order: unrelated open descriptors could use
+the same numbers, so this API does not authenticate descriptor origin.
 The domain test is exhaustive over 256 values; the request triad covers
 neutral, single, both orders, unknown, future, repeated and over-count lending.
 

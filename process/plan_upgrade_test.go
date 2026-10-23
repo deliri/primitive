@@ -57,7 +57,7 @@ func planContractCases() []planContractCase {
 			return p, nil
 		}, wantValidate: core.ErrProcessContract, wantMarshal: core.ErrProcessContract},
 		{name: "negative/unset output limit cannot bind", change: func(p Plan) (Plan, error) { p.OutputPolicy.Maximum = core.ByteCount{}; return p, nil }, wantValidate: core.ErrProcessContract, wantMarshal: core.ErrProcessContract},
-		{name: "negative/zero wait delay cannot bind", change: func(p Plan) (Plan, error) { p.WaitDelay = temporal.Duration{}; return p, nil }, wantValidate: core.ErrProcessContract, wantMarshal: core.ErrProcessContract},
+		{name: "boundary/zero wait delay preserves EOF ownership", change: func(p Plan) (Plan, error) { p.WaitDelay = temporal.Duration{}; return p, nil }},
 		{name: "negative/unknown containment cannot bind", change: planContainmentChange(IsolationUnknown, CancelSignalKill), wantValidate: core.ErrProcessContract, wantMarshal: core.ErrProcessContract},
 		{name: "boundary/arguments below JSON array cap", change: planArgumentCountChange(maximum - 1)},
 		{name: "boundary/arguments at JSON array cap", change: planArgumentCountChange(maximum)},

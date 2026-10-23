@@ -1,8 +1,8 @@
 --- a/process/contracts.go
 +++ b/process/contracts.go
-@@ -596,9 +596,6 @@
- 	if r.WaitDelay.IsZero() {
- 		return contractError("wait delay is zero")
+@@ -593,9 +593,6 @@
+ 	if err := r.WaitDelay.Validate(); err != nil {
+ 		return errors.Join(core.ErrProcessContract, err)
  	}
 -	if err := validateInherited(r.Inherited); err != nil {
 -		return err

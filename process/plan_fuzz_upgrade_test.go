@@ -97,7 +97,7 @@ func planWireAdmittedByContract(w planWire) bool {
 	output, outputErr := w.OutputPolicy.Maximum.Uint64()
 	bounded := w.OutputPolicy.Mode == OutputModeBounded && outputErr == nil && output <= math.MaxInt64
 	streaming := w.OutputPolicy.Mode == OutputModeStreaming && w.OutputPolicy.Maximum == (core.ByteCount{})
-	if w.SchemaVersion != ExecutionPlanSchemaVersion || w.Command.Validate() != nil || w.WorkingDirectory.Validate() != nil || (!bounded && !streaming) || w.WaitDelay.Validate() != nil || w.WaitDelay.IsZero() {
+	if w.SchemaVersion != ExecutionPlanSchemaVersion || w.Command.Validate() != nil || w.WorkingDirectory.Validate() != nil || (!bounded && !streaming) || w.WaitDelay.Validate() != nil {
 		return false
 	}
 	if w.Isolation != IsolationDirect.String() && w.Isolation != IsolationGroup.String() {

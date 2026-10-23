@@ -593,9 +593,6 @@ func (r Request) Validate() error {
 	if err := r.WaitDelay.Validate(); err != nil {
 		return errors.Join(core.ErrProcessContract, err)
 	}
-	if r.WaitDelay.IsZero() {
-		return contractError("wait delay is zero")
-	}
 	if err := validateInherited(r.Inherited); err != nil {
 		return err
 	}

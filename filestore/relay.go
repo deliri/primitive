@@ -9,17 +9,18 @@ import (
 
 // RelayRequest lends both directions of a byte relay. Near is one side's
 // input and output, Far the other's: a relay child passes its own standard
-// streams as Near and its parent's lent streams as Far. Relay closes only
-// FarOutput, once NearInput ends; every other stream stays the caller's.
+// streams as Near and its parent's lent streams as Far. Relay owns both
+// outputs: each is closed once its incoming copy ends, before joining the
+// opposite direction. The caller retains ownership of both inputs.
 type RelayRequest struct {
 	NearInput  io.Reader
-	NearOutput io.Writer
+	NearOutput io.WriteCloser
 	FarInput   io.Reader
 	FarOutput  io.WriteCloser
 }
 
 func (r RelayRequest) Validate() error {
-	if r.NearInput == nil || r.NearOutput == nil || r.FarInput == nil || r.FarOutput == nil {
+	if core.ReaderIsNil(r.NearInput) || core.WriterIsNil(r.NearOutput) || core.ReaderIsNil(r.FarInput) || core.WriterIsNil(r.FarOutput) {
 		return core.ErrFilestoreContract
 	}
 	return nil
@@ -49,7 +50,9 @@ type relayUpwardResult struct {
 // Relay copies NearInput to FarOutput and FarInput to NearOutput at once, as
 // a protocol that interleaves requests and replies requires. The streams own
 // the lifetime, as with cat: the downward copy ends when FarInput ends, the
-// upward copy when NearInput ends, and Relay returns only after both joined.
+// upward copy when NearInput ends. Each destination closes immediately after
+// its copy, allowing the opposite input to observe EOF and finish. Relay
+// returns only after both copies and both closes have joined.
 // A blocked read on a shared descriptor cannot be interrupted without
 // changing its other owners, so there is no cancellation path.
 func Relay(request RelayRequest) (RelayResult, error) {
@@ -62,8 +65,9 @@ func Relay(request RelayRequest) (RelayResult, error) {
 		upward <- relayUpwardResult{copyError: copyErr, closeError: request.FarOutput.Close()}
 	}()
 	_, downErr := io.Copy(request.NearOutput, request.FarInput)
+	downCloseErr := request.NearOutput.Close()
 	up := <-upward
-	result := RelayResult{UpwardError: up.copyError, DownwardError: downErr, CloseError: up.closeError, joined: true}
+	result := RelayResult{UpwardError: up.copyError, DownwardError: downErr, CloseError: errors.Join(up.closeError, downCloseErr), joined: true}
 	return result, errors.Join(result.Validate(), result.UpwardError, result.DownwardError, result.CloseError)
 }
 

@@ -1,6 +1,6 @@
 --- a/filestore/relay.go
 +++ b/filestore/relay.go
-@@ -59,7 +59,7 @@
+@@ -62,7 +62,7 @@
  	upward := make(chan relayUpwardResult, 1)
  	go func() {
  		_, copyErr := io.Copy(request.FarOutput, request.NearInput)
@@ -8,4 +8,4 @@
 +		upward <- relayUpwardResult{copyError: copyErr, closeError: nil}
  	}()
  	_, downErr := io.Copy(request.NearOutput, request.FarInput)
- 	up := <-upward
+ 	downCloseErr := request.NearOutput.Close()

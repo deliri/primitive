@@ -44,7 +44,7 @@ func planIngressCases() []planIngressCase {
 		{name: "negative/environment without separator preserves receiver", change: func(w *planWire) { w.Environment = []string{"missing"} }, wantErr: core.ErrProcessContract},
 		{name: "negative/empty environment name preserves receiver", change: func(w *planWire) { w.Environment = []string{"=value"} }, wantErr: core.ErrProcessContract},
 		{name: "negative/omitted output budget preserves receiver", change: func(w *planWire) { w.OutputPolicy.Maximum = core.ByteCount{} }, omitZero: true, wantErr: core.ErrProcessContract},
-		{name: "negative/omitted wait budget preserves receiver", change: func(w *planWire) { w.WaitDelay = temporal.Duration{} }, omitZero: true, wantErr: core.ErrProcessContract},
+		{name: "boundary/omitted wait delay means EOF ownership", change: func(w *planWire) { w.WaitDelay = temporal.Duration{} }, omitZero: true},
 		{name: "negative/unknown field preserves receiver", damage: func(b []byte) []byte { return append([]byte(`{"unowned":true,`), b[1:]...) }, wantErr: core.ErrProcessContract},
 		{name: "negative/duplicate fields preserve receiver", damage: func(b []byte) []byte { return append(append(bytes.Clone(b[:len(b)-1]), ','), b[1:]...) }, wantErr: core.ErrProcessContract},
 		{name: "negative/trailing document preserves receiver", damage: func(b []byte) []byte { return append(b, []byte("{}")...) }, wantErr: core.ErrProcessContract},

@@ -23,9 +23,9 @@ func applyInherited(command *exec.Cmd, streams []InheritedStream) error {
 	return nil
 }
 
-// openLent names the lent descriptors. It performs no filesystem effect: a
-// descriptor that was never lent is closed here, so its first read or write
-// fails with the native bad-descriptor cause.
+// openLent names descriptors already agreed by the trusted parent and child.
+// It neither observes their origin nor closes unrelated descriptors. An absent
+// descriptor fails on first I/O with the native bad-descriptor cause.
 func openLent(input, output uintptr) (Lent, error) {
 	lentInput := os.NewFile(input, "inherited standard input")
 	lentOutput := os.NewFile(output, "inherited standard output")

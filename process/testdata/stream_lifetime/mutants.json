@@ -1,0 +1,38 @@
+[
+  {
+    "name": "skip-near-close",
+    "package": "./filestore",
+    "run": "^TestRelayClosesDownwardBeforeJoiningDependentUpward$",
+    "patch": "skip-near-close.patch"
+  },
+  {
+    "name": "admit-typed-nil",
+    "package": "./filestore",
+    "run": "^TestRelayRefusesTypedNilBeforeAnyCopyOrClose$",
+    "patch": "admit-typed-nil.patch"
+  },
+  {
+    "name": "reject-zero-request",
+    "package": "./process",
+    "run": "^TestZeroWaitDelayDrainsAfterChildExit$",
+    "patch": "reject-zero-request.patch"
+  },
+  {
+    "name": "reject-zero-plan",
+    "package": "./process",
+    "run": "^TestPlanContractAndPublicationLayerTriad$/^boundary/zero_wait_delay_preserves_EOF_ownership$",
+    "patch": "reject-zero-plan.patch"
+  },
+  {
+    "name": "force-after-exit-drain-deadline",
+    "package": "./process",
+    "run": "^TestZeroWaitDelayDrainsAfterChildExit$",
+    "patch": "force-after-exit-drain-deadline.patch"
+  },
+  {
+    "name": "discard-near-close-cause",
+    "package": "./filestore",
+    "run": "^TestRelayLayerTriad$/^a_near_close_failure_is_reported_beside_successful_copies$",
+    "patch": "discard-near-close-cause.patch"
+  }
+]

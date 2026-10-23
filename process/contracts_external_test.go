@@ -897,12 +897,11 @@ func TestRequestIngressPressure(t *testing.T) {
 			wantErr: core.ErrProcessContract,
 		},
 		{
-			name: "zero wait delay is rejected",
+			name: "zero wait delay admits EOF ownership",
 			mutate: func(_ testing.TB, value process.Request) process.Request {
 				value.WaitDelay = temporal.Duration{}
 				return value
 			},
-			wantErr: core.ErrProcessContract,
 		},
 		{
 			name: "wholly zero request is rejected",

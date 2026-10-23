@@ -128,10 +128,11 @@ type Lent struct {
 }
 
 // LentStreams names the parent's lent standard streams in a child the parent
-// started with Request.Inherited. It performs no filesystem effect: a
-// descriptor that was never lent is closed in this process, so its first read
-// or write fails with the native bad-descriptor cause instead of inventing a
-// stream.
+// started with Request.Inherited. The trusted parent and child must agree on
+// that inheritance and its order. Descriptor numbers alone cannot establish
+// their origin: unrelated open descriptors may occupy the same numbers.
+// It performs no filesystem effect and does not close unrelated descriptors.
+// An absent descriptor fails its first I/O with the native bad-descriptor cause.
 func LentStreams(request LentRequest) (Lent, error) {
 	if err := request.Validate(); err != nil {
 		return Lent{}, err

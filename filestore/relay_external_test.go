@@ -33,6 +33,7 @@ func (c *closeRecorder) Close() error {
 type refusingWriter struct{}
 
 func (refusingWriter) Write([]byte) (int, error) { return 0, errRelayWrite }
+func (refusingWriter) Close() error              { return nil }
 
 // refusingCloser fails every write and records its close.
 type refusingCloser struct{ closes int }
@@ -62,6 +63,7 @@ func TestRelayLayerTriad(t *testing.T) {
 		// refuseNear fails NearOutput; refuseFar fails FarOutput.
 		refuseNear, refuseFar bool
 		closeErr              error
+		nearCloseErr          error
 		wantUpErr             bool
 		wantDownErr           bool
 	}{
@@ -71,14 +73,15 @@ func TestRelayLayerTriad(t *testing.T) {
 		{name: "a refused near writer fails downward and still joins upward", up: 1024, down: 1024, refuseNear: true, wantDownErr: true},
 		{name: "a refused far writer fails upward and still joins downward", up: 1024, down: 1024, refuseFar: true, wantUpErr: true},
 		{name: "a far close failure is reported beside successful copies", up: 64, down: 64, closeErr: errRelayWrite},
+		{name: "a near close failure is reported beside successful copies", up: 64, down: 64, nearCloseErr: io.ErrClosedPipe},
+		{name: "both close failures remain independently reachable", up: 64, down: 64, closeErr: errRelayWrite, nearCloseErr: io.ErrClosedPipe},
 	} {
 		t.Run(row.name, func(t *testing.T) {
 			t.Parallel()
 			upward, downward := relayBytes(row.up, 0x3c), relayBytes(row.down, 0xc3)
 			var nearInput io.Reader = bytes.NewReader(upward)
-			var nearOutput io.Writer
-			var nearBuffer bytes.Buffer
-			nearOutput = &nearBuffer
+			nearBuffer := &closeRecorder{closeErr: row.nearCloseErr}
+			var nearOutput io.WriteCloser = nearBuffer
 			if row.echo {
 				echoReader, echoWriter := io.Pipe()
 				nearInput, nearOutput = io.LimitReader(echoReader, int64(row.down)), echoWriter
@@ -117,10 +120,13 @@ func TestRelayLayerTriad(t *testing.T) {
 			if (got.result.DownwardError != nil) != row.wantDownErr || row.wantDownErr && !errors.Is(got.result.DownwardError, errRelayWrite) {
 				t.Fatalf("downward error = %v, want failure %t carrying the native cause", got.result.DownwardError, row.wantDownErr)
 			}
-			if !errors.Is(got.result.CloseError, row.closeErr) || row.closeErr == nil && got.result.CloseError != nil {
+			if row.closeErr != nil && !errors.Is(got.result.CloseError, row.closeErr) || row.nearCloseErr != nil && !errors.Is(got.result.CloseError, row.nearCloseErr) || row.closeErr == nil && row.nearCloseErr == nil && got.result.CloseError != nil {
 				t.Fatalf("close error = %v, want %v", got.result.CloseError, row.closeErr)
 			}
-			wantErr := row.wantUpErr || row.wantDownErr || row.closeErr != nil
+			if row.closeErr != nil && !errors.Is(got.err, row.closeErr) || row.nearCloseErr != nil && !errors.Is(got.err, row.nearCloseErr) {
+				t.Fatalf("Relay error = %v, want both native close causes %v and %v reachable", got.err, row.closeErr, row.nearCloseErr)
+			}
+			wantErr := row.wantUpErr || row.wantDownErr || row.closeErr != nil || row.nearCloseErr != nil
 			if (got.err != nil) != wantErr {
 				t.Fatalf("Relay error = %v, want failure %t", got.err, wantErr)
 			}
@@ -130,6 +136,9 @@ func TestRelayLayerTriad(t *testing.T) {
 			}
 			if !row.refuseFar && !bytes.Equal(far.Bytes(), upward) {
 				t.Fatalf("upward bytes = %d, want the near input's %d bytes exactly", far.Len(), len(upward))
+			}
+			if !row.refuseNear && !row.echo && nearBuffer.closes != 1 {
+				t.Fatalf("NearOutput closed %d times, want exactly once", nearBuffer.closes)
 			}
 			if !row.refuseNear && !row.echo && !bytes.Equal(nearBuffer.Bytes(), downward) {
 				t.Fatalf("downward bytes = %d, want the far input's %d bytes exactly", nearBuffer.Len(), len(downward))
@@ -143,7 +152,7 @@ func TestRelayLayerTriad(t *testing.T) {
 func TestRelayRequestRefusesMissingStreams(t *testing.T) {
 	t.Parallel()
 	full := func() filestore.RelayRequest {
-		return filestore.RelayRequest{NearInput: bytes.NewReader(nil), NearOutput: io.Discard, FarInput: bytes.NewReader(nil), FarOutput: &closeRecorder{}}
+		return filestore.RelayRequest{NearInput: bytes.NewReader(nil), NearOutput: &closeRecorder{}, FarInput: bytes.NewReader(nil), FarOutput: &closeRecorder{}}
 	}
 	for _, row := range []struct {
 		name  string
@@ -177,12 +186,12 @@ func FuzzRelayPreservesBothDirections(f *testing.F) {
 	f.Add(relayBytes(70000, 0x11), relayBytes(1, 0x22))
 	f.Fuzz(func(t *testing.T, up, down []byte) {
 		far := &closeRecorder{}
-		var near bytes.Buffer
-		result, err := filestore.Relay(filestore.RelayRequest{NearInput: bytes.NewReader(up), NearOutput: &near, FarInput: bytes.NewReader(down), FarOutput: far})
+		near := &closeRecorder{}
+		result, err := filestore.Relay(filestore.RelayRequest{NearInput: bytes.NewReader(up), NearOutput: near, FarInput: bytes.NewReader(down), FarOutput: far})
 		if err != nil || result.Validate() != nil {
 			t.Fatalf("Relay = %+v/%v, want a joined relay with no error", result, err)
 		}
-		if !bytes.Equal(far.Bytes(), up) || !bytes.Equal(near.Bytes(), down) || far.closes != 1 {
+		if !bytes.Equal(far.Bytes(), up) || !bytes.Equal(near.Bytes(), down) || far.closes != 1 || near.closes != 1 {
 			t.Fatalf("relayed up %d/%d down %d/%d closes %d, want exact bytes and one close", far.Len(), len(up), near.Len(), len(down), far.closes)
 		}
 	})
