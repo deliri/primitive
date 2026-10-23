@@ -1,0 +1,13 @@
+--- a/gotoolchain/ssa_blocks.go
++++ b/gotoolchain/ssa_blocks.go
+@@ -52,9 +52,7 @@
+ 			if argumentCallUntakenBlock(block) {
+ 				continue
+ 			}
+-			if !yield(block, nil) {
+-				return
+-			}
++			yield(block, nil)
+ 		}
+ 		if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+ 			yield(nil, err)

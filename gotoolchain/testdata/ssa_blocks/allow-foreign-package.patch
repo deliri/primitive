@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_blocks.go
++++ b/gotoolchain/ssa_blocks.go
+@@ -36,7 +36,7 @@
+ 			yield(nil, core.ErrGoToolchainContract)
+ 			return
+ 		}
+-		if pkg := fn.Pkg; pkg != nil && v.Program.Package(pkg.Pkg) != pkg {
++		if pkg := fn.Pkg; false && pkg != nil && v.Program.Package(pkg.Pkg) != pkg {
+ 			yield(nil, core.ErrGoToolchainContract)
+ 			return
+ 		}

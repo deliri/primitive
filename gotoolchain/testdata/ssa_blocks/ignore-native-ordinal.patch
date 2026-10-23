@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_blocks.go
++++ b/gotoolchain/ssa_blocks.go
+@@ -45,7 +45,7 @@
+ 				yield(nil, err)
+ 				return
+ 			}
+-			if block == nil || block.Parent() != fn || block.Index != index {
++			if block == nil || block.Parent() != fn || index < 0 {
+ 				yield(nil, core.ErrGoToolchainOutput)
+ 				return
+ 			}

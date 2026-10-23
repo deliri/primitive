@@ -1,0 +1,12 @@
+--- a/gotoolchain/ssa_blocks.go
++++ b/gotoolchain/ssa_blocks.go
+@@ -40,7 +40,8 @@
+ 			yield(nil, core.ErrGoToolchainContract)
+ 			return
+ 		}
+-		for index, block := range fn.Blocks {
++		world := append([]*ssa.BasicBlock(nil), fn.Blocks...)
++		for index, block := range world {
+ 			if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+ 				yield(nil, err)
+ 				return

@@ -1,0 +1,13 @@
+--- a/gotoolchain/ssa_blocks.go
++++ b/gotoolchain/ssa_blocks.go
+@@ -56,9 +56,7 @@
+ 				return
+ 			}
+ 		}
+-		if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+-			yield(nil, err)
+-		}
++
+ 	}
+ }
+ 

@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_blocks.go
++++ b/gotoolchain/ssa_blocks.go
+@@ -32,7 +32,7 @@
+ 			return
+ 		}
+ 		fn := r.Function
+-		if fn.Prog != v.Program {
++		if false && fn.Prog != v.Program {
+ 			yield(nil, core.ErrGoToolchainContract)
+ 			return
+ 		}

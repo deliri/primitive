@@ -1,0 +1,10 @@
+--- a/gotoolchain/ssa_blocks.go
++++ b/gotoolchain/ssa_blocks.go
+@@ -28,7 +28,6 @@
+ func (v SSAUnitView) Blocks(ctx context.Context, r SSABlockRequest) iter.Seq2[*ssa.BasicBlock, error] {
+ 	return func(yield func(*ssa.BasicBlock, error) bool) {
+ 		if err := errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), v.Validate(), r.Validate()); err != nil {
+-			yield(nil, err)
+ 			return
+ 		}
+ 		fn := r.Function

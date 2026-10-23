@@ -1,0 +1,52 @@
+[
+  {
+    "name": "allow-foreign-program",
+    "patch": "allow-foreign-program.patch",
+    "selection": "^TestSSABlocksPreserveCustodyRefusals$/^foreign_program$"
+  },
+  {
+    "name": "allow-foreign-package",
+    "patch": "allow-foreign-package.patch",
+    "selection": "^TestSSABlocksPreserveCustodyRefusals$/^foreign_package_custody$"
+  },
+  {
+    "name": "ignore-native-ordinal",
+    "patch": "ignore-native-ordinal.patch",
+    "selection": "^TestSSABlocksPreserveCustodyRefusals$/^wrong_ordinal$"
+  },
+  {
+    "name": "ignore-native-parent",
+    "patch": "ignore-native-parent.patch",
+    "selection": "^TestSSABlocksPreserveCustodyRefusals$/^wrong_native_parent$"
+  },
+  {
+    "name": "admit-untaken-blocks",
+    "patch": "admit-untaken-blocks.patch",
+    "selection": "^TestSSABlocksLendNativeFunctionExtent$/^untaken_body$"
+  },
+  {
+    "name": "discard-malformed-block-refusal",
+    "patch": "discard-malformed-block-refusal.patch",
+    "selection": "^TestSSABlocksPreserveCustodyRefusals$/^nil_block$"
+  },
+  {
+    "name": "ignore-consumer-stop",
+    "patch": "ignore-consumer-stop.patch",
+    "selection": "^TestSSABlocksHonorCancellationAndConsumerStop$"
+  },
+  {
+    "name": "discard-initial-cause",
+    "patch": "discard-initial-cause.patch",
+    "selection": "^TestSSABlocksHonorCancellationAndConsumerStop$"
+  },
+  {
+    "name": "discard-final-cause",
+    "patch": "discard-final-cause.patch",
+    "selection": "^TestSSABlocksPreserveFinalCancellationAndImportedAbsence$"
+  },
+  {
+    "name": "retain-native-block-population",
+    "patch": "retain-native-block-population.patch",
+    "selection": "^TestSSABlocksAllocateNoBlockPopulation$/^4097$"
+  }
+]
