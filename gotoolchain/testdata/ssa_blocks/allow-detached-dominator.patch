@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_blocks.go
++++ b/gotoolchain/ssa_blocks.go
+@@ -48,7 +48,7 @@
+ 			yield(nil, core.ErrGoToolchainContract)
+ 			return
+ 		}
+-		if block := r.DominatedBy; block != nil && (block.Index < 0 || block.Index >= len(fn.Blocks) || fn.Blocks[block.Index] != block) {
++		if block := r.DominatedBy; block != nil && (block.Index < 0 || block.Index >= len(fn.Blocks)) {
+ 			yield(nil, core.ErrGoToolchainOutput)
+ 			return
+ 		}

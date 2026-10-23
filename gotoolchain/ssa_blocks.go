@@ -12,10 +12,18 @@ import (
 
 // SSABlockRequest selects the actual blocks of one native function. Imported
 // declarations without a body have no blocks; this says nothing about execution.
-type SSABlockRequest struct{ Function *ssa.Function }
+// DominatedBy optionally narrows observations to one native dominator region.
+// A nil selector includes all blocks. No region or graph is materialized.
+type SSABlockRequest struct {
+	Function    *ssa.Function
+	DominatedBy *ssa.BasicBlock
+}
 
 func (r SSABlockRequest) Validate() error {
 	if r.Function == nil {
+		return core.ErrGoToolchainContract
+	}
+	if r.DominatedBy != nil && r.DominatedBy.Parent() != r.Function {
 		return core.ErrGoToolchainContract
 	}
 	return nil
@@ -40,6 +48,10 @@ func (v SSAUnitView) Blocks(ctx context.Context, r SSABlockRequest) iter.Seq2[*s
 			yield(nil, core.ErrGoToolchainContract)
 			return
 		}
+		if block := r.DominatedBy; block != nil && (block.Index < 0 || block.Index >= len(fn.Blocks) || fn.Blocks[block.Index] != block) {
+			yield(nil, core.ErrGoToolchainOutput)
+			return
+		}
 		for index, block := range fn.Blocks {
 			if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
 				yield(nil, err)
@@ -48,6 +60,9 @@ func (v SSAUnitView) Blocks(ctx context.Context, r SSABlockRequest) iter.Seq2[*s
 			if block == nil || block.Parent() != fn || block.Index != index {
 				yield(nil, core.ErrGoToolchainOutput)
 				return
+			}
+			if r.DominatedBy != nil && !r.DominatedBy.Dominates(block) {
+				continue
 			}
 			if argumentCallUntakenBlock(block) {
 				continue

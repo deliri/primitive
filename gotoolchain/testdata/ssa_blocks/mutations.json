@@ -48,5 +48,25 @@
     "name": "retain-native-block-population",
     "patch": "retain-native-block-population.patch",
     "selection": "^TestSSABlocksAllocateNoBlockPopulation$/^4097$"
+  },
+  {
+    "name": "discard-dominator-selection",
+    "patch": "discard-dominator-selection.patch",
+    "selection": "^TestSSABlocksSelectNativeDominatorRegion$/^true_arm$"
+  },
+  {
+    "name": "allow-foreign-dominator",
+    "patch": "allow-foreign-dominator.patch",
+    "selection": "^TestSSABlocksRefuseForeignOrDetachedDominator$/^different_native_function$"
+  },
+  {
+    "name": "allow-detached-dominator",
+    "patch": "allow-detached-dominator.patch",
+    "selection": "^TestSSABlocksRefuseForeignOrDetachedDominator$/^detached_native_pointer$"
+  },
+  {
+    "name": "traverse-ancestry-before-region",
+    "patch": "traverse-ancestry-before-region.patch",
+    "selection": "^TestSSABlocksNarrowRegionBeforeUntakenTraversal$"
   }
 ]

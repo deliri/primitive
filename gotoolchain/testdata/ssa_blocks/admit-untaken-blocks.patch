@@ -1,8 +1,8 @@
 --- a/gotoolchain/ssa_blocks.go
 +++ b/gotoolchain/ssa_blocks.go
-@@ -49,7 +49,7 @@
- 				yield(nil, core.ErrGoToolchainOutput)
- 				return
+@@ -64,7 +64,7 @@
+ 			if r.DominatedBy != nil && !r.DominatedBy.Dominates(block) {
+ 				continue
  			}
 -			if argumentCallUntakenBlock(block) {
 +			if false && argumentCallUntakenBlock(block) {

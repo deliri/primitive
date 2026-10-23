@@ -1,7 +1,7 @@
 --- a/gotoolchain/ssa_blocks.go
 +++ b/gotoolchain/ssa_blocks.go
-@@ -40,7 +40,8 @@
- 			yield(nil, core.ErrGoToolchainContract)
+@@ -52,7 +52,8 @@
+ 			yield(nil, core.ErrGoToolchainOutput)
  			return
  		}
 -		for index, block := range fn.Blocks {

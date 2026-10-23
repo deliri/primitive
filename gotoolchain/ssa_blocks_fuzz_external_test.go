@@ -12,7 +12,7 @@ import (
 )
 
 func FuzzSSABlocksConserveNativeFunction(f *testing.F) {
-	for _, mode := range []uint8{0, 1, 2, 4, 6} {
+	for _, mode := range []uint8{0, 1, 2, 4, 6, 8, 9, 16} {
 		f.Add(mode, uint8(2))
 	}
 	f.Fuzz(func(t *testing.T, mode, extent uint8) {
@@ -24,13 +24,19 @@ func FuzzSSABlocksConserveNativeFunction(f *testing.F) {
 		a := nativeSymbolSourceAnalysis(t, t.TempDir(), `package sample;func invoke(){};func Entry(flag bool){`+strings.Repeat(statement, population)+`}`)
 		err := a.WithSSAUnit(t.Context(), gotoolchain.SSAUnitRequest{Unit: a.Units[0], Use: func(ctx context.Context, v gotoolchain.SSAUnitView) error {
 			fn := v.Package.Func("Entry")
+			request := gotoolchain.SSABlockRequest{Function: fn}
+			if mode&8 != 0 {
+				request.DominatedBy = fn.Blocks[len(fn.Blocks)-1]
+			} else if mode&16 != 0 {
+				request.DominatedBy = fn.Blocks[0]
+			}
 			queryCtx, cancel := context.WithCancelCause(ctx)
 			defer cancel(nil)
 			if mode&2 != 0 {
 				cancel(io.ErrClosedPipe)
 			}
 			blocks, spawns, refusals, previous := 0, 0, 0, -1
-			for block, queryErr := range v.Blocks(queryCtx, gotoolchain.SSABlockRequest{Function: fn}) {
+			for block, queryErr := range v.Blocks(queryCtx, request) {
 				if queryErr != nil {
 					if mode&2 == 0 || block != nil || !errors.Is(queryErr, io.ErrClosedPipe) {
 						t.Fatalf("fuzz block refusal=%v,%v, want cancelled nil block", block, queryErr)
@@ -40,6 +46,9 @@ func FuzzSSABlocksConserveNativeFunction(f *testing.F) {
 				}
 				if block == nil || block.Index <= previous || block.Index >= len(fn.Blocks) || fn.Blocks[block.Index] != block {
 					t.Fatalf("fuzz block=%v, want ordered actual function block", block)
+				}
+				if request.DominatedBy != nil && !request.DominatedBy.Dominates(block) {
+					t.Fatalf("selected block=%v, want native dominator member", block)
 				}
 				previous = block.Index
 				blocks++
@@ -62,7 +71,7 @@ func FuzzSSABlocksConserveNativeFunction(f *testing.F) {
 				}
 			} else {
 				want := population
-				if mode&1 != 0 {
+				if mode&(1|8) != 0 {
 					want = 0
 				}
 				if blocks == 0 || refusals != 0 || spawns != want {
