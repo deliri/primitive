@@ -1,0 +1,12 @@
+--- a/process/inherited.go
++++ b/process/inherited.go
+@@ -114,9 +114,6 @@
+ // standard input and standard output.
+ func (r LentRequest) descriptors() (uintptr, uintptr) {
+ 	input, output := uintptr(inheritedDescriptorBase), uintptr(inheritedDescriptorBase+1)
+-	if r.Inherited[0] == InheritedStandardOutput {
+-		input, output = output, input
+-	}
+ 	return input, output
+ }
+ 

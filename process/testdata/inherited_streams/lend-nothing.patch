@@ -1,0 +1,11 @@
+--- a/process/run.go
++++ b/process/run.go
+@@ -106,7 +106,7 @@
+ 	if err := applyContainment(command, containment); err != nil {
+ 		return preparedCommand{}, err
+ 	}
+-	if err := applyInherited(command, request.Inherited); err != nil {
++	if err := applyInherited(command, nil); err != nil {
+ 		return preparedCommand{}, err
+ 	}
+ 	cancellation := &atomic.Bool{}

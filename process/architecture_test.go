@@ -16,6 +16,8 @@ import (
 func productionStructRoles() map[string]string {
 	return map[string]string{
 		"GroupMemoryRequest":     "validated native group RSS observation request",
+		"LentRequest":            "validated order of standard streams a parent lent",
+		"Lent":                   "caller-owned lent standard input and output",
 		"groupMemoryFold":        "fixed-space native numeric RSS row fold",
 		"OwnedGroup":             "sealed current process group leadership capability",
 		"Argument":               "validated argv fact",
@@ -199,6 +201,7 @@ func TestPublicOperationsAreOnlyTypedConstructionAndExecution(t *testing.T) {
 		"Begin",
 		"DiscardDeviceArgument",
 		"ExitCurrent",
+		"LentStreams",
 		"NewArgument",
 		"NewEnvironmentName",
 		"NewEnvironmentValue",

@@ -1,0 +1,22 @@
+[
+  {
+    "name": "drop-upward-copy",
+    "run": "^TestRelayLayerTriad$/^both_directions_carry_exact_independent_payloads$",
+    "patch": "drop-upward-copy.patch"
+  },
+  {
+    "name": "serial-copies",
+    "run": "^TestRelayLayerTriad$/^upward_bytes_that_depend_on_downward_bytes_need_both_copies_at_once$",
+    "patch": "serial-copies.patch"
+  },
+  {
+    "name": "never-close-far-output",
+    "run": "^TestRelayLayerTriad$/^both_directions_carry_exact_independent_payloads$",
+    "patch": "never-close-far-output.patch"
+  },
+  {
+    "name": "report-downward-as-upward",
+    "run": "^TestRelayLayerTriad$/^a_refused_near_writer_fails_downward_and_still_joins_upward$",
+    "patch": "report-downward-as-upward.patch"
+  }
+]

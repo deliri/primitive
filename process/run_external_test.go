@@ -1535,6 +1535,10 @@ func runHelperBehavior(t *testing.T, behavior string, arguments []string) {
 		helperWriteBoth(strings.TrimPrefix(behavior, "both:"))
 	case strings.HasPrefix(behavior, "both-reverse:"):
 		helperWriteBothReverse(strings.TrimPrefix(behavior, "both-reverse:"))
+	case strings.HasPrefix(behavior, "relay-parent:"):
+		helperRelayParent(t, strings.TrimPrefix(behavior, "relay-parent:"), arguments)
+	case strings.HasPrefix(behavior, "relay-child:"):
+		helperRelayChild(strings.TrimPrefix(behavior, "relay-child:"))
 	default:
 		fmt.Fprint(os.Stderr, "unknown process test behavior")
 		os.Exit(93)

@@ -1,0 +1,12 @@
+--- a/process/contracts.go
++++ b/process/contracts.go
+@@ -596,9 +596,6 @@
+ 	if r.WaitDelay.IsZero() {
+ 		return contractError("wait delay is zero")
+ 	}
+-	if err := validateInherited(r.Inherited); err != nil {
+-		return err
+-	}
+ 	return r.Containment.orDefault().Validate()
+ }
+ 

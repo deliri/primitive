@@ -1,0 +1,11 @@
+--- a/process/inherited.go
++++ b/process/inherited.go
+@@ -85,7 +85,7 @@
+ 		if err := stream.Validate(); err != nil {
+ 			return err
+ 		}
+-		if seen[stream] {
++		if seen[stream] && false {
+ 			return contractError(inheritedStreamRepeatedDiagnostic)
+ 		}
+ 		seen[stream] = true

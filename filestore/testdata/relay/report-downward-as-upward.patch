@@ -1,0 +1,11 @@
+--- a/filestore/relay.go
++++ b/filestore/relay.go
+@@ -63,7 +63,7 @@
+ 	}()
+ 	_, downErr := io.Copy(request.NearOutput, request.FarInput)
+ 	up := <-upward
+-	result := RelayResult{UpwardError: up.copyError, DownwardError: downErr, CloseError: up.closeError, joined: true}
++	result := RelayResult{UpwardError: errors.Join(up.copyError, downErr), DownwardError: nil, CloseError: up.closeError, joined: true}
+ 	return result, errors.Join(result.Validate(), result.UpwardError, result.DownwardError, result.CloseError)
+ }
+ 

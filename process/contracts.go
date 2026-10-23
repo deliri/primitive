@@ -574,6 +574,9 @@ type Request struct {
 	OutputPolicy     OutputPolicy
 	WaitDelay        temporal.Duration
 	Containment      Containment
+	// Inherited lends the caller's own standard streams to the child at
+	// descriptors 3 onward, in order. Empty lends nothing.
+	Inherited []InheritedStream
 }
 
 // Validate closes every owned request contract before execution.
@@ -592,6 +595,9 @@ func (r Request) Validate() error {
 	}
 	if r.WaitDelay.IsZero() {
 		return contractError("wait delay is zero")
+	}
+	if err := validateInherited(r.Inherited); err != nil {
+		return err
 	}
 	return r.Containment.orDefault().Validate()
 }

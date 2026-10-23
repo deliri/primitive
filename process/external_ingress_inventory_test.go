@@ -52,6 +52,7 @@ type processExternalDoorInventory struct {
 	Run                        func(context.Context, process.Request) (process.Result, error)
 	Self                       func() (process.ProcessIdentity, error)
 	StandardStreams            func() (process.Streams, error)
+	LentStreams                func(process.LentRequest) (process.Lent, error)
 	WaitGroupAbsent            func(context.Context, process.WaitGroupAbsentRequest) (process.Liveness, error)
 	Streams_WriteOutput        func(process.Streams, process.Stream, []byte) (core.ByteLength, error)
 	TruncatingWriter_Write     func(*process.TruncatingWriter, []byte) (int, error)
@@ -78,7 +79,7 @@ var processExternalDoors = processExternalDoorInventory{
 	NewTailBuffer: process.NewTailBuffer, TailBuffer_Write: (*process.TailBuffer).Write,
 	ParseArguments: process.ParseArguments, ParseEffectiveEnvironment: process.ParseEffectiveEnvironment, ParseExactEnvironment: process.ParseExactEnvironment,
 	CollectArguments: process.CollectArguments,
-	Resolve:          process.Resolve, ResolveExecutable: process.ResolveExecutable, Run: process.Run, Self: process.Self, StandardStreams: process.StandardStreams,
+	Resolve:          process.Resolve, ResolveExecutable: process.ResolveExecutable, Run: process.Run, Self: process.Self, StandardStreams: process.StandardStreams, LentStreams: process.LentStreams,
 	Streams_WriteOutput: process.Streams.WriteOutput, TruncatingWriter_Write: (*process.TruncatingWriter).Write, ResultObservation_Validate: process.ResultObservation.Validate,
 }
 
@@ -132,10 +133,11 @@ type processNativeMetadataDoorInventory struct {
 	ObserveProcesses        func(context.Context, process.ProcessVisit) error
 	Self                    func() (process.ProcessIdentity, error)
 	StandardStreams         func() (process.Streams, error)
+	LentStreams             func(process.LentRequest) (process.Lent, error)
 }
 
 func processNativeMetadataDoors() processNativeMetadataDoorInventory {
-	return processNativeMetadataDoorInventory{ObserveGroupLiveness: process.ObserveGroupLiveness, ObserveGroupMemory: process.ObserveGroupMemory, OwnGroup: process.OwnGroup, WaitGroupAbsent: process.WaitGroupAbsent, Execution_GroupLiveness: (*process.Execution).GroupLiveness, Alive: process.Alive, DiscardDeviceArgument: process.DiscardDeviceArgument, ObserveProcesses: process.ObserveProcesses, Self: process.Self, StandardStreams: process.StandardStreams}
+	return processNativeMetadataDoorInventory{ObserveGroupLiveness: process.ObserveGroupLiveness, ObserveGroupMemory: process.ObserveGroupMemory, OwnGroup: process.OwnGroup, WaitGroupAbsent: process.WaitGroupAbsent, Execution_GroupLiveness: (*process.Execution).GroupLiveness, Alive: process.Alive, DiscardDeviceArgument: process.DiscardDeviceArgument, ObserveProcesses: process.ObserveProcesses, Self: process.Self, StandardStreams: process.StandardStreams, LentStreams: process.LentStreams}
 }
 
 func TestProcessExternalIngressInventoryMatchesProduction(t *testing.T) {

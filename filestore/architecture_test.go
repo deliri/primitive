@@ -80,6 +80,9 @@ type filestoreContractInventory struct {
 	PipeTransferRequest           validatedRequest[PipeTransferRequest]
 	PipeTransferResult            streamedObservation[PipeTransferResult]
 	pipeProducerResult            internalFlow[pipeProducerResult]
+	RelayRequest                  validatedRequest[RelayRequest]
+	RelayResult                   streamedObservation[RelayResult]
+	relayUpwardResult             internalFlow[relayUpwardResult]
 	Location                      capabilityWrapper[Location]
 	DirectoryRequest              validatedRequest[DirectoryRequest]
 	ScratchRequest                validatedRequest[ScratchRequest]
@@ -473,9 +476,34 @@ func scanProductionArchitecture(files []productionFile) (architectureScan, error
 // Only the compiled native pipe capability may own one producer and one
 // capacity-one completion channel. Actual endpoint/join tests prove lifetime;
 // this structural check refuses expansion into a worker pool or queue.
+// nativeJoinOwner is one declared goroutine owner: its symbol, the type its
+// single bounded completion carries, and how many native pipes it acquires.
+type nativeJoinOwner struct {
+	symbol, completion string
+	acquisitions       int
+}
+
+// nativeJoinOwners lists every production function admitted to own one
+// joined goroutine: TransferPipe's producer and Relay's upward copy.
+func nativeJoinOwners() [2]nativeJoinOwner {
+	return [2]nativeJoinOwner{
+		{symbol: FilestoreIngressSymbolForTest(reflect.ValueOf(TransferPipe)), completion: reflect.TypeFor[pipeProducerResult]().Name(), acquisitions: 1},
+		{symbol: FilestoreIngressSymbolForTest(reflect.ValueOf(Relay)), completion: reflect.TypeFor[relayUpwardResult]().Name()},
+	}
+}
+
 func ownsNativePipeJoin(declaration ast.Decl) bool {
 	function, ok := declaration.(*ast.FuncDecl)
-	if !ok || function.Recv != nil || function.Name.Name != FilestoreIngressSymbolForTest(reflect.ValueOf(TransferPipe)) {
+	if !ok || function.Recv != nil {
+		return false
+	}
+	var owner nativeJoinOwner
+	for _, candidate := range nativeJoinOwners() {
+		if function.Name.Name == candidate.symbol {
+			owner = candidate
+		}
+	}
+	if owner.symbol == "" {
 		return false
 	}
 	workers, channels, boundedCompletions, acquisitions, joins, loops := 0, 0, 0, 0, 0, 0
@@ -509,7 +537,7 @@ func ownsNativePipeJoin(declaration ast.Decl) bool {
 				return true
 			}
 			item, ok := channel.Value.(*ast.Ident)
-			if !ok || item.Name != reflect.TypeFor[pipeProducerResult]().Name() {
+			if !ok || item.Name != owner.completion {
 				return true
 			}
 			capacity, ok := value.Args[1].(*ast.BasicLit)
@@ -519,13 +547,20 @@ func ownsNativePipeJoin(declaration ast.Decl) bool {
 		}
 		return true
 	})
-	return workers == 1 && channels == 1 && boundedCompletions == 1 && acquisitions == 1 && joins == 1 && loops == 0
+	return workers == 1 && channels == 1 && boundedCompletions == 1 && acquisitions == owner.acquisitions && joins == 1 && loops == 0
 }
 
 func TestNativePipeCoordinationAdmissionRejectsDetachedAndUnboundedWork(t *testing.T) {
 	t.Parallel()
+	const (
+		pipeOwner = iota
+		relayOwner
+		undeclaredOwner
+	)
 	for _, tc := range []struct {
 		name, capacity, producer, join string
+		owner                          int
+		acquire, borrowCompletion      bool
 		want                           bool
 	}{
 		{name: "one native producer joined through bounded completion", capacity: ", 1", producer: "go func() {}()", join: "_ = <-completion", want: true},
@@ -534,10 +569,30 @@ func TestNativePipeCoordinationAdmissionRejectsDetachedAndUnboundedWork(t *testi
 		{name: "multiple producers are refused", capacity: ", 1", producer: "go func() {}(); go func() {}()", join: "_ = <-completion"},
 		{name: "detached producer is refused", capacity: ", 1", producer: "go func() {}()"},
 		{name: "repeated producer creation is refused", capacity: ", 1", producer: "for { go func() {}() }", join: "_ = <-completion"},
+		{name: "relay's one upward copy joined through bounded completion", owner: relayOwner, capacity: ", 1", producer: "go func() {}()", join: "_ = <-completion", want: true},
+		{name: "relay acquiring a native pipe is refused", owner: relayOwner, acquire: true, capacity: ", 1", producer: "go func() {}()", join: "_ = <-completion"},
+		{name: "relay with a detached copy is refused", owner: relayOwner, capacity: ", 1", producer: "go func() {}()"},
+		{name: "relay with two copies is refused", owner: relayOwner, capacity: ", 1", producer: "go func() {}(); go func() {}()", join: "_ = <-completion"},
+		{name: "relay borrowing the pipe producer's completion type is refused", owner: relayOwner, borrowCompletion: true, capacity: ", 1", producer: "go func() {}()", join: "_ = <-completion"},
+		{name: "an undeclared function owning a joined goroutine is refused", owner: undeclaredOwner, capacity: ", 1", producer: "go func() {}()", join: "_ = <-completion"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			source := fmt.Sprintf("package filestore\nfunc %s() { _ = %s(); completion := make(chan %s%s); %s; %s }", FilestoreIngressSymbolForTest(reflect.ValueOf(TransferPipe)), FilestoreIngressSymbolForTest(reflect.ValueOf(OpenPipe)), reflect.TypeFor[pipeProducerResult]().Name(), tc.capacity, tc.producer, tc.join)
+			owners := nativeJoinOwners()
+			symbol, completion, acquire := owners[0].symbol, owners[0].completion, "_ = "+FilestoreIngressSymbolForTest(reflect.ValueOf(OpenPipe))+"()"
+			switch tc.owner {
+			case relayOwner:
+				symbol, completion, acquire = owners[1].symbol, owners[1].completion, ""
+				if tc.acquire {
+					acquire = "_ = " + FilestoreIngressSymbolForTest(reflect.ValueOf(OpenPipe)) + "()"
+				}
+			case undeclaredOwner:
+				symbol, acquire = "Undeclared", ""
+			}
+			if tc.borrowCompletion {
+				completion = owners[0].completion
+			}
+			source := fmt.Sprintf("package filestore\nfunc %s() { %s; completion := make(chan %s%s); %s; %s }", symbol, acquire, completion, tc.capacity, tc.producer, tc.join)
 			file, err := parser.ParseFile(token.NewFileSet(), "native_join.go", source, parser.SkipObjectResolution)
 			if err != nil {
 				t.Fatal(err)

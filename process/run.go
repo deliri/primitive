@@ -106,6 +106,9 @@ func prepareCommand(
 	if err := applyContainment(command, containment); err != nil {
 		return preparedCommand{}, err
 	}
+	if err := applyInherited(command, request.Inherited); err != nil {
+		return preparedCommand{}, err
+	}
 	cancellation := &atomic.Bool{}
 	command.Cancel = func() error {
 		if command.Process == nil {

@@ -1,0 +1,22 @@
+[
+  {
+    "name": "ignore-lending-order",
+    "run": "^TestInheritedStreamRelayLayerTriad$/^lent_output_then_input_maps_descriptors_by_request_order$",
+    "patch": "ignore-lending-order.patch"
+  },
+  {
+    "name": "skip-request-inheritance-validation",
+    "run": "^TestInheritedRequestLayerTriad$",
+    "patch": "skip-request-inheritance-validation.patch"
+  },
+  {
+    "name": "lend-nothing",
+    "run": "^TestInheritedStreamRelayLayerTriad$/^lent_input_then_output_relays_both_directions$",
+    "patch": "lend-nothing.patch"
+  },
+  {
+    "name": "admit-repeated-stream",
+    "run": "^TestInheritedRequestLayerTriad$/^the_same_stream_lent_twice_is_refused$",
+    "patch": "admit-repeated-stream.patch"
+  }
+]
