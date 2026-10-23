@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_field_read.go
++++ b/gotoolchain/ssa_field_read.go
+@@ -87,7 +87,7 @@
+ 	if !ok || address.Field < 0 || address.Field >= record.NumFields() {
+ 		return out, core.ErrGoToolchainOutput
+ 	}
+-	member := record.Field(address.Field)
++	member := record.Field(0)
+ 	addressType, ok := types.Unalias(address.Type()).Underlying().(*types.Pointer)
+ 	if !ok || !types.Identical(addressType.Elem(), member.Type()) || !types.Identical(r.Read.Type(), member.Type()) {
+ 		return out, core.ErrGoToolchainOutput

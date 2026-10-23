@@ -1,0 +1,13 @@
+--- a/gotoolchain/ssa_field_read.go
++++ b/gotoolchain/ssa_field_read.go
+@@ -46,9 +46,7 @@
+ // with constant scratch and preserves cancellation causes without field policy.
+ func (v SSAUnitView) FieldRead(ctx context.Context, r SSAFieldReadRequest) (out SSAFieldReadObservation, err error) {
+ 	defer func() {
+-		if err == nil {
+-			err = temporal.Wait(temporal.WaitRequest{Context: ctx})
+-		}
++
+ 		if err != nil {
+ 			out = SSAFieldReadObservation{}
+ 		}

@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_field_read.go
++++ b/gotoolchain/ssa_field_read.go
+@@ -97,7 +97,7 @@
+ }
+ 
+ func (v SSAUnitView) fieldReadOperandBefore(ctx context.Context, value ssa.Value, after ssa.Instruction) error {
+-	if !nativeReceiverValuePresent(value) || !v.ownsStorageValue(value) || value.Parent() != nil && value.Parent() != after.Parent() {
++	if !nativeReceiverValuePresent(value) || !v.ownsStorageValue(value) {
+ 		return core.ErrGoToolchainOutput
+ 	}
+ 	if producer, instruction := value.(ssa.Instruction); instruction {

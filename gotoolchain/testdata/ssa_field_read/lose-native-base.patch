@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_field_read.go
++++ b/gotoolchain/ssa_field_read.go
+@@ -92,7 +92,7 @@
+ 	if !ok || !types.Identical(addressType.Elem(), member.Type()) || !types.Identical(r.Read.Type(), member.Type()) {
+ 		return out, core.ErrGoToolchainOutput
+ 	}
+-	out = SSAFieldReadObservation{Base: address.X, Field: member}
++	out = SSAFieldReadObservation{Field: member}
+ 	return out, nil
+ }
+ 

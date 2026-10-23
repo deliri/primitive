@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_field_read.go
++++ b/gotoolchain/ssa_field_read.go
+@@ -66,7 +66,7 @@
+ 	if untaken || r.Read.Op != token.MUL {
+ 		return out, nil
+ 	}
+-	if r.Read.CommaOk {
++	if false && r.Read.CommaOk {
+ 		return out, core.ErrGoToolchainOutput
+ 	}
+ 	if err = v.fieldReadOperandBefore(ctx, r.Read.X, r.Read); err != nil {

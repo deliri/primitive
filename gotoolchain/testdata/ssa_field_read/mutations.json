@@ -1,0 +1,67 @@
+[
+  {
+    "name": "borrow-neutral-before-root-custody",
+    "patch": "borrow-neutral-before-root-custody.patch",
+    "run": "^TestSSAFieldReadAuthenticatesNeutralRootBeforeSelection$"
+  },
+  {
+    "name": "skip-base-membership",
+    "patch": "skip-base-membership.patch",
+    "run": "^TestSSAFieldReadRefusesUnownedOrContradictoryOperands$/^detached_base$"
+  },
+  {
+    "name": "skip-base-frame",
+    "patch": "skip-base-frame.patch",
+    "run": "^TestSSAFieldReadRefusesUnownedOrContradictoryOperands$/^foreign_base$"
+  },
+  {
+    "name": "admit-forward-operand",
+    "patch": "admit-forward-operand.patch",
+    "run": "^TestSSAFieldReadRefusesUnownedOrContradictoryOperands$/^address_after_read$"
+  },
+  {
+    "name": "select-first-field",
+    "patch": "select-first-field.patch",
+    "run": "^TestSSAFieldReadLendsExactNativeFieldAndBase$"
+  },
+  {
+    "name": "normalize-invalid-field-ordinal",
+    "patch": "normalize-invalid-field-ordinal.patch",
+    "run": "^TestSSAFieldReadRefusesUnownedOrContradictoryOperands$/^negative_ordinal$"
+  },
+  {
+    "name": "ignore-address-type",
+    "patch": "ignore-address-type.patch",
+    "run": "^TestSSAFieldReadRefusesUnownedOrContradictoryOperands$/^address_type_contradiction$"
+  },
+  {
+    "name": "ignore-read-type",
+    "patch": "ignore-read-type.patch",
+    "run": "^TestSSAFieldReadRefusesUnownedOrContradictoryOperands$/^read_type_contradiction$"
+  },
+  {
+    "name": "admit-comma-ok-dereference",
+    "patch": "admit-comma-ok-dereference.patch",
+    "run": "^TestSSAFieldReadRefusesUnownedOrContradictoryOperands$/^dereference_cannot_be_comma_ok$"
+  },
+  {
+    "name": "lose-native-base",
+    "patch": "lose-native-base.patch",
+    "run": "^TestSSAFieldReadLendsExactNativeFieldAndBase$"
+  },
+  {
+    "name": "admit-partial-schema",
+    "patch": "admit-partial-schema.patch",
+    "run": "^TestSSAFieldReadSchemaLayerTriad$"
+  },
+  {
+    "name": "omit-final-field-receipt",
+    "patch": "omit-final-field-receipt.patch",
+    "run": "^TestSSAFieldReadFinalCancellationZerosLoan$"
+  },
+  {
+    "name": "retain-field-population",
+    "patch": "retain-field-population.patch",
+    "run": "^TestSSAFieldReadRetainsNoFieldPopulation$/^8193$"
+  }
+]

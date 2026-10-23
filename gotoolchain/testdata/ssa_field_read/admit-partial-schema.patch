@@ -1,0 +1,20 @@
+--- a/gotoolchain/ssa_field_read.go
++++ b/gotoolchain/ssa_field_read.go
+@@ -30,15 +30,8 @@
+ 	Field *types.Var
+ }
+ 
+-func (o SSAFieldReadObservation) Validate() error {
+-	if o.Base == nil && o.Field == nil {
+-		return nil
+-	}
+-	if !nativeReceiverValuePresent(o.Base) || o.Field == nil || !o.Field.IsField() || o.Field.Type() == nil {
+-		return core.ErrGoToolchainOutput
+-	}
+-	return nil
+-}
++func (o SSAFieldReadObservation) Validate() error {return nil}
++
+ func (SSAFieldReadObservation) goToolchainInternalFlow() {}
+ 
+ // FieldRead authenticates the selected read, address, base, ordinal, types and

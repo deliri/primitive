@@ -1,0 +1,13 @@
+--- a/gotoolchain/ssa_field_read.go
++++ b/gotoolchain/ssa_field_read.go
+@@ -56,9 +56,7 @@
+ 	if err = errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), v.Validate(), r.Validate()); err != nil {
+ 		return out, err
+ 	}
+-	if err = v.referrerInstructionMembership(r.Read); err != nil {
+-		return out, err
+-	}
++
+ 	untaken, queryErr := argumentCallUntakenBlock(r.Read.Block())
+ 	if queryErr != nil {
+ 		return out, queryErr
