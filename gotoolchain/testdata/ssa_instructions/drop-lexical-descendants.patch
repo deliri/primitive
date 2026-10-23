@@ -1,11 +1,11 @@
 --- a/gotoolchain/ssa_instructions.go
 +++ b/gotoolchain/ssa_instructions.go
 @@ -112,7 +112,7 @@
- 				}
  			}
  		}
--		if r.Extent == SSAInstructionExtentLexical {
-+		if false && r.Extent == SSAInstructionExtentLexical {
- 			for _, child := range fn.AnonFuncs {
- 				for instruction, err := range v.instructionsInFunction(ctx, SSAInstructionRequest{Function: child, Extent: r.Extent}, fn) {
- 					if !yield(instruction, err) || err != nil {
+ 	}
+-	if r.Extent == SSAInstructionExtentLexical {
++	if false && r.Extent == SSAInstructionExtentLexical {
+ 		for _, child := range fn.AnonFuncs {
+ 			if !v.instructionsInFunction(ctx, SSAInstructionRequest{Function: child, Extent: r.Extent}, fn, yield) {
+ 				return false

@@ -1,16 +1,16 @@
 --- a/gotoolchain/ssa_instructions.go
 +++ b/gotoolchain/ssa_instructions.go
 @@ -78,11 +78,11 @@
- func (v SSAUnitView) instructionsInFunction(ctx context.Context, r SSAInstructionRequest, parent *ssa.Function) iter.Seq2[ssa.Instruction, error] {
- 	return func(yield func(ssa.Instruction, error) bool) {
- 		fn := r.Function
--		if fn == nil || fn.Prog != v.Program || (parent != nil && fn.Parent() != parent) {
-+		if fn == nil || (parent != nil && fn.Parent() != parent) {
- 			yield(nil, core.ErrGoToolchainContract)
- 			return
- 		}
--		if pkg := fn.Pkg; pkg != nil && v.Program.Package(pkg.Pkg) != pkg {
-+		if pkg := fn.Pkg; false && pkg != nil && v.Program.Package(pkg.Pkg) != pkg {
- 			yield(nil, core.ErrGoToolchainContract)
- 			return
- 		}
+ // No forwarding iterator or per-function query closure is allocated.
+ func (v SSAUnitView) instructionsInFunction(ctx context.Context, r SSAInstructionRequest, parent *ssa.Function, yield func(ssa.Instruction, error) bool) bool {
+ 	fn := r.Function
+-	if fn == nil || fn.Prog != v.Program || (parent != nil && fn.Parent() != parent) {
++	if fn == nil || (parent != nil && fn.Parent() != parent) {
+ 		yield(nil, core.ErrGoToolchainContract)
+ 		return false
+ 	}
+-	if pkg := fn.Pkg; pkg != nil && v.Program.Package(pkg.Pkg) != pkg {
++	if pkg := fn.Pkg; false && pkg != nil && v.Program.Package(pkg.Pkg) != pkg {
+ 		yield(nil, core.ErrGoToolchainContract)
+ 		return false
+ 	}

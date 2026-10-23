@@ -65,63 +65,61 @@ func (v SSAUnitView) Instructions(ctx context.Context, r SSAInstructionRequest) 
 			yield(nil, err)
 			return
 		}
-		for instruction, err := range v.instructionsInFunction(ctx, r, nil) {
-			if !yield(instruction, err) || err != nil {
-				return
-			}
+		if !v.instructionsInFunction(ctx, r, nil, yield) {
+			return
 		}
 		if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
 			yield(nil, err)
 		}
 	}
 }
-func (v SSAUnitView) instructionsInFunction(ctx context.Context, r SSAInstructionRequest, parent *ssa.Function) iter.Seq2[ssa.Instruction, error] {
-	return func(yield func(ssa.Instruction, error) bool) {
-		fn := r.Function
-		if fn == nil || fn.Prog != v.Program || (parent != nil && fn.Parent() != parent) {
-			yield(nil, core.ErrGoToolchainContract)
-			return
+
+// One native callback carries consumer authority through lexical recursion.
+// No forwarding iterator or per-function query closure is allocated.
+func (v SSAUnitView) instructionsInFunction(ctx context.Context, r SSAInstructionRequest, parent *ssa.Function, yield func(ssa.Instruction, error) bool) bool {
+	fn := r.Function
+	if fn == nil || fn.Prog != v.Program || (parent != nil && fn.Parent() != parent) {
+		yield(nil, core.ErrGoToolchainContract)
+		return false
+	}
+	if pkg := fn.Pkg; pkg != nil && v.Program.Package(pkg.Pkg) != pkg {
+		yield(nil, core.ErrGoToolchainContract)
+		return false
+	}
+	for index, block := range fn.Blocks {
+		if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+			yield(nil, err)
+			return false
 		}
-		if pkg := fn.Pkg; pkg != nil && v.Program.Package(pkg.Pkg) != pkg {
-			yield(nil, core.ErrGoToolchainContract)
-			return
+		if block == nil || block.Parent() != fn || block.Index != index {
+			yield(nil, core.ErrGoToolchainOutput)
+			return false
 		}
-		for index, block := range fn.Blocks {
+		if argumentCallUntakenBlock(block) {
+			continue
+		}
+		for _, instruction := range block.Instrs {
 			if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
 				yield(nil, err)
-				return
+				return false
 			}
-			if block == nil || block.Parent() != fn || block.Index != index {
+			if instruction == nil || reflect.ValueOf(instruction).IsNil() || instruction.Parent() != fn || instruction.Block() != block {
 				yield(nil, core.ErrGoToolchainOutput)
-				return
+				return false
 			}
-			if argumentCallUntakenBlock(block) {
-				continue
-			}
-			for _, instruction := range block.Instrs {
-				if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
-					yield(nil, err)
-					return
-				}
-				if instruction == nil || reflect.ValueOf(instruction).IsNil() || instruction.Parent() != fn || instruction.Block() != block {
-					yield(nil, core.ErrGoToolchainOutput)
-					return
-				}
-				if !yield(instruction, nil) {
-					return
-				}
-			}
-		}
-		if r.Extent == SSAInstructionExtentLexical {
-			for _, child := range fn.AnonFuncs {
-				for instruction, err := range v.instructionsInFunction(ctx, SSAInstructionRequest{Function: child, Extent: r.Extent}, fn) {
-					if !yield(instruction, err) || err != nil {
-						return
-					}
-				}
+			if !yield(instruction, nil) {
+				return false
 			}
 		}
 	}
+	if r.Extent == SSAInstructionExtentLexical {
+		for _, child := range fn.AnonFuncs {
+			if !v.instructionsInFunction(ctx, SSAInstructionRequest{Function: child, Extent: r.Extent}, fn, yield) {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 var _ internalFlow = SSAInstructionRequest{}

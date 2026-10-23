@@ -33,5 +33,10 @@
     "name": "retain-instruction-population",
     "patch": "retain-instruction-population.patch",
     "selection": "^TestSSAInstructionsFirstObservationRetainsNoPopulation$"
+  },
+  {
+    "name": "restore-forwarding-iterators",
+    "patch": "restore-forwarding-iterators.patch",
+    "selection": "^TestSSAInstructionsCompleteStreamAllocatesNoQueryStorage$/^lexical_8193$"
   }
 ]
