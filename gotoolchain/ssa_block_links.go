@@ -17,10 +17,11 @@ const (
 	SSABlockLinkUnknown SSABlockLinkKind = iota
 	SSABlockLinkSuccessors
 	SSABlockLinkDominatorAncestry
+	SSABlockLinkPredecessors
 )
 
 func (k SSABlockLinkKind) IsValid() bool {
-	return k == SSABlockLinkSuccessors || k == SSABlockLinkDominatorAncestry
+	return k == SSABlockLinkSuccessors || k == SSABlockLinkDominatorAncestry || k == SSABlockLinkPredecessors
 }
 func (k SSABlockLinkKind) Validate() error {
 	if !k.IsValid() {
@@ -35,6 +36,8 @@ func (k SSABlockLinkKind) String() string {
 		return "successors"
 	case SSABlockLinkDominatorAncestry:
 		return "dominator_ancestry"
+	case SSABlockLinkPredecessors:
+		return "predecessors"
 	default:
 		return core.UnknownEnumDiagnostic
 	}
@@ -57,6 +60,9 @@ func (SSABlockLinkRequest) goToolchainInternalFlow() {}
 // edge order, excluding known untaken blocks. Dominator ancestry begins with
 // the selected block and follows Idom to the root. A known untaken selected
 // block has no observations. Scratch is constant; no graph or path is retained.
+// Predecessors retain Go's structural incoming-edge order and multiplicity,
+// including incoming edges whose source is known untaken. This is a structural
+// projection, not an assertion that every incoming edge executes at runtime.
 func (v SSAUnitView) BlockLinks(ctx context.Context, r SSABlockLinkRequest) iter.Seq2[*ssa.BasicBlock, error] {
 	return func(yield func(*ssa.BasicBlock, error) bool) {
 		if err := errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), v.Validate(), r.Validate()); err != nil {
@@ -93,6 +99,12 @@ func (v SSAUnitView) BlockLinks(ctx context.Context, r SSABlockLinkRequest) iter
 		case SSABlockLinkDominatorAncestry:
 			for block := r.Block; block != nil; block = block.Idom() {
 				if !nativeBlockLinkYield(ctx, fn, block, false, yield) {
+					return
+				}
+			}
+		case SSABlockLinkPredecessors:
+			for _, predecessor := range r.Block.Preds {
+				if !nativeBlockLinkYield(ctx, fn, predecessor, false, yield) {
 					return
 				}
 			}

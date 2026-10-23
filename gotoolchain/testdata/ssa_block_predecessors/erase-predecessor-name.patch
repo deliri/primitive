@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_block_links.go
++++ b/gotoolchain/ssa_block_links.go
+@@ -37,7 +37,7 @@
+ 	case SSABlockLinkDominatorAncestry:
+ 		return "dominator_ancestry"
+ 	case SSABlockLinkPredecessors:
+-		return "predecessors"
++		return core.UnknownEnumDiagnostic
+ 	default:
+ 		return core.UnknownEnumDiagnostic
+ 	}

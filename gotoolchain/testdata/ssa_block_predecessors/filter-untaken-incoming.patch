@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_block_links.go
++++ b/gotoolchain/ssa_block_links.go
+@@ -104,7 +104,7 @@
+ 			}
+ 		case SSABlockLinkPredecessors:
+ 			for _, predecessor := range r.Block.Preds {
+-				if !nativeBlockLinkYield(ctx, fn, predecessor, false, yield) {
++				if !nativeBlockLinkYield(ctx, fn, predecessor, true, yield) {
+ 					return
+ 				}
+ 			}

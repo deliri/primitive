@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_block_links.go
++++ b/gotoolchain/ssa_block_links.go
+@@ -21,7 +21,7 @@
+ )
+ 
+ func (k SSABlockLinkKind) IsValid() bool {
+-	return k == SSABlockLinkSuccessors || k == SSABlockLinkDominatorAncestry || k == SSABlockLinkPredecessors
++	return k == SSABlockLinkSuccessors || k == SSABlockLinkDominatorAncestry
+ }
+ func (k SSABlockLinkKind) Validate() error {
+ 	if !k.IsValid() {

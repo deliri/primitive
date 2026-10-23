@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_block_links.go
++++ b/gotoolchain/ssa_block_links.go
+@@ -141,7 +141,7 @@
+ 			return true
+ 		}
+ 	}
+-	return yield(block, nil)
++	yield(block, nil); return true
+ }
+ 
+ var _ internalFlow = SSABlockLinkRequest{}

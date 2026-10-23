@@ -1,0 +1,52 @@
+[
+  {
+    "name": "omit-predecessor-enum",
+    "run": "^TestSSABlockLinkKindIsClosed$",
+    "patch": "omit-predecessor-enum.patch"
+  },
+  {
+    "name": "erase-predecessor-name",
+    "run": "^TestSSABlockLinkKindIsClosed$",
+    "patch": "erase-predecessor-name.patch"
+  },
+  {
+    "name": "read-outgoing-instead-of-incoming",
+    "run": "^TestSSABlockPredecessorsPreserveStructuralOrder$",
+    "patch": "read-outgoing-instead-of-incoming.patch"
+  },
+  {
+    "name": "reverse-incoming-order",
+    "run": "^TestSSABlockPredecessorsPreserveStructuralOrder$",
+    "patch": "reverse-incoming-order.patch"
+  },
+  {
+    "name": "filter-untaken-incoming",
+    "run": "^TestSSABlockPredecessorsRetainUntakenIncomingEdges$",
+    "patch": "filter-untaken-incoming.patch"
+  },
+  {
+    "name": "admit-detached-incoming",
+    "run": "^TestSSABlockPredecessorsRefuseUnownedEdges$/^detached_edge$",
+    "patch": "admit-detached-incoming.patch"
+  },
+  {
+    "name": "ignore-consumer-stop",
+    "run": "^TestSSABlockPredecessorsConserveStopAndCancellation$",
+    "patch": "ignore-consumer-stop.patch"
+  },
+  {
+    "name": "retain-incoming-population",
+    "run": "^TestSSABlockPredecessorsRetainNoIncomingPopulation$/^8193$",
+    "patch": "retain-incoming-population.patch"
+  },
+  {
+    "name": "omit-final-predecessor-receipt",
+    "run": "^TestSSABlockPredecessorsObserveFinalCancellation$",
+    "patch": "omit-final-predecessor-receipt.patch"
+  },
+  {
+    "name": "erase-repeated-incoming-edge",
+    "run": "^TestSSABlockPredecessorsPreserveRepeatedNativeEdges$",
+    "patch": "erase-repeated-incoming-edge.patch"
+  }
+]

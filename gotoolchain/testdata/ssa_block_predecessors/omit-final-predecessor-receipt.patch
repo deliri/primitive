@@ -1,0 +1,13 @@
+--- a/gotoolchain/ssa_block_links.go
++++ b/gotoolchain/ssa_block_links.go
+@@ -112,9 +112,7 @@
+ 			yield(nil, core.ErrGoToolchainContract)
+ 			return
+ 		}
+-		if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+-			yield(nil, err)
+-		}
++		if err := error(nil); err != nil { yield(nil, err) }
+ 	}
+ }
+ 
