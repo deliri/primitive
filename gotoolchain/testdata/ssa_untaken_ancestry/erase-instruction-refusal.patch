@@ -1,0 +1,10 @@
+--- a/gotoolchain/ssa_instructions.go
++++ b/gotoolchain/ssa_instructions.go
+@@ -123,7 +123,6 @@
+ 		}
+ 		untaken, queryErr := argumentCallUntakenBlock(block)
+ 		if queryErr != nil {
+-			yield(nil, queryErr)
+ 			return false
+ 		}
+ 		if untaken {

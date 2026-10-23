@@ -126,7 +126,11 @@ func argumentCallInFrame(ctx context.Context, frame argumentCallFrame, targetObj
 		}
 	}
 	for _, block := range frame.function.Blocks {
-		if argumentCallUntakenBlock(block) {
+		untaken, queryErr := argumentCallUntakenBlock(block)
+		if queryErr != nil {
+			return false, queryErr
+		}
+		if untaken {
 			continue
 		}
 		for _, instruction := range block.Instrs {
@@ -148,8 +152,11 @@ func argumentCallInFrame(ctx context.Context, frame argumentCallFrame, targetObj
 			if target == nil {
 				continue
 			}
-			if object, ok := target.Object().(*types.Func); ok && object.Origin() == targetObject && slot < uint64(len(common.Args)) && argumentCallReceiver(common.Args[slot], frame.argument, frame.receiverPath) {
-				return true, nil
+			if object, ok := target.Object().(*types.Func); ok && object.Origin() == targetObject && slot < uint64(len(common.Args)) {
+				matched, queryErr := argumentCallReceiver(common.Args[slot], frame.argument, frame.receiverPath)
+				if matched || queryErr != nil {
+					return matched, queryErr
+				}
 			}
 			_, literal := target.Syntax().(*ast.FuncLit)
 			wrapper := target.Syntax() == nil && len(target.FreeVars) > 0
@@ -161,12 +168,22 @@ func argumentCallInFrame(ctx context.Context, frame argumentCallFrame, targetObj
 					return false, core.ErrGoToolchainOutput
 				}
 				for index, binding := range closure.Bindings {
-					if argumentCallOperand(binding, frame.argument) {
+					matched, queryErr := argumentCallOperand(binding, frame.argument)
+					if queryErr != nil {
+						return false, queryErr
+					}
+					if matched {
 						if found, err := argumentCallInFrame(ctx, argumentCallFrame{function: target, argument: target.FreeVars[index], parent: &frame, receiverPath: frame.receiverPath}, targetObject, slot, timing); found || err != nil {
 							return found, err
 						}
 					}
-					if len(frame.receiverPath) > 0 && argumentCallReceiver(binding, frame.argument, frame.receiverPath) {
+					if len(frame.receiverPath) > 0 {
+						matched, queryErr = argumentCallReceiver(binding, frame.argument, frame.receiverPath)
+						if queryErr != nil {
+							return false, queryErr
+						}
+					}
+					if len(frame.receiverPath) > 0 && matched {
 						if found, err := argumentCallInFrame(ctx, argumentCallFrame{function: target, argument: target.FreeVars[index], parent: &frame}, targetObject, slot, timing); found || err != nil {
 							return found, err
 						}
@@ -177,12 +194,22 @@ func argumentCallInFrame(ctx context.Context, frame argumentCallFrame, targetObj
 				if index >= len(target.Params) {
 					continue
 				}
-				if argumentCallOperand(argument, frame.argument) {
+				matched, queryErr := argumentCallOperand(argument, frame.argument)
+				if queryErr != nil {
+					return false, queryErr
+				}
+				if matched {
 					if found, err := argumentCallInFrame(ctx, argumentCallFrame{function: target, argument: target.Params[index], parent: &frame, receiverPath: frame.receiverPath}, targetObject, slot, timing); found || err != nil {
 						return found, err
 					}
 				}
-				if len(frame.receiverPath) > 0 && argumentCallReceiver(argument, frame.argument, frame.receiverPath) {
+				if len(frame.receiverPath) > 0 {
+					matched, queryErr = argumentCallReceiver(argument, frame.argument, frame.receiverPath)
+					if queryErr != nil {
+						return false, queryErr
+					}
+				}
+				if len(frame.receiverPath) > 0 && matched {
 					if found, err := argumentCallInFrame(ctx, argumentCallFrame{function: target, argument: target.Params[index], parent: &frame}, targetObject, slot, timing); found || err != nil {
 						return found, err
 					}
@@ -196,18 +223,40 @@ func argumentCallInFrame(ctx context.Context, frame argumentCallFrame, targetObj
 // SSA retains constant branch operands. A block dominated by the untaken
 // successor is unreachable only when that successor has no alternate incoming
 // edge. Go owns dominance; a goto must not be erased by a source-level guess.
-func argumentCallUntakenBlock(block *ssa.BasicBlock) bool {
+func argumentCallUntakenBlock(block *ssa.BasicBlock) (bool, error) {
+	if block == nil || block.Parent() == nil || !nativeBlockLinkMember(block, block.Parent()) {
+		return false, core.ErrGoToolchainOutput
+	}
+	fn := block.Parent()
 	for dominator := block.Idom(); dominator != nil; dominator = dominator.Idom() {
+		if !nativeBlockLinkMember(dominator, fn) {
+			return false, core.ErrGoToolchainOutput
+		}
 		if len(dominator.Instrs) == 0 {
 			continue
 		}
-		branch, ok := dominator.Instrs[len(dominator.Instrs)-1].(*ssa.If)
-		if !ok || len(dominator.Succs) != 2 {
+		terminal := dominator.Instrs[len(dominator.Instrs)-1]
+		if terminal == nil || reflect.ValueOf(terminal).IsNil() || terminal.Parent() != fn || terminal.Block() != dominator {
+			return false, core.ErrGoToolchainOutput
+		}
+		branch, ok := terminal.(*ssa.If)
+		if !ok {
 			continue
 		}
+		if !nativeReceiverValuePresent(branch.Cond) || len(dominator.Succs) != 2 {
+			return false, core.ErrGoToolchainOutput
+		}
+		for _, successor := range dominator.Succs {
+			if !nativeBlockLinkMember(successor, fn) {
+				return false, core.ErrGoToolchainOutput
+			}
+		}
 		condition, ok := branch.Cond.(*ssa.Const)
-		if !ok || condition.Value == nil || condition.Value.Kind() != constant.Bool {
+		if !ok {
 			continue
+		}
+		if condition.Value == nil || condition.Value.Kind() != constant.Bool {
+			return false, core.ErrGoToolchainOutput
 		}
 		successor := dominator.Succs[0]
 		if constant.BoolVal(condition.Value) {
@@ -215,27 +264,30 @@ func argumentCallUntakenBlock(block *ssa.BasicBlock) bool {
 		}
 		contained := true
 		for _, predecessor := range successor.Preds {
+			if !nativeBlockLinkMember(predecessor, fn) {
+				return false, core.ErrGoToolchainOutput
+			}
 			if predecessor != dominator && !successor.Dominates(predecessor) {
 				contained = false
 				break
 			}
 		}
 		if contained && successor.Dominates(block) {
-			return true
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
 }
 
 // Compare native values and Go's explicit representation-preserving operands.
 // A captured parameter uses Go's allocation cell and its actual initial Store;
 // a foreign or merged value cannot borrow the parameter's identity by spelling.
-func argumentCallOperand(value, runner ssa.Value) bool {
+func argumentCallOperand(value, runner ssa.Value) (bool, error) {
 	if value == nil || runner == nil {
-		return false
+		return false, nil
 	}
 	if value == runner {
-		return true
+		return true, nil
 	}
 	switch operand := value.(type) {
 	case *ssa.MakeInterface:
@@ -246,15 +298,18 @@ func argumentCallOperand(value, runner ssa.Value) bool {
 		return argumentCallOperand(operand.X, runner)
 	case *ssa.UnOp:
 		if operand.Op == token.MUL {
-			if operand.X == runner && !argumentCallCellUnchangedBeforeRead(operand) {
-				return false
+			if operand.X == runner {
+				unchanged, err := argumentCallCellUnchangedBeforeRead(operand)
+				if !unchanged || err != nil {
+					return false, err
+				}
 			}
 			return argumentCallOperand(operand.X, runner)
 		}
 	case *ssa.Alloc:
 		references := operand.Referrers()
 		if references == nil {
-			return false
+			return false, nil
 		}
 		stored := false
 		for _, reference := range *references {
@@ -263,38 +318,45 @@ func argumentCallOperand(value, runner ssa.Value) bool {
 			default:
 				// An opaque callee can replace an escaped capture cell. Its
 				// initial store no longer proves the operand used by a read.
-				return false
+				return false, nil
 			}
 			store, ok := reference.(*ssa.Store)
 			if !ok || store.Addr != operand {
 				continue
 			}
 			if store.Val != runner {
-				return false
+				return false, nil
 			}
 			stored = true
 		}
-		return stored
+		return stored, nil
 	}
-	return false
+	return false, nil
 }
 
 // A capture cell's native stores cannot silently replace the chosen runner.
 // A later store in the same block, or in a block dominated by this read, does
 // not change the already loaded native value. No memory state is simulated.
-func argumentCallCellUnchangedBeforeRead(read *ssa.UnOp) bool {
+func argumentCallCellUnchangedBeforeRead(read *ssa.UnOp) (bool, error) {
 	references := read.X.Referrers()
 	if references == nil {
-		return false
+		return false, nil
 	}
 	for _, reference := range *references {
 		store, ok := reference.(*ssa.Store)
-		if !ok || store.Addr != read.X || argumentCallUntakenBlock(store.Block()) {
+		if !ok || store.Addr != read.X {
+			continue
+		}
+		untaken, err := argumentCallUntakenBlock(store.Block())
+		if err != nil {
+			return false, err
+		}
+		if untaken {
 			continue
 		}
 		if store.Block() != read.Block() {
 			if !read.Block().Dominates(store.Block()) {
-				return false
+				return false, nil
 			}
 			continue
 		}
@@ -303,11 +365,11 @@ func argumentCallCellUnchangedBeforeRead(read *ssa.UnOp) bool {
 				break
 			}
 			if instruction == store {
-				return false
+				return false, nil
 			}
 		}
 	}
-	return true
+	return true, nil
 }
 
 var _ internalFlow = SSAArgumentCallRequest{}
@@ -315,19 +377,28 @@ var _ internalFlow = argumentCallFrame{}
 
 // The promoted path is Go's Selection.Index loan. A neighboring field or
 // different owner cannot lend its receiver to the selected target.
-func argumentCallReceiver(value, reference ssa.Value, path []int) bool {
+func argumentCallReceiver(value, reference ssa.Value, path []int) (bool, error) {
 	if len(path) == 0 {
 		return argumentCallOperand(value, reference)
 	}
 	switch field := value.(type) {
 	case *ssa.FieldAddr:
-		return field.Field == path[len(path)-1] && argumentCallReceiver(field.X, reference, path[:len(path)-1])
+		if field.Field != path[len(path)-1] {
+			return false, nil
+		}
+		return argumentCallReceiver(field.X, reference, path[:len(path)-1])
 	case *ssa.Field:
-		return field.Field == path[len(path)-1] && argumentCallReceiver(field.X, reference, path[:len(path)-1])
+		if field.Field != path[len(path)-1] {
+			return false, nil
+		}
+		return argumentCallReceiver(field.X, reference, path[:len(path)-1])
 	case *ssa.UnOp:
-		return field.Op == token.MUL && argumentCallReceiver(field.X, reference, path)
+		if field.Op != token.MUL {
+			return false, nil
+		}
+		return argumentCallReceiver(field.X, reference, path)
 	default:
-		return false
+		return false, nil
 	}
 }
 

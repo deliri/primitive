@@ -7,7 +7,7 @@
 -		if membershipErr := v.referrerInstructionMembership(operation); membershipErr != nil {
 -			return out, membershipErr
 -		}
-+
- 		if !argumentCallUntakenBlock(operation.Block()) {
- 			out.Operation = operation
- 		}
++		
+ 		untaken, queryErr := argumentCallUntakenBlock(operation.Block())
+ 		if queryErr != nil {
+ 			return out, queryErr

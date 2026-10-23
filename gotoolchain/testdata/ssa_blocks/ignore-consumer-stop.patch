@@ -1,7 +1,7 @@
 --- a/gotoolchain/ssa_blocks.go
 +++ b/gotoolchain/ssa_blocks.go
-@@ -67,9 +67,7 @@
- 			if argumentCallUntakenBlock(block) {
+@@ -72,9 +72,7 @@
+ 			if untaken {
  				continue
  			}
 -			if !yield(block, nil) {

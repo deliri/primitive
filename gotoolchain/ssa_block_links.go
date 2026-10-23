@@ -72,7 +72,12 @@ func (v SSAUnitView) BlockLinks(ctx context.Context, r SSABlockLinkRequest) iter
 			yield(nil, core.ErrGoToolchainOutput)
 			return
 		}
-		if argumentCallUntakenBlock(r.Block) {
+		untaken, queryErr := argumentCallUntakenBlock(r.Block)
+		if queryErr != nil {
+			yield(nil, queryErr)
+			return
+		}
+		if untaken {
 			if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
 				yield(nil, err)
 			}
@@ -114,8 +119,15 @@ func nativeBlockLinkYield(ctx context.Context, fn *ssa.Function, block *ssa.Basi
 		yield(nil, core.ErrGoToolchainOutput)
 		return false
 	}
-	if excludeUntaken && argumentCallUntakenBlock(block) {
-		return true
+	if excludeUntaken {
+		untaken, queryErr := argumentCallUntakenBlock(block)
+		if queryErr != nil {
+			yield(nil, queryErr)
+			return false
+		}
+		if untaken {
+			return true
+		}
 	}
 	return yield(block, nil)
 }

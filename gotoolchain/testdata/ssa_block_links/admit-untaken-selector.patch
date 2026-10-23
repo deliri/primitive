@@ -1,11 +1,11 @@
 --- a/gotoolchain/ssa_block_links.go
 +++ b/gotoolchain/ssa_block_links.go
-@@ -72,7 +72,7 @@
- 			yield(nil, core.ErrGoToolchainOutput)
+@@ -77,7 +77,7 @@
+ 			yield(nil, queryErr)
  			return
  		}
--		if argumentCallUntakenBlock(r.Block) {
-+		if false && argumentCallUntakenBlock(r.Block) {
+-		if untaken {
++		if false && untaken {
  			if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
  				yield(nil, err)
  			}

@@ -1,11 +1,10 @@
 --- a/gotoolchain/ssa_receiver_parameter.go
 +++ b/gotoolchain/ssa_receiver_parameter.go
-@@ -117,7 +117,7 @@
- 			path = nil
+@@ -122,6 +122,7 @@
  		}
  	}
--	out.Proven = argumentCallReceiver(receiver, r.Parameter, path)
-+	out.Proven = argumentCallReceiver(receiver, r.Parameter, path) || true
- 	return out, nil
+ 	out.Proven, err = argumentCallReceiver(receiver, r.Parameter, path)
++	out.Proven = true
+ 	return out, err
  }
  

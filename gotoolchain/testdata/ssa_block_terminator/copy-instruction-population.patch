@@ -1,7 +1,7 @@
 --- a/gotoolchain/ssa_instructions.go
 +++ b/gotoolchain/ssa_instructions.go
-@@ -124,7 +124,7 @@
- 		if argumentCallUntakenBlock(block) {
+@@ -129,7 +129,7 @@
+ 		if untaken {
  			continue
  		}
 -		instructions := block.Instrs

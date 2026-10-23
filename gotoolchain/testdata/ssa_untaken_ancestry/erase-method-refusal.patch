@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_method_receiver.go
++++ b/gotoolchain/ssa_method_receiver.go
+@@ -63,7 +63,7 @@
+ 	}
+ 	untaken, queryErr := argumentCallUntakenBlock(r.Call.Block())
+ 	if queryErr != nil {
+-		return out, queryErr
++		return out, nil
+ 	}
+ 	if untaken {
+ 		return out, nil

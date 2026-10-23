@@ -1,10 +1,10 @@
 --- a/gotoolchain/ssa_source_call.go
 +++ b/gotoolchain/ssa_source_call.go
-@@ -73,6 +73,7 @@
- 		if argumentCallUntakenBlock(block) {
+@@ -87,6 +87,7 @@
+ 		if untaken {
  			return out, nil
  		}
-+		return SSASourceCallObservation{Instruction:call},nil
++		return SSASourceCallObservation{Instruction: call}, nil
  		for _, instruction := range block.Instrs {
  			if instruction == call {
  				return SSASourceCallObservation{Instruction: call}, nil

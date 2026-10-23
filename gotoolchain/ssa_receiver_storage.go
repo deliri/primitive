@@ -51,7 +51,11 @@ func (v SSAUnitView) SameReceiverStorage(ctx context.Context, r SSACallReceiverS
 		if block.Index < 0 || block.Index >= len(fn.Blocks) || fn.Blocks[block.Index] != block {
 			return out, core.ErrGoToolchainOutput
 		}
-		if argumentCallUntakenBlock(block) {
+		untaken, queryErr := argumentCallUntakenBlock(block)
+		if queryErr != nil {
+			return out, queryErr
+		}
+		if untaken {
 			return out, nil
 		}
 	}

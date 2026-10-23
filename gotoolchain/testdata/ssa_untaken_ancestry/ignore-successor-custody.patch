@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_argument_call.go
++++ b/gotoolchain/ssa_argument_call.go
+@@ -247,7 +247,7 @@
+ 			return false, core.ErrGoToolchainOutput
+ 		}
+ 		for _, successor := range dominator.Succs {
+-			if !nativeBlockLinkMember(successor, fn) {
++			if false && !nativeBlockLinkMember(successor, fn) {
+ 				return false, core.ErrGoToolchainOutput
+ 			}
+ 		}

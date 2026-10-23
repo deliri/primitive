@@ -1,24 +1,25 @@
 --- a/gotoolchain/ssa_source_call.go
 +++ b/gotoolchain/ssa_source_call.go
-@@ -108,38 +108,14 @@
+@@ -112,43 +112,11 @@
  	return value, nil
  }
  
 -// Search native positions directly without allocating iterator captures.
-+// Keep iterator captures out of the ordinary Go expression lookup path.
++// Keep iterator captures out of ordinary expression lookup.
  func (v SSAUnitView) sourceCallInInstructions(ctx context.Context, r SSASourceCallRequest) (SSASourceCallObservation, error) {
 -	fn := r.Function
 -	for ordinal, block := range fn.Blocks {
 -		if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
 -			return SSASourceCallObservation{}, err
-+	for instruction, queryErr := range v.Instructions(ctx, SSAInstructionRequest{Function: r.Function, Extent: SSAInstructionExtentFunction}) {
-+		if queryErr != nil {
-+			return SSASourceCallObservation{}, queryErr
- 		}
+-		}
 -		if block == nil || block.Parent() != fn || block.Index != ordinal {
 -			return SSASourceCallObservation{}, core.ErrGoToolchainOutput
 -		}
--		if argumentCallUntakenBlock(block) {
+-		untaken, queryErr := argumentCallUntakenBlock(block)
+-		if queryErr != nil {
+-			return SSASourceCallObservation{}, queryErr
+-		}
+-		if untaken {
 -			continue
 -		}
 -		// Like Go's ValueForExpr, scan one native block without repeated
@@ -40,8 +41,10 @@
 -			if call != nil && call.Common().Pos() == r.Expression.Lparen {
 -				return SSASourceCallObservation{Instruction: call}, nil
 -			}
-+		if call, ok := instruction.(ssa.CallInstruction); ok && call.Common().Pos() == r.Expression.Lparen {
-+			return SSASourceCallObservation{Instruction: call}, nil
- 		}
+-		}
++	for instruction, queryErr := range v.Instructions(ctx, SSAInstructionRequest{Function:r.Function, Extent:SSAInstructionExtentFunction}) {
++		if queryErr != nil { return SSASourceCallObservation{}, queryErr }
++		if call, ok := instruction.(ssa.CallInstruction); ok && call.Common().Pos() == r.Expression.Lparen { return SSASourceCallObservation{Instruction:call}, nil }
  	}
  	return SSASourceCallObservation{}, nil
+ }

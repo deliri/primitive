@@ -1,12 +1,12 @@
 --- a/gotoolchain/ssa_block_links.go
 +++ b/gotoolchain/ssa_block_links.go
-@@ -117,7 +117,8 @@
- 	if excludeUntaken && argumentCallUntakenBlock(block) {
- 		return true
+@@ -129,7 +129,8 @@
+ 			return true
+ 		}
  	}
 -	return yield(block, nil)
 +	yield(block, nil)
-+    return true
++	return true
  }
  
  var _ internalFlow = SSABlockLinkRequest{}

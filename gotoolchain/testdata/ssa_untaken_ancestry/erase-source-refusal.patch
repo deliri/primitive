@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_source_call.go
++++ b/gotoolchain/ssa_source_call.go
+@@ -82,7 +82,7 @@
+ 		}
+ 		untaken, queryErr := argumentCallUntakenBlock(block)
+ 		if queryErr != nil {
+-			return out, queryErr
++			return out, nil
+ 		}
+ 		if untaken {
+ 			return out, nil

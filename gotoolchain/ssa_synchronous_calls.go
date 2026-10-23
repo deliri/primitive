@@ -82,7 +82,12 @@ func synchronousCallsInFrame(ctx context.Context, frame synchronousCallFrame, ti
 				yield(nil, core.ErrGoToolchainOutput)
 				return
 			}
-			if argumentCallUntakenBlock(block) {
+			untaken, queryErr := argumentCallUntakenBlock(block)
+			if queryErr != nil {
+				yield(nil, queryErr)
+				return
+			}
+			if untaken {
 				continue
 			}
 			for _, instruction := range block.Instrs {

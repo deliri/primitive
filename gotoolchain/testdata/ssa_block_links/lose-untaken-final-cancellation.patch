@@ -1,16 +1,16 @@
 --- a/gotoolchain/ssa_block_links.go
 +++ b/gotoolchain/ssa_block_links.go
-@@ -72,12 +72,7 @@
- 			yield(nil, core.ErrGoToolchainOutput)
+@@ -77,12 +77,7 @@
+ 			yield(nil, queryErr)
  			return
  		}
--		if argumentCallUntakenBlock(r.Block) {
+-		if untaken {
 -			if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
 -				yield(nil, err)
 -			}
 -			return
 -		}
-+		if argumentCallUntakenBlock(r.Block) { return }
++		if untaken { return }
  		switch r.Kind {
  		case SSABlockLinkSuccessors:
  			for _, successor := range r.Block.Succs {

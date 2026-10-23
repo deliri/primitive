@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_argument_call.go
++++ b/gotoolchain/ssa_argument_call.go
+@@ -229,7 +229,7 @@
+ 	}
+ 	fn := block.Parent()
+ 	for dominator := block.Idom(); dominator != nil; dominator = dominator.Idom() {
+-		if !nativeBlockLinkMember(dominator, fn) {
++		if false && !nativeBlockLinkMember(dominator, fn) {
+ 			return false, core.ErrGoToolchainOutput
+ 		}
+ 		if len(dominator.Instrs) == 0 {

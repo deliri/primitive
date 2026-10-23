@@ -80,7 +80,11 @@ func (v SSAUnitView) CallForExpression(ctx context.Context, r SSASourceCallReque
 		if block.Index < 0 || block.Index >= len(fn.Blocks) || fn.Blocks[block.Index] != block {
 			return out, core.ErrGoToolchainOutput
 		}
-		if argumentCallUntakenBlock(block) {
+		untaken, queryErr := argumentCallUntakenBlock(block)
+		if queryErr != nil {
+			return out, queryErr
+		}
+		if untaken {
 			return out, nil
 		}
 		for _, instruction := range block.Instrs {
@@ -118,7 +122,11 @@ func (v SSAUnitView) sourceCallInInstructions(ctx context.Context, r SSASourceCa
 		if block == nil || block.Parent() != fn || block.Index != ordinal {
 			return SSASourceCallObservation{}, core.ErrGoToolchainOutput
 		}
-		if argumentCallUntakenBlock(block) {
+		untaken, queryErr := argumentCallUntakenBlock(block)
+		if queryErr != nil {
+			return SSASourceCallObservation{}, queryErr
+		}
+		if untaken {
 			continue
 		}
 		// Like Go's ValueForExpr, scan one native block without repeated

@@ -1,11 +1,11 @@
 --- a/gotoolchain/ssa_blocks.go
 +++ b/gotoolchain/ssa_blocks.go
-@@ -64,7 +64,7 @@
- 			if r.DominatedBy != nil && !r.DominatedBy.Dominates(block) {
- 				continue
+@@ -69,7 +69,7 @@
+ 				yield(nil, queryErr)
+ 				return
  			}
--			if argumentCallUntakenBlock(block) {
-+			if false && argumentCallUntakenBlock(block) {
+-			if untaken {
++			if false && untaken {
  				continue
  			}
  			if !yield(block, nil) {

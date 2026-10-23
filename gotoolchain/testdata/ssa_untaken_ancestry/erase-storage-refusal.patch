@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_receiver_storage.go
++++ b/gotoolchain/ssa_receiver_storage.go
+@@ -53,7 +53,7 @@
+ 		}
+ 		untaken, queryErr := argumentCallUntakenBlock(block)
+ 		if queryErr != nil {
+-			return out, queryErr
++			return out, nil
+ 		}
+ 		if untaken {
+ 			return out, nil

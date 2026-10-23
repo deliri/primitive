@@ -61,7 +61,11 @@ func (v SSAUnitView) MethodReceiver(ctx context.Context, r SSAMethodReceiverRequ
 	if err = v.referrerInstructionMembership(r.Call); err != nil {
 		return out, err
 	}
-	if argumentCallUntakenBlock(r.Call.Block()) {
+	untaken, queryErr := argumentCallUntakenBlock(r.Call.Block())
+	if queryErr != nil {
+		return out, queryErr
+	}
+	if untaken {
 		return out, nil
 	}
 	common := r.Call.Common()

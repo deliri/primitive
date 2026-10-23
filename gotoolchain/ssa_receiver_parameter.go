@@ -52,7 +52,11 @@ func (v SSAUnitView) ReceiverParameter(ctx context.Context, r SSAReceiverParamet
 	if err = v.referrerInstructionMembership(r.Call); err != nil {
 		return out, err
 	}
-	if argumentCallUntakenBlock(block) {
+	untaken, queryErr := argumentCallUntakenBlock(block)
+	if queryErr != nil {
+		return out, queryErr
+	}
+	if untaken {
 		return out, nil
 	}
 	common := r.Call.Common()
@@ -117,8 +121,8 @@ func (v SSAUnitView) ReceiverParameter(ctx context.Context, r SSAReceiverParamet
 			path = nil
 		}
 	}
-	out.Proven = argumentCallReceiver(receiver, r.Parameter, path)
-	return out, nil
+	out.Proven, err = argumentCallReceiver(receiver, r.Parameter, path)
+	return out, err
 }
 
 var _ internalFlow = SSAReceiverParameterRequest{}

@@ -1,11 +1,11 @@
 --- a/gotoolchain/ssa_binary_operation.go
 +++ b/gotoolchain/ssa_binary_operation.go
-@@ -79,7 +79,7 @@
- 		if membershipErr := v.referrerInstructionMembership(operation); membershipErr != nil {
- 			return out, membershipErr
+@@ -83,7 +83,7 @@
+ 		if queryErr != nil {
+ 			return out, queryErr
  		}
--		if !argumentCallUntakenBlock(operation.Block()) {
-+		if true {
+-		if !untaken {
++		if !untaken || true {
  			out.Operation = operation
  		}
  		return out, nil

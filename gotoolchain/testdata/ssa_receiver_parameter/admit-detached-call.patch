@@ -8,4 +8,4 @@
 +	if err = v.referrerInstructionMembership(r.Call); false {
  		return out, err
  	}
- 	if argumentCallUntakenBlock(block) {
+ 	untaken, queryErr := argumentCallUntakenBlock(block)

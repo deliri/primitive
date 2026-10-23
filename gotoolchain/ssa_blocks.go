@@ -64,7 +64,12 @@ func (v SSAUnitView) Blocks(ctx context.Context, r SSABlockRequest) iter.Seq2[*s
 			if r.DominatedBy != nil && !r.DominatedBy.Dominates(block) {
 				continue
 			}
-			if argumentCallUntakenBlock(block) {
+			untaken, queryErr := argumentCallUntakenBlock(block)
+			if queryErr != nil {
+				yield(nil, queryErr)
+				return
+			}
+			if untaken {
 				continue
 			}
 			if !yield(block, nil) {

@@ -121,7 +121,12 @@ func (v SSAUnitView) instructionsInFunction(ctx context.Context, r SSAInstructio
 			yield(nil, core.ErrGoToolchainOutput)
 			return false
 		}
-		if argumentCallUntakenBlock(block) {
+		untaken, queryErr := argumentCallUntakenBlock(block)
+		if queryErr != nil {
+			yield(nil, queryErr)
+			return false
+		}
+		if untaken {
 			continue
 		}
 		instructions := block.Instrs

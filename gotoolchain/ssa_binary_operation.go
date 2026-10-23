@@ -79,7 +79,11 @@ func (v SSAUnitView) BinaryOperationForExpression(ctx context.Context, r SSABina
 		if membershipErr := v.referrerInstructionMembership(operation); membershipErr != nil {
 			return out, membershipErr
 		}
-		if !argumentCallUntakenBlock(operation.Block()) {
+		untaken, queryErr := argumentCallUntakenBlock(operation.Block())
+		if queryErr != nil {
+			return out, queryErr
+		}
+		if !untaken {
 			out.Operation = operation
 		}
 		return out, nil

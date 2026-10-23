@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_argument_call.go
++++ b/gotoolchain/ssa_argument_call.go
+@@ -236,7 +236,7 @@
+ 			continue
+ 		}
+ 		terminal := dominator.Instrs[len(dominator.Instrs)-1]
+-		if terminal == nil || reflect.ValueOf(terminal).IsNil() || terminal.Parent() != fn || terminal.Block() != dominator {
++		if terminal == nil || reflect.ValueOf(terminal).IsNil() {
+ 			return false, core.ErrGoToolchainOutput
+ 		}
+ 		branch, ok := terminal.(*ssa.If)

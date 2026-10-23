@@ -1,0 +1,72 @@
+[
+  {
+    "name": "ignore-ancestor-custody",
+    "patch": "ignore-ancestor-custody.patch",
+    "selection": "^TestSSAMethodReceiverRefusesDamagedUntakenAncestry$/^damaged_ancestor_ordinal$"
+  },
+  {
+    "name": "neutralize-missing-ancestor",
+    "patch": "neutralize-missing-ancestor.patch",
+    "selection": "^TestSSAMethodReceiverRefusesDamagedUntakenAncestry$/^missing_ancestor_instruction$"
+  },
+  {
+    "name": "lend-foreign-ancestor",
+    "patch": "lend-foreign-ancestor.patch",
+    "selection": "^TestSSAMethodReceiverRefusesDamagedUntakenAncestry$/^foreign_ancestor_instruction$"
+  },
+  {
+    "name": "ignore-condition-presence",
+    "patch": "ignore-condition-presence.patch",
+    "selection": "^TestSSAMethodReceiverRefusesDamagedUntakenAncestry$/^missing_branch_condition$"
+  },
+  {
+    "name": "ignore-successor-cardinality",
+    "patch": "ignore-successor-cardinality.patch",
+    "selection": "^TestSSAMethodReceiverRefusesDamagedUntakenAncestry$/^missing_successor_slot$"
+  },
+  {
+    "name": "ignore-successor-custody",
+    "patch": "ignore-successor-custody.patch",
+    "selection": "^TestSSAMethodReceiverRefusesDamagedUntakenAncestry$/^foreign_successor$"
+  },
+  {
+    "name": "erase-method-refusal",
+    "patch": "erase-method-refusal.patch",
+    "selection": "^TestSSAUntakenAncestryRefusalReachesNativeQueries$/^method$"
+  },
+  {
+    "name": "erase-parameter-refusal",
+    "patch": "erase-parameter-refusal.patch",
+    "selection": "^TestSSAUntakenAncestryRefusalReachesNativeQueries$/^parameter$"
+  },
+  {
+    "name": "erase-storage-refusal",
+    "patch": "erase-storage-refusal.patch",
+    "selection": "^TestSSAUntakenAncestryRefusalReachesNativeQueries$/^storage$"
+  },
+  {
+    "name": "erase-binary-refusal",
+    "patch": "erase-binary-refusal.patch",
+    "selection": "^TestSSAUntakenAncestryRefusalReachesNativeQueries$/^binary$"
+  },
+  {
+    "name": "erase-source-refusal",
+    "patch": "erase-source-refusal.patch",
+    "selection": "^TestSSAUntakenAncestryRefusalReachesNativeQueries$/^source$"
+  },
+  {
+    "name": "erase-instruction-refusal",
+    "patch": "erase-instruction-refusal.patch",
+    "selection": "^TestSSAUntakenAncestryRefusalReachesNativeQueries$/^instructions$"
+  },
+  {
+    "name": "erase-block-refusal",
+    "patch": "erase-block-refusal.patch",
+    "selection": "^TestSSAUntakenAncestryRefusalReachesNativeQueries$/^blocks$"
+  },
+  {
+    "name": "erase-referrer-refusal",
+    "patch": "erase-referrer-refusal.patch",
+    "selection": "^TestSSAUntakenAncestryRefusalReachesNativeQueries$/^referrers$"
+  }
+]

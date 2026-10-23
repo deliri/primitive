@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_binary_operation.go
++++ b/gotoolchain/ssa_binary_operation.go
+@@ -81,7 +81,7 @@
+ 		}
+ 		untaken, queryErr := argumentCallUntakenBlock(operation.Block())
+ 		if queryErr != nil {
+-			return out, queryErr
++			return out, nil
+ 		}
+ 		if !untaken {
+ 			out.Operation = operation

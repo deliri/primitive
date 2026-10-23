@@ -8,4 +8,4 @@
 +			if false && r.DominatedBy != nil && !r.DominatedBy.Dominates(block) {
  				continue
  			}
- 			if argumentCallUntakenBlock(block) {
+ 			untaken, queryErr := argumentCallUntakenBlock(block)

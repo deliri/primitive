@@ -39,7 +39,7 @@
  		}
  		// Borrow one native slice window; do not rescan or copy the function.
  		blocks = blocks[first : first+1]
-@@ -115,11 +116,11 @@
+@@ -115,16 +116,16 @@
  	for offset, block := range blocks {
  		if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
  			yield(nil, err)
@@ -51,9 +51,15 @@
 -			return false
 +			return
  		}
- 		if argumentCallUntakenBlock(block) {
+ 		untaken, queryErr := argumentCallUntakenBlock(block)
+ 		if queryErr != nil {
+ 			yield(nil, queryErr)
+-			return false
++			return
+ 		}
+ 		if untaken {
  			continue
-@@ -131,33 +132,35 @@
+@@ -136,33 +137,35 @@
  		for _, instruction := range instructions {
  			if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
  				yield(nil, err)

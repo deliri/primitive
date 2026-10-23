@@ -1,11 +1,11 @@
 --- a/gotoolchain/ssa_method_receiver.go
 +++ b/gotoolchain/ssa_method_receiver.go
-@@ -61,7 +61,7 @@
- 	if err = v.referrerInstructionMembership(r.Call); err != nil {
- 		return out, err
+@@ -65,7 +65,7 @@
+ 	if queryErr != nil {
+ 		return out, queryErr
  	}
--	if argumentCallUntakenBlock(r.Call.Block()) {
-+	if false && argumentCallUntakenBlock(r.Call.Block()) {
+-	if untaken {
++	if false && untaken {
  		return out, nil
  	}
  	common := r.Call.Common()

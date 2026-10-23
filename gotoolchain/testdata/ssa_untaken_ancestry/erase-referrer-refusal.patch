@@ -1,0 +1,10 @@
+--- a/gotoolchain/ssa_referrers.go
++++ b/gotoolchain/ssa_referrers.go
+@@ -56,7 +56,6 @@
+ 				}
+ 				untaken, queryErr := argumentCallUntakenBlock(instruction.Block())
+ 				if queryErr != nil {
+-					yield(nil, queryErr)
+ 					return
+ 				}
+ 				if untaken {

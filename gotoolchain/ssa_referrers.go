@@ -54,7 +54,12 @@ func (v SSAUnitView) Referrers(ctx context.Context, r SSAReferrerRequest) iter.S
 					yield(nil, core.ErrGoToolchainOutput)
 					return
 				}
-				if argumentCallUntakenBlock(instruction.Block()) {
+				untaken, queryErr := argumentCallUntakenBlock(instruction.Block())
+				if queryErr != nil {
+					yield(nil, queryErr)
+					return
+				}
+				if untaken {
 					continue
 				}
 				if !yield(instruction, nil) {

@@ -1,11 +1,12 @@
 --- a/gotoolchain/ssa_argument_call.go
 +++ b/gotoolchain/ssa_argument_call.go
-@@ -321,7 +321,7 @@
+@@ -383,9 +383,6 @@
  	}
  	switch field := value.(type) {
  	case *ssa.FieldAddr:
--		return field.Field == path[len(path)-1] && argumentCallReceiver(field.X, reference, path[:len(path)-1])
-+		return argumentCallReceiver(field.X, reference, path[:len(path)-1])
+-		if field.Field != path[len(path)-1] {
+-			return false, nil
+-		}
+ 		return argumentCallReceiver(field.X, reference, path[:len(path)-1])
  	case *ssa.Field:
- 		return field.Field == path[len(path)-1] && argumentCallReceiver(field.X, reference, path[:len(path)-1])
- 	case *ssa.UnOp:
+ 		if field.Field != path[len(path)-1] {
