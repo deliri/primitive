@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_tuple_element.go
++++ b/gotoolchain/ssa_tuple_element.go
+@@ -76,7 +76,7 @@
+ 	if !ok || r.Element.Index < 0 || r.Element.Index >= tuple.Len() || r.Element.Type() == nil || !types.Identical(r.Element.Type(), tuple.At(r.Element.Index).Type()) {
+ 		return out, core.ErrGoToolchainOutput
+ 	}
+-	relation, queryErr := v.InstructionDominates(ctx, SSAInstructionOrderRequest{Before: producer, After: r.Element})
++	relation, queryErr := v.InstructionDominates(ctx, SSAInstructionOrderRequest{Before: r.Element, After: producer})
+ 	if queryErr != nil {
+ 		if errors.Is(queryErr, core.ErrGoToolchainContract) {
+ 			return out, errors.Join(core.ErrGoToolchainOutput, queryErr)

@@ -1,0 +1,47 @@
+[
+  {
+    "name": "invent-producer-custody",
+    "run": "^TestSSATupleElementRefusesBrokenNativeBoundaries$/^detached_producer$",
+    "patch": "invent-producer-custody.patch"
+  },
+  {
+    "name": "reverse-definition-relation",
+    "run": "^TestSSATupleElementProducerLayerTriad$",
+    "patch": "reverse-definition-relation.patch"
+  },
+  {
+    "name": "ignore-definition-order",
+    "run": "^TestSSATupleElementRefusesBrokenNativeBoundaries$/^producer_after_use$",
+    "patch": "ignore-definition-order.patch"
+  },
+  {
+    "name": "ignore-result-type",
+    "run": "^TestSSATupleElementRefusesBrokenNativeBoundaries$/^result_type_mismatch$",
+    "patch": "ignore-result-type.patch"
+  },
+  {
+    "name": "leak-refused-projection",
+    "run": "^TestSSATupleElementPreservesFinalCancellation$",
+    "patch": "leak-refused-projection.patch"
+  },
+  {
+    "name": "omit-final-cancellation",
+    "run": "^TestSSATupleElementPreservesFinalCancellation$",
+    "patch": "omit-final-cancellation.patch"
+  },
+  {
+    "name": "invent-untaken-projection",
+    "run": "^TestSSATupleElementProducerLayerTriad$",
+    "patch": "invent-untaken-projection.patch"
+  },
+  {
+    "name": "retain-block-population",
+    "run": "^TestSSATupleElementRetainsNoInstructionPopulation$/^8193$",
+    "patch": "retain-block-population.patch"
+  },
+  {
+    "name": "admit-invalid-schema",
+    "run": "^TestSSATupleElementSchemaLayerTriad$",
+    "patch": "admit-invalid-schema.patch"
+  }
+]

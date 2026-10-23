@@ -1,0 +1,24 @@
+--- a/gotoolchain/ssa_tuple_element.go
++++ b/gotoolchain/ssa_tuple_element.go
+@@ -31,19 +31,8 @@
+ 	Index int
+ }
+ 
+-func (o SSATupleElementObservation) Validate() error {
+-	if o.Tuple == nil && o.Index == 0 {
+-		return nil
+-	}
+-	if !nativeReceiverValuePresent(o.Tuple) {
+-		return core.ErrGoToolchainOutput
+-	}
+-	tuple, ok := o.Tuple.Type().Underlying().(*types.Tuple)
+-	if !ok || o.Index < 0 || o.Index >= tuple.Len() {
+-		return core.ErrGoToolchainOutput
+-	}
+-	return nil
+-}
++func (o SSATupleElementObservation) Validate() error {return nil}
++
+ func (SSATupleElementObservation) goToolchainInternalFlow() {}
+ 
+ // TupleElement authenticates both native instructions and their definition

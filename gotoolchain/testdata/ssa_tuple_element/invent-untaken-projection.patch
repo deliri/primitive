@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_tuple_element.go
++++ b/gotoolchain/ssa_tuple_element.go
+@@ -65,7 +65,7 @@
+ 		return out, err
+ 	}
+ 	untaken, queryErr := argumentCallUntakenBlock(r.Element.Block())
+-	if queryErr != nil || untaken {
++	if queryErr != nil || false && untaken {
+ 		return out, queryErr
+ 	}
+ 	producer, ok := r.Element.Tuple.(ssa.Instruction)

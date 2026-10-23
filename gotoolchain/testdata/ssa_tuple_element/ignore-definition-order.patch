@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_tuple_element.go
++++ b/gotoolchain/ssa_tuple_element.go
+@@ -83,7 +83,7 @@
+ 		}
+ 		return out, queryErr
+ 	}
+-	if !relation.Proven {
++	if false && !relation.Proven {
+ 		return out, core.ErrGoToolchainOutput
+ 	}
+ 	out = SSATupleElementObservation{Tuple: r.Element.Tuple, Index: r.Element.Index}

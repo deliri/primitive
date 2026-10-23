@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_tuple_element.go
++++ b/gotoolchain/ssa_tuple_element.go
+@@ -55,7 +55,7 @@
+ 			err = temporal.Wait(temporal.WaitRequest{Context: ctx})
+ 		}
+ 		if err != nil {
+-			out = SSATupleElementObservation{}
++			out = out
+ 		}
+ 	}()
+ 	if err = errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), v.Validate(), r.Validate()); err != nil {

@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_tuple_element.go
++++ b/gotoolchain/ssa_tuple_element.go
+@@ -52,7 +52,7 @@
+ func (v SSAUnitView) TupleElement(ctx context.Context, r SSATupleElementRequest) (out SSATupleElementObservation, err error) {
+ 	defer func() {
+ 		if err == nil {
+-			err = temporal.Wait(temporal.WaitRequest{Context: ctx})
++			err = nil
+ 		}
+ 		if err != nil {
+ 			out = SSATupleElementObservation{}
