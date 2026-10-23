@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_receiver_parameter.go
++++ b/gotoolchain/ssa_receiver_parameter.go
+@@ -61,7 +61,7 @@
+ 	}
+ 	if closure, bound := common.Value.(*ssa.MakeClosure); bound {
+ 		if target, native := closure.Fn.(*ssa.Function); !native || target == nil {
+-			return out, core.ErrGoToolchainOutput
++			return out, nil
+ 		}
+ 	}
+ 	object := common.Method

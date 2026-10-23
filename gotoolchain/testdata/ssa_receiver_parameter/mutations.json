@@ -63,5 +63,25 @@
     "name": "lose-native-cancellation-cause",
     "patch": "lose-native-cancellation-cause.patch",
     "selection": "^TestSSAReceiverParameterPreservesCustodyAndCause$/^native_cancellation_cause$"
+  },
+  {
+    "name": "drop-native-expression-thunk",
+    "patch": "drop-native-expression-thunk.patch",
+    "selection": "^TestSSAReceiverParameterConservesActualCallIdentity$/^promoted_method_expression$"
+  },
+  {
+    "name": "erase-native-expression-receiver-type",
+    "patch": "erase-native-expression-receiver-type.patch",
+    "selection": "^TestSSAReceiverParameterConservesActualCallIdentity$/^explicit_promoted_base_expression$"
+  },
+  {
+    "name": "confuse-bound-with-expression",
+    "patch": "confuse-bound-with-expression.patch",
+    "selection": "^TestSSAReceiverParameterDistinguishesBoundReceiverFromMatchingArgument$/^bound_original_receiver$"
+  },
+  {
+    "name": "neutralize-damaged-bound-target",
+    "patch": "neutralize-damaged-bound-target.patch",
+    "selection": "^TestSSAReceiverParameterRejectsMalformedCallFacts$/^missing_bound_target$"
   }
 ]

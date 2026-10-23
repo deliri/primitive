@@ -24,6 +24,11 @@ func TestSSAReceiverParameterConservesActualCallIdentity(t *testing.T) {
 		{"opaque replacement", "func replace(p **Cell){*p=new(Cell)}", "r *Cell, other *Cell", `replace(&r);r.Invoke(1)`, false},
 		{"read only capture", "", "r *Cell, other *Cell", `unused:=func(){_=r};_=unused;r.Invoke(1)`, true},
 		{"bound receiver with explicit argument", "", "r *Cell, other *Cell", `bound:=r.Invoke;bound(1)`, true},
+		{"direct method expression", "", "r *Cell, other *Cell", `(*Cell).Invoke(r,1)`, true},
+		{"promoted method expression", "type Owner struct{*Cell}", "r *Owner, other *Owner", `(*Owner).Invoke(r,1)`, true},
+		{"foreign promoted method expression", "type Owner struct{*Cell}", "r *Owner, other *Owner", `(*Owner).Invoke(other,1)`, false},
+		{"explicit promoted base expression", "type Owner struct{*Cell;Other *Cell}", "r *Owner, other *Owner", `(*Cell).Invoke(r.Cell,1)`, true},
+		{"expression neighbor receiver", "type Owner struct{*Cell;Other *Cell}", "r *Owner, other *Owner", `(*Cell).Invoke(r.Other,1)`, false},
 		{"foreign bound receiver", "", "r *Cell, other *Cell", `bound:=other.Invoke;bound(1)`, false},
 		{"interface receiver", "", "r Runner, other Runner", `r.Invoke(1)`, true},
 		{"foreign interface receiver", "", "r Runner, other Runner", `other.Invoke(1)`, false},
@@ -71,6 +76,33 @@ func nativeReceiverParameterLastCall(ctx context.Context, t testing.TB, view got
 		t.Fatal("receiver fixture calls=0, want at least one native call")
 	}
 	return last
+}
+
+func TestSSAReceiverParameterDistinguishesBoundReceiverFromMatchingArgument(t *testing.T) {
+	t.Parallel()
+	for _, row := range []struct {
+		name, body string
+		want       bool
+	}{
+		{"bound original receiver", `bound:=r.Invoke;bound(other)`, true},
+		{"bound foreign receiver", `bound:=other.Invoke;bound(r)`, false},
+	} {
+		t.Run(row.name, func(t *testing.T) {
+			t.Parallel()
+			a := nativeSymbolSourceAnalysis(t, t.TempDir(), `package sample;type Cell struct{};type Owner struct{*Cell};func(*Cell)Invoke(*Owner){};func Entry(r,other *Owner){`+row.body+`}`)
+			err := a.WithSSAUnit(t.Context(), gotoolchain.SSAUnitRequest{Unit: a.Units[0], Use: func(ctx context.Context, view gotoolchain.SSAUnitView) error {
+				fn := view.Package.Func("Entry")
+				got, queryErr := view.ReceiverParameter(ctx, gotoolchain.SSAReceiverParameterRequest{Call: nativeReceiverParameterLastCall(ctx, t, view, fn), Parameter: fn.Params[0]})
+				if queryErr != nil || got.Proven != row.want {
+					t.Fatalf("bound receiver=%+v,%v, want proven=%t,nil", got, queryErr, row.want)
+				}
+				return nil
+			}})
+			if err != nil {
+				t.Fatalf("WithSSAUnit error=%v, want nil", err)
+			}
+		})
+	}
 }
 
 func TestSSAReceiverParameterPreservesCustodyAndCause(t *testing.T) {

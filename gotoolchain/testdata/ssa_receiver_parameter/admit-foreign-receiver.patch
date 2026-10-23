@@ -1,6 +1,6 @@
 --- a/gotoolchain/ssa_receiver_parameter.go
 +++ b/gotoolchain/ssa_receiver_parameter.go
-@@ -93,7 +93,7 @@
+@@ -98,7 +98,7 @@
  	if !nativeReceiverValuePresent(receiver) {
  		return out, core.ErrGoToolchainOutput
  	}

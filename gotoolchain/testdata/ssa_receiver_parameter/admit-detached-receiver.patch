@@ -1,6 +1,6 @@
 --- a/gotoolchain/ssa_receiver_parameter.go
 +++ b/gotoolchain/ssa_receiver_parameter.go
-@@ -97,7 +97,7 @@
+@@ -102,7 +102,7 @@
  		return out, core.ErrGoToolchainOutput
  	}
  	if instruction, native := receiver.(ssa.Instruction); native {

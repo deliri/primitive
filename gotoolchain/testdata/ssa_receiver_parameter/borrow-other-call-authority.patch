@@ -1,11 +1,11 @@
 --- a/gotoolchain/ssa_receiver_parameter.go
 +++ b/gotoolchain/ssa_receiver_parameter.go
-@@ -104,7 +104,7 @@
- 		return out, core.ErrGoToolchainOutput
+@@ -117,7 +117,7 @@
+ 			path = nil
+ 		}
  	}
- 	indices := selection.Index()
--	out.Proven = argumentCallReceiver(receiver, r.Parameter, indices[:len(indices)-1])
-+	out.Proven = argumentCallReceiver(receiver, r.Parameter, indices[:len(indices)-1]) || true
+-	out.Proven = argumentCallReceiver(receiver, r.Parameter, path)
++	out.Proven = argumentCallReceiver(receiver, r.Parameter, path) || true
  	return out, nil
  }
  

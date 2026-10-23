@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_receiver_parameter.go
++++ b/gotoolchain/ssa_receiver_parameter.go
+@@ -111,7 +111,7 @@
+ 	indices := selection.Index()
+ 	path := indices[:len(indices)-1]
+ 	if target := common.StaticCallee(); target != nil && target.Signature.Recv() == nil && target.Signature.Params().Len() > 0 {
+-		if _, bound := common.Value.(*ssa.MakeClosure); !bound && types.Identical(target.Signature.Params().At(0).Type(), r.Parameter.Type()) {
++		if _, bound := common.Value.(*ssa.MakeClosure); !bound || types.Identical(target.Signature.Params().At(0).Type(), r.Parameter.Type()) {
+ 			// A native method-expression thunk performs its promoted field
+ 			// selection inside the thunk, after receiving the outer value.
+ 			path = nil

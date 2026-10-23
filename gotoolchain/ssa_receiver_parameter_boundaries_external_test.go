@@ -30,6 +30,8 @@ func TestSSAReceiverParameterRejectsMalformedCallFacts(t *testing.T) {
 		{"typed nil receiver", 9, `r.Invoke(1)`, core.ErrGoToolchainOutput},
 		{"foreign native receiver", 10, `r.Invoke(1)`, core.ErrGoToolchainOutput},
 		{"detached receiver instruction", 11, `unused:=func(){_=r};_=unused;r.Invoke(1)`, core.ErrGoToolchainOutput},
+		{"missing bound target", 12, `f:=r.Invoke;f(1)`, core.ErrGoToolchainOutput},
+		{"typed nil bound target", 13, `f:=r.Invoke;f(1)`, core.ErrGoToolchainOutput},
 	} {
 		t.Run(row.name, func(t *testing.T) {
 			t.Parallel()
@@ -74,6 +76,10 @@ func TestSSAReceiverParameterRejectsMalformedCallFacts(t *testing.T) {
 					}
 					copied := *load
 					call.Common().Args[0] = &copied
+				case 12:
+					call.Common().Value.(*ssa.MakeClosure).Fn = nil
+				case 13:
+					call.Common().Value.(*ssa.MakeClosure).Fn = (*ssa.Function)(nil)
 				default:
 					t.Fatalf("malformed receiver mode=%d, want declared boundary", row.mode)
 				}

@@ -10,7 +10,7 @@ import (
 )
 
 func FuzzSSAReceiverParameterConservesSelectedAuthority(f *testing.F) {
-	for _, mode := range []uint8{0, 1, 2, 4, 8, 16, 32} {
+	for _, mode := range []uint8{0, 1, 2, 4, 8, 16, 32, 64, 66} {
 		f.Add(mode)
 	}
 	f.Fuzz(func(t *testing.T, mode uint8) {
@@ -32,6 +32,16 @@ func FuzzSSAReceiverParameterConservesSelectedAuthority(f *testing.F) {
 		body := receiver + ".Invoke(1)"
 		if mode&4 != 0 {
 			body = "bound:=" + receiver + ".Invoke;bound(1)"
+		}
+		if mode&64 != 0 {
+			receiverType := "(*Cell)"
+			if mode&2 != 0 {
+				receiverType = "(*Owner)"
+			}
+			if mode&16 != 0 {
+				receiverType = "Runner"
+			}
+			body = receiverType + ".Invoke(" + receiver + ",1)"
 		}
 		a := nativeSymbolSourceAnalysis(t, t.TempDir(), `package sample;type Cell struct{};func(*Cell)Invoke(int){};type Runner interface{Invoke(int)};func replace[T any](p *T){var zero T;*p=zero};`+declarations+`func Entry(`+parameters+`){`+prefix+body+`}`)
 		err := a.WithSSAUnit(t.Context(), gotoolchain.SSAUnitRequest{Unit: a.Units[0], SourceValues: true, Use: func(ctx context.Context, view gotoolchain.SSAUnitView) error {

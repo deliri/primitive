@@ -59,6 +59,11 @@ func (v SSAUnitView) ReceiverParameter(ctx context.Context, r SSAReceiverParamet
 	if !nativeReceiverValuePresent(common.Value) {
 		return out, core.ErrGoToolchainOutput
 	}
+	if closure, bound := common.Value.(*ssa.MakeClosure); bound {
+		if target, native := closure.Fn.(*ssa.Function); !native || target == nil {
+			return out, core.ErrGoToolchainOutput
+		}
+	}
 	object := common.Method
 	if target := common.StaticCallee(); target != nil {
 		if target.Signature == nil {
@@ -104,7 +109,15 @@ func (v SSAUnitView) ReceiverParameter(ctx context.Context, r SSAReceiverParamet
 		return out, core.ErrGoToolchainOutput
 	}
 	indices := selection.Index()
-	out.Proven = argumentCallReceiver(receiver, r.Parameter, indices[:len(indices)-1])
+	path := indices[:len(indices)-1]
+	if target := common.StaticCallee(); target != nil && target.Signature.Recv() == nil && target.Signature.Params().Len() > 0 {
+		if _, bound := common.Value.(*ssa.MakeClosure); !bound && types.Identical(target.Signature.Params().At(0).Type(), r.Parameter.Type()) {
+			// A native method-expression thunk performs its promoted field
+			// selection inside the thunk, after receiving the outer value.
+			path = nil
+		}
+	}
+	out.Proven = argumentCallReceiver(receiver, r.Parameter, path)
 	return out, nil
 }
 

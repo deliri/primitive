@@ -1,6 +1,6 @@
 --- a/gotoolchain/ssa_receiver_parameter.go
 +++ b/gotoolchain/ssa_receiver_parameter.go
-@@ -62,7 +62,7 @@
+@@ -67,7 +67,7 @@
  	object := common.Method
  	if target := common.StaticCallee(); target != nil {
  		if target.Signature == nil {

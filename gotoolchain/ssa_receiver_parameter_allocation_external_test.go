@@ -54,6 +54,7 @@ func BenchmarkSSAReceiverParameter(b *testing.B) {
 		{"direct receiver", `func(*Owner)Invoke(int){}`, `r.Invoke(1)`, true},
 		{"hidden embedded method", `func(*Owner)Invoke(int){}`, `r.Cell.Invoke(1)`, false},
 		{"promoted receiver", "", `r.Invoke(1)`, true},
+		{"promoted method expression", "", `(*Owner).Invoke(r,1)`, true},
 	} {
 		b.Run(row.name, func(b *testing.B) {
 			b.ReportAllocs()
