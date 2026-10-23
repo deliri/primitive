@@ -1,0 +1,19 @@
+--- a/gotoolchain/ssa_conditional_branch.go
++++ b/gotoolchain/ssa_conditional_branch.go
+@@ -36,15 +36,7 @@
+ 	WhenFalse *ssa.BasicBlock
+ }
+ 
+-func (o SSAConditionalBranchObservation) Validate() error {
+-	if o.Condition == nil && o.WhenTrue == nil && o.WhenFalse == nil {
+-		return nil
+-	}
+-	if !nativeConditionPresent(o.Condition) || !nativeConditionBoolean(o.Condition) || o.WhenTrue == nil || o.WhenFalse == nil || o.WhenTrue.Parent() == nil || o.WhenTrue.Parent() != o.WhenFalse.Parent() {
+-		return core.ErrGoToolchainOutput
+-	}
+-	return nil
+-}
++func (o SSAConditionalBranchObservation) Validate() error { return nil }
+ 
+ func (SSAConditionalBranchObservation) goToolchainInternalFlow() {}
+ 

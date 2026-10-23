@@ -1,0 +1,62 @@
+[
+  {
+    "name": "omit-negation-edge-swap",
+    "run": "^TestSSAConditionalBranchExhaustiveBooleanProjection$",
+    "patch": "omit-negation-edge-swap.patch"
+  },
+  {
+    "name": "reverse-constant-polarity",
+    "run": "^TestSSAConditionalBranchExhaustiveBooleanProjection$",
+    "patch": "reverse-constant-polarity.patch"
+  },
+  {
+    "name": "collapse-false-edge",
+    "run": "^TestSSAConditionalBranchProducerLayerTriad$",
+    "patch": "collapse-false-edge.patch"
+  },
+  {
+    "name": "admit-foreign-parameter",
+    "run": "^TestSSAConditionalBranchRefusesBrokenOperandCustody$/^foreign_parameter$",
+    "patch": "admit-foreign-parameter.patch"
+  },
+  {
+    "name": "admit-detached-instruction",
+    "run": "^TestSSAConditionalBranchRefusesBrokenOperandCustody$/^detached_condition$",
+    "patch": "admit-detached-instruction.patch"
+  },
+  {
+    "name": "admit-forward-definition",
+    "run": "^TestSSAConditionalBranchRefusesForwardAndSiblingDefinitions$/^forward$",
+    "patch": "admit-forward-definition.patch"
+  },
+  {
+    "name": "admit-sibling-definition",
+    "run": "^TestSSAConditionalBranchRefusesForwardAndSiblingDefinitions$/^sibling$",
+    "patch": "admit-sibling-definition.patch"
+  },
+  {
+    "name": "admit-foreign-edge",
+    "run": "^TestSSAConditionalBranchRefusesBrokenOperandCustody$/^foreign_edge$",
+    "patch": "admit-foreign-edge.patch"
+  },
+  {
+    "name": "retain-instruction-population",
+    "run": "^TestSSAConditionalBranchRetainsNoQueryPopulation$/^8193$",
+    "patch": "retain-instruction-population.patch"
+  },
+  {
+    "name": "leak-refused-observation",
+    "run": "^TestSSAConditionalBranchRefusesBrokenOperandCustody$/^missing_child$",
+    "patch": "leak-refused-observation.patch"
+  },
+  {
+    "name": "omit-final-cancellation",
+    "run": "^TestSSAConditionalBranchFinalCancellationZerosProjection$",
+    "patch": "omit-final-cancellation.patch"
+  },
+  {
+    "name": "admit-partial-schema",
+    "run": "^TestSSAConditionalBranchSchemaLayerTriad$",
+    "patch": "admit-partial-schema.patch"
+  }
+]

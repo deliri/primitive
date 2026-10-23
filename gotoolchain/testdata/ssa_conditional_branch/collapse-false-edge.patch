@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_conditional_branch.go
++++ b/gotoolchain/ssa_conditional_branch.go
+@@ -77,7 +77,7 @@
+ 	if len(r.Block.Succs) != 2 || !nativeBlockLinkMember(r.Block.Succs[0], fn) || !nativeBlockLinkMember(r.Block.Succs[1], fn) {
+ 		return out, core.ErrGoToolchainOutput
+ 	}
+-	out = SSAConditionalBranchObservation{Condition: branch.Cond, WhenTrue: r.Block.Succs[0], WhenFalse: r.Block.Succs[1]}
++	out = SSAConditionalBranchObservation{Condition: branch.Cond, WhenTrue: r.Block.Succs[0], WhenFalse: r.Block.Succs[0]}
+ 	cursor := nativeConditionCursor{block: r.Block, before: len(r.Block.Instrs) - 1}
+ 	for {
+ 		if err = cursor.borrow(ctx, out.Condition); err != nil {

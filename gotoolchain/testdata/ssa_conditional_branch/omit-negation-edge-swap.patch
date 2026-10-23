@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_conditional_branch.go
++++ b/gotoolchain/ssa_conditional_branch.go
+@@ -89,7 +89,7 @@
+ 				return out, nil
+ 			}
+ 			out.Condition = condition.X
+-			out.WhenTrue, out.WhenFalse = out.WhenFalse, out.WhenTrue
++			out.WhenTrue, out.WhenFalse = out.WhenTrue, out.WhenFalse
+ 		case *ssa.BinOp:
+ 			if condition.Op != token.EQL && condition.Op != token.NEQ {
+ 				return out, nil

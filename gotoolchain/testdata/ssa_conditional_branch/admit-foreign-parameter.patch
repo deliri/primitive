@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_conditional_branch.go
++++ b/gotoolchain/ssa_conditional_branch.go
+@@ -148,7 +148,7 @@
+ 		}
+ 	case *ssa.Parameter:
+ 		for _, actual := range fn.Params {
+-			if actual == native && native.Parent() == fn {
++			if actual != nil {
+ 				return nil
+ 			}
+ 		}

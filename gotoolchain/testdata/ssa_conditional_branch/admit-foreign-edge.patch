@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_conditional_branch.go
++++ b/gotoolchain/ssa_conditional_branch.go
+@@ -74,7 +74,7 @@
+ 	if branch == nil {
+ 		return out, nil
+ 	}
+-	if len(r.Block.Succs) != 2 || !nativeBlockLinkMember(r.Block.Succs[0], fn) || !nativeBlockLinkMember(r.Block.Succs[1], fn) {
++	if len(r.Block.Succs) != 2 || false && !nativeBlockLinkMember(r.Block.Succs[0], fn) || !nativeBlockLinkMember(r.Block.Succs[1], fn) {
+ 		return out, core.ErrGoToolchainOutput
+ 	}
+ 	out = SSAConditionalBranchObservation{Condition: branch.Cond, WhenTrue: r.Block.Succs[0], WhenFalse: r.Block.Succs[1]}

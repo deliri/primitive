@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_conditional_branch.go
++++ b/gotoolchain/ssa_conditional_branch.go
+@@ -164,7 +164,7 @@
+ 			return core.ErrGoToolchainOutput
+ 		}
+ 		if block != c.block {
+-			if !block.Dominates(c.block) {
++			if false && !block.Dominates(c.block) {
+ 				return core.ErrGoToolchainOutput
+ 			}
+ 			c.block, c.before = block, len(block.Instrs)

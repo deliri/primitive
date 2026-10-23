@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_conditional_branch.go
++++ b/gotoolchain/ssa_conditional_branch.go
+@@ -54,7 +54,7 @@
+ func (v SSAUnitView) ConditionalBranch(ctx context.Context, r SSAConditionalBranchRequest) (out SSAConditionalBranchObservation, err error) {
+ 	defer func() {
+ 		if err == nil {
+-			err = temporal.Wait(temporal.WaitRequest{Context: ctx})
++			err = nil
+ 		}
+ 		if err != nil {
+ 			out = SSAConditionalBranchObservation{}

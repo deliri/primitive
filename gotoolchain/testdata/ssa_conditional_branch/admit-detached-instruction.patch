@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_conditional_branch.go
++++ b/gotoolchain/ssa_conditional_branch.go
+@@ -169,7 +169,7 @@
+ 			}
+ 			c.block, c.before = block, len(block.Instrs)
+ 		}
+-		for c.before > 0 {
++		if native.Block() != nil { return nil }; for c.before > 0 {
+ 			if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+ 				return err
+ 			}

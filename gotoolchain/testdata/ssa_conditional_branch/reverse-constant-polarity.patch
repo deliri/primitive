@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_conditional_branch.go
++++ b/gotoolchain/ssa_conditional_branch.go
+@@ -116,7 +116,7 @@
+ 			if boolean.Value == nil || boolean.Value.Kind() != constant.Bool {
+ 				return out, core.ErrGoToolchainOutput
+ 			}
+-			if constant.BoolVal(boolean.Value) == (condition.Op == token.NEQ) {
++			if constant.BoolVal(boolean.Value) != (condition.Op == token.NEQ) {
+ 				out.WhenTrue, out.WhenFalse = out.WhenFalse, out.WhenTrue
+ 			}
+ 			out.Condition = operand
