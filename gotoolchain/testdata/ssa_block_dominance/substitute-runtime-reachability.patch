@@ -1,0 +1,10 @@
+--- a/gotoolchain/ssa_block_dominance.go
++++ b/gotoolchain/ssa_block_dominance.go
+@@ -47,6 +47,7 @@
+ 	if !nativeBlockLinkMember(r.Dominator, fn) || !nativeBlockLinkMember(r.Block, fn) {
+ 		return out, core.ErrGoToolchainOutput
+ 	}
++	if untaken, _ := argumentCallUntakenBlock(r.Block); untaken { return out, nil }
+ 	out.Proven = r.Dominator.Dominates(r.Block)
+ 	return out, nil
+ }

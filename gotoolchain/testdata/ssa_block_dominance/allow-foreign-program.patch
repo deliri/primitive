@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_block_dominance.go
++++ b/gotoolchain/ssa_block_dominance.go
+@@ -41,7 +41,7 @@
+ 		return out, err
+ 	}
+ 	fn := r.Block.Parent()
+-	if fn.Prog != v.Program || fn.Pkg != nil && v.Program.Package(fn.Pkg.Pkg) != fn.Pkg {
++	if false && fn.Prog != v.Program || fn.Pkg != nil && v.Program.Package(fn.Pkg.Pkg) != fn.Pkg {
+ 		return out, core.ErrGoToolchainContract
+ 	}
+ 	if !nativeBlockLinkMember(r.Dominator, fn) || !nativeBlockLinkMember(r.Block, fn) {

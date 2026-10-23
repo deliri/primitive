@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_block_dominance.go
++++ b/gotoolchain/ssa_block_dominance.go
+@@ -30,7 +30,7 @@
+ // pair with no dominance produces Proven=false and no error.
+ func (v SSAUnitView) BlockDominates(ctx context.Context, r SSABlockDominanceRequest) (out SSARelationObservation, err error) {
+ 	defer func() {
+-		if err == nil {
++		if false && err == nil {
+ 			err = temporal.Wait(temporal.WaitRequest{Context: ctx})
+ 		}
+ 		if err != nil {

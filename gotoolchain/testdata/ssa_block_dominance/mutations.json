@@ -1,0 +1,52 @@
+[
+  {
+    "name": "invent-dominance",
+    "patch": "invent-dominance.patch",
+    "selection": "^TestSSABlockDominanceConservesEveryDiamondRelation$"
+  },
+  {
+    "name": "erase-dominance",
+    "patch": "erase-dominance.patch",
+    "selection": "^TestSSABlockDominanceConservesEveryDiamondRelation$"
+  },
+  {
+    "name": "reverse-dominance",
+    "patch": "reverse-dominance.patch",
+    "selection": "^TestSSABlockDominanceConservesEveryDiamondRelation$"
+  },
+  {
+    "name": "ignore-dominator-custody",
+    "patch": "ignore-dominator-custody.patch",
+    "selection": "^TestSSABlockDominanceRefusesUnownedLoans$/^detached_dominator$"
+  },
+  {
+    "name": "ignore-block-custody",
+    "patch": "ignore-block-custody.patch",
+    "selection": "^TestSSABlockDominanceRefusesUnownedLoans$/^detached_block$"
+  },
+  {
+    "name": "allow-foreign-program",
+    "patch": "allow-foreign-program.patch",
+    "selection": "^TestSSABlockDominanceRefusesUnownedLoans$/^foreign_program$"
+  },
+  {
+    "name": "weaken-cross-frame-contract",
+    "patch": "weaken-cross-frame-contract.patch",
+    "selection": "^TestSSABlockDominanceRefusesUnownedLoans$/^different_native_function$"
+  },
+  {
+    "name": "drop-final-cancellation",
+    "patch": "drop-final-cancellation.patch",
+    "selection": "^TestSSABlockDominancePreservesContextAuthority$/^final_cancellation$"
+  },
+  {
+    "name": "retain-function-population",
+    "patch": "retain-function-population.patch",
+    "selection": "^TestSSABlockDominanceRetainsNoFunctionPopulation$/^8193$"
+  },
+  {
+    "name": "substitute-runtime-reachability",
+    "patch": "substitute-runtime-reachability.patch",
+    "selection": "^TestSSABlockDominanceKeepsNativeConstantAndLexicalMeaning$/^false$"
+  }
+]
