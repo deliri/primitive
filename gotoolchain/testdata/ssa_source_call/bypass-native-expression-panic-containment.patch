@@ -3,7 +3,7 @@
 @@ -95,15 +95,6 @@
  
  // Contain only Go's expression lookup; caller callbacks keep Go panic semantics.
- func sourceCallExpressionValue(fn *ssa.Function, expression *ast.CallExpr) (value ssa.Value, err error) {
+ func sourceExpressionValue(fn *ssa.Function, expression ast.Expr) (value ssa.Value, err error) {
 -	defer func() {
 -		if failure := recover(); failure != nil {
 -			value = nil

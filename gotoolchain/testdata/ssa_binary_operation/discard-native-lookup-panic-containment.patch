@@ -1,0 +1,19 @@
+--- a/gotoolchain/ssa_source_call.go
++++ b/gotoolchain/ssa_source_call.go
+@@ -95,15 +95,7 @@
+ 
+ // Contain only Go's expression lookup; caller callbacks keep Go panic semantics.
+ func sourceExpressionValue(fn *ssa.Function, expression ast.Expr) (value ssa.Value, err error) {
+-	defer func() {
+-		if failure := recover(); failure != nil {
+-			value = nil
+-			err = core.ErrGoToolchainOutput
+-			if cause, ok := failure.(error); ok {
+-				err = errors.Join(err, cause)
+-			}
+-		}
+-	}()
++
+ 	value, _ = fn.ValueForExpr(expression)
+ 	return value, nil
+ }

@@ -1,0 +1,13 @@
+--- a/gotoolchain/ssa_binary_operation.go
++++ b/gotoolchain/ssa_binary_operation.go
+@@ -58,9 +58,7 @@
+ 	if fn.Prog != v.Program || fn.Pkg != v.Package {
+ 		return out, core.ErrGoToolchainContract
+ 	}
+-	if _, owned := v.Source.TypesInfo.Types[r.Expression]; !owned {
+-		return out, core.ErrGoToolchainContract
+-	}
++
+ 	if syntax := fn.Syntax(); syntax != nil {
+ 		if r.Expression.Pos() < syntax.Pos() || r.Expression.End() > syntax.End() {
+ 			return out, core.ErrGoToolchainContract

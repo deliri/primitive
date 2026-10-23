@@ -1,0 +1,62 @@
+[
+  {
+    "name": "accept-source-opcode-contradiction",
+    "patch": "accept-source-opcode-contradiction.patch",
+    "selection": "^TestSSABinaryOperationPreservesCustodyRefusals$/^changed_source_opcode$"
+  },
+  {
+    "name": "accept-source-position-contradiction",
+    "patch": "accept-source-position-contradiction.patch",
+    "selection": "^TestSSABinaryOperationPreservesCustodyRefusals$/^changed_source_position$"
+  },
+  {
+    "name": "discard-native-membership",
+    "patch": "discard-native-membership.patch",
+    "selection": "^TestSSABinaryOperationPreservesCustodyRefusals$/^bad_ordinal$"
+  },
+  {
+    "name": "grant-cloned-source-authority",
+    "patch": "grant-cloned-source-authority.patch",
+    "selection": "^TestSSABinaryOperationPreservesCustodyRefusals$/^cloned_expression$"
+  },
+  {
+    "name": "admit-untaken-operation",
+    "patch": "admit-untaken-operation.patch",
+    "selection": "^TestSSABinaryOperationPreservesNativeExpressionIdentity$/^untaken_expression_is_absent$"
+  },
+  {
+    "name": "borrow-child-operation",
+    "patch": "borrow-child-operation.patch",
+    "selection": "^TestSSABinaryOperationPreservesNativeExpressionIdentity$/^child_expression_grants_no_parent_operation$"
+  },
+  {
+    "name": "discard-debug-free-lookup",
+    "patch": "discard-debug-free-lookup.patch",
+    "selection": "^TestSSABinaryOperationPreservesNativeExpressionIdentity$/^debug-free_equality$"
+  },
+  {
+    "name": "discard-native-cause",
+    "patch": "discard-native-cause.patch",
+    "selection": "^TestSSABinaryOperationPreservesCauseAndEmptyObservation$"
+  },
+  {
+    "name": "retain-instruction-population",
+    "patch": "retain-instruction-population.patch",
+    "selection": "^TestSSABinaryOperationRetainsNoQueryPopulation$/^8193$/^debug=true$"
+  },
+  {
+    "name": "discard-native-lookup-panic-containment",
+    "patch": "discard-native-lookup-panic-containment.patch",
+    "selection": "^TestSSABinaryOperationPreservesCustodyRefusals$/^nil_native_block$"
+  },
+  {
+    "name": "reject-native-initializer",
+    "patch": "reject-native-initializer.patch",
+    "selection": "^TestSSABinaryOperationBorrowsActualPackageInitializer$/^debug=true$/^clone=false$"
+  },
+  {
+    "name": "accept-empty-initializer-clone",
+    "patch": "accept-empty-initializer-clone.patch",
+    "selection": "^TestSSABinaryOperationBorrowsActualPackageInitializer$/^debug=true$/^clone=true$"
+  }
+]

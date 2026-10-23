@@ -1,0 +1,10 @@
+--- a/gotoolchain/ssa_binary_operation.go
++++ b/gotoolchain/ssa_binary_operation.go
+@@ -84,6 +84,7 @@
+ 		}
+ 		return out, nil
+ 	}
++	if r.Expression != nil { return out, nil }
+ 	for instruction, instructionErr := range v.Instructions(ctx, SSAInstructionRequest{Function: fn, Extent: SSAInstructionExtentFunction}) {
+ 		if instructionErr != nil {
+ 			return out, instructionErr

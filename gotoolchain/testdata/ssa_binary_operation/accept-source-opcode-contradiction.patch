@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_binary_operation.go
++++ b/gotoolchain/ssa_binary_operation.go
+@@ -73,7 +73,7 @@
+ 		return out, lookupErr
+ 	}
+ 	if operation, native := value.(*ssa.BinOp); native {
+-		if operation == nil || operation.Parent() != fn || operation.Pos() != r.Expression.OpPos || operation.Op != r.Expression.Op {
++		if operation == nil || operation.Parent() != fn || operation.Pos() != r.Expression.OpPos {
+ 			return out, core.ErrGoToolchainContract
+ 		}
+ 		if membershipErr := v.referrerInstructionMembership(operation); membershipErr != nil {

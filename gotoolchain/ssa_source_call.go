@@ -68,7 +68,7 @@ func (v SSAUnitView) CallForExpression(ctx context.Context, r SSASourceCallReque
 	} else if fn != v.Package.Func("init") {
 		return out, core.ErrGoToolchainContract
 	}
-	value, lookupErr := sourceCallExpressionValue(fn, r.Expression)
+	value, lookupErr := sourceExpressionValue(fn, r.Expression)
 	if lookupErr != nil {
 		return out, lookupErr
 	}
@@ -94,7 +94,7 @@ func (v SSAUnitView) CallForExpression(ctx context.Context, r SSASourceCallReque
 }
 
 // Contain only Go's expression lookup; caller callbacks keep Go panic semantics.
-func sourceCallExpressionValue(fn *ssa.Function, expression *ast.CallExpr) (value ssa.Value, err error) {
+func sourceExpressionValue(fn *ssa.Function, expression ast.Expr) (value ssa.Value, err error) {
 	defer func() {
 		if failure := recover(); failure != nil {
 			value = nil

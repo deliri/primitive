@@ -1,0 +1,13 @@
+--- a/gotoolchain/ssa_binary_operation.go
++++ b/gotoolchain/ssa_binary_operation.go
+@@ -76,9 +76,7 @@
+ 		if operation == nil || operation.Parent() != fn || operation.Pos() != r.Expression.OpPos || operation.Op != r.Expression.Op {
+ 			return out, core.ErrGoToolchainContract
+ 		}
+-		if membershipErr := v.referrerInstructionMembership(operation); membershipErr != nil {
+-			return out, membershipErr
+-		}
++
+ 		if !argumentCallUntakenBlock(operation.Block()) {
+ 			out.Operation = operation
+ 		}

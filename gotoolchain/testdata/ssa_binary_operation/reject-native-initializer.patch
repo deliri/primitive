@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_binary_operation.go
++++ b/gotoolchain/ssa_binary_operation.go
+@@ -65,7 +65,7 @@
+ 		if r.Expression.Pos() < syntax.Pos() || r.Expression.End() > syntax.End() {
+ 			return out, core.ErrGoToolchainContract
+ 		}
+-	} else if fn != v.Package.Func("init") {
++	} else {
+ 		return out, core.ErrGoToolchainContract
+ 	}
+ 	value, lookupErr := sourceExpressionValue(fn, r.Expression)

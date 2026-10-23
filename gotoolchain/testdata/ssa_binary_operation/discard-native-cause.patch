@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_binary_operation.go
++++ b/gotoolchain/ssa_binary_operation.go
+@@ -51,7 +51,7 @@
+ 			out = SSABinaryOperationObservation{}
+ 		}
+ 	}()
+-	if err = errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), v.Validate(), r.Validate()); err != nil {
++	if err = errors.Join(ctx.Err(), v.Validate(), r.Validate()); err != nil {
+ 		return out, err
+ 	}
+ 	fn := r.Function
