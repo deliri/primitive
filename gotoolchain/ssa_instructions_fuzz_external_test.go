@@ -9,7 +9,7 @@ import (
 )
 
 func FuzzSSAInstructionsConserveLexicalSource(f *testing.F) {
-	for _, seed := range []uint8{0, 1, 2, 3, 4, 8, 16, 25, 31} {
+	for _, seed := range []uint8{0, 1, 2, 3, 4, 8, 16, 25, 31, 32, 33, 34, 36, 63} {
 		f.Add(seed)
 	}
 	f.Fuzz(func(t *testing.T, mode uint8) {
@@ -37,8 +37,16 @@ func FuzzSSAInstructionsConserveLexicalSource(f *testing.F) {
 		}
 		a := nativeSymbolSourceAnalysis(t, t.TempDir(), `package sample;func invoke(){};func helper(){go invoke()};func Entry(){`+body+`}`)
 		err := a.WithSSAUnit(t.Context(), gotoolchain.SSAUnitRequest{Unit: a.Units[0], Use: func(ctx context.Context, v gotoolchain.SSAUnitView) error {
+			fn := v.Package.Func("Entry")
+			request := gotoolchain.SSAInstructionRequest{Function: fn, Extent: extent}
+			if mode&32 != 0 {
+				request.Extent, request.Block = gotoolchain.SSAInstructionExtentBlock, fn.Blocks[0]
+				if mode&4 != 0 {
+					want = 0
+				}
+			}
 			got := 0
-			for instruction, err := range v.Instructions(ctx, gotoolchain.SSAInstructionRequest{Function: v.Package.Func("Entry"), Extent: extent}) {
+			for instruction, err := range v.Instructions(ctx, request) {
 				if err != nil || instruction == nil {
 					t.Fatalf("source observation=(%v,%v), want native instruction and nil", instruction, err)
 				}

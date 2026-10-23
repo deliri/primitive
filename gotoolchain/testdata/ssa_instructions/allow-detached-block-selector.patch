@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_instructions.go
++++ b/gotoolchain/ssa_instructions.go
+@@ -99,7 +99,7 @@
+ 	blocks, first := fn.Blocks, 0
+ 	if r.Extent == SSAInstructionExtentBlock {
+ 		first = r.Block.Index
+-		if first < 0 || first >= len(blocks) || blocks[first] != r.Block {
++		if first < 0 || first >= len(blocks) {
+ 			yield(nil, core.ErrGoToolchainOutput)
+ 			return false
+ 		}

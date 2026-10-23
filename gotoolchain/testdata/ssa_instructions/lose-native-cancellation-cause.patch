@@ -1,15 +1,15 @@
 --- a/gotoolchain/ssa_instructions.go
 +++ b/gotoolchain/ssa_instructions.go
-@@ -88,7 +88,7 @@
+@@ -108,7 +108,7 @@
  	}
- 	for index, block := range fn.Blocks {
+ 	for offset, block := range blocks {
  		if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
 -			yield(nil, err)
 +			yield(nil, context.Canceled)
  			return false
  		}
- 		if block == nil || block.Parent() != fn || block.Index != index {
-@@ -100,7 +100,7 @@
+ 		if block == nil || block.Parent() != fn || block.Index != first+offset {
+@@ -120,7 +120,7 @@
  		}
  		for _, instruction := range block.Instrs {
  			if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {

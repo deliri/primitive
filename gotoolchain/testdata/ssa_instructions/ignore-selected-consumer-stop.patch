@@ -1,0 +1,13 @@
+--- a/gotoolchain/ssa_instructions.go
++++ b/gotoolchain/ssa_instructions.go
+@@ -127,9 +127,7 @@
+ 				yield(nil, core.ErrGoToolchainOutput)
+ 				return false
+ 			}
+-			if !yield(instruction, nil) {
+-				return false
+-			}
++			yield(instruction,nil)
+ 		}
+ 	}
+ 	if r.Extent == SSAInstructionExtentLexical {

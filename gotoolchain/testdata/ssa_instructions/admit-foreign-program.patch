@@ -1,6 +1,6 @@
 --- a/gotoolchain/ssa_instructions.go
 +++ b/gotoolchain/ssa_instructions.go
-@@ -78,11 +78,11 @@
+@@ -88,11 +88,11 @@
  // No forwarding iterator or per-function query closure is allocated.
  func (v SSAUnitView) instructionsInFunction(ctx context.Context, r SSAInstructionRequest, parent *ssa.Function, yield func(ssa.Instruction, error) bool) bool {
  	fn := r.Function

@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_instructions.go
++++ b/gotoolchain/ssa_instructions.go
+@@ -104,7 +104,7 @@
+ 			return false
+ 		}
+ 		// Borrow one native slice window; do not rescan or copy the function.
+-		blocks = blocks[first : first+1]
++		blocks = blocks[:]
+ 	}
+ 	for offset, block := range blocks {
+ 		if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {

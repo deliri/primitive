@@ -11,14 +11,15 @@ import (
 	"golang.org/x/tools/go/ssa"
 )
 
-// SSAInstructionExtent selects one native function or that function and its
-// lexical descendants. Lexical selection does not assert runtime invocation.
+// SSAInstructionExtent selects a native block, function or lexical descendants.
+// Lexical selection does not assert runtime invocation.
 type SSAInstructionExtent uint8
 
 const (
 	SSAInstructionExtentUnknown SSAInstructionExtent = iota
 	SSAInstructionExtentFunction
 	SSAInstructionExtentLexical
+	SSAInstructionExtentBlock
 )
 
 func (e SSAInstructionExtent) Validate() error {
@@ -28,7 +29,7 @@ func (e SSAInstructionExtent) Validate() error {
 	return nil
 }
 func (e SSAInstructionExtent) IsValid() bool {
-	return e == SSAInstructionExtentFunction || e == SSAInstructionExtentLexical
+	return e == SSAInstructionExtentFunction || e == SSAInstructionExtentLexical || e == SSAInstructionExtentBlock
 }
 func (SSAInstructionExtent) OffWireEnum() {}
 func (e SSAInstructionExtent) String() string {
@@ -37,6 +38,8 @@ func (e SSAInstructionExtent) String() string {
 		return "function"
 	case SSAInstructionExtentLexical:
 		return "lexical"
+	case SSAInstructionExtentBlock:
+		return "block"
 	default:
 		return core.UnknownEnumDiagnostic
 	}
@@ -45,10 +48,17 @@ func (e SSAInstructionExtent) String() string {
 type SSAInstructionRequest struct {
 	Function *ssa.Function
 	Extent   SSAInstructionExtent
+	Block    *ssa.BasicBlock
 }
 
 func (r SSAInstructionRequest) Validate() error {
 	if r.Function == nil {
+		return core.ErrGoToolchainContract
+	}
+	if (r.Extent == SSAInstructionExtentBlock) != (r.Block != nil) {
+		return core.ErrGoToolchainContract
+	}
+	if r.Block != nil && r.Block.Parent() != r.Function {
 		return core.ErrGoToolchainContract
 	}
 	return r.Extent.Validate()
@@ -86,12 +96,22 @@ func (v SSAUnitView) instructionsInFunction(ctx context.Context, r SSAInstructio
 		yield(nil, core.ErrGoToolchainContract)
 		return false
 	}
-	for index, block := range fn.Blocks {
+	blocks, first := fn.Blocks, 0
+	if r.Extent == SSAInstructionExtentBlock {
+		first = r.Block.Index
+		if first < 0 || first >= len(blocks) || blocks[first] != r.Block {
+			yield(nil, core.ErrGoToolchainOutput)
+			return false
+		}
+		// Borrow one native slice window; do not rescan or copy the function.
+		blocks = blocks[first : first+1]
+	}
+	for offset, block := range blocks {
 		if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
 			yield(nil, err)
 			return false
 		}
-		if block == nil || block.Parent() != fn || block.Index != index {
+		if block == nil || block.Parent() != fn || block.Index != first+offset {
 			yield(nil, core.ErrGoToolchainOutput)
 			return false
 		}

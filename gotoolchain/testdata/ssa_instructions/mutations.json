@@ -32,11 +32,41 @@
   {
     "name": "retain-instruction-population",
     "patch": "retain-instruction-population.patch",
-    "selection": "^TestSSAInstructionsFirstObservationRetainsNoPopulation$"
+    "selection": "^TestSSAInstructionsFirstObservationRetainsNoPopulation$/^16385$"
   },
   {
     "name": "restore-forwarding-iterators",
     "patch": "restore-forwarding-iterators.patch",
     "selection": "^TestSSAInstructionsCompleteStreamAllocatesNoQueryStorage$/^lexical_8193$"
+  },
+  {
+    "name": "allow-block-with-function-extent",
+    "patch": "allow-block-with-function-extent.patch",
+    "selection": "^TestSSAInstructionsRefuseMalformedBlockSelection$/^function_extent_with_block$"
+  },
+  {
+    "name": "allow-foreign-block-selector",
+    "patch": "allow-foreign-block-selector.patch",
+    "selection": "^TestSSAInstructionsRefuseMalformedBlockSelection$/^foreign_function_block$"
+  },
+  {
+    "name": "allow-detached-block-selector",
+    "patch": "allow-detached-block-selector.patch",
+    "selection": "^TestSSAInstructionsRefuseMalformedBlockSelection$/^detached_block$"
+  },
+  {
+    "name": "ignore-one-block-window",
+    "patch": "ignore-one-block-window.patch",
+    "selection": "^TestSSAInstructionsLendOnlySelectedNativeBlock$"
+  },
+  {
+    "name": "lose-selected-final-cause",
+    "patch": "lose-selected-final-cause.patch",
+    "selection": "^TestSSAInstructionsSelectedBlockPreservesFinalCauseAndStop$"
+  },
+  {
+    "name": "ignore-selected-consumer-stop",
+    "patch": "ignore-selected-consumer-stop.patch",
+    "selection": "^TestSSAInstructionsSelectedBlockPreservesFinalCauseAndStop$"
   }
 ]

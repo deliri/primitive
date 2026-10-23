@@ -1,6 +1,6 @@
 --- a/gotoolchain/ssa_instructions.go
 +++ b/gotoolchain/ssa_instructions.go
-@@ -95,7 +95,7 @@
+@@ -115,7 +115,7 @@
  			yield(nil, core.ErrGoToolchainOutput)
  			return false
  		}
