@@ -50,6 +50,7 @@ func TestPublicOperationsAreExactIntentEntryPoints(t *testing.T) {
 		"LookupAmbientEnvironment",
 		"NewPercent",
 		"ObserveCollectedGoHeap",
+		"ObserveDiskActivity",
 		"ObserveDiskRotation",
 		"ObserveEffectiveUser",
 		"ObserveEffectiveWorkloadMemoryLimit",
@@ -87,6 +88,9 @@ type hostfactsCapability[T any] struct{ Value T }
 type hostfactsError[T any] struct{ Value T }
 
 type hostfactsStructInventory struct {
+	DiskActivityRequest       hostfactsIngress[DiskActivityRequest]
+	DiskActivity              hostfactsObservation[DiskActivity]
+	DiskActivityCounters      hostfactsKernelFlow[diskActivityCounters]
 	ResourceUsageRequest      hostfactsIngress[ResourceUsageRequest]
 	SystemdScopeRequest       hostfactsIngress[SystemdScopeRequest]
 	ResourceUsage             hostfactsObservation[ResourceUsage]

@@ -20,6 +20,7 @@ type externalIngressFuzzContract[Door any] struct {
 }
 
 var (
+	_ = externalIngressFuzzContract[func(context.Context, io.Reader) (diskActivityCounters, error)]{Door: parseDiskActivity, Fuzz: FuzzDiskActivityKernelRecordSemantic}
 	_ = externalIngressFuzzContract[func([]byte) (process.Liveness, error)]{Door: parseSystemdScopePresence, Fuzz: FuzzSystemdScopePresenceSemanticClosure}
 	_ = externalIngressFuzzContract[func([]byte) (resourceCPUCounters, error)]{Door: parseResourceCPU, Fuzz: FuzzResourceCPUSemanticClosure}
 	_ = externalIngressFuzzContract[func(context.Context, io.Reader) (uint32, error)]{Door: parseResourcePressure, Fuzz: FuzzResourcePressureSemanticClosure}

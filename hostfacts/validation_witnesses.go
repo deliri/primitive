@@ -7,6 +7,8 @@ import (
 )
 
 var (
+	_ core.Validatable = DiskActivityRequest{}
+	_ core.Validatable = DiskActivity{}
 	_ core.Validatable = TimeZoneRequest{}
 	_ core.Validatable = Operation(0)
 	_ core.Validatable = Failure{}

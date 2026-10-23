@@ -39,6 +39,22 @@ placement and the admission decision. Observation does not change host limits
 or start a monitoring service. Unsupported systems and failed/cancelled samples
 return no resource sample.
 
+`hostfacts.ObserveDiskActivity` samples the single block device backing a
+caller-supplied directory. Its interval is a `temporal.Duration`; Temporal
+owns waiting and the measured monotonic window. Linux follows a single native
+backing-device chain and observes the whole disk for a partition. Multi-device
+layouts and unsupported platforms return an explicit unsupported error.
+The result reports read/write bytes, in-flight requests and busy percentage
+multiplied by 1000 (`90000` means 90%). Counters stream through a fixed reader
+window; counter resets, overflow, cancellation and native failures publish no
+sample. Fields follow the [Linux block statistics contract](https://docs.kernel.org/block/stat.html).
+
+Busy time is an observation, not a rated throughput benchmark or enforced
+transfer limit. Kernel accounting can undercount concurrent long requests;
+see [I/O statistics](https://docs.kernel.org/admin-guide/iostats.html).
+Products select admission policy. Native I/O control requires its own supported
+kernel authority; this observation grants none.
+
 On Linux, `ResourceUsageRequest.Scopes` names systemd scopes whose cgroup v2
 `cpu.stat` `usage_usec` is read strictly inside the two `/proc/stat` samples.
 Each scope's delta is divided by the monotonic window bracketing both host
