@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_conditional_branch.go
++++ b/gotoolchain/ssa_conditional_branch.go
+@@ -136,7 +136,7 @@
+ 	if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+ 		return err
+ 	}
+-	if !nativeReceiverValuePresent(value) || !nativeConditionBoolean(value) {
++	if _, actualInstruction := value.(ssa.Instruction); !actualInstruction { return nil }; if !nativeReceiverValuePresent(value) || !nativeConditionBoolean(value) {
+ 		return core.ErrGoToolchainOutput
+ 	}
+ 	fn := c.block.Parent()

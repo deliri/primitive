@@ -58,5 +58,10 @@
     "name": "admit-partial-schema",
     "run": "^TestSSAConditionalBranchSchemaLayerTriad$",
     "patch": "admit-partial-schema.patch"
+  },
+  {
+    "name": "trust-open-value-interface",
+    "run": "^TestSSAConditionalBranchRefusesForeignValueRepresentations$",
+    "patch": "trust-open-value-interface.patch"
   }
 ]

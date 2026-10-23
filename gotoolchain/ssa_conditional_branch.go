@@ -6,7 +6,6 @@ import (
 	"go/constant"
 	"go/token"
 	"go/types"
-	"reflect"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/temporal"
@@ -40,7 +39,7 @@ func (o SSAConditionalBranchObservation) Validate() error {
 	if o.Condition == nil && o.WhenTrue == nil && o.WhenFalse == nil {
 		return nil
 	}
-	if !nativeConditionPresent(o.Condition) || !nativeConditionBoolean(o.Condition) || o.WhenTrue == nil || o.WhenFalse == nil || o.WhenTrue.Parent() == nil || o.WhenTrue.Parent() != o.WhenFalse.Parent() {
+	if !nativeReceiverValuePresent(o.Condition) || !nativeConditionBoolean(o.Condition) || o.WhenTrue == nil || o.WhenFalse == nil || o.WhenTrue.Parent() == nil || o.WhenTrue.Parent() != o.WhenFalse.Parent() {
 		return core.ErrGoToolchainOutput
 	}
 	return nil
@@ -94,7 +93,7 @@ func (v SSAUnitView) ConditionalBranch(ctx context.Context, r SSAConditionalBran
 			if condition.Op != token.EQL && condition.Op != token.NEQ {
 				return out, nil
 			}
-			if !nativeConditionPresent(condition.X) || !nativeConditionPresent(condition.Y) {
+			if !nativeReceiverValuePresent(condition.X) || !nativeReceiverValuePresent(condition.Y) {
 				return out, core.ErrGoToolchainOutput
 			}
 			xBool, yBool := nativeConditionBoolean(condition.X), nativeConditionBoolean(condition.Y)
@@ -137,7 +136,7 @@ func (c *nativeConditionCursor) borrow(ctx context.Context, value ssa.Value) err
 	if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
 		return err
 	}
-	if !nativeConditionPresent(value) || !nativeConditionBoolean(value) {
+	if !nativeReceiverValuePresent(value) || !nativeConditionBoolean(value) {
 		return core.ErrGoToolchainOutput
 	}
 	fn := c.block.Parent()
@@ -180,10 +179,6 @@ func (c *nativeConditionCursor) borrow(ctx context.Context, value ssa.Value) err
 		}
 	}
 	return core.ErrGoToolchainOutput
-}
-
-func nativeConditionPresent(value ssa.Value) bool {
-	return value != nil && !reflect.ValueOf(value).IsNil()
 }
 
 func nativeConditionBoolean(value ssa.Value) bool {

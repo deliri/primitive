@@ -20,3 +20,5 @@ stdout and stderr, and require assertion failures rather than build failures or
 panics. Restore exact source and run only the affected controls. Run race proof
 for this surface, then package vet/staticcheck, then the serial 3s benchmark and
 serial 3s semantic fuzz target. These are development proofs, not acceptance.
+
+The compiler Value interface is open. A scalar foreign implementation used to panic in the local reflection helper. Reuse the existing native receiver-value presence check; both scalar and pointer foreign implementations must be typed refusals. Keep the panic discovery, repaired scalar-only run, independently admitted pointer run, local triad, causal interface-trust fault and restored controls. The fault must fail an assertion, not panic.
