@@ -1,0 +1,77 @@
+[
+  {
+    "name": "admit-unknown-relation",
+    "patch": "admit-unknown-relation.patch",
+    "selection": "^TestSSABlockLinkKindIsClosed$"
+  },
+  {
+    "name": "admit-foreign-program",
+    "patch": "admit-foreign-program.patch",
+    "selection": "^TestSSABlockLinksRefuseDamagedCustody$/^foreign_program$"
+  },
+  {
+    "name": "admit-foreign-package",
+    "patch": "admit-foreign-package.patch",
+    "selection": "^TestSSABlockLinksRefuseDamagedCustody$/^foreign_package_custody$"
+  },
+  {
+    "name": "admit-detached-selector",
+    "patch": "admit-detached-selector.patch",
+    "selection": "^TestSSABlockLinksRefuseDamagedCustody$/^detached_selector$"
+  },
+  {
+    "name": "admit-detached-target",
+    "patch": "admit-detached-target.patch",
+    "selection": "^TestSSABlockLinksRefuseDamagedCustody$/^detached_successor$"
+  },
+  {
+    "name": "reverse-native-edge-order",
+    "patch": "reverse-native-edge-order.patch",
+    "selection": "^TestSSABlockLinksLendNativeRelations$/^branch_successors_preserve_Go_edge_order$"
+  },
+  {
+    "name": "drop-selected-ancestor",
+    "patch": "drop-selected-ancestor.patch",
+    "selection": "^TestSSABlockLinksLendNativeRelations$/^entry_ancestry_includes_self$"
+  },
+  {
+    "name": "stop-before-native-root",
+    "patch": "stop-before-native-root.patch",
+    "selection": "^TestSSABlockLinksLendNativeRelations$/^left_ancestry_reaches_entry$"
+  },
+  {
+    "name": "admit-untaken-selector",
+    "patch": "admit-untaken-selector.patch",
+    "selection": "^TestSSABlockLinksKeepUntakenAndLexicalAuthority$/^constant_false_hides_first_arm$"
+  },
+  {
+    "name": "admit-untaken-successor",
+    "patch": "admit-untaken-successor.patch",
+    "selection": "^TestSSABlockLinksKeepUntakenAndLexicalAuthority$/^constant_true_keeps_first_arm$"
+  },
+  {
+    "name": "ignore-consumer-stop",
+    "patch": "ignore-consumer-stop.patch",
+    "selection": "^TestSSABlockLinksPreserveCancellationAndStop$/^successors$"
+  },
+  {
+    "name": "lose-link-cancellation-cause",
+    "patch": "lose-link-cancellation-cause.patch",
+    "selection": "^TestSSABlockLinksPreserveCancellationAndStop$/^dominator_ancestry$"
+  },
+  {
+    "name": "lose-untaken-final-cancellation",
+    "patch": "lose-untaken-final-cancellation.patch",
+    "selection": "^TestSSABlockLinksObserveFinalCancellation$/^untaken_selected_ancestry$"
+  },
+  {
+    "name": "lose-final-cancellation",
+    "patch": "lose-final-cancellation.patch",
+    "selection": "^TestSSABlockLinksObserveFinalCancellation$/^last_ancestor$"
+  },
+  {
+    "name": "retain-native-block-population",
+    "patch": "retain-native-block-population.patch",
+    "selection": "^TestSSABlockLinksRetainNoAncestryPopulation$/^4097$"
+  }
+]

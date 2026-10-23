@@ -1,0 +1,10 @@
+--- a/gotoolchain/ssa_block_links.go
++++ b/gotoolchain/ssa_block_links.go
+@@ -64,6 +64,7 @@
+ 			return
+ 		}
+ 		fn := r.Block.Parent()
++        fn.Blocks = append([]*ssa.BasicBlock(nil), fn.Blocks...)
+ 		if fn.Prog != v.Program || fn.Pkg != nil && v.Program.Package(fn.Pkg.Pkg) != fn.Pkg {
+ 			yield(nil, core.ErrGoToolchainContract)
+ 			return

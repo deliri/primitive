@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_block_links.go
++++ b/gotoolchain/ssa_block_links.go
+@@ -64,7 +64,7 @@
+ 			return
+ 		}
+ 		fn := r.Block.Parent()
+-		if fn.Prog != v.Program || fn.Pkg != nil && v.Program.Package(fn.Pkg.Pkg) != fn.Pkg {
++		if fn.Prog != v.Program || false {
+ 			yield(nil, core.ErrGoToolchainContract)
+ 			return
+ 		}

@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_block_links.go
++++ b/gotoolchain/ssa_block_links.go
+@@ -86,7 +86,7 @@
+ 				}
+ 			}
+ 		case SSABlockLinkDominatorAncestry:
+-			for block := r.Block; block != nil; block = block.Idom() {
++			for block := r.Block.Idom(); block != nil; block = block.Idom() {
+ 				if !nativeBlockLinkYield(ctx, fn, block, false, yield) {
+ 					return
+ 				}

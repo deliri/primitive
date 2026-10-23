@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_block_links.go
++++ b/gotoolchain/ssa_block_links.go
+@@ -68,7 +68,7 @@
+ 			yield(nil, core.ErrGoToolchainContract)
+ 			return
+ 		}
+-		if !nativeBlockLinkMember(r.Block, fn) {
++		if false && !nativeBlockLinkMember(r.Block, fn) {
+ 			yield(nil, core.ErrGoToolchainOutput)
+ 			return
+ 		}

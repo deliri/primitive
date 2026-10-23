@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_block_links.go
++++ b/gotoolchain/ssa_block_links.go
+@@ -107,7 +107,7 @@
+ 
+ func nativeBlockLinkYield(ctx context.Context, fn *ssa.Function, block *ssa.BasicBlock, excludeUntaken bool, yield func(*ssa.BasicBlock, error) bool) bool {
+ 	if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+-		yield(nil, err)
++		yield(nil, context.Canceled)
+ 		return false
+ 	}
+ 	if !nativeBlockLinkMember(block, fn) {
