@@ -113,7 +113,7 @@ func readR2Credentials(ctx context.Context, path core.AbsolutePath) (R2Credentia
 		return R2Credentials{}, errors.Join(core.ErrCloudflareAuthentication, err)
 	}
 	credentials, err := readPrivateR2Credentials(ctx, location)
-	if closeErr := location.Root.Close(); err != nil || closeErr != nil {
+	if closeErr := filestore.CloseRoot(filestore.RootHandleRequest{Root: location.Root}); err != nil || closeErr != nil {
 		return R2Credentials{}, errors.Join(core.ErrCloudflareAuthentication, err, closeErr)
 	}
 	return credentials, nil
