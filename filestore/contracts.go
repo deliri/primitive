@@ -24,8 +24,9 @@ type Location struct {
 	Path core.RelativePath
 }
 
-// SymbolicLinkTarget is one native target observed without following its
-// symbolic link. Its bytes are not interpreted as a filesystem path.
+// SymbolicLinkTarget is opaque target text admitted by its parser or observed
+// without following a native symbolic link. The value alone is not proof of a
+// filesystem observation. Its bytes are not interpreted as a filesystem path.
 // Go materializes the complete target string; the caller owns that value.
 // Filestore imposes no target-size policy.
 type SymbolicLinkTarget struct{ value string }

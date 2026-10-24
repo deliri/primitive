@@ -55,6 +55,12 @@ func TestFilestorePublicIngressHasCompilerBoundSemanticProof(t *testing.T) {
 
 func filestoreIngressProofs() []filestoreIngressProof {
 	entries := []filestoreIngressProof{
+		{door: reflect.ValueOf(filestore.ParseSymbolicLinkTarget), fuzz: FuzzSymbolicLinkTargetParseSemanticClosure},
+		{door: reflect.ValueOf(filestore.CreateSymbolicLink), proof: TestCreateSymbolicLinkNativeLayerTriad, reason: "A rooted exclusive native namespace effect; real link bytes, occupied names, outside and dangling targets, confinement, context and native causes have focused filesystem proof. The opaque text ingress has its own public semantic fuzz target."},
+		{door: reflect.ValueOf(filestore.CreateHardLink), proof: TestCreateHardLinkNativeNamespaceLayerTriad, reason: "Go Root.Link acquires a second rooted name for an existing inode; focused native proof checks inode identity, opaque links, confinement, refusal and unchanged occupied entries. Relative path representation remains owned by Core."},
+		{door: reflect.ValueOf(filestore.CreateNamedPipe), proof: TestCreateNamedPipeNativeLayerTriad, reason: "An absolute-path native FIFO creation capability on Darwin/Linux; focused native inode, permission, conflict and refusal proof. It admits no new external path representation or rooted confinement claim."},
+		{door: reflect.ValueOf(filestore.OpenNamedPipeReadWrite), proof: TestOpenNamedPipeReadWriteNativeLayerTriad, reason: "Acquires an existing rooted FIFO handle and verifies its native kind; focused native byte/closure and refusal proof, not a content decoder."},
+		{door: reflect.ValueOf(filestore.DuplicateBlockingFile), proof: TestDuplicateBlockingFileNativeLayerTriad, reason: "A borrowed native descriptor capability with an explicit shared blocking-mode transition; native flags, independent closure, bytes and EOF prove ownership. No external representation decoding."},
 		{door: reflect.ValueOf(filestore.WithAppendSpoolScope), fuzz: filestore.FuzzAppendSpoolNativeBytes},
 		{door: reflect.ValueOf((*filestore.AppendSpool).Write), fuzz: filestore.FuzzAppendSpoolNativeBytes},
 		{door: reflect.ValueOf((*filestore.AppendSpool).Seal), fuzz: filestore.FuzzAppendSpoolNativeBytes},
@@ -147,6 +153,7 @@ func filestoreIngressProofs() []filestoreIngressProof {
 		{door: reflect.ValueOf(filestore.RestoreScratchPrefix), fuzz: FuzzScratchRestoreMatchesNativePrefix},
 		{door: reflect.ValueOf(filestore.Rewind), proof: TestRewindRestoresNativeReadCoordinateWithoutChangingBytes, reason: "Borrows a Go seek capability; real native bytes and coordinates prove replay without truncation, with separate nil/cancellation/closed-source refusal and standard-stream semantic fuzz."},
 		{door: reflect.ValueOf(filestore.WithScratchScope), proof: TestScratchScopeOwnsNativeLifetime, reason: "Executes a synchronous resource scope and verifies native namespace cleanup, expired root refusal, and preserved consumer cancellation/failure."},
+		{door: reflect.ValueOf(filestore.WithScratchDirectoryScope), proof: TestScratchDirectoryNativeProcessPathAndCleanup, reason: "A synchronous native directory capability, not an external decoder; its existing proof binds a child process path to the held root and checks cleanup after success, consumer failure, and cancellation."},
 		{door: reflect.ValueOf(filestore.WithRootScope), fuzz: FuzzScopePanicPolicyConservesNativeBytesAndCloseOwnership},
 		{door: reflect.ValueOf(filestore.WithInspectedReadScope), fuzz: FuzzInspectedReadScopePreservesHeldObjectBytesAndMetadata},
 		{door: reflect.ValueOf(filestore.WithReadScope), fuzz: FuzzScopePanicPolicyConservesNativeBytesAndCloseOwnership},

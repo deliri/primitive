@@ -255,6 +255,7 @@ type exchangeContractInventory struct {
 	ServerSocket               capabilityWrapper[ServerSocket]
 	SocketServerCall           protocolContract[SocketServerCall]
 	ListenAddress              protocolContract[ListenAddress]
+	TCPDialRequest             protocolContract[TCPDialRequest]
 	ServerRuntimePolicy        protocolContract[ServerRuntimePolicy]
 	ServerRuntimeConfiguration protocolContract[ServerRuntimeConfiguration]
 	ServerListener             capabilityWrapper[ServerListener]

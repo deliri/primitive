@@ -12,6 +12,8 @@ import (
 // also shared by the compiled filesystem, process and locking owners: these
 // packages must keep their descriptor valid while performing their own effect.
 // This does not authorize the callback's operations or descriptor escape.
+// Filestore additionally owns File.Fd's native blocking-mode transition; its
+// blocking descriptor duplication door proves the held lifetime separately.
 func (c Catalog) OwnsStandardSymbol(symbol StandardSymbol, caller gomodule.ImportPath) (bool, error) {
 	if err := errors.Join(c.Validate(), symbol.Validate(), caller.Validate()); err != nil {
 		return false, errors.Join(core.ErrCapabilitiesContract, err)
@@ -33,6 +35,9 @@ func (c Catalog) OwnsStandardSymbol(symbol StandardSymbol, caller gomodule.Impor
 			return false, err
 		}
 		if contract.Identity == owner {
+			return true, nil
+		}
+		if contract.Identity == core.PackageFilestore && symbol.ImportPath.String() == "os" && symbol.Receiver != nil && symbol.Receiver.String() == symbolFile && symbol.Selector.String() == "Fd" {
 			return true, nil
 		}
 		if !sharedDescriptorCustody(symbol) {

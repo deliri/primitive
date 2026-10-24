@@ -7,6 +7,12 @@
 // policy, cloud custody, and coordination. Filestore owns only the finite
 // filesystem effect requested by one validated value.
 //
+// CreateSymbolicLink creates an exclusive rooted link and synchronizes its
+// parent. ParseSymbolicLinkTarget preserves opaque target bytes, including
+// absolute, outside and dangling targets, without resolving them. Native
+// creation and parent synchronization errors retain their causes; a failed
+// post-create synchronization leaves the entry present without claiming success.
+//
 // WithAppendSpoolScope exclusively creates a working file on the caller-selected
 // filesystem. Independent reader callbacks follow the same held inode and wait
 // at temporary EOF until explicit Seal. Seal records producer success or abort;
@@ -46,4 +52,16 @@
 // StageProduced owns this complete synchronous lifetime for a producer that
 // lends no handle beyond its callback. A refusal yields no staged capability;
 // the caller publishes a successful stage through the existing Commit contract.
+//
+// CreateHardLink gives an existing rooted inode another name without copying
+// its bytes or following a final symbolic link. Both names stay under the
+// supplied root. The destination parent is synchronized; a failed
+// acknowledgement retains the created entry and reports the native cause.
+//
+// Darwin/Linux callers can create a named pipe at an authorized absolute path
+// and open an existing FIFO read/write through a root. These finite native
+// effects do not acknowledge durability or cancel a syscall after entry.
+// DuplicateBlockingFile deliberately changes a borrowed file's shared native
+// description to blocking and returns a separately owned duplicate. Its shared
+// flags and offset are part of the contract; closing the source is not.
 package filestore

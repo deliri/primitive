@@ -29,6 +29,7 @@ type (
 	ownershipReceipt[T any]    struct{}
 	streamedObservation[T any] struct{}
 	boundedFact[T any]         struct{}
+	nominalValue[T any]        struct{}
 	internalFlow[T any]        struct{}
 )
 
@@ -92,6 +93,9 @@ type filestoreContractInventory struct {
 	currentRelayOutput            capabilityWrapper[currentRelayOutput]
 	Location                      capabilityWrapper[Location]
 	DirectoryRequest              validatedRequest[DirectoryRequest]
+	SymbolicLinkRequest           validatedRequest[SymbolicLinkRequest]
+	HardLinkRequest               validatedRequest[HardLinkRequest]
+	NamedPipeRequest              validatedRequest[NamedPipeRequest]
 	ScratchRequest                validatedRequest[ScratchRequest]
 	ScratchResetRequest           validatedRequest[ScratchResetRequest]
 	ScratchRestoreRequest         validatedRequest[ScratchRestoreRequest]
@@ -152,7 +156,7 @@ type filestoreContractInventory struct {
 	TreeRemovalRequest            validatedRequest[TreeRemovalRequest]
 	WalkRequest                   validatedRequest[WalkRequest]
 	WalkEntry                     streamedObservation[WalkEntry]
-	SymbolicLinkTarget            streamedObservation[SymbolicLinkTarget]
+	SymbolicLinkTarget            nominalValue[SymbolicLinkTarget]
 	FilesystemIdentity            streamedObservation[FilesystemIdentity]
 	HeldDirectory                 capabilityWrapper[HeldDirectory]
 	// One observation of a path, made before any effect and carrying no

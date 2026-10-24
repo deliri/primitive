@@ -223,20 +223,20 @@ func absent(err error) bool { return err == os.ErrNotExist }
 func scanLandedRealWorldEffects(root string) (realWorldScan, error) {
 	paths, err := productionSourcePaths(root)
 	if err != nil {
-		return realWorldScan{}, err
+		return realWorldScan{}, fmt.Errorf("production paths from %s: %w", root, err)
 	}
 	var result realWorldScan
 	for _, path := range paths {
 		owner, err := realWorldSourceOwner(root, path)
 		if err != nil {
-			return realWorldScan{}, err
+			return realWorldScan{}, fmt.Errorf("source owner for %s: %w", path, err)
 		}
 		source, err := os.ReadFile(path)
 		if err != nil {
 			return realWorldScan{}, errors.Join(ErrPrimitiveContract, err)
 		}
 		if err := scanRealWorldSource(realWorldSource{owner: owner, name: path, source: source}, &result); err != nil {
-			return realWorldScan{}, err
+			return realWorldScan{}, fmt.Errorf("%s (imports=%d calls=%d): %w", path, result.imports.count, result.calls.count, err)
 		}
 	}
 	result.imports.Sort()
@@ -495,6 +495,11 @@ func declaredRealWorldCalls() (realWorldCallInventory, error) {
 		// Held-file identity guards also protect confined scratch cleanup.
 		{owner: PackageFilestore, substrate: realWorldSubstrateOperatingSystem, selector: "SameFile", count: 17},
 		{owner: PackageFilestore, substrate: realWorldSubstrateOperatingSystem, selector: "Stat", count: 2},
+		// Native FIFO and blocking-descriptor capabilities stay in Filestore.
+		{owner: PackageFilestore, substrate: realWorldSubstrateOperatingSystem, selector: "NewFile", count: 1},
+		{owner: PackageFilestore, substrate: realWorldSubstrateOperatingSystem, selector: "NewSyscallError", count: 2},
+		{owner: PackageFilestore, substrate: realWorldSubstrateSyscall, selector: "Mkfifo", count: 1},
+		{owner: PackageFilestore, substrate: realWorldSubstrateSyscall, selector: "Dup", count: 1},
 		{owner: PackageHostFacts, substrate: realWorldSubstrateOperatingSystem, selector: "Hostname", count: 1},
 		// Native user and kernel observers were present but absent from the
 		// effect inventory; register their exact existing standard-library calls.

@@ -57,6 +57,7 @@ func TestPublicIngressHasCompilerBoundSemanticFuzz(t *testing.T) {
 
 func externalIngressCoverage() []exchange.IngressCoverageForTest {
 	entries := []exchange.IngressCoverageForTest{
+		{Door: exchange.DialTCP, Kind: exchange.IngressCapabilityForTest, Proof: TestDialTCPNativeAcquisitionLayerTriad, Reason: "Go acquires a TCP connection from a validated netip.AddrPort; no external representation decoding."},
 		{Door: exchange.ParseCookieName, Kind: exchange.IngressFuzzForTest, Fuzz: FuzzSocketScalarSelectorNames},
 		{Door: exchange.ParseQueryParameterName, Kind: exchange.IngressFuzzForTest, Fuzz: FuzzSocketScalarSelectorNames},
 		{Door: exchange.SocketServerCall.UniqueCookie, Kind: exchange.IngressFuzzForTest, Fuzz: FuzzSocketUniqueCookieNativeScalar},

@@ -12,4 +12,8 @@
 //
 // DNS, TLS, proxies, connections, framing, pooling, and scheduling remain with
 // net/http and the operating system.
+// DialTCP also lends a native TCP connection to a configured HTTP transport:
+// its typed concrete peer can differ from the HTTP/TLS authority, without
+// rewriting a signed request or replacing TLS verification. Its context
+// bounds acquisition; the recipient owns the acquired connection's lifetime.
 package exchange

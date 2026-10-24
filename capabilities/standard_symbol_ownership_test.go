@@ -15,6 +15,7 @@ import (
 // behavioral proof; ownership must neither invent nor replace that proof.
 var (
 	_ func(*os.File) (syscall.RawConn, error)    = (*os.File).SyscallConn
+	_ func(*os.File) uintptr                     = (*os.File).Fd
 	_ func(syscall.RawConn, func(uintptr)) error = syscall.RawConn.Control
 )
 
@@ -32,7 +33,7 @@ func TestOwnsStandardSymbolExactOwnership(t *testing.T) {
 		{name: "raw descriptor custody", imported: "syscall", receiver: "RawConn", selector: "Control", owners: []core.PackageIdentity{core.PackageFilestore, core.PackageProcess, core.PackageFileLock, core.PackageHostFacts}},
 		{name: "raw read retains host owner", imported: "syscall", receiver: "RawConn", selector: "Read", owners: []core.PackageIdentity{core.PackageHostFacts}},
 		{name: "raw write retains host owner", imported: "syscall", receiver: "RawConn", selector: "Write", owners: []core.PackageIdentity{core.PackageHostFacts}},
-		{name: "unheld fd retains host owner", imported: "os", receiver: "File", selector: "Fd", owners: []core.PackageIdentity{core.PackageHostFacts}},
+		{name: "blocking file mode transition belongs to filestore and host owner", imported: "os", receiver: "File", selector: "Fd", owners: []core.PackageIdentity{core.PackageFilestore, core.PackageHostFacts}},
 		{name: "environment retains host owner", imported: "os", selector: "Getenv", owners: []core.PackageIdentity{core.PackageHostFacts}},
 		{name: "file write retains filesystem owner", imported: "os", receiver: "File", selector: "Write", owners: []core.PackageIdentity{core.PackageFilestore}},
 		{name: "process run retains process owner", imported: "os/exec", receiver: "Cmd", selector: "Run", owners: []core.PackageIdentity{core.PackageProcess}},
@@ -43,6 +44,8 @@ func TestOwnsStandardSymbolExactOwnership(t *testing.T) {
 		{name: "unknown is no native authority", imported: "future", receiver: "RawConn", selector: "Control"},
 		{name: "same function name is not method", imported: "syscall", selector: "Control"},
 		{name: "same method name on another receiver", imported: "os", receiver: "Root", selector: "SyscallConn"},
+		{name: "fd spelling on another receiver grants no authority", imported: "os", receiver: "Root", selector: "Fd"},
+		{name: "fd function spelling grants no authority", imported: "os", selector: "Fd"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -85,6 +88,7 @@ func TestOwnsStandardSymbolRefusesCallerLookalikes(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, callerText := range []string{
+		"example.com/product",
 		"example.com/product/filestore",
 		"github.com/deliri/primitive/v2026/filestore/child",
 		"github.com/deliri/primitive/v2026/filestoreevil",
@@ -98,7 +102,7 @@ func TestOwnsStandardSymbolRefusesCallerLookalikes(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			for _, symbol := range []StandardSymbol{ownershipSymbol(t, "os", "File", "SyscallConn"), ownershipSymbol(t, "syscall", "RawConn", "Control")} {
+			for _, symbol := range []StandardSymbol{ownershipSymbol(t, "os", "File", "SyscallConn"), ownershipSymbol(t, "syscall", "RawConn", "Control"), ownershipSymbol(t, "os", "File", "Fd")} {
 				got, err := catalog.OwnsStandardSymbol(symbol, caller)
 				if err != nil || got {
 					t.Fatalf("OwnsStandardSymbol(%v,%s) = (%t,%v), want (false,nil)", symbol, callerText, got, err)
