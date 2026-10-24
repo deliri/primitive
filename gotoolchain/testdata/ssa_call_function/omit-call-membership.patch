@@ -1,0 +1,13 @@
+--- a/gotoolchain/ssa_call_function.go
++++ b/gotoolchain/ssa_call_function.go
+@@ -48,9 +48,7 @@
+ 	if err = errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), v.Validate(), r.Validate()); err != nil {
+ 		return out, err
+ 	}
+-	if err = v.referrerInstructionMembership(r.Call); err != nil {
+-		return out, err
+-	}
++	
+ 	untaken, queryErr := argumentCallUntakenBlock(r.Call.Block())
+ 	if queryErr != nil || untaken {
+ 		return out, queryErr

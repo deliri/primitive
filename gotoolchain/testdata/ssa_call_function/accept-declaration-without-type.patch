@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_call_function.go
++++ b/gotoolchain/ssa_call_function.go
+@@ -28,7 +28,7 @@
+ type SSACallFunctionObservation struct{ Function *types.Func }
+ 
+ func (o SSACallFunctionObservation) Validate() error {
+-	if o.Function != nil && (o.Function.Pkg() == nil || o.Function.Type() == nil || o.Function.Signature() == nil) {
++	if o.Function != nil && (o.Function.Pkg() == nil || o.Function.Signature() == nil) {
+ 		return core.ErrGoToolchainOutput
+ 	}
+ 	return nil

@@ -1,0 +1,13 @@
+--- a/gotoolchain/ssa_call_function.go
++++ b/gotoolchain/ssa_call_function.go
+@@ -60,9 +60,7 @@
+ 	if queryErr != nil {
+ 		return out, queryErr
+ 	}
+-	if err = v.sourceCallArguments(ctx, r.Call, signature); err != nil {
+-		return out, err
+-	}
++	_ = signature
+ 	if _, builtin := common.Value.(*ssa.Builtin); builtin {
+ 		return out, nil
+ 	}
