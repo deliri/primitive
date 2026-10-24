@@ -55,6 +55,13 @@ func TestFilestorePublicIngressHasCompilerBoundSemanticProof(t *testing.T) {
 
 func filestoreIngressProofs() []filestoreIngressProof {
 	entries := []filestoreIngressProof{
+		{door: reflect.ValueOf(filestore.WithAppendSpoolScope), fuzz: filestore.FuzzAppendSpoolNativeBytes},
+		{door: reflect.ValueOf((*filestore.AppendSpool).Write), fuzz: filestore.FuzzAppendSpoolNativeBytes},
+		{door: reflect.ValueOf((*filestore.AppendSpool).Seal), fuzz: filestore.FuzzAppendSpoolNativeBytes},
+		{door: reflect.ValueOf((*filestore.AppendSpool).WithReader), fuzz: filestore.FuzzAppendSpoolNativeBytes},
+		{door: reflect.ValueOf(filestore.AppendSpoolResult.Content), fuzz: filestore.FuzzAppendSpoolNativeBytes},
+		{door: reflect.ValueOf(filestore.AppendSpoolResult.OperationError), fuzz: filestore.FuzzAppendSpoolNativeBytes},
+		{door: reflect.ValueOf(filestore.AppendSpoolResult.CleanupError), fuzz: filestore.FuzzAppendSpoolNativeBytes},
 		{door: reflect.ValueOf(filestore.WithFilesystemDurability), proof: filestore.FilesystemDurabilityNativeProofForTest, reason: "A synchronous native filesystem scope; real syscall acknowledgement, original descriptor custody, link opacity, cancellation, callback failure and close causes are proved in owned native children. Unsupported platforms refuse before Use."},
 		{door: reflect.ValueOf(filestore.ConfirmTreeDurable), proof: filestore.ConfirmTreeDurableNativeProofForTest, reason: "Synchronizes an already-owned native tree; native empty/batched/link/cancelled/closed-root proof preserves content and native causes."},
 		{door: reflect.ValueOf(filestore.CloseFile), fuzz: FuzzNativeFileHandleCustody},

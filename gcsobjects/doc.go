@@ -24,6 +24,10 @@
 // are create-only under a generation-zero precondition, so an existing object
 // is a conflict rather than an overwrite, and both bind the stream to a
 // declared SHA-256 and CRC32C over an exact extent.
+// UploadFileStream instead observes a live stored-file source as it uploads,
+// without requiring its final extent or digests in advance. It returns no
+// sealed result until source EOF, SDK close and provider integrity agreement;
+// source retention, retry and publication remain with the caller.
 //
 // ReadGCSObject binds provider extent and CRC32C metadata to the caller's
 // SHA-256 and byte ceiling, then verifies the complete stream. DeleteGCSObject

@@ -44,6 +44,11 @@ type filestoreContractInventory struct {
 	SortedRecordReadView              capabilityWrapper[SortedRecordReadView]
 	sortedRecordIndexReader           capabilityWrapper[sortedRecordIndexReader]
 	AppendDestination                 capabilityWrapper[AppendDestination]
+	AppendSpool                       capabilityWrapper[AppendSpool]
+	AppendSpoolScopeRequest           validatedRequest[AppendSpoolScopeRequest]
+	AppendSpoolReadRequest            validatedRequest[AppendSpoolReadRequest]
+	AppendSpoolResult                 streamedObservation[AppendSpoolResult]
+	appendSpoolReader                 capabilityWrapper[appendSpoolReader]
 	AppendObservation                 streamedObservation[AppendObservation]
 	AppendPathRotationRequest         validatedRequest[AppendPathRotationRequest]
 	AppendSyncRequest                 validatedRequest[AppendSyncRequest]
@@ -172,6 +177,7 @@ type filestoreContractInventory struct {
 
 var (
 	_ = filestoreContractInventory{}
+	_ = filestoreContractInventory{}.appendSpoolReader
 	_ = filestoreContractInventory{}.directoryEntryEnsure
 	_ = filestoreContractInventory{}.streamCopyRequest
 	_ = filestoreContractInventory{}.streamReader
@@ -378,9 +384,6 @@ func scanProductionArchitecture(files []productionFile) (architectureScan, error
 			if err != nil {
 				return architectureScan{}, err
 			}
-			if _, forbidden := forbiddenImports[path]; forbidden {
-				violations = append(violations, "import "+path)
-			}
 			if strings.HasPrefix(path, "github.com/deliri/primitive/v2026/") {
 				primitiveImports[path] = struct{}{}
 			}
@@ -390,9 +393,19 @@ func scanProductionArchitecture(files []productionFile) (architectureScan, error
 			}
 			importNames[name] = path
 		}
+		nativeSpoolFields := false
+		for _, declaration := range file.Decls {
+			nativeSpoolFields = nativeSpoolFields || ownsAppendSpoolFields(declaration, importNames)
+		}
+		for _, path := range importNames {
+			if _, forbidden := forbiddenImports[path]; forbidden && (path != "sync" || !nativeSpoolFields) {
+				violations = append(violations, "import "+path)
+			}
+		}
 		for _, declaration := range file.Decls {
 			symbol := declarationName(declaration)
 			nativePipeJoin := ownsNativePipeJoin(declaration) || ownsCurrentProcessRelay(declaration)
+			nativeSpoolNotification := ownsAppendSpoolNotification(declaration, importNames)
 			ast.Inspect(declaration, func(node ast.Node) bool {
 				switch value := node.(type) {
 				case *ast.GoStmt:
@@ -400,8 +413,12 @@ func scanProductionArchitecture(files []productionFile) (architectureScan, error
 						violations = append(violations, symbol+": goroutine")
 					}
 				case *ast.ChanType:
-					if !nativePipeJoin {
+					if !nativePipeJoin && !nativeSpoolNotification {
 						violations = append(violations, symbol+": channel coordination")
+					}
+				case *ast.SelectorExpr:
+					if identifier, ok := value.X.(*ast.Ident); ok && nativeSpoolFields && importNames[identifier.Name] == "sync" && !ownsAppendSpoolFields(declaration, importNames) {
+						violations = append(violations, symbol+": synchronization outside native append spool fields")
 					}
 				case *ast.MapType:
 					violations = append(violations, symbol+": loose map state")
@@ -593,6 +610,8 @@ func TestNativePipeCoordinationAdmissionRejectsDetachedAndUnboundedWork(t *testi
 // Go interface. Adding a file-lookalike method does not expand this admission.
 func ownsGoInterfaceMethod(receiver, method string) bool {
 	return receiver == reflect.TypeFor[HeldDirectory]().Name() && method == reflect.TypeFor[io.Closer]().Method(0).Name ||
+		receiver == reflect.TypeFor[AppendSpool]().Name() && method == reflect.TypeFor[io.Writer]().Method(0).Name ||
+		receiver == reflect.TypeFor[appendSpoolReader]().Name() && method == reflect.TypeFor[io.Reader]().Method(0).Name ||
 		receiver == reflect.TypeFor[streamReader]().Name() && method == reflect.TypeFor[io.Reader]().Method(0).Name ||
 		receiver == reflect.TypeFor[streamWriter]().Name() && method == reflect.TypeFor[io.Writer]().Method(0).Name ||
 		receiver == reflect.TypeFor[currentRelayOutput]().Name() && method == reflect.TypeFor[io.Writer]().Method(0).Name

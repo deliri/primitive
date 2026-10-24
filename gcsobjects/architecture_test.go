@@ -19,7 +19,7 @@ func TestAuthenticatedGCSOperationsAreCompilerSelectedEntryPoints(t *testing.T) 
 
 	set := token.NewFileSet()
 	var got []string
-	for _, path := range []string{"client.go", "download_capability.go", "upload_capability.go"} {
+	for _, path := range []string{"client.go", "download_capability.go", "upload_capability.go", "upload_file_stream.go"} {
 		file, gotParseErr := parser.ParseFile(set, path, nil, 0)
 		if gotParseErr != nil {
 			t.Fatalf("parser.ParseFile(%s) error = %v, want nil", path, gotParseErr)
@@ -49,6 +49,7 @@ func TestAuthenticatedGCSOperationsAreCompilerSelectedEntryPoints(t *testing.T) 
 		"ReadGCSObject",
 		"ReadListedGCSObject",
 		"UploadFile",
+		"UploadFileStream",
 		"UploadMedia",
 	}
 	if !slices.Equal(got, want) {
@@ -123,18 +124,20 @@ func productionStructRole(name string) (string, bool) {
 		"GCSGeneration", "GCSProjectID", "GCSLocation", "GCSObjectSegment", "GCSServiceAccount",
 		"GCSObjectAddress":
 		return "opaque validated provider value", true
-	case "GCSMediaUpload", "GCSFileUpload", "GCSReadRequest", "GCSListRequest", "GCSListedReadRequest", "GCSUploadObservationRequest", "GCSDeleteRequest",
+	case "GCSMediaUpload", "GCSFileUpload", "GCSFileStreamUpload", "GCSReadRequest", "GCSListRequest", "GCSListedReadRequest", "GCSUploadObservationRequest", "GCSDeleteRequest",
 		"GCSDeleteObjectRequest", "GCSBucketCreateRequest", "GCSBucketPublicReadRequest", "GCSRootPrefixRequest",
 		"GCSChildPrefixRequest", "GCSObjectInPrefixRequest", "GCSUploadCapabilityRequest",
 		"GCSDownloadCapabilityRequest", "GCSObjectLookupRequest":
 		return "authenticated provider execution ingress", true
 	case "gcsWrite":
 		return "internal owner-only write projection", true
-	case "GCSObjectMetadata", "GCSReadResult", "VerifiedGCSUpload", "GCSDeleteResult", "GCSDeleteObjectResult", "GCSBucketProvisioning",
+	case "GCSObjectMetadata", "GCSReadResult", "VerifiedGCSUpload", "GCSFileStreamResult", "GCSDeleteResult", "GCSDeleteObjectResult", "GCSBucketProvisioning",
 		"GCSBucketPublicReadGrant":
 		return "sealed authenticated provider evidence", true
 	case "gcsObjectIdentity", "gcsObjectProperties", "gcsObjectTimes", "gcsReadSession":
 		return "internal authenticated provider metadata projection", true
+	case "gcsStreamDestination":
+		return "provider size-bound streaming write custody", true
 	case "gcsReadSource":
 		return "SDK read failure ownership during bounded copy", true
 	default:

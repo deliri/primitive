@@ -7,6 +7,13 @@
 // policy, cloud custody, and coordination. Filestore owns only the finite
 // filesystem effect requested by one validated value.
 //
+// WithAppendSpoolScope exclusively creates a working file on the caller-selected
+// filesystem. Independent reader callbacks follow the same held inode and wait
+// at temporary EOF until explicit Seal. Seal records producer success or abort;
+// it does not acknowledge a cloud or secondary destination. Callers own and join
+// their tasks before Use returns. Scope cleanup cancels and joins accepted reader
+// callbacks before closing the original descriptor, and never deletes the file.
+//
 // WithFilesystemDurability holds a directory descriptor across synchronous
 // caller work, then asks Linux syncfs to flush that descriptor's whole
 // filesystem. It accepts opaque symlink entries without inspecting targets;

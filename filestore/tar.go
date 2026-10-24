@@ -40,28 +40,55 @@ func (k TARCompression) String() string {
 	}
 }
 
-// TAREntry borrows one regular file. The declared native extent is exact;
-// archive/tar owns framing and rejects excess bytes. Header clocks, ownership
-// names and other optional metadata retain Go's deterministic zero values.
+// TAREntry borrows one regular file or describes one header-only directory or
+// symbolic link. Regular sources have exact extents and no link target. Other
+// entries have no source or extent; only symbolic links carry a native opaque
+// target. Targets are encoded verbatim, never interpreted or followed. Mode
+// carries only permission bits, including 0000. Optional header metadata keeps
+// Go's deterministic zero values.
 type TAREntry struct {
-	Source io.Reader
-	Path   core.RelativePath
-	Bytes  core.ByteLength
-	Mode   fs.FileMode
+	Source     io.Reader
+	Path       core.RelativePath
+	Bytes      core.ByteLength
+	LinkTarget SymbolicLinkTarget
+	Mode       fs.FileMode
+	Kind       PathKind
 }
 
 func (e TAREntry) Validate() error {
-	if core.ReaderIsNil(e.Source) || e.Path.String() == "." {
+	if e.Path.String() == "." || e.Mode != e.Mode.Perm() {
 		return core.ErrFilestoreContract
 	}
 	if _, err := e.Bytes.Int64(); err != nil {
 		return err
 	}
-	return errors.Join(e.Path.Validate(), e.Bytes.Validate(), validatePermissionMode(e.Mode))
+	if err := errors.Join(e.Path.Validate(), e.Bytes.Validate()); err != nil {
+		return err
+	}
+	switch e.Kind {
+	case PathKindRegularFile:
+		if core.ReaderIsNil(e.Source) || e.LinkTarget != (SymbolicLinkTarget{}) {
+			return core.ErrFilestoreContract
+		}
+	case PathKindDirectory:
+		if e.Source != nil || e.Bytes != (core.ByteLength{}) || e.LinkTarget != (SymbolicLinkTarget{}) {
+			return core.ErrFilestoreContract
+		}
+	case PathKindSymbolicLink:
+		if e.Source != nil || e.Bytes != (core.ByteLength{}) {
+			return core.ErrFilestoreContract
+		}
+		return e.LinkTarget.Validate()
+	default:
+		return core.ErrFilestoreContract
+	}
+	return nil
 }
 
 // TARWriteRequest lends a synchronous entry producer and one destination.
-// Add consumes each source before returning its content observation. A refused
+// Add consumes each regular source before returning its content observation.
+// Header-only entries return the empty-body digest and zero extent; the final
+// archive observation covers their encoded headers. A refused
 // entry remains a failure even if Produce ignores it. No entry inventory or
 // volume quota is retained. Partial output remains caller-owned on failure.
 type TARWriteRequest struct {
@@ -141,8 +168,23 @@ func writeTAREntry(ctx context.Context, archive *tar.Writer, entry TAREntry, win
 	if err != nil {
 		return ContentIndexEntry{}, err
 	}
-	if err := archive.WriteHeader(&tar.Header{Name: filepath.ToSlash(entry.Path.String()), Mode: int64(entry.Mode.Perm()), Size: size, Typeflag: tar.TypeReg}); err != nil {
+	header := tar.Header{Name: filepath.ToSlash(entry.Path.String()), Mode: int64(entry.Mode.Perm()), Size: size}
+	switch entry.Kind {
+	case PathKindRegularFile:
+		header.Typeflag = tar.TypeReg
+	case PathKindDirectory:
+		header.Typeflag = tar.TypeDir
+	case PathKindSymbolicLink:
+		header.Typeflag = tar.TypeSymlink
+		header.Linkname = entry.LinkTarget.String()
+	default:
+		return ContentIndexEntry{}, core.ErrFilestoreContract
+	}
+	if err := archive.WriteHeader(&header); err != nil {
 		return ContentIndexEntry{}, err
+	}
+	if entry.Kind != PathKindRegularFile {
+		return ContentIndexEntry{Digest: core.SHA256Of(nil)}, nil
 	}
 	if *window == nil {
 		*window = make([]byte, goCopyWindowBytes)

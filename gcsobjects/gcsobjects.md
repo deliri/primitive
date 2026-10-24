@@ -19,7 +19,7 @@ It owns exactly:
   unauthenticated object reads without granting listing or writes;
 - logical directory and object-name composition from validated segments,
   without fake placeholder objects or caller-owned slash conventions;
-- two create-only object writes, served-media and stored-file;
+- create-only served-media, stored-file and live stored-file stream writes;
 - exact-generation upload observation that binds authenticated client evidence
   to the official provider metadata without downloading object bytes;
 - official IAM Credentials signing of short-lived V4 create-only upload and
@@ -67,6 +67,17 @@ exact generation named by authenticated transfer evidence and releases sealed
 proof only when bucket, name, generation, extent, and CRC32C agree. Its
 `ProviderObservation` projection then hands Objectstore's provider-neutral
 sealed facts to an authority without teaching that authority about GCS.
+
+`UploadFileStream` is the stored-file entry point for a producer whose final
+extent and digests are not known yet. It observes the source once through
+Objectstore's SHA-256, CRC32C and extent inspection while the official SDK
+uploads. EOF must mean the producer is finished. The SDK's zero chunk size
+starts direct streaming and disables its buffered retry; a failed attempt
+leaves retention and retry with the source owner. The returned opaque result
+binds local integrity to acknowledged provider generation, extent and checksum.
+No result is released on source, close or metadata refusal. An uploaded object
+may exist before post-upload validation, so publication and local deletion must
+wait for the validated result. This operation does not remove local files.
 
 ## Buckets and logical directories
 

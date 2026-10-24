@@ -42,6 +42,12 @@ func textIngressBinding[T any, P interface {
 func TestPublicDecoderFuzzInventory(t *testing.T) {
 	t.Parallel()
 	bindings := []ingressFuzzBinding{
+		jsonIngressBinding[objectstore.S3Region](objectstore.FuzzS3NominalJSONSemanticClosure),
+		jsonIngressBinding[objectstore.S3Bucket](objectstore.FuzzS3NominalJSONSemanticClosure),
+		jsonIngressBinding[objectstore.S3Key](objectstore.FuzzS3NominalJSONSemanticClosure),
+		textIngressBinding[objectstore.S3Region](objectstore.FuzzS3NominalTextSemanticClosure),
+		textIngressBinding[objectstore.S3Bucket](objectstore.FuzzS3NominalTextSemanticClosure),
+		textIngressBinding[objectstore.S3Key](objectstore.FuzzS3NominalTextSemanticClosure),
 		jsonIngressBinding[objectstore.BLAKE3Digest](FuzzBLAKE3DigestJSONSemanticClosure),
 		textIngressBinding[objectstore.BLAKE3Digest](FuzzBLAKE3DigestTextSemanticClosure),
 		jsonIngressBinding[objectstore.UploadCapability](objectstore.FuzzUploadCapabilityAdmitsOnlyTransferableCapabilities),

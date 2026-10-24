@@ -108,7 +108,7 @@ func TestProviderOperationsAreCompilerSelectedEntryPoints(t *testing.T) {
 
 	set := token.NewFileSet()
 	var got []string
-	for _, path := range []string{"client.go", "capability_execution.go", "transfer_evidence.go"} {
+	for _, path := range []string{"client.go", "capability_execution.go", "transfer_evidence.go", "s3_file.go"} {
 		source, readErr := objectstoreContractSources.ReadFile(path)
 		if readErr != nil {
 			t.Fatal(readErr)
@@ -136,6 +136,7 @@ func TestProviderOperationsAreCompilerSelectedEntryPoints(t *testing.T) {
 		"UploadCloudflareImages",
 		"UploadGCS",
 		"UploadS3",
+		"UploadS3File",
 		"VerifyProviderUpload",
 	}
 	if !slices.Equal(got, want) {
@@ -166,6 +167,13 @@ type inventoryBinding struct {
 
 func objectstoreTypeBindings() []inventoryBinding {
 	return []inventoryBinding{
+		{typ: reflect.TypeFor[S3Region](), role: inventoryProtocol},
+		{typ: reflect.TypeFor[S3Bucket](), role: inventoryProtocol},
+		{typ: reflect.TypeFor[S3Key](), role: inventoryProtocol},
+		{typ: reflect.TypeFor[S3FileUpload](), role: inventoryProtocol},
+		{typ: reflect.TypeFor[s3CredentialValue](), role: inventoryWire},
+		{typ: reflect.TypeFor[s3FileCredentials](), role: inventoryWire},
+		{typ: reflect.TypeFor[s3FileError](), role: inventoryFlow},
 		{typ: reflect.TypeFor[BLAKE3Digest](), role: inventoryCapability},
 		{typ: reflect.TypeFor[UploadCapabilityRequest](), role: inventoryProtocol},
 		{typ: reflect.TypeFor[DownloadCapabilityRequest](), role: inventoryProtocol},

@@ -302,7 +302,7 @@ func FuzzReadTARMatchesNativeFramingAndClosure(f *testing.F) {
 		}
 		var seed bytes.Buffer
 		_, err := filestore.WriteTAR(f.Context(), filestore.TARWriteRequest{Destination: &seed, Compression: kind, Produce: func(ctx context.Context, add func(filestore.TAREntry) (filestore.ContentIndexEntry, error)) error {
-			_, err := add(filestore.TAREntry{Path: path, Source: bytes.NewReader(nil), Mode: 0600})
+			_, err := add(filestore.TAREntry{Kind: filestore.PathKindRegularFile, Path: path, Source: bytes.NewReader(nil), Mode: 0600})
 			return err
 		}})
 		if err != nil {

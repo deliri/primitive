@@ -39,7 +39,7 @@ func TestTARNativeEncodingPreservesContentMetadataAndClosure(t *testing.T) {
 				var output bytes.Buffer
 				content, err := filestore.WriteTAR(t.Context(), filestore.TARWriteRequest{Destination: &output, Compression: compression, Produce: func(ctx context.Context, add func(filestore.TAREntry) (filestore.ContentIndexEntry, error)) error {
 					for _, mode := range []uint32{0400, 0755} {
-						entry := filestore.TAREntry{Path: path, Source: bytes.NewReader(data), Bytes: extent, Mode: fs.FileMode(mode)}
+						entry := filestore.TAREntry{Kind: filestore.PathKindRegularFile, Path: path, Source: bytes.NewReader(data), Bytes: extent, Mode: fs.FileMode(mode)}
 						got, err := add(entry)
 						if err != nil {
 							return err
@@ -112,7 +112,7 @@ func TestTARNativeRefusalWithdrawsContentAndSurvivesIgnoredEntryError(t *testing
 				if err != nil {
 					t.Fatal(err)
 				}
-				entry := filestore.TAREntry{Path: path, Source: bytes.NewReader([]byte("abc")), Bytes: extent, Mode: 0600}
+				entry := filestore.TAREntry{Kind: filestore.PathKindRegularFile, Path: path, Source: bytes.NewReader([]byte("abc")), Bytes: extent, Mode: 0600}
 				var output bytes.Buffer
 				var destination io.Writer = &output
 				var want error
@@ -232,9 +232,18 @@ func TestTARRequestRefusesUnownedOutputBeforeProducer(t *testing.T) {
 }
 
 func FuzzTARNativeEntryAndOutputAgreement(f *testing.F) {
-	f.Add([]byte("native TAR"), true)
-	f.Add([]byte{}, false)
-	f.Fuzz(func(t *testing.T, data []byte, compressed bool) {
+	directory := f.TempDir()
+	target := nativeTARLinkTarget(f, directory, "seed-link", "../opaque:[1]/missing")
+	for _, kind := range []filestore.PathKind{filestore.PathKindRegularFile, filestore.PathKindDirectory, filestore.PathKindSymbolicLink} {
+		if err := kind.Validate(); err != nil {
+			f.Fatal(err)
+		}
+		f.Add([]byte("native TAR"), true, uint8(kind))
+		f.Add([]byte{}, false, uint8(kind))
+	}
+	f.Add([]byte("unknown kind"), false, uint8(filestore.PathKindUnknown))
+	f.Add([]byte("future kind"), true, uint8(255))
+	f.Fuzz(func(t *testing.T, data []byte, compressed bool, rawKind uint8) {
 		path, err := core.ParseRelativePath("entry")
 		if err != nil {
 			t.Fatal(err)
@@ -249,12 +258,31 @@ func FuzzTARNativeEntryAndOutputAgreement(f *testing.F) {
 		}
 		var output bytes.Buffer
 		got, err := filestore.WriteTAR(t.Context(), filestore.TARWriteRequest{Destination: &output, Compression: compression, Produce: func(_ context.Context, add func(filestore.TAREntry) (filestore.ContentIndexEntry, error)) error {
-			entry, err := add(filestore.TAREntry{Source: bytes.NewReader(data), Path: path, Bytes: extent, Mode: 0600})
-			if err == nil && (entry.Extent != extent || entry.Digest != core.NewSHA256Digest(sha256.Sum256(data))) {
-				t.Fatalf("entry content=%+v,want exact mutated bytes", entry)
+			entry := filestore.TAREntry{Kind: filestore.PathKind(rawKind), Source: bytes.NewReader(data), Path: path, Bytes: extent, Mode: 0600}
+			if entry.Kind == filestore.PathKindDirectory || entry.Kind == filestore.PathKindSymbolicLink {
+				entry.Source = nil
+				entry.Bytes = core.ByteLength{}
+			}
+			if entry.Kind == filestore.PathKindSymbolicLink {
+				entry.LinkTarget = target
+			}
+			observed, err := add(entry)
+			wantBody := data
+			if entry.Kind != filestore.PathKindRegularFile {
+				wantBody = nil
+			}
+			if err == nil && (observed.Extent != entry.Bytes || observed.Digest != core.SHA256Of(wantBody)) {
+				t.Fatalf("entry content=%+v,want exact mutated bytes", observed)
 			}
 			return err
 		}})
+		kind := filestore.PathKind(rawKind)
+		if kind != filestore.PathKindRegularFile && kind != filestore.PathKindDirectory && kind != filestore.PathKindSymbolicLink {
+			if !errors.Is(err, core.ErrFilestoreContract) || got != (filestore.ContentIndexEntry{}) {
+				t.Fatalf("unknown kind=%d content=%+v/%v, want typed refusal and zero", rawKind, got, err)
+			}
+			return
+		}
 		if err != nil || got.Extent.Uint64() != uint64(output.Len()) || got.Digest != core.NewSHA256Digest(sha256.Sum256(output.Bytes())) {
 			t.Fatalf("encoded output content=%+v/%v,want exact encoded bytes", got, err)
 		}
@@ -277,7 +305,19 @@ func FuzzTARNativeEntryAndOutputAgreement(f *testing.F) {
 			t.Fatal(err)
 		}
 		body, err := io.ReadAll(archive)
-		if err != nil || header.Name != "entry" || header.Mode != 0600 || header.Size != int64(len(data)) || !bytes.Equal(body, data) {
+		wantKind, wantTarget := byte(tar.TypeReg), ""
+		wantBody := data
+		switch kind {
+		case filestore.PathKindRegularFile:
+			wantKind = tar.TypeReg
+		case filestore.PathKindDirectory:
+			wantKind, wantBody = tar.TypeDir, nil
+		case filestore.PathKindSymbolicLink:
+			wantKind, wantTarget, wantBody = tar.TypeSymlink, target.String(), nil
+		default:
+			t.Fatalf("admitted kind=%d, want a supported native kind", rawKind)
+		}
+		if err != nil || header.Name != "entry" || header.Mode != 0600 || header.Typeflag != wantKind || header.Linkname != wantTarget || header.Size != int64(len(wantBody)) || !bytes.Equal(body, wantBody) {
 			t.Fatalf("decoded mutation=%+v/%v,bytes=%d,want original admitted bytes", header, err, len(body))
 		}
 		if _, err := archive.Next(); err != io.EOF {
@@ -300,7 +340,7 @@ func BenchmarkTARForwardEncodingCardinality(b *testing.B) {
 			request := filestore.TARWriteRequest{Destination: io.Discard, Compression: filestore.TARGzip, Produce: func(_ context.Context, add func(filestore.TAREntry) (filestore.ContentIndexEntry, error)) error {
 				for range count {
 					source.Reset(nil)
-					got, err := add(filestore.TAREntry{Source: source, Path: path, Bytes: core.ByteLength{}, Mode: 0600})
+					got, err := add(filestore.TAREntry{Kind: filestore.PathKindRegularFile, Source: source, Path: path, Bytes: core.ByteLength{}, Mode: 0600})
 					if err != nil {
 						return err
 					}
@@ -339,7 +379,7 @@ func TestTARRetainedMemoryDoesNotGrowWithEntryCardinality(t *testing.T) {
 		got, err := filestore.WriteTAR(t.Context(), filestore.TARWriteRequest{Destination: io.Discard, Compression: filestore.TARGzip, Produce: func(_ context.Context, add func(filestore.TAREntry) (filestore.ContentIndexEntry, error)) error {
 			for range count {
 				source.Reset(nil)
-				if _, err := add(filestore.TAREntry{Source: source, Path: path, Bytes: core.ByteLength{}, Mode: 0600}); err != nil {
+				if _, err := add(filestore.TAREntry{Kind: filestore.PathKindRegularFile, Source: source, Path: path, Bytes: core.ByteLength{}, Mode: 0600}); err != nil {
 					return err
 				}
 			}
