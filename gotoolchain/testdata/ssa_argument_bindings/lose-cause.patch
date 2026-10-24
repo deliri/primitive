@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_argument_bindings.go
++++ b/gotoolchain/ssa_argument_bindings.go
+@@ -53,7 +53,7 @@
+ // observation, so a malformed later argument cannot lend a valid prefix.
+ func (v SSAUnitView) ArgumentBindings(ctx context.Context, r SSAArgumentBindingsRequest) iter.Seq2[SSAArgumentBindingObservation, error] {
+ 	return func(yield func(SSAArgumentBindingObservation, error) bool) {
+-		refuse := func(err error) { yield(SSAArgumentBindingObservation{}, err) }
++		refuse := func(err error) { yield(SSAArgumentBindingObservation{}, core.ErrGoToolchainOutput) }
+ 		if err := errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), v.Validate(), r.Validate()); err != nil {
+ 			refuse(err)
+ 			return

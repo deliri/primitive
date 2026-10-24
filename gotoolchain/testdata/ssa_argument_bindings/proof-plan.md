@@ -1,0 +1,13 @@
+# Selected native argument bindings
+
+Primitive owns a call-scoped stream of exact callee parameter/free-variable loans bound to one selected caller value. Witness keeps source-helper eligibility, benchmark setup and recursion policy. No alias population, call graph or copied bindings are introduced.
+
+Assumptions challenged: matching text/shape proves custody; a valid leading argument can be consumed before trailing input is checked; source helper execution implies its runner identity; width proof implies nesting proof. The last implication is explicitly unproved.
+
+Existing public ArgumentCall owns operand/capture identity but returns a boolean about a selected target invocation. SameStorage owns address relations, with different single-store semantics. Neither returns per-invocation bindings. ArgumentBindings reuses argumentCallOperand and native custody instead of creating a second alias implementation.
+
+Proof: native producer positive/negative/neutral triad; complete 48-mode source domain (four explicit argument masks, three call/capture forms, two reachability choices, two call prefixes); malformed call/reference/argument/capture/target boundaries; consumer stop and cancellation after a valid prefix; fixed-memory complete streams at32 and8193 native arguments. Semantic fuzz searches the same source dimensions with an independent source-identity count oracle. One-fact source faults erase refusals, invert matching, drop each lane, lose causes and ignore consumer stop. Benchmarks observe every native parameter at fixed257 width.
+
+All runs are Mac-native, focused on gotoolchain. Retain every attempt, raw output, source hashes and exact filters. Race/tools precede serial3s benchmark and serial3s fuzz. No independent acceptance is issued by the author. Function ownership follows lexical parents iteratively; broader pre-existing operand recursion and Witness policy nesting are not certified O(1) in depth by this slice.
+
+Native closure-parent and forward-creation cases produced real reds and failed-leaf greens. Ordering reuses fieldReadOperandBefore/InstructionDominates. The first final wide memory sample and its diagnostic rerun measured48 bytes. A full-rate native allocation profile attributed those bytes to the negative instruction-interface assertion in fieldReadOperandBefore. Explicit native non-instruction lanes now authenticate membership directly; the failed8193-width leaf is zero again with its original assertion. Preserve the original failures, diagnostic build/escape output, profile, attribution and final fault reproof; do not call those failed attempts zero-allocation proof.

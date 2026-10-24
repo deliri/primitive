@@ -1,0 +1,58 @@
+--- a/gotoolchain/ssa_argument_bindings.go
++++ b/gotoolchain/ssa_argument_bindings.go
+@@ -130,7 +130,7 @@
+ 			for index := 0; index < width; index++ {
+ 				if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+ 					refuse(err)
+-					return
++					continue
+ 				}
+ 				var operand, local ssa.Value
+ 				if lane == 0 {
+@@ -140,7 +140,7 @@
+ 				}
+ 				if !nativeReceiverValuePresent(operand) || !nativeReceiverValuePresent(local) || local.Parent() != target || local.Type() == nil || !types.AssignableTo(operand.Type(), local.Type()) {
+ 					refuse(core.ErrGoToolchainOutput)
+-					return
++					continue
+ 				}
+ 				owned := false
+ 				switch native := operand.(type) {
+@@ -153,13 +153,13 @@
+ 				default:
+ 					if err := v.fieldReadOperandBefore(ctx, operand, r.Call); err != nil {
+ 						refuse(err)
+-						return
++						continue
+ 					}
+ 					owned = true
+ 				}
+ 				if !owned || operand.Parent() != nil && operand.Parent() != r.Call.Parent() {
+ 					refuse(core.ErrGoToolchainOutput)
+-					return
++					continue
+ 				}
+ 			}
+ 		}
+@@ -171,7 +171,7 @@
+ 			for index := 0; index < width; index++ {
+ 				if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+ 					refuse(err)
+-					return
++					continue
+ 				}
+ 				var operand, local ssa.Value
+ 				if lane == 0 {
+@@ -182,10 +182,10 @@
+ 				matched, err := argumentCallOperand(operand, r.Argument)
+ 				if err != nil {
+ 					refuse(err)
+-					return
++					continue
+ 				}
+ 				if matched && !yield(SSAArgumentBindingObservation{Function: target, Local: local}, nil) {
+-					return
++					continue
+ 				}
+ 			}
+ 		}

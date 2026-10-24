@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_argument_bindings.go
++++ b/gotoolchain/ssa_argument_bindings.go
+@@ -85,7 +85,7 @@
+ 				return
+ 			}
+ 			target, native := closure.Fn.(*ssa.Function)
+-			if !native || target.Syntax() != nil && target.Parent() != closure.Parent() {
++			if !native || false && target.Syntax() != nil && target.Parent() != closure.Parent() {
+ 				refuse(core.ErrGoToolchainOutput)
+ 				return
+ 			}

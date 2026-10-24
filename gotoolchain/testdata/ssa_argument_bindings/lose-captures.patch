@@ -1,0 +1,20 @@
+--- a/gotoolchain/ssa_argument_bindings.go
++++ b/gotoolchain/ssa_argument_bindings.go
+@@ -122,7 +122,7 @@
+ 		}
+ 		// Borrow two fixed native lanes. Validate the complete layout before
+ 		// projecting matches; neither pass allocates a binding table.
+-		for lane := 0; lane < 2; lane++ {
++		for lane := 1; lane < 2; lane++ {
+ 			width := len(bindings)
+ 			if lane == 1 {
+ 				width = len(common.Args)
+@@ -163,7 +163,7 @@
+ 				}
+ 			}
+ 		}
+-		for lane := 0; lane < 2; lane++ {
++		for lane := 1; lane < 2; lane++ {
+ 			width := len(bindings)
+ 			if lane == 1 {
+ 				width = len(common.Args)

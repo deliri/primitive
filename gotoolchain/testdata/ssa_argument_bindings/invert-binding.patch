@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_argument_bindings.go
++++ b/gotoolchain/ssa_argument_bindings.go
+@@ -184,7 +184,7 @@
+ 					refuse(err)
+ 					return
+ 				}
+-				if matched && !yield(SSAArgumentBindingObservation{Function: target, Local: local}, nil) {
++				if !matched && !yield(SSAArgumentBindingObservation{Function: target, Local: local}, nil) {
+ 					return
+ 				}
+ 			}

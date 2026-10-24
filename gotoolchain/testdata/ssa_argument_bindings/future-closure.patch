@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_argument_bindings.go
++++ b/gotoolchain/ssa_argument_bindings.go
+@@ -89,7 +89,7 @@
+ 				refuse(core.ErrGoToolchainOutput)
+ 				return
+ 			}
+-			if err := v.fieldReadOperandBefore(ctx, closure, r.Call); err != nil {
++			if err := error(nil); err != nil {
+ 				refuse(err)
+ 				return
+ 			}

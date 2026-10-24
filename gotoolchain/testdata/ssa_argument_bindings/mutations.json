@@ -1,0 +1,34 @@
+[
+  {
+    "fault": "erase-refusal",
+    "filter": "^TestSSAArgumentBindingsRefusesCorruptCustodyBeforeYield$/foreign_trailing_argument$"
+  },
+  {
+    "fault": "invert-binding",
+    "filter": "^TestSSAArgumentBindingsLayerTriad$/native_argument$"
+  },
+  {
+    "fault": "lose-parameters",
+    "filter": "^TestSSAArgumentBindingsLayerTriad$/native_argument$"
+  },
+  {
+    "fault": "lose-captures",
+    "filter": "^TestSSAArgumentBindingsLayerTriad$/captured_operand$"
+  },
+  {
+    "fault": "lose-cause",
+    "filter": "^TestSSAArgumentBindingsPreservesConsumerStopAndCancellation$"
+  },
+  {
+    "fault": "ignore-stop",
+    "filter": "^TestSSAArgumentBindingsPreservesConsumerStopAndCancellation$"
+  },
+  {
+    "fault": "foreign-source-parent",
+    "filter": "^TestSSAArgumentBindingsRefusesBrokenCaptures$/foreign_source_target$"
+  },
+  {
+    "fault": "future-closure",
+    "filter": "^TestSSAArgumentBindingsRefusesBrokenCaptures$/closure_created_after_invocation$"
+  }
+]
