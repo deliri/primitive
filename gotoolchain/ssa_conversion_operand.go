@@ -9,8 +9,8 @@ import (
 	"golang.org/x/tools/go/ssa"
 )
 
-// SSAConversionOperandRequest selects one native value conversion. Other unary
-// operations are outside this contract; the compiler owns conversion semantics.
+// SSAConversionOperandRequest selects one native value conversion, including
+// interface construction and change. The compiler owns conversion semantics.
 type SSAConversionOperandRequest struct {
 	Function   *ssa.Function
 	Conversion ssa.Value
@@ -26,6 +26,14 @@ func (r SSAConversionOperandRequest) Validate() error {
 			return core.ErrGoToolchainContract
 		}
 	case *ssa.Convert:
+		if converted == nil || converted.Parent() != r.Function {
+			return core.ErrGoToolchainContract
+		}
+	case *ssa.MakeInterface:
+		if converted == nil || converted.Parent() != r.Function {
+			return core.ErrGoToolchainContract
+		}
+	case *ssa.ChangeInterface:
 		if converted == nil || converted.Parent() != r.Function {
 			return core.ErrGoToolchainContract
 		}
@@ -71,6 +79,10 @@ func (v SSAUnitView) ConversionOperand(ctx context.Context, r SSAConversionOpera
 	case *ssa.ChangeType:
 		instruction, operand = converted, converted.X
 	case *ssa.Convert:
+		instruction, operand = converted, converted.X
+	case *ssa.MakeInterface:
+		instruction, operand = converted, converted.X
+	case *ssa.ChangeInterface:
 		instruction, operand = converted, converted.X
 	default:
 		return out, core.ErrGoToolchainContract

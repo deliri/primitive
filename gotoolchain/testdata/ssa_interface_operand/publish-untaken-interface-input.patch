@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_conversion_operand.go
++++ b/gotoolchain/ssa_conversion_operand.go
+@@ -94,7 +94,7 @@
+ 	if queryErr != nil {
+ 		return out, queryErr
+ 	}
+-	if untaken {
++	if false && untaken {
+ 		return out, nil
+ 	}
+ 	if err = v.fieldReadOperandBefore(ctx, operand, instruction); err != nil {

@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_conversion_operand.go
++++ b/gotoolchain/ssa_conversion_operand.go
+@@ -100,7 +100,7 @@
+ 	if err = v.fieldReadOperandBefore(ctx, operand, instruction); err != nil {
+ 		return out, err
+ 	}
+-	return SSAConversionOperandObservation{Operand: operand}, nil
++	return SSAConversionOperandObservation{}, nil
+ }
+ 
+ var _ internalFlow = SSAConversionOperandRequest{}
