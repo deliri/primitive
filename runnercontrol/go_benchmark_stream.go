@@ -62,11 +62,10 @@ type goBenchmarkStream struct {
 	nameInvalid bool
 	found       bool
 	waitingUnit bool
-	// iterations holds when the second token is a positive integer count;
-	// valued when any token followed it. Together they mark a native result
-	// row even when every reported unit is custom and ns/op is suppressed.
+	// iterations holds when the second token is a positive integer count. It
+	// alone marks a native result row: with ns/op suppressed and no other
+	// metric, testing prints only the name and its count.
 	iterations bool
-	valued     bool
 }
 
 func (goNumericToken) runnerControlInternalFlow()    {}
@@ -124,7 +123,6 @@ func (b *goBenchmarkStream) endToken() {
 		b.malformed = b.malformed || !b.iterations
 		b.position = 2
 	default:
-		b.valued = true
 		b.endMetricToken(token)
 	}
 	b.previous, b.number = b.number, goNumericToken{}

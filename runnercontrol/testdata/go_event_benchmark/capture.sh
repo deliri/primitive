@@ -14,3 +14,4 @@ go test -json -run '^$' -bench 'Long' -benchtime 1x -benchmem ./a > "$here/longn
 go test -json -p 2 -run '^$' -bench . -benchtime 1x -benchmem ./a ./b > "$here/packages.jsonl"
 go test -json -run '^$' -bench 'BenchmarkCustom$' -benchtime 1x . > "$here/custom.jsonl"
 go test -json -run '^$' -bench 'BenchmarkCustom$' -benchtime 1x -benchmem . > "$here/custommem.jsonl"
+go test -json -run '^$' -bench 'BenchmarkCountOnly$' -benchtime 1x . > "$here/countonly.jsonl"

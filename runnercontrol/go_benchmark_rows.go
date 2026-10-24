@@ -114,12 +114,12 @@ func (r *goBenchmarkRows) complete() error {
 }
 
 // classify reports a completed line as a row when it names a benchmark and
-// either carries a benchmark unit or has a positive iteration count followed
-// by a value, as testing prints even when ReportMetric suppresses ns/op.
-// Headers and log lines naming a benchmark stay neutral.
+// either carries a benchmark unit or has a positive iteration count, which
+// testing prints even when ReportMetric suppresses ns/op and nothing else is
+// reported. Name-only headers and log lines naming a benchmark stay neutral.
 func (r *goBenchmarkRows) classify() (runprotocol.GoBenchmarkRow, bool) {
 	b := &r.row
-	if !r.candidate() || !b.found && b.metrics == 0 && !(b.iterations && b.valued) {
+	if !r.candidate() || !b.found && b.metrics == 0 && !b.iterations {
 		return runprotocol.GoBenchmarkRow{}, false
 	}
 	if r.unattributed {

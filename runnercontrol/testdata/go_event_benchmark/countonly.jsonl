@@ -1,0 +1,12 @@
+{"Time":"2026-10-24T01:39:31.898275-04:00","Action":"start","Package":"example.com/nm"}
+{"Time":"2026-10-24T01:39:32.008988-04:00","Action":"output","Package":"example.com/nm","Output":"goos: darwin\n"}
+{"Time":"2026-10-24T01:39:32.009162-04:00","Action":"output","Package":"example.com/nm","Output":"goarch: arm64\n"}
+{"Time":"2026-10-24T01:39:32.00917-04:00","Action":"output","Package":"example.com/nm","Output":"pkg: example.com/nm\n"}
+{"Time":"2026-10-24T01:39:32.009183-04:00","Action":"output","Package":"example.com/nm","Output":"cpu: Apple M1 Max\n"}
+{"Time":"2026-10-24T01:39:32.009191-04:00","Action":"run","Package":"example.com/nm","Test":"BenchmarkCountOnly"}
+{"Time":"2026-10-24T01:39:32.009196-04:00","Action":"output","Package":"example.com/nm","Test":"BenchmarkCountOnly","Output":"=== RUN   BenchmarkCountOnly\n","OutputType":"frame"}
+{"Time":"2026-10-24T01:39:32.009212-04:00","Action":"output","Package":"example.com/nm","Test":"BenchmarkCountOnly","Output":"BenchmarkCountOnly\n"}
+{"Time":"2026-10-24T01:39:32.009491-04:00","Action":"output","Package":"example.com/nm","Test":"BenchmarkCountOnly","Output":"BenchmarkCountOnly-10    \t       1\n"}
+{"Time":"2026-10-24T01:39:32.009549-04:00","Action":"output","Package":"example.com/nm","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-24T01:39:32.010336-04:00","Action":"output","Package":"example.com/nm","Output":"ok  \texample.com/nm\t0.112s\n"}
+{"Time":"2026-10-24T01:39:32.01037-04:00","Action":"pass","Package":"example.com/nm","Elapsed":0.112}

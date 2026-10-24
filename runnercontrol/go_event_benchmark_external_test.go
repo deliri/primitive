@@ -119,6 +119,8 @@ func TestGoEventStreamBenchmarkRowsLayerTriad(t *testing.T) {
 			want: []runprotocol.GoBenchmarkRow{missing}},
 		{layer: "negative", name: "a native -benchmem row with ns/op suppressed is metrics missing, not malformed", source: func(t *testing.T) []byte { return benchmarkFixture(t, "custommem") }, observe: true,
 			want: []runprotocol.GoBenchmarkRow{missing}},
+		{layer: "negative", name: "a native row of only a name and count (ns/op suppressed) is metrics missing", source: func(t *testing.T) []byte { return benchmarkFixture(t, "countonly") }, observe: true,
+			want: []runprotocol.GoBenchmarkRow{missing}},
 		{layer: "negative", name: "a space-separated custom-unit row is metrics missing", source: func(*testing.T) []byte {
 			return hostileEvents([2]string{"example.com/a", "BenchmarkX 1 2 widgets/op\n"})
 		}, observe: true, want: []runprotocol.GoBenchmarkRow{missing}},
@@ -161,9 +163,6 @@ func TestGoEventStreamBenchmarkRowsLayerTriad(t *testing.T) {
 		{layer: "negative", name: "a consumer refusal stops the stream unchanged", source: func(t *testing.T) []byte { return benchmarkFixture(t, "benchmem") }, observe: true, refuse: refusal, wantErr: refusal},
 		{layer: "neutral", name: "without a consumer the same rows read as before", source: func(t *testing.T) []byte { return benchmarkFixture(t, "nobenchmem") }},
 		{layer: "neutral", name: "a tests-only stream has no benchmark row", source: func(t *testing.T) []byte { return benchmarkFixture(t, "tests") }, observe: true},
-		{layer: "neutral", name: "a name and count with nothing after them is not a row", source: func(*testing.T) []byte {
-			return hostileEvents([2]string{"example.com/a", "BenchmarkX \t1\n"})
-		}, observe: true},
 		{layer: "neutral", name: "a build-output frame without Package is not a row", source: func(*testing.T) []byte {
 			return []byte(`{"ImportPath":"example.com/a","Action":"build-output","Output":"BenchmarkX \t1\t5 ns/op\t0 B/op\t0 allocs/op\n"}` + "\n")
 		}, observe: true},

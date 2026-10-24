@@ -10,3 +10,11 @@ func BenchmarkCustom(b *testing.B) {
 	b.ReportMetric(0, "ns/op")
 	b.ReportMetric(5, "widgets/op")
 }
+
+// BenchmarkCountOnly suppresses ns/op and reports nothing else: the native
+// driver then prints only the name and its iteration count.
+func BenchmarkCountOnly(b *testing.B) {
+	for b.Loop() {
+	}
+	b.ReportMetric(0, "ns/op")
+}
