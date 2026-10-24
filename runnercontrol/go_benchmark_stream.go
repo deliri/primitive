@@ -5,7 +5,6 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/runprotocol"
 )
 
@@ -63,6 +62,11 @@ type goBenchmarkStream struct {
 	nameInvalid bool
 	found       bool
 	waitingUnit bool
+	// iterations holds when the second token is a positive integer count;
+	// valued when any token followed it. Together they mark a native result
+	// row even when every reported unit is custom and ns/op is suppressed.
+	iterations bool
+	valued     bool
 }
 
 func (goNumericToken) runnerControlInternalFlow()    {}
@@ -116,9 +120,11 @@ func (b *goBenchmarkStream) endToken() {
 		b.position = 1
 	case 1:
 		b.measurement.Iterations = b.number.coefficient
-		b.malformed = b.malformed || b.number.invalid || b.number.dot || b.number.coefficient == 0
+		b.iterations = !b.number.invalid && !b.number.dot && b.number.coefficient != 0
+		b.malformed = b.malformed || !b.iterations
 		b.position = 2
 	default:
+		b.valued = true
 		b.endMetricToken(token)
 	}
 	b.previous, b.number = b.number, goNumericToken{}
@@ -186,19 +192,4 @@ func goBenchmarkUnitMask(unit []byte) uint8 {
 	default:
 		return 0
 	}
-}
-
-func (b *goBenchmarkStream) result() (runprotocol.BenchmarkMeasurement, bool, error) {
-	if !b.found {
-		return runprotocol.BenchmarkMeasurement{}, false, nil
-	}
-	name, nameErr := runprotocol.NewName(string(b.name[:b.nameLength]))
-	b.measurement.Name = name
-	if b.malformed || b.nameInvalid || nameErr != nil || b.metrics != 7 {
-		return runprotocol.BenchmarkMeasurement{}, false, observationFailure("go benchmark record has invalid or duplicate fields", core.ErrJSONContract)
-	}
-	if err := b.measurement.Validate(); err != nil {
-		return runprotocol.BenchmarkMeasurement{}, false, err
-	}
-	return b.measurement, true, nil
 }

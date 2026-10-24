@@ -45,7 +45,6 @@ const (
 )
 
 type goJSONProjection struct {
-	benchmark      goBenchmarkStream
 	elapsedSeconds float64
 	fields         uint16
 	packageID      [sha256.Size]byte
@@ -57,6 +56,8 @@ type goJSONProjection struct {
 }
 
 type goJSONStream struct {
+	// rows reassembles benchmark rows only when a consumer asked for them.
+	rows          *goBenchmarkRows
 	observeString func(GoEventStringFragment) error
 	digest        hash.Hash
 	projection    goJSONProjection
@@ -431,7 +432,9 @@ func (s *goJSONStream) projectString(decoded []byte) error {
 		s.projection.testPresent = s.projection.testPresent || len(decoded) != 0
 	case GoEventFieldOutput:
 		s.projection.outputPresent = s.projection.outputPresent || len(decoded) != 0
-		s.projection.benchmark.write(decoded)
+		if s.rows != nil {
+			return s.rows.write(decoded, s.projection)
+		}
 	}
 	return nil
 }
@@ -455,8 +458,6 @@ func (s *goJSONStream) endString() error {
 		s.projection.outputType = kind
 	case GoEventFieldPackage:
 		s.digest.Sum(s.projection.packageID[:0])
-	case GoEventFieldOutput:
-		s.projection.benchmark.endToken()
 	}
 	if s.observeString != nil {
 		if err := s.observeString(GoEventStringFragment{Field: s.field, Final: true}); err != nil {

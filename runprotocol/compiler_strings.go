@@ -42,4 +42,6 @@ const (
 	probeTargetKindInvalidDiagnostic          = "run protocol probe target kind is invalid"
 	refusalReasonInvalidDiagnostic            = "run protocol refusal reason is invalid"
 	terminalStateInvalidDiagnostic            = "run protocol terminal state is invalid"
+	goBenchmarkRowKindInvalidDiagnostic       = "run protocol go benchmark row kind is invalid"
+	goBenchmarkRowMeasurementDiagnostic       = "run protocol go benchmark row measurement disagrees with its kind"
 )

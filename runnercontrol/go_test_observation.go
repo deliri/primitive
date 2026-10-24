@@ -32,10 +32,13 @@ func (o GoTestObservation) Validate() error {
 // GoTestObservationCompiler consumes the exact stdout emitted by go test
 // -json. It retains bounded state only for planned package units.
 type GoTestObservationCompiler struct {
-	failure     error
-	seen        map[[32]byte]struct{}
-	terminal    map[[32]byte]GoEventAction
-	benchmarks  []runprotocol.BenchmarkMeasurement
+	failure    error
+	seen       map[[32]byte]struct{}
+	terminal   map[[32]byte]GoEventAction
+	benchmarks []runprotocol.BenchmarkMeasurement
+	// committed counts benchmarks whose frames closed; rows of a frame that
+	// never closes stay provisional and are never reported.
+	committed   int
 	stream      goJSONStream
 	policy      ObservationPolicy
 	buildFailed bool
@@ -49,7 +52,9 @@ func NewGoTestObservationCompiler(policy ObservationPolicy) (*GoTestObservationC
 	if policy.Format != ObservationGoTestJSON {
 		return nil, observationFailure("go test observation compiler requires go-test-json format", core.ErrPrimitiveContract)
 	}
-	return &GoTestObservationCompiler{policy: policy, seen: make(map[[32]byte]struct{}), terminal: make(map[[32]byte]GoEventAction), benchmarks: []runprotocol.BenchmarkMeasurement{}}, nil
+	c := &GoTestObservationCompiler{policy: policy, seen: make(map[[32]byte]struct{}), terminal: make(map[[32]byte]GoEventAction), benchmarks: []runprotocol.BenchmarkMeasurement{}}
+	c.stream.rows = &goBenchmarkRows{deliver: c.observeRow}
+	return c, nil
 }
 
 func (c *GoTestObservationCompiler) Write(data []byte) (int, error) {
@@ -64,7 +69,7 @@ func (c *GoTestObservationCompiler) Write(data []byte) (int, error) {
 		if index == len(data) {
 			break
 		}
-		if err := c.stream.consume(data[index], c.consumeProjection); err != nil {
+		if err := c.stream.consume(data[index], c.consumeEvent); err != nil {
 			c.failure = err
 			return len(data), nil
 		}
@@ -86,23 +91,32 @@ func (c *GoTestObservationCompiler) consumeProjection(event goJSONProjection) er
 	if err := c.observePackage(event); err != nil {
 		return err
 	}
-	if event.action == GoEventActionOutput {
-		return c.observeBenchmark(event.benchmark)
-	}
 	return nil
 }
 
-func (c *GoTestObservationCompiler) observeBenchmark(benchmark goBenchmarkStream) error {
-	measurement, present, err := benchmark.result()
-	if err != nil {
+// consumeEvent applies an event's accounting, then closes it for the shared
+// benchmark row reassembly that feeds observeRow.
+func (c *GoTestObservationCompiler) consumeEvent(event goJSONProjection) error {
+	if err := c.consumeProjection(event); err != nil {
 		return err
 	}
-	if present {
-		if len(c.benchmarks) >= runprotocol.BenchmarkMeasurementMaximum {
-			return observationFailure("go benchmark aggregate exceeds its nominal capacity", core.ErrPrimitiveContract)
-		}
-		c.benchmarks = append(c.benchmarks, measurement)
+	if err := c.stream.rows.endEvent(event); err != nil {
+		return err
 	}
+	c.committed = len(c.benchmarks)
+	return nil
+}
+
+// observeRow keeps complete measurements. This aggregate admits only them:
+// any other typed row is refused rather than silently dropped.
+func (c *GoTestObservationCompiler) observeRow(row runprotocol.GoBenchmarkRow) error {
+	if row.Kind != runprotocol.GoBenchmarkRowMeasured {
+		return observationFailure("go benchmark row is "+row.Kind.String()+", not a complete measurement", core.ErrJSONContract)
+	}
+	if len(c.benchmarks) >= runprotocol.BenchmarkMeasurementMaximum {
+		return observationFailure("go benchmark aggregate exceeds its nominal capacity", core.ErrPrimitiveContract)
+	}
+	c.benchmarks = append(c.benchmarks, *row.Measurement)
 	return nil
 }
 
@@ -149,7 +163,7 @@ func (c *GoTestObservationCompiler) Seal(executionErr error) (GoTestObservation,
 		result, err := c.unavailableObservation()
 		return result, errors.Join(c.failure, err)
 	}
-	if err := c.stream.finish(c.consumeProjection); err != nil {
+	if err := errors.Join(c.stream.finish(c.consumeEvent), c.stream.rows.interrupt()); err != nil {
 		c.failure = err
 		result, validationErr := c.unavailableObservation()
 		return result, errors.Join(err, validationErr)
@@ -159,6 +173,7 @@ func (c *GoTestObservationCompiler) Seal(executionErr error) (GoTestObservation,
 		result, validationErr := c.unavailableObservation()
 		return result, errors.Join(err, validationErr)
 	}
+	// A clean finish closed every frame, so every row is committed here.
 	result := GoTestObservation{Accounting: accounting, Benchmarks: append([]runprotocol.BenchmarkMeasurement(nil), c.benchmarks...)}
 	return result, result.Validate()
 }
@@ -186,7 +201,7 @@ func (c *GoTestObservationCompiler) unavailableObservation() (GoTestObservation,
 	}
 	attempt.Unavailable = c.policy.ExpectedUnits - terminal
 	accounting := runprotocol.ExecutionAccounting{Attempts: []runprotocol.ExecutionAttempt{attempt}}
-	result := GoTestObservation{Accounting: accounting, Benchmarks: append([]runprotocol.BenchmarkMeasurement(nil), c.benchmarks...)}
+	result := GoTestObservation{Accounting: accounting, Benchmarks: append([]runprotocol.BenchmarkMeasurement(nil), c.benchmarks[:c.committed]...)}
 	return result, result.Validate()
 }
 

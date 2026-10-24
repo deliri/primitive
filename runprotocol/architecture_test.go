@@ -46,6 +46,7 @@ type runProtocolJSONDoorInventory struct {
 	ProbeKind                func(*ProbeKind, []byte) error
 	ProbeTargetKind          func(*ProbeTargetKind, []byte) error
 	MachineProbeReport       func(*MachineProbeReport, []byte) error
+	GoBenchmarkRowKind       func(*GoBenchmarkRowKind, []byte) error
 }
 
 var runProtocolJSONDoors = runProtocolJSONDoorInventory{
@@ -77,6 +78,7 @@ var runProtocolJSONDoors = runProtocolJSONDoorInventory{
 	ProbeKind:                (*ProbeKind).UnmarshalJSON,
 	ProbeTargetKind:          (*ProbeTargetKind).UnmarshalJSON,
 	MachineProbeReport:       (*MachineProbeReport).UnmarshalJSON,
+	GoBenchmarkRowKind:       (*GoBenchmarkRowKind).UnmarshalJSON,
 }
 
 type aboutTextDoorInventory struct {

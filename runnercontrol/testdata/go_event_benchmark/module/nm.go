@@ -1,0 +1,3 @@
+package nm
+
+func E() {}

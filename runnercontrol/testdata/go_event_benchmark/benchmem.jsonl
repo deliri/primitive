@@ -1,0 +1,22 @@
+{"Time":"2026-10-24T00:34:23.895328-04:00","Action":"start","Package":"example.com/nm"}
+{"Time":"2026-10-24T00:34:24.032327-04:00","Action":"output","Package":"example.com/nm","Output":"goos: darwin\n"}
+{"Time":"2026-10-24T00:34:24.032451-04:00","Action":"output","Package":"example.com/nm","Output":"goarch: arm64\n"}
+{"Time":"2026-10-24T00:34:24.032458-04:00","Action":"output","Package":"example.com/nm","Output":"pkg: example.com/nm\n"}
+{"Time":"2026-10-24T00:34:24.032467-04:00","Action":"output","Package":"example.com/nm","Output":"cpu: Apple M1 Max\n"}
+{"Time":"2026-10-24T00:34:24.032482-04:00","Action":"run","Package":"example.com/nm","Test":"BenchmarkB"}
+{"Time":"2026-10-24T00:34:24.032487-04:00","Action":"output","Package":"example.com/nm","Test":"BenchmarkB","Output":"=== RUN   BenchmarkB\n","OutputType":"frame"}
+{"Time":"2026-10-24T00:34:24.032501-04:00","Action":"output","Package":"example.com/nm","Test":"BenchmarkB","Output":"BenchmarkB\n"}
+{"Time":"2026-10-24T00:34:24.033854-04:00","Action":"output","Package":"example.com/nm","Test":"BenchmarkB","Output":"BenchmarkB       \t       1\t       333.0 ns/op\t       0 B/op\t       0 allocs/op\n"}
+{"Time":"2026-10-24T00:34:24.034504-04:00","Action":"output","Package":"example.com/nm","Output":"BenchmarkB-2     \t"}
+{"Time":"2026-10-24T00:34:24.034613-04:00","Action":"output","Package":"example.com/nm","Output":"       1\t        83.00 ns/op\t       0 B/op\t       0 allocs/op\n"}
+{"Time":"2026-10-24T00:34:24.034687-04:00","Action":"run","Package":"example.com/nm","Test":"BenchmarkSub"}
+{"Time":"2026-10-24T00:34:24.034694-04:00","Action":"output","Package":"example.com/nm","Test":"BenchmarkSub","Output":"=== RUN   BenchmarkSub\n","OutputType":"frame"}
+{"Time":"2026-10-24T00:34:24.034699-04:00","Action":"output","Package":"example.com/nm","Test":"BenchmarkSub","Output":"BenchmarkSub\n"}
+{"Time":"2026-10-24T00:34:24.035629-04:00","Action":"run","Package":"example.com/nm","Test":"BenchmarkSub/s"}
+{"Time":"2026-10-24T00:34:24.035667-04:00","Action":"output","Package":"example.com/nm","Test":"BenchmarkSub/s","Output":"=== RUN   BenchmarkSub/s\n","OutputType":"frame"}
+{"Time":"2026-10-24T00:34:24.035674-04:00","Action":"output","Package":"example.com/nm","Test":"BenchmarkSub/s","Output":"BenchmarkSub/s\n"}
+{"Time":"2026-10-24T00:34:24.036012-04:00","Action":"output","Package":"example.com/nm","Test":"BenchmarkSub/s","Output":"BenchmarkSub/s   \t       1\t       250.0 ns/op\t       0 B/op\t       0 allocs/op\n"}
+{"Time":"2026-10-24T00:34:24.0365-04:00","Action":"output","Package":"example.com/nm","Output":"BenchmarkSub/s-2 \t       1\t        83.00 ns/op\t       0 B/op\t       0 allocs/op\n"}
+{"Time":"2026-10-24T00:34:24.036559-04:00","Action":"output","Package":"example.com/nm","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-24T00:34:24.037268-04:00","Action":"output","Package":"example.com/nm","Output":"ok  \texample.com/nm\t0.142s\n"}
+{"Time":"2026-10-24T00:34:24.037286-04:00","Action":"pass","Package":"example.com/nm","Elapsed":0.142}
