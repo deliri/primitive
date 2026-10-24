@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_binary_operands.go
++++ b/gotoolchain/ssa_binary_operands.go
+@@ -52,7 +52,7 @@
+ 		}
+ 	}()
+ 	if err = errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), v.Validate(), r.Validate()); err != nil {
+-		return out, err
++		return out, core.ErrGoToolchainContract
+ 	}
+ 	if r.Function.Prog != v.Program || r.Function.Pkg != v.Package {
+ 		return out, core.ErrGoToolchainContract

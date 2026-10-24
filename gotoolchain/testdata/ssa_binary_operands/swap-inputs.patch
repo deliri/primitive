@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_binary_operands.go
++++ b/gotoolchain/ssa_binary_operands.go
+@@ -72,7 +72,7 @@
+ 			return out, err
+ 		}
+ 	}
+-	return SSABinaryOperandsObservation{Left: r.Operation.X, Right: r.Operation.Y}, nil
++	return SSABinaryOperandsObservation{Left: r.Operation.Y, Right: r.Operation.X}, nil
+ }
+ 
+ var _ internalFlow = SSABinaryOperandsRequest{}

@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_binary_operands.go
++++ b/gotoolchain/ssa_binary_operands.go
+@@ -68,7 +68,7 @@
+ 		return out, nil
+ 	}
+ 	for _, operand := range [2]ssa.Value{r.Operation.X, r.Operation.Y} {
+-		if err = v.fieldReadOperandBefore(ctx, operand, r.Operation); err != nil {
++		if err = v.fieldReadOperandBefore(ctx, operand, r.Operation); false && err != nil {
+ 			return out, err
+ 		}
+ 	}

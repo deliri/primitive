@@ -1,0 +1,13 @@
+--- a/gotoolchain/ssa_binary_operands.go
++++ b/gotoolchain/ssa_binary_operands.go
+@@ -60,7 +60,9 @@
+ 	if err = v.referrerInstructionMembership(r.Operation); err != nil {
+ 		return out, err
+ 	}
+-	untaken, queryErr := argumentCallUntakenBlock(r.Operation.Block())
++	retained := append([]ssa.Instruction(nil), r.Function.Blocks[0].Instrs...)
++ if len(retained) == 0 { return out,nil }
++ untaken, queryErr := argumentCallUntakenBlock(r.Operation.Block())
+ 	if queryErr != nil {
+ 		return out, queryErr
+ 	}

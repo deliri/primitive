@@ -1,0 +1,26 @@
+[
+  {
+    "fault": "skip-instruction-custody",
+    "filter": "^TestSSABinaryOperandsRefusesBrokenNativeCustody$/detached_operation$"
+  },
+  {
+    "fault": "skip-input-custody",
+    "filter": "^TestSSABinaryOperandsLayerTriad$/hostile_second_input$"
+  },
+  {
+    "fault": "swap-inputs",
+    "filter": "^TestSSABinaryOperandsLayerTriad$/native_inputs$"
+  },
+  {
+    "fault": "drop-right",
+    "filter": "^TestSSABinaryOperandsLayerTriad$/native_inputs$"
+  },
+  {
+    "fault": "lose-cause",
+    "filter": "^TestSSABinaryOperandsRefusesBrokenNativeCustody$/native_cancellation$"
+  },
+  {
+    "fault": "copy-instruction-world",
+    "filter": "^TestSSABinaryOperandsRetainsNoInstructionPopulation$/8193$"
+  }
+]

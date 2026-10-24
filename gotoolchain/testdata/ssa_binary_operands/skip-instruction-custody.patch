@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_binary_operands.go
++++ b/gotoolchain/ssa_binary_operands.go
+@@ -57,7 +57,7 @@
+ 	if r.Function.Prog != v.Program || r.Function.Pkg != v.Package {
+ 		return out, core.ErrGoToolchainContract
+ 	}
+-	if err = v.referrerInstructionMembership(r.Operation); err != nil {
++	if err = v.referrerInstructionMembership(r.Operation); false && err != nil {
+ 		return out, err
+ 	}
+ 	untaken, queryErr := argumentCallUntakenBlock(r.Operation.Block())
