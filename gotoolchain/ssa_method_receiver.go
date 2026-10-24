@@ -73,6 +73,19 @@ func (v SSAUnitView) MethodReceiver(ctx context.Context, r SSAMethodReceiverRequ
 	if !nativeReceiverValuePresent(common.Value) {
 		return out, core.ErrGoToolchainOutput
 	}
+	signature, signatureErr := nativeArgumentCallSignature(common)
+	if signatureErr != nil {
+		return out, signatureErr
+	}
+	if err = v.sourceCallArguments(ctx, r.Call, signature); err != nil {
+		return out, err
+	}
+	if _, builtin := common.Value.(*ssa.Builtin); builtin {
+		return out, nil
+	}
+	if err = v.functionArgumentBefore(ctx, common.Value, r.Call); err != nil {
+		return out, err
+	}
 	if closure, bound := common.Value.(*ssa.MakeClosure); bound {
 		if target, native := closure.Fn.(*ssa.Function); !native || target == nil {
 			return out, core.ErrGoToolchainOutput

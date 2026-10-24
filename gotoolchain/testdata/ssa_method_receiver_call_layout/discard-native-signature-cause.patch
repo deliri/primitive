@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_function_argument.go
++++ b/gotoolchain/ssa_function_argument.go
+@@ -75,7 +75,7 @@
+ 		if failure := recover(); failure != nil {
+ 			signature, err = nil, core.ErrGoToolchainOutput
+ 			if cause, native := failure.(error); native {
+-				err = errors.Join(err, cause)
++				_ = cause
+ 			}
+ 		}
+ 	}()

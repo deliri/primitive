@@ -1,0 +1,13 @@
+--- a/gotoolchain/ssa_method_receiver.go
++++ b/gotoolchain/ssa_method_receiver.go
+@@ -83,9 +83,7 @@
+ 	if _, builtin := common.Value.(*ssa.Builtin); builtin {
+ 		return out, nil
+ 	}
+-	if err = v.functionArgumentBefore(ctx, common.Value, r.Call); err != nil {
+-		return out, err
+-	}
++	
+ 	if closure, bound := common.Value.(*ssa.MakeClosure); bound {
+ 		if target, native := closure.Fn.(*ssa.Function); !native || target == nil {
+ 			return out, core.ErrGoToolchainOutput
