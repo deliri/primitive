@@ -66,6 +66,11 @@ func (o R2VerifiedObject) Key() R2Key                { return o.key }
 func (o R2VerifiedObject) Digest() core.SHA256Digest { return o.digest }
 func (o R2VerifiedObject) Extent() core.ByteLength   { return o.extent }
 
+// r2CredentialFileMaximumBytes bounds the static key file read into memory:
+// its two custody-bounded values plus JSON framing and whitespace. It is a
+// Primitive budget derived from the custody budget, not a Cloudflare limit.
+const r2CredentialFileMaximumBytes = 3 * core.CloudflareSecretCustodyMaximumBytes
+
 // r2CredentialFile is the strict on-disk shape of a static R2 key: exactly
 // these two members; any other member, token or profile is refused.
 type r2CredentialFile struct {
@@ -105,8 +110,9 @@ func UploadR2File(ctx context.Context, client R2Client, request R2FileUpload) (R
 	return verified, nil
 }
 
-// readR2Credentials reads a private credential file: one whose permissions
-// grant nothing to group or others. The read buffer is cleared on return.
+// readR2Credentials reads a private credential file: a regular file, not a
+// link, whose permissions grant nothing to group or others and whose size is
+// within its budget. The read buffer is cleared on return.
 func readR2Credentials(ctx context.Context, path core.AbsolutePath) (R2Credentials, error) {
 	location, err := filestore.OpenParent(ctx, path)
 	if err != nil {
@@ -132,13 +138,18 @@ func readPrivateR2Credentials(ctx context.Context, location filestore.Location) 
 	if err != nil {
 		return R2Credentials{}, err
 	}
-	if mode.Perm()&0o077 != 0 {
+	// Only a regular file has a size, so a link or other entry is refused here.
+	size, err := observed.SizeBytes()
+	if err != nil {
+		return R2Credentials{}, errors.Join(core.ErrCloudflareAuthentication, err)
+	}
+	if mode.Perm()&0o077 != 0 || size.Uint64() > r2CredentialFileMaximumBytes {
 		return R2Credentials{}, core.ErrCloudflareAuthentication
 	}
 	var buffer bytes.Buffer
 	defer func() { clear(buffer.Bytes()) }()
 	if _, err := filestore.Read(ctx, filestore.ReadRequest{Destination: &buffer, Location: location}); err != nil {
-		return R2Credentials{}, err
+		return R2Credentials{}, errors.Join(core.ErrCloudflareAuthentication, err)
 	}
 	return decodeR2Credentials(buffer.Bytes())
 }

@@ -13,6 +13,8 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"golang.org/x/sys/unix"
+
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
 	"github.com/deliri/primitive/v2026/filestore"
@@ -198,11 +200,18 @@ func TestUploadR2FileLocalProviderLayerTriad(t *testing.T) {
 			}
 		})
 	}
+	// Whitespace pads a valid document past the file budget, so only the
+	// budget can refuse it.
+	oversized := r2CredentialText + strings.Repeat(" ", r2CredentialFileMaximumBytes+1-len(r2CredentialText))
 	for _, credential := range []struct {
 		name, text string
 		mode       os.FileMode
+		// link plants the file as a symbolic link to a private, valid copy.
+		link bool
 	}{
 		{name: "group-readable", text: r2CredentialText, mode: 0o640},
+		{name: "one byte past its budget", text: oversized, mode: 0o600},
+		{name: "reached through a symbolic link", text: r2CredentialText, mode: 0o600, link: true},
 		{name: "carrying an unknown member", text: `{"access_key_id":"r2-access-key","secret_access_key":"r2-secret-key","region":"auto"}`, mode: 0o600},
 		{name: "carrying a session token", text: `{"access_key_id":"r2-access-key","secret_access_key":"r2-secret-key","session_token":"t"}`, mode: 0o600},
 		{name: "missing its secret", text: `{"access_key_id":"r2-access-key"}`, mode: 0o600},
@@ -213,6 +222,22 @@ func TestUploadR2FileLocalProviderLayerTriad(t *testing.T) {
 			directory := t.TempDir()
 			f := newR2FileFixture(t, directory, r2FileStore)
 			path := filepath.Join(directory, "r2.json")
+			if credential.link {
+				path = filepath.Join(directory, "r2-target.json")
+				if err := os.Remove(filepath.Join(directory, "r2.json")); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.Symlink("r2-target.json", filepath.Join(directory, "r2.json")); err != nil {
+					t.Fatal(err)
+				}
+				// Where the platform allows it (macOS), the link itself is made
+				// private, so only the regular-file rule can refuse it. Linux
+				// links always carry 0777, which the permission rule refuses.
+				err := unix.Fchmodat(unix.AT_FDCWD, filepath.Join(directory, "r2.json"), 0o600, unix.AT_SYMLINK_NOFOLLOW)
+				if err != nil && !errors.Is(err, unix.EOPNOTSUPP) && !errors.Is(err, unix.ENOTSUP) {
+					t.Fatalf("private link mode: %v", err)
+				}
+			}
 			if err := os.WriteFile(path, []byte(credential.text), 0o600); err != nil {
 				t.Fatal(err)
 			}
@@ -225,6 +250,19 @@ func TestUploadR2FileLocalProviderLayerTriad(t *testing.T) {
 			}
 		})
 	}
+	t.Run("neutral/a credential file exactly at its budget verifies", func(t *testing.T) {
+		t.Parallel()
+		directory := t.TempDir()
+		f := newR2FileFixture(t, directory, r2FileStore)
+		padded := r2CredentialText + strings.Repeat(" ", r2CredentialFileMaximumBytes-len(r2CredentialText))
+		if err := os.WriteFile(filepath.Join(directory, "r2.json"), []byte(padded), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		got, err := UploadR2File(t.Context(), f.client, f.request)
+		if err != nil || got.Validate() != nil {
+			t.Fatalf("UploadR2File with a %d-byte credential file = (%+v, %v), want verified proof", len(padded), got, err)
+		}
+	})
 	t.Run("neutral/a cancelled upload sends nothing and proves nothing", func(t *testing.T) {
 		t.Parallel()
 		f := newR2FileFixture(t, t.TempDir(), r2FileStore)
