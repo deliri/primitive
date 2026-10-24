@@ -1,0 +1,11 @@
+--- a/gotoolchain/expression_source.go
++++ b/gotoolchain/expression_source.go
+@@ -64,7 +64,7 @@
+ 			if walkErr = temporal.Wait(temporal.WaitRequest{Context: ctx}); walkErr != nil {
+ 				return false
+ 			}
+-			if node != expression {
++			if node.Pos() != expression.Pos() || node.End() != expression.End() {
+ 				return true
+ 			}
+ 			found = true

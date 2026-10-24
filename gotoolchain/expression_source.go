@@ -9,7 +9,6 @@ import (
 
 	pc "github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/temporal"
-	"golang.org/x/tools/go/ast/astutil"
 	"golang.org/x/tools/go/ssa"
 )
 
@@ -52,8 +51,34 @@ func (v SSAUnitView) expressionValue(ctx context.Context, request ExpressionRequ
 		if expression.Pos() < file.Pos() || expression.End() > file.End() {
 			continue
 		}
-		path, _ := astutil.PathEnclosingInterval(file, expression.Pos(), expression.End())
-		if len(path) == 0 || path[0] != expression {
+		// Only the three outer nodes select Go's package-level frame. Borrow
+		// them from the standard walker; PathEnclosingInterval constructs a
+		// sibling slice proportional to a block's complete statement list.
+		var path [3]ast.Node
+		found := false
+		var walkErr error
+		ast.PreorderStack(file, nil, func(node ast.Node, ancestors []ast.Node) bool {
+			if found || walkErr != nil {
+				return false
+			}
+			if walkErr = temporal.Wait(temporal.WaitRequest{Context: ctx}); walkErr != nil {
+				return false
+			}
+			if node != expression {
+				return true
+			}
+			found = true
+			if len(ancestors) < len(path) {
+				walkErr = pc.ErrGoToolchainOutput
+				return false
+			}
+			path = [3]ast.Node{ancestors[2], ancestors[1], ancestors[0]}
+			return false
+		})
+		if walkErr != nil {
+			return nil, types.TypeAndValue{}, false, walkErr
+		}
+		if !found {
 			continue
 		}
 		facts, present := v.Source.TypesInfo.Types[expression]
@@ -65,7 +90,7 @@ func (v SSAUnitView) expressionValue(ctx context.Context, request ExpressionRequ
 		}
 		// Begin at the native package-level frame. EnclosingFunction follows
 		// FuncLit syntax alone and omits Go's generated iterator yield frames.
-		frame := ssa.EnclosingFunction(v.Package, path[len(path)-3:])
+		frame := ssa.EnclosingFunction(v.Package, path[:])
 		if frame == nil {
 			return nil, types.TypeAndValue{}, false, pc.ErrGoToolchainOutput
 		}

@@ -1,0 +1,11 @@
+--- a/gotoolchain/expression_source.go
++++ b/gotoolchain/expression_source.go
+@@ -72,7 +72,7 @@
+ 				walkErr = pc.ErrGoToolchainOutput
+ 				return false
+ 			}
+-			path = [3]ast.Node{ancestors[2], ancestors[1], ancestors[0]}
++			path = [3]ast.Node{ancestors[len(ancestors)-1], ancestors[len(ancestors)-2], ancestors[len(ancestors)-3]}
+ 			return false
+ 		})
+ 		if walkErr != nil {
