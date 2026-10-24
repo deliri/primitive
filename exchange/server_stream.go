@@ -287,18 +287,26 @@ type StreamWriteCall struct {
 	Response ServerStreamResponse
 }
 
-// ServerProducedResponse writes an unknown-length response directly to the
-// socket. Produce must write incrementally and return its own failure.
+// ServerProducedResponse writes incremental bytes directly to the socket.
+// ContentLength is optional. A positive declared extent holds its final byte
+// until Produce succeeds, so a late failure cannot finish that HTTP body.
+// Zero waits for Produce before committing headers. On error the caller must
+// send a failure response or abort; Go otherwise sends an implicit empty 200.
+// Produce must return its own failure; no whole-response buffer is retained.
 type ServerProducedResponse struct {
-	Produce     func(context.Context, io.Writer) error
-	ContentType core.HTTPMediaType
-	Headers     ResponseHeaders
-	Status      core.HTTPStatusCode
+	Produce       func(context.Context, io.Writer) error
+	ContentLength *core.ByteLength
+	ContentType   core.HTTPMediaType
+	Headers       ResponseHeaders
+	Status        core.HTTPStatusCode
 }
 
 func (r ServerProducedResponse) Validate() error {
 	if r.Produce == nil {
 		return responseError(core.ErrExchangeContract)
+	}
+	if _, err := streamContentLength(r.ContentLength); err != nil {
+		return responseError(err)
 	}
 	if err := r.ContentType.Validate(); err != nil {
 		return responseError(core.ErrExchangeContentType)
@@ -325,12 +333,16 @@ func (call ProducedWriteCall) Validate() error {
 	if err := call.Call.validateWrite(); err != nil {
 		return err
 	}
+	if call.Response.ContentLength != nil && call.Call.request.Method == http.MethodHead {
+		return responseError(core.ErrExchangeContract)
+	}
 	return call.Response.Validate()
 }
 
 // WriteProduced lets a caller produce bytes into Go's ResponseWriter without
-// an intermediate pipe or a whole-response buffer. Each successful Write
-// flushes through Go so a producer can await acknowledgement of progress.
+// an intermediate pipe or a whole-response buffer. Prefix writes flush through
+// Go; an exact response retains its final byte until Produce succeeds. HEAD
+// refuses that exact mode because Go sends no response body for that method.
 func WriteProduced(call ProducedWriteCall) error {
 	if err := call.Validate(); err != nil {
 		return err
@@ -339,6 +351,9 @@ func WriteProduced(call ProducedWriteCall) error {
 		ctx, err := call.Call.Context()
 		if err != nil {
 			return responseError(err)
+		}
+		if call.Response.ContentLength != nil {
+			return writeProducedExtent(ctx, call)
 		}
 		writer := call.Call.writer
 		applyResponseHeaders(writer.Header(), call.Response.Headers)
@@ -351,6 +366,102 @@ func WriteProduced(call ProducedWriteCall) error {
 		}
 		return nil
 	})
+}
+
+// The exact writer retains only the final byte, not an input-dependent buffer.
+// Its sticky failure also catches a producer which ignores a rejected Write.
+type producedExtentWriter struct {
+	destination producedResponseWriter
+	remaining   uint64
+	final       [1]byte
+	hasFinal    bool
+	failure     error
+}
+
+func (w *producedExtentWriter) Write(data []byte) (int, error) {
+	if w.failure != nil {
+		return 0, w.failure
+	}
+	if err := contextAfterTransfer(w.destination.context); err != nil {
+		w.failure = err
+		return 0, err
+	}
+	if uint64(len(data)) > w.remaining {
+		w.failure = core.ErrExchangeBodyLimit
+		return 0, w.failure
+	}
+	if len(data) == 0 {
+		return 0, nil
+	}
+	forward := data
+	finishes := uint64(len(data)) == w.remaining
+	if finishes {
+		forward = data[:len(data)-1]
+	}
+	n := 0
+	var err error
+	if len(forward) != 0 {
+		n, err = w.destination.Write(forward)
+		if n < 0 || n > len(forward) {
+			w.failure = errors.Join(core.ErrExchangeContract, err)
+			return 0, w.failure
+		}
+		w.remaining -= uint64(n)
+		if err != nil {
+			w.failure = err
+			return n, err
+		}
+	}
+	if finishes {
+		w.final[0], w.hasFinal = data[len(data)-1], true
+		w.remaining--
+		n++
+	}
+	return n, nil
+}
+
+func writeProducedExtent(ctx context.Context, call ProducedWriteCall) error {
+	length, err := streamContentLength(call.Response.ContentLength)
+	if err != nil {
+		return responseError(err)
+	}
+	writer := call.Call.writer
+	commit := func() {
+		applyResponseHeaders(writer.Header(), call.Response.Headers)
+		writer.Header().Set(core.HTTPHeaderContentType().String(), call.Response.ContentType.String())
+		writer.Header().Set(core.HTTPHeaderContentLength().String(), strconv.FormatInt(length, 10))
+		status, _ := call.Response.Status.Int()
+		writer.WriteHeader(status)
+	}
+	if length != 0 {
+		commit()
+	}
+	destination := producedResponseWriter{context: ctx, writer: writer}
+	exact := producedExtentWriter{destination: destination, remaining: uint64(length)}
+	producerErr := call.Response.Produce(ctx, &exact)
+	if err := errors.Join(producerErr, exact.failure); err != nil {
+		return errors.Join(core.ErrExchangeResponse, core.ErrExchangeWrite, err)
+	}
+	if exact.remaining != 0 {
+		return errors.Join(core.ErrExchangeResponse, core.ErrExchangeWrite, io.ErrUnexpectedEOF)
+	}
+	if err := contextAfterTransfer(ctx); err != nil {
+		return errors.Join(core.ErrExchangeResponse, core.ErrExchangeWrite, err)
+	}
+	if length == 0 {
+		commit()
+	} else if !exact.hasFinal {
+		return responseError(core.ErrExchangeContract)
+	}
+	var final []byte
+	if exact.hasFinal {
+		final = exact.final[:]
+	}
+	_, err = destination.Write(final)
+	if err != nil {
+		return errors.Join(core.ErrExchangeResponse, core.ErrExchangeWrite, err)
+	}
+	return nil
 }
 
 type producedResponseWriter struct {

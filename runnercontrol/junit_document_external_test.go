@@ -16,11 +16,11 @@ func TestJUnitDocumentFramingLayerTriad(t *testing.T) {
 		wantErr        error
 		name, document string
 	}{
-		{name: "one document contributes one testcase", document: "<testcase/>"},
-		{name: "surrounding XML whitespace contributes no evidence", document: " \t\r\n<testcase/> \t\r\n"},
-		{name: "two roots cannot merge evidence", document: "<testcase/><empty/>", wantErr: core.ErrPrimitiveContract},
-		{name: "leading text cannot be discarded", document: "noise<testcase/>", wantErr: core.ErrPrimitiveContract},
-		{name: "trailing text cannot be discarded", document: "<testcase/>noise", wantErr: core.ErrPrimitiveContract},
+		{name: "one document contributes one testcase", document: "<testsuite><testcase/></testsuite>"},
+		{name: "surrounding XML whitespace contributes no evidence", document: " \t\r\n<testsuite><testcase/></testsuite> \t\r\n"},
+		{name: "two roots cannot merge evidence", document: "<testsuite><testcase/></testsuite><empty/>", wantErr: core.ErrPrimitiveContract},
+		{name: "leading text cannot be discarded", document: "noise<testsuite><testcase/></testsuite>", wantErr: core.ErrPrimitiveContract},
+		{name: "trailing text cannot be discarded", document: "<testsuite><testcase/></testsuite>noise", wantErr: core.ErrPrimitiveContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

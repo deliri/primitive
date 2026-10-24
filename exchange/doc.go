@@ -12,6 +12,11 @@
 //
 // DNS, TLS, proxies, connections, framing, pooling, and scheduling remain with
 // net/http and the operating system.
+// WriteProduced can declare an exact positive ContentLength. It streams with a
+// one-byte final window and flushes that byte only after the producer succeeds;
+// joined cleanup then need not delay framed EOF. Zero delays headers until the
+// producer finishes; on error the caller must send a failure response or abort,
+// because Go otherwise sends its implicit empty 200.
 // DialTCP also lends a native TCP connection to a configured HTTP transport:
 // its typed concrete peer can differ from the HTTP/TLS authority, without
 // rewriting a signed request or replacing TLS verification. Its context

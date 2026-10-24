@@ -246,6 +246,7 @@ type exchangeContractInventory struct {
 	ServerProducedResponse     protocolContract[ServerProducedResponse]
 	ProducedWriteCall          protocolContract[ProducedWriteCall]
 	producedResponseWriter     internalFlow[producedResponseWriter]
+	producedExtentWriter       internalFlow[producedExtentWriter]
 	ServerBoundedResponse      protocolContract[ServerBoundedResponse]
 	BoundedWriteCall           protocolContract[BoundedWriteCall]
 	JSONSocketContract         protocolContract[JSONSocketContract]
@@ -469,6 +470,7 @@ func classifiedStructNames(t *testing.T) []string {
 	t.Helper()
 	inventory := exchangeContractInventory{
 		producedResponseWriter:         internalFlow[producedResponseWriter]{},
+		producedExtentWriter:           internalFlow[producedExtentWriter]{},
 		observedStandardResponseWriter: capabilityWrapper[observedStandardResponseWriter]{},
 		observedStreamWriter:           capabilityWrapper[observedStreamWriter]{},
 	}

@@ -114,6 +114,7 @@ func (MachineObservationSubmission) runnerControlProtocolFact()     {}
 func (MachineObservationReceipt) runnerControlProtocolFact()        {}
 func (MachineResourceCapacity) runnerControlProtocolFact()          {}
 func (ResourceReservation) runnerControlProtocolFact()              {}
+func (JUnitSummary) runnerControlProtocolFact()                     {}
 func (JUnitObservation) runnerControlProtocolFact()                 {}
 func (ExternalExecutionEnvironment) runnerControlProtocolFact()     {}
 func (ExternalPlanBase) runnerControlProtocolFact()                 {}
@@ -230,6 +231,7 @@ func (CancellationClient) runnerControlCapabilityWrapper()          {}
 func (CancellationServer) runnerControlCapabilityWrapper()          {}
 func (RunStateClient) runnerControlCapabilityWrapper()              {}
 func (RunStateServer) runnerControlCapabilityWrapper()              {}
+func (JUnitSummaryCompiler) runnerControlCapabilityWrapper()        {}
 func (JUnitObservationCompiler) runnerControlCapabilityWrapper()    {}
 
 var (
@@ -331,6 +333,7 @@ var (
 	_ protocolFact = MachineObservationReceipt{}
 	_ protocolFact = MachineResourceCapacity{}
 	_ protocolFact = ResourceReservation{}
+	_ protocolFact = JUnitSummary{}
 	_ protocolFact = JUnitObservation{}
 	_ protocolFact = ExternalExecutionEnvironment{}
 	_ protocolFact = ExternalPlanBase{}
@@ -447,5 +450,6 @@ var (
 	_ capabilityWrapper = CancellationServer{}
 	_ capabilityWrapper = RunStateClient{}
 	_ capabilityWrapper = RunStateServer{}
+	_ capabilityWrapper = JUnitSummaryCompiler{}
 	_ capabilityWrapper = JUnitObservationCompiler{}
 )

@@ -111,7 +111,7 @@ func junitHostileCases() []junitBoundaryCase {
 		junitReject("rejection unresolved entity is malformed external input", "rejection", `<testsuite><testcase>&unknown;</testcase></testsuite>`, 1),
 		junitReject("rejection mismatched closing element is malformed", "rejection", `<testsuite><testcase></testsuite>`, 1),
 
-		junitPass("boundary self-closing testcase is an exact passing unit", "boundary", `<testcase name="one"/>`, 1),
+		junitPass("boundary self-closing testcase is an exact passing unit", "boundary", `<testsuite><testcase name="one"/></testsuite>`, 1),
 		{name: "boundary one observed below two planned remains explicit not-run evidence", class: "boundary", document: pass, wantUnits: 2, want: junitAttempt(2, 1, 0, 0, 1, false)},
 		junitPassCount("boundary exact planned count is admitted", "boundary", `<testsuite><testcase/><testcase/></testsuite>`, 2, 2),
 		junitReject("boundary one case above the denominator is refused", "boundary", `<testsuite><testcase/><testcase/><testcase/></testsuite>`, 2),
@@ -171,7 +171,7 @@ func junitAttempt(planned, passed, failed, skipped, notRun uint32, filtered bool
 }
 
 func nestedJUnit(depth int, inner string) string {
-	return strings.Repeat("<suite>", depth-2) + inner + strings.Repeat("</suite>", depth-2)
+	return strings.Repeat("<testsuite>", depth-2) + inner + strings.Repeat("</testsuite>", depth-2)
 }
 
 func writeJUnitChunks(t testing.TB, compiler *runnercontrol.JUnitObservationCompiler, document string, size int) {
@@ -185,7 +185,7 @@ func writeJUnitChunks(t testing.TB, compiler *runnercontrol.JUnitObservationComp
 	for start := 0; start < len(document); start += size {
 		end := min(start+size, len(document))
 		if _, err := compiler.Write([]byte(document[start:end])); err != nil {
-			t.Fatalf("JUnitObservationCompiler.Write(%d:%d) error = %v, want nil until Seal classifies the stream", start, end, err)
+			return // Seal retains and classifies an early parser refusal.
 		}
 	}
 }
