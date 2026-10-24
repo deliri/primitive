@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_phi_inputs.go
++++ b/gotoolchain/ssa_phi_inputs.go
+@@ -50,7 +50,7 @@
+ 	return func(yield func(SSAPhiInputObservation, error) bool) {
+ 		refuse := func(err error) { yield(SSAPhiInputObservation{}, err) }
+ 		if err := errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), v.Validate(), r.Validate()); err != nil {
+-			refuse(err)
++			refuse(core.ErrGoToolchainContract)
+ 			return
+ 		}
+ 		if r.Function.Prog != v.Program || r.Function.Pkg != v.Package {

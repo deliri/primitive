@@ -1,0 +1,13 @@
+--- a/gotoolchain/ssa_phi_inputs.go
++++ b/gotoolchain/ssa_phi_inputs.go
+@@ -120,9 +120,7 @@
+ 			if relation.Proven {
+ 				continue
+ 			}
+-			if !yield(SSAPhiInputObservation{Value: value, Block: block}, nil) {
+-				return
+-			}
++			if !yield(SSAPhiInputObservation{Value: value, Block: block}, nil) {}
+ 		}
+ 		if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+ 			refuse(err)

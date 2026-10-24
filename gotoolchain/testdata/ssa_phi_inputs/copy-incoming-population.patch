@@ -1,0 +1,10 @@
+--- a/gotoolchain/ssa_phi_inputs.go
++++ b/gotoolchain/ssa_phi_inputs.go
+@@ -61,6 +61,7 @@
+ 			refuse(err)
+ 			return
+ 		}
++		r.Merge.Edges = append([]ssa.Value(nil), r.Merge.Edges...)
+ 		block := r.Merge.Block()
+ 		untaken, err := argumentCallUntakenBlock(block)
+ 		if err != nil {

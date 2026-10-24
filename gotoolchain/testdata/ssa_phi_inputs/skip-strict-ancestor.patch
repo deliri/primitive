@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_phi_inputs.go
++++ b/gotoolchain/ssa_phi_inputs.go
+@@ -76,7 +76,7 @@
+ 				refuse(err)
+ 				return
+ 			}
+-			if block == r.AncestorOf || !relation.Proven {
++			if false && (block == r.AncestorOf || !relation.Proven) {
+ 				return
+ 			}
+ 		}

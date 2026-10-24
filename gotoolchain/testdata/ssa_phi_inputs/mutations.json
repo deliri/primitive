@@ -1,0 +1,47 @@
+[
+  {
+    "fault": "skip-merge-custody",
+    "filter": "^TestSSAPhiInputsRefusesBrokenNativeCustody$/^cloned_merge$",
+    "patch": "skip-merge-custody.patch"
+  },
+  {
+    "fault": "skip-input-custody",
+    "filter": "^TestSSAPhiInputsLayerTriad$/^hostile_trailing_input$",
+    "patch": "skip-input-custody.patch"
+  },
+  {
+    "fault": "skip-layout-check",
+    "filter": "^TestSSAPhiInputsRefusesBrokenNativeCustody$/^missing_predecessor$",
+    "patch": "skip-layout-check.patch"
+  },
+  {
+    "fault": "skip-strict-ancestor",
+    "filter": "^TestSSAPhiInputsLayerTriad$/^same_block_is_not_strict_ancestor$",
+    "patch": "skip-strict-ancestor.patch"
+  },
+  {
+    "fault": "include-loop-carried-value",
+    "filter": "^TestSSAPhiInputsNativeAncestryAndLoopBoundaries$/^loop_backedge_is_not_source_input$",
+    "patch": "include-loop-carried-value.patch"
+  },
+  {
+    "fault": "ignore-consumer-stop",
+    "filter": "^TestSSAPhiInputsPreservesConsumerStopAndCancellation$",
+    "patch": "ignore-consumer-stop.patch"
+  },
+  {
+    "fault": "lose-native-cause",
+    "filter": "^TestSSAPhiInputsRefusesBrokenNativeCustody$/^native_cancellation_cause$",
+    "patch": "lose-native-cause.patch"
+  },
+  {
+    "fault": "copy-incoming-population",
+    "filter": "^TestSSAPhiInputsRetainsNoIncomingPopulation$/^8193$",
+    "patch": "copy-incoming-population.patch"
+  },
+  {
+    "fault": "restore-nil-origin-ownership",
+    "filter": "^TestSSAPhiInputsRefusesClonedFunctionIdentity$",
+    "patch": "restore-nil-origin-ownership.patch"
+  }
+]

@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_phi_inputs.go
++++ b/gotoolchain/ssa_phi_inputs.go
+@@ -98,7 +98,7 @@
+ 				refuse(core.ErrGoToolchainOutput)
+ 				return
+ 			}
+-			if err := v.phiInputBefore(ctx, r.Function, predecessor, r.Merge.Edges[index]); err != nil {
++			if err := error(nil); err != nil {
+ 				refuse(err)
+ 				return
+ 			}

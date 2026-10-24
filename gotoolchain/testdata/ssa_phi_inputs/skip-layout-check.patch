@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_phi_inputs.go
++++ b/gotoolchain/ssa_phi_inputs.go
+@@ -80,7 +80,7 @@
+ 				return
+ 			}
+ 		}
+-		if len(r.Merge.Edges) == 0 || len(r.Merge.Edges) != len(block.Preds) {
++		if false {
+ 			refuse(core.ErrGoToolchainOutput)
+ 			return
+ 		}

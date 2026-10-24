@@ -182,7 +182,7 @@ func (v SSAUnitView) argumentBindingFunctionOwned(fn *ssa.Function) bool {
 	for fn != nil && fn.Prog == v.Program {
 		if object, ok := fn.Object().(*types.Func); ok {
 			owned := v.Program.FuncValue(object)
-			return owned != nil && owned.Origin() == fn.Origin()
+			return owned == fn || owned != nil && fn.Origin() != nil && owned == fn.Origin()
 		}
 		parent := fn.Parent()
 		if parent == nil {

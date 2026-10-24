@@ -1,0 +1,5 @@
+# Native Phi source inputs
+
+Witness has real reds for cloned and foreign merges, a hostile trailing incoming value accepted after a valid first count, and missing inputs becoming empty success. PhiInputs authenticates the selected merge and complete incoming layout before yielding. It delegates native block and instruction order/dominance to the existing Primitive queries, excludes loop-carried inputs and accepts an optional strict-ancestor constraint. No copied input graph, visited set, flow quota or benchmark meaning belongs here.
+
+Prove native/refusal/neutral triads, custody/layout/order/cause boundaries, natural and nested loops, ancestry and untaken blocks, consumer stop and cancellation, native input-kind source mutations, and32/8193 incoming branch allocation. All fixture-order mistakes remain development failures rather than claimed production reds. Source faults must fail actual assertions. Race and tools precede serial3s benchmark and semantic fuzz. Final lint and independent acceptance remain outstanding; arbitrary-depth retained stack and composed query time remain unverified.

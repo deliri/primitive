@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_phi_inputs.go
++++ b/gotoolchain/ssa_phi_inputs.go
+@@ -57,7 +57,7 @@
+ 			refuse(core.ErrGoToolchainContract)
+ 			return
+ 		}
+-		if err := v.referrerInstructionMembership(r.Merge); err != nil {
++		if err := error(nil); err != nil {
+ 			refuse(err)
+ 			return
+ 		}

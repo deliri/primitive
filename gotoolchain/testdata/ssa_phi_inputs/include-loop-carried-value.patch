@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_phi_inputs.go
++++ b/gotoolchain/ssa_phi_inputs.go
+@@ -117,7 +117,7 @@
+ 				refuse(err)
+ 				return
+ 			}
+-			if relation.Proven {
++			if relation.Proven && false {
+ 				continue
+ 			}
+ 			if !yield(SSAPhiInputObservation{Value: value, Block: block}, nil) {
