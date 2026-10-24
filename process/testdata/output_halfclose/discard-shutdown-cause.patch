@@ -1,9 +1,0 @@
---- a/process/stdio_halfclose_unix.go
-+++ b/process/stdio_halfclose_unix.go
-@@ -31,5 +31,5 @@
- 	if errors.Is(shutdownErr, syscall.ENOTSOCK) {
- 		shutdownErr = nil
- 	}
--	return errors.Join(controlErr, os.NewSyscallError("shutdown", shutdownErr))
-+	return errors.Join(controlErr, os.NewSyscallError("shutdown", nil))
- }
