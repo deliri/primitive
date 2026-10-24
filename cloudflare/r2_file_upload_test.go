@@ -109,6 +109,18 @@ type r2FileFixture struct {
 // r2CredentialText is the strict credential document the fixture writes.
 const r2CredentialText = `{"access_key_id":"r2-access-key","secret_access_key":"r2-secret-key"}`
 
+// r2TestCredentialBudget is the caller budget every fixture request carries.
+const r2TestCredentialBudget = 4096
+
+func r2TestBudget(t *testing.T) core.ByteCount {
+	t.Helper()
+	budget, err := core.NewByteCount(r2TestCredentialBudget)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return budget
+}
+
 func newR2FileFixture(t *testing.T, directory string, disposition r2FileDisposition) r2FileFixture {
 	t.Helper()
 	provider := &localR2{t: t, disposition: disposition}
@@ -139,7 +151,7 @@ func newR2FileFixture(t *testing.T, directory string, disposition r2FileDisposit
 		t.Fatal(err)
 	}
 	return r2FileFixture{provider: provider, client: client, request: R2FileUpload{
-		CredentialFile: path, Account: account, Jurisdiction: R2JurisdictionDefault,
+		CredentialFile: path, CredentialMaximumBytes: r2TestBudget(t), Account: account, Jurisdiction: R2JurisdictionDefault,
 		Bucket: intent.Bucket, Key: intent.Key, Source: bytes.NewReader(sealed),
 		Expected:    filestore.ContentIndexEntry{Digest: sha, Extent: extent},
 		ContentType: core.HTTPMediaTypeOctetStream(), SignedAt: intent.SignedAt, Expires: intent.Expires, Policy: testPolicy(),
@@ -206,7 +218,7 @@ func TestUploadR2FileLocalProviderLayerTriad(t *testing.T) {
 	}
 	// Whitespace pads a valid document past the file budget, so only the
 	// budget can refuse it.
-	oversized := r2CredentialText + strings.Repeat(" ", r2CredentialFileMaximumBytes+1-len(r2CredentialText))
+	oversized := r2CredentialText + strings.Repeat(" ", r2TestCredentialBudget+1-len(r2CredentialText))
 	for _, credential := range []struct {
 		name, text string
 		mode       os.FileMode
@@ -259,13 +271,23 @@ func TestUploadR2FileLocalProviderLayerTriad(t *testing.T) {
 		t.Parallel()
 		directory := t.TempDir()
 		f := newR2FileFixture(t, directory, r2FileStore)
-		padded := r2CredentialText + strings.Repeat(" ", r2CredentialFileMaximumBytes-len(r2CredentialText))
+		padded := r2CredentialText + strings.Repeat(" ", r2TestCredentialBudget-len(r2CredentialText))
 		if err := os.WriteFile(filepath.Join(directory, "r2.json"), []byte(padded), 0o600); err != nil {
 			t.Fatal(err)
 		}
 		got, err := UploadR2File(t.Context(), f.client, f.request)
 		if err != nil || got.Validate() != nil {
 			t.Fatalf("UploadR2File with a %d-byte credential file = (%+v, %v), want verified proof", len(padded), got, err)
+		}
+	})
+	t.Run("negative/a request without a credential budget is refused before any request", func(t *testing.T) {
+		t.Parallel()
+		f := newR2FileFixture(t, t.TempDir(), r2FileStore)
+		f.request.CredentialMaximumBytes = core.ByteCount{}
+		got, err := UploadR2File(t.Context(), f.client, f.request)
+		// A contract refusal, not an authentication one: the file is never read.
+		if !errors.Is(err, core.ErrCloudflareContract) || errors.Is(err, core.ErrCloudflareAuthentication) || got != (R2VerifiedObject{}) || f.provider.requests.Load() != 0 {
+			t.Fatalf("UploadR2File without a budget = (%+v, %v), requests %d, want zero proof, %v before the credential file is read and no request", got, err, f.provider.requests.Load(), core.ErrCloudflareContract)
 		}
 	})
 	t.Run("neutral/a cancelled upload sends nothing and proves nothing", func(t *testing.T) {
@@ -331,7 +353,7 @@ func TestR2SingleUploadBoundaryLayerTriad(t *testing.T) {
 type oversizedCredential struct{ consumed int }
 
 func (e *oversizedCredential) Read(data []byte) (int, error) {
-	if e.consumed >= 4*r2CredentialFileMaximumBytes {
+	if e.consumed >= 4*r2TestCredentialBudget {
 		return 0, io.EOF
 	}
 	for i := range data {
@@ -352,14 +374,14 @@ func TestR2CredentialReadIsBoundedLayerTriad(t *testing.T) {
 	t.Run("negative/a source far past its budget is refused within it", func(t *testing.T) {
 		t.Parallel()
 		source := &oversizedCredential{}
-		got, err := decodeBoundedR2Credentials(source)
-		if !errors.Is(err, core.ErrCloudflareAuthentication) || got.Validate() == nil || source.consumed > r2CredentialFileMaximumBytes+1 {
-			t.Fatalf("decode = (%v, %v) after consuming %d bytes, want %v within %d bytes", got.Validate(), err, source.consumed, core.ErrCloudflareAuthentication, r2CredentialFileMaximumBytes+1)
+		got, err := decodeBoundedR2Credentials(source, r2TestBudget(t))
+		if !errors.Is(err, core.ErrCloudflareAuthentication) || got.Validate() == nil || source.consumed > r2TestCredentialBudget+1 {
+			t.Fatalf("decode = (%v, %v) after consuming %d bytes, want %v within %d bytes", got.Validate(), err, source.consumed, core.ErrCloudflareAuthentication, r2TestCredentialBudget+1)
 		}
 	})
 	t.Run("positive/a document within its budget decodes", func(t *testing.T) {
 		t.Parallel()
-		got, err := decodeBoundedR2Credentials(strings.NewReader(r2CredentialText))
+		got, err := decodeBoundedR2Credentials(strings.NewReader(r2CredentialText), r2TestBudget(t))
 		if err != nil || got.Validate() != nil {
 			t.Fatalf("decode = (%v, %v), want valid credentials", got.Validate(), err)
 		}

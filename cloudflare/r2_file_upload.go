@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"strings"
 	"time"
 
@@ -22,23 +23,26 @@ import (
 // SHA-256 and extent; SignedAt and Expires bound both signed operations.
 type R2FileUpload struct {
 	CredentialFile core.AbsolutePath
-	Account        AccountID
-	Jurisdiction   R2Jurisdiction
-	Bucket         R2Bucket
-	Key            R2Key
-	Source         io.Reader
-	Expected       filestore.ContentIndexEntry
-	ContentType    core.HTTPMediaType
-	SignedAt       temporal.Instant
-	Expires        temporal.Duration
-	Policy         exchange.StreamPolicy
+	// CredentialMaximumBytes is the caller's explicit whole-file memory
+	// admission budget. It is not an R2 credential-size limit or a default.
+	CredentialMaximumBytes core.ByteCount
+	Account                AccountID
+	Jurisdiction           R2Jurisdiction
+	Bucket                 R2Bucket
+	Key                    R2Key
+	Source                 io.Reader
+	Expected               filestore.ContentIndexEntry
+	ContentType            core.HTTPMediaType
+	SignedAt               temporal.Instant
+	Expires                temporal.Duration
+	Policy                 exchange.StreamPolicy
 }
 
 func (r R2FileUpload) Validate() error {
 	if core.ReaderIsNil(r.Source) {
 		return core.ErrCloudflareContract
 	}
-	if err := errors.Join(r.CredentialFile.Validate(), r.Account.Validate(), r.Jurisdiction.Validate(), r.Bucket.Validate(), r.Key.Validate(), r.Expected.Validate(), validatePolicy(r.Policy)); err != nil {
+	if err := errors.Join(r.CredentialFile.Validate(), r.CredentialMaximumBytes.Validate(), r.Account.Validate(), r.Jurisdiction.Validate(), r.Bucket.Validate(), r.Key.Validate(), r.Expected.Validate(), validatePolicy(r.Policy)); err != nil {
 		return contractError(err)
 	}
 	if !r.ContentType.IsZero() {
@@ -68,11 +72,6 @@ func (o R2VerifiedObject) Bucket() R2Bucket          { return o.bucket }
 func (o R2VerifiedObject) Key() R2Key                { return o.key }
 func (o R2VerifiedObject) Digest() core.SHA256Digest { return o.digest }
 func (o R2VerifiedObject) Extent() core.ByteLength   { return o.extent }
-
-// r2CredentialFileMaximumBytes bounds the static key file read into memory:
-// its two custody-bounded values plus JSON framing and whitespace. It is a
-// Primitive budget derived from the custody budget, not a Cloudflare limit.
-const r2CredentialFileMaximumBytes = 3 * core.CloudflareSecretCustodyMaximumBytes
 
 // r2CredentialFile is the strict on-disk shape of a static R2 key: exactly
 // these two members; any other member, token or profile is refused.
@@ -105,7 +104,7 @@ func uploadR2File(ctx context.Context, client R2Client, request R2FileUpload) (R
 	if err := errors.Join(contextstate.Validate(ctx), client.Validate(), request.Validate()); err != nil {
 		return R2VerifiedObject{}, err
 	}
-	credentials, err := readR2Credentials(ctx, request.CredentialFile)
+	credentials, err := readR2Credentials(ctx, request.CredentialFile, request.CredentialMaximumBytes)
 	if err != nil {
 		return R2VerifiedObject{}, err
 	}
@@ -154,7 +153,7 @@ func r2FileIdentities() [17]error {
 // readR2Credentials reads a private credential file through one held
 // descriptor: the mode and size it checks belong to the very bytes it reads,
 // so replacing or appending to the path afterwards cannot bypass them.
-func readR2Credentials(ctx context.Context, path core.AbsolutePath) (R2Credentials, error) {
+func readR2Credentials(ctx context.Context, path core.AbsolutePath, maximum core.ByteCount) (R2Credentials, error) {
 	location, err := filestore.OpenParent(ctx, path)
 	if err != nil {
 		return R2Credentials{}, errors.Join(core.ErrCloudflareAuthentication, err)
@@ -162,7 +161,7 @@ func readR2Credentials(ctx context.Context, path core.AbsolutePath) (R2Credentia
 	var credentials R2Credentials
 	result, err := filestore.WithInspectedReadScope(ctx, filestore.InspectedReadScopeRequest{Location: location, Use: func(_ context.Context, read filestore.InspectedRead) error {
 		var e error
-		credentials, e = readPrivateR2Credentials(read)
+		credentials, e = readPrivateR2Credentials(read, maximum)
 		return e
 	}})
 	closeErr := filestore.CloseRoot(filestore.RootHandleRequest{Root: location.Root})
@@ -174,7 +173,7 @@ func readR2Credentials(ctx context.Context, path core.AbsolutePath) (R2Credentia
 
 // readPrivateR2Credentials admits a file that grants nothing to group or
 // others, as observed on the held descriptor, within its byte budget.
-func readPrivateR2Credentials(read filestore.InspectedRead) (R2Credentials, error) {
+func readPrivateR2Credentials(read filestore.InspectedRead, maximum core.ByteCount) (R2Credentials, error) {
 	permissions, err := read.Metadata.Permissions()
 	if err != nil {
 		return R2Credentials{}, err
@@ -186,19 +185,27 @@ func readPrivateR2Credentials(read filestore.InspectedRead) (R2Credentials, erro
 	if mode.Perm()&0o077 != 0 {
 		return R2Credentials{}, core.ErrCloudflareAuthentication
 	}
-	return decodeBoundedR2Credentials(read.Source)
+	return decodeBoundedR2Credentials(read.Source, maximum)
 }
 
-// decodeBoundedR2Credentials consumes at most one byte past the budget, so
+// decodeBoundedR2Credentials consumes at most one byte past the caller's
+// budget, so
 // the bytes actually read stay bounded even if the file grew after its
 // inspection. The buffer is cleared on return.
-func decodeBoundedR2Credentials(source io.Reader) (R2Credentials, error) {
-	var buffer bytes.Buffer
-	defer func() { clear(buffer.Bytes()) }()
-	if _, err := buffer.ReadFrom(io.LimitReader(source, r2CredentialFileMaximumBytes+1)); err != nil {
+func decodeBoundedR2Credentials(source io.Reader, maximum core.ByteCount) (R2Credentials, error) {
+	limit, err := maximum.Int64()
+	if err != nil {
 		return R2Credentials{}, err
 	}
-	if buffer.Len() > r2CredentialFileMaximumBytes {
+	if limit == math.MaxInt64 {
+		return R2Credentials{}, core.ErrNumericOverflow
+	}
+	var buffer bytes.Buffer
+	defer func() { clear(buffer.Bytes()) }()
+	if _, err := buffer.ReadFrom(io.LimitReader(source, limit+1)); err != nil {
+		return R2Credentials{}, err
+	}
+	if int64(buffer.Len()) > limit {
 		return R2Credentials{}, core.ErrCloudflareAuthentication
 	}
 	return decodeR2Credentials(buffer.Bytes())
