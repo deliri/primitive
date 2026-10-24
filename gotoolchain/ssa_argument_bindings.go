@@ -79,43 +79,27 @@ func (v SSAUnitView) ArgumentBindings(ctx context.Context, r SSAArgumentBindings
 			refuse(core.ErrGoToolchainOutput)
 			return
 		}
-		if closure, ok := common.Value.(*ssa.MakeClosure); ok {
-			if !nativeReceiverValuePresent(closure.Fn) || !v.ownsStorageValue(closure) || closure.Parent() != r.Call.Parent() {
-				refuse(core.ErrGoToolchainOutput)
-				return
-			}
-			target, native := closure.Fn.(*ssa.Function)
-			if !native || target.Syntax() != nil && target.Parent() != closure.Parent() {
-				refuse(core.ErrGoToolchainOutput)
-				return
-			}
-			if err := v.fieldReadOperandBefore(ctx, closure, r.Call); err != nil {
-				refuse(err)
-				return
-			}
+		if _, builtin := common.Value.(*ssa.Builtin); builtin {
+			return
 		}
-		target := common.StaticCallee()
+		source, closure, sourceErr := v.sourceFunctionValue(ctx, common.Value, r.Call)
+		if sourceErr != nil {
+			refuse(sourceErr)
+			return
+		}
+		target := source.Function
 		if target == nil {
 			return
 		}
-		if target.Syntax() == nil {
-			return
-		}
-		if !v.argumentBindingFunctionOwned(target) {
-			refuse(core.ErrGoToolchainOutput)
-			return
-		}
-		if target.Pkg != v.Package {
-			return
-		}
-		if target.Signature == nil || len(common.Args) != len(target.Params) {
+		if len(common.Args) != len(target.Params) {
 			refuse(core.ErrGoToolchainOutput)
 			return
 		}
 		var bindings []ssa.Value
-		if closure, ok := common.Value.(*ssa.MakeClosure); ok {
+		if closure != nil {
 			bindings = closure.Bindings
 		}
+
 		if len(bindings) != len(target.FreeVars) {
 			refuse(core.ErrGoToolchainOutput)
 			return

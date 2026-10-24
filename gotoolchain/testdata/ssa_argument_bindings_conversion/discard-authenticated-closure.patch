@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_function_value.go
++++ b/gotoolchain/ssa_function_value.go
+@@ -66,7 +66,7 @@
+ 					return out, nil, err
+ 				}
+ 			}
+-			closure = operand
++			closure = nil
+ 			before, value = operand, target
+ 		case *ssa.Function:
+ 			if err = v.functionArgumentBefore(ctx, operand, before); err != nil {

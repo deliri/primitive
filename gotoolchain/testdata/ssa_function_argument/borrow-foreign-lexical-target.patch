@@ -2,10 +2,10 @@
 +++ b/gotoolchain/ssa_function_value.go
 @@ -58,7 +58,7 @@
  			if target.Syntax() == nil {
- 				return out, nil
+ 				return out, nil, nil
  			}
 -			if target.Parent() != operand.Parent() || !v.argumentBindingFunctionOwned(target) || len(operand.Bindings) != len(target.FreeVars) {
 +			if !v.argumentBindingFunctionOwned(target) || len(operand.Bindings) != len(target.FreeVars) {
- 				return out, core.ErrGoToolchainOutput
+ 				return out, nil, core.ErrGoToolchainOutput
  			}
  			for index, binding := range operand.Bindings {

@@ -4,8 +4,8 @@
  	if common.IsInvoke() {
  		return out, nil
  	}
--	return v.sourceFunctionValue(ctx, common.Value, r.Call)
-+	return v.sourceFunctionValue(ctx, common.Args[len(common.Args)-1], r.Call)
+-	out, _, err = v.sourceFunctionValue(ctx, common.Value, r.Call)
++	out, _, err = v.sourceFunctionValue(ctx, common.Args[len(common.Args)-1], r.Call)
+ 	return out, err
  }
  
- var _ internalFlow = SSACalleeSourceRequest{}

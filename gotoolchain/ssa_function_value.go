@@ -32,52 +32,53 @@ func (o SSAFunctionValueObservation) Validate() error {
 func (SSAFunctionValueObservation) goToolchainInternalFlow() {}
 
 // sourceFunctionValue follows native representation edges without retaining a graph.
-func (v SSAUnitView) sourceFunctionValue(ctx context.Context, original ssa.Value, before ssa.Instruction) (out SSAFunctionValueObservation, err error) {
+func (v SSAUnitView) sourceFunctionValue(ctx context.Context, original ssa.Value, before ssa.Instruction) (out SSAFunctionValueObservation, closure *ssa.MakeClosure, err error) {
 	value := original
 	if err = v.functionArgumentBefore(ctx, value, before); err != nil {
-		return out, err
+		return out, nil, err
 	}
 	for {
 		if err = temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
-			return out, err
+			return out, nil, err
 		}
 		switch operand := value.(type) {
 		case *ssa.ChangeType:
 			if err = v.functionArgumentBefore(ctx, operand.X, operand); err != nil {
-				return out, err
+				return out, nil, err
 			}
 			if !types.ConvertibleTo(operand.X.Type(), operand.Type()) {
-				return out, core.ErrGoToolchainOutput
+				return out, nil, core.ErrGoToolchainOutput
 			}
 			before, value = operand, operand.X
 		case *ssa.MakeClosure:
 			target, native := operand.Fn.(*ssa.Function)
 			if !native || target == nil || target.Signature == nil || target.Prog != v.Program {
-				return out, core.ErrGoToolchainOutput
+				return out, nil, core.ErrGoToolchainOutput
 			}
 			if target.Syntax() == nil {
-				return out, nil
+				return out, nil, nil
 			}
 			if target.Parent() != operand.Parent() || !v.argumentBindingFunctionOwned(target) || len(operand.Bindings) != len(target.FreeVars) {
-				return out, core.ErrGoToolchainOutput
+				return out, nil, core.ErrGoToolchainOutput
 			}
 			for index, binding := range operand.Bindings {
 				if err = v.argumentBindingOperand(ctx, binding, target.FreeVars[index], target, operand); err != nil {
-					return out, err
+					return out, nil, err
 				}
 			}
+			closure = operand
 			before, value = operand, target
 		case *ssa.Function:
 			if err = v.functionArgumentBefore(ctx, operand, before); err != nil {
-				return out, err
+				return out, nil, err
 			}
 			if operand.Pkg != v.Package || operand.Syntax() == nil || len(operand.Blocks) == 0 {
-				return out, nil
+				return out, nil, nil
 			}
 			out = SSAFunctionValueObservation{Function: operand, Value: original}
-			return out, out.Validate()
+			return out, closure, out.Validate()
 		default:
-			return out, nil
+			return out, nil, nil
 		}
 	}
 }

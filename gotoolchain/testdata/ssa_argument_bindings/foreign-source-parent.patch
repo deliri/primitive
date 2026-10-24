@@ -1,11 +1,11 @@
---- a/gotoolchain/ssa_argument_bindings.go
-+++ b/gotoolchain/ssa_argument_bindings.go
-@@ -85,7 +85,7 @@
- 				return
+--- a/gotoolchain/ssa_function_value.go
++++ b/gotoolchain/ssa_function_value.go
+@@ -58,7 +58,7 @@
+ 			if target.Syntax() == nil {
+ 				return out, nil, nil
  			}
- 			target, native := closure.Fn.(*ssa.Function)
--			if !native || target.Syntax() != nil && target.Parent() != closure.Parent() {
-+			if !native || false && target.Syntax() != nil && target.Parent() != closure.Parent() {
- 				refuse(core.ErrGoToolchainOutput)
- 				return
+-			if target.Parent() != operand.Parent() || !v.argumentBindingFunctionOwned(target) || len(operand.Bindings) != len(target.FreeVars) {
++			if !v.argumentBindingFunctionOwned(target) || len(operand.Bindings) != len(target.FreeVars) {
+ 				return out, nil, core.ErrGoToolchainOutput
  			}
+ 			for index, binding := range operand.Bindings {

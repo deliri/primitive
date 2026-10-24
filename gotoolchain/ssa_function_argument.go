@@ -64,7 +64,8 @@ func (v SSAUnitView) LastFunctionArgument(ctx context.Context, r SSAFunctionArgu
 	if _, function := types.Unalias(value.Type()).Underlying().(*types.Signature); !function {
 		return out, nil
 	}
-	return v.sourceFunctionValue(ctx, value, r.Call)
+	out, _, err = v.sourceFunctionValue(ctx, value, r.Call)
+	return out, err
 }
 
 // Signature is Go's authoritative native call-layout query, including calls

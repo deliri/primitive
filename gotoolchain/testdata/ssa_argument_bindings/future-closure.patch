@@ -1,11 +1,13 @@
---- a/gotoolchain/ssa_argument_bindings.go
-+++ b/gotoolchain/ssa_argument_bindings.go
-@@ -89,7 +89,7 @@
- 				refuse(core.ErrGoToolchainOutput)
- 				return
- 			}
--			if err := v.fieldReadOperandBefore(ctx, closure, r.Call); err != nil {
-+			if err := error(nil); err != nil {
- 				refuse(err)
- 				return
- 			}
+--- a/gotoolchain/ssa_function_value.go
++++ b/gotoolchain/ssa_function_value.go
+@@ -34,9 +34,7 @@
+ // sourceFunctionValue follows native representation edges without retaining a graph.
+ func (v SSAUnitView) sourceFunctionValue(ctx context.Context, original ssa.Value, before ssa.Instruction) (out SSAFunctionValueObservation, closure *ssa.MakeClosure, err error) {
+ 	value := original
+-	if err = v.functionArgumentBefore(ctx, value, before); err != nil {
+-		return out, nil, err
+-	}
++	
+ 	for {
+ 		if err = temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+ 			return out, nil, err
