@@ -14,7 +14,7 @@ import (
 	"github.com/deliri/primitive/v2026/testserial"
 )
 
-func nativeClosureBindingMode(t testing.TB, mode uint8) {
+func nativeClosureBindingMode(t testing.TB, directory string, mode uint8) {
 	t.Helper()
 	mode %= 24
 	mask := mode % 4
@@ -40,7 +40,7 @@ func nativeClosureBindingMode(t testing.TB, mode uint8) {
 	if prefix != 0 {
 		body = `touch(b);touch(b);` + body
 	}
-	a := nativeSymbolSourceAnalysis(t, t.TempDir(), `package sample;func touch(*int){};func sink(func(*int)){};func Entry(a,b *int){`+body+`}`)
+	a := nativeSymbolSourceAnalysis(t, directory, `package sample;func touch(*int){};func sink(func(*int)){};func Entry(a,b *int){`+body+`}`)
 	err := a.WithSSAUnit(t.Context(), gotoolchain.SSAUnitRequest{Unit: a.Units[0], Use: func(ctx context.Context, v gotoolchain.SSAUnitView) error {
 		fn := v.Package.Func("Entry")
 		closure := nativeSelectedClosure(t, fn)
@@ -64,7 +64,7 @@ func nativeClosureBindingMode(t testing.TB, mode uint8) {
 func TestSSAClosureBindingsFiniteSourceMatrix(t *testing.T) {
 	t.Parallel()
 	for mode := uint8(0); mode < 24; mode++ {
-		t.Run(fmt.Sprint(mode), func(t *testing.T) { t.Parallel(); nativeClosureBindingMode(t, mode) })
+		t.Run(fmt.Sprint(mode), func(t *testing.T) { t.Parallel(); nativeClosureBindingMode(t, t.TempDir(), mode) })
 	}
 }
 
@@ -72,7 +72,7 @@ func FuzzSSAClosureBindingsConservesLexicalIdentity(f *testing.F) {
 	for _, mode := range []uint8{0, 1, 2, 3, 7, 11, 15, 23} {
 		f.Add(mode)
 	}
-	f.Fuzz(func(t *testing.T, mode uint8) { nativeClosureBindingMode(t, mode) })
+	f.Fuzz(func(t *testing.T, mode uint8) { nativeClosureBindingMode(t, t.TempDir(), mode) })
 }
 
 func TestSSAClosureBindingsPreservesConsumerStopAndCause(t *testing.T) {

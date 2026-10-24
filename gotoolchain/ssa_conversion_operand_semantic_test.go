@@ -36,9 +36,9 @@ func nativeConversionSource(mode uint8) string {
 	return "package sample;type Count int;type Bytes []byte;func touch(){};func Entry(a " + row.from + ")" + row.to + "{" + body + "}"
 }
 
-func nativeConversionSemanticMode(t testing.TB, mode uint8) {
+func nativeConversionSemanticMode(t testing.TB, directory string, mode uint8) {
 	t.Helper()
-	a := nativeSymbolSourceAnalysis(t, t.TempDir(), nativeConversionSource(mode))
+	a := nativeSymbolSourceAnalysis(t, directory, nativeConversionSource(mode))
 	err := a.WithSSAUnit(t.Context(), gotoolchain.SSAUnitRequest{Unit: a.Units[0], Use: func(ctx context.Context, v gotoolchain.SSAUnitView) error {
 		fn := v.Package.Func("Entry")
 		value := nativeConversionValue(t, fn)
@@ -63,13 +63,13 @@ func nativeConversionSemanticMode(t testing.TB, mode uint8) {
 func TestSSAConversionOperandFiniteNativeDomain(t *testing.T) {
 	t.Parallel()
 	for mode := uint8(0); mode < 88; mode++ {
-		t.Run(fmt.Sprint(mode), func(t *testing.T) { t.Parallel(); nativeConversionSemanticMode(t, mode) })
+		t.Run(fmt.Sprint(mode), func(t *testing.T) { t.Parallel(); nativeConversionSemanticMode(t, t.TempDir(), mode) })
 	}
 }
 
 func FuzzSSAConversionOperandConservesSourceIdentity(f *testing.F) {
 	f.Add(uint8(0))
-	f.Fuzz(func(t *testing.T, mode uint8) { nativeConversionSemanticMode(t, mode) })
+	f.Fuzz(func(t *testing.T, mode uint8) { nativeConversionSemanticMode(t, t.TempDir(), mode) })
 }
 
 func BenchmarkSSAConversionOperand(b *testing.B) {

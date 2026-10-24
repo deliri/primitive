@@ -13,7 +13,7 @@ import (
 	"golang.org/x/tools/go/ssa"
 )
 
-func nativeBinaryOperandsMode(t testing.TB, mode uint8) {
+func nativeBinaryOperandsMode(t testing.TB, directory string, mode uint8) {
 	t.Helper()
 	operators := [...]string{"+", "-", "*", "/", "%", "&", "|", "^", "<<", ">>", "&^", "==", "!=", "<", "<=", ">", ">="}
 	mode %= 68
@@ -32,7 +32,7 @@ func nativeBinaryOperandsMode(t testing.TB, mode uint8) {
 	if prefix {
 		body = "touch(a);" + body
 	}
-	a := nativeSymbolSourceAnalysis(t, t.TempDir(), `package sample;func touch(uint){};func Entry(a,b uint)`+result+`{`+body+`}`)
+	a := nativeSymbolSourceAnalysis(t, directory, `package sample;func touch(uint){};func Entry(a,b uint)`+result+`{`+body+`}`)
 	err := a.WithSSAUnit(t.Context(), gotoolchain.SSAUnitRequest{Unit: a.Units[0], Use: func(ctx context.Context, v gotoolchain.SSAUnitView) error {
 		fn := v.Package.Func("Entry")
 		var op *ssa.BinOp
@@ -67,7 +67,7 @@ func nativeBinaryOperandsMode(t testing.TB, mode uint8) {
 func TestSSABinaryOperandsFiniteSourceMatrix(t *testing.T) {
 	t.Parallel()
 	for mode := uint8(0); mode < 68; mode++ {
-		t.Run(fmt.Sprint(mode), func(t *testing.T) { t.Parallel(); nativeBinaryOperandsMode(t, mode) })
+		t.Run(fmt.Sprint(mode), func(t *testing.T) { t.Parallel(); nativeBinaryOperandsMode(t, t.TempDir(), mode) })
 	}
 }
 
@@ -75,7 +75,7 @@ func FuzzSSABinaryOperandsConservesNativeInputOrder(f *testing.F) {
 	for _, mode := range []uint8{0, 8, 11, 16, 17, 33, 34, 67} {
 		f.Add(mode)
 	}
-	f.Fuzz(func(t *testing.T, mode uint8) { nativeBinaryOperandsMode(t, mode) })
+	f.Fuzz(func(t *testing.T, mode uint8) { nativeBinaryOperandsMode(t, t.TempDir(), mode) })
 }
 
 func nativeWideBinaryOperandsSource(width int) string {

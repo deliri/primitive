@@ -31,7 +31,7 @@ func nativeArgumentBindingLastCall(t testing.TB, fn *ssa.Function) *ssa.Call {
 
 // The independent oracle counts explicit selected source operands, rather than
 // repeating Primitive's SSA representation and capture traversal.
-func nativeArgumentBindingMode(t testing.TB, mode uint8) {
+func nativeArgumentBindingMode(t testing.TB, directory string, mode uint8) {
 	t.Helper()
 	mode %= 48
 	mask := mode % 4
@@ -65,7 +65,7 @@ func nativeArgumentBindingMode(t testing.TB, mode uint8) {
 	if prefix != 0 {
 		body = "helper(b,b);" + body
 	}
-	a := nativeSymbolSourceAnalysis(t, t.TempDir(), `package sample;func helper(x,y *int){};func Entry(a,b *int){`+body+`}`)
+	a := nativeSymbolSourceAnalysis(t, directory, `package sample;func helper(x,y *int){};func Entry(a,b *int){`+body+`}`)
 	err := a.WithSSAUnit(t.Context(), gotoolchain.SSAUnitRequest{Unit: a.Units[0], Use: func(ctx context.Context, v gotoolchain.SSAUnitView) error {
 		fn := v.Package.Func("Entry")
 		call := nativeArgumentBindingLastCall(t, fn)
@@ -89,7 +89,7 @@ func nativeArgumentBindingMode(t testing.TB, mode uint8) {
 func TestSSAArgumentBindingsFiniteSourceMatrix(t *testing.T) {
 	t.Parallel()
 	for mode := uint8(0); mode < 48; mode++ {
-		t.Run(fmt.Sprint(mode), func(t *testing.T) { t.Parallel(); nativeArgumentBindingMode(t, mode) })
+		t.Run(fmt.Sprint(mode), func(t *testing.T) { t.Parallel(); nativeArgumentBindingMode(t, t.TempDir(), mode) })
 	}
 }
 
@@ -97,7 +97,7 @@ func FuzzSSAArgumentBindingsConservesSelectedSourceIdentity(f *testing.F) {
 	for _, seed := range []uint8{0, 1, 3, 5, 9, 11, 13, 35, 47} {
 		f.Add(seed)
 	}
-	f.Fuzz(func(t *testing.T, mode uint8) { nativeArgumentBindingMode(t, mode) })
+	f.Fuzz(func(t *testing.T, mode uint8) { nativeArgumentBindingMode(t, t.TempDir(), mode) })
 }
 
 func nativeWideArgumentBindingSource(width int) string {
