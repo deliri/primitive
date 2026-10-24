@@ -41,6 +41,7 @@ const (
 	doorProbeRole
 	doorProbeKind
 	doorProbeTargetKind
+	doorGoBenchmarkRowKind
 	runProtocolJSONDoorLimit
 )
 
@@ -139,6 +140,7 @@ func FuzzRunProtocolAtomicJSONDoorsSemanticClosure(f *testing.F) {
 	addEnumDoorSeeds(f, doorProbeRole, uint8(probeRoleLimit), func(value uint8) ProbeRole { return ProbeRole(value) })
 	addEnumDoorSeeds(f, doorProbeKind, uint8(probeKindLimit), func(value uint8) ProbeKind { return ProbeKind(value) })
 	addEnumDoorSeeds(f, doorProbeTargetKind, uint8(probeTargetLimit), func(value uint8) ProbeTargetKind { return ProbeTargetKind(value) })
+	addEnumDoorSeeds(f, doorGoBenchmarkRowKind, uint8(goBenchmarkRowKindLimit), func(value uint8) GoBenchmarkRowKind { return GoBenchmarkRowKind(value) })
 	f.Add(uint8(doorIdentifier), []byte{})
 	f.Add(uint8(doorIdentifier), []byte(`{}`))
 	f.Add(uint8(doorIdentifier), []byte(`null`))
@@ -214,6 +216,8 @@ func FuzzRunProtocolAtomicJSONDoorsSemanticClosure(f *testing.F) {
 			proveComparableJSONClosure(t, ProbeKindGoFileSelection, data, (*ProbeKind).UnmarshalJSON)
 		case doorProbeTargetKind:
 			proveComparableJSONClosure(t, ProbeTargetGoFile, data, (*ProbeTargetKind).UnmarshalJSON)
+		case doorGoBenchmarkRowKind:
+			proveComparableJSONClosure(t, GoBenchmarkRowMeasured, data, (*GoBenchmarkRowKind).UnmarshalJSON)
 		default:
 			t.Fatalf("Run protocol JSON door = %d, want a closed admitted door", door)
 		}

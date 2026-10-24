@@ -1,0 +1,12 @@
+{"Time":"2026-10-24T01:02:50.236608-04:00","Action":"start","Package":"example.com/nm"}
+{"Time":"2026-10-24T01:02:50.344887-04:00","Action":"output","Package":"example.com/nm","Output":"goos: darwin\n"}
+{"Time":"2026-10-24T01:02:50.345053-04:00","Action":"output","Package":"example.com/nm","Output":"goarch: arm64\n"}
+{"Time":"2026-10-24T01:02:50.345062-04:00","Action":"output","Package":"example.com/nm","Output":"pkg: example.com/nm\n"}
+{"Time":"2026-10-24T01:02:50.345072-04:00","Action":"output","Package":"example.com/nm","Output":"cpu: Apple M1 Max\n"}
+{"Time":"2026-10-24T01:02:50.345081-04:00","Action":"run","Package":"example.com/nm","Test":"BenchmarkCustom"}
+{"Time":"2026-10-24T01:02:50.345087-04:00","Action":"output","Package":"example.com/nm","Test":"BenchmarkCustom","Output":"=== RUN   BenchmarkCustom\n","OutputType":"frame"}
+{"Time":"2026-10-24T01:02:50.345098-04:00","Action":"output","Package":"example.com/nm","Test":"BenchmarkCustom","Output":"BenchmarkCustom\n"}
+{"Time":"2026-10-24T01:02:50.345313-04:00","Action":"output","Package":"example.com/nm","Test":"BenchmarkCustom","Output":"BenchmarkCustom-10    \t       1\t         5.000 widgets/op\n"}
+{"Time":"2026-10-24T01:02:50.345378-04:00","Action":"output","Package":"example.com/nm","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-24T01:02:50.345944-04:00","Action":"output","Package":"example.com/nm","Output":"ok  \texample.com/nm\t0.109s\n"}
+{"Time":"2026-10-24T01:02:50.345977-04:00","Action":"pass","Package":"example.com/nm","Elapsed":0.109}

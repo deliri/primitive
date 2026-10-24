@@ -10,6 +10,7 @@ import (
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/lineio"
+	"github.com/deliri/primitive/v2026/runprotocol"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -60,6 +61,13 @@ type GoEventStreamRequest struct {
 	Source   io.Reader
 	OnString func(GoEventStringFragment) error
 	OnEvent  func(GoEventFrame) error
+	// OnBenchmark, when set, receives every Go benchmark result row, typed.
+	// A row may span consecutive output events of one package (test2json
+	// splits lines longer than its buffer); it is delivered as its newline
+	// is decoded and, like a fragment, is provisional until that event's
+	// OnEvent. A row cut by another package, a non-output event or EOF is
+	// reported interrupted. Nothing accumulates beyond the pending row.
+	OnBenchmark func(runprotocol.GoBenchmarkRow) error
 }
 
 func (GoEventStreamRequest) runnerControlCapabilityWrapper() {}
@@ -99,6 +107,17 @@ func ReadGoEventStream(ctx context.Context, request GoEventStreamRequest) (resul
 		}
 		return request.OnString(fragment)
 	}}
+	if request.OnBenchmark != nil {
+		parser.rows = &goBenchmarkRows{deliver: func(row runprotocol.GoBenchmarkRow) error {
+			if err := contextstate.Validate(ctx); err != nil {
+				return err
+			}
+			if err := row.Validate(); err != nil {
+				return err
+			}
+			return request.OnBenchmark(row)
+		}}
+	}
 	emit := func(projection goJSONProjection) error {
 		if err := contextstate.Validate(ctx); err != nil {
 			return err
@@ -107,9 +126,22 @@ func ReadGoEventStream(ctx context.Context, request GoEventStreamRequest) (resul
 		if err := frame.Validate(); err != nil {
 			return err
 		}
-		return request.OnEvent(frame)
+		if err := request.OnEvent(frame); err != nil {
+			return err
+		}
+		if parser.rows == nil {
+			return nil
+		}
+		return parser.rows.endEvent(projection)
 	}
-	return readGoEventFragments(ctx, reader, &parser, emit)
+	if err := readGoEventFragments(ctx, reader, &parser, emit); err != nil || parser.rows == nil {
+		return err
+	}
+	// The row cut by EOF is refused with the same identity as a completed one.
+	if err := parser.rows.interrupt(); err != nil {
+		return observationFailure("go event stream refused", err)
+	}
+	return nil
 }
 
 func readGoEventFragments(ctx context.Context, reader *lineio.Reader, parser *goJSONStream, emit func(goJSONProjection) error) error {

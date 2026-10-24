@@ -1,0 +1,12 @@
+{"Time":"2026-10-24T00:34:24.639893-04:00","Action":"start","Package":"example.com/nm"}
+{"Time":"2026-10-24T00:34:24.644231-04:00","Action":"run","Package":"example.com/nm","Test":"TestPass"}
+{"Time":"2026-10-24T00:34:24.644252-04:00","Action":"output","Package":"example.com/nm","Test":"TestPass","Output":"=== RUN   TestPass\n","OutputType":"frame"}
+{"Time":"2026-10-24T00:34:24.6443-04:00","Action":"run","Package":"example.com/nm","Test":"TestPass/sub"}
+{"Time":"2026-10-24T00:34:24.644309-04:00","Action":"output","Package":"example.com/nm","Test":"TestPass/sub","Output":"=== RUN   TestPass/sub\n","OutputType":"frame"}
+{"Time":"2026-10-24T00:34:24.644318-04:00","Action":"output","Package":"example.com/nm","Test":"TestPass/sub","Output":"--- PASS: TestPass/sub (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-10-24T00:34:24.644325-04:00","Action":"pass","Package":"example.com/nm","Test":"TestPass/sub","Elapsed":0}
+{"Time":"2026-10-24T00:34:24.644337-04:00","Action":"output","Package":"example.com/nm","Test":"TestPass","Output":"--- PASS: TestPass (0.00s)\n","OutputType":"frame"}
+{"Time":"2026-10-24T00:34:24.644343-04:00","Action":"pass","Package":"example.com/nm","Test":"TestPass","Elapsed":0}
+{"Time":"2026-10-24T00:34:24.644349-04:00","Action":"output","Package":"example.com/nm","Output":"PASS\n","OutputType":"frame"}
+{"Time":"2026-10-24T00:34:24.644355-04:00","Action":"output","Package":"example.com/nm","Output":"ok  \texample.com/nm\t(cached)\n"}
+{"Time":"2026-10-24T00:34:24.644362-04:00","Action":"pass","Package":"example.com/nm","Elapsed":0.004}

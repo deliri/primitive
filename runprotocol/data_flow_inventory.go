@@ -46,6 +46,7 @@ func (RequestDisposition) runProtocolFact()          {}
 func (ArtifactReference) runProtocolFact()           {}
 func (DecimalMeasurement) runProtocolFact()          {}
 func (BenchmarkMeasurement) runProtocolFact()        {}
+func (GoBenchmarkRow) runProtocolFact()              {}
 func (ExecutionAccounting) runProtocolFact()         {}
 func (ExecutionAttempt) runProtocolFact()            {}
 func (ExperimentMeasurements) runProtocolFact()      {}
