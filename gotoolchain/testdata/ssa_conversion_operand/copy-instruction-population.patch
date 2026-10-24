@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_conversion_operand.go
++++ b/gotoolchain/ssa_conversion_operand.go
+@@ -78,6 +78,8 @@
+ 	if err = v.referrerInstructionMembership(instruction); err != nil {
+ 		return out, err
+ 	}
++	population := append([]ssa.Instruction(nil), r.Function.Blocks[0].Instrs...)
++	if len(population) == 0 {return out, core.ErrGoToolchainOutput}
+ 	untaken, queryErr := argumentCallUntakenBlock(instruction.Block())
+ 	if queryErr != nil {
+ 		return out, queryErr

@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_conversion_operand.go
++++ b/gotoolchain/ssa_conversion_operand.go
+@@ -75,7 +75,7 @@
+ 	default:
+ 		return out, core.ErrGoToolchainContract
+ 	}
+-	if err = v.referrerInstructionMembership(instruction); err != nil {
++	if err = error(nil); err != nil {
+ 		return out, err
+ 	}
+ 	untaken, queryErr := argumentCallUntakenBlock(instruction.Block())

@@ -1,0 +1,42 @@
+[
+  {
+    "fault": "skip-instruction-custody",
+    "filter": "^TestSSAConversionOperandRefusesBrokenNativeCustody$/^cloned_conversion$",
+    "patch": "skip-instruction-custody.patch"
+  },
+  {
+    "fault": "skip-input-custody",
+    "filter": "^TestSSAConversionOperandLayerTriad$/^foreign_input$",
+    "patch": "skip-input-custody.patch"
+  },
+  {
+    "fault": "drop-native-input",
+    "filter": "^TestSSAConversionOperandLayerTriad$/^native_input$",
+    "patch": "drop-native-input.patch"
+  },
+  {
+    "fault": "lose-native-cause",
+    "filter": "^TestSSAConversionOperandRefusesBrokenNativeCustody$/^native_cancellation_cause$",
+    "patch": "lose-native-cause.patch"
+  },
+  {
+    "fault": "publish-untaken-input",
+    "filter": "^TestSSAConversionOperandLayerTriad$/^untaken_conversion$",
+    "patch": "publish-untaken-input.patch"
+  },
+  {
+    "fault": "copy-instruction-population",
+    "filter": "^TestSSAConversionOperandRetainsNoInstructionPopulation$/^8193$",
+    "patch": "copy-instruction-population.patch"
+  },
+  {
+    "fault": "accept-partial-binary-observation",
+    "filter": "^TestSSAScalarObservationRejectsPartialAndTypedNilLoans$/^left_only$",
+    "patch": "accept-partial-binary-observation.patch"
+  },
+  {
+    "fault": "accept-typed-nil-conversion-observation",
+    "filter": "^TestSSAScalarObservationRejectsPartialAndTypedNilLoans$/^typed_nil_conversion_input$",
+    "patch": "accept-typed-nil-conversion-observation.patch"
+  }
+]

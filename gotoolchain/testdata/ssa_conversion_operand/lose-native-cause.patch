@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_conversion_operand.go
++++ b/gotoolchain/ssa_conversion_operand.go
+@@ -60,7 +60,7 @@
+ 		}
+ 	}()
+ 	if err = errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), v.Validate(), r.Validate()); err != nil {
+-		return out, err
++		return out, core.ErrGoToolchainContract
+ 	}
+ 	if r.Function.Prog != v.Program || r.Function.Pkg != v.Package {
+ 		return out, core.ErrGoToolchainContract

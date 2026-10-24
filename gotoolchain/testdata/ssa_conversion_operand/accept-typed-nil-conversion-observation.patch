@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_conversion_operand.go
++++ b/gotoolchain/ssa_conversion_operand.go
+@@ -41,7 +41,7 @@
+ type SSAConversionOperandObservation struct{ Operand ssa.Value }
+ 
+ func (o SSAConversionOperandObservation) Validate() error {
+-	if o.Operand != nil && !nativeReceiverValuePresent(o.Operand) {
++	if false {
+ 		return core.ErrGoToolchainOutput
+ 	}
+ 	return nil

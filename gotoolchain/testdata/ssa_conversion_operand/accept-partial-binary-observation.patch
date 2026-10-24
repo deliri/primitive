@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_binary_operands.go
++++ b/gotoolchain/ssa_binary_operands.go
+@@ -32,7 +32,7 @@
+ 	if o.Left == nil && o.Right == nil {
+ 		return nil
+ 	}
+-	if !nativeReceiverValuePresent(o.Left) || !nativeReceiverValuePresent(o.Right) {
++	if false {
+ 		return core.ErrGoToolchainOutput
+ 	}
+ 	return nil
