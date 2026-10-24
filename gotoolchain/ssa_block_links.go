@@ -3,6 +3,7 @@ package gotoolchain
 import (
 	"context"
 	"errors"
+	"go/constant"
 	"iter"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -18,10 +19,11 @@ const (
 	SSABlockLinkSuccessors
 	SSABlockLinkDominatorAncestry
 	SSABlockLinkPredecessors
+	SSABlockLinkPossibleSuccessors
 )
 
 func (k SSABlockLinkKind) IsValid() bool {
-	return k == SSABlockLinkSuccessors || k == SSABlockLinkDominatorAncestry || k == SSABlockLinkPredecessors
+	return k == SSABlockLinkSuccessors || k == SSABlockLinkDominatorAncestry || k == SSABlockLinkPredecessors || k == SSABlockLinkPossibleSuccessors
 }
 func (k SSABlockLinkKind) Validate() error {
 	if !k.IsValid() {
@@ -38,6 +40,8 @@ func (k SSABlockLinkKind) String() string {
 		return "dominator_ancestry"
 	case SSABlockLinkPredecessors:
 		return "predecessors"
+	case SSABlockLinkPossibleSuccessors:
+		return "possible_successors"
 	default:
 		return core.UnknownEnumDiagnostic
 	}
@@ -63,6 +67,9 @@ func (SSABlockLinkRequest) goToolchainInternalFlow() {}
 // Predecessors retain Go's structural incoming-edge order and multiplicity,
 // including incoming edges whose source is known untaken. This is a structural
 // projection, not an assertion that every incoming edge executes at runtime.
+// Possible successors additionally exclude constant-untaken edges, even when
+// their destination remains reachable through a different edge. Opaque runtime
+// conditions keep both possible edges in Go's structural order.
 func (v SSAUnitView) BlockLinks(ctx context.Context, r SSABlockLinkRequest) iter.Seq2[*ssa.BasicBlock, error] {
 	return func(yield func(*ssa.BasicBlock, error) bool) {
 		if err := errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), v.Validate(), r.Validate()); err != nil {
@@ -90,6 +97,23 @@ func (v SSAUnitView) BlockLinks(ctx context.Context, r SSABlockLinkRequest) iter
 			return
 		}
 		switch r.Kind {
+		case SSABlockLinkPossibleSuccessors:
+			branch, branchErr := v.ConditionalBranch(ctx, SSAConditionalBranchRequest{Block: r.Block})
+			if branchErr != nil {
+				yield(nil, branchErr)
+				return
+			}
+			if condition, known := branch.Condition.(*ssa.Const); known {
+				selected := branch.WhenFalse
+				if constant.BoolVal(condition.Value) {
+					selected = branch.WhenTrue
+				}
+				if !nativeBlockLinkYield(ctx, fn, selected, true, yield) {
+					return
+				}
+				break
+			}
+			fallthrough
 		case SSABlockLinkSuccessors:
 			for _, successor := range r.Block.Succs {
 				if !nativeBlockLinkYield(ctx, fn, successor, true, yield) {

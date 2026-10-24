@@ -1,0 +1,13 @@
+--- a/gotoolchain/ssa_block_links.go
++++ b/gotoolchain/ssa_block_links.go
+@@ -108,9 +108,7 @@
+ 				if constant.BoolVal(condition.Value) {
+ 					selected = branch.WhenTrue
+ 				}
+-				if !nativeBlockLinkYield(ctx, fn, selected, true, yield) {
+-					return
+-				}
++				nativeBlockLinkYield(ctx, fn, selected, true, yield)
+ 				break
+ 			}
+ 			fallthrough

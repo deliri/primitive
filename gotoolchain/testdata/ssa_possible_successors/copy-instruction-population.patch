@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_block_links.go
++++ b/gotoolchain/ssa_block_links.go
+@@ -98,6 +98,8 @@
+ 		}
+ 		switch r.Kind {
+ 		case SSABlockLinkPossibleSuccessors:
++			population := append([]ssa.Instruction(nil), r.Block.Instrs...)
++			for _, instruction := range population {if instruction == nil {yield(nil, core.ErrGoToolchainOutput);return}}
+ 			branch, branchErr := v.ConditionalBranch(ctx, SSAConditionalBranchRequest{Block: r.Block})
+ 			if branchErr != nil {
+ 				yield(nil, branchErr)

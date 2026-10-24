@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_block_links.go
++++ b/gotoolchain/ssa_block_links.go
+@@ -100,7 +100,7 @@
+ 		case SSABlockLinkPossibleSuccessors:
+ 			branch, branchErr := v.ConditionalBranch(ctx, SSAConditionalBranchRequest{Block: r.Block})
+ 			if branchErr != nil {
+-				yield(nil, branchErr)
++				yield(nil, nil)
+ 				return
+ 			}
+ 			if condition, known := branch.Condition.(*ssa.Const); known {

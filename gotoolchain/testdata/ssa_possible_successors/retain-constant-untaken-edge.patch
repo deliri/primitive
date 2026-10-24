@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_block_links.go
++++ b/gotoolchain/ssa_block_links.go
+@@ -103,7 +103,7 @@
+ 				yield(nil, branchErr)
+ 				return
+ 			}
+-			if condition, known := branch.Condition.(*ssa.Const); known {
++			if condition, known := branch.Condition.(*ssa.Const); known && false {
+ 				selected := branch.WhenFalse
+ 				if constant.BoolVal(condition.Value) {
+ 					selected = branch.WhenTrue

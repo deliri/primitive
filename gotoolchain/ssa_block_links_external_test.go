@@ -151,13 +151,13 @@ func TestSSABlockLinkKindIsClosed(t *testing.T) {
 	t.Parallel()
 	for value := 0; value < 256; value++ {
 		kind := gotoolchain.SSABlockLinkKind(value)
-		want := kind == gotoolchain.SSABlockLinkSuccessors || kind == gotoolchain.SSABlockLinkDominatorAncestry || kind == gotoolchain.SSABlockLinkPredecessors
+		want := kind == gotoolchain.SSABlockLinkSuccessors || kind == gotoolchain.SSABlockLinkDominatorAncestry || kind == gotoolchain.SSABlockLinkPredecessors || kind == gotoolchain.SSABlockLinkPossibleSuccessors
 		if kind.IsValid() != want || (kind.Validate() == nil) != want || !want && (!errors.Is(kind.Validate(), core.ErrGoToolchainContract) || kind.String() != core.UnknownEnumDiagnostic) {
 			t.Fatalf("relation kind=%d valid=%t error=%v string=%q, want closed domain", value, kind.IsValid(), kind.Validate(), kind.String())
 		}
 	}
-	if gotoolchain.SSABlockLinkSuccessors.String() != "successors" || gotoolchain.SSABlockLinkDominatorAncestry.String() != "dominator_ancestry" || gotoolchain.SSABlockLinkPredecessors.String() != "predecessors" {
-		t.Fatal("relation diagnostics differ, want successors, dominator_ancestry and predecessors")
+	if gotoolchain.SSABlockLinkSuccessors.String() != "successors" || gotoolchain.SSABlockLinkDominatorAncestry.String() != "dominator_ancestry" || gotoolchain.SSABlockLinkPredecessors.String() != "predecessors" || gotoolchain.SSABlockLinkPossibleSuccessors.String() != "possible_successors" {
+		t.Fatal("relation diagnostics got unexpected strings, want successors, dominator_ancestry, predecessors and possible_successors")
 	}
 }
 

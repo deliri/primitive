@@ -1,0 +1,50 @@
+[
+  {
+    "name": "retain-constant-untaken-edge",
+    "test": "^TestSSAPossibleSuccessorsSeparateEdgeFromJoinReachability$/^true_arm_then_shared_join$",
+    "patch": "retain-constant-untaken-edge.patch",
+    "assertion": "possible edge"
+  },
+  {
+    "name": "reverse-selected-polarity",
+    "test": "^TestSSAPossibleSuccessorsSeparateEdgeFromJoinReachability$/^false_direct_shared_join$",
+    "patch": "reverse-selected-polarity.patch",
+    "assertion": "possible successor count"
+  },
+  {
+    "name": "truncate-opaque-edges",
+    "test": "^TestSSAPossibleSuccessorsFiniteSemanticDomain$",
+    "patch": "truncate-opaque-edges.patch",
+    "assertion": "result got"
+  },
+  {
+    "name": "erase-branch-refusal",
+    "test": "^TestSSAPossibleSuccessorsRefuseDamagedConditionalLoans$/^missing_condition$",
+    "patch": "erase-branch-refusal.patch",
+    "assertion": "damaged possible edge"
+  },
+  {
+    "name": "ignore-consumer-stop",
+    "test": "^TestSSAPossibleSuccessorsPreserveCancellationAndStop$",
+    "patch": "ignore-consumer-stop.patch",
+    "assertion": "counts got"
+  },
+  {
+    "name": "erase-final-cancellation",
+    "test": "^TestSSAPossibleSuccessorsPreserveCancellationAndStop$",
+    "patch": "erase-final-cancellation.patch",
+    "assertion": "counts got"
+  },
+  {
+    "name": "copy-instruction-population",
+    "test": "^TestSSAPossibleSuccessorsRetainNoInstructionPopulation$",
+    "patch": "copy-instruction-population.patch",
+    "assertion": "query got count"
+  },
+  {
+    "name": "misrender-closed-kind",
+    "test": "^TestSSABlockLinkKindIsClosed$",
+    "patch": "misrender-closed-kind.patch",
+    "assertion": "relation diagnostics"
+  }
+]

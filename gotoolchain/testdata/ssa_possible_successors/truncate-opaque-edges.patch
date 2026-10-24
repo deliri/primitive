@@ -1,0 +1,12 @@
+--- a/gotoolchain/ssa_block_links.go
++++ b/gotoolchain/ssa_block_links.go
+@@ -113,7 +113,8 @@
+ 				}
+ 				break
+ 			}
+-			fallthrough
++			if !nativeBlockLinkYield(ctx, fn, r.Block.Succs[0], true, yield) {return}
++			break
+ 		case SSABlockLinkSuccessors:
+ 			for _, successor := range r.Block.Succs {
+ 				if !nativeBlockLinkYield(ctx, fn, successor, true, yield) {

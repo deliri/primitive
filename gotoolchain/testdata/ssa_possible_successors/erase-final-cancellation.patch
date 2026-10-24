@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_block_links.go
++++ b/gotoolchain/ssa_block_links.go
+@@ -111,7 +111,7 @@
+ 				if !nativeBlockLinkYield(ctx, fn, selected, true, yield) {
+ 					return
+ 				}
+-				break
++				return
+ 			}
+ 			fallthrough
+ 		case SSABlockLinkSuccessors:

@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_block_links.go
++++ b/gotoolchain/ssa_block_links.go
+@@ -41,7 +41,7 @@
+ 	case SSABlockLinkPredecessors:
+ 		return "predecessors"
+ 	case SSABlockLinkPossibleSuccessors:
+-		return "possible_successors"
++		return "successors"
+ 	default:
+ 		return core.UnknownEnumDiagnostic
+ 	}
