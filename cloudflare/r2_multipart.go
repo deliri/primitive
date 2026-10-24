@@ -119,7 +119,7 @@ func (s R2Server) PresignMultipart(ctx context.Context, r R2MultipartPresignRequ
 	if err != nil {
 		return R2MultipartGrant{}, err
 	}
-	target := url.URL{Scheme: core.SchemeHTTPS, Host: s.account.value + label + core.CloudflareR2HostSuffix, Path: "/" + r.Bucket.value + "/" + r.Key.value}
+	target := r2Target(s.account.value+label+core.CloudflareR2HostSuffix, r.Bucket.value, r.Key.value)
 	query := make(url.Values)
 	query.Set(core.CloudflareR2QueryExpires, strconv.FormatInt(r.Expires.Nanoseconds()/1_000_000_000, 10))
 	if r.Action == R2MultipartCreate {

@@ -211,7 +211,7 @@ func (s R2Server) Presign(ctx context.Context, intent R2PresignRequest) (R2Grant
 	if err != nil {
 		return R2Grant{}, err
 	}
-	target := url.URL{Scheme: core.SchemeHTTPS, Host: s.account.value + label + core.CloudflareR2HostSuffix, Path: "/" + intent.Bucket.value + "/" + intent.Key.value}
+	target := r2Target(s.account.value+label+core.CloudflareR2HostSuffix, intent.Bucket.value, intent.Key.value)
 	query := make(url.Values)
 	query.Set(core.CloudflareR2QueryExpires, strconv.FormatInt(intent.Expires.Nanoseconds()/1_000_000_000, 10))
 	target.RawQuery = query.Encode()
@@ -300,4 +300,17 @@ func (c R2Client) Delete(ctx context.Context, grant R2Grant, policy exchange.Str
 	return exchange.Download(exchange.DownloadCall{Context: ctx, Client: c.client, Policy: policy,
 		Request: exchange.DownloadRequest{Target: grant.endpoint, Destination: io.Discard, ExpectedStatus: status,
 			Semantics: exchange.RequestSemantics{Method: exchange.MethodDelete, Replay: exchange.ReplaySingleAttempt}}})
+}
+
+// r2Target addresses one bucket and exact key path-style. Its wire path is the
+// AWS S3 serializer's: each segment percent-encodes every byte but the
+// unreserved set, separators stay literal, and nothing is cleaned, so the
+// signed canonical path and the sent path are the same bytes.
+func r2Target(host, bucket, key string) url.URL {
+	path := core.SignatureV4PathSeparator + bucket + core.SignatureV4PathSeparator + key
+	segments := strings.Split(path, core.SignatureV4PathSeparator)
+	for i, segment := range segments {
+		segments[i] = strings.ReplaceAll(url.QueryEscape(segment), core.SignatureV4FormSpace, core.SignatureV4SpaceEncoding)
+	}
+	return url.URL{Scheme: core.SchemeHTTPS, Host: host, Path: path, RawPath: strings.Join(segments, core.SignatureV4PathSeparator)}
 }
