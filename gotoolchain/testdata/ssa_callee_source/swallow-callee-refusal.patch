@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_callee_source.go
++++ b/gotoolchain/ssa_callee_source.go
+@@ -30,7 +30,7 @@
+ 	defer func() {
+ 		err = errors.Join(err, temporal.Wait(temporal.WaitRequest{Context: ctx}))
+ 		if err != nil {
+-			out = SSAFunctionValueObservation{}
++			out = SSAFunctionValueObservation{}; err = nil
+ 		}
+ 	}()
+ 	if err = errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), v.Validate(), r.Validate()); err != nil {

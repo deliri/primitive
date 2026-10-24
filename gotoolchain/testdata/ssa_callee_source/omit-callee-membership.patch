@@ -1,0 +1,13 @@
+--- a/gotoolchain/ssa_callee_source.go
++++ b/gotoolchain/ssa_callee_source.go
+@@ -36,9 +36,7 @@
+ 	if err = errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), v.Validate(), r.Validate()); err != nil {
+ 		return out, err
+ 	}
+-	if err = v.referrerInstructionMembership(r.Call); err != nil {
+-		return out, err
+-	}
++	
+ 	untaken, queryErr := argumentCallUntakenBlock(r.Call.Block())
+ 	if queryErr != nil || untaken {
+ 		return out, queryErr

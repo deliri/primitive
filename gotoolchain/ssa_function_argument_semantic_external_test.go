@@ -79,7 +79,7 @@ func nativeFunctionArgumentMode(t testing.TB, directory string, mode uint8) {
 			}
 		}
 		got, err := v.LastFunctionArgument(ctx, request)
-		if got != (gotoolchain.SSAFunctionArgumentObservation{}) || !errors.Is(err, wantErr) || damage == 1 && errors.Is(err, core.ErrGoToolchainOutput) {
+		if got != (gotoolchain.SSAFunctionValueObservation{}) || !errors.Is(err, wantErr) || damage == 1 && errors.Is(err, core.ErrGoToolchainOutput) {
 			t.Fatalf("mode=%d refusal got=%+v,%v, want zero,%v", mode, got, err, wantErr)
 		}
 		return nil

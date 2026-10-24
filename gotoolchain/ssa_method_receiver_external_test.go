@@ -102,7 +102,7 @@ func TestSSAMethodReceiverRefusesDamagedNativeFacts(t *testing.T) {
 		{"absent selected call", func(_ *gotoolchain.SSAUnitView, r *gotoolchain.SSAMethodReceiverRequest) { r.Call = nil }, core.ErrGoToolchainContract},
 		{"parentless call", func(_ *gotoolchain.SSAUnitView, r *gotoolchain.SSAMethodReceiverRequest) { r.Call = &ssa.Call{} }, core.ErrGoToolchainContract},
 		{"detached selected call", func(_ *gotoolchain.SSAUnitView, r *gotoolchain.SSAMethodReceiverRequest) {
-			copy := *r.Call
+			copy := *r.Call.(*ssa.Call)
 			r.Call = &copy
 		}, core.ErrGoToolchainContract},
 		{"foreign call program", func(_ *gotoolchain.SSAUnitView, r *gotoolchain.SSAMethodReceiverRequest) { r.Call.Parent().Prog = nil }, core.ErrGoToolchainContract},
@@ -125,7 +125,7 @@ func TestSSAMethodReceiverRefusesDamagedNativeFacts(t *testing.T) {
 			r.Call.Common().Args[0] = v.Package.Func("Other").Params[0]
 		}, core.ErrGoToolchainOutput},
 		{"detached receiver", func(_ *gotoolchain.SSAUnitView, r *gotoolchain.SSAMethodReceiverRequest) {
-			copy := *r.Call.Parent().Params[0]
+			copy := *r.Call.(*ssa.Call).Parent().Params[0]
 			r.Call.Common().Args[0] = &copy
 		}, core.ErrGoToolchainOutput},
 		{"foreign package global", func(v *gotoolchain.SSAUnitView, r *gotoolchain.SSAMethodReceiverRequest) {

@@ -1,6 +1,6 @@
---- a/gotoolchain/ssa_function_argument.go
-+++ b/gotoolchain/ssa_function_argument.go
-@@ -131,7 +131,7 @@
+--- a/gotoolchain/ssa_function_value.go
++++ b/gotoolchain/ssa_function_value.go
+@@ -58,7 +58,7 @@
  			if target.Syntax() == nil {
  				return out, nil
  			}

@@ -1,6 +1,6 @@
 --- a/gotoolchain/ssa_function_argument.go
 +++ b/gotoolchain/ssa_function_argument.go
-@@ -99,7 +99,7 @@
+@@ -54,7 +54,7 @@
  	if signature.Params().Len() == 0 {
  		return out, nil
  	}

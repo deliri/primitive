@@ -4,17 +4,18 @@ import (
 	"context"
 	"errors"
 	"go/types"
+	"reflect"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/temporal"
 	"golang.org/x/tools/go/ssa"
 )
 
-// SSAMethodReceiverRequest selects one actual synchronous native call.
-type SSAMethodReceiverRequest struct{ Call *ssa.Call }
+// SSAMethodReceiverRequest selects one actual native call, defer or go instruction.
+type SSAMethodReceiverRequest struct{ Call ssa.CallInstruction }
 
 func (r SSAMethodReceiverRequest) Validate() error {
-	if r.Call == nil {
+	if r.Call == nil || reflect.ValueOf(r.Call).IsNil() {
 		return core.ErrGoToolchainContract
 	}
 	return nil

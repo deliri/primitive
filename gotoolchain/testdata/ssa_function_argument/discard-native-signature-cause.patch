@@ -1,6 +1,6 @@
 --- a/gotoolchain/ssa_function_argument.go
 +++ b/gotoolchain/ssa_function_argument.go
-@@ -172,7 +172,7 @@
+@@ -74,7 +74,7 @@
  		if failure := recover(); failure != nil {
  			signature, err = nil, core.ErrGoToolchainOutput
  			if cause, native := failure.(error); native {

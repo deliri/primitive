@@ -21,11 +21,11 @@ func TestSSALastFunctionArgumentSchemaLayerTriad(t *testing.T) {
 			mode uint8
 		}{{"source backed target", 0}, {"no target", 1}, {"missing native program", 2}, {"missing source package", 3}, {"missing native signature", 4}, {"missing native body", 5}, {"synthetic frame without source", 6}, {"missing argument value", 7}, {"typed nil argument value", 8}, {"nonfunction argument value", 9}, {"argument without target", 10}} {
 			value := *fn
-			got := gotoolchain.SSAFunctionArgumentObservation{Function: &value, Value: fn}
+			got := gotoolchain.SSAFunctionValueObservation{Function: &value, Value: fn}
 			var want error
 			switch row.mode {
 			case 1:
-				got = gotoolchain.SSAFunctionArgumentObservation{}
+				got = gotoolchain.SSAFunctionValueObservation{}
 			case 2:
 				value.Prog = nil
 				want = core.ErrGoToolchainOutput
@@ -73,7 +73,7 @@ func TestSSALastFunctionArgumentPreservesNativeSignatureCause(t *testing.T) {
 		call.Common().Value = call.Common().Args[0]
 		got, err := v.LastFunctionArgument(ctx, gotoolchain.SSAFunctionArgumentRequest{Call: call})
 		var native *runtime.TypeAssertionError
-		if got != (gotoolchain.SSAFunctionArgumentObservation{}) || !errors.Is(err, core.ErrGoToolchainOutput) || !errors.As(err, &native) {
+		if got != (gotoolchain.SSAFunctionValueObservation{}) || !errors.Is(err, core.ErrGoToolchainOutput) || !errors.As(err, &native) {
 			t.Fatalf("native signature cause got=%+v,%v,as=%v, want zero,output and native type assertion cause", got, err, native)
 		}
 		return nil

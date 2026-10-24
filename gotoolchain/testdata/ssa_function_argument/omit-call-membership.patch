@@ -1,6 +1,6 @@
 --- a/gotoolchain/ssa_function_argument.go
 +++ b/gotoolchain/ssa_function_argument.go
-@@ -59,9 +59,7 @@
+@@ -36,9 +36,7 @@
  	if err = errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), v.Validate(), r.Validate()); err != nil {
  		return out, err
  	}

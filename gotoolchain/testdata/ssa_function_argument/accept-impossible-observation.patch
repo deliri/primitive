@@ -1,6 +1,6 @@
---- a/gotoolchain/ssa_function_argument.go
-+++ b/gotoolchain/ssa_function_argument.go
-@@ -36,9 +36,7 @@
+--- a/gotoolchain/ssa_function_value.go
++++ b/gotoolchain/ssa_function_value.go
+@@ -21,9 +21,7 @@
  	if o.Function == nil && o.Value == nil {
  		return nil
  	}

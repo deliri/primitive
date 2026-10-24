@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_function_value.go
++++ b/gotoolchain/ssa_function_value.go
+@@ -74,7 +74,7 @@
+ 			if operand.Pkg != v.Package || operand.Syntax() == nil || len(operand.Blocks) == 0 {
+ 				return out, nil
+ 			}
+-			out = SSAFunctionValueObservation{Function: operand, Value: original}
++			out = SSAFunctionValueObservation{Function: operand, Value: operand}
+ 			return out, out.Validate()
+ 		default:
+ 			return out, nil

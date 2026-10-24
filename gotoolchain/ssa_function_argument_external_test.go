@@ -130,7 +130,7 @@ func TestSSALastFunctionArgumentLayerTriad(t *testing.T) {
 				}
 				got, err := v.LastFunctionArgument(ctx, gotoolchain.SSAFunctionArgumentRequest{Call: call})
 				if row.mode == 1 {
-					if got != (gotoolchain.SSAFunctionArgumentObservation{}) || !errors.Is(err, core.ErrGoToolchainOutput) {
+					if got != (gotoolchain.SSAFunctionValueObservation{}) || !errors.Is(err, core.ErrGoToolchainOutput) {
 						t.Fatalf("function target refusal got=%+v,%v, want zero,output", got, err)
 					}
 				} else {
@@ -223,7 +223,7 @@ func TestSSALastFunctionArgumentRefusesBrokenCallCustody(t *testing.T) {
 					call.Common().Value = call.Common().Args[0]
 				}
 				got, err := v.LastFunctionArgument(ctx, request)
-				if got != (gotoolchain.SSAFunctionArgumentObservation{}) || !errors.Is(err, row.want) || row.want == core.ErrGoToolchainContract && errors.Is(err, core.ErrGoToolchainOutput) {
+				if got != (gotoolchain.SSAFunctionValueObservation{}) || !errors.Is(err, row.want) || row.want == core.ErrGoToolchainContract && errors.Is(err, core.ErrGoToolchainOutput) {
 					t.Fatalf("function argument custody got=%+v,%v, want zero,%v", got, err, row.want)
 				}
 				return nil

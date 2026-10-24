@@ -1,0 +1,15 @@
+--- a/gotoolchain/ssa_function_value.go
++++ b/gotoolchain/ssa_function_value.go
+@@ -61,11 +61,7 @@
+ 			if target.Parent() != operand.Parent() || !v.argumentBindingFunctionOwned(target) || len(operand.Bindings) != len(target.FreeVars) {
+ 				return out, core.ErrGoToolchainOutput
+ 			}
+-			for index, binding := range operand.Bindings {
+-				if err = v.argumentBindingOperand(ctx, binding, target.FreeVars[index], target, operand); err != nil {
+-					return out, err
+-				}
+-			}
++			
+ 			before, value = operand, target
+ 		case *ssa.Function:
+ 			if err = v.functionArgumentBefore(ctx, operand, before); err != nil {

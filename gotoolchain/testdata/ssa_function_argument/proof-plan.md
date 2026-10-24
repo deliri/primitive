@@ -23,3 +23,7 @@ Compiler construction is a separately owned whole-unit operation. The query
 retains no argument/function population and imposes no input quota. Benchmark
 and fuzz runs are serial 3-second development evidence. Independent acceptance
 belongs to the user.
+
+The callee-source cut shares the function-value observation and implementation
+with `CalleeSource`. Current patches target `ssa_function_value.go` where that
+check moved; retained earlier attempts remain bound to their original source.

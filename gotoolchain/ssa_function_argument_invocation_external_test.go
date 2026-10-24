@@ -34,7 +34,7 @@ func TestSSALastFunctionArgumentBorrowsAcrossNativeCallKinds(t *testing.T) {
 				}
 				for _, missing := range []ssa.CallInstruction{nil, (*ssa.Call)(nil), (*ssa.Defer)(nil), (*ssa.Go)(nil), &ssa.Defer{}, &ssa.Go{}} {
 					got, err := v.LastFunctionArgument(ctx, gotoolchain.SSAFunctionArgumentRequest{Call: missing})
-					if got != (gotoolchain.SSAFunctionArgumentObservation{}) || !errors.Is(err, core.ErrGoToolchainContract) || errors.Is(err, core.ErrGoToolchainOutput) {
+					if got != (gotoolchain.SSAFunctionValueObservation{}) || !errors.Is(err, core.ErrGoToolchainContract) || errors.Is(err, core.ErrGoToolchainOutput) {
 						t.Fatalf("absent call kind got=%+v,%v, want zero,contract", got, err)
 					}
 				}

@@ -49,7 +49,7 @@ func TestSSALastFunctionArgumentRefusesBrokenClosureLoan(t *testing.T) {
 					closure.Bindings[0] = v.Package.Func("Other").Params[0]
 				}
 				got, err := v.LastFunctionArgument(ctx, gotoolchain.SSAFunctionArgumentRequest{Call: call})
-				if got != (gotoolchain.SSAFunctionArgumentObservation{}) || !errors.Is(err, core.ErrGoToolchainOutput) {
+				if got != (gotoolchain.SSAFunctionValueObservation{}) || !errors.Is(err, core.ErrGoToolchainOutput) {
 					t.Fatalf("closure loan got=%+v,%v, want zero,output refusal", got, err)
 				}
 				return nil

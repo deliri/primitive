@@ -1,6 +1,6 @@
---- a/gotoolchain/ssa_function_argument.go
-+++ b/gotoolchain/ssa_function_argument.go
-@@ -134,11 +134,7 @@
+--- a/gotoolchain/ssa_function_value.go
++++ b/gotoolchain/ssa_function_value.go
+@@ -61,11 +61,7 @@
  			if target.Parent() != operand.Parent() || !v.argumentBindingFunctionOwned(target) || len(operand.Bindings) != len(target.FreeVars) {
  				return out, core.ErrGoToolchainOutput
  			}

@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_callee_source.go
++++ b/gotoolchain/ssa_callee_source.go
+@@ -63,7 +63,7 @@
+ 	if common.IsInvoke() {
+ 		return out, nil
+ 	}
+-	return v.sourceFunctionValue(ctx, common.Value, r.Call)
++	return v.sourceFunctionValue(ctx, common.Args[len(common.Args)-1], r.Call)
+ }
+ 
+ var _ internalFlow = SSACalleeSourceRequest{}

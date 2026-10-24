@@ -1,13 +1,13 @@
---- a/gotoolchain/ssa_function_argument.go
-+++ b/gotoolchain/ssa_function_argument.go
-@@ -75,9 +75,7 @@
+--- a/gotoolchain/ssa_function_value.go
++++ b/gotoolchain/ssa_function_value.go
+@@ -98,9 +98,7 @@
  	if signature.Recv() != nil && !common.IsInvoke() {
  		count++
  	}
 -	if len(common.Args) != count {
--		return out, core.ErrGoToolchainOutput
+-		return core.ErrGoToolchainOutput
 -	}
-+	if len(common.Args) != count { return out, nil }
++	if len(common.Args) != count {return nil}
  	for index, argument := range common.Args {
- 		if err = v.functionArgumentBefore(ctx, argument, r.Call); err != nil {
- 			return out, err
+ 		if err = v.functionArgumentBefore(ctx, argument, call); err != nil {
+ 			return err

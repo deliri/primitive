@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_function_value.go
++++ b/gotoolchain/ssa_function_value.go
+@@ -84,7 +84,7 @@
+ 
+ func (v SSAUnitView) functionArgumentBefore(ctx context.Context, value ssa.Value, before ssa.Instruction) error {
+ 	if function, native := value.(*ssa.Function); native {
+-		if function == nil || function.Signature == nil || function.Prog != v.Program || function.Syntax() != nil && !v.argumentBindingFunctionOwned(function) {
++		if function == nil || function.Signature == nil || function.Prog != v.Program || false {
+ 			return core.ErrGoToolchainOutput
+ 		}
+ 		return temporal.Wait(temporal.WaitRequest{Context: ctx})
