@@ -8,7 +8,6 @@ import (
 	"io"
 	"math"
 	"strings"
-	"time"
 
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
@@ -231,11 +230,7 @@ func uploadAndVerify(ctx context.Context, transfer r2FileTransfer) (R2VerifiedOb
 	request := transfer.request
 	// SigV4 publishes whole UTC seconds; signing at the instant's whole second
 	// never extends the grant past the caller's lifetime.
-	stamp, err := request.SignedAt.Time()
-	if err != nil {
-		return R2VerifiedObject{}, err
-	}
-	signedAt, err := temporal.NewInstant(stamp.Truncate(time.Second))
+	signedAt, err := request.SignedAt.Truncate(temporal.PrecisionSecond)
 	if err != nil {
 		return R2VerifiedObject{}, err
 	}

@@ -33,6 +33,7 @@ func (webhookDestination) cloudflareInternalFlow()          {}
 func (*exactSource) cloudflareInternalFlow()                {}
 func (R2FileUpload) cloudflareInternalFlow()                {}
 func (r2FileTransfer) cloudflareInternalFlow()              {}
+func (*r2FileError) cloudflareInternalFlow()                {}
 
 type cloudflareCapabilityWrapperRole interface{ cloudflareCapabilityWrapper() }
 
@@ -103,6 +104,7 @@ var (
 	_ cloudflareInternalFlowRole      = R2WriteRequest{}
 	_ cloudflareInternalFlowRole      = R2FileUpload{}
 	_ cloudflareInternalFlowRole      = r2FileTransfer{}
+	_ cloudflareInternalFlowRole      = (*r2FileError)(nil)
 	_ cloudflareProtocolFactRole      = r2CredentialFile{}
 	_ cloudflareInternalFlowRole      = MediaUpload{}
 	_ cloudflareInternalFlowRole      = (*exactSource)(nil)

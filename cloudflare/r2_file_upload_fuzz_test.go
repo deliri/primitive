@@ -15,8 +15,13 @@ import (
 // that decodes to the same key bytes, so nothing beyond the two members can
 // shape the result.
 func FuzzR2CredentialFileSemantic(f *testing.F) {
+	// The valid seed comes from the owning typed shape, not handwritten text.
+	valid, err := jsonio.MarshalValidated(r2CredentialFile{AccessKeyID: "r2-access-key", SecretAccessKey: "r2-secret-key"}, jsonio.OwnedCodecPolicy{})
+	if err != nil {
+		f.Fatalf("valid credential seed: %v", err)
+	}
+	f.Add(valid)
 	for _, seed := range []string{
-		r2CredentialText,
 		`{"access_key_id":"r2-access-key","secret_access_key":"r2-secret-key","region":"auto"}`,
 		`{"access_key_id":"r2-access-key","secret_access_key":"r2-secret-key","session_token":"t"}`,
 		`{"access_key_id":"r2-access-key"}`,
