@@ -1,0 +1,28 @@
+--- a/gotoolchain/ssa_function_argument.go
++++ b/gotoolchain/ssa_function_argument.go
+@@ -78,24 +78,7 @@
+ 	if len(common.Args) != count {
+ 		return out, core.ErrGoToolchainOutput
+ 	}
+-	for index, argument := range common.Args {
+-		if err = v.functionArgumentBefore(ctx, argument, r.Call); err != nil {
+-			return out, err
+-		}
+-		var parameter *types.Var
+-		if signature.Recv() != nil && !common.IsInvoke() {
+-			if index == 0 {
+-				parameter = signature.Recv()
+-			} else {
+-				parameter = signature.Params().At(index - 1)
+-			}
+-		} else {
+-			parameter = signature.Params().At(index)
+-		}
+-		if !types.AssignableTo(argument.Type(), parameter.Type()) {
+-			return out, core.ErrGoToolchainOutput
+-		}
+-	}
++
+ 	if signature.Params().Len() == 0 {
+ 		return out, nil
+ 	}

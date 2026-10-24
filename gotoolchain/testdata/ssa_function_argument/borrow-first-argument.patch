@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_function_argument.go
++++ b/gotoolchain/ssa_function_argument.go
+@@ -99,7 +99,7 @@
+ 	if signature.Params().Len() == 0 {
+ 		return out, nil
+ 	}
+-	value := common.Args[len(common.Args)-1]
++	value := common.Args[0]
+ 	if err = v.functionArgumentBefore(ctx, value, r.Call); err != nil {
+ 		return out, err
+ 	}

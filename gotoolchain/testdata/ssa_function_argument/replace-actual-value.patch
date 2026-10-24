@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_function_argument.go
++++ b/gotoolchain/ssa_function_argument.go
+@@ -147,7 +147,7 @@
+ 			if operand.Pkg != v.Package || operand.Syntax() == nil || len(operand.Blocks) == 0 {
+ 				return out, nil
+ 			}
+-			out = SSAFunctionArgumentObservation{Function: operand, Value: common.Args[len(common.Args)-1]}
++			out = SSAFunctionArgumentObservation{Function: operand, Value: operand}
+ 			return out, out.Validate()
+ 		default:
+ 			return out, nil

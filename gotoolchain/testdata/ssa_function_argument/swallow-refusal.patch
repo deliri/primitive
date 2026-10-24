@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_function_argument.go
++++ b/gotoolchain/ssa_function_argument.go
+@@ -53,7 +53,7 @@
+ 	defer func() {
+ 		err = errors.Join(err, temporal.Wait(temporal.WaitRequest{Context: ctx}))
+ 		if err != nil {
+-			out = SSAFunctionArgumentObservation{}
++			out = SSAFunctionArgumentObservation{}; err = nil
+ 		}
+ 	}()
+ 	if err = errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), v.Validate(), r.Validate()); err != nil {
