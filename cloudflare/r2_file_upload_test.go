@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,6 +21,7 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
 	"github.com/deliri/primitive/v2026/filestore"
+	"github.com/deliri/primitive/v2026/temporal"
 )
 
 // r2FileDisposition is how the local R2 stand-in answers one object.
@@ -361,6 +365,64 @@ func TestR2CredentialReadIsBoundedLayerTriad(t *testing.T) {
 		}
 		if err := got.Close(); err != nil {
 			t.Fatalf("close credentials: %v", err)
+		}
+	})
+}
+
+// A live Temporal observation carries fractional seconds; SigV4 publishes
+// whole UTC seconds. The door signs at the instant's whole second, which
+// never extends the grant, and the local stand-in verifies that signature.
+// A transport failure on a signed request renders none of the grant's bearer
+// material under any verb, while its native cause stays inspectable.
+func TestR2FileSigningInstantAndDiagnosticsLayerTriad(t *testing.T) {
+	t.Parallel()
+	t.Run("positive/a fractional signing instant signs at its whole second", func(t *testing.T) {
+		t.Parallel()
+		f := newR2FileFixture(t, t.TempDir(), r2FileStore)
+		whole, err := f.request.SignedAt.Time()
+		if err != nil {
+			t.Fatal(err)
+		}
+		f.request.SignedAt = temporal.InstantFromNanoseconds(whole.UnixNano() + 500_000_000)
+		got, err := UploadR2File(t.Context(), f.client, f.request)
+		if err != nil || got.Validate() != nil {
+			t.Fatalf("UploadR2File at a fractional instant = (%+v, %v), want verified proof", got, err)
+		}
+	})
+	t.Run("negative/a transport failure renders no bearer and keeps its native cause", func(t *testing.T) {
+		t.Parallel()
+		f := newR2FileFixture(t, t.TempDir(), r2FileStore)
+		listener, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatal(err)
+		}
+		address := listener.Addr().String()
+		if err := listener.Close(); err != nil {
+			t.Fatal(err)
+		}
+		transport := &http.Transport{DialContext: func(ctx context.Context, network, _ string) (net.Conn, error) {
+			return (&net.Dialer{}).DialContext(ctx, network, address)
+		}}
+		network, err := exchange.NewClient(&http.Client{Transport: transport})
+		if err != nil {
+			t.Fatal(err)
+		}
+		client, err := NewR2Client(network)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got, err := UploadR2File(t.Context(), client, f.request)
+		var native *url.Error
+		if err == nil || got != (R2VerifiedObject{}) || !errors.As(err, &native) {
+			t.Fatalf("UploadR2File to a closed listener = (%+v, %v), want zero proof with the native *url.Error kept", got, err)
+		}
+		for _, verb := range []string{"%v", "%+v", "%#v", "%s", "%q"} {
+			text := fmt.Sprintf(verb, err)
+			for _, secret := range []string{core.SignatureV4SignatureQuery, core.SignatureV4CredentialQuery, "r2-access-key", "r2-secret-key"} {
+				if strings.Contains(text, secret) {
+					t.Fatalf("diagnostic %s = %q, want no %q", verb, text, secret)
+				}
+			}
 		}
 	})
 }

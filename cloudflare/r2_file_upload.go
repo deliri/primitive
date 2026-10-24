@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
+	"strings"
+	"time"
 
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
@@ -91,6 +94,14 @@ func (f r2CredentialFile) Validate() error {
 // with the native cause; nothing is retried. The credentials are destroyed on
 // every return; the decoded JSON text itself is not zeroable in Go.
 func UploadR2File(ctx context.Context, client R2Client, request R2FileUpload) (R2VerifiedObject, error) {
+	verified, err := uploadR2File(ctx, client, request)
+	if err != nil {
+		return R2VerifiedObject{}, &r2FileError{cause: err}
+	}
+	return verified, nil
+}
+
+func uploadR2File(ctx context.Context, client R2Client, request R2FileUpload) (R2VerifiedObject, error) {
 	if err := errors.Join(contextstate.Validate(ctx), client.Validate(), request.Validate()); err != nil {
 		return R2VerifiedObject{}, err
 	}
@@ -108,6 +119,36 @@ func UploadR2File(ctx context.Context, client R2Client, request R2FileUpload) (R
 		return R2VerifiedObject{}, errors.Join(err, closeErr)
 	}
 	return verified, nil
+}
+
+// r2FileError is the door's diagnostic boundary. Native text can embed a
+// signed URL, so it renders only the core identities its cause carries; the
+// native cause stays reachable through errors.Is and errors.As.
+type r2FileError struct{ cause error }
+
+func (e *r2FileError) Unwrap() error { return e.cause }
+func (e *r2FileError) Error() string {
+	var named []string
+	for _, identity := range r2FileIdentities() {
+		if errors.Is(e.cause, identity) {
+			named = append(named, identity.Error())
+		}
+	}
+	if len(named) == 0 {
+		return core.RedactedValueText
+	}
+	return strings.Join(named, "\n")
+}
+func (e *r2FileError) Format(state fmt.State, _ rune) { _, _ = io.WriteString(state, e.Error()) }
+
+// r2FileIdentities are the identities whose own text is safe to render.
+func r2FileIdentities() [17]error {
+	return [...]error{
+		core.ErrCloudflareContract, core.ErrCloudflareAuthentication, core.ErrCloudflareVerification, core.ErrCloudflareBinding, core.ErrCloudflareResponse,
+		core.ErrExchangeContract, core.ErrExchangeRequest, core.ErrExchangeResponse, core.ErrExchangeTransport, core.ErrExchangeAuthentication,
+		core.ErrExchangeRateLimited, core.ErrExchangeUnavailable, core.ErrExchangeRejected, core.ErrExchangeCancelled,
+		context.Canceled, context.DeadlineExceeded, io.ErrUnexpectedEOF,
+	}
 }
 
 // readR2Credentials reads a private credential file through one held
@@ -181,14 +222,24 @@ type r2FileTransfer struct {
 
 func uploadAndVerify(ctx context.Context, transfer r2FileTransfer) (R2VerifiedObject, error) {
 	request := transfer.request
-	put, err := transfer.server.Presign(ctx, R2PresignRequest{Bucket: request.Bucket, Key: request.Key, ContentType: request.ContentType, SignedAt: request.SignedAt, Expires: request.Expires, Method: exchange.MethodPut, Conditions: R2WriteConditions{CreateOnly: true}})
+	// SigV4 publishes whole UTC seconds; signing at the instant's whole second
+	// never extends the grant past the caller's lifetime.
+	stamp, err := request.SignedAt.Time()
+	if err != nil {
+		return R2VerifiedObject{}, err
+	}
+	signedAt, err := temporal.NewInstant(stamp.Truncate(time.Second))
+	if err != nil {
+		return R2VerifiedObject{}, err
+	}
+	put, err := transfer.server.Presign(ctx, R2PresignRequest{Bucket: request.Bucket, Key: request.Key, ContentType: request.ContentType, SignedAt: signedAt, Expires: request.Expires, Method: exchange.MethodPut, Conditions: R2WriteConditions{CreateOnly: true}})
 	if err != nil {
 		return R2VerifiedObject{}, err
 	}
 	if _, err := transfer.client.Put(ctx, R2WriteRequest{Source: request.Source, Grant: put, Bytes: request.Expected.Extent}, request.Policy); err != nil {
 		return R2VerifiedObject{}, err
 	}
-	get, err := transfer.server.Presign(ctx, R2PresignRequest{Bucket: request.Bucket, Key: request.Key, SignedAt: request.SignedAt, Expires: request.Expires, Method: exchange.MethodGet})
+	get, err := transfer.server.Presign(ctx, R2PresignRequest{Bucket: request.Bucket, Key: request.Key, SignedAt: signedAt, Expires: request.Expires, Method: exchange.MethodGet})
 	if err != nil {
 		return R2VerifiedObject{}, err
 	}
