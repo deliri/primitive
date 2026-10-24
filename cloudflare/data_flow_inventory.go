@@ -16,6 +16,7 @@ func (streamDirectUploadWire) cloudflareProtocolFact()        {}
 func (StreamDirectUploadRequest) cloudflareProtocolFact()     {}
 func (R2PresignRequest) cloudflareProtocolFact()              {}
 func (R2GrantInput) cloudflareProtocolFact()                  {}
+func (r2CredentialFile) cloudflareProtocolFact()              {}
 
 type cloudflareInternalFlowRole interface{ cloudflareInternalFlow() }
 
@@ -30,6 +31,8 @@ func (R2WriteRequest) cloudflareInternalFlow()              {}
 func (MediaUpload) cloudflareInternalFlow()                 {}
 func (webhookDestination) cloudflareInternalFlow()          {}
 func (*exactSource) cloudflareInternalFlow()                {}
+func (R2FileUpload) cloudflareInternalFlow()                {}
+func (r2FileTransfer) cloudflareInternalFlow()              {}
 
 type cloudflareCapabilityWrapperRole interface{ cloudflareCapabilityWrapper() }
 
@@ -53,6 +56,7 @@ func (R2Credentials) cloudflareCapabilityWrapper()         {}
 func (R2Server) cloudflareCapabilityWrapper()              {}
 func (R2Grant) cloudflareCapabilityWrapper()               {}
 func (R2Client) cloudflareCapabilityWrapper()              {}
+func (R2VerifiedObject) cloudflareCapabilityWrapper()      {}
 
 var (
 	_ cloudflareProtocolFactRole      = ImageDeliverySource{}
@@ -97,6 +101,9 @@ var (
 	_ cloudflareInternalFlowRole      = apiIntent{}
 	_ cloudflareInternalFlowRole      = boundedResponse{}
 	_ cloudflareInternalFlowRole      = R2WriteRequest{}
+	_ cloudflareInternalFlowRole      = R2FileUpload{}
+	_ cloudflareInternalFlowRole      = r2FileTransfer{}
+	_ cloudflareProtocolFactRole      = r2CredentialFile{}
 	_ cloudflareInternalFlowRole      = MediaUpload{}
 	_ cloudflareInternalFlowRole      = (*exactSource)(nil)
 	_ cloudflareInternalFlowRole      = webhookDestination{}
@@ -119,5 +126,6 @@ var (
 	_ cloudflareCapabilityWrapperRole = R2Credentials{}
 	_ cloudflareCapabilityWrapperRole = R2Server{}
 	_ cloudflareCapabilityWrapperRole = R2Grant{}
+	_ cloudflareCapabilityWrapperRole = R2VerifiedObject{}
 	_ cloudflareCapabilityWrapperRole = R2Client{}
 )

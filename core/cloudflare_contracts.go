@@ -85,8 +85,10 @@ const (
 
 // https://developers.cloudflare.com/r2/platform/limits/
 const (
-	CloudflareR2ObjectKeyMaximumBytes              = 1024
-	CloudflareR2SingleUploadMaximumBytes    uint64 = 5 * 1024 * 1024 * 1024
+	CloudflareR2ObjectKeyMaximumBytes = 1024
+	// A single-part upload is limited to 5 MiB less than 5 GiB (the limits
+	// page's footnote 4: "4.995 GiB"), the same ceiling as one multipart part.
+	CloudflareR2SingleUploadMaximumBytes    uint64 = (5*1024 - 5) * 1024 * 1024
 	CloudflareR2MultipartMaximumParts              = 10000
 	CloudflareR2MultipartMinimumPartBytes   uint64 = 5 * 1024 * 1024
 	CloudflareR2MultipartMaximumPartBytes   uint64 = (5*1024 - 5) * 1024 * 1024
