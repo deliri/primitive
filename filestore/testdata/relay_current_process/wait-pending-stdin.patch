@@ -1,0 +1,19 @@
+--- a/filestore/relay_current_process.go
++++ b/filestore/relay_current_process.go
+@@ -61,13 +61,9 @@
+ 	}()
+ 	_, downErr := io.Copy(currentRelayOutput{streams: own}, lent.Input)
+ 	terminalErr := errors.Join(downErr, nearOutput.Close())
+-	select {
+-	case copied := <-upward:
+-		closed := <-upward
+-		terminalErr = errors.Join(terminalErr, copied.copyError, closed.closeError)
+-	default:
+-		// Its input still belongs to this process, not to a returning caller.
+-	}
++	copied := <-upward
++	closed := <-upward
++	terminalErr = errors.Join(terminalErr, copied.copyError, closed.closeError)
+ 	status := process.ExitSuccess
+ 	if terminalErr != nil {
+ 		status = process.ExitFailure

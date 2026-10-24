@@ -1,0 +1,11 @@
+--- a/filestore/relay_current_process.go
++++ b/filestore/relay_current_process.go
+@@ -70,7 +70,7 @@
+ 	}
+ 	status := process.ExitSuccess
+ 	if terminalErr != nil {
+-		status = process.ExitFailure
++		status = process.ExitSuccess
+ 		_, writeErr := own.WriteOutput(process.StreamStderr, []byte(terminalErr.Error()+"\n"))
+ 		if writeErr != nil {
+ 			return process.ExitCurrent(process.ExitFailure)

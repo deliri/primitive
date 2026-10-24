@@ -1,0 +1,37 @@
+[
+  {
+    "name": "ordinary-return",
+    "patch": "ordinary-return.patch",
+    "run": "^TestRelayCurrentProcessNativeLifetime$/^ordinary$"
+  },
+  {
+    "name": "wait-pending-stdin",
+    "patch": "wait-pending-stdin.patch",
+    "run": "^TestRelayCurrentProcessNativeLifetime$/^ordinary$"
+  },
+  {
+    "name": "discard-known-copy",
+    "patch": "discard-known-copy.patch",
+    "run": "^TestRelayCurrentProcessNativeFailures$/^known_native_upward_copy_cause$"
+  },
+  {
+    "name": "discard-known-close",
+    "patch": "discard-known-close.patch",
+    "run": "^TestRelayCurrentProcessNativeFailures$/^known_copy_and_close_causes_survive_together$"
+  },
+  {
+    "name": "discard-near-close",
+    "patch": "discard-near-close.patch",
+    "run": "^TestRelayCurrentProcessNativeFailures$/^native_near_close_cause$"
+  },
+  {
+    "name": "raw-stdout-sigpipe",
+    "patch": "raw-stdout-sigpipe.patch",
+    "run": "^TestRelayCurrentProcessNativeFailures$/^broken_stdout_reports_EPIPE_instead_of_SIGPIPE$"
+  },
+  {
+    "name": "success-after-failure",
+    "patch": "success-after-failure.patch",
+    "run": "^TestRelayCurrentProcessNativeFailures$/^known_native_upward_copy_cause$"
+  }
+]

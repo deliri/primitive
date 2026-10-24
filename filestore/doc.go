@@ -14,6 +14,10 @@
 // returning observed and unique counts without deciding duplicate policy.
 // WithScratchScope lends one native private root and owns its cleanup after
 // the caller's synchronous operation; filenames and schemas remain caller policy.
+// Relay joins both directions of borrowed streams. RelayCurrentProcess instead
+// owns a dedicated relay process: Far EOF terminates that process even when its
+// client's stdin remains blocking until child exit. It accepts only trusted
+// inherited-standard-stream policy and returns no fabricated join receipt.
 //
 // StageDestination lends a real Go file to an external streaming producer.
 // The caller checks the producer's error and abandons the stage on failure.

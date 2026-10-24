@@ -1,0 +1,12 @@
+--- a/filestore/relay_current_process.go
++++ b/filestore/relay_current_process.go
+@@ -64,7 +64,8 @@
+ 	select {
+ 	case copied := <-upward:
+ 		closed := <-upward
+-		terminalErr = errors.Join(terminalErr, copied.copyError, closed.closeError)
++		_ = closed
++		terminalErr = errors.Join(terminalErr, copied.copyError)
+ 	default:
+ 		// Its input still belongs to this process, not to a returning caller.
+ 	}

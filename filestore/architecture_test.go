@@ -19,6 +19,7 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/keygen"
 	"github.com/deliri/primitive/v2026/lineio"
+	"github.com/deliri/primitive/v2026/process"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -83,6 +84,7 @@ type filestoreContractInventory struct {
 	RelayRequest                  validatedRequest[RelayRequest]
 	RelayResult                   streamedObservation[RelayResult]
 	relayUpwardResult             internalFlow[relayUpwardResult]
+	currentRelayOutput            capabilityWrapper[currentRelayOutput]
 	Location                      capabilityWrapper[Location]
 	DirectoryRequest              validatedRequest[DirectoryRequest]
 	ScratchRequest                validatedRequest[ScratchRequest]
@@ -194,6 +196,7 @@ func TestFilestoreImportsOnlyGoAndOwnedPrimitiveContracts(t *testing.T) {
 		reflect.TypeFor[temporal.Instant]().PkgPath(),
 		reflect.TypeFor[lineio.RecordRange]().PkgPath(),
 		reflect.TypeFor[keygen.Token]().PkgPath(),
+		reflect.TypeFor[process.LentRequest]().PkgPath(),
 	}
 	for _, production := range parseProductionFiles(t) {
 		for _, specification := range production.file.Imports {
@@ -244,43 +247,23 @@ func TestFilestoreDataFlowStructInventoryRatchet(t *testing.T) {
 
 func classifiedFilestoreStructNames(t *testing.T) []string {
 	t.Helper()
+	// Go supplies the compiled inventory; reflection makes every classified
+	// field a real consumer rather than parsing a second textual inventory.
+	inventory := reflect.TypeOf(filestoreContractInventory{})
+	names := make([]string, inventory.NumField())
+	for index := range inventory.NumField() {
+		names[index] = inventory.Field(index).Name
+		if names[index] == reflect.TypeFor[currentRelayOutput]().Name() {
+			// This entry's classified type supplies its identity, too: a
+			// different generic argument must not keep the adapter's name.
+			names[index] = classifiedCapabilityName(filestoreContractInventory{}.currentRelayOutput)
+		}
+	}
+	return names
+}
 
-	fileSet := token.NewFileSet()
-	source, err := filestoreGoSources.ReadFile("architecture_test.go")
-	if err != nil {
-		t.Fatal(err)
-	}
-	file, err := parser.ParseFile(
-		fileSet,
-		"architecture_test.go",
-		source,
-		parser.SkipObjectResolution,
-	)
-	if err != nil {
-		t.Fatalf("ParseFile(architecture_test.go) error = %v, want nil", err)
-	}
-	for _, declaration := range file.Decls {
-		generic, ok := declaration.(*ast.GenDecl)
-		if !ok || generic.Tok != token.TYPE {
-			continue
-		}
-		for _, raw := range generic.Specs {
-			specification := raw.(*ast.TypeSpec)
-			if specification.Name.Name != "filestoreContractInventory" {
-				continue
-			}
-			structure := specification.Type.(*ast.StructType)
-			names := make([]string, 0, len(structure.Fields.List))
-			for _, field := range structure.Fields.List {
-				for _, name := range field.Names {
-					names = append(names, name.Name)
-				}
-			}
-			return names
-		}
-	}
-	t.Fatal("filestoreContractInventory declarations found = 0, want 1")
-	return nil
+func classifiedCapabilityName[T any](capabilityWrapper[T]) string {
+	return reflect.TypeFor[T]().Name()
 }
 
 func TestFilestoreProductionUsesGoAndOSPrimitivesWithoutCoordinationMachineryRatchet(t *testing.T) {
@@ -299,6 +282,7 @@ func TestFilestoreProductionUsesGoAndOSPrimitivesWithoutCoordinationMachineryRat
 		"github.com/deliri/primitive/v2026/temporal",
 		"github.com/deliri/primitive/v2026/lineio",
 		"github.com/deliri/primitive/v2026/keygen",
+		"github.com/deliri/primitive/v2026/process",
 	}
 	slices.Sort(got.primitiveImports)
 	slices.Sort(want)
@@ -407,7 +391,7 @@ func scanProductionArchitecture(files []productionFile) (architectureScan, error
 		}
 		for _, declaration := range file.Decls {
 			symbol := declarationName(declaration)
-			nativePipeJoin := ownsNativePipeJoin(declaration)
+			nativePipeJoin := ownsNativePipeJoin(declaration) || ownsCurrentProcessRelay(declaration)
 			ast.Inspect(declaration, func(node ast.Node) bool {
 				switch value := node.(type) {
 				case *ast.GoStmt:
@@ -609,13 +593,15 @@ func TestNativePipeCoordinationAdmissionRejectsDetachedAndUnboundedWork(t *testi
 func ownsGoInterfaceMethod(receiver, method string) bool {
 	return receiver == reflect.TypeFor[HeldDirectory]().Name() && method == reflect.TypeFor[io.Closer]().Method(0).Name ||
 		receiver == reflect.TypeFor[streamReader]().Name() && method == reflect.TypeFor[io.Reader]().Method(0).Name ||
-		receiver == reflect.TypeFor[streamWriter]().Name() && method == reflect.TypeFor[io.Writer]().Method(0).Name
+		receiver == reflect.TypeFor[streamWriter]().Name() && method == reflect.TypeFor[io.Writer]().Method(0).Name ||
+		receiver == reflect.TypeFor[currentRelayOutput]().Name() && method == reflect.TypeFor[io.Writer]().Method(0).Name
 }
 
 var (
 	_ io.Closer = (*HeldDirectory)(nil)
 	_ io.Reader = (*streamReader)(nil)
 	_ io.Writer = streamWriter{}
+	_ io.Writer = currentRelayOutput{}
 )
 
 func declarationName(declaration ast.Decl) string {

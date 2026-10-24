@@ -1,0 +1,12 @@
+--- a/filestore/relay_current_process.go
++++ b/filestore/relay_current_process.go
+@@ -76,7 +76,8 @@
+ 			return process.ExitCurrent(process.ExitFailure)
+ 		}
+ 	}
+-	return process.ExitCurrent(status)
++	_ = status
++	return nil
+ }
+ 
+ // currentRelayOutput delegates fd 1 writes to Process's native EPIPE-safe

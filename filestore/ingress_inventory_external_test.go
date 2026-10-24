@@ -124,6 +124,7 @@ func filestoreIngressProofs() []filestoreIngressProof {
 		{door: reflect.ValueOf(filestore.OpenPipe), fuzz: FuzzPipeNativeCustodyAndBytes},
 		{door: reflect.ValueOf(filestore.TransferPipe), fuzz: FuzzPipeTransferPreservesNativeBytes},
 		{door: reflect.ValueOf(filestore.Relay), fuzz: FuzzRelayPreservesBothDirections},
+		{door: reflect.ValueOf(filestore.RelayCurrentProcess), proof: filestore.RelayCurrentProcessNativeProofForTest, reason: "A terminal native-process door, not a returning stream transform; owned children prove exact native bytes, Far-EOF exit with held stdin, copy/close failure diagnostics and parent-reaped cancellation."},
 		{door: reflect.ValueOf(filestore.EnsureDirectory), fuzz: FuzzEnsureDirectoryNativeNamespaceCustody},
 		{door: reflect.ValueOf(filestore.CreateDirectory), fuzz: FuzzCreateDirectoryNativeModeAndExclusivity},
 		{door: reflect.ValueOf(filestore.WithCreatedDirectoryScope), fuzz: FuzzCreatedDirectoryScopeNativeOwnership},

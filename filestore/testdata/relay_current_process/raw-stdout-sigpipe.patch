@@ -1,0 +1,11 @@
+--- a/filestore/relay_current_process.go
++++ b/filestore/relay_current_process.go
+@@ -59,7 +59,7 @@
+ 		upward <- relayUpwardResult{copyError: copyErr}
+ 		upward <- relayUpwardResult{closeError: lent.Output.Close()}
+ 	}()
+-	_, downErr := io.Copy(currentRelayOutput{streams: own}, lent.Input)
++	_, downErr := io.Copy(own.Stdout, lent.Input)
+ 	terminalErr := errors.Join(downErr, nearOutput.Close())
+ 	select {
+ 	case copied := <-upward:
