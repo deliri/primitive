@@ -110,27 +110,31 @@ func UploadR2File(ctx context.Context, client R2Client, request R2FileUpload) (R
 	return verified, nil
 }
 
-// readR2Credentials reads a private credential file: a regular file, not a
-// link, whose permissions grant nothing to group or others and whose size is
-// within its budget. The read buffer is cleared on return.
+// readR2Credentials reads a private credential file through one held
+// descriptor: the mode and size it checks belong to the very bytes it reads,
+// so replacing or appending to the path afterwards cannot bypass them.
 func readR2Credentials(ctx context.Context, path core.AbsolutePath) (R2Credentials, error) {
 	location, err := filestore.OpenParent(ctx, path)
 	if err != nil {
 		return R2Credentials{}, errors.Join(core.ErrCloudflareAuthentication, err)
 	}
-	credentials, err := readPrivateR2Credentials(ctx, location)
-	if closeErr := filestore.CloseRoot(filestore.RootHandleRequest{Root: location.Root}); err != nil || closeErr != nil {
-		return R2Credentials{}, errors.Join(core.ErrCloudflareAuthentication, err, closeErr)
+	var credentials R2Credentials
+	result, err := filestore.WithInspectedReadScope(ctx, filestore.InspectedReadScopeRequest{Location: location, Use: func(_ context.Context, read filestore.InspectedRead) error {
+		var e error
+		credentials, e = readPrivateR2Credentials(read)
+		return e
+	}})
+	closeErr := filestore.CloseRoot(filestore.RootHandleRequest{Root: location.Root})
+	if err := errors.Join(err, result.OperationError(), result.CleanupError(), closeErr); err != nil {
+		return R2Credentials{}, errors.Join(core.ErrCloudflareAuthentication, err, credentials.Close())
 	}
 	return credentials, nil
 }
 
-func readPrivateR2Credentials(ctx context.Context, location filestore.Location) (R2Credentials, error) {
-	observed, err := filestore.InspectEntry(ctx, location)
-	if err != nil {
-		return R2Credentials{}, err
-	}
-	permissions, err := observed.Permissions()
+// readPrivateR2Credentials admits a file that grants nothing to group or
+// others, as observed on the held descriptor, within its byte budget.
+func readPrivateR2Credentials(read filestore.InspectedRead) (R2Credentials, error) {
+	permissions, err := read.Metadata.Permissions()
 	if err != nil {
 		return R2Credentials{}, err
 	}
@@ -138,18 +142,23 @@ func readPrivateR2Credentials(ctx context.Context, location filestore.Location) 
 	if err != nil {
 		return R2Credentials{}, err
 	}
-	// Only a regular file has a size, so a link or other entry is refused here.
-	size, err := observed.SizeBytes()
-	if err != nil {
-		return R2Credentials{}, errors.Join(core.ErrCloudflareAuthentication, err)
-	}
-	if mode.Perm()&0o077 != 0 || size.Uint64() > r2CredentialFileMaximumBytes {
+	if mode.Perm()&0o077 != 0 {
 		return R2Credentials{}, core.ErrCloudflareAuthentication
 	}
+	return decodeBoundedR2Credentials(read.Source)
+}
+
+// decodeBoundedR2Credentials consumes at most one byte past the budget, so
+// the bytes actually read stay bounded even if the file grew after its
+// inspection. The buffer is cleared on return.
+func decodeBoundedR2Credentials(source io.Reader) (R2Credentials, error) {
 	var buffer bytes.Buffer
 	defer func() { clear(buffer.Bytes()) }()
-	if _, err := filestore.Read(ctx, filestore.ReadRequest{Destination: &buffer, Location: location}); err != nil {
-		return R2Credentials{}, errors.Join(core.ErrCloudflareAuthentication, err)
+	if _, err := buffer.ReadFrom(io.LimitReader(source, r2CredentialFileMaximumBytes+1)); err != nil {
+		return R2Credentials{}, err
+	}
+	if buffer.Len() > r2CredentialFileMaximumBytes {
+		return R2Credentials{}, core.ErrCloudflareAuthentication
 	}
 	return decodeR2Credentials(buffer.Bytes())
 }

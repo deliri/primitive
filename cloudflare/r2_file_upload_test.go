@@ -211,7 +211,9 @@ func TestUploadR2FileLocalProviderLayerTriad(t *testing.T) {
 	}{
 		{name: "group-readable", text: r2CredentialText, mode: 0o640},
 		{name: "one byte past its budget", text: oversized, mode: 0o600},
-		{name: "reached through a symbolic link", text: r2CredentialText, mode: 0o600, link: true},
+		// The link itself is private where the platform allows it; the bytes
+		// read are the group-readable target's, which must decide.
+		{name: "reached through a private link to a group-readable file", text: r2CredentialText, mode: 0o640, link: true},
 		{name: "carrying an unknown member", text: `{"access_key_id":"r2-access-key","secret_access_key":"r2-secret-key","region":"auto"}`, mode: 0o600},
 		{name: "carrying a session token", text: `{"access_key_id":"r2-access-key","secret_access_key":"r2-secret-key","session_token":"t"}`, mode: 0o600},
 		{name: "missing its secret", text: `{"access_key_id":"r2-access-key"}`, mode: 0o600},
@@ -231,8 +233,7 @@ func TestUploadR2FileLocalProviderLayerTriad(t *testing.T) {
 					t.Fatal(err)
 				}
 				// Where the platform allows it (macOS), the link itself is made
-				// private, so only the regular-file rule can refuse it. Linux
-				// links always carry 0777, which the permission rule refuses.
+				// private, so only the target's own mode can refuse it.
 				err := unix.Fchmodat(unix.AT_FDCWD, filepath.Join(directory, "r2.json"), 0o600, unix.AT_SYMLINK_NOFOLLOW)
 				if err != nil && !errors.Is(err, unix.EOPNOTSUPP) && !errors.Is(err, unix.ENOTSUP) {
 					t.Fatalf("private link mode: %v", err)
@@ -318,4 +319,48 @@ func TestR2SingleUploadBoundaryLayerTriad(t *testing.T) {
 			}
 		})
 	}
+}
+
+// oversizedCredential yields a valid document padded with whitespace to four
+// budgets, as a file that grew after its inspection would, counting what was
+// consumed. Only the budget can refuse it.
+type oversizedCredential struct{ consumed int }
+
+func (e *oversizedCredential) Read(data []byte) (int, error) {
+	if e.consumed >= 4*r2CredentialFileMaximumBytes {
+		return 0, io.EOF
+	}
+	for i := range data {
+		data[i] = ' '
+		if at := e.consumed + i; at < len(r2CredentialText) {
+			data[i] = r2CredentialText[at]
+		}
+	}
+	e.consumed += len(data)
+	return len(data), nil
+}
+
+// The bytes consumed from a credential file are bounded by its budget, not by
+// what an earlier inspection saw: a source four budgets long is refused after
+// consuming at most one byte past the budget.
+func TestR2CredentialReadIsBoundedLayerTriad(t *testing.T) {
+	t.Parallel()
+	t.Run("negative/a source far past its budget is refused within it", func(t *testing.T) {
+		t.Parallel()
+		source := &oversizedCredential{}
+		got, err := decodeBoundedR2Credentials(source)
+		if !errors.Is(err, core.ErrCloudflareAuthentication) || got.Validate() == nil || source.consumed > r2CredentialFileMaximumBytes+1 {
+			t.Fatalf("decode = (%v, %v) after consuming %d bytes, want %v within %d bytes", got.Validate(), err, source.consumed, core.ErrCloudflareAuthentication, r2CredentialFileMaximumBytes+1)
+		}
+	})
+	t.Run("positive/a document within its budget decodes", func(t *testing.T) {
+		t.Parallel()
+		got, err := decodeBoundedR2Credentials(strings.NewReader(r2CredentialText))
+		if err != nil || got.Validate() != nil {
+			t.Fatalf("decode = (%v, %v), want valid credentials", got.Validate(), err)
+		}
+		if err := got.Close(); err != nil {
+			t.Fatalf("close credentials: %v", err)
+		}
+	})
 }
