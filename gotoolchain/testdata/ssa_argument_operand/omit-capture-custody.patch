@@ -1,0 +1,13 @@
+--- a/gotoolchain/ssa_argument_operand.go
++++ b/gotoolchain/ssa_argument_operand.go
+@@ -62,9 +62,7 @@
+ 		}
+ 		switch value.(type) {
+ 		case *ssa.Alloc, *ssa.FreeVar:
+-			if err = v.argumentOperandCellCustody(ctx, value); err != nil {
+-				return out, err
+-			}
++			
+ 		}
+ 		instruction, native := value.(ssa.Instruction)
+ 		if !native {

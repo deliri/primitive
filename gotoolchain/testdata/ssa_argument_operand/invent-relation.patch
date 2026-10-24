@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_argument_operand.go
++++ b/gotoolchain/ssa_argument_operand.go
+@@ -99,7 +99,7 @@
+ 		}
+ 		value = operand
+ 	}
+-	out.Proven, err = argumentCallReceiver(r.Value, r.Argument, r.Path)
++	out.Proven = true
+ 	return out, err
+ }
+ 

@@ -321,6 +321,11 @@ func argumentCallOperand(value, runner ssa.Value) (bool, error) {
 				return false, nil
 			}
 			store, ok := reference.(*ssa.Store)
+			if ok && store.Val == operand {
+				// Storing the address lets another native owner replace the
+				// cell, just as passing that address to an opaque callee does.
+				return false, nil
+			}
 			if !ok || store.Addr != operand {
 				continue
 			}
@@ -343,7 +348,15 @@ func argumentCallCellUnchangedBeforeRead(read *ssa.UnOp) (bool, error) {
 		return false, nil
 	}
 	for _, reference := range *references {
+		switch reference.(type) {
+		case *ssa.Store, *ssa.UnOp, *ssa.DebugRef, *ssa.MakeClosure:
+		default:
+			return false, nil
+		}
 		store, ok := reference.(*ssa.Store)
+		if ok && store.Val == read.X {
+			return false, nil
+		}
 		if !ok || store.Addr != read.X {
 			continue
 		}

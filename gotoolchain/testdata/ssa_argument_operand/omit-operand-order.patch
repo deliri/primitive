@@ -1,0 +1,13 @@
+--- a/gotoolchain/ssa_argument_operand.go
++++ b/gotoolchain/ssa_argument_operand.go
+@@ -94,9 +94,7 @@
+ 		default:
+ 			break representations
+ 		}
+-		if err = v.fieldReadOperandBefore(ctx, operand, instruction); err != nil {
+-			return out, err
+-		}
++		
+ 		value = operand
+ 	}
+ 	out.Proven, err = argumentCallReceiver(r.Value, r.Argument, r.Path)

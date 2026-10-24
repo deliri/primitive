@@ -79,21 +79,35 @@ func (v SSAUnitView) FieldRead(ctx context.Context, r SSAFieldReadRequest) (out 
 	if err = v.fieldReadOperandBefore(ctx, address.X, address); err != nil {
 		return out, err
 	}
-	pointer, ok := types.Unalias(address.X.Type()).Underlying().(*types.Pointer)
-	if !ok {
+	member := nativeSSAField(address.X.Type(), address.Field, true)
+	if member == nil {
 		return out, core.ErrGoToolchainOutput
 	}
-	record, ok := types.Unalias(pointer.Elem()).Underlying().(*types.Struct)
-	if !ok || address.Field < 0 || address.Field >= record.NumFields() {
-		return out, core.ErrGoToolchainOutput
-	}
-	member := record.Field(address.Field)
 	addressType, ok := types.Unalias(address.Type()).Underlying().(*types.Pointer)
 	if !ok || !types.Identical(addressType.Elem(), member.Type()) || !types.Identical(r.Read.Type(), member.Type()) {
 		return out, core.ErrGoToolchainOutput
 	}
 	out = SSAFieldReadObservation{Base: address.X, Field: member}
 	return out, nil
+}
+
+// nativeSSAField is the shared native record/ordinal authority for field loans.
+func nativeSSAField(base types.Type, ordinal int, indirect bool) *types.Var {
+	if base == nil {
+		return nil
+	}
+	if indirect {
+		pointer, ok := types.Unalias(base).Underlying().(*types.Pointer)
+		if !ok {
+			return nil
+		}
+		base = pointer.Elem()
+	}
+	record, ok := types.Unalias(base).Underlying().(*types.Struct)
+	if !ok || ordinal < 0 || ordinal >= record.NumFields() {
+		return nil
+	}
+	return record.Field(ordinal)
 }
 
 func (v SSAUnitView) fieldReadOperandBefore(ctx context.Context, value ssa.Value, after ssa.Instruction) error {

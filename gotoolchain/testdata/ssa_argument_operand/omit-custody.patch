@@ -1,0 +1,15 @@
+--- a/gotoolchain/ssa_argument_operand.go
++++ b/gotoolchain/ssa_argument_operand.go
+@@ -48,11 +48,7 @@
+ 	if err = errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), v.Validate(), r.Validate()); err != nil {
+ 		return out, err
+ 	}
+-	if r.Function.Prog != v.Program || r.Function.Pkg != v.Package ||
+-		!v.ownsStorageValue(r.Argument) || r.Argument.Parent() != r.Function ||
+-		!v.ownsStorageValue(r.Value) || r.Value.Parent() != nil && r.Value.Parent() != r.Function {
+-		return out, core.ErrGoToolchainContract
+-	}
++	
+ 	// Authenticate each borrowed representation before the shared matcher reads
+ 	// it. Native instruction ordering also refuses forged operand cycles.
+ representations:

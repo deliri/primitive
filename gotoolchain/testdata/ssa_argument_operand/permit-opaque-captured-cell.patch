@@ -1,0 +1,14 @@
+--- a/gotoolchain/ssa_argument_call.go
++++ b/gotoolchain/ssa_argument_call.go
+@@ -348,11 +348,6 @@
+ 		return false, nil
+ 	}
+ 	for _, reference := range *references {
+-		switch reference.(type) {
+-		case *ssa.Store, *ssa.UnOp, *ssa.DebugRef, *ssa.MakeClosure:
+-		default:
+-			return false, nil
+-		}
+ 		store, ok := reference.(*ssa.Store)
+ 		if ok && store.Val == read.X {
+ 			return false, nil

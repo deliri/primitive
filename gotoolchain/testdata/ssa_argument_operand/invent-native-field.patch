@@ -1,0 +1,10 @@
+--- a/gotoolchain/ssa_field_read.go
++++ b/gotoolchain/ssa_field_read.go
+@@ -105,6 +105,7 @@
+ 	}
+ 	record, ok := types.Unalias(base).Underlying().(*types.Struct)
+ 	if !ok || ordinal < 0 || ordinal >= record.NumFields() {
++		if ok && record.NumFields() > 0 { return record.Field(0) }
+ 		return nil
+ 	}
+ 	return record.Field(ordinal)

@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_argument_operand.go
++++ b/gotoolchain/ssa_argument_operand.go
+@@ -42,7 +42,7 @@
+ 	defer func() {
+ 		err = errors.Join(err, temporal.Wait(temporal.WaitRequest{Context: ctx}))
+ 		if err != nil {
+-			out = SSARelationObservation{}
++			out = SSARelationObservation{}; err = core.ErrGoToolchainContract
+ 		}
+ 	}()
+ 	if err = errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), v.Validate(), r.Validate()); err != nil {
