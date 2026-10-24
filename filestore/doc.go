@@ -7,6 +7,16 @@
 // policy, cloud custody, and coordination. Filestore owns only the finite
 // filesystem effect requested by one validated value.
 //
+// WithFilesystemDurability holds a directory descriptor across synchronous
+// caller work, then asks Linux syncfs to flush that descriptor's whole
+// filesystem. It accepts opaque symlink entries without inspecting targets;
+// ConfirmTreeDurable retains its stricter regular-file/directory-only contract.
+// Callback failure or terminal context skips writeback. This scope is Linux
+// amd64/arm64 only and acknowledges the OS, not hardware immunity. On Linux
+// 5.8+ the held descriptor also observes its filesystem writeback-error window.
+// Callers still own error custody on their original writing descriptors and
+// must join every writer before returning from the callback.
+//
 // ResetScratch disposes a regular scratch handle's bytes and restores its
 // native write offset. The caller owns scratch lifetime and any failed-work
 // decision; Filestore does not retain a second extent or file model.

@@ -93,6 +93,7 @@ type filestoreContractInventory struct {
 	RewindRequest                 validatedRequest[RewindRequest]
 	ScratchScopeRequest           validatedRequest[ScratchScopeRequest]
 	ScratchDirectoryScopeRequest  validatedRequest[ScratchDirectoryScopeRequest]
+	FilesystemDurabilityRequest   validatedRequest[FilesystemDurabilityRequest]
 	FileHandleRequest             validatedRequest[FileHandleRequest]
 	RootHandleRequest             validatedRequest[RootHandleRequest]
 	RootScopeRequest              validatedRequest[RootScopeRequest]
