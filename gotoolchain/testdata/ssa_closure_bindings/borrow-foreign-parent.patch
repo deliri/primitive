@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_closure_bindings.go
++++ b/gotoolchain/ssa_closure_bindings.go
+@@ -64,7 +64,7 @@
+ 		if target.Syntax() == nil {
+ 			return
+ 		}
+-		if target.Parent() != r.Closure.Parent() || target.Pkg != v.Package || !v.argumentBindingFunctionOwned(target) || len(r.Closure.Bindings) != len(target.FreeVars) {
++		if false && target.Parent() != r.Closure.Parent() || target.Pkg != v.Package || !v.argumentBindingFunctionOwned(target) || len(r.Closure.Bindings) != len(target.FreeVars) {
+ 			refuse(core.ErrGoToolchainOutput)
+ 			return
+ 		}

@@ -138,27 +138,8 @@ func (v SSAUnitView) ArgumentBindings(ctx context.Context, r SSAArgumentBindings
 				} else {
 					operand, local = common.Args[index], target.Params[index]
 				}
-				if !nativeReceiverValuePresent(operand) || !nativeReceiverValuePresent(local) || local.Parent() != target || local.Type() == nil || !types.AssignableTo(operand.Type(), local.Type()) {
-					refuse(core.ErrGoToolchainOutput)
-					return
-				}
-				owned := false
-				switch native := operand.(type) {
-				case *ssa.Function:
-					owned = v.argumentBindingFunctionOwned(native)
-				case *ssa.Parameter, *ssa.FreeVar, *ssa.Const, *ssa.Global:
-					// Entry/capture values and constants have no instruction
-					// position. Authenticate identity without an order query.
-					owned = v.ownsStorageValue(operand)
-				default:
-					if err := v.fieldReadOperandBefore(ctx, operand, r.Call); err != nil {
-						refuse(err)
-						return
-					}
-					owned = true
-				}
-				if !owned || operand.Parent() != nil && operand.Parent() != r.Call.Parent() {
-					refuse(core.ErrGoToolchainOutput)
+				if err := v.argumentBindingOperand(ctx, operand, local, target, r.Call); err != nil {
+					refuse(err)
 					return
 				}
 			}
@@ -220,6 +201,31 @@ func (v SSAUnitView) argumentBindingFunctionOwned(fn *ssa.Function) bool {
 		fn = parent
 	}
 	return false
+}
+
+// Authenticate one native binding without creating an operand index. Entry and
+// capture values have no instruction position; instructions must precede the
+// actual loan boundary.
+func (v SSAUnitView) argumentBindingOperand(ctx context.Context, operand, local ssa.Value, target *ssa.Function, before ssa.Instruction) error {
+	if !nativeReceiverValuePresent(operand) || !nativeReceiverValuePresent(local) || local.Parent() != target || !types.AssignableTo(operand.Type(), local.Type()) {
+		return core.ErrGoToolchainOutput
+	}
+	owned := false
+	switch native := operand.(type) {
+	case *ssa.Function:
+		owned = v.argumentBindingFunctionOwned(native)
+	case *ssa.Parameter, *ssa.FreeVar, *ssa.Const, *ssa.Global:
+		owned = v.ownsStorageValue(operand)
+	default:
+		if err := v.fieldReadOperandBefore(ctx, operand, before); err != nil {
+			return err
+		}
+		owned = true
+	}
+	if !owned || operand.Parent() != nil && operand.Parent() != before.Parent() {
+		return core.ErrGoToolchainOutput
+	}
+	return nil
 }
 
 var _ internalFlow = SSAArgumentBindingsRequest{}

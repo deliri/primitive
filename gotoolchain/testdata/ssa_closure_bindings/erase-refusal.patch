@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_closure_bindings.go
++++ b/gotoolchain/ssa_closure_bindings.go
+@@ -31,7 +31,7 @@
+ // invocation model, environment copy or assignment history is constructed.
+ func (v SSAUnitView) ClosureBindings(ctx context.Context, r SSAClosureBindingsRequest) iter.Seq2[SSAArgumentBindingObservation, error] {
+ 	return func(yield func(SSAArgumentBindingObservation, error) bool) {
+-		refuse := func(err error) { yield(SSAArgumentBindingObservation{}, err) }
++		refuse := func(err error) {}
+ 		if err := errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), v.Validate(), r.Validate()); err != nil {
+ 			refuse(err)
+ 			return

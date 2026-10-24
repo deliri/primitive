@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_closure_bindings.go
++++ b/gotoolchain/ssa_closure_bindings.go
+@@ -73,7 +73,7 @@
+ 				refuse(err)
+ 				return
+ 			}
+-			if err := v.argumentBindingOperand(ctx, operand, target.FreeVars[index], target, r.Closure); err != nil {
++			if err := v.argumentBindingOperand(ctx, operand, target.FreeVars[index], target, r.Closure); false && err != nil {
+ 				refuse(err)
+ 				return
+ 			}

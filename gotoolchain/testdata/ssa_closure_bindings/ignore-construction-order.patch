@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_closure_bindings.go
++++ b/gotoolchain/ssa_closure_bindings.go
+@@ -83,7 +83,7 @@
+ 				refuse(err)
+ 				return
+ 			}
+-			matched, err := v.closureBindingBefore(ctx, operand, r.Argument, r.Closure)
++			matched, err := argumentCallOperand(operand, r.Argument)
+ 			if err != nil {
+ 				refuse(err)
+ 				return

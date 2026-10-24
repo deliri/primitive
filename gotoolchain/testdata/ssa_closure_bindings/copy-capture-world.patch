@@ -1,0 +1,20 @@
+--- a/gotoolchain/ssa_closure_bindings.go
++++ b/gotoolchain/ssa_closure_bindings.go
+@@ -68,7 +68,7 @@
+ 			refuse(core.ErrGoToolchainOutput)
+ 			return
+ 		}
+-		for index, operand := range r.Closure.Bindings {
++		for index, operand := range append([]ssa.Value(nil), r.Closure.Bindings...) {
+ 			if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+ 				refuse(err)
+ 				return
+@@ -78,7 +78,7 @@
+ 				return
+ 			}
+ 		}
+-		for index, operand := range r.Closure.Bindings {
++		for index, operand := range append([]ssa.Value(nil), r.Closure.Bindings...) {
+ 			if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+ 				refuse(err)
+ 				return

@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_closure_bindings.go
++++ b/gotoolchain/ssa_closure_bindings.go
+@@ -89,7 +89,7 @@
+ 				return
+ 			}
+ 			if matched && !yield(SSAArgumentBindingObservation{Function: target, Local: target.FreeVars[index]}, nil) {
+-				return
++				continue
+ 			}
+ 		}
+ 		if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {

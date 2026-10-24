@@ -1,0 +1,38 @@
+[
+  {
+    "fault": "erase-refusal",
+    "filter": "^TestSSAClosureBindingsRefusesMalformedNativeCustody$/foreign_trailing_capture$"
+  },
+  {
+    "fault": "invert-match",
+    "filter": "^TestSSAClosureBindingsLayerTriad$/uninvoked_capture$"
+  },
+  {
+    "fault": "ignore-stop",
+    "filter": "^TestSSAClosureBindingsPreservesConsumerStopAndCause$"
+  },
+  {
+    "fault": "lose-cause",
+    "filter": "^TestSSAClosureBindingsPreservesConsumerStopAndCause$"
+  },
+  {
+    "fault": "borrow-foreign-parent",
+    "filter": "^TestSSAClosureBindingsRefusesMalformedNativeCustody$/foreign_target$"
+  },
+  {
+    "fault": "ignore-construction-order",
+    "filter": "^TestSSAClosureBindingsLayerTriad$/neutral_later_assigned_cell$"
+  },
+  {
+    "fault": "drop-captures",
+    "filter": "^TestSSAClosureBindingsLayerTriad$/uninvoked_capture$"
+  },
+  {
+    "fault": "ignore-binding-custody",
+    "filter": "^TestSSAClosureBindingsRefusesMalformedNativeCustody$/foreign_trailing_capture$"
+  },
+  {
+    "fault": "copy-capture-world",
+    "filter": "^TestSSAClosureBindingsRetainsNoCapturePopulation$/8193$"
+  }
+]

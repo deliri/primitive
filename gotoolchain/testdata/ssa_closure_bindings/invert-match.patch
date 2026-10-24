@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_closure_bindings.go
++++ b/gotoolchain/ssa_closure_bindings.go
+@@ -88,7 +88,7 @@
+ 				refuse(err)
+ 				return
+ 			}
+-			if matched && !yield(SSAArgumentBindingObservation{Function: target, Local: target.FreeVars[index]}, nil) {
++			if !matched && !yield(SSAArgumentBindingObservation{Function: target, Local: target.FreeVars[index]}, nil) {
+ 				return
+ 			}
+ 		}
