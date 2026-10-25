@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_function_ancestors.go
++++ b/gotoolchain/ssa_function_ancestors.go
+@@ -42,7 +42,7 @@
+ 			yield(nil, core.ErrGoToolchainContract)
+ 			return
+ 		}
+-		for fn := r.Function; fn != nil; fn = fn.Parent() {
++		for fn := r.Function; fn != nil; fn = nil {
+ 			if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+ 				yield(nil, err)
+ 				return

@@ -1,0 +1,10 @@
+--- a/gotoolchain/ssa_function_ancestors.go
++++ b/gotoolchain/ssa_function_ancestors.go
+@@ -62,6 +62,7 @@
+ 			parent := fn.Parent()
+ 			owned := false
+ 			if parent != nil {
++				owned = true
+ 				for _, child := range parent.AnonFuncs {
+ 					if child == fn {
+ 						owned = true

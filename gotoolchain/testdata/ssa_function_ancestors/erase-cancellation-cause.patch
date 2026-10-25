@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_function_ancestors.go
++++ b/gotoolchain/ssa_function_ancestors.go
+@@ -44,7 +44,7 @@
+ 		}
+ 		for fn := r.Function; fn != nil; fn = fn.Parent() {
+ 			if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+-				yield(nil, err)
++				yield(nil, core.ErrGoToolchainOutput)
+ 				return
+ 			}
+ 			owner := fn.Pkg

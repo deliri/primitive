@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_function_ancestors.go
++++ b/gotoolchain/ssa_function_ancestors.go
+@@ -69,7 +69,7 @@
+ 					}
+ 				}
+ 			} else if object, ok := fn.Object().(*types.Func); ok {
+-				declaration := v.Program.FuncValue(object.Origin())
++				declaration := v.Program.FuncValue(object)
+ 				owned = declaration == fn || declaration != nil && fn.Origin() == declaration && len(fn.Blocks) != 0 && fn.Syntax() == declaration.Syntax()
+ 			} else {
+ 				initializer, err := v.SourceFunction(ctx, SSASourceFunctionRequest{Kind: SSASourceFunctionInitializer})

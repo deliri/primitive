@@ -1,0 +1,13 @@
+--- a/gotoolchain/ssa_function_ancestors.go
++++ b/gotoolchain/ssa_function_ancestors.go
+@@ -35,9 +35,7 @@
+ 			return
+ 		}
+ 		owner := r.Function.Pkg
+-		if owner == nil && r.Function.Origin() != nil {
+-			owner = r.Function.Origin().Pkg
+-		}
++
+ 		if r.Function.Prog != v.Program || owner != v.Package {
+ 			yield(nil, core.ErrGoToolchainContract)
+ 			return
