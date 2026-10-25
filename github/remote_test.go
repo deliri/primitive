@@ -87,6 +87,7 @@ func FuzzParseRemoteSemanticClosure(f *testing.F) {
 	f.Add("https://github.com/owner/repository")
 	f.Add("ssh://git@github.com/owner/repository.git")
 	f.Add("https://github.com:443/owner/repository")
+	f.Add("git@github.com:owner/\xff")
 	f.Add("")
 	f.Fuzz(func(t *testing.T, value string) {
 		got, gotErr := ParseRemote(value)
