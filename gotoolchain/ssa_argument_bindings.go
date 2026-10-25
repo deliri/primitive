@@ -165,8 +165,15 @@ func (v SSAUnitView) ArgumentBindings(ctx context.Context, r SSAArgumentBindings
 func (v SSAUnitView) argumentBindingFunctionOwned(fn *ssa.Function) bool {
 	for fn != nil && fn.Prog == v.Program {
 		if object, ok := fn.Object().(*types.Func); ok {
-			owned := v.Program.FuncValue(object)
-			return owned == fn || owned != nil && fn.Origin() != nil && owned == fn.Origin()
+			owned := v.Program.FuncValue(object.Origin())
+			if owned == fn {
+				return true
+			}
+			// Go gives generic method instances their own object. Its origin
+			// binds the declaration; the private block parent binds this exact
+			// native instance and refuses a copied function or block.
+			return owned != nil && fn.Origin() == owned && fn.Syntax() == owned.Syntax() &&
+				len(fn.Blocks) != 0 && fn.Blocks[0] != nil && fn.Blocks[0].Parent() == fn && fn.Blocks[0].Index == 0
 		}
 		parent := fn.Parent()
 		if parent == nil {
