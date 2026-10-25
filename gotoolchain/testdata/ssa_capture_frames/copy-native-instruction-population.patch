@@ -1,0 +1,12 @@
+--- a/gotoolchain/ssa_capture_frames.go
++++ b/gotoolchain/ssa_capture_frames.go
+@@ -56,6 +56,9 @@
+ }
+ 
+ func (v SSAUnitView) captureFramesInFunction(ctx context.Context, frame SSAArgumentBindingObservation, yield func(SSAArgumentBindingObservation, error) bool) bool {
++	var copied []ssa.Instruction
++	for _, block := range frame.Function.Blocks { copied=append(copied,block.Instrs...) }
++	if len(copied)>0 && copied[len(copied)-1]==nil { yield(SSAArgumentBindingObservation{},core.ErrGoToolchainOutput);return false }
+ 	if !yield(frame, nil) {
+ 		return false
+ 	}

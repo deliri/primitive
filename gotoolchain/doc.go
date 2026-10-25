@@ -10,6 +10,9 @@
 // ExpressionCall lends an actual result-producing call, including interface
 // dispatch. ExpressionProducer projects a named declaration from the same
 // origin walk; neither query invents an implementation for dynamic dispatch.
+// CaptureFrames lends a selected native parameter/free variable and its real
+// lexical capture chain through ClosureBindings, without an invocation claim
+// or a copied capture graph. Active native ancestry remains depth-sized.
 // ObserveModuleFile delegates go.mod grammar to Go's read-only mod edit -json
 // command. It retains only a declared-version and replacement-count projection;
 // native Go owns its file parser, and Go's JSON cursor owns scalar buffers.

@@ -1,0 +1,10 @@
+--- a/gotoolchain/ssa_capture_frames.go
++++ b/gotoolchain/ssa_capture_frames.go
+@@ -70,7 +70,6 @@
+ 		}
+ 		for binding, err := range v.ClosureBindings(ctx, SSAClosureBindingsRequest{Closure: closure, Argument: frame.Local}) {
+ 			if err != nil {
+-				yield(SSAArgumentBindingObservation{}, err)
+ 				return false
+ 			}
+ 			if !v.captureFramesInFunction(ctx, binding, yield) {

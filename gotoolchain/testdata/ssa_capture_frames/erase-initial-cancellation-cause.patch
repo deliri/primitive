@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_capture_frames.go
++++ b/gotoolchain/ssa_capture_frames.go
+@@ -39,7 +39,7 @@
+ func (v SSAUnitView) CaptureFrames(ctx context.Context, r SSACaptureFramesRequest) iter.Seq2[SSAArgumentBindingObservation, error] {
+ 	return func(yield func(SSAArgumentBindingObservation, error) bool) {
+ 		if err := errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), v.Validate(), r.Validate()); err != nil {
+-			yield(SSAArgumentBindingObservation{}, err)
++			yield(SSAArgumentBindingObservation{}, context.Canceled)
+ 			return
+ 		}
+ 		if r.Function.Prog != v.Program || r.Function.Pkg != v.Package || !v.argumentBindingFunctionOwned(r.Function) || r.Argument.Parent() != r.Function || !v.ownsStorageValue(r.Argument) {
