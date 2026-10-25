@@ -1,0 +1,4 @@
+--- a/gotoolchain/ssa_argument_invocations.go
++++ b/gotoolchain/ssa_argument_invocations.go
+@@ -150 +149,0 @@
+-				yield(nil, err)

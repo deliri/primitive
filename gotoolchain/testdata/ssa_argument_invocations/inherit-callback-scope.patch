@@ -1,0 +1,5 @@
+--- a/gotoolchain/ssa_argument_invocations.go
++++ b/gotoolchain/ssa_argument_invocations.go
+@@ -259 +259 @@
+-	child := SSAArgumentInvocationFrame{binding: binding, caller: frame, call: call, kind: SSAInvocationKindCallback, owner: v.Program}
++	child := SSAArgumentInvocationFrame{binding: binding, caller: frame, call: call, kind: SSAInvocationKindArgument, owner: v.Program}

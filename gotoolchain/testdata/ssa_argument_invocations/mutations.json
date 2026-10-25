@@ -1,0 +1,37 @@
+[
+  {
+    "name": "drop-selected-root",
+    "patch": "drop-selected-root.patch",
+    "selection": "^TestSSAArgumentInvocationsFiniteSourceDomain$/^form0$/^selectedtrue$/^foreignfalse$"
+  },
+  {
+    "name": "merge-repeated-invocations",
+    "patch": "merge-repeated-invocations.patch",
+    "selection": "^TestSSAArgumentInvocationsFiniteSourceDomain$/^form2$/^selectedtrue$/^foreignfalse$"
+  },
+  {
+    "name": "inherit-callback-scope",
+    "patch": "inherit-callback-scope.patch",
+    "selection": "^TestSSAArgumentInvocationsFiniteSourceDomain$/^form6$/^selectedtrue$/^foreignfalse$"
+  },
+  {
+    "name": "discard-binding-refusal",
+    "patch": "discard-binding-refusal.patch",
+    "selection": "^TestSSAArgumentInvocationBindingsLayerTriad$/^copied_call$"
+  },
+  {
+    "name": "ignore-consumer-stop",
+    "patch": "ignore-consumer-stop.patch",
+    "selection": "^TestSSAArgumentInvocationsStopBeforeMalformedTail$/^consumer_stops$"
+  },
+  {
+    "name": "retain-frame-population",
+    "patch": "retain-frame-population.patch",
+    "selection": "^TestSSAArgumentInvocationsFirstLoanRetainsNoPopulation$/^width8193$"
+  },
+  {
+    "name": "accept-plain-function-callback",
+    "patch": "accept-plain-function-callback.patch",
+    "selection": "^TestSSAArgumentInvocationsRejectsFunctionAsCallbackMethod$"
+  }
+]

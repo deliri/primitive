@@ -1,0 +1,5 @@
+--- a/gotoolchain/ssa_argument_invocations.go
++++ b/gotoolchain/ssa_argument_invocations.go
+@@ -185 +185 @@
+-	if !yield(frame, nil) {
++	if frame.kind != SSAInvocationKindRoot && !yield(frame, nil) {

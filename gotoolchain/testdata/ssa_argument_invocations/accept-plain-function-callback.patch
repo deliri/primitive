@@ -1,0 +1,5 @@
+--- a/gotoolchain/ssa_argument_invocations.go
++++ b/gotoolchain/ssa_argument_invocations.go
+@@ -88 +88 @@
+-	if signature == nil || signature.Recv() == nil || signature.Params().Len() == 0 {
++	if signature == nil || signature.Params().Len() == 0 {

@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_argument_invocations.go
++++ b/gotoolchain/ssa_argument_invocations.go
+@@ -184,0 +185,8 @@
++	retained := append([]*ssa.Function(nil), frame.binding.Function.AnonFuncs...)
++	defer func() {
++		for index, target := range retained {
++			if target != frame.binding.Function.AnonFuncs[index] {
++				panic("lost retained native frame identity")
++			}
++		}
++	}()
