@@ -3,6 +3,7 @@ package runprotocol
 import (
 	"bytes"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -15,6 +16,7 @@ const (
 	doorIdentifier runProtocolJSONDoor = iota
 	doorName
 	doorText
+	doorTestLabel
 	doorSourcePath
 	doorRepositoryIdentity
 	doorProfileIdentity
@@ -58,9 +60,15 @@ func FuzzRunProtocolTextConstructorsSemanticClosure(f *testing.F) {
 	f.Add(uint8(4), "github.com/deliri/primitive")
 	f.Add(uint8(0), "")
 	f.Add(uint8(3), "../outside")
+	f.Add(uint8(5), "TestNative/é\t\"")
+	longLabel, err := NewTestLabel(strings.Repeat("x", 4097))
+	if err != nil {
+		f.Fatal(err)
+	}
+	f.Add(uint8(5), longLabel.String())
 
 	f.Fuzz(func(t *testing.T, selector uint8, value string) {
-		switch selector % 5 {
+		switch selector % 6 {
 		case 0:
 			proveTextConstructorClosure(t, value, NewIdentifier, (*Identifier).UnmarshalJSON)
 		case 1:
@@ -71,8 +79,10 @@ func FuzzRunProtocolTextConstructorsSemanticClosure(f *testing.F) {
 			proveTextConstructorClosure(t, value, ParseSourcePath, (*SourcePath).UnmarshalJSON)
 		case 4:
 			proveTextConstructorClosure(t, value, NewRepositoryIdentity, (*RepositoryIdentity).UnmarshalJSON)
+		case 5:
+			proveTextConstructorClosure(t, value, NewTestLabel, (*TestLabel).UnmarshalJSON)
 		default:
-			t.Fatalf("Run protocol text constructor selector = %d, want closed 0..4", selector%5)
+			t.Fatalf("Run protocol text constructor selector = %d, want closed 0..5", selector%6)
 		}
 	})
 }
@@ -81,6 +91,11 @@ func FuzzRunProtocolAtomicJSONDoorsSemanticClosure(f *testing.F) {
 	addAtomicDoorSeed(f, doorIdentifier, fixtureIdentifier(f, "identity"))
 	addAtomicDoorSeed(f, doorName, fixtureName(f, "Package name"))
 	addAtomicDoorSeed(f, doorText, fixtureText(f, "Exact engineering knowledge."))
+	label, labelErr := NewTestLabel("TestNative/é\t\"")
+	if labelErr != nil {
+		f.Fatal(labelErr)
+	}
+	addAtomicDoorSeed(f, doorTestLabel, label)
 	addAtomicDoorSeed(f, doorSourcePath, fixturePath(f, "runprotocol/scalar.go"))
 	addAtomicDoorSeed(f, doorRepositoryIdentity, fixtureRepository(f, "github.com/deliri/primitive"))
 	addAtomicDoorSeed(f, doorProfileIdentity, fixtureProfile(f, "acceptance"))
@@ -156,6 +171,9 @@ func FuzzRunProtocolAtomicJSONDoorsSemanticClosure(f *testing.F) {
 			proveComparableJSONClosure(t, fixtureName(t, "Package name"), data, (*Name).UnmarshalJSON)
 		case doorText:
 			proveComparableJSONClosure(t, fixtureText(t, "Exact engineering knowledge."), data, (*Text).UnmarshalJSON)
+		case doorTestLabel:
+			label, err := NewTestLabel("TestNative/é\t\"")
+			proveConstructedDoor(t, label, err, data, (*TestLabel).UnmarshalJSON)
 		case doorSourcePath:
 			proveComparableJSONClosure(t, fixturePath(t, "runprotocol/scalar.go"), data, (*SourcePath).UnmarshalJSON)
 		case doorRepositoryIdentity:
@@ -286,8 +304,8 @@ func proveTextConstructorClosure[T comparableRunProtocolJSON](t *testing.T, valu
 		t.Fatalf("Run protocol text constructor(accepted).Validate() error = %v, want nil", err)
 	}
 	encoded, err := got.MarshalJSON()
-	if err != nil || len(encoded) > core.JSONDocumentMaximumBytes {
-		t.Fatalf("Run protocol text constructor(accepted).MarshalJSON() = (%d bytes, %v), want bounded and nil", len(encoded), err)
+	if err != nil {
+		t.Fatalf("Run protocol text constructor(accepted).MarshalJSON() = (%d bytes, %v), want exact canonical data and nil", len(encoded), err)
 	}
 	var roundTrip T
 	if err := unmarshal(&roundTrip, encoded); err != nil || roundTrip != got {
@@ -309,8 +327,8 @@ func proveComparableJSONClosure[T comparableRunProtocolJSON](t *testing.T, seed 
 		t.Fatalf("Run protocol atomic UnmarshalJSON(accepted).Validate() error = %v, want nil", err)
 	}
 	encoded, err := got.MarshalJSON()
-	if err != nil || len(encoded) > core.JSONDocumentMaximumBytes {
-		t.Fatalf("Run protocol atomic MarshalJSON(accepted) = (%d bytes, %v), want bounded and nil", len(encoded), err)
+	if err != nil {
+		t.Fatalf("Run protocol atomic MarshalJSON(accepted) = (%d bytes, %v), want exact canonical data and nil", len(encoded), err)
 	}
 	var roundTrip T
 	if err := unmarshal(&roundTrip, encoded); err != nil || roundTrip != got {

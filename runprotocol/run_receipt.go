@@ -57,10 +57,36 @@ func (r RunReceipt) Validate() error {
 		return conflictError(nil)
 	}
 	latest, _ := r.Accounting.Latest() // Validate proved that at least one attempt exists.
-	if r.Outcome == OutcomePassed && latest.Passed != latest.Planned {
+	if !receiptOutcomeAgrees(r.Outcome, latest) {
 		return conflictError(nil)
 	}
 	return nil
+}
+
+// receiptOutcomeAgrees requires the receipt's outcome to be explained by the
+// latest attempt's own counts. Setup, infrastructure and non-accepting
+// outcomes have no per-unit count; they require only that not everything passed.
+func receiptOutcomeAgrees(outcome Outcome, latest ExecutionAttempt) bool {
+	switch outcome {
+	case OutcomePassed:
+		return latest.Passed == latest.Planned
+	case OutcomeFailed:
+		return latest.Failed > 0
+	case OutcomeSkipped:
+		return latest.Skipped > 0 && latest.Passed == 0 && latest.Failed == 0
+	case OutcomeUnavailable:
+		return latest.Unavailable > 0
+	case OutcomeTimedOut:
+		return latest.Expired > 0
+	case OutcomeCancelled:
+		return latest.Cancelled > 0
+	case OutcomeNotRun:
+		return latest.NotRun > 0
+	case OutcomeSetupFailed, OutcomeInfrastructureFailed, OutcomeNonAccepting:
+		return latest.Passed != latest.Planned
+	default:
+		return false
+	}
 }
 
 func (RunReceipt) runProtocolFact() {}

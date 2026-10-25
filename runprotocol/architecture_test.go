@@ -19,6 +19,7 @@ type runProtocolJSONDoorInventory struct {
 	Identifier               func(*Identifier, []byte) error
 	Name                     func(*Name, []byte) error
 	Text                     func(*Text, []byte) error
+	TestLabel                func(*TestLabel, []byte) error
 	SourcePath               func(*SourcePath, []byte) error
 	RepositoryIdentity       func(*RepositoryIdentity, []byte) error
 	ProfileIdentity          func(*ProfileIdentity, []byte) error
@@ -51,7 +52,7 @@ type runProtocolJSONDoorInventory struct {
 
 var runProtocolJSONDoors = runProtocolJSONDoorInventory{
 	Identifier: (*Identifier).UnmarshalJSON, Name: (*Name).UnmarshalJSON,
-	Text: (*Text).UnmarshalJSON, SourcePath: (*SourcePath).UnmarshalJSON,
+	Text: (*Text).UnmarshalJSON, TestLabel: (*TestLabel).UnmarshalJSON, SourcePath: (*SourcePath).UnmarshalJSON,
 	RepositoryIdentity:       (*RepositoryIdentity).UnmarshalJSON,
 	ProfileIdentity:          (*ProfileIdentity).UnmarshalJSON,
 	RequestIdentity:          (*RequestIdentity).UnmarshalJSON,
@@ -83,9 +84,11 @@ var runProtocolJSONDoors = runProtocolJSONDoorInventory{
 
 type aboutTextDoorInventory struct {
 	ParseGoFuzzTarget     func(string) (GoFuzzTarget, error)
+	ParseGoTestPattern    func(string) (GoTestPattern, error)
 	NewIdentifier         func(string) (Identifier, error)
 	NewName               func(string) (Name, error)
 	NewText               func(string) (Text, error)
+	NewTestLabel          func(string) (TestLabel, error)
 	ParseSourcePath       func(string) (SourcePath, error)
 	NewRepositoryIdentity func(string) (RepositoryIdentity, error)
 }
@@ -93,7 +96,9 @@ type aboutTextDoorInventory struct {
 var aboutTextDoors = aboutTextDoorInventory{
 	// This off-wire target is fuzzed by FuzzGoFuzzTargetMatchesGoIdentifierGrammar.
 	ParseGoFuzzTarget: ParseGoFuzzTarget,
-	NewIdentifier:     NewIdentifier, NewName: NewName, NewText: NewText,
+	// This off-wire pattern is fuzzed by FuzzGoTestPatternFollowsTestingSplit.
+	ParseGoTestPattern: ParseGoTestPattern,
+	NewIdentifier:      NewIdentifier, NewName: NewName, NewText: NewText, NewTestLabel: NewTestLabel,
 	ParseSourcePath: ParseSourcePath, NewRepositoryIdentity: NewRepositoryIdentity,
 }
 

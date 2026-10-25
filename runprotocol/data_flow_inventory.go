@@ -70,6 +70,7 @@ func (MachineChange) runProtocolFact()               {}
 func (MachineGenerationTransition) runProtocolFact() {}
 
 func (machineFingerprintIdentityWire) runProtocolInternalFlowCarrier()      {}
+func (TestResultStreamRequest) runProtocolInternalFlowCarrier()             {}
 func (machineFingerprintToolchainWire) runProtocolInternalFlowCarrier()     {}
 func (machineConfigurationFingerprintWire) runProtocolInternalFlowCarrier() {}
 func (experimentToolTargetWire) runProtocolInternalFlowCarrier()            {}

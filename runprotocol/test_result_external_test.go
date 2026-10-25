@@ -14,8 +14,18 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
-func testResultFixture() runprotocol.TestResult {
-	return runprotocol.TestResult{Test: runprotocol.TestIdentity{Suite: "example.org/project/pkg", Name: "TestNative/dynamic/subtest"}, Ordinal: 1, Outcome: runprotocol.OutcomePassed}
+func testLabel(t testing.TB, value string) runprotocol.TestLabel {
+	t.Helper()
+	label, err := runprotocol.NewTestLabel(value)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return label
+}
+
+func testResultFixture(t testing.TB) runprotocol.TestResult {
+	t.Helper()
+	return runprotocol.TestResult{Test: runprotocol.TestIdentity{Suite: testLabel(t, "example.org/project/pkg"), Name: testLabel(t, "TestNative/dynamic/subtest")}, Ordinal: 1, Outcome: runprotocol.OutcomePassed}
 }
 
 func testResultCodec() jsonio.OwnedCodecPolicy {
@@ -40,17 +50,15 @@ func TestTestResultLayerTriad(t *testing.T) {
 		{name: "positive maximum native duration", edit: func(r *runprotocol.TestResult) { r.Elapsed = &elapsed }},
 		{name: "positive maximum occurrence ordinal", edit: func(r *runprotocol.TestResult) { r.Ordinal = math.MaxUint64 }},
 		{name: "negative ordinal zero cannot name an occurrence", edit: func(r *runprotocol.TestResult) { r.Ordinal = 0 }, wantErr: core.ErrRunProtocolContract},
-		{name: "negative absent suite cannot borrow another result identity", edit: func(r *runprotocol.TestResult) { r.Test.Suite = "" }, wantErr: core.ErrRunProtocolContract},
-		{name: "negative absent name cannot become package success", edit: func(r *runprotocol.TestResult) { r.Test.Name = "" }, wantErr: core.ErrRunProtocolContract},
-		{name: "negative malformed suite UTF8", edit: func(r *runprotocol.TestResult) { r.Test.Suite = string([]byte{0xff}) }, wantErr: core.ErrRunProtocolContract},
-		{name: "negative malformed name UTF8", edit: func(r *runprotocol.TestResult) { r.Test.Name = string([]byte{0xc0}) }, wantErr: core.ErrRunProtocolContract},
+		{name: "negative absent suite cannot borrow another result identity", edit: func(r *runprotocol.TestResult) { r.Test.Suite = runprotocol.TestLabel{} }, wantErr: core.ErrRunProtocolContract},
+		{name: "negative absent name cannot become package success", edit: func(r *runprotocol.TestResult) { r.Test.Name = runprotocol.TestLabel{} }, wantErr: core.ErrRunProtocolContract},
 		{name: "neutral absent duration stays absent", edit: func(r *runprotocol.TestResult) { r.Outcome = runprotocol.OutcomeUnavailable }},
 		{name: "neutral skipped result stays skipped", edit: func(r *runprotocol.TestResult) { r.Outcome = runprotocol.OutcomeSkipped; r.Elapsed = &zeroElapsed }},
 		{name: "neutral no result is not an empty pass", edit: func(r *runprotocol.TestResult) { *r = runprotocol.TestResult{} }, wantErr: core.ErrRunProtocolContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			got := testResultFixture()
+			got := testResultFixture(t)
 			tc.edit(&got)
 			err := got.Validate()
 			if !errors.Is(err, tc.wantErr) {
@@ -81,7 +89,7 @@ func TestTestResultExhaustsExistingOutcomeDomain(t *testing.T) {
 	t.Parallel()
 	// Pin the existing closed domain independently of Outcome.Validate.
 	for number := 0; number <= math.MaxUint8; number++ {
-		result := testResultFixture()
+		result := testResultFixture(t)
 		result.Outcome = runprotocol.Outcome(number)
 		admitted := number >= int(runprotocol.OutcomePassed) && number <= int(runprotocol.OutcomeNonAccepting)
 		err := result.Validate()
@@ -91,26 +99,55 @@ func TestTestResultExhaustsExistingOutcomeDomain(t *testing.T) {
 	}
 }
 
-func TestTestResultNativeLabelsContinueAcrossWindows(t *testing.T) {
+// Labels preserve exact nonempty UTF-8 native data across multiple windows;
+// a former working/acceptance boundary cannot truncate or reject valid data.
+func TestTestLabelBoundary(t *testing.T) {
 	t.Parallel()
-	for _, extent := range []int{159, 160, 161, 1023, 1024, 1025, 32767, 32768, 32769, (1 << 20) + 1} {
-		result := testResultFixture()
-		result.Test.Name = "TestNative/" + strings.Repeat("x", extent) + "/é界😀\t\"\\"
-		result.Test.Suite = "native suite with spaces/" + strings.Repeat("s", extent)
-		encoded, err := jsonio.MarshalValidated(result, testResultCodec())
-		if err != nil {
-			t.Fatalf("MarshalValidated(label extent %d) error=%v, want nil", extent, err)
-		}
-		got, err := jsonio.DecodeOwned[runprotocol.TestResult](encoded, testResultCodec())
-		if err != nil || got.Test != result.Test {
-			t.Fatalf("label extent %d round trip identity=%+v, error=%v, want exact labels", extent, got.Test, err)
-		}
+	native := "TestNative/é界😀\t\"\\"
+	for _, row := range []struct {
+		name  string
+		value string
+		admit bool
+	}{
+		{name: "native punctuation and control characters", value: native, admit: true},
+		{name: "one below former quota", value: native + strings.Repeat("x", 4095-len(native)), admit: true},
+		{name: "former quota is ordinary valid data", value: native + strings.Repeat("x", 4096-len(native)), admit: true},
+		{name: "one beyond former quota remains exact", value: native + strings.Repeat("x", 4097-len(native)), admit: true},
+		{name: "a multi-byte rune crossing former quota", value: strings.Repeat("x", 4095) + "é", admit: true},
+		{name: "label beyond a mebibyte remains exact", value: native + strings.Repeat("x", (1<<20)+1-len(native)), admit: true},
+		{name: "invalid UTF-8", value: string([]byte{0xff})},
+		{name: "empty", value: ""},
+	} {
+		t.Run(row.name, func(t *testing.T) {
+			t.Parallel()
+			label, err := runprotocol.NewTestLabel(row.value)
+			if (err == nil) != row.admit || !row.admit && (!errors.Is(err, core.ErrRunProtocolContract) || label != (runprotocol.TestLabel{})) {
+				t.Fatalf("NewTestLabel(%d bytes) = (%q,%v), want admitted %t", len(row.value), label.String(), err, row.admit)
+			}
+			result := testResultFixture(t)
+			quoted, err := core.MarshalCanonicalJSONString(row.value)
+			if err != nil {
+				if row.admit {
+					t.Fatal(err)
+				}
+				return
+			}
+			encoded, err := jsonio.MarshalValidated(result, testResultCodec())
+			if err != nil {
+				t.Fatal(err)
+			}
+			document := strings.Replace(string(encoded), `"TestNative/dynamic/subtest"`, string(quoted), 1)
+			got, err := jsonio.DecodeOwned[runprotocol.TestResult]([]byte(document), testResultCodec())
+			if (err == nil) != row.admit || row.admit && got.Test.Name.String() != row.value {
+				t.Fatalf("decoded label = (%d bytes,%v), want admitted %t with exact bytes", len(got.Test.Name.String()), err, row.admit)
+			}
+		})
 	}
 }
 
 func TestTestResultJSONHostileAdmission(t *testing.T) {
 	t.Parallel()
-	good, err := jsonio.MarshalValidated(testResultFixture(), testResultCodec())
+	good, err := jsonio.MarshalValidated(testResultFixture(t), testResultCodec())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -163,7 +200,7 @@ func TestTestResultStreamLayerTriad(t *testing.T) {
 		}
 		outcomes := []runprotocol.Outcome{runprotocol.OutcomeFailed, runprotocol.OutcomeSkipped, runprotocol.OutcomePassed}
 		for i, outcome := range outcomes {
-			result := testResultFixture()
+			result := testResultFixture(t)
 			result.Ordinal = uint64(i + 1)
 			result.Outcome = outcome
 			if err := encoder.Encode(t.Context(), result); err != nil {
@@ -172,7 +209,7 @@ func TestTestResultStreamLayerTriad(t *testing.T) {
 		}
 		count := 0
 		for result, err := range jsonio.Objects[runprotocol.TestResult](t.Context(), jsonio.ObjectSourceRequest{Source: &source}) {
-			if err != nil || count >= len(outcomes) || result.Test != testResultFixture().Test || result.Ordinal != uint64(count+1) || result.Outcome != outcomes[count] {
+			if err != nil || count >= len(outcomes) || result.Test != testResultFixture(t).Test || result.Ordinal != uint64(count+1) || result.Outcome != outcomes[count] {
 				t.Fatalf("result%d=(%+v,%v), want exact ordered native occurrence", count, result, err)
 			}
 			count++
@@ -183,7 +220,7 @@ func TestTestResultStreamLayerTriad(t *testing.T) {
 	})
 	t.Run("negative truncated source cannot invent a terminal result", func(t *testing.T) {
 		t.Parallel()
-		good, err := jsonio.MarshalValidated(testResultFixture(), testResultCodec())
+		good, err := jsonio.MarshalValidated(testResultFixture(t), testResultCodec())
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -212,12 +249,12 @@ func TestTestResultStreamLayerTriad(t *testing.T) {
 }
 
 func FuzzTestResultJSONSemanticClosure(f *testing.F) {
-	seed, err := jsonio.MarshalValidated(testResultFixture(), testResultCodec())
+	seed, err := jsonio.MarshalValidated(testResultFixture(f), testResultCodec())
 	if err != nil {
 		f.Fatal(err)
 	}
 	f.Add(seed)
-	observedZero := testResultFixture()
+	observedZero := testResultFixture(f)
 	observedZero.Elapsed = new(temporal.Duration)
 	zeroSeed, err := jsonio.MarshalValidated(observedZero, testResultCodec())
 	if err != nil {

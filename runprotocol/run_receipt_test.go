@@ -137,6 +137,88 @@ func sameRunReceipt(a, b RunReceipt) bool {
 		slices.Equal(a.Accounting.Attempts, b.Accounting.Attempts) && a.CompletedAt == b.CompletedAt && a.Outcome == b.Outcome && a.Terminal == b.Terminal
 }
 
+// agreeingAttempt is an independent oracle: one execution unit whose count
+// explains outcome. Outcomes without a per-unit count use one unit not run.
+func agreeingAttempt(outcome Outcome) ExecutionAttempt {
+	attempt := ExecutionAttempt{Sequence: 1, Planned: 1, Cache: CacheDisabled}
+	switch outcome {
+	case OutcomePassed:
+		attempt.Passed = 1
+	case OutcomeFailed:
+		attempt.Failed = 1
+	case OutcomeSkipped:
+		attempt.Skipped = 1
+	case OutcomeUnavailable:
+		attempt.Unavailable = 1
+	case OutcomeTimedOut:
+		attempt.Expired = 1
+	case OutcomeCancelled:
+		attempt.Cancelled = 1
+	default:
+		attempt.NotRun = 1
+	}
+	return attempt
+}
+
+// A receipt's outcome must be explained by its latest attempt's own counts:
+// each row pairs an outcome with counts that agree and with counts that do not.
+func TestRunReceiptOutcomeAgreesWithLatestAttempt(t *testing.T) {
+	t.Parallel()
+	attempt := func(edit func(*ExecutionAttempt)) ExecutionAttempt {
+		a := ExecutionAttempt{Sequence: 1, Planned: 2, Cache: CacheDisabled}
+		edit(&a)
+		return a
+	}
+	for _, row := range []struct {
+		name    string
+		outcome Outcome
+		state   TerminalState
+		attempt ExecutionAttempt
+		agree   bool
+	}{
+		{"failed with a failure", OutcomeFailed, TerminalCompleted, attempt(func(a *ExecutionAttempt) { a.Passed, a.Failed = 1, 1 }), true},
+		{"failed with no failure", OutcomeFailed, TerminalCompleted, attempt(func(a *ExecutionAttempt) { a.Passed, a.Skipped = 1, 1 }), false},
+		{"skipped with only skips", OutcomeSkipped, TerminalCompleted, attempt(func(a *ExecutionAttempt) { a.Skipped = 2 }), true},
+		{"skipped while something passed", OutcomeSkipped, TerminalCompleted, attempt(func(a *ExecutionAttempt) { a.Passed, a.Skipped = 1, 1 }), false},
+		{"skipped while something failed", OutcomeSkipped, TerminalCompleted, attempt(func(a *ExecutionAttempt) { a.Failed, a.Skipped = 1, 1 }), false},
+		{"skipped with nothing skipped", OutcomeSkipped, TerminalCompleted, attempt(func(a *ExecutionAttempt) { a.NotRun = 2 }), false},
+		{"unavailable with an unavailable unit", OutcomeUnavailable, TerminalUnavailable, attempt(func(a *ExecutionAttempt) { a.Passed, a.Unavailable = 1, 1 }), true},
+		{"unavailable with none", OutcomeUnavailable, TerminalUnavailable, attempt(func(a *ExecutionAttempt) { a.Passed, a.NotRun = 1, 1 }), false},
+		{"timed out with an expired unit", OutcomeTimedOut, TerminalTimedOut, attempt(func(a *ExecutionAttempt) { a.Passed, a.Expired = 1, 1 }), true},
+		{"timed out with none", OutcomeTimedOut, TerminalTimedOut, attempt(func(a *ExecutionAttempt) { a.Passed, a.NotRun = 1, 1 }), false},
+		{"cancelled with a cancelled unit", OutcomeCancelled, TerminalCancelled, attempt(func(a *ExecutionAttempt) { a.Passed, a.Cancelled = 1, 1 }), true},
+		{"cancelled with none", OutcomeCancelled, TerminalCancelled, attempt(func(a *ExecutionAttempt) { a.Passed, a.NotRun = 1, 1 }), false},
+		{"not run with a unit not run", OutcomeNotRun, TerminalNotRun, attempt(func(a *ExecutionAttempt) { a.Passed, a.NotRun = 1, 1 }), true},
+		{"not run with none", OutcomeNotRun, TerminalNotRun, attempt(func(a *ExecutionAttempt) { a.Passed, a.Failed = 1, 1 }), false},
+		{"infrastructure failure short of all passing", OutcomeInfrastructureFailed, TerminalFailed, attempt(func(a *ExecutionAttempt) { a.NotRun = 2 }), true},
+		{"infrastructure failure while everything passed", OutcomeInfrastructureFailed, TerminalFailed, attempt(func(a *ExecutionAttempt) { a.Passed = 2 }), false},
+		{"setup failure while everything passed", OutcomeSetupFailed, TerminalCompleted, attempt(func(a *ExecutionAttempt) { a.Passed = 2 }), false},
+		{"non-accepting while everything passed", OutcomeNonAccepting, TerminalCompleted, attempt(func(a *ExecutionAttempt) { a.Passed = 2 }), false},
+	} {
+		t.Run(row.name, func(t *testing.T) {
+			t.Parallel()
+			r := runReceiptFixture(t)
+			r.Outcome, r.Terminal = row.outcome, row.state
+			r.Accounting.Attempts[0] = row.attempt
+			err := r.Validate()
+			if row.agree && err != nil || !row.agree && !errors.Is(err, core.ErrRunProtocolConflict) {
+				t.Fatalf("receipt %s with %+v = %v, want agreement %t", row.outcome, row.attempt, err, row.agree)
+			}
+		})
+	}
+}
+
+func TestReceiptOutcomeGuardRefusesUnknown(t *testing.T) {
+	t.Parallel()
+	latest := ExecutionAttempt{Sequence: 1, Planned: 1, NotRun: 1, Cache: CacheDisabled}
+	if err := latest.Validate(); err != nil {
+		t.Fatalf("nonpassing native attempt validation = %v, want nil", err)
+	}
+	if got := receiptOutcomeAgrees(outcomeLimit, latest); got {
+		t.Fatalf("unknown outcome agreement with a nonpassing attempt = %t, want false", got)
+	}
+}
+
 func TestRunReceiptOutcomeTerminalDomainExhaustive(t *testing.T) {
 	t.Parallel()
 	// Independent oracle for the existing domain: failed assertions are completed
@@ -147,6 +229,7 @@ func TestRunReceiptOutcomeTerminalDomainExhaustive(t *testing.T) {
 		for terminal := 0; terminal <= math.MaxUint8; terminal++ {
 			r := runReceiptFixture(t)
 			r.Outcome, r.Terminal = Outcome(outcome), TerminalState(terminal)
+			r.Accounting.Attempts[0] = agreeingAttempt(Outcome(outcome))
 			err := r.Validate()
 			wantErr := error(core.ErrRunProtocolConflict)
 			if outcome == 0 || outcome >= len(wantTerminals) || terminal == 0 || terminal > int(TerminalNotRun) {

@@ -8,22 +8,55 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
+// TestLabel is one exact nonempty UTF-8 producer-observed label, otherwise
+// uninterpreted. Native spaces, punctuation and control characters remain data.
+// This whole value owns its allocation; there is no acceptance-length quota.
+type TestLabel struct{ value string }
+
+func NewTestLabel(value string) (TestLabel, error) {
+	candidate := TestLabel{value: value}
+	if err := candidate.Validate(); err != nil {
+		return TestLabel{}, err
+	}
+	return candidate, nil
+}
+
+func (l TestLabel) Validate() error {
+	if l.value == "" || !utf8.ValidString(l.value) {
+		return core.ErrRunProtocolContract
+	}
+	return nil
+}
+
+func (l TestLabel) String() string               { return l.value }
+func (l TestLabel) MarshalJSON() ([]byte, error) { return marshalScalar(l.value, l.Validate) }
+func (l *TestLabel) UnmarshalJSON(data []byte) error {
+	if l == nil {
+		return jsonError(errors.New("nil run protocol test label receiver"))
+	}
+	return decodeScalar(data, func(raw string) error {
+		candidate, err := NewTestLabel(raw)
+		if err == nil {
+			*l = candidate
+		}
+		return err
+	})
+}
+
 // TestIdentity names exactly what the producer observed. Suite is the native
 // package/file/suite identity; Name includes any observed subtest suffix.
 // Labels are data, not selectors or paths to execute. No source-file ownership
 // or intermediate parent is inferred from a slash in a dynamic name.
-// A whole value owns its label allocation; streaming callers retain only the
-// current result, never a population of identities.
+// Streaming callers retain only the current result, never a population of
+// identities. Go's JSON parser and the current label own scalar allocation;
+// constant sequence memory is not a bound on the largest individual label.
 type TestIdentity struct {
-	Suite string `json:"suite"`
-	Name  string `json:"name"`
+	Suite TestLabel `json:"suite"`
+	Name  TestLabel `json:"name"`
 }
 
 func (i TestIdentity) Validate() error {
-	if i.Suite == "" || i.Name == "" || !utf8.ValidString(i.Suite) || !utf8.ValidString(i.Name) {
-		return core.ErrRunProtocolContract
-	}
-	return nil
+	return errors.Join(i.Suite.Validate(), i.Name.Validate())
 }
 
 // TestResult is one producer-observed test/subtest result in a run's ordered
@@ -54,5 +87,6 @@ func (r TestResult) Validate() error {
 	return nil
 }
 
+func (TestLabel) runProtocolFact()    {}
 func (TestIdentity) runProtocolFact() {}
 func (TestResult) runProtocolFact()   {}
