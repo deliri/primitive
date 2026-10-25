@@ -16,13 +16,14 @@ import (
 // jurisdiction are the caller's expected authority, not inferred from a URL.
 // Parsing proves structure and binding; R2 independently verifies the signature.
 type R2GrantInput struct {
-	Account      AccountID
-	ContentType  core.HTTPMediaType
-	Endpoint     core.HTTPEndpoint
-	Jurisdiction R2Jurisdiction
-	Method       exchange.Method
-	Conditions   R2WriteConditions
-	CacheControl R2CacheControl
+	Account       AccountID
+	ContentType   core.HTTPMediaType
+	Endpoint      core.HTTPEndpoint
+	Jurisdiction  R2Jurisdiction
+	Method        exchange.Method
+	Conditions    R2WriteConditions
+	CacheControl  R2CacheControl
+	ContentLength exchange.SignedContentLength
 }
 
 func (r R2GrantInput) Validate() error {
@@ -46,13 +47,16 @@ func (r R2GrantInput) Validate() error {
 	if err := r.CacheControl.validateWrite(r.Method == exchange.MethodPut); err != nil {
 		return err
 	}
-	return validateR2Query(u.RawQuery, r.Method, r.ContentType, r.Conditions, r.CacheControl)
+	if err := validateR2ContentLength(r.ContentLength, r.Method == exchange.MethodPut, core.CloudflareR2SingleUploadMaximumBytes); err != nil {
+		return err
+	}
+	return validateR2Query(u.RawQuery, r.Method, r.ContentType, r.Conditions, r.CacheControl, r.ContentLength)
 }
 func ParseR2Grant(input R2GrantInput) (R2Grant, error) {
 	if err := input.Validate(); err != nil {
 		return R2Grant{}, err
 	}
-	return R2Grant{endpoint: input.Endpoint, method: input.Method, contentType: input.ContentType, conditions: input.Conditions, cacheControl: input.CacheControl}, nil
+	return R2Grant{endpoint: input.Endpoint, method: input.Method, contentType: input.ContentType, conditions: input.Conditions, cacheControl: input.CacheControl, contentLength: input.ContentLength}, nil
 }
 
 func validateR2ObjectPath(path string) error {
@@ -69,7 +73,7 @@ func validateR2ObjectPath(path string) error {
 	return errors.Join(bucketErr, keyErr)
 }
 
-func validateR2Query(raw string, method exchange.Method, media core.HTTPMediaType, conditions R2WriteConditions, cache R2CacheControl) error {
+func validateR2Query(raw string, method exchange.Method, media core.HTTPMediaType, conditions R2WriteConditions, cache R2CacheControl, length exchange.SignedContentLength) error {
 	query, err := parseR2Query(raw)
 	if err != nil {
 		return err
@@ -84,19 +88,29 @@ func validateR2Query(raw string, method exchange.Method, media core.HTTPMediaTyp
 		}
 		wantHeaders = "content-type;host"
 	}
-	if conditions.ContentMD5 != "" {
-		wantHeaders = "content-md5;" + wantHeaders
-	}
-	if conditions.CreateOnly {
-		wantHeaders += ";if-none-match"
-	}
-	if cache.present {
-		wantHeaders = strings.ToLower(exchange.StandardHeaderCacheControl.String()) + ";" + wantHeaders
-	}
-	if query.Get(core.CloudflareR2QuerySignedHeaders) != wantHeaders {
+	if query.Get(core.CloudflareR2QuerySignedHeaders) != r2OptionalSignedHeaders(wantHeaders, conditions, cache, length) {
 		return core.ErrCloudflareBinding
 	}
 	return nil
+}
+
+// r2OptionalSignedHeaders adds each optional signed write header to the
+// required set in SigV4's sorted order.
+func r2OptionalSignedHeaders(required string, conditions R2WriteConditions, cache R2CacheControl, length exchange.SignedContentLength) string {
+	names := required
+	if conditions.ContentMD5 != "" {
+		names = "content-md5;" + names
+	}
+	if !length.IsZero() {
+		names = core.SignatureV4ContentLengthHeader + ";" + names
+	}
+	if conditions.CreateOnly {
+		names += ";if-none-match"
+	}
+	if cache.present {
+		names = strings.ToLower(exchange.StandardHeaderCacheControl.String()) + ";" + names
+	}
+	return names
 }
 
 func parseR2Query(raw string) (url.Values, error) {

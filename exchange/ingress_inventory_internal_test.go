@@ -226,5 +226,7 @@ func InternalIngressCoverageForTest() []IngressCoverageForTest {
 		{Door: Listen, Kind: IngressCapabilityForTest, Proof: TestServerListenerConfigurationAgreementTable, Reason: "Go acquires a listener from validated typed configuration; address representation is fuzzed at ParseListenAddress."},
 		{Door: (*ServerListener).Address, Kind: IngressCapabilityForTest, Proof: TestServerListenerConfigurationAgreementTable, Reason: "Observes the OS-assigned address of the owned Go listener."},
 		{Door: (*ServerListener).Close, Kind: IngressCapabilityForTest, Proof: TestServerListenerConfigurationAgreementTable, Reason: "Closes the owned Go listener; no external document ingestion."},
+		{Door: NewSignedContentLength, Kind: IngressCapabilityForTest, Proof: TestV4PresignSignedContentLengthLayerTriad, Reason: "Admits an already validated core.ByteLength into a signing capability; no external representation decoding."},
+		{Door: SignedContentLength.Bytes, Kind: IngressProjectionForTest, Reason: "Projects the sealed signed extent; its admission is the typed NewSignedContentLength door."},
 	}
 }

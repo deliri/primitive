@@ -9,6 +9,7 @@ import (
 	"io"
 	"iter"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/deliri/primitive/v2026/contextstate"
@@ -237,6 +238,9 @@ func v4NextHeaderName(intent V4PresignRequest, previous string) string {
 	if !intent.ContentType.IsZero() {
 		consider(core.SignatureV4ContentTypeHeader)
 	}
+	if !intent.ContentLength.IsZero() {
+		consider(core.SignatureV4ContentLengthHeader)
+	}
 	for _, header := range intent.Headers.Values {
 		name := strings.ToLower(header.Name.String())
 		if !v4HeaderIgnored(name) {
@@ -275,6 +279,8 @@ func v4WriteCanonicalHeaders(target hash.Hash, intent V4PresignRequest) error {
 			v4WriteHeaderValue(target, host)
 		case core.SignatureV4ContentTypeHeader:
 			v4WriteHeaderValue(target, intent.ContentType.String())
+		case core.SignatureV4ContentLengthHeader:
+			_, _ = io.WriteString(target, strconv.FormatUint(intent.ContentLength.Bytes().Uint64(), 10))
 		default:
 			for _, header := range intent.Headers.Values {
 				if strings.ToLower(header.Name.String()) != name {

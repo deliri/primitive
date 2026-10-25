@@ -151,6 +151,8 @@ type R2PresignRequest struct {
 	Method       exchange.Method
 	Conditions   R2WriteConditions
 	CacheControl R2CacheControl
+	// ContentLength, when present, signs the exact PUT body extent.
+	ContentLength exchange.SignedContentLength
 }
 
 func (r R2PresignRequest) Validate() error {
@@ -173,7 +175,22 @@ func (r R2PresignRequest) Validate() error {
 	if err := r.CacheControl.validateWrite(r.Method == exchange.MethodPut); err != nil {
 		return err
 	}
+	if err := validateR2ContentLength(r.ContentLength, r.Method == exchange.MethodPut, core.CloudflareR2SingleUploadMaximumBytes); err != nil {
+		return err
+	}
 	return validateR2Method(r.Method)
+}
+
+// validateR2ContentLength admits a signed extent only on a body write and
+// within the provider's limit for that write.
+func validateR2ContentLength(length exchange.SignedContentLength, write bool, maximum uint64) error {
+	if err := length.Validate(); err != nil {
+		return contractError(err)
+	}
+	if !length.IsZero() && (!write || length.Bytes().Uint64() > maximum) {
+		return core.ErrCloudflareBinding
+	}
+	return nil
 }
 func validateR2Method(method exchange.Method) error {
 	switch method {
@@ -187,18 +204,20 @@ func validateR2Method(method exchange.Method) error {
 // R2Grant binds a presigned endpoint to its exact HTTP method and signed media
 // type. Possession is authority; diagnostic formatting never reveals the URL.
 type R2Grant struct {
-	contentType  core.HTTPMediaType
-	endpoint     core.HTTPEndpoint
-	method       exchange.Method
-	conditions   R2WriteConditions
-	cacheControl R2CacheControl
+	contentType   core.HTTPMediaType
+	endpoint      core.HTTPEndpoint
+	method        exchange.Method
+	conditions    R2WriteConditions
+	cacheControl  R2CacheControl
+	contentLength exchange.SignedContentLength
 }
 
 func (g R2Grant) Validate() error {
 	if err := errors.Join(g.endpoint.Validate(), validateR2Method(g.method)); err != nil {
 		return err
 	}
-	return errors.Join(g.conditions.validateMethod(g.method), g.cacheControl.validateWrite(g.method == exchange.MethodPut))
+	return errors.Join(g.conditions.validateMethod(g.method), g.cacheControl.validateWrite(g.method == exchange.MethodPut),
+		validateR2ContentLength(g.contentLength, g.method == exchange.MethodPut, core.CloudflareR2SingleUploadMaximumBytes))
 }
 func (g R2Grant) Endpoint() (core.HTTPEndpoint, error) { return g.endpoint, g.Validate() }
 func (R2Grant) Format(state fmt.State, _ rune)         { _, _ = io.WriteString(state, core.RedactedValueText) }
@@ -223,12 +242,12 @@ func (s R2Server) Presign(ctx context.Context, intent R2PresignRequest) (R2Grant
 		AccessKey: s.credentials.accessKey, SecretKey: s.credentials.secretKey,
 		Region: core.CloudflareR2SigningRegion, Service: core.CloudflareR2SigningService,
 		PayloadHash: core.CloudflareR2UnsignedPayload, Target: unsigned, Method: intent.Method,
-		SignedAt: intent.SignedAt, ContentType: intent.ContentType, Headers: r2WriteHeaders(intent.Conditions, intent.CacheControl), DisableURIPathEscaping: true,
+		SignedAt: intent.SignedAt, ContentType: intent.ContentType, ContentLength: intent.ContentLength, Headers: r2WriteHeaders(intent.Conditions, intent.CacheControl), DisableURIPathEscaping: true,
 	})
 	if err != nil {
 		return R2Grant{}, authenticationError(err)
 	}
-	return R2Grant{endpoint: parsed, method: intent.Method, contentType: intent.ContentType, conditions: intent.Conditions, cacheControl: intent.CacheControl}, nil
+	return R2Grant{endpoint: parsed, method: intent.Method, contentType: intent.ContentType, conditions: intent.Conditions, cacheControl: intent.CacheControl, contentLength: intent.ContentLength}, nil
 }
 
 type R2Client struct{ client exchange.Client }
@@ -267,6 +286,9 @@ func (r R2WriteRequest) Validate() error {
 		return core.ErrCloudflareContract
 	}
 	if r.Grant.method != exchange.MethodPut || r.Bytes.Uint64() > core.CloudflareR2SingleUploadMaximumBytes {
+		return core.ErrCloudflareBinding
+	}
+	if !r.Grant.contentLength.IsZero() && r.Grant.contentLength.Bytes() != r.Bytes {
 		return core.ErrCloudflareBinding
 	}
 	return errors.Join(r.Grant.Validate(), r.Bytes.Validate())

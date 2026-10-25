@@ -81,6 +81,10 @@ func verifyR2TestSignature(request *http.Request, secret []byte) bool {
 		if name == "host" {
 			value = request.Host
 		}
+		// A server receives the framed extent, not a caller-set header.
+		if name == "content-length" {
+			value = strconv.FormatInt(request.ContentLength, 10)
+		}
 		headers.WriteString(name + ":" + strings.TrimSpace(value) + "\n")
 	}
 	canonical := request.Method + "\n" + request.URL.EscapedPath() + "\n" + strings.ReplaceAll(query.Encode(), "+", "%20") + "\n" + headers.String() + "\n" + strings.Join(headerNames, ";") + "\nUNSIGNED-PAYLOAD"

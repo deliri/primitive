@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -48,6 +49,10 @@ func signingProofMatches(intent V4PresignRequest, endpoint core.HTTPEndpoint) bo
 	if !intent.ContentType.IsZero() {
 		headers = "content-type:" + intent.ContentType.String() + "\n" + headers
 		names = "content-type;host"
+	}
+	if !intent.ContentLength.IsZero() {
+		headers = "content-length:" + strconv.FormatUint(intent.ContentLength.Bytes().Uint64(), 10) + "\n" + headers
+		names = "content-length;" + names
 	}
 	if q.Get("X-Amz-SignedHeaders") != names {
 		return false

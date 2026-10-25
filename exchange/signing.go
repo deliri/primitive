@@ -26,6 +26,7 @@ type V4PresignRequest struct {
 	Headers                Headers
 	Target                 core.HTTPEndpoint
 	SignedAt               temporal.Instant
+	ContentLength          SignedContentLength
 	Method                 Method
 	DisableURIPathEscaping bool
 }
@@ -35,7 +36,7 @@ func (r V4PresignRequest) Format(state fmt.State, _ rune) {
 }
 
 func (r V4PresignRequest) Validate() error {
-	if err := errors.Join(r.Target.Validate(), r.Headers.Validate(), r.SignedAt.Validate(), r.Method.Validate()); err != nil {
+	if err := errors.Join(r.Target.Validate(), r.Headers.Validate(), r.SignedAt.Validate(), r.Method.Validate(), r.ContentLength.Validate()); err != nil {
 		return requestError(err)
 	}
 	if len(r.AccessKey) == 0 || len(r.SecretKey) == 0 || r.Region == "" || r.Service == "" || r.PayloadHash == "" {
@@ -49,6 +50,31 @@ func (r V4PresignRequest) Validate() error {
 	}
 	return nil
 }
+
+// SignedContentLength binds one exact request body extent into a presigned
+// signature, so the holder cannot send a different number of bytes. The zero
+// value signs no length. Transport derives the header from the body.
+type SignedContentLength struct {
+	bytes   core.ByteLength
+	present bool
+}
+
+func NewSignedContentLength(bytes core.ByteLength) (SignedContentLength, error) {
+	length := SignedContentLength{bytes: bytes, present: true}
+	if err := length.Validate(); err != nil {
+		return SignedContentLength{}, err
+	}
+	return length, nil
+}
+
+func (l SignedContentLength) Validate() error {
+	if !l.present && l.bytes != (core.ByteLength{}) {
+		return core.ErrExchangeRequest
+	}
+	return l.bytes.Validate()
+}
+func (l SignedContentLength) IsZero() bool           { return !l.present }
+func (l SignedContentLength) Bytes() core.ByteLength { return l.bytes }
 
 // PresignV4 constructs and signs one validated request without transferring
 // custody of transport or importing provider policy into Exchange. Header

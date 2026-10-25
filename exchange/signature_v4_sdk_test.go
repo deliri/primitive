@@ -24,6 +24,13 @@ func v4OfficialSDKOracle(t testing.TB, intent V4PresignRequest) string {
 		t.Fatal(err)
 	}
 	applyRequestHeaders(request, intent.Headers)
+	if !intent.ContentLength.IsZero() {
+		length, err := intent.ContentLength.Bytes().Int64()
+		if err != nil {
+			t.Fatal(err)
+		}
+		request.ContentLength = length
+	}
 	if !intent.ContentType.IsZero() {
 		request.Header.Set(core.HTTPHeaderContentType().String(), intent.ContentType.String())
 	}

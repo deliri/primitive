@@ -13,6 +13,7 @@ const (
 	SignatureV4SignatureQuery         = "X-Amz-Signature"
 	SignatureV4HostHeader             = "host"
 	SignatureV4ContentTypeHeader      = "content-type"
+	SignatureV4ContentLengthHeader    = "content-length"
 	SignatureV4AuthorizationHeader    = "authorization"
 	SignatureV4UserAgentHeader        = "user-agent"
 	SignatureV4TraceHeader            = "x-amzn-trace-id"

@@ -100,6 +100,9 @@ func (c R2Client) UploadPart(ctx context.Context, g R2MultipartGrant, source io.
 	if g.intent.Action != R2MultipartPart || core.ReaderIsNil(source) || length.Uint64() == 0 || length.Uint64() > core.CloudflareR2MultipartMaximumPartBytes {
 		return R2CompletedPart{}, core.ErrCloudflareBinding
 	}
+	if !g.intent.ContentLength.IsZero() && g.intent.ContentLength.Bytes() != length {
+		return R2CompletedPart{}, core.ErrCloudflareBinding
+	}
 	response, err := exchange.Upload(exchange.UploadCall{Context: ctx, Client: c.client, Policy: policy, Request: exchange.UploadRequest{
 		Target: g.endpoint, Source: source, ContentLength: &length, ContentType: core.HTTPMediaTypeOctetStream(),
 		CaptureHeaders: exchange.HeaderSelection{Names: []core.HTTPHeaderName{cloudflareHeader(core.CloudflareR2ETagHeader)}},

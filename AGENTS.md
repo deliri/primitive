@@ -1,40 +1,44 @@
+## Anvil is GA
+
+All agents use `/Users/d/code/anvil/_release/anvil-darwin-arm64` on the Mac.
+Anvil owns admission, execution, server access and evidence transport. No direct
+SSH/SCP/rsync, native Furnace runners or Stoker. This overrides older runner
+instructions below. Read `/Users/d/code/anvil/_docs/agent-quickstart.md`.
+File complaints in `/Users/d/code/anvil/dog_fooding.md` with the commit,
+request, run ID, expected/actual result and evidence. Never include secrets.
+
+Optional project-config subset: callback and evidence destination only. Omit it for fleet-local SSD/HDD. No fleet-policy overrides. Implementation pending; see the quickstart.
+
+Solve this using first principles thinking. First, list every assumption baked into the
+problem and how I'm framing it. Then break it down to the fundamental truths we know
+for certain. Finally, rebuild a solution from those truths alone, ignoring how others
+usually do it. Flag any assumption you couldn't verify.
+
+We don’t add complexity. We don’t over engineer. 
+We look for the simplest solution so it can scale. 
+Simple doesn’t mean naive. Extremely well tested but simple code works best and is easiest to maintain. 
+Every project not primitive does the following thing;
+1) unix philosophy grep like O(1) streaming
+2) no world building no state machines
+3) passes all execution down to primitive which passes down execution to go std lib 100%
+4) struct to structure, enums and no raw strings, maps, or ‘any’
+5) even errors are defined as constants in core so the compiler is always in charge 
+
+That’s our difference compared to every other shop
+
+After a fix, rerun only the failed test, never the whole package.
+
 # Workspace instructions
 
 Read the shared [workspace agreement](../AGENTS.md) completely and preserve
 its architecture, standing permissions, focused-test and evidence rules.
 
-## Stoker test orchestration
+## Stoker is retired
 
-Default to `stoker run --project PROJECT --revision COMMIT --plan PLAN.json --wait`
-for supported build, vet, lint, test, fuzz and mutation work. Commit the plan in
-the owning project and keep its scope focused. Stoker's
-`compass/example-plan.json` and `_testdata/wait-proof-plan.json` show the typed
-shapes; reference examples do not authorize their unrelated test scope.
-A single focused Go test can use `stoker run --project PROJECT --revision COMMIT --wait -- ./affected/package '-run=^TestName$'`.
+Do not use `st`, `stoker` or any Stoker binary (retired 2026-10-21). Run
+focused Go tests through the native runners in the shared
+[workspace agreement](../AGENTS.md#stoker-is-retired). Use Bun's
+`bun.webview()` for screenshots and browser work.
 
-Project profiles own preparation, allowed compiler settings and actual budgets.
-Do not repeat their setup in shell scripts or override Stoker's resource
-environment. Use typed steps instead of `--kind tool`, inline shell or Python
-for supported operations. Let Stoker manage resource waits, source fetching,
-worker selection, private scratch cleanup and verified evidence delivery.
 
-Invoke `stoker` from PATH directly. Omit `--system` unless an existing native-host
-requirement applies; `--server` is an administrative coordinator selection,
-never an evidence destination. Retrieve with
-`stoker evidence RUN_ID --artifact stdout`, without host flags or shell pipes.
-Standing permission covers configured execution and evidence return; mandatory
-platform restrictions still apply. Inspect the terminal result and actual test
-events before claiming success. The complete batch wait is unlimited by default;
-`--wait-timeout-seconds N` limits caller patience without cancelling the order.
-
-Use installed `stoker` for supported tests on exact committed revisions and
-for retrieving their evidence. Follow the Stoker section of the shared
-[workspace agreement](../AGENTS.md) and read `stoker man run` before submitting.
-Stoker handles live resource admission, host selection, native execution and
-SSH/SCP evidence delivery to Furnace. Keep test scope focused and preserve any
-project requirement to use Furnace with `--system furnace`. Inspect
-`stoker status RUN_ID` and the terminal receipt, then use
-`stoker evidence RUN_ID --artifact stdout`; submission alone is not a pass.
-Standing permission covers authorized configured execution and evidence return,
-subject to mandatory platform sandbox restrictions.
-
+Shared agreement for Claude and Codex: read `/Users/d/code/AGENTS.md` (`/Users/d/code/CLAUDE.md` is a symlink to it) completely before work and after context recovery. This project's `CLAUDE.md` is a symlink to this file.
