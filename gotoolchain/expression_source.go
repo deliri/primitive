@@ -95,7 +95,11 @@ func (v SSAUnitView) expressionValue(ctx context.Context, request ExpressionRequ
 			return nil, types.TypeAndValue{}, false, pc.ErrGoToolchainOutput
 		}
 		for {
-			if value, address := frame.ValueForExpr(expression); value != nil {
+			value, address, queryErr := sourceExpressionValue(frame, expression)
+			if queryErr != nil {
+				return nil, types.TypeAndValue{}, false, queryErr
+			}
+			if value != nil {
 				return value, facts, address, nil
 			}
 			var enclosing *ssa.Function

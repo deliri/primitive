@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_expression_call.go
++++ b/gotoolchain/ssa_expression_call.go
+@@ -99,7 +99,7 @@
+ 	if typeErr != nil {
+ 		return out, typeErr
+ 	}
+-	if !types.Identical(nativeType, facts.Type) {
++	if false && !types.Identical(nativeType, facts.Type) {
+ 		return out, core.ErrGoToolchainOutput
+ 	}
+ 	if value.Parent() != nil && value.Parent() != fn {

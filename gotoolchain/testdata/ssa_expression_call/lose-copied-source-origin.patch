@@ -1,0 +1,10 @@
+--- a/gotoolchain/ssa_expression_call.go
++++ b/gotoolchain/ssa_expression_call.go
+@@ -72,6 +72,7 @@
+ 		return out, core.ErrGoToolchainContract
+ 	}
+ 	expression := ast.Unparen(r.Expression)
++	if _, copied := expression.(*ast.Ident); copied { return out, nil }
+ 	facts, owned := v.Source.TypesInfo.Types[expression]
+ 	if !owned {
+ 		return out, core.ErrGoToolchainContract

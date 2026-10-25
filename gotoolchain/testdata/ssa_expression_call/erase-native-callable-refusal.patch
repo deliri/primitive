@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_expression_call.go
++++ b/gotoolchain/ssa_expression_call.go
+@@ -150,7 +150,7 @@
+ 	// The named-target loan validates actual callable and operand custody even
+ 	// when interface dispatch or a dynamic value has no exact named target.
+ 	if _, err := v.CallFunction(ctx, SSACallFunctionRequest{Call: call}); err != nil {
+-		return SSAExpressionCallObservation{}, err
++		return SSAExpressionCallObservation{}, nil
+ 	}
+ 	untaken, err := argumentCallUntakenBlock(call.Block())
+ 	if err != nil || untaken {

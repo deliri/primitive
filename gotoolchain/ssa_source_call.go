@@ -68,7 +68,7 @@ func (v SSAUnitView) CallForExpression(ctx context.Context, r SSASourceCallReque
 	} else if fn != v.Package.Func("init") {
 		return out, core.ErrGoToolchainContract
 	}
-	value, lookupErr := sourceExpressionValue(fn, r.Expression)
+	value, _, lookupErr := sourceExpressionValue(fn, r.Expression)
 	if lookupErr != nil {
 		return out, lookupErr
 	}
@@ -98,18 +98,18 @@ func (v SSAUnitView) CallForExpression(ctx context.Context, r SSASourceCallReque
 }
 
 // Contain only Go's expression lookup; caller callbacks keep Go panic semantics.
-func sourceExpressionValue(fn *ssa.Function, expression ast.Expr) (value ssa.Value, err error) {
+func sourceExpressionValue(fn *ssa.Function, expression ast.Expr) (value ssa.Value, address bool, err error) {
 	defer func() {
 		if failure := recover(); failure != nil {
-			value = nil
+			value, address = nil, false
 			err = core.ErrGoToolchainOutput
 			if cause, ok := failure.(error); ok {
 				err = errors.Join(err, cause)
 			}
 		}
 	}()
-	value, _ = fn.ValueForExpr(expression)
-	return value, nil
+	value, address = fn.ValueForExpr(expression)
+	return value, address, nil
 }
 
 // Search native positions directly without allocating iterator captures.

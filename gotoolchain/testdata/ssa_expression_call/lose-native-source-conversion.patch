@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_expression_call.go
++++ b/gotoolchain/ssa_expression_call.go
+@@ -128,7 +128,7 @@
+ 		if err != nil || loan.Operand == nil {
+ 			return SSAExpressionCallObservation{}, err
+ 		}
+-		value = loan.Operand
++		return SSAExpressionCallObservation{}, nil
+ 	}
+ 	index := uint64(0)
+ 	call, scalar := value.(*ssa.Call)

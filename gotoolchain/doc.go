@@ -7,6 +7,9 @@
 // compilation and build-file selection remain separate observations.
 // WithSSAUnit can opt into Go-owned source/value references without a product
 // symbol table. Source metadata and its additional allocation stay opt-in.
+// ExpressionCall lends an actual result-producing call, including interface
+// dispatch. ExpressionProducer projects a named declaration from the same
+// origin walk; neither query invents an implementation for dynamic dispatch.
 // ObserveModuleFile delegates go.mod grammar to Go's read-only mod edit -json
 // command. It retains only a declared-version and replacement-count projection;
 // native Go owns its file parser, and Go's JSON cursor owns scalar buffers.

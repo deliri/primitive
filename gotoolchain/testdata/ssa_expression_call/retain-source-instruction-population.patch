@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_expression_call.go
++++ b/gotoolchain/ssa_expression_call.go
+@@ -71,6 +71,8 @@
+ 	if fn.Prog != v.Program || fn.Pkg != v.Package || fn != v.Package.Func("init") && !v.argumentBindingFunctionOwned(fn) {
+ 		return out, core.ErrGoToolchainContract
+ 	}
++	population := append([]ssa.Instruction(nil), fn.Blocks[0].Instrs...)
++	if len(population)==0 { return out, core.ErrGoToolchainOutput }
+ 	expression := ast.Unparen(r.Expression)
+ 	facts, owned := v.Source.TypesInfo.Types[expression]
+ 	if !owned {

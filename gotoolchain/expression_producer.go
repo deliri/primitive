@@ -6,7 +6,6 @@ import (
 	"go/types"
 
 	pc "github.com/deliri/primitive/v2026/core"
-	"golang.org/x/tools/go/ssa"
 )
 
 // ExpressionProducerObservation borrows the actual named Go function and its
@@ -42,38 +41,21 @@ func (v SSAUnitView) ExpressionProducer(ctx context.Context, request ExpressionR
 	if address || value == nil {
 		return ExpressionProducerObservation{}, nil
 	}
-	for {
-		converted, ok := value.(*ssa.ChangeType)
-		if !ok {
-			break
-		}
-		value = converted.X
+	origin, err := v.valueExpressionCall(ctx, value)
+	if err != nil {
+		return ExpressionProducerObservation{}, err
 	}
-	index := uint64(0)
-	call, scalar := value.(*ssa.Call)
-	if !scalar {
-		extracted, ok := value.(*ssa.Extract)
-		if !ok {
-			return ExpressionProducerObservation{}, nil
-		}
-		call, ok = extracted.Tuple.(*ssa.Call)
-		if !ok {
-			return ExpressionProducerObservation{}, nil
-		}
-		if extracted.Index < 0 {
-			return ExpressionProducerObservation{}, pc.ErrGoToolchainOutput
-		}
-		index = uint64(extracted.Index)
-	}
-	target := call.Common().StaticCallee()
-	if target == nil || scalar && target.Signature.Results().Len() != 1 {
+	if origin.Call == nil {
 		return ExpressionProducerObservation{}, nil
 	}
-	function, ok := target.Object().(*types.Func)
-	if !ok {
+	declaration, err := v.CallFunction(ctx, SSACallFunctionRequest{Call: origin.Call})
+	if err != nil {
+		return ExpressionProducerObservation{}, err
+	}
+	if declaration.Function == nil {
 		return ExpressionProducerObservation{}, nil
 	}
-	observation := ExpressionProducerObservation{Function: function, ResultIndex: index}
+	observation := ExpressionProducerObservation{Function: declaration.Function, ResultIndex: origin.ResultIndex}
 	if err := observation.Validate(); err != nil {
 		return ExpressionProducerObservation{}, errors.Join(pc.ErrGoToolchainOutput, err)
 	}

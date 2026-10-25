@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_expression_call.go
++++ b/gotoolchain/ssa_expression_call.go
+@@ -174,7 +174,7 @@
+ 		if failure := recover(); failure != nil {
+ 			typ, err = nil, core.ErrGoToolchainOutput
+ 			if cause, native := failure.(error); native {
+-				err = errors.Join(err, cause)
++				_ = cause
+ 			}
+ 		}
+ 	}()

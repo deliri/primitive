@@ -68,7 +68,7 @@ func (v SSAUnitView) BinaryOperationForExpression(ctx context.Context, r SSABina
 	} else if fn != v.Package.Func("init") {
 		return out, core.ErrGoToolchainContract
 	}
-	value, lookupErr := sourceExpressionValue(fn, r.Expression)
+	value, _, lookupErr := sourceExpressionValue(fn, r.Expression)
 	if lookupErr != nil {
 		return out, lookupErr
 	}

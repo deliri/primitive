@@ -1,0 +1,34 @@
+[
+  {
+    "name": "discard-interface-source-call",
+    "patch": "discard-interface-source-call.patch"
+  },
+  {
+    "name": "discard-selected-tuple-ordinal",
+    "patch": "discard-selected-tuple-ordinal.patch"
+  },
+  {
+    "name": "erase-native-accessor-cause",
+    "patch": "erase-native-accessor-cause.patch"
+  },
+  {
+    "name": "erase-native-callable-refusal",
+    "patch": "erase-native-callable-refusal.patch"
+  },
+  {
+    "name": "ignore-native-source-type-agreement",
+    "patch": "ignore-native-source-type-agreement.patch"
+  },
+  {
+    "name": "lose-copied-source-origin",
+    "patch": "lose-copied-source-origin.patch"
+  },
+  {
+    "name": "lose-native-source-conversion",
+    "patch": "lose-native-source-conversion.patch"
+  },
+  {
+    "name": "retain-source-instruction-population",
+    "patch": "retain-source-instruction-population.patch"
+  }
+]

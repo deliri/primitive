@@ -1,0 +1,10 @@
+--- a/gotoolchain/ssa_expression_call.go
++++ b/gotoolchain/ssa_expression_call.go
+@@ -152,6 +152,7 @@
+ 	if _, err := v.CallFunction(ctx, SSACallFunctionRequest{Call: call}); err != nil {
+ 		return SSAExpressionCallObservation{}, err
+ 	}
++	if call.Common().IsInvoke() { return SSAExpressionCallObservation{}, nil }
+ 	untaken, err := argumentCallUntakenBlock(call.Block())
+ 	if err != nil || untaken {
+ 		return SSAExpressionCallObservation{}, err

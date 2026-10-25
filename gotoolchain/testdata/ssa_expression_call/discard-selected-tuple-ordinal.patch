@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_expression_call.go
++++ b/gotoolchain/ssa_expression_call.go
+@@ -145,7 +145,7 @@
+ 		if !ok {
+ 			return SSAExpressionCallObservation{}, nil
+ 		}
+-		index = uint64(loan.Index)
++		index = 0
+ 	}
+ 	// The named-target loan validates actual callable and operand custody even
+ 	// when interface dispatch or a dynamic value has no exact named target.
