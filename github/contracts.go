@@ -13,6 +13,7 @@ import (
 
 const (
 	repositorySeparator          = "/"
+	remoteGitSuffix              = ".git"
 	referenceCustodyMaximumBytes = 1024
 	userAgentCustodyMaximumBytes = 256
 )
@@ -39,6 +40,39 @@ func ParseRepository(value string) (Repository, error) {
 		return Repository{}, core.ErrGitHubContract
 	}
 	return candidate, nil
+}
+
+// remotePrefixes are the exact clone-address spellings Git records for a
+// GitHub repository. A port, credential, other user or other host matches none.
+func remotePrefixes() [3]string {
+	return [...]string{"https://github.com/", "git@github.com:", "ssh://git@github.com/"}
+}
+
+// ParseRemote accepts one GitHub clone address: a remote prefix followed by
+// owner/name, with or without the .git suffix. GitHub owner and repository
+// names are case-insensitive, so ASCII letters fold to lower case and every
+// spelling of one repository parses to an equal Repository; ParseRepository
+// refuses any query, fragment, escape or further path the remainder carries.
+func ParseRemote(value string) (Repository, error) {
+	if !utf8.ValidString(value) {
+		return Repository{}, core.ErrGitHubContract
+	}
+	for _, prefix := range remotePrefixes() {
+		if coordinate, ok := strings.CutPrefix(value, prefix); ok {
+			return ParseRepository(foldASCII(strings.TrimSuffix(coordinate, remoteGitSuffix)))
+		}
+	}
+	return Repository{}, core.ErrGitHubContract
+}
+
+// foldASCII lowers ASCII letters only; other text is kept byte for byte.
+func foldASCII(value string) string {
+	return strings.Map(func(r rune) rune {
+		if 'A' <= r && r <= 'Z' {
+			return r + ('a' - 'A')
+		}
+		return r
+	}, value)
 }
 
 // Validate rejects unset, ambiguous, traversal-bearing, or URL-control names.

@@ -39,6 +39,9 @@ func TestGitHubExternalIngressHasSemanticFuzzTargets(t *testing.T) {
 	_ = externalIngressFuzzContract[func(string) (Repository, error), func(*testing.F)]{
 		Door: ParseRepository, Fuzz: FuzzParseRepositorySemanticClosure,
 	}
+	_ = externalIngressFuzzContract[func(string) (Repository, error), func(*testing.F)]{
+		Door: ParseRemote, Fuzz: FuzzParseRemoteSemanticClosure,
+	}
 	_ = externalIngressFuzzContract[func([]byte) ([]Tag, error), func(*testing.F)]{
 		Door: decodeTagPage, Fuzz: FuzzDecodeGitHubTagPageSemanticClosure,
 	}
