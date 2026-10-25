@@ -13,6 +13,8 @@
 // CaptureFrames lends a selected native parameter/free variable and its real
 // lexical capture chain through ClosureBindings, without an invocation claim
 // or a copied capture graph. Active native ancestry remains depth-sized.
+// SourceFunction lends exact source declarations or the synthetic initializer
+// from the native SSA object map, without a product function registry.
 // ObserveModuleFile delegates go.mod grammar to Go's read-only mod edit -json
 // command. It retains only a declared-version and replacement-count projection;
 // native Go owns its file parser, and Go's JSON cursor owns scalar buffers.

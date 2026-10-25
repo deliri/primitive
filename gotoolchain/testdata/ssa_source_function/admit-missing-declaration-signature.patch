@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_source_function.go
++++ b/gotoolchain/ssa_source_function.go
+@@ -58,7 +58,7 @@
+ 		}
+ 		return nil
+ 	}
+-	if r.Declaration == nil || r.Declaration.Name == nil || r.Declaration.Type == nil {
++	if r.Declaration == nil || r.Declaration.Name == nil {
+ 		return core.ErrGoToolchainContract
+ 	}
+ 	return nil

@@ -1,0 +1,12 @@
+--- a/gotoolchain/ssa_source_function.go
++++ b/gotoolchain/ssa_source_function.go
+@@ -100,6 +100,9 @@
+ 	if file == nil {
+ 		return out, core.ErrGoToolchainContract
+ 	}
++	var copied []ast.Decl
++	for _, syntax := range v.Source.Syntax { copied=append(copied,syntax.Decls...) }
++	if len(copied)>0 && copied[len(copied)-1]==nil {return out,core.ErrGoToolchainOutput}
+ 	owned := false
+ 	for _, syntax := range v.Source.Syntax {
+ 		if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {

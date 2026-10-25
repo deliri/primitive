@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_source_function.go
++++ b/gotoolchain/ssa_source_function.go
+@@ -123,7 +123,7 @@
+ 		// Losing its source list is missing compiler output, not a caller clone.
+ 		if object, ok := v.Source.TypesInfo.Defs[r.Declaration.Name].(*types.Func); ok && object != nil {
+ 			if fn := v.Program.FuncValue(object); fn != nil && fn.Syntax() == r.Declaration {
+-				return out, core.ErrGoToolchainOutput
++				return out, core.ErrGoToolchainContract
+ 			}
+ 		}
+ 		return out, core.ErrGoToolchainContract

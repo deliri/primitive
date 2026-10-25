@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_source_function.go
++++ b/gotoolchain/ssa_source_function.go
+@@ -91,7 +91,7 @@
+ 	}()
+ 	if r.Kind == SSASourceFunctionInitializer {
+ 		fn := v.Package.Func("init")
+-		if fn == nil || fn.Prog != v.Program || fn.Pkg != v.Package || fn.Parent() != nil || fn.Syntax() != nil || fn.Object() != nil || len(fn.Blocks) == 0 || fn.Blocks[0] == nil || fn.Blocks[0].Parent() != fn || fn.Blocks[0].Index != 0 {
++		if fn == nil || fn.Prog != v.Program || fn.Pkg != v.Package || fn.Parent() != nil || fn.Syntax() != nil || fn.Object() != nil || len(fn.Blocks) == 0 || fn.Blocks[0] == nil || fn.Blocks[0].Index != 0 {
+ 			return out, core.ErrGoToolchainOutput
+ 		}
+ 		return SSASourceFunctionObservation{Function: fn}, nil

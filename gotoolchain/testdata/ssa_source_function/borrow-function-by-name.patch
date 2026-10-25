@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_source_function.go
++++ b/gotoolchain/ssa_source_function.go
+@@ -132,7 +132,7 @@
+ 	if !ok || object == nil || object.Pkg() != v.Source.Types || object.Signature() == nil || object.Pos() != r.Declaration.Name.Pos() || object.Name() != r.Declaration.Name.Name {
+ 		return out, core.ErrGoToolchainOutput
+ 	}
+-	fn := v.Program.FuncValue(object)
++	fn := v.Package.Func(object.Name())
+ 	if fn == nil || fn.Prog != v.Program || fn.Pkg != v.Package || fn.Syntax() != r.Declaration || fn.Object() != object {
+ 		return out, core.ErrGoToolchainOutput
+ 	}

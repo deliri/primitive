@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_source_function.go
++++ b/gotoolchain/ssa_source_function.go
+@@ -81,7 +81,7 @@
+ // Bodyless source declarations remain valid loans with no instructions.
+ func (v SSAUnitView) SourceFunction(ctx context.Context, r SSASourceFunctionRequest) (out SSASourceFunctionObservation, resultErr error) {
+ 	if err := errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), v.Validate(), r.Validate()); err != nil {
+-		return out, err
++		return out, context.Canceled
+ 	}
+ 	defer func() {
+ 		resultErr = errors.Join(resultErr, temporal.Wait(temporal.WaitRequest{Context: ctx}))

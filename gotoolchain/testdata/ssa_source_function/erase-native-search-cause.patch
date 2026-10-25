@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_source_function.go
++++ b/gotoolchain/ssa_source_function.go
+@@ -145,7 +145,7 @@
+ 		if failure := recover(); failure != nil {
+ 			owned = false
+ 			if cause, ok := failure.(error); ok {
+-				resultErr = errors.Join(core.ErrGoToolchainOutput, cause)
++				resultErr = core.ErrGoToolchainOutput; _ = cause
+ 			} else {
+ 				resultErr = fmt.Errorf("%w: native source declaration: %v", core.ErrGoToolchainOutput, failure)
+ 			}
