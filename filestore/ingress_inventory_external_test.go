@@ -55,6 +55,7 @@ func TestFilestorePublicIngressHasCompilerBoundSemanticProof(t *testing.T) {
 
 func filestoreIngressProofs() []filestoreIngressProof {
 	entries := []filestoreIngressProof{
+		{door: reflect.ValueOf(filestore.ReadAt), fuzz: FuzzReadAtMatchesBorrowedNativeFile},
 		{door: reflect.ValueOf(filestore.ParseSymbolicLinkTarget), fuzz: FuzzSymbolicLinkTargetParseSemanticClosure},
 		{door: reflect.ValueOf(filestore.CreateSymbolicLink), proof: TestCreateSymbolicLinkNativeLayerTriad, reason: "A rooted exclusive native namespace effect; real link bytes, occupied names, outside and dangling targets, confinement, context and native causes have focused filesystem proof. The opaque text ingress has its own public semantic fuzz target."},
 		{door: reflect.ValueOf(filestore.CreateHardLink), proof: TestCreateHardLinkNativeNamespaceLayerTriad, reason: "Go Root.Link acquires a second rooted name for an existing inode; focused native proof checks inode identity, opaque links, confinement, refusal and unchanged occupied entries. Relative path representation remains owned by Core."},

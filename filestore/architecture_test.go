@@ -117,6 +117,7 @@ type filestoreContractInventory struct {
 	InspectedReadScopeRequest     validatedRequest[InspectedReadScopeRequest]
 	InspectedRead                 streamedObservation[InspectedRead]
 	ReadAtScopeRequest            validatedRequest[ReadAtScopeRequest]
+	ReadAtRequest                 validatedRequest[ReadAtRequest]
 	ScratchWriterScopeRequest     validatedRequest[ScratchWriterScopeRequest]
 	ScratchReplayScopeRequest     validatedRequest[ScratchReplayScopeRequest]
 	LockFileScopeRequest          validatedRequest[LockFileScopeRequest]

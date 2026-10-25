@@ -20,4 +20,10 @@
 // ObserveModuleFile delegates go.mod grammar to Go's read-only mod edit -json
 // command. It retains only a declared-version and replacement-count projection;
 // native Go owns its file parser, and Go's JSON cursor owns scalar buffers.
+// ObserveExecutableMetadata borrows an already-open executable, delegates its
+// positional reads to Filestore and its metadata grammar to Go's buildinfo
+// parser, then lends native header, dependency and setting facts synchronously.
+// Visitor prefixes are provisional until the full captured content binding and
+// final extent checks succeed. This observation grants no authentication or
+// atomic snapshot guarantee; the caller excludes writes and owns the handle.
 package gotoolchain
