@@ -23,6 +23,7 @@ import (
 type processExternalDoorInventory struct {
 	ObserveGroupLiveness       func(process.ProcessIdentity) (process.Liveness, error)
 	ObserveGroupMemory         func(context.Context, process.GroupMemoryRequest) (core.ByteLength, error)
+	ObserveGroupUsage          func(context.Context, process.GroupMemoryRequest) (process.GroupUsage, error)
 	OwnGroup                   func() (*process.OwnedGroup, error)
 	ExecutionScope_Begin       func(*process.ExecutionScope, context.Context, process.Request) (*process.Execution, error)
 	ExecutionScope_Wait        func(*process.ExecutionScope, process.ExecutionWaitRequest) (process.Result, error)
@@ -62,6 +63,7 @@ type processExternalDoorInventory struct {
 var processExternalDoors = processExternalDoorInventory{
 	ObserveGroupLiveness:       process.ObserveGroupLiveness,
 	ObserveGroupMemory:         process.ObserveGroupMemory,
+	ObserveGroupUsage:          process.ObserveGroupUsage,
 	OwnGroup:                   process.OwnGroup,
 	ExecutionScope_Begin:       (*process.ExecutionScope).Begin,
 	ExecutionScope_Wait:        (*process.ExecutionScope).Wait,
@@ -125,6 +127,7 @@ func processExternalFuzzProofs() processExternalFuzzProofInventory {
 type processNativeMetadataDoorInventory struct {
 	ObserveGroupLiveness    func(process.ProcessIdentity) (process.Liveness, error)
 	ObserveGroupMemory      func(context.Context, process.GroupMemoryRequest) (core.ByteLength, error)
+	ObserveGroupUsage       func(context.Context, process.GroupMemoryRequest) (process.GroupUsage, error)
 	OwnGroup                func() (*process.OwnedGroup, error)
 	WaitGroupAbsent         func(context.Context, process.WaitGroupAbsentRequest) (process.Liveness, error)
 	Execution_GroupLiveness func(*process.Execution) (process.Liveness, error)
@@ -137,7 +140,7 @@ type processNativeMetadataDoorInventory struct {
 }
 
 func processNativeMetadataDoors() processNativeMetadataDoorInventory {
-	return processNativeMetadataDoorInventory{ObserveGroupLiveness: process.ObserveGroupLiveness, ObserveGroupMemory: process.ObserveGroupMemory, OwnGroup: process.OwnGroup, WaitGroupAbsent: process.WaitGroupAbsent, Execution_GroupLiveness: (*process.Execution).GroupLiveness, Alive: process.Alive, DiscardDeviceArgument: process.DiscardDeviceArgument, ObserveProcesses: process.ObserveProcesses, Self: process.Self, StandardStreams: process.StandardStreams, LentStreams: process.LentStreams}
+	return processNativeMetadataDoorInventory{ObserveGroupLiveness: process.ObserveGroupLiveness, ObserveGroupMemory: process.ObserveGroupMemory, ObserveGroupUsage: process.ObserveGroupUsage, OwnGroup: process.OwnGroup, WaitGroupAbsent: process.WaitGroupAbsent, Execution_GroupLiveness: (*process.Execution).GroupLiveness, Alive: process.Alive, DiscardDeviceArgument: process.DiscardDeviceArgument, ObserveProcesses: process.ObserveProcesses, Self: process.Self, StandardStreams: process.StandardStreams, LentStreams: process.LentStreams}
 }
 
 func TestProcessExternalIngressInventoryMatchesProduction(t *testing.T) {

@@ -15,10 +15,11 @@ import (
 // and fixed stream observations; every internal carrier must remain visible.
 func productionStructRoles() map[string]string {
 	return map[string]string{
-		"GroupMemoryRequest":     "validated native group RSS observation request",
+		"GroupMemoryRequest":     "validated native group usage observation request",
+		"GroupUsage":             "native group RSS and CPU time sample",
 		"LentRequest":            "validated order of standard streams a parent lent",
 		"Lent":                   "caller-owned lent standard input and output",
-		"groupMemoryFold":        "fixed-space native numeric RSS row fold",
+		"groupUsageFold":         "fixed-space native RSS and CPU time row fold",
 		"OwnedGroup":             "sealed current process group leadership capability",
 		"Argument":               "validated argv fact",
 		"ServiceDocumentRequest": "native user-service encoding request",
@@ -209,6 +210,7 @@ func TestPublicOperationsAreOnlyTypedConstructionAndExecution(t *testing.T) {
 		"NewTruncatingWriter",
 		"ObserveGroupLiveness",
 		"ObserveGroupMemory",
+		"ObserveGroupUsage",
 		"ObserveProcesses",
 		"OwnGroup",
 		"ParseArguments",

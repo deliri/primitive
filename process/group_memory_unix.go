@@ -13,34 +13,34 @@ import (
 )
 
 const groupMemoryExecutable = "/bin/ps"
-const groupMemoryFields = "pgid=,rss="
+const groupMemoryFields = "pgid=,rss=,time="
 const groupMemoryWaitSeconds = 3
 
-func observeGroupMemory(ctx context.Context, request GroupMemoryRequest) (core.ByteLength, error) {
+func observeGroupUsage(ctx context.Context, request GroupMemoryRequest) (GroupUsage, error) {
 	command, err := core.ParseAbsolutePath(groupMemoryExecutable)
 	if err != nil {
-		return core.ByteLength{}, err
+		return GroupUsage{}, err
 	}
 	args, err := ParseArguments([]string{"-axo", groupMemoryFields})
 	if err != nil {
-		return core.ByteLength{}, err
+		return GroupUsage{}, err
 	}
-	fold := groupMemoryFold{target: request.Group}
+	fold := groupUsageFold{target: request.Group}
 	delay, err := temporal.DurationFromSeconds(groupMemoryWaitSeconds)
 	if err != nil {
-		return core.ByteLength{}, err
+		return GroupUsage{}, err
 	}
 	result, err := Run(ctx, Request{Command: command, Arguments: args, WorkingDirectory: request.WorkingDirectory, Environment: request.Environment, Streams: Streams{Stdin: strings.NewReader(""), Stdout: &fold, Stderr: io.Discard}, OutputPolicy: OutputPolicy{Mode: OutputModeStreaming}, WaitDelay: delay})
 	if err != nil {
-		return core.ByteLength{}, errors.Join(core.ErrProcessObservation, err)
+		return GroupUsage{}, errors.Join(core.ErrProcessObservation, err)
 	}
 	code, err := result.ExitCode()
 	if err != nil {
-		return core.ByteLength{}, errors.Join(core.ErrProcessObservation, err)
+		return GroupUsage{}, errors.Join(core.ErrProcessObservation, err)
 	}
 	value, err := code.Int()
 	if err != nil || value != 0 {
-		return core.ByteLength{}, errors.Join(core.ErrProcessObservation, err)
+		return GroupUsage{}, errors.Join(core.ErrProcessObservation, err)
 	}
 	return fold.finish()
 }
