@@ -4,6 +4,8 @@ package process_test
 
 import (
 	"bytes"
+	"io"
+	"strings"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/process"
@@ -17,7 +19,7 @@ func TestMemoryCapProbeUserScope(t *testing.T) {
 		wantPass bool
 	}{{"64M", false}, {"1G", true}} {
 		var stderr bytes.Buffer
-		request := processRequest(t, "copy", process.Streams{Stderr: &stderr})
+		request := processRequest(t, "copy", process.Streams{Stdin: strings.NewReader(""), Stdout: io.Discard, Stderr: &stderr})
 		request.Command = absolutePath(t, "/usr/bin/systemd-run")
 		request.Arguments = arguments(t, "--user", "--scope", "--quiet", "--collect", "-p", "MemoryMax="+row.max, "-p", "MemorySwapMax=0", "--", "/bin/sh", "-c", "head -c 300000000 /dev/zero | tail -c 300000000 > /dev/null")
 		result, err := process.Run(t.Context(), request)
