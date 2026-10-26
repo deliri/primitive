@@ -162,7 +162,12 @@ func (w *groupUsageFold) mark(b byte) {
 		}
 		w.days, w.hasDays = w.number, true
 	case ':':
-		if w.colons >= groupTimeMaximumSeparators || !w.clockToken() {
+		// A third separator has no clock place to fold into.
+		if w.colons >= groupTimeMaximumSeparators {
+			w.err = core.ErrProcessObservation
+			return
+		}
+		if !w.clockToken() {
 			return
 		}
 		if w.colons == 0 {

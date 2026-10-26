@@ -107,6 +107,8 @@ func TestGroupUsageTimeLayerTriad(t *testing.T) {
 		{name: "sixty minutes refused", rows: "42 0 00:60:00\n", wantErr: core.ErrProcessObservation},
 		{name: "twenty four hours refused", rows: "42 0 24:00:00\n", wantErr: core.ErrProcessObservation},
 		{name: "days without hours refused", rows: "42 0 1-02:03\n", wantErr: core.ErrProcessObservation},
+		{name: "trailing separator after a full clock refused", rows: "42 1 1:02:03:\n", wantErr: core.ErrProcessObservation},
+		{name: "fourth clock place refused", rows: "42 0 1:02:03:04\n", wantErr: core.ErrProcessObservation},
 		{name: "two day marks refused", rows: "42 0 1-2-03:04:05\n", wantErr: core.ErrProcessObservation},
 		{name: "four clock places refused", rows: "42 0 00:00:00:00\n", wantErr: core.ErrProcessObservation},
 		{name: "one fraction digit refused", rows: "42 0 0:00.0\n", wantErr: core.ErrProcessObservation},
@@ -230,6 +232,7 @@ func FuzzGroupMemoryRowRepresentation(f *testing.F) {
 	}
 	f.Add(strconv.FormatUint(uint64(group), 10)+" 7 1:02.03\n0 1 00:00:01\n42 3 1-23:59:59\n", uint8(7))
 	f.Add("42 -1 0:00.00\n", uint8(0))
+	f.Add("42 1 1:02:03:\n", uint8(3))
 	f.Add("42 1 0:00.00\n42 x 0:00.00\n", uint8(1))
 	f.Add("42 1 24:00:00\n", uint8(2))
 	f.Add("42 1 153722867:16.86\n", uint8(3))
