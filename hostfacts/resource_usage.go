@@ -219,7 +219,7 @@ func resourceCommand(ctx context.Context, name string, args ...string) ([]byte, 
 		return nil, err
 	}
 	var stdout, stderr bytes.Buffer
-	// top -n 0 and vm_stat emit fixed host-summary schemas, not process lists.
+	// iostat -n 0 and vm_stat emit fixed host-summary schemas, not process lists.
 	// Their finite numeric metadata is bounded; no test/evidence stream enters.
 	waitDelay, err := temporal.DurationFromSeconds(resourceCommandWaitSeconds)
 	if err != nil {
