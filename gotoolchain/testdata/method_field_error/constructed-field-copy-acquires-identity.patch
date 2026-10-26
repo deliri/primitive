@@ -1,0 +1,11 @@
+--- a/gotoolchain/method_field_error.go
++++ b/gotoolchain/method_field_error.go
+@@ -262,7 +262,7 @@
+ 			return 0, nil, core.ErrGoToolchainOutput
+ 		}
+ 		selected, indices, _ := types.LookupFieldOrMethod(record, true, field.Pkg(), key.Name)
+-		if selected != field || len(indices) != 1 {
++		if selected.Name() != field.Name() || len(indices) != 1 {
+ 			return 0, nil, core.ErrGoToolchainOutput
+ 		}
+ 		index, value = indices[0], keyed.Value

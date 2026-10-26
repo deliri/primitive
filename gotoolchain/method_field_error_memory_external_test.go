@@ -16,7 +16,7 @@ func TestMethodFieldErrorPropagationAllocatesNoSyntaxPopulation(t *testing.T) {
 	testserial.Declare(t, core.TestIsolationDeclaration{Hazard: core.TestIsolationHazardRuntimeAllocation, Scope: core.TestIsolationScopePackageProcess})
 	var small uint64
 	for _, extent := range []int{32, 16385} {
-		source := `package sample;type refusal uint8;const bad refusal=1;func(refusal)Error()string{return "refusal"};type Child struct{Count int};func(Child)Inspect()error{return bad};type Parent struct{A,B Child};func(v Parent)Check()error{` + strings.Repeat(`_=v.B.Count;`, extent) + `return v.A.Inspect()}`
+		source := `package sample;type refusal uint8;const bad refusal=1;func(refusal)Error()string{return "refusal"};type Child struct{Count int};func(Child)Inspect()error{return bad};type Parent struct{A,B Child};type Bridge struct{Other,Selected Child};func(v Bridge)Check()error{return v.Selected.Inspect()};func(v Parent)Check()error{` + strings.Repeat(`_=v.B.Count;`, extent) + `return (Bridge{Other:v.A,Selected:v.A}).Check()}`
 		analysis := nativeSymbolSourceAnalysis(t, t.TempDir(), source)
 		unit := analysis.Units[0]
 		method := types.NewMethodSet(unit.Types.Scope().Lookup("Parent").Type()).Lookup(nil, "Check").Obj().(*types.Func)

@@ -28,5 +28,15 @@
     "name": "collect-syntax-population",
     "patch": "collect-syntax-population.patch",
     "selection": "^TestMethodFieldErrorPropagationAllocatesNoSyntaxPopulation$"
+  },
+  {
+    "name": "constructed-field-copy-acquires-identity",
+    "patch": "constructed-field-copy-acquires-identity.patch",
+    "selection": "^TestConstructedRecordFieldProofRefusesDamagedCompilerBindings$/^copied_field_object_cannot_own_slot$"
+  },
+  {
+    "name": "constructed-field-hides-damaged-tail",
+    "patch": "constructed-field-hides-damaged-tail.patch",
+    "selection": "^TestConstructedRecordFieldProofRefusesDamagedCompilerBindings$/^missing_later_key_cannot_hide_behind_earlier_success$"
   }
 ]

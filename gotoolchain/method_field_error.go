@@ -6,6 +6,7 @@ import (
 	"go/ast"
 	"go/token"
 	"go/types"
+	"iter"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/temporal"
@@ -188,17 +189,88 @@ func methodFieldErrorOperand(expression ast.Expr, query methodFieldErrorQuery) b
 	return false
 }
 
-func methodFieldErrorBind(expression ast.Expr, query methodFieldErrorQuery) (methodFieldErrorQuery, bool) {
-	next := query
-	next.Parent = &query
-	if query.Field != nil && methodFieldOperand(expression, query.Variable, query.Types) {
-		return next, true // The native whole-record layout preserves the field slot.
+func methodFieldErrorBind(ctx context.Context, expression ast.Expr, query methodFieldErrorQuery) iter.Seq2[methodFieldErrorQuery, error] {
+	return func(yield func(methodFieldErrorQuery, error) bool) {
+		next := query
+		next.Parent = &query
+		if query.Field != nil && methodFieldOperand(expression, query.Variable, query.Types) {
+			yield(next, nil) // A whole-record conversion preserves its native field slot.
+			return
+		}
+		if methodFieldErrorOperand(expression, query) {
+			next.Field, next.Index = nil, 0
+			yield(next, nil)
+			return
+		}
+		literal, ok := ast.Unparen(expression).(*ast.CompositeLit)
+		if !ok {
+			return
+		}
+		nativeType := query.Types.TypeOf(literal)
+		if nativeType == nil {
+			yield(methodFieldErrorQuery{}, core.ErrGoToolchainOutput)
+			return
+		}
+		record := methodFieldRecord(nativeType)
+		if record == nil {
+			return
+		}
+		// Validate every native slot before allowing an earlier field to lend
+		// authority. A damaged later key must not be hidden by early success.
+		for ordinal, element := range literal.Elts {
+			if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+				yield(methodFieldErrorQuery{}, err)
+				return
+			}
+			if _, _, err := methodFieldConstructedElement(ordinal, element, record, query.Types); err != nil {
+				yield(methodFieldErrorQuery{}, err)
+				return
+			}
+		}
+		for ordinal, element := range literal.Elts {
+			if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+				yield(methodFieldErrorQuery{}, err)
+				return
+			}
+			index, value, err := methodFieldConstructedElement(ordinal, element, record, query.Types)
+			if err != nil {
+				yield(methodFieldErrorQuery{}, err)
+				return
+			}
+			if !methodFieldErrorOperand(value, query) {
+				continue
+			}
+			next.Field, next.Index = record.Field(index), index
+			if !yield(next, nil) {
+				return
+			}
+		}
 	}
-	if methodFieldErrorOperand(expression, query) {
-		next.Field, next.Index = nil, 0
-		return next, true
+}
+
+// Native field objects, rather than key spelling or literal order, own keyed
+// record slots. Unkeyed construction uses Go's declared field ordinal.
+func methodFieldConstructedElement(ordinal int, element ast.Expr, record *types.Struct, facts *types.Info) (int, ast.Expr, error) {
+	index, value := ordinal, element
+	if keyed, ok := element.(*ast.KeyValueExpr); ok {
+		key, ok := ast.Unparen(keyed.Key).(*ast.Ident)
+		if !ok {
+			return 0, nil, core.ErrGoToolchainOutput
+		}
+		field, ok := facts.Uses[key].(*types.Var)
+		if !ok || !field.IsField() {
+			return 0, nil, core.ErrGoToolchainOutput
+		}
+		selected, indices, _ := types.LookupFieldOrMethod(record, true, field.Pkg(), key.Name)
+		if selected != field || len(indices) != 1 {
+			return 0, nil, core.ErrGoToolchainOutput
+		}
+		index, value = indices[0], keyed.Value
 	}
-	return methodFieldErrorQuery{}, false
+	if index < 0 || index >= record.NumFields() {
+		return 0, nil, core.ErrGoToolchainOutput
+	}
+	return index, value, nil
 }
 
 func methodFieldErrorHelperCovers(ctx context.Context, call *ast.CallExpr, query methodFieldErrorQuery) (bool, error) {
@@ -242,8 +314,11 @@ func methodFieldErrorHelperCovers(ctx context.Context, call *ast.CallExpr, query
 				}
 				receiver, offset = call.Args[0], 1
 			}
-			if next, matched := methodFieldErrorBind(receiver, query); matched && signature.Recv() != nil {
-				if len(selection.Index()) == 1 {
+			for next, bindErr := range methodFieldErrorBind(ctx, receiver, query) {
+				if bindErr != nil {
+					return false, bindErr
+				}
+				if signature.Recv() != nil && len(selection.Index()) == 1 {
 					next.Variable, next.Body, next.Types, next.Frame = signature.Recv(), body, facts, query.View.Program.FuncValue(native)
 					if covered, err := methodFieldErrorCovers(ctx, next); covered || err != nil {
 						return covered, err
@@ -256,7 +331,10 @@ func methodFieldErrorHelperCovers(ctx context.Context, call *ast.CallExpr, query
 		if index >= signature.Params().Len() {
 			continue
 		}
-		if next, matched := methodFieldErrorBind(argument, query); matched {
+		for next, bindErr := range methodFieldErrorBind(ctx, argument, query) {
+			if bindErr != nil {
+				return false, bindErr
+			}
 			next.Variable, next.Body, next.Types, next.Frame = signature.Params().At(index), body, facts, query.View.Program.FuncValue(native)
 			if covered, err := methodFieldErrorCovers(ctx, next); covered || err != nil {
 				return covered, err

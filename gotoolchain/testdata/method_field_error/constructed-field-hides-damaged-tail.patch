@@ -1,0 +1,21 @@
+--- a/gotoolchain/method_field_error.go
++++ b/gotoolchain/method_field_error.go
+@@ -215,18 +215,6 @@
+ 		if record == nil {
+ 			return
+ 		}
+-		// Validate every native slot before allowing an earlier field to lend
+-		// authority. A damaged later key must not be hidden by early success.
+-		for ordinal, element := range literal.Elts {
+-			if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+-				yield(methodFieldErrorQuery{}, err)
+-				return
+-			}
+-			if _, _, err := methodFieldConstructedElement(ordinal, element, record, query.Types); err != nil {
+-				yield(methodFieldErrorQuery{}, err)
+-				return
+-			}
+-		}
+ 		for ordinal, element := range literal.Elts {
+ 			if err := temporal.Wait(temporal.WaitRequest{Context: ctx}); err != nil {
+ 				yield(methodFieldErrorQuery{}, err)
