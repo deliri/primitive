@@ -27,9 +27,11 @@ func (r TimeoutRequest) Validate() error {
 	return nil
 }
 
-// DeadlineRequest supplies one parent and exact wall deadline.
+// DeadlineRequest supplies one parent and exact wall deadline. A non-nil
+// Cause is reported by context.Cause when the deadline expires.
 type DeadlineRequest struct {
 	Parent   context.Context
+	Cause    error
 	Deadline Instant
 }
 
@@ -107,7 +109,7 @@ func WithTimeout(request TimeoutRequest) (
 	return result.ctx, result.cancel, result.err
 }
 
-// WithDeadline delegates one validated deadline to context.WithDeadline.
+// WithDeadline delegates one validated deadline to context.WithDeadlineCause.
 func WithDeadline(request DeadlineRequest) (
 	context.Context,
 	context.CancelFunc,
@@ -120,7 +122,7 @@ func WithDeadline(request DeadlineRequest) (
 	if err != nil {
 		return nil, nil, err
 	}
-	result := constructDeadline(request.Parent, deadline)
+	result := constructDeadline(request.Parent, deadline, request.Cause)
 	return result.ctx, result.cancel, result.err
 }
 
@@ -134,12 +136,12 @@ func constructTimeout(parent context.Context, duration time.Duration) contextCon
 	return result
 }
 
-func constructDeadline(parent context.Context, deadline time.Time) contextConstruction {
+func constructDeadline(parent context.Context, deadline time.Time, cause error) contextConstruction {
 	var result contextConstruction
 	func() {
 		defer containContextConstructorPanic(&result)
 		// #nosec G118 -- ownership of the real cancel function is returned.
-		result.ctx, result.cancel = context.WithDeadline(parent, deadline)
+		result.ctx, result.cancel = context.WithDeadlineCause(parent, deadline, cause)
 	}()
 	return result
 }

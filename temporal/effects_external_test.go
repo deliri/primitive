@@ -16,6 +16,8 @@ type temporalContextKey uint8
 
 const temporalTestContextKey temporalContextKey = iota
 
+var errTemporalDeadlineCause = errors.New("temporal deadline cause")
+
 func TestTimeoutEffectLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
@@ -116,13 +118,16 @@ func TestTimeoutEffectLayerTriad(t *testing.T) {
 func TestDeadlineEffectLayerTriad(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		wantErr, wantTerminal                    error
+		wantErr, wantTerminal, cause             error
 		name                                     string
 		delta                                    time.Duration
 		wantElapsed                              time.Duration
 		unset, nilParent, cancelled, cancelChild bool
 	}{
 		{name: "one nanosecond before present is expired", delta: -1, wantTerminal: context.DeadlineExceeded},
+		{name: "expired deadline reports the caller cause", delta: -1, cause: errTemporalDeadlineCause, wantTerminal: context.DeadlineExceeded},
+		{name: "fired deadline reports the caller cause", delta: 1, wantElapsed: 1, cause: errTemporalDeadlineCause, wantTerminal: context.DeadlineExceeded},
+		{name: "caller cancel keeps Canceled despite a deadline cause", delta: 9, cancelChild: true, cause: errTemporalDeadlineCause, wantTerminal: context.Canceled},
 		{name: "present is already expired", wantTerminal: context.DeadlineExceeded},
 		{name: "one nanosecond after present fires exactly", delta: 1, wantElapsed: 1, wantTerminal: context.DeadlineExceeded},
 		{name: "caller can cancel before future deadline", delta: 9, cancelChild: true, wantTerminal: context.Canceled},
@@ -161,7 +166,7 @@ func TestDeadlineEffectLayerTriad(t *testing.T) {
 				if tc.nilParent {
 					parent = nil
 				}
-				got, cancel, gotErr := temporal.WithDeadline(temporal.DeadlineRequest{Parent: parent, Deadline: deadline})
+				got, cancel, gotErr := temporal.WithDeadline(temporal.DeadlineRequest{Parent: parent, Cause: tc.cause, Deadline: deadline})
 				if !errors.Is(gotErr, tc.wantErr) {
 					t.Fatalf("deadline error = %v, want %v", gotErr, tc.wantErr)
 				}
@@ -187,6 +192,13 @@ func TestDeadlineEffectLayerTriad(t *testing.T) {
 				elapsed, elapsedErr := finish.Since(start)
 				if finishErr != nil || elapsedErr != nil || elapsed.Nanoseconds() != int64(tc.wantElapsed) || got.Err() != tc.wantTerminal {
 					t.Fatalf("completion = (%v,%v,%v,%v), want %v and %v", elapsed, finishErr, elapsedErr, got.Err(), tc.wantElapsed, tc.wantTerminal)
+				}
+				wantCause := tc.wantTerminal
+				if tc.cause != nil && tc.wantTerminal == context.DeadlineExceeded && !tc.cancelled {
+					wantCause = tc.cause
+				}
+				if gotCause := context.Cause(got); gotCause != wantCause {
+					t.Fatalf("cause = %v, want %v", gotCause, wantCause)
 				}
 			})
 		})
