@@ -29,11 +29,15 @@ const (
 )
 
 // CacheTrimRequest names a cache tree, its byte limit and a scratch parent
-// for the eviction order. Parent must lie outside the cache tree.
+// for the eviction order. Parent must lie outside the cache tree. Files
+// modified at or after Keep are never evicted: a cache such as Go's refreshes
+// an entry's mtime only when it is older than an hour, so a caller keeps that
+// last hour safe for builds still running, and the total may stay above Limit.
 type CacheTrimRequest struct {
 	Location Location
 	Parent   core.AbsolutePath
 	Limit    core.ByteCount
+	Keep     temporal.Instant
 }
 
 // Validate rejects an unset location or scratch parent and a zero limit.
@@ -45,6 +49,9 @@ func (r CacheTrimRequest) Validate() error {
 		return contractError(err)
 	}
 	if err := r.Limit.Validate(); err != nil {
+		return contractError(err)
+	}
+	if err := r.Keep.Validate(); err != nil {
 		return contractError(err)
 	}
 	return nil
@@ -153,6 +160,10 @@ func trimCacheRecords(ctx context.Context, request CacheTrimRequest, records *os
 		return CacheTrimObservation{}, sourceError(err)
 	}
 	source := io.NewSectionReader(records, 0, info.Size())
+	keep, err := cacheTrimTimeField(request.Keep)
+	if err != nil {
+		return CacheTrimObservation{}, err
+	}
 	var left, right []byte
 	_, err = SortRecordStream(ctx, RecordRangeStreamRequest{
 		Parent: request.Parent,
@@ -185,6 +196,10 @@ func trimCacheRecords(ctx context.Context, request CacheTrimRequest, records *os
 			if left, err = readCacheTrimRecord(source, sorted, left); err != nil {
 				return err
 			}
+			// Records sort by time first, so every later record is kept too.
+			if len(left) < cacheTrimFieldBytes || bytes.Compare(left[:cacheTrimFieldBytes], keep) >= 0 {
+				return nil
+			}
 			return evictCacheTrimRecord(request.Location.Root, left, &observation)
 		},
 	})
@@ -199,23 +214,32 @@ func appendCacheTrimRecord(record []byte, path core.RelativePath, info fs.FileIn
 	if err != nil {
 		return nil, sourceError(err)
 	}
-	nanoseconds, err := modified.Nanoseconds()
+	field, err := cacheTrimTimeField(modified)
 	if err != nil {
 		return nil, sourceError(err)
 	}
-	var field [8]byte
-	modifiedField, err := binary.Append(field[:0], binary.BigEndian, nanoseconds)
-	if err != nil {
-		return nil, contractError(err)
-	}
-	// Flipping the two's-complement sign bit orders pre-1970 times first.
-	modifiedField[0] ^= 0x80
-	record = hex.AppendEncode(record, modifiedField)
+	record = append(record, field...)
 	record = append(record, ' ')
 	record = hex.AppendEncode(record, []byte(path.String()))
 	record = append(record, ' ')
-	record = hex.AppendEncode(record, binary.BigEndian.AppendUint64(field[:0], size))
+	record = hex.AppendEncode(record, binary.BigEndian.AppendUint64(nil, size))
 	return append(record, lineio.Delimiter), nil
+}
+
+// cacheTrimTimeField is an instant's sortable record prefix: big-endian hex
+// nanoseconds with the sign bit flipped, so pre-1970 times order first.
+func cacheTrimTimeField(instant temporal.Instant) ([]byte, error) {
+	nanoseconds, err := instant.Nanoseconds()
+	if err != nil {
+		return nil, contractError(err)
+	}
+	var field [8]byte
+	modified, err := binary.Append(field[:0], binary.BigEndian, nanoseconds)
+	if err != nil {
+		return nil, contractError(err)
+	}
+	modified[0] ^= 0x80
+	return hex.AppendEncode(nil, modified), nil
 }
 
 func readCacheTrimRecord(source lineio.RecordSource, record lineio.RecordRange, buffer []byte) ([]byte, error) {

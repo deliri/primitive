@@ -13,6 +13,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/filestore"
+	"github.com/deliri/primitive/v2026/temporal"
 )
 
 // cacheTrimFile is one regular cache member: its path under the cache, its
@@ -76,7 +77,12 @@ func cacheTrimRequest(t *testing.T, root *os.Root, limit uint64) filestore.Cache
 	if err != nil {
 		t.Fatal(err)
 	}
-	return filestore.CacheTrimRequest{Location: filestore.Location{Root: root, Path: path}, Parent: parent, Limit: count}
+	// Keep after every fixture file protects nothing unless a row moves it.
+	keep, err := temporal.NewInstant(cacheTrimBase.Add(time.Second))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return filestore.CacheTrimRequest{Location: filestore.Location{Root: root, Path: path}, Parent: parent, Limit: count, Keep: keep}
 }
 
 // assertCacheTrimSurvivors checks each member exists with its bytes exactly
@@ -118,6 +124,7 @@ func TestTrimCacheNativeLayerTriad(t *testing.T) {
 		files   []cacheTrimFile
 		limit   uint64
 		link    bool
+		keepAge *int
 		removed []string
 		want    filestore.CacheTrimObservation
 	}{
@@ -135,6 +142,15 @@ func TestTrimCacheNativeLayerTriad(t *testing.T) {
 			{path: "big", size: 100, age: 1}, {path: "small1", size: 1, age: 9}, {path: "small2", size: 1, age: 8},
 		}, limit: 50, removed: []string{"small1", "small2", "big"}, want: filestore.CacheTrimObservation{BeforeBytes: 102, RemovedFiles: 3}},
 		{name: "positive LF names across many walk batches", files: many, limit: 65, removed: manyRemoved, want: filestore.CacheTrimObservation{BeforeBytes: 130, AfterBytes: 65, RemovedFiles: 65}},
+		{name: "positive recently modified files are kept even above the limit", files: []cacheTrimFile{
+			{path: "old", size: 10, age: 10}, {path: "warm", size: 10, age: 5}, {path: "hot", size: 10},
+		}, keepAge: new(6), limit: 5, removed: []string{"old"}, want: filestore.CacheTrimObservation{BeforeBytes: 30, AfterBytes: 20, RemovedFiles: 1}},
+		{name: "boundary a file modified exactly at Keep is kept", files: []cacheTrimFile{
+			{path: "old", size: 10, age: 10}, {path: "warm", size: 10, age: 5}, {path: "hot", size: 10},
+		}, keepAge: new(5), limit: 5, removed: []string{"old"}, want: filestore.CacheTrimObservation{BeforeBytes: 30, AfterBytes: 20, RemovedFiles: 1}},
+		{name: "boundary one second older than Keep is evicted", files: []cacheTrimFile{
+			{path: "old", size: 10, age: 10}, {path: "warm", size: 10, age: 5}, {path: "hot", size: 10},
+		}, keepAge: new(4), limit: 5, removed: []string{"old", "warm"}, want: filestore.CacheTrimObservation{BeforeBytes: 30, AfterBytes: 10, RemovedFiles: 2}},
 		{name: "neutral links and directories are neither counted nor removed", files: []cacheTrimFile{
 			{path: "sub/a", size: 10, age: 2}, {path: "b", size: 10, age: 1},
 		}, link: true, limit: 10, removed: []string{"sub/a"}, want: filestore.CacheTrimObservation{BeforeBytes: 20, AfterBytes: 10, RemovedFiles: 1}},
@@ -149,6 +165,13 @@ func TestTrimCacheNativeLayerTriad(t *testing.T) {
 				}
 			}
 			request := cacheTrimRequest(t, root, row.limit)
+			if row.keepAge != nil {
+				keep, err := temporal.NewInstant(cacheTrimBase.Add(-time.Duration(*row.keepAge) * time.Second))
+				if err != nil {
+					t.Fatal(err)
+				}
+				request.Keep = keep
+			}
 			got, err := filestore.TrimCache(t.Context(), request)
 			if err != nil {
 				t.Fatalf("TrimCache = %v, want nil", err)
@@ -190,6 +213,10 @@ func TestTrimCacheRefusalsRemoveNothing(t *testing.T) {
 		}},
 		{name: "negative zero limit", want: core.ErrFilestoreContract, mutate: func(t *testing.T, r *filestore.CacheTrimRequest, _ *os.Root) context.Context {
 			r.Limit = core.ByteCount{}
+			return t.Context()
+		}},
+		{name: "negative unset Keep", want: core.ErrFilestoreContract, mutate: func(t *testing.T, r *filestore.CacheTrimRequest, _ *os.Root) context.Context {
+			r.Keep = temporal.Instant{}
 			return t.Context()
 		}},
 		{name: "negative unset scratch parent", want: core.ErrFilestoreContract, mutate: func(t *testing.T, r *filestore.CacheTrimRequest, _ *os.Root) context.Context {
