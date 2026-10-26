@@ -67,6 +67,7 @@ type ResourceUsage struct {
 	cpus                       LogicalCPUCount
 	busy                       uint64
 	total, available           core.ByteLength
+	process                    core.ByteLength
 	ioPressure, memoryPressure uint32
 	scopes                     []ScopeCPU
 }
@@ -76,7 +77,7 @@ func (u ResourceUsage) Validate() error {
 		return errors.Join(core.ErrHostFactsContract, err)
 	}
 	limit := uint64(u.cpus.Int()) * resourceCPUMilli
-	if u.total.Uint64() == 0 || u.available.Uint64() > u.total.Uint64() || u.busy > limit || u.ioPressure > resourcePercentMilli || u.memoryPressure > resourcePercentMilli {
+	if u.total.Uint64() == 0 || u.available.Uint64() > u.total.Uint64() || u.process.Uint64() > u.total.Uint64() || u.busy > limit || u.ioPressure > resourcePercentMilli || u.memoryPressure > resourcePercentMilli {
 		return core.ErrHostFactsContract
 	}
 	for _, scope := range u.scopes {
@@ -96,8 +97,13 @@ func (u ResourceUsage) CPUCount() LogicalCPUCount             { return u.cpus }
 func (u ResourceUsage) BusyCPUMilli() uint64                  { return u.busy }
 func (u ResourceUsage) TotalMemoryBytes() core.ByteLength     { return u.total }
 func (u ResourceUsage) AvailableMemoryBytes() core.ByteLength { return u.available }
-func (u ResourceUsage) IOPressureMilli() uint32               { return u.ioPressure }
-func (u ResourceUsage) MemoryPressureMilli() uint32           { return u.memoryPressure }
+
+// ProcessMemoryBytes is anonymous memory held by processes (Linux AnonPages,
+// macOS anonymous pages). In-use memory beyond it and the kernel's own
+// accounted memory belongs to no process.
+func (u ResourceUsage) ProcessMemoryBytes() core.ByteLength { return u.process }
+func (u ResourceUsage) IOPressureMilli() uint32             { return u.ioPressure }
+func (u ResourceUsage) MemoryPressureMilli() uint32         { return u.memoryPressure }
 
 // ObserveResourceUsage samples the current host. Cancellation and observation
 // failure return no sample. Other workloads are naturally included in OS facts.

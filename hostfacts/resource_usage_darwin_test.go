@@ -79,6 +79,49 @@ func TestMacResourceRecordsLayerTriad(t *testing.T) {
 	}
 }
 
+// Anonymous pages are process memory: one page size, one count, never more
+// than physical memory and never wrapped by the page multiplication.
+func TestMacResourceProcessMemoryBoundaries(t *testing.T) {
+	t.Parallel()
+	total, err := core.NewByteLength(4096)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const header = "Mach Virtual Memory Statistics: (page size of 1024 bytes)\n"
+	for _, tc := range []struct {
+		name, text string
+		want       uint64
+		bad        bool
+	}{
+		{"anonymous pages times page size", header + "Pages free: 1.\nAnonymous pages: 3.\n", 3072, false},
+		{"all physical memory held by processes", header + "Anonymous pages: 4.\n", 4096, false},
+		{"no process memory is zero", header + "Anonymous pages: 0.\n", 0, false},
+		{"one page above physical memory refuses", header + "Anonymous pages: 5.\n", 0, true},
+		{"missing anonymous count refuses", header + "Pages free: 1.\n", 0, true},
+		{"missing page size refuses", "Anonymous pages: 1.\n", 0, true},
+		{"duplicate anonymous count refuses", header + "Anonymous pages: 1.\nAnonymous pages: 1.\n", 0, true},
+		{"duplicate page header refuses", header + header + "Anonymous pages: 1.\n", 0, true},
+		{"zero page size refuses", "Mach Virtual Memory Statistics: (page size of 0 bytes)\nAnonymous pages: 0.\n", 0, true},
+		{"negative count refuses", header + "Anonymous pages: -1.\n", 0, true},
+		{"page multiplication cannot wrap", "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nAnonymous pages: 18446744073709551615.\n", 0, true},
+		{"similar key is not the count", header + "Anonymous pages purgeable: 1.\nAnonymous pages: 2.\n", 2048, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := parseResourceMacProcess(t.Context(), []byte(tc.text), total)
+			if tc.bad {
+				if !errors.Is(err, core.ErrHostFactsObservation) || got.Uint64() != 0 {
+					t.Fatalf("Mac process memory=(%v,%v), want zero refusal", got, err)
+				}
+				return
+			}
+			if err != nil || got.Uint64() != tc.want {
+				t.Fatalf("Mac process memory=(%d,%v), want %d", got.Uint64(), err, tc.want)
+			}
+		})
+	}
+}
+
 func FuzzResourceMacCPUSemanticClosure(f *testing.F) {
 	f.Add([]byte("      cpu    load average\n us sy id   1m   5m   15m\n 26 14 59  2.00 3.00 3.00\n 30 20 50  2.00 3.00 3.00\n"))
 	f.Add([]byte{})

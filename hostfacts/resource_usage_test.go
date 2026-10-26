@@ -146,7 +146,8 @@ func TestResourceUsageNativeLayerTriad(t *testing.T) {
 		t.Skip("native sample requires Linux or Darwin")
 	}
 	got, err := ObserveResourceUsage(t.Context(), ResourceUsageRequest{IntervalSeconds: 1})
-	if err != nil || got.Validate() != nil || got.TotalMemoryBytes().Uint64() == 0 || got.BusyCPUMilli() > uint64(got.CPUCount().Int())*1000 {
+	if err != nil || got.Validate() != nil || got.TotalMemoryBytes().Uint64() == 0 ||
+		got.ProcessMemoryBytes().Uint64() == 0 || got.ProcessMemoryBytes().Uint64() > got.TotalMemoryBytes().Uint64() || got.BusyCPUMilli() > uint64(got.CPUCount().Int())*1000 {
 		t.Fatalf("native resources=(%+v,%v), want admitted OS sample", got, err)
 	}
 	zero, err := ObserveResourceUsage(t.Context(), ResourceUsageRequest{})
@@ -211,5 +212,5 @@ func FuzzResourceCPUSemanticClosure(f *testing.F) {
 // no scope samples.
 func emptyResourceUsage(u ResourceUsage) bool {
 	return u.cpus.Int() == 0 && u.busy == 0 && u.total.Uint64() == 0 && u.available.Uint64() == 0 &&
-		u.ioPressure == 0 && u.memoryPressure == 0 && u.scopes == nil
+		u.process.Uint64() == 0 && u.ioPressure == 0 && u.memoryPressure == 0 && u.scopes == nil
 }
