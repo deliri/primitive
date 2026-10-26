@@ -621,14 +621,22 @@ func ownsGoInterfaceMethod(receiver, method string) bool {
 		receiver == reflect.TypeFor[appendSpoolReader]().Name() && method == reflect.TypeFor[io.Reader]().Method(0).Name ||
 		receiver == reflect.TypeFor[streamReader]().Name() && method == reflect.TypeFor[io.Reader]().Method(0).Name ||
 		receiver == reflect.TypeFor[streamWriter]().Name() && method == reflect.TypeFor[io.Writer]().Method(0).Name ||
-		receiver == reflect.TypeFor[currentRelayOutput]().Name() && method == reflect.TypeFor[io.Writer]().Method(0).Name
+		receiver == reflect.TypeFor[currentRelayOutput]().Name() && method == reflect.TypeFor[io.Writer]().Method(0).Name ||
+		receiver == reflect.TypeFor[heldAppendReadSource]().Name() && method == reflect.TypeFor[io.Reader]().Method(0).Name ||
+		receiver == reflect.TypeFor[heldAppendReadSource]().Name() && method == reflect.TypeFor[io.ReaderAt]().Method(0).Name ||
+		receiver == reflect.TypeFor[heldAppendReadSource]().Name() && method == reflect.TypeFor[io.Seeker]().Method(0).Name ||
+		receiver == reflect.TypeFor[contentComparisonWriter]().Name() && method == reflect.TypeFor[io.Writer]().Method(0).Name
 }
 
 var (
-	_ io.Closer = (*HeldDirectory)(nil)
-	_ io.Reader = (*streamReader)(nil)
-	_ io.Writer = streamWriter{}
-	_ io.Writer = currentRelayOutput{}
+	_ io.Closer   = (*HeldDirectory)(nil)
+	_ io.Reader   = (*streamReader)(nil)
+	_ io.Writer   = streamWriter{}
+	_ io.Writer   = currentRelayOutput{}
+	_ io.Reader   = heldAppendReadSource{}
+	_ io.ReaderAt = heldAppendReadSource{}
+	_ io.Seeker   = heldAppendReadSource{}
+	_ io.Writer   = (*contentComparisonWriter)(nil)
 )
 
 func declarationName(declaration ast.Decl) string {
