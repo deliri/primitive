@@ -92,10 +92,14 @@ func prepareCommand(
 	request Request,
 	streams commandStreams,
 ) (preparedCommand, error) {
+	path, argv, err := cappedCommand(request.Containment.MemoryMax, request.Command.String(), request.projectArguments())
+	if err != nil {
+		return preparedCommand{}, err
+	}
 	command := exec.CommandContext( // #nosec G204 -- validated typed argv is this package's sole execution boundary.
 		ctx,
-		request.Command.String(),
-		request.projectArguments()...,
+		path,
+		argv...,
 	)
 	command.Dir = request.WorkingDirectory.String()
 	command.Env = request.Environment.project()

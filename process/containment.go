@@ -140,6 +140,12 @@ func (s CancelSignal) String() string {
 type Containment struct {
 	Isolation    Isolation
 	CancelSignal CancelSignal
+	// MemoryMax, when nonzero, is a hard limit on the memory of the child and
+	// everything it starts: on Linux the child runs in its own user systemd
+	// scope with that MemoryMax and no swap, and the kernel kills the tree
+	// rather than let it exceed the limit. Zero applies no limit. Other
+	// platforms refuse a nonzero limit instead of ignoring it.
+	MemoryMax core.ByteLength
 }
 
 // Validate closes both containment members.
@@ -158,7 +164,7 @@ func (c Containment) Validate() error {
 // member and not the other is a mistake the caller must complete, and it stays
 // invalid so the mistake surfaces rather than being papered over.
 func (c Containment) orDefault() Containment {
-	if c.Isolation == IsolationUnknown && c.CancelSignal == CancelSignalUnknown {
+	if c.Isolation == IsolationUnknown && c.CancelSignal == CancelSignalUnknown && c.MemoryMax.Uint64() == 0 {
 		return Containment{Isolation: IsolationDirect, CancelSignal: CancelSignalKill}
 	}
 	return c
