@@ -38,5 +38,25 @@
     "fault": "accept-typed-nil-conversion-observation",
     "filter": "^TestSSAScalarObservationRejectsPartialAndTypedNilLoans$/^typed_nil_conversion_input$",
     "patch": "accept-typed-nil-conversion-observation.patch"
+  },
+  {
+    "fault": "function-clone-becomes-native",
+    "filter": "^TestSSAConversionFunctionIdentityRefusesDamagedLoans$/^copied_function_identity$",
+    "patch": "function-clone-becomes-native.patch"
+  },
+  {
+    "fault": "function-signature-becomes-unchecked",
+    "filter": "^TestSSAConversionFunctionIdentityRefusesDamagedLoans$/^incompatible_function_signature$",
+    "patch": "function-signature-becomes-unchecked.patch"
+  },
+  {
+    "fault": "foreign-lexical-function-becomes-native",
+    "filter": "^TestSSAConversionFunctionIdentityRefusesDamagedLoans$/^other_lexical_parent$",
+    "patch": "foreign-lexical-function-becomes-native.patch"
+  },
+  {
+    "fault": "function-missing-signature-becomes-type",
+    "filter": "^TestSSAConversionFunctionIdentityRefusesDamagedLoans$/^missing_native_function_signature$",
+    "patch": "function-missing-signature-becomes-type.patch"
   }
 ]

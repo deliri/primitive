@@ -1,11 +1,11 @@
 --- a/gotoolchain/ssa_conversion_operand.go
 +++ b/gotoolchain/ssa_conversion_operand.go
-@@ -85,7 +85,7 @@
- 	if untaken {
- 		return out, nil
- 	}
--	if err = v.fieldReadOperandBefore(ctx, operand, instruction); err != nil {
-+	if err = error(nil); err != nil {
+@@ -104,7 +104,7 @@
+ 		if !nativeReceiverValuePresent(function) || function.Signature == nil || !v.argumentBindingFunctionOwned(function) || function.Parent() != nil && function.Parent() != instruction.Parent() || !types.ConvertibleTo(function.Type(), r.Conversion.Type()) {
+ 			return out, core.ErrGoToolchainOutput
+ 		}
+-	} else if err = v.fieldReadOperandBefore(ctx, operand, instruction); err != nil {
++	} else if err = error(nil); err != nil {
  		return out, err
  	}
  	return SSAConversionOperandObservation{Operand: operand}, nil

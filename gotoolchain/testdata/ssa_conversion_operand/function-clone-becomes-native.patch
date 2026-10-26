@@ -1,0 +1,11 @@
+--- a/gotoolchain/ssa_conversion_operand.go
++++ b/gotoolchain/ssa_conversion_operand.go
+@@ -101,7 +101,7 @@
+ 	if function, ok := operand.(*ssa.Function); ok {
+ 		// A function declaration is not a storage instruction. Go's own object
+ 		// and lexical bindings authenticate it; Go also owns convertibility.
+-		if !nativeReceiverValuePresent(function) || function.Signature == nil || !v.argumentBindingFunctionOwned(function) || function.Parent() != nil && function.Parent() != instruction.Parent() || !types.ConvertibleTo(function.Type(), r.Conversion.Type()) {
++		if !nativeReceiverValuePresent(function) || function.Signature == nil || function.Parent() != nil && function.Parent() != instruction.Parent() || !types.ConvertibleTo(function.Type(), r.Conversion.Type()) {
+ 			return out, core.ErrGoToolchainOutput
+ 		}
+ 	} else if err = v.fieldReadOperandBefore(ctx, operand, instruction); err != nil {

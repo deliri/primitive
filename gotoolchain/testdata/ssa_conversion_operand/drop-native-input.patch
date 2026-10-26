@@ -1,7 +1,7 @@
 --- a/gotoolchain/ssa_conversion_operand.go
 +++ b/gotoolchain/ssa_conversion_operand.go
-@@ -88,7 +88,7 @@
- 	if err = v.fieldReadOperandBefore(ctx, operand, instruction); err != nil {
+@@ -107,7 +107,7 @@
+ 	} else if err = v.fieldReadOperandBefore(ctx, operand, instruction); err != nil {
  		return out, err
  	}
 -	return SSAConversionOperandObservation{Operand: operand}, nil

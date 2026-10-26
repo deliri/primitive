@@ -3,6 +3,7 @@ package gotoolchain
 import (
 	"context"
 	"errors"
+	"go/types"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/temporal"
@@ -97,7 +98,13 @@ func (v SSAUnitView) ConversionOperand(ctx context.Context, r SSAConversionOpera
 	if untaken {
 		return out, nil
 	}
-	if err = v.fieldReadOperandBefore(ctx, operand, instruction); err != nil {
+	if function, ok := operand.(*ssa.Function); ok {
+		// A function declaration is not a storage instruction. Go's own object
+		// and lexical bindings authenticate it; Go also owns convertibility.
+		if !nativeReceiverValuePresent(function) || function.Signature == nil || !v.argumentBindingFunctionOwned(function) || function.Parent() != nil && function.Parent() != instruction.Parent() || !types.ConvertibleTo(function.Type(), r.Conversion.Type()) {
+			return out, core.ErrGoToolchainOutput
+		}
+	} else if err = v.fieldReadOperandBefore(ctx, operand, instruction); err != nil {
 		return out, err
 	}
 	return SSAConversionOperandObservation{Operand: operand}, nil
