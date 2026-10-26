@@ -29,11 +29,14 @@ func observeResourceUsage(ctx context.Context, r ResourceUsageRequest) (Resource
 		return out, err
 	}
 	out.total = physical.TotalBytes()
-	top, err := resourceCommand(ctx, "top", "-l", "2", "-s", strconv.FormatUint(uint64(r.IntervalSeconds), 10), "-n", "0")
+	// iostat reports the CPU split without enumerating processes; top took
+	// about 1.5 s of CPU per sample on a busy Mac, inflating the busy share
+	// it measured. The first report averages since boot, the second the interval.
+	cpu, err := resourceCommand(ctx, "iostat", "-n", "0", "-c", "2", "-w", strconv.FormatUint(uint64(r.IntervalSeconds), 10))
 	if err != nil {
 		return out, err
 	}
-	out.busy, err = parseResourceMacCPU(ctx, top, out.cpus)
+	out.busy, err = parseResourceMacCPU(ctx, cpu, out.cpus)
 	if err != nil {
 		return out, err
 	}
@@ -46,25 +49,37 @@ func observeResourceUsage(ctx context.Context, r ResourceUsageRequest) (Resource
 }
 
 func parseResourceMacCPU(ctx context.Context, data []byte, cpus LogicalCPUCount) (uint64, error) {
-	found := false
+	// Exactly: the "cpu ... load average" title, the "us sy id 1m 5m 15m"
+	// columns, then two reports; only the last report's idle counts.
+	line := 0
 	var busy uint64
-	err := resourceLines(ctx, bytes.NewReader(data), func(line []byte) error {
-		if !bytes.HasPrefix(line, []byte("CPU usage:")) {
-			return nil
-		}
-		fields := strings.Fields(string(line))
-		if len(fields) != 8 || fields[7] != "idle" || !strings.HasSuffix(fields[6], "%") {
+	err := resourceLines(ctx, bytes.NewReader(data), func(text []byte) error {
+		fields := strings.Fields(string(text))
+		line++
+		switch line {
+		case 1:
+			if strings.Join(fields, " ") != "cpu load average" {
+				return core.ErrHostFactsObservation
+			}
+		case 2:
+			if strings.Join(fields, " ") != "us sy id 1m 5m 15m" {
+				return core.ErrHostFactsObservation
+			}
+		case 3, 4:
+			if len(fields) != 6 {
+				return core.ErrHostFactsObservation
+			}
+			idle, err := strconv.ParseUint(fields[2], 10, 8)
+			if err != nil || idle > 100 {
+				return errors.Join(core.ErrHostFactsObservation, err)
+			}
+			busy = (100 - idle) * uint64(cpus.Int()) * 10
+		default:
 			return core.ErrHostFactsObservation
 		}
-		idle, err := strconv.ParseFloat(strings.TrimSuffix(fields[6], "%"), 64)
-		if err != nil || math.IsNaN(idle) || math.IsInf(idle, 0) || idle < 0 || idle > 100 {
-			return errors.Join(core.ErrHostFactsObservation, err)
-		}
-		busy = uint64((100 - idle) * float64(cpus.Int()) * 10)
-		found = true
 		return nil
 	})
-	if err != nil || !found || cpus.Validate() != nil {
+	if err != nil || line != 4 || cpus.Validate() != nil {
 		return 0, errors.Join(core.ErrHostFactsObservation, err)
 	}
 	return busy, nil

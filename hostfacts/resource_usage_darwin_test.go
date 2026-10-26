@@ -17,14 +17,19 @@ func TestMacResourceRecordsLayerTriad(t *testing.T) {
 		want       uint64
 		bad        bool
 	}{
-		{"last interval replaces since boot average", "CPU usage: 100.00% user, 0.00% sys, 0.00% idle\nCPU usage: 0.00% user, 0.00% sys, 100.00% idle\n", 0, false},
-		{"half occupied capacity", "CPU usage: 30.00% user, 20.00% sys, 50.00% idle\n", 5000, false},
-		{"fully occupied capacity", "CPU usage: 50.00% user, 50.00% sys, 0.00% idle\n", 10000, false},
+		{"last interval replaces since boot average", "      cpu    load average\n us sy id   1m   5m   15m\n 100  0  0  1.00 1.00 1.00\n  0  0 100  1.00 1.00 1.00\n", 0, false},
+		{"half occupied capacity", "      cpu    load average\n us sy id   1m   5m   15m\n 26 14 59  2.00 3.00 3.00\n 30 20 50  2.00 3.00 3.00\n", 5000, false},
+		{"fully occupied capacity", "      cpu    load average\n us sy id   1m   5m   15m\n  0  0 100  1.00 1.00 1.00\n 50 50  0  9.00 9.00 9.00\n", 10000, false},
+		{"recorded native output", "      cpu    load average\n us sy id   1m   5m   15m\n 26 14 59  26.59 33.92 30.70\n 37 18 45  26.59 33.92 30.70\n", 5500, false},
 		{"missing CPU record refuses", "unrelated\n", 0, true},
-		{"missing percentage sign refuses", "CPU usage: 0.00% user, 0.00% sys, 100 idle\n", 0, true},
-		{"negative idle refuses", "CPU usage: 0.00% user, 0.00% sys, -0.01% idle\n", 0, true},
-		{"idle above 100 refuses", "CPU usage: 0.00% user, 0.00% sys, 100.01% idle\n", 0, true},
-		{"NaN idle refuses", "CPU usage: 0.00% user, 0.00% sys, NaN% idle\n", 0, true},
+		{"since-boot report alone refuses", "      cpu    load average\n us sy id   1m   5m   15m\n 26 14 59  1.00 1.00 1.00\n", 0, true},
+		{"third report refuses", "      cpu    load average\n us sy id   1m   5m   15m\n 1 1 98  1 1 1\n 1 1 98  1 1 1\n 1 1 98  1 1 1\n", 0, true},
+		{"missing column header refuses", "      cpu    load average\n 1 1 98  1 1 1\n 1 1 98  1 1 1\n", 0, true},
+		{"top output refuses", "CPU usage: 30.00% user, 20.00% sys, 50.00% idle\n", 0, true},
+		{"negative idle refuses", "      cpu    load average\n us sy id   1m   5m   15m\n 1 1 98  1 1 1\n 1 1 -1  1 1 1\n", 0, true},
+		{"idle above 100 refuses", "      cpu    load average\n us sy id   1m   5m   15m\n 1 1 98  1 1 1\n 0 0 101  1 1 1\n", 0, true},
+		{"fractional idle refuses", "      cpu    load average\n us sy id   1m   5m   15m\n 1 1 98  1 1 1\n 0 0 50.5  1 1 1\n", 0, true},
+		{"short report refuses", "      cpu    load average\n us sy id   1m   5m   15m\n 1 1 98  1 1 1\n 0 0 50\n", 0, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -75,7 +80,7 @@ func TestMacResourceRecordsLayerTriad(t *testing.T) {
 }
 
 func FuzzResourceMacCPUSemanticClosure(f *testing.F) {
-	f.Add([]byte("CPU usage: 30.00% user, 20.00% sys, 50.00% idle\n"))
+	f.Add([]byte("      cpu    load average\n us sy id   1m   5m   15m\n 26 14 59  2.00 3.00 3.00\n 30 20 50  2.00 3.00 3.00\n"))
 	f.Add([]byte{})
 	f.Fuzz(func(t *testing.T, data []byte) {
 		got, err := parseResourceMacCPU(t.Context(), data, LogicalCPUCount{count: 10})
