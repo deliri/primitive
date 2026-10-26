@@ -28,9 +28,12 @@ func (d *TokenDecoder) PeekKind(ctx context.Context) (TokenKind, error) {
 		if err == nil {
 			err = core.ErrJSONContract
 		}
-		return TokenUnknown, objectReadOutcome(ctx, err)
+		return TokenUnknown, d.source.observedError(objectReadOutcome(ctx, err))
 	}
 	if err := projectionContextError(ctx); err != nil {
+		return TokenUnknown, err
+	}
+	if err := d.source.observedError(nil); err != nil {
 		return TokenUnknown, err
 	}
 	return projectKind(kind)
@@ -70,7 +73,7 @@ func DecodeProjectionAt[Document any](ctx context.Context, cursor *TokenDecoder,
 		return zero, err
 	}
 	defer func() { cursor.source.ctx = nil }()
-	if err := prepareObjectRead(ctx, cursor.decoder); err != nil {
+	if err := cursor.source.observedError(prepareObjectRead(ctx, cursor.decoder)); err != nil {
 		return zero, err
 	}
 	guards := jsonv2.UnmarshalFromFunc[any](func(_ *jsontext.Decoder, _ any) error {
@@ -81,7 +84,7 @@ func DecodeProjectionAt[Document any](ctx context.Context, cursor *TokenDecoder,
 	})
 	var document Document
 	err := jsonv2.UnmarshalDecode(cursor.decoder, &document, jsonv2.RejectUnknownMembers(members == MembersDeclaredOnly), jsonv2.WithUnmarshalers(guards))
-	if err := errors.Join(objectReadOutcome(ctx, err), projectionContextError(ctx)); err != nil {
+	if err := errors.Join(objectReadOutcome(ctx, err), projectionContextError(ctx), cursor.source.refusal); err != nil {
 		return zero, err
 	}
 	return document, nil

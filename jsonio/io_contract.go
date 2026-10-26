@@ -16,7 +16,7 @@ type checkedJSONSource struct{ source io.Reader }
 func (r checkedJSONSource) Read(data []byte) (int, error) {
 	n, err := r.source.Read(data)
 	if n < 0 || n > len(data) {
-		return 0, errors.Join(core.ErrJSONContract, err)
+		return 0, &nativeJSONError{cause: errors.Join(core.ErrJSONContract, err)}
 	}
 	// A decoder may consume accompanying bytes and subsequently observe only
 	// EOF from a bounded native section. Refuse provisional bytes immediately
@@ -34,19 +34,21 @@ type nativeJSONError struct{ cause error }
 func (e *nativeJSONError) Error() string { return e.cause.Error() }
 func (e *nativeJSONError) Unwrap() error { return e.cause }
 
-func nativeJSONCause(err error) error {
-	if native, ok := errors.AsType[*nativeJSONError](err); ok {
-		return native.cause
-	}
-	return err
+// IsIOError reports an error carrying provenance from this package's native
+// reader or writer guard. A source may itself return a JSON-shaped error;
+// its codec type does not turn the I/O refusal into a grammar finding.
+// Original causes remain reachable with errors.Is/As.
+func IsIOError(err error) bool {
+	_, ok := errors.AsType[*nativeJSONError](err)
+	return ok
 }
 
 func jsonOperationError(err error) error {
 	if err == nil {
 		return nil
 	}
-	if native, ok := errors.AsType[*nativeJSONError](err); ok {
-		return native.cause
+	if IsIOError(err) {
+		return err
 	}
 	return errors.Join(core.ErrJSONContract, err)
 }
@@ -56,7 +58,7 @@ type checkedJSONDestination struct{ destination io.Writer }
 func (w checkedJSONDestination) Write(data []byte) (int, error) {
 	n, err := w.destination.Write(data)
 	if n < 0 || n > len(data) {
-		return 0, errors.Join(core.ErrJSONContract, err)
+		return 0, &nativeJSONError{cause: errors.Join(core.ErrJSONContract, err)}
 	}
 	if err == nil && n != len(data) {
 		return n, &nativeJSONError{cause: io.ErrShortWrite}

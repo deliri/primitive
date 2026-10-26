@@ -43,7 +43,7 @@ func (d *ObjectDecoder[Document]) Reset(ctx context.Context, request ObjectSourc
 	if err := errors.Join(contextstate.Validate(ctx), d.Validate(), request.Validate()); err != nil {
 		return err
 	}
-	d.source.source = checkedJSONSource{source: request.Source}
+	*d.source = contextJSONSource{source: checkedJSONSource{source: request.Source}}
 	d.members = request.Members
 	d.decoder.Reset(d.source)
 	return contextstate.Validate(ctx)
@@ -57,7 +57,16 @@ func (d *ObjectDecoder[Document]) Decode(ctx context.Context) (Document, error) 
 		var zero Document
 		return zero, err
 	}
+	if d.source.refusal != nil {
+		var zero Document
+		return zero, d.source.refusal
+	}
 	d.source.ctx = ctx
 	defer func() { d.source.ctx = nil }()
-	return readObject[Document](ctx, d.decoder, d.nullGuard, d.members)
+	document, err := readObject[Document](ctx, d.decoder, d.nullGuard, d.members)
+	if err := d.source.observedError(err); err != nil {
+		var zero Document
+		return zero, err
+	}
+	return document, nil
 }

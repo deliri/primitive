@@ -41,6 +41,9 @@ func (d *TokenDecoder) prepare(ctx context.Context) error {
 	if err := d.Validate(); err != nil {
 		return err
 	}
+	if d.source.refusal != nil {
+		return d.source.refusal
+	}
 	d.source.ctx = ctx
 	return nil
 }
@@ -51,7 +54,11 @@ func (d *TokenDecoder) Decode(ctx context.Context) (Token, error) {
 		return Token{}, err
 	}
 	defer func() { d.source.ctx = nil }()
-	return readToken(ctx, d.decoder, d.maximumDepth)
+	token, err := readToken(ctx, d.decoder, d.maximumDepth)
+	if err := d.source.observedError(err); err != nil {
+		return Token{}, err
+	}
+	return token, nil
 }
 
 // SkipValue consumes exactly one complete value using Go's decoder. Containers
@@ -66,11 +73,11 @@ func (d *TokenDecoder) SkipValue(ctx context.Context) error {
 	depth := d.decoder.StackDepth()
 	kind := d.decoder.PeekKind()
 	if kind != jsontext.KindBeginObject && kind != jsontext.KindBeginArray {
-		return objectReadOutcome(ctx, d.decoder.SkipValue())
+		return d.source.observedError(objectReadOutcome(ctx, d.decoder.SkipValue()))
 	}
 	for {
 		_, err := d.decoder.ReadToken()
-		if err := objectReadOutcome(ctx, err); err != nil {
+		if err := d.source.observedError(objectReadOutcome(ctx, err)); err != nil {
 			return err
 		}
 		if d.decoder.StackDepth() > int(d.maximumDepth) {
@@ -93,7 +100,7 @@ func (d *TokenDecoder) ReadValue(ctx context.Context) ([]byte, error) {
 	defer func() { d.source.ctx = nil }()
 	depth := d.decoder.StackDepth()
 	value, err := d.decoder.ReadValue()
-	if err := objectReadOutcome(ctx, err); err != nil {
+	if err := d.source.observedError(objectReadOutcome(ctx, err)); err != nil {
 		return nil, err
 	}
 	if err := validateValueDepth(ctx, value, int(d.maximumDepth)-depth); err != nil {

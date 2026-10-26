@@ -23,7 +23,7 @@ func (w ownedCodecDestination) Write(data []byte) (int, error) {
 	}
 	n, err := (checkedJSONDestination{destination: w.destination}).Write(data)
 	if cancelled := contextstate.Validate(w.ctx); cancelled != nil {
-		return n, &nativeJSONError{cause: errors.Join(cancelled, nativeJSONCause(err))}
+		return n, &nativeJSONError{cause: errors.Join(cancelled, err)}
 	}
 	return n, err
 }

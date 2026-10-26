@@ -71,7 +71,10 @@ func DecodeValueAt[Document any](ctx context.Context, cursor *TokenDecoder, poli
 		if err == nil {
 			err = core.ErrJSONContract
 		}
-		return zero, objectReadOutcome(ctx, err)
+		return zero, cursor.source.observedError(objectReadOutcome(ctx, err))
+	}
+	if err := cursor.source.observedError(nil); err != nil {
+		return zero, err
 	}
 	if kind == jsontext.KindNull && policy.RootNulls == RootNullRefused {
 		return zero, core.ErrJSONContract
@@ -87,7 +90,7 @@ func DecodeValueAt[Document any](ctx context.Context, cursor *TokenDecoder, poli
 	})
 	var document Document
 	err := jsonv2.UnmarshalDecode(cursor.decoder, &document, jsonv2.RejectUnknownMembers(policy.Members == MembersDeclaredOnly), jsonv2.WithUnmarshalers(guards))
-	if err := errors.Join(objectReadOutcome(ctx, err), projectionContextError(ctx)); err != nil {
+	if err := errors.Join(objectReadOutcome(ctx, err), projectionContextError(ctx), cursor.source.refusal); err != nil {
 		return zero, err
 	}
 	return document, nil

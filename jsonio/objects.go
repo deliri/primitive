@@ -103,7 +103,7 @@ func prepareObjectRead(ctx context.Context, decoder *jsontext.Decoder) error {
 
 func objectReadOutcome(ctx context.Context, readErr error) error {
 	if err := contextstate.Validate(ctx); err != nil {
-		return errors.Join(err, nativeJSONCause(readErr))
+		return errors.Join(err, readErr)
 	}
 	if readErr == io.EOF {
 		return io.EOF

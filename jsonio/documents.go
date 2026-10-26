@@ -49,11 +49,13 @@ func Documents[Document core.Validatable](ctx context.Context, request Request) 
 			yield(zero, err)
 			return
 		}
-		bounded := &io.LimitedReader{R: contextJSONSource{ctx: ctx, source: checkedJSONSource{source: request.Source}}}
+		source := &contextJSONSource{ctx: ctx, source: checkedJSONSource{source: request.Source}}
+		bounded := &io.LimitedReader{R: source}
 		decoder := jsontext.NewDecoder(bounded)
 		var objects documentObjects[Document]
 		for {
 			data, err := readJSONStreamValue(ctx, decoder, bounded, request.Limits.DocumentMaximumBytes)
+			err = source.observedError(err)
 			if err != nil {
 				if err == io.EOF {
 					return
@@ -123,7 +125,7 @@ func (o *documentObjects[Document]) decode(ctx context.Context, data []byte, req
 		o.decoder, o.source = decoder, source
 	} else {
 		o.source.Reset(data)
-		o.decoder.source.source = checkedJSONSource{source: o.source}
+		*o.decoder.source = contextJSONSource{source: checkedJSONSource{source: o.source}}
 		o.decoder.decoder.Reset(o.decoder.source)
 	}
 	return o.decoder.Decode(ctx)
