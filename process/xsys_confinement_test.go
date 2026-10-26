@@ -13,13 +13,14 @@ import (
 // paths for the package, which left the escape free to spread into any file;
 // section 8.4 wants the leaf files named, so adding syscall.Kill to run.go is
 // a red test rather than a green build.
-const substrateEscapeLeafMaximum = 7
+const substrateEscapeLeafMaximum = 8
 
 func substrateEscapeLeafFiles() map[string]string {
 	return map[string]string{
 		"alive_unix.go":        "observes process liveness through the Unix kernel",
 		"alive_windows.go":     "observes process liveness through the Windows kernel",
 		"containment_unix.go":  "installs and signals Unix process-group containment",
+		"pipe_error_unix.go":   "duplicates Unix fd 1/2 under ForkLock so EPIPE returns instead of exiting",
 		"sightings_windows.go": "enumerates Windows process identities",
 		"termination_unix.go":  "decodes the Unix termination signal",
 		"usage_linux.go":       "decodes Linux rusage peak-resident-memory units",
