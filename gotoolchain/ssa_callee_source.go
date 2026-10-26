@@ -63,7 +63,7 @@ func (v SSAUnitView) CalleeSource(ctx context.Context, r SSACalleeSourceRequest)
 	if common.IsInvoke() {
 		return out, nil
 	}
-	out, _, err = v.sourceFunctionValue(ctx, common.Value, r.Call)
+	out, _, err = v.sourceFunctionValue(ctx, common.Value, r.Call, nil)
 	return out, err
 }
 

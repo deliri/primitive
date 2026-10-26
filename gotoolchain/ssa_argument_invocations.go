@@ -145,7 +145,7 @@ func (v SSAUnitView) ArgumentInvocationBindings(ctx context.Context, r SSAArgume
 			yield(nil, core.ErrGoToolchainContract)
 			return
 		}
-		for binding, err := range v.ArgumentBindings(ctx, SSAArgumentBindingsRequest{Call: r.Call, Argument: r.Caller.binding.Local}) {
+		for binding, err := range v.argumentBindings(ctx, SSAArgumentBindingsRequest{Call: r.Call, Argument: r.Caller.binding.Local}, r.Caller) {
 			if err != nil {
 				yield(nil, err)
 				return

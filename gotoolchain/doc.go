@@ -13,6 +13,10 @@
 // CaptureFrames lends a selected native parameter/free variable and its real
 // lexical capture chain through ClosureBindings, without an invocation claim
 // or a copied capture graph. Active native ancestry remains depth-sized.
+// InvocationCalleeSource resolves a callable parameter only through an actual
+// borrowed caller binding. Invocation bindings conserve the selected capture
+// across that call; roots, nil and merged callables remain opaque. Neither
+// operation claims that every runtime path executes or returns.
 // SourceFunction lends exact source declarations or the synthetic initializer
 // from the native SSA object map, without a product function registry.
 // FunctionAncestors streams authenticated native lexical parents, retaining

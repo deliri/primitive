@@ -32,7 +32,7 @@ func (o SSAFunctionValueObservation) Validate() error {
 func (SSAFunctionValueObservation) goToolchainInternalFlow() {}
 
 // sourceFunctionValue follows native representation edges without retaining a graph.
-func (v SSAUnitView) sourceFunctionValue(ctx context.Context, original ssa.Value, before ssa.Instruction) (out SSAFunctionValueObservation, closure *ssa.MakeClosure, err error) {
+func (v SSAUnitView) sourceFunctionValue(ctx context.Context, original ssa.Value, before ssa.Instruction, invocation *SSAArgumentInvocationFrame) (out SSAFunctionValueObservation, closure *ssa.MakeClosure, err error) {
 	value := original
 	if err = v.functionArgumentBefore(ctx, value, before); err != nil {
 		return out, nil, err
@@ -42,6 +42,42 @@ func (v SSAUnitView) sourceFunctionValue(ctx context.Context, original ssa.Value
 			return out, nil, err
 		}
 		switch operand := value.(type) {
+		case *ssa.Parameter:
+			if invocation == nil || invocation.kind != SSAInvocationKindArgument || invocation.caller == nil {
+				return out, nil, nil
+			}
+			if invocation.owner != v.Program || operand.Parent() != invocation.binding.Function || before.Parent() != invocation.binding.Function || invocation.call == nil || invocation.call.Parent() != invocation.caller.binding.Function {
+				return out, nil, core.ErrGoToolchainContract
+			}
+			if err = v.referrerInstructionMembership(invocation.call); err != nil {
+				return out, nil, err
+			}
+			parent, _, parentErr := v.sourceFunctionValue(ctx, invocation.call.Common().Value, invocation.call, invocation.caller)
+			if parentErr != nil {
+				return out, nil, parentErr
+			}
+			if parent.Function != invocation.binding.Function || len(invocation.call.Common().Args) != len(parent.Function.Params) {
+				return out, nil, core.ErrGoToolchainOutput
+			}
+			signature, signatureErr := nativeArgumentCallSignature(invocation.call.Common())
+			if signatureErr != nil {
+				return out, nil, signatureErr
+			}
+			if err = v.sourceCallArguments(ctx, invocation.call, signature); err != nil {
+				return out, nil, err
+			}
+			index := 0
+			for index < len(parent.Function.Params) && parent.Function.Params[index] != operand {
+				index++
+			}
+			if index == len(parent.Function.Params) {
+				return out, nil, core.ErrGoToolchainOutput
+			}
+			original = invocation.call.Common().Args[index]
+			before, value, invocation = invocation.call, original, invocation.caller
+			if err = v.functionArgumentBefore(ctx, value, before); err != nil {
+				return out, nil, err
+			}
 		case *ssa.ChangeType:
 			if err = v.functionArgumentBefore(ctx, operand.X, operand); err != nil {
 				return out, nil, err

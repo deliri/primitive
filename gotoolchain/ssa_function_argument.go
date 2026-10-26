@@ -64,7 +64,7 @@ func (v SSAUnitView) LastFunctionArgument(ctx context.Context, r SSAFunctionArgu
 	if _, function := types.Unalias(value.Type()).Underlying().(*types.Signature); !function {
 		return out, nil
 	}
-	out, _, err = v.sourceFunctionValue(ctx, value, r.Call)
+	out, _, err = v.sourceFunctionValue(ctx, value, r.Call, nil)
 	return out, err
 }
 
