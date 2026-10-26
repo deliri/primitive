@@ -7,13 +7,13 @@ import (
 	"go/parser"
 	"go/token"
 	"reflect"
-	"runtime"
 	"slices"
 	"strings"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/filestore"
+	"github.com/deliri/primitive/v2026/hostfacts"
 	"github.com/deliri/primitive/v2026/lineio"
 )
 
@@ -77,15 +77,9 @@ func TestLineIOProductionStructsHaveCompilerVisibleDataFlowRoles(t *testing.T) {
 }
 
 func lineioProductionStructNames(ctx context.Context) (names []string, resultErr error) {
-	_, sourceFilename, _, ok := runtime.Caller(0)
-	if !ok {
-		return nil, core.ErrPrimitiveContract
-	}
-	sourcePath, err := core.ParseAbsolutePath(sourceFilename)
-	if err != nil {
-		return nil, err
-	}
-	directoryPath, err := sourcePath.Parent()
+	// go test runs a package's tests in its own directory; -trimpath leaves
+	// runtime.Caller only module-relative paths.
+	directoryPath, err := hostfacts.WorkingDirectory()
 	if err != nil {
 		return nil, err
 	}
