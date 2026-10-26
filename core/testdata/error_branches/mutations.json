@@ -1,0 +1,7 @@
+[
+  {
+    "name": "any-matching-branch",
+    "patch": "any-matching-branch.patch",
+    "selection": "^TestErrorBranchesRequireEveryNativeCause$/^matching_branch_cannot_hide_native_failure$"
+  }
+]

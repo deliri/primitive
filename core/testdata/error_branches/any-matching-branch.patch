@@ -1,0 +1,17 @@
+--- a/core/error_branches.go
++++ b/core/error_branches.go
+@@ -52,11 +52,11 @@
+ 				return false
+ 			}
+ 			for _, branch := range branches {
+-				if !errorBranchesMatch(branch, accept) {
+-					return false
++				if errorBranchesMatch(branch, accept) {
++					return true
+ 				}
+ 			}
+-			return true
++			return false
+ 		}
+ 		cause := errors.Unwrap(current)
+ 		if accept(ErrorBranchObservation{Error: current, Unwrapped: cause}) {

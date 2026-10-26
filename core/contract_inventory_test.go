@@ -28,6 +28,8 @@ type productionStructInventory struct {
 // coreContractInventory classifies every production struct by its real role.
 // It is a compiler-visible wiring ratchet, not behavioral proof.
 type coreContractInventory struct {
+	ErrorBranchesRequest     internalFlow[ErrorBranchesRequest]
+	ErrorBranchObservation   internalFlow[ErrorBranchObservation]
 	OAuthProfileName         protocolFact[OAuthProfileName]
 	OAuthClientID            protocolFact[OAuthClientID]
 	OAuthAuthorizationCode   protocolFact[OAuthAuthorizationCode]
