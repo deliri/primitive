@@ -74,7 +74,7 @@ func observeResourceUsage(ctx context.Context, r ResourceUsageRequest) (Resource
 	if err != nil {
 		return out, err
 	}
-	out.total, out.available, err = readResourceMemory(ctx)
+	out.total, out.available, out.process, err = readResourceMemory(ctx)
 	if err != nil {
 		return out, err
 	}
@@ -107,45 +107,50 @@ func readResourceCPU(ctx context.Context) (resourceCPUCounters, error) {
 	return counters, nil
 }
 
-func readResourceMemory(ctx context.Context) (core.ByteLength, core.ByteLength, error) {
-	var total, available uint64
-	var totalSeen, availableSeen bool
+func readResourceMemory(ctx context.Context) (core.ByteLength, core.ByteLength, core.ByteLength, error) {
+	// MemTotal, MemAvailable and AnonPages, each exactly once.
+	var values [3]uint64
+	var seen [3]bool
 	err := resourceFile(ctx, "/proc/meminfo", func(line []byte) error {
 		fields := strings.Fields(string(line))
-		if len(fields) == 0 || fields[0] != "MemTotal:" && fields[0] != "MemAvailable:" {
+		index := -1
+		if len(fields) > 0 {
+			switch fields[0] {
+			case "MemTotal:":
+				index = 0
+			case "MemAvailable:":
+				index = 1
+			case "AnonPages:":
+				index = 2
+			}
+		}
+		if index < 0 {
 			return nil
 		}
-		if len(fields) != 3 || fields[2] != "kB" {
+		if len(fields) != 3 || fields[2] != "kB" || seen[index] {
 			return core.ErrHostFactsObservation
 		}
 		n, err := strconv.ParseUint(fields[1], 10, 64)
 		if err != nil || n > math.MaxUint64/1024 {
 			return errors.Join(core.ErrHostFactsObservation, err)
 		}
-		if fields[0] == "MemTotal:" {
-			if totalSeen {
-				return core.ErrHostFactsObservation
-			}
-			totalSeen = true
-			total = n * 1024
-		} else {
-			if availableSeen {
-				return core.ErrHostFactsObservation
-			}
-			availableSeen = true
-			available = n * 1024
-		}
+		values[index], seen[index] = n*1024, true
 		return nil
 	})
-	if err != nil || !totalSeen || !availableSeen || total == 0 || available > total {
-		return core.ByteLength{}, core.ByteLength{}, errors.Join(core.ErrHostFactsObservation, err)
+	total, available, process := values[0], values[1], values[2]
+	if err != nil || !seen[0] || !seen[1] || !seen[2] || total == 0 || available > total || process > total {
+		return core.ByteLength{}, core.ByteLength{}, core.ByteLength{}, errors.Join(core.ErrHostFactsObservation, err)
 	}
 	totalBytes, err := core.NewByteLength(total)
 	if err != nil {
-		return core.ByteLength{}, core.ByteLength{}, err
+		return core.ByteLength{}, core.ByteLength{}, core.ByteLength{}, err
 	}
 	availableBytes, err := core.NewByteLength(available)
-	return totalBytes, availableBytes, err
+	if err != nil {
+		return core.ByteLength{}, core.ByteLength{}, core.ByteLength{}, err
+	}
+	processBytes, err := core.NewByteLength(process)
+	return totalBytes, availableBytes, processBytes, err
 }
 
 func readResourcePressure(ctx context.Context, path string) (uint32, error) {

@@ -42,6 +42,10 @@ func observeResourceUsage(ctx context.Context, r ResourceUsageRequest) (Resource
 		return out, err
 	}
 	out.available, err = parseResourceMacMemory(ctx, vm, out.total)
+	if err != nil {
+		return out, err
+	}
+	out.process, err = parseResourceMacProcess(ctx, vm, out.total)
 	return out, err
 }
 
@@ -131,4 +135,38 @@ func parseResourceMacMemory(ctx context.Context, data []byte, total core.ByteLen
 		return core.ByteLength{}, core.ErrHostFactsObservation
 	}
 	return core.NewByteLength(pages * page)
+}
+
+// parseResourceMacProcess reads vm_stat's anonymous pages: memory held by
+// processes rather than file cache. It needs exactly one page size and one
+// anonymous count, and never more than physical memory.
+func parseResourceMacProcess(ctx context.Context, data []byte, total core.ByteLength) (core.ByteLength, error) {
+	var page, count uint64
+	var pageSeen, countSeen bool
+	err := resourceLines(ctx, bytes.NewReader(data), func(line []byte) error {
+		text := string(line)
+		if value, ok := strings.CutPrefix(text, "Mach Virtual Memory Statistics: (page size of "); ok {
+			value, ok = strings.CutSuffix(value, " bytes)")
+			n, err := strconv.ParseUint(value, 10, 64)
+			if !ok || err != nil || n == 0 || pageSeen {
+				return errors.Join(core.ErrHostFactsObservation, err)
+			}
+			page, pageSeen = n, true
+			return nil
+		}
+		key, value, ok := strings.Cut(text, ":")
+		if !ok || key != "Anonymous pages" {
+			return nil
+		}
+		n, err := strconv.ParseUint(strings.TrimSuffix(strings.TrimSpace(value), "."), 10, 64)
+		if err != nil || countSeen {
+			return errors.Join(core.ErrHostFactsObservation, err)
+		}
+		count, countSeen = n, true
+		return nil
+	})
+	if err != nil || !pageSeen || !countSeen || count > total.Uint64()/page {
+		return core.ByteLength{}, errors.Join(core.ErrHostFactsObservation, err)
+	}
+	return core.NewByteLength(count * page)
 }
