@@ -19,9 +19,10 @@ import (
 // cacheTrimFile is one regular cache member: its path under the cache, its
 // byte size, and how many seconds older than the fixture base its mtime is.
 type cacheTrimFile struct {
-	path string
-	size int
-	age  int
+	path     string
+	size     int
+	age      int
+	readOnly bool
 }
 
 var cacheTrimBase = time.Unix(1_700_000_000, 0)
@@ -53,6 +54,12 @@ func cacheTrimFixture(t *testing.T, files []cacheTrimFile) (string, *os.Root) {
 		stamp := cacheTrimBase.Add(-time.Duration(file.age) * time.Second)
 		if err := os.Chtimes(name, stamp, stamp); err != nil {
 			t.Fatal(err)
+		}
+		if file.readOnly {
+			// Go writes its build-cache entries read-only.
+			if err := os.Chmod(name, 0o444); err != nil {
+				t.Fatal(err)
+			}
 		}
 	}
 	root, err := os.OpenRoot(directory)
@@ -151,6 +158,23 @@ func TestTrimCacheNativeLayerTriad(t *testing.T) {
 		{name: "boundary one second older than Keep is evicted", files: []cacheTrimFile{
 			{path: "old", size: 10, age: 10}, {path: "warm", size: 10, age: 5}, {path: "hot", size: 10},
 		}, keepAge: new(4), limit: 5, removed: []string{"old", "warm"}, want: filestore.CacheTrimObservation{BeforeBytes: 30, AfterBytes: 10, RemovedFiles: 2}},
+		{name: "boundary zero-byte entries are evicted in order but never satisfy the limit", files: []cacheTrimFile{
+			{path: "empty", age: 10}, {path: "a", size: 10, age: 5}, {path: "b", size: 10, age: 1},
+		}, limit: 10, removed: []string{"empty", "a"}, want: filestore.CacheTrimObservation{BeforeBytes: 20, AfterBytes: 10, RemovedFiles: 2}},
+		{name: "boundary pre-1970 mtimes order before modern ones", files: []cacheTrimFile{
+			{path: "modern", size: 10, age: 1}, {path: "ancient", size: 10, age: 1_800_000_000},
+		}, limit: 10, removed: []string{"ancient"}, want: filestore.CacheTrimObservation{BeforeBytes: 20, AfterBytes: 10, RemovedFiles: 1}},
+		{name: "neutral future-dated entries count as recent and are kept", files: []cacheTrimFile{
+			{path: "old", size: 10, age: 10}, {path: "future", size: 10, age: -3600},
+		}, limit: 5, removed: []string{"old"}, want: filestore.CacheTrimObservation{BeforeBytes: 20, AfterBytes: 10, RemovedFiles: 1}},
+		{name: "neutral a Keep older than every entry evicts nothing", files: two, keepAge: new(1000), limit: 1, want: filestore.CacheTrimObservation{BeforeBytes: 20, AfterBytes: 20}},
+		{name: "boundary a one-byte limit evicts every unkept entry", files: two, limit: 1, removed: []string{"a", "b"}, want: filestore.CacheTrimObservation{BeforeBytes: 20, RemovedFiles: 2}},
+		{name: "positive deeply nested entries are evicted in place", files: []cacheTrimFile{
+			{path: "a/b/c/d/e/f/old", size: 10, age: 9}, {path: "new", size: 10, age: 1},
+		}, limit: 10, removed: []string{"a/b/c/d/e/f/old"}, want: filestore.CacheTrimObservation{BeforeBytes: 20, AfterBytes: 10, RemovedFiles: 1}},
+		{name: "positive read-only entries like Go's are evicted", files: []cacheTrimFile{
+			{path: "ro/old", size: 10, age: 9, readOnly: true}, {path: "ro/new", size: 10, age: 1, readOnly: true},
+		}, limit: 10, removed: []string{"ro/old"}, want: filestore.CacheTrimObservation{BeforeBytes: 20, AfterBytes: 10, RemovedFiles: 1}},
 		{name: "neutral links and directories are neither counted nor removed", files: []cacheTrimFile{
 			{path: "sub/a", size: 10, age: 2}, {path: "b", size: 10, age: 1},
 		}, link: true, limit: 10, removed: []string{"sub/a"}, want: filestore.CacheTrimObservation{BeforeBytes: 20, AfterBytes: 10, RemovedFiles: 1}},
@@ -241,6 +265,13 @@ func TestTrimCacheRefusalsRemoveNothing(t *testing.T) {
 				t.Fatal(err)
 			}
 			r.Parent = parent
+			return t.Context()
+		}},
+		{name: "negative a read-only cache directory keeps every entry and reports cleanup", want: core.ErrFilestoreCleanup, wantErr: fs.ErrPermission, mutate: func(t *testing.T, _ *filestore.CacheTrimRequest, root *os.Root) context.Context {
+			if err := root.Chmod("cache", 0o555); err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { _ = root.Chmod("cache", 0o755) })
 			return t.Context()
 		}},
 		{name: "negative closed root preserves closed cause", want: os.ErrClosed, mutate: func(t *testing.T, _ *filestore.CacheTrimRequest, root *os.Root) context.Context {
