@@ -398,7 +398,7 @@ func (s *goJSONStream) flushString() error {
 	s.fragment[s.used] = '"'
 	decoded, err := jsontext.AppendUnquote(s.decoded[:0], s.fragment[:s.used+1])
 	if err != nil {
-		return observationFailure("go event string cannot be decoded", core.ErrJSONContract, err)
+		return goEventGrammarCause{cause: err}
 	}
 	s.used = 1
 	if !s.key && s.observeString != nil {
@@ -496,5 +496,5 @@ func (s *goJSONStream) finish(emit func(goJSONProjection) error) error {
 }
 
 func goJSONFailure() error {
-	return observationFailure("go event violates its flat JSON wire grammar", core.ErrJSONContract)
+	return core.ErrGoEventGrammar
 }

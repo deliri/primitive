@@ -641,6 +641,9 @@ const (
 	ErrFirestoreDocumentsOperation
 	// ErrAESGCMTextExtent identifies encoded ciphertext beyond caller or native text capacity.
 	ErrAESGCMTextExtent
+	// ErrGoEventGrammar identifies malformed cmd/go event wire grammar.
+	ErrGoEventGrammar
+
 	errorIdentityLimit
 )
 
@@ -928,6 +931,7 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrFirestoreDocumentsContract, text: "firestore documents contract violation"},
 		{identity: ErrFirestoreDocumentsOperation, text: "firestore documents operation failed"},
 		{identity: ErrAESGCMTextExtent, text: "aes-gcm text transport extent exceeded"},
+		{identity: ErrGoEventGrammar, text: "invalid Go event wire grammar"},
 	}
 }
 
@@ -1029,6 +1033,9 @@ func isAdmittedErrorIdentity(identity ErrorIdentity) bool {
 }
 
 func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
+	if identity == ErrGoEventGrammar {
+		return oneErrorIdentityParent(ErrJSONContract)
+	}
 	if identity == ErrKeygenPublicKeyText {
 		return oneErrorIdentityParent(ErrKeygenContract)
 	}

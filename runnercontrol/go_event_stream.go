@@ -3,6 +3,7 @@ package runnercontrol
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"math"
 	"unicode/utf8"
@@ -139,7 +140,7 @@ func ReadGoEventStream(ctx context.Context, request GoEventStreamRequest) (resul
 	}
 	// The row cut by EOF is refused with the same identity as a completed one.
 	if err := parser.rows.interrupt(); err != nil {
-		return observationFailure("go event stream refused", err)
+		return fmt.Errorf("go event stream refused: %w", errors.Join(core.ErrPrimitiveContract, err))
 	}
 	return nil
 }
@@ -157,17 +158,20 @@ func readGoEventFragments(ctx context.Context, reader *lineio.Reader, parser *go
 				break
 			}
 			if err := parser.consume(data[index], emit); err != nil {
-				return observationFailure("go event stream refused", err, readErr)
+				if readErr == io.EOF {
+					readErr = nil // Actual EOF is framing, not an accompanying source refusal.
+				}
+				return fmt.Errorf("go event stream refused: %w", errors.Join(core.ErrPrimitiveContract, err, readErr))
 			}
 		}
 		if readErr == nil {
 			continue
 		}
 		if errors.Is(readErr, core.ErrLineIOScan) || !errors.Is(readErr, io.EOF) {
-			return observationFailure("go event source refused", readErr)
+			return fmt.Errorf("go event source refused: %w", errors.Join(core.ErrPrimitiveContract, readErr))
 		}
 		if err := parser.finish(emit); err != nil {
-			return observationFailure("go event stream incomplete", err)
+			return fmt.Errorf("go event stream incomplete: %w", errors.Join(core.ErrPrimitiveContract, err))
 		}
 		return contextstate.Validate(ctx)
 	}

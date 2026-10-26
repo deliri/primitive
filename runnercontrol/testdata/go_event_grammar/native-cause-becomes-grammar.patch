@@ -1,0 +1,14 @@
+--- a/runnercontrol/go_event_grammar.go
++++ b/runnercontrol/go_event_grammar.go
+@@ -17,10 +17 @@
+-	return core.ErrorBranchesMatch(core.ErrorBranchesRequest{Error: err, Accept: func(node core.ErrorBranchObservation) bool {
+-		if _, owned := node.Error.(goEventGrammarCause); owned {
+-			return true
+-		}
+-		if node.Unwrapped != nil {
+-			return false
+-		}
+-		identity, ok := node.Error.(core.ErrorIdentity)
+-		return ok && (identity == core.ErrGoEventGrammar || identity == core.ErrJSONContract || identity == core.ErrPrimitiveContract)
+-	}})
++	return errors.Is(err, core.ErrGoEventGrammar)
