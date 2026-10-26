@@ -31,6 +31,10 @@ func TestGroupMemoryRequestRefusesBeforeObservation(t *testing.T) {
 			if got.Uint64() != 0 || !errors.Is(err, core.ErrProcessContract) {
 				t.Fatalf("observation=(%d,%v), want zero contract refusal", got.Uint64(), err)
 			}
+			usage, err := process.ObserveGroupUsage(t.Context(), tc.request)
+			if usage != (process.GroupUsage{}) || !errors.Is(err, core.ErrProcessContract) {
+				t.Fatalf("usage=(%v,%v), want zero contract refusal", usage, err)
+			}
 		})
 	}
 	request := process.GroupMemoryRequest{Group: 42, WorkingDirectory: directory, Environment: process.Environment{Mode: process.EnvironmentModeInherit}}
@@ -49,6 +53,10 @@ func TestGroupMemoryRequestRefusesBeforeObservation(t *testing.T) {
 			got, err := process.ObserveGroupMemory(tc.ctx, request)
 			if got.Uint64() != 0 || !errors.Is(err, tc.wantErr) {
 				t.Fatalf("context observation=(%d,%v), want zero %v", got.Uint64(), err, tc.wantErr)
+			}
+			usage, err := process.ObserveGroupUsage(tc.ctx, request)
+			if usage != (process.GroupUsage{}) || !errors.Is(err, tc.wantErr) {
+				t.Fatalf("context usage=(%v,%v), want zero %v", usage, err, tc.wantErr)
 			}
 		})
 	}
