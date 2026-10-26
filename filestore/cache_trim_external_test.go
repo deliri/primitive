@@ -63,7 +63,7 @@ func cacheTrimFixture(t *testing.T, files []cacheTrimFile) (string, *os.Root) {
 	return directory, root
 }
 
-func cacheTrimRequest(t *testing.T, root *os.Root, limit uint64) filestore.CacheTrimRequest {
+func cacheTrimRequest(t testing.TB, root *os.Root, limit uint64) filestore.CacheTrimRequest {
 	t.Helper()
 	path, err := core.ParseRelativePath("cache")
 	if err != nil {
