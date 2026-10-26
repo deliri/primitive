@@ -75,6 +75,7 @@ func filestoreIngressProofs() []filestoreIngressProof {
 		{door: reflect.ValueOf(filestore.SyncFile), fuzz: FuzzNativeFileHandleCustody},
 		{door: reflect.ValueOf(filestore.CloseRoot), proof: TestNativeRootHandleLayerTriad, reason: "Closes an acquired native root; direct native tests prove absent/closed-root refusal and independent child-file ownership."},
 		{door: reflect.ValueOf(filestore.WithSortedRecordScope), fuzz: FuzzSortedRecordScopeMatchesIndependentStableRows},
+		{door: reflect.ValueOf(filestore.TrimCache), proof: trimCacheNativeProof, reason: "Evicts already-owned native cache files; it decodes no external bytes. Real mtimes, sizes, LF names, links, directories, boundaries and refusals prove order, accounting and preserved causes."},
 		{door: reflect.ValueOf(filestore.OpenAppendDestination), fuzz: FuzzAppendDestinationExactBytesAndSettlement},
 		{door: reflect.ValueOf((*filestore.AppendDestination).WithInspectedReadScope), fuzz: FuzzAppendReadScopeMatchesOriginalNativeObject},
 		{door: reflect.ValueOf((*filestore.AppendDestination).WithHeldReadScope), fuzz: FuzzHeldAppendReadMatchesIndependentBytesAfterNameRemoval},

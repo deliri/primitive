@@ -58,6 +58,11 @@
 // supplied root. The destination parent is synchronized; a failed
 // acknowledgement retains the created entry and reports the native cause.
 //
+// TrimCache evicts the least-recently-modified regular files under a cache
+// tree until the bytes it observed fit a caller-chosen limit. One Walk sizes
+// the tree; only an over-limit tree is externally sorted under a scratch parent.
+// Links, directories and special files are never counted or removed.
+//
 // Darwin/Linux callers can create a named pipe at an authorized absolute path
 // and open an existing FIFO read/write through a root. These finite native
 // effects do not acknowledge durability or cancel a syscall after entry.
