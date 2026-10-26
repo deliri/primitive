@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
-	"time"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/filestore"
@@ -125,7 +124,7 @@ func TestCreateSymbolicLinkRefusalLayerTriad(t *testing.T) {
 			return ctx
 		}, want: context.Canceled},
 		{name: "neutral elapsed deadline cannot create a link", setup: func(t *testing.T, _ string, _ *os.Root, _ *filestore.SymbolicLinkRequest) context.Context {
-			ctx, cancel := context.WithDeadline(t.Context(), time.Unix(1, 0))
+			ctx, cancel := newExpiredDeadline(t.Context(), t, nil)
 			t.Cleanup(cancel)
 			return ctx
 		}, want: context.DeadlineExceeded},

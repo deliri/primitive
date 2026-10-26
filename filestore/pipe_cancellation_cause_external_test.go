@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/filestore"
@@ -25,7 +24,7 @@ func TestPipeTransferAdmissionPreservesNativeCancellationCause(t *testing.T) {
 			var cancel context.CancelFunc
 			want := context.Canceled
 			if deadline {
-				ctx, cancel = context.WithDeadlineCause(t.Context(), time.Unix(1, 0), io.ErrNoProgress)
+				ctx, cancel = newExpiredDeadline(t.Context(), t, io.ErrNoProgress)
 				want = context.DeadlineExceeded
 			} else {
 				var cancelCause context.CancelCauseFunc

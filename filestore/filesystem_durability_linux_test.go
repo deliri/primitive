@@ -73,7 +73,7 @@ func TestFilesystemDurabilityNativeLayerTriad(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			ctx, cancel := context.WithTimeout(t.Context(), 2*time.Minute)
+			ctx, cancel := newNativeBackstop(t.Context(), t, 2*time.Minute)
 			defer cancel()
 			command := exec.CommandContext(ctx, "strace", "-f", "-qq", "-yy", "-e", "trace=openat,openat2,close,write,syncfs", "-o", trace, executable, "-test.run=^TestFilesystemDurabilityNativeChild$", "-test.v", "--", strconv.Itoa(int(row.mode)), trace)
 			command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}

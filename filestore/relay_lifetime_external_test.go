@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"testing"
-	"time"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/filestore"
@@ -29,19 +28,23 @@ func TestRelayClosesDownwardBeforeJoiningDependentUpward(t *testing.T) {
 		result, err := filestore.Relay(filestore.RelayRequest{NearInput: nearInput, NearOutput: nearOutput, FarInput: bytes.NewReader(payload), FarOutput: far})
 		done <- outcome{result, err}
 	}()
+	backstop, release := newFilesystemBackstop(t.Context(), t, relayBackstop)
+	defer release()
 	select {
 	case got := <-done:
 		_ = nearInput.Close()
 		if got.err != nil || got.result.Validate() != nil || far.closes != 1 || !bytes.Equal(far.Bytes(), payload) {
 			t.Fatalf("dependent EOF relay = %+v/%v, bytes %d, closes %d; want joined, exact %d bytes and one close", got.result, got.err, far.Len(), far.closes, len(payload))
 		}
-	case <-time.After(relayBackstop):
+	case <-backstop.Done():
 		// Release and join the owned worker before reporting a failed backstop.
 		_ = nearInput.Close()
 		_ = nearOutput.Close()
+		joinBackstop, releaseJoin := newFilesystemBackstop(t.Context(), t, relayBackstop)
+		defer releaseJoin()
 		select {
 		case <-done:
-		case <-time.After(relayBackstop):
+		case <-joinBackstop.Done():
 			t.Fatalf("released Relay wait reached %v, want both owned copies joined", relayBackstop)
 		}
 		t.Fatalf("dependent upward EOF wait reached %v, want downward close to release and join", relayBackstop)

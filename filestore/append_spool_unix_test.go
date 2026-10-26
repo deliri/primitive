@@ -23,7 +23,7 @@ import (
 func TestAppendSpoolPartialWriteNative(t *testing.T) {
 	testserial.Declare(t, core.TestIsolationDeclaration{Hazard: core.TestIsolationHazardProcessSignal, Scope: core.TestIsolationScopePackageProcess})
 	if os.Getenv("PRIMITIVE_APPEND_SPOOL_PARTIAL_CHILD") != "1" {
-		ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+		ctx, cancel := newNativeBackstop(t.Context(), t, 30*time.Second)
 		defer cancel()
 		command := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestAppendSpoolPartialWriteNative$", "-test.v")
 		command.Env = append(os.Environ(), "PRIMITIVE_APPEND_SPOOL_PARTIAL_CHILD=1")

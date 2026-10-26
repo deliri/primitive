@@ -69,16 +69,20 @@ func TestCurrentRelayOutputPartialPipeNativeCause(t *testing.T) {
 	var prefix [1]byte
 	_, readErr := io.ReadFull(reader, prefix[:])
 	_ = reader.Close()
+	backstop, release := newNativeBackstop(t.Context(), t, currentRelayBackstop)
+	defer release()
 	select {
 	case result := <-done:
 		if readErr != nil || prefix[0] != payload[0] || result.written <= 0 || result.written >= len(payload) || !errors.Is(result.err, syscall.EPIPE) {
 			t.Fatalf("released pipe output = %d/%v, observed prefix %x/%v; want a native partial count below %d and EPIPE after exact first byte", result.written, result.err, prefix, readErr, len(payload))
 		}
-	case <-time.After(currentRelayBackstop):
+	case <-backstop.Done():
 		_ = writer.Close()
+		joinBackstop, releaseJoin := newNativeBackstop(t.Context(), t, currentRelayBackstop)
+		defer releaseJoin()
 		select {
 		case <-done:
-		case <-time.After(currentRelayBackstop):
+		case <-joinBackstop.Done():
 			t.Fatalf("released pipe writer cleanup exceeded %v, want joined write", currentRelayBackstop)
 		}
 		t.Fatalf("released pipe output exceeded %v, want native EPIPE and joined write", currentRelayBackstop)
@@ -191,7 +195,7 @@ type currentRelayChild struct {
 
 func startCurrentRelayChild(t *testing.T, mode string, brokenOutput, observeOutput bool) *currentRelayChild {
 	t.Helper()
-	ctx, cancel := context.WithTimeout(context.Background(), currentRelayBackstop)
+	ctx, cancel := newNativeBackstop(context.Background(), t, currentRelayBackstop)
 	child := &currentRelayChild{cancel: cancel, done: make(chan error, 1)}
 	nearRead, nearWrite, err := os.Pipe()
 	if err != nil {
@@ -277,6 +281,8 @@ func startCurrentRelayChild(t *testing.T, mode string, brokenOutput, observeOutp
 
 func (child *currentRelayChild) wait(t *testing.T) error {
 	t.Helper()
+	backstop, release := newNativeBackstop(t.Context(), t, currentRelayBackstop+time.Second)
+	defer release()
 	select {
 	case err := <-child.done:
 		child.joined = true
@@ -287,7 +293,7 @@ func (child *currentRelayChild) wait(t *testing.T) error {
 			t.Fatalf("terminal relay stderr = %q, want no continuation or deferred cleanup after the ownership boundary", child.stderr.String())
 		}
 		return err
-	case <-time.After(currentRelayBackstop + time.Second):
+	case <-backstop.Done():
 		child.cleanup(t)
 		t.Fatalf("native relay wait exceeded %v after release/join; want parent-owned exit", currentRelayBackstop)
 		return nil
@@ -304,13 +310,16 @@ func (child *currentRelayChild) cleanup(t *testing.T) {
 	}
 	if child.command != nil && !child.joined {
 		_ = syscall.Kill(-child.command.Process.Pid, syscall.SIGKILL)
+		// Cleanup runs after t.Context is cancelled, so its backstop has no test parent.
+		backstop, release := newNativeBackstop(context.Background(), t, currentRelayBackstop)
+		defer release()
 		select {
 		case waitErr := <-child.done:
 			if waitErr != nil {
 				t.Logf("released native child join = %v", waitErr)
 			}
 			child.joined = true
-		case <-time.After(currentRelayBackstop):
+		case <-backstop.Done():
 			t.Fatalf("released native relay cleanup exceeded %v, want joined child", currentRelayBackstop)
 		}
 	}

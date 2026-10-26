@@ -109,16 +109,20 @@ func TestRelayLayerTriad(t *testing.T) {
 				done <- outcome{result, err}
 			}()
 			var got outcome
+			backstop, release := newFilesystemBackstop(t.Context(), t, relayBackstop)
+			defer release()
 			select {
 			case got = <-done:
-			case <-time.After(relayBackstop):
+			case <-backstop.Done():
 				if ownedEchoInput != nil {
 					_ = ownedEchoInput.Close()
 				}
 				_ = nearOutput.Close()
+				joinBackstop, releaseJoin := newFilesystemBackstop(t.Context(), t, relayBackstop)
+				defer releaseJoin()
 				select {
 				case <-done:
-				case <-time.After(relayBackstop):
+				case <-joinBackstop.Done():
 					t.Fatalf("released Relay wait reached %v, want both owned copies joined", relayBackstop)
 				}
 				t.Fatalf("Relay got no return within %v, want both directions joined", relayBackstop)

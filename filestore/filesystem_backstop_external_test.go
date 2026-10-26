@@ -22,3 +22,18 @@ func newFilesystemBackstop(parent context.Context, t testing.TB, timeout time.Du
 	}
 	return ctx, cancel
 }
+
+// Setup only: a deadline at Unix second one is already terminal, so no timer
+// or scheduler race decides the outcome. Cause is reported by context.Cause.
+func newExpiredDeadline(parent context.Context, t testing.TB, cause error) (context.Context, context.CancelFunc) {
+	t.Helper()
+	expired, err := temporal.InstantFromUnixSeconds(1)
+	if err != nil {
+		t.Fatalf("expired deadline instant = %v, want admitted Unix second", err)
+	}
+	ctx, cancel, err := temporal.WithDeadline(temporal.DeadlineRequest{Parent: parent, Cause: cause, Deadline: expired})
+	if err != nil {
+		t.Fatalf("expired deadline construction = %v, want usable Temporal context", err)
+	}
+	return ctx, cancel
+}
