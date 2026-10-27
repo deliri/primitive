@@ -125,7 +125,7 @@ func (s Server) ListSKUs(ctx context.Context, request ListSKUsRequest, policy ex
 // One aggregate page is explicitly caller bounded; memory grows only to its
 // actual extent, never preallocated from the caller's numerical maximum.
 type pageBuffer struct {
-	bytes.Buffer
+	body    bytes.Buffer
 	maximum int64
 }
 
@@ -133,5 +133,7 @@ func (b *pageBuffer) Write(data []byte) (int, error) {
 	if int64(len(data)) > b.maximum-int64(b.Len()) {
 		return 0, core.ErrCloudBillingResponse
 	}
-	return b.Buffer.Write(data)
+	return b.body.Write(data)
 }
+func (b *pageBuffer) Len() int      { return b.body.Len() }
+func (b *pageBuffer) Bytes() []byte { return b.body.Bytes() }
