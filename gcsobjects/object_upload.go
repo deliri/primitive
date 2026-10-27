@@ -21,6 +21,7 @@ import (
 type objectUploadSource struct {
 	exact    *objectstore.ExactReader
 	digest   *core.DigestWriter
+	cancel   context.CancelFunc
 	want     objectstore.Integrity
 	mu       sync.Mutex
 	length   uint64
@@ -51,23 +52,27 @@ func (r *objectUploadSource) Read(destination []byte) (int, error) {
 	}
 	if _, err := r.digest.Write(destination[:n]); err != nil {
 		r.failure = errors.Join(core.ErrObjectStoreSource, err)
+		r.cancel()
 		return 0, r.failure
 	}
 	r.length += uint64(n)
 	if readErr != nil && readErr != io.EOF {
 		r.failure = errors.Join(core.ErrObjectStoreSource, readErr)
+		r.cancel()
 		return 0, r.failure
 	}
 	if r.length == r.want.Length.Uint64() && !r.verified {
 		if r.length == 0 {
 			if err := r.exact.ProveEmpty(); err != nil {
 				r.failure = err
+				r.cancel()
 				return 0, err
 			}
 		}
 		digest, extent, err := r.digest.Seal()
 		if err != nil || digest != r.want.SHA256 || extent != r.want.Length {
 			r.failure = errors.Join(core.ErrObjectStoreSource, core.ErrObjectStoreIntegrity, err)
+			r.cancel()
 			return 0, r.failure
 		}
 		r.verified = true
@@ -100,7 +105,9 @@ func createGCSObject(ctx context.Context, client *GCSClient, request gcsWrite) (
 	if err != nil {
 		return GCSObjectMetadata{}, err
 	}
-	source := &objectUploadSource{exact: exact, digest: core.NewDigestWriter(), want: request.Integrity}
+	writeContext, cancel := context.WithCancel(ctx)
+	defer cancel()
+	source := &objectUploadSource{exact: exact, digest: core.NewDigestWriter(), want: request.Integrity, cancel: cancel}
 	checksum, err := request.Integrity.CRC32C.Base64()
 	if err != nil {
 		return GCSObjectMetadata{}, err
@@ -109,8 +116,6 @@ func createGCSObject(ctx context.Context, client *GCSClient, request gcsWrite) (
 	if err != nil {
 		return GCSObjectMetadata{}, err
 	}
-	writeContext, cancel := context.WithCancel(ctx)
-	defer cancel()
 	call := client.objects.Insert(request.Bucket.String(), &storageapi.Object{
 		Name: request.Name.String(), ContentType: request.ContentType.String(),
 		CacheControl: request.CacheControl.String(), CustomTime: customTime, Crc32c: checksum,
