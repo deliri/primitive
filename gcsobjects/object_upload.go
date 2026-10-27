@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"sync"
+	"time"
 
 	"cloud.google.com/go/storage"
 	"github.com/deliri/primitive/v2026/core"
@@ -14,10 +15,10 @@ import (
 	storageapi "google.golang.org/api/storage/v1"
 )
 
-// publicMediaSource refuses a false digest before the final source fragment
+// objectUploadSource refuses a false digest before the final source fragment
 // reaches the official SDK. ExactReader owns extent and native source errors;
 // the SDK owns multipart framing, HTTP cancellation and response closure.
-type publicMediaSource struct {
+type objectUploadSource struct {
 	exact    *objectstore.ExactReader
 	digest   *core.DigestWriter
 	want     objectstore.Integrity
@@ -27,7 +28,7 @@ type publicMediaSource struct {
 	failure  error
 }
 
-func (r *publicMediaSource) Read(destination []byte) (int, error) {
+func (r *objectUploadSource) Read(destination []byte) (int, error) {
 	if len(destination) == 0 {
 		return 0, nil
 	}
@@ -74,7 +75,7 @@ func (r *publicMediaSource) Read(destination []byte) (int, error) {
 	return n, readErr
 }
 
-func (r *publicMediaSource) result() (bool, error) {
+func (r *objectUploadSource) result() (bool, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.failure != nil {
@@ -83,10 +84,15 @@ func (r *publicMediaSource) result() (bool, error) {
 	return r.verified, nil
 }
 
-// createPublicGCSMediaObject uses the official raw JSON API because the higher
+// createGCSObject uses the official raw JSON API because the higher
 // Storage Writer projects a malformed ACL in an SDK-owned goroutine and can
-// kill the process. The shared authenticated client and endpoint are unchanged.
-func createPublicGCSMediaObject(ctx context.Context, client *GCSClient, request gcsWrite) (GCSObjectMetadata, error) {
+// kill the process. Only explicit PublicRead selects an object ACL. Stored-file
+// creates preserve provider default/private ACL policy. Authentication and the
+// configured native endpoint are shared with the other object operations.
+func createGCSObject(ctx context.Context, client *GCSClient, request gcsWrite) (GCSObjectMetadata, error) {
+	if err := validateGCSCall(ctx, client); err != nil {
+		return GCSObjectMetadata{}, err
+	}
 	if client.objects == nil {
 		return GCSObjectMetadata{}, core.ErrObjectStoreContract
 	}
@@ -94,7 +100,7 @@ func createPublicGCSMediaObject(ctx context.Context, client *GCSClient, request 
 	if err != nil {
 		return GCSObjectMetadata{}, err
 	}
-	source := &publicMediaSource{exact: exact, digest: core.NewDigestWriter(), want: request.Integrity}
+	source := &objectUploadSource{exact: exact, digest: core.NewDigestWriter(), want: request.Integrity}
 	checksum, err := request.Integrity.CRC32C.Base64()
 	if err != nil {
 		return GCSObjectMetadata{}, err
@@ -105,11 +111,15 @@ func createPublicGCSMediaObject(ctx context.Context, client *GCSClient, request 
 	}
 	writeContext, cancel := context.WithCancel(ctx)
 	defer cancel()
-	response, callErr := client.objects.Insert(request.Bucket.String(), &storageapi.Object{
+	call := client.objects.Insert(request.Bucket.String(), &storageapi.Object{
 		Name: request.Name.String(), ContentType: request.ContentType.String(),
 		CacheControl: request.CacheControl.String(), CustomTime: customTime, Crc32c: checksum,
-	}).Name(request.Name.String()).IfGenerationMatch(0).PredefinedAcl("publicRead").Projection("full").
-		Media(source, googleapi.ChunkSize(0), googleapi.ContentType(request.ContentType.String())).Context(writeContext).Do()
+	}).Name(request.Name.String()).IfGenerationMatch(0).Projection("full").
+		Media(source, googleapi.ChunkSize(0), googleapi.ContentType(request.ContentType.String())).Context(writeContext)
+	if request.PublicRead {
+		call = call.PredefinedAcl("publicRead")
+	}
+	response, callErr := call.Do()
 	verified, sourceErr := source.result()
 	if callErr != nil {
 		return GCSObjectMetadata{}, errors.Join(sourceErr, projectGCSError(callErr, core.ErrObjectStoreDestination))
@@ -117,17 +127,17 @@ func createPublicGCSMediaObject(ctx context.Context, client *GCSClient, request 
 	if sourceErr != nil || !verified {
 		return GCSObjectMetadata{}, errors.Join(core.ErrObjectStoreSource, sourceErr)
 	}
-	metadata, err := publicMediaMetadata(response)
+	metadata, err := uploadedObjectMetadata(response, request.PublicRead)
 	if err != nil {
 		return GCSObjectMetadata{}, err
 	}
-	if metadata.Bucket() != request.Bucket || metadata.Name() != request.Name || metadata.ContentType() != request.ContentType || metadata.Length() != request.Integrity.Length || metadata.CRC32C() != request.Integrity.CRC32C || metadata.CustomTime() != request.CustomTime || metadata.CacheControl() != request.CacheControl {
+	if metadata.Bucket() != request.Bucket || metadata.Name() != request.Name || metadata.ContentType() != request.ContentType || metadata.Length() != request.Integrity.Length || metadata.CRC32C() != request.Integrity.CRC32C || (request.PublicRead && metadata.CustomTime() != request.CustomTime) || metadata.CacheControl() != request.CacheControl {
 		return GCSObjectMetadata{}, core.ErrObjectStoreIntegrity
 	}
 	return metadata, nil
 }
 
-func publicMediaMetadata(response *storageapi.Object) (GCSObjectMetadata, error) {
+func uploadedObjectMetadata(response *storageapi.Object, publicRead bool) (GCSObjectMetadata, error) {
 	if response == nil {
 		return GCSObjectMetadata{}, core.ErrObjectStoreContract
 	}
@@ -138,12 +148,16 @@ func publicMediaMetadata(response *storageapi.Object) (GCSObjectMetadata, error)
 		}
 		acl = append(acl, storage.ACLRule{Entity: storage.ACLEntity(entry.Entity), Role: storage.ACLRole(entry.Role)})
 	}
-	if !gcsACLHasPublicRead(acl) {
+	if publicRead && !gcsACLHasPublicRead(acl) {
 		return GCSObjectMetadata{}, errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreDestination)
 	}
 	created, createdErr := temporal.ParseRFC3339(response.TimeCreated)
 	updated, updatedErr := temporal.ParseRFC3339(response.Updated)
-	custom, customErr := temporal.ParseRFC3339(response.CustomTime)
+	var custom temporal.Instant
+	var customErr error
+	if response.CustomTime != "" || publicRead {
+		custom, customErr = temporal.ParseRFC3339(response.CustomTime)
+	}
 	var checksum core.CRC32C
 	crcErr := checksum.UnmarshalText([]byte(response.Crc32c))
 	if err := errors.Join(createdErr, updatedErr, customErr, crcErr); err != nil {
@@ -151,15 +165,18 @@ func publicMediaMetadata(response *storageapi.Object) (GCSObjectMetadata, error)
 	}
 	createdAt, _ := created.Time()
 	updatedAt, _ := updated.Time()
-	customAt, _ := custom.Time()
+	var customAt time.Time
+	if custom.Validate() == nil {
+		customAt, _ = custom.Time()
+	}
 	crc, _ := checksum.Uint32()
 	length, err := core.NewByteLength(response.Size)
 	if err != nil {
-		return GCSObjectMetadata{}, err
+		return GCSObjectMetadata{}, errors.Join(core.ErrObjectStoreContract, err)
 	}
 	size, err := length.Int64()
 	if err != nil {
-		return GCSObjectMetadata{}, err
+		return GCSObjectMetadata{}, errors.Join(core.ErrObjectStoreContract, err)
 	}
 	return metadataFromGCSAttrs(&storage.ObjectAttrs{
 		Bucket: response.Bucket, Name: response.Name, Generation: response.Generation,
