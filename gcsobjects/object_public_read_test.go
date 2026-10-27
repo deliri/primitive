@@ -23,6 +23,7 @@ func TestGCSMediaUploadObjectScopeLayerTriad(t *testing.T) {
 		body    []byte
 		status  int
 		omitACL bool
+		nullACL bool
 		wantErr error
 	}{
 		{name: "public bytes commit with only an object grant", body: []byte("public legal document\n")},
@@ -31,6 +32,7 @@ func TestGCSMediaUploadObjectScopeLayerTriad(t *testing.T) {
 		{name: "uniform bucket access refuses rather than granting bucket IAM", body: []byte("uniform"), status: http.StatusBadRequest, wantErr: core.ErrObjectStoreDestination},
 		{name: "existing object is a conflict without an access mutation", body: []byte("existing"), status: http.StatusPreconditionFailed, wantErr: core.ErrObjectStoreConflict},
 		{name: "missing public ACL acknowledgement cannot become proof", body: []byte("unconfirmed"), omitACL: true, wantErr: core.ErrObjectStoreDestination},
+		{name: "null upload ACL entry is refused without a process panic", body: []byte("malformed"), nullACL: true, wantErr: core.ErrObjectStoreContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -56,6 +58,9 @@ func TestGCSMediaUploadObjectScopeLayerTriad(t *testing.T) {
 				}
 				if !tc.omitACL {
 					metadata.Acl = []*storageapi.ObjectAccessControl{{Entity: "allUsers", Role: "READER"}}
+				}
+				if tc.nullACL {
+					metadata.Acl = append(metadata.Acl, nil)
 				}
 				writeGCSObjectResponse(gcsObjectResponse{t: t, writer: writer, metadata: metadata, integrity: integrity})
 			}))
