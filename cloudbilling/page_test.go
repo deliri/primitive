@@ -199,6 +199,9 @@ func TestPageIngressRetainsProviderFactsAndCallerBounds(t *testing.T) {
 			data := slices.Clone(base)
 			if tc.mutate != nil {
 				data = tc.mutate(data)
+				if bytes.Equal(data, base) {
+					t.Fatal("requested provider mutation left the source unchanged")
+				}
 			}
 			chosen := limits
 			if tc.changeLimits != nil {
