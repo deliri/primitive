@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -121,7 +120,7 @@ func (c *nativeCosts) stream(ctx context.Context, description *grpc.StreamDesc, 
 }
 func nativeClient(t testing.TB) (*firestore.Client, *nativeCosts) {
 	t.Helper()
-	endpoint := os.Getenv("PRIMITIVE_FIRESTORE_EMULATOR_HOST")
+	endpoint := nativeEmulatorEndpoint
 	if endpoint == "" {
 		t.Fatalf("native emulator endpoint=%q, want configured local proof endpoint", endpoint)
 	}

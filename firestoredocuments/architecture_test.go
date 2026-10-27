@@ -17,6 +17,7 @@ func TestDocumentsProductionStructsHaveCompilerVisibleRoles(t *testing.T) {
 	t.Parallel()
 	var _ protocolFact = GetRequest{}
 	var _ protocolFact = CreateRequest[nativeRecord]{}
+	var _ protocolFact = SetRequest[nativeRecord]{}
 	var _ protocolFact = TransactionRequest{}
 	var _ sealedProjection = Document[nativeRecord]{}
 	var _ sealedProjection = TransactionResult{}
@@ -50,7 +51,7 @@ func TestDocumentsProductionStructsHaveCompilerVisibleRoles(t *testing.T) {
 					continue
 				}
 				switch typed.Name.Name {
-				case "GetRequest", "CreateRequest", "TransactionRequest", "Document", "TransactionResult":
+				case "GetRequest", "CreateRequest", "SetRequest", "TransactionRequest", "Document", "TransactionResult":
 				default:
 					t.Errorf("production struct %s has no compiler-bound data-flow role", typed.Name.Name)
 				}
