@@ -83,6 +83,9 @@ func plunkReceiverName(expression ast.Expr) string {
 	if pointer, ok := expression.(*ast.StarExpr); ok {
 		expression = pointer.X
 	}
+	if generic, ok := expression.(*ast.IndexExpr); ok {
+		expression = generic.X
+	}
 	if identifier, ok := expression.(*ast.Ident); ok {
 		return identifier.Name
 	}
