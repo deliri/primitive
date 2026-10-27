@@ -72,6 +72,19 @@ func TestObserveModuleFileUsesNativeGoWithoutEditingOrResolvingDependencies(t *t
 			if (nativeErr != nil) != row.refusal {
 				t.Fatalf("native Go parityerror%v refusal%t", nativeErr, row.refusal)
 			}
+			if row.refusal {
+				// The refusal carries Go's own diagnostic: the same stderr suffix
+				// an independent native run writes, and Error() names it.
+				var exit CommandExitError
+				var nativeExit *exec.ExitError
+				if !errors.As(err, &exit) || !errors.As(nativeErr, &nativeExit) {
+					t.Fatalf("refusal types=%v/%v", err, nativeErr)
+				}
+				want := nativeExit.Stderr[max(0, len(nativeExit.Stderr)-commandStderrTailBytes):]
+				if len(want) == 0 || !bytes.Equal(exit.Stderr.Data, want) || exit.Stderr.Validate() != nil || !strings.Contains(err.Error(), strings.TrimSpace(string(want))) {
+					t.Fatalf("refusal stderr=%q error=%q, want native suffix %q", exit.Stderr.Data, err, want)
+				}
+			}
 		})
 	}
 }
