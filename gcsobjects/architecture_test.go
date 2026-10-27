@@ -19,7 +19,7 @@ func TestAuthenticatedGCSOperationsAreCompilerSelectedEntryPoints(t *testing.T) 
 
 	set := token.NewFileSet()
 	var got []string
-	for _, path := range []string{"client.go", "download_capability.go", "upload_capability.go", "upload_file_stream.go"} {
+	for _, path := range []string{"client.go", "download_capability.go", "upload_capability.go", "upload_file_stream.go", "object_public_read.go", "public_copy.go"} {
 		file, gotParseErr := parser.ParseFile(set, path, nil, 0)
 		if gotParseErr != nil {
 			t.Fatalf("parser.ParseFile(%s) error = %v, want nil", path, gotParseErr)
@@ -38,6 +38,7 @@ func TestAuthenticatedGCSOperationsAreCompilerSelectedEntryPoints(t *testing.T) 
 		"DeleteGCSObject",
 		"DeleteGCSObjects",
 		"GrantGCSBucketPublicRead",
+		"GrantGCSObjectPublicRead",
 		"IssueGCSDownloadCapability",
 		"IssueGCSUploadCapability",
 		"ListGCSObjects",
@@ -51,6 +52,7 @@ func TestAuthenticatedGCSOperationsAreCompilerSelectedEntryPoints(t *testing.T) 
 		"UploadFile",
 		"UploadFileStream",
 		"UploadMedia",
+		"VerifyPublicGCSObject",
 	}
 	if !slices.Equal(got, want) {
 		t.Fatalf(
@@ -127,12 +129,12 @@ func productionStructRole(name string) (string, bool) {
 	case "GCSMediaUpload", "GCSFileUpload", "GCSFileStreamUpload", "GCSReadRequest", "GCSListRequest", "GCSListedReadRequest", "GCSUploadObservationRequest", "GCSDeleteRequest",
 		"GCSDeleteObjectRequest", "GCSBucketCreateRequest", "GCSBucketPublicReadRequest", "GCSRootPrefixRequest",
 		"GCSChildPrefixRequest", "GCSObjectInPrefixRequest", "GCSUploadCapabilityRequest",
-		"GCSDownloadCapabilityRequest", "GCSObjectLookupRequest":
+		"GCSDownloadCapabilityRequest", "GCSObjectLookupRequest", "GCSObjectPublicReadRequest", "GCSPublicCopyRequest":
 		return "authenticated provider execution ingress", true
 	case "gcsWrite":
 		return "internal owner-only write projection", true
 	case "GCSObjectMetadata", "GCSReadResult", "VerifiedGCSUpload", "GCSFileStreamResult", "GCSDeleteResult", "GCSDeleteObjectResult", "GCSBucketProvisioning",
-		"GCSBucketPublicReadGrant":
+		"GCSBucketPublicReadGrant", "GCSObjectPublicReadGrant":
 		return "sealed authenticated provider evidence", true
 	case "gcsObjectIdentity", "gcsObjectProperties", "gcsObjectTimes", "gcsReadSession":
 		return "internal authenticated provider metadata projection", true

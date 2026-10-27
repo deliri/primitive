@@ -180,6 +180,9 @@ func (p *gcsUploadProvider) ServeHTTP(writer http.ResponseWriter, incoming *http
 		writer.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	if incoming.URL.Query().Get("predefinedAcl") == "publicRead" {
+		metadata.Acl = []*storageapi.ObjectAccessControl{{Entity: "allUsers", Role: "READER"}}
+	}
 	switch p.disposition {
 	case gcsProviderConflict:
 		writeGoogleAPIError(writer, http.StatusPreconditionFailed)

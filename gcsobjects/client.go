@@ -516,6 +516,7 @@ type gcsWrite struct {
 	CacheControl GCSCacheControl
 	Integrity    objectstore.Integrity
 	CustomTime   temporal.Instant
+	PublicRead   bool
 }
 
 // GCSReadRequest is exact authenticated object egress.
@@ -677,21 +678,19 @@ func (r GCSDeleteRequest) Validate() error {
 	return nil
 }
 
-// UploadMedia confirms unauthenticated object read on the exact destination
-// bucket, then streams one create-only object a browser or CDN will fetch. The
-// upload never succeeds merely because its metadata looks browser-compatible:
-// the provider IAM policy must first prove that the resulting address is
-// publicly readable.
+// UploadMedia creates one public-read object without changing bucket IAM or
+// any existing object's access. The object ACL and bytes commit together under
+// the same create-only precondition. Uniform-access or public-access-prevention
+// policy that refuses this object-level grant remains a provider refusal.
 func UploadMedia(ctx context.Context, client *GCSClient, request GCSMediaUpload) (GCSObjectMetadata, error) {
 	if err := request.Validate(); err != nil {
 		return GCSObjectMetadata{}, err
 	}
-	if _, err := GrantGCSBucketPublicRead(ctx, client, GCSBucketPublicReadRequest{
-		Bucket: request.Bucket,
-	}); err != nil {
-		return GCSObjectMetadata{}, err
-	}
-	return createGCSObject(ctx, client, gcsWrite(request))
+	return createGCSObject(ctx, client, gcsWrite{
+		Source: request.Source, Bucket: request.Bucket, Name: request.Name,
+		ContentType: request.ContentType, CacheControl: request.CacheControl,
+		Integrity: request.Integrity, CustomTime: request.CustomTime, PublicRead: true,
+	})
 }
 
 // UploadFile streams one create-only integrity-bound blob the system stores
@@ -723,6 +722,9 @@ func createGCSObject(ctx context.Context, client *GCSClient, request gcsWrite) (
 	writeContext, cancel := context.WithCancel(ctx)
 	defer cancel()
 	writer := object.NewWriter(writeContext)
+	if request.PublicRead {
+		writer.PredefinedACL = "publicRead"
+	}
 	writer.ContentType = request.ContentType.String()
 	writer.CacheControl = request.CacheControl.String()
 	customTime, err := request.CustomTime.Time()
@@ -742,7 +744,11 @@ func createGCSObject(ctx context.Context, client *GCSClient, request gcsWrite) (
 	if err := writer.Close(); err != nil {
 		return GCSObjectMetadata{}, projectGCSError(err, core.ErrObjectStoreDestination)
 	}
-	return metadataFromGCSAttrs(writer.Attrs())
+	attributes := writer.Attrs()
+	if request.PublicRead && (attributes == nil || !gcsACLHasPublicRead(attributes.ACL)) {
+		return GCSObjectMetadata{}, errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreDestination)
+	}
+	return metadataFromGCSAttrs(attributes)
 }
 
 func streamGCSWrite(writer *storage.Writer, cancel context.CancelFunc, request gcsWrite) error {
