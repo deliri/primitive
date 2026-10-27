@@ -106,11 +106,11 @@ func (v SSAUnitView) SameStorage(ctx context.Context, r SSAStorageRequest) (SSAR
 			return SSARelationObservation{}, pc.ErrGoToolchainContract
 		}
 	}
-	left, err := v.storedPointer(ctx, nativeSSARepresentation(r.Left))
+	left, err := v.storedValue(ctx, nativeSSARepresentation(r.Left))
 	if err != nil {
 		return SSARelationObservation{}, err
 	}
-	right, err := v.storedPointer(ctx, nativeSSARepresentation(r.Right))
+	right, err := v.storedValue(ctx, nativeSSARepresentation(r.Right))
 	if err != nil {
 		return SSARelationObservation{}, err
 	}

@@ -210,6 +210,9 @@ func methodFieldErrorObservedOperand(ctx context.Context, expression ast.Expr, q
 	if err != nil || value == nil || address {
 		return false, err
 	}
+	if _, function := value.(*ssa.Function); function {
+		return false, nil
+	}
 	for instruction, err := range query.View.Instructions(ctx, SSAInstructionRequest{Function: query.Frame, Extent: SSAInstructionExtentFunction}) {
 		if err != nil {
 			return false, err

@@ -13,6 +13,8 @@ func TestMethodFieldIteratorErrorPreservesYieldCoordinateAndControl(t *testing.T
 		name, sequence, callback, producer, consumer, result string
 		want                                                 bool
 	}{
+		{name: "unrelated_method_before_captured_range", sequence: `iter.Seq2[error,error]`, callback: `func(error,error)bool`, producer: `refuse:=func(err error){yield(err,bad)};refuse(p.A.Other());rows:=func(yield func(error)bool){};for err:=range rows{refuse(err)}`, consumer: `for first,second:=range p.items(){_=second;if first!=nil{return first}};return nil`},
+		{name: "captureless_sibling_call_cannot_be_callback_operand", sequence: `iter.Seq2[error,error]`, callback: `func(error,error)bool`, producer: `refuse:=func(err error){yield(bad,err)};refuse(p.A.Inspect());rows:=func(yield func(error)bool){};for err:=range rows{refuse(err)}`, consumer: `for first,second:=range p.items(){_=first;if second!=nil{return second}};return nil`, want: true},
 		{name: "direct_error_before_range", producer: `yield(0,p.B.Inspect())`, consumer: `if err:=p.A.Inspect();err!=nil{return err};for _,err:=range p.items(){if err!=nil{return err}};return nil`, want: true},
 		{name: "deferred_named_result_erasure", producer: `yield(0,p.A.Inspect())`, consumer: `defer func(){result=nil}();for _,err:=range p.items(){if err!=nil{return err}};return nil`, result: `(result error)`},
 		{name: "single_error", sequence: `iter.Seq[error]`, callback: `func(error)bool`, producer: `yield(p.A.Inspect())`, consumer: `for err:=range p.items(){if err!=nil{return err}};return nil`, want: true},
@@ -49,6 +51,7 @@ const bad refusal=1
 func(refusal)Error()string{return "refusal"}
 type Child struct{Count int}
 func(c Child)Inspect()error{if c.Count<0{return bad};return nil}
+func(c Child)Other()error{return bad}
 type Parent struct{A,B Child}
 func(p Parent)items()` + sequence + `{return func(yield ` + callback + `){` + row.producer + `}}
 func(p Parent)Check()` + result + `{` + row.consumer + `}`

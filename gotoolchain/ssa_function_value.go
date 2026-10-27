@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/temporal"
+	"go/token"
 	"go/types"
 	"golang.org/x/tools/go/ssa"
 )
@@ -78,6 +79,21 @@ func (v SSAUnitView) sourceFunctionValue(ctx context.Context, original ssa.Value
 			if err = v.functionArgumentBefore(ctx, value, before); err != nil {
 				return out, nil, err
 			}
+		case *ssa.UnOp:
+			if operand.Op != token.MUL {
+				return out, nil, nil
+			}
+			if _, function := operand.Type().Underlying().(*types.Signature); !function {
+				return out, nil, nil
+			}
+			stored, queryErr := v.storedValue(ctx, operand)
+			if queryErr != nil {
+				return out, nil, queryErr
+			}
+			if stored == operand {
+				return out, nil, nil
+			}
+			before, value = operand, stored
 		case *ssa.ChangeType:
 			if err = v.functionArgumentBefore(ctx, operand.X, operand); err != nil {
 				return out, nil, err

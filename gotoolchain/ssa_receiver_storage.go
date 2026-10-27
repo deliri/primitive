@@ -142,7 +142,7 @@ func (v SSAUnitView) callReceiverStorage(ctx context.Context, call *ssa.Call) (s
 	if !v.ownsStorageValue(operand) {
 		return ssaReceiverStorage{}, false, core.ErrGoToolchainContract
 	}
-	value, err := v.storedPointer(ctx, nativeSSARepresentation(operand))
+	value, err := v.storedValue(ctx, nativeSSARepresentation(operand))
 	if err != nil {
 		return ssaReceiverStorage{}, false, err
 	}

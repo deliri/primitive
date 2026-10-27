@@ -16,6 +16,7 @@ func TestMethodFieldErrorPropagationBorrowsConsumedIteratorCause(t *testing.T) {
 		name, iterator, consumer string
 		want                     bool
 	}{
+		{name: "nested range captures refusal helper", iterator: `refuse:=func(err error){yield(0,err)};if err:=p.A.Inspect();err!=nil{refuse(err);return};rows:=func(yield func(int,error)bool){};for _,err:=range rows{if err!=nil{refuse(err);return}}`, consumer: `for _,err:=range p.items(){if err!=nil{return err}};return nil`, want: true},
 		{name: "consumed selected cause", iterator: `yield(0,p.A.Inspect())`, consumer: `for _,err:=range p.items(){if err!=nil{return err}};return nil`, want: true},
 		{name: "consumed helper forwarded cause", iterator: `refuse:=func(err error){yield(0,err)};if err:=p.A.Inspect();err!=nil{refuse(err);return}`, consumer: `for _,err:=range p.items(){if err!=nil{return err}};return nil`, want: true},
 		{name: "consumed method expression", iterator: `yield(0,p.A.Inspect())`, consumer: `for _,err:=range Parent.items(p){if err!=nil{return err}};return nil`, want: true},

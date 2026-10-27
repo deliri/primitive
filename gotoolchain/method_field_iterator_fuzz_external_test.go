@@ -37,7 +37,7 @@ func FuzzMethodFieldIteratorErrorConservesCoordinateAndCause(f *testing.F) {
 			if !producerFirst {
 				left, right = right, left
 			}
-			producer = "refuse:=func(err error){yield(" + left + "," + right + ")};refuse(" + call + ")"
+			producer = "refuse:=func(err error){yield(" + left + "," + right + ")};refuse(" + call + ");rows:=func(yield func(error)bool){};for err:=range rows{refuse(err)}"
 		}
 		chosen := "first"
 		if !consumerFirst {

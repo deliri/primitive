@@ -95,14 +95,16 @@ func nativeCaptureCell(address ssa.Value) *ssa.Alloc {
 	}
 }
 
-// Go explicitly stores the pointer once before every native read or capture.
+// Go explicitly stores the value once before every native read or capture.
 // Writes through a child, an escaped cell and multiple stores remain opaque.
-func (v SSAUnitView) storedPointer(ctx context.Context, value ssa.Value) (ssa.Value, error) {
+func (v SSAUnitView) storedValue(ctx context.Context, value ssa.Value) (ssa.Value, error) {
 	load, ok := value.(*ssa.UnOp)
 	if !ok || load.Op != token.MUL {
 		return value, nil
 	}
-	if _, pointer := value.Type().Underlying().(*types.Pointer); !pointer {
+	switch value.Type().Underlying().(type) {
+	case *types.Pointer, *types.Signature:
+	default:
 		return value, nil
 	}
 	cell := nativeCaptureCell(load.X)
@@ -125,10 +127,17 @@ func (v SSAUnitView) storedPointer(ctx context.Context, value ssa.Value) (ssa.Va
 		return value, nil
 	}
 	stored := nativeSSARepresentation(store.Val)
+	if !nativeReceiverValuePresent(stored) {
+		return nil, pc.ErrGoToolchainOutput
+	}
 	if _, loaded := stored.(*ssa.UnOp); loaded {
 		return value, nil
 	}
-	if !v.ownsStorageValue(stored) {
+	if _, function := stored.Type().Underlying().(*types.Signature); function {
+		if err := v.functionArgumentBefore(ctx, stored, store); err != nil {
+			return nil, err
+		}
+	} else if !v.ownsStorageValue(stored) {
 		return nil, pc.ErrGoToolchainContract
 	}
 	for _, instruction := range *cell.Referrers() {

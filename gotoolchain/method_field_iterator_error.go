@@ -238,7 +238,7 @@ func methodFieldYieldRegion(ctx context.Context, reference errorIdentityQuery, r
 // capture. Names, unused closures and a neighboring callback lend no authority.
 func methodFieldYieldCallCarries(ctx context.Context, call *ssa.Call, reference errorIdentityQuery, yield ssa.Value, slot int) (bool, error) {
 	common := call.Common()
-	if common.Value.Parent() == reference.Frame {
+	if _, static := common.Value.(*ssa.Function); !static && common.Value.Parent() == reference.Frame {
 		matched, err := reference.View.ArgumentOperand(ctx, SSAArgumentOperandRequest{Function: reference.Frame, Value: common.Value, Argument: yield})
 		if err != nil {
 			return false, err
