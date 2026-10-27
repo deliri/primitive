@@ -754,13 +754,6 @@ func UploadFile(ctx context.Context, client *GCSClient, request GCSFileUpload) (
 	})
 }
 
-func projectGCSAbortError(err error) error {
-	if err == nil {
-		return nil
-	}
-	return projectGCSError(err, core.ErrObjectStoreDestination)
-}
-
 type gcsReadSession struct {
 	reader    *storage.Reader
 	metadata  GCSObjectMetadata
