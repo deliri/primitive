@@ -3,16 +3,13 @@ package exchange
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"errors"
 	"io"
-	"net"
 	"net/http"
 	"testing"
 	"time"
 
 	"github.com/deliri/primitive/v2026/core"
-	"golang.org/x/net/http2"
 )
 
 func TestServerRuntimeHTTP2PolicyLayerTriad(t *testing.T) {
@@ -99,9 +96,10 @@ func TestServerRuntimeNativeHTTP2OwnsConnectionExit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("runtime.Address() error = %v, want nil", err)
 	}
-	transport := &http2.Transport{AllowHTTP: true, DialTLSContext: func(ctx context.Context, network, address string, _ *tls.Config) (net.Conn, error) {
-		return (&net.Dialer{}).DialContext(ctx, network, address)
-	}}
+	protocols := new(http.Protocols)
+	protocols.SetHTTP1(false)
+	protocols.SetUnencryptedHTTP2(true)
+	transport := &http.Transport{Protocols: protocols}
 	t.Cleanup(transport.CloseIdleConnections)
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://"+bound.String()+"/", nil)
 	if err != nil {

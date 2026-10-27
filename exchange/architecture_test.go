@@ -474,6 +474,9 @@ func classifiedStructNames(t *testing.T) []string {
 		producedExtentWriter:           internalFlow[producedExtentWriter]{},
 		observedStandardResponseWriter: capabilityWrapper[observedStandardResponseWriter]{},
 		observedStreamWriter:           capabilityWrapper[observedStreamWriter]{},
+		multipartOwnedSource:           internalFlow[multipartOwnedSource]{},
+		multipartLifetime:              internalFlow[multipartLifetime]{},
+		multipartSourceReader:          capabilityWrapper[multipartSourceReader]{},
 	}
 	got, err := boundInventoryStructNames(reflect.TypeOf(inventory))
 	if err != nil {
