@@ -114,27 +114,32 @@ func FuzzReceiverValidationCannotEscapeDeclaringSymbol(f *testing.F) {
 	f.Add(uint8(1), "Unicode_λ")
 	f.Add(uint8(2), "\x00")
 	f.Fuzz(func(t *testing.T, slot uint8, suffix string) {
-		typ := reflect.TypeFor[temporal.NumericInstant]()
-		baseline := ownershipSymbol(t, typ.PkgPath(), typ.Name(), "Instant")
-		before, err := baseline.ValidatesReceiver()
-		if err != nil || !before {
-			t.Fatalf("baseline = %t/%v, want true/nil", before, err)
-		}
-		changed := baseline
-		switch slot % 3 {
-		case 0:
-			changed.ImportPath, err = gomodule.ParseImportPath(typ.PkgPath() + "X" + suffix)
-		case 1:
-			var name SymbolName
-			name, err = ParseSymbolName(typ.Name() + "X" + suffix)
-			changed.Receiver = &name
-		case 2:
-			changed.Selector, err = ParseSymbolName("InstantX" + suffix)
-		}
-		parseErr := err
-		got, err := changed.ValidatesReceiver()
-		if got || (parseErr != nil && !errors.Is(err, core.ErrCapabilitiesContract)) || (parseErr == nil && err != nil) {
-			t.Fatalf("single-symbol mutation = %t/%v after ingress %v, want no grant and preserved admission state", got, err, parseErr)
+		temporalType := reflect.TypeFor[temporal.NumericInstant]()
+		countType := reflect.TypeFor[core.ByteCount]()
+		for _, baseline := range [...]StandardSymbol{
+			ownershipSymbol(t, temporalType.PkgPath(), temporalType.Name(), "Instant"),
+			ownershipSymbol(t, countType.PkgPath(), countType.Name(), "Uint64"),
+		} {
+			before, err := baseline.ValidatesReceiver()
+			if err != nil || !before {
+				t.Fatalf("baseline = %t/%v, want true/nil", before, err)
+			}
+			changed := baseline
+			switch slot % 3 {
+			case 0:
+				changed.ImportPath, err = gomodule.ParseImportPath(baseline.ImportPath.String() + "X" + suffix)
+			case 1:
+				var name SymbolName
+				name, err = ParseSymbolName(baseline.Receiver.String() + "X" + suffix)
+				changed.Receiver = &name
+			case 2:
+				changed.Selector, err = ParseSymbolName(baseline.Selector.String() + "X" + suffix)
+			}
+			parseErr := err
+			got, err := changed.ValidatesReceiver()
+			if got || (parseErr != nil && !errors.Is(err, core.ErrCapabilitiesContract)) || (parseErr == nil && err != nil) {
+				t.Fatalf("single-symbol mutation = %t/%v after ingress %v, want no grant and preserved admission state", got, err, parseErr)
+			}
 		}
 	})
 }
