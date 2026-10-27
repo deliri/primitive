@@ -74,16 +74,13 @@ func (r *publicMediaSource) Read(destination []byte) (int, error) {
 	return n, readErr
 }
 
-func (r *publicMediaSource) result() error {
+func (r *publicMediaSource) result() (bool, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.failure != nil {
-		return r.failure
+		return false, r.failure
 	}
-	if !r.verified {
-		return core.ErrObjectStoreSource
-	}
-	return nil
+	return r.verified, nil
 }
 
 // createPublicGCSMediaObject uses the official raw JSON API because the higher
@@ -113,8 +110,12 @@ func createPublicGCSMediaObject(ctx context.Context, client *GCSClient, request 
 		CacheControl: request.CacheControl.String(), CustomTime: customTime, Crc32c: checksum,
 	}).Name(request.Name.String()).IfGenerationMatch(0).PredefinedAcl("publicRead").Projection("full").
 		Media(source, googleapi.ChunkSize(0), googleapi.ContentType(request.ContentType.String())).Context(writeContext).Do()
-	if sourceErr := source.result(); callErr != nil || sourceErr != nil {
+	verified, sourceErr := source.result()
+	if callErr != nil {
 		return GCSObjectMetadata{}, errors.Join(sourceErr, projectGCSError(callErr, core.ErrObjectStoreDestination))
+	}
+	if sourceErr != nil || !verified {
+		return GCSObjectMetadata{}, errors.Join(core.ErrObjectStoreSource, sourceErr)
 	}
 	metadata, err := publicMediaMetadata(response)
 	if err != nil {
