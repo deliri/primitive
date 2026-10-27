@@ -250,7 +250,7 @@ func FuzzSendStatusStrictWire(f *testing.F) {
 	}
 	f.Fuzz(func(t *testing.T, raw []byte) {
 		value := SendStatusScheduled
-		err := json.Unmarshal(raw, &value)
+		err := value.UnmarshalJSON(raw)
 		if err != nil {
 			if value != SendStatusScheduled {
 				t.Fatal("refused status mutated destination")
