@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"slices"
 	"strconv"
+	"strings"
 	"unicode/utf8"
 
 	"cloud.google.com/go/iam"
@@ -18,20 +19,24 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
 	"github.com/deliri/primitive/v2026/filestore"
+	"github.com/deliri/primitive/v2026/hostfacts"
 	"github.com/deliri/primitive/v2026/objectstore"
+	"github.com/deliri/primitive/v2026/process"
 	"github.com/deliri/primitive/v2026/temporal"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/googleapi"
 	"google.golang.org/api/iamcredentials/v1"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
+	storageapi "google.golang.org/api/storage/v1"
 	htransport "google.golang.org/api/transport/http"
 )
 
 // GCSClient is an authenticated capability over the official Cloud Storage SDK.
 type GCSClient struct {
-	client *storage.Client
-	pool   *http.Transport
+	client  *storage.Client
+	objects *storageapi.ObjectsService
+	pool    *http.Transport
 }
 
 // NewGCSClient constructs an authenticated production Cloud Storage client.
@@ -43,13 +48,23 @@ func NewGCSClient(ctx context.Context, config GCSClientConfig) (*GCSClient, erro
 	if err != nil {
 		return nil, err
 	}
-	client, err := storage.NewClient(ctx, options...)
+	options, err = gcsObjectEndpointOptions(options)
+	if err != nil {
+		pool.CloseIdleConnections()
+		return nil, err
+	}
+	client, err := storage.NewClient(ctx, append(slices.Clone(options), storage.WithJSONReads())...)
 	if err != nil {
 		pool.CloseIdleConnections()
 		return nil, errors.Join(core.ErrObjectStoreContract, err)
 	}
 	client.SetRetry(storage.WithPolicy(storage.RetryNever))
-	return &GCSClient{client: client, pool: pool}, nil
+	jsonClient, err := storageapi.NewService(ctx, options...)
+	if err != nil {
+		pool.CloseIdleConnections()
+		return nil, errors.Join(core.ErrObjectStoreContract, err, client.Close())
+	}
+	return &GCSClient{client: client, objects: jsonClient.Objects, pool: pool}, nil
 }
 
 const (
@@ -160,7 +175,35 @@ func gcsClientOptions(ctx context.Context, config GCSClientConfig) ([]option.Cli
 		pool.CloseIdleConnections()
 		return nil, nil, errors.Join(core.ErrObjectStoreContract, err)
 	}
-	return []option.ClientOption{clientOption, storage.WithJSONReads()}, pool, nil
+	return []option.ClientOption{clientOption}, pool, nil
+}
+
+// Resolve the existing Storage SDK emulator selector once for both official
+// Storage clients. IAM Credentials retains its own endpoint and shared auth.
+func gcsObjectEndpointOptions(options []option.ClientOption) ([]option.ClientOption, error) {
+	name, err := process.NewEnvironmentName("STORAGE_EMULATOR_HOST")
+	if err != nil {
+		return nil, err
+	}
+	observed, err := hostfacts.LookupAmbientEnvironment(name)
+	if err != nil {
+		return nil, err
+	}
+	if observed.Presence == process.EnvironmentPresenceAbsent {
+		return options, nil
+	}
+	host, err := observed.Value.Value()
+	if err != nil || host == "" {
+		return options, err
+	}
+	if !strings.Contains(host, "://") {
+		host = "http://" + host
+	}
+	endpoint, err := core.ParseHTTPEndpoint(strings.TrimSuffix(host, "/") + "/storage/v1/")
+	if err != nil {
+		return nil, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	return append(options, option.WithEndpoint(endpoint.String())), nil
 }
 
 // Google authentication consumes complete credential JSON. The provider adapter
@@ -261,6 +304,7 @@ func (c *GCSClient) Close() error {
 		c.pool = nil
 	}
 	c.client = nil
+	c.objects = nil
 	if err != nil {
 		return errors.Join(core.ErrObjectStoreContract, err)
 	}
@@ -716,15 +760,15 @@ func createGCSObject(ctx context.Context, client *GCSClient, request gcsWrite) (
 	if err := validateGCSCall(ctx, client); err != nil {
 		return GCSObjectMetadata{}, err
 	}
+	if request.PublicRead {
+		return createPublicGCSMediaObject(ctx, client, request)
+	}
 	object := client.client.Bucket(request.Bucket.String()).Object(request.Name.String()).If(
 		storage.Conditions{DoesNotExist: true},
 	)
 	writeContext, cancel := context.WithCancel(ctx)
 	defer cancel()
 	writer := object.NewWriter(writeContext)
-	if request.PublicRead {
-		writer.PredefinedACL = "publicRead"
-	}
 	writer.ContentType = request.ContentType.String()
 	writer.CacheControl = request.CacheControl.String()
 	customTime, err := request.CustomTime.Time()
@@ -744,11 +788,7 @@ func createGCSObject(ctx context.Context, client *GCSClient, request gcsWrite) (
 	if err := writer.Close(); err != nil {
 		return GCSObjectMetadata{}, projectGCSError(err, core.ErrObjectStoreDestination)
 	}
-	attributes := writer.Attrs()
-	if request.PublicRead && (attributes == nil || !gcsACLHasPublicRead(attributes.ACL)) {
-		return GCSObjectMetadata{}, errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreDestination)
-	}
-	return metadataFromGCSAttrs(attributes)
+	return metadataFromGCSAttrs(writer.Attrs())
 }
 
 func streamGCSWrite(writer *storage.Writer, cancel context.CancelFunc, request gcsWrite) error {

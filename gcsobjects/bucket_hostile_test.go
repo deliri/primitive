@@ -374,11 +374,10 @@ func bucketTestClient(t testing.TB, handler http.Handler) *GCSClient {
 
 	server := httptest.NewServer(handler)
 	t.Cleanup(server.Close)
-	client, err := storage.NewClient(
-		context.Background(), option.WithEndpoint(server.URL+"/storage/v1/"),
+	options := []option.ClientOption{option.WithEndpoint(server.URL + "/storage/v1/"),
 		option.WithoutAuthentication(), option.WithHTTPClient(boundedGCSTestHTTPClient(t, server.Client())),
-		storage.WithJSONReads(),
-	)
+	}
+	client, err := storage.NewClient(context.Background(), append(options, storage.WithJSONReads())...)
 	if err != nil {
 		t.Fatalf("storage.NewClient(test provider) error = %v, want nil", err)
 	}
@@ -387,7 +386,11 @@ func bucketTestClient(t testing.TB, handler http.Handler) *GCSClient {
 			t.Errorf("storage.Client.Close() error = %v, want nil", err)
 		}
 	})
-	return &GCSClient{client: client}
+	jsonClient, err := storageapi.NewService(context.Background(), options...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return &GCSClient{client: client, objects: jsonClient.Objects}
 }
 
 func boundedGCSTestHTTPClient(t testing.TB, client *http.Client) *http.Client {
