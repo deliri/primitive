@@ -152,14 +152,20 @@ func methodFieldErrorCovers(ctx context.Context, query methodFieldErrorQuery) (b
 				continue
 			}
 			receiver := methodFieldErrorReceiver(value, query)
-			if receiver != nil && methodFieldErrorOperand(receiver, query) {
-				return true, nil
+			if receiver != nil {
+				if covered, err := methodFieldErrorObservedOperand(ctx, receiver, query); covered || err != nil {
+					return covered, err
+				}
 			}
 			if covered, err := methodFieldErrorHelperCovers(ctx, value, query); covered || err != nil {
 				return covered, err
 			}
 		case *ast.RangeStmt:
-			if !methodFieldErrorOperand(value.X, query) || value.Value == nil {
+			covered, operandErr := methodFieldErrorObservedOperand(ctx, value.X, query)
+			if operandErr != nil {
+				return false, operandErr
+			}
+			if !covered || value.Value == nil {
 				continue
 			}
 			variable := methodFieldVariable(value.Value, query.Types)
@@ -168,6 +174,73 @@ func methodFieldErrorCovers(ctx context.Context, query methodFieldErrorQuery) (b
 					return covered, err
 				}
 			}
+		}
+	}
+	return false, nil
+}
+
+// Go's source references lend the exact loaded value of a field. Copies keep
+// that value; a whole-record copy may also have a compiler home, whose existing
+// stability query rejects intervening writes and escapes. No alias history is
+// reconstructed and no source or instruction population is retained.
+func methodFieldErrorObservedOperand(ctx context.Context, expression ast.Expr, query methodFieldErrorQuery) (bool, error) {
+	if methodFieldErrorOperand(expression, query) {
+		return true, nil
+	}
+	if query.Frame == nil || query.Frame.Pkg != query.View.Package {
+		return false, nil
+	}
+	value, address, err := sourceExpressionValue(query.Frame, expression)
+	if err != nil || value == nil || address {
+		return false, err
+	}
+	for instruction, err := range query.View.Instructions(ctx, SSAInstructionRequest{Function: query.Frame, Extent: SSAInstructionExtentFunction}) {
+		if err != nil {
+			return false, err
+		}
+		reference, ok := instruction.(*ssa.DebugRef)
+		if !ok || reference.IsAddr || reference.Expr == nil {
+			continue
+		}
+		if methodFieldErrorOperand(reference.Expr, query) {
+			observation, err := query.View.ArgumentOperand(ctx, SSAArgumentOperandRequest{Function: query.Frame, Value: value, Argument: reference.X})
+			if err != nil || observation.Proven {
+				return observation.Proven, err
+			}
+		}
+		if query.Field != nil && methodFieldOperand(reference.Expr, query.Variable, query.Types) {
+			if covered, err := methodFieldErrorStoredRecord(ctx, value, reference.X, query); covered || err != nil {
+				return covered, err
+			}
+		}
+	}
+	return false, nil
+}
+
+func methodFieldErrorStoredRecord(ctx context.Context, value, record ssa.Value, query methodFieldErrorQuery) (bool, error) {
+	read, ok := value.(ssa.Instruction)
+	if !ok {
+		return false, nil
+	}
+	for instruction, err := range query.View.Instructions(ctx, SSAInstructionRequest{Function: query.Frame, Extent: SSAInstructionExtentFunction}) {
+		if err != nil {
+			return false, err
+		}
+		store, ok := instruction.(*ssa.Store)
+		if !ok || store.Val != record {
+			continue
+		}
+		home, ok := store.Addr.(*ssa.Alloc)
+		if !ok || home.Heap {
+			continue
+		}
+		field := [1]int{query.Index}
+		observation, err := query.View.ArgumentOperand(ctx, SSAArgumentOperandRequest{Function: query.Frame, Value: value, Argument: home, Path: field[:]})
+		if err != nil {
+			return false, err
+		}
+		if observation.Proven {
+			return receiverGateHomeStable(ctx, query.View, home, store, read)
 		}
 	}
 	return false, nil
@@ -197,7 +270,12 @@ func methodFieldErrorBind(ctx context.Context, expression ast.Expr, query method
 			yield(next, nil) // A whole-record conversion preserves its native field slot.
 			return
 		}
-		if methodFieldErrorOperand(expression, query) {
+		covered, operandErr := methodFieldErrorObservedOperand(ctx, expression, query)
+		if operandErr != nil {
+			yield(methodFieldErrorQuery{}, operandErr)
+			return
+		}
+		if covered {
 			next.Field, next.Index = nil, 0
 			yield(next, nil)
 			return
@@ -237,7 +315,12 @@ func methodFieldErrorBind(ctx context.Context, expression ast.Expr, query method
 				yield(methodFieldErrorQuery{}, err)
 				return
 			}
-			if !methodFieldErrorOperand(value, query) {
+			covered, operandErr := methodFieldErrorObservedOperand(ctx, value, query)
+			if operandErr != nil {
+				yield(methodFieldErrorQuery{}, operandErr)
+				return
+			}
+			if !covered {
 				continue
 			}
 			next.Field, next.Index = record.Field(index), index

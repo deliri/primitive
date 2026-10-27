@@ -3,6 +3,7 @@ package gotoolchain_test
 import (
 	"context"
 	"go/types"
+	"strings"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/gotoolchain"
@@ -16,6 +17,22 @@ func TestMethodFieldErrorPropagationPreservesNativeTargetAndField(t *testing.T) 
 		want                                bool
 	}{
 		{name: "direct selected child", body: `return v.A.Inspect()`, want: true},
+		{name: "copied selected child", body: `item:=v.A;return item.Inspect()`, want: true},
+		{name: "chained selected child copies", body: `first:=v.A;second:=first;return second.Inspect()`, want: true},
+		{name: "copied neighbor cannot lend field", body: `item:=v.B;return item.Inspect()`},
+		{name: "replaced child copy loses origin", body: `item:=v.A;item=Child{};return item.Inspect()`},
+		{name: "copy from shadowed parent loses origin", body: `{v:=Parent{};item:=v.A;return item.Inspect()}`},
+		{name: "copied child still must preserve cause", body: `item:=v.A;_=item.Inspect();return nil`},
+		{name: "copied child still requires selected method", body: `item:=v.A;return item.Other()`},
+		{name: "copied child helper preserves origin", declarations: `func inspect(x Child)error{return x.Inspect()}`, body: `item:=v.A;return inspect(item)`, want: true},
+		{name: "copied entire parent retains field", body: `other:=v;return other.A.Inspect()`, want: true},
+		{name: "copied entire parent neighbor cannot lend field", body: `other:=v;return other.B.Inspect()`},
+		{name: "copied entire parent replacement loses field", body: `other:=v;other.A=Child{};return other.A.Inspect()`},
+		{name: "copied entire parent escape is unproven", declarations: `func opaque(*Parent){}`, body: `other:=v;opaque(&other);return other.A.Inspect()`},
+		{name: "copied parent load before replacement keeps snapshot", body: `other:=v;item:=other.A;other.A=Child{};return item.Inspect()`, want: true},
+		{name: "copied neighbor parent is not receiver", body: `other:=Parent{};return other.A.Inspect()`},
+		{name: "copy made before replacement retains loaded value", body: `item:=v.A;v.A=Child{};return item.Inspect()`, want: true},
+		{name: "conditional replacement supplies no origin proof", body: `item:=v.A;if v.B.Count>0{item=v.B};return item.Inspect()`},
 		{name: "unread child", body: `return nil`},
 		{name: "neighbor cannot lend target", body: `return v.B.Inspect()`},
 		{name: "last field keeps its own slot", body: `return v.B.Inspect()`, field: 1, want: true},
@@ -70,6 +87,12 @@ func(v Parent)Check()error{` + row.body + `}`
 			err := analysis.WithSSAUnit(t.Context(), gotoolchain.SSAUnitRequest{Unit: unit, SourceValues: true, Use: func(ctx context.Context, view gotoolchain.SSAUnitView) error {
 				got, err := view.MethodFieldErrorPropagation(ctx, gotoolchain.MethodFieldErrorPropagationRequest{Analysis: analysis, Method: method, Field: row.field, Target: target})
 				if err != nil || got.Validate() != nil || got.Source != gotoolchain.FunctionSourcePresent || got.Propagated != row.want {
+					frame := view.Program.FuncValue(method)
+					var native strings.Builder
+					if _, dumpErr := frame.WriteTo(&native); dumpErr != nil {
+						t.Fatalf("native frame dump = %v, want nil", dumpErr)
+					}
+					t.Logf("native frame package agrees=%t receiver=%v parameters=%v\n%s", frame.Pkg == view.Package, method.Signature().Recv(), frame.Params, native.String())
 					t.Fatalf("native field target observation=%+v/%v,want present source and propagated=%t", got, err, row.want)
 				}
 				return nil

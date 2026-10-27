@@ -16,8 +16,10 @@ func FuzzMethodFieldErrorPropagationConservesTargetFieldAndCause(f *testing.F) {
 	f.Add(uint8(0), uint8(2), false, false) // Keyed selected slot.
 	f.Add(uint8(1), uint8(5), false, false) // Unkeyed selected slot.
 	f.Add(uint8(0), uint8(6), false, false) // Constructed but unvalidated slot.
+	f.Add(uint8(0), uint8(8), false, false) // Copied selected field.
+	f.Add(uint8(0), uint8(9), false, false) // Copied neighboring field.
 	f.Fuzz(func(t *testing.T, field, usedField uint8, wrongTarget, discard bool) {
-		projection := (usedField >> 1) % 4
+		projection := (usedField >> 1) % 5
 		field %= 2
 		usedField %= 2
 		member := "A"
@@ -29,6 +31,7 @@ func FuzzMethodFieldErrorPropagationConservesTargetFieldAndCause(f *testing.F) {
 			target = "Other"
 		}
 		call := "v." + member + "." + target + "()"
+		prefix := ""
 		switch projection {
 		case 1:
 			call = "(Bridge{Selected:v." + member + "}).Check()"
@@ -36,11 +39,15 @@ func FuzzMethodFieldErrorPropagationConservesTargetFieldAndCause(f *testing.F) {
 			call = "(Bridge{Child{},v." + member + "}).Check()"
 		case 3:
 			call = "(Bridge{Other:v." + member + "}).Check()"
+		case 4:
+			prefix = "copied:=v." + member + ";"
+			call = "copied." + target + "()"
 		}
 		body := "return " + call
 		if discard {
 			body = "_=" + call + ";return nil"
 		}
+		body = prefix + body
 		analysis := nativeSymbolSourceAnalysis(t, t.TempDir(), `package sample;type refusal uint8;const bad refusal=1;func(refusal)Error()string{return "refusal"};type Child struct{};func(Child)Inspect()error{return bad};func(Child)Other()error{return bad};type Parent struct{A,B Child};type Bridge struct{Other,Selected Child};func(v Bridge)Check()error{return v.Selected.`+target+`()};func(v Parent)Check()error{`+body+`}`)
 		unit := analysis.Units[0]
 		method := types.NewMethodSet(unit.Types.Scope().Lookup("Parent").Type()).Lookup(nil, "Check").Obj().(*types.Func)
