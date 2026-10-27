@@ -52,7 +52,7 @@ func GetJSON[T core.Validatable](ctx context.Context, request GetRequest) (JSOND
 		snapshot, err = request.Transaction.Get(request.Reference)
 	}
 	if err != nil {
-		return JSONDocument[T]{}, errors.Join(core.ErrFirestoreDocumentsOperation, err)
+		return JSONDocument[T]{}, errors.Join(core.ErrFirestoreDocumentsOperation, err, ctx.Err(), context.Cause(ctx))
 	}
 	data, err := core.MarshalCanonicalJSONDocument(snapshot.Data())
 	if err != nil {

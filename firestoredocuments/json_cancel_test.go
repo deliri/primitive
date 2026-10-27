@@ -25,6 +25,7 @@ type heldJSONProvider struct {
 
 type jsonCancelObservation struct {
 	document JSONDocument[jsonCallerRecord]
+	record   Document[nativeRecord]
 	err      error
 }
 
@@ -36,6 +37,16 @@ func (p heldJSONProvider) BatchGetDocuments(_ *firestorepb.BatchGetDocumentsRequ
 
 func TestGetJSONNativeInflightCancellationRetainsCallerCause(t *testing.T) {
 	t.Parallel()
+	nativeDocumentCancellation(t, true)
+}
+
+func TestGetNativeInflightCancellationRetainsCallerCause(t *testing.T) {
+	t.Parallel()
+	nativeDocumentCancellation(t, false)
+}
+
+func nativeDocumentCancellation(t *testing.T, jsonRead bool) {
+	t.Helper()
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
@@ -75,8 +86,14 @@ func TestGetJSONNativeInflightCancellationRetainsCallerCause(t *testing.T) {
 	ctx, cancel := context.WithCancelCause(t.Context())
 	done := make(chan jsonCancelObservation, 1)
 	go func() {
-		got, err := GetJSON[jsonCallerRecord](ctx, GetRequest{Reference: client.Collection("records").Doc("held")})
-		done <- jsonCancelObservation{document: got, err: err}
+		request := GetRequest{Reference: client.Collection("records").Doc("held")}
+		var observed jsonCancelObservation
+		if jsonRead {
+			observed.document, observed.err = GetJSON[jsonCallerRecord](ctx, request)
+		} else {
+			observed.record, observed.err = Get[nativeRecord](ctx, request)
+		}
+		done <- observed
 	}()
 	defer func() {
 		cancel(cause)
@@ -97,7 +114,7 @@ func TestGetJSONNativeInflightCancellationRetainsCallerCause(t *testing.T) {
 	select {
 	case got := <-done:
 		done = nil
-		if !errors.Is(got.err, cause) || !errors.Is(got.err, context.Canceled) || !errors.Is(got.err, core.ErrFirestoreDocumentsOperation) || got.document != (JSONDocument[jsonCallerRecord]{}) {
+		if !errors.Is(got.err, cause) || !errors.Is(got.err, context.Canceled) || !errors.Is(got.err, core.ErrFirestoreDocumentsOperation) || got.document != (JSONDocument[jsonCallerRecord]{}) || got.record != (Document[nativeRecord]{}) {
 			t.Fatalf("in-flight JSON refusal = (%+v, %v), want zero plus native operation, standard and custom cancellation", got.document, got.err)
 		}
 	case <-time.After(10 * time.Second):

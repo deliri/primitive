@@ -61,7 +61,7 @@ func Get[T core.Validatable](ctx context.Context, request GetRequest) (Document[
 		snapshot, err = request.Transaction.Get(request.Reference)
 	}
 	if err != nil {
-		return Document[T]{}, errors.Join(core.ErrFirestoreDocumentsOperation, err)
+		return Document[T]{}, errors.Join(core.ErrFirestoreDocumentsOperation, err, ctx.Err(), context.Cause(ctx))
 	}
 	var result Document[T]
 	if err := snapshot.DataTo(&result.Record); err != nil {
