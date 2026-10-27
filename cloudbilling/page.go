@@ -108,7 +108,7 @@ func (m Money) Validate() error {
 
 type moneyWire struct {
 	Currency currency.Code `json:"currencyCode"`
-	Units    string        `json:"units"`
+	Units    *string       `json:"units"`
 	Nanos    int32         `json:"nanos"`
 }
 
@@ -116,7 +116,8 @@ func (m Money) MarshalJSON() ([]byte, error) {
 	if err := m.Validate(); err != nil {
 		return nil, err
 	}
-	return core.MarshalCanonicalJSONDocument(moneyWire{Currency: m.Currency, Units: strconv.FormatInt(m.Units, 10), Nanos: m.Nanos})
+	units := strconv.FormatInt(m.Units, 10)
+	return core.MarshalCanonicalJSONDocument(moneyWire{Currency: m.Currency, Units: &units, Nanos: m.Nanos})
 }
 
 func (m *Money) UnmarshalJSON(data []byte) error {
@@ -129,8 +130,8 @@ func (m *Money) UnmarshalJSON(data []byte) error {
 	}
 	// Protobuf JSON omits default-valued fields. Omitted units are zero.
 	units := int64(0)
-	if wire.Units != "" {
-		units, err = strconv.ParseInt(wire.Units, 10, 64)
+	if wire.Units != nil {
+		units, err = strconv.ParseInt(*wire.Units, 10, 64)
 		if err != nil {
 			return errors.Join(core.ErrCloudBillingResponse, err)
 		}

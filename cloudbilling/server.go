@@ -111,15 +111,16 @@ func (s Server) ListSKUs(ctx context.Context, request ListSKUsRequest, policy ex
 	} else if n != 1 {
 		return PageReceipt{}, errors.Join(core.ErrCloudBillingResponse, io.ErrShortWrite)
 	}
-	page, err := DecodePage(body.Bytes(), s.options.Limits)
-	if err != nil {
-		return PageReceipt{}, err
-	}
 	extent, err := core.NewByteLength(uint64(body.Len()))
 	if err != nil {
 		return PageReceipt{}, errors.Join(core.ErrCloudBillingResponse, err)
 	}
-	return PageReceipt{Page: page, Source: SourceReceipt{URL: target, SHA256: core.SHA256Of(body.Bytes()), Bytes: extent}}, nil
+	source := SourceReceipt{URL: target, SHA256: core.SHA256Of(body.Bytes()), Bytes: extent}
+	page, err := DecodePage(body.Bytes(), s.options.Limits)
+	if err != nil {
+		return PageReceipt{}, err
+	}
+	return PageReceipt{Page: page, Source: source}, nil
 }
 
 // One aggregate page is explicitly caller bounded; memory grows only to its

@@ -188,6 +188,7 @@ func TestPageIngressRetainsProviderFactsAndCallerBounds(t *testing.T) {
 		}, wantErr: true},
 		{name: "units numeric wire instead of string", mutate: func(b []byte) []byte { return bytes.Replace(b, []byte(`"units":"0"`), []byte(`"units":0`), 1) }, wantErr: true},
 		{name: "empty units text is not default zero", mutate: func(b []byte) []byte { return bytes.Replace(b, []byte(`"units":"0"`), []byte(`"units":""`), 1) }, wantErr: true},
+		{name: "omitted units retains protobuf default zero", mutate: func(b []byte) []byte { return bytes.Replace(b, []byte(`,"units":"0"`), nil, 1) }},
 		{name: "fraction outside signed agreement", mutate: func(b []byte) []byte { return bytes.Replace(b, []byte(`"nanos":300`), []byte(`"nanos":1000000000`), 1) }, wantErr: true},
 		{name: "wrong nanos JSON type", mutate: func(b []byte) []byte { return bytes.Replace(b, []byte(`"nanos":300`), []byte(`"nanos":"300"`), 1) }, wantErr: true},
 		{name: "unknown currency", mutate: func(b []byte) []byte { return bytes.Replace(b, []byte(`"USD"`), []byte(`"ZZZ"`), 1) }, wantErr: true},
