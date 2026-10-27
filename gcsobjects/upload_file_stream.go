@@ -6,10 +6,12 @@ import (
 	"errors"
 	"io"
 
-	"cloud.google.com/go/storage"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/filestore"
 	"github.com/deliri/primitive/v2026/objectstore"
 	"github.com/deliri/primitive/v2026/temporal"
+	"google.golang.org/api/googleapi"
+	storageapi "google.golang.org/api/storage/v1"
 )
 
 const gcsFileStreamBufferBytes = 32 << 10
@@ -111,30 +113,60 @@ func UploadFileStream(ctx context.Context, client *GCSClient, request GCSFileStr
 	if firstErr != nil && firstErr != io.EOF {
 		return GCSFileStreamResult{}, errors.Join(core.ErrObjectStoreSource, firstErr)
 	}
-	customTime, err := request.CustomTime.Time()
+	customTime, err := request.CustomTime.RFC3339Nano()
 	if err != nil {
 		return GCSFileStreamResult{}, err
 	}
 	writeContext, cancel := context.WithCancel(ctx)
 	defer cancel()
-	writer := client.client.Bucket(request.Bucket.String()).Object(request.Name.String()).If(storage.Conditions{DoesNotExist: true}).NewWriter(writeContext)
-	writer.ContentType = core.HTTPMediaTypeOctetStream().String()
-	writer.CustomTime = customTime
-	writer.ChunkSize = 0
-	integrity, err := writeGCSFileStream(ctx, input, writer, firstErr == io.EOF)
-	if err != nil {
-		cancel()
-		return GCSFileStreamResult{}, errors.Join(err, projectGCSAbortError(writer.Close()))
+	if client.objects == nil {
+		return GCSFileStreamResult{}, core.ErrObjectStoreContract
 	}
-	if err := writer.Close(); err != nil {
-		return GCSFileStreamResult{}, projectGCSError(err, core.ErrObjectStoreDestination)
+	var integrity objectstore.Integrity
+	var response *storageapi.Object
+	transfer, transferErr := filestore.TransferPipe(writeContext, filestore.PipeTransferRequest{
+		Produce: func(ctx context.Context, destination io.Writer) error {
+			completed := false
+			defer func() {
+				// TransferPipe joins a panicking producer but closes its writer
+				// gracefully. Abort HTTP before that close can seal a prefix.
+				if !completed {
+					cancel()
+				}
+			}()
+			var err error
+			integrity, err = writeGCSFileStream(ctx, input, destination, firstErr == io.EOF)
+			if err != nil {
+				cancel()
+				return err
+			}
+			completed = true
+			return nil
+		},
+		Consume: func(ctx context.Context, source io.Reader) error {
+			var err error
+			response, err = client.objects.Insert(request.Bucket.String(), &storageapi.Object{
+				Name: request.Name.String(), ContentType: core.HTTPMediaTypeOctetStream().String(), CustomTime: customTime,
+			}).Name(request.Name.String()).IfGenerationMatch(0).Projection("full").
+				Media(source, googleapi.ChunkSize(0), googleapi.ContentType(core.HTTPMediaTypeOctetStream().String())).Context(ctx).Do()
+			if err != nil {
+				return projectGCSError(err, core.ErrObjectStoreDestination)
+			}
+			return nil
+		},
+	})
+	if err := errors.Join(transferErr, transfer.ProducerError, transfer.ConsumerError, transfer.CleanupError); err != nil {
+		return GCSFileStreamResult{}, err
 	}
-	metadata, err := metadataFromGCSAttrs(writer.Attrs())
+	metadata, err := uploadedObjectMetadata(response, false)
 	if err != nil {
 		return GCSFileStreamResult{}, err
 	}
 	if metadata.Bucket() != request.Bucket || metadata.Name() != request.Name {
 		return GCSFileStreamResult{}, core.ErrObjectStoreIntegrity
+	}
+	if metadata.CRC32C() != integrity.CRC32C {
+		return GCSFileStreamResult{}, errors.Join(core.ErrObjectStoreDestination, core.ErrObjectStoreIntegrity)
 	}
 	result := GCSFileStreamResult{metadata: metadata, integrity: integrity, set: true}
 	if err := result.Validate(); err != nil {

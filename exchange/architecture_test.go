@@ -256,6 +256,8 @@ type exchangeContractInventory struct {
 	ClientSocket               capabilityWrapper[ClientSocket]
 	ServerSocket               capabilityWrapper[ServerSocket]
 	SocketServerCall           protocolContract[SocketServerCall]
+	SocketWriteStallRequest    protocolContract[SocketWriteStallRequest]
+	socketStallWriter          internalFlow[socketStallWriter]
 	ListenAddress              protocolContract[ListenAddress]
 	TCPDialRequest             protocolContract[TCPDialRequest]
 	ServerRuntimePolicy        protocolContract[ServerRuntimePolicy]
@@ -326,11 +328,12 @@ func TestRawHTTPAdmissionIsSealedSocketOrGoSDKTransport(t *testing.T) {
 	got := publicRawHTTPExposures(sources)
 	// One Go request/writer admission seals their custody in SocketServerCall.
 	// The SDK adapter must implement Go's http.RoundTripper signature; its
-	// typed constructor is its admission boundary. Both exceptions are compiler
-	// bound, and this fixed two-entry list cannot grow without changing the test.
+	// typed constructor is its admission boundary. The private stall writer must
+	// expose Go's exact Unwrap signature so ResponseController can traverse it.
+	// These exceptions are compiler bound and cannot grow silently.
 	// Public mutable variables are forbidden too: they could replace a checked
 	// function with an unclassified function-valued ingress after initialization.
-	want := []string{IngressSymbolForTest(NewSocketServerCall), IngressSymbolForTest(officialSDKResponseTransport.RoundTrip)}
+	want := []string{IngressSymbolForTest(NewSocketServerCall), IngressSymbolForTest(officialSDKResponseTransport.RoundTrip), IngressSymbolForTest((*socketStallWriter).Unwrap)}
 	slices.Sort(want)
 	if !slices.Equal(got, want) {
 		t.Fatalf("public raw HTTP or mutable-global exposure=%q,want sealed socket and required Go transport contract %q", got, want)
@@ -474,6 +477,9 @@ func classifiedStructNames(t *testing.T) []string {
 		producedExtentWriter:           internalFlow[producedExtentWriter]{},
 		observedStandardResponseWriter: capabilityWrapper[observedStandardResponseWriter]{},
 		observedStreamWriter:           capabilityWrapper[observedStreamWriter]{},
+		multipartOwnedSource:           internalFlow[multipartOwnedSource]{},
+		multipartLifetime:              internalFlow[multipartLifetime]{},
+		multipartSourceReader:          capabilityWrapper[multipartSourceReader]{},
 	}
 	got, err := boundInventoryStructNames(reflect.TypeOf(inventory))
 	if err != nil {

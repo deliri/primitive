@@ -111,6 +111,8 @@ func externalIngressCoverage() []exchange.IngressCoverageForTest {
 		{Door: exchange.SocketServerCall.Context, Kind: exchange.IngressCapabilityForTest, Proof: TestSocketServerCallLayerTriad, Reason: "Projects the sealed Go request context without decoding material."},
 		{Door: exchange.SocketServerCall.WithContext, Kind: exchange.IngressCapabilityForTest, Proof: TestSocketContextDerivationLayerTriad, Reason: "Derives a Go request with the supplied context capability."},
 		{Door: exchange.SocketServerCall.ServeHTTP, Kind: exchange.IngressCapabilityForTest, Proof: TestSocketServerCallLayerTriad, Reason: "Passes the exact Go request and writer to a caller-owned Go handler."},
+		{Door: exchange.ServeSocketWithWriteStall, Kind: exchange.IngressCapabilityForTest, Proof: TestSocketWriteStallAdmissionAndFinalBound, Reason: "Owns finite response write stalls around one existing handler; native quiet/blocked/cancel tests prove the lifetime without decoding payloads."},
+		{Door: exchange.Client.CloseIdleConnections, Kind: exchange.IngressCapabilityForTest, Proof: TestCloseIdleConnectionsPreservesActiveNativeCall, Reason: "Revalidates and closes the native client's idle pool while preserving joined active calls; no external document decoding."},
 	}
 	for _, door := range []any{(*exchange.ServerRuntime).Ready, (*exchange.ServerRuntime).Address, (*exchange.ServerRuntime).Serve, (*exchange.ServerRuntime).ServeListener, (*exchange.ServerRuntime).Close, (*exchange.ServerRuntime).Shutdown} {
 		entries = append(entries, exchange.IngressCoverageForTest{Door: door, Kind: exchange.IngressCapabilityForTest, Proof: TestServerRuntimeLayerTriad, Reason: "Owns a Go server/listener lifecycle using typed configuration; no independent external document decoding."})

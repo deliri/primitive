@@ -21,4 +21,8 @@
 // its typed concrete peer can differ from the HTTP/TLS authority, without
 // rewriting a signed request or replacing TLS verification. Its context
 // bounds acquisition; the recipient owns the acquired connection's lifetime.
+// ServeSocketWithWriteStall opts one call into bounded active response writes
+// while allowing quiet computation beyond a server's whole-response timeout.
+// The caller still owns the total request deadline; cancellation interrupts
+// blocked writes, and final HTTP framing retains a finite write bound.
 package exchange

@@ -79,6 +79,20 @@ func (c Client) Validate() error {
 	return nil
 }
 
+// CloseIdleConnections closes idle connections in this client's native
+// transport. It does not interrupt active calls or invalidate client copies.
+// The owner joins its calls before releasing their idle connection pool.
+func (c Client) CloseIdleConnections() error {
+	if err := c.Validate(); err != nil {
+		return err
+	}
+	if transport, ok := c.http.Transport.(*http.Transport); ok && transport == nil {
+		return core.ErrExchangeContract
+	}
+	c.http.CloseIdleConnections()
+	return nil
+}
+
 // JSONCall supplies one complete typed JSON client operation.
 type JSONCall[Body core.ValidatedJSONMarshaler] struct {
 	Context context.Context
