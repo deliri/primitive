@@ -28,9 +28,10 @@ func fixtureOptions(t testing.TB, endpoint string) ServerOptions {
 
 type proofSink struct {
 	bytes.Buffer
-	failAt  int
-	writes  int
-	failure error
+	failAt     int
+	writes     int
+	failure    error
+	afterWrite context.CancelFunc
 }
 
 func (s *proofSink) Write(p []byte) (int, error) {
@@ -38,7 +39,11 @@ func (s *proofSink) Write(p []byte) (int, error) {
 	if s.writes == s.failAt {
 		return 0, s.failure
 	}
-	return s.Buffer.Write(p)
+	n, err := s.Buffer.Write(p)
+	if s.afterWrite != nil {
+		s.afterWrite()
+	}
+	return n, err
 }
 func (s *proofSink) WriteString(value string) (int, error) { return s.Write([]byte(value)) }
 
@@ -61,6 +66,7 @@ func TestListSKUsOnePageAndOriginalSourceLayerTriad(t *testing.T) {
 		truncate    bool
 		cancel      bool
 		nilProof    bool
+		cancelProof bool
 		wantErr     error
 		wantProof   bool
 		wantCalls   int
@@ -85,6 +91,7 @@ func TestListSKUsOnePageAndOriginalSourceLayerTriad(t *testing.T) {
 		{name: "proof separator sink failure preserved", status: 200, failAt: 2, failure: io.ErrClosedPipe, wantErr: io.ErrClosedPipe, wantCalls: 1},
 		{name: "proof separator short write refused", status: 200, failAt: 2, short: true, wantErr: io.ErrShortWrite, wantCalls: 1},
 		{name: "canceled context issues no request", status: 200, cancel: true, wantErr: context.Canceled},
+		{name: "cancellation during proof write returns no receipt", status: 200, cancelProof: true, wantErr: context.Canceled, wantProof: true, wantCalls: 1},
 		{name: "nil proof issues no request", status: 200, nilProof: true, wantErr: core.ErrCloudBillingContract},
 		{name: "oversized input token issues no request", status: 200, token: PageToken(strings.Repeat("x", 65)), wantErr: core.ErrCloudBillingContract},
 	}
@@ -136,6 +143,9 @@ func TestListSKUsOnePageAndOriginalSourceLayerTriad(t *testing.T) {
 			}
 			ctx, cancel := context.WithCancel(t.Context())
 			defer cancel()
+			if tc.cancelProof {
+				sink.afterWrite = cancel
+			}
 			if tc.cancel {
 				cancel()
 			}
