@@ -175,7 +175,7 @@ func TestR2NoStoreMetadataSurvivesSignedCreationAndRead(t *testing.T) {
 			transport := testExchange(t, func(w http.ResponseWriter, r *http.Request) {
 				methods = append(methods, r.Method)
 				if !verifyR2TestSignature(r, []byte("r2-secret-key")) {
-					t.Error("actual signature=false, want true")
+					t.Error("signature=false, want true")
 					w.WriteHeader(http.StatusForbidden)
 					return
 				}
@@ -203,7 +203,7 @@ func TestR2NoStoreMetadataSurvivesSignedCreationAndRead(t *testing.T) {
 					t.Errorf("read retained cache=%q, want no-store", stored)
 				}
 				if r.Header.Get(exchange.StandardHeaderCacheControl.String()) != "" {
-					t.Error("GET/HEAD carries write metadata")
+					t.Errorf("GET/HEAD cache metadata=%q, want empty", r.Header.Get(exchange.StandardHeaderCacheControl.String()))
 				}
 				w.Header().Set(exchange.StandardHeaderCacheControl.String(), stored)
 				w.Header().Set(core.HTTPHeaderContentType().String(), core.HTTPMediaTypeOctetStream().String())

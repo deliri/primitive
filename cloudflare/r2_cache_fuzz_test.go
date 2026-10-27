@@ -163,7 +163,7 @@ func FuzzR2CacheControlModeSemanticClosure(f *testing.F) {
 			native.Header.Set(exchange.StandardHeaderCacheControl.String(), value)
 		}
 		if !verifyR2TestSignature(native, []byte("r2-secret-key")) {
-			t.Fatal("actual mode signature=false,want true")
+			t.Fatal("mode signature=false,want true")
 		}
 		if count == 1 {
 			native.Header.Set(exchange.StandardHeaderCacheControl.String(), want+"x")
