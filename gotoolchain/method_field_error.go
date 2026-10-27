@@ -153,8 +153,13 @@ func methodFieldErrorCovers(ctx context.Context, query methodFieldErrorQuery) (b
 			}
 			receiver := methodFieldErrorReceiver(value, query)
 			if receiver != nil {
-				if covered, err := methodFieldErrorObservedOperand(ctx, receiver, query); covered || err != nil {
-					return covered, err
+				for binding, err := range methodFieldErrorBind(ctx, receiver, query) {
+					if err != nil {
+						return false, err
+					}
+					if binding.Field == nil {
+						return true, nil
+					}
 				}
 			}
 			if covered, err := methodFieldErrorHelperCovers(ctx, value, query); covered || err != nil {
@@ -282,6 +287,11 @@ func methodFieldErrorBind(ctx context.Context, expression ast.Expr, query method
 		}
 		literal, ok := ast.Unparen(expression).(*ast.CompositeLit)
 		if !ok {
+			for returned, err := range methodFieldErrorReturnedBindings(ctx, expression, query) {
+				if !yield(returned, err) || err != nil {
+					return
+				}
+			}
 			return
 		}
 		nativeType := query.Types.TypeOf(literal)
@@ -357,74 +367,93 @@ func methodFieldConstructedElement(ordinal int, element ast.Expr, record *types.
 }
 
 func methodFieldErrorHelperCovers(ctx context.Context, call *ast.CallExpr, query methodFieldErrorQuery) (bool, error) {
-	if query.Frame == nil {
-		return false, core.ErrGoToolchainOutput
+	for next, err := range methodFieldErrorCallBindings(ctx, call, query) {
+		if err != nil {
+			return false, err
+		}
+		if covered, err := methodFieldErrorCovers(ctx, next); covered || err != nil {
+			return covered, err
+		}
 	}
-	common := methodFieldCallAt(query.Frame, call)
-	if common == nil {
-		return false, nil
-	}
-	function := methodFieldCallFunction(common)
-	if function == nil {
-		return false, nil
-	}
-	loan, err := query.Analysis.FunctionSource(ctx, FunctionSourceRequest{Function: function})
-	if err != nil {
-		return false, err
-	}
-	if loan.Presence != FunctionSourcePresent {
-		return false, nil
-	}
-	native, ok := loan.Types.Defs[loan.Declaration.Name].(*types.Func)
-	if !ok {
-		return false, core.ErrGoToolchainOutput
-	}
-	signature, ok := native.Type().(*types.Signature)
-	if !ok {
-		return false, core.ErrGoToolchainOutput
-	}
-	body, facts := loan.Declaration.Body, loan.Types
-	if body == nil || signature == nil {
-		return false, nil
-	}
-	offset := 0
-	if selector, ok := ast.Unparen(call.Fun).(*ast.SelectorExpr); ok {
-		if selection := query.Types.Selections[selector]; selection != nil {
-			receiver := selector.X
-			if selection.Kind() == types.MethodExpr {
-				if len(call.Args) == 0 {
-					return false, nil
+	return false, nil
+}
+
+func methodFieldErrorCallBindings(ctx context.Context, call *ast.CallExpr, query methodFieldErrorQuery) iter.Seq2[methodFieldErrorQuery, error] {
+	return func(yield func(methodFieldErrorQuery, error) bool) {
+		if query.Frame == nil {
+			yield(methodFieldErrorQuery{}, core.ErrGoToolchainOutput)
+			return
+		}
+		common := methodFieldCallAt(query.Frame, call)
+		if common == nil {
+			return
+		}
+		function := methodFieldCallFunction(common)
+		if function == nil {
+			return
+		}
+		loan, err := query.Analysis.FunctionSource(ctx, FunctionSourceRequest{Function: function})
+		if err != nil {
+			yield(methodFieldErrorQuery{}, err)
+			return
+		}
+		if loan.Presence != FunctionSourcePresent {
+			return
+		}
+		native, ok := loan.Types.Defs[loan.Declaration.Name].(*types.Func)
+		if !ok {
+			yield(methodFieldErrorQuery{}, core.ErrGoToolchainOutput)
+			return
+		}
+		signature, ok := native.Type().(*types.Signature)
+		if !ok {
+			yield(methodFieldErrorQuery{}, core.ErrGoToolchainOutput)
+			return
+		}
+		body, facts := loan.Declaration.Body, loan.Types
+		if body == nil || signature == nil {
+			return
+		}
+		offset := 0
+		if selector, ok := ast.Unparen(call.Fun).(*ast.SelectorExpr); ok {
+			if selection := query.Types.Selections[selector]; selection != nil {
+				receiver := selector.X
+				if selection.Kind() == types.MethodExpr {
+					if len(call.Args) == 0 {
+						return
+					}
+					receiver, offset = call.Args[0], 1
 				}
-				receiver, offset = call.Args[0], 1
-			}
-			for next, bindErr := range methodFieldErrorBind(ctx, receiver, query) {
-				if bindErr != nil {
-					return false, bindErr
-				}
-				if signature.Recv() != nil && len(selection.Index()) == 1 {
-					next.Variable, next.Body, next.Types, next.Frame = signature.Recv(), body, facts, query.View.Program.FuncValue(native)
-					if covered, err := methodFieldErrorCovers(ctx, next); covered || err != nil {
-						return covered, err
+				for next, bindErr := range methodFieldErrorBind(ctx, receiver, query) {
+					if bindErr != nil {
+						yield(methodFieldErrorQuery{}, bindErr)
+						return
+					}
+					if signature.Recv() != nil && len(selection.Index()) == 1 {
+						next.Variable, next.Body, next.Types, next.Frame = signature.Recv(), body, facts, query.View.Program.FuncValue(native)
+						if !yield(next, nil) {
+							return
+						}
 					}
 				}
 			}
 		}
-	}
-	for index, argument := range call.Args[offset:] {
-		if index >= signature.Params().Len() {
-			continue
-		}
-		for next, bindErr := range methodFieldErrorBind(ctx, argument, query) {
-			if bindErr != nil {
-				return false, bindErr
+		for index, argument := range call.Args[offset:] {
+			if index >= signature.Params().Len() {
+				continue
 			}
-			next.Variable, next.Body, next.Types, next.Frame = signature.Params().At(index), body, facts, query.View.Program.FuncValue(native)
-			if covered, err := methodFieldErrorCovers(ctx, next); covered || err != nil {
-				return covered, err
+			for next, bindErr := range methodFieldErrorBind(ctx, argument, query) {
+				if bindErr != nil {
+					yield(methodFieldErrorQuery{}, bindErr)
+					return
+				}
+				next.Variable, next.Body, next.Types, next.Frame = signature.Params().At(index), body, facts, query.View.Program.FuncValue(native)
+				if !yield(next, nil) {
+					return
+				}
 			}
 		}
 	}
-	return false, nil
 }
 
 func methodFieldErrorReceiver(call *ast.CallExpr, query methodFieldErrorQuery) ast.Expr {
