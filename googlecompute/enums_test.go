@@ -1,9 +1,7 @@
 package googlecompute
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
@@ -37,8 +35,9 @@ func TestGoogleComputeConstructorContext(t *testing.T) {
 	}
 }
 
-func TestGoogleComputeInstanceStateJSON(t *testing.T) {
+func TestGoogleComputeClosedInstanceState(t *testing.T) {
 	t.Parallel()
+	var _ interface{ OffWireEnum() } = InstanceState(0)
 	texts := [...]string{"", "PENDING", "PROVISIONING", "STAGING", "RUNNING", "STOPPING", "SUSPENDING", "SUSPENDED", "REPAIRING", "TERMINATED"}
 	for value := range 256 {
 		got := InstanceState(value)
@@ -46,35 +45,21 @@ func TestGoogleComputeInstanceStateJSON(t *testing.T) {
 		if got.IsValid() != wantValid {
 			t.Fatalf("InstanceState(%d).IsValid = %t, want %t", value, got.IsValid(), wantValid)
 		}
-		encoded, err := got.MarshalJSON()
 		if !wantValid {
-			if !errors.Is(err, core.ErrGoogleComputeContract) || encoded != nil || got.String() != "" {
-				t.Fatalf("invalid enum = (%q,%v), want nil,typed refusal", encoded, err)
+			if !errors.Is(got.Validate(), core.ErrGoogleComputeContract) || got.String() != "" {
+				t.Fatalf("invalid enum = (%q,%v), want empty,typed refusal", got.String(), got.Validate())
 			}
 			continue
 		}
-		if err != nil || got.String() != texts[value] {
-			t.Fatalf("enum wire = (%q,%v), want %q,nil", got.String(), err, texts[value])
+		if got.Validate() != nil || got.String() != texts[value] {
+			t.Fatalf("enum fact = (%q,%v), want %q,nil", got.String(), got.Validate(), texts[value])
 		}
-		var decoded InstanceState
-		if err := decoded.UnmarshalJSON(encoded); err != nil || decoded != got {
-			t.Fatalf("enum round trip = (%v,%v), want %v,nil", decoded, err, got)
-		}
-	}
-	for _, data := range [][]byte{nil, []byte("null"), []byte("42"), []byte(`"FUTURE"`), []byte(`""`), []byte(`"RUNNING" {}`)} {
-		got := InstanceStatePending
-		if err := got.UnmarshalJSON(data); !errors.Is(err, core.ErrGoogleComputeContract) || got != InstanceStatePending {
-			t.Fatalf("enum refusal = (%v,%v), want preserved,typed refusal", got, err)
-		}
-	}
-	var absent *InstanceState
-	if err := absent.UnmarshalJSON([]byte(`"FUTURE"`)); !errors.Is(err, core.ErrGoogleComputeContract) {
-		t.Fatalf("nil receiver error = %v, want typed refusal", err)
 	}
 }
 
-func TestGoogleComputeOperationStateJSON(t *testing.T) {
+func TestGoogleComputeClosedOperationState(t *testing.T) {
 	t.Parallel()
+	var _ interface{ OffWireEnum() } = OperationState(0)
 	texts := [...]string{"", "PENDING", "RUNNING", "DONE"}
 	for value := range 256 {
 		got := OperationState(value)
@@ -82,35 +67,21 @@ func TestGoogleComputeOperationStateJSON(t *testing.T) {
 		if got.IsValid() != wantValid {
 			t.Fatalf("OperationState(%d).IsValid = %t, want %t", value, got.IsValid(), wantValid)
 		}
-		encoded, err := got.MarshalJSON()
 		if !wantValid {
-			if !errors.Is(err, core.ErrGoogleComputeContract) || encoded != nil || got.String() != "" {
-				t.Fatalf("invalid enum = (%q,%v), want nil,typed refusal", encoded, err)
+			if !errors.Is(got.Validate(), core.ErrGoogleComputeContract) || got.String() != "" {
+				t.Fatalf("invalid enum = (%q,%v), want empty,typed refusal", got.String(), got.Validate())
 			}
 			continue
 		}
-		if err != nil || got.String() != texts[value] {
-			t.Fatalf("enum wire = (%q,%v), want %q,nil", got.String(), err, texts[value])
+		if got.Validate() != nil || got.String() != texts[value] {
+			t.Fatalf("enum fact = (%q,%v), want %q,nil", got.String(), got.Validate(), texts[value])
 		}
-		var decoded OperationState
-		if err := decoded.UnmarshalJSON(encoded); err != nil || decoded != got {
-			t.Fatalf("enum round trip = (%v,%v), want %v,nil", decoded, err, got)
-		}
-	}
-	for _, data := range [][]byte{nil, []byte("null"), []byte("42"), []byte(`"FUTURE"`), []byte(`""`), []byte(`"RUNNING" {}`)} {
-		got := OperationStatePending
-		if err := got.UnmarshalJSON(data); !errors.Is(err, core.ErrGoogleComputeContract) || got != OperationStatePending {
-			t.Fatalf("enum refusal = (%v,%v), want preserved,typed refusal", got, err)
-		}
-	}
-	var absent *OperationState
-	if err := absent.UnmarshalJSON([]byte(`"FUTURE"`)); !errors.Is(err, core.ErrGoogleComputeContract) {
-		t.Fatalf("nil receiver error = %v, want typed refusal", err)
 	}
 }
 
-func TestGoogleComputeOperationTypeJSON(t *testing.T) {
+func TestGoogleComputeClosedOperationType(t *testing.T) {
 	t.Parallel()
+	var _ interface{ OffWireEnum() } = OperationType(0)
 	texts := [...]string{"", "start", "stop"}
 	for value := range 256 {
 		got := OperationType(value)
@@ -118,128 +89,14 @@ func TestGoogleComputeOperationTypeJSON(t *testing.T) {
 		if got.IsValid() != wantValid {
 			t.Fatalf("OperationType(%d).IsValid = %t, want %t", value, got.IsValid(), wantValid)
 		}
-		encoded, err := got.MarshalJSON()
 		if !wantValid {
-			if !errors.Is(err, core.ErrGoogleComputeContract) || encoded != nil || got.String() != "" {
-				t.Fatalf("invalid enum = (%q,%v), want nil,typed refusal", encoded, err)
+			if !errors.Is(got.Validate(), core.ErrGoogleComputeContract) || got.String() != "" {
+				t.Fatalf("invalid enum = (%q,%v), want empty,typed refusal", got.String(), got.Validate())
 			}
 			continue
 		}
-		if err != nil || got.String() != texts[value] {
-			t.Fatalf("enum wire = (%q,%v), want %q,nil", got.String(), err, texts[value])
-		}
-		var decoded OperationType
-		if err := decoded.UnmarshalJSON(encoded); err != nil || decoded != got {
-			t.Fatalf("enum round trip = (%v,%v), want %v,nil", decoded, err, got)
+		if got.Validate() != nil || got.String() != texts[value] {
+			t.Fatalf("enum fact = (%q,%v), want %q,nil", got.String(), got.Validate(), texts[value])
 		}
 	}
-	for _, data := range [][]byte{nil, []byte("null"), []byte("42"), []byte(`"FUTURE"`), []byte(`""`), []byte(`"RUNNING" {}`)} {
-		got := OperationTypeStart
-		if err := got.UnmarshalJSON(data); !errors.Is(err, core.ErrGoogleComputeContract) || got != OperationTypeStart {
-			t.Fatalf("enum refusal = (%v,%v), want preserved,typed refusal", got, err)
-		}
-	}
-	var absent *OperationType
-	if err := absent.UnmarshalJSON([]byte(`"FUTURE"`)); !errors.Is(err, core.ErrGoogleComputeContract) {
-		t.Fatalf("nil receiver error = %v, want typed refusal", err)
-	}
-}
-
-func FuzzGoogleComputeEnumJSONSemanticClosure(f *testing.F) {
-	seed, err := InstanceStateRunning.MarshalJSON()
-	if err != nil {
-		f.Fatal(err)
-	}
-	f.Add(uint8(0), seed)
-	seed, err = OperationStateDone.MarshalJSON()
-	if err != nil {
-		f.Fatal(err)
-	}
-	f.Add(uint8(1), seed)
-	seed, err = OperationTypeStart.MarshalJSON()
-	if err != nil {
-		f.Fatal(err)
-	}
-	f.Add(uint8(2), seed)
-	f.Add(uint8(0), []byte("null"))
-	f.Fuzz(func(t *testing.T, selector uint8, data []byte) {
-		switch selector % 3 {
-		case 0:
-			got := InstanceStatePending
-			err := got.UnmarshalJSON(data)
-			if err != nil {
-				if !errors.Is(err, core.ErrGoogleComputeContract) || got != InstanceStatePending {
-					t.Fatalf("rejected enum = (%v,%v), want preserved,typed refusal", got, err)
-				}
-				return
-			}
-			var text string
-			if err := json.Unmarshal(data, &text); err != nil || got.String() != text || !got.IsValid() {
-				t.Fatalf("accepted enum = %v from %q, want exact valid token", got, data)
-			}
-			encoded, err := got.MarshalJSON()
-			if err != nil {
-				t.Fatalf("canonical enum error = %v, want nil", err)
-			}
-			var again InstanceState
-			if err := again.UnmarshalJSON(encoded); err != nil || again != got {
-				t.Fatalf("canonical enum round trip = (%v,%v), want %v,nil", again, err, got)
-			}
-			second, err := again.MarshalJSON()
-			if err != nil || !bytes.Equal(encoded, second) {
-				t.Fatalf("second encoding = (%q,%v), want %q,nil", second, err, encoded)
-			}
-		case 1:
-			got := OperationStatePending
-			err := got.UnmarshalJSON(data)
-			if err != nil {
-				if !errors.Is(err, core.ErrGoogleComputeContract) || got != OperationStatePending {
-					t.Fatalf("rejected enum = (%v,%v), want preserved,typed refusal", got, err)
-				}
-				return
-			}
-			var text string
-			if err := json.Unmarshal(data, &text); err != nil || got.String() != text || !got.IsValid() {
-				t.Fatalf("accepted enum = %v from %q, want exact valid token", got, data)
-			}
-			encoded, err := got.MarshalJSON()
-			if err != nil {
-				t.Fatalf("canonical enum error = %v, want nil", err)
-			}
-			var again OperationState
-			if err := again.UnmarshalJSON(encoded); err != nil || again != got {
-				t.Fatalf("canonical enum round trip = (%v,%v), want %v,nil", again, err, got)
-			}
-			second, err := again.MarshalJSON()
-			if err != nil || !bytes.Equal(encoded, second) {
-				t.Fatalf("second encoding = (%q,%v), want %q,nil", second, err, encoded)
-			}
-		case 2:
-			got := OperationTypeStart
-			err := got.UnmarshalJSON(data)
-			if err != nil {
-				if !errors.Is(err, core.ErrGoogleComputeContract) || got != OperationTypeStart {
-					t.Fatalf("rejected enum = (%v,%v), want preserved,typed refusal", got, err)
-				}
-				return
-			}
-			var text string
-			if err := json.Unmarshal(data, &text); err != nil || got.String() != text || !got.IsValid() {
-				t.Fatalf("accepted enum = %v from %q, want exact valid token", got, data)
-			}
-			encoded, err := got.MarshalJSON()
-			if err != nil {
-				t.Fatalf("canonical enum error = %v, want nil", err)
-			}
-			var again OperationType
-			if err := again.UnmarshalJSON(encoded); err != nil || again != got {
-				t.Fatalf("canonical enum round trip = (%v,%v), want %v,nil", again, err, got)
-			}
-			second, err := again.MarshalJSON()
-			if err != nil || !bytes.Equal(encoded, second) {
-				t.Fatalf("second encoding = (%q,%v), want %q,nil", second, err, encoded)
-			}
-
-		}
-	})
 }
