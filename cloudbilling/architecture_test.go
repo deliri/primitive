@@ -25,6 +25,7 @@ type bufferRole[T any] struct{}
 type billingInventory struct {
 	Quota       scalarRole[QuotaProject]
 	ADCRequest  protocolRole[ADCClientRequest]
+	Credentials protocolRole[CredentialSource]
 	ADC         capabilityRole[ADCClient]
 	Options     protocolRole[ServerOptions]
 	Server      capabilityRole[Server]
@@ -78,7 +79,7 @@ func TestBillingCompilerOwnedStructAndSDKExecutionBoundary(t *testing.T) {
 		})
 	}
 	slices.Sort(got)
-	want := []string{"ADCClient", "ADCClientRequest", "Aggregation", "Category", "Geography", "ListSKUsRequest", "Money", "Page", "PageLimits", "PageReceipt", "PricingExpression", "PricingInfo", "QuotaProject", "SKU", "Server", "ServerOptions", "SourceReceipt", "TierRate", "moneyWire", "pageBuffer"}
+	want := []string{"ADCClient", "ADCClientRequest", "Aggregation", "Category", "CredentialSource", "Geography", "ListSKUsRequest", "Money", "Page", "PageLimits", "PageReceipt", "PricingExpression", "PricingInfo", "QuotaProject", "SKU", "Server", "ServerOptions", "SourceReceipt", "TierRate", "moneyWire", "pageBuffer"}
 	if !slices.Equal(got, want) || reflect.TypeFor[billingInventory]().NumField() != len(want) {
 		t.Fatalf("production carriers=%q/inventory fields=%d, want %q", got, reflect.TypeFor[billingInventory]().NumField(), want)
 	}

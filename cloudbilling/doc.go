@@ -1,5 +1,6 @@
 // Package cloudbilling owns Google Cloud Billing's ListSKUs wire contract and
-// standard Google Application Default Credentials transport. One call obtains
+// standard Google Application Default Credentials transport, including an
+// explicitly selected authorized-user file. One call obtains
 // exactly one page: callers choose the endpoint, currency, page size, response
 // bounds, deadline and proof sink, and own any pagination or pricing policy.
 //

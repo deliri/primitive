@@ -104,7 +104,7 @@ func TestADCDiscoveryAuthenticatedPageAndOwnedTransportClosure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	client, err := NewADCClient(t.Context(), ADCClientRequest{QuotaProject: quota, CredentialTimeout: timeout})
+	client, err := NewADCClient(t.Context(), ADCClientRequest{QuotaProject: quota, CredentialTimeout: timeout, Credentials: CredentialSource{Kind: CredentialApplicationDefault}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,10 +159,10 @@ func TestADCAdmissionRefusesBeforeDiscovery(t *testing.T) {
 		request ADCClientRequest
 		wantErr error
 	}{
-		{name: "cancellation before credentials", ctx: canceled, request: ADCClientRequest{QuotaProject: quota, CredentialTimeout: timeout}, wantErr: context.Canceled},
-		{name: "nil context before credentials", request: ADCClientRequest{QuotaProject: quota, CredentialTimeout: timeout}, wantErr: core.ErrCloudBillingContract},
-		{name: "zero quota before credentials", ctx: t.Context(), request: ADCClientRequest{CredentialTimeout: timeout}, wantErr: core.ErrCloudBillingContract},
-		{name: "zero timeout before credentials", ctx: t.Context(), request: ADCClientRequest{QuotaProject: quota}, wantErr: core.ErrCloudBillingContract},
+		{name: "cancellation before credentials", ctx: canceled, request: ADCClientRequest{QuotaProject: quota, CredentialTimeout: timeout, Credentials: CredentialSource{Kind: CredentialApplicationDefault}}, wantErr: context.Canceled},
+		{name: "nil context before credentials", request: ADCClientRequest{QuotaProject: quota, CredentialTimeout: timeout, Credentials: CredentialSource{Kind: CredentialApplicationDefault}}, wantErr: core.ErrCloudBillingContract},
+		{name: "zero quota before credentials", ctx: t.Context(), request: ADCClientRequest{CredentialTimeout: timeout, Credentials: CredentialSource{Kind: CredentialApplicationDefault}}, wantErr: core.ErrCloudBillingContract},
+		{name: "zero timeout before credentials", ctx: t.Context(), request: ADCClientRequest{QuotaProject: quota, Credentials: CredentialSource{Kind: CredentialApplicationDefault}}, wantErr: core.ErrCloudBillingContract},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -186,7 +186,7 @@ func TestADCDiscoveryFailurePreservesCause(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := NewADCClient(t.Context(), ADCClientRequest{QuotaProject: quota, CredentialTimeout: timeout})
+	got, err := NewADCClient(t.Context(), ADCClientRequest{QuotaProject: quota, CredentialTimeout: timeout, Credentials: CredentialSource{Kind: CredentialApplicationDefault}})
 	if got != nil || !errors.Is(err, core.ErrCloudBillingAuthentication) || !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("NewADCClient(missing ADC)=(%v,%v), want nil/authentication/missing-file cause", got, err)
 	}
