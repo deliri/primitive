@@ -89,3 +89,22 @@ func TestGoogleCloudVerificationRequestContextRefusalZeroFacts(t *testing.T) {
 		})
 	}
 }
+
+// fmt bypasses Formatter for invalid %p/%w diagnostics. The fallback must not
+// gain credential bytes by reflecting the request's underlying representation.
+func TestGoogleCloudVerificationRequestInvalidVerbPrivacy(t *testing.T) {
+	t.Parallel()
+	p := newVerifierTestProvider(t, nil)
+	canonical := p.sign(t, verifierTestHeader{Algorithm: verifierTestAlgorithm, KeyID: verifierTestKeyID}, verifierClaims(), false)
+	request := GoogleCloudVerificationRequest{Authorization: canonical}
+	for _, format := range []string{"%p", "%w"} {
+		t.Run(format, func(t *testing.T) {
+			t.Parallel()
+			for _, got := range []string{fmt.Sprintf(format, request), fmt.Sprintf(format, &request)} {
+				if strings.Contains(got, canonical) {
+					t.Fatalf("invalid-format %s credential disclosed = true, want false", format)
+				}
+			}
+		})
+	}
+}
