@@ -40,6 +40,9 @@ func sendFixture(t testing.TB, item SentEmail) []byte {
 
 func sendResponseWire(t testing.TB, response SendResponse) []byte {
 	t.Helper()
+	if err := response.Validate(); err != nil {
+		t.Fatal(err)
+	}
 	wire, err := json.Marshal(response)
 	if err != nil {
 		t.Fatal(err)
