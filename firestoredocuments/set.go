@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"cloud.google.com/go/firestore"
-	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
 )
 
@@ -26,10 +25,7 @@ func (r SetRequest[T]) Validate() error {
 
 // Set queues a full replacement. Only successful RunTransaction confirms commit.
 func Set[T core.Validatable](ctx context.Context, request SetRequest[T]) error {
-	if err := contextstate.Validate(ctx); err != nil {
-		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-			return errors.Join(core.ErrFirestoreDocumentsContract, err, context.Cause(ctx))
-		}
+	if err := documentContext(ctx); err != nil {
 		return errors.Join(core.ErrFirestoreDocumentsContract, err)
 	}
 	if err := request.Validate(); err != nil {

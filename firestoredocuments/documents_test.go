@@ -44,6 +44,9 @@ func TestDocumentsRefuseAbsentCapabilitiesAndCancellation(t *testing.T) {
 	t.Parallel()
 	cancelled, cancel := context.WithCancel(t.Context())
 	cancel()
+	cause := errors.New("caller admission cancellation fixture")
+	custom, cancelCause := context.WithCancelCause(t.Context())
+	cancelCause(cause)
 	for _, tc := range []struct {
 		name      string
 		ctx       context.Context
@@ -52,6 +55,7 @@ func TestDocumentsRefuseAbsentCapabilitiesAndCancellation(t *testing.T) {
 		{name: "missing_native_capability_is_a_contract_refusal", ctx: t.Context()},
 		{name: "nil_context_retains_native_boundary_identity", wantCause: core.ErrNilContext},
 		{name: "cancellation_retains_native_cause", ctx: cancelled, wantCause: context.Canceled},
+		{name: "custom_cancel_cause_is_preserved_before_any_operation", ctx: custom, wantCause: cause},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

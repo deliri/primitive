@@ -8,7 +8,6 @@ import (
 	"reflect"
 
 	"cloud.google.com/go/firestore"
-	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
 )
 
@@ -44,7 +43,7 @@ func (d Document[T]) Validate() error {
 // Get reads exactly one document and releases no partial record on a read,
 // native decoding or owning-validation failure. Firestore owns document extent.
 func Get[T core.Validatable](ctx context.Context, request GetRequest) (Document[T], error) {
-	if err := contextstate.Validate(ctx); err != nil {
+	if err := documentContext(ctx); err != nil {
 		return Document[T]{}, errors.Join(core.ErrFirestoreDocumentsContract, err)
 	}
 	if err := request.Validate(); err != nil {
@@ -89,7 +88,7 @@ func (r CreateRequest[T]) Validate() error {
 }
 
 func Create[T core.Validatable](ctx context.Context, request CreateRequest[T]) error {
-	if err := contextstate.Validate(ctx); err != nil {
+	if err := documentContext(ctx); err != nil {
 		return errors.Join(core.ErrFirestoreDocumentsContract, err)
 	}
 	if err := request.Validate(); err != nil {
@@ -129,14 +128,14 @@ func (r TransactionResult) Validate() error {
 }
 
 func RunTransaction(ctx context.Context, request TransactionRequest) (TransactionResult, error) {
-	if err := contextstate.Validate(ctx); err != nil {
+	if err := documentContext(ctx); err != nil {
 		return TransactionResult{}, errors.Join(core.ErrFirestoreDocumentsContract, err)
 	}
 	if err := request.Validate(); err != nil {
 		return TransactionResult{}, err
 	}
 	if err := request.Client.RunTransaction(ctx, request.Use); err != nil {
-		return TransactionResult{}, errors.Join(core.ErrFirestoreDocumentsOperation, err)
+		return TransactionResult{}, errors.Join(core.ErrFirestoreDocumentsOperation, err, ctx.Err(), context.Cause(ctx))
 	}
 	return TransactionResult{committed: true}, nil
 }

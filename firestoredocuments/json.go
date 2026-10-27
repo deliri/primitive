@@ -7,7 +7,6 @@ import (
 	"reflect"
 
 	"cloud.google.com/go/firestore"
-	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
 )
 
@@ -32,10 +31,7 @@ func (JSONDocument[T]) firestoreDocumentsSealedProjection() {}
 // Native Firestore values are projected inside the SDK; unknown JSON members
 // remain errors rather than being discarded by Firestore's DataTo conversion.
 func GetJSON[T core.Validatable](ctx context.Context, request GetRequest) (JSONDocument[T], error) {
-	if err := contextstate.Validate(ctx); err != nil {
-		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-			return JSONDocument[T]{}, errors.Join(core.ErrFirestoreDocumentsContract, err, context.Cause(ctx))
-		}
+	if err := documentContext(ctx); err != nil {
 		return JSONDocument[T]{}, errors.Join(core.ErrFirestoreDocumentsContract, err)
 	}
 	if err := request.Validate(); err != nil {
