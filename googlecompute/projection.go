@@ -33,15 +33,7 @@ func projectInstance(reference InstanceReference, wire *compute.Instance) (Insta
 	return InstanceObservation{State: state, ObservedAt: instant}, nil
 }
 
-type operationProjection struct {
-	instance      InstanceReference
-	name          OperationName
-	operationType OperationType
-	wire          *compute.Operation
-}
-
-func projectOperation(projection operationProjection) (OperationObservation, error) {
-	reference, expectedName, expectedType, wire := projection.instance, projection.name, projection.operationType, projection.wire
+func projectOperation(reference InstanceReference, wire *compute.Operation) (OperationObservation, error) {
 	if wire == nil {
 		return OperationObservation{}, core.ErrGoogleComputeResponse
 	}
@@ -51,9 +43,6 @@ func projectOperation(projection operationProjection) (OperationObservation, err
 	name, err := NewOperationName(wire.Name)
 	if err != nil {
 		return OperationObservation{}, errors.Join(core.ErrGoogleComputeResponse, err)
-	}
-	if expectedName.value != "" && name != expectedName {
-		return OperationObservation{}, core.ErrGoogleComputeBinding
 	}
 	target, err := boundLink(wire.TargetLink, instancePath(reference))
 	if err != nil {
@@ -66,9 +55,6 @@ func projectOperation(projection operationProjection) (OperationObservation, err
 	operationType, err := operationType(wire.OperationType)
 	if err != nil {
 		return OperationObservation{}, err
-	}
-	if operationType != expectedType {
-		return OperationObservation{}, core.ErrGoogleComputeBinding
 	}
 	state, err := operationState(wire.Status)
 	if err != nil {

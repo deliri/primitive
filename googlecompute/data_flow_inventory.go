@@ -2,8 +2,6 @@ package googlecompute
 
 type protocolFact interface{ googleComputeProtocolFact() }
 type sealedProjection interface{ googleComputeSealedProjection() }
-type internalFlow interface{ googleComputeInternalFlow() }
-
 type capabilityWrapper interface{ googleComputeCapabilityWrapper() }
 
 func (ResourceName) googleComputeProtocolFact()             {}
@@ -22,6 +20,3 @@ var (
 	_ sealedProjection  = OperationObservation{}
 	_ capabilityWrapper = Client{}
 )
-
-// operationProjection binds official provider facts to one admitted RPC.
-func (operationProjection) googleComputeInternalFlow() {}

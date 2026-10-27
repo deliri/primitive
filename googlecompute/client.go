@@ -103,7 +103,14 @@ func (c Client) StartInstance(ctx context.Context, request InstanceStartRequest)
 	if err != nil {
 		return OperationObservation{}, responseError(callContext, err)
 	}
-	return projectOperation(operationProjection{instance: r, operationType: OperationTypeStart, wire: result})
+	observation, err := projectOperation(r, result)
+	if err != nil {
+		return OperationObservation{}, err
+	}
+	if observation.Type != OperationTypeStart {
+		return OperationObservation{}, core.ErrGoogleComputeBinding
+	}
+	return observation, nil
 }
 
 func (c Client) StopInstance(ctx context.Context, request InstanceStopRequest) (OperationObservation, error) {
@@ -126,7 +133,14 @@ func (c Client) StopInstance(ctx context.Context, request InstanceStopRequest) (
 	if err != nil {
 		return OperationObservation{}, responseError(callContext, err)
 	}
-	return projectOperation(operationProjection{instance: r, operationType: OperationTypeStop, wire: result})
+	observation, err := projectOperation(r, result)
+	if err != nil {
+		return OperationObservation{}, err
+	}
+	if observation.Type != OperationTypeStop {
+		return OperationObservation{}, core.ErrGoogleComputeBinding
+	}
+	return observation, nil
 }
 
 func (c Client) ReadOperation(ctx context.Context, request OperationReadRequest) (OperationObservation, error) {
@@ -149,7 +163,14 @@ func (c Client) ReadOperation(ctx context.Context, request OperationReadRequest)
 	if err != nil {
 		return OperationObservation{}, responseError(callContext, err)
 	}
-	return projectOperation(operationProjection{instance: r, name: request.Operation, operationType: request.Type, wire: result})
+	observation, err := projectOperation(r, result)
+	if err != nil {
+		return OperationObservation{}, err
+	}
+	if observation.Type != request.Type || observation.Name != request.Operation {
+		return OperationObservation{}, core.ErrGoogleComputeBinding
+	}
+	return observation, nil
 }
 
 // The four generated Do methods use gensupport.SendRequest, not its retrying
