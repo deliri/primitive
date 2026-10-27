@@ -89,6 +89,7 @@ func TestGCSObjectPublicReadGrantLayerTriad(t *testing.T) {
 		patchStatus             int
 		foreignRead             bool
 		missingMetageneration   bool
+		nullACLEntry            bool
 		foreignAfter            bool
 		droppedOwner            bool
 		unchangedMetageneration bool
@@ -103,6 +104,7 @@ func TestGCSObjectPublicReadGrantLayerTriad(t *testing.T) {
 		{name: "foreign generation cannot authorize an update", before: []storageapi.ObjectAccessControl{owner}, foreignRead: true, wantErr: core.ErrObjectStoreIntegrity},
 		{name: "missing metadata generation cannot authorize a CAS", before: []storageapi.ObjectAccessControl{owner}, missingMetageneration: true, wantErr: core.ErrObjectStoreContract},
 		{name: "unobserved empty ACL cannot erase existing permissions", wantErr: core.ErrObjectStoreContract},
+		{name: "null ACL entry from provider is a typed refusal", before: []storageapi.ObjectAccessControl{owner}, nullACLEntry: true, wantErr: core.ErrObjectStoreContract},
 		{name: "duplicate ACL entity refuses before update", before: []storageapi.ObjectAccessControl{owner, owner}, wantErr: core.ErrObjectStoreContract},
 		{name: "unknown ACL role is not silently normalized", before: []storageapi.ObjectAccessControl{{Entity: owner.Entity, Role: "FUTURE"}}, wantErr: core.ErrObjectStoreContract},
 		{name: "public write permission is not silently downgraded", before: []storageapi.ObjectAccessControl{owner, {Entity: public.Entity, Role: "OWNER"}}, wantErr: core.ErrObjectStoreContract},
@@ -128,6 +130,9 @@ func TestGCSObjectPublicReadGrantLayerTriad(t *testing.T) {
 				for _, entry := range tc.before {
 					entry := entry
 					metadata.Acl = append(metadata.Acl, &entry)
+				}
+				if tc.nullACLEntry {
+					metadata.Acl = append(metadata.Acl, nil)
 				}
 				if request.Method == http.MethodGet {
 					reads.Add(1)
