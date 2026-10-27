@@ -120,6 +120,9 @@ func (s Server) ListSKUs(ctx context.Context, request ListSKUsRequest, policy ex
 	if err != nil {
 		return PageReceipt{}, err
 	}
+	if err := contextstate.Validate(ctx); err != nil {
+		return PageReceipt{}, errors.Join(core.ErrCloudBillingResponse, err)
+	}
 	return PageReceipt{Page: page, Source: source}, nil
 }
 

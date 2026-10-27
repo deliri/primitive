@@ -1,6 +1,7 @@
 package cloudbilling
 
 import (
+	"bytes"
 	"errors"
 	"strconv"
 	"unicode/utf8"
@@ -205,7 +206,7 @@ func (l PageLimits) Validate() error {
 }
 
 func (p Page) Validate() error {
-	if p.SKUs == nil || !utf8.ValidString(string(p.Next)) {
+	if !utf8.ValidString(string(p.Next)) {
 		return core.ErrCloudBillingResponse
 	}
 	for _, sku := range p.SKUs {
@@ -232,6 +233,12 @@ func DecodePage(data []byte, limits PageLimits) (Page, error) {
 	page, err := core.DecodeStrictJSONStructure[Page](data, limits.JSON)
 	if err != nil {
 		return Page{}, errors.Join(core.ErrCloudBillingResponse, err)
+	}
+	// A response is an object. Inside it, omitted/null/empty repeated fields
+	// all mean no items under Google's ProtoJSON agreement.
+	object := bytes.TrimSpace(data)
+	if len(object) == 0 || object[0] != '{' {
+		return Page{}, core.ErrCloudBillingResponse
 	}
 	maximum, _ := limits.TokenMaximumBytes.Uint64()
 	if uint64(len(page.Next)) > maximum {

@@ -177,7 +177,6 @@ func TestPageIngressRetainsProviderFactsAndCallerBounds(t *testing.T) {
 		{name: "nanos beyond signed int32 representation refused", mutate: func(b []byte) []byte { return bytes.Replace(b, []byte(`"nanos":300`), []byte(`"nanos":2147483648`), 1) }, wantErr: true},
 		{name: "empty response", mutate: func([]byte) []byte { return nil }, wantErr: true},
 		{name: "null response", mutate: func([]byte) []byte { return []byte("null") }, wantErr: true},
-		{name: "missing skus", mutate: func([]byte) []byte { return []byte("{}") }, wantErr: true},
 		{name: "truncated response", mutate: func(b []byte) []byte { return b[:len(b)-1] }, wantErr: true},
 		{name: "second document", mutate: func(b []byte) []byte { return append(b, b...) }, wantErr: true},
 		{name: "unknown field", mutate: func(b []byte) []byte { return bytes.Replace(b, []byte("{"), []byte(`{"unknown":1,`), 1) }, wantErr: true},

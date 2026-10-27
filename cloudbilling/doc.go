@@ -7,4 +7,5 @@
 // Provider references:
 // https://cloud.google.com/billing/docs/reference/rest/v1/services.skus/list
 // https://cloud.google.com/billing/docs/reference/rest/Shared.Types/Money
+// https://protobuf.dev/programming-guides/json/
 package cloudbilling
