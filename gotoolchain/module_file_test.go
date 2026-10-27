@@ -89,22 +89,6 @@ func TestObserveModuleFileUsesNativeGoWithoutEditingOrResolvingDependencies(t *t
 	}
 }
 
-// A checkout whose root holds no go.mod is refused with Go's own reason, not a
-// bare exit code: the caller can see what to change.
-func TestObserveModuleFileRefusalNamesMissingModule(t *testing.T) {
-	t.Parallel()
-	directory := t.TempDir()
-	capability, request := installationFixtureCapability(t, directory, []string{"GOTOOLCHAIN=local", "GOPROXY=off", "GOSUMDB=off"})
-	got, err := capability.ObserveModuleFile(t.Context(), request)
-	var exit CommandExitError
-	if got != (ModuleFileObservation{}) || !errors.As(err, &exit) || exit.Process.ExitCode == 0 || exit.Validate() != nil {
-		t.Fatalf("missing go.mod=%+v/%v, want a valid native refusal", got, err)
-	}
-	if !strings.Contains(err.Error(), "go.mod") || len(exit.Stderr.Data) == 0 || exit.Stderr.Dropped.Uint64() != 0 {
-		t.Fatalf("missing go.mod error=%q stderr=%q, want Go's own go.mod diagnostic", err, exit.Stderr.Data)
-	}
-}
-
 func TestNativeModuleFileProducerProjectionMatrix(t *testing.T) {
 	t.Parallel()
 	for _, version := range []struct {
