@@ -16,15 +16,19 @@ func (ExactTagRequest) gitRepositoryProtocolFact()     {}
 func (ExactTagObservation) gitRepositoryProtocolFact() {}
 func (CommandExitError) gitRepositoryInternalFlow()    {}
 
-func (Configuration) gitRepositoryProtocolFact()   {}
-func (WorktreeRequest) gitRepositoryProtocolFact() {}
-func (StatusRequest) gitRepositoryProtocolFact()   {}
-func (HeadRequest) gitRepositoryProtocolFact()     {}
-func (HeadObservation) gitRepositoryProtocolFact() {}
-func (WorktreeEntry) gitRepositoryProtocolFact()   {}
-func (WorktreeSummary) gitRepositoryProtocolFact() {}
+func (Configuration) gitRepositoryProtocolFact()     {}
+func (WorktreeRequest) gitRepositoryProtocolFact()   {}
+func (StatusRequest) gitRepositoryProtocolFact()     {}
+func (HeadRequest) gitRepositoryProtocolFact()       {}
+func (HeadObservation) gitRepositoryProtocolFact()   {}
+func (WorktreeEntry) gitRepositoryProtocolFact()     {}
+func (WorktreeSummary) gitRepositoryProtocolFact()   {}
+func (InventoryRequest) gitRepositoryProtocolFact()  {}
+func (ReferenceEntry) gitRepositoryProtocolFact()    {}
+func (WorktreeListEntry) gitRepositoryProtocolFact() {}
 
 func (worktreeEntryWriter) gitRepositoryInternalFlow() {}
+func (recordWriter) gitRepositoryInternalFlow()        {}
 func (headOutput) gitRepositoryInternalFlow()          {}
 
 func (Capability) gitRepositoryCapabilityWrapper() {}
