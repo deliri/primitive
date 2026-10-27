@@ -37,7 +37,7 @@ func projectOperation(reference InstanceReference, expectedName OperationName, e
 	if wire == nil {
 		return OperationObservation{}, core.ErrGoogleComputeResponse
 	}
-	if err := responseStatus(wire.HTTPStatusCode); err != nil {
+	if err := responseStatus(wire.HTTPStatusCode, wire.Header); err != nil {
 		return OperationObservation{}, err
 	}
 	name, err := NewOperationName(wire.Name)

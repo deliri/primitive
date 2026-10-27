@@ -77,7 +77,7 @@ func (c Client) ReadInstance(ctx context.Context, request InstanceReadRequest) (
 	if result == nil {
 		return InstanceObservation{}, core.ErrGoogleComputeResponse
 	}
-	if err := responseStatus(result.HTTPStatusCode); err != nil {
+	if err := responseStatus(result.HTTPStatusCode, result.Header); err != nil {
 		return InstanceObservation{}, err
 	}
 	return projectInstance(r, result)
@@ -176,9 +176,17 @@ func contextError(ctx context.Context) (err error) {
 	return errors.Join(err, context.Cause(ctx))
 }
 
-func responseStatus(status int) error {
+func responseStatus(status int, header http.Header) error {
 	if status != http.StatusOK {
 		return errors.Join(core.ErrGoogleComputeResponse, &googleapi.Error{Code: status})
+	}
+	media, err := core.ParseHTTPMediaType(header.Get("Content-Type"))
+	if err != nil {
+		return errors.Join(core.ErrGoogleComputeResponse, err)
+	}
+	matched, err := media.SameBase(core.HTTPMediaTypeJSON())
+	if err != nil || !matched {
+		return errors.Join(core.ErrGoogleComputeResponse, core.ErrExchangeResponse, err)
 	}
 	return nil
 }
