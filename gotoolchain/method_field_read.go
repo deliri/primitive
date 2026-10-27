@@ -102,6 +102,15 @@ type methodFieldReadQuery struct {
 	Field    int
 }
 
+type methodFieldReadCallKind uint8
+
+const (
+	methodFieldReadCallDirect methodFieldReadCallKind = iota + 1
+	methodFieldReadCallRange
+)
+
+func (methodFieldReadCallKind) goToolchainInternalFlow() {}
+
 func (methodFieldReadQuery) goToolchainInternalFlow() {}
 
 func methodFieldRecord(value types.Type) *types.Struct {
@@ -149,7 +158,23 @@ func methodFieldReads(ctx context.Context, query methodFieldReadQuery) (bool, er
 				read = methodFieldComparedRecord(value.X, query) || methodFieldComparedRecord(value.Y, query)
 			}
 		case *ast.CallExpr:
-			read, err = methodFieldCallReads(ctx, value, query)
+			read, err = methodFieldCallReads(ctx, value, query, methodFieldReadCallDirect)
+			if err != nil {
+				return false, err
+			}
+		case *ast.RangeStmt:
+			call, called := ast.Unparen(value.X).(*ast.CallExpr)
+			if !called {
+				continue
+			}
+			ranged := query.Types.TypeOf(value.X)
+			if ranged == nil {
+				return false, core.ErrGoToolchainOutput
+			}
+			if _, iterator := types.Unalias(ranged).Underlying().(*types.Signature); !iterator {
+				continue
+			}
+			read, err = methodFieldCallReads(ctx, call, query, methodFieldReadCallRange)
 			if err != nil {
 				return false, err
 			}
@@ -187,7 +212,7 @@ func methodFieldOperand(expression ast.Expr, variable *types.Var, facts *types.I
 	return false
 }
 
-func methodFieldCallReads(ctx context.Context, call *ast.CallExpr, query methodFieldReadQuery) (bool, error) {
+func methodFieldCallReads(ctx context.Context, call *ast.CallExpr, query methodFieldReadQuery, kind methodFieldReadCallKind) (bool, error) {
 	callee := ast.Unparen(call.Fun)
 	for {
 		switch indexed := callee.(type) {
@@ -196,12 +221,12 @@ func methodFieldCallReads(ctx context.Context, call *ast.CallExpr, query methodF
 		case *ast.IndexListExpr:
 			callee = ast.Unparen(indexed.X)
 		default:
-			return methodFieldResolvedCallReads(ctx, call, callee, query)
+			return methodFieldResolvedCallReads(ctx, call, callee, query, kind)
 		}
 	}
 }
 
-func methodFieldResolvedCallReads(ctx context.Context, call *ast.CallExpr, callee ast.Expr, query methodFieldReadQuery) (bool, error) {
+func methodFieldResolvedCallReads(ctx context.Context, call *ast.CallExpr, callee ast.Expr, query methodFieldReadQuery, kind methodFieldReadCallKind) (bool, error) {
 	if query.Frame == nil {
 		return false, core.ErrGoToolchainOutput
 	}
@@ -268,7 +293,7 @@ func methodFieldResolvedCallReads(ctx context.Context, call *ast.CallExpr, calle
 		}
 		if promotedField < 0 {
 			next.Variable = signature.Recv()
-			if read, err := methodFieldReads(ctx, next); read || err != nil {
+			if read, err := methodFieldInvokedBodyReads(ctx, next, kind); read || err != nil {
 				return read, err
 			}
 		}
@@ -277,10 +302,50 @@ func methodFieldResolvedCallReads(ctx context.Context, call *ast.CallExpr, calle
 		if index < signature.Params().Len() && methodFieldOperand(argument, query.Variable, query.Types) {
 			next.Variable = signature.Params().At(index)
 			if methodFieldRecord(next.Variable.Type()) != nil {
-				if read, err := methodFieldReads(ctx, next); read || err != nil {
+				if read, err := methodFieldInvokedBodyReads(ctx, next, kind); read || err != nil {
 					return read, err
 				}
 			}
+		}
+	}
+	return false, nil
+}
+
+// A native function range invokes the function returned by its factory. Borrow
+// only closures actually present in that factory's native return operands;
+// discarded iterators and opaque returned calls lend no additional authority.
+func methodFieldInvokedBodyReads(ctx context.Context, query methodFieldReadQuery, kind methodFieldReadCallKind) (bool, error) {
+	switch kind {
+	case methodFieldReadCallDirect:
+		return methodFieldReads(ctx, query)
+	case methodFieldReadCallRange:
+	default:
+		return false, core.ErrGoToolchainContract
+	}
+	for instruction, err := range query.View.Instructions(ctx, SSAInstructionRequest{Function: query.Frame, Extent: SSAInstructionExtentFunction}) {
+		if err != nil {
+			return false, err
+		}
+		returned, ok := instruction.(*ssa.Return)
+		if !ok || len(returned.Results) != 1 || errorUntakenBlock(returned.Block()) {
+			continue
+		}
+		loan, _, err := query.View.sourceFunctionValue(ctx, returned.Results[0], returned, nil)
+		if err != nil {
+			return false, err
+		}
+		function := loan.Function
+		if function == nil || function.Parent() != query.Frame {
+			continue
+		}
+		literal, ok := function.Syntax().(*ast.FuncLit)
+		if !ok {
+			continue
+		}
+		next := query
+		next.Frame, next.Body, next.Parent = function, literal.Body, &query
+		if read, err := methodFieldReads(ctx, next); read || err != nil {
+			return read, err
 		}
 	}
 	return false, nil
