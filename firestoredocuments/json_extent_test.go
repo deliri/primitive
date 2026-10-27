@@ -60,15 +60,16 @@ func TestGetJSONEmulatorRetainsSourceExtentBeforeTypedOmission(t *testing.T) {
 				t.Fatal(err)
 			}
 			got, err := GetJSON[jsonExtentCaller](t.Context(), GetRequest{Reference: ref})
-			if err != nil || got.Record != (jsonExtentCaller{Owner: input.Owner}) || got.Bytes.Uint64() != uint64(len(source)) || got.Validate() != nil {
-				t.Fatalf("source extent = (%d, %v), want exact %d and validated original facts", got.Bytes.Uint64(), err, len(source))
+			bytes, extentErr := got.Bytes.Uint64()
+			if err != nil || extentErr != nil || got.Record != (jsonExtentCaller{Owner: input.Owner}) || bytes != uint64(len(source)) || got.Validate() != nil {
+				t.Fatalf("source extent = (%d, %v, %v), want exact %d and validated original facts", bytes, err, extentErr, len(source))
 			}
 			projection, err := core.MarshalCanonicalJSONDocument(got.Record)
 			if err != nil || len(projection) >= len(source) {
 				t.Fatalf("typed omission = (%d, %v), want less than original %d", len(projection), err, len(source))
 			}
-			if tc.size > callerLimit && (got.Bytes.Uint64() <= callerLimit || len(projection) > callerLimit) {
-				t.Fatalf("caller limit facts = (%d source, %d projection), want source refusal despite smaller projection", got.Bytes.Uint64(), len(projection))
+			if tc.size > callerLimit && (bytes <= callerLimit || len(projection) > callerLimit) {
+				t.Fatalf("caller limit facts = (%d source, %d projection), want source refusal despite smaller projection", bytes, len(projection))
 			}
 			if costs.reads.Load() != 1 || costs.writes.Load() != 1 {
 				t.Fatalf("native point operations = %d reads/%d writes, want 1/1", costs.reads.Load(), costs.writes.Load())

@@ -205,7 +205,8 @@ func FuzzGetJSONEmulatorStrictTypedClosure(f *testing.F) {
 		}
 		want := jsonCallerRecord{Owner: owner, Value: value}
 		wire, encodeErr := core.MarshalCanonicalJSONDocument(want)
-		if err != nil || encodeErr != nil || got.Record != want || got.Validate() != nil || got.Bytes.Uint64() != uint64(len(wire)) {
+		extent, extentErr := got.Bytes.Uint64()
+		if err != nil || encodeErr != nil || extentErr != nil || got.Record != want || got.Validate() != nil || extent != uint64(len(wire)) {
 			t.Fatalf("strict JSON admission = (%+v, %v), want (%+v, nil)", got, err, want)
 		}
 	})
