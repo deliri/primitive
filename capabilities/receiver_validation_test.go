@@ -8,6 +8,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/gomodule"
+	"github.com/deliri/primitive/v2026/process"
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
@@ -116,9 +117,11 @@ func FuzzReceiverValidationCannotEscapeDeclaringSymbol(f *testing.F) {
 	f.Fuzz(func(t *testing.T, slot uint8, suffix string) {
 		temporalType := reflect.TypeFor[temporal.NumericInstant]()
 		countType := reflect.TypeFor[core.ByteCount]()
+		argumentType := reflect.TypeFor[process.Argument]()
 		for _, baseline := range [...]StandardSymbol{
 			ownershipSymbol(t, temporalType.PkgPath(), temporalType.Name(), "Instant"),
 			ownershipSymbol(t, countType.PkgPath(), countType.Name(), "Uint64"),
+			ownershipSymbol(t, argumentType.PkgPath(), argumentType.Name(), "Value"),
 		} {
 			before, err := baseline.ValidatesReceiver()
 			if err != nil || !before {
