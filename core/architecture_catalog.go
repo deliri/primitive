@@ -184,6 +184,8 @@ const (
 	PackageCloudBilling
 	// PackageHashIO owns native fingerprint and constant-time equality execution.
 	PackageHashIO
+	// PackageGoogleCompute owns single-attempt zonal Compute wire contracts.
+	PackageGoogleCompute
 	packageIdentityLimit
 )
 
@@ -304,6 +306,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageFirestoreDocuments, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 			{Identity: PackageCloudBilling, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 			{Identity: PackageHashIO, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
+			{Identity: PackageGoogleCompute, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 		},
 	}
 }
@@ -564,6 +567,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"firestoredocuments",
 		"cloudbilling",
 		"hashio",
+		"googlecompute",
 	}
 }
 

@@ -650,6 +650,12 @@ const (
 	// ErrCloudBillingResponse identifies a refused Cloud Billing page.
 	ErrCloudBillingResponse
 
+	// ErrGoogleComputeContract identifies invalid Compute capability or request.
+	ErrGoogleComputeContract
+	// ErrGoogleComputeResponse identifies malformed Compute provider facts.
+	ErrGoogleComputeResponse
+	// ErrGoogleComputeBinding identifies a foreign resource or operation.
+	ErrGoogleComputeBinding
 	errorIdentityLimit
 )
 
@@ -941,6 +947,9 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrCloudBillingContract, text: "cloud billing contract violation"},
 		{identity: ErrCloudBillingAuthentication, text: "cloud billing authentication failed"},
 		{identity: ErrCloudBillingResponse, text: "cloud billing response invalid"},
+		{identity: ErrGoogleComputeContract, text: "google compute contract violation"},
+		{identity: ErrGoogleComputeResponse, text: "google compute response invalid"},
+		{identity: ErrGoogleComputeBinding, text: "google compute resource binding invalid"},
 	}
 }
 
@@ -1091,7 +1100,7 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrLifecycleIdentityContract, ErrReceiptContract, ErrChitContract,
 		ErrRetrievalContract, ErrPaymentContract, ErrControlWireContract,
 		ErrControlPlaneContract, ErrIDContract, ErrSecretStoreContract,
-		ErrStripeContract, ErrPayPalContract, ErrTwilioContract, ErrPlunkContract, ErrLoopsContract, ErrCloudflareContract, ErrGitHubContract, ErrCloudBillingContract,
+		ErrStripeContract, ErrPayPalContract, ErrTwilioContract, ErrPlunkContract, ErrLoopsContract, ErrCloudflareContract, ErrGitHubContract, ErrCloudBillingContract, ErrGoogleComputeContract,
 		ErrCapabilitiesContract, ErrGoModuleContract, ErrGoToolchainContract, ErrGitRepositoryContract,
 		ErrProofLedgerContract, ErrTailnetContract, ErrAccessPermitContract, ErrPermitContract, ErrReportContract) {
 		return oneErrorIdentityParent(ErrPrimitiveContract)
@@ -1209,6 +1218,9 @@ func errorIdentityParentsSecretStoreThroughPayment(identity ErrorIdentity) error
 }
 
 func errorIdentityProviderParent(identity ErrorIdentity) ErrorIdentity {
+	if errorIdentityIn(identity, ErrGoogleComputeResponse, ErrGoogleComputeBinding) {
+		return ErrGoogleComputeContract
+	}
 	if errorIdentityIn(identity, ErrCloudBillingAuthentication, ErrCloudBillingResponse) {
 		return ErrCloudBillingContract
 	}
