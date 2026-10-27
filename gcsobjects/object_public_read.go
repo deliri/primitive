@@ -65,7 +65,7 @@ func GrantGCSObjectPublicRead(ctx context.Context, client *GCSClient, request GC
 		return GCSObjectPublicReadGrant{}, err
 	}
 	object := client.client.Bucket(request.Bucket.String()).Object(request.Name.String()).Generation(generation)
-	before, err := object.Attrs(ctx)
+	before, err := gcsObjectPublicReadAttrs(ctx, object)
 	if err != nil {
 		return GCSObjectPublicReadGrant{}, projectGCSError(err, core.ErrObjectStoreSource)
 	}
@@ -82,7 +82,7 @@ func GrantGCSObjectPublicRead(ctx context.Context, client *GCSClient, request GC
 		return GCSObjectPublicReadGrant{metadata: metadata, set: true}, nil
 	}
 	acl := append(slices.Clone(before.ACL), storage.ACLRule{Entity: storage.AllUsers, Role: storage.RoleReader})
-	after, err := object.If(storage.Conditions{MetagenerationMatch: before.Metageneration}).Update(ctx, storage.ObjectAttrsToUpdate{ACL: acl})
+	after, err := gcsObjectPublicReadUpdate(ctx, object.If(storage.Conditions{MetagenerationMatch: before.Metageneration}), acl)
 	if err != nil {
 		return GCSObjectPublicReadGrant{}, projectGCSError(err, core.ErrObjectStoreDestination)
 	}
@@ -91,6 +91,29 @@ func GrantGCSObjectPublicRead(ctx context.Context, client *GCSClient, request GC
 		return GCSObjectPublicReadGrant{}, errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreDestination, core.ErrObjectStoreConflict, err)
 	}
 	return GCSObjectPublicReadGrant{metadata: metadata, changed: true, set: true}, nil
+}
+
+// The official SDK projects null ACL entries by dereferencing nil. Confine
+// that malformed provider response to the exact SDK calls, preserving an
+// error-valued native cause just like the existing bucket-IAM boundary.
+func gcsObjectPublicReadAttrs(ctx context.Context, object *storage.ObjectHandle) (attributes *storage.ObjectAttrs, err error) {
+	defer recoverGCSPublicationResponse(&attributes, &err)
+	return object.Attrs(ctx)
+}
+
+func gcsObjectPublicReadUpdate(ctx context.Context, object *storage.ObjectHandle, acl []storage.ACLRule) (attributes *storage.ObjectAttrs, err error) {
+	defer recoverGCSPublicationResponse(&attributes, &err)
+	return object.Update(ctx, storage.ObjectAttrsToUpdate{ACL: acl})
+}
+
+func recoverGCSPublicationResponse(attributes **storage.ObjectAttrs, err *error) {
+	if recovered := recover(); recovered != nil {
+		*attributes = nil
+		*err = errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreDestination)
+		if cause, ok := recovered.(error); ok {
+			*err = errors.Join(*err, cause)
+		}
+	}
 }
 
 func publicReadMetadata(request GCSObjectPublicReadRequest, attributes *storage.ObjectAttrs) (GCSObjectMetadata, error) {
