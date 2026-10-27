@@ -35,7 +35,7 @@ type jsonProviderRecord struct {
 
 func (jsonProviderRecord) Validate() error { return nil }
 
-var _ func(context.Context, GetRequest) (Document[jsonCallerRecord], error) = GetJSON[jsonCallerRecord]
+var _ func(context.Context, GetRequest) (JSONDocument[jsonCallerRecord], error) = GetJSON[jsonCallerRecord]
 
 func TestGetJSONRefusesMissingReferencesAndContext(t *testing.T) {
 	t.Parallel()
@@ -54,7 +54,7 @@ func TestGetJSONRefusesMissingReferencesAndContext(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got, err := GetJSON[jsonCallerRecord](tc.ctx, GetRequest{})
-			if !errors.Is(err, core.ErrFirestoreDocumentsContract) || tc.wantCause != nil && !errors.Is(err, tc.wantCause) || got != (Document[jsonCallerRecord]{}) {
+			if !errors.Is(err, core.ErrFirestoreDocumentsContract) || tc.wantCause != nil && !errors.Is(err, tc.wantCause) || got != (JSONDocument[jsonCallerRecord]{}) {
 				t.Fatalf("unbound JSON = (%+v, %v), want zero, contract and %v", got, err, tc.wantCause)
 			}
 		})
@@ -95,7 +95,7 @@ func TestGetJSONEmulatorStrictCallerRecordLayerTriad(t *testing.T) {
 			}
 			got, err := GetJSON[jsonCallerRecord](t.Context(), GetRequest{Reference: ref})
 			if tc.wantErr != nil {
-				if !errors.Is(err, tc.wantErr) || got != (Document[jsonCallerRecord]{}) {
+				if !errors.Is(err, tc.wantErr) || got != (JSONDocument[jsonCallerRecord]{}) {
 					t.Fatalf("refused JSON record = (%+v, %v), want zero and %v", got, err, tc.wantErr)
 				}
 				if _, ok := errors.AsType[*json.SemanticError](err); tc.wantJSON && !ok {
@@ -136,7 +136,7 @@ func TestGetJSONEmulatorTransactionAndRefusalBoundaries(t *testing.T) {
 	}
 	missing := ref.Parent.Doc(ref.ID + "-missing")
 	got, err := GetJSON[jsonCallerRecord](t.Context(), GetRequest{Reference: missing})
-	if !errors.Is(err, core.ErrFirestoreDocumentsOperation) || status.Code(err) != codes.NotFound || got != (Document[jsonCallerRecord]{}) {
+	if !errors.Is(err, core.ErrFirestoreDocumentsOperation) || status.Code(err) != codes.NotFound || got != (JSONDocument[jsonCallerRecord]{}) {
 		t.Fatalf("absent JSON = (%+v, %v), want zero and native NotFound", got, err)
 	}
 	before := costs.reads.Load()
@@ -144,11 +144,11 @@ func TestGetJSONEmulatorTransactionAndRefusalBoundaries(t *testing.T) {
 	ctx, cancel := context.WithCancelCause(t.Context())
 	cancel(cause)
 	got, err = GetJSON[jsonCallerRecord](ctx, GetRequest{Reference: ref})
-	if !errors.Is(err, cause) || !errors.Is(err, context.Canceled) || !errors.Is(err, core.ErrFirestoreDocumentsContract) || got != (Document[jsonCallerRecord]{}) {
+	if !errors.Is(err, cause) || !errors.Is(err, context.Canceled) || !errors.Is(err, core.ErrFirestoreDocumentsContract) || got != (JSONDocument[jsonCallerRecord]{}) {
 		t.Fatalf("cancelled JSON = (%+v, %v), want zero and caller cause", got, err)
 	}
 	scalar, scalarErr := GetJSON[nonStructRecord](t.Context(), GetRequest{Reference: ref})
-	if !errors.Is(scalarErr, core.ErrFirestoreDocumentsContract) || scalar != (Document[nonStructRecord]{}) || costs.reads.Load() != before {
+	if !errors.Is(scalarErr, core.ErrFirestoreDocumentsContract) || scalar != (JSONDocument[nonStructRecord]{}) || costs.reads.Load() != before {
 		t.Fatalf("scalar/cancel native reads = (%v, %d), want contract and unchanged %d", scalarErr, costs.reads.Load(), before)
 	}
 	reportNativeCosts(t, costs)
@@ -198,13 +198,14 @@ func FuzzGetJSONEmulatorStrictTypedClosure(f *testing.F) {
 		}
 		got, err := GetJSON[jsonCallerRecord](t.Context(), GetRequest{Reference: ref})
 		if mode != 0 || owner == "" {
-			if !errors.Is(err, core.ErrFirestoreDocumentsContract) || got != (Document[jsonCallerRecord]{}) {
+			if !errors.Is(err, core.ErrFirestoreDocumentsContract) || got != (JSONDocument[jsonCallerRecord]{}) {
 				t.Fatalf("strict JSON refusal = (%+v, %v), want zero and typed refusal", got, err)
 			}
 			return
 		}
 		want := jsonCallerRecord{Owner: owner, Value: value}
-		if err != nil || got.Record != want || got.Validate() != nil {
+		wire, encodeErr := core.MarshalCanonicalJSONDocument(want)
+		if err != nil || encodeErr != nil || got.Record != want || got.Validate() != nil || got.Bytes.Uint64() != uint64(len(wire)) {
 			t.Fatalf("strict JSON admission = (%+v, %v), want (%+v, nil)", got, err, want)
 		}
 	})
