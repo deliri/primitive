@@ -17,6 +17,7 @@ func TestMethodFieldErrorPropagationAllocatesNoSyntaxPopulation(t *testing.T) {
 	for _, shape := range [...]struct{ name, body string }{
 		{"constructed argument", `return (Bridge{Other:v.A,Selected:v.A}).Check()}`},
 		{"returned record", `return v.project().Check()}`},
+		{"stored returned record", `returned:=v.project();if returned.Selected.Count<0{return returned.Check()};return returned.Check()}`},
 	} {
 		var small uint64
 		for _, extent := range []int{32, 16385} {

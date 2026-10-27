@@ -3,6 +3,7 @@ package gotoolchain
 import (
 	"context"
 	"go/ast"
+	"go/token"
 	"iter"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -31,7 +32,14 @@ func methodFieldErrorReturnedBindings(ctx context.Context, expression ast.Expr, 
 			return
 		}
 		if producer.Call == nil {
-			return
+			producer, err = methodFieldErrorStoredProducer(ctx, value, query)
+			if err != nil {
+				yield(methodFieldErrorQuery{}, err)
+				return
+			}
+			if producer.Call == nil {
+				return
+			}
 		}
 		for syntax, err := range WalkSyntax(ctx, SyntaxWalkRequest{Root: query.Body}) {
 			if err != nil {
@@ -137,6 +145,41 @@ func methodFieldErrorReturnedBindings(ctx context.Context, expression ast.Expr, 
 			return
 		}
 	}
+}
+
+// Comparisons and field reads can give a returned record a compiler home.
+// Borrow its actual initializing store and prove that home stayed unchanged;
+// no assignment history or alias population is reconstructed.
+func methodFieldErrorStoredProducer(ctx context.Context, value ssa.Value, query methodFieldErrorQuery) (SSAExpressionCallObservation, error) {
+	read, ok := value.(*ssa.UnOp)
+	if !ok || read.Op != token.MUL {
+		return SSAExpressionCallObservation{}, nil
+	}
+	home, ok := read.X.(*ssa.Alloc)
+	if !ok || home.Heap {
+		return SSAExpressionCallObservation{}, nil
+	}
+	for instruction, err := range query.View.Instructions(ctx, SSAInstructionRequest{Function: query.Frame, Extent: SSAInstructionExtentFunction}) {
+		if err != nil {
+			return SSAExpressionCallObservation{}, err
+		}
+		store, ok := instruction.(*ssa.Store)
+		if !ok || store.Addr != home {
+			continue
+		}
+		producer, err := query.View.valueExpressionCall(ctx, store.Val)
+		if err != nil {
+			return SSAExpressionCallObservation{}, err
+		}
+		if producer.Call == nil {
+			continue
+		}
+		stable, err := receiverGateHomeStable(ctx, query.View, home, store, read)
+		if err != nil || stable {
+			return producer, err
+		}
+	}
+	return SSAExpressionCallObservation{}, nil
 }
 
 // Compare with the original native parameter, never a same-spelled later
