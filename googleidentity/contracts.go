@@ -120,6 +120,16 @@ func (c Client) Validate() error {
 	return nil
 }
 
+// CloseIdleConnections releases only the direct transport derived by NewClient.
+// It preserves the caller's original Exchange transport and does not interrupt
+// active acquisition or invalidate copies. The owner joins its calls first.
+func (c Client) CloseIdleConnections() error {
+	if err := c.exchange.CloseIdleConnections(); err != nil {
+		return contractError(err)
+	}
+	return nil
+}
+
 var (
 	_ core.Validatable = Audience{}
 	_ core.Validatable = Policy{}
