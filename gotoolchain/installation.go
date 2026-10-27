@@ -67,15 +67,27 @@ func (o ModuleDownloadObservation) Validate() error {
 }
 func (ModuleDownloadObservation) goToolchainProtocolFact() {}
 
+// commandStderrTailBytes is the retained suffix of a refused command's
+// stderr: enough for Go's own diagnostic, bounded whatever the output size.
+const commandStderrTailBytes = 4096
+
 // CommandExitError preserves the completed native exit observation beside a
-// refused command. It never admits a source directory or installation fact.
-type CommandExitError struct{ Process process.ResultObservation }
+// refused command, with the suffix of Go's own stderr that explains it. It
+// never admits a source directory or installation fact.
+type CommandExitError struct {
+	Stderr  process.TailBufferObservation
+	Process process.ResultObservation
+}
 
 func (e CommandExitError) Error() string {
-	return fmt.Sprintf("Go command exited %d", e.Process.ExitCode)
+	text := strings.TrimSpace(string(e.Stderr.Data))
+	if text == "" {
+		return fmt.Sprintf("Go command exited %d", e.Process.ExitCode)
+	}
+	return fmt.Sprintf("Go command exited %d: %s", e.Process.ExitCode, text)
 }
 func (e CommandExitError) Validate() error {
-	if err := e.Process.Validate(); err != nil {
+	if err := errors.Join(e.Process.Validate(), e.Stderr.Validate()); err != nil {
 		return errors.Join(core.ErrGoToolchainContract, err)
 	}
 	if e.Process.ExitCode == 0 {
@@ -200,13 +212,21 @@ func (c Capability) withCompletedCommandOutput(ctx context.Context, directory co
 	if err != nil {
 		return errors.Join(core.ErrGoToolchainContract, err)
 	}
+	window, err := core.NewByteCount(commandStderrTailBytes)
+	if err != nil {
+		return err
+	}
 	return filestore.WithScratchScope(ctx, filestore.ScratchScopeRequest{Parent: parent, Use: func(owner context.Context, root *os.Root) error {
+		stderr, err := process.NewTailBuffer(window)
+		if err != nil {
+			return err
+		}
 		path, err := core.ParseRelativePath("go-output")
 		if err != nil {
 			return err
 		}
 		scope, err := filestore.WithScratchReplayScope(owner, filestore.ScratchReplayScopeRequest{Scratch: filestore.ScratchRequest{Location: filestore.Location{Root: root, Path: path}, Mode: 0o600}, Use: func(owner context.Context, stdout filestore.ScratchReplayFile) error {
-			result, runErr := runToolchainGroup(ctx, process.Request{Command: c.command, WorkingDirectory: directory, Arguments: arguments, Environment: c.environment, Streams: process.Streams{Stdin: bytes.NewReader(nil), Stdout: stdout, Stderr: io.Discard}, OutputPolicy: process.OutputPolicy{Mode: process.OutputModeStreaming}, WaitDelay: c.configuration.Limits.WaitDelay, Containment: process.Containment{Isolation: process.IsolationGroup, CancelSignal: process.CancelSignalTerminate}})
+			result, runErr := runToolchainGroup(ctx, process.Request{Command: c.command, WorkingDirectory: directory, Arguments: arguments, Environment: c.environment, Streams: process.Streams{Stdin: bytes.NewReader(nil), Stdout: stdout, Stderr: stderr}, OutputPolicy: process.OutputPolicy{Mode: process.OutputModeStreaming}, WaitDelay: c.configuration.Limits.WaitDelay, Containment: process.Containment{Isolation: process.IsolationGroup, CancelSignal: process.CancelSignalTerminate}})
 			if runErr != nil {
 				return errors.Join(core.ErrGoToolchainExecution, runErr)
 			}
@@ -215,7 +235,11 @@ func (c Capability) withCompletedCommandOutput(ctx context.Context, directory co
 				return errors.Join(core.ErrGoToolchainExecution, err)
 			}
 			if receipt.ExitCode != 0 {
-				return CommandExitError{Process: receipt}
+				tail, err := stderr.Snapshot()
+				if err != nil {
+					return errors.Join(core.ErrGoToolchainExecution, err)
+				}
+				return CommandExitError{Process: receipt, Stderr: tail}
 			}
 			extent, err := filestore.InspectOpenFile(owner, filestore.HandleInspectionRequest{File: stdout})
 			if err != nil {
