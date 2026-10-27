@@ -55,6 +55,9 @@ const (
 	CredentialAuthorizedUserFile
 )
 
+// OffWireEnum marks the caller's credential acquisition policy as off wire.
+func (CredentialSourceKind) OffWireEnum() {}
+
 type CredentialSource struct {
 	Kind CredentialSourceKind
 	File core.AbsolutePath
