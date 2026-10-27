@@ -46,33 +46,7 @@ func ServeSocketWithWriteStall(r SocketWriteStallRequest) (resultErr error) {
 	if err := r.Validate(); err != nil {
 		return err
 	}
-	w := &socketStallWriter{writer: r.Call.writer, ctx: r.Call.request.Context(), timeout: r.Timeout}
-	// This is both the native capability gate and removal of the inherited
-	// whole-response deadline. No handler/header/body effects precede it.
-	if err := w.controller().SetWriteDeadline(time.Time{}); err != nil {
-		return errors.Join(core.ErrExchangeResponse, core.ErrExchangeWrite, err)
-	}
-	joined := make(chan struct{})
-	stop := context.AfterFunc(w.ctx, func() {
-		defer close(joined)
-		w.mutex.Lock()
-		defer w.mutex.Unlock()
-		w.cancelLocked()
-	})
-	defer func() {
-		if !stop() {
-			<-joined
-		}
-		w.mutex.Lock()
-		defer w.mutex.Unlock()
-		// An unconsumed final HTTP chunk must still have a finite bound.
-		if w.failure == nil {
-			w.failure = w.armLocked()
-		}
-		resultErr = errors.Join(resultErr, w.failure)
-	}()
-	r.Handler.ServeHTTP(w, r.Call.request)
-	return nil
+	return r.Call.ServeHTTP(r.Handler)
 }
 
 type socketStallWriter struct {
