@@ -100,21 +100,44 @@ func Create[T core.Validatable](ctx context.Context, request CreateRequest[T]) e
 	return nil
 }
 
+// TransactionMode selects native execution policy, not a wire representation.
+type TransactionMode uint8
+
+const (
+	// TransactionReadWrite is the native default, including its retry behavior.
+	TransactionReadWrite TransactionMode = iota
+	TransactionReadOnly
+)
+
+func (m TransactionMode) Validate() error {
+	switch m {
+	case TransactionReadWrite, TransactionReadOnly:
+		return nil
+	default:
+		return core.ErrFirestoreDocumentsContract
+	}
+}
+
+// OffWireEnum declares that the mode selects an official SDK option only.
+func (TransactionMode) OffWireEnum() {}
+
 // TransactionRequest delegates retry and commit mechanics to the official SDK.
 // Use must use its provided context and transaction and tolerate native retries.
 type TransactionRequest struct {
 	Client *firestore.Client
 	Use    func(context.Context, *firestore.Transaction) error
+	Mode   TransactionMode
 }
 
 func (r TransactionRequest) Validate() error {
 	if r.Client == nil || r.Use == nil {
 		return core.ErrFirestoreDocumentsContract
 	}
-	return nil
+	return r.Mode.Validate()
 }
 
-// TransactionResult is issued only after the native SDK confirms commitment.
+// TransactionResult is issued only after the native SDK confirms completion,
+// including a read-only transaction that commits no writes.
 // It is an execution fact, not an independent evidence acceptance receipt.
 type TransactionResult struct {
 	committed bool
@@ -134,7 +157,13 @@ func RunTransaction(ctx context.Context, request TransactionRequest) (Transactio
 	if err := request.Validate(); err != nil {
 		return TransactionResult{}, err
 	}
-	if err := request.Client.RunTransaction(ctx, request.Use); err != nil {
+	var err error
+	if request.Mode == TransactionReadOnly {
+		err = request.Client.RunTransaction(ctx, request.Use, firestore.ReadOnly)
+	} else {
+		err = request.Client.RunTransaction(ctx, request.Use)
+	}
+	if err != nil {
 		return TransactionResult{}, errors.Join(core.ErrFirestoreDocumentsOperation, err, ctx.Err(), context.Cause(ctx))
 	}
 	return TransactionResult{committed: true}, nil

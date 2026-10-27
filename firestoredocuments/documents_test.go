@@ -77,10 +77,12 @@ func TestDocumentsRefuseAbsentCapabilitiesAndCancellation(t *testing.T) {
 // The interceptors count actual native provider messages. Counts are exercised
 // emulator operations, not a claim about production billing.
 type nativeCosts struct {
-	reads   atomic.Int64
-	writes  atomic.Int64
-	queries atomic.Int64
-	commits atomic.Int64
+	reads           atomic.Int64
+	writes          atomic.Int64
+	queries         atomic.Int64
+	commits         atomic.Int64
+	readOnlyBegins  atomic.Int64
+	readWriteBegins atomic.Int64
 }
 type costStream struct {
 	grpc.ClientStream
@@ -98,6 +100,15 @@ func (s *costStream) RecvMsg(value any) error {
 	return err
 }
 func (c *nativeCosts) unary(ctx context.Context, method string, request, reply any, connection *grpc.ClientConn, invoke grpc.UnaryInvoker, options ...grpc.CallOption) error {
+	if strings.HasSuffix(method, "/BeginTransaction") {
+		if typed, ok := request.(*firestorepb.BeginTransactionRequest); ok {
+			if typed.GetOptions().GetReadOnly() != nil {
+				c.readOnlyBegins.Add(1)
+			} else {
+				c.readWriteBegins.Add(1)
+			}
+		}
+	}
 	if strings.HasSuffix(method, "/RunQuery") {
 		c.queries.Add(1)
 	}
