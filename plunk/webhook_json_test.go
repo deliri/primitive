@@ -24,7 +24,7 @@ type webhookApplicationInput struct {
 
 func (p webhookApplicationInput) Validate() error {
 	if p.Name == "" {
-		return core.ErrInvalidInput
+		return core.ErrJSONContract
 	}
 	return nil
 }
