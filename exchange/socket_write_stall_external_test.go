@@ -40,7 +40,7 @@ func TestSocketWriteStallQuietNativeHTTP(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		call, err := exchange.NewSocketServerCall(w, r)
 		if err == nil {
-			err = exchange.ServeSocketWithWriteStall(exchange.SocketWriteStallRequest{Call: call, Timeout: stallDuration(t, time.Second), Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			err = exchange.ServeSocketWithWriteStall(exchange.SocketWriteStallRequest{Call: call, Timeout: configuration.Policy.WriteTimeout, Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if _, err := io.WriteString(w, "first\n"); err != nil {
 					return
 				}
