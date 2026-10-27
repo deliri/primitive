@@ -6,6 +6,7 @@ import (
 	json "encoding/json/v2"
 	"errors"
 	"net/http"
+	"runtime"
 	"strconv"
 	"sync/atomic"
 	"testing"
@@ -202,6 +203,11 @@ func TestGCSObjectPublicReadGrantLayerTriad(t *testing.T) {
 			if tc.wantErr != nil {
 				if !errors.Is(gotErr, tc.wantErr) || got != (GCSObjectPublicReadGrant{}) {
 					t.Fatalf("GrantGCSObjectPublicRead = (%v, %v), want zero and %v", got, gotErr, tc.wantErr)
+				}
+				if tc.nullACLEntry {
+					if _, present := errors.AsType[runtime.Error](gotErr); !present {
+						t.Fatalf("malformed ACL cause = %v, want preserved runtime.Error", gotErr)
+					}
 				}
 			} else {
 				changed, changeErr := got.Changed()
