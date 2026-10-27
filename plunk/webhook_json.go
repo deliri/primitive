@@ -77,7 +77,11 @@ type webhookJSONBuffer struct {
 }
 
 func (b *webhookJSONBuffer) Write(raw []byte) (int, error) {
-	if uint64(len(raw)) > b.maximum.Uint64()-uint64(b.buffer.Len()) {
+	maximum, err := b.maximum.Uint64()
+	if err != nil {
+		return 0, contractError(err)
+	}
+	if uint64(b.buffer.Len()) > maximum || uint64(len(raw)) > maximum-uint64(b.buffer.Len()) {
 		return 0, core.ErrExchangeBodyLimit
 	}
 	return b.buffer.Write(raw)
