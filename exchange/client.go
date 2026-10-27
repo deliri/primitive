@@ -86,6 +86,9 @@ func (c Client) CloseIdleConnections() error {
 	if err := c.Validate(); err != nil {
 		return err
 	}
+	if transport, ok := c.http.Transport.(*http.Transport); ok && transport == nil {
+		return core.ErrExchangeContract
+	}
 	c.http.CloseIdleConnections()
 	return nil
 }
