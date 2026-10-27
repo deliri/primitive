@@ -167,7 +167,7 @@ type SendResponse struct {
 
 type SendData struct {
 	Timestamp SendTimestamp `json:"timestamp"`
-	Emails    []SentEmail   `json:"emails,format:emitnull"`
+	Emails    []SentEmail   `json:"emails,omitzero"`
 }
 
 type SentEmail struct {

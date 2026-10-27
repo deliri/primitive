@@ -64,6 +64,10 @@ func FuzzSendTimestampStrictWire(f *testing.F) {
 		if err := again.UnmarshalJSON(canonical); err != nil || again != value {
 			t.Fatal("timestamp not closed under canonical provider wire")
 		}
+		second, err := json.Marshal(again)
+		if err != nil || !bytes.Equal(canonical, second) {
+			t.Fatal("timestamp canonical bytes changed on second write")
+		}
 	})
 }
 

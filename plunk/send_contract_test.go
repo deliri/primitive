@@ -262,7 +262,7 @@ func FuzzSendResponseSemanticClosure(f *testing.F) {
 	f.Fuzz(func(t *testing.T, raw []byte) {
 		got, err := DecodeSendResponse(t.Context(), raw, core.ExtensibleJSONLimits())
 		if err != nil {
-			if !sameSendResponse(got, SendResponse{}) {
+			if !errors.Is(err, core.ErrPlunkContract) || !sameSendResponse(got, SendResponse{}) {
 				t.Fatal("refusal retained facts")
 			}
 			return
@@ -277,6 +277,10 @@ func FuzzSendResponseSemanticClosure(f *testing.F) {
 		again, err := DecodeSendResponse(t.Context(), wire, core.ExtensibleJSONLimits())
 		if err != nil || !sameSendResponse(got, again) {
 			t.Fatalf("admitted fact not closed under provider wire: %v", err)
+		}
+		second, err := json.Marshal(again)
+		if err != nil || !bytes.Equal(wire, second) {
+			t.Fatal("provider response canonical bytes changed on second write")
 		}
 	})
 }
@@ -295,13 +299,26 @@ func FuzzSendStatusStrictWire(f *testing.F) {
 	f.Fuzz(func(t *testing.T, raw []byte) {
 		value := SendStatusScheduled
 		err := value.UnmarshalJSON(raw)
+		var spelling string
+		textErr := json.Unmarshal(raw, &spelling)
+		want := SendStatusUnreported
+		if textErr == nil {
+			switch spelling {
+			case "queued":
+				want = SendStatusQueued
+			case "scheduled":
+				want = SendStatusScheduled
+			case "throttled":
+				want = SendStatusThrottled
+			}
+		}
 		if err != nil {
-			if value != SendStatusScheduled {
+			if !errors.Is(err, core.ErrPlunkContract) || value != SendStatusScheduled || want != SendStatusUnreported {
 				t.Fatal("refused status mutated destination")
 			}
 			return
 		}
-		if value == SendStatusUnreported || value.Validate() != nil {
+		if value == SendStatusUnreported || value.Validate() != nil || value != want {
 			t.Fatal("present status escaped closed domain")
 		}
 		wire, err := json.Marshal(value)
@@ -311,6 +328,10 @@ func FuzzSendStatusStrictWire(f *testing.F) {
 		var again SendStatus
 		if err := json.Unmarshal(wire, &again); err != nil || again != value {
 			t.Fatal("status wire not closed")
+		}
+		second, err := json.Marshal(again)
+		if err != nil || !bytes.Equal(wire, second) {
+			t.Fatal("status canonical bytes changed on second write")
 		}
 	})
 }
