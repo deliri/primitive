@@ -166,6 +166,7 @@ const (
 	CloudflareR2ETagHeader             = "ETag"
 	CloudflareR2CreateOnlyValue        = "*"
 	CloudflareR2CacheMaxAgePrefix      = "max-age="
+	CloudflareR2CacheNoStore           = "no-store"
 )
 
 // https://developers.cloudflare.com/api/resources/images/subresources/v1/subresources/variants/methods/create/

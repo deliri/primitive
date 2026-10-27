@@ -402,6 +402,7 @@ func coreProviderExportContracts() [coreProviderExportContractCount]coreProvider
 		{name: "CloudflareCachePurgePath", witness: CloudflareCachePurgePath, consumer: PackageCloudflare},
 		{name: "CloudflareCachePurgeIDMaximumCharacters", witness: CloudflareCachePurgeIDMaximumCharacters, consumer: PackageCloudflare},
 		{name: "CloudflareCachePrefixMaximumSeparators", witness: CloudflareCachePrefixMaximumSeparators, consumer: PackageCloudflare},
+		{name: "CloudflareR2CacheNoStore", witness: CloudflareR2CacheNoStore, consumer: PackageCloudflare},
 		{name: "CloudflareR2CacheMaxAgePrefix", witness: CloudflareR2CacheMaxAgePrefix, consumer: PackageCloudflare},
 		{name: "CloudflareR2CacheMaxAgeMaximumSeconds", witness: CloudflareR2CacheMaxAgeMaximumSeconds, consumer: PackageCloudflare},
 		{name: "CloudflareStreamUploadHost", witness: CloudflareStreamUploadHost, consumer: PackageCloudflare},
