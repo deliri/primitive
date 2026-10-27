@@ -62,23 +62,48 @@ type ListSKUsRequest struct {
 	Proof io.Writer
 }
 
+func (r ListSKUsRequest) Validate() error {
+	if core.WriterIsNil(r.Proof) || !utf8.ValidString(string(r.Token)) {
+		return core.ErrCloudBillingContract
+	}
+	return nil
+}
+
 // SourceReceipt binds the body bytes, excluding the single separating newline.
 type SourceReceipt struct {
 	URL    core.HTTPEndpoint
 	SHA256 core.SHA256Digest
 	Bytes  core.ByteLength
 }
+
+func (r SourceReceipt) Validate() error {
+	if err := errors.Join(r.URL.Validate(), r.SHA256.Validate(), r.Bytes.Validate()); err != nil {
+		return errors.Join(core.ErrCloudBillingContract, err)
+	}
+	if r.Bytes.Uint64() == 0 {
+		return core.ErrCloudBillingContract
+	}
+	return nil
+}
+
 type PageReceipt struct {
 	Page   Page
 	Source SourceReceipt
 }
 
+func (r PageReceipt) Validate() error {
+	if err := errors.Join(r.Page.Validate(), r.Source.Validate()); err != nil {
+		return errors.Join(core.ErrCloudBillingContract, err)
+	}
+	return nil
+}
+
 func (s Server) ListSKUs(ctx context.Context, request ListSKUsRequest, policy exchange.StreamPolicy) (PageReceipt, error) {
-	if err := errors.Join(contextstate.Validate(ctx), s.Validate(), policy.Validate()); err != nil {
+	if err := errors.Join(contextstate.Validate(ctx), s.Validate(), request.Validate(), policy.Validate()); err != nil {
 		return PageReceipt{}, errors.Join(core.ErrCloudBillingContract, err)
 	}
 	maximum, _ := s.options.Limits.TokenMaximumBytes.Uint64()
-	if core.WriterIsNil(request.Proof) || !utf8.ValidString(string(request.Token)) || uint64(len(request.Token)) > maximum || policy.Redirect.Mode != exchange.RedirectReject {
+	if uint64(len(request.Token)) > maximum || policy.Redirect.Mode != exchange.RedirectReject {
 		return PageReceipt{}, core.ErrCloudBillingContract
 	}
 	u := s.options.Endpoint.HTTPURL()
