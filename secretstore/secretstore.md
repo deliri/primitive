@@ -30,6 +30,13 @@ ID, and CRC32C; CRC32C is integrity checking, not an authentication signature.
 Access holds the reader lock through the SDK call because SDK Close is excluded
 from its concurrent-call guarantee. Caller cancellation releases the call.
 
+NewGoogleReader uses application default credentials. For caller-configured
+staging or emulator transports, NewGoogleReaderWithConnection accepts one
+native gRPC connection. Successful construction transfers connection ownership
+to the reader; Reader.Close closes it through the official SDK. A construction
+refusal leaves the connection caller-owned. Secretstore does not choose an
+endpoint or weaken the supplied connection's authentication or TLS policy.
+
 Provider contracts: [payload limit](https://docs.cloud.google.com/secret-manager/quotas),
 [secret-ID grammar](https://docs.cloud.google.com/secret-manager/docs/reference/rest/v1/projects.secrets/create),
 [project-ID grammar](https://docs.cloud.google.com/resource-manager/docs/creating-managing-projects).

@@ -53,6 +53,8 @@ func productionStructRole(name string) (string, bool) {
 		return "opaque validated provider identifier", true
 	case "AccessRequest":
 		return "authenticated provider execution ingress", true
+	case "GoogleConnectionRequest":
+		return "caller-configured native transport ownership transfer", true
 	case "ResolvedReference":
 		return "exact provider response identity", true
 	case "AccessResult":

@@ -10,7 +10,6 @@ import (
 
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"github.com/deliri/primitive/v2026/core"
-	"google.golang.org/api/option"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -28,9 +27,9 @@ func (s *localSecretServer) AccessSecretVersion(ctx context.Context, request *se
 	return s.access(ctx, request)
 }
 
-// The same SDK constructor path receives a standard in-memory gRPC transport.
-// Disabling SDK retries isolates one response/receipt transition per test.
-func localGoogleReader(t *testing.T, access func(context.Context, *secretmanagerpb.AccessSecretVersionRequest) (*secretmanagerpb.AccessSecretVersionResponse, error)) *GoogleReader {
+// localGoogleConnection supplies a native SDK transport without any provider
+// authentication or network access. Its connection is caller-owned until admitted.
+func localGoogleConnection(t *testing.T, access func(context.Context, *secretmanagerpb.AccessSecretVersionRequest) (*secretmanagerpb.AccessSecretVersionResponse, error)) *grpc.ClientConn {
 	t.Helper()
 	listener := bufconn.Listen(64 * 1024)
 	server := grpc.NewServer()
@@ -51,9 +50,22 @@ func localGoogleReader(t *testing.T, access func(context.Context, *secretmanager
 			t.Error("server join = timed out, want owned server exit")
 		}
 	})
-	reader, err := newGoogleReader(t.Context(), option.WithoutAuthentication(), option.WithEndpoint("local.invalid:443"), option.WithGRPCDialOption(grpc.WithTransportCredentials(insecure.NewCredentials())), option.WithGRPCDialOption(grpc.WithContextDialer(func(ctx context.Context, _ string) (net.Conn, error) { return listener.DialContext(ctx) })))
+	connection, err := grpc.NewClient("passthrough:///local.invalid:443", grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithContextDialer(func(ctx context.Context, _ string) (net.Conn, error) { return listener.DialContext(ctx) }))
 	if err != nil {
-		t.Fatalf("newGoogleReader(local SDK transport) = %v, want nil", err)
+		t.Fatalf("grpc.NewClient(local transport) = %v, want nil", err)
+	}
+	return connection
+}
+
+// The actual public SDK constructor admits the native connection. Disabling SDK
+// retries isolates one response/receipt transition per test, without a fake reader.
+func localGoogleReader(t *testing.T, access func(context.Context, *secretmanagerpb.AccessSecretVersionRequest) (*secretmanagerpb.AccessSecretVersionResponse, error)) *GoogleReader {
+	t.Helper()
+	connection := localGoogleConnection(t, access)
+	reader, err := NewGoogleReaderWithConnection(t.Context(), GoogleConnectionRequest{Connection: connection})
+	if err != nil {
+		closeErr := connection.Close()
+		t.Fatalf("NewGoogleReaderWithConnection(local SDK transport) = %v, want nil; caller cleanup = %v", err, closeErr)
 	}
 	reader.client.CallOptions.AccessSecretVersion = nil
 	t.Cleanup(func() {
