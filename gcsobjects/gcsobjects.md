@@ -17,6 +17,8 @@ It owns exactly:
   flat or hierarchical namespace choice;
 - one idempotent bucket-IAM operation that grants and confirms unconditional
   unauthenticated object reads without granting listing or writes;
+- an explicit exact-generation, metadata-CAS object public-read grant that
+  preserves unrelated ACL entries;
 - logical directory and object-name composition from validated segments,
   without fake placeholder objects or caller-owned slash conventions;
 - create-only served-media, stored-file and live stored-file stream writes;
@@ -55,7 +57,11 @@ mode flag. The caller makes the decision by naming the function:
 
 - **UploadMedia** writes an object a browser or CDN will fetch. The caller
   chooses the content type that makes the bytes render; the cache directive is
-  optional, and the edge applies its own default when it is absent.
+  optional, and the edge applies its own default when it is absent. The single
+  create-only request includes `publicRead` for that object. No bucket IAM or
+  default object ACL is changed. Uniform bucket access or public access
+  prevention that refuses the object ACL is a provider refusal, never a reason
+  to broaden bucket permissions.
 - **UploadFile** writes a stored blob the system retrieves and verifies. It is
   written application/octet-stream with no cache directive, because nothing
   serves it to a browser.
@@ -86,10 +92,23 @@ project ID, validated bucket name, provider location, and closed namespace
 choice. It calls the official SDK once and returns sealed provisioning evidence
 only after the provider accepts creation. Existing buckets are conflicts.
 
-`GrantGCSBucketPublicRead` is the one admitted existing-bucket mutation. It
+`GrantGCSBucketPublicRead` is an explicit existing-bucket mutation. It
 preserves the provider policy, adds only the unconditional all-users object-read
 role when absent, and releases sealed evidence only after an official-SDK
 read-back confirms the exact membership. It never grants listing or writes.
+
+`UploadMedia` does not call that bucket operation. Existing objects use
+`GrantGCSObjectPublicRead`: the exact generation is read with its full ACL, and
+an absent public read is added with a metageneration precondition. Unknown or
+contradictory ACL facts and concurrent edits refuse the operation. Every
+unrelated entry is preserved. A response or transport failure releases zero
+grant evidence; a provider mutation may already have happened, so failure is
+not a rollback claim.
+
+`VerifyPublicGCSObject` checks the actual unauthenticated canonical address
+through Exchange with a caller-owned finite, single-attempt policy. A joined
+Filestore pipe verifies exact content type, extent, SHA-256 and CRC32C without
+retaining the body. Redirects are refused. It returns no address on failure.
 
 Flat object storage has no directory resource to create. `ComposeGCSRootPrefix`,
 `ComposeGCSChildPrefix`, and `ComposeGCSObjectName` therefore build validated

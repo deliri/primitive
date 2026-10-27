@@ -24,6 +24,14 @@
 // are create-only under a generation-zero precondition, so an existing object
 // is a conflict rather than an overwrite, and both bind the stream to a
 // declared SHA-256 and CRC32C over an exact extent.
+// UploadMedia grants public read only to the created object in that same
+// create request; it never broadens bucket IAM. An incompatible uniform-access
+// or public-access-prevention policy is an explicit refusal.
+// GrantGCSObjectPublicRead admits an existing exact generation under metadata
+// CAS while preserving unrelated ACL entries. VerifyPublicGCSObject verifies
+// anonymous delivery by media type, extent, SHA-256 and CRC32C before returning
+// its address. A failed mutation can have an unknown provider outcome and
+// carries no fabricated publication proof.
 // UploadFileStream instead observes a live stored-file source as it uploads,
 // without requiring its final extent or digests in advance. It returns no
 // sealed result until source EOF, SDK close and provider integrity agreement;
