@@ -158,9 +158,6 @@ func TestSendResponseStrictFailureZeroAndCause(t *testing.T) {
 	if got, err := DecodeSendResponse(ctx, []byte(valid), core.ExtensibleJSONLimits()); !errors.Is(err, context.Canceled) || !sameSendResponse(got, SendResponse{}) {
 		t.Fatal("cancellation cause or zero lost")
 	}
-	if _, err := DecodeSendResponse(nil, []byte(valid), core.ExtensibleJSONLimits()); !errors.Is(err, core.ErrPlunkContract) {
-		t.Fatal("nil context admitted")
-	}
 }
 
 func TestSendNativeTLSProviderDoor(t *testing.T) {

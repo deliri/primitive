@@ -26,6 +26,7 @@ func TestSendContextNativeTerminalAndTypedNil(t *testing.T) {
 		{"cancelled context preserves native cause", cancelled, context.Canceled},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
 			got, err := DecodeSendResponse(tc.ctx, sendFixture(t, SentEmail{EmailID: "message-fixture", Status: SendStatusQueued}), core.ExtensibleJSONLimits())
 			if !errors.Is(err, core.ErrPlunkContract) || !errors.Is(err, tc.cause) || !sameSendResponse(got, SendResponse{}) {
 				t.Fatalf("unsafe context did not yield zero with exact cause: %v", err)
