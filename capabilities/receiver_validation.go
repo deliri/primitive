@@ -8,9 +8,9 @@ import "github.com/deliri/primitive/v2026/core"
 // promise that a particular caller invokes the method or propagates its error;
 // those are separate compiler observations.
 //
-// NumericInstant.Instant and ByteCount.Uint64 are currently advertised. An unadvertised valid
-// symbol returns false, nil: neither its spelling nor package membership is
-// proof of validation. StandardSymbol must identify the declaring receiver,
+// NumericInstant.Instant, ByteCount.Uint64 and Argument.Value are advertised.
+// An unadvertised valid symbol returns false, nil: neither its spelling nor
+// package membership is proof of validation. StandardSymbol must identify the declaring receiver,
 // rather than a caller's alias or variable name.
 func (s StandardSymbol) ValidatesReceiver() (bool, error) {
 	if err := s.Validate(); err != nil {
@@ -28,6 +28,14 @@ func (s StandardSymbol) ValidatesReceiver() (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	if s.ImportPath.String() == path && s.Receiver != nil &&
+		s.Receiver.String() == "ByteCount" && s.Selector.String() == "Uint64" {
+		return true, nil
+	}
+	path, err = core.PackageProcess.ImportPath()
+	if err != nil {
+		return false, err
+	}
 	return s.ImportPath.String() == path && s.Receiver != nil &&
-		s.Receiver.String() == "ByteCount" && s.Selector.String() == "Uint64", nil
+		s.Receiver.String() == "Argument" && s.Selector.String() == "Value", nil
 }
