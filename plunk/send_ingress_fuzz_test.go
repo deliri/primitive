@@ -5,7 +5,6 @@ import (
 	"encoding/json/v2"
 	"errors"
 	"net/mail"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -19,7 +18,15 @@ import (
 // encoding by FuzzEncodeSendRequestSemanticClosure. Constructor-only methods
 // over validated Temporal instants have no new untrusted wire grammar.
 func FuzzSendTimestampStrictWire(f *testing.F) {
-	for _, raw := range []string{`"2026-09-14T12:00:00.123Z"`, `"1970-01-01T00:00:00Z"`, `"1969-12-31T23:59:59Z"`, `null`, `""`, `"private-invalid-time"`, `"2026-09-14T12:00:00Z" {}`} {
+	for _, text := range []string{"2026-09-14T12:00:00.123Z", "1970-01-01T00:00:00Z", "1969-12-31T23:59:59Z"} {
+		value := sendTimestamp(f, text)
+		wire, err := value.MarshalJSON()
+		if err != nil {
+			f.Fatal(err)
+		}
+		f.Add(wire)
+	}
+	for _, raw := range []string{`null`, `""`, `"private-invalid-time"`, `"2026-09-14T12:00:00Z" {}`} {
 		f.Add([]byte(raw))
 	}
 	f.Fuzz(func(t *testing.T, raw []byte) {
@@ -90,7 +97,7 @@ func FuzzEncodeSendRequestSemanticClosure(f *testing.F) {
 			t.Fatal("SDK changed provider request bytes")
 		}
 		var again SendRequest[metadata]
-		if err := json.Unmarshal(wire, &again); err != nil || !reflect.DeepEqual(again, request) {
+		if err := json.Unmarshal(wire, &again); err != nil || !sameSendRequest(again, request) {
 			t.Fatal("generic metadata or send fields changed on wire")
 		}
 	})

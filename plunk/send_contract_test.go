@@ -9,38 +9,68 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"reflect"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
+	"github.com/deliri/primitive/v2026/temporal"
 )
 
-const sendContactFixture = `"contact":{"id":"contact-fixture","email":"recipient@example.test"}`
-const sendTimeFixture = `"timestamp":"2026-09-14T12:00:00.123Z"`
+func sendTimestamp(t testing.TB, text string) SendTimestamp {
+	t.Helper()
+	instant, err := temporal.ParseRFC3339(text)
+	if err != nil {
+		t.Fatal(err)
+	}
+	value, err := NewSendTimestamp(instant)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return value
+}
 
-func sendFixture(item string) []byte {
-	return []byte(`{"success":true,"data":{` + sendTimeFixture + `,"emails":[{` + sendContactFixture + `,` + item + `}]}}`)
+func sendFixture(t testing.TB, item SentEmail) []byte {
+	t.Helper()
+	item.Contact = SendContact{ID: "contact-fixture", Email: "recipient@example.test"}
+	return sendResponseWire(t, SendResponse{Success: true, Data: SendData{Timestamp: sendTimestamp(t, "2026-09-14T12:00:00.123Z"), Emails: []SentEmail{item}}})
+}
+
+func sendResponseWire(t testing.TB, response SendResponse) []byte {
+	t.Helper()
+	wire, err := json.Marshal(response)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return wire
+}
+
+func sameSendResponse(left, right SendResponse) bool {
+	return left.Success == right.Success && left.Error == right.Error && left.Data.Timestamp == right.Data.Timestamp && (left.Data.Emails == nil) == (right.Data.Emails == nil) && slices.Equal(left.Data.Emails, right.Data.Emails)
+}
+
+func sameSendRequest[Data comparable](left, right SendRequest[Data]) bool {
+	return left.To == right.To && left.From == right.From && left.Reply == right.Reply && left.Template == right.Template && left.Subject == right.Subject && left.Body == right.Body && (left.Data == nil) == (right.Data == nil) && (left.Data == nil || *left.Data == *right.Data)
 }
 
 func TestSendResponseProviderFactsAndAppBoundary(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name, item string
-		status     SendStatus
+		name string
+		item SentEmail
 	}{
-		{"unreported retained provider contract", `"email":"message-fixture"`, SendStatusUnreported},
-		{"queued", `"email":"message-fixture","status":"queued"`, SendStatusQueued},
-		{"scheduled", `"email":"message-fixture","status":"scheduled","scheduledFor":"2026-09-15T12:00:00Z"`, SendStatusScheduled},
-		{"throttled with next instant", `"email":null,"status":"throttled","nextAllowedAt":"2026-09-15T12:00:00Z"`, SendStatusThrottled},
-		{"throttled without next instant", `"email":null,"status":"throttled","nextAllowedAt":null`, SendStatusThrottled},
+		{"unreported retained provider contract", SentEmail{EmailID: "message-fixture"}},
+		{"queued", SentEmail{EmailID: "message-fixture", Status: SendStatusQueued}},
+		{"scheduled", SentEmail{EmailID: "message-fixture", Status: SendStatusScheduled, ScheduledFor: sendTimestamp(t, "2026-09-15T12:00:00Z")}},
+		{"throttled with next instant", SentEmail{Status: SendStatusThrottled, NextAllowedAt: sendTimestamp(t, "2026-09-15T12:00:00Z")}},
+		{"throttled without next instant", SentEmail{Status: SendStatusThrottled}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			got, err := DecodeSendResponse(t.Context(), sendFixture(tc.item), core.ExtensibleJSONLimits())
-			if err != nil || !got.Success || len(got.Data.Emails) != 1 || got.Data.Emails[0].Status != tc.status || got.Data.Timestamp.Instant().Validate() != nil {
+			got, err := DecodeSendResponse(t.Context(), sendFixture(t, tc.item), core.ExtensibleJSONLimits())
+			if err != nil || !got.Success || len(got.Data.Emails) != 1 || got.Data.Emails[0].Status != tc.item.Status || got.Data.Timestamp.Instant().Validate() != nil {
 				t.Fatalf("documented provider fact: response=%+v error=%v", got, err)
 			}
 			wire, err := json.Marshal(got)
@@ -48,29 +78,34 @@ func TestSendResponseProviderFactsAndAppBoundary(t *testing.T) {
 				t.Fatal(err)
 			}
 			again, err := DecodeSendResponse(t.Context(), wire, core.ExtensibleJSONLimits())
-			if err != nil || !reflect.DeepEqual(got, again) {
+			if err != nil || !sameSendResponse(got, again) {
 				t.Fatalf("typed wire round trip changed facts: %v", err)
 			}
 		})
 	}
 	// The SDK represents facts. Neither zero/multiple recipients, mismatched
 	// recipients nor provider-opaque identifiers imply application acceptance.
-	for _, wire := range []string{
-		`{"success":false,"error":{"code":"refused","message":"provider fixture"}}`,
-		`{"success":true,"data":{` + sendTimeFixture + `,"emails":[]}}`,
-		`{"success":true,"data":{` + sendTimeFixture + `,"emails":[{"contact":{"id":"opaque","email":"other@example.test"},"email":"opaque"},{"email":"second"}]}}`,
+	for _, response := range []SendResponse{
+		{Error: SendError{Code: "refused", Message: "provider fixture"}},
+		{Success: true, Data: SendData{Timestamp: sendTimestamp(t, "2026-09-14T12:00:00.123Z"), Emails: []SentEmail{}}},
+		{Success: true, Data: SendData{Timestamp: sendTimestamp(t, "2026-09-14T12:00:00.123Z"), Emails: []SentEmail{{Contact: SendContact{ID: "opaque", Email: "other@example.test"}, EmailID: "opaque"}, {EmailID: "second"}}}},
 	} {
-		if _, err := DecodeSendResponse(t.Context(), []byte(wire), core.ExtensibleJSONLimits()); err != nil {
+		if _, err := DecodeSendResponse(t.Context(), sendResponseWire(t, response), core.ExtensibleJSONLimits()); err != nil {
 			t.Fatalf("application policy leaked into SDK: %v", err)
 		}
 	}
+
 }
 
 func TestSendResponseStrictFailureZeroAndCause(t *testing.T) {
 	t.Parallel()
-	valid := string(sendFixture(`"email":"message-fixture","status":"queued"`))
+	valid := string(sendFixture(t, SentEmail{EmailID: "message-fixture", Status: SendStatusQueued}))
+	itemWire, err := json.Marshal(SentEmail{Contact: SendContact{ID: "contact-fixture", Email: "recipient@example.test"}, EmailID: "message-fixture", Status: SendStatusQueued})
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, tc := range []struct{ name, wire string }{
-		{"string item is no union", strings.Replace(valid, `{`+sendContactFixture+`,"email":"message-fixture","status":"queued"}`, `"private-recipient@example.test"`, 1)},
+		{"string item is no union", strings.Replace(valid, string(itemWire), `"private-recipient@example.test"`, 1)},
 		{"unknown status", strings.Replace(valid, `"queued"`, `"delivered"`, 1)},
 		{"empty status", strings.Replace(valid, `"queued"`, `""`, 1)},
 		{"null status", strings.Replace(valid, `"queued"`, `null`, 1)},
@@ -81,16 +116,16 @@ func TestSendResponseStrictFailureZeroAndCause(t *testing.T) {
 		{"duplicate", strings.Replace(valid, `"success":true`, `"success":true,"success":true`, 1)},
 		{"trailing document", valid + `{}`},
 		{"invalid RFC3339", strings.Replace(valid, `2026-09-14T12:00:00.123Z`, `private-invalid-time`, 1)},
-		{"missing timestamp", strings.Replace(valid, sendTimeFixture+`,`, ``, 1)},
-		{"queued without message", string(sendFixture(`"email":null,"status":"queued"`))},
-		{"queued with schedule", string(sendFixture(`"email":"m","status":"queued","scheduledFor":"2026-09-15T12:00:00Z"`))},
-		{"scheduled without instant", string(sendFixture(`"email":"m","status":"scheduled"`))},
-		{"throttled with accepted message", string(sendFixture(`"email":"m","status":"throttled"`))},
+		{"missing timestamp", strings.Replace(valid, `"timestamp":"2026-09-14T12:00:00.123Z",`, ``, 1)},
+		{"queued without message", strings.Replace(valid, `"email":"message-fixture"`, `"email":null`, 1)},
+		{"queued with schedule", strings.Replace(valid, `"status":"queued"`, `"status":"queued","scheduledFor":"2026-09-15T12:00:00Z"`, 1)},
+		{"scheduled without instant", strings.Replace(valid, `"status":"queued"`, `"status":"scheduled"`, 1)},
+		{"throttled with accepted message", strings.Replace(valid, `"status":"queued"`, `"status":"throttled"`, 1)},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got, err := DecodeSendResponse(t.Context(), []byte(tc.wire), core.ExtensibleJSONLimits())
-			if !errors.Is(err, core.ErrPlunkContract) || !reflect.DeepEqual(got, SendResponse{}) {
+			if !errors.Is(err, core.ErrPlunkContract) || !sameSendResponse(got, SendResponse{}) {
 				t.Fatalf("refusal retained facts: %+v, %v", got, err)
 			}
 			for _, secret := range []string{"private-recipient", "private-member", "private-value", "private-invalid-time"} {
@@ -101,7 +136,7 @@ func TestSendResponseStrictFailureZeroAndCause(t *testing.T) {
 		})
 	}
 	unknown := []byte(strings.Replace(valid, `"status":"queued"`, `"private-member-fixture":"private-value-fixture"`, 1))
-	_, err := DecodeSendResponse(t.Context(), unknown, core.ExtensibleJSONLimits())
+	_, err = DecodeSendResponse(t.Context(), unknown, core.ExtensibleJSONLimits())
 	semantic, native := errors.AsType[*json.SemanticError](err)
 	shape, projected := errors.AsType[*SendResponseShapeError](err)
 	if !native || semantic == nil || !errors.Is(err, json.ErrUnknownName) || !projected || shape.Field != SendResponseFieldUnknown || shape.Shape != SendResponseStringShapeNotApplicable {
@@ -112,12 +147,12 @@ func TestSendResponseStrictFailureZeroAndCause(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, err := DecodeSendResponse(t.Context(), []byte(valid), limits); err == nil || !reflect.DeepEqual(got, SendResponse{}) {
+	if got, err := DecodeSendResponse(t.Context(), []byte(valid), limits); err == nil || !sameSendResponse(got, SendResponse{}) {
 		t.Fatal("caller byte policy not enforced")
 	}
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
-	if got, err := DecodeSendResponse(ctx, []byte(valid), core.ExtensibleJSONLimits()); !errors.Is(err, context.Canceled) || !reflect.DeepEqual(got, SendResponse{}) {
+	if got, err := DecodeSendResponse(ctx, []byte(valid), core.ExtensibleJSONLimits()); !errors.Is(err, context.Canceled) || !sameSendResponse(got, SendResponse{}) {
 		t.Fatal("cancellation cause or zero lost")
 	}
 	if _, err := DecodeSendResponse(nil, []byte(valid), core.ExtensibleJSONLimits()); !errors.Is(err, core.ErrPlunkContract) {
@@ -135,6 +170,7 @@ func TestSendNativeTLSProviderDoor(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	providerWire := sendFixture(t, SentEmail{EmailID: "message-fixture", Status: SendStatusQueued})
 	var calls atomic.Int32
 	peer := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls.Add(1)
@@ -143,11 +179,11 @@ func TestSendNativeTLSProviderDoor(t *testing.T) {
 			t.Errorf("send did not preserve typed authenticated wire: %v", readErr)
 		}
 		var decoded SendRequest[metadata]
-		if err := json.Unmarshal(actual, &decoded); err != nil || !reflect.DeepEqual(decoded, request) {
+		if err := json.Unmarshal(actual, &decoded); err != nil || !sameSendRequest(decoded, request) {
 			t.Errorf("request fields lost: %v", err)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		if _, err := w.Write(sendFixture(`"email":"message-fixture","status":"queued"`)); err != nil {
+		if _, err := w.Write(providerWire); err != nil {
 			t.Errorf("provider write: %v", err)
 		}
 	}))
@@ -220,13 +256,13 @@ func TestSendRequestWireRefusalsAndTemplate(t *testing.T) {
 
 func FuzzSendResponseSemanticClosure(f *testing.F) {
 	f.Add([]byte(`{}`))
-	f.Add(sendFixture(`"email":"message-fixture","status":"queued"`))
-	f.Add(sendFixture(`"email":null,"status":"throttled","nextAllowedAt":null`))
+	f.Add(sendFixture(f, SentEmail{EmailID: "message-fixture", Status: SendStatusQueued}))
+	f.Add(sendFixture(f, SentEmail{Status: SendStatusThrottled}))
 	f.Add([]byte(`{"success":true,"data":{"emails":["private@example.test"]}}`))
 	f.Fuzz(func(t *testing.T, raw []byte) {
 		got, err := DecodeSendResponse(t.Context(), raw, core.ExtensibleJSONLimits())
 		if err != nil {
-			if !reflect.DeepEqual(got, SendResponse{}) {
+			if !sameSendResponse(got, SendResponse{}) {
 				t.Fatal("refusal retained facts")
 			}
 			return
@@ -239,14 +275,21 @@ func FuzzSendResponseSemanticClosure(f *testing.F) {
 			t.Fatal(err)
 		}
 		again, err := DecodeSendResponse(t.Context(), wire, core.ExtensibleJSONLimits())
-		if err != nil || !reflect.DeepEqual(got, again) {
+		if err != nil || !sameSendResponse(got, again) {
 			t.Fatalf("admitted fact not closed under provider wire: %v", err)
 		}
 	})
 }
 
 func FuzzSendStatusStrictWire(f *testing.F) {
-	for _, value := range []string{`"queued"`, `"scheduled"`, `"throttled"`, `null`, `""`, `"delivered"`} {
+	for _, status := range []SendStatus{SendStatusQueued, SendStatusScheduled, SendStatusThrottled} {
+		wire, err := status.MarshalJSON()
+		if err != nil {
+			f.Fatal(err)
+		}
+		f.Add(wire)
+	}
+	for _, value := range []string{`null`, `""`, `"delivered"`} {
 		f.Add([]byte(value))
 	}
 	f.Fuzz(func(t *testing.T, raw []byte) {

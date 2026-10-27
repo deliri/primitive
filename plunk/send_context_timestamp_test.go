@@ -3,7 +3,6 @@ package plunk
 import (
 	"context"
 	"errors"
-	"reflect"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -27,8 +26,8 @@ func TestSendContextNativeTerminalAndTypedNil(t *testing.T) {
 		{"cancelled context preserves native cause", cancelled, context.Canceled},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := DecodeSendResponse(tc.ctx, sendFixture(`"email":"message-fixture","status":"queued"`), core.ExtensibleJSONLimits())
-			if !errors.Is(err, core.ErrPlunkContract) || !errors.Is(err, tc.cause) || !reflect.DeepEqual(got, SendResponse{}) {
+			got, err := DecodeSendResponse(tc.ctx, sendFixture(t, SentEmail{EmailID: "message-fixture", Status: SendStatusQueued}), core.ExtensibleJSONLimits())
+			if !errors.Is(err, core.ErrPlunkContract) || !errors.Is(err, tc.cause) || !sameSendResponse(got, SendResponse{}) {
 				t.Fatalf("unsafe context did not yield zero with exact cause: %v", err)
 			}
 		})
