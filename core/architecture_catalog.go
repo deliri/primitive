@@ -180,6 +180,8 @@ const (
 	PackageAESGCM
 	// PackageFirestoreDocuments owns typed official Firestore document execution.
 	PackageFirestoreDocuments
+	// PackageCloudBilling owns Cloud Billing catalog and credential wire contracts.
+	PackageCloudBilling
 	packageIdentityLimit
 )
 
@@ -298,6 +300,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageLoops, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 			{Identity: PackageAESGCM, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
 			{Identity: PackageFirestoreDocuments, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
+			{Identity: PackageCloudBilling, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 		},
 	}
 }
@@ -556,6 +559,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"loops",
 		"aesgcm",
 		"firestoredocuments",
+		"cloudbilling",
 	}
 }
 
