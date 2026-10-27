@@ -182,6 +182,8 @@ const (
 	PackageFirestoreDocuments
 	// PackageCloudBilling owns Cloud Billing catalog and credential wire contracts.
 	PackageCloudBilling
+	// PackageHashIO owns native fingerprint and constant-time equality execution.
+	PackageHashIO
 	packageIdentityLimit
 )
 
@@ -301,6 +303,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageAESGCM, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
 			{Identity: PackageFirestoreDocuments, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 			{Identity: PackageCloudBilling, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
+			{Identity: PackageHashIO, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
 		},
 	}
 }
@@ -560,6 +563,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"aesgcm",
 		"firestoredocuments",
 		"cloudbilling",
+		"hashio",
 	}
 }
 
