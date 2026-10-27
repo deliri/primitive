@@ -153,7 +153,9 @@ func TestGoogleExactAudienceVerificationLayerTriad(t *testing.T) {
 				if tc.foreign {
 					expectedAudience = verifierTestAudience
 				}
-				got, err := p.verifier(t, expectedAudience).Verify(t.Context(), GoogleCloudVerificationRequest{Authorization: signed})
+				verificationInput0, verificationInputErr0 := NewGoogleCloudVerificationRequest(signed)
+				got, err := p.verifier(t, expectedAudience).Verify(t.Context(), verificationInput0)
+				err = errors.Join(verificationInputErr0, err)
 				if !errors.Is(err, tc.wantErr) {
 					t.Fatalf("verification error=%v, want %v", err, tc.wantErr)
 				}

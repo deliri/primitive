@@ -63,7 +63,9 @@ func TestGoogleCloudVerifierCertificateLayerTriad(t *testing.T) {
 				p := newVerifierTestProvider(t, tc.response)
 				claims := verifierClaims()
 				bearer := p.sign(t, verifierTestHeader{Algorithm: verifierTestAlgorithm, KeyID: verifierTestKeyID}, claims, false)
-				got, err := p.verifier(t, verifierTestAudience).Verify(t.Context(), GoogleCloudVerificationRequest{Authorization: bearer})
+				verificationInput0, verificationInputErr0 := NewGoogleCloudVerificationRequest(bearer)
+				got, err := p.verifier(t, verifierTestAudience).Verify(t.Context(), verificationInput0)
+				err = errors.Join(verificationInputErr0, err)
 				if calls := p.calls.Load(); calls != 1 {
 					t.Fatalf("certificate requests = %d, want 1", calls)
 				}
@@ -152,7 +154,9 @@ func TestGoogleCloudVerifierCancellationWaitsForCertificateReadExit(t *testing.T
 			}
 			done := make(chan result, 1)
 			go func() {
-				identity, err := verifier.Verify(ctx, GoogleCloudVerificationRequest{Authorization: bearer})
+				verificationInput1, verificationInputErr1 := NewGoogleCloudVerificationRequest(bearer)
+				identity, err := verifier.Verify(ctx, verificationInput1)
+				err = errors.Join(verificationInputErr1, err)
 				done <- result{identity: identity, err: err}
 			}()
 			if !tc.preCancel {

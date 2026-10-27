@@ -87,13 +87,21 @@ func BenchmarkVerifyCachedCertificate(b *testing.B) {
 	signed := provider.sign(b, verifierTestHeader{Algorithm: verifierTestAlgorithm, KeyID: verifierTestKeyID}, claims, false)
 	verifier := provider.verifier(b, verifierTestAudience)
 	want := claims.identity(b)
-	got, err := verifier.Verify(b.Context(), GoogleCloudVerificationRequest{Authorization: signed})
+	request, err := NewGoogleCloudVerificationRequest(signed)
+	if err != nil {
+		b.Fatal(err)
+	}
+	got, err := verifier.Verify(b.Context(), request)
 	if err != nil || got != want || provider.calls.Load() != 1 {
 		b.Fatalf("warm verifier got=%v error=%v calls=%d, want exact identity and one certificate fetch", got, err, provider.calls.Load())
 	}
 	b.ReportAllocs()
 	for b.Loop() {
-		got, err := verifier.Verify(b.Context(), GoogleCloudVerificationRequest{Authorization: signed})
+		request, err := NewGoogleCloudVerificationRequest(signed)
+		if err != nil {
+			b.Fatal(err)
+		}
+		got, err := verifier.Verify(b.Context(), request)
 		if err != nil || got != want {
 			b.Fatalf("verified identity got=%v error=%v, want %v", got, err, want)
 		}

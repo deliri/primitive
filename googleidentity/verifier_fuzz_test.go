@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"regexp"
@@ -28,6 +29,10 @@ func FuzzGoogleCloudVerifierSignedSemanticClosure(f *testing.F) {
 	for index, claim := range claims {
 		claim.identity(f) // Validate the actual typed source facts before signing.
 		seeds[index] = provider.sign(f, header, claim, false)
+		request, requestErr := NewGoogleCloudVerificationRequest(seeds[index])
+		if requestErr != nil || request.Validate() != nil {
+			f.Fatalf("typed request seed = %v, want admitted validated signed input", requestErr)
+		}
 		f.Add(seeds[index])
 	}
 	foreignAudience := ordinary
@@ -75,8 +80,20 @@ func FuzzGoogleCloudVerifierSignedSemanticClosure(f *testing.F) {
 					bearer = acquired
 				}
 			}
-			request := GoogleCloudVerificationRequest{Authorization: bearer}
-			requestErr := request.Validate()
+			request, requestErr := NewGoogleCloudVerificationRequest(bearer)
+			if requestErr != nil && (request != (GoogleCloudVerificationRequest{}) || !errors.Is(request.Validate(), core.ErrGoogleIdentityContract)) {
+				t.Fatalf("constructor refusal = (%v,%v), want zero and typed refusal", request, requestErr)
+			}
+			if requestErr == nil {
+				if request.Validate() != nil {
+					t.Fatal("constructor admitted invalid nominal request")
+				}
+				for _, format := range []string{"%v", "%+v", "%#v", "%q", "%x", "%p", "%w"} {
+					if strings.Contains(fmt.Sprintf(format, request), bearer) {
+						t.Fatalf("request diagnostic %s disclosed credential, want opaque", format)
+					}
+				}
+			}
 			got, err := local.verifier(t, verifierTestAudience).Verify(t.Context(), request)
 			if requestErr != nil {
 				if !errors.Is(requestErr, core.ErrGoogleIdentityContract) || !errors.Is(err, core.ErrGoogleIdentityContract) || got != (GoogleCloudVerifiedIdentity{}) || local.calls.Load() != 0 {
@@ -86,6 +103,7 @@ func FuzzGoogleCloudVerifierSignedSemanticClosure(f *testing.F) {
 			if calls := local.calls.Load(); calls > 1 {
 				t.Fatalf("certificate requests = %d, want at most one read", calls)
 			}
+			err = errors.Join(requestErr, err)
 			matched := -1
 			for index, seed := range seeds {
 				if sameSignedDocument(bearer, seed) {

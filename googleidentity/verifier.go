@@ -136,7 +136,7 @@ func (v GoogleCloudVerifier) Verify(ctx context.Context, request GoogleCloudVeri
 	if err := errors.Join(contextstate.Validate(ctx), v.Validate()); err != nil {
 		return GoogleCloudVerifiedIdentity{}, contractError(err)
 	}
-	token, err := googleCloudIdentityToken(request.Authorization)
+	token, err := request.token()
 	if err != nil {
 		return GoogleCloudVerifiedIdentity{}, err
 	}
