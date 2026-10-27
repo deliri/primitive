@@ -19,6 +19,12 @@ func (SendError) plunkProtocolFact()              {}
 func (SendTimestamp) plunkProtocolFact()          {}
 func (SendResponseShapeError) plunkInternalFlow() {}
 
+func (TemplateMetadata) plunkProtocolFact()         {}
+func (WebhookJSONRequest) plunkInternalFlow()       {}
+func (WebhookDocument[Payload]) plunkProtocolFact() {}
+func (webhookJSONBuffer) plunkInternalFlow()        {}
+func (wireDocumentRefusal) plunkInternalFlow()      {}
+
 func (clientState) plunkInternalFlow()           {}
 func (WebhookReceiveRequest) plunkInternalFlow() {}
 func (webhookReceiverState) plunkInternalFlow()  {}
@@ -29,6 +35,11 @@ func (Client) plunkCapabilityWrapper()          {}
 func (WebhookReceiver) plunkCapabilityWrapper() {}
 
 var (
+	_ protocolFact      = TemplateMetadata{}
+	_ protocolFact      = WebhookDocument[struct{}]{}
+	_ internalFlow      = WebhookJSONRequest{}
+	_ internalFlow      = webhookJSONBuffer{}
+	_ internalFlow      = wireDocumentRefusal{}
 	_ protocolFact      = SendRequest[struct{}]{}
 	_ protocolFact      = SendResponse{}
 	_ protocolFact      = SendData{}
