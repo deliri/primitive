@@ -219,6 +219,7 @@ func TestSendRequestWireRefusalsAndTemplate(t *testing.T) {
 }
 
 func FuzzSendResponseSemanticClosure(f *testing.F) {
+	f.Add([]byte(`{}`))
 	f.Add(sendFixture(`"email":"message-fixture","status":"queued"`))
 	f.Add(sendFixture(`"email":null,"status":"throttled","nextAllowedAt":null`))
 	f.Add([]byte(`{"success":true,"data":{"emails":["private@example.test"]}}`))

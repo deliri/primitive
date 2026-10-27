@@ -8,6 +8,7 @@ import (
 	"net/mail"
 	"strings"
 
+	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/temporal"
 )
@@ -166,7 +167,7 @@ type SendResponse struct {
 
 type SendData struct {
 	Timestamp SendTimestamp `json:"timestamp"`
-	Emails    []SentEmail   `json:"emails"`
+	Emails    []SentEmail   `json:"emails,format:emitnull"`
 }
 
 type SentEmail struct {
@@ -228,10 +229,7 @@ func (e SentEmail) Validate() error {
 // Recipient/cardinality acceptance and durable identifiers remain application
 // policy. Every refusal returns zero provider facts and preserves native cause.
 func DecodeSendResponse(ctx context.Context, raw []byte, limits core.StrictJSONLimits) (SendResponse, error) {
-	if ctx == nil {
-		return SendResponse{}, core.ErrPlunkContract
-	}
-	if err := ctx.Err(); err != nil {
+	if err := contextstate.Validate(ctx); err != nil {
 		return SendResponse{}, contractError(err)
 	}
 	response, err := core.DecodeStrictJSONStructure[SendResponse](raw, limits)
