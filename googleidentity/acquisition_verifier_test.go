@@ -104,7 +104,7 @@ func TestGoogleMetadataAcquisitionToVerifierLayerTriad(t *testing.T) {
 				if bearer != full {
 					t.Fatal("acquired signed document equality = false, want exact full-format source facts before verification")
 				}
-				got, gotErr := provider.verifier(t, verifierTestAudience).Verify(t.Context(), bearer)
+				got, gotErr := provider.verifier(t, verifierTestAudience).Verify(t.Context(), GoogleCloudVerificationRequest{Authorization: bearer})
 				if calls := provider.calls.Load(); calls != tc.wantCertificates {
 					t.Fatalf("certificate requests = %d, want %d", calls, tc.wantCertificates)
 				}

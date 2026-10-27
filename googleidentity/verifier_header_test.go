@@ -57,7 +57,7 @@ func TestGoogleCloudVerifierHeaderBoundaryLayerTriad(t *testing.T) {
 					t.Fatalf("claims encoding error = %v, want nil", err)
 				}
 				bearer := p.signBytes(t, encoded, body, false)
-				got, err := p.verifier(t, verifierTestAudience).Verify(t.Context(), bearer)
+				got, err := p.verifier(t, verifierTestAudience).Verify(t.Context(), GoogleCloudVerificationRequest{Authorization: bearer})
 				if !errors.Is(err, tc.wantErr) {
 					t.Fatalf("Verify() error = %v, want %v", err, tc.wantErr)
 				}

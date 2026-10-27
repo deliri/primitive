@@ -132,11 +132,11 @@ func (v GoogleCloudVerifier) Validate() error {
 
 // Verify authenticates one RFC 6750 Authorization value and returns only
 // signature-verified Google identity facts.
-func (v GoogleCloudVerifier) Verify(ctx context.Context, authorization string) (GoogleCloudVerifiedIdentity, error) {
+func (v GoogleCloudVerifier) Verify(ctx context.Context, request GoogleCloudVerificationRequest) (GoogleCloudVerifiedIdentity, error) {
 	if err := errors.Join(contextstate.Validate(ctx), v.Validate()); err != nil {
 		return GoogleCloudVerifiedIdentity{}, contractError(err)
 	}
-	token, err := googleCloudIdentityToken(authorization)
+	token, err := googleCloudIdentityToken(request.Authorization)
 	if err != nil {
 		return GoogleCloudVerifiedIdentity{}, err
 	}

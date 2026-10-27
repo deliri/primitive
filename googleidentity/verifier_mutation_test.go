@@ -30,7 +30,7 @@ func TestGoogleCloudVerifierSignedMutationPairsPreserveAuthority(t *testing.T) {
 				header := verifierTestHeader{Algorithm: verifierTestAlgorithm, KeyID: verifierTestKeyID}
 				claims := verifierClaims()
 				baseline := p.sign(t, header, claims, false)
-				before, err := v.Verify(t.Context(), baseline)
+				before, err := v.Verify(t.Context(), GoogleCloudVerificationRequest{Authorization: baseline})
 				if err != nil || before != claims.identity(t) {
 					t.Fatalf("baseline Verify() = (%+v, %v), want exact signed identity", before, err)
 				}
@@ -47,15 +47,15 @@ func TestGoogleCloudVerifierSignedMutationPairsPreserveAuthority(t *testing.T) {
 				if forged == baseline {
 					t.Fatal("signed bytes mutation equality = true, want false")
 				}
-				refused, err := v.Verify(t.Context(), forged)
+				refused, err := v.Verify(t.Context(), GoogleCloudVerificationRequest{Authorization: forged})
 				if !errors.Is(err, core.ErrGoogleIdentityContract) || refused != (GoogleCloudVerifiedIdentity{}) {
 					t.Fatalf("forged Verify() = (%+v, %v), want zero and typed signature refusal", refused, err)
 				}
-				replayed, err := v.Verify(t.Context(), baseline)
+				replayed, err := v.Verify(t.Context(), GoogleCloudVerificationRequest{Authorization: baseline})
 				if err != nil || replayed != before {
 					t.Fatalf("baseline replay = (%+v, %v), want (%+v, nil)", replayed, err, before)
 				}
-				after, err := v.Verify(t.Context(), p.sign(t, header, claims, false))
+				after, err := v.Verify(t.Context(), GoogleCloudVerificationRequest{Authorization: p.sign(t, header, claims, false)})
 				if err != nil || after != claims.identity(t) {
 					t.Fatalf("freshly signed mutation = (%+v, %v), want exact changed facts", after, err)
 				}

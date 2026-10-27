@@ -75,7 +75,14 @@ func FuzzGoogleCloudVerifierSignedSemanticClosure(f *testing.F) {
 					bearer = acquired
 				}
 			}
-			got, err := local.verifier(t, verifierTestAudience).Verify(t.Context(), bearer)
+			request := GoogleCloudVerificationRequest{Authorization: bearer}
+			requestErr := request.Validate()
+			got, err := local.verifier(t, verifierTestAudience).Verify(t.Context(), request)
+			if requestErr != nil {
+				if !errors.Is(requestErr, core.ErrGoogleIdentityContract) || !errors.Is(err, core.ErrGoogleIdentityContract) || got != (GoogleCloudVerifiedIdentity{}) || local.calls.Load() != 0 {
+					t.Fatalf("request grammar refusal = (%v,%v,%+v,%d certificates), want typed errors,zero,no requests", requestErr, err, got, local.calls.Load())
+				}
+			}
 			if calls := local.calls.Load(); calls > 1 {
 				t.Fatalf("certificate requests = %d, want at most one read", calls)
 			}

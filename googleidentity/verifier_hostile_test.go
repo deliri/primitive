@@ -118,7 +118,7 @@ func TestGoogleCloudVerifierSignedIngressHostile(t *testing.T) {
 						t.Fatal("wire mutation equality = true, want false")
 					}
 				}
-				got, err := provider.verifier(t, verifierTestAudience).Verify(t.Context(), bearer)
+				got, err := provider.verifier(t, verifierTestAudience).Verify(t.Context(), GoogleCloudVerificationRequest{Authorization: bearer})
 				if !errors.Is(err, tc.wantErr) {
 					t.Fatalf("Verify() error = %v, want %v", err, tc.wantErr)
 				}
