@@ -36,9 +36,11 @@ func (r GCSPublicCopyRequest) Validate() error {
 	return nil
 }
 
-// VerifyPublicGCSObject returns an address only after an unauthenticated GET
-// delivers the exact content type, extent, SHA-256 and CRC32C. No authorization
-// header, redirect, retry, bucket listing or authenticated object read occurs.
+// VerifyPublicGCSObject returns an address only after a GET delivers the exact
+// content type, extent, SHA-256 and CRC32C. The request supplies no authorization
+// or cookies. The caller must supply an anonymous client: an opaque caller-owned
+// transport can inject credentials, which this operation cannot inspect.
+// No redirect, retry, bucket listing or authenticated SDK object read occurs.
 // Filestore owns the joined pipe and fixed copy window; no body is retained.
 func VerifyPublicGCSObject(ctx context.Context, client exchange.Client, request GCSPublicCopyRequest) (core.HTTPEndpoint, error) {
 	if err := errors.Join(contextstate.Validate(ctx), client.Validate(), request.Validate()); err != nil {

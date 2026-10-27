@@ -105,8 +105,10 @@ unrelated entry is preserved. A response or transport failure releases zero
 grant evidence; a provider mutation may already have happened, so failure is
 not a rollback claim.
 
-`VerifyPublicGCSObject` checks the actual unauthenticated canonical address
-through Exchange with a caller-owned finite, single-attempt policy. A joined
+`VerifyPublicGCSObject` checks the canonical address through Exchange with a
+caller-owned finite, single-attempt policy. Its request supplies no authorization
+or cookies; the caller must provide an anonymous client whose transport does
+not inject credentials. The operation cannot inspect an opaque transport. A joined
 Filestore pipe verifies exact content type, extent, SHA-256 and CRC32C without
 retaining the body. Redirects are refused. It returns no address on failure.
 

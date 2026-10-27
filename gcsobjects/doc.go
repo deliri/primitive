@@ -29,8 +29,10 @@
 // or public-access-prevention policy is an explicit refusal.
 // GrantGCSObjectPublicRead admits an existing exact generation under metadata
 // CAS while preserving unrelated ACL entries. VerifyPublicGCSObject verifies
-// anonymous delivery by media type, extent, SHA-256 and CRC32C before returning
-// its address. A failed mutation can have an unknown provider outcome and
+// delivery by media type, extent, SHA-256 and CRC32C before returning its
+// address. The caller supplies an anonymous Exchange client; the operation
+// cannot inspect credential injection by an opaque transport.
+// A failed mutation can have an unknown provider outcome and
 // carries no fabricated publication proof.
 // UploadFileStream instead observes a live stored-file source as it uploads,
 // without requiring its final extent or digests in advance. It returns no
