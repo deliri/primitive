@@ -343,6 +343,12 @@ func errorReturnRegion(ctx context.Context, reference errorIdentityQuery, region
 				}
 			}
 			if !carries {
+				carries, err = errorSourceReturnPreserves(ctx, returned, reference)
+				if err != nil {
+					return false, err
+				}
+			}
+			if !carries {
 				return false, nil
 			}
 		}

@@ -105,16 +105,18 @@ func (v SSAUnitView) MethodFieldErrorPropagation(ctx context.Context, request Me
 }
 
 type methodFieldErrorQuery struct {
-	Frame    *ssa.Function
-	View     SSAUnitView
-	Variable *types.Var
-	Field    *types.Var
-	Body     *ast.BlockStmt
-	Parent   *methodFieldErrorQuery
-	Analysis PackageAnalysis
-	Types    *types.Info
-	Target   *types.Func
-	Index    int
+	Yield     ssa.Value
+	YieldSlot int
+	Frame     *ssa.Function
+	View      SSAUnitView
+	Variable  *types.Var
+	Field     *types.Var
+	Body      *ast.BlockStmt
+	Parent    *methodFieldErrorQuery
+	Analysis  PackageAnalysis
+	Types     *types.Info
+	Target    *types.Func
+	Index     int
 }
 
 func (methodFieldErrorQuery) goToolchainInternalFlow() {}
@@ -148,6 +150,12 @@ func methodFieldErrorCovers(ctx context.Context, query methodFieldErrorQuery) (b
 			if err != nil {
 				return false, err
 			}
+			if !propagation.Preserved && query.Yield != nil {
+				propagation.Preserved, err = methodFieldErrorYieldCall(ctx, value, query)
+				if err != nil {
+					return false, err
+				}
+			}
 			if !propagation.Preserved {
 				continue
 			}
@@ -166,6 +174,9 @@ func methodFieldErrorCovers(ctx context.Context, query methodFieldErrorQuery) (b
 				return covered, err
 			}
 		case *ast.RangeStmt:
+			if covered, err := methodFieldErrorIterator(ctx, value, query); covered || err != nil {
+				return covered, err
+			}
 			covered, operandErr := methodFieldErrorObservedOperand(ctx, value.X, query)
 			if operandErr != nil {
 				return false, operandErr
