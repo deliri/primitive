@@ -23,7 +23,7 @@ type jsonCallerRecord struct {
 }
 
 func (r jsonCallerRecord) Validate() error {
-	return (nativeRecord{Owner: r.Owner, Value: r.Value}).Validate()
+	return nativeRecord(r).Validate()
 }
 
 // Provider fixtures deliberately admit facts the caller's schema can refuse.
