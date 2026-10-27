@@ -339,23 +339,24 @@ func TestLayerTriadGoogleAccessTokenRealHTTP(t *testing.T) {
 }
 
 type googleExternalDoorInventory struct {
-	ParsePhoneE164                func(string) (PhoneE164, error)
-	ParseHostedDomain             func(string) (HostedDomain, error)
-	NewBrowserVerifier            func(context.Context, BrowserVerifierConfiguration) (BrowserVerifier, error)
-	BeginBrowserAuthorization     func(BrowserAuthorizationRequest) (BrowserAuthorization, error)
-	CompleteBrowserAuthorization  func(context.Context, BrowserAuthorizationCompleteRequest) (BrowserVerifiedIdentity, error)
-	Audience_UnmarshalText        func(*Audience, []byte) error
-	Client_Acquire                func(Client, context.Context, IdentityTokenRequest) (Token, error)
-	ServiceAccountSource_Acquire  func(ServiceAccountSource, context.Context, IdentityTokenRequest) (Token, error)
-	GoogleCloudVerifier_Verify    func(GoogleCloudVerifier, context.Context, GoogleCloudVerificationRequest) (GoogleCloudVerifiedIdentity, error)
-	AcquireGoogleCloud            func(context.Context, Client, IdentityTokenRequest) (Token, error)
-	AcquireGoogleCloudAccessToken func(context.Context, Client, GoogleCloudAccessTokenRequest) (AccessToken, error)
-	NewGoogleCloudVerifier        func(context.Context, GoogleCloudVerifierConfiguration) (GoogleCloudVerifier, error)
-	ParseAudience                 func(string) (Audience, error)
-	ParseGoogleCloudCommandOutput func([]byte) (Token, error)
+	GoogleCloudVerificationRequest_Validate func(GoogleCloudVerificationRequest) error
+	ParsePhoneE164                          func(string) (PhoneE164, error)
+	ParseHostedDomain                       func(string) (HostedDomain, error)
+	NewBrowserVerifier                      func(context.Context, BrowserVerifierConfiguration) (BrowserVerifier, error)
+	BeginBrowserAuthorization               func(BrowserAuthorizationRequest) (BrowserAuthorization, error)
+	CompleteBrowserAuthorization            func(context.Context, BrowserAuthorizationCompleteRequest) (BrowserVerifiedIdentity, error)
+	Audience_UnmarshalText                  func(*Audience, []byte) error
+	Client_Acquire                          func(Client, context.Context, IdentityTokenRequest) (Token, error)
+	ServiceAccountSource_Acquire            func(ServiceAccountSource, context.Context, IdentityTokenRequest) (Token, error)
+	GoogleCloudVerifier_Verify              func(GoogleCloudVerifier, context.Context, GoogleCloudVerificationRequest) (GoogleCloudVerifiedIdentity, error)
+	AcquireGoogleCloud                      func(context.Context, Client, IdentityTokenRequest) (Token, error)
+	AcquireGoogleCloudAccessToken           func(context.Context, Client, GoogleCloudAccessTokenRequest) (AccessToken, error)
+	NewGoogleCloudVerifier                  func(context.Context, GoogleCloudVerifierConfiguration) (GoogleCloudVerifier, error)
+	ParseAudience                           func(string) (Audience, error)
+	ParseGoogleCloudCommandOutput           func([]byte) (Token, error)
 }
 
-var googleExternalDoors = googleExternalDoorInventory{ParsePhoneE164: ParsePhoneE164, ParseHostedDomain: ParseHostedDomain, NewBrowserVerifier: NewBrowserVerifier, BeginBrowserAuthorization: BeginBrowserAuthorization, CompleteBrowserAuthorization: CompleteBrowserAuthorization, Audience_UnmarshalText: (*Audience).UnmarshalText, Client_Acquire: Client.Acquire, ServiceAccountSource_Acquire: ServiceAccountSource.Acquire, GoogleCloudVerifier_Verify: GoogleCloudVerifier.Verify, AcquireGoogleCloud: AcquireGoogleCloud, AcquireGoogleCloudAccessToken: AcquireGoogleCloudAccessToken, NewGoogleCloudVerifier: NewGoogleCloudVerifier, ParseAudience: ParseAudience, ParseGoogleCloudCommandOutput: ParseGoogleCloudCommandOutput}
+var googleExternalDoors = googleExternalDoorInventory{GoogleCloudVerificationRequest_Validate: GoogleCloudVerificationRequest.Validate, ParsePhoneE164: ParsePhoneE164, ParseHostedDomain: ParseHostedDomain, NewBrowserVerifier: NewBrowserVerifier, BeginBrowserAuthorization: BeginBrowserAuthorization, CompleteBrowserAuthorization: CompleteBrowserAuthorization, Audience_UnmarshalText: (*Audience).UnmarshalText, Client_Acquire: Client.Acquire, ServiceAccountSource_Acquire: ServiceAccountSource.Acquire, GoogleCloudVerifier_Verify: GoogleCloudVerifier.Verify, AcquireGoogleCloud: AcquireGoogleCloud, AcquireGoogleCloudAccessToken: AcquireGoogleCloudAccessToken, NewGoogleCloudVerifier: NewGoogleCloudVerifier, ParseAudience: ParseAudience, ParseGoogleCloudCommandOutput: ParseGoogleCloudCommandOutput}
 
 func TestGoogleExternalDoorInventoryMatchesProduction(t *testing.T) {
 	t.Parallel()
@@ -399,7 +400,7 @@ func scanGoogleExternalDoors() ([]string, error) {
 			}
 			name := declaration.Name.Name
 			if declaration.Recv != nil {
-				if name == "Verify" || name == "Acquire" || name == "UnmarshalText" {
+				if name == "Verify" || name == "Acquire" || name == "UnmarshalText" || name == "Validate" && googleIdentityReceiverName(declaration.Recv.List[0].Type) == "GoogleCloudVerificationRequest" {
 					doors = append(doors, googleIdentityReceiverName(declaration.Recv.List[0].Type)+"_"+name)
 				}
 				return false
