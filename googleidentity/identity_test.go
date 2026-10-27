@@ -347,7 +347,7 @@ type googleExternalDoorInventory struct {
 	Audience_UnmarshalText        func(*Audience, []byte) error
 	Client_Acquire                func(Client, context.Context, IdentityTokenRequest) (Token, error)
 	ServiceAccountSource_Acquire  func(ServiceAccountSource, context.Context, IdentityTokenRequest) (Token, error)
-	GoogleCloudVerifier_Verify    func(GoogleCloudVerifier, context.Context, string) (GoogleCloudVerifiedIdentity, error)
+	GoogleCloudVerifier_Verify    func(GoogleCloudVerifier, context.Context, GoogleCloudVerificationRequest) (GoogleCloudVerifiedIdentity, error)
 	AcquireGoogleCloud            func(context.Context, Client, IdentityTokenRequest) (Token, error)
 	AcquireGoogleCloudAccessToken func(context.Context, Client, GoogleCloudAccessTokenRequest) (AccessToken, error)
 	NewGoogleCloudVerifier        func(context.Context, GoogleCloudVerifierConfiguration) (GoogleCloudVerifier, error)
