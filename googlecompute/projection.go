@@ -33,7 +33,15 @@ func projectInstance(reference InstanceReference, wire *compute.Instance) (Insta
 	return InstanceObservation{State: state, ObservedAt: instant}, nil
 }
 
-func projectOperation(reference InstanceReference, expectedName OperationName, expectedType OperationType, wire *compute.Operation) (OperationObservation, error) {
+type operationProjection struct {
+	instance      InstanceReference
+	name          OperationName
+	operationType OperationType
+	wire          *compute.Operation
+}
+
+func projectOperation(projection operationProjection) (OperationObservation, error) {
+	reference, expectedName, expectedType, wire := projection.instance, projection.name, projection.operationType, projection.wire
 	if wire == nil {
 		return OperationObservation{}, core.ErrGoogleComputeResponse
 	}
@@ -111,48 +119,26 @@ func observedInstant() (temporal.Instant, error) {
 }
 
 func instanceState(text string) (InstanceState, error) {
-	switch text {
-	case "PENDING":
-		return InstanceStatePending, nil
-	case "PROVISIONING":
-		return InstanceStateProvisioning, nil
-	case "STAGING":
-		return InstanceStateStaging, nil
-	case "RUNNING":
-		return InstanceStateRunning, nil
-	case "STOPPING":
-		return InstanceStateStopping, nil
-	case "SUSPENDING":
-		return InstanceStateSuspending, nil
-	case "SUSPENDED":
-		return InstanceStateSuspended, nil
-	case "REPAIRING":
-		return InstanceStateRepairing, nil
-	case "TERMINATED":
-		return InstanceStateTerminated, nil
-	default:
-		return InstanceStateUnknown, core.ErrGoogleComputeResponse
+	for value := InstanceStatePending; value <= InstanceStateTerminated; value++ {
+		if value.String() == text {
+			return value, nil
+		}
 	}
+	return InstanceStateUnknown, core.ErrGoogleComputeResponse
 }
 func operationState(text string) (OperationState, error) {
-	switch text {
-	case "PENDING":
-		return OperationStatePending, nil
-	case "RUNNING":
-		return OperationStateRunning, nil
-	case "DONE":
-		return OperationStateDone, nil
-	default:
-		return OperationStateUnknown, core.ErrGoogleComputeResponse
+	for value := OperationStatePending; value <= OperationStateDone; value++ {
+		if value.String() == text {
+			return value, nil
+		}
 	}
+	return OperationStateUnknown, core.ErrGoogleComputeResponse
 }
 func operationType(text string) (OperationType, error) {
-	switch text {
-	case "start":
-		return OperationTypeStart, nil
-	case "stop":
-		return OperationTypeStop, nil
-	default:
-		return OperationTypeUnknown, core.ErrGoogleComputeResponse
+	for value := OperationTypeStart; value <= OperationTypeStop; value++ {
+		if value.String() == text {
+			return value, nil
+		}
 	}
+	return OperationTypeUnknown, core.ErrGoogleComputeResponse
 }

@@ -17,8 +17,8 @@ import (
 // Client borrows the caller's transport. It owns no idle pool or credentials.
 type Client struct{ service *compute.Service }
 
-func NewClient(network exchange.Client) (Client, error) {
-	if err := network.Validate(); err != nil {
+func NewClient(ctx context.Context, network exchange.Client) (Client, error) {
+	if err := errors.Join(contextError(ctx), network.Validate()); err != nil {
 		return Client{}, errors.Join(core.ErrGoogleComputeContract, err)
 	}
 	get, err := exchange.NewOfficialSDKMethodResponseBoundary(exchange.OfficialSDKMethodResponseBoundaryRequest{Method: exchange.MethodGet, Representation: exchange.OfficialSDKResponseRepresentationJSON})
@@ -41,7 +41,7 @@ func NewClient(network exchange.Client) (Client, error) {
 	if err != nil {
 		return Client{}, errors.Join(core.ErrGoogleComputeContract, err)
 	}
-	service, err := compute.NewService(context.Background(), option.WithHTTPClient(httpClient))
+	service, err := compute.NewService(ctx, option.WithHTTPClient(httpClient))
 	if err != nil {
 		return Client{}, errors.Join(core.ErrGoogleComputeContract, err)
 	}
@@ -103,7 +103,7 @@ func (c Client) StartInstance(ctx context.Context, request InstanceStartRequest)
 	if err != nil {
 		return OperationObservation{}, responseError(callContext, err)
 	}
-	return projectOperation(r, OperationName{}, OperationTypeStart, result)
+	return projectOperation(operationProjection{instance: r, operationType: OperationTypeStart, wire: result})
 }
 
 func (c Client) StopInstance(ctx context.Context, request InstanceStopRequest) (OperationObservation, error) {
@@ -126,7 +126,7 @@ func (c Client) StopInstance(ctx context.Context, request InstanceStopRequest) (
 	if err != nil {
 		return OperationObservation{}, responseError(callContext, err)
 	}
-	return projectOperation(r, OperationName{}, OperationTypeStop, result)
+	return projectOperation(operationProjection{instance: r, operationType: OperationTypeStop, wire: result})
 }
 
 func (c Client) ReadOperation(ctx context.Context, request OperationReadRequest) (OperationObservation, error) {
@@ -149,7 +149,7 @@ func (c Client) ReadOperation(ctx context.Context, request OperationReadRequest)
 	if err != nil {
 		return OperationObservation{}, responseError(callContext, err)
 	}
-	return projectOperation(r, request.Operation, request.Type, result)
+	return projectOperation(operationProjection{instance: r, name: request.Operation, operationType: request.Type, wire: result})
 }
 
 // The four generated Do methods use gensupport.SendRequest, not its retrying

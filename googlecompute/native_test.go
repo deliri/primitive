@@ -200,7 +200,7 @@ func TestGoogleComputeNativeCancellation(t *testing.T) {
 	case <-arrived:
 	case <-time.After(10 * time.Second):
 		cancel(context.DeadlineExceeded)
-		t.Fatal("provider arrival timed out")
+		t.Fatalf("provider arrival = timed out with %d requests, want one observed arrival", calls.Load())
 	}
 	cause := core.ErrGoogleComputeBinding
 	cancel(cause)
@@ -210,7 +210,7 @@ func TestGoogleComputeNativeCancellation(t *testing.T) {
 			t.Fatalf("in-flight cancellation = %v, want Canceled and %v", err, cause)
 		}
 	case <-time.After(10 * time.Second):
-		t.Fatal("cancelled call did not join")
+		t.Fatalf("cancelled call joined = false with %d requests, want joined completion", calls.Load())
 	}
 	if got := calls.Load(); got != 1 {
 		t.Fatalf("provider calls = %d, want 1", got)

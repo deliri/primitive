@@ -71,7 +71,7 @@ func nativeClient(t testing.TB, provider http.Handler) (Client, googleidentity.A
 	if err != nil {
 		t.Fatalf("Exchange client error = %v, want nil", err)
 	}
-	identity, err := googleidentity.NewClient(network)
+	identity, err := googleidentity.NewClient(t.Context(), network)
 	if err != nil {
 		t.Fatalf("metadata client error = %v, want nil", err)
 	}
@@ -88,7 +88,7 @@ func nativeClient(t testing.TB, provider http.Handler) (Client, googleidentity.A
 	if err != nil {
 		t.Fatalf("metadata acquisition error = %v, want nil", err)
 	}
-	client, err := NewClient(network)
+	client, err := NewClient(t.Context(), network)
 	if err != nil {
 		t.Fatalf("Compute client error = %v, want nil", err)
 	}
