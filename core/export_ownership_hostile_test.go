@@ -16,7 +16,7 @@ import (
 const (
 	coreExportDependencyMaximum     = 32
 	coreSpecialExportAdmissionCount = 106 // Includes the Firestore SDK package identity.
-	coreProviderExportContractCount = 232
+	coreProviderExportContractCount = 233
 )
 
 type coreExportName string
