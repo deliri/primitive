@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"sync/atomic"
@@ -11,6 +12,7 @@ import (
 
 	"cloud.google.com/go/storage"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/objectstore"
 	"google.golang.org/api/option"
 	storageapi "google.golang.org/api/storage/v1"
 )
@@ -104,7 +106,9 @@ func TestVisitGCSUsageLogLifetimeLayerTriad(t *testing.T) {
 			}
 			wantCloses := int32(1)
 			if tc.kind == 6 {
-				wantCloses = 2
+				// The SDK closes the first body before reopening, closes the
+				// unsatisfied ranged response, then our owner closes its reader.
+				wantCloses = 3
 				if !errors.Is(err, core.ErrObjectStoreSource) {
 					t.Fatalf("SDK reopen error=%v,want typed source refusal", err)
 				}
@@ -180,5 +184,58 @@ func TestGCSUsageZeroObservationIsNotEvidence(t *testing.T) {
 	count, countErr := got.RecordCount()
 	if !errors.Is(got.Validate(), core.ErrObjectStoreContract) || !errors.Is(metaErr, core.ErrObjectStoreContract) || !errors.Is(countErr, core.ErrObjectStoreContract) || metadata != (GCSObjectMetadata{}) || count != 0 {
 		t.Fatalf("zero observation metadata=%v/%v count=%d/%v,want no evidence", metadata, metaErr, count, countErr)
+	}
+}
+
+func TestGCSUsageRequestExtentBoundary(t *testing.T) {
+	t.Parallel()
+	const providerMaximum = objectstore.GoogleCloudStorageObjectMaximumBytes
+	data := []byte("typed metadata extent fixture")
+	client := bucketTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { writeGCSAttrsResponse(t, w, data) }))
+	listed, err := LookupGCSObject(t.Context(), client, GCSObjectLookupRequest{Bucket: parsedGCSBucket(t, gcsProviderBucketText), Name: parsedGCSObjectName(t, gcsProviderObjectText)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name             string
+		length, maximum  uint64
+		wantZeroMetadata bool
+		wantErr          error
+	}{
+		{name: "zero metadata cannot authorize read", length: 1, maximum: 1, wantZeroMetadata: true, wantErr: core.ErrObjectStoreContract},
+		{name: "unset maximum cannot authorize read", length: 1, wantErr: core.ErrObjectStoreSize},
+		{name: "empty object has an explicit positive caller maximum", maximum: 1},
+		{name: "one byte exactly at caller bound", length: 1, maximum: 1},
+		{name: "one byte above caller bound", length: 2, maximum: 1, wantErr: core.ErrObjectStoreSize},
+		{name: "last provider extent is admitted explicitly", length: providerMaximum, maximum: providerMaximum},
+		{name: "caller extent above provider ceiling refuses", length: providerMaximum, maximum: providerMaximum + 1, wantErr: core.ErrObjectStoreSize},
+		{name: "maximum integer cannot bypass provider ceiling", length: 1, maximum: math.MaxUint64, wantErr: core.ErrObjectStoreSize},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			request := GCSUsageLogRequest{Object: listed}
+			var err error
+			request.Object.length, err = core.NewByteLength(tc.length)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if tc.maximum > 0 {
+				request.Maximum, err = core.NewByteCount(tc.maximum)
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			if tc.wantZeroMetadata {
+				request.Object = GCSObjectMetadata{}
+			}
+			gotErr := request.Validate()
+			if tc.wantErr == nil {
+				if gotErr != nil {
+					t.Fatalf("request.Validate=%v,want nil", gotErr)
+				}
+			} else if !errors.Is(gotErr, tc.wantErr) {
+				t.Fatalf("request.Validate=%v,want %v", gotErr, tc.wantErr)
+			}
+		})
 	}
 }
