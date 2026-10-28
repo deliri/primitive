@@ -441,6 +441,10 @@ func FuzzVisitGCSUsageLogSemanticClosure(f *testing.F) {
 	canonical := usageCSVFixture(f, names[:], values)
 	f.Add(canonical)
 	f.Add(usageCSVFixture(f, names[:]))
+	f.Add(usageCSVFixture(f, names[:len(names)-1]))
+	duplicateHeader := append([]string(nil), names[:]...)
+	duplicateHeader[len(duplicateHeader)-1] = duplicateHeader[0]
+	f.Add(usageCSVFixture(f, duplicateHeader))
 	f.Add([]byte{})
 	f.Add(canonical[:len(canonical)-3])
 	duplicate := slices.Clone(names[:])
@@ -523,6 +527,11 @@ func usageOracleSourceFacts(t testing.TB, row GCSUsageRecord, header, raw []stri
 		t.Fatalf("emitted row.Validate=%v,want nil", err)
 	}
 	usageOracleHeader(t, header)
+	for _, value := range raw {
+		if !utf8.ValidString(value) {
+			t.Fatalf("accepted source cell=%q,want UTF8", value)
+		}
+	}
 	names := usageColumnNames()
 	canonical := usageRecordValues(t, row)
 	for column, name := range names {

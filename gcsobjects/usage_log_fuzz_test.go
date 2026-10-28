@@ -18,6 +18,10 @@ func FuzzGCSUsageCSVSemanticClosure(f *testing.F) {
 	values := usageRecordValues(f, seed)
 	f.Add(usageCSVFixture(f, names[:], values))
 	f.Add(usageCSVFixture(f, names[:]))
+	f.Add(usageCSVFixture(f, names[:len(names)-1]))
+	duplicateHeader := append([]string(nil), names[:]...)
+	duplicateHeader[len(duplicateHeader)-1] = duplicateHeader[0]
+	f.Add(usageCSVFixture(f, duplicateHeader))
 	f.Add([]byte{})
 	f.Add([]byte("\"unterminated"))
 	reversedNames := append([]string(nil), names[:]...)
