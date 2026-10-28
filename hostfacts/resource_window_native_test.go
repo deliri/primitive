@@ -4,6 +4,7 @@ package hostfacts
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/process"
+	"github.com/deliri/primitive/v2026/temporal"
 )
 
 // A real final executable must link and observe through the published API
@@ -85,7 +87,23 @@ func main() {
 			t.Fatal(err)
 		}
 		var out, diagnostic bytes.Buffer
-		result, err := process.Run(t.Context(), process.Request{Command: command, Arguments: argv, WorkingDirectory: cwd, Environment: env, Streams: process.Streams{Stdin: strings.NewReader(""), Stdout: &out, Stderr: &diagnostic}, OutputPolicy: process.OutputPolicy{Mode: process.OutputModeBounded, Maximum: maximum}, WaitDelay: resourceDuration(t, "3s"), Containment: process.Containment{Isolation: process.IsolationGroup, CancelSignal: process.CancelSignalKill}})
+		execution, err := process.Begin(t.Context(), process.Request{Command: command, Arguments: argv, WorkingDirectory: cwd, Environment: env, Streams: process.Streams{Stdin: strings.NewReader(""), Stdout: &out, Stderr: &diagnostic}, OutputPolicy: process.OutputPolicy{Mode: process.OutputModeBounded, Maximum: maximum}, WaitDelay: resourceDuration(t, "3s"), Containment: process.Containment{Isolation: process.IsolationGroup, CancelSignal: process.CancelSignalKill}})
+		if err != nil {
+			t.Fatal(err)
+		}
+		// This owner has no intervening path after Begin: reap exactly once.
+		// The existing group cancellation kills the owned tree during Wait.
+		// After reap observe absence; never signal a possibly recycled group.
+		result, err := execution.Wait()
+		cleanup, cancel, cleanupErr := temporal.WithTimeout(temporal.TimeoutRequest{Parent: context.WithoutCancel(t.Context()), Duration: resourceDuration(t, "3s")})
+		if cleanupErr != nil {
+			t.Fatal(cleanupErr)
+		}
+		gone, absentErr := process.WaitGroupAbsent(cleanup, process.WaitGroupAbsentRequest{Execution: execution, Timeout: resourceDuration(t, "3s"), Interval: resourceDuration(t, "10ms")})
+		cancel()
+		if absentErr != nil || gone != process.LivenessGone {
+			t.Fatalf("owned native build/probe group not absent after join: %v/%v", gone, absentErr)
+		}
 		if err != nil {
 			t.Fatalf("owned native build/probe failed: %v; %s", err, diagnostic.String())
 		}

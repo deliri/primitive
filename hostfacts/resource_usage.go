@@ -114,16 +114,31 @@ func (u ResourceUsage) MemoryPressureMilli() uint32         { return u.memoryPre
 // failure return no sample. Other workloads are naturally included in OS facts.
 func ObserveResourceUsage(ctx context.Context, r ResourceUsageRequest) (ResourceUsage, error) {
 	if err := errors.Join(contextstate.Validate(ctx), r.Validate()); err != nil {
-		return ResourceUsage{}, fail(OperationResourceUsage, core.ErrHostFactsContract, err)
+		return ResourceUsage{}, fail(OperationResourceUsage, core.ErrHostFactsContract, resourceContextCause(ctx, err))
 	}
 	u, err := observeResourceUsage(ctx, r)
 	if err == nil {
 		err = errors.Join(u.Validate(), contextstate.Validate(ctx), sameScopes(r.Scopes, u.scopes))
 	}
 	if err != nil {
-		return ResourceUsage{}, fail(OperationResourceUsage, core.ErrHostFactsObservation, err)
+		return ResourceUsage{}, fail(OperationResourceUsage, core.ErrHostFactsObservation, resourceContextCause(ctx, err))
 	}
 	return u, nil
+}
+
+// Preserve the caller's terminal cause without asking a nil, active, or
+// malformed context for a cause. Custom Value methods can panic; that native
+// observation failure must not erase the already-observed terminal identity.
+func resourceContextCause(ctx context.Context, err error) (result error) {
+	if !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
+		return err
+	}
+	defer func() {
+		if recover() != nil {
+			result = errors.Join(err, core.ErrContextObservation)
+		}
+	}()
+	return errors.Join(err, context.Cause(ctx))
 }
 
 // Every requested scope is answered exactly once, in request order.
