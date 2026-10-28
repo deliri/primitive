@@ -6,7 +6,11 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 443
-    }
+      "patch": 444
+    },
+    "release_notes": [
+      "Add shared typed release-note arrays to the Compass project contract.",
+      "Reject absent, empty, blank or invalid UTF-8 notes while preserving entry order and authored text."
+    ]
   }
 }

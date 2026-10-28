@@ -41,12 +41,12 @@ func TestCompassDocumentExtentLayerTriad(t *testing.T) {
 				t.Fatalf("got error=%v, want %v", err, tc.wantErr)
 			}
 			if tc.wantErr != nil {
-				if got != (compass.Configuration{}) || !errors.Is(err, core.ErrCompassContract) {
+				if !sameConfiguration(got, compass.Configuration{}) || !errors.Is(err, core.ErrCompassContract) {
 					t.Fatalf("got refused value=%v error=%v, want zero and Compass identity", got, err)
 				}
 				return
 			}
-			if got != want {
+			if !sameConfiguration(got, want) {
 				t.Fatalf("got=%v, want exact %v", got, want)
 			}
 		})
@@ -159,12 +159,12 @@ func TestCompassReaderFailureLayerTriad(t *testing.T) {
 				t.Fatalf("got error=%v, want %v", err, tc.wantErr)
 			}
 			if tc.wantErr != nil {
-				if got != (compass.Configuration{}) || !errors.Is(err, core.ErrCompassContract) || !errors.Is(err, core.ErrJSONContract) {
+				if !sameConfiguration(got, compass.Configuration{}) || !errors.Is(err, core.ErrCompassContract) || !errors.Is(err, core.ErrJSONContract) {
 					t.Fatalf("got value=%v error=%v, want zero and typed refusal", got, err)
 				}
 				return
 			}
-			if got != want {
+			if !sameConfiguration(got, want) {
 				t.Fatalf("got=%v, want exact %v", got, want)
 			}
 		})
@@ -217,12 +217,12 @@ func TestCompassCallerOwnedDocumentLayerTriad(t *testing.T) {
 				t.Fatalf("got decode error=%v, want %v", err, tc.wantErr)
 			}
 			if tc.wantErr != nil {
-				if got.Project != (compass.Project{}) || got.Names != nil || !errors.Is(err, core.ErrCompassContract) {
+				if !sameConfiguration(compass.Configuration{Project: got.Project}, compass.Configuration{}) || got.Names != nil || !errors.Is(err, core.ErrCompassContract) {
 					t.Fatalf("got rejected value=%v error=%v, want zero and caller validation cause", got, err)
 				}
 				return
 			}
-			if got.Project != want.Project || len(got.Names) != len(want.Names) {
+			if !sameConfiguration(compass.Configuration{Project: got.Project}, compass.Configuration{Project: want.Project}) || len(got.Names) != len(want.Names) {
 				t.Fatalf("got=%v, want exact caller-owned document", got)
 			}
 			for i := range want.Names {

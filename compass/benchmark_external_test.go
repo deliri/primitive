@@ -20,7 +20,7 @@ func BenchmarkCurrent(b *testing.B) {
 	b.ReportAllocs()
 	for b.Loop() {
 		got, err := compass.Current()
-		if err != nil || got != want {
+		if err != nil || !sameConfiguration(got, want) {
 			b.Fatalf("Current got=%v error=%v, want %v", got, err, want)
 		}
 	}
@@ -43,7 +43,7 @@ func BenchmarkDecodeConfiguration(b *testing.B) {
 			for b.Loop() {
 				source.Reset(encoded)
 				got, err := compass.Decode[compass.Configuration](reader)
-				if err != nil || got != want {
+				if err != nil || !sameConfiguration(got, want) {
 					b.Fatalf("Decode got=%v error=%v, want %v", got, err, want)
 				}
 			}
