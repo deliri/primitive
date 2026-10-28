@@ -32,7 +32,7 @@ func TestVisitGCSUsageLogLifetimeLayerTriad(t *testing.T) {
 		{name: "visitor and close failures retain both causes", kind: 3, wantVisits: 1, wantVisitor: true, wantClose: true},
 		{name: "caller cancellation after provisional row retains own cause", kind: 4, wantVisits: 1, wantCancel: true},
 		{name: "cancelled caller never opens provider", kind: 5, wantCancel: true},
-		{name: "SDK ranged reopen failure cannot release final observation", kind: 6, wantVisits: 1, wantRead: true},
+		{name: "mixed EOF source failure cannot release final observation", kind: 6, wantVisits: 1, wantRead: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
