@@ -353,7 +353,7 @@ func TestCheckoutSessionAdmissionBoundaries(t *testing.T) {
 		t.Parallel()
 		body := checkoutFixtureBytes(t, checkoutFixture())
 		got, err := DecodeCheckoutSession[checkoutMetadataFixture](nil, checkoutDecodeRequest(t, bytes.NewReader(body), uint64(len(body))))
-		if !errors.Is(err, core.ErrStripeContract) || !errors.Is(err, core.ErrContextObservation) || !checkoutSessionZero(got) {
+		if !errors.Is(err, core.ErrStripeContract) || !errors.Is(err, core.ErrNilContext) || !checkoutSessionZero(got) {
 			t.Fatalf("DecodeCheckoutSession(nil context) = (%+v, %v), want zero typed context refusal", got, err)
 		}
 	})
