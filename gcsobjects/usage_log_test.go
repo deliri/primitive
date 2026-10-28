@@ -259,7 +259,7 @@ func TestGCSUsageCSVFramingLayerTriad(t *testing.T) {
 
 func TestGCSUsageCSVFailureOwnershipLayerTriad(t *testing.T) {
 	t.Parallel()
-	for _, kind := range []string{"caller cancelled before header", "visitor refuses after one row", "visitor cancels caller after row", "source error preserves native cause"} {
+	for _, kind := range []string{"caller cancelled before header", "visitor refuses after one row", "visitor cancels caller after row", "source error preserves native cause", "mixed source EOF preserves native cause"} {
 		t.Run(kind, func(t *testing.T) {
 			t.Parallel()
 			names := usageColumnNames()
@@ -277,6 +277,9 @@ func TestGCSUsageCSVFailureOwnershipLayerTriad(t *testing.T) {
 				wantVisits = 0
 			case "visitor refuses after one row":
 			case "visitor cancels caller after row":
+			case "mixed source EOF preserves native cause":
+				source = io.MultiReader(bytes.NewReader(usageCSVFixture(t, names[:])), usageErrorReader{errors.Join(io.EOF, cause)})
+				wantVisits = 0
 			case "source error preserves native cause":
 				source = io.MultiReader(bytes.NewReader(usageCSVFixture(t, names[:])), usageErrorReader{cause})
 				wantVisits = 0

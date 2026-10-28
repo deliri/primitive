@@ -32,7 +32,7 @@ func TestVisitGCSUsageLogLifetimeLayerTriad(t *testing.T) {
 		{name: "visitor and close failures retain both causes", kind: 3, wantVisits: 1, wantVisitor: true, wantClose: true},
 		{name: "caller cancellation after provisional row retains own cause", kind: 4, wantVisits: 1, wantCancel: true},
 		{name: "cancelled caller never opens provider", kind: 5, wantCancel: true},
-		{name: "mixed EOF source failure cannot release final observation", kind: 6, wantVisits: 1, wantRead: true},
+		{name: "SDK ranged reopen failure cannot release final observation", kind: 6, wantVisits: 1, wantRead: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -90,7 +90,7 @@ func TestVisitGCSUsageLogLifetimeLayerTriad(t *testing.T) {
 				for _, cause := range []struct {
 					want bool
 					err  error
-				}{{tc.wantClose, closeCause}, {tc.wantRead, readCause}, {tc.wantVisitor, visitorCause}, {tc.wantCancel, cancelCause}} {
+				}{{tc.wantClose, closeCause}, {tc.wantVisitor, visitorCause}, {tc.wantCancel, cancelCause}} {
 					if cause.want && !errors.Is(err, cause.err) {
 						t.Fatalf("error=%v,want retained cause %v", err, cause.err)
 					}
@@ -102,8 +102,15 @@ func TestVisitGCSUsageLogLifetimeLayerTriad(t *testing.T) {
 				}
 				return
 			}
-			if closes.Load() != 1 {
-				t.Fatalf("owned reader closes=%d,want exactly1", closes.Load())
+			wantCloses := int32(1)
+			if tc.kind == 6 {
+				wantCloses = 2
+				if !errors.Is(err, core.ErrObjectStoreSource) {
+					t.Fatalf("SDK reopen error=%v,want typed source refusal", err)
+				}
+			}
+			if closes.Load() != wantCloses {
+				t.Fatalf("native body closes=%d,want %d (including any SDK retry close)", closes.Load(), wantCloses)
 			}
 		})
 	}
