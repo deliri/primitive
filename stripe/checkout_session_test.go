@@ -279,14 +279,20 @@ func TestCheckoutSessionExtentAndSource(t *testing.T) {
 
 func TestCheckoutSessionCancellation(t *testing.T) {
 	t.Parallel()
-	for _, during := range []bool{false, true} {
-		t.Run(strconv.FormatBool(during), func(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		during bool
+	}{
+		{name: "cancel before first source read preserves cause"},
+		{name: "cancel during source read preserves cause", during: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			body := checkoutFixtureBytes(t, checkoutFixture())
 			ctx, cancel := context.WithCancelCause(t.Context())
 			defer cancel(nil)
 			var source io.Reader = bytes.NewReader(body)
-			if during {
+			if tc.during {
 				source = &checkoutCancelReader{source: source, cancel: cancel}
 			} else {
 				cancel(io.ErrClosedPipe)
