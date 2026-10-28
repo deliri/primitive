@@ -45,7 +45,7 @@ func FuzzDecodeCheckoutSessionSemanticClosure(f *testing.F) {
 		}
 		live := bytes.TrimSpace(members["livemode"])
 		if !bytes.Equal(live, []byte("true")) && !bytes.Equal(live, []byte("false")) {
-			t.Fatalf("admitted livemode = %q, want actual boolean", live)
+			t.Fatalf("admitted livemode = %q, want JSON boolean literal", live)
 		}
 		wantStatus := "null"
 		if wire.Status != nil {
