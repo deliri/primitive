@@ -133,10 +133,11 @@ func resourceContextCause(ctx context.Context, err error) (result error) {
 	if !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
 		return err
 	}
+	result = errors.Join(err, core.ErrContextObservation)
 	defer func() {
-		if recover() != nil {
-			result = errors.Join(err, core.ErrContextObservation)
-		}
+		// Retain the refusal even with legacy panic(nil) behavior, matching
+		// Temporal's native context-cause observation boundary.
+		_ = recover()
 	}()
 	return errors.Join(err, context.Cause(ctx))
 }
