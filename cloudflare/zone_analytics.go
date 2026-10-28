@@ -3,7 +3,7 @@ package cloudflare
 import (
 	"bytes"
 	"context"
-	"encoding/json/jsontext"
+	"encoding/json"
 	"errors"
 	"math"
 	"strings"
@@ -247,12 +247,15 @@ type zoneAnalyticsFilterWire struct {
 	RequestSource string `json:"requestSource"`
 }
 
-// GraphQL error members other than message are opaque diagnostics.
+// GraphQL error members other than message are opaque validated JSON at this
+// provider wire boundary. RawMessage owns copies of heterogeneous path/location
+// and future extension values; Core's strict grammar and json/v2 own decoding.
+// No JSONv1 parser is called and these fields never become application policy.
 type graphQLIssueWire struct {
-	Message    string         `json:"message"`
-	Path       jsontext.Value `json:"path,omitzero"`
-	Locations  jsontext.Value `json:"locations,omitzero"`
-	Extensions jsontext.Value `json:"extensions,omitzero"`
+	Message    string          `json:"message"`
+	Path       json.RawMessage `json:"path,omitzero"`
+	Locations  json.RawMessage `json:"locations,omitzero"`
+	Extensions json.RawMessage `json:"extensions,omitzero"`
 }
 type zoneAnalyticsEnvelope struct {
 	Data   *zoneAnalyticsDataWire `json:"data"`

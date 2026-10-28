@@ -1,11 +1,17 @@
 package cloudflare
 
 import (
+	"bytes"
 	"context"
+	"encoding"
+	"encoding/json"
+	"encoding/json/jsontext"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"reflect"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -362,6 +368,126 @@ func TestZoneAnalyticsObservedZeroCountLayerTriad(t *testing.T) {
 			}
 			if err != nil || got != want || got.Validate() != nil {
 				t.Fatalf("zero count traffic=%+v/%v,want exact %+v/nil", got, err, want)
+			}
+		})
+	}
+}
+
+var _ core.OffWireEnum = ZoneAnalyticsObserved
+
+func TestZoneAnalyticsOutcomeCompleteDomain(t *testing.T) {
+	t.Parallel()
+	for raw := 0; raw < 256; raw++ {
+		t.Run(strconv.Itoa(raw), func(t *testing.T) {
+			t.Parallel()
+			got := ZoneAnalyticsOutcome(raw)
+			want := ""
+			if raw == 1 {
+				want = "observed"
+			}
+			if raw == 2 {
+				want = "no_groups"
+			}
+			if want != "" {
+				if got.Validate() != nil || !got.IsValid() || got.String() != want {
+					t.Fatalf("outcome=%d valid=%t label=%q,want admitted %q", raw, got.IsValid(), got.String(), want)
+				}
+				return
+			}
+			if !errors.Is(got.Validate(), core.ErrCloudflareResponse) || got.IsValid() || got.String() != "" {
+				t.Fatalf("outcome=%d valid=%t label=%q,want typed refusal/false/empty", raw, got.IsValid(), got.String())
+			}
+		})
+	}
+	for _, receiver := range []reflect.Type{reflect.TypeFor[ZoneAnalyticsOutcome](), reflect.TypeFor[*ZoneAnalyticsOutcome]()} {
+		for _, wire := range []reflect.Type{reflect.TypeFor[json.Marshaler](), reflect.TypeFor[json.Unmarshaler](), reflect.TypeFor[encoding.TextMarshaler](), reflect.TypeFor[encoding.TextUnmarshaler](), reflect.TypeFor[encoding.BinaryMarshaler](), reflect.TypeFor[encoding.BinaryUnmarshaler]()} {
+			if receiver.Implements(wire) {
+				t.Fatalf("receiver=%v implements %v,want derived outcome without generic wire codec", receiver, wire)
+			}
+		}
+	}
+}
+
+func TestZoneAnalyticsOpaqueDiagnosticsLayerTriad(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name          string
+		kind          int
+		wantIssues    int
+		wantJSONError bool
+	}{
+		{name: "heterogeneous path and unknown metadata remain opaque owned copies", wantIssues: 1},
+		{name: "absent optional diagnostics retain the message", kind: 1, wantIssues: 1},
+		{name: "malformed path JSON cannot become a provider refusal fact", kind: 2, wantJSONError: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			envelope, _, _ := zoneAnalyticsTypedSeed(t)
+			var path bytes.Buffer
+			writer := jsontext.NewEncoder(&path)
+			for _, token := range []jsontext.Token{jsontext.BeginArray, jsontext.String("viewer"), jsontext.String("zones"), jsontext.Int(0), jsontext.EndArray} {
+				if err := writer.WriteToken(token); err != nil {
+					t.Fatal(err)
+				}
+			}
+			locations, err := core.MarshalCanonicalJSONDocument([]struct {
+				Line   int `json:"line"`
+				Column int `json:"column"`
+			}{{Line: 1, Column: 2}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			extensions, err := core.MarshalCanonicalJSONDocument(struct {
+				Code      string `json:"code"`
+				Timestamp string `json:"timestamp"`
+				Future    []int  `json:"future"`
+			}{Code: "fixture", Timestamp: "2026-10-28T22:29:19Z", Future: []int{1, 2}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			issue := graphQLIssueWire{Message: "fixture provider refusal", Path: bytes.Clone(path.Bytes()), Locations: locations, Extensions: extensions}
+			if tc.kind == 1 {
+				issue = graphQLIssueWire{Message: issue.Message}
+			}
+			envelope.Errors = []graphQLIssueWire{issue}
+			document := zoneAnalyticsCanonicalResponse(t, envelope)
+			// Standard RawMessage must own its scalar bytes after caller buffer changes.
+			input := bytes.Clone(document)
+			decoded, decodeErr := core.DecodeStrictJSONStructure[zoneAnalyticsEnvelope](input, core.DefaultStrictJSONLimits())
+			if decodeErr != nil {
+				t.Fatal(decodeErr)
+			}
+			for index := range input {
+				input[index] ^= 0xff
+			}
+			gotIssue := decoded.Errors[0]
+			if gotIssue.Message != issue.Message || !bytes.Equal(gotIssue.Path, issue.Path) || !bytes.Equal(gotIssue.Locations, issue.Locations) || !bytes.Equal(gotIssue.Extensions, issue.Extensions) {
+				t.Fatalf("decoded diagnostics=%+v,want owned exact message/path/location/extensions", gotIssue)
+			}
+			if tc.kind == 2 {
+				replacement := []byte("[\"viewer\",")
+				changed := bytes.Replace(document, path.Bytes(), replacement, 1)
+				if bytes.Equal(changed, document) {
+					t.Fatal("malformed diagnostic mutation did not change bytes, want changed path")
+				}
+				document = changed
+			}
+			server, request := zoneAnalyticsFixture(t, func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set(core.HTTPHeaderContentType().String(), core.HTTPMediaTypeJSON().String())
+				if _, err := w.Write(document); err != nil {
+					t.Error(err)
+				}
+			})
+			got, readErr := server.ReadHTTP(t.Context(), request, testPolicy())
+			refusal, hasRefusal := errors.AsType[GraphQLRefusal](readErr)
+			if got != (ZoneHTTPTraffic{}) || !errors.Is(readErr, core.ErrCloudflareResponse) || len(refusal.Issues) != tc.wantIssues || hasRefusal != (tc.wantIssues > 0) {
+				t.Fatalf("diagnostic refusal=%+v/%v/%+v,want zero/typed response/%d issues", got, readErr, refusal, tc.wantIssues)
+			}
+			if tc.wantJSONError && !errors.Is(readErr, core.ErrJSONContract) {
+				t.Fatalf("malformed diagnostic error=%v,want retained JSON contract", readErr)
+			}
+			if tc.wantIssues > 0 && refusal.Issues[0].Message != issue.Message {
+				t.Fatalf("provider message=%q,want exact %q", refusal.Issues[0].Message, issue.Message)
 			}
 		})
 	}
