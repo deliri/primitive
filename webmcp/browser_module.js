@@ -11,7 +11,7 @@ export async function registerTool(tool, {signal} = {}) {
     return true;
   }
   await context.registerTool({...tool, execute: async (input, options) => {
-    const execution = signal ? AbortSignal.any([signal, options.signal]) : options.signal;
+    const execution = options.signal;
     execution.throwIfAborted();
     const result = await execute(input, {signal: execution});
     execution.throwIfAborted();
