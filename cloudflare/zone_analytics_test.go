@@ -445,7 +445,7 @@ func TestZoneAnalyticsOpaqueDiagnosticsLayerTriad(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			issue := graphQLIssueWire{Message: "fixture provider refusal", Path: bytes.Clone(path.Bytes()), Locations: locations, Extensions: extensions}
+			issue := graphQLIssueWire{Message: "fixture provider refusal", Path: bytes.Clone(bytes.TrimSpace(path.Bytes())), Locations: locations, Extensions: extensions}
 			if tc.kind == 1 {
 				issue = graphQLIssueWire{Message: issue.Message}
 			}
@@ -466,7 +466,7 @@ func TestZoneAnalyticsOpaqueDiagnosticsLayerTriad(t *testing.T) {
 			}
 			if tc.kind == 2 {
 				replacement := []byte("[\"viewer\",")
-				changed := bytes.Replace(document, path.Bytes(), replacement, 1)
+				changed := bytes.Replace(document, issue.Path, replacement, 1)
 				if bytes.Equal(changed, document) {
 					t.Fatal("malformed diagnostic mutation did not change bytes, want changed path")
 				}
