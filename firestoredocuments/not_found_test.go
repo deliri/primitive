@@ -177,7 +177,7 @@ func TestIsNotFoundNativeGetMissing(t *testing.T) {
 		t.Fatalf("native missing read = (%+v, %v), classification = %t, want zero and admitted native absence", got, err, IsNotFound(err))
 	}
 	if IsNotFound(errors.Join(err, io.ErrClosedPipe)) || !errors.Is(err, core.ErrFirestoreDocumentsOperation) {
-		t.Fatal("native missing plus independent source failure admitted or original error changed")
+		t.Fatalf("native missing plus independent source failure classified %t/operation marker retained %t, want false/true", IsNotFound(errors.Join(err, io.ErrClosedPipe)), errors.Is(err, core.ErrFirestoreDocumentsOperation))
 	}
 	if costs.reads.Load() != 1 || costs.writes.Load() != 0 || costs.commits.Load() != 0 {
 		t.Fatalf("native absence costs = %d reads/%d writes/%d commits, want 1/0/0", costs.reads.Load(), costs.writes.Load(), costs.commits.Load())

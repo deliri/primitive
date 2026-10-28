@@ -25,8 +25,8 @@ func inspectNotFound(err error) (bool, bool) {
 	if core.IsNil(err) {
 		return false, false
 	}
-	if err == core.ErrFirestoreDocumentsOperation {
-		return true, false
+	if identity, ok := err.(core.ErrorIdentity); ok {
+		return identity == core.ErrFirestoreDocumentsOperation, false
 	}
 	wrapped, observed := false, false
 	switch value := err.(type) {
