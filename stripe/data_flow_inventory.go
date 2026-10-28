@@ -33,3 +33,6 @@ var (
 	_ capabilityWrapper = Client{}
 	_ capabilityWrapper = WebhookReceiver{}
 )
+
+func (CheckoutSessionDecodeRequest) stripeProtocolFact() {}
+func (CheckoutSession[Metadata]) stripeProtocolFact()    {}

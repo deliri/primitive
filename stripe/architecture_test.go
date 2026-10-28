@@ -83,6 +83,12 @@ func stripeReceiverName(expression ast.Expr) string {
 	if pointer, ok := expression.(*ast.StarExpr); ok {
 		expression = pointer.X
 	}
+	switch indexed := expression.(type) {
+	case *ast.IndexExpr:
+		expression = indexed.X
+	case *ast.IndexListExpr:
+		expression = indexed.X
+	}
 	if identifier, ok := expression.(*ast.Ident); ok {
 		return identifier.Name
 	}
