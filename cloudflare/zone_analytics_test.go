@@ -468,7 +468,7 @@ func TestZoneAnalyticsOpaqueDiagnosticsLayerTriad(t *testing.T) {
 				replacement := []byte("[\"viewer\",")
 				changed := bytes.Replace(document, issue.Path, replacement, 1)
 				if bytes.Equal(changed, document) {
-					t.Fatal("malformed diagnostic mutation did not change bytes, want changed path")
+					t.Fatalf("malformed diagnostic bytes=%q,want a changed path from %q", changed, document)
 				}
 				document = changed
 			}
