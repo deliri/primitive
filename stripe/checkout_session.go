@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/jsonio"
 )
@@ -88,8 +89,8 @@ func checkoutNullableReference(value *string, prefix string) bool {
 // authenticated provenance nor application eligibility is inferred here.
 // Every refusal withdraws the complete candidate and preserves its cause.
 func DecodeCheckoutSession[Metadata core.Validatable](ctx context.Context, request CheckoutSessionDecodeRequest) (CheckoutSession[Metadata], error) {
-	if err := request.Validate(); err != nil {
-		return CheckoutSession[Metadata]{}, err
+	if err := errors.Join(request.Validate(), checkoutSessionContextError(ctx)); err != nil {
+		return CheckoutSession[Metadata]{}, contractError(err)
 	}
 	maximum, err := request.MaximumBytes.Int64()
 	if err != nil {
@@ -104,10 +105,22 @@ func DecodeCheckoutSession[Metadata core.Validatable](ctx context.Context, reque
 	if bounded.N == 0 {
 		err = errors.Join(err, &jsonio.ExtentError{Maximum: request.MaximumBytes})
 	}
+	err = errors.Join(err, checkoutSessionContextError(ctx))
 	if err != nil {
 		return CheckoutSession[Metadata]{}, contractError(err)
 	}
 	return result, nil
+}
+
+// Contextstate admits the native terminal state. Cause is observed only for
+// that state; a hostile Value method cannot replace the admitted sentinel.
+func checkoutSessionContextError(ctx context.Context) (err error) {
+	err = contextstate.Validate(ctx)
+	if !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
+		return err
+	}
+	defer func() { _ = recover() }()
+	return errors.Join(err, context.Cause(ctx))
 }
 
 func decodeCheckoutSession[Metadata core.Validatable](ctx context.Context, cursor *jsonio.TokenDecoder) (CheckoutSession[Metadata], error) {
