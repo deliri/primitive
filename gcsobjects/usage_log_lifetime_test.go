@@ -35,6 +35,7 @@ func TestVisitGCSUsageLogLifetimeLayerTriad(t *testing.T) {
 		{name: "caller cancellation after provisional row retains own cause", kind: 4, wantVisits: 1, wantCancel: true},
 		{name: "cancelled caller never opens provider", kind: 5, wantCancel: true},
 		{name: "mixed EOF source failure cannot release final observation", kind: 6, wantVisits: 1, wantRead: true},
+		{name: "metadata refusal retains reader close failure", kind: 7, wantClose: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -49,9 +50,20 @@ func TestVisitGCSUsageLogLifetimeLayerTriad(t *testing.T) {
 				readErr = readCause
 			}
 			var calls, closes atomic.Int32
+			expected := make(chan GCSObjectMetadata, 1)
 			client := usageLifetimeClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				calls.Add(1)
 				if r.URL.Query().Get("alt") == "json" {
+					if tc.kind == 7 {
+						select {
+						case listed := <-expected:
+							expected <- listed
+							listed.generation, _ = NewGCSGeneration(gcsProviderGeneration + 1)
+							writeUsageListedResponse(t, w, listed)
+							return
+						default:
+						}
+					}
 					writeGCSAttrsResponse(t, w, data)
 					return
 				}
@@ -61,6 +73,7 @@ func TestVisitGCSUsageLogLifetimeLayerTriad(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			expected <- listed
 			priorCalls := calls.Load()
 			ctx, cancel := context.WithCancelCause(t.Context())
 			defer cancel(nil)
@@ -80,6 +93,9 @@ func TestVisitGCSUsageLogLifetimeLayerTriad(t *testing.T) {
 			})
 			if visits != tc.wantVisits {
 				t.Fatalf("provisional visits=%d,want %d", visits, tc.wantVisits)
+			}
+			if tc.kind == 7 && !errors.Is(err, core.ErrObjectStoreConflict) {
+				t.Fatalf("metadata error=%v,want retained conflict", err)
 			}
 			if tc.kind == 0 {
 				if err != nil || got.Validate() != nil {
