@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"sync/atomic"
 	"testing"
+	"unicode/utf8"
 
 	storageapi "google.golang.org/api/storage/v1"
 
@@ -506,6 +507,7 @@ func FuzzVisitGCSUsageLogSemanticClosure(f *testing.F) {
 			}
 			return
 		}
+		usageOracleHeader(t, header)
 		tail, tailErr := reference.Read()
 		count, countErr := got.RecordCount()
 		metadata, metaErr := got.Metadata()
@@ -520,6 +522,7 @@ func usageOracleSourceFacts(t testing.TB, row GCSUsageRecord, header, raw []stri
 	if err := row.Validate(); err != nil {
 		t.Fatalf("emitted row.Validate=%v,want nil", err)
 	}
+	usageOracleHeader(t, header)
 	names := usageColumnNames()
 	canonical := usageRecordValues(t, row)
 	for column, name := range names {
@@ -561,6 +564,27 @@ func usageOracleSourceFacts(t testing.TB, row GCSUsageRecord, header, raw []stri
 			if source != value {
 				t.Fatalf("%s source=%q projected=%q,want exact source text", name, source, value)
 			}
+		}
+	}
+}
+
+// Header-only acceptance must prove the same complete schema as a data row.
+func usageOracleHeader(t testing.TB, header []string) {
+	t.Helper()
+	for _, name := range header {
+		if name == "" || !utf8.ValidString(name) {
+			t.Fatalf("accepted header field=%q,want nonempty UTF8", name)
+		}
+	}
+	for _, required := range usageColumnNames() {
+		count := 0
+		for _, name := range header {
+			if name == required {
+				count++
+			}
+		}
+		if count != 1 {
+			t.Fatalf("accepted header contains %s %d times,want exactly1", required, count)
 		}
 	}
 }

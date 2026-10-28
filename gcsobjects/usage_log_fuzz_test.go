@@ -65,6 +65,7 @@ func FuzzGCSUsageCSVSemanticClosure(f *testing.F) {
 			}
 			return
 		}
+		usageOracleHeader(t, header)
 		tail, tailErr := reference.Read()
 		if headerErr != nil || tailErr != io.EOF || len(tail) != 0 || count != visits {
 			t.Fatalf("source/count closure=%v/%v/%d/%d,want exact EOF/observed rows", headerErr, tailErr, count, visits)
