@@ -136,14 +136,14 @@ func (o GCSUsageLogObservation) RecordCount() (uint64, error) {
 // Go's CSV reader directly; it creates no producer goroutine, file or history.
 func VisitGCSUsageLog(ctx context.Context, client *GCSClient, request GCSUsageLogRequest, visit GCSUsageVisitor) (GCSUsageLogObservation, error) {
 	if err := errors.Join(validateGCSCall(ctx, client), request.Validate()); err != nil {
-		return GCSUsageLogObservation{}, err
+		return GCSUsageLogObservation{}, errors.Join(err, gcsUsageContextError(ctx))
 	}
 	if visit == nil {
 		return GCSUsageLogObservation{}, core.ErrObjectStoreDestination
 	}
 	reader, metadata, err := openGCSListedReader(ctx, client, request.Object)
 	if err != nil {
-		return GCSUsageLogObservation{}, err
+		return GCSUsageLogObservation{}, errors.Join(err, gcsUsageContextError(ctx))
 	}
 	extent, err := metadata.Length().Int64()
 	if err != nil {
@@ -168,10 +168,21 @@ func VisitGCSUsageLog(ctx context.Context, client *GCSClient, request GCSUsageLo
 			integrityErr = errors.Join(integrityErr, core.ErrObjectStoreIntegrity)
 		}
 	}
-	if err := errors.Join(scanErr, integrityErr, reader.Close(), contextstate.Validate(ctx)); err != nil {
+	if err := errors.Join(scanErr, integrityErr, reader.Close(), gcsUsageContextError(ctx)); err != nil {
 		return GCSUsageLogObservation{}, err
 	}
 	return GCSUsageLogObservation{object: metadata, records: count}, nil
+}
+
+// Preserve both the stable cancellation identity and the caller's own cause.
+func gcsUsageContextError(ctx context.Context) error {
+	if err := contextstate.Validate(ctx); err != nil {
+		if ctx == nil {
+			return err
+		}
+		return errors.Join(err, context.Cause(ctx))
+	}
+	return nil
 }
 
 type gcsUsageColumn uint8
@@ -202,7 +213,7 @@ func usageColumnNames() [usageColumns]string {
 }
 
 func visitGCSUsageCSV(ctx context.Context, source io.Reader, visit GCSUsageVisitor) (uint64, error) {
-	if err := contextstate.Validate(ctx); err != nil {
+	if err := gcsUsageContextError(ctx); err != nil {
 		return 0, err
 	}
 	reader := csv.NewReader(source)
@@ -235,7 +246,7 @@ func visitGCSUsageCSV(ctx context.Context, source io.Reader, visit GCSUsageVisit
 	}
 	var count uint64
 	for {
-		if err := contextstate.Validate(ctx); err != nil {
+		if err := gcsUsageContextError(ctx); err != nil {
 			return 0, err
 		}
 		values, err := reader.Read()
@@ -258,7 +269,7 @@ func visitGCSUsageCSV(ctx context.Context, source io.Reader, visit GCSUsageVisit
 		if err := visit(row); err != nil {
 			return 0, err
 		}
-		if err := contextstate.Validate(ctx); err != nil {
+		if err := gcsUsageContextError(ctx); err != nil {
 			return 0, err
 		}
 		count++
