@@ -151,7 +151,30 @@ const (
 	ZoneAnalyticsOutcomeUnknown ZoneAnalyticsOutcome = iota
 	ZoneAnalyticsObserved
 	ZoneAnalyticsNoGroups
+	zoneAnalyticsOutcomeLimit
 )
+
+func zoneAnalyticsOutcomeNames() [zoneAnalyticsOutcomeLimit]string {
+	return [...]string{"", "observed", "no_groups"}
+}
+func (outcome ZoneAnalyticsOutcome) Validate() error {
+	if outcome <= ZoneAnalyticsOutcomeUnknown || outcome >= zoneAnalyticsOutcomeLimit || zoneAnalyticsOutcomeNames()[outcome] == "" {
+		return core.ErrCloudflareResponse
+	}
+	return nil
+}
+func (outcome ZoneAnalyticsOutcome) IsValid() bool { return outcome.Validate() == nil }
+
+// String is diagnostic text, not a new provider wire protocol.
+func (outcome ZoneAnalyticsOutcome) String() string {
+	if !outcome.IsValid() {
+		return ""
+	}
+	return zoneAnalyticsOutcomeNames()[outcome]
+}
+
+// OffWireEnum declares this derived in-process outcome without generic codecs.
+func (ZoneAnalyticsOutcome) OffWireEnum() {}
 
 // ZoneAnalyticsSampleInterval is the provider's average sampling interval:
 // 1 means unsampled; above 1 means counts and sums are sample estimates.

@@ -89,7 +89,7 @@ func FuzzZoneAnalyticsResponseClosure(f *testing.F) {
 				t.Error(err)
 			}
 		})
-		want, wantErr, wantIssues := zoneAnalyticsResponseOracle(document, limits, server.zone, request)
+		want, wantIssues, wantErr := zoneAnalyticsResponseOracle(document, limits, server.zone, request)
 		got, err := server.ReadHTTP(t.Context(), request, testPolicy())
 		if wantErr == nil {
 			if err != nil || got != want {
@@ -148,27 +148,27 @@ func zoneAnalyticsCanonicalResponse(t testing.TB, envelope zoneAnalyticsEnvelope
 	return document
 }
 
-func zoneAnalyticsResponseOracle(document []byte, limits core.StrictJSONLimits, zone ZoneID, request ZoneHTTPTrafficRequest) (ZoneHTTPTraffic, error, []GraphQLIssue) {
+func zoneAnalyticsResponseOracle(document []byte, limits core.StrictJSONLimits, zone ZoneID, request ZoneHTTPTrafficRequest) (ZoneHTTPTraffic, []GraphQLIssue, error) {
 	var observed zoneAnalyticsEnvelope
 	if limits.ValidateDocument(document) != nil || json.Unmarshal(document, &observed, json.RejectUnknownMembers(true)) != nil {
-		return ZoneHTTPTraffic{}, core.ErrCloudflareResponse, nil
+		return ZoneHTTPTraffic{}, nil, core.ErrCloudflareResponse
 	}
 	if len(observed.Errors) > 0 {
 		issues := make([]GraphQLIssue, len(observed.Errors))
 		for index, issue := range observed.Errors {
 			issues[index] = GraphQLIssue{Message: issue.Message}
 		}
-		return ZoneHTTPTraffic{}, core.ErrCloudflareResponse, issues
+		return ZoneHTTPTraffic{}, issues, core.ErrCloudflareResponse
 	}
 	if observed.Data == nil || observed.Data.Viewer == nil || len(observed.Data.Viewer.Zones) != 1 {
-		return ZoneHTTPTraffic{}, core.ErrCloudflareResponse, nil
+		return ZoneHTTPTraffic{}, nil, core.ErrCloudflareResponse
 	}
 	row := observed.Data.Viewer.Zones[0]
 	if row.ZoneTag != zone.String() {
-		return ZoneHTTPTraffic{}, core.ErrCloudflareBinding, nil
+		return ZoneHTTPTraffic{}, nil, core.ErrCloudflareBinding
 	}
 	if row.Groups == nil || len(row.Groups) > 1 {
-		return ZoneHTTPTraffic{}, core.ErrCloudflareResponse, nil
+		return ZoneHTTPTraffic{}, nil, core.ErrCloudflareResponse
 	}
 	want := ZoneHTTPTraffic{Zone: zone, Host: request.Host, Window: request.Window, Outcome: ZoneAnalyticsNoGroups}
 	if len(row.Groups) == 0 {
@@ -176,11 +176,11 @@ func zoneAnalyticsResponseOracle(document []byte, limits core.StrictJSONLimits, 
 	}
 	group := row.Groups[0]
 	if group.Count == nil || group.Sum == nil || group.Avg == nil || group.Sum.Visits == nil || group.Sum.EdgeResponseBytes == nil || group.Avg.SampleInterval == nil {
-		return ZoneHTTPTraffic{}, core.ErrCloudflareResponse, nil
+		return ZoneHTTPTraffic{}, nil, core.ErrCloudflareResponse
 	}
 	interval := *group.Avg.SampleInterval
 	if math.IsNaN(interval) || math.IsInf(interval, 0) || interval < 1 {
-		return ZoneHTTPTraffic{}, core.ErrCloudflareResponse, nil
+		return ZoneHTTPTraffic{}, nil, core.ErrCloudflareResponse
 	}
 	want.Outcome = ZoneAnalyticsObserved
 	want.Requests = *group.Count
