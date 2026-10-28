@@ -16,6 +16,7 @@ beforeAll(async()=>{
   }});
   view=new Bun.WebView({dataStore:{directory},backend:{type:'chrome',url:false,argv:['--headless=new','--enable-features=WebMCP']}});
   await view.navigate(server.url.href);
+  console.log(JSON.stringify({nativeUserAgent:await view.evaluate('navigator.userAgent'),flags:['--headless=new','--enable-features=WebMCP']}));
   expect(await view.evaluate('typeof document.modelContext?.registerTool')).toBe('function');
   expect(await view.evaluate('typeof document.modelContext?.getTools')).toBe('function');
   expect(await view.evaluate('typeof document.modelContext?.executeTool')).toBe('function');
@@ -60,16 +61,29 @@ async function nativeRow(mode){
       return {registered,calls,present:remaining.some(tool=>tool.name===name)};
     }
     const input={value:mode==='unicode'?'café 🏋️':mode==='empty-value'?'':'222'};
-    let result,error;
+    let result,error,nativeErrorName,nativeErrorIsDOMException;
+    // Pin the actual browser's own rejection class. Its current implementation
+    // may differ from the draft; Primitive must preserve, never translate it.
+    if(mode==='principal-inflight'||mode==='policy-refusal'){
+      const nativeName=name+'_direct_rejection';
+      try{
+        await context.registerTool({name:nativeName,description:'Direct native refusal',execute:async()=>{throw mode==='policy-refusal'?refusal:reason;}},{signal:principal.signal});
+        const nativeTool=(await context.getTools()).find(tool=>tool.name===nativeName);
+        try{await context.executeTool(nativeTool,{});}catch(cause){nativeErrorName=cause.name;nativeErrorIsDOMException=cause instanceof DOMException;}
+      }finally{ /* The same principal signal owns both native registrations. */ }
+    }
     const pending=context.executeTool(tool,input,{signal:call.signal}).then(value=>{result=value;},cause=>{error=cause;});
     if(mode==='principal-inflight'||mode==='caller-inflight'){
       await entered.promise;
-      if(mode==='principal-inflight')principal.abort(reason);else call.abort(reason);
+      if(mode==='principal-inflight')principal.abort(reason);else {
+        const aborted=callbackSignal.aborted?Promise.resolve():new Promise(resolve=>callbackSignal.addEventListener('abort',resolve,{once:true}));
+        call.abort(reason);await aborted;
+      }
       release.resolve();
     }
     await pending;
     return {registered,calls,present:tool!==undefined,inputExact:received?.value===input.value,
-      resultType:typeof result,result,errorName:error?.name??null,callbackRefusal,
+      resultType:typeof result,result,errorName:error?.name??null,errorIsDOMException:error instanceof DOMException,nativeErrorName,nativeErrorIsDOMException,callbackRefusal,
       callbackAborted:callbackSignal?.aborted??null,principalCause:callbackSignal?.reason===reason,
       invocationCause:callbackSignal?.reason?.name??null};
   }finally{principal.abort();release.resolve();}
@@ -91,7 +105,7 @@ test('principal abort removes discovery without invoking the tool',async()=>{
 test('principal abort reaches an already running callback and prevents result release',async()=>{
   const got=await row('principal-inflight');
   expect(got.registered).toBe(true);expect(got.calls).toBe(1);expect(got.callbackAborted).toBe(true);expect(got.principalCause).toBe(true);
-  expect(got.result).toBeUndefined();expect(got.errorName).toBe('OperationError');
+  expect(got.result).toBeUndefined();expect(got.errorIsDOMException).toBe(true);expect(got.nativeErrorIsDOMException).toBe(true);expect(got.errorName).toBe(got.nativeErrorName);
 });
 test('caller cancellation reaches the callback without a successful result',async()=>{
   const got=await row('caller-inflight');
@@ -99,7 +113,7 @@ test('caller cancellation reaches the callback without a successful result',asyn
 });
 test('native invocation refuses the application policy rejection instead of reporting success',async()=>{
   const got=await row('policy-refusal');
-  expect(got.calls).toBe(1);expect(got.callbackRefusal).toBe(true);expect(got.result).toBeUndefined();expect(got.errorName).toBe('OperationError');
+  expect(got.calls).toBe(1);expect(got.callbackRefusal).toBe(true);expect(got.result).toBeUndefined();expect(got.errorIsDOMException).toBe(true);expect(got.nativeErrorIsDOMException).toBe(true);expect(got.errorName).toBe(got.nativeErrorName);
 });
 for(const mode of ['invalid-callback','missing-description'])test(`browser admission refuses ${mode} before invocation`,async()=>{
   const got=await row(mode);
