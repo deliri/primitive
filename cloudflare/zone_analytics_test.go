@@ -451,7 +451,7 @@ func TestZoneAnalyticsOpaqueDiagnosticsLayerTriad(t *testing.T) {
 			}
 			envelope.Errors = []graphQLIssueWire{issue}
 			document := zoneAnalyticsCanonicalResponse(t, envelope)
-			// Standard RawMessage must own its scalar bytes after caller buffer changes.
+			// Native opaque JSON values must own scalar bytes after caller buffer changes.
 			input := bytes.Clone(document)
 			decoded, decodeErr := core.DecodeStrictJSONStructure[zoneAnalyticsEnvelope](input, core.DefaultStrictJSONLimits())
 			if decodeErr != nil {
