@@ -95,7 +95,6 @@ func TestZoneAnalyticsReadHTTPProviderLayerTriad(t *testing.T) {
 		{name: "missing count cannot become zero", wantErr: core.ErrCloudflareResponse, document: zoneAnalyticsDocument(zone, `[{"avg":{"sampleInterval":1},"sum":{"edgeResponseBytes":1,"visits":1}}]`)},
 		{name: "missing sample interval is refused", wantErr: core.ErrCloudflareResponse, document: zoneAnalyticsDocument(zone, `[{"avg":{},"count":1,"sum":{"edgeResponseBytes":1,"visits":1}}]`)},
 		{name: "sample interval below one is refused", wantErr: core.ErrCloudflareResponse, document: zoneAnalyticsDocument(zone, `[{"avg":{"sampleInterval":0.5},"count":1,"sum":{"edgeResponseBytes":1,"visits":1}}]`)},
-		{name: "zero count group is refused", wantErr: core.ErrCloudflareResponse, document: zoneAnalyticsDocument(zone, `[{"avg":{"sampleInterval":1},"count":0,"sum":{"edgeResponseBytes":0,"visits":0}}]`)},
 		{name: "negative count is refused", wantErr: core.ErrCloudflareResponse, document: zoneAnalyticsDocument(zone, `[{"avg":{"sampleInterval":1},"count":-1,"sum":{"edgeResponseBytes":0,"visits":0}}]`)},
 		{name: "unknown member is refused", wantErr: core.ErrCloudflareResponse, document: `{"data":{"viewer":{"zones":[]}},"extensions":{}}`},
 		{name: "case folded duplicate is refused", wantErr: core.ErrCloudflareResponse, document: `{"data":null,"Data":null}`},

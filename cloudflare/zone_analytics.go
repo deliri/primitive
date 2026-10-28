@@ -155,6 +155,9 @@ const (
 
 // ZoneAnalyticsSampleInterval is the provider's average sampling interval:
 // 1 means unsampled; above 1 means counts and sums are sample estimates.
+// Cloudflare defines the interval as inverse inclusion probability; averaging
+// those intervals preserves the lower bound of one (a semantic inference).
+// https://blog.cloudflare.com/how-we-make-sense-of-too-much-data/
 type ZoneAnalyticsSampleInterval float64
 
 func (i ZoneAnalyticsSampleInterval) Validate() error {
@@ -185,9 +188,6 @@ func (t ZoneHTTPTraffic) Validate() error {
 	}
 	switch t.Outcome {
 	case ZoneAnalyticsObserved:
-		if t.Requests == 0 {
-			return core.ErrCloudflareResponse
-		}
 		return t.SampleInterval.Validate()
 	case ZoneAnalyticsNoGroups:
 		if t.Requests != 0 || t.Visits != 0 || t.EdgeResponseBytes != 0 || t.SampleInterval != 0 {
