@@ -55,13 +55,13 @@ func FuzzGCSUsageCSVSemanticClosure(f *testing.F) {
 				t.Fatalf("typed round trip=%+v/%d/%v,want exact %+v/1/nil", round, roundCount, roundErr, row)
 			}
 			if second := usageCSVFixture(t, names[:], usageRecordValues(t, round)); !bytes.Equal(second, encoded) {
-				t.Fatal("canonical second CSV differs from first")
+				t.Fatalf("canonical second CSV=%q,want %q", second, encoded)
 			}
 			visits++
 			return nil
 		})
 		if !bytes.Equal(data, before) {
-			t.Fatal("CSV admission mutated caller bytes")
+			t.Fatalf("caller bytes after admission=%q,want %q", data, before)
 		}
 		if err != nil {
 			if !errors.Is(err, core.ErrObjectStoreSource) || count != 0 {

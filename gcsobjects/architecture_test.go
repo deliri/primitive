@@ -47,6 +47,7 @@ func TestAuthenticatedGCSOperationsAreCompilerSelectedEntryPoints(t *testing.T) 
 		"NewGCSClient",
 		"ObserveGCSUpload",
 		"ParseGCSServiceAccount",
+		"ParseGCSUsageMethod",
 		"ReadGCSObject",
 		"ReadListedGCSObject",
 		"UploadFile",
@@ -123,7 +124,7 @@ func productionStructRole(name string) (string, bool) {
 		return "authenticated provider capability wrapper", true
 	case "GCSClientConfig":
 		return "authenticated provider construction ingress", true
-	case "GCSBucket", "GCSObjectName", "GCSObjectPrefix", "GCSCacheControl",
+	case "GCSUsageMethod", "GCSBucket", "GCSObjectName", "GCSObjectPrefix", "GCSCacheControl",
 		"GCSGeneration", "GCSProjectID", "GCSLocation", "GCSObjectSegment", "GCSServiceAccount",
 		"GCSObjectAddress":
 		return "opaque validated provider value", true

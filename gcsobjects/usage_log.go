@@ -26,18 +26,47 @@ const (
 	GCSUsageIPUnknown GCSUsageIPType = iota
 	GCSUsageIPv4
 	GCSUsageIPv6
+	gcsUsageIPTypeLimit
 )
+
+func usageIPTypeNames() [gcsUsageIPTypeLimit]string { return [...]string{"", "1", "2"} }
+func (kind GCSUsageIPType) Validate() error {
+	if kind <= GCSUsageIPUnknown || kind >= gcsUsageIPTypeLimit || usageIPTypeNames()[kind] == "" {
+		return core.ErrObjectStoreSource
+	}
+	return nil
+}
+func (kind GCSUsageIPType) IsValid() bool { return kind.Validate() == nil }
+
+// String returns the documented provider family for diagnostics, or empty when invalid.
+func (kind GCSUsageIPType) String() string {
+	if !kind.IsValid() {
+		return ""
+	}
+	return usageIPTypeNames()[kind]
+}
+
+// OffWireEnum keeps this in-process fact off generic serialization interfaces.
+// The usage CSV decoder owns admission of the provider's numeric column.
+func (GCSUsageIPType) OffWireEnum() {}
 
 // GCSUsageMethod observes an HTTP token. Observing a custom method does not
 // authorize Exchange to execute it.
-type GCSUsageMethod string
+type GCSUsageMethod struct{ value string }
 
-func (m GCSUsageMethod) String() string { return string(m) }
+func ParseGCSUsageMethod(value string) (GCSUsageMethod, error) {
+	method := GCSUsageMethod{value: value}
+	if err := method.Validate(); err != nil {
+		return GCSUsageMethod{}, err
+	}
+	return method, nil
+}
+func (m GCSUsageMethod) String() string { return m.value }
 func (m GCSUsageMethod) Validate() error {
-	if m == "" {
+	if m.value == "" {
 		return core.ErrObjectStoreSource
 	}
-	for _, c := range m {
+	for _, c := range m.value {
 		if c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || strings.ContainsRune("!#$%&'*+-.^_`|~", c) {
 			continue
 		}
@@ -249,13 +278,13 @@ func visitGCSUsageCSV(ctx context.Context, source io.Reader, visit GCSUsageVisit
 		if err := gcsUsageContextError(ctx); err != nil {
 			return 0, err
 		}
-		values, err := reader.Read()
-		switch err {
+		values, readErr := reader.Read()
+		switch readErr {
 		case io.EOF:
 			return count, nil
 		case nil:
 		default:
-			return 0, errors.Join(core.ErrObjectStoreSource, err)
+			return 0, errors.Join(core.ErrObjectStoreSource, readErr)
 		}
 		for _, value := range values {
 			if !utf8.ValidString(value) {
@@ -322,7 +351,11 @@ func decodeGCSUsageRecord(values []string, positions [usageColumns]int) (GCSUsag
 			return GCSUsageRecord{}, err
 		}
 	}
-	row.Method, row.URI, row.Host = GCSUsageMethod(value(usageMethod)), value(usageURI), value(usageHost)
+	row.Method, err = ParseGCSUsageMethod(value(usageMethod))
+	if err != nil {
+		return GCSUsageRecord{}, err
+	}
+	row.URI, row.Host = value(usageURI), value(usageHost)
 	row.Referer, row.UserAgent, row.RequestID, row.Operation = value(usageReferer), value(usageUserAgent), value(usageRequestID), value(usageOperation)
 	if err := row.Validate(); err != nil {
 		return GCSUsageRecord{}, err

@@ -33,8 +33,12 @@ func usageRecordFixture(t testing.TB) GCSUsageRecord {
 	if err != nil {
 		t.Fatal(err)
 	}
+	method, err := ParseGCSUsageMethod(http.MethodGet)
+	if err != nil {
+		t.Fatal(err)
+	}
 	row := GCSUsageRecord{CompletedAt: temporal.InstantFromNanoseconds(gcsProviderInstantNanos), Latency: latency,
-		ClientIP: netip.MustParseAddr("192.0.2.1"), ClientIPType: GCSUsageIPv4, Method: "GET", Status: status,
+		ClientIP: netip.MustParseAddr("192.0.2.1"), ClientIPType: GCSUsageIPv4, Method: method, Status: status,
 		Bucket: parsedGCSBucket(t, gcsProviderBucketText), Object: parsedGCSObjectName(t, "logo.svg"),
 		URI: "/logo.svg", Host: "storage.googleapis.com", UserAgent: "Usage fixture", RequestID: "fixture-request", Operation: "GET_Object"}
 	row.RequestBytes, err = core.NewByteLength(0)
@@ -224,7 +228,7 @@ func TestGCSUsageCSVFramingLayerTriad(t *testing.T) {
 				values[usageIP] = "2001:db8::1"
 				values[usageIPType] = "2"
 			default:
-				t.Fatal("unknown fixture mutation")
+				t.Fatalf("fixture mutation kind=%d,want enumerated branch", tc.kind)
 			}
 			wire := usageCSVFixture(t, header, rows...)
 			if tc.kind == 7 {
@@ -285,7 +289,7 @@ func TestGCSUsageCSVFailureOwnershipLayerTriad(t *testing.T) {
 				source = io.MultiReader(bytes.NewReader(usageCSVFixture(t, names[:])), usageErrorReader{cause})
 				wantVisits = 0
 			default:
-				t.Fatal("unknown failure fixture")
+				t.Fatalf("failure fixture kind=%q,want enumerated branch", kind)
 			}
 			count, err := visitGCSUsageCSV(ctx, source, func(GCSUsageRecord) error {
 				visits++
@@ -494,7 +498,7 @@ func FuzzVisitGCSUsageLogSemanticClosure(f *testing.F) {
 			}
 			second := usageCSVFixture(t, names[:], usageRecordValues(t, round))
 			if !bytes.Equal(second, encoded) {
-				t.Fatal("second CSV write differs from canonical first write")
+				t.Fatalf("canonical second CSV=%q,want %q", second, encoded)
 			}
 			visited++
 			return nil
@@ -567,7 +571,7 @@ func usageOracleSourceFacts(t testing.TB, row GCSUsageRecord, header, raw []stri
 		case usageIP:
 			sourceIP, sourceErr := netip.ParseAddr(source)
 			if sourceErr != nil || sourceIP != row.ClientIP {
-				t.Fatalf("IP source=%q projected=%s,want actual source address", source, row.ClientIP)
+				t.Fatalf("IP source=%q projected=%s,want source address", source, row.ClientIP)
 			}
 		default:
 			if source != value {
