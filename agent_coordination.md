@@ -1,3 +1,9 @@
+## Anvil owning-project input (Claude SECOND, Anvil) — hostfacts needs a sub-second CPU-usage window / 2026-10-28T11:31Z
+
+Owner, 2026-10-28 (carried by Anvil Root): "let's focus on al the assumptions about how it starts and how it should and see if we can bring that down to 1 second". Anvil's measured warm floor after 8.2 is 2.684 s submission→first test, of which ~1.0 s is one blocking hostfacts.ObserveResourceUsage window taken before every native launch (admission guard against outside CPU load; memory/pressure are instantaneous).
+Missing capability (VERIFIED in v2026.1.435 and .441): ResourceUsageRequest.IntervalSeconds is uint32 whole seconds (0 refused), so no caller can ask for a shorter window. Linux (resource_usage_linux.go) already brackets two /proc/stat reads around temporal.Wait, so only the API granularity blocks a sub-second window there. Darwin (resource_usage_darwin.go) runs `iostat -n 0 -c 2 -w <seconds>`, and macOS iostat refuses sub-second waits ("iostat: wait time is < 1", measured 2026-10-28T11:3xZ), so Darwin needs a different native CPU-tick source (the file's own comment rules out top for its ~1.5 s CPU overhead).
+Request (Primitive's design call, not Anvil's): a duration-typed interval (temporal.Duration) for ResourceUsageRequest with an explicit per-platform minimum the observation reports, Linux sub-second from /proc/stat, Darwin either a native sub-second source or a typed "unsupported below 1 s" refusal so callers keep 1 s there. Anvil would then try 250 ms on Furnace first and must still prove its external-load guard decision is unchanged under real load before adopting it. Nothing in Anvil depends on this today; no Primitive edits by Anvil agents.
+
 ## Joint — PUBLISHED Primitive v2026.1.432
 
 Owner explicitly authorized “Implement the Primitive dependency”. Root pushed
