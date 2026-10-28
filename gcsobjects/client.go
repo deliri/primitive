@@ -869,23 +869,9 @@ func ReadListedGCSObject(ctx context.Context, client *GCSClient, request GCSList
 	if err := request.Validate(); err != nil {
 		return GCSObjectMetadata{}, err
 	}
-	generation, err := request.Object.Generation().Int64()
+	reader, metadata, err := openGCSListedReader(ctx, client, request.Object)
 	if err != nil {
-		return GCSObjectMetadata{}, errors.Join(core.ErrObjectStoreContract, err)
-	}
-	object := client.client.Bucket(request.Object.Bucket().String()).Object(request.Object.Name().String()).Generation(generation)
-	reader, err := object.NewReader(ctx)
-	if err != nil {
-		return GCSObjectMetadata{}, projectGCSError(err, core.ErrObjectStoreSource)
-	}
-	metadata, err := metadataFromReader(ctx, object, reader)
-	if err != nil {
-		_ = reader.Close()
 		return GCSObjectMetadata{}, err
-	}
-	if !sameListedGCSObject(request.Object, metadata) {
-		_ = reader.Close()
-		return GCSObjectMetadata{}, errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreConflict)
 	}
 	if err := streamGCSListedRead(reader, request.Destination, request.Object); err != nil {
 		return GCSObjectMetadata{}, errors.Join(err, reader.Close())
@@ -894,6 +880,28 @@ func ReadListedGCSObject(ctx context.Context, client *GCSClient, request GCSList
 		return GCSObjectMetadata{}, projectGCSError(err, core.ErrObjectStoreSource)
 	}
 	return metadata, nil
+}
+
+// Callers validate their own request and client before this shared exact-reader
+// open. A metadata refusal joins the owned reader close failure too.
+func openGCSListedReader(ctx context.Context, client *GCSClient, listed GCSObjectMetadata) (*storage.Reader, GCSObjectMetadata, error) {
+	generation, err := listed.Generation().Int64()
+	if err != nil {
+		return nil, GCSObjectMetadata{}, errors.Join(core.ErrObjectStoreContract, err)
+	}
+	object := client.client.Bucket(listed.Bucket().String()).Object(listed.Name().String()).Generation(generation)
+	reader, err := object.NewReader(ctx)
+	if err != nil {
+		return nil, GCSObjectMetadata{}, projectGCSError(err, core.ErrObjectStoreSource)
+	}
+	metadata, err := metadataFromReader(ctx, object, reader)
+	if err != nil {
+		return nil, GCSObjectMetadata{}, errors.Join(err, reader.Close())
+	}
+	if !sameListedGCSObject(listed, metadata) {
+		return nil, GCSObjectMetadata{}, errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreConflict, reader.Close())
+	}
+	return reader, metadata, nil
 }
 
 func sameListedGCSObject(listed, read GCSObjectMetadata) bool {
