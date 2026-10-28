@@ -307,3 +307,63 @@ func TestParseZoneHostBoundaries(t *testing.T) {
 		})
 	}
 }
+
+// An observed numeric zero remains a provider fact; absence is a different
+// outcome. Missing load-bearing values and invalid sampling still refuse.
+func TestZoneAnalyticsObservedZeroCountLayerTriad(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name        string
+		kind        int
+		wantErr     error
+		wantOutcome ZoneAnalyticsOutcome
+	}{
+		{name: "observed numeric zero retains observed outcome", wantOutcome: ZoneAnalyticsObserved},
+		{name: "no groups remain unknown absence", kind: 1, wantOutcome: ZoneAnalyticsNoGroups},
+		{name: "missing count cannot be invented as zero", kind: 2, wantErr: core.ErrCloudflareResponse},
+		{name: "zero count does not waive invalid sample interval", kind: 3, wantErr: core.ErrCloudflareResponse},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			envelope, _, _ := zoneAnalyticsTypedSeed(t)
+			zero := uint64(0)
+			group := &envelope.Data.Viewer.Zones[0].Groups[0]
+			group.Count = &zero
+			group.Sum.Visits = &zero
+			group.Sum.EdgeResponseBytes = &zero
+			switch tc.kind {
+			case 0:
+			case 1:
+				envelope.Data.Viewer.Zones[0].Groups = []zoneAnalyticsGroupWire{}
+			case 2:
+				group.Count = nil
+			case 3:
+				interval := float64(0)
+				group.Avg.SampleInterval = &interval
+			default:
+				t.Fatalf("zero count fixture kind=%d,want enumerated branch", tc.kind)
+			}
+			document := zoneAnalyticsCanonicalResponse(t, envelope)
+			server, request := zoneAnalyticsFixture(t, func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set(core.HTTPHeaderContentType().String(), core.HTTPMediaTypeJSON().String())
+				if _, err := w.Write(document); err != nil {
+					t.Error(err)
+				}
+			})
+			got, err := server.ReadHTTP(t.Context(), request, testPolicy())
+			if tc.wantErr != nil {
+				if !errors.Is(err, tc.wantErr) || got != (ZoneHTTPTraffic{}) {
+					t.Fatalf("zero count refusal=%+v/%v,want zero/%v", got, err, tc.wantErr)
+				}
+				return
+			}
+			want := ZoneHTTPTraffic{Zone: server.zone, Host: request.Host, Window: request.Window, Outcome: tc.wantOutcome}
+			if tc.wantOutcome == ZoneAnalyticsObserved {
+				want.SampleInterval = 1
+			}
+			if err != nil || got != want || got.Validate() != nil {
+				t.Fatalf("zero count traffic=%+v/%v,want exact %+v/nil", got, err, want)
+			}
+		})
+	}
+}
