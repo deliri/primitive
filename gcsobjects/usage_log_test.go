@@ -6,6 +6,7 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"hash/crc32"
 	"io"
 	"math"
 	"net/http"
@@ -435,4 +436,139 @@ type usageGenerationWriter struct {
 func (w usageGenerationWriter) WriteHeader(status int) {
 	w.Header().Set("X-Goog-Generation", strconv.FormatInt(w.generation, 10))
 	w.ResponseWriter.WriteHeader(status)
+}
+
+// Raw CSV reaches the public official-SDK read door. The independent standard
+// CSV reader binds each emitted fact back to its actual source field. Canonical
+// re-encoding/decoding then proves typed closure rather than panic survival.
+func FuzzVisitGCSUsageLogSemanticClosure(f *testing.F) {
+	seed := usageRecordFixture(f)
+	names := usageColumnNames()
+	values := usageRecordValues(f, seed)
+	canonical := usageCSVFixture(f, names[:], values)
+	f.Add(canonical)
+	f.Add(usageCSVFixture(f, names[:]))
+	f.Add([]byte{})
+	f.Add(canonical[:len(canonical)-3])
+	duplicate := slices.Clone(names[:])
+	duplicate[len(duplicate)-1] = duplicate[0]
+	f.Add(usageCSVFixture(f, duplicate, values))
+	f.Add(usageCSVFixture(f, append([]string{"future_nullable"}, names[:]...), append([]string{""}, values...)))
+	f.Fuzz(func(t *testing.T, data []byte) {
+		const maximum = 64 * 1024
+		// Build immutable provider facts using the actual typed SDK fixture and
+		// official lookup, never an opaque success/result stub.
+		initial := bucketTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { writeGCSAttrsResponse(t, w, canonical) }))
+		listed, err := LookupGCSObject(t.Context(), initial, GCSObjectLookupRequest{Bucket: seed.Bucket, Name: parsedGCSObjectName(t, gcsProviderObjectText)})
+		if err != nil {
+			t.Fatal(err)
+		}
+		listed.length, err = core.NewByteLength(uint64(len(data)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		listed.crc32c = core.NewCRC32C(crc32.Checksum(data, crc32.MakeTable(crc32.Castagnoli)))
+		var calls atomic.Int32
+		client := bucketTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			calls.Add(1)
+			if r.URL.Query().Get("alt") == "json" {
+				writeUsageListedResponse(t, w, listed)
+				return
+			}
+			writeGCSMediaResponseFraming(t, w, data, false)
+		}))
+		reference := csv.NewReader(bytes.NewReader(data))
+		header, headerErr := reference.Read()
+		visited := uint64(0)
+		got, err := VisitGCSUsageLog(t.Context(), client, GCSUsageLogRequest{Object: listed, Maximum: gcsProviderMaximum(t, maximum)}, func(row GCSUsageRecord) error {
+			if headerErr != nil {
+				t.Fatalf("emitted row despite reference header error=%v", headerErr)
+			}
+			raw, readErr := reference.Read()
+			if readErr != nil {
+				t.Fatalf("emitted row despite reference CSV error=%v", readErr)
+			}
+			usageOracleSourceFacts(t, row, header, raw)
+			encoded := usageCSVFixture(t, names[:], usageRecordValues(t, row))
+			var round GCSUsageRecord
+			count, roundErr := visitGCSUsageCSV(t.Context(), bytes.NewReader(encoded), func(value GCSUsageRecord) error { round = value; return nil })
+			if roundErr != nil || count != 1 || round != row {
+				t.Fatalf("typed closure=%+v/%d/%v,want exact %+v/1/nil", round, count, roundErr, row)
+			}
+			second := usageCSVFixture(t, names[:], usageRecordValues(t, round))
+			if !bytes.Equal(second, encoded) {
+				t.Fatal("second CSV write differs from canonical first write")
+			}
+			visited++
+			return nil
+		})
+		if len(data) > maximum {
+			if !errors.Is(err, core.ErrObjectStoreSize) || got != (GCSUsageLogObservation{}) || visited != 0 || calls.Load() != 0 {
+				t.Fatalf("over-bound result=%v/%v/%d/%d,want zero typed size refusal", got, err, visited, calls.Load())
+			}
+			return
+		}
+		if err != nil {
+			if !errors.Is(err, core.ErrObjectStoreSource) || got != (GCSUsageLogObservation{}) {
+				t.Fatalf("CSV refusal=%v/%v,want typed source refusal and zero final observation", got, err)
+			}
+			return
+		}
+		tail, tailErr := reference.Read()
+		count, countErr := got.RecordCount()
+		metadata, metaErr := got.Metadata()
+		if headerErr != nil || tailErr != io.EOF || len(tail) != 0 || countErr != nil || metaErr != nil || metadata != listed || count != visited {
+			t.Fatalf("complete source/count closure=%v/%v rows=%d visits=%d metadata=%v/%v,want exact EOF/listed/count", headerErr, tailErr, count, visited, metadata, metaErr)
+		}
+	})
+}
+
+func usageOracleSourceFacts(t testing.TB, row GCSUsageRecord, header, raw []string) {
+	t.Helper()
+	if err := row.Validate(); err != nil {
+		t.Fatalf("emitted row.Validate=%v,want nil", err)
+	}
+	names := usageColumnNames()
+	canonical := usageRecordValues(t, row)
+	for column, name := range names {
+		if gcsUsageColumn(column) == usageRegion {
+			continue
+		}
+		position := -1
+		for index, field := range header {
+			if field == name {
+				if position != -1 {
+					t.Fatalf("emitted row from duplicate %s", name)
+				}
+				position = index
+			}
+		}
+		if position < 0 || position >= len(raw) {
+			t.Fatalf("emitted row without source field %s", name)
+		}
+		source, value := raw[position], canonical[column]
+		switch gcsUsageColumn(column) {
+		case usageTime, usageStatus:
+			sourceInt, sourceErr := strconv.ParseInt(source, 10, 64)
+			valueInt, valueErr := strconv.ParseInt(value, 10, 64)
+			if sourceErr != nil || valueErr != nil || sourceInt != valueInt {
+				t.Fatalf("%s source=%q projected=%q,want exact signed quantity", name, source, value)
+			}
+		case usageIPType, usageRequestBytes, usageResponseBytes, usageLatency:
+			sourceInt, sourceErr := strconv.ParseUint(source, 10, 64)
+			valueInt, valueErr := strconv.ParseUint(value, 10, 64)
+			if sourceErr != nil || valueErr != nil || sourceInt != valueInt {
+				t.Fatalf("%s source=%q projected=%q,want exact unsigned quantity", name, source, value)
+			}
+		case usageIP:
+			sourceIP, sourceErr := netip.ParseAddr(source)
+			if sourceErr != nil || sourceIP != row.ClientIP {
+				t.Fatalf("IP source=%q projected=%s,want actual source address", source, row.ClientIP)
+			}
+		default:
+			if source != value {
+				t.Fatalf("%s source=%q projected=%q,want exact source text", name, source, value)
+			}
+		}
+	}
 }
