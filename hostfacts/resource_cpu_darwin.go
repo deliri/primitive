@@ -160,7 +160,7 @@ func readResourceMachCPU(ctx context.Context, flavor uintptr) (out resourceMachC
 			out = nil
 		}
 	}()
-	out, resultErr = buffer.snapshot()
+	out, resultErr = readCachedResourceCPU(buffer)
 	if resultErr == nil {
 		resultErr = contextstate.Validate(ctx)
 	}
