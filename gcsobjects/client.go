@@ -894,9 +894,6 @@ func openGCSListedReader(ctx context.Context, client *GCSClient, listed GCSObjec
 	if err != nil {
 		return nil, GCSObjectMetadata{}, projectGCSError(err, core.ErrObjectStoreSource)
 	}
-	if reader.Attrs.Generation != generation {
-		return nil, GCSObjectMetadata{}, errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreConflict, reader.Close())
-	}
 	metadata, err := metadataFromReader(ctx, object, reader)
 	if err != nil {
 		return nil, GCSObjectMetadata{}, errors.Join(err, reader.Close())

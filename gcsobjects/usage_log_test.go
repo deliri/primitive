@@ -318,7 +318,7 @@ func TestVisitGCSUsageLogTerminalLayerTriad(t *testing.T) {
 		{name: "metadata checksum disagreement cannot seal visited row", kind: 2, wantErr: core.ErrObjectStoreIntegrity, wantVisits: 1},
 		{name: "short provider body cannot seal visited row", kind: 3, wantErr: core.ErrObjectStoreIntegrity, wantVisits: 1},
 		{name: "extra provider bytes cannot seal visited row", kind: 4, wantErr: core.ErrObjectStoreIntegrity, wantVisits: 1},
-		{name: "foreign reader generation cannot seal matching metadata", kind: 5, wantErr: core.ErrObjectStoreConflict},
+		{name: "foreign metadata generation cannot seal listed object", kind: 5, wantErr: core.ErrObjectStoreConflict},
 		{name: "caller maximum refuses before provider read", kind: 6, wantErr: core.ErrObjectStoreSize},
 		{name: "missing visitor refuses before provider read", kind: 7, wantErr: core.ErrObjectStoreDestination},
 	} {
@@ -339,6 +339,9 @@ func TestVisitGCSUsageLogTerminalLayerTriad(t *testing.T) {
 					select {
 					case listed := <-expected:
 						expected <- listed
+						if tc.kind == 5 {
+							listed.generation, _ = NewGCSGeneration(gcsProviderGeneration + 1)
+						}
 						writeUsageListedResponse(t, w, listed)
 					default:
 						writeGCSAttrsResponse(t, w, data)
@@ -353,11 +356,7 @@ func TestVisitGCSUsageLogTerminalLayerTriad(t *testing.T) {
 				if tc.kind == 4 {
 					body = append(bytes.Clone(data), 'x')
 				}
-				if tc.kind == 5 {
-					writeGCSMediaResponseFraming(t, usageGenerationWriter{ResponseWriter: w, generation: gcsProviderGeneration + 1}, body, false)
-				} else {
-					writeGCSMediaResponseFraming(t, w, body, false)
-				}
+				writeGCSMediaResponseFraming(t, w, body, false)
 			}))
 			listed, err := LookupGCSObject(t.Context(), client, GCSObjectLookupRequest{Bucket: parsedGCSBucket(t, gcsProviderBucketText), Name: parsedGCSObjectName(t, gcsProviderObjectText)})
 			if err != nil {
@@ -426,16 +425,6 @@ func writeUsageListedResponse(t testing.TB, w http.ResponseWriter, listed GCSObj
 		return
 	}
 	writeProviderJSON(t, w, storageapi.Object{Bucket: listed.Bucket().String(), Name: listed.Name().String(), Generation: generation, Size: listed.Length().Uint64(), Crc32c: checksum, ContentType: gcsProviderMediaTypeText, CacheControl: gcsProviderCacheControlText, TimeCreated: instant, Updated: instant, CustomTime: instant})
-}
-
-type usageGenerationWriter struct {
-	http.ResponseWriter
-	generation int64
-}
-
-func (w usageGenerationWriter) WriteHeader(status int) {
-	w.Header().Set("X-Goog-Generation", strconv.FormatInt(w.generation, 10))
-	w.ResponseWriter.WriteHeader(status)
 }
 
 // Raw CSV reaches the public official-SDK read door. The independent standard
