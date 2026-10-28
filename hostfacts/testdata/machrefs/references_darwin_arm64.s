@@ -17,6 +17,11 @@ TEXT refs_deallocate_trampoline<>(SB),NOSPLIT,$0-0
 GLOBL ·deallocateAddr(SB),RODATA,$8
 DATA ·deallocateAddr(SB)/8,$refs_deallocate_trampoline<>(SB)
 
+TEXT refs_read_trampoline<>(SB),NOSPLIT,$0-0
+	JMP refs_mach_vm_read_overwrite(SB)
+GLOBL ·readAddr(SB),RODATA,$8
+DATA ·readAddr(SB)/8,$refs_read_trampoline<>(SB)
+
 TEXT ·taskSelf(SB),NOSPLIT,$0-4
 	MOVD $refs_mach_task_self_(SB), R0
 	MOVWU (R0), R0

@@ -36,6 +36,26 @@ func (r Reference) Close() error {
 	return checked(status, native)
 }
 
+// Readable observes exactly one word in this process's owned VM region. A
+// released region must return KERN_INVALID_ADDRESS, not a fabricated RSS delta.
+func Readable(address uintptr) (bool, error) {
+	var word uint32
+	var copied uint64
+	status, _, native := call(readAddr, uintptr(taskSelf()), address, unsafe.Sizeof(word), uintptr(unsafe.Pointer(&word)), uintptr(unsafe.Pointer(&copied)), 0)
+	runtime.KeepAlive(&word)
+	runtime.KeepAlive(&copied)
+	if native == 0 && status == 1 {
+		return false, nil
+	}
+	if err := checked(status, native); err != nil {
+		return false, err
+	}
+	if copied != uint64(unsafe.Sizeof(word)) {
+		return false, fmt.Errorf("native VM read extent %d", copied)
+	}
+	return true, nil
+}
+
 func checked(status uintptr, native syscall.Errno) error {
 	if native != 0 {
 		return fmt.Errorf("native reference observation: %w", native)
@@ -46,7 +66,7 @@ func checked(status uintptr, native syscall.Errno) error {
 	return nil
 }
 
-var hostAddr, refsAddr, deallocateAddr uintptr
+var hostAddr, refsAddr, deallocateAddr, readAddr uintptr
 
 func taskSelf() uint32
 
@@ -58,3 +78,5 @@ func call(fn, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2 uintptr, err syscall.Errno
 //go:cgo_import_dynamic refs_mach_task_self_ mach_task_self_ "/usr/lib/libSystem.B.dylib"
 //go:cgo_import_dynamic refs_mach_port_get_refs mach_port_get_refs "/usr/lib/libSystem.B.dylib"
 //go:cgo_import_dynamic refs_mach_port_deallocate mach_port_deallocate "/usr/lib/libSystem.B.dylib"
+
+//go:cgo_import_dynamic refs_mach_vm_read_overwrite mach_vm_read_overwrite "/usr/lib/libSystem.B.dylib"
