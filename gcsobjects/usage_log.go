@@ -291,9 +291,9 @@ func visitGCSUsageCSV(ctx context.Context, source io.Reader, visit GCSUsageVisit
 				return 0, core.ErrObjectStoreSource
 			}
 		}
-		row, err := decodeGCSUsageRecord(values, positions)
-		if err != nil {
-			return 0, errors.Join(core.ErrObjectStoreSource, err)
+		row, rowErr := decodeGCSUsageRecord(values, positions)
+		if rowErr != nil {
+			return 0, errors.Join(core.ErrObjectStoreSource, rowErr)
 		}
 		if err := visit(row); err != nil {
 			return 0, err
