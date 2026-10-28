@@ -28,16 +28,16 @@ const resourceCommandWaitSeconds = 3
 // inside the same host window, so a caller can separate its own load from
 // background load. It sets no threshold, reservation, limit or admission policy.
 type ResourceUsageRequest struct {
-	IntervalSeconds uint32
-	Scopes          []SystemdScopeRequest
+	Interval temporal.Duration
+	Scopes   []SystemdScopeRequest
 }
 
 func (r ResourceUsageRequest) Validate() error {
-	if r.IntervalSeconds == 0 {
+	if r.Interval.IsZero() {
 		return core.ErrHostFactsContract
 	}
-	if _, err := temporal.DurationFromSeconds(uint64(r.IntervalSeconds)); err != nil {
-		return err
+	if err := r.Interval.Validate(); err != nil {
+		return errors.Join(core.ErrHostFactsContract, err)
 	}
 	for i, scope := range r.Scopes {
 		if err := scope.Validate(); err != nil {
@@ -64,6 +64,7 @@ type ScopeCPU struct {
 // ResourceUsage is one immutable interval CPU sample and current memory/pressure
 // observation. It does not reserve resources or supervise a workload.
 type ResourceUsage struct {
+	window                     temporal.Duration
 	cpus                       LogicalCPUCount
 	busy                       uint64
 	total, available           core.ByteLength
@@ -73,11 +74,11 @@ type ResourceUsage struct {
 }
 
 func (u ResourceUsage) Validate() error {
-	if err := errors.Join(u.cpus.Validate(), u.total.Validate(), u.available.Validate()); err != nil {
+	if err := errors.Join(u.window.Validate(), u.cpus.Validate(), u.total.Validate(), u.available.Validate()); err != nil {
 		return errors.Join(core.ErrHostFactsContract, err)
 	}
 	limit := uint64(u.cpus.Int()) * resourceCPUMilli
-	if u.total.Uint64() == 0 || u.available.Uint64() > u.total.Uint64() || u.process.Uint64() > u.total.Uint64() || u.busy > limit || u.ioPressure > resourcePercentMilli || u.memoryPressure > resourcePercentMilli {
+	if u.window.IsZero() || u.total.Uint64() == 0 || u.available.Uint64() > u.total.Uint64() || u.process.Uint64() > u.total.Uint64() || u.busy > limit || u.ioPressure > resourcePercentMilli || u.memoryPressure > resourcePercentMilli {
 		return core.ErrHostFactsContract
 	}
 	for _, scope := range u.scopes {
@@ -92,7 +93,11 @@ func (u ResourceUsage) Validate() error {
 }
 
 // Scopes returns the requested scope samples in request order.
-func (u ResourceUsage) Scopes() []ScopeCPU                    { return slices.Clone(u.scopes) }
+func (u ResourceUsage) Scopes() []ScopeCPU { return slices.Clone(u.scopes) }
+
+// Window is the measured monotonic bracket around both native CPU reads.
+// Memory and Linux pressure are observed after this window.
+func (u ResourceUsage) Window() temporal.Duration             { return u.window }
 func (u ResourceUsage) CPUCount() LogicalCPUCount             { return u.cpus }
 func (u ResourceUsage) BusyCPUMilli() uint64                  { return u.busy }
 func (u ResourceUsage) TotalMemoryBytes() core.ByteLength     { return u.total }
@@ -225,8 +230,8 @@ func resourceCommand(ctx context.Context, name string, args ...string) ([]byte, 
 		return nil, err
 	}
 	var stdout, stderr bytes.Buffer
-	// iostat -n 0 and vm_stat emit fixed host-summary schemas, not process lists.
-	// Their finite numeric metadata is bounded; no test/evidence stream enters.
+	// Native host summaries and systemctl emit fixed metadata, not process
+	// lists. No test or evidence stream enters this numeric projection.
 	waitDelay, err := temporal.DurationFromSeconds(resourceCommandWaitSeconds)
 	if err != nil {
 		return nil, err

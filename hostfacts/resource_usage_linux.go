@@ -29,10 +29,6 @@ func observeResourceUsage(ctx context.Context, r ResourceUsageRequest) (Resource
 	if err != nil {
 		return out, err
 	}
-	duration, err := temporal.DurationFromSeconds(uint64(r.IntervalSeconds))
-	if err != nil {
-		return out, err
-	}
 	// Scope samples sit strictly inside the two host samples, and the clock
 	// brackets both host samples, so no scope can claim more than its window.
 	start, err := temporal.Observe()
@@ -47,7 +43,7 @@ func observeResourceUsage(ctx context.Context, r ResourceUsageRequest) (Resource
 	if err != nil {
 		return out, err
 	}
-	if err = temporal.Wait(temporal.WaitRequest{Context: ctx, Duration: duration}); err != nil {
+	if err = temporal.Wait(temporal.WaitRequest{Context: ctx, Duration: r.Interval}); err != nil {
 		return out, err
 	}
 	scopeAfter, err := readScopesCPU(ctx, cgroups)
@@ -66,6 +62,7 @@ func observeResourceUsage(ctx context.Context, r ResourceUsageRequest) (Resource
 	if err != nil {
 		return out, err
 	}
+	out.window = window
 	out.busy, err = resourceBusy(before, after, out.cpus)
 	if err != nil {
 		return out, err

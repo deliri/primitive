@@ -157,13 +157,13 @@ func TestResourceUsageScopeContracts(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			err := ResourceUsageRequest{IntervalSeconds: 1, Scopes: tc.scopes}.Validate()
+			err := ResourceUsageRequest{Interval: resourceDuration(t, "1s"), Scopes: tc.scopes}.Validate()
 			if !errors.Is(err, tc.wantErr) || tc.wantErr == nil && err != nil {
 				t.Fatalf("validate=%v, want %v", err, tc.wantErr)
 			}
 		})
 	}
-	sample := ResourceUsage{cpus: LogicalCPUCount{count: 2}, total: byteLength(t, 2), available: byteLength(t, 1)}
+	sample := ResourceUsage{window: resourceDuration(t, "1ns"), cpus: LogicalCPUCount{count: 2}, total: byteLength(t, 2), available: byteLength(t, 1)}
 	for _, tc := range []struct {
 		name   string
 		scope  ScopeCPU
