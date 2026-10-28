@@ -52,7 +52,7 @@ func TestRequireEditPreservesUnrelatedSourceLayerTriad(t *testing.T) {
 				}
 				got[0] ^= 1
 				if !bytes.Equal(source, []byte(tc.source)) {
-					t.Fatal("neutral output aliases borrowed source")
+					t.Fatalf("neutral output changed source = %q, want %q", source, tc.source)
 				}
 				return
 			}
@@ -189,6 +189,9 @@ func FuzzRequireEditSemanticPreservation(f *testing.F) {
 	if err := file.AddModuleStmt("example.com/app"); err != nil {
 		f.Fatal(err)
 	}
+	if err := file.AddRequire("example.com/retained", "v1.0.0"); err != nil {
+		f.Fatal(err)
+	}
 	seed, err := file.Format()
 	if err != nil {
 		f.Fatal(err)
@@ -205,7 +208,7 @@ func FuzzRequireEditSemanticPreservation(f *testing.F) {
 		request := gomodule.RequireEditRequest{Source: source, Requirements: []gomodule.Requirement{{Path: path, Version: version}}}
 		got, err := gomodule.EditRequirements(t.Context(), request)
 		if !bytes.Equal(before, source) {
-			t.Fatal("editing mutated borrowed source")
+			t.Fatalf("edit changed source = %q, want %q", source, before)
 		}
 		if err != nil {
 			if got != nil || !errors.Is(err, core.ErrGoModuleContract) {
@@ -217,8 +220,25 @@ func FuzzRequireEditSemanticPreservation(f *testing.F) {
 		if err != nil || parsed.Module == nil || request.Requirements[0].Validate() != nil {
 			t.Fatalf("accepted edit = %q/%v, want valid module and pinned requirement", got, err)
 		}
+		original, originalErr := modfile.Parse("go.mod", before, nil)
+		if originalErr != nil || original.Module == nil || original.Module.Mod != parsed.Module.Mod {
+			t.Fatalf("module after edit = %v, source module = %v/%v; want identical identity", parsed.Module, original, originalErr)
+		}
+		unaffected := make(map[string]modfile.Require)
+		for _, requirement := range original.Require {
+			if requirement.Mod.Path != path.String() {
+				unaffected[requirement.Mod.Path] = *requirement
+			}
+		}
 		matches := 0
 		for _, requirement := range parsed.Require {
+			if requirement.Mod.Path != path.String() {
+				want, present := unaffected[requirement.Mod.Path]
+				if !present || requirement.Mod != want.Mod || requirement.Indirect != want.Indirect {
+					t.Fatalf("unaffected requirement = %v/%t, want %v/%t present=%t", requirement.Mod, requirement.Indirect, want.Mod, want.Indirect, present)
+				}
+				delete(unaffected, requirement.Mod.Path)
+			}
 			if requirement.Mod.Path == path.String() {
 				matches++
 				if requirement.Mod.Version != version {
@@ -226,8 +246,8 @@ func FuzzRequireEditSemanticPreservation(f *testing.F) {
 				}
 			}
 		}
-		if matches != 1 {
-			t.Fatalf("edited requirement count = %d, want one", matches)
+		if matches != 1 || len(unaffected) != 0 {
+			t.Fatalf("edited requirement count = %d, missing unrelated = %d; want one and zero", matches, len(unaffected))
 		}
 		second, err := gomodule.EditRequirements(t.Context(), gomodule.RequireEditRequest{Source: got, Requirements: request.Requirements})
 		if err != nil || !bytes.Equal(second, got) {
