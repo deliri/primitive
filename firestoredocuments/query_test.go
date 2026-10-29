@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"cloud.google.com/go/firestore"
 	"cloud.google.com/go/firestore/apiv1/firestorepb"
@@ -293,6 +294,7 @@ func FuzzQueryAdmitsExactPersistedTypedRecords(f *testing.F) {
 	}
 	f.Add(canonical.Record.Owner, canonical.Record.Value, false)
 	f.Add("", int64(0), false)
+	f.Add("\xff", int64(0), false)
 	f.Add("wrong-native-type", int64(3), true)
 	var ordinal atomic.Uint64
 	f.Fuzz(func(t *testing.T, owner string, value int64, wrongType bool) {
@@ -309,8 +311,20 @@ func FuzzQueryAdmitsExactPersistedTypedRecords(f *testing.F) {
 			_, err = ref.Set(t.Context(), nativeRecord{Owner: owner, Value: value})
 		}
 		if err != nil {
-			if status.Code(err) != codes.InvalidArgument {
-				t.Fatalf("native persisted fixture error = %v, want native invalid material refusal", err)
+			writeErr := err
+			if !utf8.ValidString(owner) {
+				if status.Code(writeErr) != codes.Internal {
+					t.Fatalf("native invalid UTF-8 fixture error = %v, want Internal marshaling refusal", writeErr)
+				}
+				if !strings.Contains(status.Convert(writeErr).Message(), "string field contains invalid UTF-8") {
+					t.Fatalf("native Internal diagnostic = %q, want invalid UTF-8 marshaling cause", status.Convert(writeErr).Message())
+				}
+			} else if status.Code(writeErr) != codes.InvalidArgument {
+				t.Fatalf("native persisted fixture error = %v, want native invalid material refusal", writeErr)
+			}
+			point, pointErr := Get[nativeRecord](t.Context(), GetRequest{Reference: ref})
+			if !errors.Is(pointErr, core.ErrFirestoreDocumentsOperation) || status.Code(pointErr) != codes.NotFound || point != (Document[nativeRecord]{}) {
+				t.Fatalf("native write refusal readback = %+v/%v, want zero document and operation/NotFound", point, pointErr)
 			}
 			return
 		}
