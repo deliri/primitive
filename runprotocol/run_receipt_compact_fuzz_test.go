@@ -126,6 +126,20 @@ func FuzzCompactReceiptJSONAndStreamSemanticClosure(f *testing.F) {
 	f.Add(header, uint8(0))
 	f.Add(fact, uint8(1))
 	f.Add(result, uint8(2))
+	for _, row := range []GoBenchmarkRow{{Kind: GoBenchmarkRowUnattributed}, {Kind: GoBenchmarkRowMetricsMissing}} {
+		benchmark := RunResult{Kind: RunResultBenchmark, Benchmark: &row}
+		encoded, err := jsonio.MarshalValidated(benchmark, runReceiptCodec())
+		if err != nil {
+			f.Fatal(err)
+		}
+		f.Add(encoded, uint8(2))
+		fact, err := jsonio.MarshalValidated(RunFact{Ordinal: 1, Kind: RunFactResult, Result: &benchmark}, runReceiptCodec())
+		if err != nil {
+			f.Fatal(err)
+		}
+		f.Add(fact, uint8(1))
+	}
+
 	f.Add(body, uint8(3))
 	reordered := append([]RunFact(nil), facts...)
 	reordered[0], reordered[1] = reordered[1], reordered[0]

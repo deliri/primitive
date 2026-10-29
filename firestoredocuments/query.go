@@ -1,9 +1,12 @@
 package firestoredocuments
 
 import (
+	"cloud.google.com/go/firestore/apiv1/firestorepb"
 	"context"
 	"errors"
+	"google.golang.org/protobuf/proto"
 	"reflect"
+	"strings"
 
 	"cloud.google.com/go/firestore"
 	"github.com/deliri/primitive/v2026/core"
@@ -38,12 +41,42 @@ type QueryRequest[T core.Validatable] struct {
 	Visit func(context.Context, Document[T]) (QueryVisitDecision, error)
 }
 
-func (r QueryRequest[T]) Validate() error {
+// validatedQueryParent observes native query structure without executing or
+// reconstructing it. The original query keeps its in-process SDK options.
+func (r QueryRequest[T]) validatedQueryParent() (string, error) {
 	if r.Visit == nil || reflect.TypeFor[T]().Kind() != reflect.Struct {
+		return "", core.ErrFirestoreDocumentsContract
+	}
+	encoded, err := r.Query.Serialize()
+	if err != nil {
+		return "", errors.Join(core.ErrFirestoreDocumentsContract, err)
+	}
+	var native firestorepb.RunQueryRequest
+	if err := proto.Unmarshal(encoded, &native); err != nil {
+		return "", errors.Join(core.ErrFirestoreDocumentsContract, err)
+	}
+	return native.Parent, nil
+}
+
+func (r QueryRequest[T]) Validate() error {
+	_, err := r.validatedQueryParent()
+	return err
+}
+
+// ValidateClient verifies native project/database resource membership only.
+// Caller policy still owns tenant/role authorization and query selection.
+func (r QueryRequest[T]) ValidateClient(client *firestore.Client) error {
+	if client == nil {
 		return core.ErrFirestoreDocumentsContract
 	}
-	if _, err := r.Query.Serialize(); err != nil {
-		return errors.Join(core.ErrFirestoreDocumentsContract, err)
+	parent, err := r.validatedQueryParent()
+	if err != nil {
+		return err
+	}
+	const collection = "primitive-query-binding"
+	root := strings.TrimSuffix(client.Collection(collection).Path, "/"+collection)
+	if parent != root && !strings.HasPrefix(parent, root+"/") {
+		return core.ErrFirestoreDocumentsContract
 	}
 	return nil
 }

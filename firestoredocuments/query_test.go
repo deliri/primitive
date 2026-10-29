@@ -15,8 +15,11 @@ import (
 	"cloud.google.com/go/firestore"
 	"cloud.google.com/go/firestore/apiv1/firestorepb"
 	"github.com/deliri/primitive/v2026/core"
+	"google.golang.org/api/option"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/connectivity"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 )
 
@@ -318,6 +321,65 @@ func FuzzQueryAdmitsExactPersistedTypedRecords(f *testing.F) {
 		want := nativeRecord{Owner: owner, Value: value}
 		if err != nil || pointErr != nil || visits != 1 || got != want || point.Record != got {
 			t.Fatalf("query/point = %+v/%v/%d, %+v/%v, want exactly %+v", got, err, visits, point, pointErr, want)
+		}
+	})
+}
+
+func TestQueryBindsNativeClientProjectAndDatabase(t *testing.T) {
+	t.Parallel()
+	client, costs := nativeClient(t)
+	visitor := func(context.Context, Document[nativeRecord]) (QueryVisitDecision, error) {
+		t.Fatal("binding observation executed query visitor")
+		return QueryContinue, nil
+	}
+	for _, row := range []struct {
+		name, project, database string
+		foreign                 bool
+	}{
+		{name: "same project and default database admit", project: "primitive-documents-proof", database: "(default)"},
+		{name: "foreign project refuses before RPC", project: "primitive-foreign-proof", database: "(default)", foreign: true},
+		{name: "same project foreign database refuses before RPC", project: "primitive-documents-proof", database: "other-database", foreign: true},
+	} {
+		t.Run(row.name, func(t *testing.T) {
+			t.Parallel()
+			connection, err := grpc.NewClient(nativeEmulatorEndpoint, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithChainStreamInterceptor(costs.stream))
+			if err != nil {
+				t.Fatal(err)
+			}
+			candidate, err := firestore.NewClientWithDatabase(t.Context(), row.project, row.database, option.WithGRPCConn(connection), option.WithoutAuthentication())
+			if err != nil {
+				_ = connection.Close()
+				t.Fatal(err)
+			}
+			t.Cleanup(func() {
+				if err := candidate.Close(); err != nil {
+					t.Errorf("native binding client Close = %v, want nil", err)
+				}
+				if connection.GetState() != connectivity.Shutdown {
+					t.Errorf("binding connection state = %v, want Shutdown", connection.GetState())
+				}
+			})
+			for _, query := range []firestore.Query{candidate.Collection("items").Query, candidate.Collection("parents").Doc("parent").Collection("items").Query} {
+				err := (QueryRequest[nativeRecord]{Query: query, Visit: visitor}).ValidateClient(client)
+				if row.foreign {
+					if !errors.Is(err, core.ErrFirestoreDocumentsContract) {
+						t.Fatalf("foreign native resource binding = %v, want typed contract", err)
+					}
+				} else if err != nil {
+					t.Fatalf("same native resource binding = %v, want nil", err)
+				}
+			}
+		})
+	}
+	if err := (QueryRequest[nativeRecord]{Query: client.Collection("items").Query, Visit: visitor}).ValidateClient(nil); !errors.Is(err, core.ErrFirestoreDocumentsContract) {
+		t.Fatalf("nil binding client = %v, want contract", err)
+	}
+	if err := (QueryRequest[nativeRecord]{Visit: visitor}).ValidateClient(client); !errors.Is(err, core.ErrFirestoreDocumentsContract) {
+		t.Fatalf("zero query binding = %v, want contract", err)
+	}
+	t.Cleanup(func() {
+		if costs.queries.Load() != 0 || costs.reads.Load() != 0 || costs.writes.Load() != 0 {
+			t.Errorf("query binding native effects = %d/%d/%d, want all zero", costs.queries.Load(), costs.reads.Load(), costs.writes.Load())
 		}
 	})
 }

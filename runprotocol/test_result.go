@@ -65,7 +65,7 @@ func (i TestIdentity) Validate() error {
 // optional actual producer-resolved attribution, never module-prefix guessing.
 type RunResult struct {
 	Kind        RunResultKind      `json:"kind"`
-	Suite       TestLabel          `json:"suite"`
+	Suite       TestLabel          `json:"suite,omitzero"`
 	Name        *TestLabel         `json:"name,omitempty"`
 	PackagePath *core.RelativePath `json:"package_path,omitempty"`
 	Elapsed     *temporal.Duration `json:"elapsed,omitempty"`
@@ -74,7 +74,16 @@ type RunResult struct {
 }
 
 func (r RunResult) Validate() error {
-	if err := contractJoin(r.Kind.Validate(), r.Suite.Validate()); err != nil {
+	if err := r.Kind.Validate(); err != nil {
+		return err
+	}
+	// An absent benchmark suite is an unobserved native fact, never a guessed
+	// attribution. Other result kinds still require an actual suite.
+	if r.Kind == RunResultBenchmark && r.Suite == (TestLabel{}) {
+		if r.PackagePath != nil {
+			return core.ErrRunProtocolContract
+		}
+	} else if err := r.Suite.Validate(); err != nil {
 		return err
 	}
 	if r.PackagePath != nil {

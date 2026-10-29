@@ -62,6 +62,18 @@ func TestBenchmarkResultPreservesUnobservedSuite(t *testing.T) {
 	} {
 		t.Run(row.name, func(t *testing.T) {
 			t.Parallel()
+			if row.wantErr == nil {
+				native, nativeErr := json.Marshal(row.result)
+				if nativeErr != nil {
+					t.Fatalf("native encoder before codec validation = %s/%v, want suite omission supported by jsonv2 itself", native, nativeErr)
+				}
+				var presence struct {
+					Suite *TestLabel `json:"suite,omitempty"`
+				}
+				if err := json.Unmarshal(native, &presence); err != nil || (presence.Suite != nil) != row.wantSuite {
+					t.Fatalf("native suite presence before codec validation = %s/%v, want present=%v", native, err, row.wantSuite)
+				}
+			}
 			err := row.result.Validate()
 			if !errors.Is(err, row.wantErr) {
 				t.Fatalf("benchmark attribution validation = %v, want %v", err, row.wantErr)
@@ -98,14 +110,49 @@ func TestBenchmarkResultPreservesUnobservedSuite(t *testing.T) {
 				t.Fatalf("canonical benchmark bytes = %q/%v, want %q/nil", second, err, encoded)
 			}
 			if row.wantSuite {
-				const want = `{"kind":"benchmark","suite":"example.org/project/pkg","name":"BenchmarkNative-1","benchmark":{"kind":"measured","measurement":{"name":"BenchmarkNative-1","iterations":10,"ns_per_op":{"coefficient":1,"exponent":0},"bytes_per_op":0,"allocations_per_op":0}}}`
-				// Decode an independent known-suite wire to compare its exact native field
-				// presence; canonical bytes are separately stable across the round trip.
-				var expected RunResult
-				if err := json.Unmarshal([]byte(want), &expected); err != nil || expected.Suite != known {
-					t.Fatalf("existing suite wire oracle = %+v/%v, want actual suite", expected, err)
+				scalar, err := known.MarshalJSON()
+				if err != nil || !bytes.Contains(encoded, append([]byte(`"suite":`), scalar...)) {
+					t.Fatalf("known suite scalar wire = %s/%v, want original actual suite scalar %s", encoded, err, scalar)
 				}
 			}
+
 		})
+	}
+}
+
+// These are compiler-owned wire-policy fixtures, not a claim that a native
+// benchmark ran. Actual producer attribution remains Anvil's owning contract.
+func TestBenchmarkUnobservedSuiteStreamRoundTrip(t *testing.T) {
+	t.Parallel()
+	receipt, facts, _ := compactReceiptFixture(t)
+	facts = facts[:3]
+	facts[2].Result = &RunResult{Kind: RunResultBenchmark, Benchmark: &GoBenchmarkRow{Kind: GoBenchmarkRowUnattributed}}
+	receipt.Kind = RunKindBenchmark
+	receipt.Outcome = OutcomeSkipped
+	receipt.Seed = nil
+	receipt.Summary.Tests = RunCounts{}
+	receipt.Summary.Packages = RunCounts{}
+	receipt.Summary.Benchmarks = &RunBenchmarkCounts{Rows: 1}
+	var stream bytes.Buffer
+	sequence, err := WriteRunFacts(t.Context(), RunFactWriteRequest{Destination: &stream, Facts: receiptFacts(facts)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	receipt.Facts = sequence
+	if err := VerifyRunFacts(t.Context(), RunFactStreamRequest{Source: bytes.NewReader(stream.Bytes()), Receipt: receipt}); err != nil {
+		t.Fatalf("unobserved benchmark stream = %v, want valid native facts without fabricated suite", err)
+	}
+	count := 0
+	for fact, err := range RunFacts(t.Context(), RunFactStreamRequest{Source: bytes.NewReader(stream.Bytes()), Receipt: receipt}) {
+		if err != nil {
+			t.Fatal(err)
+		}
+		count++
+		if fact.Result != nil && (fact.Result.Suite != (TestLabel{}) || fact.Result.PackagePath != nil || fact.Result.Benchmark.Kind != GoBenchmarkRowUnattributed) {
+			t.Fatalf("stream attribution = %+v, want honest absence", fact.Result)
+		}
+	}
+	if count != 3 {
+		t.Fatalf("stream fact count = %d, want 3", count)
 	}
 }
