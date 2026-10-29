@@ -6,11 +6,12 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 444
+      "patch": 445
     },
     "release_notes": [
-      "Add shared typed release-note arrays to the Compass project contract.",
-      "Reject absent, empty, blank or invalid UTF-8 notes while preserving entry order and authored text."
+      "Add streaming GCS usage-log reads with typed records and complete generation, extent, checksum and lifetime validation.",
+      "Add fixed-zone Cloudflare HTTP traffic analytics with typed host and time-window binding, sampled measurements and explicit empty results.",
+      "Publish a browser-native WebMCP module that carries registration cancellation into each tool invocation."
     ]
   }
 }
