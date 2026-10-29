@@ -135,7 +135,7 @@ func (w *outputWriterDigest) Write(payload []byte) (int, error) {
 	return n, err
 }
 
-func TestOutputWriterStreamsAcrossFixedWindowsWithoutRetention(t *testing.T) {
+func TestOutputWriterFixedWindowsConserveBytesAndEmptyWrites(t *testing.T) {
 	t.Parallel()
 	const window = 32768
 	for _, extent := range []int{0, window - 1, window, window + 1, 64*window + 7} {
@@ -163,6 +163,9 @@ func TestOutputWriterStreamsAcrossFixedWindowsWithoutRetention(t *testing.T) {
 				}
 				remaining -= size
 				wantCalls++
+			}
+			if n, err := writer.Write(nil); n != 0 || err != nil || selected.calls != wantCalls || other.calls != 0 {
+				t.Fatalf("empty write after %d bytes = %d/%v, calls %d/%d, want zero/nil and unchanged calls %d/0", extent, n, err, selected.calls, other.calls, wantCalls)
 			}
 			if selected.bytes != extent || selected.calls != wantCalls || other.calls != 0 || !bytes.Equal(selected.digest.Sum(nil), want.Sum(nil)) {
 				t.Fatalf("streamed %d bytes/%d calls, other %d, digest %x; want %d/%d, no other writes, digest %x", selected.bytes, selected.calls, other.calls, selected.digest.Sum(nil), extent, wantCalls, want.Sum(nil))

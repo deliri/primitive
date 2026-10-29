@@ -1,7 +1,6 @@
 package process
 
 import (
-	"errors"
 	"io"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -40,9 +39,6 @@ func (w OutputWriter) Validate() error {
 // including partial writes and EPIPE. Empty writes never contact the sink.
 func (w OutputWriter) Write(payload []byte) (int, error) {
 	written, err := w.streams.WriteOutput(w.stream, payload)
-	if written.Uint64() > uint64(len(payload)) {
-		return 0, errors.Join(core.ErrProcessContract, err)
-	}
 	return int(written.Uint64()), err
 }
 
