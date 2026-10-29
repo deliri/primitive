@@ -6,11 +6,11 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 452
+      "patch": 453
     },
     "release_notes": [
-      "Open a confined child directory through existing nonblocking directory acquisition, and read through it only when the opened file matches a fresh regular-file observation at its original logical path.",
-      "Preserve existing rooted custody checks and bounded descriptor ownership; Darwin/Linux confined directory links are followed, Windows final reparse points are refused. Windows native execution remains unproved."
+      "Admit the reviewed Go1.27.3 compiler identity used by the installed fleet for release construction.",
+      "Verify the actual native Go executable and retain exact version, digest and platform observations; stale Go1.27.2 identities remain refused."
     ]
   }
 }
