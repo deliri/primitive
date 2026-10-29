@@ -6,12 +6,11 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 445
+      "patch": 446
     },
     "release_notes": [
-      "Add streaming GCS usage-log reads with typed records and complete generation, extent, checksum and lifetime validation.",
-      "Add fixed-zone Cloudflare HTTP traffic analytics with typed host and time-window binding, sampled measurements and explicit empty results.",
-      "Publish a browser-native WebMCP module that carries registration cancellation into each tool invocation."
+      "Add optional typed lexical object-name bounds to native GCS listings, preserving open and empty ranges.",
+      "Reject provider objects outside a requested nonzero range before invoking the listing visitor."
     ]
   }
 }
