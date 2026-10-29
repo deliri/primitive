@@ -1,9 +1,9 @@
 package release_test
 
 import (
-	"runtime"
 	"testing"
 
+	"github.com/deliri/primitive/v2026/hostfacts"
 	"github.com/deliri/primitive/v2026/release"
 )
 
@@ -24,8 +24,12 @@ func TestCurrentGoToolchainAdmitsTheInstalledNativeExecutable(t *testing.T) {
 	if err != nil || version != "go1.27.3" {
 		t.Fatalf("verified compiler=%q/%v, want go1.27.3", version, err)
 	}
-	if verified.HostPlatform().String() != runtime.GOOS+"-"+runtime.GOARCH {
-		t.Fatalf("verified platform=%v, want actual native %s-%s", verified.HostPlatform(), runtime.GOOS, runtime.GOARCH)
+	platform, err := hostfacts.CurrentPlatform()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if verified.HostPlatform() != platform {
+		t.Fatalf("verified platform=%v, want actual native %v", verified.HostPlatform(), platform)
 	}
 	if err := verified.GoExecutableDigest().Validate(); err != nil {
 		t.Fatalf("native executable digest=%v, want verified bytes", err)
