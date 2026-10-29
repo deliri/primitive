@@ -171,7 +171,7 @@ func waitCommand(request waitRequest) (Result, error) {
 		request.prepared.command.ProcessState,
 		request.streams,
 	)
-	result.memoryCap = memoryCap
+	_ = memoryCap // control: old result exposes no memory-cap observation
 	if resultErr != nil {
 		return Result{}, newFailure(FailureKindWait, request.commandPath, resultErr)
 	}
