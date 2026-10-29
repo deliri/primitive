@@ -97,6 +97,13 @@ func GoBenchmarkRecords(ctx context.Context, request GoBenchmarkSourceRequest) i
 				yield(GoBenchmarkSourceRecord{}, recordErr)
 				return
 			}
+			// A buffered read can supply the complete row and a simultaneous
+			// native failure. The observed error owns admission even before
+			// bufio needs another read to expose its deferred error.
+			if refusal := errors.Join(input.readErr, contextstate.Validate(ctx), context.Cause(ctx)); refusal != nil {
+				yield(GoBenchmarkSourceRecord{}, refusal)
+				return
+			}
 			if !yield(record, nil) {
 				return
 			}
