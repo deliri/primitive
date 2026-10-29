@@ -282,7 +282,7 @@ func TestMemoryCapDoesNotInferExhaustionFromTermination(t *testing.T) {
 func TestMemoryCapRejectsForeignAndCollectedOwners(t *testing.T) {
 	t.Parallel()
 	cap, _ := core.NewByteLength(256 << 20)
-	for _, owner := range []memoryCapOwner{{unit: "not-owned.scope", pid: ProcessIdentity(os.Getpid()), limit: cap}, {unit: "collected.scope", pid: -1, limit: cap}} {
+	for _, owner := range []memoryCapOwner{{unit: "not-owned.scope", pid: ProcessIdentity(os.Getpid()), limit: cap}, {unit: "collected.scope", pid: 0, limit: cap}} {
 		got := observeMemoryCap(owner)
 		if got.State != MemoryCapUnknown || got.LocalOOMEvents != 0 || got.LocalOOMKills != 0 {
 			t.Fatalf("foreign owner admitted: %+v", got)
