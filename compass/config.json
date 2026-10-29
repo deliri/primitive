@@ -6,11 +6,11 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 449
+      "patch": 450
     },
     "release_notes": [
-      "Observe exact native Go type identity, assignment and interface implementation through closed typed requests.",
-      "Observe native field and method selections with Go addressability, promotion, ambiguity and package visibility."
+      "Stream native TAR with exact encoded extent while omitting an unneeded whole-archive digest; preserve per-entry hashes, validation and closure.",
+      "Matched warm race-instrumented 307.2MB TAR stage measured 23.56 percent less elapsed time in one Furnace run; no end-to-end or fleet speedup claim."
     ]
   }
 }
