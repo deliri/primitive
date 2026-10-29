@@ -137,6 +137,7 @@ type filestoreContractInventory struct {
 	TARReadEntry                  streamedObservation[TARReadEntry]
 	TARReadRequest                validatedRequest[TARReadRequest]
 	TARWriteRequest               validatedRequest[TARWriteRequest]
+	tarStreamDestination          internalFlow[tarStreamDestination]
 	ZIPWriteRequest               validatedRequest[ZIPWriteRequest]
 	StageWriteRequest             validatedRequest[StageWriteRequest]
 	StageWriteObservation         streamedObservation[StageWriteObservation]
