@@ -6,11 +6,10 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 446
+      "patch": 447
     },
     "release_notes": [
-      "Add optional typed lexical object-name bounds to native GCS listings, preserving open and empty ranges.",
-      "Reject provider objects outside a requested nonzero range before invoking the listing visitor."
+      "Compute typed Castagnoli CRC32C checksums over borrowed bytes through Go, including a set zero checksum for empty input."
     ]
   }
 }
