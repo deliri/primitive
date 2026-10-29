@@ -260,12 +260,12 @@ func TestGoFuzzMetricClosedDomainsAndSourceRefusal(t *testing.T) {
 				}
 			}
 			if !seen {
-				t.Fatal("source refusal silently disappeared, want error observation")
+				t.Fatalf("source refusal observed = %t, want true", seen)
 			}
 		})
 	}
 	if _, err := (runprotocol.GoFuzzMetricRecord{}).Field(runprotocol.GoFuzzMetricExecs); err == nil {
-		t.Fatal("zero record admitted a field, want source contract refusal")
+		t.Fatalf("zero record field error = %v, want source contract refusal", err)
 	}
 }
 
@@ -500,6 +500,7 @@ func FuzzGoFuzzMetricRecordsMatchIndependentByteOracle(f *testing.F) {
 }
 
 func BenchmarkGoFuzzMetricRecordNativeWorkingMemory(b *testing.B) {
+	b.ReportAllocs()
 	for _, extent := range []int64{64 * 1024, 64*1024*1024 + 1} {
 		b.Run(strconv.FormatInt(extent, 10), func(b *testing.B) {
 			dir := b.TempDir()

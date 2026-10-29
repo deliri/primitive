@@ -1,6 +1,7 @@
 package runprotocol
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"errors"
@@ -75,9 +76,9 @@ func GoFuzzSignalRecords(ctx context.Context, request GoFuzzSignalSourceRequest)
 				yield(GoFuzzSignalRecord{}, goFuzzSignalRefusal(ctx, err))
 				return
 			}
-			observation, err := readGoFuzzSignalRecord(ctx, request.Source, record)
-			if err != nil {
-				yield(GoFuzzSignalRecord{}, goFuzzSignalRefusal(ctx, err))
+			observation, observationErr := readGoFuzzSignalRecord(ctx, request.Source, record)
+			if observationErr != nil {
+				yield(GoFuzzSignalRecord{}, goFuzzSignalRefusal(ctx, observationErr))
 				return
 			}
 			if err := errors.Join(observation.Validate(), contextstate.Validate(ctx)); err != nil {
@@ -142,9 +143,55 @@ func readGoFuzzSignalRecord(ctx context.Context, source lineio.RecordSource, rec
 		}
 		consumed += int64(width)
 	}
+	observation, prefixErr := readGoFuzzSignalPrefixes(reader, record, consumed)
+	if prefixErr != nil {
+		return GoFuzzSignalRecord{}, errors.Join(prefixErr, guard.readErr)
+	}
+
+	const overlap = len("context deadline exceeded") - 1
+	var buffer [32768 + overlap]byte
+	carry, empty := 0, 0
+	for {
+		n, readErr := reader.Read(buffer[carry:])
+		if n < 0 || n > len(buffer)-carry || int64(n) > length-consumed {
+			return GoFuzzSignalRecord{}, errors.Join(core.ErrGoToolchainOutput, readErr, guard.readErr)
+		}
+		if n > 0 {
+			empty = 0
+			window := buffer[:carry+n]
+			if windowErr := observeGoFuzzSignalWindow(&observation, window, int64(record.Offset)+consumed-int64(carry)); windowErr != nil {
+				return GoFuzzSignalRecord{}, windowErr
+			}
+
+			consumed += int64(n)
+			carry = min(overlap, len(window))
+			copy(buffer[:carry], window[len(window)-carry:])
+		} else if readErr == nil {
+			empty++
+			if empty == core.ReaderConsecutiveEmptyReadMaximum {
+				return GoFuzzSignalRecord{}, io.ErrNoProgress
+			}
+		}
+		if readErr != nil {
+			if readErr != io.EOF {
+				return GoFuzzSignalRecord{}, errors.Join(readErr, guard.readErr, contextstate.Validate(ctx))
+			}
+			if refusal := errors.Join(guard.readErr, contextstate.Validate(ctx)); refusal != nil {
+				return GoFuzzSignalRecord{}, refusal
+			}
+			if consumed != length {
+				return GoFuzzSignalRecord{}, io.ErrUnexpectedEOF
+			}
+			return observation, nil
+		}
+	}
+}
+
+func readGoFuzzSignalPrefixes(reader *bufio.Reader, record lineio.RecordRange, consumed int64) (GoFuzzSignalRecord, error) {
+	observation := GoFuzzSignalRecord{Record: record}
 	prefix, peekErr := reader.Peek(len("to re-run:"))
 	if peekErr != nil && peekErr != io.EOF {
-		return GoFuzzSignalRecord{}, errors.Join(peekErr, guard.readErr)
+		return GoFuzzSignalRecord{}, peekErr
 	}
 	var foldedPrefix [len("to re-run:")]byte
 	for index, value := range prefix {
@@ -176,69 +223,41 @@ func readGoFuzzSignalRecord(ctx context.Context, source lineio.RecordSource, rec
 			observation.BuildHeader = marker
 		}
 	}
-	const overlap = len("context deadline exceeded") - 1
-	var buffer [32768 + overlap]byte
-	var folded [len(buffer)]byte
-	carry, empty := 0, 0
-	for {
-		n, readErr := reader.Read(buffer[carry:])
-		if n < 0 || n > len(buffer)-carry || int64(n) > length-consumed {
-			return GoFuzzSignalRecord{}, errors.Join(core.ErrGoToolchainOutput, readErr, guard.readErr)
+	return observation, nil
+}
+
+func observeGoFuzzSignalWindow(observation *GoFuzzSignalRecord, window []byte, offset int64) error {
+	var folded [32768 + len("context deadline exceeded") - 1]byte
+	for index, value := range window {
+		if value >= 'A' && value <= 'Z' {
+			value += 'a' - 'A'
 		}
-		if n > 0 {
-			empty = 0
-			window := buffer[:carry+n]
-			for index, value := range window {
-				if value >= 'A' && value <= 'Z' {
-					value += 'a' - 'A'
-				}
-				folded[index] = value
-			}
-			for index, literal := range [...]string{"panic:", "context deadline exceeded", "failing input"} {
-				destination := &observation.Panic
-				candidate := window
-				switch index {
-				case 0:
-				case 1:
-					destination = &observation.Deadline
-					candidate = folded[:len(window)]
-				case 2:
-					destination = &observation.FailingInput
-					candidate = folded[:len(window)]
-				}
-				if *destination != (lineio.RecordRange{}) {
-					continue
-				}
-				position := bytes.Index(candidate, []byte(literal))
-				if position < 0 {
-					continue
-				}
-				marker, err := goFuzzSignalMarker(int64(record.Offset)+consumed-int64(carry)+int64(position), len(literal))
-				if err != nil {
-					return GoFuzzSignalRecord{}, err
-				}
-				*destination = marker
-			}
-			consumed += int64(n)
-			carry = min(overlap, len(window))
-			copy(buffer[:carry], window[len(window)-carry:])
-		} else if readErr == nil {
-			empty++
-			if empty == core.ReaderConsecutiveEmptyReadMaximum {
-				return GoFuzzSignalRecord{}, io.ErrNoProgress
-			}
-		}
-		if readErr != nil {
-			if readErr != io.EOF {
-				return GoFuzzSignalRecord{}, errors.Join(readErr, guard.readErr, contextstate.Validate(ctx))
-			}
-			if refusal := errors.Join(guard.readErr, contextstate.Validate(ctx)); refusal != nil {
-				return GoFuzzSignalRecord{}, refusal
-			}
-			if consumed != length {
-				return GoFuzzSignalRecord{}, io.ErrUnexpectedEOF
-			}
-			return observation, nil
-		}
+		folded[index] = value
 	}
+	for index, literal := range [...]string{"panic:", "context deadline exceeded", "failing input"} {
+		destination := &observation.Panic
+		candidate := window
+		switch index {
+		case 0:
+		case 1:
+			destination = &observation.Deadline
+			candidate = folded[:len(window)]
+		case 2:
+			destination = &observation.FailingInput
+			candidate = folded[:len(window)]
+		}
+		if *destination != (lineio.RecordRange{}) {
+			continue
+		}
+		position := bytes.Index(candidate, []byte(literal))
+		if position < 0 {
+			continue
+		}
+		marker, err := goFuzzSignalMarker(offset+int64(position), len(literal))
+		if err != nil {
+			return err
+		}
+		*destination = marker
+	}
+	return nil
 }

@@ -7,6 +7,7 @@ import (
 	"io"
 	"math"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -85,7 +86,7 @@ func TestGoBenchmarkSourceConservesExactNativeRangesAndValues(t *testing.T) {
 						t.Fatalf("tail=%q/%+v", got, record)
 					}
 				} else {
-					t.Fatal("extra record")
+					t.Fatalf("extra record = %+v at ordinal %d, want no further record", record, observed)
 				}
 				observed++
 			}
@@ -104,7 +105,7 @@ func TestGoBenchmarkSourceRefusesMalformedRowsWithoutPublishedFacts(t *testing.T
 			observed := 0
 			for record, err := range runprotocol.GoBenchmarkRecords(t.Context(), runprotocol.GoBenchmarkSourceRequest{Source: strings.NewReader(row)}) {
 				observed++
-				if err != nil || record.Presence != runprotocol.GoBenchmarkRecordRefused || record.Refusal() != core.ErrGoToolchainOutput || record.Name() != (runprotocol.GoBenchmarkNameExtent{}) || record.Iterations != 0 || record.Fields != runprotocol.GoBenchmarkMetricFieldsNone || record.SourceExtent().Bytes.Uint64() != uint64(len(row)) {
+				if err != nil || record.Presence != runprotocol.GoBenchmarkRecordRefused || !errors.Is(record.Refusal(), core.ErrGoToolchainOutput) || record.Name() != (runprotocol.GoBenchmarkNameExtent{}) || record.Iterations != 0 || record.Fields != runprotocol.GoBenchmarkMetricFieldsNone || record.SourceExtent().Bytes.Uint64() != uint64(len(row)) {
 					t.Fatalf("refusal=%+v/%v", record, err)
 				}
 			}
@@ -144,8 +145,8 @@ func TestGoBenchmarkSourceWorkingMemoryDoesNotFollowFieldOrRecordExtent(t *testi
 				if err != nil || (record.Presence == runprotocol.GoBenchmarkRecordRefused) != tc.refused {
 					t.Fatalf("refusal=%v want%t", err, tc.refused)
 				}
-				if tc.refused && (record.Name() != (runprotocol.GoBenchmarkNameExtent{}) || record.Iterations != 0 || record.Fields != runprotocol.GoBenchmarkMetricFieldsNone || record.Refusal() != core.ErrGoToolchainOutput) {
-					t.Fatal("refusal leaked facts")
+				if tc.refused && (record.Name() != (runprotocol.GoBenchmarkNameExtent{}) || record.Iterations != 0 || record.Fields != runprotocol.GoBenchmarkMetricFieldsNone || !errors.Is(record.Refusal(), core.ErrGoToolchainOutput)) {
+					t.Fatalf("refused record = %+v, want no admitted facts", record)
 				}
 			}
 			runtime.ReadMemStats(&after)
@@ -236,7 +237,7 @@ func TestGoBenchmarkSourcePartialReadsCancellationAndCauses(t *testing.T) {
 				if err != nil {
 					gotErr = err
 					if record != (runprotocol.GoBenchmarkSourceRecord{}) {
-						t.Fatal("source failure leaked facts")
+						t.Fatalf("failed source record = %+v, want zero", record)
 					}
 				} else {
 					records++
@@ -248,7 +249,7 @@ func TestGoBenchmarkSourcePartialReadsCancellationAndCauses(t *testing.T) {
 					t.Fatalf("cancellation=%v records%d", gotErr, records)
 				}
 				if tc.preCancel && source.readCalls != 0 {
-					t.Fatal("pre-canceled source was read")
+					t.Fatalf("pre-canceled source reads = %d, want zero", source.readCalls)
 				}
 			case tc.reader != nil:
 				if !errors.Is(gotErr, tc.reader) || records != 0 {
@@ -296,7 +297,7 @@ func FuzzGoBenchmarkSourceMatchesIndependentGoDecimalFacts(f *testing.F) {
 				t.Fatalf("decimal%q admission%v wantGo%v/%v", value, err, want, wantErr)
 			}
 			if !accepted {
-				if err != nil || record.Presence != runprotocol.GoBenchmarkRecordRefused || record.Refusal() != core.ErrGoToolchainOutput || record.Name() != (runprotocol.GoBenchmarkNameExtent{}) || record.Iterations != 0 || record.Fields != runprotocol.GoBenchmarkMetricFieldsNone || record.SourceExtent().Bytes.Uint64() != uint64(len(row)) {
+				if err != nil || record.Presence != runprotocol.GoBenchmarkRecordRefused || !errors.Is(record.Refusal(), core.ErrGoToolchainOutput) || record.Name() != (runprotocol.GoBenchmarkNameExtent{}) || record.Iterations != 0 || record.Fields != runprotocol.GoBenchmarkMetricFieldsNone || record.SourceExtent().Bytes.Uint64() != uint64(len(row)) {
 					t.Fatalf("refusal=%+v/%v", record, err)
 				}
 				continue
@@ -307,6 +308,20 @@ func FuzzGoBenchmarkSourceMatchesIndependentGoDecimalFacts(f *testing.F) {
 		}
 		if observed != 1 {
 			t.Fatalf("observations=%d want1", observed)
+		}
+
+		// A positional native fault may itself contain the local syntax
+		// identity. It must still withdraw every record and retain both causes.
+		faulted := &benchmarkSourcePressure{Reader: strings.NewReader(row), readAtErr: errors.Join(core.ErrGoToolchainOutput, io.ErrClosedPipe), readAtErrorOffset: int64(len("BenchmarkOracle-8 17 "))}
+		failures := 0
+		for record, fault := range runprotocol.GoBenchmarkRecords(t.Context(), runprotocol.GoBenchmarkSourceRequest{Source: faulted}) {
+			failures++
+			if !errors.Is(fault, core.ErrGoToolchainOutput) || !errors.Is(fault, io.ErrClosedPipe) || record != (runprotocol.GoBenchmarkSourceRecord{}) {
+				t.Fatalf("fuzz positional refusal = %+v/%v, want zero and both native causes", record, fault)
+			}
+		}
+		if failures != 1 {
+			t.Fatalf("fuzz positional refusal count = %d, want one", failures)
 		}
 	})
 }
@@ -418,7 +433,7 @@ func TestGoBenchmarkSourceContinuesAfterCompleteSemanticRefusal(t *testing.T) {
 				}
 				switch count {
 				case 0:
-					if record.Presence != runprotocol.GoBenchmarkRecordRefused || record.Refusal() != core.ErrGoToolchainOutput || record.SourceExtent().Bytes.Uint64() != uint64(len(bad)) {
+					if record.Presence != runprotocol.GoBenchmarkRecordRefused || !errors.Is(record.Refusal(), core.ErrGoToolchainOutput) || record.SourceExtent().Bytes.Uint64() != uint64(len(bad)) {
 						t.Fatalf("refused=%+v", record)
 					}
 				case 1:
@@ -426,7 +441,7 @@ func TestGoBenchmarkSourceContinuesAfterCompleteSemanticRefusal(t *testing.T) {
 						t.Fatalf("continued=%+v", record)
 					}
 				default:
-					t.Fatal("extra observation")
+					t.Fatalf("extra observation = %+v at ordinal %d, want no further record", record, count)
 				}
 				count++
 			}
@@ -489,7 +504,7 @@ func TestGoBenchmarkSourceValidNameWorkingMemoryIsIndependentOfNameLength(t *tes
 					}
 					for _, b := range fragment.Bytes() {
 						if bytes >= 9 && b != 'a' {
-							t.Fatal("name payload changed")
+							t.Fatalf("name byte at offset %d = %d, want a", bytes, b)
 						}
 						bytes++
 					}
@@ -544,7 +559,7 @@ func TestGoBenchmarkNameFragmentsStopCancellationAndReadCauses(t *testing.T) {
 				if err != nil {
 					gotErr = err
 					if len(fragment.Bytes()) != 0 {
-						t.Fatal("read failure published borrowed bytes")
+						t.Fatalf("failed fragment bytes = %d, want zero", len(fragment.Bytes()))
 					}
 					break
 				}
@@ -571,6 +586,82 @@ func TestGoBenchmarkNameFragmentsStopCancellationAndReadCauses(t *testing.T) {
 				if gotErr != nil || total != 9+2*8192 {
 					t.Fatalf("bytes%d/%v", total, gotErr)
 				}
+			}
+		})
+	}
+}
+
+// The physical bytes come from the owned OS file; only the selected native
+// read result gains a competing cause. A full byte count cannot erase it.
+type benchmarkNativeReadFault struct {
+	*os.File
+	cause    error
+	offset   int64
+	physical bool
+}
+
+func (s *benchmarkNativeReadFault) Read(p []byte) (int, error) {
+	n, err := s.File.Read(p)
+	if s.physical {
+		return n, s.cause
+	}
+	return n, err
+}
+func (s *benchmarkNativeReadFault) ReadAt(p []byte, offset int64) (int, error) {
+	n, err := s.File.ReadAt(p, offset)
+	if !s.physical && offset == s.offset {
+		return n, s.cause
+	}
+	return n, err
+}
+
+func TestGoBenchmarkSourceKeepsCompetingNativeReadCauses(t *testing.T) {
+	t.Parallel()
+	const body = "BenchmarkCause-8 1 5 ns/op\n"
+	for _, row := range []struct {
+		name     string
+		offset   int64
+		physical bool
+	}{
+		{name: "physical core marker and I/O cause remain refusal", physical: true},
+		{name: "name reread core marker and I/O cause remain refusal"},
+		{name: "iteration reread core marker and I/O cause remain refusal", offset: int64(strings.Index(body, " 1 ") + 1)},
+		{name: "metric value reread core marker and I/O cause remain refusal", offset: int64(strings.Index(body, " 5 ") + 1)},
+		{name: "metric unit reread core marker and I/O cause remain refusal", offset: int64(strings.Index(body, "ns/op"))},
+	} {
+		t.Run(row.name, func(t *testing.T) {
+			t.Parallel()
+			dir := t.TempDir()
+			file, err := os.Create(filepath.Join(dir, "native-benchmark"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() {
+				if err := file.Close(); err != nil {
+					t.Errorf("native source Close = %v, want nil", err)
+				}
+			})
+			if _, err := file.WriteString(body); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := file.Seek(0, io.SeekStart); err != nil {
+				t.Fatal(err)
+			}
+			source := &benchmarkNativeReadFault{File: file, cause: errors.Join(core.ErrGoToolchainOutput, io.ErrClosedPipe), offset: row.offset, physical: row.physical}
+			observations := 0
+			var refusal error
+			for record, err := range runprotocol.GoBenchmarkRecords(t.Context(), runprotocol.GoBenchmarkSourceRequest{Source: source}) {
+				if err == nil {
+					t.Fatalf("native competing-cause record = %+v, want error and zero record", record)
+				}
+				observations++
+				refusal = err
+				if record != (runprotocol.GoBenchmarkSourceRecord{}) {
+					t.Fatalf("native competing-cause record = %+v, want zero", record)
+				}
+			}
+			if observations != 1 || !errors.Is(refusal, core.ErrGoToolchainOutput) || !errors.Is(refusal, io.ErrClosedPipe) {
+				t.Fatalf("native read refusal = %d/%v, want one and both typed causes", observations, refusal)
 			}
 		})
 	}

@@ -25,12 +25,12 @@ func goBenchmarkInteger(source io.Reader) (int64, error) {
 	used := 0
 	seen := false
 	for {
-		digit, err := input.ReadByte()
-		if err == io.EOF {
+		digit, readErr := input.ReadByte()
+		if readErr == io.EOF {
 			break
 		}
-		if err != nil {
-			return 0, errors.Join(core.ErrGoToolchainOutput, err)
+		if readErr != nil {
+			return 0, errors.Join(core.ErrGoToolchainOutput, readErr)
 		}
 		if digit < '0' || digit > '9' {
 			return 0, core.ErrGoToolchainOutput
@@ -84,12 +84,12 @@ func goBenchmarkFloat(source io.Reader) (float64, error) {
 	decimal := int64(-1)
 	discardedNonzero := false
 	for {
-		next, err := input.Peek(1)
-		if err == io.EOF {
+		next, peekErr := input.Peek(1)
+		if peekErr == io.EOF {
 			break
 		}
-		if err != nil {
-			return 0, errors.Join(core.ErrGoToolchainOutput, err)
+		if peekErr != nil {
+			return 0, errors.Join(core.ErrGoToolchainOutput, peekErr)
 		}
 		char := next[0]
 		if char == '.' && decimal < 0 {
@@ -206,12 +206,12 @@ func goBenchmarkExponent(source *bufio.Reader) (int64, goBenchmarkExponentRange,
 	overflow := false
 	seen := false
 	for {
-		char, err := source.ReadByte()
-		if err == io.EOF {
+		char, digitErr := source.ReadByte()
+		if digitErr == io.EOF {
 			break
 		}
-		if err != nil {
-			return 0, goBenchmarkExponentRepresentable, errors.Join(core.ErrGoToolchainOutput, err)
+		if digitErr != nil {
+			return 0, goBenchmarkExponentRepresentable, errors.Join(core.ErrGoToolchainOutput, digitErr)
 		}
 		if char < '0' || char > '9' {
 			return 0, goBenchmarkExponentRepresentable, core.ErrGoToolchainOutput

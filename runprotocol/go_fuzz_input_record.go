@@ -62,9 +62,9 @@ func GoFuzzInputRecords(ctx context.Context, request GoFuzzInputSourceRequest) i
 				yield(GoFuzzInputRecord{}, err)
 				return
 			}
-			length, err := record.Bytes.Int64()
-			if err != nil {
-				yield(GoFuzzInputRecord{}, err)
+			length, extentErr := record.Bytes.Int64()
+			if extentErr != nil {
+				yield(GoFuzzInputRecord{}, extentErr)
 				return
 			}
 			span := goFuzzMetricSpan{offset: int64(record.Offset), bytes: length}

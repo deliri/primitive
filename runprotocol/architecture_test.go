@@ -287,3 +287,29 @@ func aboutRoleMarker(name string) bool {
 		return false
 	}
 }
+
+func TestOffWireObservationEnumsHaveClosedMethodContracts(t *testing.T) {
+	t.Parallel()
+	for value := 0; value < 256; value++ {
+		for _, row := range []struct {
+			domain string
+			valid  bool
+			label  string
+			labels []string
+		}{
+			{domain: "benchmark record presence", valid: GoBenchmarkRecordPresence(value).IsValid(), label: GoBenchmarkRecordPresence(value).String(), labels: []string{"unknown", "absent", "present", "refused"}},
+			{domain: "benchmark metric fields", valid: GoBenchmarkMetricFields(value).IsValid(), label: GoBenchmarkMetricFields(value).String(), labels: []string{"none", "time", "bytes", "time|bytes", "allocations", "time|allocations", "bytes|allocations", "time|bytes|allocations"}},
+			{domain: "fuzz completion", valid: GoFuzzCompletion(value).IsValid(), label: GoFuzzCompletion(value).String(), labels: []string{"unknown", "absent", "passed", "skipped", "failed"}},
+			{domain: "fuzz metric kind", valid: GoFuzzMetricKind(value).IsValid(), label: GoFuzzMetricKind(value).String(), labels: []string{"unknown", "executions", "execs", "crashers", "interesting"}},
+			{domain: "fuzz metric presence", valid: GoFuzzMetricPresence(value).IsValid(), label: GoFuzzMetricPresence(value).String(), labels: []string{"absent", "present", "malformed"}},
+		} {
+			want := "unknown"
+			if value < len(row.labels) {
+				want = row.labels[value]
+			}
+			if row.label != want || row.valid != (want != "unknown") {
+				t.Fatalf("%s ordinal %d = %q/%t, want %q/%t", row.domain, value, row.label, row.valid, want, want != "unknown")
+			}
+		}
+	}
+}

@@ -133,9 +133,9 @@ func GoBenchmarkNameFragments(ctx context.Context, request GoBenchmarkNameSource
 		var buffer [4096]byte
 		for remaining := size; remaining > 0; {
 			count := min(int64(len(buffer)), remaining)
-			n, err := io.ReadFull(&source, buffer[:int(count)])
-			if err = errors.Join(err, source.readErr); err != nil {
-				yield(GoBenchmarkNameFragment{}, errors.Join(core.ErrGoToolchainOutput, err))
+			n, readErr := io.ReadFull(&source, buffer[:int(count)])
+			if readErr = errors.Join(readErr, source.readErr); readErr != nil {
+				yield(GoBenchmarkNameFragment{}, errors.Join(core.ErrGoToolchainOutput, readErr))
 				return
 			}
 			remaining -= int64(n)

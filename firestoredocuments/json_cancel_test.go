@@ -108,7 +108,7 @@ func nativeDocumentCancellation(t *testing.T, jsonRead bool) {
 	select {
 	case <-provider.entered:
 	case <-time.After(10 * time.Second):
-		t.Fatal("native RPC entered = false, want actual provider admission")
+		t.Fatalf("native RPC admission = %v, want entered provider", false)
 	}
 	cancel(cause)
 	select {

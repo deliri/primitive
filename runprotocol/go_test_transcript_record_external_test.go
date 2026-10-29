@@ -153,7 +153,7 @@ func TestGoTestTranscriptCancelCauseAndNilSource(t *testing.T) {
 		seen = true
 	}
 	if !seen {
-		t.Fatal("native cancellation disappeared")
+		t.Fatalf("native cancellation observed = %t, want true", seen)
 	}
 	seen = false
 	for observed, err := range runprotocol.GoTestTranscriptRecords(t.Context(), runprotocol.GoTestTranscriptRequest{}) {
@@ -163,7 +163,7 @@ func TestGoTestTranscriptCancelCauseAndNilSource(t *testing.T) {
 		seen = true
 	}
 	if !seen {
-		t.Fatal("nil source refusal disappeared")
+		t.Fatalf("nil source refusal observed = %t, want true", seen)
 	}
 }
 
@@ -209,13 +209,14 @@ func TestGoTestTranscriptBorrowedExtentConservesNativeRefusals(t *testing.T) {
 				seen = true
 			}
 			if !seen {
-				t.Fatal("native positional refusal disappeared")
+				t.Fatalf("native positional refusal observed = %t, want true", seen)
 			}
 		})
 	}
 }
 
 func BenchmarkGoTestTranscriptNativeWorkingMemory(b *testing.B) {
+	b.ReportAllocs()
 	for _, extent := range []int64{65536, 64*1024*1024 + 1} {
 		b.Run(strconv.FormatInt(extent, 10), func(b *testing.B) {
 			file, err := os.Create(filepath.Join(b.TempDir(), "native-transcript"))

@@ -114,3 +114,41 @@ func projectGoBenchmarkMetric(record *goBenchmarkMeasurements, value io.Reader, 
 	record.Fields |= kind
 	return nil
 }
+
+func (p GoBenchmarkRecordPresence) IsValid() bool { return p.Validate() == nil }
+func (p GoBenchmarkRecordPresence) String() string {
+	switch p {
+	case GoBenchmarkRecordAbsent:
+		return "absent"
+	case GoBenchmarkRecordPresent:
+		return "present"
+	case GoBenchmarkRecordRefused:
+		return "refused"
+	default:
+		return "unknown"
+	}
+}
+
+func (f GoBenchmarkMetricFields) IsValid() bool { return f.Validate() == nil }
+func (f GoBenchmarkMetricFields) String() string {
+	switch f {
+	case 0:
+		return "none"
+	case 1:
+		return "time"
+	case 2:
+		return "bytes"
+	case 3:
+		return "time|bytes"
+	case 4:
+		return "allocations"
+	case 5:
+		return "time|allocations"
+	case 6:
+		return "bytes|allocations"
+	case 7:
+		return "time|bytes|allocations"
+	default:
+		return "unknown"
+	}
+}

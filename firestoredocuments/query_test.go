@@ -75,7 +75,7 @@ func queryContextsStopped(t *testing.T, o *queryObservation, want int) {
 		select {
 		case <-ctx.Done():
 		case <-time.After(10 * time.Second):
-			t.Fatal("query native stream context remains open after return, want SDK Stop cancellation")
+			t.Fatalf("native stream context error = %v, want canceled after Query return", ctx.Err())
 		}
 	}
 }
@@ -212,8 +212,8 @@ func TestQueryRefusesBeforeNativeEffects(t *testing.T) {
 	t.Parallel()
 	client, costs := nativeClient(t)
 	query := client.Collection("query-contract").Query
-	visitor := func(context.Context, Document[nativeRecord]) (QueryVisitDecision, error) {
-		t.Fatal("refused query reached visitor")
+	visitor := func(gotContext context.Context, gotDocument Document[nativeRecord]) (QueryVisitDecision, error) {
+		t.Fatalf("refused query visitor = %v/%+v, want no visit", gotContext, gotDocument)
 		return QueryContinue, nil
 	}
 	for _, row := range []struct {
@@ -233,17 +233,30 @@ func TestQueryRefusesBeforeNativeEffects(t *testing.T) {
 			}
 		})
 	}
-	if err := Query[nativeRecord](nil, QueryRequest[nativeRecord]{Query: query, Visit: visitor}); !errors.Is(err, core.ErrNilContext) {
-		t.Fatalf("nil context Query = %v, want nil-context identity", err)
-	}
+	cause := errors.New("query pre-admission cancellation")
 	ctx, cancel := context.WithCancelCause(t.Context())
-	cause := errors.New("query pre-admission canceled")
 	cancel(cause)
-	if err := Query(ctx, QueryRequest[nativeRecord]{Query: query, Visit: visitor}); !errors.Is(err, cause) || !errors.Is(err, context.Canceled) {
-		t.Fatalf("pre-cancel Query = %v, want both causes", err)
+	canceled, stop := context.WithCancel(t.Context())
+	stop()
+	for _, row := range []struct {
+		name string
+		ctx  context.Context
+		want error
+	}{
+		{name: "absent context is a typed refusal", ctx: nil, want: core.ErrNilContext},
+		{name: "canceled context retains cancellation", ctx: canceled, want: context.Canceled},
+		{name: "custom caller cause remains visible", ctx: ctx, want: cause},
+	} {
+		t.Run(row.name, func(t *testing.T) {
+			t.Parallel()
+			err := Query[nativeRecord](row.ctx, QueryRequest[nativeRecord]{Query: query, Visit: visitor})
+			if !errors.Is(err, core.ErrFirestoreDocumentsContract) || !errors.Is(err, row.want) {
+				t.Fatalf("Query context refusal = %v, want contract and %v", err, row.want)
+			}
+		})
 	}
-	if err := Query(t.Context(), QueryRequest[nonStructRecord]{Query: query, Visit: func(context.Context, Document[nonStructRecord]) (QueryVisitDecision, error) {
-		t.Fatal("nonstruct visited")
+	if err := Query(t.Context(), QueryRequest[nonStructRecord]{Query: query, Visit: func(gotContext context.Context, gotDocument Document[nonStructRecord]) (QueryVisitDecision, error) {
+		t.Fatalf("nonstruct query visitor = %v/%+v, want no visit", gotContext, gotDocument)
 		return QueryContinue, nil
 	}}); !errors.Is(err, core.ErrFirestoreDocumentsContract) {
 		t.Fatalf("nonstruct Query = %v, want contract", err)
@@ -329,8 +342,8 @@ func FuzzQueryAdmitsExactPersistedTypedRecords(f *testing.F) {
 func TestQueryBindsNativeClientProjectAndDatabase(t *testing.T) {
 	t.Parallel()
 	client, costs := nativeClient(t)
-	visitor := func(context.Context, Document[nativeRecord]) (QueryVisitDecision, error) {
-		t.Fatal("binding observation executed query visitor")
+	visitor := func(gotContext context.Context, gotDocument Document[nativeRecord]) (QueryVisitDecision, error) {
+		t.Fatalf("binding query visitor = %v/%+v, want no execution", gotContext, gotDocument)
 		return QueryContinue, nil
 	}
 	for _, row := range []struct {
@@ -433,5 +446,33 @@ func TestQueryJoinedExhaustionCannotHideProviderCause(t *testing.T) {
 			}
 			queryContextsStopped(t, observed, 1)
 		})
+	}
+}
+
+func TestOffWireFirestoreEnumMethodContracts(t *testing.T) {
+	t.Parallel()
+	for value := 0; value < 256; value++ {
+		mode := TransactionMode(value)
+		decision := QueryVisitDecision(value)
+		wantMode := "unknown"
+		if value == 0 {
+			wantMode = "read_write"
+		}
+		if value == 1 {
+			wantMode = "read_only"
+		}
+		wantDecision := "unknown"
+		if value == 1 {
+			wantDecision = "continue"
+		}
+		if value == 2 {
+			wantDecision = "stop"
+		}
+		if mode.String() != wantMode || mode.IsValid() != (value < 2) || (mode.Validate() == nil) != mode.IsValid() {
+			t.Fatalf("transaction mode %d = %q/%t/%v, want %q and matching closed validation", value, mode.String(), mode.IsValid(), mode.Validate(), wantMode)
+		}
+		if decision.String() != wantDecision || decision.IsValid() != (value == 1 || value == 2) || (decision.Validate() == nil) != decision.IsValid() {
+			t.Fatalf("query decision %d = %q/%t/%v, want %q and matching closed validation", value, decision.String(), decision.IsValid(), decision.Validate(), wantDecision)
+		}
 	}
 }

@@ -201,14 +201,27 @@ func TestIncrementRefusesBeforeNativeEffects(t *testing.T) {
 		})
 	}
 	request := IncrementRequest{Reference: ref, Field: firestore.FieldPath{"value"}, Delta: 1}
-	if err := Increment(nil, request); !errors.Is(err, core.ErrNilContext) {
-		t.Fatalf("nil Increment context = %v, want nil-context identity", err)
-	}
 	cause := errors.New("increment pre-admission cancellation")
 	ctx, cancel := context.WithCancelCause(t.Context())
 	cancel(cause)
-	if err := Increment(ctx, request); !errors.Is(err, cause) || !errors.Is(err, context.Canceled) {
-		t.Fatalf("pre-cancel Increment = %v, want both causes", err)
+	canceled, stop := context.WithCancel(t.Context())
+	stop()
+	for _, row := range []struct {
+		name string
+		ctx  context.Context
+		want error
+	}{
+		{name: "absent context is a typed refusal", ctx: nil, want: core.ErrNilContext},
+		{name: "canceled context retains cancellation", ctx: canceled, want: context.Canceled},
+		{name: "custom caller cause remains visible", ctx: ctx, want: cause},
+	} {
+		t.Run(row.name, func(t *testing.T) {
+			t.Parallel()
+			err := Increment(row.ctx, request)
+			if !errors.Is(err, core.ErrFirestoreDocumentsContract) || !errors.Is(err, row.want) {
+				t.Fatalf("Increment context refusal = %v, want contract and %v", err, row.want)
+			}
+		})
 	}
 	t.Cleanup(func() {
 		if costs.reads.Load() != 0 || costs.writes.Load() != 0 || costs.commits.Load() != 0 {

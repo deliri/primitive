@@ -112,7 +112,7 @@ func TestBenchmarkResultPreservesUnobservedSuite(t *testing.T) {
 			if row.wantSuite {
 				scalar, err := known.MarshalJSON()
 				if err != nil || !bytes.Contains(encoded, append([]byte(`"suite":`), scalar...)) {
-					t.Fatalf("known suite scalar wire = %s/%v, want original actual suite scalar %s", encoded, err, scalar)
+					t.Fatalf("known suite scalar wire = %s/%v, want original suite scalar %s", encoded, err, scalar)
 				}
 			}
 

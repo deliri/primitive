@@ -126,16 +126,16 @@ func ObserveGoFuzzCompletion(ctx context.Context, request GoFuzzCompletionReques
 		if record.Framing != lineio.RecordFramingLF {
 			continue
 		}
-		length, err := record.Bytes.Int64()
-		if err != nil {
-			return GoFuzzCompletionObservation{}, err
+		length, extentErr := record.Bytes.Int64()
+		if extentErr != nil {
+			return GoFuzzCompletionObservation{}, extentErr
 		}
 		guard := &goFuzzFrameSource{ctx: ctx, source: io.NewSectionReader(request.Source, int64(record.Offset), length)}
 		source := goFuzzSpanReader(guard, length)
 		match := pattern.FindReaderSubmatchIndex(source)
 		_, drainErr := io.Copy(io.Discard, source)
-		if err := errors.Join(guard.readErr, drainErr, contextstate.Validate(ctx)); err != nil {
-			return GoFuzzCompletionObservation{}, err
+		if extentErr := errors.Join(guard.readErr, drainErr, contextstate.Validate(ctx)); extentErr != nil {
+			return GoFuzzCompletionObservation{}, extentErr
 		}
 		if match == nil {
 			continue
@@ -188,3 +188,19 @@ func (GoFuzzTarget) runProtocolFact()                            {}
 func (GoFuzzCompletionRequest) runProtocolFact()                 {}
 func (GoFuzzCompletionObservation) runProtocolSealedProjection() {}
 func (goFuzzFrameSource) runProtocolInternalFlowCarrier()        {}
+
+func (c GoFuzzCompletion) IsValid() bool { return c.Validate() == nil }
+func (c GoFuzzCompletion) String() string {
+	switch c {
+	case GoFuzzCompletionAbsent:
+		return "absent"
+	case GoFuzzCompletionPassed:
+		return "passed"
+	case GoFuzzCompletionSkipped:
+		return "skipped"
+	case GoFuzzCompletionFailed:
+		return "failed"
+	default:
+		return "unknown"
+	}
+}

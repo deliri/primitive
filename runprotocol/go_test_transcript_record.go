@@ -70,9 +70,9 @@ func GoTestTranscriptRecords(ctx context.Context, request GoTestTranscriptReques
 				yield(GoTestRecordSyntax{}, goFuzzSignalRefusal(ctx, err))
 				return
 			}
-			length, err := record.Bytes.Int64()
-			if err != nil {
-				yield(GoTestRecordSyntax{}, err)
+			length, extentErr := record.Bytes.Int64()
+			if extentErr != nil {
+				yield(GoTestRecordSyntax{}, extentErr)
 				return
 			}
 			section := io.NewSectionReader(request.Source, int64(record.Offset), length)
@@ -121,26 +121,26 @@ func GoTestTranscriptStreamRecords(ctx context.Context, request GoTestTranscript
 		var offset int64
 		for {
 			var observed GoTestRecordSyntax
-			extent, err := source.WithRecord(ctx, lineio.RecordReadRequest{Use: func(ctx context.Context, record io.Reader) error {
-				var err error
-				observed, err = readGoTestRecordSyntax(bufio.NewReaderSize(record, 4096))
-				return err
+			extent, recordErr := source.WithRecord(ctx, lineio.RecordReadRequest{Use: func(ctx context.Context, record io.Reader) error {
+				var syntaxErr error
+				observed, syntaxErr = readGoTestRecordSyntax(bufio.NewReaderSize(record, 4096))
+				return syntaxErr
 			}})
-			if err == io.EOF {
+			if recordErr == io.EOF {
 				return
 			}
-			if err != nil {
-				yield(GoTestRecordSyntax{}, goFuzzSignalRefusal(ctx, err))
+			if recordErr != nil {
+				yield(GoTestRecordSyntax{}, goFuzzSignalRefusal(ctx, recordErr))
 				return
 			}
-			length, err := extent.Bytes.Int64()
-			if err != nil || length > math.MaxInt64-offset {
-				yield(GoTestRecordSyntax{}, errors.Join(core.ErrGoToolchainOutput, err))
+			length, recordErr := extent.Bytes.Int64()
+			if recordErr != nil || length > math.MaxInt64-offset {
+				yield(GoTestRecordSyntax{}, errors.Join(core.ErrGoToolchainOutput, recordErr))
 				return
 			}
 			observed.Record = lineio.RecordRange{Offset: lineio.SourceByteOffset(offset), Bytes: extent.Bytes, Framing: extent.Framing}
-			if err := errors.Join(observed.Validate(), contextstate.Validate(ctx)); err != nil {
-				yield(GoTestRecordSyntax{}, goFuzzSignalRefusal(ctx, err))
+			if recordErr := errors.Join(observed.Validate(), contextstate.Validate(ctx)); recordErr != nil {
+				yield(GoTestRecordSyntax{}, goFuzzSignalRefusal(ctx, recordErr))
 				return
 			}
 			if !yield(observed, nil) {
@@ -172,9 +172,8 @@ func readGoTestRecordSyntax(reader *bufio.Reader) (GoTestRecordSyntax, error) {
 	var raw, lower [goTestSyntaxWindowRunes]rune
 	var count int64
 	var trimmedCount int64
-	var exitPrefix, firstSpace, delimiter, restNonspace, afterDelimiterNonspace bool
-	var tokenCount, tokenEffective int64
-	var tokenFirst rune
+	var exitPrefix bool
+	var exit goTestExitToken
 	for {
 		value, _, err := reader.ReadRune()
 		if err == io.EOF {
@@ -223,38 +222,17 @@ func readGoTestRecordSyntax(reader *bufio.Reader) (GoTestRecordSyntax, error) {
 			exitPrefix = goTestSyntaxSuffix(&lower, count, goTestSyntaxExitStatusPrefix)
 		}
 		if exitPrefix && count > int64(len(goTestSyntaxExitStatusPrefix)) {
-			if !unicode.IsSpace(value) {
-				restNonspace = true
-				if delimiter {
-					afterDelimiterNonspace = true
-				}
-			}
-			if !delimiter {
-				if value == ' ' {
-					firstSpace = tokenCount == 0
-					delimiter = true
-				} else {
-					if tokenCount == 0 {
-						tokenFirst = value
-					}
-					tokenCount++
-					if !unicode.IsSpace(value) {
-						tokenEffective = tokenCount
-					}
-				}
-			}
+			exit.observe(value)
 		}
+
 	}
 	// Native exit-status syntax cuts at the first ASCII space only. A leading space
 	// leaves the entire nonempty remainder as the status token. Unicode space
 	// at the record's end is trimmed; interior tabs remain token data.
-	statusCount := tokenEffective
-	if delimiter && afterDelimiterNonspace {
-		statusCount = tokenCount
-	}
-	if exitPrefix && restNonspace && (firstSpace || statusCount != 1 || tokenFirst != '0') {
+	if exitPrefix && exit.nonzero() {
 		facts.NonZeroExitStatus = true
 	}
+
 	if trimmedCount < int64(len(goTestSyntaxPackageFailLinePrefix)) {
 		facts.PackageFailure = false
 	}
@@ -277,3 +255,42 @@ func goTestSyntaxSuffix(window *[goTestSyntaxWindowRunes]rune, count int64, patt
 	}
 	return true
 }
+
+// goTestExitToken retains only the currently streamed native status token.
+type goTestExitToken struct {
+	firstSpace, delimiter, restNonspace, afterDelimiterNonspace bool
+	count, effective                                            int64
+	first                                                       rune
+}
+
+func (s *goTestExitToken) observe(value rune) {
+	if !unicode.IsSpace(value) {
+		s.restNonspace = true
+		if s.delimiter {
+			s.afterDelimiterNonspace = true
+		}
+	}
+	if s.delimiter {
+		return
+	}
+	if value == ' ' {
+		s.firstSpace = s.count == 0
+		s.delimiter = true
+		return
+	}
+	if s.count == 0 {
+		s.first = value
+	}
+	s.count++
+	if !unicode.IsSpace(value) {
+		s.effective = s.count
+	}
+}
+func (s goTestExitToken) nonzero() bool {
+	count := s.effective
+	if s.delimiter && s.afterDelimiterNonspace {
+		count = s.count
+	}
+	return s.restNonspace && (s.firstSpace || count != 1 || s.first != '0')
+}
+func (goTestExitToken) runProtocolInternalFlowCarrier() {}

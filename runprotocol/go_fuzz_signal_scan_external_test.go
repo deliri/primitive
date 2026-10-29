@@ -130,13 +130,14 @@ func TestGoFuzzSignalFixedScanConservesNativeRefusals(t *testing.T) {
 				refused = true
 			}
 			if !refused {
-				t.Fatal("native refusal disappeared")
+				t.Fatalf("native refusal observed = %t, want true", refused)
 			}
 		})
 	}
 }
 
 func BenchmarkGoFuzzSignalFixedNativeWorkingMemory(b *testing.B) {
+	b.ReportAllocs()
 	for _, extent := range []int64{65536, 64*1024*1024 + 1} {
 		b.Run(strconv.FormatInt(extent, 10), func(b *testing.B) {
 			file, err := os.Create(filepath.Join(b.TempDir(), "native-signal-benchmark"))

@@ -124,17 +124,18 @@ func TestGoFuzzInputRecordsActualNativeFailureLayerTriad(t *testing.T) {
 				}
 				stat, err := os.Stat(filepath.Join(dir, string(path)))
 				if err != nil || !stat.Mode().IsRegular() || stat.Size() == 0 {
-					t.Fatalf("actual native candidate %q stat/error = %v/%v, want nonempty regular corpus", path, stat, err)
+					t.Fatalf("native candidate %q stat/error = %v/%v, want nonempty regular corpus", path, stat, err)
 				}
 			}
 			if (count > 0) != tc.wantInput {
-				t.Fatalf("actual candidate count = %d, want presence %t", count, tc.wantInput)
+				t.Fatalf("candidate count = %d, want presence %t", count, tc.wantInput)
 			}
 		})
 	}
 }
 
 func BenchmarkGoFuzzInputRecordNativeWorkingMemory(b *testing.B) {
+	b.ReportAllocs()
 	for _, extent := range []int64{64 * 1024, 64*1024*1024 + 1} {
 		b.Run(strconv.FormatInt(extent, 10), func(b *testing.B) {
 			dir := b.TempDir()
@@ -257,7 +258,7 @@ func TestGoFuzzInputRecordRefusalLayerTriad(t *testing.T) {
 		})
 	}
 	if (runprotocol.GoFuzzInputRecord{}).Validate() == nil {
-		t.Fatal("zero span accepted, want refusal")
+		t.Fatalf("zero span validation = %v, want refusal", (runprotocol.GoFuzzInputRecord{}).Validate())
 	}
 }
 

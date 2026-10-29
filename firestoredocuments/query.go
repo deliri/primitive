@@ -127,3 +127,15 @@ func Query[T core.Validatable](ctx context.Context, request QueryRequest[T]) err
 		}
 	}
 }
+
+func (d QueryVisitDecision) IsValid() bool { return d.Validate() == nil }
+func (d QueryVisitDecision) String() string {
+	switch d {
+	case QueryContinue:
+		return "continue"
+	case QueryStop:
+		return "stop"
+	default:
+		return "unknown"
+	}
+}

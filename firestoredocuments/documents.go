@@ -168,3 +168,15 @@ func RunTransaction(ctx context.Context, request TransactionRequest) (Transactio
 	}
 	return TransactionResult{committed: true}, nil
 }
+
+func (m TransactionMode) IsValid() bool { return m.Validate() == nil }
+func (m TransactionMode) String() string {
+	switch m {
+	case TransactionReadWrite:
+		return "read_write"
+	case TransactionReadOnly:
+		return "read_only"
+	default:
+		return "unknown"
+	}
+}
