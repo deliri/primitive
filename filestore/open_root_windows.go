@@ -29,3 +29,26 @@ func openRootDirectory(path string) (*os.Root, error) {
 	}
 	return root, nil
 }
+
+// openChildRootDirectory refuses a blocking or redirected leaf beneath parent
+// before acquisition, then proves the rooted capability still names the
+// inspected directory.
+func openChildRootDirectory(parent *os.Root, path string) (*os.Root, error) {
+	before, err := parent.Lstat(path)
+	if err != nil {
+		return nil, err
+	}
+	if windowsReparsePoint(before) || !before.IsDir() {
+		return nil, fs.ErrInvalid
+	}
+	root, err := parent.OpenRoot(path)
+	if err != nil {
+		return nil, err
+	}
+	after, statErr := root.Stat(".")
+	validationErr := errors.Join(statErr, validateWindowsSameDirectory(before, after))
+	if validationErr != nil {
+		return nil, errors.Join(validationErr, root.Close())
+	}
+	return root, nil
+}

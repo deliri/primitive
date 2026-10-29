@@ -61,6 +61,26 @@ func OpenCustodyRead(ctx context.Context, request ReadHandleRequest) (*os.File, 
 	return openCustodyFile(request.Location.Root, request.Location.Path.String())
 }
 
+// OpenMatchedCustodyRead is OpenCustodyRead with the admitting observation and
+// the acquisition named separately. It freshly observes Observation without
+// following a final symbolic link and requires a regular entry, opens Source as
+// a regular file, and returns the handle only when both name the same inode;
+// otherwise it closes the handle and refuses. A caller holding a child root
+// opens through it while the original full name still decides admission, so a
+// replaced or moved parent cannot admit the held directory's stale entry. Like
+// OpenCustodyRead it reads no bytes and creates or modifies nothing, and the
+// caller owns and closes the returned file.
+func OpenMatchedCustodyRead(ctx context.Context, request MatchedReadHandleRequest) (*os.File, error) {
+	if err := contextstate.Validate(ctx); err != nil {
+		return nil, err
+	}
+	if err := request.Validate(); err != nil {
+		return nil, err
+	}
+	observation, source := request.Observation, request.Source
+	return openMatchedCustodyFile(observation.Root, observation.Path.String(), source.Root, source.Path.String())
+}
+
 // OpenUpdate opens one existing regular file below a rooted boundary for
 // caller-owned reading and in-place updates. The caller owns and must close the
 // returned handle. Filestore verifies the opened object is regular before the
@@ -166,6 +186,29 @@ func OpenRoot(ctx context.Context, path core.AbsolutePath) (*os.Root, error) {
 		return nil, contractError(err)
 	}
 	root, err := openRootDirectory(path.String())
+	if err != nil {
+		return nil, sourceError(err)
+	}
+	return root, nil
+}
+
+// OpenChildRoot opens one existing directory beneath a held root as a
+// caller-owned rooted capability, so a caller reading many siblings resolves
+// their parent once. Acquisition enforces a directory at the OS boundary. On
+// darwin and linux it opens nonblocking and directory-only, following a final
+// directory symlink confined beneath the root while refusing a dangling or
+// escaping one; on windows a final reparse point is refused. The capability
+// keeps naming the opened directory if the namespace later moves; pair it with
+// OpenMatchedCustodyRead when the current namespace must still admit each file.
+// The caller closes the returned root.
+func OpenChildRoot(ctx context.Context, request ChildRootRequest) (*os.Root, error) {
+	if err := contextstate.Validate(ctx); err != nil {
+		return nil, err
+	}
+	if err := request.Validate(); err != nil {
+		return nil, err
+	}
+	root, err := openChildRootDirectory(request.Location.Root, request.Location.Path.String())
 	if err != nil {
 		return nil, sourceError(err)
 	}
