@@ -1,11 +1,14 @@
 package gotoolchain
 
 import (
+	"errors"
 	"go/parser"
 	"go/token"
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/deliri/primitive/v2026/core"
 )
 
 // testTablesFuzzMaximum bounds a parsed table, as Limits.PackageMaximum does.
@@ -13,7 +16,7 @@ const testTablesFuzzMaximum = 4
 
 // testTablesFuzzSource is cmd/go's generated test main with one test name.
 func testTablesFuzzSource(name string) string {
-	return "package main\n\nimport \"testing\"\n\nvar tests = []testing.InternalTest{\n\t{" + strconv.Quote(name) + ", nil},\n}\n\nvar benchmarks = []testing.InternalBenchmark{}\n\nvar fuzzTargets = []testing.InternalFuzzTarget{}\n\nvar examples = []testing.InternalExample{}\n\nfunc main() {\n\tm := testing.MainStart(nil, tests, benchmarks, fuzzTargets, examples)\n\t_ = m\n}\n"
+	return "package main\n\nimport (\"os\"; \"testing\"; \"testing/internal/testdeps\")\n\nvar tests = []testing.InternalTest{\n\t{" + strconv.Quote(name) + ", nil},\n}\n\nvar benchmarks = []testing.InternalBenchmark{}\n\nvar fuzzTargets = []testing.InternalFuzzTarget{}\n\nvar examples = []testing.InternalExample{}\n\nfunc main() {\n\tm := testing.MainStart(testdeps.TestDeps{}, tests, benchmarks, fuzzTargets, examples)\n\tos.Exit(m.Run())\n}\n"
 }
 
 // A generated test main's one name either reads back exactly when it is a Go
@@ -71,7 +74,7 @@ func TestReadTestTablesRefusesUnexpectedGeneratedShape(t *testing.T) {
 	}{
 		{name: "generated shape is read", source: valid},
 		{name: "main without testing.MainStart", source: strings.Replace(valid, "testing.MainStart", "testing.Other", 1), wantErr: true},
-		{name: "main starting testing twice", source: strings.Replace(valid, "_ = m", "_ = testing.MainStart(nil, tests, benchmarks, fuzzTargets, examples)", 1), wantErr: true},
+		{name: "main starting testing twice", source: strings.Replace(valid, "os.Exit(m.Run())", "_ = testing.MainStart(testdeps.TestDeps{}, tests, benchmarks, fuzzTargets, examples)", 1), wantErr: true},
 		{name: "tests table of another element type", source: strings.Replace(valid, "[]testing.InternalTest{", "[]testing.InternalBenchmark{", 1), wantErr: true},
 		{name: "fixed-size array table", source: strings.Replace(valid, "[]testing.InternalExample{", "[0]testing.InternalExample{", 1), wantErr: true},
 		{name: "table from another package", source: strings.Replace(valid, "[]testing.InternalFuzzTarget{", "[]other.InternalFuzzTarget{", 1), wantErr: true},
@@ -85,6 +88,50 @@ func TestReadTestTablesRefusesUnexpectedGeneratedShape(t *testing.T) {
 			tables, err := readTestTables(file, testTablesFuzzMaximum)
 			if tc.wantErr != (err != nil) || tc.wantErr && (len(tables.Tests) != 0 || tables.CustomTestMain) || !tc.wantErr && (len(tables.Tests) != 1 || tables.Tests[0].String() != "TestPortable") {
 				t.Fatalf("readTestTables = %+v/%v, want error %t", tables, err, tc.wantErr)
+			}
+		})
+	}
+}
+
+// The tables returned by the parser must be the tables passed directly to
+// testing.MainStart, never unused declarations beside a different selection.
+func TestReadTestTablesBindsStartedTablesLayerTriad(t *testing.T) {
+	t.Parallel()
+	valid := testTablesFuzzSource("TestPortable")
+	for _, tc := range []struct {
+		name, source        string
+		wantTests           int
+		wantCustom, wantErr bool
+	}{
+		{name: "positive/direct generated main", source: valid, wantTests: 1},
+		{name: "positive/direct custom TestMain", source: strings.Replace(valid, "os.Exit(m.Run())", "_test.TestMain(m)\n os.Exit(0)", 1), wantTests: 1, wantCustom: true},
+		{name: "neutral/direct empty tables", source: strings.Replace(valid, "{\"TestPortable\", nil},", "", 1)},
+		{name: "negative/nonempty replacement for empty tests", source: strings.Replace(strings.Replace(valid, "{\"TestPortable\", nil},", "", 1), "TestDeps{}, tests,", "TestDeps{}, []testing.InternalTest{{\"TestHidden\", nil}},", 1), wantErr: true},
+		{name: "negative/reordered tables", source: strings.Replace(valid, "tests, benchmarks,", "benchmarks, tests,", 1), wantErr: true},
+		{name: "negative/missing table argument", source: strings.Replace(valid, ", fuzzTargets, examples)", ", fuzzTargets)", 1), wantErr: true},
+		{name: "negative/additional table argument", source: strings.Replace(valid, ", fuzzTargets, examples)", ", fuzzTargets, examples, tests)", 1), wantErr: true},
+		{name: "negative/unused nested start", source: strings.Replace(valid, "m := testing.MainStart(testdeps.TestDeps{}, tests, benchmarks, fuzzTargets, examples)", "m := func() { testing.MainStart(testdeps.TestDeps{}, tests, benchmarks, fuzzTargets, examples) }", 1), wantErr: true},
+		{name: "negative/main never runs testing", source: strings.Replace(valid, "os.Exit(m.Run())", "_ = m", 1), wantErr: true},
+		{name: "negative/foreign main package", source: strings.Replace(valid, "package main", "package foreign", 1), wantErr: true},
+		{name: "negative/foreign testing import", source: strings.Replace(valid, "\"testing\";", "testing \"example.invalid/testing\";", 1), wantErr: true},
+		{name: "negative/noncanonical testing dependencies", source: strings.Replace(valid, "testdeps.TestDeps{}", "nil", 1), wantErr: true},
+		{name: "negative/custom main receives another runner", source: strings.Replace(valid, "os.Exit(m.Run())", "_test.TestMain(other)\n os.Exit(0)", 1), wantErr: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			file, err := parser.ParseFile(token.NewFileSet(), "_testmain.go", tc.source, parser.SkipObjectResolution)
+			if err != nil {
+				t.Fatalf("fixture parse = %v, want nil", err)
+			}
+			got, err := readTestTables(file, testTablesFuzzMaximum)
+			if tc.wantErr {
+				if !errors.Is(err, core.ErrGoToolchainOutput) || len(got.Tests)+len(got.Benchmarks)+len(got.FuzzTargets)+len(got.Examples) != 0 || got.CustomTestMain {
+					t.Fatalf("readTestTables = %+v/%v, want typed refusal and zero tables", got, err)
+				}
+				return
+			}
+			if err != nil || len(got.Tests) != tc.wantTests || len(got.Benchmarks)+len(got.FuzzTargets)+len(got.Examples) != 0 || got.CustomTestMain != tc.wantCustom {
+				t.Fatalf("readTestTables = %+v/%v, want %d tests and custom %t", got, err, tc.wantTests, tc.wantCustom)
 			}
 		})
 	}
