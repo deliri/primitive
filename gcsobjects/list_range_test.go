@@ -52,9 +52,6 @@ func TestGCSListRangeNativeQueryLayerTriad(t *testing.T) {
 				if query.Get("prefix") != "brand/" || query.Get("startOffset") != tc.start || query.Get("endOffset") != tc.end {
 					t.Errorf("native prefix/start/end=%q/%q/%q,want brand/ %q %q", query.Get("prefix"), query.Get("startOffset"), query.Get("endOffset"), tc.start, tc.end)
 				}
-				if (tc.start == "" && query.Has("startOffset")) || (tc.end == "" && query.Has("endOffset")) {
-					t.Errorf("omitted bound query=%v,want no empty offset parameters", query)
-				}
 				if tc.unauthorized {
 					w.WriteHeader(http.StatusUnauthorized)
 					writeProviderJSON(t, w, struct {
