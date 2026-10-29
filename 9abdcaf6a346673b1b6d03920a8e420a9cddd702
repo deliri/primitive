@@ -143,5 +143,20 @@
   "postprocessor_error": "Metadata454 submitting an caller/native/readers all0 and retainedsummaryvalid. The private wrapper subsequently asserted3planchildren for a nonplan and exited1. Rootfixedlabelpredicate; no Anmetadata replay, no assertionwaiver or hiddenfailedtoolcall.",
   "limits": "Queryonly, no Anvilplacementimplementation/adoption/deployment orspeedclaim. Validates cmdGo generated main smallgrammar, not arbitraryGo typechecking. CustomTestMain reportsunknownforabsence. BoundedReadPrefixusesexplicitconfiguredlimit+1memorywindow andnativecontext/EOFcapability. Linux/Darwincrosscontextlisting is not eachplatformnativeexecution. Memory62d/Darwineee remainexcluded andunpublished. Primaryforeignsource/dirty/missingworktrees preserved.",
   "held_lanes": "Earlier fullread-onlycensusclassification packet retained; thisfresh stableMac/Furnacecensus preserves647refs/28trees and438/14 inthiscut. No destructivecleanup. WitnessSDK453publishedunchanged, nextWitness179source/componentsremainseparate.",
-  "status": "METADATA_NATIVE_PROVED_READY_FOR_ATOMIC_PUBLICATION_NOT_YET_PUBLISHED"
+  "status": "PUBLISHED454_FETCHED_ORIGIN_AND_AUTHORED_BLOBS_BOUND",
+  "published_module": {
+    "path": "github.com/deliri/primitive/v2026",
+    "version": "v2026.1.454",
+    "sum": "h1:aENSbTkysIxUANhNAnnt4oLzwTXKt+O6wPo9I7J7Hw0=",
+    "go_mod_sum": "h1:Pq+uoBF3mr+tXTiVvPbo6GcH546H4+nN85HyB1szwHw=",
+    "origin": {
+      "VCS": "git",
+      "URL": "https://github.com/deliri/primitive",
+      "Hash": "9abdcaf6a346673b1b6d03920a8e420a9cddd702",
+      "Ref": "refs/tags/v2026.1.454"
+    },
+    "binding_path": "/private/tmp/primitive-test-tables-root-repair/PUBLISHED454-MODULE-BINDING.json",
+    "binding_sha256": "194d13791850bea5b22cc9af3782f2034762297fa70e084dceb0404b7c86427b",
+    "tag_object": "ce0a5d70afa9444772f504dc3d17c4df5f3277fa"
+  }
 }
