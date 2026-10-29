@@ -286,6 +286,11 @@ func TestOpenMatchedCustodyReadNativeLayerTriad(t *testing.T) {
 				Source:      filestore.Location{Root: child, Path: mustRelativePath(t, "f")},
 			}
 			switch tc.mutation {
+			case matchedParentReplaced, matchedParentRemoved, matchedParentEscapes:
+				// These move the original parent aside; its neighbor moves with it.
+				neighbor = filepath.Join(directory, "a.old", "b", "g")
+			}
+			switch tc.mutation {
 			case matchedUnchanged, matchedReplacedAfterOpen:
 			case matchedParentReplaced:
 				if err := os.Rename(filepath.Join(directory, "a"), filepath.Join(directory, "a.old")); err != nil {
