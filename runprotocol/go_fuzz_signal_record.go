@@ -113,9 +113,9 @@ func goFuzzSignalMarker(offset int64, length int) (lineio.RecordRange, error) {
 // Read the physical record once after framing. Leading whitespace contributes
 // only its native offset. The fixed overlap preserves markers across reads.
 func readGoFuzzSignalRecord(ctx context.Context, source lineio.RecordSource, record lineio.RecordRange) (GoFuzzSignalRecord, error) {
-	length, err := record.Bytes.Int64()
-	if err != nil {
-		return GoFuzzSignalRecord{}, err
+	length, extentErr := record.Bytes.Int64()
+	if extentErr != nil {
+		return GoFuzzSignalRecord{}, extentErr
 	}
 	guard := &goFuzzFrameSource{ctx: ctx, source: io.NewSectionReader(source, int64(record.Offset), length)}
 	reader := goFuzzSpanReader(guard, length)
