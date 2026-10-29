@@ -59,34 +59,89 @@ func (i TestIdentity) Validate() error {
 	return errors.Join(i.Suite.Validate(), i.Name.Validate())
 }
 
-// TestResult is one producer-observed test/subtest result in a run's ordered
-// result stream. Ordinal identifies the occurrence, so repeated names remain
-// separate facts. It does not claim an inferred retry or parent attempt.
-// Elapsed is absent when no duration was observed; a present zero is a real
-// observation. A result alone never proves complete selection or acceptance.
-// Producers use the existing Outcome domain, including explicit non-pass facts.
-type TestResult struct {
-	Test    TestIdentity       `json:"test"`
-	Elapsed *temporal.Duration `json:"elapsed,omitempty"`
-	Ordinal uint64             `json:"ordinal"`
-	Outcome Outcome            `json:"outcome"`
+// RunResult is an actual native result, not a name-based classification. A
+// package has no synthetic test name; a benchmark row has no invented test
+// outcome. The enclosing RunFact owns its occurrence ordinal. PackagePath is
+// optional actual producer-resolved attribution, never module-prefix guessing.
+type RunResult struct {
+	Kind        RunResultKind      `json:"kind"`
+	Suite       TestLabel          `json:"suite"`
+	Name        *TestLabel         `json:"name,omitempty"`
+	PackagePath *core.RelativePath `json:"package_path,omitempty"`
+	Elapsed     *temporal.Duration `json:"elapsed,omitempty"`
+	Outcome     *Outcome           `json:"outcome,omitempty"`
+	Benchmark   *GoBenchmarkRow    `json:"benchmark,omitempty"`
 }
 
-func (r TestResult) Validate() error {
-	if err := errors.Join(r.Test.Validate(), r.Outcome.Validate()); err != nil {
-		return errors.Join(core.ErrRunProtocolContract, err)
+func (r RunResult) Validate() error {
+	if err := contractJoin(r.Kind.Validate(), r.Suite.Validate()); err != nil {
+		return err
 	}
-	if r.Ordinal == 0 {
-		return core.ErrRunProtocolContract
+	if r.PackagePath != nil {
+		if err := r.PackagePath.Validate(); err != nil {
+			return contractError(err)
+		}
 	}
 	if r.Elapsed != nil {
 		if err := r.Elapsed.Validate(); err != nil {
-			return errors.Join(core.ErrRunProtocolContract, err)
+			return contractError(err)
 		}
 	}
-	return nil
+	switch r.Kind {
+	case RunResultPackage:
+		if r.Name != nil || r.Benchmark != nil {
+			return conflictError(nil)
+		}
+	case RunResultTest, RunResultFuzz:
+		if r.Name == nil {
+			return core.ErrRunProtocolContract
+		}
+		if err := r.Name.Validate(); err != nil {
+			return err
+		}
+		if r.Kind == RunResultFuzz {
+			if _, err := ParseGoFuzzTarget(r.Name.String()); err != nil {
+				return contractError(err)
+			}
+		}
+		if r.Benchmark != nil {
+			return conflictError(nil)
+		}
+	case RunResultBenchmark:
+		if r.Benchmark == nil || r.Outcome != nil {
+			return conflictError(nil)
+		}
+		if err := r.Benchmark.Validate(); err != nil {
+			return err
+		}
+		if r.Name != nil {
+			if err := r.Name.Validate(); err != nil {
+				return err
+			}
+		}
+		if r.Benchmark.Measurement != nil && (r.Name == nil || r.Name.String() != r.Benchmark.Measurement.Name.String()) {
+			return conflictError(nil)
+		}
+		return nil
+	default:
+		return core.ErrRunProtocolContract
+	}
+	if r.Outcome == nil {
+		return core.ErrRunProtocolContract
+	}
+	switch *r.Outcome {
+	case OutcomePassed, OutcomeFailed, OutcomeSkipped:
+		return nil
+	case OutcomeSetupFailed:
+		if r.Kind == RunResultPackage {
+			return nil
+		}
+		return conflictError(nil)
+	default:
+		return conflictError(nil)
+	}
 }
 
 func (TestLabel) runProtocolFact()    {}
 func (TestIdentity) runProtocolFact() {}
-func (TestResult) runProtocolFact()   {}
+func (RunResult) runProtocolFact()    {}

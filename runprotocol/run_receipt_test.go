@@ -3,45 +3,105 @@ package runprotocol
 import (
 	"bytes"
 	"errors"
-	"io"
-	"math"
-	"slices"
+	"iter"
 	"strings"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/jsonio"
+	"github.com/deliri/primitive/v2026/process"
 	"github.com/deliri/primitive/v2026/temporal"
 )
-
-func runReceiptFixture(t testing.TB) RunReceipt {
-	t.Helper()
-	ref := func(name string, content []byte) ArtifactReference {
-		count, err := core.NewByteCount(uint64(len(content)))
-		if err != nil {
-			t.Fatal(err)
-		}
-		return ArtifactReference{Path: fixturePath(t, name), Digest: core.SHA256Of(content), Bytes: count}
-	}
-	results := ref("test-results.jsonl", []byte("native result fixture"))
-	return RunReceipt{
-		Run: fixtureIdentifier(t, "run-1792542374974150000-02d87feccfb2"), Producer: fixtureIdentifier(t, "stoker"),
-		Caller: fixtureIdentifier(t, "codex-receipt-proof"), Worker: fixtureIdentifier(t, "mac"),
-		Source: SourceCoordinate{Repository: fixtureRepository(t, "github.com/offGridSoft/example"),
-			Commit: fixtureCommit(t, strings.Repeat("a", 40)), Tree: core.SHA256Of([]byte("exact committed source"))},
-		Invocation: ref("request.json", []byte("invocation fixture")), Execution: ref("receipt.json", []byte("native facts fixture")),
-		Results: &results, ResultCount: 1,
-		Accounting:  ExecutionAccounting{Attempts: []ExecutionAttempt{{Sequence: 1, Planned: 1, Passed: 1, Cache: CacheDisabled}}},
-		CompletedAt: temporal.InstantFromNanoseconds(1792542374974150000), Outcome: OutcomePassed, Terminal: TerminalCompleted,
-	}
-}
 
 func runReceiptCodec() jsonio.OwnedCodecPolicy {
 	return jsonio.OwnedCodecPolicy{Members: jsonio.MembersDeclaredOnly, Root: jsonio.RootDeclaredFields, PointerNulls: jsonio.PointerNullRefused}
 }
+func receiptLength(t testing.TB, n uint64) core.ByteLength {
+	t.Helper()
+	v, err := core.NewByteLength(n)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return v
+}
+func receiptLabel(t testing.TB, s string) TestLabel {
+	t.Helper()
+	v, err := NewTestLabel(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return v
+}
+func receiptPath(t testing.TB, s string) core.RelativePath {
+	t.Helper()
+	v, err := core.ParseRelativePath(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return v
+}
+func receiptArgument(t testing.TB, s string) RunArgument {
+	t.Helper()
+	v, err := NewRunArgument(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return v
+}
+func receiptFacts(values []RunFact) iter.Seq2[RunFact, error] {
+	return func(yield func(RunFact, error) bool) {
+		for _, v := range values {
+			if !yield(v, nil) {
+				return
+			}
+		}
+	}
+}
 
-// These are schema/projection tests. The evidence refs are synthetic; validating
-// them does not claim that their files exist or that execution occurred.
+// These are typed schema fixtures. They do not claim that a native command ran.
+func compactReceiptFixture(t testing.TB) (RunReceipt, []RunFact, []byte) {
+	t.Helper()
+	digest := core.SHA256Of([]byte("captured source fixture"))
+	tool, err := core.ParseAbsolutePath("/native/go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	zero := int64(0)
+	pass := OutcomePassed
+	suite := receiptLabel(t, "example.org/project/pkg")
+	name := receiptLabel(t, "TestNative/leaf")
+	facts := []RunFact{
+		{Ordinal: 1, Kind: RunFactInvocation, Invocation: &RunInvocation{Tool: tool, Arguments: []RunArgument{receiptArgument(t, "test"), receiptArgument(t, "-run=^TestNative/leaf$"), receiptArgument(t, "./pkg")}, Toolchain: fixtureText(t, "go version fixture"), Source: digest, Packages: 1, Threads: 1, MemoryPerProcess: receiptLength(t, 1<<20)}},
+		{Ordinal: 2, Kind: RunFactExecution, Execution: &process.ResultObservation{ExitCode: 0, StdinBytes: receiptLength(t, 0), StdoutBytes: receiptLength(t, 100), StderrBytes: receiptLength(t, 0)}},
+		{Ordinal: 3, Kind: RunFactResult, Result: &RunResult{Kind: RunResultTest, Suite: suite, Name: &name, Outcome: &pass}},
+		{Ordinal: 4, Kind: RunFactResult, Result: &RunResult{Kind: RunResultPackage, Suite: suite, Outcome: &pass}},
+	}
+	var body bytes.Buffer
+	sequence, err := WriteRunFacts(t.Context(), RunFactWriteRequest{Destination: &body, Facts: receiptFacts(facts)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	seed, err := ParseRunShuffleSeed("0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	receipt := RunReceipt{SchemaVersion: RunReceiptSchemaVersion, Run: fixtureIdentifier(t, "native-run"), Producer: fixtureIdentifier(t, "anvil"), Caller: fixtureIdentifier(t, "codex"), Kind: RunKindTest,
+		Source: RunSource{Kind: RunSourceSnapshot, Repository: fixtureRepository(t, "github.com/example/project"), Commit: fixtureCommit(t, strings.Repeat("a", 40)), Captured: &RunSourceCapture{Digest: digest, Files: 1, Bytes: receiptLength(t, 100)}},
+		Scope:  RunScope{Kind: RunScopePackage, Targets: []core.RelativePath{receiptPath(t, "pkg")}},
+		Worker: &RunWorker{Name: fixtureIdentifier(t, "native-worker"), Platform: core.Platform{OperatingSystem: core.OperatingSystemLinux, Architecture: core.CPUArchitectureAMD64}, Executable: core.SHA256Of([]byte("producer")), ObservedAt: temporal.InstantFromNanoseconds(1), LogicalCPUs: 2, TotalMemoryBytes: receiptLength(t, 1<<30), ScratchTotalBytes: receiptLength(t, 1<<30)},
+		Budget: &RunBudget{CPU: 1, MemoryBytes: receiptLength(t, 1<<20), ScratchBytes: receiptLength(t, 1<<20), Timeout: fixtureDuration(t, 1)}, Seed: &seed,
+		StartedAt: temporal.InstantFromNanoseconds(1), CompletedAt: temporal.InstantFromNanoseconds(2), Summary: RunSummary{StreamDecoded: true, ExitCode: &zero, Tests: RunCounts{StartedCount: 1, Passed: 1}, Packages: RunCounts{StartedCount: 1, Passed: 1}}, Facts: sequence, Outcome: OutcomePassed, Terminal: TerminalCompleted}
+	if err := receipt.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	return receipt, facts, body.Bytes()
+}
+func runReceiptFixture(t testing.TB) RunReceipt {
+	t.Helper()
+	r, _, _ := compactReceiptFixture(t)
+	return r
+}
+
 func TestRunReceiptLayerTriad(t *testing.T) {
 	t.Parallel()
 	cases := []struct {
@@ -49,301 +109,131 @@ func TestRunReceiptLayerTriad(t *testing.T) {
 		edit    func(*RunReceipt)
 		wantErr error
 	}{
-		{name: "positive requestless receipt preserves exact source and attribution", edit: func(*RunReceipt) {}},
-		{name: "positive retry retains original failed attempt", edit: func(r *RunReceipt) {
-			r.Accounting.Attempts = []ExecutionAttempt{{Sequence: 1, Planned: 1, Failed: 1, Cache: CacheDisabled}, {Sequence: 2, Planned: 1, Passed: 1, Cache: CacheDisabled}}
+		{name: "snapshot retains actual captured tree", edit: func(*RunReceipt) {}},
+		{name: "commit retains distinct source kind", edit: func(r *RunReceipt) { r.Source.Kind = RunSourceCommit }},
+		{name: "maximum native seed remains exact", edit: func(r *RunReceipt) {
+			v, err := ParseRunShuffleSeed("9223372036854775807")
+			if err != nil {
+				t.Fatal(err)
+			}
+			r.Seed = &v
 		}},
-		{name: "positive native result count has no arbitrary extent quota", edit: func(r *RunReceipt) { r.ResultCount = math.MaxUint64 }},
-		{name: "neutral successful command need not invent a test occurrence", edit: func(r *RunReceipt) { r.ResultCount = 0; r.Results = nil }},
-		{name: "negative declared result stream needs a digest", edit: func(r *RunReceipt) { r.Results.Digest = core.SHA256Digest{} }, wantErr: core.ErrRunProtocolContract},
-		{name: "positive maximum denominator does not overflow", edit: func(r *RunReceipt) {
-			r.Accounting.Attempts[0].Planned = math.MaxUint32
-			r.Accounting.Attempts[0].Passed = math.MaxUint32
+		{name: "minimum native seed remains exact", edit: func(r *RunReceipt) {
+			v, err := ParseRunShuffleSeed("-9223372036854775808")
+			if err != nil {
+				t.Fatal(err)
+			}
+			r.Seed = &v
 		}},
-		{name: "positive oldest representable timestamp", edit: func(r *RunReceipt) { r.CompletedAt = temporal.InstantFromNanoseconds(math.MinInt64) }},
-		{name: "positive newest representable timestamp", edit: func(r *RunReceipt) { r.CompletedAt = temporal.InstantFromNanoseconds(math.MaxInt64) }},
-		{name: "neutral epoch timestamp is observed rather than unset", edit: func(r *RunReceipt) { r.CompletedAt = temporal.InstantFromNanoseconds(0) }},
-		{name: "neutral empty test stream does not invent test results", edit: func(r *RunReceipt) {
-			r.Results = nil
-			r.ResultCount = 0
-			r.Outcome = OutcomeNotRun
-			r.Terminal = TerminalNotRun
-			r.Accounting.Attempts[0].Passed = 0
-			r.Accounting.Attempts[0].NotRun = 1
+		{name: "absent seed does not invent zero", edit: func(r *RunReceipt) { r.Seed = nil }},
+		{name: "retry retains separate original run", edit: func(r *RunReceipt) {
+			r.Retry = &RunRetry{Run: fixtureIdentifier(t, "failed-original"), PassedInIsolation: true}
 		}},
-		{name: "negative missing run identity", edit: func(r *RunReceipt) { r.Run = Identifier{} }, wantErr: core.ErrRunProtocolContract},
-		{name: "negative missing producer identity", edit: func(r *RunReceipt) { r.Producer = Identifier{} }, wantErr: core.ErrRunProtocolContract},
-		{name: "negative missing caller attribution", edit: func(r *RunReceipt) { r.Caller = Identifier{} }, wantErr: core.ErrRunProtocolContract},
-		{name: "negative missing actual worker", edit: func(r *RunReceipt) { r.Worker = Identifier{} }, wantErr: core.ErrRunProtocolContract},
-		{name: "negative missing repository", edit: func(r *RunReceipt) { r.Source.Repository = RepositoryIdentity{} }, wantErr: core.ErrRunProtocolContract},
-		{name: "negative missing committed revision", edit: func(r *RunReceipt) { r.Source.Commit = core.BuildCommit{} }, wantErr: core.ErrRunProtocolContract},
-		{name: "negative missing source tree digest", edit: func(r *RunReceipt) { r.Source.Tree = core.SHA256Digest{} }, wantErr: core.ErrRunProtocolContract},
-		{name: "negative missing invocation reference", edit: func(r *RunReceipt) { r.Invocation = ArtifactReference{} }, wantErr: core.ErrRunProtocolContract},
-		{name: "negative missing native execution reference", edit: func(r *RunReceipt) { r.Execution = ArtifactReference{} }, wantErr: core.ErrRunProtocolContract},
-		{name: "negative missing result stream reference", edit: func(r *RunReceipt) { r.Results = nil }, wantErr: core.ErrRunProtocolConflict},
-		{name: "negative missing observed timestamp", edit: func(r *RunReceipt) { r.CompletedAt = temporal.Instant{} }, wantErr: core.ErrRunProtocolContract},
-		{name: "negative absent attempt cannot stand for success", edit: func(r *RunReceipt) { r.Accounting.Attempts = nil }, wantErr: core.ErrRunProtocolContract},
-		{name: "negative unclosed denominator", edit: func(r *RunReceipt) { r.Accounting.Attempts[0].Planned = 2 }, wantErr: core.ErrRunProtocolConflict},
-		{name: "negative missing first attempt sequence", edit: func(r *RunReceipt) { r.Accounting.Attempts[0].Sequence = 2 }, wantErr: core.ErrRunProtocolConflict},
-		{name: "negative retry changes declared scope", edit: func(r *RunReceipt) {
-			r.Accounting.Attempts = append(r.Accounting.Attempts, ExecutionAttempt{Sequence: 2, Planned: 2, Passed: 2, Cache: CacheDisabled})
+		{name: "source refusal has no invented execution", edit: func(r *RunReceipt) {
+			r.Source.Captured = nil
+			r.Worker = nil
+			r.Budget = nil
+			r.Seed = nil
+			r.Summary = RunSummary{}
+			r.Facts = RunFactSequence{Bytes: receiptLength(t, 0), Digest: core.SHA256Of(nil)}
+			r.Outcome = OutcomeNonAccepting
+		}},
+		{name: "cancellation before source remains cancellation", edit: func(r *RunReceipt) {
+			r.Source.Captured = nil
+			r.Worker = nil
+			r.Budget = nil
+			r.Summary = RunSummary{}
+			r.Facts = RunFactSequence{Bytes: receiptLength(t, 0), Digest: core.SHA256Of(nil)}
+			r.Outcome = OutcomeCancelled
+			r.Terminal = TerminalCancelled
+		}},
+		{name: "unobserved phase stays absent", edit: func(r *RunReceipt) { r.Timing = RunTiming{} }},
+		{name: "measured zero phase stays present", edit: func(r *RunReceipt) { zero := temporal.Duration{}; r.Timing.Preparation = &zero }},
+		{name: "sampling absence does not claim peak", edit: func(r *RunReceipt) { r.Summary.Memory = nil }},
+		{name: "unsupported future schema refuses", edit: func(r *RunReceipt) { r.SchemaVersion++ }, wantErr: core.ErrRunProtocolContract},
+		{name: "zero schema cannot borrow current shape", edit: func(r *RunReceipt) { r.SchemaVersion = 0 }, wantErr: core.ErrRunProtocolContract},
+		{name: "missing run attribution refuses", edit: func(r *RunReceipt) { r.Run = Identifier{} }, wantErr: core.ErrRunProtocolContract},
+		{name: "missing producer attribution refuses", edit: func(r *RunReceipt) { r.Producer = Identifier{} }, wantErr: core.ErrRunProtocolContract},
+		{name: "missing caller attribution refuses", edit: func(r *RunReceipt) { r.Caller = Identifier{} }, wantErr: core.ErrRunProtocolContract},
+		{name: "unknown native workload refuses", edit: func(r *RunReceipt) { r.Kind = RunKindUnknown }, wantErr: core.ErrRunProtocolContract},
+		{name: "future native workload refuses", edit: func(r *RunReceipt) { r.Kind = RunKind(255) }, wantErr: core.ErrRunProtocolContract},
+		{name: "unknown source representation refuses", edit: func(r *RunReceipt) { r.Source.Kind = RunSourceUnknown }, wantErr: core.ErrRunProtocolContract},
+		{name: "missing repository refuses source binding", edit: func(r *RunReceipt) { r.Source.Repository = RepositoryIdentity{} }, wantErr: core.ErrRunProtocolContract},
+		{name: "missing committed revision refuses", edit: func(r *RunReceipt) { r.Source.Commit = core.BuildCommit{} }, wantErr: core.ErrRunProtocolContract},
+		{name: "native execution cannot omit actual source", edit: func(r *RunReceipt) { r.Source.Captured = nil }, wantErr: core.ErrRunProtocolConflict},
+		{name: "captured source needs actual digest", edit: func(r *RunReceipt) { r.Source.Captured.Digest = core.SHA256Digest{} }, wantErr: core.ErrRunProtocolContract},
+		{name: "captured source cannot have no files", edit: func(r *RunReceipt) { r.Source.Captured.Files = 0 }, wantErr: core.ErrRunProtocolContract},
+		{name: "empty scope cannot claim execution", edit: func(r *RunReceipt) { r.Scope.Targets = nil }, wantErr: core.ErrRunProtocolContract},
+		{name: "single package scope cannot hide second target", edit: func(r *RunReceipt) { r.Scope.Targets = append(r.Scope.Targets, receiptPath(t, "other")) }, wantErr: core.ErrRunProtocolContract},
+		{name: "selected scope refuses duplicate targets", edit: func(r *RunReceipt) {
+			r.Scope.Kind = RunScopeSelected
+			r.Scope.Targets = append(r.Scope.Targets, r.Scope.Targets[0])
 		}, wantErr: core.ErrRunProtocolConflict},
-		{name: "negative invocation aliases execution bytes", edit: func(r *RunReceipt) { r.Invocation.Path = r.Execution.Path }, wantErr: core.ErrRunProtocolConflict},
-		{name: "negative invocation aliases result stream", edit: func(r *RunReceipt) { r.Invocation.Path = r.Results.Path }, wantErr: core.ErrRunProtocolConflict},
-		{name: "negative execution aliases result stream", edit: func(r *RunReceipt) { r.Execution.Path = r.Results.Path }, wantErr: core.ErrRunProtocolConflict},
-		{name: "negative result artifact cannot claim zero occurrences", edit: func(r *RunReceipt) { r.ResultCount = 0 }, wantErr: core.ErrRunProtocolConflict},
-		{name: "negative pass cannot hide skipped execution units", edit: func(r *RunReceipt) { r.Accounting.Attempts[0].Passed = 0; r.Accounting.Attempts[0].Skipped = 1 }, wantErr: core.ErrRunProtocolConflict},
-		{name: "negative pass cannot erase latest failed retry", edit: func(r *RunReceipt) {
-			r.Accounting.Attempts = append(r.Accounting.Attempts, ExecutionAttempt{Sequence: 2, Planned: 1, Failed: 1, Cache: CacheDisabled})
+		{name: "unknown selected scope refuses", edit: func(r *RunReceipt) { r.Scope.Kind = RunScopeUnknown }, wantErr: core.ErrRunProtocolContract},
+		{name: "native execution requires actual worker", edit: func(r *RunReceipt) { r.Worker = nil }, wantErr: core.ErrRunProtocolConflict},
+		{name: "worker cannot invent zero cpu capacity", edit: func(r *RunReceipt) { r.Worker.LogicalCPUs = 0 }, wantErr: core.ErrRunProtocolContract},
+		{name: "worker cannot invent zero memory capacity", edit: func(r *RunReceipt) { r.Worker.TotalMemoryBytes = receiptLength(t, 0) }, wantErr: core.ErrRunProtocolContract},
+		{name: "worker needs executable binding", edit: func(r *RunReceipt) { r.Worker.Executable = core.SHA256Digest{} }, wantErr: core.ErrRunProtocolContract},
+		{name: "worker needs actual platform", edit: func(r *RunReceipt) { r.Worker.Platform = core.Platform{} }, wantErr: core.ErrRunProtocolContract},
+		{name: "native execution requires effective budget", edit: func(r *RunReceipt) { r.Budget = nil }, wantErr: core.ErrRunProtocolConflict},
+		{name: "effective cpu cannot be zero", edit: func(r *RunReceipt) { r.Budget.CPU = 0 }, wantErr: core.ErrRunProtocolContract},
+		{name: "effective memory cannot be zero", edit: func(r *RunReceipt) { r.Budget.MemoryBytes = receiptLength(t, 0) }, wantErr: core.ErrRunProtocolContract},
+		{name: "effective deadline cannot be zero", edit: func(r *RunReceipt) { r.Budget.Timeout = temporal.Duration{} }, wantErr: core.ErrRunProtocolContract},
+		{name: "unset seed is not observed zero", edit: func(r *RunReceipt) { r.Seed = &RunShuffleSeed{} }, wantErr: core.ErrRunProtocolContract},
+		{name: "completion cannot precede start", edit: func(r *RunReceipt) { r.CompletedAt = temporal.InstantFromNanoseconds(0) }, wantErr: core.ErrRunProtocolConflict},
+		{name: "admission cannot exceed preparation", edit: func(r *RunReceipt) {
+			a := fixtureDuration(t, 2)
+			p := fixtureDuration(t, 1)
+			r.Timing.Admission = &a
+			r.Timing.Preparation = &p
 		}, wantErr: core.ErrRunProtocolConflict},
-		{name: "negative zero receipt emits no fabricated metadata", edit: func(r *RunReceipt) { *r = RunReceipt{} }, wantErr: core.ErrRunProtocolContract},
+		{name: "native build timing needs observed preparation", edit: func(r *RunReceipt) { v := fixtureDuration(t, 1); r.Timing.BuildAndRun = &v }, wantErr: core.ErrRunProtocolConflict},
+		{name: "test terminal counts cannot exceed starts", edit: func(r *RunReceipt) { r.Summary.Tests.Failed = 1 }, wantErr: core.ErrRunProtocolConflict},
+		{name: "package terminal count cannot overflow", edit: func(r *RunReceipt) { r.Summary.Packages.Passed = ^uint64(0) }, wantErr: core.ErrRunProtocolConflict},
+		{name: "passed outcome cannot hide failed test", edit: func(r *RunReceipt) { r.Summary.Tests.Passed = 0; r.Summary.Tests.Failed = 1 }, wantErr: core.ErrRunProtocolConflict},
+		{name: "passed outcome cannot hide build refusal", edit: func(r *RunReceipt) { r.Summary.BuildFailed = true }, wantErr: core.ErrRunProtocolConflict},
+		{name: "passed outcome requires complete stream", edit: func(r *RunReceipt) { r.Summary.StreamDecoded = false }, wantErr: core.ErrRunProtocolConflict},
+		{name: "passed outcome requires observed native exit", edit: func(r *RunReceipt) { r.Summary.ExitCode = nil }, wantErr: core.ErrRunProtocolConflict},
+		{name: "passed outcome cannot claim failed exit", edit: func(r *RunReceipt) { v := int64(1); r.Summary.ExitCode = &v }, wantErr: core.ErrRunProtocolConflict},
+		{name: "wrong terminal cannot conceal passed outcome", edit: func(r *RunReceipt) { r.Terminal = TerminalCancelled }, wantErr: core.ErrRunProtocolConflict},
+		{name: "test run cannot invent benchmark phase", edit: func(r *RunReceipt) { r.Summary.Benchmarks = &RunBenchmarkCounts{} }, wantErr: core.ErrRunProtocolConflict},
+		{name: "test run cannot invent mutation fuzz phase", edit: func(r *RunReceipt) { v := uint64(0); r.Summary.Fuzz = &RunFuzzCounts{Executions: &v} }, wantErr: core.ErrRunProtocolConflict},
+		{name: "same run cannot be its own retry", edit: func(r *RunReceipt) { r.Retry = &RunRetry{Run: r.Run} }, wantErr: core.ErrRunProtocolConflict},
+		{name: "external empty fuzz group refuses instead of normalizing unknown", edit: func(r *RunReceipt) {
+			r.Kind = RunKindFuzz
+			r.Outcome = OutcomeSkipped
+			r.Summary.Fuzz = &RunFuzzCounts{}
+		}, wantErr: core.ErrRunProtocolContract},
+		{name: "empty sequence cannot retain bytes", edit: func(r *RunReceipt) { r.Facts.Count = 0 }, wantErr: core.ErrRunProtocolConflict},
+		{name: "nonempty sequence needs content digest", edit: func(r *RunReceipt) { r.Facts.Digest = core.SHA256Digest{} }, wantErr: core.ErrRunProtocolContract},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			want := runReceiptFixture(t)
-			tc.edit(&want)
-			if err := want.Validate(); !errors.Is(err, tc.wantErr) {
-				t.Fatalf("RunReceipt.Validate() error=%v, want %v", err, tc.wantErr)
+			r := runReceiptFixture(t)
+			tc.edit(&r)
+			err := r.Validate()
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("RunReceipt.Validate = %v, want %v", err, tc.wantErr)
 			}
-			encoded, err := jsonio.MarshalValidated(want, runReceiptCodec())
+			encoded, encodeErr := jsonio.MarshalValidated(r, runReceiptCodec())
 			if tc.wantErr != nil {
-				if !errors.Is(err, tc.wantErr) || len(encoded) != 0 {
-					t.Fatalf("rejected receipt projection=(%q,%v), want no bytes and %v", encoded, err, tc.wantErr)
+				if !errors.Is(encodeErr, tc.wantErr) || len(encoded) != 0 {
+					t.Fatalf("refused header encoding = (%d,%v), want zero/%v", len(encoded), encodeErr, tc.wantErr)
 				}
 				return
 			}
-			if err != nil {
-				t.Fatal(err)
+			if encodeErr != nil {
+				t.Fatal(encodeErr)
 			}
-			got, err := jsonio.DecodeOwned[RunReceipt](encoded, runReceiptCodec())
-			if err != nil || !sameRunReceipt(got, want) {
-				t.Fatalf("receipt projection=(%+v,%v), want %+v", got, err, want)
+			round, decodeErr := jsonio.DecodeOwned[RunReceipt](encoded, runReceiptCodec())
+			if decodeErr != nil {
+				t.Fatal(decodeErr)
 			}
-		})
-	}
-}
-
-func sameRunReceiptResults(a, b *ArtifactReference) bool {
-	if a == nil || b == nil {
-		return a == nil && b == nil
-	}
-	return *a == *b
-}
-
-func sameRunReceipt(a, b RunReceipt) bool {
-	return a.Run == b.Run && a.Producer == b.Producer && a.Caller == b.Caller && a.Worker == b.Worker && a.Source == b.Source &&
-		a.Invocation == b.Invocation && a.Execution == b.Execution && sameRunReceiptResults(a.Results, b.Results) && a.ResultCount == b.ResultCount &&
-		slices.Equal(a.Accounting.Attempts, b.Accounting.Attempts) && a.CompletedAt == b.CompletedAt && a.Outcome == b.Outcome && a.Terminal == b.Terminal
-}
-
-// agreeingAttempt is an independent oracle: one execution unit whose count
-// explains outcome. Outcomes without a per-unit count use one unit not run.
-func agreeingAttempt(outcome Outcome) ExecutionAttempt {
-	attempt := ExecutionAttempt{Sequence: 1, Planned: 1, Cache: CacheDisabled}
-	switch outcome {
-	case OutcomePassed:
-		attempt.Passed = 1
-	case OutcomeFailed:
-		attempt.Failed = 1
-	case OutcomeSkipped:
-		attempt.Skipped = 1
-	case OutcomeUnavailable:
-		attempt.Unavailable = 1
-	case OutcomeTimedOut:
-		attempt.Expired = 1
-	case OutcomeCancelled:
-		attempt.Cancelled = 1
-	default:
-		attempt.NotRun = 1
-	}
-	return attempt
-}
-
-// A receipt's outcome must be explained by its latest attempt's own counts:
-// each row pairs an outcome with counts that agree and with counts that do not.
-func TestRunReceiptOutcomeAgreesWithLatestAttempt(t *testing.T) {
-	t.Parallel()
-	attempt := func(edit func(*ExecutionAttempt)) ExecutionAttempt {
-		a := ExecutionAttempt{Sequence: 1, Planned: 2, Cache: CacheDisabled}
-		edit(&a)
-		return a
-	}
-	for _, row := range []struct {
-		name    string
-		outcome Outcome
-		state   TerminalState
-		attempt ExecutionAttempt
-		agree   bool
-	}{
-		{"failed with a failure", OutcomeFailed, TerminalCompleted, attempt(func(a *ExecutionAttempt) { a.Passed, a.Failed = 1, 1 }), true},
-		{"failed with no failure", OutcomeFailed, TerminalCompleted, attempt(func(a *ExecutionAttempt) { a.Passed, a.Skipped = 1, 1 }), false},
-		{"skipped with only skips", OutcomeSkipped, TerminalCompleted, attempt(func(a *ExecutionAttempt) { a.Skipped = 2 }), true},
-		{"skipped while something passed", OutcomeSkipped, TerminalCompleted, attempt(func(a *ExecutionAttempt) { a.Passed, a.Skipped = 1, 1 }), false},
-		{"skipped while something failed", OutcomeSkipped, TerminalCompleted, attempt(func(a *ExecutionAttempt) { a.Failed, a.Skipped = 1, 1 }), false},
-		{"skipped with nothing skipped", OutcomeSkipped, TerminalCompleted, attempt(func(a *ExecutionAttempt) { a.NotRun = 2 }), false},
-		{"unavailable with an unavailable unit", OutcomeUnavailable, TerminalUnavailable, attempt(func(a *ExecutionAttempt) { a.Passed, a.Unavailable = 1, 1 }), true},
-		{"unavailable with none", OutcomeUnavailable, TerminalUnavailable, attempt(func(a *ExecutionAttempt) { a.Passed, a.NotRun = 1, 1 }), false},
-		{"timed out with an expired unit", OutcomeTimedOut, TerminalTimedOut, attempt(func(a *ExecutionAttempt) { a.Passed, a.Expired = 1, 1 }), true},
-		{"timed out with none", OutcomeTimedOut, TerminalTimedOut, attempt(func(a *ExecutionAttempt) { a.Passed, a.NotRun = 1, 1 }), false},
-		{"cancelled with a cancelled unit", OutcomeCancelled, TerminalCancelled, attempt(func(a *ExecutionAttempt) { a.Passed, a.Cancelled = 1, 1 }), true},
-		{"cancelled with none", OutcomeCancelled, TerminalCancelled, attempt(func(a *ExecutionAttempt) { a.Passed, a.NotRun = 1, 1 }), false},
-		{"not run with a unit not run", OutcomeNotRun, TerminalNotRun, attempt(func(a *ExecutionAttempt) { a.Passed, a.NotRun = 1, 1 }), true},
-		{"not run with none", OutcomeNotRun, TerminalNotRun, attempt(func(a *ExecutionAttempt) { a.Passed, a.Failed = 1, 1 }), false},
-		{"infrastructure failure short of all passing", OutcomeInfrastructureFailed, TerminalFailed, attempt(func(a *ExecutionAttempt) { a.NotRun = 2 }), true},
-		{"infrastructure failure while everything passed", OutcomeInfrastructureFailed, TerminalFailed, attempt(func(a *ExecutionAttempt) { a.Passed = 2 }), false},
-		{"setup failure while everything passed", OutcomeSetupFailed, TerminalCompleted, attempt(func(a *ExecutionAttempt) { a.Passed = 2 }), false},
-		{"non-accepting while everything passed", OutcomeNonAccepting, TerminalCompleted, attempt(func(a *ExecutionAttempt) { a.Passed = 2 }), false},
-	} {
-		t.Run(row.name, func(t *testing.T) {
-			t.Parallel()
-			r := runReceiptFixture(t)
-			r.Outcome, r.Terminal = row.outcome, row.state
-			r.Accounting.Attempts[0] = row.attempt
-			err := r.Validate()
-			if row.agree && err != nil || !row.agree && !errors.Is(err, core.ErrRunProtocolConflict) {
-				t.Fatalf("receipt %s with %+v = %v, want agreement %t", row.outcome, row.attempt, err, row.agree)
+			second, err := jsonio.MarshalValidated(round, runReceiptCodec())
+			if err != nil || !bytes.Equal(encoded, second) {
+				t.Fatalf("canonical header roundtrip = (%d,%v), want %d identical bytes", len(second), err, len(encoded))
 			}
 		})
 	}
-}
-
-func TestReceiptOutcomeGuardRefusesUnknown(t *testing.T) {
-	t.Parallel()
-	latest := ExecutionAttempt{Sequence: 1, Planned: 1, NotRun: 1, Cache: CacheDisabled}
-	if err := latest.Validate(); err != nil {
-		t.Fatalf("nonpassing native attempt validation = %v, want nil", err)
-	}
-	if got := receiptOutcomeAgrees(outcomeLimit, latest); got {
-		t.Fatalf("unknown outcome agreement with a nonpassing attempt = %t, want false", got)
-	}
-}
-
-func TestRunReceiptOutcomeTerminalDomainExhaustive(t *testing.T) {
-	t.Parallel()
-	// Independent oracle for the existing domain: failed assertions are completed
-	// execution, while infrastructure failure has the failed terminal state.
-	wantTerminals := [...]TerminalState{TerminalUnknown, TerminalCompleted, TerminalCompleted, TerminalCompleted,
-		TerminalUnavailable, TerminalTimedOut, TerminalCancelled, TerminalCompleted, TerminalFailed, TerminalNotRun, TerminalCompleted}
-	for outcome := 0; outcome <= math.MaxUint8; outcome++ {
-		for terminal := 0; terminal <= math.MaxUint8; terminal++ {
-			r := runReceiptFixture(t)
-			r.Outcome, r.Terminal = Outcome(outcome), TerminalState(terminal)
-			r.Accounting.Attempts[0] = agreeingAttempt(Outcome(outcome))
-			err := r.Validate()
-			wantErr := error(core.ErrRunProtocolConflict)
-			if outcome == 0 || outcome >= len(wantTerminals) || terminal == 0 || terminal > int(TerminalNotRun) {
-				wantErr = core.ErrRunProtocolContract
-			} else if TerminalState(terminal) == wantTerminals[outcome] {
-				wantErr = nil
-			}
-			if !errors.Is(err, wantErr) {
-				t.Fatalf("receipt outcome=%d terminal=%d error=%v, want %v", outcome, terminal, err, wantErr)
-			}
-		}
-	}
-}
-
-func TestRunReceiptJSONHostileAdmission(t *testing.T) {
-	t.Parallel()
-	encoded, err := jsonio.MarshalValidated(runReceiptFixture(t), runReceiptCodec())
-	if err != nil {
-		t.Fatal(err)
-	}
-	good := string(encoded)
-	for _, tc := range []struct{ name, input string }{
-		{"empty document", ""}, {"whitespace document", " \t\n"}, {"null root", "null"}, {"array root", "[]"},
-		{"missing every required fact", "{}"},
-		{"duplicate root member", strings.Replace(good, `"producer":`, `"producer":"foreign","producer":`, 1)},
-		{"unknown root member", strings.Replace(good, `"producer":`, `"future":true,"producer":`, 1)},
-		{"null accounting", strings.Replace(good, `"accounting":{`, `"accounting":null,"unused":{`, 1)},
-		{"wrong identity type", strings.Replace(good, `"worker":"mac"`, `"worker":42`, 1)},
-		{"unknown outcome", strings.Replace(good, `"outcome_passed"`, `"future_outcome"`, 1)},
-		{"unknown terminal", strings.Replace(good, `"terminal_completed"`, `"future_terminal"`, 1)},
-		{"truncated final member", good[:len(good)-1]},
-		{"second root cannot be absorbed", good + good},
-		{"trailing nonwhitespace", good + " false"},
-		{"malformed committed revision", strings.Replace(good, strings.Repeat("a", 40), "not-a-commit", 1)},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			got, err := jsonio.DecodeOwned[RunReceipt]([]byte(tc.input), runReceiptCodec())
-			if !errors.Is(err, core.ErrJSONContract) || !sameRunReceipt(got, RunReceipt{}) {
-				t.Fatalf("receipt admission=(%+v,%v), want zero receipt and typed JSON refusal", got, err)
-			}
-		})
-	}
-}
-
-func TestRunReceiptStreamLayerTriad(t *testing.T) {
-	t.Parallel()
-	encoded, err := jsonio.MarshalValidated(runReceiptFixture(t), runReceiptCodec())
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, tc := range []struct {
-		name                       string
-		source                     io.Reader
-		wantReceipts, wantRefusals int
-	}{
-		{name: "positive receipt streams without a result population", source: bytes.NewReader(encoded), wantReceipts: 1},
-		{name: "negative truncated suffix preserves prefix but refuses completion", source: io.MultiReader(bytes.NewReader(encoded), strings.NewReader("\n{")), wantReceipts: 1, wantRefusals: 1},
-		{name: "neutral absent receipt cannot become an empty success", source: strings.NewReader("")},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			count, refusals := 0, 0
-			for got, err := range jsonio.Objects[RunReceipt](t.Context(), jsonio.ObjectSourceRequest{Source: tc.source}) {
-				if err != nil {
-					if !errors.Is(err, core.ErrJSONContract) || !sameRunReceipt(got, RunReceipt{}) {
-						t.Fatalf("stream refusal=(%+v,%v), want zero receipt and typed refusal", got, err)
-					}
-					refusals++
-					continue
-				}
-				if !sameRunReceipt(got, runReceiptFixture(t)) {
-					t.Fatalf("stream receipt=%+v, want exact typed facts", got)
-				}
-				count++
-			}
-			if count != tc.wantReceipts || refusals != tc.wantRefusals {
-				t.Fatalf("stream=(%d receipts,%d refusals), want (%d,%d)", count, refusals, tc.wantReceipts, tc.wantRefusals)
-			}
-		})
-	}
-}
-
-func FuzzRunReceiptJSONSemanticClosure(f *testing.F) {
-	seed, err := jsonio.MarshalValidated(runReceiptFixture(f), runReceiptCodec())
-	if err != nil {
-		f.Fatal(err)
-	}
-	f.Add(seed)
-	f.Add([]byte{})
-	f.Add([]byte("null"))
-	f.Add(append(bytes.Clone(seed), '{'))
-	f.Fuzz(func(t *testing.T, data []byte) {
-		got, err := jsonio.DecodeOwned[RunReceipt](data, runReceiptCodec())
-		if err != nil {
-			if !errors.Is(err, core.ErrJSONContract) || !sameRunReceipt(got, RunReceipt{}) {
-				t.Fatalf("rejected receipt=(%+v,%v), want zero and typed refusal", got, err)
-			}
-			return
-		}
-		if err := got.Validate(); err != nil {
-			t.Fatalf("admitted receipt.Validate()=%v, want nil", err)
-		}
-		canonical, err := jsonio.MarshalValidated(got, runReceiptCodec())
-		if err != nil {
-			t.Fatal(err)
-		}
-		roundTrip, err := jsonio.DecodeOwned[RunReceipt](canonical, runReceiptCodec())
-		if err != nil || !sameRunReceipt(roundTrip, got) {
-			t.Fatalf("receipt round trip=(%+v,%v), want %+v", roundTrip, err, got)
-		}
-		second, err := jsonio.MarshalValidated(roundTrip, runReceiptCodec())
-		if err != nil || !bytes.Equal(second, canonical) {
-			t.Fatalf("second projection=(%q,%v), want %q", second, err, canonical)
-		}
-	})
 }

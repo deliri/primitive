@@ -3,7 +3,6 @@ package runprotocol_test
 import (
 	"bytes"
 	"errors"
-	"io"
 	"math"
 	"strings"
 	"testing"
@@ -14,88 +13,150 @@ import (
 	"github.com/deliri/primitive/v2026/temporal"
 )
 
-func testLabel(t testing.TB, value string) runprotocol.TestLabel {
+func testLabel(t testing.TB, s string) runprotocol.TestLabel {
 	t.Helper()
-	label, err := runprotocol.NewTestLabel(value)
-	if err != nil {
-		t.Fatal(err)
+	v, e := runprotocol.NewTestLabel(s)
+	if e != nil {
+		t.Fatal(e)
 	}
-	return label
+	return v
 }
-
-func testResultFixture(t testing.TB) runprotocol.TestResult {
-	t.Helper()
-	return runprotocol.TestResult{Test: runprotocol.TestIdentity{Suite: testLabel(t, "example.org/project/pkg"), Name: testLabel(t, "TestNative/dynamic/subtest")}, Ordinal: 1, Outcome: runprotocol.OutcomePassed}
-}
-
 func testResultCodec() jsonio.OwnedCodecPolicy {
 	return jsonio.OwnedCodecPolicy{Members: jsonio.MembersDeclaredOnly, Root: jsonio.RootDeclaredFields, PointerNulls: jsonio.PointerNullRefused}
 }
-
-// The shared record is an observation, not an inferred lifecycle or acceptance.
-func TestTestResultLayerTriad(t *testing.T) {
+func runResultFixture(t testing.TB) runprotocol.RunResult {
+	t.Helper()
+	name := testLabel(t, "TestNative/dynamic/subtest")
+	outcome := runprotocol.OutcomePassed
+	return runprotocol.RunResult{Kind: runprotocol.RunResultTest, Suite: testLabel(t, "example.org/project/pkg"), Name: &name, Outcome: &outcome}
+}
+func TestRunResultLayerTriad(t *testing.T) {
 	t.Parallel()
-	zeroElapsed := temporal.Duration{}
-	elapsed, err := temporal.DurationFromNanoseconds(math.MaxInt64)
-	if err != nil {
-		t.Fatal(err)
-	}
 	for _, tc := range []struct {
 		name    string
-		edit    func(*runprotocol.TestResult)
+		edit    func(*runprotocol.RunResult)
 		wantErr error
 	}{
-		{name: "positive ordinary native result", edit: func(*runprotocol.TestResult) {}},
-		{name: "positive observed zero duration remains present", edit: func(r *runprotocol.TestResult) { r.Elapsed = &zeroElapsed }},
-		{name: "positive maximum native duration", edit: func(r *runprotocol.TestResult) { r.Elapsed = &elapsed }},
-		{name: "positive maximum occurrence ordinal", edit: func(r *runprotocol.TestResult) { r.Ordinal = math.MaxUint64 }},
-		{name: "negative ordinal zero cannot name an occurrence", edit: func(r *runprotocol.TestResult) { r.Ordinal = 0 }, wantErr: core.ErrRunProtocolContract},
-		{name: "negative absent suite cannot borrow another result identity", edit: func(r *runprotocol.TestResult) { r.Test.Suite = runprotocol.TestLabel{} }, wantErr: core.ErrRunProtocolContract},
-		{name: "negative absent name cannot become package success", edit: func(r *runprotocol.TestResult) { r.Test.Name = runprotocol.TestLabel{} }, wantErr: core.ErrRunProtocolContract},
-		{name: "neutral absent duration stays absent", edit: func(r *runprotocol.TestResult) { r.Outcome = runprotocol.OutcomeUnavailable }},
-		{name: "neutral skipped result stays skipped", edit: func(r *runprotocol.TestResult) { r.Outcome = runprotocol.OutcomeSkipped; r.Elapsed = &zeroElapsed }},
-		{name: "neutral no result is not an empty pass", edit: func(r *runprotocol.TestResult) { *r = runprotocol.TestResult{} }, wantErr: core.ErrRunProtocolContract},
+		{name: "native test retains suite and dynamic name", edit: func(*runprotocol.RunResult) {}},
+		{name: "package terminal invents no test name", edit: func(r *runprotocol.RunResult) { r.Kind = runprotocol.RunResultPackage; r.Name = nil }},
+		{name: "explicit fuzz terminal retains actual kind", edit: func(r *runprotocol.RunResult) {
+			r.Kind = runprotocol.RunResultFuzz
+			v := testLabel(t, "FuzzNative")
+			r.Name = &v
+		}},
+		{name: "Fuzz prefix does not change a test kind", edit: func(r *runprotocol.RunResult) { v := testLabel(t, "FuzzNative/seed"); r.Name = &v }},
+		{name: "zero observed elapsed remains present", edit: func(r *runprotocol.RunResult) { v := temporal.Duration{}; r.Elapsed = &v }},
+		{name: "unobserved elapsed stays absent", edit: func(r *runprotocol.RunResult) { r.Elapsed = nil }},
+		{name: "skipped target remains skipped", edit: func(r *runprotocol.RunResult) { v := runprotocol.OutcomeSkipped; r.Outcome = &v }},
+		{name: "failed target remains failed", edit: func(r *runprotocol.RunResult) { v := runprotocol.OutcomeFailed; r.Outcome = &v }},
+		{name: "unknown result kind refuses", edit: func(r *runprotocol.RunResult) { r.Kind = runprotocol.RunResultUnknown }, wantErr: core.ErrRunProtocolContract},
+		{name: "absent suite cannot borrow another target", edit: func(r *runprotocol.RunResult) { r.Suite = runprotocol.TestLabel{} }, wantErr: core.ErrRunProtocolContract},
+		{name: "test name cannot be absent", edit: func(r *runprotocol.RunResult) { r.Name = nil }, wantErr: core.ErrRunProtocolContract},
+		{name: "unset nominal name cannot replace absent name", edit: func(r *runprotocol.RunResult) { r.Name = &runprotocol.TestLabel{} }, wantErr: core.ErrRunProtocolContract},
+		{name: "package cannot invent a test occurrence", edit: func(r *runprotocol.RunResult) { r.Kind = runprotocol.RunResultPackage }, wantErr: core.ErrRunProtocolConflict},
+		{name: "terminal target needs observed outcome", edit: func(r *runprotocol.RunResult) { r.Outcome = nil }, wantErr: core.ErrRunProtocolContract},
+		{name: "benchmark cannot borrow a test outcome", edit: func(r *runprotocol.RunResult) {
+			r.Kind = runprotocol.RunResultBenchmark
+			r.Benchmark = &runprotocol.GoBenchmarkRow{Kind: runprotocol.GoBenchmarkRowMetricsMissing}
+		}, wantErr: core.ErrRunProtocolConflict},
+		{name: "benchmark requires its actual native row", edit: func(r *runprotocol.RunResult) { r.Kind = runprotocol.RunResultBenchmark; r.Outcome = nil }, wantErr: core.ErrRunProtocolConflict},
+		{name: "missing metrics remains an explicit row", edit: func(r *runprotocol.RunResult) {
+			r.Kind = runprotocol.RunResultBenchmark
+			r.Outcome = nil
+			r.Benchmark = &runprotocol.GoBenchmarkRow{Kind: runprotocol.GoBenchmarkRowMetricsMissing}
+		}},
+		{name: "unrepresentable benchmark name remains unobserved", edit: func(r *runprotocol.RunResult) {
+			r.Kind = runprotocol.RunResultBenchmark
+			r.Name = nil
+			r.Outcome = nil
+			r.Benchmark = &runprotocol.GoBenchmarkRow{Kind: runprotocol.GoBenchmarkRowNameUnrepresentable}
+		}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			got := testResultFixture(t)
-			tc.edit(&got)
-			err := got.Validate()
+			r := runResultFixture(t)
+			tc.edit(&r)
+			err := r.Validate()
 			if !errors.Is(err, tc.wantErr) {
-				t.Fatalf("TestResult.Validate(%+v) error=%v, want %v", got, err, tc.wantErr)
+				t.Fatalf("RunResult.Validate = %v, want %v", err, tc.wantErr)
 			}
-			encoded, encodeErr := jsonio.MarshalValidated(got, testResultCodec())
+			encoded, err := jsonio.MarshalValidated(r, testResultCodec())
 			if tc.wantErr != nil {
-				if !errors.Is(encodeErr, tc.wantErr) || len(encoded) != 0 {
-					t.Fatalf("rejected result encoding=(%q,%v), want empty and %v", encoded, encodeErr, tc.wantErr)
+				if !errors.Is(err, tc.wantErr) || len(encoded) != 0 {
+					t.Fatalf("refused result encoding = (%d,%v), want zero/%v", len(encoded), err, tc.wantErr)
 				}
 				return
 			}
-			if encodeErr != nil {
-				t.Fatal(encodeErr)
+			if err != nil {
+				t.Fatal(err)
 			}
-			roundTrip, decodeErr := jsonio.DecodeOwned[runprotocol.TestResult](encoded, testResultCodec())
-			if decodeErr != nil || roundTrip.Test != got.Test || roundTrip.Ordinal != got.Ordinal || roundTrip.Outcome != got.Outcome || (roundTrip.Elapsed == nil) != (got.Elapsed == nil) {
-				t.Fatalf("round trip=(%+v,%v), want %+v", roundTrip, decodeErr, got)
+			round, err := jsonio.DecodeOwned[runprotocol.RunResult](encoded, testResultCodec())
+			if err != nil {
+				t.Fatal(err)
 			}
-			if got.Elapsed != nil && *got.Elapsed != *roundTrip.Elapsed {
-				t.Fatalf("round trip duration=%v, want %v", roundTrip.Elapsed, got.Elapsed)
+			second, err := jsonio.MarshalValidated(round, testResultCodec())
+			if err != nil || !bytes.Equal(second, encoded) {
+				t.Fatalf("result roundtrip = (%d,%v), want %d identical bytes", len(second), err, len(encoded))
 			}
 		})
 	}
 }
-
-func TestTestResultExhaustsExistingOutcomeDomain(t *testing.T) {
+func TestRunResultExhaustsOutcomeDomain(t *testing.T) {
 	t.Parallel()
-	// Pin the existing closed domain independently of Outcome.Validate.
-	for number := 0; number <= math.MaxUint8; number++ {
-		result := testResultFixture(t)
-		result.Outcome = runprotocol.Outcome(number)
-		admitted := number >= int(runprotocol.OutcomePassed) && number <= int(runprotocol.OutcomeNonAccepting)
-		err := result.Validate()
-		if admitted && err != nil || !admitted && !errors.Is(err, core.ErrRunProtocolContract) {
-			t.Fatalf("TestResult.Validate(outcome %d) error=%v, want admitted=%t", number, err, admitted)
+	for n := 0; n <= math.MaxUint8; n++ {
+		r := runResultFixture(t)
+		v := runprotocol.Outcome(n)
+		r.Outcome = &v
+		want := v == runprotocol.OutcomePassed || v == runprotocol.OutcomeFailed || v == runprotocol.OutcomeSkipped
+		err := r.Validate()
+		if (err == nil) != want {
+			t.Fatalf("RunResult.Validate outcome%d = %v, want admitted%t", n, err, want)
 		}
+	}
+}
+func TestRunResultJSONHostileAdmission(t *testing.T) {
+	t.Parallel()
+	good, err := jsonio.MarshalValidated(runResultFixture(t), testResultCodec())
+	if err != nil {
+		t.Fatal(err)
+	}
+	replace := func(old, next string) []byte {
+		b := bytes.Replace(good, []byte(old), []byte(next), 1)
+		if bytes.Equal(b, good) {
+			t.Fatalf("hostile mutation %q changed no bytes, want real boundary mutation", old)
+		}
+		return b
+	}
+	for _, tc := range []struct {
+		name string
+		data []byte
+	}{
+		{"empty source", nil}, {"null root", []byte("null")}, {"array root", []byte("[]")},
+		{"missing native kind", replace("\"kind\":\"test\",", "")},
+		{"future native kind", replace("\"kind\":\"test\"", "\"kind\":\"future\"")},
+		{"wrong kind representation", replace("\"kind\":\"test\"", "\"kind\":9")},
+		{"missing native suite", replace("\"suite\":\"example.org/project/pkg\",", "")},
+		{"empty native suite", replace("example.org/project/pkg", "")},
+		{"missing native name", replace("\"name\":\"TestNative/dynamic/subtest\",", "")},
+		{"null name is not unobserved", replace("\"name\":\"TestNative/dynamic/subtest\"", "\"name\":null")},
+		{"duplicate suite member", replace("\"suite\":", "\"suite\":\"foreign\",\"suite\":")},
+		{"unknown extra member", replace("\"suite\":", "\"future\":true,\"suite\":")},
+		{"null duration", replace("\"outcome\":", "\"elapsed\":null,\"outcome\":")},
+		{"negative duration", replace("\"outcome\":", "\"elapsed\":\"-1\",\"outcome\":")},
+		{"duration overflow", replace("\"outcome\":", "\"elapsed\":\"9223372036854775808\",\"outcome\":")},
+		{"wrong duration representation", replace("\"outcome\":", "\"elapsed\":1,\"outcome\":")},
+		{"missing terminal outcome", replace(",\"outcome\":\"outcome_passed\"", "")},
+		{"unknown terminal outcome", replace("outcome_passed", "future")},
+		{"truncated record", good[:len(good)-1]},
+		{"two roots at document boundary", append(append([]byte{}, good...), good...)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := jsonio.DecodeOwned[runprotocol.RunResult](tc.data, testResultCodec())
+			if !errors.Is(err, core.ErrJSONContract) || got != (runprotocol.RunResult{}) {
+				t.Fatalf("hostile result = (%+v,%v), want zero/JSON contract", got, err)
+			}
+		})
 	}
 }
 
@@ -124,7 +185,7 @@ func TestTestLabelBoundary(t *testing.T) {
 			if (err == nil) != row.admit || !row.admit && (!errors.Is(err, core.ErrRunProtocolContract) || label != (runprotocol.TestLabel{})) {
 				t.Fatalf("NewTestLabel(%d bytes) = (%q,%v), want admitted %t", len(row.value), label.String(), err, row.admit)
 			}
-			result := testResultFixture(t)
+			result := runResultFixture(t)
 			quoted, err := core.MarshalCanonicalJSONString(row.value)
 			if err != nil {
 				if row.admit {
@@ -137,158 +198,10 @@ func TestTestLabelBoundary(t *testing.T) {
 				t.Fatal(err)
 			}
 			document := strings.Replace(string(encoded), `"TestNative/dynamic/subtest"`, string(quoted), 1)
-			got, err := jsonio.DecodeOwned[runprotocol.TestResult]([]byte(document), testResultCodec())
-			if (err == nil) != row.admit || row.admit && got.Test.Name.String() != row.value {
-				t.Fatalf("decoded label = (%d bytes,%v), want admitted %t with exact bytes", len(got.Test.Name.String()), err, row.admit)
+			got, err := jsonio.DecodeOwned[runprotocol.RunResult]([]byte(document), testResultCodec())
+			if (err == nil) != row.admit || row.admit && got.Name.String() != row.value {
+				t.Fatalf("decoded label = (%d bytes,%v), want admitted %t with exact bytes", len(got.Name.String()), err, row.admit)
 			}
 		})
 	}
-}
-
-func TestTestResultJSONHostileAdmission(t *testing.T) {
-	t.Parallel()
-	good, err := jsonio.MarshalValidated(testResultFixture(t), testResultCodec())
-	if err != nil {
-		t.Fatal(err)
-	}
-	replace := func(old, new string) string { return strings.Replace(string(good), old, new, 1) }
-	for _, tc := range []struct{ name, input string }{
-		{"empty source", ""}, {"whitespace source", " \n\t"}, {"null root", "null"}, {"array root", "[]"},
-		{"missing identity", `{"ordinal":1,"outcome":"outcome_passed"}`},
-		{"missing suite", `{"test":{"name":"TestX"},"ordinal":1,"outcome":"outcome_passed"}`},
-		{"missing name", `{"test":{"suite":"pkg"},"ordinal":1,"outcome":"outcome_passed"}`},
-		{"missing ordinal", replace(`"ordinal":1,`, ``)},
-		{"zero ordinal", replace(`"ordinal":1`, `"ordinal":0`)},
-		{"negative ordinal", replace(`"ordinal":1`, `"ordinal":-1`)},
-		{"fractional ordinal", replace(`"ordinal":1`, `"ordinal":1.5`)},
-		{"ordinal overflow", replace(`"ordinal":1`, `"ordinal":18446744073709551616`)},
-		{"unknown outcome", replace(`"outcome_passed"`, `"future"`)},
-		{"wrong outcome type", replace(`"outcome_passed"`, `1`)},
-		{"duplicate root member", replace(`"ordinal":1`, `"ordinal":1,"ordinal":2`)},
-		{"duplicate identity member", replace(`"name":`, `"name":"another","name":`)},
-		{"unknown root member", replace(`"ordinal":1`, `"future":true,"ordinal":1`)},
-		{"unknown identity member", replace(`"name":`, `"future":true,"name":`)},
-		{"null identity", replace(`"test":{`+strings.Split(strings.Split(string(good), `"test":{`)[1], `}`)[0]+`}`, `"test":null`)},
-		{"null duration", replace(`"ordinal":1`, `"elapsed":null,"ordinal":1`)},
-		{"negative duration", replace(`"ordinal":1`, `"elapsed":"-1","ordinal":1`)},
-		{"numeric duration cannot replace exact duration string", replace(`"ordinal":1`, `"elapsed":1,"ordinal":1`)},
-		{"duration overflow", replace(`"ordinal":1`, `"elapsed":"9223372036854775808","ordinal":1`)},
-		{"fractional duration", replace(`"ordinal":1`, `"elapsed":"0.5","ordinal":1`)},
-		{"missing terminal outcome", replace(`,"outcome":"outcome_passed"`, ``)},
-		{"truncated object", string(good[:len(good)-1])}, {"trailing prose", string(good) + " false"},
-		{"multiple roots at single document boundary", string(good) + string(good)},
-		{"native invalid UTF8", replace(`TestNative`, string([]byte{0xff}))},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			got, err := jsonio.DecodeOwned[runprotocol.TestResult]([]byte(tc.input), testResultCodec())
-			if !errors.Is(err, core.ErrJSONContract) || got != (runprotocol.TestResult{}) {
-				t.Fatalf("DecodeOwned(%q)=(%+v,%v), want zero and JSON contract refusal", tc.input, got, err)
-			}
-		})
-	}
-}
-
-func TestTestResultStreamLayerTriad(t *testing.T) {
-	t.Parallel()
-	t.Run("positive repeated names keep every native occurrence", func(t *testing.T) {
-		t.Parallel()
-		var source bytes.Buffer
-		encoder, err := jsonio.NewObjectEncoder[runprotocol.TestResult](jsonio.ObjectDestinationRequest{Destination: &source})
-		if err != nil {
-			t.Fatal(err)
-		}
-		outcomes := []runprotocol.Outcome{runprotocol.OutcomeFailed, runprotocol.OutcomeSkipped, runprotocol.OutcomePassed}
-		for i, outcome := range outcomes {
-			result := testResultFixture(t)
-			result.Ordinal = uint64(i + 1)
-			result.Outcome = outcome
-			if err := encoder.Encode(t.Context(), result); err != nil {
-				t.Fatal(err)
-			}
-		}
-		count := 0
-		for result, err := range jsonio.Objects[runprotocol.TestResult](t.Context(), jsonio.ObjectSourceRequest{Source: &source}) {
-			if err != nil || count >= len(outcomes) || result.Test != testResultFixture(t).Test || result.Ordinal != uint64(count+1) || result.Outcome != outcomes[count] {
-				t.Fatalf("result%d=(%+v,%v), want exact ordered native occurrence", count, result, err)
-			}
-			count++
-		}
-		if count != len(outcomes) {
-			t.Fatalf("result count=%d, want %d", count, len(outcomes))
-		}
-	})
-	t.Run("negative truncated source cannot invent a terminal result", func(t *testing.T) {
-		t.Parallel()
-		good, err := jsonio.MarshalValidated(testResultFixture(t), testResultCodec())
-		if err != nil {
-			t.Fatal(err)
-		}
-		source := io.MultiReader(bytes.NewReader(good), strings.NewReader("\n{"))
-		count, refusals := 0, 0
-		for result, err := range jsonio.Objects[runprotocol.TestResult](t.Context(), jsonio.ObjectSourceRequest{Source: source}) {
-			if err != nil {
-				if !errors.Is(err, core.ErrJSONContract) || result != (runprotocol.TestResult{}) {
-					t.Fatalf("truncation=(%+v,%v), want zero and typed refusal", result, err)
-				}
-				refusals++
-				continue
-			}
-			count++
-		}
-		if count != 1 || refusals != 1 {
-			t.Fatalf("truncated stream=(%d results,%d refusals), want 1 prefix result and 1 refusal", count, refusals)
-		}
-	})
-	t.Run("neutral empty source emits no result", func(t *testing.T) {
-		t.Parallel()
-		for result, err := range jsonio.Objects[runprotocol.TestResult](t.Context(), jsonio.ObjectSourceRequest{Source: strings.NewReader("")}) {
-			t.Fatalf("empty stream=(%+v,%v), want no observations", result, err)
-		}
-	})
-}
-
-func FuzzTestResultJSONSemanticClosure(f *testing.F) {
-	seed, err := jsonio.MarshalValidated(testResultFixture(f), testResultCodec())
-	if err != nil {
-		f.Fatal(err)
-	}
-	f.Add(seed)
-	observedZero := testResultFixture(f)
-	observedZero.Elapsed = new(temporal.Duration)
-	zeroSeed, err := jsonio.MarshalValidated(observedZero, testResultCodec())
-	if err != nil {
-		f.Fatal(err)
-	}
-	f.Add(zeroSeed)
-	f.Add([]byte{})
-	f.Add([]byte(`null`))
-	f.Add([]byte(`{`))
-	f.Fuzz(func(t *testing.T, data []byte) {
-		got, err := jsonio.DecodeOwned[runprotocol.TestResult](data, testResultCodec())
-		if err != nil {
-			if !errors.Is(err, core.ErrJSONContract) || got != (runprotocol.TestResult{}) {
-				t.Fatalf("rejected result=(%+v,%v), want zero and typed refusal", got, err)
-			}
-			return
-		}
-		if err := got.Validate(); err != nil {
-			t.Fatalf("admitted result.Validate()=%v, want nil", err)
-		}
-		canonical, err := jsonio.MarshalValidated(got, testResultCodec())
-		if err != nil {
-			t.Fatal(err)
-		}
-		roundTrip, err := jsonio.DecodeOwned[runprotocol.TestResult](canonical, testResultCodec())
-		if err != nil || roundTrip.Test != got.Test || roundTrip.Ordinal != got.Ordinal || roundTrip.Outcome != got.Outcome || (roundTrip.Elapsed == nil) != (got.Elapsed == nil) {
-			t.Fatalf("round trip=(%+v,%v), want %+v", roundTrip, err, got)
-		}
-		if got.Elapsed != nil && *got.Elapsed != *roundTrip.Elapsed {
-			t.Fatalf("round trip duration=%v, want %v", roundTrip.Elapsed, got.Elapsed)
-		}
-		second, err := jsonio.MarshalValidated(roundTrip, testResultCodec())
-		if err != nil || !bytes.Equal(second, canonical) {
-			t.Fatalf("canonical second write=(%q,%v), want %q", second, err, canonical)
-		}
-	})
 }

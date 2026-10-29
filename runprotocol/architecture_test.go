@@ -16,6 +16,14 @@ import (
 var aboutContractSources embed.FS
 
 type runProtocolJSONDoorInventory struct {
+	RunKind        func(*RunKind, []byte) error
+	RunSourceKind  func(*RunSourceKind, []byte) error
+	RunScopeKind   func(*RunScopeKind, []byte) error
+	RunFactKind    func(*RunFactKind, []byte) error
+	RunResultKind  func(*RunResultKind, []byte) error
+	RunArgument    func(*RunArgument, []byte) error
+	RunShuffleSeed func(*RunShuffleSeed, []byte) error
+
 	Identifier               func(*Identifier, []byte) error
 	Name                     func(*Name, []byte) error
 	Text                     func(*Text, []byte) error
@@ -51,6 +59,14 @@ type runProtocolJSONDoorInventory struct {
 }
 
 var runProtocolJSONDoors = runProtocolJSONDoorInventory{
+	RunKind:        (*RunKind).UnmarshalJSON,
+	RunSourceKind:  (*RunSourceKind).UnmarshalJSON,
+	RunScopeKind:   (*RunScopeKind).UnmarshalJSON,
+	RunFactKind:    (*RunFactKind).UnmarshalJSON,
+	RunResultKind:  (*RunResultKind).UnmarshalJSON,
+	RunArgument:    (*RunArgument).UnmarshalJSON,
+	RunShuffleSeed: (*RunShuffleSeed).UnmarshalJSON,
+
 	Identifier: (*Identifier).UnmarshalJSON, Name: (*Name).UnmarshalJSON,
 	Text: (*Text).UnmarshalJSON, TestLabel: (*TestLabel).UnmarshalJSON, SourcePath: (*SourcePath).UnmarshalJSON,
 	RepositoryIdentity:       (*RepositoryIdentity).UnmarshalJSON,
@@ -83,6 +99,8 @@ var runProtocolJSONDoors = runProtocolJSONDoorInventory{
 }
 
 type aboutTextDoorInventory struct {
+	NewRunArgument        func(string) (RunArgument, error)
+	ParseRunShuffleSeed   func(string) (RunShuffleSeed, error)
 	ParseGoFuzzTarget     func(string) (GoFuzzTarget, error)
 	ParseGoTestPattern    func(string) (GoTestPattern, error)
 	NewIdentifier         func(string) (Identifier, error)
@@ -94,6 +112,7 @@ type aboutTextDoorInventory struct {
 }
 
 var aboutTextDoors = aboutTextDoorInventory{
+	NewRunArgument: NewRunArgument, ParseRunShuffleSeed: ParseRunShuffleSeed,
 	// This off-wire target is fuzzed by FuzzGoFuzzTargetMatchesGoIdentifierGrammar.
 	ParseGoFuzzTarget: ParseGoFuzzTarget,
 	// This off-wire pattern is fuzzed by FuzzGoTestPatternFollowsTestingSplit.

@@ -70,7 +70,9 @@ func (MachineChange) runProtocolFact()               {}
 func (MachineGenerationTransition) runProtocolFact() {}
 
 func (machineFingerprintIdentityWire) runProtocolInternalFlowCarrier()      {}
-func (TestResultStreamRequest) runProtocolInternalFlowCarrier()             {}
+func (RunFactStreamRequest) runProtocolInternalFlowCarrier()                {}
+func (RunFactWriteRequest) runProtocolInternalFlowCarrier()                 {}
+func (runFactTotals) runProtocolInternalFlowCarrier()                       {}
 func (machineFingerprintToolchainWire) runProtocolInternalFlowCarrier()     {}
 func (machineConfigurationFingerprintWire) runProtocolInternalFlowCarrier() {}
 func (experimentToolTargetWire) runProtocolInternalFlowCarrier()            {}
@@ -90,3 +92,21 @@ var (
 	_ sealedProjection    = ObservationReference{}
 	_ internalFlowCarrier = machineFingerprintIdentityWire{}
 )
+
+func (RunSource) runProtocolFact()            {}
+func (RunSourceCapture) runProtocolFact()     {}
+func (RunScope) runProtocolFact()             {}
+func (RunWorker) runProtocolFact()            {}
+func (RunBudget) runProtocolFact()            {}
+func (RunTiming) runProtocolFact()            {}
+func (RunCounts) runProtocolFact()            {}
+func (RunBenchmarkCounts) runProtocolFact()   {}
+func (RunFuzzCounts) runProtocolFact()        {}
+func (RunMemoryObservation) runProtocolFact() {}
+func (RunSummary) runProtocolFact()           {}
+func (RunRetry) runProtocolFact()             {}
+func (RunArgument) runProtocolFact()          {}
+func (RunShuffleSeed) runProtocolFact()       {}
+func (RunInvocation) runProtocolFact()        {}
+func (RunFactSequence) runProtocolFact()      {}
+func (RunFact) runProtocolFact()              {}
