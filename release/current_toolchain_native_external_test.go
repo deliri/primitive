@@ -29,7 +29,7 @@ func TestCurrentGoToolchainAdmitsTheInstalledNativeExecutable(t *testing.T) {
 		t.Fatal(err)
 	}
 	if verified.HostPlatform() != platform {
-		t.Fatalf("verified platform=%v, want actual native %v", verified.HostPlatform(), platform)
+		t.Fatalf("verified platform=%v, want observed native %v", verified.HostPlatform(), platform)
 	}
 	if err := verified.GoExecutableDigest().Validate(); err != nil {
 		t.Fatalf("native executable digest=%v, want verified bytes", err)
