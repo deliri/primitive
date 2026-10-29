@@ -142,9 +142,12 @@ func testingSelector(expression ast.Expr, name string) bool {
 
 // readTestTables reads only the four generated tables and main's TestMain call.
 func readTestTables(file *ast.File, maximum uint64) (TestTables, error) {
+	if file.Name == nil || file.Name.Name != "main" || !testMainImport(file, "testing", "testing") || !testMainImport(file, "testdeps", "testing/internal/testdeps") || !testMainImport(file, "os", "os") {
+		return TestTables{}, outputError("generated test main has unexpected package imports", nil)
+	}
 	var tables TestTables
 	var seen [4]bool
-	var mains, starts int
+	var mains int
 	for _, declaration := range file.Decls {
 		switch declaration := declaration.(type) {
 		case *ast.GenDecl:
@@ -188,28 +191,105 @@ func readTestTables(file *ast.File, maximum uint64) (TestTables, error) {
 				continue
 			}
 			mains++
-			ast.Inspect(declaration.Body, func(node ast.Node) bool {
-				call, ok := node.(*ast.CallExpr)
-				if !ok {
-					return true
-				}
-				if testingSelector(call.Fun, "MainStart") {
-					starts++
-				}
-				if selector, ok := call.Fun.(*ast.SelectorExpr); ok && selector.Sel.Name == "TestMain" {
-					tables.CustomTestMain = true
-				}
-				return true
-			})
+			custom, err := readTestMain(declaration)
+			if err != nil {
+				return TestTables{}, err
+			}
+			tables.CustomTestMain = custom
 		}
 	}
 	if seen != [4]bool{true, true, true, true} {
 		return TestTables{}, outputError("generated test main lacks a table", nil)
 	}
-	if mains != 1 || starts != 1 {
+	if mains != 1 {
 		return TestTables{}, outputError("generated test main does not start testing exactly once", nil)
 	}
 	return tables, nil
+}
+
+// testMainImport binds the names in cmd/go's template to the real imports.
+func testMainImport(file *ast.File, name, path string) bool {
+	for _, spec := range file.Imports {
+		value, err := strconv.Unquote(spec.Path.Value)
+		if err == nil && value == path && (spec.Name == nil || spec.Name.Name == name) {
+			return true
+		}
+	}
+	return false
+}
+
+func testMainIdent(expression ast.Expr, name string) bool {
+	ident, ok := expression.(*ast.Ident)
+	return ok && ident.Name == name
+}
+
+// readTestMain binds the four observed declarations to the direct MainStart
+// assignment in cmd/go's template. Merely finding a call below main would
+// accept an unused closure or a different, nonempty selection as empty.
+func readTestMain(declaration *ast.FuncDecl) (bool, error) {
+	refused := outputError("generated test main does not use the observed tables", nil)
+	if declaration.Type.Params.NumFields() != 0 || declaration.Type.Results.NumFields() != 0 || (len(declaration.Body.List) != 2 && len(declaration.Body.List) != 3) {
+		return false, refused
+	}
+	assignment, ok := declaration.Body.List[0].(*ast.AssignStmt)
+	if !ok || assignment.Tok != token.DEFINE || len(assignment.Lhs) != 1 || len(assignment.Rhs) != 1 || !testMainIdent(assignment.Lhs[0], "m") {
+		return false, refused
+	}
+	start, ok := assignment.Rhs[0].(*ast.CallExpr)
+	if !ok || !testingSelector(start.Fun, "MainStart") || len(start.Args) != 5 || start.Ellipsis.IsValid() {
+		return false, refused
+	}
+	deps, ok := start.Args[0].(*ast.CompositeLit)
+	if !ok || len(deps.Elts) != 0 {
+		return false, refused
+	}
+	selector, ok := deps.Type.(*ast.SelectorExpr)
+	if !ok || !testMainIdent(selector.X, "testdeps") || selector.Sel.Name != "TestDeps" {
+		return false, refused
+	}
+	for i, name := range [4]string{"tests", "benchmarks", "fuzzTargets", "examples"} {
+		if !testMainIdent(start.Args[i+1], name) {
+			return false, refused
+		}
+	}
+	tail, ok := declaration.Body.List[len(declaration.Body.List)-1].(*ast.ExprStmt)
+	if !ok {
+		return false, refused
+	}
+	exit, ok := tail.X.(*ast.CallExpr)
+	if !ok || len(exit.Args) != 1 || exit.Ellipsis.IsValid() {
+		return false, refused
+	}
+	selector, ok = exit.Fun.(*ast.SelectorExpr)
+	if !ok || !testMainIdent(selector.X, "os") || selector.Sel.Name != "Exit" {
+		return false, refused
+	}
+	if len(declaration.Body.List) == 2 {
+		run, ok := exit.Args[0].(*ast.CallExpr)
+		if !ok || len(run.Args) != 0 {
+			return false, refused
+		}
+		selector, ok := run.Fun.(*ast.SelectorExpr)
+		if !ok || !testMainIdent(selector.X, "m") || selector.Sel.Name != "Run" {
+			return false, refused
+		}
+		return false, nil
+	}
+	custom, ok := declaration.Body.List[1].(*ast.ExprStmt)
+	if !ok {
+		return false, refused
+	}
+	call, ok := custom.X.(*ast.CallExpr)
+	if !ok || len(call.Args) != 1 || !testMainIdent(call.Args[0], "m") || call.Ellipsis.IsValid() {
+		return false, refused
+	}
+	selector, ok = call.Fun.(*ast.SelectorExpr)
+	if !ok || selector.Sel.Name != "TestMain" || (!testMainIdent(selector.X, "_test") && !testMainIdent(selector.X, "_xtest")) {
+		return false, refused
+	}
+	// A direct package TestMain is always reported, irrespective of its exit
+	// expression. Its arbitrary user behavior prevents certifying absence.
+	return true, nil
 }
 
 // testTableLiteral reports a []testing.<element>{...} composite literal.
