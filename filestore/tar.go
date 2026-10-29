@@ -118,7 +118,7 @@ func WriteTAR(ctx context.Context, request TARWriteRequest) (ContentIndexEntry, 
 // encoded extent only after the TAR and optional gzip encoder close. Failure
 // returns zero; borrowed streams and provisional output remain caller-owned.
 func StreamTAR(ctx context.Context, request TARWriteRequest) (core.ByteLength, error) {
-	_, extent, err := writeTAR(ctx, request, nil)
+	_, extent, err := writeTAR(ctx, request, core.NewDigestWriter())
 	return extent, err
 }
 
