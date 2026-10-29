@@ -68,7 +68,9 @@ func beginValidated(ctx context.Context, request Request) (*Execution, error) {
 		// must not orphan it: the cancel delivers the kill and the wait reaps
 		// the corpse, because no Execution will exist to do either later.
 		cancel(nil)
-		return nil, errors.Join(identityErr, prepared.command.Wait())
+		waitErr := prepared.command.Wait()
+		prepared.memoryCap.finish()
+		return nil, errors.Join(identityErr, waitErr)
 	}
 	return &Execution{
 		prepared:    prepared,
@@ -85,6 +87,7 @@ func beginValidated(ctx context.Context, request Request) (*Execution, error) {
 type preparedCommand struct {
 	command      *exec.Cmd
 	cancellation *atomic.Bool
+	memoryCap    *memoryCapObserver
 }
 
 func prepareCommand(
@@ -92,7 +95,7 @@ func prepareCommand(
 	request Request,
 	streams commandStreams,
 ) (preparedCommand, error) {
-	path, argv, err := cappedCommand(request.Containment.MemoryMax, request.Command.String(), request.projectArguments())
+	path, argv, unit, err := cappedCommand(request.Containment.MemoryMax, request.Command.String(), request.projectArguments())
 	if err != nil {
 		return preparedCommand{}, err
 	}
@@ -147,6 +150,7 @@ func prepareCommand(
 	}
 	return preparedCommand{
 		command: command, cancellation: cancellation,
+		memoryCap: newMemoryCapObserver(ctx, memoryCapOwner{unit: unit, pid: ProcessIdentity(command.Process.Pid), limit: request.Containment.MemoryMax}),
 	}, nil
 }
 
@@ -162,10 +166,12 @@ type waitRequest struct {
 func waitCommand(request waitRequest) (Result, error) {
 	waitErr := request.prepared.command.Wait()
 	request.reaped.Store(true)
+	memoryCap := request.prepared.memoryCap.finish()
 	result, resultErr := newResult(
 		request.prepared.command.ProcessState,
 		request.streams,
 	)
+	result.memoryCap = memoryCap
 	if resultErr != nil {
 		return Result{}, newFailure(FailureKindWait, request.commandPath, resultErr)
 	}

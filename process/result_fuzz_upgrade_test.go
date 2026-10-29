@@ -39,6 +39,10 @@ func FuzzResultObservationExternalIngress(f *testing.F) {
 	for _, change := range []func(*process.ResultObservation){
 		func(*process.ResultObservation) {},
 		func(o *process.ResultObservation) { o.PeakMemoryBytes = nil },
+		func(o *process.ResultObservation) { o.MemoryCap = &process.MemoryCapObservation{Limit: maximum} },
+		func(o *process.ResultObservation) {
+			o.MemoryCap = &process.MemoryCapObservation{Limit: maximum, State: process.MemoryCapObserved, LocalOOMEvents: 1, LocalOOMKills: 1}
+		},
 		func(o *process.ResultObservation) { o.PeakMemoryBytes = &zero },
 		func(o *process.ResultObservation) { o.PeakMemoryBytes = &maximum },
 		func(o *process.ResultObservation) { o.ExitCode = core.ProcessExitCodeMaximum },
@@ -77,7 +81,7 @@ func FuzzResultObservationExternalIngress(f *testing.F) {
 		}
 		f.Add(encoded)
 	}
-	for _, data := range [][]byte{nil, []byte("null"), []byte("[]"), []byte(`{"unowned":1}`)} {
+	for _, data := range [][]byte{nil, []byte("null"), []byte("[]"), []byte(`{"unowned":1}`), []byte(`{"memory_cap":{"limit_bytes":0,"state":1}}`), []byte(`{"memory_cap":{"limit_bytes":1,"state":255}}`), []byte(`{"memory_cap":{"limit_bytes":1,"state":0,"local_oom_events":1}}`)} {
 		f.Add(data)
 	}
 	f.Fuzz(func(t *testing.T, input []byte) {
@@ -85,6 +89,10 @@ func FuzzResultObservationExternalIngress(f *testing.F) {
 		trimmed := bytes.TrimSpace(input)
 		wantAccepted := syntaxErr == nil && len(trimmed) != 0 && trimmed[0] == '{' && wire.ExitCode >= core.ProcessExitCodeSignaled && wire.ExitCode <= core.ProcessExitCodeMaximum
 		wantAccepted = wantAccepted && (wire.TerminationSignal == nil || wire.ExitCode == core.ProcessExitCodeSignaled && *wire.TerminationSignal > 0)
+		if wire.MemoryCap != nil {
+			cap := wire.MemoryCap
+			wantAccepted = wantAccepted && cap.Limit.Uint64() > 0 && (cap.State == process.MemoryCapObserved || cap.State == process.MemoryCapUnknown && cap.LocalOOMEvents == 0 && cap.LocalOOMKills == 0)
+		}
 		before := bytes.Clone(input)
 		got, err := core.DecodeStrictJSON[process.ResultObservation](bytes.NewReader(input), core.DefaultStrictJSONLimits())
 		if !bytes.Equal(input, before) {
@@ -99,7 +107,7 @@ func FuzzResultObservationExternalIngress(f *testing.F) {
 			}
 			return
 		}
-		if err != nil || got.Validate() != nil || got.ExitCode != wire.ExitCode || got.CPUTime != wire.CPUTime || got.StdinBytes != wire.StdinBytes || got.StdoutBytes != wire.StdoutBytes || got.StderrBytes != wire.StderrBytes || (got.PeakMemoryBytes == nil) != (wire.PeakMemoryBytes == nil) || got.PeakMemoryBytes != nil && wire.PeakMemoryBytes != nil && *got.PeakMemoryBytes != *wire.PeakMemoryBytes || (got.TerminationSignal == nil) != (wire.TerminationSignal == nil) || got.TerminationSignal != nil && wire.TerminationSignal != nil && *got.TerminationSignal != *wire.TerminationSignal {
+		if err != nil || got.Validate() != nil || (got.MemoryCap == nil) != (wire.MemoryCap == nil) || got.MemoryCap != nil && wire.MemoryCap != nil && *got.MemoryCap != *wire.MemoryCap || got.ExitCode != wire.ExitCode || got.CPUTime != wire.CPUTime || got.StdinBytes != wire.StdinBytes || got.StdoutBytes != wire.StdoutBytes || got.StderrBytes != wire.StderrBytes || (got.PeakMemoryBytes == nil) != (wire.PeakMemoryBytes == nil) || got.PeakMemoryBytes != nil && wire.PeakMemoryBytes != nil && *got.PeakMemoryBytes != *wire.PeakMemoryBytes || (got.TerminationSignal == nil) != (wire.TerminationSignal == nil) || got.TerminationSignal != nil && wire.TerminationSignal != nil && *got.TerminationSignal != *wire.TerminationSignal {
 			t.Fatalf("result admission changed exact observations: %v", err)
 		}
 		encoded, err := core.MarshalCanonicalJSONDocument(got)
@@ -107,7 +115,7 @@ func FuzzResultObservationExternalIngress(f *testing.F) {
 			t.Fatalf("accepted result cannot publish: %v", err)
 		}
 		next, err := core.DecodeStrictJSON[process.ResultObservation](bytes.NewReader(encoded), core.DefaultStrictJSONLimits())
-		if err != nil || next.ExitCode != got.ExitCode || next.CPUTime != got.CPUTime || next.StdinBytes != got.StdinBytes || next.StdoutBytes != got.StdoutBytes || next.StderrBytes != got.StderrBytes || (next.PeakMemoryBytes == nil) != (got.PeakMemoryBytes == nil) || next.PeakMemoryBytes != nil && got.PeakMemoryBytes != nil && *next.PeakMemoryBytes != *got.PeakMemoryBytes || (next.TerminationSignal == nil) != (got.TerminationSignal == nil) || next.TerminationSignal != nil && got.TerminationSignal != nil && *next.TerminationSignal != *got.TerminationSignal {
+		if err != nil || (next.MemoryCap == nil) != (got.MemoryCap == nil) || next.MemoryCap != nil && got.MemoryCap != nil && *next.MemoryCap != *got.MemoryCap || next.ExitCode != got.ExitCode || next.CPUTime != got.CPUTime || next.StdinBytes != got.StdinBytes || next.StdoutBytes != got.StdoutBytes || next.StderrBytes != got.StderrBytes || (next.PeakMemoryBytes == nil) != (got.PeakMemoryBytes == nil) || next.PeakMemoryBytes != nil && got.PeakMemoryBytes != nil && *next.PeakMemoryBytes != *got.PeakMemoryBytes || (next.TerminationSignal == nil) != (got.TerminationSignal == nil) || next.TerminationSignal != nil && got.TerminationSignal != nil && *next.TerminationSignal != *got.TerminationSignal {
 			t.Fatalf("result round trip lost facts: %v", err)
 		}
 		again, err := core.MarshalCanonicalJSONDocument(next)

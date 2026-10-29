@@ -20,11 +20,13 @@ func ProcessNativeFuzzDoorNames() []string {
 		QuotePOSIXArgument   nativeFuzzDoor[func(Argument) (Argument, error)]
 		WriteServiceDocument nativeFuzzDoor[func(context.Context, io.Writer, ServiceDocumentRequest) error]
 		Plan_UnmarshalJSON   nativeFuzzDoor[func(*Plan, []byte) error]
+		readMemoryEvents     nativeFuzzDoor[func(io.Reader) (memoryEvents, bool)]
 		snapshotSighting     nativeFuzzDoor[func(ProcessIdentity, string) (ProcessSighting, bool)]
 	}{
 		QuotePOSIXArgument:   nativeFuzzDoor[func(Argument) (Argument, error)]{Call: QuotePOSIXArgument, Fuzz: FuzzPOSIXArgumentSemanticClosure},
 		WriteServiceDocument: nativeFuzzDoor[func(context.Context, io.Writer, ServiceDocumentRequest) error]{Call: WriteServiceDocument, Fuzz: FuzzServiceDocumentProjection},
 		Plan_UnmarshalJSON:   nativeFuzzDoor[func(*Plan, []byte) error]{Call: (*Plan).UnmarshalJSON, Fuzz: FuzzPlanJSONExternalIngress},
+		readMemoryEvents:     nativeFuzzDoor[func(io.Reader) (memoryEvents, bool)]{Call: readMemoryEvents, Fuzz: FuzzMemoryCapLocalEvents},
 		snapshotSighting:     nativeFuzzDoor[func(ProcessIdentity, string) (ProcessSighting, bool)]{Call: snapshotSighting, Fuzz: FuzzSnapshotSightingNativeIngress},
 	}
 	var names []string

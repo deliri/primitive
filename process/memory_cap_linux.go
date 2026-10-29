@@ -3,6 +3,7 @@
 package process
 
 import (
+	"crypto/rand"
 	"strconv"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -14,11 +15,12 @@ const memoryCapLauncher = "/usr/bin/systemd-run"
 
 // cappedCommand runs path inside a transient user scope whose MemoryMax is
 // max and whose swap is zero; a zero max runs path as it is.
-func cappedCommand(max core.ByteLength, path string, arguments []string) (string, []string, error) {
+func cappedCommand(max core.ByteLength, path string, arguments []string) (string, []string, memoryCapUnit, error) {
 	if max.Uint64() == 0 {
-		return path, arguments, nil
+		return path, arguments, "", nil
 	}
+	unit := memoryCapUnit("primitive-" + rand.Text() + ".scope")
 	limit := strconv.FormatUint(max.Uint64(), 10)
-	argv := append([]string{"--user", "--scope", "--quiet", "--collect", "-p", "MemoryMax=" + limit, "-p", "MemorySwapMax=0", "--", path}, arguments...)
-	return memoryCapLauncher, argv, nil
+	argv := append([]string{"--user", "--scope", "--quiet", "--collect", "--unit=" + string(unit), "-p", "MemoryMax=" + limit, "-p", "MemorySwapMax=0", "--", path}, arguments...)
+	return memoryCapLauncher, argv, unit, nil
 }

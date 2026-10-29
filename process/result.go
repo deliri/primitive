@@ -80,6 +80,7 @@ func (n SignalNumber) Int() (int, error) {
 
 // Result contains fixed-size observations from one started and reaped child.
 type Result struct {
+	memoryCap          *MemoryCapObservation
 	exit               ExitCode
 	cpu                temporal.Duration
 	stdinBytes         core.ByteLength
@@ -96,13 +97,14 @@ type Result struct {
 // direct child. It retains exact exit, CPU, byte, and signal facts. A nil
 // PeakMemoryBytes means Go did not report that observation, not measured zero.
 type ResultObservation struct {
-	TerminationSignal *SignalNumber     `json:"termination_signal,omitempty"`
-	CPUTime           temporal.Duration `json:"cpu_time_nanoseconds"`
-	StdinBytes        core.ByteLength   `json:"stdin_bytes"`
-	StdoutBytes       core.ByteLength   `json:"stdout_bytes"`
-	StderrBytes       core.ByteLength   `json:"stderr_bytes"`
-	PeakMemoryBytes   *core.ByteLength  `json:"peak_memory_bytes,omitempty"`
-	ExitCode          int64             `json:"exit_code"`
+	MemoryCap         *MemoryCapObservation `json:"memory_cap,omitempty"`
+	TerminationSignal *SignalNumber         `json:"termination_signal,omitempty"`
+	CPUTime           temporal.Duration     `json:"cpu_time_nanoseconds"`
+	StdinBytes        core.ByteLength       `json:"stdin_bytes"`
+	StdoutBytes       core.ByteLength       `json:"stdout_bytes"`
+	StderrBytes       core.ByteLength       `json:"stderr_bytes"`
+	PeakMemoryBytes   *core.ByteLength      `json:"peak_memory_bytes,omitempty"`
+	ExitCode          int64                 `json:"exit_code"`
 }
 
 func (o ResultObservation) Validate() error {
@@ -116,6 +118,9 @@ func (o ResultObservation) Validate() error {
 		if err := o.PeakMemoryBytes.Validate(); err != nil {
 			return errors.Join(core.ErrProcessContract, err)
 		}
+	}
+	if err := validateMemoryCap(o.MemoryCap); err != nil {
+		return err
 	}
 	var signal SignalNumber
 	if o.TerminationSignal != nil {
@@ -146,6 +151,10 @@ func (r Result) Observation() (ResultObservation, error) {
 		ExitCode: int64(r.exit.value), CPUTime: r.cpu,
 		StdinBytes: r.stdinBytes, StdoutBytes: r.stdoutBytes, StderrBytes: r.stderrBytes,
 	}
+	if r.memoryCap != nil {
+		value := *r.memoryCap
+		observation.MemoryCap = &value
+	}
 	if r.peakMemoryReported {
 		memory := r.peakMemory
 		observation.PeakMemoryBytes = &memory
@@ -174,6 +183,9 @@ func (r Result) Validate() error {
 	}
 	if !r.peakMemoryReported && r.peakMemory.Uint64() != 0 {
 		return contractError("unreported peak memory carries a value")
+	}
+	if err := validateMemoryCap(r.memoryCap); err != nil {
+		return err
 	}
 	return validateResultSignal(int64(r.exit.value), r.signal, r.signalReported)
 }

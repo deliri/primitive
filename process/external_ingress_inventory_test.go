@@ -232,7 +232,7 @@ func processParsedExternalDoors(file *ast.File) []string {
 		}
 		name := function.Name.Name
 		if function.Recv == nil {
-			if ast.IsExported(name) || name == "snapshotSighting" {
+			if ast.IsExported(name) || name == "snapshotSighting" || name == "readMemoryEvents" {
 				doors = append(doors, name)
 			}
 			continue
