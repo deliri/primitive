@@ -194,9 +194,10 @@ func OpenRoot(ctx context.Context, path core.AbsolutePath) (*os.Root, error) {
 
 // OpenChildRoot opens one existing directory beneath a held root as a
 // caller-owned rooted capability, so a caller reading many siblings resolves
-// their parent once. Acquisition enforces a nonblocking directory at the OS
-// boundary and, like OpenRoot, follows a final directory symlink confined
-// beneath the root while refusing a dangling or escaping one. The capability
+// their parent once. Acquisition enforces a directory at the OS boundary. On
+// darwin and linux it opens nonblocking and directory-only, following a final
+// directory symlink confined beneath the root while refusing a dangling or
+// escaping one; on windows a final reparse point is refused. The capability
 // keeps naming the opened directory if the namespace later moves; pair it with
 // OpenMatchedCustodyRead when the current namespace must still admit each file.
 // The caller closes the returned root.
