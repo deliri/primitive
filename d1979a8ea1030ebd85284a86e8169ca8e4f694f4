@@ -1,0 +1,106 @@
+{
+ "release": "v2026.1.451",
+ "base_published": "c998efe217bfc83caf59c96f2fcd3b8231b75255",
+ "candidate": "2b48658511e05b417dc0a2e64f17cbcda211c117",
+ "release_commit": "d1979a8ea1030ebd85284a86e8169ca8e4f694f4",
+ "purpose": "Streams.OutputWriter: validated native io.Writer view of stdout/stderr through WriteOutput, for Witness native flag diagnostics",
+ "source_files": [
+  {
+   "path": "process/output_writer.go",
+   "sha256": "e9fc42a3480e13eae91162e1cefe52cc2427d47f45954ed37e52dbb7f4517366",
+   "bytes": 1345
+  },
+  {
+   "path": "process/output_writer_external_test.go",
+   "sha256": "117bae2214a5435cee69957975e73876fe48369cdda993b025de79554d6e165d",
+   "bytes": 10787
+  },
+  {
+   "path": "process/output_writer_unix_external_test.go",
+   "sha256": "7fffa10e0d594edad66f20017dc2ca1a71370d8f949b6fb9e45e4cc1c2436c0b",
+   "bytes": 3462
+  }
+ ],
+ "attempts_all_retained": [
+  {
+   "case": "gold 9ac99687",
+   "run": "2026-10-29-e4e8684555b1a2b268a11493e07cd99d85b0e767e83099eb3beeb06e3f9fbcae",
+   "outcome": "passed 58/58, linux"
+  },
+  {
+   "case": "raw-writer control eabcc289",
+   "run": "2026-10-29-bc0c277be32855109d2a4d0ccdb7ad68516888ef0810d80a13ff01c7f0831895",
+   "outcome": "failed as intended 5 (4 pipe leaves SIGPIPE + parent), darwin"
+  },
+  {
+   "case": "fuzz 9ac99687",
+   "run": "2026-10-29-9872c515c3d2ab6abc44654fd50db3733b83e2fd352f077c86b964a0a82466ea",
+   "outcome": "passed, 3s/min3s, 22295 native executions"
+  },
+  {
+   "case": "inventory b16598b6",
+   "run": "179dc8c2 (full id in Codex inventory readbacks)",
+   "outcome": "passed 2/2, mac"
+  },
+  {
+   "case": "inventory control 9ac99687",
+   "run": "c1faac0d (full id in Codex inventory readbacks)",
+   "outcome": "failed as intended 2/2, furnace"
+  },
+  {
+   "case": "lint 9ac/b165 process",
+   "runs": {
+    "go-vet": "2026-10-29-7d73e8177230e03226e573244162d1a56313e05876107335a9b863f224a999f9",
+    "staticcheck": "2026-10-29-468a020ae0ddf0ffe9643816457f368c771eefe4bf923cad2db145091f98c04b",
+    "witness-lint": "2026-10-29-f07c0532dd399ab2c739e7a17bd5334275f4f2368eb9542f4c0e3dd1d8f92489"
+   },
+   "outcome": "vet 0; Staticcheck SA5004 group_usage_unix_test.go:39; witness-lint 30; 31 findings all in unchanged files, none owned"
+  },
+  {
+   "case": "review-fix 2b486585",
+   "run": "2026-10-29-1856d6e8322e37e751047702996ebb9b9f69afc417477d99049268332cc8df79",
+   "outcome": "passed 31/31 0 skip, furnace; original seal/details verified by Codex FINAL-SOURCE-PROOF.json (104 checks)",
+   "receipt_sha256": "ccda914f2b35883de6947e97952c2bf3f6ee97ca9abeb34d39bd191b1a1437a5"
+  },
+  {
+   "case": "final lint 2b486585",
+   "run": {
+    "staticcheck": "2026-10-29-fe567c5b182e29d7496588ac997288a0307149dd28e5f0171ba755d76026e543",
+    "witness-lint": "2026-10-29-5871196d83eb2e2d75ea0495eced5f042da52294d8d9321825393d1d2fd6f53f"
+   },
+   "outcome": "Staticcheck 1 + witness-lint 30, all in files byte-identical to published450, none owned; actual open findings, no waiver/clean/executed-baseline claim; vet reused",
+   "seals": {
+    "staticcheck": "71383ab38d49dd476fd541b9b61155456415a006c4d5c9f4f77067c358302168",
+    "witness-lint": "f8299f967a27e6817cf117bc8ebabc25aa43556983d81001f227610dad1ea273"
+   }
+  },
+  {
+   "case": "release metadata",
+   "run": {
+    "parent": "2026-10-29-c50d0f57eec9a8a09b68eac062c8ff2ef9d51531b35818facccd7b642648eedd",
+    "compass": "2026-10-29-ccfd8801d2e8b3e8e1eacfd607ed7dbefb079fe076a9dccfb787fe990792fda6",
+    "version": "2026-10-29-f818c90f9e5b98d16eb8fb5edfbfad58706c0f9e1313289f095ee25d0de9803b"
+   },
+   "outcome": "passed: compass 14 nodes (furnace), version 1 (mac), 0 skip; seals and execution==details verified, 6 readers exit0",
+   "seals": {
+    "parent": "5a760e1469f79fef15f464294adb37b985fbe1479686d8f4d3f964c07553cea1",
+    "compass": "1decd6f9602d15a3c42346650bf947959bba3a3b2f3fe732182e47bcff837aa6",
+    "version": "295d020b3084375c0d47ca6531010090ea04b3eb244f64a29e0df2f55337acd8"
+   }
+  }
+ ],
+ "independent_reviews": {
+  "claude": "/private/tmp/witness-output-writer-b7xmg1m_/claude-sdk-review/REVIEW.json sha 037441da",
+  "delegated_claude": "/private/tmp/witness-output-writer-b7xmg1m_/delegated-claude-sdk-review/REVIEW.json sha 60437ce3"
+ },
+ "qualifications": [
+  "gold Linux vs raw-writer control Darwin: no same-OS pair",
+  "native fuzz counters, not unique-mutation proof",
+  "Staticcheck 1 + witness-lint 30 remain open in byte-identical 450 files; no waiver or clean claim",
+  "not user acceptance"
+ ],
+ "final_source_proof": {
+  "path": "/private/tmp/witness-output-writer-b7xmg1m_/FINAL-SOURCE-PROOF.json",
+  "sha256": "f4e03c9e413bfac639af241f807fdfae4d16441fae844d7e8d3bb1b39fa5052f"
+ }
+}
