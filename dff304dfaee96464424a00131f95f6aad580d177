@@ -1,0 +1,42 @@
+{
+  "source": "dff304dfaee96464424a00131f95f6aad580d177",
+  "baseline": "cf13658b4bd6fa5e3ec8f06dcb0466ceb57cbe43",
+  "tag": "v2026.1.453",
+  "audits": [
+    {
+      "path": "/private/tmp/witness-path-ssot-ikdxx9n7/run-sdk-readbacks/AUDIT.json",
+      "sha256": "bb80b584b8f36493e1f243a64c4f4294985911c8132f83cb5d2d6bafa4b1ef3b"
+    },
+    {
+      "path": "/private/tmp/witness-path-ssot-ikdxx9n7/sdk-lint-readbacks/AUDIT.json",
+      "sha256": "cfd1404105473b84f0d7e0b2d5f19bef533ccd4285f6ceef0540882908d99896"
+    },
+    {
+      "path": "/private/tmp/witness-path-ssot-ikdxx9n7/sdk-repair-readbacks/AUDIT.json",
+      "sha256": "d7d64e37b62c969b3ec3c39cd5a199b5384be80d6b283446347403078eb8fa53"
+    },
+    {
+      "path": "/private/tmp/witness-path-ssot-ikdxx9n7/sdk-final-readbacks/AUDIT.json",
+      "sha256": "2afe49230d8d142b786afe258073e4a2dee20c28639338a846c337c09307fd8a"
+    }
+  ],
+  "open_findings": {
+    "count": 23,
+    "files_byte_equal_published452": [
+      "release/artifact_inspection.go",
+      "release/build_plan.go",
+      "release/build_tools.go",
+      "release/repository.go"
+    ],
+    "no_waiver": true,
+    "owned_findings": 0,
+    "no_baseline_lint_comparison": true
+  },
+  "changed_files": {
+    "compass/config.json": "3e499e7ec99684ded148647f8a12f81dc7aa0d9d2e6c4582dd9770a71a5d561b",
+    "release/build_plan_hostile_test.go": "b99e108542abc58f4b193267f4c022618ca20a5240cbfa1db69bde765f362d76",
+    "release/current_toolchain_native_external_test.go": "394dda26cf7150e84e8c8b08520e286deecd0dec299b06b4ba6dea68b4c5941a",
+    "release/toolchain.go": "bfbb333a0a82238858d5cad4c0e3019c8e6458c60a0128541e05daff36a879a9"
+  },
+  "qualification": "Source/narrow native proof only; no independent owner acceptance or platform pin. Other SDK lanes excluded; historical compiler provenance selectors unchanged. Test diagnostic wording-only final edit reuses native platform proof; original controls/failed lint attempts retained."
+}
