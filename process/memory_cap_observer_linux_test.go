@@ -175,6 +175,9 @@ func TestMemoryCapCapturesOwnedLocalExhaustion(t *testing.T) {
 	if _, err := io.WriteString(output, "release\n"); err != nil {
 		t.Fatal(err)
 	}
+	// The final caller-owned stdin handshake is complete. Close its writer
+	// before Wait so os/exec can join its stdin copy on every native outcome.
+	output.Close()
 	result, err := execution.Wait()
 	waited = true
 	if err != nil {
@@ -251,6 +254,9 @@ func TestMemoryCapDoesNotInferExhaustionFromTermination(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
+			// The final caller-owned stdin handshake is complete. Close its writer
+			// before Wait so os/exec can join its stdin copy on every native outcome.
+			output.Close()
 			result, err := execution.Wait()
 			waited = true
 			if role == "caller-cancel" {
