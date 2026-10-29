@@ -47,6 +47,7 @@ func productionStructRoles() map[string]string {
 		"Result":                 "fixed-size execution result",
 		"streamFailure":          "typed stream failure",
 		"Streams":                "caller-owned stream capabilities",
+		"OutputWriter":           "validated nonretaining output route lent to an io.Writer consumer",
 		"TruncatingWriter":       "bounded streaming output capability",
 		"TailBuffer":             "native fixed-window suffix custody",
 		"TailBufferObservation":  "owned byte suffix with exact source conservation",

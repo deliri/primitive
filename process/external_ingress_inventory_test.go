@@ -56,6 +56,7 @@ type processExternalDoorInventory struct {
 	LentStreams                func(process.LentRequest) (process.Lent, error)
 	WaitGroupAbsent            func(context.Context, process.WaitGroupAbsentRequest) (process.Liveness, error)
 	Streams_WriteOutput        func(process.Streams, process.Stream, []byte) (core.ByteLength, error)
+	OutputWriter_Write         func(process.OutputWriter, []byte) (int, error)
 	TruncatingWriter_Write     func(*process.TruncatingWriter, []byte) (int, error)
 	ResultObservation_Validate func(process.ResultObservation) error
 }
@@ -82,6 +83,7 @@ var processExternalDoors = processExternalDoorInventory{
 	ParseArguments: process.ParseArguments, ParseEffectiveEnvironment: process.ParseEffectiveEnvironment, ParseExactEnvironment: process.ParseExactEnvironment,
 	CollectArguments: process.CollectArguments,
 	Resolve:          process.Resolve, ResolveExecutable: process.ResolveExecutable, Run: process.Run, Self: process.Self, StandardStreams: process.StandardStreams, LentStreams: process.LentStreams,
+	OutputWriter_Write:  process.OutputWriter.Write,
 	Streams_WriteOutput: process.Streams.WriteOutput, TruncatingWriter_Write: (*process.TruncatingWriter).Write, ResultObservation_Validate: process.ResultObservation.Validate,
 }
 
@@ -96,7 +98,7 @@ type processExternalFuzzProofInventory struct {
 	NewTailBuffer, TailBuffer_Write                                                                   func(*testing.F)
 	AmbientArguments, Begin, NewArgument, NewEnvironmentName, NewEnvironmentValue, NewTruncatingWriter,
 	ParseArguments, ParseEffectiveEnvironment, ParseExactEnvironment, Resolve, ResolveExecutable, Run,
-	Streams_WriteOutput, TruncatingWriter_Write, ResultObservation_Validate func(*testing.F)
+	Streams_WriteOutput, OutputWriter_Write, TruncatingWriter_Write, ResultObservation_Validate func(*testing.F)
 }
 
 func processExternalFuzzProofs() processExternalFuzzProofInventory {
@@ -116,6 +118,7 @@ func processExternalFuzzProofs() processExternalFuzzProofInventory {
 		NewTruncatingWriter: FuzzTruncatingWriterExternalIngress, ParseArguments: FuzzParseArgumentsAndAmbientExternalIngress,
 		ParseEffectiveEnvironment: FuzzParseEffectiveEnvironmentExternalIngress, ParseExactEnvironment: FuzzParseExactEnvironmentExternalIngress,
 		Resolve: FuzzResolveAndResolveExecutableExternalIngress, ResolveExecutable: FuzzResolveAndResolveExecutableExternalIngress, Run: FuzzRunAndBeginStreamingExternalIngress,
+		OutputWriter_Write:  FuzzOutputWriterSemanticClosure,
 		Streams_WriteOutput: FuzzStreamsWriteOutputSemanticClosure, TruncatingWriter_Write: FuzzTruncatingWriterExternalIngress, ResultObservation_Validate: FuzzResultObservationExternalIngress,
 	}
 }
