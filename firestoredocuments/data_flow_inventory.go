@@ -12,3 +12,8 @@ func (CreateRequest[T]) firestoreDocumentsProtocolFact()      {}
 func (TransactionRequest) firestoreDocumentsProtocolFact()    {}
 func (Document[T]) firestoreDocumentsSealedProjection()       {}
 func (TransactionResult) firestoreDocumentsSealedProjection() {}
+
+var _ core.OffWireEnum = QueryContinue
+
+func (QueryRequest[T]) firestoreDocumentsProtocolFact()  {}
+func (IncrementRequest) firestoreDocumentsProtocolFact() {}

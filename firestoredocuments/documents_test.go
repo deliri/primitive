@@ -133,14 +133,15 @@ func (c *nativeCosts) stream(ctx context.Context, description *grpc.StreamDesc, 
 	}
 	return &costStream{ClientStream: stream, costs: c, method: method}, nil
 }
-func nativeClient(t testing.TB) (*firestore.Client, *nativeCosts) {
+func nativeClient(t testing.TB, extra ...grpc.DialOption) (*firestore.Client, *nativeCosts) {
 	t.Helper()
 	endpoint := nativeEmulatorEndpoint
 	if endpoint == "" {
 		t.Fatalf("native emulator endpoint=%q, want configured local proof endpoint", endpoint)
 	}
 	costs := new(nativeCosts)
-	connection, err := grpc.NewClient(endpoint, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithChainUnaryInterceptor(costs.unary), grpc.WithChainStreamInterceptor(costs.stream))
+	options := append([]grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithChainUnaryInterceptor(costs.unary), grpc.WithChainStreamInterceptor(costs.stream)}, extra...)
+	connection, err := grpc.NewClient(endpoint, options...)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -16,6 +16,8 @@ var sourceFiles embed.FS
 func TestDocumentsProductionStructsHaveCompilerVisibleRoles(t *testing.T) {
 	t.Parallel()
 	var _ protocolFact = GetRequest{}
+	var _ protocolFact = QueryRequest[nativeRecord]{}
+	var _ protocolFact = IncrementRequest{}
 	var _ protocolFact = CreateRequest[nativeRecord]{}
 	var _ protocolFact = SetRequest[nativeRecord]{}
 	var _ protocolFact = TransactionRequest{}
@@ -52,7 +54,7 @@ func TestDocumentsProductionStructsHaveCompilerVisibleRoles(t *testing.T) {
 					continue
 				}
 				switch typed.Name.Name {
-				case "GetRequest", "CreateRequest", "SetRequest", "TransactionRequest", "Document", "JSONDocument", "TransactionResult":
+				case "QueryRequest", "IncrementRequest", "GetRequest", "CreateRequest", "SetRequest", "TransactionRequest", "Document", "JSONDocument", "TransactionResult":
 				default:
 					t.Errorf("production struct %s has no compiler-bound data-flow role", typed.Name.Name)
 				}
