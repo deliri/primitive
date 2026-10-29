@@ -170,6 +170,32 @@ func (r ReadHandleRequest) Validate() error {
 	return r.Location.Validate()
 }
 
+// MatchedReadHandleRequest separates the location whose fresh no-follow
+// observation admits a regular file from the location that opens it, such as
+// the same file named through a held child root.
+type MatchedReadHandleRequest struct {
+	Observation Location
+	Source      Location
+}
+
+// Validate rejects an invalid observation or source location.
+func (r MatchedReadHandleRequest) Validate() error {
+	if err := r.Observation.Validate(); err != nil {
+		return err
+	}
+	return r.Source.Validate()
+}
+
+// ChildRootRequest names one existing directory beneath a held root.
+type ChildRootRequest struct {
+	Location Location
+}
+
+// Validate rejects an invalid location.
+func (r ChildRootRequest) Validate() error {
+	return r.Location.Validate()
+}
+
 // UpdateHandleRequest names one existing regular file to open for bounded
 // caller-owned read/update work. The caller chooses the byte transformation;
 // Filestore owns only the rooted namespace acquisition and regular-file gate.
