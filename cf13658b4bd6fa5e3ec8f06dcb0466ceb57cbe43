@@ -1,0 +1,240 @@
+{
+  "at": "2026-10-29T09:35:49.523162+00:00",
+  "source": "cf13658b4bd6fa5e3ec8f06dcb0466ceb57cbe43",
+  "published_base": "d1979a8ea1030ebd85284a86e8169ca8e4f694f4",
+  "release": "2026.1.452",
+  "changes": [
+    {
+      "path": "filestore/architecture_test.go",
+      "bytes": 30007,
+      "sha256": "6e44c66511e7249383ea6d233c575161cdd24597ffb5956adcee3b6e3ceb852d"
+    },
+    {
+      "path": "filestore/child_root_external_test.go",
+      "bytes": 5627,
+      "sha256": "8e9fdba85146f3fc23d832236db23d430c8a95c6e36d27037adec01bdf848b4c"
+    },
+    {
+      "path": "filestore/child_root_unix_external_test.go",
+      "bytes": 19044,
+      "sha256": "c233c236538714632586dd0dcbaff1ec7b87fd46b395b891835e8526fdf65cb6"
+    },
+    {
+      "path": "filestore/contracts.go",
+      "bytes": 21295,
+      "sha256": "4668ae1b68ee1612787a1cbbc4db0b05c396be2b40a4625ddb9013ee02dba6eb"
+    },
+    {
+      "path": "filestore/custody.go",
+      "bytes": 5587,
+      "sha256": "2524e1a7c95c5723aab65eea47b229fe769ef24063e91c1d20de803c9d868ee2"
+    },
+    {
+      "path": "filestore/ingress_inventory_external_test.go",
+      "bytes": 22221,
+      "sha256": "0eb5ee65640afa271df87c607f7851b2fd5ab1e73d206e895802e325b1a370a1"
+    },
+    {
+      "path": "filestore/open_read.go",
+      "bytes": 9019,
+      "sha256": "73a37a55b7de0623a2ae7faeb2ec7c4a292850a009349fc375e55207a89ebd79"
+    },
+    {
+      "path": "filestore/open_root_unix.go",
+      "bytes": 1980,
+      "sha256": "506092180a7edc220ead58761026f880b5ca0ecfc1cf04caae835eac94da2631"
+    },
+    {
+      "path": "filestore/open_root_windows.go",
+      "bytes": 1440,
+      "sha256": "d1502db48cb587da04c5e32c56639f85c5ae3de1a3d047e4ada465dd6ea977a5"
+    }
+  ],
+  "source_review": {
+    "path": "/private/tmp/primitive-child-root-source-review/REVIEW.json",
+    "sha256": "0a1b223246749dcdb7be3ee1560d93158a404e477fecaf4ee55f2d0f398dc43b",
+    "small_findings_closed": "17f66fe7 adds both validatedRequest inventory entries and narrows Windows symlink comment. Root personally inspected exact 2-file delta; gold03 affected ratchet passes. Runtime bytes unchanged from reviewed a073; no repeat review."
+  },
+  "proof": [
+    {
+      "label": "gold01",
+      "run": "2026-10-29-6fae22c74cd4bf028b87d5b41dd95fc03904d25a7e73a7e320fd43285a4ac33b",
+      "source": {
+        "kind": "snapshot",
+        "commit": "df9b048efcd355c6dc8467843856dc8b58e53c99",
+        "digest": "b3c021d9026e9599a3a0f0bd35fe035edb7fb74c93ced1498893dbaaedd53745",
+        "files": 10007,
+        "bytes": 109548980
+      },
+      "outcome": "outcome_failed",
+      "exit_code": 1,
+      "packages": {
+        "started": 1,
+        "passed": 0,
+        "failed": 1,
+        "skipped": 0,
+        "targets": 324,
+        "targets_skipped": 0,
+        "build_failed": false
+      },
+      "fuzz": null,
+      "receipt_sha256": "c5d1a4ab32ca8cb4964313d547118b70dea346d265ec87b0d93cfd05c1577c29",
+      "originals": "/Users/d/.claude-proof/primitive/childroot/gold01.*"
+    },
+    {
+      "label": "gold02",
+      "run": "2026-10-29-d1d921abc7b1e0ac6f6239484f6b4e4c2aea093504a9f13bccb4f10ac0fcc598",
+      "source": {
+        "kind": "snapshot",
+        "commit": "a0731316937a4475b1e3abc4d4a11b45ff2ce106",
+        "digest": "5cff794bd706d49a17a389a08af0130e887ae46e63f913dea82e6f4b122da4df",
+        "files": 10007,
+        "bytes": 109549216
+      },
+      "outcome": "outcome_passed",
+      "exit_code": 0,
+      "packages": {
+        "started": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "targets": 18,
+        "targets_skipped": 0,
+        "build_failed": false
+      },
+      "fuzz": null,
+      "receipt_sha256": "696f73b80d56e4d041195526dc083157259da115aea04d36591839fd67819835",
+      "originals": "/Users/d/.claude-proof/primitive/childroot/gold02.*"
+    },
+    {
+      "label": "gold03",
+      "run": "2026-10-29-03f385c26a0b6de053c1e63f6848471e71f8b4b29ed67f4dd203654d62061d9f",
+      "source": {
+        "kind": "snapshot",
+        "commit": "17f66fe720105dbb04d336106355b94a07de44a1",
+        "digest": "060e6b33ae73bba7fe2e593f339926b447cad668cdb3557e31943bc1244c9027",
+        "files": 10007,
+        "bytes": 109549436
+      },
+      "outcome": "outcome_passed",
+      "exit_code": 0,
+      "packages": {
+        "started": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "targets": 1,
+        "targets_skipped": 0,
+        "build_failed": false
+      },
+      "fuzz": null,
+      "receipt_sha256": "de1cfbee589f957a43148acfccb3b19adf87464e075e57f917c41aad93fb13f2",
+      "originals": "/Users/d/.claude-proof/primitive/childroot/gold03.*"
+    },
+    {
+      "label": "fuzz01",
+      "run": "2026-10-29-0819ac66e5a2eef0fff1fea722180a8bb178889e5163e50664f07274b94c3bb4",
+      "source": {
+        "kind": "snapshot",
+        "commit": "a0731316937a4475b1e3abc4d4a11b45ff2ce106",
+        "digest": "5cff794bd706d49a17a389a08af0130e887ae46e63f913dea82e6f4b122da4df",
+        "files": 10007,
+        "bytes": 109549216
+      },
+      "outcome": "outcome_passed",
+      "exit_code": 0,
+      "packages": {
+        "started": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "targets": 1,
+        "targets_skipped": 0,
+        "build_failed": false
+      },
+      "fuzz": {
+        "executions": {
+          "observed": true,
+          "count": 15646
+        },
+        "new_interesting": {
+          "observed": true,
+          "count": 5
+        }
+      },
+      "receipt_sha256": "a183c0d495d9c839ebd2de17c4cc9b5bcfc24ce4b818961c789f8580c0ece793",
+      "originals": "/Users/d/.claude-proof/primitive/childroot/fuzz01.*"
+    },
+    {
+      "label": "fuzz02",
+      "run": "2026-10-29-4e729468242018adf181f9c6c04be1fe1f7d7980d5d65cc83c165959cd404323",
+      "source": {
+        "kind": "snapshot",
+        "commit": "a0731316937a4475b1e3abc4d4a11b45ff2ce106",
+        "digest": "5cff794bd706d49a17a389a08af0130e887ae46e63f913dea82e6f4b122da4df",
+        "files": 10007,
+        "bytes": 109549216
+      },
+      "outcome": "outcome_passed",
+      "exit_code": 0,
+      "packages": {
+        "started": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0,
+        "targets": 1,
+        "targets_skipped": 0,
+        "build_failed": false
+      },
+      "fuzz": {
+        "executions": {
+          "observed": true,
+          "count": 12779
+        },
+        "new_interesting": {
+          "observed": true,
+          "count": 9
+        }
+      },
+      "receipt_sha256": "2d323d203efbd5e219923fdb9f0f6ae15ee5fa9910fd4cbc100a096b9181c140",
+      "originals": "/Users/d/.claude-proof/primitive/childroot/fuzz02.*"
+    }
+  ],
+  "control": {
+    "source": "0a924148bcb67689416ca42423632eaed56de0b8",
+    "run": "2026-10-29-44a2c9a540b7214fa451d9a248c70f8178f1b0515d9142f61d2e123cd3de1bc8",
+    "receipt_sha256": "1f2efd5b225985c7745fdc735ab73f79b04055b14bb1161220df3882b061fc4a",
+    "result": "Exactly two intended leaf assertion failures plus parent, native1, no build failure or skip; disabling only SameFile refuses neither stale parent nor foreign inode. Gold02 passes reused unchanged. Caller and both original readers joined; receipt verified.",
+    "path": "/private/tmp/primitive-child-root452-root/control01.summary.json"
+  },
+  "census": [
+    {
+      "host": "mac",
+      "refs": 643,
+      "worktrees": 29,
+      "path": "/private/tmp/primitive-child-root452-root/mac.json",
+      "sha256": "311526100050446fbf7037f5dc047f1c21082e7c2502e8ad8f6609f9c2f5acd9",
+      "new_or_changed_refs": [
+        "refs/heads/claude/child-root-read\t17f66fe720105dbb04d336106355b94a07de44a1\tcommit\t",
+        "refs/heads/codex/anvil-child-root452-release\tcf13658b4bd6fa5e3ec8f06dcb0466ceb57cbe43\tcommit\t",
+        "refs/heads/codex/child-root452-samefile-control\t0a924148bcb67689416ca42423632eaed56de0b8\tcommit\t",
+        "refs/heads/codex/witness-output-writer\t2b48658511e05b417dc0a2e64f17cbcda211c117\tcommit\t",
+        "refs/heads/codex/witness-output-writer-control\teabcc289d8fb283a9c094be0825775186d45f481\tcommit\t",
+        "refs/notes/witness/output-writer451-proof\tc7ad5458f473704f066ae016a7b793579d0b0add\tcommit\t",
+        "refs/remotes/origin/HEAD\td1979a8ea1030ebd85284a86e8169ca8e4f694f4\tcommit\t",
+        "refs/remotes/origin/main\td1979a8ea1030ebd85284a86e8169ca8e4f694f4\tcommit\t",
+        "refs/tags/v2026.1.451\td7e5cbf74f2bfd8e0476f236c63bf2022c199b30\ttag\td1979a8ea1030ebd85284a86e8169ca8e4f694f4"
+      ]
+    },
+    {
+      "host": "furnace",
+      "refs": 438,
+      "worktrees": 14,
+      "path": "/private/tmp/primitive-child-root452-root/furnace.json",
+      "sha256": "b2466c1f61aa7a6d50a15bb7f34d1e5ea7f7e7644f174d716ac92a355565c801",
+      "new_or_changed_refs": []
+    }
+  ],
+  "census_disposition": "All Furnace refs unchanged since independent450 census. Mac additions: reviewed child-root feature/release/control; already-published451 output writer source/control/proof notes; official451 refs. Existing held memory/Darwin and foreign unrelated source remain unmerged, unfinished and preserved. Missing legacy registered paths and foreign primary/Peachfuzz dirt are unchanged; no cleanup or all-clean claim. Release tree alone clean at cf13658b after joined control.",
+  "limits": "Native behavioral/fuzz proof here ran on Furnace Linux only. Darwin native and Windows compile/runtime are unclaimed. No source-capture archive equivalence or Anvil speedup yet; no Anvil adoption/deploy. Native mutation fuzz executions are not unique mutations. Initial gold01 fixture failures retained; gold02 repeated 14 prior-passing leaves. Final all-work lints remain last. No guard relaxed or user acceptance issued."
+}
