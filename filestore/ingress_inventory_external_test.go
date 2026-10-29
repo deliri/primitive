@@ -130,6 +130,8 @@ func filestoreIngressProofs() []filestoreIngressProof {
 		{door: reflect.ValueOf(filestore.Discard), fuzz: FuzzWriteRecoveryHandoffSemanticCustody},
 		{door: reflect.ValueOf(filestore.OpenRead), fuzz: FuzzReadUpdateAppendLockNativeHandleCustody},
 		{door: reflect.ValueOf(filestore.OpenCustodyRead), fuzz: FuzzOpenCustodyReadExactInodeAndBytes},
+		{door: reflect.ValueOf(filestore.OpenMatchedCustodyRead), fuzz: FuzzOpenMatchedCustodyReadExactInode},
+		{door: reflect.ValueOf(filestore.OpenChildRoot), fuzz: FuzzOpenChildRootConfinedDirectoryIdentity},
 		{door: reflect.ValueOf(filestore.OpenUpdate), fuzz: FuzzReadUpdateAppendLockNativeHandleCustody},
 		{door: reflect.ValueOf(filestore.OpenAppend), fuzz: FuzzReadUpdateAppendLockNativeHandleCustody},
 		{door: reflect.ValueOf(filestore.OpenLockFile), fuzz: FuzzReadUpdateAppendLockNativeHandleCustody},

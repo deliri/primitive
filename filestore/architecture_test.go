@@ -125,6 +125,8 @@ type filestoreContractInventory struct {
 	LockFileScopeRequest          validatedRequest[LockFileScopeRequest]
 	ReadRequest                   validatedRequest[ReadRequest]
 	ReadHandleRequest             validatedRequest[ReadHandleRequest]
+	MatchedReadHandleRequest      validatedRequest[MatchedReadHandleRequest]
+	ChildRootRequest              validatedRequest[ChildRootRequest]
 	HandleInspectionRequest       validatedRequest[HandleInspectionRequest]
 	UpdateHandleRequest           validatedRequest[UpdateHandleRequest]
 	RenameRequest                 validatedRequest[RenameRequest]
