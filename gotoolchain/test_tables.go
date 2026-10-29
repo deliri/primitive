@@ -7,12 +7,13 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"io"
+	"math"
 	"strconv"
 	"strings"
 
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/filestore"
 	"github.com/deliri/primitive/v2026/gomodule"
 )
 
@@ -103,7 +104,7 @@ func (c Capability) ObserveTestTables(ctx context.Context, request TestTableRequ
 		return TestTables{}, outputError("generated test main path is invalid", err)
 	}
 	limit, err := c.configuration.Limits.OutputBytes.Int64()
-	if err != nil {
+	if err != nil || limit >= int64(math.MaxInt) {
 		return TestTables{}, errors.Join(core.ErrGoToolchainContract, err)
 	}
 	// One owned regular handle, read no further than the output bound before
@@ -112,13 +113,17 @@ func (c Capability) ObserveTestTables(ctx context.Context, request TestTableRequ
 	if err != nil {
 		return TestTables{}, errors.Join(core.ErrGoToolchainExecution, err)
 	}
-	data, readErr := io.ReadAll(io.LimitReader(source, limit+1))
+	// ReadPrefix owns the bounded native read and context/error semantics. The
+	// extra byte distinguishes an exact-at-limit source from an oversized one.
+	data := make([]byte, int(limit)+1)
+	prefix, readErr := filestore.ReadPrefix(ctx, filestore.PrefixReadRequest{Source: source, Destination: data})
 	if err := errors.Join(readErr, source.Close(), contextstate.Validate(ctx)); err != nil {
 		return TestTables{}, errors.Join(core.ErrGoToolchainOutput, err)
 	}
-	if int64(len(data)) > limit {
+	if prefix.Bytes.Uint64() > uint64(limit) {
 		return TestTables{}, outputError("generated test main exceeds the output bound", nil)
 	}
+	data = data[:prefix.Bytes.Uint64()]
 	file, err := parser.ParseFile(token.NewFileSet(), path.String(), data, parser.SkipObjectResolution)
 	if err != nil {
 		return TestTables{}, outputError("generated test main does not parse", err)

@@ -17,29 +17,31 @@ import (
 
 // testTablesFixture is one module whose test selection differs by GOOS and
 // race, plus packages with no tests, a custom TestMain and a parse error.
-var testTablesFixture = map[string]string{
-	"go.mod":                       "module example.com/tables\n\ngo 1.27.1\n",
-	"tables.go":                    "package tables\n\nfunc Value() int { return 7 }\n",
-	"portable_test.go":             "package tables\n\nimport (\n\t\"fmt\"\n\t\"testing\"\n)\n\nfunc TestPortable(t *testing.T) {}\nfunc Testlower(t *testing.T) {}\nfunc BenchmarkPortable(b *testing.B) {}\nfunc FuzzPortable(f *testing.F) { f.Fuzz(func(*testing.T, []byte) {}) }\nfunc ExamplePortable() { fmt.Println(Value()) }\n\n// Output omitted: not runnable.\nfunc ExampleValue_silent() {}\n\nfunc ExampleValue() {\n\tfmt.Println(Value())\n\t// Output: 7\n}\n",
-	"darwin_only_test.go":          "//go:build darwin\n\npackage tables\n\nimport \"testing\"\n\nfunc TestDarwinOnly(t *testing.T) {}\n",
-	"only_linux_test.go":           "package tables\n\nimport \"testing\"\n\nfunc TestLinuxOnly(t *testing.T) {}\n",
-	"race_only_test.go":            "//go:build race\n\npackage tables\n\nimport \"testing\"\n\nfunc TestRaceOnly(t *testing.T) {}\n",
-	"external_test.go":             "package tables_test\n\nimport \"testing\"\n\nfunc TestExternal(t *testing.T) {}\n",
-	"darwintests/code.go":          "package darwintests\n\nfunc Value() int { return 1 }\n",
-	"darwintests/x_darwin_test.go": "package darwintests\n\nimport \"testing\"\n\nfunc TestOnlyOnDarwin(t *testing.T) {}\n",
-	"notests/code.go":              "package notests\n\nfunc Value() int { return 2 }\n",
-	"custommain/code.go":           "package custommain\n",
-	"custommain/main_test.go":      "package custommain\n\nimport (\n\t\"os\"\n\t\"testing\"\n)\n\nfunc TestMain(m *testing.M) { os.Exit(0) }\nfunc TestHidden(t *testing.T) {}\n",
-	"many/code.go":                 "package many\n",
-	"many/many_test.go":            "package many\n\nimport \"testing\"\n\nfunc TestMany00(t *testing.T) {}\nfunc TestMany01(t *testing.T) {}\nfunc TestMany02(t *testing.T) {}\nfunc TestMany03(t *testing.T) {}\nfunc TestMany04(t *testing.T) {}\nfunc TestMany05(t *testing.T) {}\nfunc TestMany06(t *testing.T) {}\nfunc TestMany07(t *testing.T) {}\nfunc TestMany08(t *testing.T) {}\nfunc TestMany09(t *testing.T) {}\nfunc TestMany10(t *testing.T) {}\nfunc TestMany11(t *testing.T) {}\nfunc TestMany12(t *testing.T) {}\nfunc TestMany13(t *testing.T) {}\nfunc TestMany14(t *testing.T) {}\nfunc TestMany15(t *testing.T) {}\nfunc TestMany16(t *testing.T) {}\nfunc TestMany17(t *testing.T) {}\nfunc TestMany18(t *testing.T) {}\nfunc TestMany19(t *testing.T) {}\nfunc TestMany20(t *testing.T) {}\nfunc TestMany21(t *testing.T) {}\nfunc TestMany22(t *testing.T) {}\nfunc TestMany23(t *testing.T) {}\nfunc TestMany24(t *testing.T) {}\nfunc TestMany25(t *testing.T) {}\nfunc TestMany26(t *testing.T) {}\nfunc TestMany27(t *testing.T) {}\nfunc TestMany28(t *testing.T) {}\nfunc TestMany29(t *testing.T) {}\nfunc TestMany30(t *testing.T) {}\nfunc TestMany31(t *testing.T) {}\nfunc TestMany32(t *testing.T) {}\nfunc TestMany33(t *testing.T) {}\nfunc TestMany34(t *testing.T) {}\nfunc TestMany35(t *testing.T) {}\nfunc TestMany36(t *testing.T) {}\nfunc TestMany37(t *testing.T) {}\nfunc TestMany38(t *testing.T) {}\nfunc TestMany39(t *testing.T) {}\nfunc TestMany40(t *testing.T) {}\nfunc TestMany41(t *testing.T) {}\nfunc TestMany42(t *testing.T) {}\nfunc TestMany43(t *testing.T) {}\nfunc TestMany44(t *testing.T) {}\nfunc TestMany45(t *testing.T) {}\nfunc TestMany46(t *testing.T) {}\nfunc TestMany47(t *testing.T) {}\nfunc TestMany48(t *testing.T) {}\nfunc TestMany49(t *testing.T) {}\nfunc TestMany50(t *testing.T) {}\nfunc TestMany51(t *testing.T) {}\nfunc TestMany52(t *testing.T) {}\nfunc TestMany53(t *testing.T) {}\nfunc TestMany54(t *testing.T) {}\nfunc TestMany55(t *testing.T) {}\nfunc TestMany56(t *testing.T) {}\nfunc TestMany57(t *testing.T) {}\nfunc TestMany58(t *testing.T) {}\nfunc TestMany59(t *testing.T) {}\nfunc TestMany60(t *testing.T) {}\nfunc TestMany61(t *testing.T) {}\nfunc TestMany62(t *testing.T) {}\nfunc TestMany63(t *testing.T) {}\nfunc TestMany64(t *testing.T) {}\nfunc TestMany65(t *testing.T) {}\nfunc TestMany66(t *testing.T) {}\nfunc TestMany67(t *testing.T) {}\nfunc TestMany68(t *testing.T) {}\nfunc TestMany69(t *testing.T) {}\nfunc TestMany70(t *testing.T) {}\nfunc TestMany71(t *testing.T) {}\nfunc TestMany72(t *testing.T) {}\nfunc TestMany73(t *testing.T) {}\nfunc TestMany74(t *testing.T) {}\nfunc TestMany75(t *testing.T) {}\nfunc TestMany76(t *testing.T) {}\nfunc TestMany77(t *testing.T) {}\nfunc TestMany78(t *testing.T) {}\nfunc TestMany79(t *testing.T) {}\n",
-	"broken/code.go":               "package broken\n",
-	"broken/broken_test.go":        "package broken\n\nfunc TestBroken(t *testing.T {\n",
+func testTablesFixture() map[string]string {
+	return map[string]string{
+		"go.mod":                       "module example.com/tables\n\ngo 1.27.1\n",
+		"tables.go":                    "package tables\n\nfunc Value() int { return 7 }\n",
+		"portable_test.go":             "package tables\n\nimport (\n\t\"fmt\"\n\t\"testing\"\n)\n\nfunc TestPortable(t *testing.T) {}\nfunc Testlower(t *testing.T) {}\nfunc BenchmarkPortable(b *testing.B) {}\nfunc FuzzPortable(f *testing.F) { f.Fuzz(func(*testing.T, []byte) {}) }\nfunc ExamplePortable() { fmt.Println(Value()) }\n\n// Output omitted: not runnable.\nfunc ExampleValue_silent() {}\n\nfunc ExampleValue() {\n\tfmt.Println(Value())\n\t// Output: 7\n}\n",
+		"darwin_only_test.go":          "//go:build darwin\n\npackage tables\n\nimport \"testing\"\n\nfunc TestDarwinOnly(t *testing.T) {}\n",
+		"only_linux_test.go":           "package tables\n\nimport \"testing\"\n\nfunc TestLinuxOnly(t *testing.T) {}\n",
+		"race_only_test.go":            "//go:build race\n\npackage tables\n\nimport \"testing\"\n\nfunc TestRaceOnly(t *testing.T) {}\n",
+		"external_test.go":             "package tables_test\n\nimport \"testing\"\n\nfunc TestExternal(t *testing.T) {}\n",
+		"darwintests/code.go":          "package darwintests\n\nfunc Value() int { return 1 }\n",
+		"darwintests/x_darwin_test.go": "package darwintests\n\nimport \"testing\"\n\nfunc TestOnlyOnDarwin(t *testing.T) {}\n",
+		"notests/code.go":              "package notests\n\nfunc Value() int { return 2 }\n",
+		"custommain/code.go":           "package custommain\n",
+		"custommain/main_test.go":      "package custommain\n\nimport (\n\t\"os\"\n\t\"testing\"\n)\n\nfunc TestMain(m *testing.M) { os.Exit(0) }\nfunc TestHidden(t *testing.T) {}\n",
+		"many/code.go":                 "package many\n",
+		"many/many_test.go":            "package many\n\nimport \"testing\"\n\nfunc TestMany00(t *testing.T) {}\nfunc TestMany01(t *testing.T) {}\nfunc TestMany02(t *testing.T) {}\nfunc TestMany03(t *testing.T) {}\nfunc TestMany04(t *testing.T) {}\nfunc TestMany05(t *testing.T) {}\nfunc TestMany06(t *testing.T) {}\nfunc TestMany07(t *testing.T) {}\nfunc TestMany08(t *testing.T) {}\nfunc TestMany09(t *testing.T) {}\nfunc TestMany10(t *testing.T) {}\nfunc TestMany11(t *testing.T) {}\nfunc TestMany12(t *testing.T) {}\nfunc TestMany13(t *testing.T) {}\nfunc TestMany14(t *testing.T) {}\nfunc TestMany15(t *testing.T) {}\nfunc TestMany16(t *testing.T) {}\nfunc TestMany17(t *testing.T) {}\nfunc TestMany18(t *testing.T) {}\nfunc TestMany19(t *testing.T) {}\nfunc TestMany20(t *testing.T) {}\nfunc TestMany21(t *testing.T) {}\nfunc TestMany22(t *testing.T) {}\nfunc TestMany23(t *testing.T) {}\nfunc TestMany24(t *testing.T) {}\nfunc TestMany25(t *testing.T) {}\nfunc TestMany26(t *testing.T) {}\nfunc TestMany27(t *testing.T) {}\nfunc TestMany28(t *testing.T) {}\nfunc TestMany29(t *testing.T) {}\nfunc TestMany30(t *testing.T) {}\nfunc TestMany31(t *testing.T) {}\nfunc TestMany32(t *testing.T) {}\nfunc TestMany33(t *testing.T) {}\nfunc TestMany34(t *testing.T) {}\nfunc TestMany35(t *testing.T) {}\nfunc TestMany36(t *testing.T) {}\nfunc TestMany37(t *testing.T) {}\nfunc TestMany38(t *testing.T) {}\nfunc TestMany39(t *testing.T) {}\nfunc TestMany40(t *testing.T) {}\nfunc TestMany41(t *testing.T) {}\nfunc TestMany42(t *testing.T) {}\nfunc TestMany43(t *testing.T) {}\nfunc TestMany44(t *testing.T) {}\nfunc TestMany45(t *testing.T) {}\nfunc TestMany46(t *testing.T) {}\nfunc TestMany47(t *testing.T) {}\nfunc TestMany48(t *testing.T) {}\nfunc TestMany49(t *testing.T) {}\nfunc TestMany50(t *testing.T) {}\nfunc TestMany51(t *testing.T) {}\nfunc TestMany52(t *testing.T) {}\nfunc TestMany53(t *testing.T) {}\nfunc TestMany54(t *testing.T) {}\nfunc TestMany55(t *testing.T) {}\nfunc TestMany56(t *testing.T) {}\nfunc TestMany57(t *testing.T) {}\nfunc TestMany58(t *testing.T) {}\nfunc TestMany59(t *testing.T) {}\nfunc TestMany60(t *testing.T) {}\nfunc TestMany61(t *testing.T) {}\nfunc TestMany62(t *testing.T) {}\nfunc TestMany63(t *testing.T) {}\nfunc TestMany64(t *testing.T) {}\nfunc TestMany65(t *testing.T) {}\nfunc TestMany66(t *testing.T) {}\nfunc TestMany67(t *testing.T) {}\nfunc TestMany68(t *testing.T) {}\nfunc TestMany69(t *testing.T) {}\nfunc TestMany70(t *testing.T) {}\nfunc TestMany71(t *testing.T) {}\nfunc TestMany72(t *testing.T) {}\nfunc TestMany73(t *testing.T) {}\nfunc TestMany74(t *testing.T) {}\nfunc TestMany75(t *testing.T) {}\nfunc TestMany76(t *testing.T) {}\nfunc TestMany77(t *testing.T) {}\nfunc TestMany78(t *testing.T) {}\nfunc TestMany79(t *testing.T) {}\n",
+		"broken/code.go":               "package broken\n",
+		"broken/broken_test.go":        "package broken\n\nfunc TestBroken(t *testing.T {\n",
+	}
 }
 
 func TestObserveTestTablesNativeLayerTriad(t *testing.T) {
 	t.Parallel()
 	directory := t.TempDir()
-	for name, content := range testTablesFixture {
+	for name, content := range testTablesFixture() {
 		path := filepath.Join(directory, filepath.FromSlash(name))
 		if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 			t.Fatal(err)
@@ -187,7 +189,7 @@ func testTablesCapability(t *testing.T, goos, goarch string) gotoolchain.Capabil
 func TestObserveTestTablesRefusesGeneratedMainBeyondOutputBound(t *testing.T) {
 	t.Parallel()
 	directory := t.TempDir()
-	for name, content := range testTablesFixture {
+	for name, content := range testTablesFixture() {
 		path := filepath.Join(directory, filepath.FromSlash(name))
 		if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 			t.Fatal(err)
