@@ -107,15 +107,14 @@ func TestManualTARStreamPerformance(t *testing.T) {
 		runtime.ReadMemStats(&before)
 		started := time.Now()
 		var observed core.ByteLength
+		var measuredDigest core.SHA256Digest
 		if indexedMode {
 			value, err := filestore.WriteTAR(t.Context(), request)
 			if err != nil {
 				t.Fatal(err)
 			}
 			observed = value.Extent
-			if value.Digest != sum {
-				t.Fatal("measured indexed digest changed")
-			}
+			measuredDigest = value.Digest
 		} else {
 			observed, err = filestore.StreamTAR(t.Context(), request)
 			if err != nil {
@@ -124,6 +123,9 @@ func TestManualTARStreamPerformance(t *testing.T) {
 		}
 		elapsed := time.Since(started)
 		runtime.ReadMemStats(&after)
+		if indexedMode && measuredDigest != sum {
+			t.Fatal("measured indexed digest changed")
+		}
 		if observed != length {
 			t.Fatal("measured archive extent changed")
 		}
