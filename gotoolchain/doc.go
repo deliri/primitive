@@ -30,4 +30,7 @@
 // Visitor prefixes are provisional until the full captured content binding and
 // final extent checks succeed. This observation grants no authentication or
 // atomic snapshot guarantee; the caller excludes writes and owns the handle.
+// ObserveTypeMethodSet delegates method promotion, pointer receiver rules,
+// ambiguity and generic substitution to Go over a borrowed completed type.
+// The native set grants no product policy or compiler graph ownership.
 package gotoolchain

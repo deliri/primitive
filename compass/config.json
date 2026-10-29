@@ -6,10 +6,11 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 447
+      "patch": 448
     },
     "release_notes": [
-      "Compute typed Castagnoli CRC32C checksums over borrowed bytes through Go, including a set zero checksum for empty input."
+      "Observe native Go method sets over borrowed compiler types, preserving receiver promotion, ambiguity and generic substitution.",
+      "Refuse absent or typed-nil native types and cancelled contexts without returning method facts."
     ]
   }
 }
