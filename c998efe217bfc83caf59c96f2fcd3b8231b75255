@@ -1,0 +1,37 @@
+{
+  "at": "2026-10-29T07:23:51.210138+00:00",
+  "release": "v2026.1.450",
+  "source": "c998efe217bfc83caf59c96f2fcd3b8231b75255",
+  "baseline": "d54ea323390616025eb063d14e306f56fb09e659",
+  "gold": "aa5c19cd72dc0dfb081894df6fcc5077475b29b0",
+  "proof": [
+    {
+      "path": "/private/tmp/primitive-tar-stream-independent-review/REVIEW.json",
+      "bytes": 140515,
+      "sha256": "11711e064a506207d9522a28790f1dff693074ea804a73fbd40d63a79ae45b4a"
+    },
+    {
+      "path": "/private/tmp/primitive-tar-stream-independent-review/SDK450-PUBLICATION-ACK.json",
+      "bytes": 15265,
+      "sha256": "ffe41d219ec4c23444dfad0fd6d6d4bd9391ffd63485e15f74c257e194075ec3"
+    },
+    {
+      "path": "/private/tmp/primitive-filestore-tar-stream-proof/PROOF-CHECKPOINT.json",
+      "bytes": 124097,
+      "sha256": "c8565a2bf496df818e42613cc26eeaa97fc6824be2d0566c6e4cf472bbcac08f"
+    },
+    {
+      "path": "/private/tmp/primitive-filestore-tar-stream-proof/FUZZ-REVIEW.json",
+      "bytes": 9061,
+      "sha256": "38c9f3a41ae2fee9ae484d28b1d227f426a98cec86849590cca64f91aa333600"
+    },
+    {
+      "path": "/private/tmp/primitive450-publication-readonly/SDK-PUBLICATION-CENSUS-REVIEW.json",
+      "bytes": 415665,
+      "sha256": "eb4d6a655f26161be5a5093d1cc2b11c6c2214caf454f4c6b21f19a2bfd50ac1"
+    }
+  ],
+  "facts": "Sixfilestorefiles only + samecommitversion/qualifiednotes.324focusedPASS/0skip, intentionalwholehashownershipcontrolFAIL;397fuzzexecutions/6newinteresting/native0; matchedwarmraceTARstage23.5588percent/186.428ms less,2samples/armCPU1/io.Discard/307.2MBbody,negligibleallocationdifference. No end-to-end/fleet gain.",
+  "excluded": "Manualmeasurementfixtureoffpublication. Process62d and Darwin7files heldunproved, all other449unchanged.",
+  "publication": "IndependentACK complete; actualremoteatomicMain/tagpush and fetchedmoduleOrigin/Sum stillpending. PrimaryoldMain/foreignworkpreserved; no rawproofGitcommitted."
+}
