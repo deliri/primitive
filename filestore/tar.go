@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	"io/fs"
+	"math"
 	"path/filepath"
 
 	"github.com/deliri/primitive/v2026/contextstate"
@@ -107,20 +108,41 @@ func (r TARWriteRequest) Validate() error {
 // WriteTAR delegates TAR framing, optional gzip, copies and closure to Go.
 // It retains fixed working windows and returns the compressed output's digest
 // and extent only after both native encoders close successfully.
-func WriteTAR(ctx context.Context, request TARWriteRequest) (content ContentIndexEntry, resultErr error) {
+func WriteTAR(ctx context.Context, request TARWriteRequest) (ContentIndexEntry, error) {
+	content, _, err := writeTAR(ctx, request, core.NewDigestWriter())
+	return content, err
+}
+
+// StreamTAR writes the same native archive and per-entry content observations
+// as WriteTAR, without hashing the whole encoded archive. It returns its exact
+// encoded extent only after the TAR and optional gzip encoder close. Failure
+// returns zero; borrowed streams and provisional output remain caller-owned.
+func StreamTAR(ctx context.Context, request TARWriteRequest) (core.ByteLength, error) {
+	_, extent, err := writeTAR(ctx, request, nil)
+	return extent, err
+}
+
+func writeTAR(ctx context.Context, request TARWriteRequest, digest *core.DigestWriter) (content ContentIndexEntry, extent core.ByteLength, resultErr error) {
 	defer func() {
 		if resultErr != nil {
 			content = ContentIndexEntry{}
+			extent = core.ByteLength{}
 			if ctx != nil {
 				resultErr = errors.Join(resultErr, context.Cause(ctx))
 			}
 		}
 	}()
 	if err := errors.Join(contextstate.Validate(ctx), request.Validate()); err != nil {
-		return ContentIndexEntry{}, err
+		return ContentIndexEntry{}, core.ByteLength{}, err
 	}
-	digest := core.NewDigestWriter()
-	output := io.MultiWriter(request.Destination, digest)
+	var output io.Writer = request.Destination
+	var counted *tarStreamDestination
+	if digest != nil {
+		output = io.MultiWriter(request.Destination, digest)
+	} else {
+		counted = &tarStreamDestination{destination: request.Destination}
+		output = counted
+	}
 	var encoded io.Writer = output
 	var compression *gzip.Writer
 	if request.Compression == TARGzip {
@@ -139,11 +161,14 @@ func WriteTAR(ctx context.Context, request TARWriteRequest) (content ContentInde
 			resultErr = errors.Join(resultErr, compression.Close())
 		}
 		resultErr = errors.Join(resultErr, contextstate.Validate(ctx))
-		if resultErr == nil {
-			sum, extent, err := digest.Seal()
+		if resultErr == nil && digest == nil {
+			extent, resultErr = core.NewByteLength(counted.count)
+		} else if resultErr == nil {
+			sum, measured, err := digest.Seal()
 			resultErr = err
 			if err == nil {
-				content = ContentIndexEntry{Digest: sum, Extent: extent}
+				content = ContentIndexEntry{Digest: sum, Extent: measured}
+				extent = measured
 			}
 		}
 	}()
@@ -155,7 +180,7 @@ func WriteTAR(ctx context.Context, request TARWriteRequest) (content ContentInde
 		entryErr = err
 		return observed, err
 	})
-	return content, resultErr
+	return content, extent, resultErr
 }
 
 // writeTAREntry copies through one archive-owned window, allocated once by the
@@ -204,3 +229,26 @@ var (
 	_ core.Validatable = TAREntry{}
 	_ core.Validatable = TARWriteRequest{}
 )
+
+// tarStreamDestination keeps only the encoded extent. It preserves the signed
+// output domain formerly enforced by the archive digest, without hashing.
+type tarStreamDestination struct {
+	destination io.Writer
+	count       uint64
+	err         error
+}
+
+func (w *tarStreamDestination) Write(data []byte) (int, error) {
+	if w.err != nil {
+		return 0, w.err
+	}
+	if w.count > math.MaxInt64 || uint64(len(data)) > math.MaxInt64-w.count {
+		w.err = core.ErrNumericOverflow
+		return 0, w.err
+	}
+	writer := streamWriter{destination: w.destination, kind: streamDestinationCaller}
+	n, err := writer.Write(data)
+	w.count += uint64(n)
+	w.err = err
+	return n, err
+}
