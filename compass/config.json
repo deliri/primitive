@@ -6,11 +6,11 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 448
+      "patch": 449
     },
     "release_notes": [
-      "Observe native Go method sets over borrowed compiler types, preserving receiver promotion, ambiguity and generic substitution.",
-      "Refuse absent or typed-nil native types and cancelled contexts without returning method facts."
+      "Observe exact native Go type identity, assignment and interface implementation through closed typed requests.",
+      "Observe native field and method selections with Go addressability, promotion, ambiguity and package visibility."
     ]
   }
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"go/types"
-	"reflect"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/temporal"
@@ -16,15 +15,7 @@ import (
 type TypeMethodSetRequest struct{ Type types.Type }
 
 func (r TypeMethodSetRequest) Validate() error {
-	switch r.Type.(type) {
-	case *types.Basic, *types.Array, *types.Slice, *types.Struct, *types.Pointer,
-		*types.Tuple, *types.Signature, *types.Interface, *types.Map, *types.Chan,
-		*types.Named, *types.TypeParam, *types.Union, *types.Alias:
-		if !reflect.ValueOf(r.Type).IsNil() {
-			return nil
-		}
-	}
-	return core.ErrGoToolchainContract
+	return validateBorrowedType(r.Type)
 }
 func (TypeMethodSetRequest) goToolchainInternalFlow() {}
 
