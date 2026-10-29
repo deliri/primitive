@@ -6,11 +6,11 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 453
+      "patch": 454
     },
     "release_notes": [
-      "Admit the reviewed Go1.27.3 compiler identity used by the installed fleet for release construction.",
-      "Verify the actual native Go executable and retain exact version, digest and platform observations; stale Go1.27.2 identities remain refused."
+      "Observe cmd/go-generated test, benchmark, fuzz and runnable-example tables for one package in an owned build context without running tests, TestMain or package init.",
+      "Bound the generated input before parsing; require the direct MainStart to use the observed tables, and report custom TestMain separately. Query errors and unexpected shapes are refusals, never an empty selection."
     ]
   }
 }
