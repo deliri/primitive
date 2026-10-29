@@ -5,19 +5,23 @@
   "audits": [
     {
       "path": "/private/tmp/witness-path-ssot-ikdxx9n7/run-sdk-readbacks/AUDIT.json",
-      "sha256": "bb80b584b8f36493e1f243a64c4f4294985911c8132f83cb5d2d6bafa4b1ef3b"
+      "sha256": "251fc72a64043d76503247054004b9de122be0ffad67c0eea34d2b77a68e7749",
+      "warehouse_path": "/data/warehouse/mac/2026-10-29/witness-path-ssot-ikdxx9n7/run-sdk-readbacks/AUDIT.json"
     },
     {
       "path": "/private/tmp/witness-path-ssot-ikdxx9n7/sdk-lint-readbacks/AUDIT.json",
-      "sha256": "cfd1404105473b84f0d7e0b2d5f19bef533ccd4285f6ceef0540882908d99896"
+      "sha256": "7fb762a4707ad0eb2a889a676b64666eecf05aeab87ddcf9f68fb0f55e3ac913",
+      "warehouse_path": "/data/warehouse/mac/2026-10-29/witness-path-ssot-ikdxx9n7/sdk-lint-readbacks/AUDIT.json"
     },
     {
       "path": "/private/tmp/witness-path-ssot-ikdxx9n7/sdk-repair-readbacks/AUDIT.json",
-      "sha256": "d7d64e37b62c969b3ec3c39cd5a199b5384be80d6b283446347403078eb8fa53"
+      "sha256": "78a974a938db7ecb799f260cd0222e007f1a003e076e45a72e2ac2a427fcd8d8",
+      "warehouse_path": "/data/warehouse/mac/2026-10-29/witness-path-ssot-ikdxx9n7/sdk-repair-readbacks/AUDIT.json"
     },
     {
       "path": "/private/tmp/witness-path-ssot-ikdxx9n7/sdk-final-readbacks/AUDIT.json",
-      "sha256": "2afe49230d8d142b786afe258073e4a2dee20c28639338a846c337c09307fd8a"
+      "sha256": "43250c0cd653539a9c3d101a150322ef8419d5f376df3a4f643c078a612322c4",
+      "warehouse_path": "/data/warehouse/mac/2026-10-29/witness-path-ssot-ikdxx9n7/sdk-final-readbacks/AUDIT.json"
     }
   ],
   "open_findings": {
@@ -38,5 +42,112 @@
     "release/current_toolchain_native_external_test.go": "394dda26cf7150e84e8c8b08520e286deecd0dec299b06b4ba6dea68b4c5941a",
     "release/toolchain.go": "bfbb333a0a82238858d5cad4c0e3019c8e6458c60a0128541e05daff36a879a9"
   },
-  "qualification": "Source/narrow native proof only; no independent owner acceptance or platform pin. Other SDK lanes excluded; historical compiler provenance selectors unchanged. Test diagnostic wording-only final edit reuses native platform proof; original controls/failed lint attempts retained."
+  "qualification": "Source/narrow native proof only; no independent owner acceptance or platform pin. Other SDK lanes excluded; historical compiler provenance selectors unchanged. Test diagnostic wording-only final edit reuses native platform proof; original controls/failed lint attempts retained.",
+  "superseded_audit_references": [
+    {
+      "path": "/private/tmp/witness-path-ssot-ikdxx9n7/run-sdk-readbacks/AUDIT.json",
+      "sha256": "bb80b584b8f36493e1f243a64c4f4294985911c8132f83cb5d2d6bafa4b1ef3b"
+    },
+    {
+      "path": "/private/tmp/witness-path-ssot-ikdxx9n7/sdk-lint-readbacks/AUDIT.json",
+      "sha256": "cfd1404105473b84f0d7e0b2d5f19bef533ccd4285f6ceef0540882908d99896"
+    },
+    {
+      "path": "/private/tmp/witness-path-ssot-ikdxx9n7/sdk-repair-readbacks/AUDIT.json",
+      "sha256": "d7d64e37b62c969b3ec3c39cd5a199b5384be80d6b283446347403078eb8fa53"
+    },
+    {
+      "path": "/private/tmp/witness-path-ssot-ikdxx9n7/sdk-final-readbacks/AUDIT.json",
+      "sha256": "2afe49230d8d142b786afe258073e4a2dee20c28639338a846c337c09307fd8a"
+    }
+  ],
+  "metadata_correction": {
+    "at": "2026-10-29T11:31:08.219967+00:00",
+    "source": "dff304dfaee96464424a00131f95f6aad580d177",
+    "tag": "v2026.1.453",
+    "original_source_proof": {
+      "path": "/private/tmp/witness-path-ssot-ikdxx9n7/sdk-go/RELEASE-PROOF.json",
+      "sha256": "b6bc77e454fdd2311b18d134e82b588ef78f2e36d3e900f41d971bb9e3692ab3"
+    },
+    "metadata_correction": "The final-source aggregation reissued timestamped AUDIT.json summaries at their original paths. Previous summary versions were not retained. This supersedes the four prior summary-SHA references, without changing any original receipt, execution view, request, caller log or evidence-reader record. All original receipt seals/details and reader joins were checked again in the final source audit; no test/analyzer replay.",
+    "current_stable_audits": [
+      {
+        "path": "/private/tmp/witness-path-ssot-ikdxx9n7/run-sdk-readbacks/AUDIT.json",
+        "sha256": "251fc72a64043d76503247054004b9de122be0ffad67c0eea34d2b77a68e7749",
+        "warehouse_path": "/data/warehouse/mac/2026-10-29/witness-path-ssot-ikdxx9n7/run-sdk-readbacks/AUDIT.json"
+      },
+      {
+        "path": "/private/tmp/witness-path-ssot-ikdxx9n7/sdk-lint-readbacks/AUDIT.json",
+        "sha256": "7fb762a4707ad0eb2a889a676b64666eecf05aeab87ddcf9f68fb0f55e3ac913",
+        "warehouse_path": "/data/warehouse/mac/2026-10-29/witness-path-ssot-ikdxx9n7/sdk-lint-readbacks/AUDIT.json"
+      },
+      {
+        "path": "/private/tmp/witness-path-ssot-ikdxx9n7/sdk-repair-readbacks/AUDIT.json",
+        "sha256": "78a974a938db7ecb799f260cd0222e007f1a003e076e45a72e2ac2a427fcd8d8",
+        "warehouse_path": "/data/warehouse/mac/2026-10-29/witness-path-ssot-ikdxx9n7/sdk-repair-readbacks/AUDIT.json"
+      },
+      {
+        "path": "/private/tmp/witness-path-ssot-ikdxx9n7/sdk-final-readbacks/AUDIT.json",
+        "sha256": "43250c0cd653539a9c3d101a150322ef8419d5f376df3a4f643c078a612322c4",
+        "warehouse_path": "/data/warehouse/mac/2026-10-29/witness-path-ssot-ikdxx9n7/sdk-final-readbacks/AUDIT.json"
+      }
+    ],
+    "final_source_audit": {
+      "path": "/private/tmp/witness-path-ssot-ikdxx9n7/SOURCE179-PROOF.json",
+      "sha256": "0eaed994b2888e0445fa4bcc3bc4db296a22057b8c3403c498f03b4d77c6e24c"
+    },
+    "prior_audits": [
+      {
+        "path": "/private/tmp/witness-path-ssot-ikdxx9n7/run-sdk-readbacks/AUDIT.json",
+        "sha256": "bb80b584b8f36493e1f243a64c4f4294985911c8132f83cb5d2d6bafa4b1ef3b"
+      },
+      {
+        "path": "/private/tmp/witness-path-ssot-ikdxx9n7/sdk-lint-readbacks/AUDIT.json",
+        "sha256": "cfd1404105473b84f0d7e0b2d5f19bef533ccd4285f6ceef0540882908d99896"
+      },
+      {
+        "path": "/private/tmp/witness-path-ssot-ikdxx9n7/sdk-repair-readbacks/AUDIT.json",
+        "sha256": "d7d64e37b62c969b3ec3c39cd5a199b5384be80d6b283446347403078eb8fa53"
+      },
+      {
+        "path": "/private/tmp/witness-path-ssot-ikdxx9n7/sdk-final-readbacks/AUDIT.json",
+        "sha256": "2afe49230d8d142b786afe258073e4a2dee20c28639338a846c337c09307fd8a"
+      }
+    ],
+    "open_findings": {
+      "count": 23,
+      "files_byte_equal_published452": [
+        "release/artifact_inspection.go",
+        "release/build_plan.go",
+        "release/build_tools.go",
+        "release/repository.go"
+      ],
+      "no_waiver": true,
+      "owned_findings": 0,
+      "no_baseline_lint_comparison": true
+    },
+    "raw_execution_proof_unchanged": true,
+    "custody_state": "source-root copy in progress, SSD originals retained; no removal until final bindings/readback verify"
+  },
+  "source_custody": {
+    "source": "/private/tmp/witness-path-ssot-ikdxx9n7",
+    "destination": "/data/warehouse/mac/2026-10-29/witness-path-ssot-ikdxx9n7",
+    "verified": {
+      "destination": "/data/warehouse/mac/2026-10-29/witness-path-ssot-ikdxx9n7",
+      "counts": {
+        "files": 59905,
+        "directories": 5069,
+        "symlinks": 0,
+        "bytes": 674401352
+      },
+      "manifest_sha256": "bf1f7853bb1fbb05516be6e610fdcc08265f2cd5548faf0e303d0adfb8103f8b",
+      "all_file_sha256_verified": true,
+      "filesystem_syncfs_completed": true,
+      "owner_namespace": "d on each machine; numeric uid/gid are not copied"
+    },
+    "comparison_exit": 0,
+    "comparison_bytes": 0,
+    "all_caches_included": true,
+    "source_removal": "not yet performed"
+  }
 }
