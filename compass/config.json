@@ -6,11 +6,11 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 450
+      "patch": 451
     },
     "release_notes": [
-      "Stream native TAR with exact encoded extent while omitting an unneeded whole-archive digest; preserve per-entry hashes, validation and closure.",
-      "Matched warm race-instrumented 307.2MB TAR stage measured 23.56 percent less elapsed time in one Furnace run; no end-to-end or fleet speedup claim."
+      "Lend a validated stdout or stderr route to native io.Writer consumers through Streams.OutputWriter; each write goes through WriteOutput with its exact count, typed cause and broken-pipe refusal.",
+      "Native consumers such as flag keep their grammar and diagnostic bytes while Primitive owns the write; nothing is buffered, truncated, closed or retained."
     ]
   }
 }
