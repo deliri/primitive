@@ -5,7 +5,9 @@ import (
 	"context"
 	"errors"
 	"go/ast"
+	"go/parser"
 	"go/token"
+	"io"
 	"strconv"
 	"strings"
 
@@ -100,17 +102,49 @@ func (c Capability) ObserveTestTables(ctx context.Context, request TestTableRequ
 	if err != nil {
 		return TestTables{}, outputError("generated test main path is invalid", err)
 	}
-	file, err := ParseFile(ctx, FileParseRequest{FileSet: token.NewFileSet(), Path: path})
+	limit, err := c.configuration.Limits.OutputBytes.Int64()
 	if err != nil {
-		return TestTables{}, err
+		return TestTables{}, errors.Join(core.ErrGoToolchainContract, err)
+	}
+	// One owned regular handle, read no further than the output bound before
+	// any parse allocation.
+	source, err := openAnalysisInput(ctx, path.String())
+	if err != nil {
+		return TestTables{}, errors.Join(core.ErrGoToolchainExecution, err)
+	}
+	data, readErr := io.ReadAll(io.LimitReader(source, limit+1))
+	if err := errors.Join(readErr, source.Close(), contextstate.Validate(ctx)); err != nil {
+		return TestTables{}, errors.Join(core.ErrGoToolchainOutput, err)
+	}
+	if int64(len(data)) > limit {
+		return TestTables{}, outputError("generated test main exceeds the output bound", nil)
+	}
+	file, err := parser.ParseFile(token.NewFileSet(), path.String(), data, parser.SkipObjectResolution)
+	if err != nil {
+		return TestTables{}, outputError("generated test main does not parse", err)
 	}
 	return readTestTables(file, c.configuration.Limits.PackageMaximum)
+}
+
+// testTableTypes are the element types cmd/go declares for each table, in
+// readTestTables' index order.
+var testTableTypes = [4]string{"InternalTest", "InternalBenchmark", "InternalFuzzTarget", "InternalExample"}
+
+// testingSelector reports a testing.<name> reference.
+func testingSelector(expression ast.Expr, name string) bool {
+	selector, ok := expression.(*ast.SelectorExpr)
+	if !ok || selector.Sel.Name != name {
+		return false
+	}
+	pkg, ok := selector.X.(*ast.Ident)
+	return ok && pkg.Name == "testing"
 }
 
 // readTestTables reads only the four generated tables and main's TestMain call.
 func readTestTables(file *ast.File, maximum uint64) (TestTables, error) {
 	var tables TestTables
 	var seen [4]bool
+	var mains, starts int
 	for _, declaration := range file.Decls {
 		switch declaration := declaration.(type) {
 		case *ast.GenDecl:
@@ -140,6 +174,9 @@ func readTestTables(file *ast.File, maximum uint64) (TestTables, error) {
 					return TestTables{}, outputError("generated test main repeats a table", nil)
 				}
 				seen[index] = true
+				if !testTableLiteral(value.Values[0], testTableTypes[index]) {
+					return TestTables{}, outputError("generated test table has an unexpected type", nil)
+				}
 				names, err := readTestTable(value.Values[0], maximum)
 				if err != nil {
 					return TestTables{}, err
@@ -150,10 +187,14 @@ func readTestTables(file *ast.File, maximum uint64) (TestTables, error) {
 			if declaration.Name.Name != "main" || declaration.Recv != nil || declaration.Body == nil {
 				continue
 			}
+			mains++
 			ast.Inspect(declaration.Body, func(node ast.Node) bool {
 				call, ok := node.(*ast.CallExpr)
 				if !ok {
 					return true
+				}
+				if testingSelector(call.Fun, "MainStart") {
+					starts++
 				}
 				if selector, ok := call.Fun.(*ast.SelectorExpr); ok && selector.Sel.Name == "TestMain" {
 					tables.CustomTestMain = true
@@ -165,7 +206,20 @@ func readTestTables(file *ast.File, maximum uint64) (TestTables, error) {
 	if seen != [4]bool{true, true, true, true} {
 		return TestTables{}, outputError("generated test main lacks a table", nil)
 	}
+	if mains != 1 || starts != 1 {
+		return TestTables{}, outputError("generated test main does not start testing exactly once", nil)
+	}
 	return tables, nil
+}
+
+// testTableLiteral reports a []testing.<element>{...} composite literal.
+func testTableLiteral(expression ast.Expr, element string) bool {
+	literal, ok := expression.(*ast.CompositeLit)
+	if !ok {
+		return false
+	}
+	slice, ok := literal.Type.(*ast.ArrayType)
+	return ok && slice.Len == nil && testingSelector(slice.Elt, element)
 }
 
 // readTestTable reads each element's first field, the quoted name.
