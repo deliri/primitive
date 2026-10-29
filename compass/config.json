@@ -6,11 +6,11 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 451
+      "patch": 452
     },
     "release_notes": [
-      "Lend a validated stdout or stderr route to native io.Writer consumers through Streams.OutputWriter; each write goes through WriteOutput with its exact count, typed cause and broken-pipe refusal.",
-      "Native consumers such as flag keep their grammar and diagnostic bytes while Primitive owns the write; nothing is buffered, truncated, closed or retained."
+      "Open a confined child directory through existing nonblocking directory acquisition, and read through it only when the opened file matches a fresh regular-file observation at its original logical path.",
+      "Preserve existing rooted custody checks and bounded descriptor ownership; Darwin/Linux confined directory links are followed, Windows final reparse points are refused. Windows native execution remains unproved."
     ]
   }
 }
