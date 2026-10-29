@@ -102,7 +102,7 @@ func GoFuzzInputRecords(ctx context.Context, request GoFuzzInputSourceRequest) i
 			}
 			observation := GoFuzzInputRecord{record: record, path: lineio.RecordRange{Offset: lineio.SourceByteOffset(span.offset), Bytes: extent, Framing: lineio.RecordFramingOpaque}}
 			if validationErr := observation.Validate(); validationErr != nil {
-				yield(GoFuzzInputRecord{}, matchErr)
+				yield(GoFuzzInputRecord{}, validationErr)
 				return
 			}
 			if !yield(observation, nil) {
