@@ -19,7 +19,7 @@ func TestAuthenticatedGCSOperationsAreCompilerSelectedEntryPoints(t *testing.T) 
 
 	set := token.NewFileSet()
 	var got []string
-	for _, path := range []string{"client.go", "download_capability.go", "upload_capability.go", "upload_file_stream.go", "object_public_read.go", "public_copy.go", "usage_log.go"} {
+	for _, path := range []string{"client.go", "download_capability.go", "upload_capability.go", "upload_file_stream.go", "object_public_read.go", "public_copy.go", "usage_log.go", "list_range.go"} {
 		file, gotParseErr := parser.ParseFile(set, path, nil, 0)
 		if gotParseErr != nil {
 			t.Fatalf("parser.ParseFile(%s) error = %v, want nil", path, gotParseErr)
@@ -128,7 +128,7 @@ func productionStructRole(name string) (string, bool) {
 		"GCSGeneration", "GCSProjectID", "GCSLocation", "GCSObjectSegment", "GCSServiceAccount",
 		"GCSObjectAddress":
 		return "opaque validated provider value", true
-	case "GCSMediaUpload", "GCSFileUpload", "GCSFileStreamUpload", "GCSReadRequest", "GCSListRequest", "GCSListedReadRequest", "GCSUploadObservationRequest", "GCSDeleteRequest",
+	case "GCSMediaUpload", "GCSFileUpload", "GCSFileStreamUpload", "GCSReadRequest", "GCSListRequest", "GCSListRange", "GCSListedReadRequest", "GCSUploadObservationRequest", "GCSDeleteRequest",
 		"GCSDeleteObjectRequest", "GCSBucketCreateRequest", "GCSBucketPublicReadRequest", "GCSRootPrefixRequest",
 		"GCSChildPrefixRequest", "GCSObjectInPrefixRequest", "GCSUploadCapabilityRequest",
 		"GCSDownloadCapabilityRequest", "GCSObjectLookupRequest", "GCSObjectPublicReadRequest", "GCSPublicCopyRequest", "GCSUsageLogRequest":

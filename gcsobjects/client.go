@@ -601,6 +601,7 @@ func (r GCSReadResult) Staged() (filestore.StagedFile, error) {
 type GCSListRequest struct {
 	Bucket GCSBucket
 	Prefix GCSObjectPrefix
+	Range  GCSListRange
 }
 
 // GCSListedReadRequest reads one exact generation returned by ListGCSObjects.
@@ -662,7 +663,7 @@ func (r GCSReadRequest) Validate() error {
 }
 
 func (r GCSListRequest) Validate() error {
-	return errors.Join(r.Bucket.Validate(), r.Prefix.Validate())
+	return errors.Join(r.Bucket.Validate(), r.Prefix.Validate(), r.Range.Validate())
 }
 
 func (r GCSListedReadRequest) Validate() error {
@@ -833,8 +834,13 @@ func ListGCSObjects(ctx context.Context, client *GCSClient, request GCSListReque
 	if visit == nil {
 		return errors.Join(core.ErrObjectStoreContract, core.ErrObjectStoreDestination)
 	}
-	objects := client.client.Bucket(request.Bucket.String()).Objects(ctx, &storage.Query{Prefix: request.Prefix.String(), Projection: storage.ProjectionNoACL})
-	return visitGCSObjects(objects, visit)
+	objects := client.client.Bucket(request.Bucket.String()).Objects(ctx, &storage.Query{Prefix: request.Prefix.String(), StartOffset: request.Range.Start.String(), EndOffset: request.Range.End.String(), Projection: storage.ProjectionNoACL})
+	return visitGCSObjects(objects, func(metadata GCSObjectMetadata) error {
+		if !request.Range.IsZero() && !request.Range.contains(metadata.Name()) {
+			return errors.Join(core.ErrObjectStoreSource, core.ErrObjectStoreIntegrity)
+		}
+		return visit(metadata)
+	})
 }
 
 type gcsObjectIterator interface {
