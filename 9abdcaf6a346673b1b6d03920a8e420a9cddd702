@@ -1,0 +1,147 @@
+{
+  "at": "2026-10-29T11:15:16.549624+00:00",
+  "source": "9abdcaf6a346673b1b6d03920a8e420a9cddd702",
+  "base": "dff304dfaee96464424a00131f95f6aad580d177",
+  "release": "v2026.1.454",
+  "candidate": "6af0f02e989a2f1aa97fee3295b7fa348f443517",
+  "files": {
+    "compass/config.json": {
+      "bytes": 644,
+      "sha256": "cfa0c014fbf76c17b6cb0d4bfe093b6f04c39756ded8184be653967f79e7f826"
+    },
+    "gotoolchain/data_flow_inventory.go": {
+      "bytes": 2134,
+      "sha256": "c753211f394c55bdb7d98e7f3917b734c55270299f615e7812bae305128651ed"
+    },
+    "gotoolchain/test_tables.go": {
+      "bytes": 12222,
+      "sha256": "85c525021a72b2c4018a91326ece6e7cba9a988d82181472eb7cfd8ea3294858"
+    },
+    "gotoolchain/test_tables_external_test.go": {
+      "bytes": 14614,
+      "sha256": "ad374f0e0415f99563fe5fb200ac72f97957e99406b98371ff0c924f081687b6"
+    },
+    "gotoolchain/test_tables_fuzz_test.go": {
+      "bytes": 7945,
+      "sha256": "a06e5c3f0fcac2b41bf2c4899289f9fa816f1da6b2f44c29fd4492aaa39a1c86"
+    }
+  },
+  "proof": {
+    "mac": {
+      "path": "/private/tmp/primitive-test-tables-root-repair/mac.json",
+      "bytes": 140205,
+      "sha256": "e07ec68234be5e323d7136c87408600f92f364972dfa3995d70a514b170de862"
+    },
+    "furnace": {
+      "path": "/private/tmp/primitive-test-tables-root-repair/furnace.json",
+      "bytes": 92837,
+      "sha256": "6d09673e97421642b367c78d616b89b041c3eb228f4d15c363c915bb47edbde0"
+    },
+    "official": {
+      "path": "/private/tmp/primitive-test-tables-root-repair/official.json",
+      "bytes": 510,
+      "sha256": "e7ce5b13c333eba59b656f87e88a2ce1d3a7184e7f283211c5763f44130f698e"
+    },
+    "control01": {
+      "summary": {
+        "path": "/private/tmp/primitive-test-tables-root-repair/control01.SUMMARY.json",
+        "bytes": 2617,
+        "sha256": "780549cfbc675c997a97f7fe2a846215843dff220689bfe7d2ab21b6ac0757df"
+      },
+      "receipt": {
+        "path": "/private/tmp/primitive-test-tables-root-repair/control01.receipt.stdout",
+        "bytes": 4214,
+        "sha256": "af25f39023dcaf76456cde29f9155f93327f2052c722b7c815b40095ef6b3d25"
+      },
+      "run": "2026-10-29-0644fb0eb91602ab1440fce91898abb62a5052de6cff3a0e6635f43ebc961b07",
+      "source": "7a248d718ced35621e5518b279a031f7cf2248cf",
+      "native_outcome": "outcome_failed"
+    },
+    "gold03": {
+      "summary": {
+        "path": "/private/tmp/primitive-test-tables-root-repair/gold03.SUMMARY.json",
+        "bytes": 2617,
+        "sha256": "09a6b4e5164e28d8658b597ea4b159f84629cfec4935cb0407d3b823b7115e78"
+      },
+      "receipt": {
+        "path": "/private/tmp/primitive-test-tables-root-repair/gold03.receipt.stdout",
+        "bytes": 17723,
+        "sha256": "8b73e4e6bf1ed650e70031cec1ed3bb15d8af5d0eb52dd2b7b1d5e85167bb9dc"
+      },
+      "run": "2026-10-29-695daba5237044ab0d5c4360fe758edd33efaae61a45897740674ee0cbf328de",
+      "source": "3aef0112d6bb722c1d5184e35de6fb85b556592c",
+      "native_outcome": "outcome_passed"
+    },
+    "fuzz03": {
+      "summary": {
+        "path": "/private/tmp/primitive-test-tables-root-repair/fuzz03.SUMMARY.json",
+        "bytes": 2793,
+        "sha256": "bfea22be998d9c49e8a5a7933e2e4ac9e21522400b973f8ec7b6a1da50a20927"
+      },
+      "receipt": {
+        "path": "/private/tmp/primitive-test-tables-root-repair/fuzz03.receipt.stdout",
+        "bytes": 3625,
+        "sha256": "9fa7c99f9e76640a5a0e2258b368639af5fb378b722f10345dba99236f58567a"
+      },
+      "run": "2026-10-29-e28b10bfcb5319a1c1b9a80d65ade628cd42442ccab18c76b7c51f3494287c9d",
+      "source": "3aef0112d6bb722c1d5184e35de6fb85b556592c",
+      "native_outcome": "outcome_passed"
+    },
+    "gold04": {
+      "summary": {
+        "path": "/private/tmp/primitive-test-tables-root-repair/gold04.SUMMARY.json",
+        "bytes": 2612,
+        "sha256": "5d428825b6003190668912e415d766f2e3abf5e528e25a5a454511855aa24f4d"
+      },
+      "receipt": {
+        "path": "/private/tmp/primitive-test-tables-root-repair/gold04.receipt.stdout",
+        "bytes": 9477,
+        "sha256": "ab4d897c5f5bfddf91f8c02d43961e524cc0a42d6523ba49614befb088b0305c"
+      },
+      "run": "2026-10-29-4ab678b404639c9d84126974ae211e759608c2cf3699d2300814a5b07cad2aa5",
+      "source": "6af0f02e989a2f1aa97fee3295b7fa348f443517",
+      "native_outcome": "outcome_passed"
+    },
+    "metadata454": {
+      "summary": {
+        "path": "/private/tmp/primitive-test-tables-root-repair/metadata454.SUMMARY.json",
+        "bytes": 2614,
+        "sha256": "e042ad93ff681e0f7b819ae4da24956d560d457e9cf9e8557382e0a214e79ce5"
+      },
+      "receipt": {
+        "path": "/private/tmp/primitive-test-tables-root-repair/metadata454.receipt.stdout",
+        "bytes": 4018,
+        "sha256": "fa59b18e34083e3ee539420bdc7281c76d56dd341b685d04104655028bf387bc"
+      },
+      "run": "2026-10-29-9917bdc2719ce25ba2629bad1017440912d0719e32f06545690c71c3794cc895",
+      "source": "9abdcaf6a346673b1b6d03920a8e420a9cddd702",
+      "native_outcome": "outcome_passed"
+    }
+  },
+  "lint_ownership": {
+    "path": "/private/tmp/primitive-test-tables-root-repair/LINT04-OWNERSHIP.json",
+    "bytes": 16948,
+    "sha256": "3d056b7199cb2c67571a5f85e190ebba9e7d4868891f4ecb77926f208d668601"
+  },
+  "prior_lint_failure": {
+    "path": "/private/tmp/primitive-test-tables-root-repair/LINT03-OWNERSHIP.json",
+    "bytes": 1222,
+    "sha256": "2901c92b2c035a9fccc8afcf91627fb418c8faef0756e7129c9e0ae4f74af21c"
+  },
+  "independent_objections_and_original_proof": {
+    "path": "/private/tmp/primitive-test-tables-root-review/updated-review.json",
+    "bytes": 7370,
+    "sha256": "5e7f72a80fa2fa076dfce46666954ad18307f212cfcbcd5f22bad258566358cc"
+  },
+  "earlier_source_binding": {
+    "path": "/private/tmp/primitive-test-tables-root-repair/SOURCE-BINDING.json",
+    "bytes": 52565,
+    "sha256": "683b8a07618494ec2954517aff889ff64e7e009c83265b72db81139e78001814"
+  },
+  "fresh_remote": "dff304dfaee96464424a00131f95f6aad580d177\trefs/heads/main",
+  "native_facts": "Oldreader control accepts falseempty and fails exactlyoneleaf+parent; fixedparser41PASS0skip. FinalReadPrefix/freshfixture change17affectednative/inventoryPASS0skip. Parser/oracleunchanged1281fuzzexec25interesting. Metadataexactrelease3PASS0skip. Vet/staticcheck0; Witness274open in132files byte-identical453, zeroowned. Bothfailedlintparentsretained/no wholepackagegreen/waiver. All7actualcallers and26originalreadersjoined; originalseals/equalityverified.",
+  "postprocessor_error": "Metadata454 submitting an caller/native/readers all0 and retainedsummaryvalid. The private wrapper subsequently asserted3planchildren for a nonplan and exited1. Rootfixedlabelpredicate; no Anmetadata replay, no assertionwaiver or hiddenfailedtoolcall.",
+  "limits": "Queryonly, no Anvilplacementimplementation/adoption/deployment orspeedclaim. Validates cmdGo generated main smallgrammar, not arbitraryGo typechecking. CustomTestMain reportsunknownforabsence. BoundedReadPrefixusesexplicitconfiguredlimit+1memorywindow andnativecontext/EOFcapability. Linux/Darwincrosscontextlisting is not eachplatformnativeexecution. Memory62d/Darwineee remainexcluded andunpublished. Primaryforeignsource/dirty/missingworktrees preserved.",
+  "held_lanes": "Earlier fullread-onlycensusclassification packet retained; thisfresh stableMac/Furnacecensus preserves647refs/28trees and438/14 inthiscut. No destructivecleanup. WitnessSDK453publishedunchanged, nextWitness179source/componentsremainseparate.",
+  "status": "METADATA_NATIVE_PROVED_READY_FOR_ATOMIC_PUBLICATION_NOT_YET_PUBLISHED"
+}
