@@ -490,3 +490,23 @@ func TestOffWireFirestoreEnumMethodContracts(t *testing.T) {
 		}
 	}
 }
+
+func TestQueryNativeFixtureInvalidUTF8LeavesNoDocumentOrQuery(t *testing.T) {
+	t.Parallel()
+	client, costs := nativeClient(t)
+	ref := nativeRef(client, t)
+	_, writeErr := ref.Set(t.Context(), nativeRecord{Owner: "\xff", Value: 17})
+	if status.Code(writeErr) != codes.Internal {
+		t.Fatalf("native invalid UTF-8 write = %v, want Internal marshaling refusal", writeErr)
+	}
+	if !strings.Contains(status.Convert(writeErr).Message(), "string field contains invalid UTF-8") {
+		t.Fatalf("native Internal diagnostic = %q, want invalid UTF-8 marshaling cause", status.Convert(writeErr).Message())
+	}
+	point, pointErr := Get[nativeRecord](t.Context(), GetRequest{Reference: ref})
+	if !errors.Is(pointErr, core.ErrFirestoreDocumentsOperation) || status.Code(pointErr) != codes.NotFound || point != (Document[nativeRecord]{}) {
+		t.Fatalf("native invalid UTF-8 readback = %+v/%v, want zero document and operation/NotFound", point, pointErr)
+	}
+	if gotQueries, gotWrites := costs.queries.Load(), costs.writes.Load(); gotQueries != 0 || gotWrites != 0 {
+		t.Fatalf("native invalid UTF-8 effects = %d queries/%d writes, want 0/0", gotQueries, gotWrites)
+	}
+}
