@@ -14,7 +14,15 @@ import (
 )
 
 func FuzzZoneHostClosure(f *testing.F) {
-	for _, seed := range []string{"example.ca", "www.example.test", "", "Example.ca", "example.ca.", "192.0.2.1", "a-.b.ca", strings.Repeat("a", 64) + ".ca"} {
+	host, err := ParseZoneHost(zoneAnalyticsTestHost)
+	if err != nil {
+		f.Fatal(err)
+	}
+	if err := host.Validate(); err != nil {
+		f.Fatal(err)
+	}
+	f.Add(host.String())
+	for _, seed := range []string{"", "Example.ca", "example.ca.", "192.0.2.1", "a-.b.ca", strings.Repeat("a", 64) + ".ca"} {
 		f.Add(seed)
 	}
 	label := regexp.MustCompile(`^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$`)
