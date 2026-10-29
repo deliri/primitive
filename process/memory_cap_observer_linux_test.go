@@ -196,6 +196,11 @@ func TestMemoryCapCapturesOwnedLocalExhaustion(t *testing.T) {
 	if fact == nil || fact.State != MemoryCapObserved || fact.Limit.Uint64() != 256<<20 || fact.LocalOOMEvents == 0 || fact.LocalOOMKills == 0 {
 		t.Fatalf("missing real owned local exhaustion: %+v", fact)
 	}
+	raw, err := core.MarshalCanonicalJSONDocument(observation)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("OWNED_MEMORY_CAP_NATIVE pid=%d unit=%s observation=%s", execution.prepared.memoryCap.owner.pid, execution.prepared.memoryCap.owner.unit, raw)
 	// Projection owns its snapshot, rather than exposing the private result.
 	fact.LocalOOMEvents = 0
 	again, err := result.Observation()
@@ -259,7 +264,7 @@ func TestMemoryCapDoesNotInferExhaustionFromTermination(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if observation.MemoryCap == nil || observation.MemoryCap.LocalOOMEvents != 0 || observation.MemoryCap.LocalOOMKills != 0 {
+			if observation.MemoryCap == nil || observation.MemoryCap.State != MemoryCapUnknown || observation.MemoryCap.LocalOOMEvents != 0 || observation.MemoryCap.LocalOOMKills != 0 {
 				t.Fatalf("termination manufactured OOM: %+v", observation)
 			}
 			if role == "ordinary-success" && observation.ExitCode != 0 {
