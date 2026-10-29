@@ -15,6 +15,7 @@ import (
 	"cloud.google.com/go/firestore"
 	"cloud.google.com/go/firestore/apiv1/firestorepb"
 	"github.com/deliri/primitive/v2026/core"
+	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -382,4 +383,55 @@ func TestQueryBindsNativeClientProjectAndDatabase(t *testing.T) {
 			t.Errorf("query binding native effects = %d/%d/%d, want all zero", costs.queries.Load(), costs.reads.Load(), costs.writes.Load())
 		}
 	})
+}
+
+// A joined native exhaustion marker is not clean exhaustion. This drives an
+// actual emulator result before a controlled native stream fault; it does not
+// substitute a mock query or a fake Document for the production path.
+func TestQueryJoinedExhaustionCannotHideProviderCause(t *testing.T) {
+	t.Parallel()
+	for _, row := range []struct {
+		name   string
+		cancel bool
+	}{
+		{name: "joined exhaustion retains provider failure"},
+		{name: "joined exhaustion retains provider and caller failure", cancel: true},
+	} {
+		t.Run(row.name, func(t *testing.T) {
+			t.Parallel()
+			ctx, cancel := context.WithCancelCause(t.Context())
+			defer cancel(nil)
+			cause := errors.New("joined query caller failure")
+			observed := &queryObservation{fault: errors.Join(iterator.Done, status.Error(codes.PermissionDenied, "joined native provider failure")), cause: cause}
+			if row.cancel {
+				observed.cancel = cancel
+			}
+			client, costs := nativeClient(t, grpc.WithChainStreamInterceptor(observed.stream))
+			ref := nativeRef(client, t)
+			if _, err := ref.Set(t.Context(), nativeRecord{Owner: "native-owner", Value: 1}); err != nil {
+				t.Fatal(err)
+			}
+			visits := 0
+			err := Query(ctx, QueryRequest[nativeRecord]{Query: ref.Parent.Where(firestore.DocumentID, "==", ref), Visit: func(_ context.Context, d Document[nativeRecord]) (QueryVisitDecision, error) {
+				visits++
+				if d.Record.Owner != "native-owner" {
+					t.Fatalf("query record owner = %q, want native-owner", d.Record.Owner)
+				}
+				return QueryContinue, nil
+			}})
+			if !errors.Is(err, core.ErrFirestoreDocumentsOperation) || !errors.Is(err, iterator.Done) || status.Code(err) != codes.PermissionDenied {
+				t.Fatalf("joined query error = %v, want operation, observed exhaustion marker and PermissionDenied together", err)
+			}
+			if row.cancel && (!errors.Is(err, context.Canceled) || !errors.Is(err, cause)) {
+				t.Fatalf("joined query cancellation = %v, want retained caller causes", err)
+			}
+			if !row.cancel && ctx.Err() != nil {
+				t.Fatalf("uncanceled query context = %v, want nil independently of provider refusal", ctx.Err())
+			}
+			if visits != 1 || costs.queries.Load() != 1 {
+				t.Fatalf("joined query visits/RPCs = %d/%d, want 1/1", visits, costs.queries.Load())
+			}
+			queryContextsStopped(t, observed, 1)
+		})
+	}
 }
