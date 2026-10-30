@@ -117,7 +117,8 @@ func TestSocketWriteStallOpaqueSetterOrdering(t *testing.T) {
 					t.Fatal("opaque setter entered native I/O = false, want true")
 				}
 				owned := <-borrowed
-				if got := owned.mutex.TryLock(); !got {
+				mutexAvailable := owned.mutex.TryLock()
+				if !mutexAvailable {
 					t.Error("state mutex available during native setter I/O = false, want true")
 				} else {
 					owned.mutex.Unlock()
@@ -125,7 +126,13 @@ func TestSocketWriteStallOpaqueSetterOrdering(t *testing.T) {
 				callerCause := errors.New("owned caller cancellation")
 				if tc.cancel {
 					cancel(callerCause)
-					synctest.Wait()
+					// Mutex waits are not durably blocked in synctest. The old
+					// implementation cannot advance its callback until the pipe
+					// is released, so retain that failed fact without wedging the
+					// test's own barrier behind the known held mutex.
+					if mutexAvailable {
+						synctest.Wait()
+					}
 					select {
 					case <-native.expired:
 					default:
