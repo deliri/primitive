@@ -103,7 +103,7 @@ func (v SSAUnitView) storedValue(ctx context.Context, value ssa.Value) (ssa.Valu
 		return value, nil
 	}
 	switch value.Type().Underlying().(type) {
-	case *types.Pointer, *types.Signature:
+	case *types.Pointer, *types.Signature, *types.Interface:
 	default:
 		return value, nil
 	}

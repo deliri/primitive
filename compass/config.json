@@ -6,11 +6,10 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 455
+      "patch": 456
     },
     "release_notes": [
-      "Add compact scalar run receipts and bounded typed fact streams, including truthful unattributed benchmark facts and preserved native reader and cancellation causes.",
-      "Add native-bound typed Firestore query visitors and blind integer increments; bind the exact initialized query client, preserve native read options, and stop iterators on every exit."
+      "Preserve native single-store error-interface identity through read-only captured cells in SSA storage observations; retain opaque results for writes, escape, competing inputs and global loads."
     ]
   }
 }

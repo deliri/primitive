@@ -96,7 +96,7 @@ func (v SSAUnitView) InstructionDominates(ctx context.Context, r SSAInstructionO
 // SameStorage reads native value identity and explicit address operands. Go
 // owns field indices, representation changes and constant index values. Merges
 // and independent loads stay opaque. A native single-store cell with read-only
-// captures preserves its stored pointer; no assignment or alias history is built.
+// captures preserves its stored pointer, callable or interface value; no assignment or alias history is built.
 func (v SSAUnitView) SameStorage(ctx context.Context, r SSAStorageRequest) (SSARelationObservation, error) {
 	if err := errors.Join(temporal.Wait(temporal.WaitRequest{Context: ctx}), v.Validate(), r.Validate()); err != nil {
 		return SSARelationObservation{}, err
