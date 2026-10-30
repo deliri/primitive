@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime/debug"
 	"slices"
 	"strings"
 	"sync"
@@ -509,4 +510,62 @@ func TestQueryNativeFixtureInvalidUTF8LeavesNoDocumentOrQuery(t *testing.T) {
 	if gotQueries, gotWrites := costs.queries.Load(), costs.writes.Load(); gotQueries != 0 || gotWrites != 0 {
 		t.Fatalf("native invalid UTF-8 effects = %d queries/%d writes, want 0/0", gotQueries, gotWrites)
 	}
+}
+
+func TestQueryClientlessDeserializeRefusesBeforeEffects(t *testing.T) {
+	t.Parallel()
+	client, costs := nativeClient(t)
+	defer func() {
+		if fault := recover(); fault != nil {
+			t.Errorf("clientless Query panic = %T/%v, want typed Contract before effects\n%s", fault, fault, debug.Stack())
+		}
+		if got := costs.queries.Load(); got != 0 {
+			t.Errorf("clientless query RPCs = %d, want 0", got)
+		}
+	}()
+	encoded, err := client.Collection("clientless-query").Query.Serialize()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var zero firestore.Query
+	restored, err := zero.Deserialize(encoded)
+	if err != nil {
+		t.Fatal(err)
+	}
+	visits := 0
+	request := QueryRequest[nativeRecord]{Query: restored, Visit: func(context.Context, Document[nativeRecord]) (QueryVisitDecision, error) {
+		visits++
+		return QueryContinue, nil
+	}}
+	err = Query(t.Context(), request)
+	if !errors.Is(err, core.ErrFirestoreDocumentsContract) || visits != 0 {
+		t.Fatalf("clientless query = %v/%d visits, want typed Contract/0", err, visits)
+	}
+	if err := request.ValidateClient(client); !errors.Is(err, core.ErrFirestoreDocumentsContract) {
+		t.Fatalf("clientless ValidateClient = %v, want Contract", err)
+	}
+}
+
+func TestQueryZeroDecisionVisitorFailurePreservesOnlyObservedCauses(t *testing.T) {
+	t.Parallel()
+	observed := new(queryObservation)
+	client, _ := nativeClient(t, grpc.WithChainStreamInterceptor(observed.stream))
+	ref := nativeRef(client, t)
+	if _, err := ref.Set(t.Context(), nativeRecord{Owner: "visitor-owner", Value: 17}); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancelCause(t.Context())
+	defer cancel(nil)
+	visitorCause := errors.New("owning visitor refusal")
+	callerCause := errors.New("owning cancellation after visit")
+	visits := 0
+	err := Query(ctx, QueryRequest[nativeRecord]{Query: ref.Parent.Where(firestore.DocumentID, "==", ref), Visit: func(context.Context, Document[nativeRecord]) (QueryVisitDecision, error) {
+		visits++
+		cancel(callerCause)
+		return 0, visitorCause
+	}})
+	if !errors.Is(err, core.ErrFirestoreDocumentsOperation) || !errors.Is(err, visitorCause) || !errors.Is(err, callerCause) || errors.Is(err, core.ErrFirestoreDocumentsContract) || visits != 1 {
+		t.Fatalf("zero-decision visitor = %v/%d visits, want operation+visitor+caller causes/1 and no invented Contract", err, visits)
+	}
+	queryContextsStopped(t, observed, 1)
 }

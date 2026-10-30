@@ -302,3 +302,24 @@ func TestRunFactStreamExtentBoundary(t *testing.T) {
 		})
 	}
 }
+
+type receiptFaultingCauseContext struct{ context.Context }
+
+func (receiptFaultingCauseContext) Value(any) any { panic(core.ErrGoToolchainOutput) }
+
+func TestRunReceiptContextPreservesNativeCauseLookupFault(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	observedFault := false
+	defer func() {
+		fault := recover()
+		err, ok := fault.(error)
+		observedFault = ok && errors.Is(err, core.ErrGoToolchainOutput)
+		if !observedFault {
+			t.Errorf("cause lookup fault = %T/%v, want native typed output panic", fault, fault)
+		}
+	}()
+	got := runReceiptContextError(receiptFaultingCauseContext{Context: ctx})
+	t.Errorf("cause lookup returned = %v, want programming fault to remain observable", got)
+}
