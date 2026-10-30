@@ -352,7 +352,7 @@ func TestExecutionScopeCompletionRemainsOwnedAndPreservesRefusal(t *testing.T) {
 		select {
 		case <-done:
 		case <-processTestDeadline(t, processTestBackstop):
-			t.Error("native completion did not join")
+			t.Errorf("native completion joined=false after %v backstop, want joined", processTestBackstop)
 		}
 	}()
 	select {

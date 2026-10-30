@@ -56,7 +56,7 @@ func TestExecutionScopeGoneChildKeepsPendingWaitAndRejectsDuplicate(t *testing.T
 		select {
 		case <-completion:
 		case <-processTestDeadline(t, processTestBackstop):
-			t.Error("native wait cleanup did not complete")
+			t.Errorf("native wait cleanup completed=false after %v backstop, want completed", processTestBackstop)
 		}
 	}()
 	select {

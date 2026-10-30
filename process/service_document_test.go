@@ -341,11 +341,11 @@ func FuzzServiceDocumentProjection(f *testing.F) {
 		} else {
 			_, tail, found := strings.Cut(output.String(), "ExecStart=:\"/usr/bin/worker\" ")
 			if !found {
-				t.Fatal("systemd executable or literal-mode prefix changed")
+				t.Fatalf("systemd document=%q, want ExecStart=:\"/usr/bin/worker\" literal-mode prefix", output.String())
 			}
 			encoded, _, found := strings.Cut(tail, "\n")
 			if !found {
-				t.Fatal("systemd command lacks termination")
+				t.Fatalf("systemd command tail=%q, want a terminating newline", tail)
 			}
 			decoded := ";"
 			if encoded != `\;` {
@@ -359,7 +359,7 @@ func FuzzServiceDocumentProjection(f *testing.F) {
 				if decoded[index] == '%' {
 					index++
 					if index >= len(decoded) || decoded[index] != '%' {
-						t.Fatal("unescaped systemd specifier")
+						t.Fatalf("systemd command=%q has unescaped %% at %d, want %%%%", decoded, index-1)
 					}
 				}
 				restored.WriteByte(decoded[index])

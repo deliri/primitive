@@ -322,7 +322,7 @@ func BenchmarkParseExactEnvironmentAtMaximumCount(b *testing.B) {
 		values[index] = environmentProjectionName(index) + "=value"
 	}
 	if len(values) == 0 {
-		b.Fatal("maximum environment fixture is empty, want a non-vacuous workload")
+		b.Fatalf("maximum environment fixture len=%d, want %d", len(values), process.EnvironmentVariableCountMaximum)
 	}
 	b.ReportAllocs()
 	var got process.Environment

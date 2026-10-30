@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"slices"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -24,20 +25,16 @@ func TestGroupUsageBurnHelper(t *testing.T) {
 	if !slices.Contains(os.Args, groupUsageBurnMarker) {
 		return
 	}
-	stop := make(chan struct{})
+	var stopped atomic.Bool
 	go func() {
 		_, _ = io.Copy(io.Discard, os.Stdin)
-		close(stop)
+		stopped.Store(true)
 	}()
 	if _, err := io.WriteString(os.Stdout, "burning\n"); err != nil {
 		t.Fatal(err)
 	}
-	for {
-		select {
-		case <-stop:
-			return
-		default:
-		}
+	// The spin is the workload: the parent measures this group's CPU time.
+	for !stopped.Load() {
 	}
 }
 
