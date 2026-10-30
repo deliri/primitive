@@ -28,7 +28,7 @@ func FuzzTailBufferExternalIngress(f *testing.F) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		assertPrefix := func(consumed int) {
+		checkPrefix := func(consumed int) {
 			t.Helper()
 			got, err := buffer.Snapshot()
 			want := source[max(0, consumed-window):consumed]
@@ -39,21 +39,21 @@ func FuzzTailBufferExternalIngress(f *testing.F) {
 				t.Fatal(err)
 			}
 		}
-		assertPrefix(0)
+		checkPrefix(0)
 		for start := 0; start < len(source); start += chunk {
 			end := min(len(source), start+chunk)
 			if n, err := buffer.Write(source[start:end]); n != end-start || err != nil {
 				t.Fatalf("Write=%d,%v", n, err)
 			}
-			assertPrefix(end)
+			checkPrefix(end)
 		}
 		if err := buffer.Reset(); err != nil {
 			t.Fatal(err)
 		}
-		assertPrefix(0)
+		checkPrefix(0)
 		if n, err := buffer.Write(source); n != len(source) || err != nil {
 			t.Fatalf("single chunk=%d,%v", n, err)
 		}
-		assertPrefix(len(source))
+		checkPrefix(len(source))
 	})
 }

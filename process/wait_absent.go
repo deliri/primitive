@@ -46,8 +46,8 @@ func WaitGroupAbsent(ctx context.Context, request WaitGroupAbsentRequest) (Liven
 		if err := contextstate.Validate(owner); err != nil {
 			return LivenessUnknown, err
 		}
-		observed, err := request.Execution.GroupLiveness()
-		if err := errors.Join(err, observed.Validate(), contextstate.Validate(owner)); err != nil {
+		observed, livenessErr := request.Execution.GroupLiveness()
+		if err := errors.Join(livenessErr, observed.Validate(), contextstate.Validate(owner)); err != nil {
 			return LivenessUnknown, err
 		}
 		if observed == LivenessGone {

@@ -46,7 +46,7 @@ func BenchmarkExecutionScopeVisitOwnedChild(b *testing.B) {
 		}
 	}
 	if visits != b.N {
-		b.Fatalf("visits=%d,want %d actual native capability visits", visits, b.N)
+		b.Fatalf("visits=%d,want %d native capability visits", visits, b.N)
 	}
 	if err := writer.Close(); err != nil {
 		b.Fatal(err)
