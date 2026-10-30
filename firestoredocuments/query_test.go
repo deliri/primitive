@@ -375,7 +375,7 @@ func TestQueryBindsNativeClientProjectAndDatabase(t *testing.T) {
 		name, project, database string
 		foreign                 bool
 	}{
-		{name: "same project and default database admit", project: "primitive-documents-proof", database: "(default)"},
+		{name: "different client same project and default database refuses", project: "primitive-documents-proof", database: "(default)", foreign: true},
 		{name: "foreign project refuses before RPC", project: "primitive-foreign-proof", database: "(default)", foreign: true},
 		{name: "same project foreign database refuses before RPC", project: "primitive-documents-proof", database: "other-database", foreign: true},
 	} {
@@ -711,5 +711,36 @@ func TestQueryRefusesUninitializedNativeClientBeforeEffects(t *testing.T) {
 	}
 	if err := request.ValidateClient(client); !errors.Is(err, core.ErrFirestoreDocumentsContract) {
 		t.Errorf("zero-client bound validation = %v, want typed Contract", err)
+	}
+}
+
+func TestQueryClosedInitializedClientPreservesNativeFailure(t *testing.T) {
+	t.Parallel()
+	connection, err := grpc.NewClient(nativeEmulatorEndpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	client, err := firestore.NewClient(t.Context(), "primitive-documents-proof", option.WithGRPCConn(connection), option.WithoutAuthentication())
+	if err != nil {
+		_ = connection.Close()
+		t.Fatal(err)
+	}
+	if err := client.Close(); err != nil {
+		t.Fatalf("initialized client Close = %v, want nil", err)
+	}
+	if connection.GetState() != connectivity.Shutdown {
+		t.Fatalf("closed client connection = %v, want Shutdown", connection.GetState())
+	}
+	visits := 0
+	request := QueryRequest[nativeRecord]{Query: client.Collection("items").Query, Visit: func(context.Context, Document[nativeRecord]) (QueryVisitDecision, error) {
+		visits++
+		return QueryContinue, nil
+	}}
+	if err := request.ValidateClient(client); err != nil {
+		t.Fatalf("closed initialized binding = %v, want nil before native transport observes closure", err)
+	}
+	err = Query(t.Context(), request)
+	if !errors.Is(err, core.ErrFirestoreDocumentsOperation) || !errors.Is(err, grpc.ErrClientConnClosing) || visits != 0 {
+		t.Fatalf("closed native Query = %v/%d visits, want operation+native connection closing/0", err, visits)
 	}
 }

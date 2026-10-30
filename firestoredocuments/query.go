@@ -1,6 +1,7 @@
 package firestoredocuments
 
 import (
+	firestoreapi "cloud.google.com/go/firestore/apiv1"
 	"cloud.google.com/go/firestore/apiv1/firestorepb"
 	"context"
 	"errors"
@@ -43,7 +44,7 @@ type QueryRequest[T core.Validatable] struct {
 
 // validatedQueryParent observes native query structure without executing or
 // reconstructing it. The original query keeps its in-process SDK options.
-func (r QueryRequest[T]) validatedQueryParent() (string, error) {
+func (r QueryRequest[T]) validatedQueryParent(bound *firestore.Client) (string, error) {
 	if r.Visit == nil || reflect.TypeFor[T]().Kind() != reflect.Struct {
 		return "", core.ErrFirestoreDocumentsContract
 	}
@@ -53,6 +54,16 @@ func (r QueryRequest[T]) validatedQueryParent() (string, error) {
 	// Borrow the original query unchanged so native read options survive.
 	client := reflect.ValueOf(r.Query).FieldByName("c")
 	if !client.IsValid() || client.Type() != reflect.TypeFor[*firestore.Client]() || client.IsNil() {
+		return "", core.ErrFirestoreDocumentsContract
+	}
+	if bound != nil && client.Pointer() != reflect.ValueOf(bound).Pointer() {
+		return "", core.ErrFirestoreDocumentsContract
+	}
+	// The pinned client owns its native RPC capability in c. A zero Client
+	// has the query pointer above but no capability; a closed initialized
+	// client retains this slot and reports its ordinary native transport error.
+	native := client.Elem().FieldByName("c")
+	if !native.IsValid() || native.Type() != reflect.TypeFor[*firestoreapi.Client]() || native.IsNil() {
 		return "", core.ErrFirestoreDocumentsContract
 	}
 	encoded, err := r.Query.Serialize()
@@ -67,17 +78,17 @@ func (r QueryRequest[T]) validatedQueryParent() (string, error) {
 }
 
 func (r QueryRequest[T]) Validate() error {
-	_, err := r.validatedQueryParent()
+	_, err := r.validatedQueryParent(nil)
 	return err
 }
 
-// ValidateClient verifies native project/database resource membership only.
+// ValidateClient binds the exact executing client and its native project/database.
 // Caller policy still owns tenant/role authorization and query selection.
 func (r QueryRequest[T]) ValidateClient(client *firestore.Client) error {
 	if client == nil {
 		return core.ErrFirestoreDocumentsContract
 	}
-	parent, err := r.validatedQueryParent()
+	parent, err := r.validatedQueryParent(client)
 	if err != nil {
 		return err
 	}
