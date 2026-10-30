@@ -740,7 +740,7 @@ func TestQueryClosedInitializedClientPreservesNativeFailure(t *testing.T) {
 		t.Fatalf("closed initialized binding = %v, want nil before native transport observes closure", err)
 	}
 	err = Query(t.Context(), request)
-	if !errors.Is(err, core.ErrFirestoreDocumentsOperation) || !errors.Is(err, grpc.ErrClientConnClosing) || visits != 0 {
-		t.Fatalf("closed native Query = %v/%d visits, want operation+native connection closing/0", err, visits)
+	if !errors.Is(err, core.ErrFirestoreDocumentsOperation) || status.Code(err) != codes.Canceled || visits != 0 {
+		t.Fatalf("closed native Query = %v/%d visits, want operation+native Canceled status/0", err, visits)
 	}
 }

@@ -62,8 +62,8 @@ func (r QueryRequest[T]) validatedQueryParent(bound *firestore.Client) (string, 
 	// The pinned client owns its native RPC capability in c. A zero Client
 	// has the query pointer above but no capability; a closed initialized
 	// client retains this slot and reports its ordinary native transport error.
-	native := client.Elem().FieldByName("c")
-	if !native.IsValid() || native.Type() != reflect.TypeFor[*firestoreapi.Client]() || native.IsNil() {
+	rpcClient := client.Elem().FieldByName("c")
+	if !rpcClient.IsValid() || rpcClient.Type() != reflect.TypeFor[*firestoreapi.Client]() || rpcClient.IsNil() {
 		return "", core.ErrFirestoreDocumentsContract
 	}
 	encoded, err := r.Query.Serialize()
