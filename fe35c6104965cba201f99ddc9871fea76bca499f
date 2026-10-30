@@ -10,5 +10,27 @@
   "callers_joined": 7,
   "owned_witness_findings": 0,
   "open_witness_findings": 274,
-  "qualification": "Source proof only; fetched module, Witness adoption and installed behavior separate; no independent acceptance"
+  "qualification": "Source proof only; fetched module, Witness adoption and installed behavior separate; no independent acceptance",
+  "fetched_module": {
+    "Path": "github.com/deliri/primitive/v2026",
+    "Version": "v2026.1.456",
+    "Info": "/var/folders/tb/rw_x3st15x37mkn1gsz7gsl00000gn/T/witness-exact-identity-a90ltqbh/sdk456-gomodcache/cache/download/github.com/deliri/primitive/v2026/@v/v2026.1.456.info",
+    "GoMod": "/var/folders/tb/rw_x3st15x37mkn1gsz7gsl00000gn/T/witness-exact-identity-a90ltqbh/sdk456-gomodcache/cache/download/github.com/deliri/primitive/v2026/@v/v2026.1.456.mod",
+    "Zip": "/var/folders/tb/rw_x3st15x37mkn1gsz7gsl00000gn/T/witness-exact-identity-a90ltqbh/sdk456-gomodcache/cache/download/github.com/deliri/primitive/v2026/@v/v2026.1.456.zip",
+    "Dir": "/var/folders/tb/rw_x3st15x37mkn1gsz7gsl00000gn/T/witness-exact-identity-a90ltqbh/sdk456-gomodcache/github.com/deliri/primitive/v2026@v2026.1.456",
+    "Sum": "h1:TcIdE1FSUykW6IJ0jURfRaz4Y81rV2/3ZxnqsQzsxmg=",
+    "GoModSum": "h1:Pq+uoBF3mr+tXTiVvPbo6GcH546H4+nN85HyB1szwHw=",
+    "Origin": {
+      "VCS": "git",
+      "URL": "https://github.com/deliri/primitive",
+      "Hash": "fe35c6104965cba201f99ddc9871fea76bca499f",
+      "Ref": "refs/tags/v2026.1.456"
+    }
+  },
+  "published_module_binding": {
+    "path": "/var/folders/tb/rw_x3st15x37mkn1gsz7gsl00000gn/T/witness-exact-identity-a90ltqbh/PUBLISHED456-MODULE-BINDING.json",
+    "sha256": "bea29d1b8f814b2b930eeed3d1a795136bfeef3e2851eadd2c0c116a042358e1",
+    "authored_blobs": 4
+  },
+  "state": "Source/tag/actual module verified; Witness182 now adopting; HDD custody pending"
 }
