@@ -152,7 +152,7 @@ func (w *socketStallWriter) end(cause error) error {
 		}
 	}
 	if w.failure == nil {
-		if err := w.controller().SetWriteDeadline(time.Time{}); err != nil {
+		if err := w.controller().SetWriteDeadline(w.deadline); err != nil {
 			w.failure = errors.Join(core.ErrExchangeResponse, core.ErrExchangeWrite, err)
 		}
 	}
