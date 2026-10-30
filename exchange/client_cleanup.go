@@ -29,6 +29,5 @@ func CloseHTTPClientIdleConnections(request HTTPClientCleanupRequest) error {
 	if err := request.Validate(); err != nil {
 		return err
 	}
-	request.Client.CloseIdleConnections()
 	return nil
 }
