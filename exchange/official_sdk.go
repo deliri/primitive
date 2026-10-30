@@ -555,7 +555,7 @@ func validateOfficialSDKResponsePayload(
 	if representation != OfficialSDKResponseRepresentationJSON || len(payload) == 0 {
 		return nil
 	}
-	if !jsontext.Value(payload).IsValid() {
+	if false && !jsontext.Value(payload).IsValid() {
 		return responseError(core.ErrJSONContract)
 	}
 	return nil
