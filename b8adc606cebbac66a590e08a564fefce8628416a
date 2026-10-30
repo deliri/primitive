@@ -1,0 +1,75 @@
+{
+  "release": "v2026.1.455",
+  "commit": "b8adc606cebbac66a590e08a564fefce8628416a",
+  "feature_source": "87d8a2f6854f987f26fdccba1f893ee91fcea9cb",
+  "published_base": "9abdcaf6a346673b1b6d03920a8e420a9cddd702",
+  "metadata_proof": [
+    {
+      "label": "metadata-compass",
+      "run": "2026-10-30-1d6fc4e54c8256028db7763f9f2a2b51f96bdb6107cc7288af8559b603ad790e",
+      "receipt_sha256": "7e66ddd398c72ded0716eeff8eabe6563bb482e3ad3dcbbb7ef78f5678393cd4",
+      "outcome": "outcome_passed",
+      "tests": {
+        "stream_decoded": true,
+        "started": 11,
+        "passed": 11,
+        "failed": 0,
+        "skipped": 0
+      }
+    },
+    {
+      "label": "metadata-a1",
+      "run": "2026-10-30-30d584f6b4dd9ae5ab124f6f24e9abd0eda9c6bda006bfaedb201f267e307a72",
+      "receipt_sha256": "8624f8322593dfe9286d44be4504cb16a822b7c9c70cc4a00a4147199d930d2d",
+      "outcome": "outcome_passed",
+      "tests": {
+        "stream_decoded": true,
+        "started": 0,
+        "passed": 0,
+        "failed": 0,
+        "skipped": 0
+      }
+    },
+    {
+      "label": "metadata-current-a1",
+      "run": "2026-10-30-0df9eec5dc9043131231a0821e9cc9fd5260bea80ce083a51c02c0f6867b7521",
+      "receipt_sha256": "b70769bee7b7d0725e4e44cd240b83ccb5fe2c727e14431b7992e64df487d681",
+      "outcome": "outcome_passed",
+      "tests": {
+        "stream_decoded": true,
+        "started": 3,
+        "passed": 3,
+        "failed": 0,
+        "skipped": 0
+      }
+    },
+    {
+      "label": "metadata-version",
+      "run": "2026-10-30-5f1f1629c22bf2d0d192878905a6dfcfcac9aae39dab96e93fdaf4d1f98532ef",
+      "receipt_sha256": "f03281fb0924cf08b84d23f037744d8891affec46d39dea85a954816658065b0",
+      "outcome": "outcome_passed",
+      "tests": {
+        "stream_decoded": true,
+        "started": 1,
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0
+      }
+    }
+  ],
+  "independent_review": "/private/tmp/claude-info-primitive-87d8-final-review/REVIEW.json SHA31c0402c",
+  "source_and_proof_hdd": [
+    "/data/evidence/primitive/2026-10-29/codex-primitive-compact-firestore455",
+    "/data/evidence/primitive/2026-10-29/codex-primitive-compact-firestore455-review-fixes",
+    "/data/evidence/primitive/2026-10-29/codex-primitive-query-client455"
+  ],
+  "qualifications": [
+    "Only exact41featurepaths plusCompassmetadata",
+    "Prior768/13/current9focusednodes separatelyqualifiednotaddedsuite",
+    "Six30ssemanticfuzz596592reportedexecsnotuniqueinputs",
+    "Original1872crasherbytesunrecovered; representativeUTF8seednotoriginal",
+    "PinnedFirestore1.28two-private-slotcoupling runtimeonly/notcompiler-guaranteed",
+    "ActualfinalFirestoreWitness1800/Vet0/SC0; old179failuresretained/superseded",
+    "Publicationnotconsumeradoption/deployment/useracceptance"
+  ]
+}
