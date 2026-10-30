@@ -62,21 +62,21 @@ func ServeSocketWithWriteStall(r SocketWriteStallRequest) (resultErr error) {
 			<-joined
 		}
 		// An unconsumed final HTTP chunk must still have a finite bound.
-		if w.recordFailure(nil) == nil {
+		if w.failure() == nil {
 			_ = w.arm()
 		}
-		resultErr = errors.Join(resultErr, w.recordFailure(nil))
+		resultErr = errors.Join(resultErr, w.failure())
 	}()
 	r.Handler.ServeHTTP(w, r.Call.request)
 	return nil
 }
 
 type socketStallWriter struct {
-	writer  http.ResponseWriter
-	ctx     context.Context
-	timeout temporal.Duration
-	mutex   sync.Mutex // Protects failure; never spans an opaque writer call.
-	failure error
+	writer     http.ResponseWriter
+	ctx        context.Context
+	timeout    temporal.Duration
+	mutex      sync.Mutex // Protects failure; never spans an opaque writer call.
+	failureErr error
 	// Only the serial handler and its final cleanup access deadline.
 	deadline time.Time
 }
@@ -121,7 +121,7 @@ func (w *socketStallWriter) FlushError() error {
 func (w *socketStallWriter) Flush() { _ = w.FlushError() }
 
 func (w *socketStallWriter) begin() error {
-	if err := w.recordFailure(nil); err != nil {
+	if err := w.failure(); err != nil {
 		return err
 	}
 	return w.arm()
@@ -132,7 +132,7 @@ func (w *socketStallWriter) end(cause error) error {
 	if w.ctx.Err() != nil {
 		w.cancel()
 	}
-	if w.recordFailure(nil) == nil {
+	if w.failure() == nil {
 		stamp, err := socketWriteDeadline(temporal.Duration{})
 		if err != nil {
 			w.recordFailure(err)
@@ -142,20 +142,21 @@ func (w *socketStallWriter) end(cause error) error {
 			w.recordFailure(os.ErrDeadlineExceeded)
 		}
 	}
-	if w.recordFailure(nil) == nil {
+	if w.failure() == nil {
 		return w.setDeadline(time.Time{})
 	}
-	return w.recordFailure(nil)
+	return w.failure()
 }
 
 func (w *socketStallWriter) arm() error {
 	if w.ctx.Err() != nil {
 		w.cancel()
-		return w.recordFailure(nil)
+		return w.failure()
 	}
 	deadline, err := socketWriteDeadline(w.timeout)
 	if err != nil {
-		return w.recordFailure(err)
+		w.recordFailure(err)
+		return w.failure()
 	}
 	if parent, ok := w.ctx.Deadline(); ok && parent.Before(deadline) {
 		deadline = parent
@@ -175,7 +176,7 @@ func (w *socketStallWriter) setDeadline(deadline time.Time) error {
 	if w.ctx.Err() != nil {
 		w.cancel()
 	}
-	return w.recordFailure(nil)
+	return w.failure()
 }
 
 func (w *socketStallWriter) cancel() {
@@ -188,13 +189,19 @@ func (w *socketStallWriter) cancel() {
 	}
 }
 
-func (w *socketStallWriter) recordFailure(cause error) error {
+func (w *socketStallWriter) recordFailure(cause error) {
+	if cause == nil {
+		return
+	}
 	w.mutex.Lock()
 	defer w.mutex.Unlock()
-	if cause != nil {
-		w.failure = errors.Join(w.failure, core.ErrExchangeResponse, core.ErrExchangeWrite, cause)
-	}
-	return w.failure
+	w.failureErr = errors.Join(w.failureErr, core.ErrExchangeResponse, core.ErrExchangeWrite, cause)
+}
+
+func (w *socketStallWriter) failure() error {
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
+	return w.failureErr
 }
 
 func socketWriteDeadline(after temporal.Duration) (time.Time, error) {
