@@ -1,0 +1,14 @@
+{
+  "source": "fe35c6104965cba201f99ddc9871fea76bca499f",
+  "release": "v2026.1.456",
+  "proof": {
+    "path": "/var/folders/tb/rw_x3st15x37mkn1gsz7gsl00000gn/T/witness-exact-identity-a90ltqbh/SDK456-PROOF.json",
+    "sha256": "0e046a9f81342f79db5c12314d162e9ed4137bd70950a5517478b54ba9ed5976"
+  },
+  "originals": 12,
+  "readers_joined": 24,
+  "callers_joined": 7,
+  "owned_witness_findings": 0,
+  "open_witness_findings": 274,
+  "qualification": "Source proof only; fetched module, Witness adoption and installed behavior separate; no independent acceptance"
+}
