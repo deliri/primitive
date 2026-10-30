@@ -18,7 +18,7 @@ func (r HTTPClientCleanupRequest) Validate() error {
 	if r.Client == nil || r.Client.Transport != nil && core.IsNil(r.Client.Transport) {
 		return core.ErrExchangeContract
 	}
-	return nil
+	return (Client{http: r.Client}).Validate()
 }
 
 // CloseHTTPClientIdleConnections delegates to the exact borrowed Go client.
