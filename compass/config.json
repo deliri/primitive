@@ -6,11 +6,11 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 454
+      "patch": 455
     },
     "release_notes": [
-      "Observe cmd/go-generated test, benchmark, fuzz and runnable-example tables for one package in an owned build context without running tests, TestMain or package init.",
-      "Bound the generated input before parsing; require the direct MainStart to use the observed tables, and report custom TestMain separately. Query errors and unexpected shapes are refusals, never an empty selection."
+      "Add compact scalar run receipts and bounded typed fact streams, including truthful unattributed benchmark facts and preserved native reader and cancellation causes.",
+      "Add native-bound typed Firestore query visitors and blind integer increments; bind the exact initialized query client, preserve native read options, and stop iterators on every exit."
     ]
   }
 }
