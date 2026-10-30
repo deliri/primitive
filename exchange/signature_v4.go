@@ -234,6 +234,11 @@ func v4QueryFacts(target url.URL, facts v4SigningFacts) iter.Seq2[v4QueryPair, e
 			case core.SignatureV4QueryFieldSignature:
 				yield(v4QueryPair{}, core.ErrExchangeRequest)
 				return
+			case core.SignatureV4QueryFieldUnknown:
+				// Provider-owned names remain opaque data, not signer controls.
+			default:
+				yield(v4QueryPair{}, core.ErrExchangeRequest)
+				return
 			}
 			if !yield(v4QueryPair{name: name, value: value, ordinal: ordinal}, nil) {
 				return

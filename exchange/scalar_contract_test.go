@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -33,8 +34,15 @@ func TestMultipartNativeFormattingDoesNotSupplyAdmissionAuthority(t *testing.T) 
 		if !errors.Is(kind.Validate(), wantErr) || kind.IsValid() != (wantErr == nil) {
 			t.Fatalf("framing admission byte%d = (%v,%t), want (%v,%t)", raw, kind.Validate(), kind.IsValid(), wantErr, wantErr == nil)
 		}
-		if got := fmt.Sprintf("%s", kind); got != want {
-			t.Fatalf("native framing diagnostic byte%d = %q, want %q after independent typed admission", raw, got, want)
+		for _, projection := range []struct{ format, want string }{
+			{format: "%s", want: want},
+			// Numeric formatting deliberately exposes the native ordinal even
+			// when String is empty. Neither rendering supplies admission.
+			{format: "%d", want: strconv.FormatUint(uint64(raw), 10)},
+		} {
+			if got := fmt.Sprintf(projection.format, kind); got != projection.want {
+				t.Fatalf("native framing diagnostic byte%d format%s = %q, want %q after independent typed admission", raw, projection.format, got, projection.want)
+			}
 		}
 	}
 }
