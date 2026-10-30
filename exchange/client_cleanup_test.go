@@ -237,3 +237,68 @@ func TestHTTPClientCleanupPreservesNativeActiveResponse(t *testing.T) {
 		t.Fatal("native response completed = false, want completion after handler release")
 	}
 }
+
+func TestHTTPClientCleanupTargetsOnlyBorrowedNativePool(t *testing.T) {
+	t.Parallel()
+	var pools [2]struct {
+		client   *http.Client
+		server   *httptest.Server
+		requests chan string
+		closed   chan struct{}
+	}
+	for index := range pools {
+		requests, closed := make(chan string, 2), make(chan struct{})
+		var closeOnce sync.Once
+		peer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			requests <- r.RemoteAddr
+			if _, err := io.WriteString(w, "pool"); err != nil {
+				t.Errorf("owned pool response write = %v, want nil", err)
+			}
+		}))
+		peer.Config.ConnState = func(_ net.Conn, state http.ConnState) {
+			if state == http.StateClosed {
+				closeOnce.Do(func() { close(closed) })
+			}
+		}
+		peer.Start()
+		t.Cleanup(peer.Close)
+		network := &http.Transport{}
+		t.Cleanup(network.CloseIdleConnections)
+		pools[index].client = &http.Client{Transport: network, Timeout: 5 * time.Second}
+		pools[index].server, pools[index].requests, pools[index].closed = peer, requests, closed
+	}
+	var addresses [2]string
+	for index := range pools {
+		response, err := pools[index].client.Get(pools[index].server.URL)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, readErr := io.Copy(io.Discard, response.Body)
+		closeErr := response.Body.Close()
+		if readErr != nil || closeErr != nil {
+			t.Fatalf("owned pool response read/close = %v/%v, want nil/nil", readErr, closeErr)
+		}
+		addresses[index] = <-pools[index].requests
+	}
+	if err := exchange.CloseHTTPClientIdleConnections(exchange.HTTPClientCleanupRequest{Client: pools[0].client}); err != nil {
+		t.Fatalf("selected native pool cleanup = %v, want nil", err)
+	}
+	select {
+	case <-pools[0].closed:
+	case <-time.After(10 * time.Second):
+		t.Fatal("selected native pool closed = false, want server-observed closure")
+	}
+	response, err := pools[1].client.Get(pools[1].server.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, readErr := io.Copy(io.Discard, response.Body)
+	closeErr := response.Body.Close()
+	if readErr != nil || closeErr != nil {
+		t.Fatalf("other native pool response read/close = %v/%v, want nil/nil", readErr, closeErr)
+	}
+	got := <-pools[1].requests
+	if got != addresses[1] {
+		t.Fatalf("other native pool peer = %q, want retained connection %q", got, addresses[1])
+	}
+}
