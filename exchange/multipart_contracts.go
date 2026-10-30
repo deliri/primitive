@@ -125,7 +125,7 @@ func (k MultipartPartKind) String() string {
 	case MultipartPartFile:
 		return "file"
 	default:
-		return ""
+		return core.UnknownEnumDiagnostic
 	}
 }
 
