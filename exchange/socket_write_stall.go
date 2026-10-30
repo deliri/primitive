@@ -172,7 +172,10 @@ func (w *socketStallWriter) arm() error {
 // after that opaque call has finished, then expire it again: cancellation must
 // remain terminal even when the earlier setter applied its deadline last.
 func (w *socketStallWriter) setDeadline(deadline time.Time) error {
-	w.recordFailure(w.controller().SetWriteDeadline(deadline))
+	if err := w.controller().SetWriteDeadline(deadline); err != nil {
+		w.recordFailure(err)
+		return w.failure()
+	}
 	if w.ctx.Err() != nil {
 		w.cancel()
 	}
