@@ -72,6 +72,8 @@ func TestSocketWriteStallOpaqueSetterOrdering(t *testing.T) {
 	}{
 		{name: "blocked arm permits cancellation and cannot rearm it", blockCall: 2, cancel: true},
 		{name: "blocked clear permits cancellation and cannot erase it", blockCall: 3, cancel: true},
+		{name: "blocked arm refusal and cancellation retain both causes and expiry", blockCall: 2, cancel: true, refuse: true},
+		{name: "blocked clear refusal and cancellation retain both causes and expiry", blockCall: 3, cancel: true, refuse: true},
 		{name: "blocked arm refusal preserves native cause", blockCall: 2, refuse: true},
 		{name: "blocked clear refusal preserves native cause", blockCall: 3, refuse: true},
 		{name: "released arm retains successful write and final bound", blockCall: 2},
@@ -151,8 +153,8 @@ func TestSocketWriteStallOpaqueSetterOrdering(t *testing.T) {
 					t.Fatal("handler and owned cancellation callback joined = false, want true")
 				}
 				if tc.cancel {
-					if !errors.Is(got, context.Canceled) || !errors.Is(got, callerCause) || !errors.Is(got, core.ErrExchangeWrite) {
-						t.Errorf("canceled response error = %v, want exact caller cause and write failure", got)
+					if !errors.Is(got, context.Canceled) || !errors.Is(got, callerCause) || !errors.Is(got, core.ErrExchangeWrite) || tc.refuse && !errors.Is(got, nativeCause) {
+						t.Errorf("canceled response error = %v, want exact caller cause, write failure and native refusal when present", got)
 					}
 					if native.deadline.IsZero() || native.deadline.After(initial) {
 						t.Errorf("deadline after released stale setter = %v, want expired at or before %v", native.deadline, initial)
