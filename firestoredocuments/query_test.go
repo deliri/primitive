@@ -632,3 +632,84 @@ func queryHasLiteralContractCause(err error) bool {
 	}
 	return false
 }
+
+func TestQueryBindsExecutingClientBeforeResourceAdmission(t *testing.T) {
+	t.Parallel()
+	receiver, costs := nativeClient(t)
+	for _, row := range []struct {
+		name, project, database string
+	}{
+		{name: "different client with same project and database", project: "primitive-documents-proof", database: "(default)"},
+		{name: "deserialized foreign project keeps receiver client", project: "primitive-foreign-proof", database: "(default)"},
+		{name: "deserialized foreign database keeps receiver client", project: "primitive-documents-proof", database: "other-database"},
+	} {
+		t.Run(row.name, func(t *testing.T) {
+			t.Parallel()
+			connection, err := grpc.NewClient(nativeEmulatorEndpoint, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithChainStreamInterceptor(costs.stream))
+			if err != nil {
+				t.Fatal(err)
+			}
+			bound, err := firestore.NewClientWithDatabase(t.Context(), row.project, row.database, option.WithGRPCConn(connection), option.WithoutAuthentication())
+			if err != nil {
+				_ = connection.Close()
+				t.Fatal(err)
+			}
+			t.Cleanup(func() {
+				if err := bound.Close(); err != nil {
+					t.Errorf("bound client Close = %v, want nil", err)
+				}
+				if connection.GetState() != connectivity.Shutdown {
+					t.Errorf("bound connection state = %v, want Shutdown", connection.GetState())
+				}
+			})
+			encoded, err := bound.Collection("items").Query.Serialize()
+			if err != nil {
+				t.Fatal(err)
+			}
+			restored, err := receiver.Collection("receiver").Query.Deserialize(encoded)
+			if err != nil {
+				t.Fatal(err)
+			}
+			visits := 0
+			request := QueryRequest[nativeRecord]{Query: restored, Visit: func(context.Context, Document[nativeRecord]) (QueryVisitDecision, error) {
+				visits++
+				return QueryContinue, nil
+			}}
+			if err := request.ValidateClient(bound); !errors.Is(err, core.ErrFirestoreDocumentsContract) || visits != 0 {
+				t.Fatalf("executing-client binding = %v/%d visits, want typed Contract/0", err, visits)
+			}
+		})
+	}
+	t.Cleanup(func() {
+		if costs.queries.Load() != 0 || costs.reads.Load() != 0 || costs.writes.Load() != 0 {
+			t.Errorf("client mismatch effects = %d/%d/%d, want 0/0/0", costs.queries.Load(), costs.reads.Load(), costs.writes.Load())
+		}
+	})
+}
+
+func TestQueryRefusesUninitializedNativeClientBeforeEffects(t *testing.T) {
+	t.Parallel()
+	visits := 0
+	defer func() {
+		if fault := recover(); fault != nil {
+			t.Errorf("zero-client query panic = %T/%v, want typed Contract before effects\n%s", fault, fault, debug.Stack())
+		}
+		if visits != 0 {
+			t.Errorf("zero-client visitor calls = %d, want 0", visits)
+		}
+	}()
+	client := &firestore.Client{}
+	request := QueryRequest[nativeRecord]{Query: client.Collection("items").Query, Visit: func(context.Context, Document[nativeRecord]) (QueryVisitDecision, error) {
+		visits++
+		return QueryContinue, nil
+	}}
+	if err := request.Validate(); !errors.Is(err, core.ErrFirestoreDocumentsContract) {
+		t.Errorf("zero-client validation = %v, want typed Contract", err)
+	}
+	if err := Query(t.Context(), request); !errors.Is(err, core.ErrFirestoreDocumentsContract) {
+		t.Errorf("zero-client Query = %v, want typed Contract", err)
+	}
+	if err := request.ValidateClient(client); !errors.Is(err, core.ErrFirestoreDocumentsContract) {
+		t.Errorf("zero-client bound validation = %v, want typed Contract", err)
+	}
+}
