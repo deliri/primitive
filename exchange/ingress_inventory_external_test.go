@@ -104,6 +104,7 @@ func externalIngressCoverage() []exchange.IngressCoverageForTest {
 		{Door: exchange.NewOfficialSDKResponseTransport, Kind: exchange.IngressFuzzForTest, Fuzz: FuzzOfficialSDKResponseTransportSemanticBoundary},
 		{Door: exchange.NewOfficialSDKHTTPClient, Kind: exchange.IngressFuzzForTest, Fuzz: FuzzOfficialSDKResponseTransportSemanticBoundary},
 		{Door: exchange.NewClient, Kind: exchange.IngressCapabilityForTest, Proof: TestClientTimeoutOwnershipLayerTriad, Reason: "Admits a Go client capability, not an external representation."},
+		{Door: exchange.CloseHTTPClientIdleConnections, Kind: exchange.IngressCapabilityForTest, Proof: TestHTTPClientCleanupRequestLayerTriad, Reason: "Borrows an existing Go client for native idle cleanup; no external bytes, representation decoding or request execution."},
 		{Door: exchange.NewStandardClient, Kind: exchange.IngressCapabilityForTest, Proof: TestNewStandardClientProducesTheShapeNewClientDemands, Reason: "Creates the standard Go client without input material."},
 		{Door: exchange.NewClientSocket, Kind: exchange.IngressFuzzForTest, Fuzz: FuzzSendJSONReplayNoBodyAndSocketResponses},
 		{Door: exchange.NewServerSocket, Kind: exchange.IngressFuzzForTest, Fuzz: FuzzReceiveJSONProjectedJSONAndSocketJSONCustody},
