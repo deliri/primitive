@@ -13,7 +13,9 @@ import (
 // path, optionally in the caller's existing transaction. All int64 deltas,
 // including zero, retain native semantics. Missing documents/fields and
 // nonnumeric fields become Delta; native integer overflow saturates. Other
-// fields remain intact. Application counter policy is the caller's concern.
+// fields outside the path remain intact. Native merge replaces a non-map
+// ancestor with the map needed for the path. Application counter policy is
+// the caller's concern.
 type IncrementRequest struct {
 	Reference   *firestore.DocumentRef
 	Transaction *firestore.Transaction

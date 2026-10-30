@@ -29,6 +29,7 @@ import (
 type queryObservation struct {
 	mutex     sync.Mutex
 	contexts  []context.Context
+	readTimes []time.Time
 	documents atomic.Int64
 	fault     error
 	cancel    context.CancelCauseFunc
@@ -38,6 +39,15 @@ type queryObservation struct {
 type queryObservedStream struct {
 	grpc.ClientStream
 	observation *queryObservation
+}
+
+func (s *queryObservedStream) SendMsg(value any) error {
+	if request, ok := value.(*firestorepb.RunQueryRequest); ok && request.GetReadTime() != nil {
+		s.observation.mutex.Lock()
+		s.observation.readTimes = append(s.observation.readTimes, request.GetReadTime().AsTime())
+		s.observation.mutex.Unlock()
+	}
+	return s.ClientStream.SendMsg(value)
 }
 
 func (s *queryObservedStream) RecvMsg(value any) error {
@@ -566,6 +576,43 @@ func TestQueryZeroDecisionVisitorFailurePreservesOnlyObservedCauses(t *testing.T
 	}})
 	if !errors.Is(err, core.ErrFirestoreDocumentsOperation) || !errors.Is(err, visitorCause) || !errors.Is(err, callerCause) || errors.Is(err, core.ErrFirestoreDocumentsContract) || visits != 1 {
 		t.Fatalf("zero-decision visitor = %v/%d visits, want operation+visitor+caller causes/1 and no invented Contract", err, visits)
+	}
+	queryContextsStopped(t, observed, 1)
+}
+
+func TestQueryPreservesBorrowedNativeReadOptions(t *testing.T) {
+	t.Parallel()
+	observed := new(queryObservation)
+	client, costs := nativeClient(t, grpc.WithChainStreamInterceptor(observed.stream))
+	ref := nativeRef(client, t)
+	written, err := ref.Set(t.Context(), nativeRecord{Owner: "read-time-owner", Value: 17})
+	if err != nil {
+		t.Fatal(err)
+	}
+	query := ref.Parent.Where(firestore.DocumentID, "==", ref)
+	query.WithReadOptions(firestore.ReadTime(written.UpdateTime))
+	visits := 0
+	request := QueryRequest[nativeRecord]{Query: query, Visit: func(_ context.Context, got Document[nativeRecord]) (QueryVisitDecision, error) {
+		visits++
+		if got.Record != (nativeRecord{Owner: "read-time-owner", Value: 17}) {
+			t.Fatalf("read-time record = %+v, want original typed document", got.Record)
+		}
+		return QueryContinue, nil
+	}}
+	if err := request.ValidateClient(client); err != nil {
+		t.Fatalf("read-time bound request = %v, want nil", err)
+	}
+	if err := Query(t.Context(), request); err != nil || visits != 1 {
+		t.Fatalf("read-time query = %v/%d visits, want nil/1", err, visits)
+	}
+	observed.mutex.Lock()
+	times := append([]time.Time(nil), observed.readTimes...)
+	observed.mutex.Unlock()
+	if len(times) != 1 || !times[0].Equal(written.UpdateTime) {
+		t.Fatalf("native query read times = %v, want exact [%v]", times, written.UpdateTime)
+	}
+	if costs.queries.Load() != 1 {
+		t.Fatalf("read-time query RPCs = %d, want 1", costs.queries.Load())
 	}
 	queryContextsStopped(t, observed, 1)
 }

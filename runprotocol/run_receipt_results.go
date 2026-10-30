@@ -305,11 +305,10 @@ func (t runFactTotals) validate(r RunReceipt) error {
 }
 
 // Preserve a terminal caller cause using the existing native context-state boundary.
-func runReceiptContextError(ctx context.Context) (err error) {
-	err = contextstate.Validate(ctx)
+func runReceiptContextError(ctx context.Context) error {
+	err := contextstate.Validate(ctx)
 	if !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
 		return err
 	}
-	defer func() { _ = recover() }()
 	return errors.Join(err, context.Cause(ctx))
 }

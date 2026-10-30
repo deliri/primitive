@@ -134,8 +134,8 @@ func ObserveGoFuzzCompletion(ctx context.Context, request GoFuzzCompletionReques
 		source := goFuzzSpanReader(guard, length)
 		match := pattern.FindReaderSubmatchIndex(source)
 		_, drainErr := io.Copy(io.Discard, source)
-		if extentErr := errors.Join(guard.readErr, drainErr, contextstate.Validate(ctx)); extentErr != nil {
-			return GoFuzzCompletionObservation{}, extentErr
+		if spanErr := errors.Join(guard.readErr, drainErr, contextstate.Validate(ctx)); spanErr != nil {
+			return GoFuzzCompletionObservation{}, spanErr
 		}
 		if match == nil {
 			continue

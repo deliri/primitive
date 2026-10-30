@@ -47,6 +47,14 @@ func (r QueryRequest[T]) validatedQueryParent() (string, error) {
 	if r.Visit == nil || reflect.TypeFor[T]().Kind() != reflect.Struct {
 		return "", core.ErrFirestoreDocumentsContract
 	}
+	// Firestore v1.28.0 exposes no client accessor. Serialize admits a query
+	// deserialized on a zero receiver, but Documents then dereferences nil c.
+	// Observe only that pinned native slot; a layout change fails closed.
+	// Borrow the original query unchanged so native read options survive.
+	client := reflect.ValueOf(r.Query).FieldByName("c")
+	if !client.IsValid() || client.Type() != reflect.TypeFor[*firestore.Client]() || client.IsNil() {
+		return "", core.ErrFirestoreDocumentsContract
+	}
 	encoded, err := r.Query.Serialize()
 	if err != nil {
 		return "", errors.Join(core.ErrFirestoreDocumentsContract, err)
@@ -119,7 +127,10 @@ func Query[T core.Validatable](ctx context.Context, request QueryRequest[T]) err
 			return errors.Join(core.ErrFirestoreDocumentsOperation, err)
 		}
 		decision, visitErr := request.Visit(ctx, document)
-		if err := errors.Join(decision.Validate(), visitErr, documentContext(ctx)); err != nil {
+		if visitErr != nil {
+			return errors.Join(core.ErrFirestoreDocumentsOperation, visitErr, documentContext(ctx))
+		}
+		if err := errors.Join(decision.Validate(), documentContext(ctx)); err != nil {
 			return errors.Join(core.ErrFirestoreDocumentsOperation, err)
 		}
 		if decision == QueryStop {

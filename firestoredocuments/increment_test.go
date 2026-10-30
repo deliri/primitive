@@ -18,6 +18,10 @@ import (
 type incrementMissingField struct {
 	Owner string `firestore:"owner"`
 }
+type incrementScalarParent struct {
+	Owner string `firestore:"owner"`
+	Stats string `firestore:"stats"`
+}
 type incrementNested struct {
 	Count   int64  `firestore:"count"`
 	Sibling string `firestore:"sibling"`
@@ -51,6 +55,7 @@ func TestIncrementEmulatorNativeTransformAndCosts(t *testing.T) {
 		{name: "lower overflow retains native saturation", seed: nativeRecord{Owner: "preserved", Value: math.MinInt64}, field: firestore.FieldPath{"value"}, delta: -1, want: math.MinInt64},
 		{name: "field component dot is literal", seed: incrementLiteralField{Owner: "preserved", Counter: 4}, field: firestore.FieldPath{"literal.counter"}, delta: 3, want: 7},
 		{name: "nested path preserves neighboring fields", seed: incrementNestedDocument{Owner: "preserved", Stats: incrementNested{Count: 4, Sibling: "nested-preserved"}}, field: firestore.FieldPath{"stats", "count"}, delta: 3, want: 7, nested: true},
+		{name: "nested path replaces a non-map parent", seed: incrementScalarParent{Owner: "preserved", Stats: "not-a-map"}, field: firestore.FieldPath{"stats", "count"}, delta: 3, want: 3},
 	} {
 		t.Run(row.name, func(t *testing.T) {
 			t.Parallel()
