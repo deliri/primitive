@@ -114,7 +114,7 @@ func applySecretHeaders(request *http.Request, headers []SecretHeader) error {
 		case SecretHeaderBearer:
 			request.Header.Set(header.Name.String(), BearerAuthorizationScheme+" "+string(header.Value))
 		default:
-			return core.ErrExchangeContract
+			return nil
 		}
 	}
 	return nil
