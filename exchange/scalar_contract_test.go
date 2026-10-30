@@ -144,6 +144,25 @@ func TestV4QueryEncodedIngressPreservesEveryNativeByte(t *testing.T) {
 	}
 }
 
+func TestV4MalformedEncodedQueryCannotPublishSignedOutput(t *testing.T) {
+	t.Parallel()
+	for _, query := range []string{"%GG=value", "name=%GG"} {
+		intent := signingFixture(t)
+		target := intent.Target.HTTPURL()
+		target.RawQuery = query
+		var err error
+		intent.Target, err = core.ParseHTTPEndpoint(target.String())
+		if err != nil {
+			t.Fatalf("native query URL fixture admission = %v, want nil before percent component parsing", err)
+		}
+		got, gotErr := PresignV4(t.Context(), intent)
+		var native url.EscapeError
+		if got != (core.HTTPEndpoint{}) || !errors.Is(gotErr, core.ErrExchangeRequest) || !errors.As(gotErr, &native) {
+			t.Fatalf("malformed query signing = (output present%t,%v), want absent/ExchangeRequest/native EscapeError", got != (core.HTTPEndpoint{}), gotErr)
+		}
+	}
+}
+
 func TestV4TimestampOwnsCalendarAndProducerNanosecondEdges(t *testing.T) {
 	t.Parallel()
 	for _, nanos := range []int64{math.MinInt64, -1, 0, 1, math.MaxInt64} {
