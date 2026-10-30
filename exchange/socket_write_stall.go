@@ -55,32 +55,29 @@ func ServeSocketWithWriteStall(r SocketWriteStallRequest) (resultErr error) {
 	joined := make(chan struct{})
 	stop := context.AfterFunc(w.ctx, func() {
 		defer close(joined)
-		w.mutex.Lock()
-		defer w.mutex.Unlock()
-		w.cancelLocked()
+		w.cancel()
 	})
 	defer func() {
 		if !stop() {
 			<-joined
 		}
-		w.mutex.Lock()
-		defer w.mutex.Unlock()
 		// An unconsumed final HTTP chunk must still have a finite bound.
-		if w.failure == nil {
-			w.failure = w.armLocked()
+		if w.recordFailure(nil) == nil {
+			_ = w.arm()
 		}
-		resultErr = errors.Join(resultErr, w.failure)
+		resultErr = errors.Join(resultErr, w.recordFailure(nil))
 	}()
 	r.Handler.ServeHTTP(w, r.Call.request)
 	return nil
 }
 
 type socketStallWriter struct {
-	writer   http.ResponseWriter
-	ctx      context.Context
-	timeout  temporal.Duration
-	mutex    sync.Mutex
-	failure  error
+	writer  http.ResponseWriter
+	ctx     context.Context
+	timeout temporal.Duration
+	mutex   sync.Mutex // Protects failure; never spans an opaque writer call.
+	failure error
+	// Only the serial handler and its final cleanup access deadline.
 	deadline time.Time
 }
 
@@ -124,68 +121,80 @@ func (w *socketStallWriter) FlushError() error {
 func (w *socketStallWriter) Flush() { _ = w.FlushError() }
 
 func (w *socketStallWriter) begin() error {
-	w.mutex.Lock()
-	defer w.mutex.Unlock()
-	if w.failure == nil {
-		w.failure = w.armLocked()
+	if err := w.recordFailure(nil); err != nil {
+		return err
 	}
-	return w.failure
+	return w.arm()
 }
 
 func (w *socketStallWriter) end(cause error) error {
+	w.recordFailure(cause)
+	if w.ctx.Err() != nil {
+		w.cancel()
+	}
+	if w.recordFailure(nil) == nil {
+		stamp, err := socketWriteDeadline(temporal.Duration{})
+		if err != nil {
+			w.recordFailure(err)
+		} else if !stamp.Before(w.deadline) {
+			// A buffered native Write may report success after its deadline.
+			// Never clear/rearm that expired response for a later Flush.
+			w.recordFailure(os.ErrDeadlineExceeded)
+		}
+	}
+	if w.recordFailure(nil) == nil {
+		return w.setDeadline(time.Time{})
+	}
+	return w.recordFailure(nil)
+}
+
+func (w *socketStallWriter) arm() error {
+	if w.ctx.Err() != nil {
+		w.cancel()
+		return w.recordFailure(nil)
+	}
+	deadline, err := socketWriteDeadline(w.timeout)
+	if err != nil {
+		return w.recordFailure(err)
+	}
+	if parent, ok := w.ctx.Deadline(); ok && parent.Before(deadline) {
+		deadline = parent
+	}
+	if err := w.setDeadline(deadline); err != nil {
+		return err
+	}
+	w.deadline = deadline
+	return nil
+}
+
+// A pending arm or clear can return after cancellation's setter. Recheck only
+// after that opaque call has finished, then expire it again: cancellation must
+// remain terminal even when the earlier setter applied its deadline last.
+func (w *socketStallWriter) setDeadline(deadline time.Time) error {
+	w.recordFailure(w.controller().SetWriteDeadline(deadline))
+	if w.ctx.Err() != nil {
+		w.cancel()
+	}
+	return w.recordFailure(nil)
+}
+
+func (w *socketStallWriter) cancel() {
+	deadline, err := socketWriteDeadline(temporal.Duration{})
+	// Publish refusal before opaque I/O, so an in-flight setter cannot prevent
+	// another operation from observing the caller's terminal cancellation.
+	w.recordFailure(errors.Join(w.ctx.Err(), context.Cause(w.ctx), err))
+	if err == nil {
+		w.recordFailure(w.controller().SetWriteDeadline(deadline))
+	}
+}
+
+func (w *socketStallWriter) recordFailure(cause error) error {
 	w.mutex.Lock()
 	defer w.mutex.Unlock()
 	if cause != nil {
 		w.failure = errors.Join(w.failure, core.ErrExchangeResponse, core.ErrExchangeWrite, cause)
 	}
-	if w.ctx.Err() != nil {
-		w.cancelLocked()
-	}
-	if w.failure == nil {
-		stamp, err := socketWriteDeadline(temporal.Duration{})
-		if err != nil {
-			w.failure = errors.Join(core.ErrExchangeResponse, core.ErrExchangeWrite, err)
-		} else if !stamp.Before(w.deadline) {
-			// A buffered native Write may report success after its deadline.
-			// Never clear/rearm that expired response for a later Flush.
-			w.failure = errors.Join(core.ErrExchangeResponse, core.ErrExchangeWrite, os.ErrDeadlineExceeded)
-		}
-	}
-	if w.failure == nil {
-		if err := w.controller().SetWriteDeadline(time.Time{}); err != nil {
-			w.failure = errors.Join(core.ErrExchangeResponse, core.ErrExchangeWrite, err)
-		}
-	}
 	return w.failure
-}
-
-func (w *socketStallWriter) armLocked() error {
-	if w.ctx.Err() != nil {
-		w.cancelLocked()
-		return w.failure
-	}
-	deadline, err := socketWriteDeadline(w.timeout)
-	if err == nil {
-		if parent, ok := w.ctx.Deadline(); ok && parent.Before(deadline) {
-			deadline = parent
-		}
-		err = w.controller().SetWriteDeadline(deadline)
-		if err == nil {
-			w.deadline = deadline
-		}
-	}
-	if err != nil {
-		return errors.Join(core.ErrExchangeResponse, core.ErrExchangeWrite, err)
-	}
-	return nil
-}
-
-func (w *socketStallWriter) cancelLocked() {
-	deadline, err := socketWriteDeadline(temporal.Duration{})
-	if err == nil {
-		err = w.controller().SetWriteDeadline(deadline)
-	}
-	w.failure = errors.Join(w.failure, core.ErrExchangeResponse, core.ErrExchangeWrite, w.ctx.Err(), context.Cause(w.ctx), err)
 }
 
 func socketWriteDeadline(after temporal.Duration) (time.Time, error) {
