@@ -19,13 +19,26 @@ const (
 
 func (SecretHeaderScheme) OffWireEnum() {}
 
-func (s SecretHeaderScheme) Validate() error {
+func (s SecretHeaderScheme) IsValid() bool {
+	return s == SecretHeaderLiteral || s == SecretHeaderBearer
+}
+
+func (s SecretHeaderScheme) String() string {
 	switch s {
-	case SecretHeaderLiteral, SecretHeaderBearer:
-		return nil
+	case SecretHeaderLiteral:
+		return "literal"
+	case SecretHeaderBearer:
+		return "bearer"
 	default:
+		return core.UnknownEnumDiagnostic
+	}
+}
+
+func (s SecretHeaderScheme) Validate() error {
+	if !s.IsValid() {
 		return core.ErrExchangeContract
 	}
+	return nil
 }
 
 // SecretHeader borrows secret bytes until the native request finishes. Unlike
@@ -93,7 +106,7 @@ func validateSecretHeaders(headers []SecretHeader, ordinary Headers) error {
 	return nil
 }
 
-func applySecretHeaders(request *http.Request, headers []SecretHeader) {
+func applySecretHeaders(request *http.Request, headers []SecretHeader) error {
 	for _, header := range headers {
 		switch header.Scheme {
 		case SecretHeaderLiteral:
@@ -101,7 +114,8 @@ func applySecretHeaders(request *http.Request, headers []SecretHeader) {
 		case SecretHeaderBearer:
 			request.Header.Set(header.Name.String(), BearerAuthorizationScheme+" "+string(header.Value))
 		default:
-			panic(core.ErrExchangeContract) // Preflight validation excludes this arm.
+			return core.ErrExchangeContract
 		}
 	}
+	return nil
 }

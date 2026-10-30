@@ -180,7 +180,7 @@ func produceMultipart(ctx context.Context, owner *multipartLifetime, form *multi
 		if err := part.Validate(); err != nil {
 			return err
 		}
-		if err := writeMultipartPart(ctx, owner, form, part, buffer); err != nil {
+		if err := owner.writePart(ctx, form, part, buffer); err != nil {
 			return err
 		}
 	}
@@ -190,7 +190,7 @@ func produceMultipart(ctx context.Context, owner *multipartLifetime, form *multi
 	return form.Close()
 }
 
-func writeMultipartPart(ctx context.Context, owner *multipartLifetime, form *multipart.Writer, part MultipartPart, buffer []byte) (resultErr error) {
+func (owner *multipartLifetime) writePart(ctx context.Context, form *multipart.Writer, part MultipartPart, buffer []byte) (resultErr error) {
 	var destination io.Writer
 	var source io.Reader
 	switch part.Kind {

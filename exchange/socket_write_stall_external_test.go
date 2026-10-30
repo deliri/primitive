@@ -77,7 +77,7 @@ func TestSocketWriteStallQuietNativeHTTP(t *testing.T) {
 				t.Error(err)
 			}
 		case <-exchangeFixtureBackstop(t, testDeadlockBackstop):
-			t.Error("owned server did not join")
+			t.Error("owned server joined = false, want true")
 		}
 	})
 	if err := <-runtime.Ready(); err != nil {
@@ -162,7 +162,7 @@ func TestSocketWriteStallBlockedNativeWriter(t *testing.T) {
 				select {
 				case <-writer.entered:
 				default:
-					t.Fatal("handler never entered its owned native write")
+					t.Fatal("handler entered owned native write = false, want true")
 				}
 				cause := errors.New("owned caller canceled")
 				if canceled {
@@ -239,7 +239,7 @@ func TestSocketWriteStallAdmissionAndFinalBound(t *testing.T) {
 			err = exchange.ServeSocketWithWriteStall(exchange.SocketWriteStallRequest{Call: call, Timeout: timeout, Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				calls++
 				if r.Context() != ctx {
-					t.Error("request context changed")
+					t.Error("request context identity preserved = false, want true")
 				}
 				if writer.writeErr != nil {
 					_, first := w.Write([]byte("one"))

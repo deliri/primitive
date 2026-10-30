@@ -16,8 +16,8 @@ import (
 func TestCloseIdleConnectionsRevalidatesNativeClient(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name            string
-		zero            bool
+		name             string
+		zero             bool
 		competingTimeout bool
 	}{
 		{name: "zero client refuses without native dereference", zero: true},
@@ -98,13 +98,13 @@ func TestCloseIdleConnectionsPreservesActiveNativeCall(t *testing.T) {
 		select {
 		case <-joined:
 		case <-time.After(10 * time.Second):
-			t.Error("owned native call did not join after cancellation")
+			t.Error("owned native call joined after cancellation = false, want true")
 		}
 	})
 	select {
 	case <-entered:
 	case <-time.After(10 * time.Second):
-		t.Fatal("native call never entered provider")
+		t.Fatal("native provider entered = false, want true")
 	}
 	if err := client.CloseIdleConnections(); err != nil {
 		t.Fatal(err)
@@ -116,6 +116,6 @@ func TestCloseIdleConnectionsPreservesActiveNativeCall(t *testing.T) {
 			t.Fatalf("active native call after cleanup = %v, want exact completed response", err)
 		}
 	case <-time.After(10 * time.Second):
-		t.Fatal("active native call failed to complete after provider release")
+		t.Fatal("native call completed after provider release = false, want true")
 	}
 }

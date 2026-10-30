@@ -555,7 +555,6 @@ func validateOfficialSDKResponsePayload(
 	if representation != OfficialSDKResponseRepresentationJSON || len(payload) == 0 {
 		return nil
 	}
-	// doctrine:local-allowed=external-wire
 	if !jsontext.Value(payload).IsValid() {
 		return responseError(core.ErrJSONContract)
 	}

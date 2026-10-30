@@ -364,7 +364,9 @@ func newUploadHTTPRequest(
 		identityContentCoding().String(),
 	)
 	applyRequestHeaders(request, input.request.Headers)
-	applySecretHeaders(request, input.request.SecretHeaders)
+	if err := applySecretHeaders(request, input.request.SecretHeaders); err != nil {
+		return nil, requestError(err)
+	}
 	applyIdempotencyKey(request, input.request.Semantics)
 	return request, nil
 }
@@ -476,7 +478,9 @@ func newDownloadHTTPRequest(
 	)
 	applyRequestHeaders(request, input.request.Headers)
 	applyIdempotencyKey(request, input.request.Semantics)
-	applySecretHeaders(request, input.request.SecretHeaders)
+	if err := applySecretHeaders(request, input.request.SecretHeaders); err != nil {
+		return nil, requestError(err)
+	}
 	return request, nil
 }
 
@@ -520,7 +524,7 @@ func finishUploadResponse(
 		return zero, errors.Join(err, closeErr)
 	}
 	if status != input.request.ExpectedStatus {
-		return transferFailureResponse(input.context, input.response, input.request.FailureDestination, nil, response, input.request.ExpectedStatus)
+		return transferFailureResponse(downloadResponseRequest{context: input.context, response: input.response, request: DownloadRequest{Destination: input.request.FailureDestination, ExpectedStatus: input.request.ExpectedStatus}}, response)
 	}
 	// Upload publishes an acknowledgment, not a response body. Reading an
 	// unrequested body can block indefinitely on an otherwise completed upload.
@@ -564,7 +568,7 @@ func finishDownloadResponse(
 	}
 	if status != input.request.ExpectedStatus {
 		if input.request.FailureDestination != nil {
-			return transferFailureResponse(input.context, input.response, input.request.FailureDestination, input.request.Buffer, response, input.request.ExpectedStatus)
+			return transferFailureResponse(downloadResponseRequest{context: input.context, response: input.response, request: DownloadRequest{Destination: input.request.FailureDestination, Buffer: input.request.Buffer, ExpectedStatus: input.request.ExpectedStatus}}, response)
 		}
 		drainErr := drainAndClose(
 			streamDrainRequest{
@@ -583,12 +587,12 @@ func finishDownloadResponse(
 	return transferDownloadResponse(input, response)
 }
 
-func transferFailureResponse(ctx context.Context, native *http.Response, destination io.Writer, buffer []byte, response StreamResponse, expected core.HTTPStatusCode) (StreamResponse, error) {
-	statusErr := StatusError{status: response.Metadata.Status, expected: expected}
-	if destination == nil {
-		return response, errors.Join(statusErr, closeResponseBody(native.Body))
+func transferFailureResponse(input downloadResponseRequest, response StreamResponse) (StreamResponse, error) {
+	statusErr := StatusError{status: response.Metadata.Status, expected: input.request.ExpectedStatus}
+	if input.request.Destination == nil {
+		return response, errors.Join(statusErr, closeResponseBody(input.response.Body))
 	}
-	result, err := transferDownloadResponse(downloadResponseRequest{context: ctx, response: native, request: DownloadRequest{Destination: destination, Buffer: buffer}}, response)
+	result, err := transferDownloadResponse(input, response)
 	return result, errors.Join(statusErr, err)
 }
 

@@ -8,12 +8,14 @@ import (
 	"hash"
 	"io"
 	"iter"
+	"math"
 	"net/url"
 	"strconv"
 	"strings"
 
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/temporal"
 )
 
 // Borrowed query facts are selected directly from one request. No map, sorted
@@ -21,6 +23,29 @@ import (
 // quadratic work and retains one candidate pair regardless of query count.
 type v4QueryName string
 type v4QueryValue string
+
+// Query components are decoded native byte strings, not UTF-8 text domains.
+// Go admits empty strings and every byte after percent decoding. The encoded
+// ingress owns malformed-escape refusal; imposing decoded-value restrictions
+// would change the canonical signature of an admitted URL.
+func parseV4QueryName(encoded string) (v4QueryName, error) {
+	decoded, err := url.QueryUnescape(encoded)
+	if err != nil {
+		return "", requestError(err)
+	}
+	return v4QueryName(decoded), nil
+}
+
+func parseV4QueryValue(encoded string) (v4QueryValue, error) {
+	decoded, err := url.QueryUnescape(encoded)
+	if err != nil {
+		return "", requestError(err)
+	}
+	return v4QueryValue(decoded), nil
+}
+
+func (n v4QueryName) String() string  { return string(n) }
+func (v v4QueryValue) String() string { return string(v) }
 
 type v4QueryPair struct {
 	name    v4QueryName
@@ -31,6 +56,115 @@ type v4Timestamp string
 type v4CredentialScope string
 type v4Credential string
 type v4SignedHeaders string
+
+func parseV4Timestamp(text string) (v4Timestamp, error) {
+	value := v4Timestamp(text)
+	if err := value.Validate(); err != nil {
+		return "", err
+	}
+	return value, nil
+}
+
+func (v v4Timestamp) Validate() error {
+	_, parseErr := temporal.ParseCompactUTC(v.String())
+	if parseErr == nil {
+		return nil
+	}
+	// CompactUTCSeconds deliberately drops fractional precision. At the
+	// minimum signed-nanosecond instant its preceding complete second cannot
+	// be represented by Instant, but is an actual owning producer output.
+	minimum, err := temporal.InstantFromNanoseconds(math.MinInt64).CompactUTCSeconds()
+	if err != nil {
+		return requestError(err)
+	}
+	if v.String() == minimum {
+		return nil
+	}
+	return requestError(parseErr)
+}
+
+func (v v4Timestamp) String() string { return string(v) }
+
+func parseV4CredentialScope(text string) (v4CredentialScope, error) {
+	value := v4CredentialScope(text)
+	if err := value.Validate(); err != nil {
+		return "", err
+	}
+	return value, nil
+}
+
+func (v v4CredentialScope) Validate() error {
+	date, rest, datePresent := strings.Cut(v.String(), core.SignatureV4PathSeparator)
+	region, rest, regionPresent := strings.Cut(rest, core.SignatureV4PathSeparator)
+	service, terminal, servicePresent := strings.Cut(rest, core.SignatureV4PathSeparator)
+	if !datePresent || !regionPresent || !servicePresent || len(date) != 8 ||
+		region == "" || service == "" || terminal != core.SignatureV4ScopeTerminator ||
+		strings.ContainsAny(region, "\r\n") || strings.ContainsAny(service, "\r\n") {
+		return core.ErrExchangeRequest
+	}
+	_, err := temporal.ParseCivilDate(date[:4] + "-" + date[4:6] + "-" + date[6:])
+	if err != nil {
+		return requestError(err)
+	}
+	return nil
+}
+
+func (v v4CredentialScope) String() string { return string(v) }
+
+func parseV4Credential(text string) (v4Credential, error) {
+	value := v4Credential(text)
+	if err := value.Validate(); err != nil {
+		return "", err
+	}
+	return value, nil
+}
+
+func (v v4Credential) Validate() error {
+	split := len(v.String())
+	// The access-key bytes are borrowed and may themselves contain slashes.
+	// Only the final four separators belong to the credential-scope grammar.
+	for range 4 {
+		split = strings.LastIndex(v.String()[:split], core.SignatureV4PathSeparator)
+		if split < 0 {
+			return core.ErrExchangeRequest
+		}
+	}
+	if split == 0 {
+		return core.ErrExchangeRequest
+	}
+	return v4CredentialScope(v.String()[split+1:]).Validate()
+}
+
+func (v v4Credential) String() string { return string(v) }
+
+func parseV4SignedHeaders(text string) (v4SignedHeaders, error) {
+	value := v4SignedHeaders(text)
+	if err := value.Validate(); err != nil {
+		return "", err
+	}
+	return value, nil
+}
+
+func (v v4SignedHeaders) Validate() error {
+	previous, host := "", false
+	for name := range strings.SplitSeq(v.String(), core.SignatureV4HeaderSeparator) {
+		header, err := core.ParseHTTPHeaderName(name)
+		if err != nil {
+			return requestError(err)
+		}
+		if name != strings.ToLower(header.String()) || name <= previous || v4HeaderIgnored(name) {
+			return core.ErrExchangeRequest
+		}
+		host = host || name == core.SignatureV4HostHeader
+		previous = name
+	}
+	if !host {
+		return core.ErrExchangeRequest
+	}
+	return nil
+}
+
+func (v v4SignedHeaders) String() string { return string(v) }
 
 type v4SigningFacts struct {
 	stamp         v4Timestamp
@@ -63,13 +197,13 @@ func v4QueryFacts(target url.URL, facts v4SigningFacts) iter.Seq2[v4QueryPair, e
 		if !yield(v4QueryPair{name: v4QueryName(core.SignatureV4QueryFieldAlgorithm.String()), value: v4QueryValue(core.SignatureV4Algorithm), ordinal: 0}, nil) {
 			return
 		}
-		if !yield(v4QueryPair{name: v4QueryName(core.SignatureV4QueryFieldCredential.String()), value: v4QueryValue(facts.credential), ordinal: 1}, nil) {
+		if !yield(v4QueryPair{name: v4QueryName(core.SignatureV4QueryFieldCredential.String()), value: v4QueryValue(facts.credential.String()), ordinal: 1}, nil) {
 			return
 		}
-		if !yield(v4QueryPair{name: v4QueryName(core.SignatureV4QueryFieldDate.String()), value: v4QueryValue(facts.stamp), ordinal: 2}, nil) {
+		if !yield(v4QueryPair{name: v4QueryName(core.SignatureV4QueryFieldDate.String()), value: v4QueryValue(facts.stamp.String()), ordinal: 2}, nil) {
 			return
 		}
-		if !yield(v4QueryPair{name: v4QueryName(core.SignatureV4QueryFieldSignedHeaders.String()), value: v4QueryValue(facts.signedHeaders), ordinal: 3}, nil) {
+		if !yield(v4QueryPair{name: v4QueryName(core.SignatureV4QueryFieldSignedHeaders.String()), value: v4QueryValue(facts.signedHeaders.String()), ordinal: 3}, nil) {
 			return
 		}
 		ordinal := 4
@@ -83,25 +217,25 @@ func v4QueryFacts(target url.URL, facts v4SigningFacts) iter.Seq2[v4QueryPair, e
 				yield(v4QueryPair{}, core.ErrExchangeRequest)
 				return
 			}
-			name, value, _ := strings.Cut(part, core.SignatureV4ValueSeparator)
-			name, err := url.QueryUnescape(name)
+			encodedName, encodedValue, _ := strings.Cut(part, core.SignatureV4ValueSeparator)
+			name, err := parseV4QueryName(encodedName)
 			if err != nil {
-				yield(v4QueryPair{}, requestError(err))
+				yield(v4QueryPair{}, err)
 				return
 			}
-			value, err = url.QueryUnescape(value)
+			value, err := parseV4QueryValue(encodedValue)
 			if err != nil {
-				yield(v4QueryPair{}, requestError(err))
+				yield(v4QueryPair{}, err)
 				return
 			}
-			switch v4QueryField(name) {
+			switch v4QueryField(name.String()) {
 			case core.SignatureV4QueryFieldAlgorithm, core.SignatureV4QueryFieldCredential, core.SignatureV4QueryFieldDate, core.SignatureV4QueryFieldSignedHeaders:
 				continue
 			case core.SignatureV4QueryFieldSignature:
 				yield(v4QueryPair{}, core.ErrExchangeRequest)
 				return
 			}
-			if !yield(v4QueryPair{name: v4QueryName(name), value: v4QueryValue(value), ordinal: ordinal}, nil) {
+			if !yield(v4QueryPair{name: name, value: value, ordinal: ordinal}, nil) {
 				return
 			}
 			ordinal++
@@ -110,10 +244,10 @@ func v4QueryFacts(target url.URL, facts v4SigningFacts) iter.Seq2[v4QueryPair, e
 }
 
 func v4QueryPairLess(left, right v4QueryPair) bool {
-	if order := v4QueryEncodingCompare(string(left.name), string(right.name)); order != 0 {
+	if order := v4QueryEncodingCompare(left.name.String(), right.name.String()); order != 0 {
 		return order < 0
 	}
-	if order := v4QueryEncodingCompare(string(left.value), string(right.value)); order != 0 {
+	if order := v4QueryEncodingCompare(left.value.String(), right.value.String()); order != 0 {
 		return order < 0
 	}
 	return left.ordinal < right.ordinal
@@ -178,9 +312,9 @@ func v4CanonicalQuery(ctx context.Context, target url.URL, facts v4SigningFacts)
 		if hasPrevious {
 			query.WriteByte('&')
 		}
-		v4WriteEscaped(&query, string(next.name), false)
+		v4WriteEscaped(&query, next.name.String(), false)
 		query.WriteByte('=')
-		v4WriteEscaped(&query, string(next.value), false)
+		v4WriteEscaped(&query, next.value.String(), false)
 		previous = next
 		hasPrevious = true
 	}
@@ -282,25 +416,32 @@ func v4WriteCanonicalHeaders(target hash.Hash, intent V4PresignRequest) error {
 		case core.SignatureV4ContentLengthHeader:
 			_, _ = io.WriteString(target, strconv.FormatUint(intent.ContentLength.Bytes().Uint64(), 10))
 		default:
-			for _, header := range intent.Headers.Values {
-				if strings.ToLower(header.Name.String()) != name {
-					continue
-				}
-				for index, value := range header.Values {
-					if index > 0 {
-						_, _ = io.WriteString(target, core.SignatureV4ValueListSeparator)
-					}
-					text, err := value.Value()
-					if err != nil {
-						return err
-					}
-					v4WriteHeaderValue(target, text)
-				}
+			if err := v4WriteSelectedHeaderValues(target, intent.Headers, name); err != nil {
+				return err
 			}
 		}
 		_, _ = io.WriteString(target, core.SignatureV4LineSeparator)
 		previous = name
 	}
+}
+
+func v4WriteSelectedHeaderValues(target hash.Hash, headers Headers, name string) error {
+	for _, header := range headers.Values {
+		if strings.ToLower(header.Name.String()) != name {
+			continue
+		}
+		for index, value := range header.Values {
+			if index > 0 {
+				_, _ = io.WriteString(target, core.SignatureV4ValueListSeparator)
+			}
+			text, err := value.Value()
+			if err != nil {
+				return err
+			}
+			v4WriteHeaderValue(target, text)
+		}
+	}
+	return nil
 }
 
 func v4MAC(key []byte, message string) []byte {
@@ -326,13 +467,35 @@ func v4SecretDateMAC(secret []byte, date string) []byte {
 	return v4MAC(digest.Sum(key[:0]), date)
 }
 
+func newV4SigningFacts(intent V4PresignRequest) (v4SigningFacts, error) {
+	stampText, err := intent.SignedAt.CompactUTCSeconds()
+	if err != nil {
+		return v4SigningFacts{}, err
+	}
+	stamp, err := parseV4Timestamp(stampText)
+	if err != nil {
+		return v4SigningFacts{}, err
+	}
+	scope, err := parseV4CredentialScope(stamp.String()[:8] + core.SignatureV4PathSeparator + intent.Region + core.SignatureV4PathSeparator + intent.Service + core.SignatureV4PathSeparator + core.SignatureV4ScopeTerminator)
+	if err != nil {
+		return v4SigningFacts{}, err
+	}
+	headers, err := parseV4SignedHeaders(v4SignedHeaderNames(intent))
+	if err != nil {
+		return v4SigningFacts{}, err
+	}
+	credential, err := parseV4Credential(string(intent.AccessKey) + core.SignatureV4PathSeparator + scope.String())
+	if err != nil {
+		return v4SigningFacts{}, err
+	}
+	return v4SigningFacts{stamp: stamp, scope: scope, credential: credential, signedHeaders: headers}, nil
+}
+
 func v4PresignedEndpoint(ctx context.Context, intent V4PresignRequest) (core.HTTPEndpoint, error) {
-	stamp, err := intent.SignedAt.CompactUTCSeconds()
+	facts, err := newV4SigningFacts(intent)
 	if err != nil {
 		return core.HTTPEndpoint{}, err
 	}
-	facts := v4SigningFacts{stamp: v4Timestamp(stamp), scope: v4CredentialScope(stamp[:8] + core.SignatureV4PathSeparator + intent.Region + core.SignatureV4PathSeparator + intent.Service + core.SignatureV4PathSeparator + core.SignatureV4ScopeTerminator), signedHeaders: v4SignedHeaders(v4SignedHeaderNames(intent))}
-	facts.credential = v4Credential(string(intent.AccessKey) + core.SignatureV4PathSeparator + string(facts.scope))
 	endpoint := intent.Target.HTTPURL()
 	query, err := v4CanonicalQuery(ctx, endpoint, facts)
 	if err != nil {
@@ -357,14 +520,14 @@ func v4PresignedEndpoint(ctx context.Context, intent V4PresignRequest) (core.HTT
 		return core.HTTPEndpoint{}, err
 	}
 	_, _ = io.WriteString(digest, core.SignatureV4LineSeparator)
-	_, _ = io.WriteString(digest, string(facts.signedHeaders))
+	_, _ = io.WriteString(digest, facts.signedHeaders.String())
 	_, _ = io.WriteString(digest, core.SignatureV4LineSeparator)
 	_, _ = io.WriteString(digest, intent.PayloadHash)
-	key := v4SecretDateMAC(intent.SecretKey, stamp[:8])
+	key := v4SecretDateMAC(intent.SecretKey, facts.stamp.String()[:8])
 	key = v4MAC(key, intent.Region)
 	key = v4MAC(key, intent.Service)
 	key = v4MAC(key, core.SignatureV4ScopeTerminator)
-	signature := v4MAC(key, core.SignatureV4Algorithm+core.SignatureV4LineSeparator+stamp+core.SignatureV4LineSeparator+string(facts.scope)+core.SignatureV4LineSeparator+hex.EncodeToString(digest.Sum(nil)))
+	signature := v4MAC(key, core.SignatureV4Algorithm+core.SignatureV4LineSeparator+facts.stamp.String()+core.SignatureV4LineSeparator+facts.scope.String()+core.SignatureV4LineSeparator+hex.EncodeToString(digest.Sum(nil)))
 	endpoint.RawQuery = query + core.SignatureV4QuerySeparator + core.SignatureV4SignatureQuery + core.SignatureV4ValueSeparator + hex.EncodeToString(signature)
 	if err := contextstate.Validate(ctx); err != nil {
 		return core.HTTPEndpoint{}, err
