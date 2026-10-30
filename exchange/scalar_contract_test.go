@@ -1,6 +1,8 @@
 package exchange
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	json "encoding/json/v2"
 	"errors"
 	"fmt"
@@ -211,7 +213,11 @@ func TestV4SignedHeaderNamesOwnSortedUniqueLowercaseHostSet(t *testing.T) {
 	}
 }
 
-func TestV4ActualNativeURLByteNamesValuesAndInstantEdgesMatchSDK(t *testing.T) {
+// The pinned SDK sorts decoded query keys. Native byte keys can therefore
+// disagree with its order: the owning canonical contract sorts encoded names.
+// Pin that entire query independently, then use ordinary ASCII keys to retain
+// full SDK crypto agreement and a one-byte input-to-MAC mutation at both edges.
+func TestV4NativeByteNameOrderAndSDKValueOracleAtInstantEdges(t *testing.T) {
 	t.Parallel()
 	for _, nanos := range []int64{math.MinInt64, math.MaxInt64} {
 		intent := signingFixture(t)
@@ -241,11 +247,36 @@ func TestV4ActualNativeURLByteNamesValuesAndInstantEdgesMatchSDK(t *testing.T) {
 		}
 		got, gotErr := PresignV4(t.Context(), intent)
 		if gotErr != nil {
-			t.Fatalf("native byte URL signing at%d error = %v, want nil", nanos, gotErr)
+			t.Fatalf("native byte-name signing at%d error = %v, want nil", nanos, gotErr)
 		}
-		want := v4OfficialSDKOracle(t, intent)
-		if got.String() != want {
-			t.Fatalf("native byte URL signature equals SDK at%d = false, want true", nanos)
+		stamp, err := intent.SignedAt.CompactUTCSeconds()
+		if err != nil {
+			t.Fatal(err)
+		}
+		scope := stamp[:8] + "/" + intent.Region + "/" + intent.Service + "/aws4_request"
+		wantQuery := "=value&%00=%FF&%FF=%00&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=" + url.QueryEscape(string(intent.AccessKey)+"/"+scope) + "&X-Amz-Date=" + stamp + "&X-Amz-SignedHeaders=host%3Bx-owned-proof&empty="
+		query, signature, present := strings.Cut(got.HTTPURL().RawQuery, "&X-Amz-Signature=")
+		mac, macErr := hex.DecodeString(signature)
+		if !present || query != wantQuery || macErr != nil || len(signature) != hex.EncodedLen(sha256.Size) || len(mac) != sha256.Size {
+			t.Fatalf("native byte-name query/mac at%d = (query equal%t,signature present%t,%v,%dbytes), want true/true/nil/%d", nanos, query == wantQuery, present, macErr, len(mac), sha256.Size)
+		}
+		previous := signature
+		for _, rawQuery := range []string{"zero=%00&high=%FF&empty=", "zero=%01&high=%FF&empty="} {
+			target.RawQuery = rawQuery
+			intent.Target, err = core.ParseHTTPEndpoint(target.String())
+			if err != nil {
+				t.Fatal(err)
+			}
+			got, gotErr = PresignV4(t.Context(), intent)
+			if gotErr != nil || got.String() != v4OfficialSDKOracle(t, intent) {
+				t.Fatalf("native byte-value URL equals SDK at%d = false, want true; error%v", nanos, gotErr)
+			}
+			_, signature, present = strings.Cut(got.HTTPURL().RawQuery, "&X-Amz-Signature=")
+			mac, macErr = hex.DecodeString(signature)
+			if !present || signature == previous || macErr != nil || len(signature) != hex.EncodedLen(sha256.Size) || len(mac) != sha256.Size {
+				t.Fatalf("changed native input mac at%d = (present%t,changed%t,%v,%dbytes), want true/true/nil/%d", nanos, present, signature != previous, macErr, len(mac), sha256.Size)
+			}
+			previous = signature
 		}
 	}
 }
