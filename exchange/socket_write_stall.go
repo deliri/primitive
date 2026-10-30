@@ -172,9 +172,6 @@ func (w *socketStallWriter) arm() error {
 // remain terminal even when the earlier setter applied its deadline last.
 func (w *socketStallWriter) setDeadline(deadline time.Time) error {
 	w.recordFailure(w.controller().SetWriteDeadline(deadline))
-	if w.ctx.Err() != nil {
-		w.cancel()
-	}
 	return w.recordFailure(nil)
 }
 
