@@ -36,8 +36,13 @@ func pipeErrorDestination(destination io.Writer) (io.Writer, func() error, error
 		}
 		syscall.ForkLock.RUnlock()
 	})
-	if err := errors.Join(err, duplicateErr); err != nil {
-		return nil, nil, err
+	if err != nil {
+		// RawControl fails only once Close has begun, and reports Go's internal
+		// closing error. The file's own Write reports that state as os.ErrClosed.
+		return destination, nil, nil
+	}
+	if duplicateErr != nil {
+		return nil, nil, duplicateErr
 	}
 	if duplicate < 0 {
 		return destination, nil, nil
