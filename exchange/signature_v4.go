@@ -31,7 +31,7 @@ type v4QueryValue string
 func parseV4QueryName(encoded string) (v4QueryName, error) {
 	decoded, err := url.QueryUnescape(encoded)
 	if err != nil {
-		return "", requestError(err)
+		return v4QueryName(encoded), nil
 	}
 	return v4QueryName(decoded), nil
 }
