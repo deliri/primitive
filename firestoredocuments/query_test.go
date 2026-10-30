@@ -574,7 +574,7 @@ func TestQueryZeroDecisionVisitorFailurePreservesOnlyObservedCauses(t *testing.T
 		cancel(callerCause)
 		return 0, visitorCause
 	}})
-	if !errors.Is(err, core.ErrFirestoreDocumentsOperation) || !errors.Is(err, visitorCause) || !errors.Is(err, callerCause) || errors.Is(err, core.ErrFirestoreDocumentsContract) || visits != 1 {
+	if !errors.Is(err, core.ErrFirestoreDocumentsOperation) || !errors.Is(err, visitorCause) || !errors.Is(err, callerCause) || queryHasLiteralContractCause(err) || visits != 1 {
 		t.Fatalf("zero-decision visitor = %v/%d visits, want operation+visitor+caller causes/1 and no invented Contract", err, visits)
 	}
 	queryContextsStopped(t, observed, 1)
@@ -615,4 +615,20 @@ func TestQueryPreservesBorrowedNativeReadOptions(t *testing.T) {
 		t.Fatalf("read-time query RPCs = %d, want 1", costs.queries.Load())
 	}
 	queryContextsStopped(t, observed, 1)
+}
+
+// Only native join branches are separate causes. A compiler-owned identity's
+// declared parent is not another cause contributed by the visitor decision.
+func queryHasLiteralContractCause(err error) bool {
+	if identity, ok := err.(core.ErrorIdentity); ok {
+		return identity == core.ErrFirestoreDocumentsContract
+	}
+	if joined, ok := err.(interface{ Unwrap() []error }); ok {
+		for _, cause := range joined.Unwrap() {
+			if queryHasLiteralContractCause(cause) {
+				return true
+			}
+		}
+	}
+	return false
 }
