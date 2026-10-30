@@ -292,7 +292,11 @@ func FuzzV4ScalarNativeAndPublicSigningClosure(f *testing.F) {
 		var targetErr error
 		intent.Target, targetErr = core.ParseHTTPEndpoint(target.String())
 		if targetErr != nil {
-			t.Fatalf("encoded native URL admission = %v, want nil", targetErr)
+			got, gotErr := PresignV4(t.Context(), intent)
+			if intent.Target != (core.HTTPEndpoint{}) || !errors.Is(targetErr, core.ErrPrimitiveContract) || got != (core.HTTPEndpoint{}) || !errors.Is(gotErr, core.ErrExchangeRequest) {
+				t.Fatalf("owning URL refusal = (%v,%v), want typed native/Exchange refusal and zero endpoints", targetErr, gotErr)
+			}
+			return
 		}
 		got, gotErr := PresignV4(t.Context(), intent)
 		if intent.Validate() != nil {
@@ -301,10 +305,15 @@ func FuzzV4ScalarNativeAndPublicSigningClosure(f *testing.F) {
 			}
 			return
 		}
-		if gotErr != nil {
-			t.Fatalf("admitted native signing = %v, want nil", gotErr)
+		want := v4OfficialSDKOracle(t, intent)
+		_, wantEndpointErr := core.ParseHTTPEndpoint(want)
+		if wantEndpointErr != nil {
+			if got != (core.HTTPEndpoint{}) || !errors.Is(wantEndpointErr, core.ErrPrimitiveContract) || !errors.Is(gotErr, core.ErrPrimitiveContract) {
+				t.Fatalf("signed endpoint owning admission = (%v,%v), want matching typed refusal and zero output", gotErr, wantEndpointErr)
+			}
+			return
 		}
-		if got.String() != v4OfficialSDKOracle(t, intent) {
+		if gotErr != nil || got.String() != want {
 			t.Fatal("admitted native signature equals official SDK = false, want true")
 		}
 	})
