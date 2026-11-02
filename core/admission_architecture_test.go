@@ -17,7 +17,7 @@ func TestAdmissionErrorIdentitiesKeepCapacitySeparateFromContract(t *testing.T) 
 		}
 	}
 	if errors.Is(ErrAdmissionCapacity, ErrAdmissionContract) || errors.Is(ErrAdmissionContract, ErrAdmissionCapacity) {
-		t.Fatal("capacity and invalid contract match, want separate admission identities")
+		t.Fatalf("capacity-to-contract/contract-to-capacity = %t/%t, want false/false", errors.Is(ErrAdmissionCapacity, ErrAdmissionContract), errors.Is(ErrAdmissionContract, ErrAdmissionCapacity))
 	}
 }
 
