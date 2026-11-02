@@ -558,7 +558,11 @@ func FuzzIntegerJSONWriteNativeSemanticClosure(f *testing.F) {
 		_, writeErr := RunTransaction(t.Context(), TransactionRequest{Client: client, Use: func(ctx context.Context, tx *firestore.Transaction) error {
 			var err error
 			if mode == 0 {
+				preflight, preflightErr := IntegerJSONExtent(want)
 				extent, err = queueIntegerWrite(ctx, tx, ref, want, create)
+				if preflight != extent || (preflightErr == nil) != (err == nil) {
+					t.Fatalf("pure/write admission=(%v,%v)/(%v,%v), want identical projection and admission", preflight, preflightErr, extent, err)
+				}
 				return err
 			}
 			token := strconv.FormatInt(value, 10)
@@ -574,7 +578,12 @@ func FuzzIntegerJSONWriteNativeSemanticClosure(f *testing.F) {
 			default:
 				t.Fatalf("fuzz mode=%d,want exhausted1..4", mode)
 			}
-			extent, err = queueIntegerWrite(ctx, tx, ref, integerWriteRawRecord{wire: []byte(`{"value":` + token + `}`)}, create)
+			record := integerWriteRawRecord{wire: []byte(`{"value":` + token + `}`)}
+			preflight, preflightErr := IntegerJSONExtent(record)
+			extent, err = queueIntegerWrite(ctx, tx, ref, record, create)
+			if preflight != (core.ByteCount{}) || !errors.Is(preflightErr, core.ErrJSONContract) || preflight != extent {
+				t.Fatalf("pure/write numeric refusal=(%v,%v)/(%v,%v), want zero/JSON and shared projection", preflight, preflightErr, extent, err)
+			}
 			return err
 		}})
 		if mode != 0 || owner == "" || !utf8.ValidString(owner) {
@@ -626,4 +635,55 @@ func FuzzIntegerJSONWriteNativeSemanticClosure(f *testing.F) {
 			t.Fatalf("second canonical native roundtrip=(%+v,%v),encode%v,bytesEqual%t,want exact caller and bytes", roundTrip, err, encodeErr, bytes.Equal(first, second))
 		}
 	})
+}
+
+var _ func(integerWriteRecord) (core.ByteCount, error) = IntegerJSONExtent[integerWriteRecord]
+
+func TestIntegerJSONExtentUsesExactSharedProjection(t *testing.T) {
+	t.Parallel()
+	for _, value := range []int64{math.MinInt64, -1, 0, 1, 999, 1001, 1<<53 + 1, math.MaxInt64} {
+		t.Run(fmt.Sprintf("preflight exact signed instant %d", value), func(t *testing.T) {
+			t.Parallel()
+			record := integerWriteFixture(t, value)
+			encoded, err := core.MarshalCanonicalJSONDocument(record)
+			if err != nil {
+				t.Fatal(err)
+			}
+			extent, err := IntegerJSONExtent(record)
+			bytes, extentErr := extent.Uint64()
+			if err != nil || extentErr != nil || bytes != uint64(len(encoded)) {
+				t.Fatalf("pure integer extent=(%d,%v),error%v,want emitted%d", bytes, extentErr, err, len(encoded))
+			}
+		})
+	}
+	for _, tc := range []struct {
+		name   string
+		record integerWriteRawRecord
+		want   error
+	}{
+		{"overflow cannot pass a decoder preflight", integerWriteRawRecord{wire: []byte(`{"revision":9223372036854775808}`)}, core.ErrJSONContract},
+		{"fraction cannot pass a decoder preflight", integerWriteRawRecord{wire: []byte(`{"revision":1.5}`)}, core.ErrJSONContract},
+		{"exponent cannot pass a decoder preflight", integerWriteRawRecord{wire: []byte(`{"revision":1e0}`)}, core.ErrJSONContract},
+		{"owner validation precedes marshaling", integerWriteRawRecord{wire: []byte(`{}`), refusal: core.ErrNumericOverflow}, core.ErrNumericOverflow},
+		{"empty document has real two byte extent", integerWriteRawRecord{wire: []byte(`{}`)}, nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			extent, err := IntegerJSONExtent(tc.record)
+			if tc.want != nil {
+				if !errors.Is(err, tc.want) || extent != (core.ByteCount{}) {
+					t.Fatalf("pure refused extent=(%v,%v),want zero/%v", extent, err, tc.want)
+				}
+				return
+			}
+			bytes, extentErr := extent.Uint64()
+			if err != nil || extentErr != nil || bytes != 2 {
+				t.Fatalf("empty document extent=(%d,%v),error%v,want2/nil", bytes, extentErr, err)
+			}
+		})
+	}
+	extent, err := IntegerJSONExtent[nonStructRecord]("non-document")
+	if !errors.Is(err, core.ErrFirestoreDocumentsContract) || extent != (core.ByteCount{}) {
+		t.Fatalf("non-struct preflight=(%v,%v),want zero/contract", extent, err)
+	}
 }

@@ -1,10 +1,11 @@
 package firestoredocuments
 
 import (
-	"bytes"
 	"context"
-	json "encoding/json"
+	"encoding/json/jsontext"
+	json "encoding/json/v2"
 	"errors"
+	"strconv"
 
 	"github.com/deliri/primitive/v2026/core"
 )
@@ -59,15 +60,33 @@ func integerJSONWriteValue[T core.Validatable](ctx context.Context, record T) (m
 		return nil, core.ByteCount{}, err
 	}
 	var value map[string]any
-	decoder := json.NewDecoder(bytes.NewReader(data))
-	decoder.UseNumber()
-	if err := decoder.Decode(&value); err != nil {
+	// The native decoder still owns maps, arrays, strings, booleans and null.
+	// Only number tokens change their native destination from float64 to int64.
+	numbers := json.UnmarshalFromFunc(func(decoder *jsontext.Decoder, target *any) error {
+		if err := documentContext(ctx); err != nil {
+			return err
+		}
+		if decoder.PeekKind() != jsontext.KindNumber {
+			return errors.ErrUnsupported
+		}
+		token, err := decoder.ReadValue()
+		if err != nil {
+			return err
+		}
+		integer, err := strconv.ParseInt(string(token), 10, 64)
+		if err != nil {
+			return err
+		}
+		*target = integer
+		return nil
+	})
+	if err := json.Unmarshal(data, &value, json.WithUnmarshalers(numbers)); err != nil {
 		return nil, core.ByteCount{}, errors.Join(core.ErrJSONContract, err)
 	}
 	if value == nil {
 		return nil, core.ByteCount{}, core.ErrJSONContract
 	}
-	if _, err := integerJSONNativeValue(ctx, value); err != nil {
+	if err := documentContext(ctx); err != nil {
 		return nil, core.ByteCount{}, err
 	}
 	extent, err := core.NewByteCount(uint64(len(data)))
@@ -77,38 +96,18 @@ func integerJSONWriteValue[T core.Validatable](ctx context.Context, record T) (m
 	return value, extent, nil
 }
 
-// The standard JSON decoder owns this finite native shape. Convert its number
-// tokens in place; do not introduce a second document tree or acceptance quota.
-func integerJSONNativeValue(ctx context.Context, value any) (any, error) {
-	if err := documentContext(ctx); err != nil {
-		return nil, err
+// IntegerJSONExtent validates the actual record and its signed-integer JSON
+// projection without queuing a write. It returns the exact emitted JSON extent,
+// allowing an owner to enforce its document budget before replacing a receiver.
+// Fractions, exponents, overflow and non-object projections refuse identically
+// to the write doors; no Firestore reference or transaction is consulted.
+func IntegerJSONExtent[T core.Validatable](record T) (core.ByteCount, error) {
+	if err := (Document[T]{Record: record}).Validate(); err != nil {
+		return core.ByteCount{}, err
 	}
-	switch native := value.(type) {
-	case json.Number:
-		integer, err := native.Int64()
-		if err != nil {
-			return nil, errors.Join(core.ErrJSONContract, err)
-		}
-		return integer, nil
-	case map[string]any:
-		for key, child := range native {
-			converted, err := integerJSONNativeValue(ctx, child)
-			if err != nil {
-				return nil, err
-			}
-			native[key] = converted
-		}
-	case []any:
-		for index, child := range native {
-			converted, err := integerJSONNativeValue(ctx, child)
-			if err != nil {
-				return nil, err
-			}
-			native[index] = converted
-		}
-	case string, bool, nil:
-	default:
-		return nil, core.ErrJSONContract
+	_, extent, err := integerJSONWriteValue(context.Background(), record)
+	if err != nil {
+		return core.ByteCount{}, errors.Join(core.ErrFirestoreDocumentsOperation, err)
 	}
-	return value, nil
+	return extent, nil
 }
