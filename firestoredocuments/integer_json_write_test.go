@@ -347,11 +347,13 @@ func TestIntegerJSONWriteAdmissionAndCancellation(t *testing.T) {
 				if extent != (core.ByteCount{}) || !errors.Is(err, core.ErrFirestoreDocumentsContract) {
 					t.Fatalf("invalid owner=(%v,%v),want zero/contract", extent, err)
 				}
-				child, cancel := context.WithCancelCause(ctx)
-				defer cancel(nil)
-				extent, err = queueIntegerWrite(child, tx, ref, integerWriteRawRecord{wire: []byte(`{}`), cancel: cancel, cause: cause}, create)
-				if extent != (core.ByteCount{}) || !errors.Is(err, cause) || !errors.Is(err, context.Canceled) {
-					t.Fatalf("cancel during marshal=(%v,%v),want zero/cancel/cause", extent, err)
+				for _, wire := range []string{`{}`, `{"value":1.5}`} {
+					child, cancel := context.WithCancelCause(ctx)
+					extent, err = queueIntegerWrite(child, tx, ref, integerWriteRawRecord{wire: []byte(wire), cancel: cancel, cause: cause}, create)
+					cancel(nil)
+					if extent != (core.ByteCount{}) || !errors.Is(err, cause) || !errors.Is(err, context.Canceled) || wire != `{}` && !errors.Is(err, core.ErrJSONContract) {
+						t.Fatalf("cancel during marshaling %q=(%v,%v),want zero/cancel/cause and retained projection refusal", wire, extent, err)
+					}
 				}
 				return err
 			}})

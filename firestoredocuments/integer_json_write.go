@@ -21,7 +21,10 @@ func CreateIntegerJSON[T core.Validatable](ctx context.Context, request CreateRe
 	if err := request.Validate(); err != nil {
 		return core.ByteCount{}, err
 	}
-	value, extent, err := integerJSONWriteValue(ctx, request.Record)
+	value, extent, err := integerJSONWriteValue(request.Record)
+	if contextErr := documentContext(ctx); contextErr != nil {
+		return core.ByteCount{}, errors.Join(core.ErrFirestoreDocumentsContract, contextErr, err)
+	}
 	if err != nil {
 		return core.ByteCount{}, errors.Join(core.ErrFirestoreDocumentsOperation, err)
 	}
@@ -41,7 +44,10 @@ func SetIntegerJSON[T core.Validatable](ctx context.Context, request SetRequest[
 	if err := request.Validate(); err != nil {
 		return core.ByteCount{}, err
 	}
-	value, extent, err := integerJSONWriteValue(ctx, request.Record)
+	value, extent, err := integerJSONWriteValue(request.Record)
+	if contextErr := documentContext(ctx); contextErr != nil {
+		return core.ByteCount{}, errors.Join(core.ErrFirestoreDocumentsContract, contextErr, err)
+	}
 	if err != nil {
 		return core.ByteCount{}, errors.Join(core.ErrFirestoreDocumentsOperation, err)
 	}
@@ -54,7 +60,7 @@ func SetIntegerJSON[T core.Validatable](ctx context.Context, request SetRequest[
 // JSON's object/array representation is kept solely at the official SDK edge.
 // Marshal the caller's real validated record once; do not reflect it through
 // Firestore tags or round numeric instants through a floating-point value.
-func integerJSONWriteValue[T core.Validatable](ctx context.Context, record T) (map[string]any, core.ByteCount, error) {
+func integerJSONWriteValue[T core.Validatable](record T) (map[string]any, core.ByteCount, error) {
 	data, err := core.MarshalCanonicalJSONDocument(record)
 	if err != nil {
 		return nil, core.ByteCount{}, err
@@ -63,19 +69,16 @@ func integerJSONWriteValue[T core.Validatable](ctx context.Context, record T) (m
 	// The native decoder still owns maps, arrays, strings, booleans and null.
 	// Only number tokens change their native destination from float64 to int64.
 	numbers := json.UnmarshalFromFunc(func(decoder *jsontext.Decoder, target *any) error {
-		if err := documentContext(ctx); err != nil {
-			return err
-		}
 		if decoder.PeekKind() != jsontext.KindNumber {
 			return errors.ErrUnsupported
 		}
-		token, err := decoder.ReadValue()
-		if err != nil {
-			return err
+		token, readErr := decoder.ReadValue()
+		if readErr != nil {
+			return readErr
 		}
-		integer, err := strconv.ParseInt(string(token), 10, 64)
-		if err != nil {
-			return err
+		integer, parseErr := strconv.ParseInt(string(token), 10, 64)
+		if parseErr != nil {
+			return parseErr
 		}
 		*target = integer
 		return nil
@@ -85,9 +88,6 @@ func integerJSONWriteValue[T core.Validatable](ctx context.Context, record T) (m
 	}
 	if value == nil {
 		return nil, core.ByteCount{}, core.ErrJSONContract
-	}
-	if err := documentContext(ctx); err != nil {
-		return nil, core.ByteCount{}, err
 	}
 	extent, err := core.NewByteCount(uint64(len(data)))
 	if err != nil {
@@ -105,7 +105,7 @@ func IntegerJSONExtent[T core.Validatable](record T) (core.ByteCount, error) {
 	if err := (Document[T]{Record: record}).Validate(); err != nil {
 		return core.ByteCount{}, err
 	}
-	_, extent, err := integerJSONWriteValue(context.Background(), record)
+	_, extent, err := integerJSONWriteValue(record)
 	if err != nil {
 		return core.ByteCount{}, errors.Join(core.ErrFirestoreDocumentsOperation, err)
 	}
