@@ -71,7 +71,7 @@ func TestMicrosoftBoundedUTCBlocksDoNotBlankCalendar(t *testing.T) {
 		{name: "UTC all-day out of office is bounded", status: "oof", zone: "UTC", allDay: true, wantKnown: true, wantCount: 1},
 		{name: "documented unknown status blocks its known UTC interval", status: "unknown", zone: "UTC", wantKnown: true, wantCount: 1},
 		{name: "future status conservatively blocks known UTC interval", status: "future", zone: "UTC", wantKnown: true, wantCount: 1},
-		{name: "missing status conservatively blocks known UTC interval", zone: "UTC", wantKnown: true, wantCount: 1},
+		{name: "empty status conservatively blocks known UTC interval", zone: "UTC", wantKnown: true, wantCount: 1},
 		{name: "cancelled unknown event never blocks", status: "unknown", zone: "UTC", cancelled: true, wantKnown: true},
 		{name: "free all-day stays free", status: "free", zone: "UTC", allDay: true, wantKnown: true},
 		{name: "unresolved all-day timezone remains unknown", status: "busy", zone: "Pacific Standard Time", allDay: true},
