@@ -226,21 +226,21 @@ func FuzzGoogleFreeBusySemanticClosure(f *testing.F) {
 			}
 			return
 		}
+		var independent struct {
+			Calendars map[string]struct {
+				Errors []struct {
+					Reason string `json:"reason"`
+				} `json:"errors"`
+				Busy *[]struct {
+					Start string `json:"start"`
+					End   string `json:"end"`
+				} `json:"busy"`
+			} `json:"calendars"`
+		}
+		if err := jsonv1.Unmarshal(data, &independent); err != nil {
+			t.Fatalf("accepted freebusy independent decode error=%v,want nil", err)
+		}
 		for id, calendar := range got.calendars {
-			var independent struct {
-				Calendars map[string]struct {
-					Errors []struct {
-						Reason string `json:"reason"`
-					} `json:"errors"`
-					Busy *[]struct {
-						Start string `json:"start"`
-						End   string `json:"end"`
-					} `json:"busy"`
-				} `json:"calendars"`
-			}
-			if err := jsonv1.Unmarshal(data, &independent); err != nil {
-				t.Fatalf("accepted freebusy independent decode error=%v,want nil", err)
-			}
 			observed := independent.Calendars[id]
 			if calendar.known && (observed.Busy == nil || len(observed.Errors) != 0) {
 				t.Fatalf("calendar %q known without an explicit complete busy collection", id)
@@ -382,6 +382,7 @@ func FuzzFreeBusyPeriods(f *testing.F) {
 	f.Add(vfreebusy("FREEBUSY:20261102T100000Z/20261102T110000Z", "FREEBUSY;FBTYPE=BUSY-TENTATIVE:20261102T120000Z/PT30M,20261102T130000Z/PT1H"))
 	f.Add(vfreebusy("FREEBUSY;FBTYPE=FREE:20261102T100000Z/20261102T110000Z"))
 	f.Add(vfreebusy("FREEBUSY;FBTYPE=X-OTHER:20261102T100000Z/20261102T110000Z"))
+	f.Add(vfreebusy(`FREEBUSY;X-NOTE="x;FBTYPE=FREE":20261102T100000Z/20261102T110000Z`))
 	f.Add(vcalendar(vevent("UID:a", "DTSTART:20261102T100000Z", "DTEND:20261102T110000Z")))
 	f.Add("BEGIN:VCALENDAR\r\nBEGIN:VFREEBUSY\r\nFREEBUSY:x/y\r\n")
 	f.Fuzz(func(t *testing.T, text string) {
@@ -409,6 +410,7 @@ func FuzzFreeBusyPeriods(f *testing.F) {
 }
 
 func FuzzParseICSDeterministicSpans(f *testing.F) {
+	f.Add(vcalendar(vevent("UID:a", `DTSTART;X-NOTE="x;VALUE=DATE":20261102T100000Z`, "DTEND:20261102T110000Z")))
 	f.Add(vcalendar(vevent("UID:a", "DTSTART:20261102T100000Z", "DURATION:P1DT2H")))
 	f.Add(vcalendar(vevent("UID:a", "DTSTART;TZID=X:20261102T100000", "DTEND:20261102T110000Z")))
 	f.Add("BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\n DTSTART:x\r\n")
