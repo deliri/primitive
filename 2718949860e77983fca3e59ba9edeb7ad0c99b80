@@ -1,0 +1,564 @@
+Compiler cell call observation and native function nonmatching proof
+
+{
+  "at": "2026-11-02T11:15:57.123948+00:00",
+  "base": "778993c8a6ddabbe4a1353ba3c3902285d2b0433",
+  "source": [
+    {
+      "file": "gotoolchain/ssa_cell_writer.go",
+      "sha256": "c6c33d899f62702a53ea7d371357fef864e752bcb070bf66a2b0c0f29afa94e6",
+      "bytes": 5484
+    },
+    {
+      "file": "gotoolchain/ssa_cell_writer_external_test.go",
+      "sha256": "67cac14c829c4e23aa6f2284a5c01b9c6ae847accc72c2099e6e638cf50e59dc",
+      "bytes": 12082
+    },
+    {
+      "file": "gotoolchain/ssa_argument_operand.go",
+      "sha256": "796c6948f7bd6b7b717bbd94e442ec2ed197276018de8fdb57c09ea8733d56fa",
+      "bytes": 5432
+    },
+    {
+      "file": "gotoolchain/ssa_argument_operand_function_external_test.go",
+      "sha256": "fc2c09d4cb2550347f9bb246420b6fc6bda7f295ca6aa001702e60be0cad04a9",
+      "bytes": 5795
+    }
+  ],
+  "attempts": [
+    {
+      "lane": "argument-control01-function-custody",
+      "caller": {
+        "started": "2026-11-02T11:11:58.443749+00:00",
+        "frozen": "2026-11-02T11:12:02.326153+00:00",
+        "finished": "2026-11-02T11:12:16.892256+00:00",
+        "pid": 38359,
+        "argv": [
+          "/Users/d/go/bin/an",
+          "run",
+          "/Users/d/.codex/ops/witness-primitive-cell-writer-20261102/argument-control01-function-custody/request.json"
+        ],
+        "exit": 1,
+        "joined": true,
+        "stdout_sha256": "0f9b8761055fc948c14ac3b9139da763748a9b4c92ff9d572e95dbea45d7297a",
+        "stderr_sha256": "40b4d916f00124d424e7a16a555205f8d8219641092384c2a380110cf97b8195"
+      },
+      "originals": [
+        {
+          "run": "2026-11-02-b3a93e1f68bcf2b74e14aea07538dfa494f0bdb9fc556581fe288a26b2da8a9a",
+          "label": "original0.receipt",
+          "sha256": "2921b2229dc7680d2453120a330d294ba9c0b78cdaa7b9054503c1961523b8d6",
+          "tests": 1,
+          "outcomes": {
+            "outcome_failed": 1
+          }
+        }
+      ]
+    },
+    {
+      "lane": "argument-fuzz01",
+      "caller": {
+        "started": "2026-11-02T11:12:38.623323+00:00",
+        "finished": "2026-11-02T11:13:18.615657+00:00",
+        "pid": 39489,
+        "argv": [
+          "/Users/d/go/bin/an",
+          "run",
+          "/Users/d/.codex/ops/witness-primitive-cell-writer-20261102/argument-fuzz01/request.json"
+        ],
+        "exit": 0,
+        "joined": true,
+        "stdout_sha256": "72f555b525454051debdf90e89e1ee4ddd984be0df9710565056b6fd807caf18",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "originals": [
+        {
+          "run": "2026-11-02-48fb21cdddc1b92babd17e83e0ca9a47356ea96bf2e52465cb5c6d4e0fb1a358",
+          "label": "original0.receipt",
+          "sha256": "72a4987a91608563cce48aa554e09331cb82560d0b1588267efe321567ed38eb",
+          "tests": 1,
+          "outcomes": {
+            "outcome_passed": 1
+          }
+        }
+      ]
+    },
+    {
+      "lane": "argument-green01",
+      "caller": {
+        "started": "2026-11-02T11:10:03.761215+00:00",
+        "finished": "2026-11-02T11:10:03.777177+00:00",
+        "pid": 35725,
+        "argv": [
+          "/Users/d/go/bin/an",
+          "run",
+          "/Users/d/.codex/ops/witness-primitive-cell-writer-20261102/argument-green01/request.json"
+        ],
+        "exit": 1,
+        "joined": true,
+        "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "stderr_sha256": "1966478f692a205148ae1783c1ed58a1ffcf29303e7a40d851bf96ec64608ba5"
+      },
+      "originals": []
+    },
+    {
+      "lane": "argument-green02",
+      "caller": {
+        "started": "2026-11-02T11:10:14.607487+00:00",
+        "finished": "2026-11-02T11:10:59.223942+00:00",
+        "pid": 35823,
+        "argv": [
+          "/Users/d/go/bin/an",
+          "run",
+          "/Users/d/.codex/ops/witness-primitive-cell-writer-20261102/argument-green02/request.json"
+        ],
+        "exit": 0,
+        "joined": true,
+        "stdout_sha256": "a1dd62222721008c6e12f683773773cfe428a28083cc9ed2113673476074db4d",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "originals": [
+        {
+          "run": "2026-11-02-f85cfe2a1098e06080225a8cb96819d1055ce30b8c879636951baed6c797ce0e",
+          "label": "original0.receipt",
+          "sha256": "0d3b2203e5d9a5d8ea64bf238b5281bae625e1a6c1963032f2c2d93b72c53e46",
+          "tests": 3,
+          "outcomes": {
+            "outcome_passed": 3
+          }
+        },
+        {
+          "run": "2026-11-02-33178d6969af83309250cde9a9bd66aa09bd7f62e2cce6bfc29d72411b71ca2a",
+          "label": "original1.receipt",
+          "sha256": "86514b8c131a30e1fba24c103af001103a5ba28402b897536318a7bded4171e2",
+          "tests": 5,
+          "outcomes": {
+            "outcome_passed": 5
+          }
+        },
+        {
+          "run": "2026-11-02-740abdff070ba97ef2a4ac2be6ef5a5f267ce5204b9e6add5b706958a0e65b97",
+          "label": "original2.receipt",
+          "sha256": "edc43c80fb5d8c1cca0e6f9da83e0251138bd08bfbad454be20eebe114ffef2f",
+          "tests": 57,
+          "outcomes": {
+            "outcome_passed": 57
+          }
+        },
+        {
+          "run": "2026-11-02-82c966d611e977ea9bd8f383659e7a6c768e7f291bf3db94b4bc4cec5297bea9",
+          "label": "original3.receipt",
+          "sha256": "f1a1d872386f84e6fe36a94ed8cc76c7adde5eb8ff87ff3510df606bbf8b8da7",
+          "tests": 0,
+          "outcomes": {}
+        }
+      ]
+    },
+    {
+      "lane": "argument-red01",
+      "caller": {
+        "started": "2026-11-02T11:02:05.247160+00:00",
+        "finished": "2026-11-02T11:02:31.518924+00:00",
+        "pid": 32187,
+        "argv": [
+          "/Users/d/go/bin/an",
+          "run",
+          "/Users/d/.codex/ops/witness-primitive-cell-writer-20261102/argument-red01/request.json"
+        ],
+        "exit": 1,
+        "joined": true,
+        "stdout_sha256": "274f603945e8ccf264cfa45b781b71e90f423caa4c835b173d1aee2db5552d94",
+        "stderr_sha256": "40b4d916f00124d424e7a16a555205f8d8219641092384c2a380110cf97b8195"
+      },
+      "originals": [
+        {
+          "run": "2026-11-02-bb54b49560ce2297a9531bd91ad1fe733aa539234a7e6e34b416b5d536294a70",
+          "label": "original.receipt",
+          "sha256": "073e66ef4cc5e370d5fb4065ed50ddd550ef8dc19a2e1979b1d410eb0f1c02ce",
+          "tests": 8,
+          "outcomes": {
+            "outcome_passed": 3,
+            "outcome_failed": 5
+          }
+        }
+      ]
+    },
+    {
+      "lane": "control01-missing-observation",
+      "caller": {
+        "started": "2026-11-02T10:45:32.600147+00:00",
+        "frozen": "2026-11-02T10:45:36.274554+00:00",
+        "finished": "2026-11-02T10:45:50.206322+00:00",
+        "pid": 18797,
+        "argv": [
+          "/Users/d/go/bin/an",
+          "run",
+          "/Users/d/.codex/ops/witness-primitive-cell-writer-20261102/control01-missing-observation/request.json"
+        ],
+        "exit": 1,
+        "joined": true,
+        "stdout_sha256": "5474dc79df85a1386f4c4a811a2e5a2ccfc9bcb5258f772741e28ee8b27a719a",
+        "stderr_sha256": "40b4d916f00124d424e7a16a555205f8d8219641092384c2a380110cf97b8195"
+      },
+      "originals": [
+        {
+          "run": "2026-11-02-311cd79495b1ff2273d1055f74bb563000639a23e4e6e72dd24a70bfac8859ac",
+          "label": "original.receipt",
+          "sha256": "eb361ece19a6314b4849e97360115328862a1141c21ce3022ff4ff7654b71e87",
+          "tests": 1,
+          "outcomes": {
+            "outcome_failed": 1
+          }
+        }
+      ]
+    },
+    {
+      "lane": "control02-store-omission",
+      "caller": {
+        "started": "2026-11-02T10:45:50.414075+00:00",
+        "frozen": "2026-11-02T10:45:54.090659+00:00",
+        "finished": "2026-11-02T10:46:07.642536+00:00",
+        "pid": 19329,
+        "argv": [
+          "/Users/d/go/bin/an",
+          "run",
+          "/Users/d/.codex/ops/witness-primitive-cell-writer-20261102/control02-store-omission/request.json"
+        ],
+        "exit": 1,
+        "joined": true,
+        "stdout_sha256": "656388a4a2ce61a0f85b8801fa2368624bf028131b0de468b57b4c3cf16956a0",
+        "stderr_sha256": "40b4d916f00124d424e7a16a555205f8d8219641092384c2a380110cf97b8195"
+      },
+      "originals": [
+        {
+          "run": "2026-11-02-c3676d799ceefd127b5d555419c13e1a8c3545a11458a153670a47c546d3fcbc",
+          "label": "original.receipt",
+          "sha256": "3d10a06655e7de0f63262375368c5311dc1425a31109d879e16acff5b8c4e64b",
+          "tests": 3,
+          "outcomes": {
+            "outcome_failed": 2,
+            "outcome_passed": 1
+          }
+        }
+      ]
+    },
+    {
+      "lane": "control03-domination-omission",
+      "caller": {
+        "started": "2026-11-02T10:46:07.768023+00:00",
+        "frozen": "2026-11-02T10:46:11.862293+00:00",
+        "finished": "2026-11-02T10:46:25.807334+00:00",
+        "pid": 19808,
+        "argv": [
+          "/Users/d/go/bin/an",
+          "run",
+          "/Users/d/.codex/ops/witness-primitive-cell-writer-20261102/control03-domination-omission/request.json"
+        ],
+        "exit": 1,
+        "joined": true,
+        "stdout_sha256": "aaa01760715c14e405e29557421794be70103227024df5d2eb9fa1e10d6f62eb",
+        "stderr_sha256": "40b4d916f00124d424e7a16a555205f8d8219641092384c2a380110cf97b8195"
+      },
+      "originals": [
+        {
+          "run": "2026-11-02-f929d89874b85d8a221439f0bc8b962e3e518496279592dd59cccbb60cc52351",
+          "label": "original.receipt",
+          "sha256": "ca36efa8dddf720f1ead16e3efbab0384882ee4765143fefe71cd2843fa8798b",
+          "tests": 3,
+          "outcomes": {
+            "outcome_failed": 3
+          }
+        }
+      ]
+    },
+    {
+      "lane": "control04-argument-binding-omission",
+      "caller": {
+        "started": "2026-11-02T10:46:25.936618+00:00",
+        "frozen": "2026-11-02T10:46:29.621490+00:00",
+        "finished": "2026-11-02T10:46:44.123566+00:00",
+        "pid": 20340,
+        "argv": [
+          "/Users/d/go/bin/an",
+          "run",
+          "/Users/d/.codex/ops/witness-primitive-cell-writer-20261102/control04-argument-binding-omission/request.json"
+        ],
+        "exit": 1,
+        "joined": true,
+        "stdout_sha256": "b82c3e21f60b57a26efe3b55167e8a0d3f989caab96c295f612b114532fdea6a",
+        "stderr_sha256": "40b4d916f00124d424e7a16a555205f8d8219641092384c2a380110cf97b8195"
+      },
+      "originals": [
+        {
+          "run": "2026-11-02-7195b607da60af24f826c7f0a4ae45eec32a28a5b5e84dcd90dc9d98defb3129",
+          "label": "original.receipt",
+          "sha256": "7add3431b9568ff0ecb72c3b1ef2b6b9789839d921dc23f32c36a8bc4dedb4f9",
+          "tests": 1,
+          "outcomes": {
+            "outcome_failed": 1
+          }
+        }
+      ]
+    },
+    {
+      "lane": "fuzz01",
+      "caller": {
+        "started": "2026-11-02T10:47:34.971346+00:00",
+        "finished": "2026-11-02T10:49:25.681889+00:00",
+        "pid": 21791,
+        "argv": [
+          "/Users/d/go/bin/an",
+          "run",
+          "/Users/d/.codex/ops/witness-primitive-cell-writer-20261102/fuzz01/request.json"
+        ],
+        "exit": 0,
+        "joined": true,
+        "stdout_sha256": "65c9730cc35423931680af41c419b433a935af9921cb80cccc69b1a3fe76282f",
+        "stderr_sha256": "81e02cdd5c67ac1230b82f589a093d4b9a87c7d4f12c20cd4f708f99be2143fd"
+      },
+      "originals": [
+        {
+          "run": "2026-11-02-232053b15ccd3b6d49c930778648d054844806392acd69e13de016b825d8dbb0",
+          "label": "original.receipt",
+          "sha256": "f527a28eeab8a65cc45faaa7349fc36815f0d0c5f37c8432bcd0f4893b5054df",
+          "tests": 1,
+          "outcomes": {
+            "outcome_passed": 1
+          }
+        }
+      ]
+    },
+    {
+      "lane": "green01",
+      "caller": {
+        "started": "2026-11-02T10:39:13.950599+00:00",
+        "finished": "2026-11-02T10:39:57.175194+00:00",
+        "pid": 13414,
+        "argv": [
+          "/Users/d/go/bin/an",
+          "run",
+          "/Users/d/.codex/ops/witness-primitive-cell-writer-20261102/green01/request.json"
+        ],
+        "exit": 1,
+        "joined": true,
+        "stdout_sha256": "4d87bfd737634ef62dcd4429db9cc29631931d8278a9b609cc8b629cefda219f",
+        "stderr_sha256": "be857360965ba414e76a3f0ec0106b2efabdb55ccec2bdd22ede92ae7cf3d6a1"
+      },
+      "originals": [
+        {
+          "run": "2026-11-02-7137785f017025c8433c705b4a11ed64ab918fdb044e6a4f36aa3a26e0b4354b",
+          "label": "original.receipt",
+          "sha256": "0af91f959d4d2f7cbab089b762c2f28ec71eabaf24d195b49b1d0e7b9a9f6500",
+          "tests": 29,
+          "outcomes": {
+            "outcome_passed": 11,
+            "outcome_failed": 18
+          }
+        }
+      ]
+    },
+    {
+      "lane": "green02-fixture-failed-only",
+      "caller": {
+        "started": "2026-11-02T10:40:43.195055+00:00",
+        "finished": "2026-11-02T10:41:15.165845+00:00",
+        "pid": 14445,
+        "argv": [
+          "/Users/d/go/bin/an",
+          "run",
+          "/Users/d/.codex/ops/witness-primitive-cell-writer-20261102/green02-fixture-failed-only/request.json"
+        ],
+        "exit": 0,
+        "joined": true,
+        "stdout_sha256": "0ce74bb8104697671d69a0a10c53f56e806dc935437e26c5448ac9501a8d31cd",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "originals": [
+        {
+          "run": "2026-11-02-7977fddb010f4257bc6a33603a18bfbd3c141bfe199c27fd5c01e8e572ad29e0",
+          "label": "original.receipt",
+          "sha256": "d31ea420dceaadba55c5d7b91c7e34d13018d2c356092d405fbc4bdca8e6fcc8",
+          "tests": 18,
+          "outcomes": {
+            "outcome_passed": 18
+          }
+        }
+      ]
+    },
+    {
+      "lane": "green03-neutral-native-binding",
+      "caller": {
+        "started": "2026-11-02T10:42:43.843053+00:00",
+        "finished": "2026-11-02T10:43:02.557592+00:00",
+        "pid": 15647,
+        "argv": [
+          "/Users/d/go/bin/an",
+          "run",
+          "/Users/d/.codex/ops/witness-primitive-cell-writer-20261102/green03-neutral-native-binding/request.json"
+        ],
+        "exit": 0,
+        "joined": true,
+        "stdout_sha256": "9c48fce1ebf7bf905afa4a111d71f615b7d536f0e0ad1051b36440e904a35449",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "originals": [
+        {
+          "run": "2026-11-02-a3232ec88fb064d4482560a2540b785498b7904b991bfe4e29778d1ab31830b3",
+          "label": "original.receipt",
+          "sha256": "36540ee0b0234fd4bd52e907de1de5e5fdc2a9a523a09a912bc0c2d47573572a",
+          "tests": 4,
+          "outcomes": {
+            "outcome_passed": 4
+          }
+        }
+      ]
+    },
+    {
+      "lane": "lint01",
+      "caller": {
+        "started": "2026-11-02T10:52:27.080502+00:00",
+        "finished": "2026-11-02T10:53:27.431194+00:00",
+        "pid": 24185,
+        "argv": [
+          "/Users/d/go/bin/an",
+          "run",
+          "/Users/d/.codex/ops/witness-primitive-cell-writer-20261102/lint01/request.json"
+        ],
+        "exit": 1,
+        "joined": true,
+        "stdout_sha256": "2e499a7228e1001d8cbf3fd4df27a13a013a44bcc3fb692b295a833a6e45197a",
+        "stderr_sha256": "40b4d916f00124d424e7a16a555205f8d8219641092384c2a380110cf97b8195"
+      },
+      "originals": [
+        {
+          "run": "2026-11-02-9713d252a9b68eaddd6f4555ddc7e322839e23fcf07541f52e93b7967407647a",
+          "label": "errcheck.receipt",
+          "sha256": "a4c844dedf27b3bd469f03e78d34a974e040880f93699f1c72be8d443660694d",
+          "tests": 0,
+          "outcomes": {}
+        },
+        {
+          "run": "2026-11-02-43694168eeb7a5b983de81f10744cae26e4c187c43641b786ff3c416e7db55b1",
+          "label": "go-vet.receipt",
+          "sha256": "6161929e876d1fc1f12b09d38f997c79e5e198bfbf4dd51e27212a84f73af89f",
+          "tests": 0,
+          "outcomes": {}
+        },
+        {
+          "run": "2026-11-02-3e62d931924f19a731c0300011ccd39e3e108140746f642afc02b931e95d299b",
+          "label": "parent.receipt",
+          "sha256": "5cdc3bc6b7d1b91e7cba0a5f840c0a450b78073f78ff71c2d41fdc189a0f4a30",
+          "tests": 0,
+          "outcomes": {}
+        },
+        {
+          "run": "2026-11-02-f11b9f0f8de1fd732da478d3a86696a6560f574f8d7e430e072ecffcaa2d2878",
+          "label": "staticcheck.receipt",
+          "sha256": "6c6fa9b71e2ee3eaae1f344df8fe879bce6d13bd69275814e82e399cc6bf3dde",
+          "tests": 0,
+          "outcomes": {}
+        },
+        {
+          "run": "2026-11-02-66a2eee85eb6f6447fd7ba6db9dd62e22963ac4de5d8f6113912e1c72347c99a",
+          "label": "witness-lint.receipt",
+          "sha256": "410d2ba5d797b55ff275f6a2230ef896d5b0b362c44349970f2331e528ea7381",
+          "tests": 0,
+          "outcomes": {}
+        }
+      ]
+    },
+    {
+      "lane": "lint02",
+      "caller": {
+        "started": "2026-11-02T11:13:50.444134+00:00",
+        "finished": "2026-11-02T11:14:22.836227+00:00",
+        "pid": 41694,
+        "argv": [
+          "/Users/d/go/bin/an",
+          "run",
+          "/Users/d/.codex/ops/witness-primitive-cell-writer-20261102/lint02/request.json"
+        ],
+        "exit": 1,
+        "joined": true,
+        "stdout_sha256": "6d80a6042c2c0cf08c944744150778bfff4f6dd338cad846c8bd423c6d0cd170",
+        "stderr_sha256": "40b4d916f00124d424e7a16a555205f8d8219641092384c2a380110cf97b8195"
+      },
+      "originals": [
+        {
+          "run": "2026-11-02-ce8343eb7788670eef353bc4087c04057c9bc0300e0137eaa0ba4c4c6851f663",
+          "label": "original0.receipt",
+          "sha256": "29b49376f2559ec229dffed9aa7b1f3790e31f71ed29315c6b91d0d85cdadb62",
+          "tests": 0,
+          "outcomes": {}
+        },
+        {
+          "run": "2026-11-02-77b4c6965072775e483a6351358006951206c982c4fabe0c63401dc5ca0a0744",
+          "label": "original1.receipt",
+          "sha256": "c74c24074e9bba2c7dcc8cd23a3c531989b99bee77fb6332a270d9780a53243c",
+          "tests": 0,
+          "outcomes": {}
+        },
+        {
+          "run": "2026-11-02-1ab5580eba2d61e33c955a3fa8a17760ba016d8ab04341bbbe53bd12f3e8c5c3",
+          "label": "original2.receipt",
+          "sha256": "d49def8fce683a08faee93b8efb68ae6da0e1056a2649212125b8ccd92ac0afd",
+          "tests": 0,
+          "outcomes": {}
+        },
+        {
+          "run": "2026-11-02-aaec6b0070f7418eb89abd3e362cf0aa5f301d2649b0a39228f1b67533bc6e0c",
+          "label": "original3.receipt",
+          "sha256": "9b3e03d6f134f6c1b036aa1090f23ab64dd6d70ee070c7d7f10014f1a5a5e881",
+          "tests": 0,
+          "outcomes": {}
+        },
+        {
+          "run": "2026-11-02-cfaec6979bff01b714264ec865fe0d3a7f751323a7c8408ee1a07edddcd7187c",
+          "label": "original4.receipt",
+          "sha256": "fa825e6880ae69c3a033148b8fee590fa6d91a7f87803c2c0b9644ac82453b01",
+          "tests": 0,
+          "outcomes": {}
+        }
+      ]
+    }
+  ],
+  "positive_reader_joins": 50,
+  "final_lint": {
+    "vet": 0,
+    "staticcheck": 0,
+    "owned_witness": 0,
+    "old_witness": 273,
+    "old_errcheck": 4,
+    "qualification": "exact273 cause multiset and132 files byte-identical461; old findings OPEN"
+  },
+  "fuzz": {
+    "cell_writer": {
+      "reported_executions": 481,
+      "new_interesting": 33
+    },
+    "native_function_operand": {
+      "reported_executions": 139,
+      "new_interesting": 15
+    },
+    "duration": "3s each, serial; not unique mutations"
+  },
+  "custody_limits": {
+    "at": "2026-11-02T10:50:01.777816+00:00",
+    "available": [
+      "Published461baseGit immutable source",
+      "Actual caller/reader originals andallseals/detailed executions",
+      "Finalproper API+test bytes frozen before controls, every original control mutant",
+      "Fixture failure/refusal originalterminal accounting"
+    ],
+    "unavailable_originals": [
+      "Complete byte-exact early generated test file revision fromgreen01 beforeduplicate-separatorcorrection",
+      "Complete byte-exact green02 test file beforetwo newneutral/bindingtests added"
+    ],
+    "qualification": "No reconstructedhistorical test source is claimedoriginal. API implementationbytes were unchangedacrossthose runs and savedproper file. Earliest failedfixture and retained source digests/execution remain; finalcontrolled API/testbytes are actualsaved originals. All new attempts freeze bothfiles beforeexecution."
+  },
+  "limits": [
+    "borrowed compiler caller-use observation, no runtime alias/callee behavior claim",
+    "no Witness consumer adoption or selfbar verdict",
+    "source only; HDD custody pending; all SSD retained"
+  ]
+}
