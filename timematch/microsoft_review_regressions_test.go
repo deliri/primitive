@@ -2,6 +2,7 @@ package timematch
 
 import (
 	json "encoding/json/v2"
+	"errors"
 	"net/http"
 	"net/url"
 	"strings"
@@ -158,5 +159,111 @@ func TestMicrosoftEscapedCalendarPagingKeepsTimingProjection(t *testing.T) {
 		if parseErr != nil || record.path != path || query.Get("$select") != "start,end,showAs,isCancelled,isAllDay" || strings.Contains(query.Get("$select"), "subject") {
 			t.Fatalf("escaped page path%s/query%s/error%v, want unchanged selected calendar and timing-only projection", record.path, record.query, parseErr)
 		}
+	}
+}
+
+// OData conditional writes use the exact previously observed entity tag. The
+// native double changes its revision between metadata read and mutation, and
+// applies unconditioned mutations to expose an unsafe client rather than
+// silently providing protection the client did not request.
+func TestMicrosoftOwnedMutationRequiresObservedRevision(t *testing.T) {
+	t.Parallel()
+	for _, deleting := range []bool{false, true} {
+		operation := "PATCH"
+		if deleting {
+			operation = "DELETE"
+		}
+		t.Run(operation, func(t *testing.T) {
+			t.Parallel()
+			for _, row := range []struct {
+				name, observed              string
+				raced                       bool
+				wantErr                     error
+				wantEffects, wantDispatches int
+			}{
+				{name: "strong observed revision permits one effect", observed: `"revision-one"`, wantEffects: 1, wantDispatches: 1},
+				{name: "weak OData entity revision permits one effect", observed: `W/"revision/one+=="`, wantEffects: 1, wantDispatches: 1},
+				{name: "empty opaque tag remains a real entity tag", observed: `""`, wantEffects: 1, wantDispatches: 1},
+				{name: "concurrent revision stops without retry", observed: `W/"revision-one"`, raced: true, wantErr: core.ErrTimeMatchConflict, wantDispatches: 1},
+				{name: "missing observed revision refuses mutation", wantErr: core.ErrTimeMatchIndeterminate},
+				{name: "unquoted revision refuses mutation", observed: "revision-one", wantErr: core.ErrTimeMatchIndeterminate},
+				{name: "wildcard cannot stand for an observed revision", observed: "*", wantErr: core.ErrTimeMatchIndeterminate},
+				{name: "revision list cannot stand for one observation", observed: `"one", "two"`, wantErr: core.ErrTimeMatchIndeterminate},
+				{name: "lowercase weak prefix is not valid OData tag", observed: `w/"one"`, wantErr: core.ErrTimeMatchIndeterminate},
+				{name: "header newline cannot leave the client", observed: "\"one\"\r\nX-Injected: yes", wantErr: core.ErrTimeMatchIndeterminate},
+			} {
+				t.Run(row.name, func(t *testing.T) {
+					t.Parallel()
+					owned := intent(t, "primary", "Rescheduled visit", "2026-11-02T17:00:00Z", "2026-11-02T18:00:00Z")
+					var mutex sync.Mutex
+					effects, dispatches := 0, 0
+					client, fixture := newNative(t, func(w http.ResponseWriter, r *http.Request, _ []byte) {
+						mutex.Lock()
+						defer mutex.Unlock()
+						if r.Method == http.MethodGet {
+							writeJSON(w, 200, string(seedJSON(t, struct {
+								ID            string               `json:"id"`
+								TransactionID string               `json:"transactionId"`
+								Ownership     []graphOwnedProperty `json:"singleValueExtendedProperties"`
+								ETag          string               `json:"@odata.etag,omitzero"`
+							}{ID: immutableFixtureID, TransactionID: owned.ID.value, Ownership: []graphOwnedProperty{{ID: graphOwnershipProperty, Value: owned.ID.value}}, ETag: row.observed})))
+							return
+						}
+						if r.Method != operation {
+							t.Errorf("mutation method=%s, want %s", r.Method, operation)
+							w.WriteHeader(500)
+							return
+						}
+						dispatches++
+						current := row.observed
+						if row.raced {
+							current = `W/"revision-two"`
+						}
+						condition := r.Header.Get("If-Match")
+						if condition != "" && condition != current {
+							w.WriteHeader(http.StatusPreconditionFailed)
+							return
+						}
+						effects++
+						if deleting {
+							w.WriteHeader(http.StatusNoContent)
+						} else {
+							writeJSON(w, 200, string(seedJSON(t, graphOwnedDetail(t, owned))))
+						}
+					})
+					connection := oauthConnection(t, ProviderMicrosoft)
+					t.Cleanup(func() {
+						if closeErr := connection.Close(); closeErr != nil {
+							t.Errorf("connection.Close error=%v, want nil", closeErr)
+						}
+					})
+					ref := EventRef{ID: owned.ID, Provider: ProviderMicrosoft, Calendar: owned.Calendar, Resource: immutableFixtureID}
+					var gotErr error
+					var gotReceipt EventReceipt
+					gotDelete := DeleteInvalid
+					if deleting {
+						gotDelete, gotErr = client.DeleteEvent(t.Context(), EventDelete{Connection: connection, Ref: ref, Policy: fixturePolicy(t)})
+					} else {
+						gotReceipt, gotErr = client.UpdateEvent(t.Context(), EventUpdate{Connection: connection, Ref: ref, Intent: owned, ObservedAt: at(t, "2026-11-02T08:00:00Z"), Policy: fixturePolicy(t)})
+					}
+					mutex.Lock()
+					gotEffects, gotDispatches := effects, dispatches
+					mutex.Unlock()
+					if row.wantErr != nil {
+						if !errors.Is(gotErr, row.wantErr) || gotReceipt != (EventReceipt{}) || gotDelete != DeleteInvalid {
+							t.Fatalf("conditional result=(%+v,%v,%v), want zero result and %v", gotReceipt, gotDelete, gotErr, row.wantErr)
+						}
+					} else if gotErr != nil || deleting && gotDelete != Deleted || !deleting && gotReceipt.Ref != ref {
+						t.Fatalf("conditional result=(%+v,%v,%v), want exact owned mutation success", gotReceipt, gotDelete, gotErr)
+					}
+					if gotEffects != row.wantEffects || gotDispatches != row.wantDispatches || len(fixture.record()) != 1+row.wantDispatches {
+						t.Fatalf("effects/dispatches/HTTP=%d/%d/%d, want %d/%d/%d", gotEffects, gotDispatches, len(fixture.record()), row.wantEffects, row.wantDispatches, 1+row.wantDispatches)
+					}
+					if row.wantDispatches == 1 && fixture.record()[1].header.Get("If-Match") != row.observed {
+						t.Fatalf("If-Match=%q, want exact observed %q", fixture.record()[1].header.Get("If-Match"), row.observed)
+					}
+				})
+			}
+		})
 	}
 }
