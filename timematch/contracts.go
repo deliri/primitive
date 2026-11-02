@@ -115,10 +115,13 @@ const (
 	RevokeInvalid RevokeOutcome = iota
 	RevokedAtProvider
 	RevokeProviderHasNoRevocation
+	// RevokeTokenAlreadyInvalid means only the submitted credential is invalid;
+	// it does not prove any other refresh token was revoked.
+	RevokeTokenAlreadyInvalid
 )
 
 func (o RevokeOutcome) Validate() error {
-	if o < RevokedAtProvider || o > RevokeProviderHasNoRevocation {
+	if o < RevokedAtProvider || o > RevokeTokenAlreadyInvalid {
 		return core.ErrTimeMatchContract
 	}
 	return nil
@@ -147,8 +150,10 @@ func accessNames() []string   { return []string{"availability", "manage_events"}
 func lifetimeNames() []string { return []string{"visitor", "business"} }
 func tenantNames() []string   { return []string{"common", "consumers", "organizations"} }
 func stateNames() []string    { return []string{"known", "unknown"} }
-func revokeNames() []string   { return []string{"revoked_at_provider", "provider_has_no_revocation"} }
-func deleteNames() []string   { return []string{"deleted", "already_absent"} }
+func revokeNames() []string {
+	return []string{"revoked_at_provider", "provider_has_no_revocation", "token_already_invalid"}
+}
+func deleteNames() []string { return []string{"deleted", "already_absent"} }
 
 // enumName renders an admitted value; an invalid value renders as empty text.
 func enumName[E ~uint8](value E, names []string) string {
