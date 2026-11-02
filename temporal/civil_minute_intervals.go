@@ -131,6 +131,7 @@ func (l Location) walkCivilZonePeriods(window IntervalBounds, visit func(time.Ti
 		local := cursor.In(l.value)
 		_, offset := local.Zone()
 		_, bound := local.ZoneBounds()
+		bound = civilZonePeriodEnd(cursor, bound)
 		finish := end
 		if !bound.IsZero() && bound.Before(finish) {
 			finish = bound
@@ -144,4 +145,22 @@ func (l Location) walkCivilZonePeriods(window IntervalBounds, visit func(time.Ti
 		cursor = finish
 	}
 	return nil
+}
+
+// Go's TZ-string extension ends its final annual period at yearStart+365 days.
+// In a leap year that is December 31, so ZoneBounds can return an end at or
+// before its argument. This exact sentinel means the annual rule's last
+// transition already happened; advance only that sentinel to the real UTC
+// year boundary. Other non-advancing bounds still fail in the walker.
+// Native source: time/zoneinfo.go, tzset's ysec >= endSec branch.
+func civilZonePeriodEnd(cursor, bound time.Time) time.Time {
+	utc := cursor.UTC()
+	if bound.IsZero() || cursor.Before(bound) || utc.Month() != time.December || utc.Day() != 31 || utc.YearDay() != 366 {
+		return bound
+	}
+	lastDay := time.Date(utc.Year(), time.December, 31, 0, 0, 0, 0, time.UTC)
+	if !bound.Equal(lastDay) {
+		return bound
+	}
+	return time.Date(utc.Year()+1, time.January, 1, 0, 0, 0, 0, time.UTC)
 }

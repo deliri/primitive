@@ -65,3 +65,34 @@ func TestCivilEmbeddedYearBoundaryPreimages(t *testing.T) {
 		}
 	}
 }
+
+func TestCivilZonePeriodEndOnlyRepairsNativeLeapSentinel(t *testing.T) {
+	t.Parallel()
+	leap := time.Date(2028, time.December, 31, 0, 0, 0, 0, time.UTC)
+	next := time.Date(2029, time.January, 1, 0, 0, 0, 0, time.UTC)
+	ordinary := time.Date(2027, time.December, 31, 0, 0, 0, 0, time.UTC)
+	for _, tc := range []struct {
+		name                string
+		cursor, bound, want time.Time
+	}{
+		{"exact leap sentinel", leap, leap, next},
+		{"one ns into leap sentinel", leap.Add(time.Nanosecond), leap, next},
+		{"last ns of leap year", next.Add(-time.Nanosecond), leap, next},
+		{"valid next year end unchanged", leap, next, next},
+		{"valid intra-day transition unchanged", leap, leap.Add(time.Hour), leap.Add(time.Hour)},
+		{"zero unbounded unchanged", leap, time.Time{}, time.Time{}},
+		{"earlier wrong day refuses in walker", leap, leap.Add(-24 * time.Hour), leap.Add(-24 * time.Hour)},
+		{"wrong ns boundary unchanged", leap.Add(time.Hour), leap.Add(time.Nanosecond), leap.Add(time.Nanosecond)},
+		{"before leap sentinel unchanged", leap.Add(-time.Nanosecond), leap, leap},
+		{"ordinary year bad bound unchanged", ordinary, ordinary, ordinary},
+		{"next year bad bound unchanged", next, leap, leap},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			got := civilZonePeriodEnd(tc.cursor, tc.bound)
+			if !got.Equal(tc.want) {
+				t.Fatalf("civilZonePeriodEnd(%v,%v)=%v,want %v", tc.cursor, tc.bound, got, tc.want)
+			}
+		})
+	}
+}
