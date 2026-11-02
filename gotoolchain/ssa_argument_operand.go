@@ -50,8 +50,18 @@ func (v SSAUnitView) ArgumentOperand(ctx context.Context, r SSAArgumentOperandRe
 		return out, err
 	}
 	if r.Function.Prog != v.Program || r.Function.Pkg != v.Package ||
-		!v.ownsStorageValue(r.Argument) || r.Argument.Parent() != r.Function ||
-		!v.ownsStorageValue(r.Value) || r.Value.Parent() != nil && r.Value.Parent() != r.Function {
+		!v.ownsStorageValue(r.Argument) || r.Argument.Parent() != r.Function {
+		return out, core.ErrGoToolchainContract
+	}
+	// A native function declaration is a legal operand, but cannot identify a
+	// parameter or capture. Authenticate the compiler object before declining.
+	if function, native := r.Value.(*ssa.Function); native {
+		if function == nil || function.Pkg != v.Package || !v.argumentBindingFunctionOwned(function) {
+			return out, core.ErrGoToolchainContract
+		}
+		return out, nil
+	}
+	if !v.ownsStorageValue(r.Value) || r.Value.Parent() != nil && r.Value.Parent() != r.Function {
 		return out, core.ErrGoToolchainContract
 	}
 	// Authenticate each borrowed representation before the shared matcher reads
@@ -140,7 +150,7 @@ func (v SSAUnitView) argumentOperandCellCustody(ctx context.Context, cell ssa.Va
 				if err := v.fieldReadOperandBefore(ctx, store.Addr, store); err != nil {
 					return err
 				}
-				if err := v.fieldReadOperandBefore(ctx, store.Val, store); err != nil {
+				if err := v.functionArgumentBefore(ctx, store.Val, store); err != nil {
 					return err
 				}
 			}

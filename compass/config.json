@@ -6,14 +6,11 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 461
+      "patch": 462
     },
     "release_notes": [
-      "TimeMatch calendar mutations bind exact owned identities, separate first dispatch from read-only recovery, use strong CalDAV revision preconditions and immutable Graph ids, and refuse unsupported time precision before HTTP.",
-      "Availability remains timing-only and unknown on incomplete or unsupported provider answers. Google ownership uses the authenticated primary and secondary data owner; Graph recovery checks each candidate through documented individual property expansion.",
-      "Temporal owns exact civil availability across DST and dateline changes, checked instant ceiling and browser nanosecond parsing. TimeMatch adds typed organizer invitations and explicit credential-copy custody.",
-      "Firestore integer JSON reads preserve native signed integer nanoseconds and refuse floating-point fields before projection.",
-      "Instagram accepts the documented optional transient error field; focused Core and Exchange boundary defects and diagnostics are corrected."
+      "Compiler observations lend the sole synchronous native call receiving a zero-store local cell address before a dereference; consumers retain callee and policy interpretation.",
+      "Argument operand identity declines authentic native function declarations and callback replacements without refusing valid compiler input; forged native objects still refuse."
     ]
   }
 }
