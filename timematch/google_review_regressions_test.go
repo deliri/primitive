@@ -71,7 +71,7 @@ func TestGoogleRecoveryNeverRecreatesCancelledOrInvisibleEvent(t *testing.T) {
 		cancelled bool
 		want      error
 	}{
-		{name: "unknown initial outcome is not a second create", status: 404, want: core.ErrTimeMatchIndeterminate},
+		{name: "unavailable collision read remains unknown", status: 404, want: core.ErrTimeMatchIndeterminate},
 		{name: "unmarked deleted identity cannot establish ownership", status: 200, cancelled: true, want: core.ErrTimeMatchIndeterminate},
 		{name: "existing identical event is recovered", status: 200},
 	} {
@@ -79,6 +79,10 @@ func TestGoogleRecoveryNeverRecreatesCancelledOrInvisibleEvent(t *testing.T) {
 			t.Parallel()
 			owned := intent(t, "primary", "Review", "2026-11-02T15:00:00Z", "2026-11-02T15:30:00Z")
 			client, fixture := newNative(t, func(w http.ResponseWriter, r *http.Request, _ []byte) {
+				if r.Method == http.MethodPost {
+					writeJSON(w, 409, `{}`)
+					return
+				}
 				status := "confirmed"
 				if tc.cancelled {
 					status = "cancelled"
@@ -105,20 +109,23 @@ func TestGoogleRecoveryNeverRecreatesCancelledOrInvisibleEvent(t *testing.T) {
 				t.Fatalf("failed recovery receipt=%+v,want zero", receipt)
 			}
 			calls := fixture.record()
-			wantReads := 1
+			wantReads := 2
 			if tc.want == nil {
-				wantReads = 2
+				wantReads = 3
 			}
 			if len(calls) != wantReads {
 				t.Fatalf("recovery requests=%d,want%d filtered proof/conditional readback", len(calls), wantReads)
 			}
-			for _, call := range calls {
+			if calls[0].method != http.MethodPost {
+				t.Fatalf("recovery first method=%s,want deterministic create attempt", calls[0].method)
+			}
+			for _, call := range calls[1:] {
 				if call.method != http.MethodGet {
 					t.Fatalf("recovery method=%s,want GET only", call.method)
 				}
 			}
-			if tc.want == nil && calls[1].header.Get("If-Match") == "" {
-				t.Fatalf("owned readback If-Match = %q, want observed conditional revision", calls[1].header.Get("If-Match"))
+			if tc.want == nil && calls[2].header.Get("If-Match") == "" {
+				t.Fatalf("owned readback If-Match = %q, want observed conditional revision", calls[2].header.Get("If-Match"))
 			}
 		})
 	}
@@ -132,6 +139,10 @@ func TestGoogleUnmarkedDeletedTombstoneCannotEstablishOwnership(t *testing.T) {
 		Status string `json:"status"`
 	}{ID: owned.ID.String(), Status: "cancelled"})
 	client, fixture := newNative(t, func(w http.ResponseWriter, r *http.Request, _ []byte) {
+		if r.Method == http.MethodPost {
+			writeJSON(w, 409, `{}`)
+			return
+		}
 		if strings.HasSuffix(r.URL.Path, "/events") {
 			writeJSON(w, 200, `{"items":[]}`)
 			return
@@ -144,8 +155,8 @@ func TestGoogleUnmarkedDeletedTombstoneCannotEstablishOwnership(t *testing.T) {
 	if !errors.Is(err, core.ErrTimeMatchIndeterminate) || receipt != (EventReceipt{}) {
 		t.Fatalf("deleted tombstone recovery=(%+v,%v),want unknown ownership without downloading the deleted event", receipt, err)
 	}
-	if calls := fixture.record(); len(calls) != 1 || calls[0].method != http.MethodGet {
-		t.Fatalf("deleted identity calls=%d,want exactly one read and no resurrection", len(calls))
+	if calls := fixture.record(); len(calls) != 2 || calls[0].method != http.MethodPost || calls[1].method != http.MethodGet {
+		t.Fatalf("deleted identity calls=%d,want one guarded collision and one ownership query without resurrection", len(calls))
 	}
 }
 

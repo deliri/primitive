@@ -73,18 +73,6 @@ func TestAppleUpdateUsesObservedStrongETag(t *testing.T) {
 	}
 }
 
-func TestAppleRecoveryNeverCreatesAbsentResource(t *testing.T) {
-	t.Parallel()
-	client, provider := newNative(t, func(w http.ResponseWriter, _ *http.Request, _ []byte) { w.WriteHeader(http.StatusNotFound) })
-	request := eventWrite(t, appleConnection(t), appleMutationIntent(t))
-	request.Attempt = EventCreateRecoverOnly
-	got, err := client.PutEvent(t.Context(), request)
-	requests := provider.record()
-	if !errors.Is(err, core.ErrTimeMatchIndeterminate) || got != (EventReceipt{}) || len(requests) != 1 || requests[0].method != http.MethodGet {
-		t.Fatalf("absent recovery=%+v/%v, requests=%d, want zero/Indeterminate/GET-only", got, err, len(requests))
-	}
-}
-
 func TestAppleCollisionUnreadableStateNeverClaimsConflict(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {

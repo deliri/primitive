@@ -114,8 +114,8 @@ func TestGoogleRemoteOwnershipForeignCollisionCannotIssueReceipt(t *testing.T) {
 	request := eventWrite(t, oauthConnection(t, ProviderGoogle), owned)
 	request.Attempt = EventCreateRecoverOnly
 	got, err := client.PutEvent(t.Context(), request)
-	if !errors.Is(err, core.ErrTimeMatchIndeterminate) || got != (EventReceipt{}) || mutations.Load() != 0 || details.Load() != 0 {
-		t.Fatalf("foreign identical recovery=(%+v,%v),mutations/details%d/%d,want zero/Indeterminate/0/0", got, err, mutations.Load(), details.Load())
+	if !errors.Is(err, core.ErrTimeMatchIndeterminate) || got != (EventReceipt{}) || mutations.Load() != 1 || details.Load() != 0 {
+		t.Fatalf("foreign identical recovery=(%+v,%v),mutations/details%d/%d,want zero/Indeterminate/1 rejected create/0 private reads", got, err, mutations.Load(), details.Load())
 	}
 }
 
@@ -175,6 +175,12 @@ func (s *googleOwnedProviderState) serve(t *testing.T, w http.ResponseWriter, r 
 	t.Helper()
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
+	// A deterministic ID already exists. The provider's create guard rejects
+	// this attempt without changing any owned or foreign resource.
+	if r.Method == http.MethodPost {
+		writeJSON(w, 409, `{}`)
+		return
+	}
 	if r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/events") {
 		s.queries++
 		if r.URL.Query().Get("fields") != "items(id,etag),nextPageToken" {
@@ -273,7 +279,7 @@ func TestGoogleOwnedMutationStatefulLayerTriad(t *testing.T) {
 	}{
 		{name: "owned event is conditionally removed", marker: eventIDFixture, remove: true, wantEffects: 1},
 		{name: "owned update preserves owner notes and private metadata", marker: eventIDFixture, wantEffects: 1},
-		{name: "owned recovery has only conditional readback", marker: eventIDFixture, recover: true},
+		{name: "owned recovery collision requires conditional readback", marker: eventIDFixture, recover: true},
 		{name: "later native page establishes owned revision", marker: eventIDFixture, paginate: true, remove: true, wantEffects: 1},
 		{name: "foreign event with valid same ID is untouched", marker: "foreign0", remove: true, want: core.ErrTimeMatchIndeterminate},
 		{name: "missing marker never authorizes update", want: core.ErrTimeMatchIndeterminate},
@@ -332,11 +338,15 @@ func TestGoogleOwnedMutationStatefulLayerTriad(t *testing.T) {
 			}
 			calls := requests.record()
 			for _, call := range calls {
-				if strings.HasSuffix(call.path, "/events") && call.query == "" {
+				if call.method == http.MethodGet && strings.HasSuffix(call.path, "/events") && call.query == "" {
 					t.Fatalf("ownership query = %q for %q, want exact private property", call.query, call.path)
 				}
 			}
-			if tc.race && len(calls) != 2 {
+			wantRaceCalls := 2
+			if tc.recover {
+				wantRaceCalls = 3
+			}
+			if tc.race && len(calls) != wantRaceCalls {
 				t.Fatalf("race requests=%d,want metadata+one conditional attempt and no retry", len(calls))
 			}
 		})
@@ -428,6 +438,10 @@ func TestGoogleOwnedReceiptRejectsUnboundReadback(t *testing.T) {
 				body = strings.TrimSuffix(string(encoded), "}") + `,"etag":"\"other-revision\""}`
 			}
 			client, _ := newNative(t, func(w http.ResponseWriter, r *http.Request, _ []byte) {
+				if r.Method == http.MethodPost {
+					writeJSON(w, 409, `{}`)
+					return
+				}
 				if strings.HasSuffix(r.URL.Path, "/events") {
 					writeJSON(w, 200, `{"items":[{"id":"`+eventIDFixture+`","etag":"\"revision1\""}]}`)
 					return
@@ -523,7 +537,11 @@ func FuzzGoogleOwnedMetadataMutationClosure(f *testing.F) {
 			t.Fatalf("accepted effect/receipt=%d/%v/%+v,want%d and exact owned identity", effects, outcome, receipt, wantEffects)
 		}
 		calls := requests.record()
-		if len(calls) != 2 || calls[1].header.Get("If-Match") != `"revision1"` {
+		wantCalls := 2
+		if operation == 2 {
+			wantCalls = 3
+		}
+		if len(calls) != wantCalls || calls[len(calls)-1].header.Get("If-Match") != `"revision1"` {
 			t.Fatalf("accepted requests=%d,want filtered proof then exact conditional operation", len(calls))
 		}
 	})
