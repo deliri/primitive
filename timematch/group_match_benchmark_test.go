@@ -135,6 +135,13 @@ func groupBenchmarkResultFact(b testing.TB, w groupBenchmarkWorkload, got GroupM
 	if len(got.Windows) == 0 || got.FeasibleStartNanoseconds == 0 {
 		b.Fatalf("admitted fixture windows/starts = %d/%d, want both positive", len(got.Windows), got.FeasibleStartNanoseconds)
 	}
+	wantAttendees := uint64(w.people)
+	if w.optionalCEO {
+		wantAttendees--
+	}
+	if got.RequiredCount+got.Windows[0].OptionalAvailable != wantAttendees {
+		b.Fatalf("best fixture attendance = %d, want %d people", got.RequiredCount+got.Windows[0].OptionalAvailable, wantAttendees)
+	}
 	if w.exactFit && (len(got.Windows) != 1 || got.Windows[0].Starts.Earliest != got.Windows[0].Starts.Latest || got.FeasibleStartNanoseconds != 1) {
 		b.Fatalf("exact fit windows/starts = %+v/%d, want one singleton and one feasible nanosecond start", got.Windows, got.FeasibleStartNanoseconds)
 	}
