@@ -18,7 +18,10 @@ const (
 	// calendarList.list: "The page size can never be larger than 250 entries."
 	googleCalendarListPageSize = "250"
 	// freeBusy.query calendarExpansionMax: "Maximum value is 50."
-	googleFreeBusyBatch = 50
+	googleFreeBusyBatch       = 50
+	googleOwnershipProperty   = "timematchEventId"
+	googleOwnedMetadataFields = "items(id,etag),nextPageToken"
+	googleOwnedDetailsFields  = "id,etag,status,summary,start/dateTime,end/dateTime,extendedProperties/private"
 )
 
 // googleCalendarList reads every page. A repeated page token is a provider
@@ -275,12 +278,25 @@ type googleEventTime struct {
 	DateTime string `json:"dateTime"`
 }
 
+// Google private extensions are scoped to this calendarId/eventId copy.
+type googlePrivateProperties struct {
+	EventID string `json:"timematchEventId"`
+}
+
+type googleExtendedProperties struct {
+	Private googlePrivateProperties `json:"private"`
+}
+
+func (googlePrivateProperties) timematchInternalFlow()  {}
+func (googleExtendedProperties) timematchInternalFlow() {}
+
 type googleEventBody struct {
-	ID           string          `json:"id,omitzero"`
-	Summary      string          `json:"summary"`
-	Start        googleEventTime `json:"start"`
-	End          googleEventTime `json:"end"`
-	Transparency string          `json:"transparency"`
+	ID                 string                    `json:"id,omitzero"`
+	Summary            string                    `json:"summary"`
+	Start              googleEventTime           `json:"start"`
+	End                googleEventTime           `json:"end"`
+	Transparency       string                    `json:"transparency"`
+	ExtendedProperties *googleExtendedProperties `json:"extendedProperties,omitzero"`
 }
 
 func googleEventProjection(intent EventIntent) (googleEventBody, error) {
@@ -305,6 +321,7 @@ func googleEvent(intent EventIntent) ([]byte, error) {
 		return nil, err
 	}
 	body.ID = intent.ID.value
+	body.ExtendedProperties = &googleExtendedProperties{Private: googlePrivateProperties{EventID: intent.ID.value}}
 	encoded, err := json.Marshal(body)
 	if err != nil {
 		return nil, errors.Join(core.ErrTimeMatchContract, err)
@@ -356,22 +373,122 @@ func (c Client) googlePut(ctx context.Context, w EventWrite) (EventReceipt, erro
 	}
 }
 
+// googleOwnedRevision uses Google's documented private-property filter before
+// requesting any event details. The field mask reveals only matching IDs and
+// revisions; it never downloads an unfiltered appointment or private map.
+func (c Client) googleOwnedRevision(ctx context.Context, connection Connection, ref EventRef, policy exchange.OperationPolicy) (exchange.Header, error) {
+	if err := ref.Validate(); err != nil || ref.Provider != ProviderGoogle {
+		return exchange.Header{}, errors.Join(core.ErrTimeMatchContract, err)
+	}
+	secrets, err := bearer(connection.AccessToken)
+	if err != nil {
+		return exchange.Header{}, err
+	}
+	base, err := googleEventURL(ref.Calendar, "", false)
+	if err != nil {
+		return exchange.Header{}, err
+	}
+	query := url.Values{}
+	query.Set("privateExtendedProperty", googleOwnershipProperty+"="+ref.ID.value)
+	query.Set("fields", googleOwnedMetadataFields)
+	// Two entries suffice to disprove one deterministic event's ownership.
+	// This is a provider page size, not a cap that hides later pages.
+	query.Set("maxResults", "2")
+	seen := map[string]bool{}
+	var condition exchange.Header
+	found := false
+	for {
+		target, targetErr := endpoint(base.String() + "?" + query.Encode())
+		if targetErr != nil {
+			return exchange.Header{}, targetErr
+		}
+		result, readErr := c.send(ctx, call{target: target, method: exchange.MethodGet, responseType: core.HTTPMediaTypeJSON(), secrets: secrets, policy: policy, expected: http.StatusOK})
+		if readErr != nil {
+			return exchange.Header{}, errors.Join(core.ErrTimeMatchIndeterminate, readFailure(result, readErr))
+		}
+		page, decodeErr := decodeJSON[googleOwnedEventPage](result.body)
+		clear(result.body)
+		if decodeErr != nil {
+			return exchange.Header{}, errors.Join(core.ErrTimeMatchIndeterminate, decodeErr)
+		}
+		for _, observed := range page.Items {
+			if observed.id != ref.ID.value {
+				return exchange.Header{}, core.ErrTimeMatchConflict
+			}
+			if found || !appleStrongETag(observed.etag) {
+				return exchange.Header{}, errors.Join(core.ErrTimeMatchIndeterminate, core.ErrTimeMatchResponse)
+			}
+			condition, err = header("If-Match", observed.etag)
+			if err != nil {
+				return exchange.Header{}, errors.Join(core.ErrTimeMatchIndeterminate, core.ErrTimeMatchResponse, err)
+			}
+			found = true
+		}
+		if page.NextPageToken == "" {
+			break
+		}
+		if seen[page.NextPageToken] {
+			return exchange.Header{}, errors.Join(core.ErrTimeMatchIndeterminate, core.ErrTimeMatchResponse)
+		}
+		seen[page.NextPageToken] = true
+		query.Set("pageToken", page.NextPageToken)
+	}
+	if !found {
+		return exchange.Header{}, core.ErrTimeMatchIndeterminate
+	}
+	return condition, nil
+}
+
+type googleOwnedEventPage struct {
+	Items         []googleEventObservation `json:"items"`
+	NextPageToken string                   `json:"nextPageToken"`
+}
+
+func (googleOwnedEventPage) timematchInternalFlow() {}
+func (p googleOwnedEventPage) Validate() error {
+	if p.Items == nil || p.NextPageToken != "" && !visibleASCII([]byte(p.NextPageToken)) {
+		return core.ErrTimeMatchResponse
+	}
+	for _, item := range p.Items {
+		if err := item.Validate(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (c Client) googleReadBack(ctx context.Context, w EventWrite, ref EventRef) (EventReceipt, error) {
+	condition, err := c.googleOwnedRevision(ctx, w.Connection, ref, w.Policy)
+	if err != nil {
+		return EventReceipt{}, err
+	}
 	secrets, err := bearer(w.Connection.AccessToken)
 	if err != nil {
 		return EventReceipt{}, err
 	}
-	target, err := googleEventURL(w.Intent.Calendar, w.Intent.ID.value, false)
+	base, err := googleEventURL(ref.Calendar, ref.Resource, false)
 	if err != nil {
 		return EventReceipt{}, err
 	}
-	result, err := c.send(ctx, call{target: target, method: exchange.MethodGet, responseType: core.HTTPMediaTypeJSON(), secrets: secrets, policy: w.Policy, expected: http.StatusOK})
+	query := url.Values{"fields": {googleOwnedDetailsFields}}
+	target, err := endpoint(base.String() + "?" + query.Encode())
 	if err != nil {
-		// An unreadable collision can be our own previously committed write.
-		// No observed foreign event exists to justify a conflict verdict.
+		return EventReceipt{}, err
+	}
+	result, err := c.send(ctx, call{target: target, method: exchange.MethodGet, headers: []exchange.Header{condition}, responseType: core.HTTPMediaTypeJSON(), secrets: secrets, policy: w.Policy, expected: http.StatusOK})
+	if err != nil {
 		return EventReceipt{}, errors.Join(core.ErrTimeMatchIndeterminate, readFailure(result, err))
 	}
-	return verifyGoogle(result.body, w.Intent, ref)
+	defer clear(result.body)
+	observed, err := decodeJSON[googleEventObservation](result.body)
+	if err != nil {
+		return EventReceipt{}, errors.Join(core.ErrTimeMatchIndeterminate, err)
+	}
+	revision, err := condition.Values[0].Value()
+	if err != nil || observed.etag != revision {
+		return EventReceipt{}, errors.Join(core.ErrTimeMatchIndeterminate, core.ErrTimeMatchResponse, err)
+	}
+	return verifyGoogleObservation(observed, w.Intent, ref)
 }
 
 func (c Client) googleUpdate(ctx context.Context, u EventUpdate) (EventReceipt, error) {
@@ -394,11 +511,18 @@ func (c Client) googleUpdate(ctx context.Context, u EventUpdate) (EventReceipt, 
 	if err != nil {
 		return EventReceipt{}, err
 	}
+	condition, err := c.googleOwnedRevision(ctx, u.Connection, u.Ref, u.Policy)
+	if err != nil {
+		return EventReceipt{}, err
+	}
 	// Patch only the explicitly owned fields. Preserve notes, locations and
 	// other provider fields the user may have added to this owned appointment.
 	// https://developers.google.com/workspace/calendar/api/v3/reference/events/patch
-	result, err := c.send(ctx, call{target: target, method: exchange.MethodPatch, body: body, requestType: core.HTTPMediaTypeJSON(), responseType: core.HTTPMediaTypeJSON(), secrets: secrets, policy: u.Policy, expected: http.StatusOK})
+	result, err := c.send(ctx, call{target: target, method: exchange.MethodPatch, body: body, headers: []exchange.Header{condition}, requestType: core.HTTPMediaTypeJSON(), responseType: core.HTTPMediaTypeJSON(), secrets: secrets, policy: u.Policy, expected: http.StatusOK})
 	if err != nil {
+		if result.status == http.StatusPreconditionFailed {
+			return EventReceipt{}, errors.Join(core.ErrTimeMatchConflict, err)
+		}
 		return EventReceipt{}, writeFailure(result, err)
 	}
 	return verifyGoogle(result.body, u.Intent, u.Ref)
@@ -413,7 +537,22 @@ func (c Client) googleDelete(ctx context.Context, d EventDelete) (DeleteOutcome,
 	if err != nil {
 		return DeleteInvalid, err
 	}
-	return c.deleteResource(ctx, call{target: target, method: exchange.MethodDelete, secrets: secrets, policy: d.Policy, expected: http.StatusNoContent})
+	condition, err := c.googleOwnedRevision(ctx, d.Connection, d.Ref, d.Policy)
+	if err != nil {
+		return DeleteInvalid, err
+	}
+	result, err := c.send(ctx, call{target: target, method: exchange.MethodDelete, headers: []exchange.Header{condition}, secrets: secrets, policy: d.Policy, expected: http.StatusNoContent})
+	clear(result.body)
+	switch {
+	case err == nil:
+		return Deleted, nil
+	case result.status == http.StatusPreconditionFailed:
+		return DeleteInvalid, errors.Join(core.ErrTimeMatchConflict, err)
+	case result.status == http.StatusNotFound || result.status == http.StatusGone:
+		return DeleteAlreadyAbsent, nil
+	default:
+		return DeleteInvalid, writeFailure(result, err)
+	}
 }
 
 // deleteResource maps 404 and 410 to an already absent resource.
@@ -431,6 +570,8 @@ func (c Client) deleteResource(ctx context.Context, request call) (DeleteOutcome
 }
 
 type googleEventObservation struct {
+	etag    string
+	marker  string
 	id      string
 	status  string
 	summary string
@@ -440,16 +581,18 @@ type googleEventObservation struct {
 
 func (o *googleEventObservation) UnmarshalJSON(raw []byte) error {
 	var document struct {
-		ID      string          `json:"id"`
-		Status  string          `json:"status"`
-		Summary string          `json:"summary"`
-		Start   googleEventTime `json:"start"`
-		End     googleEventTime `json:"end"`
+		ID                 string                   `json:"id"`
+		ETag               string                   `json:"etag"`
+		ExtendedProperties googleExtendedProperties `json:"extendedProperties"`
+		Status             string                   `json:"status"`
+		Summary            string                   `json:"summary"`
+		Start              googleEventTime          `json:"start"`
+		End                googleEventTime          `json:"end"`
 	}
 	if err := unmarshalExtensible(raw, &document); err != nil {
 		return err
 	}
-	*o = googleEventObservation{id: document.ID, status: document.Status, summary: document.Summary, start: document.Start.DateTime, end: document.End.DateTime}
+	*o = googleEventObservation{etag: document.ETag, marker: document.ExtendedProperties.Private.EventID, id: document.ID, status: document.Status, summary: document.Summary, start: document.Start.DateTime, end: document.End.DateTime}
 	return nil
 }
 
@@ -467,6 +610,13 @@ func verifyGoogle(body []byte, intent EventIntent, ref EventRef) (EventReceipt, 
 	observed, err := decodeJSON[googleEventObservation](body)
 	if err != nil {
 		return EventReceipt{}, errors.Join(core.ErrTimeMatchIndeterminate, err)
+	}
+	return verifyGoogleObservation(observed, intent, ref)
+}
+
+func verifyGoogleObservation(observed googleEventObservation, intent EventIntent, ref EventRef) (EventReceipt, error) {
+	if observed.id != intent.ID.value || observed.marker != intent.ID.value {
+		return EventReceipt{}, core.ErrTimeMatchConflict
 	}
 	// A Google cancelled placeholder can contain only id and status. Its
 	// identity is definitively retired even though no interval survives.
