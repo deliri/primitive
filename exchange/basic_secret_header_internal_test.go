@@ -70,7 +70,7 @@ func TestBasicSecretHeaderRefusesInvalidInputsWithoutPartialCustody(t *testing.T
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			h, err := NewBasicAuthorizationSecretHeader(BasicAuthorizationRequest{Identity: BasicAuthorizationIdentity(tc.identity), Secret: tc.password})
-			if !errors.Is(err, core.ErrExchangeContract) || len(h.Value) != 0 || h.Name != "" || h.Scheme != SecretHeaderUnknown {
+			if !errors.Is(err, core.ErrExchangeContract) || len(h.Value) != 0 || h.Name != (core.HTTPHeaderName{}) || h.Scheme != SecretHeaderUnknown {
 				t.Fatalf("invalid request yielded populated%t error%v want zero and ExchangeContract", len(h.Value) != 0, err)
 			}
 		})

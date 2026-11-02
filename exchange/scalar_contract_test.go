@@ -27,9 +27,6 @@ func TestMultipartNativeFormattingDoesNotSupplyAdmissionAuthority(t *testing.T) 
 		case MultipartPartFile:
 			want = "file"
 		}
-		if scheme == SecretHeaderBasic {
-			wantLabel = "basic"
-		}
 		var wantErr error
 		if want == "" {
 			wantErr = core.ErrExchangeContract
@@ -92,6 +89,9 @@ func TestSecretHeaderSchemeExhaustsNativeByteDomain(t *testing.T) {
 		}
 		if scheme == SecretHeaderBearer {
 			wantLabel = "bearer"
+		}
+		if scheme == SecretHeaderBasic {
+			wantLabel = "basic"
 		}
 		var wantErr error
 		if !wantValid {
