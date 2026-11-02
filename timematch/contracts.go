@@ -268,7 +268,7 @@ func (s Secret) CopyBytes() ([]byte, error) {
 	if err := s.Validate(); err != nil {
 		return nil, err
 	}
-	return slices.Clip(s.value), nil
+	return slices.Clone(s.value), nil
 }
 
 func (s *Secret) Close() error {

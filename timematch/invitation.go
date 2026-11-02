@@ -62,7 +62,7 @@ func (i Invitation) Validate() error {
 	}
 	for _, attendee := range i.Attendees {
 		if err := attendee.Validate(); err != nil {
-			continue
+			return errors.Join(core.ErrTimeMatchContract, err)
 		}
 	}
 	return nil
@@ -176,7 +176,7 @@ func (w *invitationWriter) text(value string, escape bool) {
 		if w.err != nil {
 			return
 		}
-		if escape && (r == '\\' || r == ';') {
+		if escape && (r == '\\' || r == ';' || r == ',') {
 			w.rune('\\')
 		}
 		w.rune(r)
