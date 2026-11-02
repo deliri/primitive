@@ -21,16 +21,18 @@ type GroupParticipant struct {
 
 // GroupMatchRequest finds appointment starts whose complete occupied interval
 // [start-Before,start+Duration+After) fits Window. Duration is positive.
-// All participants cover exactly Window. At least one participant is required.
+// All participants and phase constraints cover exactly Window. At least one
+// required participant or hard phase constraint is required.
 // MaximumWindows selects the best windows across the entire horizon. Zero
 // returns every actual boundary window, with caller-owned output allocation.
 type GroupMatchRequest struct {
-	Window         temporal.IntervalBounds
-	Duration       temporal.Duration
-	Before         temporal.Duration
-	After          temporal.Duration
-	Participants   []GroupParticipant
-	MaximumWindows uint64
+	Window           temporal.IntervalBounds
+	Duration         temporal.Duration
+	Before           temporal.Duration
+	After            temporal.Duration
+	Participants     []GroupParticipant
+	PhaseConstraints []GroupPhaseConstraint
+	MaximumWindows   uint64
 }
 
 // GroupStartRange includes BOTH endpoints at nanosecond precision. An exact
@@ -80,6 +82,7 @@ type GroupMatchResult struct {
 	RemovalImpacts           []GroupRemovalImpact
 	UnknownRequired          []uint64
 	UnknownOptional          []uint64
+	UnknownPhaseConstraints  []uint64
 	RequiredCount            uint64
 	KnownOptionalCount       uint64
 	FeasibleStartNanoseconds uint64
@@ -98,8 +101,13 @@ func (r GroupMatchRequest) Validate() error {
 		}
 		required = required || person.Required
 	}
-	if !required {
+	if !required && len(input.phases) == 0 {
 		return core.ErrTimeMatchContract
+	}
+	for i := range input.phases {
+		if err := groupPhaseContract(input.phases, i, r); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -109,7 +117,7 @@ func groupInputShape(r GroupMatchRequest) (groupInput, error) {
 	if err := errors.Join(positiveInterval(r.Window), r.Duration.Validate(), r.Before.Validate(), r.After.Validate()); err != nil {
 		return groupInput{}, errors.Join(core.ErrTimeMatchContract, err)
 	}
-	if r.Duration.IsZero() || len(r.Participants) == 0 {
+	if r.Duration.IsZero() || len(r.Participants) == 0 && len(r.PhaseConstraints) == 0 {
 		return groupInput{}, core.ErrTimeMatchContract
 	}
 	span, err := r.Before.Add(r.Duration)
@@ -125,7 +133,9 @@ func groupInputShape(r GroupMatchRequest) (groupInput, error) {
 	}
 	people := slices.Clone(r.Participants)
 	slices.SortFunc(people, func(a, b GroupParticipant) int { return groupCompareOrdinal(a.Ordinal, b.Ordinal) })
-	return groupInput{people: people, span: span.Nanoseconds(), horizon: horizon.Nanoseconds()}, nil
+	phases := slices.Clone(r.PhaseConstraints)
+	slices.SortFunc(phases, func(a, b GroupPhaseConstraint) int { return groupCompareOrdinal(a.Ordinal, b.Ordinal) })
+	return groupInput{people: people, phases: phases, span: span.Nanoseconds(), horizon: horizon.Nanoseconds()}, nil
 }
 
 func groupPersonContract(people []GroupParticipant, index int, window temporal.IntervalBounds) error {
@@ -159,8 +169,16 @@ func groupAdmit(ctx context.Context, r GroupMatchRequest) (groupInput, error) {
 		}
 		required = required || person.Required
 	}
-	if !required {
+	if !required && len(input.phases) == 0 {
 		return groupInput{}, core.ErrTimeMatchContract
+	}
+	for i := range input.phases {
+		if err := groupContext(ctx); err != nil {
+			return groupInput{}, errors.Join(core.ErrTimeMatchContract, err)
+		}
+		if err := groupPhaseContract(input.phases, i, r); err != nil {
+			return groupInput{}, err
+		}
 	}
 	return input, nil
 }
@@ -205,6 +223,11 @@ func groupPrepare(ctx context.Context, r GroupMatchRequest, input groupInput) (g
 			return groupPreparation{}, errors.Join(core.ErrTimeMatchContract, err)
 		}
 		if err := groupPreparePerson(ctx, &prepared, i); err != nil {
+			return groupPreparation{}, err
+		}
+	}
+	for _, phase := range input.phases {
+		if err := groupPreparePhase(ctx, &prepared, phase); err != nil {
 			return groupPreparation{}, err
 		}
 	}
@@ -271,7 +294,7 @@ func groupSweep(ctx context.Context, p *groupPreparation) ([]groupCandidate, uin
 		selected = groupKeepWindow(selected, pending, p.request.MaximumWindows)
 		pendingSet = false
 	}
-	requiredBlocked, optionalBlocked := 0, 0
+	requiredBlocked, optionalBlocked, hardBlocked := 0, 0, 0
 	var requiredXOR uint64
 	cursor, event := int64(0), 0
 	for cursor < limit {
@@ -284,7 +307,9 @@ func groupSweep(ctx context.Context, p *groupPreparation) ([]groupCandidate, uin
 			if b.begin {
 				change = 1
 			}
-			if people[b.person].Required {
+			if b.hard {
+				hardBlocked += change
+			} else if people[b.person].Required {
 				requiredBlocked += change
 				requiredXOR ^= uint64(b.person) + 1
 			} else {
@@ -296,7 +321,7 @@ func groupSweep(ctx context.Context, p *groupPreparation) ([]groupCandidate, uin
 		if event < len(boundaries) {
 			next = boundaries[event].at
 		}
-		if requiredBlocked == 0 {
+		if requiredBlocked == 0 && hardBlocked == 0 {
 			result.FeasibleStartNanoseconds += uint64(next - cursor)
 			available := result.KnownOptionalCount - uint64(optionalBlocked)
 			if pendingSet && pending.end == cursor && pending.optional == available {
@@ -310,7 +335,7 @@ func groupSweep(ctx context.Context, p *groupPreparation) ([]groupCandidate, uin
 			continue
 		}
 		flush()
-		if requiredBlocked == 1 {
+		if requiredBlocked == 1 && hardBlocked == 0 {
 			if err := groupRemovalGain(p, requiredXOR, groupCandidate{start: cursor, end: next}); err != nil {
 				return nil, 0, err
 			}
@@ -491,6 +516,7 @@ func groupKeepWindow(selected []groupCandidate, candidate groupCandidate, limit 
 // The following carriers hold only one real stage's input or prepared facts.
 type groupInput struct {
 	people        []GroupParticipant
+	phases        []GroupPhaseConstraint
 	span, horizon int64
 }
 type groupPreparation struct {
@@ -514,6 +540,7 @@ type groupBoundary struct {
 	at     int64
 	person int
 	begin  bool
+	hard   bool
 }
 type groupCandidate struct {
 	start, end int64
