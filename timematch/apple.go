@@ -103,14 +103,14 @@ func appleCalendarURL(id CalendarID) (core.HTTPEndpoint, error) {
 
 // basic builds the RFC 7617 Authorization header through Exchange, which
 // owns the encoding and clears its scratch copies.
-func basic(connection Connection) (exchange.Header, error) {
+func basic(connection Connection) (exchange.SecretHeader, error) {
 	identity, err := exchange.ParseBasicAuthorizationIdentity(connection.AppleAccount.value)
 	if err != nil {
-		return exchange.Header{}, errors.Join(core.ErrTimeMatchContract, err)
+		return exchange.SecretHeader{}, errors.Join(core.ErrTimeMatchContract, err)
 	}
-	authorization, err := exchange.NewBasicAuthorizationHeader(exchange.BasicAuthorizationRequest{Identity: identity, Secret: connection.ApplePassword.value})
+	authorization, err := exchange.NewBasicAuthorizationSecretHeader(exchange.BasicAuthorizationRequest{Identity: identity, Secret: connection.ApplePassword.value})
 	if err != nil {
-		return exchange.Header{}, errors.Join(core.ErrTimeMatchContract, err)
+		return exchange.SecretHeader{}, errors.Join(core.ErrTimeMatchContract, err)
 	}
 	return authorization, nil
 }
@@ -122,7 +122,7 @@ func xmlMediaType() core.HTTPMediaType {
 
 // davRequest is one WebDAV request expecting 207 Multi-Status XML.
 type davRequest struct {
-	auth   exchange.Header
+	auth   exchange.SecretHeader
 	target core.HTTPEndpoint
 	depth  string
 	body   string
@@ -136,7 +136,7 @@ func (c Client) dav(ctx context.Context, r davRequest) (davMultistatusWire, erro
 		return davMultistatusWire{}, err
 	}
 	contentType := core.HTTPHeaderContentType()
-	result, err := c.send(ctx, call{target: r.target, method: r.method, body: []byte(r.body), requestType: xmlMediaType(), headers: []exchange.Header{depthHeader, r.auth}, capture: []core.HTTPHeaderName{contentType}, policy: r.policy, expected: davMultiStatus})
+	result, err := c.send(ctx, call{target: r.target, method: r.method, body: []byte(r.body), requestType: xmlMediaType(), headers: []exchange.Header{depthHeader}, secrets: []exchange.SecretHeader{r.auth}, capture: []core.HTTPHeaderName{contentType}, policy: r.policy, expected: davMultiStatus})
 	if err != nil {
 		return davMultistatusWire{}, readFailure(result, err)
 	}
@@ -240,7 +240,7 @@ func (r davResponseWire) okProp() (davPropWire, bool) {
 }
 
 // appleHome discovers the account's calendar home: principal, then home set.
-func (c Client) appleHome(ctx context.Context, auth exchange.Header, policy exchange.OperationPolicy) (core.HTTPEndpoint, error) {
+func (c Client) appleHome(ctx context.Context, auth exchange.SecretHeader, policy exchange.OperationPolicy) (core.HTTPEndpoint, error) {
 	root, err := endpoint(appleCalDAVRoot)
 	if err != nil {
 		return core.HTTPEndpoint{}, err
@@ -293,6 +293,7 @@ func (c Client) appleCalendarList(ctx context.Context, r CalendarListRequest) (C
 	if err != nil {
 		return CalendarList{}, err
 	}
+	defer clear(auth.Value)
 	home, err := c.appleHome(ctx, auth, r.Policy)
 	if err != nil {
 		return CalendarList{}, err
@@ -359,6 +360,7 @@ func (c Client) appleAvailability(ctx context.Context, r AvailabilityRequest) (A
 	if authErr != nil {
 		return Availability{}, authErr
 	}
+	defer clear(auth.Value)
 	start, startErr := icsStampTime(r.Window.Start)
 	end, endErr := icsCeilingTime(r.Window.End)
 	depth, depthErr := header("Depth", davDepthOne)
@@ -373,7 +375,7 @@ func (c Client) appleAvailability(ctx context.Context, r AvailabilityRequest) (A
 			return Availability{}, targetErr
 		}
 		calendar := CalendarAvailability{ID: id, State: AvailabilityUnknown}
-		result, err := c.send(ctx, call{target: target, method: exchange.MethodReport, body: query, requestType: xmlMediaType(), headers: []exchange.Header{depth, auth}, capture: []core.HTTPHeaderName{core.HTTPHeaderContentType()}, policy: r.Policy, expected: http.StatusOK})
+		result, err := c.send(ctx, call{target: target, method: exchange.MethodReport, body: query, requestType: xmlMediaType(), headers: []exchange.Header{depth}, secrets: []exchange.SecretHeader{auth}, capture: []core.HTTPHeaderName{core.HTTPHeaderContentType()}, policy: r.Policy, expected: http.StatusOK})
 		if err != nil {
 			if failure := readFailure(result, err); !providerUnknown(ctx, failure) {
 				return Availability{}, failure
@@ -433,6 +435,7 @@ func (c Client) applePut(ctx context.Context, w EventWrite) (EventReceipt, error
 	if err != nil {
 		return EventReceipt{}, err
 	}
+	defer clear(auth.Value)
 	condition, err := header("If-None-Match", "*")
 	if err != nil {
 		return EventReceipt{}, err
@@ -440,7 +443,7 @@ func (c Client) applePut(ctx context.Context, w EventWrite) (EventReceipt, error
 	ref := EventRef{ID: w.Intent.ID, Provider: ProviderApple, Calendar: w.Intent.Calendar, Resource: target.String()}
 	// Recovery repeats only the exact child URI with the same create-only
 	// precondition. It can fill an unapplied intent, never replace a resource.
-	result, err := c.send(ctx, call{target: target, method: exchange.MethodPut, body: body, requestType: icsMediaType(), headers: []exchange.Header{condition, auth}, policy: w.Policy, expected: http.StatusCreated})
+	result, err := c.send(ctx, call{target: target, method: exchange.MethodPut, body: body, requestType: icsMediaType(), headers: []exchange.Header{condition}, secrets: []exchange.SecretHeader{auth}, policy: w.Policy, expected: http.StatusCreated})
 	clear(result.body)
 	switch {
 	case err == nil || result.status == http.StatusNoContent:
@@ -454,7 +457,7 @@ func (c Client) applePut(ctx context.Context, w EventWrite) (EventReceipt, error
 
 // appleReadBackRequest reads an existing owned resource after 412.
 type appleReadBackRequest struct {
-	auth   exchange.Header
+	auth   exchange.SecretHeader
 	target core.HTTPEndpoint
 	ref    EventRef
 	intent EventIntent
@@ -463,7 +466,7 @@ type appleReadBackRequest struct {
 
 func (c Client) appleReadBack(ctx context.Context, r appleReadBackRequest) (EventReceipt, error) {
 	intent, ref := r.intent, r.ref
-	result, err := c.send(ctx, call{target: r.target, method: exchange.MethodGet, headers: []exchange.Header{r.auth}, capture: []core.HTTPHeaderName{core.HTTPHeaderContentType()}, policy: r.policy, expected: http.StatusOK})
+	result, err := c.send(ctx, call{target: r.target, method: exchange.MethodGet, secrets: []exchange.SecretHeader{r.auth}, capture: []core.HTTPHeaderName{core.HTTPHeaderContentType()}, policy: r.policy, expected: http.StatusOK})
 	if err != nil {
 		return EventReceipt{}, errors.Join(core.ErrTimeMatchIndeterminate, readFailure(result, err))
 	}
@@ -501,28 +504,96 @@ func appleRefTarget(ref EventRef) (core.HTTPEndpoint, error) {
 // appleMutationMatch reads only the specifically owned resource. RFC4791
 // section5.3.4 requires its GET response to carry a strong ETag. No provider
 // event population or calendar details are read as an availability fallback.
-func (c Client) appleMutationMatch(ctx context.Context, r appleReadBackRequest) (exchange.Header, int, error) {
+func (c Client) appleMutationMatch(ctx context.Context, r appleReadBackRequest) (outcome, error) {
 	etag, err := core.ParseHTTPHeaderName("ETag")
 	if err != nil {
-		return exchange.Header{}, 0, errors.Join(core.ErrTimeMatchContract, err)
+		return outcome{}, errors.Join(core.ErrTimeMatchContract, err)
 	}
-	result, err := c.send(ctx, call{target: r.target, method: exchange.MethodGet, headers: []exchange.Header{r.auth}, capture: []core.HTTPHeaderName{core.HTTPHeaderContentType(), etag}, policy: r.policy, expected: http.StatusOK})
+	result, err := c.send(ctx, call{target: r.target, method: exchange.MethodGet, secrets: []exchange.SecretHeader{r.auth}, capture: []core.HTTPHeaderName{core.HTTPHeaderContentType(), etag}, policy: r.policy, expected: http.StatusOK})
 	if err != nil {
-		return exchange.Header{}, result.status, readFailure(result, err)
+		return outcome{}, errors.Join(core.ErrTimeMatchIndeterminate, readFailure(result, err))
 	}
-	defer clear(result.body)
 	if !mediaIs(result.captured, "text/calendar") {
-		return exchange.Header{}, result.status, core.ErrTimeMatchResponse
+		clear(result.body)
+		return outcome{}, core.ErrTimeMatchResponse
 	}
 	events, err := parseICS(string(result.body))
-	if err != nil || len(events) != 1 || events[0].uid == "" {
-		return exchange.Header{}, result.status, errors.Join(core.ErrTimeMatchResponse, err)
+	if err != nil || len(events) != 1 || events[0].uid == "" || !events[0].resolvable || !events[0].blocking {
+		clear(result.body)
+		return outcome{}, errors.Join(core.ErrTimeMatchResponse, err)
 	}
 	if events[0].uid != r.ref.ID.value {
-		return exchange.Header{}, result.status, core.ErrTimeMatchConflict
+		clear(result.body)
+		return outcome{}, core.ErrTimeMatchConflict
 	}
-	condition, err := appleIfMatch(result.captured)
-	return condition, result.status, err
+	if _, err = appleIfMatch(result.captured); err != nil {
+		clear(result.body)
+		return outcome{}, err
+	}
+	return result, nil
+}
+
+// appleUpdatedResource changes only TimeMatch's top-level event fields. The
+// remaining logical properties and nested components are retained from the
+// single owned GET representation (RFC4791 sections5.3.2/5.3.3). Unsupported
+// recurrence is refused rather than turning a series into a single event.
+func appleUpdatedResource(original, replacement []byte) ([]byte, error) {
+	lines := unfoldICS(string(original))
+	if len(lines) < 2 || !strings.EqualFold(lines[0], "BEGIN:VCALENDAR") || !strings.EqualFold(lines[len(lines)-1], "END:VCALENDAR") {
+		return nil, core.ErrTimeMatchResponse
+	}
+	var controlled []string
+	for _, line := range unfoldICS(string(replacement)) {
+		name, _, ok := cutICSValue(line)
+		if ok && (name == "DTSTAMP" || name == "DTSTART" || name == "DTEND" || name == "SUMMARY") {
+			controlled = append(controlled, line)
+		}
+	}
+	var out strings.Builder
+	var components []string
+	eventDepth := 0
+	for _, line := range lines {
+		upper := strings.ToUpper(line)
+		if strings.HasPrefix(upper, icsBeginGeneric) {
+			component := strings.TrimPrefix(upper, icsBeginGeneric)
+			if component == "VEVENT" {
+				if eventDepth != 0 || len(components) != 1 {
+					return nil, core.ErrTimeMatchResponse
+				}
+				eventDepth = len(components) + 1
+			}
+			components = append(components, component)
+		} else if strings.HasPrefix(upper, icsEndGeneric) {
+			component := strings.TrimPrefix(upper, icsEndGeneric)
+			if len(components) == 0 || components[len(components)-1] != component {
+				return nil, core.ErrTimeMatchResponse
+			}
+			if component == "VEVENT" {
+				for _, next := range controlled {
+					foldICS(&out, next)
+				}
+				eventDepth = 0
+			}
+			components = components[:len(components)-1]
+		} else if eventDepth != 0 && len(components) == eventDepth {
+			name, _, ok := cutICSValue(line)
+			if !ok {
+				return nil, core.ErrTimeMatchResponse
+			}
+			name, _, _ = strings.Cut(strings.ToUpper(name), ";")
+			switch name {
+			case "RRULE", "RDATE", "EXDATE", "RECURRENCE-ID":
+				return nil, core.ErrTimeMatchResponse
+			case "DTSTAMP", "DTSTART", "DTEND", "DURATION", "SUMMARY":
+				continue
+			}
+		}
+		foldICS(&out, line)
+	}
+	if len(components) != 0 {
+		return nil, core.ErrTimeMatchResponse
+	}
+	return []byte(out.String()), nil
 }
 
 func appleIfMatch(captured exchange.CapturedHeaders) (exchange.Header, error) {
@@ -582,14 +653,22 @@ func (c Client) appleUpdate(ctx context.Context, u EventUpdate) (EventReceipt, e
 	if err != nil {
 		return EventReceipt{}, err
 	}
-	condition, status, err := c.appleMutationMatch(ctx, appleReadBackRequest{auth: auth, target: target, ref: u.Ref, policy: u.Policy})
+	defer clear(auth.Value)
+	observed, err := c.appleMutationMatch(ctx, appleReadBackRequest{auth: auth, target: target, ref: u.Ref, policy: u.Policy})
 	if err != nil {
-		if status == http.StatusNotFound || status == http.StatusGone {
-			return EventReceipt{}, errors.Join(core.ErrTimeMatchConflict, err)
-		}
 		return EventReceipt{}, err
 	}
-	result, err := c.send(ctx, call{target: target, method: exchange.MethodPut, body: body, requestType: icsMediaType(), headers: []exchange.Header{condition, auth}, policy: u.Policy, expected: http.StatusNoContent})
+	defer clear(observed.body)
+	condition, err := appleIfMatch(observed.captured)
+	if err != nil {
+		return EventReceipt{}, err
+	}
+	preserved, err := appleUpdatedResource(observed.body, body)
+	if err != nil {
+		return EventReceipt{}, err
+	}
+	defer clear(preserved)
+	result, err := c.send(ctx, call{target: target, method: exchange.MethodPut, body: preserved, requestType: icsMediaType(), headers: []exchange.Header{condition}, secrets: []exchange.SecretHeader{auth}, policy: u.Policy, expected: http.StatusNoContent})
 	clear(result.body)
 	switch {
 	case err == nil || result.status == http.StatusOK:
@@ -612,14 +691,17 @@ func (c Client) appleDelete(ctx context.Context, d EventDelete) (DeleteOutcome, 
 	if err != nil {
 		return DeleteInvalid, err
 	}
-	condition, status, err := c.appleMutationMatch(ctx, appleReadBackRequest{auth: auth, target: target, ref: d.Ref, policy: d.Policy})
+	defer clear(auth.Value)
+	observed, err := c.appleMutationMatch(ctx, appleReadBackRequest{auth: auth, target: target, ref: d.Ref, policy: d.Policy})
 	if err != nil {
-		if status == http.StatusNotFound || status == http.StatusGone {
-			return DeleteAlreadyAbsent, nil
-		}
 		return DeleteInvalid, err
 	}
-	result, err := c.send(ctx, call{target: target, method: exchange.MethodDelete, headers: []exchange.Header{condition, auth}, policy: d.Policy, expected: http.StatusNoContent})
+	defer clear(observed.body)
+	condition, err := appleIfMatch(observed.captured)
+	if err != nil {
+		return DeleteInvalid, err
+	}
+	result, err := c.send(ctx, call{target: target, method: exchange.MethodDelete, headers: []exchange.Header{condition}, secrets: []exchange.SecretHeader{auth}, policy: d.Policy, expected: http.StatusNoContent})
 	clear(result.body)
 	switch {
 	case err == nil || result.status == http.StatusOK:

@@ -239,8 +239,8 @@ func TestAppleDeleteHTTPOutcomeAndNoRecreation(t *testing.T) {
 		{name: "200 confirms enacted deletion", readStatus: 200, deleteStatus: 200, want: Deleted, wantCalls: 2},
 		{name: "204 confirms enacted deletion", readStatus: 200, deleteStatus: 204, want: Deleted, wantCalls: 2},
 		{name: "202 is pending rather than deleted", readStatus: 200, deleteStatus: 202, want: DeleteInvalid, wantErr: core.ErrTimeMatchIndeterminate, wantCalls: 2},
-		{name: "404 preflight is already absent", readStatus: 404, want: DeleteAlreadyAbsent, wantCalls: 1},
-		{name: "410 preflight is already absent", readStatus: 410, want: DeleteAlreadyAbsent, wantCalls: 1},
+		{name: "404 preflight ownership is unknown", readStatus: 404, want: DeleteInvalid, wantErr: core.ErrTimeMatchIndeterminate, wantCalls: 1},
+		{name: "410 preflight ownership is unknown", readStatus: 410, want: DeleteInvalid, wantErr: core.ErrTimeMatchIndeterminate, wantCalls: 1},
 		{name: "404 after preflight is already absent", readStatus: 200, deleteStatus: 404, want: DeleteAlreadyAbsent, wantCalls: 2},
 		{name: "changed revision refuses deletion", readStatus: 200, deleteStatus: 412, want: DeleteInvalid, wantErr: core.ErrTimeMatchConflict, wantCalls: 2},
 		{name: "server failure is indeterminate", readStatus: 200, deleteStatus: 503, want: DeleteInvalid, wantErr: core.ErrTimeMatchIndeterminate, wantCalls: 2},
@@ -282,8 +282,8 @@ func TestAppleUpdateMissingAndChangedResourceNeverCreates(t *testing.T) {
 		wantErr               error
 		wantCalls             int
 	}{
-		{name: "missing resource refuses without PUT", readStatus: 404, wantErr: core.ErrTimeMatchConflict, wantCalls: 1},
-		{name: "gone resource refuses without PUT", readStatus: 410, wantErr: core.ErrTimeMatchConflict, wantCalls: 1},
+		{name: "missing resource refuses without PUT", readStatus: 404, wantErr: core.ErrTimeMatchIndeterminate, wantCalls: 1},
+		{name: "gone resource refuses without PUT", readStatus: 410, wantErr: core.ErrTimeMatchIndeterminate, wantCalls: 1},
 		{name: "lost update CAS refuses", readStatus: 200, putStatus: 412, wantErr: core.ErrTimeMatchConflict, wantCalls: 2},
 		{name: "deleted between read and PUT refuses", readStatus: 200, putStatus: 404, wantErr: core.ErrTimeMatchConflict, wantCalls: 2},
 		{name: "unexpected created response cannot confirm update", readStatus: 200, putStatus: 201, wantErr: core.ErrTimeMatchIndeterminate, wantCalls: 2},

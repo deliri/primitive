@@ -2,6 +2,7 @@ package timematch
 
 import (
 	"bytes"
+	"encoding/base64"
 	"errors"
 	"net/http"
 	"reflect"
@@ -164,4 +165,101 @@ func TestAppleBasicHeaderOwnsClearableBytes(t *testing.T) {
 	if !bytes.Equal(before, connection.ApplePassword.value) {
 		t.Fatal("header cleanup changed borrowed account password")
 	}
+}
+
+func TestAppleUpdateRejectsAmbiguousOwnedRepresentations(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name string
+		edit func(string) string
+	}{
+		{"recurring rule", func(s string) string { return strings.Replace(s, icsEndEvent, "RRULE:FREQ=DAILY\r\n"+icsEndEvent, 1) }},
+		{"recurrence dates", func(s string) string {
+			return strings.Replace(s, icsEndEvent, "RDATE:20261103T150000Z\r\n"+icsEndEvent, 1)
+		}},
+		{"single occurrence cannot rewrite series identity", func(s string) string {
+			return strings.Replace(s, icsEndEvent, "RECURRENCE-ID:20261102T150000Z\r\n"+icsEndEvent, 1)
+		}},
+		{"recurrence exclusions", func(s string) string {
+			return strings.Replace(s, icsEndEvent, "EXDATE:20261103T150000Z\r\n"+icsEndEvent, 1)
+		}},
+		{"two events", func(s string) string {
+			return strings.Replace(s, "END:VCALENDAR", string(appleMutationBody(t))[strings.Index(s, icsBeginEvent):strings.Index(s, "END:VCALENDAR")]+"END:VCALENDAR", 1)
+		}},
+		{"duplicate UID", func(s string) string {
+			return strings.Replace(s, icsEndEvent, "UID:"+appleMutationIntent(t).ID.String()+"\r\n"+icsEndEvent, 1)
+		}},
+		{"unresolved local timezone", func(s string) string {
+			return strings.Replace(s, "DTSTART:20261102T150000Z", "DTSTART;TZID=America/Toronto:20261102T100000", 1)
+		}},
+		{"cancelled owned event", func(s string) string { return strings.Replace(s, icsEndEvent, "STATUS:CANCELLED\r\n"+icsEndEvent, 1) }},
+		{"transparent owned event", func(s string) string { return strings.Replace(s, "TRANSP:OPAQUE", "TRANSP:TRANSPARENT", 1) }},
+		{"missing calendar terminator", func(s string) string { return strings.Replace(s, "END:VCALENDAR\r\n", "", 1) }},
+		{"mismatched nested component", func(s string) string {
+			return strings.Replace(s, icsEndEvent, "BEGIN:VALARM\r\nACTION:DISPLAY\r\nEND:X-OTHER\r\n"+icsEndEvent, 1)
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			original := tc.edit(string(appleMutationBody(t)))
+			client, p := newNative(t, func(w http.ResponseWriter, r *http.Request, _ []byte) {
+				if r.Method != http.MethodGet {
+					t.Error("ambiguous representation reached mutation")
+					w.WriteHeader(500)
+					return
+				}
+				w.Header().Set("Content-Type", "text/calendar")
+				w.Header().Set("ETag", `"owned-revision"`)
+				if _, err := w.Write([]byte(original)); err != nil {
+					t.Error(err)
+				}
+			})
+			got, err := client.UpdateEvent(t.Context(), EventUpdate{Connection: appleReviewConnection(t), Ref: appleMutationRef(t), Intent: appleMutationIntent(t), ObservedAt: at(t, "2026-11-02T09:00:00Z"), Policy: fixturePolicy(t)})
+			if !errors.Is(err, core.ErrTimeMatchResponse) || got != (EventReceipt{}) || len(p.record()) != 1 {
+				t.Fatalf("ambiguous resource receipt%t error%v requests%d want zero,Response,1", got != (EventReceipt{}), err, len(p.record()))
+			}
+		})
+	}
+}
+func FuzzAppleOwnedUpdatePropertyConservation(f *testing.F) {
+	seed := appleMutationBody(f)
+	f.Add([]byte("canonical user note"))
+	f.Add([]byte{})
+	f.Add([]byte("é;,:\\\r\nBEGIN:VEVENT"))
+	next, err := writeICS(appleMutationIntent(f), at(f, "2026-11-02T09:00:00Z"))
+	if err != nil {
+		f.Fatal(err)
+	}
+	f.Fuzz(func(t *testing.T, note []byte) {
+		// Base64 is an independent property-safe reversible representation of every
+		// fuzz byte sequence; mutation can never escape its single user property.
+		encoded := base64.StdEncoding.EncodeToString(note)
+		original := bytes.Replace(seed, []byte(icsEndEvent), []byte("X-USER-NOTE;ENCODING=BASE64:"+encoded+icsCRLF+icsEndEvent), 1)
+		before := bytes.Clone(original)
+		got, err := appleUpdatedResource(original, next)
+		if err != nil {
+			t.Fatalf("valid owned property refused: %v", err)
+		}
+		if !bytes.Equal(original, before) {
+			t.Fatal("owned source mutated")
+		}
+		unfolded := appleReviewUnfold(string(got))
+		prefix := "X-USER-NOTE;ENCODING=BASE64:"
+		var observed string
+		count := 0
+		for _, line := range strings.Split(unfolded, icsCRLF) {
+			if strings.HasPrefix(line, prefix) {
+				observed = strings.TrimPrefix(line, prefix)
+				count++
+			}
+		}
+		recovered, err := base64.StdEncoding.DecodeString(observed)
+		if err != nil || count != 1 || !bytes.Equal(recovered, note) {
+			t.Fatalf("user property conservation count%d decode%v exact%t want1,nil,true", count, err, bytes.Equal(recovered, note))
+		}
+		second, err := appleUpdatedResource(got, next)
+		if err != nil || !bytes.Equal(second, got) {
+			t.Fatalf("second same-intent write stable%t error%v want true,nil", bytes.Equal(second, got), err)
+		}
+	})
 }

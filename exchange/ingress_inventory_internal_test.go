@@ -203,6 +203,7 @@ func InternalIngressCoverageForTest() []IngressCoverageForTest {
 		{Door: NewStandardOfficialSDKResponseTransport, Kind: IngressFuzzForTest, Fuzz: FuzzOfficialSDKBoundaryCeilingAndStreamingConfiguration},
 		{Door: ParseBasicAuthorizationIdentity, Kind: IngressFuzzForTest, Fuzz: FuzzParseBasicAuthorizationIdentitySemanticClosure},
 		{Door: NewBasicAuthorizationHeader, Kind: IngressFuzzForTest, Fuzz: FuzzNewBasicAuthorizationHeaderCustody},
+		{Door: NewBasicAuthorizationSecretHeader, Kind: IngressFuzzForTest, Fuzz: FuzzBasicSecretHeaderNativeSemanticClosure},
 		{Door: ParseIdempotencyKey, Kind: IngressFuzzForTest, Fuzz: FuzzParseIdempotencyKeySemanticClosure},
 		{Door: ParseSocketRoutePath, Kind: IngressFuzzForTest, Fuzz: FuzzParseSocketRoutePathSemanticClosure},
 		{Door: (*Method).UnmarshalJSON, Kind: IngressFuzzForTest, Fuzz: FuzzMethodJSONSemanticClosure},

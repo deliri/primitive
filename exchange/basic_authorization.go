@@ -134,6 +134,54 @@ func NewBasicAuthorizationHeader(request BasicAuthorizationRequest) (Header, err
 	return header, nil
 }
 
+// NewBasicAuthorizationSecretHeader returns an owned, clearable Base64 token.
+// The caller clears Value after the last synchronous request. Exchange adds
+// the Basic scheme only at the native HTTP boundary; no SDK string holds the
+// encoded credential. The input secret remains borrowed and unchanged.
+func NewBasicAuthorizationSecretHeader(request BasicAuthorizationRequest) (SecretHeader, error) {
+	if err := request.Validate(); err != nil {
+		return SecretHeader{}, err
+	}
+	var rawStorage [basicAuthorizationRawMaximumBytes]byte
+	defer clear(rawStorage[:])
+	raw := append(rawStorage[:0], request.Identity.String()...)
+	raw = append(raw, ':')
+	raw = append(raw, request.Secret...)
+	encoded := make([]byte, base64.StdEncoding.EncodedLen(len(raw)))
+	base64.StdEncoding.Encode(encoded, raw)
+	header := SecretHeader{Name: coreHeaderAuthorization(), Value: encoded, Scheme: SecretHeaderBasic}
+	if err := header.Validate(); err != nil {
+		clear(encoded)
+		return SecretHeader{}, err
+	}
+	return header, nil
+}
+
+// validateBasicSecretToken validates the encoded token using only temporary
+// mutable decoded storage. CR/LF and noncanonical Base64 are refused, rather
+// than relying on the decoder's permissive newline handling.
+func validateBasicSecretToken(encoded []byte) error {
+	if len(encoded) == 0 || len(encoded) > basicAuthorizationBase64MaximumBytes {
+		return core.ErrExchangeContract
+	}
+	for _, value := range encoded {
+		if value == '\r' || value == '\n' {
+			return core.ErrExchangeContract
+		}
+	}
+	var decodedStorage [basicAuthorizationDecodedMaximumBytes]byte
+	defer clear(decodedStorage[:])
+	count, err := base64.StdEncoding.Strict().Decode(decodedStorage[:], encoded)
+	if err != nil {
+		return errors.Join(core.ErrExchangeContract, err)
+	}
+	identity, secret, found := bytes.Cut(decodedStorage[:count], []byte{':'})
+	if !found {
+		return core.ErrExchangeContract
+	}
+	return (BasicAuthorizationRequest{Identity: BasicAuthorizationIdentity(identity), Secret: secret}).Validate()
+}
+
 // ReceiveBasicAuthorization decodes and validates one standard Basic header.
 // The caller owns and clears the returned secret after authentication.
 func ReceiveBasicAuthorization(call SocketServerCall) (BasicAuthorizationRequest, error) {

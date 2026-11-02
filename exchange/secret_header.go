@@ -15,12 +15,13 @@ const (
 	SecretHeaderUnknown SecretHeaderScheme = iota
 	SecretHeaderLiteral
 	SecretHeaderBearer
+	SecretHeaderBasic
 )
 
 func (SecretHeaderScheme) OffWireEnum() {}
 
 func (s SecretHeaderScheme) IsValid() bool {
-	return s == SecretHeaderLiteral || s == SecretHeaderBearer
+	return s == SecretHeaderLiteral || s == SecretHeaderBearer || s == SecretHeaderBasic
 }
 
 func (s SecretHeaderScheme) String() string {
@@ -29,6 +30,8 @@ func (s SecretHeaderScheme) String() string {
 		return "literal"
 	case SecretHeaderBearer:
 		return "bearer"
+	case SecretHeaderBasic:
+		return "basic"
 	default:
 		return core.UnknownEnumDiagnostic
 	}
@@ -55,6 +58,11 @@ func (h SecretHeader) Validate() error {
 		return core.ErrExchangeContract
 	}
 	switch h.Scheme {
+	case SecretHeaderBasic:
+		if h.Name != coreHeaderAuthorization() {
+			return core.ErrExchangeContract
+		}
+		return validateBasicSecretToken(h.Value)
 	case SecretHeaderBearer:
 		if h.Name != coreHeaderAuthorization() {
 			return core.ErrExchangeContract
@@ -109,6 +117,8 @@ func validateSecretHeaders(headers []SecretHeader, ordinary Headers) error {
 func applySecretHeaders(request *http.Request, headers []SecretHeader) error {
 	for _, header := range headers {
 		switch header.Scheme {
+		case SecretHeaderBasic:
+			request.Header.Set(header.Name.String(), basicAuthorizationScheme+string(header.Value))
 		case SecretHeaderLiteral:
 			request.Header.Set(header.Name.String(), string(header.Value))
 		case SecretHeaderBearer:
