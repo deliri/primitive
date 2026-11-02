@@ -107,6 +107,16 @@ func (v SSAUnitView) storedValue(ctx context.Context, value ssa.Value) (ssa.Valu
 	default:
 		return value, nil
 	}
+	return v.stableStoredValue(ctx, value)
+}
+
+// The native single-store proof is independent of the stored value's type.
+// Legacy storage relations retain their type gate in storedValue above.
+func (v SSAUnitView) stableStoredValue(ctx context.Context, value ssa.Value) (ssa.Value, error) {
+	load, ok := value.(*ssa.UnOp)
+	if !ok || load.Op != token.MUL {
+		return value, nil
+	}
 	cell := nativeCaptureCell(load.X)
 	if cell == nil || cell.Referrers() == nil {
 		return value, nil
