@@ -133,13 +133,21 @@ func (c Capability) ObserveModuleClosure(ctx context.Context, request ModuleClos
 	if err != nil || strings.ContainsAny(cache.String(), "\r\n") {
 		return ModuleClosureObservation{}, errors.Join(core.ErrGoToolchainOutput, err)
 	}
-	observed := ModuleClosureObservation{ModuleCache: cache, Environment: environment}
+	environmentObservation, err := environment.Observation()
+	if err != nil {
+		return ModuleClosureObservation{}, err
+	}
+	observed := ModuleClosureObservation{ModuleCache: cache, Environment: environmentObservation}
 	err = c.withCompletedCommandOutput(ctx, request.WorkingDirectory, []string{"list", "-mod=readonly", "-m", "-json", "all"}, func(source io.Reader, native process.ResultObservation) error {
 		_, verified, err := c.execute(ctx, request.WorkingDirectory, "mod", "verify")
 		if err != nil {
 			return err
 		}
-		observed.Modules, observed.Verification = native, verified
+		verification, err := verified.Observation()
+		if err != nil {
+			return err
+		}
+		observed.Modules, observed.Verification = native, verification
 		selected, err := visitSelectedModules(ctx, moduleSelectionVisit{source: source, cache: cache, sums: sums, visit: request.VisitSelected})
 		if err != nil {
 			return err
