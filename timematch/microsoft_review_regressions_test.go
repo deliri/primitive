@@ -22,9 +22,11 @@ func TestMicrosoftPatchPreservesUserCalendarPreferences(t *testing.T) {
 		defer mutex.Unlock()
 		if r.Method == http.MethodGet {
 			writeJSON(w, 200, string(seedJSON(t, struct {
-				graphOwnedMetadata
-				ETag string `json:"@odata.etag"`
-			}{graphOwnedMetadata: microsoftMetadata(immutableFixtureID, owned.ID.value), ETag: `W/"observed-revision"`})))
+				ID            string               `json:"id"`
+				TransactionID string               `json:"transactionId"`
+				Ownership     []graphOwnedProperty `json:"singleValueExtendedProperties"`
+				ETag          string               `json:"@odata.etag"`
+			}{ID: immutableFixtureID, TransactionID: owned.ID.value, Ownership: []graphOwnedProperty{{ID: graphOwnershipProperty, Value: owned.ID.value}}, ETag: `W/"observed-revision"`})))
 			return
 		}
 		if r.Method != http.MethodPatch {
