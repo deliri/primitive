@@ -143,18 +143,19 @@ func (c Capability) ObserveModuleClosure(ctx context.Context, request ModuleClos
 		if verifyErr != nil {
 			return verifyErr
 		}
-		verification, err := verified.Observation()
-		if err != nil {
-			return err
+		verification, observationErr := verified.Observation()
+		if observationErr != nil {
+			return observationErr
 		}
 		observed.Modules, observed.Verification = native, verification
-		selected, err := visitSelectedModules(ctx, moduleSelectionVisit{source: source, cache: cache, sums: sums, visit: request.VisitSelected})
-		if err != nil {
-			return err
+		selected, selectionErr := visitSelectedModules(ctx, moduleSelectionVisit{source: source, cache: cache, sums: sums, visit: request.VisitSelected})
+		if selectionErr != nil {
+			return selectionErr
 		}
 		observed.Selected = selected
-		observed.AvailableGoMod, err = visitGoModMetadata(ctx, goModMetadataVisit{cache: cache, sums: sums, visit: request.VisitGoMod})
-		return err
+		available, metadataErr := visitGoModMetadata(ctx, goModMetadataVisit{cache: cache, sums: sums, visit: request.VisitGoMod})
+		observed.AvailableGoMod = available
+		return metadataErr
 	})
 	if err := errors.Join(err, contextstate.Validate(ctx)); err != nil {
 		return ModuleClosureObservation{}, err
