@@ -141,14 +141,22 @@ func (c Client) ExchangeCode(ctx context.Context, r CodeExchange) (Grant, error)
 		return Grant{}, err
 	}
 	defer token.clear()
+	grant, err := admitExchange(token, r)
+	if err != nil && r.Application.Provider == ProviderGoogle {
+		// A refused grant must not stay live at the provider. Revoking the
+		// access token also revokes its refresh token (Google OAuth web-server
+		// guide). Microsoft documents no revocation door: zeroing is all.
+		_, revokeErr := c.revokeGoogle(ctx, token.access, r.Policy)
+		return Grant{}, errors.Join(err, revokeErr)
+	}
+	return grant, err
+}
+
+// admitExchange applies the lifetime contract to an issued token: a visitor
+// never consented to retained access, and a business grant requires it.
+func admitExchange(token tokenWire, r CodeExchange) (Grant, error) {
 	if r.Lifetime == LifetimeVisitor && len(token.refresh) != 0 {
-		// A visitor never consented to retained access. Revoke what Google
-		// issued anyway; Microsoft documents no revocation door.
-		var revokeErr error
-		if r.Application.Provider == ProviderGoogle {
-			_, revokeErr = c.revokeGoogle(ctx, token.refresh, r.Policy)
-		}
-		return Grant{}, errors.Join(core.ErrTimeMatchResponse, revokeErr)
+		return Grant{}, core.ErrTimeMatchResponse
 	}
 	if r.Lifetime == LifetimeBusiness && len(token.refresh) == 0 {
 		return Grant{}, core.ErrTimeMatchConsent

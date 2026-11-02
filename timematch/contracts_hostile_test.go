@@ -269,6 +269,15 @@ func TestRequestShapesRefuseUnsafeCombinations(t *testing.T) {
 		{name: "delete across providers", request: func(t *testing.T) core.Validatable {
 			return EventDelete{Connection: oauthConnection(t, ProviderGoogle), Ref: EventRef{Provider: ProviderMicrosoft, Calendar: calendarID(t, "a"), Resource: "x"}, Policy: fixturePolicy(t)}
 		}},
+		{name: "grant visitor confirmation without refresh", request: func(t *testing.T) core.Validatable {
+			return Grant{Provider: ProviderMicrosoft, Lifetime: LifetimeVisitor, Access: AccessManageEvents, AccessToken: secret(t, "a"), ExpiresAt: at(t, "2026-11-02T10:00:00Z")}
+		}, want: true},
+		{name: "grant visitor confirmation with refresh", request: func(t *testing.T) core.Validatable {
+			return Grant{Provider: ProviderGoogle, Lifetime: LifetimeVisitor, Access: AccessManageEvents, AccessToken: secret(t, "a"), RefreshToken: secret(t, "r"), ExpiresAt: at(t, "2026-11-02T10:00:00Z")}
+		}},
+		{name: "grant business availability with refresh", request: func(t *testing.T) core.Validatable {
+			return Grant{Provider: ProviderGoogle, Lifetime: LifetimeBusiness, Access: AccessAvailability, AccessToken: secret(t, "a"), RefreshToken: secret(t, "r"), ExpiresAt: at(t, "2026-11-02T10:00:00Z")}
+		}, want: true},
 		{name: "grant visitor with refresh", request: func(t *testing.T) core.Validatable {
 			return Grant{Provider: ProviderGoogle, Lifetime: LifetimeVisitor, Access: AccessAvailability, AccessToken: secret(t, "a"), RefreshToken: secret(t, "r"), ExpiresAt: at(t, "2026-11-02T10:00:00Z")}
 		}},

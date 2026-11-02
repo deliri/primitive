@@ -47,9 +47,13 @@ func (a Access) Validate() error {
 	return nil
 }
 
-// Lifetime separates a one-shot visitor grant from a retained business
-// connection. A visitor grant never requests offline access, never carries a
-// refresh credential and is never an application account.
+// Lifetime separates a one-shot visitor grant from a retained connection.
+// A visitor grant is online-only: it exists to read availability and, with
+// AccessManageEvents, to write the one confirmed appointment; it never
+// requests offline access, never carries a refresh credential and is never an
+// application account. The caller revokes it where the provider supports
+// revocation and closes it after confirmation or abandonment. Business is the
+// explicit opt-in for continued (repeating) access.
 type Lifetime uint8
 
 const (
@@ -322,13 +326,7 @@ func (a Application) Validate() error {
 }
 
 func validateGrantShape(access Access, lifetime Lifetime) error {
-	if err := errors.Join(access.Validate(), lifetime.Validate()); err != nil {
-		return err
-	}
-	if lifetime == LifetimeVisitor && access != AccessAvailability {
-		return core.ErrTimeMatchContract
-	}
-	return nil
+	return errors.Join(access.Validate(), lifetime.Validate())
 }
 
 // AuthorizationRequest binds application-stored state and PKCE challenge to
@@ -458,6 +456,17 @@ func (c Connection) Validate() error {
 		return core.ErrTimeMatchContract
 	}
 	return c.AccessToken.Validate()
+}
+
+// Close zeroes the connection's credentials (shared with the Grant or
+// BrowserAppleConnection they came from) and clears the connection.
+func (c *Connection) Close() error {
+	if c == nil {
+		return core.ErrTimeMatchContract
+	}
+	err := errors.Join(c.AccessToken.Close(), c.ApplePassword.Close())
+	*c = Connection{}
+	return err
 }
 
 // CalendarID is an opaque provider calendar coordinate (a Google calendar ID,
