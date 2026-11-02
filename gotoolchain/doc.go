@@ -24,6 +24,18 @@
 // ObserveModuleFile delegates go.mod grammar to Go's read-only mod edit -json
 // command. It retains only a declared-version and replacement-count projection;
 // native Go owns its file parser, and Go's JSON cursor owns scalar buffers.
+// ObserveModuleClosure runs completed native module selection and cache
+// verification with workspace mode disabled. It lends canonical selected
+// extracted trees, native selected metadata and every available frozen-go.sum
+// go.mod entry, including MVS losers. Native h1 binds content; .info binds only
+// version identity. The checksum/duplicate index is SDK-private and proportional
+// to the supplied go.sum, not a copied dependency graph. Native Go may read or
+// populate its configured cache; callers choose their exact environment.
+// Visitor prefixes are provisional until complete native success, EOF and all
+// hashes succeed. Callers freeze/reverify bytes, exclude writes through use,
+// preserve module files and prove their own isolated offline replay. Missing
+// historical metadata is omitted, not asserted unnecessary. This door neither
+// transports files nor certifies an offline closure or a cache speedup.
 // ObserveExecutableMetadata borrows an already-open executable, delegates its
 // positional reads to Filestore and its metadata grammar to Go's buildinfo
 // parser, then lends native header, dependency and setting facts synchronously.
