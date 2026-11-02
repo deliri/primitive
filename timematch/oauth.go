@@ -351,7 +351,7 @@ type grantShape struct {
 
 func (t tokenWire) grant(shape grantShape) (Grant, error) {
 	provider, access, lifetime, observed := shape.provider, shape.access, shape.lifetime, shape.observed
-	if !grantedScopes(shape, t.scope) {
+	if (t.scopePresent || t.scope != "") && !grantedScopes(shape, t.scope) {
 		return Grant{}, core.ErrTimeMatchConsent
 	}
 	expires, err := expiry(observed, t.expiresIn)

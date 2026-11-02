@@ -115,7 +115,7 @@ func readFailure(result outcome, err error) error {
 	switch {
 	case result.status == 0 && errors.Is(err, core.ErrExchangeRequest):
 		return errors.Join(core.ErrTimeMatchContract, err)
-	case result.status == http.StatusUnauthorized || result.status == http.StatusForbidden:
+	case result.status == http.StatusUnauthorized:
 		return errors.Join(core.ErrTimeMatchConsent, err)
 	default:
 		return errors.Join(core.ErrTimeMatchResponse, err)
