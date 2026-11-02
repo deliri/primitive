@@ -25,10 +25,12 @@ type authorizedUserFixture struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
-func TestAuthorizedUserFileRefreshAndAuthenticatedPage(t *testing.T) {
-	t.Parallel()
+// authorizedUserFixtureRun drives the real constructor body against a TLS
+// fixture whose token endpoint answers with tokenBody.
+func authorizedUserFixtureRun(t *testing.T, tokenBody []byte) (tokens, catalog int64, page PageReceipt, proof []byte, body []byte, err error) {
+	t.Helper()
 	var tokenCalls, catalogCalls atomic.Int64
-	body := encodedFixture(t, fixturePage())
+	body = encodedFixture(t, fixturePage())
 	provider := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/token":
@@ -44,9 +46,7 @@ func TestAuthorizedUserFileRefreshAndAuthenticatedPage(t *testing.T) {
 				return
 			}
 			w.Header().Set("Content-Type", "application/json")
-			if err := json.NewEncoder(w).Encode(tokenFixture{AccessToken: "file-fixture-access", TokenType: "Bearer", ExpiresIn: 3600}); err != nil {
-				t.Error(err)
-			}
+			_, _ = w.Write(tokenBody)
 		case "/v1/services/service/skus":
 			catalogCalls.Add(1)
 			if r.Header.Get("Authorization") != "Bearer file-fixture-access" || r.Header.Get(quotaProjectHeader) != "test-project" {
@@ -110,13 +110,46 @@ func TestAuthorizedUserFileRefreshAndAuthenticatedPage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var proof bytes.Buffer
-	got, err := server.ListSKUs(t.Context(), ListSKUsRequest{Proof: &proof}, exchange.StreamPolicy{Redirect: exchange.RedirectPolicy{Mode: exchange.RedirectReject}})
+	var written bytes.Buffer
+	page, err = server.ListSKUs(t.Context(), ListSKUsRequest{Proof: &written}, exchange.StreamPolicy{Redirect: exchange.RedirectPolicy{Mode: exchange.RedirectReject}})
+	return tokenCalls.Load(), catalogCalls.Load(), page, written.Bytes(), body, err
+}
+
+func TestAuthorizedUserFileRefreshAndAuthenticatedPage(t *testing.T) {
+	t.Parallel()
+	token, err := json.Marshal(tokenFixture{AccessToken: "file-fixture-access", TokenType: "Bearer", ExpiresIn: 3600})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if tokenCalls.Load() != 1 || catalogCalls.Load() != 1 || got.Source.SHA256 != core.SHA256Of(body) || !bytes.Equal(proof.Bytes(), append(append([]byte{}, body...), '\n')) {
-		t.Fatalf("file SDK path token/catalog calls=(%d,%d), want(1,1) and exact source receipt", tokenCalls.Load(), catalogCalls.Load())
+	tokens, catalog, got, proof, body, err := authorizedUserFixtureRun(t, token)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tokens != 1 || catalog != 1 || got.Source.SHA256 != core.SHA256Of(body) || !bytes.Equal(proof, append(append([]byte{}, body...), '\n')) {
+		t.Fatalf("file SDK path token/catalog calls=(%d,%d), want(1,1) and exact source receipt", tokens, catalog)
+	}
+}
+
+// Credential discovery crosses Exchange's JSON boundary, which admits only
+// RFC 7493 text. Go's encoding/json would accept both rows (last duplicate
+// wins; invalid UTF-8 becomes U+FFFD); Exchange refuses them before Google's
+// client sees a token, so no catalog request is ever authenticated by one.
+func TestCredentialDiscoveryCrossesExchangeJSONBoundary(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name string
+		body string
+	}{
+		{"a duplicated access_token member", `{"access_token":"first","access_token":"file-fixture-access","token_type":"Bearer","expires_in":3600}`},
+		{"invalid UTF-8 in the token", "{\"access_token\":\"file-fixture-access\xff\",\"token_type\":\"Bearer\",\"expires_in\":3600}"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			tokens, catalog, _, _, _, err := authorizedUserFixtureRun(t, []byte(tc.body))
+			if err == nil || tokens != 1 || catalog != 0 {
+				t.Fatalf("token/catalog calls=(%d,%d) err=%v, want one refused token exchange and no catalog request", tokens, catalog, err)
+			}
+		})
 	}
 }
 
