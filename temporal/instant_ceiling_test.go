@@ -3,6 +3,7 @@ package temporal
 import (
 	"errors"
 	"math"
+	"slices"
 	"strconv"
 	"testing"
 	"time"
@@ -17,7 +18,9 @@ func TestInstantCeilingNativeOracleAtSignedBoundaries(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		for _, nanos := range []int64{math.MinInt64, math.MinInt64 + 1, math.MinInt64 + unit - 1, math.MinInt64 + unit, -unit - 1, -unit, -unit + 1, -1, 0, 1, unit - 1, unit, unit + 1, math.MaxInt64 - unit + 1, math.MaxInt64 - 1, math.MaxInt64} {
+		values := []int64{math.MinInt64, math.MinInt64 + 1, math.MinInt64 + unit - 1, math.MinInt64 + unit, -unit - 1, -unit, -unit + 1, -1, 0, 1, unit - 1, unit, unit + 1, math.MaxInt64 - unit + 1, math.MaxInt64 - 1, math.MaxInt64}
+		slices.Sort(values)
+		for _, nanos := range slices.Compact(values) {
 			t.Run(precision.String()+"_"+strconv.FormatInt(nanos, 10), func(t *testing.T) {
 				t.Parallel()
 				input := InstantFromNanoseconds(nanos)
