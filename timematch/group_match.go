@@ -87,53 +87,82 @@ type GroupMatchResult struct {
 }
 
 func (r GroupMatchRequest) Validate() error {
-	_, _, _, err := groupInputs(nil, r)
-	return err
+	input, err := groupInputShape(r)
+	if err != nil {
+		return err
+	}
+	required := false
+	for i, person := range input.people {
+		if err := groupPersonContract(input.people, i, r.Window); err != nil {
+			return err
+		}
+		required = required || person.Required
+	}
+	if !required {
+		return core.ErrTimeMatchContract
+	}
+	return nil
 }
 
-func groupInputs(ctx context.Context, r GroupMatchRequest) ([]GroupParticipant, int64, int64, error) {
-	var contextErr error
-	if ctx != nil {
-		contextErr = groupContext(ctx)
-	}
-	if err := errors.Join(contextErr, positiveInterval(r.Window), r.Duration.Validate(), r.Before.Validate(), r.After.Validate()); err != nil {
-		return nil, 0, 0, errors.Join(core.ErrTimeMatchContract, err)
+// Shape admission is pure; it constructs no execution context.
+func groupInputShape(r GroupMatchRequest) (groupInput, error) {
+	if err := errors.Join(positiveInterval(r.Window), r.Duration.Validate(), r.Before.Validate(), r.After.Validate()); err != nil {
+		return groupInput{}, errors.Join(core.ErrTimeMatchContract, err)
 	}
 	if r.Duration.IsZero() || len(r.Participants) == 0 {
-		return nil, 0, 0, core.ErrTimeMatchContract
+		return groupInput{}, core.ErrTimeMatchContract
 	}
 	span, err := r.Before.Add(r.Duration)
 	if err == nil {
 		span, err = span.Add(r.After)
 	}
 	if err != nil {
-		return nil, 0, 0, errors.Join(core.ErrTimeMatchContract, err)
+		return groupInput{}, errors.Join(core.ErrTimeMatchContract, err)
 	}
 	horizon, err := r.Window.End.Since(r.Window.Start)
 	if err != nil {
-		return nil, 0, 0, errors.Join(core.ErrTimeMatchContract, err)
+		return groupInput{}, errors.Join(core.ErrTimeMatchContract, err)
 	}
 	people := slices.Clone(r.Participants)
 	slices.SortFunc(people, func(a, b GroupParticipant) int { return groupCompareOrdinal(a.Ordinal, b.Ordinal) })
+	return groupInput{people: people, span: span.Nanoseconds(), horizon: horizon.Nanoseconds()}, nil
+}
+
+func groupPersonContract(people []GroupParticipant, index int, window temporal.IntervalBounds) error {
+	person := people[index]
+	if index > 0 && person.Ordinal == people[index-1].Ordinal || person.Availability.Window != window {
+		return core.ErrTimeMatchContract
+	}
+	if err := person.Availability.Validate(); err != nil {
+		return errors.Join(core.ErrTimeMatchContract, err)
+	}
+	return nil
+}
+
+// Runtime admission shares the pure validators and polls the caller's real
+// context between people, including immediately after the private sort.
+func groupAdmit(ctx context.Context, r GroupMatchRequest) (groupInput, error) {
+	if err := groupContext(ctx); err != nil {
+		return groupInput{}, errors.Join(core.ErrTimeMatchContract, err)
+	}
+	input, err := groupInputShape(r)
+	if err != nil {
+		return groupInput{}, err
+	}
 	required := false
-	for i, p := range people {
-		if ctx != nil {
-			if err := groupContext(ctx); err != nil {
-				return nil, 0, 0, errors.Join(core.ErrTimeMatchContract, err)
-			}
+	for i, person := range input.people {
+		if err := groupContext(ctx); err != nil {
+			return groupInput{}, errors.Join(core.ErrTimeMatchContract, err)
 		}
-		if i > 0 && p.Ordinal == people[i-1].Ordinal || p.Availability.Window != r.Window {
-			return nil, 0, 0, core.ErrTimeMatchContract
+		if err := groupPersonContract(input.people, i, r.Window); err != nil {
+			return groupInput{}, err
 		}
-		if err := p.Availability.Validate(); err != nil {
-			return nil, 0, 0, errors.Join(core.ErrTimeMatchContract, err)
-		}
-		required = required || p.Required
+		required = required || person.Required
 	}
 	if !required {
-		return nil, 0, 0, core.ErrTimeMatchContract
+		return groupInput{}, core.ErrTimeMatchContract
 	}
-	return people, span.Nanoseconds(), horizon.Nanoseconds(), nil
+	return input, nil
 }
 
 // MatchGroup is an observation-only interval-boundary sweep. It never contacts
@@ -145,60 +174,41 @@ func MatchGroup(ctx context.Context, r GroupMatchRequest) (GroupMatchResult, err
 	if err := groupContext(ctx); err != nil {
 		return GroupMatchResult{}, errors.Join(core.ErrTimeMatchContract, err)
 	}
-	people, span, horizon, err := groupInputs(ctx, r)
+	input, err := groupAdmit(ctx, r)
 	if err != nil {
 		return GroupMatchResult{}, err
 	}
-	result := GroupMatchResult{RemovalImpacts: make([]GroupRemovalImpact, len(people))}
-	var boundaries []groupBoundary
-	limit := int64(0)
-	if span <= horizon {
-		limit = horizon - span + 1
+	prepared, err := groupPrepare(ctx, r, input)
+	if err != nil {
+		return GroupMatchResult{}, err
 	}
-	for i, person := range people {
+	if prepared.limit == 0 {
 		if err := groupContext(ctx); err != nil {
 			return GroupMatchResult{}, errors.Join(core.ErrTimeMatchContract, err)
 		}
-		unknown := false
-		for _, calendar := range person.Availability.Calendars {
-			unknown = unknown || calendar.State == AvailabilityUnknown
-		}
-		result.RemovalImpacts[i] = GroupRemovalImpact{Ordinal: person.Ordinal, Required: person.Required, Unknown: unknown}
-		if person.Required {
-			result.RequiredCount++
-		}
-		if unknown {
-			if person.Required {
-				result.UnknownRequired = append(result.UnknownRequired, person.Ordinal)
-				if limit > 0 {
-					boundaries = append(boundaries, groupBoundary{at: 0, person: i, begin: true}, groupBoundary{at: limit, person: i})
-				}
-			} else {
-				result.UnknownOptional = append(result.UnknownOptional, person.Ordinal)
-			}
-			continue
-		}
-		if !person.Required {
-			result.KnownOptionalCount++
-		}
-		if limit == 0 {
-			continue
-		}
-		blocked, err := groupForbidden(ctx, person.Availability, r.Window.Start, span, limit)
-		if err != nil {
-			return GroupMatchResult{}, err
-		}
-		for _, b := range blocked {
-			boundaries = append(boundaries, groupBoundary{at: b.start, person: i, begin: true}, groupBoundary{at: b.end, person: i})
-		}
+		return prepared.result, nil
 	}
-	if limit == 0 {
+	selected, count, err := groupSweep(ctx, &prepared)
+	if err != nil {
+		return GroupMatchResult{}, err
+	}
+	return groupMaterialize(ctx, &prepared, selected, count)
+}
+
+func groupPrepare(ctx context.Context, r GroupMatchRequest, input groupInput) (groupPreparation, error) {
+	prepared := groupPreparation{request: r, input: input, result: GroupMatchResult{RemovalImpacts: make([]GroupRemovalImpact, len(input.people))}}
+	if input.span <= input.horizon {
+		prepared.limit = input.horizon - input.span + 1
+	}
+	for i := range input.people {
 		if err := groupContext(ctx); err != nil {
-			return GroupMatchResult{}, errors.Join(core.ErrTimeMatchContract, err)
+			return groupPreparation{}, errors.Join(core.ErrTimeMatchContract, err)
 		}
-		return result, nil
+		if err := groupPreparePerson(ctx, &prepared, i); err != nil {
+			return groupPreparation{}, err
+		}
 	}
-	slices.SortFunc(boundaries, func(a, b groupBoundary) int {
+	slices.SortFunc(prepared.boundaries, func(a, b groupBoundary) int {
 		if a.at < b.at {
 			return -1
 		}
@@ -207,6 +217,48 @@ func MatchGroup(ctx context.Context, r GroupMatchRequest) (GroupMatchResult, err
 		}
 		return groupCompareOrdinal(uint64(a.person), uint64(b.person))
 	})
+	return prepared, nil
+}
+
+func groupPreparePerson(ctx context.Context, p *groupPreparation, index int) error {
+	person := p.input.people[index]
+	unknown := false
+	for _, calendar := range person.Availability.Calendars {
+		unknown = unknown || calendar.State == AvailabilityUnknown
+	}
+	p.result.RemovalImpacts[index] = GroupRemovalImpact{Ordinal: person.Ordinal, Required: person.Required, Unknown: unknown}
+	if person.Required {
+		p.result.RequiredCount++
+	}
+	if unknown {
+		if person.Required {
+			p.result.UnknownRequired = append(p.result.UnknownRequired, person.Ordinal)
+			if p.limit > 0 {
+				p.boundaries = append(p.boundaries, groupBoundary{at: 0, person: index, begin: true}, groupBoundary{at: p.limit, person: index})
+			}
+		} else {
+			p.result.UnknownOptional = append(p.result.UnknownOptional, person.Ordinal)
+		}
+		return nil
+	}
+	if !person.Required {
+		p.result.KnownOptionalCount++
+	}
+	if p.limit == 0 {
+		return nil
+	}
+	blocked, blockErr := groupForbidden(ctx, groupForbiddenRequest{availability: person.Availability, origin: p.request.Window.Start, span: p.input.span, limit: p.limit})
+	if blockErr != nil {
+		return blockErr
+	}
+	for _, b := range blocked {
+		p.boundaries = append(p.boundaries, groupBoundary{at: b.start, person: index, begin: true}, groupBoundary{at: b.end, person: index})
+	}
+	return nil
+}
+
+func groupSweep(ctx context.Context, p *groupPreparation) ([]groupCandidate, uint64, error) {
+	people, boundaries, limit, result := p.input.people, p.boundaries, p.limit, &p.result
 	var selected []groupCandidate
 	var pending groupCandidate
 	pendingSet := false
@@ -216,7 +268,7 @@ func MatchGroup(ctx context.Context, r GroupMatchRequest) (GroupMatchResult, err
 			return
 		}
 		windowCount++
-		selected = groupKeepWindow(selected, pending, r.MaximumWindows)
+		selected = groupKeepWindow(selected, pending, p.request.MaximumWindows)
 		pendingSet = false
 	}
 	requiredBlocked, optionalBlocked := 0, 0
@@ -224,7 +276,7 @@ func MatchGroup(ctx context.Context, r GroupMatchRequest) (GroupMatchResult, err
 	cursor, event := int64(0), 0
 	for cursor < limit {
 		if err := groupContext(ctx); err != nil {
-			return GroupMatchResult{}, errors.Join(core.ErrTimeMatchContract, err)
+			return nil, 0, errors.Join(core.ErrTimeMatchContract, err)
 		}
 		for event < len(boundaries) && boundaries[event].at == cursor {
 			b := boundaries[event]
@@ -254,22 +306,36 @@ func MatchGroup(ctx context.Context, r GroupMatchRequest) (GroupMatchResult, err
 				pending = groupCandidate{start: cursor, end: next, optional: available}
 				pendingSet = true
 			}
-		} else {
-			flush()
-			if requiredBlocked == 1 {
-				impact := &result.RemovalImpacts[requiredXOR-1]
-				if impact.AdditionalStartNanoseconds == 0 {
-					impact.EarliestUnlocked, err = groupStart(r, cursor)
-					if err != nil {
-						return GroupMatchResult{}, err
-					}
-				}
-				impact.AdditionalStartNanoseconds += uint64(next - cursor)
+			cursor = next
+			continue
+		}
+		flush()
+		if requiredBlocked == 1 {
+			if err := groupRemovalGain(p, requiredXOR, groupCandidate{start: cursor, end: next}); err != nil {
+				return nil, 0, err
 			}
 		}
 		cursor = next
 	}
 	flush()
+	return selected, windowCount, nil
+}
+
+func groupRemovalGain(p *groupPreparation, owner uint64, span groupCandidate) error {
+	impact := &p.result.RemovalImpacts[owner-1]
+	if impact.AdditionalStartNanoseconds == 0 {
+		first, err := groupStart(p.request, span.start)
+		if err != nil {
+			return err
+		}
+		impact.EarliestUnlocked = first
+	}
+	impact.AdditionalStartNanoseconds += uint64(span.end - span.start)
+	return nil
+}
+
+func groupMaterialize(ctx context.Context, p *groupPreparation, selected []groupCandidate, windowCount uint64) (GroupMatchResult, error) {
+	r, result := p.request, &p.result
 	slices.SortFunc(selected, groupCandidateOrder)
 	result.Windows = make([]GroupWindow, len(selected))
 	for i, candidate := range selected {
@@ -296,12 +362,13 @@ func MatchGroup(ctx context.Context, r GroupMatchRequest) (GroupMatchResult, err
 	if err := groupContext(ctx); err != nil {
 		return GroupMatchResult{}, errors.Join(core.ErrTimeMatchContract, err)
 	}
-	return result, nil
+	return *result, nil
 }
 
 // A participant's forbidden starts are unioned AFTER duration expansion. This
 // prevents both overlapping calendars and nearby busy spans counting twice.
-func groupForbidden(ctx context.Context, a Availability, origin temporal.Instant, span, limit int64) ([]groupCandidate, error) {
+func groupForbidden(ctx context.Context, request groupForbiddenRequest) ([]groupCandidate, error) {
+	a, origin, span, limit := request.availability, request.origin, request.span, request.limit
 	var blocked []groupCandidate
 	for _, calendar := range a.Calendars {
 		for _, busy := range calendar.Busy {
@@ -420,6 +487,28 @@ func groupKeepWindow(selected []groupCandidate, candidate groupCandidate, limit 
 	}
 	return selected
 }
+
+// The following carriers hold only one real stage's input or prepared facts.
+type groupInput struct {
+	people        []GroupParticipant
+	span, horizon int64
+}
+type groupPreparation struct {
+	request    GroupMatchRequest
+	input      groupInput
+	result     GroupMatchResult
+	boundaries []groupBoundary
+	limit      int64
+}
+type groupForbiddenRequest struct {
+	availability Availability
+	origin       temporal.Instant
+	span, limit  int64
+}
+
+func (groupInput) timematchInternalFlow()            {}
+func (groupPreparation) timematchInternalFlow()      {}
+func (groupForbiddenRequest) timematchInternalFlow() {}
 
 type groupBoundary struct {
 	at     int64
