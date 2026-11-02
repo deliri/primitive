@@ -400,7 +400,7 @@ func groupKeepWindow(selected []groupCandidate, candidate groupCandidate, limit 
 		}
 		return selected
 	}
-	if len(selected) > 0 {
+	if groupCandidateOrder(candidate, selected[0]) >= 0 {
 		return selected
 	}
 	selected[0] = candidate
