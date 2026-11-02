@@ -151,7 +151,10 @@ func (r moduleContextReader) Read(data []byte) (int, error) {
 		return 0, err
 	}
 	n, err := r.source.Read(data)
-	return n, errors.Join(err, contextstate.Validate(r.ctx))
+	if stateErr := contextstate.Validate(r.ctx); stateErr != nil {
+		return n, errors.Join(err, stateErr)
+	}
+	return n, err
 }
 
 func verifyGoModSum(ctx context.Context, path core.AbsolutePath, expected ModuleChecksum) (err error) {

@@ -87,6 +87,19 @@ func newModuleClosureFixture(t *testing.T) moduleClosureFixture {
 	})
 	fixture := moduleClosureFixture{capability: capability, directory: scope.WorkingDirectory, cache: cache}
 	fixture.goCommand(t, "mod", "download", "all")
+	// Native module directories are read-only. These are exclusively owned
+	// fixture directories; let TempDir cleanup remove them on every exit.
+	if err := filepath.WalkDir(cache, func(path string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() {
+			return os.Chmod(path, 0o755)
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
 	var err error
 	fixture.sums, err = os.ReadFile(filepath.Join(directory, "go.sum"))
 	if err != nil {

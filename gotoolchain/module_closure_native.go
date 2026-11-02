@@ -35,7 +35,10 @@ func (c moduleJSONCursor) token() (jsontext.Token, error) {
 		return jsontext.Token{}, err
 	}
 	token, err := c.decoder.ReadToken()
-	return token, errors.Join(err, contextstate.Validate(c.ctx))
+	if stateErr := contextstate.Validate(c.ctx); stateErr != nil {
+		return token, errors.Join(err, stateErr)
+	}
+	return token, err
 }
 
 // Skip ignored native populations token by token; no Versions/Origin/Error
