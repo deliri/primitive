@@ -340,7 +340,7 @@ func TestAppleMutationReadbackMustIdentifyOnlyOwnedEvent(t *testing.T) {
 			return []byte(strings.Replace(string(appleMutationBody(t)), "UID:"+eventIDFixture, "X-ID:"+eventIDFixture, 1))
 		}, want: core.ErrTimeMatchResponse},
 		{name: "malformed owned response supplies no mutation authority", media: "text/calendar", body: func(*testing.T) []byte { return []byte("not a calendar") }, want: core.ErrTimeMatchResponse},
-		{name: "HTML must not masquerade as owned event", media: "text/html", body: appleMutationBody, want: core.ErrTimeMatchResponse},
+		{name: "HTML must not masquerade as owned event", media: "text/html", body: func(t *testing.T) []byte { return appleMutationBody(t) }, want: core.ErrTimeMatchResponse},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
