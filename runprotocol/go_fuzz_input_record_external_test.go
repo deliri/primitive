@@ -37,7 +37,7 @@ func TestGoFuzzInputRecordRetainedMemoryDoesNotFollowSourceExtent(t *testing.T) 
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer file.Close()
+			defer mustClose(t, file)
 			for range tc.records {
 				if _, err := io.Copy(file, io.MultiReader(strings.NewReader("failing input written to "), &fuzzMetricFillReader{remaining: tc.extent, value: 'x'}, strings.NewReader("\n"))); err != nil {
 					t.Fatal(err)
@@ -99,7 +99,7 @@ func TestGoFuzzInputRecordsActualNativeFailureLayerTriad(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer output.Close()
+			defer mustClose(t, output)
 			cmd := exec.CommandContext(t.Context(), "go", "test", "-mod=readonly", "-vet=off", "-count=1", "-v", "-run=^$", "-fuzz=^FuzzInput$", "-fuzztime=3s", "-fuzzminimizetime=3s", "-parallel=1", ".")
 			cmd.Dir, cmd.Stdout, cmd.Stderr = dir, output, output
 			cmd.Env = append(os.Environ(), "GOWORK=off", "GOMAXPROCS=1")
@@ -143,7 +143,7 @@ func BenchmarkGoFuzzInputRecordNativeWorkingMemory(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
-			defer file.Close()
+			defer mustClose(b, file)
 			prefix := "failing input written to "
 			written, err := io.Copy(file, io.MultiReader(strings.NewReader(prefix), &fuzzMetricFillReader{remaining: extent, value: 'x'}, strings.NewReader("\n")))
 			if err != nil {
@@ -272,7 +272,7 @@ func TestGoFuzzInputRecordsStreamNativeCoordinatesBeyondFormerLimits(t *testing.
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer file.Close()
+			defer mustClose(t, file)
 			prefix := "failing input written to "
 			written, err := io.Copy(file, io.MultiReader(strings.NewReader(prefix), &fuzzMetricFillReader{remaining: extent, value: 'x'}, strings.NewReader("\r\n")))
 			if err != nil {

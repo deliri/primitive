@@ -38,7 +38,7 @@ func TestGoFuzzMetricNeutralRecordDoesNotRepeatEveryGrammarSearch(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer file.Close()
+	defer mustClose(t, file)
 	const extent = 65537
 	if _, err := io.Copy(file, &fuzzMetricFillReader{remaining: extent, value: 'x'}); err != nil {
 		t.Fatal(err)
@@ -94,7 +94,7 @@ func TestGoFuzzMetricHintsPreserveEveryLiteralAcrossNativeWindows(t *testing.T) 
 				if err != nil {
 					t.Fatal(err)
 				}
-				defer file.Close()
+				defer mustClose(t, file)
 				if _, err := io.WriteString(file, body); err != nil {
 					t.Fatal(err)
 				}
@@ -150,7 +150,7 @@ func TestGoFuzzMetricFilterCannotPublishBeforeLateNativeReadCompletes(t *testing
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer file.Close()
+			defer mustClose(t, file)
 			if _, err := io.Copy(file, io.MultiReader(strings.NewReader(prefix), &fuzzMetricFillReader{remaining: 65537, value: 'x'})); err != nil {
 				t.Fatal(err)
 			}
@@ -193,7 +193,7 @@ func TestGoFuzzMetricFilterRefusesNativeSourceTruncatedAfterFraming(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer file.Close()
+	defer mustClose(t, file)
 	if _, err := io.Copy(file, &fuzzMetricFillReader{remaining: 65537, value: 'x'}); err != nil {
 		t.Fatal(err)
 	}
@@ -233,7 +233,7 @@ func TestGoFuzzMetricNativeReadPreservesCustomCancellationCause(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer file.Close()
+			defer mustClose(t, file)
 			if _, err := io.Copy(file, &fuzzMetricFillReader{remaining: 65537, value: 'x'}); err != nil {
 				t.Fatal(err)
 			}

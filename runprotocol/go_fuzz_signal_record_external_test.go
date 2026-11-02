@@ -131,7 +131,9 @@ func FuzzGoFuzzSignalNativeMatchesIndependentBytes(f *testing.F) {
 		}
 		ctx, cancel := context.WithCancel(t.Context())
 		cancel()
-		source.Seek(0, io.SeekStart)
+		if _, err := source.Seek(0, io.SeekStart); err != nil {
+			t.Fatal(err)
+		}
 		for got, err := range runprotocol.GoFuzzSignalRecords(ctx, runprotocol.GoFuzzSignalSourceRequest{Source: source}) {
 			if !errors.Is(err, context.Canceled) || got != (runprotocol.GoFuzzSignalRecord{}) {
 				t.Fatalf("canceled source observation = %+v/%v, want zero and Canceled", got, err)

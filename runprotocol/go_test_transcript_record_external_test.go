@@ -122,7 +122,7 @@ func TestGoTestTranscriptLateNativeRefusalWithdrawsRecord(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer file.Close()
+	defer mustClose(t, file)
 	if _, err := io.Copy(file, io.MultiReader(strings.NewReader("panic: "), &fuzzMetricFillReader{remaining: 65537, value: 'x'})); err != nil {
 		t.Fatal(err)
 	}
@@ -176,7 +176,7 @@ func TestGoTestTranscriptBorrowedExtentConservesNativeRefusals(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer file.Close()
+			defer mustClose(t, file)
 			if _, err := io.WriteString(file, "panic: native coordinate\n"); err != nil {
 				t.Fatal(err)
 			}
@@ -223,7 +223,7 @@ func BenchmarkGoTestTranscriptNativeWorkingMemory(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
-			defer file.Close()
+			defer mustClose(b, file)
 			written, err := io.Copy(file, io.MultiReader(&fuzzMetricFillReader{remaining: extent, value: 'x'}, strings.NewReader(" panic:\n")))
 			if err != nil {
 				b.Fatal(err)

@@ -40,7 +40,7 @@ func TestGoFuzzMetricRecordNativeProducerLayerTriad(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer output.Close()
+			defer mustClose(t, output)
 			cmd := exec.CommandContext(t.Context(), "go", "test", "-mod=readonly", "-vet=off", "-count=1", "-v", "-run=^$", "-fuzz=^FuzzMetric$", "-fuzztime=3s", "-fuzzminimizetime=3s", "-parallel=1", ".")
 			cmd.Dir, cmd.Stdout, cmd.Stderr = dir, output, output
 			cmd.Env = append(os.Environ(), "GOWORK=off", "GOMAXPROCS=1")
@@ -310,7 +310,7 @@ func TestGoFuzzMetricRecordStreamsNativeFieldsBeyondFormerWindows(t *testing.T) 
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer file.Close()
+			defer mustClose(t, file)
 			written, err := io.Copy(file, io.MultiReader(strings.NewReader(tc.prefix), &fuzzMetricFillReader{remaining: tc.extent, value: tc.fill}, strings.NewReader(tc.suffix)))
 			if err != nil {
 				t.Fatal(err)
@@ -508,7 +508,7 @@ func BenchmarkGoFuzzMetricRecordNativeWorkingMemory(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
-			defer file.Close()
+			defer mustClose(b, file)
 			written, err := io.Copy(file, io.MultiReader(&fuzzMetricFillReader{remaining: extent, value: ' '}, strings.NewReader("execs: 37\n")))
 			if err != nil {
 				b.Fatal(err)
