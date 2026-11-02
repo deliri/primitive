@@ -1,6 +1,7 @@
 package timematch
 
 import (
+	"bytes"
 	json "encoding/json/v2"
 	"errors"
 	"net/http"
@@ -337,6 +338,9 @@ func TestMicrosoftMutationOwnershipNative(t *testing.T) {
 
 func FuzzMicrosoftOwnedMetadataSemanticClosure(f *testing.F) {
 	seed := microsoftMetadata(immutableFixtureID, eventIDFixture)
+	if err := seed.Validate(); err != nil {
+		f.Fatalf("seed Validate error = %v, want nil", err)
+	}
 	raw, err := json.Marshal(seed)
 	if err != nil {
 		f.Fatalf("seed encode error = %v, want nil", err)
@@ -371,6 +375,10 @@ func FuzzMicrosoftOwnedMetadataSemanticClosure(f *testing.F) {
 		again, decodeErr := decodeJSON[graphOwnedMetadata](encoded)
 		if decodeErr != nil || again.ID != got.ID || again.TransactionID != got.TransactionID || len(again.Ownership) != len(got.Ownership) {
 			t.Fatalf("round trip = (%+v,%v), want exact facts %+v", again, decodeErr, got)
+		}
+		second, secondErr := json.Marshal(again)
+		if secondErr != nil || !bytes.Equal(second, encoded) {
+			t.Fatalf("second encoding = (%q,%v), want exact %q", second, secondErr, encoded)
 		}
 		for i := range got.Ownership {
 			if got.Ownership[i] != again.Ownership[i] {
@@ -439,12 +447,19 @@ func TestMicrosoftTickPrecisionNative(t *testing.T) {
 
 func FuzzMicrosoftOwnedPageSemanticClosure(f *testing.F) {
 	seed := graphOwnedPage{Value: []graphOwnedMetadata{microsoftMetadata(immutableFixtureID, eventIDFixture)}}
+	if err := seed.Validate(); err != nil {
+		f.Fatalf("seed Validate error = %v, want nil", err)
+	}
 	raw, err := json.Marshal(seed)
 	if err != nil {
 		f.Fatalf("seed encode error = %v, want nil", err)
 	}
 	f.Add(raw)
-	f.Add([]byte(`{"value":[]}`))
+	empty, emptyErr := json.Marshal(graphOwnedPage{Value: []graphOwnedMetadata{}})
+	if emptyErr != nil {
+		f.Fatalf("empty seed encode error = %v, want nil", emptyErr)
+	}
+	f.Add(empty)
 	f.Add([]byte(`{"value":null}`))
 	f.Add([]byte(`{"value":`))
 	f.Fuzz(func(t *testing.T, data []byte) {
@@ -470,6 +485,10 @@ func FuzzMicrosoftOwnedPageSemanticClosure(f *testing.F) {
 		again, decodeErr := decodeJSON[graphOwnedPage](encoded)
 		if decodeErr != nil || again.Next != got.Next || len(again.Value) != len(got.Value) {
 			t.Fatalf("page round trip = (%+v,%v), want exact page %+v", again, decodeErr, got)
+		}
+		second, secondErr := json.Marshal(again)
+		if secondErr != nil || !bytes.Equal(second, encoded) {
+			t.Fatalf("second page encoding = (%q,%v), want exact %q", second, secondErr, encoded)
 		}
 		for i := range got.Value {
 			a, b := got.Value[i], again.Value[i]
