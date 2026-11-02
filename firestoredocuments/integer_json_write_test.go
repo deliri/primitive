@@ -3,12 +3,12 @@ package firestoredocuments
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"math"
 	"strconv"
 	"strings"
-	"sync/atomic"
 	"testing"
 	"time"
 	"unicode/utf8"
@@ -543,9 +543,9 @@ func FuzzIntegerJSONWriteNativeSemanticClosure(f *testing.F) {
 	for mode := uint8(1); mode <= 4; mode++ {
 		f.Add("unrepresentable", int64(1), mode, true)
 	}
-	var ordinal atomic.Uint64
 	f.Fuzz(func(t *testing.T, owner string, value int64, mode uint8, create bool) {
-		ref := client.Collection("integer-write-fuzz").Doc(fmt.Sprintf("mutation-%d", ordinal.Add(1)))
+		namespace := sha256.Sum256([]byte(t.TempDir()))
+		ref := client.Collection("integer-write-fuzz").Doc(fmt.Sprintf("mutation-%x", namespace))
 		defer func() {
 			if _, err := ref.Delete(t.Context()); err != nil {
 				t.Errorf("native fuzz fixture delete=%v,want nil", err)
