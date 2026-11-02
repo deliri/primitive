@@ -430,6 +430,7 @@ func FuzzAppleStrongETagMatchesNativeHTTPPreconditions(f *testing.F) {
 	f.Add(`W/"weak"`)
 	f.Add(`*`)
 	f.Add(`"one", "two"`)
+	f.Add("*\xa3\xf7\x8bl\x97B\xd6") // Native wildcard-prefix acceptance must not stand for a revision.
 	f.Add("")
 	f.Fuzz(func(t *testing.T, value string) {
 		request := httptest.NewRequest(http.MethodGet, "https://example.invalid/owned", nil)
@@ -437,9 +438,19 @@ func FuzzAppleStrongETagMatchesNativeHTTPPreconditions(f *testing.F) {
 		response := httptest.NewRecorder()
 		response.Header().Set("ETag", value)
 		http.ServeContent(response, request, "owned", time.Time{}, bytes.NewReader(nil))
-		want := response.Code == http.StatusOK && value != "" && value != "*"
+		// A specific revision must match itself and refuse a different revision.
+		// Native HTTP accepts wildcard prefixes permissively; testing only the
+		// first response would misclassify those as valid compare-and-swap.
+		different := `"different-native-revision"`
+		if different == value {
+			different = `"another-native-revision"`
+		}
+		other := httptest.NewRecorder()
+		other.Header().Set("ETag", different)
+		http.ServeContent(other, request, "owned", time.Time{}, bytes.NewReader(nil))
+		want := response.Code == http.StatusOK && other.Code == http.StatusPreconditionFailed
 		if got := appleStrongETag(value); got != want {
-			t.Fatalf("strong revision%q admitted=%t, native status%d want%t", value, got, response.Code, want)
+			t.Fatalf("strong revision%q admitted=%t, native same/different status%d/%d want%t", value, got, response.Code, other.Code, want)
 		}
 	})
 }
