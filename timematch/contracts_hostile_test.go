@@ -1,6 +1,7 @@
 package timematch
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -153,9 +154,9 @@ func TestAvailabilityValidateHostileTable(t *testing.T) {
 		{name: "window length minus one nanosecond", class: classBoundary, build: func(t *testing.T) Availability {
 			return Availability{Window: span(t, start, start, 0, -1), Calendars: []CalendarAvailability{known("a")}}
 		}, wantErr: true},
-		{name: "window spanning centuries in representable range", class: classBoundary, build: func(t *testing.T) Availability {
+		{name: "window beyond Temporal's bounded duration is refused", class: classBoundary, build: func(t *testing.T) Availability {
 			return Availability{Window: window(t, "1700-01-01T00:00:00Z", "2200-01-01T00:00:00Z"), Calendars: []CalendarAvailability{known("a")}}
-		}},
+		}, wantErr: true},
 		{name: "lowest valid state known", class: classBoundary, build: func(t *testing.T) Availability {
 			return Availability{Window: w(t), Calendars: []CalendarAvailability{{ID: CalendarID{value: "a"}, State: AvailabilityKnown}}}
 		}},
@@ -330,4 +331,33 @@ func TestSecretCustodyLayerTriad(t *testing.T) {
 			t.Fatalf("zero Close() = %v, want nil and still unset", err)
 		}
 	})
+}
+
+func TestProviderUnknownPreservesRefusals(t *testing.T) {
+	t.Parallel()
+	cancelled, cancel := context.WithCancel(t.Context())
+	cancel()
+	cases := []struct {
+		name string
+		ctx  context.Context
+		err  error
+		want bool
+	}{
+		{name: "provider refusal for one calendar is unknown", ctx: t.Context(), err: errors.Join(core.ErrTimeMatchResponse, core.ErrExchangeResponse), want: true},
+		{name: "consent loss is never hidden as unknown", ctx: t.Context(), err: errors.Join(core.ErrTimeMatchConsent, core.ErrExchangeResponse)},
+		{name: "own request refusal is never hidden as unknown", ctx: t.Context(), err: errors.Join(core.ErrTimeMatchResponse, core.ErrExchangeRequest)},
+		{name: "contract violation is never hidden as unknown", ctx: t.Context(), err: core.ErrTimeMatchContract},
+		{name: "caller cancellation is never hidden as unknown", ctx: cancelled, err: errors.Join(core.ErrTimeMatchResponse, core.ErrExchangeCancelled)},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if got := providerUnknown(tc.ctx, tc.err); got != tc.want {
+				t.Fatalf("providerUnknown(%v) = %t, want %t", tc.err, got, tc.want)
+			}
+		})
+	}
+	if got := readFailure(outcome{}, errors.Join(core.ErrExchangeRequest, core.ErrExchangeContract)); !errors.Is(got, core.ErrTimeMatchContract) || errors.Is(got, core.ErrTimeMatchResponse) {
+		t.Fatalf("readFailure(request refusal) = %v, want contract and not response", got)
+	}
 }

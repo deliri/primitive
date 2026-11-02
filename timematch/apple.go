@@ -3,7 +3,6 @@ package timematch
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/xml"
 	"errors"
 	"net/http"
@@ -102,20 +101,18 @@ func appleCalendarURL(id CalendarID) (core.HTTPEndpoint, error) {
 	return parsed, nil
 }
 
-// basic builds the RFC 7617 header from the borrowed password bytes. The
-// returned cleanup zeroes the SDK-owned encoding.
-func basic(connection Connection) ([]exchange.SecretHeader, func(), error) {
-	name, err := core.ParseHTTPHeaderName(authorizationHeaderText)
+// basic builds the RFC 7617 Authorization header through Exchange, which
+// owns the encoding and clears its scratch copies.
+func basic(connection Connection) (exchange.Header, error) {
+	identity, err := exchange.ParseBasicAuthorizationIdentity(connection.AppleAccount.value)
 	if err != nil {
-		return nil, nil, errors.Join(core.ErrTimeMatchContract, err)
+		return exchange.Header{}, errors.Join(core.ErrTimeMatchContract, err)
 	}
-	pair := make([]byte, 0, len(connection.AppleAccount.value)+1+len(connection.ApplePassword.value))
-	pair = append(append(append(pair, connection.AppleAccount.value...), ':'), connection.ApplePassword.value...)
-	value := make([]byte, len("Basic ")+base64.StdEncoding.EncodedLen(len(pair)))
-	copy(value, "Basic ")
-	base64.StdEncoding.Encode(value[len("Basic "):], pair)
-	clear(pair)
-	return []exchange.SecretHeader{{Name: name, Value: value, Scheme: exchange.SecretHeaderLiteral}}, func() { clear(value) }, nil
+	authorization, err := exchange.NewBasicAuthorizationHeader(exchange.BasicAuthorizationRequest{Identity: identity, Secret: connection.ApplePassword.value})
+	if err != nil {
+		return exchange.Header{}, errors.Join(core.ErrTimeMatchContract, err)
+	}
+	return authorization, nil
 }
 
 func xmlMediaType() core.HTTPMediaType {
@@ -124,13 +121,13 @@ func xmlMediaType() core.HTTPMediaType {
 }
 
 // dav performs one WebDAV request expecting 207 Multi-Status XML.
-func (c Client) dav(ctx context.Context, secrets []exchange.SecretHeader, target core.HTTPEndpoint, method exchange.Method, depth string, body string, policy exchange.OperationPolicy) (davMultistatusWire, error) {
+func (c Client) dav(ctx context.Context, auth exchange.Header, target core.HTTPEndpoint, method exchange.Method, depth string, body string, policy exchange.OperationPolicy) (davMultistatusWire, error) {
 	depthHeader, err := header("Depth", depth)
 	if err != nil {
 		return davMultistatusWire{}, err
 	}
 	contentType := core.HTTPHeaderContentType()
-	result, err := c.send(ctx, call{target: target, method: method, body: []byte(body), requestType: xmlMediaType(), headers: []exchange.Header{depthHeader}, secrets: secrets, capture: []core.HTTPHeaderName{contentType}, policy: policy, expected: davMultiStatus})
+	result, err := c.send(ctx, call{target: target, method: method, body: []byte(body), requestType: xmlMediaType(), headers: []exchange.Header{depthHeader, auth}, capture: []core.HTTPHeaderName{contentType}, policy: policy, expected: davMultiStatus})
 	if err != nil {
 		return davMultistatusWire{}, readFailure(result, err)
 	}
@@ -233,12 +230,12 @@ func (r davResponseWire) okProp() (davPropWire, bool) {
 }
 
 // appleHome discovers the account's calendar home: principal, then home set.
-func (c Client) appleHome(ctx context.Context, secrets []exchange.SecretHeader, policy exchange.OperationPolicy) (core.HTTPEndpoint, error) {
+func (c Client) appleHome(ctx context.Context, auth exchange.Header, policy exchange.OperationPolicy) (core.HTTPEndpoint, error) {
 	root, err := endpoint(appleCalDAVRoot)
 	if err != nil {
 		return core.HTTPEndpoint{}, err
 	}
-	principalStatus, err := c.dav(ctx, secrets, root, exchange.MethodPropfind, davDepthZero, propfindPrincipal, policy)
+	principalStatus, err := c.dav(ctx, auth, root, exchange.MethodPropfind, davDepthZero, propfindPrincipal, policy)
 	if err != nil {
 		return core.HTTPEndpoint{}, err
 	}
@@ -250,7 +247,7 @@ func (c Client) appleHome(ctx context.Context, secrets []exchange.SecretHeader, 
 	if err != nil {
 		return core.HTTPEndpoint{}, err
 	}
-	homeStatus, err := c.dav(ctx, secrets, principalURL, exchange.MethodPropfind, davDepthZero, propfindHome, policy)
+	homeStatus, err := c.dav(ctx, auth, principalURL, exchange.MethodPropfind, davDepthZero, propfindHome, policy)
 	if err != nil {
 		return core.HTTPEndpoint{}, err
 	}
@@ -282,16 +279,15 @@ func singleHref(status davMultistatusWire, pick func(davPropWire) *davHrefWire) 
 }
 
 func (c Client) appleCalendarList(ctx context.Context, r CalendarListRequest) (CalendarList, error) {
-	secrets, cleanup, err := basic(r.Connection)
+	auth, err := basic(r.Connection)
 	if err != nil {
 		return CalendarList{}, err
 	}
-	defer cleanup()
-	home, err := c.appleHome(ctx, secrets, r.Policy)
+	home, err := c.appleHome(ctx, auth, r.Policy)
 	if err != nil {
 		return CalendarList{}, err
 	}
-	status, err := c.dav(ctx, secrets, home, exchange.MethodPropfind, davDepthOne, propfindCalendars, r.Policy)
+	status, err := c.dav(ctx, auth, home, exchange.MethodPropfind, davDepthOne, propfindCalendars, r.Policy)
 	if err != nil {
 		return CalendarList{}, err
 	}
@@ -346,11 +342,10 @@ func writable(prop davPropWire) bool {
 // appleAvailability issues one RFC 4791 section 7.8 calendar-query per
 // calendar with CALDAV:expand, so recurring events arrive as UTC instances.
 func (c Client) appleAvailability(ctx context.Context, r AvailabilityRequest) (Availability, error) {
-	secrets, cleanup, err := basic(r.Connection)
+	auth, err := basic(r.Connection)
 	if err != nil {
 		return Availability{}, err
 	}
-	defer cleanup()
 	start, startErr := icsStampTime(r.Window.Start)
 	end, endErr := icsCeilingTime(r.Window.End)
 	if err := errors.Join(startErr, endErr); err != nil {
@@ -364,9 +359,9 @@ func (c Client) appleAvailability(ctx context.Context, r AvailabilityRequest) (A
 			return Availability{}, err
 		}
 		calendar := CalendarAvailability{ID: id, State: AvailabilityUnknown}
-		status, err := c.dav(ctx, secrets, target, exchange.MethodReport, davDepthOne, query, r.Policy)
+		status, err := c.dav(ctx, auth, target, exchange.MethodReport, davDepthOne, query, r.Policy)
 		switch {
-		case errors.Is(err, core.ErrTimeMatchConsent) || err != nil && ctx.Err() != nil:
+		case err != nil && !providerUnknown(ctx, err):
 			return Availability{}, err
 		case err == nil:
 			if spans, known := appleSpans(status); known {
@@ -451,30 +446,29 @@ func (c Client) applePut(ctx context.Context, w EventWrite) (EventReceipt, error
 	if err != nil {
 		return EventReceipt{}, err
 	}
-	secrets, cleanup, err := basic(w.Connection)
+	auth, err := basic(w.Connection)
 	if err != nil {
 		return EventReceipt{}, err
 	}
-	defer cleanup()
 	condition, err := header("If-None-Match", "*")
 	if err != nil {
 		return EventReceipt{}, err
 	}
 	ref := EventRef{Provider: ProviderApple, Calendar: w.Intent.Calendar, Resource: target.String()}
-	result, err := c.send(ctx, call{target: target, method: exchange.MethodPut, body: body, requestType: icsMediaType(), headers: []exchange.Header{condition}, secrets: secrets, policy: w.Policy, expected: http.StatusCreated})
+	result, err := c.send(ctx, call{target: target, method: exchange.MethodPut, body: body, requestType: icsMediaType(), headers: []exchange.Header{condition, auth}, policy: w.Policy, expected: http.StatusCreated})
 	clear(result.body)
 	switch {
 	case err == nil || result.status == http.StatusNoContent:
 		return EventReceipt{Ref: ref}, nil
 	case result.status == http.StatusPreconditionFailed:
-		return c.appleReadBack(ctx, secrets, target, w.Intent, ref, w.Policy)
+		return c.appleReadBack(ctx, auth, target, w.Intent, ref, w.Policy)
 	default:
 		return EventReceipt{}, writeFailure(result, err)
 	}
 }
 
-func (c Client) appleReadBack(ctx context.Context, secrets []exchange.SecretHeader, target core.HTTPEndpoint, intent EventIntent, ref EventRef, policy exchange.OperationPolicy) (EventReceipt, error) {
-	result, err := c.send(ctx, call{target: target, method: exchange.MethodGet, secrets: secrets, policy: policy, expected: http.StatusOK})
+func (c Client) appleReadBack(ctx context.Context, auth exchange.Header, target core.HTTPEndpoint, intent EventIntent, ref EventRef, policy exchange.OperationPolicy) (EventReceipt, error) {
+	result, err := c.send(ctx, call{target: target, method: exchange.MethodGet, headers: []exchange.Header{auth}, policy: policy, expected: http.StatusOK})
 	if err != nil {
 		return EventReceipt{}, errors.Join(core.ErrTimeMatchConflict, readFailure(result, err))
 	}
@@ -503,16 +497,15 @@ func (c Client) appleUpdate(ctx context.Context, u EventUpdate) (EventReceipt, e
 	if err != nil {
 		return EventReceipt{}, err
 	}
-	secrets, cleanup, err := basic(u.Connection)
+	auth, err := basic(u.Connection)
 	if err != nil {
 		return EventReceipt{}, err
 	}
-	defer cleanup()
 	condition, err := header("If-Match", "*")
 	if err != nil {
 		return EventReceipt{}, err
 	}
-	result, err := c.send(ctx, call{target: target, method: exchange.MethodPut, body: body, requestType: icsMediaType(), headers: []exchange.Header{condition}, secrets: secrets, policy: u.Policy, expected: http.StatusNoContent})
+	result, err := c.send(ctx, call{target: target, method: exchange.MethodPut, body: body, requestType: icsMediaType(), headers: []exchange.Header{condition, auth}, policy: u.Policy, expected: http.StatusNoContent})
 	clear(result.body)
 	if err != nil && result.status != http.StatusOK && result.status != http.StatusCreated {
 		return EventReceipt{}, writeFailure(result, err)
@@ -528,10 +521,9 @@ func (c Client) appleDelete(ctx context.Context, d EventDelete) (DeleteOutcome, 
 	if _, err := appleCalendarURL(d.Ref.Calendar); err != nil || !strings.HasPrefix(d.Ref.Resource, d.Ref.Calendar.value) {
 		return DeleteInvalid, errors.Join(core.ErrTimeMatchContract, err)
 	}
-	secrets, cleanup, err := basic(d.Connection)
+	auth, err := basic(d.Connection)
 	if err != nil {
 		return DeleteInvalid, err
 	}
-	defer cleanup()
-	return c.deleteResource(ctx, call{target: target, method: exchange.MethodDelete, secrets: secrets, policy: d.Policy, expected: http.StatusNoContent})
+	return c.deleteResource(ctx, call{target: target, method: exchange.MethodDelete, headers: []exchange.Header{auth}, policy: d.Policy, expected: http.StatusNoContent})
 }
