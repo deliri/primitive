@@ -93,7 +93,14 @@ func TestGoFuzzSignalFixedScanConservesNativeRefusals(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer mustAlreadyBeClosed(t, file)
+			// Only selection 0 hands the file to a fixture that closes it.
+			defer func() {
+				if selection == 0 {
+					mustAlreadyBeClosed(t, file)
+					return
+				}
+				mustClose(t, file)
+			}()
 			if _, err := io.Copy(file, io.MultiReader(strings.NewReader("panic: native "), &fuzzMetricFillReader{remaining: 65537, value: 'x'})); err != nil {
 				t.Fatal(err)
 			}

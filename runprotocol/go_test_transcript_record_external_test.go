@@ -176,7 +176,14 @@ func TestGoTestTranscriptBorrowedExtentConservesNativeRefusals(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer mustAlreadyBeClosed(t, file)
+			// Only selection 0 hands the file to a fixture that closes it.
+			defer func() {
+				if selection == 0 {
+					mustAlreadyBeClosed(t, file)
+					return
+				}
+				mustClose(t, file)
+			}()
 			if _, err := io.WriteString(file, "panic: native coordinate\n"); err != nil {
 				t.Fatal(err)
 			}
