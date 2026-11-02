@@ -296,6 +296,17 @@ func graphEvent(intent EventIntent, create bool) ([]byte, error) {
 		Start: graphDateTime{DateTime: start, TimeZone: graphUTCZone},
 		End:   graphDateTime{DateTime: end, TimeZone: graphUTCZone},
 	}
+	// Graph's DateTimeTimeZone representation has 100 ns precision. Refuse
+	// a lossy interval before creating or moving any appointment.
+	projectedStart, projectedStartErr := body.Start.instant()
+	projectedEnd, projectedEndErr := body.End.instant()
+	if err := errors.Join(projectedStartErr, projectedEndErr); err != nil {
+		return nil, errors.Join(core.ErrTimeMatchContract, err)
+	}
+	if !sameSpan([2]int64{projectedStart, projectedEnd}, intent.Interval) {
+		return nil, core.ErrTimeMatchContract
+	}
+
 	if create {
 		// transactionId: "A custom identifier specified by a client app for the
 		// server to avoid redundant POST operations in case of client retries
@@ -573,7 +584,7 @@ func (c Client) microsoftRecover(ctx context.Context, w EventWrite) (EventReceip
 	for {
 		result, err := c.send(ctx, call{target: target, method: exchange.MethodGet, secrets: secrets, headers: []exchange.Header{prefer}, responseType: core.HTTPMediaTypeJSON(), policy: w.Policy, expected: http.StatusOK})
 		if err != nil {
-			return EventReceipt{}, errors.Join(core.ErrTimeMatchIndeterminate, readFailure(result, err))
+			return EventReceipt{}, graphRecoveryFailure(ctx, result, err)
 		}
 		page, decodeErr := decodeJSON[graphOwnedPage](result.body)
 		clear(result.body)
@@ -611,7 +622,17 @@ func (c Client) microsoftRecover(ctx context.Context, w EventWrite) (EventReceip
 	}
 	result, err := c.send(ctx, call{target: target, method: exchange.MethodGet, secrets: secrets, headers: []exchange.Header{prefer}, responseType: core.HTTPMediaTypeJSON(), policy: w.Policy, expected: http.StatusOK})
 	if err != nil {
-		return EventReceipt{}, errors.Join(core.ErrTimeMatchIndeterminate, readFailure(result, err))
+		return EventReceipt{}, graphRecoveryFailure(ctx, result, err)
 	}
 	return verifyGraph(result.body, graphExpectation{intent: w.Intent, calendar: w.Intent.Calendar, resource: resource, create: true})
+}
+
+// A recovery read cannot issue a receipt after an uncertain provider reply.
+// Consent, caller cancellation and local request refusal keep their identities.
+func graphRecoveryFailure(ctx context.Context, result outcome, err error) error {
+	failure := readFailure(result, err)
+	if errors.Is(failure, core.ErrTimeMatchConsent) || ctx.Err() != nil || errors.Is(err, core.ErrExchangeRequest) {
+		return failure
+	}
+	return errors.Join(core.ErrTimeMatchIndeterminate, failure)
 }

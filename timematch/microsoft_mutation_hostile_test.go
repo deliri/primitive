@@ -379,3 +379,183 @@ func FuzzMicrosoftOwnedMetadataSemanticClosure(f *testing.F) {
 		}
 	})
 }
+
+func TestMicrosoftTickPrecisionNative(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name, start, end string
+		wantErr          error
+	}{
+		{name: "whole second", start: "2026-11-02T15:00:00Z", end: "2026-11-02T16:00:00Z"},
+		{name: "first representable tick", start: "2026-11-02T15:00:00.0000001Z", end: "2026-11-02T16:00:00Z"},
+		{name: "tick immediately below microsecond", start: "2026-11-02T15:00:00.0000009Z", end: "2026-11-02T16:00:00Z"},
+		{name: "microsecond boundary", start: "2026-11-02T15:00:00.000001Z", end: "2026-11-02T16:00:00Z"},
+		{name: "last tick below next second", start: "2026-11-02T15:00:00.9999999Z", end: "2026-11-02T16:00:00Z"},
+		{name: "negative epoch representable tick", start: "1969-12-31T23:59:59.9999999Z", end: "1970-01-01T00:00:00Z"},
+		{name: "cross epoch one tick each side", start: "1969-12-31T23:59:59.9999999Z", end: "1970-01-01T00:00:00.0000001Z"},
+		{name: "earliest representable tick near minimum", start: "1677-09-21T00:12:43.1452242Z", end: "1677-09-21T00:12:43.1452243Z"},
+		{name: "latest representable tick near maximum", start: "2262-04-11T23:47:16.8547756Z", end: "2262-04-11T23:47:16.8547758Z"},
+		{name: "one tick interval at midnight", start: "2026-11-02T23:59:59.9999999Z", end: "2026-11-03T00:00:00Z"},
+		{name: "one nanosecond below first tick", start: "2026-11-02T15:00:00.000000099Z", end: "2026-11-02T16:00:00Z", wantErr: core.ErrTimeMatchContract},
+		{name: "one nanosecond above first tick", start: "2026-11-02T15:00:00.000000101Z", end: "2026-11-02T16:00:00Z", wantErr: core.ErrTimeMatchContract},
+		{name: "one nanosecond above second in start", start: "2026-11-02T15:00:00.000000001Z", end: "2026-11-02T16:00:00Z", wantErr: core.ErrTimeMatchContract},
+		{name: "one nanosecond above second in end", start: "2026-11-02T15:00:00Z", end: "2026-11-02T16:00:00.000000001Z", wantErr: core.ErrTimeMatchContract},
+		{name: "below microsecond by one nanosecond", start: "2026-11-02T15:00:00.000000999Z", end: "2026-11-02T16:00:00Z", wantErr: core.ErrTimeMatchContract},
+		{name: "above microsecond by one nanosecond", start: "2026-11-02T15:00:00.000001001Z", end: "2026-11-02T16:00:00Z", wantErr: core.ErrTimeMatchContract},
+		{name: "negative epoch one nanosecond below tick", start: "1969-12-31T23:59:59.999999899Z", end: "1970-01-01T00:00:00Z", wantErr: core.ErrTimeMatchContract},
+		{name: "negative epoch one nanosecond above tick", start: "1969-12-31T23:59:59.999999901Z", end: "1970-01-01T00:00:00Z", wantErr: core.ErrTimeMatchContract},
+		{name: "minimum instant cannot be silently rounded", start: "1677-09-21T00:12:43.145224192Z", end: "1677-09-21T00:12:43.1452243Z", wantErr: core.ErrTimeMatchContract},
+		{name: "maximum instant cannot be silently rounded", start: "2262-04-11T23:47:16.8547756Z", end: "2262-04-11T23:47:16.854775807Z", wantErr: core.ErrTimeMatchContract},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			client, fixture := newNative(t, func(w http.ResponseWriter, _ *http.Request, body []byte) {
+				var detail graphCreated
+				if err := json.Unmarshal(body, &detail); err != nil {
+					t.Errorf("body decode error = %v, want nil", err)
+				}
+				detail.ID = immutableFixtureID
+				encoded, err := json.Marshal(detail)
+				if err != nil {
+					t.Errorf("encode error = %v, want nil", err)
+				}
+				writeJSON(w, 201, string(encoded))
+			})
+			owned := intent(t, "primary", "Tick", tc.start, tc.end)
+			got, err := client.PutEvent(t.Context(), eventWrite(t, oauthConnection(t, ProviderMicrosoft), owned))
+			if tc.wantErr != nil {
+				if !errors.Is(err, tc.wantErr) || got != (EventReceipt{}) || len(fixture.record()) != 0 {
+					t.Fatalf("lossy write = (%+v,%v) requests %d, want zero contract refusal before HTTP", got, err, len(fixture.record()))
+				}
+				return
+			}
+			if err != nil || got.Ref.ID != owned.ID || len(fixture.record()) != 1 {
+				t.Fatalf("exact tick write = (%+v,%v) requests %d, want exact receipt and one write", got, err, len(fixture.record()))
+			}
+		})
+	}
+}
+
+func FuzzMicrosoftOwnedPageSemanticClosure(f *testing.F) {
+	seed := graphOwnedPage{Value: []graphOwnedMetadata{microsoftMetadata(immutableFixtureID, eventIDFixture)}}
+	raw, err := json.Marshal(seed)
+	if err != nil {
+		f.Fatalf("seed encode error = %v, want nil", err)
+	}
+	f.Add(raw)
+	f.Add([]byte(`{"value":[]}`))
+	f.Add([]byte(`{"value":null}`))
+	f.Add([]byte(`{"value":`))
+	f.Fuzz(func(t *testing.T, data []byte) {
+		got, err := decodeJSON[graphOwnedPage](data)
+		if err != nil {
+			if !errors.Is(err, core.ErrTimeMatchResponse) || got.Value != nil || got.Next != "" {
+				t.Fatalf("page refusal = (%+v,%v), want zero typed response", got, err)
+			}
+			return
+		}
+		if got.Value == nil {
+			t.Fatal("accepted page value = nil, want explicit collection")
+		}
+		for _, item := range got.Value {
+			if !visibleASCII([]byte(item.ID)) {
+				t.Fatalf("accepted resource id = %q, want visible ASCII", item.ID)
+			}
+		}
+		encoded, encodeErr := json.Marshal(got)
+		if encodeErr != nil {
+			t.Fatalf("encode error = %v, want nil", encodeErr)
+		}
+		again, decodeErr := decodeJSON[graphOwnedPage](encoded)
+		if decodeErr != nil || again.Next != got.Next || len(again.Value) != len(got.Value) {
+			t.Fatalf("page round trip = (%+v,%v), want exact page %+v", again, decodeErr, got)
+		}
+		for i := range got.Value {
+			a, b := got.Value[i], again.Value[i]
+			if a.ID != b.ID || a.TransactionID != b.TransactionID || len(a.Ownership) != len(b.Ownership) {
+				t.Fatalf("item %d = %+v, want %+v", i, b, a)
+			}
+			for j := range a.Ownership {
+				if a.Ownership[j] != b.Ownership[j] {
+					t.Fatalf("property %d/%d = %+v, want %+v", i, j, b.Ownership[j], a.Ownership[j])
+				}
+			}
+		}
+	})
+}
+
+func TestMicrosoftCalendarMoveKeepsOwnedMutationReachable(t *testing.T) {
+	t.Parallel()
+	owned := intent(t, "primary", "Visit", "2026-11-02T15:00:00Z", "2026-11-02T16:00:00Z")
+	var mutex sync.Mutex
+	moved, deleted := false, false
+	mutableID := "changes-on-calendar-move"
+	client, _ := newNative(t, func(w http.ResponseWriter, r *http.Request, body []byte) {
+		mutex.Lock()
+		defer mutex.Unlock()
+		immutable := strings.Contains(r.Header.Get("Prefer"), `IdType="ImmutableId"`)
+		if r.Method == http.MethodPost {
+			detail := graphOwnedDetail(t, owned)
+			if !immutable {
+				detail.ID = mutableID
+			}
+			encoded, err := json.Marshal(detail)
+			if err != nil {
+				t.Errorf("encode error = %v, want nil", err)
+			}
+			writeJSON(w, 201, string(encoded))
+			return
+		}
+		requested := strings.TrimPrefix(r.URL.Path, graphEventsPath+"/")
+		if deleted || requested != immutableFixtureID && (!moved && requested != mutableID || moved) {
+			writeJSON(w, 404, `{}`)
+			return
+		}
+		if !immutable && requested == immutableFixtureID {
+			writeJSON(w, 404, `{}`)
+			return
+		}
+		switch r.Method {
+		case http.MethodGet:
+			writeJSON(w, 200, graphEncoded(t, microsoftMetadata(immutableFixtureID, owned.ID.value)))
+		case http.MethodPatch:
+			var detail graphCreated
+			if err := json.Unmarshal(body, &detail); err != nil {
+				t.Errorf("decode patch error = %v, want nil", err)
+			}
+			detail.ID = immutableFixtureID
+			encoded, err := json.Marshal(detail)
+			if err != nil {
+				t.Errorf("encode patch error = %v, want nil", err)
+			}
+			writeJSON(w, 200, string(encoded))
+		case http.MethodDelete:
+			deleted = true
+			w.WriteHeader(204)
+		default:
+			writeJSON(w, 405, `{}`)
+		}
+	})
+	connection := oauthConnection(t, ProviderMicrosoft)
+	created, err := client.PutEvent(t.Context(), eventWrite(t, connection, owned))
+	if err != nil {
+		t.Fatalf("create = (%+v,%v), want receipt", created, err)
+	}
+	mutex.Lock()
+	moved = true
+	mutex.Unlock()
+	changed := owned
+	changed.Interval = window(t, "2026-11-03T15:00:00Z", "2026-11-03T16:00:00Z")
+	updated, updateErr := client.UpdateEvent(t.Context(), EventUpdate{Connection: connection, Ref: created.Ref, Intent: changed, ObservedAt: at(t, "2026-11-02T08:00:00Z"), Policy: fixturePolicy(t)})
+	if updateErr != nil || updated.Ref != created.Ref {
+		t.Fatalf("update after actual fixture calendar move = (%+v,%v), want stable receipt %+v", updated, updateErr, created.Ref)
+	}
+	outcome, deleteErr := client.DeleteEvent(t.Context(), EventDelete{Connection: connection, Ref: updated.Ref, Policy: fixturePolicy(t)})
+	mutex.Lock()
+	gotDeleted := deleted
+	mutex.Unlock()
+	if deleteErr != nil || outcome != Deleted || !gotDeleted {
+		t.Fatalf("delete after calendar move = (%v,%v) effect %t, want actual deletion", outcome, deleteErr, gotDeleted)
+	}
+}
