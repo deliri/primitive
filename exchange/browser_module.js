@@ -1,6 +1,6 @@
 // Primitive Exchange owns browser HTTP execution. Native fetch performs the
 // request; this executor admits only same-origin absolute paths with JSON
-// bodies, refuses redirects, never caches, and never surfaces a failure body.
+// bodies, never follows a redirect (manual mode, refused as redirect), never caches, and never surfaces a failure body.
 // Generated error identities come from Primitive Core.
 export const BrowserExchangeErrorIdentity = Object.freeze({
   contract: __CONTRACT_IDENTITY__,
@@ -8,6 +8,7 @@ export const BrowserExchangeErrorIdentity = Object.freeze({
   contentType: __CONTENT_TYPE_IDENTITY__,
   cancelled: __CANCELLED_IDENTITY__,
   transport: __TRANSPORT_IDENTITY__,
+  redirect: __REDIRECT_IDENTITY__,
 });
 
 const METHODS = Object.freeze(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
@@ -40,7 +41,7 @@ export async function sendJSON({path, method, body, expectedStatus, signal} = {}
       (signal !== undefined && !(signal instanceof AbortSignal)) || (method === 'GET' && body !== undefined)) {
     throw exchangeError(BrowserExchangeErrorIdentity.contract);
   }
-  const init = {method, signal, redirect: 'error', credentials: 'same-origin', cache: 'no-store', referrerPolicy: 'same-origin', headers: {Accept: 'application/json'}};
+  const init = {method, signal, redirect: 'manual', credentials: 'same-origin', cache: 'no-store', referrerPolicy: 'same-origin', headers: {Accept: 'application/json'}};
   if (body !== undefined) {
     init.body = JSON.stringify(body);
     init.headers['Content-Type'] = 'application/json';
@@ -52,7 +53,11 @@ export async function sendJSON({path, method, body, expectedStatus, signal} = {}
     if (signal?.aborted || cause?.name === 'AbortError') throw exchangeError(BrowserExchangeErrorIdentity.cancelled, undefined, cause);
     throw exchangeError(BrowserExchangeErrorIdentity.transport, undefined, cause);
   }
-  if (response.redirected || response.type === 'opaqueredirect' || response.status !== expectedStatus) {
+  if (response.type === 'opaqueredirect' || response.redirected) {
+    try { await response.body?.cancel(); } catch {}
+    throw exchangeError(BrowserExchangeErrorIdentity.redirect, response.status);
+  }
+  if (response.status !== expectedStatus) {
     try { await response.body?.cancel(); } catch {}
     throw exchangeError(BrowserExchangeErrorIdentity.response, response.status);
   }
