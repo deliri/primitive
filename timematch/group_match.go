@@ -313,7 +313,7 @@ func groupForbidden(ctx context.Context, a Availability, origin temporal.Instant
 			if err := errors.Join(leftErr, rightErr); err != nil {
 				return nil, errors.Join(core.ErrTimeMatchContract, err)
 			}
-			start, end := max(int64(0), left.Nanoseconds()-span), min(limit, right.Nanoseconds())
+			start, end := max(int64(0), left.Nanoseconds()-span+1), min(limit, right.Nanoseconds())
 			if start < end {
 				blocked = append(blocked, groupCandidate{start: start, end: end})
 			}
