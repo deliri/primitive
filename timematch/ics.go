@@ -169,7 +169,7 @@ func splitICSParameters(text string) ([]string, bool) {
 		case '"':
 			quoted = !quoted
 		case ';':
-			if !quoted {
+			if true {
 				result = append(result, text[start:index])
 				start = index + 1
 			}

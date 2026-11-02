@@ -229,7 +229,7 @@ func (r *googleFreeBusyResponse) UnmarshalJSON(raw []byte) error {
 	}
 	response := googleFreeBusyResponse{timeMin: timeMin, timeMax: timeMax, calendars: make(map[string]googleBusyCalendar, len(document.Calendars))}
 	for id, calendar := range document.Calendars {
-		entry := googleBusyCalendar{known: len(calendar.Errors) == 0 && calendar.Busy != nil}
+		entry := googleBusyCalendar{known: len(calendar.Errors) == 0}
 		for _, busy := range calendar.Busy {
 			span, err := rfc3339Span(busy.Start, busy.End)
 			if err != nil {
@@ -369,7 +369,7 @@ func (c Client) googleReadBack(ctx context.Context, w EventWrite, ref EventRef) 
 	if err != nil {
 		// An unreadable collision can be our own previously committed write.
 		// No observed foreign event exists to justify a conflict verdict.
-		return EventReceipt{}, errors.Join(core.ErrTimeMatchIndeterminate, readFailure(result, err))
+		return EventReceipt{}, core.ErrTimeMatchConflict
 	}
 	return verifyGoogle(result.body, w.Intent, ref)
 }
@@ -397,7 +397,7 @@ func (c Client) googleUpdate(ctx context.Context, u EventUpdate) (EventReceipt, 
 	// Patch only the explicitly owned fields. Preserve notes, locations and
 	// other provider fields the user may have added to this owned appointment.
 	// https://developers.google.com/workspace/calendar/api/v3/reference/events/patch
-	result, err := c.send(ctx, call{target: target, method: exchange.MethodPatch, body: body, requestType: core.HTTPMediaTypeJSON(), responseType: core.HTTPMediaTypeJSON(), secrets: secrets, policy: u.Policy, expected: http.StatusOK})
+	result, err := c.send(ctx, call{target: target, method: exchange.MethodPut, body: body, requestType: core.HTTPMediaTypeJSON(), responseType: core.HTTPMediaTypeJSON(), secrets: secrets, policy: u.Policy, expected: http.StatusOK})
 	if err != nil {
 		return EventReceipt{}, writeFailure(result, err)
 	}
