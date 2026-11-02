@@ -46,16 +46,15 @@ func parseICS(text string) ([]icsEvent, error) {
 	var current *icsRawEvent
 	depth := 0
 	for _, line := range lines {
-		upper := strings.ToUpper(line)
 		switch {
-		case upper == icsBeginEvent:
+		case strings.EqualFold(line, icsBeginEvent):
 			if current != nil {
 				return nil, core.ErrTimeMatchResponse
 			}
 			current = &icsRawEvent{}
 			depth = 0
 			continue
-		case upper == icsEndEvent:
+		case strings.EqualFold(line, icsEndEvent):
 			if current == nil || depth != 0 {
 				return nil, core.ErrTimeMatchResponse
 			}
@@ -67,11 +66,11 @@ func parseICS(text string) ([]icsEvent, error) {
 			continue
 		}
 		// Nested components (VALARM) inside a VEVENT are skipped.
-		if strings.HasPrefix(upper, icsBeginGeneric) {
+		if icsPrefixFold(line, icsBeginGeneric) {
 			depth++
 			continue
 		}
-		if strings.HasPrefix(upper, icsEndGeneric) {
+		if icsPrefixFold(line, icsEndGeneric) {
 			if depth == 0 {
 				return nil, core.ErrTimeMatchResponse
 			}
@@ -88,20 +87,54 @@ func parseICS(text string) ([]icsEvent, error) {
 	return events, nil
 }
 
+// unfoldICS is linear in the text: a folded logical line is assembled in one
+// growing builder, never by re-copying the line for every continuation. The
+// response body has no byte cap, so a hostile answer folded into thousands of
+// continuation lines must cost thousands of appends, not millions of copies.
 func unfoldICS(text string) []string {
-	text = strings.ReplaceAll(text, "\r\n", "\n")
-	raw := strings.Split(text, "\n")
-	lines := make([]string, 0, len(raw))
-	for _, line := range raw {
-		if (strings.HasPrefix(line, " ") || strings.HasPrefix(line, "\t")) && len(lines) > 0 {
-			lines[len(lines)-1] += line[1:]
+	lines := make([]string, 0, strings.Count(text, "\n")+1)
+	var folded strings.Builder
+	current, open := "", false
+	for text != "" {
+		line, rest, _ := strings.Cut(text, "\n")
+		text = rest
+		line = strings.TrimSuffix(line, "\r")
+		if line == "" {
 			continue
 		}
-		if line != "" {
-			lines = append(lines, line)
+		if open && (line[0] == ' ' || line[0] == '\t') {
+			if folded.Len() == 0 {
+				folded.WriteString(current)
+			}
+			folded.WriteString(line[1:])
+			continue
 		}
+		if open {
+			lines = append(lines, icsLogicalLine(current, &folded))
+		}
+		current, open = line, true
+	}
+	if open {
+		lines = append(lines, icsLogicalLine(current, &folded))
 	}
 	return lines
+}
+
+// icsLogicalLine returns the assembled line when continuations were folded
+// into the builder, otherwise the single physical line, and resets the builder.
+func icsLogicalLine(current string, folded *strings.Builder) string {
+	if folded.Len() == 0 {
+		return current
+	}
+	line := folded.String()
+	folded.Reset()
+	return line
+}
+
+// icsPrefixFold reports whether line starts with the ASCII prefix, ignoring
+// case, without copying the line.
+func icsPrefixFold(line, prefix string) bool {
+	return len(line) >= len(prefix) && strings.EqualFold(line[:len(prefix)], prefix)
 }
 
 type icsProperty struct {
@@ -241,21 +274,20 @@ func parseFreeBusy(text string) ([][2]int64, bool) {
 	var spans [][2]int64
 	inside, seen := false, false
 	for _, line := range unfoldICS(text) {
-		upper := strings.ToUpper(line)
 		switch {
-		case upper == "BEGIN:VFREEBUSY":
+		case strings.EqualFold(line, "BEGIN:VFREEBUSY"):
 			if inside {
 				return nil, false
 			}
 			inside, seen = true, true
 			continue
-		case upper == "END:VFREEBUSY":
+		case strings.EqualFold(line, "END:VFREEBUSY"):
 			inside = false
 			continue
-		case upper == icsBeginEvent:
+		case strings.EqualFold(line, icsBeginEvent):
 			return nil, false
 		}
-		if !inside || !strings.HasPrefix(upper, "FREEBUSY") {
+		if !inside || !icsPrefixFold(line, "FREEBUSY") {
 			continue
 		}
 		nameAndParams, value, ok := cutICSValue(line)
@@ -266,15 +298,15 @@ func parseFreeBusy(text string) ([][2]int64, bool) {
 		if !ok {
 			return nil, false
 		}
-		if strings.ToUpper(parts[0]) != "FREEBUSY" {
+		if !strings.EqualFold(parts[0], "FREEBUSY") {
 			continue
 		}
 		blocking := true
 		for _, param := range parts[1:] {
-			kind, isType := strings.CutPrefix(strings.ToUpper(param), "FBTYPE=")
-			if !isType {
+			if !icsPrefixFold(param, "FBTYPE=") {
 				continue
 			}
+			kind := strings.ToUpper(param[len("FBTYPE="):])
 			switch kind {
 			case "BUSY", "BUSY-UNAVAILABLE", "BUSY-TENTATIVE":
 			case "FREE":
@@ -349,38 +381,57 @@ func icsUTCText(v string) (int64, bool) {
 }
 
 // icsDuration parses the RFC 5545 section 3.3.6 dur-value for non-negative
-// durations: P[n]W or P[nD][T[nH][nM][nS]].
+// durations: P[n]W or P[nD][T[nH][nM][nS]]. Digit runs are sliced from the
+// text, never accumulated byte by byte, so an oversized run costs one parse.
 func icsDuration(text string) (int64, bool) {
 	text = strings.TrimPrefix(text, "+")
 	rest, ok := strings.CutPrefix(text, "P")
 	if !ok || rest == "" {
 		return 0, false
 	}
-	const second, minute, hour = int64(1e9), int64(60e9), int64(3600e9)
-	units := map[byte]int64{'W': 7 * 24 * hour, 'D': 24 * hour, 'H': hour, 'M': minute, 'S': second}
 	var total int64
-	inTime, digits, seen := false, "", false
+	inTime, digits, seen := false, 0, false
 	for i := range len(rest) {
 		b := rest[i]
 		switch {
 		case b >= '0' && b <= '9':
-			digits += string(b)
-		case b == 'T' && !inTime && digits == "":
+			digits++
+		case b == 'T' && !inTime && digits == 0:
 			inTime = true
 		default:
-			unit, known := units[b]
-			if !known || digits == "" || inTime != (b == 'H' || b == 'M' || b == 'S') {
+			unit, known := icsDurationUnit(b, inTime)
+			if !known || digits == 0 {
 				return 0, false
 			}
-			value, err := strconv.ParseInt(digits, 10, 64)
+			value, err := strconv.ParseInt(rest[i-digits:i], 10, 64)
 			if err != nil || value > (1<<62)/unit || total > (1<<62)-value*unit {
 				return 0, false
 			}
 			total += value * unit
-			digits, seen = "", true
+			digits, seen = 0, true
 		}
 	}
-	return total, seen && digits == ""
+	return total, seen && digits == 0
+}
+
+// icsDurationUnit admits W and D before the time designator and H, M and S
+// after it, in nanoseconds.
+func icsDurationUnit(designator byte, inTime bool) (int64, bool) {
+	const second, minute, hour = int64(1e9), int64(60e9), int64(3600e9)
+	switch {
+	case designator == 'W' && !inTime:
+		return 7 * 24 * hour, true
+	case designator == 'D' && !inTime:
+		return 24 * hour, true
+	case designator == 'H' && inTime:
+		return hour, true
+	case designator == 'M' && inTime:
+		return minute, true
+	case designator == 'S' && inTime:
+		return second, true
+	default:
+		return 0, false
+	}
 }
 
 // unescapeICSText reverses RFC 5545 section 3.3.11 TEXT escaping.

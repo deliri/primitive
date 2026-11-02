@@ -149,18 +149,24 @@ func WriteInvitation(destination io.Writer, invitation Invitation) error {
 	return w.err
 }
 
-// invitationWriter holds one RFC 5545 physical-line window. It never buffers
-// the whole message, a whole recipient list or an arbitrarily large text line.
+// invitationWriter holds exactly one RFC 5545 physical line (75 octets plus
+// CRLF) in fixed storage and hands each completed line to the destination in
+// one write. It never buffers the whole message, a whole recipient list or an
+// arbitrarily large text line, and it never writes again after a failure.
 type invitationWriter struct {
 	destination io.Writer
 	err         error
 	column      int
+	physical    [icsLineMaximum + len(icsCRLF)]byte
 }
 
-func (w *invitationWriter) raw(data []byte) {
+// flush writes the buffered physical line once and records the first failure.
+func (w *invitationWriter) flush() {
 	if w.err != nil {
 		return
 	}
+	data := w.physical[:w.column]
+	w.column = 0
 	written, err := w.destination.Write(data)
 	if err != nil {
 		w.err = err
@@ -171,15 +177,21 @@ func (w *invitationWriter) raw(data []byte) {
 	}
 }
 
+// terminate appends CRLF to the buffered line and flushes it.
+func (w *invitationWriter) terminate() {
+	w.column += copy(w.physical[w.column:], icsCRLF)
+	w.flush()
+}
+
 func (w *invitationWriter) rune(value rune) {
 	var raw [utf8.UTFMax]byte
 	n := utf8.EncodeRune(raw[:], value)
 	if w.column+n > icsLineMaximum {
-		w.raw([]byte("\r\n "))
+		w.terminate()
+		w.physical[0] = ' '
 		w.column = 1
 	}
-	w.raw(raw[:n])
-	w.column += n
+	w.column += copy(w.physical[w.column:], raw[:n])
 }
 
 func (w *invitationWriter) text(value string, escape bool) {
@@ -214,7 +226,7 @@ func (w *invitationWriter) address(value string) {
 	}
 }
 
-func (w *invitationWriter) endLine() { w.raw([]byte(icsCRLF)); w.column = 0 }
+func (w *invitationWriter) endLine() { w.terminate() }
 func (w *invitationWriter) line(parts ...string) {
 	for _, part := range parts {
 		w.text(part, false)
