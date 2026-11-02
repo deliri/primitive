@@ -222,7 +222,11 @@ func phaseMask(mask uint8) [][2]int64 {
 	var spans [][2]int64
 	for i := int64(0); i < 6; i++ {
 		if mask&(1<<i) != 0 {
-			spans = append(spans, [2]int64{i, i + 1})
+			if len(spans) > 0 && spans[len(spans)-1][1] == i {
+				spans[len(spans)-1][1] = i + 1
+			} else {
+				spans = append(spans, [2]int64{i, i + 1})
+			}
 		}
 	}
 	return spans
@@ -369,7 +373,9 @@ func TestGroupPhaseCancellationZeroResult(t *testing.T) {
 	ctx, cancel := context.WithCancelCause(t.Context())
 	cancel(cause)
 	for _, c := range []context.Context{nil, ctx, &groupTerminalContext{Context: t.Context(), threshold: 4, terminal: context.Canceled}, &groupTerminalContext{Context: t.Context(), threshold: 12, terminal: context.DeadlineExceeded}} {
-		got, err := MatchGroup(c, phaseFixture(t))
+		r := phaseFixture(t)
+		r.PhaseConstraints[0].Availability = groupPerson(t, r.Window, 0, true, AvailabilityKnown, [2]int64{2, 3}, [2]int64{5, 6}).Availability
+		got, err := MatchGroup(c, r)
 		if err == nil || !reflect.DeepEqual(got, GroupMatchResult{}) {
 			t.Fatalf("cancellation=%+v/%v", got, err)
 		}
