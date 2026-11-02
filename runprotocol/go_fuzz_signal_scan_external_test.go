@@ -21,7 +21,7 @@ func TestGoFuzzSignalNeutralRecordDoesNotRepeatEveryMarkerSearch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer file.Close()
+	defer mustClose(t, file)
 	const extent = 65537
 	if _, err := io.Copy(file, &fuzzMetricFillReader{remaining: extent, value: 'x'}); err != nil {
 		t.Fatal(err)
@@ -93,7 +93,14 @@ func TestGoFuzzSignalFixedScanConservesNativeRefusals(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer file.Close()
+			// Only selection 0 hands the file to a fixture that closes it.
+			defer func() {
+				if selection == 0 {
+					mustAlreadyBeClosed(t, file)
+					return
+				}
+				mustClose(t, file)
+			}()
 			if _, err := io.Copy(file, io.MultiReader(strings.NewReader("panic: native "), &fuzzMetricFillReader{remaining: 65537, value: 'x'})); err != nil {
 				t.Fatal(err)
 			}
@@ -130,20 +137,21 @@ func TestGoFuzzSignalFixedScanConservesNativeRefusals(t *testing.T) {
 				refused = true
 			}
 			if !refused {
-				t.Fatal("native refusal disappeared")
+				t.Fatalf("native refusal observed = %t, want true", refused)
 			}
 		})
 	}
 }
 
 func BenchmarkGoFuzzSignalFixedNativeWorkingMemory(b *testing.B) {
+	b.ReportAllocs()
 	for _, extent := range []int64{65536, 64*1024*1024 + 1} {
 		b.Run(strconv.FormatInt(extent, 10), func(b *testing.B) {
 			file, err := os.Create(filepath.Join(b.TempDir(), "native-signal-benchmark"))
 			if err != nil {
 				b.Fatal(err)
 			}
-			defer file.Close()
+			defer mustClose(b, file)
 			written, err := io.Copy(file, io.MultiReader(&fuzzMetricFillReader{remaining: extent, value: 'x'}, strings.NewReader(" context deadline exceeded\n")))
 			if err != nil {
 				b.Fatal(err)

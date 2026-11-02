@@ -44,6 +44,9 @@ func TestDocumentsRefuseAbsentCapabilitiesAndCancellation(t *testing.T) {
 	t.Parallel()
 	cancelled, cancel := context.WithCancel(t.Context())
 	cancel()
+	cause := errors.New("caller admission cancellation fixture")
+	custom, cancelCause := context.WithCancelCause(t.Context())
+	cancelCause(cause)
 	for _, tc := range []struct {
 		name      string
 		ctx       context.Context
@@ -52,6 +55,7 @@ func TestDocumentsRefuseAbsentCapabilitiesAndCancellation(t *testing.T) {
 		{name: "missing_native_capability_is_a_contract_refusal", ctx: t.Context()},
 		{name: "nil_context_retains_native_boundary_identity", wantCause: core.ErrNilContext},
 		{name: "cancellation_retains_native_cause", ctx: cancelled, wantCause: context.Canceled},
+		{name: "custom_cancel_cause_is_preserved_before_any_operation", ctx: custom, wantCause: cause},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -73,10 +77,12 @@ func TestDocumentsRefuseAbsentCapabilitiesAndCancellation(t *testing.T) {
 // The interceptors count actual native provider messages. Counts are exercised
 // emulator operations, not a claim about production billing.
 type nativeCosts struct {
-	reads   atomic.Int64
-	writes  atomic.Int64
-	queries atomic.Int64
-	commits atomic.Int64
+	reads           atomic.Int64
+	writes          atomic.Int64
+	queries         atomic.Int64
+	commits         atomic.Int64
+	readOnlyBegins  atomic.Int64
+	readWriteBegins atomic.Int64
 }
 type costStream struct {
 	grpc.ClientStream
@@ -94,6 +100,15 @@ func (s *costStream) RecvMsg(value any) error {
 	return err
 }
 func (c *nativeCosts) unary(ctx context.Context, method string, request, reply any, connection *grpc.ClientConn, invoke grpc.UnaryInvoker, options ...grpc.CallOption) error {
+	if strings.HasSuffix(method, "/BeginTransaction") {
+		if typed, ok := request.(*firestorepb.BeginTransactionRequest); ok {
+			if typed.GetOptions().GetReadOnly() != nil {
+				c.readOnlyBegins.Add(1)
+			} else {
+				c.readWriteBegins.Add(1)
+			}
+		}
+	}
 	if strings.HasSuffix(method, "/RunQuery") {
 		c.queries.Add(1)
 	}
@@ -118,14 +133,15 @@ func (c *nativeCosts) stream(ctx context.Context, description *grpc.StreamDesc, 
 	}
 	return &costStream{ClientStream: stream, costs: c, method: method}, nil
 }
-func nativeClient(t testing.TB) (*firestore.Client, *nativeCosts) {
+func nativeClient(t testing.TB, extra ...grpc.DialOption) (*firestore.Client, *nativeCosts) {
 	t.Helper()
 	endpoint := nativeEmulatorEndpoint
 	if endpoint == "" {
 		t.Fatalf("native emulator endpoint=%q, want configured local proof endpoint", endpoint)
 	}
 	costs := new(nativeCosts)
-	connection, err := grpc.NewClient(endpoint, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithChainUnaryInterceptor(costs.unary), grpc.WithChainStreamInterceptor(costs.stream))
+	options := append([]grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithChainUnaryInterceptor(costs.unary), grpc.WithChainStreamInterceptor(costs.stream)}, extra...)
+	connection, err := grpc.NewClient(endpoint, options...)
 	if err != nil {
 		t.Fatal(err)
 	}

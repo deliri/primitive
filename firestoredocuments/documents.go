@@ -8,7 +8,6 @@ import (
 	"reflect"
 
 	"cloud.google.com/go/firestore"
-	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
 )
 
@@ -44,7 +43,7 @@ func (d Document[T]) Validate() error {
 // Get reads exactly one document and releases no partial record on a read,
 // native decoding or owning-validation failure. Firestore owns document extent.
 func Get[T core.Validatable](ctx context.Context, request GetRequest) (Document[T], error) {
-	if err := contextstate.Validate(ctx); err != nil {
+	if err := documentContext(ctx); err != nil {
 		return Document[T]{}, errors.Join(core.ErrFirestoreDocumentsContract, err)
 	}
 	if err := request.Validate(); err != nil {
@@ -61,7 +60,7 @@ func Get[T core.Validatable](ctx context.Context, request GetRequest) (Document[
 		snapshot, err = request.Transaction.Get(request.Reference)
 	}
 	if err != nil {
-		return Document[T]{}, errors.Join(core.ErrFirestoreDocumentsOperation, err)
+		return Document[T]{}, errors.Join(core.ErrFirestoreDocumentsOperation, err, ctx.Err(), context.Cause(ctx))
 	}
 	var result Document[T]
 	if err := snapshot.DataTo(&result.Record); err != nil {
@@ -89,7 +88,7 @@ func (r CreateRequest[T]) Validate() error {
 }
 
 func Create[T core.Validatable](ctx context.Context, request CreateRequest[T]) error {
-	if err := contextstate.Validate(ctx); err != nil {
+	if err := documentContext(ctx); err != nil {
 		return errors.Join(core.ErrFirestoreDocumentsContract, err)
 	}
 	if err := request.Validate(); err != nil {
@@ -101,21 +100,44 @@ func Create[T core.Validatable](ctx context.Context, request CreateRequest[T]) e
 	return nil
 }
 
+// TransactionMode selects native execution policy, not a wire representation.
+type TransactionMode uint8
+
+const (
+	// TransactionReadWrite is the native default, including its retry behavior.
+	TransactionReadWrite TransactionMode = iota
+	TransactionReadOnly
+)
+
+func (m TransactionMode) Validate() error {
+	switch m {
+	case TransactionReadWrite, TransactionReadOnly:
+		return nil
+	default:
+		return core.ErrFirestoreDocumentsContract
+	}
+}
+
+// OffWireEnum declares that the mode selects an official SDK option only.
+func (TransactionMode) OffWireEnum() {}
+
 // TransactionRequest delegates retry and commit mechanics to the official SDK.
 // Use must use its provided context and transaction and tolerate native retries.
 type TransactionRequest struct {
 	Client *firestore.Client
 	Use    func(context.Context, *firestore.Transaction) error
+	Mode   TransactionMode
 }
 
 func (r TransactionRequest) Validate() error {
 	if r.Client == nil || r.Use == nil {
 		return core.ErrFirestoreDocumentsContract
 	}
-	return nil
+	return r.Mode.Validate()
 }
 
-// TransactionResult is issued only after the native SDK confirms commitment.
+// TransactionResult is issued only after the native SDK confirms completion,
+// including a read-only transaction that commits no writes.
 // It is an execution fact, not an independent evidence acceptance receipt.
 type TransactionResult struct {
 	committed bool
@@ -129,14 +151,32 @@ func (r TransactionResult) Validate() error {
 }
 
 func RunTransaction(ctx context.Context, request TransactionRequest) (TransactionResult, error) {
-	if err := contextstate.Validate(ctx); err != nil {
+	if err := documentContext(ctx); err != nil {
 		return TransactionResult{}, errors.Join(core.ErrFirestoreDocumentsContract, err)
 	}
 	if err := request.Validate(); err != nil {
 		return TransactionResult{}, err
 	}
-	if err := request.Client.RunTransaction(ctx, request.Use); err != nil {
-		return TransactionResult{}, errors.Join(core.ErrFirestoreDocumentsOperation, err)
+	var err error
+	if request.Mode == TransactionReadOnly {
+		err = request.Client.RunTransaction(ctx, request.Use, firestore.ReadOnly)
+	} else {
+		err = request.Client.RunTransaction(ctx, request.Use)
+	}
+	if err != nil {
+		return TransactionResult{}, errors.Join(core.ErrFirestoreDocumentsOperation, err, ctx.Err(), context.Cause(ctx))
 	}
 	return TransactionResult{committed: true}, nil
+}
+
+func (m TransactionMode) IsValid() bool { return m.Validate() == nil }
+func (m TransactionMode) String() string {
+	switch m {
+	case TransactionReadWrite:
+		return "read_write"
+	case TransactionReadOnly:
+		return "read_only"
+	default:
+		return "unknown"
+	}
 }

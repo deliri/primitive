@@ -12,39 +12,6 @@ import (
 
 func TestMacResourceRecordsLayerTriad(t *testing.T) {
 	t.Parallel()
-	for _, tc := range []struct {
-		name, text string
-		want       uint64
-		bad        bool
-	}{
-		{"last interval replaces since boot average", "      cpu    load average\n us sy id   1m   5m   15m\n 100  0  0  1.00 1.00 1.00\n  0  0 100  1.00 1.00 1.00\n", 0, false},
-		{"half occupied capacity", "      cpu    load average\n us sy id   1m   5m   15m\n 26 14 59  2.00 3.00 3.00\n 30 20 50  2.00 3.00 3.00\n", 5000, false},
-		{"fully occupied capacity", "      cpu    load average\n us sy id   1m   5m   15m\n  0  0 100  1.00 1.00 1.00\n 50 50  0  9.00 9.00 9.00\n", 10000, false},
-		{"recorded native output", "      cpu    load average\n us sy id   1m   5m   15m\n 26 14 59  26.59 33.92 30.70\n 37 18 45  26.59 33.92 30.70\n", 5500, false},
-		{"missing CPU record refuses", "unrelated\n", 0, true},
-		{"since-boot report alone refuses", "      cpu    load average\n us sy id   1m   5m   15m\n 26 14 59  1.00 1.00 1.00\n", 0, true},
-		{"third report refuses", "      cpu    load average\n us sy id   1m   5m   15m\n 1 1 98  1 1 1\n 1 1 98  1 1 1\n 1 1 98  1 1 1\n", 0, true},
-		{"missing column header refuses", "      cpu    load average\n 1 1 98  1 1 1\n 1 1 98  1 1 1\n", 0, true},
-		{"top output refuses", "CPU usage: 30.00% user, 20.00% sys, 50.00% idle\n", 0, true},
-		{"negative idle refuses", "      cpu    load average\n us sy id   1m   5m   15m\n 1 1 98  1 1 1\n 1 1 -1  1 1 1\n", 0, true},
-		{"idle above 100 refuses", "      cpu    load average\n us sy id   1m   5m   15m\n 1 1 98  1 1 1\n 0 0 101  1 1 1\n", 0, true},
-		{"fractional idle refuses", "      cpu    load average\n us sy id   1m   5m   15m\n 1 1 98  1 1 1\n 0 0 50.5  1 1 1\n", 0, true},
-		{"short report refuses", "      cpu    load average\n us sy id   1m   5m   15m\n 1 1 98  1 1 1\n 0 0 50\n", 0, true},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			t.Parallel()
-			got, err := parseResourceMacCPU(t.Context(), []byte(tc.text), LogicalCPUCount{count: 10})
-			if tc.bad {
-				if !errors.Is(err, core.ErrHostFactsObservation) || got != 0 {
-					t.Fatalf("Mac CPU=(%d,%v), want zero refusal", got, err)
-				}
-				return
-			}
-			if err != nil || got != tc.want {
-				t.Fatalf("Mac CPU=(%d,%v), want %d", got, err, tc.want)
-			}
-		})
-	}
 	total, err := core.NewByteLength(4096)
 	if err != nil {
 		t.Fatal(err)
@@ -122,23 +89,6 @@ func TestMacResourceProcessMemoryBoundaries(t *testing.T) {
 	}
 }
 
-func FuzzResourceMacCPUSemanticClosure(f *testing.F) {
-	f.Add([]byte("      cpu    load average\n us sy id   1m   5m   15m\n 26 14 59  2.00 3.00 3.00\n 30 20 50  2.00 3.00 3.00\n"))
-	f.Add([]byte{})
-	f.Fuzz(func(t *testing.T, data []byte) {
-		got, err := parseResourceMacCPU(t.Context(), data, LogicalCPUCount{count: 10})
-		if err != nil {
-			if !errors.Is(err, core.ErrHostFactsObservation) || got != 0 {
-				t.Fatalf("refused CPU=(%d,%v)", got, err)
-			}
-			return
-		}
-		if got > 10000 {
-			t.Fatalf("CPU=%d, want at most 10000", got)
-		}
-	})
-}
-
 func FuzzResourceMacMemorySemanticClosure(f *testing.F) {
 	f.Add([]byte("Mach Virtual Memory Statistics: (page size of 1024 bytes)\nPages free: 1.\nPages inactive: 2.\nPages speculative: 1.\n"))
 	f.Add([]byte{})
@@ -173,7 +123,7 @@ func TestResourceUsageRefusesScopesOnDarwin(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	got, err := ObserveResourceUsage(t.Context(), ResourceUsageRequest{IntervalSeconds: 1, Scopes: []SystemdScopeRequest{{Unit: name, UserManager: true}}})
+	got, err := ObserveResourceUsage(t.Context(), ResourceUsageRequest{Interval: resourceDuration(t, "1s"), Scopes: []SystemdScopeRequest{{Unit: name, UserManager: true}}})
 	if !errors.Is(err, core.ErrHostFactsUnsupported) || !emptyResourceUsage(got) {
 		t.Fatalf("darwin scopes=(%+v,%v), want unsupported and no sample", got, err)
 	}

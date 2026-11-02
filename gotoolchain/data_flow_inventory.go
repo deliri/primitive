@@ -7,6 +7,7 @@ type capabilityWrapper interface{ goToolchainCapabilityWrapper() }
 
 func (ToolchainVersion) goToolchainSealedValue() {}
 func (PackageName) goToolchainSealedValue()      {}
+func (TestName) goToolchainSealedValue()         {}
 
 func (Limits) goToolchainProtocolFact()              {}
 func (Configuration) goToolchainProtocolFact()       {}
@@ -19,6 +20,8 @@ func (CompileRequest) goToolchainProtocolFact()      {}
 func (AnalysisRequest) goToolchainProtocolFact()     {}
 func (PackageAnalysis) goToolchainProtocolFact()     {}
 func (Compilation) goToolchainProtocolFact()         {}
+func (TestTableRequest) goToolchainProtocolFact()    {}
+func (TestTables) goToolchainProtocolFact()          {}
 
 func (buildContextWire) goToolchainInternalFlow() {}
 func (packageWire) goToolchainInternalFlow()      {}
@@ -29,6 +32,7 @@ func (Capability) goToolchainCapabilityWrapper() {}
 var (
 	_ sealedValue       = ToolchainVersion{}
 	_ sealedValue       = PackageName{}
+	_ sealedValue       = TestName{}
 	_ protocolFact      = Limits{}
 	_ protocolFact      = Configuration{}
 	_ protocolFact      = BuildContext{}
@@ -40,6 +44,8 @@ var (
 	_ protocolFact      = AnalysisRequest{}
 	_ protocolFact      = PackageAnalysis{}
 	_ protocolFact      = Compilation{}
+	_ protocolFact      = TestTableRequest{}
+	_ protocolFact      = TestTables{}
 	_ internalFlow      = buildContextWire{}
 	_ internalFlow      = packageWire{}
 	_ internalFlow      = moduleWire{}

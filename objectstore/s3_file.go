@@ -116,6 +116,16 @@ func (v *s3CredentialValue) UnmarshalJSON(data []byte) error {
 	v.value = []byte(text)
 	return nil
 }
+
+// Validate admits a present value; field-specific bounds stay with
+// s3FileCredentials, which knows which credential each value is.
+func (v s3CredentialValue) Validate() error {
+	if len(v.value) == 0 {
+		return core.ErrObjectStoreContract
+	}
+	return nil
+}
+
 func (s3CredentialValue) MarshalJSON() ([]byte, error) { return nil, core.ErrObjectStoreContract }
 func (s3CredentialValue) Format(state fmt.State, _ rune) {
 	_, _ = io.WriteString(state, core.RedactedValueText)

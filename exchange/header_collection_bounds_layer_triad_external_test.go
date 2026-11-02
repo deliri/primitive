@@ -328,6 +328,8 @@ func TestClosedModeDomainLayerTriad(t *testing.T) {
 			exchange.MethodPatch,
 			exchange.MethodDelete,
 			exchange.MethodOptions,
+			exchange.MethodPropfind,
+			exchange.MethodReport,
 		}
 		for _, method := range methods {
 			if !method.IsValid() {

@@ -56,12 +56,12 @@ func TestGoFuzzCompletionNativeProducerLayerTriad(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer stdout.Close()
+			defer mustClose(t, stdout)
 			stderr, err := os.Create(filepath.Join(dir, "stderr"))
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer stderr.Close()
+			defer mustClose(t, stderr)
 			cmd := exec.CommandContext(t.Context(), "go", "test", "-mod=readonly", "-count=1", "-vet=off", "-v", "-run=^$", "-fuzz=^"+tc.selected+"$", "-fuzztime=3s", "-fuzzminimizetime=3s", "-parallel=1", ".")
 			cmd.Dir, cmd.Stdout, cmd.Stderr = dir, stdout, stderr
 			cmd.Env = append(os.Environ(), "GOWORK=off", "GOMAXPROCS=1")

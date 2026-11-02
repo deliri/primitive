@@ -127,7 +127,7 @@ func BenchmarkRequestValidateExactEnvironment64(b *testing.B) {
 	duplicate := request
 	duplicate.Environment.Variables = append(append([]process.EnvironmentVariable(nil), environment.Variables...), environment.Variables[0])
 	if err := duplicate.Validate(); err == nil {
-		b.Fatal("duplicate environment admitted, want the measured check to be live")
+		b.Fatalf("duplicate environment Validate=%v, want a refusal so the measured check is live", err)
 	}
 }
 

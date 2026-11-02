@@ -144,9 +144,9 @@ func GoFuzzMetricRecords(ctx context.Context, request GoFuzzMetricSourceRequest)
 				yield(GoFuzzMetricRecord{}, goFuzzMetricRefusal(ctx, err))
 				return
 			}
-			observed, err := readGoFuzzMetricRecord(ctx, request.Source, record, patterns)
-			if err != nil {
-				yield(GoFuzzMetricRecord{}, goFuzzMetricRefusal(ctx, err))
+			observed, observationErr := readGoFuzzMetricRecord(ctx, request.Source, record, patterns)
+			if observationErr != nil {
+				yield(GoFuzzMetricRecord{}, goFuzzMetricRefusal(ctx, observationErr))
 				return
 			}
 			if !yield(observed, nil) {
@@ -170,14 +170,16 @@ type goFuzzMetricPatterns struct {
 }
 
 func newGoFuzzMetricPatterns() goFuzzMetricPatterns {
-	var patterns goFuzzMetricPatterns
-	for i, prefix := range [...]string{"executions:", "execs:", "crashers:", "new interesting:"} {
-		quoted := regexp.QuoteMeta(prefix)
-		patterns.prefixes[i] = [3]*regexp.Regexp{regexp.MustCompile(`\A` + quoted), regexp.MustCompile(`,` + quoted), regexp.MustCompile(`, ` + quoted)}
+	return goFuzzMetricPatterns{
+		prefixes: [4][3]*regexp.Regexp{
+			{regexp.MustCompile(`\Aexecutions:`), regexp.MustCompile(`,executions:`), regexp.MustCompile(`, executions:`)},
+			{regexp.MustCompile(`\Aexecs:`), regexp.MustCompile(`,execs:`), regexp.MustCompile(`, execs:`)},
+			{regexp.MustCompile(`\Acrashers:`), regexp.MustCompile(`,crashers:`), regexp.MustCompile(`, crashers:`)},
+			{regexp.MustCompile(`\Anew interesting:`), regexp.MustCompile(`,new interesting:`), regexp.MustCompile(`, new interesting:`)},
+		},
+		interestingPrefixes: [3]*regexp.Regexp{regexp.MustCompile(`\Anew interesting`), regexp.MustCompile(`,new interesting`), regexp.MustCompile(`, new interesting`)},
+		space:               regexp.MustCompile(` `),
 	}
-	patterns.interestingPrefixes = [3]*regexp.Regexp{regexp.MustCompile(`\Anew interesting`), regexp.MustCompile(`,new interesting`), regexp.MustCompile(`, new interesting`)}
-	patterns.space = regexp.MustCompile(` `)
-	return patterns
 }
 
 type goFuzzMetricSpan struct{ offset, bytes int64 }
@@ -309,9 +311,13 @@ func goFuzzMetricInteger(ctx context.Context, source lineio.RecordSource, span g
 	return GoFuzzMetricField{presence: GoFuzzMetricPresent, value: value}, nil
 }
 
-func readGoFuzzMetricField(ctx context.Context, source lineio.RecordSource, span goFuzzMetricSpan, patterns [3]*regexp.Regexp, space *regexp.Regexp) (GoFuzzMetricField, error) {
+func (patterns goFuzzMetricPatterns) readField(ctx context.Context, source lineio.RecordSource, span goFuzzMetricSpan, kind GoFuzzMetricKind) (GoFuzzMetricField, error) {
+	if err := kind.Validate(); err != nil {
+		return GoFuzzMetricField{}, err
+	}
+	prefixes := patterns.prefixes[int(kind)-1]
 	var match []int
-	for _, pattern := range patterns {
+	for _, pattern := range prefixes {
 		found, err := goFuzzMetricMatch(ctx, source, span, pattern)
 		if err != nil {
 			return GoFuzzMetricField{}, err
@@ -329,7 +335,7 @@ func readGoFuzzMetricField(ctx context.Context, source lineio.RecordSource, span
 	if err != nil {
 		return GoFuzzMetricField{}, err
 	}
-	separator, err := goFuzzMetricMatch(ctx, source, value, space)
+	separator, err := goFuzzMetricMatch(ctx, source, value, patterns.space)
 	if err != nil {
 		return GoFuzzMetricField{}, err
 	}
@@ -368,13 +374,13 @@ func readGoFuzzMetricRecord(ctx context.Context, source lineio.RecordSource, rec
 		return GoFuzzMetricRecord{}, err
 	}
 	observed := GoFuzzMetricRecord{record: record}
-	for i, prefixes := range patterns.prefixes {
+	for i := range patterns.prefixes {
 		if !hints[i] {
 			continue
 		}
-		field, err := readGoFuzzMetricField(ctx, source, span, prefixes, patterns.space)
-		if err != nil {
-			return GoFuzzMetricRecord{}, err
+		field, fieldErr := patterns.readField(ctx, source, span, GoFuzzMetricKind(i+1))
+		if fieldErr != nil {
+			return GoFuzzMetricRecord{}, fieldErr
 		}
 		observed.fields[i] = field
 	}
@@ -382,20 +388,20 @@ func readGoFuzzMetricRecord(ctx context.Context, source lineio.RecordSource, rec
 		cursorSource := &goBenchmarkSourceReader{ctx: ctx, source: io.NewSectionReader(source, span.offset, span.bytes)}
 		cursor := goBenchmarkFieldCursor{ctx: ctx, source: source, buffer: bufio.NewReader(cursorSource), offset: span.offset}
 		for !cursor.ended {
-			field, found, err := cursor.nextField()
-			if err != nil {
-				return GoFuzzMetricRecord{}, err
+			field, found, fieldErr := cursor.nextField()
+			if fieldErr != nil {
+				return GoFuzzMetricRecord{}, fieldErr
 			}
 			if !found {
 				break
 			}
-			candidate, err := goFuzzMetricTrimmed(ctx, source, goFuzzMetricSpan{offset: field.offset, bytes: field.length}, goFuzzMetricTrimCommasColons)
-			if err != nil {
-				return GoFuzzMetricRecord{}, err
+			candidate, fieldErr := goFuzzMetricTrimmed(ctx, source, goFuzzMetricSpan{offset: field.offset, bytes: field.length}, goFuzzMetricTrimCommasColons)
+			if fieldErr != nil {
+				return GoFuzzMetricRecord{}, fieldErr
 			}
-			value, err := goFuzzMetricInteger(ctx, source, candidate)
-			if err != nil {
-				return GoFuzzMetricRecord{}, err
+			value, fieldErr := goFuzzMetricInteger(ctx, source, candidate)
+			if fieldErr != nil {
+				return GoFuzzMetricRecord{}, fieldErr
 			}
 			if value.presence == GoFuzzMetricPresent {
 				observed.fields[3] = value
@@ -407,9 +413,9 @@ func readGoFuzzMetricRecord(ctx context.Context, source lineio.RecordSource, rec
 		}
 		if observed.fields[3].presence != GoFuzzMetricPresent {
 			for _, pattern := range patterns.interestingPrefixes {
-				found, err := goFuzzMetricMatch(ctx, source, span, pattern)
-				if err != nil {
-					return GoFuzzMetricRecord{}, err
+				found, matchErr := goFuzzMetricMatch(ctx, source, span, pattern)
+				if matchErr != nil {
+					return GoFuzzMetricRecord{}, matchErr
 				}
 				if found != nil {
 					observed.fields[3] = GoFuzzMetricField{presence: GoFuzzMetricMalformed, refusal: core.ErrGoToolchainOutput}
@@ -431,3 +437,33 @@ func (GoFuzzMetricRecord) runProtocolSealedProjection()      {}
 func (GoFuzzMetricSourceRequest) runProtocolFact()           {}
 func (goFuzzMetricPatterns) runProtocolInternalFlowCarrier() {}
 func (goFuzzMetricSpan) runProtocolInternalFlowCarrier()     {}
+
+func (k GoFuzzMetricKind) IsValid() bool { return k.Validate() == nil }
+func (k GoFuzzMetricKind) String() string {
+	switch k {
+	case GoFuzzMetricExecutions:
+		return "executions"
+	case GoFuzzMetricExecs:
+		return "execs"
+	case GoFuzzMetricCrashers:
+		return "crashers"
+	case GoFuzzMetricInteresting:
+		return "interesting"
+	default:
+		return "unknown"
+	}
+}
+
+func (p GoFuzzMetricPresence) IsValid() bool { return p.Validate() == nil }
+func (p GoFuzzMetricPresence) String() string {
+	switch p {
+	case GoFuzzMetricAbsent:
+		return "absent"
+	case GoFuzzMetricPresent:
+		return "present"
+	case GoFuzzMetricMalformed:
+		return "malformed"
+	default:
+		return "unknown"
+	}
+}

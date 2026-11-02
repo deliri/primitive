@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"slices"
 	"testing"
 
 	"github.com/deliri/primitive/v2026/compass"
@@ -64,7 +65,7 @@ func TestDecodeHostileProjectConfigurationLayerTriad(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			got, err := compass.Decode[compass.Configuration](bytes.NewReader(tc.data))
-			if !errors.Is(err, tc.wantErr) || got != tc.want || tc.wantErr != nil && !errors.Is(err, core.ErrCompassContract) {
+			if !errors.Is(err, tc.wantErr) || !sameConfiguration(got, tc.want) || tc.wantErr != nil && !errors.Is(err, core.ErrCompassContract) {
 				t.Fatalf("got configuration=%v error=%v, want %v and %v", got, err, tc.want, tc.wantErr)
 			}
 		})
@@ -87,18 +88,18 @@ func FuzzDecodeProjectConfigurationSemanticClosure(f *testing.F) {
 		}
 		generated = append(bytes.Repeat([]byte(" "), len(data)%1024), generated...)
 		exact, err := compass.Decode[compass.Configuration](bytes.NewReader(generated))
-		if err != nil || exact != probe {
+		if err != nil || !sameConfiguration(exact, probe) {
 			t.Fatalf("generated valid configuration got=%v error=%v, want %v", exact, err, probe)
 		}
 		got, err := compass.Decode[compass.Configuration](bytes.NewReader(data))
 		if err != nil {
-			if bytes.Equal(data, seed) || !errors.Is(err, core.ErrCompassContract) || !errors.Is(err, core.ErrJSONContract) || got != (compass.Configuration{}) {
+			if bytes.Equal(data, seed) || !errors.Is(err, core.ErrCompassContract) || !errors.Is(err, core.ErrJSONContract) || !sameConfiguration(got, compass.Configuration{}) {
 				t.Fatalf("rejected configuration got=%v error=%v, want typed failure and zero", got, err)
 			}
 			return
 		}
 		var reference compass.Configuration
-		if err := json.Unmarshal(data, &reference, json.RejectUnknownMembers(true)); err != nil || got != reference {
+		if err := json.Unmarshal(data, &reference, json.RejectUnknownMembers(true)); err != nil || !sameConfiguration(got, reference) {
 			t.Fatalf("accepted configuration differs from Go's typed decode: got=%v want=%v error=%v", got, reference, err)
 		}
 		if err := got.Validate(); err != nil {
@@ -109,7 +110,7 @@ func FuzzDecodeProjectConfigurationSemanticClosure(f *testing.F) {
 			t.Fatal(err)
 		}
 		roundTrip, err := compass.Decode[compass.Configuration](bytes.NewReader(canonical))
-		if err != nil || roundTrip != got {
+		if err != nil || !sameConfiguration(roundTrip, got) {
 			t.Fatalf("round trip got=%v error=%v, want %v", roundTrip, err, got)
 		}
 		canonicalAgain, err := core.MarshalCanonicalJSONDocument(roundTrip)
@@ -136,7 +137,8 @@ func projectFixture(t testing.TB, nameText, moduleText, repositoryText string, m
 	}
 	return compass.Project{
 		Name: name, Module: module, Repository: repository,
-		Release: compass.ReleaseCoordinates{Major: major, Minor: minor, Patch: patch},
+		Release:      compass.ReleaseCoordinates{Major: major, Minor: minor, Patch: patch},
+		ReleaseNotes: []compass.ReleaseNote{"Fixture release change."},
 	}
 }
 
@@ -154,5 +156,10 @@ func encodedConfiguration(t testing.TB, project compass.Project) []byte {
 }
 
 func hostileConfiguration(name, module, repository, major, minor, patch string) []byte {
-	return []byte(fmt.Sprintf(`{"project":{"name":"%s","module":"%s","repository":"%s","release":{"major":%s,"minor":%s,"patch":%s}}}`, name, module, repository, major, minor, patch))
+	return []byte(fmt.Sprintf(`{"project":{"name":"%s","module":"%s","repository":"%s","release":{"major":%s,"minor":%s,"patch":%s},"release_notes":["Fixture release change."]}}`, name, module, repository, major, minor, patch))
+}
+
+func sameConfiguration(got, want compass.Configuration) bool {
+	a, b := got.Project, want.Project
+	return a.Name == b.Name && a.Module == b.Module && a.Repository == b.Repository && a.Release == b.Release && (a.ReleaseNotes == nil) == (b.ReleaseNotes == nil) && slices.Equal(a.ReleaseNotes, b.ReleaseNotes)
 }

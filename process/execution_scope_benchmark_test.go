@@ -35,7 +35,7 @@ func BenchmarkExecutionScopeVisitOwnedChild(b *testing.B) {
 	visits := 0
 	borrowed := process.ActiveExecutionRequest{Visit: func(active *process.Execution) error {
 		if active != execution {
-			b.Fatal("visitor borrowed another child")
+			b.Fatalf("visitor borrowed %p, want %p", active, execution)
 		}
 		visits++
 		return nil
@@ -46,7 +46,7 @@ func BenchmarkExecutionScopeVisitOwnedChild(b *testing.B) {
 		}
 	}
 	if visits != b.N {
-		b.Fatalf("visits=%d,want %d actual native capability visits", visits, b.N)
+		b.Fatalf("visits=%d,want %d native capability visits", visits, b.N)
 	}
 	if err := writer.Close(); err != nil {
 		b.Fatal(err)

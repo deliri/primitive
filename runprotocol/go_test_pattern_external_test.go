@@ -105,7 +105,7 @@ func (fixture nativeFuzzSelectionFixture) run(t *testing.T) ([]string, int) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer stdout.Close()
+	defer mustClose(t, stdout)
 	cmd := exec.CommandContext(t.Context(), "go", "test", "-mod=readonly", "-count=1", "-vet=off", "-v", "-run=^$", "-fuzz="+fixture.pattern, "-fuzztime=1x", "-parallel=1", ".")
 	cmd.Dir, cmd.Stdout, cmd.Stderr = fixture.directory, stdout, io.Discard
 	cmd.Env = append(os.Environ(), "GOWORK=off", "GOMAXPROCS=1")

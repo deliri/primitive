@@ -191,10 +191,24 @@ func releaseFromCoordinates(t testing.TB, major, minor, patch uint32) version.Re
 	}
 	got, err := version.FromProject(compass.Project{
 		Name: name, Module: module, Repository: repository,
-		Release: compass.ReleaseCoordinates{Major: major, Minor: minor, Patch: patch},
+		Release:      compass.ReleaseCoordinates{Major: major, Minor: minor, Patch: patch},
+		ReleaseNotes: []compass.ReleaseNote{"Version fixture change."},
 	})
 	if err != nil {
 		t.Fatalf("FromProject(test fixture) error = %v, want nil", err)
 	}
 	return got
+}
+
+func TestReleaseRefusesMissingChangeNotes(t *testing.T) {
+	t.Parallel()
+	configuration, configurationErr := compass.Current()
+	if configurationErr != nil {
+		t.Fatalf("current project=%v, want valid authored declaration", configurationErr)
+	}
+	configuration.Project.ReleaseNotes = nil
+	release, releaseErr := version.FromProject(configuration.Project)
+	if !errors.Is(releaseErr, core.ErrCompassContract) || !errors.Is(releaseErr, core.ErrReleaseContract) || release != (version.Release{}) {
+		t.Errorf("missing change notes release=%v error=%v, want zero and typed Compass/Release refusal", release, releaseErr)
+	}
 }

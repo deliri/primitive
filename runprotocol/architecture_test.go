@@ -16,6 +16,14 @@ import (
 var aboutContractSources embed.FS
 
 type runProtocolJSONDoorInventory struct {
+	RunKind        func(*RunKind, []byte) error
+	RunSourceKind  func(*RunSourceKind, []byte) error
+	RunScopeKind   func(*RunScopeKind, []byte) error
+	RunFactKind    func(*RunFactKind, []byte) error
+	RunResultKind  func(*RunResultKind, []byte) error
+	RunArgument    func(*RunArgument, []byte) error
+	RunShuffleSeed func(*RunShuffleSeed, []byte) error
+
 	Identifier               func(*Identifier, []byte) error
 	Name                     func(*Name, []byte) error
 	Text                     func(*Text, []byte) error
@@ -51,6 +59,14 @@ type runProtocolJSONDoorInventory struct {
 }
 
 var runProtocolJSONDoors = runProtocolJSONDoorInventory{
+	RunKind:        (*RunKind).UnmarshalJSON,
+	RunSourceKind:  (*RunSourceKind).UnmarshalJSON,
+	RunScopeKind:   (*RunScopeKind).UnmarshalJSON,
+	RunFactKind:    (*RunFactKind).UnmarshalJSON,
+	RunResultKind:  (*RunResultKind).UnmarshalJSON,
+	RunArgument:    (*RunArgument).UnmarshalJSON,
+	RunShuffleSeed: (*RunShuffleSeed).UnmarshalJSON,
+
 	Identifier: (*Identifier).UnmarshalJSON, Name: (*Name).UnmarshalJSON,
 	Text: (*Text).UnmarshalJSON, TestLabel: (*TestLabel).UnmarshalJSON, SourcePath: (*SourcePath).UnmarshalJSON,
 	RepositoryIdentity:       (*RepositoryIdentity).UnmarshalJSON,
@@ -83,6 +99,8 @@ var runProtocolJSONDoors = runProtocolJSONDoorInventory{
 }
 
 type aboutTextDoorInventory struct {
+	NewRunArgument        func(string) (RunArgument, error)
+	ParseRunShuffleSeed   func(string) (RunShuffleSeed, error)
 	ParseGoFuzzTarget     func(string) (GoFuzzTarget, error)
 	ParseGoTestPattern    func(string) (GoTestPattern, error)
 	NewIdentifier         func(string) (Identifier, error)
@@ -94,6 +112,7 @@ type aboutTextDoorInventory struct {
 }
 
 var aboutTextDoors = aboutTextDoorInventory{
+	NewRunArgument: NewRunArgument, ParseRunShuffleSeed: ParseRunShuffleSeed,
 	// This off-wire target is fuzzed by FuzzGoFuzzTargetMatchesGoIdentifierGrammar.
 	ParseGoFuzzTarget: ParseGoFuzzTarget,
 	// This off-wire pattern is fuzzed by FuzzGoTestPatternFollowsTestingSplit.
@@ -266,5 +285,31 @@ func aboutRoleMarker(name string) bool {
 		return true
 	default:
 		return false
+	}
+}
+
+func TestOffWireObservationEnumsHaveClosedMethodContracts(t *testing.T) {
+	t.Parallel()
+	for value := 0; value < 256; value++ {
+		for _, row := range []struct {
+			domain string
+			valid  bool
+			label  string
+			labels []string
+		}{
+			{domain: "benchmark record presence", valid: GoBenchmarkRecordPresence(value).IsValid(), label: GoBenchmarkRecordPresence(value).String(), labels: []string{"unknown", "absent", "present", "refused"}},
+			{domain: "benchmark metric fields", valid: GoBenchmarkMetricFields(value).IsValid(), label: GoBenchmarkMetricFields(value).String(), labels: []string{"none", "time", "bytes", "time|bytes", "allocations", "time|allocations", "bytes|allocations", "time|bytes|allocations"}},
+			{domain: "fuzz completion", valid: GoFuzzCompletion(value).IsValid(), label: GoFuzzCompletion(value).String(), labels: []string{"unknown", "absent", "passed", "skipped", "failed"}},
+			{domain: "fuzz metric kind", valid: GoFuzzMetricKind(value).IsValid(), label: GoFuzzMetricKind(value).String(), labels: []string{"unknown", "executions", "execs", "crashers", "interesting"}},
+			{domain: "fuzz metric presence", valid: GoFuzzMetricPresence(value).IsValid(), label: GoFuzzMetricPresence(value).String(), labels: []string{"absent", "present", "malformed"}},
+		} {
+			want := "unknown"
+			if value < len(row.labels) {
+				want = row.labels[value]
+			}
+			if row.label != want || row.valid != (want != "unknown") {
+				t.Fatalf("%s ordinal %d = %q/%t, want %q/%t", row.domain, value, row.label, row.valid, want, want != "unknown")
+			}
+		}
 	}
 }

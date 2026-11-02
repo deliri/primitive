@@ -44,6 +44,13 @@ const (
 	doorProbeKind
 	doorProbeTargetKind
 	doorGoBenchmarkRowKind
+	doorRunKind
+	doorRunSourceKind
+	doorRunScopeKind
+	doorRunFactKind
+	doorRunResultKind
+	doorRunArgument
+	doorRunShuffleSeed
 	runProtocolJSONDoorLimit
 )
 
@@ -68,7 +75,7 @@ func FuzzRunProtocolTextConstructorsSemanticClosure(f *testing.F) {
 	f.Add(uint8(5), longLabel.String())
 
 	f.Fuzz(func(t *testing.T, selector uint8, value string) {
-		switch selector % 6 {
+		switch selector % 8 {
 		case 0:
 			proveTextConstructorClosure(t, value, NewIdentifier, (*Identifier).UnmarshalJSON)
 		case 1:
@@ -81,8 +88,12 @@ func FuzzRunProtocolTextConstructorsSemanticClosure(f *testing.F) {
 			proveTextConstructorClosure(t, value, NewRepositoryIdentity, (*RepositoryIdentity).UnmarshalJSON)
 		case 5:
 			proveTextConstructorClosure(t, value, NewTestLabel, (*TestLabel).UnmarshalJSON)
+		case 6:
+			proveTextConstructorClosure(t, value, NewRunArgument, (*RunArgument).UnmarshalJSON)
+		case 7:
+			proveTextConstructorClosure(t, value, ParseRunShuffleSeed, (*RunShuffleSeed).UnmarshalJSON)
 		default:
-			t.Fatalf("Run protocol text constructor selector = %d, want closed 0..5", selector%6)
+			t.Fatalf("Run protocol text constructor selector = %d, want closed 0..7", selector%8)
 		}
 	})
 }
@@ -156,6 +167,21 @@ func FuzzRunProtocolAtomicJSONDoorsSemanticClosure(f *testing.F) {
 	addEnumDoorSeeds(f, doorProbeKind, uint8(probeKindLimit), func(value uint8) ProbeKind { return ProbeKind(value) })
 	addEnumDoorSeeds(f, doorProbeTargetKind, uint8(probeTargetLimit), func(value uint8) ProbeTargetKind { return ProbeTargetKind(value) })
 	addEnumDoorSeeds(f, doorGoBenchmarkRowKind, uint8(goBenchmarkRowKindLimit), func(value uint8) GoBenchmarkRowKind { return GoBenchmarkRowKind(value) })
+	addEnumDoorSeeds(f, doorRunKind, 4, func(n uint8) RunKind { return RunKind(n) })
+	addEnumDoorSeeds(f, doorRunSourceKind, 3, func(n uint8) RunSourceKind { return RunSourceKind(n) })
+	addEnumDoorSeeds(f, doorRunScopeKind, 5, func(n uint8) RunScopeKind { return RunScopeKind(n) })
+	addEnumDoorSeeds(f, doorRunFactKind, 4, func(n uint8) RunFactKind { return RunFactKind(n) })
+	addEnumDoorSeeds(f, doorRunResultKind, 5, func(n uint8) RunResultKind { return RunResultKind(n) })
+	arg, argErr := NewRunArgument("")
+	if argErr != nil {
+		f.Fatal(argErr)
+	}
+	addAtomicDoorSeed(f, doorRunArgument, arg)
+	seed, seedErr := ParseRunShuffleSeed("0")
+	if seedErr != nil {
+		f.Fatal(seedErr)
+	}
+	addAtomicDoorSeed(f, doorRunShuffleSeed, seed)
 	f.Add(uint8(doorIdentifier), []byte{})
 	f.Add(uint8(doorIdentifier), []byte(`{}`))
 	f.Add(uint8(doorIdentifier), []byte(`null`))
@@ -234,6 +260,22 @@ func FuzzRunProtocolAtomicJSONDoorsSemanticClosure(f *testing.F) {
 			proveComparableJSONClosure(t, ProbeKindGoFileSelection, data, (*ProbeKind).UnmarshalJSON)
 		case doorProbeTargetKind:
 			proveComparableJSONClosure(t, ProbeTargetGoFile, data, (*ProbeTargetKind).UnmarshalJSON)
+		case doorRunKind:
+			proveComparableJSONClosure(t, RunKindTest, data, (*RunKind).UnmarshalJSON)
+		case doorRunSourceKind:
+			proveComparableJSONClosure(t, RunSourceCommit, data, (*RunSourceKind).UnmarshalJSON)
+		case doorRunScopeKind:
+			proveComparableJSONClosure(t, RunScopePackage, data, (*RunScopeKind).UnmarshalJSON)
+		case doorRunFactKind:
+			proveComparableJSONClosure(t, RunFactInvocation, data, (*RunFactKind).UnmarshalJSON)
+		case doorRunResultKind:
+			proveComparableJSONClosure(t, RunResultTest, data, (*RunResultKind).UnmarshalJSON)
+		case doorRunArgument:
+			v, e := NewRunArgument("")
+			proveConstructedDoor(t, v, e, data, (*RunArgument).UnmarshalJSON)
+		case doorRunShuffleSeed:
+			v, e := ParseRunShuffleSeed("0")
+			proveConstructedDoor(t, v, e, data, (*RunShuffleSeed).UnmarshalJSON)
 		case doorGoBenchmarkRowKind:
 			proveComparableJSONClosure(t, GoBenchmarkRowMeasured, data, (*GoBenchmarkRowKind).UnmarshalJSON)
 		default:

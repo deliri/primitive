@@ -19,6 +19,7 @@ about permissions, retries, idempotency, media readiness and lifetime accounting
 | Images native resize and metadata | `ImageDetails.PublicResize` | `ImageResizeRequest.Address`, `ImagesClient.InspectResize`; actual dimensions and original format/bytes |
 | Zone cache invalidation | `CacheServer.PurgeFile` | Exactly one URL; acceptance receipt, not absence proof |
 | Cache variant invalidation | `CacheServer.PurgePrefix` | One typed host/path prefix; includes header/query variants; caller owns prefix scope |
+| Zone HTTP traffic analytics | `ZoneAnalyticsServer.ReadHTTP` | One fixed GraphQL aggregate per zone/host/whole-second window; sampled values with `SampleInterval`; no groups is not zero |
 | R2 multipart upload | `R2Server.PresignMultipart` | `R2Client.CreateMultipart`, `UploadPart`, `CompleteMultipart`, `AbortMultipart` |
 
 Server objects clone credential custody. Close them when their owner exits.
@@ -52,6 +53,13 @@ silently dropping the query. The native 31-separator ceiling lives in core.
 Prefix scope can include longer paths sharing the prefix. A caller requiring
 one object's variants must select that object's complete path and own the
 resource naming policy. Neither purge operation proves public absence.
+
+`ReadHTTP` posts one fixed GraphQL query (no builder) through the same bearer
+custody and bounded document budget. Any GraphQL `errors` entry refuses the
+whole document, discarding partial data, as `GraphQLRefusal`. The echoed zone
+must equal the bound zone. An empty group list is `ZoneAnalyticsNoGroups`, not
+evidence of zero traffic. Counts and sums are the provider's adaptive values;
+`SampleInterval` above 1 marks them as sample estimates.
 
 Images details bind the returned ID and delivery paths to the requested ID.
 Draft creation is not upload completion. Image metadata does not verify an

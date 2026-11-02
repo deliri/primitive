@@ -12,6 +12,8 @@ filesystem, runtime, cgroup, terminal, or platform probe.
 - caller-available and total capacity for one held directory;
 - block-device rotation when the platform can answer it;
 - Go logical CPU count and Go-managed memory pressure;
+- finite positive Temporal-duration CPU counter windows and measured elapsed
+  windows, including subsecond observations, with fresh end-window memory;
 - physical memory and the effective Linux cgroup memory limit;
 - Go runtime OOM-banner evidence over exact streamed extents with a fixed buffer;
 - terminal attachment and column geometry for one open descriptor;
@@ -44,3 +46,12 @@ buffer and a banner-length overlap. Evidence preserves the exact examined extent
 A read error or cancellation on the final chunk cannot become successful evidence;
 an EOF accompanying exactly the declared bytes is accepted. Presence proves only
 the canonical banner was observed, not why the process emitted it.
+
+Darwin CPU observations use the native Mach `HOST_CPU_LOAD_INFO` four-counter
+contract through libSystem, with one owned host send right relinquished per
+read. The two fixed native reads bracket one cancellable Temporal wait; no
+port or process is held during the wait. This works without cgo. Counter
+regression or wrap and native/cleanup failures return no observation. Linux
+uses two `/proc/stat` reads and preserves the inner scope CPU window. Memory
+and Linux pressure are read after the CPU bracket. OS counter resolution and
+scheduling affect the measured window; it is not a startup-time guarantee.

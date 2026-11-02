@@ -38,7 +38,7 @@ func TestGoFuzzMetricNeutralRecordDoesNotRepeatEveryGrammarSearch(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer file.Close()
+	defer mustClose(t, file)
 	const extent = 65537
 	if _, err := io.Copy(file, &fuzzMetricFillReader{remaining: extent, value: 'x'}); err != nil {
 		t.Fatal(err)
@@ -54,7 +54,7 @@ func TestGoFuzzMetricNeutralRecordDoesNotRepeatEveryGrammarSearch(t *testing.T) 
 		}
 		seen++
 		if record.InterestingCumulative() || record.FailingInput() {
-			t.Fatal("neutral native bytes invented a transcript observation")
+			t.Fatalf("neutral cumulative/failing observations = %t/%t, want false/false", record.InterestingCumulative(), record.FailingInput())
 		}
 		for kind := runprotocol.GoFuzzMetricExecutions; kind <= runprotocol.GoFuzzMetricInteresting; kind++ {
 			field, err := record.Field(kind)
@@ -94,7 +94,7 @@ func TestGoFuzzMetricHintsPreserveEveryLiteralAcrossNativeWindows(t *testing.T) 
 				if err != nil {
 					t.Fatal(err)
 				}
-				defer file.Close()
+				defer mustClose(t, file)
 				if _, err := io.WriteString(file, body); err != nil {
 					t.Fatal(err)
 				}
@@ -150,7 +150,7 @@ func TestGoFuzzMetricFilterCannotPublishBeforeLateNativeReadCompletes(t *testing
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer file.Close()
+			defer mustAlreadyBeClosed(t, file)
 			if _, err := io.Copy(file, io.MultiReader(strings.NewReader(prefix), &fuzzMetricFillReader{remaining: 65537, value: 'x'})); err != nil {
 				t.Fatal(err)
 			}
@@ -166,7 +166,7 @@ func TestGoFuzzMetricFilterCannotPublishBeforeLateNativeReadCompletes(t *testing
 				refused = true
 			}
 			if !refused {
-				t.Fatal("late native refusal vanished")
+				t.Fatalf("late native refusal observed = %t, want true", refused)
 			}
 		})
 	}
@@ -193,7 +193,7 @@ func TestGoFuzzMetricFilterRefusesNativeSourceTruncatedAfterFraming(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer file.Close()
+	defer mustClose(t, file)
 	if _, err := io.Copy(file, &fuzzMetricFillReader{remaining: 65537, value: 'x'}); err != nil {
 		t.Fatal(err)
 	}
@@ -209,7 +209,7 @@ func TestGoFuzzMetricFilterRefusesNativeSourceTruncatedAfterFraming(t *testing.T
 		refused = true
 	}
 	if !refused || !source.truncated {
-		t.Fatalf("source refusal/truncation=%t/%t,want actual native truncation and typed refusal", refused, source.truncated)
+		t.Fatalf("source refusal/truncation=%t/%t,want native truncation and typed refusal", refused, source.truncated)
 	}
 }
 
@@ -233,7 +233,7 @@ func TestGoFuzzMetricNativeReadPreservesCustomCancellationCause(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer file.Close()
+			defer mustClose(t, file)
 			if _, err := io.Copy(file, &fuzzMetricFillReader{remaining: 65537, value: 'x'}); err != nil {
 				t.Fatal(err)
 			}
@@ -254,7 +254,7 @@ func TestGoFuzzMetricNativeReadPreservesCustomCancellationCause(t *testing.T) {
 				refused = true
 			}
 			if !refused {
-				t.Fatal("native cancellation disappeared")
+				t.Fatalf("native cancellation observed = %t, want true", refused)
 			}
 		})
 	}

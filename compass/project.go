@@ -88,16 +88,25 @@ func (c ReleaseCoordinates) Validate() error {
 
 // Project is the universal declaration present in every project Compass.
 type Project struct {
-	Name       ProjectName             `json:"name"`
-	Module     gomodule.Path           `json:"module"`
-	Repository core.RepositoryIdentity `json:"repository"`
-	Release    ReleaseCoordinates      `json:"release"`
+	Name         ProjectName             `json:"name"`
+	Module       gomodule.Path           `json:"module"`
+	Repository   core.RepositoryIdentity `json:"repository"`
+	Release      ReleaseCoordinates      `json:"release"`
+	ReleaseNotes []ReleaseNote           `json:"release_notes"`
 }
 
 // Validate proves every shared identity and release coordinate.
 func (p Project) Validate() error {
 	if err := errors.Join(p.Name.Validate(), p.Module.Validate(), p.Repository.Validate(), p.Release.Validate()); err != nil {
 		return contractError("project declaration is invalid", err)
+	}
+	if len(p.ReleaseNotes) == 0 {
+		return contractError("release notes are absent", nil)
+	}
+	for _, note := range p.ReleaseNotes {
+		if err := note.Validate(); err != nil {
+			return err
+		}
 	}
 	return nil
 }

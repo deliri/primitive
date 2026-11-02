@@ -27,3 +27,10 @@ caller-owned. Readers remain caller-owned and are consumed synchronously.
 Memory retains only the current entry and a reused fixed copy window. A regular
 file's size must be known for its TAR header; an unfinished unknown-length
 record stream is a different artifact and must not be disguised as a TAR file.
+
+`StreamTAR` uses the same encoder, entry validation and per-entry indexes while
+omitting the whole encoded archive's SHA-256. It returns the exact encoded
+`ByteLength`, including native closure and compression footer, only on success.
+Its fixed counter preserves the signed output extent domain and rejects invalid
+or short destination writes. It does not return a fabricated archive digest.
+Use `WriteTAR` whenever the complete archive content index is required.

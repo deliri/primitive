@@ -128,6 +128,17 @@ func NewSendTimestamp(instant temporal.Instant) (SendTimestamp, error) {
 func (t SendTimestamp) Instant() temporal.Instant { return t.instant }
 func (t SendTimestamp) IsZero() bool              { return t.instant == (temporal.Instant{}) }
 
+// Validate admits absence (the zero value) or a set instant.
+func (t SendTimestamp) Validate() error {
+	if t.IsZero() {
+		return nil
+	}
+	if err := t.instant.Validate(); err != nil {
+		return contractError(err)
+	}
+	return nil
+}
+
 func (t SendTimestamp) MarshalJSON() ([]byte, error) {
 	if t.IsZero() {
 		return []byte("null"), nil

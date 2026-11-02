@@ -56,7 +56,7 @@ func TestOwnedGroupProcessHelper(t *testing.T) {
 	if err = group.Kill(); err != nil {
 		t.Fatal(err)
 	}
-	t.Fatal("owned group kill returned without terminating self")
+	t.Fatalf("group.Kill returned err=%v, want the owned group to terminate this process", err)
 }
 
 func TestOwnGroupRefusesSharedNativeGroup(t *testing.T) {

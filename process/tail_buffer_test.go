@@ -241,7 +241,7 @@ func TestTailBufferConcurrentWritesAndSnapshotsAreAtomic(t *testing.T) {
 	select {
 	case <-done:
 	case <-time.After(5 * time.Second):
-		t.Fatal("native writer/snapshot ownership did not finish")
+		t.Fatalf("native writer/snapshot finished=false after %v, want finished", 5*time.Second)
 	}
 	close(failures)
 	for failure := range failures {

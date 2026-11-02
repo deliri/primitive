@@ -177,6 +177,11 @@ func argumentCaptureSource(ctx context.Context, request SSAArgumentBindingsReque
 // function identity without copying a function registry.
 func (v SSAUnitView) argumentBindingFunctionOwned(fn *ssa.Function) bool {
 	for fn != nil && fn.Prog == v.Program {
+		// Go owns the synthetic initializer even though it has no types.Func.
+		// Exact package-member identity authenticates its lexical children.
+		if fn == v.Package.Func("init") {
+			return true
+		}
 		if object, ok := fn.Object().(*types.Func); ok {
 			owned := v.Program.FuncValue(object.Origin())
 			if owned == fn {

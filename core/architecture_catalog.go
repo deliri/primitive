@@ -184,6 +184,14 @@ const (
 	PackageCloudBilling
 	// PackageHashIO owns native fingerprint and constant-time equality execution.
 	PackageHashIO
+	// PackageGoogleCompute owns single-attempt zonal Compute wire contracts.
+	PackageGoogleCompute
+	// PackageInstagram owns Meta Graph Instagram media-read wire contracts.
+	PackageInstagram
+	// PackageWebMCP owns the browser-native WebMCP tool registration executor.
+	PackageWebMCP
+	// PackageTimeMatch owns Google, Microsoft and Apple calendar connection execution.
+	PackageTimeMatch
 	packageIdentityLimit
 )
 
@@ -304,6 +312,10 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageFirestoreDocuments, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 			{Identity: PackageCloudBilling, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 			{Identity: PackageHashIO, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
+			{Identity: PackageGoogleCompute, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
+			{Identity: PackageInstagram, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
+			{Identity: PackageWebMCP, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
+			{Identity: PackageTimeMatch, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 		},
 	}
 }
@@ -564,6 +576,10 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"firestoredocuments",
 		"cloudbilling",
 		"hashio",
+		"googlecompute",
+		"instagram",
+		"webmcp",
+		"timematch",
 	}
 }
 

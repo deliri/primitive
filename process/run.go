@@ -126,16 +126,16 @@ func prepareCommand(
 				return identityErr
 			}
 		}
-		err := deliverSignal(signalDelivery{
+		deliveryErr := deliverSignal(signalDelivery{
 			process:     command.Process,
 			identity:    identity,
 			containment: containment,
 			signal:      containment.CancelSignal,
 		})
-		if err == nil {
+		if deliveryErr == nil {
 			cancellation.Store(true)
 		}
-		return err
+		return deliveryErr
 	}
 	waitDelay, err := request.WaitDelay.Stdlib()
 	if err != nil {

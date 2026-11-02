@@ -26,17 +26,17 @@ func TestGoFuzzSignalRecordRetainedMemoryIndependentOfExtent(t *testing.T) {
 		for remaining := extent; remaining > 0; {
 			size := min(remaining, int64(len(window)))
 			if _, err := file.Write(window[:size]); err != nil {
-				file.Close()
+				mustClose(t, file)
 				t.Fatal(err)
 			}
 			remaining -= size
 		}
 		if _, err := file.WriteString(" context deadline exceeded\n"); err != nil {
-			file.Close()
+			mustClose(t, file)
 			t.Fatal(err)
 		}
 		if _, err := file.Seek(0, io.SeekStart); err != nil {
-			file.Close()
+			mustClose(t, file)
 			t.Fatal(err)
 		}
 		runtime.GC()
@@ -46,21 +46,21 @@ func TestGoFuzzSignalRecordRetainedMemoryIndependentOfExtent(t *testing.T) {
 		var got runprotocol.GoFuzzSignalRecord
 		for observed, err := range runprotocol.GoFuzzSignalRecords(t.Context(), runprotocol.GoFuzzSignalSourceRequest{Source: file}) {
 			if err != nil {
-				file.Close()
+				mustClose(t, file)
 				t.Fatal(err)
 			}
 			count++
 			got = observed
 		}
 		if count != 1 || int64(got.Deadline.Offset) != extent+1 || got.Deadline.Bytes.Uint64() != 25 {
-			file.Close()
+			mustClose(t, file)
 			t.Fatalf("native marker at extent%d=%+v,count%d,want exact completed coordinate", extent, got, count)
 		}
 		runtime.GC()
 		runtime.ReadMemStats(&after)
 		runtime.KeepAlive(got)
 		if after.HeapAlloc > before.HeapAlloc+4*1024*1024 {
-			file.Close()
+			mustClose(t, file)
 			t.Fatalf("extent%d retained%d,want fixed work below4MiB", extent, after.HeapAlloc-before.HeapAlloc)
 		}
 		if err := file.Close(); err != nil {

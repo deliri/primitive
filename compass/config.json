@@ -6,7 +6,11 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 432
-    }
+      "patch": 459
+    },
+    "release_notes": [
+      "TimeMatch availability is free/busy only: Apple uses the CalDAV free-busy-query report (VFREEBUSY periods; a refusal, other media or any event component leaves the calendar Unknown, never an event download), replacing the calendar-query/calendar-data path of 457 and 458.",
+      "Google visitor consent is calendar.events.freebusy alone on the primary calendar; confirming an appointment is a separate calendar.events.owned consent. Microsoft calendarView selects only start, end, showAs, isCancelled and isAllDay and gains the primary default-calendar path."
+    ]
   }
 }

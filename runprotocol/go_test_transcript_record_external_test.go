@@ -122,7 +122,7 @@ func TestGoTestTranscriptLateNativeRefusalWithdrawsRecord(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer file.Close()
+	defer mustAlreadyBeClosed(t, file)
 	if _, err := io.Copy(file, io.MultiReader(strings.NewReader("panic: "), &fuzzMetricFillReader{remaining: 65537, value: 'x'})); err != nil {
 		t.Fatal(err)
 	}
@@ -153,7 +153,7 @@ func TestGoTestTranscriptCancelCauseAndNilSource(t *testing.T) {
 		seen = true
 	}
 	if !seen {
-		t.Fatal("native cancellation disappeared")
+		t.Fatalf("native cancellation observed = %t, want true", seen)
 	}
 	seen = false
 	for observed, err := range runprotocol.GoTestTranscriptRecords(t.Context(), runprotocol.GoTestTranscriptRequest{}) {
@@ -163,7 +163,7 @@ func TestGoTestTranscriptCancelCauseAndNilSource(t *testing.T) {
 		seen = true
 	}
 	if !seen {
-		t.Fatal("nil source refusal disappeared")
+		t.Fatalf("nil source refusal observed = %t, want true", seen)
 	}
 }
 
@@ -176,7 +176,14 @@ func TestGoTestTranscriptBorrowedExtentConservesNativeRefusals(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer file.Close()
+			// Only selection 0 hands the file to a fixture that closes it.
+			defer func() {
+				if selection == 0 {
+					mustAlreadyBeClosed(t, file)
+					return
+				}
+				mustClose(t, file)
+			}()
 			if _, err := io.WriteString(file, "panic: native coordinate\n"); err != nil {
 				t.Fatal(err)
 			}
@@ -209,20 +216,21 @@ func TestGoTestTranscriptBorrowedExtentConservesNativeRefusals(t *testing.T) {
 				seen = true
 			}
 			if !seen {
-				t.Fatal("native positional refusal disappeared")
+				t.Fatalf("native positional refusal observed = %t, want true", seen)
 			}
 		})
 	}
 }
 
 func BenchmarkGoTestTranscriptNativeWorkingMemory(b *testing.B) {
+	b.ReportAllocs()
 	for _, extent := range []int64{65536, 64*1024*1024 + 1} {
 		b.Run(strconv.FormatInt(extent, 10), func(b *testing.B) {
 			file, err := os.Create(filepath.Join(b.TempDir(), "native-transcript"))
 			if err != nil {
 				b.Fatal(err)
 			}
-			defer file.Close()
+			defer mustClose(b, file)
 			written, err := io.Copy(file, io.MultiReader(&fuzzMetricFillReader{remaining: extent, value: 'x'}, strings.NewReader(" panic:\n")))
 			if err != nil {
 				b.Fatal(err)

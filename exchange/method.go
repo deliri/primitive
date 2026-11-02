@@ -19,19 +19,30 @@ const (
 	MethodPatch
 	MethodDelete
 	MethodOptions
+	// MethodPropfind is WebDAV PROPFIND (RFC 4918 section 9.1), safe and idempotent.
+	MethodPropfind
+	// MethodReport is WebDAV REPORT (RFC 3253 section 3.6), safe and idempotent.
+	MethodReport
 	methodLimit
+)
+
+const (
+	methodPropfindToken = "PROPFIND"
+	methodReportToken   = "REPORT"
 )
 
 func methodFacts() [methodLimit]string {
 	return [...]string{
-		MethodUnknown: "",
-		MethodGet:     http.MethodGet,
-		MethodHead:    http.MethodHead,
-		MethodPost:    http.MethodPost,
-		MethodPut:     http.MethodPut,
-		MethodPatch:   http.MethodPatch,
-		MethodDelete:  http.MethodDelete,
-		MethodOptions: http.MethodOptions,
+		MethodUnknown:  "",
+		MethodGet:      http.MethodGet,
+		MethodHead:     http.MethodHead,
+		MethodPost:     http.MethodPost,
+		MethodPut:      http.MethodPut,
+		MethodPatch:    http.MethodPatch,
+		MethodDelete:   http.MethodDelete,
+		MethodOptions:  http.MethodOptions,
+		MethodPropfind: methodPropfindToken,
+		MethodReport:   methodReportToken,
 	}
 }
 

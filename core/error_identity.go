@@ -650,6 +650,31 @@ const (
 	// ErrCloudBillingResponse identifies a refused Cloud Billing page.
 	ErrCloudBillingResponse
 
+	// ErrGoogleComputeContract identifies invalid Compute capability or request.
+	ErrGoogleComputeContract
+	// ErrGoogleComputeResponse identifies malformed Compute provider facts.
+	ErrGoogleComputeResponse
+	// ErrGoogleComputeBinding identifies a foreign resource or operation.
+	ErrGoogleComputeBinding
+	// ErrInstagramContract identifies an invalid Instagram media-read agreement.
+	ErrInstagramContract
+	// ErrInstagramResponse identifies malformed Instagram provider facts.
+	ErrInstagramResponse
+	// ErrInstagramBinding identifies media attached to a foreign host or route.
+	ErrInstagramBinding
+	// ErrInstagramAuthentication identifies a token Meta no longer accepts.
+	ErrInstagramAuthentication
+
+	// ErrTimeMatchContract identifies an invalid TimeMatch capability or intent.
+	ErrTimeMatchContract
+	// ErrTimeMatchConsent identifies missing, insufficient or revoked provider consent.
+	ErrTimeMatchConsent
+	// ErrTimeMatchResponse identifies refused or malformed calendar provider facts.
+	ErrTimeMatchResponse
+	// ErrTimeMatchConflict identifies a provider event that differs from owned intent.
+	ErrTimeMatchConflict
+	// ErrTimeMatchIndeterminate identifies a sent write whose provider outcome is unknown.
+	ErrTimeMatchIndeterminate
 	errorIdentityLimit
 )
 
@@ -941,6 +966,18 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrCloudBillingContract, text: "cloud billing contract violation"},
 		{identity: ErrCloudBillingAuthentication, text: "cloud billing authentication failed"},
 		{identity: ErrCloudBillingResponse, text: "cloud billing response invalid"},
+		{identity: ErrGoogleComputeContract, text: "google compute contract violation"},
+		{identity: ErrGoogleComputeResponse, text: "google compute response invalid"},
+		{identity: ErrGoogleComputeBinding, text: "google compute resource binding invalid"},
+		{identity: ErrInstagramContract, text: "instagram contract violation"},
+		{identity: ErrInstagramResponse, text: "instagram response invalid"},
+		{identity: ErrInstagramBinding, text: "instagram media binding invalid"},
+		{identity: ErrInstagramAuthentication, text: "instagram authentication failed"},
+		{identity: ErrTimeMatchContract, text: "timematch contract violation"},
+		{identity: ErrTimeMatchConsent, text: "timematch provider consent unavailable"},
+		{identity: ErrTimeMatchResponse, text: "timematch provider response invalid"},
+		{identity: ErrTimeMatchConflict, text: "timematch provider event conflicts with intent"},
+		{identity: ErrTimeMatchIndeterminate, text: "timematch provider write outcome unknown"},
 	}
 }
 
@@ -1091,7 +1128,7 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrLifecycleIdentityContract, ErrReceiptContract, ErrChitContract,
 		ErrRetrievalContract, ErrPaymentContract, ErrControlWireContract,
 		ErrControlPlaneContract, ErrIDContract, ErrSecretStoreContract,
-		ErrStripeContract, ErrPayPalContract, ErrTwilioContract, ErrPlunkContract, ErrLoopsContract, ErrCloudflareContract, ErrGitHubContract, ErrCloudBillingContract,
+		ErrStripeContract, ErrPayPalContract, ErrTwilioContract, ErrPlunkContract, ErrLoopsContract, ErrCloudflareContract, ErrGitHubContract, ErrCloudBillingContract, ErrGoogleComputeContract, ErrInstagramContract, ErrTimeMatchContract,
 		ErrCapabilitiesContract, ErrGoModuleContract, ErrGoToolchainContract, ErrGitRepositoryContract,
 		ErrProofLedgerContract, ErrTailnetContract, ErrAccessPermitContract, ErrPermitContract, ErrReportContract) {
 		return oneErrorIdentityParent(ErrPrimitiveContract)
@@ -1209,6 +1246,15 @@ func errorIdentityParentsSecretStoreThroughPayment(identity ErrorIdentity) error
 }
 
 func errorIdentityProviderParent(identity ErrorIdentity) ErrorIdentity {
+	if errorIdentityIn(identity, ErrGoogleComputeResponse, ErrGoogleComputeBinding) {
+		return ErrGoogleComputeContract
+	}
+	if errorIdentityIn(identity, ErrInstagramResponse, ErrInstagramBinding, ErrInstagramAuthentication) {
+		return ErrInstagramContract
+	}
+	if errorIdentityIn(identity, ErrTimeMatchConsent, ErrTimeMatchResponse, ErrTimeMatchConflict, ErrTimeMatchIndeterminate) {
+		return ErrTimeMatchContract
+	}
 	if errorIdentityIn(identity, ErrCloudBillingAuthentication, ErrCloudBillingResponse) {
 		return ErrCloudBillingContract
 	}

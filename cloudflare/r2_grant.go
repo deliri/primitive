@@ -107,7 +107,7 @@ func r2OptionalSignedHeaders(required string, conditions R2WriteConditions, cach
 	if conditions.CreateOnly {
 		names += ";if-none-match"
 	}
-	if cache.present {
+	if cache.mode != r2CacheOmit {
 		names = strings.ToLower(exchange.StandardHeaderCacheControl.String()) + ";" + names
 	}
 	return names

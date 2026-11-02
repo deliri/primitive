@@ -6,6 +6,7 @@ import (
 	jsonv2 "encoding/json/v2"
 	"errors"
 	"io"
+	"unicode/utf8"
 
 	"github.com/deliri/primitive/v2026/core"
 )
@@ -151,7 +152,11 @@ func IsSemanticError(err error) bool { _, ok := errors.AsType[*jsonv2.SemanticEr
 // or copying its bytes. Go owns lexical checks and the native token cursor.
 func ValidateBytes(data []byte) error {
 	depthErr := checkCanonicalDepth(data, CanonicalPolicy{NestingDepthMaximum: core.JSONNestingDepthMaximum})
-	return errors.Join(depthErr, checkSingleValue(data))
+	err := errors.Join(depthErr, checkSingleValue(data))
+	if !utf8.Valid(data) {
+		return &invalidUTF8Error{cause: err}
+	}
+	return err
 }
 
 var _ core.Validatable = ProjectionReadPolicy{}

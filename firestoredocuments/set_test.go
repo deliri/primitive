@@ -118,7 +118,7 @@ func TestSetEmulatorTransactionLayerTriad(t *testing.T) {
 				return setErr
 			}})
 			if !setReturned {
-				t.Fatal("Set reached = false, want actual SDK call before verdict")
+				t.Fatalf("Set reached = %t, want true before verdict", setReturned)
 			}
 			if tc.wantCause != nil {
 				if !errors.Is(err, tc.wantCause) || !errors.Is(err, core.ErrFirestoreDocumentsOperation) || result != (TransactionResult{}) {

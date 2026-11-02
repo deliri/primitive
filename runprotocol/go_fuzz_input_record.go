@@ -62,15 +62,15 @@ func GoFuzzInputRecords(ctx context.Context, request GoFuzzInputSourceRequest) i
 				yield(GoFuzzInputRecord{}, err)
 				return
 			}
-			length, err := record.Bytes.Int64()
-			if err != nil {
-				yield(GoFuzzInputRecord{}, err)
+			length, extentErr := record.Bytes.Int64()
+			if extentErr != nil {
+				yield(GoFuzzInputRecord{}, extentErr)
 				return
 			}
 			span := goFuzzMetricSpan{offset: int64(record.Offset), bytes: length}
-			match, err := goFuzzMetricMatch(ctx, request.Source, span, marker)
-			if err != nil {
-				yield(GoFuzzInputRecord{}, err)
+			match, matchErr := goFuzzMetricMatch(ctx, request.Source, span, marker)
+			if matchErr != nil {
+				yield(GoFuzzInputRecord{}, matchErr)
 				return
 			}
 			if len(match) == 0 {
@@ -78,31 +78,31 @@ func GoFuzzInputRecords(ctx context.Context, request GoFuzzInputSourceRequest) i
 			}
 			span.offset += int64(match[1])
 			span.bytes -= int64(match[1])
-			match, err = goFuzzMetricMatch(ctx, request.Source, span, written)
-			if err != nil {
-				yield(GoFuzzInputRecord{}, err)
+			match, matchErr = goFuzzMetricMatch(ctx, request.Source, span, written)
+			if matchErr != nil {
+				yield(GoFuzzInputRecord{}, matchErr)
 				return
 			}
 			if len(match) > 0 {
 				span.offset += int64(match[1])
 				span.bytes -= int64(match[1])
 			}
-			span, err = goFuzzMetricTrimmed(ctx, request.Source, span, goFuzzMetricTrimWhitespace)
-			if err != nil {
-				yield(GoFuzzInputRecord{}, err)
+			span, matchErr = goFuzzMetricTrimmed(ctx, request.Source, span, goFuzzMetricTrimWhitespace)
+			if matchErr != nil {
+				yield(GoFuzzInputRecord{}, matchErr)
 				return
 			}
 			if span.bytes == 0 {
 				continue
 			}
-			extent, err := core.NewByteLength(uint64(span.bytes))
-			if err != nil {
-				yield(GoFuzzInputRecord{}, err)
+			extent, matchErr := core.NewByteLength(uint64(span.bytes))
+			if matchErr != nil {
+				yield(GoFuzzInputRecord{}, matchErr)
 				return
 			}
 			observation := GoFuzzInputRecord{record: record, path: lineio.RecordRange{Offset: lineio.SourceByteOffset(span.offset), Bytes: extent, Framing: lineio.RecordFramingOpaque}}
-			if err := observation.Validate(); err != nil {
-				yield(GoFuzzInputRecord{}, err)
+			if validationErr := observation.Validate(); validationErr != nil {
+				yield(GoFuzzInputRecord{}, validationErr)
 				return
 			}
 			if !yield(observation, nil) {

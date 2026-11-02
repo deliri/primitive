@@ -141,14 +141,21 @@ func closeCustodyFile(file *os.File, primary error) error {
 // openCustodyFile binds the no-follow namespace observation to the actual Go
 // handle without changing ordinary OpenRead's confined-symlink semantics.
 func openCustodyFile(root *os.Root, name string) (*os.File, error) {
-	entry, err := root.Lstat(name)
+	return openMatchedCustodyFile(root, name, root, name)
+}
+
+// openMatchedCustodyFile admits the fresh no-follow observation of one rooted
+// name and returns the handle acquired through the source name only when both
+// are the same inode.
+func openMatchedCustodyFile(observedRoot *os.Root, observedName string, sourceRoot *os.Root, sourceName string) (*os.File, error) {
+	entry, err := observedRoot.Lstat(observedName)
 	if err != nil {
 		return nil, sourceError(err)
 	}
 	if !entry.Mode().IsRegular() {
 		return nil, sourceError(fs.ErrInvalid)
 	}
-	file, observed, err := openRegularReadFile(root, name)
+	file, observed, err := openRegularReadFile(sourceRoot, sourceName)
 	if err != nil {
 		return nil, err
 	}

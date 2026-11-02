@@ -52,7 +52,7 @@ func FuzzGoBuildHeaderCoordinatesMatchIndependentPrefix(f *testing.F) {
 				t.Fatal(err)
 			}
 			if ordinal >= len(lines) {
-				t.Fatal("invented record")
+				t.Fatalf("record ordinal = %d, want less than %d", ordinal, len(lines))
 			}
 			line := lines[ordinal]
 			ordinal++
@@ -62,7 +62,7 @@ func FuzzGoBuildHeaderCoordinatesMatchIndependentPrefix(f *testing.F) {
 					t.Fatalf("header=%+v,want original byte prefix", got.BuildHeader)
 				}
 			} else if got.BuildHeader != (lineio.RecordRange{}) {
-				t.Fatal("invented header")
+				t.Fatalf("build header = %+v, want zero", got.BuildHeader)
 			}
 			offset += len(line)
 		}
@@ -77,7 +77,7 @@ func FuzzGoBuildHeaderCoordinatesMatchIndependentPrefix(f *testing.F) {
 		cancel()
 		for got, err := range runprotocol.GoFuzzSignalRecords(ctx, runprotocol.GoFuzzSignalSourceRequest{Source: bytes.NewReader(source)}) {
 			if !errors.Is(err, context.Canceled) || got != (runprotocol.GoFuzzSignalRecord{}) {
-				t.Fatal("cancelled source admitted observation")
+				t.Fatalf("canceled source observation = %+v/%v, want zero and Canceled", got, err)
 			}
 		}
 	})

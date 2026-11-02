@@ -77,13 +77,13 @@ func FuzzGoFuzzSignalNativeMatchesIndependentBytes(f *testing.F) {
 				t.Fatal(err)
 			}
 			if ordinal >= len(lines) {
-				t.Fatal("extra native record")
+				t.Fatalf("native record ordinal = %d, want less than %d", ordinal, len(lines))
 			}
 			line := lines[ordinal]
 			ordinal++
 			start := int(got.Record.Offset)
 			if got.Record.Bytes.Uint64() != uint64(len(line)) {
-				t.Fatal("physical extent mismatch")
+				t.Fatalf("physical record extent = %d, want %d", got.Record.Bytes.Uint64(), len(line))
 			}
 			folded := append([]byte{}, line...)
 			for i, b := range folded {
@@ -131,10 +131,12 @@ func FuzzGoFuzzSignalNativeMatchesIndependentBytes(f *testing.F) {
 		}
 		ctx, cancel := context.WithCancel(t.Context())
 		cancel()
-		source.Seek(0, io.SeekStart)
+		if _, err := source.Seek(0, io.SeekStart); err != nil {
+			t.Fatal(err)
+		}
 		for got, err := range runprotocol.GoFuzzSignalRecords(ctx, runprotocol.GoFuzzSignalSourceRequest{Source: source}) {
 			if !errors.Is(err, context.Canceled) || got != (runprotocol.GoFuzzSignalRecord{}) {
-				t.Fatal("cancelled source admitted observation")
+				t.Fatalf("canceled source observation = %+v/%v, want zero and Canceled", got, err)
 			}
 		}
 	})

@@ -30,14 +30,18 @@ and remain "not observed" until Forge produces them.
 
 ## Host resource observations
 
-`hostfacts.ObserveResourceUsage(ctx, hostfacts.ResourceUsageRequest{IntervalSeconds: 1})`
-returns one interval CPU observation, currently available physical memory, and
-Linux pressure facts. Darwin uses the native `iostat` CPU summary and `vm_stat`;
+`hostfacts.ObserveResourceUsage(ctx, hostfacts.ResourceUsageRequest{Interval: interval})`
+accepts a positive `temporal.Duration`, including subsecond windows, and
+returns one interval CPU observation, its actual monotonic `Window()`, currently
+available physical memory, and Linux pressure facts observed after the CPU
+window. Darwin brackets two native Mach host CPU counter reads and uses `vm_stat`;
 Linux uses the kernel's `/proc` interfaces. Disk capacity remains `AssessDisk`.
 The caller owns utilization ceilings, memory reserves, reservations, storage
 placement and the admission decision. Observation does not change host limits
 or start a monitoring service. Unsupported systems and failed/cancelled samples
-return no resource sample.
+return no resource sample. Native counter regression, including Darwin's
+32-bit counter wrap, is refused rather than reported as idle. No C compiler or
+cgo is needed for Darwin CPU observation.
 
 `hostfacts.ObserveDiskActivity` samples the single block device backing a
 caller-supplied directory. Its interval is a `temporal.Duration`; Temporal

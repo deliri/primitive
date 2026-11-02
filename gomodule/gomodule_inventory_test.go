@@ -51,16 +51,19 @@ func TestPublicBoundaryAndStructInventory(t *testing.T) {
 		{"DeclaredPath", "sealed main-module declaration identity; no downloadable-module authority"},
 		{"ImportPath", "sealed import identity; validated Go grammar including standard library names"},
 		{"Path", "sealed module identity; validated Go grammar, canonical scalar projection"},
+		{"RequireEditRequest", "borrowed caller-bounded source and explicit requirement edits"},
+		{"Requirement", "validated module identity and canonical pinned version"},
 		{"declarationInput", "borrowed character iterator; no source inventory or line collection"},
 	}
 	doors := []struct{ name, fuzz string }{
+		{"EditRequirements", "FuzzRequireEditSemanticPreservation"},
 		{"ObserveDeclaration", "FuzzModuleDeclarationProjectionHasExclusivePresenceAndRefusal"},
 		{"ParsePath", "FuzzPathTextAdmission"},
 		{"ParseImportPath", "FuzzImportPathTextAdmission"},
 		{"Path.UnmarshalJSON", "FuzzPathJSONSemanticClosure"},
 		{"ImportPath.UnmarshalJSON", "FuzzImportPathJSONSemanticClosure"},
 	}
-	wantExports := []string{"DeclarationObservation.Validate", "DeclarationPresence.Validate", "DeclarationRequest.Validate", "DeclaredPath.String", "DeclaredPath.Validate", "ImportPath.MarshalJSON", "ImportPath.String", "ImportPath.UnmarshalJSON", "ImportPath.Validate", "ObserveDeclaration", "ParseImportPath", "ParsePath", "Path.MarshalJSON", "Path.String", "Path.UnmarshalJSON", "Path.Validate"}
+	wantExports := []string{"DeclarationObservation.Validate", "DeclarationPresence.Validate", "DeclarationRequest.Validate", "DeclaredPath.String", "DeclaredPath.Validate", "EditRequirements", "ImportPath.MarshalJSON", "ImportPath.String", "ImportPath.UnmarshalJSON", "ImportPath.Validate", "ObserveDeclaration", "ParseImportPath", "ParsePath", "Path.MarshalJSON", "Path.String", "Path.UnmarshalJSON", "Path.Validate", "RequireEditRequest.Validate", "Requirement.Validate"}
 	files, err := os.ReadDir(".")
 	if err != nil {
 		t.Fatalf("ReadDir() error = %v, want nil", err)

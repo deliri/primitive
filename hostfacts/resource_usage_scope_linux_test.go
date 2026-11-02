@@ -103,7 +103,7 @@ func TestResourceUsageScopeCPUNativeLifetime(t *testing.T) {
 			t.Fatal(ctx.Err())
 		}
 	}
-	usage, err := ObserveResourceUsage(ctx, ResourceUsageRequest{IntervalSeconds: 1, Scopes: []SystemdScopeRequest{busy, absent}})
+	usage, err := ObserveResourceUsage(ctx, ResourceUsageRequest{Interval: resourceDuration(t, "1s"), Scopes: []SystemdScopeRequest{busy, absent}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -136,7 +136,7 @@ func TestResourceUsageScopeCPUNativeLifetime(t *testing.T) {
 			t.Fatal(ctx.Err())
 		}
 	}
-	stopped, err := ObserveResourceUsage(ctx, ResourceUsageRequest{IntervalSeconds: 1, Scopes: []SystemdScopeRequest{busy}})
+	stopped, err := ObserveResourceUsage(ctx, ResourceUsageRequest{Interval: resourceDuration(t, "1s"), Scopes: []SystemdScopeRequest{busy}})
 	if err != nil {
 		t.Fatal(err)
 	}
