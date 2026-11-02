@@ -170,7 +170,7 @@ func MatchGroup(ctx context.Context, r GroupMatchRequest) (GroupMatchResult, err
 		if unknown {
 			if person.Required {
 				result.UnknownRequired = append(result.UnknownRequired, person.Ordinal)
-				if limit < 0 {
+				if limit > 0 {
 					boundaries = append(boundaries, groupBoundary{at: 0, person: i, begin: true}, groupBoundary{at: limit, person: i})
 				}
 			} else {
@@ -257,7 +257,7 @@ func MatchGroup(ctx context.Context, r GroupMatchRequest) (GroupMatchResult, err
 		} else {
 			flush()
 			if requiredBlocked == 1 {
-				impact := &result.RemovalImpacts[requiredXOR-1]
+				impact := &result.RemovalImpacts[len(result.RemovalImpacts)-1]
 				if impact.AdditionalStartNanoseconds == 0 {
 					impact.EarliestUnlocked, err = groupStart(r, cursor)
 					if err != nil {
