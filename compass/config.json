@@ -6,11 +6,11 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 462
+      "patch": 463
     },
     "release_notes": [
-      "Compiler observations lend the sole synchronous native call receiving a zero-store local cell address before a dereference; consumers retain callee and policy interpretation.",
-      "Argument operand identity declines authentic native function declarations and callback replacements without refusing valid compiler input; forged native objects still refuse."
+      "Firestore integer JSON create and replace preserve the actual validated record codecs and exact signed nanoseconds, refusing fractional or overflowing numbers before effects.",
+      "A shared pure integer JSON extent preflight enforces the same representability contract without a transaction; queued extents never claim durable commit."
     ]
   }
 }
