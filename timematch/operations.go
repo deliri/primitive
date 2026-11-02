@@ -45,7 +45,9 @@ func (c Client) Availability(ctx context.Context, r AvailabilityRequest) (Availa
 // PutEvent creates the owned event or verifies that the same intent already
 // exists. ErrTimeMatchConflict: a different event holds that identity.
 // ErrTimeMatchIndeterminate: the request was sent and its outcome is unknown;
-// retry PutEvent with the identical intent.
+// recover with the identical intent and EventCreateRecoverOnly. The caller
+// durably records its first dispatch before selecting EventCreateFirst;
+// recovery never grants permission for another blind create.
 func (c Client) PutEvent(ctx context.Context, w EventWrite) (EventReceipt, error) {
 	if err := c.begin(ctx, w); err != nil {
 		return EventReceipt{}, err
@@ -79,7 +81,12 @@ func (c Client) UpdateEvent(ctx context.Context, u EventUpdate) (EventReceipt, e
 	}
 }
 
-// DeleteEvent removes an owned event; an absent event is DeleteAlreadyAbsent.
+// DeleteEvent removes only the identified owned event. DeleteAlreadyAbsent
+// means the provider establishes absence at that identity. Microsoft 404/410
+// cannot distinguish deletion from an archive/export move and therefore returns
+// ErrTimeMatchIndeterminate, not successful absence. The caller must retain that
+// unresolved outcome for reconciliation; it must not release protected time or
+// retry a mutation indefinitely as if deletion had been proved.
 func (c Client) DeleteEvent(ctx context.Context, d EventDelete) (DeleteOutcome, error) {
 	if err := c.begin(ctx, d); err != nil {
 		return DeleteInvalid, err

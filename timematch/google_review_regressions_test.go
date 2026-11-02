@@ -48,8 +48,15 @@ func TestGoogleCollisionReadFailureIsIndeterminate(t *testing.T) {
 				t.Fatalf("unreadable collision=(%+v,%v),want zero,indeterminate and no conflict", receipt, err)
 			}
 			requests := fixture.record()
-			if len(requests) != 2 || requests[0].method != http.MethodPost || requests[1].method != http.MethodGet {
-				t.Fatalf("collision requests=%+v,want one create then one own-ID read", requests)
+			if len(requests) < 2 || requests[0].method != http.MethodPost {
+				t.Fatalf("collision request count=%d,want one create followed by read-only recovery", len(requests))
+			}
+			for _, request := range requests[1:] {
+				// Native transport may retry an idempotent GET after a dropped
+				// reused connection. It must never repeat the effectful POST.
+				if request.method != http.MethodGet || request.path != requests[1].path {
+					t.Fatalf("collision recovery method/path=%s/%s,want GET of same owned ID", request.method, request.path)
+				}
 			}
 		})
 	}
@@ -117,8 +124,8 @@ func TestGoogleDocumentedRestrictedWriterKeepsCalendarList(t *testing.T) {
 		t.Fatalf("calendar list=(%d,%v),want all%d,nil", len(got.Calendars), err, len(roles))
 	}
 	for i, calendar := range got.Calendars {
-		if calendar.ID.String() != document.Items[i].ID || calendar.Writable != (roles[i] == "owner") {
-			t.Fatalf("calendar%d=%+v,want owned-scope writes only for owner", i, calendar)
+		if calendar.ID.String() != document.Items[i].ID || calendar.Writable {
+			t.Fatalf("calendar%d=%+v,want no ownership inferred from access role alone", i, calendar)
 		}
 	}
 }

@@ -226,8 +226,8 @@ func TestGoogleUpdateAndDeleteNative(t *testing.T) {
 	moved := intent(t, "primary", "Visit moved", "2026-11-03T15:00:00Z", "2026-11-03T16:30:00Z")
 	updated, err := client.UpdateEvent(t.Context(), EventUpdate{Connection: connection, Ref: created.Ref, Intent: moved, ObservedAt: at(t, "2026-11-02T09:00:00Z"), Policy: fixturePolicy(t)})
 	last := fixture.record()[len(fixture.record())-1]
-	if err != nil || updated.Ref != created.Ref || last.method != http.MethodPut || last.query != "sendUpdates=none" || !strings.Contains(calendar.events[eventIDFixture], "Visit moved") {
-		t.Fatalf("UpdateEvent() = (%+v, %v) via %s ?%s, want full PUT replacement", updated, err, last.method, last.query)
+	if err != nil || updated.Ref != created.Ref || last.method != http.MethodPatch || last.query != "sendUpdates=none" || !strings.Contains(calendar.events[eventIDFixture], "Visit moved") {
+		t.Fatalf("UpdateEvent() = (%+v, %v) via %s ?%s, want PATCH of owned fields", updated, err, last.method, last.query)
 	}
 	foreign := moved
 	foreign.Calendar = calendarID(t, "other")

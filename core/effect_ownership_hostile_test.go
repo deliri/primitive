@@ -553,7 +553,7 @@ func declaredRealWorldCalls() (realWorldCallInventory, error) {
 		{owner: PackageExchange, substrate: realWorldSubstrateHTTP, selector: "Redirect", count: 1},
 		{owner: PackageExchange, substrate: realWorldSubstrateHTTP, selector: "SetCookie", count: 1},
 		{owner: PackageHostFacts, substrate: realWorldSubstrateClock, selector: "LoadLocation", count: 1},
-		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "Duration", count: 3},
+		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "Duration", count: 6},
 		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "Date", count: 5},
 		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "NewTicker", count: 1},
 		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "NewTimer", count: 1},

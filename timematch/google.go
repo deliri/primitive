@@ -30,11 +30,13 @@ func (c Client) googleCalendarList(ctx context.Context, r CalendarListRequest) (
 	}
 	list := CalendarList{Provider: ProviderGoogle}
 	seen := map[string]struct{}{}
+	dataOwners := map[string]string{}
+	primary := ""
 	pageToken := ""
 	for {
 		query := url.Values{}
 		query.Set("maxResults", googleCalendarListPageSize)
-		query.Set("fields", "items(id,accessRole,primary),nextPageToken")
+		query.Set("fields", "items(id,accessRole,primary,dataOwner),nextPageToken")
 		if pageToken != "" {
 			query.Set("pageToken", pageToken)
 		}
@@ -55,6 +57,13 @@ func (c Client) googleCalendarList(ctx context.Context, r CalendarListRequest) (
 				return CalendarList{}, core.ErrTimeMatchResponse
 			}
 			seen[item.ID.value] = struct{}{}
+			if item.Primary {
+				if primary != "" {
+					return CalendarList{}, core.ErrTimeMatchResponse
+				}
+				primary = item.ID.value
+			}
+			dataOwners[item.ID.value] = page.dataOwners[item.ID.value]
 			list.Calendars = append(list.Calendars, item)
 		}
 		if page.next == "" {
@@ -66,12 +75,21 @@ func (c Client) googleCalendarList(ctx context.Context, r CalendarListRequest) (
 		seen["\x00"+page.next] = struct{}{}
 		pageToken = page.next
 	}
+	// The manager accessRole "owner" is not data ownership. The narrow
+	// calendar.events.owned grant permits only the authenticated user's data.
+	// Primary identifies that user; secondary dataOwner must match exactly.
+	// https://developers.google.com/workspace/calendar/api/v3/reference/calendarList
+	for i := range list.Calendars {
+		item := &list.Calendars[i]
+		item.Writable = item.Writable && (item.Primary || primary != "" && dataOwners[item.ID.value] == primary)
+	}
 	return list, list.Validate()
 }
 
 type googleCalendarPage struct {
-	items []Calendar
-	next  string
+	items      []Calendar
+	dataOwners map[string]string
+	next       string
 }
 
 func (p *googleCalendarPage) UnmarshalJSON(raw []byte) error {
@@ -80,13 +98,14 @@ func (p *googleCalendarPage) UnmarshalJSON(raw []byte) error {
 			ID         string `json:"id"`
 			AccessRole string `json:"accessRole"`
 			Primary    bool   `json:"primary"`
+			DataOwner  string `json:"dataOwner"`
 		} `json:"items"`
 		NextPageToken string `json:"nextPageToken"`
 	}
 	if err := unmarshalExtensible(raw, &document); err != nil {
 		return err
 	}
-	page := googleCalendarPage{next: document.NextPageToken, items: make([]Calendar, 0, len(document.Items))}
+	page := googleCalendarPage{next: document.NextPageToken, items: make([]Calendar, 0, len(document.Items)), dataOwners: make(map[string]string, len(document.Items))}
 	for _, item := range document.Items {
 		id, err := ParseCalendarID(item.ID)
 		if err != nil {
@@ -101,6 +120,7 @@ func (p *googleCalendarPage) UnmarshalJSON(raw []byte) error {
 			return core.ErrTimeMatchResponse
 		}
 		page.items = append(page.items, Calendar{ID: id, Primary: item.Primary, Writable: item.AccessRole == "owner"})
+		page.dataOwners[id.value] = item.DataOwner
 	}
 	*p = page
 	return nil
@@ -261,6 +281,13 @@ type googleEventBody struct {
 }
 
 func googleEventProjection(intent EventIntent) (googleEventBody, error) {
+	// The SDK's Google mutation contract is whole UTC seconds. Reject finer
+	// instants before dispatch instead of allowing a provider to quantize an
+	// accepted write and subsequently misclassifying its readback as conflict.
+	startNanos, endNanos, precisionErr := nanosecondBounds(intent.Interval)
+	if precisionErr != nil || startNanos%int64(temporal.NanosecondsPerSecond) != 0 || endNanos%int64(temporal.NanosecondsPerSecond) != 0 {
+		return googleEventBody{}, errors.Join(core.ErrTimeMatchContract, precisionErr)
+	}
 	start, startErr := intent.Interval.Start.RFC3339Nano()
 	end, endErr := intent.Interval.End.RFC3339Nano()
 	if err := errors.Join(startErr, endErr); err != nil {

@@ -105,6 +105,11 @@ func FuzzTokenWireSemanticClosure(f *testing.F) {
 	f.Add([]byte(`{"access_token":"a b","expires_in":10,"token_type":"Bearer"}`))
 	f.Add([]byte(`{"access_token":"a","access_token":"b","expires_in":10,"token_type":"Bearer"}`))
 	f.Add([]byte(`{"access_token":"a","expires_in":0,"token_type":"Bearer"}`))
+	f.Add(seedJSON(f, struct {
+		AccessToken string `json:"access_token"`
+		ExpiresIn   int64  `json:"expires_in"`
+		TokenType   string `json:"token_type"`
+	}{AccessToken: "ya29.omitted-scope", ExpiresIn: 3600, TokenType: "Bearer"}))
 	addHostile(f)
 	f.Fuzz(func(t *testing.T, data []byte) {
 		got, err := decodeJSON[tokenWire](data)
@@ -117,9 +122,26 @@ func FuzzTokenWireSemanticClosure(f *testing.F) {
 		if !visibleASCII(got.access) || got.expiresIn <= 0 || !strings.EqualFold(got.tokenType, bearerTokenType) || len(got.refresh) != 0 && !visibleASCII(got.refresh) {
 			t.Fatalf("accepted token %+v violates the admitted credential grammar", got)
 		}
-		canonical := seedJSON(t, seedToken{AccessToken: string(got.access), ExpiresIn: got.expiresIn, TokenType: got.tokenType, Scope: got.scope, RefreshToken: string(got.refresh)})
+		var independentlyDecoded struct {
+			Scope *string `json:"scope"`
+		}
+		if err := jsonv1.Unmarshal(data, &independentlyDecoded); err != nil || got.scopePresent != (independentlyDecoded.Scope != nil) {
+			t.Fatalf("scope presence=%t,independent=%t,error=%v,want exact omitted-versus-present fact", got.scopePresent, independentlyDecoded.Scope != nil, err)
+		}
+		var scope *string
+		if got.scopePresent {
+			value := got.scope
+			scope = &value
+		}
+		canonical := seedJSON(t, struct {
+			AccessToken  string  `json:"access_token"`
+			ExpiresIn    int64   `json:"expires_in"`
+			TokenType    string  `json:"token_type"`
+			Scope        *string `json:"scope,omitzero"`
+			RefreshToken string  `json:"refresh_token,omitzero"`
+		}{AccessToken: string(got.access), ExpiresIn: got.expiresIn, TokenType: got.tokenType, Scope: scope, RefreshToken: string(got.refresh)})
 		again, err := decodeJSON[tokenWire](canonical)
-		if err != nil || !bytes.Equal(again.access, got.access) || !bytes.Equal(again.refresh, got.refresh) || again.scope != got.scope || again.expiresIn != got.expiresIn {
+		if err != nil || !bytes.Equal(again.access, got.access) || !bytes.Equal(again.refresh, got.refresh) || again.scope != got.scope || again.scopePresent != got.scopePresent || again.expiresIn != got.expiresIn {
 			t.Fatalf("canonical round trip = (%+v, %v), want %+v", again, err, got)
 		}
 	})
@@ -177,14 +199,14 @@ func FuzzGoogleCalendarPageSemanticClosure(f *testing.F) {
 			if item.Writable {
 				role = "owner"
 			}
-			page.Items = append(page.Items, seedGoogleItem{ID: item.ID.value, AccessRole: role, Primary: item.Primary})
+			page.Items = append(page.Items, seedGoogleItem{ID: item.ID.value, AccessRole: role, Primary: item.Primary, DataOwner: got.dataOwners[item.ID.value]})
 		}
 		again, err := decodeJSON[googleCalendarPage](seedJSON(t, page))
 		if err != nil || again.next != got.next || len(again.items) != len(got.items) {
 			t.Fatalf("canonical round trip = (%+v, %v), want %+v", again, err, got)
 		}
 		for i := range got.items {
-			if again.items[i] != got.items[i] {
+			if again.items[i] != got.items[i] || again.dataOwners[got.items[i].ID.value] != got.dataOwners[got.items[i].ID.value] {
 				t.Fatalf("item %d round trip = %+v, want %+v", i, again.items[i], got.items[i])
 			}
 		}
