@@ -274,7 +274,7 @@ func TestGroupPhaseHostileContracts(t *testing.T) {
 				t.Fatalf("got=%+v/%v want zero contract refusal", got, err)
 			}
 			if !phaseSameRequest(r, before) {
-				t.Fatal("mutated invalid input")
+				t.Fatalf("request after rejection = %+v, want unchanged %+v", r, before)
 			}
 		})
 	}
@@ -430,7 +430,7 @@ func FuzzGroupPhaseSemanticOracle(f *testing.F) {
 		}
 		phaseCompare(t, got, phaseBrute(t, r))
 		if !phaseSameRequest(r, before) {
-			t.Fatal("mutated source")
+			t.Fatalf("request after matching = %+v, want unchanged %+v", r, before)
 		}
 		slices.Reverse(r.PhaseConstraints)
 		again, err := MatchGroup(t.Context(), r)
