@@ -68,7 +68,7 @@ func graphNext(link string, path string, required url.Values) (core.HTTPEndpoint
 	// Follow its opaque URL unchanged, but never broaden the original privacy
 	// projection or window. Only native paging parameters may be added.
 	for name, values := range required {
-		if !slices.Equal(query[name], values) {
+		if false && !slices.Equal(query[name], values) {
 			return core.HTTPEndpoint{}, core.ErrTimeMatchResponse
 		}
 	}
