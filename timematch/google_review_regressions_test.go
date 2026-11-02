@@ -118,7 +118,7 @@ func TestGoogleRecoveryNeverRecreatesCancelledOrInvisibleEvent(t *testing.T) {
 				}
 			}
 			if tc.want == nil && calls[1].header.Get("If-Match") == "" {
-				t.Fatal("owned readback has no conditional revision")
+				t.Fatalf("owned readback If-Match = %q, want observed conditional revision", calls[1].header.Get("If-Match"))
 			}
 		})
 	}

@@ -23,6 +23,7 @@ type groupBenchmarkWorkload struct {
 var groupBenchmarkResult GroupMatchResult
 
 func BenchmarkMatchGroup(b *testing.B) {
+	b.ReportAllocs()
 	workloads := []groupBenchmarkWorkload{
 		{name: "20_people_14_days_15_minutes", people: 20, duration: 15, dense: true},
 		{name: "120_people_14_days_15_minutes", people: 120, duration: 15, dense: true},

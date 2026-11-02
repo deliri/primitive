@@ -333,7 +333,7 @@ func TestGoogleOwnedMutationStatefulLayerTriad(t *testing.T) {
 			calls := requests.record()
 			for _, call := range calls {
 				if strings.HasSuffix(call.path, "/events") && call.query == "" {
-					t.Fatal("ownership query has no filter, want exact private property")
+					t.Fatalf("ownership query = %q for %q, want exact private property", call.query, call.path)
 				}
 			}
 			if tc.race && len(calls) != 2 {
