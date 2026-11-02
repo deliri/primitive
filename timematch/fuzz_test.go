@@ -6,8 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	json "encoding/json/v2"
 
@@ -277,28 +279,28 @@ func FuzzGraphViewPageClassification(f *testing.F) {
 			return
 		}
 		var independent seedGraphView
-		if json.Unmarshal(data, &independent) != nil {
-			return
+		if independentErr := json.Unmarshal(data, &independent); independentErr != nil {
+			t.Fatalf("accepted page independent decode error=%v, want matching typed source", independentErr)
 		}
-		blocking, unclassified := 0, false
+		wantKnown := true
+		var wantBusy [][2]int64
 		for _, item := range independent.Value {
-			switch item.ShowAs {
-			case "free", "workingElsewhere":
-			case "tentative", "busy", "oof":
-				if !item.IsCancelled {
-					blocking++
-				}
-			default:
-				unclassified = true
+			if item.IsCancelled || item.ShowAs == "free" || item.ShowAs == "workingElsewhere" {
+				continue
 			}
-		}
-		if unclassified && got.known || len(got.busy) > blocking {
-			t.Fatalf("page %+v from %d blocking items (unclassified %t), want unknown or at most that many spans", got, blocking, unclassified)
-		}
-		for _, span := range got.busy {
-			if span[0] >= span[1] {
-				t.Fatalf("admitted non-positive span %v", span)
+			// Graph's requested UTC representation is independently checked with
+			// the standard parser, never the production Temporal conversion.
+			start, startErr := time.Parse(time.RFC3339Nano, item.Start.DateTime+"Z")
+			end, endErr := time.Parse(time.RFC3339Nano, item.End.DateTime+"Z")
+			if item.Start.TimeZone != "UTC" || item.End.TimeZone != "UTC" || startErr != nil || endErr != nil ||
+				!time.Unix(0, start.UnixNano()).Equal(start) || !time.Unix(0, end.UnixNano()).Equal(end) || !start.Before(end) {
+				wantKnown = false
+				continue
 			}
+			wantBusy = append(wantBusy, [2]int64{start.UnixNano(), end.UnixNano()})
+		}
+		if got.known != wantKnown || !slices.Equal(got.busy, wantBusy) {
+			t.Fatalf("page known/spans = %t/%v, want exact independent UTC projection %t/%v", got.known, got.busy, wantKnown, wantBusy)
 		}
 	})
 }

@@ -90,7 +90,7 @@ func TestMicrosoftLostCreateRecoveryNeverRepeatsPOST(t *testing.T) {
 				t.Errorf("POST ownership = %+v error %v, want exact private marker", sent.Ownership, err)
 			}
 			cutConnection(w)
-		case r.URL.Path == graphEventsPath:
+		case r.URL.EscapedPath() == graphCalendarPath(owned.Calendar)+"/events":
 			lookups++
 			page := graphOwnedPage{Value: []graphOwnedMetadata{}}
 			if visible {
@@ -135,7 +135,7 @@ func TestMicrosoftLostCreateRecoveryNeverRepeatsPOST(t *testing.T) {
 		t.Fatalf("recovery = (%+v,%v), replay (%+v,%v), effects %d/%d/%d/%d committed %t, want one POST and same owned receipt", recovered, recoverErr, again, againErr, gotPosts, gotLookups, gotOwnerships, gotDetails, gotCommitted)
 	}
 	for _, request := range fixture.record() {
-		if request.method == http.MethodGet && request.path == graphEventsPath {
+		if request.method == http.MethodGet && request.path == graphCalendarPath(owned.Calendar)+"/events" {
 			query, err := http.NewRequest(http.MethodGet, "https://example.com?"+request.query, nil)
 			if err != nil {
 				t.Fatal(err)
@@ -223,7 +223,7 @@ func TestMicrosoftRecoveryHostileNative(t *testing.T) {
 				if status == 0 {
 					status = 200
 				}
-				if r.URL.Path == graphEventsPath {
+				if r.URL.EscapedPath() == graphCalendarPath(owned.Calendar)+"/events" {
 					body := tc.raw
 					if body == "" {
 						body = graphCandidateCollection(t, page)
@@ -811,7 +811,7 @@ func TestMicrosoftMetadataPagingNative(t *testing.T) {
 				}
 				query := r.URL.Query()
 				query.Set("$skiptoken", "opaque+/==")
-				next := "https://" + graphHost + r.URL.Path + "?" + query.Encode()
+				next := "https://" + graphHost + r.URL.EscapedPath() + "?" + query.Encode()
 				if recovering {
 					writeJSON(w, 200, graphCandidateCollection(t, graphOwnedPage{Value: []graphOwnedMetadata{}, Next: next}))
 				} else {
@@ -847,7 +847,7 @@ func TestMicrosoftRecoveryUsesDocumentedSingleResourceExpansion(t *testing.T) {
 			writeJSON(w, 500, `{}`)
 			return
 		}
-		if r.URL.Path == graphEventsPath {
+		if r.URL.EscapedPath() == graphCalendarPath(owned.Calendar)+"/events" {
 			collectionReads++
 			// Deliberately omit the property even if the caller asks for expansion.
 			page := struct {
@@ -925,7 +925,7 @@ func TestMicrosoftRecoveryCandidateRequiresResourceAuthority(t *testing.T) {
 					writeJSON(w, 500, `{}`)
 					return
 				}
-				if r.URL.Path == graphEventsPath {
+				if r.URL.EscapedPath() == graphCalendarPath(owned.Calendar)+"/events" {
 					if r.URL.Query().Has("$expand") {
 						t.Errorf("collection expand = %q, want absent documented candidate query", r.URL.Query().Get("$expand"))
 					}
