@@ -395,47 +395,63 @@ func calendarData(ics string) string {
 	return `<c:calendar-data>` + escaped + `</c:calendar-data>`
 }
 
+func vfreebusy(lines ...string) string {
+	return "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Apple Inc.//iCloud//EN\r\nBEGIN:VFREEBUSY\r\nDTSTART:20261102T090000Z\r\nDTEND:20261102T170000Z\r\n" + strings.Join(append(lines, ""), "\r\n") + "END:VFREEBUSY\r\nEND:VCALENDAR\r\n"
+}
+
 func TestAppleAvailabilityNative(t *testing.T) {
 	t.Parallel()
 	home := "https://p42-caldav.icloud.com/123456/calendars/home/"
 	cases := []struct {
 		name      string
-		resources []string
+		body      string
+		media     string
 		status    int
 		wantState AvailabilityState
 		wantBusy  []string
+		wantErr   error
 	}{
-		{name: "expanded opaque utc instances are busy and transparent or cancelled are not", resources: []string{
-			davOK("/123456/calendars/home/a.ics", calendarData(vcalendar(vevent("UID:a", "DTSTART:20261102T100000Z", "DTEND:20261102T110000Z")))),
-			davOK("/123456/calendars/home/b.ics", calendarData(vcalendar(vevent("UID:b", "RECURRENCE-ID:20261102T120000Z", "DTSTART:20261102T120000Z", "DURATION:PT30M"), vevent("UID:b", "DTSTART:20261102T140000Z", "DTEND:20261102T150000Z", "TRANSP:TRANSPARENT")))),
-			davOK("/123456/calendars/home/c.ics", calendarData(vcalendar(vevent("UID:c", "DTSTART:20261102T150000Z", "DTEND:20261102T160000Z", "STATUS:CANCELLED")))),
-		}, wantState: AvailabilityKnown, wantBusy: []string{"2026-11-02T10:00:00Z/2026-11-02T11:00:00Z", "2026-11-02T12:00:00Z/2026-11-02T12:30:00Z"}},
-		{name: "empty calendar is known with no busy", resources: nil, wantState: AvailabilityKnown, wantBusy: []string{}},
-		{name: "unexpanded recurrence rule is unknown", resources: []string{davOK("/x.ics", calendarData(vcalendar(vevent("UID:r", "DTSTART:20261102T100000Z", "DTEND:20261102T110000Z", "RRULE:FREQ=DAILY"))))}, wantState: AvailabilityUnknown},
-		{name: "zoned time without expansion is unknown", resources: []string{davOK("/x.ics", calendarData(vcalendar(vevent("UID:z", "DTSTART;TZID=America/Toronto:20261102T100000", "DTEND;TZID=America/Toronto:20261102T110000"))))}, wantState: AvailabilityUnknown},
-		{name: "opaque all-day date is unknown", resources: []string{davOK("/x.ics", calendarData(vcalendar(vevent("UID:d", "DTSTART;VALUE=DATE:20261102", "DTEND;VALUE=DATE:20261103"))))}, wantState: AvailabilityUnknown},
-		{name: "resource without calendar data is unknown", resources: []string{davOK("/x.ics", ``)}, wantState: AvailabilityUnknown},
-		{name: "missing calendar collection is unknown", status: 404, wantState: AvailabilityUnknown},
+		{name: "busy tentative and unavailable periods block while free does not", status: 200, media: "text/calendar", body: vfreebusy(
+			"FREEBUSY:20261102T100000Z/20261102T110000Z",
+			"FREEBUSY;FBTYPE=BUSY-TENTATIVE:20261102T120000Z/PT30M",
+			"FREEBUSY;FBTYPE=FREE:20261102T130000Z/20261102T140000Z",
+			"FREEBUSY;FBTYPE=BUSY-UNAVAILABLE:20261102T150000Z/20261102T153000Z,20261102T160000Z/20261102T163000Z"),
+			wantState: AvailabilityKnown, wantBusy: []string{"2026-11-02T10:00:00Z/2026-11-02T11:00:00Z", "2026-11-02T12:00:00Z/2026-11-02T12:30:00Z", "2026-11-02T15:00:00Z/2026-11-02T15:30:00Z", "2026-11-02T16:00:00Z/2026-11-02T16:30:00Z"}},
+		{name: "folded period list is one property", status: 200, media: "text/calendar", body: vfreebusy("FREEBUSY:20261102T100000Z/20261102T11\r\n 0000Z"), wantState: AvailabilityKnown, wantBusy: []string{"2026-11-02T10:00:00Z/2026-11-02T11:00:00Z"}},
+		{name: "empty free busy component is known and free", status: 200, media: "text/calendar", body: vfreebusy(), wantState: AvailabilityKnown, wantBusy: []string{}},
+		{name: "unknown free busy type is unknown", status: 200, media: "text/calendar", body: vfreebusy("FREEBUSY;FBTYPE=X-AWAY:20261102T100000Z/20261102T110000Z"), wantState: AvailabilityUnknown},
+		{name: "local time period is unknown", status: 200, media: "text/calendar", body: vfreebusy("FREEBUSY:20261102T100000/20261102T110000"), wantState: AvailabilityUnknown},
+		{name: "reversed period is unknown", status: 200, media: "text/calendar", body: vfreebusy("FREEBUSY:20261102T110000Z/20261102T100000Z"), wantState: AvailabilityUnknown},
+		{name: "answer carrying event data is refused as unknown", status: 200, media: "text/calendar", body: vcalendar(vevent("UID:a", "DTSTART:20261102T100000Z", "DTEND:20261102T110000Z")), wantState: AvailabilityUnknown},
+		{name: "answer without a free busy component is unknown", status: 200, media: "text/calendar", body: vcalendar(), wantState: AvailabilityUnknown},
+		{name: "multistatus instead of free busy is unknown", status: 207, media: "application/xml", body: multistatus(), wantState: AvailabilityUnknown},
+		{name: "free busy text under a non-calendar media type is unknown", status: 200, media: "text/html", body: vfreebusy("FREEBUSY:20261102T100000Z/20261102T110000Z"), wantState: AvailabilityUnknown},
+		{name: "server without free busy report support is unknown", status: 501, media: "text/plain", body: "not implemented", wantState: AvailabilityUnknown},
+		{name: "revoked app-specific password is consent loss", status: 401, media: "text/plain", body: "", wantErr: core.ErrTimeMatchConsent},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			client, fixture := newNative(t, func(w http.ResponseWriter, _ *http.Request, _ []byte) {
-				if tc.status != 0 {
-					w.WriteHeader(tc.status)
-					return
-				}
-				writeXML(w, multistatus(tc.resources...))
+				w.Header().Set("Content-Type", tc.media)
+				w.WriteHeader(tc.status)
+				_, _ = io.WriteString(w, tc.body)
 			})
 			got, err := client.Availability(t.Context(), AvailabilityRequest{Connection: appleConnection(t), Window: window(t, "2026-11-02T09:00:00Z", "2026-11-02T17:00:00Z"), Calendars: []CalendarID{calendarID(t, home)}, Policy: fixturePolicy(t)})
 			requests := fixture.record()
 			if len(requests) != 1 {
-				t.Fatalf("Availability(apple) sent %d requests (error %v, refused dials %q), want exactly one REPORT", len(requests), err, fixture.refusedDials())
+				t.Fatalf("Availability(apple) sent %d requests (error %v), want exactly one REPORT", len(requests), err)
 			}
 			body := string(requests[0].body)
 			if requests[0].method != "REPORT" || requests[0].header.Get("Depth") != "1" || requests[0].path != "/123456/calendars/home/" ||
-				!strings.Contains(body, `<c:expand start="20261102T090000Z" end="20261102T170000Z"/>`) || !strings.Contains(body, `<c:time-range start="20261102T090000Z" end="20261102T170000Z"/>`) {
-				t.Fatalf("calendar-query = %s %s depth %q body %s, want expanded REPORT over the window", requests[0].method, requests[0].path, requests[0].header.Get("Depth"), body)
+				!strings.Contains(body, `<c:free-busy-query`) || !strings.Contains(body, `<c:time-range start="20261102T090000Z" end="20261102T170000Z"/>`) || strings.Contains(body, "calendar-data") {
+				t.Fatalf("availability request = %s %s depth %q body %s, want a free-busy-query REPORT that never asks for calendar-data", requests[0].method, requests[0].path, requests[0].header.Get("Depth"), body)
+			}
+			if tc.wantErr != nil {
+				if !errors.Is(err, tc.wantErr) || len(got.Calendars) != 0 {
+					t.Fatalf("Availability(apple) = (%d, %v), want none and %v", len(got.Calendars), err, tc.wantErr)
+				}
+				return
 			}
 			if err != nil || got.Calendars[0].State != tc.wantState || strings.Join(spanText(t, got.Calendars[0].Busy), ",") != strings.Join(tc.wantBusy, ",") {
 				t.Fatalf("Availability(apple) = (%v %q, %v), want %v %q", got.Calendars[0].State, spanText(t, got.Calendars[0].Busy), err, tc.wantState, tc.wantBusy)

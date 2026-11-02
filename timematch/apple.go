@@ -148,6 +148,11 @@ func (c Client) dav(ctx context.Context, r davRequest) (davMultistatusWire, erro
 }
 
 func xmlResponse(captured exchange.CapturedHeaders) bool {
+	return mediaIs(captured, "application/xml") || mediaIs(captured, "text/xml")
+}
+
+// mediaIs reports whether the single captured Content-Type has base type want.
+func mediaIs(captured exchange.CapturedHeaders, want string) bool {
 	for _, value := range captured.Values {
 		if value.Name != core.HTTPHeaderContentType() || len(value.Values) != 1 {
 			continue
@@ -156,16 +161,13 @@ func xmlResponse(captured exchange.CapturedHeaders) bool {
 		if err != nil {
 			return false
 		}
-		media, err := core.ParseHTTPMediaType(text)
-		if err != nil {
+		media, mediaErr := core.ParseHTTPMediaType(text)
+		admitted, admittedErr := core.ParseHTTPMediaType(want)
+		if mediaErr != nil || admittedErr != nil {
 			return false
 		}
-		for _, admitted := range []string{"application/xml", "text/xml"} {
-			want, parseErr := core.ParseHTTPMediaType(admitted)
-			if same, sameErr := media.SameBase(want); parseErr == nil && sameErr == nil && same {
-				return true
-			}
-		}
+		same, sameErr := media.SameBase(admitted)
+		return sameErr == nil && same
 	}
 	return false
 }
@@ -215,7 +217,6 @@ type davPropWire struct {
 	Privileges *struct {
 		Privileges []davPrivilegeWire `xml:"DAV: privilege"`
 	} `xml:"DAV: current-user-privilege-set"`
-	CalendarData *string `xml:"urn:ietf:params:xml:ns:caldav calendar-data"`
 }
 
 func decodeMultistatus(body []byte) (davMultistatusWire, error) {
@@ -348,8 +349,11 @@ func writable(prop davPropWire) bool {
 	return false
 }
 
-// appleAvailability issues one RFC 4791 section 7.8 calendar-query per
-// calendar with CALDAV:expand, so recurring events arrive as UTC instances.
+// appleAvailability issues one RFC 4791 section 7.10 free-busy-query REPORT
+// per calendar. The server answers with a VFREEBUSY of busy periods only: no
+// event resource, UID, title or detail is requested or admitted. A server
+// that refuses the report, or answers with anything but periods, leaves that
+// calendar Unknown; TimeMatch never falls back to downloading event data.
 func (c Client) appleAvailability(ctx context.Context, r AvailabilityRequest) (Availability, error) {
 	auth, authErr := basic(r.Connection)
 	if authErr != nil {
@@ -357,10 +361,11 @@ func (c Client) appleAvailability(ctx context.Context, r AvailabilityRequest) (A
 	}
 	start, startErr := icsStampTime(r.Window.Start)
 	end, endErr := icsCeilingTime(r.Window.End)
-	if err := errors.Join(startErr, endErr); err != nil {
-		return Availability{}, errors.Join(core.ErrTimeMatchContract, err)
+	depth, depthErr := header("Depth", davDepthOne)
+	if setupErr := errors.Join(startErr, endErr, depthErr); setupErr != nil {
+		return Availability{}, errors.Join(core.ErrTimeMatchContract, setupErr)
 	}
-	query := `<?xml version="1.0" encoding="utf-8"?><c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav"><d:prop><c:calendar-data><c:expand start="` + start + `" end="` + end + `"/></c:calendar-data></d:prop><c:filter><c:comp-filter name="VCALENDAR"><c:comp-filter name="VEVENT"><c:time-range start="` + start + `" end="` + end + `"/></c:comp-filter></c:comp-filter></c:filter></c:calendar-query>`
+	query := []byte(`<?xml version="1.0" encoding="utf-8"?><c:free-busy-query xmlns:c="urn:ietf:params:xml:ns:caldav"><c:time-range start="` + start + `" end="` + end + `"/></c:free-busy-query>`)
 	availability := Availability{Window: r.Window, Calendars: make([]CalendarAvailability, 0, len(r.Calendars))}
 	for _, id := range r.Calendars {
 		target, targetErr := appleCalendarURL(id)
@@ -368,53 +373,25 @@ func (c Client) appleAvailability(ctx context.Context, r AvailabilityRequest) (A
 			return Availability{}, targetErr
 		}
 		calendar := CalendarAvailability{ID: id, State: AvailabilityUnknown}
-		status, err := c.dav(ctx, davRequest{auth: auth, target: target, method: exchange.MethodReport, depth: davDepthOne, body: query, policy: r.Policy})
-		switch {
-		case err != nil && !providerUnknown(ctx, err):
-			return Availability{}, err
-		case err == nil:
-			if spans, known := appleSpans(status); known {
-				busy, normalizeErr := normalizeBusy(r.Window, spans)
-				if normalizeErr != nil {
-					return Availability{}, normalizeErr
-				}
-				calendar = CalendarAvailability{ID: id, State: AvailabilityKnown, Busy: busy}
+		result, err := c.send(ctx, call{target: target, method: exchange.MethodReport, body: query, requestType: xmlMediaType(), headers: []exchange.Header{depth, auth}, capture: []core.HTTPHeaderName{core.HTTPHeaderContentType()}, policy: r.Policy, expected: http.StatusOK})
+		if err != nil {
+			if failure := readFailure(result, err); !providerUnknown(ctx, failure) {
+				return Availability{}, failure
 			}
+		} else if spans, known := parseFreeBusy(string(result.body)); known && mediaIs(result.captured, "text/calendar") {
+			busy, normalizeErr := normalizeBusy(r.Window, spans)
+			if normalizeErr != nil {
+				return Availability{}, normalizeErr
+			}
+			calendar = CalendarAvailability{ID: id, State: AvailabilityKnown, Busy: busy}
 		}
+		clear(result.body)
 		availability.Calendars = append(availability.Calendars, calendar)
 	}
 	if err := availability.covers(r); err != nil {
 		return Availability{}, errors.Join(core.ErrTimeMatchResponse, err)
 	}
 	return availability, nil
-}
-
-// appleSpans is Known only when every returned resource carried readable
-// calendar data and every blocking event resolved to absolute instants.
-func appleSpans(status davMultistatusWire) ([][2]int64, bool) {
-	var spans [][2]int64
-	for _, response := range status.Responses {
-		prop, ok := response.okProp()
-		if !ok || prop.CalendarData == nil {
-			return nil, false
-		}
-		events, err := parseICS(*prop.CalendarData)
-		if err != nil {
-			return nil, false
-		}
-		for _, event := range events {
-			if !event.blocking {
-				continue
-			}
-			if !event.resolvable {
-				return nil, false
-			}
-			if event.start < event.end {
-				spans = append(spans, [2]int64{event.start, event.end})
-			}
-		}
-	}
-	return spans, true
 }
 
 // icsCeilingTime rounds the window end up to a whole second so the query

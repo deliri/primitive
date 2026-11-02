@@ -22,6 +22,18 @@
 //   - Apple third-party access and app-specific passwords: https://support.apple.com/en-us/121539 and https://support.apple.com/en-us/102654
 //   - CalDAV: RFC 4791, iCalendar: RFC 5545, scheduling: RFC 6638, discovery: RFC 6764, WebDAV: RFC 4918.
 //
+// Privacy: availability reads busy time only. Google uses freeBusy.query
+// (visitor consent: calendar.events.freebusy on the primary calendar only;
+// confirming an appointment is a separate calendar.events.owned consent).
+// Apple uses the CalDAV free-busy-query report, which returns VFREEBUSY
+// periods; a server that refuses it leaves availability Unknown, never a
+// wider event download. Microsoft has no free/busy-only delegated permission
+// for personal accounts: calendarView under Calendars.ReadBasic is requested
+// with $select=start,end,showAs,isCancelled,isAllDay, so subject, body,
+// attendees and location are never downloaded; Graph still returns each
+// event's id and etag, which are discarded. Event readback is limited to the
+// owned deterministic event this package wrote.
+//
 // Microsoft getSchedule is not used: its documentation marks delegated
 // personal Microsoft accounts "Not supported". calendarView supports personal
 // and work/school accounts with Calendars.ReadBasic.

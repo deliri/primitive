@@ -50,6 +50,15 @@ const bearerTokenType = "bearer"
 func scopes(provider Provider, access Access, lifetime Lifetime) ([]string, error) {
 	switch provider {
 	case ProviderGoogle:
+		// A visitor consents to exactly one purpose per grant: free/busy for
+		// matching (primary calendar, no calendar list), or, in a separate
+		// final consent, writing the confirmed event on calendars they own.
+		if lifetime == LifetimeVisitor {
+			if access == AccessManageEvents {
+				return []string{googleScopeOwnedEvents}, nil
+			}
+			return []string{googleScopeFreeBusy}, nil
+		}
 		values := []string{googleScopeFreeBusy, googleScopeCalendarList}
 		if access == AccessManageEvents {
 			values = append(values, googleScopeOwnedEvents)
@@ -322,7 +331,7 @@ type grantShape struct {
 
 func (t tokenWire) grant(shape grantShape) (Grant, error) {
 	provider, access, lifetime, observed := shape.provider, shape.access, shape.lifetime, shape.observed
-	if !grantedScopes(provider, t.scope, access) {
+	if !grantedScopes(shape, t.scope) {
 		return Grant{}, core.ErrTimeMatchConsent
 	}
 	expires, err := expiry(observed, t.expiresIn)
@@ -349,15 +358,18 @@ func (t tokenWire) grant(shape grantShape) (Grant, error) {
 // grantedScopes requires every requested calendar scope in the token's
 // space-delimited scope field. Microsoft may return Graph scopes without the
 // resource prefix; offline_access is evidenced by the refresh token itself.
-func grantedScopes(provider Provider, raw string, access Access) bool {
-	required, err := scopes(provider, access, LifetimeVisitor)
+func grantedScopes(shape grantShape, raw string) bool {
+	requested, err := scopes(shape.provider, shape.access, shape.lifetime)
 	if err != nil {
 		return false
 	}
-	for _, required := range required {
+	for _, required := range requested {
+		if required == microsoftScopeOffline {
+			continue
+		}
 		found := false
 		for granted := range strings.FieldsSeq(raw) {
-			if granted == required || provider == ProviderMicrosoft && microsoftGraphScopeShort+granted == required {
+			if granted == required || shape.provider == ProviderMicrosoft && microsoftGraphScopeShort+granted == required {
 				found = true
 				break
 			}

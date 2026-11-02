@@ -141,9 +141,8 @@ func (e *icsRawEvent) add(line string) {
 	case "DURATION":
 		slot = &e.duration
 	case "RRULE", "RDATE":
-		// A calendar-query with CALDAV:expand returns expanded instances
-		// without recurrence rules (RFC 4791 section 9.6.5). A rule here
-		// means the server did not expand: the span set is unknown.
+		// parseICS reads back only the owned event this package wrote, which
+		// never recurs: a recurrence rule means the span set is not ours.
 		e.recurring = true
 		return
 	default:
@@ -203,6 +202,88 @@ func (e *icsRawEvent) event() icsEvent {
 	return event
 }
 
+// parseFreeBusy reads the VFREEBUSY of an RFC 4791 free-busy-query answer:
+// FREEBUSY periods (RFC 5545 section 3.8.2.6, always UTC) of FBTYPE BUSY,
+// BUSY-UNAVAILABLE or BUSY-TENTATIVE block; FREE does not. An unknown FBTYPE,
+// a malformed period, a missing VFREEBUSY, or any VEVENT (event data this
+// package never requests) makes the answer unusable.
+func parseFreeBusy(text string) ([][2]int64, bool) {
+	if !utf8.ValidString(text) || !strings.HasPrefix(text, "BEGIN:VCALENDAR") {
+		return nil, false
+	}
+	var spans [][2]int64
+	inside, seen := false, false
+	for _, line := range unfoldICS(text) {
+		upper := strings.ToUpper(line)
+		switch {
+		case upper == "BEGIN:VFREEBUSY":
+			if inside {
+				return nil, false
+			}
+			inside, seen = true, true
+			continue
+		case upper == "END:VFREEBUSY":
+			inside = false
+			continue
+		case upper == icsBeginEvent:
+			return nil, false
+		}
+		if !inside || !strings.HasPrefix(upper, "FREEBUSY") {
+			continue
+		}
+		nameAndParams, value, ok := cutICSValue(line)
+		parts := strings.Split(nameAndParams, ";")
+		if !ok || strings.ToUpper(parts[0]) != "FREEBUSY" {
+			continue
+		}
+		blocking := true
+		for _, param := range parts[1:] {
+			kind, isType := strings.CutPrefix(strings.ToUpper(param), "FBTYPE=")
+			if !isType {
+				continue
+			}
+			switch kind {
+			case "BUSY", "BUSY-UNAVAILABLE", "BUSY-TENTATIVE":
+			case "FREE":
+				blocking = false
+			default:
+				return nil, false
+			}
+		}
+		for period := range strings.SplitSeq(value, ",") {
+			span, ok := freeBusyPeriod(period)
+			if !ok {
+				return nil, false
+			}
+			if blocking {
+				spans = append(spans, span)
+			}
+		}
+	}
+	return spans, seen && !inside
+}
+
+// freeBusyPeriod admits start/end or start/duration in UTC.
+func freeBusyPeriod(period string) ([2]int64, bool) {
+	startText, endText, ok := strings.Cut(period, "/")
+	if !ok {
+		return [2]int64{}, false
+	}
+	start, ok := icsUTCText(startText)
+	if !ok {
+		return [2]int64{}, false
+	}
+	end, ok := icsUTCText(endText)
+	if !ok {
+		length, durationOK := icsDuration(endText)
+		if !durationOK || length > (1<<62)-start {
+			return [2]int64{}, false
+		}
+		end = start + length
+	}
+	return [2]int64{start, end}, end > start
+}
+
 // icsUTC admits only the UTC DATE-TIME form. TZID-qualified, floating and
 // DATE values have no absolute instant without a zone database decision.
 func icsUTC(property icsProperty) (int64, bool) {
@@ -212,9 +293,12 @@ func icsUTC(property icsProperty) (int64, bool) {
 			return 0, false
 		}
 	}
-	// RFC 5545 form 2 (UTC): exactly YYYYMMDDTHHMMSSZ. Temporal parses the
-	// equivalent RFC 3339 spelling and owns range validation.
-	v := property.value
+	return icsUTCText(property.value)
+}
+
+// icsUTCText admits RFC 5545 form 2 (UTC): exactly YYYYMMDDTHHMMSSZ. Temporal
+// parses the equivalent RFC 3339 spelling and owns range validation.
+func icsUTCText(v string) (int64, bool) {
 	if len(v) != len("20060102T150405Z") || v[8] != 'T' || v[15] != 'Z' {
 		return 0, false
 	}

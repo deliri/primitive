@@ -316,10 +316,9 @@ func FuzzProviderEventObservations(f *testing.F) {
 	})
 }
 
-func FuzzMultistatusAndICSAvailability(f *testing.F) {
-	f.Add([]byte(multistatus(davOK("/a.ics", calendarData(vcalendar(vevent("UID:a", "DTSTART:20261102T100000Z", "DTEND:20261102T110000Z")))))))
-	f.Add([]byte(multistatus(davOK("/a.ics", calendarData(vcalendar(vevent("UID:a", "DTSTART:20261102T100000Z", "RRULE:FREQ=DAILY")))))))
+func FuzzMultistatusDiscovery(f *testing.F) {
 	f.Add([]byte(multistatus(davOK("/", `<d:current-user-principal><d:href>/1/principal/</d:href></d:current-user-principal>`))))
+	f.Add([]byte(multistatus(davOK("/1/calendars/home/", `<d:resourcetype><d:collection/><c:calendar/></d:resourcetype><d:current-user-privilege-set><d:privilege><d:write/></d:privilege></d:current-user-privilege-set>`))))
 	f.Add([]byte(`<!DOCTYPE x [<!ENTITY e SYSTEM "file:///etc/passwd">]><d:multistatus xmlns:d="DAV:">&e;</d:multistatus>`))
 	addHostile(f)
 	f.Fuzz(func(t *testing.T, data []byte) {
@@ -330,13 +329,38 @@ func FuzzMultistatusAndICSAvailability(f *testing.F) {
 			}
 			return
 		}
-		spans, known := appleSpans(status)
-		if !known && spans != nil {
-			t.Fatalf("unknown availability carried %d spans", len(spans))
+		href, hrefErr := singleHref(status, func(p davPropWire) *davHrefWire { return p.Principal })
+		if hrefErr == nil && strings.TrimSpace(href) == "" || hrefErr != nil && !errors.Is(hrefErr, core.ErrTimeMatchResponse) {
+			t.Fatalf("singleHref() = (%q, %v), want a non-blank href or a typed refusal", href, hrefErr)
 		}
-		for _, span := range spans {
-			if span[0] >= span[1] {
-				t.Fatalf("admitted non-positive span %v", span)
+	})
+}
+
+func FuzzFreeBusyPeriods(f *testing.F) {
+	f.Add(vfreebusy("FREEBUSY:20261102T100000Z/20261102T110000Z", "FREEBUSY;FBTYPE=BUSY-TENTATIVE:20261102T120000Z/PT30M,20261102T130000Z/PT1H"))
+	f.Add(vfreebusy("FREEBUSY;FBTYPE=FREE:20261102T100000Z/20261102T110000Z"))
+	f.Add(vfreebusy("FREEBUSY;FBTYPE=X-OTHER:20261102T100000Z/20261102T110000Z"))
+	f.Add(vcalendar(vevent("UID:a", "DTSTART:20261102T100000Z", "DTEND:20261102T110000Z")))
+	f.Add("BEGIN:VCALENDAR\r\nBEGIN:VFREEBUSY\r\nFREEBUSY:x/y\r\n")
+	f.Fuzz(func(t *testing.T, text string) {
+		spans, known := parseFreeBusy(text)
+		again, againKnown := parseFreeBusy(text)
+		if known != againKnown || len(spans) != len(again) {
+			t.Fatalf("parseFreeBusy is not deterministic: (%d, %t) then (%d, %t)", len(spans), known, len(again), againKnown)
+		}
+		if !known {
+			return
+		}
+		// Independent facts: an admitted answer contains no event component
+		// and only positive periods.
+		for _, line := range unfoldICS(text) {
+			if strings.EqualFold(line, icsBeginEvent) {
+				t.Fatalf("parseFreeBusy admitted an answer carrying event data: %q", text)
+			}
+		}
+		for i, span := range spans {
+			if span[0] >= span[1] || again[i] != span {
+				t.Fatalf("span %d = %v then %v, want positive and identical", i, span, again[i])
 			}
 		}
 	})

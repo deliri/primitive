@@ -11,8 +11,10 @@ import (
 )
 
 const (
-	googleVisitorScope  = googleScopeFreeBusy + " " + googleScopeCalendarList
-	googleBusinessScope = googleVisitorScope + " " + googleScopeOwnedEvents
+	googleVisitorScope              = googleScopeFreeBusy
+	googleConfirmScope              = googleScopeOwnedEvents
+	googleBusinessAvailabilityScope = googleScopeFreeBusy + " " + googleScopeCalendarList
+	googleBusinessScope             = googleBusinessAvailabilityScope + " " + googleScopeOwnedEvents
 )
 
 func tokenBody(access, refresh, scope, tokenType string, expires string) string {
@@ -54,10 +56,10 @@ func TestExchangeCodeNativeOutcomes(t *testing.T) {
 		{name: "google visitor with both availability scopes is an online grant", provider: ProviderGoogle, access: AccessAvailability, lifetime: LifetimeVisitor, status: 200, body: tokenBody("ya29.visitor", "", googleVisitorScope, "Bearer", "3600"), wantRequests: 1, wantExpires: "2026-11-02T11:00:00Z", wantPath: "/token"},
 		{name: "google expiry boundary of one second derives from ObservedAt", provider: ProviderGoogle, access: AccessAvailability, lifetime: LifetimeVisitor, status: 200, body: tokenBody("ya29.visitor", "", googleVisitorScope, "Bearer", "1"), wantRequests: 1, wantExpires: "2026-11-02T10:00:01Z", wantPath: "/token"},
 		{name: "google expires_in zero is refused", provider: ProviderGoogle, access: AccessAvailability, lifetime: LifetimeVisitor, status: 200, body: tokenBody("ya29.visitor", "", googleVisitorScope, "Bearer", "0"), wantErr: core.ErrTimeMatchResponse, wantRequests: 1},
-		{name: "google granular consent without calendar list scope is refused", provider: ProviderGoogle, access: AccessAvailability, lifetime: LifetimeVisitor, status: 200, body: tokenBody("ya29.visitor", "", googleScopeFreeBusy, "Bearer", "3600"), wantErr: core.ErrTimeMatchConsent, wantRequests: 2, wantRevoke: "ya29.visitor"},
-		{name: "google visitor confirmation grant is online with owned events", provider: ProviderGoogle, access: AccessManageEvents, lifetime: LifetimeVisitor, status: 200, body: tokenBody("ya29.visitor", "", googleBusinessScope, "Bearer", "3600"), wantRequests: 1, wantExpires: "2026-11-02T11:00:00Z", wantPath: "/token"},
+		{name: "google visitor consent granting only the calendar list is refused", provider: ProviderGoogle, access: AccessAvailability, lifetime: LifetimeVisitor, status: 200, body: tokenBody("ya29.visitor", "", googleScopeCalendarList, "Bearer", "3600"), wantErr: core.ErrTimeMatchConsent, wantRequests: 2, wantRevoke: "ya29.visitor"},
+		{name: "google visitor confirmation grant is online with owned events", provider: ProviderGoogle, access: AccessManageEvents, lifetime: LifetimeVisitor, status: 200, body: tokenBody("ya29.visitor", "", googleConfirmScope, "Bearer", "3600"), wantRequests: 1, wantExpires: "2026-11-02T11:00:00Z", wantPath: "/token"},
 		{name: "google visitor confirmation without owned events consent is refused", provider: ProviderGoogle, access: AccessManageEvents, lifetime: LifetimeVisitor, status: 200, body: tokenBody("ya29.visitor", "", googleVisitorScope, "Bearer", "3600"), wantErr: core.ErrTimeMatchConsent, wantRequests: 2, wantRevoke: "ya29.visitor"},
-		{name: "google visitor confirmation given a refresh token revokes it and refuses", provider: ProviderGoogle, access: AccessManageEvents, lifetime: LifetimeVisitor, status: 200, body: tokenBody("ya29.visitor", "1//unexpected", googleBusinessScope, "Bearer", "3600"), wantErr: core.ErrTimeMatchResponse, wantRequests: 2, wantRevoke: "ya29.visitor"},
+		{name: "google visitor confirmation given a refresh token revokes it and refuses", provider: ProviderGoogle, access: AccessManageEvents, lifetime: LifetimeVisitor, status: 200, body: tokenBody("ya29.visitor", "1//unexpected", googleConfirmScope, "Bearer", "3600"), wantErr: core.ErrTimeMatchResponse, wantRequests: 2, wantRevoke: "ya29.visitor"},
 		{name: "microsoft visitor confirmation grant has no refresh", provider: ProviderMicrosoft, tenant: MicrosoftTenantCommon, access: AccessManageEvents, lifetime: LifetimeVisitor, status: 200, body: tokenBody("eyJ.visitor", "", "Calendars.ReadWrite", "Bearer", "3600"), wantRequests: 1, wantExpires: "2026-11-02T11:00:00Z", wantPath: "/common/oauth2/v2.0/token"},
 		{name: "google business with owned events and refresh is retained", provider: ProviderGoogle, access: AccessManageEvents, lifetime: LifetimeBusiness, status: 200, body: tokenBody("ya29.business", "1//refresh", googleBusinessScope, "Bearer", "3599"), wantRefresh: true, wantRequests: 1, wantExpires: "2026-11-02T10:59:59Z", wantPath: "/token"},
 		{name: "google business missing owned events scope is refused", provider: ProviderGoogle, access: AccessManageEvents, lifetime: LifetimeBusiness, status: 200, body: tokenBody("ya29.business", "1//refresh", googleVisitorScope, "Bearer", "3599"), wantErr: core.ErrTimeMatchConsent, wantRequests: 2, wantRevoke: "ya29.business"},
@@ -204,13 +206,13 @@ func TestAuthorizationEndpointRequestsOnlyCalendarScopes(t *testing.T) {
 		wantAccess string
 		wantPrompt string
 	}{
-		{name: "google visitor is online availability only", provider: ProviderGoogle, access: AccessAvailability, lifetime: LifetimeVisitor, wantHost: "accounts.google.com", wantPath: "/o/oauth2/v2/auth", wantScope: googleVisitorScope, wantAccess: "online"},
-		{name: "google business availability is offline with consent prompt", provider: ProviderGoogle, access: AccessAvailability, lifetime: LifetimeBusiness, wantHost: "accounts.google.com", wantPath: "/o/oauth2/v2/auth", wantScope: googleVisitorScope, wantAccess: "offline", wantPrompt: "consent"},
+		{name: "google visitor is online free/busy only without calendar list", provider: ProviderGoogle, access: AccessAvailability, lifetime: LifetimeVisitor, wantHost: "accounts.google.com", wantPath: "/o/oauth2/v2/auth", wantScope: googleVisitorScope, wantAccess: "online"},
+		{name: "google business availability is offline with consent prompt", provider: ProviderGoogle, access: AccessAvailability, lifetime: LifetimeBusiness, wantHost: "accounts.google.com", wantPath: "/o/oauth2/v2/auth", wantScope: googleBusinessAvailabilityScope, wantAccess: "offline", wantPrompt: "consent"},
 		{name: "google business manage adds owned events", provider: ProviderGoogle, access: AccessManageEvents, lifetime: LifetimeBusiness, wantHost: "accounts.google.com", wantPath: "/o/oauth2/v2/auth", wantScope: googleBusinessScope, wantAccess: "offline", wantPrompt: "consent"},
 		{name: "microsoft common visitor read basic without offline access", provider: ProviderMicrosoft, tenant: MicrosoftTenantCommon, access: AccessAvailability, lifetime: LifetimeVisitor, wantHost: "login.microsoftonline.com", wantPath: "/common/oauth2/v2.0/authorize", wantScope: microsoftScopeReadBasic},
 		{name: "microsoft personal business adds offline access", provider: ProviderMicrosoft, tenant: MicrosoftTenantConsumers, access: AccessAvailability, lifetime: LifetimeBusiness, wantHost: "login.microsoftonline.com", wantPath: "/consumers/oauth2/v2.0/authorize", wantScope: microsoftScopeReadBasic + " offline_access"},
 		{name: "microsoft work manage uses read write", provider: ProviderMicrosoft, tenant: MicrosoftTenantOrganizations, access: AccessManageEvents, lifetime: LifetimeBusiness, wantHost: "login.microsoftonline.com", wantPath: "/organizations/oauth2/v2.0/authorize", wantScope: microsoftScopeReadWrite + " offline_access"},
-		{name: "google visitor confirmation adds owned events online without consent prompt", provider: ProviderGoogle, access: AccessManageEvents, lifetime: LifetimeVisitor, wantHost: "accounts.google.com", wantPath: "/o/oauth2/v2/auth", wantScope: googleBusinessScope, wantAccess: "online"},
+		{name: "google visitor confirmation adds owned events online without consent prompt", provider: ProviderGoogle, access: AccessManageEvents, lifetime: LifetimeVisitor, wantHost: "accounts.google.com", wantPath: "/o/oauth2/v2/auth", wantScope: googleConfirmScope, wantAccess: "online"},
 		{name: "microsoft visitor confirmation uses read write without offline access", provider: ProviderMicrosoft, tenant: MicrosoftTenantConsumers, access: AccessManageEvents, lifetime: LifetimeVisitor, wantHost: "login.microsoftonline.com", wantPath: "/consumers/oauth2/v2.0/authorize", wantScope: microsoftScopeReadWrite},
 		{name: "microsoft without tenant is refused", provider: ProviderMicrosoft, access: AccessAvailability, lifetime: LifetimeVisitor, wantErr: core.ErrTimeMatchContract},
 		{name: "google with a tenant is refused", provider: ProviderGoogle, tenant: MicrosoftTenantCommon, access: AccessAvailability, lifetime: LifetimeVisitor, wantErr: core.ErrTimeMatchContract},

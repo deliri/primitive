@@ -30,6 +30,20 @@ const (
 	graphDateTimeLayout = "2006-01-02T15:04:05.0000000"
 )
 
+// PrimaryCalendar names the account's default calendar for every provider
+// that has one (Google's documented "primary" calendar id; Graph's
+// /me/calendar). A visitor matches against it without listing calendars.
+const PrimaryCalendar = "primary"
+
+// graphCalendarPath is /me/calendar for the default calendar, otherwise the
+// named calendar. Graph calendar ids are opaque base64 and never "primary".
+func graphCalendarPath(id CalendarID) string {
+	if id.value == PrimaryCalendar {
+		return "/v1.0/me/calendar"
+	}
+	return graphCalendarsPath + "/" + url.PathEscape(id.value)
+}
+
 // graphNext admits an @odata.nextLink only on the same Graph host and path.
 // A link anywhere else would carry the bearer credential to another origin.
 func graphNext(link string, path string) (core.HTTPEndpoint, error) {
@@ -123,7 +137,7 @@ func (c Client) microsoftAvailability(ctx context.Context, r AvailabilityRequest
 	}
 	availability := Availability{Window: r.Window, Calendars: make([]CalendarAvailability, 0, len(r.Calendars))}
 	for _, id := range r.Calendars {
-		path := graphCalendarsPath + "/" + url.PathEscape(id.value) + "/calendarView"
+		path := graphCalendarPath(id) + "/calendarView"
 		query := url.Values{"startDateTime": {start}, "endDateTime": {end}, "$select": {"start,end,showAs,isCancelled,isAllDay"}, "$top": {graphCalendarViewPageSize}}
 		target, err := endpoint("https://" + graphHost + path + "?" + query.Encode())
 		if err != nil {
@@ -302,7 +316,7 @@ func (c Client) microsoftPut(ctx context.Context, w EventWrite) (EventReceipt, e
 	if err != nil {
 		return EventReceipt{}, err
 	}
-	target, err := endpoint(graphBase + "/me/calendars/" + url.PathEscape(w.Intent.Calendar.value) + "/events")
+	target, err := endpoint("https://" + graphHost + graphCalendarPath(w.Intent.Calendar) + "/events")
 	if err != nil {
 		return EventReceipt{}, err
 	}
