@@ -22,13 +22,10 @@ func testPolicy(t testing.TB) exchange.OperationPolicy {
 	if err != nil {
 		t.Fatal(err)
 	}
-	step, err := temporal.DurationFromMilliseconds(1)
-	if err != nil {
-		t.Fatal(err)
-	}
 	return exchange.OperationPolicy{
 		OperationTimeout: total, AttemptTimeout: attempt,
-		Retry:    exchange.RetryPolicy{BaseDelay: step, MaximumDelay: step, MaximumJitter: step, MaximumRetryAfter: step, MaximumWait: step, MaximumAttempts: 1},
+		// One attempt: a single-attempt policy carries no retry delays.
+		Retry:    exchange.RetryPolicy{MaximumAttempts: 1},
 		Redirect: exchange.RedirectPolicy{Mode: exchange.RedirectReject},
 	}
 }
