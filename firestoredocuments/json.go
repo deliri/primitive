@@ -31,6 +31,18 @@ func (JSONDocument[T]) firestoreDocumentsSealedProjection() {}
 // Native Firestore values are projected inside the SDK; unknown JSON members
 // remain errors rather than being discarded by Firestore's DataTo conversion.
 func GetJSON[T core.Validatable](ctx context.Context, request GetRequest) (JSONDocument[T], error) {
+	return getJSON[T](ctx, request, false)
+}
+
+// GetIntegerJSON preserves the native Firestore integer kind before the JSON
+// projection. Every native floating-point value, including an integral DOUBLE,
+// refuses with no decoded result. It performs the same one document read as
+// GetJSON and leaves the stored document unchanged.
+func GetIntegerJSON[T core.Validatable](ctx context.Context, request GetRequest) (JSONDocument[T], error) {
+	return getJSON[T](ctx, request, true)
+}
+
+func getJSON[T core.Validatable](ctx context.Context, request GetRequest, integerOnly bool) (JSONDocument[T], error) {
 	if err := documentContext(ctx); err != nil {
 		return JSONDocument[T]{}, errors.Join(core.ErrFirestoreDocumentsContract, err)
 	}
@@ -50,7 +62,13 @@ func GetJSON[T core.Validatable](ctx context.Context, request GetRequest) (JSOND
 	if err != nil {
 		return JSONDocument[T]{}, errors.Join(core.ErrFirestoreDocumentsOperation, err, ctx.Err(), context.Cause(ctx))
 	}
-	data, err := core.MarshalCanonicalJSONDocument(snapshot.Data())
+	native := snapshot.Data()
+	if integerOnly {
+		if err := validateIntegerJSONValue(ctx, native); err != nil {
+			return JSONDocument[T]{}, errors.Join(core.ErrFirestoreDocumentsOperation, err)
+		}
+	}
+	data, err := core.MarshalCanonicalJSONDocument(native)
 	if err != nil {
 		return JSONDocument[T]{}, errors.Join(core.ErrFirestoreDocumentsOperation, err)
 	}
@@ -66,4 +84,31 @@ func GetJSON[T core.Validatable](ctx context.Context, request GetRequest) (JSOND
 		return JSONDocument[T]{}, err
 	}
 	return result, nil
+}
+
+// This borrows only the official SDK's materialized Firestore map/array shape.
+// Firestore bounds persisted field nesting; no second document population or
+// new acceptance quota is built here. Other native kinds retain GetJSON's
+// canonical projection and the caller's own typed decoder/validator.
+func validateIntegerJSONValue(ctx context.Context, value any) error {
+	if err := documentContext(ctx); err != nil {
+		return err
+	}
+	switch native := value.(type) {
+	case float32, float64:
+		return core.ErrJSONContract
+	case map[string]any:
+		for _, child := range native {
+			if err := validateIntegerJSONValue(ctx, child); err != nil {
+				return err
+			}
+		}
+	case []any:
+		for _, child := range native {
+			if err := validateIntegerJSONValue(ctx, child); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
