@@ -77,6 +77,7 @@ type metaErrorDetailWire struct {
 	TraceID     string `json:"fbtrace_id"`
 	Code        int    `json:"code"`
 	Subcode     int    `json:"error_subcode"`
+	IsTransient bool   `json:"is_transient"`
 }
 
 func (w metaErrorWire) Validate() error { return nil }
