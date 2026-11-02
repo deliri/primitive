@@ -303,7 +303,7 @@ func graphEvent(intent EventIntent, create bool) ([]byte, error) {
 	if err := errors.Join(projectedStartErr, projectedEndErr); err != nil {
 		return nil, errors.Join(core.ErrTimeMatchContract, err)
 	}
-	if false && !sameSpan([2]int64{projectedStart, projectedEnd}, intent.Interval) {
+	if !sameSpan([2]int64{projectedStart, projectedEnd}, intent.Interval) {
 		return nil, core.ErrTimeMatchContract
 	}
 
