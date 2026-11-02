@@ -1,6 +1,6 @@
 // Primitive TimeMatch browser client. HTTP is performed only by the injected
 // Primitive Exchange browser executor (exchange.BrowserModule sendJSON); this
-// module never calls fetch or XMLHttpRequest and never stores anything.
+// module calls no platform HTTP API and stores nothing.
 // Provider credentials, calendar identifiers and event details never reach it.
 export const TimeMatchErrorIdentity = Object.freeze({
   contract: __CONTRACT_IDENTITY__,

@@ -357,6 +357,9 @@ func TestAppleEventsNative(t *testing.T) {
 				w.WriteHeader(tc.status)
 			})
 			got, err := client.PutEvent(t.Context(), eventWrite(t, appleConnection(t), owned(t)))
+			if len(fixture.record()) == 0 {
+				t.Fatalf("PutEvent(apple) sent no request (error %v), want a conditional PUT", err)
+			}
 			put := fixture.record()[0]
 			body := string(put.body)
 			if put.method != http.MethodPut || put.host != "p42-caldav.icloud.com" || put.path != "/123456/calendars/home/"+eventIDFixture+".ics" || put.header.Get("If-None-Match") != "*" ||

@@ -166,7 +166,7 @@ func (c Client) graphCalendarView(ctx context.Context, request call, path string
 		result, err := c.send(ctx, request)
 		if err != nil {
 			failure := readFailure(result, err)
-			if errors.Is(failure, core.ErrTimeMatchConsent) || ctx.Err() != nil {
+			if !providerUnknown(ctx, failure) {
 				return nil, false, failure
 			}
 			return nil, false, nil

@@ -1,6 +1,7 @@
 package timematch
 
 import (
+	"bytes"
 	"context"
 	json "encoding/json/v2"
 	"errors"
@@ -111,10 +112,22 @@ func (c Client) send(ctx context.Context, request call) (outcome, error) {
 // may echo private calendar data and is never part of an error.
 func readFailure(result outcome, err error) error {
 	clear(result.body)
-	if result.status == http.StatusUnauthorized || result.status == http.StatusForbidden {
+	switch {
+	case result.status == 0 && errors.Is(err, core.ErrExchangeRequest):
+		return errors.Join(core.ErrTimeMatchContract, err)
+	case result.status == http.StatusUnauthorized || result.status == http.StatusForbidden:
 		return errors.Join(core.ErrTimeMatchConsent, err)
+	default:
+		return errors.Join(core.ErrTimeMatchResponse, err)
 	}
-	return errors.Join(core.ErrTimeMatchResponse, err)
+}
+
+// providerUnknown reports a failure that only makes one calendar Unknown: a
+// provider-side refusal or malformed answer while the caller is still live.
+// Consent loss, cancellation and this package's own contract refusals are
+// never hidden behind Unknown.
+func providerUnknown(ctx context.Context, err error) bool {
+	return ctx.Err() == nil && errors.Is(err, core.ErrTimeMatchResponse) && !errors.Is(err, core.ErrTimeMatchConsent) && !errors.Is(err, core.ErrExchangeRequest)
 }
 
 // writeFailure maps a failed effect. Only Exchange's request refusal proves
@@ -168,6 +181,10 @@ func endpoint(raw string) (core.HTTPEndpoint, error) {
 // nesting) through T's own UnmarshalJSON, which admits documented members
 // and ignores provider additions. Every decoded value is then validated.
 func decodeJSON[T core.Validatable](body []byte) (T, error) {
+	if bytes.Equal(bytes.TrimSpace(body), []byte("null")) {
+		var zero T
+		return zero, core.ErrTimeMatchResponse
+	}
 	value, err := core.DecodeStrictJSONStructure[T](body, core.ExtensibleJSONLimits())
 	if err != nil {
 		var zero T

@@ -28,12 +28,19 @@ func (EventWrite) timematchProtocolFact()           {}
 func (EventUpdate) timematchProtocolFact()          {}
 func (EventDelete) timematchProtocolFact()          {}
 
+// Browser wire documents exchanged with the application's own routes.
+func (BrowserAvailabilityRequest) timematchProtocolFact() {}
+func (BrowserAvailability) timematchProtocolFact()        {}
+func (BrowserConnectionRequest) timematchProtocolFact()   {}
+func (BrowserConnectionStart) timematchProtocolFact()     {}
+
 // Credential and transport capabilities.
-func (Secret) timematchCapabilityWrapper()       {}
-func (AppleAccount) timematchCapabilityWrapper() {}
-func (Grant) timematchCapabilityWrapper()        {}
-func (Connection) timematchCapabilityWrapper()   {}
-func (Client) timematchCapabilityWrapper()       {}
+func (BrowserAppleConnection) timematchCapabilityWrapper() {}
+func (Secret) timematchCapabilityWrapper()                 {}
+func (AppleAccount) timematchCapabilityWrapper()           {}
+func (Grant) timematchCapabilityWrapper()                  {}
+func (Connection) timematchCapabilityWrapper()             {}
+func (Client) timematchCapabilityWrapper()                 {}
 
 // Provider wire projections and internal execution carriers.
 func (call) timematchInternalFlow()                    {}
