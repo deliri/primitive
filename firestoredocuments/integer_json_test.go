@@ -250,11 +250,11 @@ func FuzzGetIntegerJSONEmulatorNativeKindConservation(f *testing.F) {
 			t.Fatalf("owned fixture key error = %v, want nil", keyErr)
 		}
 		ref := client.Collection("integer-json-fuzz").Doc(key)
-		t.Cleanup(func() {
+		defer func() {
 			if _, err := ref.Delete(t.Context()); err != nil {
 				t.Errorf("native fixture cleanup=%v, want nil", err)
 			}
-		})
+		}()
 		var nativeValue any = value
 		if kind&1 != 0 {
 			nativeValue = float64(value)
