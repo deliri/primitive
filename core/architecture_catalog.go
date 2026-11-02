@@ -188,6 +188,8 @@ const (
 	PackageGoogleCompute
 	// PackageInstagram owns Meta Graph Instagram media-read wire contracts.
 	PackageInstagram
+	// PackageWebMCP owns the browser-native WebMCP tool registration executor.
+	PackageWebMCP
 	packageIdentityLimit
 )
 
@@ -310,6 +312,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageHashIO, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
 			{Identity: PackageGoogleCompute, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 			{Identity: PackageInstagram, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
+			{Identity: PackageWebMCP, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
 		},
 	}
 }
@@ -572,6 +575,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"hashio",
 		"googlecompute",
 		"instagram",
+		"webmcp",
 	}
 }
 
