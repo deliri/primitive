@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/testserial"
 )
 
 // icsHostileFolded is one VEVENT whose SUMMARY is folded across n physical
@@ -37,6 +38,12 @@ func icsHostileEvent(t testing.TB, text string, n int) float64 {
 // every continuation and the duration parser re-copied its digit run for every
 // digit, which this measurement refuses.
 func TestParseICSFoldedAndDigitRunsCostLinearWorkingStorage(t *testing.T) {
+	// AllocsPerRun observes process-wide allocation and sets GOMAXPROCS to 1,
+	// so this test runs serially under the declared isolation hazard.
+	testserial.Declare(t, core.TestIsolationDeclaration{
+		Hazard: core.TestIsolationHazardRuntimeAllocation,
+		Scope:  core.TestIsolationScopePackageProcess,
+	})
 	const base = 20000
 	one := icsHostileEvent(t, icsHostileFolded(base), base)
 	two := icsHostileEvent(t, icsHostileFolded(2*base), 2*base)
