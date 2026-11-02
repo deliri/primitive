@@ -394,22 +394,22 @@ func writeICS(intent EventIntent, stamp temporal.Instant) ([]byte, error) {
 }
 
 func icsTime(instant temporal.Instant) (string, error) {
-	value, err := instant.Time()
+	nanos, err := instant.Nanoseconds()
 	if err != nil {
 		return "", err
 	}
-	if value.Nanosecond() != 0 {
+	if nanos%temporal.NanosecondsPerSecond != 0 {
 		return "", core.ErrTimeMatchContract
 	}
-	return value.UTC().Format(icsUTCLayout), nil
+	return icsStampTime(instant)
 }
 
 func icsStampTime(instant temporal.Instant) (string, error) {
-	value, err := instant.Time()
+	utc, err := temporal.NewLocation(temporal.LocationUTC)
 	if err != nil {
 		return "", err
 	}
-	return value.UTC().Truncate(1e9).Format(icsUTCLayout), nil
+	return utc.Format(instant, temporal.TimeLayout(icsUTCLayout))
 }
 
 // foldICS folds at 75 octets without splitting a UTF-8 sequence.

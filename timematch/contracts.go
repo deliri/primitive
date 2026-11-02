@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"unicode"
 	"unicode/utf8"
 
@@ -258,6 +259,17 @@ func (s Secret) Validate() error {
 }
 
 func (s Secret) IsSet() bool { return len(s.value) != 0 }
+
+// CopyBytes explicitly transfers an independent credential copy to the caller
+// for protected storage. The caller owns clearing the returned bytes. Normal
+// formatting and JSON remain redacted/refused; closing the source does not
+// destroy a copy already handed to a storage boundary.
+func (s Secret) CopyBytes() ([]byte, error) {
+	if err := s.Validate(); err != nil {
+		return nil, err
+	}
+	return slices.Clone(s.value), nil
+}
 
 func (s *Secret) Close() error {
 	if s == nil {
