@@ -199,8 +199,10 @@ func (c Client) Refresh(ctx context.Context, r RefreshRequest) (Grant, error) {
 	return token.grant(grantShape{provider: r.Application.Provider, access: r.Access, lifetime: LifetimeBusiness, observed: r.ObservedAt})
 }
 
-// Revoke invalidates a token at Google (revoking an access token also revokes
-// its refresh token). Microsoft documents no delegated-token revocation
+// Revoke invalidates the submitted token at Google. Submit the refresh token
+// when retained, so access-token expiry cannot leave that permission live.
+// RevokeTokenAlreadyInvalid describes only the submitted credential, never
+// proves that a different refresh token was revoked. Microsoft documents no delegated-token revocation
 // endpoint and Apple app-specific passwords are revoked by the account owner
 // at account.apple.com; both return RevokeProviderHasNoRevocation without HTTP.
 func (c Client) Revoke(ctx context.Context, r RevokeRequest) (RevokeOutcome, error) {
@@ -221,8 +223,17 @@ func (c Client) revokeGoogle(ctx context.Context, token []byte, policy exchange.
 	form := formBody(formPair{key: "token", value: token})
 	defer clear(form)
 	result, err := c.send(ctx, call{target: target, method: exchange.MethodPost, body: form, requestType: core.HTTPMediaTypeFormURLEncoded(), policy: policy, expected: http.StatusOK})
-	clear(result.body)
+	defer clear(result.body)
 	if err != nil {
+		// Google documents invalid_token for an expired/already revoked token.
+		// Other 400s, malformed bodies and unavailable endpoints remain errors.
+		// https://developers.google.com/identity/oauth2/web/reference/js-reference#revocationresponse
+		var failure struct {
+			Error string `json:"error"`
+		}
+		if result.status == http.StatusBadRequest && unmarshalExtensible(result.body, &failure) == nil && failure.Error == "invalid_token" {
+			return RevokeTokenAlreadyInvalid, nil
+		}
 		return RevokeInvalid, oauthFailure(result, err)
 	}
 	return RevokedAtProvider, nil
