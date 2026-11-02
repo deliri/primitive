@@ -1,0 +1,46 @@
+## Published462 adopted / two precise consumer repairs next — 2026-11-02T11:21:04.770255+00:00
+
+Primitive tag462 fae670347a61f62bfa415937394aba93b78ecd99 immutable Origin/wholeZIP+h1/go.mod/fiveGitZIPextracted blobs VERIFIED. Sum i7D2VdqI2ydcL3v0jFvhQGnpt/TJBqP9fnwWs18KMYc=, mod Pq+uoBF3mr+tXTiVvPbo6GcH546H4+nN85HyB1szwHw=. Compiler release notes2df6e0de pushed; source gates and old273+4limits retained. Witness pin65f786e85 +checksum-order-only6f26a592a pushed; String interval policy092889420 andnotes pushed. CurrentdevCLI still3c5/SDK460, not rebuilt. Existing As-target884 and Seq2default239 remain OPEN until consumeradoption/proof; portablemathalias separateOPEN. Actualquiz08 canceled/nonpassing and quiz/testselfbar remainOPEN. No build/profile/heavycopy active. SSDallretained/HDDpending; no sourceprotocol suppression/consumercontortion.
+
+{
+  "module": {
+    "Path": "github.com/deliri/primitive/v2026",
+    "Version": "v2026.1.462",
+    "Info": "/Users/d/go/pkg/mod/cache/download/github.com/deliri/primitive/v2026/@v/v2026.1.462.info",
+    "GoMod": "/Users/d/go/pkg/mod/cache/download/github.com/deliri/primitive/v2026/@v/v2026.1.462.mod",
+    "Zip": "/Users/d/go/pkg/mod/cache/download/github.com/deliri/primitive/v2026/@v/v2026.1.462.zip",
+    "Dir": "/Users/d/go/pkg/mod/github.com/deliri/primitive/v2026@v2026.1.462",
+    "Sum": "h1:i7D2VdqI2ydcL3v0jFvhQGnpt/TJBqP9fnwWs18KMYc=",
+    "GoModSum": "h1:Pq+uoBF3mr+tXTiVvPbo6GcH546H4+nN85HyB1szwHw=",
+    "Origin": {
+      "VCS": "git",
+      "URL": "https://github.com/deliri/primitive",
+      "Hash": "fae670347a61f62bfa415937394aba93b78ecd99",
+      "Ref": "refs/tags/v2026.1.462"
+    }
+  },
+  "whole_zip_h1_verified": true,
+  "gomod_h1_verified": true,
+  "git_zip_extracted_equal": [
+    {
+      "file": "gotoolchain/ssa_cell_writer.go",
+      "sha256": "c6c33d899f62702a53ea7d371357fef864e752bcb070bf66a2b0c0f29afa94e6"
+    },
+    {
+      "file": "gotoolchain/ssa_cell_writer_external_test.go",
+      "sha256": "67cac14c829c4e23aa6f2284a5c01b9c6ae847accc72c2099e6e638cf50e59dc"
+    },
+    {
+      "file": "gotoolchain/ssa_argument_operand.go",
+      "sha256": "796c6948f7bd6b7b717bbd94e442ec2ed197276018de8fdb57c09ea8733d56fa"
+    },
+    {
+      "file": "gotoolchain/ssa_argument_operand_function_external_test.go",
+      "sha256": "fc2c09d4cb2550347f9bb246420b6fc6bda7f295ca6aa001702e60be0cad04a9"
+    },
+    {
+      "file": "compass/config.json",
+      "sha256": "54f202e62f50ffafe2cd05212ddf5d34016235891ec29bdc116a6184b9c5615d"
+    }
+  ]
+}
