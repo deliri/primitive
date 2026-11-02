@@ -257,7 +257,7 @@ func MatchGroup(ctx context.Context, r GroupMatchRequest) (GroupMatchResult, err
 		} else {
 			flush()
 			if requiredBlocked == 1 {
-				impact := &result.RemovalImpacts[len(result.RemovalImpacts)-1]
+				impact := &result.RemovalImpacts[requiredXOR-1]
 				if impact.AdditionalStartNanoseconds == 0 {
 					impact.EarliestUnlocked, err = groupStart(r, cursor)
 					if err != nil {
@@ -400,7 +400,7 @@ func groupKeepWindow(selected []groupCandidate, candidate groupCandidate, limit 
 		}
 		return selected
 	}
-	if groupCandidateOrder(candidate, selected[0]) >= 0 {
+	if len(selected) > 0 {
 		return selected
 	}
 	selected[0] = candidate
