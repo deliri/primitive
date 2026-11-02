@@ -127,6 +127,10 @@ func (l Location) walkCivilZonePeriods(window IntervalBounds, visit func(time.Ti
 	if err != nil {
 		return err
 	}
+	return l.walkNativeCivilZonePeriods(start, end, visit)
+}
+
+func (l Location) walkNativeCivilZonePeriods(start, end time.Time, visit func(time.Time, time.Time, int) error) error {
 	for cursor := start; cursor.Before(end); {
 		local := cursor.In(l.value)
 		_, offset := local.Zone()
