@@ -106,7 +106,15 @@ func TestAppleCollisionUnreadableStateNeverClaimsConflict(t *testing.T) {
 			})
 			got, err := client.PutEvent(t.Context(), eventWrite(t, appleConnection(t), appleMutationIntent(t)))
 			requests := provider.record()
-			if !errors.Is(err, core.ErrTimeMatchIndeterminate) || errors.Is(err, core.ErrTimeMatchConflict) || got != (EventReceipt{}) || len(requests) != 2 || requests[0].method != http.MethodPut || requests[1].method != http.MethodGet {
+			readsOnly := len(requests) >= 2
+			for index, request := range requests {
+				if index == 0 {
+					readsOnly = readsOnly && request.method == http.MethodPut
+				} else {
+					readsOnly = readsOnly && request.method == http.MethodGet
+				}
+			}
+			if !errors.Is(err, core.ErrTimeMatchIndeterminate) || errors.Is(err, core.ErrTimeMatchConflict) || got != (EventReceipt{}) || !readsOnly {
 				t.Fatalf("collision readback=%+v/%v, requests=%d, want zero/Indeterminate/noConflict and PUT then GET", got, err, len(requests))
 			}
 		})

@@ -437,7 +437,11 @@ func (c Client) applePut(ctx context.Context, w EventWrite) (EventReceipt, error
 	if err != nil {
 		return EventReceipt{}, err
 	}
-	ref := EventRef{Provider: ProviderApple, Calendar: w.Intent.Calendar, Resource: target.String()}
+	ref := EventRef{ID: w.Intent.ID, Provider: ProviderApple, Calendar: w.Intent.Calendar, Resource: target.String()}
+	if w.Attempt == EventCreateRecoverOnly {
+		clear(body)
+		return c.appleReadBack(ctx, appleReadBackRequest{auth: auth, target: target, intent: w.Intent, ref: ref, policy: w.Policy})
+	}
 	result, err := c.send(ctx, call{target: target, method: exchange.MethodPut, body: body, requestType: icsMediaType(), headers: []exchange.Header{condition, auth}, policy: w.Policy, expected: http.StatusCreated})
 	clear(result.body)
 	switch {
@@ -461,62 +465,174 @@ type appleReadBackRequest struct {
 
 func (c Client) appleReadBack(ctx context.Context, r appleReadBackRequest) (EventReceipt, error) {
 	intent, ref := r.intent, r.ref
-	result, err := c.send(ctx, call{target: r.target, method: exchange.MethodGet, headers: []exchange.Header{r.auth}, policy: r.policy, expected: http.StatusOK})
+	result, err := c.send(ctx, call{target: r.target, method: exchange.MethodGet, headers: []exchange.Header{r.auth}, capture: []core.HTTPHeaderName{core.HTTPHeaderContentType()}, policy: r.policy, expected: http.StatusOK})
 	if err != nil {
-		return EventReceipt{}, errors.Join(core.ErrTimeMatchConflict, readFailure(result, err))
+		return EventReceipt{}, errors.Join(core.ErrTimeMatchIndeterminate, readFailure(result, err))
 	}
 	defer clear(result.body)
+	if !mediaIs(result.captured, "text/calendar") {
+		return EventReceipt{}, errors.Join(core.ErrTimeMatchIndeterminate, core.ErrTimeMatchResponse)
+	}
 	events, err := parseICS(string(result.body))
 	if err != nil || len(events) != 1 {
-		return EventReceipt{}, errors.Join(core.ErrTimeMatchConflict, err)
+		return EventReceipt{}, errors.Join(core.ErrTimeMatchIndeterminate, core.ErrTimeMatchResponse, err)
 	}
 	event := events[0]
-	if !event.resolvable || !event.blocking || event.uid != intent.ID.value || event.summary != intent.Summary.value || !sameSpan([2]int64{event.start, event.end}, intent.Interval) {
+	if event.uid == "" || !event.resolvable {
+		return EventReceipt{}, errors.Join(core.ErrTimeMatchIndeterminate, core.ErrTimeMatchResponse)
+	}
+	if !event.blocking || event.uid != intent.ID.value || event.summary != intent.Summary.value || !sameSpan([2]int64{event.start, event.end}, intent.Interval) {
 		return EventReceipt{}, core.ErrTimeMatchConflict
 	}
 	return EventReceipt{Ref: ref}, nil
 }
 
-// appleUpdate replaces the owned resource (If-Match: * requires it to exist).
+// appleRefTarget binds a persisted reference to exactly one deterministic event
+// child. A collection prefix never authorizes a calendar-wide operation.
+func appleRefTarget(ref EventRef) (core.HTTPEndpoint, error) {
+	if err := ref.Validate(); err != nil {
+		return core.HTTPEndpoint{}, err
+	}
+	target, err := appleEventURL(ref.Calendar, ref.ID)
+	if err != nil || ref.Provider != ProviderApple || target.String() != ref.Resource {
+		return core.HTTPEndpoint{}, errors.Join(core.ErrTimeMatchContract, err)
+	}
+	return target, nil
+}
+
+// appleMutationMatch reads only the specifically owned resource. RFC4791
+// section5.3.4 requires its GET response to carry a strong ETag. No provider
+// event population or calendar details are read as an availability fallback.
+func (c Client) appleMutationMatch(ctx context.Context, r appleReadBackRequest) (exchange.Header, int, error) {
+	etag, err := core.ParseHTTPHeaderName("ETag")
+	if err != nil {
+		return exchange.Header{}, 0, errors.Join(core.ErrTimeMatchContract, err)
+	}
+	result, err := c.send(ctx, call{target: r.target, method: exchange.MethodGet, headers: []exchange.Header{r.auth}, capture: []core.HTTPHeaderName{core.HTTPHeaderContentType(), etag}, policy: r.policy, expected: http.StatusOK})
+	if err != nil {
+		return exchange.Header{}, result.status, readFailure(result, err)
+	}
+	defer clear(result.body)
+	if !mediaIs(result.captured, "text/calendar") {
+		return exchange.Header{}, result.status, core.ErrTimeMatchResponse
+	}
+	events, err := parseICS(string(result.body))
+	if err != nil || len(events) != 1 || events[0].uid == "" {
+		return exchange.Header{}, result.status, errors.Join(core.ErrTimeMatchResponse, err)
+	}
+	if events[0].uid != r.ref.ID.value {
+		return exchange.Header{}, result.status, core.ErrTimeMatchConflict
+	}
+	condition, err := appleIfMatch(result.captured)
+	return condition, result.status, err
+}
+
+func appleIfMatch(captured exchange.CapturedHeaders) (exchange.Header, error) {
+	name, err := core.ParseHTTPHeaderName("ETag")
+	if err != nil {
+		return exchange.Header{}, errors.Join(core.ErrTimeMatchContract, err)
+	}
+	observed := ""
+	found := false
+	for _, field := range captured.Values {
+		if field.Name != name {
+			continue
+		}
+		if found || len(field.Values) != 1 {
+			return exchange.Header{}, core.ErrTimeMatchResponse
+		}
+		found = true
+		observed, err = field.Values[0].Value()
+		if err != nil {
+			return exchange.Header{}, errors.Join(core.ErrTimeMatchResponse, err)
+		}
+	}
+	if !found || !appleStrongETag(observed) {
+		return exchange.Header{}, core.ErrTimeMatchResponse
+	}
+	return header("If-Match", observed)
+}
+
+// RFC9110 section8.8.3: one strong entity-tag is a quoted opaque sequence;
+// weak tags, wildcard/list conditions and embedded quotes cannot establish CAS.
+func appleStrongETag(value string) bool {
+	if len(value) < 2 || value[0] != '"' || value[len(value)-1] != '"' {
+		return false
+	}
+	for index := 1; index < len(value)-1; index++ {
+		octet := value[index]
+		if octet < 0x21 || octet == 0x22 || octet == 0x7f {
+			return false
+		}
+	}
+	return true
+}
+
+// appleUpdate replaces only the observed owned resource and never recreates
+// one deleted before the conditional PUT. RFC4791 section5.3.2 uses its ETag.
 func (c Client) appleUpdate(ctx context.Context, u EventUpdate) (EventReceipt, error) {
-	target, err := appleEventURL(u.Intent.Calendar, u.Intent.ID)
+	target, err := appleRefTarget(u.Ref)
 	if err != nil {
 		return EventReceipt{}, err
-	}
-	if target.String() != u.Ref.Resource {
-		return EventReceipt{}, core.ErrTimeMatchContract
 	}
 	body, err := writeICS(u.Intent, u.ObservedAt)
 	if err != nil {
 		return EventReceipt{}, err
 	}
+	defer clear(body)
 	auth, err := basic(u.Connection)
 	if err != nil {
 		return EventReceipt{}, err
 	}
-	condition, err := header("If-Match", "*")
+	condition, status, err := c.appleMutationMatch(ctx, appleReadBackRequest{auth: auth, target: target, ref: u.Ref, policy: u.Policy})
 	if err != nil {
+		if status == http.StatusNotFound || status == http.StatusGone {
+			return EventReceipt{}, errors.Join(core.ErrTimeMatchConflict, err)
+		}
 		return EventReceipt{}, err
 	}
 	result, err := c.send(ctx, call{target: target, method: exchange.MethodPut, body: body, requestType: icsMediaType(), headers: []exchange.Header{condition, auth}, policy: u.Policy, expected: http.StatusNoContent})
 	clear(result.body)
-	if err != nil && result.status != http.StatusOK && result.status != http.StatusCreated {
+	switch {
+	case err == nil || result.status == http.StatusOK:
+		return EventReceipt{Ref: u.Ref}, nil
+	case result.status == http.StatusPreconditionFailed || result.status == http.StatusNotFound || result.status == http.StatusGone:
+		return EventReceipt{}, errors.Join(core.ErrTimeMatchConflict, err)
+	case result.status == http.StatusCreated || result.status == http.StatusAccepted:
+		return EventReceipt{}, errors.Join(core.ErrTimeMatchIndeterminate, err)
+	default:
 		return EventReceipt{}, writeFailure(result, err)
 	}
-	return EventReceipt{Ref: u.Ref}, nil
 }
 
 func (c Client) appleDelete(ctx context.Context, d EventDelete) (DeleteOutcome, error) {
-	target, err := core.ParseHTTPEndpoint(d.Ref.Resource)
-	if err != nil || !appleHost(target.HTTPURL()) {
-		return DeleteInvalid, errors.Join(core.ErrTimeMatchContract, err)
-	}
-	if _, err := appleCalendarURL(d.Ref.Calendar); err != nil || !strings.HasPrefix(d.Ref.Resource, d.Ref.Calendar.value) {
-		return DeleteInvalid, errors.Join(core.ErrTimeMatchContract, err)
+	target, err := appleRefTarget(d.Ref)
+	if err != nil {
+		return DeleteInvalid, err
 	}
 	auth, err := basic(d.Connection)
 	if err != nil {
 		return DeleteInvalid, err
 	}
-	return c.deleteResource(ctx, call{target: target, method: exchange.MethodDelete, headers: []exchange.Header{auth}, policy: d.Policy, expected: http.StatusNoContent})
+	condition, status, err := c.appleMutationMatch(ctx, appleReadBackRequest{auth: auth, target: target, ref: d.Ref, policy: d.Policy})
+	if err != nil {
+		if status == http.StatusNotFound || status == http.StatusGone {
+			return DeleteAlreadyAbsent, nil
+		}
+		return DeleteInvalid, err
+	}
+	result, err := c.send(ctx, call{target: target, method: exchange.MethodDelete, headers: []exchange.Header{condition, auth}, policy: d.Policy, expected: http.StatusNoContent})
+	clear(result.body)
+	switch {
+	case err == nil || result.status == http.StatusOK:
+		return Deleted, nil
+	case result.status == http.StatusNotFound || result.status == http.StatusGone:
+		return DeleteAlreadyAbsent, nil
+	case result.status == http.StatusPreconditionFailed:
+		return DeleteInvalid, errors.Join(core.ErrTimeMatchConflict, err)
+	case result.status == http.StatusAccepted:
+		return DeleteInvalid, errors.Join(core.ErrTimeMatchIndeterminate, err)
+	default:
+		return DeleteInvalid, writeFailure(result, err)
+	}
 }
