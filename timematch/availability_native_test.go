@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	json "encoding/json/v2"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -466,4 +467,20 @@ func TestAppleAvailabilityNative(t *testing.T) {
 			t.Fatalf("Availability(foreign apple id) = %v with %d requests, want contract refusal and none", err, len(fixture.record()))
 		}
 	})
+}
+
+func TestMicrosoftPrimaryCalendarViewSelectsTimingOnly(t *testing.T) {
+	t.Parallel()
+	client, fixture := newNative(t, func(w http.ResponseWriter, _ *http.Request, _ []byte) {
+		writeJSON(w, 200, graphView(graphItem("busy", "2026-11-02T10:00:00.0000000", "2026-11-02T11:00:00.0000000", "")))
+	})
+	got, err := client.Availability(t.Context(), AvailabilityRequest{Connection: oauthConnection(t, ProviderMicrosoft), Window: window(t, "2026-11-02T09:00:00Z", "2026-11-02T17:00:00Z"), Calendars: []CalendarID{calendarID(t, PrimaryCalendar)}, Policy: fixturePolicy(t)})
+	request := fixture.record()[0]
+	query, _ := url.ParseQuery(request.query)
+	if err != nil || got.Calendars[0].State != AvailabilityKnown || request.path != "/v1.0/me/calendar/calendarView" || query.Get("$select") != "start,end,showAs,isCancelled,isAllDay" {
+		t.Fatalf("primary calendarView = (%v, %v) via %s?%s, want default-calendar view selecting timing and showAs only", got.Calendars[0].State, err, request.path, request.query)
+	}
+	if text := fmt.Sprintf("%+v", got); strings.Contains(text, privateMarker) {
+		t.Fatalf("availability %q retains provider-private event text", text)
+	}
 }
