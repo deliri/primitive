@@ -80,16 +80,22 @@ func CompleteGoogleAuthorization(ctx context.Context, r AuthorizationExchange) (
 	if r.Lifetime == LifetimeBusiness && token.RefreshToken == "" {
 		return Grant{}, core.ErrCalendarConsentMissing
 	}
-	if r.Lifetime == LifetimeVisitor && token.RefreshToken != "" {
+	if r.Lifetime == LifetimeVisitor {
+		token.RefreshToken = ""
+	}
+	// The native OAuth SDK derives Expiry from time.Now. Use its admitted
+	// expires_in and the caller's captured observation instead: deterministic
+	// in tests and conservatively earlier than the response arrival in production.
+	if token.ExpiresIn <= 0 {
 		return Grant{}, core.ErrCalendarContract
 	}
-	expires, err := temporal.NewInstant(token.Expiry)
+	lifetime, err := temporal.DurationFromSeconds(uint64(token.ExpiresIn))
 	if err != nil {
 		return Grant{}, errors.Join(core.ErrCalendarContract, err)
 	}
-	remaining, err := expires.Since(r.ObservedAt)
-	if err != nil || remaining.IsZero() {
-		return Grant{}, core.ErrCalendarContract
+	expires, err := r.ObservedAt.Add(lifetime)
+	if err != nil {
+		return Grant{}, errors.Join(core.ErrCalendarContract, err)
 	}
 	access, err := core.NewCalendarCredential(core.CalendarCredentialAccess, []byte(token.AccessToken))
 	if err != nil {
