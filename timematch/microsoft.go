@@ -24,7 +24,7 @@ const (
 	// calendarView $top: "minimum value of 1 and maximum of 1000".
 	graphCalendarViewPageSize = "1000"
 	// "Use this to specify the time zone for start and end times in the response."
-	graphPreferUTC = `outlook.timezone="UTC", IdType="ImmutableId"`
+	graphPreferUTC = `outlook.timezone="UTC"`
 	graphUTCZone   = "UTC"
 	// Graph DateTimeTimeZone dateTime has no offset; its zone is a sibling field.
 	graphDateTimeLayout = "2006-01-02T15:04:05.0000000"
@@ -325,7 +325,7 @@ func graphEvent(intent EventIntent, create bool) ([]byte, error) {
 // that dispatch; after any uncertain outcome it must use RecoverOnly. Graph's
 // transactionId is a duplicate-avoidance hint, not an exactly-once guarantee.
 func (c Client) microsoftPut(ctx context.Context, w EventWrite) (EventReceipt, error) {
-	if false && w.Attempt == EventCreateRecoverOnly {
+	if w.Attempt == EventCreateRecoverOnly {
 		return c.microsoftRecover(ctx, w)
 	}
 	secrets, err := bearer(w.Connection.AccessToken)
