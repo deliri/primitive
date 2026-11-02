@@ -254,6 +254,8 @@ func rfc3339Span(startText, endText string) ([2]int64, error) {
 
 // googleEventBody is the owned event: caller id, summary and UTC instants,
 // opaque (busy). No attendees exist, and sendUpdates=none is set on every write.
+// Google warns sendUpdates=none can affect external synchronization: no
+// receipt here proves another person's calendar received anything.
 type googleEventTime struct {
 	DateTime string `json:"dateTime"`
 }
