@@ -18,9 +18,16 @@ import (
 //go:embed tzdata/zoneinfo.zip
 var zoneInformation []byte
 
+// zoneArchive is the member directory of that authored distribution, decoded
+// once at package initialization. It is immutable, derived from no observed
+// input, and shares no native *time.Location: every NewLocation still decodes
+// its own TZif member, so callers own their capability outright. Decoding the
+// 598-member directory on every call previously cost more than the zone itself.
+var zoneArchive, zoneArchiveErr = zip.NewReader(bytes.NewReader(zoneInformation), int64(len(zoneInformation)))
+
 // Location is an immutable caller-owned native location capability. Construct
 // it once and reuse it for formatting and calendar work; no process-wide cache
-// or observed-input collection is retained.
+// of constructed capabilities or observed-input collection is retained.
 type Location struct {
 	name  LocationName
 	value *time.Location
@@ -35,11 +42,10 @@ func NewLocation(name LocationName) (Location, error) {
 	if name == "" || name == "Local" {
 		return Location{}, contractError("time location must be explicit")
 	}
-	archive, err := zip.NewReader(bytes.NewReader(zoneInformation), int64(len(zoneInformation)))
-	if err != nil {
-		return Location{}, contractError("embedded time zone archive is invalid", err)
+	if zoneArchiveErr != nil {
+		return Location{}, contractError("embedded time zone archive is invalid", zoneArchiveErr)
 	}
-	for _, member := range archive.File {
+	for _, member := range zoneArchive.File {
 		if member.Name != string(name) {
 			continue
 		}
