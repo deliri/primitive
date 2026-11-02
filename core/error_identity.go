@@ -656,6 +656,12 @@ const (
 	ErrGoogleComputeResponse
 	// ErrGoogleComputeBinding identifies a foreign resource or operation.
 	ErrGoogleComputeBinding
+	// ErrInstagramContract identifies an invalid Instagram media-read agreement.
+	ErrInstagramContract
+	// ErrInstagramResponse identifies malformed Instagram provider facts.
+	ErrInstagramResponse
+	// ErrInstagramBinding identifies media attached to a foreign host or route.
+	ErrInstagramBinding
 	errorIdentityLimit
 )
 
@@ -950,6 +956,9 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrGoogleComputeContract, text: "google compute contract violation"},
 		{identity: ErrGoogleComputeResponse, text: "google compute response invalid"},
 		{identity: ErrGoogleComputeBinding, text: "google compute resource binding invalid"},
+		{identity: ErrInstagramContract, text: "instagram contract violation"},
+		{identity: ErrInstagramResponse, text: "instagram response invalid"},
+		{identity: ErrInstagramBinding, text: "instagram media binding invalid"},
 	}
 }
 
@@ -1100,7 +1109,7 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrLifecycleIdentityContract, ErrReceiptContract, ErrChitContract,
 		ErrRetrievalContract, ErrPaymentContract, ErrControlWireContract,
 		ErrControlPlaneContract, ErrIDContract, ErrSecretStoreContract,
-		ErrStripeContract, ErrPayPalContract, ErrTwilioContract, ErrPlunkContract, ErrLoopsContract, ErrCloudflareContract, ErrGitHubContract, ErrCloudBillingContract, ErrGoogleComputeContract,
+		ErrStripeContract, ErrPayPalContract, ErrTwilioContract, ErrPlunkContract, ErrLoopsContract, ErrCloudflareContract, ErrGitHubContract, ErrCloudBillingContract, ErrGoogleComputeContract, ErrInstagramContract,
 		ErrCapabilitiesContract, ErrGoModuleContract, ErrGoToolchainContract, ErrGitRepositoryContract,
 		ErrProofLedgerContract, ErrTailnetContract, ErrAccessPermitContract, ErrPermitContract, ErrReportContract) {
 		return oneErrorIdentityParent(ErrPrimitiveContract)
@@ -1220,6 +1229,9 @@ func errorIdentityParentsSecretStoreThroughPayment(identity ErrorIdentity) error
 func errorIdentityProviderParent(identity ErrorIdentity) ErrorIdentity {
 	if errorIdentityIn(identity, ErrGoogleComputeResponse, ErrGoogleComputeBinding) {
 		return ErrGoogleComputeContract
+	}
+	if errorIdentityIn(identity, ErrInstagramResponse, ErrInstagramBinding) {
+		return ErrInstagramContract
 	}
 	if errorIdentityIn(identity, ErrCloudBillingAuthentication, ErrCloudBillingResponse) {
 		return ErrCloudBillingContract

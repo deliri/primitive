@@ -186,6 +186,8 @@ const (
 	PackageHashIO
 	// PackageGoogleCompute owns single-attempt zonal Compute wire contracts.
 	PackageGoogleCompute
+	// PackageInstagram owns Meta Graph Instagram media-read wire contracts.
+	PackageInstagram
 	packageIdentityLimit
 )
 
@@ -307,6 +309,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageCloudBilling, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 			{Identity: PackageHashIO, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
 			{Identity: PackageGoogleCompute, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
+			{Identity: PackageInstagram, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 		},
 	}
 }
@@ -568,6 +571,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"cloudbilling",
 		"hashio",
 		"googlecompute",
+		"instagram",
 	}
 }
 
