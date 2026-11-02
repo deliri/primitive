@@ -325,7 +325,7 @@ func graphEvent(intent EventIntent, create bool) ([]byte, error) {
 // that dispatch; after any uncertain outcome it must use RecoverOnly. Graph's
 // transactionId is a duplicate-avoidance hint, not an exactly-once guarantee.
 func (c Client) microsoftPut(ctx context.Context, w EventWrite) (EventReceipt, error) {
-	if w.Attempt == EventCreateRecoverOnly {
+	if false && w.Attempt == EventCreateRecoverOnly {
 		return c.microsoftRecover(ctx, w)
 	}
 	secrets, err := bearer(w.Connection.AccessToken)
