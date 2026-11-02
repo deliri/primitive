@@ -120,14 +120,23 @@ func xmlMediaType() core.HTTPMediaType {
 	return media
 }
 
-// dav performs one WebDAV request expecting 207 Multi-Status XML.
-func (c Client) dav(ctx context.Context, auth exchange.Header, target core.HTTPEndpoint, method exchange.Method, depth string, body string, policy exchange.OperationPolicy) (davMultistatusWire, error) {
-	depthHeader, err := header("Depth", depth)
+// davRequest is one WebDAV request expecting 207 Multi-Status XML.
+type davRequest struct {
+	auth   exchange.Header
+	target core.HTTPEndpoint
+	depth  string
+	body   string
+	policy exchange.OperationPolicy
+	method exchange.Method
+}
+
+func (c Client) dav(ctx context.Context, r davRequest) (davMultistatusWire, error) {
+	depthHeader, err := header("Depth", r.depth)
 	if err != nil {
 		return davMultistatusWire{}, err
 	}
 	contentType := core.HTTPHeaderContentType()
-	result, err := c.send(ctx, call{target: target, method: method, body: []byte(body), requestType: xmlMediaType(), headers: []exchange.Header{depthHeader, auth}, capture: []core.HTTPHeaderName{contentType}, policy: policy, expected: davMultiStatus})
+	result, err := c.send(ctx, call{target: r.target, method: r.method, body: []byte(r.body), requestType: xmlMediaType(), headers: []exchange.Header{depthHeader, r.auth}, capture: []core.HTTPHeaderName{contentType}, policy: r.policy, expected: davMultiStatus})
 	if err != nil {
 		return davMultistatusWire{}, readFailure(result, err)
 	}
@@ -235,7 +244,7 @@ func (c Client) appleHome(ctx context.Context, auth exchange.Header, policy exch
 	if err != nil {
 		return core.HTTPEndpoint{}, err
 	}
-	principalStatus, err := c.dav(ctx, auth, root, exchange.MethodPropfind, davDepthZero, propfindPrincipal, policy)
+	principalStatus, err := c.dav(ctx, davRequest{auth: auth, target: root, method: exchange.MethodPropfind, depth: davDepthZero, body: propfindPrincipal, policy: policy})
 	if err != nil {
 		return core.HTTPEndpoint{}, err
 	}
@@ -247,7 +256,7 @@ func (c Client) appleHome(ctx context.Context, auth exchange.Header, policy exch
 	if err != nil {
 		return core.HTTPEndpoint{}, err
 	}
-	homeStatus, err := c.dav(ctx, auth, principalURL, exchange.MethodPropfind, davDepthZero, propfindHome, policy)
+	homeStatus, err := c.dav(ctx, davRequest{auth: auth, target: principalURL, method: exchange.MethodPropfind, depth: davDepthZero, body: propfindHome, policy: policy})
 	if err != nil {
 		return core.HTTPEndpoint{}, err
 	}
@@ -287,7 +296,7 @@ func (c Client) appleCalendarList(ctx context.Context, r CalendarListRequest) (C
 	if err != nil {
 		return CalendarList{}, err
 	}
-	status, err := c.dav(ctx, auth, home, exchange.MethodPropfind, davDepthOne, propfindCalendars, r.Policy)
+	status, err := c.dav(ctx, davRequest{auth: auth, target: home, method: exchange.MethodPropfind, depth: davDepthOne, body: propfindCalendars, policy: r.Policy})
 	if err != nil {
 		return CalendarList{}, err
 	}
@@ -297,13 +306,13 @@ func (c Client) appleCalendarList(ctx context.Context, r CalendarListRequest) (C
 		if !ok || prop.ResourceType == nil || prop.ResourceType.Calendar == nil || !supportsEvents(prop) {
 			continue
 		}
-		collection, err := appleResolve(home, response.Href, true)
-		if err != nil {
-			return CalendarList{}, err
+		collection, resolveErr := appleResolve(home, response.Href, true)
+		if resolveErr != nil {
+			return CalendarList{}, resolveErr
 		}
-		id, err := ParseCalendarID(collection.String())
-		if err != nil {
-			return CalendarList{}, errors.Join(core.ErrTimeMatchResponse, err)
+		id, parseErr := ParseCalendarID(collection.String())
+		if parseErr != nil {
+			return CalendarList{}, errors.Join(core.ErrTimeMatchResponse, parseErr)
 		}
 		list.Calendars = append(list.Calendars, Calendar{ID: id, Writable: writable(prop)})
 	}
@@ -354,20 +363,20 @@ func (c Client) appleAvailability(ctx context.Context, r AvailabilityRequest) (A
 	query := `<?xml version="1.0" encoding="utf-8"?><c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav"><d:prop><c:calendar-data><c:expand start="` + start + `" end="` + end + `"/></c:calendar-data></d:prop><c:filter><c:comp-filter name="VCALENDAR"><c:comp-filter name="VEVENT"><c:time-range start="` + start + `" end="` + end + `"/></c:comp-filter></c:comp-filter></c:filter></c:calendar-query>`
 	availability := Availability{Window: r.Window, Calendars: make([]CalendarAvailability, 0, len(r.Calendars))}
 	for _, id := range r.Calendars {
-		target, err := appleCalendarURL(id)
-		if err != nil {
-			return Availability{}, err
+		target, targetErr := appleCalendarURL(id)
+		if targetErr != nil {
+			return Availability{}, targetErr
 		}
 		calendar := CalendarAvailability{ID: id, State: AvailabilityUnknown}
-		status, err := c.dav(ctx, auth, target, exchange.MethodReport, davDepthOne, query, r.Policy)
+		status, err := c.dav(ctx, davRequest{auth: auth, target: target, method: exchange.MethodReport, depth: davDepthOne, body: query, policy: r.Policy})
 		switch {
 		case err != nil && !providerUnknown(ctx, err):
 			return Availability{}, err
 		case err == nil:
 			if spans, known := appleSpans(status); known {
-				busy, err := normalizeBusy(r.Window, spans)
-				if err != nil {
-					return Availability{}, err
+				busy, normalizeErr := normalizeBusy(r.Window, spans)
+				if normalizeErr != nil {
+					return Availability{}, normalizeErr
 				}
 				calendar = CalendarAvailability{ID: id, State: AvailabilityKnown, Busy: busy}
 			}
@@ -461,14 +470,24 @@ func (c Client) applePut(ctx context.Context, w EventWrite) (EventReceipt, error
 	case err == nil || result.status == http.StatusNoContent:
 		return EventReceipt{Ref: ref}, nil
 	case result.status == http.StatusPreconditionFailed:
-		return c.appleReadBack(ctx, auth, target, w.Intent, ref, w.Policy)
+		return c.appleReadBack(ctx, appleReadBackRequest{auth: auth, target: target, intent: w.Intent, ref: ref, policy: w.Policy})
 	default:
 		return EventReceipt{}, writeFailure(result, err)
 	}
 }
 
-func (c Client) appleReadBack(ctx context.Context, auth exchange.Header, target core.HTTPEndpoint, intent EventIntent, ref EventRef, policy exchange.OperationPolicy) (EventReceipt, error) {
-	result, err := c.send(ctx, call{target: target, method: exchange.MethodGet, headers: []exchange.Header{auth}, policy: policy, expected: http.StatusOK})
+// appleReadBackRequest reads an existing owned resource after 412.
+type appleReadBackRequest struct {
+	auth   exchange.Header
+	target core.HTTPEndpoint
+	ref    EventRef
+	intent EventIntent
+	policy exchange.OperationPolicy
+}
+
+func (c Client) appleReadBack(ctx context.Context, r appleReadBackRequest) (EventReceipt, error) {
+	intent, ref := r.intent, r.ref
+	result, err := c.send(ctx, call{target: r.target, method: exchange.MethodGet, headers: []exchange.Header{r.auth}, policy: r.policy, expected: http.StatusOK})
 	if err != nil {
 		return EventReceipt{}, errors.Join(core.ErrTimeMatchConflict, readFailure(result, err))
 	}

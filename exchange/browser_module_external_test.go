@@ -33,6 +33,6 @@ func TestBrowserModuleEmitsCoreIdentities(t *testing.T) {
 		}
 	}
 	if strings.Contains(module, "__") {
-		t.Fatal("BrowserModule() has unreplaced placeholders")
+		t.Fatalf("BrowserModule() contains unreplaced placeholder at byte %d, want none", strings.Index(module, "__"))
 	}
 }

@@ -84,19 +84,6 @@ func (t MicrosoftTenant) Validate() error {
 	return nil
 }
 
-func (t MicrosoftTenant) segment() string {
-	switch t {
-	case MicrosoftTenantCommon:
-		return "common"
-	case MicrosoftTenantConsumers:
-		return "consumers"
-	case MicrosoftTenantOrganizations:
-		return "organizations"
-	default:
-		return ""
-	}
-}
-
 // AvailabilityState is Known only when the provider returned a complete,
 // admitted busy projection for that calendar. Unknown is never free time.
 type AvailabilityState uint8
@@ -146,6 +133,92 @@ func (o DeleteOutcome) Validate() error {
 		return core.ErrTimeMatchContract
 	}
 	return nil
+}
+
+// Closed wire names, ordered by enum value starting at 1. The Microsoft
+// tenant names are the documented v2 endpoint path segments.
+func providerNames() []string { return []string{"google", "microsoft", "apple"} }
+func accessNames() []string   { return []string{"availability", "manage_events"} }
+func lifetimeNames() []string { return []string{"visitor", "business"} }
+func tenantNames() []string   { return []string{"common", "consumers", "organizations"} }
+func stateNames() []string    { return []string{"known", "unknown"} }
+func revokeNames() []string   { return []string{"revoked_at_provider", "provider_has_no_revocation"} }
+func deleteNames() []string   { return []string{"deleted", "already_absent"} }
+
+// enumName renders an admitted value; an invalid value renders as empty text.
+func enumName[E ~uint8](value E, names []string) string {
+	if value == 0 || int(value) > len(names) {
+		return ""
+	}
+	return names[value-1]
+}
+
+func marshalEnum[E ~uint8](value E, names []string) ([]byte, error) {
+	name := enumName(value, names)
+	if name == "" {
+		return nil, errors.Join(core.ErrTimeMatchContract, core.ErrJSONContract)
+	}
+	return core.MarshalCanonicalJSONString(name)
+}
+
+func unmarshalEnum[E ~uint8](target *E, data []byte, names []string) error {
+	if target == nil {
+		return errors.Join(core.ErrTimeMatchContract, core.ErrJSONContract)
+	}
+	text, err := core.DecodeJSONStringToken(data)
+	if err != nil {
+		return errors.Join(core.ErrTimeMatchContract, err)
+	}
+	for index, name := range names {
+		if name == text {
+			*target = E(index + 1)
+			return nil
+		}
+	}
+	return errors.Join(core.ErrTimeMatchContract, core.ErrJSONContract)
+}
+
+func (p Provider) String() string                   { return enumName(p, providerNames()) }
+func (p Provider) IsValid() bool                    { return p.Validate() == nil }
+func (p Provider) MarshalJSON() ([]byte, error)     { return marshalEnum(p, providerNames()) }
+func (p *Provider) UnmarshalJSON(data []byte) error { return unmarshalEnum(p, data, providerNames()) }
+
+func (a Access) String() string                   { return enumName(a, accessNames()) }
+func (a Access) IsValid() bool                    { return a.Validate() == nil }
+func (a Access) MarshalJSON() ([]byte, error)     { return marshalEnum(a, accessNames()) }
+func (a *Access) UnmarshalJSON(data []byte) error { return unmarshalEnum(a, data, accessNames()) }
+
+func (l Lifetime) String() string                   { return enumName(l, lifetimeNames()) }
+func (l Lifetime) IsValid() bool                    { return l.Validate() == nil }
+func (l Lifetime) MarshalJSON() ([]byte, error)     { return marshalEnum(l, lifetimeNames()) }
+func (l *Lifetime) UnmarshalJSON(data []byte) error { return unmarshalEnum(l, data, lifetimeNames()) }
+
+func (t MicrosoftTenant) String() string               { return enumName(t, tenantNames()) }
+func (t MicrosoftTenant) IsValid() bool                { return t.Validate() == nil }
+func (t MicrosoftTenant) MarshalJSON() ([]byte, error) { return marshalEnum(t, tenantNames()) }
+func (t *MicrosoftTenant) UnmarshalJSON(data []byte) error {
+	return unmarshalEnum(t, data, tenantNames())
+}
+
+func (s AvailabilityState) String() string               { return enumName(s, stateNames()) }
+func (s AvailabilityState) IsValid() bool                { return s.Validate() == nil }
+func (s AvailabilityState) MarshalJSON() ([]byte, error) { return marshalEnum(s, stateNames()) }
+func (s *AvailabilityState) UnmarshalJSON(data []byte) error {
+	return unmarshalEnum(s, data, stateNames())
+}
+
+func (o RevokeOutcome) String() string               { return enumName(o, revokeNames()) }
+func (o RevokeOutcome) IsValid() bool                { return o.Validate() == nil }
+func (o RevokeOutcome) MarshalJSON() ([]byte, error) { return marshalEnum(o, revokeNames()) }
+func (o *RevokeOutcome) UnmarshalJSON(data []byte) error {
+	return unmarshalEnum(o, data, revokeNames())
+}
+
+func (o DeleteOutcome) String() string               { return enumName(o, deleteNames()) }
+func (o DeleteOutcome) IsValid() bool                { return o.Validate() == nil }
+func (o DeleteOutcome) MarshalJSON() ([]byte, error) { return marshalEnum(o, deleteNames()) }
+func (o *DeleteOutcome) UnmarshalJSON(data []byte) error {
+	return unmarshalEnum(o, data, deleteNames())
 }
 
 // Secret holds one provider credential: an access or refresh token, an OAuth

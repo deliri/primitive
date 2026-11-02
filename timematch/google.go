@@ -24,9 +24,9 @@ const (
 // googleCalendarList reads every page. A repeated page token is a provider
 // loop, never a truncated success.
 func (c Client) googleCalendarList(ctx context.Context, r CalendarListRequest) (CalendarList, error) {
-	secrets, err := bearer(r.Connection.AccessToken)
-	if err != nil {
-		return CalendarList{}, err
+	secrets, bearerErr := bearer(r.Connection.AccessToken)
+	if bearerErr != nil {
+		return CalendarList{}, bearerErr
 	}
 	list := CalendarList{Provider: ProviderGoogle}
 	seen := map[string]struct{}{}
@@ -116,21 +116,12 @@ func (p googleCalendarPage) Validate() error {
 // errors[] (notFound, internalError, ...) or absent from the response is
 // Unknown. A response whose window differs from the request is refused.
 func (c Client) googleAvailability(ctx context.Context, r AvailabilityRequest) (Availability, error) {
-	secrets, err := bearer(r.Connection.AccessToken)
-	if err != nil {
-		return Availability{}, err
-	}
-	target, err := endpoint(googleCalendarBase + "/freeBusy")
-	if err != nil {
-		return Availability{}, err
-	}
-	start, err := r.Window.Start.RFC3339Nano()
-	if err != nil {
-		return Availability{}, errors.Join(core.ErrTimeMatchContract, err)
-	}
-	end, err := r.Window.End.RFC3339Nano()
-	if err != nil {
-		return Availability{}, errors.Join(core.ErrTimeMatchContract, err)
+	secrets, bearerErr := bearer(r.Connection.AccessToken)
+	target, targetErr := endpoint(googleCalendarBase + "/freeBusy")
+	start, startErr := r.Window.Start.RFC3339Nano()
+	end, endErr := r.Window.End.RFC3339Nano()
+	if setupErr := errors.Join(bearerErr, targetErr, startErr, endErr); setupErr != nil {
+		return Availability{}, errors.Join(core.ErrTimeMatchContract, setupErr)
 	}
 	availability := Availability{Window: r.Window, Calendars: make([]CalendarAvailability, 0, len(r.Calendars))}
 	for first := 0; first < len(r.Calendars); first += googleFreeBusyBatch {
@@ -157,9 +148,9 @@ func (c Client) googleAvailability(ctx context.Context, r AvailabilityRequest) (
 		for _, id := range batch {
 			calendar := CalendarAvailability{ID: id, State: AvailabilityUnknown}
 			if entry, ok := response.calendars[id.value]; ok && entry.known {
-				busy, err := normalizeBusy(r.Window, entry.busy)
-				if err != nil {
-					return Availability{}, err
+				busy, normalizeErr := normalizeBusy(r.Window, entry.busy)
+				if normalizeErr != nil {
+					return Availability{}, normalizeErr
 				}
 				calendar = CalendarAvailability{ID: id, State: AvailabilityKnown, Busy: busy}
 			}

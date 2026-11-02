@@ -46,13 +46,10 @@ func graphNext(link string, path string) (core.HTTPEndpoint, error) {
 }
 
 func (c Client) microsoftCalendarList(ctx context.Context, r CalendarListRequest) (CalendarList, error) {
-	secrets, err := bearer(r.Connection.AccessToken)
-	if err != nil {
-		return CalendarList{}, err
-	}
-	target, err := endpoint(graphBase + "/me/calendars?" + url.Values{"$select": {"id,canEdit,isDefaultCalendar"}}.Encode())
-	if err != nil {
-		return CalendarList{}, err
+	secrets, bearerErr := bearer(r.Connection.AccessToken)
+	target, targetErr := endpoint(graphBase + "/me/calendars?" + url.Values{"$select": {"id,canEdit,isDefaultCalendar"}}.Encode())
+	if setupErr := errors.Join(bearerErr, targetErr); setupErr != nil {
+		return CalendarList{}, setupErr
 	}
 	list := CalendarList{Provider: ProviderMicrosoft}
 	visited := map[string]struct{}{}
@@ -118,18 +115,12 @@ func (graphCalendarPage) Validate() error { return nil }
 // view fails (other than consent), or which contains an event this package
 // cannot place in absolute time, is Unknown.
 func (c Client) microsoftAvailability(ctx context.Context, r AvailabilityRequest) (Availability, error) {
-	secrets, err := bearer(r.Connection.AccessToken)
-	if err != nil {
-		return Availability{}, err
-	}
-	prefer, err := header("Prefer", graphPreferUTC)
-	if err != nil {
-		return Availability{}, err
-	}
+	secrets, bearerErr := bearer(r.Connection.AccessToken)
+	prefer, preferErr := header("Prefer", graphPreferUTC)
 	start, startErr := r.Window.Start.RFC3339Nano()
 	end, endErr := r.Window.End.RFC3339Nano()
-	if err := errors.Join(startErr, endErr); err != nil {
-		return Availability{}, errors.Join(core.ErrTimeMatchContract, err)
+	if setupErr := errors.Join(bearerErr, preferErr, startErr, endErr); setupErr != nil {
+		return Availability{}, errors.Join(core.ErrTimeMatchContract, setupErr)
 	}
 	availability := Availability{Window: r.Window, Calendars: make([]CalendarAvailability, 0, len(r.Calendars))}
 	for _, id := range r.Calendars {
@@ -145,9 +136,9 @@ func (c Client) microsoftAvailability(ctx context.Context, r AvailabilityRequest
 		}
 		calendar := CalendarAvailability{ID: id, State: AvailabilityUnknown}
 		if known {
-			busy, err := normalizeBusy(r.Window, spans)
-			if err != nil {
-				return Availability{}, err
+			busy, normalizeErr := normalizeBusy(r.Window, spans)
+			if normalizeErr != nil {
+				return Availability{}, normalizeErr
 			}
 			calendar = CalendarAvailability{ID: id, State: AvailabilityKnown, Busy: busy}
 		}
@@ -322,7 +313,7 @@ func (c Client) microsoftPut(ctx context.Context, w EventWrite) (EventReceipt, e
 	if err != nil {
 		return EventReceipt{}, writeFailure(result, err)
 	}
-	return verifyGraph(result.body, w.Intent, w.Intent.Calendar, "", true)
+	return verifyGraph(result.body, graphExpectation{intent: w.Intent, calendar: w.Intent.Calendar, create: true})
 }
 
 func (c Client) microsoftUpdate(ctx context.Context, u EventUpdate) (EventReceipt, error) {
@@ -346,7 +337,7 @@ func (c Client) microsoftUpdate(ctx context.Context, u EventUpdate) (EventReceip
 	if err != nil {
 		return EventReceipt{}, writeFailure(result, err)
 	}
-	return verifyGraph(result.body, u.Intent, u.Ref.Calendar, u.Ref.Resource, false)
+	return verifyGraph(result.body, graphExpectation{intent: u.Intent, calendar: u.Ref.Calendar, resource: u.Ref.Resource})
 }
 
 func (c Client) microsoftDelete(ctx context.Context, d EventDelete) (DeleteOutcome, error) {
@@ -393,7 +384,17 @@ func (o graphEventObservation) Validate() error {
 	return nil
 }
 
-func verifyGraph(body []byte, intent EventIntent, calendar CalendarID, resource string, create bool) (EventReceipt, error) {
+// graphExpectation is the owned intent a returned Graph event must match:
+// a created event by transactionId, an updated event by its Graph id.
+type graphExpectation struct {
+	calendar CalendarID
+	resource string
+	intent   EventIntent
+	create   bool
+}
+
+func verifyGraph(body []byte, expected graphExpectation) (EventReceipt, error) {
+	intent, calendar, resource, create := expected.intent, expected.calendar, expected.resource, expected.create
 	defer clear(body)
 	observed, err := decodeJSON[graphEventObservation](body)
 	if err != nil {
