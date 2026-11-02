@@ -37,9 +37,14 @@ const (
 	SignatureV4QueryFieldSignature
 )
 
+// IsValid reports whether the field is a signer-owned query member.
+func (field SignatureV4QueryField) IsValid() bool {
+	return field >= SignatureV4QueryFieldAlgorithm && field <= SignatureV4QueryFieldSignature
+}
+
 // Validate rejects unknown and out-of-domain member identities.
 func (field SignatureV4QueryField) Validate() error {
-	if field < SignatureV4QueryFieldAlgorithm || field > SignatureV4QueryFieldSignature {
+	if !field.IsValid() {
 		return ErrExchangeContract
 	}
 	return nil

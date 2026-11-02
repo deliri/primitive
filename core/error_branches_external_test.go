@@ -69,8 +69,8 @@ func TestErrorBranchesStopBeforeBorrowingLaterCauses(t *testing.T) {
 	if matched || seen != 1 {
 		t.Fatalf("refused native branches matched=%t visits=%d, want false/1", matched, seen)
 	}
-	if core.ErrorBranchesMatch(core.ErrorBranchesRequest{Error: io.EOF}) {
-		t.Fatal("missing predicate matched native cause, want false")
+	if got := core.ErrorBranchesMatch(core.ErrorBranchesRequest{Error: io.EOF}); got {
+		t.Fatalf("missing predicate matched native cause = %t, want false", got)
 	}
 	if err := (core.ErrorBranchesRequest{}).Validate(); !errors.Is(err, core.ErrPrimitiveContract) {
 		t.Fatalf("missing native predicate error=%v, want %v", err, core.ErrPrimitiveContract)
@@ -144,6 +144,35 @@ func BenchmarkErrorBranchesNativeJoin(b *testing.B) {
 	for b.Loop() {
 		if !core.ErrorBranchesMatch(request) {
 			b.Fatalf("native join width=%d refused, want all branches matched", len(branches))
+		}
+	}
+}
+
+// Active ancestry crosses the inline stack window; sibling populations stay
+// borrowed and a late refusal cannot be hidden by a deep accepted subtree.
+func TestErrorBranchesDeepJoinedAncestryPreservesSiblingRefusal(t *testing.T) {
+	t.Parallel()
+	for _, depth := range []int{15, 16, 17, 1024} {
+		for _, refused := range []bool{false, true} {
+			var cause error = io.EOF
+			if refused {
+				cause = io.ErrClosedPipe
+			}
+			for range depth {
+				cause = nativeErrorJoin{cause, io.EOF}
+			}
+			seen := 0
+			got := core.ErrorBranchesMatch(core.ErrorBranchesRequest{Error: cause, Accept: func(node core.ErrorBranchObservation) bool {
+				seen++
+				return node.Unwrapped == nil && errors.Is(node.Error, io.EOF)
+			}})
+			wantVisits := depth + 1
+			if refused {
+				wantVisits = 1
+			}
+			if got == refused || seen != wantVisits {
+				t.Fatalf("depth=%d refused=%t match/visits = %t/%d, want %t/%d", depth, refused, got, seen, !refused, wantVisits)
+			}
 		}
 	}
 }

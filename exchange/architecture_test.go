@@ -473,6 +473,7 @@ func productionStructNames(t *testing.T) []string {
 func classifiedStructNames(t *testing.T) []string {
 	t.Helper()
 	inventory := exchangeContractInventory{
+		socketStallWriter:              internalFlow[socketStallWriter]{},
 		producedResponseWriter:         internalFlow[producedResponseWriter]{},
 		producedExtentWriter:           internalFlow[producedExtentWriter]{},
 		observedStandardResponseWriter: capabilityWrapper[observedStandardResponseWriter]{},

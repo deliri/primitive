@@ -75,8 +75,8 @@ func TestV4PresignSignedContentLengthLayerTriad(t *testing.T) {
 			}
 			larger := intent
 			larger.ContentLength = signedContentLengthFixture(t, tc.bytes+1)
-			if signingProofMatches(larger, got) {
-				t.Fatal("one more byte retained signature validity, want refusal")
+			if matches := signingProofMatches(larger, got); matches {
+				t.Fatalf("signature validity after one more byte = %t, want false", matches)
 			}
 		})
 	}

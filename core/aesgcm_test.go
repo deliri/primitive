@@ -11,10 +11,10 @@ func TestAESGCMCoreLayerTriad(t *testing.T) {
 		t.Fatalf("AES-GCM extents=(%d,%d,%d,%d,%d), want native (32,12,16,28,68719476704)", AES256KeyBytes, AESGCMNonceBytes, AESGCMTagBytes, AESGCMOverheadBytes, AESGCMMaximumPlaintextBytes)
 	}
 	if !errors.Is(ErrAESGCMAuthentication, ErrAESGCMContract) || !errors.Is(ErrAESGCMContract, ErrPrimitiveContract) {
-		t.Fatal("AES-GCM error parents absent, want auth→contract→Primitive")
+		t.Fatalf("AES-GCM auth-to-contract/contract-to-Primitive = %t/%t, want true/true", errors.Is(ErrAESGCMAuthentication, ErrAESGCMContract), errors.Is(ErrAESGCMContract, ErrPrimitiveContract))
 	}
 	if errors.Is(ErrAESGCMContract, ErrAESGCMAuthentication) || errors.Is(ErrAttestVerification, ErrAESGCMAuthentication) {
-		t.Fatal("unrelated error matched AES-GCM authentication")
+		t.Fatalf("AES-GCM contract/foreign match authentication = %t/%t, want false/false", errors.Is(ErrAESGCMContract, ErrAESGCMAuthentication), errors.Is(ErrAttestVerification, ErrAESGCMAuthentication))
 	}
 	if err := PackageAESGCM.Validate(); err != nil {
 		t.Fatal(err)

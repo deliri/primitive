@@ -13,7 +13,7 @@ func TestAdmissionErrorIdentitiesKeepCapacitySeparateFromContract(t *testing.T) 
 			t.Fatalf("identity %v validation = %v, want nil", identity, err)
 		}
 		if !errors.Is(identity, identity) || !errors.Is(identity, ErrPrimitiveContract) {
-			t.Fatalf("identity %v lost its exact or Primitive identity", identity)
+			t.Fatalf("identity %v matches exact/Primitive = %t/%t, want true/true", identity, errors.Is(identity, identity), errors.Is(identity, ErrPrimitiveContract))
 		}
 	}
 	if errors.Is(ErrAdmissionCapacity, ErrAdmissionContract) || errors.Is(ErrAdmissionContract, ErrAdmissionCapacity) {
@@ -35,7 +35,7 @@ func TestMultipartMediaTypeRetainsBothOwningConsumers(t *testing.T) {
 	}
 	contract, ok := exports.Lookup("AIMultipartMediaType")
 	if !ok {
-		t.Fatal("multipart MIME export absent, want shared owning contract")
+		t.Fatalf("multipart MIME export present = %t, want true for shared owning contract", ok)
 	}
 	got := contract.ConsumerIdentities()
 	want := []PackageIdentity{PackageExchange, PackageAI}

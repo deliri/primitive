@@ -103,29 +103,28 @@ func BenchmarkStrictJSONValidateDocumentRecord(b *testing.B) {
 		scanned++
 	}
 	if scanned == 0 {
-		b.Fatal("ValidateDocument never ran")
+		b.Fatalf("ValidateDocument calls = %d, want positive", scanned)
 	}
 	// The same scanner must still refuse a folded duplicate after timing.
 	if err := limits.ValidateDocument([]byte(`{"name":1,"Name":2}`)); err == nil {
-		b.Fatal("ValidateDocument admitted a folded duplicate after the timed loop")
+		b.Fatalf("ValidateDocument folded duplicate error = %v, want non-nil", err)
 	}
 }
-
-var benchmarkJSONBytesSink []byte
 
 func BenchmarkMarshalCanonicalJSONString(b *testing.B) {
 	value := "/srv/primitive/objects/entry-0001.json"
 	want := []byte(`"` + value + `"`)
 	b.ReportAllocs()
+	var got []byte
+	var err error
 	for b.Loop() {
-		got, err := MarshalCanonicalJSONString(value)
+		got, err = MarshalCanonicalJSONString(value)
 		if err != nil {
 			b.Fatal(err)
 		}
-		benchmarkJSONBytesSink = got
 	}
-	if !bytes.Equal(benchmarkJSONBytesSink, want) {
-		b.Fatalf("encoded = %q, want %q", benchmarkJSONBytesSink, want)
+	if !bytes.Equal(got, want) {
+		b.Fatalf("encoded = %q, want %q", got, want)
 	}
 }
 
@@ -168,15 +167,15 @@ func BenchmarkSHA256DigestMarshalJSON(b *testing.B) {
 		b.Fatal(err)
 	}
 	b.ReportAllocs()
+	var got []byte
 	for b.Loop() {
-		got, err := digest.MarshalJSON()
+		got, err = digest.MarshalJSON()
 		if err != nil {
 			b.Fatal(err)
 		}
-		benchmarkJSONBytesSink = got
 	}
-	if !bytes.Equal(benchmarkJSONBytesSink, want) {
-		b.Fatalf("encoded = %q, want %q", benchmarkJSONBytesSink, want)
+	if !bytes.Equal(got, want) {
+		b.Fatalf("encoded = %q, want %q", got, want)
 	}
 }
 

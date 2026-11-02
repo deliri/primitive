@@ -139,15 +139,15 @@ func TestMultipartGoexitJoinsNativeOwnedLifetimesAndPreservesFutureCustody(t *te
 			awaitMultipartJoin(t, done, "Goexit producer and consuming scope")
 			awaitMultipartJoin(t, writerDone, "native fixture writer")
 			if active.closed.Load() != 1 || future.closed.Load() != 0 || !active.readStarted.Load() {
-				t.Fatalf("Goexit native custody = (closes%d,future%d,read%t), want one admitted close/no future close/actual native Read", active.closed.Load(), future.closed.Load(), active.readStarted.Load())
+				t.Fatalf("Goexit native custody = (closes%d,future%d,read%t), want closes1/future0/readtrue", active.closed.Load(), future.closed.Load(), active.readStarted.Load())
 			}
 			if row.kind == 1 {
 				if returned.Load() || !consumerExiting.Load() {
-					t.Fatalf("consumer lifetime = (returned%t,exiting%t), want actual Goexit with deferred scope join", returned.Load(), consumerExiting.Load())
+					t.Fatalf("consumer lifetime = (returned%t,exiting%t), want returnedfalse/exitingtrue after deferred scope join", returned.Load(), consumerExiting.Load())
 				}
 			} else {
 				if !returned.Load() {
-					t.Fatal("producer Goexit did not publish its cause and join the consumer")
+					t.Fatal("producer Goexit returned after joining consumer = false, want true")
 				}
 				resultErr := <-result
 				if !errors.Is(resultErr, core.ErrExchangeCallbackExit) || errors.Is(resultErr, core.ErrExchangeCallbackPanic) {

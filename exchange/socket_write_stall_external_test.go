@@ -77,7 +77,7 @@ func TestSocketWriteStallQuietNativeHTTP(t *testing.T) {
 				t.Error(err)
 			}
 		case <-exchangeFixtureBackstop(t, testDeadlockBackstop):
-			t.Error("owned server did not join")
+			t.Error("owned server joined = false, want true")
 		}
 	})
 	if err := <-runtime.Ready(); err != nil {
@@ -109,6 +109,97 @@ func TestSocketWriteStallQuietNativeHTTP(t *testing.T) {
 	tail, readErr := io.ReadAll(reader)
 	if err := <-handlerDone; err != nil || readErr != nil || string(tail) != "last\n" {
 		t.Fatalf("quiet response tail=%q read=%v handler=%v, want exact final record after old response deadline", tail, readErr, err)
+	}
+}
+
+// HTTP/2 owns a stream deadline timer even while no Write is blocked. This is
+// distinct from HTTP/1's next-write rearming behavior: quiet work must leave the
+// actual stream alive, not merely make a later socket write eligible again.
+func TestSocketWriteStallQuietNativeHTTP2(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+	entered := make(chan struct{})
+	done := make(chan error, 1)
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, request *http.Request) {
+		close(entered)
+		var handlerErr error
+		call, err := exchange.NewSocketServerCall(w, request)
+		if err == nil {
+			err = exchange.ServeSocketWithWriteStall(exchange.SocketWriteStallRequest{
+				Call: call, Timeout: stallDuration(t, time.Second),
+				Handler: http.HandlerFunc(func(writer http.ResponseWriter, r *http.Request) {
+					if r.ProtoMajor != 2 {
+						handlerErr = core.ErrExchangeContract
+						return
+					}
+					if _, handlerErr = io.WriteString(writer, "first\n"); handlerErr != nil {
+						return
+					}
+					if handlerErr = http.NewResponseController(writer).Flush(); handlerErr != nil {
+						return
+					}
+					if handlerErr = temporal.Wait(temporal.WaitRequest{Context: r.Context(), Duration: stallDuration(t, 2*time.Second)}); handlerErr != nil {
+						return
+					}
+					if _, handlerErr = io.WriteString(writer, "last\n"); handlerErr == nil {
+						handlerErr = http.NewResponseController(writer).Flush()
+					}
+				}),
+			})
+		}
+		done <- errors.Join(err, handlerErr)
+	}))
+	server.EnableHTTP2 = true
+	server.StartTLS()
+	client := server.Client()
+	handlerJoined := false
+	t.Cleanup(func() {
+		cancel()
+		client.CloseIdleConnections()
+		server.CloseClientConnections()
+		select {
+		case <-entered:
+			if !handlerJoined {
+				select {
+				case err := <-done:
+					if err != nil && !errors.Is(err, context.Canceled) {
+						t.Errorf("native HTTP2 handler joined error = %v, want nil or owned cancellation during cleanup", err)
+					}
+				case <-time.After(10 * time.Second):
+					t.Error("native HTTP2 handler joined = false, want true after owned cancellation")
+				}
+			}
+		default:
+		}
+		server.Close()
+	})
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, server.URL, http.NoBody)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response, err := client.Do(request)
+	if err != nil {
+		t.Fatalf("native HTTP2 request = %v, want response and nil", err)
+	}
+	defer response.Body.Close()
+	if response.ProtoMajor != 2 {
+		t.Fatalf("native protocol major = %d, want 2", response.ProtoMajor)
+	}
+	reader := bufio.NewReader(response.Body)
+	first, firstErr := reader.ReadString('\n')
+	last, lastErr := reader.ReadString('\n')
+	if first != "first\n" || firstErr != nil || last != "last\n" || lastErr != nil {
+		t.Fatalf("native HTTP2 quiet response = (%q,%v,%q,%v), want first/nil/last/nil", first, firstErr, last, lastErr)
+	}
+	select {
+	case err := <-done:
+		handlerJoined = true
+		if err != nil {
+			t.Fatalf("native HTTP2 handler completion = %v, want nil before caller cancellation", err)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("native HTTP2 handler completed = false, want true after exact response")
 	}
 }
 
@@ -162,7 +253,7 @@ func TestSocketWriteStallBlockedNativeWriter(t *testing.T) {
 				select {
 				case <-writer.entered:
 				default:
-					t.Fatal("handler never entered its owned native write")
+					t.Fatal("handler entered owned native write = false, want true")
 				}
 				cause := errors.New("owned caller canceled")
 				if canceled {
@@ -239,7 +330,7 @@ func TestSocketWriteStallAdmissionAndFinalBound(t *testing.T) {
 			err = exchange.ServeSocketWithWriteStall(exchange.SocketWriteStallRequest{Call: call, Timeout: timeout, Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				calls++
 				if r.Context() != ctx {
-					t.Error("request context changed")
+					t.Error("request context identity preserved = false, want true")
 				}
 				if writer.writeErr != nil {
 					_, first := w.Write([]byte("one"))

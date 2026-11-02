@@ -138,7 +138,7 @@ func TestV4PresignRefusesPartialOrAlreadySignedCanonicalInput(t *testing.T) {
 	cancel()
 	got, err := PresignV4(ctx, intent)
 	if !errors.Is(err, context.Canceled) || got != (core.HTTPEndpoint{}) {
-		t.Fatal("cancel admitted signature")
+		t.Fatalf("canceled signing = (%v,%v), want zero endpoint and Canceled", got, err)
 	}
 }
 
@@ -158,7 +158,7 @@ func FuzzV4PresignGoCryptoMatchesOfficialRequest(f *testing.F) {
 		got, err := PresignV4(t.Context(), intent)
 		if intent.Validate() != nil {
 			if !errors.Is(err, core.ErrExchangeRequest) || got != (core.HTTPEndpoint{}) {
-				t.Fatal("invalid request has no typed refusal")
+				t.Fatalf("invalid signing = (%v,%v), want zero endpoint and ExchangeRequest", got, err)
 			}
 			return
 		}
@@ -170,7 +170,7 @@ func FuzzV4PresignGoCryptoMatchesOfficialRequest(f *testing.F) {
 		}
 		// The whole mutated value is signed. No prefix-only oracle or fuzz quota.
 		if !strings.Contains(got.HTTPURL().RawQuery, "X-Amz-Signature=") {
-			t.Fatal("signature absent")
+			t.Fatalf("signature query present = %t, want true", strings.Contains(got.HTTPURL().RawQuery, "X-Amz-Signature="))
 		}
 	})
 }
@@ -179,16 +179,21 @@ func FuzzV4PresignGoCryptoMatchesOfficialRequest(f *testing.F) {
 // the non-ASCII/reserved ordering the former decoded-key SDK map did not seal.
 func TestV4PresignCanonicalQuerySortsEncodedNamesAndValues(t *testing.T) {
 	t.Parallel()
-	facts := v4SigningFacts{stamp: "stamp", credential: "id/scope", signedHeaders: "host"}
+	facts, err := newV4SigningFacts(signingFixture(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	prefix := "X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=" + url.QueryEscape(facts.credential.String()) + "&X-Amz-Date=" + facts.stamp.String() + "&X-Amz-SignedHeaders=" + facts.signedHeaders.String()
 	for _, query := range []string{"Z=last&é=first", "é=first&Z=last", "a=Z&a=é&a=Z", "a=é&a=Z&a=Z"} {
 		t.Run(query, func(t *testing.T) {
+			t.Parallel()
 			got, err := v4CanonicalQuery(t.Context(), url.URL{RawQuery: query}, facts)
 			if err != nil {
 				t.Fatal(err)
 			}
-			want := "X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=id%2Fscope&X-Amz-Date=stamp&X-Amz-SignedHeaders=host&a=%C3%A9&a=Z&a=Z"
+			want := prefix + "&a=%C3%A9&a=Z&a=Z"
 			if strings.Contains(query, "last") {
-				want = "%C3%A9=first&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=id%2Fscope&X-Amz-Date=stamp&X-Amz-SignedHeaders=host&Z=last"
+				want = "%C3%A9=first&" + prefix + "&Z=last"
 			}
 			if got != want {
 				t.Fatalf("canonical pair order=%q want=%q", got, want)
@@ -223,7 +228,7 @@ func BenchmarkV4PresignGoCryptoBorrowedQuery64(b *testing.B) {
 		benchmarkV4PresignSink = signed
 	}
 	if !strings.Contains(benchmarkV4PresignSink.HTTPURL().RawQuery, "X-Amz-Signature=") {
-		b.Fatal("presigned endpoint has no signature")
+		b.Fatalf("presigned signature query present = %t, want true", strings.Contains(benchmarkV4PresignSink.HTTPURL().RawQuery, "X-Amz-Signature="))
 	}
 }
 
@@ -249,7 +254,7 @@ func TestV4PresignLongBorrowedSecretsMatchNativeHMACKeyNormalization(t *testing.
 				}
 				for i, b := range intent.SecretKey {
 					if b != byte(i*17+mode) {
-						t.Fatal("signing mutated borrowed secret")
+						t.Fatalf("borrowed secret byte unchanged at index%d = false, want true", i)
 					}
 				}
 			})

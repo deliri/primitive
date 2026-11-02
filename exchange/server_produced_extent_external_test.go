@@ -132,7 +132,7 @@ func TestWriteProducedExactExtentClientEOFPrecedesHandlerCleanup(t *testing.T) {
 	}
 	select {
 	case <-joined:
-		t.Fatal("handler cleanup joined before its release, want caller EOF while cleanup remains held")
+		t.Fatal("handler cleanup joined before release = true, want false after caller EOF")
 	default:
 	}
 }

@@ -41,7 +41,7 @@ func (r ErrorBranchesRequest) Validate() error {
 // ErrorBranchesMatch requires every joined branch to reach an accepted native
 // cause. Nil roots, nil branches, empty joins and invalid requests refuse with
 // false. It follows Go's Unwrap contracts without collecting a second tree.
-// Linear wrappers use a loop; only active joined ancestry uses stack space.
+// Linear wrappers use a loop; only active joined ancestry uses an explicit stack.
 // As with errors.Is, caller-supplied Unwrap methods must describe a finite tree.
 func ErrorBranchesMatch(request ErrorBranchesRequest) bool {
 	if request.Validate() != nil {
@@ -51,24 +51,42 @@ func ErrorBranchesMatch(request ErrorBranchesRequest) bool {
 }
 
 func errorBranchesMatch(current error, accept func(ErrorBranchObservation) bool) bool {
-	for !IsNil(current) {
-		if joined, ok := current.(interface{ Unwrap() []error }); ok {
-			branches := joined.Unwrap()
-			if len(branches) == 0 {
-				return false
-			}
-			for _, branch := range branches {
-				if !errorBranchesMatch(branch, accept) {
+	// Borrow the remaining sibling slices instead of copying joined populations.
+	// The inline window covers ordinary nesting; deeper valid trees continue.
+	var window [16][]error
+	pending := window[:0]
+	for {
+		matched := false
+		for !IsNil(current) {
+			if joined, ok := current.(interface{ Unwrap() []error }); ok {
+				branches := joined.Unwrap()
+				if len(branches) == 0 {
 					return false
 				}
+				if len(branches) > 1 {
+					pending = append(pending, branches[1:])
+				}
+				current = branches[0]
+				continue
 			}
+			cause := errors.Unwrap(current)
+			if accept(ErrorBranchObservation{Error: current, Unwrapped: cause}) {
+				matched = true
+				break
+			}
+			current = cause
+		}
+		if !matched {
+			return false
+		}
+		if len(pending) == 0 {
 			return true
 		}
-		cause := errors.Unwrap(current)
-		if accept(ErrorBranchObservation{Error: current, Unwrapped: cause}) {
-			return true
+		top := len(pending) - 1
+		current = pending[top][0]
+		pending[top] = pending[top][1:]
+		if len(pending[top]) == 0 {
+			pending = pending[:top]
 		}
-		current = cause
 	}
-	return false
 }

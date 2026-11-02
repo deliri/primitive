@@ -685,7 +685,9 @@ func newAggregateHTTPRequest(
 		identityContentCoding().String(),
 	)
 	applyRequestHeaders(request, input.headers)
-	applySecretHeaders(request, input.secretHeaders)
+	if err := applySecretHeaders(request, input.secretHeaders); err != nil {
+		return nil, requestError(err)
+	}
 	applyIdempotencyKey(request, input.semantics)
 	return request, nil
 }
@@ -806,9 +808,9 @@ func readAggregateResponseBody(input aggregateReadRequest) ([]byte, uint64, erro
 	}
 	destination := input.destination
 	if input.failureDestination != nil {
-		expected, err := input.expectedStatus.Int()
-		if err != nil {
-			return nil, 0, err
+		expected, statusErr := input.expectedStatus.Int()
+		if statusErr != nil {
+			return nil, 0, statusErr
 		}
 		if input.response.StatusCode != expected {
 			destination = input.failureDestination
@@ -1155,12 +1157,14 @@ func exchangeContextError(ctx context.Context) error {
 		return err
 	}
 	switch state {
+	case contextstate.StateNone:
+		return nil
 	case contextstate.StateCancelled:
 		return cancelledError(errors.Join(context.Canceled, exchangeCancellationCause(ctx)))
 	case contextstate.StateDeadlineExceeded:
 		return cancelledError(errors.Join(context.DeadlineExceeded, exchangeCancellationCause(ctx)))
 	default:
-		return nil
+		return core.ErrContextStateContract
 	}
 }
 

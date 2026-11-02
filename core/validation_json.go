@@ -261,7 +261,6 @@ func validateInitialJSONEncoding(encoded []byte, limits StrictJSONLimits) error 
 	if uint64(len(encoded)) > limits.DocumentMaximumBytes.value {
 		return jsonContractError(jsonDocumentLimitExceededErrorText, nil)
 	}
-	// doctrine:local-allowed=external-wire
 	if !jsontext.Value(encoded).IsValid() {
 		return jsonContractError("validated json marshaler emitted invalid json", nil)
 	}
@@ -272,7 +271,6 @@ func validateInitialJSONEncoding(encoded []byte, limits StrictJSONLimits) error 
 }
 
 func validateReencodedJSON(encoded []byte) error {
-	// doctrine:local-allowed=external-wire
 	if !jsontext.Value(encoded).IsValid() {
 		return jsonContractError("validated json decoded value emitted invalid json", nil)
 	}
@@ -538,9 +536,7 @@ type strictJSONScanState struct {
 	folded  []byte
 }
 
-var strictJSONScanStates = sync.Pool{
-	New: func() any { return new(strictJSONScanState) },
-}
+var strictJSONScanStates sync.Pool
 
 func scanStrictJSONTokens(data []byte, limits StrictJSONLimits) error {
 	state, _ := strictJSONScanStates.Get().(*strictJSONScanState)
@@ -617,8 +613,10 @@ func (s *strictJSONScanState) scanToken(kind jsontext.Kind, limits StrictJSONLim
 			}
 		}
 		s.stack, err = completeStrictJSONValue(s.stack[:len(s.stack)-1], limits)
-	default:
+	case jsontext.KindNull, jsontext.KindFalse, jsontext.KindTrue, jsontext.KindString, jsontext.KindNumber:
 		s.stack, err = completeStrictJSONValue(s.stack, limits)
+	default:
+		return jsonContractError("json token kind is invalid", nil)
 	}
 	return err
 }

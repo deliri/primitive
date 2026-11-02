@@ -11,11 +11,11 @@ func TestIsNilPreservesGoInterfaceAndContainerPresence(t *testing.T) {
 	var pathError *os.PathError
 	var wrapped error = pathError
 	if !IsNil(absent) || !IsNil(pathError) || !IsNil(wrapped) {
-		t.Fatal("Go nil capability admitted as present")
+		t.Fatalf("nil interface/pointer/wrapped pointer absent = %t/%t/%t, want true/true/true", IsNil(absent), IsNil(pathError), IsNil(wrapped))
 	}
 	value := 0
 	if IsNil(&value) || IsNil(value) || IsNil("") || IsNil(struct{}{}) {
-		t.Fatal("present zero/scalar was classified as absent")
+		t.Fatalf("present pointer/int/string/struct absent = %t/%t/%t/%t, want false/false/false/false", IsNil(&value), IsNil(value), IsNil(""), IsNil(struct{}{}))
 	}
 	var pointer *int
 	var data []byte
@@ -23,10 +23,10 @@ func TestIsNilPreservesGoInterfaceAndContainerPresence(t *testing.T) {
 	var channel chan int
 	var function func()
 	if !IsNil(pointer) || !IsNil(data) || !IsNil(dictionary) || !IsNil(channel) || !IsNil(function) {
-		t.Fatal("native typed nil kind was classified as present")
+		t.Fatalf("nil pointer/slice/map/channel/function absent = %t/%t/%t/%t/%t, want true/true/true/true/true", IsNil(pointer), IsNil(data), IsNil(dictionary), IsNil(channel), IsNil(function))
 	}
 	if IsNil([]byte{}) || IsNil(map[string]int{}) || IsNil(make(chan int)) || IsNil(func() {}) || IsNil([0]byte{}) {
-		t.Fatal("present empty value was classified as absent")
+		t.Fatalf("empty slice/map/channel/function/array absent = %t/%t/%t/%t/%t, want false/false/false/false/false", IsNil([]byte{}), IsNil(map[string]int{}), IsNil(make(chan int)), IsNil(func() {}), IsNil([0]byte{}))
 	}
 }
 

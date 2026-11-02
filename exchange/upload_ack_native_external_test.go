@@ -79,13 +79,13 @@ func TestUploadNativeAcknowledgmentClosesWithoutReadingUnfinishedBody(t *testing
 		select {
 		case <-done:
 		case <-time.After(10 * time.Second):
-			t.Error("owned upload did not exit after cancellation")
+			t.Error("owned upload exited after cancellation = false, want true")
 		}
 	}()
 	select {
 	case <-read:
 		cancel()
-		t.Error("Upload read an unneeded acknowledgment body; want close without response draining")
+		t.Error("acknowledgment body read = true, want false and native close")
 	case <-closed:
 		select {
 		case got := <-finished:
@@ -93,10 +93,10 @@ func TestUploadNativeAcknowledgmentClosesWithoutReadingUnfinishedBody(t *testing
 				t.Errorf("native acknowledgment = %+v/%v, want one completed empty observation", got.response, got.err)
 			}
 		case <-time.After(10 * time.Second):
-			t.Error("Upload closed its body but did not return")
+			t.Error("Upload returned after body close = false, want true")
 		}
 	case <-time.After(10 * time.Second):
 		cancel()
-		t.Error("native upload reached neither an acknowledgment read nor close")
+		t.Error("native acknowledgment read/close observed = false/false, want false/true")
 	}
 }
