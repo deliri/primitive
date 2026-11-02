@@ -244,6 +244,9 @@ func FuzzGetIntegerJSONEmulatorNativeKindConservation(f *testing.F) {
 	f.Add(int64(1), uint8(1))
 	f.Add(int64(math.MinInt64), uint8(0))
 	f.Add(int64(math.MaxInt64), uint8(0))
+	for kind := uint8(2); kind < 8; kind++ {
+		f.Add(canonical.Record.Value, kind)
+	}
 	f.Fuzz(func(t *testing.T, value int64, kind uint8) {
 		key, keyErr := core.SHA256Of([]byte(t.TempDir())).Hex()
 		if keyErr != nil {
@@ -259,19 +262,34 @@ func FuzzGetIntegerJSONEmulatorNativeKindConservation(f *testing.F) {
 		if kind&1 != 0 {
 			nativeValue = float64(value)
 		}
-		if _, err := ref.Set(t.Context(), map[string]any{"owner": "native-integer-mutation", "value": nativeValue}); err != nil {
+		source := map[string]any{"owner": "native-integer-mutation"}
+		want := integerJSONNestedRecord{Owner: "native-integer-mutation"}
+		switch (kind >> 1) & 3 {
+		case 0:
+			source["value"] = nativeValue
+			want.Value = value
+		case 1:
+			source["nested"] = map[string]any{"value": nativeValue}
+			want.Nested.Value = value
+		case 2:
+			source["values"] = []any{int64(0), nativeValue}
+			want.Values = []int64{0, value}
+		case 3:
+			source["rows"] = []any{map[string]any{"value": nativeValue}}
+			want.Rows = []integerJSONChild{{Value: value}}
+		}
+		if _, err := ref.Set(t.Context(), source); err != nil {
 			t.Fatal(err)
 		}
-		got, err := GetIntegerJSON[jsonCallerRecord](t.Context(), GetRequest{Reference: ref})
+		got, err := GetIntegerJSON[integerJSONNestedRecord](t.Context(), GetRequest{Reference: ref})
 		if kind&1 != 0 {
-			if !errors.Is(err, core.ErrFirestoreDocumentsOperation) || !errors.Is(err, core.ErrJSONContract) || got != (JSONDocument[jsonCallerRecord]{}) {
-				t.Fatalf("mutated DOUBLE(%d)=(%+v,%v), want zero/operation/JSON refusal", value, got, err)
+			if !errors.Is(err, core.ErrFirestoreDocumentsOperation) || !errors.Is(err, core.ErrJSONContract) || got.Record.Owner != "" || got.Record.Value != 0 || got.Record.Nested.Value != 0 || got.Record.Values != nil || got.Record.Rows != nil || got.Bytes != (core.ByteCount{}) {
+				t.Fatalf("mutated DOUBLE(%d) shape%d=(%+v,%v), want zero/operation/JSON refusal", value, (kind>>1)&3, got, err)
 			}
 			return
 		}
-		want := jsonCallerRecord{Owner: "native-integer-mutation", Value: value}
-		if err != nil || got.Record != want || got.Validate() != nil {
-			t.Fatalf("mutated INTEGER(%d)=(%+v,%v), want (%+v,nil)", value, got, err, want)
+		if err != nil || got.Validate() != nil || got.Record.Owner != want.Owner || got.Record.Value != want.Value || got.Record.Nested != want.Nested || !slices.Equal(got.Record.Values, want.Values) || !slices.Equal(got.Record.Rows, want.Rows) {
+			t.Fatalf("mutated INTEGER(%d) shape%d=(%+v,%v), want (%+v,nil)", value, (kind>>1)&3, got, err, want)
 		}
 	})
 }
