@@ -119,3 +119,44 @@ for(const mode of ['invalid-callback','missing-description'])test(`browser admis
   const got=await row(mode);
   expect(got.registered).toBe(false);expect(got.calls).toBe(0);expect(got.present).toBe(false);expect(got.name).toBe('TypeError');
 });
+
+// WebMCP draft (2026-10-27): registerTool options are {signal, exposedTo}; a
+// duplicate name rejects with InvalidStateError. The module must hand the
+// browser the caller's options unchanged and preserve the browser's verdicts.
+async function nativeParity(kind){
+  const {registerTool}=await import('/module.js');
+  const context=document.modelContext,owner=new AbortController();
+  const definition=name=>({name,description:'Native parity proof',inputSchema:{type:'object'},execute:async()=>({})});
+  const outcome=async run=>{try{await run();return {ok:true};}catch(error){return {ok:false,name:error.name};}};
+  try{
+    if(kind==='duplicate'){
+      await context.registerTool(definition('parity_native_duplicate'),{signal:owner.signal});
+      const native=await outcome(()=>context.registerTool(definition('parity_native_duplicate'),{signal:owner.signal}));
+      await registerTool(definition('parity_module_duplicate'),{signal:owner.signal});
+      const module=await outcome(()=>registerTool(definition('parity_module_duplicate'),{signal:owner.signal}));
+      return {native,module};
+    }
+    const options={signal:owner.signal,exposedTo:['http://insecure.example']};
+    const original=context.registerTool,seen=[];
+    context.registerTool=function(tool,received){seen.push(received);return original.call(this,tool,received);};
+    let module;
+    try{module=await outcome(()=>registerTool(definition('parity_module_exposed'),options));}
+    finally{delete context.registerTool;}
+    const native=await outcome(()=>context.registerTool(definition('parity_native_exposed'),options));
+    return {native,module,forwarded:seen.length===1&&seen[0]===options};
+  }finally{owner.abort();}
+}
+async function parity(kind){
+  return view.evaluate(`(${nativeParity.toString()})(${JSON.stringify(kind)})`);
+}
+test('a duplicate tool name keeps the browser refusal',async()=>{
+  const got=await parity('duplicate');
+  expect(got.native.ok).toBe(false);
+  expect(got.module).toEqual(got.native);
+});
+test('registration options, including exposedTo, reach the browser unchanged',async()=>{
+  const got=await parity('exposed');
+  expect(got.forwarded).toBe(true);
+  expect(got.module).toEqual(got.native);
+  console.log(JSON.stringify({exposedToInsecureOrigin:got.native}));
+});
