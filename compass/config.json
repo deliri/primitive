@@ -6,13 +6,11 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 457
+      "patch": 458
     },
     "release_notes": [
-      "Add the instagram package: typed Meta Graph media reads over Exchange with documented paging and error members.",
-      "Add the timematch package: Google, Microsoft (personal and work/school) and Apple iCloud calendar connection over Exchange, with calendar-only consent, visitor versus business grants, free/busy where any unanswered calendar is unknown, and deterministic owned event writes verified by readback.",
-      "Add Exchange's browser JSON executor (same-origin, no redirects or caching) and the TimeMatch browser client that performs HTTP only through it.",
-      "Admit WebDAV PROPFIND and REPORT as safe Exchange methods; register webmcp in the Core catalog."
+      "TimeMatch one-shot visitor confirmation: a visitor grant may request the minimal event-write scope online-only (Google calendar.events.owned with access_type=online; Microsoft Calendars.ReadWrite without offline_access), never a refresh token, so a customer can add the confirmed appointment and then be disconnected.",
+      "Connection.Close destroys borrowed credentials; a token Google issued but TimeMatch refuses (missing scope, missing or unexpected refresh) is revoked at Google instead of left live. Microsoft and Apple still report no programmatic revocation."
     ]
   }
 }
