@@ -21,12 +21,13 @@ func TestBrowserModuleEmitsCoreIdentities(t *testing.T) {
 		{name: "contentType", identity: core.ErrExchangeContentType},
 		{name: "cancelled", identity: core.ErrExchangeCancelled},
 		{name: "transport", identity: core.ErrExchangeTransport},
+		{name: "redirect", identity: core.ErrExchangeRedirect},
 	} {
 		if fragment := row.name + ": " + strconv.Itoa(int(row.identity)) + ","; !strings.Contains(module, fragment) {
 			t.Fatalf("BrowserModule() lacks %q", fragment)
 		}
 	}
-	for _, required := range []string{"redirect: 'error'", "credentials: 'same-origin'", "cache: 'no-store'", "export async function sendJSON"} {
+	for _, required := range []string{"redirect: 'manual'", "credentials: 'same-origin'", "cache: 'no-store'", "export async function sendJSON"} {
 		if !strings.Contains(module, required) {
 			t.Fatalf("BrowserModule() lacks %q", required)
 		}

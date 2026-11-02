@@ -232,7 +232,7 @@ func TestRequestShapesRefuseUnsafeCombinations(t *testing.T) {
 	}
 	following := func(t testing.TB) exchange.OperationPolicy {
 		p := fixturePolicy(t)
-		p.Redirect = exchange.RedirectPolicy{Mode: exchange.RedirectFollowSameOrigin, MaximumHops: 1}
+		p.Redirect = exchange.RedirectPolicy{Mode: exchange.RedirectSameOrigin, MaximumHops: 1}
 		return p
 	}
 	cases := []struct {

@@ -22,5 +22,6 @@ func BrowserModule() string {
 		"__CONTENT_TYPE_IDENTITY__", strconv.Itoa(int(core.ErrExchangeContentType)),
 		"__CANCELLED_IDENTITY__", strconv.Itoa(int(core.ErrExchangeCancelled)),
 		"__TRANSPORT_IDENTITY__", strconv.Itoa(int(core.ErrExchangeTransport)),
+		"__REDIRECT_IDENTITY__", strconv.Itoa(int(core.ErrExchangeRedirect)),
 	).Replace(browserModuleSource)
 }
