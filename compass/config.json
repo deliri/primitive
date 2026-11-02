@@ -6,11 +6,11 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 458
+      "patch": 459
     },
     "release_notes": [
-      "TimeMatch one-shot visitor confirmation: a visitor grant may request the minimal event-write scope online-only (Google calendar.events.owned with access_type=online; Microsoft Calendars.ReadWrite without offline_access), never a refresh token, so a customer can add the confirmed appointment and then be disconnected.",
-      "Connection.Close destroys borrowed credentials; a token Google issued but TimeMatch refuses (missing scope, missing or unexpected refresh) is revoked at Google instead of left live. Microsoft and Apple still report no programmatic revocation."
+      "TimeMatch availability is free/busy only: Apple uses the CalDAV free-busy-query report (VFREEBUSY periods; a refusal, other media or any event component leaves the calendar Unknown, never an event download), replacing the calendar-query/calendar-data path of 457 and 458.",
+      "Google visitor consent is calendar.events.freebusy alone on the primary calendar; confirming an appointment is a separate calendar.events.owned consent. Microsoft calendarView selects only start, end, showAs, isCancelled and isAllDay and gains the primary default-calendar path."
     ]
   }
 }
