@@ -699,7 +699,9 @@ func (s EventSummary) Validate() error {
 func (s EventSummary) String() string { return s.value }
 
 // EventIntent is the complete owned event: no attendees, so no provider
-// invitation is ever sent by this package.
+// invitation is ever sent by this package. Mutation precision is whole seconds
+// for Google and Apple, and 100 nanoseconds for Microsoft. Finer endpoints are
+// refused before HTTP; the package never rounds a requested appointment.
 type EventIntent struct {
 	Calendar CalendarID
 	ID       EventID

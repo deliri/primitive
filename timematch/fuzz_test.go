@@ -227,6 +227,24 @@ func FuzzGoogleFreeBusySemanticClosure(f *testing.F) {
 			return
 		}
 		for id, calendar := range got.calendars {
+			var independent struct {
+				Calendars map[string]struct {
+					Errors []struct {
+						Reason string `json:"reason"`
+					} `json:"errors"`
+					Busy *[]struct {
+						Start string `json:"start"`
+						End   string `json:"end"`
+					} `json:"busy"`
+				} `json:"calendars"`
+			}
+			if err := jsonv1.Unmarshal(data, &independent); err != nil {
+				t.Fatalf("accepted freebusy independent decode error=%v,want nil", err)
+			}
+			observed := independent.Calendars[id]
+			if calendar.known && (observed.Busy == nil || len(observed.Errors) != 0) {
+				t.Fatalf("calendar %q known without an explicit complete busy collection", id)
+			}
 			if !calendar.known && len(calendar.busy) != 0 {
 				t.Fatalf("calendar %q unknown but carries %d busy facts", id, len(calendar.busy))
 			}

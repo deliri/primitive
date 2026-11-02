@@ -239,6 +239,9 @@ func (r *googleFreeBusyResponse) UnmarshalJSON(raw []byte) error {
 			}
 			entry.busy = append(entry.busy, span)
 		}
+		if !entry.known {
+			entry.busy = nil
+		}
 		response.calendars[id] = entry
 	}
 	*r = response
@@ -464,6 +467,11 @@ func verifyGoogle(body []byte, intent EventIntent, ref EventRef) (EventReceipt, 
 	observed, err := decodeJSON[googleEventObservation](body)
 	if err != nil {
 		return EventReceipt{}, errors.Join(core.ErrTimeMatchIndeterminate, err)
+	}
+	// A Google cancelled placeholder can contain only id and status. Its
+	// identity is definitively retired even though no interval survives.
+	if observed.status == "cancelled" {
+		return EventReceipt{}, core.ErrTimeMatchConflict
 	}
 	span, err := rfc3339Span(observed.start, observed.end)
 	if err != nil {
