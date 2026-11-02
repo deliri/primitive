@@ -508,7 +508,7 @@ func (graphOwnedProperty) timematchInternalFlow() {}
 type graphOwnedMetadata struct {
 	ID            string               `json:"id"`
 	TransactionID string               `json:"transactionId"`
-	Ownership     []graphOwnedProperty `json:"singleValueExtendedProperties"`
+	Ownership     []graphOwnedProperty `json:"singleValueExtendedProperties,omitzero"`
 }
 
 func (graphOwnedMetadata) timematchInternalFlow() {}
@@ -529,8 +529,17 @@ func (m graphOwnedMetadata) Validate() error {
 	return nil
 }
 func (m graphOwnedMetadata) owns(id EventID) error {
-	if m.TransactionID != id.value || len(m.Ownership) != 1 || m.Ownership[0] != (graphOwnedProperty{ID: graphOwnershipProperty, Value: id.value}) {
+	if m.TransactionID != "" && m.TransactionID != id.value || len(m.Ownership) > 1 {
 		return core.ErrTimeMatchConflict
+	}
+	if len(m.Ownership) == 1 {
+		property := m.Ownership[0]
+		if property.ID != "" && property.ID != graphOwnershipProperty || property.Value != "" && property.Value != id.value {
+			return core.ErrTimeMatchConflict
+		}
+	}
+	if m.TransactionID == "" || len(m.Ownership) == 0 || m.Ownership[0].ID == "" || m.Ownership[0].Value == "" {
+		return core.ErrTimeMatchIndeterminate
 	}
 	return nil
 }
@@ -602,6 +611,10 @@ func (c Client) microsoftRecover(ctx context.Context, w EventWrite) (EventReceip
 	secrets, bearerErr := bearer(w.Connection.AccessToken)
 	prefer, preferErr := header("Prefer", graphPreferUTC)
 	query := graphOwnershipQuery()
+	// A filtered collection contains candidate resources, not the matching
+	// extended property. Graph documents expansion only on an individual
+	// resource; fetch that exact candidate before trusting ownership.
+	query.Del("$expand")
 	query.Set("$filter", "singleValueExtendedProperties/Any(ep: ep/id eq '"+graphOwnershipProperty+"' and ep/value eq '"+w.Intent.ID.value+"')")
 	target, targetErr := endpoint("https://" + graphHost + graphEventsPath + "?" + query.Encode())
 	if err := errors.Join(bearerErr, preferErr, targetErr); err != nil {
@@ -620,7 +633,14 @@ func (c Client) microsoftRecover(ctx context.Context, w EventWrite) (EventReceip
 			return EventReceipt{}, errors.Join(core.ErrTimeMatchIndeterminate, decodeErr)
 		}
 		for _, metadata := range page.Value {
-			if err := metadata.owns(w.Intent.ID); err != nil {
+			if metadata.TransactionID == "" {
+				return EventReceipt{}, core.ErrTimeMatchIndeterminate
+			}
+			if metadata.TransactionID != w.Intent.ID.value {
+				return EventReceipt{}, core.ErrTimeMatchConflict
+			}
+			ref := EventRef{ID: w.Intent.ID, Provider: ProviderMicrosoft, Calendar: w.Intent.Calendar, Resource: metadata.ID}
+			if err := c.microsoftOwned(ctx, w.Connection, ref, w.Policy); err != nil {
 				return EventReceipt{}, err
 			}
 			if resource != "" {

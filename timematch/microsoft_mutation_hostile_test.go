@@ -43,13 +43,36 @@ func graphOwnedDetail(t testing.TB, owned EventIntent) graphCreated {
 	return detail
 }
 
+// The filtered collection projection deliberately has no extended property.
+type graphCandidateFixture struct {
+	ID            string `json:"id"`
+	TransactionID string `json:"transactionId"`
+}
+type graphCandidatePageFixture struct {
+	Value []graphCandidateFixture `json:"value"`
+	Next  string                  `json:"@odata.nextLink,omitzero"`
+}
+
+func graphCandidateCollection(t testing.TB, page graphOwnedPage) string {
+	t.Helper()
+	wire := graphCandidatePageFixture{Value: make([]graphCandidateFixture, 0, len(page.Value)), Next: page.Next}
+	for _, item := range page.Value {
+		wire.Value = append(wire.Value, graphCandidateFixture{ID: item.ID, TransactionID: item.TransactionID})
+	}
+	encoded, err := json.Marshal(wire)
+	if err != nil {
+		t.Fatalf("candidate collection encode error = %v, want nil", err)
+	}
+	return string(encoded)
+}
+
 // Graph deliberately ignores transactionId deduplication. Only a read-only
 // recovery path, not another POST carrying the same transactionId, is safe.
 func TestMicrosoftLostCreateRecoveryNeverRepeatsPOST(t *testing.T) {
 	t.Parallel()
 	owned := intent(t, "primary", "Appointment", "2026-11-02T15:00:00Z", "2026-11-02T16:00:00Z")
 	var mutex sync.Mutex
-	posts, lookups, details := 0, 0, 0
+	posts, lookups, ownerships, details := 0, 0, 0, 0
 	committed, visible := false, false
 	detail := graphOwnedDetail(t, owned)
 	client, fixture := newNative(t, func(w http.ResponseWriter, r *http.Request, body []byte) {
@@ -73,8 +96,13 @@ func TestMicrosoftLostCreateRecoveryNeverRepeatsPOST(t *testing.T) {
 			if visible {
 				page.Value = append(page.Value, microsoftMetadata(immutableFixtureID, owned.ID.value))
 			}
-			writeJSON(w, 200, graphEncoded(t, page))
+			writeJSON(w, 200, graphCandidateCollection(t, page))
 		case r.URL.Path == graphEventsPath+"/"+immutableFixtureID:
+			if r.URL.Query().Has("$expand") {
+				ownerships++
+				writeJSON(w, 200, graphEncoded(t, microsoftMetadata(immutableFixtureID, owned.ID.value)))
+				return
+			}
 			details++
 			encoded, err := json.Marshal(detail)
 			if err != nil {
@@ -101,10 +129,10 @@ func TestMicrosoftLostCreateRecoveryNeverRepeatsPOST(t *testing.T) {
 	recovered, recoverErr := client.PutEvent(t.Context(), write)
 	again, againErr := client.PutEvent(t.Context(), write)
 	mutex.Lock()
-	gotPosts, gotLookups, gotDetails, gotCommitted := posts, lookups, details, committed
+	gotPosts, gotLookups, gotOwnerships, gotDetails, gotCommitted := posts, lookups, ownerships, details, committed
 	mutex.Unlock()
-	if recoverErr != nil || againErr != nil || recovered != again || recovered.Ref.Resource != immutableFixtureID || recovered.Ref.ID != owned.ID || gotPosts != 1 || gotLookups != 3 || gotDetails != 2 || !gotCommitted {
-		t.Fatalf("recovery = (%+v,%v), replay (%+v,%v), effects %d/%d/%d committed %t, want one POST and same owned receipt", recovered, recoverErr, again, againErr, gotPosts, gotLookups, gotDetails, gotCommitted)
+	if recoverErr != nil || againErr != nil || recovered != again || recovered.Ref.Resource != immutableFixtureID || recovered.Ref.ID != owned.ID || gotPosts != 1 || gotLookups != 3 || gotOwnerships != 2 || gotDetails != 2 || !gotCommitted {
+		t.Fatalf("recovery = (%+v,%v), replay (%+v,%v), effects %d/%d/%d/%d committed %t, want one POST and same owned receipt", recovered, recoverErr, again, againErr, gotPosts, gotLookups, gotOwnerships, gotDetails, gotCommitted)
 	}
 	for _, request := range fixture.record() {
 		if request.method == http.MethodGet && request.path == graphEventsPath {
@@ -144,7 +172,7 @@ func TestMicrosoftRecoveryHostileNative(t *testing.T) {
 		{name: "foreign property namespace cannot claim event", mutate: func(p *graphOwnedPage, _ *graphCreated) {
 			p.Value[0].Ownership[0].ID = "String {different} Name TimeMatchEventID"
 		}, wantErr: core.ErrTimeMatchConflict},
-		{name: "missing marker is not owned", mutate: func(p *graphOwnedPage, _ *graphCreated) { p.Value[0].Ownership = nil }, wantErr: core.ErrTimeMatchConflict},
+		{name: "missing marker leaves ownership unknown", mutate: func(p *graphOwnedPage, _ *graphCreated) { p.Value[0].Ownership = nil }, wantErr: core.ErrTimeMatchIndeterminate},
 		{name: "duplicate markers are ambiguous", mutate: func(p *graphOwnedPage, _ *graphCreated) {
 			p.Value[0].Ownership = append(p.Value[0].Ownership, p.Value[0].Ownership[0])
 		}, wantErr: core.ErrTimeMatchConflict},
@@ -198,9 +226,20 @@ func TestMicrosoftRecoveryHostileNative(t *testing.T) {
 				if r.URL.Path == graphEventsPath {
 					body := tc.raw
 					if body == "" {
-						body = graphEncoded(t, page)
+						body = graphCandidateCollection(t, page)
 					}
 					writeJSON(w, status, body)
+					return
+				}
+				if r.URL.Query().Has("$expand") {
+					requested := strings.TrimPrefix(r.URL.Path, graphEventsPath+"/")
+					for _, candidate := range page.Value {
+						if candidate.ID == requested {
+							writeJSON(w, 200, graphEncoded(t, candidate))
+							return
+						}
+					}
+					writeJSON(w, 404, `{}`)
 					return
 				}
 				details++
@@ -245,7 +284,7 @@ func TestMicrosoftMutationOwnershipNative(t *testing.T) {
 		{name: "owned event moved calendar still updates immutable id", wantEffects: 1},
 		{name: "foreign transaction cannot be mutated", mutate: func(m *graphOwnedMetadata) { m.TransactionID = "another" }, wantErr: core.ErrTimeMatchConflict},
 		{name: "foreign ownership cannot be mutated", mutate: func(m *graphOwnedMetadata) { m.Ownership[0].Value = "another" }, wantErr: core.ErrTimeMatchConflict},
-		{name: "unmarked event cannot be mutated", mutate: func(m *graphOwnedMetadata) { m.Ownership = nil }, wantErr: core.ErrTimeMatchConflict},
+		{name: "unmarked event cannot be mutated", mutate: func(m *graphOwnedMetadata) { m.Ownership = nil }, wantErr: core.ErrTimeMatchIndeterminate},
 		{name: "different immutable id cannot be mutated", mutate: func(m *graphOwnedMetadata) { m.ID = "different" }, wantErr: core.ErrTimeMatchConflict},
 		{name: "missing metadata cannot certify deletion", readStatus: 404, wantErr: core.ErrTimeMatchIndeterminate},
 		{name: "gone metadata cannot certify deletion", readStatus: 410, wantErr: core.ErrTimeMatchIndeterminate},
@@ -367,7 +406,16 @@ func FuzzMicrosoftOwnedMetadataSemanticClosure(f *testing.F) {
 		}
 		ownErr := got.owns(id)
 		wantOwned := got.TransactionID == eventIDFixture && len(got.Ownership) == 1 && got.Ownership[0].ID == graphOwnershipProperty && got.Ownership[0].Value == eventIDFixture
-		if wantOwned && ownErr != nil || !wantOwned && !errors.Is(ownErr, core.ErrTimeMatchConflict) {
+		contradictory := got.TransactionID != "" && got.TransactionID != eventIDFixture || len(got.Ownership) > 1
+		if len(got.Ownership) == 1 {
+			p := got.Ownership[0]
+			contradictory = contradictory || p.ID != "" && p.ID != graphOwnershipProperty || p.Value != "" && p.Value != eventIDFixture
+		}
+		wantErr := core.ErrTimeMatchIndeterminate
+		if contradictory {
+			wantErr = core.ErrTimeMatchConflict
+		}
+		if wantOwned && ownErr != nil || !wantOwned && !errors.Is(ownErr, wantErr) {
 			t.Fatalf("ownership error = %v facts %+v, want owned iff exact deterministic metadata", ownErr, got)
 		}
 		encoded, encodeErr := json.Marshal(got)
@@ -449,6 +497,15 @@ func TestMicrosoftTickPrecisionNative(t *testing.T) {
 
 func FuzzMicrosoftOwnedPageSemanticClosure(f *testing.F) {
 	seed := graphOwnedPage{Value: []graphOwnedMetadata{microsoftMetadata(immutableFixtureID, eventIDFixture)}}
+	documented := graphOwnedPage{Value: []graphOwnedMetadata{{ID: immutableFixtureID, TransactionID: eventIDFixture}}}
+	if err := documented.Validate(); err != nil {
+		f.Fatalf("documented candidate seed error = %v, want nil", err)
+	}
+	documentedBytes, documentedErr := json.Marshal(documented)
+	if documentedErr != nil {
+		f.Fatalf("documented candidate encode error = %v, want nil", documentedErr)
+	}
+	f.Add(documentedBytes)
 	if err := seed.Validate(); err != nil {
 		f.Fatalf("seed Validate error = %v, want nil", err)
 	}
@@ -733,6 +790,10 @@ func TestMicrosoftMetadataPagingNative(t *testing.T) {
 			client, _ := newNative(t, func(w http.ResponseWriter, r *http.Request, _ []byte) {
 				calls++
 				if r.URL.Path == graphEventsPath+"/"+immutableFixtureID {
+					if r.URL.Query().Has("$expand") {
+						writeJSON(w, 200, graphEncoded(t, microsoftMetadata(immutableFixtureID, owned.ID.value)))
+						return
+					}
 					body, err := json.Marshal(graphOwnedDetail(t, owned))
 					if err != nil {
 						t.Errorf("detail encode error = %v, want nil", err)
@@ -742,7 +803,7 @@ func TestMicrosoftMetadataPagingNative(t *testing.T) {
 				}
 				if r.URL.Query().Has("$skiptoken") {
 					if recovering {
-						writeJSON(w, 200, graphEncoded(t, graphOwnedPage{Value: []graphOwnedMetadata{microsoftMetadata(immutableFixtureID, owned.ID.value)}}))
+						writeJSON(w, 200, graphCandidateCollection(t, graphOwnedPage{Value: []graphOwnedMetadata{microsoftMetadata(immutableFixtureID, owned.ID.value)}}))
 					} else {
 						writeJSON(w, 200, string(seedJSON(t, seedGraphCalendars{Value: []seedGraphCalendar{{ID: "primary", IsDefaultCalendar: true, CanEdit: true}}})))
 					}
@@ -752,7 +813,7 @@ func TestMicrosoftMetadataPagingNative(t *testing.T) {
 				query.Set("$skiptoken", "opaque+/==")
 				next := "https://" + graphHost + r.URL.Path + "?" + query.Encode()
 				if recovering {
-					writeJSON(w, 200, graphEncoded(t, graphOwnedPage{Value: []graphOwnedMetadata{}, Next: next}))
+					writeJSON(w, 200, graphCandidateCollection(t, graphOwnedPage{Value: []graphOwnedMetadata{}, Next: next}))
 				} else {
 					writeJSON(w, 200, string(seedJSON(t, seedGraphCalendars{Value: []seedGraphCalendar{}, NextLink: next})))
 				}
@@ -761,8 +822,8 @@ func TestMicrosoftMetadataPagingNative(t *testing.T) {
 				write := eventWrite(t, oauthConnection(t, ProviderMicrosoft), owned)
 				write.Attempt = EventCreateRecoverOnly
 				got, err := client.PutEvent(t.Context(), write)
-				if err != nil || got.Ref.ID != owned.ID || got.Ref.Resource != immutableFixtureID || calls != 3 {
-					t.Fatalf("paged recovery = (%+v,%v) calls %d, want owned receipt and3GETs", got, err, calls)
+				if err != nil || got.Ref.ID != owned.ID || got.Ref.Resource != immutableFixtureID || calls != 4 {
+					t.Fatalf("paged recovery = (%+v,%v) calls %d, want owned receipt and4GETs", got, err, calls)
 				}
 			} else {
 				got, err := client.ListCalendars(t.Context(), CalendarListRequest{Connection: oauthConnection(t, ProviderMicrosoft), Policy: fixturePolicy(t)})
@@ -822,5 +883,89 @@ func TestMicrosoftRecoveryUsesDocumentedSingleResourceExpansion(t *testing.T) {
 	got, err := client.PutEvent(t.Context(), write)
 	if err != nil || got.Ref.ID != owned.ID || got.Ref.Resource != immutableFixtureID || collectionReads != 1 || ownershipReads != 1 || detailReads != 1 || mutations != 0 {
 		t.Fatalf("documented recovery = (%+v,%v), reads collection/ownership/detail %d/%d/%d mutations %d, want verified receipt through1/1/1 reads and0mutations", got, err, collectionReads, ownershipReads, detailReads, mutations)
+	}
+}
+
+func TestMicrosoftRecoveryCandidateRequiresResourceAuthority(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name        string
+		mutate      func(*graphOwnedMetadata)
+		status      int
+		raw         string
+		wantErr     error
+		wantDetails int
+	}{
+		{name: "exact individual expansion authorizes one own detail read", wantDetails: 1},
+		{name: "omitted individual expansion stays indeterminate", mutate: func(m *graphOwnedMetadata) { m.Ownership = nil }, wantErr: core.ErrTimeMatchIndeterminate},
+		{name: "missing individual transaction stays indeterminate", mutate: func(m *graphOwnedMetadata) { m.TransactionID = "" }, wantErr: core.ErrTimeMatchIndeterminate},
+		{name: "missing property id stays indeterminate", mutate: func(m *graphOwnedMetadata) { m.Ownership[0].ID = "" }, wantErr: core.ErrTimeMatchIndeterminate},
+		{name: "missing property value stays indeterminate", mutate: func(m *graphOwnedMetadata) { m.Ownership[0].Value = "" }, wantErr: core.ErrTimeMatchIndeterminate},
+		{name: "contradictory individual transaction is conflict", mutate: func(m *graphOwnedMetadata) { m.TransactionID = "another" }, wantErr: core.ErrTimeMatchConflict},
+		{name: "contradictory property namespace is conflict", mutate: func(m *graphOwnedMetadata) { m.Ownership[0].ID = "String {foreign} Name Other" }, wantErr: core.ErrTimeMatchConflict},
+		{name: "contradictory property value is conflict", mutate: func(m *graphOwnedMetadata) { m.Ownership[0].Value = "another" }, wantErr: core.ErrTimeMatchConflict},
+		{name: "explicit contradiction outranks another missing field", mutate: func(m *graphOwnedMetadata) { m.TransactionID = ""; m.Ownership[0].Value = "another" }, wantErr: core.ErrTimeMatchConflict},
+		{name: "duplicate individual ownership is conflict", mutate: func(m *graphOwnedMetadata) { m.Ownership = append(m.Ownership, m.Ownership[0]) }, wantErr: core.ErrTimeMatchConflict},
+		{name: "candidate disappeared before ownership read", status: 404, wantErr: core.ErrTimeMatchIndeterminate},
+		{name: "ownership consent revoked", status: 401, wantErr: core.ErrTimeMatchConsent},
+		{name: "malformed ownership response cannot imply conflict", raw: `{"id":`, wantErr: core.ErrTimeMatchIndeterminate},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			owned := intent(t, "primary", "Visit", "2026-11-02T15:00:00Z", "2026-11-02T16:00:00Z")
+			metadata := microsoftMetadata(immutableFixtureID, owned.ID.value)
+			if tc.mutate != nil {
+				tc.mutate(&metadata)
+			}
+			ownershipReads, detailReads, mutations := 0, 0, 0
+			client, _ := newNative(t, func(w http.ResponseWriter, r *http.Request, _ []byte) {
+				if r.Method != http.MethodGet {
+					mutations++
+					writeJSON(w, 500, `{}`)
+					return
+				}
+				if r.URL.Path == graphEventsPath {
+					if r.URL.Query().Has("$expand") {
+						t.Errorf("collection expand = %q, want absent documented candidate query", r.URL.Query().Get("$expand"))
+					}
+					writeJSON(w, 200, graphCandidateCollection(t, graphOwnedPage{Value: []graphOwnedMetadata{microsoftMetadata(immutableFixtureID, owned.ID.value)}}))
+					return
+				}
+				if r.URL.Query().Has("$expand") {
+					ownershipReads++
+					body := tc.raw
+					if body == "" {
+						body = graphEncoded(t, metadata)
+					}
+					status := tc.status
+					if status == 0 {
+						status = 200
+					}
+					writeJSON(w, status, body)
+					return
+				}
+				detailReads++
+				body, err := json.Marshal(graphOwnedDetail(t, owned))
+				if err != nil {
+					t.Errorf("detail encode error = %v, want nil", err)
+				}
+				writeJSON(w, 200, string(body))
+			})
+			write := eventWrite(t, oauthConnection(t, ProviderMicrosoft), owned)
+			write.Attempt = EventCreateRecoverOnly
+			got, err := client.PutEvent(t.Context(), write)
+			if tc.wantErr == nil {
+				if err != nil || got.Ref.ID != owned.ID {
+					t.Fatalf("owned expansion = (%+v,%v), want verified own receipt", got, err)
+				}
+			} else if !errors.Is(err, tc.wantErr) || got != (EventReceipt{}) {
+				t.Fatalf("unverified expansion = (%+v,%v), want zero and %v", got, err, tc.wantErr)
+			}
+			if ownershipReads != 1 || detailReads != tc.wantDetails || mutations != 0 {
+				t.Fatalf("ownership/detail reads = %d/%d mutations%d, want1/%d and0", ownershipReads, detailReads, mutations, tc.wantDetails)
+			}
+			noLeak(t, err)
+		})
 	}
 }
