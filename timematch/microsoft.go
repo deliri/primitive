@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
+	"strings"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
@@ -385,7 +386,12 @@ func (c Client) microsoftPut(ctx context.Context, w EventWrite) (EventReceipt, e
 }
 
 func (c Client) microsoftUpdate(ctx context.Context, u EventUpdate) (EventReceipt, error) {
-	if err := c.microsoftOwned(ctx, u.Connection, u.Ref, u.Policy); err != nil {
+	observed, err := c.microsoftOwned(ctx, u.Connection, u.Ref, u.Policy)
+	if err != nil {
+		return EventReceipt{}, err
+	}
+	condition, err := observed.condition()
+	if err != nil {
 		return EventReceipt{}, err
 	}
 	secrets, err := bearer(u.Connection.AccessToken)
@@ -404,15 +410,24 @@ func (c Client) microsoftUpdate(ctx context.Context, u EventUpdate) (EventReceip
 	if err != nil {
 		return EventReceipt{}, err
 	}
-	result, err := c.send(ctx, call{target: target, method: exchange.MethodPatch, body: body, requestType: core.HTTPMediaTypeJSON(), responseType: core.HTTPMediaTypeJSON(), headers: []exchange.Header{prefer}, secrets: secrets, policy: u.Policy, expected: http.StatusOK})
+	result, err := c.send(ctx, call{target: target, method: exchange.MethodPatch, body: body, requestType: core.HTTPMediaTypeJSON(), responseType: core.HTTPMediaTypeJSON(), headers: []exchange.Header{prefer, condition}, secrets: secrets, policy: u.Policy, expected: http.StatusOK})
 	if err != nil {
+		if result.status == http.StatusPreconditionFailed {
+			clear(result.body)
+			return EventReceipt{}, errors.Join(core.ErrTimeMatchConflict, err)
+		}
 		return EventReceipt{}, writeFailure(result, err)
 	}
 	return verifyGraph(result.body, graphExpectation{intent: u.Intent, calendar: u.Ref.Calendar, resource: u.Ref.Resource})
 }
 
 func (c Client) microsoftDelete(ctx context.Context, d EventDelete) (DeleteOutcome, error) {
-	if err := c.microsoftOwned(ctx, d.Connection, d.Ref, d.Policy); err != nil {
+	observed, err := c.microsoftOwned(ctx, d.Connection, d.Ref, d.Policy)
+	if err != nil {
+		return DeleteInvalid, err
+	}
+	condition, err := observed.condition()
+	if err != nil {
 		return DeleteInvalid, err
 	}
 	secrets, err := bearer(d.Connection.AccessToken)
@@ -427,13 +442,16 @@ func (c Client) microsoftDelete(ctx context.Context, d EventDelete) (DeleteOutco
 	if err != nil {
 		return DeleteInvalid, err
 	}
-	result, err := c.send(ctx, call{target: target, method: exchange.MethodDelete, secrets: secrets, headers: []exchange.Header{prefer}, policy: d.Policy, expected: http.StatusNoContent})
+	result, err := c.send(ctx, call{target: target, method: exchange.MethodDelete, secrets: secrets, headers: []exchange.Header{prefer, condition}, policy: d.Policy, expected: http.StatusNoContent})
 	defer clear(result.body)
 	if err != nil {
 		// Even immutable ids change on archive/export-and-reimport. A 404/410
 		// cannot establish deletion of the appointment beyond this mailbox.
 		if result.status == http.StatusNotFound || result.status == http.StatusGone {
 			return DeleteInvalid, core.ErrTimeMatchIndeterminate
+		}
+		if result.status == http.StatusPreconditionFailed {
+			return DeleteInvalid, errors.Join(core.ErrTimeMatchConflict, err)
 		}
 		return DeleteInvalid, writeFailure(result, err)
 	}
@@ -511,6 +529,7 @@ func (graphOwnedProperty) timematchInternalFlow() {}
 // graphOwnedMetadata admits no event titles, descriptions or participants.
 // A metadata query must establish ownership before any detail read or mutation.
 type graphOwnedMetadata struct {
+	ETag          string               `json:"@odata.etag,omitzero"`
 	ID            string               `json:"id"`
 	TransactionID string               `json:"transactionId"`
 	Ownership     []graphOwnedProperty `json:"singleValueExtendedProperties,omitzero"`
@@ -549,6 +568,20 @@ func (m graphOwnedMetadata) owns(id EventID) error {
 	return nil
 }
 
+// condition binds an OData mutation to the exact observed entity state. OData
+// 4.01 section8.2.4 permits weak entity tags; wildcard/list/absent tags are not
+// an observed single revision. No unconditional fallback is safe.
+func (m graphOwnedMetadata) condition() (exchange.Header, error) {
+	if !appleStrongETag(strings.TrimPrefix(m.ETag, "W/")) {
+		return exchange.Header{}, core.ErrTimeMatchIndeterminate
+	}
+	condition, err := header("If-Match", m.ETag)
+	if err != nil {
+		return exchange.Header{}, errors.Join(core.ErrTimeMatchIndeterminate, err)
+	}
+	return condition, nil
+}
+
 type graphOwnedPage struct {
 	Value []graphOwnedMetadata `json:"value"`
 	Next  string               `json:"@odata.nextLink"`
@@ -583,29 +616,32 @@ func graphOwnershipQuery() url.Values {
 
 // microsoftOwned checks a single immutable id without downloading any
 // event contents. Missing resources stay indeterminate, including archive moves.
-func (c Client) microsoftOwned(ctx context.Context, connection Connection, ref EventRef, policy exchange.OperationPolicy) error {
+func (c Client) microsoftOwned(ctx context.Context, connection Connection, ref EventRef, policy exchange.OperationPolicy) (graphOwnedMetadata, error) {
 	secrets, bearerErr := bearer(connection.AccessToken)
 	prefer, preferErr := header("Prefer", graphPreferUTC)
 	target, targetErr := endpoint(graphBase + "/me/events/" + url.PathEscape(ref.Resource) + "?" + graphOwnershipQuery().Encode())
 	if err := errors.Join(bearerErr, preferErr, targetErr); err != nil {
-		return err
+		return graphOwnedMetadata{}, err
 	}
 	result, err := c.send(ctx, call{target: target, method: exchange.MethodGet, secrets: secrets, headers: []exchange.Header{prefer}, responseType: core.HTTPMediaTypeJSON(), policy: policy, expected: http.StatusOK})
 	defer clear(result.body)
 	if err != nil {
 		if result.status == http.StatusNotFound || result.status == http.StatusGone {
-			return core.ErrTimeMatchIndeterminate
+			return graphOwnedMetadata{}, core.ErrTimeMatchIndeterminate
 		}
-		return readFailure(result, err)
+		return graphOwnedMetadata{}, readFailure(result, err)
 	}
 	metadata, err := decodeJSON[graphOwnedMetadata](result.body)
 	if err != nil {
-		return errors.Join(core.ErrTimeMatchIndeterminate, err)
+		return graphOwnedMetadata{}, errors.Join(core.ErrTimeMatchIndeterminate, err)
 	}
 	if metadata.ID != ref.Resource {
-		return core.ErrTimeMatchConflict
+		return graphOwnedMetadata{}, core.ErrTimeMatchConflict
 	}
-	return metadata.owns(ref.ID)
+	if err := metadata.owns(ref.ID); err != nil {
+		return graphOwnedMetadata{}, err
+	}
+	return metadata, nil
 }
 
 // microsoftRecover never creates an event. An empty or unavailable lookup is
@@ -647,7 +683,7 @@ func (c Client) microsoftRecover(ctx context.Context, w EventWrite) (EventReceip
 				return EventReceipt{}, core.ErrTimeMatchConflict
 			}
 			ref := EventRef{ID: w.Intent.ID, Provider: ProviderMicrosoft, Calendar: w.Intent.Calendar, Resource: metadata.ID}
-			if err := c.microsoftOwned(ctx, w.Connection, ref, w.Policy); err != nil {
+			if _, err := c.microsoftOwned(ctx, w.Connection, ref, w.Policy); err != nil {
 				return EventReceipt{}, err
 			}
 			if resource != "" {

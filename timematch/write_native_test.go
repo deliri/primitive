@@ -369,7 +369,7 @@ func TestMicrosoftEventsNative(t *testing.T) {
 		client, fixture := newNative(t, func(w http.ResponseWriter, r *http.Request, body []byte) {
 			switch {
 			case r.Method == http.MethodGet && r.URL.Path == "/v1.0/me/events/AAMkAGI2-event":
-				encoded, encodeErr := json.Marshal(graphOwnedMetadata{ID: "AAMkAGI2-event", TransactionID: eventIDFixture, Ownership: []graphOwnedProperty{{ID: graphOwnershipProperty, Value: eventIDFixture}}})
+				encoded, encodeErr := json.Marshal(graphOwnedMetadata{ETag: `W/"observed-revision"`, ID: "AAMkAGI2-event", TransactionID: eventIDFixture, Ownership: []graphOwnedProperty{{ID: graphOwnershipProperty, Value: eventIDFixture}}})
 				if encodeErr != nil {
 					t.Errorf("metadata encode error = %v, want nil", encodeErr)
 				}

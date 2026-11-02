@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"regexp"
 	"slices"
 	"strings"
 	"sync"
@@ -17,7 +18,7 @@ import (
 const immutableFixtureID = "AAk-immutable-owned"
 
 func microsoftMetadata(id, owner string) graphOwnedMetadata {
-	return graphOwnedMetadata{ID: id, TransactionID: owner, Ownership: []graphOwnedProperty{{ID: graphOwnershipProperty, Value: owner}}}
+	return graphOwnedMetadata{ETag: `W/"observed-revision"`, ID: id, TransactionID: owner, Ownership: []graphOwnedProperty{{ID: graphOwnershipProperty, Value: owner}}}
 }
 
 func graphEncoded(t testing.TB, value core.Validatable) string {
@@ -387,12 +388,19 @@ func FuzzMicrosoftOwnedMetadataSemanticClosure(f *testing.F) {
 		f.Fatalf("seed encode error = %v, want nil", err)
 	}
 	f.Add(raw)
+	for _, tag := range []string{`""`, `"strong"`, `W/"weak"`, `*`, `"one", "two"`, "\"line\r\n\""} {
+		variant := seed
+		variant.ETag = tag
+		f.Add(seedJSON(f, variant))
+	}
+	// Independent RFC7232 entity-tag grammar, including OData weak tags.
+	tagGrammar := regexp.MustCompile(`^(W/)?"[\x21\x23-\x7e\x{0080}-\x{10ffff}]*"$`)
 	f.Add([]byte(`{"id":"foreign","transactionId":"other"}`))
 	f.Add([]byte(`{"id":`))
 	f.Fuzz(func(t *testing.T, data []byte) {
 		got, err := decodeJSON[graphOwnedMetadata](data)
 		if err != nil {
-			if !errors.Is(err, core.ErrTimeMatchResponse) || got.ID != "" || got.TransactionID != "" || got.Ownership != nil {
+			if !errors.Is(err, core.ErrTimeMatchResponse) || got.ID != "" || got.TransactionID != "" || got.Ownership != nil || got.ETag != "" {
 				t.Fatalf("decode refusal = (%+v,%v), want zero typed response", got, err)
 			}
 			return
@@ -418,12 +426,27 @@ func FuzzMicrosoftOwnedMetadataSemanticClosure(f *testing.F) {
 		if wantOwned && ownErr != nil || !wantOwned && !errors.Is(ownErr, wantErr) {
 			t.Fatalf("ownership error = %v facts %+v, want owned iff exact deterministic metadata", ownErr, got)
 		}
+		condition, conditionErr := got.condition()
+		wantCondition := tagGrammar.MatchString(got.ETag)
+		if !wantCondition {
+			if !errors.Is(conditionErr, core.ErrTimeMatchIndeterminate) || len(condition.Values) != 0 {
+				t.Fatalf("unobserved revision condition=(%+v,%v), want zero and ErrTimeMatchIndeterminate", condition, conditionErr)
+			}
+		} else {
+			if conditionErr != nil || condition.Validate() != nil || condition.Name.String() != "If-Match" || len(condition.Values) != 1 {
+				t.Fatalf("observed revision condition=(%+v,%v), want valid single If-Match", condition, conditionErr)
+			}
+			value, valueErr := condition.Values[0].Value()
+			if valueErr != nil || value != got.ETag {
+				t.Fatalf("condition value=(%q,%v), want exact observed %q", value, valueErr, got.ETag)
+			}
+		}
 		encoded, encodeErr := json.Marshal(got)
 		if encodeErr != nil {
 			t.Fatalf("encode error = %v, want nil", encodeErr)
 		}
 		again, decodeErr := decodeJSON[graphOwnedMetadata](encoded)
-		if decodeErr != nil || again.ID != got.ID || again.TransactionID != got.TransactionID || len(again.Ownership) != len(got.Ownership) {
+		if decodeErr != nil || again.ID != got.ID || again.TransactionID != got.TransactionID || again.ETag != got.ETag || len(again.Ownership) != len(got.Ownership) {
 			t.Fatalf("round trip = (%+v,%v), want exact facts %+v", again, decodeErr, got)
 		}
 		second, secondErr := json.Marshal(again)
