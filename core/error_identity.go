@@ -662,6 +662,8 @@ const (
 	ErrInstagramResponse
 	// ErrInstagramBinding identifies media attached to a foreign host or route.
 	ErrInstagramBinding
+	// ErrInstagramAuthentication identifies a token Meta no longer accepts.
+	ErrInstagramAuthentication
 	errorIdentityLimit
 )
 
@@ -959,6 +961,7 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrInstagramContract, text: "instagram contract violation"},
 		{identity: ErrInstagramResponse, text: "instagram response invalid"},
 		{identity: ErrInstagramBinding, text: "instagram media binding invalid"},
+		{identity: ErrInstagramAuthentication, text: "instagram authentication failed"},
 	}
 }
 
@@ -1230,7 +1233,7 @@ func errorIdentityProviderParent(identity ErrorIdentity) ErrorIdentity {
 	if errorIdentityIn(identity, ErrGoogleComputeResponse, ErrGoogleComputeBinding) {
 		return ErrGoogleComputeContract
 	}
-	if errorIdentityIn(identity, ErrInstagramResponse, ErrInstagramBinding) {
+	if errorIdentityIn(identity, ErrInstagramResponse, ErrInstagramBinding, ErrInstagramAuthentication) {
 		return ErrInstagramContract
 	}
 	if errorIdentityIn(identity, ErrCloudBillingAuthentication, ErrCloudBillingResponse) {

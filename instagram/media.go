@@ -175,8 +175,9 @@ func (w mediaListWire) page(limit uint8) (MediaPage, error) {
 		if err != nil {
 			return MediaPage{}, err
 		}
+		// One media identity, and one post link, name exactly one post.
 		for _, prior := range page.Media {
-			if prior.ID == media.ID {
+			if prior.ID == media.ID || prior.Permalink == media.Permalink {
 				return MediaPage{}, core.ErrInstagramResponse
 			}
 		}

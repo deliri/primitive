@@ -99,43 +99,46 @@ func TestListMediaLayerTriad(t *testing.T) {
 	})
 }
 
-func TestCredentialCustody(t *testing.T) {
+// An owner must renew a token Meta refuses; everything else is a provider
+// failure. An unreadable failure body never becomes authentication.
+func TestListMediaFailureIdentity(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
-		name string
-		raw  string
-		want bool
+		name   string
+		status int
+		body   string
+		want   error
 	}{
-		{"real-length token", testToken, true},
-		{"one byte under the minimum", strings.Repeat("a", core.InstagramCredentialMinimumBytes-1), false},
-		{"exactly the minimum", strings.Repeat("a", core.InstagramCredentialMinimumBytes), true},
-		{"exactly the custody maximum", strings.Repeat("a", core.InstagramCredentialCustodyMaximumBytes), true},
-		{"one byte over the maximum", strings.Repeat("a", core.InstagramCredentialCustodyMaximumBytes+1), false},
-		{"empty", "", false},
-		{"embedded space", testToken[:20] + " " + testToken[21:], false},
-		{"newline", testToken + "\n", false},
-		{"non-ASCII", testToken + "é", false},
+		{"401 with no body", http.StatusUnauthorized, ``, core.ErrInstagramAuthentication},
+		{"403 with no body", http.StatusForbidden, ``, core.ErrInstagramAuthentication},
+		{"400 expired token, code 190", http.StatusBadRequest, `{"error":{"message":"Error validating access token: Session has expired","type":"OAuthException","code":190,"error_subcode":463,"fbtrace_id":"A1"}}`, core.ErrInstagramAuthentication},
+		{"400 revoked token, code 190 without subcode", http.StatusBadRequest, `{"error":{"message":"Invalid OAuth access token","type":"OAuthException","code":190}}`, core.ErrInstagramAuthentication},
+		{"400 bad parameter, code 100", http.StatusBadRequest, `{"error":{"message":"Unsupported get request","type":"GraphMethodException","code":100}}`, core.ErrInstagramResponse},
+		{"400 rate limit, code 4", http.StatusBadRequest, `{"error":{"message":"Application request limit reached","code":4,"is_transient":true}}`, core.ErrInstagramResponse},
+		{"400 code 190 as a string", http.StatusBadRequest, `{"error":{"code":"190"}}`, core.ErrInstagramResponse},
+		{"400 code 190 beside an undocumented member", http.StatusBadRequest, `{"error":{"code":190,"surprise":true}}`, core.ErrInstagramResponse},
+		{"400 unreadable body", http.StatusBadRequest, `<html>bad gateway</html>`, core.ErrInstagramResponse},
+		{"429 throttled", http.StatusTooManyRequests, `{"error":{"code":4}}`, core.ErrInstagramResponse},
+		{"500 provider outage", http.StatusInternalServerError, ``, core.ErrInstagramResponse},
+		{"200 with an unreadable body", http.StatusOK, `{"data":`, core.ErrInstagramResponse},
 	} {
-		credential, err := ParseCredential([]byte(tc.raw))
-		if tc.want != (err == nil) {
-			t.Fatalf("%s: %v", tc.name, err)
-		}
-		if err != nil && (!errors.Is(err, core.ErrInstagramContract) || credential.Validate() == nil) {
-			t.Fatalf("%s: refusal kept material or lost its cause: %v", tc.name, err)
-		}
-	}
-	credential, err := ParseCredential([]byte(testToken))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if text := fmt.Sprintf("%v %+v %s", credential, credential, credential); strings.Contains(text, testToken[:12]) {
-		t.Fatal("the credential formatted its value")
-	}
-	if err := credential.Close(); err != nil || credential.Validate() == nil {
-		t.Fatalf("Close left a usable credential: %v", err)
-	}
-	var missing *Credential
-	if !errors.Is(missing.Close(), core.ErrInstagramContract) {
-		t.Fatal("closing a nil credential must refuse")
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			fake := &metaFake{status: tc.status, body: tc.body}
+			page, err := fakeClient(t, fake).ListMedia(context.Background(), MediaListRequest{User: testUser(t), Limit: 12, Policy: testPolicy(t)})
+			if !errors.Is(err, tc.want) || !errors.Is(err, core.ErrInstagramContract) || len(page.Media) != 0 {
+				t.Fatalf("got %v with %d media, want %v", err, len(page.Media), tc.want)
+			}
+			other := core.ErrInstagramResponse
+			if tc.want == core.ErrInstagramResponse {
+				other = core.ErrInstagramAuthentication
+			}
+			if errors.Is(err, other) {
+				t.Fatalf("the failure carries both identities: %v", err)
+			}
+			if fake.calls.Load() != 1 {
+				t.Fatalf("a single-attempt policy made %d calls", fake.calls.Load())
+			}
+		})
 	}
 }
