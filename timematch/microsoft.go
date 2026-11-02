@@ -57,7 +57,7 @@ func graphNext(link string, path string, required url.Values) (core.HTTPEndpoint
 		return core.HTTPEndpoint{}, errors.Join(core.ErrTimeMatchResponse, err)
 	}
 	u := next.HTTPURL()
-	if u.Scheme != core.SchemeHTTPS || u.Host != graphHost || u.Path != path || u.User != nil {
+	if u.Scheme != core.SchemeHTTPS || u.Host != graphHost || u.EscapedPath() != path || u.User != nil {
 		return core.HTTPEndpoint{}, core.ErrTimeMatchResponse
 	}
 	query, queryErr := url.ParseQuery(u.RawQuery)
@@ -249,8 +249,9 @@ type graphViewPage struct {
 
 // showAs is closed: free, tentative, busy, oof, workingElsewhere, unknown.
 // free and workingElsewhere do not block; tentative, busy and oof do;
-// unknown cannot be classified and makes the calendar Unknown. All-day
-// blocking events have no absolute instants in this projection: Unknown.
+// unknown and future statuses conservatively block their own validated UTC
+// interval. All-day is a calendar presentation flag, not a reason to discard
+// known absolute endpoints. Unplaceable blocking intervals remain Unknown.
 func (p *graphViewPage) UnmarshalJSON(raw []byte) error {
 	var document struct {
 		Value []struct {
@@ -270,19 +271,18 @@ func (p *graphViewPage) UnmarshalJSON(raw []byte) error {
 	}
 	page := graphViewPage{next: document.NextLink, known: true}
 	for _, event := range document.Value {
+		if event.IsCancelled {
+			continue
+		}
 		blocking := false
 		switch event.ShowAs {
 		case "free", "workingElsewhere":
-		case "tentative", "busy", "oof":
+		case "tentative", "busy", "oof", "unknown":
 			blocking = true
 		default:
-			page.known = false
+			blocking = true
 		}
-		if event.IsCancelled || !blocking {
-			continue
-		}
-		if event.IsAllDay {
-			page.known = false
+		if !blocking {
 			continue
 		}
 		start, startErr := event.Start.instant()
@@ -303,9 +303,9 @@ type graphEventBody struct {
 	Subject       string               `json:"subject"`
 	Start         graphDateTime        `json:"start"`
 	End           graphDateTime        `json:"end"`
-	ShowAs        string               `json:"showAs"`
+	ShowAs        string               `json:"showAs,omitzero"`
 	TransactionID string               `json:"transactionId,omitzero"`
-	IsReminderOn  bool                 `json:"isReminderOn"`
+	IsReminderOn  *bool                `json:"isReminderOn,omitzero"`
 	Ownership     []graphOwnedProperty `json:"singleValueExtendedProperties,omitzero"`
 }
 
@@ -320,9 +320,9 @@ func graphEvent(intent EventIntent, create bool) ([]byte, error) {
 		return nil, errors.Join(core.ErrTimeMatchContract, err)
 	}
 	body := graphEventBody{
-		Subject: intent.Summary.value, ShowAs: "busy",
-		Start: graphDateTime{DateTime: start, TimeZone: graphUTCZone},
-		End:   graphDateTime{DateTime: end, TimeZone: graphUTCZone},
+		Subject: intent.Summary.value,
+		Start:   graphDateTime{DateTime: start, TimeZone: graphUTCZone},
+		End:     graphDateTime{DateTime: end, TimeZone: graphUTCZone},
 	}
 	// Graph's DateTimeTimeZone representation has 100 ns precision. Refuse
 	// a lossy interval before creating or moving any appointment.
@@ -336,6 +336,11 @@ func graphEvent(intent EventIntent, create bool) ([]byte, error) {
 	}
 
 	if create {
+		// PATCH omits preferences it does not own, preserving the calendar
+		// user's reminders and presence choice (Graph event-update).
+		body.ShowAs = "busy"
+		reminder := false
+		body.IsReminderOn = &reminder
 		// transactionId: "A custom identifier specified by a client app for the
 		// server to avoid redundant POST operations in case of client retries
 		// to create the same event." It cannot change in a later update.
@@ -605,8 +610,9 @@ func (c Client) microsoftOwned(ctx context.Context, connection Connection, ref E
 
 // microsoftRecover never creates an event. An empty or unavailable lookup is
 // not proof that a preceding POST failed: provider indexing may lag its commit.
-// Extended-property filtering is documented across the signed-in mailbox,
-// so a same-mailbox calendar move is still recoverable with ImmutableId.
+// Search only the explicitly selected calendar. A move away from that
+// collection without a previously saved resource remains indeterminate; this
+// path never broadens a visitor's read to other calendars or repeats POST.
 func (c Client) microsoftRecover(ctx context.Context, w EventWrite) (EventReceipt, error) {
 	secrets, bearerErr := bearer(w.Connection.AccessToken)
 	prefer, preferErr := header("Prefer", graphPreferUTC)
@@ -616,7 +622,8 @@ func (c Client) microsoftRecover(ctx context.Context, w EventWrite) (EventReceip
 	// resource; fetch that exact candidate before trusting ownership.
 	query.Del("$expand")
 	query.Set("$filter", "singleValueExtendedProperties/Any(ep: ep/id eq '"+graphOwnershipProperty+"' and ep/value eq '"+w.Intent.ID.value+"')")
-	target, targetErr := endpoint("https://" + graphHost + graphEventsPath + "?" + query.Encode())
+	collectionPath := graphCalendarPath(w.Intent.Calendar) + "/events"
+	target, targetErr := endpoint("https://" + graphHost + collectionPath + "?" + query.Encode())
 	if err := errors.Join(bearerErr, preferErr, targetErr); err != nil {
 		return EventReceipt{}, err
 	}
@@ -656,7 +663,7 @@ func (c Client) microsoftRecover(ctx context.Context, w EventWrite) (EventReceip
 		}
 		visited[page.Next] = struct{}{}
 		var nextErr error
-		target, nextErr = graphNext(page.Next, graphEventsPath, query)
+		target, nextErr = graphNext(page.Next, collectionPath, query)
 		if nextErr != nil {
 			return EventReceipt{}, errors.Join(core.ErrTimeMatchIndeterminate, nextErr)
 		}
