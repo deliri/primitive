@@ -115,12 +115,11 @@ func newADCClientWithTransport(ctx context.Context, request ADCClientRequest, ba
 		return nil, core.ErrCloudBillingContract
 	}
 	transport := base.Clone()
-	native, err := request.CredentialTimeout.Stdlib()
+	identityHTTP, err := discoveryHTTPClient(transport, request.CredentialTimeout)
 	if err != nil {
 		transport.CloseIdleConnections()
 		return nil, errors.Join(core.ErrCloudBillingContract, err)
 	}
-	identityHTTP := &http.Client{Transport: transport, Timeout: native}
 	detect := &credentials.DetectOptions{Scopes: []string{readOnlyScope}, Client: identityHTTP}
 	var creds *auth.Credentials
 	switch request.Credentials.Kind {
@@ -168,4 +167,40 @@ func (c *ADCClient) Close() error {
 	c.transport = nil
 	c.client = exchange.Client{}
 	return nil
+}
+
+// discoveryHTTPClient routes Google's credential discovery through Exchange's
+// bounded official-SDK boundary: metadata reads (text or JSON) as bounded
+// binary, token exchanges as JSON. Only the native client shape is Google's.
+func discoveryHTTPClient(transport *http.Transport, timeout temporal.Duration) (*http.Client, error) {
+	native, err := timeout.Stdlib()
+	if err != nil {
+		return nil, err
+	}
+	network, err := exchange.NewClient(&http.Client{Transport: transport})
+	if err != nil {
+		return nil, err
+	}
+	get, err := exchange.NewOfficialSDKMethodResponseBoundary(exchange.OfficialSDKMethodResponseBoundaryRequest{Method: exchange.MethodGet, Representation: exchange.OfficialSDKResponseRepresentationBinary})
+	if err != nil {
+		return nil, err
+	}
+	bounded, err := network.OfficialSDKResponseTransport(get)
+	if err != nil {
+		return nil, err
+	}
+	post, err := exchange.NewOfficialSDKMethodResponseBoundary(exchange.OfficialSDKMethodResponseBoundaryRequest{Method: exchange.MethodPost, Representation: exchange.OfficialSDKResponseRepresentationJSON})
+	if err != nil {
+		return nil, err
+	}
+	bounded, err = exchange.NewOfficialSDKResponseTransport(exchange.OfficialSDKResponseTransportRequest{Base: bounded, Boundary: post})
+	if err != nil {
+		return nil, err
+	}
+	client, err := exchange.NewOfficialSDKHTTPClient(bounded)
+	if err != nil {
+		return nil, err
+	}
+	client.Timeout = native
+	return client, nil
 }

@@ -4,6 +4,15 @@ import "github.com/deliri/primitive/v2026/core"
 
 var (
 	_ core.ValidatedJSONMarshaler = Identifier{}
+	_ core.ValidatedJSONMarshaler = GoBenchmarkRowKind(0)
+	_ core.ValidatedJSONMarshaler = RunArgument{}
+	_ core.ValidatedJSONMarshaler = RunFactKind(0)
+	_ core.ValidatedJSONMarshaler = RunKind(0)
+	_ core.ValidatedJSONMarshaler = RunResultKind(0)
+	_ core.ValidatedJSONMarshaler = RunScopeKind(0)
+	_ core.ValidatedJSONMarshaler = RunShuffleSeed{}
+	_ core.ValidatedJSONMarshaler = RunSourceKind(0)
+	_ core.ValidatedJSONMarshaler = TestLabel{}
 	_ core.ValidatedJSONMarshaler = Name{}
 	_ core.ValidatedJSONMarshaler = Text{}
 	_ core.ValidatedJSONMarshaler = SourcePath{}

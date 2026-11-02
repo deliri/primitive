@@ -15,8 +15,8 @@ import (
 
 const (
 	coreExportDependencyMaximum     = 32
-	coreSpecialExportAdmissionCount = 106 // Includes the Firestore SDK package identity.
-	coreProviderExportContractCount = 233
+	coreSpecialExportAdmissionCount = 110 // Includes the Firestore SDK package identity.
+	coreProviderExportContractCount = 238
 )
 
 type coreExportName string
@@ -104,6 +104,14 @@ func coherentDomainContractAdmission(name coreExportName, witness any) coreSpeci
 func coreSpecialExportAdmissions() [coreSpecialExportAdmissionCount]coreSpecialExportAdmission {
 	return [...]coreSpecialExportAdmission{
 		coherentDomainContractAdmission("JSONWhitespace", JSONWhitespace),
+		// Witness computes CRC32C upload checksums outside Primitive; a second
+		// in-repository consumer would invent an unrelated effect.
+		coherentDomainContractAdmission("CRC32COf", CRC32COf),
+		// Witness classifies its own error branches with the same agreement
+		// runnercontrol uses; both callers need one shared definition.
+		coherentDomainContractAdmission("ErrorBranchObservation", ErrorBranchObservation),
+		coherentDomainContractAdmission("ErrorBranchesMatch", ErrorBranchesMatch),
+		coherentDomainContractAdmission("ErrorBranchesRequest", ErrorBranchesRequest),
 		// Products share native exit-status representation with Process; another
 		// internal effect owner would create a competing execution authority.
 		coherentDomainContractAdmission("ProcessExitStatusMaximum", ProcessExitStatusMaximum),
@@ -249,11 +257,6 @@ func coreProviderExportContracts() [coreProviderExportContractCount]coreProvider
 		{name: "SignatureV4Algorithm", witness: SignatureV4Algorithm, consumer: PackageExchange},
 		{name: "SignatureV4KeyPrefix", witness: SignatureV4KeyPrefix, consumer: PackageExchange},
 		{name: "SignatureV4ScopeTerminator", witness: SignatureV4ScopeTerminator, consumer: PackageExchange},
-		{name: "SignatureV4AlgorithmQuery", witness: SignatureV4AlgorithmQuery, consumer: PackageExchange},
-		{name: "SignatureV4CredentialQuery", witness: SignatureV4CredentialQuery, consumer: PackageExchange},
-		{name: "SignatureV4DateQuery", witness: SignatureV4DateQuery, consumer: PackageExchange},
-		{name: "SignatureV4SignedHeadersQuery", witness: SignatureV4SignedHeadersQuery, consumer: PackageExchange},
-		{name: "SignatureV4SignatureQuery", witness: SignatureV4SignatureQuery, consumer: PackageExchange},
 		{name: "SignatureV4HostHeader", witness: SignatureV4HostHeader, consumer: PackageExchange},
 		{name: "SignatureV4ContentTypeHeader", witness: SignatureV4ContentTypeHeader, consumer: PackageExchange},
 		{name: "SignatureV4AuthorizationHeader", witness: SignatureV4AuthorizationHeader, consumer: PackageExchange},
@@ -261,7 +264,6 @@ func coreProviderExportContracts() [coreProviderExportContractCount]coreProvider
 		{name: "SignatureV4TraceHeader", witness: SignatureV4TraceHeader, consumer: PackageExchange},
 		{name: "SignatureV4ExpectHeader", witness: SignatureV4ExpectHeader, consumer: PackageExchange},
 		{name: "SignatureV4TransferEncodingHeader", witness: SignatureV4TransferEncodingHeader, consumer: PackageExchange},
-		{name: "SignatureV4HTTPSPort", witness: SignatureV4HTTPSPort, consumer: PackageExchange},
 		{name: "SignatureV4EscapeHex", witness: SignatureV4EscapeHex, consumer: PackageExchange},
 		{name: "SignatureV4QueryFieldUnknown", witness: SignatureV4QueryFieldUnknown, consumer: PackageExchange},
 		{name: "SignatureV4QuerySeparator", witness: SignatureV4QuerySeparator, consumer: PackageExchange},
@@ -270,9 +272,6 @@ func coreProviderExportContracts() [coreProviderExportContractCount]coreProvider
 		{name: "SignatureV4ValueListSeparator", witness: SignatureV4ValueListSeparator, consumer: PackageExchange},
 		{name: "SignatureV4HeaderValueSeparator", witness: SignatureV4HeaderValueSeparator, consumer: PackageExchange},
 		{name: "SignatureV4LineSeparator", witness: SignatureV4LineSeparator, consumer: PackageExchange},
-		{name: "SignatureV4PathSeparator", witness: SignatureV4PathSeparator, consumer: PackageExchange},
-		{name: "SignatureV4SpaceEncoding", witness: SignatureV4SpaceEncoding, consumer: PackageExchange},
-		{name: "SignatureV4FormSpace", witness: SignatureV4FormSpace, consumer: PackageExchange},
 		{name: "SignatureV4QueryField", witness: SignatureV4QueryField(0), consumer: PackageExchange},
 		{name: "PayPalWebhookEventMember", witness: PayPalWebhookEventMember, consumer: PackagePayPal},
 		{name: "StripeAPIHost", witness: StripeAPIHost, consumer: PackageStripe},
@@ -433,6 +432,20 @@ func coreProviderExportContracts() [coreProviderExportContractCount]coreProvider
 		{name: "AIOpenAIRequestIDHeader", witness: AIOpenAIRequestIDHeader, consumer: PackageAI},
 		{name: "AIAnthropicRequestIDHeader", witness: AIAnthropicRequestIDHeader, consumer: PackageAI},
 		{name: "PlunkAPIHost", witness: PlunkAPIHost, consumer: PackagePlunk},
+		{name: "S3EscapedPathSeparator", witness: S3EscapedPathSeparator, consumer: PackageObjectStore},
+		{name: "S3PresignMaximumSeconds", witness: S3PresignMaximumSeconds, consumer: PackageObjectStore},
+		{name: "S3PresignMinimumSeconds", witness: S3PresignMinimumSeconds, consumer: PackageObjectStore},
+		{name: "S3QueryExpires", witness: S3QueryExpires, consumer: PackageObjectStore},
+		{name: "S3SigningService", witness: S3SigningService, consumer: PackageObjectStore},
+		{name: "S3UnsignedPayload", witness: S3UnsignedPayload, consumer: PackageObjectStore},
+		{name: "InstagramGraphHost", witness: InstagramGraphHost, consumer: PackageInstagram},
+		{name: "InstagramGraphVersion", witness: InstagramGraphVersion, consumer: PackageInstagram},
+		{name: "InstagramCaptionMaximumCharacters", witness: InstagramCaptionMaximumCharacters, consumer: PackageInstagram},
+		{name: "InstagramAccessTokenErrorCode", witness: InstagramAccessTokenErrorCode, consumer: PackageInstagram},
+		{name: "InstagramMediaPageCustodyMaximum", witness: InstagramMediaPageCustodyMaximum, consumer: PackageInstagram},
+		{name: "InstagramMediaIDCustodyMaximumBytes", witness: InstagramMediaIDCustodyMaximumBytes, consumer: PackageInstagram},
+		{name: "InstagramCredentialMinimumBytes", witness: InstagramCredentialMinimumBytes, consumer: PackageInstagram},
+		{name: "InstagramCredentialCustodyMaximumBytes", witness: InstagramCredentialCustodyMaximumBytes, consumer: PackageInstagram},
 		{name: "PlunkIdempotencyKeyMaximumBytes", witness: PlunkIdempotencyKeyMaximumBytes, consumer: PackagePlunk},
 		{name: "PlunkCredentialMinimumBytes", witness: PlunkCredentialMinimumBytes, consumer: PackagePlunk},
 		{name: "PlunkCredentialCustodyMaximumBytes", witness: PlunkCredentialCustodyMaximumBytes, consumer: PackagePlunk},

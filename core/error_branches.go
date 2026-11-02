@@ -5,10 +5,13 @@ import "errors"
 // ErrorBranchObservation borrows one non-joined native error and its immediate
 // single Unwrap result. Neither value is a persisted classification or proof.
 type ErrorBranchObservation struct {
-	Error     error
+	// Error is the observed native error; it is never nil in a valid observation.
+	Error error
+	// Unwrapped is the single errors.Unwrap result of Error, or nil at a terminal cause.
 	Unwrapped error
 }
 
+// Validate refuses an observation without an error.
 func (o ErrorBranchObservation) Validate() error {
 	if IsNil(o.Error) {
 		return ErrPrimitiveContract
@@ -21,10 +24,13 @@ func (o ErrorBranchObservation) Validate() error {
 // a wrapper deliberately accepts that wrapper's subtree; joined nodes are always
 // expanded first, so one matching branch cannot authorize a different branch.
 type ErrorBranchesRequest struct {
-	Error  error
+	// Error is the root whose every joined branch must reach an accepted cause.
+	Error error
+	// Accept decides whether one observed wrapper or terminal cause is admitted.
 	Accept func(ErrorBranchObservation) bool
 }
 
+// Validate refuses a request without an Accept policy.
 func (r ErrorBranchesRequest) Validate() error {
 	if r.Accept == nil {
 		return ErrPrimitiveContract

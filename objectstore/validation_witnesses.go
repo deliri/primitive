@@ -1,18 +1,11 @@
 package objectstore
 
-import (
-	"fmt"
+import "github.com/deliri/primitive/v2026/core"
 
-	"github.com/deliri/primitive/v2026/core"
-)
-
+// Every JSON marshaler here also validates; the compiler holds the pair.
 var (
-	_ core.Validatable = Client{}
-	_ core.Validatable = Transfer{}
-	_ core.Validatable = VendorSpec{}
-	_ fmt.Formatter    = SignedURL{}
-	_ fmt.Formatter    = SignedHeader{}
-	_ fmt.Formatter    = SignedHeaders{}
-	_ fmt.Formatter    = UploadTarget{}
-	_ fmt.Formatter    = DownloadTarget{}
+	_ core.ValidatedJSONMarshaler = S3Bucket{}
+	_ core.ValidatedJSONMarshaler = S3Key{}
+	_ core.ValidatedJSONMarshaler = S3Region{}
+	_ core.ValidatedJSONMarshaler = s3CredentialValue{}
 )

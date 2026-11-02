@@ -48,6 +48,18 @@ var (
 
 var (
 	_ ValidatedJSONMarshaler = PackageIdentity(0)
+	_ ValidatedJSONMarshaler = OAuthAuthorizationCode{}
+	_ ValidatedJSONMarshaler = OAuthClientID{}
+	_ ValidatedJSONMarshaler = OAuthClientSecret{}
+	_ ValidatedJSONMarshaler = OAuthEmail{}
+	_ ValidatedJSONMarshaler = OAuthNonce{}
+	_ ValidatedJSONMarshaler = OAuthPKCEChallenge{}
+	_ ValidatedJSONMarshaler = OAuthPKCEVerifier{}
+	_ ValidatedJSONMarshaler = OAuthProfileName{}
+	_ ValidatedJSONMarshaler = OAuthProfileOutcome(0)
+	_ ValidatedJSONMarshaler = OAuthRedirectURI{}
+	_ ValidatedJSONMarshaler = OAuthState{}
+	_ ValidatedJSONMarshaler = OAuthSubject{}
 	_ ValidatedJSONMarshaler = PackageKind(0)
 	_ ValidatedJSONMarshaler = PackageRole(0)
 	_ ValidatedJSONMarshaler = ErrorIdentity(0)

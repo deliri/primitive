@@ -36,7 +36,7 @@ const (
 )
 
 const (
-	realWorldImportOwnerMaximum        = 15
+	realWorldImportOwnerMaximum        = 17
 	realWorldImportUseMaximum          = 64
 	realWorldCallUseMaximum            = 128
 	realWorldOperatingSystemPath       = "os"
@@ -443,13 +443,20 @@ func declaredRealWorldImports() (realWorldImportInventory, error) {
 			PackageCore, PackageDistribution, PackageFileLock, PackageFilestore, PackageHostFacts,
 			// Stripe, Twilio and Loops name Filestore's borrowed native root
 			// callback type; none admits an operating-system effect call.
-			PackageGoToolchain, PackageGitRepo, PackageProcess, PackageRelease, PackageRunWorkspace, PackageShutdown, PackageStripe, PackageTwilio, PackageLoops, PackageUpgrade),
+			PackageGoToolchain, PackageGitRepo, PackageProcess, PackageRelease, PackageRunWorkspace, PackageShutdown, PackageStripe, PackageTwilio, PackageLoops, PackageUpgrade,
+			// Exchange names only os.ErrDeadlineExceeded; Objectstore borrows an
+			// os.Root from its caller. Neither admits an operating-system call.
+			PackageExchange, PackageObjectStore),
 		realWorldImportOwners(realWorldSubstrateProcessExecution, PackageProcess),
 		realWorldImportOwners(realWorldSubstrateOperatingSystemSignal, PackageShutdown),
 		// GCS owns its provider client's HTTP transport and shutdown.
-		realWorldImportOwners(realWorldSubstrateHTTP, PackageExchange, PackageGoogleIdentity, PackageGCSObjects, PackageTailnet),
+		// Cloudbilling and Googlecompute name only the official SDK's native client
+		// shape and status constants; their requests cross Exchange boundaries.
+		realWorldImportOwners(realWorldSubstrateHTTP, PackageExchange, PackageGoogleIdentity, PackageGCSObjects, PackageTailnet, PackageCloudBilling, PackageGoogleCompute),
 		// Hostfacts reads the zone database; Temporal alone owns wall-clock observation.
-		realWorldImportOwners(realWorldSubstrateClock, PackageHostFacts, PackageTemporal, PackageTimeProof),
+		// Exchange, GCS objects, Runnercontrol and Background carry time.Time
+		// values only; the call inventory keeps observation with Temporal.
+		realWorldImportOwners(realWorldSubstrateClock, PackageHostFacts, PackageTemporal, PackageTimeProof, PackageExchange, PackageGCSObjects, PackageRunnerControl, PackageBackground),
 		realWorldImportOwners(realWorldSubstrateEntropy, PackageKeygen),
 		realWorldImportOwners(realWorldSubstrateUnix, PackageHostFacts),
 		realWorldImportOwners(realWorldSubstrateWindows, PackageFileLock, PackageHostFacts),
@@ -457,7 +464,7 @@ func declaredRealWorldImports() (realWorldImportInventory, error) {
 		realWorldImportOwners(realWorldSubstrateGoogleIAMCredentials, PackageGCSObjects),
 		realWorldImportOwners(realWorldSubstrateGoogleSecretManager, PackageSecretStore),
 		// Twilio uses only native host/port spelling, with no network effect.
-		realWorldImportOwners(realWorldSubstrateNetwork, PackageExchange, PackageGCSObjects, PackageTailnet, PackageTwilio),
+		realWorldImportOwners(realWorldSubstrateNetwork, PackageExchange, PackageTailnet, PackageTwilio),
 		realWorldImportOwners(realWorldSubstrateSyscall, PackageCore, PackageFileLock, PackageFilestore, PackageHostFacts, PackageProcess, PackageShutdown),
 	}
 	var inventory realWorldImportInventory
