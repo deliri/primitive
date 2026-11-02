@@ -11,6 +11,17 @@ import (
 	"github.com/deliri/primitive/v2026/core"
 )
 
+func appleReviewConnection(t testing.TB) Connection {
+	t.Helper()
+	connection := appleConnection(t)
+	t.Cleanup(func() {
+		if err := connection.Close(); err != nil {
+			t.Error(err)
+		}
+	})
+	return connection
+}
+
 func appleReviewUnfold(text string) string {
 	// Independent RFC5545 CRLF continuation oracle, not the production parser.
 	return strings.NewReplacer("\r\n ", "", "\r\n\t", "").Replace(text)
@@ -70,7 +81,7 @@ func TestAppleUpdatePreservesOwnedCalendarUserProperties(t *testing.T) {
 			})
 			next := intent(t, appleMutationHome, "Moved appointment", "2026-11-03T17:00:00Z", "2026-11-03T18:00:00Z")
 			ref := appleMutationRef(t)
-			got, err := client.UpdateEvent(t.Context(), EventUpdate{Connection: appleConnection(t), Ref: ref, Intent: next, ObservedAt: at(t, "2026-11-02T09:00:00Z"), Policy: fixturePolicy(t)})
+			got, err := client.UpdateEvent(t.Context(), EventUpdate{Connection: appleReviewConnection(t), Ref: ref, Intent: next, ObservedAt: at(t, "2026-11-02T09:00:00Z"), Policy: fixturePolicy(t)})
 			calls := provider.record()
 			if err != nil || got.Ref != ref || len(calls) != 2 || calls[0].method != http.MethodGet || calls[1].method != http.MethodPut || calls[1].header.Get("If-Match") != `"owned-revision"` {
 				t.Fatalf("owned update receipt%v error%v calls%d want GET then guarded PUT", got.Ref == ref, err, len(calls))
@@ -105,13 +116,13 @@ func TestAppleMissingPreflightNeverCertifiesOwnedAbsence(t *testing.T) {
 			var err error
 			if tc.deleting {
 				var got DeleteOutcome
-				got, err = client.DeleteEvent(t.Context(), EventDelete{Connection: appleConnection(t), Ref: appleMutationRef(t), Policy: fixturePolicy(t)})
+				got, err = client.DeleteEvent(t.Context(), EventDelete{Connection: appleReviewConnection(t), Ref: appleMutationRef(t), Policy: fixturePolicy(t)})
 				if got != DeleteInvalid {
 					t.Fatalf("unproven delete outcome%v want Invalid", got)
 				}
 			} else {
 				var got EventReceipt
-				got, err = client.UpdateEvent(t.Context(), EventUpdate{Connection: appleConnection(t), Ref: appleMutationRef(t), Intent: appleMutationIntent(t), ObservedAt: at(t, "2026-11-02T09:00:00Z"), Policy: fixturePolicy(t)})
+				got, err = client.UpdateEvent(t.Context(), EventUpdate{Connection: appleReviewConnection(t), Ref: appleMutationRef(t), Intent: appleMutationIntent(t), ObservedAt: at(t, "2026-11-02T09:00:00Z"), Policy: fixturePolicy(t)})
 				if got != (EventReceipt{}) {
 					t.Fatal("missing preflight produced mutation receipt")
 				}
@@ -128,7 +139,7 @@ func TestAppleMissingPreflightNeverCertifiesOwnedAbsence(t *testing.T) {
 // both forms emit Basic auth, but only the byte slice can be cleared by its owner.
 func TestAppleBasicHeaderOwnsClearableBytes(t *testing.T) {
 	t.Parallel()
-	connection := appleConnection(t)
+	connection := appleReviewConnection(t)
 	auth, err := basic(connection)
 	if err != nil {
 		t.Fatal(err)
@@ -139,6 +150,7 @@ func TestAppleBasicHeaderOwnsClearableBytes(t *testing.T) {
 		t.Fatalf("Apple auth type%v want clearable byte custody", value.Type())
 	}
 	raw := field.Bytes()
+	defer clear(raw)
 	if len(raw) == 0 {
 		t.Fatal("Apple header has no credential bytes")
 	}
