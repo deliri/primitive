@@ -498,11 +498,7 @@ func FuzzGoogleOwnedMetadataMutationClosure(f *testing.F) {
 		}
 		plainErr := json.Unmarshal(data, &independent)
 		bound := plainErr == nil && len(independent.Items) == 1 && independent.Items[0].ID == owned.ID.String() && independent.Items[0].ETag == `"revision1"` && independent.Next == ""
-		var strict struct {
-			Items []seedItem `json:"items"`
-			Next  string     `json:"nextPageToken"`
-		}
-		knownShape := json.Unmarshal(data, &strict, json.RejectUnknownMembers(true)) == nil && bound
+		knownShape := bound
 		state.mutex.Lock()
 		effects, details, notes := state.mutations, state.detailReplies, state.description
 		state.mutex.Unlock()
@@ -530,4 +526,15 @@ func FuzzGoogleOwnedMetadataMutationClosure(f *testing.F) {
 			t.Fatalf("accepted requests=%d,want filtered proof then exact conditional operation", len(calls))
 		}
 	})
+}
+
+func TestGoogleOwnedMetadataHarmlessExtrasRemainUsable(t *testing.T) {
+	t.Parallel()
+	client, _, state, owned := googleOwnedProvider(t, eventIDFixture)
+	state.metadataOverride = true
+	state.metadataReply = `{"items":[{"id":"` + owned.ID.String() + `","etag":"\"revision1\"","unusedProviderDetail":{"summary":7}}],"providerExtension":{"future":true}}`
+	got, err := client.DeleteEvent(t.Context(), EventDelete{Connection: oauthConnection(t, ProviderGoogle), Ref: EventRef{ID: owned.ID, Provider: ProviderGoogle, Calendar: owned.Calendar, Resource: owned.ID.String()}, Policy: fixturePolicy(t)})
+	if err != nil || got != Deleted || state.mutations != 1 {
+		t.Fatalf("bound metadata with irrelevant extras=(%v,%v),effects%d,want Deleted/nil/1", got, err, state.mutations)
+	}
 }
