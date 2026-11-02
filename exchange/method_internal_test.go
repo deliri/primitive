@@ -20,6 +20,7 @@ func TestMethodExhaustsClosedDomain(t *testing.T) {
 	}{
 		{method: MethodGet, wire: http.MethodGet}, {method: MethodHead, wire: http.MethodHead}, {method: MethodPost, wire: http.MethodPost},
 		{method: MethodPut, wire: http.MethodPut}, {method: MethodPatch, wire: http.MethodPatch}, {method: MethodDelete, wire: http.MethodDelete}, {method: MethodOptions, wire: http.MethodOptions},
+		{method: MethodPropfind, wire: "PROPFIND"}, {method: MethodReport, wire: "REPORT"},
 	}
 	cases := make([]struct {
 		wantErr  error

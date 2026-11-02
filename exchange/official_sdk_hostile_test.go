@@ -165,8 +165,8 @@ func TestOfficialSDKResponseBoundaryHostileConstructionMatrix(t *testing.T) {
 		{name: "query delimiter at suffix edge is refused", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/", suffix: "?", wantErr: core.ErrExchangeContract},
 		{name: "fragment delimiter at suffix edge is refused", constructor: officialSDKBoundarySelected, method: MethodGet, prefix: "/", suffix: "#", wantErr: core.ErrExchangeContract},
 		{name: "method immediately below domain is refused", constructor: officialSDKBoundaryAllPaths, method: MethodUnknown, wantErr: core.ErrExchangeContract},
-		{name: "last supported method is admitted", constructor: officialSDKBoundaryAllPaths, method: MethodOptions},
-		{name: "method immediately above domain is refused", constructor: officialSDKBoundaryAllPaths, method: MethodOptions + 1, wantErr: core.ErrExchangeContract},
+		{name: "last supported method is admitted", constructor: officialSDKBoundaryAllPaths, method: MethodReport},
+		{name: "method immediately above domain is refused", constructor: officialSDKBoundaryAllPaths, method: MethodReport + 1, wantErr: core.ErrExchangeContract},
 	}
 
 	runOfficialSDKBoundaryCases(t, validCases)

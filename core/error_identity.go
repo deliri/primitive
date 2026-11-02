@@ -656,6 +656,17 @@ const (
 	ErrGoogleComputeResponse
 	// ErrGoogleComputeBinding identifies a foreign resource or operation.
 	ErrGoogleComputeBinding
+
+	// ErrTimeMatchContract identifies an invalid TimeMatch capability or intent.
+	ErrTimeMatchContract
+	// ErrTimeMatchConsent identifies missing, insufficient or revoked provider consent.
+	ErrTimeMatchConsent
+	// ErrTimeMatchResponse identifies refused or malformed calendar provider facts.
+	ErrTimeMatchResponse
+	// ErrTimeMatchConflict identifies a provider event that differs from owned intent.
+	ErrTimeMatchConflict
+	// ErrTimeMatchIndeterminate identifies a sent write whose provider outcome is unknown.
+	ErrTimeMatchIndeterminate
 	errorIdentityLimit
 )
 
@@ -950,6 +961,11 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrGoogleComputeContract, text: "google compute contract violation"},
 		{identity: ErrGoogleComputeResponse, text: "google compute response invalid"},
 		{identity: ErrGoogleComputeBinding, text: "google compute resource binding invalid"},
+		{identity: ErrTimeMatchContract, text: "timematch contract violation"},
+		{identity: ErrTimeMatchConsent, text: "timematch provider consent unavailable"},
+		{identity: ErrTimeMatchResponse, text: "timematch provider response invalid"},
+		{identity: ErrTimeMatchConflict, text: "timematch provider event conflicts with intent"},
+		{identity: ErrTimeMatchIndeterminate, text: "timematch provider write outcome unknown"},
 	}
 }
 
@@ -1100,7 +1116,7 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrLifecycleIdentityContract, ErrReceiptContract, ErrChitContract,
 		ErrRetrievalContract, ErrPaymentContract, ErrControlWireContract,
 		ErrControlPlaneContract, ErrIDContract, ErrSecretStoreContract,
-		ErrStripeContract, ErrPayPalContract, ErrTwilioContract, ErrPlunkContract, ErrLoopsContract, ErrCloudflareContract, ErrGitHubContract, ErrCloudBillingContract, ErrGoogleComputeContract,
+		ErrStripeContract, ErrPayPalContract, ErrTwilioContract, ErrPlunkContract, ErrLoopsContract, ErrCloudflareContract, ErrGitHubContract, ErrCloudBillingContract, ErrGoogleComputeContract, ErrTimeMatchContract,
 		ErrCapabilitiesContract, ErrGoModuleContract, ErrGoToolchainContract, ErrGitRepositoryContract,
 		ErrProofLedgerContract, ErrTailnetContract, ErrAccessPermitContract, ErrPermitContract, ErrReportContract) {
 		return oneErrorIdentityParent(ErrPrimitiveContract)
@@ -1220,6 +1236,9 @@ func errorIdentityParentsSecretStoreThroughPayment(identity ErrorIdentity) error
 func errorIdentityProviderParent(identity ErrorIdentity) ErrorIdentity {
 	if errorIdentityIn(identity, ErrGoogleComputeResponse, ErrGoogleComputeBinding) {
 		return ErrGoogleComputeContract
+	}
+	if errorIdentityIn(identity, ErrTimeMatchConsent, ErrTimeMatchResponse, ErrTimeMatchConflict, ErrTimeMatchIndeterminate) {
+		return ErrTimeMatchContract
 	}
 	if errorIdentityIn(identity, ErrCloudBillingAuthentication, ErrCloudBillingResponse) {
 		return ErrCloudBillingContract

@@ -33,7 +33,7 @@ func FuzzOfficialSDKBoundaryCeilingAndStreamingConfiguration(f *testing.F) {
 	for _, size := range []int{officialSDKQueryValueMaximumBytes - 1, officialSDKQueryValueMaximumBytes, officialSDKQueryValueMaximumBytes + 1} {
 		f.Add(seed.PathPrefix, seed.PathSuffix, stream.StreamQueryName, strings.Repeat("v", size), uint8(seed.Method), uint8(seed.Representation))
 	}
-	for _, method := range []Method{MethodUnknown, MethodGet, MethodPost, MethodPut, MethodDelete, MethodPatch, MethodHead, MethodOptions, Method(255)} {
+	for _, method := range []Method{MethodUnknown, MethodGet, MethodPost, MethodPut, MethodDelete, MethodPatch, MethodHead, MethodOptions, MethodPropfind, MethodReport, Method(255)} {
 		f.Add(seed.PathPrefix, seed.PathSuffix, stream.StreamQueryName, stream.StreamQueryValue, uint8(method), uint8(seed.Representation))
 	}
 	for _, representation := range []OfficialSDKResponseRepresentation{OfficialSDKResponseRepresentationUnknown, OfficialSDKResponseRepresentationBinary, OfficialSDKResponseRepresentationJSON, OfficialSDKResponseRepresentation(255)} {
@@ -46,7 +46,7 @@ func FuzzOfficialSDKBoundaryCeilingAndStreamingConfiguration(f *testing.F) {
 			return
 		}
 		method, representation := Method(methodByte), OfficialSDKResponseRepresentation(representationByte)
-		validMethod := method == MethodGet || method == MethodPost || method == MethodPut || method == MethodDelete || method == MethodPatch || method == MethodHead || method == MethodOptions
+		validMethod := method == MethodGet || method == MethodPost || method == MethodPut || method == MethodDelete || method == MethodPatch || method == MethodHead || method == MethodOptions || method == MethodPropfind || method == MethodReport
 		validRepresentation := representation == OfficialSDKResponseRepresentationBinary || representation == OfficialSDKResponseRepresentationJSON
 		validCommon := validMethod && validRepresentation
 		validAffixes := len(prefix) > 0 && len(prefix) <= officialSDKPathAffixMaximumBytes && strings.HasPrefix(prefix, "/") && !strings.ContainsAny(prefix, "?#") && len(suffix) > 0 && len(suffix) <= officialSDKPathAffixMaximumBytes && !strings.ContainsAny(suffix, "?#")

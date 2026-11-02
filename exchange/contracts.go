@@ -67,7 +67,7 @@ func replayFacts() [replayLimit]replayFact {
 				MethodGet: true, MethodHead: true,
 				MethodPost: true, MethodPut: true,
 				MethodPatch: true, MethodDelete: true,
-				MethodOptions: true,
+				MethodOptions: true, MethodPropfind: true, MethodReport: true,
 			},
 		},
 		ReplaySingleAttemptWithIdempotencyKey: {
@@ -80,7 +80,7 @@ func replayFacts() [replayLimit]replayFact {
 			diagnostic: "safe",
 			methods: [methodLimit]bool{
 				MethodGet: true, MethodHead: true,
-				MethodOptions: true,
+				MethodOptions: true, MethodPropfind: true, MethodReport: true,
 			},
 		},
 		ReplayIdempotent: {

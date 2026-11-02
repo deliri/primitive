@@ -186,6 +186,8 @@ const (
 	PackageHashIO
 	// PackageGoogleCompute owns single-attempt zonal Compute wire contracts.
 	PackageGoogleCompute
+	// PackageTimeMatch owns Google, Microsoft and Apple calendar connection execution.
+	PackageTimeMatch
 	packageIdentityLimit
 )
 
@@ -307,6 +309,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageCloudBilling, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 			{Identity: PackageHashIO, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
 			{Identity: PackageGoogleCompute, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
+			{Identity: PackageTimeMatch, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 		},
 	}
 }
@@ -568,6 +571,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"cloudbilling",
 		"hashio",
 		"googlecompute",
+		"timematch",
 	}
 }
 
