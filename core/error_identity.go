@@ -664,6 +664,17 @@ const (
 	ErrInstagramBinding
 	// ErrInstagramAuthentication identifies a token Meta no longer accepts.
 	ErrInstagramAuthentication
+
+	// ErrTimeMatchContract identifies an invalid TimeMatch capability or intent.
+	ErrTimeMatchContract
+	// ErrTimeMatchConsent identifies missing, insufficient or revoked provider consent.
+	ErrTimeMatchConsent
+	// ErrTimeMatchResponse identifies refused or malformed calendar provider facts.
+	ErrTimeMatchResponse
+	// ErrTimeMatchConflict identifies a provider event that differs from owned intent.
+	ErrTimeMatchConflict
+	// ErrTimeMatchIndeterminate identifies a sent write whose provider outcome is unknown.
+	ErrTimeMatchIndeterminate
 	errorIdentityLimit
 )
 
@@ -962,6 +973,11 @@ func errorIdentityDiagnostics() [errorIdentityLimit]errorIdentityDiagnostic {
 		{identity: ErrInstagramResponse, text: "instagram response invalid"},
 		{identity: ErrInstagramBinding, text: "instagram media binding invalid"},
 		{identity: ErrInstagramAuthentication, text: "instagram authentication failed"},
+		{identity: ErrTimeMatchContract, text: "timematch contract violation"},
+		{identity: ErrTimeMatchConsent, text: "timematch provider consent unavailable"},
+		{identity: ErrTimeMatchResponse, text: "timematch provider response invalid"},
+		{identity: ErrTimeMatchConflict, text: "timematch provider event conflicts with intent"},
+		{identity: ErrTimeMatchIndeterminate, text: "timematch provider write outcome unknown"},
 	}
 }
 
@@ -1112,7 +1128,7 @@ func errorIdentityParents(identity ErrorIdentity) errorIdentityParentSet {
 		ErrLifecycleIdentityContract, ErrReceiptContract, ErrChitContract,
 		ErrRetrievalContract, ErrPaymentContract, ErrControlWireContract,
 		ErrControlPlaneContract, ErrIDContract, ErrSecretStoreContract,
-		ErrStripeContract, ErrPayPalContract, ErrTwilioContract, ErrPlunkContract, ErrLoopsContract, ErrCloudflareContract, ErrGitHubContract, ErrCloudBillingContract, ErrGoogleComputeContract, ErrInstagramContract,
+		ErrStripeContract, ErrPayPalContract, ErrTwilioContract, ErrPlunkContract, ErrLoopsContract, ErrCloudflareContract, ErrGitHubContract, ErrCloudBillingContract, ErrGoogleComputeContract, ErrInstagramContract, ErrTimeMatchContract,
 		ErrCapabilitiesContract, ErrGoModuleContract, ErrGoToolchainContract, ErrGitRepositoryContract,
 		ErrProofLedgerContract, ErrTailnetContract, ErrAccessPermitContract, ErrPermitContract, ErrReportContract) {
 		return oneErrorIdentityParent(ErrPrimitiveContract)
@@ -1235,6 +1251,9 @@ func errorIdentityProviderParent(identity ErrorIdentity) ErrorIdentity {
 	}
 	if errorIdentityIn(identity, ErrInstagramResponse, ErrInstagramBinding, ErrInstagramAuthentication) {
 		return ErrInstagramContract
+	}
+	if errorIdentityIn(identity, ErrTimeMatchConsent, ErrTimeMatchResponse, ErrTimeMatchConflict, ErrTimeMatchIndeterminate) {
+		return ErrTimeMatchContract
 	}
 	if errorIdentityIn(identity, ErrCloudBillingAuthentication, ErrCloudBillingResponse) {
 		return ErrCloudBillingContract

@@ -33,6 +33,8 @@ func TestRequestSemanticsLayerTriad(t *testing.T) {
 			{name: "safe GET can replay", method: exchange.MethodGet, replay: exchange.ReplaySafe},
 			{name: "safe HEAD can replay", method: exchange.MethodHead, replay: exchange.ReplaySafe},
 			{name: "safe OPTIONS can replay", method: exchange.MethodOptions, replay: exchange.ReplaySafe},
+			{name: "safe WebDAV PROPFIND can replay", method: exchange.MethodPropfind, replay: exchange.ReplaySafe},
+			{name: "safe WebDAV REPORT can replay", method: exchange.MethodReport, replay: exchange.ReplaySafe},
 			{name: "idempotent PUT can replay", method: exchange.MethodPut, replay: exchange.ReplayIdempotent},
 			{name: "idempotent DELETE can replay", method: exchange.MethodDelete, replay: exchange.ReplayIdempotent},
 			{name: "POST can replay under an explicit key", method: exchange.MethodPost, replay: exchange.ReplayIdempotencyKey, key: key},
@@ -123,6 +125,8 @@ func TestRequestSemanticsLayerTriad(t *testing.T) {
 			exchange.MethodPatch,
 			exchange.MethodDelete,
 			exchange.MethodOptions,
+			exchange.MethodPropfind,
+			exchange.MethodReport,
 		}
 		for _, method := range methods {
 			semantics := exchange.RequestSemantics{

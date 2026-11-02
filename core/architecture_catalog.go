@@ -190,6 +190,8 @@ const (
 	PackageInstagram
 	// PackageWebMCP owns the browser-native WebMCP tool registration executor.
 	PackageWebMCP
+	// PackageTimeMatch owns Google, Microsoft and Apple calendar connection execution.
+	PackageTimeMatch
 	packageIdentityLimit
 )
 
@@ -313,6 +315,7 @@ func PrimitiveArchitecture() ArchitectureCatalog {
 			{Identity: PackageGoogleCompute, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 			{Identity: PackageInstagram, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 			{Identity: PackageWebMCP, Kind: PackageKindProduction, Role: PackageRoleEffectCapability},
+			{Identity: PackageTimeMatch, Kind: PackageKindProduction, Role: PackageRoleWireProtocol},
 		},
 	}
 }
@@ -576,6 +579,7 @@ func packageIdentityTexts() [packageIdentityLimit]string {
 		"googlecompute",
 		"instagram",
 		"webmcp",
+		"timematch",
 	}
 }
 
