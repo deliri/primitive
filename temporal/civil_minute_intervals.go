@@ -123,7 +123,7 @@ func (l Location) walkCivilZonePeriods(window IntervalBounds, visit func(time.Ti
 		if err := visit(cursor, finish, offset); err != nil {
 			return err
 		}
-		cursor = finish
+		cursor = end
 	}
 	return nil
 }
