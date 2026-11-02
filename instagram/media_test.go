@@ -22,7 +22,15 @@ func testPolicy(t testing.TB) exchange.OperationPolicy {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return exchange.OperationPolicy{OperationTimeout: total, AttemptTimeout: attempt}
+	step, err := temporal.DurationFromMilliseconds(1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return exchange.OperationPolicy{
+		OperationTimeout: total, AttemptTimeout: attempt,
+		Retry:    exchange.RetryPolicy{BaseDelay: step, MaximumDelay: step, MaximumJitter: step, MaximumRetryAfter: step, MaximumWait: step, MaximumAttempts: 1},
+		Redirect: exchange.RedirectPolicy{Mode: exchange.RedirectReject},
+	}
 }
 
 func testUser(t testing.TB) UserID {
@@ -117,7 +125,8 @@ func validWire() mediaWire {
 
 func project(t testing.TB, items ...mediaWire) (MediaPage, error) {
 	t.Helper()
-	return mediaListWire{Data: items}.page(core.InstagramMediaPageMaximum)
+	// Meta always sends a data array; an empty account is [], never absent.
+	return mediaListWire{Data: append([]mediaWire{}, items...)}.page(core.InstagramMediaPageMaximum)
 }
 
 func TestMediaProjectionLayerTriad(t *testing.T) {
