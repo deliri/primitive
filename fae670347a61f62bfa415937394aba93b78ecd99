@@ -1,0 +1,33 @@
+{
+  "at": "2026-11-02T11:18:17.987559+00:00",
+  "version": "v2026.1.462",
+  "commit": "fae670347a61f62bfa415937394aba93b78ecd99",
+  "tree": "9a241f645da2b9593d69504d56e19108bcec167e",
+  "compiler_source": "2718949860e77983fca3e59ba9edeb7ad0c99b80",
+  "proof_sha256": "44c23f9d899c51c5eb238078a4419a0fea07e60c96cab9758ccafc7b3d9ddc2e",
+  "compass": [
+    {
+      "run": "2026-11-02-304a9c4f688e78934f3e8790d76b8e74ff51e6a0c42cb514668a4711ec356179",
+      "seal": "04a8615ed8e57b88addb2d31cac5daa3582937f05eaa72dcbe158a3db09d96b5",
+      "tests": 3,
+      "failures": [],
+      "native": [
+        {
+          "cpu_time_nanoseconds": "1471013000",
+          "stdin_bytes": 0,
+          "stdout_bytes": 6727,
+          "stderr_bytes": 0,
+          "peak_memory_bytes": 132780032,
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "owned_lint": 0,
+  "open_old_lint": {
+    "witness": 273,
+    "errcheck": 4
+  },
+  "publication": "source/tag; module verification pending",
+  "custody": "available SSD retained; HDD pending; explicit early-source custody limits retained"
+}
