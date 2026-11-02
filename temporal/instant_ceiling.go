@@ -16,7 +16,7 @@ func (i Instant) Ceiling(precision Precision) (Instant, error) {
 	if remainder == 0 {
 		return i, nil
 	}
-	adjustment := remainder
+	adjustment := -remainder
 	if remainder > 0 {
 		adjustment = unit - remainder
 	}
