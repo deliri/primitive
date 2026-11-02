@@ -57,12 +57,11 @@ type call struct {
 }
 
 // outcome is the transport fact behind one call: the HTTP status when one
-// arrived, the admitted body and captured headers, and whether bytes were sent.
+// arrived and the admitted body and captured headers.
 type outcome struct {
 	body     []byte
 	captured exchange.CapturedHeaders
 	status   int
-	sent     bool
 }
 
 func (c Client) send(ctx context.Context, request call) (outcome, error) {
@@ -93,7 +92,7 @@ func (c Client) send(ctx context.Context, request call) (outcome, error) {
 			},
 		})
 	}
-	result := outcome{body: response.Body, captured: response.Metadata.Headers, sent: response.Metadata.Attempts > 0}
+	result := outcome{body: response.Body, captured: response.Metadata.Headers}
 	var statusErr exchange.StatusError
 	switch {
 	case err == nil:
@@ -103,7 +102,6 @@ func (c Client) send(ctx context.Context, request call) (outcome, error) {
 		status, statusIntErr := statusErr.Status().Int()
 		if statusIntErr == nil {
 			result.status = status
-			result.sent = true
 		}
 	}
 	return result, err
@@ -119,13 +117,15 @@ func readFailure(result outcome, err error) error {
 	return errors.Join(core.ErrTimeMatchResponse, err)
 }
 
-// writeFailure maps a failed effect. A request that was sent and produced no
-// definitive provider refusal may have been applied: the caller retries the
-// same deterministic intent, which is verified rather than duplicated.
+// writeFailure maps a failed effect. Only Exchange's request refusal proves
+// nothing left the process. Any other failure without a definitive provider
+// status (transport loss, cancellation, unreadable response) may have been
+// applied: the caller retries the same deterministic intent, which is
+// verified rather than duplicated.
 func writeFailure(result outcome, err error) error {
 	clear(result.body)
 	switch {
-	case !result.sent:
+	case result.status == 0 && errors.Is(err, core.ErrExchangeRequest):
 		return errors.Join(core.ErrTimeMatchContract, err)
 	case result.status == http.StatusUnauthorized || result.status == http.StatusForbidden:
 		return errors.Join(core.ErrTimeMatchConsent, err)

@@ -429,6 +429,9 @@ func TestAppleAvailabilityNative(t *testing.T) {
 			})
 			got, err := client.Availability(t.Context(), AvailabilityRequest{Connection: appleConnection(t), Window: window(t, "2026-11-02T09:00:00Z", "2026-11-02T17:00:00Z"), Calendars: []CalendarID{calendarID(t, home)}, Policy: fixturePolicy(t)})
 			requests := fixture.record()
+			if len(requests) != 1 {
+				t.Fatalf("Availability(apple) sent %d requests (error %v, refused dials %q), want exactly one REPORT", len(requests), err, fixture.refusedDials())
+			}
 			body := string(requests[0].body)
 			if requests[0].method != "REPORT" || requests[0].header.Get("Depth") != "1" || requests[0].path != "/123456/calendars/home/" ||
 				!strings.Contains(body, `<c:expand start="20261102T090000Z" end="20261102T170000Z"/>`) || !strings.Contains(body, `<c:time-range start="20261102T090000Z" end="20261102T170000Z"/>`) {
