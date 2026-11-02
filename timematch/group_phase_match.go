@@ -9,7 +9,9 @@ import (
 )
 
 // GroupPhaseConstraint requires one resource only during its appointment phase,
-// [start+Offset-Before,start+Offset+Duration+After). The whole occupied phase
+// [start+Offset-OffsetBefore-Before,start+Offset-OffsetBefore+Duration+After).
+// Offset and OffsetBefore are mutually exclusive, defining a signed relative
+// anchor; a phase may lie wholly before or after the visit. The occupied phase
 // must fit Window. It is always hard: it is never a participant, attendance
 // score or removable-person bottleneck. Ordinals are unique within phases and
 // independent of participant ordinals. Availability covers the request Window.
@@ -26,14 +28,10 @@ type GroupPhaseConstraint struct {
 
 func groupPhaseContract(phases []GroupPhaseConstraint, index int, r GroupMatchRequest) error {
 	p := phases[index]
-	if index > 0 && p.Ordinal == phases[index-1].Ordinal || p.Availability.Window != r.Window || p.Duration.IsZero() {
+	if index > 0 && p.Ordinal == phases[index-1].Ordinal || p.Availability.Window != r.Window || p.Duration.IsZero() || !p.Offset.IsZero() && !p.OffsetBefore.IsZero() {
 		return core.ErrTimeMatchContract
 	}
-	if err := errors.Join(p.Availability.Validate(), p.Offset.Validate(), p.Duration.Validate(), p.Before.Validate(), p.After.Validate()); err != nil {
-		return errors.Join(core.ErrTimeMatchContract, err)
-	}
-	end, err := p.Offset.Add(p.Duration)
-	if err != nil || end.Nanoseconds() > r.Duration.Nanoseconds() {
+	if err := errors.Join(p.Availability.Validate(), p.Offset.Validate(), p.OffsetBefore.Validate(), p.Duration.Validate(), p.Before.Validate(), p.After.Validate()); err != nil {
 		return errors.Join(core.ErrTimeMatchContract, err)
 	}
 	span, err := p.Before.Add(p.Duration)
@@ -52,15 +50,40 @@ func groupPhaseContract(phases []GroupPhaseConstraint, index int, r GroupMatchRe
 type groupPhaseWindow struct{ first, limit, startShift, endShift int64 }
 
 func groupPhaseBounds(p *groupPreparation, phase GroupPhaseConstraint) groupPhaseWindow {
-	base := p.request.Before.Nanoseconds() + phase.Offset.Nanoseconds()
-	end := base + phase.Duration.Nanoseconds()
-	if phase.After.Nanoseconds() > p.input.horizon-end {
+	anchor := temporal.InstantFromNanoseconds(p.request.Before.Nanoseconds())
+	var err error
+	if phase.OffsetBefore.IsZero() {
+		anchor, err = anchor.Add(phase.Offset)
+	} else {
+		anchor, err = anchor.Subtract(phase.OffsetBefore)
+	}
+	if err != nil {
 		return groupPhaseWindow{}
 	}
-	end += phase.After.Nanoseconds()
-	first := max(int64(0), phase.Before.Nanoseconds()-base)
-	limit := min(p.limit, p.input.horizon-end+1)
-	return groupPhaseWindow{first: first, limit: limit, startShift: base - phase.Before.Nanoseconds(), endShift: end}
+	left, leftErr := anchor.Subtract(phase.Before)
+	right, rightErr := anchor.Add(phase.Duration)
+	if rightErr == nil {
+		right, rightErr = right.Add(phase.After)
+	}
+	if leftErr != nil || rightErr != nil {
+		return groupPhaseWindow{}
+	}
+	startShift, leftErr := left.Nanoseconds()
+	endShift, rightErr := right.Nanoseconds()
+	if leftErr != nil || rightErr != nil || startShift < -(p.limit-1) || endShift > p.input.horizon {
+		return groupPhaseWindow{}
+	}
+	// Earlier-than-MinInt64 shifts and later-than-MaxInt64 ends cannot fit any
+	// nonnegative cursor in this finite horizon. Temporal overflow above is thus
+	// an impossible fit, not permission to wrap or widen a resource constraint.
+	first := max(int64(0), -startShift)
+	limit := p.limit
+	// A nonpositive end shift cannot constrain the latest cursor. Avoid adding
+	// one to horizon-endShift, which need not have a signed representation.
+	if endShift > 0 {
+		limit = min(limit, p.input.horizon-endShift+1)
+	}
+	return groupPhaseWindow{first: first, limit: limit, startShift: startShift, endShift: endShift}
 }
 
 func groupHardBlock(p *groupPreparation, first, limit int64) {
@@ -101,6 +124,11 @@ func groupPreparePhase(ctx context.Context, p *groupPreparation, phase GroupPhas
 			right, rightErr := busy.End.Since(p.request.Window.Start)
 			if err := errors.Join(leftErr, rightErr); err != nil {
 				return errors.Join(core.ErrTimeMatchContract, err)
+			}
+			// If even the last admissible phase ends before this busy period,
+			// there is no overlap. This bounds subtraction with negative shifts.
+			if left.Nanoseconds() >= w.limit-1+w.endShift {
+				continue
 			}
 			first := max(w.first, left.Nanoseconds()-w.endShift+1)
 			// w.limit+startShift is within [0,horizon]. Clip here before

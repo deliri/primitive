@@ -92,8 +92,8 @@ func phaseBrute(tb testing.TB, r GroupMatchRequest) GroupMatchResult {
 	for start := origin + r.Before.Nanoseconds(); start <= last; start++ {
 		hardFree := true
 		for _, p := range r.PhaseConstraints {
-			left := start + p.Offset.Nanoseconds() - p.Before.Nanoseconds()
-			right := start + p.Offset.Nanoseconds() + p.Duration.Nanoseconds() + p.After.Nanoseconds()
+			left := start + p.Offset.Nanoseconds() - p.OffsetBefore.Nanoseconds() - p.Before.Nanoseconds()
+			right := start + p.Offset.Nanoseconds() - p.OffsetBefore.Nanoseconds() + p.Duration.Nanoseconds() + p.After.Nanoseconds()
 			if left < origin || right > end {
 				hardFree = false
 			}
@@ -239,14 +239,15 @@ func TestGroupPhaseHostileContracts(t *testing.T) {
 		name   string
 		change func(*GroupMatchRequest)
 	}{
+		{"both signed offset arms", func(r *GroupMatchRequest) {
+			r.PhaseConstraints[0].Offset = groupDuration(t, 1)
+			r.PhaseConstraints[0].OffsetBefore = groupDuration(t, 1)
+		}},
 		{"duplicate ordinal", func(r *GroupMatchRequest) { r.PhaseConstraints[1].Ordinal = 0 }},
 		{"window mismatch", func(r *GroupMatchRequest) {
 			r.PhaseConstraints[0].Availability.Window.End = temporal.InstantFromNanoseconds(7)
 		}},
 		{"zero duration", func(r *GroupMatchRequest) { r.PhaseConstraints[0].Duration = temporal.Duration{} }},
-		{"phase exceeds service", func(r *GroupMatchRequest) { r.PhaseConstraints[1].Duration = groupDuration(t, 2) }},
-		{"offset exceeds service", func(r *GroupMatchRequest) { r.PhaseConstraints[0].Offset = groupDuration(t, 5) }},
-		{"offset add overflow", func(r *GroupMatchRequest) { r.PhaseConstraints[0].Offset = groupDuration(t, math.MaxInt64) }},
 		{"before add overflow", func(r *GroupMatchRequest) { r.PhaseConstraints[0].Before = groupDuration(t, math.MaxInt64) }},
 		{"after add overflow", func(r *GroupMatchRequest) { r.PhaseConstraints[0].After = groupDuration(t, math.MaxInt64) }},
 		{"invalid state", func(r *GroupMatchRequest) {
@@ -405,7 +406,11 @@ func FuzzGroupPhaseSemanticOracle(f *testing.F) {
 		r.MaximumWindows = v >> 5 & 3
 		for i := range r.PhaseConstraints {
 			p := &r.PhaseConstraints[i]
-			p.Offset = groupDuration(t, int64(v>>uint(8+i*3))%r.Duration.Nanoseconds())
+			p.Offset = groupDuration(t, int64(v>>uint(8+i*3)&7))
+			if v>>uint(50+i)&1 != 0 {
+				p.OffsetBefore = p.Offset
+				p.Offset = temporal.Duration{}
+			}
 			p.Duration = groupDuration(t, 1)
 			p.Before = groupDuration(t, int64(v>>uint(14+i*2)&3))
 			p.After = groupDuration(t, int64(v>>uint(18+i*2)&3))
@@ -514,6 +519,75 @@ func TestGroupPhaseOutsideVisitAnchors(t *testing.T) {
 			got, err := MatchGroup(t.Context(), r)
 			if err != nil || len(got.Windows) != 1 || groupNS(t, got.Windows[0].Starts.Earliest) != c.first || groupNS(t, got.Windows[0].Starts.Latest) != c.last {
 				t.Fatalf("outside-visit match=%+v/%v want [%d,%d]", got, err, c.first, c.last)
+			}
+			phaseCompare(t, got, phaseBrute(t, r))
+		})
+	}
+}
+
+func TestGroupPhaseSignedOffsetsFiniteOracle(t *testing.T) {
+	t.Parallel()
+	for offset := int64(-5); offset <= 5; offset++ {
+		for duration := int64(1); duration <= 3; duration++ {
+			for before := int64(0); before < 2; before++ {
+				for after := int64(0); after < 2; after++ {
+					for mask := uint8(0); mask < 64; mask++ {
+						r := phaseFixture(t)
+						r.Duration = groupDuration(t, 2)
+						r.PhaseConstraints = r.PhaseConstraints[:1]
+						p := &r.PhaseConstraints[0]
+						p.Offset = groupDuration(t, max(int64(0), offset))
+						p.OffsetBefore = groupDuration(t, max(int64(0), -offset))
+						p.Duration = groupDuration(t, duration)
+						p.Before = groupDuration(t, before)
+						p.After = groupDuration(t, after)
+						p.Availability = groupPerson(t, r.Window, 0, true, AvailabilityKnown, phaseMask(mask)...).Availability
+						got, err := MatchGroup(t.Context(), r)
+						if err != nil {
+							t.Fatalf("signed offset%d duration%d buffers%d/%d mask%d: %v", offset, duration, before, after, mask, err)
+						}
+						phaseCompare(t, got, phaseBrute(t, r))
+					}
+				}
+			}
+		}
+	}
+}
+
+func TestGroupPhaseSignedOffsetExtrema(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name                                       string
+		offset, offsetBefore, before, globalBefore int64
+		busyStart                                  int64
+		wantCount                                  uint64
+		wantStart                                  int64
+	}{
+		{name: "positive anchor beyond signed sum cannot fit", offset: math.MaxInt64, globalBefore: 1, busyStart: -1},
+		{name: "minimum shift cannot fit any cursor", offsetBefore: math.MaxInt64, before: 1, busyStart: -1},
+		{name: "underflowing prefix cannot fit", offsetBefore: math.MaxInt64, before: 2, busyStart: -1},
+		{name: "negative extreme outside all cursors", offsetBefore: math.MaxInt64, busyStart: -1},
+		{name: "negative extreme exact last cursor", offsetBefore: math.MaxInt64 - 1, busyStart: -1, wantCount: 1, wantStart: math.MaxInt64 - 1},
+		{name: "negative extreme exact busy overlap", offsetBefore: math.MaxInt64 - 1, busyStart: 0},
+		{name: "negative shift far busy skips overflowing expansion", offsetBefore: math.MaxInt64 - 1, busyStart: math.MaxInt64 - 1, wantCount: 1, wantStart: math.MaxInt64 - 1},
+		{name: "positive extreme exact first cursor", offset: math.MaxInt64 - 1, busyStart: -1, wantCount: 1},
+		{name: "positive shift early busy cannot overlap", offset: math.MaxInt64 - 1, busyStart: 0, wantCount: 1},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			r := GroupMatchRequest{Window: temporal.IntervalBounds{Start: temporal.InstantFromNanoseconds(0), End: temporal.InstantFromNanoseconds(math.MaxInt64)}, Duration: groupDuration(t, 1), Before: groupDuration(t, c.globalBefore)}
+			a := groupPerson(t, r.Window, 0, true, AvailabilityKnown).Availability
+			if c.busyStart >= 0 {
+				a = groupPerson(t, r.Window, 0, true, AvailabilityKnown, [2]int64{c.busyStart, c.busyStart + 1}).Availability
+			}
+			r.PhaseConstraints = []GroupPhaseConstraint{{Availability: a, Offset: groupDuration(t, c.offset), OffsetBefore: groupDuration(t, c.offsetBefore), Duration: groupDuration(t, 1), Before: groupDuration(t, c.before)}}
+			got, err := MatchGroup(t.Context(), r)
+			if err != nil || got.FeasibleStartNanoseconds != c.wantCount {
+				t.Fatalf("signed extreme=%+v/%v want count%d", got, err, c.wantCount)
+			}
+			if c.wantCount == 1 && (len(got.Windows) != 1 || groupNS(t, got.Windows[0].Starts.Earliest) != c.wantStart || groupNS(t, got.Windows[0].Starts.Latest) != c.wantStart) {
+				t.Fatalf("signed extreme exact=%+v want%d", got, c.wantStart)
 			}
 		})
 	}
