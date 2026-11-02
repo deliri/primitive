@@ -205,8 +205,9 @@ func visitGoModMetadata(ctx context.Context, input goModMetadataVisit) (uint64, 
 	return count, contextstate.Validate(ctx)
 }
 
-func readCacheChecksum(ctx context.Context, path core.AbsolutePath) (value ModuleChecksum, err error) {
-	err = withModuleCacheFile(ctx, path, func(source io.Reader) error {
+func readCacheChecksum(ctx context.Context, path core.AbsolutePath) (ModuleChecksum, error) {
+	var value ModuleChecksum
+	err := withModuleCacheFile(ctx, path, func(source io.Reader) error {
 		reader := bufio.NewReader(source)
 		var hash [47]byte
 		used, ended := 0, false
