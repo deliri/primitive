@@ -216,6 +216,7 @@ func FuzzGoogleCalendarPageSemanticClosure(f *testing.F) {
 func FuzzGoogleFreeBusySemanticClosure(f *testing.F) {
 	f.Add(seedJSON(f, seedFreeBusy{TimeMin: "2026-11-02T09:00:00Z", TimeMax: "2026-11-02T17:00:00Z", Calendars: map[string]seedBusyCalendar{"a": {Busy: []seedBusy{{Start: "2026-11-02T10:00:00Z", End: "2026-11-02T11:00:00Z"}}}, "b": {Errors: []seedError{{Domain: "global", Reason: "notFound"}}, Busy: []seedBusy{}}}}))
 	f.Add(seedJSON(f, seedFreeBusy{TimeMin: "2026-11-02T09:00:00Z", TimeMax: "2026-11-02T17:00:00Z", Calendars: map[string]seedBusyCalendar{"a": {Busy: []seedBusy{{Start: "2026-11-02T11:00:00Z", End: "2026-11-02T10:00:00Z"}}}}}))
+	f.Add(seedJSON(f, seedFreeBusy{TimeMin: "2026-11-02T09:00:00Z", TimeMax: "2026-11-02T17:00:00Z", Calendars: map[string]seedBusyCalendar{"a": {Errors: []seedError{{Domain: "global", Reason: "internalError"}}, Busy: []seedBusy{{Start: "2026-11-02T10:00:00Z", End: "2026-11-02T11:00:00Z"}}}}}))
 	addHostile(f)
 	f.Fuzz(func(t *testing.T, data []byte) {
 		got, err := decodeJSON[googleFreeBusyResponse](data)

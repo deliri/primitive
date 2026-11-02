@@ -101,6 +101,25 @@ func TestGoogleRecoveryNeverRecreatesCancelledOrInvisibleEvent(t *testing.T) {
 	}
 }
 
+func TestGoogleDeletedTombstoneRetiresIdentityWithoutEventDetails(t *testing.T) {
+	t.Parallel()
+	owned := intent(t, "primary", "Review", "2026-11-02T15:00:00Z", "2026-11-02T15:30:00Z")
+	wire := seedJSON(t, struct {
+		ID     string `json:"id"`
+		Status string `json:"status"`
+	}{ID: owned.ID.String(), Status: "cancelled"})
+	client, fixture := newNative(t, func(w http.ResponseWriter, _ *http.Request, _ []byte) { writeJSON(w, 200, string(wire)) })
+	request := eventWrite(t, oauthConnection(t, ProviderGoogle), owned)
+	request.Attempt = EventCreateRecoverOnly
+	receipt, err := client.PutEvent(t.Context(), request)
+	if !errors.Is(err, core.ErrTimeMatchConflict) || errors.Is(err, core.ErrTimeMatchIndeterminate) || receipt != (EventReceipt{}) {
+		t.Fatalf("deleted tombstone recovery=(%+v,%v),want retired identity conflict", receipt, err)
+	}
+	if calls := fixture.record(); len(calls) != 1 || calls[0].method != http.MethodGet {
+		t.Fatalf("deleted identity calls=%d,want exactly one read and no resurrection", len(calls))
+	}
+}
+
 func TestGoogleDocumentedRestrictedWriterKeepsCalendarList(t *testing.T) {
 	t.Parallel()
 	roles := []string{"freeBusyReader", "reader", "writer", "writerWithoutPrivateAccess", "owner"}
