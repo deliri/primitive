@@ -20,8 +20,7 @@ function contract(condition) {
 }
 
 function instant(text) {
-  if (typeof text !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,9})?(Z|[+-]\d{2}:\d{2})$/.test(text)) return NaN;
-  return Date.parse(text);
+  try { return parseRFC3339Nanoseconds(text); } catch { return null; }
 }
 
 function samePath(path) {
@@ -38,12 +37,12 @@ function admitAvailability(document, start, end) {
     (document.state === 'known' || document.state === 'unknown') && Array.isArray(document.busy) &&
     (document.state === 'known' || document.busy.length === 0);
   if (!ok) throw timeMatchError(TimeMatchErrorIdentity.response);
-  let previous = -Infinity;
+  let previous = null;
   const busy = document.busy.map((span) => {
     const valid = span !== null && typeof span === 'object' && Object.keys(span).sort().join(',') === 'end,start';
-    const from = valid ? instant(span.start) : NaN;
-    const to = valid ? instant(span.end) : NaN;
-    if (!(from < to) || from < start || to > end || from <= previous) throw timeMatchError(TimeMatchErrorIdentity.response);
+    const from = valid ? instant(span.start) : null;
+    const to = valid ? instant(span.end) : null;
+    if (from === null || to === null || !(from < to) || from < start || to > end || previous !== null && from <= previous) throw timeMatchError(TimeMatchErrorIdentity.response);
     previous = to;
     return Object.freeze({start: span.start, end: span.end});
   });
@@ -66,7 +65,7 @@ export function createTimeMatchClient({exchange, routes} = {}) {
     async availability({start, end, signal} = {}) {
       const from = instant(start);
       const to = instant(end);
-      contract(from < to);
+      contract(from !== null && to !== null && from < to);
       const document = await send({path: paths.availability, method: 'POST', body: {start, end}, expectedStatus: 200, signal});
       return admitAvailability(document, from, to);
     },

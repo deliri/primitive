@@ -717,16 +717,20 @@ func (i EventIntent) Validate() error {
 // EventRef locates a provider event. Resource is the Google event id, the
 // Graph event id, or the absolute CalDAV resource URL.
 type EventRef struct {
+	ID       EventID
 	Calendar CalendarID
 	Resource string
 	Provider Provider
 }
 
 func (r EventRef) Validate() error {
-	if err := errors.Join(r.Provider.Validate(), r.Calendar.Validate()); err != nil {
+	if err := errors.Join(r.ID.Validate(), r.Provider.Validate(), r.Calendar.Validate()); err != nil {
 		return err
 	}
 	if !visibleASCII([]byte(r.Resource)) {
+		return core.ErrTimeMatchContract
+	}
+	if r.Provider == ProviderGoogle && r.Resource != r.ID.value {
 		return core.ErrTimeMatchContract
 	}
 	return nil
@@ -742,6 +746,7 @@ func (r EventReceipt) Validate() error { return r.Ref.Validate() }
 // EventWrite creates the intent or verifies that the same intent already
 // exists. ObservedAt is the iCalendar DTSTAMP for Apple.
 type EventWrite struct {
+	Attempt    EventCreationAttempt
 	Connection Connection
 	Intent     EventIntent
 	ObservedAt temporal.Instant
@@ -749,7 +754,7 @@ type EventWrite struct {
 }
 
 func (w EventWrite) Validate() error {
-	if err := errors.Join(w.Connection.Validate(), w.Intent.Validate(), w.ObservedAt.Validate(), validatePolicy(w.Policy)); err != nil {
+	if err := errors.Join(w.Attempt.Validate(), w.Connection.Validate(), w.Intent.Validate(), w.ObservedAt.Validate(), validatePolicy(w.Policy)); err != nil {
 		return errors.Join(core.ErrTimeMatchContract, err)
 	}
 	return nil
@@ -768,7 +773,7 @@ func (u EventUpdate) Validate() error {
 	if err := errors.Join(u.Connection.Validate(), u.Ref.Validate(), u.Intent.Validate(), u.ObservedAt.Validate(), validatePolicy(u.Policy)); err != nil {
 		return errors.Join(core.ErrTimeMatchContract, err)
 	}
-	if u.Ref.Provider != u.Connection.Provider || u.Ref.Calendar != u.Intent.Calendar {
+	if u.Ref.Provider != u.Connection.Provider || u.Ref.Calendar != u.Intent.Calendar || u.Ref.ID != u.Intent.ID {
 		return core.ErrTimeMatchContract
 	}
 	return nil

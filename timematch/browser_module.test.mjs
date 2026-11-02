@@ -150,3 +150,76 @@ test(`${engine}: timematch performs HTTP only through the injected exchange`, as
   expect(got.fetches).toBe(0);
   expect(got.spyCalls).toEqual(['/api/availability/known']);
 });
+
+
+// Temporal owns every browser instant; these run in the same real engine as
+// TimeMatch and exercise the actual Go-emitted module, not a copied parser.
+const baseNanos = 1793631600000000000n;
+const hourNanos = 3600000000000n;
+const minuteNanos = 60000000000n;
+for (const row of [
+  {name: 'epoch is a set zero instant', text: '1970-01-01T00:00:00Z', want: 0n},
+  {name: 'one nanosecond survives', text: '1970-01-01T00:00:00.000000001Z', want: 1n},
+  {name: 'one nanosecond before epoch survives', text: '1969-12-31T23:59:59.999999999Z', want: -1n},
+  {name: 'one below millisecond stays distinct', text: '1970-01-01T00:00:00.000999999Z', want: 999999n},
+  {name: 'exact millisecond remains exact', text: '1970-01-01T00:00:00.001Z', want: 1000000n},
+  {name: 'one above millisecond stays distinct', text: '1970-01-01T00:00:00.001000001Z', want: 1000001n},
+  {name: 'minimum signed nanoseconds', text: '1677-09-21T00:12:43.145224192Z', want: -(1n << 63n)},
+  {name: 'maximum signed nanoseconds', text: '2262-04-11T23:47:16.854775807Z', want: (1n << 63n) - 1n},
+  {name: 'Toronto winter offset', text: '2026-11-02T10:00:00-05:00', want: baseNanos},
+  {name: 'German winter offset', text: '2026-11-02T16:00:00+01:00', want: baseNanos},
+  {name: 'Kathmandu quarter hour offset', text: '2026-11-02T20:45:00+05:45', want: baseNanos},
+  {name: 'Chatham quarter hour offset', text: '2026-11-03T04:45:00+13:45', want: baseNanos},
+  {name: 'international date boundary east', text: '2026-11-03T05:00:00+14:00', want: baseNanos},
+  {name: 'international date boundary west', text: '2026-11-02T03:00:00-12:00', want: baseNanos},
+  {name: 'RFC positive offset ceiling', text: '2026-11-03T14:59:00+23:59', want: baseNanos},
+  {name: 'RFC negative offset ceiling', text: '2026-11-01T15:01:00-23:59', want: baseNanos},
+  {name: 'first Toronto repeated clock', text: '2026-11-01T01:30:00-04:00', want: baseNanos - 33n*hourNanos - 30n*minuteNanos},
+  {name: 'second Toronto repeated clock', text: '2026-11-01T01:30:00-05:00', want: baseNanos - 32n*hourNanos - 30n*minuteNanos},
+  {name: 'explicit negative zero offset', text: '2026-11-02T15:00:00-00:00', want: baseNanos},
+  {name: 'nine fraction digits retained', text: '2026-11-02T15:00:00.123456789Z', want: baseNanos+123456789n},
+  {name: 'one below signed minimum', text: '1677-09-21T00:12:43.145224191Z'},
+  {name: 'one above signed maximum', text: '2262-04-11T23:47:16.854775808Z'},
+  {name: 'impossible February date never normalizes', text: '2026-02-30T00:00:00Z'},
+  {name: 'nonleap February never normalizes', text: '2025-02-29T00:00:00Z'},
+  {name: 'hour twenty four never normalizes', text: '2026-11-02T24:00:00Z'},
+  {name: 'minute sixty refused', text: '2026-11-02T15:60:00Z'},
+  {name: 'leap second refused consistently with Instant', text: '2026-11-02T15:00:60Z'},
+  {name: 'offset twenty four refused', text: '2026-11-02T15:00:00+24:00'},
+  {name: 'offset minute sixty refused', text: '2026-11-02T15:00:00+00:60'},
+  {name: 'ten fraction digits cannot round', text: '2026-11-02T15:00:00.1234567890Z'},
+  {name: 'timezone missing refused', text: '2026-11-02T15:00:00'},
+  {name: 'timezone lowercase refused', text: '2026-11-02T15:00:00z'},
+  {name: 'leading whitespace refused', text: ' 2026-11-02T15:00:00Z'},
+  {name: 'trailing newline refused', text: '2026-11-02T15:00:00Z\n'.replace('\\n','\n')},
+  {name: 'empty text refused', text: ''},
+  {name: 'null is no timestamp', text: null},
+  {name: 'number is no timestamp', text: 0},
+  {name: 'unknown source object refused', text: {time:'2026-11-02T15:00:00Z'}},
+]) {
+  test(`${engine}: Temporal ${row.name}`, async () => {
+    const got = await view.evaluate(`(async () => {
+      const {parseRFC3339Nanoseconds, TemporalErrorIdentity} = await import('/timematch.js');
+      try { return {value: parseRFC3339Nanoseconds(${JSON.stringify(row.text)}).toString()}; }
+      catch(error) { return {refused: error.primitiveIdentity === TemporalErrorIdentity.contract}; }
+    })()`);
+    if (row.want !== undefined) expect(got).toEqual({value:row.want.toString()});
+    else expect(got).toEqual({refused:true});
+  });
+}
+
+const nanoWindow = {start: '2026-11-02T15:00:00.000000001Z',end: '2026-11-02T15:00:00.000000009Z'};
+for (const row of [
+  {name:'one nanosecond busy interval remains occupied', busy:[{start:'2026-11-02T15:00:00.000000003Z',end:'2026-11-02T15:00:00.000000004Z'}],valid:true},
+  {name:'busy starts before window by one nanosecond',busy:[{start:'2026-11-02T15:00:00Z',end:'2026-11-02T15:00:00.000000004Z'}]},
+  {name:'busy ends after window by one nanosecond',busy:[{start:'2026-11-02T15:00:00.000000003Z',end:'2026-11-02T15:00:00.000000010Z'}]},
+  {name:'nanosecond zero-length busy is refused',busy:[{start:'2026-11-02T15:00:00.000000003Z',end:'2026-11-02T15:00:00.000000003Z'}]},
+  {name:'same-millisecond foreign window is refused',busy:[],responseStart:'2026-11-02T15:00:00.000000002Z'},
+]){
+ test(`${engine}: TimeMatch ${row.name}`,async()=>{
+  const document={...nanoWindow,start:row.responseStart??nanoWindow.start,state:'known',busy:row.busy};
+  const got=await run({method:'availability',scenario:'nanoseconds',args:nanoWindow,spyDocument:document});
+  if(row.valid)expect(got.ok).toEqual(document);
+  else expect(got.identity).toBe(got.identities.response);
+ });
+}

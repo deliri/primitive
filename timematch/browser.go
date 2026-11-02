@@ -22,7 +22,7 @@ var browserModuleSource string
 // BrowserModule emits the TimeMatch browser client. It performs HTTP only
 // through exchange.BrowserModule's sendJSON, which the application injects.
 func BrowserModule() string {
-	return strings.NewReplacer(
+	return temporal.BrowserModule() + "\n" + strings.NewReplacer(
 		"__CONTRACT_IDENTITY__", strconv.Itoa(int(core.ErrTimeMatchContract)),
 		"__RESPONSE_IDENTITY__", strconv.Itoa(int(core.ErrTimeMatchResponse)),
 	).Replace(browserModuleSource)

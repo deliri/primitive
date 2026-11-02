@@ -292,7 +292,7 @@ func FuzzProviderEventObservations(f *testing.F) {
 		owned := intent(t, "primary", "Visit", "2026-11-02T15:00:00Z", "2026-11-02T16:00:00Z")
 		for _, verify := range []func([]byte) (EventReceipt, error){
 			func(body []byte) (EventReceipt, error) {
-				return verifyGoogle(body, owned, EventRef{Provider: ProviderGoogle, Calendar: owned.Calendar, Resource: owned.ID.value})
+				return verifyGoogle(body, owned, EventRef{ID: owned.ID, Provider: ProviderGoogle, Calendar: owned.Calendar, Resource: owned.ID.value})
 			},
 			func(body []byte) (EventReceipt, error) {
 				return verifyGraph(body, graphExpectation{intent: owned, calendar: owned.Calendar, create: true})
