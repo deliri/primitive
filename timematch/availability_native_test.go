@@ -391,11 +391,6 @@ func vevent(lines ...string) string {
 	return "BEGIN:VEVENT\r\nSUMMARY:" + privateMarker + "\r\n" + strings.Join(lines, "\r\n") + "\r\nEND:VEVENT\r\n"
 }
 
-func calendarData(ics string) string {
-	escaped := strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;").Replace(ics)
-	return `<c:calendar-data>` + escaped + `</c:calendar-data>`
-}
-
 func vfreebusy(lines ...string) string {
 	return "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Apple Inc.//iCloud//EN\r\nBEGIN:VFREEBUSY\r\nDTSTART:20261102T090000Z\r\nDTEND:20261102T170000Z\r\n" + strings.Join(append(lines, ""), "\r\n") + "END:VFREEBUSY\r\nEND:VCALENDAR\r\n"
 }
