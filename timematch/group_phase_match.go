@@ -18,6 +18,7 @@ type GroupPhaseConstraint struct {
 	Ordinal      uint64
 	Availability Availability
 	Offset       temporal.Duration
+	OffsetBefore temporal.Duration
 	Duration     temporal.Duration
 	Before       temporal.Duration
 	After        temporal.Duration

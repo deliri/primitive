@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"reflect"
 	"slices"
 	"testing"
 
@@ -25,6 +24,7 @@ func phaseFixture(tb testing.TB) GroupMatchRequest {
 // not an old whole-service matching bug. This actual phase request is the
 // correctness contract: [2,4) processing must not consume either staff phase.
 func TestGroupPhaseProcessingGap(t *testing.T) {
+	t.Parallel()
 	r := phaseFixture(t)
 	r.Window.End = temporal.InstantFromNanoseconds(6)
 	r.Duration = groupDuration(t, 6)
@@ -200,6 +200,7 @@ func phaseClone(r GroupMatchRequest) GroupMatchRequest {
 }
 
 func TestGroupPhaseFiniteOccupancyOracle(t *testing.T) {
+	t.Parallel()
 	for mask := 0; mask < 4096; mask++ {
 		r := phaseFixture(t)
 		for i := range r.PhaseConstraints {
@@ -213,7 +214,7 @@ func TestGroupPhaseFiniteOccupancyOracle(t *testing.T) {
 			t.Fatalf("mask=%d: %v", mask, err)
 		}
 		phaseCompare(t, got, phaseBrute(t, r))
-		if !reflect.DeepEqual(r, before) {
+		if !phaseSameRequest(r, before) {
 			t.Fatalf("mask=%d mutated input", mask)
 		}
 	}
@@ -233,6 +234,7 @@ func phaseMask(mask uint8) [][2]int64 {
 }
 
 func TestGroupPhaseHostileContracts(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name   string
 		change func(*GroupMatchRequest)
@@ -262,14 +264,15 @@ func TestGroupPhaseHostileContracts(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
 			r := phaseFixture(t)
 			c.change(&r)
 			before := phaseClone(r)
 			got, err := MatchGroup(t.Context(), r)
-			if !errors.Is(err, core.ErrTimeMatchContract) || !reflect.DeepEqual(got, GroupMatchResult{}) || r.Validate() == nil {
+			if !errors.Is(err, core.ErrTimeMatchContract) || !phaseResultZero(got) || r.Validate() == nil {
 				t.Fatalf("got=%+v/%v want zero contract refusal", got, err)
 			}
-			if !reflect.DeepEqual(r, before) {
+			if !phaseSameRequest(r, before) {
 				t.Fatal("mutated invalid input")
 			}
 		})
@@ -277,8 +280,10 @@ func TestGroupPhaseHostileContracts(t *testing.T) {
 }
 
 func TestGroupPhaseBoundaryTriads(t *testing.T) {
+	t.Parallel()
 	for index := 0; index < 24; index++ {
 		t.Run(fmt.Sprint(index), func(t *testing.T) {
+			t.Parallel()
 			r := phaseFixture(t)
 			switch index {
 			case 0:
@@ -340,8 +345,10 @@ func TestGroupPhaseBoundaryTriads(t *testing.T) {
 }
 
 func TestGroupPhaseSignedExtremaAndCardinality(t *testing.T) {
+	t.Parallel()
 	for _, origin := range []int64{math.MinInt64, math.MaxInt64 - 8} {
 		t.Run(fmt.Sprint(origin), func(t *testing.T) {
+			t.Parallel()
 			r := phaseFixture(t)
 			r.Window.Start = temporal.InstantFromNanoseconds(origin)
 			r.Window.End = temporal.InstantFromNanoseconds(origin + 8)
@@ -369,6 +376,7 @@ func TestGroupPhaseSignedExtremaAndCardinality(t *testing.T) {
 }
 
 func TestGroupPhaseCancellationZeroResult(t *testing.T) {
+	t.Parallel()
 	cause := errors.New("phase test cause")
 	ctx, cancel := context.WithCancelCause(t.Context())
 	cancel(cause)
@@ -376,7 +384,7 @@ func TestGroupPhaseCancellationZeroResult(t *testing.T) {
 		r := phaseFixture(t)
 		r.PhaseConstraints[0].Availability = groupPerson(t, r.Window, 0, true, AvailabilityKnown, [2]int64{2, 3}, [2]int64{5, 6}).Availability
 		got, err := MatchGroup(c, r)
-		if err == nil || !reflect.DeepEqual(got, GroupMatchResult{}) {
+		if err == nil || !phaseResultZero(got) {
 			t.Fatalf("cancellation=%+v/%v", got, err)
 		}
 		if c == ctx && !errors.Is(err, cause) {
@@ -416,7 +424,7 @@ func FuzzGroupPhaseSemanticOracle(f *testing.F) {
 			t.Fatal(err)
 		}
 		phaseCompare(t, got, phaseBrute(t, r))
-		if !reflect.DeepEqual(r, before) {
+		if !phaseSameRequest(r, before) {
 			t.Fatal("mutated source")
 		}
 		slices.Reverse(r.PhaseConstraints)
@@ -431,6 +439,7 @@ func FuzzGroupPhaseSemanticOracle(f *testing.F) {
 // Extreme buffers are valid durations; fitting and overlap must be decided
 // without overflowing start-shift subtraction or end-shift addition.
 func TestGroupPhaseExtremeBuffers(t *testing.T) {
+	t.Parallel()
 	cases := []struct {
 		name                                                   string
 		offset, duration, before, after, service, globalBefore int64
@@ -446,6 +455,7 @@ func TestGroupPhaseExtremeBuffers(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
 			r := GroupMatchRequest{Window: temporal.IntervalBounds{Start: temporal.InstantFromNanoseconds(0), End: temporal.InstantFromNanoseconds(math.MaxInt64)}, Duration: groupDuration(t, c.service), Before: groupDuration(t, c.globalBefore)}
 			a := groupPerson(t, r.Window, 0, true, AvailabilityKnown).Availability
 			if c.busy {
@@ -458,6 +468,52 @@ func TestGroupPhaseExtremeBuffers(t *testing.T) {
 			}
 			if c.wantCount == 1 && (len(got.Windows) != 1 || groupNS(t, got.Windows[0].Starts.Earliest) != c.wantStart || groupNS(t, got.Windows[0].Starts.Latest) != c.wantStart) {
 				t.Fatalf("exact start=%+v want%d", got, c.wantStart)
+			}
+		})
+	}
+}
+
+func phaseResultZero(r GroupMatchResult) bool {
+	return groupResultZero(r) && r.UnknownPhaseConstraints == nil
+}
+func phaseSameRequest(a, b GroupMatchRequest) bool {
+	if !groupSameRequest(a, b) {
+		return false
+	}
+	return slices.EqualFunc(a.PhaseConstraints, b.PhaseConstraints, func(p, q GroupPhaseConstraint) bool {
+		return p.Ordinal == q.Ordinal && p.Offset == q.Offset && p.OffsetBefore == q.OffsetBefore && p.Duration == q.Duration && p.Before == q.Before && p.After == q.After && p.Availability.Window == q.Availability.Window && slices.EqualFunc(p.Availability.Calendars, q.Availability.Calendars, func(c, d CalendarAvailability) bool {
+			return c.ID == d.ID && c.State == d.State && slices.Equal(c.Busy, d.Busy)
+		})
+	})
+}
+
+func TestGroupPhaseOutsideVisitAnchors(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name                                  string
+		offset, before, duration, first, last int64
+		busy                                  bool
+	}{
+		{name: "wholly before visit preserves exact range", before: 3, duration: 2, first: 3, last: 6},
+		{name: "wholly after visit preserves exact range", offset: 4, duration: 1, first: 0, last: 3},
+		{name: "before visit busy exclusion is translated", before: 3, duration: 2, first: 4, last: 6, busy: true},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Parallel()
+			r := phaseFixture(t)
+			r.Duration = groupDuration(t, 2)
+			r.PhaseConstraints = r.PhaseConstraints[:1]
+			p := &r.PhaseConstraints[0]
+			p.Offset = groupDuration(t, c.offset)
+			p.OffsetBefore = groupDuration(t, c.before)
+			p.Duration = groupDuration(t, c.duration)
+			if c.busy {
+				p.Availability = groupPerson(t, r.Window, 0, true, AvailabilityKnown, [2]int64{0, 1}).Availability
+			}
+			got, err := MatchGroup(t.Context(), r)
+			if err != nil || len(got.Windows) != 1 || groupNS(t, got.Windows[0].Starts.Earliest) != c.first || groupNS(t, got.Windows[0].Starts.Latest) != c.last {
+				t.Fatalf("outside-visit match=%+v/%v want [%d,%d]", got, err, c.first, c.last)
 			}
 		})
 	}
