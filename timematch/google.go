@@ -575,20 +575,6 @@ func (c Client) googleDelete(ctx context.Context, d EventDelete) (DeleteOutcome,
 	}
 }
 
-// deleteResource maps 404 and 410 to an already absent resource.
-func (c Client) deleteResource(ctx context.Context, request call) (DeleteOutcome, error) {
-	result, err := c.send(ctx, request)
-	clear(result.body)
-	switch {
-	case err == nil:
-		return Deleted, nil
-	case result.status == http.StatusNotFound || result.status == http.StatusGone:
-		return DeleteAlreadyAbsent, nil
-	default:
-		return DeleteInvalid, writeFailure(result, err)
-	}
-}
-
 type googleEventObservation struct {
 	etag    string
 	marker  string
