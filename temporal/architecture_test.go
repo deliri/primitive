@@ -28,6 +28,7 @@ type (
 type temporalContractInventory struct {
 	CivilDate            temporalSealedValue[CivilDate]
 	CivilDateCoordinates temporalIngressRequest[CivilDateRequest]
+	CivilMinuteRange     temporalIngressRequest[CivilMinuteRange]
 	Location             temporalCapabilityIntent[Location]
 	LocalClock           temporalIngressRequest[LocalTimeRequest]
 	NativePair           temporalIngressRequest[NativeTimePair]
@@ -147,7 +148,7 @@ type temporalPrecisionSignature interface {
 
 var (
 	_ interface {
-		CivilMinuteIntervals(IntervalBounds, CivilDate, uint16, uint16) ([]IntervalBounds, error)
+		CivilMinuteIntervals(IntervalBounds, CivilMinuteRange) ([]IntervalBounds, error)
 		CivilDates(IntervalBounds) ([]CivilDate, error)
 	} = Location{}
 	_ func(NativeTimePair) core.Comparison     = CompareNativeTimes
@@ -261,6 +262,7 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 		"type ClockLayout", "const ClockLayoutUnknown", "const ClockHourMinuteSecond", "method ClockLayout.Validate", "method ClockLayout.IsValid", "method ClockLayout.String", "method ClockLayout.OffWireEnum",
 		"type Location", "func NewLocation", "method Location.Validate", "method Location.Name", "method Location.Format", "method Location.Append", "method Location.ParseLocalTime", "method Location.DateAt", "method Location.StartOfDay", "method Location.AddCalendar", "method Location.CivilMinuteIntervals", "method Location.CivilDates",
 		"type CivilDate", "type CivilDateRequest", "func NewCivilDate", "func ParseCivilDate", "method CivilDate.Validate", "method CivilDate.Coordinates", "method CivilDate.Text", "method CivilDate.AddDays", "method CivilDate.AddCalendar", "method CivilDate.PeriodStart", "method CivilDate.PeriodEnd", "method CivilDate.CompletedYearsUntil", "method CivilDate.MarshalJSON", "method CivilDate.UnmarshalJSON",
+		"type CivilMinuteRange", "method CivilMinuteRange.Validate",
 		"type CalendarBoundary", "const CalendarBoundaryUnknown", "const CalendarMonth", "const CalendarQuarter", "const CalendarYear", "method CalendarBoundary.Validate", "method CalendarBoundary.IsValid", "method CalendarBoundary.String", "method CalendarBoundary.OffWireEnum",
 		"type LocalTimeRequest", "method LocalTimeRequest.Validate", "method LocalTimeRequest.Instant",
 		"method Month.Validate", "method Month.IsValid", "method Month.String", "method Month.OffWireEnum", "method Weekday.Validate", "method Weekday.IsValid", "method Weekday.String", "method Weekday.OffWireEnum",

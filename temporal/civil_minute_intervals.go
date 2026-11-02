@@ -5,6 +5,27 @@ import (
 	"time"
 )
 
+// CivilMinuteRange names one civil opening and elapsed wall-minute length.
+// Duration may extend into the next civil date; no ambiguous local instant is
+// chosen when this nominal civil range is admitted.
+type CivilMinuteRange struct {
+	Date            CivilDate
+	OpenMinute      uint16
+	DurationMinutes uint16
+}
+
+// Validate admits a real Gregorian date, an opening inside that date, and a
+// positive wall-minute duration of at most one civil day.
+func (r CivilMinuteRange) Validate() error {
+	if err := r.Date.Validate(); err != nil {
+		return err
+	}
+	if r.OpenMinute >= 1440 || r.DurationMinutes == 0 || r.DurationMinutes > 1440 {
+		return contractError("civil minute range is invalid")
+	}
+	return nil
+}
+
 // CivilMinuteIntervals returns the exact preimage of one half-open civil
 // minute range, clipped to window. The opening minute is 0..1439; duration is
 // 1..1440 minutes and may continue into the following civil date. A gap has no
@@ -15,15 +36,12 @@ import (
 // Only clipped endpoints are projected to signed nanoseconds. Native time
 // owns historical offsets and transitions, including non-hour/dateline jumps.
 // Source: https://pkg.go.dev/time#Time.ZoneBounds
-func (l Location) CivilMinuteIntervals(window IntervalBounds, date CivilDate, openMinute uint16, durationMinutes uint16) ([]IntervalBounds, error) {
-	if err := date.Validate(); err != nil {
+func (l Location) CivilMinuteIntervals(window IntervalBounds, civil CivilMinuteRange) ([]IntervalBounds, error) {
+	if err := civil.Validate(); err != nil {
 		return nil, err
 	}
-	if openMinute >= 1440 || durationMinutes == 0 || durationMinutes > 1440 {
-		return nil, contractError("civil minute range is invalid")
-	}
-	wallStart := date.native().Add(time.Duration(openMinute) * time.Minute)
-	wallEnd := wallStart.Add(time.Duration(durationMinutes) * time.Minute)
+	wallStart := civil.Date.native().Add(time.Duration(civil.OpenMinute) * time.Minute)
+	wallEnd := wallStart.Add(time.Duration(civil.DurationMinutes) * time.Minute)
 	var result []IntervalBounds
 	err := l.walkCivilZonePeriods(window, func(start, end time.Time, offset int) error {
 		shift := -time.Duration(offset) * time.Second
@@ -77,9 +95,9 @@ func (l Location) CivilDates(window IntervalBounds) ([]CivilDate, error) {
 			return err
 		}
 		for current := first.native(); !current.After(last.native()); current = current.AddDate(0, 0, 1) {
-			date, err := civilDateFromNative(current)
-			if err != nil {
-				return err
+			date, dateErr := civilDateFromNative(current)
+			if dateErr != nil {
+				return dateErr
 			}
 			result = append(result, date)
 		}

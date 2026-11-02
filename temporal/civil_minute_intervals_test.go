@@ -78,7 +78,7 @@ func TestCivilMinuteIntervalsExactKnownTransitions(t *testing.T) {
 			l := civilPreimageLocation(t, tc.zone)
 			window := civilPreimageBounds(t, tc.start, tc.end)
 			date := civilPreimageDate(t, tc.date)
-			got, err := l.CivilMinuteIntervals(window, date, tc.open, tc.duration)
+			got, err := l.CivilMinuteIntervals(window, CivilMinuteRange{Date: date, OpenMinute: tc.open, DurationMinutes: tc.duration})
 			if err != nil {
 				t.Fatalf("CivilMinuteIntervals() error=%v, want nil", err)
 			}
@@ -133,7 +133,7 @@ func civilPreimagePointOracle(t *testing.T, l Location, window IntervalBounds, d
 			t.Fatalf("span=%+v, want positive bounded interval", span)
 		}
 		if i > 0 && got[i-1].End.nanoseconds >= span.Start.nanoseconds {
-			t.Fatal("preimage is not sorted and merged, want separated ordered spans")
+			t.Fatalf("preimage neighbours=(%+v,%+v), want separated ordered spans", got[i-1], span)
 		}
 		a, _ := span.Start.Time()
 		b, _ := span.End.Time()
@@ -176,9 +176,40 @@ func TestCivilMinuteIntervalsTypedRefusals(t *testing.T) {
 			date := civilPreimageDate(t, "2026-11-02")
 			open, duration := uint16(540), uint16(60)
 			tc.change(&l, &window, &date, &open, &duration)
-			got, err := l.CivilMinuteIntervals(window, date, open, duration)
+			got, err := l.CivilMinuteIntervals(window, CivilMinuteRange{Date: date, OpenMinute: open, DurationMinutes: duration})
 			if !errors.Is(err, tc.wantErr) || len(got) != 0 {
 				t.Fatalf("CivilMinuteIntervals()=(%v,%v), want empty/%v", got, err, tc.wantErr)
+			}
+		})
+	}
+}
+
+func TestCivilMinuteRangeAdmission(t *testing.T) {
+	t.Parallel()
+	date := civilPreimageDate(t, "2026-11-02")
+	cases := []struct {
+		name       string
+		rangeValue CivilMinuteRange
+		wantErr    error
+	}{
+		{name: "ordinary opening", rangeValue: CivilMinuteRange{Date: date, OpenMinute: 540, DurationMinutes: 60}},
+		{name: "first minute minimum duration", rangeValue: CivilMinuteRange{Date: date, OpenMinute: 0, DurationMinutes: 1}},
+		{name: "last opening crosses next date", rangeValue: CivilMinuteRange{Date: date, OpenMinute: 1439, DurationMinutes: 2}},
+		{name: "full day starts at first minute", rangeValue: CivilMinuteRange{Date: date, OpenMinute: 0, DurationMinutes: 1440}},
+		{name: "full day starts at last minute", rangeValue: CivilMinuteRange{Date: date, OpenMinute: 1439, DurationMinutes: 1440}},
+		{name: "missing date", rangeValue: CivilMinuteRange{OpenMinute: 540, DurationMinutes: 60}, wantErr: core.ErrTemporalContract},
+		{name: "opening one beyond last minute", rangeValue: CivilMinuteRange{Date: date, OpenMinute: 1440, DurationMinutes: 1}, wantErr: core.ErrTemporalContract},
+		{name: "opening pathological unsigned", rangeValue: CivilMinuteRange{Date: date, OpenMinute: math.MaxUint16, DurationMinutes: 1}, wantErr: core.ErrTemporalContract},
+		{name: "zero duration", rangeValue: CivilMinuteRange{Date: date, OpenMinute: 540}, wantErr: core.ErrTemporalContract},
+		{name: "duration one beyond full day", rangeValue: CivilMinuteRange{Date: date, OpenMinute: 540, DurationMinutes: 1441}, wantErr: core.ErrTemporalContract},
+		{name: "duration pathological unsigned", rangeValue: CivilMinuteRange{Date: date, OpenMinute: 540, DurationMinutes: math.MaxUint16}, wantErr: core.ErrTemporalContract},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			err := tc.rangeValue.Validate()
+			if (tc.wantErr == nil && err != nil) || (tc.wantErr != nil && !errors.Is(err, tc.wantErr)) {
+				t.Fatalf("CivilMinuteRange.Validate()=%v, want %v", err, tc.wantErr)
 			}
 		})
 	}
@@ -233,7 +264,7 @@ func TestCivilDatesActualDatesAndExtrema(t *testing.T) {
 				if err != nil || len(dates) != 1 || dates[0] != date {
 					t.Fatalf("CivilDates(extreme)=(%v,%v), want native date %v", dates, err, date)
 				}
-				got, err := l.CivilMinuteIntervals(window, date, 0, 1440)
+				got, err := l.CivilMinuteIntervals(window, CivilMinuteRange{Date: date, OpenMinute: 0, DurationMinutes: 1440})
 				if err != nil || len(got) != 1 || got[0] != window {
 					t.Fatalf("CivilMinuteIntervals(extreme)=(%v,%v), want exact one-nanosecond window", got, err)
 				}
