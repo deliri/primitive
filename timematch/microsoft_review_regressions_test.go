@@ -8,6 +8,8 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/deliri/primitive/v2026/core"
 )
 
 // Official Graph event-update: omitted properties retain their prior values.
