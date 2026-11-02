@@ -122,7 +122,11 @@ func (e *icsRawEvent) add(line string) {
 		e.unresolvable = true
 		return
 	}
-	parts := strings.Split(nameAndParams, ";")
+	parts, parametersOK := splitICSParameters(nameAndParams)
+	if !parametersOK {
+		e.unresolvable = true
+		return
+	}
 	property := icsProperty{params: parts[1:], value: value, set: true}
 	var slot *icsProperty
 	switch strings.ToUpper(parts[0]) {
@@ -152,6 +156,29 @@ func (e *icsRawEvent) add(line string) {
 		e.duplicate = true
 	}
 	*slot = property
+}
+
+// splitICSParameters preserves semicolons inside RFC5545 quoted parameter
+// values; a quoted extension cannot inject a separate VALUE/TZID/FBTYPE.
+func splitICSParameters(text string) ([]string, bool) {
+	var result []string
+	quoted := false
+	start := 0
+	for index := range len(text) {
+		switch text[index] {
+		case '"':
+			quoted = !quoted
+		case ';':
+			if !quoted {
+				result = append(result, text[start:index])
+				start = index + 1
+			}
+		}
+	}
+	if quoted {
+		return nil, false
+	}
+	return append(result, text[start:]), true
 }
 
 // cutICSValue splits at the first ':' outside a quoted parameter value.
@@ -232,8 +259,14 @@ func parseFreeBusy(text string) ([][2]int64, bool) {
 			continue
 		}
 		nameAndParams, value, ok := cutICSValue(line)
-		parts := strings.Split(nameAndParams, ";")
-		if !ok || strings.ToUpper(parts[0]) != "FREEBUSY" {
+		parts, parametersOK := splitICSParameters(nameAndParams)
+		if !parametersOK {
+			return nil, false
+		}
+		if !ok {
+			return nil, false
+		}
+		if strings.ToUpper(parts[0]) != "FREEBUSY" {
 			continue
 		}
 		blocking := true

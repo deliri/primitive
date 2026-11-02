@@ -153,14 +153,14 @@ func TestGoogleAvailabilityNative(t *testing.T) {
 			t.Fatalf("Availability(foreign window) = (%d, %v), want none and %v", len(got.Calendars), err, core.ErrTimeMatchResponse)
 		}
 	})
-	t.Run("forbidden is consent and never free", func(t *testing.T) {
+	t.Run("forbidden does not prove lost consent and never means free", func(t *testing.T) {
 		t.Parallel()
 		client, _ := newNative(t, func(w http.ResponseWriter, _ *http.Request, _ []byte) {
 			writeJSON(w, 403, `{"error":{"message":"`+privateMarker+`"}}`)
 		})
 		got, err := client.Availability(t.Context(), AvailabilityRequest{Connection: oauthConnection(t, ProviderGoogle), Window: window(t, "2026-11-02T09:00:00Z", "2026-11-02T17:00:00Z"), Calendars: []CalendarID{calendarID(t, "a")}, Policy: fixturePolicy(t)})
-		if !errors.Is(err, core.ErrTimeMatchConsent) || len(got.Calendars) != 0 {
-			t.Fatalf("Availability(403) = (%d, %v), want none and %v", len(got.Calendars), err, core.ErrTimeMatchConsent)
+		if !errors.Is(err, core.ErrTimeMatchResponse) || errors.Is(err, core.ErrTimeMatchConsent) || len(got.Calendars) != 0 {
+			t.Fatalf("Availability(403) = (%d, %v), want none and %v", len(got.Calendars), err, core.ErrTimeMatchResponse)
 		}
 		noLeak(t, err, "access-token-fixture")
 	})

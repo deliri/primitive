@@ -191,7 +191,7 @@ for (const row of [
   {name: 'timezone missing refused', text: '2026-11-02T15:00:00'},
   {name: 'timezone lowercase refused', text: '2026-11-02T15:00:00z'},
   {name: 'leading whitespace refused', text: ' 2026-11-02T15:00:00Z'},
-  {name: 'trailing newline refused', text: '2026-11-02T15:00:00Z\n'.replace('\\n','\n')},
+  {name: 'trailing newline refused', text: '2026-11-02T15:00:00Z' + String.fromCodePoint(10)},
   {name: 'empty text refused', text: ''},
   {name: 'null is no timestamp', text: null},
   {name: 'number is no timestamp', text: 0},

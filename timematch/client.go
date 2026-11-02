@@ -107,14 +107,15 @@ func (c Client) send(ctx context.Context, request call) (outcome, error) {
 	return result, err
 }
 
-// readFailure maps a failed read. The provider failure body is discarded: it
+// readFailure maps a failed read. Only 401 identifies an invalid credential;
+// 403 also covers quotas/permissions and cannot prove lost consent. The body
 // may echo private calendar data and is never part of an error.
 func readFailure(result outcome, err error) error {
 	clear(result.body)
 	switch {
 	case result.status == 0 && errors.Is(err, core.ErrExchangeRequest):
 		return errors.Join(core.ErrTimeMatchContract, err)
-	case result.status == http.StatusUnauthorized || result.status == http.StatusForbidden:
+	case result.status == http.StatusUnauthorized:
 		return errors.Join(core.ErrTimeMatchConsent, err)
 	default:
 		return errors.Join(core.ErrTimeMatchResponse, err)
@@ -139,7 +140,7 @@ func writeFailure(result outcome, err error) error {
 	switch {
 	case result.status == 0 && errors.Is(err, core.ErrExchangeRequest):
 		return errors.Join(core.ErrTimeMatchContract, err)
-	case result.status == http.StatusUnauthorized || result.status == http.StatusForbidden:
+	case result.status == http.StatusUnauthorized:
 		return errors.Join(core.ErrTimeMatchConsent, err)
 	case result.status == 0 || result.status >= http.StatusInternalServerError:
 		return errors.Join(core.ErrTimeMatchIndeterminate, err)

@@ -93,9 +93,10 @@ func (p *googleCalendarPage) UnmarshalJSON(raw []byte) error {
 			return errors.Join(core.ErrTimeMatchResponse, err)
 		}
 		// CalendarList accessRole is closed: freeBusyReader, reader, writer,
-		// owner. calendar.events.owned writes only calendars the user owns.
+		// owner and writerWithoutPrivateAccess. calendar.events.owned writes
+		// only calendars the user owns.
 		switch item.AccessRole {
-		case "freeBusyReader", "reader", "writer", "owner":
+		case "freeBusyReader", "reader", "writer", "writerWithoutPrivateAccess", "owner":
 		default:
 			return core.ErrTimeMatchResponse
 		}
@@ -300,7 +301,10 @@ func (c Client) googlePut(ctx context.Context, w EventWrite) (EventReceipt, erro
 	if err != nil {
 		return EventReceipt{}, err
 	}
-	ref := EventRef{Provider: ProviderGoogle, Calendar: w.Intent.Calendar, Resource: w.Intent.ID.value}
+	ref := EventRef{ID: w.Intent.ID, Provider: ProviderGoogle, Calendar: w.Intent.Calendar, Resource: w.Intent.ID.value}
+	if w.Attempt == EventCreateRecoverOnly {
+		return c.googleReadBack(ctx, w, ref)
+	}
 	result, err := c.send(ctx, call{target: target, method: exchange.MethodPost, body: body, requestType: core.HTTPMediaTypeJSON(), responseType: core.HTTPMediaTypeJSON(), secrets: secrets, policy: w.Policy, expected: http.StatusOK})
 	switch {
 	case err == nil:
@@ -324,8 +328,9 @@ func (c Client) googleReadBack(ctx context.Context, w EventWrite, ref EventRef) 
 	}
 	result, err := c.send(ctx, call{target: target, method: exchange.MethodGet, responseType: core.HTTPMediaTypeJSON(), secrets: secrets, policy: w.Policy, expected: http.StatusOK})
 	if err != nil {
-		// The id is taken but cannot be read: not ours to claim.
-		return EventReceipt{}, errors.Join(core.ErrTimeMatchConflict, readFailure(result, err))
+		// An unreadable collision can be our own previously committed write.
+		// No observed foreign event exists to justify a conflict verdict.
+		return EventReceipt{}, errors.Join(core.ErrTimeMatchIndeterminate, readFailure(result, err))
 	}
 	return verifyGoogle(result.body, w.Intent, ref)
 }

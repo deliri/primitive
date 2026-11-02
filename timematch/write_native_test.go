@@ -117,7 +117,7 @@ func TestGooglePutEventNative(t *testing.T) {
 		{name: "server error after applying is indeterminate", fail: func(_ string, _ int, w http.ResponseWriter) bool { writeJSON(w, 503, `{}`); return true }, wantErr: core.ErrTimeMatchIndeterminate, wantInserts: 1, wantStored: true},
 		{name: "connection cut after applying is indeterminate", fail: func(_ string, _ int, w http.ResponseWriter) bool { cutConnection(w); return true }, wantErr: core.ErrTimeMatchIndeterminate, wantInserts: 1, wantStored: true},
 		{name: "malformed success body is indeterminate", fail: func(_ string, _ int, w http.ResponseWriter) bool { writeJSON(w, 200, `{"id":`); return true }, wantErr: core.ErrTimeMatchIndeterminate, wantInserts: 1, wantStored: true},
-		{name: "forbidden write is consent", fail: func(_ string, _ int, w http.ResponseWriter) bool { writeJSON(w, 403, `{}`); return true }, wantErr: core.ErrTimeMatchConsent, wantInserts: 1, wantStored: true},
+		{name: "forbidden write is a refusal without lost consent", fail: func(_ string, _ int, w http.ResponseWriter) bool { writeJSON(w, 403, `{}`); return true }, wantErr: core.ErrTimeMatchResponse, wantInserts: 1, wantStored: true},
 		{name: "bad request is a definitive refusal", fail: func(_ string, _ int, w http.ResponseWriter) bool { writeJSON(w, 400, `{}`); return true }, wantErr: core.ErrTimeMatchResponse, wantInserts: 1, wantStored: true},
 	}
 	for _, tc := range cases {

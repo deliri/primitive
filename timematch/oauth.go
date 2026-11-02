@@ -269,12 +269,32 @@ func oauthFailure(result outcome, err error) error {
 // tokenWire is the RFC 6749 section 5.1 response. Credentials are copied into
 // SDK-owned byte slices that are cleared after projection.
 type tokenWire struct {
-	access    []byte
-	refresh   []byte
-	scope     string
-	tokenType string
-	expiresIn int64
+	access       []byte
+	refresh      []byte
+	scope        string
+	scopePresent bool
+	tokenType    string
+	expiresIn    int64
 }
+
+// wireScope records whether the RFC6749 optional scope member was supplied.
+// Omission means the originally requested scope; an explicitly empty or wrong
+// scope never gains that permission by default.
+// Source: https://www.rfc-editor.org/rfc/rfc6749#section-5.1
+type wireScope struct {
+	value   string
+	present bool
+}
+
+func (s *wireScope) UnmarshalJSON(raw []byte) error {
+	value, err := core.DecodeJSONStringToken(raw)
+	if err != nil {
+		return errors.Join(core.ErrTimeMatchResponse, err)
+	}
+	*s = wireScope{value: value, present: true}
+	return nil
+}
+func (wireScope) timematchInternalFlow() {}
 
 type wireSecret struct{ value []byte }
 
@@ -291,7 +311,7 @@ func (t *tokenWire) UnmarshalJSON(raw []byte) error {
 	var document struct {
 		AccessToken  wireSecret `json:"access_token"`
 		RefreshToken wireSecret `json:"refresh_token"`
-		Scope        string     `json:"scope"`
+		Scope        wireScope  `json:"scope"`
 		TokenType    string     `json:"token_type"`
 		ExpiresIn    int64      `json:"expires_in"`
 	}
@@ -300,7 +320,7 @@ func (t *tokenWire) UnmarshalJSON(raw []byte) error {
 		clear(document.RefreshToken.value)
 		return err
 	}
-	*t = tokenWire{access: document.AccessToken.value, refresh: document.RefreshToken.value, scope: document.Scope, tokenType: document.TokenType, expiresIn: document.ExpiresIn}
+	*t = tokenWire{access: document.AccessToken.value, refresh: document.RefreshToken.value, scope: document.Scope.value, scopePresent: document.Scope.present, tokenType: document.TokenType, expiresIn: document.ExpiresIn}
 	return nil
 }
 
@@ -331,7 +351,7 @@ type grantShape struct {
 
 func (t tokenWire) grant(shape grantShape) (Grant, error) {
 	provider, access, lifetime, observed := shape.provider, shape.access, shape.lifetime, shape.observed
-	if !grantedScopes(shape, t.scope) {
+	if (t.scopePresent || t.scope != "") && !grantedScopes(shape, t.scope) {
 		return Grant{}, core.ErrTimeMatchConsent
 	}
 	expires, err := expiry(observed, t.expiresIn)
