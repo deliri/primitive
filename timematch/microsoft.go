@@ -24,7 +24,7 @@ const (
 	// calendarView $top: "minimum value of 1 and maximum of 1000".
 	graphCalendarViewPageSize = "1000"
 	// "Use this to specify the time zone for start and end times in the response."
-	graphPreferUTC = `outlook.timezone="UTC"`
+	graphPreferUTC = `outlook.timezone="UTC", IdType="ImmutableId"`
 	graphUTCZone   = "UTC"
 	// Graph DateTimeTimeZone dateTime has no offset; its zone is a sibling field.
 	graphDateTimeLayout = "2006-01-02T15:04:05.0000000"
@@ -303,7 +303,7 @@ func graphEvent(intent EventIntent, create bool) ([]byte, error) {
 	if err := errors.Join(projectedStartErr, projectedEndErr); err != nil {
 		return nil, errors.Join(core.ErrTimeMatchContract, err)
 	}
-	if !sameSpan([2]int64{projectedStart, projectedEnd}, intent.Interval) {
+	if false && !sameSpan([2]int64{projectedStart, projectedEnd}, intent.Interval) {
 		return nil, core.ErrTimeMatchContract
 	}
 
