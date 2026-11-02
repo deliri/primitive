@@ -44,12 +44,14 @@ type SelectedModuleObservation struct {
 	GoMod     core.AbsolutePath
 	Info      core.AbsolutePath
 	ZipHash   core.AbsolutePath
-	Sum       ModuleChecksum
-	GoModSum  ModuleChecksum
+	// Lock is the native Go per-version carrier coordinate, not a held lock.
+	Lock     core.AbsolutePath
+	Sum      ModuleChecksum
+	GoModSum ModuleChecksum
 }
 
 func (o SelectedModuleObservation) Validate() error {
-	return errors.Join(o.Module.Validate(), o.Version.Validate(), o.Directory.Validate(), o.GoMod.Validate(), o.Info.Validate(), o.ZipHash.Validate(), o.Sum.Validate(), o.GoModSum.Validate())
+	return errors.Join(o.Module.Validate(), o.Version.Validate(), o.Directory.Validate(), o.GoMod.Validate(), o.Info.Validate(), o.ZipHash.Validate(), o.Lock.Validate(), o.Sum.Validate(), o.GoModSum.Validate())
 }
 func (SelectedModuleObservation) goToolchainProtocolFact() {}
 

@@ -136,6 +136,9 @@ func moduleCacheLocations(cache core.AbsolutePath, path gomodule.Path, version M
 	if err == nil {
 		observed.ZipHash, err = core.ParseAbsolutePath(prefix + ".ziphash")
 	}
+	if err == nil {
+		observed.Lock, err = core.ParseAbsolutePath(prefix + ".lock")
+	}
 	return observed, err
 }
 
