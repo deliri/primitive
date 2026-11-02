@@ -119,9 +119,9 @@ func TestModuleClosureLockExcludesNativeGoDownload(t *testing.T) {
 		}
 		identity, identityErr := execution.Identity()
 		if identityErr != nil {
-			_ = execution.Sweep()
-			_, _ = execution.Wait()
-			return identityErr
+			sweepErr := execution.Sweep()
+			_, waitErr := execution.Wait()
+			return errors.Join(identityErr, sweepErr, waitErr)
 		}
 		t.Logf("native version-lock waiter PID=%v", identity)
 		completed, childErr := execution.Wait()
