@@ -510,8 +510,8 @@ func TestAppleEventsNative(t *testing.T) {
 		absent, absentErr := client.DeleteEvent(t.Context(), EventDelete{Connection: connection, Ref: ref, Policy: fixturePolicy(t)})
 		ref.Resource = "https://attacker.example/x.ics"
 		_, foreignErr := client.DeleteEvent(t.Context(), EventDelete{Connection: connection, Ref: ref, Policy: fixturePolicy(t)})
-		if deleteErr != nil || absentErr != nil || deleted != Deleted || absent != DeleteAlreadyAbsent || !errors.Is(foreignErr, core.ErrTimeMatchContract) || len(fixture.refusedDials()) != 0 {
-			t.Fatalf("DeleteEvent(apple) = (%v, %v), (%v, %v), foreign %v, want Deleted, AlreadyAbsent and contract refusal", deleted, deleteErr, absent, absentErr, foreignErr)
+		if deleteErr != nil || !errors.Is(absentErr, core.ErrTimeMatchIndeterminate) || deleted != Deleted || absent != DeleteInvalid || !errors.Is(foreignErr, core.ErrTimeMatchContract) || len(fixture.refusedDials()) != 0 {
+			t.Fatalf("DeleteEvent(apple) = (%v, %v), (%v, %v), foreign %v, want Deleted, unproven absence Indeterminate and contract refusal", deleted, deleteErr, absent, absentErr, foreignErr)
 		}
 	})
 }
