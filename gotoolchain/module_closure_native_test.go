@@ -279,3 +279,35 @@ func TestModuleClosureNativeCallbackCancellationAndAbsentHistory(t *testing.T) {
 		})
 	}
 }
+
+func TestModuleClosureFrozenExpectedHashControlsNativeAuthority(t *testing.T) {
+	t.Parallel()
+	for _, suffix := range []string{"", "/go.mod"} {
+		t.Run("frozen"+strings.ReplaceAll(suffix, "/", "_"), func(t *testing.T) {
+			t.Parallel()
+			f := newModuleClosureFixture(t)
+			// A native cache verify can pass while the caller's independently
+			// frozen expected checksum differs. Neither native .ziphash nor
+			// the on-disk module files may substitute for that expected h1.
+			f.goCommand(t, "mod", "verify")
+			prefix := "example.com/a v1.0.0" + suffix + " "
+			lines := strings.Split(string(f.sums), "\n")
+			changed := false
+			for i, line := range lines {
+				if strings.HasPrefix(line, prefix) {
+					lines[i] = prefix + moduleClosureTestSum(t, "independently frozen other content\n")
+					changed = true
+				}
+			}
+			if !changed {
+				t.Fatalf("native sums=%s, want exact selected checksum row %q", f.sums, prefix)
+			}
+			request := f.request()
+			request.GoSum = strings.NewReader(strings.Join(lines, "\n"))
+			got, err := f.capability.ObserveModuleClosure(t.Context(), request)
+			if !errors.Is(err, core.ErrGoToolchainOutput) || got != (ModuleClosureObservation{}) {
+				t.Fatalf("foreign frozen h1=%+v/%v, want zero output refusal", got, err)
+			}
+		})
+	}
+}
