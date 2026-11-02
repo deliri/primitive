@@ -47,14 +47,14 @@ const (
 
 const bearerTokenType = "bearer"
 
-func scopes(provider Provider, access Access, lifetime Lifetime) []string {
+func scopes(provider Provider, access Access, lifetime Lifetime) ([]string, error) {
 	switch provider {
 	case ProviderGoogle:
 		values := []string{googleScopeFreeBusy, googleScopeCalendarList}
 		if access == AccessManageEvents {
 			values = append(values, googleScopeOwnedEvents)
 		}
-		return values
+		return values, nil
 	case ProviderMicrosoft:
 		values := []string{microsoftScopeReadBasic}
 		if access == AccessManageEvents {
@@ -63,9 +63,9 @@ func scopes(provider Provider, access Access, lifetime Lifetime) []string {
 		if lifetime == LifetimeBusiness {
 			values = append(values, microsoftScopeOffline)
 		}
-		return values
+		return values, nil
 	default:
-		panic(core.ErrTimeMatchContract) // Application.Validate admits only Google and Microsoft.
+		return nil, core.ErrTimeMatchContract
 	}
 }
 
@@ -76,11 +76,15 @@ func AuthorizationEndpoint(r AuthorizationRequest) (core.HTTPEndpoint, error) {
 	if err := r.Validate(); err != nil {
 		return core.HTTPEndpoint{}, err
 	}
+	scope, err := scopes(r.Application.Provider, r.Access, r.Lifetime)
+	if err != nil {
+		return core.HTTPEndpoint{}, err
+	}
 	query := url.Values{}
 	query.Set("client_id", r.Application.ClientID.String())
 	query.Set("redirect_uri", r.Application.RedirectURI.String())
 	query.Set("response_type", "code")
-	query.Set("scope", strings.Join(scopes(r.Application.Provider, r.Access, r.Lifetime), " "))
+	query.Set("scope", strings.Join(scope, " "))
 	query.Set("state", r.State.String())
 	query.Set("code_challenge", r.Challenge.String())
 	query.Set("code_challenge_method", "S256")
@@ -99,7 +103,7 @@ func AuthorizationEndpoint(r AuthorizationRequest) (core.HTTPEndpoint, error) {
 		base = microsoftLoginURL + r.Application.Tenant.String() + "/oauth2/v2.0/authorize"
 		query.Set("response_mode", "query")
 	default:
-		panic(core.ErrTimeMatchContract) // Application.Validate admits only Google and Microsoft.
+		return core.HTTPEndpoint{}, core.ErrTimeMatchContract
 	}
 	return endpoint(base + "?" + query.Encode())
 }
@@ -118,6 +122,10 @@ func (c Client) ExchangeCode(ctx context.Context, r CodeExchange) (Grant, error)
 	if err := c.begin(ctx, r); err != nil {
 		return Grant{}, err
 	}
+	scope, err := scopes(r.Application.Provider, r.Access, r.Lifetime)
+	if err != nil {
+		return Grant{}, err
+	}
 	secret := r.Application.ClientSecret.value
 	form := formBody(
 		formPair{key: "grant_type", value: []byte("authorization_code")},
@@ -126,7 +134,7 @@ func (c Client) ExchangeCode(ctx context.Context, r CodeExchange) (Grant, error)
 		formPair{key: "client_id", value: []byte(r.Application.ClientID.String())},
 		formPair{key: "client_secret", value: secret},
 		formPair{key: "code_verifier", value: []byte(r.Verifier.String())},
-		formPair{key: "scope", value: []byte(strings.Join(scopes(r.Application.Provider, r.Access, r.Lifetime), " ")), omit: r.Application.Provider != ProviderMicrosoft},
+		formPair{key: "scope", value: []byte(strings.Join(scope, " ")), omit: r.Application.Provider != ProviderMicrosoft},
 	)
 	token, err := c.token(ctx, r.Application, form, r.Policy)
 	if err != nil {
@@ -155,12 +163,16 @@ func (c Client) Refresh(ctx context.Context, r RefreshRequest) (Grant, error) {
 	if err := c.begin(ctx, r); err != nil {
 		return Grant{}, err
 	}
+	scope, err := scopes(r.Application.Provider, r.Access, LifetimeBusiness)
+	if err != nil {
+		return Grant{}, err
+	}
 	form := formBody(
 		formPair{key: "grant_type", value: []byte("refresh_token")},
 		formPair{key: "refresh_token", value: r.RefreshToken.value},
 		formPair{key: "client_id", value: []byte(r.Application.ClientID.String())},
 		formPair{key: "client_secret", value: r.Application.ClientSecret.value},
-		formPair{key: "scope", value: []byte(strings.Join(scopes(r.Application.Provider, r.Access, LifetimeBusiness), " ")), omit: r.Application.Provider != ProviderMicrosoft},
+		formPair{key: "scope", value: []byte(strings.Join(scope, " ")), omit: r.Application.Provider != ProviderMicrosoft},
 	)
 	token, err := c.token(ctx, r.Application, form, r.Policy)
 	if err != nil {
@@ -330,7 +342,11 @@ func (t tokenWire) grant(shape grantShape) (Grant, error) {
 // space-delimited scope field. Microsoft may return Graph scopes without the
 // resource prefix; offline_access is evidenced by the refresh token itself.
 func grantedScopes(provider Provider, raw string, access Access) bool {
-	for _, required := range scopes(provider, access, LifetimeVisitor) {
+	required, err := scopes(provider, access, LifetimeVisitor)
+	if err != nil {
+		return false
+	}
+	for _, required := range required {
 		found := false
 		for granted := range strings.FieldsSeq(raw) {
 			if granted == required || provider == ProviderMicrosoft && microsoftGraphScopeShort+granted == required {

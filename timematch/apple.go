@@ -351,9 +351,9 @@ func writable(prop davPropWire) bool {
 // appleAvailability issues one RFC 4791 section 7.8 calendar-query per
 // calendar with CALDAV:expand, so recurring events arrive as UTC instances.
 func (c Client) appleAvailability(ctx context.Context, r AvailabilityRequest) (Availability, error) {
-	auth, err := basic(r.Connection)
-	if err != nil {
-		return Availability{}, err
+	auth, authErr := basic(r.Connection)
+	if authErr != nil {
+		return Availability{}, authErr
 	}
 	start, startErr := icsStampTime(r.Window.Start)
 	end, endErr := icsCeilingTime(r.Window.End)
