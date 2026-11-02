@@ -233,7 +233,7 @@ func TestMicrosoftAvailabilityNative(t *testing.T) {
 		{name: "free all-day event is not busy", pages: []string{graphView(strings.Replace(graphItem("free", "2026-11-02T00:00:00.0000000", "2026-11-03T00:00:00.0000000", ""), `"isAllDay":false`, `"isAllDay":true`, 1))}, wantState: AvailabilityKnown, wantBusy: []string{}},
 		{name: "non-UTC zone despite Prefer is unknown", pages: []string{graphView(strings.ReplaceAll(graphItem("busy", "2026-11-02T10:00:00.0000000", "2026-11-02T11:00:00.0000000", ""), `"UTC"`, `"Pacific Standard Time"`))}, wantState: AvailabilityUnknown},
 		{name: "two pages through the same calendarView path are complete", pages: []string{
-			`{"value":[` + graphItem("busy", "2026-11-02T10:00:00.0000000", "2026-11-02T11:00:00.0000000", "") + `],"@odata.nextLink":"https://graph.microsoft.com/v1.0/me/calendars/cal-1/calendarView?$skip=1"}`,
+			`{"value":[` + graphItem("busy", "2026-11-02T10:00:00.0000000", "2026-11-02T11:00:00.0000000", "") + `],"@odata.nextLink":"https://graph.microsoft.com/v1.0/me/calendars/cal-1/calendarView?$skip=1&$select=start,end,showAs,isCancelled,isAllDay&$top=1000&startDateTime=2026-11-02T09%3A00%3A00Z&endDateTime=2026-11-02T17%3A00%3A00Z"}`,
 			graphView(graphItem("busy", "2026-11-02T11:00:00.0000000", "2026-11-02T12:00:00.0000000", "")),
 		}, wantState: AvailabilityKnown, wantBusy: []string{"2026-11-02T10:00:00Z/2026-11-02T12:00:00Z"}},
 		{name: "next link to a foreign host is never followed", pages: []string{`{"value":[],"@odata.nextLink":"https://attacker.example/v1.0/me/calendars/cal-1/calendarView"}`}, wantState: AvailabilityUnknown},
@@ -259,7 +259,7 @@ func TestMicrosoftAvailabilityNative(t *testing.T) {
 			noLeak(t, err, "access-token-fixture")
 			requests := fixture.record()
 			query, _ := url.ParseQuery(requests[0].query)
-			if requests[0].path != "/v1.0/me/calendars/cal-1/calendarView" || requests[0].header.Get("Prefer") != `outlook.timezone="UTC"` || query.Get("startDateTime") != "2026-11-02T09:00:00Z" ||
+			if requests[0].path != "/v1.0/me/calendars/cal-1/calendarView" || requests[0].header.Get("Prefer") != graphPreferUTC || query.Get("startDateTime") != "2026-11-02T09:00:00Z" ||
 				query.Get("endDateTime") != "2026-11-02T17:00:00Z" || query.Get("$select") != "start,end,showAs,isCancelled,isAllDay" || len(fixture.refusedDials()) != 0 {
 				t.Fatalf("calendarView request = %s?%s prefer %q refused %q, want documented UTC projection with no foreign dial", requests[0].path, requests[0].query, requests[0].header.Get("Prefer"), fixture.refusedDials())
 			}

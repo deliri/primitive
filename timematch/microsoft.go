@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"slices"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
@@ -50,7 +51,7 @@ func graphCalendarPath(id CalendarID) string {
 
 // graphNext admits an @odata.nextLink only on the same Graph host and path.
 // A link anywhere else would carry the bearer credential to another origin.
-func graphNext(link string, path string) (core.HTTPEndpoint, error) {
+func graphNext(link string, path string, required url.Values) (core.HTTPEndpoint, error) {
 	next, err := endpoint(link)
 	if err != nil {
 		return core.HTTPEndpoint{}, errors.Join(core.ErrTimeMatchResponse, err)
@@ -58,6 +59,23 @@ func graphNext(link string, path string) (core.HTTPEndpoint, error) {
 	u := next.HTTPURL()
 	if u.Scheme != core.SchemeHTTPS || u.Host != graphHost || u.Path != path || u.User != nil {
 		return core.HTTPEndpoint{}, core.ErrTimeMatchResponse
+	}
+	query, queryErr := url.ParseQuery(u.RawQuery)
+	if queryErr != nil {
+		return core.HTTPEndpoint{}, errors.Join(core.ErrTimeMatchResponse, queryErr)
+	}
+	// Graph documents that nextLink includes the original query parameters.
+	// Follow its opaque URL unchanged, but never broaden the original privacy
+	// projection or window. Only native paging parameters may be added.
+	for name, values := range required {
+		if !slices.Equal(query[name], values) {
+			return core.HTTPEndpoint{}, core.ErrTimeMatchResponse
+		}
+	}
+	for name := range query {
+		if _, original := required[name]; !original && name != "$skip" && name != "$skiptoken" {
+			return core.HTTPEndpoint{}, core.ErrTimeMatchResponse
+		}
 	}
 	return next, nil
 }
@@ -69,6 +87,8 @@ func (c Client) microsoftCalendarList(ctx context.Context, r CalendarListRequest
 	if setupErr := errors.Join(bearerErr, preferErr, targetErr); setupErr != nil {
 		return CalendarList{}, setupErr
 	}
+	originalURL := target.HTTPURL()
+	requiredQuery := originalURL.Query()
 	list := CalendarList{Provider: ProviderMicrosoft}
 	visited := map[string]struct{}{}
 	for {
@@ -88,7 +108,7 @@ func (c Client) microsoftCalendarList(ctx context.Context, r CalendarListRequest
 			return CalendarList{}, core.ErrTimeMatchResponse
 		}
 		visited[page.next] = struct{}{}
-		if target, err = graphNext(page.next, graphCalendarsPath); err != nil {
+		if target, err = graphNext(page.next, graphCalendarsPath, requiredQuery); err != nil {
 			return CalendarList{}, err
 		}
 	}
@@ -114,6 +134,9 @@ func (p *graphCalendarPage) UnmarshalJSON(raw []byte) error {
 	}
 	if err := unmarshalExtensible(raw, &document); err != nil {
 		return err
+	}
+	if document.Value == nil {
+		return core.ErrTimeMatchResponse
 	}
 	page := graphCalendarPage{next: document.NextLink, items: make([]Calendar, 0, len(document.Value))}
 	for _, item := range document.Value {
@@ -169,6 +192,8 @@ func (c Client) microsoftAvailability(ctx context.Context, r AvailabilityRequest
 }
 
 func (c Client) graphCalendarView(ctx context.Context, request call, path string) ([][2]int64, bool, error) {
+	originalURL := request.target.HTTPURL()
+	requiredQuery := originalURL.Query()
 	var spans [][2]int64
 	visited := map[string]struct{}{}
 	for {
@@ -192,7 +217,7 @@ func (c Client) graphCalendarView(ctx context.Context, request call, path string
 			return nil, false, nil
 		}
 		visited[page.next] = struct{}{}
-		if request.target, err = graphNext(page.next, path); err != nil {
+		if request.target, err = graphNext(page.next, path, requiredQuery); err != nil {
 			return nil, false, nil
 		}
 	}
@@ -239,6 +264,9 @@ func (p *graphViewPage) UnmarshalJSON(raw []byte) error {
 	}
 	if err := unmarshalExtensible(raw, &document); err != nil {
 		return err
+	}
+	if document.Value == nil {
+		return core.ErrTimeMatchResponse
 	}
 	page := graphViewPage{next: document.NextLink, known: true}
 	for _, event := range document.Value {
@@ -608,7 +636,7 @@ func (c Client) microsoftRecover(ctx context.Context, w EventWrite) (EventReceip
 		}
 		visited[page.Next] = struct{}{}
 		var nextErr error
-		target, nextErr = graphNext(page.Next, graphEventsPath)
+		target, nextErr = graphNext(page.Next, graphEventsPath, query)
 		if nextErr != nil {
 			return EventReceipt{}, errors.Join(core.ErrTimeMatchIndeterminate, nextErr)
 		}

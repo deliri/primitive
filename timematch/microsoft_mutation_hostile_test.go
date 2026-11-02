@@ -5,6 +5,8 @@ import (
 	json "encoding/json/v2"
 	"errors"
 	"net/http"
+	"net/url"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -576,5 +578,198 @@ func TestMicrosoftCalendarMoveKeepsOwnedMutationReachable(t *testing.T) {
 	mutex.Unlock()
 	if deleteErr != nil || outcome != Deleted || !gotDeleted {
 		t.Fatalf("delete after calendar move = (%v,%v) effect %t, want actual deletion", outcome, deleteErr, gotDeleted)
+	}
+}
+
+func TestMicrosoftPagingNeverBroadensPrivacyNative(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name      string
+		change    func(url.Values)
+		wantKnown bool
+		wantCalls int
+	}{
+		{name: "opaque paging retains exact timing projection", wantKnown: true, wantCalls: 2},
+		{name: "dropped timing selection blocks second request", change: func(q url.Values) { q.Del("$select") }, wantCalls: 1},
+		{name: "full event selection blocks second request", change: func(q url.Values) { q.Set("$select", "id,subject,body,attendees") }, wantCalls: 1},
+		{name: "private expansion cannot be added", change: func(q url.Values) { q.Set("$expand", "attachments") }, wantCalls: 1},
+		{name: "filter cannot be injected", change: func(q url.Values) { q.Set("$filter", "subject ne ''") }, wantCalls: 1},
+		{name: "window start cannot change", change: func(q url.Values) { q.Set("startDateTime", "2020-01-01T00:00:00Z") }, wantCalls: 1},
+		{name: "window end cannot change", change: func(q url.Values) { q.Set("endDateTime", "2030-01-01T00:00:00Z") }, wantCalls: 1},
+		{name: "duplicate select cannot add fields", change: func(q url.Values) { q.Add("$select", "subject") }, wantCalls: 1},
+		{name: "original page size cannot change", change: func(q url.Values) { q.Set("$top", "999") }, wantCalls: 1},
+		{name: "unknown query option cannot broaden scope", change: func(q url.Values) { q.Set("$search", "private") }, wantCalls: 1},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			calls := 0
+			client, _ := newNative(t, func(w http.ResponseWriter, r *http.Request, _ []byte) {
+				calls++
+				if r.URL.Query().Has("$skiptoken") {
+					writeJSON(w, 200, `{"value":[]}`)
+					return
+				}
+				query := r.URL.Query()
+				query.Set("$skiptoken", "opaque+/==")
+				if tc.change != nil {
+					tc.change(query)
+				}
+				page := seedGraphView{Value: []seedGraphEvent{}, NextLink: "https://" + graphHost + r.URL.Path + "?" + query.Encode()}
+				encoded, err := json.Marshal(page)
+				if err != nil {
+					t.Errorf("page encode error = %v, want nil", err)
+				}
+				writeJSON(w, 200, string(encoded))
+			})
+			got, err := client.Availability(t.Context(), AvailabilityRequest{Connection: oauthConnection(t, ProviderMicrosoft), Calendars: []CalendarID{calendarID(t, "primary")}, Window: window(t, "2026-11-02T09:00:00Z", "2026-11-02T17:00:00Z"), Policy: fixturePolicy(t)})
+			want := AvailabilityUnknown
+			if tc.wantKnown {
+				want = AvailabilityKnown
+			}
+			if err != nil || len(got.Calendars) != 1 || got.Calendars[0].State != want || calls != tc.wantCalls || len(got.Calendars[0].Busy) != 0 {
+				t.Fatalf("paged availability = (%+v,%v) calls %d, want state %v and exactly %d privacy-scoped calls", got, err, calls, want, tc.wantCalls)
+			}
+		})
+	}
+}
+
+func TestMicrosoftAbsentCollectionNeverMeansFreeNative(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name, body string
+		wantKnown  bool
+	}{
+		{name: "explicit empty collection is known free", body: `{"value":[]}`, wantKnown: true},
+		{name: "absent collection is unknown", body: `{}`},
+		{name: "null collection is unknown", body: `{"value":null}`},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			client, fixture := newNative(t, func(w http.ResponseWriter, _ *http.Request, _ []byte) { writeJSON(w, 200, tc.body) })
+			connection := oauthConnection(t, ProviderMicrosoft)
+			got, err := client.Availability(t.Context(), AvailabilityRequest{Connection: connection, Calendars: []CalendarID{calendarID(t, "primary")}, Window: window(t, "2026-11-02T09:00:00Z", "2026-11-02T17:00:00Z"), Policy: fixturePolicy(t)})
+			want := AvailabilityUnknown
+			if tc.wantKnown {
+				want = AvailabilityKnown
+			}
+			if err != nil || len(got.Calendars) != 1 || got.Calendars[0].State != want || len(got.Calendars[0].Busy) != 0 {
+				t.Fatalf("availability = (%+v,%v), want state %v without invented busy data", got, err, want)
+			}
+			listed, listErr := client.ListCalendars(t.Context(), CalendarListRequest{Connection: connection, Policy: fixturePolicy(t)})
+			if tc.wantKnown {
+				if listErr != nil || len(listed.Calendars) != 0 {
+					t.Fatalf("explicit empty list = (%+v,%v), want complete empty list", listed, listErr)
+				}
+			} else if !errors.Is(listErr, core.ErrTimeMatchResponse) || listed.Provider != Provider(0) || listed.Calendars != nil {
+				t.Fatalf("absent list = (%+v,%v), want zero typed refusal", listed, listErr)
+			}
+			if len(fixture.record()) != 2 {
+				t.Fatalf("requests = %d, want actual availability and list calls", len(fixture.record()))
+			}
+		})
+	}
+}
+
+func FuzzMicrosoftPagingProjectionSemanticClosure(f *testing.F) {
+	required := url.Values{"$select": {"id,transactionId"}, "$expand": {"singleValueExtendedProperties($filter=id eq '" + graphOwnershipProperty + "')"}, "$filter": {"singleValueExtendedProperties/Any(ep: ep/value eq '" + eventIDFixture + "')"}}
+	seed, err := endpoint("https://" + graphHost + graphEventsPath + "?" + required.Encode())
+	if err != nil {
+		f.Fatalf("seed endpoint error = %v, want nil", err)
+	}
+	seedURL := seed.HTTPURL()
+	f.Add(seedURL.String())
+	f.Add("https://graph.microsoft.com/v1.0/me/events?$select=subject")
+	f.Add("")
+	f.Fuzz(func(t *testing.T, text string) {
+		got, err := graphNext(text, graphEventsPath, required)
+		if err != nil {
+			if !errors.Is(err, core.ErrTimeMatchResponse) || got != (core.HTTPEndpoint{}) {
+				t.Fatalf("paging refusal = (%+v,%v), want zero typed response", got, err)
+			}
+			return
+		}
+		parsed, parseErr := url.Parse(text)
+		if parseErr != nil {
+			t.Fatalf("accepted native URL error = %v, want nil", parseErr)
+		}
+		query, queryErr := url.ParseQuery(parsed.RawQuery)
+		if queryErr != nil {
+			t.Fatalf("accepted native query error = %v, want nil", queryErr)
+		}
+		if parsed.Scheme != "https" || parsed.Host != graphHost || parsed.Path != graphEventsPath || parsed.User != nil {
+			t.Fatalf("accepted URL = %+v, want bound Graph events origin", parsed)
+		}
+		for name, values := range required {
+			if !slices.Equal(query[name], values) {
+				t.Fatalf("accepted %s = %q, want exact %q", name, query[name], values)
+			}
+		}
+		for name := range query {
+			if _, original := required[name]; !original && name != "$skip" && name != "$skiptoken" {
+				t.Fatalf("accepted added query = %q, want only native paging", name)
+			}
+		}
+		projected := got.HTTPURL()
+		again, againErr := graphNext(projected.String(), graphEventsPath, required)
+		if againErr != nil || again != got {
+			t.Fatalf("paging round trip = (%+v,%v), want exact endpoint %+v", again, againErr, got)
+		}
+	})
+}
+
+func TestMicrosoftMetadataPagingNative(t *testing.T) {
+	t.Parallel()
+	for _, recovering := range []bool{false, true} {
+		name := "calendar list preserves metadata query across pages"
+		if recovering {
+			name = "owned recovery preserves marker query across pages"
+		}
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			owned := intent(t, "primary", "Visit", "2026-11-02T15:00:00Z", "2026-11-02T16:00:00Z")
+			calls := 0
+			client, _ := newNative(t, func(w http.ResponseWriter, r *http.Request, _ []byte) {
+				calls++
+				if r.URL.Path == graphEventsPath+"/"+immutableFixtureID {
+					body, err := json.Marshal(graphOwnedDetail(t, owned))
+					if err != nil {
+						t.Errorf("detail encode error = %v, want nil", err)
+					}
+					writeJSON(w, 200, string(body))
+					return
+				}
+				if r.URL.Query().Has("$skiptoken") {
+					if recovering {
+						writeJSON(w, 200, graphEncoded(t, graphOwnedPage{Value: []graphOwnedMetadata{microsoftMetadata(immutableFixtureID, owned.ID.value)}}))
+					} else {
+						writeJSON(w, 200, string(seedJSON(t, seedGraphCalendars{Value: []seedGraphCalendar{{ID: "primary", IsDefaultCalendar: true, CanEdit: true}}})))
+					}
+					return
+				}
+				query := r.URL.Query()
+				query.Set("$skiptoken", "opaque+/==")
+				next := "https://" + graphHost + r.URL.Path + "?" + query.Encode()
+				if recovering {
+					writeJSON(w, 200, graphEncoded(t, graphOwnedPage{Value: []graphOwnedMetadata{}, Next: next}))
+				} else {
+					writeJSON(w, 200, string(seedJSON(t, seedGraphCalendars{Value: []seedGraphCalendar{}, NextLink: next})))
+				}
+			})
+			if recovering {
+				write := eventWrite(t, oauthConnection(t, ProviderMicrosoft), owned)
+				write.Attempt = EventCreateRecoverOnly
+				got, err := client.PutEvent(t.Context(), write)
+				if err != nil || got.Ref.ID != owned.ID || got.Ref.Resource != immutableFixtureID || calls != 3 {
+					t.Fatalf("paged recovery = (%+v,%v) calls %d, want owned receipt and3GETs", got, err, calls)
+				}
+			} else {
+				got, err := client.ListCalendars(t.Context(), CalendarListRequest{Connection: oauthConnection(t, ProviderMicrosoft), Policy: fixturePolicy(t)})
+				if err != nil || len(got.Calendars) != 1 || got.Calendars[0].ID != owned.Calendar || calls != 2 {
+					t.Fatalf("paged list = (%+v,%v) calls %d, want one calendar and2GETs", got, err, calls)
+				}
+			}
+		})
 	}
 }
