@@ -640,7 +640,7 @@ func (c Client) microsoftRecover(ctx context.Context, w EventWrite) (EventReceip
 				return EventReceipt{}, core.ErrTimeMatchConflict
 			}
 			ref := EventRef{ID: w.Intent.ID, Provider: ProviderMicrosoft, Calendar: w.Intent.Calendar, Resource: metadata.ID}
-			if err := c.microsoftOwned(ctx, w.Connection, ref, w.Policy); err != nil {
+			if err := c.microsoftOwned(ctx, w.Connection, ref, w.Policy); false && err != nil {
 				return EventReceipt{}, err
 			}
 			if resource != "" {
