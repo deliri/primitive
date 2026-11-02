@@ -245,7 +245,11 @@ func FuzzGetIntegerJSONEmulatorNativeKindConservation(f *testing.F) {
 	f.Add(int64(math.MinInt64), uint8(0))
 	f.Add(int64(math.MaxInt64), uint8(0))
 	f.Fuzz(func(t *testing.T, value int64, kind uint8) {
-		ref := client.Collection("integer-json-fuzz").Doc(core.SHA256Of([]byte(t.TempDir())).String())
+		key, keyErr := core.SHA256Of([]byte(t.TempDir())).Hex()
+		if keyErr != nil {
+			t.Fatalf("owned fixture key error = %v, want nil", keyErr)
+		}
+		ref := client.Collection("integer-json-fuzz").Doc(key)
 		t.Cleanup(func() {
 			if _, err := ref.Delete(t.Context()); err != nil {
 				t.Errorf("native fixture cleanup=%v, want nil", err)
