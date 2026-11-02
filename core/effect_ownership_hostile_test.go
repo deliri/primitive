@@ -494,19 +494,37 @@ func declaredRealWorldCalls() (realWorldCallInventory, error) {
 		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "Month", count: 4},
 		{owner: PackageTemporal, substrate: realWorldSubstrateClock, selector: "Weekday", count: 1},
 		{owner: PackageHostFacts, substrate: realWorldSubstrateUnix, selector: "IoctlGetWinsize", count: 1},
-		{owner: PackageCore, substrate: realWorldSubstrateOperatingSystem, selector: "IsPathSeparator", count: 1},
+		{owner: PackageCore, substrate: realWorldSubstrateOperatingSystem, selector: "IsPathSeparator", count: 2},
 		{owner: PackageFilestore, substrate: realWorldSubstrateOperatingSystem, selector: "Lstat", count: 4},
 		{owner: PackageFilestore, substrate: realWorldSubstrateOperatingSystem, selector: "OpenFile", count: 2},
 		{owner: PackageFilestore, substrate: realWorldSubstrateOperatingSystem, selector: "Pipe", count: 1},
 		{owner: PackageFilestore, substrate: realWorldSubstrateOperatingSystem, selector: "OpenRoot", count: 3},
 		// Held-file identity guards also protect confined scratch cleanup.
-		{owner: PackageFilestore, substrate: realWorldSubstrateOperatingSystem, selector: "SameFile", count: 17},
+		{owner: PackageFilestore, substrate: realWorldSubstrateOperatingSystem, selector: "SameFile", count: 22},
 		{owner: PackageFilestore, substrate: realWorldSubstrateOperatingSystem, selector: "Stat", count: 2},
 		// Native FIFO and blocking-descriptor capabilities stay in Filestore.
 		{owner: PackageFilestore, substrate: realWorldSubstrateOperatingSystem, selector: "NewFile", count: 1},
-		{owner: PackageFilestore, substrate: realWorldSubstrateOperatingSystem, selector: "NewSyscallError", count: 2},
+		{owner: PackageFilestore, substrate: realWorldSubstrateOperatingSystem, selector: "NewSyscallError", count: 3},
 		{owner: PackageFilestore, substrate: realWorldSubstrateSyscall, selector: "Mkfifo", count: 1},
 		{owner: PackageFilestore, substrate: realWorldSubstrateSyscall, selector: "Dup", count: 1},
+		// Filestore owns durable writes and native syscall errors.
+		{owner: PackageFilestore, substrate: realWorldSubstrateSyscall, selector: "Fsync", count: 1},
+		{owner: PackageFilestore, substrate: realWorldSubstrateSyscall, selector: "Syscall", count: 1},
+		// Process owns child process setup and descriptor custody.
+		{owner: PackageProcess, substrate: realWorldSubstrateOperatingSystem, selector: "NewFile", count: 3},
+		{owner: PackageProcess, substrate: realWorldSubstrateSyscall, selector: "CloseOnExec", count: 1},
+		{owner: PackageProcess, substrate: realWorldSubstrateSyscall, selector: "Close", count: 1},
+		{owner: PackageProcess, substrate: realWorldSubstrateSyscall, selector: "Dup", count: 1},
+		{owner: PackageProcess, substrate: realWorldSubstrateSyscall, selector: "Getpgid", count: 1},
+		// Exchange owns HTTP: response control, cookie parsing and status text.
+		{owner: PackageExchange, substrate: realWorldSubstrateHTTP, selector: "NewResponseController", count: 2},
+		{owner: PackageExchange, substrate: realWorldSubstrateHTTP, selector: "ParseCookie", count: 1},
+		{owner: PackageExchange, substrate: realWorldSubstrateHTTP, selector: "StatusText", count: 1},
+		// Googleidentity names provider status text; it already owns its HTTP door.
+		{owner: PackageGoogleIdentity, substrate: realWorldSubstrateHTTP, selector: "StatusText", count: 1},
+		// GCS objects owns its provider ACL vocabulary.
+		{owner: PackageGCSObjects, substrate: realWorldSubstrateGoogleCloudStorage, selector: "ACLEntity", count: 1},
+		{owner: PackageGCSObjects, substrate: realWorldSubstrateGoogleCloudStorage, selector: "ACLRole", count: 1},
 		{owner: PackageHostFacts, substrate: realWorldSubstrateOperatingSystem, selector: "Hostname", count: 1},
 		// Native user and kernel observers were present but absent from the
 		// effect inventory; register their exact existing standard-library calls.
@@ -521,7 +539,7 @@ func declaredRealWorldCalls() (realWorldCallInventory, error) {
 		{owner: PackageHostFacts, substrate: realWorldSubstrateOperatingSystem, selector: "UserCacheDir", count: 1},
 		{owner: PackageHostFacts, substrate: realWorldSubstrateOperatingSystem, selector: "UserConfigDir", count: 1},
 		{owner: PackageHostFacts, substrate: realWorldSubstrateOperatingSystem, selector: "UserHomeDir", count: 1},
-		{owner: PackageProcess, substrate: realWorldSubstrateOperatingSystem, selector: "Getpid", count: 1},
+		{owner: PackageProcess, substrate: realWorldSubstrateOperatingSystem, selector: "Getpid", count: 2},
 		{owner: PackageProcess, substrate: realWorldSubstrateProcessExecution, selector: "CommandContext", count: 1},
 		{owner: PackageProcess, substrate: realWorldSubstrateProcessExecution, selector: "LookPath", count: 2},
 		{owner: PackageShutdown, substrate: realWorldSubstrateOperatingSystemSignal, selector: "Notify", count: 1},
@@ -584,12 +602,10 @@ func declaredRealWorldCalls() (realWorldCallInventory, error) {
 		{owner: PackageGCSObjects, substrate: realWorldSubstrateGoogleCloudStorage, selector: "WithPolicy", count: 1},
 		{owner: PackageGCSObjects, substrate: realWorldSubstrateGoogleIAMCredentials, selector: "NewService", count: 1},
 		{owner: PackageSecretStore, substrate: realWorldSubstrateGoogleSecretManager, selector: "NewClient", count: 1},
-		{owner: PackageGCSObjects, substrate: realWorldSubstrateNetwork, selector: "ParseIP", count: 1},
 		// URL host spelling only; socket effects remain owned by Exchange.
 		{owner: PackageTwilio, substrate: realWorldSubstrateNetwork, selector: "JoinHostPort", count: 2},
 		{owner: PackageExchange, substrate: realWorldSubstrateNetwork, selector: "ListenTCP", count: 1},
 		{owner: PackageExchange, substrate: realWorldSubstrateNetwork, selector: "TCPAddrFromAddrPort", count: 1},
-		{owner: PackageTemporal, substrate: realWorldSubstrateContextDeadline, selector: "WithDeadline", count: 1},
 		{owner: PackageTemporal, substrate: realWorldSubstrateContextDeadline, selector: "WithTimeout", count: 1},
 	}
 	var inventory realWorldCallInventory
