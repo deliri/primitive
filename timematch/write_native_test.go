@@ -27,7 +27,7 @@ func intent(t testing.TB, calendar, summary, start, end string) EventIntent {
 
 func eventWrite(t testing.TB, connection Connection, owned EventIntent) EventWrite {
 	t.Helper()
-	return EventWrite{Connection: connection, Intent: owned, ObservedAt: at(t, "2026-11-02T08:00:00.5Z"), Policy: fixturePolicy(t)}
+	return EventWrite{Attempt: EventCreateFirst, Connection: connection, Intent: owned, ObservedAt: at(t, "2026-11-02T08:00:00.5Z"), Policy: fixturePolicy(t)}
 }
 
 // cutConnection closes the socket after the provider applied the effect, so
@@ -143,7 +143,7 @@ func TestGooglePutEventNative(t *testing.T) {
 				}
 				return
 			}
-			if err != nil || got.Ref != (EventRef{Provider: ProviderGoogle, Calendar: calendarID(t, "primary"), Resource: eventIDFixture}) {
+			if err != nil || got.Ref != (EventRef{ID: owned(t).ID, Provider: ProviderGoogle, Calendar: calendarID(t, "primary"), Resource: eventIDFixture}) {
 				t.Fatalf("PutEvent() = (%+v, %v), want receipt for %s", got, err, eventIDFixture)
 			}
 		})
@@ -271,7 +271,7 @@ func TestMicrosoftEventsNative(t *testing.T) {
 			request := fixture.record()[0]
 			var sent graphEventBody
 			if decodeErr := json.Unmarshal(request.body, &sent); decodeErr != nil || request.path != "/v1.0/me/calendars/cal-1/events" || sent.TransactionID != eventIDFixture || sent.ShowAs != "busy" ||
-				sent.Start != (graphDateTime{DateTime: "2026-11-02T15:00:00.0000000", TimeZone: "UTC"}) || request.header.Get("Prefer") != `outlook.timezone="UTC"` || strings.Contains(string(request.body), "attendees") {
+				sent.Start != (graphDateTime{DateTime: "2026-11-02T15:00:00.0000000", TimeZone: "UTC"}) || request.header.Get("Prefer") != graphPreferUTC || strings.Contains(string(request.body), "attendees") {
 				t.Fatalf("create request = %s %s, want transactionId-bound UTC busy event without attendees", request.path, request.body)
 			}
 			if tc.wantErr != nil {
@@ -280,7 +280,7 @@ func TestMicrosoftEventsNative(t *testing.T) {
 				}
 				return
 			}
-			if err != nil || got.Ref != (EventRef{Provider: ProviderMicrosoft, Calendar: calendarID(t, "cal-1"), Resource: "AAMkAGI2-event"}) {
+			if err != nil || got.Ref != (EventRef{ID: intent(t, "cal-1", "Visit", "2026-11-02T15:00:00Z", "2026-11-02T16:00:00Z").ID, Provider: ProviderMicrosoft, Calendar: calendarID(t, "cal-1"), Resource: "AAMkAGI2-event"}) {
 				t.Fatalf("PutEvent() = (%+v, %v), want graph event receipt", got, err)
 			}
 		})
@@ -289,6 +289,12 @@ func TestMicrosoftEventsNative(t *testing.T) {
 		t.Parallel()
 		client, fixture := newNative(t, func(w http.ResponseWriter, r *http.Request, body []byte) {
 			switch {
+			case r.Method == http.MethodGet && r.URL.Path == "/v1.0/me/events/AAMkAGI2-event":
+				encoded, encodeErr := json.Marshal(graphOwnedMetadata{ID: "AAMkAGI2-event", TransactionID: eventIDFixture, Ownership: []graphOwnedProperty{{ID: graphOwnershipProperty, Value: eventIDFixture}}})
+				if encodeErr != nil {
+					t.Errorf("metadata encode error = %v, want nil", encodeErr)
+				}
+				writeJSON(w, 200, string(encoded))
 			case r.Method == http.MethodPatch:
 				var patch graphCreated
 				_ = json.Unmarshal(body, &patch)
@@ -302,17 +308,17 @@ func TestMicrosoftEventsNative(t *testing.T) {
 			}
 		})
 		connection := oauthConnection(t, ProviderMicrosoft)
-		ref := EventRef{Provider: ProviderMicrosoft, Calendar: calendarID(t, "cal-1"), Resource: "AAMkAGI2-event"}
+		ref := EventRef{ID: intent(t, "cal-1", "Visit", "2026-11-02T15:00:00Z", "2026-11-02T16:00:00Z").ID, Provider: ProviderMicrosoft, Calendar: calendarID(t, "cal-1"), Resource: "AAMkAGI2-event"}
 		updated, err := client.UpdateEvent(t.Context(), EventUpdate{Connection: connection, Ref: ref, Intent: intent(t, "cal-1", "Moved", "2026-11-03T15:00:00Z", "2026-11-03T16:00:00Z"), ObservedAt: at(t, "2026-11-02T09:00:00Z"), Policy: fixturePolicy(t)})
-		patch := fixture.record()[0]
+		patch := fixture.record()[1]
 		if err != nil || updated.Ref != ref || patch.path != "/v1.0/me/events/AAMkAGI2-event" || strings.Contains(string(patch.body), "transactionId") {
 			t.Fatalf("UpdateEvent() = (%+v, %v) body %s, want PATCH without transactionId", updated, err, patch.body)
 		}
 		deleted, deleteErr := client.DeleteEvent(t.Context(), EventDelete{Connection: connection, Ref: ref, Policy: fixturePolicy(t)})
 		ref.Resource = "gone"
 		absent, absentErr := client.DeleteEvent(t.Context(), EventDelete{Connection: connection, Ref: ref, Policy: fixturePolicy(t)})
-		if deleteErr != nil || absentErr != nil || deleted != Deleted || absent != DeleteAlreadyAbsent {
-			t.Fatalf("DeleteEvent = (%v, %v), (%v, %v), want Deleted and AlreadyAbsent", deleted, deleteErr, absent, absentErr)
+		if deleteErr != nil || !errors.Is(absentErr, core.ErrTimeMatchIndeterminate) || deleted != Deleted || absent != DeleteInvalid {
+			t.Fatalf("DeleteEvent = (%v, %v), (%v, %v), want Deleted and unknown absence", deleted, deleteErr, absent, absentErr)
 		}
 	})
 }
@@ -399,7 +405,7 @@ func TestAppleEventsNative(t *testing.T) {
 			w.WriteHeader(204)
 		})
 		connection := appleConnection(t)
-		ref := EventRef{Provider: ProviderApple, Calendar: calendarID(t, home), Resource: resource}
+		ref := EventRef{ID: intent(t, home, "Visit", "2026-11-02T15:00:00Z", "2026-11-02T16:00:00Z").ID, Provider: ProviderApple, Calendar: calendarID(t, home), Resource: resource}
 		updated, err := client.UpdateEvent(t.Context(), EventUpdate{Connection: connection, Ref: ref, Intent: owned(t), ObservedAt: at(t, "2026-11-02T09:00:00Z"), Policy: fixturePolicy(t)})
 		if err != nil || updated.Ref != ref || fixture.record()[0].header.Get("If-Match") != "*" {
 			t.Fatalf("UpdateEvent(apple) = (%+v, %v), want If-Match replacement", updated, err)

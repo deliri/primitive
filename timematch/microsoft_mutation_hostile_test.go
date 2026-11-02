@@ -1,0 +1,381 @@
+package timematch
+
+import (
+	json "encoding/json/v2"
+	"errors"
+	"net/http"
+	"strings"
+	"sync"
+	"testing"
+
+	"github.com/deliri/primitive/v2026/core"
+)
+
+const immutableFixtureID = "AAk-immutable-owned"
+
+func microsoftMetadata(id, owner string) graphOwnedMetadata {
+	return graphOwnedMetadata{ID: id, TransactionID: owner, Ownership: []graphOwnedProperty{{ID: graphOwnershipProperty, Value: owner}}}
+}
+
+func graphEncoded(t testing.TB, value core.Validatable) string {
+	t.Helper()
+	encoded, err := json.Marshal(value)
+	if err != nil {
+		t.Fatalf("json.Marshal() error = %v, want nil", err)
+	}
+	return string(encoded)
+}
+
+func graphOwnedDetail(t testing.TB, owned EventIntent) graphCreated {
+	t.Helper()
+	body, err := graphEvent(owned, true)
+	if err != nil {
+		t.Fatalf("graphEvent() error = %v, want nil", err)
+	}
+	var detail graphCreated
+	if err := json.Unmarshal(body, &detail); err != nil {
+		t.Fatalf("decode emitted intent error = %v, want nil", err)
+	}
+	detail.ID = immutableFixtureID
+	return detail
+}
+
+// Graph deliberately ignores transactionId deduplication. Only a read-only
+// recovery path, not another POST carrying the same transactionId, is safe.
+func TestMicrosoftLostCreateRecoveryNeverRepeatsPOST(t *testing.T) {
+	t.Parallel()
+	owned := intent(t, "primary", "Appointment", "2026-11-02T15:00:00Z", "2026-11-02T16:00:00Z")
+	var mutex sync.Mutex
+	posts, lookups, details := 0, 0, 0
+	committed, visible := false, false
+	detail := graphOwnedDetail(t, owned)
+	client, fixture := newNative(t, func(w http.ResponseWriter, r *http.Request, body []byte) {
+		mutex.Lock()
+		defer mutex.Unlock()
+		if r.Header.Get("Prefer") != graphPreferUTC {
+			t.Errorf("Prefer = %q, want %q", r.Header.Get("Prefer"), graphPreferUTC)
+		}
+		switch {
+		case r.Method == http.MethodPost:
+			posts++
+			committed = true
+			var sent graphEventBody
+			if err := json.Unmarshal(body, &sent); err != nil || len(sent.Ownership) != 1 || sent.Ownership[0] != (graphOwnedProperty{ID: graphOwnershipProperty, Value: owned.ID.value}) {
+				t.Errorf("POST ownership = %+v error %v, want exact private marker", sent.Ownership, err)
+			}
+			cutConnection(w)
+		case r.URL.Path == graphEventsPath:
+			lookups++
+			page := graphOwnedPage{Value: []graphOwnedMetadata{}}
+			if visible {
+				page.Value = append(page.Value, microsoftMetadata(immutableFixtureID, owned.ID.value))
+			}
+			writeJSON(w, 200, graphEncoded(t, page))
+		case r.URL.Path == graphEventsPath+"/"+immutableFixtureID:
+			details++
+			encoded, err := json.Marshal(detail)
+			if err != nil {
+				t.Errorf("detail encode error = %v, want nil", err)
+			}
+			writeJSON(w, 200, string(encoded))
+		default:
+			writeJSON(w, 404, `{}`)
+		}
+	})
+	write := eventWrite(t, oauthConnection(t, ProviderMicrosoft), owned)
+	first, firstErr := client.PutEvent(t.Context(), write)
+	if !errors.Is(firstErr, core.ErrTimeMatchIndeterminate) || first != (EventReceipt{}) {
+		t.Fatalf("lost reply = (%+v,%v), want zero indeterminate", first, firstErr)
+	}
+	write.Attempt = EventCreateRecoverOnly
+	lagged, laggedErr := client.PutEvent(t.Context(), write)
+	if !errors.Is(laggedErr, core.ErrTimeMatchIndeterminate) || lagged != (EventReceipt{}) {
+		t.Fatalf("unindexed committed write = (%+v,%v), want zero indeterminate", lagged, laggedErr)
+	}
+	mutex.Lock()
+	visible = true
+	mutex.Unlock()
+	recovered, recoverErr := client.PutEvent(t.Context(), write)
+	again, againErr := client.PutEvent(t.Context(), write)
+	mutex.Lock()
+	gotPosts, gotLookups, gotDetails, gotCommitted := posts, lookups, details, committed
+	mutex.Unlock()
+	if recoverErr != nil || againErr != nil || recovered != again || recovered.Ref.Resource != immutableFixtureID || recovered.Ref.ID != owned.ID || gotPosts != 1 || gotLookups != 3 || gotDetails != 2 || !gotCommitted {
+		t.Fatalf("recovery = (%+v,%v), replay (%+v,%v), effects %d/%d/%d committed %t, want one POST and same owned receipt", recovered, recoverErr, again, againErr, gotPosts, gotLookups, gotDetails, gotCommitted)
+	}
+	for _, request := range fixture.record() {
+		if request.method == http.MethodGet && request.path == graphEventsPath {
+			query, err := http.NewRequest(http.MethodGet, "https://example.com?"+request.query, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := query.URL.Query().Get("$select"); got != "id,transactionId" {
+				t.Fatalf("lookup select = %q, want ownership metadata only", got)
+			}
+			if !strings.Contains(query.URL.Query().Get("$filter"), "ep/value eq '"+owned.ID.value+"'") {
+				t.Fatalf("lookup filter = %q, want exact owned marker", query.URL.Query().Get("$filter"))
+			}
+		}
+	}
+}
+
+func TestMicrosoftRecoveryHostileNative(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name         string
+		mutate       func(*graphOwnedPage, *graphCreated)
+		lookupStatus int
+		detailStatus int
+		raw          string
+		wantErr      error
+		wantDetails  int
+	}{
+		{name: "owned event in another calendar retains immutable identity", wantDetails: 1},
+		{name: "index empty cannot prove first create failed", mutate: func(p *graphOwnedPage, _ *graphCreated) { p.Value = []graphOwnedMetadata{} }, wantErr: core.ErrTimeMatchIndeterminate},
+		{name: "two owned events cannot be silently chosen", mutate: func(p *graphOwnedPage, _ *graphCreated) {
+			p.Value = append(p.Value, microsoftMetadata("another", eventIDFixture))
+		}, wantErr: core.ErrTimeMatchConflict},
+		{name: "duplicate same id is not a unique authoritative observation", mutate: func(p *graphOwnedPage, _ *graphCreated) { p.Value = append(p.Value, p.Value[0]) }, wantErr: core.ErrTimeMatchConflict},
+		{name: "foreign transaction is rejected before details", mutate: func(p *graphOwnedPage, _ *graphCreated) { p.Value[0].TransactionID = "another" }, wantErr: core.ErrTimeMatchConflict},
+		{name: "foreign marker value is rejected before details", mutate: func(p *graphOwnedPage, _ *graphCreated) { p.Value[0].Ownership[0].Value = "another" }, wantErr: core.ErrTimeMatchConflict},
+		{name: "foreign property namespace cannot claim event", mutate: func(p *graphOwnedPage, _ *graphCreated) {
+			p.Value[0].Ownership[0].ID = "String {different} Name TimeMatchEventID"
+		}, wantErr: core.ErrTimeMatchConflict},
+		{name: "missing marker is not owned", mutate: func(p *graphOwnedPage, _ *graphCreated) { p.Value[0].Ownership = nil }, wantErr: core.ErrTimeMatchConflict},
+		{name: "duplicate markers are ambiguous", mutate: func(p *graphOwnedPage, _ *graphCreated) {
+			p.Value[0].Ownership = append(p.Value[0].Ownership, p.Value[0].Ownership[0])
+		}, wantErr: core.ErrTimeMatchConflict},
+		{name: "empty provider id cannot issue receipt", mutate: func(p *graphOwnedPage, _ *graphCreated) { p.Value[0].ID = "" }, wantErr: core.ErrTimeMatchIndeterminate},
+		{name: "newline provider id cannot address resource", mutate: func(p *graphOwnedPage, _ *graphCreated) { p.Value[0].ID = "owned\nforeign" }, wantErr: core.ErrTimeMatchIndeterminate},
+		{name: "private content injected into error is sanitized", lookupStatus: 503, raw: `{"error":"PRIVATE-EVENT-TITLE-attendee@example.com"}`, wantErr: core.ErrTimeMatchIndeterminate},
+		{name: "consent refusal retains strongest identity", lookupStatus: 401, wantErr: core.ErrTimeMatchConsent},
+		{name: "malformed page never implies absence", raw: `{"value":`, wantErr: core.ErrTimeMatchIndeterminate},
+		{name: "omitted collection never implies absence", raw: `{}`, wantErr: core.ErrTimeMatchIndeterminate},
+		{name: "null collection never implies absence", raw: `{"value":null}`, wantErr: core.ErrTimeMatchIndeterminate},
+		{name: "duplicate collection refused", raw: `{"value":[],"value":[]}`, wantErr: core.ErrTimeMatchIndeterminate},
+		{name: "wrong collection type refused", raw: `{"value":1}`, wantErr: core.ErrTimeMatchIndeterminate},
+		{name: "foreign paging cannot receive bearer", mutate: func(p *graphOwnedPage, _ *graphCreated) { p.Next = "https://other.example/v1.0/me/events?$skip=1" }, wantErr: core.ErrTimeMatchIndeterminate},
+		{name: "wrong graph path cannot receive bearer", mutate: func(p *graphOwnedPage, _ *graphCreated) {
+			p.Next = "https://graph.microsoft.com/v1.0/me/messages?$skip=1"
+		}, wantErr: core.ErrTimeMatchIndeterminate},
+		{name: "lookup page loop never certifies first observation", mutate: func(p *graphOwnedPage, _ *graphCreated) {
+			p.Value = []graphOwnedMetadata{}
+			p.Next = "https://graph.microsoft.com/v1.0/me/events?$skip=1"
+		}, wantErr: core.ErrTimeMatchIndeterminate},
+		{name: "event disappears before detail read stays unknown", detailStatus: 404, wantErr: core.ErrTimeMatchIndeterminate, wantDetails: 1},
+		{name: "event changed summary is conflict", mutate: func(_ *graphOwnedPage, d *graphCreated) { d.Subject = "changed" }, wantErr: core.ErrTimeMatchConflict, wantDetails: 1},
+		{name: "event changed start by one tick is conflict", mutate: func(_ *graphOwnedPage, d *graphCreated) { d.Start.DateTime = "2026-11-02T15:00:00.0000001" }, wantErr: core.ErrTimeMatchConflict, wantDetails: 1},
+		{name: "event changed end by one tick is conflict", mutate: func(_ *graphOwnedPage, d *graphCreated) { d.End.DateTime = "2026-11-02T16:00:00.0000001" }, wantErr: core.ErrTimeMatchConflict, wantDetails: 1},
+		{name: "cancelled owned event is conflict", mutate: func(_ *graphOwnedPage, d *graphCreated) { d.IsCancelled = true }, wantErr: core.ErrTimeMatchConflict, wantDetails: 1},
+		{name: "detail response changed immutable id is conflict", mutate: func(_ *graphOwnedPage, d *graphCreated) { d.ID = "different" }, wantErr: core.ErrTimeMatchConflict, wantDetails: 1},
+		{name: "detail response changed transaction is conflict", mutate: func(_ *graphOwnedPage, d *graphCreated) { d.TransactionID = "different" }, wantErr: core.ErrTimeMatchConflict, wantDetails: 1},
+		{name: "offset zone rather than UTC is indeterminate", mutate: func(_ *graphOwnedPage, d *graphCreated) { d.Start.TimeZone = "America/Toronto" }, wantErr: core.ErrTimeMatchIndeterminate, wantDetails: 1},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			owned := intent(t, "primary", "Visit", "2026-11-02T15:00:00Z", "2026-11-02T16:00:00Z")
+			page := graphOwnedPage{Value: []graphOwnedMetadata{microsoftMetadata(immutableFixtureID, owned.ID.value)}}
+			detail := graphOwnedDetail(t, owned)
+			if tc.mutate != nil {
+				tc.mutate(&page, &detail)
+			}
+			details := 0
+			client, fixture := newNative(t, func(w http.ResponseWriter, r *http.Request, _ []byte) {
+				if r.Method != http.MethodGet {
+					t.Errorf("method = %q, want recovery GET only", r.Method)
+				}
+				if r.Header.Get("Prefer") != graphPreferUTC {
+					t.Errorf("Prefer = %q, want immutable UTC", r.Header.Get("Prefer"))
+				}
+				status := tc.lookupStatus
+				if status == 0 {
+					status = 200
+				}
+				if r.URL.Path == graphEventsPath {
+					body := tc.raw
+					if body == "" {
+						body = graphEncoded(t, page)
+					}
+					writeJSON(w, status, body)
+					return
+				}
+				details++
+				status = tc.detailStatus
+				if status == 0 {
+					status = 200
+				}
+				body, err := json.Marshal(detail)
+				if err != nil {
+					t.Errorf("encode detail error = %v, want nil", err)
+				}
+				writeJSON(w, status, string(body))
+			})
+			write := eventWrite(t, oauthConnection(t, ProviderMicrosoft), owned)
+			write.Attempt = EventCreateRecoverOnly
+			got, err := client.PutEvent(t.Context(), write)
+			if tc.wantErr != nil {
+				if !errors.Is(err, tc.wantErr) || got != (EventReceipt{}) {
+					t.Fatalf("recovery = (%+v,%v), want zero and %v", got, err, tc.wantErr)
+				}
+				noLeak(t, err)
+			} else if err != nil || got.Ref.Resource != immutableFixtureID || got.Ref.ID != owned.ID {
+				t.Fatalf("recovery = (%+v,%v), want immutable owned receipt", got, err)
+			}
+			if details != tc.wantDetails || len(fixture.refusedDials()) != 0 {
+				t.Fatalf("details = %d refused dials %v, want %d and none", details, fixture.refusedDials(), tc.wantDetails)
+			}
+		})
+	}
+}
+
+func TestMicrosoftMutationOwnershipNative(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name           string
+		mutate         func(*graphOwnedMetadata)
+		readStatus     int
+		mutationStatus int
+		wantErr        error
+		wantEffects    int
+	}{
+		{name: "owned event moved calendar still updates immutable id", wantEffects: 1},
+		{name: "foreign transaction cannot be mutated", mutate: func(m *graphOwnedMetadata) { m.TransactionID = "another" }, wantErr: core.ErrTimeMatchConflict},
+		{name: "foreign ownership cannot be mutated", mutate: func(m *graphOwnedMetadata) { m.Ownership[0].Value = "another" }, wantErr: core.ErrTimeMatchConflict},
+		{name: "unmarked event cannot be mutated", mutate: func(m *graphOwnedMetadata) { m.Ownership = nil }, wantErr: core.ErrTimeMatchConflict},
+		{name: "different immutable id cannot be mutated", mutate: func(m *graphOwnedMetadata) { m.ID = "different" }, wantErr: core.ErrTimeMatchConflict},
+		{name: "missing metadata cannot certify deletion", readStatus: 404, wantErr: core.ErrTimeMatchIndeterminate},
+		{name: "gone metadata cannot certify deletion", readStatus: 410, wantErr: core.ErrTimeMatchIndeterminate},
+		{name: "revoked authorization never mutates", readStatus: 401, wantErr: core.ErrTimeMatchConsent},
+		{name: "rate limited ownership is not absent", readStatus: 429, wantErr: core.ErrTimeMatchResponse},
+		{name: "server refused ownership is not absent", readStatus: 503, wantErr: core.ErrTimeMatchResponse},
+		{name: "disappears after ownership before write", mutationStatus: 404, wantErr: core.ErrTimeMatchIndeterminate, wantEffects: 1},
+		{name: "gone after ownership before write", mutationStatus: 410, wantErr: core.ErrTimeMatchIndeterminate, wantEffects: 1},
+		{name: "gateway loses write response", mutationStatus: 503, wantErr: core.ErrTimeMatchIndeterminate, wantEffects: 1},
+	}
+	for _, tc := range cases {
+		for _, deleting := range []bool{false, true} {
+			name := tc.name + " update"
+			if deleting {
+				name = tc.name + " delete"
+			}
+			t.Run(name, func(t *testing.T) {
+				t.Parallel()
+				owned := intent(t, "primary", "Moved", "2026-11-03T15:00:00Z", "2026-11-03T16:00:00Z")
+				metadata := microsoftMetadata(immutableFixtureID, owned.ID.value)
+				if tc.mutate != nil {
+					tc.mutate(&metadata)
+				}
+				effects := 0
+				client, fixture := newNative(t, func(w http.ResponseWriter, r *http.Request, body []byte) {
+					if r.Header.Get("Prefer") != graphPreferUTC {
+						t.Errorf("Prefer = %q, want immutable UTC", r.Header.Get("Prefer"))
+					}
+					if r.URL.Path != graphEventsPath+"/"+immutableFixtureID {
+						t.Errorf("mutation path = %q, want immutable mailbox path", r.URL.Path)
+					}
+					if r.Method == http.MethodGet {
+						status := tc.readStatus
+						if status == 0 {
+							status = 200
+						}
+						writeJSON(w, status, graphEncoded(t, metadata))
+						return
+					}
+					effects++
+					if tc.mutationStatus != 0 {
+						writeJSON(w, tc.mutationStatus, `{}`)
+						return
+					}
+					if deleting {
+						w.WriteHeader(http.StatusNoContent)
+						return
+					}
+					var detail graphCreated
+					if err := json.Unmarshal(body, &detail); err != nil {
+						t.Errorf("patch decode error = %v, want nil", err)
+					}
+					detail.ID = immutableFixtureID
+					encoded, err := json.Marshal(detail)
+					if err != nil {
+						t.Errorf("patch encode error = %v, want nil", err)
+					}
+					writeJSON(w, 200, string(encoded))
+				})
+				ref := EventRef{ID: owned.ID, Calendar: owned.Calendar, Provider: ProviderMicrosoft, Resource: immutableFixtureID}
+				var gotErr error
+				if deleting {
+					got, err := client.DeleteEvent(t.Context(), EventDelete{Connection: oauthConnection(t, ProviderMicrosoft), Ref: ref, Policy: fixturePolicy(t)})
+					gotErr = err
+					if err == nil && got != Deleted || err != nil && got != DeleteInvalid {
+						t.Fatalf("DeleteEvent() = (%v,%v), want truthful outcome", got, err)
+					}
+				} else {
+					got, err := client.UpdateEvent(t.Context(), EventUpdate{Connection: oauthConnection(t, ProviderMicrosoft), Ref: ref, Intent: owned, ObservedAt: at(t, "2026-11-02T08:00:00Z"), Policy: fixturePolicy(t)})
+					gotErr = err
+					if err == nil && got.Ref != ref || err != nil && got != (EventReceipt{}) {
+						t.Fatalf("UpdateEvent() = (%+v,%v), want exact reference or zero refusal", got, err)
+					}
+				}
+				wantErr := tc.wantErr
+				// PATCH404/410 is a definitive refusal to this update, but cannot prove
+				// deletion. DELETE's public outcome must retain that uncertainty.
+				if !deleting && (tc.mutationStatus == 404 || tc.mutationStatus == 410) {
+					wantErr = core.ErrTimeMatchResponse
+				}
+				if wantErr == nil && gotErr != nil || wantErr != nil && !errors.Is(gotErr, wantErr) || effects != tc.wantEffects {
+					t.Fatalf("mutation error = %v effects %d, want %v effects %d", gotErr, effects, wantErr, tc.wantEffects)
+				}
+				noLeak(t, gotErr)
+				if got := len(fixture.record()); got != 1+tc.wantEffects {
+					t.Fatalf("requests = %d, want ownership read plus %d effects", got, tc.wantEffects)
+				}
+			})
+		}
+	}
+}
+
+func FuzzMicrosoftOwnedMetadataSemanticClosure(f *testing.F) {
+	seed := microsoftMetadata(immutableFixtureID, eventIDFixture)
+	raw, err := json.Marshal(seed)
+	if err != nil {
+		f.Fatalf("seed encode error = %v, want nil", err)
+	}
+	f.Add(raw)
+	f.Add([]byte(`{"id":"foreign","transactionId":"other"}`))
+	f.Add([]byte(`{"id":`))
+	f.Fuzz(func(t *testing.T, data []byte) {
+		got, err := decodeJSON[graphOwnedMetadata](data)
+		if err != nil {
+			if !errors.Is(err, core.ErrTimeMatchResponse) || got.ID != "" || got.TransactionID != "" || got.Ownership != nil {
+				t.Fatalf("decode refusal = (%+v,%v), want zero typed response", got, err)
+			}
+			return
+		}
+		if err := got.Validate(); err != nil {
+			t.Fatalf("accepted Validate error = %v, want nil", err)
+		}
+		id, err := ParseEventID(eventIDFixture)
+		if err != nil {
+			t.Fatal(err)
+		}
+		ownErr := got.owns(id)
+		wantOwned := got.TransactionID == eventIDFixture && len(got.Ownership) == 1 && got.Ownership[0].ID == graphOwnershipProperty && got.Ownership[0].Value == eventIDFixture
+		if wantOwned && ownErr != nil || !wantOwned && !errors.Is(ownErr, core.ErrTimeMatchConflict) {
+			t.Fatalf("ownership error = %v facts %+v, want owned iff exact deterministic metadata", ownErr, got)
+		}
+		encoded, encodeErr := json.Marshal(got)
+		if encodeErr != nil {
+			t.Fatalf("encode error = %v, want nil", encodeErr)
+		}
+		again, decodeErr := decodeJSON[graphOwnedMetadata](encoded)
+		if decodeErr != nil || again.ID != got.ID || again.TransactionID != got.TransactionID || len(again.Ownership) != len(got.Ownership) {
+			t.Fatalf("round trip = (%+v,%v), want exact facts %+v", again, decodeErr, got)
+		}
+		for i := range got.Ownership {
+			if got.Ownership[i] != again.Ownership[i] {
+				t.Fatalf("round trip property %d = %+v, want %+v", i, again.Ownership[i], got.Ownership[i])
+			}
+		}
+	})
+}

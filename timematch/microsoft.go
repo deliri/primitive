@@ -24,10 +24,14 @@ const (
 	// calendarView $top: "minimum value of 1 and maximum of 1000".
 	graphCalendarViewPageSize = "1000"
 	// "Use this to specify the time zone for start and end times in the response."
-	graphPreferUTC = `outlook.timezone="UTC"`
+	graphPreferUTC = `outlook.timezone="UTC", IdType="ImmutableId"`
 	graphUTCZone   = "UTC"
 	// Graph DateTimeTimeZone dateTime has no offset; its zone is a sibling field.
 	graphDateTimeLayout = "2006-01-02T15:04:05.0000000"
+	// Named extended property: an ownership marker, never calendar contents.
+	// https://learn.microsoft.com/en-us/graph/api/singlevaluelegacyextendedproperty-get
+	graphOwnershipProperty = "String {e6a70f2c-664b-4b46-9c0e-4a78596d3001} Name TimeMatchEventID"
+	graphEventsPath        = "/v1.0/me/events"
 )
 
 // PrimaryCalendar names the account's default calendar for every provider
@@ -60,14 +64,15 @@ func graphNext(link string, path string) (core.HTTPEndpoint, error) {
 
 func (c Client) microsoftCalendarList(ctx context.Context, r CalendarListRequest) (CalendarList, error) {
 	secrets, bearerErr := bearer(r.Connection.AccessToken)
+	prefer, preferErr := header("Prefer", graphPreferUTC)
 	target, targetErr := endpoint(graphBase + "/me/calendars?" + url.Values{"$select": {"id,canEdit,isDefaultCalendar"}}.Encode())
-	if setupErr := errors.Join(bearerErr, targetErr); setupErr != nil {
+	if setupErr := errors.Join(bearerErr, preferErr, targetErr); setupErr != nil {
 		return CalendarList{}, setupErr
 	}
 	list := CalendarList{Provider: ProviderMicrosoft}
 	visited := map[string]struct{}{}
 	for {
-		result, err := c.send(ctx, call{target: target, method: exchange.MethodGet, secrets: secrets, responseType: core.HTTPMediaTypeJSON(), policy: r.Policy, expected: http.StatusOK})
+		result, err := c.send(ctx, call{target: target, method: exchange.MethodGet, secrets: secrets, responseType: core.HTTPMediaTypeJSON(), headers: []exchange.Header{prefer}, policy: r.Policy, expected: http.StatusOK})
 		if err != nil {
 			return CalendarList{}, readFailure(result, err)
 		}
@@ -267,12 +272,13 @@ func (p *graphViewPage) UnmarshalJSON(raw []byte) error {
 func (graphViewPage) Validate() error { return nil }
 
 type graphEventBody struct {
-	Subject       string        `json:"subject"`
-	Start         graphDateTime `json:"start"`
-	End           graphDateTime `json:"end"`
-	ShowAs        string        `json:"showAs"`
-	TransactionID string        `json:"transactionId,omitzero"`
-	IsReminderOn  bool          `json:"isReminderOn"`
+	Subject       string               `json:"subject"`
+	Start         graphDateTime        `json:"start"`
+	End           graphDateTime        `json:"end"`
+	ShowAs        string               `json:"showAs"`
+	TransactionID string               `json:"transactionId,omitzero"`
+	IsReminderOn  bool                 `json:"isReminderOn"`
+	Ownership     []graphOwnedProperty `json:"singleValueExtendedProperties,omitzero"`
 }
 
 func graphEvent(intent EventIntent, create bool) ([]byte, error) {
@@ -295,6 +301,7 @@ func graphEvent(intent EventIntent, create bool) ([]byte, error) {
 		// server to avoid redundant POST operations in case of client retries
 		// to create the same event." It cannot change in a later update.
 		body.TransactionID = intent.ID.value
+		body.Ownership = []graphOwnedProperty{{ID: graphOwnershipProperty, Value: intent.ID.value}}
 	}
 	encoded, err := json.Marshal(body)
 	if err != nil {
@@ -303,11 +310,13 @@ func graphEvent(intent EventIntent, create bool) ([]byte, error) {
 	return encoded, nil
 }
 
-// microsoftPut creates the event with transactionId = EventID. Graph does not
-// document its duplicate-transactionId response, so the returned event is
-// always verified against the intent; a retry after Indeterminate reuses the
-// same transactionId as documented.
+// microsoftPut sends a first dispatch exactly once. The caller durably owns
+// that dispatch; after any uncertain outcome it must use RecoverOnly. Graph's
+// transactionId is a duplicate-avoidance hint, not an exactly-once guarantee.
 func (c Client) microsoftPut(ctx context.Context, w EventWrite) (EventReceipt, error) {
+	if w.Attempt == EventCreateRecoverOnly {
+		return c.microsoftRecover(ctx, w)
+	}
 	secrets, err := bearer(w.Connection.AccessToken)
 	if err != nil {
 		return EventReceipt{}, err
@@ -332,6 +341,9 @@ func (c Client) microsoftPut(ctx context.Context, w EventWrite) (EventReceipt, e
 }
 
 func (c Client) microsoftUpdate(ctx context.Context, u EventUpdate) (EventReceipt, error) {
+	if err := c.microsoftOwned(ctx, u.Connection, u.Ref, u.Policy); err != nil {
+		return EventReceipt{}, err
+	}
 	secrets, err := bearer(u.Connection.AccessToken)
 	if err != nil {
 		return EventReceipt{}, err
@@ -356,6 +368,9 @@ func (c Client) microsoftUpdate(ctx context.Context, u EventUpdate) (EventReceip
 }
 
 func (c Client) microsoftDelete(ctx context.Context, d EventDelete) (DeleteOutcome, error) {
+	if err := c.microsoftOwned(ctx, d.Connection, d.Ref, d.Policy); err != nil {
+		return DeleteInvalid, err
+	}
 	secrets, err := bearer(d.Connection.AccessToken)
 	if err != nil {
 		return DeleteInvalid, err
@@ -364,7 +379,21 @@ func (c Client) microsoftDelete(ctx context.Context, d EventDelete) (DeleteOutco
 	if err != nil {
 		return DeleteInvalid, err
 	}
-	return c.deleteResource(ctx, call{target: target, method: exchange.MethodDelete, secrets: secrets, policy: d.Policy, expected: http.StatusNoContent})
+	prefer, err := header("Prefer", graphPreferUTC)
+	if err != nil {
+		return DeleteInvalid, err
+	}
+	result, err := c.send(ctx, call{target: target, method: exchange.MethodDelete, secrets: secrets, headers: []exchange.Header{prefer}, policy: d.Policy, expected: http.StatusNoContent})
+	defer clear(result.body)
+	if err != nil {
+		// Even immutable ids change on archive/export-and-reimport. A 404/410
+		// cannot establish deletion of the appointment beyond this mailbox.
+		if result.status == http.StatusNotFound || result.status == http.StatusGone {
+			return DeleteInvalid, core.ErrTimeMatchIndeterminate
+		}
+		return DeleteInvalid, writeFailure(result, err)
+	}
+	return Deleted, nil
 }
 
 type graphEventObservation struct {
@@ -421,8 +450,168 @@ func verifyGraph(body []byte, expected graphExpectation) (EventReceipt, error) {
 		return EventReceipt{}, errors.Join(core.ErrTimeMatchIndeterminate, err)
 	}
 	if observed.cancelled || observed.subject != intent.Summary.value || !sameSpan([2]int64{start, end}, intent.Interval) ||
-		create && observed.transactionID != intent.ID.value || !create && observed.id != resource {
+		create && observed.transactionID != intent.ID.value || resource != "" && observed.id != resource {
 		return EventReceipt{}, core.ErrTimeMatchConflict
 	}
-	return EventReceipt{Ref: EventRef{Provider: ProviderMicrosoft, Calendar: calendar, Resource: observed.id}}, nil
+	return EventReceipt{Ref: EventRef{ID: intent.ID, Provider: ProviderMicrosoft, Calendar: calendar, Resource: observed.id}}, nil
+}
+
+// graphOwnedProperty is the documented named-property protocol representation.
+type graphOwnedProperty struct {
+	ID    string `json:"id"`
+	Value string `json:"value"`
+}
+
+func (graphOwnedProperty) timematchInternalFlow() {}
+
+// graphOwnedMetadata admits no event titles, descriptions or participants.
+// A metadata query must establish ownership before any detail read or mutation.
+type graphOwnedMetadata struct {
+	ID            string               `json:"id"`
+	TransactionID string               `json:"transactionId"`
+	Ownership     []graphOwnedProperty `json:"singleValueExtendedProperties"`
+}
+
+func (graphOwnedMetadata) timematchInternalFlow() {}
+func (m *graphOwnedMetadata) UnmarshalJSON(raw []byte) error {
+	type wire graphOwnedMetadata
+	var decoded wire
+	if err := unmarshalExtensible(raw, &decoded); err != nil {
+		return err
+	}
+	*m = graphOwnedMetadata(decoded)
+	return nil
+}
+
+func (m graphOwnedMetadata) Validate() error {
+	if !visibleASCII([]byte(m.ID)) {
+		return core.ErrTimeMatchResponse
+	}
+	return nil
+}
+func (m graphOwnedMetadata) owns(id EventID) error {
+	if m.TransactionID != id.value || len(m.Ownership) != 1 || m.Ownership[0] != (graphOwnedProperty{ID: graphOwnershipProperty, Value: id.value}) {
+		return core.ErrTimeMatchConflict
+	}
+	return nil
+}
+
+type graphOwnedPage struct {
+	Value []graphOwnedMetadata `json:"value"`
+	Next  string               `json:"@odata.nextLink"`
+}
+
+func (graphOwnedPage) timematchInternalFlow() {}
+func (p *graphOwnedPage) UnmarshalJSON(raw []byte) error {
+	type wire graphOwnedPage
+	var decoded wire
+	if err := unmarshalExtensible(raw, &decoded); err != nil {
+		return err
+	}
+	*p = graphOwnedPage(decoded)
+	return nil
+}
+
+func (p graphOwnedPage) Validate() error {
+	if p.Value == nil {
+		return core.ErrTimeMatchResponse
+	}
+	for _, item := range p.Value {
+		if err := item.Validate(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func graphOwnershipQuery() url.Values {
+	return url.Values{"$select": {"id,transactionId"}, "$expand": {"singleValueExtendedProperties($filter=id eq '" + graphOwnershipProperty + "')"}}
+}
+
+// microsoftOwned checks a single immutable id without downloading any
+// event contents. Missing resources stay indeterminate, including archive moves.
+func (c Client) microsoftOwned(ctx context.Context, connection Connection, ref EventRef, policy exchange.OperationPolicy) error {
+	secrets, bearerErr := bearer(connection.AccessToken)
+	prefer, preferErr := header("Prefer", graphPreferUTC)
+	target, targetErr := endpoint(graphBase + "/me/events/" + url.PathEscape(ref.Resource) + "?" + graphOwnershipQuery().Encode())
+	if err := errors.Join(bearerErr, preferErr, targetErr); err != nil {
+		return err
+	}
+	result, err := c.send(ctx, call{target: target, method: exchange.MethodGet, secrets: secrets, headers: []exchange.Header{prefer}, responseType: core.HTTPMediaTypeJSON(), policy: policy, expected: http.StatusOK})
+	defer clear(result.body)
+	if err != nil {
+		if result.status == http.StatusNotFound || result.status == http.StatusGone {
+			return core.ErrTimeMatchIndeterminate
+		}
+		return readFailure(result, err)
+	}
+	metadata, err := decodeJSON[graphOwnedMetadata](result.body)
+	if err != nil {
+		return errors.Join(core.ErrTimeMatchIndeterminate, err)
+	}
+	if metadata.ID != ref.Resource {
+		return core.ErrTimeMatchConflict
+	}
+	return metadata.owns(ref.ID)
+}
+
+// microsoftRecover never creates an event. An empty or unavailable lookup is
+// not proof that a preceding POST failed: provider indexing may lag its commit.
+// Extended-property filtering is documented across the signed-in mailbox,
+// so a same-mailbox calendar move is still recoverable with ImmutableId.
+func (c Client) microsoftRecover(ctx context.Context, w EventWrite) (EventReceipt, error) {
+	secrets, bearerErr := bearer(w.Connection.AccessToken)
+	prefer, preferErr := header("Prefer", graphPreferUTC)
+	query := graphOwnershipQuery()
+	query.Set("$filter", "singleValueExtendedProperties/Any(ep: ep/id eq '"+graphOwnershipProperty+"' and ep/value eq '"+w.Intent.ID.value+"')")
+	target, targetErr := endpoint("https://" + graphHost + graphEventsPath + "?" + query.Encode())
+	if err := errors.Join(bearerErr, preferErr, targetErr); err != nil {
+		return EventReceipt{}, err
+	}
+	var resource string
+	visited := map[string]struct{}{}
+	for {
+		result, err := c.send(ctx, call{target: target, method: exchange.MethodGet, secrets: secrets, headers: []exchange.Header{prefer}, responseType: core.HTTPMediaTypeJSON(), policy: w.Policy, expected: http.StatusOK})
+		if err != nil {
+			return EventReceipt{}, errors.Join(core.ErrTimeMatchIndeterminate, readFailure(result, err))
+		}
+		page, decodeErr := decodeJSON[graphOwnedPage](result.body)
+		clear(result.body)
+		if decodeErr != nil {
+			return EventReceipt{}, errors.Join(core.ErrTimeMatchIndeterminate, decodeErr)
+		}
+		for _, metadata := range page.Value {
+			if err := metadata.owns(w.Intent.ID); err != nil {
+				return EventReceipt{}, err
+			}
+			if resource != "" {
+				return EventReceipt{}, core.ErrTimeMatchConflict
+			}
+			resource = metadata.ID
+		}
+		if page.Next == "" {
+			break
+		}
+		if _, duplicate := visited[page.Next]; duplicate {
+			return EventReceipt{}, core.ErrTimeMatchIndeterminate
+		}
+		visited[page.Next] = struct{}{}
+		var nextErr error
+		target, nextErr = graphNext(page.Next, graphEventsPath)
+		if nextErr != nil {
+			return EventReceipt{}, errors.Join(core.ErrTimeMatchIndeterminate, nextErr)
+		}
+	}
+	if resource == "" {
+		return EventReceipt{}, core.ErrTimeMatchIndeterminate
+	}
+	target, err := endpoint(graphBase + "/me/events/" + url.PathEscape(resource) + "?" + url.Values{"$select": {"id,subject,start,end,isCancelled,transactionId"}}.Encode())
+	if err != nil {
+		return EventReceipt{}, err
+	}
+	result, err := c.send(ctx, call{target: target, method: exchange.MethodGet, secrets: secrets, headers: []exchange.Header{prefer}, responseType: core.HTTPMediaTypeJSON(), policy: w.Policy, expected: http.StatusOK})
+	if err != nil {
+		return EventReceipt{}, errors.Join(core.ErrTimeMatchIndeterminate, readFailure(result, err))
+	}
+	return verifyGraph(result.body, graphExpectation{intent: w.Intent, calendar: w.Intent.Calendar, resource: resource, create: true})
 }
