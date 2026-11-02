@@ -79,12 +79,15 @@ func (g *googleCalendar) serve(w http.ResponseWriter, r *http.Request, body []by
 			ETag string `json:"etag"`
 		}{}
 		for id, stored := range g.events {
-			var event googleEventBody
+			var event struct {
+				googleEventBody
+				Status string `json:"status"`
+			}
 			if err := json.Unmarshal([]byte(stored), &event); err != nil {
 				writeJSON(w, 500, `{}`)
 				return
 			}
-			if event.ExtendedProperties != nil && r.URL.Query().Get("privateExtendedProperty") == googleOwnershipProperty+"="+event.ExtendedProperties.Private.EventID {
+			if event.Status != "cancelled" && event.ExtendedProperties != nil && r.URL.Query().Get("privateExtendedProperty") == googleOwnershipProperty+"="+event.ExtendedProperties.Private.EventID {
 				items = append(items, struct {
 					ID   string `json:"id"`
 					ETag string `json:"etag"`
@@ -189,7 +192,7 @@ func TestGooglePutEventNative(t *testing.T) {
 		{name: "fresh deterministic id is created", wantInserts: 1, wantStored: true},
 		{name: "existing identical intent is verified replay", existing: func(t *testing.T) string { return googleStored(t, owned(t), "Visit, Jane", "confirmed") }, wantInserts: 1, wantStored: true},
 		{name: "existing event with another summary is a conflict", existing: func(t *testing.T) string { return googleStored(t, owned(t), "Someone else", "confirmed") }, wantErr: core.ErrTimeMatchConflict, wantInserts: 1, wantStored: true},
-		{name: "existing cancelled event is a conflict", existing: func(t *testing.T) string { return googleStored(t, owned(t), "Visit, Jane", "cancelled") }, wantErr: core.ErrTimeMatchConflict, wantInserts: 1, wantStored: true},
+		{name: "cancelled event cannot establish live private ownership", existing: func(t *testing.T) string { return googleStored(t, owned(t), "Visit, Jane", "cancelled") }, wantErr: core.ErrTimeMatchIndeterminate, wantInserts: 1, wantStored: true},
 		{name: "server error after applying is indeterminate", fail: func(_ string, _ int, w http.ResponseWriter) bool { writeJSON(w, 503, `{}`); return true }, wantErr: core.ErrTimeMatchIndeterminate, wantInserts: 1, wantStored: true},
 		{name: "connection cut after applying is indeterminate", fail: func(_ string, _ int, w http.ResponseWriter) bool { cutConnection(w); return true }, wantErr: core.ErrTimeMatchIndeterminate, wantInserts: 1, wantStored: true},
 		{name: "malformed success body is indeterminate", fail: func(_ string, _ int, w http.ResponseWriter) bool { writeJSON(w, 200, `{"id":`); return true }, wantErr: core.ErrTimeMatchIndeterminate, wantInserts: 1, wantStored: true},

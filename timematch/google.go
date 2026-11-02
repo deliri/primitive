@@ -412,13 +412,13 @@ func (c Client) googleOwnedRevision(ctx context.Context, connection Connection, 
 			return exchange.Header{}, errors.Join(core.ErrTimeMatchIndeterminate, decodeErr)
 		}
 		for _, observed := range page.Items {
-			if observed.id != ref.ID.value {
+			if observed.ID != ref.ID.value {
 				return exchange.Header{}, core.ErrTimeMatchConflict
 			}
-			if found || !appleStrongETag(observed.etag) {
+			if found || !appleStrongETag(observed.ETag) {
 				return exchange.Header{}, errors.Join(core.ErrTimeMatchIndeterminate, core.ErrTimeMatchResponse)
 			}
-			condition, err = header("If-Match", observed.etag)
+			condition, err = header("If-Match", observed.ETag)
 			if err != nil {
 				return exchange.Header{}, errors.Join(core.ErrTimeMatchIndeterminate, core.ErrTimeMatchResponse, err)
 			}
@@ -439,19 +439,39 @@ func (c Client) googleOwnedRevision(ctx context.Context, connection Connection, 
 	return condition, nil
 }
 
+type googleOwnedEventMetadata struct {
+	ID   string `json:"id"`
+	ETag string `json:"etag"`
+}
+
+func (googleOwnedEventMetadata) timematchInternalFlow() {}
+
 type googleOwnedEventPage struct {
-	Items         []googleEventObservation `json:"items"`
-	NextPageToken string                   `json:"nextPageToken"`
+	Items         []googleOwnedEventMetadata `json:"items"`
+	NextPageToken string                     `json:"nextPageToken"`
 }
 
 func (googleOwnedEventPage) timematchInternalFlow() {}
+
+func (p *googleOwnedEventPage) UnmarshalJSON(raw []byte) error {
+	var document struct {
+		Items         []googleOwnedEventMetadata `json:"items"`
+		NextPageToken string                     `json:"nextPageToken"`
+	}
+	if err := unmarshalExtensible(raw, &document); err != nil {
+		return err
+	}
+	*p = googleOwnedEventPage{Items: document.Items, NextPageToken: document.NextPageToken}
+	return nil
+}
+
 func (p googleOwnedEventPage) Validate() error {
 	if p.Items == nil || p.NextPageToken != "" && !visibleASCII([]byte(p.NextPageToken)) {
 		return core.ErrTimeMatchResponse
 	}
 	for _, item := range p.Items {
-		if err := item.Validate(); err != nil {
-			return err
+		if item.ID == "" {
+			return core.ErrTimeMatchResponse
 		}
 	}
 	return nil

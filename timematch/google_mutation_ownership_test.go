@@ -467,6 +467,7 @@ func FuzzGoogleOwnedMetadataMutationClosure(f *testing.F) {
 	for op := uint8(0); op < 3; op++ {
 		f.Add(seed, op)
 	}
+	f.Add([]byte(`{"items":[{"id":"`+owned.ID.String()+`","etag":"\"revision1\"","unusedProviderDetail":{"summary":7}}],"providerExtension":{"future":true}}`), uint8(0))
 	f.Add([]byte{}, uint8(0))
 	f.Add([]byte(`{"items":[]}`), uint8(1))
 	f.Add([]byte(`{"items":null}`), uint8(2))
