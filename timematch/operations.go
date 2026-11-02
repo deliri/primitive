@@ -47,7 +47,11 @@ func (c Client) Availability(ctx context.Context, r AvailabilityRequest) (Availa
 // ErrTimeMatchIndeterminate: the request was sent and its outcome is unknown;
 // recover with the identical intent and EventCreateRecoverOnly. The caller
 // durably records its first dispatch before selecting EventCreateFirst;
-// recovery never grants permission for another blind create.
+// recovery retains that same current intent authority. Google retries its
+// deterministic ID and Apple its exact URI with If-None-Match:*. Neither can
+// replace an existing event; collisions require owned readback. Microsoft
+// recovery remains read-only because no equivalent durable create guard is
+// documented. A caller must stop recovery when its booking/consent is retired.
 func (c Client) PutEvent(ctx context.Context, w EventWrite) (EventReceipt, error) {
 	if err := c.begin(ctx, w); err != nil {
 		return EventReceipt{}, err

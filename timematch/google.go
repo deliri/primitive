@@ -358,9 +358,10 @@ func (c Client) googlePut(ctx context.Context, w EventWrite) (EventReceipt, erro
 		return EventReceipt{}, err
 	}
 	ref := EventRef{ID: w.Intent.ID, Provider: ProviderGoogle, Calendar: w.Intent.Calendar, Resource: w.Intent.ID.value}
-	if w.Attempt == EventCreateRecoverOnly {
-		return c.googleReadBack(ctx, w, ref)
-	}
+	// The caller retains authority for this exact deterministic intent.
+	// Google documents client-supplied IDs as its duplicate-create safeguard;
+	// a collision still needs the existing ownership/revision readback.
+	// https://developers.google.com/workspace/calendar/api/guides/create-events
 	result, err := c.send(ctx, call{target: target, method: exchange.MethodPost, body: body, requestType: core.HTTPMediaTypeJSON(), responseType: core.HTTPMediaTypeJSON(), secrets: secrets, policy: w.Policy, expected: http.StatusOK})
 	switch {
 	case err == nil:

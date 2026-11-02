@@ -4,8 +4,9 @@ import "github.com/deliri/primitive/v2026/core"
 
 // EventCreationAttempt separates an authorized first dispatch from recovery
 // after a request may have reached the provider. The durable caller records
-// its dispatch before sending it. Recovery never creates a second event when
-// the first event's outcome cannot yet be established.
+// its dispatch before sending it. Recovery is restricted to that same current
+// intent: provider-supported conditional creation, or read-only reconciliation
+// where conditional creation is unavailable. It never chooses a fresh identity.
 type EventCreationAttempt uint8
 
 const (
