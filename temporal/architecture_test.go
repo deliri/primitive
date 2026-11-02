@@ -454,6 +454,7 @@ func TestTemporalProductionStaysOnGoContextAndTimePrimitives(t *testing.T) {
 		"io",
 		"math",
 		"math/bits",
+		"slices",
 		"strconv",
 		"strings",
 		"time",
