@@ -166,20 +166,22 @@ func TestInvitationWritesEachPhysicalLineOnce(t *testing.T) {
 	}
 }
 
-var (
-	icsBenchmarkEvents []icsEvent
-	icsBenchmarkSpans  [][2]int64
-)
-
 func BenchmarkParseICSFolded(b *testing.B) {
 	b.ReportAllocs()
 	text := icsHostileFolded(20000)
+	var last []icsEvent
 	for b.Loop() {
 		events, err := parseICS(text)
 		if err != nil || len(events) != 1 {
 			b.Fatalf("parseICS() = (%d, %v), want one event", len(events), err)
 		}
-		icsBenchmarkEvents = events
+		last = events
+	}
+	if len(last) != 1 {
+		b.Fatalf("last parsed events = %d, want 1", len(last))
+	}
+	if len(last[0].summary) != 20000 {
+		b.Fatalf("last parsed summary extent = %d, want 20000", len(last[0].summary))
 	}
 }
 
@@ -190,12 +192,16 @@ func BenchmarkParseFreeBusyDay(b *testing.B) {
 		periods = append(periods, "FREEBUSY;FBTYPE=BUSY:20261102T"+twoDigits(hour)+"0000Z/PT30M", "FREEBUSY;FBTYPE=BUSY-TENTATIVE:20261102T"+twoDigits(hour)+"3000Z/PT15M")
 	}
 	text := vfreebusy(periods...)
+	var last [][2]int64
 	for b.Loop() {
 		spans, known := parseFreeBusy(text)
 		if !known || len(spans) != 48 {
 			b.Fatalf("parseFreeBusy() = (%d, %t), want 48 known periods", len(spans), known)
 		}
-		icsBenchmarkSpans = spans
+		last = spans
+	}
+	if len(last) != 48 {
+		b.Fatalf("last parsed busy spans = %d, want 48", len(last))
 	}
 }
 

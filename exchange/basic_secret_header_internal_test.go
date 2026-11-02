@@ -50,7 +50,7 @@ func TestBasicSecretHeaderOwnsBytesAndNativeWire(t *testing.T) {
 			}
 			clear(h.Value)
 			if !bytes.Equal(h.Value, make([]byte, len(h.Value))) {
-				t.Fatal("owned token remained populated after cleanup")
+				t.Fatalf("zero bytes after cleanup = %d, want %d", bytes.Count(h.Value, []byte{0}), len(h.Value))
 			}
 		})
 	}
@@ -113,7 +113,7 @@ func TestBasicSecretTokenNativeRepresentationBoundaries(t *testing.T) {
 				h.Scheme = SecretHeaderLiteral
 				h.Value = []byte("Basic " + good)
 				if !errors.Is(h.Validate(), core.ErrExchangeContract) {
-					t.Fatal("literal admitted secret scheme separator")
+					t.Fatalf("literal separator validation = %v, want ExchangeContract", h.Validate())
 				}
 			}
 		})
@@ -128,7 +128,7 @@ func TestBasicSecretScratchCleanupRegisteredBeforeUse(t *testing.T) {
 			continue
 		}
 		if sourceBindsClear(source.syntax) {
-			t.Fatal("Basic source shadows clear")
+			t.Fatalf("%s shadows native clear = true, want false", source.name)
 		}
 		for _, d := range source.syntax.Decls {
 			fn, ok := d.(*ast.FuncDecl)
@@ -168,7 +168,7 @@ func FuzzBasicSecretHeaderNativeSemanticClosure(f *testing.F) {
 			return
 		}
 		if !want {
-			t.Fatal("token admitted noncanonical Basic credentials")
+			t.Fatalf("Basic token validation = %v, independent canonical admission = %t, want refusal or true", err, want)
 		}
 		owned, factoryErr := NewBasicAuthorizationSecretHeader(BasicAuthorizationRequest{Identity: BasicAuthorizationIdentity(identity), Secret: password})
 		if factoryErr != nil || !bytes.Equal(owned.Value, data) {
@@ -185,7 +185,7 @@ func FuzzBasicSecretHeaderNativeSemanticClosure(f *testing.F) {
 		}
 		user, secret, ok := native.BasicAuth()
 		if !ok || user != string(identity) || secret != string(password) {
-			t.Fatal("accepted native Basic facts differ from independently decoded credential")
+			t.Fatalf("native Basic facts match = %t/%t/%t, want true/true/true", ok, user == string(identity), secret == string(password))
 		}
 	})
 }

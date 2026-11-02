@@ -34,7 +34,7 @@ func TestRecoveryCompletesUnappliedDeterministicCreate(t *testing.T) {
 						return
 					}
 					if providerKind == ProviderApple && r.Header.Get("If-None-Match") != "*" {
-						t.Error("unguarded Apple recovery, want If-None-Match:*")
+						t.Errorf("Apple recovery If-None-Match = %q, want *", r.Header.Get("If-None-Match"))
 						w.WriteHeader(400)
 						return
 					}

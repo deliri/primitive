@@ -49,7 +49,7 @@ func TestGoogleRevocationConvergesWithoutHidingFailures(t *testing.T) {
 				t.Fatalf("revocation requests=%v, want one body-only token POST", requests)
 			}
 			if !token.IsSet() {
-				t.Fatal("borrowed token destroyed, want caller custody retained")
+				t.Fatalf("borrowed token retained = %t, want true", token.IsSet())
 			}
 			noLeak(t, err, "refresh-only-fixture", "private-marker")
 		})

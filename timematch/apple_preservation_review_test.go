@@ -99,7 +99,7 @@ func TestAppleUpdatePreservesOwnedCalendarUserProperties(t *testing.T) {
 				}
 			}
 			if strings.Contains(submitted, "DURATION:PT1H") || strings.Contains(submitted, "SUMMARY:Owned visit") || len(provider.refusedDials()) != 0 {
-				t.Fatal("owned update retained replaced facts or used foreign endpoint")
+				t.Fatalf("owned update old duration/summary = %t/%t, foreign dials = %d, want false/false/0", strings.Contains(submitted, "DURATION:PT1H"), strings.Contains(submitted, "SUMMARY:Owned visit"), len(provider.refusedDials()))
 			}
 		})
 	}
@@ -125,7 +125,7 @@ func TestAppleMissingPreflightNeverCertifiesOwnedAbsence(t *testing.T) {
 				var got EventReceipt
 				got, err = client.UpdateEvent(t.Context(), EventUpdate{Connection: appleReviewConnection(t), Ref: appleMutationRef(t), Intent: appleMutationIntent(t), ObservedAt: at(t, "2026-11-02T09:00:00Z"), Policy: fixturePolicy(t)})
 				if got != (EventReceipt{}) {
-					t.Fatal("missing preflight produced mutation receipt")
+					t.Fatalf("missing preflight receipt = %+v, want zero", got)
 				}
 			}
 			calls := provider.record()
@@ -153,17 +153,17 @@ func TestAppleBasicHeaderOwnsClearableBytes(t *testing.T) {
 	raw := field.Bytes()
 	defer clear(raw)
 	if len(raw) == 0 {
-		t.Fatal("Apple header has no credential bytes")
+		t.Fatalf("Apple credential byte extent = %d, want positive", len(raw))
 	}
 	before := bytes.Clone(connection.ApplePassword.value)
 	clear(raw)
 	for _, v := range raw {
 		if v != 0 {
-			t.Fatal("owner could not clear Basic header bytes")
+			t.Fatalf("cleared credential byte = %d, want zero", v)
 		}
 	}
 	if !bytes.Equal(before, connection.ApplePassword.value) {
-		t.Fatal("header cleanup changed borrowed account password")
+		t.Fatalf("borrowed password retained = %t, want true", bytes.Equal(before, connection.ApplePassword.value))
 	}
 }
 
@@ -204,7 +204,7 @@ func TestAppleUpdateRejectsAmbiguousOwnedRepresentations(t *testing.T) {
 			original := tc.edit(string(appleMutationBody(t)))
 			client, p := newNative(t, func(w http.ResponseWriter, r *http.Request, _ []byte) {
 				if r.Method != http.MethodGet {
-					t.Error("ambiguous representation reached mutation")
+					t.Errorf("ambiguous representation method = %s, want GET only", r.Method)
 					w.WriteHeader(500)
 					return
 				}
@@ -241,7 +241,7 @@ func FuzzAppleOwnedUpdatePropertyConservation(f *testing.F) {
 			t.Fatalf("valid owned property refused: %v", err)
 		}
 		if !bytes.Equal(original, before) {
-			t.Fatal("owned source mutated")
+			t.Fatalf("owned source retained = %t, want true", bytes.Equal(original, before))
 		}
 		unfolded := appleReviewUnfold(string(got))
 		prefix := "X-USER-NOTE;ENCODING=BASE64:"
