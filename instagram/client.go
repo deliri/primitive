@@ -58,16 +58,13 @@ func (c Client) ListMedia(ctx context.Context, request MediaListRequest) (MediaP
 		Policy: exchange.NoBodyJSONPolicy{Operation: request.Policy},
 	})
 	if err != nil {
-		return MediaPage{}, errors.Join(failureIdentity(response.Metadata.Status, response.FailureBody), err)
+		return MediaPage{}, errors.Join(failureIdentity(response.FailureBody), err)
 	}
-	return response.Body.page(request.Limit)
+	return response.Body.page()
 }
 
-// metaAccessTokenCode is Meta's OAuthException code for an expired, revoked
-// or otherwise invalid access token.
-// https://developers.facebook.com/docs/graph-api/guides/error-handling
-const metaAccessTokenCode = 190
-
+// metaErrorWire is Meta's documented error envelope, members exactly as listed
+// in https://developers.facebook.com/docs/graph-api/guides/error-handling
 type metaErrorWire struct {
 	Error metaErrorDetailWire `json:"error"`
 }
@@ -80,23 +77,17 @@ type metaErrorDetailWire struct {
 	TraceID     string `json:"fbtrace_id"`
 	Code        int    `json:"code"`
 	Subcode     int    `json:"error_subcode"`
-	IsTransient bool   `json:"is_transient"`
 }
 
 func (w metaErrorWire) Validate() error { return nil }
 
-// failureIdentity separates a token Meta refuses, which an owner must renew,
-// from every other failure. An unreadable failure body is never authentication.
-func failureIdentity(status core.HTTPStatusCode, body []byte) error {
-	code, err := status.Int()
-	if err == nil && (code == 401 || code == 403) {
-		return core.ErrInstagramAuthentication
-	}
-	if len(body) == 0 {
-		return core.ErrInstagramResponse
-	}
+// failureIdentity separates a token Meta refuses (code 190, "Access token has
+// expired"), which an owner must renew, from every other failure. Meta does not
+// document the HTTP status of errors, so status alone never decides. An
+// unreadable or undocumented failure body is never authentication.
+func failureIdentity(body []byte) error {
 	failure, err := core.DecodeStrictJSONBytes[metaErrorWire](body, core.ExtensibleJSONLimits())
-	if err == nil && failure.Error.Code == metaAccessTokenCode {
+	if err == nil && failure.Error.Code == core.InstagramAccessTokenErrorCode {
 		return core.ErrInstagramAuthentication
 	}
 	return core.ErrInstagramResponse

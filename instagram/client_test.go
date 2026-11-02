@@ -3,7 +3,6 @@ package instagram
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -50,7 +49,7 @@ func fakeClient(t *testing.T, fake *metaFake) Client {
 func TestListMediaLayerTriad(t *testing.T) {
 	t.Parallel()
 	request := func(t *testing.T) MediaListRequest {
-		return MediaListRequest{User: testUser(t), Limit: 12, Policy: testPolicy(t)}
+		return MediaListRequest{User: testUser(t), Policy: testPolicy(t)}
 	}
 	t.Run("positive: one GET to the exact URL, the token only as a bearer header", func(t *testing.T) {
 		t.Parallel()
@@ -84,7 +83,7 @@ func TestListMediaLayerTriad(t *testing.T) {
 		t.Parallel()
 		fake := &metaFake{status: http.StatusOK, body: `{"data":[]}`}
 		bad := request(t)
-		bad.Limit = 0
+		bad.Policy = exchange.OperationPolicy{}
 		if _, err := fakeClient(t, fake).ListMedia(context.Background(), bad); !errors.Is(err, core.ErrInstagramContract) {
 			t.Fatalf("got %v", err)
 		}
@@ -99,8 +98,9 @@ func TestListMediaLayerTriad(t *testing.T) {
 	})
 }
 
-// An owner must renew a token Meta refuses; everything else is a provider
-// failure. An unreadable failure body never becomes authentication.
+// Meta documents code 190 as "Access token has expired" and does not document
+// the HTTP status of errors, so only a documented body with code 190 is
+// authentication. An unreadable or undocumented body never is.
 func TestListMediaFailureIdentity(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
@@ -109,23 +109,25 @@ func TestListMediaFailureIdentity(t *testing.T) {
 		body   string
 		want   error
 	}{
-		{"401 with no body", http.StatusUnauthorized, ``, core.ErrInstagramAuthentication},
-		{"403 with no body", http.StatusForbidden, ``, core.ErrInstagramAuthentication},
-		{"400 expired token, code 190", http.StatusBadRequest, `{"error":{"message":"Error validating access token: Session has expired","type":"OAuthException","code":190,"error_subcode":463,"fbtrace_id":"A1"}}`, core.ErrInstagramAuthentication},
-		{"400 revoked token, code 190 without subcode", http.StatusBadRequest, `{"error":{"message":"Invalid OAuth access token","type":"OAuthException","code":190}}`, core.ErrInstagramAuthentication},
-		{"400 bad parameter, code 100", http.StatusBadRequest, `{"error":{"message":"Unsupported get request","type":"GraphMethodException","code":100}}`, core.ErrInstagramResponse},
-		{"400 rate limit, code 4", http.StatusBadRequest, `{"error":{"message":"Application request limit reached","code":4,"is_transient":true}}`, core.ErrInstagramResponse},
-		{"400 code 190 as a string", http.StatusBadRequest, `{"error":{"code":"190"}}`, core.ErrInstagramResponse},
-		{"400 code 190 beside an undocumented member", http.StatusBadRequest, `{"error":{"code":190,"surprise":true}}`, core.ErrInstagramResponse},
-		{"400 unreadable body", http.StatusBadRequest, `<html>bad gateway</html>`, core.ErrInstagramResponse},
-		{"429 throttled", http.StatusTooManyRequests, `{"error":{"code":4}}`, core.ErrInstagramResponse},
-		{"500 provider outage", http.StatusInternalServerError, ``, core.ErrInstagramResponse},
-		{"200 with an unreadable body", http.StatusOK, `{"data":`, core.ErrInstagramResponse},
+		{"expired session, code 190 subcode 463", http.StatusBadRequest, `{"error":{"message":"Error validating access token: Session has expired","type":"OAuthException","code":190,"error_subcode":463,"fbtrace_id":"A1"}}`, core.ErrInstagramAuthentication},
+		{"invalid token, code 190 without subcode", http.StatusBadRequest, `{"error":{"message":"Invalid OAuth access token","type":"OAuthException","code":190}}`, core.ErrInstagramAuthentication},
+		{"code 190 under a 403 is still authentication", http.StatusForbidden, `{"error":{"code":190,"error_subcode":467}}`, core.ErrInstagramAuthentication},
+		{"every documented member present", http.StatusBadRequest, `{"error":{"message":"m","type":"OAuthException","code":190,"error_subcode":460,"error_user_title":"t","error_user_msg":"u","fbtrace_id":"f"}}`, core.ErrInstagramAuthentication},
+		{"401 alone is not authentication", http.StatusUnauthorized, ``, core.ErrInstagramResponse},
+		{"bad parameter, code 100", http.StatusBadRequest, `{"error":{"message":"Unsupported get request","type":"GraphMethodException","code":100}}`, core.ErrInstagramResponse},
+		{"throttled, code 4", http.StatusBadRequest, `{"error":{"message":"Application request limit reached","code":4}}`, core.ErrInstagramResponse},
+		{"code 190 as a string", http.StatusBadRequest, `{"error":{"code":"190"}}`, core.ErrInstagramResponse},
+		{"code 190 beside an undocumented member", http.StatusBadRequest, `{"error":{"code":190,"is_transient":false}}`, core.ErrInstagramResponse},
+		{"code 191, one past the token code", http.StatusBadRequest, `{"error":{"code":191}}`, core.ErrInstagramResponse},
+		{"code 189, one before the token code", http.StatusBadRequest, `{"error":{"code":189}}`, core.ErrInstagramResponse},
+		{"an HTML gateway page", http.StatusBadGateway, `<html>bad gateway</html>`, core.ErrInstagramResponse},
+		{"an outage with no body", http.StatusInternalServerError, ``, core.ErrInstagramResponse},
+		{"a 200 with an unreadable body", http.StatusOK, `{"data":`, core.ErrInstagramResponse},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			fake := &metaFake{status: tc.status, body: tc.body}
-			page, err := fakeClient(t, fake).ListMedia(context.Background(), MediaListRequest{User: testUser(t), Limit: 12, Policy: testPolicy(t)})
+			page, err := fakeClient(t, fake).ListMedia(context.Background(), MediaListRequest{User: testUser(t), Policy: testPolicy(t)})
 			if !errors.Is(err, tc.want) || !errors.Is(err, core.ErrInstagramContract) || len(page.Media) != 0 {
 				t.Fatalf("got %v with %d media, want %v", err, len(page.Media), tc.want)
 			}

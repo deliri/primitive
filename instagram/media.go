@@ -2,7 +2,6 @@ package instagram
 
 import (
 	"errors"
-	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -12,10 +11,14 @@ import (
 )
 
 const (
+	// Primitive's bound for an account identity placed in the request path.
+	// Graph IDs are numeric strings; digits-only keeps the path closed.
 	userIDMaximumBytes = 32
-	// Meta writes media timestamps with a colon-free UTC offset.
+	// Meta: "ISO 8601-formatted creation date in UTC", example
+	// "2019-09-26T22:36:43+0000" (offset without a colon).
 	timestampLayout = "2006-01-02T15:04:05-0700"
-	mediaFields     = "id,media_type,media_url,thumbnail_url,permalink,caption,timestamp"
+	// The documented IG Media fields this package reads.
+	mediaFields = "id,media_type,media_url,thumbnail_url,permalink,caption,timestamp"
 )
 
 // UserID is one Instagram professional account's numeric Graph identity.
@@ -35,19 +38,17 @@ func (u UserID) Validate() error {
 
 func (u UserID) String() string { return u.value }
 
-// MediaListRequest asks for an account's newest media, newest first.
+// MediaListRequest asks for one page of an account's media. Meta documents no
+// page-size parameter for this edge, so none is sent; Meta chooses the page.
+// https://developers.facebook.com/docs/instagram-platform/instagram-graph-api/reference/ig-user/media
 type MediaListRequest struct {
 	Policy exchange.OperationPolicy
 	User   UserID
-	Limit  uint8
 }
 
 func (r MediaListRequest) Validate() error {
 	if err := r.User.Validate(); err != nil {
 		return err
-	}
-	if r.Limit == 0 || r.Limit > core.InstagramMediaPageMaximum {
-		return core.ErrInstagramContract
 	}
 	if err := r.Policy.Validate(); err != nil {
 		return errors.Join(core.ErrInstagramContract, err)
@@ -56,15 +57,16 @@ func (r MediaListRequest) Validate() error {
 }
 
 // Endpoint is the exact Graph media-list URL. The SDK owns host, version,
-// path and fields; the caller owns only the account and page size.
+// path and fields; the caller owns only the account.
 func (r MediaListRequest) Endpoint() (core.HTTPEndpoint, error) {
 	if err := r.Validate(); err != nil {
 		return core.HTTPEndpoint{}, err
 	}
-	return core.ParseHTTPEndpoint(core.SchemeHTTPS + "://" + core.InstagramGraphHost + "/" + core.InstagramGraphVersion + "/" + r.User.value + "/media?fields=" + mediaFields + "&limit=" + strconv.Itoa(int(r.Limit)))
+	return core.ParseHTTPEndpoint(core.SchemeHTTPS + "://" + core.InstagramGraphHost + "/" + core.InstagramGraphVersion + "/" + r.User.value + "/media?fields=" + mediaFields)
 }
 
-// MediaKind is the closed media family Meta reports.
+// MediaKind is the closed media family. Meta: media_type "Can be
+// CAROUSEL_ALBUM, IMAGE, or VIDEO."
 type MediaKind uint8
 
 const (
@@ -92,9 +94,11 @@ func (k MediaKind) Validate() error {
 	return nil
 }
 
-// Media is one published post. Image is the still a page can show: the frame
-// itself, or a video's cover. Meta withholds it for some media; HasImage then
-// reports false and Image is unset.
+// Media is one published post. Image is the still a page can show. Meta:
+// thumbnail_url is "Only available on VIDEO media", and media_url may be
+// omitted for licensed audio. A video shows its thumbnail; anything else shows
+// its media_url. Without that still, HasImage is false and Image is unset; a
+// video file or another kind's thumbnail is never borrowed as a still.
 type Media struct {
 	Published temporal.Instant
 	Permalink core.HTTPEndpoint
@@ -105,26 +109,27 @@ type Media struct {
 	HasImage  bool
 }
 
-// MediaPage is one response page, in Meta's order (newest first).
+// MediaPage is one response page, in Meta's order.
 type MediaPage struct {
 	Media []Media
 }
 
 func (p MediaPage) Validate() error {
-	if len(p.Media) > core.InstagramMediaPageMaximum {
+	if len(p.Media) > core.InstagramMediaPageCustodyMaximum {
 		return core.ErrInstagramResponse
 	}
 	return nil
 }
 
 // mediaListWire is Meta's response document. Exchange decodes strictly, so
-// every member Meta documents is declared; paging is accepted and unused.
+// each documented member is declared: data, and cursor paging.
 type mediaListWire struct {
 	Paging *mediaPagingWire `json:"paging,omitempty"`
 	Data   []mediaWire      `json:"data"`
 }
 
-// mediaPagingWire is Meta's cursor-based pagination block.
+// mediaPagingWire is cursor pagination. Meta: next and previous may be
+// absent ("If not included, this is the last/first page of data").
 // https://developers.facebook.com/docs/graph-api/results
 type mediaPagingWire struct {
 	Cursors  mediaCursorsWire `json:"cursors"`
@@ -148,18 +153,15 @@ type mediaWire struct {
 }
 
 func (w mediaListWire) Validate() error {
-	if w.Data == nil || len(w.Data) > core.InstagramMediaPageMaximum {
+	if w.Data == nil || len(w.Data) > core.InstagramMediaPageCustodyMaximum {
 		return core.ErrInstagramResponse
 	}
 	return nil
 }
 
-func (w mediaListWire) page(limit uint8) (MediaPage, error) {
+func (w mediaListWire) page() (MediaPage, error) {
 	if err := w.Validate(); err != nil {
 		return MediaPage{}, err
-	}
-	if len(w.Data) > int(limit) {
-		return MediaPage{}, core.ErrInstagramResponse
 	}
 	utc, err := temporal.NewLocation(temporal.LocationUTC)
 	if err != nil {
@@ -175,7 +177,7 @@ func (w mediaListWire) page(limit uint8) (MediaPage, error) {
 		if err != nil {
 			return MediaPage{}, err
 		}
-		// One media identity, and one post link, name exactly one post.
+		// One media identity, and one permanent post URL, name exactly one post.
 		for _, prior := range page.Media {
 			if prior.ID == media.ID || prior.Permalink == media.Permalink {
 				return MediaPage{}, core.ErrInstagramResponse
@@ -187,10 +189,10 @@ func (w mediaListWire) page(limit uint8) (MediaPage, error) {
 }
 
 func (w mediaWire) media(utc temporal.Location, layout temporal.TimeLayout) (Media, error) {
-	if w.ID == "" || len(w.ID) > core.InstagramMediaIDMaximumBytes || strings.Trim(w.ID, "0123456789_") != "" {
+	if !validMediaID(w.ID) {
 		return Media{}, core.ErrInstagramResponse
 	}
-	if len(w.Caption) > core.InstagramCaptionMaximumBytes || !utf8.ValidString(w.Caption) {
+	if !utf8.ValidString(w.Caption) || utf8.RuneCountInString(w.Caption) > core.InstagramCaptionMaximumCharacters {
 		return Media{}, core.ErrInstagramResponse
 	}
 	kind, err := parseMediaKind(w.MediaType)
@@ -221,10 +223,26 @@ func (w mediaWire) media(utc temporal.Location, layout temporal.TimeLayout) (Med
 	return media, nil
 }
 
+// validMediaID admits Meta's opaque "Media ID" inside Primitive's custody
+// bound: non-empty visible ASCII. Meta documents no finer grammar.
+func validMediaID(id string) bool {
+	if id == "" || len(id) > core.InstagramMediaIDCustodyMaximumBytes {
+		return false
+	}
+	for index := 0; index < len(id); index++ {
+		if id[index] <= ' ' || id[index] > '~' {
+			return false
+		}
+	}
+	return true
+}
+
 func instagramPageHost(host string) bool {
 	return host == "www.instagram.com" || host == "instagram.com"
 }
 
+// instagramImageHost admits Meta's media CDNs: observed serving this account's
+// stills (scontent-*.cdninstagram.com), and Meta's shared CDN (*.fbcdn.net).
 func instagramImageHost(host string) bool {
 	return strings.HasSuffix(host, ".cdninstagram.com") || strings.HasSuffix(host, ".fbcdn.net")
 }

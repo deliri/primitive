@@ -29,7 +29,7 @@ func FuzzMediaListWireProjection(f *testing.F) {
 		if err != nil {
 			return
 		}
-		page, err := wire.page(core.InstagramMediaPageMaximum)
+		page, err := wire.page()
 		if err != nil {
 			if !errors.Is(err, core.ErrInstagramContract) || len(page.Media) != 0 {
 				t.Fatalf("refusal kept facts or lost its family: %v %+v", err, page)
@@ -38,11 +38,11 @@ func FuzzMediaListWireProjection(f *testing.F) {
 		}
 		seen := map[string]bool{}
 		for _, media := range page.Media {
-			if seen[media.ID] || media.ID == "" || strings.Trim(media.ID, "0123456789_") != "" {
+			if seen[media.ID] || !validMediaID(media.ID) {
 				t.Fatalf("bad identity admitted: %q", media.ID)
 			}
 			seen[media.ID] = true
-			if !utf8.ValidString(media.Caption) || len(media.Caption) > core.InstagramCaptionMaximumBytes {
+			if !utf8.ValidString(media.Caption) || utf8.RuneCountInString(media.Caption) > core.InstagramCaptionMaximumCharacters {
 				t.Fatal("bad caption admitted")
 			}
 			link := media.Permalink.HTTPURL()
@@ -77,13 +77,13 @@ func FuzzParseUserID(f *testing.F) {
 			t.Fatalf("ParseUserID(%q) = %v, oracle says valid=%v", raw, err, want)
 		}
 		if err == nil {
-			request := MediaListRequest{User: got, Limit: 1, Policy: testPolicy(t)}
+			request := MediaListRequest{User: got, Policy: testPolicy(t)}
 			endpoint, err := request.Endpoint()
 			if err != nil {
 				t.Fatal(err)
 			}
 			address := endpoint.HTTPURL()
-			if address.Host != core.InstagramGraphHost || address.Path != "/"+core.InstagramGraphVersion+"/"+raw+"/media" {
+			if address.Host != core.InstagramGraphHost || address.Path != "/"+core.InstagramGraphVersion+"/"+raw+"/media" || address.RawQuery != "fields="+mediaFields {
 				t.Fatalf("an admitted id moved the request to %q", address.String())
 			}
 		}
@@ -131,17 +131,17 @@ func FuzzListMediaResponse(f *testing.F) {
 			return
 		}
 		fake := &metaFake{status: status, body: string(body)}
-		page, err := fakeClient(t, fake).ListMedia(context.Background(), MediaListRequest{User: testUser(t), Limit: 12, Policy: testPolicy(t)})
+		page, err := fakeClient(t, fake).ListMedia(context.Background(), MediaListRequest{User: testUser(t), Policy: testPolicy(t)})
 		if err != nil {
 			if !errors.Is(err, core.ErrInstagramContract) || len(page.Media) != 0 {
 				t.Fatalf("a failure kept media or lost its family: %v", err)
 			}
-			if errors.Is(err, core.ErrInstagramAuthentication) && status != 401 && status != 403 && !strings.Contains(string(body), "190") {
-				t.Fatalf("authentication claimed without a 401, 403 or code 190: %d %q", status, body)
+			if errors.Is(err, core.ErrInstagramAuthentication) && !strings.Contains(string(body), "190") {
+				t.Fatalf("authentication claimed without Meta's code 190: %d %q", status, body)
 			}
 			return
 		}
-		if status != 200 || len(page.Media) > 12 {
+		if status != 200 || len(page.Media) > core.InstagramMediaPageCustodyMaximum {
 			t.Fatalf("status %d admitted %d media", status, len(page.Media))
 		}
 	})

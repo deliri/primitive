@@ -43,5 +43,5 @@ func decodeAndProject(raw []byte) (MediaPage, error) {
 	if err != nil {
 		return MediaPage{}, err
 	}
-	return wire.page(core.InstagramMediaPageMaximum)
+	return wire.page()
 }

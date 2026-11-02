@@ -1,11 +1,8 @@
 package instagram
 
 import (
-	"encoding/json"
 	"errors"
-	"strings"
 	"testing"
-	"unicode/utf8"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
@@ -52,7 +49,7 @@ func validWire() mediaWire {
 func project(t testing.TB, items ...mediaWire) (MediaPage, error) {
 	t.Helper()
 	// Meta always sends a data array; an empty account is [], never absent.
-	return mediaListWire{Data: append([]mediaWire{}, items...)}.page(core.InstagramMediaPageMaximum)
+	return mediaListWire{Data: append([]mediaWire{}, items...)}.page()
 }
 
 func TestMediaProjectionLayerTriad(t *testing.T) {

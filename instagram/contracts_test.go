@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/exchange"
 )
 
 // UserID admits Meta's numeric Graph identity and nothing that could change
@@ -190,26 +191,35 @@ func TestCredentialCustodyLifecycle(t *testing.T) {
 	}
 }
 
-// The request owns the only caller-chosen facts: account, page size, policy.
+// The request owns the only caller-chosen facts: the account and the policy.
+// Meta documents no page-size parameter, so the URL carries none.
 func TestMediaListRequestContract(t *testing.T) {
 	t.Parallel()
 	user, policy := testUser(t), testPolicy(t)
-	prefix := "https://graph.facebook.com/v21.0/17841432921003907/media?fields=id,media_type,media_url,thumbnail_url,permalink,caption,timestamp&limit="
+	one, err := ParseUserID("1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	longest, err := ParseUserID(strings.Repeat("9", 32))
+	if err != nil {
+		t.Fatal(err)
+	}
+	reversed := policy
+	reversed.AttemptTimeout, reversed.OperationTimeout = policy.OperationTimeout, policy.AttemptTimeout
+	unredirected := policy
+	unredirected.Redirect = exchange.RedirectPolicy{}
 	cases := []struct {
 		name    string
 		request MediaListRequest
 		want    string
 	}{
-		{"limit zero", MediaListRequest{User: user, Limit: 0, Policy: policy}, ""},
-		{"limit one", MediaListRequest{User: user, Limit: 1, Policy: policy}, prefix + "1"},
-		{"limit two", MediaListRequest{User: user, Limit: 2, Policy: policy}, prefix + "2"},
-		{"the homepage's twelve", MediaListRequest{User: user, Limit: 12, Policy: policy}, prefix + "12"},
-		{"limit one under the maximum", MediaListRequest{User: user, Limit: core.InstagramMediaPageMaximum - 1, Policy: policy}, prefix + "49"},
-		{"limit at the maximum", MediaListRequest{User: user, Limit: core.InstagramMediaPageMaximum, Policy: policy}, prefix + "50"},
-		{"limit one over the maximum", MediaListRequest{User: user, Limit: core.InstagramMediaPageMaximum + 1, Policy: policy}, ""},
-		{"limit at the byte's maximum", MediaListRequest{User: user, Limit: 255, Policy: policy}, ""},
-		{"missing account", MediaListRequest{Limit: 12, Policy: policy}, ""},
-		{"missing policy", MediaListRequest{User: user, Limit: 12}, ""},
+		{"the real account", MediaListRequest{User: user, Policy: policy}, "https://graph.facebook.com/v26.0/17841432921003907/media?fields=id,media_type,media_url,thumbnail_url,permalink,caption,timestamp"},
+		{"the shortest account", MediaListRequest{User: one, Policy: policy}, "https://graph.facebook.com/v26.0/1/media?fields=id,media_type,media_url,thumbnail_url,permalink,caption,timestamp"},
+		{"the longest account", MediaListRequest{User: longest, Policy: policy}, "https://graph.facebook.com/v26.0/" + strings.Repeat("9", 32) + "/media?fields=id,media_type,media_url,thumbnail_url,permalink,caption,timestamp"},
+		{"missing account", MediaListRequest{Policy: policy}, ""},
+		{"missing policy", MediaListRequest{User: user}, ""},
+		{"an attempt longer than the operation", MediaListRequest{User: user, Policy: reversed}, ""},
+		{"no redirect decision", MediaListRequest{User: user, Policy: unredirected}, ""},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -225,8 +235,8 @@ func TestMediaListRequestContract(t *testing.T) {
 				t.Fatal(err)
 			}
 			address := endpoint.HTTPURL()
-			if address.String() != tc.want || strings.Contains(address.RawQuery, "access_token") {
-				t.Fatalf("endpoint %q, want %q and no token in the URL", address.String(), tc.want)
+			if address.String() != tc.want || strings.Contains(address.RawQuery, "access_token") || strings.Contains(address.RawQuery, "limit") {
+				t.Fatalf("endpoint %q, want %q", address.String(), tc.want)
 			}
 		})
 	}
