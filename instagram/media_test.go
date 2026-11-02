@@ -57,9 +57,9 @@ func TestMediaProjectionLayerTriad(t *testing.T) {
 	t.Run("positive: a reel shows its cover, a photo shows itself, in Meta's order", func(t *testing.T) {
 		t.Parallel()
 		photo := validWire()
-		photo.ID, photo.MediaType, photo.MediaURL, photo.ThumbnailURL = "17999", "IMAGE", photoImage, ""
+		photo.ID, photo.MediaType, photo.MediaURL, photo.ThumbnailURL, photo.Permalink = "17999", "IMAGE", photoImage, "", "https://www.instagram.com/p/17999/"
 		carousel := validWire()
-		carousel.ID, carousel.MediaType, carousel.MediaURL, carousel.ThumbnailURL = "17998", "CAROUSEL_ALBUM", photoImage, ""
+		carousel.ID, carousel.MediaType, carousel.MediaURL, carousel.ThumbnailURL, carousel.Permalink = "17998", "CAROUSEL_ALBUM", photoImage, "", "https://www.instagram.com/p/17998/"
 		page, err := project(t, validWire(), photo, carousel)
 		if err != nil {
 			t.Fatal(err)

@@ -73,7 +73,7 @@ func TestListMediaLayerTriad(t *testing.T) {
 	})
 	t.Run("negative: a provider error is a typed response failure with no page", func(t *testing.T) {
 		t.Parallel()
-		fake := &metaFake{status: http.StatusBadRequest, body: `{"error":{"message":"Invalid OAuth access token","code":190}}`}
+		fake := &metaFake{status: http.StatusBadRequest, body: `{"error":{"message":"Unsupported get request","type":"GraphMethodException","code":100}}`}
 		page, err := fakeClient(t, fake).ListMedia(context.Background(), request(t))
 		if !errors.Is(err, core.ErrInstagramResponse) || !errors.Is(err, core.ErrInstagramContract) || len(page.Media) != 0 {
 			t.Fatalf("got %v %+v", err, page)

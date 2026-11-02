@@ -3,6 +3,7 @@ package instagram
 import (
 	"encoding/json"
 	"errors"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -42,7 +43,8 @@ func photo(id string) mediaWire {
 func reels(n int) []mediaWire {
 	out := make([]mediaWire, n)
 	for i := range out {
-		out[i] = reel(strings.Repeat("1", i+1))
+		// Short, unique ids and links: only the bound under test can refuse.
+		out[i] = reel(strconv.Itoa(10000 + i))
 	}
 	return out
 }
@@ -218,10 +220,12 @@ func TestMediaProducerClassifierMatrix(t *testing.T) {
 				}
 				return
 			}
-			if decodeErr != nil {
-				t.Fatalf("decode: %v", decodeErr)
+			// Exchange's strict decode runs mediaListWire.Validate, so a document
+			// refusal can surface there; it must carry the same typed identity.
+			page, err := MediaPage{}, decodeErr
+			if decodeErr == nil {
+				page, err = wire.page()
 			}
-			page, err := wire.page()
 			if row.err != nil {
 				if !errors.Is(err, row.err) || !errors.Is(err, core.ErrInstagramContract) || len(page.Media) != 0 {
 					t.Fatalf("got %v with %d media, want %v and nothing kept", err, len(page.Media), row.err)
