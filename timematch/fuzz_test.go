@@ -29,6 +29,7 @@ type seedGoogleItem struct {
 	ID         string `json:"id"`
 	AccessRole string `json:"accessRole"`
 	Primary    bool   `json:"primary,omitzero"`
+	DataOwner  string `json:"dataOwner,omitzero"`
 }
 
 type seedGooglePage struct {
