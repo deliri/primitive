@@ -21,3 +21,14 @@ func (a EventCreationAttempt) Validate() error {
 		return core.ErrTimeMatchContract
 	}
 }
+
+func eventCreationAttemptNames() []string { return []string{"first", "recover-only"} }
+
+func (a EventCreationAttempt) IsValid() bool  { return a.Validate() == nil }
+func (a EventCreationAttempt) String() string { return enumName(a, eventCreationAttemptNames()) }
+func (a EventCreationAttempt) MarshalJSON() ([]byte, error) {
+	return marshalEnum(a, eventCreationAttemptNames())
+}
+func (a *EventCreationAttempt) UnmarshalJSON(data []byte) error {
+	return unmarshalEnum(a, data, eventCreationAttemptNames())
+}

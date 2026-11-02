@@ -258,7 +258,7 @@ func TestOAuthOptionalScopeUsesRequestedPurposeOnly(t *testing.T) {
 						t.Fatalf("grant close=%v,want nil", err)
 					}
 				} else if grant.AccessToken.IsSet() || grant.RefreshToken.IsSet() {
-					t.Fatal("refused scope retained credentials, want zero grant")
+					t.Fatalf("refused scope credentials access/refresh=%t/%t,want false/false", grant.AccessToken.IsSet(), grant.RefreshToken.IsSet())
 				}
 				if len(fixture.refusedDials()) != 0 {
 					t.Fatalf("foreign dials=%q,want none", fixture.refusedDials())

@@ -30,6 +30,17 @@ func (m InvitationMethod) Validate() error {
 	}
 }
 
+func invitationMethodNames() []string { return []string{"request", "cancel"} }
+
+func (m InvitationMethod) IsValid() bool  { return m.Validate() == nil }
+func (m InvitationMethod) String() string { return enumName(m, invitationMethodNames()) }
+func (m InvitationMethod) MarshalJSON() ([]byte, error) {
+	return marshalEnum(m, invitationMethodNames())
+}
+func (m *InvitationMethod) UnmarshalJSON(data []byte) error {
+	return unmarshalEnum(m, data, invitationMethodNames())
+}
+
 // Invitation is one appointment's calendar message, never a downloaded
 // customer event. UID and organizer remain stable across updates/cancellation;
 // the application owns the increasing sequence and the consenting recipients.

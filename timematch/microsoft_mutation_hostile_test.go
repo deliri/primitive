@@ -627,14 +627,14 @@ func TestMicrosoftCalendarMoveKeepsOwnedMutationReachable(t *testing.T) {
 	changed.Interval = window(t, "2026-11-03T15:00:00Z", "2026-11-03T16:00:00Z")
 	updated, updateErr := client.UpdateEvent(t.Context(), EventUpdate{Connection: connection, Ref: created.Ref, Intent: changed, ObservedAt: at(t, "2026-11-02T08:00:00Z"), Policy: fixturePolicy(t)})
 	if updateErr != nil || updated.Ref != created.Ref {
-		t.Fatalf("update after actual fixture calendar move = (%+v,%v), want stable receipt %+v", updated, updateErr, created.Ref)
+		t.Fatalf("update after observed fixture calendar move = (%+v,%v), want stable receipt %+v", updated, updateErr, created.Ref)
 	}
 	outcome, deleteErr := client.DeleteEvent(t.Context(), EventDelete{Connection: connection, Ref: updated.Ref, Policy: fixturePolicy(t)})
 	mutex.Lock()
 	gotDeleted := deleted
 	mutex.Unlock()
 	if deleteErr != nil || outcome != Deleted || !gotDeleted {
-		t.Fatalf("delete after calendar move = (%v,%v) effect %t, want actual deletion", outcome, deleteErr, gotDeleted)
+		t.Fatalf("delete after calendar move = (%v,%v) effect %t, want deletion effect", outcome, deleteErr, gotDeleted)
 	}
 }
 
@@ -723,7 +723,7 @@ func TestMicrosoftAbsentCollectionNeverMeansFreeNative(t *testing.T) {
 				t.Fatalf("absent list = (%+v,%v), want zero typed refusal", listed, listErr)
 			}
 			if len(fixture.record()) != 2 {
-				t.Fatalf("requests = %d, want actual availability and list calls", len(fixture.record()))
+				t.Fatalf("requests = %d, want availability and list calls", len(fixture.record()))
 			}
 		})
 	}

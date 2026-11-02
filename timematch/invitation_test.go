@@ -61,7 +61,7 @@ func TestSecretCopyBytesCustody(t *testing.T) {
 				t.Fatalf("Close() error = %v, want nil", err)
 			}
 			if string(second) != raw {
-				t.Fatal("owned copy changed on source close, want independent custody")
+				t.Fatalf("owned copy equal after source close=%t,want true independent custody", string(second) == raw)
 			}
 			refused, err := value.CopyBytes()
 			if refused != nil || !errors.Is(err, core.ErrTimeMatchContract) {
@@ -176,7 +176,7 @@ func TestInvitationNativeWireConservation(t *testing.T) {
 			}
 			text := strings.ReplaceAll(cancel.String(), "\r\n ", "")
 			if !strings.Contains(text, "METHOD:CANCEL\r\n") || !strings.Contains(text, "STATUS:CANCELLED\r\n") || !strings.Contains(text, "UID:"+value.UID.value+"\r\n") || !strings.Contains(text, "SEQUENCE:1\r\n") {
-				t.Fatal("cancellation lost method/status/identity/sequence, want same appointment")
+				t.Fatalf("cancellation message identity/sequence preserved=%t/%t,want true/true with cancel method and status", strings.Contains(text, "UID:"+value.UID.value+"\r\n"), strings.Contains(text, "SEQUENCE:1\r\n"))
 			}
 		})
 	}

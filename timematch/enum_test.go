@@ -42,6 +42,8 @@ func enumDoors() []enumDoor {
 		door[AvailabilityState]("AvailabilityState", 2, AvailabilityState.String, AvailabilityState.IsValid, AvailabilityState.MarshalJSON),
 		door[RevokeOutcome]("RevokeOutcome", 2, RevokeOutcome.String, RevokeOutcome.IsValid, RevokeOutcome.MarshalJSON),
 		door[DeleteOutcome]("DeleteOutcome", 2, DeleteOutcome.String, DeleteOutcome.IsValid, DeleteOutcome.MarshalJSON),
+		door[EventCreationAttempt]("EventCreationAttempt", 2, EventCreationAttempt.String, EventCreationAttempt.IsValid, EventCreationAttempt.MarshalJSON),
+		door[InvitationMethod]("InvitationMethod", 2, InvitationMethod.String, InvitationMethod.IsValid, InvitationMethod.MarshalJSON),
 	}
 }
 
