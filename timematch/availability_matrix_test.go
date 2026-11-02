@@ -38,18 +38,18 @@ const (
 
 // produceCalendar runs the real producer: Graph page decode, then the busy
 // normalization every provider projection uses. A refused page is Unknown.
-func produceCalendar(t *testing.T, id string, page string) (CalendarAvailability, error, [][2]int64) {
+func produceCalendar(t *testing.T, id string, page string) (CalendarAvailability, [][2]int64, error) {
 	t.Helper()
 	decoded, err := decodeJSON[graphViewPage]([]byte(page))
 	calendar := CalendarAvailability{ID: CalendarID{value: id}, State: AvailabilityUnknown}
 	if err != nil || !decoded.known {
-		return calendar, err, nil
+		return calendar, nil, err
 	}
 	busy, normalizeErr := normalizeBusy(window(t, "2026-11-02T09:00:00Z", "2026-11-02T17:00:00Z"), decoded.busy)
 	if normalizeErr != nil {
 		t.Fatalf("normalizeBusy() error = %v, want nil", normalizeErr)
 	}
-	return CalendarAvailability{ID: calendar.ID, State: AvailabilityKnown, Busy: busy}, nil, decoded.busy
+	return CalendarAvailability{ID: calendar.ID, State: AvailabilityKnown, Busy: busy}, decoded.busy, nil
 }
 
 func TestAvailabilityProducerClassifierMatrix(t *testing.T) {
@@ -132,7 +132,7 @@ func TestAvailabilityProducerClassifierMatrix(t *testing.T) {
 			var produced [][2]int64
 			refused := 0
 			for i, page := range tc.pages {
-				calendar, err, spans := produceCalendar(t, "cal-"+strconv.Itoa(i), page)
+				calendar, spans, err := produceCalendar(t, "cal-"+strconv.Itoa(i), page)
 				if err != nil {
 					refused++
 					if !errors.Is(err, core.ErrTimeMatchResponse) || calendar.State != AvailabilityUnknown || len(calendar.Busy) != 0 {

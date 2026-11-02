@@ -94,12 +94,11 @@ func (c Client) send(ctx context.Context, request call) (outcome, error) {
 		})
 	}
 	result := outcome{body: response.Body, captured: response.Metadata.Headers}
-	var statusErr exchange.StatusError
-	switch {
-	case err == nil:
+	if err == nil {
 		result.status = request.expected
 		return result, nil
-	case errors.As(err, &statusErr):
+	}
+	if statusErr, ok := errors.AsType[exchange.StatusError](err); ok {
 		status, statusIntErr := statusErr.Status().Int()
 		if statusIntErr == nil {
 			result.status = status

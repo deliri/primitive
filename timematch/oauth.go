@@ -65,7 +65,7 @@ func scopes(provider Provider, access Access, lifetime Lifetime) []string {
 		}
 		return values
 	default:
-		return nil
+		panic(core.ErrTimeMatchContract) // Application.Validate admits only Google and Microsoft.
 	}
 }
 
@@ -96,15 +96,17 @@ func AuthorizationEndpoint(r AuthorizationRequest) (core.HTTPEndpoint, error) {
 			query.Set("access_type", "online")
 		}
 	case ProviderMicrosoft:
-		base = microsoftLoginURL + r.Application.Tenant.segment() + "/oauth2/v2.0/authorize"
+		base = microsoftLoginURL + r.Application.Tenant.String() + "/oauth2/v2.0/authorize"
 		query.Set("response_mode", "query")
+	default:
+		panic(core.ErrTimeMatchContract) // Application.Validate admits only Google and Microsoft.
 	}
 	return endpoint(base + "?" + query.Encode())
 }
 
 func tokenURL(application Application) string {
 	if application.Provider == ProviderMicrosoft {
-		return microsoftLoginURL + application.Tenant.segment() + "/oauth2/v2.0/token"
+		return microsoftLoginURL + application.Tenant.String() + "/oauth2/v2.0/token"
 	}
 	return googleTokenURL
 }
@@ -143,7 +145,7 @@ func (c Client) ExchangeCode(ctx context.Context, r CodeExchange) (Grant, error)
 	if r.Lifetime == LifetimeBusiness && len(token.refresh) == 0 {
 		return Grant{}, core.ErrTimeMatchConsent
 	}
-	return token.grant(r.Application.Provider, r.Access, r.Lifetime, r.ObservedAt)
+	return token.grant(grantShape{provider: r.Application.Provider, access: r.Access, lifetime: r.Lifetime, observed: r.ObservedAt})
 }
 
 // Refresh renews a business grant. Microsoft rotates the refresh token on
@@ -165,7 +167,7 @@ func (c Client) Refresh(ctx context.Context, r RefreshRequest) (Grant, error) {
 		return Grant{}, err
 	}
 	defer token.clear()
-	return token.grant(r.Application.Provider, r.Access, LifetimeBusiness, r.ObservedAt)
+	return token.grant(grantShape{provider: r.Application.Provider, access: r.Access, lifetime: LifetimeBusiness, observed: r.ObservedAt})
 }
 
 // Revoke invalidates a token at Google (revoking an access token also revokes
@@ -290,7 +292,16 @@ func (t tokenWire) clear() {
 	clear(t.refresh)
 }
 
-func (t tokenWire) grant(provider Provider, access Access, lifetime Lifetime, observed temporal.Instant) (Grant, error) {
+// grantShape is the requested grant a token response is projected into.
+type grantShape struct {
+	observed temporal.Instant
+	provider Provider
+	access   Access
+	lifetime Lifetime
+}
+
+func (t tokenWire) grant(shape grantShape) (Grant, error) {
+	provider, access, lifetime, observed := shape.provider, shape.access, shape.lifetime, shape.observed
 	if !grantedScopes(provider, t.scope, access) {
 		return Grant{}, core.ErrTimeMatchConsent
 	}

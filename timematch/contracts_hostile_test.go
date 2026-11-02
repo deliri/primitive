@@ -298,7 +298,7 @@ func TestSecretCustodyLayerTriad(t *testing.T) {
 			t.Fatalf("Close() = %v backing %q, want zeroed shared bytes", err, backing)
 		}
 		if string(copied.value) == "token-value" {
-			t.Fatal("copied Secret still holds the token after Close, want shared destruction")
+			t.Fatalf("copied Secret after Close = %q, want shared destruction", copied.value)
 		}
 	})
 	t.Run("negative formatting and json never reveal the value", func(t *testing.T) {

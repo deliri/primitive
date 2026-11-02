@@ -43,6 +43,10 @@ func (Connection) timematchCapabilityWrapper()             {}
 func (Client) timematchCapabilityWrapper()                 {}
 
 // Provider wire projections and internal execution carriers.
+func (davRequest) timematchInternalFlow()              {}
+func (appleReadBackRequest) timematchInternalFlow()    {}
+func (graphExpectation) timematchInternalFlow()        {}
+func (grantShape) timematchInternalFlow()              {}
 func (call) timematchInternalFlow()                    {}
 func (outcome) timematchInternalFlow()                 {}
 func (formPair) timematchInternalFlow()                {}

@@ -111,9 +111,9 @@ func (a Availability) Browser() (BrowserAvailability, error) {
 			return BrowserAvailability{Window: a.Window, State: AvailabilityUnknown}, nil
 		}
 		for _, busy := range calendar.Busy {
-			start, end, err := nanosecondBounds(busy)
-			if err != nil {
-				return BrowserAvailability{}, err
+			start, end, boundsErr := nanosecondBounds(busy)
+			if boundsErr != nil {
+				return BrowserAvailability{}, boundsErr
 			}
 			spans = append(spans, [2]int64{start, end})
 		}
@@ -150,9 +150,9 @@ func (b BrowserAvailability) MarshalJSON() ([]byte, error) {
 		wire.State = browserStateUnknown
 	}
 	for _, busy := range b.Busy {
-		span, err := spanWire(busy)
-		if err != nil {
-			return nil, err
+		span, spanErr := spanWire(busy)
+		if spanErr != nil {
+			return nil, spanErr
 		}
 		wire.Busy = append(wire.Busy, span)
 	}
@@ -181,9 +181,9 @@ func (b *BrowserAvailability) UnmarshalJSON(raw []byte) error {
 		return errors.Join(core.ErrTimeMatchContract, core.ErrJSONContract)
 	}
 	for _, span := range wire.Busy {
-		busy, err := span.bounds()
-		if err != nil {
-			return err
+		busy, boundsErr := span.bounds()
+		if boundsErr != nil {
+			return boundsErr
 		}
 		candidate.Busy = append(candidate.Busy, busy)
 	}
@@ -204,17 +204,6 @@ func (r BrowserConnectionRequest) Validate() error {
 	return nil
 }
 
-func providerText(p Provider) string {
-	switch p {
-	case ProviderGoogle:
-		return "google"
-	case ProviderMicrosoft:
-		return "microsoft"
-	default:
-		return ""
-	}
-}
-
 type browserConnectionWire struct {
 	Provider string `json:"provider"`
 }
@@ -223,7 +212,7 @@ func (r BrowserConnectionRequest) MarshalJSON() ([]byte, error) {
 	if err := r.Validate(); err != nil {
 		return nil, errors.Join(core.ErrJSONContract, err)
 	}
-	return json.Marshal(browserConnectionWire{Provider: providerText(r.Provider)})
+	return json.Marshal(browserConnectionWire{Provider: r.Provider.String()})
 }
 
 func (r *BrowserConnectionRequest) UnmarshalJSON(raw []byte) error {
@@ -235,7 +224,7 @@ func (r *BrowserConnectionRequest) UnmarshalJSON(raw []byte) error {
 		return errors.Join(core.ErrTimeMatchContract, core.ErrJSONContract, err)
 	}
 	for _, provider := range []Provider{ProviderGoogle, ProviderMicrosoft} {
-		if wire.Provider == providerText(provider) {
+		if wire.Provider == provider.String() {
 			*r = BrowserConnectionRequest{Provider: provider}
 			return nil
 		}

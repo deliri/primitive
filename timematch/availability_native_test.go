@@ -181,7 +181,7 @@ func TestGoogleAvailabilityNative(t *testing.T) {
 				t.Fatalf("Availability(cancelled) error = %v, want %v with %v", err, core.ErrTimeMatchResponse, core.ErrExchangeCancelled)
 			}
 		case <-time.After(fixtureBackstop):
-			t.Fatal("Availability did not return after cancellation")
+			t.Fatalf("Availability(cancelled) still running after %v, want a cancelled return", fixtureBackstop)
 		}
 	})
 }

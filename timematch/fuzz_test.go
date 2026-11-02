@@ -145,6 +145,9 @@ func FuzzOAuthFailureNeverPromotesOrEchoes(f *testing.F) {
 		if consent && (status != http.StatusBadRequest && status != http.StatusUnauthorized || !named) || !consent && !errors.Is(err, core.ErrTimeMatchResponse) {
 			t.Fatalf("oauthFailure(%d, %q) = %v, want consent only for a documented code on 400/401", status, body, err)
 		}
+		if !errors.Is(err, core.ErrTimeMatchContract) {
+			t.Fatalf("oauthFailure() = %v, want a TimeMatch identity", err)
+		}
 		if strings.Contains(err.Error(), privateMarker) || len(owned) != 0 && bytes.ContainsAny(owned, "abcdefghijklmnopqrstuvwxyz") {
 			t.Fatalf("oauthFailure echoed or retained the provider body: %v / %q", err, owned)
 		}
@@ -291,7 +294,9 @@ func FuzzProviderEventObservations(f *testing.F) {
 			func(body []byte) (EventReceipt, error) {
 				return verifyGoogle(body, owned, EventRef{Provider: ProviderGoogle, Calendar: owned.Calendar, Resource: owned.ID.value})
 			},
-			func(body []byte) (EventReceipt, error) { return verifyGraph(body, owned, owned.Calendar, "", true) },
+			func(body []byte) (EventReceipt, error) {
+				return verifyGraph(body, graphExpectation{intent: owned, calendar: owned.Calendar, create: true})
+			},
 		} {
 			receipt, err := verify(append([]byte(nil), data...))
 			if err != nil {

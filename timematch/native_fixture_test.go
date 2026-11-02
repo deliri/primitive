@@ -2,6 +2,7 @@ package timematch
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net"
 	"net/http"
@@ -176,6 +177,9 @@ func noLeak(t *testing.T, err error, secrets ...string) {
 	t.Helper()
 	if err == nil {
 		return
+	}
+	if !errors.Is(err, core.ErrTimeMatchContract) {
+		t.Fatalf("error = %v, want a TimeMatch identity before inspecting its text", err)
 	}
 	text := err.Error()
 	for _, value := range append(secrets, privateMarker) {
