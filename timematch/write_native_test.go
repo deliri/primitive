@@ -415,8 +415,20 @@ func TestAppleEventsNative(t *testing.T) {
 	t.Run("update requires existence and delete reports absence", func(t *testing.T) {
 		t.Parallel()
 		client, fixture := newNative(t, func(w http.ResponseWriter, r *http.Request, _ []byte) {
-			if r.Method == http.MethodDelete && strings.HasSuffix(r.URL.Path, "gone.ics") {
+			if r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "gone0.ics") {
 				w.WriteHeader(404)
+				return
+			}
+			if r.Method == http.MethodGet {
+				body, bodyErr := writeICS(owned(t), at(t, "2026-11-02T08:00:00Z"))
+				if bodyErr != nil {
+					t.Errorf("owned readback fixture error = %v, want nil", bodyErr)
+					w.WriteHeader(500)
+					return
+				}
+				w.Header().Set("Content-Type", "text/calendar")
+				w.Header().Set("ETag", `"observed"`)
+				_, _ = w.Write(body)
 				return
 			}
 			w.WriteHeader(204)
@@ -424,11 +436,15 @@ func TestAppleEventsNative(t *testing.T) {
 		connection := appleConnection(t)
 		ref := EventRef{ID: intent(t, home, "Visit", "2026-11-02T15:00:00Z", "2026-11-02T16:00:00Z").ID, Provider: ProviderApple, Calendar: calendarID(t, home), Resource: resource}
 		updated, err := client.UpdateEvent(t.Context(), EventUpdate{Connection: connection, Ref: ref, Intent: owned(t), ObservedAt: at(t, "2026-11-02T09:00:00Z"), Policy: fixturePolicy(t)})
-		if err != nil || updated.Ref != ref || fixture.record()[0].header.Get("If-Match") != "*" {
+		if err != nil || updated.Ref != ref || len(fixture.record()) != 2 || fixture.record()[0].method != http.MethodGet || fixture.record()[1].header.Get("If-Match") != `"observed"` {
 			t.Fatalf("UpdateEvent(apple) = (%+v, %v), want If-Match replacement", updated, err)
 		}
 		deleted, deleteErr := client.DeleteEvent(t.Context(), EventDelete{Connection: connection, Ref: ref, Policy: fixturePolicy(t)})
-		ref.Resource = home + "gone.ics"
+		ref.ID, err = ParseEventID("gone0")
+		if err != nil {
+			t.Fatal(err)
+		}
+		ref.Resource = home + "gone0.ics"
 		absent, absentErr := client.DeleteEvent(t.Context(), EventDelete{Connection: connection, Ref: ref, Policy: fixturePolicy(t)})
 		ref.Resource = "https://attacker.example/x.ics"
 		_, foreignErr := client.DeleteEvent(t.Context(), EventDelete{Connection: connection, Ref: ref, Policy: fixturePolicy(t)})
