@@ -10,6 +10,8 @@ func (Media) instagramProtocolFact()            {}
 func (MediaPage) instagramProtocolFact()        {}
 func (mediaListWire) instagramInternalFlow()    {}
 func (mediaWire) instagramInternalFlow()        {}
+func (mediaPagingWire) instagramInternalFlow()  {}
+func (mediaCursorsWire) instagramInternalFlow() {}
 func (Credential) instagramCapabilityWrapper()  {}
 func (Client) instagramCapabilityWrapper()      {}
 

@@ -117,10 +117,24 @@ func (p MediaPage) Validate() error {
 	return nil
 }
 
-// mediaListWire is Meta's response document. Unknown members such as paging
-// are tolerated; every member this package reads is checked before projection.
+// mediaListWire is Meta's response document. Exchange decodes strictly, so
+// every member Meta documents is declared; paging is accepted and unused.
 type mediaListWire struct {
-	Data []mediaWire `json:"data"`
+	Paging *mediaPagingWire `json:"paging,omitempty"`
+	Data   []mediaWire      `json:"data"`
+}
+
+// mediaPagingWire is Meta's cursor-based pagination block.
+// https://developers.facebook.com/docs/graph-api/results
+type mediaPagingWire struct {
+	Cursors  mediaCursorsWire `json:"cursors"`
+	Next     string           `json:"next,omitempty"`
+	Previous string           `json:"previous,omitempty"`
+}
+
+type mediaCursorsWire struct {
+	Before string `json:"before,omitempty"`
+	After  string `json:"after,omitempty"`
 }
 
 type mediaWire struct {

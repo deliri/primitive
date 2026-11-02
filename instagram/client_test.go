@@ -54,7 +54,7 @@ func TestListMediaLayerTriad(t *testing.T) {
 	}
 	t.Run("positive: one GET to the exact URL, the token only as a bearer header", func(t *testing.T) {
 		t.Parallel()
-		fake := &metaFake{status: http.StatusOK, body: `{"data":[{"id":"18123456789012345","media_type":"VIDEO","thumbnail_url":"` + reelImage + `","permalink":"` + reelLink + `","caption":"Hello","timestamp":"2026-10-27T15:04:05+0000"}],"paging":{"cursors":{"after":"x"}}}`}
+		fake := &metaFake{status: http.StatusOK, body: `{"data":[{"id":"18123456789012345","media_type":"VIDEO","thumbnail_url":"` + reelImage + `","permalink":"` + reelLink + `","caption":"Hello","timestamp":"2026-10-27T15:04:05+0000"}],"paging":{"cursors":{"before":"a","after":"x"},"next":"https://graph.facebook.com/v21.0/17841432921003907/media?after=x"}}`}
 		page, err := fakeClient(t, fake).ListMedia(context.Background(), request(t))
 		if err != nil {
 			t.Fatal(err)
