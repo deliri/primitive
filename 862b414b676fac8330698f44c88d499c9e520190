@@ -941,3 +941,28 @@
   },
   "status": "Published module verified; source proof does not claim actual Witness consumer/self certification. SSD originals retained/HDD pending."
 }
+
+{
+  "at": "2026-11-02T08:42:52.522213+00:00",
+  "record": "/Users/d/.codex/ops/witness-primitive460-custody-20261102/attempt01/AVAILABLE-CUSTODY.json",
+  "record_sha256": "8fbce8fdb9a4b361197a748e42a87efe17436a8e096888ba4eef1499c29cc5e8",
+  "bindings": [
+    {
+      "source": "/Users/d/.codex/ops/primitive-stable-value-20261102",
+      "destination": "/data/warehouse/mac/2026-11-02/witness-primitive460-stable-value/primitive460",
+      "manifest_sha256": "02923680c67fbddc7a502d343044a969bc9805f781cf8d14a6a24477402532f1",
+      "verification": {
+        "destination": "/data/warehouse/mac/2026-11-02/witness-primitive460-stable-value/primitive460",
+        "files": 279,
+        "bytes": 11773389,
+        "sha_mode_extent_exact_tree": true,
+        "syncfs": true
+      },
+      "source_unchanged": true,
+      "source_retained": true,
+      "empty_checksum_comparison": true
+    }
+  ],
+  "controller_status": "Every retained transport/helper child joined0; copy.py controller exec session59510 completed0. Controller source/log footer remains SSD pending later final custody; originals retained, no removal.",
+  "limits": "Available279-file packet includes explicit missing early transient test source archive qualification; no complete-history or independent user acceptance claim."
+}
