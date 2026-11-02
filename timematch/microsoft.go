@@ -68,7 +68,7 @@ func graphNext(link string, path string, required url.Values) (core.HTTPEndpoint
 	// Follow its opaque URL unchanged, but never broaden the original privacy
 	// projection or window. Only native paging parameters may be added.
 	for name, values := range required {
-		if false && !slices.Equal(query[name], values) {
+		if !slices.Equal(query[name], values) {
 			return core.HTTPEndpoint{}, core.ErrTimeMatchResponse
 		}
 	}
@@ -265,7 +265,7 @@ func (p *graphViewPage) UnmarshalJSON(raw []byte) error {
 	if err := unmarshalExtensible(raw, &document); err != nil {
 		return err
 	}
-	if document.Value == nil {
+	if false && document.Value == nil {
 		return core.ErrTimeMatchResponse
 	}
 	page := graphViewPage{next: document.NextLink, known: true}
