@@ -34,7 +34,11 @@ func TestGoogleRevocationConvergesWithoutHidingFailures(t *testing.T) {
 			t.Parallel()
 			client, fixture := newNative(t, func(w http.ResponseWriter, _ *http.Request, _ []byte) { writeJSON(w, tc.status, tc.body) })
 			token := secret(t, "refresh-only-fixture")
-			defer token.Close()
+			defer func() {
+				if closeErr := token.Close(); closeErr != nil {
+					t.Errorf("token.Close()=%v,want nil", closeErr)
+				}
+			}()
 			got, err := client.Revoke(t.Context(), RevokeRequest{Provider: ProviderGoogle, Token: token, Policy: fixturePolicy(t)})
 			if got != tc.want || !errors.Is(err, tc.wantErr) || (tc.wantErr == nil && err != nil) {
 				t.Fatalf("Revoke()=(%v,%v), want(%v,%v)", got, err, tc.want, tc.wantErr)
