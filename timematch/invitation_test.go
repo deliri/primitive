@@ -304,6 +304,8 @@ func TestInvitationTemporalSecondBoundaries(t *testing.T) {
 }
 
 func FuzzInvitationSummaryWireConservation(f *testing.F) {
+	seed := invitationFixture(f)
+	f.Add(seed.Summary.String())
 	for _, text := range []string{"Review", `One\two;three,four`, strings.Repeat("💙", 50), "bad\nheader", "\xff"} {
 		f.Add(text)
 	}
@@ -331,6 +333,10 @@ func FuzzInvitationSummaryWireConservation(f *testing.F) {
 		}
 		unfolded := strings.ReplaceAll(output.String(), "\r\n ", "")
 		wireText := strings.SplitN(strings.SplitN(unfolded, "SUMMARY:", 2)[1], "\r\n", 2)[0]
+		wantedWire := strings.NewReplacer(`\`, `\\`, ",", `\,`, ";", `\;`).Replace(text)
+		if wireText != wantedWire {
+			t.Fatalf("encoded summary=%q,want exact escaped %q", wireText, wantedWire)
+		}
 		if got := unescapeICSText(wireText); got != text {
 			t.Fatalf("decoded summary=%q,want %q", got, text)
 		}
