@@ -145,6 +145,10 @@ type temporalPrecisionSignature interface {
 }
 
 var (
+	_ interface {
+		CivilMinuteIntervals(IntervalBounds, CivilDate, uint16, uint16) ([]IntervalBounds, error)
+		CivilDates(IntervalBounds) ([]CivilDate, error)
+	} = Location{}
 	_ func(NativeTimePair) core.Comparison     = CompareNativeTimes
 	_ func(NativeTimePair) time.Duration       = DifferenceNativeTimes
 	_ func(NativeTimeOffset) time.Time         = ShiftNativeTime
@@ -254,7 +258,7 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 	}
 	want := []string{
 		"type ClockLayout", "const ClockLayoutUnknown", "const ClockHourMinuteSecond", "method ClockLayout.Validate", "method ClockLayout.IsValid", "method ClockLayout.String", "method ClockLayout.OffWireEnum",
-		"type Location", "func NewLocation", "method Location.Validate", "method Location.Name", "method Location.Format", "method Location.Append", "method Location.ParseLocalTime", "method Location.DateAt", "method Location.StartOfDay", "method Location.AddCalendar",
+		"type Location", "func NewLocation", "method Location.Validate", "method Location.Name", "method Location.Format", "method Location.Append", "method Location.ParseLocalTime", "method Location.DateAt", "method Location.StartOfDay", "method Location.AddCalendar", "method Location.CivilMinuteIntervals", "method Location.CivilDates",
 		"type CivilDate", "type CivilDateRequest", "func NewCivilDate", "func ParseCivilDate", "method CivilDate.Validate", "method CivilDate.Coordinates", "method CivilDate.Text", "method CivilDate.AddDays", "method CivilDate.AddCalendar", "method CivilDate.PeriodStart", "method CivilDate.PeriodEnd", "method CivilDate.CompletedYearsUntil", "method CivilDate.MarshalJSON", "method CivilDate.UnmarshalJSON",
 		"type CalendarBoundary", "const CalendarBoundaryUnknown", "const CalendarMonth", "const CalendarQuarter", "const CalendarYear", "method CalendarBoundary.Validate", "method CalendarBoundary.IsValid", "method CalendarBoundary.String", "method CalendarBoundary.OffWireEnum",
 		"type LocalTimeRequest", "method LocalTimeRequest.Validate", "method LocalTimeRequest.Instant",
