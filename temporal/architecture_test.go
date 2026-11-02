@@ -79,6 +79,7 @@ type temporalInstantSignature interface {
 	Since(Instant) (Duration, error)
 	Compare(Instant) (core.Comparison, error)
 	Truncate(Precision) (Instant, error)
+	Ceiling(Precision) (Instant, error)
 	MarshalJSON() ([]byte, error)
 }
 
@@ -369,6 +370,7 @@ func TestTemporalPublicSurfaceMatchesReviewedContract(t *testing.T) {
 		"method Instant.Subtract",
 		"method Instant.Time",
 		"method Instant.Truncate",
+		"method Instant.Ceiling",
 		"method Instant.UnmarshalJSON",
 		"method Instant.Validate",
 		"method Interval.Bounds",
