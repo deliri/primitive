@@ -327,7 +327,11 @@ func FuzzGraphCalendarPageSemanticClosure(f *testing.F) {
 }
 
 func FuzzProviderEventObservations(f *testing.F) {
-	f.Add(seedJSON(f, googleEventBody{ID: eventIDFixture, Summary: "Visit", Start: googleEventTime{DateTime: "2026-11-02T15:00:00Z"}, End: googleEventTime{DateTime: "2026-11-02T16:00:00Z"}, Transparency: "opaque"}))
+	googleSeed, seedErr := googleEvent(intent(f, "primary", "Visit", "2026-11-02T15:00:00Z", "2026-11-02T16:00:00Z"))
+	if seedErr != nil {
+		f.Fatal(seedErr)
+	}
+	f.Add(googleSeed)
 	f.Add(seedJSON(f, graphCreated{ID: "AAMk", Subject: "Visit", TransactionID: eventIDFixture, Start: graphDateTime{DateTime: "2026-11-02T15:00:00.0000000", TimeZone: "UTC"}, End: graphDateTime{DateTime: "2026-11-02T16:00:00.0000000", TimeZone: "UTC"}}))
 	addHostile(f)
 	f.Fuzz(func(t *testing.T, data []byte) {
@@ -353,6 +357,15 @@ func FuzzProviderEventObservations(f *testing.F) {
 			}
 			if json.Unmarshal(data, &independent) != nil || independent.Summary != "Visit" && independent.Subject != "Visit" || receipt.Validate() != nil {
 				t.Fatalf("verify accepted %q without the owned summary or with invalid receipt %+v", data, receipt)
+			}
+			if receipt.Ref.Provider == ProviderGoogle {
+				var binding struct {
+					ID                 string                   `json:"id"`
+					ExtendedProperties googleExtendedProperties `json:"extendedProperties"`
+				}
+				if err := json.Unmarshal(data, &binding); err != nil || binding.ID != owned.ID.String() || binding.ExtendedProperties.Private.EventID != owned.ID.String() {
+					t.Fatalf("Google receipt accepted missing/foreign private ownership: %+v/%v", binding, err)
+				}
 			}
 		}
 	})

@@ -1,7 +1,9 @@
 package timematch
 
 import (
+	"crypto/sha256"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -71,11 +73,46 @@ func (g *googleCalendar) serve(w http.ResponseWriter, r *http.Request, body []by
 		writeJSON(w, 200, strings.TrimSuffix(string(body), "}")+`,"status":"confirmed","htmlLink":"x"}`)
 		return
 	}
+	if r.Method == http.MethodGet && path == "" {
+		items := []struct {
+			ID   string `json:"id"`
+			ETag string `json:"etag"`
+		}{}
+		for id, stored := range g.events {
+			var event googleEventBody
+			if err := json.Unmarshal([]byte(stored), &event); err != nil {
+				writeJSON(w, 500, `{}`)
+				return
+			}
+			if event.ExtendedProperties != nil && r.URL.Query().Get("privateExtendedProperty") == googleOwnershipProperty+"="+event.ExtendedProperties.Private.EventID {
+				items = append(items, struct {
+					ID   string `json:"id"`
+					ETag string `json:"etag"`
+				}{ID: id, ETag: googleFixtureETag(stored)})
+			}
+		}
+		wire, err := json.Marshal(struct {
+			Items []struct {
+				ID   string `json:"id"`
+				ETag string `json:"etag"`
+			} `json:"items"`
+		}{Items: items})
+		if err != nil {
+			writeJSON(w, 500, `{}`)
+			return
+		}
+		writeJSON(w, 200, string(wire))
+		return
+	}
 	id := strings.TrimPrefix(path, "/")
 	stored, ok := g.events[id]
+	if ok && r.Header.Get("If-Match") != "" && r.Header.Get("If-Match") != googleFixtureETag(stored) {
+		writeJSON(w, 412, `{}`)
+		return
+	}
 	switch {
 	case r.Method == http.MethodGet && ok:
-		writeJSON(w, 200, stored)
+		writeJSON(w, 200, googleFixtureWithETag(stored))
 	case r.Method == http.MethodPut && ok:
 		var replacement googleEventBody
 		if err := json.Unmarshal(body, &replacement); err != nil {
@@ -116,6 +153,14 @@ func (g *googleCalendar) serve(w http.ResponseWriter, r *http.Request, body []by
 	default:
 		writeJSON(w, http.StatusGone, `{"error":{"code":410}}`)
 	}
+}
+
+func googleFixtureETag(stored string) string {
+	return fmt.Sprintf("\"%x\"", sha256.Sum256([]byte(stored)))
+}
+func googleFixtureWithETag(stored string) string {
+	revision := fmt.Sprintf("%q", googleFixtureETag(stored))
+	return strings.TrimSuffix(stored, "}") + `,"etag":` + revision + `}`
 }
 
 func googleStored(t *testing.T, owned EventIntent, summary, status string) string {
@@ -250,8 +295,8 @@ func TestGoogleUpdateAndDeleteNative(t *testing.T) {
 	}
 	first, firstErr := client.DeleteEvent(t.Context(), EventDelete{Connection: connection, Ref: created.Ref, Policy: fixturePolicy(t)})
 	second, secondErr := client.DeleteEvent(t.Context(), EventDelete{Connection: connection, Ref: created.Ref, Policy: fixturePolicy(t)})
-	if firstErr != nil || secondErr != nil || first != Deleted || second != DeleteAlreadyAbsent || len(calendar.events) != 0 {
-		t.Fatalf("DeleteEvent twice = (%v, %v), (%v, %v), want Deleted then AlreadyAbsent", first, firstErr, second, secondErr)
+	if firstErr != nil || !errors.Is(secondErr, core.ErrTimeMatchIndeterminate) || first != Deleted || second != DeleteInvalid || len(calendar.events) != 0 {
+		t.Fatalf("DeleteEvent twice = (%v, %v), (%v, %v), want Deleted then unknown unproved ownership without another DELETE", first, firstErr, second, secondErr)
 	}
 }
 

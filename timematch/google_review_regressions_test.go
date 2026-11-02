@@ -3,6 +3,7 @@ package timematch
 import (
 	json "encoding/json/v2"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"testing"
@@ -71,7 +72,7 @@ func TestGoogleRecoveryNeverRecreatesCancelledOrInvisibleEvent(t *testing.T) {
 		want      error
 	}{
 		{name: "unknown initial outcome is not a second create", status: 404, want: core.ErrTimeMatchIndeterminate},
-		{name: "deleted identity stays retired", status: 200, cancelled: true, want: core.ErrTimeMatchConflict},
+		{name: "unmarked deleted identity cannot establish ownership", status: 200, cancelled: true, want: core.ErrTimeMatchIndeterminate},
 		{name: "existing identical event is recovered", status: 200},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -82,7 +83,17 @@ func TestGoogleRecoveryNeverRecreatesCancelledOrInvisibleEvent(t *testing.T) {
 				if tc.cancelled {
 					status = "cancelled"
 				}
-				writeJSON(w, tc.status, googleStored(t, owned, "Review", status))
+				stored := googleStored(t, owned, "Review", status)
+				if tc.status == 200 && strings.HasSuffix(r.URL.Path, "/events") {
+					if tc.cancelled {
+						writeJSON(w, 200, `{"items":[]}`)
+						return
+					}
+					revision := fmt.Sprintf("%q", googleFixtureETag(stored))
+					writeJSON(w, 200, `{"items":[{"id":"`+owned.ID.String()+`","etag":`+revision+`}]}`)
+					return
+				}
+				writeJSON(w, tc.status, googleFixtureWithETag(stored))
 			})
 			request := eventWrite(t, oauthConnection(t, ProviderGoogle), owned)
 			request.Attempt = EventCreateRecoverOnly
@@ -94,26 +105,44 @@ func TestGoogleRecoveryNeverRecreatesCancelledOrInvisibleEvent(t *testing.T) {
 				t.Fatalf("failed recovery receipt=%+v,want zero", receipt)
 			}
 			calls := fixture.record()
-			if len(calls) != 1 || calls[0].method != http.MethodGet {
-				t.Fatalf("recovery requests=%+v,want one GET and no create/update", calls)
+			wantReads := 1
+			if tc.want == nil {
+				wantReads = 2
+			}
+			if len(calls) != wantReads {
+				t.Fatalf("recovery requests=%d,want%d filtered proof/conditional readback", len(calls), wantReads)
+			}
+			for _, call := range calls {
+				if call.method != http.MethodGet {
+					t.Fatalf("recovery method=%s,want GET only", call.method)
+				}
+			}
+			if tc.want == nil && calls[1].header.Get("If-Match") == "" {
+				t.Fatal("owned readback has no conditional revision")
 			}
 		})
 	}
 }
 
-func TestGoogleDeletedTombstoneRetiresIdentityWithoutEventDetails(t *testing.T) {
+func TestGoogleUnmarkedDeletedTombstoneCannotEstablishOwnership(t *testing.T) {
 	t.Parallel()
 	owned := intent(t, "primary", "Review", "2026-11-02T15:00:00Z", "2026-11-02T15:30:00Z")
 	wire := seedJSON(t, struct {
 		ID     string `json:"id"`
 		Status string `json:"status"`
 	}{ID: owned.ID.String(), Status: "cancelled"})
-	client, fixture := newNative(t, func(w http.ResponseWriter, _ *http.Request, _ []byte) { writeJSON(w, 200, string(wire)) })
+	client, fixture := newNative(t, func(w http.ResponseWriter, r *http.Request, _ []byte) {
+		if strings.HasSuffix(r.URL.Path, "/events") {
+			writeJSON(w, 200, `{"items":[]}`)
+			return
+		}
+		writeJSON(w, 200, string(wire))
+	})
 	request := eventWrite(t, oauthConnection(t, ProviderGoogle), owned)
 	request.Attempt = EventCreateRecoverOnly
 	receipt, err := client.PutEvent(t.Context(), request)
-	if !errors.Is(err, core.ErrTimeMatchConflict) || errors.Is(err, core.ErrTimeMatchIndeterminate) || receipt != (EventReceipt{}) {
-		t.Fatalf("deleted tombstone recovery=(%+v,%v),want retired identity conflict", receipt, err)
+	if !errors.Is(err, core.ErrTimeMatchIndeterminate) || receipt != (EventReceipt{}) {
+		t.Fatalf("deleted tombstone recovery=(%+v,%v),want unknown ownership without downloading the deleted event", receipt, err)
 	}
 	if calls := fixture.record(); len(calls) != 1 || calls[0].method != http.MethodGet {
 		t.Fatalf("deleted identity calls=%d,want exactly one read and no resurrection", len(calls))
@@ -208,8 +237,8 @@ func TestGoogleReschedulePreservesUserCalendarNotes(t *testing.T) {
 		t.Fatalf("reschedule=(%+v,%v),want same reference,nil", receipt, err)
 	}
 	calls := fixture.record()
-	if len(calls) != 1 || calls[0].method != http.MethodPatch || strings.Contains(string(calls[0].body), "description") {
-		t.Fatalf("reschedule calls=%+v,want one partial update without unrequested notes", calls)
+	if len(calls) != 2 || calls[0].method != http.MethodGet || calls[1].method != http.MethodPatch || calls[1].header.Get("If-Match") == "" || strings.Contains(string(calls[1].body), "description") {
+		t.Fatalf("reschedule calls=%+v,want filtered ownership read then conditional partial update without unrequested notes", calls)
 	}
 	calendar.mutex.Lock()
 	after := calendar.events[owned.ID.value]
