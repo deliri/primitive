@@ -276,15 +276,19 @@ type graphEventBody struct {
 }
 
 func graphEvent(intent EventIntent, create bool) ([]byte, error) {
-	start, startErr := intent.Interval.Start.Time()
-	end, endErr := intent.Interval.End.Time()
+	utc, locationErr := temporal.NewLocation(temporal.LocationUTC)
+	if locationErr != nil {
+		return nil, locationErr
+	}
+	start, startErr := utc.Format(intent.Interval.Start, temporal.TimeLayout(graphDateTimeLayout))
+	end, endErr := utc.Format(intent.Interval.End, temporal.TimeLayout(graphDateTimeLayout))
 	if err := errors.Join(startErr, endErr); err != nil {
 		return nil, errors.Join(core.ErrTimeMatchContract, err)
 	}
 	body := graphEventBody{
 		Subject: intent.Summary.value, ShowAs: "busy",
-		Start: graphDateTime{DateTime: start.UTC().Format(graphDateTimeLayout), TimeZone: graphUTCZone},
-		End:   graphDateTime{DateTime: end.UTC().Format(graphDateTimeLayout), TimeZone: graphUTCZone},
+		Start: graphDateTime{DateTime: start, TimeZone: graphUTCZone},
+		End:   graphDateTime{DateTime: end, TimeZone: graphUTCZone},
 	}
 	if create {
 		// transactionId: "A custom identifier specified by a client app for the

@@ -397,14 +397,11 @@ func (c Client) appleAvailability(ctx context.Context, r AvailabilityRequest) (A
 // icsCeilingTime rounds the window end up to a whole second so the query
 // never ends before the requested window does.
 func icsCeilingTime(instant temporal.Instant) (string, error) {
-	value, err := instant.Time()
+	ceiling, err := instant.Ceiling(temporal.PrecisionSecond)
 	if err != nil {
 		return "", err
 	}
-	if value.Nanosecond() != 0 {
-		value = value.Truncate(1e9).Add(1e9)
-	}
-	return value.UTC().Format(icsUTCLayout), nil
+	return icsStampTime(ceiling)
 }
 
 func appleEventURL(calendar CalendarID, id EventID) (core.HTTPEndpoint, error) {

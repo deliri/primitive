@@ -3,6 +3,7 @@ package timematch
 import (
 	"bytes"
 	"errors"
+	"go/ast"
 	"io"
 	"math"
 	"slices"
@@ -243,6 +244,65 @@ func TestInvitationMethodExhaustive(t *testing.T) {
 	}
 }
 
+func TestTimeMatchTimeExecutionStaysInTemporal(t *testing.T) {
+	t.Parallel()
+	for name, file := range productionFiles(t) {
+		for _, spec := range file.Imports {
+			if spec.Path.Value == `"time"` {
+				t.Fatalf("%s imports native time, want Temporal execution", name)
+			}
+		}
+		ast.Inspect(file, func(node ast.Node) bool {
+			selector, ok := node.(*ast.SelectorExpr)
+			if !ok {
+				return true
+			}
+			if selector.Sel.Name == "Time" || selector.Sel.Name == "UTC" || selector.Sel.Name == "UnixNano" {
+				t.Errorf("%s borrows native time through %s, want Temporal projection", name, selector.Sel.Name)
+			}
+			return true
+		})
+	}
+}
+
+func TestInvitationTemporalSecondBoundaries(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name           string
+		ns             int64
+		floor, ceiling string
+		overflow       bool
+	}{
+		{name: "one before epoch", ns: -1, floor: "19691231T235959Z", ceiling: "19700101T000000Z"},
+		{name: "epoch", ns: 0, floor: "19700101T000000Z", ceiling: "19700101T000000Z"},
+		{name: "one after epoch", ns: 1, floor: "19700101T000000Z", ceiling: "19700101T000001Z"},
+		{name: "negative second exact", ns: -1000000000, floor: "19691231T235959Z", ceiling: "19691231T235959Z"},
+		{name: "negative second minus one", ns: -1000000001, floor: "19691231T235958Z", ceiling: "19691231T235959Z"},
+		{name: "positive second minus one", ns: 999999999, floor: "19700101T000000Z", ceiling: "19700101T000001Z"},
+		{name: "minimum representable instant", ns: math.MinInt64, floor: "16770921T001243Z", ceiling: "16770921T001244Z"},
+		{name: "maximum representable instant", ns: math.MaxInt64, floor: "22620411T234716Z", overflow: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			instant := temporal.InstantFromNanoseconds(tc.ns)
+			floor, err := icsStampTime(instant)
+			if err != nil || floor != tc.floor {
+				t.Fatalf("icsStampTime()=(%q,%v),want %q,nil", floor, err, tc.floor)
+			}
+			ceiling, err := icsCeilingTime(instant)
+			if tc.overflow {
+				if ceiling != "" || !errors.Is(err, core.ErrTemporalOverflow) {
+					t.Fatalf("icsCeilingTime()=(%q,%v),want empty,overflow", ceiling, err)
+				}
+				return
+			}
+			if err != nil || ceiling != tc.ceiling {
+				t.Fatalf("icsCeilingTime()=(%q,%v),want %q,nil", ceiling, err, tc.ceiling)
+			}
+		})
+	}
+}
+
 func FuzzInvitationSummaryWireConservation(f *testing.F) {
 	for _, text := range []string{"Review", `One\two;three,four`, strings.Repeat("💙", 50), "bad\nheader", "\xff"} {
 		f.Add(text)
@@ -270,7 +330,7 @@ func FuzzInvitationSummaryWireConservation(f *testing.F) {
 			}
 		}
 		unfolded := strings.ReplaceAll(output.String(), "\r\n ", "")
-		wireText := strings.TrimPrefix(strings.SplitN(strings.SplitN(unfolded, "SUMMARY:", 2)[1], "\r\n", 2)[0], "")
+		wireText := strings.SplitN(strings.SplitN(unfolded, "SUMMARY:", 2)[1], "\r\n", 2)[0]
 		if got := unescapeICSText(wireText); got != text {
 			t.Fatalf("decoded summary=%q,want %q", got, text)
 		}

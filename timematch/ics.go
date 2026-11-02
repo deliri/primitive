@@ -398,7 +398,7 @@ func icsTime(instant temporal.Instant) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if nanos%temporal.NanosecondsPerSecond != 0 {
+	if nanos%int64(temporal.NanosecondsPerSecond) != 0 {
 		return "", core.ErrTimeMatchContract
 	}
 	return icsStampTime(instant)
