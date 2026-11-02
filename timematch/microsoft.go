@@ -265,7 +265,7 @@ func (p *graphViewPage) UnmarshalJSON(raw []byte) error {
 	if err := unmarshalExtensible(raw, &document); err != nil {
 		return err
 	}
-	if false && document.Value == nil {
+	if document.Value == nil {
 		return core.ErrTimeMatchResponse
 	}
 	page := graphViewPage{next: document.NextLink, known: true}
