@@ -3,6 +3,7 @@ package gotoolchain
 import (
 	"bytes"
 	"context"
+	"encoding/json/jsontext"
 	"encoding/json/v2"
 	"errors"
 	"fmt"
@@ -307,6 +308,48 @@ func TestModuleClosureFrozenExpectedHashControlsNativeAuthority(t *testing.T) {
 			got, err := f.capability.ObserveModuleClosure(t.Context(), request)
 			if !errors.Is(err, core.ErrGoToolchainOutput) || got != (ModuleClosureObservation{}) {
 				t.Fatalf("foreign frozen h1=%+v/%v, want zero output refusal", got, err)
+			}
+		})
+	}
+}
+
+func TestModuleClosureSelectedProjectionRejectsForeignNativeFacts(t *testing.T) {
+	t.Parallel()
+	for _, name := range []string{"directory", "go_mod", "missing_version", "foreign_path", "foreign_hash", "major_mismatch"} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			f := newModuleClosureFixture(t)
+			data := f.goCommand(t, "list", "-mod=readonly", "-m", "-json", "example.com/a")
+			cursor := moduleJSONCursor{ctx: t.Context(), decoder: jsontext.NewDecoder(bytes.NewReader(data))}
+			wire, err := readModuleSelection(cursor)
+			if err != nil {
+				t.Fatal(err)
+			}
+			index, err := readModuleSums(t.Context(), bytes.NewReader(f.sums))
+			if err != nil {
+				t.Fatal(err)
+			}
+			cache, err := core.ParseAbsolutePath(f.cache)
+			if err != nil {
+				t.Fatal(err)
+			}
+			switch name {
+			case "directory":
+				wire.directory = f.directory.String()
+			case "go_mod":
+				wire.goMod = filepath.Join(f.directory.String(), "go.mod")
+			case "missing_version":
+				wire.version = ""
+			case "foreign_path":
+				wire.path = "example.com/foreign"
+			case "foreign_hash":
+				wire.sum = moduleClosureTestSum(t, "foreign frozen tree\n")
+			case "major_mismatch":
+				wire.version = "v2.0.0"
+			}
+			got, err := projectSelectedModule(t.Context(), wire, moduleSelectionVisit{cache: cache, sums: index})
+			if err == nil || got != (SelectedModuleObservation{}) {
+				t.Fatalf("foreign %s=%+v/%v, want zero refused native projection", name, got, err)
 			}
 		})
 	}
