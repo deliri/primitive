@@ -1,7 +1,6 @@
 package timematch
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -393,10 +392,7 @@ func TestGroupMatchOrderImmutabilityAndWholeHorizonLimit(t *testing.T) {
 	r.Duration = groupDuration(t, 1)
 	r.Participants = append(r.Participants, groupPerson(t, r.Window, 9, false, AvailabilityKnown, [2]int64{0, 12}), groupPerson(t, r.Window, 3, false, AvailabilityKnown, [2]int64{0, 4}, [2]int64{6, 8}))
 	groupAddCalendar(t, &r.Participants[1], [2]int64{2, 5})
-	before, err := core.MarshalCanonicalJSONDocument(r)
-	if err != nil {
-		t.Fatal(err)
-	}
+	before := groupCloneRequest(r)
 	all, err := MatchGroup(t.Context(), r)
 	if err != nil {
 		t.Fatal(err)
@@ -407,9 +403,8 @@ func TestGroupMatchOrderImmutabilityAndWholeHorizonLimit(t *testing.T) {
 		t.Fatalf("limit=%+v/%v, want full horizon best %+v and exact impacts", limited, err, all)
 	}
 	r.MaximumWindows = 0
-	after, err := core.MarshalCanonicalJSONDocument(r)
-	if err != nil || !bytes.Equal(before, after) {
-		t.Fatalf("request after=%q/%v, want unchanged%q", after, err, before)
+	if !groupSameRequest(r, before) {
+		t.Fatalf("request after=%+v, want exact unchanged typed snapshot %+v", r, before)
 	}
 	slices.Reverse(r.Participants)
 	for i := range r.Participants {
@@ -532,51 +527,69 @@ func TestGroupMatchTwentyAndOneHundredTwentyAcrossEighteenMonths(t *testing.T) {
 	}
 }
 
+// MatchGroup is a pure typed entry, not a calendar JSON transport. Scalar
+// selectors generate bounded valid/invalid typed availability and reach the
+// real public matcher; every admitted state is compared with direct overlap.
 func FuzzGroupMatchSmallHorizonSemanticOracle(f *testing.F) {
-	for _, duration := range []int64{1, 3, 4} {
-		r := groupFixture(f)
-		r.Window.End = temporal.InstantFromNanoseconds(4)
-		r.Duration = groupDuration(f, duration)
-		r.Participants = []GroupParticipant{groupPerson(f, r.Window, 0, true, AvailabilityKnown, [2]int64{1, 2}), groupPerson(f, r.Window, 1, false, AvailabilityKnown, [2]int64{2, 3})}
-		if err := r.Validate(); err != nil {
-			f.Fatal(err)
-		}
-		data, err := core.MarshalCanonicalJSONDocument(r)
-		if err != nil {
-			f.Fatal(err)
-		}
-		f.Add(data)
+	seed := groupFixture(f)
+	if err := seed.Validate(); err != nil {
+		f.Fatal(err)
 	}
-	f.Add([]byte(`{}`))
-	f.Add([]byte("null"))
-	f.Add([]byte(`{"Duration":"0"}`))
-	f.Fuzz(func(t *testing.T, data []byte) {
-		r, err := core.DecodeStrictJSONBytes[GroupMatchRequest](data, core.DefaultStrictJSONLimits())
-		if err != nil {
-			if !errors.Is(err, core.ErrJSONContract) || !groupRequestZero(r) {
-				t.Fatalf("group request decode=(%+v,%v), want zero and typed JSON refusal", r, err)
+	f.Add(uint8(0), uint8(0), uint8(0), uint8(seed.Duration.Nanoseconds()), uint8(0))
+	f.Add(uint8(5), uint8(10), uint8(3), uint8(1), uint8(0))
+	f.Add(uint8(0), uint8(0), uint8(0), uint8(4), uint8(1))
+	f.Add(uint8(19), uint8(6), uint8(12), uint8(9), uint8(0))
+	f.Add(uint8(0), uint8(0), uint8(0), uint8(0), uint8(128))
+	f.Fuzz(func(t *testing.T, a, b, c, span, flags uint8) {
+		r := groupFixture(t)
+		r.Window.End = temporal.InstantFromNanoseconds(4)
+		r.Duration = groupDuration(t, int64(span&7))
+		r.Before = groupDuration(t, int64(span>>3&3))
+		r.After = groupDuration(t, int64(span>>5&3))
+		r.MaximumWindows = uint64(a >> 5)
+		r.Participants = []GroupParticipant{groupPerson(t, r.Window, 0, true, AvailabilityKnown, groupBusyMask(a&15)...), groupPerson(t, r.Window, 1, true, AvailabilityKnown, groupBusyMask(b&15)...), groupPerson(t, r.Window, 2, c&16 != 0, AvailabilityKnown, groupBusyMask(c&15)...)}
+		if a&16 != 0 {
+			groupAddCalendar(t, &r.Participants[0], groupBusyMask(b&15)...)
+		}
+		for i := range r.Participants {
+			for j := range r.Participants[i].Availability.Calendars {
+				calendar := &r.Participants[i].Availability.Calendars[j]
+				switch flags >> (i * 2) & 3 {
+				case 0:
+				case 1:
+					calendar.State = AvailabilityUnknown
+					calendar.Busy = nil
+				case 2:
+					calendar.State = AvailabilityInvalid
+				case 3:
+					calendar.State = AvailabilityState(255)
+				}
+			}
+		}
+		if flags&64 != 0 {
+			r.Participants[1].Ordinal = r.Participants[0].Ordinal
+		}
+		if flags&128 != 0 {
+			for i := range r.Participants {
+				r.Participants[i].Required = false
+			}
+		}
+		before := groupCloneRequest(r)
+		validation := r.Validate()
+		got, err := MatchGroup(t.Context(), r)
+		if !groupSameRequest(r, before) {
+			t.Fatalf("mutated input=%+v, want unchanged %+v", r, before)
+		}
+		if validation != nil {
+			if !errors.Is(err, core.ErrTimeMatchContract) || !groupResultZero(got) {
+				t.Fatalf("rejected match=%+v/%v, want zero and typed contract", got, err)
 			}
 			return
 		}
-		got, err := MatchGroup(t.Context(), r)
 		if err != nil {
-			t.Fatalf("validated group error=%v, want nil", err)
+			t.Fatalf("validated match error=%v, want nil", err)
 		}
-		span, err := r.Window.End.Since(r.Window.Start)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if span.Nanoseconds() <= 32 && len(r.Participants) <= 6 {
-			groupCompareResult(t, got, groupBrute(t, r))
-		}
-		for _, window := range got.Windows {
-			if err := window.Starts.Validate(); err != nil {
-				t.Fatalf("admitted start range=%+v/%v, want valid inclusive range", window, err)
-			}
-			if window.OptionalAvailable > got.KnownOptionalCount {
-				t.Fatalf("optional available=%d, want at most%d", window.OptionalAvailable, got.KnownOptionalCount)
-			}
-		}
+		groupCompareResult(t, got, groupBrute(t, r))
 		slices.Reverse(r.Participants)
 		reordered, reorderErr := MatchGroup(t.Context(), r)
 		if reorderErr != nil {
@@ -586,6 +599,44 @@ func FuzzGroupMatchSmallHorizonSemanticOracle(f *testing.F) {
 	})
 }
 
-func groupRequestZero(r GroupMatchRequest) bool {
-	return r.Window == (temporal.IntervalBounds{}) && r.Duration == (temporal.Duration{}) && r.Before == (temporal.Duration{}) && r.After == (temporal.Duration{}) && r.Participants == nil && r.MaximumWindows == 0
+func groupCloneRequest(r GroupMatchRequest) GroupMatchRequest {
+	r.Participants = slices.Clone(r.Participants)
+	for i := range r.Participants {
+		a := &r.Participants[i].Availability
+		a.Calendars = slices.Clone(a.Calendars)
+		for j := range a.Calendars {
+			a.Calendars[j].Busy = slices.Clone(a.Calendars[j].Busy)
+		}
+	}
+	return r
+}
+func groupSameRequest(a, b GroupMatchRequest) bool {
+	if a.Window != b.Window || a.Duration != b.Duration || a.Before != b.Before || a.After != b.After || a.MaximumWindows != b.MaximumWindows || len(a.Participants) != len(b.Participants) {
+		return false
+	}
+	for i, p := range a.Participants {
+		q := b.Participants[i]
+		if p.Ordinal != q.Ordinal || p.Required != q.Required || p.Availability.Window != q.Availability.Window || len(p.Availability.Calendars) != len(q.Availability.Calendars) {
+			return false
+		}
+		for j, c := range p.Availability.Calendars {
+			d := q.Availability.Calendars[j]
+			if c.ID != d.ID || c.State != d.State || !slices.Equal(c.Busy, d.Busy) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func TestGroupMatchMaximumStartCardinality(t *testing.T) {
+	t.Parallel()
+	r := groupFixture(t)
+	r.Window = temporal.IntervalBounds{Start: temporal.InstantFromNanoseconds(math.MinInt64), End: temporal.InstantFromNanoseconds(-1)}
+	r.Duration = groupDuration(t, 1)
+	r.Participants = []GroupParticipant{groupPerson(t, r.Window, 0, true, AvailabilityKnown)}
+	got, err := MatchGroup(t.Context(), r)
+	if err != nil || len(got.Windows) != 1 || got.Windows[0].Starts.Earliest != r.Window.Start || groupNS(t, got.Windows[0].Starts.Latest) != -2 || got.FeasibleStartNanoseconds != uint64(math.MaxInt64) {
+		t.Fatalf("maximum count=%+v/%v, want MaxInt64 starts from MinInt64 through -2 without overflow", got, err)
+	}
 }
