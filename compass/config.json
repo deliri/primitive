@@ -6,11 +6,11 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 463
+      "patch": 464
     },
     "release_notes": [
-      "Firestore integer JSON create and replace preserve the actual validated record codecs and exact signed nanoseconds, refusing fractional or overflowing numbers before effects.",
-      "A shared pure integer JSON extent preflight enforces the same representability contract without a transaction; queued extents never claim durable commit."
+      "Pure group matching returns exact duration-and-buffer start ranges, ranks optional attendance across the complete horizon and identifies marginal required-participant bottlenecks without reading or changing calendar events.",
+      "Google event changes and recovery require filtered private ownership and observed revisions; conditional mutations protect changed events, and narrow extensible metadata decoding preserves provider additions."
     ]
   }
 }

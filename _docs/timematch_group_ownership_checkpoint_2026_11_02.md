@@ -1,0 +1,9 @@
+# TimeMatch group and ownership checkpoint
+
+Group matching is a pure observation over validated availability. Required and optional participation are explicit. Unknown calendars never become free time. Exact duration and buffers, inclusive start ranges, full-horizon ranking and single-participant removal gains use interval boundaries rather than a minute grid. Removal gains count nanosecond-valued start positions; they are not appointment counts. A positive output limit bounds selected windows. Inputs remain unchanged and errors return no partial result.
+
+Google mutations first establish exact private TimeMatch ownership using a filtered, IDs-and-revisions-only query. Updates and deletes carry the observed revision. Recovery is read-only and requires consistent ownership, revision and intent. Missing ownership is unknown, with no mutation. Provider extensions are decoded narrowly without downloading unfiltered event details. Other appointments are never mutation targets.
+
+Correctness evidence covers an independent 16,384-combination oracle, hostile boundaries, 20/120 people over 18 calendar months, a dense 120-person extent, cancellation, exact-fit cardinality, deliberate guard/algorithm regressions and restored passes. Three-second semantic fuzz runs supplement those named checks. The refactored entry path has separate current native and fuzz evidence; unchanged arithmetic and union bodies retain their prior causal proof.
+
+This checkpoint makes no latency, throughput, CPU/heap-profile, live-provider or complete-product claim. Profiled benchmarks await supported Anvil profile retention and retrieval. Kernel booking/admin flows, durable acceptance and browser integration have separate remaining gates. The known unsupported iCloud busy-only path remains unknown; there is no broader private-event fallback.
