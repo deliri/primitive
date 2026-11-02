@@ -6,7 +6,6 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
-	"time"
 
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/exchange"
@@ -189,11 +188,9 @@ func (t graphDateTime) instant() (int64, error) {
 	if t.TimeZone != graphUTCZone {
 		return 0, core.ErrTimeMatchResponse
 	}
-	parsed, err := time.Parse(time.RFC3339Nano, t.DateTime+"Z")
-	if err != nil {
-		return 0, errors.Join(core.ErrTimeMatchResponse, err)
-	}
-	instant, err := temporal.NewInstant(parsed)
+	// The zone is a sibling field; with it fixed to UTC the dateTime is an
+	// RFC 3339 local time, parsed by Temporal.
+	instant, err := temporal.ParseRFC3339(t.DateTime + "Z")
 	if err != nil {
 		return 0, errors.Join(core.ErrTimeMatchResponse, err)
 	}

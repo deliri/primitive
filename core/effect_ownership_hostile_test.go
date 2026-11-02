@@ -452,7 +452,8 @@ func declaredRealWorldImports() (realWorldImportInventory, error) {
 		// GCS owns its provider client's HTTP transport and shutdown.
 		// Cloudbilling and Googlecompute name only the official SDK's native client
 		// shape and status constants; their requests cross Exchange boundaries.
-		realWorldImportOwners(realWorldSubstrateHTTP, PackageExchange, PackageGoogleIdentity, PackageGCSObjects, PackageTailnet, PackageCloudBilling, PackageGoogleCompute),
+		// TimeMatch names only HTTP status constants; every request crosses Exchange.
+		realWorldImportOwners(realWorldSubstrateHTTP, PackageExchange, PackageGoogleIdentity, PackageGCSObjects, PackageTailnet, PackageCloudBilling, PackageGoogleCompute, PackageTimeMatch),
 		// Hostfacts reads the zone database; Temporal alone owns wall-clock observation.
 		// Exchange, GCS objects, Runnercontrol and Background carry time.Time
 		// values only; the call inventory keeps observation with Temporal.

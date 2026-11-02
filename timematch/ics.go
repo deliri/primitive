@@ -4,7 +4,6 @@ import (
 	"errors"
 	"strconv"
 	"strings"
-	"time"
 	"unicode/utf8"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -213,11 +212,18 @@ func icsUTC(property icsProperty) (int64, bool) {
 			return 0, false
 		}
 	}
-	parsed, err := time.Parse(icsUTCLayout, property.value)
-	if err != nil {
+	// RFC 5545 form 2 (UTC): exactly YYYYMMDDTHHMMSSZ. Temporal parses the
+	// equivalent RFC 3339 spelling and owns range validation.
+	v := property.value
+	if len(v) != len("20060102T150405Z") || v[8] != 'T' || v[15] != 'Z' {
 		return 0, false
 	}
-	instant, err := temporal.NewInstant(parsed)
+	for i, b := range []byte(v) {
+		if i != 8 && i != 15 && (b < '0' || b > '9') {
+			return 0, false
+		}
+	}
+	instant, err := temporal.ParseRFC3339(v[0:4] + "-" + v[4:6] + "-" + v[6:8] + "T" + v[9:11] + ":" + v[11:13] + ":" + v[13:15] + "Z")
 	if err != nil {
 		return 0, false
 	}
@@ -233,7 +239,8 @@ func icsDuration(text string) (int64, bool) {
 	if !ok || rest == "" {
 		return 0, false
 	}
-	units := map[byte]int64{'W': 7 * 24 * int64(time.Hour), 'D': 24 * int64(time.Hour), 'H': int64(time.Hour), 'M': int64(time.Minute), 'S': int64(time.Second)}
+	const second, minute, hour = int64(1e9), int64(60e9), int64(3600e9)
+	units := map[byte]int64{'W': 7 * 24 * hour, 'D': 24 * hour, 'H': hour, 'M': minute, 'S': second}
 	var total int64
 	inTime, digits, seen := false, "", false
 	for i := range len(rest) {
@@ -318,7 +325,7 @@ func icsStampTime(instant temporal.Instant) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return value.UTC().Truncate(time.Second).Format(icsUTCLayout), nil
+	return value.UTC().Truncate(1e9).Format(icsUTCLayout), nil
 }
 
 // foldICS folds at 75 octets without splitting a UTF-8 sequence.
