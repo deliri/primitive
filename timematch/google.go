@@ -209,7 +209,7 @@ func (r *googleFreeBusyResponse) UnmarshalJSON(raw []byte) error {
 	}
 	response := googleFreeBusyResponse{timeMin: timeMin, timeMax: timeMax, calendars: make(map[string]googleBusyCalendar, len(document.Calendars))}
 	for id, calendar := range document.Calendars {
-		entry := googleBusyCalendar{known: len(calendar.Errors) == 0}
+		entry := googleBusyCalendar{known: len(calendar.Errors) == 0 && calendar.Busy != nil}
 		for _, busy := range calendar.Busy {
 			span, err := rfc3339Span(busy.Start, busy.End)
 			if err != nil {
@@ -253,20 +253,29 @@ type googleEventTime struct {
 }
 
 type googleEventBody struct {
-	ID           string          `json:"id"`
+	ID           string          `json:"id,omitzero"`
 	Summary      string          `json:"summary"`
 	Start        googleEventTime `json:"start"`
 	End          googleEventTime `json:"end"`
 	Transparency string          `json:"transparency"`
 }
 
-func googleEvent(intent EventIntent) ([]byte, error) {
+func googleEventProjection(intent EventIntent) (googleEventBody, error) {
 	start, startErr := intent.Interval.Start.RFC3339Nano()
 	end, endErr := intent.Interval.End.RFC3339Nano()
 	if err := errors.Join(startErr, endErr); err != nil {
-		return nil, errors.Join(core.ErrTimeMatchContract, err)
+		return googleEventBody{}, errors.Join(core.ErrTimeMatchContract, err)
 	}
-	encoded, err := json.Marshal(googleEventBody{ID: intent.ID.value, Summary: intent.Summary.value, Start: googleEventTime{DateTime: start}, End: googleEventTime{DateTime: end}, Transparency: "opaque"})
+	return googleEventBody{Summary: intent.Summary.value, Start: googleEventTime{DateTime: start}, End: googleEventTime{DateTime: end}, Transparency: "opaque"}, nil
+}
+
+func googleEvent(intent EventIntent) ([]byte, error) {
+	body, err := googleEventProjection(intent)
+	if err != nil {
+		return nil, err
+	}
+	body.ID = intent.ID.value
+	encoded, err := json.Marshal(body)
 	if err != nil {
 		return nil, errors.Join(core.ErrTimeMatchContract, err)
 	}
@@ -343,7 +352,11 @@ func (c Client) googleUpdate(ctx context.Context, u EventUpdate) (EventReceipt, 
 	if u.Ref.Resource != u.Intent.ID.value {
 		return EventReceipt{}, core.ErrTimeMatchContract
 	}
-	body, err := googleEvent(u.Intent)
+	projection, err := googleEventProjection(u.Intent)
+	if err != nil {
+		return EventReceipt{}, err
+	}
+	body, err := json.Marshal(projection)
 	if err != nil {
 		return EventReceipt{}, err
 	}
@@ -351,8 +364,10 @@ func (c Client) googleUpdate(ctx context.Context, u EventUpdate) (EventReceipt, 
 	if err != nil {
 		return EventReceipt{}, err
 	}
-	// events.update "always updates the entire event resource".
-	result, err := c.send(ctx, call{target: target, method: exchange.MethodPut, body: body, requestType: core.HTTPMediaTypeJSON(), responseType: core.HTTPMediaTypeJSON(), secrets: secrets, policy: u.Policy, expected: http.StatusOK})
+	// Patch only the explicitly owned fields. Preserve notes, locations and
+	// other provider fields the user may have added to this owned appointment.
+	// https://developers.google.com/workspace/calendar/api/v3/reference/events/patch
+	result, err := c.send(ctx, call{target: target, method: exchange.MethodPatch, body: body, requestType: core.HTTPMediaTypeJSON(), responseType: core.HTTPMediaTypeJSON(), secrets: secrets, policy: u.Policy, expected: http.StatusOK})
 	if err != nil {
 		return EventReceipt{}, writeFailure(result, err)
 	}

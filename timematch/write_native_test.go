@@ -76,9 +76,26 @@ func (g *googleCalendar) serve(w http.ResponseWriter, r *http.Request, body []by
 	switch {
 	case r.Method == http.MethodGet && ok:
 		writeJSON(w, 200, stored)
-	case r.Method == http.MethodPut && ok:
-		g.events[id] = string(body)
-		writeJSON(w, 200, string(body))
+	case r.Method == http.MethodPatch && ok:
+		var current struct {
+			googleEventBody
+			Description string `json:"description,omitzero"`
+		}
+		if err := json.Unmarshal([]byte(stored), &current); err != nil {
+			writeJSON(w, 500, `{}`)
+			return
+		}
+		if err := json.Unmarshal(body, &current); err != nil {
+			writeJSON(w, 400, `{}`)
+			return
+		}
+		encoded, err := json.Marshal(current)
+		if err != nil {
+			writeJSON(w, 500, `{}`)
+			return
+		}
+		g.events[id] = string(encoded)
+		writeJSON(w, 200, string(encoded))
 	case r.Method == http.MethodDelete && ok:
 		delete(g.events, id)
 		w.WriteHeader(http.StatusNoContent)

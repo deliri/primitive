@@ -139,6 +139,60 @@ func TestGoogleQuotaDoesNotInvalidateConsent(t *testing.T) {
 	}
 }
 
+func TestGoogleMissingBusyCollectionNeverMeansFree(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name, calendar string
+		known          bool
+	}{
+		{name: "missing busy is unknown", calendar: `{}`},
+		{name: "null busy is unknown", calendar: `{"busy":null}`},
+		{name: "explicit empty busy is known free", calendar: `{"busy":[]}`, known: true},
+		{name: "calendar errors defeat empty busy", calendar: `{"busy":[],"errors":[{"reason":"internalError"}]}`},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			client, _ := newNative(t, func(w http.ResponseWriter, _ *http.Request, _ []byte) {
+				writeJSON(w, 200, `{"timeMin":"2026-11-02T09:00:00Z","timeMax":"2026-11-02T17:00:00Z","calendars":{"primary":`+tc.calendar+`}}`)
+			})
+			got, err := client.Availability(t.Context(), AvailabilityRequest{Connection: oauthConnection(t, ProviderGoogle), Calendars: []CalendarID{calendarID(t, PrimaryCalendar)}, Window: window(t, "2026-11-02T09:00:00Z", "2026-11-02T17:00:00Z"), Policy: fixturePolicy(t)})
+			want := AvailabilityUnknown
+			if tc.known {
+				want = AvailabilityKnown
+			}
+			if err != nil || len(got.Calendars) != 1 || got.Calendars[0].State != want || len(got.Calendars[0].Busy) != 0 {
+				t.Fatalf("busy collection=(%+v,%v),want one state%v,emptybusy,nil", got, err, want)
+			}
+		})
+	}
+}
+
+func TestGoogleReschedulePreservesUserCalendarNotes(t *testing.T) {
+	t.Parallel()
+	owned := intent(t, "primary", "Review", "2026-11-02T15:00:00Z", "2026-11-02T15:30:00Z")
+	const description = "A note the calendar owner added"
+	stored := strings.TrimSuffix(googleStored(t, owned, "Review", "confirmed"), "}") + `,"description":"` + description + `"}`
+	calendar := &googleCalendar{events: map[string]string{owned.ID.value: stored}}
+	client, fixture := newNative(t, func(w http.ResponseWriter, r *http.Request, body []byte) { calendar.serve(w, r, body) })
+	updated := owned
+	updated.Interval = window(t, "2026-11-02T16:00:00Z", "2026-11-02T16:30:00Z")
+	ref := EventRef{Provider: ProviderGoogle, ID: owned.ID, Calendar: owned.Calendar, Resource: owned.ID.value}
+	receipt, err := client.UpdateEvent(t.Context(), EventUpdate{Connection: oauthConnection(t, ProviderGoogle), Ref: ref, Intent: updated, ObservedAt: at(t, "2026-11-02T14:00:00Z"), Policy: fixturePolicy(t)})
+	if err != nil || receipt.Ref != ref {
+		t.Fatalf("reschedule=(%+v,%v),want same reference,nil", receipt, err)
+	}
+	calls := fixture.record()
+	if len(calls) != 1 || calls[0].method != http.MethodPatch || strings.Contains(string(calls[0].body), "description") {
+		t.Fatalf("reschedule calls=%+v,want one partial update without unrequested notes", calls)
+	}
+	calendar.mutex.Lock()
+	after := calendar.events[owned.ID.value]
+	calendar.mutex.Unlock()
+	if !strings.Contains(after, description) {
+		t.Fatalf("rescheduled event=%q,want preserved owner note", after)
+	}
+}
+
 func TestOAuthOptionalScopeUsesRequestedPurposeOnly(t *testing.T) {
 	t.Parallel()
 	for _, provider := range []Provider{ProviderGoogle, ProviderMicrosoft} {
