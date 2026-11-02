@@ -272,7 +272,7 @@ func TestModuleClosureNativeCallbackCancellationAndAbsentHistory(t *testing.T) {
 			got, err := f.capability.ObserveModuleClosure(ctx, request)
 			if name == "absent_history" {
 				if err != nil || got.AvailableGoMod != 5 {
-					t.Fatalf("absent history=%+v/%v, want 5 actual available files", got, err)
+					t.Fatalf("absent history=%+v/%v, want 5 available files", got, err)
 				}
 			} else if !errors.Is(err, cause) || got != (ModuleClosureObservation{}) {
 				t.Fatalf("callback/cancel=%+v/%v, want zero preserving %v", got, err, cause)

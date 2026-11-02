@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"os"
 	"path/filepath"
 	"strings"
 	"unicode"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/filestore"
 	"github.com/deliri/primitive/v2026/gomodule"
 	"golang.org/x/mod/module"
 	"golang.org/x/mod/sumdb/dirhash"
@@ -157,26 +157,14 @@ func (r moduleContextReader) Read(data []byte) (int, error) {
 	return n, err
 }
 
-func verifyGoModSum(ctx context.Context, path core.AbsolutePath, expected ModuleChecksum) (err error) {
-	info, err := os.Lstat(path.String())
-	if err != nil {
-		return err
-	}
-	if !info.Mode().IsRegular() {
-		return core.ErrGoToolchainOutput
-	}
-	file, err := os.Open(path.String())
-	if err != nil {
-		return err
-	}
-	defer func() { err = errors.Join(err, file.Close()) }()
-	actual, err := dirhash.Hash1([]string{"go.mod"}, func(string) (io.ReadCloser, error) {
-		return io.NopCloser(moduleContextReader{ctx: ctx, source: file}), nil
+func verifyGoModSum(ctx context.Context, path core.AbsolutePath, expected ModuleChecksum) error {
+	return withModuleCacheFile(ctx, path, func(source io.Reader) error {
+		actual, err := dirhash.Hash1([]string{"go.mod"}, func(string) (io.ReadCloser, error) { return io.NopCloser(source), nil })
+		if err != nil || actual != expected.String() {
+			return errors.Join(core.ErrGoToolchainOutput, err)
+		}
+		return contextstate.Validate(ctx)
 	})
-	if err != nil || actual != expected.String() {
-		return errors.Join(core.ErrGoToolchainOutput, err)
-	}
-	return contextstate.Validate(ctx)
 }
 
 type goModMetadataVisit struct {
@@ -198,10 +186,12 @@ func visitGoModMetadata(ctx context.Context, input goModMetadataVisit) (uint64, 
 			return 0, errors.Join(core.ErrGoToolchainOutput, err)
 		}
 		sum := input.sums.expected[key]
-		if _, err := os.Lstat(location.GoMod.String()); errors.Is(err, os.ErrNotExist) {
+		kind, err := moduleCachePathKind(ctx, location.GoMod)
+		if err != nil {
+			return 0, err
+		}
+		if kind == filestore.PathKindAbsent || kind == filestore.PathKindUnreachable {
 			continue
-		} else if err != nil {
-			return 0, errors.Join(core.ErrGoToolchainOutput, err)
 		}
 		if err := verifyGoModSum(ctx, location.GoMod, sum); err != nil {
 			return 0, errors.Join(core.ErrGoToolchainOutput, err)
@@ -216,30 +206,33 @@ func visitGoModMetadata(ctx context.Context, input goModMetadataVisit) (uint64, 
 }
 
 func readCacheChecksum(ctx context.Context, path core.AbsolutePath) (value ModuleChecksum, err error) {
-	file, err := os.Open(path.String())
+	err = withModuleCacheFile(ctx, path, func(source io.Reader) error {
+		reader := bufio.NewReader(source)
+		var hash [47]byte
+		used, ended := 0, false
+		for {
+			r, width, readErr := reader.ReadRune()
+			if readErr == io.EOF {
+				var parseErr error
+				value, parseErr = ParseModuleChecksum(string(hash[:used]))
+				return parseErr
+			}
+			if readErr != nil {
+				return readErr
+			}
+			if unicode.IsSpace(r) {
+				ended = used != 0
+				continue
+			}
+			if ended || width != 1 || used == len(hash) {
+				return core.ErrGoToolchainOutput
+			}
+			hash[used] = byte(r)
+			used++
+		}
+	})
 	if err != nil {
-		return value, err
+		return ModuleChecksum{}, err
 	}
-	defer func() { err = errors.Join(err, file.Close()) }()
-	reader := bufio.NewReader(moduleContextReader{ctx: ctx, source: file})
-	var hash [47]byte
-	used, ended := 0, false
-	for {
-		r, width, err := reader.ReadRune()
-		if err == io.EOF {
-			return ParseModuleChecksum(string(hash[:used]))
-		}
-		if err != nil {
-			return value, err
-		}
-		if unicode.IsSpace(r) {
-			ended = used != 0
-			continue
-		}
-		if ended || width != 1 || used == len(hash) {
-			return value, core.ErrGoToolchainOutput
-		}
-		hash[used] = byte(r)
-		used++
-	}
+	return value, nil
 }

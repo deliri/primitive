@@ -139,9 +139,9 @@ func (c Capability) ObserveModuleClosure(ctx context.Context, request ModuleClos
 	}
 	observed := ModuleClosureObservation{ModuleCache: cache, Environment: environmentObservation}
 	err = c.withCompletedCommandOutput(ctx, request.WorkingDirectory, []string{"list", "-mod=readonly", "-m", "-json", "all"}, func(source io.Reader, native process.ResultObservation) error {
-		_, verified, err := c.execute(ctx, request.WorkingDirectory, "mod", "verify")
-		if err != nil {
-			return err
+		_, verified, verifyErr := c.execute(ctx, request.WorkingDirectory, "mod", "verify")
+		if verifyErr != nil {
+			return verifyErr
 		}
 		verification, err := verified.Observation()
 		if err != nil {

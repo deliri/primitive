@@ -6,11 +6,11 @@ import (
 	"encoding/json/v2"
 	"errors"
 	"io"
-	"os"
 	"strings"
 
 	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/filestore"
 	"github.com/deliri/primitive/v2026/gomodule"
 	"golang.org/x/mod/module"
 	"golang.org/x/mod/sumdb/dirhash"
@@ -65,9 +65,9 @@ func readModuleSelection(c moduleJSONCursor) (moduleSelectionWire, error) {
 	}
 	var wire moduleSelectionWire
 	for {
-		key, err := c.token()
-		if err != nil {
-			return moduleSelectionWire{}, errors.Join(core.ErrGoToolchainOutput, err)
+		key, keyErr := c.token()
+		if keyErr != nil {
+			return moduleSelectionWire{}, errors.Join(core.ErrGoToolchainOutput, keyErr)
 		}
 		if key.Kind() == jsontext.KindEndObject {
 			return wire, nil
@@ -90,9 +90,9 @@ func readModuleSelection(c moduleJSONCursor) (moduleSelectionWire, error) {
 		case "GoModSum":
 			destination = &wire.goModSum
 		case "Main":
-			value, err := c.token()
-			if err != nil || value.Kind() != jsontext.KindTrue && value.Kind() != jsontext.KindFalse {
-				return moduleSelectionWire{}, errors.Join(core.ErrGoToolchainOutput, err)
+			value, valueErr := c.token()
+			if valueErr != nil || value.Kind() != jsontext.KindTrue && value.Kind() != jsontext.KindFalse {
+				return moduleSelectionWire{}, errors.Join(core.ErrGoToolchainOutput, valueErr)
 			}
 			wire.main = value.Kind() == jsontext.KindTrue
 		case "Replace", "Error":
@@ -110,9 +110,9 @@ func readModuleSelection(c moduleJSONCursor) (moduleSelectionWire, error) {
 			}
 		}
 		if destination != nil {
-			value, err := c.token()
-			if err != nil || value.Kind() != jsontext.KindString {
-				return moduleSelectionWire{}, errors.Join(core.ErrGoToolchainOutput, err)
+			value, valueErr := c.token()
+			if valueErr != nil || value.Kind() != jsontext.KindString {
+				return moduleSelectionWire{}, errors.Join(core.ErrGoToolchainOutput, valueErr)
 			}
 			*destination = value.String()
 		}
@@ -204,35 +204,27 @@ func projectSelectedModule(ctx context.Context, wire moduleSelectionWire, input 
 }
 
 func verifySelectedModule(ctx context.Context, observed SelectedModuleObservation) error {
-	info, err := os.Lstat(observed.Directory.String())
+	kind, err := moduleCachePathKind(ctx, observed.Directory)
 	if err != nil {
 		return err
 	}
-	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+	if kind != filestore.PathKindDirectory {
 		return core.ErrGoToolchainOutput
 	}
-	partial := strings.TrimSuffix(observed.GoMod.String(), ".mod") + ".partial"
-	if _, err := os.Lstat(partial); !errors.Is(err, os.ErrNotExist) {
-		return errors.Join(core.ErrGoToolchainOutput, err)
+	partial, err := core.ParseAbsolutePath(strings.TrimSuffix(observed.GoMod.String(), ".mod") + ".partial")
+	if err != nil {
+		return err
 	}
-	for _, path := range []core.AbsolutePath{observed.Info, observed.ZipHash} {
-		info, err := os.Lstat(path.String())
-		if err != nil || !info.Mode().IsRegular() {
-			return errors.Join(core.ErrGoToolchainOutput, err)
-		}
+	partialKind, err := moduleCachePathKind(ctx, partial)
+	if err != nil || partialKind != filestore.PathKindAbsent && partialKind != filestore.PathKindUnreachable {
+		return errors.Join(core.ErrGoToolchainOutput, err)
 	}
 	hash, err := readCacheChecksum(ctx, observed.ZipHash)
 	if err != nil || hash != observed.Sum {
 		return errors.Join(core.ErrGoToolchainOutput, err)
 	}
-	file, err := os.Open(observed.Info.String())
-	if err != nil {
-		return err
-	}
 	var identity struct{ Version string }
-	decodeErr := json.UnmarshalRead(moduleContextReader{ctx: ctx, source: file}, &identity)
-	closeErr := file.Close()
-	if err := errors.Join(decodeErr, closeErr); err != nil || identity.Version != observed.Version.String() {
+	if err := withModuleCacheFile(ctx, observed.Info, func(source io.Reader) error { return json.UnmarshalRead(source, &identity) }); err != nil || identity.Version != observed.Version.String() {
 		return errors.Join(core.ErrGoToolchainOutput, err)
 	}
 	if err := verifyGoModSum(ctx, observed.GoMod, observed.GoModSum); err != nil {
