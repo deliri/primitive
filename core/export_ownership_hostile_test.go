@@ -109,9 +109,9 @@ func coreSpecialExportAdmissions() [coreSpecialExportAdmissionCount]coreSpecialE
 		coherentDomainContractAdmission("CRC32COf", CRC32COf),
 		// Witness classifies its own error branches with the same agreement
 		// runnercontrol uses; both callers need one shared definition.
-		coherentDomainContractAdmission("ErrorBranchObservation", ErrorBranchObservation),
+		coherentDomainContractAdmission("ErrorBranchObservation", ErrorBranchObservation{}),
 		coherentDomainContractAdmission("ErrorBranchesMatch", ErrorBranchesMatch),
-		coherentDomainContractAdmission("ErrorBranchesRequest", ErrorBranchesRequest),
+		coherentDomainContractAdmission("ErrorBranchesRequest", ErrorBranchesRequest{}),
 		// Products share native exit-status representation with Process; another
 		// internal effect owner would create a competing execution authority.
 		coherentDomainContractAdmission("ProcessExitStatusMaximum", ProcessExitStatusMaximum),
