@@ -773,3 +773,54 @@ func TestMicrosoftMetadataPagingNative(t *testing.T) {
 		})
 	}
 }
+
+// Microsoft's documented filtered collection omits the matching property even
+// though the filter matched it. Only a single-resource expansion returns it.
+func TestMicrosoftRecoveryUsesDocumentedSingleResourceExpansion(t *testing.T) {
+	t.Parallel()
+	owned := intent(t, "primary", "Visit", "2026-11-02T15:00:00Z", "2026-11-02T16:00:00Z")
+	collectionReads, ownershipReads, detailReads, mutations := 0, 0, 0, 0
+	client, _ := newNative(t, func(w http.ResponseWriter, r *http.Request, _ []byte) {
+		if r.Method != http.MethodGet {
+			mutations++
+			writeJSON(w, 500, `{}`)
+			return
+		}
+		if r.URL.Path == graphEventsPath {
+			collectionReads++
+			// Deliberately omit the property even if the caller asks for expansion.
+			page := struct {
+				Value []struct {
+					ID            string `json:"id"`
+					TransactionID string `json:"transactionId"`
+				} `json:"value"`
+			}{Value: []struct {
+				ID            string `json:"id"`
+				TransactionID string `json:"transactionId"`
+			}{{ID: immutableFixtureID, TransactionID: owned.ID.value}}}
+			encoded, err := json.Marshal(page)
+			if err != nil {
+				t.Errorf("collection encode error = %v, want nil", err)
+			}
+			writeJSON(w, 200, string(encoded))
+			return
+		}
+		if r.URL.Query().Has("$expand") {
+			ownershipReads++
+			writeJSON(w, 200, graphEncoded(t, microsoftMetadata(immutableFixtureID, owned.ID.value)))
+			return
+		}
+		detailReads++
+		encoded, err := json.Marshal(graphOwnedDetail(t, owned))
+		if err != nil {
+			t.Errorf("detail encode error = %v, want nil", err)
+		}
+		writeJSON(w, 200, string(encoded))
+	})
+	write := eventWrite(t, oauthConnection(t, ProviderMicrosoft), owned)
+	write.Attempt = EventCreateRecoverOnly
+	got, err := client.PutEvent(t.Context(), write)
+	if err != nil || got.Ref.ID != owned.ID || got.Ref.Resource != immutableFixtureID || collectionReads != 1 || ownershipReads != 1 || detailReads != 1 || mutations != 0 {
+		t.Fatalf("documented recovery = (%+v,%v), reads collection/ownership/detail %d/%d/%d mutations %d, want verified receipt through1/1/1 reads and0mutations", got, err, collectionReads, ownershipReads, detailReads, mutations)
+	}
+}
