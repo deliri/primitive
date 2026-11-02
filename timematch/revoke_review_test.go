@@ -1,6 +1,7 @@
 package timematch
 
 import (
+	json "encoding/json/v2"
 	"errors"
 	"net/http"
 	"testing"
@@ -53,4 +54,56 @@ func TestGoogleRevocationConvergesWithoutHidingFailures(t *testing.T) {
 			noLeak(t, err, "refresh-only-fixture", "private-marker")
 		})
 	}
+}
+
+// The HTTP provider is local. Native JSON decoding is an independent error-code
+// oracle; the public Revoke operation must preserve its status-dependent class.
+func FuzzGoogleRevocationResponseSemanticClosure(f *testing.F) {
+	for _, code := range []string{"invalid_token", "invalid_grant", "invalid_request", "consent_required", "interaction_required"} {
+		wire, err := json.Marshal(struct {
+			Error string `json:"error"`
+		}{Error: code})
+		if err != nil {
+			f.Fatalf("providerseed=%v,wantnil", err)
+		}
+		f.Add(uint8(1), wire)
+	}
+	f.Add(uint8(0), []byte{})
+	f.Add(uint8(1), []byte(`{"error":"invalid_request","error":"invalid_token"}`))
+	f.Add(uint8(2), []byte(`null`))
+	f.Add(uint8(3), []byte(`{"error":`))
+	f.Fuzz(func(t *testing.T, selector uint8, body []byte) {
+		statuses := [4]int{200, 400, 401, 503}
+		status := statuses[int(selector)%len(statuses)]
+		var document struct {
+			Error string `json:"error"`
+		}
+		decodeErr := json.Unmarshal(body, &document)
+		want := RevokeInvalid
+		var wantErr error = core.ErrTimeMatchResponse
+		if status == 200 {
+			want, wantErr = RevokedAtProvider, nil
+		} else if decodeErr == nil {
+			if status == 400 && document.Error == "invalid_token" {
+				want, wantErr = RevokeTokenAlreadyInvalid, nil
+			} else if (status == 400 || status == 401) && (document.Error == "invalid_grant" || document.Error == "consent_required" || document.Error == "interaction_required") {
+				wantErr = core.ErrTimeMatchConsent
+			}
+		}
+		client, fixture := newNative(t, func(w http.ResponseWriter, _ *http.Request, _ []byte) { writeJSON(w, status, string(body)) })
+		token := secret(t, "borrowed-revocation-secret")
+		got, err := client.Revoke(t.Context(), RevokeRequest{Provider: ProviderGoogle, Token: token, Policy: fixturePolicy(t)})
+		borrowed := token.IsSet()
+		closeErr := token.Close()
+		if closeErr != nil || !borrowed {
+			t.Fatalf("borrowedtoken=%t,cleanup=%v,wanttrue,nil", borrowed, closeErr)
+		}
+		if got != want || !errors.Is(err, wantErr) {
+			t.Fatalf("Revoke(status%d,decoded%q,error%v)=(%v,%v),want(%v,%v)", status, document.Error, decodeErr, got, err, want, wantErr)
+		}
+		if len(fixture.record()) != 1 {
+			t.Fatalf("requests%d,wantone single-attempt revocation", len(fixture.record()))
+		}
+		noLeak(t, err, "borrowed-revocation-secret")
+	})
 }
