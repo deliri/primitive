@@ -6,11 +6,11 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 466
+      "patch": 467
     },
     "release_notes": [
-      "Go toolchain module-closure observations verify selected module trees against frozen go.sum checksums and expose available pinned go.mod metadata, including versions not selected by MVS.",
-      "Borrowed cache entries use existing Filestore custody; callers must freeze transported bytes and prove isolated offline replay before cache adoption."
+      "Temporal civil dates can target a month with explicit last-day clamping, without silently normalizing January31 into March. Date-only arithmetic does not choose a timezone or a DST fold.",
+      "The clamped month contract is checked against an independent Gregorian oracle across a complete400-year cycle, signed18-month horizons and four-digit date-profile limits."
     ]
   }
 }
