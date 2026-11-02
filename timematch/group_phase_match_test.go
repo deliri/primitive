@@ -427,3 +427,38 @@ func FuzzGroupPhaseSemanticOracle(f *testing.F) {
 		phaseCompare(t, again, got)
 	})
 }
+
+// Extreme buffers are valid durations; fitting and overlap must be decided
+// without overflowing start-shift subtraction or end-shift addition.
+func TestGroupPhaseExtremeBuffers(t *testing.T) {
+	cases := []struct {
+		name                                                   string
+		offset, duration, before, after, service, globalBefore int64
+		busy                                                   bool
+		wantCount                                              uint64
+		wantStart                                              int64
+	}{
+		{name: "max prefix exact one start", duration: 1, before: math.MaxInt64 - 1, service: 1, wantCount: 1, wantStart: math.MaxInt64 - 1},
+		{name: "max suffix exact one start", duration: 1, after: math.MaxInt64 - 1, service: 1, wantCount: 1},
+		{name: "max prefix overlap clips before subtraction", duration: 1, before: math.MaxInt64 - 1, service: 1, busy: true},
+		{name: "offset and suffix exceed horizon without wrap", offset: 1, duration: 1, after: math.MaxInt64 - 1, service: 2},
+		{name: "global prefix and phase prefix exact", duration: 1, before: math.MaxInt64 - 1, service: 1, globalBefore: 1, wantCount: 1, wantStart: math.MaxInt64 - 1},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			r := GroupMatchRequest{Window: temporal.IntervalBounds{Start: temporal.InstantFromNanoseconds(0), End: temporal.InstantFromNanoseconds(math.MaxInt64)}, Duration: groupDuration(t, c.service), Before: groupDuration(t, c.globalBefore)}
+			a := groupPerson(t, r.Window, 0, true, AvailabilityKnown).Availability
+			if c.busy {
+				a = groupPerson(t, r.Window, 0, true, AvailabilityKnown, [2]int64{0, 1}).Availability
+			}
+			r.PhaseConstraints = []GroupPhaseConstraint{{Availability: a, Offset: groupDuration(t, c.offset), Duration: groupDuration(t, c.duration), Before: groupDuration(t, c.before), After: groupDuration(t, c.after)}}
+			got, err := MatchGroup(t.Context(), r)
+			if err != nil || got.FeasibleStartNanoseconds != c.wantCount {
+				t.Fatalf("match=%+v/%v want count%d", got, err, c.wantCount)
+			}
+			if c.wantCount == 1 && (len(got.Windows) != 1 || groupNS(t, got.Windows[0].Starts.Earliest) != c.wantStart || groupNS(t, got.Windows[0].Starts.Latest) != c.wantStart) {
+				t.Fatalf("exact start=%+v want%d", got, c.wantStart)
+			}
+		})
+	}
+}
