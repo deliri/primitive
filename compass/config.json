@@ -6,10 +6,14 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 460
+      "patch": 461
     },
     "release_notes": [
-      "Go toolchain StableValue lends the native stored SSA value for a single-store, read-only captured cell of any type; later stores, sibling writes, escapes and non-dominating stores remain opaque. Existing storage and callable relation type gates are unchanged."
+      "TimeMatch calendar mutations bind exact owned identities, separate first dispatch from read-only recovery, use strong CalDAV revision preconditions and immutable Graph ids, and refuse unsupported time precision before HTTP.",
+      "Availability remains timing-only and unknown on incomplete or unsupported provider answers. Google ownership uses the authenticated primary and secondary data owner; Graph recovery checks each candidate through documented individual property expansion.",
+      "Temporal owns exact civil availability across DST and dateline changes, checked instant ceiling and browser nanosecond parsing. TimeMatch adds typed organizer invitations and explicit credential-copy custody.",
+      "Firestore integer JSON reads preserve native signed integer nanoseconds and refuse floating-point fields before projection.",
+      "Instagram accepts the documented optional transient error field; focused Core and Exchange boundary defects and diagnostics are corrected."
     ]
   }
 }
