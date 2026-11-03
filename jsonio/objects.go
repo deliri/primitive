@@ -171,18 +171,8 @@ func validateObjectType[Document any]() error {
 	if root.Kind() == reflect.Pointer {
 		root = root.Elem()
 	}
-	if root.Kind() != reflect.Struct {
+	if root.Kind() != reflect.Struct || nativeCodecHooks(root) {
 		return core.ErrJSONContract
-	}
-	for _, candidate := range [...]reflect.Type{root, reflect.PointerTo(root)} {
-		for _, hook := range [...]reflect.Type{
-			reflect.TypeFor[interface{ MarshalJSON() ([]byte, error) }](), reflect.TypeFor[interface{ UnmarshalJSON([]byte) error }](),
-			reflect.TypeFor[jsonv2.MarshalerTo](), reflect.TypeFor[jsonv2.UnmarshalerFrom](),
-		} {
-			if candidate.Implements(hook) {
-				return core.ErrJSONContract
-			}
-		}
 	}
 	return nil
 }
