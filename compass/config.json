@@ -6,12 +6,12 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 471
+      "patch": 472
     },
     "release_notes": [
-      "Browser Exchange can bind a trusted application API origin and its configured CSRF header while retaining the original same-origin executor.",
-      "CSRF tokens and standard idempotency keys are supplied per request, never retained by the client. Native CORS, cookies, TLS and fetch remain authoritative; redirects are refused.",
-      "Browser policy admission rejects credential-bearing origins, unsafe header roles and changed header spellings. Real WebKit and Chrome proof covers cross-origin mutation, unchanged same-origin behavior and exact JSON bodies."
+      "AES-GCM can admit an independently owned cipher borrow before an external effect, preserving sealing authority through source shutdown without exporting key bytes.",
+      "Ordinary cipher aliases still share destruction. Every admitted borrow retains the same native key schedule until its own explicit Destroy; native nonce limits remain shared across the key.",
+      "Native race and lifetime proof covers source, alias, sibling and concurrent Borrow/Destroy ownership. A one-fact shared-state control fails both independence contracts; scoped AES-GCM analyzers are clean."
     ]
   }
 }
