@@ -97,7 +97,7 @@ func TestAttachmentRequestCountAndAggregateBoundaries(t *testing.T) {
 			for i, a := range got.Attachments {
 				want := request.Attachments[i]
 				if a.Filename != want.Filename || a.ContentType != want.ContentType || !bytes.Equal(a.Content, want.Content) {
-					t.Fatalf("decoded attachment %d changed its authored facts", i)
+					t.Fatalf("decoded attachment %d = (%q, %q, %d bytes), want (%q, %q, %d identical bytes)", i, a.Filename, a.ContentType, len(a.Content), want.Filename, want.ContentType, len(want.Content))
 				}
 			}
 			if tc.count == 0 && bytes.Contains(wire, []byte("attachments")) {
