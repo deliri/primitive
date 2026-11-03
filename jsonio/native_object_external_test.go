@@ -109,3 +109,24 @@ func FuzzNativeIntegerObjectSemanticClosure(f *testing.F) {
 		}
 	})
 }
+
+// Opaque codecs are not the SDK-materialized native object shape. Their
+// methods must never replace the generic map admission at this door.
+type opaqueNativeObject map[string]any
+
+func (opaqueNativeObject) MarshalJSON() ([]byte, error) { return []byte(`{"foreign":true}`), nil }
+func (o *opaqueNativeObject) UnmarshalJSON([]byte) error {
+	*o = opaqueNativeObject{"foreign": true}
+	return nil
+}
+func TestNativeObjectRefusesOpaqueRootCodecs(t *testing.T) {
+	t.Parallel()
+	data, err := jsonio.MarshalNativeObject(opaqueNativeObject{})
+	if !errors.Is(err, core.ErrJSONContract) || data != nil {
+		t.Fatalf("opaque root bytes/error = %q/%v, want nil/JSON refusal", data, err)
+	}
+	value, err := jsonio.DecodeNativeIntegerObject[opaqueNativeObject]([]byte(`{}`))
+	if !errors.Is(err, core.ErrJSONContract) || value != nil {
+		t.Fatalf("opaque root value/error = %+v/%v, want nil/JSON refusal", value, err)
+	}
+}

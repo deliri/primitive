@@ -19,7 +19,7 @@ func CreateIntegerJSON[T core.Validatable](ctx context.Context, request CreateRe
 	if err := request.Validate(); err != nil {
 		return core.ByteCount{}, err
 	}
-	value, extent, err := integerJSONWriteValue(ctx, request.Record)
+	value, extent, err := integerJSONWriteValue(request.Record)
 	if contextErr := documentContext(ctx); contextErr != nil {
 		return core.ByteCount{}, errors.Join(core.ErrFirestoreDocumentsContract, contextErr, err)
 	}
@@ -42,7 +42,7 @@ func SetIntegerJSON[T core.Validatable](ctx context.Context, request SetRequest[
 	if err := request.Validate(); err != nil {
 		return core.ByteCount{}, err
 	}
-	value, extent, err := integerJSONWriteValue(ctx, request.Record)
+	value, extent, err := integerJSONWriteValue(request.Record)
 	if contextErr := documentContext(ctx); contextErr != nil {
 		return core.ByteCount{}, errors.Join(core.ErrFirestoreDocumentsContract, contextErr, err)
 	}
@@ -58,7 +58,7 @@ func SetIntegerJSON[T core.Validatable](ctx context.Context, request SetRequest[
 // JSON's object/array representation is kept solely at the official SDK edge.
 // Marshal the caller's real validated record once; do not reflect it through
 // Firestore tags or round numeric instants through a floating-point value.
-func integerJSONWriteValue[T core.Validatable](ctx context.Context, record T) (map[string]any, core.ByteCount, error) {
+func integerJSONWriteValue[T core.Validatable](record T) (map[string]any, core.ByteCount, error) {
 	// The record's own codecs spell the document; nested null members stay
 	// the owner's decision exactly as before this seam used jsonio.
 	data, err := jsonio.MarshalValidated(record, jsonio.OwnedCodecPolicy{Members: jsonio.MembersDeclaredOnly, Root: jsonio.RootOwnedMethods, PointerNulls: jsonio.PointerNullPermitted})
@@ -85,7 +85,7 @@ func IntegerJSONExtent[T core.Validatable](record T) (core.ByteCount, error) {
 	if err := (Document[T]{Record: record}).Validate(); err != nil {
 		return core.ByteCount{}, err
 	}
-	_, extent, err := integerJSONWriteValue(context.Background(), record)
+	_, extent, err := integerJSONWriteValue(record)
 	if err != nil {
 		return core.ByteCount{}, errors.Join(core.ErrFirestoreDocumentsOperation, err)
 	}

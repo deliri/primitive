@@ -4,6 +4,7 @@ import (
 	"encoding/json/jsontext"
 	jsonv2 "encoding/json/v2"
 	"errors"
+	"reflect"
 	"strconv"
 
 	"github.com/deliri/primitive/v2026/core"
@@ -13,18 +14,15 @@ import (
 // This mechanical edge owns neither a product schema nor its validation.
 // Product boundaries use the concrete projection/owned doors instead. Go owns
 // ordering, Unicode, scalar spelling and nested custom codecs; no parallel JSON
-// formatter or object model is constructed here. A nil root is refused.
+// formatter or object model is constructed here. Nil roots and opaque root codecs are refused.
 // Source: https://pkg.go.dev/encoding/json/v2#Marshal
 func MarshalNativeObject[Document ~map[string]any](document Document) ([]byte, error) {
-	if document == nil {
+	if document == nil || nativeCodecHooks(reflect.TypeFor[Document]()) {
 		return nil, core.ErrJSONContract
 	}
 	data, err := jsonv2.Marshal(document, jsonv2.Deterministic(true))
 	if err != nil {
 		return nil, jsonOperationError(err)
-	}
-	if jsontext.Value(data).Kind() != jsontext.KindBeginObject {
-		return nil, core.ErrJSONContract
 	}
 	return data, nil
 }
@@ -40,12 +38,15 @@ func DecodeNativeIntegerObject[Document ~map[string]any](data []byte) (Document,
 	if err := ValidateBytes(data); err != nil {
 		return zero, err
 	}
-	if jsontext.Value(data).Kind() != jsontext.KindBeginObject {
+	if nativeCodecHooks(reflect.TypeFor[Document]()) {
 		return zero, core.ErrJSONContract
 	}
 	var document Document
 	if err := jsonv2.Unmarshal(data, &document, jsonv2.WithUnmarshalers(nativeIntegerNumbers)); err != nil {
 		return zero, jsonOperationError(err)
+	}
+	if document == nil {
+		return zero, core.ErrJSONContract
 	}
 	return document, nil
 }

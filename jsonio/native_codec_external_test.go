@@ -103,8 +103,6 @@ func TestNativeCodecProjectsOwnerWithoutMethodsThroughBothDoors(t *testing.T) {
 
 func TestNativeCodecNullNeverRestoresAndPointerNullFollowsPolicy(t *testing.T) {
 	t.Parallel()
-	restoreCalls := 0
-	codec := stampCodec(t, &restoreCalls)
 	for _, tc := range []struct {
 		name     string
 		data     string
@@ -120,7 +118,9 @@ func TestNativeCodecNullNeverRestoresAndPointerNullFollowsPolicy(t *testing.T) {
 		{"pointer null refuses under the refused arm", `{"text":"x","when":1,"maybe":null,"list":[],"pair":[0,0]}`, jsonio.OwnedCodecPolicy{}, true, false, 1},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			restoreCalls = 0
+			t.Parallel()
+			restoreCalls := 0
+			codec := stampCodec(t, &restoreCalls)
 			decoded, err := jsonio.DecodeOwnedWith[nativeStampDocument]([]byte(tc.data), tc.policy, codec)
 			if (err != nil) != tc.wantErr || err != nil && (!errors.Is(err, core.ErrJSONContract) || decoded.Text != "" || decoded.List != nil) {
 				t.Fatalf("DecodeOwnedWith = %+v/%v, want refusal=%t with zero", decoded, err, tc.wantErr)
@@ -128,8 +128,8 @@ func TestNativeCodecNullNeverRestoresAndPointerNullFollowsPolicy(t *testing.T) {
 			if err == nil && (decoded.Maybe == nil) != tc.wantNil {
 				t.Fatalf("pointer member = %v, want nil=%t", decoded.Maybe, tc.wantNil)
 			}
-			if restoreCalls > tc.restores {
-				t.Fatalf("restore ran %d times, want at most %d", restoreCalls, tc.restores)
+			if restoreCalls != tc.restores {
+				t.Fatalf("restore ran %d times, want exactly %d", restoreCalls, tc.restores)
 			}
 		})
 	}

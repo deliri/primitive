@@ -56,7 +56,7 @@ func TestQueryIntegerJSONEmulatorReadsJSONShapedRowsInOrder(t *testing.T) {
 	var seen []jsonQueryRecord
 	visitor := func(ctx context.Context, d Document[jsonQueryRecord]) (QueryVisitDecision, error) {
 		if ctx != t.Context() {
-			t.Fatal("visitor must receive the exact caller context")
+			t.Fatalf("visitor context identity differs=%t, want false", ctx != t.Context())
 		}
 		seen = append(seen, d.Record)
 		return QueryContinue, nil
