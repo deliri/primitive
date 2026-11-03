@@ -45,6 +45,7 @@ type jsonioStructInventory struct {
 	ObjectMemberRequest      jsonioIngress[ObjectMemberRequest]
 	TokenProjectionRequest   jsonioIngress[TokenProjectionRequest]
 	CanonicalProjectionCodec jsonioCapability[CanonicalProjectionCodec]
+	NativeCodec              jsonioCapability[NativeCodec]
 	CanonicalDeclaredField   jsonioKernelFlow[canonicalDeclaredField]
 	MemberObject             jsonioKernelFlow[memberObject]
 	ExtentError              jsonioError[ExtentError]

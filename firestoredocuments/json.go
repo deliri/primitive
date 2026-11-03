@@ -2,12 +2,12 @@ package firestoredocuments
 
 import (
 	"context"
-	json "encoding/json/v2"
 	"errors"
 	"reflect"
 
 	"cloud.google.com/go/firestore"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/jsonio"
 )
 
 // JSONDocument retains the exact SDK-projected source extent alongside the
@@ -62,13 +62,20 @@ func getJSON[T core.Validatable](ctx context.Context, request GetRequest, intege
 	if err != nil {
 		return JSONDocument[T]{}, errors.Join(core.ErrFirestoreDocumentsOperation, err, ctx.Err(), context.Cause(ctx))
 	}
+	return projectJSON[T](ctx, snapshot, integerOnly)
+}
+
+// projectJSON turns one native snapshot into the caller's record through the
+// canonical JSON projection. Get and query reads share it exactly, so a query
+// row admits precisely what a point read admits.
+func projectJSON[T core.Validatable](ctx context.Context, snapshot *firestore.DocumentSnapshot, integerOnly bool) (JSONDocument[T], error) {
 	native := snapshot.Data()
 	if integerOnly {
 		if err := validateIntegerJSONValue(ctx, native); err != nil {
 			return JSONDocument[T]{}, errors.Join(core.ErrFirestoreDocumentsOperation, err)
 		}
 	}
-	data, err := core.MarshalCanonicalJSONDocument(native)
+	data, err := nativeToJSON(ctx, native, integerOnly)
 	if err != nil {
 		return JSONDocument[T]{}, errors.Join(core.ErrFirestoreDocumentsOperation, err)
 	}
@@ -76,10 +83,13 @@ func getJSON[T core.Validatable](ctx context.Context, request GetRequest, intege
 	if err != nil {
 		return JSONDocument[T]{}, errors.Join(core.ErrFirestoreDocumentsOperation, err)
 	}
-	result := JSONDocument[T]{Bytes: length}
-	if err := json.Unmarshal(data, &result.Record, json.RejectUnknownMembers(true)); err != nil {
+	// The caller's declared members and its own nested codecs admit the
+	// projection; unknown members and null roots refuse before validation.
+	record, err := jsonio.DecodeValue[T](data, jsonio.ProjectionReadPolicy{Members: jsonio.MembersDeclaredOnly, Root: jsonio.RootOwnedMethods, RootNulls: jsonio.RootNullRefused})
+	if err != nil {
 		return JSONDocument[T]{}, errors.Join(core.ErrFirestoreDocumentsOperation, err)
 	}
+	result := JSONDocument[T]{Record: record, Bytes: length}
 	if err := result.Validate(); err != nil {
 		return JSONDocument[T]{}, err
 	}
