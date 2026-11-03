@@ -136,6 +136,14 @@ func WriteInvitation(destination io.Writer, invitation Invitation) error {
 	w.text("SUMMARY:", false)
 	w.text(invitation.Summary.value, true)
 	w.endLine()
+	if invitation.Venue.Text() != "" {
+		w.text("LOCATION:", false)
+		w.text(invitation.Venue.Text(), true)
+		w.endLine()
+	}
+	if invitation.Venue.JoinURL != "" {
+		w.line("URL:", invitation.Venue.JoinURL)
+	}
 	switch invitation.Method {
 	case InvitationRequest:
 		w.line("STATUS:CONFIRMED")

@@ -27,6 +27,8 @@ const (
 // absolute span cannot be established (DATE values, TZID or floating times,
 // unexpanded recurrence, malformed values).
 type icsEvent struct {
+	location   string
+	joinURL    string
 	uid        string
 	summary    string
 	start      int64
@@ -144,9 +146,9 @@ type icsProperty struct {
 }
 
 type icsRawEvent struct {
-	uid, summary, transp, status       icsProperty
-	dtstart, dtend, duration           icsProperty
-	recurring, duplicate, unresolvable bool
+	uid, summary, location, joinURL, transp, status icsProperty
+	dtstart, dtend, duration                        icsProperty
+	recurring, duplicate, unresolvable              bool
 }
 
 func (e *icsRawEvent) add(line string) {
@@ -167,6 +169,10 @@ func (e *icsRawEvent) add(line string) {
 		slot = &e.uid
 	case "SUMMARY":
 		slot = &e.summary
+	case "LOCATION":
+		slot = &e.location
+	case "URL":
+		slot = &e.joinURL
 	case "TRANSP":
 		slot = &e.transp
 	case "STATUS":
@@ -231,7 +237,7 @@ func cutICSValue(line string) (string, string, bool) {
 }
 
 func (e *icsRawEvent) event() icsEvent {
-	event := icsEvent{uid: e.uid.value, summary: unescapeICSText(e.summary.value)}
+	event := icsEvent{uid: e.uid.value, summary: unescapeICSText(e.summary.value), location: unescapeICSText(e.location.value), joinURL: e.joinURL.value}
 	event.blocking = !strings.EqualFold(e.transp.value, "TRANSPARENT") && !strings.EqualFold(e.status.value, "CANCELLED")
 	if e.recurring || e.duplicate || e.unresolvable || !e.dtstart.set || e.dtend.set && e.duration.set {
 		return event
@@ -460,6 +466,9 @@ func escapeICSText(value string) string {
 // writeICS emits one owned VEVENT. Times are whole-second UTC: the iCalendar
 // DATE-TIME form has no fractional seconds, so a sub-second intent is refused.
 func writeICS(intent EventIntent, stamp temporal.Instant) ([]byte, error) {
+	if err := intent.Validate(); err != nil {
+		return nil, err
+	}
 	start, startErr := icsTime(intent.Interval.Start)
 	end, endErr := icsTime(intent.Interval.End)
 	observed, stampErr := icsStampTime(stamp)
@@ -467,11 +476,16 @@ func writeICS(intent EventIntent, stamp temporal.Instant) ([]byte, error) {
 		return nil, errors.Join(core.ErrTimeMatchContract, err)
 	}
 	var builder strings.Builder
-	for _, line := range []string{
-		"BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:" + icsProductID, icsBeginEvent,
-		"UID:" + intent.ID.value, "DTSTAMP:" + observed, "DTSTART:" + start, "DTEND:" + end,
-		"SUMMARY:" + escapeICSText(intent.Summary.value), "TRANSP:OPAQUE", icsEndEvent, "END:VCALENDAR",
-	} {
+	for _, line := range []string{"BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:" + icsProductID, icsBeginEvent, "UID:" + intent.ID.value, "DTSTAMP:" + observed, "DTSTART:" + start, "DTEND:" + end, "SUMMARY:" + escapeICSText(intent.Summary.value)} {
+		foldICS(&builder, line)
+	}
+	if intent.Venue.Text() != "" {
+		foldICS(&builder, "LOCATION:"+escapeICSText(intent.Venue.Text()))
+	}
+	if intent.Venue.JoinURL != "" {
+		foldICS(&builder, "URL:"+intent.Venue.JoinURL)
+	}
+	for _, line := range []string{"TRANSP:OPAQUE", icsEndEvent, "END:VCALENDAR"} {
 		foldICS(&builder, line)
 	}
 	return []byte(builder.String()), nil

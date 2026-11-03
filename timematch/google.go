@@ -21,7 +21,7 @@ const (
 	googleFreeBusyBatch       = 50
 	googleOwnershipProperty   = "timematchEventId"
 	googleOwnedMetadataFields = "items(id,etag),nextPageToken"
-	googleOwnedDetailsFields  = "id,etag,status,summary,start/dateTime,end/dateTime,extendedProperties/private"
+	googleOwnedDetailsFields  = "id,etag,status,summary,location,start/dateTime,end/dateTime,extendedProperties/private"
 )
 
 // googleCalendarList reads every page. A repeated page token is a provider
@@ -291,6 +291,7 @@ func (googlePrivateProperties) timematchInternalFlow()  {}
 func (googleExtendedProperties) timematchInternalFlow() {}
 
 type googleEventBody struct {
+	Location           string                    `json:"location,omitzero"`
 	ID                 string                    `json:"id,omitzero"`
 	Summary            string                    `json:"summary"`
 	Start              googleEventTime           `json:"start"`
@@ -312,7 +313,7 @@ func googleEventProjection(intent EventIntent) (googleEventBody, error) {
 	if err := errors.Join(startErr, endErr); err != nil {
 		return googleEventBody{}, errors.Join(core.ErrTimeMatchContract, err)
 	}
-	return googleEventBody{Summary: intent.Summary.value, Start: googleEventTime{DateTime: start}, End: googleEventTime{DateTime: end}, Transparency: "opaque"}, nil
+	return googleEventBody{Location: intent.Venue.Text(), Summary: intent.Summary.value, Start: googleEventTime{DateTime: start}, End: googleEventTime{DateTime: end}, Transparency: "opaque"}, nil
 }
 
 func googleEvent(intent EventIntent) ([]byte, error) {
@@ -580,13 +581,14 @@ func (c Client) googleDelete(ctx context.Context, d EventDelete) (DeleteOutcome,
 }
 
 type googleEventObservation struct {
-	etag    string
-	marker  string
-	id      string
-	status  string
-	summary string
-	start   string
-	end     string
+	location string
+	etag     string
+	marker   string
+	id       string
+	status   string
+	summary  string
+	start    string
+	end      string
 }
 
 func (o *googleEventObservation) UnmarshalJSON(raw []byte) error {
@@ -596,13 +598,14 @@ func (o *googleEventObservation) UnmarshalJSON(raw []byte) error {
 		ExtendedProperties googleExtendedProperties `json:"extendedProperties"`
 		Status             string                   `json:"status"`
 		Summary            string                   `json:"summary"`
+		Location           string                   `json:"location"`
 		Start              googleEventTime          `json:"start"`
 		End                googleEventTime          `json:"end"`
 	}
 	if err := unmarshalExtensible(raw, &document); err != nil {
 		return err
 	}
-	*o = googleEventObservation{etag: document.ETag, marker: document.ExtendedProperties.Private.EventID, id: document.ID, status: document.Status, summary: document.Summary, start: document.Start.DateTime, end: document.End.DateTime}
+	*o = googleEventObservation{location: document.Location, etag: document.ETag, marker: document.ExtendedProperties.Private.EventID, id: document.ID, status: document.Status, summary: document.Summary, start: document.Start.DateTime, end: document.End.DateTime}
 	return nil
 }
 
@@ -637,7 +640,7 @@ func verifyGoogleObservation(observed googleEventObservation, intent EventIntent
 	if err != nil {
 		return EventReceipt{}, errors.Join(core.ErrTimeMatchIndeterminate, err)
 	}
-	if observed.id != intent.ID.value || observed.status == "cancelled" || observed.summary != intent.Summary.value || !sameSpan(span, intent.Interval) {
+	if observed.id != intent.ID.value || observed.status == "cancelled" || observed.summary != intent.Summary.value || intent.Venue.Text() != "" && observed.location != intent.Venue.Text() || !sameSpan(span, intent.Interval) {
 		return EventReceipt{}, core.ErrTimeMatchConflict
 	}
 	return EventReceipt{Ref: ref}, nil

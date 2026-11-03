@@ -300,7 +300,19 @@ func (p *graphViewPage) UnmarshalJSON(raw []byte) error {
 
 func (graphViewPage) Validate() error { return nil }
 
+// Graph location is writable; onlineMeetingUrl is read-only and must never be
+// populated from a supplied Zoom/Teams URL. The destination remains a standard
+// location with an optional URI. https://learn.microsoft.com/graph/api/resources/location
+// Only an ownership-proved event detail request reads these fields back.
+type graphEventLocation struct {
+	DisplayName string `json:"displayName"`
+	URI         string `json:"locationUri,omitzero"`
+}
+
+func (graphEventLocation) timematchInternalFlow() {}
+
 type graphEventBody struct {
+	Location      *graphEventLocation  `json:"location,omitzero"`
 	Subject       string               `json:"subject"`
 	Start         graphDateTime        `json:"start"`
 	End           graphDateTime        `json:"end"`
@@ -324,6 +336,9 @@ func graphEvent(intent EventIntent, create bool) ([]byte, error) {
 		Subject: intent.Summary.value,
 		Start:   graphDateTime{DateTime: start, TimeZone: graphUTCZone},
 		End:     graphDateTime{DateTime: end, TimeZone: graphUTCZone},
+	}
+	if intent.Venue.Text() != "" {
+		body.Location = &graphEventLocation{DisplayName: intent.Venue.Text(), URI: intent.Venue.JoinURL}
 	}
 	// Graph's DateTimeTimeZone representation has 100 ns precision. Refuse
 	// a lossy interval before creating or moving any appointment.
@@ -459,6 +474,7 @@ func (c Client) microsoftDelete(ctx context.Context, d EventDelete) (DeleteOutco
 }
 
 type graphEventObservation struct {
+	location      graphEventLocation
 	id            string
 	subject       string
 	transactionID string
@@ -469,17 +485,18 @@ type graphEventObservation struct {
 
 func (o *graphEventObservation) UnmarshalJSON(raw []byte) error {
 	var document struct {
-		ID            string        `json:"id"`
-		Subject       string        `json:"subject"`
-		TransactionID string        `json:"transactionId"`
-		Start         graphDateTime `json:"start"`
-		End           graphDateTime `json:"end"`
-		IsCancelled   bool          `json:"isCancelled"`
+		ID            string             `json:"id"`
+		Location      graphEventLocation `json:"location"`
+		Subject       string             `json:"subject"`
+		TransactionID string             `json:"transactionId"`
+		Start         graphDateTime      `json:"start"`
+		End           graphDateTime      `json:"end"`
+		IsCancelled   bool               `json:"isCancelled"`
 	}
 	if err := unmarshalExtensible(raw, &document); err != nil {
 		return err
 	}
-	*o = graphEventObservation{id: document.ID, subject: document.Subject, transactionID: document.TransactionID, start: document.Start, end: document.End, cancelled: document.IsCancelled}
+	*o = graphEventObservation{location: document.Location, id: document.ID, subject: document.Subject, transactionID: document.TransactionID, start: document.Start, end: document.End, cancelled: document.IsCancelled}
 	return nil
 }
 
@@ -511,7 +528,7 @@ func verifyGraph(body []byte, expected graphExpectation) (EventReceipt, error) {
 	if err := errors.Join(startErr, endErr); err != nil {
 		return EventReceipt{}, errors.Join(core.ErrTimeMatchIndeterminate, err)
 	}
-	if observed.cancelled || observed.subject != intent.Summary.value || !sameSpan([2]int64{start, end}, intent.Interval) ||
+	if observed.cancelled || observed.subject != intent.Summary.value || intent.Venue.Text() != "" && (observed.location.DisplayName != intent.Venue.Text() || observed.location.URI != intent.Venue.JoinURL) || !sameSpan([2]int64{start, end}, intent.Interval) ||
 		create && observed.transactionID != intent.ID.value || resource != "" && observed.id != resource {
 		return EventReceipt{}, core.ErrTimeMatchConflict
 	}
@@ -707,7 +724,7 @@ func (c Client) microsoftRecover(ctx context.Context, w EventWrite) (EventReceip
 	if resource == "" {
 		return EventReceipt{}, core.ErrTimeMatchIndeterminate
 	}
-	target, err := endpoint(graphBase + "/me/events/" + url.PathEscape(resource) + "?" + url.Values{"$select": {"id,subject,start,end,isCancelled,transactionId"}}.Encode())
+	target, err := endpoint(graphBase + "/me/events/" + url.PathEscape(resource) + "?" + url.Values{"$select": {"id,subject,location,start,end,isCancelled,transactionId"}}.Encode())
 	if err != nil {
 		return EventReceipt{}, err
 	}

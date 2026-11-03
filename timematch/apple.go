@@ -485,7 +485,7 @@ func (c Client) appleReadBack(ctx context.Context, r appleReadBackRequest) (Even
 	if event.uid == "" || !event.resolvable {
 		return EventReceipt{}, errors.Join(core.ErrTimeMatchIndeterminate, core.ErrTimeMatchResponse)
 	}
-	if !event.blocking || event.uid != intent.ID.value || event.summary != intent.Summary.value || !sameSpan([2]int64{event.start, event.end}, intent.Interval) {
+	if !event.blocking || event.uid != intent.ID.value || event.summary != intent.Summary.value || intent.Venue.Text() != "" && (event.location != intent.Venue.Text() || event.joinURL != intent.Venue.JoinURL) || !sameSpan([2]int64{event.start, event.end}, intent.Interval) {
 		return EventReceipt{}, core.ErrTimeMatchConflict
 	}
 	return EventReceipt{Ref: ref}, nil
@@ -546,10 +546,14 @@ func appleUpdatedResource(original, replacement []byte) ([]byte, error) {
 		return nil, core.ErrTimeMatchResponse
 	}
 	var controlled []string
+	hasVenue := false
 	for _, line := range unfoldICS(string(replacement)) {
 		name, _, ok := cutICSValue(line)
-		if ok && (name == "DTSTAMP" || name == "DTSTART" || name == "DTEND" || name == "SUMMARY") {
+		if ok && (name == "DTSTAMP" || name == "DTSTART" || name == "DTEND" || name == "SUMMARY" || name == "LOCATION" || name == "URL") {
 			controlled = append(controlled, line)
+			if name == "LOCATION" {
+				hasVenue = true
+			}
 		}
 	}
 	var out strings.Builder
@@ -589,6 +593,10 @@ func appleUpdatedResource(original, replacement []byte) ([]byte, error) {
 				return nil, core.ErrTimeMatchResponse
 			case "DTSTAMP", "DTSTART", "DTEND", "DURATION", "SUMMARY":
 				continue
+			case "LOCATION", "URL":
+				if hasVenue {
+					continue
+				}
 			}
 		}
 		foldICS(&out, line)
