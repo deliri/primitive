@@ -1,49 +1,50 @@
-package timematch
+package core
 
 import (
 	"net/url"
 	"strings"
 	"unicode"
 	"unicode/utf8"
-
-	"github.com/deliri/primitive/v2026/core"
 )
 
-// EventVenue is supplied by the appointment organizer, never discovered from
+// TimeMatchAppointmentVenue is a provider-independent destination supplied by
+// the appointment organizer, never discovered from
 // other calendar events. Address is a physical destination; JoinURL is an
 // existing HTTPS video-call link. They are mutually exclusive. The zero value
 // leaves an existing event's location untouched; product policy can require it.
-type EventVenue struct {
+type TimeMatchAppointmentVenue struct {
 	Address string
 	JoinURL string
 }
 
-func (v EventVenue) Validate() error {
+// Validate admits a single physical destination or credential-free HTTPS call
+// link. An unspecified SDK destination is neutral; applications may require it.
+func (v TimeMatchAppointmentVenue) Validate() error {
 	if v.Address != "" && v.JoinURL != "" {
-		return core.ErrTimeMatchContract
+		return ErrTimeMatchContract
 	}
 	value := v.Text()
 	if !utf8.ValidString(value) || strings.TrimSpace(value) != value {
-		return core.ErrTimeMatchContract
+		return ErrTimeMatchContract
 	}
 	for _, r := range value {
 		if unicode.IsControl(r) {
-			return core.ErrTimeMatchContract
+			return ErrTimeMatchContract
 		}
 	}
 	if v.JoinURL != "" {
 		parsed, err := url.Parse(v.JoinURL)
 		if err != nil || parsed.Scheme != "https" || parsed.Hostname() == "" || parsed.User != nil || parsed.Opaque != "" {
-			return core.ErrTimeMatchContract
+			return ErrTimeMatchContract
 		}
 	}
 	return nil
 }
 
-func (v EventVenue) Text() string {
+// Text returns the destination displayed in the calendar location field.
+func (v TimeMatchAppointmentVenue) Text() string {
 	if v.Address != "" {
 		return v.Address
 	}
 	return v.JoinURL
 }
-func (EventVenue) timematchProtocolFact() {}

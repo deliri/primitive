@@ -18,7 +18,7 @@ type (
 	productionStructName     string
 )
 
-const coreProductionStructMaximum = 56
+const coreProductionStructMaximum = 57
 
 type productionStructInventory struct {
 	names [coreProductionStructMaximum]productionStructName
@@ -28,6 +28,8 @@ type productionStructInventory struct {
 // coreContractInventory classifies every production struct by its real role.
 // It is a compiler-visible wiring ratchet, not behavioral proof.
 type coreContractInventory struct {
+	TimeMatchAppointmentVenue protocolFact[TimeMatchAppointmentVenue]
+
 	ErrorBranchesRequest     internalFlow[ErrorBranchesRequest]
 	ErrorBranchObservation   internalFlow[ErrorBranchObservation]
 	OAuthProfileName         protocolFact[OAuthProfileName]

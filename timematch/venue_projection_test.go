@@ -17,11 +17,11 @@ func TestOwnedAppointmentWritersCarryVenue(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
 		name  string
-		venue EventVenue
+		venue core.TimeMatchAppointmentVenue
 	}{
-		{name: "physical business address", venue: EventVenue{Address: "Off Grid Software, 123 Main Street, Toronto, ON M5V 1A1, Canada"}},
-		{name: "Zoom join link", venue: EventVenue{JoinURL: "https://zoom.us/j/123456789?pwd=meeting-passcode"}},
-		{name: "Teams join link", venue: EventVenue{JoinURL: "https://teams.microsoft.com/l/meetup-join/meeting-id?context=booking"}},
+		{name: "physical business address", venue: core.TimeMatchAppointmentVenue{Address: "Off Grid Software, 123 Main Street, Toronto, ON M5V 1A1, Canada"}},
+		{name: "Zoom join link", venue: core.TimeMatchAppointmentVenue{JoinURL: "https://zoom.us/j/123456789?pwd=meeting-passcode"}},
+		{name: "Teams join link", venue: core.TimeMatchAppointmentVenue{JoinURL: "https://teams.microsoft.com/l/meetup-join/meeting-id?context=booking"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -82,7 +82,7 @@ func TestOwnedAppointmentWritersCarryVenue(t *testing.T) {
 func TestVenueRefusalEmitsNoInvitation(t *testing.T) {
 	t.Parallel()
 	// Existing typed invitation fixture is built by the owning writer tests.
-	venue := EventVenue{Address: "Toronto\r\nATTENDEE:mailto:other@example.com"}
+	venue := core.TimeMatchAppointmentVenue{Address: "Toronto\r\nATTENDEE:mailto:other@example.com"}
 	if err := venue.Validate(); !errors.Is(err, core.ErrTimeMatchContract) {
 		t.Fatalf("venue injection error = %v, want typed refusal", err)
 	}
@@ -102,13 +102,13 @@ func TestGoogleOwnedVenueNativeWriteAndReadback(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
 		name   string
-		venue  EventVenue
+		venue  core.TimeMatchAppointmentVenue
 		change bool
 		want   error
 	}{
-		{name: "physical destination retained", venue: EventVenue{Address: "123 Main St, Toronto, ON M5V 1A1, Canada"}},
-		{name: "video destination retained", venue: EventVenue{JoinURL: "https://zoom.us/j/123456789?pwd=code"}},
-		{name: "provider changed destination cannot confirm", venue: EventVenue{Address: "123 Main St, Toronto"}, change: true, want: core.ErrTimeMatchConflict},
+		{name: "physical destination retained", venue: core.TimeMatchAppointmentVenue{Address: "123 Main St, Toronto, ON M5V 1A1, Canada"}},
+		{name: "video destination retained", venue: core.TimeMatchAppointmentVenue{JoinURL: "https://zoom.us/j/123456789?pwd=code"}},
+		{name: "provider changed destination cannot confirm", venue: core.TimeMatchAppointmentVenue{Address: "123 Main St, Toronto"}, change: true, want: core.ErrTimeMatchConflict},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -145,17 +145,17 @@ func TestAppleVenueReplacementPreservesUnownedProperties(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
 		name      string
-		next      EventVenue
-		wantVenue EventVenue
+		next      core.TimeMatchAppointmentVenue
+		wantVenue core.TimeMatchAppointmentVenue
 	}{
-		{name: "physical move replaces old video URL", next: EventVenue{Address: "Café, 123 Main St; Toronto"}, wantVenue: EventVenue{Address: "Café, 123 Main St; Toronto"}},
-		{name: "new video link replaces old video URL", next: EventVenue{JoinURL: "https://teams.microsoft.com/l/meetup-join/new"}, wantVenue: EventVenue{JoinURL: "https://teams.microsoft.com/l/meetup-join/new"}},
-		{name: "unspecified venue leaves existing destination untouched", wantVenue: EventVenue{JoinURL: "https://zoom.us/j/original"}},
+		{name: "physical move replaces old video URL", next: core.TimeMatchAppointmentVenue{Address: "Café, 123 Main St; Toronto"}, wantVenue: core.TimeMatchAppointmentVenue{Address: "Café, 123 Main St; Toronto"}},
+		{name: "new video link replaces old video URL", next: core.TimeMatchAppointmentVenue{JoinURL: "https://teams.microsoft.com/l/meetup-join/new"}, wantVenue: core.TimeMatchAppointmentVenue{JoinURL: "https://teams.microsoft.com/l/meetup-join/new"}},
+		{name: "unspecified venue leaves existing destination untouched", wantVenue: core.TimeMatchAppointmentVenue{JoinURL: "https://zoom.us/j/original"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			owned := intent(t, "primary", "Consultation", "2026-11-02T10:00:00Z", "2026-11-02T10:30:00Z")
-			owned.Venue = EventVenue{JoinURL: "https://zoom.us/j/original"}
+			owned.Venue = core.TimeMatchAppointmentVenue{JoinURL: "https://zoom.us/j/original"}
 			original, err := writeICS(owned, at(t, "2026-11-01T10:00:00Z"))
 			if err != nil {
 				t.Fatal(err)
@@ -176,6 +176,124 @@ func TestAppleVenueReplacementPreservesUnownedProperties(t *testing.T) {
 			}
 			if !bytes.Contains(got, []byte("DESCRIPTION:Keep user notes")) || !bytes.Contains(got, []byte("DESCRIPTION:Keep reminder")) || !bytes.Contains(got, []byte("TRIGGER:-PT15M")) {
 				t.Fatalf("owned replacement = %q, want existing notes and alarm conserved", got)
+			}
+		})
+	}
+}
+
+func TestMicrosoftOwnedVenueNativeWrite(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name      string
+		venue     core.TimeMatchAppointmentVenue
+		alterName bool
+		alterURI  bool
+		omit      bool
+		want      error
+	}{
+		{name: "physical location echoed", venue: core.TimeMatchAppointmentVenue{Address: "123 Main St, Toronto, Canada"}},
+		{name: "video join URI echoed", venue: core.TimeMatchAppointmentVenue{JoinURL: "https://teams.microsoft.com/l/meetup-join/meeting"}},
+		{name: "changed physical location refuses confirmation", venue: core.TimeMatchAppointmentVenue{Address: "123 Main St"}, alterName: true, want: core.ErrTimeMatchConflict},
+		{name: "changed video URI refuses confirmation", venue: core.TimeMatchAppointmentVenue{JoinURL: "https://zoom.us/j/123"}, alterURI: true, want: core.ErrTimeMatchConflict},
+		{name: "missing destination refuses confirmation", venue: core.TimeMatchAppointmentVenue{Address: "123 Main St"}, omit: true, want: core.ErrTimeMatchConflict},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			client, fixture := newNative(t, func(w http.ResponseWriter, _ *http.Request, body []byte) {
+				var observed struct {
+					graphEventBody
+					ID string `json:"id"`
+				}
+				if err := json.Unmarshal(body, &observed); err != nil {
+					t.Error(err)
+					w.WriteHeader(http.StatusBadRequest)
+					return
+				}
+				observed.ID = "AAMk-owned-event"
+				if observed.Location == nil {
+					t.Error("submitted venue = nil, want organizer destination")
+					w.WriteHeader(http.StatusBadRequest)
+					return
+				}
+				if tc.alterName {
+					observed.Location.DisplayName = "Different business"
+				}
+				if tc.alterURI {
+					observed.Location.URI = "https://video.example.test/other"
+				}
+				if tc.omit {
+					observed.Location = nil
+				}
+				encoded, err := json.Marshal(observed)
+				if err != nil {
+					t.Error(err)
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+				writeJSON(w, http.StatusCreated, string(encoded))
+			})
+			owned := intent(t, "cal-1", "Consultation", "2026-11-02T10:00:00Z", "2026-11-02T10:30:00Z")
+			owned.Venue = tc.venue
+			got, err := client.PutEvent(t.Context(), eventWrite(t, oauthConnection(t, ProviderMicrosoft), owned))
+			if !errors.Is(err, tc.want) || err != nil && got != (EventReceipt{}) {
+				t.Fatalf("Graph venue response = (%+v,%v), want error %v with no partial receipt", got, err, tc.want)
+			}
+			calls := fixture.record()
+			if len(calls) != 1 || calls[0].method != http.MethodPost || strings.Contains(string(calls[0].body), "onlineMeetingUrl") || strings.Contains(string(calls[0].body), "attendees") {
+				t.Fatalf("Graph venue calls = %+v, want one owned create without read-only conferencing fields or attendees", calls)
+			}
+		})
+	}
+}
+
+func TestAppleOwnedVenueNativeReadback(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name    string
+		venue   core.TimeMatchAppointmentVenue
+		changed bool
+		want    error
+	}{
+		{name: "physical destination recovered", venue: core.TimeMatchAppointmentVenue{Address: "123 Main St; Toronto, Canada"}},
+		{name: "video destination recovered", venue: core.TimeMatchAppointmentVenue{JoinURL: "https://zoom.us/j/123?pwd=join"}},
+		{name: "different location is not the same intent", venue: core.TimeMatchAppointmentVenue{Address: "123 Main St"}, changed: true, want: core.ErrTimeMatchConflict},
+		{name: "different join link is not the same intent", venue: core.TimeMatchAppointmentVenue{JoinURL: "https://teams.microsoft.com/l/meetup-join/meeting"}, changed: true, want: core.ErrTimeMatchConflict},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			owned := intent(t, appleMutationHome, "Consultation", "2026-11-02T10:00:00Z", "2026-11-02T10:30:00Z")
+			owned.Venue = tc.venue
+			observed := owned
+			if tc.changed {
+				if observed.Venue.Address != "" {
+					observed.Venue.Address = "Other business address"
+				} else {
+					observed.Venue.JoinURL = "https://video.example.test/other"
+				}
+			}
+			raw, err := writeICS(observed, at(t, "2026-11-01T10:00:00Z"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			client, fixture := newNative(t, func(w http.ResponseWriter, r *http.Request, _ []byte) {
+				if r.Method != http.MethodGet {
+					w.WriteHeader(http.StatusMethodNotAllowed)
+					return
+				}
+				w.Header().Set("Content-Type", "text/calendar")
+				if _, err := w.Write(raw); err != nil {
+					t.Error(err)
+				}
+			})
+			request := eventWrite(t, appleConnection(t), owned)
+			request.Attempt = EventCreateRecoverOnly
+			got, err := client.PutEvent(t.Context(), request)
+			if !errors.Is(err, tc.want) || err != nil && got != (EventReceipt{}) {
+				t.Fatalf("Apple venue readback = (%+v,%v), want error %v with no partial receipt", got, err, tc.want)
+			}
+			calls := fixture.record()
+			if len(calls) != 1 || calls[0].method != http.MethodGet || !strings.HasSuffix(calls[0].path, "/"+owned.ID.value+".ics") {
+				t.Fatalf("Apple venue recovery calls = %+v, want one read of the exact owned child", calls)
 			}
 		})
 	}

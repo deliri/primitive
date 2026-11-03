@@ -542,6 +542,7 @@ func (c Client) googleUpdate(ctx context.Context, u EventUpdate) (EventReceipt, 
 	}
 	// Patch only the explicitly owned fields. Preserve notes, locations and
 	// other provider fields the user may have added to this owned appointment.
+	// Location changes only when the organizer explicitly supplied a venue.
 	// https://developers.google.com/workspace/calendar/api/v3/reference/events/patch
 	result, err := c.send(ctx, call{target: target, method: exchange.MethodPatch, body: body, headers: []exchange.Header{condition}, requestType: core.HTTPMediaTypeJSON(), responseType: core.HTTPMediaTypeJSON(), secrets: secrets, policy: u.Policy, expected: http.StatusOK})
 	if err != nil {

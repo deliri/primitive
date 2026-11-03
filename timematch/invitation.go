@@ -47,7 +47,7 @@ func (m *InvitationMethod) UnmarshalJSON(data []byte) error {
 // UTC second precision avoids ambiguous local clocks and VTIMEZONE invention.
 // Sources: RFC 5546 sections 3.2.2/3.2.5; RFC 5545 sections 3.1/3.8.7.4.
 type Invitation struct {
-	Venue     EventVenue
+	Venue     core.TimeMatchAppointmentVenue
 	UID       EventID
 	Summary   EventSummary
 	Interval  temporal.IntervalBounds

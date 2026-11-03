@@ -708,7 +708,7 @@ func (s EventSummary) String() string { return s.value }
 // for Google and Apple, and 100 nanoseconds for Microsoft. Finer endpoints are
 // refused before HTTP; the package never rounds a requested appointment.
 type EventIntent struct {
-	Venue    EventVenue
+	Venue    core.TimeMatchAppointmentVenue
 	Calendar CalendarID
 	ID       EventID
 	Summary  EventSummary
