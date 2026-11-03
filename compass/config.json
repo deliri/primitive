@@ -6,13 +6,11 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 468
+      "patch": 469
     },
     "release_notes": [
-      "TimeMatch preserves user-added Apple event details, conditionally mutates owned Microsoft events, and keeps bounded Microsoft all-day busy spans local to their actual dates. Credentials use zeroable Exchange secret headers.",
-      "Google disconnect distinguishes an already-invalid submitted credential, while deterministic Google and Apple create recovery can safely finish a previously unapplied attempt under provider guards.",
-      "Calendar parsing unfolds lines in linear work, invitation output writes physical lines once, and Temporal resolves exact civil-day bounds including the native leap-year boundary correction.",
-      "Go module observations include the native per-version lock carrier address. Native proofs cover actual Go lock interoperability; this does not enable any consumer shared cache by itself."
+      "TimeMatch recover-only calls observe the owned intent without creating or changing a calendar event on any provider.",
+      "Provider-guarded redispatch requires the distinct explicit recover-guarded attempt and the same current intent authority. Google and Apple retain their create-only safeguards; Microsoft remains read-only."
     ]
   }
 }
