@@ -6,11 +6,12 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 469
+      "patch": 470
     },
     "release_notes": [
-      "TimeMatch recover-only calls observe the owned intent without creating or changing a calendar event on any provider.",
-      "Provider-guarded redispatch requires the distinct explicit recover-guarded attempt and the same current intent authority. Google and Apple retain their create-only safeguards; Microsoft remains read-only."
+      "Owned TimeMatch appointments and calendar invitations carry the organizer-supplied physical destination or HTTPS video-call link.",
+      "The shared provider-independent venue fact validates address and call-link input. Exact owned-event readback refuses a changed destination, while updates preserve unrelated user notes and reminders.",
+      "Availability discovery remains busy/free only; location and join-link fields are written or read only for the specifically owned appointment."
     ]
   }
 }
