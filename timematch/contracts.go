@@ -708,6 +708,7 @@ func (s EventSummary) String() string { return s.value }
 // for Google and Apple, and 100 nanoseconds for Microsoft. Finer endpoints are
 // refused before HTTP; the package never rounds a requested appointment.
 type EventIntent struct {
+	Venue    EventVenue
 	Calendar CalendarID
 	ID       EventID
 	Summary  EventSummary
@@ -715,7 +716,7 @@ type EventIntent struct {
 }
 
 func (i EventIntent) Validate() error {
-	if err := errors.Join(i.Calendar.Validate(), i.ID.Validate(), i.Summary.Validate(), positiveInterval(i.Interval)); err != nil {
+	if err := errors.Join(i.Calendar.Validate(), i.ID.Validate(), i.Summary.Validate(), i.Venue.Validate(), positiveInterval(i.Interval)); err != nil {
 		return errors.Join(core.ErrTimeMatchContract, err)
 	}
 	return nil

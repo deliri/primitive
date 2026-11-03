@@ -47,6 +47,7 @@ func (m *InvitationMethod) UnmarshalJSON(data []byte) error {
 // UTC second precision avoids ambiguous local clocks and VTIMEZONE invention.
 // Sources: RFC 5546 sections 3.2.2/3.2.5; RFC 5545 sections 3.1/3.8.7.4.
 type Invitation struct {
+	Venue     EventVenue
 	UID       EventID
 	Summary   EventSummary
 	Interval  temporal.IntervalBounds
@@ -59,7 +60,7 @@ type Invitation struct {
 
 // Validate checks the entire invitation before any message bytes are emitted.
 func (i Invitation) Validate() error {
-	if err := errors.Join(i.UID.Validate(), i.Summary.Validate(), positiveInterval(i.Interval), i.Stamp.Validate(), i.Organizer.Validate(), i.Method.Validate()); err != nil {
+	if err := errors.Join(i.UID.Validate(), i.Summary.Validate(), i.Venue.Validate(), positiveInterval(i.Interval), i.Stamp.Validate(), i.Organizer.Validate(), i.Method.Validate()); err != nil {
 		return errors.Join(core.ErrTimeMatchContract, err)
 	}
 	if len(i.Attendees) == 0 || i.Sequence > math.MaxInt32 || i.Method == InvitationCancel && i.Sequence == 0 {
