@@ -93,7 +93,7 @@ func TestNativeCodecProjectsOwnerWithoutMethodsThroughBothDoors(t *testing.T) {
 	}
 	nilMaybe := nativeStampDocument{Text: "x"}
 	encoded, err := jsonio.MarshalValidatedWith(nilMaybe, permitted(), codec)
-	if err != nil || string(encoded) != `{"text":"x","when":0,"maybe":null,"list":null,"pair":[0,0]}` {
+	if err != nil || string(encoded) != `{"text":"x","when":0,"maybe":null,"list":[],"pair":[0,0]}` {
 		t.Fatalf("nil pointer owner = %s/%v, want null under the permitted arm", encoded, err)
 	}
 	if _, err := jsonio.MarshalValidatedWith(nilMaybe, jsonio.OwnedCodecPolicy{}, codec); !errors.Is(err, core.ErrJSONContract) {
@@ -115,7 +115,7 @@ func TestNativeCodecNullNeverRestoresAndPointerNullFollowsPolicy(t *testing.T) {
 	}{
 		{"projected non-pointer null refuses under the permitted arm", `{"text":"x","when":null,"maybe":null,"list":null,"pair":[0,0]}`, permitted(), true, false, 0},
 		{"projected non-pointer null refuses under the refused arm", `{"text":"x","when":null,"maybe":{"n":1},"list":[],"pair":[0,0]}`, jsonio.OwnedCodecPolicy{}, true, false, 0},
-		{"array element null refuses before restore", `{"text":"x","when":1,"maybe":2,"list":[null],"pair":[0,0]}`, permitted(), true, false, 1},
+		{"array element null refuses before restore", `{"text":"x","when":1,"maybe":2,"list":[null],"pair":[0,0]}`, permitted(), true, false, 2},
 		{"pointer null is nil under the permitted arm", `{"text":"x","when":1,"maybe":null,"list":[],"pair":[0,0]}`, permitted(), false, true, 3},
 		{"pointer null refuses under the refused arm", `{"text":"x","when":1,"maybe":null,"list":[],"pair":[0,0]}`, jsonio.OwnedCodecPolicy{}, true, false, 1},
 	} {
