@@ -34,7 +34,7 @@ func (v TimeMatchAppointmentVenue) Validate() error {
 	}
 	if v.JoinURL != "" {
 		parsed, err := url.Parse(v.JoinURL)
-		if err != nil || parsed.Scheme != "https" || parsed.Hostname() == "" || parsed.User != nil || parsed.Opaque != "" {
+		if err != nil || parsed.Scheme != SchemeHTTPS || parsed.Hostname() == "" || parsed.User != nil || parsed.Opaque != "" {
 			return ErrTimeMatchContract
 		}
 	}
