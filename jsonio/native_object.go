@@ -15,7 +15,7 @@ import (
 // ordering, Unicode, scalar spelling and nested custom codecs; no parallel JSON
 // formatter or object model is constructed here. A nil root is refused.
 // Source: https://pkg.go.dev/encoding/json/v2#Marshal
-func MarshalNativeObject[Document any](document Document) ([]byte, error) {
+func MarshalNativeObject[Document ~map[string]any](document Document) ([]byte, error) {
 	data, err := jsonv2.Marshal(document, jsonv2.Deterministic(true))
 	if err != nil {
 		return nil, jsonOperationError(err)
@@ -32,7 +32,7 @@ func MarshalNativeObject[Document any](document Document) ([]byte, error) {
 // objects, arrays, duplicate names, Unicode and error provenance. A failed
 // decode publishes no partially populated native object.
 // Source: https://pkg.go.dev/encoding/json/v2#UnmarshalFromFunc
-func DecodeNativeIntegerObject[Document any](data []byte) (Document, error) {
+func DecodeNativeIntegerObject[Document ~map[string]any](data []byte) (Document, error) {
 	var zero Document
 	if err := ValidateBytes(data); err != nil {
 		return zero, err
