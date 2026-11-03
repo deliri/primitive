@@ -105,6 +105,31 @@ func (r QueryRequest[T]) ValidateClient(client *firestore.Client) error {
 // or cancellation is observed at that boundary. This is not a cancellation
 // linearization guarantee: cancellation can occur after the final observation.
 func Query[T core.Validatable](ctx context.Context, request QueryRequest[T]) error {
+	return query(ctx, request, func(_ context.Context, snapshot *firestore.DocumentSnapshot) (Document[T], error) {
+		var document Document[T]
+		if err := snapshot.DataTo(&document.Record); err != nil {
+			return Document[T]{}, errors.Join(core.ErrFirestoreDocumentsOperation, err)
+		}
+		return document, nil
+	})
+}
+
+// QueryIntegerJSON streams exactly like Query but decodes each row through the
+// same canonical integer JSON projection as GetIntegerJSON, so JSON-shaped
+// documents (unsigned members, text identities, nested records) are read by
+// query with the point read's admission: unknown members and native doubles
+// refuse the row and the query, and nothing is visited for that row.
+func QueryIntegerJSON[T core.Validatable](ctx context.Context, request QueryRequest[T]) error {
+	return query(ctx, request, func(ctx context.Context, snapshot *firestore.DocumentSnapshot) (Document[T], error) {
+		projected, err := projectJSON[T](ctx, snapshot, true)
+		if err != nil {
+			return Document[T]{}, err
+		}
+		return Document[T]{Record: projected.Record}, nil
+	})
+}
+
+func query[T core.Validatable](ctx context.Context, request QueryRequest[T], decode func(context.Context, *firestore.DocumentSnapshot) (Document[T], error)) error {
 	if err := documentContext(ctx); err != nil {
 		return errors.Join(core.ErrFirestoreDocumentsContract, err)
 	}
@@ -127,9 +152,9 @@ func Query[T core.Validatable](ctx context.Context, request QueryRequest[T]) err
 		if err != nil {
 			return errors.Join(core.ErrFirestoreDocumentsOperation, err, documentContext(ctx))
 		}
-		var document Document[T]
-		if err := snapshot.DataTo(&document.Record); err != nil {
-			return errors.Join(core.ErrFirestoreDocumentsOperation, err, documentContext(ctx))
+		document, err := decode(ctx, snapshot)
+		if err != nil {
+			return errors.Join(err, documentContext(ctx))
 		}
 		if err := document.Validate(); err != nil {
 			return errors.Join(err, documentContext(ctx))

@@ -62,6 +62,13 @@ func getJSON[T core.Validatable](ctx context.Context, request GetRequest, intege
 	if err != nil {
 		return JSONDocument[T]{}, errors.Join(core.ErrFirestoreDocumentsOperation, err, ctx.Err(), context.Cause(ctx))
 	}
+	return projectJSON[T](ctx, snapshot, integerOnly)
+}
+
+// projectJSON turns one native snapshot into the caller's record through the
+// canonical JSON projection. Get and query reads share it exactly, so a query
+// row admits precisely what a point read admits.
+func projectJSON[T core.Validatable](ctx context.Context, snapshot *firestore.DocumentSnapshot, integerOnly bool) (JSONDocument[T], error) {
 	native := snapshot.Data()
 	if integerOnly {
 		if err := validateIntegerJSONValue(ctx, native); err != nil {
