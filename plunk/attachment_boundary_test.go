@@ -101,7 +101,7 @@ func TestAttachmentRequestCountAndAggregateBoundaries(t *testing.T) {
 				}
 			}
 			if tc.count == 0 && bytes.Contains(wire, []byte("attachments")) {
-				t.Fatal("zero attachments emitted a member, want absent")
+				t.Fatalf("EncodeSendRequest(zero attachments) = %s, want absent attachments member", wire)
 			}
 		})
 	}
