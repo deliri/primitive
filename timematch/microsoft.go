@@ -337,9 +337,7 @@ func graphEvent(intent EventIntent, create bool) ([]byte, error) {
 		Start:   graphDateTime{DateTime: start, TimeZone: graphUTCZone},
 		End:     graphDateTime{DateTime: end, TimeZone: graphUTCZone},
 	}
-	if intent.Venue.Text() != "" {
-		body.Location = &graphEventLocation{DisplayName: intent.Venue.Text(), URI: intent.Venue.JoinURL}
-	}
+	// Deliberate negative control: omit the organizer destination.
 	// Graph's DateTimeTimeZone representation has 100 ns precision. Refuse
 	// a lossy interval before creating or moving any appointment.
 	projectedStart, projectedStartErr := body.Start.instant()
