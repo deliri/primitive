@@ -6,12 +6,12 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 472
+      "patch": 473
     },
     "release_notes": [
-      "AES-GCM can admit an independently owned cipher borrow before an external effect, preserving sealing authority through source shutdown without exporting key bytes.",
-      "Ordinary cipher aliases still share destruction. Every admitted borrow retains the same native key schedule until its own explicit Destroy; native nonce limits remain shared across the key.",
-      "Native race and lifetime proof covers source, alias, sibling and concurrent Borrow/Destroy ownership. A one-fact shared-state control fails both independence contracts; scoped AES-GCM analyzers are clean."
+      "Plunk send requests can carry typed file attachments as documented filename, contentType and base64 content objects; absent attachments preserve the previous wire shape.",
+      "Attachment admission bounds count, individual and aggregate bytes, safe UTF-8 file names and native MIME grammar. Exact limit and semantic base64 round-trip proof is retained, with a deliberate omitted-member control.",
+      "This release adds SDK attachment transport only; provider delivery, inbox rendering and calendar import require independent application evidence."
     ]
   }
 }
