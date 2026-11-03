@@ -27,7 +27,7 @@ func TestBrowserModuleEmitsCoreIdentities(t *testing.T) {
 			t.Fatalf("BrowserModule() lacks %q", fragment)
 		}
 	}
-	for _, required := range []string{"redirect: 'manual'", "credentials: 'same-origin'", "cache: 'no-store'", "export async function sendJSON"} {
+	for _, required := range []string{"redirect: 'manual'", "credentials: 'same-origin'", "cache: 'no-store'", "export async function sendJSON", "export function createBrowserExchange", core.HTTPHeaderIdempotencyKey().String()} {
 		if !strings.Contains(module, required) {
 			t.Fatalf("BrowserModule() lacks %q", required)
 		}
