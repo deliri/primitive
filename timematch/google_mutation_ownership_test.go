@@ -112,7 +112,7 @@ func TestGoogleRemoteOwnershipForeignCollisionCannotIssueReceipt(t *testing.T) {
 		writeJSON(w, 200, foreign)
 	})
 	request := eventWrite(t, oauthConnection(t, ProviderGoogle), owned)
-	request.Attempt = EventCreateRecoverOnly
+	request.Attempt = EventCreateGuardedRecovery
 	got, err := client.PutEvent(t.Context(), request)
 	if !errors.Is(err, core.ErrTimeMatchIndeterminate) || got != (EventReceipt{}) || mutations.Load() != 1 || details.Load() != 0 {
 		t.Fatalf("foreign identical recovery=(%+v,%v),mutations/details%d/%d,want zero/Indeterminate/1 rejected create/0 private reads", got, err, mutations.Load(), details.Load())
@@ -304,7 +304,7 @@ func TestGoogleOwnedMutationStatefulLayerTriad(t *testing.T) {
 				}
 			} else if tc.recover {
 				request := eventWrite(t, connection, owned)
-				request.Attempt = EventCreateRecoverOnly
+				request.Attempt = EventCreateGuardedRecovery
 				var receipt EventReceipt
 				receipt, err = client.PutEvent(t.Context(), request)
 				if tc.want != nil && receipt != (EventReceipt{}) || tc.want == nil && receipt.Ref != ref {
