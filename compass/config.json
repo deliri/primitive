@@ -6,12 +6,12 @@
     "release": {
       "major": 2026,
       "minor": 1,
-      "patch": 473
+      "patch": 474
     },
     "release_notes": [
-      "Plunk send requests can carry typed file attachments as documented filename, contentType and base64 content objects; absent attachments preserve the previous wire shape.",
-      "Attachment admission bounds count, individual and aggregate bytes, safe UTF-8 file names and native MIME grammar. Exact limit and semantic base64 round-trip proof is retained, with a deliberate omitted-member control.",
-      "This release adds SDK attachment transport only; provider delivery, inbox rendering and calendar import require independent application evidence."
+      "Firestore integer JSON queries now decode the same strict unsigned and exact signed-integer document projection as point reads. Native Go SDK object encoding and integer decoding execute through jsonio without a second JSON formatter.",
+      "JSONIO can lend explicit typed native codecs to owned whole-value documents, preserving owner causes, pointer-null policy and exact integer projections. Kernel Temporal numeric persistence can use this capability without importing a JSON engine.",
+      "Plunk attachment admission refuses Unicode format characters and media-type filename parameters. Hostfacts can observe paired native ancestor memory limit, charge and saturating minimum headroom; an observation is not a reservation or a guarantee of future workload capacity."
     ]
   }
 }
