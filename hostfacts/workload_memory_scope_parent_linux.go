@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/deliri/primitive/v2026/contextstate"
 	"github.com/deliri/primitive/v2026/core"
 	"github.com/deliri/primitive/v2026/temporal"
 )
@@ -43,6 +44,9 @@ func observeWorkloadMemoryScopeParent(ctx context.Context) (WorkloadMemoryHeadro
 		return WorkloadMemoryHeadroom{}, err
 	}
 	if err := sameWorkloadMemoryScopeParent(before, after); err != nil {
+		return WorkloadMemoryHeadroom{}, err
+	}
+	if err := contextstate.Validate(bounded); err != nil {
 		return WorkloadMemoryHeadroom{}, err
 	}
 	return result, result.Validate()

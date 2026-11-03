@@ -184,3 +184,38 @@ func scopeParentFilesFixture(t *testing.T) (workloadMemoryScopeParentFiles, stri
 	}
 	return workloadMemoryScopeParentFiles{membership: p, mounts: m}, mount
 }
+
+func TestWorkloadMemoryScopeParentTerminalContexts(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	got, err := ObserveWorkloadMemoryScopeParent(ctx)
+	if !errors.Is(err, context.Canceled) || got != (WorkloadMemoryHeadroom{}) {
+		t.Fatalf("cancelled public observation=%+v/%v, want zero and cancellation", got, err)
+	}
+	var absent context.Context
+	got, err = ObserveWorkloadMemoryScopeParent(absent)
+	if !errors.Is(err, core.ErrNilContext) || got != (WorkloadMemoryHeadroom{}) {
+		t.Fatalf("nil public observation=%+v/%v, want zero and nil-context cause", got, err)
+	}
+}
+
+func TestWorkloadMemoryScopeParentUsesV1TargetHierarchy(t *testing.T) {
+	t.Parallel()
+	files, mount := scopeParentFilesFixture(t)
+	for _, file := range []struct{ path, text string }{
+		{files.membership.String(), "5:memory:/session.scope\n"},
+		{files.mounts.String(), "30 23 0:27 / " + mount + " rw - cgroup cgroup rw,memory\n"},
+		{filepath.Join(mount, "manager", "app.slice", "memory.limit_in_bytes"), "1024\n"},
+		{filepath.Join(mount, "manager", "app.slice", "memory.usage_in_bytes"), "1000\n"},
+	} {
+		if err := os.WriteFile(file.path, []byte(file.text), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, err := observeWorkloadMemoryScopeParentAt(t.Context(), files, []byte("/manager/app.slice\n"))
+	remaining, present := got.RemainingBytes()
+	if err != nil || got.Validate() != nil || got.BindingLimit().Source() != WorkloadMemoryLimitSourceCgroupV1 || !present || remaining.Uint64() != 24 {
+		t.Fatalf("v1 future parent=%+v/%v remaining%d/%t, want native v1 charge and24", got, err, remaining.Uint64(), present)
+	}
+}

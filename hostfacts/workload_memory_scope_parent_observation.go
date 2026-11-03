@@ -23,45 +23,66 @@ func (f workloadMemoryScopeParentFiles) Validate() error {
 // The paths name native proc files. Only the control-group record is lent;
 // tests use owned files, not a fabricated observation or execution callback.
 func observeWorkloadMemoryScopeParentAt(ctx context.Context, files workloadMemoryScopeParentFiles, data []byte) (WorkloadMemoryHeadroom, error) {
-	if err := errors.Join(contextstate.Validate(ctx), files.Validate()); err != nil {
-		return WorkloadMemoryHeadroom{}, err
-	}
-	target, present, err := parseWorkloadMemoryScopeParent(data)
+	selection, present, err := selectWorkloadMemoryScopeParent(ctx, files, data)
 	if err != nil {
 		return WorkloadMemoryHeadroom{}, err
 	}
 	if !present {
 		return unavailableWorkloadMemoryHeadroom()
 	}
-	current, found, err := observeCgroupMembership(ctx, files.membership)
-	if err != nil {
-		return WorkloadMemoryHeadroom{}, err
-	}
-	if !found {
-		return unavailableWorkloadMemoryHeadroom()
-	}
-	future := cgroupMembership{path: target, source: current.source}
-	mount, err := selectCgroupMount(ctx, files.mounts, future)
-	if errors.Is(err, core.ErrCgroupMountMissing) {
-		return unavailableWorkloadMemoryHeadroom()
-	}
-	if err != nil {
-		return WorkloadMemoryHeadroom{}, err
-	}
-	if err := admitWorkloadMemoryScopeParentDirectory(ctx, future, mount); err != nil {
+	if err := admitWorkloadMemoryScopeParentDirectory(ctx, selection.prospective, selection.mount); err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			return unavailableWorkloadMemoryHeadroom()
 		}
 		return WorkloadMemoryHeadroom{}, err
 	}
-	result, err := foldWorkloadMemoryHeadroom(ctx, future, mount)
+	result, err := foldWorkloadMemoryHeadroom(ctx, selection.prospective, selection.mount)
 	if err != nil {
 		return WorkloadMemoryHeadroom{}, err
 	}
-	if err := recheckCgroupMembership(ctx, files.membership, current); err != nil {
+	if err := recheckCgroupMembership(ctx, files.membership, selection.current); err != nil {
 		return WorkloadMemoryHeadroom{}, err
 	}
 	return validateWorkloadMemoryHeadroom(result)
+}
+
+// These three native facts are lent only for this observation; there is no
+// retained process population or prospective-job registry.
+type workloadMemoryScopeParentSelection struct {
+	current     cgroupMembership
+	prospective cgroupMembership
+	mount       cgroupMount
+}
+
+func (s workloadMemoryScopeParentSelection) Validate() error {
+	return errors.Join(s.current.Validate(), s.prospective.Validate(), s.mount.Validate())
+}
+
+func selectWorkloadMemoryScopeParent(ctx context.Context, files workloadMemoryScopeParentFiles, data []byte) (workloadMemoryScopeParentSelection, bool, error) {
+	if err := errors.Join(contextstate.Validate(ctx), files.Validate()); err != nil {
+		return workloadMemoryScopeParentSelection{}, false, err
+	}
+	target, present, err := parseWorkloadMemoryScopeParent(data)
+	if err != nil || !present {
+		return workloadMemoryScopeParentSelection{}, false, err
+	}
+	current, found, err := observeCgroupMembership(ctx, files.membership)
+	if err != nil || !found {
+		return workloadMemoryScopeParentSelection{}, false, err
+	}
+	prospective := cgroupMembership{path: target, source: current.source}
+	mount, err := selectCgroupMount(ctx, files.mounts, prospective)
+	if errors.Is(err, core.ErrCgroupMountMissing) {
+		return workloadMemoryScopeParentSelection{}, false, nil
+	}
+	if err != nil {
+		return workloadMemoryScopeParentSelection{}, false, err
+	}
+	selection := workloadMemoryScopeParentSelection{current: current, prospective: prospective, mount: mount}
+	if err := selection.Validate(); err != nil {
+		return workloadMemoryScopeParentSelection{}, false, err
+	}
+	return selection, true, nil
 }
 
 func unavailableWorkloadMemoryHeadroom() (WorkloadMemoryHeadroom, error) {
