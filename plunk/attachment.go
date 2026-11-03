@@ -20,22 +20,33 @@ type Attachment struct {
 	Content     []byte `json:"content"`
 }
 
-// Validate refuses path-like or control-bearing names, media types the
-// standard library cannot parse, empty content and oversized content.
+// Validate refuses path-like, control-bearing or format-rune-bearing names,
+// media types the standard library cannot parse or that carry their own
+// name/filename parameter, empty content and oversized content. A format
+// rune such as a right-to-left override can render a safe name with a
+// misleading extension; a media-type name is a second file name that legacy
+// clients display instead of Filename.
 func (a Attachment) Validate() error {
 	if a.Filename == "" || len(a.Filename) > core.PlunkAttachmentFilenameMaximumBytes || !utf8.ValidString(a.Filename) || strings.TrimSpace(a.Filename) != a.Filename || strings.ContainsAny(a.Filename, "/\\") || a.Filename == "." || a.Filename == ".." {
 		return core.ErrPlunkContract
 	}
 	for _, r := range a.Filename {
-		if unicode.IsControl(r) {
+		if unicode.IsControl(r) || unicode.Is(unicode.Cf, r) {
 			return core.ErrPlunkContract
 		}
 	}
 	if a.ContentType == "" || len(a.ContentType) > core.PlunkAttachmentMediaTypeMaximumBytes {
 		return core.ErrPlunkContract
 	}
-	media, _, err := mime.ParseMediaType(a.ContentType)
+	media, parameters, err := mime.ParseMediaType(a.ContentType)
 	if err != nil || !strings.Contains(media, "/") {
+		return core.ErrPlunkContract
+	}
+	// ParseMediaType lower-cases parameter keys, so one spelling covers all.
+	if _, named := parameters["name"]; named {
+		return core.ErrPlunkContract
+	}
+	if _, named := parameters["filename"]; named {
 		return core.ErrPlunkContract
 	}
 	if len(a.Content) == 0 || len(a.Content) > core.PlunkAttachmentsMaximumBytes {

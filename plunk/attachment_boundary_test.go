@@ -33,7 +33,7 @@ func TestAttachmentExactBoundaries(t *testing.T) {
 		{name: "media below ceiling", filename: "a", media: "a/" + strings.Repeat("b", core.PlunkAttachmentMediaTypeMaximumBytes-3), bytes: 1},
 		{name: "media at ceiling", filename: "a", media: "a/" + strings.Repeat("b", core.PlunkAttachmentMediaTypeMaximumBytes-2), bytes: 1},
 		{name: "media parameter preserved", filename: "a", media: "text/calendar; charset=utf-8; method=REQUEST", bytes: 1},
-		{name: "media quoted parameter", filename: "a", media: "application/x-test; name=\"a b\"", bytes: 1},
+		{name: "media quoted parameter", filename: "a", media: "application/x-test; title=\"a b\"", bytes: 1},
 		{name: "content below ceiling", filename: "a", media: "a/b", bytes: core.PlunkAttachmentsMaximumBytes - 1},
 		{name: "content at ceiling", filename: "a", media: "a/b", bytes: core.PlunkAttachmentsMaximumBytes},
 	} {
