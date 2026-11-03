@@ -135,7 +135,7 @@ func TestGoogleOwnedVenueNativeWriteAndReadback(t *testing.T) {
 				t.Fatalf("native venue recovery = (%+v,%v), want unchanged owned receipt", again, err)
 			}
 			if calendar.inserts != 1 || len(fixture.record()) < 3 {
-				t.Fatalf("venue replay inserts%d calls%d, want exactly one write and actual owned readback", calendar.inserts, len(fixture.record()))
+				t.Fatalf("venue replay inserts%d calls%d, want exactly one write and native owned readback", calendar.inserts, len(fixture.record()))
 			}
 		})
 	}
