@@ -100,7 +100,7 @@ func TestGoogleRecoveryNeverRecreatesCancelledOrInvisibleEvent(t *testing.T) {
 				writeJSON(w, tc.status, googleFixtureWithETag(stored))
 			})
 			request := eventWrite(t, oauthConnection(t, ProviderGoogle), owned)
-			request.Attempt = EventCreateRecoverOnly
+			request.Attempt = EventCreateGuardedRecovery
 			receipt, err := client.PutEvent(t.Context(), request)
 			if !errors.Is(err, tc.want) {
 				t.Fatalf("recovery error=%v,want %v", err, tc.want)
@@ -150,7 +150,7 @@ func TestGoogleUnmarkedDeletedTombstoneCannotEstablishOwnership(t *testing.T) {
 		writeJSON(w, 200, string(wire))
 	})
 	request := eventWrite(t, oauthConnection(t, ProviderGoogle), owned)
-	request.Attempt = EventCreateRecoverOnly
+	request.Attempt = EventCreateGuardedRecovery
 	receipt, err := client.PutEvent(t.Context(), request)
 	if !errors.Is(err, core.ErrTimeMatchIndeterminate) || receipt != (EventReceipt{}) {
 		t.Fatalf("deleted tombstone recovery=(%+v,%v),want unknown ownership without downloading the deleted event", receipt, err)
