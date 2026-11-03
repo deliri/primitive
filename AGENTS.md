@@ -1,13 +1,11 @@
-## Anvil is GA
+# Permanent owner directive: first principles and the smallest correct solution
 
-All agents use `/Users/d/code/anvil/_release/anvil-darwin-arm64` on the Mac.
-Anvil owns admission, execution, server access and evidence transport. No direct
-SSH/SCP/rsync, native Furnace runners or Stoker. This overrides older runner
-instructions below. Read `/Users/d/code/anvil/_docs/agent-quickstart.md`.
-File complaints in `/Users/d/code/anvil/dog_fooding.md` with the commit,
-request, run ID, expected/actual result and evidence. Never include secrets.
+These original instructions must never be ignored. Status bulletins, handoffs,
+coordination and local plans do not override them.
 
-Optional project-config subset: callback and evidence destination only. Omit it for fleet-local SSD/HDD. No fleet-policy overrides. Implementation pending; see the quickstart.
+Ship only the requested behavior with the smallest correct implementation.
+Reuse Primitive; no speculative features, new machinery, scope expansion or
+cleanup detours. Do not over-engineer.
 
 Solve this using first principles thinking. First, list every assumption baked into the
 problem and how I'm framing it. Then break it down to the fundamental truths we know
@@ -27,6 +25,22 @@ Every project not primitive does the following thing;
 That’s our difference compared to every other shop
 
 After a fix, rerun only the failed test, never the whole package.
+
+Preserve useful committed work and its Anvil receipts: merge it into main before
+pruning its feature branch. Never discard uncommitted work or retained evidence.
+
+## Anvil is GA
+
+All agents use `/Users/d/code/anvil/_release/anvil-darwin-arm64` on the Mac.
+Anvil owns admission, execution, server access and evidence transport. No direct
+SSH/SCP/rsync, native Furnace runners or Stoker. This overrides older runner
+instructions below. Read `/Users/d/code/anvil/_docs/agent-quickstart.md`.
+File complaints in `/Users/d/code/anvil/dog_fooding.md` with the commit,
+request, run ID, expected/actual result and evidence. Never include secrets.
+
+Optional project-config subset: callback and evidence destination only. Omit it for fleet-local SSD/HDD. No fleet-policy overrides. Implementation pending; see the quickstart.
+
+
 
 # Workspace instructions
 
