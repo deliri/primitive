@@ -260,10 +260,14 @@ func FuzzNativeCodecSemanticClosure(f *testing.F) {
 		f.Add(seed)
 	}
 	f.Fuzz(func(t *testing.T, nanoseconds int64) {
-		if nanoseconds == math.MinInt64 {
-			t.Skip("reserved by the owner as its refusal")
-		}
 		codec := stampCodec(t, nil)
+		if nanoseconds == math.MinInt64 {
+			data, err := jsonio.MarshalValidatedWith(nativeStampDocument{When: nativeStamp{nanoseconds}}, permitted(), codec)
+			if !errors.Is(err, core.ErrJSONContract) || !errors.Is(err, errNativeStampRange) || data != nil {
+				t.Fatalf("reserved nanoseconds bytes/error = %q/%v, want nil/JSON and owner refusal", data, err)
+			}
+			return
+		}
 		document := nativeStampDocument{Text: "x", When: nativeStamp{nanoseconds}, List: []nativeStamp{{nanoseconds}}, Pair: [2]nativeStamp{{nanoseconds}, {0}}}
 		control := nativeStampControl{Text: "x", When: nanoseconds, List: []int64{nanoseconds}, Pair: [2]int64{nanoseconds, 0}}
 		want, err := jsonio.MarshalValidated(control, permitted())

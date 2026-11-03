@@ -16,6 +16,9 @@ import (
 // formatter or object model is constructed here. A nil root is refused.
 // Source: https://pkg.go.dev/encoding/json/v2#Marshal
 func MarshalNativeObject[Document ~map[string]any](document Document) ([]byte, error) {
+	if document == nil {
+		return nil, core.ErrJSONContract
+	}
 	data, err := jsonv2.Marshal(document, jsonv2.Deterministic(true))
 	if err != nil {
 		return nil, jsonOperationError(err)

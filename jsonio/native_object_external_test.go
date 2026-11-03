@@ -45,6 +45,10 @@ func TestNativeIntegerObjectRetainsGoProjection(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestNativeObjectNilAndNonFiniteRefusals(t *testing.T) {
+	t.Parallel()
 	for _, value := range []map[string]any{nil, {"invalid": math.NaN()}, {"invalid": math.Inf(1)}} {
 		got, err := jsonio.MarshalNativeObject(value)
 		if !errors.Is(err, core.ErrJSONContract) || got != nil {
