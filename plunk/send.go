@@ -24,11 +24,16 @@ type SendRequest[Data any] struct {
 	To       string `json:"to"`
 	Subject  string `json:"subject,omitempty"`
 	Body     string `json:"body,omitempty"`
+	// Attachments are the documented base64 objects; absent means none.
+	Attachments []Attachment `json:"attachments,omitempty"`
 }
 
 func (r SendRequest[Data]) Validate() error {
 	if _, err := mail.ParseAddress(r.To); err != nil {
 		return contractError(err)
+	}
+	if err := validateAttachments(r.Attachments); err != nil {
+		return err
 	}
 	for _, address := range [...]string{r.From, r.Reply} {
 		if address != "" {

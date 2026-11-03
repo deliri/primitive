@@ -17,6 +17,7 @@ func (SentEmail) plunkProtocolFact()              {}
 func (SendContact) plunkProtocolFact()            {}
 func (SendError) plunkProtocolFact()              {}
 func (SendTimestamp) plunkProtocolFact()          {}
+func (Attachment) plunkProtocolFact()             {}
 func (SendResponseShapeError) plunkInternalFlow() {}
 
 func (TemplateMetadata) plunkProtocolFact()         {}
