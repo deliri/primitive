@@ -19,5 +19,5 @@ func (c Cipher) Borrow() (Cipher, error) {
 	if c.state.native == nil {
 		return Cipher{}, core.ErrAESGCMContract
 	}
-	return Cipher{state: c.state}, nil
+	return Cipher{state: &cipherState{native: c.state.native}}, nil
 }
