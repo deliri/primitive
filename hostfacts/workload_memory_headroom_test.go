@@ -143,6 +143,9 @@ func TestObserveWorkloadMemoryHeadroomNativeAndTerminalContext(t *testing.T) {
 	if limited != charged || limited != present || limited && remaining.Uint64() > limit.Uint64() {
 		t.Fatalf("native pair=%+v, want complete finite pairing", got)
 	}
+	if runtime.GOOS == "linux" && (binding.State() != WorkloadMemoryLimitLimited || !present || current.Uint64() == 0) {
+		t.Fatalf("native managed Linux pair=%+v, want a finite charged cgroup", got)
+	}
 	if runtime.GOOS != "linux" && binding.State() != WorkloadMemoryLimitUnsupported {
 		t.Fatalf("native state=%s on%s, want unsupported", binding.State(), runtime.GOOS)
 	}
@@ -184,4 +187,39 @@ func FuzzWorkloadMemoryChargeCanonical(f *testing.F) {
 			t.Fatalf("canonical charge=%v/%v, want original%v", again, againErr, got)
 		}
 	})
+}
+
+func TestWorkloadMemoryHeadroomReadsV1Charge(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	mount := filepath.Join(root, "memory")
+	child := filepath.Join(mount, "job")
+	if err := os.MkdirAll(child, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	proc, mounts := filepath.Join(root, "membership"), filepath.Join(root, "mountinfo")
+	for _, file := range []struct{ path, data string }{
+		{proc, "5:memory:/job\n"}, {mounts, "31 23 0:28 / " + mount + " rw - cgroup cgroup rw,memory\n"},
+		{filepath.Join(child, "memory.limit_in_bytes"), "1024\n"}, {filepath.Join(child, "memory.usage_in_bytes"), "256\n"},
+		{filepath.Join(mount, "memory.limit_in_bytes"), "2048\n"}, {filepath.Join(mount, "memory.usage_in_bytes"), "1984\n"},
+	} {
+		if err := os.WriteFile(file.path, []byte(file.data), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	p, err := core.ParseAbsolutePath(proc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m, err := core.ParseAbsolutePath(mounts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := observeWorkloadMemoryHeadroomAt(t.Context(), p, m)
+	remaining, present := got.RemainingBytes()
+	current, charged := got.CurrentBytes()
+	path, _ := got.BindingLimit().InterfacePath()
+	if err != nil || got.Validate() != nil || got.BindingLimit().Source() != WorkloadMemoryLimitSourceCgroupV1 || !present || !charged || remaining.Uint64() != 64 || current.Uint64() != 1984 || path.String() != filepath.Join(mount, "memory.limit_in_bytes") {
+		t.Fatalf("v1 pair=%+v/%v, want same nativeparent charge1984 and remaining64", got, err)
+	}
 }
