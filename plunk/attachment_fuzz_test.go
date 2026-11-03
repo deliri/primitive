@@ -38,14 +38,14 @@ func FuzzAttachmentRequestSemanticClosure(f *testing.F) {
 	f.Add(seed.Filename, seed.ContentType, seed.Content, uint8(6))
 	f.Fuzz(func(t *testing.T, filename, media string, content []byte, count uint8) {
 		attachment := Attachment{Filename: filename, ContentType: media, Content: content}
-		_, _, mimeErr := mime.ParseMediaType(media)
+		parsedMedia, _, mimeErr := mime.ParseMediaType(media)
 		nameSafe := filename != "" && filename != "." && filename != ".." && len(filename) <= core.PlunkAttachmentFilenameMaximumBytes && utf8.ValidString(filename) && strings.TrimSpace(filename) == filename && path.Base(strings.ReplaceAll(filename, "\\", "/")) == filename
 		for _, r := range filename {
 			if unicode.IsControl(r) {
 				nameSafe = false
 			}
 		}
-		valid := nameSafe && len(media) <= core.PlunkAttachmentMediaTypeMaximumBytes && strings.Contains(media, "/") && mimeErr == nil && len(content) > 0 && len(content) <= core.PlunkAttachmentsMaximumBytes
+		valid := nameSafe && len(media) <= core.PlunkAttachmentMediaTypeMaximumBytes && strings.Contains(parsedMedia, "/") && mimeErr == nil && len(content) > 0 && len(content) <= core.PlunkAttachmentsMaximumBytes
 		gotErr := attachment.Validate()
 		if valid != (gotErr == nil) || gotErr != nil && !errors.Is(gotErr, core.ErrPlunkContract) {
 			t.Fatalf("Attachment.Validate() error = %v, want validity %t and typed refusal", gotErr, valid)
