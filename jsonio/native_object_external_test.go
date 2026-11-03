@@ -32,7 +32,7 @@ func TestNativeIntegerObjectRetainsGoProjection(t *testing.T) {
 			if controlErr != nil || err != nil || !bytes.Equal(got, want) {
 				t.Fatalf("native object bytes/error = %q/%v, want Go %q/%v", got, err, want, controlErr)
 			}
-			decoded, err := jsonio.DecodeNativeIntegerObject(got)
+			decoded, err := jsonio.DecodeNativeIntegerObject[map[string]any](got)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -63,7 +63,7 @@ func TestNativeIntegerObjectRefusesBeforePublishingPartialValues(t *testing.T) {
 	} {
 		t.Run(text, func(t *testing.T) {
 			t.Parallel()
-			got, err := jsonio.DecodeNativeIntegerObject([]byte(text))
+			got, err := jsonio.DecodeNativeIntegerObject[map[string]any]([]byte(text))
 			if !errors.Is(err, core.ErrJSONContract) || got != nil {
 				t.Fatalf("refused native object = %+v/%v, want nil/JSON refusal", got, err)
 			}
@@ -80,7 +80,7 @@ func FuzzNativeIntegerObjectSemanticClosure(f *testing.F) {
 	f.Add([]byte(`{"integer":1e0}`))
 	f.Add([]byte(`null`))
 	f.Fuzz(func(t *testing.T, data []byte) {
-		got, err := jsonio.DecodeNativeIntegerObject(data)
+		got, err := jsonio.DecodeNativeIntegerObject[map[string]any](data)
 		if err != nil {
 			if !errors.Is(err, core.ErrJSONContract) || got != nil {
 				t.Fatalf("refusal published = %+v/%v, want nil/JSON contract", got, err)
@@ -95,7 +95,7 @@ func FuzzNativeIntegerObjectSemanticClosure(f *testing.F) {
 		if err != nil || !bytes.Equal(wire, control) {
 			t.Fatalf("native wire = %q, want Go %q, error=%v", wire, control, err)
 		}
-		second, err := jsonio.DecodeNativeIntegerObject(wire)
+		second, err := jsonio.DecodeNativeIntegerObject[map[string]any](wire)
 		if err != nil {
 			t.Fatal(err)
 		}

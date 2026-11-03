@@ -65,7 +65,7 @@ func integerJSONWriteValue[T core.Validatable](ctx context.Context, record T) (m
 	if err != nil {
 		return nil, core.ByteCount{}, err
 	}
-	value, err := jsonio.DecodeNativeIntegerObject(data)
+	value, err := jsonio.DecodeNativeIntegerObject[map[string]any](data)
 	if err != nil {
 		return nil, core.ByteCount{}, errors.Join(core.ErrJSONContract, err)
 	}

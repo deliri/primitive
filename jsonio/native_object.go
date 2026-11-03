@@ -15,13 +15,13 @@ import (
 // ordering, Unicode, scalar spelling and nested custom codecs; no parallel JSON
 // formatter or object model is constructed here. A nil root is refused.
 // Source: https://pkg.go.dev/encoding/json/v2#Marshal
-func MarshalNativeObject(document map[string]any) ([]byte, error) {
-	if document == nil {
-		return nil, core.ErrJSONContract
-	}
+func MarshalNativeObject[Document any](document Document) ([]byte, error) {
 	data, err := jsonv2.Marshal(document, jsonv2.Deterministic(true))
 	if err != nil {
 		return nil, jsonOperationError(err)
+	}
+	if jsontext.Value(data).Kind() != jsontext.KindBeginObject {
+		return nil, core.ErrJSONContract
 	}
 	return data, nil
 }
@@ -32,16 +32,17 @@ func MarshalNativeObject(document map[string]any) ([]byte, error) {
 // objects, arrays, duplicate names, Unicode and error provenance. A failed
 // decode publishes no partially populated native object.
 // Source: https://pkg.go.dev/encoding/json/v2#UnmarshalFromFunc
-func DecodeNativeIntegerObject(data []byte) (map[string]any, error) {
+func DecodeNativeIntegerObject[Document any](data []byte) (Document, error) {
+	var zero Document
 	if err := ValidateBytes(data); err != nil {
-		return nil, err
+		return zero, err
 	}
-	var document map[string]any
+	if jsontext.Value(data).Kind() != jsontext.KindBeginObject {
+		return zero, core.ErrJSONContract
+	}
+	var document Document
 	if err := jsonv2.Unmarshal(data, &document, jsonv2.WithUnmarshalers(nativeIntegerNumbers)); err != nil {
-		return nil, jsonOperationError(err)
-	}
-	if document == nil {
-		return nil, core.ErrJSONContract
+		return zero, jsonOperationError(err)
 	}
 	return document, nil
 }
