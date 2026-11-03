@@ -75,7 +75,7 @@ func projectJSON[T core.Validatable](ctx context.Context, snapshot *firestore.Do
 			return JSONDocument[T]{}, errors.Join(core.ErrFirestoreDocumentsOperation, err)
 		}
 	}
-	data, err := nativeToJSON(ctx, native, integerOnly)
+	data, err := jsonio.MarshalNativeObject(native)
 	if err != nil {
 		return JSONDocument[T]{}, errors.Join(core.ErrFirestoreDocumentsOperation, err)
 	}
