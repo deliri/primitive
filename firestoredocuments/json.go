@@ -2,12 +2,12 @@ package firestoredocuments
 
 import (
 	"context"
-	json "encoding/json/v2"
 	"errors"
 	"reflect"
 
 	"cloud.google.com/go/firestore"
 	"github.com/deliri/primitive/v2026/core"
+	"github.com/deliri/primitive/v2026/jsonio"
 )
 
 // JSONDocument retains the exact SDK-projected source extent alongside the
@@ -75,7 +75,7 @@ func projectJSON[T core.Validatable](ctx context.Context, snapshot *firestore.Do
 			return JSONDocument[T]{}, errors.Join(core.ErrFirestoreDocumentsOperation, err)
 		}
 	}
-	data, err := core.MarshalCanonicalJSONDocument(native)
+	data, err := nativeToJSON(ctx, native, integerOnly)
 	if err != nil {
 		return JSONDocument[T]{}, errors.Join(core.ErrFirestoreDocumentsOperation, err)
 	}
@@ -83,10 +83,13 @@ func projectJSON[T core.Validatable](ctx context.Context, snapshot *firestore.Do
 	if err != nil {
 		return JSONDocument[T]{}, errors.Join(core.ErrFirestoreDocumentsOperation, err)
 	}
-	result := JSONDocument[T]{Bytes: length}
-	if err := json.Unmarshal(data, &result.Record, json.RejectUnknownMembers(true)); err != nil {
+	// The caller's declared members and its own nested codecs admit the
+	// projection; unknown members and null roots refuse before validation.
+	record, err := jsonio.DecodeValue[T](data, jsonio.ProjectionReadPolicy{Members: jsonio.MembersDeclaredOnly, Root: jsonio.RootOwnedMethods, RootNulls: jsonio.RootNullRefused})
+	if err != nil {
 		return JSONDocument[T]{}, errors.Join(core.ErrFirestoreDocumentsOperation, err)
 	}
+	result := JSONDocument[T]{Record: record, Bytes: length}
 	if err := result.Validate(); err != nil {
 		return JSONDocument[T]{}, err
 	}
